@@ -30,7 +30,7 @@ typedef struct ast_list_s {
 } ast_list_t;
 
 typedef struct arg_list_s {
-    var_t *var;
+    var_t var;
     type_ast_t *type;
     ast_t *default_val;
     struct arg_list_s *next;

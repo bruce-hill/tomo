@@ -5,13 +5,25 @@
 #include <stdio.h>
 
 #include "ast.h"
+#include "compile.h"
 #include "util.h"
 
-static CORD compile_type(type_ast_t *t)
+CORD compile_type(type_ast_t *t)
 {
     switch (t->tag) {
-    case TypeVar: return Match(t, TypeVar)->var.name;
+    case TypeVar: return CORD_cat(Match(t, TypeVar)->var.name, "_t");
     default: errx(1, "Not implemented");
+    }
+}
+
+static inline CORD compile_statement(ast_t *ast)
+{
+    CORD code = compile(ast);
+    switch (ast->tag) {
+    case If: case For: case While: case FunctionDef:
+        return code;
+    default:
+        return CORD_cat(code, ";");
     }
 }
 
@@ -86,86 +98,96 @@ CORD compile(ast_t *ast)
     }
     case StringLiteral: {
         const char *str = Match(ast, StringLiteral)->str; 
-        CORD c = "\"";
+        CORD code = "\"";
         for (; *str; ++str) {
             switch (*str) {
-            case '\\': c = CORD_cat(c, "\\\\"); break;
-            case '"': c = CORD_cat(c, "\\\""); break;
-            case '\a': c = CORD_cat(c, "\\a"); break;
-            case '\b': c = CORD_cat(c, "\\b"); break;
-            case '\n': c = CORD_cat(c, "\\n"); break;
-            case '\r': c = CORD_cat(c, "\\r"); break;
-            case '\t': c = CORD_cat(c, "\\t"); break;
-            case '\v': c = CORD_cat(c, "\\v"); break;
+            case '\\': code = CORD_cat(code, "\\\\"); break;
+            case '"': code = CORD_cat(code, "\\\""); break;
+            case '\a': code = CORD_cat(code, "\\a"); break;
+            case '\b': code = CORD_cat(code, "\\b"); break;
+            case '\n': code = CORD_cat(code, "\\n"); break;
+            case '\r': code = CORD_cat(code, "\\r"); break;
+            case '\t': code = CORD_cat(code, "\\t"); break;
+            case '\v': code = CORD_cat(code, "\\v"); break;
             default: {
                 if (isprint(*str))
-                    c = CORD_cat_char(c, *str);
+                    code = CORD_cat_char(code, *str);
                 else
-                    CORD_sprintf(&c, "%r\\x%02X", *str);
+                    CORD_sprintf(&code, "%r\\x%02X", *str);
                 break;
             }
             }
         }
-        return CORD_cat_char(c, '"');
+        return CORD_cat_char(code, '"');
     }
     case StringJoin: {
-        CORD c = NULL;
+        CORD code = NULL;
         for (ast_list_t *chunk = Match(ast, StringJoin)->children; chunk; chunk = chunk->next) {
-            if (c) CORD_sprintf(&c, "CORD_cat(%r, %r)", c, compile(chunk->ast));
-            else c = compile(chunk->ast);
+            if (code) CORD_sprintf(&code, "CORD_cat(%r, %r)", code, compile(chunk->ast));
+            else code = compile(chunk->ast);
         }
-        return c;
+        return code;
     }
     case Interp: {
         return CORD_asprintf("__cord(%r)", compile(Match(ast, Interp)->value));
     }
     case Block: {
-        CORD c = NULL;
-        for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-            c = CORD_cat(c, compile(stmt->ast));
-            c = CORD_cat(c, ";\n");
+        ast_list_t *stmts = Match(ast, Block)->statements;
+        if (stmts && !stmts->next)
+            return compile_statement(stmts->ast);
+
+        CORD code = "{\n";
+        for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next) {
+            code = CORD_cat(code, compile_statement(stmt->ast));
+            code = CORD_cat(code, "\n");
         }
-        return c;
+        return CORD_cat(code, "}");
     }
     case Declare: {
         auto decl = Match(ast, Declare);
-        return CORD_asprintf("auto %r = %r", decl->var, decl->value);
+        return CORD_asprintf("__declare(%r, %r)", compile(decl->var), compile(decl->value));
     }
     case Assign: {
         auto assign = Match(ast, Assign);
-        CORD c = NULL;
+        CORD code = NULL;
         for (ast_list_t *target = assign->targets, *value = assign->values; target && value; target = target->next, value = value->next) {
-            CORD_sprintf(&c, "%r = %r", compile(target->ast), compile(value->ast));
-            if (target->next) c = CORD_cat(c, ", ");
+            CORD_sprintf(&code, "%r = %r", compile(target->ast), compile(value->ast));
+            if (target->next) code = CORD_cat(code, ", ");
         }
-        return c;
+        return code;
     }
     // Min, Max,
     // Array, Table, TableEntry,
     case FunctionDef: {
         auto fndef = Match(ast, FunctionDef);
-        CORD c = CORD_asprintf("%r %r(", fndef->ret_type ? compile_type(fndef->ret_type) : "void", compile(fndef->name));
+        CORD code = CORD_asprintf("%r %r(", fndef->ret_type ? compile_type(fndef->ret_type) : "void", compile(fndef->name));
         for (arg_list_t *arg = fndef->args; arg; arg = arg->next) {
-            CORD_sprintf(&c, "%r%r %s", c, compile_type(arg->type), arg->var->name);
-            if (arg->next) c = CORD_cat(c, ", ");
+            CORD_sprintf(&code, "%r%r %s", code, compile_type(arg->type), arg->var.name);
+            if (arg->next) code = CORD_cat(code, ", ");
         }
-        c = CORD_cat(c, ") {\n");
-        c = CORD_cat(c, compile(fndef->body));
-        c = CORD_cat(c, "}");
-        return c;
+        code = CORD_cat(code, ") ");
+        code = CORD_cat(code, compile(fndef->body));
+        return code;
     }
     case FunctionCall: {
         auto call = Match(ast, FunctionCall);
-        CORD c = CORD_cat_char(compile(call->fn), '(');
+        CORD code = CORD_cat_char(compile(call->fn), '(');
         for (ast_list_t *arg = call->args; arg; arg = arg->next) {
-            c = CORD_cat(c, compile(arg->ast));
-            if (arg->next) c = CORD_cat(c, ", ");
+            code = CORD_cat(code, compile(arg->ast));
+            if (arg->next) code = CORD_cat(code, ", ");
         }
-        return CORD_cat_char(c, ')');
+        return CORD_cat_char(code, ')');
     }
     // Lambda,
-    // FunctionCall, KeywordArg,
-    // Block,
+    // KeywordArg,
+    case If: {
+        auto if_ = Match(ast, If);
+        CORD code;
+        CORD_sprintf(&code, "if (%r) %r", compile(if_->condition), compile(if_->body));
+        if (if_->else_body)
+            CORD_sprintf(&code, "%r\nelse %r", code, compile(if_->else_body));
+        return code;
+    }
     // For, While, If,
     // Reduction,
     // Skip, Stop, Pass,

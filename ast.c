@@ -9,6 +9,7 @@
 static const char *OP_NAMES[] = {
     [BINOP_UNKNOWN]="unknown",
     [UNOP_NOT]="not", [UNOP_NEGATIVE]="negative",
+    [UNOP_HEAP_ALLOCATE]="@", [UNOP_STACK_REFERENCE]="&",
     [BINOP_POWER]="^", [BINOP_MULT]="*", [BINOP_DIVIDE]="/",
     [BINOP_MOD]="mod", [BINOP_MOD1]="mod1", [BINOP_PLUS]="+", [BINOP_MINUS]="minus",
     [BINOP_CONCAT]="++", [BINOP_LSHIFT]="<<", [BINOP_RSHIFT]=">>", [BINOP_MIN]="min",
@@ -52,8 +53,8 @@ CORD ast_list_to_cord(ast_list_t *asts)
 CORD arg_list_to_cord(arg_list_t *args) {
     CORD c = "Args(";
     for (; args; args = args->next) {
-        if (args->var && args->var->name)
-            c = CORD_cat(c, args->var->name);
+        if (args->var.name)
+            c = CORD_cat(c, args->var.name);
         if (args->type)
             CORD_sprintf(&c, "%r:%s", c, type_ast_to_cord(args->type));
         if (args->default_val)
@@ -86,8 +87,8 @@ CORD ast_to_cord(ast_t *ast)
     T(Nil, "(%r)", type_ast_to_cord(data.type))
     T(Bool, "(\x1b[35m%s\x1b[m)", data.b ? "yes" : "no")
     T(Var, "(\x1b[36;1m%s\x1b[m)", data.var.name)
-    T(Int, "(\x1b[35m%ld\x1b[m, precision=%ld)", data.i, data.precision)
-    T(Num, "(\x1b[35m%ld\x1b[m, precision=%ld)", data.n, data.precision)
+    T(Int, "(\x1b[35m%ld\x1b[m, precision=\x1b[35m%ld\x1b[m)", data.i, data.precision)
+    T(Num, "(\x1b[35m%ld\x1b[m, precision=\x1b[35m%ld\x1b[m)", data.n, data.precision)
     T(Char, "(\x1b[35m'%c'\x1b[m)", data.c)
     T(StringLiteral, "\x1b[35m\"%s\"\x1b[m", data.str)
     T(StringJoin, "(%r)", ast_list_to_cord(data.children))

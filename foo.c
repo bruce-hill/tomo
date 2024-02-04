@@ -1,12 +1,18 @@
-#include <stdio.h>
+#include "nextlang.h"
 
-int main(void) {
-    int x = 23;
-    const char *s = "Hi";
-#define say(x) _Generic(x, int: printf("%d\n", x), char *: puts(s), default: puts("???"))
-    say(x);
-    say(s);
-#define all(...) { __VA_ARGS__; }
-    all(say("one"); say(2))
+static void foo(Int64 x);
+
+
+void foo(Int64 x)
+{
+    say("Hello world!");
+}
+
+int main(int argc, const char *argv[])
+{
+    (void) argc;
+    (void) argv;
+    foo(((Int64_t) 5));
+
     return 0;
 }

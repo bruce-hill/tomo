@@ -1529,12 +1529,12 @@ arg_list_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed)
         ast_t *default_val = NULL;
         type_ast_t *type = NULL;
 
-        typedef struct var_list_s {
-            var_t *var;
-            struct var_list_s *next;
-        } var_list_t;
+        typedef struct name_list_s {
+            const char *name;
+            struct name_list_s *next;
+        } name_list_t;
 
-        var_list_t *vars = NULL;
+        name_list_t *names = NULL;
         for (;;) {
             whitespace(pos);
             const char *name_start = *pos;
@@ -1543,34 +1543,34 @@ arg_list_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed)
             whitespace(pos);
             if (strncmp(*pos, "==", 2) != 0 && match(pos, "=")) {
                 default_val = expect(ctx, *pos-1, pos, parse_term, "I expected a value after this '='");
-                vars = new(var_list_t, .var=new(var_t, .name=name), .next=vars);
+                names = new(name_list_t, .name=name, .next=names);
                 break;
             } else if (match(pos, ":")) {
                 type = expect(ctx, *pos-1, pos, parse_type, "I expected a type here");
-                vars = new(var_list_t, .var=new(var_t, .name=name), .next=vars);
+                names = new(name_list_t, .name=name, .next=names);
                 break;
             } else if (allow_unnamed) {
                 *pos = name_start;
                 type = optional(ctx, pos, parse_type);
                 if (type)
-                    vars = new(var_list_t, .var=NULL, .next=vars);
+                    names = new(name_list_t, .name=NULL, .next=names);
                 break;
             } else if (name) {
-                vars = new(var_list_t, .var=new(var_t, .name=name), .next=vars);
+                names = new(name_list_t, .name=name, .next=names);
                 spaces(pos);
                 if (!match(pos, ",")) break;
             } else {
                 break;
             }
         }
-        if (!vars) break;
+        if (!names) break;
         if (!default_val && !type)
             parser_err(ctx, batch_start, *pos, "I expected a ':' and type, or '=' and a default value after this parameter (%s)",
-                       vars->var->name);
+                       names->name);
 
-        REVERSE_LIST(vars);
-        for (; vars; vars = vars->next)
-            args = new(arg_list_t, .var=vars->var, .type=type, .default_val=default_val);
+        REVERSE_LIST(names);
+        for (; names; names = names->next)
+            args = new(arg_list_t, .var.name=names->name, .type=type, .default_val=default_val);
         whitespace(pos);
         match(pos, ",");
     }
