@@ -26,15 +26,7 @@
 
 #define Void_t void
 
-typedef struct __array_s {
-    void *data;
-    int64_t length:42;
-    uint8_t free:4;
-    bool copy_on_write:1, atomic:1;
-    int16_t stride:16;
-} __array_t;
-
-#define __Array(t) __array_t
+#define __Array(t) array_t
 
 #define CORD_asprintf(...) ({ CORD __c; CORD_sprintf(&__c, __VA_ARGS__); __c; })
 #define __declare(var, val) __typeof(val) var = val
@@ -46,12 +38,12 @@ typedef struct __array_s {
                          default: "???")
 #define __heap(x) (__typeof(x)*)memcpy(GC_MALLOC(sizeof(x)), (__typeof(x)[1]){x}, sizeof(x))
 #define __stack(x) (&(__typeof(x)){x})
-#define __length(x) _Generic(x, array_t: (x).length)
+#define __length(x) _Generic(x, default: (x).length)
 // Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
 #define __index(x, i) _Generic(x, array_t: ({ __typeof(x) __obj; int64_t __offset = i; __offset += (__offset < 0) * (__obj.length + 1) - 1; assert(__offset >= 0 && offset < __obj.length); __obj.data + __obj.stride * __offset;}))
 #define __safe_index(x, i) _Generic(x, array_t: ({ __typeof(x) __obj; int64_t __offset = i - 1; __obj.data + __obj.stride * __offset;}))
 #define __array(x, ...) ({ __typeof(x) __items[] = {x, __VA_ARGS__}; \
-                         (array_t){.length=sizeof(__items)/sizeof(__items[0]), \
+                         (__Array(__typeof(x))){.length=sizeof(__items)/sizeof(__items[0]), \
                          .stride=(int64_t)&__items[1] - (int64_t)&__items[0], \
                          .data=memcpy(GC_MALLOC(sizeof(__items)), __items,  sizeof(__items)), \
                          .copy_on_write=1}; })
