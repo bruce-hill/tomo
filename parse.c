@@ -1570,7 +1570,7 @@ arg_list_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed)
 
         REVERSE_LIST(names);
         for (; names; names = names->next)
-            args = new(arg_list_t, .var.name=names->name, .type=type, .default_val=default_val);
+            args = new(arg_list_t, .var.name=names->name, .type=type, .default_val=default_val, .next=args);
         whitespace(pos);
         match(pos, ",");
     }

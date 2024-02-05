@@ -29,8 +29,20 @@ int main(int argc, char *argv[])
         fclose(out);
     }
 
-    // Predeclare funcs:
     CORD code = "#include \"nextlang.h\"\n\n";
+
+    // Predeclare types:
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        switch (stmt->ast->tag) {
+        case TypeDef: {
+            code = CORD_cat(code, compile(stmt->ast));
+            break;
+        }
+        default: break;
+        }
+    }
+
+    // Predeclare funcs:
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         switch (stmt->ast->tag) {
         case FunctionDef: {
@@ -65,7 +77,7 @@ int main(int argc, char *argv[])
                     "GC_INIT();\n\n");
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         switch (stmt->ast->tag) {
-        case FunctionDef: break;
+        case FunctionDef: case TypeDef: break;
         default: {
             code = CORD_cat(code, compile(stmt->ast));
             code = CORD_cat(code, ";\n");

@@ -23,10 +23,12 @@ G=-ggdb
 O=-Og
 CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS)
 LDLIBS=-lgc -lgccjit -lcord -lm -lunistring
+BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/builtins.o builtins/char.o builtins/floats.o builtins/functions.o builtins/integers.o \
+						 builtins/memory.o builtins/string.o builtins/table.o builtins/types.o
 
 all: nextlang
 
-nextlang: nextlang.c parse.o files.o util.o ast.o compile.o
+nextlang: nextlang.c parse.o files.o util.o ast.o compile.o SipHash/halfsiphash.o $(BUILTIN_OBJS)
 
 SipHash/halfsiphash.c:
 	git submodule update --init --recursive
