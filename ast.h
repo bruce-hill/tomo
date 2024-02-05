@@ -65,14 +65,14 @@ typedef enum {
 } binop_e;
 
 typedef enum {
-    TypeUnknown,
-    TypeVar,
-    TypePointer,
-    TypeStruct,
-    TypeTaggedUnion,
-    TypeArray,
-    TypeTable,
-    TypeFunction,
+    UnknownTypeAST,
+    VarTypeAST,
+    PointerTypeAST,
+    StructTypeAST,
+    TaggedUnionTypeAST,
+    ArrayTypeAST,
+    TableTypeAST,
+    FunctionTypeAST,
 } type_ast_e;
 
 typedef struct tag_s {
@@ -87,30 +87,30 @@ struct type_ast_s {
     sss_file_t *file;
     const char *start, *end;
     union {
-        struct {} TypeUnknown;
+        struct {} UnknownTypeAST;
         struct {
             var_t var;
-        } TypeVar;
+        } VarTypeAST;
         struct {
             type_ast_t *pointed;
             bool is_optional:1, is_stack:1, is_readonly:1;
-        } TypePointer;
+        } PointerTypeAST;
         struct {
             arg_list_t *fields;
-        } TypeStruct;
+        } StructTypeAST;
         struct {
             tag_t *tags;
-        } TypeTaggedUnion;
+        } TaggedUnionTypeAST;
         struct {
             type_ast_t *item;
-        } TypeArray;
+        } ArrayTypeAST;
         struct {
             type_ast_t *key, *value;
-        } TypeTable;
+        } TableTypeAST;
         struct {
             arg_list_t *args;
             type_ast_t *ret;
-        } TypeFunction;
+        } FunctionTypeAST;
     } __data;
 };
 

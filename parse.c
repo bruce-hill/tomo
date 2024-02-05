@@ -435,7 +435,7 @@ type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
     type_ast_t *value_type = expect(ctx, start, &pos, parse_type, "I couldn't parse the rest of this table type");
     whitespace(&pos);
     expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this table type");
-    return NewTypeAST(ctx->file, start, pos, TypeTable, .key=key_type, .value=value_type);
+    return NewTypeAST(ctx->file, start, pos, TableTypeAST, .key=key_type, .value=value_type);
 }
 
 type_ast_t *parse_struct_type(parse_ctx_t *ctx, const char *pos) {
@@ -446,7 +446,7 @@ type_ast_t *parse_struct_type(parse_ctx_t *ctx, const char *pos) {
     arg_list_t *args = parse_args(ctx, &pos, false);
     whitespace(&pos);
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this struct type");
-    return NewTypeAST(ctx->file, start, pos, TypeStruct, .fields=args);
+    return NewTypeAST(ctx->file, start, pos, StructTypeAST, .fields=args);
 }
 
 type_ast_t *parse_func_type(parse_ctx_t *ctx, const char *pos) {
@@ -459,7 +459,7 @@ type_ast_t *parse_func_type(parse_ctx_t *ctx, const char *pos) {
     spaces(&pos);
     if (!match(&pos, "->")) return NULL;
     type_ast_t *ret = optional(ctx, &pos, parse_type);
-    return NewTypeAST(ctx->file, start, pos, TypeFunction, .args=args, .ret=ret);
+    return NewTypeAST(ctx->file, start, pos, FunctionTypeAST, .args=args, .ret=ret);
 }
 
 type_ast_t *parse_array_type(parse_ctx_t *ctx, const char *pos) {
@@ -468,7 +468,7 @@ type_ast_t *parse_array_type(parse_ctx_t *ctx, const char *pos) {
     type_ast_t *type = expect(ctx, start, &pos, parse_type,
                              "I couldn't parse an array item type after this point");
     expect_closing(ctx, &pos, "]", "I wasn't able to parse the rest of this array type");
-    return NewTypeAST(ctx->file, start, pos, TypeArray, .item=type);
+    return NewTypeAST(ctx->file, start, pos, ArrayTypeAST, .item=type);
 }
 
 type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos) {
@@ -488,7 +488,7 @@ type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos) {
     spaces(&pos);
     type_ast_t *type = expect(ctx, start, &pos, parse_type,
                              "I couldn't parse a pointer type after this point");
-    return NewTypeAST(ctx->file, start, pos, TypePointer, .pointed=type, .is_optional=optional, .is_stack=is_stack, .is_readonly=is_readonly);
+    return NewTypeAST(ctx->file, start, pos, PointerTypeAST, .pointed=type, .is_optional=optional, .is_stack=is_stack, .is_readonly=is_readonly);
 }
 
 type_ast_t *parse_type_name(parse_ctx_t *ctx, const char *pos) {
@@ -504,7 +504,7 @@ type_ast_t *parse_type_name(parse_ctx_t *ctx, const char *pos) {
         id = heap_strf("%s.%s", id, next_id);
         pos = next;
     }
-    return NewTypeAST(ctx->file, start, pos, TypeVar, .var.name=id);
+    return NewTypeAST(ctx->file, start, pos, VarTypeAST, .var.name=id);
 }
 
 type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos) {
@@ -1188,7 +1188,7 @@ ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn, bool is_extern) {
         if (match(&pos, ":"))
             extern_return_type = expect(ctx, start, &pos, parse_type, "I couldn't parse the return type of this external function call");
         else
-            extern_return_type = NewTypeAST(ctx->file, pos, pos, TypeVar, .var.name="Void");
+            extern_return_type = NewTypeAST(ctx->file, pos, pos, VarTypeAST, .var.name="Void");
     }
     REVERSE_LIST(args);
     return NewAST(ctx->file, start, pos, FunctionCall, .fn=fn, .args=args, .extern_return_type=extern_return_type);
@@ -1501,7 +1501,7 @@ type_ast_t *parse_enum_type(parse_ctx_t *ctx, const char *pos) {
                 parser_err(ctx, tag_start, pos, "This tag value (%ld) is a duplicate of an earlier tag value", next_value);
         }
 
-        type_ast_t *type = NewTypeAST(ctx->file, tag_start, pos, TypeStruct, .fields=fields);
+        type_ast_t *type = NewTypeAST(ctx->file, tag_start, pos, StructTypeAST, .fields=fields);
         tags = new(tag_t, .name=tag_name, .value=next_value, .type=type, .next=tags);
 
         const char *next_pos = pos;
@@ -1518,7 +1518,7 @@ type_ast_t *parse_enum_type(parse_ctx_t *ctx, const char *pos) {
 
     REVERSE_LIST(tags);
 
-    return NewTypeAST(ctx->file, start, pos, TypeTaggedUnion, .tags=tags);
+    return NewTypeAST(ctx->file, start, pos, TaggedUnionTypeAST, .tags=tags);
 }
 
 arg_list_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed)

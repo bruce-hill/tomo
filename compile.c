@@ -11,7 +11,7 @@
 CORD compile_type(type_ast_t *t)
 {
     switch (t->tag) {
-    case TypeVar: return CORD_cat(Match(t, TypeVar)->var.name, "_t");
+    case VarTypeAST: return CORD_cat(Match(t, VarTypeAST)->var.name, "_t");
     default: errx(1, "Not implemented");
     }
 }
@@ -239,13 +239,13 @@ CORD compile(ast_t *ast)
         auto def = Match(ast, TypeDef);
         CORD code;
         switch (def->type->tag) {
-        case TypeVar: {
+        case VarTypeAST: {
             CORD_sprintf(&code, "typedef %r %s_t;\n", compile_type(def->type), def->var.name);
             break;
         }
-        case TypeStruct: {
+        case StructTypeAST: {
             CORD_sprintf(&code, "typedef struct %s_s %s_t;\nstruct %s_s {\n", def->var.name, def->var.name, def->var.name);
-            for (arg_list_t *field = Match(def->type, TypeStruct)->fields; field; field = field->next) {
+            for (arg_list_t *field = Match(def->type, StructTypeAST)->fields; field; field = field->next) {
                 CORD_sprintf(&code, "%r%r %s;\n", code, compile_type(field->type), field->var.name);
             }
             code = CORD_cat(code, "};\n");

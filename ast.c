@@ -139,16 +139,16 @@ CORD type_ast_to_cord(type_ast_t *t)
 
     switch (t->tag) {
 #define T(type, ...) case type: { auto data = t->__data.type; (void)data; return CORD_asprintf("\x1b[32;1m" #type "\x1b[m" __VA_ARGS__); }
-    T(TypeUnknown, "")
-    T(TypeVar, "(\x1b[36;1m%s\x1b[m)", data.var.name)
-    T(TypePointer, "(%r, is_optional=%d, is_stack=%d, is_readonly=%d)",
+    T(UnknownTypeAST, "")
+    T(VarTypeAST, "(\x1b[36;1m%s\x1b[m)", data.var.name)
+    T(PointerTypeAST, "(%r, is_optional=%d, is_stack=%d, is_readonly=%d)",
       type_ast_to_cord(data.pointed), data.is_optional,
       data.is_stack, data.is_readonly)
-    T(TypeStruct, "(%r)", arg_list_to_cord(data.fields))
-    T(TypeTaggedUnion, "(%r)", tags_to_cord(data.tags))
-    T(TypeArray, "(%r)", type_ast_to_cord(data.item))
-    T(TypeTable, "(%r => %r)", type_ast_to_cord(data.key), type_ast_to_cord(data.value))
-    T(TypeFunction, "(args=%r, ret=%r)", arg_list_to_cord(data.args), type_ast_to_cord(data.ret))
+    T(StructTypeAST, "(%r)", arg_list_to_cord(data.fields))
+    T(TaggedUnionTypeAST, "(%r)", tags_to_cord(data.tags))
+    T(ArrayTypeAST, "(%r)", type_ast_to_cord(data.item))
+    T(TableTypeAST, "(%r => %r)", type_ast_to_cord(data.key), type_ast_to_cord(data.value))
+    T(FunctionTypeAST, "(args=%r, ret=%r)", arg_list_to_cord(data.args), type_ast_to_cord(data.ret))
 #undef T
     }
     return NULL;
