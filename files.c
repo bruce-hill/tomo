@@ -91,6 +91,7 @@ static sss_file_t *_load_file(const char* filename, FILE *file)
     memcpy(copy, file_buf, file_size);
     copy[file_size] = '\0';
     ret->text = copy;
+    ret->len = file_size;
     fclose(mem);
 
     free(file_buf);

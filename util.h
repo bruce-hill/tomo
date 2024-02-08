@@ -26,4 +26,29 @@ char *heap_str(const char *str);
 char *heap_strf(const char *fmt, ...);
 CORD CORD_asprintf(const char *fmt, ...);
 
+#define REVERSE_LIST(list) do { \
+    __typeof(list) _prev = NULL; \
+    __typeof(list) _next = NULL; \
+    auto _current = list; \
+    while (_current != NULL) { \
+        _next = _current->next; \
+        _current->next = _prev; \
+        _prev = _current; \
+        _current = _next; \
+    } \
+    list = _prev; \
+} while(0)
+
+#define LIST_MAP(src, var, ...) ({\
+    __typeof(src) __mapped = NULL; \
+    __typeof(src) *__next = &__mapped; \
+    for (__typeof(src) var = src; var; var = var->next) { \
+        *__next = GC_MALLOC(sizeof(__typeof(*(src)))); \
+        **__next = *var; \
+        **__next = (__typeof(*(src))){__VA_ARGS__}; \
+        __next = &((*__next)->next); \
+    } \
+    __mapped; })
+
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

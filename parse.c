@@ -14,6 +14,7 @@
 #include "ast.h"
 #include "util.h"
 
+
 typedef struct {
     sss_file_t *file;
     jmp_buf *on_err;
@@ -64,7 +65,7 @@ static inline binop_e match_binary_operator(const char **pos);
 static ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn, bool is_extern);
 static ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs);
-static arg_list_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed);
+static arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed);
 static PARSER(parse_for);
 static PARSER(parse_while);
 static PARSER(parse_if);
@@ -77,7 +78,8 @@ static PARSER(parse_statement);
 static PARSER(parse_block);
 static PARSER(parse_opt_indented_block);
 static PARSER(parse_var);
-static PARSER(parse_type_def);
+static PARSER(parse_enum_def);
+static PARSER(parse_struct_def);
 static PARSER(parse_func_def);
 static PARSER(parse_extern);
 static PARSER(parse_declaration);
@@ -87,7 +89,6 @@ static PARSER(parse_linker);
 static PARSER(parse_namespace);
 
 static type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos);
-static type_ast_t *parse_enum_type(parse_ctx_t *ctx, const char *pos);
 
 //
 // Print a parse error and exit (or use the on_err longjmp)
@@ -438,23 +439,12 @@ type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
     return NewTypeAST(ctx->file, start, pos, TableTypeAST, .key=key_type, .value=value_type);
 }
 
-type_ast_t *parse_struct_type(parse_ctx_t *ctx, const char *pos) {
-    const char *start = pos;
-    if (!match(&pos, "struct")) return NULL;
-    spaces(&pos);
-    if (!match(&pos, "(")) return NULL;
-    arg_list_t *args = parse_args(ctx, &pos, false);
-    whitespace(&pos);
-    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this struct type");
-    return NewTypeAST(ctx->file, start, pos, StructTypeAST, .fields=args);
-}
-
 type_ast_t *parse_func_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "func")) return NULL;
     spaces(&pos);
     if (!match(&pos, "(")) return NULL;
-    arg_list_t *args = parse_args(ctx, &pos, true);
+    arg_ast_t *args = parse_args(ctx, &pos, true);
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this function type");
     spaces(&pos);
     if (!match(&pos, "->")) return NULL;
@@ -504,18 +494,16 @@ type_ast_t *parse_type_name(parse_ctx_t *ctx, const char *pos) {
         id = heap_strf("%s.%s", id, next_id);
         pos = next;
     }
-    return NewTypeAST(ctx->file, start, pos, VarTypeAST, .var.name=id);
+    return NewTypeAST(ctx->file, start, pos, VarTypeAST, .name=id);
 }
 
 type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     type_ast_t *type = NULL;
     bool success = (false
-        || (type=parse_enum_type(ctx, pos))
         || (type=parse_pointer_type(ctx, pos))
         || (type=parse_array_type(ctx, pos))
         || (type=parse_table_type(ctx, pos))
-        || (type=parse_struct_type(ctx, pos))
         || (type=parse_type_name(ctx, pos))
         || (type=parse_func_type(ctx, pos))
     );
@@ -707,8 +695,8 @@ PARSER(parse_reduction) {
     if (op == BINOP_UNKNOWN) return NULL;
 
     ast_t *combination;
-    ast_t *lhs = NewAST(ctx->file, pos, pos, Var, .var.name="lhs.0");
-    ast_t *rhs = NewAST(ctx->file, pos, pos, Var, .var.name="rhs.0");
+    ast_t *lhs = NewAST(ctx->file, pos, pos, Var, .name="lhs.0");
+    ast_t *rhs = NewAST(ctx->file, pos, pos, Var, .name="rhs.0");
     if (op == BINOP_MIN || op == BINOP_MAX) {
         for (bool progress = true; progress; ) {
             ast_t *new_term;
@@ -1070,7 +1058,7 @@ PARSER(parse_lambda) {
     spaces(&pos);
     if (!match(&pos, "("))
         return NULL;
-    arg_list_t *args = parse_args(ctx, &pos, false);
+    arg_ast_t *args = parse_args(ctx, &pos, false);
     spaces(&pos);
     expect_closing(ctx, &pos, ")", "I was expecting a ')' to finish this anonymous function's arguments");
     ast_t *body = optional(ctx, &pos, parse_opt_indented_block);
@@ -1089,7 +1077,7 @@ PARSER(parse_var) {
     const char *start = pos;
     const char* name = get_id(&pos);
     if (!name) return NULL;
-    return NewAST(ctx->file, start, pos, Var, .var.name=name);
+    return NewAST(ctx->file, start, pos, Var, .name=name);
 }
 
 PARSER(parse_term_no_suffix) {
@@ -1188,7 +1176,7 @@ ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn, bool is_extern) {
         if (match(&pos, ":"))
             extern_return_type = expect(ctx, start, &pos, parse_type, "I couldn't parse the return type of this external function call");
         else
-            extern_return_type = NewTypeAST(ctx->file, pos, pos, VarTypeAST, .var.name="Void");
+            extern_return_type = NewTypeAST(ctx->file, pos, pos, VarTypeAST, .name="Void");
     }
     REVERSE_LIST(args);
     return NewAST(ctx->file, start, pos, FunctionCall, .fn=fn, .args=args, .extern_return_type=extern_return_type);
@@ -1238,7 +1226,7 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
 
     ast_t *key = NULL;
     if (op == BINOP_MIN || op == BINOP_MAX) {
-        key = NewAST(ctx->file, pos, pos, Var, .var.name=op == BINOP_MIN ? "_min_" : "_max_");
+        key = NewAST(ctx->file, pos, pos, Var, .name=op == BINOP_MIN ? "_min_" : "_max_");
         for (bool progress = true; progress; ) {
             ast_t *new_term;
             progress = (false
@@ -1415,7 +1403,8 @@ PARSER(parse_namespace) {
         whitespace(&next);
         if (sss_get_indent(ctx->file, next) != indent) break;
         ast_t *stmt;
-        if ((stmt=optional(ctx, &pos, parse_type_def))
+        if ((stmt=optional(ctx, &pos, parse_struct_def))
+            ||(stmt=optional(ctx, &pos, parse_enum_def))
             ||(stmt=optional(ctx, &pos, parse_linker))
             ||(stmt=optional(ctx, &pos, parse_statement)))
         {
@@ -1432,19 +1421,24 @@ PARSER(parse_namespace) {
     return NewAST(ctx->file, start, pos, Block, .statements=statements);
 }
 
-PARSER(parse_type_def) {
-    // type Foo := Type... \n body...
+PARSER(parse_struct_def) {
+    // struct Foo(...) \n body
     const char *start = pos;
-    if (!match_word(&pos, "type")) return NULL;
+    if (!match_word(&pos, "struct")) return NULL;
 
     int64_t starting_indent = sss_get_indent(ctx->file, pos);
 
+    spaces(&pos);
     const char *name = get_id(&pos);
-    if (!name) return NULL;
+    if (!name) parser_err(ctx, start, pos, "I expected a name for this struct");
     spaces(&pos);
 
-    if (!match(&pos, ":=")) return NULL;
-    type_ast_t *type_ast = expect(ctx, start, &pos, parse_type, "I expected a type after this ':='");
+    if (!match(&pos, "("))
+        parser_err(ctx, pos, pos, "I expected a '(' and a list of fields here");
+
+    arg_ast_t *fields = parse_args(ctx, &pos, false);
+
+    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this struct");
 
     const char *ns_pos = pos;
     whitespace(&ns_pos);
@@ -1456,18 +1450,22 @@ PARSER(parse_type_def) {
     }
     if (!namespace)
         namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
-    return NewAST(ctx->file, start, pos, TypeDef, .var.name=name, .type=type_ast, .namespace=namespace);
+    return NewAST(ctx->file, start, pos, StructDef, .name=name, .fields=fields, .namespace=namespace);
 }
 
-type_ast_t *parse_enum_type(parse_ctx_t *ctx, const char *pos) {
-    // tagged union: enum Foo := a|b(x:Int,y:Int)=5|...
+ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
+    // tagged union: enum Foo(a|b(x:Int,y:Int)=5|...) \n namespace
     const char *start = pos;
-
     if (!match_word(&pos, "enum")) return NULL;
+    int64_t starting_indent = sss_get_indent(ctx->file, pos);
+    spaces(&pos);
+    const char *name = get_id(&pos);
+    if (!name)
+        parser_err(ctx, start, pos, "I expected a name for this enum");
     spaces(&pos);
     if (!match(&pos, "(")) return NULL;
 
-    tag_t *tags = NULL;
+    tag_ast_t *tags = NULL;
     int64_t next_value = 0;
 
     whitespace(&pos);
@@ -1479,7 +1477,7 @@ type_ast_t *parse_enum_type(parse_ctx_t *ctx, const char *pos) {
         if (!tag_name) break;
 
         spaces(&pos);
-        arg_list_t *fields;
+        arg_ast_t *fields;
         if (match(&pos, "(")) {
             whitespace(&pos);
             fields = parse_args(ctx, &pos, false);
@@ -1496,17 +1494,16 @@ type_ast_t *parse_enum_type(parse_ctx_t *ctx, const char *pos) {
         }
 
         // Check for duplicate values:
-        for (tag_t *t = tags; t; t = t->next) {
+        for (tag_ast_t *t = tags; t; t = t->next) {
             if (t->value == next_value)
                 parser_err(ctx, tag_start, pos, "This tag value (%ld) is a duplicate of an earlier tag value", next_value);
         }
 
-        type_ast_t *type = NewTypeAST(ctx->file, tag_start, pos, StructTypeAST, .fields=fields);
-        tags = new(tag_t, .name=tag_name, .value=next_value, .type=type, .next=tags);
+        tags = new(tag_ast_t, .name=tag_name, .value=next_value, .fields=fields, .next=tags);
 
         const char *next_pos = pos;
         whitespace(&next_pos);
-        if (!match(&next_pos, "|"))
+        if (!match(&next_pos, ","))
             break;
         whitespace(&next_pos);
         pos = next_pos;
@@ -1518,12 +1515,23 @@ type_ast_t *parse_enum_type(parse_ctx_t *ctx, const char *pos) {
 
     REVERSE_LIST(tags);
 
-    return NewTypeAST(ctx->file, start, pos, TaggedUnionTypeAST, .tags=tags);
+    const char *ns_pos = pos;
+    whitespace(&ns_pos);
+    int64_t ns_indent = sss_get_indent(ctx->file, ns_pos);
+    ast_t *namespace = NULL;
+    if (ns_indent > starting_indent) {
+        pos = ns_pos;
+        namespace = optional(ctx, &pos, parse_namespace);
+    }
+    if (!namespace)
+        namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
+
+    return NewAST(ctx->file, start, pos, EnumDef, .name=name, .tags=tags, .namespace=namespace);
 }
 
-arg_list_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed)
+arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed)
 {
-    arg_list_t *args = NULL;
+    arg_ast_t *args = NULL;
     for (;;) {
         const char *batch_start = *pos;
         ast_t *default_val = NULL;
@@ -1570,7 +1578,7 @@ arg_list_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed)
 
         REVERSE_LIST(names);
         for (; names; names = names->next)
-            args = new(arg_list_t, .var.name=names->name, .type=type, .default_val=default_val, .next=args);
+            args = new(arg_ast_t, .name=names->name, .type=type, .default_val=default_val, .next=args);
         whitespace(pos);
         match(pos, ",");
     }
@@ -1590,7 +1598,7 @@ PARSER(parse_func_def) {
 
     if (!match(&pos, "(")) return NULL;
 
-    arg_list_t *args = parse_args(ctx, &pos, false);
+    arg_ast_t *args = parse_args(ctx, &pos, false);
     whitespace(&pos);
     bool is_inline = false;
     ast_t *cache_ast = NULL;
@@ -1630,7 +1638,7 @@ PARSER(parse_extern) {
     spaces(&pos);
     // extern function call:
     if (match(&pos, "(")) {
-        return parse_fncall_suffix(ctx, NewAST(ctx->file, start, pos-1, Var, .var.name=name), EXTERN_FUNCTION);
+        return parse_fncall_suffix(ctx, NewAST(ctx->file, start, pos-1, Var, .name=name), EXTERN_FUNCTION);
     }
     if (!match(&pos, ":"))
         parser_err(ctx, start, pos, "I couldn't get a type for this extern");
@@ -1712,8 +1720,8 @@ ast_t *parse_file(sss_file_t *file, jmp_buf *on_err) {
     ast_t *ast = parse_namespace(&ctx, pos);
     pos = ast->end;
     whitespace(&pos);
-    if (strlen(pos) > 0) {
-        parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the file");
+    if (pos < file->text + file->len) {
+        parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the file %zu");
     }
     return ast;
 }

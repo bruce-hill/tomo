@@ -19,35 +19,17 @@ struct binding_s;
 typedef struct type_ast_s type_ast_t;
 typedef struct ast_s ast_t;
 
-typedef struct {
-    const char *name;
-    struct binding_s *binding;
-} var_t;
-
 typedef struct ast_list_s {
     ast_t *ast;
     struct ast_list_s *next;
 } ast_list_t;
 
-typedef struct arg_list_s {
-    var_t var;
+typedef struct arg_ast_s {
+    const char *name;
     type_ast_t *type;
     ast_t *default_val;
-    struct arg_list_s *next;
-} arg_list_t;
-
-#define REVERSE_LIST(list) do { \
-    __typeof(list) _prev = NULL; \
-    __typeof(list) _next = NULL; \
-    auto _current = list; \
-    while (_current != NULL) { \
-        _next = _current->next; \
-        _current->next = _prev; \
-        _prev = _current; \
-        _current = _next; \
-    } \
-    list = _prev; \
-} while(0)
+    struct arg_ast_s *next;
+} arg_ast_t;
 
 typedef enum {
     UNOP_UNKNOWN,
@@ -68,19 +50,17 @@ typedef enum {
     UnknownTypeAST,
     VarTypeAST,
     PointerTypeAST,
-    StructTypeAST,
-    TaggedUnionTypeAST,
     ArrayTypeAST,
     TableTypeAST,
     FunctionTypeAST,
 } type_ast_e;
 
-typedef struct tag_s {
+typedef struct tag_ast_s {
     const char *name;
-    struct type_ast_s *type;
+    arg_ast_t *fields;
     int64_t value;
-    struct tag_s *next;
-} tag_t;
+    struct tag_ast_s *next;
+} tag_ast_t;
 
 struct type_ast_s {
     type_ast_e tag;
@@ -89,18 +69,12 @@ struct type_ast_s {
     union {
         struct {} UnknownTypeAST;
         struct {
-            var_t var;
+            const char *name;
         } VarTypeAST;
         struct {
             type_ast_t *pointed;
             bool is_optional:1, is_stack:1, is_readonly:1;
         } PointerTypeAST;
-        struct {
-            arg_list_t *fields;
-        } StructTypeAST;
-        struct {
-            tag_t *tags;
-        } TaggedUnionTypeAST;
         struct {
             type_ast_t *item;
         } ArrayTypeAST;
@@ -108,7 +82,7 @@ struct type_ast_s {
             type_ast_t *key, *value;
         } TableTypeAST;
         struct {
-            arg_list_t *args;
+            arg_ast_t *args;
             type_ast_t *ret;
         } FunctionTypeAST;
     } __data;
@@ -131,7 +105,8 @@ typedef enum {
     Skip, Stop, Pass,
     Return,
     Extern,
-    TypeDef,
+    StructDef,
+    EnumDef,
     Index, FieldAccess,
     DocTest,
     Use,
@@ -151,7 +126,7 @@ struct ast_s {
             bool b;
         } Bool;
         struct {
-            var_t var;
+            const char *name;
         } Var;
         struct {
             int64_t i;
@@ -207,14 +182,14 @@ struct ast_s {
         } TableEntry;
         struct {
             ast_t *name;
-            arg_list_t *args;
+            arg_ast_t *args;
             type_ast_t *ret_type;
             ast_t *body;
             ast_t *cache;
             bool is_inline;
         } FunctionDef;
         struct {
-            arg_list_t *args;
+            arg_ast_t *args;
             ast_t *body;
         } Lambda;
         struct {
@@ -254,10 +229,15 @@ struct ast_s {
             bool address;
         } Extern;
         struct {
-            var_t var;
-            type_ast_t *type;
+            const char *name;
+            arg_ast_t *fields;
             ast_t *namespace;
-        } TypeDef;
+        } StructDef;
+        struct {
+            const char *name;
+            tag_ast_t *tags;
+            ast_t *namespace;
+        } EnumDef;
         struct {
             ast_t *indexed, *index;
             bool unchecked;

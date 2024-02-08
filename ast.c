@@ -20,15 +20,15 @@ static const char *OP_NAMES[] = {
 static CORD ast_to_cord(ast_t *ast);
 static CORD ast_list_to_cord(ast_list_t *asts);
 static CORD type_ast_to_cord(type_ast_t *t);
-static CORD arg_list_to_cord(arg_list_t *args);
-static CORD tags_to_cord(tag_t *tags);
+static CORD arg_list_to_cord(arg_ast_t *args);
+static CORD tags_to_cord(tag_ast_t *tags);
 
 #define TO_CORD(x) _Generic(x, \
                             ast_t*: ast_to_cord(x), \
                             ast_list_t*: ast_list_to_cord(x), \
                             type_ast_t*: type_ast_to_cord(x), \
-                            arg_list_t*: arg_list_to_cord(x), \
-                            tag_t*: tags_to_cord(x), \
+                            arg_ast_list_t*: arg_list_to_cord(x), \
+                            tag_ast_t*: tags_to_cord(x), \
                             const char *: x, \
                             int64_t: CORD_asprintf("%ld", x), \
                             unsigned short int: CORD_asprintf("%d", x), \
@@ -50,11 +50,11 @@ CORD ast_list_to_cord(ast_list_t *asts)
     return c;
 }
 
-CORD arg_list_to_cord(arg_list_t *args) {
+CORD arg_list_to_cord(arg_ast_t *args) {
     CORD c = "Args(";
     for (; args; args = args->next) {
-        if (args->var.name)
-            c = CORD_cat(c, args->var.name);
+        if (args->name)
+            c = CORD_cat(c, args->name);
         if (args->type)
             CORD_sprintf(&c, "%r:%s", c, type_ast_to_cord(args->type));
         if (args->default_val)
@@ -65,12 +65,12 @@ CORD arg_list_to_cord(arg_list_t *args) {
     return c;
 }
 
-CORD tags_to_cord(tag_t *tags) {
+CORD tags_to_cord(tag_ast_t *tags) {
     CORD c = "Tags(";
     for (; tags; tags = tags->next) {
         if (tags->name)
             c = CORD_cat(c, tags->name);
-        CORD_sprintf(&c, "%r:%s=%ld", c, type_ast_to_cord(tags->type), tags->value);
+        CORD_sprintf(&c, "%r(%r)=%ld", c, arg_list_to_cord(tags->fields), tags->value);
         if (tags->next) c = CORD_cat(c, ", ");
     }
     c = CORD_cat(c, ")");
@@ -86,7 +86,7 @@ CORD ast_to_cord(ast_t *ast)
     T(Unknown,  "Unknown")
     T(Nil, "(%r)", type_ast_to_cord(data.type))
     T(Bool, "(\x1b[35m%s\x1b[m)", data.b ? "yes" : "no")
-    T(Var, "(\x1b[36;1m%s\x1b[m)", data.var.name)
+    T(Var, "(\x1b[36;1m%s\x1b[m)", data.name)
     T(Int, "(\x1b[35m%ld\x1b[m, precision=\x1b[35m%ld\x1b[m)", data.i, data.precision)
     T(Num, "(\x1b[35m%ld\x1b[m, precision=\x1b[35m%ld\x1b[m)", data.n, data.precision)
     T(Char, "(\x1b[35m'%c'\x1b[m)", data.c)
@@ -122,7 +122,8 @@ CORD ast_to_cord(ast_t *ast)
     T(Pass, "")
     T(Return, "(%r)", ast_to_cord(data.value))
     T(Extern, "(name=%s, type=%r)", data.name, type_ast_to_cord(data.type))
-    T(TypeDef, "(%s, type=%r, namespace=%r)", data.var.name, type_ast_to_cord(data.type), ast_to_cord(data.namespace))
+    T(StructDef, "(%s, fields=%r, namespace=%r)", data.name, arg_list_to_cord(data.fields), ast_to_cord(data.namespace))
+    T(EnumDef, "(%s, tags=%r, namespace=%r)", data.name, tags_to_cord(data.tags), ast_to_cord(data.namespace))
     T(Index, "(indexed=%r, index=%r)", ast_to_cord(data.indexed), ast_to_cord(data.index))
     T(FieldAccess, "(fielded=%r, field=%s)", ast_to_cord(data.fielded), data.field)
     T(DocTest, "(expr=%r, output=%s)", ast_to_cord(data.expr), data.output)
@@ -140,12 +141,10 @@ CORD type_ast_to_cord(type_ast_t *t)
     switch (t->tag) {
 #define T(type, ...) case type: { auto data = t->__data.type; (void)data; return CORD_asprintf("\x1b[32;1m" #type "\x1b[m" __VA_ARGS__); }
     T(UnknownTypeAST, "")
-    T(VarTypeAST, "(\x1b[36;1m%s\x1b[m)", data.var.name)
+    T(VarTypeAST, "(\x1b[36;1m%s\x1b[m)", data.name)
     T(PointerTypeAST, "(%r, is_optional=%d, is_stack=%d, is_readonly=%d)",
       type_ast_to_cord(data.pointed), data.is_optional,
       data.is_stack, data.is_readonly)
-    T(StructTypeAST, "(%r)", arg_list_to_cord(data.fields))
-    T(TaggedUnionTypeAST, "(%r)", tags_to_cord(data.tags))
     T(ArrayTypeAST, "(%r)", type_ast_to_cord(data.item))
     T(TableTypeAST, "(%r => %r)", type_ast_to_cord(data.key), type_ast_to_cord(data.value))
     T(FunctionTypeAST, "(args=%r, ret=%r)", arg_list_to_cord(data.args), type_ast_to_cord(data.ret))

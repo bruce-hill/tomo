@@ -2,14 +2,22 @@
 #include <stdlib.h>
 #include <gc.h>
 #include <gc/cord.h>
+#include <printf.h>
 
 #include "ast.h"
 #include "parse.h"
 #include "compile.h"
+#include "types.h"
 
 int main(int argc, char *argv[])
 {
     if (argc < 2) return 1;
+
+    // register_printf_modifier(L"p");
+    if (register_printf_specifier('T', printf_type, printf_pointer_size))
+        errx(1, "Couldn't set printf specifier");
+    if (register_printf_specifier('W', printf_ast, printf_pointer_size))
+        errx(1, "Couldn't set printf specifier");
 
     const char *autofmt = getenv("AUTOFMT");
     if (!autofmt) autofmt = "indent -kr -nut | bat --file-name=out.c";
@@ -34,7 +42,7 @@ int main(int argc, char *argv[])
     // Predeclare types:
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         switch (stmt->ast->tag) {
-        case TypeDef: {
+        case StructDef: case EnumDef: {
             code = CORD_cat(code, compile(stmt->ast));
             break;
         }
@@ -48,8 +56,8 @@ int main(int argc, char *argv[])
         case FunctionDef: {
             auto fndef = Match(stmt->ast, FunctionDef);
             CORD_sprintf(&code, "%rstatic %r %r(", code, fndef->ret_type ? compile_type(fndef->ret_type) : "void", compile(fndef->name));
-            for (arg_list_t *arg = fndef->args; arg; arg = arg->next) {
-                CORD_sprintf(&code, "%r%r %s", code, compile_type(arg->type), arg->var.name);
+            for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
+                CORD_sprintf(&code, "%r%r %s", code, compile_type(arg->type), arg->name);
                 if (arg->next) code = CORD_cat(code, ", ");
             }
             code = CORD_cat(code, ");\n");
@@ -77,7 +85,7 @@ int main(int argc, char *argv[])
                     "GC_INIT();\n\n");
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         switch (stmt->ast->tag) {
-        case FunctionDef: case TypeDef: break;
+        case FunctionDef: case StructDef: case EnumDef: break;
         default: {
             code = CORD_cat(code, compile(stmt->ast));
             code = CORD_cat(code, ";\n");

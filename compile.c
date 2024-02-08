@@ -11,7 +11,7 @@
 CORD compile_type(type_ast_t *t)
 {
     switch (t->tag) {
-    case VarTypeAST: return CORD_cat(Match(t, VarTypeAST)->var.name, "_t");
+    case VarTypeAST: return CORD_cat(Match(t, VarTypeAST)->name, "_t");
     default: errx(1, "Not implemented");
     }
 }
@@ -19,7 +19,8 @@ CORD compile_type(type_ast_t *t)
 static inline CORD compile_statement(ast_t *ast)
 {
     switch (ast->tag) {
-    case If: case For: case While: case FunctionDef: case Return: case TypeDef: case Declare: case Assign: case UpdateAssign:
+    case If: case For: case While: case FunctionDef: case Return: case StructDef: case EnumDef:
+    case Declare: case Assign: case UpdateAssign:
         return compile(ast);
     default:
         return CORD_asprintf("(void)%r;", compile(ast));
@@ -31,7 +32,7 @@ CORD compile(ast_t *ast)
     switch (ast->tag) {
     case Nil: return CORD_asprintf("(%r)NULL", compile_type(Match(ast, Nil)->type));
     case Bool: return Match(ast, Bool)->b ? "true" : "false";
-    case Var: return Match(ast, Var)->var.name;
+    case Var: return Match(ast, Var)->name;
     case Int: return CORD_asprintf("((Int%ld_t)%ld)", Match(ast, Int)->precision, Match(ast, Int)->i);
     case Num: return CORD_asprintf(Match(ast, Num)->precision == 64 ? "%g" : "%gf", Match(ast, Num)->n);
     case Char: return CORD_asprintf("'\\x%02X'", (int)Match(ast, Char)->c);
@@ -174,8 +175,8 @@ CORD compile(ast_t *ast)
     case FunctionDef: {
         auto fndef = Match(ast, FunctionDef);
         CORD code = CORD_asprintf("%r %r(", fndef->ret_type ? compile_type(fndef->ret_type) : "void", compile(fndef->name));
-        for (arg_list_t *arg = fndef->args; arg; arg = arg->next) {
-            CORD_sprintf(&code, "%r%r %s", code, compile_type(arg->type), arg->var.name);
+        for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
+            CORD_sprintf(&code, "%r%r %s", code, compile_type(arg->type), arg->name);
             if (arg->next) code = CORD_cat(code, ", ");
         }
         code = CORD_cat(code, ") ");
@@ -235,24 +236,30 @@ CORD compile(ast_t *ast)
         return ret ? CORD_asprintf("return %r;", compile(ret)) : "return;";
     }
     // Extern,
-    case TypeDef: {
-        auto def = Match(ast, TypeDef);
-        CORD code;
-        switch (def->type->tag) {
-        case VarTypeAST: {
-            CORD_sprintf(&code, "typedef %r %s_t;\n", compile_type(def->type), def->var.name);
-            break;
+    case StructDef: {
+        auto def = Match(ast, StructDef);
+        CORD code = CORD_asprintf("typedef struct %s_s %s_t;\nstruct %s_s {\n", def->name, def->name, def->name);
+        for (arg_ast_t *field = def->fields; field; field = field->next) {
+            CORD_sprintf(&code, "%r%r %s;\n", code, compile_type(field->type), field->name);
         }
-        case StructTypeAST: {
-            CORD_sprintf(&code, "typedef struct %s_s %s_t;\nstruct %s_s {\n", def->var.name, def->var.name, def->var.name);
-            for (arg_list_t *field = Match(def->type, StructTypeAST)->fields; field; field = field->next) {
-                CORD_sprintf(&code, "%r%r %s;\n", code, compile_type(field->type), field->var.name);
+        code = CORD_cat(code, "};\n");
+        return code;
+    }
+    case EnumDef: {
+        auto def = Match(ast, EnumDef);
+        CORD code = CORD_asprintf("typedef struct %s_s %s_t;\nstruct %s_s {\nenum {", def->name, def->name, def->name);
+        for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
+            CORD_sprintf(&code, "%r%s__%s = %ld, ", code, def->name, tag->name, tag->value);
+        }
+        code = CORD_cat(code, "} tag;\nunion {\n");
+        for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
+            code = CORD_cat(code, "struct {\n");
+            for (arg_ast_t *field = tag->fields; field; field = field->next) {
+                CORD_sprintf(&code, "%r%r %s;\n", code, compile_type(field->type), field->name);
             }
-            code = CORD_cat(code, "};\n");
-            break;
+            CORD_sprintf(&code, "%r} %s;\n", code, tag->name);
         }
-        default: errx(1, "Typedef not implemented");
-        }
+        code = CORD_cat(code, "} __data;\n};\n");
         return code;
     }
     // Index, FieldAccess,

@@ -28,7 +28,7 @@ BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/builtins.o builtins/char.
 
 all: nextlang
 
-nextlang: nextlang.c parse.o files.o util.o ast.o compile.o SipHash/halfsiphash.o $(BUILTIN_OBJS)
+nextlang: nextlang.c parse.o files.o util.o ast.o compile.o types.o SipHash/halfsiphash.o $(BUILTIN_OBJS)
 
 SipHash/halfsiphash.c:
 	git submodule update --init --recursive
