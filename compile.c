@@ -160,7 +160,7 @@ CORD compile(ast_t *ast)
     }
     case Declare: {
         auto decl = Match(ast, Declare);
-        return CORD_asprintf("__declare(%r, %r);", compile(decl->var), compile(decl->value));
+        return CORD_asprintf("__declare(%r, %r)", compile(decl->var), compile(decl->value));
     }
     case Assign: {
         auto assign = Match(ast, Assign);
