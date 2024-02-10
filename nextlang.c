@@ -32,6 +32,12 @@ int main(int argc, char *argv[])
         errx(1, "Could not compile!");
 
     if (getenv("VERBOSE")) {
+        FILE *out = popen(heap_strf("bat --file-name='%s'", argv[1]), "w");
+        fputs(f->text, out);
+        fclose(out);
+    }
+
+    if (getenv("VERBOSE")) {
         FILE *out = popen("bat --file-name=AST", "w");
         fputs(ast_to_str(ast), out);
         fclose(out);
