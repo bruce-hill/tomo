@@ -130,9 +130,6 @@ CORD compile(ast_t *ast)
         }
         return code;
     }
-    case Interp: {
-        return CORD_asprintf("__cord(%r)", compile(Match(ast, Interp)->value));
-    }
     case Block: {
         ast_list_t *stmts = Match(ast, Block)->statements;
         if (stmts && !stmts->next)

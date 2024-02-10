@@ -35,6 +35,7 @@
                          int32_t: CORD_asprintf("%d", x), int64_t: CORD_asprintf("%ld", x), \
                          double: CORD_asprintf("%g", x), float: CORD_asprintf("%g", x), \
                          CORD: x, \
+                         char*: x, \
                          default: "???")
 #define __heap(x) (__typeof(x)*)memcpy(GC_MALLOC(sizeof(x)), (__typeof(x)[1]){x}, sizeof(x))
 #define __stack(x) (&(__typeof(x)){x})
@@ -56,3 +57,5 @@
 #define mod1(x, n) (((x) % (n)) + (__typeof(x))1)
 
 #define say(str) puts(CORD_to_const_char_star(str))
+
+// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

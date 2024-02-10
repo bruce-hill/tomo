@@ -14,6 +14,7 @@
 #include "ast.h"
 #include "util.h"
 
+static const char closing[128] = {['(']=')', ['[']=']', ['<']='>', ['{']='}', ['|']='|', ['/']='/'};
 
 typedef struct {
     sss_file_t *file;
@@ -80,6 +81,7 @@ static PARSER(parse_opt_indented_block);
 static PARSER(parse_var);
 static PARSER(parse_enum_def);
 static PARSER(parse_struct_def);
+static PARSER(parse_string);
 static PARSER(parse_func_def);
 static PARSER(parse_extern);
 static PARSER(parse_declaration);
@@ -166,7 +168,10 @@ size_t some_not(const char **pos, const char *forbid) {
     return len;
 }
 
-size_t spaces(const char **pos) { return some_of(pos, " \t"); }
+size_t spaces(const char **pos) {
+    return some_of(pos, " \t");
+}
+
 size_t whitespace(const char **pos) {
     const char *p0 = *pos;
     while (some_of(pos, " \t\r\n") || comment(pos))
@@ -222,7 +227,7 @@ static void expect_closing(
 
     const char *eol = strchr(*pos, '\n');
     const char *next = strstr(*pos, closing);
-    
+
     const char *end = eol < next ? eol : next;
 
     if (isatty(STDERR_FILENO) && !getenv("NO_COLOR"))
@@ -868,154 +873,100 @@ PARSER(parse_char) {
     }
 }
 
-PARSER(parse_interpolation) {
-    const char *start = pos;
-    ++pos; // ignore the initial character, typically a '$', but might be other stuff like '@' in different contexts
-    bool labelled = match(&pos, ":");
-    ast_t *value = optional(ctx, &pos, parse_parens);
-    if (!value) value = optional(ctx, &pos, parse_term);
-    if (!value) {
-        match_group(&pos, '(');
-        parser_err(ctx, start, pos, "This interpolation didn't parse");
-    }
-    return NewAST(ctx->file, start, pos, Interp, .value=value, .labelled=labelled);
-}
-
 PARSER(parse_string) {
-    static const char closing[128] = {['(']=')', ['[']=']', ['<']='>', ['{']='}'};
-    static const bool escapes[128] = {['\'']='\x1B', ['(']='\x1B', ['>']='\x1B', ['/']='\x1B'};
-    static const char interps[128] = {['>']='@', ['/']='@', ['\'']='\x1A', ['(']='\x1A'};
-
-    const char *string_start = pos;
-    char open, close;
-    if (match(&pos, "$")) {
-        open = *pos;
-        close = closing[(int)open] ? closing[(int)open] : open;
-        ++pos;
+    // ["$" [interp-char [closing-interp-char]]] ('"' ... '"' / "'" ... "'")
+    const char *start = pos;
+    char close_quote, start_interp = '\x03', close_interp = '\x02';
+    if (match(&pos, "\"")) {
+        close_quote = '"', start_interp = '{', close_interp = '}';
+    } else if (match(&pos, "'")) {
+        close_quote = '\'';
+    } else if (match(&pos, "$")) {
+        if (*pos == '"' || *pos == '\'' || *pos == '/' || *pos == ';') {
+            close_quote = *pos;
+        } else {
+            start_interp = *(pos++);
+            close_interp = closing[(int)start_interp];
+            if (*pos == close_interp) ++pos;
+            close_quote = closing[(int)*pos] ? closing[(int)*pos] : *pos;
+            ++pos;
+        }
     } else {
-        if (*pos != '\'' && *pos != '"')
-            return NULL;
-        open = *pos;
-        close = *pos;
-        ++pos;
+        return NULL;
     }
 
-    char interp_char = interps[(int)open] ? interps[(int)open] : '$';
-    char escape_char = escapes[(int)open] ? escapes[(int)open] : '\\';
+    // printf("Parsing string: '%c' .. '%c' interp: '%c%c'\n", *start, close_quote, start_interp, close_interp);
 
-    if (open == ':' || open == '>')
-        spaces(&pos);
+    int64_t starting_indent = sss_get_indent(ctx->file, pos);
+    int64_t string_indent;
+    if (*pos == '\r' || *pos == '\n') {
+        const char *first_line = pos;
+        whitespace(&first_line);
+        string_indent = sss_get_indent(ctx->file, first_line);
+        if (string_indent <= starting_indent)
+            parser_err(ctx, start, first_line, "Multi-line strings must be indented on their first line");
+    } else {
+        string_indent = starting_indent + 4;
+    }
 
     ast_list_t *chunks = NULL;
-    if (*pos == '\r' || *pos == '\n') { // Multiline string
-        char special[] = {'\n','\r',interp_char,escape_char,'\0'};
-        int64_t starting_indent = sss_get_indent(ctx->file, pos); 
-        // indentation-delimited string
-        match(&pos, "\r");
-        match(&pos, "\n");
-        int64_t first_line = sss_get_line_number(ctx->file, pos);
-        int64_t indented = sss_get_indent(ctx->file, pos);
-        pos = sss_get_line(ctx->file, first_line);
-        while (pos < ctx->file->text + ctx->file->len) {
-            const char *eol = strchrnul(pos, '\n');
-            if (eol == pos + strspn(pos, " \t\r")) { // Empty line
-                ast_t *ast = NewAST(ctx->file, pos, eol, StringLiteral, .str="\n");
-                chunks = new(ast_list_t, .ast=ast, .next=chunks);
-                pos = eol + 1;
+    CORD chunk = NULL;
+    const char *chunk_start = pos;
+    for (; pos < ctx->file->text + ctx->file->len && *pos != close_quote; ++pos) {
+        if (*pos == start_interp) {
+            if (chunk) {
+                ast_t *literal = NewAST(ctx->file, chunk_start, pos, StringLiteral, .str=CORD_to_const_char_star(chunk));
+                chunks = new(ast_list_t, .ast=literal, .next=chunks);
+                chunk = NULL;
+            }
+            ++pos;
+            spaces(&pos);
+            for (ast_t *interp; (interp=optional(ctx, &pos, parse_expr)); spaces(&pos)) {
+                interp = WrapAST(interp, FunctionCall, .fn=WrapAST(interp, Var, .name="__cord"), .args=new(ast_list_t, .ast=interp));
+                chunks = new(ast_list_t, .ast=interp, .next=chunks);
+                chunk_start = pos;
+            }
+            if (close_interp) {
+                const char *closing = pos;
+                spaces(&closing);
+                if (*closing == close_interp) {
+                    pos = closing;
+                }
+            }
+        } else if (*pos == '\r' || *pos == '\n') {
+            // Newline handling
+            match(&pos, "\r");
+            match(&pos, "\n");
+            if (match_indentation(&pos, string_indent)) {
+                if (chunk || chunks)
+                    chunk = CORD_cat_char(chunk, '\n');
+                --pos;
                 continue;
             }
-            if (!match_indentation(&pos, starting_indent))
-                parser_err(ctx, pos, strchrnul(pos, '\n'), "This isn't a valid indentation level for this unterminated string");
-
-            if (*pos == close) {
-                ++pos;
-                goto finished;
-            }
-
-            if (!match_indentation(&pos, (indented - starting_indent)))
-                parser_err(ctx, pos, strchrnul(pos, '\n'), "I was expecting this to have %lu extra indentation beyond %lu",
-                           (indented - starting_indent), starting_indent);
-
-            while (pos < eol+1) {
-                size_t len = strcspn(pos, special);
-                if (pos[len] == '\r') ++len;
-                if (pos[len] == '\n') ++len;
-
-                if (len > 0) {
-                    ast_t *chunk = NewAST(ctx->file, pos, pos+len-1, StringLiteral, .str=heap_strn(pos, len));
-                    chunks = new(ast_list_t, .ast=chunk, .next=chunks);
-                }
-
-                pos += len;
-
-                if (*pos == escape_char) {
-                    const char *start = pos;
-                    const char* unescaped = unescape(&pos);
-                    ast_t *chunk = NewAST(ctx->file, start, pos, StringLiteral, .str=unescaped);
-                    chunks = new(ast_list_t, .ast=chunk, .next=chunks);
-                    ++pos;
-                } else if (*pos == interp_char) {
-                    ast_t *chunk = parse_interpolation(ctx, pos);
-                    chunks = new(ast_list_t, .ast=chunk, .next=chunks);
-                    pos = chunk->end;
+            if (sss_get_indent(ctx->file, pos) == starting_indent) {
+                if (*pos == close_quote) {
+                    break;
+                } else if (some_of(&pos, ".") >= 2) {
+                    // Multi-line split
+                    --pos;
+                    continue;
                 }
             }
-        }
-      finished:;
-        // Strip trailing newline:
-        if (chunks) {
-            ast_t *last_chunk = chunks->ast;
-            if (last_chunk->tag == StringLiteral) {
-                auto str = Match(last_chunk, StringLiteral);
-                const char* trimmed = heap_strn(str->str, strlen(str->str)-1);
-                chunks->ast = NewAST(ctx->file, last_chunk->start, last_chunk->end-1, StringLiteral, .str=trimmed);
-            }
-        }
-    } else { // Inline string
-        char special[] = {'\n','\r',open,close,interp_char,escape_char,'\0'};
-        int depth = 1;
-        while (depth > 0 && *pos) {
-            size_t len = strcspn(pos, special);
-            if (len > 0) {
-                ast_t *chunk = NewAST(ctx->file, pos, pos+len-1, StringLiteral, .str=heap_strn(pos, len));
-                chunks = new(ast_list_t, .ast=chunk, .next=chunks);
-                pos += len;
-            }
-
-            if (*pos == interp_char) {
-                ast_t *chunk = parse_interpolation(ctx, pos);
-                chunks = new(ast_list_t, .ast=chunk, .next=chunks);
-                pos = chunk->end;
-            } else if (*pos == escape_char) {
-                const char *start = pos;
-                const char* unescaped = unescape(&pos);
-                ast_t *chunk = NewAST(ctx->file, start, pos, StringLiteral, .str=unescaped);
-                chunks = new(ast_list_t, .ast=chunk, .next=chunks);
-            } else if (*pos == '\r' || *pos == '\n') {
-                if (open == ' ' || open == ':' || open == '>') goto string_finished;
-                parser_err(ctx, string_start, pos, "This line ended without closing the string");
-            } else if (*pos == close) { // if open == close, then don't do nesting (i.e. check 'close' first)
-                --depth;
-                if (depth > 0) {
-                    ast_t *chunk = NewAST(ctx->file, pos, pos+1, StringLiteral, .str=heap_strn(pos, 1));
-                    chunks = new(ast_list_t, .ast=chunk, .next=chunks);
-                }
-                ++pos;
-            } else if (*pos == open) {
-                ++depth;
-                ast_t *chunk = NewAST(ctx->file, pos, pos+1, StringLiteral, .str=heap_strn(pos, 1));
-                chunks = new(ast_list_t, .ast=chunk, .next=chunks);
-                ++pos;
-            } else {
-                ast_t *chunk = NewAST(ctx->file, pos, pos+1, StringLiteral, .str=heap_strn(pos, 1));
-                ++pos;
-                chunks = new(ast_list_t, .ast=chunk, .next=chunks);
-            }
+            parser_err(ctx, pos, strchrnul(pos, '\n'), "This string line isn't correctly indented");
+        } else {
+            chunk = CORD_cat_char(chunk, *pos);
         }
     }
-  string_finished:;
+
+    if (chunk) {
+        ast_t *literal = NewAST(ctx->file, chunk_start, pos, StringLiteral, .str=CORD_to_const_char_star(chunk));
+        chunks = new(ast_list_t, .ast=literal, .next=chunks);
+        chunk = NULL;
+    }
+
     REVERSE_LIST(chunks);
-    return NewAST(ctx->file, string_start, pos, StringJoin, .children=chunks);
+    expect_closing(ctx, &pos, (char[]){close_quote, 0}, "I was expecting a '%c' to finish this string", close_quote);
+    return NewAST(ctx->file, start, pos, StringJoin, .children=chunks);
 }
 
 PARSER(parse_skip) {

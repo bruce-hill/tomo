@@ -92,7 +92,7 @@ typedef enum {
     Unknown = 0,
     Nil, Bool, Var,
     Int, Num, Char,
-    StringLiteral, StringJoin, Interp,
+    StringLiteral, StringJoin,
     Declare, Assign,
     BinaryOp, UnaryOp, UpdateAssign,
     Min, Max,
@@ -145,10 +145,6 @@ struct ast_s {
         struct {
             ast_list_t *children;
         } StringJoin;
-        struct {
-            ast_t *value;
-            bool labelled:1, colorize:1, quote_string:1;
-        } Interp;
         struct {
             ast_t *var;
             ast_t *value;
