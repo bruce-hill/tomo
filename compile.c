@@ -171,6 +171,12 @@ CORD compile(ast_t *ast)
         }
         return CORD_cat(code, ";");
     }
+    case Min: {
+        return CORD_asprintf("min(%r, %r)", compile(Match(ast, Min)->lhs), compile(Match(ast, Min)->rhs));
+    }
+    case Max: {
+        return CORD_asprintf("max(%r, %r)", compile(Match(ast, Max)->lhs), compile(Match(ast, Max)->rhs));
+    }
     // Min, Max,
     // Array, Table, TableEntry,
     case Array: {

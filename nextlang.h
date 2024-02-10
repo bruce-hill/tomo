@@ -57,7 +57,22 @@
 #define xor(x, y) ((x) ^ (y))
 #define mod(x, n) ((x) % (n))
 #define mod1(x, n) (((x) % (n)) + (__typeof(x))1)
+#define __cmp(x, y) (_Generic(x, CORD: CORD_cmp(x, y), char*: strcmp(x, y), const char*: strcmp(x, y), default: (x > 0) - (y > 0)))
+#define __lt(x, y) (_Generic(x, int8_t: x < y, int16_t: x < y, int32_t: x < y, int64_t: x < y, float: x < y, double: x < y, char: x < y, bool: x < y, \
+                             default: __cmp(x, y) < 0))
+#define __le(x, y) (_Generic(x, int8_t: x <= y, int16_t: x <= y, int32_t: x <= y, int64_t: x <= y, float: x <= y, double: x <= y, char: x <= y, bool: x <= y, \
+                             default: __cmp(x, y) <= 0))
+#define __ge(x, y) (_Generic(x, int8_t: x >= y, int16_t: x >= y, int32_t: x >= y, int64_t: x >= y, float: x >= y, double: x >= y, char: x >= y, bool: x >= y, \
+                             default: __cmp(x, y) >= 0))
+#define __gt(x, y) (_Generic(x, int8_t: x > y, int16_t: x > y, int32_t: x > y, int64_t: x > y, float: x > y, double: x > y, char: x > y, bool: x > y, \
+                             default: __cmp(x, y) > 0))
+#define __eq(x, y) (_Generic(x, int8_t: x == y, int16_t: x == y, int32_t: x == y, int64_t: x == y, float: x == y, double: x == y, char: x == y, bool: x == y, \
+                             default: __cmp(x, y) == 0))
+#define __ne(x, y) (_Generic(x, int8_t: x != y, int16_t: x != y, int32_t: x != y, int64_t: x != y, float: x != y, double: x != y, char: x != y, bool: x != y, \
+                             default: __cmp(x, y) != 0))
+#define min(x, y) ({ __declare(__min_lhs, x); __declare(__min_rhs, y); __le(__min_lhs, __min_rhs) ? __min_lhs : __min_rhs; })
+#define max(x, y) ({ __declare(__min_lhs, x); __declare(__min_rhs, y); __ge(__min_lhs, __min_rhs) ? __min_lhs : __min_rhs; })
 
-#define say(str) puts(CORD_to_const_char_star(str))
+#define say(str) puts(CORD_to_const_char_star(__cord(str)))
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
