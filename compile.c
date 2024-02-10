@@ -35,7 +35,7 @@ CORD compile(ast_t *ast)
     case Var: return Match(ast, Var)->name;
     case Int: return CORD_asprintf("((Int%ld_t)%ld)", Match(ast, Int)->precision, Match(ast, Int)->i);
     case Num: return CORD_asprintf(Match(ast, Num)->precision == 64 ? "%g" : "%gf", Match(ast, Num)->n);
-    case Char: return CORD_asprintf("'\\x%02X'", (int)Match(ast, Char)->c);
+    case Char: return CORD_asprintf("(char)'\\x%02X'", (int)Match(ast, Char)->c);
     case UnaryOp: {
         auto unop = Match(ast, UnaryOp);
         CORD expr = compile(unop->value);
@@ -123,12 +123,28 @@ CORD compile(ast_t *ast)
         return CORD_cat_char(code, '"');
     }
     case StringJoin: {
-        CORD code = NULL;
-        for (ast_list_t *chunk = Match(ast, StringJoin)->children; chunk; chunk = chunk->next) {
-            if (code) CORD_sprintf(&code, "CORD_cat(%r, %r)", code, compile(chunk->ast));
-            else code = compile(chunk->ast);
+        ast_list_t *chunks = Match(ast, StringJoin)->children;
+        if (!chunks) {
+            return "\"\"";
+        } else if (!chunks->next) {
+            CORD code = compile(chunks->ast);
+            if (chunks->ast->tag != StringLiteral)
+                code = CORD_asprintf("__cord(%r)", code);
+            return code;
+        } else {
+            int64_t num_chunks = 0;
+            for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next)
+                ++num_chunks;
+
+            CORD code = CORD_asprintf("CORD_catn(%ld", num_chunks);
+            for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
+                CORD chunk_code = compile(chunk->ast);
+                if (chunk->ast->tag != StringLiteral)
+                    chunk_code = CORD_asprintf("__cord(%r)", chunk_code);
+                CORD_sprintf(&code, "%r, %r", code, chunk_code);
+            }
+            return CORD_cat_char(code, ')');
         }
-        return code;
     }
     case Block: {
         ast_list_t *stmts = Match(ast, Block)->statements;

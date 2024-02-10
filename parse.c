@@ -922,7 +922,6 @@ PARSER(parse_string) {
             ++pos;
             spaces(&pos);
             for (ast_t *interp; (interp=optional(ctx, &pos, parse_expr)); spaces(&pos)) {
-                interp = WrapAST(interp, FunctionCall, .fn=WrapAST(interp, Var, .name="__cord"), .args=new(ast_list_t, .ast=interp));
                 chunks = new(ast_list_t, .ast=interp, .next=chunks);
                 chunk_start = pos;
             }

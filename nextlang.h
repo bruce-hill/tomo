@@ -31,11 +31,13 @@
 #define CORD_asprintf(...) ({ CORD __c; CORD_sprintf(&__c, __VA_ARGS__); __c; })
 #define __declare(var, val) __typeof(val) var = val
 #define __cord(x) _Generic(x, bool: x ? "yes" : "no", \
-                         int8_t: CORD_asprintf("%d", x), int16_t: CORD_asprintf("%d", x), \
+                         int8_t: CORD_asprintf("%d", x), \
+                         int16_t: CORD_asprintf("%d", x), \
                          int32_t: CORD_asprintf("%d", x), int64_t: CORD_asprintf("%ld", x), \
                          double: CORD_asprintf("%g", x), float: CORD_asprintf("%g", x), \
                          CORD: x, \
                          char*: x, \
+                         char: CORD_cat_char(NULL, x), \
                          default: "???")
 #define __heap(x) (__typeof(x)*)memcpy(GC_MALLOC(sizeof(x)), (__typeof(x)[1]){x}, sizeof(x))
 #define __stack(x) (&(__typeof(x)){x})
