@@ -38,8 +38,8 @@ public uint32_t generic_hash(const void *obj, const TypeInfo *type)
         halfsiphash(hash_values, sizeof(uint32_t)*info.members.length, SSS_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));
         return hash;
     }
-    case TaggedUnionInfo: {
-        auto info = type->TaggedUnionInfo;
+    case EnumInfo: {
+        auto info = type->EnumInfo;
         int32_t tag = *(int32_t*)obj;
         int64_t offset = 4;
         typedef struct { int64_t tag; const char *name; const TypeInfo *type;} tu_member_t;
@@ -95,8 +95,8 @@ public int32_t generic_compare(const void *x, const void *y, const TypeInfo *typ
         }
         return 0;
     }
-    case TaggedUnionInfo: {
-        auto info = type->TaggedUnionInfo;
+    case EnumInfo: {
+        auto info = type->EnumInfo;
         int32_t xtag = *(int32_t*)x,
                 ytag = *(int32_t*)y;
 
@@ -146,8 +146,8 @@ public bool generic_equal(const void *x, const void *y, const TypeInfo *type)
         }
         return true;
     }
-    case TaggedUnionInfo: {
-        auto info = type->TaggedUnionInfo;
+    case EnumInfo: {
+        auto info = type->EnumInfo;
         int32_t xtag = *(int32_t*)x,
                 ytag = *(int32_t*)y;
 
@@ -256,8 +256,8 @@ public CORD generic_cord(const void *obj, bool colorize, const TypeInfo *type)
             CORD_sprintf(&c, colorize ? "\x1b[1m%s\x1b[m%r" : "%s%r", type->name, c);
         return c;
     }
-    case TaggedUnionInfo: {
-        auto info = type->TaggedUnionInfo;
+    case EnumInfo: {
+        auto info = type->EnumInfo;
         int32_t tag = *(int32_t*)obj;
         int64_t offset = 4;
         typedef struct { int64_t tag; const char *name; const TypeInfo *type;} tu_member_t;

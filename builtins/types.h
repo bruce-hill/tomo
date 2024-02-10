@@ -17,7 +17,7 @@ typedef struct TypeInfo {
     const char *name;
     int64_t size, align;
     struct { // Anonymous tagged union for convenience 
-        enum { CustomInfo, PointerInfo, ArrayInfo, TableInfo, StructInfo, TaggedUnionInfo } tag;
+        enum { CustomInfo, PointerInfo, ArrayInfo, TableInfo, StructInfo, EnumInfo } tag;
         union {
             struct {
                 equal_fn_t equal;
@@ -42,7 +42,7 @@ typedef struct TypeInfo {
             } StructInfo;
             struct {
                 array_t members; // [{tag, name, type}]
-            } TaggedUnionInfo;
+            } EnumInfo;
         };
     };
 } TypeInfo;
