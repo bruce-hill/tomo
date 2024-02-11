@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
         errx(1, "Couldn't set printf specifier");
 
     const char *autofmt = getenv("AUTOFMT");
-    if (!autofmt) autofmt = "indent -kr -nut | bat --file-name=out.c";
+    if (!autofmt) autofmt = "indent -kr -nut";
 
     setenv("SSSPATH", ".", 0);
 
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
     program = CORD_cat(program, "return 0;\n}\n");
     
     if (verbose) {
-        FILE *out = popen(autofmt, "w");
+        FILE *out = popen(heap_strf("%s | bat --file-name=program.c", autofmt), "w");
         CORD_put(program, out);
         fclose(out);
     }
