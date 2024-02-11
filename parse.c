@@ -14,7 +14,7 @@
 #include "ast.h"
 #include "util.h"
 
-static const char closing[128] = {['(']=')', ['[']=']', ['<']='>', ['{']='}', ['|']='|', ['/']='/'};
+static const char closing[128] = {['(']=')', ['[']=']', ['<']='>', ['{']='}'};
 
 typedef struct {
     sss_file_t *file;
@@ -876,18 +876,19 @@ PARSER(parse_char) {
 PARSER(parse_string) {
     // ["$" [interp-char [closing-interp-char]]] ('"' ... '"' / "'" ... "'")
     const char *start = pos;
-    char close_quote, start_interp = '\x03', close_interp = '\x02';
+    char open_quote, close_quote, open_interp = '\x03', close_interp = '\x02';
     if (match(&pos, "\"")) {
-        close_quote = '"', start_interp = '{', close_interp = '}';
+        open_quote = '"', close_quote = '"', open_interp = '{', close_interp = '}';
     } else if (match(&pos, "'")) {
-        close_quote = '\'';
+        open_quote = '\'', close_quote = '\'';
     } else if (match(&pos, "$")) {
         if (*pos == '"' || *pos == '\'' || *pos == '/' || *pos == ';') {
-            close_quote = *pos;
+            open_quote = *pos, close_quote = *pos;
         } else {
-            start_interp = *(pos++);
-            close_interp = closing[(int)start_interp];
+            open_interp = *(pos++);
+            close_interp = closing[(int)open_interp];
             if (*pos == close_interp) ++pos;
+            open_quote = *pos;
             close_quote = closing[(int)*pos] ? closing[(int)*pos] : *pos;
             ++pos;
         }
@@ -895,7 +896,7 @@ PARSER(parse_string) {
         return NULL;
     }
 
-    // printf("Parsing string: '%c' .. '%c' interp: '%c%c'\n", *start, close_quote, start_interp, close_interp);
+    // printf("Parsing string: '%c' .. '%c' interp: '%c%c'\n", *start, close_quote, open_interp, close_interp);
 
     int64_t starting_indent = sss_get_indent(ctx->file, pos);
     int64_t string_indent;
@@ -912,8 +913,9 @@ PARSER(parse_string) {
     ast_list_t *chunks = NULL;
     CORD chunk = CORD_EMPTY;
     const char *chunk_start = pos;
-    for (; pos < ctx->file->text + ctx->file->len && *pos != close_quote; ++pos) {
-        if (*pos == start_interp) {
+    int depth = 1;
+    for (; pos < ctx->file->text + ctx->file->len && depth > 0; ++pos) {
+        if (*pos == open_interp) {
             if (chunk) {
                 ast_t *literal = NewAST(ctx->file, chunk_start, pos, StringLiteral, .cord=chunk);
                 chunks = new(ast_list_t, .ast=literal, .next=chunks);
@@ -921,7 +923,7 @@ PARSER(parse_string) {
             }
             ++pos;
             spaces(&pos);
-            for (ast_t *interp; (interp=optional(ctx, &pos, parse_expr)); spaces(&pos)) {
+            for (ast_t *interp; (interp=close_interp ? optional(ctx, &pos, parse_expr) : optional(ctx, &pos, parse_term)); spaces(&pos)) {
                 chunks = new(ast_list_t, .ast=interp, .next=chunks);
                 chunk_start = pos;
             }
@@ -932,6 +934,18 @@ PARSER(parse_string) {
                     pos = closing;
                 }
             }
+        } else if (*pos == open_quote && closing[(int)open_quote]) {
+            if (sss_get_indent(ctx->file, pos) == starting_indent) {
+                ++depth;
+            }
+            chunk = CORD_cat_char(chunk, *pos);
+        } else if (*pos == close_quote) {
+            if (sss_get_indent(ctx->file, pos) == starting_indent) {
+                --depth;
+                if (depth == 0)
+                    break;
+            }
+            chunk = CORD_cat_char(chunk, *pos);
         } else if (*pos == '\r' || *pos == '\n') {
             // Newline handling
             match(&pos, "\r");
