@@ -140,7 +140,7 @@ struct ast_s {
             char c;
         } Char;
         struct {
-            const char *str;
+            CORD cord;
         } StringLiteral;
         struct {
             ast_list_t *children;

@@ -99,12 +99,14 @@ CORD compile(ast_t *ast)
         errx(1, "unimplemented binop");
     }
     case StringLiteral: {
-        const char *str = Match(ast, StringLiteral)->str; 
-        if (!str || strlen(str) == 0)
+        CORD literal = Match(ast, StringLiteral)->cord; 
+        if (literal == CORD_EMPTY)
             return "(CORD)CORD_EMPTY";
         CORD code = "\"";
-        for (; *str; ++str) {
-            switch (*str) {
+        CORD_pos i;
+        CORD_FOR(i, literal) {
+            int c = CORD_pos_fetch(i);
+            switch (c) {
             case '\\': code = CORD_cat(code, "\\\\"); break;
             case '"': code = CORD_cat(code, "\\\""); break;
             case '\a': code = CORD_cat(code, "\\a"); break;
@@ -114,10 +116,10 @@ CORD compile(ast_t *ast)
             case '\t': code = CORD_cat(code, "\\t"); break;
             case '\v': code = CORD_cat(code, "\\v"); break;
             default: {
-                if (isprint(*str))
-                    code = CORD_cat_char(code, *str);
+                if (isprint(c))
+                    code = CORD_cat_char(code, c);
                 else
-                    CORD_sprintf(&code, "%r\\x%02X", *str);
+                    CORD_sprintf(&code, "%r\\x%02X", c);
                 break;
             }
             }

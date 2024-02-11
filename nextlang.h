@@ -37,8 +37,8 @@
                          int32_t: CORD_asprintf("%d", x), int64_t: CORD_asprintf("%ld", x), \
                          double: CORD_asprintf("%g", x), float: CORD_asprintf("%g", x), \
                          CORD: x, \
-                         char*: x, \
-                         char: CORD_cat_char(NULL, x), \
+                         char*: ({ char *__str = x; __str && __str[0] ? __str : CORD_EMPTY;}), \
+                         char: CORD_cat_char(CORD_EMPTY, x), \
                          default: "???")
 #define __heap(x) (__typeof(x)*)memcpy(GC_MALLOC(sizeof(x)), (__typeof(x)[1]){x}, sizeof(x))
 #define __stack(x) (&(__typeof(x)){x})

@@ -915,7 +915,7 @@ PARSER(parse_string) {
     for (; pos < ctx->file->text + ctx->file->len && *pos != close_quote; ++pos) {
         if (*pos == start_interp) {
             if (chunk) {
-                ast_t *literal = NewAST(ctx->file, chunk_start, pos, StringLiteral, .str=CORD_to_const_char_star(chunk));
+                ast_t *literal = NewAST(ctx->file, chunk_start, pos, StringLiteral, .cord=chunk);
                 chunks = new(ast_list_t, .ast=literal, .next=chunks);
                 chunk = NULL;
             }
@@ -958,7 +958,7 @@ PARSER(parse_string) {
     }
 
     if (chunk) {
-        ast_t *literal = NewAST(ctx->file, chunk_start, pos, StringLiteral, .str=CORD_to_const_char_star(chunk));
+        ast_t *literal = NewAST(ctx->file, chunk_start, pos, StringLiteral, .cord=chunk);
         chunks = new(ast_list_t, .ast=literal, .next=chunks);
         chunk = NULL;
     }
