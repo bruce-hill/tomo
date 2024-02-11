@@ -31,13 +31,14 @@ int main(int argc, char *argv[])
     if (!ast)
         errx(1, "Could not compile!");
 
-    if (getenv("VERBOSE")) {
+    bool verbose = (getenv("VERBOSE") && strcmp(getenv("VERBOSE"), "1") == 0);
+    if (verbose) {
         FILE *out = popen(heap_strf("bat --file-name='%s'", argv[1]), "w");
         fputs(f->text, out);
         fclose(out);
     }
 
-    if (getenv("VERBOSE")) {
+    if (verbose) {
         FILE *out = popen("bat --file-name=AST", "w");
         fputs(ast_to_str(ast), out);
         fclose(out);
@@ -85,10 +86,14 @@ int main(int argc, char *argv[])
     }
     
     // Main body:
-    code = CORD_cat(code, "\n\nint main(int argc, const char *argv[]) {\n"
+    code = CORD_cat(code, "\n\n"
+                    "bool USE_COLOR = true;\n\n"
+                    "int main(int argc, const char *argv[]) {\n"
                     "(void)argc;\n"
                     "(void)argv;\n"
-                    "GC_INIT();\n\n");
+                    "GC_INIT();\n"
+                    "USE_COLOR = getenv(\"COLOR\") ? strcmp(getenv(\"COLOR\"), \"1\") == 0 : isatty(STDOUT_FILENO);\n"
+                    "\n");
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         switch (stmt->ast->tag) {
         case FunctionDef: case StructDef: case EnumDef: break;
@@ -101,7 +106,7 @@ int main(int argc, char *argv[])
     }
     code = CORD_cat(code, "\nreturn 0;\n}\n");
     
-    if (getenv("VERBOSE")) {
+    if (verbose) {
         FILE *out = popen(autofmt, "w");
         CORD_put(code, out);
         fclose(out);
@@ -109,7 +114,7 @@ int main(int argc, char *argv[])
 
     const char *flags = getenv("CFLAGS");
     if (!flags) flags = "-std=c11 -lm -lgc -lcord";
-    const char *run = heap_strf(getenv("VERBOSE") ? "tcc %s -run - | bat --file-name=output.txt" : "tcc %s -run -", flags);
+    const char *run = heap_strf(verbose ? "tcc %s -run - | bat --file-name=output.txt" : "tcc %s -run -", flags);
     FILE *cc = popen(run, "w");
     CORD_put(code, cc);
     fclose(cc);
