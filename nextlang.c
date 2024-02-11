@@ -44,30 +44,13 @@ int main(int argc, char *argv[])
         fclose(out);
     }
 
-    CORD header = "#include \"nextlang.h\"\n\n";
+    CORD header = "#include \"nextlang.h\"\n";
 
     // Predeclare types:
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         switch (stmt->ast->tag) {
         case StructDef: case EnumDef: {
-            header = CORD_cat(header, compile(stmt->ast));
-            break;
-        }
-        default: break;
-        }
-    }
-
-    // Predeclare funcs:
-    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-        switch (stmt->ast->tag) {
-        case FunctionDef: {
-            auto fndef = Match(stmt->ast, FunctionDef);
-            CORD_sprintf(&header, "%rstatic %r %r(", header, fndef->ret_type ? compile_type(fndef->ret_type) : "void", compile(fndef->name));
-            for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-                CORD_sprintf(&header, "%r%r %s", header, compile_type(arg->type), arg->name);
-                if (arg->next) header = CORD_cat(header, ", ");
-            }
-            header = CORD_cat(header, ");\n");
+            CORD_sprintf(&header, "%r\n%r", header, compile(stmt->ast));
             break;
         }
         default: break;
@@ -75,7 +58,24 @@ int main(int argc, char *argv[])
     }
 
     CORD program = CORD_cat(header, "\n/////////////////////////////////////////////////////////////////////////\n\n"
-                            "bool USE_COLOR = true;");
+                            "bool USE_COLOR = true;\n");
+
+    // Predeclare funcs:
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        switch (stmt->ast->tag) {
+        case FunctionDef: {
+            auto fndef = Match(stmt->ast, FunctionDef);
+            CORD_sprintf(&program, "%rstatic %r %r(", program, fndef->ret_type ? compile_type(fndef->ret_type) : "void", compile(fndef->name));
+            for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
+                CORD_sprintf(&program, "%r%r %s", program, compile_type(arg->type), arg->name);
+                if (arg->next) program = CORD_cat(program, ", ");
+            }
+            program = CORD_cat(program, ");\n");
+            break;
+        }
+        default: break;
+        }
+    }
 
     // Declare funcs:
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
                     "(void)argv;\n"
                     "GC_INIT();\n"
                     "USE_COLOR = getenv(\"COLOR\") ? strcmp(getenv(\"COLOR\"), \"1\") == 0 : isatty(STDOUT_FILENO);\n"
-                    "\n");
+                    "// User code:\n");
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         switch (stmt->ast->tag) {
         case FunctionDef: case StructDef: case EnumDef: break;
@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
         }
         }
     }
-    program = CORD_cat(program, "\nreturn 0;\n}\n");
+    program = CORD_cat(program, "return 0;\n}\n");
     
     if (verbose) {
         FILE *out = popen(autofmt, "w");
