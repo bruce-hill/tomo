@@ -44,13 +44,13 @@ int main(int argc, char *argv[])
         fclose(out);
     }
 
-    CORD code = "#include \"nextlang.h\"\n\n";
+    CORD header = "#include \"nextlang.h\"\n\n";
 
     // Predeclare types:
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         switch (stmt->ast->tag) {
         case StructDef: case EnumDef: {
-            code = CORD_cat(code, compile(stmt->ast));
+            header = CORD_cat(header, compile(stmt->ast));
             break;
         }
         default: break;
@@ -62,23 +62,26 @@ int main(int argc, char *argv[])
         switch (stmt->ast->tag) {
         case FunctionDef: {
             auto fndef = Match(stmt->ast, FunctionDef);
-            CORD_sprintf(&code, "%rstatic %r %r(", code, fndef->ret_type ? compile_type(fndef->ret_type) : "void", compile(fndef->name));
+            CORD_sprintf(&header, "%rstatic %r %r(", header, fndef->ret_type ? compile_type(fndef->ret_type) : "void", compile(fndef->name));
             for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-                CORD_sprintf(&code, "%r%r %s", code, compile_type(arg->type), arg->name);
-                if (arg->next) code = CORD_cat(code, ", ");
+                CORD_sprintf(&header, "%r%r %s", header, compile_type(arg->type), arg->name);
+                if (arg->next) header = CORD_cat(header, ", ");
             }
-            code = CORD_cat(code, ");\n");
+            header = CORD_cat(header, ");\n");
             break;
         }
         default: break;
         }
     }
 
+    CORD program = CORD_cat(header, "\n/////////////////////////////////////////////////////////////////////////\n\n"
+                            "bool USE_COLOR = true;");
+
     // Declare funcs:
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         switch (stmt->ast->tag) {
         case FunctionDef: {
-            CORD_sprintf(&code, "%r\n\n%r", code, compile(stmt->ast));
+            CORD_sprintf(&program, "%r\n\n%r", program, compile(stmt->ast));
             break;
         }
         default: break;
@@ -86,8 +89,7 @@ int main(int argc, char *argv[])
     }
     
     // Main body:
-    code = CORD_cat(code, "\n\n"
-                    "bool USE_COLOR = true;\n\n"
+    program = CORD_cat(program, "\n\n"
                     "int main(int argc, const char *argv[]) {\n"
                     "(void)argc;\n"
                     "(void)argv;\n"
@@ -98,17 +100,17 @@ int main(int argc, char *argv[])
         switch (stmt->ast->tag) {
         case FunctionDef: case StructDef: case EnumDef: break;
         default: {
-            code = CORD_cat(code, compile(stmt->ast));
-            code = CORD_cat(code, ";\n");
+            program = CORD_cat(program, compile(stmt->ast));
+            program = CORD_cat(program, ";\n");
             break;
         }
         }
     }
-    code = CORD_cat(code, "\nreturn 0;\n}\n");
+    program = CORD_cat(program, "\nreturn 0;\n}\n");
     
     if (verbose) {
         FILE *out = popen(autofmt, "w");
-        CORD_put(code, out);
+        CORD_put(program, out);
         fclose(out);
     }
 
@@ -116,7 +118,7 @@ int main(int argc, char *argv[])
     if (!flags) flags = "-std=c11 -lm -lgc -lcord";
     const char *run = heap_strf(verbose ? "tcc %s -run - | bat --file-name=output.txt" : "tcc %s -run -", flags);
     FILE *cc = popen(run, "w");
-    CORD_put(code, cc);
+    CORD_put(program, cc);
     fclose(cc);
 
     return 0;
