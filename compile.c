@@ -100,6 +100,8 @@ CORD compile(ast_t *ast)
     }
     case StringLiteral: {
         const char *str = Match(ast, StringLiteral)->str; 
+        if (!str || strlen(str) == 0)
+            return "(CORD)CORD_EMPTY";
         CORD code = "\"";
         for (; *str; ++str) {
             switch (*str) {
@@ -125,7 +127,7 @@ CORD compile(ast_t *ast)
     case StringJoin: {
         ast_list_t *chunks = Match(ast, StringJoin)->children;
         if (!chunks) {
-            return "\"\"";
+            return "(CORD)CORD_EMPTY";
         } else if (!chunks->next) {
             CORD code = compile(chunks->ast);
             if (chunks->ast->tag != StringLiteral)
@@ -164,7 +166,7 @@ CORD compile(ast_t *ast)
     }
     case Assign: {
         auto assign = Match(ast, Assign);
-        CORD code = NULL;
+        CORD code = CORD_EMPTY;
         for (ast_list_t *target = assign->targets, *value = assign->values; target && value; target = target->next, value = value->next) {
             CORD_sprintf(&code, "%r = %r", compile(target->ast), compile(value->ast));
             if (target->next) code = CORD_cat(code, ", ");

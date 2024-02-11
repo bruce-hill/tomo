@@ -910,7 +910,7 @@ PARSER(parse_string) {
     }
 
     ast_list_t *chunks = NULL;
-    CORD chunk = NULL;
+    CORD chunk = CORD_EMPTY;
     const char *chunk_start = pos;
     for (; pos < ctx->file->text + ctx->file->len && *pos != close_quote; ++pos) {
         if (*pos == start_interp) {
