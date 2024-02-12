@@ -121,8 +121,6 @@ int main(int argc, char *argv[])
         ldlibs = heap_strf("%s %s", ldlibs, getenv("LDLIBS"));
 
     const char *run = heap_strf("tcc %s %s -run -", cflags, ldlibs);
-    if (verbose)
-        run = heap_strf("%s | bat -P --file-name=STDOUT", run);
     FILE *cc = popen(run, "w");
     CORD_put(program, cc);
     fclose(cc);
