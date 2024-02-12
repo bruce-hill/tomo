@@ -16,32 +16,34 @@ typedef struct {
     int16_t stride:16;
 } generic_array_t;
 
-static CORD vas_cord(void *x, const char **fmt, va_list args)
+static CORD vas_cord(void *x, bool use_color, const char **fmt, va_list args)
 {
+#define CLR(color, str) (use_color ? "\x1b["color"m" str "\x1b[m" : str)
 	char c = **fmt;
 	++(*fmt);
 	switch (c) {
-		case '@': case '?': {
+		case '@': case '?': case '&': {
 			if (!x)
-				return CORD_asprintf("%c%r", vas_cord(NULL, fmt, args));
+				return CORD_asprintf(use_color ? "\x1b[34;1m!\x1b[m%r" : "!%r", vas_cord(NULL, use_color, fmt, args));
 			void *ptr = *(void**)x;
-			return CORD_cat(ptr ? (c == '@' ? "@" : "?") : "!", vas_cord(ptr, fmt, args));
+			char sigil = ptr ? c : '!';
+			return CORD_asprintf(use_color ? "\x1b[34;1m%c\x1b[m%r" : "%c%r", sigil, vas_cord(ptr, use_color, fmt, args));
 		}
 		case 'B': {
 			if (!x) return "Bool";
-			return *(bool*)x ? "yes" : "no";
+			return *(bool*)x ? CLR("35", "yes") : CLR("35", "no");
 		}
 		case 'I': {
 			size_t bits = va_arg(args, size_t);
 			switch (bits) {
 				case 64:
-					return x ? CORD_asprintf("%ld", *(int64_t*)x) : "Int64";
+					return x ? CORD_asprintf(CLR("35", "%ld"), *(int64_t*)x) : "Int64";
 				case 32:
-					return x ? CORD_asprintf("%d", *(int32_t*)x) : "Int32";
+					return x ? CORD_asprintf(CLR("35", "%d"), *(int32_t*)x) : "Int32";
 				case 16:
-					return x ? CORD_asprintf("%d", *(int16_t*)x) : "Int16";
+					return x ? CORD_asprintf(CLR("35", "%d"), *(int16_t*)x) : "Int16";
 				case 8:
-					return x ? CORD_asprintf("%d", *(int8_t*)x) : "Int8";
+					return x ? CORD_asprintf(CLR("35", "%d"), *(int8_t*)x) : "Int8";
 				default: errx(1, "Unsupported Int precision: %ld", bits);
 			}
 		}
@@ -49,9 +51,9 @@ static CORD vas_cord(void *x, const char **fmt, va_list args)
 			size_t bits = va_arg(args, size_t);
 			switch (bits) {
 				case 64:
-					return x ? CORD_asprintf("%g", *(double*)x) : "Num64";
+					return x ? CORD_asprintf(CLR("35", "%g"), *(double*)x) : "Num64";
 				case 32:
-					return x ? CORD_asprintf("%g", *(double*)x) : "Num32";
+					return x ? CORD_asprintf(CLR("35", "%g"), *(double*)x) : "Num32";
 				default: errx(1, "Unsupported Num precision: %ld", bits);
 			}
 		}
@@ -60,7 +62,7 @@ static CORD vas_cord(void *x, const char **fmt, va_list args)
 		}
 		case '[': {
 			if (!x) {
-				CORD cord = CORD_asprintf("[%r]", vas_cord(NULL, fmt, args));
+				CORD cord = CORD_asprintf("[%r]", vas_cord(NULL, use_color, fmt, args));
 				if (**fmt == ']')
 					++(*fmt);
 				return cord;
@@ -72,11 +74,11 @@ static CORD vas_cord(void *x, const char **fmt, va_list args)
 				va_list args_copy;
 				va_copy(args_copy, args);
 				if (i > 0) cord = CORD_cat(cord, ", ");
-				CORD item_cord = vas_cord(arr->data + i*arr->stride, &item_fmt, args_copy);
+				CORD item_cord = vas_cord(arr->data + i*arr->stride, use_color, &item_fmt, args_copy);
 				cord = CORD_cat(cord, item_cord);
 				va_end(args_copy);
 			}
-			(void)vas_cord(NULL, fmt, args);
+			(void)vas_cord(NULL, use_color, fmt, args);
 			if (**fmt == ']') ++(*fmt);
 			return CORD_cat(cord, "]");
 		}
@@ -89,13 +91,14 @@ static CORD vas_cord(void *x, const char **fmt, va_list args)
 		default: errx(1, "Unsupported format specifier: '%c'", c);
 	}
 	errx(1, "Unreachable");
+#undef CLR
 }
 
-public CORD as_cord(void *x, const char *fmt, ...)
+public CORD as_cord(void *x, bool use_color, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	CORD ret = vas_cord(x, &fmt, args);
+	CORD ret = vas_cord(x, use_color, &fmt, args);
 	va_end(args);
 	return ret;
 }
