@@ -1188,7 +1188,6 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
             }
             if (key->tag == Var) key = NULL;
             else pos = key->end;
-
         }
 
         spaces(&pos);
