@@ -272,6 +272,18 @@ CORD compile(ast_t *ast)
             CORD_sprintf(&code, "%r%r %s;\n", code, compile_type(field->type), field->name);
         }
         code = CORD_cat(code, "};\n");
+        CORD_sprintf(&code,
+                     "%rCORD %s__cord(%s_t *obj, void *userdata) {\n"
+                     "\tif (!obj) return \"%s\";\n"
+                     "\treturn CORD_asprintf(\"%s(", code, def->name, def->name, def->name, def->name);
+        for (arg_ast_t *field = def->fields; field; field = field->next) {
+            CORD_sprintf(&code, "%r%s=%%r", code, field->name);
+            if (field->next) code = CORD_cat(code, ", ");
+        }
+        code = CORD_cat(code, ")\"");
+        for (arg_ast_t *field = def->fields; field; field = field->next)
+            CORD_sprintf(&code, "%r, __cord(obj->%s)", code, field->name);
+        code = CORD_cat(code, ");\n}");
         return code;
     }
     case EnumDef: {
