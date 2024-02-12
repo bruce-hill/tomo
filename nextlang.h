@@ -23,12 +23,14 @@
 #define String_t CORD
 
 #define Bool_t bool
+#define yes (Bool_t)true
+#define no (Bool_t)false
 
 #define Void_t void
 
 #define __Array(t) array_t
 
-CORD as_cord(void *x, const char *fmt, ...);
+CORD as_cord(void *x, bool use_color, const char *fmt, ...);
 
 #define CORD_asprintf(...) ({ CORD __c; CORD_sprintf(&__c, __VA_ARGS__); __c; })
 #define __declare(var, val) __typeof(val) var = val
@@ -39,10 +41,10 @@ CORD as_cord(void *x, const char *fmt, ...);
                          double: CORD_asprintf("%g", x), float: CORD_asprintf("%g", x), \
                          CORD: x, \
                          char*: (CORD)({ const char *__str = x; __str && __str[0] ? __str : CORD_EMPTY;}), \
-                         array_t: as_cord(&(x), "[ ]"), \
+                         array_t: as_cord(&(x), false, "[ ]"), \
                          default: "???")
 #define __heap(x) (__typeof(x)*)memcpy(GC_MALLOC(sizeof(x)), (__typeof(x)[1]){x}, sizeof(x))
-#define __stack(x) &(x)
+#define __stack(x) (__typeof(x)*)((__typeof(x)[1]){x})
 #define __length(x) _Generic(x, default: (x).length)
 // Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
 #define __index(x, i) _Generic(x, array_t: ({ __typeof(x) __obj; int64_t __offset = i; __offset += (__offset < 0) * (__obj.length + 1) - 1; assert(__offset >= 0 && offset < __obj.length); __obj.data + __obj.stride * __offset;}))
@@ -78,7 +80,7 @@ CORD as_cord(void *x, const char *fmt, ...);
 #define say(str) puts(CORD_to_const_char_star(__cord(str)))
 #define __test(src, expr, expected) do { \
         CORD __result = __cord(expr); \
-        say(CORD_catn(5, USE_COLOR ? "\x1b[33;1m>>\x1b[0m " : ">> ", src, USE_COLOR ? "\n\x1b[0;2m=\x1b[0;35m " : "\n= ", __result, "\x1b[m")); \
+        say(CORD_catn(5, USE_COLOR ? "\x1b[33;1m>>\x1b[0m " : ">> ", src, USE_COLOR ? "\n\x1b[0;2m=\x1b[m " : "\n= ", __result, "\x1b[m")); \
         if (expected && CORD_cmp(__result, expected)) { \
             errx(1, "I expected:\n%s but got:\n%s", CORD_to_const_char_star(expected), CORD_to_const_char_star(__result)); \
         } \

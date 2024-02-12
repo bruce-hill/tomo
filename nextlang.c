@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
         errx(1, "Couldn't set printf specifier");
 
     const char *autofmt = getenv("AUTOFMT");
-    if (!autofmt) autofmt = "indent -kr -nut";
+    if (!autofmt) autofmt = "indent -kr -l100 -nbbo -nut";
 
     file_t *f = load_file(argv[1]);
 
