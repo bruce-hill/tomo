@@ -880,6 +880,8 @@ PARSER(parse_string) {
     char open_quote, close_quote, open_interp = '\x03', close_interp = '\x02';
     if (match(&pos, "\"")) {
         open_quote = '"', close_quote = '"', open_interp = '{', close_interp = '}';
+    } else if (match(&pos, "'")) {
+        open_quote = '\'', close_quote = '\'';
     } else if (match(&pos, "$")) {
         open_interp = *(pos++);
         close_interp = closing[(int)open_interp];
@@ -901,56 +903,60 @@ PARSER(parse_string) {
     const char *chunk_start = pos;
     int depth = 1;
     bool leading_newline = false;
-    for (; pos < ctx->file->text + ctx->file->len && depth > 0; ++pos) {
-        if (*pos == open_interp) {
+    for (; pos < ctx->file->text + ctx->file->len && depth > 0; ) {
+        if (*pos == open_interp) { // Interpolation
+            const char *interp_start = pos;
             if (chunk) {
                 ast_t *literal = NewAST(ctx->file, chunk_start, pos, StringLiteral, .cord=chunk);
                 chunks = new(ast_list_t, .ast=literal, .next=chunks);
                 chunk = NULL;
             }
             ++pos;
-            for (ast_t *interp; (interp=close_interp ? optional(ctx, &pos, parse_expr) : optional(ctx, &pos, parse_term)); spaces(&pos)) {
-                chunks = new(ast_list_t, .ast=interp, .next=chunks);
-                chunk_start = pos;
-            }
+            ast_t *interp;
             if (close_interp) {
-                const char *closing = pos;
-                spaces(&closing);
-                if (*closing == close_interp) {
-                    pos = closing;
-                }
+                whitespace(&pos);
+                interp = expect(ctx, interp_start, &pos, parse_expr, "I expected an interpolation expression here");
+                whitespace(&pos);
+                expect_closing(ctx, &pos, (char[]){close_interp, 0}, "I was expecting a '%c' to finish this interpolation", close_interp);
+            } else {
+                if (*pos == ' ' || *pos == '\t')
+                    parser_err(ctx, pos, pos+1, "Whitespace is not allowed before an interpolation here");
+                interp = expect(ctx, interp_start, &pos, parse_term, "I expected an interpolation term here");
             }
-        } else if (!leading_newline && *pos == open_quote && closing[(int)open_quote]) {
+            chunks = new(ast_list_t, .ast=interp, .next=chunks);
+            chunk_start = pos;
+        } else if (!leading_newline && *pos == open_quote && closing[(int)open_quote]) { // Nested pair begin
             if (get_indent(ctx->file, pos) == starting_indent) {
                 ++depth;
             }
             chunk = CORD_cat_char(chunk, *pos);
-        } else if (!leading_newline && *pos == close_quote) {
+            ++pos;
+        } else if (!leading_newline && *pos == close_quote) { // Nested pair end
             if (get_indent(ctx->file, pos) == starting_indent) {
                 --depth;
                 if (depth == 0)
                     break;
             }
             chunk = CORD_cat_char(chunk, *pos);
-        } else if (newline_with_indentation(&pos, string_indent)) {
+            ++pos;
+        } else if (newline_with_indentation(&pos, string_indent)) { // Newline
             if (!leading_newline && !(chunk || chunks)) {
                 leading_newline = true;
             } else {
                 chunk = CORD_cat_char(chunk, '\n');
             }
-            --pos;
-        } else if (newline_with_indentation(&pos, starting_indent)) {
+        } else if (newline_with_indentation(&pos, starting_indent)) { // Line continuation (..)
             if (*pos == close_quote) {
                 break;
             } else if (some_of(&pos, ".") >= 2) {
                 // Multi-line split
-                --pos;
                 continue;
             } else {
                 parser_err(ctx, pos, strchrnul(pos, '\n'), "This multi-line string should be either indented or have '..' at the front");
             }
-        } else {
+        } else { // Plain character
             chunk = CORD_cat_char(chunk, *pos);
+            ++pos;
         }
     }
 
