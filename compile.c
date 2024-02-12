@@ -260,7 +260,10 @@ CORD compile(ast_t *ast)
     // Extern,
     case StructDef: {
         auto def = Match(ast, StructDef);
-        CORD code = CORD_asprintf("typedef struct %s_s %s_t;\nstruct %s_s {\n", def->name, def->name, def->name);
+        CORD code = CORD_asprintf(
+            "typedef struct %s_s %s_t;\n"
+            "#define %s(...) ((%s_t){__VA_ARGS__})\n"
+            "struct %s_s {\n", def->name, def->name, def->name, def->name, def->name);
         for (arg_ast_t *field = def->fields; field; field = field->next) {
             CORD_sprintf(&code, "%r%r %s;\n", code, compile_type(field->type), field->name);
         }
@@ -292,6 +295,10 @@ CORD compile(ast_t *ast)
             compile(WrapAST(test->expr, StringLiteral, .cord=src)),
             compile(test->expr),
             compile(WrapAST(test->expr, StringLiteral, .cord=test->output)));
+    }
+    case FieldAccess: {
+        auto f = Match(ast, FieldAccess);
+        return CORD_asprintf("(%r).%s", compile(f->fielded), f->field);
     }
     // Index, FieldAccess,
     // DocTest,
