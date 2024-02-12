@@ -35,7 +35,6 @@ struct type_s {
         VoidType,
         MemoryType,
         BoolType,
-        CharType,
         IntType,
         NumType,
         ArrayType,
@@ -51,7 +50,7 @@ struct type_s {
 
     union {
         struct {
-        } UnknownType, AbortType, VoidType, MemoryType, BoolType, CharType;
+        } UnknownType, AbortType, VoidType, MemoryType, BoolType;
         struct {
             int64_t bits;
         } IntType;

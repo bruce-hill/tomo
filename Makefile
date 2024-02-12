@@ -36,7 +36,7 @@ libnext.so: metamethods/cord.o util.o SipHash/halfsiphash.o
 SipHash/halfsiphash.c:
 	git submodule update --init --recursive
 
-tags:
+tags: $(wildcard **/*.[ch])
 	ctags **/*.[ch]
 
 clean:
@@ -45,4 +45,4 @@ clean:
 %.1: %.1.md
 	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@
 
-.PHONY: all clean install uninstall test
+.PHONY: all clean install uninstall test tags

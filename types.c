@@ -15,7 +15,6 @@ static CORD type_to_cord(type_t *t) {
         case VoidType: return "Void";
         case MemoryType: return "Memory";
         case BoolType: return "Bool";
-        case CharType: return "Char";
         case IntType: return CORD_asprintf("Int%ld", Match(t, IntType)->bits);
         case NumType: return CORD_asprintf("Num%ld", Match(t, NumType)->bits);
         case ArrayType: {
@@ -208,7 +207,7 @@ type_t *type_or_type(type_t *a, type_t *b)
 bool is_integral(type_t *t)
 {
     t = base_variant(t);
-    return t->tag == IntType || t->tag == CharType;
+    return t->tag == IntType;
 }
 
 bool is_floating_point(type_t *t)
@@ -227,7 +226,6 @@ static inline double type_min_magnitude(type_t *t)
 {
     switch (t->tag) {
     case BoolType: return (double)false;
-    case CharType: return (double)CHAR_MIN;
     case IntType: {
         switch (Match(t, IntType)->bits) {
         case 8: return (double)INT8_MIN;
@@ -247,7 +245,6 @@ static inline double type_max_magnitude(type_t *t)
 {
     switch (t->tag) {
     case BoolType: return (double)true;
-    case CharType: return (double)CHAR_MAX;
     case IntType: {
         switch (Match(t, IntType)->bits) {
         case 8: return (double)INT8_MAX;
@@ -416,7 +413,7 @@ bool can_leave_uninitialized(type_t *t)
 {
     switch (t->tag) {
     case PointerType: return Match(t, PointerType)->is_optional;
-    case ArrayType: case IntType: case NumType: case CharType: case BoolType:
+    case ArrayType: case IntType: case NumType: case BoolType:
         return true;
     case StructType: {
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {

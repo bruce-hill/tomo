@@ -35,7 +35,6 @@ CORD compile(ast_t *ast)
     case Var: return Match(ast, Var)->name;
     case Int: return CORD_asprintf("((Int%ld_t)%ld)", Match(ast, Int)->precision, Match(ast, Int)->i);
     case Num: return CORD_asprintf(Match(ast, Num)->precision == 64 ? "%g" : "%gf", Match(ast, Num)->n);
-    case Char: return CORD_asprintf("(char)'\\x%02X'", (int)Match(ast, Char)->c);
     case UnaryOp: {
         auto unop = Match(ast, UnaryOp);
         CORD expr = compile(unop->value);

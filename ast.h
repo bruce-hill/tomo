@@ -91,7 +91,7 @@ struct type_ast_s {
 typedef enum {
     Unknown = 0,
     Nil, Bool, Var,
-    Int, Num, Char,
+    Int, Num,
     StringLiteral, StringJoin,
     Declare, Assign,
     BinaryOp, UnaryOp, UpdateAssign,
@@ -136,9 +136,6 @@ struct ast_s {
             double n;
             enum { NUM_64BIT, NUM_32BIT } precision;
         } Num;
-        struct {
-            char c;
-        } Char;
         struct {
             CORD cord;
         } StringLiteral;

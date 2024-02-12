@@ -22,8 +22,6 @@
 
 #define String_t CORD
 
-#define Char_t char
-
 #define Bool_t bool
 
 #define Void_t void
