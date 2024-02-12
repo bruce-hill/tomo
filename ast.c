@@ -125,7 +125,7 @@ CORD ast_to_cord(ast_t *ast)
     T(EnumDef, "(%s, tags=%r, namespace=%r)", data.name, tags_to_cord(data.tags), ast_to_cord(data.namespace))
     T(Index, "(indexed=%r, index=%r)", ast_to_cord(data.indexed), ast_to_cord(data.index))
     T(FieldAccess, "(fielded=%r, field=%s)", ast_to_cord(data.fielded), data.field)
-    T(DocTest, "(expr=%r, output=%s)", ast_to_cord(data.expr), data.output)
+    T(DocTest, "(expr=%r, output=%s)", ast_to_cord(data.expr), data.output ? data.output : "")
     T(Use, "(%s)", data.path)
     T(LinkerDirective, "(%s)", data.directive)
 #undef T

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <err.h>
 #include <gc.h>
 #include <gc/cord.h>
 #include <stdbool.h>
@@ -52,28 +53,35 @@
                          .data=memcpy(GC_MALLOC(sizeof(__items)), __items,  sizeof(__items)), \
                          .copy_on_write=1}; })
 
-#define not(x) _Generic(x, bool: !(x), default: ~(x))
-#define and(x, y) _Generic(x, bool: (x) && (y), default: (x) & (y))
-#define or(x, y) _Generic(x, bool: (x) || (y), default: (x) | (y))
-#define xor(x, y) ((x) ^ (y))
+#define not(x) _Generic(x, bool: (bool)!(x), default: ~(x))
+#define and(x, y) _Generic(x, bool: (bool)((x) && (y)), default: ((x) & (y)))
+#define or(x, y) _Generic(x, bool: (bool)((x) || (y)), default: ((x) | (y)))
+#define xor(x, y) _Generic(x, bool: (bool)((x) ^ (y)), default: ((x) ^ (y)))
 #define mod(x, n) ((x) % (n))
 #define mod1(x, n) (((x) % (n)) + (__typeof(x))1)
 #define __cmp(x, y) (_Generic(x, CORD: CORD_cmp(x, y), char*: strcmp(x, y), const char*: strcmp(x, y), default: (x > 0) - (y > 0)))
-#define __lt(x, y) (_Generic(x, int8_t: x < y, int16_t: x < y, int32_t: x < y, int64_t: x < y, float: x < y, double: x < y, char: x < y, bool: x < y, \
+#define __lt(x, y) (bool)(_Generic(x, int8_t: x < y, int16_t: x < y, int32_t: x < y, int64_t: x < y, float: x < y, double: x < y, char: x < y, bool: x < y, \
                              default: __cmp(x, y) < 0))
-#define __le(x, y) (_Generic(x, int8_t: x <= y, int16_t: x <= y, int32_t: x <= y, int64_t: x <= y, float: x <= y, double: x <= y, char: x <= y, bool: x <= y, \
+#define __le(x, y) (bool)(_Generic(x, int8_t: x <= y, int16_t: x <= y, int32_t: x <= y, int64_t: x <= y, float: x <= y, double: x <= y, char: x <= y, bool: x <= y, \
                              default: __cmp(x, y) <= 0))
-#define __ge(x, y) (_Generic(x, int8_t: x >= y, int16_t: x >= y, int32_t: x >= y, int64_t: x >= y, float: x >= y, double: x >= y, char: x >= y, bool: x >= y, \
+#define __ge(x, y) (bool)(_Generic(x, int8_t: x >= y, int16_t: x >= y, int32_t: x >= y, int64_t: x >= y, float: x >= y, double: x >= y, char: x >= y, bool: x >= y, \
                              default: __cmp(x, y) >= 0))
-#define __gt(x, y) (_Generic(x, int8_t: x > y, int16_t: x > y, int32_t: x > y, int64_t: x > y, float: x > y, double: x > y, char: x > y, bool: x > y, \
+#define __gt(x, y) (bool)(_Generic(x, int8_t: x > y, int16_t: x > y, int32_t: x > y, int64_t: x > y, float: x > y, double: x > y, char: x > y, bool: x > y, \
                              default: __cmp(x, y) > 0))
-#define __eq(x, y) (_Generic(x, int8_t: x == y, int16_t: x == y, int32_t: x == y, int64_t: x == y, float: x == y, double: x == y, char: x == y, bool: x == y, \
+#define __eq(x, y) (bool)(_Generic(x, int8_t: x == y, int16_t: x == y, int32_t: x == y, int64_t: x == y, float: x == y, double: x == y, char: x == y, bool: x == y, \
                              default: __cmp(x, y) == 0))
-#define __ne(x, y) (_Generic(x, int8_t: x != y, int16_t: x != y, int32_t: x != y, int64_t: x != y, float: x != y, double: x != y, char: x != y, bool: x != y, \
+#define __ne(x, y) (bool)(_Generic(x, int8_t: x != y, int16_t: x != y, int32_t: x != y, int64_t: x != y, float: x != y, double: x != y, char: x != y, bool: x != y, \
                              default: __cmp(x, y) != 0))
 #define min(x, y) ({ __declare(__min_lhs, x); __declare(__min_rhs, y); __le(__min_lhs, __min_rhs) ? __min_lhs : __min_rhs; })
 #define max(x, y) ({ __declare(__min_lhs, x); __declare(__min_rhs, y); __ge(__min_lhs, __min_rhs) ? __min_lhs : __min_rhs; })
 
 #define say(str) puts(CORD_to_const_char_star(__cord(str)))
+#define __test(src, expr, expected) do { \
+        CORD __result = __cord(expr); \
+        say(CORD_catn(5, USE_COLOR ? "\x1b[33m>>>\x1b[0;1m " : ">>> ", src, USE_COLOR ? "\n\x1b[0;33m===\x1b[0;35m " : "\n=== ", __result, "\x1b[m")); \
+        if (expected && CORD_cmp(__result, expected)) { \
+            errx(1, "I expected:\n%s but got:\n%s", CORD_to_const_char_star(expected), CORD_to_const_char_star(__result)); \
+        } \
+    } while (0)
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

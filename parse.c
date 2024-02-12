@@ -30,16 +30,17 @@ extern void builtin_fail(const char *fmt, ...);
 #define STUB_PARSER(name) PARSER(name) { (void)ctx; (void)pos; return NULL; }
 
 int op_tightness[] = {
-    [BINOP_POWER]=1,
-    [BINOP_MULT]=2, [BINOP_DIVIDE]=2, [BINOP_MOD]=2, [BINOP_MOD1]=2,
-    [BINOP_PLUS]=3, [BINOP_MINUS]=3,
-    [BINOP_CONCAT]=4,
+    [BINOP_POWER]=9,
+    [BINOP_MULT]=8, [BINOP_DIVIDE]=8, [BINOP_MOD]=8, [BINOP_MOD1]=8,
+    [BINOP_PLUS]=7, [BINOP_MINUS]=7,
+    [BINOP_CONCAT]=6,
     [BINOP_LSHIFT]=5, [BINOP_RSHIFT]=5,
-    [BINOP_MIN]=6, [BINOP_MAX]=6,
-    [BINOP_EQ]=7, [BINOP_NE]=7,
-    [BINOP_LT]=8, [BINOP_LE]=8, [BINOP_GT]=8, [BINOP_GE]=8,
-    [BINOP_AND]=9, [BINOP_OR]=9, [BINOP_XOR]=9,
+    [BINOP_MIN]=4, [BINOP_MAX]=4,
+    [BINOP_EQ]=3, [BINOP_NE]=3,
+    [BINOP_LT]=2, [BINOP_LE]=2, [BINOP_GT]=2, [BINOP_GE]=2,
+    [BINOP_AND]=1, [BINOP_OR]=1, [BINOP_XOR]=1,
 };
+#define MAX_TIGHTNESS 9
 
 static const char *keywords[] = {
     "yes", "xor", "while", "use", "then", "struct", "stop", "skip", "return",
@@ -1172,39 +1173,38 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
     if (!lhs) return NULL;
 
     spaces(&pos);
-    binop_e op = match_binary_operator(&pos);
-    if (op == BINOP_UNKNOWN || op_tightness[op] < min_tightness)
-        return lhs;
+    for (binop_e op; (op=match_binary_operator(&pos)) != BINOP_UNKNOWN && op_tightness[op] >= min_tightness; spaces(&pos)) {
+        ast_t *key = NULL;
+        if (op == BINOP_MIN || op == BINOP_MAX) {
+            key = NewAST(ctx->file, pos, pos, Var, .name=op == BINOP_MIN ? "_min_" : "_max_");
+            for (bool progress = true; progress; ) {
+                ast_t *new_term;
+                progress = (false
+                    || (new_term=parse_index_suffix(ctx, key))
+                    || (new_term=parse_field_suffix(ctx, key))
+                    || (new_term=parse_fncall_suffix(ctx, key, NORMAL_FUNCTION))
+                    );
+                if (progress) key = new_term;
+            }
+            if (key->tag == Var) key = NULL;
+            else pos = key->end;
 
-    ast_t *key = NULL;
-    if (op == BINOP_MIN || op == BINOP_MAX) {
-        key = NewAST(ctx->file, pos, pos, Var, .name=op == BINOP_MIN ? "_min_" : "_max_");
-        for (bool progress = true; progress; ) {
-            ast_t *new_term;
-            progress = (false
-                || (new_term=parse_index_suffix(ctx, key))
-                || (new_term=parse_field_suffix(ctx, key))
-                || (new_term=parse_fncall_suffix(ctx, key, NORMAL_FUNCTION))
-                );
-            if (progress) key = new_term;
         }
-        if (key->tag == Var) key = NULL;
-        else pos = key->end;
 
+        spaces(&pos);
+        ast_t *rhs = parse_infix_expr(ctx, pos, op_tightness[op] + 1);
+        if (!rhs) break;
+        pos = rhs->end;
+        
+        if (op == BINOP_MIN) {
+            return NewAST(ctx->file, lhs->start, rhs->end, Min, .lhs=lhs, .rhs=rhs, .key=key);
+        } else if (op == BINOP_MAX) {
+            return NewAST(ctx->file, lhs->start, rhs->end, Max, .lhs=lhs, .rhs=rhs, .key=key);
+        } else {
+            lhs = NewAST(ctx->file, lhs->start, rhs->end, BinaryOp, .lhs=lhs, .op=op, .rhs=rhs);
+        }
     }
-    spaces(&pos);
-    ast_t *rhs = parse_infix_expr(ctx, pos, op_tightness[op]);
-    if (!rhs) return lhs;
-    pos = rhs->end;
-
-    switch (op) {
-    case BINOP_MIN:
-        return NewAST(ctx->file, lhs->start, rhs->end, Min, .lhs=lhs, .rhs=rhs, .key=key);
-    case BINOP_MAX:
-        return NewAST(ctx->file, lhs->start, rhs->end, Max, .lhs=lhs, .rhs=rhs, .key=key);
-    default:
-        return NewAST(ctx->file, lhs->start, rhs->end, BinaryOp, .lhs=lhs, .rhs=rhs, .op=op);
-    }
+    return lhs;
 }
 
 ast_t *parse_expr(parse_ctx_t *ctx, const char *pos) {

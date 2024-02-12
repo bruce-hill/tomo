@@ -20,7 +20,7 @@ CORD compile_statement(ast_t *ast)
 {
     switch (ast->tag) {
     case If: case For: case While: case FunctionDef: case Return: case StructDef: case EnumDef:
-    case Declare: case Assign: case UpdateAssign:
+    case Declare: case Assign: case UpdateAssign: case DocTest:
         return compile(ast);
     default:
         return CORD_asprintf("(void)%r;", compile(ast));
@@ -61,12 +61,12 @@ CORD compile(ast_t *ast)
         case BINOP_MINUS: return CORD_asprintf("(%r - %r)", lhs, rhs);
         case BINOP_LSHIFT: return CORD_asprintf("(%r << %r)", lhs, rhs);
         case BINOP_RSHIFT: return CORD_asprintf("(%r >> %r)", lhs, rhs);
-        case BINOP_EQ: return CORD_asprintf("(%r == %r)", lhs, rhs);
-        case BINOP_NE: return CORD_asprintf("(%r != %r)", lhs, rhs);
-        case BINOP_LT: return CORD_asprintf("(%r < %r)", lhs, rhs);
-        case BINOP_LE: return CORD_asprintf("(%r <= %r)", lhs, rhs);
-        case BINOP_GT: return CORD_asprintf("(%r > %r)", lhs, rhs);
-        case BINOP_GE: return CORD_asprintf("(%r >= %r)", lhs, rhs);
+        case BINOP_EQ: return CORD_asprintf("__eq(%r, %r)", lhs, rhs);
+        case BINOP_NE: return CORD_asprintf("__ne(%r, %r)", lhs, rhs);
+        case BINOP_LT: return CORD_asprintf("__lt(%r, %r)", lhs, rhs);
+        case BINOP_LE: return CORD_asprintf("__le(%r, %r)", lhs, rhs);
+        case BINOP_GT: return CORD_asprintf("__gt(%r, %r)", lhs, rhs);
+        case BINOP_GE: return CORD_asprintf("__ge(%r, %r)", lhs, rhs);
         case BINOP_AND: return CORD_asprintf("and(%r, %r)", lhs, rhs);
         case BINOP_OR: return CORD_asprintf("or(%r, %r)", lhs, rhs);
         case BINOP_XOR: return CORD_asprintf("xor(%r, %r)", lhs, rhs);
@@ -284,6 +284,15 @@ CORD compile(ast_t *ast)
         }
         code = CORD_cat(code, "} __data;\n};\n");
         return code;
+    }
+    case DocTest: {
+        auto test = Match(ast, DocTest);
+        CORD src = heap_strn(test->expr->start, (size_t)(test->expr->end - test->expr->start));
+        return CORD_asprintf(
+            "__test(%r, %r, %r);\n",
+            compile(WrapAST(test->expr, StringLiteral, .cord=src)),
+            compile(test->expr),
+            compile(WrapAST(test->expr, StringLiteral, .cord=test->output)));
     }
     // Index, FieldAccess,
     // DocTest,
