@@ -1,4 +1,4 @@
-// Parse SSS code using recursive descent
+// Parse code using recursive descent
 #include <ctype.h>
 #include <gc.h>
 #include <libgen.h>
@@ -17,7 +17,7 @@
 static const char closing[128] = {['(']=')', ['[']=']', ['<']='>', ['{']='}'};
 
 typedef struct {
-    sss_file_t *file;
+    file_t *file;
     jmp_buf *on_err;
 } parse_ctx_t;
 
@@ -99,8 +99,8 @@ __attribute__((noreturn))
 static void vparser_err(parse_ctx_t *ctx, const char *start, const char *end, const char *fmt, va_list args) {
     if (isatty(STDERR_FILENO) && !getenv("NO_COLOR"))
         fputs("\x1b[31;1;7m", stderr);
-    fprintf(stderr, "%s:%ld.%ld: ", ctx->file->relative_filename, sss_get_line_number(ctx->file, start),
-            sss_get_line_column(ctx->file, start));
+    fprintf(stderr, "%s:%ld.%ld: ", ctx->file->relative_filename, get_line_number(ctx->file, start),
+            get_line_column(ctx->file, start));
     vfprintf(stderr, fmt, args);
     if (isatty(STDERR_FILENO) && !getenv("NO_COLOR"))
         fputs(" \x1b[m", stderr);
@@ -320,12 +320,12 @@ bool comment(const char **pos) {
 
 bool indent(parse_ctx_t *ctx, const char **out) {
     const char *pos = *out;
-    int64_t starting_indent = sss_get_indent(ctx->file, pos);
+    int64_t starting_indent = get_indent(ctx->file, pos);
     whitespace(&pos);
-    if (sss_get_line_number(ctx->file, pos) == sss_get_line_number(ctx->file, *out))
+    if (get_line_number(ctx->file, pos) == get_line_number(ctx->file, *out))
         return false;
 
-    if (sss_get_indent(ctx->file, pos) > starting_indent) {
+    if (get_indent(ctx->file, pos) > starting_indent) {
         *out = pos;
         return true;
     }
@@ -764,7 +764,7 @@ ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs) {
 PARSER(parse_if) {
     // if <condition> [then] <body> [else <body>]
     const char *start = pos;
-    int64_t starting_indent = sss_get_indent(ctx->file, pos);
+    int64_t starting_indent = get_indent(ctx->file, pos);
 
     if (!match_word(&pos, "if"))
         return NULL;
@@ -780,7 +780,7 @@ PARSER(parse_if) {
     const char *tmp = pos;
     whitespace(&tmp);
     ast_t *else_body = NULL;
-    if (sss_get_indent(ctx->file, tmp) == starting_indent && match_word(&tmp, "else")) {
+    if (get_indent(ctx->file, tmp) == starting_indent && match_word(&tmp, "else")) {
         pos = tmp;
         else_body = expect(ctx, start, &pos, parse_opt_indented_block, "I expected a body for this 'else'"); 
     }
@@ -898,12 +898,12 @@ PARSER(parse_string) {
 
     // printf("Parsing string: '%c' .. '%c' interp: '%c%c'\n", *start, close_quote, open_interp, close_interp);
 
-    int64_t starting_indent = sss_get_indent(ctx->file, pos);
+    int64_t starting_indent = get_indent(ctx->file, pos);
     int64_t string_indent;
     if (*pos == '\r' || *pos == '\n') {
         const char *first_line = pos;
         whitespace(&first_line);
-        string_indent = sss_get_indent(ctx->file, first_line);
+        string_indent = get_indent(ctx->file, first_line);
         if (string_indent <= starting_indent)
             parser_err(ctx, start, first_line, "Multi-line strings must be indented on their first line");
     } else {
@@ -935,12 +935,12 @@ PARSER(parse_string) {
                 }
             }
         } else if (*pos == open_quote && closing[(int)open_quote]) {
-            if (sss_get_indent(ctx->file, pos) == starting_indent) {
+            if (get_indent(ctx->file, pos) == starting_indent) {
                 ++depth;
             }
             chunk = CORD_cat_char(chunk, *pos);
         } else if (*pos == close_quote) {
-            if (sss_get_indent(ctx->file, pos) == starting_indent) {
+            if (get_indent(ctx->file, pos) == starting_indent) {
                 --depth;
                 if (depth == 0)
                     break;
@@ -956,7 +956,7 @@ PARSER(parse_string) {
                 --pos;
                 continue;
             }
-            if (sss_get_indent(ctx->file, pos) == starting_indent) {
+            if (get_indent(ctx->file, pos) == starting_indent) {
                 if (*pos == close_quote) {
                     break;
                 } else if (some_of(&pos, ".") >= 2) {
@@ -1330,7 +1330,7 @@ PARSER(parse_extended_expr) {
 }
 
 PARSER(parse_block) {
-    int64_t block_indent = sss_get_indent(ctx->file, pos);
+    int64_t block_indent = get_indent(ctx->file, pos);
     const char *start = pos;
     whitespace(&pos);
     ast_list_t *statements = NULL;
@@ -1344,7 +1344,7 @@ PARSER(parse_block) {
         }
         statements = new(ast_list_t, .ast=stmt, .next=statements);
         whitespace(&pos);
-        if (sss_get_indent(ctx->file, pos) != block_indent) {
+        if (get_indent(ctx->file, pos) != block_indent) {
             pos = stmt->end; // backtrack
             break;
         }
@@ -1360,12 +1360,12 @@ PARSER(parse_opt_indented_block) {
 PARSER(parse_namespace) {
     const char *start = pos;
     whitespace(&pos);
-    int64_t indent = sss_get_indent(ctx->file, pos);
+    int64_t indent = get_indent(ctx->file, pos);
     ast_list_t *statements = NULL;
     for (;;) {
         const char *next = pos;
         whitespace(&next);
-        if (sss_get_indent(ctx->file, next) != indent) break;
+        if (get_indent(ctx->file, next) != indent) break;
         ast_t *stmt;
         if ((stmt=optional(ctx, &pos, parse_struct_def))
             ||(stmt=optional(ctx, &pos, parse_enum_def))
@@ -1376,7 +1376,7 @@ PARSER(parse_namespace) {
             pos = stmt->end;
             whitespace(&pos);
         } else {
-            if (sss_get_indent(ctx->file, next) > indent && next < strchrnul(next, '\n'))
+            if (get_indent(ctx->file, next) > indent && next < strchrnul(next, '\n'))
                 parser_err(ctx, next, strchrnul(next, '\n'), "I couldn't parse this namespace statement");
             break;
         }
@@ -1390,7 +1390,7 @@ PARSER(parse_struct_def) {
     const char *start = pos;
     if (!match_word(&pos, "struct")) return NULL;
 
-    int64_t starting_indent = sss_get_indent(ctx->file, pos);
+    int64_t starting_indent = get_indent(ctx->file, pos);
 
     spaces(&pos);
     const char *name = get_id(&pos);
@@ -1406,7 +1406,7 @@ PARSER(parse_struct_def) {
 
     const char *ns_pos = pos;
     whitespace(&ns_pos);
-    int64_t ns_indent = sss_get_indent(ctx->file, ns_pos);
+    int64_t ns_indent = get_indent(ctx->file, ns_pos);
     ast_t *namespace = NULL;
     if (ns_indent > starting_indent) {
         pos = ns_pos;
@@ -1421,7 +1421,7 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
     // tagged union: enum Foo(a|b(x:Int,y:Int)=5|...) \n namespace
     const char *start = pos;
     if (!match_word(&pos, "enum")) return NULL;
-    int64_t starting_indent = sss_get_indent(ctx->file, pos);
+    int64_t starting_indent = get_indent(ctx->file, pos);
     spaces(&pos);
     const char *name = get_id(&pos);
     if (!name)
@@ -1481,7 +1481,7 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
 
     const char *ns_pos = pos;
     whitespace(&ns_pos);
-    int64_t ns_indent = sss_get_indent(ctx->file, ns_pos);
+    int64_t ns_indent = get_indent(ctx->file, ns_pos);
     ast_t *namespace = NULL;
     if (ns_indent > starting_indent) {
         pos = ns_pos;
@@ -1636,9 +1636,9 @@ PARSER(parse_use) {
     size_t path_len = strcspn(pos, " \t\r\n;");
     if (path_len < 1)
         parser_err(ctx, start, pos, "There is no filename here to use");
-    char *path = heap_strf("%.*s.sss", (int)path_len, pos);
+    char *path = heap_strf("%.*s.nl", (int)path_len, pos);
     pos += path_len;
-    char *resolved_path = resolve_path(path, ctx->file->filename);
+    char *resolved_path = resolve_path(path, ctx->file->filename, getenv("USE_PATH"));
     if (!resolved_path)
         parser_err(ctx, start, pos, "No such file exists: \"%s\"", path);
     while (match(&pos, ";")) continue;
@@ -1670,7 +1670,7 @@ PARSER(parse_inline_block) {
     return NewAST(ctx->file, start, pos, Block, .statements=statements);
 }
 
-ast_t *parse_file(sss_file_t *file, jmp_buf *on_err) {
+ast_t *parse_file(file_t *file, jmp_buf *on_err) {
     parse_ctx_t ctx = {
         .file=file,
         .on_err=on_err,
@@ -1691,7 +1691,7 @@ ast_t *parse_file(sss_file_t *file, jmp_buf *on_err) {
 }
 
 type_ast_t *parse_type_str(const char *str) {
-    sss_file_t *file = sss_spoof_file("<type>", str);
+    file_t *file = spoof_file("<type>", str);
     parse_ctx_t ctx = {
         .file=file,
         .on_err=NULL,
@@ -1710,7 +1710,7 @@ type_ast_t *parse_type_str(const char *str) {
 }
 
 ast_t *parse_expression_str(const char *str) {
-    sss_file_t *file = sss_spoof_file("<expression>", str);
+    file_t *file = spoof_file("<expression>", str);
     parse_ctx_t ctx = {
         .file=file,
         .on_err=NULL,

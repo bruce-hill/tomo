@@ -17,7 +17,7 @@
 
 static const int tabstop = 4;
 
-public char *resolve_path(const char *path, const char *relative_to)
+public char *resolve_path(const char *path, const char *relative_to, const char *system_path)
 {
     if (!relative_to || streq(relative_to, "/dev/stdin")) relative_to = ".";
     if (!path || strlen(path) == 0) return NULL;
@@ -38,9 +38,10 @@ public char *resolve_path(const char *path, const char *relative_to)
         if (resolved) return heap_str(resolved);
     } else {
         // Relative path:
-        char *blpath = heap_str(getenv("SSSPATH"));
         char *relative_dir = dirname(heap_str(relative_to));
-        for (char *dir; (dir = strsep(&blpath, ":")); ) {
+        if (!system_path) system_path = ".";
+        char *copy = strdup(system_path);
+        for (char *dir, *pos = copy; (dir = strsep(&pos, ":")); ) {
             if (dir[0] == '/') {
                 char *resolved = realpath(heap_strf("%s/%s", dir, path), buf);
                 if (resolved) return heap_str(resolved);
@@ -58,28 +59,29 @@ public char *resolve_path(const char *path, const char *relative_to)
                 if (resolved) return heap_str(resolved);
             }
         }
+        free(copy);
     }
     return NULL;
 }
 
-static sss_file_t *_load_file(const char* filename, FILE *file)
+static file_t *_load_file(const char* filename, FILE *file)
 {
     if (!file) return NULL;
 
-    sss_file_t *ret = new(sss_file_t, .filename=filename);
+    file_t *ret = new(file_t, .filename=filename);
 
     size_t file_size = 0, line_cap = 0;
     char *file_buf = NULL, *line_buf = NULL;
     FILE *mem = open_memstream(&file_buf, &file_size);
     int64_t line_len = 0;
     while ((line_len = getline(&line_buf, &line_cap, file)) >= 0) {
-        sss_line_t line_info = {.offset=file_size, .indent=0, .is_empty=false};
+        file_line_t line_info = {.offset=file_size, .indent=0, .is_empty=false};
         char *p;
         for (p = line_buf; *p == ' ' || *p == '\t'; ++p)
             line_info.indent += *p == ' ' ? 1 : 4;
         line_info.is_empty = *p != '\r' && *p != '\n';
         if (ret->line_capacity <= ret->num_lines) {
-            ret->lines = GC_REALLOC(ret->lines, sizeof(sss_line_t)*(ret->line_capacity += 32));
+            ret->lines = GC_REALLOC(ret->lines, sizeof(file_line_t)*(ret->line_capacity += 32));
         }
         ret->lines[ret->num_lines++] = line_info;
         fwrite(line_buf, sizeof(char), line_len, mem);
@@ -97,7 +99,7 @@ static sss_file_t *_load_file(const char* filename, FILE *file)
     free(file_buf);
     ret->relative_filename = filename;
     if (filename && filename[0] != '<' && !streq(filename, "/dev/stdin")) {
-        filename = resolve_path(filename, ".");
+        filename = resolve_path(filename, ".", ".");
         // Convert to relative path (if applicable)
         char buf[PATH_MAX];
         char *cwd = getcwd(buf, sizeof(buf));
@@ -111,7 +113,7 @@ static sss_file_t *_load_file(const char* filename, FILE *file)
 //
 // Read an entire file into memory.
 //
-public sss_file_t *sss_load_file(const char* filename)
+public file_t *load_file(const char* filename)
 {
     FILE *file = filename[0] ? fopen(filename, "r") : stdin;
     return _load_file(filename, file);
@@ -120,7 +122,7 @@ public sss_file_t *sss_load_file(const char* filename)
 //
 // Create a virtual file from a string.
 //
-public sss_file_t *sss_spoof_file(const char* filename, const char *text)
+public file_t *spoof_file(const char* filename, const char *text)
 {
     FILE *file = fmemopen((char*)text, strlen(text)+1, "r");
     return _load_file(filename, file);
@@ -129,7 +131,7 @@ public sss_file_t *sss_spoof_file(const char* filename, const char *text)
 //
 // Given a pointer, determine which line number it points to (1-indexed)
 //
-public int64_t sss_get_line_number(sss_file_t *f, const char *p)
+public int64_t get_line_number(file_t *f, const char *p)
 {
     // Binary search:
     int64_t lo = 0, hi = (int64_t)f->num_lines-1;
@@ -137,7 +139,7 @@ public int64_t sss_get_line_number(sss_file_t *f, const char *p)
     int64_t offset = (int64_t)(p - f->text);
     while (lo <= hi) {
         int64_t mid = (lo + hi) / 2;
-        sss_line_t *line = &f->lines[mid];
+        file_line_t *line = &f->lines[mid];
         if (line->offset == offset)
             return mid + 1;
         else if (line->offset < offset)
@@ -151,39 +153,39 @@ public int64_t sss_get_line_number(sss_file_t *f, const char *p)
 //
 // Given a pointer, determine which line column it points to.
 //
-public int64_t sss_get_line_column(sss_file_t *f, const char *p)
+public int64_t get_line_column(file_t *f, const char *p)
 {
-    int64_t line_no = sss_get_line_number(f, p);
-    sss_line_t *line = &f->lines[line_no-1];
+    int64_t line_no = get_line_number(f, p);
+    file_line_t *line = &f->lines[line_no-1];
     return 1 + (int64_t)(p - (f->text + line->offset));
 }
 
 //
 // Given a pointer, get the indentation of the line it's on.
 //
-public int64_t sss_get_indent(sss_file_t *f, const char *p)
+public int64_t get_indent(file_t *f, const char *p)
 {
-    int64_t line_no = sss_get_line_number(f, p);
-    sss_line_t *line = &f->lines[line_no-1];
+    int64_t line_no = get_line_number(f, p);
+    file_line_t *line = &f->lines[line_no-1];
     return line->indent;
 }
 
 //
 // Return a pointer to the line with the specified line number (1-indexed)
 //
-public const char *sss_get_line(sss_file_t *f, int64_t line_number)
+public const char *get_line(file_t *f, int64_t line_number)
 {
     if (line_number == 0 || line_number > (int64_t)f->num_lines) return NULL;
-    sss_line_t *line = &f->lines[line_number-1];
+    file_line_t *line = &f->lines[line_number-1];
     return f->text + line->offset;
 }
 
 //
 // Return a value like /foo:line:col
 //
-public const char *sss_get_file_pos(sss_file_t *f, const char *p)
+public const char *get_file_pos(file_t *f, const char *p)
 {
-    return heap_strf("%s:%ld:%ld", f->filename, sss_get_line_number(f, p), sss_get_line_column(f, p));
+    return heap_strf("%s:%ld:%ld", f->filename, get_line_number(f, p), get_line_column(f, p));
 }
 
 static int fputc_column(FILE *out, char c, char print_char, int *column)
@@ -205,7 +207,7 @@ static int fputc_column(FILE *out, char c, char print_char, int *column)
 //
 // Print a span from a file
 //
-public int fprint_span(FILE *out, sss_file_t *file, const char *start, const char *end, const char *hl_color, int64_t context_lines, bool use_color)
+public int fprint_span(FILE *out, file_t *file, const char *start, const char *end, const char *hl_color, int64_t context_lines, bool use_color)
 {
     if (!file) return 0;
 
@@ -238,8 +240,8 @@ public int fprint_span(FILE *out, sss_file_t *file, const char *start, const cha
     if (context_lines == 0)
         return fprintf(out, "%s%.*s%s", hl_color, (int)(end - start), start, normal_color);
 
-    int64_t start_line = sss_get_line_number(file, start),
-            end_line = sss_get_line_number(file, end);
+    int64_t start_line = get_line_number(file, start),
+            end_line = get_line_number(file, end);
 
     int64_t first_line = start_line - (context_lines - 1),
             last_line = end_line + (context_lines - 1);
@@ -261,7 +263,7 @@ public int fprint_span(FILE *out, sss_file_t *file, const char *start, const cha
         }
 
         printed += fprintf(out, lineno_fmt, digits, line_no);
-        const char *line = sss_get_line(file, line_no);
+        const char *line = get_line(file, line_no);
         if (!line) break;
 
         int column = 0;

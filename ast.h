@@ -64,7 +64,7 @@ typedef struct tag_ast_s {
 
 struct type_ast_s {
     type_ast_e tag;
-    sss_file_t *file;
+    file_t *file;
     const char *start, *end;
     union {
         struct {} UnknownTypeAST;
@@ -115,7 +115,7 @@ typedef enum {
 
 struct ast_s {
     ast_e tag;
-    sss_file_t *file;
+    file_t *file;
     const char *start, *end;
     union {
         struct {} Unknown;
@@ -249,7 +249,7 @@ struct ast_s {
         } DocTest;
         struct {
             const char *path;
-            sss_file_t *file;
+            file_t *file;
             bool main_program;
         } Use;
         struct {

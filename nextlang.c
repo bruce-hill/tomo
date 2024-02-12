@@ -22,9 +22,7 @@ int main(int argc, char *argv[])
     const char *autofmt = getenv("AUTOFMT");
     if (!autofmt) autofmt = "indent -kr -nut";
 
-    setenv("SSSPATH", ".", 0);
-
-    sss_file_t *f = sss_load_file(argv[1]);
+    file_t *f = load_file(argv[1]);
 
     ast_t *ast = parse_file(f, NULL);
 
