@@ -31,13 +31,13 @@ int main(int argc, char *argv[])
 
     bool verbose = (getenv("VERBOSE") && strcmp(getenv("VERBOSE"), "1") == 0);
     if (verbose) {
-        FILE *out = popen(heap_strf("bat --file-name='%s'", argv[1]), "w");
+        FILE *out = popen(heap_strf("bat -P --file-name='%s'", argv[1]), "w");
         fputs(f->text, out);
         fclose(out);
     }
 
     if (verbose) {
-        FILE *out = popen("bat --file-name=AST", "w");
+        FILE *out = popen("bat -P --file-name=AST", "w");
         fputs(ast_to_str(ast), out);
         fclose(out);
     }
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
     program = CORD_cat(program, "return 0;\n}\n");
     
     if (verbose) {
-        FILE *out = popen(heap_strf("%s | bat --file-name=program.c", autofmt), "w");
+        FILE *out = popen(heap_strf("%s | bat -P --file-name=program.c", autofmt), "w");
         CORD_put(program, out);
         fclose(out);
     }
@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 
     const char *run = heap_strf("tcc %s %s -run -", cflags, ldlibs);
     if (verbose)
-        run = heap_strf("%s | bat --file-name=STDOUT", run);
+        run = heap_strf("%s | bat -P --file-name=STDOUT", run);
     FILE *cc = popen(run, "w");
     CORD_put(program, cc);
     fclose(cc);
