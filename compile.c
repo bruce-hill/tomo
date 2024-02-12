@@ -306,11 +306,23 @@ CORD compile(ast_t *ast)
     case DocTest: {
         auto test = Match(ast, DocTest);
         CORD src = heap_strn(test->expr->start, (size_t)(test->expr->end - test->expr->start));
-        return CORD_asprintf(
-            "__test(%r, %r, %r);\n",
-            compile(WrapAST(test->expr, StringLiteral, .cord=src)),
-            compile(test->expr),
-            compile(WrapAST(test->expr, StringLiteral, .cord=test->output)));
+        if (test->expr->tag == Declare) {
+            auto decl = Match(test->expr, Declare);
+            return CORD_asprintf(
+                "__declare(%r, %r);\n__test(%r, %r, %r);\n",
+                compile(decl->var), compile(decl->value),
+                compile(WrapAST(test->expr, StringLiteral, .cord=src)),
+                compile(decl->var),
+                compile(WrapAST(test->expr, StringLiteral, .cord=test->output)));
+        } else if (test->expr->tag == Assign) {
+            errx(1, "Not implemented");
+        } else {
+            return CORD_asprintf(
+                "__test(%r, %r, %r);\n",
+                compile(WrapAST(test->expr, StringLiteral, .cord=src)),
+                compile(test->expr),
+                compile(WrapAST(test->expr, StringLiteral, .cord=test->output)));
+        }
     }
     case FieldAccess: {
         auto f = Match(ast, FieldAccess);
