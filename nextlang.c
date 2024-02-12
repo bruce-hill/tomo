@@ -112,9 +112,17 @@ int main(int argc, char *argv[])
         fclose(out);
     }
 
-    const char *flags = getenv("CFLAGS");
-    if (!flags) flags = "-std=c11 -lm -lgc -lcord";
-    const char *run = heap_strf(verbose ? "tcc %s -run - | bat --file-name=output.txt" : "tcc %s -run -", flags);
+    const char *cflags = getenv("CFLAGS");
+    if (!cflags)
+        cflags = "-std=c11";
+
+    const char *ldlibs = "-lgc -lcord -lm";
+    if (getenv("LDLIBS"))
+        ldlibs = heap_strf("%s %s", ldlibs, getenv("LDLIBS"));
+
+    const char *run = heap_strf("tcc %s %s -run -", cflags, ldlibs);
+    if (verbose)
+        run = heap_strf("%s | bat --file-name=STDOUT", run);
     FILE *cc = popen(run, "w");
     CORD_put(program, cc);
     fclose(cc);
