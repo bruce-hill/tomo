@@ -16,7 +16,7 @@ CORD compile_type(type_ast_t *t)
     }
 }
 
-static inline CORD compile_statement(ast_t *ast)
+CORD compile_statement(ast_t *ast)
 {
     switch (ast->tag) {
     case If: case For: case While: case FunctionDef: case Return: case StructDef: case EnumDef:
@@ -164,7 +164,7 @@ CORD compile(ast_t *ast)
     }
     case Declare: {
         auto decl = Match(ast, Declare);
-        return CORD_asprintf("__declare(%r, %r)", compile(decl->var), compile(decl->value));
+        return CORD_asprintf("__declare(%r, %r);", compile(decl->var), compile(decl->value));
     }
     case Assign: {
         auto assign = Match(ast, Assign);

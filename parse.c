@@ -322,28 +322,33 @@ bool indent(parse_ctx_t *ctx, const char **out) {
     const char *pos = *out;
     int64_t starting_indent = get_indent(ctx->file, pos);
     whitespace(&pos);
-    if (get_line_number(ctx->file, pos) == get_line_number(ctx->file, *out))
+    const char *start_of_line = get_line(ctx->file, get_line_number(ctx->file, pos));
+    if (start_of_line <= *out)
         return false;
 
-    if (get_indent(ctx->file, pos) > starting_indent) {
+    if ((int64_t)strspn(start_of_line, "\t") < starting_indent)
+        return false;
+
+    *out = start_of_line + starting_indent + 1;
+    return true;
+}
+
+bool newline_with_indentation(const char **out, int64_t target) {
+    const char *pos = *out;
+    if (*pos == '\r') ++pos;
+    if (*pos != '\n') return false;
+    ++pos;
+    if (*pos == '\r' || *pos == '\n' || *pos == '\0') {
+        // Empty line
         *out = pos;
         return true;
     }
 
-    return false;
-}
-
-bool match_indentation(const char **out, int64_t target) {
-    const char *pos = *out;
-    for (int64_t indentation = 0; indentation < target; ) {
-        switch (*pos) {
-        case ' ': indentation += 1; ++pos; break;
-        case '\t': indentation += 4; ++pos; break;
-        default: return false;
-        }
+    if ((int64_t)strspn(pos, "\t") >= target) {
+        *out = pos + target;
+        return true;
     }
-    *out = pos;
-    return true;
+    return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -899,16 +904,7 @@ PARSER(parse_string) {
     // printf("Parsing string: '%c' .. '%c' interp: '%c%c'\n", *start, close_quote, open_interp, close_interp);
 
     int64_t starting_indent = get_indent(ctx->file, pos);
-    int64_t string_indent;
-    if (*pos == '\r' || *pos == '\n') {
-        const char *first_line = pos;
-        whitespace(&first_line);
-        string_indent = get_indent(ctx->file, first_line);
-        if (string_indent <= starting_indent)
-            parser_err(ctx, start, first_line, "Multi-line strings must be indented on their first line");
-    } else {
-        string_indent = starting_indent + 4;
-    }
+    int64_t string_indent = starting_indent + 1;
 
     ast_list_t *chunks = NULL;
     CORD chunk = CORD_EMPTY;
@@ -946,26 +942,20 @@ PARSER(parse_string) {
                     break;
             }
             chunk = CORD_cat_char(chunk, *pos);
-        } else if (*pos == '\r' || *pos == '\n') {
-            // Newline handling
-            match(&pos, "\r");
-            match(&pos, "\n");
-            if (match_indentation(&pos, string_indent)) {
-                if (chunk || chunks)
-                    chunk = CORD_cat_char(chunk, '\n');
+        } else if (newline_with_indentation(&pos, string_indent)) {
+            if (chunk || chunks)
+                chunk = CORD_cat_char(chunk, '\n');
+            --pos;
+        } else if (newline_with_indentation(&pos, starting_indent)) {
+            if (*pos == close_quote) {
+                break;
+            } else if (some_of(&pos, ".") >= 2) {
+                // Multi-line split
                 --pos;
                 continue;
+            } else {
+                parser_err(ctx, pos, strchrnul(pos, '\n'), "This multi-line string should be either indented or have '..' at the front");
             }
-            if (get_indent(ctx->file, pos) == starting_indent) {
-                if (*pos == close_quote) {
-                    break;
-                } else if (some_of(&pos, ".") >= 2) {
-                    // Multi-line split
-                    --pos;
-                    continue;
-                }
-            }
-            parser_err(ctx, pos, strchrnul(pos, '\n'), "This string line isn't correctly indented");
         } else {
             chunk = CORD_cat_char(chunk, *pos);
         }

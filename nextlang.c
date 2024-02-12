@@ -98,8 +98,8 @@ int main(int argc, char *argv[])
         switch (stmt->ast->tag) {
         case FunctionDef: case StructDef: case EnumDef: break;
         default: {
-            program = CORD_cat(program, compile(stmt->ast));
-            program = CORD_cat(program, ";\n");
+            program = CORD_cat(program, compile_statement(stmt->ast));
+            program = CORD_cat(program, "\n");
             break;
         }
         }

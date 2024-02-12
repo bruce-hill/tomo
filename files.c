@@ -77,8 +77,8 @@ static file_t *_load_file(const char* filename, FILE *file)
     while ((line_len = getline(&line_buf, &line_cap, file)) >= 0) {
         file_line_t line_info = {.offset=file_size, .indent=0, .is_empty=false};
         char *p;
-        for (p = line_buf; *p == ' ' || *p == '\t'; ++p)
-            line_info.indent += *p == ' ' ? 1 : 4;
+        for (p = line_buf; *p == '\t'; ++p)
+            line_info.indent += 1;
         line_info.is_empty = *p != '\r' && *p != '\n';
         if (ret->line_capacity <= ret->num_lines) {
             ret->lines = GC_REALLOC(ret->lines, sizeof(file_line_t)*(ret->line_capacity += 32));
