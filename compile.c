@@ -215,6 +215,10 @@ CORD compile(ast_t *ast)
         return CORD_cat_char(code, ')');
     }
     // Lambda,
+    case KeywordArg: {
+        auto kwarg = Match(ast, KeywordArg);
+        return CORD_asprintf(".%s=%r", kwarg->name, compile(kwarg->arg));
+    }
     // KeywordArg,
     case If: {
         auto if_ = Match(ast, If);

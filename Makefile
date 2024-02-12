@@ -36,8 +36,8 @@ libnext.so: metamethods/cord.o util.o SipHash/halfsiphash.o
 SipHash/halfsiphash.c:
 	git submodule update --init --recursive
 
-tags: $(wildcard **/*.[ch])
-	ctags **/*.[ch]
+tags:
+	ctags *.[ch] **/*.[ch]
 
 clean:
 	rm -f nextlang *.o
