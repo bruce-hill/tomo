@@ -863,40 +863,30 @@ PARSER(parse_bool) {
         return NULL;
 }
 
-PARSER(parse_char) {
-    const char *start = pos;
-    if (*pos == '`') {
-        ++pos;
-        char c = *pos;
-        ++pos;
-        return NewAST(ctx->file, start, pos, Char, .c=c);
-    } else if (*pos == '\\') {
-        char c = unescape(&pos)[0];
-        return NewAST(ctx->file, start, pos, Char, .c=c);
-    } else {
-        return NULL;
-    }
-}
-
 PARSER(parse_string) {
     // ["$" [interp-char [closing-interp-char]]] ('"' ... '"' / "'" ... "'")
     const char *start = pos;
+
+    // Escape sequence, e.g. \r\n
+    if (*pos == '\\') {
+        CORD cord = CORD_EMPTY;
+        do {
+            char c = unescape(&pos)[0];
+            cord = CORD_cat_char(cord, c);
+        } while (*pos == '\\');
+        return NewAST(ctx->file, start, pos, StringLiteral, .cord=cord);
+    }
+
     char open_quote, close_quote, open_interp = '\x03', close_interp = '\x02';
     if (match(&pos, "\"")) {
         open_quote = '"', close_quote = '"', open_interp = '{', close_interp = '}';
-    } else if (match(&pos, "'")) {
-        open_quote = '\'', close_quote = '\'';
     } else if (match(&pos, "$")) {
-        if (*pos == '"' || *pos == '\'' || *pos == '/' || *pos == ';') {
-            open_quote = *pos, close_quote = *pos;
-        } else {
-            open_interp = *(pos++);
-            close_interp = closing[(int)open_interp];
-            if (*pos == close_interp) ++pos;
-            open_quote = *pos;
-            close_quote = closing[(int)*pos] ? closing[(int)*pos] : *pos;
-            ++pos;
-        }
+        open_interp = *(pos++);
+        close_interp = closing[(int)open_interp];
+        if (*pos == close_interp) ++pos;
+        open_quote = *pos;
+        close_quote = closing[(int)*pos] ? closing[(int)*pos] : *pos;
+        ++pos;
     } else {
         return NULL;
     }
@@ -910,6 +900,7 @@ PARSER(parse_string) {
     CORD chunk = CORD_EMPTY;
     const char *chunk_start = pos;
     int depth = 1;
+    bool leading_newline = false;
     for (; pos < ctx->file->text + ctx->file->len && depth > 0; ++pos) {
         if (*pos == open_interp) {
             if (chunk) {
@@ -918,7 +909,6 @@ PARSER(parse_string) {
                 chunk = NULL;
             }
             ++pos;
-            spaces(&pos);
             for (ast_t *interp; (interp=close_interp ? optional(ctx, &pos, parse_expr) : optional(ctx, &pos, parse_term)); spaces(&pos)) {
                 chunks = new(ast_list_t, .ast=interp, .next=chunks);
                 chunk_start = pos;
@@ -930,12 +920,12 @@ PARSER(parse_string) {
                     pos = closing;
                 }
             }
-        } else if (*pos == open_quote && closing[(int)open_quote]) {
+        } else if (!leading_newline && *pos == open_quote && closing[(int)open_quote]) {
             if (get_indent(ctx->file, pos) == starting_indent) {
                 ++depth;
             }
             chunk = CORD_cat_char(chunk, *pos);
-        } else if (*pos == close_quote) {
+        } else if (!leading_newline && *pos == close_quote) {
             if (get_indent(ctx->file, pos) == starting_indent) {
                 --depth;
                 if (depth == 0)
@@ -943,8 +933,11 @@ PARSER(parse_string) {
             }
             chunk = CORD_cat_char(chunk, *pos);
         } else if (newline_with_indentation(&pos, string_indent)) {
-            if (chunk || chunks)
+            if (!leading_newline && !(chunk || chunks)) {
+                leading_newline = true;
+            } else {
                 chunk = CORD_cat_char(chunk, '\n');
+            }
             --pos;
         } else if (newline_with_indentation(&pos, starting_indent)) {
             if (*pos == close_quote) {
@@ -1046,7 +1039,6 @@ PARSER(parse_term_no_suffix) {
         || (term=parse_heap_alloc(ctx, pos))
         || (term=parse_stack_reference(ctx, pos))
         || (term=parse_bool(ctx, pos))
-        || (term=parse_char(ctx, pos))
         || (term=parse_string(ctx, pos))
         || (term=parse_lambda(ctx, pos))
         || (term=parse_parens(ctx, pos))
