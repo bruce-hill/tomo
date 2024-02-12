@@ -40,11 +40,10 @@ CORD as_cord(void *x, const char *fmt, ...);
                          int32_t: CORD_asprintf("%d", x), int64_t: CORD_asprintf("%ld", x), \
                          double: CORD_asprintf("%g", x), float: CORD_asprintf("%g", x), \
                          CORD: x, \
-                         char*: ({ char *__str = x; __str && __str[0] ? __str : CORD_EMPTY;}), \
-                         char: CORD_cat_char(CORD_EMPTY, x), \
+                         char*: (CORD)({ const char *__str = x; __str && __str[0] ? __str : CORD_EMPTY;}), \
                          default: "???")
 #define __heap(x) (__typeof(x)*)memcpy(GC_MALLOC(sizeof(x)), (__typeof(x)[1]){x}, sizeof(x))
-#define __stack(x) (&(__typeof(x)){x})
+#define __stack(x) &(x)
 #define __length(x) _Generic(x, default: (x).length)
 // Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
 #define __index(x, i) _Generic(x, array_t: ({ __typeof(x) __obj; int64_t __offset = i; __offset += (__offset < 0) * (__obj.length + 1) - 1; assert(__offset >= 0 && offset < __obj.length); __obj.data + __obj.stride * __offset;}))
@@ -62,17 +61,17 @@ CORD as_cord(void *x, const char *fmt, ...);
 #define mod(x, n) ((x) % (n))
 #define mod1(x, n) (((x) % (n)) + (__typeof(x))1)
 #define __cmp(x, y) (_Generic(x, CORD: CORD_cmp(x, y), char*: strcmp(x, y), const char*: strcmp(x, y), default: (x > 0) - (y > 0)))
-#define __lt(x, y) (bool)(_Generic(x, int8_t: x < y, int16_t: x < y, int32_t: x < y, int64_t: x < y, float: x < y, double: x < y, char: x < y, bool: x < y, \
+#define __lt(x, y) (bool)(_Generic(x, int8_t: x < y, int16_t: x < y, int32_t: x < y, int64_t: x < y, float: x < y, double: x < y, bool: x < y, \
                              default: __cmp(x, y) < 0))
-#define __le(x, y) (bool)(_Generic(x, int8_t: x <= y, int16_t: x <= y, int32_t: x <= y, int64_t: x <= y, float: x <= y, double: x <= y, char: x <= y, bool: x <= y, \
+#define __le(x, y) (bool)(_Generic(x, int8_t: x <= y, int16_t: x <= y, int32_t: x <= y, int64_t: x <= y, float: x <= y, double: x <= y, bool: x <= y, \
                              default: __cmp(x, y) <= 0))
-#define __ge(x, y) (bool)(_Generic(x, int8_t: x >= y, int16_t: x >= y, int32_t: x >= y, int64_t: x >= y, float: x >= y, double: x >= y, char: x >= y, bool: x >= y, \
+#define __ge(x, y) (bool)(_Generic(x, int8_t: x >= y, int16_t: x >= y, int32_t: x >= y, int64_t: x >= y, float: x >= y, double: x >= y, bool: x >= y, \
                              default: __cmp(x, y) >= 0))
-#define __gt(x, y) (bool)(_Generic(x, int8_t: x > y, int16_t: x > y, int32_t: x > y, int64_t: x > y, float: x > y, double: x > y, char: x > y, bool: x > y, \
+#define __gt(x, y) (bool)(_Generic(x, int8_t: x > y, int16_t: x > y, int32_t: x > y, int64_t: x > y, float: x > y, double: x > y, bool: x > y, \
                              default: __cmp(x, y) > 0))
-#define __eq(x, y) (bool)(_Generic(x, int8_t: x == y, int16_t: x == y, int32_t: x == y, int64_t: x == y, float: x == y, double: x == y, char: x == y, bool: x == y, \
+#define __eq(x, y) (bool)(_Generic(x, int8_t: x == y, int16_t: x == y, int32_t: x == y, int64_t: x == y, float: x == y, double: x == y, bool: x == y, \
                              default: __cmp(x, y) == 0))
-#define __ne(x, y) (bool)(_Generic(x, int8_t: x != y, int16_t: x != y, int32_t: x != y, int64_t: x != y, float: x != y, double: x != y, char: x != y, bool: x != y, \
+#define __ne(x, y) (bool)(_Generic(x, int8_t: x != y, int16_t: x != y, int32_t: x != y, int64_t: x != y, float: x != y, double: x != y, bool: x != y, \
                              default: __cmp(x, y) != 0))
 #define min(x, y) ({ __declare(__min_lhs, x); __declare(__min_rhs, y); __le(__min_lhs, __min_rhs) ? __min_lhs : __min_rhs; })
 #define max(x, y) ({ __declare(__min_lhs, x); __declare(__min_rhs, y); __ge(__min_lhs, __min_rhs) ? __min_lhs : __min_rhs; })
