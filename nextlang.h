@@ -78,7 +78,7 @@ CORD as_cord(void *x, const char *fmt, ...);
 #define say(str) puts(CORD_to_const_char_star(__cord(str)))
 #define __test(src, expr, expected) do { \
         CORD __result = __cord(expr); \
-        say(CORD_catn(5, USE_COLOR ? "\x1b[33;1m>>>\x1b[0m " : ">>> ", src, USE_COLOR ? "\n\x1b[0;2m=\x1b[0;35m " : "\n= ", __result, "\x1b[m")); \
+        say(CORD_catn(5, USE_COLOR ? "\x1b[33;1m>>\x1b[0m " : ">> ", src, USE_COLOR ? "\n\x1b[0;2m=\x1b[0;35m " : "\n= ", __result, "\x1b[m")); \
         if (expected && CORD_cmp(__result, expected)) { \
             errx(1, "I expected:\n%s but got:\n%s", CORD_to_const_char_star(expected), CORD_to_const_char_star(__result)); \
         } \

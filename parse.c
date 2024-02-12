@@ -1599,12 +1599,12 @@ PARSER(parse_extern) {
 
 PARSER(parse_doctest) {
     const char *start = pos;
-    if (!match(&pos, ">>>")) return NULL;
+    if (!match(&pos, ">>")) return NULL;
     spaces(&pos);
     ast_t *expr = expect(ctx, start, &pos, parse_statement, "I couldn't parse the expression for this doctest");
     whitespace(&pos);
     const char* output = NULL;
-    if (match(&pos, "===")) {
+    if (match(&pos, "=")) {
         spaces(&pos);
         const char *output_start = pos,
                    *output_end = strchrnul(pos, '\n');
