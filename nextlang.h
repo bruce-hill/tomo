@@ -30,6 +30,8 @@
 
 #define __Array(t) array_t
 
+CORD as_cord(void *x, const char *fmt, ...);
+
 #define CORD_asprintf(...) ({ CORD __c; CORD_sprintf(&__c, __VA_ARGS__); __c; })
 #define __declare(var, val) __typeof(val) var = val
 #define __cord(x) _Generic(x, bool: x ? "yes" : "no", \

@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
     if (!cflags)
         cflags = "-std=c11";
 
-    const char *ldlibs = "-lgc -lcord -lm";
+    const char *ldlibs = "-lgc -lcord -lm -L. -lnext";
     if (getenv("LDLIBS"))
         ldlibs = heap_strf("%s %s", ldlibs, getenv("LDLIBS"));
 
