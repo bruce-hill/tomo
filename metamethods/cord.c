@@ -85,6 +85,7 @@ static CORD vas_cord(void *x, const char **fmt, va_list args)
 			void *arg = va_arg(args, void*);
 			return fn(x, arg);
 		}
+		case ' ': return "?";
 		default: errx(1, "Unsupported format specifier: '%c'", c);
 	}
 	errx(1, "Unreachable");

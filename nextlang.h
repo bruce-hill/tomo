@@ -39,6 +39,7 @@ CORD as_cord(void *x, const char *fmt, ...);
                          double: CORD_asprintf("%g", x), float: CORD_asprintf("%g", x), \
                          CORD: x, \
                          char*: (CORD)({ const char *__str = x; __str && __str[0] ? __str : CORD_EMPTY;}), \
+                         array_t: as_cord(&(x), "[ ]"), \
                          default: "???")
 #define __heap(x) (__typeof(x)*)memcpy(GC_MALLOC(sizeof(x)), (__typeof(x)[1]){x}, sizeof(x))
 #define __stack(x) &(x)
