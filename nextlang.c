@@ -42,69 +42,38 @@ int main(int argc, char *argv[])
         fclose(out);
     }
 
-    CORD header = "#include \"nextlang.h\"\n";
+    env_t env = {.bindings = new(table_t)};
 
-    // Predeclare types:
-    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-        switch (stmt->ast->tag) {
-        case StructDef: case EnumDef: {
-            CORD_sprintf(&header, "%r\n%r", header, compile(stmt->ast));
-            break;
-        }
-        default: break;
-        }
-    }
+    CORD_appendf(&env.imports, "#include \"nextlang.h\"\n");
+    CORD_appendf(&env.staticdefs, "static bool USE_COLOR = true;\n");
 
-    CORD program = CORD_cat(header, "\n/////////////////////////////////////////////////////////////////////////\n\n"
-                            "bool USE_COLOR = true;\n");
-
-    // Predeclare funcs:
-    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-        switch (stmt->ast->tag) {
-        case FunctionDef: {
-            auto fndef = Match(stmt->ast, FunctionDef);
-            CORD_sprintf(&program, "%rstatic %r %r(", program, fndef->ret_type ? compile_type(fndef->ret_type) : "void", compile(fndef->name));
-            for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-                CORD_sprintf(&program, "%r%r %s", program, compile_type(arg->type), arg->name);
-                if (arg->next) program = CORD_cat(program, ", ");
-            }
-            program = CORD_cat(program, ");\n");
-            break;
-        }
-        default: break;
-        }
-    }
-
-    // Declare funcs:
-    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-        switch (stmt->ast->tag) {
-        case FunctionDef: {
-            CORD_sprintf(&program, "%r\n\n%r", program, compile(stmt->ast));
-            break;
-        }
-        default: break;
-        }
-    }
-    
     // Main body:
-    program = CORD_cat(program, "\n\n"
-                    "int main(int argc, const char *argv[]) {\n"
-                    "(void)argc;\n"
-                    "(void)argv;\n"
-                    "GC_INIT();\n"
-                    "USE_COLOR = getenv(\"COLOR\") ? strcmp(getenv(\"COLOR\"), \"1\") == 0 : isatty(STDOUT_FILENO);\n"
-                    "// User code:\n");
-    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-        switch (stmt->ast->tag) {
-        case FunctionDef: case StructDef: case EnumDef: break;
-        default: {
-            program = CORD_cat(program, compile_statement(stmt->ast));
-            program = CORD_cat(program, "\n");
-            break;
-        }
-        }
-    }
-    program = CORD_cat(program, "return 0;\n}\n");
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
+        CORD_appendf(&env.main, "%r\n", compile_statement(&env, stmt->ast));
+
+    CORD program = CORD_asprintf(
+        "// Generated code:\n"
+        "%r\n" // imports
+        "%r\n" // typedefs
+        "%r\n" // types
+        "//////////////////////////////////////////\n"
+        "%r\n" // static defs
+        "%r\n" // funcs
+        "\n"
+        "static void __load(void) {\n"
+        "%r\n" // main
+        "}\n"
+        "\n"
+        "int main(int argc, const char *argv[]) {\n"
+        "(void)argc;\n"
+        "(void)argv;\n"
+        "GC_INIT();\n"
+        "USE_COLOR = getenv(\"COLOR\") ? strcmp(getenv(\"COLOR\"), \"1\") == 0 : isatty(STDOUT_FILENO);\n"
+        "__load();\n"
+        "return 0;\n"
+        "}\n",
+        env.imports, env.typedefs, env.types, env.staticdefs,
+        env.funcs, env.main);
     
     if (verbose) {
         FILE *out = popen(heap_strf("%s | bat -P --file-name=program.c", autofmt), "w");
