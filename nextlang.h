@@ -17,9 +17,11 @@
 #define Int32_t int32_t
 #define Int16_t int16_t
 #define Int8_t int8_t
+#define Int_t int64_t
 
 #define Num64_t double
 #define Num32_t float
+#define Num_t double
 
 #define String_t CORD
 
