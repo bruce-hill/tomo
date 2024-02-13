@@ -3,6 +3,7 @@
 #include <err.h>
 #include <gc.h>
 #include <gc/cord.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -82,7 +83,8 @@ CORD as_cord(void *x, bool use_color, const char *fmt, ...);
         CORD __result = __cord(expr); \
         say(CORD_catn(5, USE_COLOR ? "\x1b[33;1m>>\x1b[0m " : ">> ", src, USE_COLOR ? "\n\x1b[0;2m=\x1b[m " : "\n= ", __result, "\x1b[m")); \
         if (expected && CORD_cmp(__result, expected)) { \
-            errx(1, "I expected:\n%s but got:\n%s", CORD_to_const_char_star(expected), CORD_to_const_char_star(__result)); \
+            fprintf(stderr, USE_COLOR ? "\x1b[31;1;7mTEST FAILURE!\x1b[27m\nI expected:\n\t\x1b[0;1m%s\x1b[1;31m\nbut got:\n\t%s\x1b[m\n" : "TEST FAILURE!\nI expected:\n\t%s\nbut got:\n\t%s\n", CORD_to_const_char_star(expected), CORD_to_const_char_star(__result)); \
+            raise(SIGABRT); \
         } \
     } while (0)
 

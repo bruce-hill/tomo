@@ -326,7 +326,29 @@ CORD compile(ast_t *ast)
                 compile(decl->var),
                 compile(WrapAST(test->expr, StringLiteral, .cord=test->output)));
         } else if (test->expr->tag == Assign) {
-            errx(1, "Not implemented");
+            auto assign = Match(test->expr, Assign);
+            CORD code = "{ // Assignment\n";
+            int64_t i = 1;
+            for (ast_list_t *value = assign->values; value; value = value->next)
+                CORD_appendf(&code, "__declare(_%ld, %r);\n", i++, compile(value->ast));
+            i = 1;
+            for (ast_list_t *target = assign->targets; target; target = target->next)
+                CORD_appendf(&code, "%r = _%ld;\n", compile(target->ast), i++);
+
+            CORD expr_cord = "CORD_asprintf(\"";
+            for (ast_list_t *target = assign->targets; target; target = target->next)
+                expr_cord = CORD_cat(expr_cord, target->next ? "%r, " : "%r");
+            expr_cord = CORD_cat(expr_cord, "\"");
+            i = 1;
+            for (ast_list_t *target = assign->targets; target; target = target->next)
+                CORD_appendf(&expr_cord, ", __cord(_%ld)", i++);
+            expr_cord = CORD_cat(expr_cord, ")");
+
+            CORD_appendf(&code, "__test(%r, %r, %r);",
+                compile(WrapAST(test->expr, StringLiteral, .cord=src)),
+                expr_cord,
+                compile(WrapAST(test->expr, StringLiteral, .cord=test->output)));
+            return CORD_cat(code, "\n}");
         } else {
             return CORD_asprintf(
                 "__test(%r, %r, %r);\n",
