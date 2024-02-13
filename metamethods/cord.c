@@ -6,7 +6,7 @@
 
 #include "../util.h"
 
-typedef CORD (*custom_cord_func)(void *x, void *userdata);
+typedef CORD (*custom_cord_func)(void *x, bool use_color);
 
 typedef struct {
     void *data;
@@ -84,8 +84,7 @@ static CORD vas_cord(void *x, bool use_color, const char **fmt, va_list args)
 		}
 		case '_': {
 			custom_cord_func fn = va_arg(args, custom_cord_func);
-			void *arg = va_arg(args, void*);
-			return fn(x, arg);
+			return fn(x, use_color);
 		}
 		case ' ': return "?";
 		default: errx(1, "Unsupported format specifier: '%c'", c);

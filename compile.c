@@ -279,9 +279,14 @@ CORD compile(ast_t *ast)
         }
         code = CORD_cat(code, "};\n");
         CORD_sprintf(&code,
-                     "%rCORD %s__cord(%s_t *obj, void *userdata) {\n"
+                     "%rCORD %s__cord(%s_t *obj, bool use_color) {\n"
                      "\tif (!obj) return \"%s\";\n"
-                     "\treturn CORD_asprintf(\"%s(", code, def->name, def->name, def->name, def->name);
+                     "\treturn CORD_asprintf(use_color ? \"\\x1b[0;1m%s\\x1b[m(", code, def->name, def->name, def->name, def->name);
+        for (arg_ast_t *field = def->fields; field; field = field->next) {
+            CORD_sprintf(&code, "%r%s=\\x1b[35m%%r\\x1b[m", code, field->name);
+            if (field->next) code = CORD_cat(code, ", ");
+        }
+        CORD_appendf(&code, ")\" : \"%s(", def->name);
         for (arg_ast_t *field = def->fields; field; field = field->next) {
             CORD_sprintf(&code, "%r%s=%%r", code, field->name);
             if (field->next) code = CORD_cat(code, ", ");
