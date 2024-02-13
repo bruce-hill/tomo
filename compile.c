@@ -167,12 +167,18 @@ CORD compile(ast_t *ast)
     }
     case Assign: {
         auto assign = Match(ast, Assign);
-        CORD code = CORD_EMPTY;
-        for (ast_list_t *target = assign->targets, *value = assign->values; target && value; target = target->next, value = value->next) {
-            CORD_sprintf(&code, "%r = %r", compile(target->ast), compile(value->ast));
-            if (target->next) code = CORD_cat(code, ", ");
-        }
-        return CORD_cat(code, ";");
+        // Single assignment:
+        if (assign->targets && !assign->targets->next)
+            return CORD_asprintf("%r = %r", compile(assign->targets->ast), compile(assign->values->ast));
+
+        CORD code = "{ // Assignment\n";
+        int64_t i = 1;
+        for (ast_list_t *value = assign->values; value; value = value->next)
+            CORD_appendf(&code, "__declare(_%ld, %r);\n", i++, compile(value->ast));
+        i = 1;
+        for (ast_list_t *target = assign->targets; target; target = target->next)
+            CORD_appendf(&code, "%r = _%ld;\n", compile(target->ast), i++);
+        return CORD_cat(code, "\n}");
     }
     case Min: {
         return CORD_asprintf("min(%r, %r)", compile(Match(ast, Min)->lhs), compile(Match(ast, Min)->rhs));

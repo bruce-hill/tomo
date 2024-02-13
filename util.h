@@ -25,6 +25,7 @@ char *heap_strn(const char *str, size_t len);
 char *heap_str(const char *str);
 char *heap_strf(const char *fmt, ...);
 CORD CORD_asprintf(const char *fmt, ...);
+#define CORD_appendf(cord, fmt, ...) CORD_sprintf(cord, "%r" fmt, *(cord) __VA_OPT__(,) __VA_ARGS__)
 
 #define REVERSE_LIST(list) do { \
     __typeof(list) _prev = NULL; \
