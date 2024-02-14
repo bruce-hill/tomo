@@ -884,12 +884,23 @@ PARSER(parse_string) {
     } else if (match(&pos, "'")) {
         open_quote = '\'', close_quote = '\'';
     } else if (match(&pos, "$")) {
-        open_interp = *(pos++);
-        close_interp = closing[(int)open_interp];
-        if (*pos == close_interp) ++pos;
-        open_quote = *pos;
-        close_quote = closing[(int)*pos] ? closing[(int)*pos] : *pos;
-        ++pos;
+        if (strspn(pos, (char[]){*pos, 0}) >= 2) {
+            // Disable interp using a double opener: $;;...; or $``text`
+            open_quote = *pos;
+            pos += 2;
+        } else {
+            // $@"...." or $()"....."
+            open_interp = *pos;
+            ++pos;
+            close_interp = closing[(int)open_interp];
+            if (close_interp && *pos == close_interp)
+                ++pos;
+            open_quote = *pos;
+            ++pos;
+        }
+        close_quote = closing[(int)open_quote] ? closing[(int)open_quote] : open_quote;
+        if (open_interp == close_quote)
+            open_interp = '\0';
     } else {
         return NULL;
     }
