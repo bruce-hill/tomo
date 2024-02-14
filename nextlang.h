@@ -48,8 +48,7 @@ CORD as_cord(void *x, bool use_color, const char *fmt, ...);
                          int32_t: CORD_asprintf("%d", x), int64_t: CORD_asprintf("%ld", x), \
                          double: CORD_asprintf("%g", x), float: CORD_asprintf("%g", x), \
                          CORD: x, \
-                         char*: (CORD)({ const char *__str = x; __str && __str[0] ? __str : CORD_EMPTY;}), \
-                         array_t: as_cord(&(x), false, "[ ]"), \
+                         array_t: as_cord(__stack(x), false, "[ ]"), \
                          default: "???")
 #define __heap(x) (__typeof(x)*)memcpy(GC_MALLOC(sizeof(x)), (__typeof(x)[1]){x}, sizeof(x))
 #define __stack(x) (__typeof(x)*)((__typeof(x)[1]){x})
@@ -88,7 +87,8 @@ CORD as_cord(void *x, bool use_color, const char *fmt, ...);
 #define say(str) puts(CORD_to_const_char_star(__cord(str)))
 #define __test(src, expr, expected) do { \
         CORD __result = __cord(expr); \
-        say(CORD_catn(5, USE_COLOR ? "\x1b[33;1m>>\x1b[0m " : ">> ", src, USE_COLOR ? "\n\x1b[0;2m=\x1b[m " : "\n= ", __result, "\x1b[m")); \
+        CORD __output = CORD_catn(5, USE_COLOR ? "\x1b[33;1m>>\x1b[0m " : ">> ", src, USE_COLOR ? "\n\x1b[0;2m=\x1b[m " : "\n= ", __result, "\x1b[m"); \
+        puts(CORD_to_const_char_star(__output)); \
         if (expected && CORD_cmp(__result, expected)) { \
             fprintf(stderr, USE_COLOR ? "\x1b[31;1;7mTEST FAILURE!\x1b[27m\nI expected:\n\t\x1b[0;1m%s\x1b[1;31m\nbut got:\n\t%s\x1b[m\n" : "TEST FAILURE!\nI expected:\n\t%s\nbut got:\n\t%s\n", CORD_to_const_char_star(expected), CORD_to_const_char_star(__result)); \
             raise(SIGABRT); \
