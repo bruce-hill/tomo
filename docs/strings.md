@@ -208,16 +208,16 @@ $$(Multi-line string with nested (parens) and
 .. line continuation)
 ```
 
-As a special case, when `!` is used as an interpolation rule, no interpolations
-are allowed and `!` itself is treated as a literal character:
+As a special case, when you use the same character for interpolation and string
+delimiting, no interpolations are allowed:
 
 ```
-plain := $!"This string has {no interpolations}! Not even exclamation mark!"
+plain := $""This string has {no interpolations}!"
 ```
 
 **Note:** Normal doubly quoted strings with no dollar sign (e.g. `"foo"`) are a
-shorthand for `${}"foo"`. Singly quoted strings with no dollar sign are
-shorthand for `$!'foo'`.
+shorthand for `${}"foo"`. Singly quoted strings with no dollar sign (e.g.
+`'foo'`) are shorthand for `$''foo'`.
 
 ## Operations
 
