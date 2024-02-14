@@ -35,7 +35,12 @@ CORD compile(env_t *env, ast_t *ast)
     case Bool: return Match(ast, Bool)->b ? "yes" : "no";
     case Var: return Match(ast, Var)->name;
     case Int: return CORD_asprintf("I%ld(%ld)", Match(ast, Int)->precision, Match(ast, Int)->i);
-    case Num: return CORD_asprintf(Match(ast, Num)->precision == 64 ? "%g" : "%gf", Match(ast, Num)->n);
+    case Num: {
+        // HACK: since the cord library doesn't support the '%a' specifier, this workaround
+        // is necessary:
+        char *buf = asprintfa(Match(ast, Num)->precision == 64 ? "%a" : "%af", Match(ast, Num)->n);
+        return CORD_from_char_star(buf);
+    }
     case UnaryOp: {
         auto unop = Match(ast, UnaryOp);
         CORD expr = compile(env, unop->value);
