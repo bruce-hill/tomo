@@ -43,7 +43,6 @@ struct type_s {
         PointerType,
         StructType,
         EnumType,
-        VariantType,
         TypeInfoType,
         PlaceholderType,
     } tag;
@@ -72,16 +71,13 @@ struct type_s {
             bool is_optional:1, is_stack:1, is_readonly:1;
         } PointerType;
         struct {
+            const char *name;
             arg_t *fields;
         } StructType;
         struct {
+            const char *name;
             tag_t *tags;
         } EnumType;
-        struct {
-            const char *name, *filename;
-            type_t *variant_of;
-            type_t *namespace_type;
-        } VariantType;
         struct {} TypeInfoType;
         struct {
             const char *filename, *name;
@@ -102,9 +98,6 @@ bool type_eq(type_t *a, type_t *b);
 bool type_is_a(type_t *t, type_t *req);
 type_t *type_or_type(type_t *a, type_t *b);
 type_t *value_type(type_t *a);
-bool is_integral(type_t *t);
-bool is_floating_point(type_t *t);
-bool is_numeric(type_t *t);
 typedef enum {NUM_PRECISION_EQUAL, NUM_PRECISION_LESS, NUM_PRECISION_MORE, NUM_PRECISION_INCOMPARABLE} precision_cmp_e;
 precision_cmp_e compare_precision(type_t *a, type_t *b);
 bool is_orderable(type_t *t);
@@ -114,9 +107,6 @@ bool can_promote(type_t *actual, type_t *needed);
 bool can_leave_uninitialized(type_t *t);
 bool can_have_cycles(type_t *t);
 type_t *table_entry_type(type_t *table_t);
-type_t *base_variant(type_t *t);
-bool is_variant_of(type_t *t, type_t *base);
-type_t *base_value_type(type_t *t);
 type_t *replace_type(type_t *t, type_t *target, type_t *replacement);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

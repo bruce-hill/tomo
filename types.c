@@ -38,7 +38,7 @@ static CORD type_to_cord(type_t *t) {
         }
         case StructType: {
             auto struct_ = Match(t, StructType);
-            CORD c = "struct(";
+            CORD c = CORD_asprintf("%s{", struct_->name);
             int64_t i = 1;
             for (arg_t *field = struct_->fields; field; field = field->next) {
                 const char *fname = field->name ? field->name : heap_strf("_%lu", i);
@@ -52,7 +52,7 @@ static CORD type_to_cord(type_t *t) {
 
                 if (field->next) c = CORD_cat(c, ", ");
             }
-            c = CORD_cat(c, ")");
+            c = CORD_cat(c, "}");
             return c;
         }
         case PointerType: {
@@ -64,7 +64,7 @@ static CORD type_to_cord(type_t *t) {
         case EnumType: {
             auto tagged = Match(t, EnumType);
 
-            CORD c = "enum(";
+            CORD c = CORD_asprintf("%s[", tagged->name);
             int64_t next_tag = 0;
             for (tag_t *tag = tagged->tags; tag; tag = tag->next) {
                 // name, tag_value, type
@@ -93,13 +93,10 @@ static CORD type_to_cord(type_t *t) {
                 }
 
                 if (tag->next)
-                    c = CORD_cat(c, "|");
+                    c = CORD_cat(c, ", ");
             }
-            c = CORD_cat(c, ")");
+            c = CORD_cat(c, "]");
             return c;
-        }
-        case VariantType: {
-            return Match(t, VariantType)->name;
         }
         case PlaceholderType: {
             return Match(t, PlaceholderType)->name;
@@ -169,18 +166,6 @@ type_t *value_type(type_t *t)
     return t;
 }
 
-type_t *base_value_type(type_t *t)
-{
-    for (;;) {
-        if (t->tag == PointerType)
-            t = Match(t, PointerType)->pointed;
-        else if (t->tag == VariantType)
-            t = Match(t, VariantType)->variant_of;
-        else break;
-    }
-    return t;
-}
-
 type_t *type_or_type(type_t *a, type_t *b)
 {
     if (!a) return b;
@@ -204,24 +189,6 @@ type_t *type_or_type(type_t *a, type_t *b)
     return NULL;
 }
 
-bool is_integral(type_t *t)
-{
-    t = base_variant(t);
-    return t->tag == IntType;
-}
-
-bool is_floating_point(type_t *t)
-{
-    t = base_variant(t);
-    return t->tag == NumType;
-}
-
-bool is_numeric(type_t *t)
-{
-    t = base_variant(t);
-    return t->tag == IntType || t->tag == NumType;
-}
-
 static inline double type_min_magnitude(type_t *t)
 {
     switch (t->tag) {
@@ -236,7 +203,6 @@ static inline double type_min_magnitude(type_t *t)
         }
     }
     case NumType: return -1./0.;
-    case VariantType: return type_min_magnitude(Match(t, VariantType)->variant_of);
     default: return NAN;
     }
 }
@@ -255,7 +221,6 @@ static inline double type_max_magnitude(type_t *t)
         }
     }
     case NumType: return 1./0.;
-    case VariantType: return type_max_magnitude(Match(t, VariantType)->variant_of);
     default: return NAN;
     }
 }
@@ -336,7 +301,8 @@ bool can_promote(type_t *actual, type_t *needed)
     if (type_eq(actual, needed))
         return true;
 
-    if (is_numeric(actual) && is_numeric(needed)) {
+    if ((actual->tag == IntType || actual->tag == NumType)
+        && (needed->tag == IntType || needed->tag == NumType)) {
         auto cmp = compare_precision(actual, needed);
         return cmp == NUM_PRECISION_EQUAL || cmp == NUM_PRECISION_LESS;
     }
@@ -384,13 +350,9 @@ bool can_promote(type_t *actual, type_t *needed)
         return true;
     }
 
-    // If we have a DSL, it should be possible to use it as a Str
-    if (is_variant_of(actual, needed))
-        return true;
-
-    if (actual->tag == StructType && base_variant(needed)->tag == StructType) {
+    if (actual->tag == StructType) {
         auto actual_struct = Match(actual, StructType);
-        auto needed_struct = Match(base_variant(needed), StructType);
+        auto needed_struct = Match(needed, StructType);
         // TODO: allow promoting with uninitialized or extraneous values?
         for (arg_t *needed_field = needed_struct->fields, *actual_field = actual_struct->fields;
              needed_field || actual_field;
@@ -456,13 +418,6 @@ static bool _can_have_cycles(type_t *t, table_t *seen)
             }
             return false;
         }
-        case VariantType: {
-            const char *name = Match(t, VariantType)->name;
-            if (name && Table_str_get(seen, name))
-                return true;
-            Table_str_set(seen, name, t);
-            return _can_have_cycles(Match(t, VariantType)->variant_of, seen);
-        }
         default: return false;
     }
 }
@@ -490,22 +445,6 @@ type_t *table_entry_type(type_t *table_type)
         Table_str_set(&cache, type_to_string(t), t);
         return t;
     }
-}
-
-type_t *base_variant(type_t *t)
-{
-    while (t->tag == VariantType)
-        t = Match(t, VariantType)->variant_of;
-    return t;
-}
-
-bool is_variant_of(type_t *t, type_t *base)
-{
-    for (; t->tag == VariantType; t = Match(t, VariantType)->variant_of) {
-        if (type_eq(Match(t, VariantType)->variant_of, base))
-            return true;
-    }
-    return false;
 }
 
 type_t *replace_type(type_t *t, type_t *target, type_t *replacement)
@@ -544,7 +483,6 @@ type_t *replace_type(type_t *t, type_t *target, type_t *replacement)
             Match((struct type_s*)t, EnumType)->tags = tags;
             return t;
         }
-        case VariantType: return REPLACED_MEMBER(t, VariantType, variant_of);
         default: return t;
     }
 #undef COPY
