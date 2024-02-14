@@ -19,13 +19,18 @@ CORD compile_type(env_t *env, type_ast_t *t)
 
 CORD compile_statement(env_t *env, ast_t *ast)
 {
+    CORD stmt;
     switch (ast->tag) {
     case If: case For: case While: case FunctionDef: case Return: case StructDef: case EnumDef:
     case Declare: case Assign: case UpdateAssign: case DocTest:
-        return compile(env, ast);
+        stmt = compile(env, ast);
+        break;
     default:
-        return CORD_asprintf("(void)%r;", compile(env, ast));
+        stmt = CORD_asprintf("(void)%r;", compile(env, ast));
+        break;
     }
+    int64_t line = get_line_number(ast->file, ast->start);
+    return stmt ? CORD_asprintf("#line %ld\n%r", line, stmt) : stmt;
 }
 
 CORD compile(env_t *env, ast_t *ast)

@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
     }
 
     CORD program = CORD_asprintf(
+        "#line 0 \"%s\"\n" // file
         "// Generated code:\n"
         "%r\n" // imports
         "%r\n" // typedefs
@@ -74,6 +75,7 @@ int main(int argc, char *argv[])
         "__load();\n"
         "return 0;\n"
         "}\n",
+        f->filename,
         env.imports, env.typedefs, env.types, env.staticdefs,
         env.funcs, env.main);
     
