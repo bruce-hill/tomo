@@ -1291,9 +1291,7 @@ PARSER(parse_assignment) {
 PARSER(parse_statement) {
     ast_t *stmt = NULL;
     if ((stmt=parse_declaration(ctx, pos))
-        || (stmt=parse_doctest(ctx, pos))
-        || (stmt=parse_func_def(ctx, pos))
-        || (stmt=parse_use(ctx,pos)))
+        || (stmt=parse_doctest(ctx, pos)))
         return stmt;
 
     if (!(false 
@@ -1335,6 +1333,16 @@ PARSER(parse_block) {
     while (*pos) {
         ast_t *stmt = optional(ctx, &pos, parse_statement);
         if (!stmt) {
+            const char *line_start = pos;
+            if (match_word(&pos, "struct"))
+                parser_err(ctx, line_start, strchrnul(pos, '\n'), "Struct definitions are only allowed at the top level");
+            else if (match_word(&pos, "enum"))
+                parser_err(ctx, line_start, strchrnul(pos, '\n'), "Enum definitions are only allowed at the top level");
+            else if (match_word(&pos, "func"))
+                parser_err(ctx, line_start, strchrnul(pos, '\n'), "Function definitions are only allowed at the top level");
+            else if (match_word(&pos, "use"))
+                parser_err(ctx, line_start, strchrnul(pos, '\n'), "'use' statements are only allowed at the top level");
+
             spaces(&pos);
             if (*pos && *pos != '\r' && *pos != '\n')
                 parser_err(ctx, pos, strchrnul(pos, '\n'), "I couldn't parse this line");
@@ -1367,6 +1375,8 @@ PARSER(parse_namespace) {
         ast_t *stmt;
         if ((stmt=optional(ctx, &pos, parse_struct_def))
             ||(stmt=optional(ctx, &pos, parse_enum_def))
+            ||(stmt=optional(ctx, &pos, parse_func_def))
+            ||(stmt=optional(ctx, &pos, parse_use))
             ||(stmt=optional(ctx, &pos, parse_linker))
             ||(stmt=optional(ctx, &pos, parse_statement)))
         {
