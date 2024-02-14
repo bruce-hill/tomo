@@ -223,11 +223,12 @@ CORD compile(env_t *env, ast_t *ast)
             if (arg->next) passed_args = CORD_cat(passed_args, ", ");
         }
         CORD_appendf(&kwargs, "} __args = {__VA_ARGS__}; %r_(%r); })\n", name, passed_args);
+        CORD_appendf(&env->staticdefs, "%r", kwargs);
 
         CORD body = compile(env, fndef->body);
         if (CORD_fetch(body, 0) != '{')
             body = CORD_asprintf("{\n%r\n}", body);
-        CORD_appendf(&env->funcs, ") %r\n%r", body, kwargs);
+        CORD_appendf(&env->funcs, ") %r", body);
         return CORD_EMPTY;
     }
     case FunctionCall: {
@@ -349,7 +350,7 @@ CORD compile(env_t *env, ast_t *ast)
         if (test->expr->tag == Declare) {
             auto decl = Match(test->expr, Declare);
             return CORD_asprintf(
-                "__declare(%r, %r);\n__test(%r, %r, %r);\n",
+                "__declare(%r, %r);\n__test(%r, %r, %r);",
                 compile(env, decl->var), compile(env, decl->value),
                 compile(env, WrapAST(test->expr, StringLiteral, .cord=src)),
                 compile(env, decl->var),
@@ -380,7 +381,7 @@ CORD compile(env_t *env, ast_t *ast)
             return CORD_cat(code, "\n}");
         } else {
             return CORD_asprintf(
-                "__test(%r, %r, %r);\n",
+                "__test(%r, %r, %r);",
                 compile(env, WrapAST(test->expr, StringLiteral, .cord=src)),
                 compile(env, test->expr),
                 compile(env, WrapAST(test->expr, StringLiteral, .cord=test->output)));
