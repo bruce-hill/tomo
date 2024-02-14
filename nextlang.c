@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
     if (getenv("LDLIBS"))
         ldlibs = heap_strf("%s %s", ldlibs, getenv("LDLIBS"));
 
-    const char *run = heap_strf("tcc %s %s -run -", cflags, ldlibs);
+    const char *run = heap_strf("tcc -run %s %s -", cflags, ldlibs);
     FILE *cc = popen(run, "w");
     CORD_put(program, cc);
     fclose(cc);

@@ -1400,6 +1400,21 @@ PARSER(parse_struct_def) {
 
     arg_ast_t *fields = parse_args(ctx, &pos, false);
 
+    whitespace(&pos);
+    bool secret = false;
+    if (match(&pos, ";")) { // Extra flags
+        for (bool done = false; !done; done = true) {
+            whitespace(&pos);
+            if (match_word(&pos, "secret")) {
+                secret = true;
+                done = false;
+            }
+            whitespace(&pos);
+            match(&pos, ",");
+            match(&pos, ";");
+        }
+    }
+
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this struct");
 
     const char *ns_pos = pos;
@@ -1412,7 +1427,7 @@ PARSER(parse_struct_def) {
     }
     if (!namespace)
         namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
-    return NewAST(ctx->file, start, pos, StructDef, .name=name, .fields=fields, .namespace=namespace);
+    return NewAST(ctx->file, start, pos, StructDef, .name=name, .fields=fields, .namespace=namespace, .secret=secret);
 }
 
 ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {

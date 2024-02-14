@@ -289,23 +289,31 @@ CORD compile(env_t *env, ast_t *ast)
         }
         CORD_appendf(&env->types, "};\n");
 
-        CORD_appendf(&env->funcs,
-                     "CORD %s__cord(%s_t *obj, bool use_color) {\n"
-                     "\tif (!obj) return \"%s\";\n"
-                     "\treturn CORD_asprintf(use_color ? \"\\x1b[0;1m%s\\x1b[m(", def->name, def->name, def->name, def->name);
-        for (arg_ast_t *field = def->fields; field; field = field->next) {
-            CORD_appendf(&env->funcs, "%s=\\x1b[35m%%r\\x1b[m", field->name);
-            if (field->next) env->funcs = CORD_cat(env->funcs, ", ");
+        CORD cord_func = CORD_asprintf("CORD %s__cord(%s_t *obj, bool use_color) {\n"
+                                       "\tif (!obj) return \"%s\";\n", def->name, def->name, def->name);
+
+        if (def->secret) {
+            CORD_appendf(&cord_func, "\treturn use_color ? \"\\x1b[0;1m%s\\x1b[m(\\x1b[2m...\\x1b[m)\" : \"%s(...)\";\n}",
+                         def->name, def->name);
+        } else {
+            CORD_appendf(&cord_func, "\treturn CORD_asprintf(use_color ? \"\\x1b[0;1m%s\\x1b[m(", def->name);
+            for (arg_ast_t *field = def->fields; field; field = field->next) {
+                CORD_appendf(&cord_func, "%s=\\x1b[35m%%r\\x1b[m", field->name);
+                if (field->next) cord_func = CORD_cat(cord_func, ", ");
+            }
+            CORD_appendf(&cord_func, ")\" : \"%s(", def->name);
+            for (arg_ast_t *field = def->fields; field; field = field->next) {
+                CORD_appendf(&cord_func, "%s=%%r", field->name);
+                if (field->next) cord_func = CORD_cat(cord_func, ", ");
+            }
+            cord_func = CORD_cat(cord_func, ")\"");
+            for (arg_ast_t *field = def->fields; field; field = field->next)
+                CORD_appendf(&cord_func, ", __cord(obj->%s)", field->name);
+            cord_func = CORD_cat(cord_func, ");\n}");
         }
-        CORD_appendf(&env->funcs, ")\" : \"%s(", def->name);
-        for (arg_ast_t *field = def->fields; field; field = field->next) {
-            CORD_appendf(&env->funcs, "%s=%%r", field->name);
-            if (field->next) env->funcs = CORD_cat(env->funcs, ", ");
-        }
-        env->funcs = CORD_cat(env->funcs, ")\"");
-        for (arg_ast_t *field = def->fields; field; field = field->next)
-            CORD_appendf(&env->funcs, ", __cord(obj->%s)", field->name);
-        env->funcs = CORD_cat(env->funcs, ");\n}");
+
+        env->funcs = CORD_cat(env->funcs, cord_func);
+
         return CORD_EMPTY;
     }
     case EnumDef: {
