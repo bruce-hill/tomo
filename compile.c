@@ -34,7 +34,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Nil: return CORD_asprintf("(%r)NULL", compile_type(env, Match(ast, Nil)->type));
     case Bool: return Match(ast, Bool)->b ? "yes" : "no";
     case Var: return Match(ast, Var)->name;
-    case Int: return CORD_asprintf("((Int%ld_t)%ld)", Match(ast, Int)->precision, Match(ast, Int)->i);
+    case Int: return CORD_asprintf("I%ld(%ld)", Match(ast, Int)->precision, Match(ast, Int)->i);
     case Num: return CORD_asprintf(Match(ast, Num)->precision == 64 ? "%g" : "%gf", Match(ast, Num)->n);
     case UnaryOp: {
         auto unop = Match(ast, UnaryOp);

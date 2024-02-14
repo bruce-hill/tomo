@@ -18,6 +18,10 @@
 #define Int16_t int16_t
 #define Int8_t int8_t
 #define Int_t int64_t
+#define I64(x) ((int64_t)x)
+#define I32(x) ((int32_t)x)
+#define I16(x) ((int16_t)x)
+#define I8(x) ((int8_t)x)
 
 #define Num64_t double
 #define Num32_t float
