@@ -87,14 +87,16 @@ int main(int argc, char *argv[])
 
     const char *cflags = getenv("CFLAGS");
     if (!cflags)
-        cflags = "-std=c11";
+        cflags = "-std=c11 -fsanitize=signed-integer-overflow -fno-sanitize-recover";
 
     const char *ldlibs = "-lgc -lcord -lm -L. -lnext";
     if (getenv("LDLIBS"))
         ldlibs = heap_strf("%s %s", ldlibs, getenv("LDLIBS"));
 
-    const char *run = heap_strf("tcc -run %s %s -", cflags, ldlibs);
-    // const char *run = heap_strf("gcc -x c %s %s -", cflags, ldlibs);
+    const char *ldflags = "-Wl,-rpath '-Wl,$ORIGIN'";
+
+    // const char *run = heap_strf("tcc -run %s %s %s -", cflags, ldflags, ldlibs);
+    const char *run = heap_strf("gcc -x c %s %s %s - -o program && ./program", cflags, ldflags, ldlibs);
     FILE *cc = popen(run, "w");
     CORD_put(program, cc);
     fclose(cc);
