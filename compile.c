@@ -203,22 +203,31 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case FunctionDef: {
         auto fndef = Match(ast, FunctionDef);
-        CORD_appendf(&env->staticdefs, "static %r %r(", fndef->ret_type ? compile_type(env, fndef->ret_type) : "void", compile(env, fndef->name));
+        CORD name = compile(env, fndef->name);
+        CORD_appendf(&env->staticdefs, "static %r %r_(", fndef->ret_type ? compile_type(env, fndef->ret_type) : "void", name);
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             CORD_appendf(&env->staticdefs, "%r %s", compile_type(env, arg->type), arg->name);
             if (arg->next) env->staticdefs = CORD_cat(env->staticdefs, ", ");
         }
         env->staticdefs = CORD_cat(env->staticdefs, ");\n");
 
-        CORD_appendf(&env->funcs, "%r %r(", fndef->ret_type ? compile_type(env, fndef->ret_type) : "void", compile(env, fndef->name));
+        CORD kwargs = CORD_asprintf("#define %r(...) ({ struct {", name);
+        CORD passed_args = CORD_EMPTY;
+        CORD_appendf(&env->funcs, "%r %r_(", fndef->ret_type ? compile_type(env, fndef->ret_type) : "void", name);
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-            CORD_appendf(&env->funcs, "%r %s", compile_type(env, arg->type), arg->name);
+            CORD arg_type = compile_type(env, arg->type);
+            CORD_appendf(&env->funcs, "%r %s", arg_type, arg->name);
             if (arg->next) env->funcs = CORD_cat(env->funcs, ", ");
+            CORD_appendf(&kwargs, "%r %s; ", arg_type, arg->name);
+            CORD_appendf(&passed_args, "__args.%s", arg->name);
+            if (arg->next) passed_args = CORD_cat(passed_args, ", ");
         }
+        CORD_appendf(&kwargs, "} __args = {__VA_ARGS__}; %r_(%r); })\n", name, passed_args);
+
         CORD body = compile(env, fndef->body);
         if (CORD_fetch(body, 0) != '{')
             body = CORD_asprintf("{\n%r\n}", body);
-        CORD_appendf(&env->funcs, ") %r", body);
+        CORD_appendf(&env->funcs, ") %r\n%r", body, kwargs);
         return CORD_EMPTY;
     }
     case FunctionCall: {

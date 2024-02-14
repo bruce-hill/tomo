@@ -24,6 +24,7 @@
 #define Num_t double
 
 #define String_t CORD
+#define Str_t CORD
 
 #define Bool_t bool
 #define yes (Bool_t)true
