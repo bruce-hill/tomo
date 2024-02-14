@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
         "%r\n" // static defs
         "%r\n" // funcs
         "\n"
-        "static void __load(void) {\n"
+        "static void $load(void) {\n"
         "%r" // main
         "}\n"
         "\n"
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
         "(void)argv;\n"
         "GC_INIT();\n"
         "USE_COLOR = getenv(\"COLOR\") ? strcmp(getenv(\"COLOR\"), \"1\") == 0 : isatty(STDOUT_FILENO);\n"
-        "__load();\n"
+        "$load();\n"
         "return 0;\n"
         "}\n",
         f->filename,
@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 
     const char *cflags = getenv("CFLAGS");
     if (!cflags)
-        cflags = "-std=c11 -fsanitize=signed-integer-overflow -fno-sanitize-recover";
+        cflags = "-std=c11 -fdollars-in-identifiers -fsanitize=signed-integer-overflow -fno-sanitize-recover";
 
     const char *ldlibs = "-lgc -lcord -lm -L. -lnext";
     if (getenv("LDLIBS"))

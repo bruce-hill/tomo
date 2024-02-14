@@ -52,8 +52,8 @@ CORD compile(env_t *env, ast_t *ast)
         switch (unop->op) {
         case UNOP_NOT: return CORD_asprintf("not(%r)", expr);
         case UNOP_NEGATIVE: return CORD_cat("-", expr);
-        case UNOP_HEAP_ALLOCATE: return CORD_asprintf("__heap(%r)", expr);
-        case UNOP_STACK_REFERENCE: return CORD_asprintf("__stack(%r)", expr);
+        case UNOP_HEAP_ALLOCATE: return CORD_asprintf("$heap(%r)", expr);
+        case UNOP_STACK_REFERENCE: return CORD_asprintf("$stack(%r)", expr);
         default: break;
         }
         errx(1, "Invalid unop");
@@ -71,12 +71,12 @@ CORD compile(env_t *env, ast_t *ast)
         case BINOP_MINUS: return CORD_asprintf("(%r - %r)", lhs, rhs);
         case BINOP_LSHIFT: return CORD_asprintf("(%r << %r)", lhs, rhs);
         case BINOP_RSHIFT: return CORD_asprintf("(%r >> %r)", lhs, rhs);
-        case BINOP_EQ: return CORD_asprintf("__eq(%r, %r)", lhs, rhs);
-        case BINOP_NE: return CORD_asprintf("__ne(%r, %r)", lhs, rhs);
-        case BINOP_LT: return CORD_asprintf("__lt(%r, %r)", lhs, rhs);
-        case BINOP_LE: return CORD_asprintf("__le(%r, %r)", lhs, rhs);
-        case BINOP_GT: return CORD_asprintf("__gt(%r, %r)", lhs, rhs);
-        case BINOP_GE: return CORD_asprintf("__ge(%r, %r)", lhs, rhs);
+        case BINOP_EQ: return CORD_asprintf("$eq(%r, %r)", lhs, rhs);
+        case BINOP_NE: return CORD_asprintf("$ne(%r, %r)", lhs, rhs);
+        case BINOP_LT: return CORD_asprintf("$lt(%r, %r)", lhs, rhs);
+        case BINOP_LE: return CORD_asprintf("$le(%r, %r)", lhs, rhs);
+        case BINOP_GT: return CORD_asprintf("$gt(%r, %r)", lhs, rhs);
+        case BINOP_GE: return CORD_asprintf("$ge(%r, %r)", lhs, rhs);
         case BINOP_AND: return CORD_asprintf("and(%r, %r)", lhs, rhs);
         case BINOP_OR: return CORD_asprintf("or(%r, %r)", lhs, rhs);
         case BINOP_XOR: return CORD_asprintf("xor(%r, %r)", lhs, rhs);
@@ -143,7 +143,7 @@ CORD compile(env_t *env, ast_t *ast)
         } else if (!chunks->next) {
             CORD code = compile(env, chunks->ast);
             if (chunks->ast->tag != StringLiteral)
-                code = CORD_asprintf("__cord(%r)", code);
+                code = CORD_asprintf("$cord(%r)", code);
             return code;
         } else {
             int64_t num_chunks = 0;
@@ -154,7 +154,7 @@ CORD compile(env_t *env, ast_t *ast)
             for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
                 CORD chunk_code = compile(env, chunk->ast);
                 if (chunk->ast->tag != StringLiteral)
-                    chunk_code = CORD_asprintf("__cord(%r)", chunk_code);
+                    chunk_code = CORD_asprintf("$cord(%r)", chunk_code);
                 CORD_sprintf(&code, "%r, %r", code, chunk_code);
             }
             return CORD_cat_char(code, ')');
@@ -174,7 +174,7 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Declare: {
         auto decl = Match(ast, Declare);
-        return CORD_asprintf("__declare(%r, %r);", compile(env, decl->var), compile(env, decl->value));
+        return CORD_asprintf("$var(%r, %r);", compile(env, decl->var), compile(env, decl->value));
     }
     case Assign: {
         auto assign = Match(ast, Assign);
@@ -185,10 +185,10 @@ CORD compile(env_t *env, ast_t *ast)
         CORD code = "{ // Assignment\n";
         int64_t i = 1;
         for (ast_list_t *value = assign->values; value; value = value->next)
-            CORD_appendf(&code, "__declare(_%ld, %r);\n", i++, compile(env, value->ast));
+            CORD_appendf(&code, "$var($%ld, %r);\n", i++, compile(env, value->ast));
         i = 1;
         for (ast_list_t *target = assign->targets; target; target = target->next)
-            CORD_appendf(&code, "%r = _%ld;\n", compile(env, target->ast), i++);
+            CORD_appendf(&code, "%r = $%ld;\n", compile(env, target->ast), i++);
         return CORD_cat(code, "\n}");
     }
     case Min: {
@@ -204,7 +204,7 @@ CORD compile(env_t *env, ast_t *ast)
         if (!array->items)
             return "(array_t){}";
            
-        CORD code = "__array(";
+        CORD code = "$array(";
         for (ast_list_t *item = array->items; item; item = item->next) {
             code = CORD_cat(code, compile(env, item->ast));
             if (item->next) code = CORD_cat(code, ", ");
@@ -229,10 +229,10 @@ CORD compile(env_t *env, ast_t *ast)
             CORD_appendf(&env->funcs, "%r %s", arg_type, arg->name);
             if (arg->next) env->funcs = CORD_cat(env->funcs, ", ");
             CORD_appendf(&kwargs, "%r %s; ", arg_type, arg->name);
-            CORD_appendf(&passed_args, "__args.%s", arg->name);
+            CORD_appendf(&passed_args, "$args.%s", arg->name);
             if (arg->next) passed_args = CORD_cat(passed_args, ", ");
         }
-        CORD_appendf(&kwargs, "} __args = {__VA_ARGS__}; %r_(%r); })\n", name, passed_args);
+        CORD_appendf(&kwargs, "} $args = {__VA_ARGS__}; %r_(%r); })\n", name, passed_args);
         CORD_appendf(&env->staticdefs, "%r", kwargs);
 
         CORD body = compile(env, fndef->body);
@@ -270,11 +270,11 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case For: {
         auto for_ = Match(ast, For);
-        CORD index = for_->index ? compile(env, for_->index) : "__i";
+        CORD index = for_->index ? compile(env, for_->index) : "$i";
         return CORD_asprintf("{\n"
-                             "__declare(__iter, %r);\n"
-                             "for (int64_t %r = 1, __len = __length(__iter); %r <= __len; ++%r) {\n"
-                             "__declare(%r, __safe_index(__iter, %s));\n"
+                             "$var($iter, %r);\n"
+                             "for (int64_t %r = 1, $len = $length($iter); %r <= $len; ++%r) {\n"
+                             "$var(%r, $safe_index($iter, %s));\n"
                              "%r\n"
                              "}\n}",
                              compile(env, for_->iter),
@@ -309,7 +309,7 @@ CORD compile(env_t *env, ast_t *ast)
         }
         CORD_appendf(&env->types, "};\n");
 
-        CORD cord_func = CORD_asprintf("CORD %s__cord(%s_t *obj, bool use_color) {\n"
+        CORD cord_func = CORD_asprintf("CORD %s$cord(%s_t *obj, bool use_color) {\n"
                                        "\tif (!obj) return \"%s\";\n", def->name, def->name, def->name);
 
         if (def->secret) {
@@ -328,7 +328,7 @@ CORD compile(env_t *env, ast_t *ast)
             }
             cord_func = CORD_cat(cord_func, ")\"");
             for (arg_ast_t *field = def->fields; field; field = field->next)
-                CORD_appendf(&cord_func, ", __cord(obj->%s)", field->name);
+                CORD_appendf(&cord_func, ", $cord(obj->%s)", field->name);
             cord_func = CORD_cat(cord_func, ");\n}");
         }
 
@@ -341,7 +341,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD_appendf(&env->typedefs, "typedef struct %s_s %s_t;\n", def->name, def->name);
         CORD_appendf(&env->types, "struct %s_s {\nenum {", def->name);
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-            CORD_appendf(&env->types, "%s__%s = %ld, ", def->name, tag->name, tag->value);
+            CORD_appendf(&env->types, "%s$%s = %ld, ", def->name, tag->name, tag->value);
         }
         env->types = CORD_cat(env->types, "} tag;\nunion {\n");
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
@@ -351,7 +351,7 @@ CORD compile(env_t *env, ast_t *ast)
             }
             CORD_appendf(&env->types, "} %s;\n", tag->name);
         }
-        env->types = CORD_cat(env->types, "} __data;\n};\n");
+        env->types = CORD_cat(env->types, "} $data;\n};\n");
         return CORD_EMPTY;
     }
     case DocTest: {
@@ -360,7 +360,7 @@ CORD compile(env_t *env, ast_t *ast)
         if (test->expr->tag == Declare) {
             auto decl = Match(test->expr, Declare);
             return CORD_asprintf(
-                "__declare(%r, %r);\n__test(%r, %r, %r);",
+                "$var(%r, %r);\n$test(%r, %r, %r);",
                 compile(env, decl->var), compile(env, decl->value),
                 compile(env, WrapAST(test->expr, StringLiteral, .cord=src)),
                 compile(env, decl->var),
@@ -370,10 +370,10 @@ CORD compile(env_t *env, ast_t *ast)
             CORD code = "{ // Assignment\n";
             int64_t i = 1;
             for (ast_list_t *value = assign->values; value; value = value->next)
-                CORD_appendf(&code, "__declare(_%ld, %r);\n", i++, compile(env, value->ast));
+                CORD_appendf(&code, "$var($%ld, %r);\n", i++, compile(env, value->ast));
             i = 1;
             for (ast_list_t *target = assign->targets; target; target = target->next)
-                CORD_appendf(&code, "%r = _%ld;\n", compile(env, target->ast), i++);
+                CORD_appendf(&code, "%r = $%ld;\n", compile(env, target->ast), i++);
 
             CORD expr_cord = "CORD_asprintf(\"";
             for (ast_list_t *target = assign->targets; target; target = target->next)
@@ -381,17 +381,17 @@ CORD compile(env_t *env, ast_t *ast)
             expr_cord = CORD_cat(expr_cord, "\"");
             i = 1;
             for (ast_list_t *target = assign->targets; target; target = target->next)
-                CORD_appendf(&expr_cord, ", __cord(_%ld)", i++);
+                CORD_appendf(&expr_cord, ", $cord($%ld)", i++);
             expr_cord = CORD_cat(expr_cord, ")");
 
-            CORD_appendf(&code, "__test(%r, %r, %r);",
+            CORD_appendf(&code, "$test(%r, %r, %r);",
                 compile(env, WrapAST(test->expr, StringLiteral, .cord=src)),
                 expr_cord,
                 compile(env, WrapAST(test->expr, StringLiteral, .cord=test->output)));
             return CORD_cat(code, "\n}");
         } else {
             return CORD_asprintf(
-                "__test(%r, %r, %r);",
+                "$test(%r, %r, %r);",
                 compile(env, WrapAST(test->expr, StringLiteral, .cord=src)),
                 compile(env, test->expr),
                 compile(env, WrapAST(test->expr, StringLiteral, .cord=test->output)));
