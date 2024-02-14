@@ -48,8 +48,11 @@ int main(int argc, char *argv[])
     CORD_appendf(&env.staticdefs, "static bool USE_COLOR = true;\n");
 
     // Main body:
-    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
-        CORD_appendf(&env.main, "%r\n", compile_statement(&env, stmt->ast));
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        CORD code = compile_statement(&env, stmt->ast);
+        if (code)
+            CORD_appendf(&env.main, "%r\n", code);
+    }
 
     CORD program = CORD_asprintf(
         "// Generated code:\n"
@@ -61,7 +64,7 @@ int main(int argc, char *argv[])
         "%r\n" // funcs
         "\n"
         "static void __load(void) {\n"
-        "%r\n" // main
+        "%r" // main
         "}\n"
         "\n"
         "int main(int argc, const char *argv[]) {\n"
