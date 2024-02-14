@@ -59,7 +59,6 @@ int main(int argc, char *argv[])
         "%r\n" // imports
         "%r\n" // typedefs
         "%r\n" // types
-        "//////////////////////////////////////////\n"
         "%r\n" // static defs
         "%r\n" // funcs
         "\n"
