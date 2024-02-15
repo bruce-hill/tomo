@@ -349,7 +349,9 @@ CORD compile(env_t *env, ast_t *ast)
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
             env->types = CORD_cat(env->types, "struct {\n");
             for (arg_ast_t *field = tag->fields; field; field = field->next) {
-                CORD_appendf(&env->types, "%r %s;\n", compile_type(env, field->type), field->name);
+                CORD type = compile_type(env, field->type);
+                CORD_appendf(&env->types, "%r %s%s;\n", type, field->name,
+                             CORD_cmp(type, "Bool_t") ? "" : ":1");
             }
             CORD_appendf(&env->types, "} %s;\n", tag->name);
         }
