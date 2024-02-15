@@ -24,12 +24,12 @@ G=-ggdb
 O=-Og
 CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS)
 LDLIBS=-lgc -lgccjit -lcord -lm -lunistring
-BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/builtins.o builtins/char.o builtins/floats.o builtins/functions.o builtins/integers.o \
+BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/builtins.o builtins/floats.o builtins/functions.o builtins/integers.o \
 						 builtins/memory.o builtins/string.o builtins/table.o builtins/types.o
 
 all: nextlang libnext.so
 
-nextlang: nextlang.c parse.o files.o util.o ast.o compile.o types.o SipHash/halfsiphash.o $(BUILTIN_OBJS)
+nextlang: nextlang.c parse.o files.o util.o ast.o compile.o types.o environment.o SipHash/halfsiphash.o $(BUILTIN_OBJS)
 
 libnext.so: metamethods/cord.o util.o SipHash/halfsiphash.o
 	$(CC) $^ $(CFLAGS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LDLIBS) -Wl,-soname,libnext.so -shared -o $@

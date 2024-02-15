@@ -303,13 +303,13 @@ CORD compile(env_t *env, ast_t *ast)
         CORD_appendf(&env->typedefs, "typedef struct %s_s %s_t;\n", def->name, def->name);
         CORD_appendf(&env->typedefs, "#define %s(...) ((%s_t){__VA_ARGS__})\n", def->name, def->name);
 
-        CORD_appendf(&env->types, "struct %s_s {\n", def->name);
+        CORD_appendf(&env->typecode, "struct %s_s {\n", def->name);
         for (arg_ast_t *field = def->fields; field; field = field->next) {
             CORD type = compile_type(env, field->type);
-            CORD_appendf(&env->types, "%r %s%s;\n", type, field->name,
+            CORD_appendf(&env->typecode, "%r %s%s;\n", type, field->name,
                          CORD_cmp(type, "Bool_t") ? "" : ":1");
         }
-        CORD_appendf(&env->types, "};\n");
+        CORD_appendf(&env->typecode, "};\n");
 
         CORD cord_func = CORD_asprintf("CORD %s$cord(%s_t *obj, bool use_color) {\n"
                                        "\tif (!obj) return \"%s\";\n", def->name, def->name, def->name);
@@ -341,21 +341,21 @@ CORD compile(env_t *env, ast_t *ast)
     case EnumDef: {
         auto def = Match(ast, EnumDef);
         CORD_appendf(&env->typedefs, "typedef struct %s_s %s_t;\n", def->name, def->name);
-        CORD_appendf(&env->types, "struct %s_s {\nenum {", def->name);
+        CORD_appendf(&env->typecode, "struct %s_s {\nenum {", def->name);
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-            CORD_appendf(&env->types, "%s$%s = %ld, ", def->name, tag->name, tag->value);
+            CORD_appendf(&env->typecode, "%s$%s = %ld, ", def->name, tag->name, tag->value);
         }
-        env->types = CORD_cat(env->types, "} tag;\nunion {\n");
+        env->typecode = CORD_cat(env->typecode, "} tag;\nunion {\n");
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-            env->types = CORD_cat(env->types, "struct {\n");
+            env->typecode = CORD_cat(env->typecode, "struct {\n");
             for (arg_ast_t *field = tag->fields; field; field = field->next) {
                 CORD type = compile_type(env, field->type);
-                CORD_appendf(&env->types, "%r %s%s;\n", type, field->name,
+                CORD_appendf(&env->typecode, "%r %s%s;\n", type, field->name,
                              CORD_cmp(type, "Bool_t") ? "" : ":1");
             }
-            CORD_appendf(&env->types, "} %s;\n", tag->name);
+            CORD_appendf(&env->typecode, "} %s;\n", tag->name);
         }
-        env->types = CORD_cat(env->types, "} $data;\n};\n");
+        env->typecode = CORD_cat(env->typecode, "} $data;\n};\n");
         return CORD_EMPTY;
     }
     case DocTest: {

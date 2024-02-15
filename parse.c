@@ -570,6 +570,23 @@ PARSER(parse_num) {
     return NewAST(ctx->file, start, pos, Num, .n=d, .precision=precision);
 }
 
+static inline bool match_separator(const char **pos) { // Either comma or newline
+    const char *p = *pos;
+    int separators = 0;
+    for (;;) {
+        if (some_of(&p, "\r\n,"))
+            ++separators;
+        else if (!comment(&p) && !some_of(&p, " \t"))
+            break;
+    }
+    if (separators > 0) {
+        *pos = p;
+        return true;
+    } else {
+        return false;
+    }
+}
+
 PARSER(parse_array) {
     const char *start = pos;
     if (!match(&pos, "[")) return NULL;
@@ -581,15 +598,15 @@ PARSER(parse_array) {
     if (match(&pos, ":")) {
         whitespace(&pos);
         item_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a type for this array");
+        whitespace(&pos);
     }
 
     for (;;) {
-        whitespace(&pos);
         ast_t *item = optional(ctx, &pos, parse_extended_expr);
         if (!item) break;
         items = new(ast_list_t, .ast=item, .next=items);
-        whitespace(&pos);
-        if (!match(&pos, ",")) break;
+        if (!match_separator(&pos))
+            break;
     }
     whitespace(&pos);
     expect_closing(ctx, &pos, "]", "I wasn't able to parse the rest of this array");
@@ -616,10 +633,10 @@ PARSER(parse_table) {
         if (!match(&pos, "=>"))
             parser_err(ctx, pos, pos, "I expected an '=>' for this table type");
         value_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a value type for this table");
+        whitespace(&pos);
     }
 
     for (;;) {
-        whitespace(&pos);
         const char *entry_start = pos;
         ast_t *key = optional(ctx, &pos, parse_extended_expr);
         if (!key) break;
@@ -640,8 +657,8 @@ PARSER(parse_table) {
         pos = entry->end;
 
         entries = new(ast_list_t, .ast=entry, .next=entries);
-        whitespace(&pos);
-        if (!match(&pos, ",")) break;
+        if (!match_separator(&pos))
+            break;
     }
 
     REVERSE_LIST(entries);
@@ -1124,10 +1141,8 @@ ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn, bool is_extern) {
 
       got_arg:;
 
-        whitespace(&pos);
-        if (!match(&pos, ","))
+        if (!match_separator(&pos))
             break;
-        whitespace(&pos);
     }
 
     whitespace(&pos);
@@ -1413,15 +1428,15 @@ PARSER(parse_struct_def) {
     whitespace(&pos);
     bool secret = false;
     if (match(&pos, ";")) { // Extra flags
-        for (bool done = false; !done; done = true) {
-            whitespace(&pos);
-            if (match_word(&pos, "secret")) {
+        whitespace(&pos);
+        for (;;) {
+            if (match_word(&pos, "secret"))
                 secret = true;
-                done = false;
-            }
-            whitespace(&pos);
-            match(&pos, ",");
-            match(&pos, ";");
+            else
+                break;
+
+            if (!match_separator(&pos))
+                break;
         }
     }
 
@@ -1487,14 +1502,10 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
         }
 
         tags = new(tag_ast_t, .name=tag_name, .value=next_value, .fields=fields, .next=tags);
-
-        const char *next_pos = pos;
-        whitespace(&next_pos);
-        if (!match(&next_pos, ","))
-            break;
-        whitespace(&next_pos);
-        pos = next_pos;
         ++next_value;
+
+        if (!match_separator(&pos))
+            break;
     }
 
     whitespace(&pos);
@@ -1566,8 +1577,9 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed)
         REVERSE_LIST(names);
         for (; names; names = names->next)
             args = new(arg_ast_t, .name=names->name, .type=type, .default_val=default_val, .next=args);
-        whitespace(pos);
-        match(pos, ",");
+
+        if (!match_separator(pos))
+            break;
     }
 
     REVERSE_LIST(args);
@@ -1589,7 +1601,7 @@ PARSER(parse_func_def) {
     whitespace(&pos);
     bool is_inline = false;
     ast_t *cache_ast = NULL;
-    for (; whitespace(&pos), (match(&pos, ";") || match(&pos, ",")); ) {
+    for (bool specials = match(&pos, ";"); specials; specials = match_separator(&pos)) {
         const char *flag_start = pos;
         if (match_word(&pos, "inline")) {
             is_inline = true;

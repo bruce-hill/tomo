@@ -42,16 +42,16 @@ int main(int argc, char *argv[])
         fclose(out);
     }
 
-    env_t env = {.bindings = new(table_t)};
+    env_t *env = new_environment();
 
-    CORD_appendf(&env.imports, "#include \"nextlang.h\"\n");
-    CORD_appendf(&env.staticdefs, "static bool USE_COLOR = true;\n");
+    CORD_appendf(&env->imports, "#include \"nextlang.h\"\n");
+    CORD_appendf(&env->staticdefs, "static bool USE_COLOR = true;\n");
 
     // Main body:
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-        CORD code = compile_statement(&env, stmt->ast);
+        CORD code = compile_statement(env, stmt->ast);
         if (code)
-            CORD_appendf(&env.main, "%r\n", code);
+            CORD_appendf(&env->main, "%r\n", code);
     }
 
     CORD program = CORD_asprintf(
@@ -76,8 +76,8 @@ int main(int argc, char *argv[])
         "return 0;\n"
         "}\n",
         f->filename,
-        env.imports, env.typedefs, env.types, env.staticdefs,
-        env.funcs, env.main);
+        env->imports, env->typedefs, env->types, env->staticdefs,
+        env->funcs, env->main);
     
     if (verbose) {
         FILE *out = popen(heap_strf("%s | bat -P --file-name=program.c", autofmt), "w");
