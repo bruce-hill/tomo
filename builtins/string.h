@@ -4,16 +4,7 @@
 #include <stdint.h>
 
 typedef struct {
-    char *data;
-    int64_t length:42;
-    uint8_t free:4, cow:1, atomic:1;
-    int16_t stride:16;
-} Str_t;
-
-#define STRING(s) ((Str_t){.data=s, .length=(int32_t)(sizeof(s)), .stride=1, .free=0})
-
-typedef struct {
-    Str_t *data;
+    CORD *data;
     unsigned long int length:42;
     unsigned short int free:4, cow:1, atomic:1;
     short int stride:16;

@@ -115,7 +115,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD code = "\"";
         CORD_pos i;
         CORD_FOR(i, literal) {
-            int c = CORD_pos_fetch(i);
+            char c = CORD_pos_fetch(i);
             switch (c) {
             case '\\': code = CORD_cat(code, "\\\\"); break;
             case '"': code = CORD_cat(code, "\\\""); break;
