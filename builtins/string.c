@@ -21,11 +21,6 @@
 
 extern const void *SSS_HASH_VECTOR;
 
-typedef struct {
-    enum { FIND_FAILURE, FIND_SUCCESS } status;
-    int32_t index;
-} find_result_t;
-
 public CORD Str__quoted(CORD str, bool colorize)
 {
     // Note: it's important to have unicode strings not get broken up with
@@ -130,8 +125,6 @@ public CORD Str__titlecased(CORD str)
     uint8_t *dest = GC_MALLOC_ATOMIC(len);
     return (CORD)u8_totitle((const uint8_t*)str, len-1, uc_locale_language(), NULL, dest, &len);
 }
-
-typedef enum { WHERE_ANYWHERE, WHERE_START, WHERE_END } where_e;
 
 public bool Str__has(CORD str, CORD target, where_e where)
 {
@@ -257,29 +250,7 @@ public CORD Str__join(CORD glue, Str_Array_t pieces)
     return ret;
 }
 
-public struct {
-    TypeInfo type;
-    CORD (*uppercased)(CORD s);
-    CORD (*lowercased)(CORD s);
-    CORD (*titlecased)(CORD s);
-    bool (*has)(CORD s, CORD prefix, where_e where);
-    bool (*ends_with)(CORD s, CORD suffix);
-    CORD (*without)(CORD s, CORD target, where_e where);
-    CORD (*without_suffix)(CORD s, CORD suffix);
-    CORD (*trimmed)(CORD s, CORD trim_chars, where_e where);
-    CORD (*slice)(CORD s, int64_t first, int64_t stride, int64_t length);
-    char *(*c_string)(CORD str);
-    CORD (*from_c_string)(char *str);
-    find_result_t (*find)(CORD str, CORD pat);
-    CORD (*replace)(CORD text, CORD pat, CORD replacement, int64_t limit);
-    CORD (*quoted)(CORD text, bool colorize);
-    Str_Array_t (*split)(CORD str, CORD split_chars);
-    CORD (*join)(CORD glue, Str_Array_t pieces);
-    bool (*equal)(CORD *x, CORD *y);
-    int32_t (*compare)(CORD *x, CORD *y);
-    int (*hash)(CORD *s, TypeInfo *type);
-    CORD (*cord)(CORD *s, bool colorize, TypeInfo *type);
-} Str_type = {
+public Str_namespace_t Str_type = {
     .type={
         .name="Str",
         .size=sizeof(CORD),

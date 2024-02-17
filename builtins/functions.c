@@ -10,9 +10,15 @@
 #include "../files.h"
 #include "../util.h"
 #include "functions.h"
+#include "array.h"
+#include "table.h"
+#include "pointer.h"
 #include "string.h"
 
-void fail(const char *fmt, ...)
+extern bool USE_COLOR;
+extern const void *SSS_HASH_VECTOR;
+
+public void fail(const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -21,12 +27,75 @@ void fail(const char *fmt, ...)
     raise(SIGABRT);
 }
 
-Str_t builtin_last_err()
+public uint32_t generic_hash(const void *obj, const TypeInfo *type)
 {
-    const char *str = strerror(errno);
-    char *copy = GC_MALLOC_ATOMIC(strlen(str)+1);
-    strcpy(copy, str);
-    return (Str_t){.data=copy, .length=strlen(str), .stride=1};
+    switch (type->tag) {
+    case PointerInfo: return Pointer__hash(obj, type);
+    case ArrayInfo: return Array_hash(obj, type);
+    case TableInfo: return Table_hash(obj, type);
+    case CustomInfo:
+        if (!type->CustomInfo.hash)
+            goto hash_data;
+        return type->CustomInfo.hash(obj, type);
+    default: {
+      hash_data:;
+        uint32_t hash;
+        halfsiphash((void*)obj, type->size, SSS_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));
+        return hash;
+    }
+    }
+}
+
+public int32_t generic_compare(const void *x, const void *y, const TypeInfo *type)
+{
+    switch (type->tag) {
+    case PointerInfo: return Pointer__compare(x, y, type);
+    case ArrayInfo: return Array_compare(x, y, type);
+    case TableInfo: return Table_compare(x, y, type);
+    case CustomInfo:
+        if (!type->CustomInfo.compare)
+            goto compare_data;
+        return type->CustomInfo.compare(x, y, type);
+    default:
+      compare_data:
+        return (int32_t)memcmp((void*)x, (void*)y, type->size);
+    }
+}
+
+public bool generic_equal(const void *x, const void *y, const TypeInfo *type)
+{
+    switch (type->tag) {
+    case PointerInfo: return Pointer__equal(x, y, type);
+    case ArrayInfo: return Array_equal(x, y, type);
+    case TableInfo: return Table_equal(x, y, type);
+    case CustomInfo:
+        if (!type->CustomInfo.equal)
+            goto use_generic_compare;
+        return type->CustomInfo.equal(x, y, type);
+    default:
+      use_generic_compare:
+        return (generic_compare(x, y, type) == 0);
+    }
+}
+
+public CORD generic_cord(const void *obj, bool colorize, const TypeInfo *type)
+{
+    switch (type->tag) {
+    case PointerInfo: return Pointer__cord(obj, colorize, type);
+    case ArrayInfo: return Array_cord(obj, colorize, type);
+    case TableInfo: return Table_cord(obj, colorize, type);
+    case CustomInfo:
+        if (!type->CustomInfo.cord)
+            builtin_fail("No cord function provided for type: %s!\n", type->name);
+        return type->CustomInfo.cord(obj, colorize, type);
+    default: errx(1, "Invalid type tag: %d", type->tag);
+    }
+}
+
+
+public CORD builtin_last_err()
+{
+    return CORD_from_char_star(strerror(errno));
 }
 
 static inline char *without_colors(const char *str)
@@ -48,33 +117,33 @@ static inline char *without_colors(const char *str)
     return buf;
 }
 
-void __doctest(const char *label, CORD expr, const char *type, bool use_color, const char *expected, const char *filename, int start, int end)
+public void __doctest(CORD label, void *expr, TypeInfo *type, CORD expected, const char *filename, int start, int end)
 {
-    static sss_file_t *file = NULL;
+    static file_t *file = NULL;
     if (filename && (file == NULL || strcmp(file->filename, filename) != 0))
-        file = sss_load_file(filename);
+        file = load_file(filename);
 
     if (filename && file)
-        CORD_fprintf(stderr, use_color ? "\x1b[33;1m>>> \x1b[0m%.*s\x1b[m\n" : ">>> %.*s\n", (end - start), file->text + start);
+        CORD_fprintf(stderr, USE_COLOR ? "\x1b[33;1m>>> \x1b[0m%.*s\x1b[m\n" : ">>> %.*s\n", (end - start), file->text + start);
 
     if (expr) {
-        const char *expr_str = CORD_to_const_char_star(expr);
-        if (!use_color)
-            expr_str = without_colors(expr_str);
+        CORD expr_str = generic_cord(expr, USE_COLOR, type);
+        CORD type_name = generic_cord(NULL, false, type);
 
-        CORD_fprintf(stderr, use_color ? "\x1b[2m%s\x1b[0m %s \x1b[2m: %s\x1b[m\n" : "%s %s : %s\n", label, expr_str, type);
+        CORD_fprintf(stderr, USE_COLOR ? "\x1b[2m%r\x1b[0m %r \x1b[2m: %r\x1b[m\n" : "%r %r : %r\n", label, expr_str, type_name);
         if (expected) {
-            const char *actual = use_color ? without_colors(expr_str) : expr_str;
-            bool success = (strcmp(actual, expected) == 0);
-            if (!success && strchr(expected, ':')) {
-                actual = heap_strf("%s : %s", actual, type);
-                success = (strcmp(actual, expected) == 0);
+            CORD expr_plain = USE_COLOR ? generic_cord(expr, false, type) : expr_str;
+            bool success = (CORD_cmp(expr_str, expected) == 0);
+            if (!success && CORD_chr(expected, 0, ':')) {
+                expr_plain = heap_strf("%s : %s", expr_plain, type_name);
+                success = (CORD_cmp(CORD_catn(3, expr_plain, " : ", type_name), expected) == 0);
             }
 
             if (!success) {
                 if (filename && file)
-                    fprint_span(stderr, file, file->text+start, file->text+end, "\x1b[31;1m", 2, use_color);
-                builtin_fail(use_color ? "\x1b[31;1mExpected: \x1b[32;7m%s\x1b[0m\n\x1b[31;1m But got: \x1b[31;7m%s\x1b[0m\n" : "Expected: %s\n But got: %s\n", expected, actual);
+                    fprint_span(stderr, file, file->text+start, file->text+end, "\x1b[31;1m", 2, USE_COLOR);
+                builtin_fail(USE_COLOR ? "\x1b[31;1mExpected: \x1b[32;7m%s\x1b[0m\n\x1b[31;1m But got: \x1b[31;7m%s\x1b[0m\n" : "Expected: %s\n But got: %s\n",
+                             expected, expr_str);
             }
         }
     }

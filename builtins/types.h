@@ -4,7 +4,6 @@
 #include <stdint.h>
 
 #include "datatypes.h"
-#include "string.h"
 
 struct TypeInfo;
 
@@ -17,7 +16,7 @@ typedef struct TypeInfo {
     const char *name;
     int64_t size, align;
     struct { // Anonymous tagged union for convenience 
-        enum { CustomInfo, PointerInfo, ArrayInfo, TableInfo, StructInfo, EnumInfo } tag;
+        enum { CustomInfo, PointerInfo, ArrayInfo, TableInfo } tag;
         union {
             struct {
                 equal_fn_t equal;
@@ -28,7 +27,6 @@ typedef struct TypeInfo {
             struct {
                 const char *sigil;
                 struct TypeInfo *pointed;
-                bool cyclic;
             } PointerInfo;
             struct {
                 struct TypeInfo *item;
@@ -37,12 +35,6 @@ typedef struct TypeInfo {
                 struct TypeInfo *key, *value;
                 int64_t entry_size, value_offset;
             } TableInfo;
-            struct {
-                array_t members; // [{name, type}]
-            } StructInfo;
-            struct {
-                array_t members; // [{tag, name, type}]
-            } EnumInfo;
         };
     };
 } TypeInfo;
