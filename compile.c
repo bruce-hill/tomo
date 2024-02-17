@@ -414,17 +414,49 @@ CORD compile(env_t *env, ast_t *ast)
     return NULL;
 }
 
-// CORD compile_type_info(env_t *env, type_t *t)
-// {
-//     switch (t->tag) {
-//     case BoolType: return "&Bool$Info";
-//     case IntType: return CORD_asprintf("&Int%ld$Info", Match(t, IntType)->bits);
-//     case NumType: return CORD_asprintf("&Num%ld$Info", Match(t, NumType)->bits);
-//     case StringType: return CORD_all("&", Match(t, StringType)->dsl ? Match(t, StringType)->dsl : "Str", "$Info");
-//     case StructType: return CORD_all("&", Match(t, StructType)->name, "$Info");
-//     case EnumType: return CORD_all("&", Match(t, EnumType)->name, "$Info");
-//     case ArrayType: return CORD_all("&((TypeInfo){", Match(t, EnumType)->name, "$Info");
-//     }
-// }
+CORD compile_type_info(env_t *env, type_t *t)
+{
+    switch (t->tag) {
+    case BoolType: return "&Bool_type";
+    case IntType: return CORD_asprintf("&Int%ld_type", Match(t, IntType)->bits);
+    case NumType: return CORD_asprintf("&Num%ld_type", Match(t, NumType)->bits);
+    case StringType: return CORD_all("&", Match(t, StringType)->dsl ? Match(t, StringType)->dsl : "Str", "_type");
+    case StructType: return CORD_all("&", Match(t, StructType)->name, "_type");
+    case EnumType: return CORD_all("&", Match(t, EnumType)->name, "_type");
+    case ArrayType: {
+        type_t *item_t = Match(t, ArrayType)->item_type;
+        return CORD_asprintf(
+            "&((TypeInfo){.size=%zu, .align=%zu, .tag=ArrayInfo, .ArrayInfo.item=%r})",
+            sizeof(array_t), alignof(array_t),
+            compile_type_info(env, item_t));
+    }
+    case TableType: {
+        type_t *key_type = Match(t, TableType)->key_type;
+        type_t *value_type = Match(t, TableType)->value_type;
+        return CORD_asprintf(
+            "&((TypeInfo){.size=%zu, .align=%zu, .tag=TableInfo, .TableInfo.key=%r, .TableInfo.value=%r})",
+            sizeof(table_t), alignof(table_t),
+            compile_type_info(env, key_type),
+            compile_type_info(env, value_type));
+    }
+    case PointerType: {
+        auto ptr = Match(t, PointerType);
+        CORD sigil = ptr->is_stack ? "&" : (ptr->is_optional ? "?" : "@");
+        if (ptr->is_readonly) sigil = CORD_cat(sigil, "(readonly)");
+        return CORD_asprintf(
+            "&((TypeInfo){.size=%zu, .align=%zu, .tag=PointerInfo, .PointerInfo.sigil=\"%r\", .PointerInfo.pointed=%r})",
+            sizeof(void*), alignof(void*),
+            sigil, compile_type_info(env, ptr->pointed));
+    }
+    case FunctionType: {
+        return CORD_asprintf("&((TypeInfo){.size=%zu, .align=%zu, .tag=FunctionInfo, .FunctionInfo.type_str=\"%r\"})",
+                             sizeof(void*), alignof(void*), type_to_cord(t));
+    }
+    case ClosureType: {
+        errx(1, "No typeinfo for closures yet");
+    }
+    default: errx(1, "No such typeinfo");
+    }
+}
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

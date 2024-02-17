@@ -51,10 +51,7 @@ env_t *new_compilation_unit(void)
         table_t namespace;
     } global_types[] = {
         {"Bool", Type(BoolType), "Bool_t", "Bool", {}},
-        {"Int", Type(IntType, .bits=64), "Int_t", "Int", Table_from_entries(*(array_t*)ARRAY(
-            new(ns_entry_t, "min", {"Int.min", Type(IntType, .bits=64)}),
-            new(ns_entry_t, "max", {"Int.max", Type(IntType, .bits=64)}),
-        ), &StrToVoidStarTable_type)},
+        {"Int", Type(IntType, .bits=64), "Int_t", "Int", {}},
     };
 
     for (size_t i = 0; i < sizeof(global_types)/sizeof(global_types[0]); i++) {

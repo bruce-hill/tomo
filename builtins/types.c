@@ -47,8 +47,8 @@ public struct {
 public CORD Func__as_str(const void *fn, bool colorize, const TypeInfo *type)
 {
     (void)fn;
-    CORD c = type->TypeInfoInfo.type_str;
-    if (colorize)
+    CORD c = type->FunctionInfo.type_str;
+    if (fn && colorize)
         CORD_sprintf(&c, "\x1b[32;1m%r\x1b[m", c);
     return c;
 }

@@ -99,9 +99,7 @@ struct type_s {
 
 int printf_pointer_size(const struct printf_info *info, size_t n, int argtypes[n], int size[n]);
 int printf_type(FILE *stream, const struct printf_info *info, const void *const args[]);
-const char *type_to_string_concise(type_t *t);
-const char *type_to_typeof_string(type_t *t);
-const char *type_to_string(type_t *t);
+CORD type_to_cord(type_t *t);
 bool type_eq(type_t *a, type_t *b);
 bool type_is_a(type_t *t, type_t *req);
 type_t *type_or_type(type_t *a, type_t *b);
@@ -114,7 +112,6 @@ bool has_stack_memory(type_t *t);
 bool can_promote(type_t *actual, type_t *needed);
 bool can_leave_uninitialized(type_t *t);
 bool can_have_cycles(type_t *t);
-type_t *table_entry_type(type_t *table_t);
 type_t *replace_type(type_t *t, type_t *target, type_t *replacement);
 size_t type_size(type_t *t);
 size_t type_align(type_t *t);

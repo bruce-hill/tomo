@@ -74,24 +74,6 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
     code_err(ast, "I don't know how to get this type");
 }
 
-type_t *get_iter_type(env_t *env, ast_t *iter)
-{
-    type_t *iter_t = get_type(env, iter);
-    for (;;) {
-        if (iter_t->tag == PointerType) iter_t = Match(iter_t, PointerType)->pointed;
-        // else if (iter_t->tag == VariantType) iter_t = Match(iter_t, VariantType)->variant_of;
-        else break;
-    }
-    type_t *value_t = value_type(iter_t);
-    switch (value_t->tag) {
-    case ArrayType: return Match(value_t, ArrayType)->item_type;
-    case TableType: return table_entry_type(value_t);
-    default:
-        code_err(iter, "I don't know how to iterate over %T values like this", iter_t);
-        break;
-    }
-}
-
 type_t *get_math_type(env_t *env, ast_t *ast, type_t *lhs_t, type_t *rhs_t)
 {
     (void)env;
@@ -218,8 +200,8 @@ type_t *get_type(env_t *env, ast_t *ast)
                 type_t *merged = item_type ? type_or_type(item_type, t2) : t2;
                 if (!merged)
                     code_err(item->ast,
-                             "This array item has type %s, which is different from earlier array items which have type %s",
-                             type_to_string(t2),  type_to_string(item_type));
+                             "This array item has type %T, which is different from earlier array items which have type %T",
+                             t2,  item_type);
                 item_type = merged;
             }
         } else {
@@ -244,16 +226,16 @@ type_t *get_type(env_t *env, ast_t *ast)
                 type_t *key_merged = key_type ? type_or_type(key_type, key_t) : key_t;
                 if (!key_merged)
                     code_err(table_entry->key,
-                             "This table entry has type %s, which is different from earlier table entries which have type %s",
-                             type_to_string(key_t),  type_to_string(key_type));
+                             "This table entry has type %T, which is different from earlier table entries which have type %T",
+                             key_t, key_type);
                 key_type = key_merged;
 
                 type_t *value_t = get_type(env, table_entry->value);
                 type_t *val_merged = value_type ? type_or_type(value_type, value_t) : value_t;
                 if (!val_merged)
                     code_err(table_entry->value,
-                             "This table entry has type %s, which is different from earlier table entries which have type %s",
-                             type_to_string(value_t),  type_to_string(value_type));
+                             "This table entry has type %T, which is different from earlier table entries which have type %T",
+                             value_t, value_type);
                 value_type = val_merged;
             }
         }
@@ -316,9 +298,9 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
     case Block: {
         auto block = Match(ast, Block);
-        if (LENGTH(block->statements) == 0)
-            return Type(VoidType);
         ast_list_t *last = block->statements;
+        if (!last)
+            return Type(VoidType);
         while (last->next)
             last = last->next;
 
@@ -503,8 +485,8 @@ type_t *get_type(env_t *env, ast_t *ast)
             type_t *t_either = type_or_type(true_t, false_t);
             if (!t_either)
                 code_err(if_->else_body,
-                         "I was expecting this block to have a %s value (based on earlier clauses), but it actually has a %s value.",
-                         type_to_string(true_t), type_to_string(false_t));
+                         "I was expecting this block to have a %T value (based on earlier clauses), but it actually has a %T value.",
+                         true_t, false_t);
             return t_either;
         } else {
             return Type(VoidType);

@@ -8,7 +8,7 @@
 #include "types.h"
 #include "util.h"
 
-static CORD type_to_cord(type_t *t) {
+CORD type_to_cord(type_t *t) {
     switch (t->tag) {
         case UnknownType: return "???";
         case AbortType: return "Abort";
@@ -127,16 +127,12 @@ int printf_type(FILE *stream, const struct printf_info *info, const void *const 
     return CORD_put(type_to_cord(t), stream);
 }
 
-const char *type_to_string(type_t *t) {
-    return CORD_to_const_char_star(type_to_cord(t));
-}
-
 bool type_eq(type_t *a, type_t *b)
 {
     if (a == b) return true;
     if (a->tag != b->tag) return false;
     if (a->tag == PlaceholderType) return a == b;
-    return streq(type_to_string(a), type_to_string(b));
+    return (CORD_cmp(type_to_cord(a), type_to_cord(b)) == 0);
 }
 
 bool type_is_a(type_t *t, type_t *req)
@@ -429,25 +425,6 @@ bool can_have_cycles(type_t *t)
 {
     table_t seen = {0};
     return _can_have_cycles(t, &seen);
-}
-
-type_t *table_entry_type(type_t *table_type)
-{
-    static table_t cache = {0};
-    arg_t *fields = new(
-        arg_t, .name="key",
-        .type=Match(table_type, TableType)->key_type);
-    fields->next = new(
-        arg_t, .name="value",
-        .type=Match(table_type, TableType)->value_type);
-    type_t *t = Type(StructType, .fields=fields);
-    type_t *cached = Table_str_get(&cache, type_to_string(t));
-    if (cached) {
-        return cached;
-    } else {
-        Table_str_set(&cache, type_to_string(t), t);
-        return t;
-    }
 }
 
 type_t *replace_type(type_t *t, type_t *target, type_t *replacement)

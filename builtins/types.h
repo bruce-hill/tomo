@@ -15,7 +15,7 @@ typedef CORD (*str_fn_t)(const void*, bool, const struct TypeInfo*);
 typedef struct TypeInfo {
     int64_t size, align;
     struct { // Anonymous tagged union for convenience 
-        enum { CustomInfo, PointerInfo, ArrayInfo, TableInfo, TypeInfoInfo, } tag;
+        enum { CustomInfo, PointerInfo, ArrayInfo, TableInfo, FunctionInfo, TypeInfoInfo, OpaqueInfo, } tag;
         union {
             struct {
                 equal_fn_t equal;
@@ -32,15 +32,19 @@ typedef struct TypeInfo {
             } ArrayInfo;
             struct {
                 struct TypeInfo *key, *value;
-                int64_t entry_size, value_offset;
             } TableInfo;
             struct {
                 const char *type_str;
+            } FunctionInfo;
+            struct {
+                const char *type_str;
             } TypeInfoInfo;
+            struct {} OpaqueInfo;
         };
     };
 } TypeInfo;
 
 CORD Type__as_str(const void *typeinfo, bool colorize, const TypeInfo *type);
+CORD Func__as_str(const void *fn, bool colorize, const TypeInfo *type);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

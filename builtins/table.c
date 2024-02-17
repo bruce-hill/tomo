@@ -37,11 +37,10 @@
 // Helper accessors for type functions/values:
 #define HASH_KEY(t, k) (generic_hash((k), type->TableInfo.key) % ((t)->bucket_info->count))
 #define EQUAL_KEYS(x, y) (generic_equal((x), (y), type->TableInfo.key))
-#define ENTRY_SIZE (type->TableInfo.entry_size)
-#define VALUE_OFFSET (type->TableInfo.value_offset)
 #define END_OF_CHAIN UINT32_MAX
 
 #define GET_ENTRY(t, i) ((t)->entries.data + (t)->entries.stride*(i))
+#define ENTRY_TYPE(type) (&(TypeInfo){.size=entry_size(type), .align=entry_align(type), .tag=OpaqueInfo})
 
 extern const void *SSS_HASH_VECTOR;
 
@@ -59,9 +58,33 @@ TypeInfo StrToVoidStarTable_type = {
     .size=sizeof(table_t),
     .align=alignof(table_t),
     .tag=TableInfo,
-    .TableInfo={.key=&Str_type.type, .value=&MemoryPointer_typeinfo,
-        .entry_size=16, .value_offset=8},
+    .TableInfo={.key=&Str_type.type, .value=&MemoryPointer_typeinfo},
 };
+
+static inline size_t entry_size(const TypeInfo *info)
+{
+    size_t size = info->TableInfo.key->size;
+    if (info->TableInfo.value->align > 1 && size % info->TableInfo.value->align)
+        size += info->TableInfo.value->align - (size % info->TableInfo.value->align); // padding
+    size += info->TableInfo.value->size;
+    if (info->TableInfo.key->align > 1 && size % info->TableInfo.key->align)
+        size += info->TableInfo.key->align - (size % info->TableInfo.key->align); // padding
+    return size;
+}
+
+static inline size_t entry_align(const TypeInfo *info)
+{
+    return MAX(info->TableInfo.key->align, info->TableInfo.value->align);
+}
+
+static inline size_t value_offset(const TypeInfo *info)
+{
+    size_t offset = info->TableInfo.key->size;
+    if (info->TableInfo.value->align > 1 && offset % info->TableInfo.value->align)
+        offset += info->TableInfo.value->align - (offset % info->TableInfo.value->align); // padding
+    return offset;
+}
+
 
 static inline void hshow(const table_t *t)
 {
@@ -79,7 +102,7 @@ static inline void hshow(const table_t *t)
 static void maybe_copy_on_write(table_t *t, const TypeInfo *type)
 {
     if (t->entries.copy_on_write) {
-        Array_compact(&t->entries, type->TableInfo.entry_size);
+        Array__compact(&t->entries, ENTRY_TYPE(type));
     }
 
     if (t->bucket_info && t->bucket_info->copy_on_write) {
@@ -110,7 +133,7 @@ public void *Table_get_raw(const table_t *t, const void *key, const TypeInfo *ty
         void *entry = GET_ENTRY(t, buckets[i].index);
         if (EQUAL_KEYS(entry, key)) {
             hdebug("Found key!\n");
-            return entry + VALUE_OFFSET;
+            return entry + value_offset(type);
         }
         if (buckets[i].next_bucket == END_OF_CHAIN)
             break;
@@ -250,18 +273,18 @@ public void *Table_reserve(table_t *t, const void *key, const void *value, const
 
     maybe_copy_on_write(t, type);
 
-    char buf[ENTRY_SIZE] = {};
+    char buf[entry_size(type)] = {};
     memcpy(buf, key, key_size);
     if (value && value_size > 0)
-        memcpy(buf + VALUE_OFFSET, value, value_size);
+        memcpy(buf + value_offset(type), value, value_size);
     else
-        memset(buf + VALUE_OFFSET, 0, value_size);
-    Array_insert(&t->entries, buf, 0, ENTRY_SIZE);
+        memset(buf + value_offset(type), 0, value_size);
+    Array__insert(&t->entries, buf, 0, ENTRY_TYPE(type));
 
     int64_t entry_index = t->entries.length-1;
     void *entry = GET_ENTRY(t, entry_index);
     Table_set_bucket(t, entry, entry_index, type);
-    return entry + VALUE_OFFSET;
+    return entry + value_offset(type);
 }
 
 public void Table_set(table_t *t, const void *key, const void *value, const TypeInfo *type)
@@ -336,13 +359,13 @@ public void Table_remove(table_t *t, const void *key, const TypeInfo *type)
 
         // Clobber the entry being removed (in the middle of the array) with
         // the last entry:
-        memcpy(GET_ENTRY(t, bucket->index), GET_ENTRY(t, last_entry), ENTRY_SIZE);
+        memcpy(GET_ENTRY(t, bucket->index), GET_ENTRY(t, last_entry), entry_size(type));
     }
 
     // Last entry is being removed, so clear it out to be safe:
-    memset(GET_ENTRY(t, last_entry), 0, ENTRY_SIZE);
+    memset(GET_ENTRY(t, last_entry), 0, entry_size(type));
 
-    Array_remove(&t->entries, t->entries.length, 1, ENTRY_SIZE);
+    Array__remove(&t->entries, t->entries.length, 1, ENTRY_TYPE(type));
 
     int64_t bucket_to_clear;
     if (prev) { // Middle (or end) of a chain
@@ -392,7 +415,7 @@ public bool Table_equal(const table_t *x, const table_t *y, const TypeInfo *type
     const TypeInfo *value_type = type->TableInfo.value;
     for (int64_t i = 0, length = Table_length(x); i < length; i++) {
         void *x_key = GET_ENTRY(x, i);
-        void *x_value = x_key + VALUE_OFFSET;
+        void *x_value = x_key + value_offset(type);
         void *y_value = Table_get_raw(y, x_key, type);
         if (!y_value)
             return false;
@@ -421,15 +444,15 @@ public int32_t Table_compare(const table_t *x, const table_t *y, const TypeInfo 
         return (x->entries.length > y->entries.length) - (x->entries.length < y->entries.length);
 
     array_t x_entries = x->entries, y_entries = y->entries;
-    Array_sort(&x_entries, table.key);
-    Array_sort(&y_entries, table.key);
+    Array__sort(&x_entries, table.key);
+    Array__sort(&y_entries, table.key);
     for (int64_t i = 0; i < x_entries.length; i++) {
         void *x_key = x_entries.data + x_entries.stride * i;
         void *y_key = y_entries.data + y_entries.stride * i;
         int32_t diff = generic_compare(x_key, y_key, table.key);
         if (diff != 0) return diff;
-        void *x_value = x_key + table.value_offset;
-        void *y_value = y_key + table.value_offset;
+        void *x_value = x_key + value_offset(type);
+        void *y_value = y_key + value_offset(type);
         diff = generic_compare(x_value, y_value, table.value);
         if (diff != 0) return diff;
     }
@@ -457,13 +480,13 @@ public uint32_t Table_hash(const table_t *t, const TypeInfo *type)
     // hash(#t, xor(hash(k) for k in t.keys), xor(hash(v) for v in t.values), hash(t.fallback), hash(t.default))
     // Where fallback and default hash to zero if absent
     auto table = type->TableInfo;
-    int64_t value_offset = table.value_offset;
+    int64_t val_off = value_offset(type);
 
     uint32_t key_hashes = 0, value_hashes = 0, fallback_hash = 0, default_hash = 0;
     for (int64_t i = 0, length = Table_length(t); i < length; i++) {
         void *entry = GET_ENTRY(t, i);
         key_hashes ^= generic_hash(entry, table.key);
-        value_hashes ^= generic_hash(entry + value_offset, table.value);
+        value_hashes ^= generic_hash(entry + val_off, table.value);
     }
 
     if (t->fallback)
@@ -492,7 +515,7 @@ public CORD Table_as_str(const table_t *t, bool colorize, const TypeInfo *type)
     if (!t)
         return CORD_all("{", generic_as_str(NULL, false, table.key), "=>", generic_as_str(NULL, false, table.value), "}");
 
-    int64_t value_offset = table.value_offset;
+    int64_t val_off = value_offset(type);
     CORD c = "{";
     for (int64_t i = 0, length = Table_length(t); i < length; i++) {
         if (i > 0)
@@ -500,7 +523,7 @@ public CORD Table_as_str(const table_t *t, bool colorize, const TypeInfo *type)
         void *entry = GET_ENTRY(t, i);
         c = CORD_cat(c, generic_as_str(entry, colorize, table.key));
         c = CORD_cat(c, "=>");
-        c = CORD_cat(c, generic_as_str(entry + value_offset, colorize, table.value));
+        c = CORD_cat(c, generic_as_str(entry + val_off, colorize, table.value));
     }
 
     if (t->fallback) {

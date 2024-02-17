@@ -31,8 +31,8 @@ public void fail(const char *fmt, ...)
 public uint32_t generic_hash(const void *obj, const TypeInfo *type)
 {
     switch (type->tag) {
-    case PointerInfo: return Pointer__hash(obj, type);
-    case ArrayInfo: return Array_hash(obj, type);
+    case PointerInfo: case FunctionInfo: return Pointer__hash(obj, type);
+    case ArrayInfo: return Array__hash(obj, type);
     case TableInfo: return Table_hash(obj, type);
     case CustomInfo:
         if (!type->CustomInfo.hash)
@@ -50,8 +50,8 @@ public uint32_t generic_hash(const void *obj, const TypeInfo *type)
 public int32_t generic_compare(const void *x, const void *y, const TypeInfo *type)
 {
     switch (type->tag) {
-    case PointerInfo: return Pointer__compare(x, y, type);
-    case ArrayInfo: return Array_compare(x, y, type);
+    case PointerInfo: case FunctionInfo: return Pointer__compare(x, y, type);
+    case ArrayInfo: return Array__compare(x, y, type);
     case TableInfo: return Table_compare(x, y, type);
     case CustomInfo:
         if (!type->CustomInfo.compare)
@@ -66,8 +66,8 @@ public int32_t generic_compare(const void *x, const void *y, const TypeInfo *typ
 public bool generic_equal(const void *x, const void *y, const TypeInfo *type)
 {
     switch (type->tag) {
-    case PointerInfo: return Pointer__equal(x, y, type);
-    case ArrayInfo: return Array_equal(x, y, type);
+    case PointerInfo: case FunctionInfo: return Pointer__equal(x, y, type);
+    case ArrayInfo: return Array__equal(x, y, type);
     case TableInfo: return Table_equal(x, y, type);
     case CustomInfo:
         if (!type->CustomInfo.equal)
@@ -83,7 +83,8 @@ public CORD generic_as_str(const void *obj, bool colorize, const TypeInfo *type)
 {
     switch (type->tag) {
     case PointerInfo: return Pointer__cord(obj, colorize, type);
-    case ArrayInfo: return Array_as_str(obj, colorize, type);
+    case FunctionInfo: return Func__as_str(obj, colorize, type);
+    case ArrayInfo: return Array__as_str(obj, colorize, type);
     case TableInfo: return Table_as_str(obj, colorize, type);
     case TypeInfoInfo: return Type__as_str(obj, colorize, type);
     case CustomInfo:
