@@ -54,7 +54,6 @@ int main(int argc, char *argv[])
             CORD_appendf(&env->main, "%r\n", code);
     }
 
-#define CORD_all(...) CORD_catn(sizeof((CORD[]){__VA_ARGS__})/sizeof(CORD), __VA_ARGS__)
     CORD fileinfo = CORD_asprintf("#line 0 \"%s\"\n", f->filename);
     CORD program = CORD_all(
         fileinfo,
