@@ -3,6 +3,7 @@
 
 #include "environment.h"
 #include "builtins/table.h"
+#include "builtins/string.h"
 #include "util.h"
 
 typedef struct {
@@ -48,7 +49,7 @@ env_t *new_environment(void)
         {"Int", Type(IntType, .bits=64), "Int_t", "Int", Table_from_entries(*(array_t*)ARRAY(
             new(ns_entry_t, "min", {"Int.min", Type(IntType, .bits=64)}),
             new(ns_entry_t, "max", {"Int.max", Type(IntType, .bits=64)}),
-        ), NULL)},
+        ), &Str_type.type)},
     };
 
     for (size_t i = 0; i < sizeof(global_types)/sizeof(global_types[0]); i++) {

@@ -21,6 +21,7 @@
 #include "../SipHash/halfsiphash.h"
 #include "../util.h"
 #include "array.h"
+#include "string.h"
 #include "table.h"
 #include "types.h"
 
