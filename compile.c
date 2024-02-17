@@ -318,7 +318,7 @@ CORD compile(env_t *env, ast_t *ast)
             CORD_appendf(&cord_func, "\treturn use_color ? \"\\x1b[0;1m%s\\x1b[m(\\x1b[2m...\\x1b[m)\" : \"%s(...)\";\n}",
                          def->name, def->name);
         } else {
-            CORD_appendf(&cord_func, "\treturn CORD_asprintf(use_color ? \"\\x1b[0;1m%s\\x1b[m(", def->name);
+            CORD_appendf(&cord_func, "\treturn StrF(use_color ? \"\\x1b[0;1m%s\\x1b[m(", def->name);
             for (arg_ast_t *field = def->fields; field; field = field->next) {
                 CORD_appendf(&cord_func, "%s=\\x1b[35m%%r\\x1b[m", field->name);
                 if (field->next) cord_func = CORD_cat(cord_func, ", ");
@@ -379,7 +379,7 @@ CORD compile(env_t *env, ast_t *ast)
             for (ast_list_t *target = assign->targets; target; target = target->next)
                 CORD_appendf(&code, "%r = $%ld;\n", compile(env, target->ast), i++);
 
-            CORD expr_cord = "CORD_asprintf(\"";
+            CORD expr_cord = "StrF(\"";
             for (ast_list_t *target = assign->targets; target; target = target->next)
                 expr_cord = CORD_cat(expr_cord, target->next ? "%r, " : "%r");
             expr_cord = CORD_cat(expr_cord, "\"");

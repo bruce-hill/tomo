@@ -70,7 +70,7 @@ public char *mangle(const char *name)
     return mangled;
 }
 
-CORD CORD_asprintf(const char *fmt, ...)
+CORD CORD_asprintf(CORD fmt, ...)
 {
     va_list args;
     va_start(args, fmt);

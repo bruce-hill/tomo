@@ -25,7 +25,7 @@
 char *heap_strn(const char *str, size_t len);
 char *heap_str(const char *str);
 char *heap_strf(const char *fmt, ...);
-CORD CORD_asprintf(const char *fmt, ...);
+CORD CORD_asprintf(CORD fmt, ...);
 #define CORD_appendf(cord, fmt, ...) CORD_sprintf(cord, "%r" fmt, *(cord) __VA_OPT__(,) __VA_ARGS__)
 
 #define asprintfa(...) ({ char *_buf = alloca(snprintf(0, 0, __VA_ARGS__)); sprintf(_buf, __VA_ARGS__); _buf; })
