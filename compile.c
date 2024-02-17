@@ -7,6 +7,7 @@
 #include "ast.h"
 #include "compile.h"
 #include "environment.h"
+#include "typecheck.h"
 #include "util.h"
 
 CORD compile_type(env_t *env, type_ast_t *t)
@@ -159,9 +160,11 @@ CORD compile(env_t *env, ast_t *ast)
             return compile_statement(env, stmts->ast);
 
         CORD code = "{\n";
+        env = fresh_scope(env);
         for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next) {
             code = CORD_cat(code, compile_statement(env, stmt->ast));
             code = CORD_cat(code, "\n");
+            bind_statement(env, stmt->ast);
         }
         return CORD_cat(code, "}");
     }
@@ -217,6 +220,8 @@ CORD compile(env_t *env, ast_t *ast)
         CORD kwargs = CORD_asprintf("#define %r(...) ({ struct {", name);
         CORD passed_args = CORD_EMPTY;
         CORD_appendf(&env->code->funcs, "%r %r_(", fndef->ret_type ? compile_type(env, fndef->ret_type) : "void", name);
+        env_t *body_scope = fresh_scope(env);
+        body_scope->locals->fallback = env->globals;
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             CORD arg_type = compile_type(env, arg->type);
             CORD_appendf(&env->code->funcs, "%r %s", arg_type, arg->name);
@@ -224,6 +229,7 @@ CORD compile(env_t *env, ast_t *ast)
             CORD_appendf(&kwargs, "%r %s; ", arg_type, arg->name);
             CORD_appendf(&passed_args, "$args.%s", arg->name);
             if (arg->next) passed_args = CORD_cat(passed_args, ", ");
+            set_binding(body_scope, arg->name, new(binding_t, .type=parse_type_ast(env, arg->type)));
         }
         CORD_appendf(&kwargs, "} $args = {__VA_ARGS__}; %r_(%r); })\n", name, passed_args);
         CORD_appendf(&env->code->staticdefs, "%r", kwargs);
