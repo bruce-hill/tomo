@@ -54,17 +54,19 @@ int main(int argc, char *argv[])
             CORD_appendf(&env->main, "%r\n", code);
     }
 
-    CORD program = CORD_asprintf(
-        "#line 0 \"%s\"\n" // file
-        "// Generated code:\n"
-        "%r\n" // imports
-        "%r\n" // typedefs
-        "%r\n" // types
-        "%r\n" // static defs
-        "%r\n" // funcs
+#define CORD_all(...) CORD_catn(sizeof((CORD[]){__VA_ARGS__})/sizeof(CORD), __VA_ARGS__)
+    CORD fileinfo = CORD_asprintf("#line 0 \"%s\"\n", f->filename);
+    CORD program = CORD_all(
+        fileinfo,
+        "// Generated code:\n",
+        env->imports, "\n",
+        env->typedefs, "\n",
+        env->typecode, "\n",
+        env->staticdefs, "\n",
+        env->funcs, "\n"
         "\n"
-        "static void $load(void) {\n"
-        "%r" // main
+        "static void $load(void) {\n",
+        env->main,
         "}\n"
         "\n"
         "int main(int argc, const char *argv[]) {\n"
@@ -74,10 +76,8 @@ int main(int argc, char *argv[])
         "USE_COLOR = getenv(\"COLOR\") ? strcmp(getenv(\"COLOR\"), \"1\") == 0 : isatty(STDOUT_FILENO);\n"
         "$load();\n"
         "return 0;\n"
-        "}\n",
-        f->filename,
-        env->imports, env->typedefs, env->types, env->staticdefs,
-        env->funcs, env->main);
+        "}\n"
+    );
     
     if (verbose) {
         FILE *out = popen(heap_strf("%s | bat -P --file-name=program.c", autofmt), "w");
