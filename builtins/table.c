@@ -518,10 +518,7 @@ public table_t Table_from_entries(array_t entries, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
     table_t t = {.entries=entries};
-    for (int64_t i = 0; i < Table_length(&t); i++) {
-        hdebug("Rehashing %u\n", i);
-        Table_set_bucket(&t, GET_ENTRY(&t, i), i, type);
-    }
+    hashmap_resize_buckets(&t, entries.length, type);
     return t;
 }
 
