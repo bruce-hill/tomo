@@ -32,13 +32,6 @@ typedef struct arg_ast_s {
 } arg_ast_t;
 
 typedef enum {
-    UNOP_UNKNOWN,
-    UNOP_NOT=1, UNOP_NEGATIVE,
-    UNOP_HEAP_ALLOCATE,
-    UNOP_STACK_REFERENCE,
-} unop_e;
-
-typedef enum {
     BINOP_UNKNOWN,
     BINOP_POWER=100, BINOP_MULT, BINOP_DIVIDE, BINOP_MOD, BINOP_MOD1, BINOP_PLUS,
     BINOP_MINUS, BINOP_CONCAT, BINOP_LSHIFT, BINOP_RSHIFT, BINOP_MIN,
@@ -94,7 +87,8 @@ typedef enum {
     Int, Num,
     StringLiteral, StringJoin,
     Declare, Assign,
-    BinaryOp, UnaryOp, UpdateAssign,
+    BinaryOp, UpdateAssign,
+    Not, Negative, HeapAllocate, StackReference,
     Min, Max,
     Array, Table, TableEntry,
     FunctionDef, Lambda,
@@ -155,9 +149,8 @@ struct ast_s {
             ast_t *rhs;
         } BinaryOp, UpdateAssign;
         struct {
-            unop_e op;
             ast_t *value;
-        } UnaryOp;
+        } Not, Negative, HeapAllocate, StackReference;
         struct {
             ast_t *lhs, *rhs, *key;
         } Min, Max;

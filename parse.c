@@ -723,8 +723,8 @@ PARSER(parse_reduction) {
     if (op == BINOP_UNKNOWN) return NULL;
 
     ast_t *combination;
-    ast_t *lhs = NewAST(ctx->file, pos, pos, Var, .name="lhs.0");
-    ast_t *rhs = NewAST(ctx->file, pos, pos, Var, .name="rhs.0");
+    ast_t *lhs = NewAST(ctx->file, pos, pos, Var, .name="$lhs");
+    ast_t *rhs = NewAST(ctx->file, pos, pos, Var, .name="$rhs");
     if (op == BINOP_MIN || op == BINOP_MAX) {
         for (bool progress = true; progress; ) {
             ast_t *new_term;
@@ -844,7 +844,7 @@ PARSER(parse_heap_alloc) {
     if (!match(&pos, "@")) return NULL;
     spaces(&pos);
     ast_t *val = expect(ctx, start, &pos, parse_expr, "I expected an expression for this '@'");
-    return NewAST(ctx->file, start, pos, UnaryOp, .op=UNOP_HEAP_ALLOCATE, .value=val);
+    return NewAST(ctx->file, start, pos, HeapAllocate, .value=val);
 }
 
 PARSER(parse_stack_reference) {
@@ -852,7 +852,7 @@ PARSER(parse_stack_reference) {
     if (!match(&pos, "&")) return NULL;
     spaces(&pos);
     ast_t *val = expect(ctx, start, &pos, parse_expr, "I expected an expression for this '&'");
-    return NewAST(ctx->file, start, pos, UnaryOp, .op=UNOP_STACK_REFERENCE, .value=val);
+    return NewAST(ctx->file, start, pos, StackReference, .value=val);
 }
 
 PARSER(parse_not) {
@@ -860,7 +860,7 @@ PARSER(parse_not) {
     if (!match_word(&pos, "not")) return NULL;
     spaces(&pos);
     ast_t *val = expect(ctx, start, &pos, parse_expr, "I expected an expression for this 'not'");
-    return NewAST(ctx->file, start, pos, UnaryOp, .op=UNOP_NOT, .value=val);
+    return NewAST(ctx->file, start, pos, Not, .value=val);
 }
 
 PARSER(parse_negative) {
@@ -868,7 +868,7 @@ PARSER(parse_negative) {
     if (!match(&pos, "-")) return NULL;
     spaces(&pos);
     ast_t *val = expect(ctx, start, &pos, parse_term, "I expected an expression for this '-'");
-    return NewAST(ctx->file, start, pos, UnaryOp, .op=UNOP_NEGATIVE, .value=val);
+    return NewAST(ctx->file, start, pos, Negative, .value=val);
 }
 
 PARSER(parse_bool) {

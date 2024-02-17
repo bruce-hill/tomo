@@ -29,7 +29,7 @@ BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/builtins.o builtins/float
 
 all: nextlang libnext.so
 
-nextlang: nextlang.c parse.o files.o util.o ast.o compile.o types.o environment.o SipHash/halfsiphash.o $(BUILTIN_OBJS)
+nextlang: nextlang.c SipHash/halfsiphash.o util.o files.o ast.o parse.o environment.o types.o typecheck.o compile.o $(BUILTIN_OBJS)
 
 libnext.so: util.o SipHash/halfsiphash.o
 	$(CC) $^ $(CFLAGS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LDLIBS) -Wl,-soname,libnext.so -shared -o $@

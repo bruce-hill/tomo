@@ -6,6 +6,7 @@
 
 #include "ast.h"
 #include "compile.h"
+#include "environment.h"
 #include "util.h"
 
 CORD compile_type(env_t *env, type_ast_t *t)
@@ -13,7 +14,7 @@ CORD compile_type(env_t *env, type_ast_t *t)
     (void)env;
     switch (t->tag) {
     case VarTypeAST: return CORD_cat(Match(t, VarTypeAST)->name, "_t");
-    default: errx(1, "Not implemented");
+    default: code_err(t, "Not implemented");
     }
 }
 
@@ -46,18 +47,10 @@ CORD compile(env_t *env, ast_t *ast)
         char *buf = asprintfa(Match(ast, Num)->precision == 64 ? "%a" : "%af", Match(ast, Num)->n);
         return CORD_from_char_star(buf);
     }
-    case UnaryOp: {
-        auto unop = Match(ast, UnaryOp);
-        CORD expr = compile(env, unop->value);
-        switch (unop->op) {
-        case UNOP_NOT: return CORD_asprintf("not(%r)", expr);
-        case UNOP_NEGATIVE: return CORD_cat("-", expr);
-        case UNOP_HEAP_ALLOCATE: return CORD_asprintf("$heap(%r)", expr);
-        case UNOP_STACK_REFERENCE: return CORD_asprintf("$stack(%r)", expr);
-        default: break;
-        }
-        errx(1, "Invalid unop");
-    }
+    case Not: return CORD_asprintf("not(%r)", compile(env, Match(ast, Not)->value));
+    case Negative: return CORD_asprintf("-(%r)", compile(env, Match(ast, Not)->value));
+    case HeapAllocate: return CORD_asprintf("$heap(%r)", compile(env, Match(ast, Not)->value));
+    case StackReference: return CORD_asprintf("$stack(%r)", compile(env, Match(ast, Not)->value));
     case BinaryOp: {
         auto binop = Match(ast, BinaryOp);
         CORD lhs = compile(env, binop->lhs);
@@ -82,7 +75,7 @@ CORD compile(env_t *env, ast_t *ast)
         case BINOP_XOR: return CORD_asprintf("xor(%r, %r)", lhs, rhs);
         default: break;
         }
-        errx(1, "unimplemented binop");
+        code_err(ast, "unimplemented binop");
     }
     case UpdateAssign: {
         auto update = Match(ast, UpdateAssign);
@@ -106,7 +99,7 @@ CORD compile(env_t *env, ast_t *ast)
         case BINOP_OR: return CORD_asprintf("%r = (%r || %r);", lhs, lhs, rhs);
         default: break;
         }
-        errx(1, "unimplemented binop");
+        code_err(ast, "unimplemented binop");
     }
     case StringLiteral: {
         CORD literal = Match(ast, StringLiteral)->cord; 
@@ -214,31 +207,31 @@ CORD compile(env_t *env, ast_t *ast)
     case FunctionDef: {
         auto fndef = Match(ast, FunctionDef);
         CORD name = compile(env, fndef->name);
-        CORD_appendf(&env->staticdefs, "static %r %r_(", fndef->ret_type ? compile_type(env, fndef->ret_type) : "void", name);
+        CORD_appendf(&env->code->staticdefs, "static %r %r_(", fndef->ret_type ? compile_type(env, fndef->ret_type) : "void", name);
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-            CORD_appendf(&env->staticdefs, "%r %s", compile_type(env, arg->type), arg->name);
-            if (arg->next) env->staticdefs = CORD_cat(env->staticdefs, ", ");
+            CORD_appendf(&env->code->staticdefs, "%r %s", compile_type(env, arg->type), arg->name);
+            if (arg->next) env->code->staticdefs = CORD_cat(env->code->staticdefs, ", ");
         }
-        env->staticdefs = CORD_cat(env->staticdefs, ");\n");
+        env->code->staticdefs = CORD_cat(env->code->staticdefs, ");\n");
 
         CORD kwargs = CORD_asprintf("#define %r(...) ({ struct {", name);
         CORD passed_args = CORD_EMPTY;
-        CORD_appendf(&env->funcs, "%r %r_(", fndef->ret_type ? compile_type(env, fndef->ret_type) : "void", name);
+        CORD_appendf(&env->code->funcs, "%r %r_(", fndef->ret_type ? compile_type(env, fndef->ret_type) : "void", name);
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             CORD arg_type = compile_type(env, arg->type);
-            CORD_appendf(&env->funcs, "%r %s", arg_type, arg->name);
-            if (arg->next) env->funcs = CORD_cat(env->funcs, ", ");
+            CORD_appendf(&env->code->funcs, "%r %s", arg_type, arg->name);
+            if (arg->next) env->code->funcs = CORD_cat(env->code->funcs, ", ");
             CORD_appendf(&kwargs, "%r %s; ", arg_type, arg->name);
             CORD_appendf(&passed_args, "$args.%s", arg->name);
             if (arg->next) passed_args = CORD_cat(passed_args, ", ");
         }
         CORD_appendf(&kwargs, "} $args = {__VA_ARGS__}; %r_(%r); })\n", name, passed_args);
-        CORD_appendf(&env->staticdefs, "%r", kwargs);
+        CORD_appendf(&env->code->staticdefs, "%r", kwargs);
 
         CORD body = compile(env, fndef->body);
         if (CORD_fetch(body, 0) != '{')
             body = CORD_asprintf("{\n%r\n}", body);
-        CORD_appendf(&env->funcs, ") %r", body);
+        CORD_appendf(&env->code->funcs, ") %r", body);
         return CORD_EMPTY;
     }
     case FunctionCall: {
@@ -285,11 +278,11 @@ CORD compile(env_t *env, ast_t *ast)
     // For,
     // Reduction,
     case Skip: {
-        if (Match(ast, Skip)->target) errx(1, "Named skips not yet implemented");
+        if (Match(ast, Skip)->target) code_err(ast, "Named skips not yet implemented");
         return "continue";
     }
     case Stop: {
-        if (Match(ast, Stop)->target) errx(1, "Named stops not yet implemented");
+        if (Match(ast, Stop)->target) code_err(ast, "Named stops not yet implemented");
         return "break";
     }
     case Pass: return ";";
@@ -300,16 +293,16 @@ CORD compile(env_t *env, ast_t *ast)
     // Extern,
     case StructDef: {
         auto def = Match(ast, StructDef);
-        CORD_appendf(&env->typedefs, "typedef struct %s_s %s_t;\n", def->name, def->name);
-        CORD_appendf(&env->typedefs, "#define %s(...) ((%s_t){__VA_ARGS__})\n", def->name, def->name);
+        CORD_appendf(&env->code->typedefs, "typedef struct %s_s %s_t;\n", def->name, def->name);
+        CORD_appendf(&env->code->typedefs, "#define %s(...) ((%s_t){__VA_ARGS__})\n", def->name, def->name);
 
-        CORD_appendf(&env->typecode, "struct %s_s {\n", def->name);
+        CORD_appendf(&env->code->typecode, "struct %s_s {\n", def->name);
         for (arg_ast_t *field = def->fields; field; field = field->next) {
             CORD type = compile_type(env, field->type);
-            CORD_appendf(&env->typecode, "%r %s%s;\n", type, field->name,
+            CORD_appendf(&env->code->typecode, "%r %s%s;\n", type, field->name,
                          CORD_cmp(type, "Bool_t") ? "" : ":1");
         }
-        CORD_appendf(&env->typecode, "};\n");
+        CORD_appendf(&env->code->typecode, "};\n");
 
         CORD cord_func = CORD_asprintf("CORD %s$cord(%s_t *obj, bool use_color) {\n"
                                        "\tif (!obj) return \"%s\";\n", def->name, def->name, def->name);
@@ -334,28 +327,28 @@ CORD compile(env_t *env, ast_t *ast)
             cord_func = CORD_cat(cord_func, ");\n}");
         }
 
-        env->funcs = CORD_cat(env->funcs, cord_func);
+        env->code->funcs = CORD_cat(env->code->funcs, cord_func);
 
         return CORD_EMPTY;
     }
     case EnumDef: {
         auto def = Match(ast, EnumDef);
-        CORD_appendf(&env->typedefs, "typedef struct %s_s %s_t;\n", def->name, def->name);
-        CORD_appendf(&env->typecode, "struct %s_s {\nenum {", def->name);
+        CORD_appendf(&env->code->typedefs, "typedef struct %s_s %s_t;\n", def->name, def->name);
+        CORD_appendf(&env->code->typecode, "struct %s_s {\nenum {", def->name);
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-            CORD_appendf(&env->typecode, "%s$%s = %ld, ", def->name, tag->name, tag->value);
+            CORD_appendf(&env->code->typecode, "%s$%s = %ld, ", def->name, tag->name, tag->value);
         }
-        env->typecode = CORD_cat(env->typecode, "} tag;\nunion {\n");
+        env->code->typecode = CORD_cat(env->code->typecode, "} tag;\nunion {\n");
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-            env->typecode = CORD_cat(env->typecode, "struct {\n");
+            env->code->typecode = CORD_cat(env->code->typecode, "struct {\n");
             for (arg_ast_t *field = tag->fields; field; field = field->next) {
                 CORD type = compile_type(env, field->type);
-                CORD_appendf(&env->typecode, "%r %s%s;\n", type, field->name,
+                CORD_appendf(&env->code->typecode, "%r %s%s;\n", type, field->name,
                              CORD_cmp(type, "Bool_t") ? "" : ":1");
             }
-            CORD_appendf(&env->typecode, "} %s;\n", tag->name);
+            CORD_appendf(&env->code->typecode, "} %s;\n", tag->name);
         }
-        env->typecode = CORD_cat(env->typecode, "} $data;\n};\n");
+        env->code->typecode = CORD_cat(env->code->typecode, "} $data;\n};\n");
         return CORD_EMPTY;
     }
     case DocTest: {
@@ -409,7 +402,7 @@ CORD compile(env_t *env, ast_t *ast)
     // DocTest,
     // Use,
     // LinkerDirective,
-    case Unknown: errx(1, "Unknown AST");
+    case Unknown: code_err(ast, "Unknown AST");
     default: break;
     }
     return NULL;

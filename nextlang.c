@@ -42,30 +42,30 @@ int main(int argc, char *argv[])
         fclose(out);
     }
 
-    env_t *env = new_environment();
+    env_t *env = new_compilation_unit();
 
-    CORD_appendf(&env->imports, "#include \"nextlang.h\"\n");
-    CORD_appendf(&env->staticdefs, "static bool USE_COLOR = true;\n");
+    CORD_appendf(&env->code->imports, "#include \"nextlang.h\"\n");
+    CORD_appendf(&env->code->staticdefs, "static bool USE_COLOR = true;\n");
 
     // Main body:
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         CORD code = compile_statement(env, stmt->ast);
         if (code)
-            CORD_appendf(&env->main, "%r\n", code);
+            CORD_appendf(&env->code->main, "%r\n", code);
     }
 
     CORD fileinfo = CORD_asprintf("#line 0 \"%s\"\n", f->filename);
     CORD program = CORD_all(
         fileinfo,
         "// Generated code:\n",
-        env->imports, "\n",
-        env->typedefs, "\n",
-        env->typecode, "\n",
-        env->staticdefs, "\n",
-        env->funcs, "\n"
+        env->code->imports, "\n",
+        env->code->typedefs, "\n",
+        env->code->typecode, "\n",
+        env->code->staticdefs, "\n",
+        env->code->funcs, "\n"
         "\n"
         "static void $load(void) {\n",
-        env->main,
+        env->code->main,
         "}\n"
         "\n"
         "int main(int argc, const char *argv[]) {\n"

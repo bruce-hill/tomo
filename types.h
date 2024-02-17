@@ -41,6 +41,7 @@ struct type_s {
         ArrayType,
         TableType,
         FunctionType,
+        ClosureType,
         PointerType,
         StructType,
         EnumType,
@@ -71,6 +72,9 @@ struct type_s {
             type_t *ret;
         } FunctionType;
         struct {
+            type_t *fn;
+        } ClosureType;
+        struct {
             type_t *pointed;
             bool is_optional:1, is_stack:1, is_readonly:1;
         } PointerType;
@@ -95,9 +99,9 @@ struct type_s {
 
 int printf_pointer_size(const struct printf_info *info, size_t n, int argtypes[n], int size[n]);
 int printf_type(FILE *stream, const struct printf_info *info, const void *const args[]);
-const char* type_to_string_concise(type_t *t);
-const char* type_to_typeof_string(type_t *t);
-const char* type_to_string(type_t *t);
+const char *type_to_string_concise(type_t *t);
+const char *type_to_typeof_string(type_t *t);
+const char *type_to_string(type_t *t);
 bool type_eq(type_t *a, type_t *b);
 bool type_is_a(type_t *t, type_t *req);
 type_t *type_or_type(type_t *a, type_t *b);
@@ -112,5 +116,10 @@ bool can_leave_uninitialized(type_t *t);
 bool can_have_cycles(type_t *t);
 type_t *table_entry_type(type_t *table_t);
 type_t *replace_type(type_t *t, type_t *target, type_t *replacement);
+size_t type_size(type_t *t);
+size_t type_align(type_t *t);
+type_t *iteration_key_type(type_t *iterable);
+type_t *iteration_value_type(type_t *iterable);
+type_t *get_field_type(type_t *t, const char *field_name);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -333,6 +333,9 @@ bool can_promote(type_t *actual, type_t *needed)
             return true;
     }
 
+    if (needed->tag == ClosureType && actual->tag == FunctionType)
+        return can_promote(actual, Match(needed, ClosureType)->fn);
+
     // Function promotion:
     if (needed->tag == FunctionType && actual->tag == FunctionType) {
         auto needed_fn = Match(needed, FunctionType);
@@ -487,6 +490,115 @@ type_t *replace_type(type_t *t, type_t *target, type_t *replacement)
     }
 #undef COPY
 #undef REPLACED_MEMBER
+}
+
+size_t type_size(type_t *t)
+{
+    switch (t->tag) {
+    case UnknownType: case AbortType: case VoidType: return 0;
+    case MemoryType: errx(1, "Memory has undefined type size");
+    case BoolType: return sizeof(bool);
+    case IntType: return Match(t, IntType)->bits/8;
+    case NumType: return Match(t, NumType)->bits/8;
+    case StringType: return sizeof(CORD);
+    case ArrayType: return sizeof(array_t);
+    case TableType: return sizeof(table_t);
+    case FunctionType: return sizeof(void*);
+    case ClosureType: return sizeof(struct {void *fn, *userdata;});
+    case PointerType: return sizeof(void*);
+    case StructType: {
+        errx(1, "Not implemented");
+    }
+    case EnumType: {
+        errx(1, "Not implemented");
+    }
+    case TypeInfoType: return sizeof(TypeInfo);
+    case PlaceholderType: errx(1, "This should not be reachable");
+    }
+    errx(1, "This should not be reachable");
+}
+
+size_t type_align(type_t *t)
+{
+    switch (t->tag) {
+    case UnknownType: case AbortType: case VoidType: return 0;
+    case MemoryType: errx(1, "Memory has undefined type alignment");
+    case BoolType: return alignof(bool);
+    case IntType: return Match(t, IntType)->bits/8;
+    case NumType: return Match(t, NumType)->bits/8;
+    case StringType: return alignof(CORD);
+    case ArrayType: return alignof(array_t);
+    case TableType: return alignof(table_t);
+    case FunctionType: return alignof(void*);
+    case ClosureType: return alignof(void*);
+    case PointerType: return alignof(void*);
+    case StructType: {
+        errx(1, "Not implemented");
+    }
+    case EnumType: {
+        errx(1, "Not implemented");
+    }
+    case TypeInfoType: return alignof(TypeInfo);
+    case PlaceholderType: errx(1, "This should not be reachable");
+    }
+    errx(1, "This should not be reachable");
+}
+
+type_t *get_field_type(type_t *t, const char *field_name)
+{
+    t = value_type(t);
+    switch (t->tag) {
+    case StructType: {
+        auto struct_t = Match(t, StructType);
+        for (arg_t *field = struct_t->fields; field; field = field->next) {
+            if (streq(field->name, field_name))
+                return field->type;
+        }
+        return NULL;
+    }
+    case EnumType: {
+        auto e = Match(t, EnumType);
+        for (tag_t *tag = e->tags; tag; tag = tag->next) {
+            if (streq(field_name, tag->name))
+                return tag->type;
+        }
+        return NULL;
+    }
+    case ArrayType: {
+        if (streq(field_name, "length"))
+            return Type(IntType, .bits=64);
+        return NULL;
+    }
+    case TableType: {
+        if (streq(field_name, "length"))
+            return Type(IntType, .bits=64);
+        else if (streq(field_name, "keys"))
+            return Type(ArrayType, Match(t, TableType)->key_type);
+        else if (streq(field_name, "values"))
+            return Type(ArrayType, Match(t, TableType)->value_type);
+        return NULL;
+    }
+    default: return NULL;
+    }
+}
+
+type_t *iteration_key_type(type_t *iterable)
+{
+    switch (iterable->tag) {
+    case IntType: case ArrayType: return Type(IntType, .bits=64);
+    case TableType: return Match(iterable, TableType)->key_type;
+    default: return NULL;
+    }
+}
+
+type_t *iteration_value_type(type_t *iterable)
+{
+    switch (iterable->tag) {
+    case IntType: return iterable;
+    case ArrayType: return Match(iterable, ArrayType)->item_type;
+    case TableType: return Match(iterable, TableType)->value_type;
+    default: return NULL;
+    }
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

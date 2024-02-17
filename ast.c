@@ -8,8 +8,6 @@
 
 static const char *OP_NAMES[] = {
     [BINOP_UNKNOWN]="unknown",
-    [UNOP_NOT]="not", [UNOP_NEGATIVE]="negative",
-    [UNOP_HEAP_ALLOCATE]="@", [UNOP_STACK_REFERENCE]="&",
     [BINOP_POWER]="^", [BINOP_MULT]="*", [BINOP_DIVIDE]="/",
     [BINOP_MOD]="mod", [BINOP_MOD1]="mod1", [BINOP_PLUS]="+", [BINOP_MINUS]="minus",
     [BINOP_CONCAT]="++", [BINOP_LSHIFT]="<<", [BINOP_RSHIFT]=">>", [BINOP_MIN]="min",
@@ -95,7 +93,10 @@ CORD ast_to_cord(ast_t *ast)
     T(Assign, "(targets=%r, values=%r)", ast_list_to_cord(data.targets), ast_list_to_cord(data.values))
     T(BinaryOp, "(%r, %s, %r)", ast_to_cord(data.lhs), OP_NAMES[data.op], ast_to_cord(data.rhs))
     T(UpdateAssign, "(%r, %s, %r)", ast_to_cord(data.lhs), OP_NAMES[data.op], ast_to_cord(data.rhs))
-    T(UnaryOp, "(%s, %r)", OP_NAMES[data.op], ast_to_cord(data.value))
+    T(Negative, "(%r)", ast_to_cord(data.value))
+    T(Not, "(%r)", ast_to_cord(data.value))
+    T(HeapAllocate, "(%r)", ast_to_cord(data.value))
+    T(StackReference, "(%r)", ast_to_cord(data.value))
     T(Min, "(%r, %r, key=%r)", ast_to_cord(data.lhs), ast_to_cord(data.rhs), ast_to_cord(data.key))
     T(Max, "(%r, %r, key=%r)", ast_to_cord(data.lhs), ast_to_cord(data.rhs), ast_to_cord(data.key))
     T(Array, "(%r, type=%r)", ast_list_to_cord(data.items), type_ast_to_cord(data.type))
