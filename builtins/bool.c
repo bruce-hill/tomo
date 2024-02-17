@@ -18,6 +18,7 @@ extern const void *SSS_HASH_VECTOR;
 static CORD Bool_cord(const bool *b, bool colorize, const TypeInfo *type)
 {
     (void)type;
+    if (!b) return "Bool";
     if (colorize)
         return *b ? "\x1b[35myes\x1b[m" : "\x1b[35mno\x1b[m";
     else
@@ -28,7 +29,6 @@ public struct {
     TypeInfo type;
 } Bool_type = {
     .type={
-        .name="Bool",
         .size=sizeof(bool),
         .align=alignof(bool),
         .tag=CustomInfo,

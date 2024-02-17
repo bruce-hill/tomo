@@ -252,7 +252,6 @@ public CORD Str__join(CORD glue, Str_Array_t pieces)
 
 public Str_namespace_t Str_type = {
     .type={
-        .name="Str",
         .size=sizeof(CORD),
         .align=alignof(CORD),
         .tag=CustomInfo,

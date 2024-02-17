@@ -13,10 +13,9 @@ typedef bool (*equal_fn_t)(const void*, const void*, const struct TypeInfo*);
 typedef CORD (*cord_fn_t)(const void*, bool, const struct TypeInfo*);
 
 typedef struct TypeInfo {
-    const char *name;
     int64_t size, align;
     struct { // Anonymous tagged union for convenience 
-        enum { CustomInfo, PointerInfo, ArrayInfo, TableInfo } tag;
+        enum { CustomInfo, PointerInfo, ArrayInfo, TableInfo, TypeInfoInfo, } tag;
         union {
             struct {
                 equal_fn_t equal;
@@ -35,6 +34,9 @@ typedef struct TypeInfo {
                 struct TypeInfo *key, *value;
                 int64_t entry_size, value_offset;
             } TableInfo;
+            struct {
+                const char *type_str;
+            } TypeInfoInfo;
         };
     };
 } TypeInfo;

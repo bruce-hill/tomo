@@ -17,13 +17,13 @@ extern const void *SSS_HASH_VECTOR;
 
 public CORD Memory__cord(const void *p, bool colorize, const TypeInfo *type) {
     (void)type;
+    if (!p) return "Memory";
     CORD cord;
-    CORD_sprintf(&cord, colorize ? "\x1b[0;34;1mMemory<%p>\x1b[m" : "Memory<%p>", p);
+    CORD_sprintf(&cord, colorize ? "\x1b[0;34;1mMemory<%p>\x1b[m" : "Memory<%p>", *(const void**)p);
     return cord;
 }
 
 public TypeInfo Memory_type = {
-    .name="Memory",
     .size=0,
     .align=0,
     .tag=CustomInfo,

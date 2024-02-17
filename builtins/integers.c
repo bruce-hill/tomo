@@ -18,6 +18,7 @@ extern const void *SSS_HASH_VECTOR;
 #define DEFINE_INT_TYPE(c_type, KindOfInt, fmt, abs_fn, min_val, max_val)\
     public CORD KindOfInt ## __cord(const c_type *i, bool colorize, const TypeInfo *type) { \
         (void)type; \
+        if (!i) return #KindOfInt; \
         CORD c; \
         if (colorize) CORD_sprintf(&c, "\x1b[35m%"fmt"\x1b[33;2m\x1b[m", *i); \
         else CORD_sprintf(&c, "%"fmt, *i); \
@@ -27,25 +28,16 @@ extern const void *SSS_HASH_VECTOR;
         (void)type; \
         return (*x > *y) - (*x < *y); \
     } \
-    public Str_t KindOfInt ## __format(c_type i, int64_t digits) { \
-        int len = snprintf(NULL, 0, "%0*" fmt, (int)digits, i); \
-        char *str = GC_MALLOC_ATOMIC(len + 1); \
-        snprintf(str, len+1, "%0*" fmt, (int)digits, i); \
-        return (Str_t){.data=str, .length=len, .stride=1}; \
+    public CORD KindOfInt ## __format(c_type i, int64_t digits) { \
+        return CORD_asprintf("%0*" fmt, (int)digits, i); \
     } \
-    public Str_t KindOfInt ## __hex(c_type i, int64_t digits, bool uppercase, bool prefix) { \
+    public CORD KindOfInt ## __hex(c_type i, int64_t digits, bool uppercase, bool prefix) { \
         const char *hex_fmt = uppercase ? (prefix ? "0x%0.*lX" : "%0.*lX") : (prefix ? "0x%0.*lx" : "%0.*lx"); \
-        int len = snprintf(NULL, 0, hex_fmt, (int)digits, (uint64_t)i); \
-        char *str = GC_MALLOC_ATOMIC(len + 1); \
-        snprintf(str, len+1, hex_fmt, (int)digits, (uint64_t)i); \
-        return (Str_t){.data=str, .length=len, .stride=1}; \
+        return CORD_asprintf(hex_fmt, (int)digits, (uint64_t)i); \
     } \
-    public Str_t KindOfInt ## __octal(c_type i, int64_t digits, bool prefix) { \
+    public CORD KindOfInt ## __octal(c_type i, int64_t digits, bool prefix) { \
         const char *octal_fmt = prefix ? "0o%0.*lo" : "%0.*lo"; \
-        int len = snprintf(NULL, 0, octal_fmt, (int)digits, (uint64_t)i); \
-        char *str = GC_MALLOC_ATOMIC(len + 1); \
-        snprintf(str, len+1, octal_fmt, (int)digits, (uint64_t)i); \
-        return (Str_t){.data=str, .length=len, .stride=1}; \
+        return CORD_asprintf(octal_fmt, (int)digits, (uint64_t)i); \
     } \
     public c_type KindOfInt ## __random(int64_t min, int64_t max) { \
         if (min > max) builtin_fail("Random min (%ld) is larger than max (%ld)", min, max); \
@@ -60,13 +52,12 @@ extern const void *SSS_HASH_VECTOR;
         TypeInfo type; \
         c_type min, max; \
         c_type (*abs)(c_type i); \
-        Str_t (*format)(c_type i, int64_t digits); \
-        Str_t (*hex)(c_type i, int64_t digits, bool uppercase, bool prefix); \
-        Str_t (*octal)(c_type i, int64_t digits, bool prefix); \
+        CORD (*format)(c_type i, int64_t digits); \
+        CORD (*hex)(c_type i, int64_t digits, bool uppercase, bool prefix); \
+        CORD (*octal)(c_type i, int64_t digits, bool prefix); \
         c_type (*random)(int64_t min, int64_t max); \
     } KindOfInt##_type = { \
         .type={ \
-            .name=#KindOfInt, \
             .size=sizeof(c_type), \
             .align=alignof(c_type), \
             .tag=CustomInfo, \

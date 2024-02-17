@@ -414,4 +414,17 @@ CORD compile(env_t *env, ast_t *ast)
     return NULL;
 }
 
+// CORD compile_type_info(env_t *env, type_t *t)
+// {
+//     switch (t->tag) {
+//     case BoolType: return "&Bool$Info";
+//     case IntType: return CORD_asprintf("&Int%ld$Info", Match(t, IntType)->bits);
+//     case NumType: return CORD_asprintf("&Num%ld$Info", Match(t, NumType)->bits);
+//     case StringType: return CORD_all("&", Match(t, StringType)->dsl ? Match(t, StringType)->dsl : "Str", "$Info");
+//     case StructType: return CORD_all("&", Match(t, StructType)->name, "$Info");
+//     case EnumType: return CORD_all("&", Match(t, EnumType)->name, "$Info");
+//     case ArrayType: return CORD_all("&((TypeInfo){", Match(t, EnumType)->name, "$Info");
+//     }
+// }
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

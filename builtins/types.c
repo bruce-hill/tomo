@@ -19,9 +19,9 @@ public CORD Type__cord(void *type_namespace, bool colorize, const TypeInfo *type
 {
     (void)type_namespace;
     if (!colorize)
-        return CORD_from_char_star(type->name);
+        return type->TypeInfoInfo.type_str;
     CORD c;
-    CORD_sprintf(&c, "\x1b[36;1m%s\x1b[m", type->name);
+    CORD_sprintf(&c, "\x1b[36;1m%s\x1b[m", type->TypeInfoInfo.type_str);
     return c;
 }
 
@@ -29,7 +29,6 @@ public struct {
     TypeInfo type;
 } TypeInfo_type = {
     .type={
-        .name="TypeInfo",
         .size=sizeof(TypeInfo),
         .align=alignof(TypeInfo),
         .tag=CustomInfo,
@@ -39,15 +38,15 @@ public struct {
 
 public struct {
     TypeInfo type;
-} Void_type = {.type={.name="Void", .size=0, .align=0}};
+} Void_type = {.type={.size=0, .align=0}};
 public struct {
     TypeInfo type;
-} Abort_type = {.type={.name="Abort", .size=0, .align=0}};
+} Abort_type = {.type={.size=0, .align=0}};
 
 public CORD Func__cord(const void *fn, bool colorize, const TypeInfo *type)
 {
     (void)fn;
-    CORD c = type->name;
+    CORD c = type->TypeInfoInfo.type_str;
     if (colorize)
         CORD_sprintf(&c, "\x1b[32;1m%r\x1b[m", c);
     return c;

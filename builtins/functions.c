@@ -86,7 +86,7 @@ public CORD generic_cord(const void *obj, bool colorize, const TypeInfo *type)
     case TableInfo: return Table_cord(obj, colorize, type);
     case CustomInfo:
         if (!type->CustomInfo.cord)
-            builtin_fail("No cord function provided for type: %s!\n", type->name);
+            builtin_fail("No cord function provided for type!\n");
         return type->CustomInfo.cord(obj, colorize, type);
     default: errx(1, "Invalid type tag: %d", type->tag);
     }

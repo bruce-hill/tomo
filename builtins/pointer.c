@@ -23,8 +23,10 @@ typedef struct recursion_s {
 public CORD Pointer__cord(const void *x, bool colorize, const TypeInfo *type) {
     auto ptr_info = type->PointerInfo;
     const void *ptr = *(const void**)x;
-    if (!ptr)
-        return colorize ? CORD_asprintf("\x1b[34;1m!%s\x1b[m", ptr_info.pointed->name) : CORD_cat(ptr_info.sigil, ptr_info.pointed->name);
+    if (!ptr) {
+        CORD typename = generic_cord(NULL, false, ptr_info.pointed);
+        return colorize ? CORD_asprintf("\x1b[34;1m!%s\x1b[m", typename) : CORD_cat(ptr_info.sigil, typename);
+    }
 
     // Check for recursive references, so if `x.foo = x`, then it prints as
     // `@Foo{foo=@..1}` instead of overflowing the stack:

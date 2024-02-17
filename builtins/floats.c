@@ -32,18 +32,12 @@ static bool Num__equal(const double *x, const double *y, const TypeInfo *type) {
     return *x == *y;
 } 
 
-public Str_t Num__format(double f, int64_t precision) { 
-    int len = snprintf(NULL, 0, "%.*f", (int)precision, f); 
-    char *str = GC_MALLOC_ATOMIC(len + 1); 
-    snprintf(str, len+1, "%.*f", (int)precision, f); 
-    return (Str_t){.data=str, .length=len, .stride=1}; 
+public CORD Num__format(double f, int64_t precision) { 
+    return CORD_asprintf("%.*f", (int)precision, f);
 }
 
-public Str_t Num__scientific(double f, int64_t precision) { 
-    int len = snprintf(NULL, 0, "%.*e", (int)precision, f); 
-    char *str = GC_MALLOC_ATOMIC(len + 1); 
-    snprintf(str, len+1, "%.*e", (int)precision, f); 
-    return (Str_t){.data=str, .length=len, .stride=1}; 
+public CORD Num__scientific(double f, int64_t precision) { 
+    return CORD_asprintf("%.*e", (int)precision, f); 
 }
 
 public double Num__mod(double num, double modulus) { 
@@ -76,11 +70,10 @@ public struct {
     // Binary functions:
     double_binary_fn_t atan2, copysign, dist, hypot, maxmag, minmag, mod, nextafter, pow, remainder;
     // Odds and ends:
-    Str_t (*format)(double f, int64_t precision);
-    Str_t (*scientific)(double f, int64_t precision);
+    CORD (*format)(double f, int64_t precision);
+    CORD (*scientific)(double f, int64_t precision);
 } Num_type = {
     .type=(TypeInfo){
-        .name="Num",
         .size=sizeof(double),
         .align=alignof(double),
         .tag=CustomInfo,
@@ -127,18 +120,12 @@ static bool Num32__equal(const float *x, const float *y, const TypeInfo *type) {
     return *x == *y;
 } 
 
-public Str_t Num32__format(float f, int64_t precision) { 
-    int len = snprintf(NULL, 0, "%.*f", (int)precision, f); 
-    char *str = GC_MALLOC_ATOMIC(len + 1); 
-    snprintf(str, len+1, "%.*f", (int)precision, f); 
-    return (Str_t){.data=str, .length=len, .stride=1}; 
+public CORD Num32__format(float f, int64_t precision) { 
+    return CORD_asprintf("%.*f", (int)precision, f); 
 }
 
-public Str_t Num32__scientific(float f, int64_t precision) { 
-    int len = snprintf(NULL, 0, "%.*e", (int)precision, f); 
-    char *str = GC_MALLOC_ATOMIC(len + 1); 
-    snprintf(str, len+1, "%.*e", (int)precision, f); 
-    return (Str_t){.data=str, .length=len, .stride=1}; 
+public CORD Num32__scientific(float f, int64_t precision) { 
+    return CORD_asprintf("%.*e", (int)precision, f); 
 }
 
 public float Num32__mod(float num, float modulus) { 
@@ -175,11 +162,10 @@ public struct {
     // Binary functions:
     float_binary_fn_t atan2, copysign, dist, hypot, maxmag, minmag, mod, nextafter, pow, remainder;
     // Odds and ends:
-    Str_t (*format)(float f, int64_t precision);
-    Str_t (*scientific)(float f, int64_t precision);
+    CORD (*format)(float f, int64_t precision);
+    CORD (*scientific)(float f, int64_t precision);
 } Num32_type = {
     .type=(TypeInfo){
-        .name="Num32",
         .size=sizeof(float),
         .align=alignof(float),
         .tag=CustomInfo,

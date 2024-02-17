@@ -46,7 +46,6 @@
 extern const void *SSS_HASH_VECTOR;
 
 TypeInfo MemoryPointer_typeinfo = {
-    .name="@Memory",
     .size=sizeof(void*),
     .align=alignof(void*),
     .tag=PointerInfo,
@@ -57,7 +56,6 @@ TypeInfo MemoryPointer_typeinfo = {
 };
 
 TypeInfo StrToVoidStarTable_type = {
-    .name="{Str=>@Memory}",
     .size=sizeof(table_t),
     .align=alignof(table_t),
     .tag=TableInfo,
