@@ -21,6 +21,13 @@
 
 extern const void *SSS_HASH_VECTOR;
 
+public CORD Str__cord(const void *str, bool colorize, const TypeInfo *info)
+{
+    (void)info;
+    if (!str) return "Str";
+    return Str__quoted(*(CORD*)str, colorize);
+}
+
 public CORD Str__quoted(CORD str, bool colorize)
 {
     // Note: it's important to have unicode strings not get broken up with
@@ -256,7 +263,7 @@ public Str_namespace_t Str_type = {
         .align=alignof(CORD),
         .tag=CustomInfo,
         .CustomInfo={
-            .cord=(void*)Str__quoted,
+            .cord=(void*)Str__cord,
             .compare=(void*)Str__compare,
             .equal=(void*)Str__equal,
             .hash=(void*)Str__hash,

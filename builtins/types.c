@@ -15,9 +15,10 @@
 
 extern const void *SSS_HASH_VECTOR;
 
-public CORD Type__cord(void *type_namespace, bool colorize, const TypeInfo *type)
+public CORD Type__cord(void *typeinfo, bool colorize, const TypeInfo *type)
 {
-    (void)type_namespace;
+    if (!typeinfo) return "TypeInfo";
+
     if (!colorize)
         return type->TypeInfoInfo.type_str;
     CORD c;

@@ -488,6 +488,10 @@ public CORD Table_cord(const table_t *t, bool colorize, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
     auto table = type->TableInfo;
+
+    if (!t)
+        return CORD_all("{", generic_cord(NULL, false, table.key), "=>", generic_cord(NULL, false, table.value), "}");
+
     int64_t value_offset = table.value_offset;
     CORD c = "{";
     for (int64_t i = 0, length = Table_length(t); i < length; i++) {

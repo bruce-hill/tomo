@@ -16,6 +16,7 @@
 
 public CORD Num__cord(const double *f, bool colorize, const TypeInfo *type) { 
     (void)type;
+    if (!f) return "Num";
     CORD c;
     if (colorize) CORD_sprintf(&c, "\x1b[35m%g\x1b[33;2m\x1b[m", *f); 
     else CORD_sprintf(&c, "%g", *f); 
@@ -104,6 +105,7 @@ public struct {
 
 public CORD Num32__cord(float *f, bool colorize, const TypeInfo *type) { 
     (void)type;
+    if (!f) return "Num32";
     CORD c;
     if (colorize) CORD_sprintf(&c, "\x1b[35m%g_f32\x1b[m", *f);
     else CORD_sprintf(&c, "%g_f32", *f);

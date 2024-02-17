@@ -271,6 +271,9 @@ public bool Array_equal(const array_t *x, const array_t *y, const TypeInfo *type
 
 public CORD Array_cord(const array_t *arr, bool colorize, const TypeInfo *type)
 {
+    if (!arr)
+        return CORD_all("[", generic_cord(NULL, false, type->ArrayInfo.item), "]");
+
     TypeInfo *item_type = type->ArrayInfo.item;
     CORD c = "[";
     for (int64_t i = 0; i < arr->length; i++) {
