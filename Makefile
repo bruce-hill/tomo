@@ -31,7 +31,7 @@ all: nextlang libnext.so
 
 nextlang: nextlang.c parse.o files.o util.o ast.o compile.o types.o environment.o SipHash/halfsiphash.o $(BUILTIN_OBJS)
 
-libnext.so: metamethods/cord.o util.o SipHash/halfsiphash.o
+libnext.so: util.o SipHash/halfsiphash.o
 	$(CC) $^ $(CFLAGS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LDLIBS) -Wl,-soname,libnext.so -shared -o $@
 
 SipHash/halfsiphash.c:
