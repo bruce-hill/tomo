@@ -14,7 +14,7 @@
 #include "string.h"
 #include "types.h"
 
-public CORD Num__cord(const double *f, bool colorize, const TypeInfo *type) { 
+public CORD Num__as_str(const double *f, bool colorize, const TypeInfo *type) { 
     (void)type;
     if (!f) return "Num";
     CORD c;
@@ -81,7 +81,7 @@ public struct {
         .CustomInfo={
             .compare=(void*)Num__compare,
             .equal=(void*)Num__equal,
-            .cord=(void*)Num__cord,
+            .as_str=(void*)Num__as_str,
         },
     },
     .NaN=NAN, ._2_sqrt_pi=M_2_SQRTPI, .e=M_E, .half_pi=M_PI_2, .inf=1./0., .inverse_half_pi=M_2_PI,
@@ -103,7 +103,7 @@ public struct {
     .scientific=Num__scientific,
 };
 
-public CORD Num32__cord(float *f, bool colorize, const TypeInfo *type) { 
+public CORD Num32__as_str(float *f, bool colorize, const TypeInfo *type) { 
     (void)type;
     if (!f) return "Num32";
     CORD c;
@@ -174,7 +174,7 @@ public struct {
         .CustomInfo={
             .compare=(void*)Num32__compare,
             .equal=(void*)Num32__equal,
-            .cord=(void*)Num32__cord,
+            .as_str=(void*)Num32__as_str,
         },
     },
     .NaN=NAN, ._2_sqrt_pi=M_2_SQRTPI, .e=M_E, .half_pi=M_PI_2, .inf=1./0., .inverse_half_pi=M_2_PI,

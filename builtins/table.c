@@ -484,13 +484,13 @@ public uint32_t Table_hash(const table_t *t, const TypeInfo *type)
     return hash;
 }
 
-public CORD Table_cord(const table_t *t, bool colorize, const TypeInfo *type)
+public CORD Table_as_str(const table_t *t, bool colorize, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
     auto table = type->TableInfo;
 
     if (!t)
-        return CORD_all("{", generic_cord(NULL, false, table.key), "=>", generic_cord(NULL, false, table.value), "}");
+        return CORD_all("{", generic_as_str(NULL, false, table.key), "=>", generic_as_str(NULL, false, table.value), "}");
 
     int64_t value_offset = table.value_offset;
     CORD c = "{";
@@ -498,19 +498,19 @@ public CORD Table_cord(const table_t *t, bool colorize, const TypeInfo *type)
         if (i > 0)
             c = CORD_cat(c, ", ");
         void *entry = GET_ENTRY(t, i);
-        c = CORD_cat(c, generic_cord(entry, colorize, table.key));
+        c = CORD_cat(c, generic_as_str(entry, colorize, table.key));
         c = CORD_cat(c, "=>");
-        c = CORD_cat(c, generic_cord(entry + value_offset, colorize, table.value));
+        c = CORD_cat(c, generic_as_str(entry + value_offset, colorize, table.value));
     }
 
     if (t->fallback) {
         c = CORD_cat(c, "; fallback=");
-        c = CORD_cat(c, Table_cord(t->fallback, colorize, type));
+        c = CORD_cat(c, Table_as_str(t->fallback, colorize, type));
     }
 
     if (t->default_value) {
         c = CORD_cat(c, t->fallback ? "; default=" : "; default=");
-        c = CORD_cat(c, generic_cord(t->default_value, colorize, table.value));
+        c = CORD_cat(c, generic_as_str(t->default_value, colorize, table.value));
     }
 
     c = CORD_cat(c, "}");

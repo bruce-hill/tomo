@@ -272,14 +272,14 @@ public bool Array_equal(const array_t *x, const array_t *y, const TypeInfo *type
 public CORD Array_cord(const array_t *arr, bool colorize, const TypeInfo *type)
 {
     if (!arr)
-        return CORD_all("[", generic_cord(NULL, false, type->ArrayInfo.item), "]");
+        return CORD_all("[", generic_as_str(NULL, false, type->ArrayInfo.item), "]");
 
     TypeInfo *item_type = type->ArrayInfo.item;
     CORD c = "[";
     for (int64_t i = 0; i < arr->length; i++) {
         if (i > 0)
             c = CORD_cat(c, ", ");
-        CORD item_cord = generic_cord(arr->data + i*arr->stride, colorize, item_type);
+        CORD item_cord = generic_as_str(arr->data + i*arr->stride, colorize, item_type);
         c = CORD_cat(c, item_cord);
     }
     c = CORD_cat(c, "]");

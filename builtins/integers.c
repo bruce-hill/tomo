@@ -16,7 +16,7 @@ extern const void *SSS_HASH_VECTOR;
 #define str(a) #a
 
 #define DEFINE_INT_TYPE(c_type, KindOfInt, fmt, abs_fn, min_val, max_val)\
-    public CORD KindOfInt ## __cord(const c_type *i, bool colorize, const TypeInfo *type) { \
+    public CORD KindOfInt ## __as_str(const c_type *i, bool colorize, const TypeInfo *type) { \
         (void)type; \
         if (!i) return #KindOfInt; \
         CORD c; \
@@ -61,7 +61,7 @@ extern const void *SSS_HASH_VECTOR;
             .size=sizeof(c_type), \
             .align=alignof(c_type), \
             .tag=CustomInfo, \
-            .CustomInfo={.compare=(void*)KindOfInt##__compare, .cord=(void*)KindOfInt##__cord}, \
+            .CustomInfo={.compare=(void*)KindOfInt##__compare, .as_str=(void*)KindOfInt##__as_str}, \
         }, \
         .min=min_val, \
         .max=max_val, \

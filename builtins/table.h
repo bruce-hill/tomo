@@ -20,7 +20,7 @@ void Table_mark_copy_on_write(table_t *t);
 int32_t Table_compare(const table_t *x, const table_t *y, const TypeInfo *type);
 bool Table_equal(const table_t *x, const table_t *y, const TypeInfo *type);
 uint32_t Table_hash(const table_t *t, const TypeInfo *type);
-CORD Table_cord(const table_t *t, bool colorize, const TypeInfo *type);
+CORD Table_as_str(const table_t *t, bool colorize, const TypeInfo *type);
 
 void *Table_str_entry(const table_t *t, int64_t n);
 void *Table_str_get(const table_t *t, const char *key);

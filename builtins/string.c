@@ -21,7 +21,7 @@
 
 extern const void *SSS_HASH_VECTOR;
 
-public CORD Str__cord(const void *str, bool colorize, const TypeInfo *info)
+public CORD Str__as_str(const void *str, bool colorize, const TypeInfo *info)
 {
     (void)info;
     if (!str) return "Str";
@@ -263,7 +263,7 @@ public Str_namespace_t Str_type = {
         .align=alignof(CORD),
         .tag=CustomInfo,
         .CustomInfo={
-            .cord=(void*)Str__cord,
+            .as_str=(void*)Str__as_str,
             .compare=(void*)Str__compare,
             .equal=(void*)Str__equal,
             .hash=(void*)Str__hash,

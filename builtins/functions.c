@@ -14,6 +14,7 @@
 #include "table.h"
 #include "pointer.h"
 #include "string.h"
+#include "types.h"
 
 extern bool USE_COLOR;
 extern const void *SSS_HASH_VECTOR;
@@ -78,16 +79,17 @@ public bool generic_equal(const void *x, const void *y, const TypeInfo *type)
     }
 }
 
-public CORD generic_cord(const void *obj, bool colorize, const TypeInfo *type)
+public CORD generic_as_str(const void *obj, bool colorize, const TypeInfo *type)
 {
     switch (type->tag) {
     case PointerInfo: return Pointer__cord(obj, colorize, type);
-    case ArrayInfo: return Array_cord(obj, colorize, type);
-    case TableInfo: return Table_cord(obj, colorize, type);
+    case ArrayInfo: return Array_as_str(obj, colorize, type);
+    case TableInfo: return Table_as_str(obj, colorize, type);
+    case TypeInfoInfo: return Type__as_str(obj, colorize, type);
     case CustomInfo:
-        if (!type->CustomInfo.cord)
+        if (!type->CustomInfo.as_str)
             builtin_fail("No cord function provided for type!\n");
-        return type->CustomInfo.cord(obj, colorize, type);
+        return type->CustomInfo.as_str(obj, colorize, type);
     default: errx(1, "Invalid type tag: %d", type->tag);
     }
 }
@@ -127,12 +129,12 @@ public void __doctest(CORD label, void *expr, TypeInfo *type, CORD expected, con
         CORD_fprintf(stderr, USE_COLOR ? "\x1b[33;1m>>> \x1b[0m%.*s\x1b[m\n" : ">>> %.*s\n", (end - start), file->text + start);
 
     if (expr) {
-        CORD expr_str = generic_cord(expr, USE_COLOR, type);
-        CORD type_name = generic_cord(NULL, false, type);
+        CORD expr_str = generic_as_str(expr, USE_COLOR, type);
+        CORD type_name = generic_as_str(NULL, false, type);
 
         CORD_fprintf(stderr, USE_COLOR ? "\x1b[2m%r\x1b[0m %r \x1b[2m: %r\x1b[m\n" : "%r %r : %r\n", label, expr_str, type_name);
         if (expected) {
-            CORD expr_plain = USE_COLOR ? generic_cord(expr, false, type) : expr_str;
+            CORD expr_plain = USE_COLOR ? generic_as_str(expr, false, type) : expr_str;
             bool success = (CORD_cmp(expr_str, expected) == 0);
             if (!success && CORD_chr(expected, 0, ':')) {
                 expr_plain = heap_strf("%s : %s", expr_plain, type_name);

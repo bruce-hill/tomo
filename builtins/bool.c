@@ -15,7 +15,7 @@
 
 extern const void *SSS_HASH_VECTOR;
 
-static CORD Bool_cord(const bool *b, bool colorize, const TypeInfo *type)
+static CORD Bool__as_str(const bool *b, bool colorize, const TypeInfo *type)
 {
     (void)type;
     if (!b) return "Bool";
@@ -32,7 +32,7 @@ public struct {
         .size=sizeof(bool),
         .align=alignof(bool),
         .tag=CustomInfo,
-        .CustomInfo={.cord=(void*)Bool_cord},
+        .CustomInfo={.as_str=(void*)Bool__as_str},
     },
 };
 

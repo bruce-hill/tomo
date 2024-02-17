@@ -15,7 +15,7 @@
 
 extern const void *SSS_HASH_VECTOR;
 
-public CORD Type__cord(void *typeinfo, bool colorize, const TypeInfo *type)
+public CORD Type__as_str(const void *typeinfo, bool colorize, const TypeInfo *type)
 {
     if (!typeinfo) return "TypeInfo";
 
@@ -33,7 +33,7 @@ public struct {
         .size=sizeof(TypeInfo),
         .align=alignof(TypeInfo),
         .tag=CustomInfo,
-        .CustomInfo={.cord=(void*)Type__cord},
+        .TypeInfoInfo.type_str="TypeInfo",
     },
 };
 
@@ -44,7 +44,7 @@ public struct {
     TypeInfo type;
 } Abort_type = {.type={.size=0, .align=0}};
 
-public CORD Func__cord(const void *fn, bool colorize, const TypeInfo *type)
+public CORD Func__as_str(const void *fn, bool colorize, const TypeInfo *type)
 {
     (void)fn;
     CORD c = type->TypeInfoInfo.type_str;

@@ -10,7 +10,7 @@ struct TypeInfo;
 typedef uint32_t (*hash_fn_t)(const void*, const struct TypeInfo*);
 typedef int32_t (*compare_fn_t)(const void*, const void*, const struct TypeInfo*);
 typedef bool (*equal_fn_t)(const void*, const void*, const struct TypeInfo*);
-typedef CORD (*cord_fn_t)(const void*, bool, const struct TypeInfo*);
+typedef CORD (*str_fn_t)(const void*, bool, const struct TypeInfo*);
 
 typedef struct TypeInfo {
     int64_t size, align;
@@ -21,7 +21,7 @@ typedef struct TypeInfo {
                 equal_fn_t equal;
                 compare_fn_t compare;
                 hash_fn_t hash;
-                cord_fn_t cord;
+                str_fn_t as_str;
             } CustomInfo;
             struct {
                 const char *sigil;
@@ -41,9 +41,6 @@ typedef struct TypeInfo {
     };
 } TypeInfo;
 
-uint32_t generic_hash(const void *obj, const TypeInfo *type);
-int32_t generic_compare(const void *x, const void *y, const TypeInfo *type);
-bool generic_equal(const void *x, const void *y, const TypeInfo *type);
-CORD generic_cord(const void *obj, bool colorize, const TypeInfo *type);
+CORD Type__as_str(const void *typeinfo, bool colorize, const TypeInfo *type);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

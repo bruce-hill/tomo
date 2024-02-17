@@ -19,7 +19,7 @@ array_t Array_slice(array_t *array, int64_t first, int64_t stride, int64_t lengt
 uint32_t Array_hash(const array_t *arr, const TypeInfo *type);
 int32_t Array_compare(const array_t *x, const array_t *y, const TypeInfo *type);
 bool Array_equal(const array_t *x, const array_t *y, const TypeInfo *type);
-CORD Array_cord(const array_t *arr, bool colorize, const TypeInfo *type);
+CORD Array_as_str(const array_t *arr, bool colorize, const TypeInfo *type);
 
 // Due to some C language weirdness, the type of "foo" is inferred to be `char[3]` instead of `const char*`
 // This is a hacky workaround to ensure that __typeof("foo") => `const char *`
