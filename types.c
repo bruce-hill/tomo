@@ -38,22 +38,23 @@ CORD type_to_cord(type_t *t) {
         }
         case StructType: {
             auto struct_ = Match(t, StructType);
-            CORD c = CORD_asprintf("%s{", struct_->name);
-            int64_t i = 1;
-            for (arg_t *field = struct_->fields; field; field = field->next) {
-                const char *fname = field->name ? field->name : heap_strf("_%lu", i);
-                ++i;
-                if (fname && !streq(fname, heap_strf("_%lu", i+1)))
-                    c = CORD_cat(CORD_cat(c, fname), ":");
-                else
-                    c = CORD_cat(c, ":");
+            return struct_->name;
+            // CORD c = CORD_asprintf("%s(", struct_->name);
+            // int64_t i = 1;
+            // for (arg_t *field = struct_->fields; field; field = field->next) {
+            //     const char *fname = field->name ? field->name : heap_strf("_%lu", i);
+            //     ++i;
+            //     if (fname && !streq(fname, heap_strf("_%lu", i+1)))
+            //         c = CORD_cat(CORD_cat(c, fname), ":");
+            //     else
+            //         c = CORD_cat(c, ":");
 
-                c = CORD_cat(c, type_to_cord(field->type));
+            //     c = CORD_cat(c, type_to_cord(field->type));
 
-                if (field->next) c = CORD_cat(c, ", ");
-            }
-            c = CORD_cat(c, "}");
-            return c;
+            //     if (field->next) c = CORD_cat(c, ", ");
+            // }
+            // c = CORD_cat(c, ")");
+            // return c;
         }
         case PointerType: {
             auto ptr = Match(t, PointerType);
@@ -63,40 +64,41 @@ CORD type_to_cord(type_t *t) {
         }
         case EnumType: {
             auto tagged = Match(t, EnumType);
+            return tagged->name;
 
-            CORD c = CORD_asprintf("%s[", tagged->name);
-            int64_t next_tag = 0;
-            for (tag_t *tag = tagged->tags; tag; tag = tag->next) {
-                // name, tag_value, type
-                c = CORD_cat(c, tag->name);
-                if (tag->type) {
-                    c = CORD_cat(c, "(");
-                    auto struct_ = Match(tag->type, StructType);
-                    int64_t i = 1;
-                    for (arg_t *field = struct_->fields; field; field = field->next) {
-                        if (field->name && !streq(field->name, heap_strf("_%lu", i)))
-                            c = CORD_cat(CORD_cat(c, field->name), ":");
+//             CORD c = CORD_asprintf("%s(", tagged->name);
+//             int64_t next_tag = 0;
+//             for (tag_t *tag = tagged->tags; tag; tag = tag->next) {
+//                 // name, tag_value, type
+//                 c = CORD_cat(c, tag->name);
+//                 if (tag->type) {
+//                     c = CORD_cat(c, "(");
+//                     auto struct_ = Match(tag->type, StructType);
+//                     int64_t i = 1;
+//                     for (arg_t *field = struct_->fields; field; field = field->next) {
+//                         if (field->name && !streq(field->name, heap_strf("_%lu", i)))
+//                             c = CORD_cat(CORD_cat(c, field->name), ":");
 
-                        CORD fstr = type_to_cord(field->type);
-                        c = CORD_cat(c, fstr);
-                        if (field->next) c = CORD_cat(c, ",");
-                        ++i;
-                    }
-                    c = CORD_cat(c, ")");
-                }
+//                         CORD fstr = type_to_cord(field->type);
+//                         c = CORD_cat(c, fstr);
+//                         if (field->next) c = CORD_cat(c, ",");
+//                         ++i;
+//                     }
+//                     c = CORD_cat(c, ")");
+//                 }
 
-                if (tag->tag_value != next_tag) {
-                    CORD_sprintf(&c, "%r=%ld", c, tag->tag_value);
-                    next_tag = tag->tag_value + 1;
-                } else {
-                    ++next_tag;
-                }
+//                 if (tag->tag_value != next_tag) {
+//                     CORD_sprintf(&c, "%r=%ld", c, tag->tag_value);
+//                     next_tag = tag->tag_value + 1;
+//                 } else {
+//                     ++next_tag;
+//                 }
 
-                if (tag->next)
-                    c = CORD_cat(c, ", ");
-            }
-            c = CORD_cat(c, "]");
-            return c;
+//                 if (tag->next)
+//                     c = CORD_cat(c, ", ");
+//             }
+//             c = CORD_cat(c, ")");
+//             return c;
         }
         case PlaceholderType: {
             return Match(t, PlaceholderType)->name;

@@ -1429,7 +1429,7 @@ PARSER(parse_struct_def) {
     if (!name) parser_err(ctx, start, pos, "I expected a name for this struct");
     spaces(&pos);
 
-    if (!match(&pos, "{"))
+    if (!match(&pos, "("))
         parser_err(ctx, pos, pos, "I expected a '(' and a list of fields here");
 
     arg_ast_t *fields = parse_args(ctx, &pos, false);
@@ -1449,7 +1449,7 @@ PARSER(parse_struct_def) {
         }
     }
 
-    expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this struct");
+    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this struct");
 
     const char *ns_pos = pos;
     whitespace(&ns_pos);
@@ -1474,7 +1474,7 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
     if (!name)
         parser_err(ctx, start, pos, "I expected a name for this enum");
     spaces(&pos);
-    if (!match(&pos, "[")) return NULL;
+    if (!match(&pos, "(")) return NULL;
 
     tag_ast_t *tags = NULL;
     int64_t next_value = 0;
@@ -1518,7 +1518,7 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
     }
 
     whitespace(&pos);
-    expect_closing(ctx, &pos, "]", "I wasn't able to parse the rest of this enum definition");
+    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this enum definition");
 
     REVERSE_LIST(tags);
 
@@ -1729,7 +1729,7 @@ ast_t *parse_file(file_t *file, jmp_buf *on_err) {
     pos = ast->end;
     whitespace(&pos);
     if (pos < file->text + file->len) {
-        parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the file %zu");
+        parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the file");
     }
     return ast;
 }
