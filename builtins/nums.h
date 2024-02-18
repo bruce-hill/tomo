@@ -5,15 +5,15 @@
 
 #include "types.h"
 
-CORD Num__as_str(const double *f, bool colorize, const TypeInfo *type);
-int32_t Num__compare(const double *x, const double *y, const TypeInfo *type);
-bool Num__equal(const double *x, const double *y, const TypeInfo *type);
-CORD Num__format(double f, int64_t precision);
-CORD Num__scientific(double f, int64_t precision);
-double Num__mod(double num, double modulus);
-bool Num__isinf(double n);
-bool Num__finite(double n);
-bool Num__isnan(double n);
+CORD Num64__as_str(const double *f, bool colorize, const TypeInfo *type);
+int32_t Num64__compare(const double *x, const double *y, const TypeInfo *type);
+bool Num64__equal(const double *x, const double *y, const TypeInfo *type);
+CORD Num64__format(double f, int64_t precision);
+CORD Num64__scientific(double f, int64_t precision);
+double Num64__mod(double num, double modulus);
+bool Num64__isinf(double n);
+bool Num64__finite(double n);
+bool Num64__isnan(double n);
 
 typedef bool (*double_pred_t)(double);
 typedef double (*double_unary_fn_t)(double);
@@ -38,7 +38,8 @@ typedef struct {
     // Odds and ends:
     CORD (*format)(double f, int64_t precision);
     CORD (*scientific)(double f, int64_t precision);
-} Num_namespace_t;
+} Num64_namespace_t;
+extern Num64_namespace_t Num64_type;
 
 CORD Num32__as_str(float *f, bool colorize, const TypeInfo *type);
 int32_t Num32__compare(const float *x, const float *y, const TypeInfo *type);
@@ -75,5 +76,6 @@ typedef struct {
     CORD (*format)(float f, int64_t precision);
     CORD (*scientific)(float f, int64_t precision);
 } Num32_namespace_t;
+extern Num32_namespace_t Num32_type;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

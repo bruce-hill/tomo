@@ -15,70 +15,70 @@
 #include "string.h"
 #include "types.h"
 
-public CORD Num__as_str(const double *f, bool colorize, const TypeInfo *type) { 
+public CORD Num64__as_str(const double *f, bool colorize, const TypeInfo *type) { 
     (void)type;
-    if (!f) return "Num";
+    if (!f) return "Num64";
     CORD c;
     if (colorize) CORD_sprintf(&c, "\x1b[35m%g\x1b[33;2m\x1b[m", *f); 
     else CORD_sprintf(&c, "%g", *f); 
     return c; 
 } 
 
-public int32_t Num__compare(const double *x, const double *y, const TypeInfo *type) { 
+public int32_t Num64__compare(const double *x, const double *y, const TypeInfo *type) { 
     (void)type;
     return (*x > *y) - (*x < *y);
 } 
 
-public bool Num__equal(const double *x, const double *y, const TypeInfo *type) { 
+public bool Num64__equal(const double *x, const double *y, const TypeInfo *type) { 
     (void)type;
     return *x == *y;
 } 
 
-public CORD Num__format(double f, int64_t precision) { 
+public CORD Num64__format(double f, int64_t precision) { 
     return CORD_asprintf("%.*f", (int)precision, f);
 }
 
-public CORD Num__scientific(double f, int64_t precision) { 
+public CORD Num64__scientific(double f, int64_t precision) { 
     return CORD_asprintf("%.*e", (int)precision, f); 
 }
 
-public double Num__mod(double num, double modulus) { 
+public double Num64__mod(double num, double modulus) { 
     double result = fmod(num, modulus); 
     return (result < 0) != (modulus < 0) ? result + modulus : result; 
 }
 
-public bool Num__isinf(double n) { return isinf(n); }
-public bool Num__finite(double n) { return finite(n); }
-public bool Num__isnan(double n) { return isnan(n); }
+public bool Num64__isinf(double n) { return isinf(n); }
+public bool Num64__finite(double n) { return finite(n); }
+public bool Num64__isnan(double n) { return isnan(n); }
 
-public Num_namespace_t Num_type = {
+public Num64_namespace_t Num64_type = {
     .type=(TypeInfo){
         .size=sizeof(double),
         .align=alignof(double),
         .tag=CustomInfo,
         .CustomInfo={
-            .compare=(void*)Num__compare,
-            .equal=(void*)Num__equal,
-            .as_str=(void*)Num__as_str,
+            .compare=(void*)Num64__compare,
+            .equal=(void*)Num64__equal,
+            .as_str=(void*)Num64__as_str,
         },
     },
     .NaN=NAN, ._2_sqrt_pi=M_2_SQRTPI, .e=M_E, .half_pi=M_PI_2, .inf=1./0., .inverse_half_pi=M_2_PI,
     .inverse_pi=M_1_PI, .ln10=M_LN10, .ln2=M_LN2, .log2e=M_LOG2E, .pi=M_PI, .quarter_pi=M_PI_4,
     .sqrt2=M_SQRT2, .sqrt_half=M_SQRT1_2, .tau=2.*M_PI,
     .random=drand48,
-    .finite=Num__finite,
-    .isinf=Num__isinf,
-    .isnan=Num__isnan,
+    .finite=Num64__finite,
+    .isinf=Num64__isinf,
+    .isnan=Num64__isnan,
     .atan2=atan2, .copysign=copysign, .dist=fdim, .hypot=hypot, .maxmag=fmaxmag, .minmag=fminmag,
-    .mod=Num__mod, .nextafter=nextafter, .pow=pow, .remainder=remainder,
+    .mod=Num64__mod, .nextafter=nextafter, .pow=pow, .remainder=remainder,
     .abs=fabs, .acos=acos, .acosh=acosh, .asin=asin, .asinh=asinh, .atan=atan, .atanh=atanh,
     .cbrt=cbrt, .ceil=ceil, .cos=cos, .cosh=cosh, .erf=erf, .erfc=erfc, .exp=exp,
     .exp10=exp10, .exp2=exp2, .expm1=expm1, .floor=floor, .j0=j0, .j1=j1, .log=log,
     .log10=log10, .log1p=log1p, .log2=log2, .logb=logb, .nextdown=nextdown, .nextup=nextup,
     .rint=rint, .round=round, .roundeven=roundeven, .significand=significand, .sin=sin,
     .sinh=sinh, .sqrt=sqrt, .tan=tan, .tanh=tanh, .tgamma=tgamma, .trunc=trunc, .y0=y0, .y1=y1,
-    .format=Num__format,
-    .scientific=Num__scientific,
+    .format=Num64__format,
+    .scientific=Num64__scientific,
 };
 
 public CORD Num32__as_str(float *f, bool colorize, const TypeInfo *type) { 
