@@ -56,6 +56,17 @@ CORD compile(env_t *env, ast_t *ast)
         auto binop = Match(ast, BinaryOp);
         CORD lhs = compile(env, binop->lhs);
         CORD rhs = compile(env, binop->rhs);
+
+        type_t *lhs_t = get_type(env, binop->lhs);
+        type_t *rhs_t = get_type(env, binop->rhs);
+        type_t *operand_t;
+        if (can_promote(rhs_t, lhs_t))
+            operand_t = lhs_t;
+        else if (can_promote(lhs_t, rhs_t))
+            operand_t = rhs_t;
+        else
+            code_err(ast, "I can't do binary operations between %T and %T", lhs_t, rhs_t);
+
         switch (binop->op) {
         case BINOP_MULT: return CORD_asprintf("(%r * %r)", lhs, rhs);
         case BINOP_DIVIDE: return CORD_asprintf("(%r / %r)", lhs, rhs);
@@ -65,12 +76,54 @@ CORD compile(env_t *env, ast_t *ast)
         case BINOP_MINUS: return CORD_asprintf("(%r - %r)", lhs, rhs);
         case BINOP_LSHIFT: return CORD_asprintf("(%r << %r)", lhs, rhs);
         case BINOP_RSHIFT: return CORD_asprintf("(%r >> %r)", lhs, rhs);
-        case BINOP_EQ: return CORD_asprintf("$eq(%r, %r)", lhs, rhs);
-        case BINOP_NE: return CORD_asprintf("$ne(%r, %r)", lhs, rhs);
-        case BINOP_LT: return CORD_asprintf("$lt(%r, %r)", lhs, rhs);
-        case BINOP_LE: return CORD_asprintf("$le(%r, %r)", lhs, rhs);
-        case BINOP_GT: return CORD_asprintf("$gt(%r, %r)", lhs, rhs);
-        case BINOP_GE: return CORD_asprintf("$ge(%r, %r)", lhs, rhs);
+        case BINOP_EQ: {
+            switch (operand_t->tag) {
+            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+                return CORD_asprintf("(%r == %r)", lhs, rhs);
+            default:
+                return CORD_asprintf("generic_equal($stack(%r), $stack(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
+            }
+        }
+        case BINOP_NE: {
+            switch (operand_t->tag) {
+            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+                return CORD_asprintf("(%r != %r)", lhs, rhs);
+            default:
+                return CORD_asprintf("!generic_equal($stack(%r), $stack(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
+            }
+        }
+        case BINOP_LT: {
+            switch (operand_t->tag) {
+            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+                return CORD_asprintf("(%r < %r)", lhs, rhs);
+            default:
+                return CORD_asprintf("(generic_compare($stack(%r), $stack(%r), %r) < 0)", lhs, rhs, compile_type_info(env, operand_t));
+            }
+        }
+        case BINOP_LE: {
+            switch (operand_t->tag) {
+            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+                return CORD_asprintf("(%r <= %r)", lhs, rhs);
+            default:
+                return CORD_asprintf("(generic_compare($stack(%r), $stack(%r), %r) <= 0)", lhs, rhs, compile_type_info(env, operand_t));
+            }
+        }
+        case BINOP_GT: {
+            switch (operand_t->tag) {
+            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+                return CORD_asprintf("(%r > %r)", lhs, rhs);
+            default:
+                return CORD_asprintf("(generic_compare($stack(%r), $stack(%r), %r) > 0)", lhs, rhs, compile_type_info(env, operand_t));
+            }
+        }
+        case BINOP_GE: {
+            switch (operand_t->tag) {
+            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+                return CORD_asprintf("(%r >= %r)", lhs, rhs);
+            default:
+                return CORD_asprintf("(generic_compare($stack(%r), $stack(%r), %r) >= 0)", lhs, rhs, compile_type_info(env, operand_t));
+            }
+        }
         case BINOP_AND: return CORD_asprintf("and(%r, %r)", lhs, rhs);
         case BINOP_OR: return CORD_asprintf("or(%r, %r)", lhs, rhs);
         case BINOP_XOR: return CORD_asprintf("xor(%r, %r)", lhs, rhs);
@@ -432,12 +485,12 @@ CORD compile(env_t *env, ast_t *ast)
 CORD compile_type_info(env_t *env, type_t *t)
 {
     switch (t->tag) {
-    case BoolType: return "&Bool_type";
+    case BoolType: return "&Bool_type.type";
     case IntType: return CORD_asprintf("&Int%ld_type.type", Match(t, IntType)->bits);
     case NumType: return CORD_asprintf("&Num%ld_type.type", Match(t, NumType)->bits);
-    case StringType: return CORD_all("&", Match(t, StringType)->dsl ? Match(t, StringType)->dsl : "Str", "_type");
-    case StructType: return CORD_all("&", Match(t, StructType)->name, "_type");
-    case EnumType: return CORD_all("&", Match(t, EnumType)->name, "_type");
+    case StringType: return CORD_all("&", Match(t, StringType)->dsl ? Match(t, StringType)->dsl : "Str", "_type.type");
+    case StructType: return CORD_all("&", Match(t, StructType)->name, "_type.type");
+    case EnumType: return CORD_all("&", Match(t, EnumType)->name, "_type.type");
     case ArrayType: {
         type_t *item_t = Match(t, ArrayType)->item_type;
         return CORD_asprintf(

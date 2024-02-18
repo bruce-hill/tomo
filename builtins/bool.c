@@ -26,7 +26,7 @@ public CORD Bool__as_str(const bool *b, bool colorize, const TypeInfo *type)
         return *b ? "yes" : "no";
 }
 
-Bool_namespace_t Bool_type = {
+public Bool_namespace_t Bool_type = {
     .type={
         .size=sizeof(bool),
         .align=alignof(bool),
