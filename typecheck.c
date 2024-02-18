@@ -104,7 +104,17 @@ void bind_statement(env_t *env, ast_t *statement)
     }
     case StructDef: {
         auto def = Match(statement, StructDef);
-        type_t *type = Table_str_get(env->types, def->name);
+        arg_t *fields = NULL;
+        type_t *type = Type(StructType, .name=def->name, .fields=fields); // placeholder
+        for (arg_ast_t *field_ast = def->fields; field_ast; field_ast = field_ast->next) {
+            type_t *field_t = parse_type_ast(env, field_ast->type);
+            fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->default_val, .next=fields);
+        }
+        REVERSE_LIST(fields);
+        type->__data.StructType.fields = fields; // populate placeholder
+        Table_str_set(env->types, def->name, type);
+
+        if (!type) code_err(statement, "I couldn't get this type");
         type_t *constructor_t = Type(FunctionType, .args=Match(type, StructType)->fields, .ret=type);
         set_binding(env, def->name, new(binding_t, .type=constructor_t));
         break;

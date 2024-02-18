@@ -47,7 +47,8 @@ CORD expr_as_string(env_t *env, CORD expr, type_t *t, CORD color)
     case TableType: return CORD_asprintf("Table_as_str(%r, %r, %r)", expr, color, compile_type_info(env, t));
     case FunctionType: return CORD_asprintf("Func__as_str(%r, %r, %r)", expr, color, compile_type_info(env, t));
     case PointerType: return CORD_asprintf("Pointer__as_str(%r, %r, %r)", expr, color, compile_type_info(env, t));
-    case StructType: case EnumType: return CORD_asprintf("%r->as_str(%r, %r, %r)", compile_type_info(env, t), expr, color);
+    case StructType: case EnumType: return CORD_asprintf("(%r)->CustomInfo.as_str(%r, %r, %r)",
+                                                         compile_type_info(env, t), expr, color, compile_type_info(env, t));
     default: compiler_err(NULL, NULL, NULL, "Stringifying is not supported for %T", t);
     }
 }
@@ -438,7 +439,12 @@ CORD compile(env_t *env, ast_t *ast)
         }
         CORD_appendf(&env->code->typecode, "};\n");
 
-        CORD cord_func = CORD_asprintf("CORD %s__as_str(%s_t *obj, bool use_color) {\n"
+        // Typeinfo:
+        CORD_appendf(&env->code->typedefs, "typedef struct { TypeInfo type; } %s_namespace_t;\n", def->name);
+        CORD_appendf(&env->code->typedefs, "extern %s_namespace_t %s_type;\n", def->name, def->name);
+        CORD_appendf(&env->code->typeinfos, "public %s_namespace_t %s_type = {.type={.tag=CustomInfo, .CustomInfo={.as_str=(void*)%s__as_str}}};\n", def->name, def->name, def->name);
+
+        CORD cord_func = CORD_asprintf("static CORD %s__as_str(%s_t *obj, bool use_color) {\n"
                                        "\tif (!obj) return \"%s\";\n", def->name, def->name, def->name);
 
         if (def->secret) {
@@ -458,7 +464,7 @@ CORD compile(env_t *env, ast_t *ast)
             cord_func = CORD_cat(cord_func, ")\"");
             for (arg_ast_t *field = def->fields; field; field = field->next) {
                 type_t *field_t = parse_type_ast(env, field->type);
-                CORD_appendf(&cord_func, ", %r", expr_as_string(env, CORD_cat("obj->", field->name), field_t, "use_color"));
+                CORD_appendf(&cord_func, ", %r", expr_as_string(env, CORD_cat("&obj->", field->name), field_t, "use_color"));
             }
             cord_func = CORD_cat(cord_func, ");\n}");
         }

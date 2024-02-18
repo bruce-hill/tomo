@@ -63,7 +63,8 @@ int main(int argc, char *argv[])
         env->code->typedefs, "\n",
         env->code->typecode, "\n",
         env->code->staticdefs, "\n",
-        env->code->funcs, "\n"
+        env->code->funcs, "\n",
+        env->code->typeinfos, "\n",
         "\n"
         "static void $load(void) {\n",
         env->code->main,

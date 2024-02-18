@@ -11,6 +11,7 @@ typedef struct {
     CORD typecode;
     CORD staticdefs;
     CORD funcs;
+    CORD typeinfos;
     CORD main;
 } compilation_unit_t;
 
