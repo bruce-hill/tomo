@@ -11,7 +11,7 @@
 
 #include "../SipHash/halfsiphash.h"
 #include "array.h"
-#include "floats.h"
+#include "nums.h"
 #include "string.h"
 #include "types.h"
 

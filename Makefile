@@ -24,7 +24,7 @@ G=-ggdb
 O=-Og
 CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS)
 LDLIBS=-lgc -lgccjit -lcord -lm -lunistring
-BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/floats.o builtins/functions.o builtins/integers.o \
+BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/nums.o builtins/functions.o builtins/integers.o \
 						 builtins/pointer.o builtins/memory.o builtins/string.o builtins/table.o builtins/types.o
 
 all: libnext.so nextlang

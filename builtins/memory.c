@@ -9,11 +9,10 @@
 #include <sys/param.h>
 #include <err.h>
 
-#include "types.h"
 #include "../util.h"
 #include "../SipHash/halfsiphash.h"
-
-extern const void *SSS_HASH_VECTOR;
+#include "memory.h"
+#include "types.h"
 
 public CORD Memory__as_str(const void *p, bool colorize, const TypeInfo *type) {
     (void)type;
