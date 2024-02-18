@@ -100,9 +100,6 @@ CORD type_to_cord(type_t *t) {
 //             c = CORD_cat(c, ")");
 //             return c;
         }
-        case PlaceholderType: {
-            return Match(t, PlaceholderType)->name;
-        }
         case TypeInfoType: {
             return "TypeInfo";
         }
@@ -133,7 +130,6 @@ bool type_eq(type_t *a, type_t *b)
 {
     if (a == b) return true;
     if (a->tag != b->tag) return false;
-    if (a->tag == PlaceholderType) return a == b;
     return (CORD_cmp(type_to_cord(a), type_to_cord(b)) == 0);
 }
 
@@ -492,7 +488,6 @@ size_t type_size(type_t *t)
         errx(1, "Not implemented");
     }
     case TypeInfoType: return sizeof(TypeInfo);
-    case PlaceholderType: errx(1, "This should not be reachable");
     }
     errx(1, "This should not be reachable");
 }
@@ -518,7 +513,6 @@ size_t type_align(type_t *t)
         errx(1, "Not implemented");
     }
     case TypeInfoType: return __alignof__(TypeInfo);
-    case PlaceholderType: errx(1, "This should not be reachable");
     }
     errx(1, "This should not be reachable");
 }

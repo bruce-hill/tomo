@@ -46,7 +46,6 @@ struct type_s {
         StructType,
         EnumType,
         TypeInfoType,
-        PlaceholderType,
     } tag;
 
     union {
@@ -87,9 +86,6 @@ struct type_s {
             tag_t *tags;
         } EnumType;
         struct {} TypeInfoType;
-        struct {
-            const char *filename, *name;
-        } PlaceholderType;
     } __data;
 };
 
