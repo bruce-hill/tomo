@@ -44,31 +44,12 @@ int main(int argc, char *argv[])
         fclose(out);
     }
 
-    env_t *env = new_compilation_unit();
-
-    CORD_appendf(&env->code->imports, "#include \"nextlang.h\"\n");
-
-    // Main body:
-    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-        CORD code = compile_statement(env, stmt->ast);
-        if (code)
-            CORD_appendf(&env->code->main, "%r\n", code);
-        bind_statement(env, stmt->ast);
-    }
+    CORD module = compile_file(ast);
 
     CORD program = CORD_all(
         // CORD_asprintf("#line 0 %r\n", Str__quoted(f->filename, false)),
         "// Generated code:\n",
-        env->code->imports, "\n",
-        env->code->typedefs, "\n",
-        env->code->typecode, "\n",
-        env->code->staticdefs, "\n",
-        env->code->funcs, "\n",
-        env->code->typeinfos, "\n",
-        "\n"
-        "static void $load(void) {\n",
-        env->code->main,
-        "}\n"
+        module,
         "\n"
         "int main(int argc, const char *argv[]) {\n"
         "(void)argc;\n"

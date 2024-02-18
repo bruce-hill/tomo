@@ -685,4 +685,32 @@ CORD compile_type_info(env_t *env, type_t *t)
     }
 }
 
+CORD compile_file(ast_t *ast)
+{
+    env_t *env = new_compilation_unit();
+    CORD_appendf(&env->code->imports, "#include \"nextlang.h\"\n");
+
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        CORD code = compile_statement(env, stmt->ast);
+        if (code)
+            CORD_appendf(&env->code->main, "%r\n", code);
+        bind_statement(env, stmt->ast);
+    }
+
+    return CORD_all(
+        // CORD_asprintf("#line 0 %r\n", Str__quoted(f->filename, false)),
+        "// Generated code:\n",
+        env->code->imports, "\n",
+        env->code->typedefs, "\n",
+        env->code->typecode, "\n",
+        env->code->staticdefs, "\n",
+        env->code->funcs, "\n",
+        env->code->typeinfos, "\n",
+        "\n"
+        "static void $load(void) {\n",
+        env->code->main,
+        "}\n"
+    );
+}
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
