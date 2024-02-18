@@ -422,8 +422,8 @@ CORD compile_type_info(env_t *env, type_t *t)
 {
     switch (t->tag) {
     case BoolType: return "&Bool_type";
-    case IntType: return CORD_asprintf("&Int%ld_type", Match(t, IntType)->bits);
-    case NumType: return CORD_asprintf("&Num%ld_type", Match(t, NumType)->bits);
+    case IntType: return CORD_asprintf("&Int%ld_type.type", Match(t, IntType)->bits);
+    case NumType: return CORD_asprintf("&Num%ld_type.type", Match(t, NumType)->bits);
     case StringType: return CORD_all("&", Match(t, StringType)->dsl ? Match(t, StringType)->dsl : "Str", "_type");
     case StructType: return CORD_all("&", Match(t, StructType)->name, "_type");
     case EnumType: return CORD_all("&", Match(t, EnumType)->name, "_type");

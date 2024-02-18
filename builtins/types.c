@@ -13,8 +13,6 @@
 #include "../util.h"
 #include "../SipHash/halfsiphash.h"
 
-extern const void *SSS_HASH_VECTOR;
-
 public CORD Type__as_str(const void *typeinfo, bool colorize, const TypeInfo *type)
 {
     if (!typeinfo) return "TypeInfo";

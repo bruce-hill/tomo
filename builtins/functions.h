@@ -8,8 +8,7 @@
 
 extern const char *SSS_HASH_VECTOR;
 
-void builtin_say(CORD str, CORD end);
-void builtin_fail(CORD fmt, ...);
+void fail(CORD fmt, ...);
 CORD builtin_last_err();
 void __doctest(CORD label, void *expr, TypeInfo *type, CORD expected, const char *filename, int start, int end);
 

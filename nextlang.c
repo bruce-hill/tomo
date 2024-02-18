@@ -45,7 +45,6 @@ int main(int argc, char *argv[])
     env_t *env = new_compilation_unit();
 
     CORD_appendf(&env->code->imports, "#include \"nextlang.h\"\n");
-    CORD_appendf(&env->code->staticdefs, "static bool USE_COLOR = true;\n");
 
     // Main body:
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
@@ -72,7 +71,7 @@ int main(int argc, char *argv[])
         "(void)argc;\n"
         "(void)argv;\n"
         "GC_INIT();\n"
-        "USE_COLOR = getenv(\"COLOR\") ? strcmp(getenv(\"COLOR\"), \"1\") == 0 : isatty(STDOUT_FILENO);\n"
+        "detect_color();\n"
         "$load();\n"
         "return 0;\n"
         "}\n"

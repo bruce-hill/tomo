@@ -19,8 +19,6 @@
 
 #define CLAMP(x, lo, hi) MIN(hi, MAX(x,lo))
 
-extern const void *SSS_HASH_VECTOR;
-
 public CORD Str__as_str(const void *str, bool colorize, const TypeInfo *info)
 {
     (void)info;

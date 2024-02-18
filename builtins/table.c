@@ -11,7 +11,6 @@
 
 #include <assert.h>
 #include <gc.h>
-#include <stdalign.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,8 +40,6 @@
 
 #define GET_ENTRY(t, i) ((t)->entries.data + (t)->entries.stride*(i))
 #define ENTRIES_TYPE(type) (&(TypeInfo){.size=sizeof(array_t), .align=alignof(array_t), .tag=ArrayInfo, .ArrayInfo.item=(&(TypeInfo){.size=entry_size(type), .align=entry_align(type), .tag=OpaqueInfo})})
-
-extern const void *SSS_HASH_VECTOR;
 
 TypeInfo MemoryPointer_typeinfo = {
     .size=sizeof(void*),

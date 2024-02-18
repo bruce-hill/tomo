@@ -12,8 +12,13 @@
 #include <unistd.h>
 
 #include "builtins/array.h"
+#include "builtins/bool.h"
+#include "builtins/color.h"
 #include "builtins/datatypes.h"
 #include "builtins/functions.h"
+#include "builtins/integers.h"
+#include "builtins/memory.h"
+#include "builtins/nums.h"
 #include "builtins/pointer.h"
 #include "builtins/string.h"
 #include "builtins/table.h"

@@ -90,7 +90,7 @@ public CORD generic_as_str(const void *obj, bool colorize, const TypeInfo *type)
     case TypeInfoInfo: return Type__as_str(obj, colorize, type);
     case CustomInfo:
         if (!type->CustomInfo.as_str)
-            builtin_fail("No cord function provided for type!\n");
+            fail("No cord function provided for type!\n");
         return type->CustomInfo.as_str(obj, colorize, type);
     default: errx(1, "Invalid type tag: %d", type->tag);
     }
@@ -146,8 +146,8 @@ public void __doctest(CORD label, void *expr, TypeInfo *type, CORD expected, con
             if (!success) {
                 if (filename && file)
                     fprint_span(stderr, file, file->text+start, file->text+end, "\x1b[31;1m", 2, USE_COLOR);
-                builtin_fail(USE_COLOR ? "\x1b[31;1mExpected: \x1b[32;7m%s\x1b[0m\n\x1b[31;1m But got: \x1b[31;7m%s\x1b[0m\n" : "Expected: %s\n But got: %s\n",
-                             expected, expr_str);
+                fail(USE_COLOR ? "\x1b[31;1mExpected: \x1b[32;7m%s\x1b[0m\n\x1b[31;1m But got: \x1b[31;7m%s\x1b[0m\n" : "Expected: %s\n But got: %s\n",
+                     expected, expr_str);
             }
         }
     }

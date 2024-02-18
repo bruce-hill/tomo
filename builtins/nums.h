@@ -5,10 +5,6 @@
 
 #include "types.h"
 
-typedef struct {
-    TypeInfo type;
-} Bool_namespace_t;
-
 CORD Num__as_str(const double *f, bool colorize, const TypeInfo *type);
 int32_t Num__compare(const double *x, const double *y, const TypeInfo *type);
 bool Num__equal(const double *x, const double *y, const TypeInfo *type);

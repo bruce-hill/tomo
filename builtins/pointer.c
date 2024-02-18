@@ -14,8 +14,6 @@
 #include "functions.h"
 #include "types.h"
 
-extern const void *SSS_HASH_VECTOR;
-
 typedef struct recursion_s {
     const void *ptr;
     struct recursion_s *next;
