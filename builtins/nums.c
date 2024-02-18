@@ -4,7 +4,6 @@
 #include <gc.h>
 #include <gc/cord.h>
 #include <math.h>
-#include <stdalign.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -54,7 +53,7 @@ public bool Num64__isnan(double n) { return isnan(n); }
 public Num64_namespace_t Num64_type = {
     .type=(TypeInfo){
         .size=sizeof(double),
-        .align=alignof(double),
+        .align=__alignof__(double),
         .tag=CustomInfo,
         .CustomInfo={
             .compare=(void*)Num64__compare,
@@ -124,7 +123,7 @@ public bool Num32__isnan(float n) { return isnan(n); }
 public Num32_namespace_t Num32_type = {
     .type=(TypeInfo){
         .size=sizeof(float),
-        .align=alignof(float),
+        .align=__alignof__(float),
         .tag=CustomInfo,
         .CustomInfo={
             .compare=(void*)Num32__compare,

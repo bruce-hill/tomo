@@ -1,7 +1,6 @@
 
 #include <gc.h>
 #include <gc/cord.h>
-#include <stdalign.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>

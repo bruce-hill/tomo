@@ -1,7 +1,6 @@
 
 #include <gc.h>
 #include <gc/cord.h>
-#include <stdalign.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -29,7 +28,7 @@ public CORD Bool__as_str(const bool *b, bool colorize, const TypeInfo *type)
 public Bool_namespace_t Bool_type = {
     .type={
         .size=sizeof(bool),
-        .align=alignof(bool),
+        .align=__alignof__(bool),
         .tag=CustomInfo,
         .CustomInfo={.as_str=(void*)Bool__as_str},
     },

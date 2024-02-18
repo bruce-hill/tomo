@@ -4,7 +4,6 @@
 #include <gc.h>
 #include <gc/cord.h>
 #include <limits.h>
-#include <stdalign.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -258,7 +257,7 @@ public CORD Str__join(CORD glue, Str_Array_t pieces)
 public Str_namespace_t Str_type = {
     .type={
         .size=sizeof(CORD),
-        .align=alignof(CORD),
+        .align=__alignof__(CORD),
         .tag=CustomInfo,
         .CustomInfo={
             .as_str=(void*)Str__as_str,

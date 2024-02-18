@@ -1,6 +1,5 @@
 #include <gc.h>
 #include <gc/cord.h>
-#include <stdalign.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -50,7 +49,7 @@
     public KindOfInt##_namespace_t KindOfInt##_type = { \
         .type={ \
             .size=sizeof(c_type), \
-            .align=alignof(c_type), \
+            .align=__alignof__(c_type), \
             .tag=CustomInfo, \
             .CustomInfo={.compare=(void*)KindOfInt##__compare, .as_str=(void*)KindOfInt##__as_str}, \
         }, \

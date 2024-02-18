@@ -2,7 +2,6 @@
 #include <err.h>
 #include <gc.h>
 #include <string.h>
-#include <stdalign.h>
 #include <stdlib.h>
 #include <sys/param.h>
 
@@ -29,7 +28,7 @@ public struct {
 } TypeInfo_type = {
     .type={
         .size=sizeof(TypeInfo),
-        .align=alignof(TypeInfo),
+        .align=__alignof__(TypeInfo),
         .tag=CustomInfo,
         .TypeInfoInfo.type_str="TypeInfo",
     },
