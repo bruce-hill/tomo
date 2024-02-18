@@ -479,22 +479,14 @@ CORD compile(env_t *env, ast_t *ast)
             CORD_appendf(&cord_func, "\treturn use_color ? \"\\x1b[0;1m%s\\x1b[m(\\x1b[2m...\\x1b[m)\" : \"%s(...)\";\n}",
                          def->name, def->name);
         } else {
-            CORD_appendf(&cord_func, "\treturn StrF(use_color ? \"\\x1b[0;1m%s\\x1b[m(", def->name);
-            for (arg_ast_t *field = def->fields; field; field = field->next) {
-                CORD_appendf(&cord_func, "%s=\\x1b[35m%%r\\x1b[m", field->name);
-                if (field->next) cord_func = CORD_cat(cord_func, ", ");
-            }
-            CORD_appendf(&cord_func, ")\" : \"%s(", def->name);
-            for (arg_ast_t *field = def->fields; field; field = field->next) {
-                CORD_appendf(&cord_func, "%s=%%r", field->name);
-                if (field->next) cord_func = CORD_cat(cord_func, ", ");
-            }
-            cord_func = CORD_cat(cord_func, ")\"");
+            CORD_appendf(&cord_func, "\treturn CORD_all(use_color ? \"\\x1b[0;1m%s\\x1b[m(\" : \"%s(\"", def->name, def->name);
             for (arg_ast_t *field = def->fields; field; field = field->next) {
                 type_t *field_t = parse_type_ast(env, field->type);
-                CORD_appendf(&cord_func, ", %r", expr_as_string(env, CORD_cat("&obj->", field->name), field_t, "use_color"));
+                CORD field_str = expr_as_string(env, CORD_cat("&obj->", field->name), field_t, "use_color");
+                CORD_appendf(&cord_func, ", \"%s=\", %r", field->name, field_str);
+                if (field->next) CORD_appendf(&cord_func, ", \", \"");
             }
-            cord_func = CORD_cat(cord_func, ");\n}");
+            CORD_appendf(&cord_func, ", \")\");\n}\n");
         }
 
         env->code->funcs = CORD_cat(env->code->funcs, cord_func);
