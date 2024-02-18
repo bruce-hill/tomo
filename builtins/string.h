@@ -47,6 +47,7 @@ typedef struct {
 } Str_namespace_t;
 extern Str_namespace_t Str;
 
+CORD Str__as_str(const void *str, bool colorize, const TypeInfo *info);
 CORD Str__quoted(CORD str, bool colorize);
 int Str__compare(CORD *x, CORD *y);
 bool Str__equal(CORD *x, CORD *y);

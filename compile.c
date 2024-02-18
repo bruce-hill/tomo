@@ -44,7 +44,7 @@ CORD expr_as_string(env_t *env, CORD expr, type_t *t, CORD color)
     case BoolType: return CORD_asprintf("Bool__as_str(%r, %r, NULL)", expr, color);
     case IntType: return CORD_asprintf("Int%ld__as_str(%r, %r, NULL)", Match(t, IntType)->bits, expr, color);
     case NumType: return CORD_asprintf("Num%ld__as_str(%r, %r, NULL)", Match(t, NumType)->bits, expr, color);
-    case StringType: return CORD_asprintf("Str__as_str(%r, %r, &Str_type.type)", expr, color);
+    case StringType: return CORD_asprintf("Str__as_str(%r, %r, &Str.type)", expr, color);
     case ArrayType: return CORD_asprintf("Array__as_str(%r, %r, %r)", expr, color, compile_type_info(env, t));
     case TableType: return CORD_asprintf("Table_as_str(%r, %r, %r)", expr, color, compile_type_info(env, t));
     case FunctionType: return CORD_asprintf("Func__as_str(%r, %r, %r)", expr, color, compile_type_info(env, t));
