@@ -528,13 +528,13 @@ CORD compile(env_t *env, ast_t *ast)
                     "}\n"
                     "}\n");
             } else {
-                key = compile(env, for_->index);
+                key = compile(env, for_->value);
                 set_binding(scope, CORD_to_const_char_star(key), new(binding_t, .type=key_t));
                 return CORD_all(
                     "{ // For loop:\n"
                     "array_t $entries = (", compile(env, for_->iter), ").entries;\n"
                     "for (Int64_t $offset = 0; $offset < $entries.length; ++$offset) {\n"
-                    "\t", compile_type(key_t), " ", key, " = *(", compile_type(key_t), "*)$entries.data + $offset*$entries.stride);\n"
+                    "\t", compile_type(key_t), " ", key, " = *(", compile_type(key_t), "*)($entries.data + $offset*$entries.stride);\n"
                     "\t", compile(scope, for_->body), "\n"
                     "}\n"
                     "}\n");
