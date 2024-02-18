@@ -47,7 +47,7 @@ public CORD Pointer__cord(const void *x, bool colorize, const TypeInfo *type) {
         pointed = generic_as_str(ptr, colorize, ptr_info.pointed);
         recursion = recursion->next;
     }
-    return colorize ? CORD_asprintf("\x1b[34;1m%s%r\x1b[m", ptr_info.sigil, pointed) : CORD_cat(ptr_info.sigil, pointed);
+    return colorize ? CORD_asprintf("\x1b[34;1m%s\x1b[m%r", ptr_info.sigil, pointed) : CORD_cat(ptr_info.sigil, pointed);
 }
 
 public int32_t Pointer__compare(const void *x, const void *y, const TypeInfo *type) {
