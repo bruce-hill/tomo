@@ -5,8 +5,9 @@
 #include <printf.h>
 
 #include "ast.h"
-#include "parse.h"
+#include "builtins/string.h"
 #include "compile.h"
+#include "parse.h"
 #include "typecheck.h"
 #include "types.h"
 
@@ -55,7 +56,7 @@ int main(int argc, char *argv[])
         bind_statement(env, stmt->ast);
     }
 
-    CORD fileinfo = CORD_asprintf("#line 0 \"%s\"\n", f->filename);
+    CORD fileinfo = CORD_asprintf("#line 0 %r\n", Str__quoted(f->filename, false));
     CORD program = CORD_all(
         fileinfo,
         "// Generated code:\n",
