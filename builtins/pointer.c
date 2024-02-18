@@ -20,10 +20,14 @@ typedef struct recursion_s {
 
 public CORD Pointer__cord(const void *x, bool colorize, const TypeInfo *type) {
     auto ptr_info = type->PointerInfo;
+    if (!x) {
+        CORD typename = generic_as_str(NULL, false, ptr_info.pointed);
+        return colorize ? CORD_asprintf("\x1b[34;1m%s%s\x1b[m", ptr_info.sigil, typename) : CORD_cat(ptr_info.sigil, typename);
+    }
     const void *ptr = *(const void**)x;
     if (!ptr) {
         CORD typename = generic_as_str(NULL, false, ptr_info.pointed);
-        return colorize ? CORD_asprintf("\x1b[34;1m!%s\x1b[m", typename) : CORD_cat(ptr_info.sigil, typename);
+        return colorize ? CORD_asprintf("\x1b[34;1m!%s\x1b[m", typename) : CORD_cat("!", typename);
     }
 
     // Check for recursive references, so if `x.foo = x`, then it prints as
