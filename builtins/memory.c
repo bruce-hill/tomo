@@ -21,7 +21,7 @@ public CORD Memory__as_str(const void *p, bool colorize, const TypeInfo *type) {
     return cord;
 }
 
-public TypeInfo Memory_type = {
+public TypeInfo Memory = {
     .size=0,
     .align=0,
     .tag=CustomInfo,

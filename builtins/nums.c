@@ -50,7 +50,7 @@ public bool Num64__isinf(double n) { return isinf(n); }
 public bool Num64__finite(double n) { return finite(n); }
 public bool Num64__isnan(double n) { return isnan(n); }
 
-public Num64_namespace_t Num64_type = {
+public Num64_namespace_t Num64 = {
     .type=(TypeInfo){
         .size=sizeof(double),
         .align=__alignof__(double),
@@ -120,7 +120,7 @@ public bool Num32__isinf(float n) { return isinf(n); }
 public bool Num32__finite(float n) { return finite(n); }
 public bool Num32__isnan(float n) { return isnan(n); }
 
-public Num32_namespace_t Num32_type = {
+public Num32_namespace_t Num32 = {
     .type=(TypeInfo){
         .size=sizeof(float),
         .align=__alignof__(float),

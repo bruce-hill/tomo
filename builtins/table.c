@@ -41,7 +41,7 @@
 #define GET_ENTRY(t, i) ((t)->entries.data + (t)->entries.stride*(i))
 #define ENTRIES_TYPE(type) (&(TypeInfo){.size=sizeof(array_t), .align=__alignof__(array_t), .tag=ArrayInfo, .ArrayInfo.item=(&(TypeInfo){.size=entry_size(type), .align=entry_align(type), .tag=OpaqueInfo})})
 
-TypeInfo MemoryPointer_typeinfo = {
+TypeInfo MemoryPointer = {
     .size=sizeof(void*),
     .align=__alignof__(void*),
     .tag=PointerInfo,
@@ -51,11 +51,11 @@ TypeInfo MemoryPointer_typeinfo = {
     },
 };
 
-TypeInfo StrToVoidStarTable_type = {
+TypeInfo StrToVoidStarTable = {
     .size=sizeof(table_t),
     .align=__alignof__(table_t),
     .tag=TableInfo,
-    .TableInfo={.key=&Str_type.type, .value=&MemoryPointer_typeinfo},
+    .TableInfo={.key=&Str.type, .value=&MemoryPointer},
 };
 
 static inline size_t entry_size(const TypeInfo *info)
@@ -547,29 +547,29 @@ public table_t Table_from_entries(array_t entries, const TypeInfo *type)
 
 void *Table_str_get(const table_t *t, const char *key)
 {
-    void **ret = Table_get(t, &key, &StrToVoidStarTable_type);
+    void **ret = Table_get(t, &key, &StrToVoidStarTable);
     return ret ? *ret : NULL;
 }
 
 void *Table_str_get_raw(const table_t *t, const char *key)
 {
-    void **ret = Table_get_raw(t, &key, &StrToVoidStarTable_type);
+    void **ret = Table_get_raw(t, &key, &StrToVoidStarTable);
     return ret ? *ret : NULL;
 }
 
 void *Table_str_reserve(table_t *t, const char *key, const void *value)
 {
-    return Table_reserve(t, &key, &value, &StrToVoidStarTable_type);
+    return Table_reserve(t, &key, &value, &StrToVoidStarTable);
 }
 
 void Table_str_set(table_t *t, const char *key, const void *value)
 {
-    Table_set(t, &key, &value, &StrToVoidStarTable_type);
+    Table_set(t, &key, &value, &StrToVoidStarTable);
 }
 
 void Table_str_remove(table_t *t, const char *key)
 {
-    return Table_remove(t, &key, &StrToVoidStarTable_type);
+    return Table_remove(t, &key, &StrToVoidStarTable);
 }
 
 void *Table_str_entry(const table_t *t, int64_t n)

@@ -46,7 +46,7 @@
         uint32_t r = arc4random_uniform((uint32_t)range); \
         return min + (c_type)r; \
     } \
-    public KindOfInt##_namespace_t KindOfInt##_type = { \
+    public KindOfInt##_namespace_t KindOfInt = { \
         .type={ \
             .size=sizeof(c_type), \
             .align=__alignof__(c_type), \

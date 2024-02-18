@@ -42,7 +42,7 @@ typedef struct {
     int (*hash)(CORD *s, TypeInfo *type);
     CORD (*cord)(CORD *s, bool colorize, TypeInfo *type);
 } Str_namespace_t;
-extern Str_namespace_t Str_type;
+extern Str_namespace_t Str;
 
 CORD Str__quoted(CORD str, bool colorize);
 int Str__compare(CORD *x, CORD *y);

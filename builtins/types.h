@@ -44,6 +44,12 @@ typedef struct TypeInfo {
     };
 } TypeInfo;
 
+typedef struct {
+    TypeInfo type;
+} TypeInfo_namespace_t;
+
+extern TypeInfo_namespace_t TypeInfo_namespace;
+
 CORD Type__as_str(const void *typeinfo, bool colorize, const TypeInfo *type);
 CORD Func__as_str(const void *fn, bool colorize, const TypeInfo *type);
 

@@ -254,7 +254,7 @@ public CORD Str__join(CORD glue, Str_Array_t pieces)
     return ret;
 }
 
-public Str_namespace_t Str_type = {
+public Str_namespace_t Str = {
     .type={
         .size=sizeof(CORD),
         .align=__alignof__(CORD),

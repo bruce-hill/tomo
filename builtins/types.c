@@ -23,9 +23,7 @@ public CORD Type__as_str(const void *typeinfo, bool colorize, const TypeInfo *ty
     return c;
 }
 
-public struct {
-    TypeInfo type;
-} TypeInfo_type = {
+public TypeInfo_namespace_t TypeInfo_namespace = {
     .type={
         .size=sizeof(TypeInfo),
         .align=__alignof__(TypeInfo),
@@ -36,10 +34,10 @@ public struct {
 
 public struct {
     TypeInfo type;
-} Void_type = {.type={.size=0, .align=0}};
+} Void = {.type={.size=0, .align=0}};
 public struct {
     TypeInfo type;
-} Abort_type = {.type={.size=0, .align=0}};
+} Abort = {.type={.size=0, .align=0}};
 
 public CORD Func__as_str(const void *fn, bool colorize, const TypeInfo *type)
 {

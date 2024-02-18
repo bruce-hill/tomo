@@ -30,6 +30,6 @@ void Table_str_remove(table_t *t, const char *key);
 
 #define Table_length(t) ((t)->entries.length)
 
-extern TypeInfo StrToVoidStarTable_type;
+extern TypeInfo StrToVoidStarTable;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1

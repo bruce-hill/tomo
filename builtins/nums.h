@@ -39,7 +39,7 @@ typedef struct {
     CORD (*format)(double f, int64_t precision);
     CORD (*scientific)(double f, int64_t precision);
 } Num64_namespace_t;
-extern Num64_namespace_t Num64_type;
+extern Num64_namespace_t Num64;
 
 CORD Num32__as_str(float *f, bool colorize, const TypeInfo *type);
 int32_t Num32__compare(const float *x, const float *y, const TypeInfo *type);
@@ -76,6 +76,6 @@ typedef struct {
     CORD (*format)(float f, int64_t precision);
     CORD (*scientific)(float f, int64_t precision);
 } Num32_namespace_t;
-extern Num32_namespace_t Num32_type;
+extern Num32_namespace_t Num32;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
