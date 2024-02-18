@@ -35,6 +35,30 @@ CORD compile_statement(env_t *env, ast_t *ast)
     return stmt ? CORD_asprintf("#line %ld\n%r", line, stmt) : stmt;
 }
 
+CORD expr_as_string(env_t *env, CORD expr, type_t *t, CORD color)
+{
+    switch (t->tag) {
+    case MemoryType: return CORD_asprintf("Memory__as_str(%r, %r, NULL)", expr, color);
+    case BoolType: return CORD_asprintf("Bool__as_str(%r, %r, NULL)", expr, color);
+    case IntType: return CORD_asprintf("Int%ld__as_str(%r, %r, NULL)", Match(t, IntType)->bits, expr, color);
+    case NumType: return CORD_asprintf("Num%ld__as_str(%r, %r, NULL)", Match(t, NumType)->bits, expr, color);
+    case StringType: return CORD_asprintf("Str__as_str(%r, %r, &Str_type.type)", expr, color);
+    case ArrayType: return CORD_asprintf("Array__as_str(%r, %r, %r)", expr, color, compile_type_info(env, t));
+    case TableType: return CORD_asprintf("Table_as_str(%r, %r, %r)", expr, color, compile_type_info(env, t));
+    case FunctionType: return CORD_asprintf("Func__as_str(%r, %r, %r)", expr, color, compile_type_info(env, t));
+    case PointerType: return CORD_asprintf("Pointer__as_str(%r, %r, %r)", expr, color, compile_type_info(env, t));
+    case StructType: case EnumType: return CORD_asprintf("%r->as_str(%r, %r, %r)", compile_type_info(env, t), expr, color);
+    default: compiler_err(NULL, NULL, NULL, "Stringifying is not supported for %T", t);
+    }
+}
+
+CORD compile_string(env_t *env, ast_t *ast, CORD color)
+{
+    type_t *t = get_type(env, ast);
+    CORD expr = compile(env, ast);
+    return expr_as_string(env, expr, t, color);
+}
+
 CORD compile(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
@@ -239,10 +263,10 @@ CORD compile(env_t *env, ast_t *ast)
         if (!chunks) {
             return "(CORD)CORD_EMPTY";
         } else if (!chunks->next) {
-            CORD code = compile(env, chunks->ast);
-            if (chunks->ast->tag != StringLiteral)
-                code = CORD_asprintf("$cord(%r)", code);
-            return code;
+            type_t *t = get_type(env, chunks->ast);
+            if (t->tag == StringType)
+                return compile(env, chunks->ast);
+            return compile_string(env, chunks->ast, "no");
         } else {
             int64_t num_chunks = 0;
             for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next)
@@ -250,10 +274,10 @@ CORD compile(env_t *env, ast_t *ast)
 
             CORD code = CORD_asprintf("CORD_catn(%ld", num_chunks);
             for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
-                CORD chunk_code = compile(env, chunk->ast);
-                if (chunk->ast->tag != StringLiteral)
-                    chunk_code = CORD_asprintf("$cord(%r)", chunk_code);
-                CORD_sprintf(&code, "%r, %r", code, chunk_code);
+                type_t *chunk_t = get_type(env, chunks->ast);
+                CORD chunk_str = (chunk_t->tag == StringType) ?
+                    compile(env, chunk->ast) : compile_string(env, chunk->ast, "no");
+                CORD_appendf(&code, ", %r", chunk_str);
             }
             return CORD_cat_char(code, ')');
         }
@@ -414,7 +438,7 @@ CORD compile(env_t *env, ast_t *ast)
         }
         CORD_appendf(&env->code->typecode, "};\n");
 
-        CORD cord_func = CORD_asprintf("CORD %s$cord(%s_t *obj, bool use_color) {\n"
+        CORD cord_func = CORD_asprintf("CORD %s__as_str(%s_t *obj, bool use_color) {\n"
                                        "\tif (!obj) return \"%s\";\n", def->name, def->name, def->name);
 
         if (def->secret) {
@@ -432,8 +456,10 @@ CORD compile(env_t *env, ast_t *ast)
                 if (field->next) cord_func = CORD_cat(cord_func, ", ");
             }
             cord_func = CORD_cat(cord_func, ")\"");
-            for (arg_ast_t *field = def->fields; field; field = field->next)
-                CORD_appendf(&cord_func, ", $cord(obj->%s)", field->name);
+            for (arg_ast_t *field = def->fields; field; field = field->next) {
+                type_t *field_t = parse_type_ast(env, field->type);
+                CORD_appendf(&cord_func, ", %r", expr_as_string(env, CORD_cat("obj->", field->name), field_t, "use_color"));
+            }
             cord_func = CORD_cat(cord_func, ");\n}");
         }
 
@@ -493,7 +519,7 @@ CORD compile(env_t *env, ast_t *ast)
             expr_cord = CORD_cat(expr_cord, "\"");
             i = 1;
             for (ast_list_t *target = assign->targets; target; target = target->next)
-                CORD_appendf(&expr_cord, ", $cord($%ld)", i++);
+                CORD_appendf(&expr_cord, ", %r", expr_as_string(env, CORD_asprintf("$%ld", i++), get_type(env, target->ast), "USE_COLOR"));
             expr_cord = CORD_cat(expr_cord, ")");
 
             CORD_appendf(&code, "$test(%r, %r, %r);",
@@ -521,7 +547,14 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case FieldAccess: {
         auto f = Match(ast, FieldAccess);
-        return CORD_asprintf("(%r).%s", compile(env, f->fielded), f->field);
+        type_t *fielded_t = get_type(env, f->fielded);
+        CORD fielded = compile(env, f->fielded);
+        while (fielded_t->tag == PointerType) {
+            if (Match(fielded_t, PointerType)->is_optional)
+                code_err(ast, "You can't dereference this value, since it's not guaranteed to be non-null");
+            fielded = CORD_all("*(", fielded, ")");
+        }
+        return CORD_asprintf("(%r).%s", fielded, f->field);
     }
     // Index, FieldAccess,
     // DocTest,

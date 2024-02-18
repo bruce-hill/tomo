@@ -102,6 +102,13 @@ void bind_statement(env_t *env, ast_t *statement)
         set_binding(env, Match(decl->var, Var)->name, new(binding_t, .type=type));
         break;
     }
+    case StructDef: {
+        auto def = Match(statement, StructDef);
+        type_t *type = Table_str_get(env->types, def->name);
+        type_t *constructor_t = Type(FunctionType, .args=Match(type, StructType)->fields, .ret=type);
+        set_binding(env, def->name, new(binding_t, .type=constructor_t));
+        break;
+    }
     default: break;
     }
 }
