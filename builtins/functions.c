@@ -20,11 +20,13 @@ extern bool USE_COLOR;
 
 public const char *SSS_HASH_VECTOR = "sss hash vector ----------------------------------------------";;
 
-public void fail(const char *fmt, ...)
+public void fail(CORD fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
+    if (USE_COLOR) fputs("\x1b[31;7m FAIL: \x1b[m ", stderr);
+    else fputs("FAIL: ", stderr);
+    CORD_vfprintf(stderr, fmt, args);
     va_end(args);
     raise(SIGABRT);
 }
@@ -145,7 +147,7 @@ public void __doctest(void *expr, TypeInfo *type, CORD expected, const char *fil
             if (!success) {
                 if (filename && file)
                     fprint_span(stderr, file, file->text+start, file->text+end, "\x1b[31;1m", 2, USE_COLOR);
-                fail(USE_COLOR ? "\x1b[31;1mExpected: \x1b[32;7m%s\x1b[0m\n\x1b[31;1m But got: \x1b[31;7m%s\x1b[0m\n" : "Expected: %s\n But got: %s\n",
+                fail(USE_COLOR ? "\x1b[31;1mDoctest failure:\nExpected: \x1b[32;7m%s\x1b[0m\n\x1b[31;1m But got: \x1b[31;7m%s\x1b[0m\n" : "Doctest failure:\nExpected: %s\n But got: %s\n",
                      expected, expr_str);
             }
         }

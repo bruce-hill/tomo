@@ -10,8 +10,8 @@
 // Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
 #define $Array_get(type, x, i) ({ const array_t *$arr = x; int64_t $index = (int64_t)(i); \
                                 int64_t $off = $index + ($index < 0) * ($arr->length + 1) - 1; \
-                                if (__builtin_expect($off < 0 && $off >= $arr->length, 0)) \
-                                    fail("Invalid array index: %ld (array has length %ld)", $index, $arr->length); \
+                                if (__builtin_expect($off < 0 || $off >= $arr->length, 0)) \
+                                    fail("Invalid array index: %ld (array has length %ld)\n", $index, $arr->length); \
                                 *(type*)($arr->data + $arr->stride * $off);})
 #define $Array_get_unchecked(type, x, i) ({ const array_t *$arr = x; int64_t $index = (int64_t)(i); \
                                           int64_t $off = $index + ($index < 0) * ($arr->length + 1) - 1; \
