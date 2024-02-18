@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include "ast.h"
+#include "builtins/string.h"
 #include "compile.h"
 #include "environment.h"
 #include "typecheck.h"
@@ -500,7 +501,7 @@ CORD compile(env_t *env, ast_t *ast)
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
             CORD_appendf(&env->code->typecode, "%s$%s = %ld, ", def->name, tag->name, tag->value);
         }
-        env->code->typecode = CORD_cat(env->code->typecode, "} tag;\nunion {\n");
+        env->code->typecode = CORD_cat(env->code->typecode, "} $tag;\nunion {\n");
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
             env->code->typecode = CORD_cat(env->code->typecode, "struct {\n");
             for (arg_ast_t *field = tag->fields; field; field = field->next) {
@@ -509,8 +510,34 @@ CORD compile(env_t *env, ast_t *ast)
                              CORD_cmp(type, "Bool_t") ? "" : ":1");
             }
             CORD_appendf(&env->code->typecode, "} %s;\n", tag->name);
+            CORD_appendf(&env->code->typedefs, "#define %s__%s(...) ((%s_t){%s$%s, .%s={__VA_ARGS__}})\n",
+                         def->name, tag->name, def->name, def->name, tag->name, tag->name);
         }
-        env->code->typecode = CORD_cat(env->code->typecode, "} $data;\n};\n");
+        env->code->typecode = CORD_cat(env->code->typecode, "};\n};\n");
+
+        CORD cord_func = CORD_all("static CORD ", def->name, "__as_str(", def->name, "_t *obj, bool use_color) {\n",
+                                  "\tif (!obj) return \"", def->name, "\";\n",
+                                  "\tswitch (obj->$tag) {\n");
+        for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
+            cord_func = CORD_all(cord_func, "\tcase ", def->name, "$", tag->name, ": return CORD_all(use_color ? \"\\x1b[36;1m",
+                         def->name, ".", tag->name, "\\x1b[m(\" : \"", def->name, ".", tag->name, "(\"");
+
+            for (arg_ast_t *field = tag->fields; field; field = field->next) {
+                type_t *field_t = parse_type_ast(env, field->type);
+                CORD field_str = expr_as_string(env, CORD_all("&obj->", tag->name, ".", field->name), field_t, "use_color");
+                CORD_appendf(&cord_func, ", \"%s=\", %r", field->name, field_str);
+                if (field->next) CORD_appendf(&cord_func, ", \", \"");
+            }
+            CORD_appendf(&cord_func, ", \")\");\n");
+        }
+        CORD_appendf(&cord_func, "\t}\n}\n");
+        env->code->funcs = CORD_cat(env->code->funcs, cord_func);
+
+        // Typeinfo:
+        CORD_appendf(&env->code->typedefs, "typedef struct { TypeInfo type; } %s_namespace_t;\n", def->name);
+        CORD_appendf(&env->code->typedefs, "extern %s_namespace_t %s;\n", def->name, def->name);
+        CORD_appendf(&env->code->typeinfos, "public %s_namespace_t %s = {.type={.tag=CustomInfo, .CustomInfo={.as_str=(void*)%s__as_str}}};\n", def->name, def->name, def->name);
+
         return CORD_EMPTY;
     }
     case DocTest: {

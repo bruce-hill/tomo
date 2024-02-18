@@ -119,6 +119,31 @@ void bind_statement(env_t *env, ast_t *statement)
         set_binding(env, def->name, new(binding_t, .type=constructor_t));
         break;
     }
+    case EnumDef: {
+        auto def = Match(statement, EnumDef);
+
+        tag_t *tags = NULL;
+        type_t *type = Type(EnumType, .name=def->name, .tags=tags); // placeholder
+        for (tag_ast_t *tag_ast = def->tags; tag_ast; tag_ast = tag_ast->next) {
+            arg_t *fields = NULL;
+            for (arg_ast_t *field_ast = tag_ast->fields; field_ast; field_ast = field_ast->next) {
+                type_t *field_t = parse_type_ast(env, field_ast->type);
+                fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->default_val, .next=fields);
+            }
+            REVERSE_LIST(fields);
+            type_t *tag_type = Type(StructType, .name=heap_strf("%s$%s", def->name, tag_ast->name), .fields=fields);
+            tags = new(tag_t, .name=tag_ast->name, .tag_value=tag_ast->value, .type=tag_type, .next=tags);
+        }
+        REVERSE_LIST(tags);
+        type->__data.EnumType.tags = tags;
+
+        for (tag_t *tag = tags; tag; tag = tag->next) {
+            const char *name = heap_strf("%s__%s", def->name, tag->name);
+            type_t *constructor_t = Type(FunctionType, .args=Match(tag->type, StructType)->fields, .ret=type);
+            set_binding(env, name, new(binding_t, .type=constructor_t));
+        }
+        break;
+    }
     default: break;
     }
 }
