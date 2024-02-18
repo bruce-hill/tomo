@@ -128,7 +128,7 @@ public void __doctest(void *expr, TypeInfo *type, CORD expected, const char *fil
         file = load_file(filename);
 
     if (filename && file)
-        CORD_fprintf(stderr, USE_COLOR ? "\x1b[33;1m>>> \x1b[0m%.*s\x1b[m\n" : ">>> %.*s\n", (end - start), file->text + start);
+        CORD_fprintf(stderr, USE_COLOR ? "\x1b[33;1m>> \x1b[0m%.*s\x1b[m\n" : ">> %.*s\n", (end - start), file->text + start);
 
     if (expr) {
         CORD expr_str = generic_as_str(expr, USE_COLOR, type);
