@@ -139,7 +139,6 @@ public void __doctest(void *expr, TypeInfo *type, CORD expected, const char *fil
             CORD expr_plain = USE_COLOR ? generic_as_str(expr, false, type) : expr_str;
             bool success = (CORD_cmp(expr_plain, expected) == 0);
             if (!success && CORD_chr(expected, 0, ':')) {
-                expr_plain = heap_strf("%s : %s", expr_plain, type_name);
                 success = (CORD_cmp(CORD_catn(3, expr_plain, " : ", type_name), expected) == 0);
             }
 
