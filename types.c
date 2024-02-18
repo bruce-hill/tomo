@@ -500,22 +500,22 @@ size_t type_align(type_t *t)
     switch (t->tag) {
     case UnknownType: case AbortType: case VoidType: return 0;
     case MemoryType: errx(1, "Memory has undefined type alignment");
-    case BoolType: return alignof(bool);
+    case BoolType: return __alignof__(bool);
     case IntType: return Match(t, IntType)->bits/8;
     case NumType: return Match(t, NumType)->bits/8;
-    case StringType: return alignof(CORD);
-    case ArrayType: return alignof(array_t);
-    case TableType: return alignof(table_t);
-    case FunctionType: return alignof(void*);
-    case ClosureType: return alignof(void*);
-    case PointerType: return alignof(void*);
+    case StringType: return __alignof__(CORD);
+    case ArrayType: return __alignof__(array_t);
+    case TableType: return __alignof__(table_t);
+    case FunctionType: return __alignof__(void*);
+    case ClosureType: return __alignof__(void*);
+    case PointerType: return __alignof__(void*);
     case StructType: {
         errx(1, "Not implemented");
     }
     case EnumType: {
         errx(1, "Not implemented");
     }
-    case TypeInfoType: return alignof(TypeInfo);
+    case TypeInfoType: return __alignof__(TypeInfo);
     case PlaceholderType: errx(1, "This should not be reachable");
     }
     errx(1, "This should not be reachable");

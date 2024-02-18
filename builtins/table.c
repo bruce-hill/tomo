@@ -39,11 +39,11 @@
 #define END_OF_CHAIN UINT32_MAX
 
 #define GET_ENTRY(t, i) ((t)->entries.data + (t)->entries.stride*(i))
-#define ENTRIES_TYPE(type) (&(TypeInfo){.size=sizeof(array_t), .align=alignof(array_t), .tag=ArrayInfo, .ArrayInfo.item=(&(TypeInfo){.size=entry_size(type), .align=entry_align(type), .tag=OpaqueInfo})})
+#define ENTRIES_TYPE(type) (&(TypeInfo){.size=sizeof(array_t), .align=__alignof__(array_t), .tag=ArrayInfo, .ArrayInfo.item=(&(TypeInfo){.size=entry_size(type), .align=entry_align(type), .tag=OpaqueInfo})})
 
 TypeInfo MemoryPointer_typeinfo = {
     .size=sizeof(void*),
-    .align=alignof(void*),
+    .align=__alignof__(void*),
     .tag=PointerInfo,
     .PointerInfo={
         .sigil="@",
@@ -53,7 +53,7 @@ TypeInfo MemoryPointer_typeinfo = {
 
 TypeInfo StrToVoidStarTable_type = {
     .size=sizeof(table_t),
-    .align=alignof(table_t),
+    .align=__alignof__(table_t),
     .tag=TableInfo,
     .TableInfo={.key=&Str_type.type, .value=&MemoryPointer_typeinfo},
 };

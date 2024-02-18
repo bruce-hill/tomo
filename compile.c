@@ -441,8 +441,8 @@ CORD compile(env_t *env, ast_t *ast)
 
         // Typeinfo:
         CORD_appendf(&env->code->typedefs, "typedef struct { TypeInfo type; } %s_namespace_t;\n", def->name);
-        CORD_appendf(&env->code->typedefs, "extern %s_namespace_t %s_type;\n", def->name, def->name);
-        CORD_appendf(&env->code->typeinfos, "public %s_namespace_t %s_type = {.type={.tag=CustomInfo, .CustomInfo={.as_str=(void*)%s__as_str}}};\n", def->name, def->name, def->name);
+        CORD_appendf(&env->code->typedefs, "extern %s_namespace_t %s;\n", def->name, def->name);
+        CORD_appendf(&env->code->typeinfos, "public %s_namespace_t %s = {.type={.tag=CustomInfo, .CustomInfo={.as_str=(void*)%s__as_str}}};\n", def->name, def->name, def->name);
 
         CORD cord_func = CORD_asprintf("static CORD %s__as_str(%s_t *obj, bool use_color) {\n"
                                        "\tif (!obj) return \"%s\";\n", def->name, def->name, def->name);
@@ -576,16 +576,16 @@ CORD compile_type_info(env_t *env, type_t *t)
 {
     switch (t->tag) {
     case BoolType: return "&Bool_type.type";
-    case IntType: return CORD_asprintf("&Int%ld_type.type", Match(t, IntType)->bits);
-    case NumType: return CORD_asprintf("&Num%ld_type.type", Match(t, NumType)->bits);
-    case StringType: return CORD_all("&", Match(t, StringType)->dsl ? Match(t, StringType)->dsl : "Str", "_type.type");
-    case StructType: return CORD_all("&", Match(t, StructType)->name, "_type.type");
-    case EnumType: return CORD_all("&", Match(t, EnumType)->name, "_type.type");
+    case IntType: return CORD_asprintf("&Int%ld.type", Match(t, IntType)->bits);
+    case NumType: return CORD_asprintf("&Num%ld.type", Match(t, NumType)->bits);
+    case StringType: return CORD_all("&", Match(t, StringType)->dsl ? Match(t, StringType)->dsl : "Str", ".type");
+    case StructType: return CORD_all("&", Match(t, StructType)->name, ".type");
+    case EnumType: return CORD_all("&", Match(t, EnumType)->name, ".type");
     case ArrayType: {
         type_t *item_t = Match(t, ArrayType)->item_type;
         return CORD_asprintf(
             "&((TypeInfo){.size=%zu, .align=%zu, .tag=ArrayInfo, .ArrayInfo.item=%r})",
-            sizeof(array_t), alignof(array_t),
+            sizeof(array_t), __alignof__(array_t),
             compile_type_info(env, item_t));
     }
     case TableType: {
@@ -593,7 +593,7 @@ CORD compile_type_info(env_t *env, type_t *t)
         type_t *value_type = Match(t, TableType)->value_type;
         return CORD_asprintf(
             "&((TypeInfo){.size=%zu, .align=%zu, .tag=TableInfo, .TableInfo.key=%r, .TableInfo.value=%r})",
-            sizeof(table_t), alignof(table_t),
+            sizeof(table_t), __alignof__(table_t),
             compile_type_info(env, key_type),
             compile_type_info(env, value_type));
     }
@@ -603,12 +603,12 @@ CORD compile_type_info(env_t *env, type_t *t)
         if (ptr->is_readonly) sigil = CORD_cat(sigil, "(readonly)");
         return CORD_asprintf(
             "&((TypeInfo){.size=%zu, .align=%zu, .tag=PointerInfo, .PointerInfo.sigil=\"%r\", .PointerInfo.pointed=%r})",
-            sizeof(void*), alignof(void*),
+            sizeof(void*), __alignof__(void*),
             sigil, compile_type_info(env, ptr->pointed));
     }
     case FunctionType: {
         return CORD_asprintf("&((TypeInfo){.size=%zu, .align=%zu, .tag=FunctionInfo, .FunctionInfo.type_str=\"%r\"})",
-                             sizeof(void*), alignof(void*), type_to_cord(t));
+                             sizeof(void*), __alignof__(void*), type_to_cord(t));
     }
     case ClosureType: {
         errx(1, "No typeinfo for closures yet");
