@@ -350,8 +350,9 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Declare: {
         auto decl = Match(ast, Declare);
-        return CORD_asprintf("$var(%r, %r);", compile(env, decl->var), compile(env, decl->value));
+        type_t *t = get_type(env, decl->value);
         // return CORD_asprintf("auto %r = %r;", compile(env, decl->var), compile(env, decl->value));
+        return CORD_asprintf("%r %r = %r;", compile_type(t), compile(env, decl->var), compile(env, decl->value));
     }
     case Assign: {
         auto assign = Match(ast, Assign);
@@ -362,7 +363,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD code = "{ // Assignment\n";
         int64_t i = 1;
         for (ast_list_t *value = assign->values; value; value = value->next)
-            CORD_appendf(&code, "$var($%ld, %r);\n", i++, compile(env, value->ast));
+            CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(get_type(env, value->ast)), i++, compile(env, value->ast));
         i = 1;
         for (ast_list_t *target = assign->targets; target; target = target->next)
             CORD_appendf(&code, "%r = $%ld;\n", compile(env, target->ast), i++);
@@ -610,18 +611,17 @@ CORD compile(env_t *env, ast_t *ast)
             CORD code = "{ // Assignment\n";
             int64_t i = 1;
             for (ast_list_t *value = assign->values; value; value = value->next)
-                CORD_appendf(&code, "$var($%ld, %r);\n", i++, compile(env, value->ast));
+                CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(get_type(env, value->ast)), i++, compile(env, value->ast));
             i = 1;
             for (ast_list_t *target = assign->targets; target; target = target->next)
                 CORD_appendf(&code, "%r = $%ld;\n", compile(env, target->ast), i++);
 
-            CORD expr_cord = "StrF(\"";
-            for (ast_list_t *target = assign->targets; target; target = target->next)
-                expr_cord = CORD_cat(expr_cord, target->next ? "%r, " : "%r");
-            expr_cord = CORD_cat(expr_cord, "\"");
+            CORD expr_cord = "CORD_all(";
             i = 1;
-            for (ast_list_t *target = assign->targets; target; target = target->next)
-                CORD_appendf(&expr_cord, ", %r", expr_as_string(env, CORD_asprintf("$%ld", i++), get_type(env, target->ast), "USE_COLOR"));
+            for (ast_list_t *target = assign->targets; target; target = target->next) {
+                CORD item = expr_as_string(env, CORD_asprintf("&$%ld", i++), get_type(env, target->ast), "USE_COLOR");
+                expr_cord = CORD_all(expr_cord, item, target->next ? ", \", \", " : CORD_EMPTY);
+            }
             expr_cord = CORD_cat(expr_cord, ")");
 
             CORD_appendf(&code, "$test(%r, %r, %r);",
