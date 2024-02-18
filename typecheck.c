@@ -368,6 +368,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         return Type(AbortType);
     }
     case Pass: return Type(VoidType);
+    case Length: return Type(IntType, .bits=64);
     case Negative: {
         type_t *t = get_type(env, Match(ast, Negative)->value);
         if (t->tag == IntType || t->tag == NumType)

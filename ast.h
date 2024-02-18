@@ -88,7 +88,7 @@ typedef enum {
     StringLiteral, StringJoin,
     Declare, Assign,
     BinaryOp, UpdateAssign,
-    Not, Negative, HeapAllocate, StackReference,
+    Length, Not, Negative, HeapAllocate, StackReference,
     Min, Max,
     Array, Table, TableEntry,
     FunctionDef, Lambda,
@@ -150,7 +150,7 @@ struct ast_s {
         } BinaryOp, UpdateAssign;
         struct {
             ast_t *value;
-        } Not, Negative, HeapAllocate, StackReference;
+        } Length, Not, Negative, HeapAllocate, StackReference;
         struct {
             ast_t *lhs, *rhs, *key;
         } Min, Max;

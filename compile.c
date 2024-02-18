@@ -75,6 +75,27 @@ CORD compile(env_t *env, ast_t *ast)
         char *buf = asprintfa(Match(ast, Num)->bits == 64 ? "%a" : "%af", Match(ast, Num)->n);
         return CORD_from_char_star(buf);
     }
+    case Length: {
+        ast_t *expr = Match(ast, Length)->value;
+        CORD code = compile(env, expr);
+        type_t *t = get_type(env, expr);
+      next_value:;
+        switch (t->tag) {
+        case PointerType: {
+            auto ptr = Match(t, PointerType);
+            if (ptr->is_optional)
+                code_err(ast, "You can't dereference this value, since it's not guaranteed to be non-null");
+            code = CORD_all("*(", code, ")");
+            t = ptr->pointed;
+            goto next_value;
+        }
+        case StringType: return CORD_all("CORD_len(", code, ")");
+        case ArrayType: return CORD_all("I64((", code, ").length)");
+        case TableType: return CORD_all("I64((", code, ").entries.length)");
+        default: code_err(ast, "Length is only supported for strings, arrays, and tables, not: %T", t);
+        }
+        break;
+    }
     case Not: return CORD_asprintf("not(%r)", compile(env, Match(ast, Not)->value));
     case Negative: return CORD_asprintf("-(%r)", compile(env, Match(ast, Negative)->value));
     case HeapAllocate: return CORD_asprintf("$heap(%r)", compile(env, Match(ast, HeapAllocate)->value));
