@@ -7,7 +7,11 @@
 #include "util.h"
 #include "environment.h"
 
-CORD compile_file(ast_t *ast);
+typedef struct {
+    CORD header, c_file;
+} module_code_t;
+
+module_code_t compile_file(ast_t *ast);
 CORD compile_type_ast(env_t *env, type_ast_t *t);
 CORD compile(env_t *env, ast_t *ast);
 CORD compile_statement(env_t *env, ast_t *ast);

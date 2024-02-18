@@ -685,7 +685,7 @@ CORD compile_type_info(env_t *env, type_t *t)
     }
 }
 
-CORD compile_file(ast_t *ast)
+module_code_t compile_file(ast_t *ast)
 {
     env_t *env = new_compilation_unit();
     CORD_appendf(&env->code->imports, "#include \"nextlang.h\"\n");
@@ -697,20 +697,23 @@ CORD compile_file(ast_t *ast)
         bind_statement(env, stmt->ast);
     }
 
-    return CORD_all(
-        // CORD_asprintf("#line 0 %r\n", Str__quoted(f->filename, false)),
-        "// Generated code:\n",
-        env->code->imports, "\n",
-        env->code->typedefs, "\n",
-        env->code->typecode, "\n",
-        env->code->staticdefs, "\n",
-        env->code->funcs, "\n",
-        env->code->typeinfos, "\n",
-        "\n"
-        "static void $load(void) {\n",
-        env->code->main,
-        "}\n"
-    );
+    return (module_code_t){
+        .header=CORD_all(
+            // CORD_asprintf("#line 0 %r\n", Str__quoted(ast->file->filename, false)),
+            env->code->imports, "\n",
+            env->code->typedefs, "\n",
+            env->code->typecode, "\n"),
+        .c_file=CORD_all(
+            // CORD_asprintf("#line 0 %r\n", Str__quoted(ast->file->filename, false)),
+            env->code->staticdefs, "\n",
+            env->code->funcs, "\n",
+            env->code->typeinfos, "\n",
+            "\n"
+            "static void $load(void) {\n",
+            env->code->main,
+            "}\n"
+        ),
+   };
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

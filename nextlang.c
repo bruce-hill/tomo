@@ -44,13 +44,15 @@ int main(int argc, char *argv[])
         fclose(out);
     }
 
-    CORD module = compile_file(ast);
+    module_code_t module = compile_file(ast);
 
     CORD program = CORD_all(
-        // CORD_asprintf("#line 0 %r\n", Str__quoted(f->filename, false)),
-        "// Generated code:\n",
-        module,
-        "\n"
+        "// File: ", f->filename, ".h\n",
+        module.header,
+        "\n",
+        "// File: ", f->filename, ".c\n",
+        module.c_file,
+        "\n",
         "int main(int argc, const char *argv[]) {\n"
         "(void)argc;\n"
         "(void)argv;\n"
