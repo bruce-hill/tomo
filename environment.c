@@ -52,6 +52,12 @@ env_t *new_compilation_unit(void)
     } global_types[] = {
         {"Bool", Type(BoolType), "Bool_t", "Bool", {}},
         {"Int", Type(IntType, .bits=64), "Int_t", "Int", {}},
+        {"Int32", Type(IntType, .bits=32), "Int32_t", "Int", {}},
+        {"Int16", Type(IntType, .bits=16), "Int16_t", "Int", {}},
+        {"Int8", Type(IntType, .bits=8), "Int8_t", "Int", {}},
+        {"Num", Type(NumType, .bits=64), "Num_t", "Num", {}},
+        {"Num32", Type(NumType, .bits=32), "Num32_t", "Num32", {}},
+        {"Str", Type(StringType), "Str_t", "Str", {}},
     };
 
     for (size_t i = 0; i < sizeof(global_types)/sizeof(global_types[0]); i++) {
