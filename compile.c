@@ -68,16 +68,16 @@ CORD compile_statement(env_t *env, ast_t *ast)
 CORD expr_as_string(env_t *env, CORD expr, type_t *t, CORD color)
 {
     switch (t->tag) {
-    case MemoryType: return CORD_asprintf("Memory__as_str(%r, %r, NULL)", expr, color);
-    case BoolType: return CORD_asprintf("Bool__as_str(%r, %r, NULL)", expr, color);
-    case IntType: return CORD_asprintf("Int%ld__as_str(%r, %r, NULL)", Match(t, IntType)->bits, expr, color);
-    case NumType: return CORD_asprintf("Num%ld__as_str(%r, %r, NULL)", Match(t, NumType)->bits, expr, color);
-    case StringType: return CORD_asprintf("Str__as_str(%r, %r, &Str.type)", expr, color);
-    case ArrayType: return CORD_asprintf("Array__as_str(%r, %r, %r)", expr, color, compile_type_info(env, t));
-    case TableType: return CORD_asprintf("Table_as_str(%r, %r, %r)", expr, color, compile_type_info(env, t));
-    case FunctionType: return CORD_asprintf("Func__as_str(%r, %r, %r)", expr, color, compile_type_info(env, t));
-    case PointerType: return CORD_asprintf("Pointer__as_str(%r, %r, %r)", expr, color, compile_type_info(env, t));
-    case StructType: case EnumType: return CORD_asprintf("(%r)->CustomInfo.as_str(%r, %r, %r)",
+    case MemoryType: return CORD_asprintf("Memory__as_str($stack(%r), %r, NULL)", expr, color);
+    case BoolType: return CORD_asprintf("Bool__as_str($stack(%r), %r, NULL)", expr, color);
+    case IntType: return CORD_asprintf("Int%ld__as_str($stack(%r), %r, NULL)", Match(t, IntType)->bits, expr, color);
+    case NumType: return CORD_asprintf("Num%ld__as_str($stack(%r), %r, NULL)", Match(t, NumType)->bits, expr, color);
+    case StringType: return CORD_asprintf("Str__as_str($stack(%r), %r, &Str.type)", expr, color);
+    case ArrayType: return CORD_asprintf("Array__as_str($stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case TableType: return CORD_asprintf("Table_as_str($stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case FunctionType: return CORD_asprintf("Func__as_str($stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case PointerType: return CORD_asprintf("Pointer__as_str($stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case StructType: case EnumType: return CORD_asprintf("(%r)->CustomInfo.as_str($stack(%r), %r, %r)",
                                                          compile_type_info(env, t), expr, color, compile_type_info(env, t));
     default: compiler_err(NULL, NULL, NULL, "Stringifying is not supported for %T", t);
     }
@@ -320,18 +320,15 @@ CORD compile(env_t *env, ast_t *ast)
                 return compile(env, chunks->ast);
             return compile_string(env, chunks->ast, "no");
         } else {
-            int64_t num_chunks = 0;
-            for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next)
-                ++num_chunks;
-
-            CORD code = CORD_asprintf("CORD_catn(%ld", num_chunks);
+            CORD code = "CORD_all(";
             for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
-                type_t *chunk_t = get_type(env, chunks->ast);
+                type_t *chunk_t = get_type(env, chunk->ast);
                 CORD chunk_str = (chunk_t->tag == StringType) ?
                     compile(env, chunk->ast) : compile_string(env, chunk->ast, "no");
-                CORD_appendf(&code, ", %r", chunk_str);
+                code = CORD_cat(code, chunk_str);
+                if (chunk->next) code = CORD_cat(code, ", ");
             }
-            return CORD_cat_char(code, ')');
+            return CORD_cat(code, ")");
         }
     }
     case Block: {
@@ -400,18 +397,29 @@ CORD compile(env_t *env, ast_t *ast)
         }
            
         type_t *table_t = get_type(env, ast);
-        // TODO: figure out a clever way to optimize table literals:
-        CORD code = CORD_all("({ table_t $table = {}; TypeInfo *$table_type = ", compile_type_info(env, table_t), ";");
+        type_t *key_t = Match(table_t, TableType)->key_type;
+        type_t *value_t = Match(table_t, TableType)->value_type;
+        CORD code = CORD_all("$Table(",
+                             compile_type(key_t), ", ",
+                             compile_type(value_t), ", ",
+                             compile_type_info(env, key_t), ", ",
+                             compile_type_info(env, value_t), ", /*fallback:*/");
+        if (table->fallback)
+            code = CORD_all(code, "$heap(", compile(env, table->fallback), ");\n");
+        else
+            code = CORD_all(code, "NULL, ");
+
+        code = CORD_cat(code, "/*default:*/");
+        if (table->default_value)
+            code = CORD_all(code, "$heap(", compile(env, table->default_value), ");\n");
+        else
+            code = CORD_all(code, "NULL");
+
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
             auto entry = Match(entry->ast, TableEntry);
-            code = CORD_all(code, " Table_set(&$table, $stack(",
-                            compile(env, entry->key), "), $stack(", compile(env, entry->value), "), $table_type);");
+            code = CORD_all(code, ",\n\t{", compile(env, entry->key), ", ", compile(env, entry->value), "}");
         }
-        if (table->fallback)
-            code = CORD_all(code, " $table.fallback = $heap(", compile(env, table->fallback), ");");
-        if (table->default_value)
-            code = CORD_all(code, " $table.default_value = $heap(", compile(env, table->default_value), ");");
-        return CORD_cat(code, " $table; })");
+        return CORD_cat(code, ")");
 
     }
     // Table, TableEntry,
@@ -477,17 +485,74 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case For: {
         auto for_ = Match(ast, For);
-        CORD index = for_->index ? compile(env, for_->index) : "$i";
-        return CORD_asprintf("{\n"
-                             "$var($iter, %r);\n"
-                             "for (int64_t %r = 1, $len = ($iter).length; %r <= $len; ++%r) {\n"
-                             "$var(%r, $safe_index($iter, %s));\n"
-                             "%r\n"
-                             "}\n}",
-                             compile(env, for_->iter),
-                             index, index, index,
-                             compile(env, for_->value), index,
-                             compile(env, for_->body));
+        type_t *iter_t = get_type(env, for_->iter);
+        switch (iter_t->tag) {
+        case ArrayType: {
+            type_t *item_t = Match(iter_t, ArrayType)->item_type;
+            env_t *scope = fresh_scope(env);
+            CORD index = for_->index ? compile(env, for_->index) : "$i";
+            if (for_->index)
+                set_binding(scope, CORD_to_const_char_star(index), new(binding_t, .type=Type(IntType, .bits=64)));
+            CORD value = compile(env, for_->value);
+            set_binding(scope, CORD_to_const_char_star(value), new(binding_t, .type=item_t));
+            return CORD_all(
+                "{ // For loop:\n"
+                "array_t $iter = ", compile(env, for_->iter), ";\n"
+                "for (Int64_t ", index, " = 1; ", index, " <= $iter.length; ++", index, ") {\n"
+                "\t", compile_type(item_t), " ", value, " = *(", compile_type(item_t), "*)($iter.data + (", index, "-1)*$iter.stride);\n"
+                "\t", compile(scope, for_->body), "\n"
+                "}\n"
+                "}\n");
+        }
+        case TableType: {
+            type_t *key_t = Match(iter_t, TableType)->key_type;
+            type_t *value_t = Match(iter_t, TableType)->value_type;
+            env_t *scope = fresh_scope(env);
+            CORD key, value;
+            if (for_->index) {
+                key = compile(env, for_->index);
+                value = compile(env, for_->value);
+                set_binding(scope, CORD_to_const_char_star(key), new(binding_t, .type=key_t));
+                set_binding(scope, CORD_to_const_char_star(value), new(binding_t, .type=value_t));
+
+                size_t value_offset = type_size(key_t);
+                if (type_align(value_t) > 1 && value_offset % type_align(value_t))
+                    value_offset += type_align(value_t) - (value_offset % type_align(value_t)); // padding
+                return CORD_all(
+                    "{ // For loop:\n"
+                    "array_t $entries = (", compile(env, for_->iter), ").entries;\n"
+                    "for (Int64_t $offset = 0; $offset < $entries.length; ++$offset) {\n"
+                    "\t", compile_type(key_t), " ", key, " = *(", compile_type(key_t), "*)($entries.data + $offset*$entries.stride);\n"
+                    "\t", compile_type(value_t), " ", value, " = *(", compile_type(value_t), "*)($entries.data + $offset*$entries.stride + ", CORD_asprintf("%zu", value_offset), ");\n"
+                    "\t", compile(scope, for_->body), "\n"
+                    "}\n"
+                    "}\n");
+            } else {
+                key = compile(env, for_->index);
+                set_binding(scope, CORD_to_const_char_star(key), new(binding_t, .type=key_t));
+                return CORD_all(
+                    "{ // For loop:\n"
+                    "array_t $entries = (", compile(env, for_->iter), ").entries;\n"
+                    "for (Int64_t $offset = 0; $offset < $entries.length; ++$offset) {\n"
+                    "\t", compile_type(key_t), " ", key, " = *(", compile_type(key_t), "*)$entries.data + $offset*$entries.stride);\n"
+                    "\t", compile(scope, for_->body), "\n"
+                    "}\n"
+                    "}\n");
+            }
+        }
+        case IntType: {
+            type_t *item_t = iter_t;
+            env_t *scope = fresh_scope(env);
+            if (for_->index)
+                code_err(for_->index, "It's redundant to have a separate iteration index");
+            CORD value = compile(env, for_->value);
+            set_binding(scope, CORD_to_const_char_star(value), new(binding_t, .type=item_t));
+            return CORD_all(
+                "for (Int64_t ", value, " = 1, $n = ", compile(env, for_->iter), "; ", value, " <= $n; ++", value, ")\n"
+                "\t", compile(scope, for_->body), "\n");
+        }
+        default: code_err(for_->iter, "Iteration is not implemented for type: %T", iter_t);
+        }
     }
     // For,
     // Reduction,
@@ -533,7 +598,7 @@ CORD compile(env_t *env, ast_t *ast)
             CORD_appendf(&cord_func, "\treturn CORD_all(use_color ? \"\\x1b[0;1m%s\\x1b[m(\" : \"%s(\"", def->name, def->name);
             for (arg_ast_t *field = def->fields; field; field = field->next) {
                 type_t *field_t = parse_type_ast(env, field->type);
-                CORD field_str = expr_as_string(env, CORD_cat("&obj->", field->name), field_t, "use_color");
+                CORD field_str = expr_as_string(env, CORD_cat("obj->", field->name), field_t, "use_color");
                 CORD_appendf(&cord_func, ", \"%s=\", %r", field->name, field_str);
                 if (field->next) CORD_appendf(&cord_func, ", \", \"");
             }
@@ -574,7 +639,7 @@ CORD compile(env_t *env, ast_t *ast)
 
             for (arg_ast_t *field = tag->fields; field; field = field->next) {
                 type_t *field_t = parse_type_ast(env, field->type);
-                CORD field_str = expr_as_string(env, CORD_all("&obj->", tag->name, ".", field->name), field_t, "use_color");
+                CORD field_str = expr_as_string(env, CORD_all("obj->", tag->name, ".", field->name), field_t, "use_color");
                 CORD_appendf(&cord_func, ", \"%s=\", %r", field->name, field_str);
                 if (field->next) CORD_appendf(&cord_func, ", \", \"");
             }
@@ -619,7 +684,7 @@ CORD compile(env_t *env, ast_t *ast)
             CORD expr_cord = "CORD_all(";
             i = 1;
             for (ast_list_t *target = assign->targets; target; target = target->next) {
-                CORD item = expr_as_string(env, CORD_asprintf("&$%ld", i++), get_type(env, target->ast), "USE_COLOR");
+                CORD item = expr_as_string(env, CORD_asprintf("$%ld", i++), get_type(env, target->ast), "USE_COLOR");
                 expr_cord = CORD_all(expr_cord, item, target->next ? ", \", \", " : CORD_EMPTY);
             }
             expr_cord = CORD_cat(expr_cord, ")");
@@ -703,7 +768,7 @@ CORD compile_type_info(env_t *env, type_t *t)
             sigil, compile_type_info(env, ptr->pointed));
     }
     case FunctionType: {
-        return CORD_asprintf("&((TypeInfo){.size=%zu, .align=%zu, .tag=FunctionInfo, .FunctionInfo.type_str=\"%r\"})",
+        return CORD_asprintf("((TypeInfo){.size=%zu, .align=%zu, .tag=FunctionInfo, .FunctionInfo.type_str=\"%r\"})",
                              sizeof(void*), __alignof__(void*), type_to_cord(t));
     }
     case ClosureType: {

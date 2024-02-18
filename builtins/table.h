@@ -7,6 +7,19 @@
 #include "datatypes.h"
 #include "array.h"
 
+#define $Table(key_t, val_t, key_info, value_info, fb, def, ...)  ({ \
+    struct { key_t k; val_t v; } $ents[] = {__VA_ARGS__}; \
+    table_t $table = Table_from_entries((array_t){ \
+                       .data=memcpy(GC_MALLOC(sizeof($ents)), $ents, sizeof($ents)), \
+                       .length=sizeof($ents)/sizeof($ents[0]), \
+                       .stride=(void*)&$ents[1] - (void*)&$ents[0], \
+                       }, &((TypeInfo){.size=sizeof(table_t), .align=__alignof__(table_t), .tag=TableInfo, \
+                            .TableInfo.key=key_info, .TableInfo.value=value_info})); \
+    $table.fallback = fb; \
+    $table.default_value = def; \
+    $table; })
+
+
 table_t Table_from_entries(array_t entries, const TypeInfo *type);
 void *Table_get(const table_t *t, const void *key, const TypeInfo *type);
 void *Table_get_raw(const table_t *t, const void *key, const TypeInfo *type);
