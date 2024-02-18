@@ -360,11 +360,12 @@ CORD compile(env_t *env, ast_t *ast)
     case DocTest: {
         auto test = Match(ast, DocTest);
         CORD src = heap_strn(test->expr->start, (size_t)(test->expr->end - test->expr->start));
+        type_t *expr_t = get_type(env, test->expr);
         if (test->expr->tag == Declare) {
             auto decl = Match(test->expr, Declare);
             return CORD_asprintf(
                 "$var(%r, %r);\n"
-                "__doctest(\"=\", &%r, %r, %r, %r, %ld, %ld);",
+                "__doctest(&%r, %r, %r, %r, %ld, %ld);",
                 compile(env, decl->var), compile(env, decl->value),
                 compile(env, decl->var),
                 compile_type_info(env, get_type(env, decl->value)),
@@ -396,12 +397,22 @@ CORD compile(env_t *env, ast_t *ast)
                 expr_cord,
                 compile(env, WrapAST(test->expr, StringLiteral, .cord=test->output)));
             return CORD_cat(code, "\n}");
+        } else if (expr_t->tag == VoidType || expr_t->tag == AbortType) {
+            return CORD_asprintf(
+                "__doctest((%r, NULL), NULL, NULL, %r, %ld, %ld);",
+                compile(env, test->expr),
+                compile(env, WrapAST(test->expr, StringLiteral, .cord=test->expr->file->filename)),
+                (int64_t)(test->expr->start - test->expr->file->text),
+                (int64_t)(test->expr->end - test->expr->file->text));
         } else {
             return CORD_asprintf(
-                "$test(%r, %r, %r);",
-                compile(env, WrapAST(test->expr, StringLiteral, .cord=src)),
+                "__doctest($stack(%r), %r, %r, %r, %ld, %ld);",
                 compile(env, test->expr),
-                compile(env, WrapAST(test->expr, StringLiteral, .cord=test->output)));
+                compile_type_info(env, expr_t),
+                compile(env, WrapAST(test->expr, StringLiteral, .cord=test->output)),
+                compile(env, WrapAST(test->expr, StringLiteral, .cord=test->expr->file->filename)),
+                (int64_t)(test->expr->start - test->expr->file->text),
+                (int64_t)(test->expr->end - test->expr->file->text));
         }
     }
     case FieldAccess: {

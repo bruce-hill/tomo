@@ -121,7 +121,7 @@ static inline char *without_colors(const char *str)
     return buf;
 }
 
-public void __doctest(CORD label, void *expr, TypeInfo *type, CORD expected, const char *filename, int start, int end)
+public void __doctest(void *expr, TypeInfo *type, CORD expected, const char *filename, int start, int end)
 {
     static file_t *file = NULL;
     if (filename && (file == NULL || strcmp(file->filename, filename) != 0))
@@ -134,7 +134,7 @@ public void __doctest(CORD label, void *expr, TypeInfo *type, CORD expected, con
         CORD expr_str = generic_as_str(expr, USE_COLOR, type);
         CORD type_name = generic_as_str(NULL, false, type);
 
-        CORD_fprintf(stderr, USE_COLOR ? "\x1b[2m%r\x1b[0m %r \x1b[2m: %r\x1b[m\n" : "%r %r : %r\n", label, expr_str, type_name);
+        CORD_fprintf(stderr, USE_COLOR ? "\x1b[2m=\x1b[0m %r \x1b[2m: %r\x1b[m\n" : "= %r : %r\n", expr_str, type_name);
         if (expected) {
             CORD expr_plain = USE_COLOR ? generic_as_str(expr, false, type) : expr_str;
             bool success = (CORD_cmp(expr_str, expected) == 0);

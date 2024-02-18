@@ -92,6 +92,10 @@ type_t *get_math_type(env_t *env, ast_t *ast, type_t *lhs_t, type_t *rhs_t)
 void bind_statement(env_t *env, ast_t *statement)
 {
     switch (statement->tag) {
+    case DocTest: {
+        bind_statement(env, Match(statement, DocTest)->expr);
+        break;
+    }
     case Declare: {
         auto decl = Match(statement, Declare);
         type_t *type = get_type(env, decl->value);

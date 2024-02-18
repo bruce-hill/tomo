@@ -7,6 +7,7 @@
 #include "ast.h"
 #include "parse.h"
 #include "compile.h"
+#include "typecheck.h"
 #include "types.h"
 
 int main(int argc, char *argv[])
@@ -51,6 +52,7 @@ int main(int argc, char *argv[])
         CORD code = compile_statement(env, stmt->ast);
         if (code)
             CORD_appendf(&env->code->main, "%r\n", code);
+        bind_statement(env, stmt->ast);
     }
 
     CORD fileinfo = CORD_asprintf("#line 0 \"%s\"\n", f->filename);
