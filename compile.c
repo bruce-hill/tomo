@@ -325,19 +325,45 @@ CORD compile(env_t *env, ast_t *ast)
         return CORD_asprintf("max(%r, %r)", compile(env, Match(ast, Max)->lhs), compile(env, Match(ast, Max)->rhs));
     }
     // Min, Max,
-    // Array, Table, TableEntry,
     case Array: {
         auto array = Match(ast, Array);
         if (!array->items)
             return "(array_t){}";
            
-        CORD code = "$array(";
+        CORD code = "$Array(";
         for (ast_list_t *item = array->items; item; item = item->next) {
             code = CORD_cat(code, compile(env, item->ast));
             if (item->next) code = CORD_cat(code, ", ");
         }
-        return CORD_cat_char(code, ')');
+        return CORD_cat(code, ")");
     }
+    case Table: {
+        auto table = Match(ast, Table);
+        if (!table->entries) {
+            CORD code = "(table_t){";
+            if (table->fallback)
+                code = CORD_all(code, ".fallback=", compile(env, table->fallback),",");
+            if (table->default_value)
+                code = CORD_all(code, ".default_value=", compile(env, table->default_value),",");
+            return CORD_cat(code, "}");
+        }
+           
+        type_t *table_t = get_type(env, ast);
+        // TODO: figure out a clever way to optimize table literals:
+        CORD code = CORD_all("({ table_t $table = {}; TypeInfo *$table_type = ", compile_type_info(env, table_t), ";");
+        for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
+            auto entry = Match(entry->ast, TableEntry);
+            code = CORD_all(code, " Table_set(&$table, $stack(",
+                            compile(env, entry->key), "), $stack(", compile(env, entry->value), "), $table_type);");
+        }
+        if (table->fallback)
+            code = CORD_all(code, " $table.fallback = $heap(", compile(env, table->fallback), ");");
+        if (table->default_value)
+            code = CORD_all(code, " $table.default_value = $heap(", compile(env, table->default_value), ");");
+        return CORD_cat(code, " $table; })");
+
+    }
+    // Table, TableEntry,
     case FunctionDef: {
         auto fndef = Match(ast, FunctionDef);
         CORD name = compile(env, fndef->name);
