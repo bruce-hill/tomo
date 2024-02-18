@@ -18,6 +18,11 @@
     $table.fallback = fb; \
     $table.default_value = def; \
     $table; })
+#define $Table_get(table_expr, key_t, val_t, key_expr, info_expr) ({ \
+    const table_t *$t = table_expr; key_t $k = key_expr; const TypeInfo* $info = info_expr; \
+    const val_t *$v = Table_get($t, &$k, $info); \
+    if (__builtin_expect($v == NULL, 0)) fail("The key %r is not in this table", generic_as_str(&$k, no, $info->TableInfo.key)); \
+    *$v; })
 
 
 table_t Table_from_entries(array_t entries, const TypeInfo *type);

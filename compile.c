@@ -90,6 +90,34 @@ CORD compile_string(env_t *env, ast_t *ast, CORD color)
     return expr_as_string(env, expr, t, color);
 }
 
+static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth)
+{
+    CORD val = compile(env, ast);
+    type_t *t = get_type(env, ast);
+    int64_t depth = 0;
+    for (type_t *tt = t; tt->tag == PointerType; tt = Match(tt, PointerType)->pointed)
+        ++depth;
+
+    while (depth != target_depth) {
+        if (depth < target_depth) {
+            if (ast->tag == Var && target_depth == 1)
+                val = CORD_all("&", val);
+            else
+                val = CORD_all("$stack(", val, ")");
+            t = Type(PointerType, .pointed=t, .is_stack=true);
+            ++depth;
+        } else {
+            auto ptr = Match(t, PointerType);
+            if (ptr->is_optional)
+                code_err(ast, "You can't dereference this value, since it's not guaranteed to be non-null");
+            val = CORD_all("*(", val, ")");
+            t = ptr->pointed;
+            --depth;
+        }
+    }
+    return val;
+}
+
 CORD compile(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
@@ -105,21 +133,30 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Length: {
         ast_t *expr = Match(ast, Length)->value;
-        CORD code = compile(env, expr);
         type_t *t = get_type(env, expr);
-      next_value:;
-        switch (t->tag) {
-        case PointerType: {
-            auto ptr = Match(t, PointerType);
-            if (ptr->is_optional)
-                code_err(ast, "You can't dereference this value, since it's not guaranteed to be non-null");
-            code = CORD_all("*(", code, ")");
-            t = ptr->pointed;
-            goto next_value;
+        switch (value_type(t)->tag) {
+        case StringType: {
+            CORD str = compile_to_pointer_depth(env, expr, 0);
+            return CORD_all("CORD_len(", str, ")");
         }
-        case StringType: return CORD_all("CORD_len(", code, ")");
-        case ArrayType: return CORD_all("I64((", code, ").length)");
-        case TableType: return CORD_all("I64((", code, ").entries.length)");
+        case ArrayType: {
+            if (t->tag == PointerType) {
+                CORD arr = compile_to_pointer_depth(env, expr, 1);
+                return CORD_all("I64((", arr, ")->length)");
+            } else {
+                CORD arr = compile_to_pointer_depth(env, expr, 0);
+                return CORD_all("I64((", arr, ").length)");
+            }
+        }
+        case TableType: {
+            if (t->tag == PointerType) {
+                CORD table = compile_to_pointer_depth(env, expr, 1);
+                return CORD_all("I64((", table, ")->entries.length)");
+            } else {
+                CORD table = compile_to_pointer_depth(env, expr, 0);
+                return CORD_all("I64((", table, ").entries.length)");
+            }
+        }
         default: code_err(ast, "Length is only supported for strings, arrays, and tables, not: %T", t);
         }
         break;
@@ -723,7 +760,34 @@ CORD compile(env_t *env, ast_t *ast)
         }
         return CORD_asprintf("(%r).%s", fielded, f->field);
     }
-    // Index, FieldAccess,
+    case Index: {
+        auto indexing = Match(ast, Index);
+        type_t *container_t = value_type(get_type(env, indexing->indexed));
+        type_t *index_t = get_type(env, indexing->index);
+        switch (container_t->tag) {
+        case ArrayType: {
+            if (index_t->tag != IntType)
+                code_err(indexing->index, "Arrays can only be indexed by integers, not %T", index_t);
+            type_t *item_type = Match(container_t, ArrayType)->item_type;
+            CORD arr = compile_to_pointer_depth(env, indexing->indexed, 1);
+            CORD index = compile(env, indexing->index);
+            return CORD_all(indexing->unchecked ? "$Array_get_unchecked" : "$Array_get(",
+                            compile_type(item_type), ", ", arr, ", ", index, ")");
+        }
+        case TableType: {
+            type_t *key_t = Match(container_t, TableType)->key_type;
+            type_t *value_t = Match(container_t, TableType)->value_type;
+            if (!can_promote(index_t, key_t))
+                code_err(indexing->index, "This value has type %T, but this table can only be index with keys of type %T", index_t, key_t);
+            CORD table = compile_to_pointer_depth(env, indexing->indexed, 1);
+            CORD key = compile(env, indexing->index);
+            return CORD_all("$Table_get(", table, ", ", compile_type(key_t), ", ", compile_type(value_t), ", ",
+                            key, ", ", compile_type_info(env, container_t), ")");
+        }
+        default: code_err(ast, "Indexing is not supported for type: %T", container_t);
+        }
+    }
+    // Index
     // DocTest,
     // Use,
     // LinkerDirective,
