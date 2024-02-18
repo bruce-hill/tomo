@@ -492,7 +492,7 @@ CORD compile(env_t *env, ast_t *ast)
         // Typeinfo:
         CORD_appendf(&env->code->typedefs, "typedef struct { TypeInfo type; } %s_namespace_t;\n", def->name);
         CORD_appendf(&env->code->typedefs, "extern %s_namespace_t %s;\n", def->name, def->name);
-        CORD_appendf(&env->code->typeinfos, "public %s_namespace_t %s = {.type={.tag=CustomInfo, .CustomInfo={.as_str=(void*)%s__as_str}}};\n", def->name, def->name, def->name);
+        CORD_appendf(&env->code->typeinfos, "public %s_namespace_t %s = {{.tag=CustomInfo, .CustomInfo={.as_str=(void*)%s__as_str}}};\n", def->name, def->name, def->name);
 
         CORD cord_func = CORD_asprintf("static CORD %s__as_str(%s_t *obj, bool use_color) {\n"
                                        "\tif (!obj) return \"%s\";\n", def->name, def->name, def->name);
@@ -557,7 +557,7 @@ CORD compile(env_t *env, ast_t *ast)
         // Typeinfo:
         CORD_appendf(&env->code->typedefs, "typedef struct { TypeInfo type; } %s_namespace_t;\n", def->name);
         CORD_appendf(&env->code->typedefs, "extern %s_namespace_t %s;\n", def->name, def->name);
-        CORD_appendf(&env->code->typeinfos, "public %s_namespace_t %s = {.type={.tag=CustomInfo, .CustomInfo={.as_str=(void*)%s__as_str}}};\n", def->name, def->name, def->name);
+        CORD_appendf(&env->code->typeinfos, "public %s_namespace_t %s = {{.tag=CustomInfo, .CustomInfo={.as_str=(void*)%s__as_str}}};\n", def->name, def->name, def->name);
 
         return CORD_EMPTY;
     }
