@@ -18,10 +18,11 @@
     $table.fallback = fb; \
     $table.default_value = def; \
     $table; })
-#define $Table_get(table_expr, key_t, val_t, key_expr, info_expr) ({ \
+#define $Table_get(table_expr, key_t, val_t, key_expr, info_expr, filename, start, end) ({ \
     const table_t *$t = table_expr; key_t $k = key_expr; const TypeInfo* $info = info_expr; \
     const val_t *$v = Table_get($t, &$k, $info); \
-    if (__builtin_expect($v == NULL, 0)) fail("The key %r is not in this table\n", generic_as_str(&$k, USE_COLOR, $info->TableInfo.key)); \
+    if (__builtin_expect($v == NULL, 0)) \
+        fail_source(filename, start, end, "The key %r is not in this table\n", generic_as_str(&$k, USE_COLOR, $info->TableInfo.key)); \
     *$v; })
 
 

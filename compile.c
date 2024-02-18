@@ -771,8 +771,14 @@ CORD compile(env_t *env, ast_t *ast)
             type_t *item_type = Match(container_t, ArrayType)->item_type;
             CORD arr = compile_to_pointer_depth(env, indexing->indexed, 1);
             CORD index = compile(env, indexing->index);
-            return CORD_all(indexing->unchecked ? "$Array_get_unchecked" : "$Array_get(",
-                            compile_type(item_type), ", ", arr, ", ", index, ")");
+            file_t *f = indexing->index->file;
+            if (indexing->unchecked)
+                return CORD_all("$Array_get_unchecked", compile_type(item_type), ", ", arr, ", ", index, ")");
+            else
+                return CORD_all("$Array_get(", compile_type(item_type), ", ", arr, ", ", index, ", ",
+                                Str__quoted(f->filename, false), ", ", CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
+                                CORD_asprintf("%ld", (int64_t)(indexing->index->end - f->text)),
+                                ")");
         }
         case TableType: {
             type_t *key_t = Match(container_t, TableType)->key_type;
@@ -781,8 +787,12 @@ CORD compile(env_t *env, ast_t *ast)
                 code_err(indexing->index, "This value has type %T, but this table can only be index with keys of type %T", index_t, key_t);
             CORD table = compile_to_pointer_depth(env, indexing->indexed, 1);
             CORD key = compile(env, indexing->index);
+            file_t *f = indexing->index->file;
             return CORD_all("$Table_get(", table, ", ", compile_type(key_t), ", ", compile_type(value_t), ", ",
-                            key, ", ", compile_type_info(env, container_t), ")");
+                            key, ", ", compile_type_info(env, container_t), ", ",
+                            Str__quoted(f->filename, false), ", ", CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
+                            CORD_asprintf("%ld", (int64_t)(indexing->index->end - f->text)),
+                            ")");
         }
         default: code_err(ast, "Indexing is not supported for type: %T", container_t);
         }

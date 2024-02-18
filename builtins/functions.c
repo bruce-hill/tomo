@@ -22,12 +22,29 @@ public const char *SSS_HASH_VECTOR = "sss hash vector --------------------------
 
 public void fail(CORD fmt, ...)
 {
-    va_list args;
-    va_start(args, fmt);
     if (USE_COLOR) fputs("\x1b[31;7m FAIL: \x1b[m ", stderr);
     else fputs("FAIL: ", stderr);
+    va_list args;
+    va_start(args, fmt);
     CORD_vfprintf(stderr, fmt, args);
     va_end(args);
+    raise(SIGABRT);
+}
+
+public void fail_source(const char *filename, int64_t start, int64_t end, CORD fmt, ...)
+{
+    if (USE_COLOR) fputs("\n\x1b[31;7m FAIL: \x1b[m ", stderr);
+    else fputs("\nFAIL: ", stderr);
+
+    va_list args;
+    va_start(args, fmt);
+    CORD_vfprintf(stderr, fmt, args);
+    va_end(args);
+
+    file_t *file = filename ? load_file(filename) : NULL;
+    if (filename && file)
+        fprint_span(stderr, file, file->text+start, file->text+end, "\x1b[31;1m", 2, USE_COLOR);
+
     raise(SIGABRT);
 }
 
@@ -123,7 +140,7 @@ static inline char *without_colors(const char *str)
     return buf;
 }
 
-public void __doctest(void *expr, TypeInfo *type, CORD expected, const char *filename, int start, int end)
+public void __doctest(void *expr, TypeInfo *type, CORD expected, const char *filename, int64_t start, int64_t end)
 {
     static file_t *file = NULL;
     if (filename && (file == NULL || strcmp(file->filename, filename) != 0))
@@ -145,10 +162,10 @@ public void __doctest(void *expr, TypeInfo *type, CORD expected, const char *fil
             }
 
             if (!success) {
-                if (filename && file)
-                    fprint_span(stderr, file, file->text+start, file->text+end, "\x1b[31;1m", 2, USE_COLOR);
-                fail(USE_COLOR ? "\x1b[31;1mDoctest failure:\nExpected: \x1b[32;7m%s\x1b[0m\n\x1b[31;1m But got: \x1b[31;7m%s\x1b[0m\n" : "Doctest failure:\nExpected: %s\n But got: %s\n",
-                     expected, expr_str);
+                fail_source(filename, start, end, 
+                            USE_COLOR ? "\x1b[31;1mDoctest failure:\nExpected: \x1b[32;7m%s\x1b[0m\n\x1b[31;1m But got: \x1b[31;7m%s\x1b[0m\n"
+                            : "Doctest failure:\nExpected: %s\n But got: %s\n",
+                            expected, expr_str);
             }
         }
     }
