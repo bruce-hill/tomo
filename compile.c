@@ -74,9 +74,9 @@ CORD compile(env_t *env, ast_t *ast)
         return CORD_from_char_star(buf);
     }
     case Not: return CORD_asprintf("not(%r)", compile(env, Match(ast, Not)->value));
-    case Negative: return CORD_asprintf("-(%r)", compile(env, Match(ast, Not)->value));
-    case HeapAllocate: return CORD_asprintf("$heap(%r)", compile(env, Match(ast, Not)->value));
-    case StackReference: return CORD_asprintf("$stack(%r)", compile(env, Match(ast, Not)->value));
+    case Negative: return CORD_asprintf("-(%r)", compile(env, Match(ast, Negative)->value));
+    case HeapAllocate: return CORD_asprintf("$heap(%r)", compile(env, Match(ast, HeapAllocate)->value));
+    case StackReference: return CORD_asprintf("$stack(%r)", compile(env, Match(ast, StackReference)->value));
     case BinaryOp: {
         auto binop = Match(ast, BinaryOp);
         CORD lhs = compile(env, binop->lhs);

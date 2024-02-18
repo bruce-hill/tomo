@@ -5,6 +5,10 @@
 
 #include "types.h"
 
+#define Num64_t double
+#define Num32_t float
+#define Num_t double
+
 CORD Num64__as_str(const double *f, bool colorize, const TypeInfo *type);
 int32_t Num64__compare(const double *x, const double *y, const TypeInfo *type);
 bool Num64__equal(const double *x, const double *y, const TypeInfo *type);

@@ -5,6 +5,16 @@
 
 #include "types.h"
 
+#define Int64_t int64_t
+#define Int32_t int32_t
+#define Int16_t int16_t
+#define Int8_t int8_t
+#define Int_t int64_t
+#define I64(x) ((int64_t)x)
+#define I32(x) ((int32_t)x)
+#define I16(x) ((int16_t)x)
+#define I8(x) ((int8_t)x)
+
 #define DEFINE_INT_TYPE(c_type, type_name) \
     CORD type_name ## __as_str(const c_type *i, bool colorize, const TypeInfo *type); \
     int32_t type_name ## __compare(const c_type *x, const c_type *y, const TypeInfo *type); \

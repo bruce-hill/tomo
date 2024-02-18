@@ -24,30 +24,7 @@
 #include "builtins/table.h"
 #include "builtins/types.h"
 
-#define Int64_t int64_t
-#define Int32_t int32_t
-#define Int16_t int16_t
-#define Int8_t int8_t
-#define Int_t int64_t
-#define I64(x) ((int64_t)x)
-#define I32(x) ((int32_t)x)
-#define I16(x) ((int16_t)x)
-#define I8(x) ((int8_t)x)
-
-#define Num64_t double
-#define Num32_t float
-#define Num_t double
-
-#define String_t CORD
-#define Str_t CORD
-
-#define Bool_t bool
-#define yes (Bool_t)true
-#define no (Bool_t)false
-
 #define Void_t void
-
-#define $Array(t) array_t
 
 CORD as_cord(void *x, bool use_color, const char *fmt, ...);
 
@@ -68,7 +45,7 @@ CORD as_cord(void *x, bool use_color, const char *fmt, ...);
 #define $index(x, i) _Generic(x, array_t: ({ __typeof(x) $obj; int64_t $offset = i; $offset += ($offset < 0) * ($obj.length + 1) - 1; assert($offset >= 0 && offset < $obj.length); $obj.data + $obj.stride * $offset;}))
 #define $safe_index(x, i) _Generic(x, array_t: ({ __typeof(x) $obj; int64_t $offset = i - 1; $obj.data + $obj.stride * $offset;}))
 #define $array(x, ...) ({ __typeof(x) $items[] = {x, __VA_ARGS__}; \
-                         ($Array(__typeof(x))){.length=sizeof($items)/sizeof($items[0]), \
+                         (array_t){.length=sizeof($items)/sizeof($items[0]), \
                          .stride=(int64_t)&$items[1] - (int64_t)&$items[0], \
                          .data=memcpy(GC_MALLOC(sizeof($items)), $items,  sizeof($items)), \
                          .copy_on_write=1}; })

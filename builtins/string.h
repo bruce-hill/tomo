@@ -5,6 +5,9 @@
 
 #include "types.h"
 
+#define String_t CORD
+#define Str_t CORD
+
 typedef struct {
     CORD *data;
     unsigned long int length:42;

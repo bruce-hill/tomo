@@ -5,6 +5,10 @@
 
 #include "types.h"
 
+#define Bool_t bool
+#define yes (Bool_t)true
+#define no (Bool_t)false
+
 CORD Bool__as_str(const bool *b, bool colorize, const TypeInfo *type);
 
 typedef struct {
