@@ -137,7 +137,7 @@ public void __doctest(void *expr, TypeInfo *type, CORD expected, const char *fil
         CORD_fprintf(stderr, USE_COLOR ? "\x1b[2m=\x1b[0m %r \x1b[2m: %r\x1b[m\n" : "= %r : %r\n", expr_str, type_name);
         if (expected) {
             CORD expr_plain = USE_COLOR ? generic_as_str(expr, false, type) : expr_str;
-            bool success = (CORD_cmp(expr_str, expected) == 0);
+            bool success = (CORD_cmp(expr_plain, expected) == 0);
             if (!success && CORD_chr(expected, 0, ':')) {
                 expr_plain = heap_strf("%s : %s", expr_plain, type_name);
                 success = (CORD_cmp(CORD_catn(3, expr_plain, " : ", type_name), expected) == 0);
