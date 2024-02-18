@@ -40,15 +40,6 @@ CORD as_cord(void *x, bool use_color, const char *fmt, ...);
                          default: "???")
 #define $heap(x) (__typeof(x)*)memcpy(GC_MALLOC(sizeof(x)), (__typeof(x)[1]){x}, sizeof(x))
 #define $stack(x) (__typeof(x)*)((__typeof(x)[1]){x})
-#define $length(x) _Generic(x, default: (x).length)
-// Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
-#define $index(x, i) _Generic(x, array_t: ({ __typeof(x) $obj; int64_t $offset = i; $offset += ($offset < 0) * ($obj.length + 1) - 1; assert($offset >= 0 && offset < $obj.length); $obj.data + $obj.stride * $offset;}))
-#define $safe_index(x, i) _Generic(x, array_t: ({ __typeof(x) $obj; int64_t $offset = i - 1; $obj.data + $obj.stride * $offset;}))
-#define $array(x, ...) ({ __typeof(x) $items[] = {x, __VA_ARGS__}; \
-                         (array_t){.length=sizeof($items)/sizeof($items[0]), \
-                         .stride=(int64_t)&$items[1] - (int64_t)&$items[0], \
-                         .data=memcpy(GC_MALLOC(sizeof($items)), $items,  sizeof($items)), \
-                         .copy_on_write=1}; })
 
 #define not(x) _Generic(x, bool: (bool)!(x), default: ~(x))
 #define and(x, y) _Generic(x, bool: (bool)((x) && (y)), default: ((x) & (y)))

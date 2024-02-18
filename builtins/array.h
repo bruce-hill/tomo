@@ -7,6 +7,15 @@
 #include "functions.h"
 #include "types.h"
 
+// Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
+#define $index(x, i) _Generic(x, array_t: ({ __typeof(x) $obj; int64_t $offset = i; $offset += ($offset < 0) * ($obj.length + 1) - 1; assert($offset >= 0 && offset < $obj.length); $obj.data + $obj.stride * $offset;}))
+#define $safe_index(x, i) _Generic(x, array_t: ({ __typeof(x) $obj; int64_t $offset = i - 1; $obj.data + $obj.stride * $offset;}))
+#define $array(x, ...) ({ __typeof(x) $items[] = {x, __VA_ARGS__}; \
+                         (array_t){.length=sizeof($items)/sizeof($items[0]), \
+                         .stride=(int64_t)&$items[1] - (int64_t)&$items[0], \
+                         .data=memcpy(GC_MALLOC(sizeof($items)), $items,  sizeof($items)), \
+                         .copy_on_write=1}; })
+
 void Array__insert(array_t *arr, const void *item, int64_t index, const TypeInfo *type);
 void Array__insert_all(array_t *arr, array_t to_insert, int64_t index, const TypeInfo *type);
 void Array__remove(array_t *arr, int64_t index, int64_t count, const TypeInfo *type);

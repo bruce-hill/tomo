@@ -56,9 +56,8 @@ int main(int argc, char *argv[])
         bind_statement(env, stmt->ast);
     }
 
-    CORD fileinfo = CORD_asprintf("#line 0 %r\n", Str__quoted(f->filename, false));
     CORD program = CORD_all(
-        fileinfo,
+        // CORD_asprintf("#line 0 %r\n", Str__quoted(f->filename, false)),
         "// Generated code:\n",
         env->code->imports, "\n",
         env->code->typedefs, "\n",

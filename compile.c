@@ -10,7 +10,7 @@
 #include "typecheck.h"
 #include "util.h"
 
-CORD compile_type(env_t *env, type_ast_t *t)
+CORD compile_type_ast(env_t *env, type_ast_t *t)
 {
     (void)env;
     switch (t->tag) {
@@ -31,8 +31,9 @@ CORD compile_statement(env_t *env, ast_t *ast)
         stmt = CORD_asprintf("(void)%r;", compile(env, ast));
         break;
     }
-    int64_t line = get_line_number(ast->file, ast->start);
-    return stmt ? CORD_asprintf("#line %ld\n%r", line, stmt) : stmt;
+    // int64_t line = get_line_number(ast->file, ast->start);
+    // return stmt ? CORD_asprintf("#line %ld\n%r", line, stmt) : stmt;
+    return stmt;
 }
 
 CORD expr_as_string(env_t *env, CORD expr, type_t *t, CORD color)
@@ -63,7 +64,7 @@ CORD compile_string(env_t *env, ast_t *ast, CORD color)
 CORD compile(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
-    case Nil: return CORD_asprintf("(%r)NULL", compile_type(env, Match(ast, Nil)->type));
+    case Nil: return CORD_asprintf("$Null(%r)", compile_type_ast(env, Match(ast, Nil)->type));
     case Bool: return Match(ast, Bool)->b ? "yes" : "no";
     case Var: return Match(ast, Var)->name;
     case Int: return CORD_asprintf("I%ld(%ld)", Match(ast, Int)->bits, Match(ast, Int)->i);
@@ -300,6 +301,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Declare: {
         auto decl = Match(ast, Declare);
         return CORD_asprintf("$var(%r, %r);", compile(env, decl->var), compile(env, decl->value));
+        // return CORD_asprintf("auto %r = %r;", compile(env, decl->var), compile(env, decl->value));
     }
     case Assign: {
         auto assign = Match(ast, Assign);
@@ -339,20 +341,20 @@ CORD compile(env_t *env, ast_t *ast)
     case FunctionDef: {
         auto fndef = Match(ast, FunctionDef);
         CORD name = compile(env, fndef->name);
-        CORD_appendf(&env->code->staticdefs, "static %r %r_(", fndef->ret_type ? compile_type(env, fndef->ret_type) : "void", name);
+        CORD_appendf(&env->code->staticdefs, "static %r %r_(", fndef->ret_type ? compile_type_ast(env, fndef->ret_type) : "void", name);
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-            CORD_appendf(&env->code->staticdefs, "%r %s", compile_type(env, arg->type), arg->name);
+            CORD_appendf(&env->code->staticdefs, "%r %s", compile_type_ast(env, arg->type), arg->name);
             if (arg->next) env->code->staticdefs = CORD_cat(env->code->staticdefs, ", ");
         }
         env->code->staticdefs = CORD_cat(env->code->staticdefs, ");\n");
 
         CORD kwargs = CORD_asprintf("#define %r(...) ({ struct {", name);
         CORD passed_args = CORD_EMPTY;
-        CORD_appendf(&env->code->funcs, "%r %r_(", fndef->ret_type ? compile_type(env, fndef->ret_type) : "void", name);
+        CORD_appendf(&env->code->funcs, "%r %r_(", fndef->ret_type ? compile_type_ast(env, fndef->ret_type) : "void", name);
         env_t *body_scope = fresh_scope(env);
         body_scope->locals->fallback = env->globals;
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-            CORD arg_type = compile_type(env, arg->type);
+            CORD arg_type = compile_type_ast(env, arg->type);
             CORD_appendf(&env->code->funcs, "%r %s", arg_type, arg->name);
             if (arg->next) env->code->funcs = CORD_cat(env->code->funcs, ", ");
             CORD_appendf(&kwargs, "%r %s; ", arg_type, arg->name);
@@ -401,7 +403,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD index = for_->index ? compile(env, for_->index) : "$i";
         return CORD_asprintf("{\n"
                              "$var($iter, %r);\n"
-                             "for (int64_t %r = 1, $len = $length($iter); %r <= $len; ++%r) {\n"
+                             "for (int64_t %r = 1, $len = ($iter).length; %r <= $len; ++%r) {\n"
                              "$var(%r, $safe_index($iter, %s));\n"
                              "%r\n"
                              "}\n}",
@@ -433,7 +435,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         CORD_appendf(&env->code->typecode, "struct %s_s {\n", def->name);
         for (arg_ast_t *field = def->fields; field; field = field->next) {
-            CORD type = compile_type(env, field->type);
+            CORD type = compile_type_ast(env, field->type);
             CORD_appendf(&env->code->typecode, "%r %s%s;\n", type, field->name,
                          CORD_cmp(type, "Bool_t") ? "" : ":1");
         }
@@ -484,7 +486,7 @@ CORD compile(env_t *env, ast_t *ast)
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
             env->code->typecode = CORD_cat(env->code->typecode, "struct {\n");
             for (arg_ast_t *field = tag->fields; field; field = field->next) {
-                CORD type = compile_type(env, field->type);
+                CORD type = compile_type_ast(env, field->type);
                 CORD_appendf(&env->code->typecode, "%r %s%s;\n", type, field->name,
                              CORD_cmp(type, "Bool_t") ? "" : ":1");
             }
@@ -500,9 +502,9 @@ CORD compile(env_t *env, ast_t *ast)
         if (test->expr->tag == Declare) {
             auto decl = Match(test->expr, Declare);
             return CORD_asprintf(
-                "$var(%r, %r);\n"
+                "%r\n"
                 "__doctest(&%r, %r, %r, %r, %ld, %ld);",
-                compile(env, decl->var), compile(env, decl->value),
+                compile(env, test->expr),
                 compile(env, decl->var),
                 compile_type_info(env, get_type(env, decl->value)),
                 compile(env, WrapAST(test->expr, StringLiteral, .cord=test->output)),
