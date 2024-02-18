@@ -63,7 +63,6 @@
         .random=KindOfInt##__random, \
     };
 
-DEFINE_INT_TYPE(int64_t,  Int,    "ld",     labs, INT64_MIN, INT64_MAX);
 DEFINE_INT_TYPE(int64_t,  Int64,  "ld",     labs, INT64_MIN, INT64_MAX);
 DEFINE_INT_TYPE(int32_t,  Int32,  "d_i32",  abs,  INT32_MIN, INT32_MAX);
 DEFINE_INT_TYPE(int16_t,  Int16,  "d_i16",  abs,  INT16_MIN, INT16_MAX);
