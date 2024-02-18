@@ -40,7 +40,7 @@
 #define END_OF_CHAIN UINT32_MAX
 
 #define GET_ENTRY(t, i) ((t)->entries.data + (t)->entries.stride*(i))
-#define ENTRY_TYPE(type) (&(TypeInfo){.size=entry_size(type), .align=entry_align(type), .tag=OpaqueInfo})
+#define ENTRIES_TYPE(type) (&(TypeInfo){.size=sizeof(array_t), .align=alignof(array_t), .tag=ArrayInfo, .ArrayInfo.item=(&(TypeInfo){.size=entry_size(type), .align=entry_align(type), .tag=OpaqueInfo})})
 
 extern const void *SSS_HASH_VECTOR;
 
@@ -102,7 +102,7 @@ static inline void hshow(const table_t *t)
 static void maybe_copy_on_write(table_t *t, const TypeInfo *type)
 {
     if (t->entries.copy_on_write) {
-        Array__compact(&t->entries, ENTRY_TYPE(type));
+        Array__compact(&t->entries, ENTRIES_TYPE(type));
     }
 
     if (t->bucket_info && t->bucket_info->copy_on_write) {
@@ -279,7 +279,7 @@ public void *Table_reserve(table_t *t, const void *key, const void *value, const
         memcpy(buf + value_offset(type), value, value_size);
     else
         memset(buf + value_offset(type), 0, value_size);
-    Array__insert(&t->entries, buf, 0, ENTRY_TYPE(type));
+    Array__insert(&t->entries, buf, 0, ENTRIES_TYPE(type));
 
     int64_t entry_index = t->entries.length-1;
     void *entry = GET_ENTRY(t, entry_index);
@@ -365,7 +365,7 @@ public void Table_remove(table_t *t, const void *key, const TypeInfo *type)
     // Last entry is being removed, so clear it out to be safe:
     memset(GET_ENTRY(t, last_entry), 0, entry_size(type));
 
-    Array__remove(&t->entries, t->entries.length, 1, ENTRY_TYPE(type));
+    Array__remove(&t->entries, t->entries.length, 1, ENTRIES_TYPE(type));
 
     int64_t bucket_to_clear;
     if (prev) { // Middle (or end) of a chain

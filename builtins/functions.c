@@ -17,7 +17,8 @@
 #include "types.h"
 
 extern bool USE_COLOR;
-extern const void *SSS_HASH_VECTOR;
+
+public const char *SSS_HASH_VECTOR = "sss hash vector ----------------------------------------------";;
 
 public void fail(const char *fmt, ...)
 {

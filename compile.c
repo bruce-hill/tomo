@@ -41,11 +41,11 @@ CORD compile(env_t *env, ast_t *ast)
     case Nil: return CORD_asprintf("(%r)NULL", compile_type(env, Match(ast, Nil)->type));
     case Bool: return Match(ast, Bool)->b ? "yes" : "no";
     case Var: return Match(ast, Var)->name;
-    case Int: return CORD_asprintf("I%ld(%ld)", Match(ast, Int)->precision, Match(ast, Int)->i);
+    case Int: return CORD_asprintf("I%ld(%ld)", Match(ast, Int)->bits, Match(ast, Int)->i);
     case Num: {
         // HACK: since the cord library doesn't support the '%a' specifier, this workaround
         // is necessary:
-        char *buf = asprintfa(Match(ast, Num)->precision == 64 ? "%a" : "%af", Match(ast, Num)->n);
+        char *buf = asprintfa(Match(ast, Num)->bits == 64 ? "%a" : "%af", Match(ast, Num)->n);
         return CORD_from_char_star(buf);
     }
     case Not: return CORD_asprintf("not(%r)", compile(env, Match(ast, Not)->value));
@@ -363,11 +363,15 @@ CORD compile(env_t *env, ast_t *ast)
         if (test->expr->tag == Declare) {
             auto decl = Match(test->expr, Declare);
             return CORD_asprintf(
-                "$var(%r, %r);\n$test(%r, %r, %r);",
+                "$var(%r, %r);\n"
+                "__doctest(\"=\", &%r, %r, %r, %r, %ld, %ld);",
                 compile(env, decl->var), compile(env, decl->value),
-                compile(env, WrapAST(test->expr, StringLiteral, .cord=src)),
                 compile(env, decl->var),
-                compile(env, WrapAST(test->expr, StringLiteral, .cord=test->output)));
+                compile_type_info(env, get_type(env, decl->value)),
+                compile(env, WrapAST(test->expr, StringLiteral, .cord=test->output)),
+                compile(env, WrapAST(test->expr, StringLiteral, .cord=test->expr->file->filename)),
+                (int64_t)(test->expr->start - test->expr->file->text),
+                (int64_t)(test->expr->end - test->expr->file->text));
         } else if (test->expr->tag == Assign) {
             auto assign = Match(test->expr, Assign);
             CORD code = "{ // Assignment\n";

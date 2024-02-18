@@ -7,10 +7,9 @@
 
 #include "../SipHash/halfsiphash.h"
 #include "array.h"
+#include "integers.h"
 #include "types.h"
 #include "string.h"
-
-extern const void *SSS_HASH_VECTOR;
 
 #define xstr(a) str(a)
 #define str(a) #a
@@ -48,15 +47,7 @@ extern const void *SSS_HASH_VECTOR;
         uint32_t r = arc4random_uniform((uint32_t)range); \
         return min + (c_type)r; \
     } \
-    public struct { \
-        TypeInfo type; \
-        c_type min, max; \
-        c_type (*abs)(c_type i); \
-        CORD (*format)(c_type i, int64_t digits); \
-        CORD (*hex)(c_type i, int64_t digits, bool uppercase, bool prefix); \
-        CORD (*octal)(c_type i, int64_t digits, bool prefix); \
-        c_type (*random)(int64_t min, int64_t max); \
-    } KindOfInt##_type = { \
+    public KindOfInt##_namespace_t KindOfInt##_type = { \
         .type={ \
             .size=sizeof(c_type), \
             .align=alignof(c_type), \
@@ -72,9 +63,10 @@ extern const void *SSS_HASH_VECTOR;
         .random=KindOfInt##__random, \
     };
 
-DEFINE_INT_TYPE(int64_t,  Int,    "ld",     labs, INT64_MIN, INT64_MAX);
+DEFINE_INT_TYPE(int64_t,  Int64,  "ld",     labs, INT64_MIN, INT64_MAX);
 DEFINE_INT_TYPE(int32_t,  Int32,  "d_i32",  abs,  INT32_MIN, INT32_MAX);
 DEFINE_INT_TYPE(int16_t,  Int16,  "d_i16",  abs,  INT16_MIN, INT16_MAX);
 DEFINE_INT_TYPE(int8_t,   Int8,   "d_i8",   abs,  INT8_MIN,  INT8_MAX);
+#undef DEFINE_INT_TYPE
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

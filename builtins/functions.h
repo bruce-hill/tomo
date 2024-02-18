@@ -6,10 +6,12 @@
 
 #include "types.h"
 
+extern const char *SSS_HASH_VECTOR;
+
 void builtin_say(CORD str, CORD end);
 void builtin_fail(CORD fmt, ...);
 CORD builtin_last_err();
-void builtin_doctest(const char *label, CORD expr, const char *type, bool use_color, const char *expected, const char *filename, int start, int end);
+void __doctest(CORD label, void *expr, TypeInfo *type, CORD expected, const char *filename, int start, int end);
 
 uint32_t generic_hash(const void *obj, const TypeInfo *type);
 int32_t generic_compare(const void *x, const void *y, const TypeInfo *type);

@@ -11,7 +11,13 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "builtins/array.h"
 #include "builtins/datatypes.h"
+#include "builtins/functions.h"
+#include "builtins/pointer.h"
+#include "builtins/string.h"
+#include "builtins/table.h"
+#include "builtins/types.h"
 
 #define Int64_t int64_t
 #define Int32_t int32_t

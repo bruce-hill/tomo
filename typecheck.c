@@ -133,21 +133,11 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
     case Int: {
         auto i = Match(ast, Int);
-        switch (i->precision) {
-        case INT_64BIT: return Type(IntType, .bits=64);
-        case INT_32BIT: return Type(IntType, .bits=32);
-        case INT_16BIT: return Type(IntType, .bits=16);
-        case INT_8BIT: return Type(IntType, .bits=8);
-        default: code_err(ast, "Unsupported precision");
-        }
+        return Type(IntType, .bits=i->bits);
     }
     case Num: {
         auto n = Match(ast, Num);
-        switch (n->precision) {
-        case NUM_64BIT: return Type(NumType, .bits=64);
-        case NUM_32BIT: return Type(NumType, .bits=32);
-        default: code_err(ast, "Unsupported precision");
-        }
+        return Type(NumType, .bits=n->bits);
     }
     case HeapAllocate: {
         type_t *pointed = get_type(env, Match(ast, HeapAllocate)->value);

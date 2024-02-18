@@ -124,11 +124,11 @@ struct ast_s {
         } Var;
         struct {
             int64_t i;
-            enum { INT_64BIT, INT_32BIT, INT_16BIT, INT_8BIT } precision;
+            int64_t bits;
         } Int;
         struct {
             double n;
-            enum { NUM_64BIT, NUM_32BIT } precision;
+            int64_t bits;
         } Num;
         struct {
             CORD cord;

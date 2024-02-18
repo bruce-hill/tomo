@@ -9,13 +9,14 @@
 #include <sys/param.h>
 #include <err.h>
 
-#include "types.h"
-#include "../util.h"
 #include "../SipHash/halfsiphash.h"
+#include "../util.h"
+#include "bool.h"
+#include "types.h"
 
 extern const void *SSS_HASH_VECTOR;
 
-static CORD Bool__as_str(const bool *b, bool colorize, const TypeInfo *type)
+public CORD Bool__as_str(const bool *b, bool colorize, const TypeInfo *type)
 {
     (void)type;
     if (!b) return "Bool";
@@ -25,9 +26,7 @@ static CORD Bool__as_str(const bool *b, bool colorize, const TypeInfo *type)
         return *b ? "yes" : "no";
 }
 
-public struct {
-    TypeInfo type;
-} Bool_type = {
+Bool_namespace_t Bool_type = {
     .type={
         .size=sizeof(bool),
         .align=alignof(bool),

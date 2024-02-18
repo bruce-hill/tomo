@@ -420,19 +420,19 @@ PARSER(parse_int) {
 
     if (match(&pos, "%")) {
         double d = (double)i / 100.;
-        return NewAST(ctx->file, start, pos, Num, .n=d, .precision=64);
+        return NewAST(ctx->file, start, pos, Num, .n=d, .bits=64);
     }
 
     match(&pos, "_");
-    int64_t precision = 64;
-    if (match(&pos, "i64")) precision = 64;
-    else if (match(&pos, "i32")) precision = 32;
-    else if (match(&pos, "i16")) precision = 16;
-    else if (match(&pos, "i8")) precision = 8;
+    int64_t bits = 64;
+    if (match(&pos, "i64")) bits = 64;
+    else if (match(&pos, "i32")) bits = 32;
+    else if (match(&pos, "i16")) bits = 16;
+    else if (match(&pos, "i8")) bits = 8;
 
     // else if (match(&pos, ".") || match(&pos, "e")) return NULL; // looks like a float
 
-    return NewAST(ctx->file, start, pos, Int, .i=i, .precision=precision);
+    return NewAST(ctx->file, start, pos, Int, .i=i, .bits=bits);
 }
 
 type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
@@ -558,16 +558,16 @@ PARSER(parse_num) {
 
     if (negative) d *= -1;
 
-    int64_t precision = 64;
+    int64_t bits = 64;
     match(&pos, "_");
-    if (match(&pos, "f64")) precision = 64;
-    else if (match(&pos, "f32")) precision = 32;
+    if (match(&pos, "f64")) bits = 64;
+    else if (match(&pos, "f32")) bits = 32;
 
     if (match(&pos, "%")) {
         d /= 100.;
     }
 
-    return NewAST(ctx->file, start, pos, Num, .n=d, .precision=precision);
+    return NewAST(ctx->file, start, pos, Num, .n=d, .bits=bits);
 }
 
 static inline bool match_separator(const char **pos) { // Either comma or newline
@@ -1606,7 +1606,7 @@ PARSER(parse_func_def) {
         if (match_word(&pos, "inline")) {
             is_inline = true;
         } else if (match_word(&pos, "cached")) {
-            if (!cache_ast) cache_ast = NewAST(ctx->file, pos, pos, Int, .i=INT64_MAX, .precision=64);
+            if (!cache_ast) cache_ast = NewAST(ctx->file, pos, pos, Int, .i=INT64_MAX, .bits=64);
         } else if (match_word(&pos, "cache_size")) {
             if (whitespace(&pos), !match(&pos, "="))
                 parser_err(ctx, flag_start, pos, "I expected a value for 'cache_size'");
