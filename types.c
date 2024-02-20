@@ -486,7 +486,7 @@ type_t *get_field_type(type_t *t, const char *field_name)
         auto e = Match(t, EnumType);
         for (tag_t *tag = e->tags; tag; tag = tag->next) {
             if (streq(field_name, tag->name))
-                return tag->type;
+                return Type(PointerType, .pointed=tag->type, .is_optional=true, .is_readonly=true);
         }
         return NULL;
     }

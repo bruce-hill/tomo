@@ -44,6 +44,17 @@ typedef struct TypeInfo {
     };
 } TypeInfo;
 
+#define $PointerInfo(sigil_expr, pointed_info) &((TypeInfo){.size=sizeof(void*), .align=__alignof__(void*), \
+                                                 .tag=PointerInfo, .PointerInfo.sigil=sigil_expr, .PointerInfo.pointed=pointed_info})
+#define $ArrayInfo(item_info) &((TypeInfo){.size=sizeof(array_t), .align=__alignof__(array_t), \
+                                .tag=ArrayInfo, .ArrayInfo.item=item_info})
+#define $TableInfo(key_expr, value_expr) &((TypeInfo){.size=sizeof(table_t), .align=__alignof__(table_t), \
+                                           .tag=TableInfo, .TableInfo.key=key_expr, .TableInfo.value=value_expr})
+#define $FunctionInfo(typestr) &((TypeInfo){.size=sizeof(void*), .align=__alignof__(void*), \
+                                 .tag=FunctionInfo, .FunctionInfo.type_str=typestr})
+#define $TypeInfoInfo(typestr) &((TypeInfo){.size=sizeof(TypeInfo), .align=__alignof__(TypeInfo), \
+                                 .tag=TypeInfoInfo, .TypeInfoInfo.type_str=typestr})
+
 typedef struct {
     TypeInfo type;
 } TypeInfo_namespace_t;

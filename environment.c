@@ -40,7 +40,9 @@ env_t *new_compilation_unit(void)
     };
 
     for (size_t i = 0; i < sizeof(global_vars)/sizeof(global_vars[0]); i++) {
-        Table_str_set(env->globals, global_vars[i].name, &global_vars[i].binding);
+        binding_t *b = new(binding_t);
+        *b = global_vars[i].binding;
+        Table_str_set(env->globals, global_vars[i].name, b);
     }
 
     struct {

@@ -90,7 +90,7 @@ CORD compile_string(env_t *env, ast_t *ast, CORD color)
     return expr_as_string(env, expr, t, color);
 }
 
-static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth)
+static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool allow_optional)
 {
     CORD val = compile(env, ast);
     type_t *t = get_type(env, ast);
@@ -115,6 +115,15 @@ static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_dept
             --depth;
         }
     }
+    if (!allow_optional) {
+        while (t->tag == PointerType) {
+            auto ptr = Match(t, PointerType);
+            if (ptr->is_optional)
+                code_err(ast, "You can't dereference this value, since it's not guaranteed to be non-null");
+            t = ptr->pointed;
+        }
+    }
+
     return val;
 }
 
@@ -136,24 +145,24 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *t = get_type(env, expr);
         switch (value_type(t)->tag) {
         case StringType: {
-            CORD str = compile_to_pointer_depth(env, expr, 0);
+            CORD str = compile_to_pointer_depth(env, expr, 0, false);
             return CORD_all("CORD_len(", str, ")");
         }
         case ArrayType: {
             if (t->tag == PointerType) {
-                CORD arr = compile_to_pointer_depth(env, expr, 1);
+                CORD arr = compile_to_pointer_depth(env, expr, 1, false);
                 return CORD_all("I64((", arr, ")->length)");
             } else {
-                CORD arr = compile_to_pointer_depth(env, expr, 0);
+                CORD arr = compile_to_pointer_depth(env, expr, 0, false);
                 return CORD_all("I64((", arr, ").length)");
             }
         }
         case TableType: {
             if (t->tag == PointerType) {
-                CORD table = compile_to_pointer_depth(env, expr, 1);
+                CORD table = compile_to_pointer_depth(env, expr, 1, false);
                 return CORD_all("I64((", table, ")->entries.length)");
             } else {
-                CORD table = compile_to_pointer_depth(env, expr, 0);
+                CORD table = compile_to_pointer_depth(env, expr, 0, false);
                 return CORD_all("I64((", table, ").entries.length)");
             }
         }
@@ -649,29 +658,28 @@ CORD compile(env_t *env, ast_t *ast)
     case EnumDef: {
         auto def = Match(ast, EnumDef);
         CORD_appendf(&env->code->typedefs, "typedef struct %s_s %s_t;\n", def->name, def->name);
-        CORD_appendf(&env->code->typecode, "struct %s_s {\nenum {", def->name);
+        CORD enum_def = CORD_all("struct ", def->name, "_s {\n"
+                                 "\tenum {");
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-            CORD_appendf(&env->code->typecode, "%s$%s = %ld, ", def->name, tag->name, tag->value);
+            CORD_appendf(&enum_def, "$tag$%s$%s = %ld", def->name, tag->name, tag->value);
+            if (tag->next) enum_def = CORD_cat(enum_def, ", ");
         }
-        env->code->typecode = CORD_cat(env->code->typecode, "} $tag;\nunion {\n");
+        enum_def = CORD_cat(enum_def, "} $tag;\n"
+                            "union {\n");
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-            env->code->typecode = CORD_cat(env->code->typecode, "struct {\n");
-            for (arg_ast_t *field = tag->fields; field; field = field->next) {
-                CORD type = compile_type_ast(field->type);
-                CORD_appendf(&env->code->typecode, "%r %s%s;\n", type, field->name,
-                             CORD_cmp(type, "Bool_t") ? "" : ":1");
-            }
-            CORD_appendf(&env->code->typecode, "} %s;\n", tag->name);
-            CORD_appendf(&env->code->typedefs, "#define %s__%s(...) ((%s_t){%s$%s, .%s={__VA_ARGS__}})\n",
+            (void)compile(env, WrapAST(ast, StructDef, .name=heap_strf("%s$%s", def->name, tag->name), .fields=tag->fields));
+            enum_def = CORD_all(enum_def, def->name, "$", tag->name, "_t ", tag->name, ";\n");
+            CORD_appendf(&env->code->typedefs, "#define %s__%s(...) ((%s_t){$tag$%s$%s, .%s={__VA_ARGS__}})\n",
                          def->name, tag->name, def->name, def->name, tag->name, tag->name);
         }
-        env->code->typecode = CORD_cat(env->code->typecode, "};\n};\n");
+        enum_def = CORD_cat(enum_def, "};\n};\n");
+        env->code->typecode = CORD_cat(env->code->typecode, enum_def);
 
         CORD cord_func = CORD_all("static CORD ", def->name, "__as_str(", def->name, "_t *obj, bool use_color) {\n",
                                   "\tif (!obj) return \"", def->name, "\";\n",
                                   "\tswitch (obj->$tag) {\n");
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-            cord_func = CORD_all(cord_func, "\tcase ", def->name, "$", tag->name, ": return CORD_all(use_color ? \"\\x1b[36;1m",
+            cord_func = CORD_all(cord_func, "\tcase $tag$", def->name, "$", tag->name, ": return CORD_all(use_color ? \"\\x1b[36;1m",
                          def->name, ".", tag->name, "\\x1b[m(\" : \"", def->name, ".", tag->name, "(\"");
 
             for (arg_ast_t *field = tag->fields; field; field = field->next) {
@@ -733,14 +741,18 @@ CORD compile(env_t *env, ast_t *ast)
             return CORD_cat(code, "\n}");
         } else if (expr_t->tag == VoidType || expr_t->tag == AbortType) {
             return CORD_asprintf(
-                "__doctest((%r, NULL), NULL, NULL, %r, %ld, %ld);",
+                "%r;\n"
+                "__doctest(NULL, NULL, NULL, %r, %ld, %ld);",
                 compile(env, test->expr),
                 compile(env, WrapAST(test->expr, StringLiteral, .cord=test->expr->file->filename)),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else {
             return CORD_asprintf(
-                "__doctest($stack(%r), %r, %r, %r, %ld, %ld);",
+                "{\n%r $expr = %r;\n"
+                "__doctest(&$expr, %r, %r, %r, %ld, %ld);\n"
+                "}",
+                compile_type(expr_t),
                 compile(env, test->expr),
                 compile_type_info(env, expr_t),
                 compile(env, WrapAST(test->expr, StringLiteral, .cord=test->output)),
@@ -752,13 +764,35 @@ CORD compile(env_t *env, ast_t *ast)
     case FieldAccess: {
         auto f = Match(ast, FieldAccess);
         type_t *fielded_t = get_type(env, f->fielded);
-        CORD fielded = compile(env, f->fielded);
-        while (fielded_t->tag == PointerType) {
-            if (Match(fielded_t, PointerType)->is_optional)
-                code_err(ast, "You can't dereference this value, since it's not guaranteed to be non-null");
-            fielded = CORD_all("*(", fielded, ")");
+        type_t *value_t = value_type(fielded_t);
+        switch (value_t->tag) {
+        case StructType: {
+            for (arg_t *field = Match(value_t, StructType)->fields; field; field = field->next) {
+                if (streq(field->name, f->field)) {
+                    if (fielded_t->tag == PointerType) {
+                        CORD fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
+                        return CORD_asprintf("(%r)->%s", fielded, f->field);
+                    } else {
+                        CORD fielded = compile(env, f->fielded);
+                        return CORD_asprintf("(%r).%s", fielded, f->field);
+                    }
+                }
+            }
+            code_err(ast, "The field '%s' is not a valid field name of %T", f->field, value_t);
         }
-        return CORD_asprintf("(%r).%s", fielded, f->field);
+        case EnumType: {
+            auto enum_ = Match(value_t, EnumType);
+            for (tag_t *tag = enum_->tags; tag; tag = tag->next) {
+                if (streq(tag->name, f->field)) {
+                    CORD fielded = compile_to_pointer_depth(env, f->fielded, 0, false);
+                    return CORD_asprintf("$tagged(%r, %s, %s)", fielded, enum_->name, f->field);
+                }
+            }
+            code_err(ast, "The field '%s' is not a valid field name of %T", f->field, value_t);
+        }
+        default:
+            code_err(ast, "Field accesses are only supported on struct and enum values");
+        }
     }
     case Index: {
         auto indexing = Match(ast, Index);
@@ -769,7 +803,7 @@ CORD compile(env_t *env, ast_t *ast)
             if (index_t->tag != IntType)
                 code_err(indexing->index, "Arrays can only be indexed by integers, not %T", index_t);
             type_t *item_type = Match(container_t, ArrayType)->item_type;
-            CORD arr = compile_to_pointer_depth(env, indexing->indexed, 1);
+            CORD arr = compile_to_pointer_depth(env, indexing->indexed, 1, false);
             CORD index = compile(env, indexing->index);
             file_t *f = indexing->index->file;
             if (indexing->unchecked)
@@ -785,7 +819,7 @@ CORD compile(env_t *env, ast_t *ast)
             type_t *value_t = Match(container_t, TableType)->value_type;
             if (!can_promote(index_t, key_t))
                 code_err(indexing->index, "This value has type %T, but this table can only be index with keys of type %T", index_t, key_t);
-            CORD table = compile_to_pointer_depth(env, indexing->indexed, 1);
+            CORD table = compile_to_pointer_depth(env, indexing->indexed, 1, false);
             CORD key = compile(env, indexing->index);
             file_t *f = indexing->index->file;
             return CORD_all("$Table_get(", table, ", ", compile_type(key_t), ", ", compile_type(value_t), ", ",
@@ -797,8 +831,6 @@ CORD compile(env_t *env, ast_t *ast)
         default: code_err(ast, "Indexing is not supported for type: %T", container_t);
         }
     }
-    // Index
-    // DocTest,
     // Use,
     // LinkerDirective,
     case Unknown: code_err(ast, "Unknown AST");
@@ -818,32 +850,21 @@ CORD compile_type_info(env_t *env, type_t *t)
     case EnumType: return CORD_all("&", Match(t, EnumType)->name, ".type");
     case ArrayType: {
         type_t *item_t = Match(t, ArrayType)->item_type;
-        return CORD_asprintf(
-            "&((TypeInfo){.size=%zu, .align=%zu, .tag=ArrayInfo, .ArrayInfo.item=%r})",
-            sizeof(array_t), __alignof__(array_t),
-            compile_type_info(env, item_t));
+        return CORD_asprintf("$ArrayInfo(%r)", compile_type_info(env, item_t));
     }
     case TableType: {
         type_t *key_type = Match(t, TableType)->key_type;
         type_t *value_type = Match(t, TableType)->value_type;
-        return CORD_asprintf(
-            "&((TypeInfo){.size=%zu, .align=%zu, .tag=TableInfo, .TableInfo.key=%r, .TableInfo.value=%r})",
-            sizeof(table_t), __alignof__(table_t),
-            compile_type_info(env, key_type),
-            compile_type_info(env, value_type));
+        return CORD_asprintf("$TableInfo(%r, %r)", compile_type_info(env, key_type), compile_type_info(env, value_type));
     }
     case PointerType: {
         auto ptr = Match(t, PointerType);
         CORD sigil = ptr->is_stack ? "&" : (ptr->is_optional ? "?" : "@");
         if (ptr->is_readonly) sigil = CORD_cat(sigil, "(readonly)");
-        return CORD_asprintf(
-            "&((TypeInfo){.size=%zu, .align=%zu, .tag=PointerInfo, .PointerInfo.sigil=\"%r\", .PointerInfo.pointed=%r})",
-            sizeof(void*), __alignof__(void*),
-            sigil, compile_type_info(env, ptr->pointed));
+        return CORD_asprintf("$PointerInfo(%r, %r)", Str__quoted(sigil, false), compile_type_info(env, ptr->pointed));
     }
     case FunctionType: {
-        return CORD_asprintf("((TypeInfo){.size=%zu, .align=%zu, .tag=FunctionInfo, .FunctionInfo.type_str=\"%r\"})",
-                             sizeof(void*), __alignof__(void*), type_to_cord(t));
+        return CORD_asprintf("$FunctionInfo(%r)", Str__quoted(type_to_cord(t), false));
     }
     case ClosureType: {
         errx(1, "No typeinfo for closures yet");

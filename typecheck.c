@@ -287,7 +287,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *fielded_t = get_type(env, access->fielded);
         type_t *field_t = get_field_type(fielded_t, access->field);
         if (!field_t)
-            code_err(ast, "I can't find anything called %s on the type %T", access->field, fielded_t);
+            code_err(ast, "%T objects don't have a field called '%s'", fielded_t, access->field);
         return field_t;
     }
     case Index: {
@@ -329,6 +329,10 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (call->extern_return_type)
             return parse_type_ast(env, call->extern_return_type);
         type_t *fn_type_t = get_type(env, call->fn);
+        if (!fn_type_t)
+            code_err(call->fn, "I couldn't find this function");
+        if (fn_type_t->tag != FunctionType)
+            code_err(call->fn, "This isn't a function, it's a %T", fn_type_t);
         auto fn_type = Match(fn_type_t, FunctionType);
         return fn_type->ret;
     }
