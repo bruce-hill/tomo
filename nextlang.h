@@ -44,7 +44,12 @@ CORD as_cord(void *x, bool use_color, const char *fmt, ...);
                                                 $obj.$tag == $tag$##type_name##$##tag_name ? &$obj.tag_name : NULL; })
 
 
-#define not(x) _Generic(x, bool: (bool)!(x), default: ~(x))
+#define not(x) _Generic(x, bool: (bool)!(x), int64_t: ~(x), int32_t: ~(x), int16_t: ~(x), int8_t: ~(x), \
+                        array_t: ((x).length == 0), table_t: ((x).entries.length == 0), CORD: ((x) == CORD_EMPTY), \
+                        default: _Static_assert(0, "Not supported"))
+#define Bool(x) _Generic(x, bool: (bool)(x), int64_t: (x != 0), int32_t: (x != 0), int16_t: (x != 0), int8_t: (x != 0), CORD: ((x) == CORD_EMPTY), \
+                         array_t: ((x).length > 0), table_t: ((x).entries.length > 0), CORD: ((x) != CORD_EMPTY), \
+                         default: _Static_assert(0, "Not supported"))
 #define and(x, y) _Generic(x, bool: (bool)((x) && (y)), default: ((x) & (y)))
 #define or(x, y) _Generic(x, bool: (bool)((x) || (y)), default: ((x) | (y)))
 #define xor(x, y) _Generic(x, bool: (bool)((x) ^ (y)), default: ((x) ^ (y)))
