@@ -24,6 +24,11 @@ typedef struct ast_list_s {
     struct ast_list_s *next;
 } ast_list_t;
 
+typedef struct when_clause_s {
+    ast_t *var, *tag_name, *body;
+    struct when_clause_s *next;
+} when_clause_t;
+
 typedef struct arg_ast_s {
     const char *name;
     type_ast_t *type;
@@ -94,7 +99,7 @@ typedef enum {
     FunctionDef, Lambda,
     FunctionCall, KeywordArg,
     Block,
-    For, While, If,
+    For, While, If, When,
     Reduction,
     Skip, Stop, Pass,
     Return,
@@ -199,6 +204,11 @@ struct ast_s {
         struct {
             ast_t *condition, *body, *else_body;
         } If;
+        struct {
+            ast_t *subject;
+            when_clause_t *clauses;
+            ast_t *else_body;
+        } When;
         struct {
             ast_t *iter, *combination, *fallback;
         } Reduction;

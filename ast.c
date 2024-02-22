@@ -20,6 +20,7 @@ static CORD ast_to_cord(ast_t *ast);
 static CORD ast_list_to_cord(ast_list_t *asts);
 static CORD type_ast_to_cord(type_ast_t *t);
 static CORD arg_list_to_cord(arg_ast_t *args);
+static CORD when_clauses_to_cord(when_clause_t *clauses);
 static CORD tags_to_cord(tag_ast_t *tags);
 
 #define TO_CORD(x) _Generic(x, \
@@ -60,8 +61,17 @@ CORD arg_list_to_cord(arg_ast_t *args) {
             CORD_sprintf(&c, "%r=%s", c, ast_to_cord(args->default_val));
         if (args->next) c = CORD_cat(c, ", ");
     }
-    c = CORD_cat(c, ")");
-    return c;
+    return CORD_cat(c, ")");
+}
+
+CORD when_clauses_to_cord(when_clause_t *clauses) {
+    CORD c = "Clauses(";
+    for (; clauses; clauses = clauses->next) {
+        if (clauses->var) c = CORD_all(c, ast_to_cord(clauses->var), ":");
+        c = CORD_all(c, ast_to_cord(clauses->tag_name), "=", ast_to_cord(clauses->body));
+        if (clauses->next) c = CORD_cat(c, ", ");
+    }
+    return CORD_cat(c, ")");
 }
 
 CORD tags_to_cord(tag_ast_t *tags) {
@@ -72,8 +82,7 @@ CORD tags_to_cord(tag_ast_t *tags) {
         CORD_sprintf(&c, "%r(%r)=%ld", c, arg_list_to_cord(tags->fields), tags->value);
         if (tags->next) c = CORD_cat(c, ", ");
     }
-    c = CORD_cat(c, ")");
-    return c;
+    return CORD_cat(c, ")");
 }
 
 CORD ast_to_cord(ast_t *ast)
@@ -117,6 +126,7 @@ CORD ast_to_cord(ast_t *ast)
       ast_to_cord(data.iter), ast_to_cord(data.body))
     T(While, "(condition=%r, body=%r)", ast_to_cord(data.condition), ast_to_cord(data.body))
     T(If, "(condition=%r, body=%r, else=%r)", ast_to_cord(data.condition), ast_to_cord(data.body), ast_to_cord(data.else_body))
+    T(When, "(subject=%r, clauses=%r, else=%r)", ast_to_cord(data.subject), when_clauses_to_cord(data.clauses), ast_to_cord(data.else_body))
     T(Reduction, "(iter=%r, combination=%r, fallback=%r)", ast_to_cord(data.iter), ast_to_cord(data.combination), ast_to_cord(data.fallback))
     T(Skip, "(%s)", data.target)
     T(Stop, "(%s)", data.target)

@@ -1,4 +1,3 @@
-CC=gcc
 PREFIX=/usr/local
 VERSION=0.12.1
 CCONFIG=-std=c11 -Werror -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -ftrapv -fvisibility=hidden \

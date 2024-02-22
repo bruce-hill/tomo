@@ -52,7 +52,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
 {
     CORD stmt;
     switch (ast->tag) {
-    case If: case For: case While: case FunctionDef: case Return: case StructDef: case EnumDef:
+    case If: case When: case For: case While: case FunctionDef: case Return: case StructDef: case EnumDef:
     case Declare: case Assign: case UpdateAssign: case DocTest:
         stmt = compile(env, ast);
         break;
@@ -462,8 +462,8 @@ CORD compile(env_t *env, ast_t *ast)
             code = CORD_all(code, "NULL");
 
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
-            auto entry = Match(entry->ast, TableEntry);
-            code = CORD_all(code, ",\n\t{", compile(env, entry->key), ", ", compile(env, entry->value), "}");
+            auto e = Match(entry->ast, TableEntry);
+            code = CORD_all(code, ",\n\t{", compile(env, e->key), ", ", compile(env, e->value), "}");
         }
         return CORD_cat(code, ")");
 
@@ -516,13 +516,45 @@ CORD compile(env_t *env, ast_t *ast)
         auto kwarg = Match(ast, KeywordArg);
         return CORD_asprintf(".%s=%r", kwarg->name, compile(env, kwarg->arg));
     }
-    // KeywordArg,
     case If: {
         auto if_ = Match(ast, If);
         CORD code;
         CORD_sprintf(&code, "if (%r) %r", compile(env, if_->condition), compile(env, if_->body));
         if (if_->else_body)
             CORD_sprintf(&code, "%r\nelse %r", code, compile(env, if_->else_body));
+        return code;
+    }
+    case When: {
+        auto when = Match(ast, When);
+        type_t *subject_t = get_type(env, when->subject);
+        auto enum_t = Match(subject_t, EnumType);
+        CORD code = CORD_all("{ ", compile_type(subject_t), " $subject = ", compile(env, when->subject), ";\n"
+                             "switch ($subject.$tag) {");
+        type_t *result_t = get_type(env, ast);
+        (void)result_t;
+        for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
+            const char *clause_tag_name = Match(clause->tag_name, Var)->name;
+            code = CORD_all(code, "case $tag$", enum_t->name, "$", clause_tag_name, ": {\n");
+            type_t *tag_type = NULL;
+            for (tag_t *tag = enum_t->tags; tag; tag = tag->next) {
+                if (streq(tag->name, clause_tag_name)) {
+                    tag_type = tag->type;
+                    break;
+                }
+            }
+            assert(tag_type);
+            env_t *scope = env;
+            if (clause->var) {
+                code = CORD_all(code, compile_type(tag_type), " ", compile(env, clause->var), " = $subject.", clause_tag_name, ";\n");
+                scope = fresh_scope(env);
+                set_binding(scope, Match(clause->var, Var)->name, new(binding_t, .type=tag_type));
+            }
+            code = CORD_all(code, compile(scope, clause->body), "\nbreak;\n}\n");
+        }
+        if (when->else_body) {
+            code = CORD_all(code, "default: {\n", compile(env, when->else_body), "\nbreak;\n}");
+        }
+        code = CORD_all(code, "\n}\n}");
         return code;
     }
     case While: {
@@ -749,7 +781,7 @@ CORD compile(env_t *env, ast_t *ast)
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else {
             return CORD_asprintf(
-                "{\n%r $expr = %r;\n"
+                "{ // Test:\n%r $expr = %r;\n"
                 "__doctest(&$expr, %r, %r, %r, %ld, %ld);\n"
                 "}",
                 compile_type(expr_t),

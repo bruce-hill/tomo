@@ -43,7 +43,7 @@ int op_tightness[] = {
 #define MAX_TIGHTNESS 9
 
 static const char *keywords[] = {
-    "yes", "xor", "while", "use", "then", "struct", "stop", "skip", "return",
+    "yes", "xor", "while", "when", "use", "then", "struct", "stop", "skip", "return",
     "or", "not", "no", "mod1", "mod", "in", "if", "func", "for", "extern",
     "enum", "else", "do", "and", "_mix_", "_min_", "_max_",
     NULL,
@@ -71,6 +71,7 @@ static arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unna
 static PARSER(parse_for);
 static PARSER(parse_while);
 static PARSER(parse_if);
+static PARSER(parse_when);
 static PARSER(parse_expr);
 static PARSER(parse_extended_expr);
 static PARSER(parse_term_no_suffix);
@@ -803,11 +804,57 @@ PARSER(parse_if) {
     const char *tmp = pos;
     whitespace(&tmp);
     ast_t *else_body = NULL;
+    const char *else_start = pos;
     if (get_indent(ctx->file, tmp) == starting_indent && match_word(&tmp, "else")) {
         pos = tmp;
-        else_body = expect(ctx, start, &pos, parse_opt_indented_block, "I expected a body for this 'else'"); 
+        else_body = expect(ctx, else_start, &pos, parse_opt_indented_block, "I expected a body for this 'else'"); 
     }
     return NewAST(ctx->file, start, pos, If, .condition=condition, .body=body, .else_body=else_body);
+}
+
+PARSER(parse_when) {
+    // when <expr> (is var : Tag [then] <body>)* [else <body>]
+    const char *start = pos;
+    int64_t starting_indent = get_indent(ctx->file, pos);
+
+    if (!match_word(&pos, "when"))
+        return NULL;
+
+    ast_t *subject = optional(ctx, &pos, parse_declaration);
+    if (!subject) subject = expect(ctx, start, &pos, parse_expr,
+                                   "I expected to find an expression for this 'when'");
+
+    when_clause_t *clauses = NULL;
+    const char *tmp = pos;
+    whitespace(&tmp);
+    while (get_indent(ctx->file, tmp) == starting_indent && match_word(&tmp, "is")) {
+        pos = tmp;
+        spaces(&pos);
+        ast_t *tag_name, *var = expect(ctx, start, &pos, parse_var, "I expected a variable or tag name here");
+        spaces(&pos);
+        if (match(&pos, ":")) {
+            spaces(&pos);
+            tag_name = optional(ctx, &pos, parse_var);
+        } else {
+            tag_name = var;
+            var = NULL;
+        }
+
+        match_word(&pos, "then"); // optional
+        ast_t *body = expect(ctx, start, &pos, parse_opt_indented_block, "I expected a body for this 'when' clause"); 
+        clauses = new(when_clause_t, .var=var, .tag_name=tag_name, .body=body, .next=clauses);
+        tmp = pos;
+        whitespace(&tmp);
+    }
+    REVERSE_LIST(clauses);
+
+    ast_t *else_body = NULL;
+    const char *else_start = pos;
+    if (get_indent(ctx->file, tmp) == starting_indent && match_word(&tmp, "else")) {
+        pos = tmp;
+        else_body = expect(ctx, else_start, &pos, parse_opt_indented_block, "I expected a body for this 'else'"); 
+    }
+    return NewAST(ctx->file, start, pos, When, .subject=subject, .clauses=clauses, .else_body=else_body);
 }
 
 PARSER(parse_for) {
@@ -1343,6 +1390,7 @@ PARSER(parse_extended_expr) {
         || (expr=optional(ctx, &pos, parse_for))
         || (expr=optional(ctx, &pos, parse_while))
         || (expr=optional(ctx, &pos, parse_if))
+        || (expr=optional(ctx, &pos, parse_when))
         )
         return expr;
 
