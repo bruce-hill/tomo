@@ -447,7 +447,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             if (!type_eq(lhs_t, rhs_t))
                 code_err(ast, "The type on the left side of this concatenation doesn't match the right side: %T vs. %T",
                              lhs_t, rhs_t);
-            if (lhs_t->tag == ArrayType && lhs_t->tag == StringType)
+            if (lhs_t->tag == ArrayType || lhs_t->tag == StringType)
                 return lhs_t;
 
             code_err(ast, "Only array/string value types support concatenation, not %T", lhs_t);

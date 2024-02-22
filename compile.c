@@ -300,6 +300,20 @@ CORD compile(env_t *env, ast_t *ast)
             else
                 code_err(ast, "Boolean operators are only supported for Bool and integer types");
         }
+        case BINOP_CONCAT: {
+            switch (operand_t->tag) {
+            case StringType: {
+                return CORD_all("CORD_cat(", lhs, ", ", rhs, ")");
+            }
+            case ArrayType: {
+                return CORD_all("({ array_t $joined = ", lhs, ", $rhs = ", rhs, ";\n"
+                                "Array__insert_all(&$joined, $rhs, 0, ", compile_type_info(env, operand_t), ");\n"
+                                "$joined; })");
+            }
+            default:
+                code_err(ast, "Concatenation isn't supported for %T types", operand_t);
+            }
+        }
         default: break;
         }
         code_err(ast, "unimplemented binop");
