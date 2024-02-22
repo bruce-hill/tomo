@@ -1317,6 +1317,7 @@ PARSER(parse_update) {
     else if (match(&pos, "-=")) op = BINOP_MINUS;
     else if (match(&pos, "*=")) op = BINOP_MULT;
     else if (match(&pos, "/=")) op = BINOP_DIVIDE;
+    else if (match(&pos, "^=")) op = BINOP_POWER;
     else if (match(&pos, "and=")) op = BINOP_AND;
     else if (match(&pos, "or=")) op = BINOP_OR;
     else if (match(&pos, "xor=")) op = BINOP_XOR;

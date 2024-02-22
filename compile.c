@@ -187,7 +187,7 @@ CORD compile(env_t *env, ast_t *ast)
         else if (can_promote(lhs_t, rhs_t))
             operand_t = rhs_t;
         else
-            code_err(ast, "I can't do binary operations between %T and %T", lhs_t, rhs_t);
+            code_err(ast, "I can't do operations between %T and %T", lhs_t, rhs_t);
 
         switch (binop->op) {
         case BINOP_POWER: {
@@ -330,25 +330,53 @@ CORD compile(env_t *env, ast_t *ast)
         auto update = Match(ast, UpdateAssign);
         CORD lhs = compile(env, update->lhs);
         CORD rhs = compile(env, update->rhs);
+
+        type_t *lhs_t = get_type(env, update->lhs);
+        type_t *rhs_t = get_type(env, update->rhs);
+        type_t *operand_t;
+        if (can_promote(rhs_t, lhs_t))
+            operand_t = lhs_t;
+        else if (can_promote(lhs_t, rhs_t))
+            operand_t = rhs_t;
+        else
+            code_err(ast, "I can't do operations between %T and %T", lhs_t, rhs_t);
+
         switch (update->op) {
         case BINOP_MULT: return CORD_asprintf("%r *= %r;", lhs, rhs);
         case BINOP_DIVIDE: return CORD_asprintf("%r /= %r;", lhs, rhs);
-        case BINOP_MOD: return CORD_asprintf("%r = %r %% %r;", lhs, lhs, rhs);
+        case BINOP_MOD: return CORD_asprintf("%r = mod(%r, %r);", lhs, lhs, rhs);
+        case BINOP_MOD1: return CORD_asprintf("%r = mod1(%r, %r);", lhs, lhs, rhs);
         case BINOP_PLUS: return CORD_asprintf("%r += %r;", lhs, rhs);
         case BINOP_MINUS: return CORD_asprintf("%r -= %r;", lhs, rhs);
+        case BINOP_POWER: {
+            if (lhs_t->tag != NumType)
+                code_err(ast, "'^=' is only supported for Num types");
+            if (lhs_t->tag == NumType && Match(lhs_t, NumType)->bits == 32)
+                return CORD_all(lhs, " = powf(", lhs, ", ", rhs, ")");
+            else
+                return CORD_all(lhs, " = pow(", lhs, ", ", rhs, ")");
+        }
         case BINOP_LSHIFT: return CORD_asprintf("%r <<= %r;", lhs, rhs);
         case BINOP_RSHIFT: return CORD_asprintf("%r >>= %r;", lhs, rhs);
-        case BINOP_EQ: return CORD_asprintf("%r = (%r == %r);", lhs, lhs, rhs);
-        case BINOP_NE: return CORD_asprintf("%r = (%r != %r);", lhs, lhs, rhs);
-        case BINOP_LT: return CORD_asprintf("%r = (%r < %r);", lhs, lhs, rhs);
-        case BINOP_LE: return CORD_asprintf("%r = (%r <= %r);", lhs, lhs, rhs);
-        case BINOP_GT: return CORD_asprintf("%r = (%r > %r);", lhs, lhs, rhs);
-        case BINOP_GE: return CORD_asprintf("%r = (%r >= %r);", lhs, lhs, rhs);
-        case BINOP_AND: return CORD_asprintf("%r = (%r && %r);", lhs, lhs, rhs);
-        case BINOP_OR: return CORD_asprintf("%r = (%r || %r);", lhs, lhs, rhs);
-        default: break;
+        case BINOP_AND: {
+            if (operand_t->tag == BoolType)
+                return CORD_asprintf("if (%r) %r = %r;", lhs, lhs, rhs);
+            else if (operand_t->tag == IntType)
+                return CORD_asprintf("%r &= %r;", lhs, rhs);
+            else
+                code_err(ast, "'or=' is not implemented for %T types", operand_t);
         }
-        code_err(ast, "unimplemented binop");
+        case BINOP_OR: {
+            if (operand_t->tag == BoolType)
+                return CORD_asprintf("if (!(%r)) %r = %r;", lhs, lhs, rhs);
+            else if (operand_t->tag == IntType)
+                return CORD_asprintf("%r |= %r;", lhs, rhs);
+            else
+                code_err(ast, "'or=' is not implemented for %T types", operand_t);
+        }
+        case BINOP_XOR: return CORD_asprintf("%r ^= %r;", lhs, rhs);
+        default: code_err(ast, "Update assignments are not implemented for this operation");
+        }
     }
     case StringLiteral: {
         CORD literal = Match(ast, StringLiteral)->cord; 
