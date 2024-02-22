@@ -102,6 +102,12 @@ void bind_statement(env_t *env, ast_t *statement)
         set_binding(env, Match(decl->var, Var)->name, new(binding_t, .type=type));
         break;
     }
+    case FunctionDef: {
+        auto def = Match(statement, FunctionDef);
+        type_t *type = get_function_def_type(env, statement);
+        set_binding(env, Match(def->name, Var)->name, new(binding_t, .type=type));
+        break;
+    }
     case StructDef: {
         auto def = Match(statement, StructDef);
         arg_t *fields = NULL;
@@ -148,7 +154,7 @@ void bind_statement(env_t *env, ast_t *statement)
     }
 }
 
-static type_t *get_function_def_type(env_t *env, ast_t *ast)
+type_t *get_function_def_type(env_t *env, ast_t *ast)
 {
     auto fn = Match(ast, FunctionDef);
     arg_t *args = NULL;
@@ -160,7 +166,7 @@ static type_t *get_function_def_type(env_t *env, ast_t *ast)
     }
     REVERSE_LIST(args);
 
-    type_t *ret = parse_type_ast(scope, fn->ret_type);
+    type_t *ret = fn->ret_type ? parse_type_ast(scope, fn->ret_type) : Type(VoidType);
     if (has_stack_memory(ret))
         code_err(ast, "Functions can't return stack references because the reference may outlive its stack frame.");
     return Type(FunctionType, .args=args, .ret=ret);

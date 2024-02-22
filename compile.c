@@ -546,7 +546,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD_appendf(&kwargs, "} $args = {__VA_ARGS__}; %r_(%r); })\n", name, passed_args);
         CORD_appendf(&env->code->staticdefs, "%r", kwargs);
 
-        CORD body = compile(env, fndef->body);
+        CORD body = compile(body_scope, fndef->body);
         if (CORD_fetch(body, 0) != '{')
             body = CORD_asprintf("{\n%r\n}", body);
         CORD_appendf(&env->code->funcs, ") %r", body);
