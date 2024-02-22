@@ -179,139 +179,139 @@ CORD compile(env_t *env, ast_t *ast)
         CORD lhs = compile(env, binop->lhs);
         CORD rhs = compile(env, binop->rhs);
 
-        type_t *lhs_t = get_type(env, binop->lhs);
-        type_t *rhs_t = get_type(env, binop->rhs);
-        type_t *operand_t;
-        if (can_promote(rhs_t, lhs_t))
-            operand_t = lhs_t;
-        else if (can_promote(lhs_t, rhs_t))
-            operand_t = rhs_t;
-        else
-            code_err(ast, "I can't do binary operations between %T and %T", lhs_t, rhs_t);
+        type_t *result_t = get_type(env, ast);
 
         switch (binop->op) {
+        case BINOP_POWER: {
+            if (result_t->tag != NumType)
+                code_err(ast, "Exponentiation is only supported for Num types");
+            if (Match(result_t, NumType)->bits == 32)
+                return CORD_all("powf(", lhs, ", ", rhs, ")");
+            else
+                return CORD_all("pow(", lhs, ", ", rhs, ")");
+        }
         case BINOP_MULT: {
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (result_t->tag != IntType && result_t->tag != NumType)
                 code_err(ast, "Math operations are only supported for numeric types");
             return CORD_asprintf("(%r * %r)", lhs, rhs);
         }
         case BINOP_DIVIDE: {
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (result_t->tag != IntType && result_t->tag != NumType)
                 code_err(ast, "Math operations are only supported for numeric types");
             return CORD_asprintf("(%r / %r)", lhs, rhs);
         }
         case BINOP_MOD: {
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (result_t->tag != IntType && result_t->tag != NumType)
                 code_err(ast, "Math operations are only supported for numeric types");
             return CORD_asprintf("mod(%r, %r)", lhs, rhs);
         }
         case BINOP_MOD1: {
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (result_t->tag != IntType && result_t->tag != NumType)
                 code_err(ast, "Math operations are only supported for numeric types");
             return CORD_asprintf("mod1(%r, %r)", lhs, rhs);
         }
         case BINOP_PLUS: {
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (result_t->tag != IntType && result_t->tag != NumType)
                 code_err(ast, "Math operations are only supported for numeric types");
             return CORD_asprintf("(%r + %r)", lhs, rhs);
         }
         case BINOP_MINUS: {
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (result_t->tag != IntType && result_t->tag != NumType)
                 code_err(ast, "Math operations are only supported for numeric types");
             return CORD_asprintf("(%r - %r)", lhs, rhs);
         }
         case BINOP_LSHIFT: {
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (result_t->tag != IntType && result_t->tag != NumType)
                 code_err(ast, "Math operations are only supported for numeric types");
             return CORD_asprintf("(%r << %r)", lhs, rhs);
         }
         case BINOP_RSHIFT: {
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (result_t->tag != IntType && result_t->tag != NumType)
                 code_err(ast, "Math operations are only supported for numeric types");
             return CORD_asprintf("(%r >> %r)", lhs, rhs);
         }
         case BINOP_EQ: {
-            switch (operand_t->tag) {
+            switch (result_t->tag) {
             case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_asprintf("(%r == %r)", lhs, rhs);
             default:
-                return CORD_asprintf("generic_equal($stack(%r), $stack(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
+                return CORD_asprintf("generic_equal($stack(%r), $stack(%r), %r)", lhs, rhs, compile_type_info(env, result_t));
             }
         }
         case BINOP_NE: {
-            switch (operand_t->tag) {
+            switch (result_t->tag) {
             case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_asprintf("(%r != %r)", lhs, rhs);
             default:
-                return CORD_asprintf("!generic_equal($stack(%r), $stack(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
+                return CORD_asprintf("!generic_equal($stack(%r), $stack(%r), %r)", lhs, rhs, compile_type_info(env, result_t));
             }
         }
         case BINOP_LT: {
-            switch (operand_t->tag) {
+            switch (result_t->tag) {
             case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_asprintf("(%r < %r)", lhs, rhs);
             default:
-                return CORD_asprintf("(generic_compare($stack(%r), $stack(%r), %r) < 0)", lhs, rhs, compile_type_info(env, operand_t));
+                return CORD_asprintf("(generic_compare($stack(%r), $stack(%r), %r) < 0)", lhs, rhs, compile_type_info(env, result_t));
             }
         }
         case BINOP_LE: {
-            switch (operand_t->tag) {
+            switch (result_t->tag) {
             case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_asprintf("(%r <= %r)", lhs, rhs);
             default:
-                return CORD_asprintf("(generic_compare($stack(%r), $stack(%r), %r) <= 0)", lhs, rhs, compile_type_info(env, operand_t));
+                return CORD_asprintf("(generic_compare($stack(%r), $stack(%r), %r) <= 0)", lhs, rhs, compile_type_info(env, result_t));
             }
         }
         case BINOP_GT: {
-            switch (operand_t->tag) {
+            switch (result_t->tag) {
             case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_asprintf("(%r > %r)", lhs, rhs);
             default:
-                return CORD_asprintf("(generic_compare($stack(%r), $stack(%r), %r) > 0)", lhs, rhs, compile_type_info(env, operand_t));
+                return CORD_asprintf("(generic_compare($stack(%r), $stack(%r), %r) > 0)", lhs, rhs, compile_type_info(env, result_t));
             }
         }
         case BINOP_GE: {
-            switch (operand_t->tag) {
+            switch (result_t->tag) {
             case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_asprintf("(%r >= %r)", lhs, rhs);
             default:
-                return CORD_asprintf("(generic_compare($stack(%r), $stack(%r), %r) >= 0)", lhs, rhs, compile_type_info(env, operand_t));
+                return CORD_asprintf("(generic_compare($stack(%r), $stack(%r), %r) >= 0)", lhs, rhs, compile_type_info(env, result_t));
             }
         }
         case BINOP_AND: {
-            if (operand_t->tag == BoolType)
+            if (result_t->tag == BoolType)
                 return CORD_asprintf("(%r && %r)", lhs, rhs);
-            else if (operand_t->tag == IntType)
+            else if (result_t->tag == IntType)
                 return CORD_asprintf("(%r & %r)", lhs, rhs);
             else
                 code_err(ast, "Boolean operators are only supported for Bool and integer types");
         }
         case BINOP_OR: {
-            if (operand_t->tag == BoolType)
+            if (result_t->tag == BoolType)
                 return CORD_asprintf("(%r || %r)", lhs, rhs);
-            else if (operand_t->tag == IntType)
+            else if (result_t->tag == IntType)
                 return CORD_asprintf("(%r | %r)", lhs, rhs);
             else
                 code_err(ast, "Boolean operators are only supported for Bool and integer types");
         }
         case BINOP_XOR: {
-            if (operand_t->tag == BoolType || operand_t->tag == IntType)
+            if (result_t->tag == BoolType || result_t->tag == IntType)
                 return CORD_asprintf("(%r ^ %r)", lhs, rhs);
             else
                 code_err(ast, "Boolean operators are only supported for Bool and integer types");
         }
         case BINOP_CONCAT: {
-            switch (operand_t->tag) {
+            switch (result_t->tag) {
             case StringType: {
                 return CORD_all("CORD_cat(", lhs, ", ", rhs, ")");
             }
             case ArrayType: {
                 return CORD_all("({ array_t $joined = ", lhs, ", $rhs = ", rhs, ";\n"
-                                "Array__insert_all(&$joined, $rhs, 0, ", compile_type_info(env, operand_t), ");\n"
+                                "Array__insert_all(&$joined, $rhs, 0, ", compile_type_info(env, result_t), ");\n"
                                 "$joined; })");
             }
             default:
-                code_err(ast, "Concatenation isn't supported for %T types", operand_t);
+                code_err(ast, "Concatenation isn't supported for %T types", result_t);
             }
         }
         default: break;
