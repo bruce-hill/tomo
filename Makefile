@@ -39,6 +39,9 @@ SipHash/halfsiphash.c:
 tags:
 	ctags *.[ch] **/*.[ch]
 
+test: nextlang
+	for f in tests/*; do echo -e "\x1b[1;4m$$f\x1b[m"; VERBOSE=0 ./nextlang "$$f" || break; done
+
 clean:
 	rm -f nextlang *.o builtins/*.o libnext.so
 
