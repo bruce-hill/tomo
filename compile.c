@@ -336,6 +336,8 @@ CORD compile(env_t *env, ast_t *ast)
             operand_t = lhs_t;
         else if (can_promote(lhs_t, rhs_t))
             operand_t = rhs_t;
+        else if (lhs_t->tag == ArrayType && can_promote(rhs_t, Match(lhs_t, ArrayType)->item_type))
+            operand_t = lhs_t;
         else
             code_err(ast, "I can't do operations between %T and %T", lhs_t, rhs_t);
 
@@ -377,10 +379,19 @@ CORD compile(env_t *env, ast_t *ast)
             if (operand_t->tag == StringType) {
                 return CORD_asprintf("%r = CORD_cat(%r, %r);", lhs, lhs, rhs);
             } else if (operand_t->tag == ArrayType) {
-                if (update->lhs->tag == Var)
-                    return CORD_all("Array__insert_all(&", lhs, ", ", rhs, ", 0, ", compile_type_info(env, operand_t), ")");
-                else
-                    return CORD_all(lhs, "Array__concat(", lhs, ", ", rhs, ", ", compile_type_info(env, operand_t), ")");
+                if (can_promote(rhs_t, Match(lhs_t, ArrayType)->item_type)) {
+                    // arr ++= item
+                    if (update->lhs->tag == Var)
+                        return CORD_all("Array__insert(&", lhs, ", $stack(", rhs, "), 0, ", compile_type_info(env, operand_t), ")");
+                    else
+                        return CORD_all(lhs, "Array__concat(", lhs, ", $Array(", rhs, "), ", compile_type_info(env, operand_t), ")");
+                } else {
+                    // arr ++= [...]
+                    if (update->lhs->tag == Var)
+                        return CORD_all("Array__insert_all(&", lhs, ", ", rhs, ", 0, ", compile_type_info(env, operand_t), ")");
+                    else
+                        return CORD_all(lhs, "Array__concat(", lhs, ", ", rhs, ", ", compile_type_info(env, operand_t), ")");
+                }
             } else {
                 code_err(ast, "'++=' is not implemented for %T types", operand_t);
             }
