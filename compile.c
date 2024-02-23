@@ -524,7 +524,8 @@ CORD compile(env_t *env, ast_t *ast)
         CORD name = compile(env, fndef->name);
         CORD_appendf(&env->code->staticdefs, "static %r %r_(", fndef->ret_type ? compile_type_ast(fndef->ret_type) : "void", name);
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-            CORD_appendf(&env->code->staticdefs, "%r %s", compile_type_ast(arg->type), arg->name);
+            type_t *arg_type = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->default_val);
+            CORD_appendf(&env->code->staticdefs, "%r %s", compile_type(arg_type), arg->name);
             if (arg->next) env->code->staticdefs = CORD_cat(env->code->staticdefs, ", ");
         }
         env->code->staticdefs = CORD_cat(env->code->staticdefs, ");\n");
@@ -535,13 +536,14 @@ CORD compile(env_t *env, ast_t *ast)
         env_t *body_scope = fresh_scope(env);
         body_scope->locals->fallback = env->globals;
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-            CORD arg_type = compile_type_ast(arg->type);
-            CORD_appendf(&env->code->funcs, "%r %s", arg_type, arg->name);
+            type_t *arg_type = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->default_val);
+            CORD arg_typecode = compile_type(arg_type);
+            CORD_appendf(&env->code->funcs, "%r %s", arg_typecode, arg->name);
             if (arg->next) env->code->funcs = CORD_cat(env->code->funcs, ", ");
-            CORD_appendf(&kwargs, "%r %s; ", arg_type, arg->name);
+            CORD_appendf(&kwargs, "%r %s; ", arg_typecode, arg->name);
             CORD_appendf(&passed_args, "$args.%s", arg->name);
             if (arg->next) passed_args = CORD_cat(passed_args, ", ");
-            set_binding(body_scope, arg->name, new(binding_t, .type=parse_type_ast(env, arg->type)));
+            set_binding(body_scope, arg->name, new(binding_t, .type=arg_type));
         }
         CORD_appendf(&kwargs, "} $args = {__VA_ARGS__}; %r_(%r); })\n", name, passed_args);
         CORD_appendf(&env->code->staticdefs, "%r", kwargs);
@@ -554,11 +556,57 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case FunctionCall: {
         auto call = Match(ast, FunctionCall);
+        type_t *fn_t = get_type(env, call->fn);
+        if (fn_t->tag != FunctionType)
+            code_err(call->fn, "This is not a function, it's a %T", fn_t);
+
         CORD code = CORD_cat_char(compile(env, call->fn), '(');
+        // Pass 1: assign keyword args
+        // Pass 2: assign positional args
+        // Pass 3: compile and typecheck each arg
+        table_t arg_bindings = {};
         for (ast_list_t *arg = call->args; arg; arg = arg->next) {
-            code = CORD_cat(code, compile(env, arg->ast));
-            if (arg->next) code = CORD_cat(code, ", ");
+            if (arg->ast->tag == KeywordArg)
+                Table_str_set(&arg_bindings, Match(arg->ast, KeywordArg)->name, Match(arg->ast, KeywordArg)->arg);
         }
+        for (ast_list_t *call_arg = call->args; call_arg; call_arg = call_arg->next) {
+            if (call_arg->ast->tag == KeywordArg)
+                continue;
+
+            const char *name = NULL;
+            for (arg_t *fn_arg = Match(fn_t, FunctionType)->args; fn_arg; fn_arg = fn_arg->next) {
+                if (!Table_str_get(&arg_bindings, fn_arg->name)) {
+                    name = fn_arg->name;
+                    break;
+                }
+            }
+            if (name)
+                Table_str_set(&arg_bindings, name, call_arg->ast);
+            else
+                code_err(call_arg->ast, "This is too many arguments to the function: %T", fn_t);
+        }
+
+        for (arg_t *fn_arg = Match(fn_t, FunctionType)->args; fn_arg; fn_arg = fn_arg->next) {
+            ast_t *arg = Table_str_get(&arg_bindings, fn_arg->name);
+            if (arg) {
+                Table_str_remove(&arg_bindings, fn_arg->name);
+            } else {
+                arg = fn_arg->default_val;
+            }
+            if (!arg)
+                code_err(ast, "The required argument '%s' is not provided", fn_arg->name);
+
+            code = CORD_cat(code, compile(env, arg));
+            if (fn_arg->next) code = CORD_cat(code, ", ");
+        }
+
+        struct {
+            const char *name;
+            ast_t *ast;
+        } *invalid = Table_str_entry(&arg_bindings, 1);
+        if (invalid)
+            code_err(invalid->ast, "There is no argument named %s for %T", invalid->name, fn_t);
+
         return CORD_cat_char(code, ')');
     }
     // Lambda,

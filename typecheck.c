@@ -161,7 +161,7 @@ type_t *get_function_def_type(env_t *env, ast_t *ast)
     env_t *scope = fresh_scope(env);
     for (arg_ast_t *arg = fn->args; arg; arg = arg->next) {
         type_t *t = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->default_val);
-        args = new(arg_t, .name=arg->name, .type=t, .next=args);
+        args = new(arg_t, .name=arg->name, .type=t, .default_val=arg->default_val, .next=args);
         set_binding(scope, arg->name, new(binding_t, .type=t));
     }
     REVERSE_LIST(args);
