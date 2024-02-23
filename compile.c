@@ -374,12 +374,16 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case BINOP_XOR: return CORD_asprintf("%r ^= %r;", lhs, rhs);
         case BINOP_CONCAT: {
-            if (operand_t->tag == StringType)
+            if (operand_t->tag == StringType) {
                 return CORD_asprintf("%r = CORD_cat(%r, %r);", lhs, lhs, rhs);
-            else if (operand_t->tag == ArrayType)
-                return CORD_all(lhs, "Array__concat(", lhs, ", ", rhs, ", ", compile_type_info(env, operand_t), ")");
-            else
+            } else if (operand_t->tag == ArrayType) {
+                if (update->lhs->tag == Var)
+                    return CORD_all("Array__insert_all(&", lhs, ", ", rhs, ", 0, ", compile_type_info(env, operand_t), ")");
+                else
+                    return CORD_all(lhs, "Array__concat(", lhs, ", ", rhs, ", ", compile_type_info(env, operand_t), ")");
+            } else {
                 code_err(ast, "'++=' is not implemented for %T types", operand_t);
+            }
         }
         default: code_err(ast, "Update assignments are not implemented for this operation");
         }

@@ -40,7 +40,7 @@ tags:
 	ctags *.[ch] **/*.[ch]
 
 clean:
-	rm -f nextlang *.o builtins/*.o
+	rm -f nextlang *.o builtins/*.o libnext.so
 
 %.1: %.1.md
 	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@
