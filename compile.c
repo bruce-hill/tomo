@@ -314,9 +314,7 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("CORD_cat(", lhs, ", ", rhs, ")");
             }
             case ArrayType: {
-                return CORD_all("({ array_t $joined = ", lhs, ", $rhs = ", rhs, ";\n"
-                                "Array__insert_all(&$joined, $rhs, 0, ", compile_type_info(env, operand_t), ");\n"
-                                "$joined; })");
+                return CORD_all("Array__concat(", lhs, ", ", rhs, ", ", compile_type_info(env, operand_t), ")");
             }
             default:
                 code_err(ast, "Concatenation isn't supported for %T types", operand_t);
@@ -375,6 +373,14 @@ CORD compile(env_t *env, ast_t *ast)
                 code_err(ast, "'or=' is not implemented for %T types", operand_t);
         }
         case BINOP_XOR: return CORD_asprintf("%r ^= %r;", lhs, rhs);
+        case BINOP_CONCAT: {
+            if (operand_t->tag == StringType)
+                return CORD_asprintf("%r = CORD_cat(%r, %r);", lhs, lhs, rhs);
+            else if (operand_t->tag == ArrayType)
+                return CORD_all(lhs, "Array__concat(", lhs, ", ", rhs, ", ", compile_type_info(env, operand_t), ")");
+            else
+                code_err(ast, "'++=' is not implemented for %T types", operand_t);
+        }
         default: code_err(ast, "Update assignments are not implemented for this operation");
         }
     }

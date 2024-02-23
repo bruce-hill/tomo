@@ -228,6 +228,33 @@ public array_t Array__slice(array_t *array, int64_t first, int64_t stride, int64
     };
 }
 
+array_t Array__concat(array_t *x, array_t *y, const TypeInfo *type)
+{
+    int64_t item_size = get_item_size(type);
+    void *data = x->atomic ? GC_MALLOC_ATOMIC(item_size*(x->length + y->length)) : GC_MALLOC(item_size*(x->length + y->length));
+    if (x->stride == item_size) {
+        memcpy(data, x->data, item_size*x->length);
+    } else {
+        for (int64_t i = 0; i < x->length; i++)
+            memcpy(data + i*item_size, x->data + i*item_size, item_size);
+    }
+
+    if (y->stride == item_size) {
+        memcpy(data + item_size*x->length, y->data, item_size*y->length);
+    } else {
+        for (int64_t i = 0; i < x->length; i++)
+            memcpy(data + (x->length + i)*item_size, y->data + i*item_size, item_size);
+    }
+
+    return (array_t){
+        .data=data,
+        .length=x->length + y->length,
+        .stride=item_size,
+        .copy_on_write=0,
+        .atomic=x->atomic,
+    };
+}
+
 public bool Array__contains(array_t array, void *item, const TypeInfo *type)
 {
     TypeInfo *item_type = type->ArrayInfo.item;

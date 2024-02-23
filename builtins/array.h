@@ -32,6 +32,7 @@ void Array__clear(array_t *array, const TypeInfo *type);
 void Array__compact(array_t *arr, const TypeInfo *type);
 bool Array__contains(array_t array, void *item, const TypeInfo *type);
 array_t Array__slice(array_t *array, int64_t first, int64_t stride, int64_t length, bool readonly, const TypeInfo *type);
+array_t Array__concat(array_t *x, array_t *y, const TypeInfo *type);
 uint32_t Array__hash(const array_t *arr, const TypeInfo *type);
 int32_t Array__compare(const array_t *x, const array_t *y, const TypeInfo *type);
 bool Array__equal(const array_t *x, const array_t *y, const TypeInfo *type);
