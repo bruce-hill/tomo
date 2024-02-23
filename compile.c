@@ -524,7 +524,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD name = compile(env, fndef->name);
         CORD_appendf(&env->code->staticdefs, "static %r %r_(", fndef->ret_type ? compile_type_ast(fndef->ret_type) : "void", name);
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-            type_t *arg_type = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->default_val);
+            type_t *arg_type = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->value);
             CORD_appendf(&env->code->staticdefs, "%r %s", compile_type(arg_type), arg->name);
             if (arg->next) env->code->staticdefs = CORD_cat(env->code->staticdefs, ", ");
         }
@@ -536,7 +536,7 @@ CORD compile(env_t *env, ast_t *ast)
         env_t *body_scope = fresh_scope(env);
         body_scope->locals->fallback = env->globals;
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-            type_t *arg_type = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->default_val);
+            type_t *arg_type = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->value);
             CORD arg_typecode = compile_type(arg_type);
             CORD_appendf(&env->code->funcs, "%r %s", arg_typecode, arg->name);
             if (arg->next) env->code->funcs = CORD_cat(env->code->funcs, ", ");
@@ -565,12 +565,12 @@ CORD compile(env_t *env, ast_t *ast)
         // Pass 2: assign positional args
         // Pass 3: compile and typecheck each arg
         table_t arg_bindings = {};
-        for (ast_list_t *arg = call->args; arg; arg = arg->next) {
-            if (arg->ast->tag == KeywordArg)
-                Table_str_set(&arg_bindings, Match(arg->ast, KeywordArg)->name, Match(arg->ast, KeywordArg)->arg);
+        for (arg_ast_t *arg = call->args; arg; arg = arg->next) {
+            if (arg->name)
+                Table_str_set(&arg_bindings, arg->name, arg->value);
         }
-        for (ast_list_t *call_arg = call->args; call_arg; call_arg = call_arg->next) {
-            if (call_arg->ast->tag == KeywordArg)
+        for (arg_ast_t *call_arg = call->args; call_arg; call_arg = call_arg->next) {
+            if (call_arg->name)
                 continue;
 
             const char *name = NULL;
@@ -581,9 +581,9 @@ CORD compile(env_t *env, ast_t *ast)
                 }
             }
             if (name)
-                Table_str_set(&arg_bindings, name, call_arg->ast);
+                Table_str_set(&arg_bindings, name, call_arg->value);
             else
-                code_err(call_arg->ast, "This is too many arguments to the function: %T", fn_t);
+                code_err(call_arg->value, "This is too many arguments to the function: %T", fn_t);
         }
 
         // TODO: ensure args get executed in order (e.g. `foo(y=get_next(1), x=get_next(2))`
@@ -612,10 +612,6 @@ CORD compile(env_t *env, ast_t *ast)
         return CORD_cat_char(code, ')');
     }
     // Lambda,
-    case KeywordArg: {
-        auto kwarg = Match(ast, KeywordArg);
-        return CORD_asprintf(".%s=%r", kwarg->name, compile(env, kwarg->arg));
-    }
     case If: {
         auto if_ = Match(ast, If);
         CORD code;

@@ -62,8 +62,8 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
             if (arg->type) {
                 type_args->type = parse_type_ast(env, arg->type);
             } else {
-                type_args->default_val = arg->default_val;
-                type_args->type = get_type(env, arg->default_val);
+                type_args->default_val = arg->value;
+                type_args->type = get_type(env, arg->value);
             }
         }
         REVERSE_LIST(type_args);
@@ -114,7 +114,7 @@ void bind_statement(env_t *env, ast_t *statement)
         type_t *type = Type(StructType, .name=def->name, .fields=fields); // placeholder
         for (arg_ast_t *field_ast = def->fields; field_ast; field_ast = field_ast->next) {
             type_t *field_t = parse_type_ast(env, field_ast->type);
-            fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->default_val, .next=fields);
+            fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
         }
         REVERSE_LIST(fields);
         type->__data.StructType.fields = fields; // populate placeholder
@@ -134,7 +134,7 @@ void bind_statement(env_t *env, ast_t *statement)
             arg_t *fields = NULL;
             for (arg_ast_t *field_ast = tag_ast->fields; field_ast; field_ast = field_ast->next) {
                 type_t *field_t = parse_type_ast(env, field_ast->type);
-                fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->default_val, .next=fields);
+                fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
             }
             REVERSE_LIST(fields);
             type_t *tag_type = Type(StructType, .name=heap_strf("%s$%s", def->name, tag_ast->name), .fields=fields);
@@ -160,8 +160,8 @@ type_t *get_function_def_type(env_t *env, ast_t *ast)
     arg_t *args = NULL;
     env_t *scope = fresh_scope(env);
     for (arg_ast_t *arg = fn->args; arg; arg = arg->next) {
-        type_t *t = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->default_val);
-        args = new(arg_t, .name=arg->name, .type=t, .default_val=arg->default_val, .next=args);
+        type_t *t = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->value);
+        args = new(arg_t, .name=arg->name, .type=t, .default_val=arg->value, .next=args);
         set_binding(scope, arg->name, new(binding_t, .type=t));
     }
     REVERSE_LIST(args);
@@ -326,9 +326,6 @@ type_t *get_type(env_t *env, ast_t *ast)
             code_err(ast, "I don't know how to index %T values", indexed_t);
         }
         }
-    }
-    case KeywordArg: {
-        return get_type(env, Match(ast, KeywordArg)->arg);
     }
     case FunctionCall: {
         auto call = Match(ast, FunctionCall);
@@ -514,7 +511,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         arg_t *args = NULL;
         env_t *scope = fresh_scope(env);
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
-            type_t *t = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->default_val);
+            type_t *t = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->value);
             args = new(arg_t, .name=arg->name, .type=t, .next=args);
             set_binding(scope, arg->name, new(binding_t, .type=t));
         }

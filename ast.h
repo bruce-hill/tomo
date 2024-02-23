@@ -32,7 +32,7 @@ typedef struct when_clause_s {
 typedef struct arg_ast_s {
     const char *name;
     type_ast_t *type;
-    ast_t *default_val;
+    ast_t *value;
     struct arg_ast_s *next;
 } arg_ast_t;
 
@@ -97,7 +97,7 @@ typedef enum {
     Min, Max,
     Array, Table, TableEntry,
     FunctionDef, Lambda,
-    FunctionCall, KeywordArg,
+    FunctionCall,
     Block,
     For, While, If, When,
     Reduction,
@@ -185,13 +185,9 @@ struct ast_s {
         } Lambda;
         struct {
             ast_t *fn;
-            ast_list_t *args;
+            arg_ast_t *args;
             type_ast_t *extern_return_type;
         } FunctionCall;
-        struct {
-            const char *name;
-            ast_t *arg;
-        } KeywordArg;
         struct {
             ast_list_t *statements;
         } Block;

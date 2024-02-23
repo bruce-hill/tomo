@@ -57,8 +57,8 @@ CORD arg_list_to_cord(arg_ast_t *args) {
             c = CORD_cat(c, args->name);
         if (args->type)
             CORD_sprintf(&c, "%r:%r", c, type_ast_to_cord(args->type));
-        if (args->default_val)
-            CORD_sprintf(&c, "%r=%r", c, ast_to_cord(args->default_val));
+        if (args->value)
+            CORD_sprintf(&c, "%r=%r", c, ast_to_cord(args->value));
         if (args->next) c = CORD_cat(c, ", ");
     }
     return CORD_cat(c, ")");
@@ -119,8 +119,7 @@ CORD ast_to_cord(ast_t *ast)
     T(FunctionDef, "(name=%r, args=%r, ret=%r, body=%r)", ast_to_cord(data.name),
       arg_list_to_cord(data.args), type_ast_to_cord(data.ret_type), ast_to_cord(data.body))
     T(Lambda, "(args=%r, body=%r)", arg_list_to_cord(data.args), ast_to_cord(data.body))
-    T(FunctionCall, "(fn=%r, args=%r)", ast_to_cord(data.fn), ast_list_to_cord(data.args))
-    T(KeywordArg, "(%s=%r)", ast_to_cord(data.arg))
+    T(FunctionCall, "(fn=%r, args=%r)", ast_to_cord(data.fn), arg_list_to_cord(data.args))
     T(Block, "(%r)", ast_list_to_cord(data.statements))
     T(For, "(index=%r, value=%r, iter=%r, body=%r)", ast_to_cord(data.index), ast_to_cord(data.value),
       ast_to_cord(data.iter), ast_to_cord(data.body))

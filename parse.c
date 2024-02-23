@@ -1172,31 +1172,21 @@ ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn, bool is_extern) {
 
     whitespace(&pos);
 
-    ast_list_t *args = NULL;
+    arg_ast_t *args = NULL;
     for (;;) {
         const char *arg_start = pos;
         const char *name = get_id(&pos);
         whitespace(&pos);
-        if (name) {
-            if (match(&pos, "=")) {
-                whitespace(&pos);
-                ast_t *arg = parse_expr(ctx, pos);
-                if (!arg) parser_err(ctx, arg_start, pos, "I couldn't parse this keyword argument value");
-                ast_t *kwarg = NewAST(ctx->file, arg_start, arg->end, KeywordArg,
-                                      .name=name, .arg=arg);
-                args = new(ast_list_t, .ast=kwarg, .next=args);
-                pos = kwarg->end;
-                goto got_arg;
-            }
+        if (!name || !match(&pos, "="))
             pos = arg_start;
-        }
 
         ast_t *arg = optional(ctx, &pos, parse_expr);
-        if (!arg) break;
-        args = new(ast_list_t, .ast=arg, .next=args);
-
-      got_arg:;
-
+        if (!arg) {
+            if (name)
+                parser_err(ctx, arg_start, pos, "I expected an argument here");
+            break;
+        }
+        args = new(arg_ast_t, .name=name, .value=arg, .next=args);
         if (!match_separator(&pos))
             break;
     }
@@ -1634,7 +1624,7 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed)
 
         REVERSE_LIST(names);
         for (; names; names = names->next)
-            args = new(arg_ast_t, .name=names->name, .type=type, .default_val=default_val, .next=args);
+            args = new(arg_ast_t, .name=names->name, .type=type, .value=default_val, .next=args);
 
         if (!match_separator(pos))
             break;
