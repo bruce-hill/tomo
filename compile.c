@@ -586,6 +586,8 @@ CORD compile(env_t *env, ast_t *ast)
                 code_err(call_arg->ast, "This is too many arguments to the function: %T", fn_t);
         }
 
+        // TODO: ensure args get executed in order (e.g. `foo(y=get_next(1), x=get_next(2))`
+        // should not execute out of order)
         for (arg_t *fn_arg = Match(fn_t, FunctionType)->args; fn_arg; fn_arg = fn_arg->next) {
             ast_t *arg = Table_str_get(&arg_bindings, fn_arg->name);
             if (arg) {
