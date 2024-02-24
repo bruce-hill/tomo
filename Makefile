@@ -43,7 +43,7 @@ test: nextlang
 	for f in tests/*; do echo -e "\x1b[1;4m$$f\x1b[m"; VERBOSE=0 ./nextlang "$$f" || break; done
 
 clean:
-	rm -f nextlang *.o builtins/*.o libnext.so
+	rm -f nextlang *.o SipHash/halfsiphash.o builtins/*.o libnext.so
 
 %.1: %.1.md
 	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@

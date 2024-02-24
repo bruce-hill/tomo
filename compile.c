@@ -457,9 +457,9 @@ CORD compile(env_t *env, ast_t *ast)
         CORD code = "{\n";
         env = fresh_scope(env);
         for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next) {
+            bind_statement(env, stmt->ast);
             code = CORD_cat(code, compile_statement(env, stmt->ast));
             code = CORD_cat(code, "\n");
-            bind_statement(env, stmt->ast);
         }
         return CORD_cat(code, "}");
     }
@@ -546,7 +546,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD name = compile(env, fndef->name);
         CORD_appendf(&env->code->staticdefs, "static %r %r_(", fndef->ret_type ? compile_type_ast(fndef->ret_type) : "void", name);
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-            type_t *arg_type = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->value);
+            type_t *arg_type = get_arg_ast_type(env, arg);
             CORD_appendf(&env->code->staticdefs, "%r %s", compile_type(arg_type), arg->name);
             if (arg->next) env->code->staticdefs = CORD_cat(env->code->staticdefs, ", ");
         }
@@ -558,7 +558,7 @@ CORD compile(env_t *env, ast_t *ast)
         env_t *body_scope = fresh_scope(env);
         body_scope->locals->fallback = env->globals;
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-            type_t *arg_type = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->value);
+            type_t *arg_type = get_arg_ast_type(env, arg);
             CORD arg_typecode = compile_type(arg_type);
             CORD_appendf(&env->code->funcs, "%r %s", arg_typecode, arg->name);
             if (arg->next) env->code->funcs = CORD_cat(env->code->funcs, ", ");
@@ -994,10 +994,10 @@ module_code_t compile_file(ast_t *ast)
     CORD_appendf(&env->code->imports, "#include \"nextlang.h\"\n");
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        bind_statement(env, stmt->ast);
         CORD code = compile_statement(env, stmt->ast);
         if (code)
             CORD_appendf(&env->code->main, "%r\n", code);
-        bind_statement(env, stmt->ast);
     }
 
     return (module_code_t){

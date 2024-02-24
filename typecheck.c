@@ -685,39 +685,6 @@ type_t *get_namespace_type(env_t *env, ast_t *namespace_ast, type_t *type)
     return Type(StructType, .fields=ns_fields);
 }
 
-// typedef struct {
-//     file_t *file;
-//     env_t *env;
-//     ast_t *ast;
-// } parsed_file_info_t;
-
-// static parsed_file_info_t *get_file_info(env_t *env, const char *path)
-// {
-//     static table_t cache = {0};
-
-//     struct stat file_stat;
-//     const char *sss_path = strlen(path) > 4 && streq(path + strlen(path) - 4, ".sss") ? path : heap_strf("%s.sss", path);
-//     if (stat(sss_path, &file_stat) == -1)
-//         compiler_err(NULL, NULL, NULL, "I can't find the file %s", sss_path);
-
-//     parsed_file_info_t *file_info = Table_str_get(&cache, path);
-//     if (file_info) return file_info;
-
-//     file_t *f = load_file(sss_path);
-//     file_info = new(parsed_file_info_t, .file=f);
-//     Table_str_set(&cache, path, file_info);
-//     file_info->env = new(env_t);
-//     *file_info->env = *env;
-
-//     file_info->ast = parse_file(f, NULL);
-//     table_t *type_bindings = new(table_t, .fallback=&env->global->types);
-//     bind_types(env, type_bindings, file_info->ast);
-//     populate_types(env, type_bindings, file_info->ast);
-//     bind_variables(env, new(table_t, .fallback=&env->global->bindings), file_info->ast);
-//     // type_t *ns_t = get_namespace_type(env, ast, NULL);
-//     return file_info;
-// }
-
 type_t *get_file_type(env_t *env, const char *path)
 {
     // auto info = get_file_info(env, path);
@@ -725,6 +692,21 @@ type_t *get_file_type(env_t *env, const char *path)
     ast_t *ast = parse_file(f, NULL);
     if (!ast) compiler_err(NULL, NULL, NULL, "Couldn't parse file: %s", path);
     return get_namespace_type(env, ast, NULL);
+}
+
+type_t *get_arg_ast_type(env_t *env, arg_ast_t *arg)
+{
+    assert(arg->type || arg->value);
+    if (arg->type)
+        return parse_type_ast(env, arg->type);
+    return get_type(env, arg->value);
+}
+
+type_t *get_arg_type(env_t *env, arg_t *arg)
+{
+    assert(arg->type || arg->default_val);
+    if (arg->type) return arg->type;
+    return get_type(env, arg->default_val);
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

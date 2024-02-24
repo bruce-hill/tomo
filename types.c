@@ -435,10 +435,34 @@ size_t type_size(type_t *t)
     case ClosureType: return sizeof(struct {void *fn, *userdata;});
     case PointerType: return sizeof(void*);
     case StructType: {
-        errx(1, "Not implemented");
+        size_t size = 0;
+        for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
+            type_t *field_type = field->type;
+            if (field_type->tag == BoolType) {
+                size += 1; // Bit packing
+            } else {
+                size_t align = type_align(field_type);
+                if (align > 1 && size % align > 0)
+                    size += align - (size % align); // Padding
+                size += type_size(field_type);
+            }
+        }
+        return size;
     }
     case EnumType: {
-        errx(1, "Not implemented");
+        size_t max_align = 0;
+        size_t max_size = 0;
+        for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
+            size_t align = type_align(tag->type);
+            if (align > max_align) max_align = align;
+            size_t size = type_size(tag->type);
+            if (size > max_size) max_size = size;
+        }
+        size_t size = sizeof(UnknownType); // generic enum
+        if (max_align > 1 && size % max_align > 0)
+            size += max_align - (size % max_align);
+        size += max_size;
+        return size;
     }
     case TypeInfoType: return sizeof(TypeInfo);
     }
@@ -460,10 +484,20 @@ size_t type_align(type_t *t)
     case ClosureType: return __alignof__(void*);
     case PointerType: return __alignof__(void*);
     case StructType: {
-        errx(1, "Not implemented");
+        size_t align = 0;
+        for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
+            size_t field_align = type_align(field->type);
+            if (field_align > align) align = field_align;
+        }
+        return align;
     }
     case EnumType: {
-        errx(1, "Not implemented");
+        size_t align = __alignof__(UnknownType);
+        for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
+            size_t tag_align = type_align(tag->type);
+            if (tag_align > align) align = tag_align;
+        }
+        return align;
     }
     case TypeInfoType: return __alignof__(TypeInfo);
     }

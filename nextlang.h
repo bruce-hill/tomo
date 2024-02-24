@@ -12,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "SipHash/halfsiphash.h"
 #include "builtins/array.h"
 #include "builtins/bool.h"
 #include "builtins/color.h"
