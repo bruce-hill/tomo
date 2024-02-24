@@ -7,6 +7,7 @@
 #include "ast.h"
 #include "builtins/string.h"
 #include "compile.h"
+#include "structs.h"
 #include "environment.h"
 #include "typecheck.h"
 #include "util.h"
@@ -766,42 +767,7 @@ CORD compile(env_t *env, ast_t *ast)
     }
     // Extern,
     case StructDef: {
-        auto def = Match(ast, StructDef);
-        CORD_appendf(&env->code->typedefs, "typedef struct %s_s %s_t;\n", def->name, def->name);
-        CORD_appendf(&env->code->typedefs, "#define %s(...) ((%s_t){__VA_ARGS__})\n", def->name, def->name);
-
-        CORD_appendf(&env->code->typecode, "struct %s_s {\n", def->name);
-        for (arg_ast_t *field = def->fields; field; field = field->next) {
-            CORD type = compile_type_ast(field->type);
-            CORD_appendf(&env->code->typecode, "%r %s%s;\n", type, field->name,
-                         CORD_cmp(type, "Bool_t") ? "" : ":1");
-        }
-        CORD_appendf(&env->code->typecode, "};\n");
-
-        // Typeinfo:
-        CORD_appendf(&env->code->typedefs, "typedef struct { TypeInfo type; } %s_namespace_t;\n", def->name);
-        CORD_appendf(&env->code->typedefs, "extern %s_namespace_t %s;\n", def->name, def->name);
-        CORD_appendf(&env->code->typeinfos, "public %s_namespace_t %s = {{.tag=CustomInfo, .CustomInfo={.as_str=(void*)%s__as_str}}};\n", def->name, def->name, def->name);
-
-        CORD cord_func = CORD_asprintf("static CORD %s__as_str(%s_t *obj, bool use_color) {\n"
-                                       "\tif (!obj) return \"%s\";\n", def->name, def->name, def->name);
-
-        if (def->secret) {
-            CORD_appendf(&cord_func, "\treturn use_color ? \"\\x1b[0;1m%s\\x1b[m(\\x1b[2m...\\x1b[m)\" : \"%s(...)\";\n}",
-                         def->name, def->name);
-        } else {
-            CORD_appendf(&cord_func, "\treturn CORD_all(use_color ? \"\\x1b[0;1m%s\\x1b[m(\" : \"%s(\"", def->name, def->name);
-            for (arg_ast_t *field = def->fields; field; field = field->next) {
-                type_t *field_t = parse_type_ast(env, field->type);
-                CORD field_str = expr_as_string(env, CORD_cat("obj->", field->name), field_t, "use_color");
-                CORD_appendf(&cord_func, ", \"%s=\", %r", field->name, field_str);
-                if (field->next) CORD_appendf(&cord_func, ", \", \"");
-            }
-            CORD_appendf(&cord_func, ", \")\");\n}\n");
-        }
-
-        env->code->funcs = CORD_cat(env->code->funcs, cord_func);
-
+        compile_struct_def(env, ast);
         return CORD_EMPTY;
     }
     case EnumDef: {
