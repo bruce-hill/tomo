@@ -37,11 +37,11 @@ func test_mixed()
 	>> y := Mixed(99, "Hello")
 	>> x == y
 	= no
-	>> x == Foo(10, "Hello")
+	>> x == Mixed(10, "Hello")
 	= yes
-	>> x == Foo(10, "Bye")
+	>> x == Mixed(10, "Bye")
 	= no
-	>> x < Foo(11, "Hello")
+	>> x < Mixed(11, "Hello")
 	= yes
 	>> t := {x=> "found"; default="missing"}
 	>> t[x]
