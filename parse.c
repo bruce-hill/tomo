@@ -764,21 +764,7 @@ ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     const char *pos = lhs->end;
     if (!match(&pos, "[")) return NULL;
     whitespace(&pos);
-    ast_t *index = NULL;
-    if (match(&pos, ".")) {
-        // array[.field]
-        const char *field_start = pos-1;
-        const char *field = get_id(&pos);
-        if (field)
-            index = NewAST(ctx->file, field_start, pos, FieldAccess, .field=field);
-        else
-            --pos;
-    }
-
-    if (!index) {
-        // obj[expr]
-        index = optional(ctx, &pos, parse_extended_expr);
-    }
+    ast_t *index = optional(ctx, &pos, parse_extended_expr);
     whitespace(&pos);
     bool unchecked = match(&pos, ";") && (spaces(&pos), match_word(&pos, "unchecked") != 0);
     expect_closing(ctx, &pos, "]", "I wasn't able to parse the rest of this index");
