@@ -404,7 +404,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD literal = Match(ast, StringLiteral)->cord; 
         if (literal == CORD_EMPTY)
             return "(CORD)CORD_EMPTY";
-        CORD code = "\"";
+        CORD code = "(CORD)\"";
         CORD_pos i;
         CORD_FOR(i, literal) {
             char c = CORD_pos_fetch(i);
@@ -510,7 +510,7 @@ CORD compile(env_t *env, ast_t *ast)
             if (table->fallback)
                 code = CORD_all(code, ".fallback=", compile(env, table->fallback),",");
             if (table->default_value)
-                code = CORD_all(code, ".default_value=", compile(env, table->default_value),",");
+                code = CORD_all(code, ".default_value=$heap(", compile(env, table->default_value),"),");
             return CORD_cat(code, "}");
         }
            
