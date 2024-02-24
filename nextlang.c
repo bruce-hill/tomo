@@ -79,11 +79,13 @@ int main(int argc, char *argv[])
 
     const char *ldflags = "-Wl,-rpath '-Wl,$ORIGIN'";
 
-    // const char *run = heap_strf("tcc -run %s %s %s -", cflags, ldflags, ldlibs);
-    const char *run = heap_strf("gcc -x c %s %s %s - -o program && ./program", cflags, ldflags, ldlibs);
-    FILE *cc = popen(run, "w");
-    CORD_put(program, cc);
-    fclose(cc);
+    const char *cc = getenv("CC");
+    if (!cc) cc = "tcc";
+    const char *run = streq(cc, "tcc") ? heap_strf("tcc -run %s %s %s -", cflags, ldflags, ldlibs)
+        : heap_strf("gcc -x c %s %s %s - -o program && ./program", cflags, ldflags, ldlibs);
+    FILE *runner = popen(run, "w");
+    CORD_put(program, runner);
+    fclose(runner);
 
     return 0;
 }

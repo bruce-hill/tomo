@@ -40,7 +40,7 @@ tags:
 	ctags *.[ch] **/*.[ch]
 
 test: nextlang
-	for f in tests/*; do echo -e "\x1b[1;4m$$f\x1b[m"; VERBOSE=0 ./nextlang "$$f" || break; done
+	for f in tests/*; do echo -e "\x1b[1;4m$$f\x1b[m"; VERBOSE=0 CC=tcc ./nextlang "$$f" || break; done
 
 clean:
 	rm -f nextlang *.o SipHash/halfsiphash.o builtins/*.o libnext.so
