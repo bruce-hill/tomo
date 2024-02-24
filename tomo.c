@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
     if (!cflags)
         cflags = "-std=c11 -fdollars-in-identifiers -fsanitize=signed-integer-overflow -fno-sanitize-recover";
 
-    const char *ldlibs = "-lgc -lcord -lm -L. -lnext";
+    const char *ldlibs = "-lgc -lcord -lm -L. -ltomo";
     if (getenv("LDLIBS"))
         ldlibs = heap_strf("%s %s", ldlibs, getenv("LDLIBS"));
 

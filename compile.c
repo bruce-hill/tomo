@@ -950,7 +950,7 @@ CORD compile_type_info(env_t *env, type_t *t)
 module_code_t compile_file(ast_t *ast)
 {
     env_t *env = new_compilation_unit();
-    CORD_appendf(&env->code->imports, "#include \"nextlang.h\"\n");
+    CORD_appendf(&env->code->imports, "#include \"tomo.h\"\n");
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         bind_statement(env, stmt->ast);

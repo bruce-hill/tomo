@@ -26,12 +26,12 @@ LDLIBS=-lgc -lgccjit -lcord -lm -lunistring
 BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/color.o builtins/nums.o builtins/functions.o builtins/integers.o \
 						 builtins/pointer.o builtins/memory.o builtins/string.o builtins/table.o builtins/types.o
 
-all: libnext.so nextlang
+all: libtomo.so tomo
 
-nextlang: nextlang.c SipHash/halfsiphash.o util.o files.o ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o $(BUILTIN_OBJS)
+tomo: tomo.c SipHash/halfsiphash.o util.o files.o ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o $(BUILTIN_OBJS)
 
-libnext.so: util.o files.o $(BUILTIN_OBJS) SipHash/halfsiphash.o
-	$(CC) $^ $(CFLAGS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LDLIBS) -Wl,-soname,libnext.so -shared -o $@
+libtomo.so: util.o files.o $(BUILTIN_OBJS) SipHash/halfsiphash.o
+	$(CC) $^ $(CFLAGS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LDLIBS) -Wl,-soname,libtomo.so -shared -o $@
 
 SipHash/halfsiphash.c:
 	git submodule update --init --recursive
@@ -39,11 +39,11 @@ SipHash/halfsiphash.c:
 tags:
 	ctags *.[ch] **/*.[ch]
 
-test: nextlang
-	for f in test/*; do echo -e "\x1b[1;4m$$f\x1b[m"; VERBOSE=0 CC=tcc ./nextlang "$$f" || break; done
+test: tomo
+	for f in test/*; do echo -e "\x1b[1;4m$$f\x1b[m"; VERBOSE=0 CC=tcc ./tomo "$$f" || break; done
 
 clean:
-	rm -f nextlang *.o SipHash/halfsiphash.o builtins/*.o libnext.so
+	rm -f tomo *.o SipHash/halfsiphash.o builtins/*.o libtomo.so
 
 %.1: %.1.md
 	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@
