@@ -522,17 +522,16 @@ CORD compile(env_t *env, ast_t *ast)
                              compile_type(key_t), ", ",
                              compile_type(value_t), ", ",
                              compile_type_info(env, key_t), ", ",
-                             compile_type_info(env, value_t), ", /*fallback:*/");
+                             compile_type_info(env, value_t));
         if (table->fallback)
-            code = CORD_all(code, "$heap(", compile(env, table->fallback), ");\n");
+            code = CORD_all(code, ", /*fallback:*/ $heap(", compile(env, table->fallback), ")");
         else
-            code = CORD_all(code, "NULL, ");
+            code = CORD_all(code, ", /*fallback:*/ NULL");
 
-        code = CORD_cat(code, "/*default:*/");
         if (table->default_value)
-            code = CORD_all(code, "$heap(", compile(env, table->default_value), ");\n");
+            code = CORD_all(code, ", /*default:*/ $heap(", compile(env, table->default_value), ")");
         else
-            code = CORD_all(code, "NULL");
+            code = CORD_all(code, ", /*default:*/ NULL");
 
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
             auto e = Match(entry->ast, TableEntry);
