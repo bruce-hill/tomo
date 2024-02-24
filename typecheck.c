@@ -122,7 +122,7 @@ void bind_statement(env_t *env, ast_t *statement)
 
         if (!type) code_err(statement, "I couldn't get this type");
         type_t *constructor_t = Type(FunctionType, .args=Match(type, StructType)->fields, .ret=type);
-        set_binding(env, def->name, new(binding_t, .type=constructor_t));
+        Table_str_set(env->globals, def->name, new(binding_t, .type=constructor_t));
         break;
     }
     case EnumDef: {
