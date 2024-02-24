@@ -529,7 +529,7 @@ public CORD Table_as_str(const table_t *t, bool colorize, const TypeInfo *type)
     }
 
     if (t->default_value) {
-        c = CORD_cat(c, t->fallback ? "; default=" : "; default=");
+        c = CORD_cat(c, "; default=");
         c = CORD_cat(c, generic_as_str(t->default_value, colorize, table.value));
     }
 
