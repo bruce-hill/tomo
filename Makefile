@@ -28,7 +28,7 @@ BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/color.o builtins/nums.o b
 
 all: libnext.so nextlang
 
-nextlang: nextlang.c SipHash/halfsiphash.o util.o files.o ast.o parse.o environment.o types.o typecheck.o structs.o compile.o $(BUILTIN_OBJS)
+nextlang: nextlang.c SipHash/halfsiphash.o util.o files.o ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o $(BUILTIN_OBJS)
 
 libnext.so: util.o files.o $(BUILTIN_OBJS) SipHash/halfsiphash.o
 	$(CC) $^ $(CFLAGS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LDLIBS) -Wl,-soname,libnext.so -shared -o $@

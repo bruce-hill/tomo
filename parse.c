@@ -1514,10 +1514,16 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
 
         spaces(&pos);
         arg_ast_t *fields;
+        bool secret = false;
         if (match(&pos, "(")) {
             whitespace(&pos);
             fields = parse_args(ctx, &pos, false);
             whitespace(&pos);
+            if (match(&pos, ";")) { // Extra flags
+                whitespace(&pos);
+                secret = match_word(&pos, "secret");
+                whitespace(&pos);
+            }
             expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this tagged union member");
         } else {
             fields = NULL;
@@ -1535,7 +1541,7 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
                 parser_err(ctx, tag_start, pos, "This tag value (%ld) is a duplicate of an earlier tag value", next_value);
         }
 
-        tags = new(tag_ast_t, .name=tag_name, .value=next_value, .fields=fields, .next=tags);
+        tags = new(tag_ast_t, .name=tag_name, .value=next_value, .fields=fields, .secret=secret, .next=tags);
         ++next_value;
 
         if (!match_separator(&pos))

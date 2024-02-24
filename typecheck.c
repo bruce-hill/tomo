@@ -146,8 +146,10 @@ void bind_statement(env_t *env, ast_t *statement)
         for (tag_t *tag = tags; tag; tag = tag->next) {
             const char *name = heap_strf("%s__%s", def->name, tag->name);
             type_t *constructor_t = Type(FunctionType, .args=Match(tag->type, StructType)->fields, .ret=type);
-            set_binding(env, name, new(binding_t, .type=constructor_t));
+            Table_str_set(env->globals, name, new(binding_t, .type=constructor_t));
+            Table_str_set(env->types, heap_strf("%s$%s", def->name, tag->name), tag->type);
         }
+        Table_str_set(env->types, def->name, type);
         break;
     }
     default: break;

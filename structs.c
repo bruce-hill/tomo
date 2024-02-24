@@ -152,7 +152,6 @@ void compile_struct_def(env_t *env, ast_t *ast)
             compile_hash_method(env, ast));
         typeinfo = CORD_all(
             typeinfo,
-            ".as_str=(void*)", def->name, "__as_str, "
             ".equal=(void*)", def->name, "__equal, "
             ".hash=(void*)", def->name, "__hash, "
             ".compare=(void*)", def->name, "__compare");
