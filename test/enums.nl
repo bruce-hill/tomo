@@ -18,3 +18,10 @@ enum Foo(Zero, One(x:Int), Two(x,y:Int))
 
 >> Foo__One(10) < Foo__Two(1, 2)
 = yes
+
+>> x := Foo__One(123)
+>> t := {x=>"found"; default="missing"}
+>> t[x]
+= "found"
+>> t[Foo__Zero()]
+= "missing"
