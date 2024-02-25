@@ -55,7 +55,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
     CORD stmt;
     switch (ast->tag) {
     case If: case When: case For: case While: case FunctionDef: case Return: case StructDef: case EnumDef:
-    case Declare: case Assign: case UpdateAssign: case DocTest:
+    case Declare: case Assign: case UpdateAssign: case DocTest: case Block:
         stmt = compile(env, ast);
         break;
     default:
@@ -492,7 +492,7 @@ CORD compile(env_t *env, ast_t *ast)
         auto assign = Match(ast, Assign);
         // Single assignment:
         if (assign->targets && !assign->targets->next)
-            return CORD_asprintf("%r = %r", compile(env, assign->targets->ast), compile(env, assign->values->ast));
+            return CORD_asprintf("%r = %r;", compile(env, assign->targets->ast), compile(env, assign->values->ast));
 
         CORD code = "{ // Assignment\n";
         int64_t i = 1;
@@ -515,7 +515,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Array: {
         auto array = Match(ast, Array);
         if (!array->items)
-            return "(array_t){}";
+            return "(array_t){.length=0}";
            
         CORD code = "$Array(";
         for (ast_list_t *item = array->items; item; item = item->next) {
@@ -657,9 +657,9 @@ CORD compile(env_t *env, ast_t *ast)
     case If: {
         auto if_ = Match(ast, If);
         CORD code;
-        CORD_sprintf(&code, "if (%r) %r", compile(env, if_->condition), compile(env, if_->body));
+        CORD_sprintf(&code, "if (%r) %r", compile(env, if_->condition), compile_statement(env, if_->body));
         if (if_->else_body)
-            CORD_sprintf(&code, "%r\nelse %r", code, compile(env, if_->else_body));
+            CORD_sprintf(&code, "%r\nelse %r", code, compile_statement(env, if_->else_body));
         return code;
     }
     case When: {
@@ -770,7 +770,43 @@ CORD compile(env_t *env, ast_t *ast)
         default: code_err(for_->iter, "Iteration is not implemented for type: %T", iter_t);
         }
     }
-    // For,
+    case Reduction: {
+        auto reduction = Match(ast, Reduction);
+        type_t *t = get_type(env, ast);
+        CORD code = CORD_all(
+            "({ // Reduction:\n",
+            "array_t $reduction_iter = ", compile(env, reduction->iter), ";\n",
+            compile_type(t), " $lhs;\n"
+            );
+        ast_t *iter = FakeAST(Var, "$reduction_iter");
+        env_t *scope = fresh_scope(env);
+        set_binding(scope, "$reduction_iter", new(binding_t, .type=get_type(env, reduction->iter)));
+        CORD is_empty = compile(scope, FakeAST(BinaryOp, .lhs=FakeAST(Length, iter), .op=BINOP_EQ, .rhs=FakeAST(Int, .i=0, .bits=64)));
+        if (reduction->fallback) {
+            type_t *fallback_type = get_type(scope, reduction->fallback);
+            if (fallback_type->tag == AbortType) {
+                code = CORD_all(code, "if (", is_empty, ")\n\t{", compile_statement(scope, reduction->fallback), "}\n");
+            } else {
+                code = CORD_all(code, "if (", is_empty, ")\n\t{$lhs = ", compile(scope, reduction->fallback), ";}\n");
+            }
+        } else {
+            CORD_appendf(&code, "if (%r)\n\t{fail_source(%s, %ld, %ld, \"This collection was empty!\");}\n",
+                         is_empty, Str__quoted(ast->file->filename, false), (long)(reduction->iter->start - reduction->iter->file->text),
+                         (long)(reduction->iter->end - reduction->iter->file->text));
+        }
+        ast_t *i = FakeAST(Var, "$i");
+        ast_t *item = FakeAST(Var, "$rhs");
+        ast_t *result = FakeAST(Var, "$lhs");
+        ast_t *body = FakeAST(
+            If, .condition=FakeAST(BinaryOp, .lhs=i, .op=BINOP_EQ, .rhs=FakeAST(Int, .i=1, .bits=64)),
+            .body=FakeAST(Assign, .targets=new(ast_list_t, .ast=result), .values=new(ast_list_t, .ast=item)),
+            .else_body=FakeAST(Assign, .targets=new(ast_list_t, .ast=result), .values=new(ast_list_t, .ast=reduction->combination)));
+        ast_t *loop = FakeAST(For, .index=i, .value=item, .iter=iter, .body=body);
+        set_binding(scope, "$lhs", new(binding_t, .type=t));
+        set_binding(scope, "$rhs", new(binding_t, .type=t));
+        code = CORD_all(code, compile(scope, loop), "\n$lhs;})");
+        return code;
+    }
     // Reduction,
     case Skip: {
         if (Match(ast, Skip)->target) code_err(ast, "Named skips not yet implemented");

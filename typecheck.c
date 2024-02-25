@@ -497,6 +497,8 @@ type_t *get_type(env_t *env, ast_t *ast)
         set_binding(scope, "$lhs", new(binding_t, .type=value_t));
         set_binding(scope, "$rhs", new(binding_t, .type=value_t));
         type_t *t = get_type(scope, reduction->combination);
+        if (!reduction->fallback)
+            return t;
         type_t *fallback_t = get_type(env, reduction->fallback);
         if (fallback_t->tag == AbortType)
             return t;
