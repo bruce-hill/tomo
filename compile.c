@@ -129,6 +129,18 @@ static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_dept
     return val;
 }
 
+static void check_assignable(env_t *env, ast_t *ast)
+{
+    if (!can_be_mutated(env, ast)) {
+        if (ast->tag == Index || ast->tag == FieldAccess) {
+            ast_t *subject = ast->tag == Index ? Match(ast, Index)->indexed : Match(ast, FieldAccess)->fielded;
+            code_err(subject, "This is a readonly pointer, which can't be assigned to");
+        } else {
+            code_err(ast, "This is a value of type %T and can't be assigned to", get_type(env, ast));
+        }
+    }
+}
+
 CORD compile(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
@@ -333,6 +345,7 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case UpdateAssign: {
         auto update = Match(ast, UpdateAssign);
+        check_assignable(env, update->lhs);
         CORD lhs = compile(env, update->lhs);
         CORD rhs = compile(env, update->rhs);
 
@@ -486,8 +499,10 @@ CORD compile(env_t *env, ast_t *ast)
         for (ast_list_t *value = assign->values; value; value = value->next)
             CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(get_type(env, value->ast)), i++, compile(env, value->ast));
         i = 1;
-        for (ast_list_t *target = assign->targets; target; target = target->next)
+        for (ast_list_t *target = assign->targets; target; target = target->next) {
+            check_assignable(env, target->ast);
             CORD_appendf(&code, "%r = $%ld;\n", compile(env, target->ast), i++);
+        }
         return CORD_cat(code, "\n}");
     }
     case Min: {
@@ -802,8 +817,10 @@ CORD compile(env_t *env, ast_t *ast)
             for (ast_list_t *value = assign->values; value; value = value->next)
                 CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(get_type(env, value->ast)), i++, compile(env, value->ast));
             i = 1;
-            for (ast_list_t *target = assign->targets; target; target = target->next)
+            for (ast_list_t *target = assign->targets; target; target = target->next) {
+                check_assignable(env, target->ast);
                 CORD_appendf(&code, "%r = $%ld;\n", compile(env, target->ast), i++);
+            }
 
             CORD expr_cord = "CORD_all(";
             i = 1;
