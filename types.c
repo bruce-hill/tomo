@@ -524,18 +524,15 @@ type_t *get_field_type(type_t *t, const char *field_name)
         }
         return NULL;
     }
-    case ArrayType: {
-        if (streq(field_name, "length"))
-            return Type(IntType, .bits=64);
-        return NULL;
-    }
     case TableType: {
-        if (streq(field_name, "length"))
-            return Type(IntType, .bits=64);
-        else if (streq(field_name, "keys"))
+        if (streq(field_name, "keys"))
             return Type(ArrayType, Match(t, TableType)->key_type);
         else if (streq(field_name, "values"))
             return Type(ArrayType, Match(t, TableType)->value_type);
+        else if (streq(field_name, "default"))
+            return Type(PointerType, .pointed=Match(t, TableType)->value_type, .is_readonly=true, .is_optional=true);
+        else if (streq(field_name, "fallback"))
+            return Type(PointerType, .pointed=t, .is_readonly=true, .is_optional=true);
         return NULL;
     }
     default: return NULL;
