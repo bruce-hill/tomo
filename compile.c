@@ -820,7 +820,6 @@ CORD compile(env_t *env, ast_t *ast)
         code = CORD_all(code, compile(scope, loop), "\n$lhs;})");
         return code;
     }
-    // Reduction,
     case Skip: {
         if (Match(ast, Skip)->target) code_err(ast, "Named skips not yet implemented");
         return "continue";
