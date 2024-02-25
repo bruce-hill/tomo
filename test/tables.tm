@@ -9,6 +9,12 @@
 >> t["???"]
 = 999
 
+t_str := ""
+for k,v in t
+	t_str ++= "({k}=>{v})"
+>> t_str
+= "(one=>1)(two=>2)"
+
 >> #t
 = 2
 >> t.default
@@ -37,3 +43,9 @@
 = !Int64
 >> t2.fallback
 = ?(readonly){"one"=>1, "two"=>2; default=999}
+
+t2_str := ""
+for k,v in t2
+	t2_str ++= "({k}=>{v})"
+>> t2_str
+= "(three=>3)"
