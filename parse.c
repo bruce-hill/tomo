@@ -847,6 +847,7 @@ PARSER(parse_for) {
     // for [k,] v in iter [<indent>] body
     const char *start = pos;
     if (!match_word(&pos, "for")) return NULL;
+    int64_t starting_indent = get_indent(ctx->file, pos);
     ast_t *index = expect(ctx, start, &pos, parse_var, "I expected an iteration variable for this 'for'");
     spaces(&pos);
     ast_t *value = NULL;
@@ -857,7 +858,15 @@ PARSER(parse_for) {
     ast_t *iter = expect(ctx, start, &pos, parse_expr, "I expected an iterable value for this 'for'");
     match(&pos, "do"); // optional
     ast_t *body = expect(ctx, start, &pos, parse_opt_indented_block, "I expected a body for this 'for'"); 
-    return NewAST(ctx->file, start, pos, For, .index=value ? index : NULL, .value=value ? value : index, .iter=iter, .body=body);
+
+    const char *else_start = pos;
+    whitespace(&else_start);
+    ast_t *empty = NULL;
+    if (match_word(&else_start, "else") && get_indent(ctx->file, else_start) == starting_indent) {
+        pos = else_start;
+        empty = expect(ctx, pos, &pos, parse_opt_indented_block, "I expected a body for this 'else'");
+    }
+    return NewAST(ctx->file, start, pos, For, .index=value ? index : NULL, .value=value ? value : index, .iter=iter, .body=body, .empty=empty);
 }
 
 PARSER(parse_while) {

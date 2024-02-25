@@ -711,13 +711,17 @@ CORD compile(env_t *env, ast_t *ast)
                 set_binding(scope, CORD_to_const_char_star(index), new(binding_t, .type=Type(IntType, .bits=64)));
             CORD value = compile(env, for_->value);
             set_binding(scope, CORD_to_const_char_star(value), new(binding_t, .type=item_t));
-            return CORD_all(
-                "{ // For loop:\n"
-                "array_t $iter = ", compile(env, for_->iter), ";\n"
+            CORD loop = CORD_all(
                 "for (Int64_t ", index, " = 1; ", index, " <= $iter.length; ++", index, ") {\n"
                 "\t", compile_type(item_t), " ", value, " = *(", compile_type(item_t), "*)($iter.data + (", index, "-1)*$iter.stride);\n"
                 "\t", compile(scope, for_->body), "\n"
-                "}\n"
+                "}\n");
+            if (for_->empty)
+                loop = CORD_all("if ($iter.length == 0)\n", compile(env, for_->empty), "\nelse\n", loop);
+            return CORD_all(
+                "{ // For loop:\n"
+                "array_t $iter = ", compile(env, for_->iter), ";\n",
+                loop,
                 "}\n");
         }
         case TableType: {
@@ -734,25 +738,33 @@ CORD compile(env_t *env, ast_t *ast)
                 size_t value_offset = type_size(key_t);
                 if (type_align(value_t) > 1 && value_offset % type_align(value_t))
                     value_offset += type_align(value_t) - (value_offset % type_align(value_t)); // padding
-                return CORD_all(
-                    "{ // For loop:\n"
-                    "array_t $entries = (", compile(env, for_->iter), ").entries;\n"
+                CORD loop = CORD_all(
                     "for (Int64_t $offset = 0; $offset < $entries.length; ++$offset) {\n"
                     "\t", compile_type(key_t), " ", key, " = *(", compile_type(key_t), "*)($entries.data + $offset*$entries.stride);\n"
                     "\t", compile_type(value_t), " ", value, " = *(", compile_type(value_t), "*)($entries.data + $offset*$entries.stride + ", CORD_asprintf("%zu", value_offset), ");\n"
-                    "\t", compile(scope, for_->body), "\n"
+                    "\t", compile(scope, for_->body), "\n");
+                if (for_->empty)
+                    loop = CORD_all("if ($iter.length == 0)\n", compile(env, for_->empty), "\nelse\n", loop);
+                return CORD_all(
+                    "{ // For loop:\n"
+                    "array_t $entries = (", compile(env, for_->iter), ").entries;\n",
+                    loop,
                     "}\n"
                     "}\n");
             } else {
                 key = compile(env, for_->value);
                 set_binding(scope, CORD_to_const_char_star(key), new(binding_t, .type=key_t));
-                return CORD_all(
-                    "{ // For loop:\n"
-                    "array_t $entries = (", compile(env, for_->iter), ").entries;\n"
+                CORD loop = CORD_all(
                     "for (Int64_t $offset = 0; $offset < $entries.length; ++$offset) {\n"
                     "\t", compile_type(key_t), " ", key, " = *(", compile_type(key_t), "*)($entries.data + $offset*$entries.stride);\n"
                     "\t", compile(scope, for_->body), "\n"
-                    "}\n"
+                    "}\n");
+                if (for_->empty)
+                    loop = CORD_all("if ($iter.length == 0)\n", compile(env, for_->empty), "\nelse\n", loop);
+                return CORD_all(
+                    "{ // For loop:\n"
+                    "array_t $entries = (", compile(env, for_->iter), ").entries;\n",
+                    loop,
                     "}\n");
             }
         }
@@ -763,6 +775,8 @@ CORD compile(env_t *env, ast_t *ast)
                 code_err(for_->index, "It's redundant to have a separate iteration index");
             CORD value = compile(env, for_->value);
             set_binding(scope, CORD_to_const_char_star(value), new(binding_t, .type=item_t));
+            if (for_->empty)
+                code_err(for_->empty, "'else' is not implemented for loops over integers");
             return CORD_all(
                 "for (Int64_t ", value, " = 1, $n = ", compile(env, for_->iter), "; ", value, " <= $n; ++", value, ")\n"
                 "\t", compile(scope, for_->body), "\n");
@@ -775,34 +789,33 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *t = get_type(env, ast);
         CORD code = CORD_all(
             "({ // Reduction:\n",
-            "array_t $reduction_iter = ", compile(env, reduction->iter), ";\n",
             compile_type(t), " $lhs;\n"
             );
-        ast_t *iter = FakeAST(Var, "$reduction_iter");
         env_t *scope = fresh_scope(env);
-        set_binding(scope, "$reduction_iter", new(binding_t, .type=get_type(env, reduction->iter)));
-        CORD is_empty = compile(scope, FakeAST(BinaryOp, .lhs=FakeAST(Length, iter), .op=BINOP_EQ, .rhs=FakeAST(Int, .i=0, .bits=64)));
+        ast_t *result = FakeAST(Var, "$lhs");
+        set_binding(scope, "$lhs", new(binding_t, .type=t));
+        ast_t *empty = NULL;
         if (reduction->fallback) {
             type_t *fallback_type = get_type(scope, reduction->fallback);
             if (fallback_type->tag == AbortType) {
-                code = CORD_all(code, "if (", is_empty, ")\n\t{", compile_statement(scope, reduction->fallback), "}\n");
+                empty = reduction->fallback;
             } else {
-                code = CORD_all(code, "if (", is_empty, ")\n\t{$lhs = ", compile(scope, reduction->fallback), ";}\n");
+                empty = FakeAST(Assign, .targets=new(ast_list_t, .ast=result), .values=new(ast_list_t, .ast=reduction->fallback));
             }
         } else {
-            CORD_appendf(&code, "if (%r)\n\t{fail_source(%s, %ld, %ld, \"This collection was empty!\");}\n",
-                         is_empty, Str__quoted(ast->file->filename, false), (long)(reduction->iter->start - reduction->iter->file->text),
-                         (long)(reduction->iter->end - reduction->iter->file->text));
+            empty = FakeAST(
+                InlineCCode, 
+                CORD_asprintf("fail_source(%s, %ld, %ld, \"This collection was empty!\");\n",
+                              Str__quoted(ast->file->filename, false), (long)(reduction->iter->start - reduction->iter->file->text),
+                              (long)(reduction->iter->end - reduction->iter->file->text)));
         }
         ast_t *i = FakeAST(Var, "$i");
         ast_t *item = FakeAST(Var, "$rhs");
-        ast_t *result = FakeAST(Var, "$lhs");
         ast_t *body = FakeAST(
             If, .condition=FakeAST(BinaryOp, .lhs=i, .op=BINOP_EQ, .rhs=FakeAST(Int, .i=1, .bits=64)),
             .body=FakeAST(Assign, .targets=new(ast_list_t, .ast=result), .values=new(ast_list_t, .ast=item)),
             .else_body=FakeAST(Assign, .targets=new(ast_list_t, .ast=result), .values=new(ast_list_t, .ast=reduction->combination)));
-        ast_t *loop = FakeAST(For, .index=i, .value=item, .iter=iter, .body=body);
-        set_binding(scope, "$lhs", new(binding_t, .type=t));
+        ast_t *loop = FakeAST(For, .index=i, .value=item, .iter=reduction->iter, .body=body, .empty=empty);
         set_binding(scope, "$rhs", new(binding_t, .type=t));
         code = CORD_all(code, compile(scope, loop), "\n$lhs;})");
         return code;
@@ -989,6 +1002,7 @@ CORD compile(env_t *env, ast_t *ast)
     }
     // Use,
     // LinkerDirective,
+    case InlineCCode: return Match(ast, InlineCCode)->code;
     case Unknown: code_err(ast, "Unknown AST");
     default: break;
     }

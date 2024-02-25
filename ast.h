@@ -111,6 +111,7 @@ typedef enum {
     DocTest,
     Use,
     LinkerDirective,
+    InlineCCode,
 } ast_e;
 
 struct ast_s {
@@ -193,7 +194,7 @@ struct ast_s {
             ast_list_t *statements;
         } Block;
         struct {
-            ast_t *index, *value, *iter, *body;
+            ast_t *index, *value, *iter, *body, *empty;
         } For;
         struct {
             ast_t *condition, *body;
@@ -253,6 +254,9 @@ struct ast_s {
         struct {
             const char *directive;
         } LinkerDirective;
+        struct {
+            CORD code;
+        } InlineCCode;
     } __data;
 };
 

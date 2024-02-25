@@ -121,8 +121,8 @@ CORD ast_to_cord(ast_t *ast)
     T(Lambda, "(args=%r, body=%r)", arg_list_to_cord(data.args), ast_to_cord(data.body))
     T(FunctionCall, "(fn=%r, args=%r)", ast_to_cord(data.fn), arg_list_to_cord(data.args))
     T(Block, "(%r)", ast_list_to_cord(data.statements))
-    T(For, "(index=%r, value=%r, iter=%r, body=%r)", ast_to_cord(data.index), ast_to_cord(data.value),
-      ast_to_cord(data.iter), ast_to_cord(data.body))
+    T(For, "(index=%r, value=%r, iter=%r, body=%r, empty=%r)", ast_to_cord(data.index), ast_to_cord(data.value),
+      ast_to_cord(data.iter), ast_to_cord(data.body), ast_to_cord(data.empty))
     T(While, "(condition=%r, body=%r)", ast_to_cord(data.condition), ast_to_cord(data.body))
     T(If, "(condition=%r, body=%r, else=%r)", ast_to_cord(data.condition), ast_to_cord(data.body), ast_to_cord(data.else_body))
     T(When, "(subject=%r, clauses=%r, else=%r)", ast_to_cord(data.subject), when_clauses_to_cord(data.clauses), ast_to_cord(data.else_body))
@@ -137,8 +137,9 @@ CORD ast_to_cord(ast_t *ast)
     T(Index, "(indexed=%r, index=%r)", ast_to_cord(data.indexed), ast_to_cord(data.index))
     T(FieldAccess, "(fielded=%r, field=%s)", ast_to_cord(data.fielded), data.field)
     T(DocTest, "(expr=%r, output=%r)", ast_to_cord(data.expr), Str__quoted(data.output, true))
-    T(Use, "(%s)", Str__quoted(data.path, true))
-    T(LinkerDirective, "(%s)", Str__quoted(data.directive, true))
+    T(Use, "(%r)", Str__quoted(data.path, true))
+    T(LinkerDirective, "(%r)", Str__quoted(data.directive, true))
+    T(InlineCCode, "(%r)", Str__quoted(data.code, true))
 #undef T
     }
     return "???";
