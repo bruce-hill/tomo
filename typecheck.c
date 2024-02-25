@@ -200,25 +200,39 @@ type_t *get_type(env_t *env, ast_t *ast)
         return Type(PointerType, .is_optional=false, .pointed=pointed);
     }
     case StackReference: {
+        // Supported:
+        //   &variable
+        //   &struct_variable.field.(...)
+        //   &struct_ptr.field.(...)
+        // Not supported:
+        //   &ptr[]
+        //   &list[index]
+        //   &table[key]
+        //   &(expression).field
+        //   &(expression)
+        //   &optional_struct_ptr.field
         ast_t *value = Match(ast, StackReference)->value;
-        type_t *pointed_t = get_type(env, Match(ast, StackReference)->value);
-        bool is_stack = true;
-        bool is_readonly = !can_be_mutated(env, value);
-        // References to heap members/indexes are heap pointers, e.g. v := @Vec{1,2}; &v.x
-        switch (value->tag) {
-        case FieldAccess: {
-            type_t *fielded_t = get_type(env, Match(value, FieldAccess)->fielded);
-            is_stack = fielded_t->tag == PointerType ? Match(fielded_t, PointerType)->is_stack : true;
-            break;
+        if (value->tag == Var)
+            return Type(PointerType, .pointed=get_type(env, value), .is_stack=true);
+
+        if (value->tag == FieldAccess) {
+            ast_t *base = value;
+            while (base->tag == FieldAccess)
+                base = Match(base, FieldAccess)->fielded;
+
+            type_t *ref_type = get_type(env, value);
+            type_t *base_type = get_type(env, base);
+            if (base_type->tag == PointerType) {
+                auto ptr = Match(base_type, PointerType);
+                if (ptr->is_optional)
+                    code_err(base, "This value might be null, so it can't be safely dereferenced");
+                return Type(PointerType, .pointed=ref_type, .is_stack=ptr->is_stack, .is_readonly=ptr->is_readonly);
+            } else if (base->tag == Var) {
+                return Type(PointerType, .pointed=ref_type, .is_stack=true);
+            }
         }
-        case Index: {
-            type_t *indexed_t = get_type(env, Match(value, Index)->indexed);
-            is_stack = indexed_t->tag == PointerType ? Match(indexed_t, PointerType)->is_stack : true;
-            break;
-        }
-        default: break;
-        }
-        return Type(PointerType, .pointed=pointed_t, .is_stack=is_stack, .is_readonly=is_readonly);
+
+        code_err(ast, "'&' stack references can only be used on variables or fields of variables");
     }
     case StringJoin: case StringLiteral: {
         return Type(StringType);
