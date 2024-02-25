@@ -9,6 +9,9 @@
 >> arr[-1]
 = 30
 
+>> #arr
+= 3
+
 sum := 0
 for x in arr
 	sum += x
