@@ -17,5 +17,6 @@ type_t *get_file_type(env_t *env, const char *path);
 type_t *get_function_def_type(env_t *env, ast_t *ast);
 type_t *get_arg_type(env_t *env, arg_t *arg);
 type_t *get_arg_ast_type(env_t *env, arg_ast_t *arg);
+bool can_be_mutated(env_t *env, ast_t *ast);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

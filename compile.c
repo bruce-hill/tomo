@@ -176,10 +176,10 @@ CORD compile(env_t *env, ast_t *ast)
     case Negative: return CORD_asprintf("-(%r)", compile(env, Match(ast, Negative)->value));
     case HeapAllocate: return CORD_asprintf("$heap(%r)", compile(env, Match(ast, HeapAllocate)->value));
     case StackReference: {
-        ast_t *value = Match(ast, StackReference)->value;
-        if (value->tag == Var)
-            return CORD_cat("&", compile(env, Match(ast, StackReference)->value));
-        return CORD_all("$stack(", compile(env, Match(ast, StackReference)->value), ")");
+        ast_t *subject = Match(ast, StackReference)->value;
+        if (can_be_mutated(env, subject))
+            return CORD_cat("&", compile(env, subject));
+        return CORD_all("$stack(", compile(env, subject), ")");
     }
     case BinaryOp: {
         auto binop = Match(ast, BinaryOp);
@@ -886,7 +886,7 @@ CORD compile(env_t *env, ast_t *ast)
             if (index_t->tag != IntType)
                 code_err(indexing->index, "Arrays can only be indexed by integers, not %T", index_t);
             type_t *item_type = Match(container_t, ArrayType)->item_type;
-            CORD arr = compile_to_pointer_depth(env, indexing->indexed, 1, false);
+            CORD arr = compile_to_pointer_depth(env, indexing->indexed, 0, false);
             CORD index = compile(env, indexing->index);
             file_t *f = indexing->index->file;
             if (indexing->unchecked)

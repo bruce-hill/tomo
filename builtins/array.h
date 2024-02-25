@@ -8,15 +8,15 @@
 #include "types.h"
 
 // Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
-#define $Array_get(type, x, i, filename, start, end) ({ \
-    const array_t *$arr = x; int64_t $index = (int64_t)(i); \
-    int64_t $off = $index + ($index < 0) * ($arr->length + 1) - 1; \
-    if (__builtin_expect($off < 0 || $off >= $arr->length, 0)) \
-        fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int64__as_str(&$index, USE_COLOR, NULL), $arr->length); \
-    *(type*)($arr->data + $arr->stride * $off);})
-#define $Array_get_unchecked(type, x, i) ({ const array_t *$arr = x; int64_t $index = (int64_t)(i); \
-                                          int64_t $off = $index + ($index < 0) * ($arr->length + 1) - 1; \
-                                          *(type*)($arr->data + $arr->stride * $off);})
+#define $Array_get(type, x, i, filename, start, end) *({ \
+    const array_t $arr = x; int64_t $index = (int64_t)(i); \
+    int64_t $off = $index + ($index < 0) * ($arr.length + 1) - 1; \
+    if (__builtin_expect($off < 0 || $off >= $arr.length, 0)) \
+        fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int64__as_str(&$index, USE_COLOR, NULL), $arr.length); \
+    (type*)($arr.data + $arr.stride * $off);})
+#define $Array_get_unchecked(type, x, i) *({ const array_t $arr = x; int64_t $index = (int64_t)(i); \
+                                          int64_t $off = $index + ($index < 0) * ($arr.length + 1) - 1; \
+                                          (type*)($arr.data + $arr.stride * $off);})
 #define $is_atomic(x) _Generic(x, bool: true, int8_t: true, int16_t: true, int32_t: true, int64_t: true, float: true, double: true, default: false)
 #define $Array(x, ...) ({ __typeof(x) $items[] = {x, __VA_ARGS__}; \
                          (array_t){.length=sizeof($items)/sizeof($items[0]), \

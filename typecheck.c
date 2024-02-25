@@ -203,6 +203,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         ast_t *value = Match(ast, StackReference)->value;
         type_t *pointed_t = get_type(env, Match(ast, StackReference)->value);
         bool is_stack = true;
+        bool is_readonly = !can_be_mutated(env, value);
         // References to heap members/indexes are heap pointers, e.g. v := @Vec{1,2}; &v.x
         switch (value->tag) {
         case FieldAccess: {
@@ -217,7 +218,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         }
         default: break;
         }
-        return Type(PointerType, .pointed=pointed_t, .is_stack=is_stack);
+        return Type(PointerType, .pointed=pointed_t, .is_stack=is_stack, .is_readonly=is_readonly);
     }
     case StringJoin: case StringLiteral: {
         return Type(StringType);
@@ -709,6 +710,32 @@ type_t *get_arg_type(env_t *env, arg_t *arg)
     assert(arg->type || arg->default_val);
     if (arg->type) return arg->type;
     return get_type(env, arg->default_val);
+}
+
+bool can_be_mutated(env_t *env, ast_t *ast)
+{
+    switch (ast->tag) {
+    case Var: return true;
+    case FieldAccess: {
+        auto access = Match(ast, FieldAccess);
+        type_t *fielded_type = get_type(env, access->fielded);
+        if (fielded_type->tag == PointerType) {
+            auto ptr = Match(fielded_type, PointerType);
+            return !ptr->is_readonly;
+        }
+        return can_be_mutated(env, access->fielded);
+    }
+    case Index: {
+        auto index = Match(ast, Index);
+        type_t *indexed_type = get_type(env, index->indexed);
+        if (indexed_type->tag == PointerType) {
+            auto ptr = Match(indexed_type, PointerType);
+            return !ptr->is_readonly;
+        }
+        return false;
+    }
+    default: return false;
+    }
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
