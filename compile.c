@@ -870,7 +870,11 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Index: {
         auto indexing = Match(ast, Index);
-        type_t *container_t = value_type(get_type(env, indexing->indexed));
+        type_t *indexed_type = get_type(env, indexing->indexed);
+        if (!indexing->index && indexed_type->tag == PointerType) {
+            return CORD_all("*(", compile(env, indexing->indexed), ")");
+        }
+        type_t *container_t = value_type(indexed_type);
         type_t *index_t = get_type(env, indexing->index);
         switch (container_t->tag) {
         case ArrayType: {
