@@ -175,7 +175,12 @@ CORD compile(env_t *env, ast_t *ast)
     case Not: return CORD_asprintf("not(%r)", compile(env, Match(ast, Not)->value));
     case Negative: return CORD_asprintf("-(%r)", compile(env, Match(ast, Negative)->value));
     case HeapAllocate: return CORD_asprintf("$heap(%r)", compile(env, Match(ast, HeapAllocate)->value));
-    case StackReference: return CORD_asprintf("$stack(%r)", compile(env, Match(ast, StackReference)->value));
+    case StackReference: {
+        ast_t *value = Match(ast, StackReference)->value;
+        if (value->tag == Var)
+            return CORD_cat("&", compile(env, Match(ast, StackReference)->value));
+        return CORD_all("$stack(", compile(env, Match(ast, StackReference)->value), ")");
+    }
     case BinaryOp: {
         auto binop = Match(ast, BinaryOp);
         CORD lhs = compile(env, binop->lhs);
