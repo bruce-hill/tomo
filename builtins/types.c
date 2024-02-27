@@ -23,13 +23,11 @@ public CORD Type__as_str(const void *typeinfo, bool colorize, const TypeInfo *ty
     return c;
 }
 
-public TypeInfo_namespace_t TypeInfo_namespace = {
-    .type={
-        .size=sizeof(TypeInfo),
-        .align=__alignof__(TypeInfo),
-        .tag=CustomInfo,
-        .TypeInfoInfo.type_str="TypeInfo",
-    },
+public TypeInfo TypeInfo_info = {
+    .size=sizeof(TypeInfo),
+    .align=__alignof__(TypeInfo),
+    .tag=CustomInfo,
+    .TypeInfoInfo.type_str="TypeInfo",
 };
 
 public struct {

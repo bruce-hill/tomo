@@ -74,7 +74,7 @@ CORD expr_as_string(env_t *env, CORD expr, type_t *t, CORD color)
     case BoolType: return CORD_asprintf("Bool__as_str($stack(%r), %r, NULL)", expr, color);
     case IntType: return CORD_asprintf("Int%ld__as_str($stack(%r), %r, NULL)", Match(t, IntType)->bits, expr, color);
     case NumType: return CORD_asprintf("Num%ld__as_str($stack(%r), %r, NULL)", Match(t, NumType)->bits, expr, color);
-    case StringType: return CORD_asprintf("Str__as_str($stack(%r), %r, &Str.type)", expr, color);
+    case StringType: return CORD_asprintf("Str__as_str($stack(%r), %r, &Str)", expr, color);
     case ArrayType: return CORD_asprintf("Array__as_str($stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case TableType: return CORD_asprintf("Table_as_str($stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case FunctionType: return CORD_asprintf("Func__as_str($stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
@@ -1014,12 +1014,12 @@ CORD compile(env_t *env, ast_t *ast)
 CORD compile_type_info(env_t *env, type_t *t)
 {
     switch (t->tag) {
-    case BoolType: return "&Bool.type";
-    case IntType: return CORD_asprintf("&Int%ld.type", Match(t, IntType)->bits);
-    case NumType: return CORD_asprintf("&Num%ld.type", Match(t, NumType)->bits);
-    case StringType: return CORD_all("&", Match(t, StringType)->dsl ? Match(t, StringType)->dsl : "Str", ".type");
-    case StructType: return CORD_all("&", Match(t, StructType)->name, ".type");
-    case EnumType: return CORD_all("&", Match(t, EnumType)->name, ".type");
+    case BoolType: return "&Bool";
+    case IntType: return CORD_asprintf("&Int%ld", Match(t, IntType)->bits);
+    case NumType: return CORD_asprintf("&Num%ld", Match(t, NumType)->bits);
+    case StringType: return CORD_all("&", Match(t, StringType)->dsl ? Match(t, StringType)->dsl : "Str");
+    case StructType: return CORD_all("&", Match(t, StructType)->name);
+    case EnumType: return CORD_all("&", Match(t, EnumType)->name);
     case ArrayType: {
         type_t *item_t = Match(t, ArrayType)->item_type;
         return CORD_asprintf("$ArrayInfo(%r)", compile_type_info(env, item_t));
@@ -1041,7 +1041,7 @@ CORD compile_type_info(env_t *env, type_t *t)
     case ClosureType: {
         errx(1, "No typeinfo for closures yet");
     }
-    case TypeInfoType: return "&TypeInfo_namespace.type";
+    case TypeInfoType: return "&TypeInfo_info";
     default:
         compiler_err(NULL, 0, 0, "I couldn't convert to a type info: %T", t);
     }

@@ -13,7 +13,7 @@
 #define xstr(a) str(a)
 #define str(a) #a
 
-#define DEFINE_INT_TYPE(c_type, KindOfInt, fmt, abs_fn, min_val, max_val)\
+#define DEFINE_INT_TYPE(c_type, KindOfInt, fmt, min_val, max_val)\
     public CORD KindOfInt ## __as_str(const c_type *i, bool colorize, const TypeInfo *type) { \
         (void)type; \
         if (!i) return #KindOfInt; \
@@ -46,26 +46,19 @@
         uint32_t r = arc4random_uniform((uint32_t)range); \
         return min + (c_type)r; \
     } \
-    public KindOfInt##_namespace_t KindOfInt = { \
-        .type={ \
-            .size=sizeof(c_type), \
-            .align=__alignof__(c_type), \
-            .tag=CustomInfo, \
-            .CustomInfo={.compare=(void*)KindOfInt##__compare, .as_str=(void*)KindOfInt##__as_str}, \
-        }, \
-        .min=min_val, \
-        .max=max_val, \
-        .abs=(void*)abs_fn, \
-        .format=KindOfInt##__format, \
-        .hex=KindOfInt##__hex, \
-        .octal=KindOfInt##__octal, \
-        .random=KindOfInt##__random, \
+    public const c_type KindOfInt##__min = min_val; \
+    public const c_type KindOfInt##__max = max_val; \
+    public TypeInfo KindOfInt = { \
+        .size=sizeof(c_type), \
+        .align=__alignof__(c_type), \
+        .tag=CustomInfo, \
+        .CustomInfo={.compare=(void*)KindOfInt##__compare, .as_str=(void*)KindOfInt##__as_str}, \
     };
 
-DEFINE_INT_TYPE(int64_t,  Int64,  "ld",     labs, INT64_MIN, INT64_MAX);
-DEFINE_INT_TYPE(int32_t,  Int32,  "d_i32",  abs,  INT32_MIN, INT32_MAX);
-DEFINE_INT_TYPE(int16_t,  Int16,  "d_i16",  abs,  INT16_MIN, INT16_MAX);
-DEFINE_INT_TYPE(int8_t,   Int8,   "d_i8",   abs,  INT8_MIN,  INT8_MAX);
+DEFINE_INT_TYPE(int64_t,  Int64,  "ld",     INT64_MIN, INT64_MAX);
+DEFINE_INT_TYPE(int32_t,  Int32,  "d_i32",  INT32_MIN, INT32_MAX);
+DEFINE_INT_TYPE(int16_t,  Int16,  "d_i16",  INT16_MIN, INT16_MAX);
+DEFINE_INT_TYPE(int8_t,   Int8,   "d_i8",   INT8_MIN,  INT8_MAX);
 #undef DEFINE_INT_TYPE
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

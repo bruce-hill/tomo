@@ -55,7 +55,7 @@ TypeInfo StrToVoidStarTable = {
     .size=sizeof(table_t),
     .align=__alignof__(table_t),
     .tag=TableInfo,
-    .TableInfo={.key=&Str.type, .value=&MemoryPointer},
+    .TableInfo={.key=&Str, .value=&MemoryPointer},
 };
 
 static inline size_t entry_size(const TypeInfo *info)

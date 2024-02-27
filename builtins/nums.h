@@ -1,5 +1,6 @@
 #pragma once
 #include <gc/cord.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -18,68 +19,57 @@ double Num64__mod(double num, double modulus);
 bool Num64__isinf(double n);
 bool Num64__finite(double n);
 bool Num64__isnan(double n);
+double Num64__nan(CORD tag);
+// Constants:
+#define C(name) const double Num64__##name = M_##name;
+C(2_SQRTPI) C(E) C(PI_2) C(2_PI) C(1_PI) C(LN10) C(LN2) C(LOG2E) C(PI) C(PI_4) C(SQRT2) C(SQRT1_2)
+const double Num64__INF = INFINITY, Num64__TAU = 2.*M_PI;
+#undef C
+double Num64__random(void);
+bool Num64__finite(double n);
+bool Num64__isinf(double n);
+bool Num64__isnan(double n);
+#define F(name) double (*Num64__##name)(double n) = name;
+double (*Num64__abs)(double) = fabs;
+F(acos) F(acosh) F(asin) F(asinh) F(atan) F(atanh) F(cbrt) F(ceil) F(cos) F(cosh) F(erf) F(erfc)
+F(exp) F(exp2) F(expm1) F(floor) F(j0) F(j1) F(log) F(log10) F(log1p) F(log2) F(logb)
+F(rint) F(round) F(significand) F(sin) F(sinh) F(sqrt)
+F(tan) F(tanh) F(tgamma) F(trunc) F(y0) F(y1)
+#undef F
+#define F(name) double (*Num64__##name)(double x, double y) = name;
+F(atan2) F(copysign) F(fdim) F(hypot) F(nextafter) F(pow) F(remainder)
+#undef F
+extern TypeInfo Num64;
 
-typedef bool (*double_pred_t)(double);
-typedef double (*double_unary_fn_t)(double);
-typedef double (*double_binary_fn_t)(double, double);
-
-typedef struct {
-    TypeInfo type;
-    // Constants:
-    double NaN, _2_sqrt_pi, e, half_pi, inf, inverse_half_pi, inverse_pi, ln10, ln2,
-           log2e, pi, quarter_pi, sqrt2, sqrt_half, tau;
-    // Nullary functions:
-    double (*random)(void);
-    // Predicates:
-    double_pred_t finite, isinf, isnan;
-    // Unary functions:
-    double_unary_fn_t abs, acos, acosh, asin, asinh, atan, atanh, cbrt, ceil, cos, cosh, erf, erfc,
-                      exp, exp10, exp2, expm1, floor, j0, j1, log, log10, log1p, log2, logb,
-                      nextdown, nextup, rint, round, roundeven, significand, sin, sinh, sqrt,
-                      tan, tanh, tgamma, trunc, y0, y1;
-    // Binary functions:
-    double_binary_fn_t atan2, copysign, dist, hypot, maxmag, minmag, mod, nextafter, pow, remainder;
-    // Odds and ends:
-    CORD (*format)(double f, int64_t precision);
-    CORD (*scientific)(double f, int64_t precision);
-} Num64_namespace_t;
-extern Num64_namespace_t Num64;
-
-CORD Num32__as_str(float *f, bool colorize, const TypeInfo *type);
+CORD Num32__as_str(const float *f, bool colorize, const TypeInfo *type);
 int32_t Num32__compare(const float *x, const float *y, const TypeInfo *type);
 bool Num32__equal(const float *x, const float *y, const TypeInfo *type);
 CORD Num32__format(float f, int64_t precision);
 CORD Num32__scientific(float f, int64_t precision);
 float Num32__mod(float num, float modulus);
-float Num32__random(void);
 bool Num32__isinf(float n);
 bool Num32__finite(float n);
 bool Num32__isnan(float n);
-
-typedef bool (*float_pred_t)(float);
-typedef float (*float_unary_fn_t)(float);
-typedef float (*float_binary_fn_t)(float, float);
-
-typedef struct {
-    TypeInfo type;
-    // Alphabetized:
-    float NaN, _2_sqrt_pi, e, half_pi, inf, inverse_half_pi, inverse_pi, ln10, ln2,
-          log2e, pi, quarter_pi, sqrt2, sqrt_half, tau;
-    // Nullary functions:
-    float (*random)(void);
-    // Predicates:
-    float_pred_t finite, isinf, isnan;
-    // Unary functions:
-    float_unary_fn_t abs, acos, acosh, asin, asinh, atan, atanh, cbrt, ceil, cos, cosh, erf, erfc,
-                      exp, exp10, exp2, expm1, floor, j0, j1, log, log10, log1p, log2, logb,
-                      nextdown, nextup, rint, round, roundeven, significand, sin, sinh, sqrt,
-                      tan, tanh, tgamma, trunc, y0, y1;
-    // Binary functions:
-    float_binary_fn_t atan2, copysign, dist, hypot, maxmag, minmag, mod, nextafter, pow, remainder;
-    // Odds and ends:
-    CORD (*format)(float f, int64_t precision);
-    CORD (*scientific)(float f, int64_t precision);
-} Num32_namespace_t;
-extern Num32_namespace_t Num32;
+// Constants:
+#define C(name) const float Num32__##name = M_##name;
+C(2_SQRTPI) C(E) C(PI_2) C(2_PI) C(1_PI) C(LN10) C(LN2) C(LOG2E) C(PI) C(PI_4) C(SQRT2) C(SQRT1_2)
+const float Num32__INF = INFINITY, Num32__TAU = 2.*M_PI;
+#undef C
+float Num32__random(void);
+bool Num32__finite(float n);
+bool Num32__isinf(float n);
+bool Num32__isnan(float n);
+float Num32__nan(CORD tag);
+#define F(name) float (*Num32__##name)(float n) = name##f;
+float (*Num32__abs)(float) = fabsf;
+F(acos) F(acosh) F(asin) F(asinh) F(atan) F(atanh) F(cbrt) F(ceil) F(cos) F(cosh) F(erf) F(erfc)
+F(exp) F(exp2) F(expm1) F(floor) F(j0) F(j1) F(log) F(log10) F(log1p) F(log2) F(logb)
+F(rint) F(round) F(significand) F(sin) F(sinh) F(sqrt)
+F(tan) F(tanh) F(tgamma) F(trunc) F(y0) F(y1)
+#undef F
+#define F(name) float (*Num32__##name)(float x, float y) = name##f;
+F(atan2) F(copysign) F(fdim) F(hypot) F(nextafter) F(pow) F(remainder)
+#undef F
+extern TypeInfo Num32;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

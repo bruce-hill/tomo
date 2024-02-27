@@ -13,8 +13,6 @@
 #include "bool.h"
 #include "types.h"
 
-extern const void *SSS_HASH_VECTOR;
-
 public CORD Bool__as_str(const bool *b, bool colorize, const TypeInfo *type)
 {
     (void)type;
@@ -25,13 +23,11 @@ public CORD Bool__as_str(const bool *b, bool colorize, const TypeInfo *type)
         return *b ? "yes" : "no";
 }
 
-public Bool_namespace_t Bool = {
-    .type={
-        .size=sizeof(bool),
-        .align=__alignof__(bool),
-        .tag=CustomInfo,
-        .CustomInfo={.as_str=(void*)Bool__as_str},
-    },
+public TypeInfo Bool = {
+    .size=sizeof(bool),
+    .align=__alignof__(bool),
+    .tag=CustomInfo,
+    .CustomInfo={.as_str=(void*)Bool__as_str},
 };
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

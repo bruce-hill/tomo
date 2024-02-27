@@ -254,30 +254,16 @@ public CORD Str__join(CORD glue, Str_Array_t pieces)
     return ret;
 }
 
-public Str_namespace_t Str = {
-    .type={
-        .size=sizeof(CORD),
-        .align=__alignof__(CORD),
-        .tag=CustomInfo,
-        .CustomInfo={
-            .as_str=(void*)Str__as_str,
-            .compare=(void*)Str__compare,
-            .equal=(void*)Str__equal,
-            .hash=(void*)Str__hash,
-        },
+public TypeInfo Str = {
+    .size=sizeof(CORD),
+    .align=__alignof__(CORD),
+    .tag=CustomInfo,
+    .CustomInfo={
+        .as_str=(void*)Str__as_str,
+        .compare=(void*)Str__compare,
+        .equal=(void*)Str__equal,
+        .hash=(void*)Str__hash,
     },
-    .uppercased=Str__uppercased,
-    .lowercased=Str__lowercased,
-    .titlecased=Str__titlecased,
-    .has=Str__has,
-    .without=Str__without,
-    .trimmed=Str__trimmed,
-    .slice=Str__slice,
-    .find=Str__find,
-    .replace=Str__replace,
-    .quoted=Str__quoted,
-    .split=Str__split,
-    .join=Str__join,
 };
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

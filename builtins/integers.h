@@ -22,22 +22,20 @@
     CORD type_name ## __hex(c_type i, int64_t digits, bool uppercase, bool prefix); \
     CORD type_name ## __octal(c_type i, int64_t digits, bool prefix); \
     c_type type_name ## __random(int64_t min, int64_t max); \
-    typedef struct { \
-        TypeInfo type; \
-        c_type min, max; \
-        c_type (*abs)(c_type i); \
-        CORD (*format)(c_type i, int64_t digits); \
-        CORD (*hex)(c_type i, int64_t digits, bool uppercase, bool prefix); \
-        CORD (*octal)(c_type i, int64_t digits, bool prefix); \
-        c_type (*random)(int64_t min, int64_t max); \
-    } type_name##_namespace_t; \
-    extern type_name##_namespace_t type_name;
+    extern const c_type type_name ## __min, type_name##__max; \
+    extern TypeInfo type_name;
 
 DEFINE_INT_TYPE(int64_t,  Int64);
 DEFINE_INT_TYPE(int32_t,  Int32);
 DEFINE_INT_TYPE(int16_t,  Int16);
 DEFINE_INT_TYPE(int8_t,   Int8);
 #undef DEFINE_INT_TYPE
+
+#define Int__abs(...) I64(labs(__VA_ARGS__))
+#define Int64__abs(...) I64(labs(__VA_ARGS__))
+#define Int32__abs(...) I32(abs(__VA_ARGS__))
+#define Int16__abs(...) I16(abs(__VA_ARGS__))
+#define Int8__abs(...) I8(abs(__VA_ARGS__))
 
 #define Int__as_str Int64__as_str
 #define Int__compare Int64__compare
