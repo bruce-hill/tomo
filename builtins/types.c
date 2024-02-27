@@ -23,19 +23,15 @@ public CORD Type__as_str(const void *typeinfo, bool colorize, const TypeInfo *ty
     return c;
 }
 
-public TypeInfo TypeInfo_info = {
+public const TypeInfo TypeInfo_info = {
     .size=sizeof(TypeInfo),
     .align=__alignof__(TypeInfo),
     .tag=CustomInfo,
     .TypeInfoInfo.type_str="TypeInfo",
 };
 
-public struct {
-    TypeInfo type;
-} Void = {.type={.size=0, .align=0}};
-public struct {
-    TypeInfo type;
-} Abort = {.type={.size=0, .align=0}};
+public const TypeInfo Void = {.size=0, .align=0};
+public const TypeInfo Abort = {.size=0, .align=0};
 
 public CORD Func__as_str(const void *fn, bool colorize, const TypeInfo *type)
 {

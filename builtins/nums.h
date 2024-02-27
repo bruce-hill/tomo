@@ -39,7 +39,7 @@ F(tan) F(tanh) F(tgamma) F(trunc) F(y0) F(y1)
 #define F(name) double (*Num64__##name)(double x, double y) = name;
 F(atan2) F(copysign) F(fdim) F(hypot) F(nextafter) F(pow) F(remainder)
 #undef F
-extern TypeInfo Num64;
+extern const TypeInfo Num64;
 
 CORD Num32__as_str(const float *f, bool colorize, const TypeInfo *type);
 int32_t Num32__compare(const float *x, const float *y, const TypeInfo *type);
@@ -70,6 +70,6 @@ F(tan) F(tanh) F(tgamma) F(trunc) F(y0) F(y1)
 #define F(name) float (*Num32__##name)(float x, float y) = name##f;
 F(atan2) F(copysign) F(fdim) F(hypot) F(nextafter) F(pow) F(remainder)
 #undef F
-extern TypeInfo Num32;
+extern const TypeInfo Num32;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

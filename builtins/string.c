@@ -254,7 +254,7 @@ public CORD Str__join(CORD glue, Str_Array_t pieces)
     return ret;
 }
 
-public TypeInfo Str = {
+public const TypeInfo Str = {
     .size=sizeof(CORD),
     .align=__alignof__(CORD),
     .tag=CustomInfo,

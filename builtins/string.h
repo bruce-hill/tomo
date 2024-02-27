@@ -39,6 +39,6 @@ CORD Str__replace(CORD text, CORD pat, CORD replacement, int64_t limit);
 Str_Array_t Str__split(CORD str, CORD split);
 CORD Str__join(CORD glue, Str_Array_t pieces);
 
-extern TypeInfo Str;
+extern const TypeInfo Str;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -48,7 +48,7 @@
     } \
     public const c_type KindOfInt##__min = min_val; \
     public const c_type KindOfInt##__max = max_val; \
-    public TypeInfo KindOfInt = { \
+    public const TypeInfo KindOfInt = { \
         .size=sizeof(c_type), \
         .align=__alignof__(c_type), \
         .tag=CustomInfo, \

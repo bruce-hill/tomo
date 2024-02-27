@@ -55,7 +55,9 @@ typedef struct TypeInfo {
 #define $TypeInfoInfo(typestr) &((TypeInfo){.size=sizeof(TypeInfo), .align=__alignof__(TypeInfo), \
                                  .tag=TypeInfoInfo, .TypeInfoInfo.type_str=typestr})
 
-extern TypeInfo TypeInfo_info;
+extern const TypeInfo TypeInfo_info;
+extern const TypeInfo Void;
+extern const TypeInfo Abort;
 
 CORD Type__as_str(const void *typeinfo, bool colorize, const TypeInfo *type);
 CORD Func__as_str(const void *fn, bool colorize, const TypeInfo *type);

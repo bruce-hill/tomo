@@ -54,7 +54,7 @@ public bool Num64__isinf(double n) { return isinf(n); }
 public bool Num64__finite(double n) { return finite(n); }
 public bool Num64__isnan(double n) { return isnan(n); }
 
-public TypeInfo Num64 = {
+public const TypeInfo Num64 = {
     .size=sizeof(double),
     .align=__alignof__(double),
     .tag=CustomInfo,
@@ -109,7 +109,7 @@ public bool Num32__isinf(float n) { return isinf(n); }
 public bool Num32__finite(float n) { return finite(n); }
 public bool Num32__isnan(float n) { return isnan(n); }
 
-public TypeInfo Num32 = {
+public const TypeInfo Num32 = {
     .size=sizeof(float),
     .align=__alignof__(float),
     .tag=CustomInfo,

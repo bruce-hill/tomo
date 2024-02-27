@@ -11,6 +11,6 @@
 
 CORD Bool__as_str(const bool *b, bool colorize, const TypeInfo *type);
 
-extern TypeInfo Bool;
+extern const TypeInfo Bool;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

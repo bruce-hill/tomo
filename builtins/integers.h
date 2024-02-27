@@ -23,7 +23,7 @@
     CORD type_name ## __octal(c_type i, int64_t digits, bool prefix); \
     c_type type_name ## __random(int64_t min, int64_t max); \
     extern const c_type type_name ## __min, type_name##__max; \
-    extern TypeInfo type_name;
+    extern const TypeInfo type_name;
 
 DEFINE_INT_TYPE(int64_t,  Int64);
 DEFINE_INT_TYPE(int32_t,  Int32);

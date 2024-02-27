@@ -23,7 +23,7 @@ public CORD Bool__as_str(const bool *b, bool colorize, const TypeInfo *type)
         return *b ? "yes" : "no";
 }
 
-public TypeInfo Bool = {
+public const TypeInfo Bool = {
     .size=sizeof(bool),
     .align=__alignof__(bool),
     .tag=CustomInfo,
