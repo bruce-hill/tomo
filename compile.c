@@ -70,10 +70,10 @@ CORD compile_statement(env_t *env, ast_t *ast)
 CORD expr_as_string(env_t *env, CORD expr, type_t *t, CORD color)
 {
     switch (t->tag) {
-    case MemoryType: return CORD_asprintf("Memory__as_str($stack(%r), %r, NULL)", expr, color);
-    case BoolType: return CORD_asprintf("Bool__as_str($stack(%r), %r, NULL)", expr, color);
-    case IntType: return CORD_asprintf("Int%ld__as_str($stack(%r), %r, NULL)", Match(t, IntType)->bits, expr, color);
-    case NumType: return CORD_asprintf("Num%ld__as_str($stack(%r), %r, NULL)", Match(t, NumType)->bits, expr, color);
+    case MemoryType: return CORD_asprintf("Memory__as_str($stack(%r), %r, &Memory)", expr, color);
+    case BoolType: return CORD_asprintf("Bool__as_str($stack(%r), %r, &Bool)", expr, color);
+    case IntType: return CORD_asprintf("Int%ld__as_str($stack(%r), %r, &Int%ld)", Match(t, IntType)->bits, expr, color, Match(t, IntType)->bits);
+    case NumType: return CORD_asprintf("Num%ld__as_str($stack(%r), %r, &Num%ld)", Match(t, NumType)->bits, expr, color, Match(t, NumType)->bits);
     case StringType: return CORD_asprintf("Str__as_str($stack(%r), %r, &Str)", expr, color);
     case ArrayType: return CORD_asprintf("Array__as_str($stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case TableType: return CORD_asprintf("Table_as_str($stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
