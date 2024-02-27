@@ -241,11 +241,6 @@ type_t *get_type(env_t *env, ast_t *ast)
         auto var = Match(ast, Var);
         binding_t *b = get_binding(env, var->name);
         if (b) return b->type;
-        // const char *suggestion = spellcheck(env->bindings, name);
-        // if (suggestion)
-        //     code_err(ast, "I don't know what this variable is referring to. Did you mean '%s'?", suggestion); 
-        // else
-        //     code_err(ast, "I don't know what this variable is referring to."); 
         code_err(ast, "I don't know what \"%s\" refers to", var->name);
     }
     case Array: {
