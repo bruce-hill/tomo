@@ -3,7 +3,7 @@
 This language relies on a small set of "metamethods" which define special
 behavior that is required for all types:
 
-- `as_string(obj:&(optional)T, colorize=no)->Str`: a method to convert the type to a
+- `as_str(obj:&(optional)T, colorize=no)->Str`: a method to convert the type to a
   string. If `colorize` is `yes`, then the method should include ANSI escape
   codes for syntax highlighting. If the `obj` pointer is `NULL`, a string
   representation of the type will be returned instead.
@@ -32,12 +32,12 @@ _every_ type had its own set of metamethods. To reduce the amount of generated
 code, we use generic metamethods, which are general-purpose functions that take
 an automatically compiled format string and variable number of arguments that
 describe how to run a metamethod for that type. As a simple example, if `foo`
-is an array of type `Foo`, which has a defined `as_string()` method, then
-rather than define a separate `Foo_Array_as_string()` function that would be
-99% identical to a `Baz_Array_as_string()` function, we instead insert a call
-to `as_string(&foo, colorize, "[_]", Foo__as_string)` to convert a `[Foo]`
-array to a string, and you call `as_string(&baz, colorize, "[_]",
-Baz__as_string)` to convert a `[Baz]` array to a string. The generic metamethod
+is an array of type `Foo`, which has a defined `as_str()` method, then
+rather than define a separate `Foo_Array_as_str()` function that would be
+99% identical to a `Baz_Array_as_str()` function, we instead insert a call
+to `as_str(&foo, colorize, "[_]", Foo__as_str)` to convert a `[Foo]`
+array to a string, and you call `as_str(&baz, colorize, "[_]",
+Baz__as_str)` to convert a `[Baz]` array to a string. The generic metamethod
 handles all the reusable logic like "an array's string form starts with a '[',
 then iterates over the items, getting the item's string form (whatever that is)
 and putting commas between them".
