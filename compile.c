@@ -1041,7 +1041,9 @@ CORD compile_type_info(env_t *env, type_t *t)
     case ClosureType: {
         errx(1, "No typeinfo for closures yet");
     }
-    default: errx(1, "No such typeinfo");
+    case TypeInfoType: return "&TypeInfo_namespace.type";
+    default:
+        compiler_err(NULL, 0, 0, "I couldn't convert to a type info: %T", t);
     }
 }
 

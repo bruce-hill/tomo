@@ -16,8 +16,8 @@ static type_t *namespace_type(const char *name, table_t *ns)
 {
     arg_t *fields = NULL;
     for (int64_t i = Table_length(ns); i >= 1; i--) {
-        struct {const char *name; binding_t binding; } *entry = Table_entry(ns, i);
-        fields = new(arg_t, .next=fields, .name=entry->name, .type=entry->binding.type);
+        struct {const char *name; binding_t *binding; } *entry = Table_entry(ns, i);
+        fields = new(arg_t, .next=fields, .name=entry->name, .type=entry->binding->type);
     }
     return Type(StructType, .name=name, .fields=fields);
 }
@@ -63,7 +63,9 @@ env_t *new_compilation_unit(void)
     };
 
     for (size_t i = 0; i < sizeof(global_types)/sizeof(global_types[0]); i++) {
-        Table_str_set(env->globals, global_types[i].name, namespace_type(global_types[i].name, &global_types[i].namespace));
+        table_t *ns = new(table_t);
+        *ns = global_types[i].namespace;
+        Table_str_set(env->globals, global_types[i].name, new(binding_t, .type=namespace_type(global_types[i].name, ns)));
         Table_str_set(env->types, global_types[i].name, global_types[i].type);
     }
 
