@@ -846,6 +846,9 @@ CORD compile(env_t *env, ast_t *ast)
         auto test = Match(ast, DocTest);
         CORD src = heap_strn(test->expr->start, (size_t)(test->expr->end - test->expr->start));
         type_t *expr_t = get_type(env, test->expr);
+        if (!expr_t)
+            code_err(test->expr, "I couldn't figure out the type of this expression");
+
         if (test->expr->tag == Declare) {
             auto decl = Match(test->expr, Declare);
             return CORD_asprintf(
