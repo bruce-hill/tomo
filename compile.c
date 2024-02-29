@@ -728,34 +728,14 @@ CORD compile(env_t *env, ast_t *ast)
                 size_t value_offset = type_size(key_t);
                 if (type_align(value_t) > 1 && value_offset % type_align(value_t))
                     value_offset += type_align(value_t) - (value_offset % type_align(value_t)); // padding
-                CORD loop = CORD_all(
-                    "for (Int64_t $offset = 0; $offset < $entries.length; ++$offset) {\n"
-                    "\t", compile_type(key_t), " ", key, " = *(", compile_type(key_t), "*)($entries.data + $offset*$entries.stride);\n"
-                    "\t", compile_type(value_t), " ", value, " = *(", compile_type(value_t), "*)($entries.data + $offset*$entries.stride + ", CORD_asprintf("%zu", value_offset), ");\n"
-                    "\t", compile(scope, for_->body), "\n");
-                if (for_->empty)
-                    loop = CORD_all("if ($iter.length == 0)\n", compile(env, for_->empty), "\nelse\n", loop);
-                return CORD_all(
-                    "{ // For loop:\n"
-                    "array_t $entries = (", compile(env, for_->iter), ").entries;\n",
-                    loop,
-                    "}\n"
-                    "}\n");
+                return CORD_all("$TABLE_FOREACH(", compile(env, for_->iter), ", ", compile_type(key_t), ", ", key, ", ",
+                                compile_type(value_t), ", ", value, ", ", heap_strf("%zu", value_offset),
+                                ", ", compile(scope, for_->body), ", ", for_->empty ? compile(scope, for_->empty) : "{}", ")");
             } else {
                 key = compile(env, for_->value);
                 set_binding(scope, CORD_to_const_char_star(key), new(binding_t, .type=key_t));
-                CORD loop = CORD_all(
-                    "for (Int64_t $offset = 0; $offset < $entries.length; ++$offset) {\n"
-                    "\t", compile_type(key_t), " ", key, " = *(", compile_type(key_t), "*)($entries.data + $offset*$entries.stride);\n"
-                    "\t", compile(scope, for_->body), "\n"
-                    "}\n");
-                if (for_->empty)
-                    loop = CORD_all("if ($iter.length == 0)\n", compile(env, for_->empty), "\nelse\n", loop);
-                return CORD_all(
-                    "{ // For loop:\n"
-                    "array_t $entries = (", compile(env, for_->iter), ").entries;\n",
-                    loop,
-                    "}\n");
+                return CORD_all("$ARRAY_FOREACH((", compile(env, for_->iter), ").entries, $i, ", compile_type(key_t), ", ", key, ", ",
+                                compile(scope, for_->body), ", ", for_->empty ? compile(scope, for_->empty) : "{}", ")");
             }
         }
         case IntType: {
@@ -930,7 +910,7 @@ CORD compile(env_t *env, ast_t *ast)
         case TableType: {
             if (streq(f->field, "keys")) {
                 return CORD_all("({ table_t $t = ", compile_to_pointer_depth(env, f->fielded, 0, false), ";\n"
-                                "(array_t){.data = $t.entries.data,\n .length=$t.entries.length,\n .stride=$t.entries.stride,\n .copy_on_write=yes};})");
+                                "(array_t){.data = $t.entries.data,\n .length=$t.entries.length,\n .stride=$t.entries.stride,\n .data_refcount=3};})");
             } else if (streq(f->field, "values")) {
                 auto table = Match(value_t, TableType);
                 size_t offset = type_size(table->key_type);
@@ -939,7 +919,7 @@ CORD compile(env_t *env, ast_t *ast)
                     offset += align - (offset % align);
                 return CORD_all("({ table_t $t = ", compile_to_pointer_depth(env, f->fielded, 0, false), ";\n"
                                 "(array_t){.data = $t.entries.data + ", CORD_asprintf("%zu", offset),
-                                ",\n .length=$t.entries.length,\n .stride=$t.entries.stride,\n .copy_on_write=yes};})");
+                                ",\n .length=$t.entries.length,\n .stride=$t.entries.stride,\n .data_refcount=3};})");
             } else if (streq(f->field, "fallback")) {
                 return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0, false), ").fallback");
             } else if (streq(f->field, "default")) {
