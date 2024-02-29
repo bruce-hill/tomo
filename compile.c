@@ -909,17 +909,19 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case TableType: {
             if (streq(f->field, "keys")) {
-                return CORD_all("({ table_t $t = ", compile_to_pointer_depth(env, f->fielded, 0, false), ";\n"
-                                "(array_t){.data = $t.entries.data,\n .length=$t.entries.length,\n .stride=$t.entries.stride,\n .data_refcount=3};})");
+                return CORD_all("({ table_t *$t = ", compile_to_pointer_depth(env, f->fielded, 1, false), ";\n"
+                                "$t->entries.data_refcount = 3;\n"
+                                "$t->entries; })");
             } else if (streq(f->field, "values")) {
                 auto table = Match(value_t, TableType);
                 size_t offset = type_size(table->key_type);
                 size_t align = type_align(table->value_type);
                 if (align > 1 && offset % align > 0)
                     offset += align - (offset % align);
-                return CORD_all("({ table_t $t = ", compile_to_pointer_depth(env, f->fielded, 0, false), ";\n"
-                                "(array_t){.data = $t.entries.data + ", CORD_asprintf("%zu", offset),
-                                ",\n .length=$t.entries.length,\n .stride=$t.entries.stride,\n .data_refcount=3};})");
+                return CORD_all("({ table_t *$t = ", compile_to_pointer_depth(env, f->fielded, 1, false), ";\n"
+                                "$t->entries.data_refcount = 3;\n"
+                                "(array_t){.data = $t->entries.data + ", CORD_asprintf("%zu", offset),
+                                ",\n .length=$t->entries.length,\n .stride=$t->entries.stride,\n .data_refcount=3};})");
             } else if (streq(f->field, "fallback")) {
                 return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0, false), ").fallback");
             } else if (streq(f->field, "default")) {
