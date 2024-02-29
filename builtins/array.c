@@ -204,9 +204,6 @@ public array_t Array__slice(array_t *array, int64_t first, int64_t stride, int64
         }
     }
 
-    // If less than zero, set to zero (without a conditional branch)
-    length = length & ~(length >> 63);
-
     if (length > array->length/labs(stride) + 1) length = array->length/labs(stride) + 1;
     if (length < 0) length = -length;
 
