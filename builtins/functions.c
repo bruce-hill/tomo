@@ -148,7 +148,7 @@ static inline char *without_colors(const char *str)
     return buf;
 }
 
-public void __doctest(void *expr, TypeInfo *type, CORD expected, const char *filename, int64_t start, int64_t end)
+public void __doctest(void *expr, const TypeInfo *type, CORD expected, const char *filename, int64_t start, int64_t end)
 {
     static file_t *file = NULL;
     if (filename && (file == NULL || strcmp(file->filename, filename) != 0))
