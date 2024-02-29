@@ -17,6 +17,7 @@ typedef struct {
 
 typedef struct {
     table_t *types, *globals, *locals;
+    table_t *type_namespaces; // Map of type name -> namespace table
     compilation_unit_t *code;
 } env_t;
 

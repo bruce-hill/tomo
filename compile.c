@@ -146,7 +146,12 @@ CORD compile(env_t *env, ast_t *ast)
     switch (ast->tag) {
     case Nil: return CORD_asprintf("$Null(%r)", compile_type_ast(Match(ast, Nil)->type));
     case Bool: return Match(ast, Bool)->b ? "yes" : "no";
-    case Var: return Match(ast, Var)->name;
+    case Var: {
+        binding_t *b = get_binding(env, Match(ast, Var)->name);
+        if (b)
+            return b->code ? b->code : Match(ast, Var)->name;
+        code_err(ast, "I don't know of any variable by this name");
+    }
     case Int: return CORD_asprintf("I%ld(%ld)", Match(ast, Int)->bits, Match(ast, Int)->i);
     case Num: {
         // HACK: since the cord library doesn't support the '%a' specifier, this workaround

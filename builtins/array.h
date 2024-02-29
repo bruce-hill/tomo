@@ -18,6 +18,12 @@
                                           int64_t $off = $index + ($index < 0) * ($arr.length + 1) - 1; \
                                           (type*)($arr.data + $arr.stride * $off);})
 #define $is_atomic(x) _Generic(x, bool: true, int8_t: true, int16_t: true, int32_t: true, int64_t: true, float: true, double: true, default: false)
+#define $TypedArray(t, ...) ({ t $items[] = {__VA_ARGS__}; \
+                         (array_t){.length=sizeof($items)/sizeof($items[0]), \
+                         .stride=(int64_t)&$items[1] - (int64_t)&$items[0], \
+                         .data=memcpy(GC_MALLOC(sizeof($items)), $items,  sizeof($items)), \
+                         .atomic=0, \
+                         .data_refcount=1}; })
 #define $Array(x, ...) ({ __typeof(x) $items[] = {x, __VA_ARGS__}; \
                          (array_t){.length=sizeof($items)/sizeof($items[0]), \
                          .stride=(int64_t)&$items[1] - (int64_t)&$items[0], \
