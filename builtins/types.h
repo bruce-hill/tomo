@@ -25,13 +25,13 @@ typedef struct TypeInfo {
             } CustomInfo;
             struct {
                 const char *sigil;
-                struct TypeInfo *pointed;
+                const struct TypeInfo *pointed;
             } PointerInfo;
             struct {
-                struct TypeInfo *item;
+                const struct TypeInfo *item;
             } ArrayInfo;
             struct {
-                struct TypeInfo *key, *value;
+                const struct TypeInfo *key, *value;
             } TableInfo;
             struct {
                 const char *type_str;

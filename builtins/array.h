@@ -23,7 +23,16 @@
                          .stride=(int64_t)&$items[1] - (int64_t)&$items[0], \
                          .data=memcpy($is_atomic(x) ? GC_MALLOC_ATOMIC(sizeof($items)) : GC_MALLOC(sizeof($items)), $items,  sizeof($items)), \
                          .atomic=$is_atomic(x), \
-                         .copy_on_write=1}; })
+                         .data_refcount=1}; })
+#define $ARRAY_INCREF(arr) (arr).data_refcount |= ((arr).data_refcount << 1) | 1
+#define $ARRAY_DECREF(arr) (arr).data_refcount &= 2
+#define $ARRAY_FOREACH(arr_expr, i, item_type, x, body, else_body) {\
+        array_t $arr = arr_expr; \
+        $ARRAY_INCREF($arr); \
+        if ($arr.length == 0) else_body \
+        else for (int64_t i = 1; i <= $arr.length; i++) { item_type x = *(item_type*)($arr.data + (i-1)*$arr.stride); body } \
+        $ARRAY_DECREF($arr); \
+    }
 
 void Array__insert(array_t *arr, const void *item, int64_t index, const TypeInfo *type);
 void Array__insert_all(array_t *arr, array_t to_insert, int64_t index, const TypeInfo *type);
@@ -33,7 +42,7 @@ void Array__shuffle(array_t *arr, const TypeInfo *type);
 void Array__clear(array_t *array, const TypeInfo *type);
 void Array__compact(array_t *arr, const TypeInfo *type);
 bool Array__contains(array_t array, void *item, const TypeInfo *type);
-array_t Array__slice(array_t *array, int64_t first, int64_t stride, int64_t length, bool readonly, const TypeInfo *type);
+array_t Array__slice(array_t *array, int64_t first, int64_t stride, int64_t length, const TypeInfo *type);
 array_t Array__concat(array_t x, array_t y, const TypeInfo *type);
 uint32_t Array__hash(const array_t *arr, const TypeInfo *type);
 int32_t Array__compare(const array_t *x, const array_t *y, const TypeInfo *type);

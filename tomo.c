@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 
     const char *cflags = getenv("CFLAGS");
     if (!cflags)
-        cflags = "-std=c11 -fdollars-in-identifiers -fsanitize=signed-integer-overflow -fno-sanitize-recover";
+        cflags = "-std=c11 -fdollars-in-identifiers -fsanitize=signed-integer-overflow -fno-sanitize-recover -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE";
 
     const char *ldlibs = "-lgc -lcord -lm -L. -ltomo";
     if (getenv("LDLIBS"))

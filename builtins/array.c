@@ -38,9 +38,7 @@ public void Array__compact(array_t *arr, const TypeInfo *type)
         .data=copy,
         .length=arr->length,
         .stride=item_size,
-        .free=0,
         .atomic=arr->atomic,
-        .copy_on_write=0,
     };
 }
 
@@ -64,10 +62,10 @@ public void Array__insert(array_t *arr, const void *item, int64_t index, const T
         for (int64_t i = index-1; i < (int64_t)arr->length; i++)
             memcpy(copy + (i+1)*item_size, arr->data + arr->stride*i, item_size);
         arr->data = copy;
-        arr->copy_on_write = 0;
+        arr->data_refcount = 0;
         arr->stride = item_size;
     } else {
-        if (arr->copy_on_write)
+        if (arr->data_refcount)
             Array__compact(arr, type);
 
         if (index != arr->length+1)
@@ -98,9 +96,9 @@ public void Array__insert_all(array_t *arr, array_t to_insert, int64_t index, co
         for (int64_t i = index-1; i < (int64_t)arr->length; i++)
             memcpy(copy + (i+to_insert.length)*item_size, arr->data + arr->stride*i, item_size);
         arr->data = copy;
-        arr->copy_on_write = 0;
+        arr->data_refcount = 0;
     } else {
-        if (arr->copy_on_write)
+        if (arr->data_refcount)
             Array__compact(arr, type);
 
         if (index != arr->length+1)
@@ -127,7 +125,7 @@ public void Array__remove(array_t *arr, int64_t index, int64_t count, const Type
     if (index + count > arr->length) {
         if (arr->free >= 0)
             arr->free += count;
-    } else if (arr->copy_on_write || (int64_t)arr->stride != item_size) {
+    } else if (arr->data_refcount || (int64_t)arr->stride != item_size) {
         void *copy = arr->atomic ? GC_MALLOC_ATOMIC((arr->length-1) * item_size) : GC_MALLOC((arr->length-1) * item_size);
         for (int64_t src = 1, dest = 1; src <= (int64_t)arr->length; src++) {
             if (src < index || src >= index + count) {
@@ -137,7 +135,7 @@ public void Array__remove(array_t *arr, int64_t index, int64_t count, const Type
         }
         arr->data = copy;
         arr->free = 0;
-        arr->copy_on_write = 0;
+        arr->data_refcount = 0;
     } else {
         memmove((void*)arr->data + (index-1)*item_size, arr->data + (index-1 + count)*item_size, (arr->length - index + count - 1)*item_size);
         arr->free += count;
@@ -152,7 +150,7 @@ public void Array__sort(array_t *arr, const TypeInfo *type)
     if (item_type->align > 1 && item_size % item_type->align)
         item_size += item_type->align - (item_size % item_type->align); // padding
 
-    if (arr->copy_on_write || (int64_t)arr->stride != item_size)
+    if (arr->data_refcount || (int64_t)arr->stride != item_size)
         Array__compact(arr, type);
 
     qsort_r(arr->data, arr->length, item_size, (void*)generic_compare, (void*)item_type);
@@ -161,7 +159,7 @@ public void Array__sort(array_t *arr, const TypeInfo *type)
 public void Array__shuffle(array_t *arr, const TypeInfo *type)
 {
     int64_t item_size = get_item_size(type);
-    if (arr->copy_on_write || (int64_t)arr->stride != item_size)
+    if (arr->data_refcount || (int64_t)arr->stride != item_size)
         Array__compact(arr, type);
 
     char tmp[item_size];
@@ -173,14 +171,12 @@ public void Array__shuffle(array_t *arr, const TypeInfo *type)
     }
 }
 
-public array_t Array__slice(array_t *array, int64_t first, int64_t stride, int64_t length, bool readonly, const TypeInfo *type)
+public array_t Array__slice(array_t *array, int64_t first, int64_t stride, int64_t length, const TypeInfo *type)
 {
-    if (stride > INT16_MAX)
-        stride = INT16_MAX;
-    else if (stride < INT16_MIN)
-        stride = INT16_MIN;
+    if (stride > MAX_STRIDE || stride < MIN_STRIDE)
+        fail("Stride is too big: %ld", stride);
 
-    if (stride == 0) {
+    if (stride == 0 || length <= 0) {
         // Zero stride
         return (array_t){.atomic=array->atomic};
     } else if (stride < 0) {
@@ -210,13 +206,12 @@ public array_t Array__slice(array_t *array, int64_t first, int64_t stride, int64
 
     // If less than zero, set to zero (without a conditional branch)
     length = length & ~(length >> 63);
+
     if (length > array->length/labs(stride) + 1) length = array->length/labs(stride) + 1;
     if (length < 0) length = -length;
 
-    // Sometimes, we want to create a readonly slice (e.g. during iteration)
-    // and we don't actually need to set the COW flag because the slice will
-    // never do modifictions
-    array->copy_on_write = !readonly;
+    // Saturating add:
+    array->data_refcount |= (array->data_refcount << 1) | 1;
 
     int64_t item_size = get_item_size(type);
     return (array_t){
@@ -224,7 +219,7 @@ public array_t Array__slice(array_t *array, int64_t first, int64_t stride, int64
         .data=array->data + item_size*(first-1),
         .length=length,
         .stride=(array->stride * stride),
-        .copy_on_write=1, // slice is always copy-on-write
+        .data_refcount=array->data_refcount,
     };
 }
 
@@ -250,14 +245,13 @@ public array_t Array__concat(array_t x, array_t y, const TypeInfo *type)
         .data=data,
         .length=x.length + y.length,
         .stride=item_size,
-        .copy_on_write=0,
         .atomic=x.atomic,
     };
 }
 
 public bool Array__contains(array_t array, void *item, const TypeInfo *type)
 {
-    TypeInfo *item_type = type->ArrayInfo.item;
+    const TypeInfo *item_type = type->ArrayInfo.item;
     for (int64_t i = 0; i < array.length; i++)
         if (generic_equal(array.data + i*array.stride, item, item_type))
             return true;
@@ -276,7 +270,7 @@ public int32_t Array__compare(const array_t *x, const array_t *y, const TypeInfo
     if (x->data == y->data && x->stride == y->stride)
         return (x->length > y->length) - (x->length < y->length);
 
-    TypeInfo *item = type->ArrayInfo.item;
+    const TypeInfo *item = type->ArrayInfo.item;
     if (item->tag == PointerInfo || (item->tag == CustomInfo && item->CustomInfo.compare == NULL)) { // data comparison
         int64_t item_size = item->size;
         if (x->stride == (int32_t)item_size && y->stride == (int32_t)item_size) {
@@ -307,7 +301,7 @@ public CORD Array__as_str(const array_t *arr, bool colorize, const TypeInfo *typ
     if (!arr)
         return CORD_all("[", generic_as_str(NULL, false, type->ArrayInfo.item), "]");
 
-    TypeInfo *item_type = type->ArrayInfo.item;
+    const TypeInfo *item_type = type->ArrayInfo.item;
     CORD c = "[";
     for (int64_t i = 0; i < arr->length; i++) {
         if (i > 0)
@@ -326,7 +320,7 @@ public uint32_t Array__hash(const array_t *arr, const TypeInfo *type)
     // In other words, it reads in a chunk of items or item hashes, then when it fills up the chunk,
     // hashes it down to a single item to start the next chunk. This repeats until the end, when it
     // hashes the last chunk down to a uint32_t.
-    TypeInfo *item = type->ArrayInfo.item;
+    const TypeInfo *item = type->ArrayInfo.item;
     if (item->tag == PointerInfo || (item->tag == CustomInfo && item->CustomInfo.hash == NULL)) { // Raw data hash
         int64_t item_size = item->size;
         uint8_t hash_batch[4 + 8*item_size] = {};
