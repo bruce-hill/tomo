@@ -937,7 +937,16 @@ CORD compile(env_t *env, ast_t *ast)
         auto indexing = Match(ast, Index);
         type_t *indexed_type = get_type(env, indexing->indexed);
         if (!indexing->index && indexed_type->tag == PointerType) {
-            return CORD_all("*(", compile(env, indexing->indexed), ")");
+            auto ptr = Match(indexed_type, PointerType);
+            if (ptr->is_optional)
+                code_err(ast, "This pointer is potentially null, so it can't be safely dereferenced");
+            if (ptr->pointed->tag == ArrayType) {
+                return CORD_all("({ array_t *$arr = ", compile(env, indexing->indexed), "; $arr->data_refcount = 3; *$arr; })");
+            } else if (ptr->pointed->tag == TableType) {
+                return CORD_all("({ table_t *$t = ", compile(env, indexing->indexed), "; Table_mark_copy_on_write($t); *$t; })");
+            } else {
+                return CORD_all("*(", compile(env, indexing->indexed), ")");
+            }
         }
         type_t *container_t = value_type(indexed_type);
         type_t *index_t = get_type(env, indexing->index);
