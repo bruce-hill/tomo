@@ -98,7 +98,7 @@ typedef enum {
     Min, Max,
     Array, Table, TableEntry,
     FunctionDef, Lambda,
-    FunctionCall,
+    FunctionCall, MethodCall,
     Block,
     For, While, If, When,
     Reduction,
@@ -190,6 +190,11 @@ struct ast_s {
             arg_ast_t *args;
             type_ast_t *extern_return_type;
         } FunctionCall;
+        struct {
+            const char *name;
+            ast_t *self;
+            arg_ast_t *args;
+        } MethodCall;
         struct {
             ast_list_t *statements;
         } Block;

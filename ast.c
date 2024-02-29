@@ -120,6 +120,7 @@ CORD ast_to_cord(ast_t *ast)
       arg_list_to_cord(data.args), type_ast_to_cord(data.ret_type), ast_to_cord(data.body))
     T(Lambda, "(args=%r, body=%r)", arg_list_to_cord(data.args), ast_to_cord(data.body))
     T(FunctionCall, "(fn=%r, args=%r)", ast_to_cord(data.fn), arg_list_to_cord(data.args))
+    T(MethodCall, "(self=%r, name=%s, args=%r)", ast_to_cord(data.self), data.name, arg_list_to_cord(data.args))
     T(Block, "(%r)", ast_list_to_cord(data.statements))
     T(For, "(index=%r, value=%r, iter=%r, body=%r, empty=%r)", ast_to_cord(data.index), ast_to_cord(data.value),
       ast_to_cord(data.iter), ast_to_cord(data.body), ast_to_cord(data.empty))

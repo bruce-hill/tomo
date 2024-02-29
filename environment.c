@@ -104,6 +104,35 @@ binding_t *get_binding(env_t *env, const char *name)
     return Table_str_get(env->locals, name);
 }
 
+binding_t *get_method_binding(env_t *env, ast_t *self, const char *name)
+{
+    type_t *self_type = get_type(env, self);
+    if (!self_type)
+        code_err(self, "I couldn't get this type");
+    type_t *cls_type = value_type(self_type);
+    switch (cls_type->tag) {
+    case ArrayType: {
+        errx(1, "Array methods not implemented");
+    }
+    case TableType: {
+        errx(1, "Table methods not implemented");
+    }
+    case StringType: {
+        table_t *ns = Table_str_get(env->type_namespaces, "Str");
+        return Table_str_get(ns, name);
+    }
+    case StructType: case EnumType: {
+        errx(1, "Struct/enum methods not implemented");
+        // const char *name = cls_type->tag == StructType ? Match(cls_type, StructType)->name : Match(cls_type, EnumType)->name;
+        // table_t *namespace = Table_str_get(env->type_namespaces, name);
+        // if (!name)
+    }
+    default: break;
+    }
+    code_err(self, "No such method!");
+    return NULL;
+}
+
 void set_binding(env_t *env, const char *name, binding_t *binding)
 {
     Table_str_set(env->locals, name, binding);

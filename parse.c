@@ -65,6 +65,7 @@ static inline bool comment(const char **pos);
 static inline bool indent(parse_ctx_t *ctx, const char **pos);
 static inline binop_e match_binary_operator(const char **pos);
 static ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn, bool is_extern);
+static ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self);
 static ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed);
@@ -1150,11 +1151,52 @@ PARSER(parse_term) {
         progress = (false
             || (new_term=parse_index_suffix(ctx, term))
             || (new_term=parse_field_suffix(ctx, term))
+            || (new_term=parse_method_call_suffix(ctx, term))
             || (new_term=parse_fncall_suffix(ctx, term, NORMAL_FUNCTION))
             );
         if (progress) term = new_term;
     }
     return term;
+}
+
+ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self) {
+    if (!self) return NULL;
+
+    const char *start = self->start;
+    const char *pos = self->end;
+
+    spaces(&pos);
+    if (!match(&pos, ":")) return NULL;
+    const char *fn = get_id(&pos);
+    spaces(&pos);
+    if (!match(&pos, "(")) return NULL;
+    whitespace(&pos);
+
+    arg_ast_t *args = NULL;
+    for (;;) {
+        const char *arg_start = pos;
+        const char *name = get_id(&pos);
+        whitespace(&pos);
+        if (!name || !match(&pos, "="))
+            pos = arg_start;
+
+        ast_t *arg = optional(ctx, &pos, parse_expr);
+        if (!arg) {
+            if (name) parser_err(ctx, arg_start, pos, "I expected an argument here");
+            break;
+        }
+        args = new(arg_ast_t, .name=name, .value=arg, .next=args);
+        if (!match_separator(&pos))
+            break;
+    }
+    REVERSE_LIST(args);
+
+    whitespace(&pos);
+
+    if (!match(&pos, ")"))
+        parser_err(ctx, start, pos, "This parenthesis is unclosed");
+
+    return NewAST(ctx->file, start, pos, MethodCall, .self=self, .name=fn, .args=args);
 }
 
 ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn, bool is_extern) {
@@ -1249,6 +1291,7 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
                 progress = (false
                     || (new_term=parse_index_suffix(ctx, key))
                     || (new_term=parse_field_suffix(ctx, key))
+                    || (new_term=parse_method_call_suffix(ctx, key))
                     || (new_term=parse_fncall_suffix(ctx, key, NORMAL_FUNCTION))
                     );
                 if (progress) key = new_term;
@@ -1361,7 +1404,10 @@ PARSER(parse_statement) {
         ast_t *new_stmt;
         progress = false;
         if (stmt->tag == Var)
-            progress = (new_stmt=parse_fncall_suffix(ctx, stmt, NORMAL_FUNCTION));
+            progress = (false
+                || (new_stmt=parse_method_call_suffix(ctx, stmt))
+                || (new_stmt=parse_fncall_suffix(ctx, stmt, NORMAL_FUNCTION))
+            );
 
         if (progress) stmt = new_stmt;
     }

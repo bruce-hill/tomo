@@ -150,7 +150,8 @@ CORD compile(env_t *env, ast_t *ast)
         binding_t *b = get_binding(env, Match(ast, Var)->name);
         if (b)
             return b->code ? b->code : Match(ast, Var)->name;
-        code_err(ast, "I don't know of any variable by this name");
+        return Match(ast, Var)->name;
+        // code_err(ast, "I don't know of any variable by this name");
     }
     case Int: return CORD_asprintf("I%ld(%ld)", Match(ast, Int)->bits, Match(ast, Int)->i);
     case Num: {
@@ -601,22 +602,36 @@ CORD compile(env_t *env, ast_t *ast)
         CORD_appendf(&env->code->funcs, ") %r", body);
         return CORD_EMPTY;
     }
-    case FunctionCall: {
-        auto call = Match(ast, FunctionCall);
-        type_t *fn_t = get_type(env, call->fn);
-        if (fn_t->tag != FunctionType)
-            code_err(call->fn, "This is not a function, it's a %T", fn_t);
-
-        CORD code = CORD_cat_char(compile(env, call->fn), '(');
+    case FunctionCall: case MethodCall: {
+        type_t *fn_t;
+        arg_ast_t *args;
+        CORD fn;
+        if (ast->tag == FunctionCall) {
+            auto call = Match(ast, FunctionCall);
+            fn_t = get_type(env, call->fn);
+            if (fn_t->tag != FunctionType)
+                code_err(call->fn, "This is not a function, it's a %T", fn_t);
+            args = call->args;
+            fn = compile(env, call->fn);
+        } else {
+            auto method = Match(ast, MethodCall);
+            fn_t = get_method_type(env, method->self, method->name);
+            args = new(arg_ast_t, .value=method->self, .next=method->args);
+            binding_t *b = get_method_binding(env, method->self, method->name);
+            if (!b) code_err(ast, "No such method");
+            fn = b->code;
+        }
+        
+        CORD code = CORD_cat_char(fn, '(');
         // Pass 1: assign keyword args
         // Pass 2: assign positional args
         // Pass 3: compile and typecheck each arg
         table_t arg_bindings = {};
-        for (arg_ast_t *arg = call->args; arg; arg = arg->next) {
+        for (arg_ast_t *arg = args; arg; arg = arg->next) {
             if (arg->name)
                 Table_str_set(&arg_bindings, arg->name, arg->value);
         }
-        for (arg_ast_t *call_arg = call->args; call_arg; call_arg = call_arg->next) {
+        for (arg_ast_t *call_arg = args; call_arg; call_arg = call_arg->next) {
             if (call_arg->name)
                 continue;
 
@@ -658,7 +673,6 @@ CORD compile(env_t *env, ast_t *ast)
 
         return CORD_cat_char(code, ')');
     }
-    // Lambda,
     case If: {
         auto if_ = Match(ast, If);
         CORD code;
@@ -717,7 +731,7 @@ CORD compile(env_t *env, ast_t *ast)
             CORD value = compile(env, for_->value);
             set_binding(scope, CORD_to_const_char_star(value), new(binding_t, .type=item_t));
             return CORD_all("$ARRAY_FOREACH(", compile(env, for_->iter), ", ", index, ", ", compile_type(item_t), ", ", value,
-                            ", ", compile(scope, for_->body), ", ", for_->empty ? compile(scope, for_->empty) : "{}", ")");
+                            ", ", compile(scope, for_->body), ", ", for_->empty ? compile(env, for_->empty) : "{}", ")");
         }
         case TableType: {
             type_t *key_t = Match(iter_t, TableType)->key_type;
@@ -735,12 +749,12 @@ CORD compile(env_t *env, ast_t *ast)
                     value_offset += type_align(value_t) - (value_offset % type_align(value_t)); // padding
                 return CORD_all("$TABLE_FOREACH(", compile(env, for_->iter), ", ", compile_type(key_t), ", ", key, ", ",
                                 compile_type(value_t), ", ", value, ", ", heap_strf("%zu", value_offset),
-                                ", ", compile(scope, for_->body), ", ", for_->empty ? compile(scope, for_->empty) : "{}", ")");
+                                ", ", compile(scope, for_->body), ", ", for_->empty ? compile(env, for_->empty) : "{}", ")");
             } else {
                 key = compile(env, for_->value);
                 set_binding(scope, CORD_to_const_char_star(key), new(binding_t, .type=key_t));
                 return CORD_all("$ARRAY_FOREACH((", compile(env, for_->iter), ").entries, $i, ", compile_type(key_t), ", ", key, ", ",
-                                compile(scope, for_->body), ", ", for_->empty ? compile(scope, for_->empty) : "{}", ")");
+                                compile(scope, for_->body), ", ", for_->empty ? compile(env, for_->empty) : "{}", ")");
             }
         }
         case IntType: {
@@ -992,8 +1006,13 @@ CORD compile(env_t *env, ast_t *ast)
     // LinkerDirective,
     case InlineCCode: return Match(ast, InlineCCode)->code;
     case Unknown: code_err(ast, "Unknown AST");
-    default: break;
+    case Lambda: code_err(ast, "Lambdas are not supported yet");
+    case Use: code_err(ast, "Uses are not supported yet");
+    case LinkerDirective: code_err(ast, "Linker directives are not supported yet");
+    case Extern: code_err(ast, "Externs are not supported yet");
+    case TableEntry: code_err(ast, "Table entries should not be compiled directly");
     }
+    code_err(ast, "Unknown AST: %W", ast);
     return NULL;
 }
 

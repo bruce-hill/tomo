@@ -174,6 +174,17 @@ type_t *get_function_def_type(env_t *env, ast_t *ast)
     return Type(FunctionType, .args=args, .ret=ret);
 }
 
+type_t *get_method_type(env_t *env, ast_t *self, const char *name)
+{
+    type_t *self_type = get_type(env, self);
+    if (!self_type)
+        code_err(self, "I couldn't get this type");
+    binding_t *b = get_method_binding(env, self, name);
+    if (!b || !b->type)
+        code_err(self, "No such method: %s", name);
+    return b->type;
+}
+
 type_t *get_type(env_t *env, ast_t *ast)
 {
     if (!ast) return NULL;
@@ -348,6 +359,16 @@ type_t *get_type(env_t *env, ast_t *ast)
             code_err(call->fn, "I couldn't find this function");
         if (fn_type_t->tag != FunctionType)
             code_err(call->fn, "This isn't a function, it's a %T", fn_type_t);
+        auto fn_type = Match(fn_type_t, FunctionType);
+        return fn_type->ret;
+    }
+    case MethodCall: {
+        auto call = Match(ast, MethodCall);
+        type_t *fn_type_t = get_method_type(env, call->self, call->name);
+        if (!fn_type_t)
+            code_err(ast, "No such method!");
+        if (fn_type_t->tag != FunctionType)
+            code_err(ast, "This isn't a function, it's a %T", fn_type_t);
         auto fn_type = Match(fn_type_t, FunctionType);
         return fn_type->ret;
     }
