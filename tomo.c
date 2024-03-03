@@ -140,7 +140,6 @@ int main(int argc, char *argv[])
 
         prog = popen(heap_strf("%s -x c %s -E - | %s > %s.c", cc, cflags, autofmt, f->filename), "w");
         CORD_put(CORD_all("#include \"", f->filename, ".h\"\n\n", module.c_file), prog);
-        CORD_put(module.c_file, prog);
         status = pclose(prog);
         if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
             printf("Transpiled to %s.c\n", f->filename);
