@@ -6,9 +6,10 @@
 
 #include "../SipHash/halfsiphash.h"
 #include "array.h"
+#include "datatypes.h"
 #include "integers.h"
-#include "types.h"
 #include "string.h"
+#include "types.h"
 
 #define xstr(a) str(a)
 #define str(a) #a
@@ -37,6 +38,15 @@
         const char *octal_fmt = prefix ? "0o%0.*lo" : "%0.*lo"; \
         return CORD_asprintf(octal_fmt, (int)digits, (uint64_t)i); \
     } \
+    public array_t KindOfInt ## __bits(c_type x) { \
+        array_t bit_array = (array_t){.data=GC_MALLOC_ATOMIC(sizeof(bool)*8*sizeof(c_type)), .atomic=1, .stride=sizeof(bool), .length=8*sizeof(c_type)}; \
+        bool *bits = bit_array.data + sizeof(c_type)*8; \
+        for (size_t i = 0; i < 8*sizeof(c_type); i++) { \
+            *(bits--) = x & 1; \
+            x >>= 1; \
+        } \
+        return bit_array; \
+    } \
     public c_type KindOfInt ## __random(int64_t min, int64_t max) { \
         if (min > max) fail("Random min (%ld) is larger than max (%ld)", min, max); \
         if (min < (int64_t)min_val) fail("Random min (%ld) is smaller than the minimum "#KindOfInt" value", min); \
@@ -55,7 +65,7 @@
         .CustomInfo={.compare=(void*)KindOfInt##__compare, .as_str=(void*)KindOfInt##__as_str}, \
     };
 
-DEFINE_INT_TYPE(int64_t,  Int64,  "ld",     INT64_MIN, INT64_MAX);
+DEFINE_INT_TYPE(int64_t,  Int,    "ld",     INT64_MIN, INT64_MAX);
 DEFINE_INT_TYPE(int32_t,  Int32,  "d_i32",  INT32_MIN, INT32_MAX);
 DEFINE_INT_TYPE(int16_t,  Int16,  "d_i16",  INT16_MIN, INT16_MAX);
 DEFINE_INT_TYPE(int8_t,   Int8,   "d_i8",   INT8_MIN,  INT8_MAX);

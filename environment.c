@@ -60,7 +60,16 @@ env_t *new_compilation_unit(void)
         array_t namespace;
     } global_types[] = {
         {"Bool", Type(BoolType), "Bool_t", "Bool", {}},
-        {"Int", Type(IntType, .bits=64), "Int_t", "Int", {}},
+        {"Int", Type(IntType, .bits=64), "Int_t", "Int", $TypedArray(ns_entry_t,
+            {"format", "Int__format", "func(i:Int, digits=0)->Str"},
+            {"hex", "Int__hex", "func(i:Int, digits=0, uppercase=yes, prefix=yes)->Str"},
+            {"octal", "Int__octal", "func(i:Int, digits=0, prefix=yes)->Str"},
+            {"random", "Int__random", "func(min=0, max=0xffffffff)->Int"},
+            {"bits", "Int__bits", "func(x:Int)->[Bool]"},
+            {"abs", "Int__abs", "func(i:Int)->Int"},
+            {"min", "Int__min", "Int"},
+            {"max", "Int__max", "Int"}
+        )},
         {"Int32", Type(IntType, .bits=32), "Int32_t", "Int32", {}},
         {"Int16", Type(IntType, .bits=16), "Int16_t", "Int16", {}},
         {"Int8", Type(IntType, .bits=8), "Int8_t", "Int8", {}},
@@ -117,8 +126,11 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
     case TableType: {
         errx(1, "Table methods not implemented");
     }
-    case StringType: {
-        table_t *ns = Table_str_get(env->type_namespaces, "Str");
+    case BoolType: case IntType: case NumType: case StringType: {
+        table_t *ns = Table_str_get(env->type_namespaces, CORD_to_const_char_star(type_to_cord(cls_type)));
+        if (!ns) {
+            code_err(self, "No namespace found for this type!");
+        }
         return Table_str_get(ns, name);
     }
     case TypeInfoType: case StructType: case EnumType: {

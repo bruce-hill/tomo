@@ -14,54 +14,54 @@
 #include "string.h"
 #include "types.h"
 
-public CORD Num64__as_str(const double *f, bool colorize, const TypeInfo *type) { 
+public CORD Num__as_str(const double *f, bool colorize, const TypeInfo *type) { 
     (void)type;
-    if (!f) return "Num64";
+    if (!f) return "Num";
     CORD c;
     if (colorize) CORD_sprintf(&c, "\x1b[35m%g\x1b[33;2m\x1b[m", *f); 
     else CORD_sprintf(&c, "%g", *f); 
     return c; 
 } 
 
-public int32_t Num64__compare(const double *x, const double *y, const TypeInfo *type) { 
+public int32_t Num__compare(const double *x, const double *y, const TypeInfo *type) { 
     (void)type;
     return (*x > *y) - (*x < *y);
 } 
 
-public bool Num64__equal(const double *x, const double *y, const TypeInfo *type) { 
+public bool Num__equal(const double *x, const double *y, const TypeInfo *type) { 
     (void)type;
     return *x == *y;
 } 
 
-public CORD Num64__format(double f, int64_t precision) { 
+public CORD Num__format(double f, int64_t precision) { 
     return CORD_asprintf("%.*f", (int)precision, f);
 }
 
-public CORD Num64__scientific(double f, int64_t precision) { 
+public CORD Num__scientific(double f, int64_t precision) { 
     return CORD_asprintf("%.*e", (int)precision, f); 
 }
 
-public double Num64__mod(double num, double modulus) { 
+public double Num__mod(double num, double modulus) { 
     double result = fmod(num, modulus); 
     return (result < 0) != (modulus < 0) ? result + modulus : result; 
 }
 
-public double Num64__nan(CORD tag) {
+public double Num__nan(CORD tag) {
     return nan(CORD_to_const_char_star(tag));
 }
 
-public bool Num64__isinf(double n) { return isinf(n); }
-public bool Num64__finite(double n) { return finite(n); }
-public bool Num64__isnan(double n) { return isnan(n); }
+public bool Num__isinf(double n) { return isinf(n); }
+public bool Num__finite(double n) { return finite(n); }
+public bool Num__isnan(double n) { return isnan(n); }
 
-public const TypeInfo Num64 = {
+public const TypeInfo Num = {
     .size=sizeof(double),
     .align=__alignof__(double),
     .tag=CustomInfo,
     .CustomInfo={
-        .compare=(void*)Num64__compare,
-        .equal=(void*)Num64__equal,
-        .as_str=(void*)Num64__as_str,
+        .compare=(void*)Num__compare,
+        .equal=(void*)Num__equal,
+        .as_str=(void*)Num__as_str,
     },
 };
 

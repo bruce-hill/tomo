@@ -32,8 +32,8 @@ CORD compile_type(type_t *t)
     case VoidType: return "void";
     case MemoryType: return "void";
     case BoolType: return "Bool_t";
-    case IntType: return CORD_asprintf("Int%ld_t", Match(t, IntType)->bits);
-    case NumType: return CORD_asprintf("Num%ld_t", Match(t, NumType)->bits);
+    case IntType: return Match(t, IntType)->bits == 64 ? "Int_t" : CORD_asprintf("Int%ld_t", Match(t, IntType)->bits);
+    case NumType: return Match(t, NumType)->bits == 64 ? "Num_t" : CORD_asprintf("Num%ld_t", Match(t, NumType)->bits);
     case StringType: {
         const char *dsl = Match(t, StringType)->dsl;
         return dsl ? CORD_cat(dsl, "_t") : "Str_t";
@@ -72,8 +72,14 @@ CORD expr_as_string(env_t *env, CORD expr, type_t *t, CORD color)
     switch (t->tag) {
     case MemoryType: return CORD_asprintf("Memory__as_str($stack(%r), %r, &Memory)", expr, color);
     case BoolType: return CORD_asprintf("Bool__as_str($stack(%r), %r, &Bool)", expr, color);
-    case IntType: return CORD_asprintf("Int%ld__as_str($stack(%r), %r, &Int%ld)", Match(t, IntType)->bits, expr, color, Match(t, IntType)->bits);
-    case NumType: return CORD_asprintf("Num%ld__as_str($stack(%r), %r, &Num%ld)", Match(t, NumType)->bits, expr, color, Match(t, NumType)->bits);
+    case IntType: {
+        CORD name = type_to_cord(t);
+        return CORD_asprintf("%r__as_str($stack(%r), %r, &%r)", name, expr, color, name);
+    }
+    case NumType: {
+        CORD name = type_to_cord(t);
+        return CORD_asprintf("%r__as_str($stack(%r), %r, &Num%r)", name, expr, color, name);
+    }
     case StringType: return CORD_asprintf("Str__as_str($stack(%r), %r, &Str)", expr, color);
     case ArrayType: return CORD_asprintf("Array__as_str($stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case TableType: return CORD_asprintf("Table_as_str($stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
@@ -773,7 +779,7 @@ CORD compile(env_t *env, ast_t *ast)
             if (for_->empty)
                 code_err(for_->empty, "'else' is not implemented for loops over integers");
             return CORD_all(
-                "for (Int64_t ", value, " = 1, $n = ", compile(env, for_->iter), "; ", value, " <= $n; ++", value, ")\n"
+                "for (int64_t ", value, " = 1, $n = ", compile(env, for_->iter), "; ", value, " <= $n; ++", value, ")\n"
                 "\t", compile(scope, for_->body), "\n");
         }
         default: code_err(for_->iter, "Iteration is not implemented for type: %T", iter_t);
@@ -1034,9 +1040,7 @@ CORD compile(env_t *env, ast_t *ast)
 CORD compile_type_info(env_t *env, type_t *t)
 {
     switch (t->tag) {
-    case BoolType: return "&Bool";
-    case IntType: return CORD_asprintf("&Int%ld", Match(t, IntType)->bits);
-    case NumType: return CORD_asprintf("&Num%ld", Match(t, NumType)->bits);
+    case BoolType: case IntType: case NumType: return CORD_asprintf("&%r", type_to_cord(t));
     case StringType: return CORD_all("&", Match(t, StringType)->dsl ? Match(t, StringType)->dsl : "Str");
     case StructType: return CORD_all("&", Match(t, StructType)->name);
     case EnumType: return CORD_all("&", Match(t, EnumType)->name);

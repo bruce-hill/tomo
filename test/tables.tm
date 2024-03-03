@@ -20,7 +20,7 @@ for k,v in t
 >> t.default
 = ?(readonly)999
 >> t.fallback
-= !{Str=>Int64}
+= !{Str=>Int}
 
 >> t.keys
 = ["one", "two"]
@@ -40,7 +40,7 @@ for k,v in t
 >> #t2
 = 1
 >> t2.default
-= !Int64
+= !Int
 >> t2.fallback
 = ?(readonly){"one"=>1, "two"=>2; default=999}
 

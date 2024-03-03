@@ -17,8 +17,8 @@ CORD type_to_cord(type_t *t) {
         case MemoryType: return "Memory";
         case BoolType: return "Bool";
         case StringType: return "Str";
-        case IntType: return CORD_asprintf("Int%ld", Match(t, IntType)->bits);
-        case NumType: return CORD_asprintf("Num%ld", Match(t, NumType)->bits);
+        case IntType: return Match(t, IntType)->bits == 64 ? "Int" : CORD_asprintf("Int%ld", Match(t, IntType)->bits);
+        case NumType: return Match(t, NumType)->bits == 64 ? "Num" : CORD_asprintf("Num%ld", Match(t, NumType)->bits);
         case ArrayType: {
             auto array = Match(t, ArrayType);
             return CORD_asprintf("[%r]", type_to_cord(array->item_type));
