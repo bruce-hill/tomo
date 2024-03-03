@@ -1,8 +1,6 @@
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
 #include <gc.h>
 #include <gc/cord.h>
+#include <float.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -32,6 +30,21 @@ public bool Num__equal(const double *x, const double *y, const TypeInfo *type) {
     (void)type;
     return *x == *y;
 } 
+
+public bool Num__near(double a, double b, double ratio, double absolute) {
+    if (ratio < 0) ratio = 0;
+    else if (ratio > 0) ratio = 1;
+
+    if (a == b) return true;
+
+    double diff = fabs(a - b);
+    if (diff < absolute) return true;
+    else if (isnan(diff)) return false;
+
+    double epsilon = fabs(a * ratio) + fabs(b * ratio);
+    if (isinf(epsilon)) epsilon = DBL_MAX;
+    return (diff < epsilon);
+}
 
 public CORD Num__format(double f, int64_t precision) { 
     return CORD_asprintf("%.*f", (int)precision, f);
@@ -86,7 +99,22 @@ public int32_t Num32__compare(const float *x, const float *y, const TypeInfo *ty
 public bool Num32__equal(const float *x, const float *y, const TypeInfo *type) { 
     (void)type;
     return *x == *y;
-} 
+}
+
+public bool Num32__near(float a, float b, float ratio, float absolute) {
+    if (ratio < 0) ratio = 0;
+    else if (ratio > 0) ratio = 1;
+
+    if (a == b) return true;
+
+    float diff = fabs(a - b);
+    if (diff < absolute) return true;
+    else if (isnan(diff)) return false;
+
+    float epsilon = fabs(a * ratio) + fabs(b * ratio);
+    if (isinf(epsilon)) epsilon = FLT_MAX;
+    return (diff < epsilon);
+}
 
 public CORD Num32__format(float f, int64_t precision) { 
     return CORD_asprintf("%.*f", (int)precision, f); 

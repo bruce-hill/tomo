@@ -104,6 +104,7 @@ env_t *new_compilation_unit(void)
 #define F(name) {#name, "Num__"#name, "func(n:Num)->Num"}
 #define F2(name) {#name, "Num__"#name, "func(x:Num, y:Num)->Num"}
         {"Num", Type(NumType, .bits=64), "Num_t", "Num", $TypedArray(ns_entry_t,
+            {"near", "Num__near", "func(x:Num, y:Num, ratio=1e-9, min_epsilon=1e-9)->Bool"},
             {"format", "Num__format", "func(n:Num, precision=0)->Str"},
             {"scientific", "Num__scientific", "func(n:Num, precision=0)->Str"},
             {"nan", "Num__nan", "func(tag=\"\")->Num"},
@@ -122,7 +123,29 @@ env_t *new_compilation_unit(void)
 #undef F2
 #undef F
 #undef C
-        {"Num32", Type(NumType, .bits=32), "Num32_t", "Num32", {}},
+#define C(name) {#name, "Num32__"#name, "Num32"}
+#define F(name) {#name, "Num32__"#name, "func(n:Num32)->Num32"}
+#define F2(name) {#name, "Num32__"#name, "func(x:Num32, y:Num32)->Num32"}
+        {"Num32", Type(NumType, .bits=32), "Num32_t", "Num32", $TypedArray(ns_entry_t,
+            {"near", "Num32__near", "func(x:Num32, y:Num32, ratio=1e-9f32, min_epsilon=1e-9f32)->Bool"},
+            {"format", "Num32__format", "func(n:Num32, precision=0)->Str"},
+            {"scientific", "Num32__scientific", "func(n:Num32, precision=0)->Str"},
+            {"nan", "Num32__nan", "func(tag=\"\")->Num32"},
+            {"isinf", "Num32__isinf", "func(n:Num32)->Bool"},
+            {"isfinite", "Num32__isfinite", "func(n:Num32)->Bool"},
+            {"isnan", "Num32__isnan", "func(n:Num32)->Bool"},
+            C(2_SQRTPI), C(E), C(PI_2), C(2_PI), C(1_PI), C(LN10), C(LN2), C(LOG2E),
+            C(PI), C(PI_4), C(SQRT2), C(SQRT1_2), C(INF), C(TAU),
+            {"random", "Num32__random", "func()->Num32"},
+            F(abs), F(acos), F(acosh), F(asin), F(asinh), F(atan), F(atanh), F(cbrt), F(ceil), F(cos), F(cosh), F(erf), F(erfc),
+            F(exp), F(exp2), F(expm1), F(floor), F(j0), F(j1), F(log), F(log10), F(log1p), F(log2), F(logb),
+            F(rint), F(round), F(significand), F(sin), F(sinh), F(sqrt),
+            F(tan), F(tanh), F(tgamma), F(trunc), F(y0), F(y1),
+            F2(atan2), F2(copysign), F2(fdim), F2(hypot), F2(nextafter), F2(pow), F2(remainder),
+        )},
+#undef F2
+#undef F
+#undef C
         {"Str", Type(StringType), "Str_t", "Str", $TypedArray(ns_entry_t,
             {"quoted", "Str__quoted", "func(s:Str, color=no)->Str"},
             {"upper", "Str__upper", "func(s:Str)->Str"},

@@ -12,6 +12,7 @@
 CORD Num__as_str(const double *f, bool colorize, const TypeInfo *type);
 int32_t Num__compare(const double *x, const double *y, const TypeInfo *type);
 bool Num__equal(const double *x, const double *y, const TypeInfo *type);
+bool Num__near(double a, double b, double ratio, double absolute);
 CORD Num__format(double f, int64_t precision);
 CORD Num__scientific(double f, int64_t precision);
 double Num__mod(double num, double modulus);
@@ -25,9 +26,6 @@ C(2_SQRTPI) C(E) C(PI_2) C(2_PI) C(1_PI) C(LN10) C(LN2) C(LOG2E) C(PI) C(PI_4) C
 const double Num__INF = INFINITY, Num__TAU = 2.*M_PI;
 #undef C
 double Num__random(void);
-bool Num__finite(double n);
-bool Num__isinf(double n);
-bool Num__isnan(double n);
 #define F(name) double (*Num__##name)(double n) = name;
 double (*Num__abs)(double) = fabs;
 F(acos) F(acosh) F(asin) F(asinh) F(atan) F(atanh) F(cbrt) F(ceil) F(cos) F(cosh) F(erf) F(erfc)
@@ -43,6 +41,7 @@ extern const TypeInfo Num;
 CORD Num32__as_str(const float *f, bool colorize, const TypeInfo *type);
 int32_t Num32__compare(const float *x, const float *y, const TypeInfo *type);
 bool Num32__equal(const float *x, const float *y, const TypeInfo *type);
+bool Num32__near(float a, float b, float ratio, float absolute);
 CORD Num32__format(float f, int64_t precision);
 CORD Num32__scientific(float f, int64_t precision);
 float Num32__mod(float num, float modulus);
@@ -55,9 +54,6 @@ C(2_SQRTPI) C(E) C(PI_2) C(2_PI) C(1_PI) C(LN10) C(LN2) C(LOG2E) C(PI) C(PI_4) C
 const float Num32__INF = INFINITY, Num32__TAU = 2.*M_PI;
 #undef C
 float Num32__random(void);
-bool Num32__finite(float n);
-bool Num32__isinf(float n);
-bool Num32__isnan(float n);
 float Num32__nan(CORD tag);
 #define F(name) float (*Num32__##name)(float n) = name##f;
 float (*Num32__abs)(float) = fabsf;

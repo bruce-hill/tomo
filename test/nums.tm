@@ -30,3 +30,8 @@
 = yes
 >> nan == nan
 = no
+
+>> Num.PI:cos():near(-1)
+= yes
+>> Num.PI:sin():near(0)
+= yes
