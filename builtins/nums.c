@@ -46,13 +46,17 @@ public double Num__mod(double num, double modulus) {
     return (result < 0) != (modulus < 0) ? result + modulus : result; 
 }
 
+public double Num__random(void) { 
+    return drand48(); 
+}
+
 public double Num__nan(CORD tag) {
     return nan(CORD_to_const_char_star(tag));
 }
 
-public bool Num__isinf(double n) { return isinf(n); }
-public bool Num__finite(double n) { return finite(n); }
-public bool Num__isnan(double n) { return isnan(n); }
+public bool Num__isinf(double n) { return !!isinf(n); }
+public bool Num__finite(double n) { return !!finite(n); }
+public bool Num__isnan(double n) { return !!isnan(n); }
 
 public const TypeInfo Num = {
     .size=sizeof(double),

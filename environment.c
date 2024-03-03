@@ -100,7 +100,28 @@ env_t *new_compilation_unit(void)
             {"min", "Int8__min", "Int8"},
             {"max", "Int8__max", "Int8"},
         )},
-        {"Num", Type(NumType, .bits=64), "Num_t", "Num", {}},
+#define C(name) {#name, "Num__"#name, "Num"}
+#define F(name) {#name, "Num__"#name, "func(n:Num)->Num"}
+#define F2(name) {#name, "Num__"#name, "func(x:Num, y:Num)->Num"}
+        {"Num", Type(NumType, .bits=64), "Num_t", "Num", $TypedArray(ns_entry_t,
+            {"format", "Num__format", "func(n:Num, precision=0)->Str"},
+            {"scientific", "Num__scientific", "func(n:Num, precision=0)->Str"},
+            {"nan", "Num__nan", "func(tag=\"\")->Num"},
+            {"isinf", "Num__isinf", "func(n:Num)->Bool"},
+            {"isfinite", "Num__isfinite", "func(n:Num)->Bool"},
+            {"isnan", "Num__isnan", "func(n:Num)->Bool"},
+            C(2_SQRTPI), C(E), C(PI_2), C(2_PI), C(1_PI), C(LN10), C(LN2), C(LOG2E),
+            C(PI), C(PI_4), C(SQRT2), C(SQRT1_2), C(INF), C(TAU),
+            {"random", "Num__random", "func()->Num"},
+            F(abs), F(acos), F(acosh), F(asin), F(asinh), F(atan), F(atanh), F(cbrt), F(ceil), F(cos), F(cosh), F(erf), F(erfc),
+            F(exp), F(exp2), F(expm1), F(floor), F(j0), F(j1), F(log), F(log10), F(log1p), F(log2), F(logb),
+            F(rint), F(round), F(significand), F(sin), F(sinh), F(sqrt),
+            F(tan), F(tanh), F(tgamma), F(trunc), F(y0), F(y1),
+            F2(atan2), F2(copysign), F2(fdim), F2(hypot), F2(nextafter), F2(pow), F2(remainder),
+        )},
+#undef F2
+#undef F
+#undef C
         {"Num32", Type(NumType, .bits=32), "Num32_t", "Num32", {}},
         {"Str", Type(StringType), "Str_t", "Str", $TypedArray(ns_entry_t,
             {"quoted", "Str__quoted", "func(s:Str, color=no)->Str"},
