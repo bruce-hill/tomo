@@ -63,27 +63,13 @@ int main(int argc, char *argv[])
     }
 
     module_code_t module = compile_file(ast);
-
-    CORD program = CORD_all(
-        "// File: ", f->filename, ".h\n",
-        module.header,
-        "\n",
-        "// File: ", f->filename, ".c\n",
-        module.c_file,
-        "\n",
-        "int main(int argc, const char *argv[]) {\n"
-        "(void)argc;\n"
-        "(void)argv;\n"
-        "GC_INIT();\n"
-        "detect_color();\n"
-        "$load();\n"
-        "return 0;\n"
-        "}\n"
-    );
     
     if (verbose) {
-        FILE *out = popen(heap_strf("%s | bat -P --file-name=%s.c", autofmt, f->filename), "w");
-        CORD_put(program, out);
+        FILE *out = popen(heap_strf("%s | bat -P --file-name=%s.h", autofmt, f->filename), "w");
+        CORD_put(module.header, out);
+        pclose(out);
+        out = popen(heap_strf("%s | bat -P --file-name=%s.c", autofmt, f->filename), "w");
+        CORD_put(CORD_all("#include \"", f->filename, "\"\n\n", module.c_file), out);
         pclose(out);
     }
 
@@ -105,24 +91,57 @@ int main(int argc, char *argv[])
         const char *run = streq(cc, "tcc") ? heap_strf("tcc -run %s %s %s -", cflags, ldflags, ldlibs)
             : heap_strf("gcc -x c %s %s %s - -o program && ./program", cflags, ldflags, ldlibs);
         FILE *runner = popen(run, "w");
+
+        CORD program = CORD_all(
+            "// File: ", f->filename, ".h\n",
+            module.header,
+            "\n",
+            "// File: ", f->filename, ".c\n",
+            module.c_file,
+            "\n",
+            "int main(int argc, const char *argv[]) {\n"
+            "(void)argc;\n"
+            "(void)argv;\n"
+            "GC_INIT();\n"
+            "detect_color();\n"
+            "$load();\n"
+            "return 0;\n"
+            "}\n"
+        );
+
         CORD_put(program, runner);
         int status = pclose(runner);
         return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
     }
     case MODE_TRANSPILE: {
-        FILE *prog = popen(heap_strf("%s > %s.c", autofmt, f->filename), "w");
-        CORD_put(program, prog);
+        FILE *prog = popen(heap_strf("%s > %s.h", autofmt, f->filename), "w");
+        CORD_put(module.header, prog);
         int status = pclose(prog);
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+            printf("Transpiled to %s.h\n", f->filename);
+        else
+            return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
+
+        prog = popen(heap_strf("%s > %s.c", autofmt, f->filename), "w");
+        CORD_put(CORD_all("#include \"", f->filename, ".h\"\n\n", module.c_file), prog);
+        status = pclose(prog);
         if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
             printf("Transpiled to %s.c\n", f->filename);
         return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
     }
     case MODE_EXPANDED_TRANSPILE: {
-        const char *cc = getenv("CC");
-        if (!cc) cc = "tcc";
-        FILE *prog = popen(heap_strf("%s -x c %s -E - | %s > %s.c", cc, cflags, autofmt, f->filename), "w");
-        CORD_put(program, prog);
+        FILE *prog = popen(heap_strf("%s -x c %s -E - | %s > %s.h", cc, cflags, autofmt, f->filename), "w");
+        CORD_put(module.header, prog);
         int status = pclose(prog);
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+            printf("Transpiled to %s.h\n", f->filename);
+        else
+            return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
+
+        prog = popen(heap_strf("%s -x c %s -E - | %s > %s.c", cc, cflags, autofmt, f->filename), "w");
+        CORD_put(CORD_all("#include \"", f->filename, ".h\"\n\n", module.c_file), prog);
+        CORD_put(module.c_file, prog);
+        status = pclose(prog);
         if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
             printf("Transpiled to %s.c\n", f->filename);
         return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
