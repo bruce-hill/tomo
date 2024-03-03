@@ -13,8 +13,7 @@
                        .data=memcpy(GC_MALLOC(sizeof($ents)), $ents, sizeof($ents)), \
                        .length=sizeof($ents)/sizeof($ents[0]), \
                        .stride=(void*)&$ents[1] - (void*)&$ents[0], \
-                       }, &((TypeInfo){.size=sizeof(table_t), .align=__alignof__(table_t), .tag=TableInfo, \
-                            .TableInfo.key=key_info, .TableInfo.value=value_info})); \
+                       }, $TableInfo(key_info, value_info)); \
     $table.fallback = fb; \
     $table.default_value = def; \
     $table; })

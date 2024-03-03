@@ -115,7 +115,7 @@ void compile_enum_def(env_t *env, ast_t *ast)
 
     type_t *t = Table_str_get(env->types, def->name);
     CORD typeinfo = CORD_asprintf("public const TypeInfo %s = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
-                                  def->name, def->name, type_size(t), type_align(t));
+                                  def->name, type_size(t), type_align(t));
 
     env->code->funcs = CORD_all(
         env->code->funcs,
