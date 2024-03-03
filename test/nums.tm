@@ -38,3 +38,9 @@
 
 >> 10.0:pow(3)
 = 1000
+
+>> Num.nan():near(Num.nan())
+= no
+
+>> Num.INF:near(-Num.INF)
+= no
