@@ -1088,7 +1088,8 @@ module_code_t compile_file(ast_t *ast)
             // CORD_asprintf("#line 0 %r\n", Str__quoted(ast->file->filename, false)),
             env->code->imports, "\n",
             env->code->typedefs, "\n",
-            env->code->typecode, "\n"),
+            env->code->typecode, "\n",
+            env->code->fndefs, "\n"),
         .c_file=CORD_all(
             // CORD_asprintf("#line 0 %r\n", Str__quoted(ast->file->filename, false)),
             env->code->staticdefs, "\n",

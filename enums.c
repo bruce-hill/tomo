@@ -107,8 +107,24 @@ void compile_enum_def(env_t *env, ast_t *ast)
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         compile_struct_def(env, WrapAST(ast, StructDef, .name=heap_strf("%s$%s", def->name, tag->name), .fields=tag->fields));
         enum_def = CORD_all(enum_def, def->name, "$", tag->name, "_t ", tag->name, ";\n");
-        CORD_appendf(&env->code->typedefs, "#define %s$tagged$%s(...) ((%s_t){$tag$%s$%s, .%s={__VA_ARGS__}})\n",
-                     def->name, tag->name, def->name, def->name, tag->name, tag->name);
+        // Constructor:
+        CORD arg_sig = CORD_EMPTY;
+        for (arg_ast_t *field = tag->fields; field; field = field->next) {
+            arg_sig = CORD_all(arg_sig, compile_type_ast(field->type), " ", field->name);
+            if (field->next) arg_sig = CORD_cat(arg_sig, ", ");
+        }
+        if (arg_sig == CORD_EMPTY) arg_sig = "void";
+        CORD constructor_def = CORD_all(def->name, "_t ", def->name, "$tagged$", tag->name, "(", arg_sig, ");\n");
+        env->code->fndefs = CORD_cat(env->code->fndefs, constructor_def);
+
+        CORD constructor_impl = CORD_all("public inline ", def->name, "_t ", def->name, "$tagged$", tag->name, "(", arg_sig, ") { return (",
+                                         def->name, "_t){.$tag=$tag$", def->name, "$", tag->name, ", .", tag->name, "={");
+        for (arg_ast_t *field = tag->fields; field; field = field->next) {
+            constructor_impl = CORD_all(constructor_impl, field->name);
+            if (field->next) constructor_impl = CORD_cat(constructor_impl, ", ");
+        }
+        constructor_impl = CORD_cat(constructor_impl, "}}; }\n");
+        env->code->funcs = CORD_cat(env->code->funcs, constructor_impl);
     }
     enum_def = CORD_cat(enum_def, "};\n};\n");
     env->code->typecode = CORD_cat(env->code->typecode, enum_def);

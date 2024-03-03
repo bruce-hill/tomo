@@ -9,6 +9,7 @@ typedef struct {
     CORD imports;
     CORD typedefs;
     CORD typecode;
+    CORD fndefs;
     CORD staticdefs;
     CORD funcs;
     CORD typeinfos;
