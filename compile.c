@@ -109,7 +109,7 @@ static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_dept
     while (depth != target_depth) {
         if (depth < target_depth) {
             if (ast->tag == Var && target_depth == 1)
-                val = CORD_all("&", val);
+                val = CORD_all("(&", val, ")");
             else
                 val = CORD_all("$stack(", val, ")");
             t = Type(PointerType, .pointed=t, .is_stack=true);
@@ -202,7 +202,7 @@ CORD compile(env_t *env, ast_t *ast)
     case StackReference: {
         ast_t *subject = Match(ast, StackReference)->value;
         if (can_be_mutated(env, subject))
-            return CORD_cat("&", compile(env, subject));
+            return CORD_all("(&", compile(env, subject), ")");
         return CORD_all("$stack(", compile(env, subject), ")");
     }
     case BinaryOp: {
@@ -1041,9 +1041,9 @@ CORD compile_type_info(env_t *env, type_t *t)
 {
     switch (t->tag) {
     case BoolType: case IntType: case NumType: return CORD_asprintf("&%r", type_to_cord(t));
-    case StringType: return CORD_all("&", Match(t, StringType)->dsl ? Match(t, StringType)->dsl : "Str");
-    case StructType: return CORD_all("&", Match(t, StructType)->name);
-    case EnumType: return CORD_all("&", Match(t, EnumType)->name);
+    case StringType: return CORD_all("(&", Match(t, StringType)->dsl ? Match(t, StringType)->dsl : "Str", ")");
+    case StructType: return CORD_all("(&", Match(t, StructType)->name, ")");
+    case EnumType: return CORD_all("(&", Match(t, EnumType)->name, ")");
     case ArrayType: {
         type_t *item_t = Match(t, ArrayType)->item_type;
         return CORD_asprintf("$ArrayInfo(%r)", compile_type_info(env, item_t));
