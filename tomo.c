@@ -85,9 +85,8 @@ int main(int argc, char *argv[])
         : heap_strf("gcc -x c %s %s %s - -o program && ./program", cflags, ldflags, ldlibs);
     FILE *runner = popen(run, "w");
     CORD_put(program, runner);
-    fclose(runner);
-
-    return 0;
+    int status = pclose(runner);
+    return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
