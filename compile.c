@@ -452,7 +452,7 @@ CORD compile(env_t *env, ast_t *ast)
                 if (isprint(c))
                     code = CORD_cat_char(code, c);
                 else
-                    CORD_sprintf(&code, "%r\\x%02X", c);
+                    CORD_sprintf(&code, "%r\\x%02X", code, c);
                 break;
             }
             }
