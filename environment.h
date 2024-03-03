@@ -32,7 +32,7 @@ __attribute__((noreturn))
 void compiler_err(file_t *f, const char *start, const char *end, const char *fmt, ...);
 binding_t *get_binding(env_t *env, const char *name);
 void set_binding(env_t *env, const char *name, binding_t *binding);
-binding_t *get_method_binding(env_t *env, ast_t *self, const char *name);
+binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name);
 #define code_err(ast, ...) compiler_err((ast)->file, (ast)->start, (ast)->end, __VA_ARGS__)
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

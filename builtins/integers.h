@@ -43,7 +43,6 @@ DEFINE_INT_TYPE(int8_t,   Int8);
 #define Int__hex Int64__hex
 #define Int__octal Int64__octal
 #define Int__random Int64__random
-#define Int_namespace_t Int64_namespace_t
 #define Int Int64
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

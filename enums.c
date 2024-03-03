@@ -95,8 +95,7 @@ void compile_enum_def(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
     CORD_appendf(&env->code->typedefs, "typedef struct %s_s %s_t;\n", def->name, def->name);
-    CORD_appendf(&env->code->typedefs, "typedef struct { TypeInfo type; } %s_namespace_t;\n", def->name);
-    CORD_appendf(&env->code->typedefs, "extern %s_namespace_t %s;\n", def->name, def->name);
+    CORD_appendf(&env->code->typedefs, "extern const TypeInfo %s;\n", def->name);
     CORD enum_def = CORD_all("struct ", def->name, "_s {\n"
                              "\tenum {");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
@@ -108,14 +107,14 @@ void compile_enum_def(env_t *env, ast_t *ast)
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         compile_struct_def(env, WrapAST(ast, StructDef, .name=heap_strf("%s$%s", def->name, tag->name), .fields=tag->fields));
         enum_def = CORD_all(enum_def, def->name, "$", tag->name, "_t ", tag->name, ";\n");
-        CORD_appendf(&env->code->typedefs, "#define %s__%s(...) ((%s_t){$tag$%s$%s, .%s={__VA_ARGS__}})\n",
+        CORD_appendf(&env->code->typedefs, "#define %s$tagged$%s(...) ((%s_t){$tag$%s$%s, .%s={__VA_ARGS__}})\n",
                      def->name, tag->name, def->name, def->name, tag->name, tag->name);
     }
     enum_def = CORD_cat(enum_def, "};\n};\n");
     env->code->typecode = CORD_cat(env->code->typecode, enum_def);
 
     type_t *t = Table_str_get(env->types, def->name);
-    CORD typeinfo = CORD_asprintf("public %s_namespace_t %s = {{%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
+    CORD typeinfo = CORD_asprintf("public const TypeInfo %s = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
                                   def->name, def->name, type_size(t), type_align(t));
 
     env->code->funcs = CORD_all(
@@ -129,7 +128,7 @@ void compile_enum_def(env_t *env, ast_t *ast)
         ".equal=(void*)", def->name, "__equal, "
         ".hash=(void*)", def->name, "__hash, "
         ".compare=(void*)", def->name, "__compare");
-    typeinfo = CORD_cat(typeinfo, "}}}};\n");
+    typeinfo = CORD_cat(typeinfo, "}}};\n");
     env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
 }
 

@@ -609,15 +609,21 @@ CORD compile(env_t *env, ast_t *ast)
         if (ast->tag == FunctionCall) {
             auto call = Match(ast, FunctionCall);
             fn_t = get_type(env, call->fn);
-            if (fn_t->tag != FunctionType)
+            if (fn_t->tag == TypeInfoType) {
+                type_t *t = Match(fn_t, TypeInfoType)->type;
+                if (!(t->tag == StructType))
+                    code_err(call->fn, "This is not a type that has a constructor");
+                fn_t = Type(FunctionType, .args=Match(t, StructType)->fields, .ret=t);
+            } else if (fn_t->tag != FunctionType) {
                 code_err(call->fn, "This is not a function, it's a %T", fn_t);
+            }
             args = call->args;
             fn = compile(env, call->fn);
         } else {
             auto method = Match(ast, MethodCall);
             fn_t = get_method_type(env, method->self, method->name);
             args = new(arg_ast_t, .value=method->self, .next=method->args);
-            binding_t *b = get_method_binding(env, method->self, method->name);
+            binding_t *b = get_namespace_binding(env, method->self, method->name);
             if (!b) code_err(ast, "No such method");
             fn = b->code;
         }
@@ -902,6 +908,15 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *fielded_t = get_type(env, f->fielded);
         type_t *value_t = value_type(fielded_t);
         switch (value_t->tag) {
+        case TypeInfoType: {
+            auto info = Match(value_t, TypeInfoType);
+            table_t *namespace = Table_str_get(env->type_namespaces, info->name);
+            if (!namespace) code_err(f->fielded, "I couldn't find a namespace for this type");
+            binding_t *b = Table_str_get(namespace, f->field);
+            if (!b) code_err(ast, "I couldn't find the field '%s' on this type", f->field);
+            if (!b->code) code_err(ast, "I couldn't figure out how to compile this field");
+            return b->code;
+        }
         case StructType: {
             for (arg_t *field = Match(value_t, StructType)->fields; field; field = field->next) {
                 if (streq(field->name, f->field)) {

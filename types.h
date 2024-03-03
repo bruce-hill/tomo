@@ -85,7 +85,10 @@ struct type_s {
             const char *name;
             tag_t *tags;
         } EnumType;
-        struct {} TypeInfoType;
+        struct {
+            const char *name;
+            type_t *type;
+        } TypeInfoType;
     } __data;
 };
 

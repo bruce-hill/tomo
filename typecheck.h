@@ -12,7 +12,6 @@ type_t *get_type(env_t *env, ast_t *ast);
 void bind_statement(env_t *env, ast_t *statement);
 type_t *get_math_type(env_t *env, ast_t *ast, type_t *lhs_t, type_t *rhs_t);
 bool is_discardable(env_t *env, ast_t *ast);
-type_t *get_namespace_type(env_t *env, ast_t *namespace_ast, type_t *type);
 type_t *get_file_type(env_t *env, const char *path);
 type_t *get_function_def_type(env_t *env, ast_t *ast);
 type_t *get_arg_type(env_t *env, arg_t *arg);

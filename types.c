@@ -53,7 +53,7 @@ CORD type_to_cord(type_t *t) {
             return tagged->name;
         }
         case TypeInfoType: {
-            return "TypeInfo";
+            return CORD_all("TypeInfo(", Match(t, TypeInfoType)->name, ")");
         }
         default: {
             raise(SIGABRT);

@@ -72,7 +72,7 @@ env_t *new_compilation_unit(void)
     };
 
     for (size_t i = 0; i < sizeof(global_types)/sizeof(global_types[0]); i++) {
-        binding_t *binding = new(binding_t, .type=Type(TypeInfoType));
+        binding_t *binding = new(binding_t, .type=Type(TypeInfoType, .name=global_types[i].name, .type=global_types[i].type));
         Table_str_set(env->globals, global_types[i].name, binding);
         Table_str_set(env->types, global_types[i].name, global_types[i].type);
     }
@@ -104,7 +104,7 @@ binding_t *get_binding(env_t *env, const char *name)
     return Table_str_get(env->locals, name);
 }
 
-binding_t *get_method_binding(env_t *env, ast_t *self, const char *name)
+binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
 {
     type_t *self_type = get_type(env, self);
     if (!self_type)
@@ -121,11 +121,18 @@ binding_t *get_method_binding(env_t *env, ast_t *self, const char *name)
         table_t *ns = Table_str_get(env->type_namespaces, "Str");
         return Table_str_get(ns, name);
     }
-    case StructType: case EnumType: {
-        errx(1, "Struct/enum methods not implemented");
-        // const char *name = cls_type->tag == StructType ? Match(cls_type, StructType)->name : Match(cls_type, EnumType)->name;
-        // table_t *namespace = Table_str_get(env->type_namespaces, name);
-        // if (!name)
+    case TypeInfoType: case StructType: case EnumType: {
+        const char *name;
+        switch (cls_type->tag) {
+        case TypeInfoType: name = Match(cls_type, TypeInfoType)->name; break;
+        case StructType: name = Match(cls_type, StructType)->name; break;
+        case EnumType: name = Match(cls_type, EnumType)->name; break;
+        default: errx(1, "Unreachable");
+        }
+
+        table_t *namespace = Table_str_get(env->type_namespaces, name);
+        if (!namespace) return NULL;
+        return Table_str_get(namespace, name);
     }
     default: break;
     }

@@ -137,12 +137,11 @@ void compile_struct_def(env_t *env, ast_t *ast)
     CORD_appendf(&env->code->typecode, "};\n");
 
     // Typeinfo:
-    CORD_appendf(&env->code->typedefs, "typedef struct { TypeInfo type; } %s_namespace_t;\n", def->name);
-    CORD_appendf(&env->code->typedefs, "extern %s_namespace_t %s;\n", def->name, def->name);
+    CORD_appendf(&env->code->typedefs, "extern const TypeInfo %s;\n", def->name);
 
     type_t *t = Table_str_get(env->types, def->name);
-    CORD typeinfo = CORD_asprintf("public %s_namespace_t %s = {{%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
-                                  def->name, def->name, type_size(t), type_align(t));
+    CORD typeinfo = CORD_asprintf("public const TypeInfo %s = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
+                                  def->name, type_size(t), type_align(t));
 
     typeinfo = CORD_all(typeinfo, ".as_str=(void*)", def->name, "__as_str, ");
     env->code->funcs = CORD_all(env->code->funcs, compile_str_method(env, ast));
@@ -156,7 +155,7 @@ void compile_struct_def(env_t *env, ast_t *ast)
             ".hash=(void*)", def->name, "__hash, "
             ".compare=(void*)", def->name, "__compare");
     }
-    typeinfo = CORD_cat(typeinfo, "}}}};\n");
+    typeinfo = CORD_cat(typeinfo, "}}};\n");
     env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
 }
 

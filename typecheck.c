@@ -110,6 +110,10 @@ void bind_statement(env_t *env, ast_t *statement)
     }
     case StructDef: {
         auto def = Match(statement, StructDef);
+
+        table_t *namespace = new(table_t);
+        Table_str_set(env->type_namespaces, def->name, namespace);
+
         arg_t *fields = NULL;
         type_t *type = Type(StructType, .name=def->name, .fields=fields); // placeholder
         for (arg_ast_t *field_ast = def->fields; field_ast; field_ast = field_ast->next) {
@@ -119,14 +123,18 @@ void bind_statement(env_t *env, ast_t *statement)
         REVERSE_LIST(fields);
         type->__data.StructType.fields = fields; // populate placeholder
         Table_str_set(env->types, def->name, type);
+        
+        // TODO: bind body members
 
-        if (!type) code_err(statement, "I couldn't get this type");
-        type_t *constructor_t = Type(FunctionType, .args=Match(type, StructType)->fields, .ret=type);
-        Table_str_set(env->globals, def->name, new(binding_t, .type=constructor_t));
+        type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type);
+        Table_str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type));
         break;
     }
     case EnumDef: {
         auto def = Match(statement, EnumDef);
+
+        table_t *namespace = new(table_t);
+        Table_str_set(env->type_namespaces, def->name, namespace);
 
         tag_t *tags = NULL;
         type_t *type = Type(EnumType, .name=def->name, .tags=tags); // placeholder
@@ -144,12 +152,16 @@ void bind_statement(env_t *env, ast_t *statement)
         type->__data.EnumType.tags = tags;
 
         for (tag_t *tag = tags; tag; tag = tag->next) {
-            const char *name = heap_strf("%s__%s", def->name, tag->name);
             type_t *constructor_t = Type(FunctionType, .args=Match(tag->type, StructType)->fields, .ret=type);
-            Table_str_set(env->globals, name, new(binding_t, .type=constructor_t));
+            Table_str_set(namespace, tag->name, new(binding_t, .type=constructor_t, .code=CORD_all(def->name, "$tagged$", tag->name)));
             Table_str_set(env->types, heap_strf("%s$%s", def->name, tag->name), tag->type);
         }
         Table_str_set(env->types, def->name, type);
+        
+        type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type);
+        Table_str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type));
+
+        // TODO: bind body members
         break;
     }
     default: break;
@@ -179,7 +191,7 @@ type_t *get_method_type(env_t *env, ast_t *self, const char *name)
     type_t *self_type = get_type(env, self);
     if (!self_type)
         code_err(self, "I couldn't get this type");
-    binding_t *b = get_method_binding(env, self, name);
+    binding_t *b = get_namespace_binding(env, self, name);
     if (!b || !b->type)
         code_err(self, "No such method: %s", name);
     return b->type;
@@ -314,6 +326,14 @@ type_t *get_type(env_t *env, ast_t *ast)
     case FieldAccess: {
         auto access = Match(ast, FieldAccess);
         type_t *fielded_t = get_type(env, access->fielded);
+        if (fielded_t->tag == TypeInfoType) {
+            auto info = Match(fielded_t, TypeInfoType);
+            table_t *namespace = Table_str_get(env->type_namespaces, info->name);
+            if (!namespace) code_err(access->fielded, "I couldn't find a namespace for this type");
+            binding_t *b = Table_str_get(namespace, access->field);
+            if (!b) code_err(ast, "I couldn't find the field '%s' on this type", access->field);
+            return b->type;
+        }
         type_t *field_t = get_field_type(fielded_t, access->field);
         if (!field_t)
             code_err(ast, "%T objects don't have a field called '%s'", fielded_t, access->field);
@@ -357,6 +377,13 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *fn_type_t = get_type(env, call->fn);
         if (!fn_type_t)
             code_err(call->fn, "I couldn't find this function");
+
+        if (fn_type_t->tag == TypeInfoType) {
+            type_t *t = Match(fn_type_t, TypeInfoType)->type;
+            if (t->tag == StructType)
+                return t; // Constructor
+            code_err(call->fn, "This is not a type that has a constructor");
+        }
         if (fn_type_t->tag != FunctionType)
             code_err(call->fn, "This isn't a function, it's a %T", fn_type_t);
         auto fn_type = Match(fn_type_t, FunctionType);
@@ -676,24 +703,15 @@ bool is_discardable(env_t *env, ast_t *ast)
     return (t->tag == VoidType || t->tag == AbortType);
 }
 
-
-type_t *get_namespace_type(env_t *env, ast_t *namespace_ast, type_t *type)
+type_t *get_file_type(env_t *env, const char *path)
 {
-    arg_t *ns_fields = NULL;
-    if (type) {
-        ns_fields = new(arg_t, .name="type", .type=Type(TypeInfoType), .next=ns_fields);
-        if (type->tag == EnumType) {
-            // Add enum constructors:
-            auto enum_ = Match(type, EnumType);
-            for (tag_t *tag = enum_->tags; tag; tag = tag->next) { 
-                type_t *constructor_t = Type(FunctionType, .args=Match(tag->type, StructType)->fields,
-                                             .ret=type);
-                ns_fields = new(arg_t, .name=tag->name, .type=constructor_t, .next=ns_fields);
-            }
-        }
-    }
+    // auto info = get_file_info(env, path);
+    file_t *f = load_file(path);
+    ast_t *ast = parse_file(f, NULL);
+    if (!ast) compiler_err(NULL, NULL, NULL, "Couldn't parse file: %s", path);
 
-    for (ast_list_t *stmts = Match(namespace_ast, Block)->statements; stmts; stmts = stmts->next) {
+    arg_t *ns_fields = NULL;
+    for (ast_list_t *stmts = Match(ast, Block)->statements; stmts; stmts = stmts->next) {
         ast_t *stmt = stmts->ast;
       doctest_inner:
         switch (stmt->tag) {
@@ -717,16 +735,7 @@ type_t *get_namespace_type(env_t *env, ast_t *namespace_ast, type_t *type)
         default: break;
         }
     }
-    return Type(StructType, .fields=ns_fields);
-}
-
-type_t *get_file_type(env_t *env, const char *path)
-{
-    // auto info = get_file_info(env, path);
-    file_t *f = load_file(path);
-    ast_t *ast = parse_file(f, NULL);
-    if (!ast) compiler_err(NULL, NULL, NULL, "Couldn't parse file: %s", path);
-    return get_namespace_type(env, ast, NULL);
+    return Type(StructType, .name=path, .fields=ns_fields);
 }
 
 type_t *get_arg_ast_type(env_t *env, arg_ast_t *arg)
