@@ -6,5 +6,5 @@
 >> str:lower():title()
 = "Hello Amélie!"
 
->> \UE9
+>> \U00E9
 = "é"

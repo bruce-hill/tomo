@@ -150,12 +150,12 @@ const char *unescape(const char **out) {
         *endpos = endptr;
         return heap_strn((char*)buf, bufsize);
     } else if (escape[1] == 'x' && escape[2] && escape[3]) {
-        char *endptr = (char*)&escape[3+1];
+        char *endptr = NULL;
         char c = (char)strtol(escape+2, &endptr, 16);
         *endpos = escape + 4;
         return heap_strn(&c, 1);
     } else if ('0' <= escape[1] && escape[1] <= '7' && '0' <= escape[2] && escape[2] <= '7' && '0' <= escape[3] && escape[3] <= '7') {
-        char *endptr = (char*)&escape[4];
+        char *endptr = NULL;
         char c = (char)strtol(escape+1, &endptr, 8);
         *endpos = escape + 4;
         return heap_strn(&c, 1);
