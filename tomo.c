@@ -115,6 +115,7 @@ int main(int argc, char *argv[])
     }
     case MODE_TRANSPILE: {
         FILE *prog = popen(heap_strf("%s > %s.h", autofmt, f->filename), "w");
+        CORD_put("#pragma once\n", prog);
         CORD_put(module.header, prog);
         int status = pclose(prog);
         if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
@@ -131,6 +132,7 @@ int main(int argc, char *argv[])
     }
     case MODE_EXPANDED_TRANSPILE: {
         FILE *prog = popen(heap_strf("%s -x c %s -E - | %s > %s.h", cc, cflags, autofmt, f->filename), "w");
+        CORD_put("#pragma once\n", prog);
         CORD_put(module.header, prog);
         int status = pclose(prog);
         if (WIFEXITED(status) && WEXITSTATUS(status) == 0)

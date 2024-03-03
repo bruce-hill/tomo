@@ -1095,7 +1095,6 @@ module_code_t compile_file(ast_t *ast)
     return (module_code_t){
         .module_name=module_name,
         .header=CORD_all(
-            "#pragma once\n",
             // CORD_asprintf("#line 0 %r\n", Str__quoted(ast->file->filename, false)),
             env->code->imports, "\n",
             env->code->typedefs, "\n",
