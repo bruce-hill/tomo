@@ -140,6 +140,15 @@ const char *unescape(const char **out) {
     if (unescapes[(int)escape[1]]) {
         *endpos = escape + 2;
         return heap_str(unescapes[(int)escape[1]]);
+    } else if (escape[1] == 'U' && escape[2]) {
+        char *endptr = NULL;
+        long codepoint = strtol(escape+2, &endptr, 16);
+        uint32_t ustr[2] = {codepoint, 0};
+        size_t bufsize = 8;
+        uint8_t buf[bufsize];
+        (void)u32_to_u8(ustr, bufsize, buf, &bufsize);
+        *endpos = endptr;
+        return heap_strn((char*)buf, bufsize);
     } else if (escape[1] == 'x' && escape[2] && escape[3]) {
         char *endptr = (char*)&escape[3+1];
         char c = (char)strtol(escape+2, &endptr, 16);
@@ -940,8 +949,9 @@ PARSER(parse_string) {
     if (*pos == '\\') {
         CORD cord = CORD_EMPTY;
         do {
-            char c = unescape(&pos)[0];
-            cord = CORD_cat_char(cord, c);
+            const char *c = unescape(&pos);
+            cord = CORD_cat(cord, c);
+            // cord = CORD_cat_char(cord, c);
         } while (*pos == '\\');
         return NewAST(ctx->file, start, pos, StringLiteral, .cord=cord);
     }

@@ -5,3 +5,6 @@
 = "hello amélie!"
 >> str:lower():title()
 = "Hello Amélie!"
+
+>> \UE9
+= "é"
