@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #include "ast.h"
-#include "builtins/string.h"
+#include "builtins/text.h"
 #include "compile.h"
 #include "structs.h"
 #include "environment.h"

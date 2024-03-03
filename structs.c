@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #include "ast.h"
-#include "builtins/string.h"
+#include "builtins/text.h"
 #include "compile.h"
 #include "environment.h"
 #include "typecheck.h"
@@ -69,7 +69,7 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
         case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
             cmp_func = CORD_all(cmp_func, "diff = (x->", field->name, " > y->", field->name, ") - (x->", field->name, " < y->", field->name, ");");
             break;
-        case StringType:
+        case TextType:
             cmp_func = CORD_all(cmp_func, "diff = CORD_cmp(x->", field->name, ", y->", field->name, ");");
             break;
         default:
@@ -95,7 +95,7 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
         case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
             eq_func = CORD_all(eq_func, "if (x->", field->name, " != y->", field->name, ") return no;\n");
             break;
-        case StringType:
+        case TextType:
             eq_func = CORD_all(eq_func, "if (CORD_cmp(x->", field->name, ", y->", field->name, ") != 0) return no;\n");
             break;
         default:

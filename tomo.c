@@ -5,7 +5,7 @@
 #include <printf.h>
 
 #include "ast.h"
-#include "builtins/string.h"
+#include "builtins/text.h"
 #include "compile.h"
 #include "parse.h"
 #include "typecheck.h"

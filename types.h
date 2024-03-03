@@ -37,7 +37,7 @@ struct type_s {
         BoolType,
         IntType,
         NumType,
-        StringType,
+        TextType,
         ArrayType,
         TableType,
         FunctionType,
@@ -59,7 +59,7 @@ struct type_s {
         } NumType;
         struct {
             const char *dsl;
-        } StringType;
+        } TextType;
         struct {
             type_t *item_type;
         } ArrayType;

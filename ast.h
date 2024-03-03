@@ -13,7 +13,7 @@
                                                      .tag=ast_tag, .__data.ast_tag={__VA_ARGS__}))
 #define FakeAST(ast_tag, ...) (new(ast_t, .tag=ast_tag, .__data.ast_tag={__VA_ARGS__}))
 #define WrapAST(ast, ast_tag, ...) (new(ast_t, .file=(ast)->file, .start=(ast)->start, .end=(ast)->end, .tag=ast_tag, .__data.ast_tag={__VA_ARGS__}))
-#define StringAST(ast, _str) WrapAST(ast, StringLiteral, .str=heap_str(_str))
+#define TextAST(ast, _str) WrapAST(ast, TextLiteral, .str=heap_str(_str))
 
 struct binding_s;
 typedef struct type_ast_s type_ast_t;
@@ -91,7 +91,7 @@ typedef enum {
     Unknown = 0,
     Nil, Bool, Var,
     Int, Num,
-    StringLiteral, StringJoin,
+    TextLiteral, TextJoin,
     Declare, Assign,
     BinaryOp, UpdateAssign,
     Length, Not, Negative, HeapAllocate, StackReference,
@@ -139,10 +139,10 @@ struct ast_s {
         } Num;
         struct {
             CORD cord;
-        } StringLiteral;
+        } TextLiteral;
         struct {
             ast_list_t *children;
-        } StringJoin;
+        } TextJoin;
         struct {
             ast_t *var;
             ast_t *value;

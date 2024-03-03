@@ -20,7 +20,7 @@ for k,v in t
 >> t.default
 = ?(readonly)999
 >> t.fallback
-= !{Str=>Int}
+= !{Text=>Int}
 
 >> t.keys
 = ["one", "two"]

@@ -14,18 +14,18 @@
 #include "../SipHash/halfsiphash.h"
 #include "types.h"
 #include "array.h"
-#include "string.h"
+#include "text.h"
 
 #define CLAMP(x, lo, hi) MIN(hi, MAX(x,lo))
 
-public CORD Str__as_str(const void *str, bool colorize, const TypeInfo *info)
+public CORD Text__as_str(const void *str, bool colorize, const TypeInfo *info)
 {
     (void)info;
-    if (!str) return "Str";
-    return Str__quoted(*(CORD*)str, colorize);
+    if (!str) return "Text";
+    return Text__quoted(*(CORD*)str, colorize);
 }
 
-public CORD Str__quoted(CORD str, bool colorize)
+public CORD Text__quoted(CORD str, bool colorize)
 {
     // Note: it's important to have unicode strings not get broken up with
     // escapes, otherwise they won't print right.
@@ -84,17 +84,17 @@ public CORD Str__quoted(CORD str, bool colorize)
     }
 }
 
-public int Str__compare(CORD *x, CORD *y)
+public int Text__compare(CORD *x, CORD *y)
 {
     return CORD_cmp(*x, *y);
 }
 
-public bool Str__equal(CORD *x, CORD *y)
+public bool Text__equal(CORD *x, CORD *y)
 {
     return CORD_cmp(*x, *y) == 0;
 }
 
-public uint32_t Str__hash(CORD *cord)
+public uint32_t Text__hash(CORD *cord)
 {
     if (!*cord) return 0;
 
@@ -106,7 +106,7 @@ public uint32_t Str__hash(CORD *cord)
     return hash;
 }
 
-public CORD Str__upper(CORD str)
+public CORD Text__upper(CORD str)
 {
     if (!str) return str;
     size_t len = strlen(str) + 1;
@@ -114,7 +114,7 @@ public CORD Str__upper(CORD str)
     return (CORD)u8_toupper((const uint8_t*)str, len-1, uc_locale_language(), NULL, dest, &len);
 }
 
-public CORD Str__lower(CORD str)
+public CORD Text__lower(CORD str)
 {
     if (!str) return str;
     size_t len = strlen(str) + 1;
@@ -122,7 +122,7 @@ public CORD Str__lower(CORD str)
     return (CORD)u8_tolower((const uint8_t*)str, len-1, uc_locale_language(), NULL, dest, &len);
 }
 
-public CORD Str__title(CORD str)
+public CORD Text__title(CORD str)
 {
     if (!str) return str;
     size_t len = strlen(str) + 1;
@@ -130,7 +130,7 @@ public CORD Str__title(CORD str)
     return (CORD)u8_totitle((const uint8_t*)str, len-1, uc_locale_language(), NULL, dest, &len);
 }
 
-public bool Str__has(CORD str, CORD target, where_e where)
+public bool Text__has(CORD str, CORD target, where_e where)
 {
     if (!target) return true;
     if (!str) return false;
@@ -147,7 +147,7 @@ public bool Str__has(CORD str, CORD target, where_e where)
     }
 }
 
-public CORD Str__without(CORD str, CORD target, where_e where)
+public CORD Text__without(CORD str, CORD target, where_e where)
 {
     if (!str || !target) return str;
 
@@ -166,7 +166,7 @@ public CORD Str__without(CORD str, CORD target, where_e where)
     }
 }
 
-public CORD Str__trimmed(CORD str, CORD skip, where_e where)
+public CORD Text__trimmed(CORD str, CORD skip, where_e where)
 {
     if (!str || !skip) return str;
     const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(str);
@@ -192,14 +192,14 @@ public CORD Str__trimmed(CORD str, CORD skip, where_e where)
     }
 }
 
-public find_result_t Str__find(CORD str, CORD pat)
+public find_result_t Text__find(CORD str, CORD pat)
 {
     if (!pat) return (find_result_t){.status=FIND_SUCCESS, .index=1};
     size_t pos = CORD_str(str, 0, pat);
     return (pos == CORD_NOT_FOUND) ? (find_result_t){.status=FIND_FAILURE} : (find_result_t){.status=FIND_SUCCESS, .index=(int32_t)pos};
 }
 
-public CORD Str__replace(CORD text, CORD pat, CORD replacement, int64_t limit)
+public CORD Text__replace(CORD text, CORD pat, CORD replacement, int64_t limit)
 {
     if (!text || !pat) return text;
     CORD ret = NULL;
@@ -212,7 +212,7 @@ public CORD Str__replace(CORD text, CORD pat, CORD replacement, int64_t limit)
     return CORD_cat(ret, CORD_substr(text, pos, SIZE_MAX));
 }
 
-public array_t Str__split(CORD str, CORD split)
+public array_t Text__split(CORD str, CORD split)
 {
     if (!str) return (array_t){.data=GC_MALLOC(sizeof(CORD)), .atomic=1, .length=1, .stride=sizeof(CORD)};
     array_t strings = {.stride=sizeof(CORD), .atomic=1};
@@ -236,7 +236,7 @@ public array_t Str__split(CORD str, CORD split)
     return strings;
 }
 
-public CORD Str__join(CORD glue, array_t pieces)
+public CORD Text__join(CORD glue, array_t pieces)
 {
     if (pieces.length == 0) return CORD_EMPTY;
 
@@ -248,15 +248,15 @@ public CORD Str__join(CORD glue, array_t pieces)
     return ret;
 }
 
-public const TypeInfo Str = {
+public const TypeInfo Text = {
     .size=sizeof(CORD),
     .align=__alignof__(CORD),
     .tag=CustomInfo,
     .CustomInfo={
-        .as_str=(void*)Str__as_str,
-        .compare=(void*)Str__compare,
-        .equal=(void*)Str__equal,
-        .hash=(void*)Str__hash,
+        .as_str=(void*)Text__as_str,
+        .compare=(void*)Text__compare,
+        .equal=(void*)Text__equal,
+        .hash=(void*)Text__hash,
     },
 };
 

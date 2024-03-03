@@ -16,7 +16,7 @@ CORD type_to_cord(type_t *t) {
         case VoidType: return "Void";
         case MemoryType: return "Memory";
         case BoolType: return "Bool";
-        case StringType: return "Str";
+        case TextType: return "Text";
         case IntType: return Match(t, IntType)->bits == 64 ? "Int" : CORD_asprintf("Int%ld", Match(t, IntType)->bits);
         case NumType: return Match(t, NumType)->bits == 64 ? "Num" : CORD_asprintf("Num%ld", Match(t, NumType)->bits);
         case ArrayType: {
@@ -428,7 +428,7 @@ size_t type_size(type_t *t)
     case BoolType: return sizeof(bool);
     case IntType: return Match(t, IntType)->bits/8;
     case NumType: return Match(t, NumType)->bits/8;
-    case StringType: return sizeof(CORD);
+    case TextType: return sizeof(CORD);
     case ArrayType: return sizeof(array_t);
     case TableType: return sizeof(table_t);
     case FunctionType: return sizeof(void*);
@@ -477,7 +477,7 @@ size_t type_align(type_t *t)
     case BoolType: return __alignof__(bool);
     case IntType: return Match(t, IntType)->bits/8;
     case NumType: return Match(t, NumType)->bits/8;
-    case StringType: return __alignof__(CORD);
+    case TextType: return __alignof__(CORD);
     case ArrayType: return __alignof__(array_t);
     case TableType: return __alignof__(table_t);
     case FunctionType: return __alignof__(void*);

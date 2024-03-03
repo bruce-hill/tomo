@@ -5,7 +5,7 @@
 #include <printf.h>
 
 #include "ast.h"
-#include "builtins/string.h"
+#include "builtins/text.h"
 
 static const char *OP_NAMES[] = {
     [BINOP_UNKNOWN]="unknown",
@@ -97,8 +97,8 @@ CORD ast_to_cord(ast_t *ast)
     T(Var, "(\x1b[36;1m%s\x1b[m)", data.name)
     T(Int, "(\x1b[35m%ld\x1b[m, bits=\x1b[35m%ld\x1b[m)", data.i, data.bits)
     T(Num, "(\x1b[35m%ld\x1b[m, bits=\x1b[35m%ld\x1b[m)", data.n, data.bits)
-    T(StringLiteral, "%r", Str__quoted(data.cord, true))
-    T(StringJoin, "(%r)", ast_list_to_cord(data.children))
+    T(TextLiteral, "%r", Text__quoted(data.cord, true))
+    T(TextJoin, "(%r)", ast_list_to_cord(data.children))
     T(Declare, "(var=%s, value=%r)", ast_to_cord(data.var), ast_to_cord(data.value))
     T(Assign, "(targets=%r, values=%r)", ast_list_to_cord(data.targets), ast_list_to_cord(data.values))
     T(BinaryOp, "(%r, %s, %r)", ast_to_cord(data.lhs), OP_NAMES[data.op], ast_to_cord(data.rhs))
@@ -137,10 +137,10 @@ CORD ast_to_cord(ast_t *ast)
     T(EnumDef, "(%s, tags=%r, namespace=%r)", data.name, tags_to_cord(data.tags), ast_to_cord(data.namespace))
     T(Index, "(indexed=%r, index=%r)", ast_to_cord(data.indexed), ast_to_cord(data.index))
     T(FieldAccess, "(fielded=%r, field=%s)", ast_to_cord(data.fielded), data.field)
-    T(DocTest, "(expr=%r, output=%r)", ast_to_cord(data.expr), Str__quoted(data.output, true))
-    T(Use, "(%r)", Str__quoted(data.path, true))
-    T(LinkerDirective, "(%r)", Str__quoted(data.directive, true))
-    T(InlineCCode, "(%r)", Str__quoted(data.code, true))
+    T(DocTest, "(expr=%r, output=%r)", ast_to_cord(data.expr), Text__quoted(data.output, true))
+    T(Use, "(%r)", Text__quoted(data.path, true))
+    T(LinkerDirective, "(%r)", Text__quoted(data.directive, true))
+    T(InlineCCode, "(%r)", Text__quoted(data.code, true))
 #undef T
     }
     return "???";

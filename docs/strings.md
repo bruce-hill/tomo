@@ -276,7 +276,7 @@ To compare normalized forms of strings, use:
 ### Patterns
 
 - `string.has($/pattern/, at=Anywhere:enum(Anywhere, Start, End))` Check whether a pattern can be found
-- `string.next($/pattern/)` Returns an `enum(NotFound, Found(match:Str, rest:Str))`
+- `string.next($/pattern/)` Returns an `enum(NotFound, Found(match:Text, rest:Text))`
 - `string.matches($/pattern/)` Returns a list of matching strings
 - `string.replace($/pattern/, "replacement")` Returns a copy of the string with replacements
 - `string.without($/pattern/, at=Anywhere:enum(Anywhere, Start, End))`

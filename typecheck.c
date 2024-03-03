@@ -257,8 +257,8 @@ type_t *get_type(env_t *env, ast_t *ast)
 
         code_err(ast, "'&' stack references can only be used on variables or fields of variables");
     }
-    case StringJoin: case StringLiteral: {
-        return Type(StringType);
+    case TextJoin: case TextLiteral: {
+        return Type(TextType);
     }
     case Var: {
         auto var = Match(ast, Var);
@@ -510,10 +510,10 @@ type_t *get_type(env_t *env, ast_t *ast)
             if (!type_eq(lhs_t, rhs_t))
                 code_err(ast, "The type on the left side of this concatenation doesn't match the right side: %T vs. %T",
                              lhs_t, rhs_t);
-            if (lhs_t->tag == ArrayType || lhs_t->tag == StringType)
+            if (lhs_t->tag == ArrayType || lhs_t->tag == TextType)
                 return lhs_t;
 
-            code_err(ast, "Only array/string value types support concatenation, not %T", lhs_t);
+            code_err(ast, "Only array/text value types support concatenation, not %T", lhs_t);
         }
         case BINOP_EQ: case BINOP_NE: case BINOP_LT: case BINOP_LE: case BINOP_GT: case BINOP_GE: {
             if (!can_promote(lhs_t, rhs_t) && !can_promote(rhs_t, lhs_t))

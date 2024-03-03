@@ -953,7 +953,7 @@ PARSER(parse_string) {
             cord = CORD_cat(cord, c);
             // cord = CORD_cat_char(cord, c);
         } while (*pos == '\\');
-        return NewAST(ctx->file, start, pos, StringLiteral, .cord=cord);
+        return NewAST(ctx->file, start, pos, TextLiteral, .cord=cord);
     }
 
     char open_quote, close_quote, open_interp = '\x03', close_interp = '\x02';
@@ -997,7 +997,7 @@ PARSER(parse_string) {
         if (*pos == open_interp) { // Interpolation
             const char *interp_start = pos;
             if (chunk) {
-                ast_t *literal = NewAST(ctx->file, chunk_start, pos, StringLiteral, .cord=chunk);
+                ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk);
                 chunks = new(ast_list_t, .ast=literal, .next=chunks);
                 chunk = NULL;
             }
@@ -1051,14 +1051,14 @@ PARSER(parse_string) {
     }
 
     if (chunk) {
-        ast_t *literal = NewAST(ctx->file, chunk_start, pos, StringLiteral, .cord=chunk);
+        ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk);
         chunks = new(ast_list_t, .ast=literal, .next=chunks);
         chunk = NULL;
     }
 
     REVERSE_LIST(chunks);
     expect_closing(ctx, &pos, (char[]){close_quote, 0}, "I was expecting a '%c' to finish this string", close_quote);
-    return NewAST(ctx->file, start, pos, StringJoin, .children=chunks);
+    return NewAST(ctx->file, start, pos, TextJoin, .children=chunks);
 }
 
 PARSER(parse_skip) {

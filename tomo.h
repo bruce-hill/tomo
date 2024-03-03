@@ -22,8 +22,8 @@
 #include "builtins/memory.h"
 #include "builtins/nums.h"
 #include "builtins/pointer.h"
-#include "builtins/string.h"
 #include "builtins/table.h"
+#include "builtins/text.h"
 #include "builtins/types.h"
 
 #define Void_t void

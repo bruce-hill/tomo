@@ -1,6 +1,6 @@
 
 struct Pair(x,y:Int)
-struct Mixed(x:Int, str:Str)
+struct Mixed(x:Int, text:Text)
 
 func test_literals()
 	>> x := Pair(10, 20)

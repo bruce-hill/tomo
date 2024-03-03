@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #include "ast.h"
-#include "builtins/string.h"
+#include "builtins/text.h"
 #include "compile.h"
 #include "enums.h"
 #include "structs.h"
@@ -34,9 +34,9 @@ CORD compile_type(type_t *t)
     case BoolType: return "Bool_t";
     case IntType: return Match(t, IntType)->bits == 64 ? "Int_t" : CORD_asprintf("Int%ld_t", Match(t, IntType)->bits);
     case NumType: return Match(t, NumType)->bits == 64 ? "Num_t" : CORD_asprintf("Num%ld_t", Match(t, NumType)->bits);
-    case StringType: {
-        const char *dsl = Match(t, StringType)->dsl;
-        return dsl ? CORD_cat(dsl, "_t") : "Str_t";
+    case TextType: {
+        const char *dsl = Match(t, TextType)->dsl;
+        return dsl ? CORD_cat(dsl, "_t") : "Text_t";
     }
     case ArrayType: return "array_t";
     case TableType: return "table_t";
@@ -80,7 +80,7 @@ CORD expr_as_string(env_t *env, CORD expr, type_t *t, CORD color)
         CORD name = type_to_cord(t);
         return CORD_asprintf("%r__as_str($stack(%r), %r, &Num%r)", name, expr, color, name);
     }
-    case StringType: return CORD_asprintf("Str__as_str($stack(%r), %r, &Str)", expr, color);
+    case TextType: return CORD_asprintf("Text__as_str($stack(%r), %r, &Text)", expr, color);
     case ArrayType: return CORD_asprintf("Array__as_str($stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case TableType: return CORD_asprintf("Table_as_str($stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case FunctionType: return CORD_asprintf("Func__as_str($stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
@@ -170,7 +170,7 @@ CORD compile(env_t *env, ast_t *ast)
         ast_t *expr = Match(ast, Length)->value;
         type_t *t = get_type(env, expr);
         switch (value_type(t)->tag) {
-        case StringType: {
+        case TextType: {
             CORD str = compile_to_pointer_depth(env, expr, 0, false);
             return CORD_all("CORD_len(", str, ")");
         }
@@ -341,7 +341,7 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case BINOP_CONCAT: {
             switch (operand_t->tag) {
-            case StringType: {
+            case TextType: {
                 return CORD_all("CORD_cat(", lhs, ", ", rhs, ")");
             }
             case ArrayType: {
@@ -408,7 +408,7 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case BINOP_XOR: return CORD_asprintf("%r ^= %r;", lhs, rhs);
         case BINOP_CONCAT: {
-            if (operand_t->tag == StringType) {
+            if (operand_t->tag == TextType) {
                 return CORD_asprintf("%r = CORD_cat(%r, %r);", lhs, lhs, rhs);
             } else if (operand_t->tag == ArrayType) {
                 if (can_promote(rhs_t, Match(lhs_t, ArrayType)->item_type)) {
@@ -431,8 +431,8 @@ CORD compile(env_t *env, ast_t *ast)
         default: code_err(ast, "Update assignments are not implemented for this operation");
         }
     }
-    case StringLiteral: {
-        CORD literal = Match(ast, StringLiteral)->cord; 
+    case TextLiteral: {
+        CORD literal = Match(ast, TextLiteral)->cord; 
         if (literal == CORD_EMPTY)
             return "(CORD)CORD_EMPTY";
         CORD code = "(CORD)\"";
@@ -459,20 +459,20 @@ CORD compile(env_t *env, ast_t *ast)
         }
         return CORD_cat_char(code, '"');
     }
-    case StringJoin: {
-        ast_list_t *chunks = Match(ast, StringJoin)->children;
+    case TextJoin: {
+        ast_list_t *chunks = Match(ast, TextJoin)->children;
         if (!chunks) {
             return "(CORD)CORD_EMPTY";
         } else if (!chunks->next) {
             type_t *t = get_type(env, chunks->ast);
-            if (t->tag == StringType)
+            if (t->tag == TextType)
                 return compile(env, chunks->ast);
             return compile_string(env, chunks->ast, "no");
         } else {
             CORD code = "CORD_all(";
             for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
                 type_t *chunk_t = get_type(env, chunk->ast);
-                CORD chunk_str = (chunk_t->tag == StringType) ?
+                CORD chunk_str = (chunk_t->tag == TextType) ?
                     compile(env, chunk->ast) : compile_string(env, chunk->ast, "no");
                 code = CORD_cat(code, chunk_str);
                 if (chunk->next) code = CORD_cat(code, ", ");
@@ -812,7 +812,7 @@ CORD compile(env_t *env, ast_t *ast)
             empty = FakeAST(
                 InlineCCode, 
                 CORD_asprintf("fail_source(%s, %ld, %ld, \"This collection was empty!\");\n",
-                              Str__quoted(ast->file->filename, false), (long)(reduction->iter->start - reduction->iter->file->text),
+                              Text__quoted(ast->file->filename, false), (long)(reduction->iter->start - reduction->iter->file->text),
                               (long)(reduction->iter->end - reduction->iter->file->text)));
         }
         ast_t *i = FakeAST(Var, "$i");
@@ -863,8 +863,8 @@ CORD compile(env_t *env, ast_t *ast)
                 compile(env, test->expr),
                 compile(env, decl->var),
                 compile_type_info(env, get_type(env, decl->value)),
-                compile(env, WrapAST(test->expr, StringLiteral, .cord=test->output)),
-                compile(env, WrapAST(test->expr, StringLiteral, .cord=test->expr->file->filename)),
+                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
+                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else if (test->expr->tag == Assign) {
@@ -888,16 +888,16 @@ CORD compile(env_t *env, ast_t *ast)
             expr_cord = CORD_cat(expr_cord, ")");
 
             CORD_appendf(&code, "$test(%r, %r, %r);",
-                compile(env, WrapAST(test->expr, StringLiteral, .cord=src)),
+                compile(env, WrapAST(test->expr, TextLiteral, .cord=src)),
                 expr_cord,
-                compile(env, WrapAST(test->expr, StringLiteral, .cord=test->output)));
+                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)));
             return CORD_cat(code, "\n}");
         } else if (expr_t->tag == VoidType || expr_t->tag == AbortType) {
             return CORD_asprintf(
                 "%r;\n"
                 "__doctest(NULL, NULL, NULL, %r, %ld, %ld);",
                 compile(env, test->expr),
-                compile(env, WrapAST(test->expr, StringLiteral, .cord=test->expr->file->filename)),
+                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else {
@@ -908,8 +908,8 @@ CORD compile(env_t *env, ast_t *ast)
                 compile_type(expr_t),
                 compile(env, test->expr),
                 compile_type_info(env, expr_t),
-                compile(env, WrapAST(test->expr, StringLiteral, .cord=test->output)),
-                compile(env, WrapAST(test->expr, StringLiteral, .cord=test->expr->file->filename)),
+                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
+                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         }
@@ -1007,7 +1007,7 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("$Array_get_unchecked", compile_type(item_type), ", ", arr, ", ", index, ")");
             else
                 return CORD_all("$Array_get(", compile_type(item_type), ", ", arr, ", ", index, ", ",
-                                Str__quoted(f->filename, false), ", ", CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
+                                Text__quoted(f->filename, false), ", ", CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
                                 CORD_asprintf("%ld", (int64_t)(indexing->index->end - f->text)),
                                 ")");
         }
@@ -1021,7 +1021,7 @@ CORD compile(env_t *env, ast_t *ast)
             file_t *f = indexing->index->file;
             return CORD_all("$Table_get(", table, ", ", compile_type(key_t), ", ", compile_type(value_t), ", ",
                             key, ", ", compile_type_info(env, container_t), ", ",
-                            Str__quoted(f->filename, false), ", ", CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
+                            Text__quoted(f->filename, false), ", ", CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
                             CORD_asprintf("%ld", (int64_t)(indexing->index->end - f->text)),
                             ")");
         }
@@ -1046,7 +1046,7 @@ CORD compile_type_info(env_t *env, type_t *t)
 {
     switch (t->tag) {
     case BoolType: case IntType: case NumType: return CORD_asprintf("&%r", type_to_cord(t));
-    case StringType: return CORD_all("(&", Match(t, StringType)->dsl ? Match(t, StringType)->dsl : "Str", ")");
+    case TextType: return CORD_all("(&", Match(t, TextType)->dsl ? Match(t, TextType)->dsl : "Text", ")");
     case StructType: return CORD_all("(&", Match(t, StructType)->name, ")");
     case EnumType: return CORD_all("(&", Match(t, EnumType)->name, ")");
     case ArrayType: {
@@ -1062,10 +1062,10 @@ CORD compile_type_info(env_t *env, type_t *t)
         auto ptr = Match(t, PointerType);
         CORD sigil = ptr->is_stack ? "&" : (ptr->is_optional ? "?" : "@");
         if (ptr->is_readonly) sigil = CORD_cat(sigil, "(readonly)");
-        return CORD_asprintf("$PointerInfo(%r, %r)", Str__quoted(sigil, false), compile_type_info(env, ptr->pointed));
+        return CORD_asprintf("$PointerInfo(%r, %r)", Text__quoted(sigil, false), compile_type_info(env, ptr->pointed));
     }
     case FunctionType: {
-        return CORD_asprintf("$FunctionInfo(%r)", Str__quoted(type_to_cord(t), false));
+        return CORD_asprintf("$FunctionInfo(%r)", Text__quoted(type_to_cord(t), false));
     }
     case ClosureType: {
         errx(1, "No typeinfo for closures yet");
@@ -1100,7 +1100,7 @@ module_code_t compile_file(ast_t *ast)
     return (module_code_t){
         .module_name=module_name,
         .header=CORD_all(
-            // CORD_asprintf("#line 0 %r\n", Str__quoted(ast->file->filename, false)),
+            // CORD_asprintf("#line 0 %r\n", Text__quoted(ast->file->filename, false)),
             env->code->imports, "\n",
             env->code->typedefs, "\n",
             env->code->typecode, "\n",
@@ -1108,7 +1108,7 @@ module_code_t compile_file(ast_t *ast)
             "void use$", module_name, "(void);\n"
         ),
         .c_file=CORD_all(
-            // CORD_asprintf("#line 0 %r\n", Str__quoted(ast->file->filename, false)),
+            // CORD_asprintf("#line 0 %r\n", Text__quoted(ast->file->filename, false)),
             env->code->staticdefs, "\n",
             env->code->funcs, "\n",
             env->code->typeinfos, "\n",

@@ -21,7 +21,7 @@
 #include "../util.h"
 #include "array.h"
 #include "datatypes.h"
-#include "string.h"
+#include "text.h"
 #include "table.h"
 #include "types.h"
 
@@ -55,7 +55,7 @@ TypeInfo StrToVoidStarTable = {
     .size=sizeof(table_t),
     .align=__alignof__(table_t),
     .tag=TableInfo,
-    .TableInfo={.key=&Str, .value=&MemoryPointer},
+    .TableInfo={.key=&Text, .value=&MemoryPointer},
 };
 
 static inline size_t entry_size(const TypeInfo *info)
