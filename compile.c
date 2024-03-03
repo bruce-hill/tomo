@@ -644,9 +644,9 @@ CORD compile(env_t *env, ast_t *ast)
         // Pass 2: assign positional args
         // Pass 3: compile and typecheck each arg
         table_t arg_bindings = {};
-        for (arg_ast_t *arg = args; arg; arg = arg->next) {
-            if (arg->name)
-                Table_str_set(&arg_bindings, arg->name, arg->value);
+        for (arg_ast_t *call_arg = args; call_arg; call_arg = call_arg->next) {
+            if (call_arg->name)
+                Table_str_set(&arg_bindings, call_arg->name, call_arg->value);
         }
         for (arg_ast_t *call_arg = args; call_arg; call_arg = call_arg->next) {
             if (call_arg->name)

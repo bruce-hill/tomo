@@ -1177,8 +1177,10 @@ ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self) {
         const char *arg_start = pos;
         const char *name = get_id(&pos);
         whitespace(&pos);
-        if (!name || !match(&pos, "="))
+        if (!name || !match(&pos, "=")) {
+            name = NULL;
             pos = arg_start;
+        }
 
         ast_t *arg = optional(ctx, &pos, parse_expr);
         if (!arg) {
@@ -1214,8 +1216,10 @@ ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn, bool is_extern) {
         const char *arg_start = pos;
         const char *name = get_id(&pos);
         whitespace(&pos);
-        if (!name || !match(&pos, "="))
+        if (!name || !match(&pos, "=")) {
+            name = NULL;
             pos = arg_start;
+        }
 
         ast_t *arg = optional(ctx, &pos, parse_expr);
         if (!arg) {
