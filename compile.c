@@ -567,7 +567,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
             auto e = Match(entry->ast, TableEntry);
-            code = CORD_all(code, ",\n\t{", compile(env, e->key), ", ", compile(env, e->value), "}");
+            code = CORD_all(code, ",\n\t(struct $entry_s){", compile(env, e->key), ", ", compile(env, e->value), "}");
         }
         return CORD_cat(code, ")");
 
