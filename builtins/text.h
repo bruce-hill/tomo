@@ -14,7 +14,7 @@ typedef struct {
     int32_t index;
 } find_result_t;
 
-CORD Text__as_str(const void *str, bool colorize, const TypeInfo *info);
+CORD Text__as_text(const void *str, bool colorize, const TypeInfo *info);
 CORD Text__quoted(CORD str, bool colorize);
 int Text__compare(CORD *x, CORD *y);
 bool Text__equal(CORD *x, CORD *y);

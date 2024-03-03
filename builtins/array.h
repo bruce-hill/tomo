@@ -12,7 +12,7 @@
     const array_t $arr = x; int64_t $index = (int64_t)(i); \
     int64_t $off = $index + ($index < 0) * ($arr.length + 1) - 1; \
     if (__builtin_expect($off < 0 || $off >= $arr.length, 0)) \
-        fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int__as_str(&$index, USE_COLOR, NULL), $arr.length); \
+        fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int__as_text(&$index, USE_COLOR, NULL), $arr.length); \
     (type*)($arr.data + $arr.stride * $off);})
 #define $Array_get_unchecked(type, x, i) *({ const array_t $arr = x; int64_t $index = (int64_t)(i); \
                                           int64_t $off = $index + ($index < 0) * ($arr.length + 1) - 1; \
@@ -53,6 +53,6 @@ array_t Array__concat(array_t x, array_t y, const TypeInfo *type);
 uint32_t Array__hash(const array_t *arr, const TypeInfo *type);
 int32_t Array__compare(const array_t *x, const array_t *y, const TypeInfo *type);
 bool Array__equal(const array_t *x, const array_t *y, const TypeInfo *type);
-CORD Array__as_str(const array_t *arr, bool colorize, const TypeInfo *type);
+CORD Array__as_text(const array_t *arr, bool colorize, const TypeInfo *type);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

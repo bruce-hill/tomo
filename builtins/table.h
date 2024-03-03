@@ -21,7 +21,7 @@
     const table_t *$t = table_expr; key_t $k = key_expr; const TypeInfo* $info = info_expr; \
     const val_t *$v = Table_get($t, &$k, $info); \
     if (__builtin_expect($v == NULL, 0)) \
-        fail_source(filename, start, end, "The key %r is not in this table\n", generic_as_str(&$k, USE_COLOR, $info->TableInfo.key)); \
+        fail_source(filename, start, end, "The key %r is not in this table\n", generic_as_text(&$k, USE_COLOR, $info->TableInfo.key)); \
     *$v; })
 #define $TABLE_FOREACH(table_expr, key_type, k, value_type, v, value_offset, body, else_body) {\
         array_t $entries = (table_expr).entries; \
@@ -49,7 +49,7 @@ void Table_mark_copy_on_write(table_t *t);
 int32_t Table_compare(const table_t *x, const table_t *y, const TypeInfo *type);
 bool Table_equal(const table_t *x, const table_t *y, const TypeInfo *type);
 uint32_t Table_hash(const table_t *t, const TypeInfo *type);
-CORD Table_as_str(const table_t *t, bool colorize, const TypeInfo *type);
+CORD Table_as_text(const table_t *t, bool colorize, const TypeInfo *type);
 
 void *Table_str_entry(const table_t *t, int64_t n);
 void *Table_str_get(const table_t *t, const char *key);

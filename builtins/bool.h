@@ -9,7 +9,7 @@
 #define yes (Bool_t)true
 #define no (Bool_t)false
 
-CORD Bool__as_str(const bool *b, bool colorize, const TypeInfo *type);
+CORD Bool__as_text(const bool *b, bool colorize, const TypeInfo *type);
 
 extern const TypeInfo Bool;
 

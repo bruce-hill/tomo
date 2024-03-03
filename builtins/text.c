@@ -18,7 +18,7 @@
 
 #define CLAMP(x, lo, hi) MIN(hi, MAX(x,lo))
 
-public CORD Text__as_str(const void *str, bool colorize, const TypeInfo *info)
+public CORD Text__as_text(const void *str, bool colorize, const TypeInfo *info)
 {
     (void)info;
     if (!str) return "Text";
@@ -253,7 +253,7 @@ public const TypeInfo Text = {
     .align=__alignof__(CORD),
     .tag=CustomInfo,
     .CustomInfo={
-        .as_str=(void*)Text__as_str,
+        .as_text=(void*)Text__as_text,
         .compare=(void*)Text__compare,
         .equal=(void*)Text__equal,
         .hash=(void*)Text__hash,

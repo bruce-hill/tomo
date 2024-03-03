@@ -21,12 +21,12 @@ typedef struct recursion_s {
 public CORD Pointer__cord(const void *x, bool colorize, const TypeInfo *type) {
     auto ptr_info = type->PointerInfo;
     if (!x) {
-        CORD typename = generic_as_str(NULL, false, ptr_info.pointed);
+        CORD typename = generic_as_text(NULL, false, ptr_info.pointed);
         return colorize ? CORD_asprintf("\x1b[34;1m%s%s\x1b[m", ptr_info.sigil, typename) : CORD_cat(ptr_info.sigil, typename);
     }
     const void *ptr = *(const void**)x;
     if (!ptr) {
-        CORD typename = generic_as_str(NULL, false, ptr_info.pointed);
+        CORD typename = generic_as_text(NULL, false, ptr_info.pointed);
         return colorize ? CORD_asprintf("\x1b[34;1m!%s\x1b[m", typename) : CORD_cat("!", typename);
     }
 
@@ -44,7 +44,7 @@ public CORD Pointer__cord(const void *x, bool colorize, const TypeInfo *type) {
     { // Stringify with this pointer flagged as a recursive one:
         recursion_t my_recursion = {.ptr=ptr, .next=recursion};
         recursion = &my_recursion;
-        pointed = generic_as_str(ptr, colorize, ptr_info.pointed);
+        pointed = generic_as_text(ptr, colorize, ptr_info.pointed);
         recursion = recursion->next;
     }
     return colorize ? CORD_asprintf("\x1b[34;1m%s\x1b[m%r", ptr_info.sigil, pointed) : CORD_cat(ptr_info.sigil, pointed);

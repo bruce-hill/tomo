@@ -21,7 +21,7 @@ typedef struct TypeInfo {
                 equal_fn_t equal;
                 compare_fn_t compare;
                 hash_fn_t hash;
-                str_fn_t as_str;
+                str_fn_t as_text;
             } CustomInfo;
             struct {
                 const char *sigil;
@@ -59,7 +59,7 @@ extern const TypeInfo TypeInfo_info;
 extern const TypeInfo Void;
 extern const TypeInfo Abort;
 
-CORD Type__as_str(const void *typeinfo, bool colorize, const TypeInfo *type);
-CORD Func__as_str(const void *fn, bool colorize, const TypeInfo *type);
+CORD Type__as_text(const void *typeinfo, bool colorize, const TypeInfo *type);
+CORD Func__as_text(const void *fn, bool colorize, const TypeInfo *type);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

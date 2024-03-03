@@ -9,7 +9,7 @@
 #define Num_t double
 #define Num32_t float
 
-CORD Num__as_str(const double *f, bool colorize, const TypeInfo *type);
+CORD Num__as_text(const double *f, bool colorize, const TypeInfo *type);
 int32_t Num__compare(const double *x, const double *y, const TypeInfo *type);
 bool Num__equal(const double *x, const double *y, const TypeInfo *type);
 bool Num__near(double a, double b, double ratio, double absolute);
@@ -38,7 +38,7 @@ F(atan2) F(copysign) F(fdim) F(hypot) F(nextafter) F(pow) F(remainder)
 #undef F
 extern const TypeInfo Num;
 
-CORD Num32__as_str(const float *f, bool colorize, const TypeInfo *type);
+CORD Num32__as_text(const float *f, bool colorize, const TypeInfo *type);
 int32_t Num32__compare(const float *x, const float *y, const TypeInfo *type);
 bool Num32__equal(const float *x, const float *y, const TypeInfo *type);
 bool Num32__near(float a, float b, float ratio, float absolute);

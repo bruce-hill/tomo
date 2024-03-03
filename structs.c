@@ -38,7 +38,7 @@ static bool is_plain_data(env_t *env, type_t *t)
 static CORD compile_str_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD str_func = CORD_asprintf("static CORD %s__as_str(%s_t *obj, bool use_color) {\n"
+    CORD str_func = CORD_asprintf("static CORD %s__as_text(%s_t *obj, bool use_color) {\n"
                                   "\tif (!obj) return \"%s\";\n", def->name, def->name, def->name);
     if (def->secret) {
         CORD_appendf(&str_func, "\treturn use_color ? \"\\x1b[0;1m%s\\x1b[m(\\x1b[2m...\\x1b[m)\" : \"%s(...)\";\n}",
@@ -47,7 +47,7 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
         CORD_appendf(&str_func, "\treturn CORD_all(use_color ? \"\\x1b[0;1m%s\\x1b[m(\" : \"%s(\"", def->name, def->name);
         for (arg_ast_t *field = def->fields; field; field = field->next) {
             type_t *field_type = get_arg_ast_type(env, field);
-            CORD field_str = expr_as_string(env, CORD_cat("obj->", field->name), field_type, "use_color");
+            CORD field_str = expr_as_texting(env, CORD_cat("obj->", field->name), field_type, "use_color");
             CORD_appendf(&str_func, ", \"%s=\", %r", field->name, field_str);
             if (field->next) CORD_appendf(&str_func, ", \", \"");
         }
@@ -146,7 +146,7 @@ void compile_struct_def(env_t *env, ast_t *ast)
     CORD typeinfo = CORD_asprintf("public const TypeInfo %s = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
                                   def->name, type_size(t), type_align(t));
 
-    typeinfo = CORD_all(typeinfo, ".as_str=(void*)", def->name, "__as_str, ");
+    typeinfo = CORD_all(typeinfo, ".as_text=(void*)", def->name, "__as_text, ");
     env->code->funcs = CORD_all(env->code->funcs, compile_str_method(env, ast));
     if (!t || !is_plain_data(env, t)) {
         env->code->funcs = CORD_all(

@@ -12,7 +12,7 @@
 #include "../util.h"
 #include "../SipHash/halfsiphash.h"
 
-public CORD Type__as_str(const void *typeinfo, bool colorize, const TypeInfo *type)
+public CORD Type__as_text(const void *typeinfo, bool colorize, const TypeInfo *type)
 {
     if (!typeinfo) return "TypeInfo";
 
@@ -33,7 +33,7 @@ public const TypeInfo TypeInfo_info = {
 public const TypeInfo Void = {.size=0, .align=0};
 public const TypeInfo Abort = {.size=0, .align=0};
 
-public CORD Func__as_str(const void *fn, bool colorize, const TypeInfo *type)
+public CORD Func__as_text(const void *fn, bool colorize, const TypeInfo *type)
 {
     (void)fn;
     CORD c = type->FunctionInfo.type_str;

@@ -12,7 +12,7 @@
 #include "string.h"
 #include "types.h"
 
-public CORD Num__as_str(const double *f, bool colorize, const TypeInfo *type) { 
+public CORD Num__as_text(const double *f, bool colorize, const TypeInfo *type) { 
     (void)type;
     if (!f) return "Num";
     CORD c;
@@ -78,11 +78,11 @@ public const TypeInfo Num = {
     .CustomInfo={
         .compare=(void*)Num__compare,
         .equal=(void*)Num__equal,
-        .as_str=(void*)Num__as_str,
+        .as_text=(void*)Num__as_text,
     },
 };
 
-public CORD Num32__as_str(const float *f, bool colorize, const TypeInfo *type) { 
+public CORD Num32__as_text(const float *f, bool colorize, const TypeInfo *type) { 
     (void)type;
     if (!f) return "Num32";
     CORD c;
@@ -148,7 +148,7 @@ public const TypeInfo Num32 = {
     .CustomInfo={
         .compare=(void*)Num32__compare,
         .equal=(void*)Num32__equal,
-        .as_str=(void*)Num32__as_str,
+        .as_text=(void*)Num32__as_text,
     },
 };
 

@@ -15,7 +15,7 @@
 #define str(a) #a
 
 #define DEFINE_INT_TYPE(c_type, KindOfInt, fmt, min_val, max_val)\
-    public CORD KindOfInt ## __as_str(const c_type *i, bool colorize, const TypeInfo *type) { \
+    public CORD KindOfInt ## __as_text(const c_type *i, bool colorize, const TypeInfo *type) { \
         (void)type; \
         if (!i) return #KindOfInt; \
         CORD c; \
@@ -62,7 +62,7 @@
         .size=sizeof(c_type), \
         .align=__alignof__(c_type), \
         .tag=CustomInfo, \
-        .CustomInfo={.compare=(void*)KindOfInt##__compare, .as_str=(void*)KindOfInt##__as_str}, \
+        .CustomInfo={.compare=(void*)KindOfInt##__compare, .as_text=(void*)KindOfInt##__as_text}, \
     };
 
 DEFINE_INT_TYPE(int64_t,  Int,    "ld",     INT64_MIN, INT64_MAX);

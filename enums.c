@@ -15,7 +15,7 @@
 static CORD compile_str_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
-    CORD str_func = CORD_all("static CORD ", def->name, "__as_str(", def->name, "_t *obj, bool use_color) {\n"
+    CORD str_func = CORD_all("static CORD ", def->name, "__as_text(", def->name, "_t *obj, bool use_color) {\n"
                              "\tif (!obj) return \"", def->name, "\";\n"
                              "switch (obj->$tag) {\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
@@ -29,7 +29,7 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
 
         for (arg_ast_t *field = tag->fields; field; field = field->next) {
             type_t *field_t = parse_type_ast(env, field->type);
-            CORD field_str = expr_as_string(env, CORD_all("obj->", tag->name, ".", field->name), field_t, "use_color");
+            CORD field_str = expr_as_texting(env, CORD_all("obj->", tag->name, ".", field->name), field_t, "use_color");
             str_func = CORD_all(str_func, ", \"", field->name, "=\", ", field_str);
             if (field->next) str_func = CORD_cat(str_func, ", \", \"");
         }
@@ -143,7 +143,7 @@ void compile_enum_def(env_t *env, ast_t *ast)
         compile_hash_method(env, ast));
     typeinfo = CORD_all(
         typeinfo,
-        ".as_str=(void*)", def->name, "__as_str, "
+        ".as_text=(void*)", def->name, "__as_text, "
         ".equal=(void*)", def->name, "__equal, "
         ".hash=(void*)", def->name, "__hash, "
         ".compare=(void*)", def->name, "__compare");
