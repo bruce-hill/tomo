@@ -35,3 +35,6 @@
 = yes
 >> Num.PI:sin():near(0)
 = yes
+
+>> 10.0:pow(3)
+= 1000
