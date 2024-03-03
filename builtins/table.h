@@ -7,9 +7,8 @@
 #include "datatypes.h"
 #include "array.h"
 
-#define $Table(key_t, val_t, key_info, value_info, fb, def, ...)  ({ \
-    struct $entry_s { key_t k; val_t v; }; \
-    struct $entry_s $ents[] = {__VA_ARGS__}; \
+#define $Table(key_t, val_t, key_info, value_info, fb, def, N, ...)  ({ \
+    struct { key_t k; val_t v; } $ents[N] = {__VA_ARGS__}; \
     table_t $table = Table_from_entries((array_t){ \
                        .data=memcpy(GC_MALLOC(sizeof($ents)), $ents, sizeof($ents)), \
                        .length=sizeof($ents)/sizeof($ents[0]), \

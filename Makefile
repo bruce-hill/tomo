@@ -1,6 +1,6 @@
 PREFIX=/usr/local
 VERSION=0.12.1
-CCONFIG=-std=c11 -Werror -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC \
+CCONFIG=-std=c11 -Werror -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -I. \
 				-fsanitize=signed-integer-overflow -fno-sanitize-recover -fvisibility=hidden -fdollars-in-identifiers
 LTO=-flto=auto -fno-fat-lto-objects -Wl,-flto 
 LDFLAGS=-Wl,-rpath '-Wl,$$ORIGIN'
@@ -41,7 +41,7 @@ tags:
 	ctags *.[ch] **/*.[ch]
 
 test: tomo
-	for f in test/*; do echo -e "\x1b[1;4m$$f\x1b[m"; VERBOSE=0 CC=tcc ./tomo "$$f" || break; done
+	for f in test/*.tm; do echo -e "\x1b[1;4m$$f\x1b[m"; VERBOSE=0 CC=tcc ./tomo "$$f" || break; done
 
 clean:
 	rm -f tomo *.o SipHash/halfsiphash.o builtins/*.o libtomo.so

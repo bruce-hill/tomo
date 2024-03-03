@@ -73,9 +73,13 @@ int main(int argc, char *argv[])
         pclose(out);
     }
 
+    const char *cconfig = getenv("CCONFIG");
+    if (!cconfig)
+        cconfig = "-std=c11 -fdollars-in-identifiers -fsanitize=signed-integer-overflow -fno-sanitize-recover -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE";
+
     const char *cflags = getenv("CFLAGS");
     if (!cflags)
-        cflags = "-std=c11 -fdollars-in-identifiers -fsanitize=signed-integer-overflow -fno-sanitize-recover -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE";
+        cflags = heap_strf("%s -I. -D_DEFAULT_SOURCE", cconfig);
 
     const char *ldlibs = "-lgc -lcord -lm -L. -ltomo";
     if (getenv("LDLIBS"))
@@ -124,7 +128,7 @@ int main(int argc, char *argv[])
             return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
 
         prog = popen(heap_strf("%s > %s.c", autofmt, f->filename), "w");
-        CORD_put(CORD_all("#include \"", f->filename, ".h\"\n\n", module.c_file), prog);
+        CORD_put(CORD_all("#include \"", module.module_name, ".tm.h\"\n\n", module.c_file), prog);
         status = pclose(prog);
         if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
             printf("Transpiled to %s.c\n", f->filename);
@@ -141,7 +145,7 @@ int main(int argc, char *argv[])
             return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
 
         prog = popen(heap_strf("%s -x c %s -E - | %s > %s.c", cc, cflags, autofmt, f->filename), "w");
-        CORD_put(CORD_all("#include \"", f->filename, ".h\"\n\n", module.c_file), prog);
+        CORD_put(CORD_all("#include \"", module.module_name, ".tm.h\"\n\n", module.c_file), prog);
         status = pclose(prog);
         if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
             printf("Transpiled to %s.c\n", f->filename);

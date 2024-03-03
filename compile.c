@@ -565,9 +565,14 @@ CORD compile(env_t *env, ast_t *ast)
         else
             code = CORD_all(code, ", /*default:*/ NULL");
 
+        size_t n = 0;
+        for (ast_list_t *entry = table->entries; entry; entry = entry->next)
+            ++n;
+        CORD_appendf(&code, ", %zu", n);
+
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
             auto e = Match(entry->ast, TableEntry);
-            code = CORD_all(code, ",\n\t(struct $entry_s){", compile(env, e->key), ", ", compile(env, e->value), "}");
+            code = CORD_all(code, ",\n\t{", compile(env, e->key), ", ", compile(env, e->value), "}");
         }
         return CORD_cat(code, ")");
 
@@ -1074,7 +1079,7 @@ CORD compile_type_info(env_t *env, type_t *t)
 module_code_t compile_file(ast_t *ast)
 {
     env_t *env = new_compilation_unit();
-    CORD_appendf(&env->code->imports, "#include \"tomo.h\"\n");
+    CORD_appendf(&env->code->imports, "#include <tomo.h>\n");
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         bind_statement(env, stmt->ast);
