@@ -11,9 +11,25 @@
 #include "typecheck.h"
 #include "types.h"
 
+typedef enum { MODE_RUN, MODE_TRANSPILE, MODE_EXPANDED_TRANSPILE } mode_e;
+
 int main(int argc, char *argv[])
 {
-    if (argc < 2) return 1;
+    mode_e mode = MODE_RUN;
+    const char *filename = NULL;
+    for (int i = 1; i < argc; i++) {
+        if (streq(argv[i], "-t")) {
+            mode = MODE_TRANSPILE;
+        } else if (streq(argv[i], "-E")) {
+            mode = MODE_EXPANDED_TRANSPILE;
+        } else {
+            filename = argv[i];
+            break;
+        }
+    }
+
+    if (filename == NULL)
+        errx(1, "No file provided");
 
     // register_printf_modifier(L"p");
     if (register_printf_specifier('T', printf_type, printf_pointer_size))
@@ -24,7 +40,9 @@ int main(int argc, char *argv[])
     const char *autofmt = getenv("AUTOFMT");
     if (!autofmt) autofmt = "indent -kr -l100 -nbbo -nut -sob";
 
-    file_t *f = load_file(argv[1]);
+    file_t *f = load_file(filename);
+    if (!f)
+        errx(1, "No such file: %s", filename);
 
     ast_t *ast = parse_file(f, NULL);
 
@@ -33,15 +51,15 @@ int main(int argc, char *argv[])
 
     bool verbose = (getenv("VERBOSE") && strcmp(getenv("VERBOSE"), "1") == 0);
     if (verbose) {
-        FILE *out = popen(heap_strf("bat -P --file-name='%s'", argv[1]), "w");
+        FILE *out = popen(heap_strf("bat -P --file-name='%s'", filename), "w");
         fputs(f->text, out);
-        fclose(out);
+        pclose(out);
     }
 
     if (verbose) {
         FILE *out = popen("bat -P --file-name=AST", "w");
         fputs(ast_to_str(ast), out);
-        fclose(out);
+        pclose(out);
     }
 
     module_code_t module = compile_file(ast);
@@ -64,9 +82,9 @@ int main(int argc, char *argv[])
     );
     
     if (verbose) {
-        FILE *out = popen(heap_strf("%s | bat -P --file-name=program.c", autofmt), "w");
+        FILE *out = popen(heap_strf("%s | bat -P --file-name=%s.c", autofmt, f->filename), "w");
         CORD_put(program, out);
-        fclose(out);
+        pclose(out);
     }
 
     const char *cflags = getenv("CFLAGS");
@@ -81,12 +99,36 @@ int main(int argc, char *argv[])
 
     const char *cc = getenv("CC");
     if (!cc) cc = "tcc";
-    const char *run = streq(cc, "tcc") ? heap_strf("tcc -run %s %s %s -", cflags, ldflags, ldlibs)
-        : heap_strf("gcc -x c %s %s %s - -o program && ./program", cflags, ldflags, ldlibs);
-    FILE *runner = popen(run, "w");
-    CORD_put(program, runner);
-    int status = pclose(runner);
-    return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
+
+    switch (mode) {
+    case MODE_RUN: {
+        const char *run = streq(cc, "tcc") ? heap_strf("tcc -run %s %s %s -", cflags, ldflags, ldlibs)
+            : heap_strf("gcc -x c %s %s %s - -o program && ./program", cflags, ldflags, ldlibs);
+        FILE *runner = popen(run, "w");
+        CORD_put(program, runner);
+        int status = pclose(runner);
+        return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
+    }
+    case MODE_TRANSPILE: {
+        FILE *prog = popen(heap_strf("%s > %s.c", autofmt, f->filename), "w");
+        CORD_put(program, prog);
+        int status = pclose(prog);
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+            printf("Transpiled to %s.c\n", f->filename);
+        return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
+    }
+    case MODE_EXPANDED_TRANSPILE: {
+        const char *cc = getenv("CC");
+        if (!cc) cc = "tcc";
+        FILE *prog = popen(heap_strf("%s -x c %s -E - | %s > %s.c", cc, cflags, autofmt, f->filename), "w");
+        CORD_put(program, prog);
+        int status = pclose(prog);
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+            printf("Transpiled to %s.c\n", f->filename);
+        return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
+    }
+    }
+    return 0;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
