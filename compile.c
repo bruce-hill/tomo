@@ -1083,11 +1083,13 @@ module_code_t compile_file(ast_t *ast)
             CORD_appendf(&env->code->main, "%r\n", code);
     }
 
-    const char *name = strrchr(ast->file->filename, '/');
-    name = name ? name : ast->file->filename;
+    const char *slash = strrchr(ast->file->filename, '/');
+    const char *name = slash ? slash+1 : ast->file->filename;
     size_t name_len = 0;
     while (name[name_len] && (isalnum(name[name_len]) || name[name_len] == '_'))
         ++name_len;
+    if (name_len == 0)
+        errx(1, "No module name found for: %s", ast->file->filename);
     const char *module_name = heap_strn(name, name_len);
 
     return (module_code_t){
