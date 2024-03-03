@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
             "(void)argv;\n"
             "GC_INIT();\n"
             "detect_color();\n"
-            "$load();\n"
+            "use$", module.module_name, "();\n"
             "return 0;\n"
             "}\n"
         );

@@ -1083,21 +1083,31 @@ module_code_t compile_file(ast_t *ast)
             CORD_appendf(&env->code->main, "%r\n", code);
     }
 
+    const char *name = strrchr(ast->file->filename, '/');
+    name = name ? name : ast->file->filename;
+    size_t name_len = 0;
+    while (name[name_len] && (isalnum(name[name_len]) || name[name_len] == '_'))
+        ++name_len;
+    const char *module_name = heap_strn(name, name_len);
+
     return (module_code_t){
+        .module_name=module_name,
         .header=CORD_all(
             "#pragma once\n",
             // CORD_asprintf("#line 0 %r\n", Str__quoted(ast->file->filename, false)),
             env->code->imports, "\n",
             env->code->typedefs, "\n",
             env->code->typecode, "\n",
-            env->code->fndefs, "\n"),
+            env->code->fndefs, "\n",
+            "void use$", module_name, "(void);\n"
+        ),
         .c_file=CORD_all(
             // CORD_asprintf("#line 0 %r\n", Str__quoted(ast->file->filename, false)),
             env->code->staticdefs, "\n",
             env->code->funcs, "\n",
             env->code->typeinfos, "\n",
             "\n"
-            "static void $load(void) {\n",
+            "void use$", module_name, "(void) {\n",
             env->code->main,
             "}\n"
         ),

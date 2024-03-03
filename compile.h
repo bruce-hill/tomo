@@ -8,6 +8,7 @@
 #include "environment.h"
 
 typedef struct {
+    const char *module_name;
     CORD header, c_file;
 } module_code_t;
 

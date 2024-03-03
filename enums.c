@@ -35,7 +35,7 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
         }
         str_func = CORD_cat(str_func, ", \")\");\n");
     }
-    str_func = CORD_cat(str_func, "\t}\n}\n");
+    str_func = CORD_cat(str_func, "\tdefault: return CORD_EMPTY;\n\t}\n}\n");
     return str_func;
 }
 
@@ -44,6 +44,7 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
     auto def = Match(ast, EnumDef);
     CORD cmp_func = CORD_all("static int ", def->name, "__compare(const ", def->name, "_t *x, const ", def->name,
                              "_t *y, const TypeInfo *info) {\n"
+                             "(void)info;\n"
                              "int diff = x->$tag - y->$tag;\n"
                              "if (diff) return diff;\n"
                              "switch (x->$tag) {\n");
@@ -52,7 +53,7 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
         cmp_func = CORD_all(cmp_func, "\tcase $tag$", def->name, "$", tag->name, ": "
                             "return generic_compare(&x->", tag->name, ", &y->", tag->name, ", ", compile_type_info(env, tag_type), ");\n");
     }
-    cmp_func = CORD_all(cmp_func, "}\n}\n");
+    cmp_func = CORD_all(cmp_func, "default: return 0;\n}\n}\n");
     return cmp_func;
 }
 
@@ -61,6 +62,7 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
     auto def = Match(ast, EnumDef);
     CORD eq_func = CORD_all("static bool ", def->name, "__equal(const ", def->name, "_t *x, const ", def->name,
                              "_t *y, const TypeInfo *info) {\n"
+                             "(void)info;\n"
                              "if (x->$tag != y->$tag) return no;\n"
                              "switch (x->$tag) {\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
@@ -68,7 +70,7 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
         eq_func = CORD_all(eq_func, "\tcase $tag$", def->name, "$", tag->name, ": "
                             "return generic_equal(&x->", tag->name, ", &y->", tag->name, ", ", compile_type_info(env, tag_type), ");\n");
     }
-    eq_func = CORD_all(eq_func, "}\n}\n");
+    eq_func = CORD_all(eq_func, "default: return 0;\n}\n}\n");
     return eq_func;
 }
 
@@ -76,6 +78,7 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
     CORD hash_func = CORD_all("static uint32_t ", def->name, "__hash(const ", def->name, "_t *obj, const TypeInfo *info) {\n"
+                              "(void)info;\n"
                               "uint32_t hashes[2] = {(uint32_t)obj->$tag};\n"
                               "switch (obj->$tag) {\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {

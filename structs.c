@@ -61,6 +61,7 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
     auto def = Match(ast, StructDef);
     CORD cmp_func = CORD_all("static int ", def->name, "__compare(const ", def->name, "_t *x, const ", def->name,
                              "_t *y, const TypeInfo *info) {\n"
+                             "(void)info;\n",
                              "int diff;\n");
     for (arg_ast_t *field = def->fields; field; field = field->next) {
         type_t *field_type = get_arg_ast_type(env, field);
@@ -86,7 +87,8 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
     CORD eq_func = CORD_all("static bool ", def->name, "__equal(const ", def->name, "_t *x, const ", def->name,
-                             "_t *y, const TypeInfo *info) {\n");
+                             "_t *y, const TypeInfo *info) {\n"
+                             "(void)info;\n");
     for (arg_ast_t *field = def->fields; field; field = field->next) {
         type_t *field_type = parse_type_ast(env, field->type);
         switch (field_type->tag) {
@@ -110,6 +112,7 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
     CORD hash_func = CORD_all("static uint32_t ", def->name, "__hash(const ", def->name, "_t *obj, const TypeInfo *info) {\n"
+                              "(void)info;\n"
                               "uint32_t field_hashes[] = {");
     for (arg_ast_t *field = def->fields; field; field = field->next) {
         type_t *field_type = get_arg_ast_type(env, field);
