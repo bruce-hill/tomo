@@ -8,13 +8,6 @@
 #define String_t CORD
 #define Str_t CORD
 
-typedef struct {
-    CORD *data;
-    unsigned long int length:42;
-    unsigned short int free:4, cow:1, atomic:1;
-    short int stride:16;
-} Str_Array_t;
-
 typedef enum { WHERE_ANYWHERE, WHERE_START, WHERE_END } where_e;
 
 typedef struct {
@@ -27,17 +20,16 @@ CORD Str__quoted(CORD str, bool colorize);
 int Str__compare(CORD *x, CORD *y);
 bool Str__equal(CORD *x, CORD *y);
 uint32_t Str__hash(CORD *cord);
-CORD Str__uppercased(CORD str);
-CORD Str__lowercased(CORD str);
-CORD Str__titlecased(CORD str);
+CORD Str__upper(CORD str);
+CORD Str__lower(CORD str);
+CORD Str__title(CORD str);
 bool Str__has(CORD str, CORD target, where_e where);
 CORD Str__without(CORD str, CORD target, where_e where);
 CORD Str__trimmed(CORD str, CORD skip, where_e where);
-CORD Str__slice(CORD str, int64_t first, int64_t stride, int64_t length);
 find_result_t Str__find(CORD str, CORD pat);
 CORD Str__replace(CORD text, CORD pat, CORD replacement, int64_t limit);
-Str_Array_t Str__split(CORD str, CORD split);
-CORD Str__join(CORD glue, Str_Array_t pieces);
+array_t Str__split(CORD str, CORD split);
+CORD Str__join(CORD glue, array_t pieces);
 
 extern const TypeInfo Str;
 

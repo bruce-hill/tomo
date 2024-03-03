@@ -106,7 +106,7 @@ public uint32_t Str__hash(CORD *cord)
     return hash;
 }
 
-public CORD Str__uppercased(CORD str)
+public CORD Str__upper(CORD str)
 {
     if (!str) return str;
     size_t len = strlen(str) + 1;
@@ -114,7 +114,7 @@ public CORD Str__uppercased(CORD str)
     return (CORD)u8_toupper((const uint8_t*)str, len-1, uc_locale_language(), NULL, dest, &len);
 }
 
-public CORD Str__lowercased(CORD str)
+public CORD Str__lower(CORD str)
 {
     if (!str) return str;
     size_t len = strlen(str) + 1;
@@ -122,7 +122,7 @@ public CORD Str__lowercased(CORD str)
     return (CORD)u8_tolower((const uint8_t*)str, len-1, uc_locale_language(), NULL, dest, &len);
 }
 
-public CORD Str__titlecased(CORD str)
+public CORD Str__title(CORD str)
 {
     if (!str) return str;
     size_t len = strlen(str) + 1;
@@ -192,12 +192,6 @@ public CORD Str__trimmed(CORD str, CORD skip, where_e where)
     }
 }
 
-public CORD Str__slice(CORD str, int64_t first, int64_t stride, int64_t length)
-{
-    if (stride != 1) errx(1, "Slicing with non-1 stride is not supported");
-    return CORD_substr(str, first-1, length);
-}
-
 public find_result_t Str__find(CORD str, CORD pat)
 {
     if (!pat) return (find_result_t){.status=FIND_SUCCESS, .index=1};
@@ -218,31 +212,31 @@ public CORD Str__replace(CORD text, CORD pat, CORD replacement, int64_t limit)
     return CORD_cat(ret, CORD_substr(text, pos, SIZE_MAX));
 }
 
-public Str_Array_t Str__split(CORD str, CORD split)
+public array_t Str__split(CORD str, CORD split)
 {
-    if (!str) return (Str_Array_t){.stride=sizeof(CORD)};
-    Str_Array_t strings = {.stride=sizeof(CORD)};
+    if (!str) return (array_t){.data=GC_MALLOC(sizeof(CORD)), .atomic=1, .length=1, .stride=sizeof(CORD)};
+    array_t strings = {.stride=sizeof(CORD), .atomic=1};
     int64_t capacity = 0;
 
     const uint8_t *ustr = (uint8_t*)CORD_to_const_char_star(str);
     const uint8_t *usplit = (uint8_t*)CORD_to_const_char_star(split);
     for (int64_t i = 0; ; ) {
-        i += u8_strcspn(ustr + i, usplit);
-        size_t span = u8_strspn(ustr + i, usplit);
-        if (span > 0) {
-            CORD chunk = CORD_substr((CORD)ustr, i, i+span);
-            if (capacity <= 0)
-                strings.data = GC_REALLOC(strings.data, sizeof(CORD)*(capacity += 10));
-            strings.data[strings.length++] = chunk;
-            i += span;
-        } else {
-            break;
-        }
+        size_t non_split = u8_strcspn(ustr + i, usplit);
+        CORD chunk = CORD_substr((CORD)ustr, i, non_split);
+        if (capacity <= 0)
+            strings.data = GC_REALLOC(strings.data, sizeof(CORD)*(capacity += 10));
+        ((CORD*)strings.data)[strings.length++] = chunk;
+
+        i += non_split;
+
+        size_t split = u8_strspn(ustr + i, usplit);
+        if (split == 0) break;
+        i += split;
     }
     return strings;
 }
 
-public CORD Str__join(CORD glue, Str_Array_t pieces)
+public CORD Str__join(CORD glue, array_t pieces)
 {
     if (pieces.length == 0) return CORD_EMPTY;
 
