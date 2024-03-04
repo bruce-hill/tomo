@@ -73,15 +73,4 @@ CORD as_cord(void *x, bool use_color, const char *fmt, ...);
 #define min(x, y) ({ $var($min_lhs, x); $var($min_rhs, y); $le($min_lhs, $min_rhs) ? $min_lhs : $min_rhs; })
 #define max(x, y) ({ $var($min_lhs, x); $var($min_rhs, y); $ge($min_lhs, $min_rhs) ? $min_lhs : $min_rhs; })
 
-#define say(str) CORD_put(CORD_cat(str, "\n"), stdout)
-#define $test(src, expr, expected) do { \
-        CORD $result = $cord(expr); \
-        CORD $output = CORD_catn(5, USE_COLOR ? "\x1b[33;1m>>\x1b[0m " : ">> ", src, USE_COLOR ? "\n\x1b[0;2m=\x1b[m " : "\n= ", $result, "\x1b[m"); \
-        puts(CORD_to_const_char_star($output)); \
-        if (expected && CORD_cmp($result, expected)) { \
-            fprintf(stderr, USE_COLOR ? "\x1b[31;1;7mTEST FAILURE!\x1b[27m\nI expected:\n\t\x1b[0;1m%s\x1b[1;31m\nbut got:\n\t%s\x1b[m\n" : "TEST FAILURE!\nI expected:\n\t%s\nbut got:\n\t%s\n", CORD_to_const_char_star(expected), CORD_to_const_char_star($result)); \
-            raise(SIGABRT); \
-        } \
-    } while (0)
-
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

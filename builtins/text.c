@@ -10,11 +10,13 @@
 #include <sys/param.h>
 #include <unistr.h>
 #include <unicase.h>
+#include <uninorm.h>
 
 #include "../SipHash/halfsiphash.h"
-#include "types.h"
 #include "array.h"
+#include "functions.h"
 #include "text.h"
+#include "types.h"
 
 #define CLAMP(x, lo, hi) MIN(hi, MAX(x,lo))
 
@@ -86,12 +88,17 @@ public CORD Text__quoted(CORD str, bool colorize)
 
 public int Text__compare(CORD *x, CORD *y)
 {
-    return CORD_cmp(*x, *y);
+    uint8_t *xx = (uint8_t*)CORD_to_const_char_star(*x);
+    uint8_t *yy = (uint8_t*)CORD_to_const_char_star(*y);
+    int result = 0;
+    if (u8_normcmp(xx, strlen((char*)xx), yy, strlen((char*)yy), UNINORM_NFD, &result))
+        fail("Something went wrong while comparing text");
+    return result;
 }
 
 public bool Text__equal(CORD *x, CORD *y)
 {
-    return CORD_cmp(*x, *y) == 0;
+    return Text__compare(x, y) == 0;
 }
 
 public uint32_t Text__hash(CORD *cord)
@@ -99,10 +106,14 @@ public uint32_t Text__hash(CORD *cord)
     if (!*cord) return 0;
 
     const char *str = CORD_to_const_char_star(*cord);
-    *cord = str;
+    size_t len = strlen(str);
+    uint8_t buf[128] = {0};
+    size_t norm_len = sizeof(buf)-1;
+    uint8_t *normalized = u8_normalize(UNINORM_NFD, (uint8_t*)str, len, buf, &norm_len);
 
     uint32_t hash;
-    halfsiphash(str, strlen(str)+1, SSS_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));
+    halfsiphash(normalized, norm_len, SSS_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));
+    if (normalized != buf) free(normalized);
     return hash;
 }
 

@@ -11,7 +11,8 @@ extern const char *SSS_HASH_VECTOR;
 void fail(CORD fmt, ...);
 void fail_source(const char *filename, int64_t start, int64_t end, CORD fmt, ...);
 CORD builtin_last_err();
-public void __doctest(void *expr, const TypeInfo *type, CORD expected, const char *filename, int64_t start, int64_t end);
+void __doctest(void *expr, const TypeInfo *type, CORD expected, const char *filename, int64_t start, int64_t end);
+void say(CORD text);
 
 uint32_t generic_hash(const void *obj, const TypeInfo *type);
 int32_t generic_compare(const void *x, const void *y, const TypeInfo *type);

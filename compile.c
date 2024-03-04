@@ -3,6 +3,7 @@
 #include <gc/cord.h>
 #include <gc.h>
 #include <stdio.h>
+#include <uninorm.h>
 
 #include "ast.h"
 #include "builtins/text.h"
@@ -855,6 +856,16 @@ CORD compile(env_t *env, ast_t *ast)
         if (!expr_t)
             code_err(test->expr, "I couldn't figure out the type of this expression");
 
+        CORD output = NULL;
+        if (test->output) {
+            const uint8_t *raw = (const uint8_t*)CORD_to_const_char_star(test->output);
+            uint8_t buf[128] = {0};
+            size_t norm_len = sizeof(buf)-1;
+            uint8_t *norm = u8_normalize(UNINORM_NFD, (uint8_t*)raw, strlen((char*)raw), buf, &norm_len);
+            output = CORD_from_char_star((char*)norm);
+            if (norm && norm != buf) free(norm);
+        }
+
         if (test->expr->tag == Declare) {
             auto decl = Match(test->expr, Declare);
             return CORD_asprintf(
@@ -863,7 +874,7 @@ CORD compile(env_t *env, ast_t *ast)
                 compile(env, test->expr),
                 compile(env, decl->var),
                 compile_type_info(env, get_type(env, decl->value)),
-                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
+                compile(env, WrapAST(test->expr, TextLiteral, .cord=output)),
                 compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
@@ -890,7 +901,7 @@ CORD compile(env_t *env, ast_t *ast)
             CORD_appendf(&code, "$test(%r, %r, %r);",
                 compile(env, WrapAST(test->expr, TextLiteral, .cord=src)),
                 expr_cord,
-                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)));
+                compile(env, WrapAST(test->expr, TextLiteral, .cord=output)));
             return CORD_cat(code, "\n}");
         } else if (expr_t->tag == VoidType || expr_t->tag == AbortType) {
             return CORD_asprintf(
@@ -908,7 +919,7 @@ CORD compile(env_t *env, ast_t *ast)
                 compile_type(expr_t),
                 compile(env, test->expr),
                 compile_type_info(env, expr_t),
-                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
+                compile(env, WrapAST(test->expr, TextLiteral, .cord=output)),
                 compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
