@@ -29,6 +29,9 @@ find_result_t Text__find(CORD str, CORD pat);
 CORD Text__replace(CORD text, CORD pat, CORD replacement, int64_t limit);
 array_t Text__split(CORD str, CORD split);
 CORD Text__join(CORD glue, array_t pieces);
+array_t Text__clusters(CORD text);
+array_t Text__codepoints(CORD text);
+array_t Text__bytes(CORD text);
 
 extern const TypeInfo Text;
 

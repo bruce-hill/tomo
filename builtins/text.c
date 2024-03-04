@@ -8,9 +8,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/param.h>
-#include <unistr.h>
 #include <unicase.h>
+#include <unigbrk.h>
 #include <uninorm.h>
+#include <unistr.h>
 
 #include "../SipHash/halfsiphash.h"
 #include "array.h"
@@ -110,6 +111,7 @@ public uint32_t Text__hash(CORD *cord)
     uint8_t buf[128] = {0};
     size_t norm_len = sizeof(buf)-1;
     uint8_t *normalized = u8_normalize(UNINORM_NFD, (uint8_t*)str, len, buf, &norm_len);
+    if (!normalized) errx(1, "Unicode normalization error!");
 
     uint32_t hash;
     halfsiphash(normalized, norm_len, SSS_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));
@@ -256,6 +258,72 @@ public CORD Text__join(CORD glue, array_t pieces)
         if (i > 0) ret = CORD_cat(ret, glue);
         ret = CORD_cat(ret, *(CORD*)((void*)pieces.data + i*pieces.stride));
     }
+    return ret;
+}
+
+public array_t Text__clusters(CORD text)
+{
+    array_t clusters = {.atomic=1};
+    const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(text);
+    uint8_t buf[128] = {0};
+    size_t norm_len = sizeof(buf)-1;
+    uint8_t *normalized = u8_normalize(UNINORM_NFD, ustr, strlen((char*)ustr), buf, &norm_len);
+    if (!normalized) errx(1, "Unicode normalization error!");
+
+    const uint8_t *end = normalized + strlen((char*)normalized);
+    for (const uint8_t *pos = normalized; pos != end; ) {
+        const uint8_t *next = u8_grapheme_next(pos, end);
+        size_t len = next ? (size_t)(next - pos) : strlen((char*)pos);
+        char cluster_buf[len+1];
+        strlcpy(cluster_buf, (char*)pos, len+1);
+        CORD cluster = CORD_from_char_star(cluster_buf);
+        Array__insert(&clusters, &cluster, 0, $ArrayInfo(&Text));
+        pos = next;
+    }
+
+    if (normalized != buf) free(normalized);
+    return clusters;
+}
+
+public array_t Text__codepoints(CORD text)
+{
+    const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(text);
+    uint8_t norm_buf[128] = {0};
+    size_t norm_len = sizeof(norm_buf)-1;
+    uint8_t *normalized = u8_normalize(UNINORM_NFD, ustr, strlen((char*)ustr), norm_buf, &norm_len);
+    if (!normalized) errx(1, "Unicode normalization error!");
+
+    uint32_t codepoint_buf[128] = {0};
+    size_t codepoint_len = sizeof(codepoint_buf)-1;
+    uint32_t *codepoints = u8_to_u32(normalized, norm_len, codepoint_buf, &codepoint_len);
+    array_t ret = {
+        .length=codepoint_len,
+        .data=memcpy(GC_MALLOC_ATOMIC(sizeof(int32_t)*codepoint_len), codepoints, sizeof(int32_t)*codepoint_len),
+        .stride=sizeof(int32_t),
+        .atomic=1,
+    };
+
+    if (normalized != norm_buf) free(normalized);
+    if (codepoints != codepoint_buf) free(codepoints);
+    return ret;
+}
+
+public array_t Text__bytes(CORD text)
+{
+    const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(text);
+    uint8_t norm_buf[128] = {0};
+    size_t norm_len = sizeof(norm_buf)-1;
+    uint8_t *normalized = u8_normalize(UNINORM_NFD, ustr, strlen((char*)ustr), norm_buf, &norm_len);
+    if (!normalized) errx(1, "Unicode normalization error!");
+
+    array_t ret = {
+        .length=norm_len,
+        .data=memcpy(GC_MALLOC_ATOMIC(sizeof(uint8_t)*norm_len), normalized, sizeof(uint8_t)*norm_len),
+        .stride=sizeof(uint8_t),
+        .atomic=1,
+    };
+
+    if (normalized != norm_buf) free(normalized);
     return ret;
 }
 
