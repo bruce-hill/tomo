@@ -99,20 +99,23 @@ void bind_statement(env_t *env, ast_t *statement)
     case Declare: {
         auto decl = Match(statement, Declare);
         type_t *type = get_type(env, decl->value);
-        set_binding(env, Match(decl->var, Var)->name, new(binding_t, .type=type));
+        const char *name = Match(decl->var, Var)->name;
+        CORD code = CORD_cat(env->scope_prefix, name);
+        set_binding(env, name, new(binding_t, .type=type, .code=code));
         break;
     }
     case FunctionDef: {
         auto def = Match(statement, FunctionDef);
         type_t *type = get_function_def_type(env, statement);
-        set_binding(env, Match(def->name, Var)->name, new(binding_t, .type=type));
+        const char *name = Match(def->name, Var)->name;
+        CORD code = CORD_all(env->scope_prefix, name);
+        set_binding(env, name, new(binding_t, .type=type, .code=code));
         break;
     }
     case StructDef: {
         auto def = Match(statement, StructDef);
 
-        table_t *namespace = new(table_t);
-        Table_str_set(env->type_namespaces, def->name, namespace);
+        env_t *ns_env = namespace_env(env, def->name);
 
         arg_t *fields = NULL;
         type_t *type = Type(StructType, .name=def->name, .fields=fields); // placeholder
@@ -124,7 +127,9 @@ void bind_statement(env_t *env, ast_t *statement)
         type->__data.StructType.fields = fields; // populate placeholder
         Table_str_set(env->types, def->name, type);
         
-        // TODO: bind body members
+        for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
+            bind_statement(ns_env, stmt->ast);
+        }
 
         type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type);
         Table_str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type));
@@ -133,8 +138,7 @@ void bind_statement(env_t *env, ast_t *statement)
     case EnumDef: {
         auto def = Match(statement, EnumDef);
 
-        table_t *namespace = new(table_t);
-        Table_str_set(env->type_namespaces, def->name, namespace);
+        env_t *ns_env = namespace_env(env, def->name);
 
         tag_t *tags = NULL;
         type_t *type = Type(EnumType, .name=def->name, .tags=tags); // placeholder
@@ -153,7 +157,7 @@ void bind_statement(env_t *env, ast_t *statement)
 
         for (tag_t *tag = tags; tag; tag = tag->next) {
             type_t *constructor_t = Type(FunctionType, .args=Match(tag->type, StructType)->fields, .ret=type);
-            Table_str_set(namespace, tag->name, new(binding_t, .type=constructor_t, .code=CORD_all(def->name, "$tagged$", tag->name)));
+            set_binding(ns_env, tag->name, new(binding_t, .type=constructor_t, .code=CORD_all(def->name, "$tagged$", tag->name)));
             Table_str_set(env->types, heap_strf("%s$%s", def->name, tag->name), tag->type);
         }
         Table_str_set(env->types, def->name, type);
@@ -161,7 +165,10 @@ void bind_statement(env_t *env, ast_t *statement)
         type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type);
         Table_str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type));
 
-        // TODO: bind body members
+        for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
+            bind_statement(ns_env, stmt->ast);
+        }
+
         break;
     }
     default: break;
@@ -188,9 +195,6 @@ type_t *get_function_def_type(env_t *env, ast_t *ast)
 
 type_t *get_method_type(env_t *env, ast_t *self, const char *name)
 {
-    type_t *self_type = get_type(env, self);
-    if (!self_type)
-        code_err(self, "I couldn't get this type");
     binding_t *b = get_namespace_binding(env, self, name);
     if (!b || !b->type)
         code_err(self, "No such method: %s", name);
@@ -395,7 +399,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (!fn_type_t)
             code_err(ast, "No such method!");
         if (fn_type_t->tag != FunctionType)
-            code_err(ast, "This isn't a function, it's a %T", fn_type_t);
+            code_err(ast, "This isn't a method, it's a %T", fn_type_t);
         auto fn_type = Match(fn_type_t, FunctionType);
         return fn_type->ret;
     }

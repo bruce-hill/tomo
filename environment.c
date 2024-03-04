@@ -197,6 +197,19 @@ env_t *fresh_scope(env_t *env)
     return scope;
 }
 
+env_t *namespace_env(env_t *env, const char *namespace_name)
+{
+    env_t *ns_env = new(env_t);
+    *ns_env = *env;
+    ns_env->locals = Table_str_get(env->type_namespaces, namespace_name);
+    if (!ns_env->locals) {
+        ns_env->locals = new(table_t, .fallback=env->globals);
+        Table_str_set(env->type_namespaces, namespace_name, ns_env->locals);
+    }
+    ns_env->scope_prefix = CORD_cat(namespace_name, "$");
+    return ns_env;
+}
+
 binding_t *get_binding(env_t *env, const char *name)
 {
     return Table_str_get(env->locals, name);
@@ -223,15 +236,15 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
         return Table_str_get(ns, name);
     }
     case TypeInfoType: case StructType: case EnumType: {
-        const char *name;
+        const char *type_name;
         switch (cls_type->tag) {
-        case TypeInfoType: name = Match(cls_type, TypeInfoType)->name; break;
-        case StructType: name = Match(cls_type, StructType)->name; break;
-        case EnumType: name = Match(cls_type, EnumType)->name; break;
+        case TypeInfoType: type_name = Match(cls_type, TypeInfoType)->name; break;
+        case StructType: type_name = Match(cls_type, StructType)->name; break;
+        case EnumType: type_name = Match(cls_type, EnumType)->name; break;
         default: errx(1, "Unreachable");
         }
 
-        table_t *namespace = Table_str_get(env->type_namespaces, name);
+        table_t *namespace = Table_str_get(env->type_namespaces, type_name);
         if (!namespace) return NULL;
         return Table_str_get(namespace, name);
     }

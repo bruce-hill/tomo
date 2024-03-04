@@ -1708,7 +1708,7 @@ PARSER(parse_func_def) {
 
     arg_ast_t *args = parse_args(ctx, &pos, false);
     whitespace(&pos);
-    bool is_inline = false;
+    bool is_inline = false, is_private = false;
     ast_t *cache_ast = NULL;
     for (bool specials = match(&pos, ";"); specials; specials = match_separator(&pos)) {
         const char *flag_start = pos;
@@ -1721,6 +1721,8 @@ PARSER(parse_func_def) {
                 parser_err(ctx, flag_start, pos, "I expected a value for 'cache_size'");
             whitespace(&pos);
             cache_ast = expect(ctx, start, &pos, parse_expr, "I expected a maximum size for the cache");
+        } else if (match_word(&pos, "private")) {
+            is_private = true;
         }
     }
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this function definition");
@@ -1734,7 +1736,7 @@ PARSER(parse_func_def) {
                              "This function needs a body block");
     return NewAST(ctx->file, start, pos, FunctionDef,
                   .name=name, .args=args, .ret_type=ret_type, .body=body, .cache=cache_ast,
-                  .is_inline=is_inline);
+                  .is_inline=is_inline, .is_private=is_private);
 }
 
 PARSER(parse_extern) {

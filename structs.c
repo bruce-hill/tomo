@@ -38,7 +38,7 @@ static bool is_plain_data(env_t *env, type_t *t)
 static CORD compile_str_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD str_func = CORD_asprintf("static CORD %s__as_text(%s_t *obj, bool use_color) {\n"
+    CORD str_func = CORD_asprintf("static CORD %s$as_text(%s_t *obj, bool use_color) {\n"
                                   "\tif (!obj) return \"%s\";\n", def->name, def->name, def->name);
     if (def->secret) {
         CORD_appendf(&str_func, "\treturn use_color ? \"\\x1b[0;1m%s\\x1b[m(\\x1b[2m...\\x1b[m)\" : \"%s(...)\";\n}",
@@ -59,7 +59,7 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
 static CORD compile_compare_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD cmp_func = CORD_all("static int ", def->name, "__compare(const ", def->name, "_t *x, const ", def->name,
+    CORD cmp_func = CORD_all("static int ", def->name, "$compare(const ", def->name, "_t *x, const ", def->name,
                              "_t *y, const TypeInfo *info) {\n"
                              "(void)info;\n",
                              "int diff;\n");
@@ -86,7 +86,7 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
 static CORD compile_equals_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD eq_func = CORD_all("static bool ", def->name, "__equal(const ", def->name, "_t *x, const ", def->name,
+    CORD eq_func = CORD_all("static bool ", def->name, "$equal(const ", def->name, "_t *x, const ", def->name,
                              "_t *y, const TypeInfo *info) {\n"
                              "(void)info;\n");
     for (arg_ast_t *field = def->fields; field; field = field->next) {
@@ -111,7 +111,7 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
 static CORD compile_hash_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD hash_func = CORD_all("static uint32_t ", def->name, "__hash(const ", def->name, "_t *obj, const TypeInfo *info) {\n"
+    CORD hash_func = CORD_all("static uint32_t ", def->name, "$hash(const ", def->name, "_t *obj, const TypeInfo *info) {\n"
                               "(void)info;\n"
                               "uint32_t field_hashes[] = {");
     for (arg_ast_t *field = def->fields; field; field = field->next) {
@@ -146,7 +146,7 @@ void compile_struct_def(env_t *env, ast_t *ast)
     CORD typeinfo = CORD_asprintf("public const TypeInfo %s = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
                                   def->name, type_size(t), type_align(t));
 
-    typeinfo = CORD_all(typeinfo, ".as_text=(void*)", def->name, "__as_text, ");
+    typeinfo = CORD_all(typeinfo, ".as_text=(void*)", def->name, "$as_text, ");
     env->code->funcs = CORD_all(env->code->funcs, compile_str_method(env, ast));
     if (!t || !is_plain_data(env, t)) {
         env->code->funcs = CORD_all(
@@ -154,12 +154,36 @@ void compile_struct_def(env_t *env, ast_t *ast)
             compile_hash_method(env, ast));
         typeinfo = CORD_all(
             typeinfo,
-            ".equal=(void*)", def->name, "__equal, "
-            ".hash=(void*)", def->name, "__hash, "
-            ".compare=(void*)", def->name, "__compare");
+            ".equal=(void*)", def->name, "$equal, "
+            ".hash=(void*)", def->name, "$hash, "
+            ".compare=(void*)", def->name, "$compare");
     }
     typeinfo = CORD_cat(typeinfo, "}}};\n");
     env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
+
+    env_t *ns_env = namespace_env(env, def->name);
+    for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
+        ast_t *ast = stmt->ast;
+        switch (ast->tag) {
+        case FunctionDef:
+            CORD code = compile_statement(ns_env, ast);
+            env->code->funcs = CORD_cat(env->code->funcs, code);
+            break;
+        case Declare: {
+            CORD code = compile_statement(ns_env, ast);
+            env->code->staticdefs = CORD_cat(env->code->staticdefs, code);
+            auto decl = Match(ast, Declare);
+            type_t *t = get_type(ns_env, decl->value);
+            env->code->fndefs = CORD_all(env->code->fndefs, "extern ", compile_type(t), " ", compile(ns_env, decl->var), ";\n");
+            break;
+        }
+        default: {
+            CORD code = compile_statement(ns_env, ast);
+            env->code->main = CORD_cat(env->code->main, code);
+            break;
+        }
+    }
+    }
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

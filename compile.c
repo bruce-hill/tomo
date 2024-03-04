@@ -578,40 +578,38 @@ CORD compile(env_t *env, ast_t *ast)
         return CORD_cat(code, ")");
 
     }
-    // Table, TableEntry,
     case FunctionDef: {
         auto fndef = Match(ast, FunctionDef);
         CORD name = compile(env, fndef->name);
-        CORD_appendf(&env->code->staticdefs, "static %r %r_(", fndef->ret_type ? compile_type_ast(fndef->ret_type) : "void", name);
+        CORD signature = CORD_all(fndef->ret_type ? compile_type_ast(fndef->ret_type) : "void", " ", name, "(");
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            CORD_appendf(&env->code->staticdefs, "%r %s", compile_type(arg_type), arg->name);
-            if (arg->next) env->code->staticdefs = CORD_cat(env->code->staticdefs, ", ");
+            CORD_appendf(&signature, "%r %s", compile_type(arg_type), arg->name);
+            if (arg->next) signature = CORD_cat(signature, ", ");
         }
-        env->code->staticdefs = CORD_cat(env->code->staticdefs, ");\n");
+        signature = CORD_cat(signature, ")");
+        if (fndef->is_private)
+            env->code->staticdefs = CORD_all(env->code->staticdefs, "static ", signature, ";\n");
+        else
+            env->code->fndefs = CORD_all(env->code->fndefs, signature, ";\n");
 
-        CORD kwargs = CORD_asprintf("#define %r(...) ({ struct {", name);
-        CORD passed_args = CORD_EMPTY;
-        CORD_appendf(&env->code->funcs, "%r %r_(", fndef->ret_type ? compile_type_ast(fndef->ret_type) : "void", name);
+        CORD code = signature;
+        if (fndef->is_inline)
+            code = CORD_cat("inline ", code);
+        if (!fndef->is_private)
+            code = CORD_cat("public ", code);
+
         env_t *body_scope = fresh_scope(env);
         body_scope->locals->fallback = env->globals;
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            CORD arg_typecode = compile_type(arg_type);
-            CORD_appendf(&env->code->funcs, "%r %s", arg_typecode, arg->name);
-            if (arg->next) env->code->funcs = CORD_cat(env->code->funcs, ", ");
-            CORD_appendf(&kwargs, "%r %s; ", arg_typecode, arg->name);
-            CORD_appendf(&passed_args, "$args.%s", arg->name);
-            if (arg->next) passed_args = CORD_cat(passed_args, ", ");
-            set_binding(body_scope, arg->name, new(binding_t, .type=arg_type));
+            set_binding(body_scope, arg->name, new(binding_t, .type=arg_type, .code=arg->name));
         }
-        CORD_appendf(&kwargs, "} $args = {__VA_ARGS__}; %r_(%r); })\n", name, passed_args);
-        CORD_appendf(&env->code->staticdefs, "%r", kwargs);
 
         CORD body = compile(body_scope, fndef->body);
         if (CORD_fetch(body, 0) != '{')
             body = CORD_asprintf("{\n%r\n}", body);
-        CORD_appendf(&env->code->funcs, ") %r", body);
+        env->code->funcs = CORD_all(env->code->funcs, code, " ", body);
         return CORD_EMPTY;
     }
     case FunctionCall: case MethodCall: {

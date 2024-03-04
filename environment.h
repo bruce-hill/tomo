@@ -20,6 +20,7 @@ typedef struct {
     table_t *types, *globals, *locals;
     table_t *type_namespaces; // Map of type name -> namespace table
     compilation_unit_t *code;
+    CORD scope_prefix;
 } env_t;
 
 typedef struct {
@@ -29,6 +30,7 @@ typedef struct {
 
 env_t *new_compilation_unit(void);
 env_t *fresh_scope(env_t *env);
+env_t *namespace_env(env_t *env, const char *namespace_name);
 __attribute__((noreturn))
 void compiler_err(file_t *f, const char *start, const char *end, const char *fmt, ...);
 binding_t *get_binding(env_t *env, const char *name);

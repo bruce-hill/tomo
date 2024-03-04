@@ -15,7 +15,7 @@
 static CORD compile_str_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
-    CORD str_func = CORD_all("static CORD ", def->name, "__as_text(", def->name, "_t *obj, bool use_color) {\n"
+    CORD str_func = CORD_all("static CORD ", def->name, "$as_text(", def->name, "_t *obj, bool use_color) {\n"
                              "\tif (!obj) return \"", def->name, "\";\n"
                              "switch (obj->$tag) {\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
@@ -42,7 +42,7 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
 static CORD compile_compare_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
-    CORD cmp_func = CORD_all("static int ", def->name, "__compare(const ", def->name, "_t *x, const ", def->name,
+    CORD cmp_func = CORD_all("static int ", def->name, "$compare(const ", def->name, "_t *x, const ", def->name,
                              "_t *y, const TypeInfo *info) {\n"
                              "(void)info;\n"
                              "int diff = x->$tag - y->$tag;\n"
@@ -60,7 +60,7 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
 static CORD compile_equals_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
-    CORD eq_func = CORD_all("static bool ", def->name, "__equal(const ", def->name, "_t *x, const ", def->name,
+    CORD eq_func = CORD_all("static bool ", def->name, "$equal(const ", def->name, "_t *x, const ", def->name,
                              "_t *y, const TypeInfo *info) {\n"
                              "(void)info;\n"
                              "if (x->$tag != y->$tag) return no;\n"
@@ -77,7 +77,7 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
 static CORD compile_hash_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
-    CORD hash_func = CORD_all("static uint32_t ", def->name, "__hash(const ", def->name, "_t *obj, const TypeInfo *info) {\n"
+    CORD hash_func = CORD_all("static uint32_t ", def->name, "$hash(const ", def->name, "_t *obj, const TypeInfo *info) {\n"
                               "(void)info;\n"
                               "uint32_t hashes[2] = {(uint32_t)obj->$tag};\n"
                               "switch (obj->$tag) {\n");
@@ -143,12 +143,36 @@ void compile_enum_def(env_t *env, ast_t *ast)
         compile_hash_method(env, ast));
     typeinfo = CORD_all(
         typeinfo,
-        ".as_text=(void*)", def->name, "__as_text, "
-        ".equal=(void*)", def->name, "__equal, "
-        ".hash=(void*)", def->name, "__hash, "
-        ".compare=(void*)", def->name, "__compare");
+        ".as_text=(void*)", def->name, "$as_text, "
+        ".equal=(void*)", def->name, "$equal, "
+        ".hash=(void*)", def->name, "$hash, "
+        ".compare=(void*)", def->name, "$compare");
     typeinfo = CORD_cat(typeinfo, "}}};\n");
     env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
+
+    env_t *ns_env = namespace_env(env, def->name);
+    for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
+        ast_t *ast = stmt->ast;
+        switch (ast->tag) {
+        case FunctionDef:
+            CORD code = compile_statement(ns_env, ast);
+            env->code->funcs = CORD_cat(env->code->funcs, code);
+            break;
+        case Declare: {
+            CORD code = compile_statement(ns_env, ast);
+            env->code->staticdefs = CORD_cat(env->code->staticdefs, code);
+            auto decl = Match(ast, Declare);
+            type_t *t = get_type(ns_env, decl->value);
+            env->code->fndefs = CORD_all(env->code->fndefs, "extern ", compile_type(t), " ", compile(ns_env, decl->var), ";\n");
+            break;
+        }
+        default: {
+            CORD code = compile_statement(ns_env, ast);
+            env->code->main = CORD_cat(env->code->main, code);
+            break;
+        }
+    }
+    }
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
