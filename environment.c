@@ -162,6 +162,10 @@ env_t *new_compilation_unit(void)
             {"clusters", "Text__clusters", "func(text:Text)->[Text]"},
             {"codepoints", "Text__codepoints", "func(text:Text)->[Int32]"},
             {"bytes", "Text__bytes", "func(text:Text)->[Int8]"},
+            {"num_clusters", "Text__num_clusters", "func(text:Text)->Int"},
+            {"num_codepoints", "Text__num_codepoints", "func(text:Text)->Int"},
+            {"num_bytes", "Text__num_bytes", "func(text:Text)->Int"},
+            {"character_names", "Text__character_names", "func(text:Text)->[Text]"},
         )},
     };
 

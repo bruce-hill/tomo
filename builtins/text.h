@@ -32,6 +32,10 @@ CORD Text__join(CORD glue, array_t pieces);
 array_t Text__clusters(CORD text);
 array_t Text__codepoints(CORD text);
 array_t Text__bytes(CORD text);
+int64_t Text__num_clusters(CORD text);
+int64_t Text__num_codepoints(CORD text);
+int64_t Text__num_bytes(CORD text);
+array_t Text__character_names(CORD text);
 
 extern const TypeInfo Text;
 

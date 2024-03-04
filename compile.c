@@ -173,7 +173,7 @@ CORD compile(env_t *env, ast_t *ast)
         switch (value_type(t)->tag) {
         case TextType: {
             CORD str = compile_to_pointer_depth(env, expr, 0, false);
-            return CORD_all("CORD_len(", str, ")");
+            return CORD_all("Text__num_clusters(", str, ")");
         }
         case ArrayType: {
             if (t->tag == PointerType) {
@@ -860,8 +860,9 @@ CORD compile(env_t *env, ast_t *ast)
         if (test->output) {
             const uint8_t *raw = (const uint8_t*)CORD_to_const_char_star(test->output);
             uint8_t buf[128] = {0};
-            size_t norm_len = sizeof(buf)-1;
-            uint8_t *norm = u8_normalize(UNINORM_NFD, (uint8_t*)raw, strlen((char*)raw), buf, &norm_len);
+            size_t norm_len = sizeof(buf);
+            uint8_t *norm = u8_normalize(UNINORM_NFD, (uint8_t*)raw, strlen((char*)raw)+1, buf, &norm_len);
+            assert(norm[norm_len-1] == 0);
             output = CORD_from_char_star((char*)norm);
             if (norm && norm != buf) free(norm);
         }
