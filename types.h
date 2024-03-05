@@ -80,10 +80,12 @@ struct type_s {
         struct {
             const char *name;
             arg_t *fields;
+            bool opaque;
         } StructType;
         struct {
             const char *name;
             tag_t *tags;
+            bool opaque;
         } EnumType;
         struct {
             const char *name;

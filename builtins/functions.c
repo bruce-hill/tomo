@@ -112,7 +112,7 @@ public bool generic_equal(const void *x, const void *y, const TypeInfo *type)
 public CORD generic_as_text(const void *obj, bool colorize, const TypeInfo *type)
 {
     switch (type->tag) {
-    case PointerInfo: return Pointer__cord(obj, colorize, type);
+    case PointerInfo: return Pointer__as_text(obj, colorize, type);
     case FunctionInfo: return Func__as_text(obj, colorize, type);
     case ArrayInfo: return Array__as_text(obj, colorize, type);
     case TableInfo: return Table_as_text(obj, colorize, type);

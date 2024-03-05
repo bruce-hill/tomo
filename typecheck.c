@@ -118,14 +118,18 @@ void bind_statement(env_t *env, ast_t *statement)
         env_t *ns_env = namespace_env(env, def->name);
 
         arg_t *fields = NULL;
-        type_t *type = Type(StructType, .name=def->name, .fields=fields); // placeholder
+        type_t *type = Type(StructType, .name=def->name, .fields=fields, .opaque=true); // placeholder
+        Table_str_set(env->types, def->name, type);
         for (arg_ast_t *field_ast = def->fields; field_ast; field_ast = field_ast->next) {
             type_t *field_t = parse_type_ast(env, field_ast->type);
+            if ((field_t->tag == StructType && Match(field_t, StructType)->opaque)
+                || (field_t->tag == EnumType && Match(field_t, EnumType)->opaque))
+                code_err(field_ast->type, "This type is recursive and would create an infinitely sized struct. Try using a pointer.");
             fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
         }
         REVERSE_LIST(fields);
         type->__data.StructType.fields = fields; // populate placeholder
-        Table_str_set(env->types, def->name, type);
+        type->__data.StructType.opaque = false;
         
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
             bind_statement(ns_env, stmt->ast);
@@ -141,11 +145,15 @@ void bind_statement(env_t *env, ast_t *statement)
         env_t *ns_env = namespace_env(env, def->name);
 
         tag_t *tags = NULL;
-        type_t *type = Type(EnumType, .name=def->name, .tags=tags); // placeholder
+        type_t *type = Type(EnumType, .name=def->name, .tags=tags, .opaque=true); // placeholder
+        Table_str_set(env->types, def->name, type);
         for (tag_ast_t *tag_ast = def->tags; tag_ast; tag_ast = tag_ast->next) {
             arg_t *fields = NULL;
             for (arg_ast_t *field_ast = tag_ast->fields; field_ast; field_ast = field_ast->next) {
                 type_t *field_t = parse_type_ast(env, field_ast->type);
+                if ((field_t->tag == StructType && Match(field_t, StructType)->opaque)
+                    || (field_t->tag == EnumType && Match(field_t, EnumType)->opaque))
+                    code_err(field_ast->type, "This type is recursive and would create an infinitely sized struct. Try using a pointer.");
                 fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
             }
             REVERSE_LIST(fields);
@@ -154,13 +162,13 @@ void bind_statement(env_t *env, ast_t *statement)
         }
         REVERSE_LIST(tags);
         type->__data.EnumType.tags = tags;
+        type->__data.EnumType.opaque = false;
 
         for (tag_t *tag = tags; tag; tag = tag->next) {
             type_t *constructor_t = Type(FunctionType, .args=Match(tag->type, StructType)->fields, .ret=type);
             set_binding(ns_env, tag->name, new(binding_t, .type=constructor_t, .code=CORD_all(def->name, "$tagged$", tag->name)));
             Table_str_set(env->types, heap_strf("%s$%s", def->name, tag->name), tag->type);
         }
-        Table_str_set(env->types, def->name, type);
         
         type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type);
         Table_str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type));

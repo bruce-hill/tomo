@@ -18,7 +18,7 @@ typedef struct recursion_s {
     struct recursion_s *next;
 } recursion_t;
 
-public CORD Pointer__cord(const void *x, bool colorize, const TypeInfo *type) {
+public CORD Pointer__as_text(const void *x, bool colorize, const TypeInfo *type) {
     auto ptr_info = type->PointerInfo;
     if (!x) {
         CORD typename = generic_as_text(NULL, false, ptr_info.pointed);

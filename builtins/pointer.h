@@ -5,7 +5,7 @@
 
 #include "types.h"
 
-CORD Pointer__cord(const void *x, bool colorize, const TypeInfo *type);
+CORD Pointer__as_text(const void *x, bool colorize, const TypeInfo *type);
 int32_t Pointer__compare(const void *x, const void *y, const TypeInfo *type);
 bool Pointer__equal(const void *x, const void *y, const TypeInfo *type);
 uint32_t Pointer__hash(const void *x, const TypeInfo *type);
