@@ -518,11 +518,36 @@ CORD compile(env_t *env, ast_t *ast)
         }
         return CORD_cat(code, "\n}");
     }
-    case Min: {
-        return CORD_asprintf("min(%r, %r)", compile(env, Match(ast, Min)->lhs), compile(env, Match(ast, Min)->rhs));
-    }
-    case Max: {
-        return CORD_asprintf("max(%r, %r)", compile(env, Match(ast, Max)->lhs), compile(env, Match(ast, Max)->rhs));
+    case Min: case Max: {
+        type_t *t = get_type(env, ast);
+        ast_t *key = ast->tag == Min ? Match(ast, Min)->key : Match(ast, Max)->key;
+        ast_t *lhs = ast->tag == Min ? Match(ast, Min)->lhs : Match(ast, Max)->lhs;
+        ast_t *rhs = ast->tag == Min ? Match(ast, Min)->rhs : Match(ast, Max)->rhs;
+        const char *key_name = ast->tag == Min ? "_min_" : "_max_";
+        if (key == NULL) key = FakeAST(Var, key_name);
+
+        env_t *expr_env = fresh_scope(env);
+        set_binding(expr_env, key_name, new(binding_t, .type=t, .code="$ternary$lhs"));
+        CORD lhs_key = compile(expr_env, key);
+
+        set_binding(expr_env, key_name, new(binding_t, .type=t, .code="$ternary$rhs"));
+        CORD rhs_key = compile(expr_env, key);
+
+        type_t *key_t = get_type(expr_env, key);
+        CORD comparison;
+        if (key_t->tag == IntType || key_t->tag == NumType || key_t->tag == BoolType || key_t->tag == PointerType)
+            comparison = CORD_all("((", lhs_key, ")", (ast->tag == Min ? "<=" : ">="), "(", rhs_key, "))");
+        else if (key_t->tag == TextType)
+            comparison = CORD_all("CORD_cmp(", lhs_key, ", ", rhs_key, ")", (ast->tag == Min ? "<=" : ">="), "0");
+        else
+            comparison = CORD_all("generic_compare($stack(", lhs_key, "), $stack(", rhs_key, "), ", compile_type_info(env, key_t), ")",
+                                  (ast->tag == Min ? "<=" : ">="), "0");
+
+        return CORD_all(
+            "({\n",
+            compile_type(t), " $ternary$lhs = ", compile(env, lhs), ", $ternary$rhs = ", compile(env, rhs), ";\n",
+            comparison, " ? $ternary$lhs : $ternary$rhs;\n"
+            "})");
     }
     // Min, Max,
     case Array: {
@@ -794,11 +819,11 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *t = get_type(env, ast);
         CORD code = CORD_all(
             "({ // Reduction:\n",
-            compile_type(t), " $lhs;\n"
+            compile_type(t), " $reduction;\n"
             );
         env_t *scope = fresh_scope(env);
-        ast_t *result = FakeAST(Var, "$lhs");
-        set_binding(scope, "$lhs", new(binding_t, .type=t));
+        ast_t *result = FakeAST(Var, "$reduction");
+        set_binding(scope, "$reduction", new(binding_t, .type=t));
         ast_t *empty = NULL;
         if (reduction->fallback) {
             type_t *fallback_type = get_type(scope, reduction->fallback);
@@ -815,14 +840,14 @@ CORD compile(env_t *env, ast_t *ast)
                               (long)(reduction->iter->end - reduction->iter->file->text)));
         }
         ast_t *i = FakeAST(Var, "$i");
-        ast_t *item = FakeAST(Var, "$rhs");
+        ast_t *item = FakeAST(Var, "$iter_value");
         ast_t *body = FakeAST(
             If, .condition=FakeAST(BinaryOp, .lhs=i, .op=BINOP_EQ, .rhs=FakeAST(Int, .i=1, .bits=64)),
             .body=FakeAST(Assign, .targets=new(ast_list_t, .ast=result), .values=new(ast_list_t, .ast=item)),
             .else_body=FakeAST(Assign, .targets=new(ast_list_t, .ast=result), .values=new(ast_list_t, .ast=reduction->combination)));
         ast_t *loop = FakeAST(For, .index=i, .value=item, .iter=reduction->iter, .body=body, .empty=empty);
-        set_binding(scope, "$rhs", new(binding_t, .type=t));
-        code = CORD_all(code, compile(scope, loop), "\n$lhs;})");
+        set_binding(scope, "$iter_value", new(binding_t, .type=t));
+        code = CORD_all(code, compile(scope, loop), "\n$reduction;})");
         return code;
     }
     case Skip: {

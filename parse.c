@@ -734,23 +734,24 @@ PARSER(parse_reduction) {
     if (op == BINOP_UNKNOWN) return NULL;
 
     ast_t *combination;
-    ast_t *lhs = NewAST(ctx->file, pos, pos, Var, .name="$lhs");
-    ast_t *rhs = NewAST(ctx->file, pos, pos, Var, .name="$rhs");
+    ast_t *lhs = NewAST(ctx->file, pos, pos, Var, .name="$reduction");
+    ast_t *rhs = NewAST(ctx->file, pos, pos, Var, .name="$iter_value");
     if (op == BINOP_MIN || op == BINOP_MAX) {
+        ast_t *key = NewAST(ctx->file, pos, pos, Var, .name=(op == BINOP_MIN ? "_min_" : "_max_"));
         for (bool progress = true; progress; ) {
             ast_t *new_term;
             progress = (false
-                || (new_term=parse_index_suffix(ctx, rhs))
-                || (new_term=parse_field_suffix(ctx, rhs))
-                || (new_term=parse_fncall_suffix(ctx, rhs, NORMAL_FUNCTION))
+                || (new_term=parse_index_suffix(ctx, key))
+                || (new_term=parse_field_suffix(ctx, key))
+                || (new_term=parse_fncall_suffix(ctx, key, NORMAL_FUNCTION))
                 );
-            if (progress) rhs = new_term;
+            if (progress) key = new_term;
         }
-        if (rhs->tag == Var) rhs = NULL;
-        else pos = rhs->end;
+        if (key->tag == Var) key = NULL;
+        else pos = key->end;
         combination = op == BINOP_MIN ?
-            NewAST(ctx->file, combo_start, pos, Min, .lhs=lhs, .rhs=lhs, .key=rhs)
-            : NewAST(ctx->file, combo_start, pos, Max, .lhs=lhs, .rhs=lhs, .key=rhs);
+            NewAST(ctx->file, combo_start, pos, Min, .lhs=lhs, .rhs=rhs, .key=key)
+            : NewAST(ctx->file, combo_start, pos, Max, .lhs=lhs, .rhs=rhs, .key=key);
     } else {
         combination = NewAST(ctx->file, combo_start, pos, BinaryOp, .op=op, .lhs=lhs, .rhs=rhs);
     }

@@ -147,17 +147,16 @@ void compile_struct_def(env_t *env, ast_t *ast)
     CORD typeinfo = CORD_asprintf("public const TypeInfo %s = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
                                   def->name, type_size(t), type_align(t));
 
-    typeinfo = CORD_all(typeinfo, ".as_text=(void*)", def->name, "$as_text, ");
-    env->code->funcs = CORD_all(env->code->funcs, compile_str_method(env, ast));
+    typeinfo = CORD_all(typeinfo, ".as_text=(void*)", def->name, "$as_text, .compare=(void*)", def->name, "$compare, ");
+    env->code->funcs = CORD_all(env->code->funcs, compile_str_method(env, ast), compile_compare_method(env, ast));
     if (!t || !is_plain_data(env, t)) {
         env->code->funcs = CORD_all(
-            env->code->funcs, compile_equals_method(env, ast), compile_compare_method(env, ast),
+            env->code->funcs, compile_equals_method(env, ast),
             compile_hash_method(env, ast));
         typeinfo = CORD_all(
             typeinfo,
             ".equal=(void*)", def->name, "$equal, "
-            ".hash=(void*)", def->name, "$hash, "
-            ".compare=(void*)", def->name, "$compare");
+            ".hash=(void*)", def->name, "$hash");
     }
     typeinfo = CORD_cat(typeinfo, "}}};\n");
     env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);

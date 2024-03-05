@@ -89,6 +89,10 @@ public int32_t generic_compare(const void *x, const void *y, const TypeInfo *typ
         return type->CustomInfo.compare(x, y, type);
     default:
       compare_data:
+        {
+            int diff = memcmp((void*)x, (void*)y, type->size);
+            printf("GOT DIFF: %d\n", diff);
+        }
         return (int32_t)memcmp((void*)x, (void*)y, type->size);
     }
 }

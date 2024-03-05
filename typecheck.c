@@ -549,8 +549,8 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *iter_t = get_type(env, reduction->iter);
         type_t *value_t = iteration_value_type(iter_t);
         env_t *scope = fresh_scope(env);
-        set_binding(scope, "$lhs", new(binding_t, .type=value_t));
-        set_binding(scope, "$rhs", new(binding_t, .type=value_t));
+        set_binding(scope, "$reduction", new(binding_t, .type=value_t, .code="$reduction"));
+        set_binding(scope, "$iter_value", new(binding_t, .type=value_t, .code="$iter_value"));
         type_t *t = get_type(scope, reduction->combination);
         if (!reduction->fallback)
             return t;

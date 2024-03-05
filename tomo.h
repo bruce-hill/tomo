@@ -57,20 +57,9 @@ CORD as_cord(void *x, bool use_color, const char *fmt, ...);
 #define xor(x, y) _Generic(x, bool: (bool)((x) ^ (y)), default: ((x) ^ (y)))
 #define mod(x, n) ((x) % (n))
 #define mod1(x, n) (((x) % (n)) + (__typeof(x))1)
-#define $cmp(x, y) (_Generic(x, CORD: CORD_cmp(x, y), char*: strcmp(x, y), const char*: strcmp(x, y), default: (x > 0) - (y > 0)))
-#define $lt(x, y) (bool)(_Generic(x, int8_t: x < y, int16_t: x < y, int32_t: x < y, int64_t: x < y, float: x < y, double: x < y, bool: x < y, \
-                             default: $cmp(x, y) < 0))
-#define $le(x, y) (bool)(_Generic(x, int8_t: x <= y, int16_t: x <= y, int32_t: x <= y, int64_t: x <= y, float: x <= y, double: x <= y, bool: x <= y, \
-                             default: $cmp(x, y) <= 0))
-#define $ge(x, y) (bool)(_Generic(x, int8_t: x >= y, int16_t: x >= y, int32_t: x >= y, int64_t: x >= y, float: x >= y, double: x >= y, bool: x >= y, \
-                             default: $cmp(x, y) >= 0))
-#define $gt(x, y) (bool)(_Generic(x, int8_t: x > y, int16_t: x > y, int32_t: x > y, int64_t: x > y, float: x > y, double: x > y, bool: x > y, \
-                             default: $cmp(x, y) > 0))
-#define $eq(x, y) (bool)(_Generic(x, int8_t: x == y, int16_t: x == y, int32_t: x == y, int64_t: x == y, float: x == y, double: x == y, bool: x == y, \
-                             default: $cmp(x, y) == 0))
-#define $ne(x, y) (bool)(_Generic(x, int8_t: x != y, int16_t: x != y, int32_t: x != y, int64_t: x != y, float: x != y, double: x != y, bool: x != y, \
-                             default: $cmp(x, y) != 0))
-#define min(x, y) ({ $var($min_lhs, x); $var($min_rhs, y); $le($min_lhs, $min_rhs) ? $min_lhs : $min_rhs; })
-#define max(x, y) ({ $var($min_lhs, x); $var($min_rhs, y); $ge($min_lhs, $min_rhs) ? $min_lhs : $min_rhs; })
+#define $cmp(x, y, info) (_Generic(x, int8_t: (x>0)-(y>0), int16_t: (x>0)-(y>0), int32_t: (x>0)-(y>0), int64_t: (x>0)-(y>0), bool: (x>0)-(y>0), \
+                                 CORD: CORD_cmp((CORD)x, (CORD)y), char*: strcmp((char*)x, (char*)y), default: generic_compare($stack(x), $stack(y), info)))
+#define min(c_type, x, y, info) ({ c_type $lhs = x, $rhs = y; generic_compare(&$lhs, &$rhs, info) <= 0 ? $lhs : $rhs; })
+#define max(c_type, x, y, info) ({ c_type $lhs = x, $rhs = y; generic_compare(&$lhs, &$rhs, info) >= 0 ? $lhs : $rhs; })
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
