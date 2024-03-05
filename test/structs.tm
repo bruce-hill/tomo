@@ -50,3 +50,5 @@ func test_mixed()
 	= "missing"
 test_mixed()
 
+struct LinkedList(x:Int, next=!LinkedList)
+>> @LinkedList(10, @LinkedList(20))

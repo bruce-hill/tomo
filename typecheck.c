@@ -121,7 +121,7 @@ void bind_statement(env_t *env, ast_t *statement)
         type_t *type = Type(StructType, .name=def->name, .fields=fields, .opaque=true); // placeholder
         Table_str_set(env->types, def->name, type);
         for (arg_ast_t *field_ast = def->fields; field_ast; field_ast = field_ast->next) {
-            type_t *field_t = parse_type_ast(env, field_ast->type);
+            type_t *field_t = get_arg_ast_type(env, field_ast);
             if ((field_t->tag == StructType && Match(field_t, StructType)->opaque)
                 || (field_t->tag == EnumType && Match(field_t, EnumType)->opaque))
                 code_err(field_ast->type, "This type is recursive and would create an infinitely sized struct. Try using a pointer.");
@@ -150,7 +150,7 @@ void bind_statement(env_t *env, ast_t *statement)
         for (tag_ast_t *tag_ast = def->tags; tag_ast; tag_ast = tag_ast->next) {
             arg_t *fields = NULL;
             for (arg_ast_t *field_ast = tag_ast->fields; field_ast; field_ast = field_ast->next) {
-                type_t *field_t = parse_type_ast(env, field_ast->type);
+                type_t *field_t = get_arg_ast_type(env, field_ast);
                 if ((field_t->tag == StructType && Match(field_t, StructType)->opaque)
                     || (field_t->tag == EnumType && Match(field_t, EnumType)->opaque))
                     code_err(field_ast->type, "This type is recursive and would create an infinitely sized struct. Try using a pointer.");

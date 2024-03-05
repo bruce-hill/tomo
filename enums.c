@@ -28,7 +28,7 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
         }
 
         for (arg_ast_t *field = tag->fields; field; field = field->next) {
-            type_t *field_t = parse_type_ast(env, field->type);
+            type_t *field_t = get_arg_ast_type(env, field);
             CORD field_str = expr_as_texting(env, CORD_all("obj->", tag->name, ".", field->name), field_t, "use_color");
             str_func = CORD_all(str_func, ", \"", field->name, "=\", ", field_str);
             if (field->next) str_func = CORD_cat(str_func, ", \", \"");
@@ -113,7 +113,10 @@ void compile_enum_def(env_t *env, ast_t *ast)
         // Constructor:
         CORD arg_sig = CORD_EMPTY;
         for (arg_ast_t *field = tag->fields; field; field = field->next) {
-            arg_sig = CORD_all(arg_sig, compile_type_ast(field->type), " ", field->name);
+            type_t *field_t = get_arg_ast_type(env, field);
+            CORD type_code = compile_type(field_t);
+            arg_sig = CORD_all(arg_sig, type_code, " ", field->name);
+            if (CORD_cmp(type_code, "Bool_t") == 0) arg_sig = CORD_cat(arg_sig, ":1");
             if (field->next) arg_sig = CORD_cat(arg_sig, ", ");
         }
         if (arg_sig == CORD_EMPTY) arg_sig = "void";

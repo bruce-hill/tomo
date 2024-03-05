@@ -90,7 +90,7 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
                              "_t *y, const TypeInfo *info) {\n"
                              "(void)info;\n");
     for (arg_ast_t *field = def->fields; field; field = field->next) {
-        type_t *field_type = parse_type_ast(env, field->type);
+        type_t *field_type = get_arg_ast_type(env, field);
         switch (field_type->tag) {
         case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
             eq_func = CORD_all(eq_func, "if (x->", field->name, " != y->", field->name, ") return no;\n");
@@ -133,9 +133,10 @@ void compile_struct_def(env_t *env, ast_t *ast)
 
     CORD_appendf(&env->code->typecode, "struct %s_s {\n", def->name);
     for (arg_ast_t *field = def->fields; field; field = field->next) {
-        CORD type = compile_type_ast(field->type);
-        CORD_appendf(&env->code->typecode, "%r %s%s;\n", type, field->name,
-                     CORD_cmp(type, "Bool_t") ? "" : ":1");
+        type_t *field_t = get_arg_ast_type(env, field);
+        CORD type_code = compile_type(field_t);
+        CORD_appendf(&env->code->typecode, "%r %s%s;\n", type_code, field->name,
+                     CORD_cmp(type_code, "Bool_t") ? "" : ":1");
     }
     CORD_appendf(&env->code->typecode, "};\n");
 
