@@ -812,15 +812,43 @@ CORD compile(env_t *env, ast_t *ast)
         case IntType: {
             type_t *item_t = iter_t;
             env_t *scope = fresh_scope(env);
-            if (for_->index)
-                code_err(for_->index, "It's redundant to have a separate iteration index");
             CORD value = compile(env, for_->value);
-            set_binding(scope, CORD_to_const_char_star(value), new(binding_t, .type=item_t));
-            if (for_->empty)
-                code_err(for_->empty, "'else' is not implemented for loops over integers");
-            return CORD_all(
-                "for (int64_t ", value, " = 1, $n = ", compile(env, for_->iter), "; ", value, " <= $n; ++", value, ")\n"
-                "\t", compile(scope, for_->body), "\n");
+            set_binding(scope, CORD_to_const_char_star(value), new(binding_t, .type=item_t, .code=value));
+
+            CORD n = compile(env, for_->iter);
+            CORD index = CORD_EMPTY;
+            if (for_->index) {
+                index = compile(env, for_->index);
+                set_binding(scope, CORD_to_const_char_star(index), new(binding_t, .type=Type(IntType, .bits=64), .code=index));
+            }
+
+            if (for_->empty && index) {
+                return CORD_all(
+                    "{\n"
+                    "int64_t $n = ", n, ";\n"
+                    "if ($n > 0) {\n"
+                    "for (int64_t ", index, " = 1, ", value, "; (", value, "=", index,") <= $n; ++", index, ")\n"
+                    "\t", compile(scope, for_->body), "\n"
+                    "}\n else ", compile(env, for_->empty),
+                    "\n}");
+            } else if (for_->empty) {
+                return CORD_all(
+                    "{\n"
+                    "int64_t $n = ", n, ";\n"
+                    "if ($n > 0) {\n"
+                    "for (int64_t ", value, " = 1; ", value, " <= $n; ++", value, ")\n"
+                    "\t", compile(scope, for_->body), "\n"
+                    "}\n else ", compile(env, for_->empty),
+                    "\n}");
+            } else if (index) {
+                return CORD_all(
+                    "for (int64_t ", value, ", ", index, " = 1, $n = ", n, "; (", value, "=", index,") <= $n; ++", value, ")\n"
+                    "\t", compile(scope, for_->body), "\n");
+            } else {
+                return CORD_all(
+                    "for (int64_t ", value, " = 1, $n = ", compile(env, for_->iter), "; ", value, " <= $n; ++", value, ")\n"
+                    "\t", compile(scope, for_->body), "\n");
+            }
         }
         default: code_err(for_->iter, "Iteration is not implemented for type: %T", iter_t);
         }
