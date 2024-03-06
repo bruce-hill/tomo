@@ -603,7 +603,22 @@ type_t *get_type(env_t *env, ast_t *ast)
 
     case If: {
         auto if_ = Match(ast, If);
-        type_t *true_t = get_type(env, if_->body);
+        type_t *true_t;
+        if (if_->condition->tag == Declare) {
+            auto decl = Match(if_->condition, Declare);
+            env_t *scope = fresh_scope(env);
+            type_t *var_t = get_type(env, decl->value);
+            if (var_t->tag == PointerType) {
+                auto ptr = Match(var_t, PointerType);
+                var_t = Type(PointerType, .pointed=ptr->pointed, .is_optional=false, .is_stack=ptr->is_stack, .is_readonly=ptr->is_readonly);
+            }
+            CORD var = Match(decl->var, Var)->name;
+            set_binding(scope, CORD_to_const_char_star(var), new(binding_t, .type=var_t));
+            true_t = get_type(scope, if_->body);
+        } else {
+            true_t = get_type(env, if_->body);
+        }
+
         if (if_->else_body) {
             type_t *false_t = get_type(env, if_->else_body);
             type_t *t_either = type_or_type(true_t, false_t);

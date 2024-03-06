@@ -718,11 +718,42 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case If: {
         auto if_ = Match(ast, If);
-        CORD code;
-        CORD_sprintf(&code, "if (%r) %r", compile(env, if_->condition), compile_statement(env, if_->body));
-        if (if_->else_body)
-            CORD_sprintf(&code, "%r\nelse %r", code, compile_statement(env, if_->else_body));
-        return code;
+        if (if_->condition->tag == Declare) {
+            auto decl = Match(if_->condition, Declare);
+            env_t *true_scope = fresh_scope(env);
+            const char *name = Match(decl->var, Var)->name;
+            CORD var_code = CORD_cat(env->scope_prefix, name);
+            type_t *var_t = get_type(env, decl->value);
+            if (var_t->tag == PointerType) {
+                auto ptr = Match(var_t, PointerType);
+                if (!ptr->is_optional)
+                    code_err(if_->condition, "This pointer will always be non-null, so it should not be used in a conditional.");
+                var_t = Type(PointerType, .pointed=ptr->pointed, .is_optional=false, .is_stack=ptr->is_stack, .is_readonly=ptr->is_readonly);
+            } else {
+                code_err(if_->condition, "Only optional pointer types can be used in 'if var := ...' statements (this is a %T)", var_t);
+            }
+            set_binding(true_scope, name, new(binding_t, .type=var_t, .code=var_code));
+            CORD code = CORD_all("{\n",
+                                 compile_type(var_t), " ", var_code, " = ", compile(env, decl->value), ";\n"
+                                 "if (", var_code, ") ", compile_statement(true_scope, if_->body));
+            if (if_->else_body)
+                code = CORD_all(code, "\nelse ", compile_statement(env, if_->else_body));
+            code = CORD_cat(code, "\n}");
+            return code;
+        } else {
+            type_t *cond_t = get_type(env, if_->condition);
+            if (cond_t->tag == PointerType) {
+                if (!Match(cond_t, PointerType)->is_optional)
+                    code_err(if_->condition, "This pointer will always be non-null, so it should not be used in a conditional.");
+            } else if (cond_t->tag != BoolType) {
+                code_err(if_->condition, "Only boolean values and optional pointers can be used in conditionals (this is a %T)", cond_t);
+            }
+            CORD code;
+            CORD_sprintf(&code, "if (%r) %r", compile(env, if_->condition), compile_statement(env, if_->body));
+            if (if_->else_body)
+                code = CORD_all(code, "\nelse ", compile_statement(env, if_->else_body));
+            return code;
+        }
     }
     case When: {
         auto when = Match(ast, When);
