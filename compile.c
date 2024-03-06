@@ -1088,6 +1088,38 @@ CORD compile(env_t *env, ast_t *ast)
     return NULL;
 }
 
+void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
+{
+    env_t *ns_env = namespace_env(env, ns_name);
+    for (ast_list_t *stmt = block ? Match(block, Block)->statements : NULL; stmt; stmt = stmt->next) {
+        ast_t *ast = stmt->ast;
+        switch (ast->tag) {
+        case FunctionDef:
+            CORD code = compile_statement(ns_env, ast);
+            env->code->funcs = CORD_cat(env->code->funcs, code);
+            break;
+        case Declare: {
+            auto decl = Match(ast, Declare);
+            type_t *t = get_type(ns_env, decl->value);
+
+            CORD var_decl = CORD_all(compile_type(t), " ", compile(ns_env, decl->var), ";\n");
+            env->code->staticdefs = CORD_cat(env->code->staticdefs, var_decl);
+
+            CORD init = CORD_all(compile(ns_env, decl->var), " = ", compile(ns_env, decl->value), ";\n");
+            env->code->main = CORD_cat(env->code->main, init);
+
+            env->code->fndefs = CORD_all(env->code->fndefs, "extern ", compile_type(t), " ", compile(ns_env, decl->var), ";\n");
+            break;
+        }
+        default: {
+            CORD code = compile_statement(ns_env, ast);
+            env->code->main = CORD_cat(env->code->main, code);
+            break;
+        }
+    }
+    }
+}
+
 CORD compile_type_info(env_t *env, type_t *t)
 {
     switch (t->tag) {

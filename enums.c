@@ -153,29 +153,7 @@ void compile_enum_def(env_t *env, ast_t *ast)
     typeinfo = CORD_cat(typeinfo, "}}};\n");
     env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
 
-    env_t *ns_env = namespace_env(env, def->name);
-    for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
-        ast_t *ast = stmt->ast;
-        switch (ast->tag) {
-        case FunctionDef:
-            CORD code = compile_statement(ns_env, ast);
-            env->code->funcs = CORD_cat(env->code->funcs, code);
-            break;
-        case Declare: {
-            CORD code = compile_statement(ns_env, ast);
-            env->code->staticdefs = CORD_cat(env->code->staticdefs, code);
-            auto decl = Match(ast, Declare);
-            type_t *t = get_type(ns_env, decl->value);
-            env->code->fndefs = CORD_all(env->code->fndefs, "extern ", compile_type(t), " ", compile(ns_env, decl->var), ";\n");
-            break;
-        }
-        default: {
-            CORD code = compile_statement(ns_env, ast);
-            env->code->main = CORD_cat(env->code->main, code);
-            break;
-        }
-    }
-    }
+    compile_namespace(env, def->name, def->namespace);
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

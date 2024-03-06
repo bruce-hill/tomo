@@ -17,6 +17,7 @@ module_code_t compile_file(ast_t *ast);
 CORD compile_type_ast(type_ast_t *t);
 CORD compile_type(type_t *t);
 CORD compile(env_t *env, ast_t *ast);
+void compile_namespace(env_t *env, const char *ns_name, ast_t *block);
 CORD compile_statement(env_t *env, ast_t *ast);
 CORD compile_type_info(env_t *env, type_t *t);
 
