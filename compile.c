@@ -771,8 +771,17 @@ CORD compile(env_t *env, ast_t *ast)
                 set_binding(scope, CORD_to_const_char_star(index), new(binding_t, .type=Type(IntType, .bits=64)));
             CORD value = compile(env, for_->value);
             set_binding(scope, CORD_to_const_char_star(value), new(binding_t, .type=item_t));
-            return CORD_all("$ARRAY_FOREACH(", compile(env, for_->iter), ", ", index, ", ", compile_type(item_t), ", ", value,
-                            ", ", compile(scope, for_->body), ", ", for_->empty ? compile(env, for_->empty) : "{}", ")");
+            CORD empty_handling = for_->empty ? CORD_all("if ($arr.length == 0) ", compile(env, for_->empty), "\nelse ") : CORD_EMPTY;
+            return CORD_all("{\n"
+                            "array_t $arr = ", compile(env, for_->iter), ";\n",
+                            // "$ARRAY_INCREF($arr);\n",
+                            empty_handling,
+                            "for (int64_t ", index, " = 1; ", index, " <= $arr.length; ", index, "++) {\n",
+                            compile_type(item_t), " ", value, " = *(", compile_type(item_t), "*)($arr.data + (", index, "-1)*$arr.stride);\n",
+                            compile(scope, for_->body),
+                            "}\n"
+                            // "$ARRAY_DECREF($arr);\n"
+                            "}");
         }
         case TableType: {
             type_t *key_t = Match(iter_t, TableType)->key_type;
