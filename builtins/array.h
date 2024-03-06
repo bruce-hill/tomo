@@ -21,7 +21,13 @@
 #define $TypedArray(t, ...) ({ t $items[] = {__VA_ARGS__}; \
                          (array_t){.length=sizeof($items)/sizeof($items[0]), \
                          .stride=(int64_t)&$items[1] - (int64_t)&$items[0], \
-                         .data=memcpy(GC_MALLOC(sizeof($items)), $items,  sizeof($items)), \
+                         .data=memcpy(GC_MALLOC(sizeof($items)), $items, sizeof($items)), \
+                         .atomic=0, \
+                         .data_refcount=1}; })
+#define $TypedArrayN(t, N, ...) ({ t $items[N] = {__VA_ARGS__}; \
+                         (array_t){.length=N, \
+                         .stride=(int64_t)&$items[1] - (int64_t)&$items[0], \
+                         .data=memcpy(GC_MALLOC(sizeof($items)), $items, sizeof($items)), \
                          .atomic=0, \
                          .data_refcount=1}; })
 #define $Array(x, ...) ({ __typeof(x) $items[] = {x, __VA_ARGS__}; \

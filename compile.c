@@ -549,17 +549,19 @@ CORD compile(env_t *env, ast_t *ast)
             comparison, " ? $ternary$lhs : $ternary$rhs;\n"
             "})");
     }
-    // Min, Max,
     case Array: {
         auto array = Match(ast, Array);
         if (!array->items)
             return "(array_t){.length=0}";
-           
-        CORD code = "$Array(";
-        for (ast_list_t *item = array->items; item; item = item->next) {
-            code = CORD_cat(code, compile(env, item->ast));
-            if (item->next) code = CORD_cat(code, ", ");
-        }
+
+        int64_t n = 0;
+        for (ast_list_t *item = array->items; item; item = item->next)
+            ++n;
+
+        type_t *item_type = Match(get_type(env, ast), ArrayType)->item_type;
+        CORD code = CORD_all("$TypedArrayN(", compile_type(item_type), CORD_asprintf(", %ld", n));
+        for (ast_list_t *item = array->items; item; item = item->next)
+            code = CORD_all(code, ", ", compile(env, item->ast));
         return CORD_cat(code, ")");
     }
     case Table: {
