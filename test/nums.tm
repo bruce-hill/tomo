@@ -44,3 +44,6 @@
 
 >> Num.INF:near(-Num.INF)
 = no
+
+>> Num32.sqrt(16f32)
+= 4_f32
