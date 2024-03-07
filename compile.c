@@ -1242,7 +1242,7 @@ module_code_t compile_file(ast_t *ast)
             env->code->typedefs, "\n",
             env->code->typecode, "\n",
             env->code->fndefs, "\n",
-            "void use$", module_name, "(void);\n"
+            "public void use(void);\n"
         ),
         .c_file=CORD_all(
             // CORD_asprintf("#line 0 %r\n", Text__quoted(ast->file->filename, false)),
@@ -1250,7 +1250,7 @@ module_code_t compile_file(ast_t *ast)
             env->code->funcs, "\n",
             env->code->typeinfos, "\n",
             "\n"
-            "void use$", module_name, "(void) {\n",
+            "public void use(void) {\n",
             env->code->main,
             "}\n"
         ),

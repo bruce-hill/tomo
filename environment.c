@@ -13,17 +13,6 @@ typedef struct {
     binding_t binding;
 } ns_entry_t;
 
-// static type_t *namespace_type(const char *name, table_t *ns)
-// {
-//     arg_t *fields = NULL;
-//     for (int64_t i = Table_length(ns); i >= 1; i--) {
-//         struct {const char *name; binding_t *binding; } *entry = Table_entry(ns, i);
-//         fields = new(arg_t, .next=fields, .name=entry->name, .type=entry->binding->type);
-//     }
-//     name = heap_strf("%s_namespace", name);
-//     return Type(StructType, .name=name, .fields=fields);
-// }
-
 env_t *new_compilation_unit(void)
 {
     env_t *env = new(env_t);
@@ -100,9 +89,9 @@ env_t *new_compilation_unit(void)
             {"min", "Int8__min", "Int8"},
             {"max", "Int8__max", "Int8"},
         )},
-#define C(name) {#name, "Num__"#name, "Num"}
-#define F(name) {#name, "Num__"#name, "func(n:Num)->Num"}
-#define F2(name) {#name, "Num__"#name, "func(x:Num, y:Num)->Num"}
+#define C(name) {#name, "M_"#name, "Num"}
+#define F(name) {#name, #name, "func(n:Num)->Num"}
+#define F2(name) {#name, #name, "func(x:Num, y:Num)->Num"}
         {"Num", Type(NumType, .bits=64), "Num_t", "Num", $TypedArray(ns_entry_t,
             {"near", "Num__near", "func(x:Num, y:Num, ratio=1e-9, min_epsilon=1e-9)->Bool"},
             {"format", "Num__format", "func(n:Num, precision=0)->Text"},
@@ -112,9 +101,12 @@ env_t *new_compilation_unit(void)
             {"isfinite", "Num__isfinite", "func(n:Num)->Bool"},
             {"isnan", "Num__isnan", "func(n:Num)->Bool"},
             C(2_SQRTPI), C(E), C(PI_2), C(2_PI), C(1_PI), C(LN10), C(LN2), C(LOG2E),
-            C(PI), C(PI_4), C(SQRT2), C(SQRT1_2), C(INF), C(TAU),
+            C(PI), C(PI_4), C(SQRT2), C(SQRT1_2),
+            {"INF", "INFINITY", "Num"},
+            {"TAU", "(2.*M_PI)", "Num"},
             {"random", "Num__random", "func()->Num"},
-            F(abs), F(acos), F(acosh), F(asin), F(asinh), F(atan), F(atanh), F(cbrt), F(ceil), F(cos), F(cosh), F(erf), F(erfc),
+            {"abs", "fabs", "func(n:Num)->Num"},
+            F(acos), F(acosh), F(asin), F(asinh), F(atan), F(atanh), F(cbrt), F(ceil), F(cos), F(cosh), F(erf), F(erfc),
             F(exp), F(exp2), F(expm1), F(floor), F(j0), F(j1), F(log), F(log10), F(log1p), F(log2), F(logb),
             F(rint), F(round), F(significand), F(sin), F(sinh), F(sqrt),
             F(tan), F(tanh), F(tgamma), F(trunc), F(y0), F(y1),
@@ -123,9 +115,9 @@ env_t *new_compilation_unit(void)
 #undef F2
 #undef F
 #undef C
-#define C(name) {#name, "Num32__"#name, "Num32"}
-#define F(name) {#name, "Num32__"#name, "func(n:Num32)->Num32"}
-#define F2(name) {#name, "Num32__"#name, "func(x:Num32, y:Num32)->Num32"}
+#define C(name) {#name, "(Num32_t)(M_"#name")", "Num32"}
+#define F(name) {#name, #name"f", "func(n:Num32)->Num32"}
+#define F2(name) {#name, #name"f", "func(x:Num32, y:Num32)->Num32"}
         {"Num32", Type(NumType, .bits=32), "Num32_t", "Num32", $TypedArray(ns_entry_t,
             {"near", "Num32__near", "func(x:Num32, y:Num32, ratio=1e-9f32, min_epsilon=1e-9f32)->Bool"},
             {"format", "Num32__format", "func(n:Num32, precision=0)->Text"},
@@ -135,9 +127,12 @@ env_t *new_compilation_unit(void)
             {"isfinite", "Num32__isfinite", "func(n:Num32)->Bool"},
             {"isnan", "Num32__isnan", "func(n:Num32)->Bool"},
             C(2_SQRTPI), C(E), C(PI_2), C(2_PI), C(1_PI), C(LN10), C(LN2), C(LOG2E),
-            C(PI), C(PI_4), C(SQRT2), C(SQRT1_2), C(INF), C(TAU),
+            C(PI), C(PI_4), C(SQRT2), C(SQRT1_2),
+            {"INF", "(Num32_t)(INFINITY)", "Num32"},
+            {"TAU", "(Num32_t)(2.f*M_PI)", "Num32"},
             {"random", "Num32__random", "func()->Num32"},
-            F(abs), F(acos), F(acosh), F(asin), F(asinh), F(atan), F(atanh), F(cbrt), F(ceil), F(cos), F(cosh), F(erf), F(erfc),
+            {"abs", "fabsf", "func(n:Num32)->Num32"},
+            F(acos), F(acosh), F(asin), F(asinh), F(atan), F(atanh), F(cbrt), F(ceil), F(cos), F(cosh), F(erf), F(erfc),
             F(exp), F(exp2), F(expm1), F(floor), F(j0), F(j1), F(log), F(log10), F(log1p), F(log2), F(logb),
             F(rint), F(round), F(significand), F(sin), F(sinh), F(sqrt),
             F(tan), F(tanh), F(tgamma), F(trunc), F(y0), F(y1),

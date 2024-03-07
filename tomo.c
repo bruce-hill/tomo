@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
             "(void)argv;\n"
             "GC_INIT();\n"
             "detect_color();\n"
-            "use$", module.module_name, "();\n"
+            "use();\n"
             "return 0;\n"
             "}\n"
         );
