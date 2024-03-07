@@ -661,6 +661,7 @@ PARSER(parse_table) {
             progress = (false
                 || (new_entry=parse_index_suffix(ctx, entry))
                 || (new_entry=parse_field_suffix(ctx, entry))
+                || (new_entry=parse_method_call_suffix(ctx, entry))
                 || (new_entry=parse_fncall_suffix(ctx, entry, NORMAL_FUNCTION))
             );
             if (progress) entry = new_entry;
@@ -743,6 +744,7 @@ PARSER(parse_reduction) {
             progress = (false
                 || (new_term=parse_index_suffix(ctx, key))
                 || (new_term=parse_field_suffix(ctx, key))
+                || (new_term=parse_method_call_suffix(ctx, key))
                 || (new_term=parse_fncall_suffix(ctx, key, NORMAL_FUNCTION))
                 );
             if (progress) key = new_term;
