@@ -523,7 +523,7 @@ CORD compile(env_t *env, ast_t *ast)
         ast_t *key = ast->tag == Min ? Match(ast, Min)->key : Match(ast, Max)->key;
         ast_t *lhs = ast->tag == Min ? Match(ast, Min)->lhs : Match(ast, Max)->lhs;
         ast_t *rhs = ast->tag == Min ? Match(ast, Min)->rhs : Match(ast, Max)->rhs;
-        const char *key_name = ast->tag == Min ? "_min_" : "_max_";
+        const char *key_name = "$";
         if (key == NULL) key = FakeAST(Var, key_name);
 
         env_t *expr_env = fresh_scope(env);

@@ -738,7 +738,7 @@ PARSER(parse_reduction) {
     ast_t *lhs = NewAST(ctx->file, pos, pos, Var, .name="$reduction");
     ast_t *rhs = NewAST(ctx->file, pos, pos, Var, .name="$iter_value");
     if (op == BINOP_MIN || op == BINOP_MAX) {
-        ast_t *key = NewAST(ctx->file, pos, pos, Var, .name=(op == BINOP_MIN ? "_min_" : "_max_"));
+        ast_t *key = NewAST(ctx->file, pos, pos, Var, .name="$");
         for (bool progress = true; progress; ) {
             ast_t *new_term;
             progress = (false
@@ -1302,7 +1302,7 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
     for (binop_e op; (op=match_binary_operator(&pos)) != BINOP_UNKNOWN && op_tightness[op] >= min_tightness; spaces(&pos)) {
         ast_t *key = NULL;
         if (op == BINOP_MIN || op == BINOP_MAX) {
-            key = NewAST(ctx->file, pos, pos, Var, .name=op == BINOP_MIN ? "_min_" : "_max_");
+            key = NewAST(ctx->file, pos, pos, Var, .name="$");
             for (bool progress = true; progress; ) {
                 ast_t *new_term;
                 progress = (false
