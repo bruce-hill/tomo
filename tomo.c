@@ -11,7 +11,7 @@
 #include "typecheck.h"
 #include "types.h"
 
-typedef enum { MODE_RUN, MODE_TRANSPILE, MODE_EXPANDED_TRANSPILE } mode_e;
+typedef enum { MODE_RUN, MODE_COMPILE, MODE_TRANSPILE, MODE_EXPANDED_TRANSPILE } mode_e;
 
 int main(int argc, char *argv[])
 {
@@ -20,6 +20,8 @@ int main(int argc, char *argv[])
     for (int i = 1; i < argc; i++) {
         if (streq(argv[i], "-t")) {
             mode = MODE_TRANSPILE;
+        } else if (streq(argv[i], "-c")) {
+            mode = MODE_COMPILE;
         } else if (streq(argv[i], "-E")) {
             mode = MODE_EXPANDED_TRANSPILE;
         } else {
@@ -91,6 +93,22 @@ int main(int argc, char *argv[])
     if (!cc) cc = "tcc";
 
     switch (mode) {
+    case MODE_COMPILE: {
+        const char *run = heap_strf("%s -x c %s -c - -o %s.o", cc, cflags, f->filename);
+        FILE *runner = popen(run, "w");
+
+        CORD program = CORD_all(
+            "// File: ", f->filename, ".h\n",
+            module.header,
+            "\n",
+            "// File: ", f->filename, ".c\n",
+            module.c_file
+        );
+
+        CORD_put(program, runner);
+        int status = pclose(runner);
+        return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
+    }
     case MODE_RUN: {
         const char *run = streq(cc, "tcc") ? heap_strf("tcc -run %s %s %s -", cflags, ldflags, ldlibs)
             : heap_strf("gcc -x c %s %s %s - -o program && ./program", cflags, ldflags, ldlibs);
