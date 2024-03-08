@@ -24,13 +24,7 @@ typedef struct {
 } bucket_info_t;
 
 typedef struct table_s {
-    union {
-        array_t entries;
-        struct {
-            void *_entry_data;
-            int64_t length:42;
-        };
-    };
+    array_t entries;
     bucket_info_t *bucket_info;
     struct table_s *fallback;
     void *default_value;
