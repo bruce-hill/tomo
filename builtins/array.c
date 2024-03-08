@@ -171,7 +171,7 @@ public void Array__shuffle(array_t *arr, const TypeInfo *type)
     }
 }
 
-public void *Array_random(array_t arr)
+public void *Array__random(array_t arr)
 {
     if (arr.length == 0)
         return NULL; // fail("Cannot get a random item from an empty array!");

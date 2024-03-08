@@ -51,7 +51,7 @@ void Array__insert_all(array_t *arr, array_t to_insert, int64_t index, const Typ
 void Array__remove(array_t *arr, int64_t index, int64_t count, const TypeInfo *type);
 void Array__sort(array_t *arr, const TypeInfo *type);
 void Array__shuffle(array_t *arr, const TypeInfo *type);
-void *Array_random(array_t arr);
+void *Array__random(array_t arr);
 void Array__clear(array_t *array, const TypeInfo *type);
 void Array__compact(array_t *arr, const TypeInfo *type);
 bool Array__contains(array_t array, void *item, const TypeInfo *type);
