@@ -176,7 +176,6 @@ env_t *new_compilation_unit(void)
             type_t *type = parse_type_string(env, entry.type_str);
             binding_t *b = new(binding_t, .code=entry.code, .type=type);
             Table_str_set(namespace, entry.name, b);
-            // printf("Bound %s:%s -> %T\n", global_types[i].name, entry.name, b->type);
         }, {})
         Table_str_set(env->type_namespaces, global_types[i].name, namespace);
     }
