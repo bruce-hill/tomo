@@ -21,6 +21,7 @@
 #include "../util.h"
 #include "array.h"
 #include "datatypes.h"
+#include "memory.h"
 #include "text.h"
 #include "table.h"
 #include "types.h"
@@ -41,17 +42,17 @@
 #define GET_ENTRY(t, i) ((t)->entries.data + (t)->entries.stride*(i))
 #define ENTRIES_TYPE(type) (&(TypeInfo){.size=sizeof(array_t), .align=__alignof__(array_t), .tag=ArrayInfo, .ArrayInfo.item=(&(TypeInfo){.size=entry_size(type), .align=entry_align(type), .tag=OpaqueInfo})})
 
-TypeInfo MemoryPointer = {
+const TypeInfo MemoryPointer = {
     .size=sizeof(void*),
     .align=__alignof__(void*),
     .tag=PointerInfo,
     .PointerInfo={
         .sigil="@",
-        .pointed=NULL,
+        .pointed=&Memory,
     },
 };
 
-TypeInfo StrToVoidStarTable = {
+const TypeInfo StrToVoidStarTable = {
     .size=sizeof(table_t),
     .align=__alignof__(table_t),
     .tag=TableInfo,

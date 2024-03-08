@@ -17,7 +17,7 @@ public CORD Memory__as_text(const void *p, bool colorize, const TypeInfo *type) 
     (void)type;
     if (!p) return "Memory";
     CORD cord;
-    CORD_sprintf(&cord, colorize ? "\x1b[0;34;1mMemory<%p>\x1b[m" : "Memory<%p>", *(const void**)p);
+    CORD_sprintf(&cord, colorize ? "\x1b[0;34;1mMemory<%p>\x1b[m" : "Memory<%p>", p);
     return cord;
 }
 
