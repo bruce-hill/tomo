@@ -148,6 +148,68 @@ static void check_assignable(env_t *env, ast_t *ast)
     }
 }
 
+static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args)
+{
+    table_t used_args = {};
+    CORD code = CORD_EMPTY;
+    env_t *default_scope = fresh_scope(env);
+    default_scope->locals->fallback = env->globals;
+    for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
+        // Find keyword:
+        if (spec_arg->name) {
+            for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
+                if (call_arg->name && streq(call_arg->name, spec_arg->name)) {
+                    type_t *actual_t = get_type(env, call_arg->value);
+                    if (!can_promote(actual_t, spec_arg->type))
+                        code_err(call_arg->value, "This argument is supposed to be a %T, but this value is a %T", spec_arg->type, actual_t);
+                    Table_str_set(&used_args, call_arg->name, call_arg);
+                    if (code) code = CORD_cat(code, ", ");
+                    code = CORD_cat(code, compile(env, call_arg->value));
+                    goto found_it;
+                }
+            }
+        }
+        // Find positional:
+        int64_t i = 1;
+        for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
+            if (call_arg->name) continue;
+            const char *pseudoname = heap_strf("%ld", i++);
+            if (!Table_str_get(&used_args, pseudoname)) {
+                type_t *actual_t = get_type(env, call_arg->value);
+                if (!can_promote(actual_t, spec_arg->type))
+                    code_err(call_arg->value, "This argument is supposed to be a %T, but this value is a %T", spec_arg->type, actual_t);
+                Table_str_set(&used_args, pseudoname, call_arg);
+                if (code) code = CORD_cat(code, ", ");
+                code = CORD_cat(code, compile(env, call_arg->value));
+                goto found_it;
+            }
+        }
+
+        if (spec_arg->default_val) {
+            if (code) code = CORD_cat(code, ", ");
+            code = CORD_cat(code, compile(default_scope, spec_arg->default_val));
+            goto found_it;
+        }
+
+        assert(spec_arg->name);
+        code_err(call_ast, "The required argument '%s' was not provided", spec_arg->name);
+      found_it: continue;
+    }
+
+    int64_t i = 1;
+    for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
+        if (call_arg->name) {
+            if (!Table_str_get(&used_args, call_arg->name))
+                code_err(call_arg->value, "There is no argument with the name '%s'", call_arg->name);
+        } else {
+            const char *pseudoname = heap_strf("%ld", i++);
+            if (!Table_str_get(&used_args, pseudoname))
+                code_err(call_arg->value, "This is one argument too many!");
+        }
+    }
+    return code;
+}
+
 CORD compile(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
@@ -639,7 +701,55 @@ CORD compile(env_t *env, ast_t *ast)
         env->code->funcs = CORD_all(env->code->funcs, code, " ", body);
         return CORD_EMPTY;
     }
-    case FunctionCall: case MethodCall: {
+    case MethodCall: {
+        auto call = Match(ast, MethodCall);
+        type_t *self_t = get_type(env, call->self);
+        type_t *self_value_t = value_type(self_t);
+        switch (self_value_t->tag) {
+        case ArrayType: {
+            // TODO: check for readonly
+            if (streq(call->name, "insert")) {
+                type_t *item_t = Match(self_value_t, ArrayType)->item_type;
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                arg_t *arg_spec = new(arg_t, .name="item", .type=Type(PointerType, .pointed=item_t, .is_stack=true, .is_readonly=true),
+                                      .next=new(arg_t, .name="at", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=0, .bits=64)));
+                return CORD_all("Array__insert(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                                compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "remove")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                arg_t *arg_spec = new(arg_t, .name="index", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=-1, .bits=64),
+                                      .next=new(arg_t, .name="count", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=1, .bits=64)));
+                return CORD_all("Array__remove(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                                compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "random")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                return CORD_all("Array__random(", self, ")");
+            } else if (streq(call->name, "shuffle")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                return CORD_all("Array__shuffle(", self, ", ", compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "sort")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                return CORD_all("Array__sort(", self, ", ", compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "clear")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                return CORD_all("Array__compact(", self, ")");
+            } else if (streq(call->name, "slice")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                arg_t *arg_spec = new(arg_t, .name="first", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=1, .bits=64),
+                                      .next=new(arg_t, .name="length", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=INT64_MAX, .bits=64),
+                                                .next=new(arg_t, .name="stride", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=1, .bits=64))));
+                return CORD_all("Array__slice(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                                compile_type_info(env, self_value_t), ")");
+            } else code_err(ast, "There is no '%s' method for arrays", call->name);
+        }
+        case TableType: {
+            goto fncall;
+        }
+        default: goto fncall;
+        }
+    }
+    case FunctionCall: {
+      fncall:;
         type_t *fn_t;
         arg_ast_t *args;
         CORD fn;
@@ -665,56 +775,8 @@ CORD compile(env_t *env, ast_t *ast)
             fn = b->code;
         }
         
-        CORD code = CORD_cat_char(fn, '(');
-        // Pass 1: assign keyword args
-        // Pass 2: assign positional args
-        // Pass 3: compile and typecheck each arg
-        table_t arg_bindings = {};
-        for (arg_ast_t *call_arg = args; call_arg; call_arg = call_arg->next) {
-            if (call_arg->name)
-                Table_str_set(&arg_bindings, call_arg->name, call_arg->value);
-        }
-        for (arg_ast_t *call_arg = args; call_arg; call_arg = call_arg->next) {
-            if (call_arg->name)
-                continue;
-
-            const char *name = NULL;
-            for (arg_t *fn_arg = Match(fn_t, FunctionType)->args; fn_arg; fn_arg = fn_arg->next) {
-                if (!Table_str_get(&arg_bindings, fn_arg->name)) {
-                    name = fn_arg->name;
-                    break;
-                }
-            }
-            if (name)
-                Table_str_set(&arg_bindings, name, call_arg->value);
-            else
-                code_err(call_arg->value, "This is too many arguments to the function: %T", fn_t);
-        }
-
-        // TODO: ensure args get executed in order (e.g. `foo(y=get_next(1), x=get_next(2))`
-        // should not execute out of order)
-        for (arg_t *fn_arg = Match(fn_t, FunctionType)->args; fn_arg; fn_arg = fn_arg->next) {
-            ast_t *arg = Table_str_get(&arg_bindings, fn_arg->name);
-            if (arg) {
-                Table_str_remove(&arg_bindings, fn_arg->name);
-            } else {
-                arg = fn_arg->default_val;
-            }
-            if (!arg)
-                code_err(ast, "The required argument '%s' is not provided", fn_arg->name);
-
-            code = CORD_cat(code, compile(env, arg));
-            if (fn_arg->next) code = CORD_cat(code, ", ");
-        }
-
-        struct {
-            const char *name;
-            ast_t *ast;
-        } *invalid = Table_str_entry(&arg_bindings, 1);
-        if (invalid)
-            code_err(invalid->ast, "There is no argument named %s for %T", invalid->name, fn_t);
-
-        return CORD_cat_char(code, ')');
+        CORD code = CORD_all(fn, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, args), ")");
+        return code;
     }
     case If: {
         auto if_ = Match(ast, If);

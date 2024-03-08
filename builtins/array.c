@@ -54,7 +54,7 @@ public void Array__insert(array_t *arr, const void *item, int64_t index, const T
         arr->free = 4;
         arr->data = arr->atomic ? GC_MALLOC_ATOMIC(arr->free * item_size) : GC_MALLOC(arr->free * item_size);
         arr->stride = item_size;
-    } else if (arr->free < 1 || (int64_t)arr->stride != item_size) {
+    } else if (arr->free < 1 || arr->data_refcount || (int64_t)arr->stride != item_size) {
         arr->free = MAX(15, MIN(1, arr->length/4));
         void *copy = arr->atomic ? GC_MALLOC_ATOMIC((arr->length + arr->free) * item_size) : GC_MALLOC((arr->length + arr->free) * item_size);
         for (int64_t i = 0; i < index-1; i++)
@@ -65,9 +65,6 @@ public void Array__insert(array_t *arr, const void *item, int64_t index, const T
         arr->data_refcount = 0;
         arr->stride = item_size;
     } else {
-        if (arr->data_refcount)
-            Array__compact(arr, type);
-
         if (index != arr->length+1)
             memmove((void*)arr->data + index*item_size, arr->data + (index-1)*item_size, (arr->length - index)*item_size);
     }
@@ -88,7 +85,7 @@ public void Array__insert_all(array_t *arr, array_t to_insert, int64_t index, co
     if (!arr->data) {
         arr->free = to_insert.length;
         arr->data = arr->atomic ? GC_MALLOC_ATOMIC(item_size*arr->free) : GC_MALLOC(item_size*arr->free);
-    } else if ((int64_t)arr->free < (int64_t)to_insert.length || (int64_t)arr->stride != item_size) {
+    } else if ((int64_t)arr->free < (int64_t)to_insert.length || arr->data_refcount || (int64_t)arr->stride != item_size) {
         arr->free = to_insert.length;
         void *copy = arr->atomic ? GC_MALLOC_ATOMIC((arr->length + arr->free) * item_size) : GC_MALLOC((arr->length + arr->free) * item_size);
         for (int64_t i = 0; i < index-1; i++)
@@ -98,9 +95,6 @@ public void Array__insert_all(array_t *arr, array_t to_insert, int64_t index, co
         arr->data = copy;
         arr->data_refcount = 0;
     } else {
-        if (arr->data_refcount)
-            Array__compact(arr, type);
-
         if (index != arr->length+1)
             memmove((void*)arr->data + index*item_size, arr->data + (index-1)*item_size, (arr->length - index + to_insert.length-1)*item_size);
     }
@@ -179,7 +173,7 @@ public void *Array__random(array_t arr)
     return arr.data + arr.stride*index;
 }
 
-public array_t Array__slice(array_t *array, int64_t first, int64_t stride, int64_t length, const TypeInfo *type)
+public array_t Array__slice(array_t *array, int64_t first, int64_t length, int64_t stride, const TypeInfo *type)
 {
     if (stride > MAX_STRIDE || stride < MIN_STRIDE)
         fail("Stride is too big: %ld", stride);
@@ -263,9 +257,8 @@ public bool Array__contains(array_t array, void *item, const TypeInfo *type)
     return false;
 }
 
-public void Array__clear(array_t *array, const TypeInfo *type)
+public void Array__clear(array_t *array)
 {
-    (void)type;
     *array = (array_t){.data=0, .length=0};
 }
 

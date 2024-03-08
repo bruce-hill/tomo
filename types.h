@@ -16,6 +16,12 @@ typedef struct arg_s {
     struct arg_s *next;
 } arg_t;
 
+#define ARG_LIST(...) ({\
+    arg_t *args[] = {__VA_ARGS__}; \
+    for (size_t i = 0; i < sizeof(args)/sizeof(args[0])-1; i++) \
+        args[i]->next = args[i+1]; \
+    args[0]; })
+
 typedef struct tag_s {
     const char *name;
     int64_t tag_value;

@@ -403,13 +403,41 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
     case MethodCall: {
         auto call = Match(ast, MethodCall);
-        type_t *fn_type_t = get_method_type(env, call->self, call->name);
-        if (!fn_type_t)
-            code_err(ast, "No such method!");
-        if (fn_type_t->tag != FunctionType)
-            code_err(ast, "This isn't a method, it's a %T", fn_type_t);
-        auto fn_type = Match(fn_type_t, FunctionType);
-        return fn_type->ret;
+        type_t *self_value_t = value_type(get_type(env, call->self));
+        switch (self_value_t->tag) {
+        case ArrayType: {
+            if (streq(call->name, "insert")) return Type(VoidType);
+            else if (streq(call->name, "insert_all")) return Type(VoidType);
+            else if (streq(call->name, "remove")) return Type(VoidType);
+            else if (streq(call->name, "sort")) return Type(VoidType);
+            else if (streq(call->name, "shuffle")) return Type(VoidType);
+            else if (streq(call->name, "random"))
+                return Type(PointerType, .pointed=Match(self_value_t, ArrayType)->item_type, .is_optional=true, .is_readonly=true);
+            else if (streq(call->name, "clear")) return Type(VoidType);
+            else if (streq(call->name, "compact")) return Type(VoidType);
+            else if (streq(call->name, "contains")) return Type(VoidType);
+            else if (streq(call->name, "slice")) return self_value_t;
+            else if (streq(call->name, "concat")) return self_value_t;
+            else code_err(ast, "There is no '%s' method for arrays", call->name);
+        }
+        case TableType: {
+            auto table = Match(self_value_t, TableType);
+            if (streq(call->name, "get")) return Type(PointerType, .pointed=table->value_type, .is_readonly=true, .is_optional=true);
+            else if (streq(call->name, "set")) return Type(VoidType);
+            else if (streq(call->name, "remove")) return Type(VoidType);
+            else if (streq(call->name, "clear")) return Type(VoidType);
+            else code_err(ast, "There is no '%s' method for tables", call->name);
+        }
+        default: {
+            type_t *fn_type_t = get_method_type(env, call->self, call->name);
+            if (!fn_type_t)
+                code_err(ast, "No such method!");
+            if (fn_type_t->tag != FunctionType)
+                code_err(ast, "This isn't a method, it's a %T", fn_type_t);
+            auto fn_type = Match(fn_type_t, FunctionType);
+            return fn_type->ret;
+        }
+        }
     }
     case Block: {
         auto block = Match(ast, Block);
