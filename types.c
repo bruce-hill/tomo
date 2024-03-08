@@ -300,24 +300,6 @@ bool can_promote(type_t *actual, type_t *needed)
         return true;
     }
 
-    if (actual->tag == StructType) {
-        auto actual_struct = Match(actual, StructType);
-        auto needed_struct = Match(needed, StructType);
-        // TODO: allow promoting with uninitialized or extraneous values?
-        for (arg_t *needed_field = needed_struct->fields, *actual_field = actual_struct->fields;
-             needed_field || actual_field;
-             needed_field = needed_field->next, actual_field = actual_field->next) {
-
-            if (!needed_field || !actual_field)
-                return false;
-
-            // TODO: check field names??
-            if (!can_promote(actual_field->type, needed_field->type))
-                return false;
-        }
-        return true;
-    }
-
     return false;
 }
 
