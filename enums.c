@@ -49,7 +49,7 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
                              "if (diff) return diff;\n"
                              "switch (x->$tag) {\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-        type_t *tag_type = Table_str_get(env->types, heap_strf("%s$%s", def->name, tag->name));
+        type_t *tag_type = Table_str_get(*env->types, heap_strf("%s$%s", def->name, tag->name));
         cmp_func = CORD_all(cmp_func, "\tcase $tag$", def->name, "$", tag->name, ": "
                             "return generic_compare(&x->", tag->name, ", &y->", tag->name, ", ", compile_type_info(env, tag_type), ");\n");
     }
@@ -66,7 +66,7 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
                              "if (x->$tag != y->$tag) return no;\n"
                              "switch (x->$tag) {\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-        type_t *tag_type = Table_str_get(env->types, heap_strf("%s$%s", def->name, tag->name));
+        type_t *tag_type = Table_str_get(*env->types, heap_strf("%s$%s", def->name, tag->name));
         eq_func = CORD_all(eq_func, "\tcase $tag$", def->name, "$", tag->name, ": "
                             "return generic_equal(&x->", tag->name, ", &y->", tag->name, ", ", compile_type_info(env, tag_type), ");\n");
     }
@@ -82,7 +82,7 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
                               "uint32_t hashes[2] = {(uint32_t)obj->$tag};\n"
                               "switch (obj->$tag) {\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-        type_t *tag_type = Table_str_get(env->types, heap_strf("%s$%s", def->name, tag->name));
+        type_t *tag_type = Table_str_get(*env->types, heap_strf("%s$%s", def->name, tag->name));
         hash_func = CORD_all(hash_func, "\tcase $tag$", def->name, "$", tag->name, ": "
                              "hashes[1] = generic_hash(&obj->", tag->name, ", ", compile_type_info(env, tag_type), ");\n"
                              "break;\n");
@@ -135,7 +135,7 @@ void compile_enum_def(env_t *env, ast_t *ast)
     enum_def = CORD_cat(enum_def, "};\n};\n");
     env->code->typecode = CORD_cat(env->code->typecode, enum_def);
 
-    type_t *t = Table_str_get(env->types, def->name);
+    type_t *t = Table_str_get(*env->types, def->name);
     CORD typeinfo = CORD_asprintf("public const TypeInfo %s = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
                                   def->name, type_size(t), type_align(t));
 

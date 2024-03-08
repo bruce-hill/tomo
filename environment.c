@@ -196,7 +196,7 @@ env_t *namespace_env(env_t *env, const char *namespace_name)
 {
     env_t *ns_env = new(env_t);
     *ns_env = *env;
-    ns_env->locals = Table_str_get(env->type_namespaces, namespace_name);
+    ns_env->locals = Table_str_get(*env->type_namespaces, namespace_name);
     if (!ns_env->locals) {
         ns_env->locals = new(table_t, .fallback=env->globals);
         Table_str_set(env->type_namespaces, namespace_name, ns_env->locals);
@@ -207,7 +207,7 @@ env_t *namespace_env(env_t *env, const char *namespace_name)
 
 binding_t *get_binding(env_t *env, const char *name)
 {
-    return Table_str_get(env->locals, name);
+    return Table_str_get(*env->locals, name);
 }
 
 binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
@@ -224,11 +224,11 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
         errx(1, "Table methods not implemented");
     }
     case BoolType: case IntType: case NumType: case TextType: {
-        table_t *ns = Table_str_get(env->type_namespaces, CORD_to_const_char_star(type_to_cord(cls_type)));
+        table_t *ns = Table_str_get(*env->type_namespaces, CORD_to_const_char_star(type_to_cord(cls_type)));
         if (!ns) {
             code_err(self, "No namespace found for this type!");
         }
-        return Table_str_get(ns, name);
+        return Table_str_get(*ns, name);
     }
     case TypeInfoType: case StructType: case EnumType: {
         const char *type_name;
@@ -239,9 +239,9 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
         default: errx(1, "Unreachable");
         }
 
-        table_t *namespace = Table_str_get(env->type_namespaces, type_name);
+        table_t *namespace = Table_str_get(*env->type_namespaces, type_name);
         if (!namespace) return NULL;
-        return Table_str_get(namespace, name);
+        return Table_str_get(*namespace, name);
     }
     default: break;
     }

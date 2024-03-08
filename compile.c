@@ -174,7 +174,7 @@ static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg
         for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
             if (call_arg->name) continue;
             const char *pseudoname = heap_strf("%ld", i++);
-            if (!Table_str_get(&used_args, pseudoname)) {
+            if (!Table_str_get(used_args, pseudoname)) {
                 type_t *actual_t = get_type(env, call_arg->value);
                 if (!can_promote(actual_t, spec_arg->type))
                     code_err(call_arg->value, "This argument is supposed to be a %T, but this value is a %T", spec_arg->type, actual_t);
@@ -199,11 +199,11 @@ static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg
     int64_t i = 1;
     for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
         if (call_arg->name) {
-            if (!Table_str_get(&used_args, call_arg->name))
+            if (!Table_str_get(used_args, call_arg->name))
                 code_err(call_arg->value, "There is no argument with the name '%s'", call_arg->name);
         } else {
             const char *pseudoname = heap_strf("%ld", i++);
-            if (!Table_str_get(&used_args, pseudoname))
+            if (!Table_str_get(used_args, pseudoname))
                 code_err(call_arg->value, "This is one argument too many!");
         }
     }
@@ -748,9 +748,15 @@ CORD compile(env_t *env, ast_t *ast)
                                 compile_type_info(env, self_value_t), ")");
             } else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
-        case TableType: {
-            goto fncall;
-        }
+        // case TableType: {
+        //     if (streq(call->name, "get")) {
+        //         type_t *item_t = Match(self_value_t, ArrayType)->item_type;
+        //         CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+        //         arg_t *arg_spec = new(arg_t, .name="item", .type=Type(PointerType, .pointed=item_t, .is_stack=true, .is_readonly=true),
+        //                               .next=new(arg_t, .name="at", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=0, .bits=64)));
+        //         return CORD_all("Table_get(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+        //                         compile_type_info(env, self_value_t), ")");
+        // }
         default: goto fncall;
         }
     }
@@ -1094,9 +1100,9 @@ CORD compile(env_t *env, ast_t *ast)
         switch (value_t->tag) {
         case TypeInfoType: {
             auto info = Match(value_t, TypeInfoType);
-            table_t *namespace = Table_str_get(env->type_namespaces, info->name);
+            table_t *namespace = Table_str_get(*env->type_namespaces, info->name);
             if (!namespace) code_err(f->fielded, "I couldn't find a namespace for this type");
-            binding_t *b = Table_str_get(namespace, f->field);
+            binding_t *b = Table_str_get(*namespace, f->field);
             if (!b) code_err(ast, "I couldn't find the field '%s' on this type", f->field);
             if (!b->code) code_err(ast, "I couldn't figure out how to compile this field");
             return b->code;
@@ -1189,7 +1195,7 @@ CORD compile(env_t *env, ast_t *ast)
             type_t *value_t = Match(container_t, TableType)->value_type;
             if (!can_promote(index_t, key_t))
                 code_err(indexing->index, "This value has type %T, but this table can only be index with keys of type %T", index_t, key_t);
-            CORD table = compile_to_pointer_depth(env, indexing->indexed, 1, false);
+            CORD table = compile_to_pointer_depth(env, indexing->indexed, 0, false);
             CORD key = compile(env, indexing->index);
             file_t *f = indexing->index->file;
             return CORD_all("$Table_get(", table, ", ", compile_type(key_t), ", ", compile_type(value_t), ", ",

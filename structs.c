@@ -143,7 +143,7 @@ void compile_struct_def(env_t *env, ast_t *ast)
     // Typeinfo:
     CORD_appendf(&env->code->typedefs, "extern const TypeInfo %s;\n", def->name);
 
-    type_t *t = Table_str_get(env->types, def->name);
+    type_t *t = Table_str_get(*env->types, def->name);
     CORD typeinfo = CORD_asprintf("public const TypeInfo %s = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
                                   def->name, type_size(t), type_align(t));
 

@@ -18,7 +18,7 @@
     $table.default_value = def; \
     $table; })
 #define $Table_get(table_expr, key_t, val_t, key_expr, info_expr, filename, start, end) ({ \
-    const table_t *$t = table_expr; key_t $k = key_expr; const TypeInfo* $info = info_expr; \
+    const table_t $t = table_expr; key_t $k = key_expr; const TypeInfo* $info = info_expr; \
     const val_t *$v = Table_get($t, &$k, $info); \
     if (__builtin_expect($v == NULL, 0)) \
         fail_source(filename, start, end, "The key %r is not in this table\n", generic_as_text(&$k, USE_COLOR, $info->TableInfo.key)); \
@@ -38,9 +38,9 @@
     }
 
 table_t Table_from_entries(array_t entries, const TypeInfo *type);
-void *Table_get(const table_t *t, const void *key, const TypeInfo *type);
-void *Table_get_raw(const table_t *t, const void *key, const TypeInfo *type);
-void *Table_entry(const table_t *t, int64_t n);
+void *Table_get(table_t t, const void *key, const TypeInfo *type);
+void *Table_get_raw(table_t t, const void *key, const TypeInfo *type);
+void *Table_entry(table_t t, int64_t n);
 void *Table_reserve(table_t *t, const void *key, const void *value, const TypeInfo *type);
 void Table_set(table_t *t, const void *key, const void *value, const TypeInfo *type);
 void Table_remove(table_t *t, const void *key, const TypeInfo *type);
@@ -51,14 +51,14 @@ bool Table_equal(const table_t *x, const table_t *y, const TypeInfo *type);
 uint32_t Table_hash(const table_t *t, const TypeInfo *type);
 CORD Table_as_text(const table_t *t, bool colorize, const TypeInfo *type);
 
-void *Table_str_entry(const table_t *t, int64_t n);
-void *Table_str_get(const table_t *t, const char *key);
-void *Table_str_get_raw(const table_t *t, const char *key);
+void *Table_str_entry(table_t t, int64_t n);
+void *Table_str_get(table_t t, const char *key);
+void *Table_str_get_raw(table_t t, const char *key);
 void Table_str_set(table_t *t, const char *key, const void *value);
 void *Table_str_reserve(table_t *t, const char *key, const void *value);
 void Table_str_remove(table_t *t, const char *key);
 
-#define Table_length(t) ((t)->entries.length)
+#define Table_length(t) ((t).entries.length)
 
 extern const TypeInfo StrToVoidStarTable;
 

@@ -19,7 +19,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
     switch (ast->tag) {
     case VarTypeAST: {
         const char *name = Match(ast, VarTypeAST)->name;
-        type_t *t = Table_str_get(env->types, name);
+        type_t *t = Table_str_get(*env->types, name);
         if (t) return t;
         code_err(ast, "I don't know a type with the name '%s'", name);
     }
@@ -340,9 +340,9 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *fielded_t = get_type(env, access->fielded);
         if (fielded_t->tag == TypeInfoType) {
             auto info = Match(fielded_t, TypeInfoType);
-            table_t *namespace = Table_str_get(env->type_namespaces, info->name);
+            table_t *namespace = Table_str_get(*env->type_namespaces, info->name);
             if (!namespace) code_err(access->fielded, "I couldn't find a namespace for this type");
-            binding_t *b = Table_str_get(namespace, access->field);
+            binding_t *b = Table_str_get(*namespace, access->field);
             if (!b) code_err(ast, "I couldn't find the field '%s' on this type", access->field);
             return b->type;
         }
