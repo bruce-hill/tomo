@@ -171,13 +171,14 @@ env_t *new_compilation_unit(void)
     }
 
     for (size_t i = 0; i < sizeof(global_types)/sizeof(global_types[0]); i++) {
-        table_t *namespace = new(table_t);
+        table_t *namespace = new(table_t, .fallback=env->globals);
+        Table_str_set(env->type_namespaces, global_types[i].name, namespace);
+        env_t *ns_env = namespace_env(env, global_types[i].name);
         $ARRAY_FOREACH(global_types[i].namespace, j, ns_entry_t, entry, {
-            type_t *type = parse_type_string(env, entry.type_str);
+            type_t *type = parse_type_string(ns_env, entry.type_str);
             binding_t *b = new(binding_t, .code=entry.code, .type=type);
             Table_str_set(namespace, entry.name, b);
         }, {})
-        Table_str_set(env->type_namespaces, global_types[i].name, namespace);
     }
 
     return env;
