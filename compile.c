@@ -715,6 +715,12 @@ CORD compile(env_t *env, ast_t *ast)
                                       .next=new(arg_t, .name="at", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=0, .bits=64)));
                 return CORD_all("Array__insert(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "insert_all")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                arg_t *arg_spec = new(arg_t, .name="items", .type=self_value_t,
+                                      .next=new(arg_t, .name="at", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=0, .bits=64)));
+                return CORD_all("Array__insert_all(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                                compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "remove")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="index", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=-1, .bits=64),
