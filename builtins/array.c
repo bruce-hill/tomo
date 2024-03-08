@@ -44,7 +44,7 @@ public void Array__compact(array_t *arr, const TypeInfo *type)
 
 public void Array__insert(array_t *arr, const void *item, int64_t index, const TypeInfo *type)
 {
-    if (index < 1) index = arr->length - index + 1;
+    if (index < 1) index = arr->length + index;
 
     if (index < 1) index = 1;
     else if (index > (int64_t)arr->length + 1) index = (int64_t)arr->length + 1;
@@ -79,7 +79,7 @@ public void Array__insert(array_t *arr, const void *item, int64_t index, const T
 
 public void Array__insert_all(array_t *arr, array_t to_insert, int64_t index, const TypeInfo *type)
 {
-    if (index < 1) index = arr->length - index + 1;
+    if (index < 1) index = arr->length + index;
 
     if (index < 1) index = 1;
     else if (index > (int64_t)arr->length + 1) index = (int64_t)arr->length + 1;
@@ -112,7 +112,7 @@ public void Array__insert_all(array_t *arr, array_t to_insert, int64_t index, co
 
 public void Array__remove(array_t *arr, int64_t index, int64_t count, const TypeInfo *type)
 {
-    if (index < 1) index = arr->length - index + 1;
+    if (index < 1) index = arr->length + index;
 
     if (index < 1 || index > (int64_t)arr->length || count < 1) return;
 
@@ -169,6 +169,14 @@ public void Array__shuffle(array_t *arr, const TypeInfo *type)
         memcpy((void*)arr->data + i*item_size, arr->data + j*item_size, item_size);
         memcpy((void*)arr->data + j*item_size, tmp, item_size);
     }
+}
+
+public void *Array_random(array_t arr)
+{
+    if (arr.length == 0)
+        return NULL; // fail("Cannot get a random item from an empty array!");
+    uint32_t index = arc4random_uniform(arr.length);
+    return arr.data + arr.stride*index;
 }
 
 public array_t Array__slice(array_t *array, int64_t first, int64_t stride, int64_t length, const TypeInfo *type)
