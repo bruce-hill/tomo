@@ -125,6 +125,7 @@ public CORD Text__upper(CORD str)
     if (!str) return str;
     size_t len = strlen(str) + 1;
     uint8_t *dest = GC_MALLOC_ATOMIC(len);
+    dest[len-1] = 0;
     return (CORD)u8_toupper((const uint8_t*)str, len-1, uc_locale_language(), NULL, dest, &len);
 }
 
@@ -133,6 +134,7 @@ public CORD Text__lower(CORD str)
     if (!str) return str;
     size_t len = strlen(str) + 1;
     uint8_t *dest = GC_MALLOC_ATOMIC(len);
+    dest[len-1] = 0;
     return (CORD)u8_tolower((const uint8_t*)str, len-1, uc_locale_language(), NULL, dest, &len);
 }
 
@@ -141,6 +143,7 @@ public CORD Text__title(CORD str)
     if (!str) return str;
     size_t len = strlen(str) + 1;
     uint8_t *dest = GC_MALLOC_ATOMIC(len);
+    dest[len-1] = 0;
     return (CORD)u8_totitle((const uint8_t*)str, len-1, uc_locale_language(), NULL, dest, &len);
 }
 
