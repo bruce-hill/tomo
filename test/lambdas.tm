@@ -24,3 +24,10 @@ func suffix_fn(fn:func(t:Text)->Text, suffix:Text)->func(t:Text)->Text
 >> shout2 := suffix_fn(Text.upper, "!")
 >> shout2("hello")
 = "HELLO!"
+
+func mul_func(n:Int, fn:func(x:Int)->Int)-> func(x:Int)->Int
+	return func(x:Int) n*fn(x)
+
+>> abs100 := mul_func(100, Int.abs)
+>> abs100(-5)
+= 500
