@@ -1024,7 +1024,7 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *t = get_type(env, ast);
         CORD code = CORD_all(
             "({ // Reduction:\n",
-            compile_type(t), " $reduction;\n"
+            compile_declaration(t, "$reduction"), ";\n"
             );
         env_t *scope = fresh_scope(env);
         ast_t *result = FakeAST(Var, "$reduction");
@@ -1046,12 +1046,9 @@ CORD compile(env_t *env, ast_t *ast)
         }
         ast_t *i = FakeAST(Var, "$i");
         ast_t *item = FakeAST(Var, "$iter_value");
-        ast_t *body = FakeAST(
-            If, .condition=FakeAST(BinaryOp, .lhs=i, .op=BINOP_EQ, .rhs=FakeAST(Int, .i=1, .bits=64)),
-            .body=FakeAST(Assign, .targets=new(ast_list_t, .ast=result), .values=new(ast_list_t, .ast=item)),
-            .else_body=FakeAST(Assign, .targets=new(ast_list_t, .ast=result), .values=new(ast_list_t, .ast=reduction->combination)));
-        ast_t *loop = FakeAST(For, .index=i, .value=item, .iter=reduction->iter, .body=body, .empty=empty);
         set_binding(scope, "$iter_value", new(binding_t, .type=t));
+        ast_t *body = FakeAST(InlineCCode, CORD_all("$reduction = $i == 1 ? $iter_value : ", compile(scope, reduction->combination), ";"));
+        ast_t *loop = FakeAST(For, .index=i, .value=item, .iter=reduction->iter, .body=body, .empty=empty);
         code = CORD_all(code, compile(scope, loop), "\n$reduction;})");
         return code;
     }
