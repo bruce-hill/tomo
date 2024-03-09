@@ -44,16 +44,11 @@ public void fail_source(const char *filename, int64_t start, int64_t end, CORD f
     CORD_vfprintf(stderr, fmt, args);
     va_end(args);
 
-    (void)filename;
-    (void)start;
-    (void)end;
-    /*
     file_t *file = filename ? load_file(filename) : NULL;
     if (filename && file) {
         fputs("\n", stderr);
         fprint_span(stderr, file, file->text+start, file->text+end, "\x1b[31;1m", 2, USE_COLOR);
     }
-    */
 
     raise(SIGABRT);
 }
