@@ -187,29 +187,6 @@ precision_cmp_e compare_precision(type_t *a, type_t *b)
     else return NUM_PRECISION_INCOMPARABLE;
 }
 
-bool is_orderable(type_t *t)
-{
-    switch (t->tag) {
-    case ArrayType: return is_orderable(Match(t, ArrayType)->item_type);
-    case PointerType: case FunctionType: case TableType: return false;
-    case StructType: {
-        for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
-            if (!is_orderable(field->type))
-                return false;
-        }
-        return true;
-    }
-    case EnumType: {
-        for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
-            if (tag->type && !is_orderable(tag->type))
-                return false;
-        }
-        return true;
-    }
-    default: return true;
-    }
-}
-
 bool has_heap_memory(type_t *t)
 {
     switch (t->tag) {

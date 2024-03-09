@@ -113,7 +113,6 @@ type_t *type_or_type(type_t *a, type_t *b);
 type_t *value_type(type_t *a);
 typedef enum {NUM_PRECISION_EQUAL, NUM_PRECISION_LESS, NUM_PRECISION_MORE, NUM_PRECISION_INCOMPARABLE} precision_cmp_e;
 precision_cmp_e compare_precision(type_t *a, type_t *b);
-bool is_orderable(type_t *t);
 bool has_heap_memory(type_t *t);
 bool has_stack_memory(type_t *t);
 bool can_promote(type_t *actual, type_t *needed);
