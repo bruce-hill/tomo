@@ -44,7 +44,7 @@ int op_tightness[] = {
 
 static const char *keywords[] = {
     "yes", "xor", "while", "when", "use", "then", "struct", "stop", "skip", "return",
-    "or", "not", "no", "mod1", "mod", "in", "if", "func", "for", "extern",
+    "or", "not", "no", "mod1", "mod", "lang", "in", "if", "func", "for", "extern",
     "enum", "else", "do", "and", "_mix_", "_min_", "_max_",
     NULL,
 };
@@ -84,7 +84,8 @@ static PARSER(parse_opt_indented_block);
 static PARSER(parse_var);
 static PARSER(parse_enum_def);
 static PARSER(parse_struct_def);
-static PARSER(parse_string);
+static PARSER(parse_lang_def);
+static PARSER(parse_text);
 static PARSER(parse_func_def);
 static PARSER(parse_extern);
 static PARSER(parse_declaration);
@@ -944,9 +945,10 @@ PARSER(parse_bool) {
         return NULL;
 }
 
-PARSER(parse_string) {
-    // ["$" [interp-char [closing-interp-char]]] ('"' ... '"' / "'" ... "'")
+PARSER(parse_text) {
+    // ["$" [name] [interp-char [closing-interp-char]]] ('"' ... '"' / "'" ... "'")
     const char *start = pos;
+    const char *lang = NULL;
 
     // Escape sequence, e.g. \r\n
     if (*pos == '\\') {
@@ -965,7 +967,8 @@ PARSER(parse_string) {
     } else if (match(&pos, "'")) {
         open_quote = '\'', close_quote = '\'';
     } else if (match(&pos, "$")) {
-        if (strspn(pos, (char[]){*pos, 0}) >= 2) {
+        lang = get_id(&pos);
+        if (pos[1] == pos[0]) {
             // Disable interp using a double opener: $;;...; or $``text`
             open_quote = *pos;
             pos += 2;
@@ -1061,7 +1064,7 @@ PARSER(parse_string) {
 
     REVERSE_LIST(chunks);
     expect_closing(ctx, &pos, (char[]){close_quote, 0}, "I was expecting a '%c' to finish this string", close_quote);
-    return NewAST(ctx->file, start, pos, TextJoin, .children=chunks);
+    return NewAST(ctx->file, start, pos, TextJoin, .lang=lang, .children=chunks);
 }
 
 PARSER(parse_skip) {
@@ -1139,7 +1142,7 @@ PARSER(parse_term_no_suffix) {
         || (term=parse_heap_alloc(ctx, pos))
         || (term=parse_stack_reference(ctx, pos))
         || (term=parse_bool(ctx, pos))
-        || (term=parse_string(ctx, pos))
+        || (term=parse_text(ctx, pos))
         || (term=parse_lambda(ctx, pos))
         || (term=parse_parens(ctx, pos))
         || (term=parse_table(ctx, pos))
@@ -1496,6 +1499,7 @@ PARSER(parse_namespace) {
         ast_t *stmt;
         if ((stmt=optional(ctx, &pos, parse_struct_def))
             ||(stmt=optional(ctx, &pos, parse_enum_def))
+            ||(stmt=optional(ctx, &pos, parse_lang_def))
             ||(stmt=optional(ctx, &pos, parse_func_def))
             ||(stmt=optional(ctx, &pos, parse_use))
             ||(stmt=optional(ctx, &pos, parse_linker))
@@ -1637,6 +1641,44 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
         namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
 
     return NewAST(ctx->file, start, pos, EnumDef, .name=name, .tags=tags, .namespace=namespace);
+}
+
+PARSER(parse_lang_def) {
+    const char *start = pos;
+    // lang Name
+    // lang Name(secret)
+
+    if (!match_word(&pos, "lang")) return NULL;
+    int64_t starting_indent = get_indent(ctx->file, pos);
+    spaces(&pos);
+    const char *name = get_id(&pos);
+    if (!name)
+        parser_err(ctx, start, pos, "I expected a name for this lang");
+    spaces(&pos);
+
+    bool secret = false;
+    if (match(&pos, "(")) {
+        whitespace(&pos);
+        if (match_word(&pos, "secret")) {
+            secret = true;
+            whitespace(&pos);
+            match(&pos, ",");
+        }
+        expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this lang definition");
+    }
+
+    const char *ns_pos = pos;
+    whitespace(&ns_pos);
+    int64_t ns_indent = get_indent(ctx->file, ns_pos);
+    ast_t *namespace = NULL;
+    if (ns_indent > starting_indent) {
+        pos = ns_pos;
+        namespace = optional(ctx, &pos, parse_namespace);
+    }
+    if (!namespace)
+        namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
+
+    return NewAST(ctx->file, start, pos, LangDef, .name=name, .secret=secret, .namespace=namespace);
 }
 
 arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed)

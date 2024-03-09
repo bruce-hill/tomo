@@ -15,7 +15,7 @@ typedef CORD (*str_fn_t)(const void*, bool, const struct TypeInfo*);
 typedef struct TypeInfo {
     int64_t size, align;
     struct { // Anonymous tagged union for convenience 
-        enum { CustomInfo, PointerInfo, ArrayInfo, TableInfo, FunctionInfo, TypeInfoInfo, OpaqueInfo, } tag;
+        enum { CustomInfo, PointerInfo, TextInfo, ArrayInfo, TableInfo, FunctionInfo, TypeInfoInfo, OpaqueInfo, } tag;
         union {
             struct {
                 equal_fn_t equal;
@@ -27,6 +27,9 @@ typedef struct TypeInfo {
                 const char *sigil;
                 const struct TypeInfo *pointed;
             } PointerInfo;
+            struct {
+                const char *lang;
+            } TextInfo;
             struct {
                 const struct TypeInfo *item;
             } ArrayInfo;

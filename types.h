@@ -64,7 +64,7 @@ struct type_s {
             int64_t bits;
         } NumType;
         struct {
-            const char *dsl;
+            const char *lang;
         } TextType;
         struct {
             type_t *item_type;

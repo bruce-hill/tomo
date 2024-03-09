@@ -16,9 +16,9 @@ typedef struct {
 
 CORD Text__as_text(const void *str, bool colorize, const TypeInfo *info);
 CORD Text__quoted(CORD str, bool colorize);
-int Text__compare(CORD *x, CORD *y);
-bool Text__equal(CORD *x, CORD *y);
-uint32_t Text__hash(CORD *cord);
+int Text__compare(const CORD *x, const CORD *y);
+bool Text__equal(const CORD *x, const CORD *y);
+uint32_t Text__hash(const CORD *cord);
 CORD Text__upper(CORD str);
 CORD Text__lower(CORD str);
 CORD Text__title(CORD str);

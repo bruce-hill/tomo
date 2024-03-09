@@ -16,7 +16,7 @@ CORD type_to_cord(type_t *t) {
         case VoidType: return "Void";
         case MemoryType: return "Memory";
         case BoolType: return "Bool";
-        case TextType: return "Text";
+        case TextType: return Match(t, TextType)->lang ? Match(t, TextType)->lang : "Text";
         case IntType: return Match(t, IntType)->bits == 64 ? "Int" : CORD_asprintf("Int%ld", Match(t, IntType)->bits);
         case NumType: return Match(t, NumType)->bits == 64 ? "Num" : CORD_asprintf("Num%ld", Match(t, NumType)->bits);
         case ArrayType: {

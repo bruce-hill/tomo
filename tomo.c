@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 
     module_code_t module = compile_file(ast);
     
-    if (verbose) {
+    if (verbose && mode != MODE_RUN) {
         FILE *out = popen(heap_strf("%s | bat -P --file-name=%s.h", autofmt, f->filename), "w");
         CORD_put(module.header, out);
         pclose(out);
@@ -130,6 +130,11 @@ int main(int argc, char *argv[])
             "return 0;\n"
             "}\n"
         );
+        if (verbose) {
+            FILE *out = popen(heap_strf("%s | bat -P --file-name=%s.c", autofmt, f->filename), "w");
+            CORD_put(program, out);
+            pclose(out);
+        }
 
         CORD_put(program, runner);
         int status = pclose(runner);

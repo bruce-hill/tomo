@@ -88,7 +88,7 @@ public CORD Text__quoted(CORD str, bool colorize)
     }
 }
 
-public int Text__compare(CORD *x, CORD *y)
+public int Text__compare(const CORD *x, const CORD *y)
 {
     uint8_t *xx = (uint8_t*)CORD_to_const_char_star(*x);
     uint8_t *yy = (uint8_t*)CORD_to_const_char_star(*y);
@@ -98,12 +98,12 @@ public int Text__compare(CORD *x, CORD *y)
     return result;
 }
 
-public bool Text__equal(CORD *x, CORD *y)
+public bool Text__equal(const CORD *x, const CORD *y)
 {
     return Text__compare(x, y) == 0;
 }
 
-public uint32_t Text__hash(CORD *cord)
+public uint32_t Text__hash(const CORD *cord)
 {
     if (!*cord) return 0;
 
@@ -384,13 +384,8 @@ public array_t Text__character_names(CORD text)
 public const TypeInfo Text = {
     .size=sizeof(CORD),
     .align=__alignof__(CORD),
-    .tag=CustomInfo,
-    .CustomInfo={
-        .as_text=(void*)Text__as_text,
-        .compare=(void*)Text__compare,
-        .equal=(void*)Text__equal,
-        .hash=(void*)Text__hash,
-    },
+    .tag=TextInfo,
+    .TextInfo={.lang="Text"},
 };
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

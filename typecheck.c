@@ -179,6 +179,24 @@ void bind_statement(env_t *env, ast_t *statement)
 
         break;
     }
+    case LangDef: {
+        auto def = Match(statement, LangDef);
+
+        type_t *type = Type(TextType, .lang=def->name);
+        Table_str_set(env->types, def->name, type);
+        env_t *ns_env = namespace_env(env, def->name);
+
+        set_binding(ns_env, "from_unsafe_text",
+                    new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=Type(TextType)), .ret=type),
+                        .code=CORD_all("(", def->name, "_t)")));
+
+        for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
+            bind_statement(ns_env, stmt->ast);
+
+        type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type);
+        Table_str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type));
+        break;
+    }
     default: break;
     }
 }
@@ -269,8 +287,9 @@ type_t *get_type(env_t *env, ast_t *ast)
 
         code_err(ast, "'&' stack references can only be used on variables or fields of variables");
     }
-    case TextJoin: case TextLiteral: {
-        return Type(TextType);
+    case TextLiteral: return Type(TextType);
+    case TextJoin: {
+        return Type(TextType, .lang=Match(ast, TextJoin)->lang);
     }
     case Var: {
         auto var = Match(ast, Var);
@@ -448,7 +467,7 @@ type_t *get_type(env_t *env, ast_t *ast)
 
         // Early out if the type is knowable without any context from the block:
         switch (last->ast->tag) {
-        case UpdateAssign: case Assign: case Declare: case FunctionDef: case StructDef: case EnumDef:
+        case UpdateAssign: case Assign: case Declare: case FunctionDef: case StructDef: case EnumDef: case LangDef:
             return Type(VoidType);
         default: break;
         }
@@ -624,7 +643,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         return Type(ClosureType, Type(FunctionType, .args=args, .ret=ret));
     }
 
-    case FunctionDef: case StructDef: case EnumDef: {
+    case FunctionDef: case StructDef: case EnumDef: case LangDef: {
         return Type(VoidType);
     }
 
@@ -749,7 +768,7 @@ type_t *get_type(env_t *env, ast_t *ast)
 bool is_discardable(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
-    case UpdateAssign: case Assign: case Declare: case FunctionDef: case StructDef: case EnumDef: case Use:
+    case UpdateAssign: case Assign: case Declare: case FunctionDef: case StructDef: case EnumDef: case LangDef: case Use:
         return true;
     default: break;
     }

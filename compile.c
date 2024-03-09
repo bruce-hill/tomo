@@ -82,7 +82,7 @@ CORD compile_type(type_t *t)
     case IntType: return Match(t, IntType)->bits == 64 ? "Int_t" : CORD_asprintf("Int%ld_t", Match(t, IntType)->bits);
     case NumType: return Match(t, NumType)->bits == 64 ? "Num_t" : CORD_asprintf("Num%ld_t", Match(t, NumType)->bits);
     case TextType: {
-        const char *dsl = Match(t, TextType)->dsl;
+        const char *dsl = Match(t, TextType)->lang;
         return dsl ? CORD_cat(dsl, "_t") : "Text_t";
     }
     case ArrayType: return "array_t";
@@ -109,7 +109,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
 {
     CORD stmt;
     switch (ast->tag) {
-    case If: case When: case For: case While: case FunctionDef: case Return: case StructDef: case EnumDef:
+    case If: case When: case For: case While: case FunctionDef: case Return: case StructDef: case EnumDef: case LangDef:
     case Declare: case Assign: case UpdateAssign: case DocTest: case Block:
         stmt = compile(env, ast);
         break;
@@ -578,21 +578,45 @@ CORD compile(env_t *env, ast_t *ast)
         return CORD_cat_char(code, '"');
     }
     case TextJoin: {
+        const char *lang = Match(ast, TextJoin)->lang;
+        type_t *text_t = Type(TextType, .lang=lang);
+        table_t *lang_ns = lang ? Table_str_get(*env->type_namespaces, lang) : NULL;
         ast_list_t *chunks = Match(ast, TextJoin)->children;
         if (!chunks) {
             return "(CORD)CORD_EMPTY";
-        } else if (!chunks->next) {
-            type_t *t = get_type(env, chunks->ast);
-            if (t->tag == TextType)
-                return compile(env, chunks->ast);
-            return compile_string(env, chunks->ast, "no");
+        } else if (!chunks->next && chunks->ast->tag == TextLiteral) {
+            return compile(env, chunks->ast);
         } else {
             CORD code = "CORD_all(";
             for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
+                CORD chunk_code;
                 type_t *chunk_t = get_type(env, chunk->ast);
-                CORD chunk_str = (chunk_t->tag == TextType) ?
-                    compile(env, chunk->ast) : compile_string(env, chunk->ast, "no");
-                code = CORD_cat(code, chunk_str);
+                if (chunk->ast->tag == TextLiteral) {
+                    chunk_code = compile(env, chunk->ast);
+                } else if (chunk_t->tag == TextType && streq(Match(chunk_t, TextType)->lang, lang)) {
+                    chunk_code = compile(env, chunk->ast);
+                } else if (lang && lang_ns) {
+                    // Get conversion function:
+                    chunk_code = compile(env, chunk->ast);
+                    for (int64_t i = 1; i <= Table_length(*lang_ns); i++) {
+                        struct {const char *name; binding_t *b; } *entry = Table_entry(*lang_ns, i);
+                        if (entry->b->type->tag != FunctionType) continue;
+                        if (strncmp(entry->name, "escape_", strlen("escape_")) != 0) continue;
+                        auto fn = Match(entry->b->type, FunctionType);
+                        if (!fn->args || fn->args->next) continue;
+                        if (fn->ret->tag != TextType || !streq(Match(fn->ret, TextType)->lang, lang))
+                            continue;
+                        if (!promote(env, &chunk_code, chunk_t, fn->args->type))
+                            continue;
+                        chunk_code = CORD_all(entry->b->code, "(", chunk_code, ")");
+                        goto found_conversion;
+                    }
+                    code_err(chunk->ast, "I don't know how to convert a %T to a %T", chunk_t, text_t);
+                  found_conversion:;
+                } else {
+                    chunk_code = compile_string(env, chunk->ast, "no");
+                }
+                code = CORD_cat(code, chunk_code);
                 if (chunk->next) code = CORD_cat(code, ", ");
             }
             return CORD_cat(code, ")");
@@ -767,7 +791,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD body = compile(body_scope, fndef->body);
         if (CORD_fetch(body, 0) != '{')
             body = CORD_asprintf("{\n%r\n}", body);
-        env->code->funcs = CORD_all(env->code->funcs, code, " ", body);
+        env->code->funcs = CORD_all(env->code->funcs, code, " ", body, "\n");
 
         if (fndef->cache && fndef->cache->tag == Int && Match(fndef->cache, Int)->i > 0) {
             const char *arg_type_name = heap_strf("%s$args", CORD_to_const_char_star(name));
@@ -798,7 +822,7 @@ CORD compile(env_t *env, ast_t *ast)
                 pop_code,
                 "Table_set(&$cache, &$args, &$ret, $table_type);\n"
                 "return $ret;\n"
-                "}");
+                "}\n");
             env->code->funcs = CORD_cat(env->code->funcs, wrapper);
         }
 
@@ -1197,13 +1221,23 @@ CORD compile(env_t *env, ast_t *ast)
             return "return;";
         }
     }
-    // Extern,
     case StructDef: {
         compile_struct_def(env, ast);
         return CORD_EMPTY;
     }
     case EnumDef: {
         compile_enum_def(env, ast);
+        return CORD_EMPTY;
+    }
+    case LangDef: {
+        // TODO: implement
+        auto def = Match(ast, LangDef);
+        CORD_appendf(&env->code->typedefs, "typedef CORD %s_t;\n", def->name);
+        CORD_appendf(&env->code->typedefs, "extern const TypeInfo %s;\n", def->name);
+        CORD_appendf(&env->code->typeinfos, "public const TypeInfo %s = {%zu, %zu, {.tag=TextInfo, .TextInfo={%s}}};\n",
+                     def->name, sizeof(CORD), __alignof__(CORD),
+                     Text__quoted(def->name, false), "}}};\n");
+        compile_namespace(env, def->name, def->namespace);
         return CORD_EMPTY;
     }
     case DocTest: {
@@ -1444,7 +1478,7 @@ CORD compile_type_info(env_t *env, type_t *t)
 {
     switch (t->tag) {
     case BoolType: case IntType: case NumType: return CORD_asprintf("&%r", type_to_cord(t));
-    case TextType: return CORD_all("(&", Match(t, TextType)->dsl ? Match(t, TextType)->dsl : "Text", ")");
+    case TextType: return CORD_all("(&", Match(t, TextType)->lang ? Match(t, TextType)->lang : "Text", ")");
     case StructType: return CORD_all("(&", Match(t, StructType)->name, ")");
     case EnumType: return CORD_all("(&", Match(t, EnumType)->name, ")");
     case ArrayType: {

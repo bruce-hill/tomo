@@ -105,8 +105,7 @@ typedef enum {
     Skip, Stop, Pass,
     Return,
     Extern,
-    StructDef,
-    EnumDef,
+    StructDef, EnumDef, LangDef,
     Index, FieldAccess,
     DocTest,
     Use,
@@ -141,6 +140,7 @@ struct ast_s {
             CORD cord;
         } TextLiteral;
         struct {
+            const char *lang;
             ast_list_t *children;
         } TextJoin;
         struct {
@@ -238,6 +238,11 @@ struct ast_s {
             tag_ast_t *tags;
             ast_t *namespace;
         } EnumDef;
+        struct {
+            const char *name;
+            ast_t *namespace;
+            bool secret:1;
+        } LangDef;
         struct {
             ast_t *indexed, *index;
             bool unchecked;

@@ -57,6 +57,7 @@ public uint32_t generic_hash(const void *obj, const TypeInfo *type)
 {
     switch (type->tag) {
     case PointerInfo: case FunctionInfo: return Pointer__hash(obj, type);
+    case TextInfo: return Text__hash(obj);
     case ArrayInfo: return Array__hash(obj, type);
     case TableInfo: return Table_hash(obj, type);
     case CustomInfo:
@@ -76,6 +77,7 @@ public int32_t generic_compare(const void *x, const void *y, const TypeInfo *typ
 {
     switch (type->tag) {
     case PointerInfo: case FunctionInfo: return Pointer__compare(x, y, type);
+    case TextInfo: return Text__compare(x, y);
     case ArrayInfo: return Array__compare(x, y, type);
     case TableInfo: return Table_compare(x, y, type);
     case CustomInfo:
@@ -84,10 +86,6 @@ public int32_t generic_compare(const void *x, const void *y, const TypeInfo *typ
         return type->CustomInfo.compare(x, y, type);
     default:
       compare_data:
-        {
-            int diff = memcmp((void*)x, (void*)y, type->size);
-            printf("GOT DIFF: %d\n", diff);
-        }
         return (int32_t)memcmp((void*)x, (void*)y, type->size);
     }
 }
@@ -96,6 +94,7 @@ public bool generic_equal(const void *x, const void *y, const TypeInfo *type)
 {
     switch (type->tag) {
     case PointerInfo: case FunctionInfo: return Pointer__equal(x, y, type);
+    case TextInfo: return Text__equal(x, y);
     case ArrayInfo: return Array__equal(x, y, type);
     case TableInfo: return Table_equal(x, y, type);
     case CustomInfo:
@@ -113,6 +112,7 @@ public CORD generic_as_text(const void *obj, bool colorize, const TypeInfo *type
     switch (type->tag) {
     case PointerInfo: return Pointer__as_text(obj, colorize, type);
     case FunctionInfo: return Func__as_text(obj, colorize, type);
+    case TextInfo: return obj ? Text__quoted(*(CORD*)obj, colorize) :type->TextInfo.lang;
     case ArrayInfo: return Array__as_text(obj, colorize, type);
     case TableInfo: return Table_as_text(obj, colorize, type);
     case TypeInfoInfo: return Type__as_text(obj, colorize, type);
