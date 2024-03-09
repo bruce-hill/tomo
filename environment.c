@@ -176,12 +176,21 @@ env_t *new_compilation_unit(void)
         env_t *ns_env = namespace_env(env, global_types[i].name);
         $ARRAY_FOREACH(global_types[i].namespace, j, ns_entry_t, entry, {
             type_t *type = parse_type_string(ns_env, entry.type_str);
+            if (type->tag == ClosureType) type = Match(type, ClosureType)->fn;
             binding_t *b = new(binding_t, .code=entry.code, .type=type);
             Table_str_set(namespace, entry.name, b);
         }, {})
     }
 
     return env;
+}
+
+env_t *global_scope(env_t *env)
+{
+    env_t *scope = new(env_t);
+    *scope = *env;
+    scope->locals = new(table_t, .fallback=env->globals);
+    return scope;
 }
 
 env_t *fresh_scope(env_t *env)
@@ -207,7 +216,15 @@ env_t *namespace_env(env_t *env, const char *namespace_name)
 
 binding_t *get_binding(env_t *env, const char *name)
 {
-    return Table_str_get(*env->locals, name);
+    binding_t *b = Table_str_get(*env->locals, name);
+    if (!b && env->fn_ctx && env->fn_ctx->closure_scope) {
+        b = Table_str_get(*env->fn_ctx->closure_scope, name);
+        if (b) {
+            Table_str_set(env->fn_ctx->closed_vars, name, b);
+            return new(binding_t, .type=b->type, .code=CORD_all("$userdata->", name));
+        }
+    }
+    return b;
 }
 
 binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)

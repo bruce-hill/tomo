@@ -17,9 +17,16 @@ typedef struct {
 } compilation_unit_t;
 
 typedef struct {
+    type_t *return_type;
+    table_t *closure_scope;
+    table_t *closed_vars;
+} fn_context_t;
+
+typedef struct {
     table_t *types, *globals, *locals;
     table_t *type_namespaces; // Map of type name -> namespace table
     compilation_unit_t *code;
+    fn_context_t *fn_ctx;
     CORD scope_prefix;
 } env_t;
 
@@ -29,6 +36,7 @@ typedef struct {
 } binding_t;
 
 env_t *new_compilation_unit(void);
+env_t *global_scope(env_t *env);
 env_t *fresh_scope(env_t *env);
 env_t *namespace_env(env_t *env, const char *namespace_name);
 __attribute__((noreturn))

@@ -67,7 +67,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
             }
         }
         REVERSE_LIST(type_args);
-        return Type(FunctionType, .args=type_args, .ret=ret_t);
+        return Type(ClosureType, Type(FunctionType, .args=type_args, .ret=ret_t));
     }
     case UnknownTypeAST: code_err(ast, "I don't know how to get this type");
     }
@@ -610,7 +610,7 @@ type_t *get_type(env_t *env, ast_t *ast)
     case Lambda: {
         auto lambda = Match(ast, Lambda);
         arg_t *args = NULL;
-        env_t *scope = fresh_scope(env);
+        env_t *scope = fresh_scope(env); // For now, just use closed variables in scope normally
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
             type_t *t = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->value);
             args = new(arg_t, .name=arg->name, .type=t, .next=args);

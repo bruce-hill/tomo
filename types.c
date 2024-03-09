@@ -28,7 +28,7 @@ CORD type_to_cord(type_t *t) {
             return CORD_asprintf("{%r=>%r}", type_to_cord(table->key_type), type_to_cord(table->value_type));
         }
         case ClosureType: {
-            return CORD_all("~", type_to_cord(Match(t, ClosureType)->fn));
+            return type_to_cord(Match(t, ClosureType)->fn);
         }
         case FunctionType: {
             CORD c = "func(";
@@ -261,24 +261,7 @@ bool can_promote(type_t *actual, type_t *needed)
     }
 
     if (needed->tag == ClosureType && actual->tag == FunctionType)
-        return can_promote(actual, Match(needed, ClosureType)->fn);
-
-    // Function promotion:
-    if (needed->tag == FunctionType && actual->tag == FunctionType) {
-        auto needed_fn = Match(needed, FunctionType);
-        auto actual_fn = Match(actual, FunctionType);
-        for (arg_t *needed_arg = needed_fn->args, *actual_arg = actual_fn->args;
-             needed_arg || actual_arg;
-             needed_arg = needed_arg->next, actual_arg = actual_arg->next) {
-
-            if (!needed_arg || !actual_arg)
-                return false;
-
-            if (!type_eq(needed_arg->type, actual_arg->type))
-                return false;
-        }
-        return true;
-    }
+        return type_eq(actual, Match(needed, ClosureType)->fn);
 
     return false;
 }
