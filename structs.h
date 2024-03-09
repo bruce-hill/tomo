@@ -1,5 +1,4 @@
 #pragma once
-#include <gc/cord.h>
 
 #include "ast.h"
 #include "environment.h"
