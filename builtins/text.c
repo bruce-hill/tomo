@@ -25,7 +25,7 @@
 public CORD Text__as_text(const void *text, bool colorize, const TypeInfo *info)
 {
     if (!text) return info->TextInfo.lang;
-    CORD ret = Text__quoted(*(CORD*)text, colorize);
+    CORD ret = info->TextInfo.secret ? "(*****)" : Text__quoted(*(CORD*)text, colorize);
     if (!streq(info->TextInfo.lang, "Text"))
         ret = colorize ? CORD_all("\x1b[1m$", info->TextInfo.lang, "\x1b[m", ret) : CORD_all("$", info->TextInfo.lang, ret);
     return ret;

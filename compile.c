@@ -582,7 +582,12 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case TextJoin: {
         const char *lang = Match(ast, TextJoin)->lang;
-        type_t *text_t = Type(TextType, .lang=lang);
+        type_t *text_t = Table_str_get(*env->types, lang ? lang : "Text");
+        if (!text_t || text_t->tag != TextType)
+            code_err(ast, "%s is not a valid text language name", lang);
+        if (Match(text_t, TextType)->secret)
+            code_err(ast, "%s text is marked secret, so you cannot use %s literals in code. Please load the content from a secure location instead",
+                     lang, lang);
         table_t *lang_ns = lang ? Table_str_get(*env->type_namespaces, lang) : NULL;
         ast_list_t *chunks = Match(ast, TextJoin)->children;
         if (!chunks) {
@@ -604,7 +609,8 @@ CORD compile(env_t *env, ast_t *ast)
                     for (int64_t i = 1; i <= Table_length(*lang_ns); i++) {
                         struct {const char *name; binding_t *b; } *entry = Table_entry(*lang_ns, i);
                         if (entry->b->type->tag != FunctionType) continue;
-                        if (strncmp(entry->name, "escape_", strlen("escape_")) != 0) continue;
+                        if (!(streq(entry->name, "escape") || strncmp(entry->name, "escape_", strlen("escape_")) == 0))
+                            continue;
                         auto fn = Match(entry->b->type, FunctionType);
                         if (!fn->args || fn->args->next) continue;
                         if (fn->ret->tag != TextType || !streq(Match(fn->ret, TextType)->lang, lang))
@@ -1237,9 +1243,9 @@ CORD compile(env_t *env, ast_t *ast)
         auto def = Match(ast, LangDef);
         CORD_appendf(&env->code->typedefs, "typedef CORD %s_t;\n", def->name);
         CORD_appendf(&env->code->typedefs, "extern const TypeInfo %s;\n", def->name);
-        CORD_appendf(&env->code->typeinfos, "public const TypeInfo %s = {%zu, %zu, {.tag=TextInfo, .TextInfo={%s}}};\n",
+        CORD_appendf(&env->code->typeinfos, "public const TypeInfo %s = {%zu, %zu, {.tag=TextInfo, .TextInfo={%s, .secret=%s}}};\n",
                      def->name, sizeof(CORD), __alignof__(CORD),
-                     Text__quoted(def->name, false), "}}};\n");
+                     Text__quoted(def->name, false), def->secret ? "yes" : "no");
         compile_namespace(env, def->name, def->namespace);
         return CORD_EMPTY;
     }

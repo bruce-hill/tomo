@@ -182,13 +182,16 @@ void bind_statement(env_t *env, ast_t *statement)
     case LangDef: {
         auto def = Match(statement, LangDef);
 
-        type_t *type = Type(TextType, .lang=def->name);
+        type_t *type = Type(TextType, .lang=def->name, .secret=def->secret);
         Table_str_set(env->types, def->name, type);
         env_t *ns_env = namespace_env(env, def->name);
 
         set_binding(ns_env, "from_unsafe_text",
                     new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=Type(TextType)), .ret=type),
                         .code=CORD_all("(", def->name, "_t)")));
+        set_binding(ns_env, "text_content",
+                    new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=Type(TextType)), .ret=type),
+                        .code="(Text_t)"));
 
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             bind_statement(ns_env, stmt->ast);

@@ -65,6 +65,7 @@ struct type_s {
         } NumType;
         struct {
             const char *lang;
+            bool secret;
         } TextType;
         struct {
             type_t *item_type;
