@@ -27,6 +27,9 @@ CORD type_to_cord(type_t *t) {
             auto table = Match(t, TableType);
             return CORD_asprintf("{%r=>%r}", type_to_cord(table->key_type), type_to_cord(table->value_type));
         }
+        case ClosureType: {
+            return CORD_all("~", type_to_cord(Match(t, ClosureType)->fn));
+        }
         case FunctionType: {
             CORD c = "func(";
             auto fn = Match(t, FunctionType);
@@ -440,7 +443,7 @@ size_t type_align(type_t *t)
     case ArrayType: return __alignof__(array_t);
     case TableType: return __alignof__(table_t);
     case FunctionType: return __alignof__(void*);
-    case ClosureType: return __alignof__(void*);
+    case ClosureType: return __alignof__(struct {void *fn, *userdata;});
     case PointerType: return __alignof__(void*);
     case StructType: {
         size_t align = 0;

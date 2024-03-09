@@ -30,4 +30,8 @@ typedef struct table_s {
     void *default_value;
 } table_t;
 
+typedef struct {
+    void *fn, *userdata;
+} closure_t;
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

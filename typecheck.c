@@ -396,6 +396,8 @@ type_t *get_type(env_t *env, ast_t *ast)
                 return t; // Constructor
             code_err(call->fn, "This is not a type that has a constructor");
         }
+        if (fn_type_t->tag == ClosureType)
+            fn_type_t = Match(fn_type_t, ClosureType)->fn;
         if (fn_type_t->tag != FunctionType)
             code_err(call->fn, "This isn't a function, it's a %T", fn_type_t);
         auto fn_type = Match(fn_type_t, FunctionType);
