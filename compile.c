@@ -748,15 +748,29 @@ CORD compile(env_t *env, ast_t *ast)
                                 compile_type_info(env, self_value_t), ")");
             } else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
-        // case TableType: {
-        //     if (streq(call->name, "get")) {
-        //         type_t *item_t = Match(self_value_t, ArrayType)->item_type;
-        //         CORD self = compile_to_pointer_depth(env, call->self, 1, false);
-        //         arg_t *arg_spec = new(arg_t, .name="item", .type=Type(PointerType, .pointed=item_t, .is_stack=true, .is_readonly=true),
-        //                               .next=new(arg_t, .name="at", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=0, .bits=64)));
-        //         return CORD_all("Table_get(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
-        //                         compile_type_info(env, self_value_t), ")");
-        // }
+        case TableType: {
+            auto table = Match(self_value_t, TableType);
+            if (streq(call->name, "get")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                arg_t *arg_spec = new(arg_t, .name="key", .type=Type(PointerType, .pointed=table->key_type, .is_stack=true, .is_readonly=true));
+                return CORD_all("Table_get(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                                compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "set")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                arg_t *arg_spec = new(arg_t, .name="key", .type=Type(PointerType, .pointed=table->key_type, .is_stack=true, .is_readonly=true),
+                                      .next=new(arg_t, .name="value", .type=Type(PointerType, .pointed=table->value_type, .is_stack=true, .is_readonly=true)));
+                return CORD_all("Table_set(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                                compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "remove")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                arg_t *arg_spec = new(arg_t, .name="key", .type=Type(PointerType, .pointed=table->key_type, .is_stack=true, .is_readonly=true));
+                return CORD_all("Table_remove(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                                compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "clear")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                return CORD_all("Table_clear(", self, ")");
+            } else code_err(ast, "There is no '%s' method for tables", call->name);
+        }
         default: goto fncall;
         }
     }
