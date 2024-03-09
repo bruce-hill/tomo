@@ -575,8 +575,7 @@ CORD compile(env_t *env, ast_t *ast)
         env = fresh_scope(env);
         for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next) {
             bind_statement(env, stmt->ast);
-            code = CORD_cat(code, compile_statement(env, stmt->ast));
-            code = CORD_cat(code, "\n");
+            code = CORD_all(code, compile_statement(env, stmt->ast), "\n");
         }
         return CORD_cat(code, "}");
     }
@@ -743,10 +742,14 @@ CORD compile(env_t *env, ast_t *ast)
         }
         code = CORD_cat(code, "void *$userdata)");
 
-        CORD body = compile(body_scope, lambda->body);
-        if (CORD_fetch(body, 0) != '{')
-            body = CORD_all("{\n", body, "\n}");
-        env->code->funcs = CORD_all(env->code->funcs, code, " ", body);
+        CORD body = CORD_EMPTY;
+        for (ast_list_t *stmt = Match(lambda->body, Block)->statements; stmt; stmt = stmt->next) {
+            if (stmt->next || ret_t->tag == VoidType || ret_t->tag == AbortType)
+                body = CORD_all(body, compile_statement(body_scope, stmt->ast), "\n");
+            else
+                body = CORD_all(body, compile_statement(body_scope, FakeAST(Return, stmt->ast)), "\n");
+        }
+        env->code->funcs = CORD_all(env->code->funcs, code, " {\n", body, "\n}");
         return CORD_all("(closure_t){", name, ", NULL}");
     }
     case MethodCall: {
