@@ -724,23 +724,32 @@ CORD compile(env_t *env, ast_t *ast)
         auto fndef = Match(ast, FunctionDef);
         CORD name = compile(env, fndef->name);
         type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
-        CORD signature = CORD_all(compile_type(ret_t), " ", name, "(");
+
+        CORD arg_signature = "(";
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            signature = CORD_cat(signature, compile_declaration(arg_type, arg->name));
-            if (arg->next) signature = CORD_cat(signature, ", ");
+            arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, arg->name));
+            if (arg->next) arg_signature = CORD_cat(arg_signature, ", ");
         }
-        signature = CORD_cat(signature, ")");
-        if (fndef->is_private)
-            env->code->staticdefs = CORD_all(env->code->staticdefs, "static ", signature, ";\n");
-        else
-            env->code->fndefs = CORD_all(env->code->fndefs, signature, ";\n");
+        arg_signature = CORD_cat(arg_signature, ")");
 
-        CORD code = signature;
-        if (fndef->is_inline)
-            code = CORD_cat("inline ", code);
-        if (!fndef->is_private)
-            code = CORD_cat("public ", code);
+        CORD ret_type_code = compile_type(ret_t);
+
+        if (fndef->is_private)
+            env->code->staticdefs = CORD_all(env->code->staticdefs, "static ", ret_type_code, " ", name, arg_signature, ";\n");
+        else
+            env->code->fndefs = CORD_all(env->code->fndefs, ret_type_code, " ", name, arg_signature, ";\n");
+
+        CORD code;
+        if (fndef->cache) {
+            code = CORD_all("static ", ret_type_code, " ", name, "$uncached", arg_signature);
+        } else {
+            code = CORD_all(ret_type_code, " ", name, arg_signature);
+            if (fndef->is_inline)
+                code = CORD_cat("inline ", code);
+            if (!fndef->is_private)
+                code = CORD_cat("public ", code);
+        }
 
         env_t *body_scope = global_scope(env);
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
@@ -759,6 +768,40 @@ CORD compile(env_t *env, ast_t *ast)
         if (CORD_fetch(body, 0) != '{')
             body = CORD_asprintf("{\n%r\n}", body);
         env->code->funcs = CORD_all(env->code->funcs, code, " ", body);
+
+        if (fndef->cache && fndef->cache->tag == Int && Match(fndef->cache, Int)->i > 0) {
+            const char *arg_type_name = heap_strf("%s$args", CORD_to_const_char_star(name));
+            ast_t *args_def = FakeAST(StructDef, .name=arg_type_name, .fields=fndef->args);
+            bind_statement(env, args_def);
+            (void)compile(env, args_def);
+            type_t *args_t = Table_str_get(*env->types, arg_type_name);
+            assert(args_t);
+
+            CORD all_args = CORD_EMPTY;
+            for (arg_ast_t *arg = fndef->args; arg; arg = arg->next)
+                all_args = CORD_all(all_args, arg->name, arg->next ? ", " : CORD_EMPTY);
+
+            CORD pop_code = CORD_EMPTY;
+            if (fndef->cache->tag == Int && Match(fndef->cache, Int)->i < INT64_MAX) {
+                pop_code = CORD_all("if (Table_length($cache) > ", compile(body_scope, fndef->cache),
+                                    ") Table_remove(&$cache, NULL, $table_info);\n");
+            }
+
+            CORD wrapper = CORD_all(
+                fndef->is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
+                "static table_t $cache = {};\n",
+                compile_type(args_t), " $args = {", all_args, "};\n"
+                "static const TypeInfo *$table_type = $TableInfo(", compile_type_info(env, args_t), ", ", compile_type_info(env, ret_t), ");\n",
+                ret_type_code, "*$cached = Table_get_raw($cache, &$args, $table_type);\n"
+                "if ($cached) return *$cached;\n",
+                ret_type_code, " $ret = ", name, "$uncached(", all_args, ");\n",
+                pop_code,
+                "Table_set(&$cache, &$args, &$ret, $table_type);\n"
+                "return $ret;\n"
+                "}");
+            env->code->funcs = CORD_cat(env->code->funcs, wrapper);
+        }
+
         return CORD_EMPTY;
     }
     case Lambda: {
