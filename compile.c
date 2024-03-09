@@ -122,7 +122,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
     return stmt;
 }
 
-CORD expr_as_texting(env_t *env, CORD expr, type_t *t, CORD color)
+CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
 {
     switch (t->tag) {
     case MemoryType: return CORD_asprintf("Memory__as_text($stack(%r), %r, &Memory)", expr, color);
@@ -135,7 +135,10 @@ CORD expr_as_texting(env_t *env, CORD expr, type_t *t, CORD color)
         CORD name = type_to_cord(t);
         return CORD_asprintf("%r__as_text($stack(%r), %r, &Num%r)", name, expr, color, name);
     }
-    case TextType: return CORD_asprintf("Text__as_text($stack(%r), %r, &Text)", expr, color);
+    case TextType: {
+        const char *lang = Match(t, TextType)->lang;
+        return CORD_asprintf("Text__as_text($stack(%r), %r, &%s)", expr, color, lang ? lang : "Text");
+    }
     case ArrayType: return CORD_asprintf("Array__as_text($stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case TableType: return CORD_asprintf("Table_as_text($stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case FunctionType: return CORD_asprintf("Func__as_text($stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
@@ -150,7 +153,7 @@ CORD compile_string(env_t *env, ast_t *ast, CORD color)
 {
     type_t *t = get_type(env, ast);
     CORD expr = compile(env, ast);
-    return expr_as_texting(env, expr, t, color);
+    return expr_as_text(env, expr, t, color);
 }
 
 static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool allow_optional)
@@ -611,7 +614,7 @@ CORD compile(env_t *env, ast_t *ast)
                         chunk_code = CORD_all(entry->b->code, "(", chunk_code, ")");
                         goto found_conversion;
                     }
-                    code_err(chunk->ast, "I don't know how to convert a %T to a %T", chunk_t, text_t);
+                    code_err(chunk->ast, "I don't know how to convert %T to %T", chunk_t, text_t);
                   found_conversion:;
                 } else {
                     chunk_code = compile_string(env, chunk->ast, "no");
@@ -1285,7 +1288,7 @@ CORD compile(env_t *env, ast_t *ast)
             CORD expr_cord = "CORD_all(";
             i = 1;
             for (ast_list_t *target = assign->targets; target; target = target->next) {
-                CORD item = expr_as_texting(env, CORD_asprintf("$%ld", i++), get_type(env, target->ast), "USE_COLOR");
+                CORD item = expr_as_text(env, CORD_asprintf("$%ld", i++), get_type(env, target->ast), "USE_COLOR");
                 expr_cord = CORD_all(expr_cord, item, target->next ? ", \", \", " : CORD_EMPTY);
             }
             expr_cord = CORD_cat(expr_cord, ")");

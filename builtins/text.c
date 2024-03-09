@@ -22,11 +22,13 @@
 
 #define CLAMP(x, lo, hi) MIN(hi, MAX(x,lo))
 
-public CORD Text__as_text(const void *str, bool colorize, const TypeInfo *info)
+public CORD Text__as_text(const void *text, bool colorize, const TypeInfo *info)
 {
-    (void)info;
-    if (!str) return "Text";
-    return Text__quoted(*(CORD*)str, colorize);
+    if (!text) return info->TextInfo.lang;
+    CORD ret = Text__quoted(*(CORD*)text, colorize);
+    if (!streq(info->TextInfo.lang, "Text"))
+        ret = colorize ? CORD_all("\x1b[1m$", info->TextInfo.lang, "\x1b[m", ret) : CORD_all("$", info->TextInfo.lang, ret);
+    return ret;
 }
 
 public CORD Text__quoted(CORD str, bool colorize)

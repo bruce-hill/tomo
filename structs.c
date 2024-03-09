@@ -47,7 +47,7 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
         CORD_appendf(&str_func, "\treturn CORD_all(use_color ? \"\\x1b[0;1m%s\\x1b[m(\" : \"%s(\"", def->name, def->name);
         for (arg_ast_t *field = def->fields; field; field = field->next) {
             type_t *field_type = get_arg_ast_type(env, field);
-            CORD field_str = expr_as_texting(env, CORD_cat("obj->", field->name), field_type, "use_color");
+            CORD field_str = expr_as_text(env, CORD_cat("obj->", field->name), field_type, "use_color");
             CORD_appendf(&str_func, ", \"%s=\", %r", field->name, field_str);
             if (field->next) CORD_appendf(&str_func, ", \", \"");
         }

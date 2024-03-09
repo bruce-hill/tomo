@@ -112,7 +112,7 @@ public CORD generic_as_text(const void *obj, bool colorize, const TypeInfo *type
     switch (type->tag) {
     case PointerInfo: return Pointer__as_text(obj, colorize, type);
     case FunctionInfo: return Func__as_text(obj, colorize, type);
-    case TextInfo: return obj ? Text__quoted(*(CORD*)obj, colorize) :type->TextInfo.lang;
+    case TextInfo: return Text__as_text(obj, colorize, type);
     case ArrayInfo: return Array__as_text(obj, colorize, type);
     case TableInfo: return Table_as_text(obj, colorize, type);
     case TypeInfoInfo: return Type__as_text(obj, colorize, type);

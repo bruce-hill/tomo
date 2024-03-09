@@ -29,7 +29,7 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
 
         for (arg_ast_t *field = tag->fields; field; field = field->next) {
             type_t *field_t = get_arg_ast_type(env, field);
-            CORD field_str = expr_as_texting(env, CORD_all("obj->", tag->name, ".", field->name), field_t, "use_color");
+            CORD field_str = expr_as_text(env, CORD_all("obj->", tag->name, ".", field->name), field_t, "use_color");
             str_func = CORD_all(str_func, ", \"", field->name, "=\", ", field_str);
             if (field->next) str_func = CORD_cat(str_func, ", \", \"");
         }

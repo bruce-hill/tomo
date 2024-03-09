@@ -12,7 +12,7 @@ typedef struct {
     CORD header, c_file;
 } module_code_t;
 
-CORD expr_as_texting(env_t *env, CORD expr, type_t *t, CORD color);
+CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color);
 module_code_t compile_file(ast_t *ast);
 CORD compile_type_ast(type_ast_t *t);
 CORD compile_declaration(type_t *t, const char *name);
