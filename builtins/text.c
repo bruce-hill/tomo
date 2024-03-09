@@ -169,12 +169,12 @@ public CORD Text__without(CORD str, CORD target, where_e where)
     if (!str || !target) return str;
 
     size_t target_len = CORD_len(target);
+    size_t str_len = CORD_len(str);
     if (where == WHERE_START) {
         if (CORD_ncmp(str, 0, target, 0, target_len) == 0)
-            return CORD_substr(str, target_len, SIZE_MAX);
+            return CORD_substr(str, target_len, str_len - target_len);
         return str;
     } else if (where == WHERE_END) {
-        size_t str_len = CORD_len(str);
         if (CORD_ncmp(str, str_len-target_len, target, 0, target_len) == 0)
             return CORD_substr(str, 0, str_len - target_len);
         return str;
@@ -222,11 +222,11 @@ public CORD Text__replace(CORD text, CORD pat, CORD replacement, int64_t limit)
     CORD ret = NULL;
     size_t pos = 0, pat_len = CORD_len(pat);
     for (size_t found; limit > 0 && (found=CORD_str(text, pos, pat)) != CORD_NOT_FOUND; --limit) {
-        ret = CORD_cat(ret, CORD_substr(text, pos, found));
-        ret = CORD_cat(ret, replacement);
+        ret = CORD_all(ret, CORD_substr(text, pos, found), replacement);
         pos = found + pat_len;
     }
-    return CORD_cat(ret, CORD_substr(text, pos, SIZE_MAX));
+    size_t str_len = CORD_len(text);
+    return CORD_cat(ret, CORD_substr(text, pos, str_len - pos));
 }
 
 public array_t Text__split(CORD str, CORD split)
