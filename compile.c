@@ -1454,10 +1454,11 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
     for (ast_list_t *stmt = block ? Match(block, Block)->statements : NULL; stmt; stmt = stmt->next) {
         ast_t *ast = stmt->ast;
         switch (ast->tag) {
-        case FunctionDef:
+        case FunctionDef: {
             CORD code = compile_statement(ns_env, ast);
             env->code->funcs = CORD_cat(env->code->funcs, code);
             break;
+        }
         case Declare: {
             auto decl = Match(ast, Declare);
             type_t *t = get_type(ns_env, decl->value);

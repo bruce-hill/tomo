@@ -321,7 +321,8 @@ public uint32_t Array__hash(const array_t *arr, const TypeInfo *type)
     const TypeInfo *item = type->ArrayInfo.item;
     if (item->tag == PointerInfo || (item->tag == CustomInfo && item->CustomInfo.hash == NULL)) { // Raw data hash
         int64_t item_size = item->size;
-        uint8_t hash_batch[4 + 8*item_size] = {};
+        uint8_t hash_batch[4 + 8*item_size];
+        memset(hash_batch, 0, sizeof(hash_batch));
         uint8_t *p = hash_batch, *end = hash_batch + sizeof(hash_batch);
         int64_t length = arr->length;
         *p = (uint32_t)length;

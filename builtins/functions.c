@@ -130,25 +130,6 @@ public CORD builtin_last_err()
     return CORD_from_char_star(strerror(errno));
 }
 
-static inline char *without_colors(const char *str)
-{
-    // Strip out color escape sequences: "\x1b[" ... "m"
-    size_t fmt_len = strlen(str);
-    char *buf = GC_malloc_atomic(fmt_len+1);
-    char *dest = buf;
-    for (const char *src = str; *src; ++src) {
-        if (src[0] == '\x1b' && src[1] == '[') {
-            src += 2;
-            while (*src && *src != 'm')
-                ++src;
-        } else {
-            *(dest++) = *src;
-        }
-    }
-    *dest = '\0';
-    return buf;
-}
-
 public void __doctest(void *expr, const TypeInfo *type, CORD expected, const char *filename, int64_t start, int64_t end)
 {
     static file_t *file = NULL;

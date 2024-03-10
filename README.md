@@ -13,3 +13,9 @@ func greeting(name:Text)->Text
 ```
 
 Check out the [test/](test/) folder to see some examples.
+
+## Dependencies
+
+Tomo uses the [Boehm garbage collector](https://www.hboehm.info/gc/) for
+runtime garbage collection (which is available from your package manager of
+choice, for example: `pacman -S gc`).

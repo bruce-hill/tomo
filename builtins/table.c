@@ -271,7 +271,8 @@ public void *Table_reserve(table_t *t, const void *key, const void *value, const
 
     maybe_copy_on_write(t, type);
 
-    char buf[entry_size(type)] = {};
+    char buf[entry_size(type)];
+    memset(buf, 0, sizeof(buf));
     memcpy(buf, key, key_size);
     if (value && value_size > 0)
         memcpy(buf + value_offset(type), value, value_size);
