@@ -1,7 +1,8 @@
 # Tomo - Tomorrow's Language
 
-Tomo is a programming language designed to anticipate and influence the
-language design decisions of the future.
+Tomo is a statically typed, safe, simple, lightweight, efficient programming
+language that cross-compiles to C. Tomo is designed to anticipate and influence
+the language design decisions of the future.
 
 ```
 func greeting(name:Text)->Text
@@ -12,7 +13,29 @@ func greeting(name:Text)->Text
 = "Hello World!"
 ```
 
-Check out the [test/](test/) folder to see some examples.
+## Features
+
+- Extremely high performance code generation with minimal overhead compared to C
+- Extremely fast parallel compilation times
+- Memory safety (garbage collection, compiler-enforced null safety, automatic
+	array bounds checking, and no uninitialized variables)
+- Arithmetic overflow checking
+- Simple, low-boilerplate type system with type inference
+- Useful and efficient built-in types: arrays, hash tables, structs, tagged
+	unions (sum types), cords (efficient string representation)
+- Well-defined reference and value semantics and mutability rules
+- Language-level support for out-of-the-box function caching emphasizing
+	correctness
+- Type-safe strings representing different languages with automatic prevention
+	of code injection
+- Full UTF8 support for both source code and standard library
+- Pattern matching with exhaustiveness checking for tagged unions
+- Beautiful and helpful compiler and runtime error messages with emphasis on
+	user-friendliness
+- Structs with known-at-compile-time methods, not OOP objects with vtable
+	lookups
+- Built-in doctests with syntax highlighting
+- Easy interoperability with C
 
 ## Dependencies
 
@@ -38,3 +61,9 @@ You can run a Tomo program by running `./tomo program.tm`. By default, this
 will use your environment's `$CC` variable to select which C compiler to use.
 If no C compiler is specified, it will default to `tcc` (Tiny C Compiler),
 which is exceptionally fast.
+
+## Installing
+
+```
+make && sudo make install
+```
