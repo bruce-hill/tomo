@@ -1,16 +1,16 @@
 // Generic type constructor
 #include <err.h>
 #include <gc.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/param.h>
 
+#include "util.h"
 #include "array.h"
-#include "table.h"
+#include "halfsiphash.h"
 #include "pointer.h"
+#include "table.h"
 #include "types.h"
-#include "../util.h"
-#include "../SipHash/halfsiphash.h"
 
 public CORD Type__as_text(const void *typeinfo, bool colorize, const TypeInfo *type)
 {

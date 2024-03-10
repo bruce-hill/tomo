@@ -1,9 +1,7 @@
 #pragma once
 
-#include <err.h>
 #include <gc.h>
 #include <gc/cord.h>
-#include <math.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -11,20 +9,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include "SipHash/halfsiphash.h"
-#include "builtins/array.h"
-#include "builtins/bool.h"
-#include "builtins/color.h"
-#include "builtins/datatypes.h"
-#include "builtins/functions.h"
-#include "builtins/integers.h"
-#include "builtins/memory.h"
-#include "builtins/nums.h"
-#include "builtins/pointer.h"
-#include "builtins/table.h"
-#include "builtins/text.h"
-#include "builtins/types.h"
 
 #define $heap(x) (__typeof(x)*)memcpy(GC_MALLOC(sizeof(x)), (__typeof(x)[1]){x}, sizeof(x))
 #define $stack(x) (__typeof(x)*)((__typeof(x)[1]){x})
@@ -45,7 +29,3 @@
 #define mod1(x, n) (((x) % (n)) + (__typeof(x))1)
 #define $cmp(x, y, info) (_Generic(x, int8_t: (x>0)-(y>0), int16_t: (x>0)-(y>0), int32_t: (x>0)-(y>0), int64_t: (x>0)-(y>0), bool: (x>0)-(y>0), \
                                  CORD: CORD_cmp((CORD)x, (CORD)y), char*: strcmp((char*)x, (char*)y), default: generic_compare($stack(x), $stack(y), info)))
-#define min(c_type, x, y, info) ({ c_type $lhs = x, $rhs = y; generic_compare(&$lhs, &$rhs, info) <= 0 ? $lhs : $rhs; })
-#define max(c_type, x, y, info) ({ c_type $lhs = x, $rhs = y; generic_compare(&$lhs, &$rhs, info) >= 0 ? $lhs : $rhs; })
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

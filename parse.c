@@ -12,7 +12,7 @@
 #include <signal.h>
 
 #include "ast.h"
-#include "util.h"
+#include "builtins/util.h"
 
 static const char closing[128] = {['(']=')', ['[']=']', ['<']='>', ['{']='}'};
 

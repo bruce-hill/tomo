@@ -17,13 +17,13 @@
 #include <string.h>
 #include <sys/param.h>
 
-#include "../SipHash/halfsiphash.h"
-#include "../util.h"
+#include "util.h"
 #include "array.h"
 #include "datatypes.h"
+#include "halfsiphash.h"
 #include "memory.h"
-#include "text.h"
 #include "table.h"
+#include "text.h"
 #include "types.h"
 
 // #define DEBUG_TABLES

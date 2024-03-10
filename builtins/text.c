@@ -14,9 +14,9 @@
 #include <uninorm.h>
 #include <unistr.h>
 
-#include "../SipHash/halfsiphash.h"
 #include "array.h"
 #include "functions.h"
+#include "halfsiphash.h"
 #include "text.h"
 #include "types.h"
 

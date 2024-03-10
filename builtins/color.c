@@ -4,7 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "../util.h"
+#include "util.h"
 #include "color.h"
 
 public bool USE_COLOR = true;

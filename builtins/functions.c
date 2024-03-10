@@ -7,15 +7,15 @@
 #include <sys/param.h>
 #include <uninorm.h>
 
-#include "../SipHash/halfsiphash.h"
-#include "../files.h"
-#include "../util.h"
-#include "functions.h"
+#include "files.h"
+#include "util.h"
 #include "array.h"
-#include "table.h"
-#include "text.h"
+#include "functions.h"
+#include "halfsiphash.h"
 #include "pointer.h"
 #include "string.h"
+#include "table.h"
+#include "text.h"
 #include "types.h"
 
 extern bool USE_COLOR;

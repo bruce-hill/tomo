@@ -4,9 +4,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "../SipHash/halfsiphash.h"
 #include "array.h"
 #include "datatypes.h"
+#include "halfsiphash.h"
 #include "integers.h"
 #include "string.h"
 #include "types.h"

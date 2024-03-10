@@ -8,8 +8,8 @@
 #include <sys/param.h>
 #include <err.h>
 
-#include "../util.h"
-#include "../SipHash/halfsiphash.h"
+#include "util.h"
+#include "halfsiphash.h"
 #include "memory.h"
 #include "types.h"
 

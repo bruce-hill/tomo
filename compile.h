@@ -4,7 +4,7 @@
 #include <gc.h>
 #include <stdio.h>
 
-#include "util.h"
+#include "builtins/util.h"
 #include "environment.h"
 
 typedef struct {

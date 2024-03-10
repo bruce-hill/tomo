@@ -25,13 +25,13 @@ O=-Og
 CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS)
 LDLIBS=-lgc -lcord -lm -lunistring
 BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/color.o builtins/nums.o builtins/functions.o builtins/integers.o \
-						 builtins/pointer.o builtins/memory.o builtins/text.o builtins/table.o builtins/types.o
+						 builtins/pointer.o builtins/memory.o builtins/text.o builtins/table.o builtins/types.o builtins/util.o builtins/files.o
 
 all: libtomo.so tomo
 
-tomo: tomo.c SipHash/halfsiphash.o util.o files.o ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o $(BUILTIN_OBJS)
+tomo: tomo.c SipHash/halfsiphash.o ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o $(BUILTIN_OBJS)
 
-libtomo.so: util.o files.o $(BUILTIN_OBJS) SipHash/halfsiphash.o
+libtomo.so: $(BUILTIN_OBJS) SipHash/halfsiphash.o
 	$(CC) $^ $(CFLAGS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LDLIBS) -Wl,-soname,libtomo.so -shared -o $@
 
 SipHash/halfsiphash.c:
@@ -50,13 +50,13 @@ clean:
 	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@
 
 install: tomo libtomo.so
-	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/bin" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
-	cp -v tomo.h "$(PREFIX)/include/"
+	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
+	cp -v builtins/*.h "$(PREFIX)/include/tomo/"
 	cp -v libtomo.so "$(PREFIX)/lib/"
 	rm -f "$(PREFIX)/bin/tomo"
 	cp -v tomo "$(PREFIX)/bin/"
 
 uninstall:
-	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/lib/libtomo.so" "$(PREFIX)/share/tomo"; \
+	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/include/tomo" "$(PREFIX)/lib/libtomo.so" "$(PREFIX)/share/tomo"; \
 
 .PHONY: all clean install uninstall test tags

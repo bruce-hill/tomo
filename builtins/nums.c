@@ -1,13 +1,13 @@
+#include <float.h>
 #include <gc.h>
 #include <gc/cord.h>
-#include <float.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "../SipHash/halfsiphash.h"
 #include "array.h"
+#include "halfsiphash.h"
 #include "nums.h"
 #include "string.h"
 #include "types.h"

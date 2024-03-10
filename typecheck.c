@@ -12,7 +12,7 @@
 #include "parse.h"
 #include "typecheck.h"
 #include "types.h"
-#include "util.h"
+#include "builtins/util.h"
 
 type_t *parse_type_ast(env_t *env, type_ast_t *ast)
 {

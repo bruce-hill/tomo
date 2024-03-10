@@ -10,7 +10,7 @@
 #include "structs.h"
 #include "environment.h"
 #include "typecheck.h"
-#include "util.h"
+#include "builtins/util.h"
 
 static CORD compile_str_method(env_t *env, ast_t *ast)
 {

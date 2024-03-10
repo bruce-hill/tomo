@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <gc/cord.h>
 
-#include "../util.h"
+#include "util.h"
 #include "datatypes.h"
 #include "functions.h"
 #include "types.h"

@@ -9,7 +9,7 @@
 #include "compile.h"
 #include "environment.h"
 #include "typecheck.h"
-#include "util.h"
+#include "builtins/util.h"
 
 static bool is_plain_data(env_t *env, type_t *t)
 {

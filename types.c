@@ -7,7 +7,7 @@
 
 #include "builtins/table.h"
 #include "types.h"
-#include "util.h"
+#include "builtins/util.h"
 
 CORD type_to_cord(type_t *t) {
     switch (t->tag) {

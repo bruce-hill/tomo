@@ -6,7 +6,7 @@
 #include "builtins/table.h"
 #include "builtins/text.h"
 #include "typecheck.h"
-#include "util.h"
+#include "builtins/util.h"
 
 typedef struct {
     const char *name;
