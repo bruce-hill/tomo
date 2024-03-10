@@ -989,8 +989,6 @@ PARSER(parse_text) {
         return NULL;
     }
 
-    // printf("Parsing string: '%c' .. '%c' interp: '%c%c'\n", *start, close_quote, open_interp, close_interp);
-
     int64_t starting_indent = get_indent(ctx->file, pos);
     int64_t string_indent = starting_indent + 1;
 
@@ -1455,6 +1453,12 @@ PARSER(parse_block) {
     whitespace(&pos);
     ast_list_t *statements = NULL;
     while (*pos) {
+        if (pos > start && pos[-1] == ' ') {
+            const char *space_start = pos-1;
+            while (*space_start == ' ')
+                --space_start;
+            parser_err(ctx, space_start, pos, "Spaces are not allowed for indentation, only tabs!");
+        }
         ast_t *stmt = optional(ctx, &pos, parse_statement);
         if (!stmt) {
             const char *line_start = pos;
