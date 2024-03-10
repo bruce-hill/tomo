@@ -1248,7 +1248,6 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case DocTest: {
         auto test = Match(ast, DocTest);
-        CORD src = heap_strn(test->expr->start, (size_t)(test->expr->end - test->expr->start));
         type_t *expr_t = get_type(env, test->expr);
         if (!expr_t)
             code_err(test->expr, "I couldn't figure out the type of this expression");
@@ -1268,7 +1267,7 @@ CORD compile(env_t *env, ast_t *ast)
             auto decl = Match(test->expr, Declare);
             return CORD_asprintf(
                 "%r\n"
-                "__doctest(&%r, %r, %r, %r, %ld, %ld);",
+                "$test(&%r, %r, %r, %r, %ld, %ld);",
                 compile(env, test->expr),
                 compile(env, decl->var),
                 compile_type_info(env, get_type(env, decl->value)),
@@ -1288,23 +1287,20 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD_appendf(&code, "%r = $%ld;\n", compile(env, target->ast), i++);
             }
 
-            CORD expr_cord = "CORD_all(";
-            i = 1;
-            for (ast_list_t *target = assign->targets; target; target = target->next) {
-                CORD item = expr_as_text(env, CORD_asprintf("$%ld", i++), get_type(env, target->ast), "USE_COLOR");
-                expr_cord = CORD_all(expr_cord, item, target->next ? ", \", \", " : CORD_EMPTY);
-            }
-            expr_cord = CORD_cat(expr_cord, ")");
+            if (test->output && assign->targets->next)
+                code_err(ast, "Sorry, but doctesting with '=' is not supported for multi-assignments");
 
-            CORD_appendf(&code, "$test(%r, %r, %r);",
-                compile(env, WrapAST(test->expr, TextLiteral, .cord=src)),
-                expr_cord,
-                compile(env, WrapAST(test->expr, TextLiteral, .cord=output)));
+            CORD_appendf(&code, "$test(&$1, %r, %r, %r, %ld, %ld);",
+                compile_type_info(env, get_type(env, assign->targets->ast)),
+                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
+                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
+                (int64_t)(test->expr->start - test->expr->file->text),
+                (int64_t)(test->expr->end - test->expr->file->text));
             return CORD_cat(code, "\n}");
         } else if (expr_t->tag == VoidType || expr_t->tag == AbortType) {
             return CORD_asprintf(
                 "%r;\n"
-                "__doctest(NULL, NULL, NULL, %r, %ld, %ld);",
+                "$test(NULL, NULL, NULL, %r, %ld, %ld);",
                 compile(env, test->expr),
                 compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
                 (int64_t)(test->expr->start - test->expr->file->text),
@@ -1312,7 +1308,7 @@ CORD compile(env_t *env, ast_t *ast)
         } else {
             return CORD_asprintf(
                 "{ // Test:\n%r $expr = %r;\n"
-                "__doctest(&$expr, %r, %r, %r, %ld, %ld);\n"
+                "$test(&$expr, %r, %r, %r, %ld, %ld);\n"
                 "}",
                 compile_type(expr_t),
                 compile(env, test->expr),
