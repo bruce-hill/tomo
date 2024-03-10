@@ -1645,9 +1645,7 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
 
 PARSER(parse_lang_def) {
     const char *start = pos;
-    // lang Name
-    // lang Name(secret)
-
+    // lang Name [namespace...]
     if (!match_word(&pos, "lang")) return NULL;
     int64_t starting_indent = get_indent(ctx->file, pos);
     spaces(&pos);
@@ -1655,17 +1653,6 @@ PARSER(parse_lang_def) {
     if (!name)
         parser_err(ctx, start, pos, "I expected a name for this lang");
     spaces(&pos);
-
-    bool secret = false;
-    if (match(&pos, "(")) {
-        whitespace(&pos);
-        if (match_word(&pos, "secret")) {
-            secret = true;
-            whitespace(&pos);
-            match(&pos, ",");
-        }
-        expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this lang definition");
-    }
 
     const char *ns_pos = pos;
     whitespace(&ns_pos);
@@ -1678,7 +1665,7 @@ PARSER(parse_lang_def) {
     if (!namespace)
         namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
 
-    return NewAST(ctx->file, start, pos, LangDef, .name=name, .secret=secret, .namespace=namespace);
+    return NewAST(ctx->file, start, pos, LangDef, .name=name, .namespace=namespace);
 }
 
 arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed)

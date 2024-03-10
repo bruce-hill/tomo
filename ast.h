@@ -241,7 +241,6 @@ struct ast_s {
         struct {
             const char *name;
             ast_t *namespace;
-            bool secret:1;
         } LangDef;
         struct {
             ast_t *indexed, *index;

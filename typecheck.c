@@ -182,7 +182,7 @@ void bind_statement(env_t *env, ast_t *statement)
     case LangDef: {
         auto def = Match(statement, LangDef);
 
-        type_t *type = Type(TextType, .lang=def->name, .secret=def->secret);
+        type_t *type = Type(TextType, .lang=def->name);
         Table_str_set(env->types, def->name, type);
         env_t *ns_env = namespace_env(env, def->name);
 

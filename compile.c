@@ -585,9 +585,6 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *text_t = Table_str_get(*env->types, lang ? lang : "Text");
         if (!text_t || text_t->tag != TextType)
             code_err(ast, "%s is not a valid text language name", lang);
-        if (Match(text_t, TextType)->secret)
-            code_err(ast, "%s text is marked secret, so you cannot use %s literals in code. Please load the content from a secure location instead",
-                     lang, lang);
         table_t *lang_ns = lang ? Table_str_get(*env->type_namespaces, lang) : NULL;
         ast_list_t *chunks = Match(ast, TextJoin)->children;
         if (!chunks) {
@@ -1243,9 +1240,9 @@ CORD compile(env_t *env, ast_t *ast)
         auto def = Match(ast, LangDef);
         CORD_appendf(&env->code->typedefs, "typedef CORD %s_t;\n", def->name);
         CORD_appendf(&env->code->typedefs, "extern const TypeInfo %s;\n", def->name);
-        CORD_appendf(&env->code->typeinfos, "public const TypeInfo %s = {%zu, %zu, {.tag=TextInfo, .TextInfo={%s, .secret=%s}}};\n",
+        CORD_appendf(&env->code->typeinfos, "public const TypeInfo %s = {%zu, %zu, {.tag=TextInfo, .TextInfo={%s}}};\n",
                      def->name, sizeof(CORD), __alignof__(CORD),
-                     Text__quoted(def->name, false), def->secret ? "yes" : "no");
+                     Text__quoted(def->name, false));
         compile_namespace(env, def->name, def->namespace);
         return CORD_EMPTY;
     }

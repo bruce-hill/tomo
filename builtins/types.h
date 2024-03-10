@@ -29,7 +29,6 @@ typedef struct TypeInfo {
             } PointerInfo;
             struct {
                 const char *lang;
-                bool secret;
             } TextInfo;
             struct {
                 const struct TypeInfo *item;
