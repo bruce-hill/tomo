@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
 
     const char *autofmt = getenv("AUTOFMT");
     if (!autofmt) autofmt = "indent -kr -l100 -nbbo -nut -sob";
+    if (!autofmt[0]) autofmt = "cat";
 
     file_t *f = load_file(filename);
     if (!f)
@@ -94,7 +95,7 @@ int main(int argc, char *argv[])
 
     switch (mode) {
     case MODE_COMPILE: {
-        const char *run = heap_strf("%s -x c %s -c - -o %s.o", cc, cflags, f->filename);
+        const char *run = heap_strf("%s | %s -x c %s -c - -o %s.o", autofmt, cc, cflags, f->filename);
         FILE *runner = popen(run, "w");
 
         CORD program = CORD_all(
@@ -110,8 +111,8 @@ int main(int argc, char *argv[])
         return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
     }
     case MODE_RUN: {
-        const char *run = streq(cc, "tcc") ? heap_strf("tcc -run %s %s %s -", cflags, ldflags, ldlibs)
-            : heap_strf("gcc -x c %s %s %s - -o program && ./program", cflags, ldflags, ldlibs);
+        const char *run = streq(cc, "tcc") ? heap_strf("%s | tcc -run %s %s %s -", autofmt, cflags, ldflags, ldlibs)
+            : heap_strf("%s | gcc -x c %s %s %s - -o program && ./program", autofmt, cflags, ldflags, ldlibs);
         FILE *runner = popen(run, "w");
 
         CORD program = CORD_all(
