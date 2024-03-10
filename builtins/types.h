@@ -63,6 +63,7 @@ typedef struct TypeInfo {
 extern const TypeInfo TypeInfo_info;
 extern const TypeInfo Void;
 extern const TypeInfo Abort;
+#define Void_t void
 
 CORD Type__as_text(const void *typeinfo, bool colorize, const TypeInfo *type);
 CORD Func__as_text(const void *fn, bool colorize, const TypeInfo *type);

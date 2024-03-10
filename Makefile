@@ -1,5 +1,5 @@
 PREFIX=/usr/local
-VERSION=0.12.1
+VERSION=0.0.1
 CCONFIG=-std=c11 -Werror -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -I. \
 				-fsanitize=signed-integer-overflow -fno-sanitize-recover -fvisibility=hidden -fdollars-in-identifiers
 LTO=-flto=auto -fno-fat-lto-objects -Wl,-flto 
@@ -48,5 +48,15 @@ clean:
 
 %.1: %.1.md
 	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@
+
+install: tomo libtomo.so
+	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/bin" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
+	cp -v tomo.h "$(PREFIX)/include/"
+	cp -v libtomo.so "$(PREFIX)/lib/"
+	rm -f "$(PREFIX)/bin/tomo"
+	cp -v tomo "$(PREFIX)/bin/"
+
+uninstall:
+	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/lib/libtomo.so" "$(PREFIX)/share/tomo"; \
 
 .PHONY: all clean install uninstall test tags

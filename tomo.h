@@ -26,20 +26,6 @@
 #include "builtins/text.h"
 #include "builtins/types.h"
 
-#define Void_t void
-
-CORD as_cord(void *x, bool use_color, const char *fmt, ...);
-
-#define StrF(...) ({ CORD $c; CORD_sprintf(&$c, __VA_ARGS__); $c; })
-#define $var(var, val) __typeof(val) var = val
-#define $cord(x) _Generic(x, bool: x ? "yes" : "no", \
-                         int8_t: StrF("%d", x), \
-                         int16_t: StrF("%d", x), \
-                         int32_t: StrF("%d", x), int64_t: StrF("%ld", x), \
-                         double: StrF("%g", x), float: StrF("%g", x), \
-                         CORD: x, \
-                         array_t: as_cord($stack(x), false, "[ ]"), \
-                         default: "???")
 #define $heap(x) (__typeof(x)*)memcpy(GC_MALLOC(sizeof(x)), (__typeof(x)[1]){x}, sizeof(x))
 #define $stack(x) (__typeof(x)*)((__typeof(x)[1]){x})
 #define $tagged(obj_expr, type_name, tag_name) ({ __typeof(obj_expr) $obj = obj_expr; \
