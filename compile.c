@@ -1277,26 +1277,41 @@ CORD compile(env_t *env, ast_t *ast)
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else if (test->expr->tag == Assign) {
             auto assign = Match(test->expr, Assign);
-            CORD code = "{ // Assignment\n";
-            int64_t i = 1;
-            for (ast_list_t *value = assign->values; value; value = value->next)
-                CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(get_type(env, value->ast)), i++, compile(env, value->ast));
-            i = 1;
-            for (ast_list_t *target = assign->targets; target; target = target->next) {
-                check_assignable(env, target->ast);
-                CORD_appendf(&code, "%r = $%ld;\n", compile(env, target->ast), i++);
+            if (!assign->targets->next && assign->targets->ast->tag == Var) {
+                // Common case: assigning to one variable:
+                check_assignable(env, assign->targets->ast);
+                CORD var = compile(env, assign->targets->ast);
+                CORD code = CORD_all(var, " = ", compile(env, assign->values->ast), ";");
+                CORD_appendf(&code, "$test(&%r, %r, %r, %r, %ld, %ld);",
+                    var, compile_type_info(env, get_type(env, assign->targets->ast)),
+                    compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
+                    compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
+                    (int64_t)(test->expr->start - test->expr->file->text),
+                    (int64_t)(test->expr->end - test->expr->file->text));
+                return code;
+            } else {
+                // Multi-assign or assignment to potentially non-idempotent targets
+                if (test->output && assign->targets->next)
+                    code_err(ast, "Sorry, but doctesting with '=' is not supported for multi-assignments");
+
+                CORD code = "{ // Assignment\n";
+                int64_t i = 1;
+                for (ast_list_t *value = assign->values; value; value = value->next)
+                    CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(get_type(env, value->ast)), i++, compile(env, value->ast));
+                i = 1;
+                for (ast_list_t *target = assign->targets; target; target = target->next) {
+                    check_assignable(env, target->ast);
+                    CORD_appendf(&code, "%r = $%ld;\n", compile(env, target->ast), i++);
+                }
+
+                CORD_appendf(&code, "$test(&$1, %r, %r, %r, %ld, %ld);",
+                    compile_type_info(env, get_type(env, assign->targets->ast)),
+                    compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
+                    compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
+                    (int64_t)(test->expr->start - test->expr->file->text),
+                    (int64_t)(test->expr->end - test->expr->file->text));
+                return CORD_cat(code, "\n}");
             }
-
-            if (test->output && assign->targets->next)
-                code_err(ast, "Sorry, but doctesting with '=' is not supported for multi-assignments");
-
-            CORD_appendf(&code, "$test(&$1, %r, %r, %r, %ld, %ld);",
-                compile_type_info(env, get_type(env, assign->targets->ast)),
-                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
-                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
-                (int64_t)(test->expr->start - test->expr->file->text),
-                (int64_t)(test->expr->end - test->expr->file->text));
-            return CORD_cat(code, "\n}");
         } else if (expr_t->tag == VoidType || expr_t->tag == AbortType) {
             return CORD_asprintf(
                 "%r;\n"
