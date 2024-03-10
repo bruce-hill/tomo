@@ -1,8 +1,6 @@
 #pragma once
-#include <libgccjit.h>
 #include <printf.h>
 #include <stdlib.h>
-#include <libgccjit.h>
 
 #include "ast.h"
 #include "builtins/array.h"

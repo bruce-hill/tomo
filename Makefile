@@ -23,7 +23,7 @@ EXTRA=
 G=-ggdb
 O=-Og
 CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS)
-LDLIBS=-lgc -lgccjit -lcord -lm -lunistring
+LDLIBS=-lgc -lcord -lm -lunistring
 BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/color.o builtins/nums.o builtins/functions.o builtins/integers.o \
 						 builtins/pointer.o builtins/memory.o builtins/text.o builtins/table.o builtins/types.o
 
