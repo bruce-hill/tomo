@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
     if (getenv("LDLIBS"))
         ldlibs = heap_strf("%s %s", ldlibs, getenv("LDLIBS"));
 
-    const char *ldflags = "-Wl,-rpath '-Wl,$ORIGIN'";
+    const char *ldflags = "-Wl,-rpath '-Wl,$ORIGIN' -L/usr/local/lib";
 
     const char *cc = getenv("CC");
     if (!cc) cc = "tcc";
