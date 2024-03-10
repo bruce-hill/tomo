@@ -55,12 +55,35 @@ example, `pacman -S gc libunistring`).
 
 The Tomo compiler can be compiled with either GCC or Clang by running `make`.
 
-## Running
+## Usage
 
-You can run a Tomo program by running `./tomo program.tm`. By default, this
-will use your environment's `$CC` variable to select which C compiler to use.
-If no C compiler is specified, it will default to `tcc` (Tiny C Compiler),
-which is exceptionally fast.
+Run a Tomo file directly:
+
+```bash
+tomo foo.tm
+# Runs the program
+```
+
+Compile a Tomo file into an object file:
+
+```bash
+tomo -c foo.tm
+# Output: foo.tm.o
+```
+
+Transpile a Tomo file into a C header and source file:
+```bash
+tomo -t foo.tm
+# Outputs: foo.tm.h foo.tm.c
+```
+
+Tomo uses the environment variables (`$CC`, `$VERBOSE`, and `$AUTOFMT`), which
+control the compilation/running behavior of Tomo. The default behavior is to
+use `tcc` (Tiny C Compiler) for fast compilation, `VERBOSE=0`, and
+`AUTOFMT='indent -kr -l100 -nbbo -nut -sob'` for autoformatting generated code.
+Any of these variables may be overridden, e.g. `CC=gcc VERBOSE=1 AUTOFMT= tomo
+foo.tm` (compile with GCC and verbose compiler output without autoformatting
+the code).
 
 ## Installing
 
