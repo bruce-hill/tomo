@@ -286,8 +286,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
         switch (update->op) {
         case BINOP_MULT: return CORD_asprintf("%r *= %r;", lhs, rhs);
         case BINOP_DIVIDE: return CORD_asprintf("%r /= %r;", lhs, rhs);
-        case BINOP_MOD: return CORD_asprintf("%r = mod(%r, %r);", lhs, lhs, rhs);
-        case BINOP_MOD1: return CORD_asprintf("%r = mod1(%r, %r);", lhs, lhs, rhs);
+        case BINOP_MOD: return CORD_asprintf("%r = %r %% %r;", lhs, lhs, rhs);
+        case BINOP_MOD1: return CORD_asprintf("%r = (%r %% %r) + 1;", lhs, lhs, rhs);
         case BINOP_PLUS: return CORD_asprintf("%r += %r;", lhs, rhs);
         case BINOP_MINUS: return CORD_asprintf("%r -= %r;", lhs, rhs);
         case BINOP_POWER: {
@@ -842,12 +842,12 @@ CORD compile(env_t *env, ast_t *ast)
         case BINOP_MOD: {
             if (operand_t->tag != IntType && operand_t->tag != NumType)
                 code_err(ast, "Math operations are only supported for numeric types");
-            return CORD_asprintf("mod(%r, %r)", lhs, rhs);
+            return CORD_asprintf("(%r %% %r)", lhs, rhs);
         }
         case BINOP_MOD1: {
             if (operand_t->tag != IntType && operand_t->tag != NumType)
                 code_err(ast, "Math operations are only supported for numeric types");
-            return CORD_asprintf("mod1(%r, %r)", lhs, rhs);
+            return CORD_asprintf("((%r %% %r) + 1)", lhs, rhs);
         }
         case BINOP_PLUS: {
             if (operand_t->tag != IntType && operand_t->tag != NumType)
