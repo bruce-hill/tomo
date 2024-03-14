@@ -815,7 +815,7 @@ ast_t *parse_for_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     if (match_word(&pos, "if")) {
         ast_t *condition = expect(ctx, pos-2, &pos, parse_expr, "I expected a condition for this 'if'");
         body = NewAST(ctx->file, body->start, condition->end, Block,
-                      .statements=new(ast_list_t, .ast=WrapAST(condition, If, .condition=condition, .else_body=FakeAST(Skip)),
+                      .statements=new(ast_list_t, .ast=WrapAST(condition, If, .condition=FakeAST(Not, condition), .body=FakeAST(Skip)),
                                       .next=new(ast_list_t, .ast=body)));
     }
     return NewAST(ctx->file, start, pos, For, .index=index, .value=value, .iter=iter, .body=body);
