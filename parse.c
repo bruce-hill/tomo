@@ -233,14 +233,14 @@ static void expect_str(
 // Helper for matching closing parens with good error messages
 //
 static void expect_closing(
-    parse_ctx_t *ctx, const char **pos, const char *closing, const char *fmt, ...) {
+    parse_ctx_t *ctx, const char **pos, const char *close_str, const char *fmt, ...) {
     const char *start = *pos;
     spaces(pos);
-    if (match(pos, closing))
+    if (match(pos, close_str))
         return;
 
     const char *eol = strchr(*pos, '\n');
-    const char *next = strstr(*pos, closing);
+    const char *next = strstr(*pos, close_str);
 
     const char *end = eol < next ? eol : next;
 

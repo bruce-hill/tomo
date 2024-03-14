@@ -699,7 +699,7 @@ CORD compile(env_t *env, ast_t *ast)
         if (!array->items)
             return "(array_t){.length=0}";
 
-        type_t *array_t = get_type(env, ast);
+        type_t *array_type = get_type(env, ast);
 
         int64_t n = 0;
         for (ast_list_t *item = array->items; item; item = item->next) {
@@ -708,17 +708,19 @@ CORD compile(env_t *env, ast_t *ast)
                 goto array_comprehension;
         }
 
-        type_t *item_type = Match(array_t, ArrayType)->item_type;
-        CORD code = CORD_all("$TypedArrayN(", compile_type(item_type), CORD_asprintf(", %ld", n));
-        for (ast_list_t *item = array->items; item; item = item->next)
-            code = CORD_all(code, ", ", compile(env, item->ast));
-        return CORD_cat(code, ")");
+        {
+            type_t *item_type = Match(array_type, ArrayType)->item_type;
+            CORD code = CORD_all("$TypedArrayN(", compile_type(item_type), CORD_asprintf(", %ld", n));
+            for (ast_list_t *item = array->items; item; item = item->next)
+                code = CORD_all(code, ", ", compile(env, item->ast));
+            return CORD_cat(code, ")");
+        }
 
       array_comprehension:
         {
             CORD code = "({ array_t $arr = {};";
             env_t *scope = fresh_scope(env);
-            set_binding(scope, "$arr", new(binding_t, .type=array_t, .code="$arr"));
+            set_binding(scope, "$arr", new(binding_t, .type=array_type, .code="$arr"));
             for (ast_list_t *item = array->items; item; item = item->next) {
                 if (item->ast->tag == For) {
                     auto for_ = Match(item->ast, For);
@@ -749,9 +751,9 @@ CORD compile(env_t *env, ast_t *ast)
             return CORD_cat(code, "}");
         }
            
-        type_t *table_t = get_type(env, ast);
-        type_t *key_t = Match(table_t, TableType)->key_type;
-        type_t *value_t = Match(table_t, TableType)->value_type;
+        type_t *table_type = get_type(env, ast);
+        type_t *key_t = Match(table_type, TableType)->key_type;
+        type_t *value_t = Match(table_type, TableType)->value_type;
         CORD code = CORD_all("$Table(",
                              compile_type(key_t), ", ",
                              compile_type(value_t), ", ",
@@ -992,10 +994,10 @@ CORD compile(env_t *env, ast_t *ast)
             } else code_err(ast, "There is no '%s' method for tables", call->name);
         }
         default: {
-            auto call = Match(ast, MethodCall);
-            type_t *fn_t = get_method_type(env, call->self, call->name);
-            arg_ast_t *args = new(arg_ast_t, .value=call->self, .next=call->args);
-            binding_t *b = get_namespace_binding(env, call->self, call->name);
+            auto methodcall = Match(ast, MethodCall);
+            type_t *fn_t = get_method_type(env, methodcall->self, methodcall->name);
+            arg_ast_t *args = new(arg_ast_t, .value=methodcall->self, .next=methodcall->args);
+            binding_t *b = get_namespace_binding(env, methodcall->self, methodcall->name);
             if (!b) code_err(ast, "No such method");
             return CORD_all(b->code, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, args), ")");
         }

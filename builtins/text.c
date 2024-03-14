@@ -248,9 +248,9 @@ public array_t Text__split(CORD str, CORD split)
 
         i += non_split;
 
-        size_t split = u8_strspn(ustr + i, usplit);
-        if (split == 0) break;
-        i += split;
+        size_t split_span = u8_strspn(ustr + i, usplit);
+        if (split_span == 0) break;
+        i += split_span;
     }
     return strings;
 }

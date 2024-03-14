@@ -5,7 +5,7 @@ CCONFIG=-std=c11 -Werror -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -I.
 LTO=-flto=auto -fno-fat-lto-objects -Wl,-flto 
 LDFLAGS=-Wl,-rpath '-Wl,$$ORIGIN'
 # MAKEFLAGS := --jobs=$(shell nproc) --output-sync=target
-CWARN=-Wall -Wextra -Wno-format
+CWARN=-Wall -Wextra -Wno-format -Wshadow
   # -Wpedantic -Wsign-conversion -Wtype-limits -Wunused-result -Wnull-dereference \
 	# -Waggregate-return -Walloc-zero -Walloca -Warith-conversion -Wcast-align -Wcast-align=strict \
 	# -Wdangling-else -Wdate-time -Wdisabled-optimization -Wdouble-promotion -Wduplicated-branches \

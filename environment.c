@@ -8,11 +8,6 @@
 #include "typecheck.h"
 #include "builtins/util.h"
 
-typedef struct {
-    const char *name;
-    binding_t binding;
-} ns_entry_t;
-
 env_t *new_compilation_unit(void)
 {
     env_t *env = new(env_t);

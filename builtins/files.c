@@ -297,7 +297,7 @@ public int fprint_span(FILE *out, file_t *file, const char *start, const char *e
             for (int num = 0; num < digits; num++)
                 printed += fputc(' ', out);
             printed += fputs(": ", out);
-            int column = 0;
+            int col = 0;
             for (const char *sp = line; *sp && *sp != '\n'; ++sp) {
                 char print_char;
                 if (sp < start)
@@ -308,7 +308,7 @@ public int fprint_span(FILE *out, file_t *file, const char *start, const char *e
                     print_char = '-';
                 else
                     print_char = ' ';
-                printed += fputc_column(out, *sp, print_char, &column);
+                printed += fputc_column(out, *sp, print_char, &col);
             }
             printed += fputs("\n", out);
         }
