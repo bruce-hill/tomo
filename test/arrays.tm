@@ -47,6 +47,9 @@ if yes
 	>> copy
 	= [10, 20]
 
+if yes
+	>> [10*i for i in 5]
+	= [10, 20, 30, 40, 50]
 // if yes
 // 	>> arr := @[10, 20]
 // 	>> copy := arr[]

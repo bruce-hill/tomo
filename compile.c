@@ -1146,7 +1146,6 @@ CORD compile(env_t *env, ast_t *ast)
             }
         }
         case IntType: {
-            env_t *scope = fresh_scope(env);
             CORD value = compile(env, for_->value);
             CORD n = compile(env, for_->iter);
             CORD index = for_->index ? compile(env, for_->index) : CORD_EMPTY;
