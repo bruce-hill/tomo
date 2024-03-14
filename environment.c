@@ -201,6 +201,56 @@ env_t *fresh_scope(env_t *env)
     return scope;
 }
 
+env_t *for_scope(env_t *env, ast_t *ast)
+{
+    auto for_ = Match(ast, For);
+    type_t *iter_t = get_type(env, for_->iter);
+    env_t *scope = fresh_scope(env);
+    const char *value = Match(for_->value, Var)->name;
+    if (for_->index) {
+        const char *index = Match(for_->index, Var)->name;
+        switch (iter_t->tag) {
+        case ArrayType: {
+            type_t *item_t = Match(iter_t, ArrayType)->item_type;
+            set_binding(scope, index, new(binding_t, .type=Type(IntType, .bits=64), .code=index));
+            set_binding(scope, value, new(binding_t, .type=item_t, .code=value));
+            return scope;
+        }
+        case TableType: {
+            type_t *key_t = Match(iter_t, TableType)->key_type;
+            type_t *value_t = Match(iter_t, TableType)->value_type;
+            set_binding(scope, index, new(binding_t, .type=key_t, .code=index));
+            set_binding(scope, value, new(binding_t, .type=value_t, .code=value));
+            return scope;
+        }
+        case IntType: {
+            set_binding(scope, index, new(binding_t, .type=Type(IntType, .bits=64), .code=index));
+            set_binding(scope, value, new(binding_t, .type=iter_t, .code=value));
+            return scope;
+        }
+        default: code_err(for_->iter, "Iteration is not implemented for type: %T", iter_t);
+        }
+    } else {
+        switch (iter_t->tag) {
+        case ArrayType: {
+            type_t *item_t = Match(iter_t, ArrayType)->item_type;
+            set_binding(scope, value, new(binding_t, .type=item_t, .code=value));
+            return scope;
+        }
+        case TableType: {
+            type_t *key_t = Match(iter_t, TableType)->key_type;
+            set_binding(scope, value, new(binding_t, .type=key_t, .code=value));
+            return scope;
+        }
+        case IntType: {
+            set_binding(scope, value, new(binding_t, .type=iter_t, .code=value));
+            return scope;
+        }
+        default: code_err(for_->iter, "Iteration is not implemented for type: %T", iter_t);
+        }
+    }
+}
+
 env_t *namespace_env(env_t *env, const char *namespace_name)
 {
     env_t *ns_env = new(env_t);
@@ -268,7 +318,8 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
 
 void set_binding(env_t *env, const char *name, binding_t *binding)
 {
-    Table_str_set(env->locals, name, binding);
+    if (name && binding)
+        Table_str_set(env->locals, name, binding);
 }
 
 void compiler_err(file_t *f, const char *start, const char *end, const char *fmt, ...)

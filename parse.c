@@ -68,6 +68,7 @@ static ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn, bool is_extern);
 static ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self);
 static ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs);
+static ast_t *parse_for_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed);
 static PARSER(parse_for);
 static PARSER(parse_while);
@@ -616,6 +617,11 @@ PARSER(parse_array) {
     for (;;) {
         ast_t *item = optional(ctx, &pos, parse_extended_expr);
         if (!item) break;
+        ast_t *suffixed = parse_for_suffix(ctx, item);
+        if (suffixed) {
+            item = suffixed;
+            pos = suffixed->end;
+        }
         items = new(ast_list_t, .ast=item, .next=items);
         if (!match_separator(&pos))
             break;
@@ -783,6 +789,36 @@ ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     bool unchecked = match(&pos, ";") && (spaces(&pos), match_word(&pos, "unchecked") != 0);
     expect_closing(ctx, &pos, "]", "I wasn't able to parse the rest of this index");
     return NewAST(ctx->file, start, pos, Index, .indexed=lhs, .index=index, .unchecked=unchecked);
+}
+
+ast_t *parse_for_suffix(parse_ctx_t *ctx, ast_t *lhs) {
+    // <expr> for [<index>,]<var> in <iter> [if <condition>]
+    if (!lhs) return NULL;
+    const char *start = lhs->start;
+    const char *pos = lhs->end;
+    whitespace(&pos);
+    if (!match_word(&pos, "for")) return NULL;
+
+    ast_t *index = expect(ctx, start, &pos, parse_var, "I expected an iteration variable for this 'for'");
+    whitespace(&pos);
+    ast_t *value = NULL;
+    if (match(&pos, ",")) {
+        value = expect(ctx, pos-1, &pos, parse_var, "I expected a variable after this comma");
+    } else {
+        value = index;
+        index = NULL;
+    }
+    expect_str(ctx, start, &pos, "in", "I expected an 'in' for this 'for'");
+    ast_t *iter = expect(ctx, start, &pos, parse_expr, "I expected an iterable value for this 'for'");
+    whitespace(&pos);
+    ast_t *body = lhs;
+    if (match_word(&pos, "if")) {
+        ast_t *condition = expect(ctx, pos-2, &pos, parse_expr, "I expected a condition for this 'if'");
+        body = NewAST(ctx->file, body->start, condition->end, Block,
+                      .statements=new(ast_list_t, .ast=WrapAST(condition, If, .condition=condition, .else_body=FakeAST(Skip)),
+                                      .next=new(ast_list_t, .ast=body)));
+    }
+    return NewAST(ctx->file, start, pos, For, .index=index, .value=value, .iter=iter, .body=body);
 }
 
 PARSER(parse_if) {

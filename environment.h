@@ -38,6 +38,7 @@ typedef struct {
 env_t *new_compilation_unit(void);
 env_t *global_scope(env_t *env);
 env_t *fresh_scope(env_t *env);
+env_t *for_scope(env_t *env, ast_t *ast);
 env_t *namespace_env(env_t *env, const char *namespace_name);
 __attribute__((noreturn))
 void compiler_err(file_t *f, const char *start, const char *end, const char *fmt, ...);

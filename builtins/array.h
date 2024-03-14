@@ -46,6 +46,7 @@
         $ARRAY_DECREF($arr); \
     }
 
+#define Array__insert_value(arr, item_expr, index, type) ({ __typeof(item_expr) $item = item_expr; Array__insert(arr, &$item, index, type); })
 void Array__insert(array_t *arr, const void *item, int64_t index, const TypeInfo *type);
 void Array__insert_all(array_t *arr, array_t to_insert, int64_t index, const TypeInfo *type);
 void Array__remove(array_t *arr, int64_t index, int64_t count, const TypeInfo *type);

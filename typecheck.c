@@ -307,7 +307,13 @@ type_t *get_type(env_t *env, ast_t *ast)
             item_type = parse_type_ast(env, array->type);
         } else if (array->items) {
             for (ast_list_t *item = array->items; item; item = item->next) {
-                type_t *t2 = get_type(env, item->ast);
+                type_t *t2;
+                if (item->ast->tag == For) {
+                    env_t *scope = for_scope(env, item->ast);
+                    t2 = get_type(scope, Match(item->ast, For)->body);
+                } else {
+                    t2 = get_type(env, item->ast);
+                }
                 type_t *merged = item_type ? type_or_type(item_type, t2) : t2;
                 if (!merged)
                     code_err(item->ast,
