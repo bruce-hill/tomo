@@ -783,7 +783,20 @@ CORD compile(env_t *env, ast_t *ast)
         }
         break;
     }
-    case Not: return CORD_asprintf("not(%r)", compile(env, Match(ast, Not)->value));
+    case Not: {
+        type_t *t = get_type(env, ast);
+        ast_t *value = Match(ast, Not)->value;
+        if (t->tag == BoolType)
+            return CORD_all("!(", compile(env, value), ")");
+        else if (t->tag == IntType)
+            return CORD_all("~(", compile(env, value), ")");
+        else if (t->tag == ArrayType || t->tag == TableType)
+            return CORD_all("!(", compile(env, WrapAST(ast, Length, value)), ")");
+        else if (t->tag == TextType)
+            return CORD_all("!(", compile(env, value), ")");
+        else
+            code_err(ast, "I don't know how to negate values of type %T", t);
+    }
     case Negative: return CORD_asprintf("-(%r)", compile(env, Match(ast, Negative)->value));
     case HeapAllocate: return CORD_asprintf("$heap(%r)", compile(env, Match(ast, HeapAllocate)->value));
     case StackReference: {
