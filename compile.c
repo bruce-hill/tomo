@@ -447,7 +447,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
     case Skip: {
         const char *target = Match(ast, Skip)->target;
         for (loop_ctx_t *ctx = env->loop_ctx; ctx; ctx = ctx->next) {
-            if (!target || CORD_cmp(target, ctx->key_name) == 0 || CORD_cmp(target, ctx->value_name) == 0) {
+            if (!target || CORD_cmp(target, ctx->loop_name) == 0
+                || CORD_cmp(target, ctx->key_name) == 0 || CORD_cmp(target, ctx->value_name) == 0) {
                 if (!ctx->skip_label) {
                     static int64_t skip_label_count = 1;
                     CORD_sprintf(&ctx->skip_label, "skip_%ld", skip_label_count);
@@ -466,7 +467,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
     case Stop: {
         const char *target = Match(ast, Stop)->target;
         for (loop_ctx_t *ctx = env->loop_ctx; ctx; ctx = ctx->next) {
-            if (!target || CORD_cmp(target, ctx->key_name) == 0 || CORD_cmp(target, ctx->value_name) == 0) {
+            if (!target || CORD_cmp(target, ctx->loop_name) == 0 
+                || CORD_cmp(target, ctx->key_name) == 0 || CORD_cmp(target, ctx->value_name) == 0) {
                 if (!ctx->stop_label) {
                     static int64_t stop_label_count = 1;
                     CORD_sprintf(&ctx->stop_label, "stop_%ld", stop_label_count);
@@ -502,13 +504,26 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case While: {
         auto while_ = Match(ast, While);
-        return CORD_asprintf("while (%r) %r", compile(env, while_->condition), compile_statement(env, while_->body));
+        env_t *scope = fresh_scope(env);
+        loop_ctx_t loop_ctx = (loop_ctx_t){
+            .loop_name="while",
+            .next=env->loop_ctx,
+        };
+        scope->loop_ctx = &loop_ctx;
+        CORD body = compile_statement(scope, while_->body);
+        if (loop_ctx.skip_label)
+            body = CORD_all(body, "\n", loop_ctx.skip_label, ": continue;");
+        CORD loop = CORD_all("while (", compile(scope, while_->condition), ") {\n\t", body, "\n}");
+        if (loop_ctx.stop_label)
+            loop = CORD_all(loop, "\n", loop_ctx.stop_label, ":;");
+        return loop;
     }
     case For: {
         auto for_ = Match(ast, For);
         type_t *iter_t = get_type(env, for_->iter);
         env_t *body_scope = for_scope(env, ast);
         loop_ctx_t loop_ctx = (loop_ctx_t){
+            .loop_name="for",
             .key_name=for_->index ? compile(env, for_->index) : CORD_EMPTY,
             .value_name=for_->value ? compile(env, for_->value) : CORD_EMPTY,
             .next=body_scope->loop_ctx,
