@@ -20,13 +20,20 @@ typedef struct {
     type_t *return_type;
     table_t *closure_scope;
     table_t *closed_vars;
-} fn_context_t;
+} fn_ctx_t;
+
+typedef struct loop_ctx_s {
+    struct loop_ctx_s *next;
+    const char *key_name, *value_name;
+    CORD skip_label, stop_label;
+} loop_ctx_t;
 
 typedef struct {
     table_t *types, *globals, *locals;
     table_t *type_namespaces; // Map of type name -> namespace table
     compilation_unit_t *code;
-    fn_context_t *fn_ctx;
+    fn_ctx_t *fn_ctx;
+    loop_ctx_t *loop_ctx;
     CORD scope_prefix;
 } env_t;
 

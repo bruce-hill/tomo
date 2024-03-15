@@ -397,7 +397,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             set_binding(body_scope, arg->name, new(binding_t, .type=arg_type, .code=arg->name));
         }
 
-        fn_context_t fn_ctx = (fn_context_t){
+        fn_ctx_t fn_ctx = (fn_ctx_t){
             .return_type=ret_t,
             .closure_scope=NULL,
             .closed_vars=NULL,
@@ -445,12 +445,42 @@ CORD compile_statement(env_t *env, ast_t *ast)
         return CORD_EMPTY;
     }
     case Skip: {
-        if (Match(ast, Skip)->target) code_err(ast, "Named skips not yet implemented");
-        return "continue;";
+        const char *target = Match(ast, Skip)->target;
+        for (loop_ctx_t *ctx = env->loop_ctx; ctx; ctx = ctx->next) {
+            if (!target || CORD_cmp(target, ctx->key_name) == 0 || CORD_cmp(target, ctx->value_name) == 0) {
+                if (!ctx->skip_label) {
+                    static int64_t skip_label_count = 1;
+                    CORD_sprintf(&ctx->skip_label, "skip_%ld", skip_label_count);
+                    ++skip_label_count;
+                }
+                return CORD_all("goto ", ctx->skip_label, ";");
+            }
+        }
+        if (env->loop_ctx)
+            code_err(ast, "This 'skip' is not inside any loop");
+        else if (target)
+            code_err(ast, "No loop target named '%s' was found", target);
+        else
+            code_err(ast, "I couldn't figure out how to make this skip work!");
     }
     case Stop: {
-        if (Match(ast, Stop)->target) code_err(ast, "Named stops not yet implemented");
-        return "break;";
+        const char *target = Match(ast, Stop)->target;
+        for (loop_ctx_t *ctx = env->loop_ctx; ctx; ctx = ctx->next) {
+            if (!target || CORD_cmp(target, ctx->key_name) == 0 || CORD_cmp(target, ctx->value_name) == 0) {
+                if (!ctx->stop_label) {
+                    static int64_t stop_label_count = 1;
+                    CORD_sprintf(&ctx->stop_label, "stop_%ld", stop_label_count);
+                    ++stop_label_count;
+                }
+                return CORD_all("goto ", ctx->stop_label, ";");
+            }
+        }
+        if (env->loop_ctx)
+            code_err(ast, "This 'stop' is not inside any loop");
+        else if (target)
+            code_err(ast, "No loop target named '%s' was found", target);
+        else
+            code_err(ast, "I couldn't figure out how to make this stop work!");
     }
     case Pass: return ";";
     case Return: {
@@ -477,14 +507,25 @@ CORD compile_statement(env_t *env, ast_t *ast)
     case For: {
         auto for_ = Match(ast, For);
         type_t *iter_t = get_type(env, for_->iter);
-        env_t *scope = for_scope(env, ast);
+        env_t *body_scope = for_scope(env, ast);
+        loop_ctx_t loop_ctx = (loop_ctx_t){
+            .key_name=for_->index ? compile(env, for_->index) : CORD_EMPTY,
+            .value_name=for_->value ? compile(env, for_->value) : CORD_EMPTY,
+            .next=body_scope->loop_ctx,
+        };
+        body_scope->loop_ctx = &loop_ctx;
+        CORD body = compile_statement(body_scope, for_->body);
+
         switch (iter_t->tag) {
         case ArrayType: {
             type_t *item_t = Match(iter_t, ArrayType)->item_type;
             CORD index = for_->index ? compile(env, for_->index) : "$i";
             CORD value = compile(env, for_->value);
             return CORD_all("$ARRAY_FOREACH(", compile(env, for_->iter), ", ", index, ", ", compile_type(item_t), ", ", value, ", ",
-                            compile_statement(scope, for_->body), ", ", for_->empty ? compile_statement(env, for_->empty) : "{}", ")");
+                            body,
+                            loop_ctx.skip_label ? CORD_all("\n", loop_ctx.skip_label, ":;") : CORD_EMPTY,
+                            ", ", for_->empty ? compile_statement(env, for_->empty) : "{}", ")",
+                            loop_ctx.stop_label ? CORD_all("\n", loop_ctx.stop_label, ":;") : CORD_EMPTY);
         }
         case TableType: {
             type_t *key_t = Match(iter_t, TableType)->key_type;
@@ -498,11 +539,17 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     value_offset += type_align(value_t) - (value_offset % type_align(value_t)); // padding
                 return CORD_all("$TABLE_FOREACH(", compile(env, for_->iter), ", ", compile_type(key_t), ", ", key, ", ",
                                 compile_type(value_t), ", ", value, ", ", heap_strf("%zu", value_offset),
-                                ", ", compile_statement(scope, for_->body), ", ", for_->empty ? compile_statement(env, for_->empty) : "{}", ")");
+                                ", ", body,
+                                loop_ctx.skip_label ? CORD_all("\n", loop_ctx.skip_label, ":;") : CORD_EMPTY,
+                                ", ", for_->empty ? compile_statement(env, for_->empty) : "{}", ")",
+                                loop_ctx.stop_label ? CORD_all("\n", loop_ctx.stop_label, ":;") : CORD_EMPTY);
             } else {
                 CORD key = compile(env, for_->value);
                 return CORD_all("$ARRAY_FOREACH((", compile(env, for_->iter), ").entries, $i, ", compile_type(key_t), ", ", key, ", ",
-                                compile_statement(scope, for_->body), ", ", for_->empty ? compile_statement(env, for_->empty) : "{}", ")");
+                                body,
+                                loop_ctx.skip_label ? CORD_all("\n", loop_ctx.skip_label, ":;") : CORD_EMPTY,
+                                ", ", for_->empty ? compile_statement(env, for_->empty) : "{}", ")",
+                                loop_ctx.stop_label ? CORD_all("\n", loop_ctx.stop_label, ":;") : CORD_EMPTY);
             }
         }
         case IntType: {
@@ -514,27 +561,41 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     "{\n"
                     "int64_t $n = ", n, ";\n"
                     "if ($n > 0) {\n"
-                    "for (int64_t ", index, " = 1, ", value, "; (", value, "=", index,") <= $n; ++", index, ")\n"
-                    "\t", compile_statement(scope, for_->body), "\n"
-                    "}\n else ", compile_statement(env, for_->empty),
+                    "for (int64_t ", index, " = 1, ", value, "; (", value, "=", index,") <= $n; ++", index, ") {\n"
+                    "\t", body,
+                    loop_ctx.skip_label ? CORD_all("\n", loop_ctx.skip_label, ":;") : CORD_EMPTY,
+                    "\n}"
+                    "\n} else ", compile_statement(env, for_->empty),
+                    loop_ctx.stop_label ? CORD_all("\n", loop_ctx.stop_label, ":;") : CORD_EMPTY,
                     "\n}");
             } else if (for_->empty) {
                 return CORD_all(
                     "{\n"
                     "int64_t $n = ", n, ";\n"
                     "if ($n > 0) {\n"
-                    "for (int64_t ", value, " = 1; ", value, " <= $n; ++", value, ")\n"
-                    "\t", compile_statement(scope, for_->body), "\n"
-                    "}\n else ", compile_statement(env, for_->empty),
+                    "for (int64_t ", value, " = 1; ", value, " <= $n; ++", value, ") {\n"
+                    "\t", body,
+                    loop_ctx.skip_label ? CORD_all("\n", loop_ctx.skip_label, ":;") : CORD_EMPTY,
+                    "\n}"
+                    "\n} else ", compile_statement(env, for_->empty),
+                    loop_ctx.stop_label ? CORD_all("\n", loop_ctx.stop_label, ":;") : CORD_EMPTY,
                     "\n}");
             } else if (index) {
                 return CORD_all(
-                    "for (int64_t ", value, ", ", index, " = 1, $n = ", n, "; (", value, "=", index,") <= $n; ++", value, ")\n"
-                    "\t", compile_statement(scope, for_->body), "\n");
+                    "for (int64_t ", value, ", ", index, " = 1, $n = ", n, "; (", value, "=", index,") <= $n; ++", value, ") {\n"
+                    "\t", body,
+                    loop_ctx.skip_label ? CORD_all("\n", loop_ctx.skip_label, ":;") : CORD_EMPTY,
+                    "\n}",
+                    loop_ctx.stop_label ? CORD_all("\n", loop_ctx.stop_label, ":;") : CORD_EMPTY,
+                    "\n");
             } else {
                 return CORD_all(
-                    "for (int64_t ", value, " = 1, $n = ", compile(env, for_->iter), "; ", value, " <= $n; ++", value, ")\n"
-                    "\t", compile_statement(scope, for_->body), "\n");
+                    "for (int64_t ", value, " = 1, $n = ", compile(env, for_->iter), "; ", value, " <= $n; ++", value, ") {\n"
+                    "\t", body,
+                    loop_ctx.skip_label ? CORD_all("\n", loop_ctx.skip_label, ":;") : CORD_EMPTY,
+                    "\n}",
+                    loop_ctx.stop_label ? CORD_all("\n", loop_ctx.stop_label, ":;") : CORD_EMPTY,
+                    "\n");
             }
         }
         default: code_err(for_->iter, "Iteration is not implemented for type: %T", iter_t);
@@ -1179,7 +1240,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         type_t *ret_t = get_type(body_scope, lambda->body);
 
-        fn_context_t fn_ctx = (fn_context_t){
+        fn_ctx_t fn_ctx = (fn_ctx_t){
             .return_type=ret_t,
             .closure_scope=body_scope->locals->fallback,
             .closed_vars=new(table_t),
