@@ -446,11 +446,11 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case Skip: {
         if (Match(ast, Skip)->target) code_err(ast, "Named skips not yet implemented");
-        return "continue";
+        return "continue;";
     }
     case Stop: {
         if (Match(ast, Stop)->target) code_err(ast, "Named stops not yet implemented");
-        return "break";
+        return "break;";
     }
     case Pass: return ";";
     case Return: {
@@ -1353,15 +1353,36 @@ CORD compile(env_t *env, ast_t *ast)
             code_err(ast, "This expression has a %T type, but it needs to have a real value", t);
 
         if (if_->condition->tag == Declare) {
-            env_t *true_scope = fresh_scope(env);
-            bind_statement(true_scope, if_->condition);
             CORD condition = Match(Match(if_->condition, Declare)->var, Var)->name;
             CORD decl = compile_statement(env, if_->condition);
-            return CORD_all("({ ", decl, "\n(", condition, ") ? ",
-                            compile(true_scope, if_->body), " : ",
-                            compile(env, if_->else_body), " })");
+            env_t *true_scope = fresh_scope(env);
+            bind_statement(true_scope, if_->condition);
+            type_t *true_type = get_type(true_scope, if_->body);
+            type_t *false_type = get_type(env, if_->else_body);
+            if (true_type->tag == AbortType) {
+                return CORD_all("({ ", decl, "\nif (", condition, ") ", compile_statement(true_scope, if_->body), " ",
+                                compile(env, if_->else_body), "; })");
+            } else if (false_type->tag == AbortType) {
+                return CORD_all("({ ", decl, "\nif (!(", condition, ")) ", compile_statement(env, if_->else_body), " ",
+                                compile(true_scope, if_->body), "; })");
+
+            } else {
+                return CORD_all("({ ", decl, "\n(", condition, ") ? ",
+                                compile(true_scope, if_->body), " : ",
+                                compile(env, if_->else_body), "; })");
+            }
         } else {
-            return CORD_all("((", compile(env, if_->condition), ") ? ", compile(env, if_->body), " : ", compile(env, if_->else_body), ")");
+            type_t *true_type = get_type(env, if_->body);
+            type_t *false_type = get_type(env, if_->else_body);
+            if (true_type->tag == AbortType)
+                return CORD_all("({ if (", compile(env, if_->condition), ") ", compile_statement(env, if_->body),
+                                "\n", compile(env, if_->else_body), "; })");
+            else if (false_type->tag == AbortType)
+                return CORD_all("({ if (!(", compile(env, if_->condition), ")) ", compile_statement(env, if_->else_body),
+                                "\n", compile(env, if_->body), "; })");
+            else
+                return CORD_all("((", compile(env, if_->condition), ") ? ",
+                                compile(env, if_->body), " : ", compile(env, if_->else_body), ")");
         }
     }
     case Reduction: {
