@@ -618,9 +618,10 @@ PARSER(parse_array) {
         ast_t *item = optional(ctx, &pos, parse_extended_expr);
         if (!item) break;
         ast_t *suffixed = parse_comprehension_suffix(ctx, item);
-        if (suffixed) {
+        while (suffixed) {
             item = suffixed;
             pos = suffixed->end;
+            suffixed = parse_comprehension_suffix(ctx, item);
         }
         items = new(ast_list_t, .ast=item, .next=items);
         if (!match_separator(&pos))
@@ -663,9 +664,10 @@ PARSER(parse_table) {
         ast_t *value = expect(ctx, pos-1, &pos, parse_expr, "I couldn't parse the value for this table entry");
         ast_t *entry = NewAST(ctx->file, entry_start, pos, TableEntry, .key=key, .value=value);
         ast_t *suffixed = parse_comprehension_suffix(ctx, entry);
-        if (suffixed) {
+        while (suffixed) {
             entry = suffixed;
             pos = suffixed->end;
+            suffixed = parse_comprehension_suffix(ctx, entry);
         }
         entries = new(ast_list_t, .ast=entry, .next=entries);
         if (!match_separator(&pos))
@@ -923,7 +925,7 @@ PARSER(parse_length) {
     const char *start = pos;
     if (!match(&pos, "#")) return NULL;
     spaces(&pos);
-    ast_t *val = expect(ctx, start, &pos, parse_expr, "I expected an expression for this '#'");
+    ast_t *val = expect(ctx, start, &pos, parse_term, "I expected an expression for this '#'");
     return NewAST(ctx->file, start, pos, Length, .value=val);
 }
 
@@ -931,7 +933,7 @@ PARSER(parse_heap_alloc) {
     const char *start = pos;
     if (!match(&pos, "@")) return NULL;
     spaces(&pos);
-    ast_t *val = expect(ctx, start, &pos, parse_expr, "I expected an expression for this '@'");
+    ast_t *val = expect(ctx, start, &pos, parse_term, "I expected an expression for this '@'");
     return NewAST(ctx->file, start, pos, HeapAllocate, .value=val);
 }
 
@@ -939,7 +941,7 @@ PARSER(parse_stack_reference) {
     const char *start = pos;
     if (!match(&pos, "&")) return NULL;
     spaces(&pos);
-    ast_t *val = expect(ctx, start, &pos, parse_expr, "I expected an expression for this '&'");
+    ast_t *val = expect(ctx, start, &pos, parse_term, "I expected an expression for this '&'");
     return NewAST(ctx->file, start, pos, StackReference, .value=val);
 }
 
@@ -947,7 +949,7 @@ PARSER(parse_not) {
     const char *start = pos;
     if (!match_word(&pos, "not")) return NULL;
     spaces(&pos);
-    ast_t *val = expect(ctx, start, &pos, parse_expr, "I expected an expression for this 'not'");
+    ast_t *val = expect(ctx, start, &pos, parse_term, "I expected an expression for this 'not'");
     return NewAST(ctx->file, start, pos, Not, .value=val);
 }
 
