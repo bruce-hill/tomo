@@ -54,6 +54,9 @@ if yes
 >> [i*10 for i in 5]
 = [10, 20, 30, 40, 50]
 
+>> [i*10 for i in 5 if i mod 2 != 0]
+= [10, 30, 50]
+
 if yes
 	>> arr := @[10, 20]
 	>> copy := arr[]
