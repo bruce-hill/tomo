@@ -50,11 +50,12 @@ static const char *keywords[] = {
 };
 
 enum {NORMAL_FUNCTION=0, EXTERN_FUNCTION=1};
+typedef enum {WHITESPACE_NONE=0, WHITESPACE_SPACES=1, WHITESPACE_NEWLINES=2, WHITESPACE_COMMENTS=4} whitespace_types_e;
 
 static inline size_t some_of(const char **pos, const char *allow);
 static inline size_t some_not(const char **pos, const char *forbid);
 static inline size_t spaces(const char **pos);
-static inline size_t whitespace(const char **pos);
+static inline whitespace_types_e whitespace(const char **pos);
 static inline size_t match(const char **pos, const char *target);
 static inline void expect_str(parse_ctx_t *ctx, const char *start, const char **pos, const char *target, const char *fmt, ...);
 static inline void expect_closing(parse_ctx_t *ctx, const char **pos, const char *target, const char *fmt, ...);
@@ -186,11 +187,18 @@ size_t spaces(const char **pos) {
     return some_of(pos, " \t");
 }
 
-size_t whitespace(const char **pos) {
-    const char *p0 = *pos;
-    while (some_of(pos, " \t\r\n") || comment(pos))
-        continue;
-    return (size_t)(*pos - p0);
+whitespace_types_e whitespace(const char **pos) {
+    whitespace_types_e spaces = WHITESPACE_NONE;
+    for (;;) {
+        if (some_of(pos, " \t")) {
+            spaces |= WHITESPACE_SPACES;
+        } else if (some_of(pos, "\r\n")) {
+            spaces |= WHITESPACE_NEWLINES;
+        } else if (comment(pos)) {
+            spaces |= WHITESPACE_COMMENTS;
+        } else break;
+    }
+    return spaces;
 }
 
 size_t match(const char **pos, const char *target) {
@@ -764,6 +772,12 @@ PARSER(parse_reduction) {
 
     ast_t *iter = optional(ctx, &pos, parse_extended_expr);
     if (!iter) return NULL;
+    ast_t *suffixed = parse_comprehension_suffix(ctx, iter);
+    while (suffixed) {
+        iter = suffixed;
+        pos = suffixed->end;
+        suffixed = parse_comprehension_suffix(ctx, iter);
+    }
 
     ast_t *fallback = NULL;
     if (match_word(&pos, "else"))
@@ -1503,7 +1517,7 @@ PARSER(parse_block) {
             break;
         }
         statements = new(ast_list_t, .ast=stmt, .next=statements);
-        whitespace(&pos);
+        whitespace(&pos); // TODO: check for newline
         if (get_indent(ctx->file, pos) != block_indent) {
             pos = stmt->end; // backtrack
             break;
@@ -1537,7 +1551,11 @@ PARSER(parse_namespace) {
         {
             statements = new(ast_list_t, .ast=stmt, .next=statements);
             pos = stmt->end;
-            whitespace(&pos);
+            whitespace(&pos); // TODO: check for newline
+            // if (!(space_types & WHITESPACE_NEWLINES)) {
+            //     pos = stmt->end;
+            //     break;
+            // }
         } else {
             if (get_indent(ctx->file, next) > indent && next < strchrnul(next, '\n'))
                 parser_err(ctx, next, strchrnul(next, '\n'), "I couldn't parse this namespace statement");
@@ -1828,11 +1846,13 @@ PARSER(parse_doctest) {
     if (match(&pos, "=")) {
         spaces(&pos);
         const char *output_start = pos,
-                   *output_end = strchrnul(pos, '\n');
+                   *output_end = pos + strcspn(pos, "\r\n");
         if (output_end <= output_start)
             parser_err(ctx, output_start, output_end, "You're missing expected output here");
         output = heap_strn(output_start, (size_t)(output_end - output_start));
         pos = output_end;
+    } else {
+        pos = expr->end;
     }
     return NewAST(ctx->file, start, pos, DocTest, .expr=expr, .output=output);
 }

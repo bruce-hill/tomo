@@ -520,6 +520,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case For: {
         auto for_ = Match(ast, For);
+        // TODO: optimize case for iterating over comprehensions so we don't need to create
+        // an intermediary array/table
         type_t *iter_t = get_type(env, for_->iter);
         env_t *body_scope = for_scope(env, ast);
         loop_ctx_t loop_ctx = (loop_ctx_t){
@@ -1290,7 +1292,13 @@ CORD compile(env_t *env, ast_t *ast)
 
     }
     case Comprehension: {
-        code_err(ast, "Comprehensions cannot be compiled as expressions");
+        ast_t *base = Match(ast, Comprehension)->expr;
+        while (base->tag == Comprehension)
+            base = Match(ast, Comprehension)->expr;
+        if (base->tag == TableEntry)
+            return compile(env, WrapAST(ast, Table, .entries=new(ast_list_t, .ast=ast)));
+        else
+            return compile(env, WrapAST(ast, Array, .items=new(ast_list_t, .ast=ast)));
     }
     case Lambda: {
         auto lambda = Match(ast, Lambda);

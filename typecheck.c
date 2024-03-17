@@ -374,7 +374,16 @@ type_t *get_type(env_t *env, ast_t *ast)
         code_err(ast, "Table entries should not be typechecked directly");
     }
     case Comprehension: {
-        code_err(ast, "Comprehensions should not be typechecked directly");
+        auto comp = Match(ast, Comprehension);
+        env_t *scope = for_scope(env, FakeAST(For, .iter=comp->iter, .index=comp->key, .value=comp->value));
+        if (comp->expr->tag == Comprehension) {
+            return get_type(scope, comp->expr);
+        } else if (comp->expr->tag == TableEntry) {
+            auto e = Match(comp->expr, TableEntry);
+            return Type(TableType, .key_type=get_type(scope, e->key), .value_type=get_type(scope, e->value));
+        } else {
+            return Type(ArrayType, .item_type=get_type(scope, comp->expr));
+        }
     }
     case FieldAccess: {
         auto access = Match(ast, FieldAccess);
