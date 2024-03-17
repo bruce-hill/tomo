@@ -656,6 +656,30 @@ CORD compile_statement(env_t *env, ast_t *ast)
         }
         return CORD_cat(code, "}");
     }
+    case Comprehension: {
+        auto comp = Match(ast, Comprehension);
+        assert(env->comprehension_var);
+        if (comp->expr->tag == Comprehension) { // Nested comprehension
+            ast_t *body = comp->filter ? WrapAST(ast, If, .condition=comp->filter, .body=comp->expr) : comp->expr;
+            ast_t *loop = WrapAST(ast, For, .index=comp->key, .value=comp->value, .iter=comp->iter, .body=body);
+            return compile_statement(env, loop);
+        } else if (comp->expr->tag == TableEntry) { // Table comprehension
+            auto e = Match(comp->expr, TableEntry);
+            ast_t *body = WrapAST(ast, MethodCall, .name="set", .self=FakeAST(StackReference, FakeAST(Var, env->comprehension_var)),
+                                  .args=new(arg_ast_t, .value=e->key, .next=new(arg_ast_t, .value=e->value)));
+            if (comp->filter)
+                body = WrapAST(body, If, .condition=comp->filter, .body=body);
+            ast_t *loop = WrapAST(ast, For, .index=comp->key, .value=comp->value, .iter=comp->iter, .body=body);
+            return compile_statement(env, loop);
+        } else { // Array comprehension
+            ast_t *body = WrapAST(comp->expr, MethodCall, .name="insert", .self=FakeAST(StackReference, FakeAST(Var, env->comprehension_var)),
+                                  .args=new(arg_ast_t, .value=comp->expr));
+            if (comp->filter)
+                body = WrapAST(body, If, .condition=comp->filter, .body=body);
+            ast_t *loop = WrapAST(ast, For, .index=comp->key, .value=comp->value, .iter=comp->iter, .body=body);
+            return compile_statement(env, loop);
+        }
+    }
     case InlineCCode: return Match(ast, InlineCCode)->code;
     default:
         return CORD_asprintf("(void)%r;", compile(env, ast));
@@ -1167,26 +1191,22 @@ CORD compile(env_t *env, ast_t *ast)
 
       array_comprehension:
         {
-            CORD code = "({ array_t $arr = {};";
             env_t *scope = fresh_scope(env);
-            set_binding(scope, "$arr", new(binding_t, .type=array_type, .code="$arr"));
+            static int64_t comp_num = 1;
+            scope->comprehension_var = heap_strf("$arr$%ld", comp_num++);
+            CORD code = CORD_all("({ array_t ", scope->comprehension_var, " = {};");
+            set_binding(scope, scope->comprehension_var, new(binding_t, .type=array_type, .code=scope->comprehension_var));
             for (ast_list_t *item = array->items; item; item = item->next) {
                 if (item->ast->tag == Comprehension) {
-                    auto comp = Match(item->ast, Comprehension);
-                    ast_t *body = WrapAST(comp->expr, MethodCall, .name="insert", .self=FakeAST(StackReference, FakeAST(Var, "$arr")),
-                                          .args=new(arg_ast_t, .value=comp->expr));
-                    if (comp->filter)
-                        body = WrapAST(body, If, .condition=comp->filter, .body=body);
-                    ast_t *loop = WrapAST(item->ast, For, .index=comp->key, .value=comp->value, .iter=comp->iter, .body=body);
-                    code = CORD_all(code, "\n", compile_statement(scope, loop));
+                    code = CORD_all(code, "\n", compile_statement(scope, item->ast));
                 } else {
                     CORD insert = compile_statement(
-                        scope, WrapAST(item->ast, MethodCall, .name="insert", .self=FakeAST(StackReference, FakeAST(Var, "$arr")),
+                        scope, WrapAST(item->ast, MethodCall, .name="insert", .self=FakeAST(StackReference, FakeAST(Var, scope->comprehension_var)),
                                        .args=new(arg_ast_t, .value=item->ast)));
                     code = CORD_all(code, "\n", insert);
                 }
             }
-            code = CORD_cat(code, " $arr; })");
+            code = CORD_all(code, " ", scope->comprehension_var, "; })");
             return code;
         }
     }
@@ -1240,7 +1260,11 @@ CORD compile(env_t *env, ast_t *ast)
 
       table_comprehension:
         {
-            CORD code = "({ table_t $t = {";
+            static int64_t comp_num = 1;
+            env_t *scope = fresh_scope(env);
+            scope->comprehension_var = heap_strf("$table$%ld", comp_num++);
+
+            CORD code = CORD_all("({ table_t ", scope->comprehension_var, " = {");
             if (table->fallback)
                 code = CORD_all(code, ".fallback=$heap(", compile(env, table->fallback), "), ");
 
@@ -1248,36 +1272,25 @@ CORD compile(env_t *env, ast_t *ast)
                 code = CORD_all(code, ".default_value=$heap(", compile(env, table->default_value), "), ");
             code = CORD_cat(code, "};");
 
-            env_t *scope = fresh_scope(env);
-            set_binding(scope, "$t", new(binding_t, .type=table_type, .code="$t"));
+            set_binding(scope, scope->comprehension_var, new(binding_t, .type=table_type, .code=scope->comprehension_var));
             for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
                 if (entry->ast->tag == Comprehension) {
-                    auto comp = Match(entry->ast, Comprehension);
-                    auto e = Match(comp->expr, TableEntry);
-                    ast_t *body = WrapAST(comp->expr, MethodCall, .name="set", .self=FakeAST(StackReference, FakeAST(Var, "$t")),
-                                          .args=new(arg_ast_t, .value=e->key, .next=new(arg_ast_t, .value=e->value)));
-                    if (comp->filter)
-                        body = WrapAST(body, If, .condition=comp->filter, .body=body);
-                    ast_t *loop = WrapAST(entry->ast, For, .index=comp->key, .value=comp->value, .iter=comp->iter, .body=body);
-                    code = CORD_all(code, "\n", compile_statement(scope, loop));
+                    code = CORD_all(code, "\n", compile_statement(scope, entry->ast));
                 } else {
                     auto e = Match(entry->ast, TableEntry);
                     CORD set = compile_statement(
-                        scope, WrapAST(entry->ast, MethodCall, .name="set", .self=FakeAST(StackReference, FakeAST(Var, "$arr")),
+                        scope, WrapAST(entry->ast, MethodCall, .name="set", .self=FakeAST(StackReference, FakeAST(Var, scope->comprehension_var)),
                                        .args=new(arg_ast_t, .value=e->key, .next=new(arg_ast_t, .value=e->value))));
                     code = CORD_all(code, "\n", set);
                 }
             }
-            code = CORD_cat(code, " $t; })");
+            code = CORD_all(code, " ", scope->comprehension_var, "; })");
             return code;
         }
 
     }
     case Comprehension: {
-        auto comp = Match(ast, Comprehension);
-        ast_t *collection = comp->expr->tag == TableEntry ? WrapAST(ast, Table, .entries=new(ast_list_t, .ast=ast))
-            : WrapAST(ast, Array, .items=new(ast_list_t, .ast=ast));
-        return compile(env, collection);
+        code_err(ast, "Comprehensions cannot be compiled as expressions");
     }
     case Lambda: {
         auto lambda = Match(ast, Lambda);

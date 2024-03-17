@@ -35,6 +35,7 @@ typedef struct {
     fn_ctx_t *fn_ctx;
     loop_ctx_t *loop_ctx;
     CORD scope_prefix;
+    const char *comprehension_var;
 } env_t;
 
 typedef struct {
