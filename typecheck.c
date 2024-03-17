@@ -308,9 +308,11 @@ type_t *get_type(env_t *env, ast_t *ast)
         } else if (array->items) {
             for (ast_list_t *item = array->items; item; item = item->next) {
                 type_t *t2;
-                if (item->ast->tag == For) {
-                    env_t *scope = for_scope(env, item->ast);
-                    t2 = get_type(scope, Match(item->ast, For)->body);
+                if (item->ast->tag == Comprehension) {
+                    auto comp = Match(item->ast, Comprehension);
+
+                    env_t *scope = for_scope(env, FakeAST(For, .iter=comp->iter, .index=comp->key, .value=comp->value));
+                    t2 = get_type(scope, comp->expr);
                 } else {
                     t2 = get_type(env, item->ast);
                 }
@@ -338,19 +340,30 @@ type_t *get_type(env_t *env, ast_t *ast)
             if (table->default_value)
                 value_type = get_type(env, table->default_value);
             for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
-                auto table_entry = Match(entry->ast, TableEntry);
-                type_t *key_t = get_type(env, table_entry->key);
+                type_t *key_t, *value_t;
+                if (entry->ast->tag == Comprehension) {
+                    auto comp = Match(entry->ast, Comprehension);
+                    env_t *scope = for_scope(env, FakeAST(For, .iter=comp->iter, .index=comp->key, .value=comp->value));
+                    if (comp->expr->tag != TableEntry)
+                        code_err(comp->expr, "I expected this table comprehension to have a key/value entry");
+                    key_t = get_type(scope, Match(comp->expr, TableEntry)->key);
+                    value_t = get_type(scope, Match(comp->expr, TableEntry)->value);
+                } else {
+                    auto e = Match(entry->ast, TableEntry);
+                    key_t = get_type(env, e->key);
+                    value_t = get_type(env, e->value);
+                }
+
                 type_t *key_merged = key_type ? type_or_type(key_type, key_t) : key_t;
                 if (!key_merged)
-                    code_err(table_entry->key,
+                    code_err(entry->ast,
                              "This table entry has type %T, which is different from earlier table entries which have type %T",
                              key_t, key_type);
                 key_type = key_merged;
 
-                type_t *value_t = get_type(env, table_entry->value);
                 type_t *val_merged = value_type ? type_or_type(value_type, value_t) : value_t;
                 if (!val_merged)
-                    code_err(table_entry->value,
+                    code_err(entry->ast,
                              "This table entry has type %T, which is different from earlier table entries which have type %T",
                              value_t, value_type);
                 value_type = val_merged;
@@ -361,7 +374,10 @@ type_t *get_type(env_t *env, ast_t *ast)
         return Type(TableType, .key_type=key_type, .value_type=value_type);
     }
     case TableEntry: {
-        code_err(ast, "This should not be typechecked directly");
+        code_err(ast, "Table entries should not be typechecked directly");
+    }
+    case Comprehension: {
+        code_err(ast, "Comprehensions should not be typechecked directly");
     }
     case FieldAccess: {
         auto access = Match(ast, FieldAccess);

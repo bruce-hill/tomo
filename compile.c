@@ -1153,7 +1153,7 @@ CORD compile(env_t *env, ast_t *ast)
         int64_t n = 0;
         for (ast_list_t *item = array->items; item; item = item->next) {
             ++n;
-            if (item->ast->tag == For)
+            if (item->ast->tag == Comprehension)
                 goto array_comprehension;
         }
 
@@ -1171,13 +1171,14 @@ CORD compile(env_t *env, ast_t *ast)
             env_t *scope = fresh_scope(env);
             set_binding(scope, "$arr", new(binding_t, .type=array_type, .code="$arr"));
             for (ast_list_t *item = array->items; item; item = item->next) {
-                if (item->ast->tag == For) {
-                    auto for_ = Match(item->ast, For);
-                    env_t *body_scope = for_scope(scope, item->ast);
-                    ast_t *for2 = WrapAST(item->ast, For, .index=for_->index, .value=for_->value, .iter=for_->iter,
-                                          .body=WrapAST(for_->body, MethodCall, .name="insert", .self=FakeAST(StackReference, FakeAST(Var, "$arr")),
-                                                        .args=new(arg_ast_t, .value=for_->body)));
-                    code = CORD_all(code, "\n", compile_statement(body_scope, for2));
+                if (item->ast->tag == Comprehension) {
+                    auto comp = Match(item->ast, Comprehension);
+                    ast_t *body = WrapAST(comp->expr, MethodCall, .name="insert", .self=FakeAST(StackReference, FakeAST(Var, "$arr")),
+                                          .args=new(arg_ast_t, .value=comp->expr));
+                    if (comp->filter)
+                        body = WrapAST(body, If, .condition=comp->filter, .body=body);
+                    ast_t *loop = WrapAST(item->ast, For, .index=comp->key, .value=comp->value, .iter=comp->iter, .body=body);
+                    code = CORD_all(code, "\n", compile_statement(scope, loop));
                 } else {
                     CORD insert = compile_statement(
                         scope, WrapAST(item->ast, MethodCall, .name="insert", .self=FakeAST(StackReference, FakeAST(Var, "$arr")),
@@ -1199,36 +1200,84 @@ CORD compile(env_t *env, ast_t *ast)
                 code = CORD_all(code, ".default_value=$heap(", compile(env, table->default_value),"),");
             return CORD_cat(code, "}");
         }
-           
+
         type_t *table_type = get_type(env, ast);
         type_t *key_t = Match(table_type, TableType)->key_type;
         type_t *value_t = Match(table_type, TableType)->value_type;
-        CORD code = CORD_all("$Table(",
-                             compile_type(key_t), ", ",
-                             compile_type(value_t), ", ",
-                             compile_type_info(env, key_t), ", ",
-                             compile_type_info(env, value_t));
-        if (table->fallback)
-            code = CORD_all(code, ", /*fallback:*/ $heap(", compile(env, table->fallback), ")");
-        else
-            code = CORD_all(code, ", /*fallback:*/ NULL");
-
-        if (table->default_value)
-            code = CORD_all(code, ", /*default:*/ $heap(", compile(env, table->default_value), ")");
-        else
-            code = CORD_all(code, ", /*default:*/ NULL");
-
-        size_t n = 0;
-        for (ast_list_t *entry = table->entries; entry; entry = entry->next)
-            ++n;
-        CORD_appendf(&code, ", %zu", n);
 
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
-            auto e = Match(entry->ast, TableEntry);
-            code = CORD_all(code, ",\n\t{", compile(env, e->key), ", ", compile(env, e->value), "}");
+            if (entry->ast->tag == Comprehension)
+                goto table_comprehension;
         }
-        return CORD_cat(code, ")");
+           
+        { // No comprehension:
+            CORD code = CORD_all("$Table(",
+                                 compile_type(key_t), ", ",
+                                 compile_type(value_t), ", ",
+                                 compile_type_info(env, key_t), ", ",
+                                 compile_type_info(env, value_t));
+            if (table->fallback)
+                code = CORD_all(code, ", /*fallback:*/ $heap(", compile(env, table->fallback), ")");
+            else
+                code = CORD_all(code, ", /*fallback:*/ NULL");
 
+            if (table->default_value)
+                code = CORD_all(code, ", /*default:*/ $heap(", compile(env, table->default_value), ")");
+            else
+                code = CORD_all(code, ", /*default:*/ NULL");
+
+            size_t n = 0;
+            for (ast_list_t *entry = table->entries; entry; entry = entry->next)
+                ++n;
+            CORD_appendf(&code, ", %zu", n);
+
+            for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
+                auto e = Match(entry->ast, TableEntry);
+                code = CORD_all(code, ",\n\t{", compile(env, e->key), ", ", compile(env, e->value), "}");
+            }
+            return CORD_cat(code, ")");
+        }
+
+      table_comprehension:
+        {
+            CORD code = "({ table_t $t = {";
+            if (table->fallback)
+                code = CORD_all(code, ".fallback=$heap(", compile(env, table->fallback), "), ");
+
+            if (table->default_value)
+                code = CORD_all(code, ".default_value=$heap(", compile(env, table->default_value), "), ");
+            code = CORD_cat(code, "};");
+
+            env_t *scope = fresh_scope(env);
+            set_binding(scope, "$t", new(binding_t, .type=table_type, .code="$t"));
+            for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
+                if (entry->ast->tag == Comprehension) {
+                    auto comp = Match(entry->ast, Comprehension);
+                    auto e = Match(comp->expr, TableEntry);
+                    ast_t *body = WrapAST(comp->expr, MethodCall, .name="set", .self=FakeAST(StackReference, FakeAST(Var, "$t")),
+                                          .args=new(arg_ast_t, .value=e->key, .next=new(arg_ast_t, .value=e->value)));
+                    if (comp->filter)
+                        body = WrapAST(body, If, .condition=comp->filter, .body=body);
+                    ast_t *loop = WrapAST(entry->ast, For, .index=comp->key, .value=comp->value, .iter=comp->iter, .body=body);
+                    code = CORD_all(code, "\n", compile_statement(scope, loop));
+                } else {
+                    auto e = Match(entry->ast, TableEntry);
+                    CORD set = compile_statement(
+                        scope, WrapAST(entry->ast, MethodCall, .name="set", .self=FakeAST(StackReference, FakeAST(Var, "$arr")),
+                                       .args=new(arg_ast_t, .value=e->key, .next=new(arg_ast_t, .value=e->value))));
+                    code = CORD_all(code, "\n", set);
+                }
+            }
+            code = CORD_cat(code, " $t; })");
+            return code;
+        }
+
+    }
+    case Comprehension: {
+        auto comp = Match(ast, Comprehension);
+        ast_t *collection = comp->expr->tag == TableEntry ? WrapAST(ast, Table, .entries=new(ast_list_t, .ast=ast))
+            : WrapAST(ast, Array, .items=new(ast_list_t, .ast=ast));
+        return compile(env, collection);
     }
     case Lambda: {
         auto lambda = Match(ast, Lambda);
@@ -1344,9 +1393,9 @@ CORD compile(env_t *env, ast_t *ast)
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "set")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
-                arg_t *arg_spec = new(arg_t, .name="key", .type=Type(PointerType, .pointed=table->key_type, .is_stack=true, .is_readonly=true),
-                                      .next=new(arg_t, .name="value", .type=Type(PointerType, .pointed=table->value_type, .is_stack=true, .is_readonly=true)));
-                return CORD_all("Table_set(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type,
+                                      .next=new(arg_t, .name="value", .type=table->value_type));
+                return CORD_all("Table_set_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "remove")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);

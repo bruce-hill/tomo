@@ -96,7 +96,7 @@ typedef enum {
     BinaryOp, UpdateAssign,
     Length, Not, Negative, HeapAllocate, StackReference,
     Min, Max,
-    Array, Table, TableEntry,
+    Array, Table, TableEntry, Comprehension,
     FunctionDef, Lambda,
     FunctionCall, MethodCall,
     Block,
@@ -173,6 +173,9 @@ struct ast_s {
         struct {
             ast_t *key, *value;
         } TableEntry;
+        struct {
+            ast_t *expr, *key, *value, *iter, *filter;
+        } Comprehension;
         struct {
             ast_t *name;
             arg_ast_t *args;

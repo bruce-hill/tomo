@@ -68,7 +68,7 @@ static ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn, bool is_extern);
 static ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self);
 static ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs);
-static ast_t *parse_for_suffix(parse_ctx_t *ctx, ast_t *lhs);
+static ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed);
 static PARSER(parse_for);
 static PARSER(parse_while);
@@ -617,7 +617,7 @@ PARSER(parse_array) {
     for (;;) {
         ast_t *item = optional(ctx, &pos, parse_extended_expr);
         if (!item) break;
-        ast_t *suffixed = parse_for_suffix(ctx, item);
+        ast_t *suffixed = parse_comprehension_suffix(ctx, item);
         if (suffixed) {
             item = suffixed;
             pos = suffixed->end;
@@ -661,20 +661,12 @@ PARSER(parse_table) {
         whitespace(&pos);
         if (!match(&pos, "=>")) return NULL;
         ast_t *value = expect(ctx, pos-1, &pos, parse_expr, "I couldn't parse the value for this table entry");
-
         ast_t *entry = NewAST(ctx->file, entry_start, pos, TableEntry, .key=key, .value=value);
-        for (bool progress = true; progress; ) {
-            ast_t *new_entry;
-            progress = (false
-                || (new_entry=parse_index_suffix(ctx, entry))
-                || (new_entry=parse_field_suffix(ctx, entry))
-                || (new_entry=parse_method_call_suffix(ctx, entry))
-                || (new_entry=parse_fncall_suffix(ctx, entry, NORMAL_FUNCTION))
-            );
-            if (progress) entry = new_entry;
+        ast_t *suffixed = parse_comprehension_suffix(ctx, entry);
+        if (suffixed) {
+            entry = suffixed;
+            pos = suffixed->end;
         }
-        pos = entry->end;
-
         entries = new(ast_list_t, .ast=entry, .next=entries);
         if (!match_separator(&pos))
             break;
@@ -791,34 +783,30 @@ ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     return NewAST(ctx->file, start, pos, Index, .indexed=lhs, .index=index, .unchecked=unchecked);
 }
 
-ast_t *parse_for_suffix(parse_ctx_t *ctx, ast_t *lhs) {
+ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr) {
     // <expr> for [<index>,]<var> in <iter> [if <condition>]
-    if (!lhs) return NULL;
-    const char *start = lhs->start;
-    const char *pos = lhs->end;
+    if (!expr) return NULL;
+    const char *start = expr->start;
+    const char *pos = expr->end;
     whitespace(&pos);
     if (!match_word(&pos, "for")) return NULL;
 
-    ast_t *index = expect(ctx, start, &pos, parse_var, "I expected an iteration variable for this 'for'");
+    ast_t *key = expect(ctx, start, &pos, parse_var, "I expected an iteration variable for this 'for'");
     whitespace(&pos);
     ast_t *value = NULL;
     if (match(&pos, ",")) {
         value = expect(ctx, pos-1, &pos, parse_var, "I expected a variable after this comma");
     } else {
-        value = index;
-        index = NULL;
+        value = key;
+        key = NULL;
     }
     expect_str(ctx, start, &pos, "in", "I expected an 'in' for this 'for'");
     ast_t *iter = expect(ctx, start, &pos, parse_expr, "I expected an iterable value for this 'for'");
     whitespace(&pos);
-    ast_t *body = lhs;
-    if (match_word(&pos, "if")) {
-        ast_t *condition = expect(ctx, pos-2, &pos, parse_expr, "I expected a condition for this 'if'");
-        body = NewAST(ctx->file, body->start, condition->end, Block,
-                      .statements=new(ast_list_t, .ast=WrapAST(condition, If, .condition=FakeAST(Not, condition), .body=FakeAST(Skip)),
-                                      .next=new(ast_list_t, .ast=body)));
-    }
-    return NewAST(ctx->file, start, pos, For, .index=index, .value=value, .iter=iter, .body=body);
+    ast_t *filter = NULL;
+    if (match_word(&pos, "if"))
+        filter = expect(ctx, pos-2, &pos, parse_expr, "I expected a condition for this 'if'");
+    return NewAST(ctx->file, start, pos, Comprehension, .expr=expr, .key=key, .value=value, .iter=iter, .filter=filter);
 }
 
 PARSER(parse_if) {

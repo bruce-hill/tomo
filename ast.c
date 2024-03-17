@@ -116,6 +116,8 @@ CORD ast_to_cord(ast_t *ast)
       ast_to_cord(data.fallback), ast_to_cord(data.default_value),
       ast_list_to_cord(data.entries))
     T(TableEntry, "(%r => %r)", ast_to_cord(data.key), ast_to_cord(data.value))
+    T(Comprehension, "(expr=%r, key=%r, value=%r, iter=%r, filter=%r)", ast_to_cord(data.expr),
+      ast_to_cord(data.key), ast_to_cord(data.value), ast_to_cord(data.iter), ast_to_cord(data.filter))
     T(FunctionDef, "(name=%r, args=%r, ret=%r, body=%r)", ast_to_cord(data.name),
       arg_list_to_cord(data.args), type_ast_to_cord(data.ret_type), ast_to_cord(data.body))
     T(Lambda, "(args=%r, body=%r)", arg_list_to_cord(data.args), ast_to_cord(data.body))

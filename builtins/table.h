@@ -43,6 +43,8 @@ void *Table_get_raw(table_t t, const void *key, const TypeInfo *type);
 void *Table_entry(table_t t, int64_t n);
 void *Table_reserve(table_t *t, const void *key, const void *value, const TypeInfo *type);
 void Table_set(table_t *t, const void *key, const void *value, const TypeInfo *type);
+#define Table_set_value(t, key_expr, value_expr, type) ({ __typeof(key_expr) $k = key_expr; __typeof(value_expr) $v = value_expr; \
+                                                        Table_set(t, &$k, &$v, type); })
 void Table_remove(table_t *t, const void *key, const TypeInfo *type);
 void Table_clear(table_t *t);
 void Table_mark_copy_on_write(table_t *t);
