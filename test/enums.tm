@@ -25,3 +25,10 @@ enum Foo(Zero, One(x:Int), Two(x,y:Int))
 = "found"
 >> t[Foo.Zero()]
 = "missing"
+
+when x is o:One
+	>> o.x
+	= 123
+else
+	fail("Oops")
+
