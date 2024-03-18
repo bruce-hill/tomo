@@ -479,8 +479,7 @@ type_ast_t *parse_func_type(parse_ctx_t *ctx, const char *pos) {
     arg_ast_t *args = parse_args(ctx, &pos, true);
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this function type");
     spaces(&pos);
-    if (!match(&pos, "->")) return NULL;
-    type_ast_t *ret = optional(ctx, &pos, parse_type);
+    type_ast_t *ret = match(&pos, "->") ? optional(ctx, &pos, parse_type) : NULL;
     return NewTypeAST(ctx->file, start, pos, FunctionTypeAST, .args=args, .ret=ret);
 }
 

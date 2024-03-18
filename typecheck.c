@@ -53,7 +53,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
     }
     case FunctionTypeAST: {
         auto fn = Match(ast, FunctionTypeAST);
-        type_t *ret_t = parse_type_ast(env, fn->ret);
+        type_t *ret_t = fn->ret ? parse_type_ast(env, fn->ret) : Type(VoidType);
         if (has_stack_memory(ret_t))
             code_err(fn->ret, "Functions are not allowed to return stack references, because the reference may no longer exist on the stack.");
         arg_t *type_args = NULL;
