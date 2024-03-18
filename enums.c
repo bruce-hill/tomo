@@ -115,25 +115,32 @@ void compile_enum_def(env_t *env, ast_t *ast)
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         compile_struct_def(env, WrapAST(ast, StructDef, .name=CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)), .fields=tag->fields));
         enum_def = CORD_all(enum_def, full_name, "$", tag->name, "_t ", tag->name, ";\n");
-        // Constructor:
-        CORD arg_sig = CORD_EMPTY;
-        for (arg_ast_t *field = tag->fields; field; field = field->next) {
-            type_t *field_t = get_arg_ast_type(env, field);
-            arg_sig = CORD_all(arg_sig, compile_declaration(env, field_t, field->name));
-            if (field->next) arg_sig = CORD_cat(arg_sig, ", ");
-        }
-        if (arg_sig == CORD_EMPTY) arg_sig = "void";
-        CORD constructor_def = CORD_all(full_name, "_t ", full_name, "$tagged$", tag->name, "(", arg_sig, ");\n");
-        env->code->fndefs = CORD_cat(env->code->fndefs, constructor_def);
+        if (tag->fields) {
+            // Constructor:
+            CORD arg_sig = CORD_EMPTY;
+            for (arg_ast_t *field = tag->fields; field; field = field->next) {
+                type_t *field_t = get_arg_ast_type(env, field);
+                arg_sig = CORD_all(arg_sig, compile_declaration(env, field_t, field->name));
+                if (field->next) arg_sig = CORD_cat(arg_sig, ", ");
+            }
+            if (arg_sig == CORD_EMPTY) arg_sig = "void";
+            CORD constructor_def = CORD_all(full_name, "_t ", full_name, "$tagged$", tag->name, "(", arg_sig, ");\n");
+            env->code->fndefs = CORD_cat(env->code->fndefs, constructor_def);
 
-        CORD constructor_impl = CORD_all("public inline ", full_name, "_t ", full_name, "$tagged$", tag->name, "(", arg_sig, ") { return (",
-                                         full_name, "_t){.$tag=$tag$", full_name, "$", tag->name, ", .", tag->name, "={");
-        for (arg_ast_t *field = tag->fields; field; field = field->next) {
-            constructor_impl = CORD_all(constructor_impl, field->name);
-            if (field->next) constructor_impl = CORD_cat(constructor_impl, ", ");
+            CORD constructor_impl = CORD_all("public inline ", full_name, "_t ", full_name, "$tagged$", tag->name, "(", arg_sig, ") { return (",
+                                             full_name, "_t){.$tag=$tag$", full_name, "$", tag->name, ", .", tag->name, "={");
+            for (arg_ast_t *field = tag->fields; field; field = field->next) {
+                constructor_impl = CORD_all(constructor_impl, field->name);
+                if (field->next) constructor_impl = CORD_cat(constructor_impl, ", ");
+            }
+            constructor_impl = CORD_cat(constructor_impl, "}}; }\n");
+            env->code->funcs = CORD_cat(env->code->funcs, constructor_impl);
+        } else { // Empty tagged data:
+            CORD singleton = CORD_all("extern const ", full_name, "_t ", full_name, "$tagged$", tag->name, ";\n");
+            env->code->fndefs = CORD_cat(env->code->fndefs, singleton);
+            CORD value = CORD_all("public const ", full_name, "_t ", full_name, "$tagged$", tag->name, " = {$tag$", full_name, "$", tag->name, "};\n");
+            env->code->funcs = CORD_cat(env->code->funcs, value);
         }
-        constructor_impl = CORD_cat(constructor_impl, "}}; }\n");
-        env->code->funcs = CORD_cat(env->code->funcs, constructor_impl);
     }
     enum_def = CORD_cat(enum_def, "};\n};\n");
     env->code->typecode = CORD_cat(env->code->typecode, enum_def);

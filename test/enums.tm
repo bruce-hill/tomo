@@ -1,6 +1,6 @@
 enum Foo(Zero, One(x:Int), Two(x,y:Int))
 
->> Foo.Zero()
+>> Foo.Zero
 = Foo.Zero()
 >> Foo.One(123)
 = Foo.One(x=123)
@@ -10,7 +10,7 @@ enum Foo(Zero, One(x:Int), Two(x,y:Int))
 >> Foo.One(10) == Foo.One(10)
 = yes
 
->> Foo.One(10) == Foo.Zero()
+>> Foo.One(10) == Foo.Zero
 = no
 
 >> Foo.One(10) == Foo.One(-1)
@@ -23,7 +23,7 @@ enum Foo(Zero, One(x:Int), Two(x,y:Int))
 >> t := {x=>"found"; default="missing"}
 >> t[x]
 = "found"
->> t[Foo.Zero()]
+>> t[Foo.Zero]
 = "missing"
 
 when x is o:One
