@@ -134,7 +134,6 @@ Strings may only end on lines with the same indentation as the starting quote
 and nested quotes are ignored:
 
 ```
-nested := $$(I can have (parens) inside (parens inside (parens)))
 multi_line := "
     Quotes in indented regions like this: " don't count
 "
@@ -235,66 +234,58 @@ String length is an ambiguous term in the context of UTF-8 strings. There are
 several possible meanings, so each of these meanings is split into a separate
 method:
 
-- Number of grapheme clusters: `string.num_graphemes()`
-- Size in bytes: `string.num_bytes()`
-- Number of unicode codepoints: `string.num_codepoints()` (you probably want to
+- Number of grapheme clusters: `string:num_graphemes()`
+- Size in bytes: `string:num_bytes()`
+- Number of unicode codepoints: `string:num_codepoints()` (you probably want to
   use graphemes, not codepoints in most applications)
+
+Since the typical user expectation is that string length refers to "letters,"
+the `#` length operator returns the number of grapheme clusters, which is the
+closest unicode equivalent to "letters."
 
 ### Iteration
 
 Iteration is *not* supported for strings because of the ambiguity between
-bytes, codepoints, and graphemes. It is instead recommended that you use
-higher-abstraction functions.
+bytes, codepoints, and graphemes. It is instead recommended that you explicitly
+iterate over bytes, codepoints, graphemes, words, lines, etc:
 
 ### Subcomponents
 
-- `string.bytes()` returns an array of `Int8` bytes
-- `string.codepoints()` returns an array of `Int32` bytes
-- `string.graphemes()` returns an array of grapheme cluster strings
-- `string.words()` returns an array of word strings
-- `string.lines()` returns an array of line strings
-- `string.split(",", empty=no)` returns an array of strings split by the given delimiter
+- `string:bytes()` returns an array of `Int8` bytes
+- `string:codepoints()` returns an array of `Int32` bytes
+- `string:graphemes()` returns an array of grapheme cluster strings
+- `string:words()` returns an array of word strings
+- `string:lines()` returns an array of line strings
+- `string:split(",", empty=no)` returns an array of strings split by the given delimiter
 
-### Equality and Comparison
+### Equality, Comparison, and Hashing
 
-By default, strings are compared using memory comparisons of the UTF-8 representation.
-
-- `x == y` is roughly equivalent to `strcmp(x, y) == 0`
-
-To compare normalized forms of strings, use:
-
-- `x.equivalent_to(y)` returns a boolean for whether the strings are the same
-- `x.compare_normalized(y)` returns `enum(Equal, Less, Greater)`
+All text is compared and hashed using unicode normalization. Unicode provides
+several different ways to represent the same text. For example, the single
+codepoint `U+E9` (latin small e with accent) is rendered the same as the two
+code points `U+65 U+301` (latin small e, acute combining accent) and has an
+equivalent linguistic meaning. These are simply different ways to represent the
+same "letter." In order to make it easy to write correct code that takes this
+into account, Tomo uses unicode normalization for all string comparisons and
+hashing. Normalization does the equivalent of converting text to a canonical
+form before performing comparisons or hashing. This means that if a table is
+created that has text with the codepoint `U+E9` as a key, then a lookup with
+the same text but with `U+65 U+301` instead of `U+E9` will still succeed in
+finding the value because the two strings are equivalent under normalization.
 
 ### Capitalization
 
-- `x.capitalized()`
-- `x.titlecased()`
-- `x.uppercased()`
-- `x.lowercased()`
+- `x:capitalized()`
+- `x:titlecased()`
+- `x:uppercased()`
+- `x:lowercased()`
 
 ### Patterns
 
-- `string.has($/pattern/, at=Anywhere:enum(Anywhere, Start, End))` Check whether a pattern can be found
-- `string.next($/pattern/)` Returns an `enum(NotFound, Found(match:Text, rest:Text))`
-- `string.matches($/pattern/)` Returns a list of matching strings
-- `string.replace($/pattern/, "replacement")` Returns a copy of the string with replacements
-- `string.without($/pattern/, at=Anywhere:enum(Anywhere, Start, End))`
-
-### Indentation
-
-- `string.indented(type:enum(Tab, Spaces(num:Int), count=1)` (e.g. `s.indented(Tab)`, `s.indented(Spaces(4), -1)`
-
-### Properties
-
-Unicode strings have various overlapping properties. For example, a grapheme
-might be both printable and alphabetic. It can be useful to query some of these
-properties for a given string.
-
-- `string.properties() -> flags(None, WhiteSpace, Alphabetic, …, Emoji, …)`
-- `string.is(properties:flags(None, WhiteSpace, Alphabetic, …, Emoji, …)) -> Bool`
-- `string.has_property(properties:flags(None, WhiteSpace, Alphabetic, …, Emoji, …)) -> Bool`
-
-Example: `if name.is(Uppercase)`
-Example: `if name.is(Alphabetic or Numeric)`
-Example: `if name.has_property(Math or Currency)`
+- `string:has("target", at=Anywhere:enum(Anywhere, Start, End))->Bool` Check whether a pattern can be found
+- `string:without("target", at=Anywhere:enum(Anywhere, Start, End))->Text`
+- `string:trimmed("chars...", at=Anywhere:enum(Anywhere, Start, End))->Text`
+- `string:find("target")->enum(Failure, Success(index:Int32))`
+- `string:replace("target", "replacement", limit=Int.max)->Text` Returns a copy of the string with replacements
+- `string:split("split")->[Text]`
+- `string:join(["one", "two"])->Text`
