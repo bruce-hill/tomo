@@ -137,8 +137,8 @@ int main(int argc, char *argv[])
             "(void)argc;\n"
             "(void)argv;\n"
             "GC_INIT();\n"
-            "detect_color();\n"
-            "use();\n"
+            "detect_color();\n",
+            module.module_name, "$use();\n"
             "return 0;\n"
             "}\n"
         );
