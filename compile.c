@@ -1396,7 +1396,7 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Array__sort(", self, ", ", compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "clear")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
-                return CORD_all("Array__compact(", self, ")");
+                return CORD_all("Array__clear(", self, ")");
             } else if (streq(call->name, "slice")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="first", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=1, .bits=64),
