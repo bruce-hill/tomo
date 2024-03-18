@@ -221,7 +221,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             }
         } else if (expr_t->tag == VoidType || expr_t->tag == AbortType) {
             return CORD_asprintf(
-                "%r;\n"
+                "%r\n"
                 "$test(NULL, NULL, NULL, %r, %ld, %ld);",
                 compile_statement(env, test->expr),
                 compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
@@ -295,9 +295,9 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (lhs_t->tag != NumType)
                 code_err(ast, "'^=' is only supported for Num types");
             if (lhs_t->tag == NumType && Match(lhs_t, NumType)->bits == 32)
-                return CORD_all(lhs, " = powf(", lhs, ", ", rhs, ")");
+                return CORD_all(lhs, " = powf(", lhs, ", ", rhs, ");");
             else
-                return CORD_all(lhs, " = pow(", lhs, ", ", rhs, ")");
+                return CORD_all(lhs, " = pow(", lhs, ", ", rhs, ");");
         }
         case BINOP_LSHIFT: return CORD_asprintf("%r <<= %r;", lhs, rhs);
         case BINOP_RSHIFT: return CORD_asprintf("%r >>= %r;", lhs, rhs);
@@ -325,15 +325,15 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 if (promote(env, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)) {
                     // arr ++= item
                     if (update->lhs->tag == Var)
-                        return CORD_all("Array__insert(&", lhs, ", $stack(", rhs, "), 0, ", compile_type_info(env, operand_t), ")");
+                        return CORD_all("Array__insert(&", lhs, ", $stack(", rhs, "), 0, ", compile_type_info(env, operand_t), ");");
                     else
-                        return CORD_all(lhs, "Array__concat(", lhs, ", $Array(", rhs, "), ", compile_type_info(env, operand_t), ")");
+                        return CORD_all(lhs, "Array__concat(", lhs, ", $Array(", rhs, "), ", compile_type_info(env, operand_t), ");");
                 } else {
                     // arr ++= [...]
                     if (update->lhs->tag == Var)
-                        return CORD_all("Array__insert_all(&", lhs, ", ", rhs, ", 0, ", compile_type_info(env, operand_t), ")");
+                        return CORD_all("Array__insert_all(&", lhs, ", ", rhs, ", 0, ", compile_type_info(env, operand_t), ");");
                     else
-                        return CORD_all(lhs, "Array__concat(", lhs, ", ", rhs, ", ", compile_type_info(env, operand_t), ")");
+                        return CORD_all(lhs, "Array__concat(", lhs, ", ", rhs, ", ", compile_type_info(env, operand_t), ");");
                 }
             } else {
                 code_err(ast, "'++=' is not implemented for %T types", operand_t);
