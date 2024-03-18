@@ -136,7 +136,7 @@ void bind_statement(env_t *env, ast_t *statement)
         }
 
         type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type);
-        Table_str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type));
+        Table_str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type, .code=CORD_all(env->file_prefix, def->name)));
         break;
     }
     case EnumDef: {
@@ -166,7 +166,7 @@ void bind_statement(env_t *env, ast_t *statement)
 
         for (tag_t *tag = tags; tag; tag = tag->next) {
             type_t *constructor_t = Type(FunctionType, .args=Match(tag->type, StructType)->fields, .ret=type);
-            set_binding(ns_env, tag->name, new(binding_t, .type=constructor_t, .code=CORD_all(def->name, "$tagged$", tag->name)));
+            set_binding(ns_env, tag->name, new(binding_t, .type=constructor_t, .code=CORD_all(env->file_prefix, def->name, "$tagged$", tag->name)));
             Table_str_set(env->types, heap_strf("%s$%s", def->name, tag->name), tag->type);
         }
         
@@ -188,7 +188,7 @@ void bind_statement(env_t *env, ast_t *statement)
 
         set_binding(ns_env, "from_unsafe_text",
                     new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=Type(TextType)), .ret=type),
-                        .code=CORD_all("(", def->name, "_t)")));
+                        .code=CORD_all("(", env->file_prefix, def->name, "_t)")));
         set_binding(ns_env, "text_content",
                     new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=Type(TextType)), .ret=type),
                         .code="(Text_t)"));

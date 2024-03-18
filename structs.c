@@ -38,8 +38,9 @@ static bool is_plain_data(env_t *env, type_t *t)
 static CORD compile_str_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD str_func = CORD_asprintf("static CORD %s$as_text(%s_t *obj, bool use_color) {\n"
-                                  "\tif (!obj) return \"%s\";\n", def->name, def->name, def->name);
+    CORD full_name = CORD_cat(env->file_prefix, def->name);
+    CORD str_func = CORD_asprintf("static CORD %r$as_text(%r_t *obj, bool use_color) {\n"
+                                  "\tif (!obj) return \"%s\";\n", full_name, full_name, def->name);
     if (def->secret) {
         CORD_appendf(&str_func, "\treturn use_color ? \"\\x1b[0;1m%s\\x1b[m(\\x1b[2m...\\x1b[m)\" : \"%s(...)\";\n}",
                      def->name, def->name);
@@ -59,7 +60,8 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
 static CORD compile_compare_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD cmp_func = CORD_all("static int ", def->name, "$compare(const ", def->name, "_t *x, const ", def->name,
+    CORD full_name = CORD_cat(env->file_prefix, def->name);
+    CORD cmp_func = CORD_all("static int ", full_name, "$compare(const ", full_name, "_t *x, const ", full_name,
                              "_t *y, const TypeInfo *info) {\n"
                              "(void)info;\n",
                              "int diff;\n");
@@ -86,7 +88,8 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
 static CORD compile_equals_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD eq_func = CORD_all("static bool ", def->name, "$equal(const ", def->name, "_t *x, const ", def->name,
+    CORD full_name = CORD_cat(env->file_prefix, def->name);
+    CORD eq_func = CORD_all("static bool ", full_name, "$equal(const ", full_name, "_t *x, const ", full_name,
                              "_t *y, const TypeInfo *info) {\n"
                              "(void)info;\n");
     for (arg_ast_t *field = def->fields; field; field = field->next) {
@@ -111,7 +114,8 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
 static CORD compile_hash_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD hash_func = CORD_all("static uint32_t ", def->name, "$hash(const ", def->name, "_t *obj, const TypeInfo *info) {\n"
+    CORD full_name = CORD_cat(env->file_prefix, def->name);
+    CORD hash_func = CORD_all("static uint32_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo *info) {\n"
                               "(void)info;\n"
                               "uint32_t field_hashes[] = {");
     for (arg_ast_t *field = def->fields; field; field = field->next) {
@@ -128,26 +132,27 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
 void compile_struct_def(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD_appendf(&env->code->typedefs, "typedef struct %s_s %s_t;\n", def->name, def->name);
-    CORD_appendf(&env->code->typedefs, "#define %s(...) ((%s_t){__VA_ARGS__})\n", def->name, def->name);
+    CORD full_name = CORD_cat(env->file_prefix, def->name);
+    CORD_appendf(&env->code->typedefs, "typedef struct %r_s %r_t;\n", full_name, full_name);
+    CORD_appendf(&env->code->typedefs, "#define %r(...) ((%r_t){__VA_ARGS__})\n", full_name, full_name);
 
-    CORD_appendf(&env->code->typecode, "struct %s_s {\n", def->name);
+    CORD_appendf(&env->code->typecode, "struct %r_s {\n", full_name);
     for (arg_ast_t *field = def->fields; field; field = field->next) {
         type_t *field_t = get_arg_ast_type(env, field);
-        CORD type_code = compile_type(field_t);
+        CORD type_code = compile_type(env, field_t);
         CORD_appendf(&env->code->typecode, "%r %s%s;\n", type_code, field->name,
                      CORD_cmp(type_code, "Bool_t") ? "" : ":1");
     }
     CORD_appendf(&env->code->typecode, "};\n");
 
     // Typeinfo:
-    CORD_appendf(&env->code->typedefs, "extern const TypeInfo %s;\n", def->name);
+    CORD_appendf(&env->code->typedefs, "extern const TypeInfo %r;\n", full_name);
 
     type_t *t = Table_str_get(*env->types, def->name);
-    CORD typeinfo = CORD_asprintf("public const TypeInfo %s = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
-                                  def->name, type_size(t), type_align(t));
+    CORD typeinfo = CORD_asprintf("public const TypeInfo %r = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
+                                  full_name, type_size(t), type_align(t));
 
-    typeinfo = CORD_all(typeinfo, ".as_text=(void*)", def->name, "$as_text, .compare=(void*)", def->name, "$compare, ");
+    typeinfo = CORD_all(typeinfo, ".as_text=(void*)", full_name, "$as_text, .compare=(void*)", full_name, "$compare, ");
     env->code->funcs = CORD_all(env->code->funcs, compile_str_method(env, ast), compile_compare_method(env, ast));
     if (!t || !is_plain_data(env, t)) {
         env->code->funcs = CORD_all(
@@ -155,8 +160,8 @@ void compile_struct_def(env_t *env, ast_t *ast)
             compile_hash_method(env, ast));
         typeinfo = CORD_all(
             typeinfo,
-            ".equal=(void*)", def->name, "$equal, "
-            ".hash=(void*)", def->name, "$hash");
+            ".equal=(void*)", full_name, "$equal, "
+            ".hash=(void*)", full_name, "$hash");
     }
     typeinfo = CORD_cat(typeinfo, "}}};\n");
     env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);

@@ -34,7 +34,7 @@ typedef struct {
     compilation_unit_t *code;
     fn_ctx_t *fn_ctx;
     loop_ctx_t *loop_ctx;
-    CORD scope_prefix;
+    CORD file_prefix, scope_prefix;
     const char *comprehension_var;
 } env_t;
 
