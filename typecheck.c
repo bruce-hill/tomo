@@ -783,7 +783,7 @@ type_t *get_type(env_t *env, ast_t *ast)
                     unhandled = unhandled ? CORD_all(unhandled, ", ", m->name) : m->name;
             }
             if (unhandled)
-                code_err(ast, "This 'while' statement doesn't handle the tag(s): %s", CORD_to_const_char_star(unhandled));
+                code_err(ast, "This 'when' statement doesn't handle the tag(s): %s", CORD_to_const_char_star(unhandled));
             // return overall_t;
             return Type(VoidType);
         }
