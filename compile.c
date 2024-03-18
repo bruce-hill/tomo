@@ -229,10 +229,11 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else {
             return CORD_asprintf(
-                "{ // Test:\n%r $expr = %r;\n"
+                "{ // Test:\n"
+                "%r = %r;\n"
                 "$test(&$expr, %r, %r, %r, %ld, %ld);\n"
                 "}",
-                compile_type(env, expr_t),
+                compile_declaration(env, expr_t, "$expr"),
                 compile(env, test->expr),
                 compile_type_info(env, expr_t),
                 compile(env, WrapAST(test->expr, TextLiteral, .cord=output)),
