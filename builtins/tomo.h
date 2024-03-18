@@ -1,5 +1,8 @@
 #pragma once
 
+// All of the different builtin modules can be included by including this one
+// import
+
 #include <err.h>
 #include <gc.h>
 #include <gc/cord.h>

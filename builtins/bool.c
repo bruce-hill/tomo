@@ -1,4 +1,4 @@
-
+// Boolean methods/type info
 #include <gc.h>
 #include <gc/cord.h>
 #include <stdbool.h>

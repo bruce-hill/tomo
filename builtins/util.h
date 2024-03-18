@@ -1,5 +1,7 @@
 #pragma once
 
+// Built-in utility functions
+
 #include <assert.h>
 #include <gc.h>
 #include <gc/cord.h>

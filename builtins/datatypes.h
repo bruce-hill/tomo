@@ -1,4 +1,7 @@
 #pragma once
+
+// Common datastructures (arrays, tables, closures)
+
 #include <stdint.h>
 #include <stdbool.h>
 

@@ -1,3 +1,4 @@
+// Functions that operate on arrays
 
 #include <ctype.h>
 #include <err.h>

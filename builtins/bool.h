@@ -1,4 +1,7 @@
 #pragma once
+
+// Boolean functions/type info
+
 #include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>

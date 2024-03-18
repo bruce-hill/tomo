@@ -1,4 +1,7 @@
 #pragma once
+
+// Functions that operate on arrays
+
 #include <stdbool.h>
 #include <gc/cord.h>
 

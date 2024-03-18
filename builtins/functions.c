@@ -1,3 +1,4 @@
+// Built-in functions
 #include <gc.h>
 #include <gc/cord.h>
 #include <stdbool.h>

@@ -1,4 +1,4 @@
-
+// Logic for detecting whether console color should be used
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>

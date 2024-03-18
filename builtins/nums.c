@@ -1,3 +1,5 @@
+// Type infos and methods for Nums (floating point)
+
 #include <float.h>
 #include <gc.h>
 #include <gc/cord.h>

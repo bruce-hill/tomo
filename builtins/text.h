@@ -1,4 +1,8 @@
 #pragma once
+
+// Type info and methods for Text datatype, which uses the Boehm "cord" library
+// and libunistr
+
 #include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>

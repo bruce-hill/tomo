@@ -1,4 +1,7 @@
 #pragma once
+
+// Type info and methods for "Memory" opaque type
+
 #include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>

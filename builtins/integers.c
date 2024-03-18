@@ -1,3 +1,4 @@
+// Integer type infos and methods
 #include <gc.h>
 #include <gc/cord.h>
 #include <stdbool.h>

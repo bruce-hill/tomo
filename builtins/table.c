@@ -1,6 +1,5 @@
-
-// table.c - C Hash table implementation for SSS
-// Copyright 2023 Bruce Hill
+// table.c - C Hash table implementation
+// Copyright 2024 Bruce Hill
 // Provided under the MIT license with the Commons Clause
 // See included LICENSE for details.
 

@@ -1,5 +1,7 @@
 #pragma once
 
+// Logic for console color usage
+
 #include <stdbool.h>
 
 extern bool USE_COLOR;

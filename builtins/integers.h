@@ -1,4 +1,7 @@
 #pragma once
+
+// Integer type infos and methods
+
 #include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>

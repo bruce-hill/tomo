@@ -1,4 +1,7 @@
 #pragma once
+
+// Hash table datastructure with methods and type information
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>

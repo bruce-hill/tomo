@@ -1,3 +1,4 @@
+// Built-in utility functions
 #include <ctype.h>
 #include <gc.h>
 #include <gc/cord.h>
@@ -79,6 +80,5 @@ CORD CORD_asprintf(CORD fmt, ...)
     va_end(args);
     return c;
 }
-
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

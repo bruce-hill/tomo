@@ -1,4 +1,4 @@
-
+// Type info and methods for "Memory" opaque type
 #include <gc.h>
 #include <gc/cord.h>
 #include <stdbool.h>

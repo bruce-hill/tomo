@@ -1,3 +1,5 @@
+// Type info and methods for Text datatype, which uses the Boehm "cord" library
+// and libunistr
 #include <assert.h>
 #include <ctype.h>
 #include <err.h>

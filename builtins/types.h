@@ -1,4 +1,7 @@
 #pragma once
+
+// Type information and methods for TypeInfos (i.e. runtime representations of types)
+
 #include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>
