@@ -1,5 +1,7 @@
 #pragma once
 
+// Compilation of user-defined structs
+
 #include "ast.h"
 #include "environment.h"
 

@@ -1,5 +1,7 @@
 #pragma once
 
+// Compilation environments
+
 #include <gc/cord.h>
 
 #include "types.h"

@@ -1,4 +1,7 @@
 #pragma once
+
+// Compilation of tagged unions (enums)
+
 #include <gc/cord.h>
 
 #include "ast.h"

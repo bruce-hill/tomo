@@ -1,4 +1,7 @@
 #pragma once
+
+// Logic for defining and working with types
+
 #include <printf.h>
 #include <stdlib.h>
 

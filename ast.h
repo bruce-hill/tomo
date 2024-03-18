@@ -1,4 +1,7 @@
 #pragma once
+
+// Logic defining ASTs (abstract syntax trees) to represent code
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>

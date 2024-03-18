@@ -1,4 +1,7 @@
 #pragma once
+
+// Type-checking functions
+
 #include <gc.h>
 #include <stdarg.h>
 #include <stdlib.h>

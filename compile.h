@@ -1,5 +1,7 @@
 #pragma once
 
+// Compilation functions
+
 #include <gc/cord.h>
 #include <gc.h>
 #include <stdio.h>
