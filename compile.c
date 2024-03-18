@@ -130,7 +130,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         (void)result_t;
         for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
             const char *clause_tag_name = Match(clause->tag_name, Var)->name;
-            code = CORD_all(code, "case $tag$", enum_t->name, "$", clause_tag_name, ": {\n");
+            code = CORD_all(code, "case $tag$", env->file_prefix, enum_t->name, "$", clause_tag_name, ": {\n");
             type_t *tag_type = NULL;
             for (tag_t *tag = enum_t->tags; tag; tag = tag->next) {
                 if (streq(tag->name, clause_tag_name)) {
