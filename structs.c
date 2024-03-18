@@ -152,8 +152,12 @@ void compile_struct_def(env_t *env, ast_t *ast)
     CORD typeinfo = CORD_asprintf("public const TypeInfo %r = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
                                   full_name, type_size(t), type_align(t));
 
-    typeinfo = CORD_all(typeinfo, ".as_text=(void*)", full_name, "$as_text, .compare=(void*)", full_name, "$compare, ");
-    env->code->funcs = CORD_all(env->code->funcs, compile_str_method(env, ast), compile_compare_method(env, ast));
+    typeinfo = CORD_all(typeinfo, ".as_text=(void*)", full_name, "$as_text, ");
+    env->code->funcs = CORD_all(env->code->funcs, compile_str_method(env, ast));
+    if (t->tag != StructType || Match(t, StructType)->fields) {
+        typeinfo = CORD_all(typeinfo, ".compare=(void*)", full_name, "$compare, ");
+        env->code->funcs = CORD_all(env->code->funcs, compile_compare_method(env, ast));
+    }
     if (!t || !is_plain_data(env, t)) {
         env->code->funcs = CORD_all(
             env->code->funcs, compile_equals_method(env, ast),
