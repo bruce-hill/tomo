@@ -95,19 +95,30 @@ int main(int argc, char *argv[])
 
     switch (mode) {
     case MODE_COMPILE: {
-        const char *run = heap_strf("%s | %s -x c %s -c - -o %s.o", autofmt, cc, cflags, f->filename);
-        FILE *runner = popen(run, "w");
+        FILE *prog = popen(heap_strf("%s > %s.h", autofmt, f->filename), "w");
+        CORD_put("#pragma once\n", prog);
+        CORD_put(module.header, prog);
+        int status = pclose(prog);
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+            printf("Transpiled to %s.h\n", f->filename);
+        else
+            return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
 
-        CORD program = CORD_all(
-            "// File: ", f->filename, ".h\n",
-            module.header,
-            "\n",
-            "// File: ", f->filename, ".c\n",
-            module.c_file
-        );
+        prog = popen(heap_strf("%s > %s.c", autofmt, f->filename), "w");
+        CORD_put(CORD_all("#include \"", module.module_name, ".tm.h\"\n\n", module.c_file), prog);
+        status = pclose(prog);
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+            printf("Transpiled to %s.c\n", f->filename);
+        else
+            return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
 
-        CORD_put(program, runner);
-        int status = pclose(runner);
+        const char *cmd = heap_strf("%s %s -c %s.c -o %s.o", cc, cflags, f->filename, f->filename);
+        if (verbose)
+            printf("Running: %s\n", cmd);
+        prog = popen(cmd, "w");
+        status = pclose(prog);
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+            printf("Compiled to %s.o\n", f->filename);
         return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
     }
     case MODE_RUN: {
