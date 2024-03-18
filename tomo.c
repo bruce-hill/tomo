@@ -1,3 +1,4 @@
+// The main program that runs compilation
 #include <stdio.h>
 #include <stdlib.h>
 #include <gc.h>

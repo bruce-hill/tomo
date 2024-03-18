@@ -1,4 +1,4 @@
-
+// Logic for compiling new struct types defined in code
 #include <ctype.h>
 #include <gc/cord.h>
 #include <gc.h>

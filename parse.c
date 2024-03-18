@@ -1,4 +1,4 @@
-// Parse code using recursive descent
+// Recursive descent parser for parsing code
 #include <ctype.h>
 #include <gc.h>
 #include <libgen.h>

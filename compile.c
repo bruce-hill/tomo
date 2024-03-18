@@ -1,4 +1,4 @@
-
+// Compilation logic
 #include <ctype.h>
 #include <gc/cord.h>
 #include <gc.h>

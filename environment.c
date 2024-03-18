@@ -1,4 +1,5 @@
-
+// Logic for the environmental context information during compilation
+// (variable bindings, code sections, etc.)
 #include <stdlib.h>
 #include <signal.h>
 

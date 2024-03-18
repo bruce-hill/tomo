@@ -1,4 +1,4 @@
-
+// Logic for compiling tagged unions (enums)
 #include <ctype.h>
 #include <gc/cord.h>
 #include <gc.h>
