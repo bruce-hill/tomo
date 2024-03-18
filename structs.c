@@ -39,13 +39,16 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
     CORD full_name = CORD_cat(env->file_prefix, def->name);
+    const char *name = def->name;
+    const char *dollar = strrchr(name, '$');
+    if (dollar) name = dollar + 1;
     CORD str_func = CORD_asprintf("static CORD %r$as_text(%r_t *obj, bool use_color) {\n"
-                                  "\tif (!obj) return \"%s\";\n", full_name, full_name, def->name);
+                                  "\tif (!obj) return \"%s\";\n", full_name, full_name, name);
     if (def->secret) {
         CORD_appendf(&str_func, "\treturn use_color ? \"\\x1b[0;1m%s\\x1b[m(\\x1b[2m...\\x1b[m)\" : \"%s(...)\";\n}",
-                     def->name, def->name);
+                     name, name);
     } else {
-        CORD_appendf(&str_func, "\treturn CORD_all(use_color ? \"\\x1b[0;1m%s\\x1b[m(\" : \"%s(\"", def->name, def->name);
+        CORD_appendf(&str_func, "\treturn CORD_all(use_color ? \"\\x1b[0;1m%s\\x1b[m(\" : \"%s(\"", name, name);
         for (arg_ast_t *field = def->fields; field; field = field->next) {
             type_t *field_type = get_arg_ast_type(env, field);
             CORD field_str = expr_as_text(env, CORD_cat("obj->", field->name), field_type, "use_color");
