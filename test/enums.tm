@@ -1,7 +1,7 @@
 enum Foo(Zero, One(x:Int), Two(x,y:Int))
 
 >> Foo.Zero
-= Foo.Zero()
+= Foo.Zero
 >> Foo.One(123)
 = Foo.One(x=123)
 >> Foo.Two(123, 456)
