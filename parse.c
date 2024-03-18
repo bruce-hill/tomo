@@ -44,7 +44,7 @@ int op_tightness[] = {
 
 static const char *keywords[] = {
     "yes", "xor", "while", "when", "use", "then", "struct", "stop", "skip", "return",
-    "or", "not", "no", "mod1", "mod", "lang", "in", "if", "func", "for", "extern",
+    "or", "not", "no", "mod1", "mod", "pass", "lang", "in", "if", "func", "for", "extern",
     "enum", "else", "do", "and", "_mix_", "_min_", "_max_",
     NULL,
 };
@@ -1105,6 +1105,11 @@ PARSER(parse_text) {
     return NewAST(ctx->file, start, pos, TextJoin, .lang=lang, .children=chunks);
 }
 
+PARSER(parse_pass) {
+    const char *start = pos;
+    return match_word(&pos, "pass") ? NewAST(ctx->file, start, pos, Pass) : NULL;
+}
+
 PARSER(parse_skip) {
     const char *start = pos;
     if (!match_word(&pos, "skip")) return NULL;
@@ -1187,6 +1192,7 @@ PARSER(parse_term_no_suffix) {
         || (term=parse_var(ctx, pos))
         || (term=parse_array(ctx, pos))
         || (term=parse_reduction(ctx, pos))
+        || (term=parse_pass(ctx, pos))
         || (term=parse_skip(ctx, pos))
         || (term=parse_stop(ctx, pos))
         || (term=parse_return(ctx, pos))
