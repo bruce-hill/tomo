@@ -7,7 +7,6 @@
 
 #include "util.h"
 #include "array.h"
-#include "halfsiphash.h"
 #include "pointer.h"
 #include "table.h"
 #include "types.h"

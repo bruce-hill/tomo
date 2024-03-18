@@ -21,6 +21,7 @@
 #define DEFINE_INT_TYPE(c_type, type_name) \
     CORD type_name ## __as_text(const c_type *i, bool colorize, const TypeInfo *type); \
     int32_t type_name ## __compare(const c_type *x, const c_type *y, const TypeInfo *type); \
+    bool type_name ## __equal(const c_type *x, const c_type *y, const TypeInfo *type); \
     CORD type_name ## __format(c_type i, int64_t digits); \
     CORD type_name ## __hex(c_type i, int64_t digits, bool uppercase, bool prefix); \
     CORD type_name ## __octal(c_type i, int64_t digits, bool prefix); \

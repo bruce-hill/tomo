@@ -10,7 +10,6 @@
 
 #include "util.h"
 #include "bool.h"
-#include "halfsiphash.h"
 #include "types.h"
 
 public CORD Bool__as_text(const bool *b, bool colorize, const TypeInfo *type)

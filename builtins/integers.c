@@ -7,7 +7,6 @@
 
 #include "array.h"
 #include "datatypes.h"
-#include "halfsiphash.h"
 #include "integers.h"
 #include "string.h"
 #include "types.h"
@@ -27,6 +26,10 @@
     public int32_t KindOfInt ## __compare(const c_type *x, const c_type *y, const TypeInfo *type) { \
         (void)type; \
         return (*x > *y) - (*x < *y); \
+    } \
+    public bool KindOfInt ## __equal(const c_type *x, const c_type *y, const TypeInfo *type) { \
+        (void)type; \
+        return *x == *y; \
     } \
     public CORD KindOfInt ## __format(c_type i, int64_t digits) { \
         return CORD_asprintf("%0*" fmt, (int)digits, i); \

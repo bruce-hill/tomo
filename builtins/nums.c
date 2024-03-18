@@ -9,7 +9,6 @@
 #include <stdlib.h>
 
 #include "array.h"
-#include "halfsiphash.h"
 #include "nums.h"
 #include "string.h"
 #include "types.h"
