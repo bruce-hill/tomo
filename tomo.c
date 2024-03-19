@@ -94,6 +94,8 @@ int main(int argc, char *argv[])
     const char *cc = getenv("CC");
     if (!cc) cc = "tcc";
 
+    const char *object_files = CORD_to_const_char_star(module.object_files);
+
     switch (mode) {
     case MODE_COMPILE: {
         FILE *prog = popen(heap_strf("%s > %s.h", autofmt, f->filename), "w");
@@ -123,8 +125,10 @@ int main(int argc, char *argv[])
         return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
     }
     case MODE_RUN: {
-        const char *run = streq(cc, "tcc") ? heap_strf("%s | tcc -run %s %s %s -", autofmt, cflags, ldflags, ldlibs)
-            : heap_strf("%s | gcc -x c %s %s %s - -o program && ./program", autofmt, cflags, ldflags, ldlibs);
+        const char *run = streq(cc, "tcc") ? heap_strf("%s | tcc %s %s %s %s -run -", autofmt, cflags, ldflags, ldlibs, object_files)
+            : heap_strf("%s | gcc %s %s %s %s -x c - -o program && ./program", autofmt, cflags, ldflags, ldlibs, object_files);
+        if (verbose)
+            printf("%s\n", run);
         FILE *runner = popen(run, "w");
 
         CORD program = CORD_all(

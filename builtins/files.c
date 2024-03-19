@@ -2,6 +2,7 @@
 // files.c - Implementation of some file loading functionality.
 //
 
+#include <ctype.h>
 #include <err.h>
 #include <fcntl.h>
 #include <gc.h>
@@ -62,6 +63,23 @@ public char *resolve_path(const char *path, const char *relative_to, const char 
         free(copy);
     }
     return NULL;
+}
+
+public char *file_base_name(const char *path)
+{
+    const char *slash = strrchr(path, '/');
+    if (slash) path = slash + 1;
+    assert(!isdigit(*path));
+    const char *end = strchrnul(path, '.');
+    size_t len = (size_t)(end - path);
+    char *buf = GC_MALLOC_ATOMIC(len+1);
+    strncpy(buf, path, len);
+    buf[len] = '\0';
+    for (char *p = buf; *p; p++) {
+        if (!isalnum(*p))
+            *p = '_';
+    }
+    return buf;
 }
 
 static file_t *_load_file(const char* filename, FILE *file)

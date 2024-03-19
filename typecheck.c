@@ -98,6 +98,7 @@ void bind_statement(env_t *env, ast_t *statement)
     }
     case Declare: {
         auto decl = Match(statement, Declare);
+        bind_statement(env, decl->value);
         type_t *type = get_type(env, decl->value);
         const char *name = Match(decl->var, Var)->name;
         CORD code = CORD_cat(env->scope_prefix, name);
@@ -108,7 +109,7 @@ void bind_statement(env_t *env, ast_t *statement)
         auto def = Match(statement, FunctionDef);
         type_t *type = get_function_def_type(env, statement);
         const char *name = Match(def->name, Var)->name;
-        CORD code = CORD_all(env->scope_prefix, name);
+        CORD code = CORD_all(env->file_prefix, env->scope_prefix, name);
         set_binding(env, name, new(binding_t, .type=type, .code=code));
         break;
     }
@@ -202,6 +203,24 @@ void bind_statement(env_t *env, ast_t *statement)
 
         type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type);
         Table_str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type));
+        break;
+    }
+    case Use: {
+        auto use = Match(statement, Use);
+        const char *name = file_base_name(use->path);
+        env_t *module_env = new_compilation_unit();
+        module_env->file_prefix = heap_strf("%s$", name);
+
+        file_t *f = load_file(use->path);
+        if (!f) errx(1, "No such file: %s", use->path);
+
+        ast_t *ast = parse_file(f, NULL);
+        if (!ast) errx(1, "Could not compile!");
+
+        for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+            bind_statement(module_env, stmt->ast);
+        }
+        Table_str_set(env->imports, name, module_env);
         break;
     }
     default: break;
@@ -392,7 +411,11 @@ type_t *get_type(env_t *env, ast_t *ast)
     case FieldAccess: {
         auto access = Match(ast, FieldAccess);
         type_t *fielded_t = get_type(env, access->fielded);
-        if (fielded_t->tag == TypeInfoType) {
+        if (fielded_t->tag == ModuleType) {
+            const char *name = Match(fielded_t, ModuleType)->name;
+            env_t *module_env = Table_str_get(*env->imports, name);
+            return get_type(module_env, WrapAST(ast, Var, access->field));
+        } else if (fielded_t->tag == TypeInfoType) {
             auto info = Match(fielded_t, TypeInfoType);
             table_t *namespace = Table_str_get(*env->type_namespaces, info->name);
             if (!namespace) code_err(access->fielded, "I couldn't find a namespace for this type");
@@ -522,7 +545,7 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
     case Use: {
         const char *path = Match(ast, Use)->path;
-        return Type(PointerType, .pointed=get_file_type(env, path));
+        return Type(ModuleType, file_base_name(path));
     }
     case Return: case Stop: case Skip: {
         return Type(AbortType);

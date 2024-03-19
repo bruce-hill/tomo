@@ -16,6 +16,7 @@ typedef struct {
     CORD funcs;
     CORD typeinfos;
     CORD main;
+    CORD object_files;
 } compilation_unit_t;
 
 typedef struct {
@@ -32,6 +33,7 @@ typedef struct loop_ctx_s {
 
 typedef struct {
     table_t *types, *globals, *locals;
+    table_t *imports; // Map of 'use' name -> env_t*
     table_t *type_namespaces; // Map of type name -> namespace table
     compilation_unit_t *code;
     fn_ctx_t *fn_ctx;

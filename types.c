@@ -58,6 +58,9 @@ CORD type_to_cord(type_t *t) {
         case TypeInfoType: {
             return CORD_all("TypeInfo(", Match(t, TypeInfoType)->name, ")");
         }
+        case ModuleType: {
+            return CORD_all("Module(", Match(t, ModuleType)->name, ")");
+        }
         default: {
             raise(SIGABRT);
             return CORD_asprintf("Unknown type: %d", t->tag);
@@ -410,6 +413,7 @@ size_t type_size(type_t *t)
         return size;
     }
     case TypeInfoType: return sizeof(TypeInfo);
+    case ModuleType: return 0;
     }
     errx(1, "This should not be reachable");
 }
@@ -445,6 +449,7 @@ size_t type_align(type_t *t)
         return align;
     }
     case TypeInfoType: return __alignof__(TypeInfo);
+    case ModuleType: return 0;
     }
     errx(1, "This should not be reachable");
 }

@@ -17,6 +17,7 @@ env_t *new_compilation_unit(void)
     env->type_namespaces = new(table_t);
     env->globals = new(table_t);
     env->locals = new(table_t, .fallback=env->globals);
+    env->imports = new(table_t);
 
     struct {
         const char *name;

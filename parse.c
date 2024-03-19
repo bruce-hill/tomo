@@ -1869,7 +1869,7 @@ PARSER(parse_use) {
     size_t path_len = strcspn(pos, " \t\r\n;");
     if (path_len < 1)
         parser_err(ctx, start, pos, "There is no filename here to use");
-    char *path = heap_strf("%.*s.nl", (int)path_len, pos);
+    char *path = heap_strf("%.*s.tm", (int)path_len, pos);
     pos += path_len;
     char *resolved_path = resolve_path(path, ctx->file->filename, getenv("USE_PATH"));
     if (!resolved_path)

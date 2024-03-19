@@ -53,6 +53,7 @@ struct type_s {
         StructType,
         EnumType,
         TypeInfoType,
+        ModuleType,
     } tag;
 
     union {
@@ -98,6 +99,9 @@ struct type_s {
             const char *name;
             type_t *type;
         } TypeInfoType;
+        struct {
+            const char *name;
+        } ModuleType;
     } __data;
 };
 

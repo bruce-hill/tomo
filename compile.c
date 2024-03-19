@@ -244,10 +244,19 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case Declare: {
         auto decl = Match(ast, Declare);
-        type_t *t = get_type(env, decl->value);
-        if (t->tag == AbortType || t->tag == VoidType)
-            code_err(ast, "You can't declare a variable with a %T value", t);
-        return CORD_all(compile_declaration(env, t, Match(decl->var, Var)->name), " = ", compile(env, decl->value), ";");
+        if (decl->value->tag == Use) {
+            auto use = Match(decl->value, Use);
+            const char *path = use->path; // TODO: make relative to current file!
+            env->code->imports = CORD_all(env->code->imports, "#include \"", path, ".h\"\n");
+            env->code->object_files = CORD_all(env->code->object_files, "'", path, ".o' ");
+            const char *name = file_base_name(path);
+            return CORD_all(name, "$use();\n");
+        } else {
+            type_t *t = get_type(env, decl->value);
+            if (t->tag == AbortType || t->tag == VoidType)
+                code_err(ast, "You can't declare a variable with a %T value", t);
+            return CORD_all(compile_declaration(env, t, Match(decl->var, Var)->name), " = ", compile(env, decl->value), ";");
+        }
     }
     case Assign: {
         auto assign = Match(ast, Assign);
@@ -1613,8 +1622,13 @@ CORD compile(env_t *env, ast_t *ast)
             }
             code_err(ast, "There is no '%s' field on tables", f->field);
         }
+        case ModuleType: {
+            const char *name = Match(value_t, ModuleType)->name;
+            env_t *module_env = Table_str_get(*env->imports, name);
+            return compile(module_env, WrapAST(ast, Var, f->field));
+        }
         default:
-            code_err(ast, "Field accesses are only supported on struct and enum values");
+            code_err(ast, "Field accesses are not supported on %T values", fielded_t);
         }
     }
     case Index: {
@@ -1752,11 +1766,8 @@ module_code_t compile_file(ast_t *ast)
 {
     env_t *env = new_compilation_unit();
 
-    const char *prefix = strrchr(ast->file->filename, '/');
-    if (prefix) ++prefix;
-    else prefix = ast->file->filename;
-    prefix = heap_strf("%.*s$", strspn(prefix, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789"), prefix);
-    env->file_prefix = prefix;
+    const char *name = file_base_name(ast->file->filename);
+    env->file_prefix = heap_strf("%s$", name);
 
     CORD_appendf(&env->code->imports, "#include <tomo/tomo.h>\n");
 
@@ -1767,17 +1778,9 @@ module_code_t compile_file(ast_t *ast)
             CORD_appendf(&env->code->main, "%r\n", code);
     }
 
-    const char *slash = strrchr(ast->file->filename, '/');
-    const char *name = slash ? slash+1 : ast->file->filename;
-    size_t name_len = 0;
-    while (name[name_len] && (isalnum(name[name_len]) || name[name_len] == '_'))
-        ++name_len;
-    if (name_len == 0)
-        errx(1, "No module name found for: %s", ast->file->filename);
-    const char *module_name = heap_strn(name, name_len);
-
     return (module_code_t){
-        .module_name=module_name,
+        .module_name=name,
+        .object_files=env->code->object_files,
         .header=CORD_all(
             // CORD_asprintf("#line 0 %r\n", Text__quoted(ast->file->filename, false)),
             env->code->imports, "\n",
