@@ -1768,6 +1768,7 @@ module_code_t compile_file(ast_t *ast)
 
     const char *name = file_base_name(ast->file->filename);
     env->file_prefix = heap_strf("%s$", name);
+    Table_str_set(env->imports, name, env);
 
     CORD_appendf(&env->code->imports, "#include <tomo/tomo.h>\n");
 

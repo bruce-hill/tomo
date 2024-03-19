@@ -208,8 +208,14 @@ void bind_statement(env_t *env, ast_t *statement)
     case Use: {
         auto use = Match(statement, Use);
         const char *name = file_base_name(use->path);
+        if (Table_str_get(*env->imports, name))
+            break;
+
         env_t *module_env = new_compilation_unit();
         module_env->file_prefix = heap_strf("%s$", name);
+        Table_str_set(module_env->imports, name, module_env);
+        const char *my_name = heap_strn(CORD_to_const_char_star(env->file_prefix), CORD_len(env->file_prefix)-1);
+        Table_str_set(module_env->imports, my_name, env);
 
         file_t *f = load_file(use->path);
         if (!f) errx(1, "No such file: %s", use->path);
