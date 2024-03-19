@@ -1795,7 +1795,10 @@ module_code_t compile_file(ast_t *ast)
             env->code->funcs, "\n",
             env->code->typeinfos, "\n",
             "\n"
-            "public void ", env->file_prefix, "use(void) {\n",
+            "public void ", env->file_prefix, "use(void) {\n"
+            "static bool $loaded = no;\n"
+            "if ($loaded) return;\n"
+            "$loaded = yes;\n\n",
             env->code->main,
             "}\n"
         ),
