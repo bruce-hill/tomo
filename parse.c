@@ -1871,11 +1871,8 @@ PARSER(parse_use) {
         parser_err(ctx, start, pos, "There is no filename here to use");
     char *path = heap_strf("%.*s.tm", (int)path_len, pos);
     pos += path_len;
-    char *resolved_path = resolve_path(path, ctx->file->filename, getenv("USE_PATH"));
-    if (!resolved_path)
-        parser_err(ctx, start, pos, "No such file exists: \"%s\"", path);
     while (match(&pos, ";")) continue;
-    return NewAST(ctx->file, start, pos, Use, .path=resolved_path);
+    return NewAST(ctx->file, start, pos, Use, .raw_path=path);
 }
 
 PARSER(parse_linker) {

@@ -262,7 +262,7 @@ struct ast_s {
             bool skip_source:1;
         } DocTest;
         struct {
-            const char *path;
+            const char *raw_path;
             file_t *file;
             bool main_program;
         } Use;

@@ -246,10 +246,15 @@ CORD compile_statement(env_t *env, ast_t *ast)
         auto decl = Match(ast, Declare);
         if (decl->value->tag == Use) {
             auto use = Match(decl->value, Use);
-            const char *path = use->path; // TODO: make relative to current file!
-            env->code->imports = CORD_all(env->code->imports, "#include \"", path, ".h\"\n");
-            env->code->object_files = CORD_all(env->code->object_files, "'", path, ".o' ");
+            const char *path = use->raw_path;
             const char *name = file_base_name(path);
+            if (strncmp(path, "./", 2) == 0 || strncmp(path, "../", 3) == 0) {
+                env->code->imports = CORD_all(env->code->imports, "#include \"", path, ".h\"\n");
+                env->code->object_files = CORD_all(env->code->object_files, "'", path, ".o' ");
+            } else {
+                env->code->imports = CORD_all(env->code->imports, "#include <", path, ".h>\n");
+                env->code->object_files = CORD_all(env->code->object_files, "-l", name, " ");
+            }
             return CORD_all(name, "$use();\n");
         } else {
             type_t *t = get_type(env, decl->value);
@@ -1770,8 +1775,6 @@ module_code_t compile_file(ast_t *ast)
     env->file_prefix = heap_strf("%s$", name);
     Table_str_set(env->imports, name, env);
 
-    CORD_appendf(&env->code->imports, "#include <tomo/tomo.h>\n");
-
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         bind_statement(env, stmt->ast);
         CORD code = compile_statement(env, stmt->ast);
@@ -1784,7 +1787,7 @@ module_code_t compile_file(ast_t *ast)
         .object_files=env->code->object_files,
         .header=CORD_all(
             // CORD_asprintf("#line 0 %r\n", Text__quoted(ast->file->filename, false)),
-            env->code->imports, "\n",
+            "#include <tomo/tomo.h>\n",
             env->code->typedefs, "\n",
             env->code->typecode, "\n",
             env->code->fndefs, "\n",
@@ -1792,6 +1795,7 @@ module_code_t compile_file(ast_t *ast)
         ),
         .c_file=CORD_all(
             // CORD_asprintf("#line 0 %r\n", Text__quoted(ast->file->filename, false)),
+            env->code->imports, "\n",
             env->code->staticdefs, "\n",
             env->code->funcs, "\n",
             env->code->typeinfos, "\n",

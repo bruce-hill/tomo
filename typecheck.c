@@ -207,7 +207,7 @@ void bind_statement(env_t *env, ast_t *statement)
     }
     case Use: {
         auto use = Match(statement, Use);
-        const char *name = file_base_name(use->path);
+        const char *name = file_base_name(use->raw_path);
         if (Table_str_get(*env->imports, name))
             break;
 
@@ -217,8 +217,12 @@ void bind_statement(env_t *env, ast_t *statement)
         const char *my_name = heap_strn(CORD_to_const_char_star(env->file_prefix), CORD_len(env->file_prefix)-1);
         Table_str_set(module_env->imports, my_name, env);
 
-        file_t *f = load_file(use->path);
-        if (!f) errx(1, "No such file: %s", use->path);
+        const char *resolved_path = resolve_path(use->raw_path, statement->file->filename, getenv("USE_PATH"));
+        if (!resolved_path)
+            code_err(statement, "No such file exists: \"%s\"", use->raw_path);
+
+        file_t *f = load_file(resolved_path);
+        if (!f) errx(1, "No such file: %s", resolved_path);
 
         ast_t *ast = parse_file(f, NULL);
         if (!ast) errx(1, "Could not compile!");
@@ -550,7 +554,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         return Type(VoidType);
     }
     case Use: {
-        const char *path = Match(ast, Use)->path;
+        const char *path = Match(ast, Use)->raw_path;
         return Type(ModuleType, file_base_name(path));
     }
     case Return: case Stop: case Skip: {

@@ -141,7 +141,7 @@ CORD ast_to_cord(ast_t *ast)
     T(Index, "(indexed=%r, index=%r)", ast_to_cord(data.indexed), ast_to_cord(data.index))
     T(FieldAccess, "(fielded=%r, field=%s)", ast_to_cord(data.fielded), data.field)
     T(DocTest, "(expr=%r, output=%r)", ast_to_cord(data.expr), Text__quoted(data.output, true))
-    T(Use, "(%r)", Text__quoted(data.path, true))
+    T(Use, "(%r)", Text__quoted(data.raw_path, true))
     T(LinkerDirective, "(%r)", Text__quoted(data.directive, true))
     T(InlineCCode, "(%r)", Text__quoted(data.code, true))
 #undef T
