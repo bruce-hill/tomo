@@ -222,16 +222,20 @@ int transpile(const char *filename, bool force_retranspile)
     CORD_put("#pragma once\n", prog);
     CORD_put(module.header, prog);
     int status = pclose(prog);
-    if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
-        printf("Transpiled to %s.h\n", f->filename);
-    else
+    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+        if (verbose)
+            printf("Transpiled to %s.h\n", f->filename);
+    } else {
         return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
+    }
 
     prog = popen(heap_strf("%s > %s.c", autofmt, f->filename), "w");
     CORD_put(CORD_all("#include \"", module.module_name, ".tm.h\"\n\n", module.c_file), prog);
     status = pclose(prog);
-    if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
-        printf("Transpiled to %s.c\n", f->filename);
+    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+        if (verbose)
+            printf("Transpiled to %s.c\n", f->filename);
+    }
     return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
 }
 
@@ -248,8 +252,10 @@ int compile_object_file(const char *filename, bool force_recompile)
         printf("Running: %s\n", cmd);
     FILE *prog = popen(cmd, "w");
     int status = pclose(prog);
-    if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
-        printf("Compiled to %s.o\n", filename);
+    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+        if (verbose)
+            printf("Compiled to %s.o\n", filename);
+    }
     return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
 }
 
