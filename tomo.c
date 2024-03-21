@@ -78,9 +78,9 @@ int main(int argc, char *argv[])
     cc = getenv("CC");
     if (!cc) cc = "tcc";
 
-    if (mode == MODE_TRANSPILE) {
-        return transpile(filename, true);
-    }
+    int transpile_status = transpile(filename, true);
+    if (mode == MODE_TRANSPILE || transpile_status != 0)
+        return transpile_status;
 
     array_t file_deps = get_file_dependencies(filename);
     CORD object_files_cord = CORD_EMPTY;
