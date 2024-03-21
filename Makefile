@@ -41,6 +41,7 @@ tags:
 	ctags *.[ch] **/*.[ch]
 
 test: tomo
+	rm -f test/*.tm.[cho]
 	for f in test/*.tm; do echo -e "\x1b[1;4m$$f\x1b[m"; VERBOSE=0 CC=tcc ./tomo "$$f" || break; done
 
 clean:
