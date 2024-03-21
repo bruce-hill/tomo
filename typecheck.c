@@ -132,12 +132,12 @@ void bind_statement(env_t *env, ast_t *statement)
         type->__data.StructType.fields = fields; // populate placeholder
         type->__data.StructType.opaque = false;
         
+        type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env);
+        Table_str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type, .code=CORD_all(env->file_prefix, def->name)));
+
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
             bind_statement(ns_env, stmt->ast);
         }
-
-        type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type);
-        Table_str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type, .code=CORD_all(env->file_prefix, def->name)));
         break;
     }
     case EnumDef: {
@@ -175,13 +175,12 @@ void bind_statement(env_t *env, ast_t *statement)
             Table_str_set(env->types, heap_strf("%s$%s", def->name, tag->name), tag->type);
         }
         
-        type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type);
+        type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env);
         Table_str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type));
 
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
             bind_statement(ns_env, stmt->ast);
         }
-
         break;
     }
     case LangDef: {
@@ -198,11 +197,11 @@ void bind_statement(env_t *env, ast_t *statement)
                     new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=Type(TextType)), .ret=type),
                         .code="(Text_t)"));
 
+        type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env);
+        Table_str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type));
+
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             bind_statement(ns_env, stmt->ast);
-
-        type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type);
-        Table_str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type));
         break;
     }
     case Use: {
@@ -427,9 +426,8 @@ type_t *get_type(env_t *env, ast_t *ast)
             return get_type(module_env, WrapAST(ast, Var, access->field));
         } else if (fielded_t->tag == TypeInfoType) {
             auto info = Match(fielded_t, TypeInfoType);
-            table_t *namespace = Table_str_get(*env->type_namespaces, info->name);
-            if (!namespace) code_err(access->fielded, "I couldn't find a namespace for this type");
-            binding_t *b = Table_str_get(*namespace, access->field);
+            assert(info->env);
+            binding_t *b = get_binding(info->env, access->field);
             if (!b) code_err(ast, "I couldn't find the field '%s' on this type", access->field);
             return b->type;
         }

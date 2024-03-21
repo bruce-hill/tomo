@@ -98,6 +98,7 @@ struct type_s {
         struct {
             const char *name;
             type_t *type;
+            struct env_s *env;
         } TypeInfoType;
         struct {
             const char *name;

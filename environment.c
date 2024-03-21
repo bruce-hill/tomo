@@ -14,7 +14,6 @@ env_t *new_compilation_unit(void)
     env_t *env = new(env_t);
     env->code = new(compilation_unit_t);
     env->types = new(table_t);
-    env->type_namespaces = new(table_t);
     env->globals = new(table_t);
     env->locals = new(table_t, .fallback=env->globals);
     env->imports = new(table_t);
@@ -162,20 +161,21 @@ env_t *new_compilation_unit(void)
     };
 
     for (size_t i = 0; i < sizeof(global_types)/sizeof(global_types[0]); i++) {
-        binding_t *binding = new(binding_t, .type=Type(TypeInfoType, .name=global_types[i].name, .type=global_types[i].type));
+        env_t *ns_env = namespace_env(env, global_types[i].name);
+        binding_t *binding = new(binding_t, .type=Type(TypeInfoType, .name=global_types[i].name, .type=global_types[i].type, .env=ns_env));
         Table_str_set(env->globals, global_types[i].name, binding);
         Table_str_set(env->types, global_types[i].name, global_types[i].type);
     }
 
     for (size_t i = 0; i < sizeof(global_types)/sizeof(global_types[0]); i++) {
-        table_t *namespace = new(table_t, .fallback=env->globals);
-        Table_str_set(env->type_namespaces, global_types[i].name, namespace);
-        env_t *ns_env = namespace_env(env, global_types[i].name);
+        binding_t *type_binding = Table_str_get(*env->globals, global_types[i].name);
+        assert(type_binding);
+        env_t *ns_env = Match(type_binding->type, TypeInfoType)->env;
         $ARRAY_FOREACH(global_types[i].namespace, j, ns_entry_t, entry, {
             type_t *type = parse_type_string(ns_env, entry.type_str);
             if (type->tag == ClosureType) type = Match(type, ClosureType)->fn;
             binding_t *b = new(binding_t, .code=entry.code, .type=type);
-            Table_str_set(namespace, entry.name, b);
+            set_binding(ns_env, entry.name, b);
         }, {})
     }
 
@@ -250,13 +250,13 @@ env_t *for_scope(env_t *env, ast_t *ast)
 
 env_t *namespace_env(env_t *env, const char *namespace_name)
 {
+    binding_t *b = get_binding(env, namespace_name);
+    if (b)
+        return Match(b->type, TypeInfoType)->env;
+
     env_t *ns_env = new(env_t);
     *ns_env = *env;
-    ns_env->locals = Table_str_get(*env->type_namespaces, namespace_name);
-    if (!ns_env->locals) {
-        ns_env->locals = new(table_t, .fallback=env->globals);
-        Table_str_set(env->type_namespaces, namespace_name, ns_env->locals);
-    }
+    ns_env->locals = new(table_t, .fallback=env->globals);
     ns_env->scope_prefix = CORD_all(env->file_prefix, namespace_name, "$");
     return ns_env;
 }
@@ -288,11 +288,9 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
         errx(1, "Table methods not implemented");
     }
     case BoolType: case IntType: case NumType: case TextType: {
-        table_t *ns = Table_str_get(*env->type_namespaces, CORD_to_const_char_star(type_to_cord(cls_type)));
-        if (!ns) {
-            code_err(self, "No namespace found for this type!");
-        }
-        return Table_str_get(*ns, name);
+        binding_t *b = get_binding(env, CORD_to_const_char_star(type_to_cord(cls_type)));
+        assert(b);
+        return get_binding(Match(b->type, TypeInfoType)->env, name);
     }
     case TypeInfoType: case StructType: case EnumType: {
         const char *type_name;
@@ -303,9 +301,9 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
         default: errx(1, "Unreachable");
         }
 
-        table_t *namespace = Table_str_get(*env->type_namespaces, type_name);
-        if (!namespace) return NULL;
-        return Table_str_get(*namespace, name);
+        binding_t *b = get_binding(env, type_name);
+        assert(b);
+        return get_binding(Match(b->type, TypeInfoType)->env, name);
     }
     default: break;
     }

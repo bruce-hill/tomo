@@ -1093,7 +1093,7 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *text_t = Table_str_get(*env->types, lang ? lang : "Text");
         if (!text_t || text_t->tag != TextType)
             code_err(ast, "%s is not a valid text language name", lang);
-        table_t *lang_ns = lang ? Table_str_get(*env->type_namespaces, lang) : NULL;
+        env_t *lang_env = lang ? Match(get_binding(env, lang)->type, TypeInfoType)->env : NULL;
         ast_list_t *chunks = Match(ast, TextJoin)->children;
         if (!chunks) {
             return "(CORD)CORD_EMPTY";
@@ -1108,11 +1108,11 @@ CORD compile(env_t *env, ast_t *ast)
                     chunk_code = compile(env, chunk->ast);
                 } else if (chunk_t->tag == TextType && streq(Match(chunk_t, TextType)->lang, lang)) {
                     chunk_code = compile(env, chunk->ast);
-                } else if (lang && lang_ns) {
+                } else if (lang && lang_env) {
                     // Get conversion function:
                     chunk_code = compile(env, chunk->ast);
-                    for (int64_t i = 1; i <= Table_length(*lang_ns); i++) {
-                        struct {const char *name; binding_t *b; } *entry = Table_entry(*lang_ns, i);
+                    for (int64_t i = 1; i <= Table_length(*lang_env->locals); i++) {
+                        struct {const char *name; binding_t *b; } *entry = Table_entry(*lang_env->locals, i);
                         if (entry->b->type->tag != FunctionType) continue;
                         if (!(streq(entry->name, "escape") || strncmp(entry->name, "escape_", strlen("escape_")) == 0))
                             continue;
@@ -1574,9 +1574,7 @@ CORD compile(env_t *env, ast_t *ast)
         switch (value_t->tag) {
         case TypeInfoType: {
             auto info = Match(value_t, TypeInfoType);
-            table_t *namespace = Table_str_get(*env->type_namespaces, info->name);
-            if (!namespace) code_err(f->fielded, "I couldn't find a namespace for this type");
-            binding_t *b = Table_str_get(*namespace, f->field);
+            binding_t *b = get_binding(info->env, f->field);
             if (!b) code_err(ast, "I couldn't find the field '%s' on this type", f->field);
             if (!b->code) code_err(ast, "I couldn't figure out how to compile this field");
             return b->code;

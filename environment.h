@@ -31,10 +31,9 @@ typedef struct loop_ctx_s {
     CORD skip_label, stop_label;
 } loop_ctx_t;
 
-typedef struct {
+typedef struct env_s {
     table_t *types, *globals, *locals;
     table_t *imports; // Map of 'use' name -> env_t*
-    table_t *type_namespaces; // Map of type name -> namespace table
     compilation_unit_t *code;
     fn_ctx_t *fn_ctx;
     loop_ctx_t *loop_ctx;
