@@ -170,7 +170,7 @@ static bool stale(const char *filename, const char *relative_to)
     if (stat(filename, &target_stat))
         return true;
     struct stat relative_to_stat;
-    if (stat(relative_to, &target_stat))
+    if (stat(relative_to, &relative_to_stat))
         return true;
     return target_stat.st_mtime < relative_to_stat.st_mtime;
 }
