@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <gc.h>
 #include <gc/cord.h>
+#include <libgen.h>
 #include <printf.h>
 #include <sys/stat.h>
 
@@ -12,7 +13,6 @@
 #include "builtins/text.h"
 #include "compile.h"
 #include "parse.h"
-#include "tomo.h"
 #include "typecheck.h"
 #include "types.h"
 
@@ -25,6 +25,11 @@ static const char *cflags;
 static const char *ldlibs;
 static const char *ldflags = "-Wl,-rpath '-Wl,$ORIGIN' -L/usr/local/lib";
 static const char *cc;
+
+static array_t get_file_dependencies(const char *filename);
+static int transpile(const char *filename, bool force_retranspile);
+static int compile_object_file(const char *filename, bool force_recompile);
+static int run_program(const char *filename, const char *object_files);
 
 int main(int argc, char *argv[])
 {
@@ -73,18 +78,27 @@ int main(int argc, char *argv[])
     cc = getenv("CC");
     if (!cc) cc = "tcc";
 
-    int status = transpile(filename, true);
-    if (status != 0 || mode < MODE_COMPILE)
-        return status;
+    if (mode == MODE_TRANSPILE) {
+        return transpile(filename, true);
+    }
 
-    status = compile_object_file(filename, true);
-    if (status != 0 || mode < MODE_RUN)
-        return status;
+    array_t file_deps = get_file_dependencies(filename);
+    CORD object_files_cord = CORD_EMPTY;
+    for (int64_t i = 0; i < file_deps.length; i++) {
+        const char *dep = *(char**)(file_deps.data + i*file_deps.stride);
+        compile_object_file(dep, false);
+        object_files_cord = object_files_cord ? CORD_all(object_files_cord, " ", dep, ".o") : CORD_cat(dep, ".o");
+    }
 
-    return run_program(filename);
+    if (mode == MODE_RUN) {
+        const char *object_files = CORD_to_const_char_star(object_files_cord);
+        assert(object_files);
+        return run_program(filename, object_files);
+    }
+    return 0;
 }
 
-static void build_object_dependency_graph(const char *filename, table_t *dependencies)
+static void build_file_dependency_graph(const char *filename, table_t *dependencies)
 {
     size_t len = strlen(filename);
     const char *base_filename;
@@ -99,14 +113,17 @@ static void build_object_dependency_graph(const char *filename, table_t *depende
         return;
 
     array_t *deps = new(array_t);
-    const char *obj_file = heap_strf("%s.o", base_filename);
-    Array__insert(deps, &obj_file, 0, $ArrayInfo(&Text));
+    Array__insert(deps, &base_filename, 0, $ArrayInfo(&Text));
     Table_str_set(dependencies, base_filename, deps);
+
+    transpile(base_filename, false);
 
     const char *to_scan[] = {
         heap_strf("%s.h", base_filename),
         heap_strf("%s.c", base_filename),
     };
+    char *file_dir = realpath(filename, NULL);
+    dirname(file_dir);
     for (size_t s = 0; s < sizeof(to_scan)/sizeof(to_scan[0]); s++) {
         file_t *f = load_file(to_scan[s]);
         if (!f) errx(1, "Couldn't find file: %s", to_scan[s]);
@@ -114,14 +131,37 @@ static void build_object_dependency_graph(const char *filename, table_t *depende
             const char *line = f->text + f->lines[i].offset;
             const char *prefix = "#include \"";
             if (strncmp(line, prefix, strlen(prefix)) == 0) {
-                const char *included = heap_strn(line + strlen(prefix), strcspn(line + strlen(prefix), "\""));
-                const char *resolved_header = resolve_path(included, to_scan[s], NULL);
-                const char *resolved_obj = heap_strf("%.*s.o", strlen(resolved_header)-2, resolved_header);
-                Array__insert(deps, &resolved_obj, 0, $ArrayInfo(&Text));
-                build_object_dependency_graph(resolved_header, dependencies);
+                char *tmp = realpath(heap_strf("%s/%.*s", file_dir, strcspn(line + strlen(prefix), "\"") - 2, line + strlen(prefix)), NULL);
+                const char *resolved_file = heap_str(tmp);
+                free(tmp);
+                Array__insert(deps, &resolved_file, 0, $ArrayInfo(&Text));
+                build_file_dependency_graph(resolved_file, dependencies);
             }
         }
     }
+    free(file_dir);
+}
+
+array_t get_file_dependencies(const char *filename)
+{
+    const char *resolved = resolve_path(filename, ".", ".");
+
+    table_t file_dependencies = {};
+    build_file_dependency_graph(resolved, &file_dependencies);
+    table_t dependency_set = {};
+
+    const TypeInfo unit = {.size=0, .align=0, .tag=CustomInfo};
+    const TypeInfo info = {.size=sizeof(table_t), .align=__alignof__(table_t),
+        .tag=TableInfo, .TableInfo.key=&Text, .TableInfo.value=&unit};
+
+    for (int64_t i = 1; i <= Table_length(file_dependencies); i++) {
+        struct { const char *name; array_t *deps; } *entry = Table_entry(file_dependencies, i);
+        for (int64_t j = 0; j < entry->deps->length; j++) {
+            const char *dep = *(char**)(entry->deps->data + j*entry->deps->stride);
+            Table_set(&dependency_set, &dep, &dep, &info);
+        }
+    }
+    return dependency_set.entries;
 }
 
 static bool stale(const char *filename, const char *relative_to)
@@ -145,7 +185,6 @@ int transpile(const char *filename, bool force_retranspile)
             printf("Skipping transpilation of %s\n", filename);
         return 0;
     }
-
 
     file_t *f = load_file(filename);
     if (!f)
@@ -214,28 +253,8 @@ int compile_object_file(const char *filename, bool force_recompile)
     return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
 }
 
-int run_program(const char *filename)
+int run_program(const char *filename, const char *object_files)
 {
-    const char *resolved = resolve_path(filename, ".", NULL);
-
-    table_t obj_dependencies = {};
-    build_object_dependency_graph(resolved, &obj_dependencies);
-    table_t obj_files = {};
-    for (int64_t i = 1; i <= Table_length(obj_dependencies); i++) {
-        struct { const char *name; array_t *obj_files; } *entry = Table_entry(obj_dependencies, i);
-        for (int64_t j = 0; j < entry->obj_files->length; j++) {
-            const char *obj_name = *(char**)(entry->obj_files->data + j*entry->obj_files->stride);
-            Table_str_set(&obj_files, obj_name, obj_name);
-        }
-    }
-    CORD object_files_cord = CORD_EMPTY;
-    for (int64_t i = 1; i <= Table_length(obj_files); i++) {
-        struct { const char *name, *_; } *entry = Table_entry(obj_files, i);
-        object_files_cord = object_files_cord ? CORD_all(object_files_cord, " ", entry->name) : entry->name;
-    }
-
-    const char *object_files = CORD_to_const_char_star(object_files_cord);
-    assert(object_files);
     const char *run = streq(cc, "tcc") ? heap_strf("%s | tcc %s %s %s %s -run -", autofmt, cflags, ldflags, ldlibs, object_files)
         : heap_strf("%s | gcc %s %s %s %s -x c - -o program && ./program", autofmt, cflags, ldflags, ldlibs, object_files);
     if (verbose)
@@ -244,7 +263,7 @@ int run_program(const char *filename)
 
     const char *module_name = file_base_name(filename);
     CORD program = CORD_all(
-        "#include <tomo.h>\n"
+        "#include <tomo/tomo.h>\n"
         "#include \"", filename, ".h\"\n"
         "\n"
         "int main(int argc, const char *argv[]) {\n"
