@@ -214,7 +214,7 @@ int transpile(const char *filename, bool force_retranspile)
         CORD_put(module.header, out);
         pclose(out);
         out = popen(heap_strf("%s | bat -P --file-name=%s.c", autofmt, f->filename), "w");
-        CORD_put(CORD_all("#include \"", f->filename, "\"\n\n", module.c_file), out);
+        CORD_put(CORD_all("#include \"", module.module_name, ".tm.h\"\n\n", module.c_file), out);
         pclose(out);
     }
 
