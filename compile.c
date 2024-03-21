@@ -369,7 +369,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         auto def = Match(ast, LangDef);
         CORD_appendf(&env->code->typedefs, "typedef CORD %r%s_t;\n", env->file_prefix, def->name);
         CORD_appendf(&env->code->typedefs, "extern const TypeInfo %r%s;\n", env->file_prefix, def->name);
-        CORD_appendf(&env->code->typeinfos, "public const TypeInfo %r%s = {%zu, %zu, {.tag=TextInfo, .TextInfo={%s}}};\n",
+        CORD_appendf(&env->code->typeinfos, "public const TypeInfo %r%s = {%zu, %zu, {.tag=TextInfo, .TextInfo={%r}}};\n",
                      env->file_prefix, def->name, sizeof(CORD), __alignof__(CORD),
                      Text__quoted(def->name, false));
         compile_namespace(env, def->name, def->namespace);
@@ -1555,7 +1555,7 @@ CORD compile(env_t *env, ast_t *ast)
         } else {
             empty = FakeAST(
                 InlineCCode, 
-                CORD_asprintf("fail_source(%s, %ld, %ld, \"This collection was empty!\");\n",
+                CORD_asprintf("fail_source(%r, %ld, %ld, \"This collection was empty!\");\n",
                               Text__quoted(ast->file->filename, false), (long)(reduction->iter->start - reduction->iter->file->text),
                               (long)(reduction->iter->end - reduction->iter->file->text)));
         }
