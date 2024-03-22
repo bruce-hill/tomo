@@ -86,7 +86,8 @@ int main(int argc, char *argv[])
     CORD object_files_cord = CORD_EMPTY;
     for (int64_t i = 0; i < file_deps.length; i++) {
         const char *dep = *(char**)(file_deps.data + i*file_deps.stride);
-        compile_object_file(dep, false);
+        int compile_status = compile_object_file(dep, false);
+        if (compile_status != 0) return compile_status;
         object_files_cord = object_files_cord ? CORD_all(object_files_cord, " ", dep, ".o") : CORD_cat(dep, ".o");
     }
 
