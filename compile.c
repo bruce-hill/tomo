@@ -14,6 +14,8 @@
 #include "typecheck.h"
 #include "builtins/util.h"
 
+static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool allow_optional);
+
 CORD compile_type_ast(env_t *env, type_ast_t *t)
 {
     switch (t->tag) {
@@ -116,11 +118,39 @@ static void check_assignable(env_t *env, ast_t *ast)
     if (!can_be_mutated(env, ast)) {
         if (ast->tag == Index || ast->tag == FieldAccess) {
             ast_t *subject = ast->tag == Index ? Match(ast, Index)->indexed : Match(ast, FieldAccess)->fielded;
-            code_err(subject, "This is a readonly pointer, which can't be assigned to");
+            code_err(subject, "This is an immutable value, you can't assign to it");
         } else {
             code_err(ast, "This is a value of type %T and can't be assigned to", get_type(env, ast));
         }
     }
+}
+
+static CORD compile_assignment(env_t *env, ast_t *target, CORD value)
+{
+    check_assignable(env, target);
+    if (target->tag == Index) {
+        auto index = Match(target, Index);
+        type_t *container_t = get_type(env, index->indexed);
+        container_t = value_type(container_t);
+        switch (container_t->tag) {
+        case ArrayType: {
+            CORD target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
+            type_t *item_type = Match(container_t, ArrayType)->item_type;
+            return CORD_all("$Array_set(", compile_type(env, item_type), ", ", target_code, ", ", 
+                            compile(env, index->index), ", ", value, ", ", compile_type_info(env, container_t),
+                            ", ", Text__quoted(target->file->filename, false), ", ", heap_strf("%ld", target->start - target->file->text),
+                            ", ", heap_strf("%ld", target->end - target->file->text), ");\n");
+        }
+        case TableType: {
+            CORD target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
+            return CORD_all("Table_set_value(", target_code, ", ", compile(env, index->index), ", ",
+                            value, ", ", compile_type_info(env, container_t), ");\n");
+        }
+        case PointerType: break;
+        default: code_err(target, "I don't know how to assign to this target");
+        }
+    }
+    return CORD_all(compile(env, target), " = ", value, ";\n");
 }
 
 CORD compile_statement(env_t *env, ast_t *ast)
@@ -194,7 +224,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 // Common case: assigning to one variable:
                 check_assignable(env, assign->targets->ast);
                 CORD var = compile(env, assign->targets->ast);
-                CORD code = CORD_all(var, " = ", compile(env, assign->values->ast), ";");
+                CORD code = compile_assignment(env, assign->targets->ast, compile(env, assign->values->ast));
                 CORD_appendf(&code, "$test(&%r, %r, %r, %r, %ld, %ld);",
                     var, compile_type_info(env, get_type(env, assign->targets->ast)),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
@@ -212,10 +242,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 for (ast_list_t *value = assign->values; value; value = value->next)
                     CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(env, get_type(env, value->ast)), i++, compile(env, value->ast));
                 i = 1;
-                for (ast_list_t *target = assign->targets; target; target = target->next) {
-                    check_assignable(env, target->ast);
-                    CORD_appendf(&code, "%r = $%ld;\n", compile(env, target->ast), i++);
-                }
+                for (ast_list_t *target = assign->targets; target; target = target->next)
+                    code = CORD_all(code, compile_assignment(env, target->ast, CORD_asprintf("$%ld", i++)));
 
                 CORD_appendf(&code, "$test(&$1, %r, %r, %r, %ld, %ld);",
                     compile_type_info(env, get_type(env, assign->targets->ast)),
@@ -273,7 +301,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         auto assign = Match(ast, Assign);
         // Single assignment:
         if (assign->targets && !assign->targets->next)
-            return CORD_asprintf("%r = %r;", compile(env, assign->targets->ast), compile(env, assign->values->ast));
+            return compile_assignment(env, assign->targets->ast, compile(env, assign->values->ast));
 
         CORD code = "{ // Assignment\n";
         int64_t i = 1;
@@ -281,8 +309,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(env, get_type(env, value->ast)), i++, compile(env, value->ast));
         i = 1;
         for (ast_list_t *target = assign->targets; target; target = target->next) {
-            check_assignable(env, target->ast);
-            CORD_appendf(&code, "%r = $%ld;\n", compile(env, target->ast), i++);
+            code = CORD_cat(code, compile_assignment(env, target->ast, CORD_asprintf("$%ld", i++)));
         }
         return CORD_cat(code, "\n}");
     }
@@ -745,7 +772,7 @@ CORD compile_string(env_t *env, ast_t *ast, CORD color)
     return expr_as_text(env, expr, t, color);
 }
 
-static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool allow_optional)
+CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool allow_optional)
 {
     CORD val = compile(env, ast);
     type_t *t = get_type(env, ast);

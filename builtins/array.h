@@ -11,12 +11,20 @@
 #include "types.h"
 
 // Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
-#define $Array_get(type, x, i, filename, start, end) *({ \
-    const array_t $arr = x; int64_t $index = (int64_t)(i); \
+#define $Array_get(item_type, arr_expr, index_expr, filename, start, end) *({ \
+    const array_t $arr = arr_expr; int64_t $index = (int64_t)(index_expr); \
     int64_t $off = $index + ($index < 0) * ($arr.length + 1) - 1; \
     if (__builtin_expect($off < 0 || $off >= $arr.length, 0)) \
         fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int__as_text(&$index, USE_COLOR, NULL), $arr.length); \
-    (type*)($arr.data + $arr.stride * $off);})
+    (item_type*)($arr.data + $arr.stride * $off);})
+#define $Array_set(item_type, arr_expr, index_expr, value_expr, typeinfo, filename, start, end) { \
+    array_t *$arr = arr_expr; int64_t $index = (int64_t)(index_expr); \
+    int64_t $off = $index + ($index < 0) * ($arr->length + 1) - 1; \
+    if (__builtin_expect($off < 0 || $off >= $arr->length, 0)) \
+        fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int__as_text(&$index, USE_COLOR, NULL), $arr->length); \
+    if ($arr->data_refcount > 0) \
+        Array__compact($arr, typeinfo); \
+    *(item_type*)($arr->data + $arr->stride * $off) = value_expr; }
 #define $Array_get_unchecked(type, x, i) *({ const array_t $arr = x; int64_t $index = (int64_t)(i); \
                                           int64_t $off = $index + ($index < 0) * ($arr.length + 1) - 1; \
                                           (type*)($arr.data + $arr.stride * $off);})
