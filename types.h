@@ -67,6 +67,7 @@ struct type_s {
         } NumType;
         struct {
             const char *lang;
+            struct env_s *env;
         } TextType;
         struct {
             type_t *item_type;
@@ -89,11 +90,13 @@ struct type_s {
             const char *name;
             arg_t *fields;
             bool opaque;
+            struct env_s *env;
         } StructType;
         struct {
             const char *name;
             tag_t *tags;
             bool opaque;
+            struct env_s *env;
         } EnumType;
         struct {
             const char *name;

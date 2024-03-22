@@ -82,8 +82,8 @@ CORD compile_type(env_t *env, type_t *t)
     case IntType: return Match(t, IntType)->bits == 64 ? "Int_t" : CORD_asprintf("Int%ld_t", Match(t, IntType)->bits);
     case NumType: return Match(t, NumType)->bits == 64 ? "Num_t" : CORD_asprintf("Num%ld_t", Match(t, NumType)->bits);
     case TextType: {
-        const char *dsl = Match(t, TextType)->lang;
-        return dsl ? CORD_all(env->file_prefix, dsl, "_t") : "Text_t";
+        auto text = Match(t, TextType);
+        return text->lang ? CORD_all(text->env->file_prefix, text->lang, "_t") : "Text_t";
     }
     case ArrayType: return "array_t";
     case TableType: return "table_t";
@@ -98,8 +98,14 @@ CORD compile_type(env_t *env, type_t *t)
     }
     case ClosureType: return "closure_t";
     case PointerType: return CORD_cat(compile_type(env, Match(t, PointerType)->pointed), "*");
-    case StructType: return CORD_all(env->file_prefix, Match(t, StructType)->name, "_t");
-    case EnumType: return CORD_all(env->file_prefix, Match(t, EnumType)->name, "_t");
+    case StructType: {
+        auto s = Match(t, StructType);
+        return CORD_all(s->env->file_prefix, s->name, "_t");
+    }
+    case EnumType: {
+        auto e = Match(t, EnumType);
+        return CORD_all(e->env->file_prefix, e->name, "_t");
+    }
     case TypeInfoType: return "TypeInfo";
     default: compiler_err(NULL, NULL, NULL, "Not implemented");
     }
@@ -1735,9 +1741,18 @@ CORD compile_type_info(env_t *env, type_t *t)
 {
     switch (t->tag) {
     case BoolType: case IntType: case NumType: return CORD_asprintf("&%r", type_to_cord(t));
-    case TextType: return Match(t, TextType)->lang ? CORD_all("(&", env->file_prefix, Match(t, TextType)->lang, ")") : "&Text";
-    case StructType: return CORD_all("(&", env->file_prefix, Match(t, StructType)->name, ")");
-    case EnumType: return CORD_all("(&", env->file_prefix, Match(t, EnumType)->name, ")");
+    case TextType: {
+        auto text = Match(t, TextType);
+        return text->lang ? CORD_all("(&", text->env->file_prefix, text->lang, ")") : "&Text";
+    }
+    case StructType: {
+        auto s = Match(t, StructType);
+        return CORD_all("(&", s->env->file_prefix, s->name, ")");
+    }
+    case EnumType: {
+        auto e = Match(t, EnumType);
+        return CORD_all("(&", e->env->file_prefix, e->name, ")");
+    }
     case ArrayType: {
         type_t *item_t = Match(t, ArrayType)->item_type;
         return CORD_asprintf("$ArrayInfo(%r)", compile_type_info(env, item_t));

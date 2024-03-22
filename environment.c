@@ -9,6 +9,8 @@
 #include "typecheck.h"
 #include "builtins/util.h"
 
+type_t *TEXT_TYPE = NULL;
+
 env_t *new_compilation_unit(void)
 {
     env_t *env = new(env_t);
@@ -18,12 +20,15 @@ env_t *new_compilation_unit(void)
     env->locals = new(table_t, .fallback=env->globals);
     env->imports = new(table_t);
 
+    if (!TEXT_TYPE)
+        TEXT_TYPE = Type(TextType, .env=namespace_env(env, "Text"));
+
     struct {
         const char *name;
         binding_t binding;
     } global_vars[] = {
-        {"say", {.code="say", .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=Type(TextType)), .ret=Type(VoidType))}},
-        {"fail", {.code="fail", .type=Type(FunctionType, .args=new(arg_t, .name="message", .type=Type(TextType)), .ret=Type(AbortType))}},
+        {"say", {.code="say", .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE), .ret=Type(VoidType))}},
+        {"fail", {.code="fail", .type=Type(FunctionType, .args=new(arg_t, .name="message", .type=TEXT_TYPE), .ret=Type(AbortType))}},
         {"USE_COLOR", {.code="USE_COLOR", .type=Type(BoolType)}},
     };
 
@@ -137,7 +142,7 @@ env_t *new_compilation_unit(void)
 #undef F2
 #undef F
 #undef C
-        {"Text", Type(TextType), "Text_t", "Text", $TypedArray(ns_entry_t,
+        {"Text", TEXT_TYPE, "Text_t", "Text", $TypedArray(ns_entry_t,
             {"quoted", "Text__quoted", "func(text:Text, color=no)->Text"},
             {"upper", "Text__upper", "func(text:Text)->Text"},
             {"lower", "Text__lower", "func(text:Text)->Text"},
@@ -161,7 +166,7 @@ env_t *new_compilation_unit(void)
     };
 
     for (size_t i = 0; i < sizeof(global_types)/sizeof(global_types[0]); i++) {
-        env_t *ns_env = namespace_env(env, global_types[i].name);
+        env_t *ns_env = global_types[i].type == TEXT_TYPE ? Match(TEXT_TYPE, TextType)->env : namespace_env(env, global_types[i].name);
         binding_t *binding = new(binding_t, .type=Type(TypeInfoType, .name=global_types[i].name, .type=global_types[i].type, .env=ns_env));
         Table_str_set(env->globals, global_types[i].name, binding);
         Table_str_set(env->types, global_types[i].name, global_types[i].type);
@@ -287,23 +292,27 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
     case TableType: {
         errx(1, "Table methods not implemented");
     }
-    case BoolType: case IntType: case NumType: case TextType: {
+    case BoolType: case IntType: case NumType: {
         binding_t *b = get_binding(env, CORD_to_const_char_star(type_to_cord(cls_type)));
         assert(b);
         return get_binding(Match(b->type, TypeInfoType)->env, name);
     }
-    case TypeInfoType: case StructType: case EnumType: {
-        const char *type_name;
-        switch (cls_type->tag) {
-        case TypeInfoType: type_name = Match(cls_type, TypeInfoType)->name; break;
-        case StructType: type_name = Match(cls_type, StructType)->name; break;
-        case EnumType: type_name = Match(cls_type, EnumType)->name; break;
-        default: errx(1, "Unreachable");
-        }
-
-        binding_t *b = get_binding(env, type_name);
-        assert(b);
-        return get_binding(Match(b->type, TypeInfoType)->env, name);
+    case TextType: {
+        auto text = Match(cls_type, TextType);
+        assert(text->env);
+        return get_binding(text->env, name);
+    }
+    case StructType: {
+        auto struct_ = Match(cls_type, StructType);
+        return struct_->env ? get_binding(struct_->env, name) : NULL;
+    }
+    case EnumType: {
+        auto enum_ = Match(cls_type, StructType);
+        return enum_->env ? get_binding(enum_->env, name) : NULL;
+    }
+    case TypeInfoType: {
+        auto info = Match(cls_type, TypeInfoType);
+        return info->env ? get_binding(info->env, name) : NULL;
     }
     default: break;
     }

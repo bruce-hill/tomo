@@ -119,7 +119,7 @@ void bind_statement(env_t *env, ast_t *statement)
         env_t *ns_env = namespace_env(env, def->name);
 
         arg_t *fields = NULL;
-        type_t *type = Type(StructType, .name=def->name, .fields=fields, .opaque=true); // placeholder
+        type_t *type = Type(StructType, .name=def->name, .fields=fields, .opaque=true, .env=ns_env); // placeholder
         Table_str_set(env->types, def->name, type);
         for (arg_ast_t *field_ast = def->fields; field_ast; field_ast = field_ast->next) {
             type_t *field_t = get_arg_ast_type(env, field_ast);
@@ -146,7 +146,7 @@ void bind_statement(env_t *env, ast_t *statement)
         env_t *ns_env = namespace_env(env, def->name);
 
         tag_t *tags = NULL;
-        type_t *type = Type(EnumType, .name=def->name, .tags=tags, .opaque=true); // placeholder
+        type_t *type = Type(EnumType, .name=def->name, .tags=tags, .opaque=true, .env=ns_env); // placeholder
         Table_str_set(env->types, def->name, type);
         for (tag_ast_t *tag_ast = def->tags; tag_ast; tag_ast = tag_ast->next) {
             arg_t *fields = NULL;
@@ -158,7 +158,8 @@ void bind_statement(env_t *env, ast_t *statement)
                 fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
             }
             REVERSE_LIST(fields);
-            type_t *tag_type = Type(StructType, .name=heap_strf("%s$%s", def->name, tag_ast->name), .fields=fields);
+            env_t *member_ns = namespace_env(env, heap_strf("%s$%s", def->name, tag_ast->name));
+            type_t *tag_type = Type(StructType, .name=heap_strf("%s$%s", def->name, tag_ast->name), .fields=fields, .env=member_ns);
             tags = new(tag_t, .name=tag_ast->name, .tag_value=tag_ast->value, .type=tag_type, .next=tags);
         }
         REVERSE_LIST(tags);
@@ -186,15 +187,15 @@ void bind_statement(env_t *env, ast_t *statement)
     case LangDef: {
         auto def = Match(statement, LangDef);
 
-        type_t *type = Type(TextType, .lang=def->name);
-        Table_str_set(env->types, def->name, type);
         env_t *ns_env = namespace_env(env, def->name);
+        type_t *type = Type(TextType, .lang=def->name, .env=ns_env);
+        Table_str_set(env->types, def->name, type);
 
         set_binding(ns_env, "from_unsafe_text",
-                    new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=Type(TextType)), .ret=type),
+                    new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE), .ret=type),
                         .code=CORD_all("(", env->file_prefix, def->name, "_t)")));
         set_binding(ns_env, "text_content",
-                    new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=Type(TextType)), .ret=type),
+                    new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE), .ret=type),
                         .code="(Text_t)"));
 
         type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env);
@@ -322,9 +323,10 @@ type_t *get_type(env_t *env, ast_t *ast)
 
         code_err(ast, "'&' stack references can only be used on variables or fields of variables");
     }
-    case TextLiteral: return Type(TextType);
+    case TextLiteral: return TEXT_TYPE;
     case TextJoin: {
-        return Type(TextType, .lang=Match(ast, TextJoin)->lang);
+        const char *lang = Match(ast, TextJoin)->lang;
+        return lang ? Match(get_binding(env, lang)->type, TypeInfoType)->type : TEXT_TYPE;
     }
     case Var: {
         auto var = Match(ast, Var);
