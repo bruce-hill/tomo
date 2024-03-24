@@ -252,7 +252,8 @@ int transpile(const char *filename, bool force_retranspile)
 int compile_object_file(const char *filename, bool force_recompile)
 {
     const char *obj_file = heap_strf("%s.o", filename);
-    if (!force_recompile && !stale(obj_file, filename)) {
+    if (!force_recompile && !stale(obj_file, filename)
+        && !stale(obj_file, heap_strf("%s.c", filename)) && !stale(obj_file, heap_strf("%s.h", filename))) {
         return 0;
     }
     const char *cmd = heap_strf("%s %s -c %s.c -o %s.o", cc, cflags, filename, filename);
