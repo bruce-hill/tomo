@@ -16,166 +16,154 @@ static const char *OP_NAMES[] = {
     [BINOP_LE]="<=", [BINOP_GT]=">", [BINOP_GE]=">=", [BINOP_AND]="and", [BINOP_OR]="or", [BINOP_XOR]="xor",
 };
 
-static CORD ast_to_cord(ast_t *ast);
-static CORD ast_list_to_cord(ast_list_t *asts);
-static CORD type_ast_to_cord(type_ast_t *t);
-static CORD arg_list_to_cord(arg_ast_t *args);
-static CORD when_clauses_to_cord(when_clause_t *clauses);
-static CORD tags_to_cord(tag_ast_t *tags);
+static CORD ast_list_to_xml(ast_list_t *asts);
+static CORD arg_list_to_xml(arg_ast_t *args);
+static CORD when_clauses_to_xml(when_clause_t *clauses);
+static CORD tags_to_xml(tag_ast_t *tags);
+static CORD xml_escape(CORD text);
+static CORD optional_tagged(const char *tag, ast_t *ast);
+static CORD optional_tagged_type(const char *tag, type_ast_t *ast);
 
-#define TO_CORD(x) _Generic(x, \
-                            ast_t*: ast_to_cord(x), \
-                            ast_list_t*: ast_list_to_cord(x), \
-                            type_ast_t*: type_ast_to_cord(x), \
-                            arg_ast_list_t*: arg_list_to_cord(x), \
-                            tag_ast_t*: tags_to_cord(x), \
-                            const char *: x, \
-                            int64_t: CORD_asprintf("%ld", x), \
-                            unsigned short int: CORD_asprintf("%d", x), \
-                            double: CORD_asprintf("%g", x), \
-                            bool: CORD_asprintf("%s", x ? "yes" : "no"), \
-                            unsigned char: CORD_asprintf("%s", x ? "yes" : "no"))
-
-CORD ast_list_to_cord(ast_list_t *asts)
+CORD xml_escape(CORD text)
 {
-    if (!asts)
-        return "\x1b[35mNULL\x1b[m";
+    text = Text__replace(text, "&", "&amp;", INT64_MAX);
+    text = Text__replace(text, "<", "&lt;", INT64_MAX);
+    text = Text__replace(text, ">", "&gt;", INT64_MAX);
+    return text;
+}
 
-    CORD c = "[";
+CORD ast_list_to_xml(ast_list_t *asts)
+{
+    CORD c = CORD_EMPTY;
     for (; asts; asts = asts->next) {
-        c = CORD_cat(c, ast_to_cord(asts->ast));
-        if (asts->next) c = CORD_cat(c, ", ");
+        c = CORD_cat(c, ast_to_xml(asts->ast));
     }
-    c = CORD_cat(c, "]");
     return c;
 }
 
-CORD arg_list_to_cord(arg_ast_t *args) {
-    CORD c = "Args(";
+CORD arg_list_to_xml(arg_ast_t *args) {
+    CORD c = "<args>";
     for (; args; args = args->next) {
-        if (args->name)
-            c = CORD_cat(c, args->name);
+        CORD arg_cord = args->name ? CORD_all("<arg name=", args->name, ">") : "<arg>";
         if (args->type)
-            CORD_sprintf(&c, "%r:%r", c, type_ast_to_cord(args->type));
+            arg_cord = CORD_all(arg_cord, "<type>", type_ast_to_xml(args->type), "</type>");
         if (args->value)
-            CORD_sprintf(&c, "%r=%r", c, ast_to_cord(args->value));
-        if (args->next) c = CORD_cat(c, ", ");
+            arg_cord = CORD_all(arg_cord, "<value>", ast_to_xml(args->value), "</value>");
+        c = CORD_all(c, arg_cord, "</arg>");
     }
-    return CORD_cat(c, ")");
+    return CORD_cat(c, "</args>");
 }
 
-CORD when_clauses_to_cord(when_clause_t *clauses) {
-    CORD c = "Clauses(";
+CORD when_clauses_to_xml(when_clause_t *clauses) {
+    CORD c = CORD_EMPTY;
     for (; clauses; clauses = clauses->next) {
-        if (clauses->var) c = CORD_all(c, ast_to_cord(clauses->var), ":");
-        c = CORD_all(c, ast_to_cord(clauses->tag_name), "=", ast_to_cord(clauses->body));
-        if (clauses->next) c = CORD_cat(c, ", ");
+        c = CORD_all(c, "<case");
+        if (clauses->var) c = CORD_all(c, " var=", Match(clauses->var, Var)->name);
+        c = CORD_all(c, " tag=", ast_to_xml(clauses->tag_name), ">", ast_to_xml(clauses->body), "</case>");
     }
-    return CORD_cat(c, ")");
+    return c;
 }
 
-CORD tags_to_cord(tag_ast_t *tags) {
-    CORD c = "Tags(";
+CORD tags_to_xml(tag_ast_t *tags) {
+    CORD c = CORD_EMPTY;
     for (; tags; tags = tags->next) {
-        if (tags->name)
-            c = CORD_cat(c, tags->name);
-        CORD_sprintf(&c, "%r(%r)=%ld", c, arg_list_to_cord(tags->fields), tags->value);
-        if (tags->next) c = CORD_cat(c, ", ");
+        c = CORD_all(c, "<tag name=", tags->name, " value=", CORD_asprintf("%ld", tags->value), ">", arg_list_to_xml(tags->fields), "</tag>");
     }
-    return CORD_cat(c, ")");
+    return c;
 }
 
-CORD ast_to_cord(ast_t *ast)
+CORD optional_tagged(const char *tag, ast_t *ast)
 {
-    if (!ast) return "\x1b[35mNULL\x1b[m";
+    return ast ? CORD_all("<", tag, ">", ast_to_xml(ast), "</", tag, ">") : CORD_EMPTY;
+}
+
+CORD optional_tagged_type(const char *tag, type_ast_t *ast)
+{
+    return ast ? CORD_all("<", tag, ">", type_ast_to_xml(ast), "</", tag, ">") : CORD_EMPTY;
+}
+
+CORD ast_to_xml(ast_t *ast)
+{
+    if (!ast) return CORD_EMPTY;
 
     switch (ast->tag) {
-#define T(type, ...) case type: { auto data = ast->__data.type; (void)data; return CORD_asprintf("\x1b[34;1m" #type "\x1b[m" __VA_ARGS__); }
-    T(Unknown,  "Unknown")
-    T(Nil, "(%r)", type_ast_to_cord(data.type))
-    T(Bool, "(\x1b[35m%s\x1b[m)", data.b ? "yes" : "no")
-    T(Var, "(\x1b[36;1m%s\x1b[m)", data.name)
-    T(Int, "(\x1b[35m%ld\x1b[m, bits=\x1b[35m%ld\x1b[m)", data.i, data.bits)
-    T(Num, "(\x1b[35m%ld\x1b[m, bits=\x1b[35m%ld\x1b[m)", data.n, data.bits)
-    T(TextLiteral, "%r", Text__quoted(data.cord, true))
-    T(TextJoin, "(%s, %r)", data.lang ? data.lang : "Text", ast_list_to_cord(data.children))
-    T(Declare, "(var=%s, value=%r)", ast_to_cord(data.var), ast_to_cord(data.value))
-    T(Assign, "(targets=%r, values=%r)", ast_list_to_cord(data.targets), ast_list_to_cord(data.values))
-    T(BinaryOp, "(%r, %s, %r)", ast_to_cord(data.lhs), OP_NAMES[data.op], ast_to_cord(data.rhs))
-    T(UpdateAssign, "(%r, %s, %r)", ast_to_cord(data.lhs), OP_NAMES[data.op], ast_to_cord(data.rhs))
-    T(Length, "(%r)", ast_to_cord(data.value))
-    T(Negative, "(%r)", ast_to_cord(data.value))
-    T(Not, "(%r)", ast_to_cord(data.value))
-    T(HeapAllocate, "(%r)", ast_to_cord(data.value))
-    T(StackReference, "(%r)", ast_to_cord(data.value))
-    T(Min, "(%r, %r, key=%r)", ast_to_cord(data.lhs), ast_to_cord(data.rhs), ast_to_cord(data.key))
-    T(Max, "(%r, %r, key=%r)", ast_to_cord(data.lhs), ast_to_cord(data.rhs), ast_to_cord(data.key))
-    T(Array, "(%r, type=%r)", ast_list_to_cord(data.items), type_ast_to_cord(data.type))
-    T(Table, "(key_type=%r, value_type=%r, fallback=%r, default_value=%r, entries=%r)",
-      type_ast_to_cord(data.key_type), type_ast_to_cord(data.value_type),
-      ast_to_cord(data.fallback), ast_to_cord(data.default_value),
-      ast_list_to_cord(data.entries))
-    T(TableEntry, "(%r => %r)", ast_to_cord(data.key), ast_to_cord(data.value))
-    T(Comprehension, "(expr=%r, key=%r, value=%r, iter=%r, filter=%r)", ast_to_cord(data.expr),
-      ast_to_cord(data.key), ast_to_cord(data.value), ast_to_cord(data.iter), ast_to_cord(data.filter))
-    T(FunctionDef, "(name=%r, args=%r, ret=%r, body=%r)", ast_to_cord(data.name),
-      arg_list_to_cord(data.args), type_ast_to_cord(data.ret_type), ast_to_cord(data.body))
-    T(Lambda, "(args=%r, body=%r)", arg_list_to_cord(data.args), ast_to_cord(data.body))
-    T(FunctionCall, "(fn=%r, args=%r)", ast_to_cord(data.fn), arg_list_to_cord(data.args))
-    T(MethodCall, "(self=%r, name=%s, args=%r)", ast_to_cord(data.self), data.name, arg_list_to_cord(data.args))
-    T(Block, "(%r)", ast_list_to_cord(data.statements))
-    T(For, "(index=%r, value=%r, iter=%r, body=%r, empty=%r)", ast_to_cord(data.index), ast_to_cord(data.value),
-      ast_to_cord(data.iter), ast_to_cord(data.body), ast_to_cord(data.empty))
-    T(While, "(condition=%r, body=%r)", ast_to_cord(data.condition), ast_to_cord(data.body))
-    T(If, "(condition=%r, body=%r, else=%r)", ast_to_cord(data.condition), ast_to_cord(data.body), ast_to_cord(data.else_body))
-    T(When, "(subject=%r, clauses=%r, else=%r)", ast_to_cord(data.subject), when_clauses_to_cord(data.clauses), ast_to_cord(data.else_body))
-    T(Reduction, "(iter=%r, combination=%r, fallback=%r)", ast_to_cord(data.iter), ast_to_cord(data.combination), ast_to_cord(data.fallback))
-    T(Skip, "(%s)", data.target ? data.target : "NULL")
-    T(Stop, "(%s)", data.target ? data.target : "NULL")
-    T(Pass, "")
-    T(Return, "(%r)", ast_to_cord(data.value))
-    T(Extern, "(name=%s, type=%r)", data.name, type_ast_to_cord(data.type))
-    T(StructDef, "(%s, fields=%r, namespace=%r)", data.name, arg_list_to_cord(data.fields), ast_to_cord(data.namespace))
-    T(EnumDef, "(%s, tags=%r, namespace=%r)", data.name, tags_to_cord(data.tags), ast_to_cord(data.namespace))
-    T(LangDef, "(%s, namespace=%r)", data.name, ast_to_cord(data.namespace))
-    T(Index, "(indexed=%r, index=%r)", ast_to_cord(data.indexed), ast_to_cord(data.index))
-    T(FieldAccess, "(fielded=%r, field=%s)", ast_to_cord(data.fielded), data.field)
-    T(DocTest, "(expr=%r, output=%r)", ast_to_cord(data.expr), Text__quoted(data.output, true))
-    T(Use, "(%r)", Text__quoted(data.raw_path, true))
-    T(LinkerDirective, "(%r)", Text__quoted(data.directive, true))
-    T(InlineCCode, "(%r)", Text__quoted(data.code, true))
+#define T(type, ...) case type: { auto data = ast->__data.type; (void)data; return CORD_asprintf(__VA_ARGS__); }
+    T(Unknown,  "<Unknown>")
+    T(Nil, "<Nil>%r</Nil>", type_ast_to_xml(data.type))
+    T(Bool, "<Bool value=\"%s\" />", data.b ? "yes" : "no")
+    T(Var, "%s", data.name)
+    T(Int, "<Int bits=\"%ld\">%ld</Int>", data.bits, data.i)
+    T(Num, "<Num bits=\"%ld\">%g</Num>", data.bits, data.n)
+    T(TextLiteral, "%r", xml_escape(data.cord))
+    T(TextJoin, "<Text%r>%r</Text>", data.lang ? CORD_all(" lang=\"", data.lang, "\"") : CORD_EMPTY, ast_list_to_xml(data.children))
+    T(Declare, "<Declare var=\"%r\">%r</Declare>", ast_to_xml(data.var), ast_to_xml(data.value))
+    T(Assign, "<Assign><targets>%r</targets><values>%r</values></Assign>", ast_list_to_xml(data.targets), ast_list_to_xml(data.values))
+    T(BinaryOp, "<BinaryOp op=\"%r\">%r %r</BinaryOp>", xml_escape(OP_NAMES[data.op]), ast_to_xml(data.lhs), ast_to_xml(data.rhs))
+    T(UpdateAssign, "<UpdateAssign op=\"%r\">%r %r</UpdateAssign>", xml_escape(OP_NAMES[data.op]), ast_to_xml(data.lhs), ast_to_xml(data.rhs))
+    T(Length, "<Length>%r</Length>", ast_to_xml(data.value))
+    T(Negative, "<Negative>%r</Negative>", ast_to_xml(data.value))
+    T(Not, "<Not>%r</Not>", ast_to_xml(data.value))
+    T(HeapAllocate, "<HeapAllocate>%r</HeapAllocate>", ast_to_xml(data.value))
+    T(StackReference, "<StackReference>%r</StackReference>", ast_to_xml(data.value))
+    T(Min, "<Min>%r%r%r</Min>", ast_to_xml(data.lhs), ast_to_xml(data.rhs), optional_tagged("key", data.key))
+    T(Max, "<Max>%r%r%r</Max>", ast_to_xml(data.lhs), ast_to_xml(data.rhs), optional_tagged("key", data.key))
+    T(Array, "<Array>%r%r</Array>", optional_tagged_type("item-type", data.type), ast_list_to_xml(data.items))
+    T(Table, "<Table>%r%r%r%r%r</Table>",
+      optional_tagged_type("key-type", data.key_type), optional_tagged_type("value-type", data.value_type),
+      ast_list_to_xml(data.entries), optional_tagged("fallback", data.fallback),
+      optional_tagged("default", data.default_value))
+    T(TableEntry, "<TableEntry>%r%r</TableEntry>", ast_to_xml(data.key), ast_to_xml(data.value))
+    T(Comprehension, "<Comprehension>%r%r%r%r%r</Comprehension>", optional_tagged("expr", data.expr),
+      optional_tagged("key", data.key), optional_tagged("value", data.value), optional_tagged("iter", data.iter),
+      optional_tagged("filter", data.filter))
+    T(FunctionDef, "<FunctionDef name=\"%r\">%r%r<body>%r</body></FunctionDef>", ast_to_xml(data.name),
+      arg_list_to_xml(data.args), optional_tagged_type("return-type", data.ret_type), ast_to_xml(data.body))
+    T(Lambda, "<Lambda>%r<body>%r</body></Lambda>)", arg_list_to_xml(data.args), ast_to_xml(data.body))
+    T(FunctionCall, "<FunctionCall><function>%r</function>%r</FunctionCall>", ast_to_xml(data.fn), arg_list_to_xml(data.args))
+    T(MethodCall, "<MethodCall><self>%r</self><method>%s</method>%r</MethodCall>", ast_to_xml(data.self), data.name, arg_list_to_xml(data.args))
+    T(Block, "<Block>%r</Block>", ast_list_to_xml(data.statements))
+    T(For, "<For>%r%r%r%r%r</For>", optional_tagged("index", data.index), optional_tagged("value", data.value),
+      optional_tagged("iterable", data.iter), optional_tagged("body", data.body), optional_tagged("empty", data.empty))
+    T(While, "<While>%r%r</While>", optional_tagged("condition", data.condition), optional_tagged("body", data.body))
+    T(If, "<If>%r%r%r</If>", optional_tagged("condition", data.condition), optional_tagged("body", data.body), optional_tagged("else", data.else_body))
+    T(When, "<When><subject>%r</subject>%r%r</When>", ast_to_xml(data.subject), when_clauses_to_xml(data.clauses), optional_tagged("else", data.else_body))
+    T(Reduction, "<Reduction>%r%r%r</Reduction>", optional_tagged("iterable", data.iter),
+      optional_tagged("combination", data.combination), optional_tagged("fallback", data.fallback))
+    T(Skip, "<Skip>%r</Skip>", data.target)
+    T(Stop, "<Stop>%s</Stop>", data.target)
+    T(Pass, "<Pass/>")
+    T(Return, "<Return>%r</Return>", ast_to_xml(data.value))
+    T(Extern, "<Extern name=\"%s\">%r</Extern>", data.name, type_ast_to_xml(data.type))
+    T(StructDef, "<StructDef name=\"%s\">%r<namespace>%r</namespace></StructDef>", data.name, arg_list_to_xml(data.fields), ast_to_xml(data.namespace))
+    T(EnumDef, "<EnumDef name=\"%s\"><tags>%r</tags><namespace>%r</namespace></EnumDef>", data.name, tags_to_xml(data.tags), ast_to_xml(data.namespace))
+    T(LangDef, "<LangDef name=\"%s\">%r</LangDef>", data.name, ast_to_xml(data.namespace))
+    T(Index, "<Index>%r%r</Index>", optional_tagged("indexed", data.indexed), optional_tagged("index", data.index))
+    T(FieldAccess, "<FieldAccess field=\"%s\">%r</FieldAccess>", data.field, ast_to_xml(data.fielded))
+    T(DocTest, "<DocTest>%r<output>%r</output></DocTest>", optional_tagged("expression", data.expr), xml_escape(data.output))
+    T(Use, "<Use>%r</Use>", xml_escape(data.raw_path))
+    T(LinkerDirective, "<LinkerDirective>%r</LinkerDirective>", xml_escape(data.directive))
+    T(InlineCCode, "<InlineCode>%r</InlineCode>", xml_escape(data.code))
 #undef T
     }
     return "???";
 }
 
-CORD type_ast_to_cord(type_ast_t *t)
+CORD type_ast_to_xml(type_ast_t *t)
 {
     if (!t) return "\x1b[35mNULL\x1b[m";
 
     switch (t->tag) {
-#define T(type, ...) case type: { auto data = t->__data.type; (void)data; return CORD_asprintf("\x1b[32;1m" #type "\x1b[m" __VA_ARGS__); }
-    T(UnknownTypeAST, "")
-    T(VarTypeAST, "(\x1b[36;1m%s\x1b[m)", data.name)
-    T(PointerTypeAST, "(%r, is_optional=%d, is_stack=%d, is_readonly=%d)",
-      type_ast_to_cord(data.pointed), data.is_optional,
-      data.is_stack, data.is_readonly)
-    T(ArrayTypeAST, "(%r)", type_ast_to_cord(data.item))
-    T(TableTypeAST, "(%r => %r)", type_ast_to_cord(data.key), type_ast_to_cord(data.value))
-    T(FunctionTypeAST, "(args=%r, ret=%r)", arg_list_to_cord(data.args), type_ast_to_cord(data.ret))
+#define T(type, ...) case type: { auto data = t->__data.type; (void)data; return CORD_asprintf(__VA_ARGS__); }
+    T(UnknownTypeAST, "<UnknownType/>")
+    T(VarTypeAST, "%s", data.name)
+    T(PointerTypeAST, "<PointerType is_optional=\"%d\", is_stack=\"%d\", is_readonly=\"%d\">%r</PointerType>",
+      data.is_optional, data.is_stack, data.is_readonly, type_ast_to_xml(data.pointed))
+    T(ArrayTypeAST, "<ArrayType>%r</ArrayType>", type_ast_to_xml(data.item))
+    T(TableTypeAST, "<TableType>%r %r</TableType>", type_ast_to_xml(data.key), type_ast_to_xml(data.value))
+    T(FunctionTypeAST, "<FunctionType>%r %r</FunctionType>", arg_list_to_xml(data.args), type_ast_to_xml(data.ret))
 #undef T
     }
     return NULL;
-}
-
-const char *ast_to_str(ast_t *ast) {
-    CORD c = ast_to_cord(ast);
-    return CORD_to_char_star(c);
-}
-
-const char *type_ast_to_str(type_ast_t *t) {
-    CORD c = type_ast_to_cord(t);
-    return CORD_to_char_star(c);
 }
 
 int printf_ast(FILE *stream, const struct printf_info *info, const void *const args[])
@@ -185,7 +173,7 @@ int printf_ast(FILE *stream, const struct printf_info *info, const void *const a
         if (info->alt)
             return fprintf(stream, "%.*s", (int)(ast->end - ast->start), ast->start);
         else
-            return fprintf(stream, "%s", ast_to_str(ast));
+            return CORD_put(ast_to_xml(ast), stream);
     } else {
         return fputs("(null)", stream);
     }

@@ -835,7 +835,7 @@ type_t *get_type(env_t *env, ast_t *ast)
     case InlineCCode: return Type(VoidType);
     case Unknown: code_err(ast, "I can't figure out the type of: %W", ast);
     }
-    code_err(ast, "I can't figure out the type of: %s", ast_to_str(ast));
+    code_err(ast, "I can't figure out the type of: %W", ast);
 }
 
 bool is_discardable(env_t *env, ast_t *ast)

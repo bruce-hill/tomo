@@ -214,8 +214,8 @@ int transpile(const char *filename, bool force_retranspile)
     }
 
     if (verbose) {
-        FILE *out = popen("bat -P --file-name=AST", "w");
-        fputs(ast_to_str(ast), out);
+        FILE *out = popen("xmllint --format - | bat -P --file-name=AST", "w");
+        CORD_put(ast_to_xml(ast), out);
         pclose(out);
     }
 
