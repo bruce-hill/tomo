@@ -182,8 +182,6 @@ int transpile(const char *filename, bool force_retranspile)
     const char *c_file = heap_strf("%s.c", tm_file);
     const char *h_file = heap_strf("%s.h", tm_file);
     if (!force_retranspile && !stale(c_file, tm_file) && !stale(h_file, tm_file)) {
-        if (verbose)
-            printf("Skipping transpilation of %s\n", filename);
         return 0;
     }
 
@@ -209,15 +207,6 @@ int transpile(const char *filename, bool force_retranspile)
     }
 
     module_code_t module = compile_file(ast);
-    
-    if (verbose) {
-        FILE *out = popen(heap_strf("%s | bat -P --file-name=%s.h", autofmt, f->filename), "w");
-        CORD_put(module.header, out);
-        pclose(out);
-        out = popen(heap_strf("%s | bat -P --file-name=%s.c", autofmt, f->filename), "w");
-        CORD_put(CORD_all("#include \"", module.module_name, ".tm.h\"\n\n", module.c_file), out);
-        pclose(out);
-    }
 
     FILE *prog = popen(heap_strf("%s > %s.h", autofmt, f->filename), "w");
     CORD_put("#pragma once\n", prog);
@@ -237,6 +226,14 @@ int transpile(const char *filename, bool force_retranspile)
         if (verbose)
             printf("Transpiled to %s.c\n", f->filename);
     }
+
+
+    if (verbose) {
+        FILE *out = popen(heap_strf("bat -P %s.h %s.c", f->filename, f->filename), "w");
+        CORD_put(module.header, out);
+        pclose(out);
+    }
+
     return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
 }
 
@@ -244,8 +241,6 @@ int compile_object_file(const char *filename, bool force_recompile)
 {
     const char *obj_file = heap_strf("%s.o", filename);
     if (!force_recompile && !stale(obj_file, filename)) {
-        if (verbose)
-            printf("Skipping recompilation of %s\n", filename);
         return 0;
     }
     const char *cmd = heap_strf("%s %s -c %s.c -o %s.o", cc, cflags, filename, filename);
