@@ -65,9 +65,12 @@ int main(int argc, char *argv[])
     if (!cconfig)
         cconfig = "-std=c11 -fdollars-in-identifiers -fsanitize=signed-integer-overflow -fno-sanitize-recover -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE";
 
+    const char *optimization = getenv("O");
+    if (!optimization) optimization = "-O1";
+
     cflags = getenv("CFLAGS");
     if (!cflags)
-        cflags = heap_strf("%s -I. -D_DEFAULT_SOURCE", cconfig);
+        cflags = heap_strf("%s %s -I. -D_DEFAULT_SOURCE", cconfig, optimization);
 
     ldlibs = "-lgc -lcord -lm -L. -ltomo";
     if (getenv("LDLIBS"))
@@ -226,7 +229,6 @@ int transpile(const char *filename, bool force_retranspile)
         if (verbose)
             printf("Transpiled to %s.c\n", f->filename);
     }
-
 
     if (verbose) {
         FILE *out = popen(heap_strf("bat -P %s.h %s.c", f->filename, f->filename), "w");
