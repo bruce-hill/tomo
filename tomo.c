@@ -270,7 +270,7 @@ int compile_object_file(const char *filename, bool force_recompile)
 int run_program(const char *filename, const char *object_files)
 {
     const char *run = streq(cc, "tcc") ? heap_strf("%s | tcc %s %s %s %s -run -", autofmt, cflags, ldflags, ldlibs, object_files)
-        : heap_strf("%s | gcc %s %s %s %s -x c - -o program && ./program", autofmt, cflags, ldflags, ldlibs, object_files);
+        : heap_strf("%s | %s %s %s %s %s -x c - -o program && ./program", autofmt, cc, cflags, ldflags, ldlibs, object_files);
     if (verbose)
         printf("%s\n", run);
     FILE *runner = popen(run, "w");
