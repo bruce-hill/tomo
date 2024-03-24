@@ -58,7 +58,6 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
     return false;
 }
 
-
 CORD compile_declaration(env_t *env, type_t *t, const char *name)
 {
     if (t->tag == FunctionType) {
@@ -734,6 +733,25 @@ CORD compile_statement(env_t *env, ast_t *ast)
             ast_t *loop = WrapAST(ast, For, .index=comp->key, .value=comp->value, .iter=comp->iter, .body=body);
             return compile_statement(env, loop);
         }
+    }
+    case Extern: {
+        auto ext = Match(ast, Extern);
+        type_t *t = parse_type_ast(env, ext->type);
+        CORD decl;
+        if (t->tag == ClosureType) {
+            t = Match(t, ClosureType)->fn;
+            auto fn = Match(t, FunctionType);
+            decl = CORD_all(compile_type(env, fn->ret), " ", ext->name, "(");
+            for (arg_t *arg = fn->args; arg; arg = arg->next) {
+                decl = CORD_all(decl, compile_type(env, arg->type));
+                if (arg->next) decl = CORD_cat(decl, ", ");
+            }
+            decl = CORD_cat(decl, ")");
+        } else {
+            decl = compile_declaration(env, t, ext->name);
+        }
+        env->code->fndefs = CORD_all(env->code->fndefs, "extern ", decl, ";\n");
+        return CORD_EMPTY;
     }
     case InlineCCode: return Match(ast, InlineCCode)->code;
     default:

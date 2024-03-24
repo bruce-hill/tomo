@@ -233,6 +233,14 @@ void bind_statement(env_t *env, ast_t *statement)
         Table_str_set(env->imports, name, module_env);
         break;
     }
+    case Extern: {
+        auto ext = Match(statement, Extern);
+        type_t *t = parse_type_ast(env, ext->type);
+        if (t->tag == ClosureType)
+            t = Match(t, ClosureType)->fn;
+        set_binding(env, ext->name, new(binding_t, .type=t, .code=ext->name));
+        break;
+    }
     default: break;
     }
 }
@@ -471,8 +479,6 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
     case FunctionCall: {
         auto call = Match(ast, FunctionCall);
-        if (call->extern_return_type)
-            return parse_type_ast(env, call->extern_return_type);
         type_t *fn_type_t = get_type(env, call->fn);
         if (!fn_type_t)
             code_err(call->fn, "I couldn't find this function");
@@ -547,8 +553,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         return get_type(block_env, last->ast);
     }
     case Extern: {
-        type_t *t = parse_type_ast(env, Match(ast, Extern)->type);
-        return Match(ast, Extern)->address ? Type(PointerType, .pointed=t, .is_optional=false) : t;
+        return parse_type_ast(env, Match(ast, Extern)->type);
     }
     case Declare: case Assign: case DocTest: case LinkerDirective: {
         return Type(VoidType);

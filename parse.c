@@ -65,7 +65,7 @@ static inline const char* get_id(const char **pos);
 static inline bool comment(const char **pos);
 static inline bool indent(parse_ctx_t *ctx, const char **pos);
 static inline binop_e match_binary_operator(const char **pos);
-static ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn, bool is_extern);
+static ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn);
 static ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self);
 static ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs);
@@ -753,7 +753,7 @@ PARSER(parse_reduction) {
                 || (new_term=parse_index_suffix(ctx, key))
                 || (new_term=parse_field_suffix(ctx, key))
                 || (new_term=parse_method_call_suffix(ctx, key))
-                || (new_term=parse_fncall_suffix(ctx, key, NORMAL_FUNCTION))
+                || (new_term=parse_fncall_suffix(ctx, key))
                 );
             if (progress) key = new_term;
         }
@@ -1211,7 +1211,7 @@ PARSER(parse_term) {
             || (new_term=parse_index_suffix(ctx, term))
             || (new_term=parse_field_suffix(ctx, term))
             || (new_term=parse_method_call_suffix(ctx, term))
-            || (new_term=parse_fncall_suffix(ctx, term, NORMAL_FUNCTION))
+            || (new_term=parse_fncall_suffix(ctx, term))
             );
         if (progress) term = new_term;
     }
@@ -1260,7 +1260,7 @@ ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self) {
     return NewAST(ctx->file, start, pos, MethodCall, .self=self, .name=fn, .args=args);
 }
 
-ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn, bool is_extern) {
+ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn) {
     if (!fn) return NULL;
 
     const char *start = fn->start;
@@ -1296,15 +1296,8 @@ ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn, bool is_extern) {
     if (!match(&pos, ")"))
         parser_err(ctx, start, pos, "This parenthesis is unclosed");
 
-    type_ast_t *extern_return_type = NULL;
-    if (is_extern) {
-        if (match(&pos, ":"))
-            extern_return_type = expect(ctx, start, &pos, parse_type, "I couldn't parse the return type of this external function call");
-        else
-            extern_return_type = NewTypeAST(ctx->file, pos, pos, VarTypeAST, .name="Void");
-    }
     REVERSE_LIST(args);
-    return NewAST(ctx->file, start, pos, FunctionCall, .fn=fn, .args=args, .extern_return_type=extern_return_type);
+    return NewAST(ctx->file, start, pos, FunctionCall, .fn=fn, .args=args);
 }
 
 binop_e match_binary_operator(const char **pos)
@@ -1355,7 +1348,7 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
                     || (new_term=parse_index_suffix(ctx, key))
                     || (new_term=parse_field_suffix(ctx, key))
                     || (new_term=parse_method_call_suffix(ctx, key))
-                    || (new_term=parse_fncall_suffix(ctx, key, NORMAL_FUNCTION))
+                    || (new_term=parse_fncall_suffix(ctx, key))
                     );
                 if (progress) key = new_term;
             }
@@ -1469,7 +1462,7 @@ PARSER(parse_statement) {
         if (stmt->tag == Var)
             progress = (false
                 || (new_stmt=parse_method_call_suffix(ctx, stmt))
-                || (new_stmt=parse_fncall_suffix(ctx, stmt, NORMAL_FUNCTION))
+                || (new_stmt=parse_fncall_suffix(ctx, stmt))
             );
 
         if (progress) stmt = new_stmt;
@@ -1828,17 +1821,12 @@ PARSER(parse_extern) {
     const char *start = pos;
     if (!match_word(&pos, "extern")) return NULL;
     spaces(&pos);
-    bool address = (match(&pos, "&") != 0);
     const char* name = get_id(&pos);
     spaces(&pos);
-    // extern function call:
-    if (match(&pos, "(")) {
-        return parse_fncall_suffix(ctx, NewAST(ctx->file, start, pos-1, Var, .name=name), EXTERN_FUNCTION);
-    }
     if (!match(&pos, ":"))
         parser_err(ctx, start, pos, "I couldn't get a type for this extern");
     type_ast_t *type = expect(ctx, start, &pos, parse_type, "I couldn't parse the type for this extern");
-    return NewAST(ctx->file, start, pos, Extern, .name=name, .type=type, .address=address);
+    return NewAST(ctx->file, start, pos, Extern, .name=name, .type=type);
 }
 
 PARSER(parse_doctest) {

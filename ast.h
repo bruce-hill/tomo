@@ -194,7 +194,6 @@ struct ast_s {
         struct {
             ast_t *fn;
             arg_ast_t *args;
-            type_ast_t *extern_return_type;
         } FunctionCall;
         struct {
             const char *name;
@@ -231,7 +230,6 @@ struct ast_s {
         struct {
             const char *name;
             type_ast_t *type;
-            bool address;
         } Extern;
         struct {
             const char *name;
