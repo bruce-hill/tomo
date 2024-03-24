@@ -113,7 +113,7 @@ CORD compile_type(env_t *env, type_t *t)
     }
 }
 
-static void check_assignable(env_t *env, ast_t *ast)
+static CORD compile_lvalue(env_t *env, ast_t *ast)
 {
     if (!can_be_mutated(env, ast)) {
         if (ast->tag == Index || ast->tag == FieldAccess) {
@@ -123,34 +123,41 @@ static void check_assignable(env_t *env, ast_t *ast)
             code_err(ast, "This is a value of type %T and can't be assigned to", get_type(env, ast));
         }
     }
+
+    if (ast->tag == Index) {
+        auto index = Match(ast, Index);
+        type_t *container_t = get_type(env, index->indexed);
+        if (!index->index && container_t->tag == PointerType) {
+            if (Match(container_t, PointerType)->is_optional)
+                code_err(index->indexed, "This pointer might be null, so it can't be safely assigned to");
+            return compile(env, ast);
+        }
+        container_t = value_type(container_t);
+        if (container_t->tag == ArrayType) {
+            CORD target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
+            type_t *item_type = Match(container_t, ArrayType)->item_type;
+            return CORD_all("$Array_lvalue(", compile_type(env, item_type), ", ", target_code, ", ", 
+                            compile(env, index->index), ", ", compile_type_info(env, container_t),
+                            ", ", Text__quoted(ast->file->filename, false), ", ", heap_strf("%ld", ast->start - ast->file->text),
+                            ", ", heap_strf("%ld", ast->end - ast->file->text), ")");
+        } else if (container_t->tag == TableType) {
+            CORD target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
+            type_t *value_t = Match(container_t, TableType)->value_type;
+            return CORD_all("*(", compile_type(env, value_t), "*)Table_reserve_value(", target_code, ", ",
+                            compile(env, index->index),", ", compile_type_info(env, container_t), ")");
+        } else {
+            code_err(ast, "I don't know how to assign to this target");
+        }
+    } else if (ast->tag == Var || ast->tag == FieldAccess) {
+        return compile(env, ast);
+    } else {
+        code_err(ast, "I don't know how to assign to this");
+    }
 }
 
 static CORD compile_assignment(env_t *env, ast_t *target, CORD value)
 {
-    check_assignable(env, target);
-    if (target->tag == Index) {
-        auto index = Match(target, Index);
-        type_t *container_t = get_type(env, index->indexed);
-        container_t = value_type(container_t);
-        switch (container_t->tag) {
-        case ArrayType: {
-            CORD target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
-            type_t *item_type = Match(container_t, ArrayType)->item_type;
-            return CORD_all("$Array_set(", compile_type(env, item_type), ", ", target_code, ", ", 
-                            compile(env, index->index), ", ", value, ", ", compile_type_info(env, container_t),
-                            ", ", Text__quoted(target->file->filename, false), ", ", heap_strf("%ld", target->start - target->file->text),
-                            ", ", heap_strf("%ld", target->end - target->file->text), ");\n");
-        }
-        case TableType: {
-            CORD target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
-            return CORD_all("Table_set_value(", target_code, ", ", compile(env, index->index), ", ",
-                            value, ", ", compile_type_info(env, container_t), ");\n");
-        }
-        case PointerType: break;
-        default: code_err(target, "I don't know how to assign to this target");
-        }
-    }
-    return CORD_all(compile(env, target), " = ", value, ";\n");
+    return CORD_all(compile_lvalue(env, target), " = ", value, ";\n");
 }
 
 CORD compile_statement(env_t *env, ast_t *ast)
@@ -222,7 +229,6 @@ CORD compile_statement(env_t *env, ast_t *ast)
             auto assign = Match(test->expr, Assign);
             if (!assign->targets->next && assign->targets->ast->tag == Var) {
                 // Common case: assigning to one variable:
-                check_assignable(env, assign->targets->ast);
                 CORD var = compile(env, assign->targets->ast);
                 CORD code = compile_assignment(env, assign->targets->ast, compile(env, assign->values->ast));
                 CORD_appendf(&code, "$test(&%r, %r, %r, %r, %ld, %ld);",
@@ -315,8 +321,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case UpdateAssign: {
         auto update = Match(ast, UpdateAssign);
-        check_assignable(env, update->lhs);
-        CORD lhs = compile(env, update->lhs);
+        CORD lhs = compile_lvalue(env, update->lhs);
         CORD rhs = compile(env, update->rhs);
 
         type_t *lhs_t = get_type(env, update->lhs);
@@ -330,7 +335,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             operand_t = lhs_t;
         else
             code_err(ast, "I can't do operations between %T and %T", lhs_t, rhs_t);
-
+        
         switch (update->op) {
         case BINOP_MULT: return CORD_asprintf("%r *= %r;", lhs, rhs);
         case BINOP_DIVIDE: return CORD_asprintf("%r /= %r;", lhs, rhs);
