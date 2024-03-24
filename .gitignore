@@ -1,4 +1,7 @@
 *.o
 *.so
+*.tm.c
+*.tm.h
+*.tm.o
 tomo
 tags
