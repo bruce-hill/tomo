@@ -1,10 +1,11 @@
 // The main program that runs compilation
-#include <stdio.h>
-#include <stdlib.h>
+#include <ctype.h>
 #include <gc.h>
 #include <gc/cord.h>
 #include <libgen.h>
 #include <printf.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 
 #include "ast.h"
@@ -40,6 +41,14 @@ int main(int argc, char *argv[])
             mode = MODE_TRANSPILE;
         } else if (streq(argv[i], "-c")) {
             mode = MODE_COMPILE;
+        } else if (strchr(argv[i], '=')) {
+            while (argv[i][0] == '-')
+                ++argv[i];
+            char *eq = strchr(argv[i], '=');
+            *eq = '\0';
+            for (char *p = argv[i]; *p; p++)
+                *p = toupper(*p);
+            setenv(argv[i], eq + 1, 1);
         } else {
             filename = argv[i];
             break;
@@ -66,7 +75,8 @@ int main(int argc, char *argv[])
         cconfig = "-std=c11 -fdollars-in-identifiers -fsanitize=signed-integer-overflow -fno-sanitize-recover -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE";
 
     const char *optimization = getenv("O");
-    if (!optimization) optimization = "-O1";
+    if (!optimization || !optimization[0]) optimization = "-O1";
+    else optimization = heap_strf("-O%s", optimization);
 
     cflags = getenv("CFLAGS");
     if (!cflags)
