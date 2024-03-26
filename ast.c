@@ -58,8 +58,8 @@ CORD when_clauses_to_xml(when_clause_t *clauses) {
     CORD c = CORD_EMPTY;
     for (; clauses; clauses = clauses->next) {
         c = CORD_all(c, "<case");
-        if (clauses->var) c = CORD_all(c, " var=", Match(clauses->var, Var)->name);
-        c = CORD_all(c, " tag=", ast_to_xml(clauses->tag_name), ">", ast_to_xml(clauses->body), "</case>");
+        if (clauses->var) c = CORD_all(c, " var=\"", Match(clauses->var, Var)->name, "\"");
+        c = CORD_all(c, " tag=\"", ast_to_xml(clauses->tag_name), "\">", ast_to_xml(clauses->body), "</case>");
     }
     return c;
 }
