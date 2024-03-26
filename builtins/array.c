@@ -223,6 +223,14 @@ public array_t Array__slice(array_t *array, int64_t first, int64_t length, int64
     };
 }
 
+public array_t Array__reversed(array_t array)
+{
+    array_t reversed = array;
+    reversed.stride = -array.stride;
+    reversed.data = array.data + (array.length-1)*array.stride;
+    return reversed;
+}
+
 public array_t Array__concat(array_t x, array_t y, const TypeInfo *type)
 {
     int64_t item_size = get_item_size(type);

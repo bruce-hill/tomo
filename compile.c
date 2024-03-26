@@ -1493,6 +1493,9 @@ CORD compile(env_t *env, ast_t *ast)
                                                 .next=new(arg_t, .name="stride", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=1, .bits=64))));
                 return CORD_all("Array__slice(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "reversed")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                return CORD_all("Array__reversed(", self, ")");
             } else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
         case TableType: {
