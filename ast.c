@@ -44,7 +44,7 @@ CORD ast_list_to_xml(ast_list_t *asts)
 CORD arg_list_to_xml(arg_ast_t *args) {
     CORD c = "<args>";
     for (; args; args = args->next) {
-        CORD arg_cord = args->name ? CORD_all("<arg name=", args->name, ">") : "<arg>";
+        CORD arg_cord = args->name ? CORD_all("<arg name=\"", args->name, "\">") : "<arg>";
         if (args->type)
             arg_cord = CORD_all(arg_cord, "<type>", type_ast_to_xml(args->type), "</type>");
         if (args->value)
@@ -67,7 +67,7 @@ CORD when_clauses_to_xml(when_clause_t *clauses) {
 CORD tags_to_xml(tag_ast_t *tags) {
     CORD c = CORD_EMPTY;
     for (; tags; tags = tags->next) {
-        c = CORD_all(c, "<tag name=", tags->name, " value=", CORD_asprintf("%ld", tags->value), ">", arg_list_to_xml(tags->fields), "</tag>");
+        c = CORD_all(c, "<tag name=\"", tags->name, "\" value=\"", CORD_asprintf("%ld", tags->value), "\">", arg_list_to_xml(tags->fields), "</tag>");
     }
     return c;
 }
