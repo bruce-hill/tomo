@@ -1112,8 +1112,7 @@ PARSER(parse_pass) {
 PARSER(parse_skip) {
     const char *start = pos;
     if (!match_word(&pos, "skip")) return NULL;
-    spaces(&pos);
-    const char* target;
+    const char *target;
     if (match_word(&pos, "for")) target = "for";
     else if (match_word(&pos, "while")) target = "while";
     else target = get_id(&pos);
@@ -1124,8 +1123,7 @@ PARSER(parse_skip) {
 PARSER(parse_stop) {
     const char *start = pos;
     if (!match_word(&pos, "stop")) return NULL;
-    spaces(&pos);
-    const char* target;
+    const char *target;
     if (match_word(&pos, "for")) target = "for";
     else if (match_word(&pos, "while")) target = "while";
     else target = get_id(&pos);
@@ -1136,7 +1134,6 @@ PARSER(parse_stop) {
 PARSER(parse_return) {
     const char *start = pos;
     if (!match_word(&pos, "return")) return NULL;
-    spaces(&pos);
     ast_t *value = optional(ctx, &pos, parse_expr);
     ast_t *ret = NewAST(ctx->file, start, pos, Return, .value=value);
     return ret;

@@ -176,12 +176,13 @@ env_t *new_compilation_unit(void)
         binding_t *type_binding = Table_str_get(*env->globals, global_types[i].name);
         assert(type_binding);
         env_t *ns_env = Match(type_binding->type, TypeInfoType)->env;
-        $ARRAY_FOREACH(global_types[i].namespace, j, ns_entry_t, entry, {
-            type_t *type = parse_type_string(ns_env, entry.type_str);
+        for (int64_t j = 0; j < global_types[i].namespace.length; j++) {
+            ns_entry_t *entry = global_types[i].namespace.data + j*global_types[i].namespace.stride;
+            type_t *type = parse_type_string(ns_env, entry->type_str);
             if (type->tag == ClosureType) type = Match(type, ClosureType)->fn;
-            binding_t *b = new(binding_t, .code=entry.code, .type=type);
-            set_binding(ns_env, entry.name, b);
-        }, {})
+            binding_t *b = new(binding_t, .code=entry->code, .type=type);
+            set_binding(ns_env, entry->name, b);
+        }
     }
 
     return env;

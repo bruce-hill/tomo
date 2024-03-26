@@ -593,27 +593,46 @@ CORD compile_statement(env_t *env, ast_t *ast)
             type_t *item_t = Match(iter_t, ArrayType)->item_type;
             CORD index = for_->index ? compile(env, for_->index) : "$i";
             CORD value = compile(env, for_->value);
-            return CORD_all("$ARRAY_FOREACH(", compile(env, for_->iter), ", ", index, ", ", compile_type(env, item_t), ", ", value, ", ",
-                            body, ", ", for_->empty ? compile_statement(env, for_->empty) : "{}", ")", stop);
+            CORD array = is_idempotent(for_->iter) ? compile(env, for_->iter) : "$arr";
+            CORD loop = CORD_all("$ARRAY_INCREF(", array, ");\n"
+                                 "for (int64_t ", index, " = 1; ", index, " <= ", array, ".length; ++", index, ") {\n",
+                                 compile_type(env, item_t), " ", value,
+                                 " = *(", compile_type(env, item_t), "*)(", array, ".data + (",index,"-1)*", array, ".stride);\n",
+                                 body, "\n}");
+            if (for_->empty)
+                loop = CORD_all("if (", array, ".length > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
+            loop = CORD_all(loop, stop, "\n$ARRAY_DECREF(", array, ");\n");
+            if (!is_idempotent(for_->iter))
+                loop = CORD_all("{\narray_t ",array," = ", compile(env, for_->iter), ";\n", loop, "\n}");
+            return loop;
         }
         case TableType: {
             type_t *key_t = Match(iter_t, TableType)->key_type;
             type_t *value_t = Match(iter_t, TableType)->value_type;
+
+            CORD table = is_idempotent(for_->iter) ? compile(env, for_->iter) : "$table";
+            CORD loop = CORD_all("$ARRAY_INCREF(", table, ".entries);\n"
+                                 "for (int64_t $i = 0; $i < ",table,".entries.length; ++$i) {\n");
             if (for_->index) {
-                CORD key = compile(env, for_->index);
-                CORD value = compile(env, for_->value);
+                loop = CORD_all(loop, compile_type(env, key_t), " ", compile(env, for_->index), " = *(", compile_type(env, key_t), "*)(",
+                                table,".entries.data + $i*", table, ".entries.stride);\n");
 
                 size_t value_offset = type_size(key_t);
                 if (type_align(value_t) > 1 && value_offset % type_align(value_t))
                     value_offset += type_align(value_t) - (value_offset % type_align(value_t)); // padding
-                return CORD_all("$TABLE_FOREACH(", compile(env, for_->iter), ", ", compile_type(env, key_t), ", ", key, ", ",
-                                compile_type(env, value_t), ", ", value, ", ", heap_strf("%zu", value_offset),
-                                ", ", body, ", ", for_->empty ? compile_statement(env, for_->empty) : "{}", ")", stop);
+                loop = CORD_all(loop, compile_type(env, value_t), " ", compile(env, for_->value), " = *(", compile_type(env, value_t), "*)(",
+                                table,".entries.data + $i*", table, ".entries.stride + ", heap_strf("%zu", value_offset), ");\n");
             } else {
-                CORD key = compile(env, for_->value);
-                return CORD_all("$ARRAY_FOREACH((", compile(env, for_->iter), ").entries, $i, ", compile_type(env, key_t), ", ", key, ", ",
-                                body, ", ", for_->empty ? compile_statement(env, for_->empty) : "{}", ")", stop);
+                loop = CORD_all(loop, compile_type(env, key_t), " ", compile(env, for_->value), " = *(", compile_type(env, key_t), "*)(",
+                                table,".entries.data + $i*", table, ".entries.stride);\n");
             }
+            loop = CORD_all(loop, body, "\n}");
+            if (for_->empty)
+                loop = CORD_all("if (", table, ".entries.length > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
+            loop = CORD_all(loop, stop, "\n$ARRAY_DECREF(", table, ".entries);\n");
+            if (!is_idempotent(for_->iter))
+                loop = CORD_all("{\ntable_t ",table," = ", compile(env, for_->iter), ";\n", loop, "\n}");
+            return loop;
         }
         case IntType: {
             CORD value = compile(env, for_->value);

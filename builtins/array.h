@@ -51,13 +51,6 @@
                          .data_refcount=1}; })
 #define $ARRAY_INCREF(arr) (arr).data_refcount |= ((arr).data_refcount << 1) | 1
 #define $ARRAY_DECREF(arr) (arr).data_refcount &= 2
-#define $ARRAY_FOREACH(arr_expr, i, item_type, x, body, else_body) {\
-        array_t $arr = arr_expr; \
-        $ARRAY_INCREF($arr); \
-        if ($arr.length == 0) else_body \
-        else for (int64_t i = 1; i <= $arr.length; i++) { item_type x = *(item_type*)($arr.data + (i-1)*$arr.stride); body } \
-        $ARRAY_DECREF($arr); \
-    }
 
 #define Array__insert_value(arr, item_expr, index, type) ({ __typeof(item_expr) $item = item_expr; Array__insert(arr, &$item, index, type); })
 void Array__insert(array_t *arr, const void *item, int64_t index, const TypeInfo *type);

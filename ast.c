@@ -179,4 +179,20 @@ int printf_ast(FILE *stream, const struct printf_info *info, const void *const a
     }
 }
 
+bool is_idempotent(ast_t *ast)
+{
+    switch (ast->tag) {
+    case Int: case Bool: case Num: case Var: case Nil: case TextLiteral: return true;
+    case Index: {
+        auto index = Match(ast, Index);
+        return (index->index == NULL) && is_idempotent(index->indexed);
+    }
+    case FieldAccess: {
+        auto access = Match(ast, FieldAccess);
+        return is_idempotent(access->fielded);
+    }
+    default: return false;
+    }
+}
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -26,19 +26,6 @@
     if (__builtin_expect($v == NULL, 0)) \
         fail_source(filename, start, end, "The key %r is not in this table\n", generic_as_text(&$k, USE_COLOR, $info->TableInfo.key)); \
     *$v; })
-#define $TABLE_FOREACH(table_expr, key_type, k, value_type, v, value_offset, body, else_body) {\
-        array_t $entries = (table_expr).entries; \
-        if ($entries.length == 0) else_body \
-        else { \
-            $ARRAY_INCREF($entries); \
-            for (int64_t $i = 0; $i < $entries.length; $i++) { \
-                key_type k = *(key_type*)($entries.data + $i*$entries.stride); \
-                value_type v = *(value_type*)($entries.data + $i*$entries.stride + value_offset); \
-                body \
-            } \
-            $ARRAY_DECREF($entries); \
-        } \
-    }
 
 table_t Table_from_entries(array_t entries, const TypeInfo *type);
 void *Table_get(table_t t, const void *key, const TypeInfo *type);
