@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 
     cflags = getenv("CFLAGS");
     if (!cflags)
-        cflags = heap_strf("%s %s -I. -D_DEFAULT_SOURCE", cconfig, optimization);
+        cflags = heap_strf("%s %s -ggdb -I. -D_DEFAULT_SOURCE", cconfig, optimization);
 
     ldlibs = "-lgc -lcord -lm -L. -ltomo";
     if (getenv("LDLIBS"))
@@ -192,9 +192,9 @@ static bool stale(const char *filename, const char *relative_to)
 int transpile(const char *filename, bool force_retranspile)
 {
     const char *tm_file = filename;
-    const char *c_file = heap_strf("%s.c", tm_file);
-    const char *h_file = heap_strf("%s.h", tm_file);
-    if (!force_retranspile && !stale(c_file, tm_file) && !stale(h_file, tm_file)) {
+    const char *c_filename = heap_strf("%s.c", tm_file);
+    const char *h_filename = heap_strf("%s.h", tm_file);
+    if (!force_retranspile && !stale(c_filename, tm_file) && !stale(h_filename, tm_file)) {
         return 0;
     }
 
@@ -221,32 +221,41 @@ int transpile(const char *filename, bool force_retranspile)
 
     module_code_t module = compile_file(ast);
 
-    FILE *prog = popen(heap_strf("%s > %s.h", autofmt, f->filename), "w");
-    CORD_put("#pragma once\n", prog);
-    CORD_put(module.header, prog);
-    int status = pclose(prog);
-    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-        if (verbose)
-            printf("Transpiled to %s.h\n", f->filename);
-    } else {
-        return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
+    FILE *h_file = fopen(h_filename, "w");
+    if (!h_file)
+        errx(1, "Couldn't open file: %s", h_filename);
+    CORD_put("#pragma once\n", h_file);
+    CORD_put(module.header, h_file);
+    if (fclose(h_file))
+        errx(1, "Failed to close file: %s", h_filename);
+    if (verbose)
+        printf("Transpiled to %s\n", h_filename);
+
+    if (autofmt && autofmt[0]) {
+        FILE *prog = popen(heap_strf("%s %s -o %s >/dev/null 2>/dev/null", autofmt, h_filename, h_filename), "w");
+        pclose(prog);
     }
 
-    prog = popen(heap_strf("%s > %s.c", autofmt, f->filename), "w");
-    CORD_put(CORD_all("#include \"", module.module_name, ".tm.h\"\n\n", module.c_file), prog);
-    status = pclose(prog);
-    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-        if (verbose)
-            printf("Transpiled to %s.c\n", f->filename);
+    FILE *c_file = fopen(c_filename, "w");
+    if (!c_file)
+        errx(1, "Couldn't open file: %s", c_filename);
+    CORD_put(CORD_all("#include \"", module.module_name, ".tm.h\"\n\n", module.c_file), c_file);
+    if (fclose(c_file))
+        errx(1, "Failed to close file: %s", c_filename);
+    if (verbose)
+        printf("Transpiled to %s\n", c_filename);
+
+    if (autofmt && autofmt[0]) {
+        FILE *prog = popen(heap_strf("%s %s -o %s >/dev/null 2>/dev/null", autofmt, c_filename, c_filename), "w");
+        pclose(prog);
     }
 
     if (verbose) {
-        FILE *out = popen(heap_strf("bat -P %s.h %s.c", f->filename, f->filename), "w");
-        CORD_put(module.header, out);
+        FILE *out = popen(heap_strf("bat -P %s %s", h_filename, c_filename), "w");
         pclose(out);
     }
 
-    return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
+    return 0;
 }
 
 int compile_object_file(const char *filename, bool force_recompile)
@@ -270,8 +279,9 @@ int compile_object_file(const char *filename, bool force_recompile)
 
 int run_program(const char *filename, const char *object_files)
 {
+    const char *bin_name = file_base_name(filename);
     const char *run = streq(cc, "tcc") ? heap_strf("%s | tcc %s %s %s %s -run -", autofmt, cflags, ldflags, ldlibs, object_files)
-        : heap_strf("%s | %s %s %s %s %s -x c - -o program && ./program", autofmt, cc, cflags, ldflags, ldlibs, object_files);
+        : heap_strf("%s | %s %s %s %s %s -x c - -o %s && ./%s", autofmt, cc, cflags, ldflags, ldlibs, object_files, bin_name, bin_name);
     if (verbose)
         printf("%s\n", run);
     FILE *runner = popen(run, "w");
