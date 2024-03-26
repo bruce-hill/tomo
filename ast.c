@@ -130,7 +130,7 @@ CORD ast_to_xml(ast_t *ast)
     T(Reduction, "<Reduction>%r%r%r</Reduction>", optional_tagged("iterable", data.iter),
       optional_tagged("combination", data.combination), optional_tagged("fallback", data.fallback))
     T(Skip, "<Skip>%r</Skip>", data.target)
-    T(Stop, "<Stop>%s</Stop>", data.target)
+    T(Stop, "<Stop>%r</Stop>", data.target)
     T(Pass, "<Pass/>")
     T(Return, "<Return>%r</Return>", ast_to_xml(data.value))
     T(Extern, "<Extern name=\"%s\">%r</Extern>", data.name, type_ast_to_xml(data.type))
