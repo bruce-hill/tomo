@@ -18,7 +18,7 @@ typedef struct recursion_s {
     struct recursion_s *next;
 } recursion_t;
 
-public CORD Pointer__as_text(const void *x, bool colorize, const TypeInfo *type) {
+public CORD Pointer$as_text(const void *x, bool colorize, const TypeInfo *type) {
     auto ptr_info = type->PointerInfo;
     if (!x) {
         CORD typename = generic_as_text(NULL, false, ptr_info.pointed);
@@ -50,19 +50,19 @@ public CORD Pointer__as_text(const void *x, bool colorize, const TypeInfo *type)
     return colorize ? CORD_asprintf("\x1b[34;1m%s\x1b[m%r", ptr_info.sigil, pointed) : CORD_cat(ptr_info.sigil, pointed);
 }
 
-public int32_t Pointer__compare(const void *x, const void *y, const TypeInfo *type) {
+public int32_t Pointer$compare(const void *x, const void *y, const TypeInfo *type) {
     (void)type;
     const void *xp = *(const void**)x, *yp = *(const void**)y;
     return (xp > yp) - (xp < yp);
 }
 
-public bool Pointer__equal(const void *x, const void *y, const TypeInfo *type) {
+public bool Pointer$equal(const void *x, const void *y, const TypeInfo *type) {
     (void)type;
     const void *xp = *(const void**)x, *yp = *(const void**)y;
     return xp == yp;
 }
 
-public uint32_t Pointer__hash(const void *x, const TypeInfo *type) {
+public uint32_t Pointer$hash(const void *x, const TypeInfo *type) {
     (void)type;
     uint32_t hash;
     halfsiphash(x, sizeof(void*), SSS_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));

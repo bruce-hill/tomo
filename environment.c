@@ -35,7 +35,7 @@ env_t *new_compilation_unit(void)
     for (size_t i = 0; i < sizeof(global_vars)/sizeof(global_vars[0]); i++) {
         binding_t *b = new(binding_t);
         *b = global_vars[i].binding;
-        Table_str_set(env->globals, global_vars[i].name, b);
+        Table$str_set(env->globals, global_vars[i].name, b);
     }
 
     typedef struct {
@@ -49,63 +49,63 @@ env_t *new_compilation_unit(void)
         CORD struct_val;
         array_t namespace;
     } global_types[] = {
-        {"Bool", Type(BoolType), "Bool_t", "Bool", {}},
-        {"Int", Type(IntType, .bits=64), "Int_t", "Int", $TypedArray(ns_entry_t,
-            {"format", "Int__format", "func(i:Int, digits=0)->Text"},
-            {"hex", "Int__hex", "func(i:Int, digits=0, uppercase=yes, prefix=yes)->Text"},
-            {"octal", "Int__octal", "func(i:Int, digits=0, prefix=yes)->Text"},
-            {"random", "Int__random", "func(min=0, max=0xffffffff)->Int"},
-            {"bits", "Int__bits", "func(x:Int)->[Bool]"},
+        {"Bool", Type(BoolType), "Bool_t", "$Bool", {}},
+        {"Int", Type(IntType, .bits=64), "Int_t", "$Int", $TypedArray(ns_entry_t,
+            {"format", "Int$format", "func(i:Int, digits=0)->Text"},
+            {"hex", "Int$hex", "func(i:Int, digits=0, uppercase=yes, prefix=yes)->Text"},
+            {"octal", "Int$octal", "func(i:Int, digits=0, prefix=yes)->Text"},
+            {"random", "Int$random", "func(min=0, max=0xffffffff)->Int"},
+            {"bits", "Int$bits", "func(x:Int)->[Bool]"},
             {"abs", "labs", "func(i:Int)->Int"},
-            {"min", "Int__min", "Int"},
-            {"max", "Int__max", "Int"},
+            {"min", "Int$min", "Int"},
+            {"max", "Int$max", "Int"},
         )},
-        {"Int32", Type(IntType, .bits=32), "Int32_t", "Int32", $TypedArray(ns_entry_t,
-            {"format", "Int32__format", "func(i:Int32, digits=0)->Text"},
-            {"hex", "Int32__hex", "func(i:Int32, digits=0, uppercase=yes, prefix=yes)->Text"},
-            {"octal", "Int32__octal", "func(i:Int32, digits=0, prefix=yes)->Text"},
-            {"random", "Int32__random", "func(min=0, max=0xffffffff)->Int32"},
-            {"bits", "Int32__bits", "func(x:Int32)->[Bool]"},
+        {"Int32", Type(IntType, .bits=32), "Int32_t", "$Int32", $TypedArray(ns_entry_t,
+            {"format", "Int32$format", "func(i:Int32, digits=0)->Text"},
+            {"hex", "Int32$hex", "func(i:Int32, digits=0, uppercase=yes, prefix=yes)->Text"},
+            {"octal", "Int32$octal", "func(i:Int32, digits=0, prefix=yes)->Text"},
+            {"random", "Int32$random", "func(min=0, max=0xffffffff)->Int32"},
+            {"bits", "Int32$bits", "func(x:Int32)->[Bool]"},
             {"abs", "abs", "func(i:Int32)->Int32"},
-            {"min", "Int32__min", "Int32"},
-            {"max", "Int32__max", "Int32"},
+            {"min", "Int32$min", "Int32"},
+            {"max", "Int32$max", "Int32"},
         )},
-        {"Int16", Type(IntType, .bits=16), "Int16_t", "Int16", $TypedArray(ns_entry_t,
-            {"format", "Int16__format", "func(i:Int16, digits=0)->Text"},
-            {"hex", "Int16__hex", "func(i:Int16, digits=0, uppercase=yes, prefix=yes)->Text"},
-            {"octal", "Int16__octal", "func(i:Int16, digits=0, prefix=yes)->Text"},
-            {"random", "Int16__random", "func(min=0, max=0xffffffff)->Int16"},
-            {"bits", "Int16__bits", "func(x:Int16)->[Bool]"},
+        {"Int16", Type(IntType, .bits=16), "Int16_t", "$Int16", $TypedArray(ns_entry_t,
+            {"format", "Int16$format", "func(i:Int16, digits=0)->Text"},
+            {"hex", "Int16$hex", "func(i:Int16, digits=0, uppercase=yes, prefix=yes)->Text"},
+            {"octal", "Int16$octal", "func(i:Int16, digits=0, prefix=yes)->Text"},
+            {"random", "Int16$random", "func(min=0, max=0xffffffff)->Int16"},
+            {"bits", "Int16$bits", "func(x:Int16)->[Bool]"},
             {"abs", "abs", "func(i:Int16)->Int16"},
-            {"min", "Int16__min", "Int16"},
-            {"max", "Int16__max", "Int16"},
+            {"min", "Int16$min", "Int16"},
+            {"max", "Int16$max", "Int16"},
         )},
-        {"Int8", Type(IntType, .bits=8), "Int8_t", "Int8", $TypedArray(ns_entry_t,
-            {"format", "Int8__format", "func(i:Int8, digits=0)->Text"},
-            {"hex", "Int8__hex", "func(i:Int8, digits=0, uppercase=yes, prefix=yes)->Text"},
-            {"octal", "Int8__octal", "func(i:Int8, digits=0, prefix=yes)->Text"},
-            {"random", "Int8__random", "func(min=0, max=0xffffffff)->Int8"},
-            {"bits", "Int8__bits", "func(x:Int8)->[Bool]"},
+        {"Int8", Type(IntType, .bits=8), "Int8_t", "$Int8", $TypedArray(ns_entry_t,
+            {"format", "Int8$format", "func(i:Int8, digits=0)->Text"},
+            {"hex", "Int8$hex", "func(i:Int8, digits=0, uppercase=yes, prefix=yes)->Text"},
+            {"octal", "Int8$octal", "func(i:Int8, digits=0, prefix=yes)->Text"},
+            {"random", "Int8$random", "func(min=0, max=0xffffffff)->Int8"},
+            {"bits", "Int8$bits", "func(x:Int8)->[Bool]"},
             {"abs", "abs", "func(i:Int8)->Int8"},
-            {"min", "Int8__min", "Int8"},
-            {"max", "Int8__max", "Int8"},
+            {"min", "Int8$min", "Int8"},
+            {"max", "Int8$max", "Int8"},
         )},
 #define C(name) {#name, "M_"#name, "Num"}
 #define F(name) {#name, #name, "func(n:Num)->Num"}
 #define F2(name) {#name, #name, "func(x:Num, y:Num)->Num"}
-        {"Num", Type(NumType, .bits=64), "Num_t", "Num", $TypedArray(ns_entry_t,
-            {"near", "Num__near", "func(x:Num, y:Num, ratio=1e-9, min_epsilon=1e-9)->Bool"},
-            {"format", "Num__format", "func(n:Num, precision=0)->Text"},
-            {"scientific", "Num__scientific", "func(n:Num, precision=0)->Text"},
-            {"nan", "Num__nan", "func(tag=\"\")->Num"},
-            {"isinf", "Num__isinf", "func(n:Num)->Bool"},
-            {"isfinite", "Num__isfinite", "func(n:Num)->Bool"},
-            {"isnan", "Num__isnan", "func(n:Num)->Bool"},
+        {"Num", Type(NumType, .bits=64), "Num_t", "$Num", $TypedArray(ns_entry_t,
+            {"near", "Num$near", "func(x:Num, y:Num, ratio=1e-9, min_epsilon=1e-9)->Bool"},
+            {"format", "Num$format", "func(n:Num, precision=0)->Text"},
+            {"scientific", "Num$scientific", "func(n:Num, precision=0)->Text"},
+            {"nan", "Num$nan", "func(tag=\"\")->Num"},
+            {"isinf", "Num$isinf", "func(n:Num)->Bool"},
+            {"isfinite", "Num$isfinite", "func(n:Num)->Bool"},
+            {"isnan", "Num$isnan", "func(n:Num)->Bool"},
             C(2_SQRTPI), C(E), C(PI_2), C(2_PI), C(1_PI), C(LN10), C(LN2), C(LOG2E),
             C(PI), C(PI_4), C(SQRT2), C(SQRT1_2),
             {"INF", "INFINITY", "Num"},
             {"TAU", "(2.*M_PI)", "Num"},
-            {"random", "Num__random", "func()->Num"},
+            {"random", "Num$random", "func()->Num"},
             {"abs", "fabs", "func(n:Num)->Num"},
             F(acos), F(acosh), F(asin), F(asinh), F(atan), F(atanh), F(cbrt), F(ceil), F(cos), F(cosh), F(erf), F(erfc),
             F(exp), F(exp2), F(expm1), F(floor), F(j0), F(j1), F(log), F(log10), F(log1p), F(log2), F(logb),
@@ -119,19 +119,19 @@ env_t *new_compilation_unit(void)
 #define C(name) {#name, "(Num32_t)(M_"#name")", "Num32"}
 #define F(name) {#name, #name"f", "func(n:Num32)->Num32"}
 #define F2(name) {#name, #name"f", "func(x:Num32, y:Num32)->Num32"}
-        {"Num32", Type(NumType, .bits=32), "Num32_t", "Num32", $TypedArray(ns_entry_t,
-            {"near", "Num32__near", "func(x:Num32, y:Num32, ratio=1e-9f32, min_epsilon=1e-9f32)->Bool"},
-            {"format", "Num32__format", "func(n:Num32, precision=0)->Text"},
-            {"scientific", "Num32__scientific", "func(n:Num32, precision=0)->Text"},
-            {"nan", "Num32__nan", "func(tag=\"\")->Num32"},
-            {"isinf", "Num32__isinf", "func(n:Num32)->Bool"},
-            {"isfinite", "Num32__isfinite", "func(n:Num32)->Bool"},
-            {"isnan", "Num32__isnan", "func(n:Num32)->Bool"},
+        {"Num32", Type(NumType, .bits=32), "Num32_t", "$Num32", $TypedArray(ns_entry_t,
+            {"near", "Num32$near", "func(x:Num32, y:Num32, ratio=1e-9f32, min_epsilon=1e-9f32)->Bool"},
+            {"format", "Num32$format", "func(n:Num32, precision=0)->Text"},
+            {"scientific", "Num32$scientific", "func(n:Num32, precision=0)->Text"},
+            {"nan", "Num32$nan", "func(tag=\"\")->Num32"},
+            {"isinf", "Num32$isinf", "func(n:Num32)->Bool"},
+            {"isfinite", "Num32$isfinite", "func(n:Num32)->Bool"},
+            {"isnan", "Num32$isnan", "func(n:Num32)->Bool"},
             C(2_SQRTPI), C(E), C(PI_2), C(2_PI), C(1_PI), C(LN10), C(LN2), C(LOG2E),
             C(PI), C(PI_4), C(SQRT2), C(SQRT1_2),
             {"INF", "(Num32_t)(INFINITY)", "Num32"},
             {"TAU", "(Num32_t)(2.f*M_PI)", "Num32"},
-            {"random", "Num32__random", "func()->Num32"},
+            {"random", "Num32$random", "func()->Num32"},
             {"abs", "fabsf", "func(n:Num32)->Num32"},
             F(acos), F(acosh), F(asin), F(asinh), F(atan), F(atanh), F(cbrt), F(ceil), F(cos), F(cosh), F(erf), F(erfc),
             F(exp), F(exp2), F(expm1), F(floor), F(j0), F(j1), F(log), F(log10), F(log1p), F(log2), F(logb),
@@ -142,43 +142,44 @@ env_t *new_compilation_unit(void)
 #undef F2
 #undef F
 #undef C
-        {"Text", TEXT_TYPE, "Text_t", "Text", $TypedArray(ns_entry_t,
-            {"quoted", "Text__quoted", "func(text:Text, color=no)->Text"},
-            {"upper", "Text__upper", "func(text:Text)->Text"},
-            {"lower", "Text__lower", "func(text:Text)->Text"},
-            {"title", "Text__title", "func(text:Text)->Text"},
-            // {"has", "Text__has", "func(text:Text, target:Text, where=ANYWHERE)->Bool"},
-            // {"without", "Text__without", "func(text:Text, target:Text, where=ANYWHERE)->Text"},
-            // {"trimmed", "Text__without", "func(text:Text, skip:Text, where=ANYWHERE)->Text"},
-            {"title", "Text__title", "func(text:Text)->Text"},
-            // {"find", "Text__find", "func(text:Text, pattern:Text)->FindResult"},
-            {"replace", "Text__replace", "func(text:Text, pattern:Text, replacement:Text, limit=Int.max)->Text"},
-            {"split", "Text__split", "func(text:Text, split:Text)->[Text]"},
-            {"join", "Text__join", "func(glue:Text, pieces:[Text])->Text"},
-            {"clusters", "Text__clusters", "func(text:Text)->[Text]"},
-            {"codepoints", "Text__codepoints", "func(text:Text)->[Int32]"},
-            {"bytes", "Text__bytes", "func(text:Text)->[Int8]"},
-            {"num_clusters", "Text__num_clusters", "func(text:Text)->Int"},
-            {"num_codepoints", "Text__num_codepoints", "func(text:Text)->Int"},
-            {"num_bytes", "Text__num_bytes", "func(text:Text)->Int"},
-            {"character_names", "Text__character_names", "func(text:Text)->[Text]"},
+        {"Text", TEXT_TYPE, "Text_t", "$Text", $TypedArray(ns_entry_t,
+            {"quoted", "Text$quoted", "func(text:Text, color=no)->Text"},
+            {"upper", "Text$upper", "func(text:Text)->Text"},
+            {"lower", "Text$lower", "func(text:Text)->Text"},
+            {"title", "Text$title", "func(text:Text)->Text"},
+            // {"has", "Text$has", "func(text:Text, target:Text, where=ANYWHERE)->Bool"},
+            // {"without", "Text$without", "func(text:Text, target:Text, where=ANYWHERE)->Text"},
+            // {"trimmed", "Text$without", "func(text:Text, skip:Text, where=ANYWHERE)->Text"},
+            {"title", "Text$title", "func(text:Text)->Text"},
+            // {"find", "Text$find", "func(text:Text, pattern:Text)->FindResult"},
+            {"replace", "Text$replace", "func(text:Text, pattern:Text, replacement:Text, limit=Int.max)->Text"},
+            {"split", "Text$split", "func(text:Text, split:Text)->[Text]"},
+            {"join", "Text$join", "func(glue:Text, pieces:[Text])->Text"},
+            {"clusters", "Text$clusters", "func(text:Text)->[Text]"},
+            {"codepoints", "Text$codepoints", "func(text:Text)->[Int32]"},
+            {"bytes", "Text$bytes", "func(text:Text)->[Int8]"},
+            {"num_clusters", "Text$num_clusters", "func(text:Text)->Int"},
+            {"num_codepoints", "Text$num_codepoints", "func(text:Text)->Int"},
+            {"num_bytes", "Text$num_bytes", "func(text:Text)->Int"},
+            {"character_names", "Text$character_names", "func(text:Text)->[Text]"},
         )},
     };
 
     for (size_t i = 0; i < sizeof(global_types)/sizeof(global_types[0]); i++) {
         env_t *ns_env = global_types[i].type == TEXT_TYPE ? Match(TEXT_TYPE, TextType)->env : namespace_env(env, global_types[i].name);
         binding_t *binding = new(binding_t, .type=Type(TypeInfoType, .name=global_types[i].name, .type=global_types[i].type, .env=ns_env));
-        Table_str_set(env->globals, global_types[i].name, binding);
-        Table_str_set(env->types, global_types[i].name, global_types[i].type);
+        Table$str_set(env->globals, global_types[i].name, binding);
+        Table$str_set(env->types, global_types[i].name, global_types[i].type);
     }
 
     for (size_t i = 0; i < sizeof(global_types)/sizeof(global_types[0]); i++) {
-        binding_t *type_binding = Table_str_get(*env->globals, global_types[i].name);
+        binding_t *type_binding = Table$str_get(*env->globals, global_types[i].name);
         assert(type_binding);
         env_t *ns_env = Match(type_binding->type, TypeInfoType)->env;
         for (int64_t j = 0; j < global_types[i].namespace.length; j++) {
             ns_entry_t *entry = global_types[i].namespace.data + j*global_types[i].namespace.stride;
             type_t *type = parse_type_string(ns_env, entry->type_str);
+            if (!type) compiler_err(NULL, NULL, NULL, "Couldn't parse type string: %s", entry->type_str);
             if (type->tag == ClosureType) type = Match(type, ClosureType)->fn;
             binding_t *b = new(binding_t, .code=entry->code, .type=type);
             set_binding(ns_env, entry->name, b);
@@ -269,11 +270,11 @@ env_t *namespace_env(env_t *env, const char *namespace_name)
 
 binding_t *get_binding(env_t *env, const char *name)
 {
-    binding_t *b = Table_str_get(*env->locals, name);
+    binding_t *b = Table$str_get(*env->locals, name);
     if (!b && env->fn_ctx && env->fn_ctx->closure_scope) {
-        b = Table_str_get(*env->fn_ctx->closure_scope, name);
+        b = Table$str_get(*env->fn_ctx->closure_scope, name);
         if (b) {
-            Table_str_set(env->fn_ctx->closed_vars, name, b);
+            Table$str_set(env->fn_ctx->closed_vars, name, b);
             return new(binding_t, .type=b->type, .code=CORD_all("$userdata->", name));
         }
     }
@@ -324,7 +325,7 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
 void set_binding(env_t *env, const char *name, binding_t *binding)
 {
     if (name && binding)
-        Table_str_set(env->locals, name, binding);
+        Table$str_set(env->locals, name, binding);
 }
 
 void compiler_err(file_t *f, const char *start, const char *end, const char *fmt, ...)

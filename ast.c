@@ -26,9 +26,9 @@ static CORD optional_tagged_type(const char *tag, type_ast_t *ast);
 
 CORD xml_escape(CORD text)
 {
-    text = Text__replace(text, "&", "&amp;", INT64_MAX);
-    text = Text__replace(text, "<", "&lt;", INT64_MAX);
-    text = Text__replace(text, ">", "&gt;", INT64_MAX);
+    text = Text$replace(text, "&", "&amp;", INT64_MAX);
+    text = Text$replace(text, "<", "&lt;", INT64_MAX);
+    text = Text$replace(text, ">", "&gt;", INT64_MAX);
     return text;
 }
 

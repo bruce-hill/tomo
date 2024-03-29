@@ -58,7 +58,7 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
                              "switch (x->$tag) {\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         if (tag->fields) {
-            type_t *tag_type = Table_str_get(*env->types, CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)));
+            type_t *tag_type = Table$str_get(*env->types, CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)));
             cmp_func = CORD_all(cmp_func, "\tcase $tag$", full_name, "$", tag->name, ": "
                                 "return generic_compare(&x->", tag->name, ", &y->", tag->name, ", ", compile_type_info(env, tag_type), ");\n");
         } else {
@@ -80,7 +80,7 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
                              "switch (x->$tag) {\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         if (tag->fields) {
-            type_t *tag_type = Table_str_get(*env->types, CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)));
+            type_t *tag_type = Table$str_get(*env->types, CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)));
             eq_func = CORD_all(eq_func, "\tcase $tag$", full_name, "$", tag->name, ": "
                                 "return generic_equal(&x->", tag->name, ", &y->", tag->name, ", ", compile_type_info(env, tag_type), ");\n");
         } else {
@@ -101,7 +101,7 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
                               "switch (obj->$tag) {\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         if (tag->fields) {
-            type_t *tag_type = Table_str_get(*env->types, CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)));
+            type_t *tag_type = Table$str_get(*env->types, CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)));
             hash_func = CORD_all(hash_func, "\tcase $tag$", full_name, "$", tag->name, ": "
                                  "hashes[1] = generic_hash(&obj->", tag->name, ", ", compile_type_info(env, tag_type), ");\n"
                                  "break;\n");
@@ -163,7 +163,7 @@ void compile_enum_def(env_t *env, ast_t *ast)
     enum_def = CORD_cat(enum_def, "};\n};\n");
     env->code->typecode = CORD_cat(env->code->typecode, enum_def);
 
-    type_t *t = Table_str_get(*env->types, def->name);
+    type_t *t = Table$str_get(*env->types, def->name);
     CORD typeinfo = CORD_asprintf("public const TypeInfo %s = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
                                   full_name, type_size(t), type_align(t));
 

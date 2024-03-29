@@ -19,7 +19,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
     switch (ast->tag) {
     case VarTypeAST: {
         const char *name = Match(ast, VarTypeAST)->name;
-        type_t *t = Table_str_get(*env->types, name);
+        type_t *t = Table$str_get(*env->types, name);
         if (t) return t;
         code_err(ast, "I don't know a type with the name '%s'", name);
     }
@@ -120,7 +120,7 @@ void bind_statement(env_t *env, ast_t *statement)
 
         arg_t *fields = NULL;
         type_t *type = Type(StructType, .name=def->name, .fields=fields, .opaque=true, .env=ns_env); // placeholder
-        Table_str_set(env->types, def->name, type);
+        Table$str_set(env->types, def->name, type);
         for (arg_ast_t *field_ast = def->fields; field_ast; field_ast = field_ast->next) {
             type_t *field_t = get_arg_ast_type(env, field_ast);
             if ((field_t->tag == StructType && Match(field_t, StructType)->opaque)
@@ -133,7 +133,7 @@ void bind_statement(env_t *env, ast_t *statement)
         type->__data.StructType.opaque = false;
         
         type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env);
-        Table_str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type, .code=CORD_all(env->file_prefix, def->name)));
+        Table$str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type, .code=CORD_all(env->file_prefix, def->name)));
 
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
             bind_statement(ns_env, stmt->ast);
@@ -147,7 +147,7 @@ void bind_statement(env_t *env, ast_t *statement)
 
         tag_t *tags = NULL;
         type_t *type = Type(EnumType, .name=def->name, .tags=tags, .opaque=true, .env=ns_env); // placeholder
-        Table_str_set(env->types, def->name, type);
+        Table$str_set(env->types, def->name, type);
         for (tag_ast_t *tag_ast = def->tags; tag_ast; tag_ast = tag_ast->next) {
             arg_t *fields = NULL;
             for (arg_ast_t *field_ast = tag_ast->fields; field_ast; field_ast = field_ast->next) {
@@ -173,11 +173,11 @@ void bind_statement(env_t *env, ast_t *statement)
             } else { // Empty singleton value:
                 set_binding(ns_env, tag->name, new(binding_t, .type=type, .code=CORD_all(env->file_prefix, def->name, "$tagged$", tag->name)));
             }
-            Table_str_set(env->types, heap_strf("%s$%s", def->name, tag->name), tag->type);
+            Table$str_set(env->types, heap_strf("%s$%s", def->name, tag->name), tag->type);
         }
         
         type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env);
-        Table_str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type));
+        Table$str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type));
 
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
             bind_statement(ns_env, stmt->ast);
@@ -189,7 +189,7 @@ void bind_statement(env_t *env, ast_t *statement)
 
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(TextType, .lang=def->name, .env=ns_env);
-        Table_str_set(env->types, def->name, type);
+        Table$str_set(env->types, def->name, type);
 
         set_binding(ns_env, "from_unsafe_text",
                     new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE), .ret=type),
@@ -199,7 +199,7 @@ void bind_statement(env_t *env, ast_t *statement)
                         .code="(Text_t)"));
 
         type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env);
-        Table_str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type));
+        Table$str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type));
 
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             bind_statement(ns_env, stmt->ast);
@@ -208,14 +208,14 @@ void bind_statement(env_t *env, ast_t *statement)
     case Use: {
         auto use = Match(statement, Use);
         const char *name = file_base_name(use->raw_path);
-        if (Table_str_get(*env->imports, name))
+        if (Table$str_get(*env->imports, name))
             break;
 
         env_t *module_env = new_compilation_unit();
         module_env->file_prefix = heap_strf("%s$", name);
-        Table_str_set(module_env->imports, name, module_env);
+        Table$str_set(module_env->imports, name, module_env);
         const char *my_name = heap_strn(CORD_to_const_char_star(env->file_prefix), CORD_len(env->file_prefix)-1);
-        Table_str_set(module_env->imports, my_name, env);
+        Table$str_set(module_env->imports, my_name, env);
 
         const char *resolved_path = resolve_path(use->raw_path, statement->file->filename, getenv("USE_PATH"));
         if (!resolved_path)
@@ -230,7 +230,7 @@ void bind_statement(env_t *env, ast_t *statement)
         for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
             bind_statement(module_env, stmt->ast);
         }
-        Table_str_set(env->imports, name, module_env);
+        Table$str_set(env->imports, name, module_env);
         break;
     }
     case Extern: {
@@ -432,7 +432,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *fielded_t = get_type(env, access->fielded);
         if (fielded_t->tag == ModuleType) {
             const char *name = Match(fielded_t, ModuleType)->name;
-            env_t *module_env = Table_str_get(*env->imports, name);
+            env_t *module_env = Table$str_get(*env->imports, name);
             return get_type(module_env, WrapAST(ast, Var, access->field));
         } else if (fielded_t->tag == TypeInfoType) {
             auto info = Match(fielded_t, TypeInfoType);

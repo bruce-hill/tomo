@@ -57,10 +57,10 @@ public void fail_source(const char *filename, int64_t start, int64_t end, CORD f
 public uint32_t generic_hash(const void *obj, const TypeInfo *type)
 {
     switch (type->tag) {
-    case PointerInfo: case FunctionInfo: return Pointer__hash(obj, type);
-    case TextInfo: return Text__hash(obj);
-    case ArrayInfo: return Array__hash(obj, type);
-    case TableInfo: return Table_hash(obj, type);
+    case PointerInfo: case FunctionInfo: return Pointer$hash(obj, type);
+    case TextInfo: return Text$hash(obj);
+    case ArrayInfo: return Array$hash(obj, type);
+    case TableInfo: return Table$hash(obj, type);
     case CustomInfo:
         if (!type->CustomInfo.hash)
             goto hash_data;
@@ -77,10 +77,10 @@ public uint32_t generic_hash(const void *obj, const TypeInfo *type)
 public int32_t generic_compare(const void *x, const void *y, const TypeInfo *type)
 {
     switch (type->tag) {
-    case PointerInfo: case FunctionInfo: return Pointer__compare(x, y, type);
-    case TextInfo: return Text__compare(x, y);
-    case ArrayInfo: return Array__compare(x, y, type);
-    case TableInfo: return Table_compare(x, y, type);
+    case PointerInfo: case FunctionInfo: return Pointer$compare(x, y, type);
+    case TextInfo: return Text$compare(x, y);
+    case ArrayInfo: return Array$compare(x, y, type);
+    case TableInfo: return Table$compare(x, y, type);
     case CustomInfo:
         if (!type->CustomInfo.compare)
             goto compare_data;
@@ -94,10 +94,10 @@ public int32_t generic_compare(const void *x, const void *y, const TypeInfo *typ
 public bool generic_equal(const void *x, const void *y, const TypeInfo *type)
 {
     switch (type->tag) {
-    case PointerInfo: case FunctionInfo: return Pointer__equal(x, y, type);
-    case TextInfo: return Text__equal(x, y);
-    case ArrayInfo: return Array__equal(x, y, type);
-    case TableInfo: return Table_equal(x, y, type);
+    case PointerInfo: case FunctionInfo: return Pointer$equal(x, y, type);
+    case TextInfo: return Text$equal(x, y);
+    case ArrayInfo: return Array$equal(x, y, type);
+    case TableInfo: return Table$equal(x, y, type);
     case CustomInfo:
         if (!type->CustomInfo.equal)
             goto use_generic_compare;
@@ -111,12 +111,12 @@ public bool generic_equal(const void *x, const void *y, const TypeInfo *type)
 public CORD generic_as_text(const void *obj, bool colorize, const TypeInfo *type)
 {
     switch (type->tag) {
-    case PointerInfo: return Pointer__as_text(obj, colorize, type);
-    case FunctionInfo: return Func__as_text(obj, colorize, type);
-    case TextInfo: return Text__as_text(obj, colorize, type);
-    case ArrayInfo: return Array__as_text(obj, colorize, type);
-    case TableInfo: return Table_as_text(obj, colorize, type);
-    case TypeInfoInfo: return Type__as_text(obj, colorize, type);
+    case PointerInfo: return Pointer$as_text(obj, colorize, type);
+    case FunctionInfo: return Func$as_text(obj, colorize, type);
+    case TextInfo: return Text$as_text(obj, colorize, type);
+    case ArrayInfo: return Array$as_text(obj, colorize, type);
+    case TableInfo: return Table$as_text(obj, colorize, type);
+    case TypeInfoInfo: return Type$as_text(obj, colorize, type);
     case CustomInfo:
         if (!type->CustomInfo.as_text)
             fail("No cord function provided for type!\n");
@@ -156,10 +156,10 @@ public void $test(void *expr, const TypeInfo *type, CORD expected, const char *f
         CORD_fprintf(stderr, USE_COLOR ? "\x1b[2m=\x1b[0m %r \x1b[2m: %r\x1b[m\n" : "= %r : %r\n", expr_normalized, type_name);
         if (expected) {
             CORD expr_plain = USE_COLOR ? generic_as_text(expr, false, type) : expr_normalized;
-            bool success = Text__equal(&expr_plain, &expected);
+            bool success = Text$equal(&expr_plain, &expected);
             if (!success && CORD_chr(expected, 0, ':')) {
                 CORD with_type = CORD_catn(3, expr_plain, " : ", type_name);
-                success = Text__equal(&with_type, &expected);
+                success = Text$equal(&with_type, &expected);
             }
 
             if (!success) {

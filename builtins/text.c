@@ -24,16 +24,16 @@
 
 #define CLAMP(x, lo, hi) MIN(hi, MAX(x,lo))
 
-public CORD Text__as_text(const void *text, bool colorize, const TypeInfo *info)
+public CORD Text$as_text(const void *text, bool colorize, const TypeInfo *info)
 {
     if (!text) return info->TextInfo.lang;
-    CORD ret = Text__quoted(*(CORD*)text, colorize);
+    CORD ret = Text$quoted(*(CORD*)text, colorize);
     if (!streq(info->TextInfo.lang, "Text"))
         ret = colorize ? CORD_all("\x1b[1m$", info->TextInfo.lang, "\x1b[m", ret) : CORD_all("$", info->TextInfo.lang, ret);
     return ret;
 }
 
-public CORD Text__quoted(CORD str, bool colorize)
+public CORD Text$quoted(CORD str, bool colorize)
 {
     // Note: it's important to have unicode strings not get broken up with
     // escapes, otherwise they won't print right.
@@ -92,7 +92,7 @@ public CORD Text__quoted(CORD str, bool colorize)
     }
 }
 
-public int Text__compare(const CORD *x, const CORD *y)
+public int Text$compare(const CORD *x, const CORD *y)
 {
     uint8_t *xx = (uint8_t*)CORD_to_const_char_star(*x);
     uint8_t *yy = (uint8_t*)CORD_to_const_char_star(*y);
@@ -102,12 +102,12 @@ public int Text__compare(const CORD *x, const CORD *y)
     return result;
 }
 
-public bool Text__equal(const CORD *x, const CORD *y)
+public bool Text$equal(const CORD *x, const CORD *y)
 {
-    return Text__compare(x, y) == 0;
+    return Text$compare(x, y) == 0;
 }
 
-public uint32_t Text__hash(const CORD *cord)
+public uint32_t Text$hash(const CORD *cord)
 {
     if (!*cord) return 0;
 
@@ -124,7 +124,7 @@ public uint32_t Text__hash(const CORD *cord)
     return hash;
 }
 
-public CORD Text__upper(CORD str)
+public CORD Text$upper(CORD str)
 {
     if (!str) return str;
     size_t len = strlen(str) + 1;
@@ -133,7 +133,7 @@ public CORD Text__upper(CORD str)
     return (CORD)u8_toupper((const uint8_t*)str, len-1, uc_locale_language(), NULL, dest, &len);
 }
 
-public CORD Text__lower(CORD str)
+public CORD Text$lower(CORD str)
 {
     if (!str) return str;
     size_t len = strlen(str) + 1;
@@ -142,7 +142,7 @@ public CORD Text__lower(CORD str)
     return (CORD)u8_tolower((const uint8_t*)str, len-1, uc_locale_language(), NULL, dest, &len);
 }
 
-public CORD Text__title(CORD str)
+public CORD Text$title(CORD str)
 {
     if (!str) return str;
     size_t len = strlen(str) + 1;
@@ -151,7 +151,7 @@ public CORD Text__title(CORD str)
     return (CORD)u8_totitle((const uint8_t*)str, len-1, uc_locale_language(), NULL, dest, &len);
 }
 
-public bool Text__has(CORD str, CORD target, where_e where)
+public bool Text$has(CORD str, CORD target, where_e where)
 {
     if (!target) return true;
     if (!str) return false;
@@ -168,7 +168,7 @@ public bool Text__has(CORD str, CORD target, where_e where)
     }
 }
 
-public CORD Text__without(CORD str, CORD target, where_e where)
+public CORD Text$without(CORD str, CORD target, where_e where)
 {
     if (!str || !target) return str;
 
@@ -187,7 +187,7 @@ public CORD Text__without(CORD str, CORD target, where_e where)
     }
 }
 
-public CORD Text__trimmed(CORD str, CORD skip, where_e where)
+public CORD Text$trimmed(CORD str, CORD skip, where_e where)
 {
     if (!str || !skip) return str;
     const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(str);
@@ -213,14 +213,14 @@ public CORD Text__trimmed(CORD str, CORD skip, where_e where)
     }
 }
 
-public find_result_t Text__find(CORD str, CORD pat)
+public find_result_t Text$find(CORD str, CORD pat)
 {
     if (!pat) return (find_result_t){.status=FIND_SUCCESS, .index=1};
     size_t pos = CORD_str(str, 0, pat);
     return (pos == CORD_NOT_FOUND) ? (find_result_t){.status=FIND_FAILURE} : (find_result_t){.status=FIND_SUCCESS, .index=(int32_t)pos};
 }
 
-public CORD Text__replace(CORD text, CORD pat, CORD replacement, int64_t limit)
+public CORD Text$replace(CORD text, CORD pat, CORD replacement, int64_t limit)
 {
     if (!text || !pat) return text;
     CORD ret = CORD_EMPTY;
@@ -233,7 +233,7 @@ public CORD Text__replace(CORD text, CORD pat, CORD replacement, int64_t limit)
     return CORD_cat(ret, CORD_substr(text, pos, str_len - pos));
 }
 
-public array_t Text__split(CORD str, CORD split)
+public array_t Text$split(CORD str, CORD split)
 {
     if (!str) return (array_t){.data=GC_MALLOC(sizeof(CORD)), .atomic=1, .length=1, .stride=sizeof(CORD)};
     array_t strings = {.stride=sizeof(CORD), .atomic=1};
@@ -257,7 +257,7 @@ public array_t Text__split(CORD str, CORD split)
     return strings;
 }
 
-public CORD Text__join(CORD glue, array_t pieces)
+public CORD Text$join(CORD glue, array_t pieces)
 {
     if (pieces.length == 0) return CORD_EMPTY;
 
@@ -269,7 +269,7 @@ public CORD Text__join(CORD glue, array_t pieces)
     return ret;
 }
 
-public array_t Text__clusters(CORD text)
+public array_t Text$clusters(CORD text)
 {
     array_t clusters = {.atomic=1};
     const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(text);
@@ -285,7 +285,7 @@ public array_t Text__clusters(CORD text)
         char cluster_buf[len+1];
         strlcpy(cluster_buf, (char*)pos, len+1);
         CORD cluster = CORD_from_char_star(cluster_buf);
-        Array__insert(&clusters, &cluster, 0, $ArrayInfo(&Text));
+        Array$insert(&clusters, &cluster, 0, $ArrayInfo(&$Text));
         pos = next;
     }
 
@@ -293,7 +293,7 @@ public array_t Text__clusters(CORD text)
     return clusters;
 }
 
-public array_t Text__codepoints(CORD text)
+public array_t Text$codepoints(CORD text)
 {
     const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(text);
     uint8_t norm_buf[128] = {0};
@@ -316,7 +316,7 @@ public array_t Text__codepoints(CORD text)
     return ret;
 }
 
-public array_t Text__bytes(CORD text)
+public array_t Text$bytes(CORD text)
 {
     const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(text);
     uint8_t norm_buf[128] = {0};
@@ -336,7 +336,7 @@ public array_t Text__bytes(CORD text)
     return ret;
 }
 
-public int64_t Text__num_clusters(CORD text)
+public int64_t Text$num_clusters(CORD text)
 {
     const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(text);
     int64_t num_clusters = 0;
@@ -349,7 +349,7 @@ public int64_t Text__num_clusters(CORD text)
     return num_clusters;
 }
 
-public int64_t Text__num_codepoints(CORD text)
+public int64_t Text$num_codepoints(CORD text)
 {
     const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(text);
     uint8_t buf[128] = {0};
@@ -361,7 +361,7 @@ public int64_t Text__num_codepoints(CORD text)
     return num_codepoints;
 }
 
-public int64_t Text__num_bytes(CORD text)
+public int64_t Text$num_bytes(CORD text)
 {
     const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(text);
     uint8_t norm_buf[128] = {0};
@@ -373,9 +373,9 @@ public int64_t Text__num_bytes(CORD text)
     return norm_len;
 }
 
-public array_t Text__character_names(CORD text)
+public array_t Text$character_names(CORD text)
 {
-    array_t codepoints = Text__codepoints(text);
+    array_t codepoints = Text$codepoints(text);
     array_t ret = {.length=codepoints.length, .stride=sizeof(CORD), .data=GC_MALLOC(sizeof(CORD)*codepoints.length)};
     for (int64_t i = 0; i < codepoints.length; i++) {
         char buf[UNINAME_MAX];
@@ -385,7 +385,7 @@ public array_t Text__character_names(CORD text)
     return ret;
 }
 
-public const TypeInfo Text = {
+public const TypeInfo $Text = {
     .size=sizeof(CORD),
     .align=__alignof__(CORD),
     .tag=TextInfo,

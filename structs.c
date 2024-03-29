@@ -127,7 +127,7 @@ void compile_struct_def(env_t *env, ast_t *ast)
     // Typeinfo:
     CORD_appendf(&env->code->typedefs, "extern const TypeInfo %r;\n", full_name);
 
-    type_t *t = Table_str_get(*env->types, def->name);
+    type_t *t = Table$str_get(*env->types, def->name);
     assert(t && t->tag == StructType);
     auto struct_ = Match(t, StructType);
     CORD typeinfo = CORD_asprintf("public const TypeInfo %r = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
@@ -140,11 +140,11 @@ void compile_struct_def(env_t *env, ast_t *ast)
         type_t *member_t = struct_->fields->type;
         switch (member_t->tag) {
         case TextType:
-            typeinfo = CORD_all(typeinfo, ".hash=(void*)", type_to_cord(member_t), "__hash", ", ");
+            typeinfo = CORD_all(typeinfo, ".hash=(void*)", type_to_cord(member_t), "$hash", ", ");
             // fallthrough
         case IntType: case NumType:
-            typeinfo = CORD_all(typeinfo, ".compare=(void*)", type_to_cord(member_t), "__compare, "
-                                ".equal=(void*)", type_to_cord(member_t), "__equal, ");
+            typeinfo = CORD_all(typeinfo, ".compare=(void*)", type_to_cord(member_t), "$compare, "
+                                ".equal=(void*)", type_to_cord(member_t), "$equal, ");
             // fallthrough
         case BoolType: goto got_methods;
         default: break;

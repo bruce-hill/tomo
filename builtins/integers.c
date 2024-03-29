@@ -15,7 +15,7 @@
 #define str(a) #a
 
 #define DEFINE_INT_TYPE(c_type, KindOfInt, fmt, min_val, max_val)\
-    public CORD KindOfInt ## __as_text(const c_type *i, bool colorize, const TypeInfo *type) { \
+    public CORD KindOfInt ## $as_text(const c_type *i, bool colorize, const TypeInfo *type) { \
         (void)type; \
         if (!i) return #KindOfInt; \
         CORD c; \
@@ -23,26 +23,26 @@
         else CORD_sprintf(&c, "%"fmt, *i); \
         return c; \
     } \
-    public int32_t KindOfInt ## __compare(const c_type *x, const c_type *y, const TypeInfo *type) { \
+    public int32_t KindOfInt ## $compare(const c_type *x, const c_type *y, const TypeInfo *type) { \
         (void)type; \
         return (*x > *y) - (*x < *y); \
     } \
-    public bool KindOfInt ## __equal(const c_type *x, const c_type *y, const TypeInfo *type) { \
+    public bool KindOfInt ## $equal(const c_type *x, const c_type *y, const TypeInfo *type) { \
         (void)type; \
         return *x == *y; \
     } \
-    public CORD KindOfInt ## __format(c_type i, int64_t digits) { \
+    public CORD KindOfInt ## $format(c_type i, int64_t digits) { \
         return CORD_asprintf("%0*" fmt, (int)digits, i); \
     } \
-    public CORD KindOfInt ## __hex(c_type i, int64_t digits, bool uppercase, bool prefix) { \
+    public CORD KindOfInt ## $hex(c_type i, int64_t digits, bool uppercase, bool prefix) { \
         const char *hex_fmt = uppercase ? (prefix ? "0x%0.*lX" : "%0.*lX") : (prefix ? "0x%0.*lx" : "%0.*lx"); \
         return CORD_asprintf(hex_fmt, (int)digits, (uint64_t)i); \
     } \
-    public CORD KindOfInt ## __octal(c_type i, int64_t digits, bool prefix) { \
+    public CORD KindOfInt ## $octal(c_type i, int64_t digits, bool prefix) { \
         const char *octal_fmt = prefix ? "0o%0.*lo" : "%0.*lo"; \
         return CORD_asprintf(octal_fmt, (int)digits, (uint64_t)i); \
     } \
-    public array_t KindOfInt ## __bits(c_type x) { \
+    public array_t KindOfInt ## $bits(c_type x) { \
         array_t bit_array = (array_t){.data=GC_MALLOC_ATOMIC(sizeof(bool)*8*sizeof(c_type)), .atomic=1, .stride=sizeof(bool), .length=8*sizeof(c_type)}; \
         bool *bits = bit_array.data + sizeof(c_type)*8; \
         for (size_t i = 0; i < 8*sizeof(c_type); i++) { \
@@ -51,7 +51,7 @@
         } \
         return bit_array; \
     } \
-    public c_type KindOfInt ## __random(int64_t min, int64_t max) { \
+    public c_type KindOfInt ## $random(int64_t min, int64_t max) { \
         if (min > max) fail("Random min (%ld) is larger than max (%ld)", min, max); \
         if (min < (int64_t)min_val) fail("Random min (%ld) is smaller than the minimum "#KindOfInt" value", min); \
         if (max > (int64_t)max_val) fail("Random max (%ld) is smaller than the maximum "#KindOfInt" value", max); \
@@ -60,13 +60,13 @@
         uint32_t r = arc4random_uniform((uint32_t)range); \
         return min + (c_type)r; \
     } \
-    public const c_type KindOfInt##__min = min_val; \
-    public const c_type KindOfInt##__max = max_val; \
-    public const TypeInfo KindOfInt = { \
+    public const c_type KindOfInt##$min = min_val; \
+    public const c_type KindOfInt##$max = max_val; \
+    public const TypeInfo $ ## KindOfInt = { \
         .size=sizeof(c_type), \
         .align=__alignof__(c_type), \
         .tag=CustomInfo, \
-        .CustomInfo={.compare=(void*)KindOfInt##__compare, .as_text=(void*)KindOfInt##__as_text}, \
+        .CustomInfo={.compare=(void*)KindOfInt##$compare, .as_text=(void*)KindOfInt##$as_text}, \
     };
 
 DEFINE_INT_TYPE(int64_t,  Int,    "ld",     INT64_MIN, INT64_MAX);

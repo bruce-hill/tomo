@@ -13,7 +13,7 @@
 #include "string.h"
 #include "types.h"
 
-public CORD Num__as_text(const double *f, bool colorize, const TypeInfo *type) { 
+public CORD Num$as_text(const double *f, bool colorize, const TypeInfo *type) { 
     (void)type;
     if (!f) return "Num";
     CORD c;
@@ -22,17 +22,17 @@ public CORD Num__as_text(const double *f, bool colorize, const TypeInfo *type) {
     return c; 
 } 
 
-public int32_t Num__compare(const double *x, const double *y, const TypeInfo *type) { 
+public int32_t Num$compare(const double *x, const double *y, const TypeInfo *type) { 
     (void)type;
     return (*x > *y) - (*x < *y);
 } 
 
-public bool Num__equal(const double *x, const double *y, const TypeInfo *type) { 
+public bool Num$equal(const double *x, const double *y, const TypeInfo *type) { 
     (void)type;
     return *x == *y;
 } 
 
-public bool Num__near(double a, double b, double ratio, double absolute) {
+public bool Num$near(double a, double b, double ratio, double absolute) {
     if (ratio < 0) ratio = 0;
     else if (ratio > 0) ratio = 1;
 
@@ -47,43 +47,43 @@ public bool Num__near(double a, double b, double ratio, double absolute) {
     return (diff < epsilon);
 }
 
-public CORD Num__format(double f, int64_t precision) { 
+public CORD Num$format(double f, int64_t precision) { 
     return CORD_asprintf("%.*f", (int)precision, f);
 }
 
-public CORD Num__scientific(double f, int64_t precision) { 
+public CORD Num$scientific(double f, int64_t precision) { 
     return CORD_asprintf("%.*e", (int)precision, f); 
 }
 
-public double Num__mod(double num, double modulus) { 
+public double Num$mod(double num, double modulus) { 
     double result = fmod(num, modulus); 
     return (result < 0) != (modulus < 0) ? result + modulus : result; 
 }
 
-public double Num__random(void) { 
+public double Num$random(void) { 
     return drand48(); 
 }
 
-public double Num__nan(CORD tag) {
+public double Num$nan(CORD tag) {
     return nan(CORD_to_const_char_star(tag));
 }
 
-public bool Num__isinf(double n) { return !!isinf(n); }
-public bool Num__finite(double n) { return !!finite(n); }
-public bool Num__isnan(double n) { return !!isnan(n); }
+public bool Num$isinf(double n) { return !!isinf(n); }
+public bool Num$finite(double n) { return !!finite(n); }
+public bool Num$isnan(double n) { return !!isnan(n); }
 
-public const TypeInfo Num = {
+public const TypeInfo $Num = {
     .size=sizeof(double),
     .align=__alignof__(double),
     .tag=CustomInfo,
     .CustomInfo={
-        .compare=(void*)Num__compare,
-        .equal=(void*)Num__equal,
-        .as_text=(void*)Num__as_text,
+        .compare=(void*)Num$compare,
+        .equal=(void*)Num$equal,
+        .as_text=(void*)Num$as_text,
     },
 };
 
-public CORD Num32__as_text(const float *f, bool colorize, const TypeInfo *type) { 
+public CORD Num32$as_text(const float *f, bool colorize, const TypeInfo *type) { 
     (void)type;
     if (!f) return "Num32";
     CORD c;
@@ -92,17 +92,17 @@ public CORD Num32__as_text(const float *f, bool colorize, const TypeInfo *type) 
     return c;
 }
 
-public int32_t Num32__compare(const float *x, const float *y, const TypeInfo *type) { 
+public int32_t Num32$compare(const float *x, const float *y, const TypeInfo *type) { 
     (void)type;
     return (*x > *y) - (*x < *y);
 } 
 
-public bool Num32__equal(const float *x, const float *y, const TypeInfo *type) { 
+public bool Num32$equal(const float *x, const float *y, const TypeInfo *type) { 
     (void)type;
     return *x == *y;
 }
 
-public bool Num32__near(float a, float b, float ratio, float absolute) {
+public bool Num32$near(float a, float b, float ratio, float absolute) {
     if (ratio < 0) ratio = 0;
     else if (ratio > 0) ratio = 1;
 
@@ -117,39 +117,39 @@ public bool Num32__near(float a, float b, float ratio, float absolute) {
     return (diff < epsilon);
 }
 
-public CORD Num32__format(float f, int64_t precision) { 
+public CORD Num32$format(float f, int64_t precision) { 
     return CORD_asprintf("%.*f", (int)precision, f); 
 }
 
-public CORD Num32__scientific(float f, int64_t precision) { 
+public CORD Num32$scientific(float f, int64_t precision) { 
     return CORD_asprintf("%.*e", (int)precision, f); 
 }
 
-public float Num32__mod(float num, float modulus) { 
+public float Num32$mod(float num, float modulus) { 
     float result = fmodf(num, modulus); 
     return (result < 0) != (modulus < 0) ? result + modulus : result; 
 }
 
-public float Num32__random(void) { 
+public float Num32$random(void) { 
     return (float)drand48(); 
 }
 
-public float Num32__nan(CORD tag) {
+public float Num32$nan(CORD tag) {
     return nanf(CORD_to_const_char_star(tag));
 }
 
-public bool Num32__isinf(float n) { return isinf(n); }
-public bool Num32__finite(float n) { return finite(n); }
-public bool Num32__isnan(float n) { return isnan(n); }
+public bool Num32$isinf(float n) { return isinf(n); }
+public bool Num32$finite(float n) { return finite(n); }
+public bool Num32$isnan(float n) { return isnan(n); }
 
-public const TypeInfo Num32 = {
+public const TypeInfo $Num32 = {
     .size=sizeof(float),
     .align=__alignof__(float),
     .tag=CustomInfo,
     .CustomInfo={
-        .compare=(void*)Num32__compare,
-        .equal=(void*)Num32__equal,
-        .as_text=(void*)Num32__as_text,
+        .compare=(void*)Num32$compare,
+        .equal=(void*)Num32$equal,
+        .as_text=(void*)Num32$as_text,
     },
 };
 

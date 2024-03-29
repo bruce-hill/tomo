@@ -123,12 +123,12 @@ static void build_file_dependency_graph(const char *filename, table_t *dependenc
     else
         errx(1, "I don't know how to find object files in: %s", filename);
 
-    if (Table_str_get(*dependencies, base_filename))
+    if (Table$str_get(*dependencies, base_filename))
         return;
 
     array_t *deps = new(array_t);
-    Array__insert(deps, &base_filename, 0, $ArrayInfo(&Text));
-    Table_str_set(dependencies, base_filename, deps);
+    Array$insert(deps, &base_filename, 0, $ArrayInfo(&$Text));
+    Table$str_set(dependencies, base_filename, deps);
 
     transpile(base_filename, false);
 
@@ -148,7 +148,7 @@ static void build_file_dependency_graph(const char *filename, table_t *dependenc
                 char *tmp = realpath(heap_strf("%s/%.*s", file_dir, strcspn(line + strlen(prefix), "\"") - 2, line + strlen(prefix)), NULL);
                 const char *resolved_file = heap_str(tmp);
                 free(tmp);
-                Array__insert(deps, &resolved_file, 0, $ArrayInfo(&Text));
+                Array$insert(deps, &resolved_file, 0, $ArrayInfo(&$Text));
                 build_file_dependency_graph(resolved_file, dependencies);
             }
         }
@@ -166,13 +166,13 @@ array_t get_file_dependencies(const char *filename)
 
     const TypeInfo unit = {.size=0, .align=0, .tag=CustomInfo};
     const TypeInfo info = {.size=sizeof(table_t), .align=__alignof__(table_t),
-        .tag=TableInfo, .TableInfo.key=&Text, .TableInfo.value=&unit};
+        .tag=TableInfo, .TableInfo.key=&$Text, .TableInfo.value=&unit};
 
-    for (int64_t i = 1; i <= Table_length(file_dependencies); i++) {
-        struct { const char *name; array_t *deps; } *entry = Table_entry(file_dependencies, i);
+    for (int64_t i = 1; i <= Table$length(file_dependencies); i++) {
+        struct { const char *name; array_t *deps; } *entry = Table$entry(file_dependencies, i);
         for (int64_t j = 0; j < entry->deps->length; j++) {
             const char *dep = *(char**)(entry->deps->data + j*entry->deps->stride);
-            Table_set(&dependency_set, &dep, &dep, &info);
+            Table$set(&dependency_set, &dep, &dep, &info);
         }
     }
     return dependency_set.entries;

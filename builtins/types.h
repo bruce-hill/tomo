@@ -63,12 +63,12 @@ typedef struct TypeInfo {
 #define $TypeInfoInfo(typestr) &((TypeInfo){.size=sizeof(TypeInfo), .align=__alignof__(TypeInfo), \
                                  .tag=TypeInfoInfo, .TypeInfoInfo.type_str=typestr})
 
-extern const TypeInfo TypeInfo_info;
-extern const TypeInfo Void;
-extern const TypeInfo Abort;
+extern const TypeInfo $TypeInfo;
+extern const TypeInfo $Void;
+extern const TypeInfo $Abort;
 #define Void_t void
 
-CORD Type__as_text(const void *typeinfo, bool colorize, const TypeInfo *type);
-CORD Func__as_text(const void *fn, bool colorize, const TypeInfo *type);
+CORD Type$as_text(const void *typeinfo, bool colorize, const TypeInfo *type);
+CORD Func$as_text(const void *fn, bool colorize, const TypeInfo *type);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

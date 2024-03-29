@@ -42,8 +42,11 @@ typedef struct env_s {
 } env_t;
 
 typedef struct {
-    CORD code;
     type_t *type;
+    union {
+        CORD code;
+        char value[0];
+    };
 } binding_t;
 
 env_t *new_compilation_unit(void);

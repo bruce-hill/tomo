@@ -47,15 +47,15 @@ CORD CORD_asprintf(CORD fmt, ...);
 } while(0)
 
 #define LIST_MAP(src, var, ...) ({\
-    __typeof(src) __mapped = NULL; \
-    __typeof(src) *__next = &__mapped; \
+    __typeof(src) $mapped = NULL; \
+    __typeof(src) *$next = &$mapped; \
     for (__typeof(src) var = src; var; var = var->next) { \
-        *__next = GC_MALLOC(sizeof(__typeof(*(src)))); \
-        **__next = *var; \
-        **__next = (__typeof(*(src))){__VA_ARGS__}; \
-        __next = &((*__next)->next); \
+        *$next = GC_MALLOC(sizeof(__typeof(*(src)))); \
+        **$next = *var; \
+        **$next = (__typeof(*(src))){__VA_ARGS__}; \
+        $next = &((*$next)->next); \
     } \
-    __mapped; })
+    $mapped; })
 
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

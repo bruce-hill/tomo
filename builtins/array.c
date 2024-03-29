@@ -22,7 +22,7 @@ static inline size_t get_item_size(const TypeInfo *info)
 
 // Replace the array's .data pointer with a new pointer to a copy of the
 // data that is compacted and has a stride of exactly `item_size`
-public void Array__compact(array_t *arr, const TypeInfo *type)
+public void Array$compact(array_t *arr, const TypeInfo *type)
 {
     void *copy = NULL;
     int64_t item_size = get_item_size(type);
@@ -43,7 +43,7 @@ public void Array__compact(array_t *arr, const TypeInfo *type)
     };
 }
 
-public void Array__insert(array_t *arr, const void *item, int64_t index, const TypeInfo *type)
+public void Array$insert(array_t *arr, const void *item, int64_t index, const TypeInfo *type)
 {
     if (index <= 0) index = arr->length + index + 1;
 
@@ -75,7 +75,7 @@ public void Array__insert(array_t *arr, const void *item, int64_t index, const T
     memcpy((void*)arr->data + (index-1)*item_size, item, item_size);
 }
 
-public void Array__insert_all(array_t *arr, array_t to_insert, int64_t index, const TypeInfo *type)
+public void Array$insert_all(array_t *arr, array_t to_insert, int64_t index, const TypeInfo *type)
 {
     if (index < 1) index = arr->length + index + 1;
 
@@ -105,7 +105,7 @@ public void Array__insert_all(array_t *arr, array_t to_insert, int64_t index, co
         memcpy((void*)arr->data + (index-1 + i)*item_size, to_insert.data + i*to_insert.stride, item_size);
 }
 
-public void Array__remove(array_t *arr, int64_t index, int64_t count, const TypeInfo *type)
+public void Array$remove(array_t *arr, int64_t index, int64_t count, const TypeInfo *type)
 {
     if (index < 1) index = arr->length + index + 1;
 
@@ -138,7 +138,7 @@ public void Array__remove(array_t *arr, int64_t index, int64_t count, const Type
     arr->length -= count;
 }
 
-public void Array__sort(array_t *arr, const TypeInfo *type)
+public void Array$sort(array_t *arr, const TypeInfo *type)
 {
     const TypeInfo *item_type = type->ArrayInfo.item;
     int64_t item_size = item_type->size;
@@ -146,16 +146,16 @@ public void Array__sort(array_t *arr, const TypeInfo *type)
         item_size += item_type->align - (item_size % item_type->align); // padding
 
     if (arr->data_refcount || (int64_t)arr->stride != item_size)
-        Array__compact(arr, type);
+        Array$compact(arr, type);
 
     qsort_r(arr->data, arr->length, item_size, (void*)generic_compare, (void*)item_type);
 }
 
-public void Array__shuffle(array_t *arr, const TypeInfo *type)
+public void Array$shuffle(array_t *arr, const TypeInfo *type)
 {
     int64_t item_size = get_item_size(type);
     if (arr->data_refcount || (int64_t)arr->stride != item_size)
-        Array__compact(arr, type);
+        Array$compact(arr, type);
 
     char tmp[item_size];
     for (int64_t i = arr->length-1; i > 1; i--) {
@@ -166,7 +166,7 @@ public void Array__shuffle(array_t *arr, const TypeInfo *type)
     }
 }
 
-public void *Array__random(array_t arr)
+public void *Array$random(array_t arr)
 {
     if (arr.length == 0)
         return NULL; // fail("Cannot get a random item from an empty array!");
@@ -174,7 +174,7 @@ public void *Array__random(array_t arr)
     return arr.data + arr.stride*index;
 }
 
-public array_t Array__slice(array_t *array, int64_t first, int64_t length, int64_t stride, const TypeInfo *type)
+public array_t Array$slice(array_t *array, int64_t first, int64_t length, int64_t stride, const TypeInfo *type)
 {
     if (stride > MAX_STRIDE || stride < MIN_STRIDE)
         fail("Stride is too big: %ld", stride);
@@ -223,7 +223,7 @@ public array_t Array__slice(array_t *array, int64_t first, int64_t length, int64
     };
 }
 
-public array_t Array__reversed(array_t array)
+public array_t Array$reversed(array_t array)
 {
     array_t reversed = array;
     reversed.stride = -array.stride;
@@ -231,7 +231,7 @@ public array_t Array__reversed(array_t array)
     return reversed;
 }
 
-public array_t Array__concat(array_t x, array_t y, const TypeInfo *type)
+public array_t Array$concat(array_t x, array_t y, const TypeInfo *type)
 {
     int64_t item_size = get_item_size(type);
     void *data = x.atomic ? GC_MALLOC_ATOMIC(item_size*(x.length + y.length)) : GC_MALLOC(item_size*(x.length + y.length));
@@ -257,7 +257,7 @@ public array_t Array__concat(array_t x, array_t y, const TypeInfo *type)
     };
 }
 
-public bool Array__contains(array_t array, void *item, const TypeInfo *type)
+public bool Array$contains(array_t array, void *item, const TypeInfo *type)
 {
     const TypeInfo *item_type = type->ArrayInfo.item;
     for (int64_t i = 0; i < array.length; i++)
@@ -266,12 +266,12 @@ public bool Array__contains(array_t array, void *item, const TypeInfo *type)
     return false;
 }
 
-public void Array__clear(array_t *array)
+public void Array$clear(array_t *array)
 {
     *array = (array_t){.data=0, .length=0};
 }
 
-public int32_t Array__compare(const array_t *x, const array_t *y, const TypeInfo *type)
+public int32_t Array$compare(const array_t *x, const array_t *y, const TypeInfo *type)
 {
     // Early out for arrays with the same data, e.g. two copies of the same array:
     if (x->data == y->data && x->stride == y->stride)
@@ -298,12 +298,12 @@ public int32_t Array__compare(const array_t *x, const array_t *y, const TypeInfo
     return (x->length > y->length) - (x->length < y->length);
 }
 
-public bool Array__equal(const array_t *x, const array_t *y, const TypeInfo *type)
+public bool Array$equal(const array_t *x, const array_t *y, const TypeInfo *type)
 {
-    return (Array__compare(x, y, type) == 0);
+    return (Array$compare(x, y, type) == 0);
 }
 
-public CORD Array__as_text(const array_t *arr, bool colorize, const TypeInfo *type)
+public CORD Array$as_text(const array_t *arr, bool colorize, const TypeInfo *type)
 {
     if (!arr)
         return CORD_all("[", generic_as_text(NULL, false, type->ArrayInfo.item), "]");
@@ -320,7 +320,7 @@ public CORD Array__as_text(const array_t *arr, bool colorize, const TypeInfo *ty
     return c;
 }
 
-public uint32_t Array__hash(const array_t *arr, const TypeInfo *type)
+public uint32_t Array$hash(const array_t *arr, const TypeInfo *type)
 {
     // Array hash is calculated as a rolling, compacting hash of the length of the array, followed by
     // the hashes of its items (or the items themselves if they're small plain data)

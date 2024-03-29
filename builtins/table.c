@@ -41,13 +41,13 @@
 #define GET_ENTRY(t, i) ((t).entries.data + (t).entries.stride*(i))
 #define ENTRIES_TYPE(type) (&(TypeInfo){.size=sizeof(array_t), .align=__alignof__(array_t), .tag=ArrayInfo, .ArrayInfo.item=(&(TypeInfo){.size=entry_size(type), .align=entry_align(type), .tag=OpaqueInfo})})
 
-const TypeInfo MemoryPointer = {
+static const TypeInfo MemoryPointer = {
     .size=sizeof(void*),
     .align=__alignof__(void*),
     .tag=PointerInfo,
     .PointerInfo={
         .sigil="@",
-        .pointed=&Memory,
+        .pointed=&$Memory,
     },
 };
 
@@ -55,7 +55,7 @@ const TypeInfo StrToVoidStarTable = {
     .size=sizeof(table_t),
     .align=__alignof__(table_t),
     .tag=TableInfo,
-    .TableInfo={.key=&Text, .value=&MemoryPointer},
+    .TableInfo={.key=&$Text, .value=&MemoryPointer},
 };
 
 static inline size_t entry_size(const TypeInfo *info)
@@ -82,7 +82,6 @@ static inline size_t value_offset(const TypeInfo *info)
     return offset;
 }
 
-
 static inline void hshow(const table_t *t)
 {
     hdebug("{");
@@ -99,7 +98,7 @@ static inline void hshow(const table_t *t)
 static void maybe_copy_on_write(table_t *t, const TypeInfo *type)
 {
     if (t->entries.data_refcount) {
-        Array__compact(&t->entries, ENTRIES_TYPE(type));
+        Array$compact(&t->entries, ENTRIES_TYPE(type));
     }
 
     if (t->bucket_info && t->bucket_info->data_refcount) {
@@ -109,14 +108,14 @@ static void maybe_copy_on_write(table_t *t, const TypeInfo *type)
     }
 }
 
-public void Table_mark_copy_on_write(table_t *t)
+public void Table$mark_copy_on_write(table_t *t)
 {
     t->entries.data_refcount = 3;
     if (t->bucket_info) t->bucket_info->data_refcount = 3;
 }
 
 // Return address of value or NULL
-public void *Table_get_raw(table_t t, const void *key, const TypeInfo *type)
+public void *Table$get_raw(table_t t, const void *key, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
     if (!key || !t.bucket_info) return NULL;
@@ -138,11 +137,11 @@ public void *Table_get_raw(table_t t, const void *key, const TypeInfo *type)
     return NULL;
 }
 
-public void *Table_get(table_t t, const void *key, const TypeInfo *type)
+public void *Table$get(table_t t, const void *key, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
     for (const table_t *iter = &t; iter; iter = iter->fallback) {
-        void *ret = Table_get_raw(*iter, key, type);
+        void *ret = Table$get_raw(*iter, key, type);
         if (ret) return ret;
     }
     for (const table_t *iter = &t; iter; iter = iter->fallback) {
@@ -151,7 +150,7 @@ public void *Table_get(table_t t, const void *key, const TypeInfo *type)
     return NULL;
 }
 
-static void Table_set_bucket(table_t *t, const void *entry, int32_t index, const TypeInfo *type)
+static void Table$set_bucket(table_t *t, const void *entry, int32_t index, const TypeInfo *type)
 {
     assert(t->bucket_info);
     hshow(t);
@@ -215,9 +214,9 @@ static void hashmap_resize_buckets(table_t *t, uint32_t new_capacity, const Type
     t->bucket_info->count = new_capacity;
     t->bucket_info->last_free = new_capacity-1;
     // Rehash:
-    for (int64_t i = 0; i < Table_length(*t); i++) {
+    for (int64_t i = 0; i < Table$length(*t); i++) {
         hdebug("Rehashing %u\n", i);
-        Table_set_bucket(t, GET_ENTRY(*t, i), i, type);
+        Table$set_bucket(t, GET_ENTRY(*t, i), i, type);
     }
 
     hshow(t);
@@ -225,7 +224,7 @@ static void hashmap_resize_buckets(table_t *t, uint32_t new_capacity, const Type
 }
 
 // Return address of value
-public void *Table_reserve(table_t *t, const void *key, const void *value, const TypeInfo *type)
+public void *Table$reserve(table_t *t, const void *key, const void *value, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
     if (!t || !key) return NULL;
@@ -237,7 +236,7 @@ public void *Table_reserve(table_t *t, const void *key, const void *value, const
         hashmap_resize_buckets(t, 4, type);
     } else {
         // Check if we are clobbering a value:
-        void *value_home = Table_get_raw(*t, key, type);
+        void *value_home = Table$get_raw(*t, key, type);
         if (value_home) { // Update existing slot
             // Ensure that `value_home` is still inside t->entries, even if COW occurs
             ptrdiff_t offset = value_home - t->entries.data;
@@ -260,7 +259,7 @@ public void *Table_reserve(table_t *t, const void *key, const void *value, const
 
     if (!value && value_size > 0) {
         for (table_t *iter = t->fallback; iter; iter = iter->fallback) {
-            value = Table_get_raw(*iter, key, type);
+            value = Table$get_raw(*iter, key, type);
             if (value) break;
         }
         for (table_t *iter = t; !value && iter; iter = iter->fallback) {
@@ -277,24 +276,24 @@ public void *Table_reserve(table_t *t, const void *key, const void *value, const
         memcpy(buf + value_offset(type), value, value_size);
     else
         memset(buf + value_offset(type), 0, value_size);
-    Array__insert(&t->entries, buf, 0, ENTRIES_TYPE(type));
+    Array$insert(&t->entries, buf, 0, ENTRIES_TYPE(type));
 
     int64_t entry_index = t->entries.length-1;
     void *entry = GET_ENTRY(*t, entry_index);
-    Table_set_bucket(t, entry, entry_index, type);
+    Table$set_bucket(t, entry, entry_index, type);
     return entry + value_offset(type);
 }
 
-public void Table_set(table_t *t, const void *key, const void *value, const TypeInfo *type)
+public void Table$set(table_t *t, const void *key, const void *value, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
-    (void)Table_reserve(t, key, value, type);
+    (void)Table$reserve(t, key, value, type);
 }
 
-public void Table_remove(table_t *t, const void *key, const TypeInfo *type)
+public void Table$remove(table_t *t, const void *key, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
-    if (!t || Table_length(*t) == 0) return;
+    if (!t || Table$length(*t) == 0) return;
 
     // TODO: this work doesn't need to be done if the key is already missing
     maybe_copy_on_write(t, type);
@@ -363,7 +362,7 @@ public void Table_remove(table_t *t, const void *key, const TypeInfo *type)
     // Last entry is being removed, so clear it out to be safe:
     memset(GET_ENTRY(*t, last_entry), 0, entry_size(type));
 
-    Array__remove(&t->entries, t->entries.length, 1, ENTRIES_TYPE(type));
+    Array$remove(&t->entries, t->entries.length, 1, ENTRIES_TYPE(type));
 
     int64_t bucket_to_clear;
     if (prev) { // Middle (or end) of a chain
@@ -386,22 +385,22 @@ public void Table_remove(table_t *t, const void *key, const TypeInfo *type)
     hshow(t);
 }
 
-public void *Table_entry(table_t t, int64_t n)
+public void *Table$entry(table_t t, int64_t n)
 {
-    if (n < 1 || n > Table_length(t))
+    if (n < 1 || n > Table$length(t))
         return NULL;
     return GET_ENTRY(t, n-1);
 }
 
-public void Table_clear(table_t *t)
+public void Table$clear(table_t *t)
 {
     memset(t, 0, sizeof(table_t));
 }
 
-public bool Table_equal(const table_t *x, const table_t *y, const TypeInfo *type)
+public bool Table$equal(const table_t *x, const table_t *y, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
-    if (Table_length(*x) != Table_length(*y))
+    if (Table$length(*x) != Table$length(*y))
         return false;
     
     if ((x->default_value != NULL) != (y->default_value != NULL))
@@ -411,10 +410,10 @@ public bool Table_equal(const table_t *x, const table_t *y, const TypeInfo *type
         return false;
 
     const TypeInfo *value_type = type->TableInfo.value;
-    for (int64_t i = 0, length = Table_length(*x); i < length; i++) {
+    for (int64_t i = 0, length = Table$length(*x); i < length; i++) {
         void *x_key = GET_ENTRY(*x, i);
         void *x_value = x_key + value_offset(type);
-        void *y_value = Table_get_raw(*y, x_key, type);
+        void *y_value = Table$get_raw(*y, x_key, type);
         if (!y_value)
             return false;
         if (!generic_equal(x_value, y_value, value_type))
@@ -426,13 +425,13 @@ public bool Table_equal(const table_t *x, const table_t *y, const TypeInfo *type
         return false;
 
     if (x->fallback && y->fallback
-        && !Table_equal(x->fallback, y->fallback, type))
+        && !Table$equal(x->fallback, y->fallback, type))
         return false;
     
     return true;
 }
 
-public int32_t Table_compare(const table_t *x, const table_t *y, const TypeInfo *type)
+public int32_t Table$compare(const table_t *x, const table_t *y, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
     auto table = type->TableInfo;
@@ -442,8 +441,8 @@ public int32_t Table_compare(const table_t *x, const table_t *y, const TypeInfo 
         return (x->entries.length > y->entries.length) - (x->entries.length < y->entries.length);
 
     array_t x_entries = x->entries, y_entries = y->entries;
-    Array__sort(&x_entries, table.key);
-    Array__sort(&y_entries, table.key);
+    Array$sort(&x_entries, table.key);
+    Array$sort(&y_entries, table.key);
     for (int64_t i = 0; i < x_entries.length; i++) {
         void *x_key = x_entries.data + x_entries.stride * i;
         void *y_key = y_entries.data + y_entries.stride * i;
@@ -471,7 +470,7 @@ public int32_t Table_compare(const table_t *x, const table_t *y, const TypeInfo 
     return 0;
 }
 
-public uint32_t Table_hash(const table_t *t, const TypeInfo *type)
+public uint32_t Table$hash(const table_t *t, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
     // Table hashes are computed as:
@@ -481,20 +480,20 @@ public uint32_t Table_hash(const table_t *t, const TypeInfo *type)
     int64_t val_off = value_offset(type);
 
     uint32_t key_hashes = 0, value_hashes = 0, fallback_hash = 0, default_hash = 0;
-    for (int64_t i = 0, length = Table_length(*t); i < length; i++) {
+    for (int64_t i = 0, length = Table$length(*t); i < length; i++) {
         void *entry = GET_ENTRY(*t, i);
         key_hashes ^= generic_hash(entry, table.key);
         value_hashes ^= generic_hash(entry + val_off, table.value);
     }
 
     if (t->fallback)
-        fallback_hash = Table_hash(t->fallback, type);
+        fallback_hash = Table$hash(t->fallback, type);
 
     if (t->default_value)
         default_hash = generic_hash(t->default_value, table.value);
 
     struct { int64_t len; uint32_t k, v, f, d; } components = {
-        Table_length(*t),
+        Table$length(*t),
         key_hashes,
         value_hashes,
         fallback_hash,
@@ -505,7 +504,7 @@ public uint32_t Table_hash(const table_t *t, const TypeInfo *type)
     return hash;
 }
 
-public CORD Table_as_text(const table_t *t, bool colorize, const TypeInfo *type)
+public CORD Table$as_text(const table_t *t, bool colorize, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
     auto table = type->TableInfo;
@@ -515,7 +514,7 @@ public CORD Table_as_text(const table_t *t, bool colorize, const TypeInfo *type)
 
     int64_t val_off = value_offset(type);
     CORD c = "{";
-    for (int64_t i = 0, length = Table_length(*t); i < length; i++) {
+    for (int64_t i = 0, length = Table$length(*t); i < length; i++) {
         if (i > 0)
             c = CORD_cat(c, ", ");
         void *entry = GET_ENTRY(*t, i);
@@ -526,7 +525,7 @@ public CORD Table_as_text(const table_t *t, bool colorize, const TypeInfo *type)
 
     if (t->fallback) {
         c = CORD_cat(c, "; fallback=");
-        c = CORD_cat(c, Table_as_text(t->fallback, colorize, type));
+        c = CORD_cat(c, Table$as_text(t->fallback, colorize, type));
     }
 
     if (t->default_value) {
@@ -538,7 +537,7 @@ public CORD Table_as_text(const table_t *t, bool colorize, const TypeInfo *type)
     return c;
 }
 
-public table_t Table_from_entries(array_t entries, const TypeInfo *type)
+public table_t Table$from_entries(array_t entries, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
     table_t t = {.entries=entries};
@@ -546,36 +545,36 @@ public table_t Table_from_entries(array_t entries, const TypeInfo *type)
     return t;
 }
 
-void *Table_str_get(table_t t, const char *key)
+public void *Table$str_get(table_t t, const char *key)
 {
-    void **ret = Table_get(t, &key, &StrToVoidStarTable);
+    void **ret = Table$get(t, &key, &StrToVoidStarTable);
     return ret ? *ret : NULL;
 }
 
-void *Table_str_get_raw(table_t t, const char *key)
+public void *Table$str_get_raw(table_t t, const char *key)
 {
-    void **ret = Table_get_raw(t, &key, &StrToVoidStarTable);
+    void **ret = Table$get_raw(t, &key, &StrToVoidStarTable);
     return ret ? *ret : NULL;
 }
 
-void *Table_str_reserve(table_t *t, const char *key, const void *value)
+public void *Table$str_reserve(table_t *t, const char *key, const void *value)
 {
-    return Table_reserve(t, &key, &value, &StrToVoidStarTable);
+    return Table$reserve(t, &key, &value, &StrToVoidStarTable);
 }
 
-void Table_str_set(table_t *t, const char *key, const void *value)
+public void Table$str_set(table_t *t, const char *key, const void *value)
 {
-    Table_set(t, &key, &value, &StrToVoidStarTable);
+    Table$set(t, &key, &value, &StrToVoidStarTable);
 }
 
-void Table_str_remove(table_t *t, const char *key)
+public void Table$str_remove(table_t *t, const char *key)
 {
-    return Table_remove(t, &key, &StrToVoidStarTable);
+    return Table$remove(t, &key, &StrToVoidStarTable);
 }
 
-void *Table_str_entry(table_t t, int64_t n)
+public void *Table$str_entry(table_t t, int64_t n)
 {
-    return Table_entry(t, n);
+    return Table$entry(t, n);
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1

@@ -27,7 +27,7 @@ LDLIBS=-lgc -lcord -lm -lunistring
 BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/color.o builtins/nums.o builtins/functions.o builtins/integers.o \
 						 builtins/pointer.o builtins/memory.o builtins/text.o builtins/table.o builtins/types.o builtins/util.o builtins/files.o
 
-all: libtomo.so tomo
+all: libtomo.so tomo repl.o
 
 tomo: tomo.c SipHash/halfsiphash.o ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o $(BUILTIN_OBJS)
 

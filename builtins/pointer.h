@@ -8,10 +8,10 @@
 
 #include "types.h"
 
-CORD Pointer__as_text(const void *x, bool colorize, const TypeInfo *type);
-int32_t Pointer__compare(const void *x, const void *y, const TypeInfo *type);
-bool Pointer__equal(const void *x, const void *y, const TypeInfo *type);
-uint32_t Pointer__hash(const void *x, const TypeInfo *type);
+CORD Pointer$as_text(const void *x, bool colorize, const TypeInfo *type);
+int32_t Pointer$compare(const void *x, const void *y, const TypeInfo *type);
+bool Pointer$equal(const void *x, const void *y, const TypeInfo *type);
+uint32_t Pointer$hash(const void *x, const TypeInfo *type);
 
 #define $Null(t) (t*)NULL
 #define POINTER_TYPE(_sigil, _pointed) (&(TypeInfo){\

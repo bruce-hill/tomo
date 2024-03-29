@@ -11,7 +11,7 @@
 #include "table.h"
 #include "types.h"
 
-public CORD Type__as_text(const void *typeinfo, bool colorize, const TypeInfo *type)
+public CORD Type$as_text(const void *typeinfo, bool colorize, const TypeInfo *type)
 {
     if (!typeinfo) return "TypeInfo";
 
@@ -22,17 +22,17 @@ public CORD Type__as_text(const void *typeinfo, bool colorize, const TypeInfo *t
     return c;
 }
 
-public const TypeInfo TypeInfo_info = {
+public const TypeInfo $TypeInfo = {
     .size=sizeof(TypeInfo),
     .align=__alignof__(TypeInfo),
     .tag=CustomInfo,
     .TypeInfoInfo.type_str="TypeInfo",
 };
 
-public const TypeInfo Void = {.size=0, .align=0};
-public const TypeInfo Abort = {.size=0, .align=0};
+public const TypeInfo $Void = {.size=0, .align=0};
+public const TypeInfo $Abort = {.size=0, .align=0};
 
-public CORD Func__as_text(const void *fn, bool colorize, const TypeInfo *type)
+public CORD Func$as_text(const void *fn, bool colorize, const TypeInfo *type)
 {
     (void)fn;
     CORD c = type->FunctionInfo.type_str;

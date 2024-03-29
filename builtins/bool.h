@@ -12,8 +12,8 @@
 #define yes (Bool_t)true
 #define no (Bool_t)false
 
-CORD Bool__as_text(const bool *b, bool colorize, const TypeInfo *type);
+CORD Bool$as_text(const bool *b, bool colorize, const TypeInfo *type);
 
-extern const TypeInfo Bool;
+extern const TypeInfo $Bool;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
