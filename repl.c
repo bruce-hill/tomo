@@ -148,7 +148,7 @@ static double ast_to_num(env_t *env, ast_t *ast)
 
 static CORD obj_to_text(type_t *t, const void *obj, bool use_color)
 {
-#define C(code, fmt) (use_color ? "\x1b[" code fmt "\x1b[m" : fmt)
+#define C(code, fmt) (use_color ? "\x1b[" code "m" fmt "\x1b[m" : fmt)
     switch (t->tag) {
     case MemoryType: return "<Memory>";
     case BoolType: return *(bool*)obj ? C("35", "yes") : C("35", "no");
