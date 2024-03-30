@@ -79,6 +79,10 @@ static void repl_err(ast_t *node, const char *fmt, ...)
 const TypeInfo *type_to_type_info(type_t *t)
 {
     switch (t->tag) {
+    case AbortType: return &$Abort;
+    case VoidType: return &$Void;
+    case MemoryType: return &$Memory;
+    case BoolType: return &$Bool;
     case IntType:
         switch (Match(t, IntType)->bits) {
         case 0: case 64: return &$Int;
@@ -87,6 +91,29 @@ const TypeInfo *type_to_type_info(type_t *t)
         case 8: return &$Int8;
         default: errx(1, "Invalid bits");
         }
+    case NumType:
+        switch (Match(t, NumType)->bits) {
+        case 0: case 64: return &$Num;
+        case 32: return &$Num32;
+        default: errx(1, "Invalid bits");
+        }
+    case TextType: return &$Text;
+    case ArrayType: {
+        const TypeInfo *item_info = type_to_type_info(Match(t, ArrayType)->item_type);
+        return $ArrayInfo(item_info);
+    }
+    case TableType: {
+        const TypeInfo *key_info = type_to_type_info(Match(t, TableType)->key_type);
+        const TypeInfo *value_info = type_to_type_info(Match(t, TableType)->value_type);
+        return $TableInfo(key_info, value_info);
+    }
+    case PointerType: {
+        auto ptr = Match(t, PointerType);
+        CORD sigil = ptr->is_stack ? "&" : (ptr->is_optional ? "?" : "@");
+        if (ptr->is_readonly) sigil = CORD_cat(sigil, "(readonly)");
+        const TypeInfo *pointed_info = type_to_type_info(ptr->pointed);
+        return $PointerInfo(sigil, pointed_info);
+    }
     default: errx(1, "Unsupported type: %T", t);
     }
 }
@@ -204,6 +231,7 @@ static CORD obj_to_text(type_t *t, const void *obj, bool use_color)
         if (!p) return CORD_cat("!", type_to_cord(ptr->pointed));
         CORD sigil = ptr->is_stack ? "&" : (ptr->is_optional ? "?" : "@");
         if (ptr->is_readonly) sigil = CORD_cat(sigil, "(readonly)");
+        if (use_color) sigil = CORD_all("\x1b[34;1m", sigil, "\x1b[m");
         return CORD_all(sigil, obj_to_text(ptr->pointed, p, use_color));
     }
     case StructType: {
@@ -367,28 +395,28 @@ void eval(env_t *env, ast_t *ast, void *dest)
         break;
     }
 #define CASE_OP(OP_NAME, C_OP) case BINOP_##OP_NAME: {\
-    if (t->tag == IntType) { \
-        int64_t lhs = ast_to_int(env, binop->lhs); \
-        int64_t rhs = ast_to_int(env, binop->rhs); \
-        switch (Match(t, IntType)->bits) { \
-        case 64: *(int64_t*)dest = lhs C_OP rhs; break; \
-        case 32: *(int32_t*)dest = (int32_t)(lhs C_OP rhs); break; \
-        case 16: *(int16_t*)dest = (int16_t)(lhs C_OP rhs); break; \
-        case 8: *(int8_t*)dest = (int8_t)(lhs C_OP rhs); break; \
-        default: errx(1, "Invalid int bits"); \
+        if (t->tag == IntType) { \
+            int64_t lhs = ast_to_int(env, binop->lhs); \
+            int64_t rhs = ast_to_int(env, binop->rhs); \
+            switch (Match(t, IntType)->bits) { \
+            case 64: *(int64_t*)dest = lhs C_OP rhs; break; \
+            case 32: *(int32_t*)dest = (int32_t)(lhs C_OP rhs); break; \
+            case 16: *(int16_t*)dest = (int16_t)(lhs C_OP rhs); break; \
+            case 8: *(int8_t*)dest = (int8_t)(lhs C_OP rhs); break; \
+            default: errx(1, "Invalid int bits"); \
+            } \
+        } else if (t->tag == NumType) { \
+            double lhs = ast_to_num(env, binop->lhs); \
+            double rhs = ast_to_num(env, binop->rhs); \
+            if (Match(t, NumType)->bits == 64) \
+                *(double*)dest = (double)(lhs C_OP rhs); \
+            else \
+                *(float*)dest = (float)(lhs C_OP rhs); \
+        } else { \
+            errx(1, "Binary ops are not yet supported for %W", ast); \
         } \
-    } else if (t->tag == NumType) { \
-        double lhs = ast_to_num(env, binop->lhs); \
-        double rhs = ast_to_num(env, binop->rhs); \
-        if (Match(t, NumType)->bits == 64) \
-            *(double*)dest = (double)(lhs C_OP rhs); \
-        else \
-            *(float*)dest = (float)(lhs C_OP rhs); \
-    } else { \
-        errx(1, "Binary ops are not yet supported for %W", ast); \
-    } \
-    break; \
-}
+        break; \
+    }
     case BinaryOp: {
         auto binop = Match(ast, BinaryOp);
         switch (binop->op) {
@@ -396,6 +424,29 @@ void eval(env_t *env, ast_t *ast, void *dest)
         CASE_OP(MINUS, -)  CASE_OP(EQ, ==)
         CASE_OP(NE, !=) CASE_OP(LT, <) CASE_OP(LE, <=) CASE_OP(GT, >) CASE_OP(GE, >=)
         default: errx(1, "Binary op not implemented: %W");
+        }
+        break;
+    }
+    case Array: {
+        assert(t->tag == ArrayType);
+        array_t arr = {};
+        size_t item_size = type_size(Match(t, ArrayType)->item_type);
+        char item_buf[item_size] = {};
+        const TypeInfo *type_info = type_to_type_info(t);
+        for (ast_list_t *item = Match(ast, Array)->items; item; item = item->next) {
+            eval(env, item->ast, item_buf);
+            Array$insert(&arr, item_buf, 0, type_info);
+        }
+        memcpy(dest, &arr, sizeof(array_t));
+        break;
+    }
+    case Block: {
+        auto block = Match(ast, Block);
+        for (ast_list_t *stmt = block->statements; stmt; stmt = stmt->next) {
+            if (stmt->next)
+                run(env, stmt->ast);
+            else
+                eval(env, stmt->ast, dest);
         }
         break;
     }
