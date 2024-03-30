@@ -200,73 +200,8 @@ static double ast_to_num(env_t *env, ast_t *ast)
 
 static CORD obj_to_text(type_t *t, const void *obj, bool use_color)
 {
-#define C(code, fmt) (use_color ? "\x1b[" code "m" fmt "\x1b[m" : fmt)
-    switch (t->tag) {
-    case MemoryType: return "<Memory>";
-    case BoolType: return *(bool*)obj ? C("35", "yes") : C("35", "no");
-    case IntType: {
-        switch (Match(t, IntType)->bits) {
-        case 0: case 64: return CORD_asprintf(C("35", "%ld"), *(int64_t*)obj);
-        case 32: return CORD_asprintf(C("35", "%d"), *(int32_t*)obj);
-        case 16: return CORD_asprintf(C("35", "%d"), *(int16_t*)obj);
-        case 8: return CORD_asprintf(C("35", "%d"), *(int8_t*)obj);
-        default: errx(1, "Invalid bits: %ld", Match(t, IntType)->bits);
-        }
-    }
-    case NumType: {
-        switch (Match(t, NumType)->bits) {
-        case 0: case 64: return CORD_asprintf(C("35", "%g"), *(double*)obj);
-        case 32: return CORD_asprintf(C("35", "%g"), *(float*)obj);
-        default: errx(1, "Invalid bits: %ld", Match(t, NumType)->bits);
-        }
-    }
-    case TextType: return Text$quoted(*(CORD*)obj, use_color);
-    case ArrayType: {
-        type_t *item_t = Match(t, ArrayType)->item_type;
-        CORD ret = "[";
-        const array_t *arr = obj;
-        for (int64_t i = 0; i < arr->length; i++) {
-            if (i > 0) ret = CORD_cat(ret, ", ");
-            ret = CORD_cat(ret, obj_to_text(item_t, arr->data + i*arr->stride, use_color));
-        }
-        return CORD_cat(ret, "]");
-    }
-    case TableType: {
-        type_t *key_t = Match(t, TableType)->key_type;
-        type_t *value_t = Match(t, TableType)->value_type;
-        CORD ret = "{";
-        const table_t *table = obj;
-        size_t value_offset = type_size(key_t);
-        if (type_align(value_t) > 1 && value_offset % type_align(value_t))
-            value_offset += type_align(value_t) - (value_offset % type_align(value_t)); // padding
-        for (int64_t i = 0; i < table->entries.length; i++) {
-            if (i > 0) ret = CORD_cat(ret, ", ");
-            ret = CORD_all(ret, obj_to_text(key_t, table->entries.data + i*table->entries.stride, use_color), "=>",
-                           obj_to_text(value_t, table->entries.data + i*table->entries.stride + value_offset, use_color));
-        }
-        if (table->fallback)
-            ret = CORD_all(ret, "; fallback=", obj_to_text(t, table->fallback, use_color));
-        if (table->default_value)
-            ret = CORD_all(ret, "; default=", obj_to_text(value_t, table->default_value, use_color));
-        return CORD_cat(ret, "}");
-    }
-    case PointerType: {
-        const void *p = *(const void**)obj;
-        auto ptr = Match(t, PointerType);
-        if (!p) return CORD_cat("!", type_to_cord(ptr->pointed));
-        CORD sigil = ptr->is_stack ? "&" : (ptr->is_optional ? "?" : "@");
-        if (ptr->is_readonly) sigil = CORD_cat(sigil, "(readonly)");
-        if (use_color) sigil = CORD_all("\x1b[34;1m", sigil, "\x1b[m");
-        return CORD_all(sigil, obj_to_text(ptr->pointed, p, use_color));
-    }
-    case StructType: {
-        errx(1, "Struct strings not implemented yet");
-    }
-    case EnumType: {
-        errx(1, "Enum strings not implemented yet");
-    }
-    default: return type_to_cord(t);
-    }
+    const TypeInfo *info = type_to_type_info(t);
+    return generic_as_text(obj, use_color, info);
 }
 
 void run(env_t *env, ast_t *ast)
@@ -457,9 +392,26 @@ void eval(env_t *env, ast_t *ast, void *dest)
     case BinaryOp: {
         auto binop = Match(ast, BinaryOp);
         switch (binop->op) {
-        CASE_OP(MULT, *) CASE_OP(DIVIDE, /) CASE_OP(PLUS, +)
-        CASE_OP(MINUS, -)  CASE_OP(EQ, ==)
-        CASE_OP(NE, !=) CASE_OP(LT, <) CASE_OP(LE, <=) CASE_OP(GT, >) CASE_OP(GE, >=)
+        CASE_OP(MULT, *) CASE_OP(DIVIDE, /) CASE_OP(PLUS, +) CASE_OP(MINUS, -)
+        case BINOP_EQ: case BINOP_NE: case BINOP_LT: case BINOP_LE: case BINOP_GT: case BINOP_GE: {
+            type_t *t_lhs = get_type(env, binop->lhs);
+            const TypeInfo *info = type_to_type_info(t_lhs);
+            size_t value_size = type_size(t_lhs);
+            char lhs[value_size], rhs[value_size];
+            eval(env, binop->lhs, lhs);
+            eval(env, binop->rhs, rhs);
+            int cmp = generic_compare(lhs, rhs, info);
+            switch (binop->op) {
+            case BINOP_EQ: *(bool*)dest = (cmp == 0); break;
+            case BINOP_NE: *(bool*)dest = (cmp != 0); break;
+            case BINOP_GT: *(bool*)dest = (cmp > 0); break;
+            case BINOP_GE: *(bool*)dest = (cmp >= 0); break;
+            case BINOP_LT: *(bool*)dest = (cmp < 0); break;
+            case BINOP_LE: *(bool*)dest = (cmp <= 0); break;
+            default: break;
+            }
+            break;
+        }
         default: errx(1, "Binary op not implemented: %W");
         }
         break;
