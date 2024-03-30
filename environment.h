@@ -45,7 +45,7 @@ typedef struct {
     type_t *type;
     union {
         CORD code;
-        char value[0];
+        void *value;
     };
 } binding_t;
 

@@ -14,6 +14,7 @@
 #include "builtins/text.h"
 #include "compile.h"
 #include "parse.h"
+#include "repl.h"
 #include "typecheck.h"
 #include "types.h"
 
@@ -55,9 +56,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (filename == NULL)
-        errx(1, "No file provided");
-
     // register_printf_modifier(L"p");
     if (register_printf_specifier('T', printf_type, printf_pointer_size))
         errx(1, "Couldn't set printf specifier");
@@ -69,6 +67,11 @@ int main(int argc, char *argv[])
     if (!autofmt[0]) autofmt = "cat";
 
     verbose = (getenv("VERBOSE") && strcmp(getenv("VERBOSE"), "1") == 0);
+
+    if (filename == NULL) {
+        repl();
+        return 0;
+    }
 
     cconfig = getenv("CCONFIG");
     if (!cconfig)

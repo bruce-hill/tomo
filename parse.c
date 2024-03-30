@@ -1899,7 +1899,7 @@ ast_t *parse_file(file_t *file, jmp_buf *on_err) {
     ast_t *ast = parse_namespace(&ctx, pos);
     pos = ast->end;
     whitespace(&pos);
-    if (pos < file->text + file->len) {
+    if (pos < file->text + file->len && *pos != '\0') {
         parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the file");
     }
     return ast;
