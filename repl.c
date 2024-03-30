@@ -444,11 +444,12 @@ void eval(env_t *env, ast_t *ast, void *dest)
         case ArrayType: {
             array_t arr;
             eval(env, index->indexed, &arr);
-            int64_t index_int = ast_to_int(env, index->index);
+            int64_t raw_index = ast_to_int(env, index->index);
+            int64_t index_int = raw_index;
             if (index_int < 1) index_int = arr.length + index_int + 1;
             if (index_int < 1 || index_int > arr.length)
                 repl_err(index->index, "%ld is an invalid index for an array with length %ld",
-                         index_int, arr.length);
+                         raw_index, arr.length);
             size_t item_size = type_size(Match(indexed_t, ArrayType)->item_type);
             memcpy(dest, arr.data + arr.stride*(index_int-1), item_size);
             break;
