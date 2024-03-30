@@ -44,9 +44,25 @@ void repl(void)
 
     while ((len=getline(&line, &buf_size, stdin)) >= 0) {
         if (len > 1) {
-            file_t *f = spoof_file("<repl>", heap_strf(">> %s", line));
+            char *code = line;
+#define starts_with(line, prefix) (strncmp(line, prefix " ", strlen(prefix)+1) == 0)
+            if (starts_with(line, "if") || starts_with(line, "for") || starts_with(line, "while")
+                || starts_with(line, "func") || starts_with(line, "struct") || starts_with(line, "lang")) {
+                printf("\x1b[33;1m..\x1b[m ");
+                fflush(stdout);
+                code = heap_str(line);
+                while ((len=getline(&line, &buf_size, stdin)) >= 0) {
+                    if (len == 1) break;
+                    code = heap_strf("%s%s", code, line);
+                    printf("\x1b[33;1m..\x1b[m ");
+                    fflush(stdout);
+                }
+            } else {
+                code = heap_strf(">> %s", code);
+            }
+            file_t *f = spoof_file("<repl>", code);
             ast_t *ast = parse_file(f, &on_err);
-            ast = WrapAST(ast, DocTest, .expr=ast, .skip_source=true);
+            if (ast->tag == DocTest) ast->__data.DocTest.skip_source = 1;
             run(env, ast);
         }
         printf("\x1b[33;1m>>\x1b[m ");
@@ -312,7 +328,7 @@ void run(env_t *env, ast_t *ast)
             void *value = GC_MALLOC(size);
             eval(env, doctest->expr, value);
             CORD c = obj_to_text(t, value, true);
-            printf("= %s \x1b[2m: %T\n", CORD_to_const_char_star(c), t);
+            printf("= %s \x1b[2m: %T\x1b[m\n", CORD_to_const_char_star(c), t);
             fflush(stdout);
         }
         break;
