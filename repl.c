@@ -23,8 +23,8 @@ typedef union {
 
 static jmp_buf on_err;
 
-void run(env_t *env, ast_t *ast);
-void eval(env_t *env, ast_t *ast, void *dest);
+static void run(env_t *env, ast_t *ast);
+static void eval(env_t *env, ast_t *ast, void *dest);
 
 void repl(void)
 {
@@ -43,10 +43,12 @@ void repl(void)
     fflush(stdout);
 
     while ((len=getline(&line, &buf_size, stdin)) >= 0) {
-        file_t *f = spoof_file("<repl>", heap_strf(">> %s", line));
-        ast_t *ast = parse_file(f, &on_err);
-        ast = WrapAST(ast, DocTest, .expr=ast, .skip_source=true);
-        run(env, ast);
+        if (len > 1) {
+            file_t *f = spoof_file("<repl>", heap_strf(">> %s", line));
+            ast_t *ast = parse_file(f, &on_err);
+            ast = WrapAST(ast, DocTest, .expr=ast, .skip_source=true);
+            run(env, ast);
+        }
         printf("\x1b[33;1m>>\x1b[m ");
         fflush(stdout);
     }
@@ -100,19 +102,26 @@ const TypeInfo *type_to_type_info(type_t *t)
     case TextType: return &$Text;
     case ArrayType: {
         const TypeInfo *item_info = type_to_type_info(Match(t, ArrayType)->item_type);
-        return $ArrayInfo(item_info);
+        const TypeInfo array_info = {.size=sizeof(array_t), .align=__alignof__(array_t),
+            .tag=ArrayInfo, .ArrayInfo.item=item_info};
+        return memcpy(GC_MALLOC(sizeof(TypeInfo)), &array_info, sizeof(TypeInfo));
     }
     case TableType: {
         const TypeInfo *key_info = type_to_type_info(Match(t, TableType)->key_type);
         const TypeInfo *value_info = type_to_type_info(Match(t, TableType)->value_type);
-        return $TableInfo(key_info, value_info);
+        const TypeInfo table_info = {
+            .size=sizeof(table_t), .align=__alignof__(table_t),
+            .tag=TableInfo, .TableInfo.key=key_info, .TableInfo.value=value_info};
+        return memcpy(GC_MALLOC(sizeof(TypeInfo)), &table_info, sizeof(TypeInfo));
     }
     case PointerType: {
         auto ptr = Match(t, PointerType);
         CORD sigil = ptr->is_stack ? "&" : (ptr->is_optional ? "?" : "@");
         if (ptr->is_readonly) sigil = CORD_cat(sigil, "(readonly)");
         const TypeInfo *pointed_info = type_to_type_info(ptr->pointed);
-        return $PointerInfo(sigil, pointed_info);
+        const TypeInfo pointer_info = {.size=sizeof(void*), .align=__alignof__(void*),
+            .tag=PointerInfo, .PointerInfo.sigil=sigil, .PointerInfo.pointed=pointed_info};
+        return memcpy(GC_MALLOC(sizeof(TypeInfo)), &pointer_info, sizeof(TypeInfo));
     }
     default: errx(1, "Unsupported type: %T", t);
     }
@@ -220,9 +229,9 @@ static CORD obj_to_text(type_t *t, const void *obj, bool use_color)
                            obj_to_text(value_t, table->entries.data + i*table->entries.stride + value_offset, use_color));
         }
         if (table->fallback)
-            ret = CORD_all(ret, "; ", obj_to_text(t, table->fallback, use_color));
+            ret = CORD_all(ret, "; fallback=", obj_to_text(t, table->fallback, use_color));
         if (table->default_value)
-            ret = CORD_all(ret, "; ", obj_to_text(value_t, table->default_value, use_color));
+            ret = CORD_all(ret, "; default=", obj_to_text(value_t, table->default_value, use_color));
         return CORD_cat(ret, "}");
     }
     case PointerType: {
@@ -249,7 +258,7 @@ void run(env_t *env, ast_t *ast)
     switch (ast->tag) {
     case Declare: {
         auto decl = Match(ast, Declare);
-        const char *name = Match(ast, Var)->name;
+        const char *name = Match(decl->var, Var)->name;
         type_t *type = get_type(env, decl->value);
         binding_t *binding = new(binding_t, .type=type, .value=GC_MALLOC(type_size(type)));
         eval(env, decl->value, binding->value);
@@ -427,6 +436,48 @@ void eval(env_t *env, ast_t *ast, void *dest)
         }
         break;
     }
+    case Index: {
+        auto index = Match(ast, Index);
+        type_t *indexed_t = get_type(env, index->indexed);
+        // type_t *index_t = get_type(env, index->index);
+        switch (indexed_t->tag) {
+        case ArrayType: {
+            array_t arr;
+            eval(env, index->indexed, &arr);
+            int64_t index_int = ast_to_int(env, index->index);
+            if (index_int < 1) index_int = arr.length + index_int + 1;
+            if (index_int < 1 || index_int > arr.length)
+                repl_err(index->index, "%ld is an invalid index for an array with length %ld",
+                         index_int, arr.length);
+            size_t item_size = type_size(Match(indexed_t, ArrayType)->item_type);
+            memcpy(dest, arr.data + arr.stride*(index_int-1), item_size);
+            break;
+        }
+        case TableType: {
+            table_t table;
+            eval(env, index->indexed, &table);
+            type_t *key_type = Match(indexed_t, TableType)->key_type;
+            size_t key_size = type_size(key_type);
+            char key_buf[key_size];
+            eval(env, index->index, key_buf);
+            const TypeInfo *table_info = type_to_type_info(indexed_t);
+            memcpy(dest, Table$get(table, key_buf, table_info), key_size);
+            break;
+        }
+        case PointerType: {
+            auto ptr = Match(indexed_t, PointerType);
+            if (ptr->is_optional)
+                repl_err(ast, "You can't dereference an optional pointer because it might be null");
+            size_t pointed_size = type_size(ptr->pointed);
+            void *pointer;
+            eval(env, index->indexed, &pointer);
+            memcpy(dest, pointer, pointed_size);
+            break;
+        }
+        default: errx(1, "Indexing is not supported for %T", indexed_t);
+        }
+        break;
+    }
     case Array: {
         assert(t->tag == ArrayType);
         array_t arr = {};
@@ -438,6 +489,31 @@ void eval(env_t *env, ast_t *ast, void *dest)
             Array$insert(&arr, item_buf, 0, type_info);
         }
         memcpy(dest, &arr, sizeof(array_t));
+        break;
+    }
+    case Table: {
+        assert(t->tag == TableType);
+        auto table_ast = Match(ast, Table);
+        table_t table = {};
+        size_t key_size = type_size(Match(t, TableType)->key_type);
+        size_t value_size = type_size(Match(t, TableType)->value_type);
+        char key_buf[key_size] = {};
+        char value_buf[value_size] = {};
+        const TypeInfo *table_info = type_to_type_info(t);
+        assert(table_info->tag == TableInfo);
+        for (ast_list_t *entry = table_ast->entries; entry; entry = entry->next) {
+            auto e = Match(entry->ast, TableEntry);
+            eval(env, e->key, key_buf);
+            eval(env, e->value, value_buf);
+            Table$set(&table, key_buf, value_buf, table_info);
+        }
+        if (table_ast->fallback)
+            eval(env, table_ast->fallback, &table.fallback);
+        if (table_ast->default_value) {
+            table.default_value = GC_MALLOC(value_size);
+            eval(env, table_ast->default_value, table.default_value);
+        }
+        memcpy(dest, &table, sizeof(table_t));
         break;
     }
     case Block: {
