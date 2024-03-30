@@ -395,6 +395,8 @@ void eval(env_t *env, ast_t *ast, void *dest)
         CASE_OP(MULT, *) CASE_OP(DIVIDE, /) CASE_OP(PLUS, +) CASE_OP(MINUS, -)
         case BINOP_EQ: case BINOP_NE: case BINOP_LT: case BINOP_LE: case BINOP_GT: case BINOP_GE: {
             type_t *t_lhs = get_type(env, binop->lhs);
+            if (!type_eq(t_lhs, get_type(env, binop->rhs)))
+                repl_err(ast, "Comparisons between different types aren't supported");
             const TypeInfo *info = type_to_type_info(t_lhs);
             size_t value_size = type_size(t_lhs);
             char lhs[value_size], rhs[value_size];
