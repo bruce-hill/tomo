@@ -326,7 +326,6 @@ void run(env_t *env, ast_t *ast)
     }
     // UpdateAssign,
     // FunctionDef,
-    // Block,
     // For, While, If, When,
     // Skip, Stop, Pass,
     // Return,
@@ -336,6 +335,19 @@ void run(env_t *env, ast_t *ast)
     // Use,
     // LinkerDirective,
     // InlineCCode,
+    case If: {
+        auto if_ = Match(ast, If);
+        bool condition;
+        type_t *cond_t = get_type(env, if_->condition);
+        assert(cond_t->tag == BoolType);
+        eval(env, if_->condition, &condition);
+        if (condition) {
+            run(env, if_->body);
+        } else if (if_->else_body) {
+            run(env, if_->else_body);
+        }
+        break;
+    }
     default: {
         eval(env, ast, NULL);
         break;
