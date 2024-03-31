@@ -299,6 +299,21 @@ void run(env_t *env, ast_t *ast)
         }
         break;
     }
+    case While: {
+        auto while_ = Match(ast, While);
+        bool condition;
+        type_t *cond_t = get_type(env, while_->condition);
+        assert(cond_t->tag == BoolType);
+        for (;;) {
+            eval(env, while_->condition, &condition);
+            if (!condition) break;
+            run(env, while_->body);
+        }
+        break;
+    }
+    // case For: {
+    //     auto for_ = Match(ast, For);
+    // }
     default: {
         eval(env, ast, NULL);
         break;
