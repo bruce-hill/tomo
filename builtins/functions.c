@@ -164,7 +164,7 @@ public void $test(void *expr, const TypeInfo *type, CORD expected, const char *f
 
             if (!success) {
                 fail_source(filename, start, end, 
-                            USE_COLOR ? "\x1b[31;1mDoctest failure:\nExpected: \x1b[32;1m%s\x1b[0m\n\x1b[31;1m But got: \x1b[31;7m%s\x1b[0m\n"
+                            USE_COLOR ? "\x1b[31;1mDoctest failure:\nExpected: \x1b[32;1m%s\x1b[0m\n\x1b[31;1m But got:\x1b[m %s\n"
                             : "Doctest failure:\nExpected: %s\n But got: %s\n",
                             CORD_to_const_char_star(expected), CORD_to_const_char_star(expr_normalized));
             }

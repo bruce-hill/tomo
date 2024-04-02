@@ -48,7 +48,7 @@ CORD type_to_cord(type_t *t) {
         case PointerType: {
             auto ptr = Match(t, PointerType);
             CORD sigil = ptr->is_stack ? "&" : (ptr->is_optional ? "?" : "@");
-            if (ptr->is_readonly) sigil = CORD_cat(sigil, "(readonly)");
+            if (ptr->is_readonly) sigil = CORD_cat(sigil, "%");
             return CORD_cat(sigil, type_to_cord(ptr->pointed));
         }
         case EnumType: {

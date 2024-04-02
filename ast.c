@@ -13,7 +13,8 @@ static const char *OP_NAMES[] = {
     [BINOP_MOD]="mod", [BINOP_MOD1]="mod1", [BINOP_PLUS]="+", [BINOP_MINUS]="minus",
     [BINOP_CONCAT]="++", [BINOP_LSHIFT]="<<", [BINOP_RSHIFT]=">>", [BINOP_MIN]="min",
     [BINOP_MAX]="max", [BINOP_EQ]="==", [BINOP_NE]="!=", [BINOP_LT]="<",
-    [BINOP_LE]="<=", [BINOP_GT]=">", [BINOP_GE]=">=", [BINOP_AND]="and", [BINOP_OR]="or", [BINOP_XOR]="xor",
+    [BINOP_LE]="<=", [BINOP_GT]=">", [BINOP_GE]=">=", [BINOP_CMP]="<>",
+    [BINOP_AND]="and", [BINOP_OR]="or", [BINOP_XOR]="xor",
 };
 
 static CORD ast_list_to_xml(ast_list_t *asts);
@@ -156,8 +157,8 @@ CORD type_ast_to_xml(type_ast_t *t)
 #define T(type, ...) case type: { auto data = t->__data.type; (void)data; return CORD_asprintf(__VA_ARGS__); }
     T(UnknownTypeAST, "<UnknownType/>")
     T(VarTypeAST, "%s", data.name)
-    T(PointerTypeAST, "<PointerType is_optional=\"%d\", is_stack=\"%d\", is_readonly=\"%d\">%r</PointerType>",
-      data.is_optional, data.is_stack, data.is_readonly, type_ast_to_xml(data.pointed))
+    T(PointerTypeAST, "<PointerType is_optional=\"%s\" is_stack=\"%s\" is_readonly=\"%s\">%r</PointerType>",
+      data.is_optional ? "yes" : "no", data.is_stack ? "yes" : "no", data.is_readonly ? "yes" : "no", type_ast_to_xml(data.pointed))
     T(ArrayTypeAST, "<ArrayType>%r</ArrayType>", type_ast_to_xml(data.item))
     T(TableTypeAST, "<TableType>%r %r</TableType>", type_ast_to_xml(data.key), type_ast_to_xml(data.value))
     T(FunctionTypeAST, "<FunctionType>%r %r</FunctionType>", arg_list_to_xml(data.args), type_ast_to_xml(data.ret))

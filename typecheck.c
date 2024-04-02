@@ -652,6 +652,8 @@ type_t *get_type(env_t *env, ast_t *ast)
                 code_err(ast, "I can't compare these two different types: %T vs %T", lhs_t, rhs_t);
             return Type(BoolType);
         }
+        case BINOP_CMP:
+            return Type(IntType, .bits=32);
         case BINOP_POWER: {
             type_t *result = get_math_type(env, ast, lhs_t, rhs_t);
             if (result->tag == NumType)

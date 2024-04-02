@@ -1105,6 +1105,9 @@ CORD compile(env_t *env, ast_t *ast)
             else
                 code_err(ast, "Boolean operators are only supported for Bool and integer types");
         }
+        case BINOP_CMP: {
+            return CORD_all("generic_compare($stack(", lhs, "), $stack(", rhs, "), ", compile_type_info(env, operand_t), ")");
+        }
         case BINOP_OR: {
             if (operand_t->tag == BoolType)
                 return CORD_asprintf("(%r || %r)", lhs, rhs);
@@ -1455,8 +1458,8 @@ CORD compile(env_t *env, ast_t *ast)
         switch (self_value_t->tag) {
         case ArrayType: {
             // TODO: check for readonly
+            type_t *item_t = Match(self_value_t, ArrayType)->item_type;
             if (streq(call->name, "insert")) {
-                type_t *item_t = Match(self_value_t, ArrayType)->item_type;
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
                                       .next=new(arg_t, .name="at", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=0, .bits=64)));
@@ -1476,15 +1479,28 @@ CORD compile(env_t *env, ast_t *ast)
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "random")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$random(", self, ")");
             } else if (streq(call->name, "shuffle")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$shuffle(", self, ", ", compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "sort")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
-                return CORD_all("Array$sort(", self, ", ", compile_type_info(env, self_value_t), ")");
+                CORD comparison;
+                if (call->args) {
+                    type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true, .is_readonly=true);
+                    type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
+                                        .ret=Type(IntType, .bits=32));
+                    arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t));
+                    comparison = compile_arguments(env, ast, arg_spec, call->args);
+                } else {
+                    comparison = CORD_all("(closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "}");
+                }
+                return CORD_all("Array$sort(", self, ", ", comparison, ", ", compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "clear")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$clear(", self, ")");
             } else if (streq(call->name, "slice")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
@@ -1495,6 +1511,7 @@ CORD compile(env_t *env, ast_t *ast)
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "reversed")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$reversed(", self, ")");
             } else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
@@ -1518,6 +1535,7 @@ CORD compile(env_t *env, ast_t *ast)
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "clear")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Table$clear(", self, ")");
             } else code_err(ast, "There is no '%s' method for tables", call->name);
         }
@@ -1837,7 +1855,7 @@ CORD compile_type_info(env_t *env, type_t *t)
     case PointerType: {
         auto ptr = Match(t, PointerType);
         CORD sigil = ptr->is_stack ? "&" : (ptr->is_optional ? "?" : "@");
-        if (ptr->is_readonly) sigil = CORD_cat(sigil, "(readonly)");
+        if (ptr->is_readonly) sigil = CORD_cat(sigil, "%");
         return CORD_asprintf("$PointerInfo(%r, %r)", Text$quoted(sigil, false), compile_type_info(env, ptr->pointed));
     }
     case FunctionType: {

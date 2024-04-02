@@ -441,8 +441,8 @@ public int32_t Table$compare(const table_t *x, const table_t *y, const TypeInfo 
         return (x->entries.length > y->entries.length) - (x->entries.length < y->entries.length);
 
     array_t x_entries = x->entries, y_entries = y->entries;
-    Array$sort(&x_entries, table.key);
-    Array$sort(&y_entries, table.key);
+    Array$sort(&x_entries, (closure_t){.fn=generic_compare, .userdata=(void*)table.key}, table.key);
+    Array$sort(&y_entries, (closure_t){.fn=generic_compare, .userdata=(void*)table.key}, table.key);
     for (int64_t i = 0; i < x_entries.length; i++) {
         void *x_key = x_entries.data + x_entries.stride * i;
         void *y_key = y_entries.data + y_entries.stride * i;

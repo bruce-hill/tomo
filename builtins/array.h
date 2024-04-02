@@ -56,7 +56,7 @@
 void Array$insert(array_t *arr, const void *item, int64_t index, const TypeInfo *type);
 void Array$insert_all(array_t *arr, array_t to_insert, int64_t index, const TypeInfo *type);
 void Array$remove(array_t *arr, int64_t index, int64_t count, const TypeInfo *type);
-void Array$sort(array_t *arr, const TypeInfo *type);
+void Array$sort(array_t *arr, closure_t comparison, const TypeInfo *type);
 void Array$shuffle(array_t *arr, const TypeInfo *type);
 void *Array$random(array_t arr);
 void Array$clear(array_t *array);

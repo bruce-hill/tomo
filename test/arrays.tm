@@ -73,3 +73,15 @@ if yes
 	>> arr := [10, 20, 30]
 	>> arr:reversed()
 	= [30, 20, 10]
+
+if yes
+	>> nums := [10, -20, 30]
+	>> nums:sort()
+	>> nums
+	= [-20, 10, 30]
+	>> nums:sort(func(x:&%Int,y:&%Int) x:abs() <> y:abs())
+	>> nums
+	= [10, -20, 30]
+	>> nums:sort(func(x:&%Int,y:&%Int) y[] <> x[])
+	>> nums
+	= [30, 10, -20]

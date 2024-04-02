@@ -138,7 +138,7 @@ public void Array$remove(array_t *arr, int64_t index, int64_t count, const TypeI
     arr->length -= count;
 }
 
-public void Array$sort(array_t *arr, const TypeInfo *type)
+public void Array$sort(array_t *arr, closure_t comparison, const TypeInfo *type)
 {
     const TypeInfo *item_type = type->ArrayInfo.item;
     int64_t item_size = item_type->size;
@@ -148,7 +148,7 @@ public void Array$sort(array_t *arr, const TypeInfo *type)
     if (arr->data_refcount || (int64_t)arr->stride != item_size)
         Array$compact(arr, type);
 
-    qsort_r(arr->data, arr->length, item_size, (void*)generic_compare, (void*)item_type);
+    qsort_r(arr->data, arr->length, item_size, comparison.fn, comparison.userdata);
 }
 
 public void Array$shuffle(array_t *arr, const TypeInfo *type)

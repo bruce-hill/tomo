@@ -18,7 +18,7 @@ for k,v in t
 >> #t
 = 2
 >> t.default
-= ?(readonly)999
+= ?%999
 >> t.fallback
 = !{Text=>Int}
 
@@ -42,7 +42,7 @@ for k,v in t
 >> t2.default
 = !Int
 >> t2.fallback
-= ?(readonly){"one"=>1, "two"=>2; default=999}
+= ?%{"one"=>1, "two"=>2; default=999}
 
 t2_str := ""
 for k,v in t2

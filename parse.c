@@ -38,6 +38,7 @@ int op_tightness[] = {
     [BINOP_MIN]=4, [BINOP_MAX]=4,
     [BINOP_EQ]=3, [BINOP_NE]=3,
     [BINOP_LT]=2, [BINOP_LE]=2, [BINOP_GT]=2, [BINOP_GE]=2,
+    [BINOP_CMP]=2,
     [BINOP_AND]=1, [BINOP_OR]=1, [BINOP_XOR]=1,
 };
 #define MAX_TIGHTNESS 9
@@ -505,7 +506,7 @@ type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos) {
         return NULL;
 
     spaces(&pos);
-    bool is_readonly = match(&pos, "(readonly)");
+    bool is_readonly = match(&pos, "%");
     spaces(&pos);
     type_ast_t *type = expect(ctx, start, &pos, parse_type,
                              "I couldn't parse a pointer type after this point");
@@ -1313,7 +1314,12 @@ binop_e match_binary_operator(const char **pos)
     case '*': *pos += 1; return BINOP_MULT;
     case '/': *pos += 1; return BINOP_DIVIDE;
     case '^': *pos += 1; return BINOP_POWER;
-    case '<': *pos += 1; return match(pos, "=") ? BINOP_LE : (match(pos, "<") ? BINOP_LSHIFT : BINOP_LT);
+    case '<':
+        *pos += 1;
+        if (match(pos, "=")) return BINOP_LE;
+        else if (match(pos, ">")) return BINOP_CMP;
+        else if (match(pos, "<")) return BINOP_LSHIFT;
+        else return BINOP_LT;
     case '>': *pos += 1; return match(pos, "=") ? BINOP_GE : (match(pos, ">") ? BINOP_RSHIFT : BINOP_GT);
     default: {
         if (match(pos, "!=")) return BINOP_NE;
