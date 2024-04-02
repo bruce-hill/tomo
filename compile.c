@@ -1485,8 +1485,8 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$shuffle(", self, ", ", compile_type_info(env, self_value_t), ")");
-            } else if (streq(call->name, "sort")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+            } else if (streq(call->name, "sort") || streq(call->name, "sorted")) {
+                CORD self = compile_to_pointer_depth(env, call->self, streq(call->name, "sort") ? 1 : 0, false);
                 CORD comparison;
                 if (call->args) {
                     type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true, .is_readonly=true);
@@ -1497,7 +1497,7 @@ CORD compile(env_t *env, ast_t *ast)
                 } else {
                     comparison = CORD_all("(closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "}");
                 }
-                return CORD_all("Array$sort(", self, ", ", comparison, ", ", compile_type_info(env, self_value_t), ")");
+                return CORD_all("Array$", call->name, "(", self, ", ", comparison, ", ", compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "clear")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 (void)compile_arguments(env, ast, NULL, call->args);

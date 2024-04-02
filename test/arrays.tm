@@ -76,9 +76,16 @@ if yes
 
 if yes
 	>> nums := [10, -20, 30]
+	// Sorted function doesn't mutate original:
+	>> nums:sorted()
+	= [-20, 10, 30]
+	>> nums
+	= [10, -20, 30]
+	// Sort function does mutate in place:
 	>> nums:sort()
 	>> nums
 	= [-20, 10, 30]
+	// Custom sort functions:
 	>> nums:sort(func(x:&%Int,y:&%Int) x:abs() <> y:abs())
 	>> nums
 	= [10, -20, 30]

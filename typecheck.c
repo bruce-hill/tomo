@@ -505,6 +505,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "insert_all")) return Type(VoidType);
             else if (streq(call->name, "remove")) return Type(VoidType);
             else if (streq(call->name, "sort")) return Type(VoidType);
+            else if (streq(call->name, "sorted")) return self_value_t;
             else if (streq(call->name, "shuffle")) return Type(VoidType);
             else if (streq(call->name, "random"))
                 return Type(PointerType, .pointed=Match(self_value_t, ArrayType)->item_type, .is_optional=true, .is_readonly=true);

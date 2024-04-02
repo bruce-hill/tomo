@@ -151,6 +151,13 @@ public void Array$sort(array_t *arr, closure_t comparison, const TypeInfo *type)
     qsort_r(arr->data, arr->length, item_size, comparison.fn, comparison.userdata);
 }
 
+public array_t Array$sorted(array_t arr, closure_t comparison, const TypeInfo *type)
+{
+    arr.data_refcount = 3;
+    Array$sort(&arr, comparison, type);
+    return arr;
+}
+
 public void Array$shuffle(array_t *arr, const TypeInfo *type)
 {
     int64_t item_size = get_item_size(type);
