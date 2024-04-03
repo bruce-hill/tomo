@@ -1481,6 +1481,12 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$random(", self, ")");
+            } else if (streq(call->name, "sample")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                arg_t *arg_spec = new(arg_t, .name="count", .type=Type(IntType, .bits=64),
+                                      .next=new(arg_t, .name="weights", .type=self_value_t, .default_val=FakeAST(Array)));
+                return CORD_all("Array$sample(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                                compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "shuffle")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 (void)compile_arguments(env, ast, NULL, call->args);

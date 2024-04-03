@@ -60,6 +60,7 @@ void Array$sort(array_t *arr, closure_t comparison, const TypeInfo *type);
 array_t Array$sorted(array_t arr, closure_t comparison, const TypeInfo *type);
 void Array$shuffle(array_t *arr, const TypeInfo *type);
 void *Array$random(array_t arr);
+array_t Array$sample(array_t arr, int64_t n, array_t weights, const TypeInfo *type);
 void Array$clear(array_t *array);
 void Array$compact(array_t *arr, const TypeInfo *type);
 bool Array$contains(array_t array, void *item, const TypeInfo *type);
