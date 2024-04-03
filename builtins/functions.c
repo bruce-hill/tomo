@@ -148,8 +148,9 @@ public void $test(void *expr, const TypeInfo *type, CORD expected, const char *f
         size_t buf_len = sizeof(buf)-1;
         const char *expr_str = CORD_to_const_char_star(expr_cord);
         uint8_t *normalized_str = u8_normalize(UNINORM_NFD, (uint8_t*)expr_str, strlen(expr_str), buf, &buf_len);
+        normalized_str[buf_len] = 0;
         if (!normalized_str) errx(1, "Couldn't normalize unicode string!");
-        CORD expr_normalized = CORD_from_char_star((char*)buf);
+        CORD expr_normalized = CORD_from_char_star((char*)normalized_str);
         if (normalized_str != buf)
             free(normalized_str);
 
