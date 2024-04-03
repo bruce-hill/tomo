@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 
     cflags = getenv("CFLAGS");
     if (!cflags)
-        cflags = heap_strf("%s %s -ggdb -I. -D_DEFAULT_SOURCE", cconfig, optimization);
+        cflags = heap_strf("%s %s -ggdb -I./include -D_DEFAULT_SOURCE", cconfig, optimization);
 
     ldlibs = "-lgc -lcord -lm -L. -ltomo";
     if (getenv("LDLIBS"))

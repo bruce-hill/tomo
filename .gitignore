@@ -3,5 +3,5 @@
 *.tm.c
 *.tm.h
 *.tm.o
-tomo
-tags
+/tomo
+/tags
