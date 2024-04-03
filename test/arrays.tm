@@ -92,3 +92,5 @@ if yes
 	>> nums:sort(func(x:&%Int,y:&%Int) y[] <> x[])
 	>> nums
 	= [30, 10, -20]
+
+>> ["A", "B", "C"]:sample(10, [1.0, 0.5, 0.0])
