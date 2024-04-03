@@ -298,6 +298,8 @@ int run_program(const char *filename, const char *object_files)
         "(void)argc;\n"
         "(void)argv;\n"
         "GC_INIT();\n"
+        "srand(arc4random_uniform(UINT32_MAX));\n"
+        "srand48(arc4random_uniform(UINT32_MAX));\n"
         "detect_color();\n",
         module_name, "$use();\n"
         "return 0;\n"
