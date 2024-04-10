@@ -27,6 +27,7 @@
     CORD type_name ## $octal(c_type i, int64_t digits, bool prefix); \
     array_t type_name ## $bits(c_type x); \
     c_type type_name ## $random(int64_t min, int64_t max); \
+    c_type type_name ## $from_text(CORD text, CORD *the_rest); \
     extern const c_type type_name ## $min, type_name##$max; \
     extern const TypeInfo $ ## type_name;
 

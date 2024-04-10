@@ -24,6 +24,7 @@ bool Num$finite(double n);
 bool Num$isnan(double n);
 double Num$nan(CORD tag);
 double Num$random(void);
+double Num$from_text(CORD text, CORD *the_rest);
 extern const TypeInfo $Num;
 
 CORD Num32$as_text(const float *f, bool colorize, const TypeInfo *type);
@@ -37,6 +38,7 @@ bool Num32$isinf(float n);
 bool Num32$finite(float n);
 bool Num32$isnan(float n);
 float Num32$random(void);
+float Num32$from_text(CORD text, CORD *the_rest);
 float Num32$nan(CORD tag);
 extern const TypeInfo $Num32;
 

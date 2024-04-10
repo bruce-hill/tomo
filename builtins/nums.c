@@ -64,6 +64,14 @@ public double Num$random(void) {
     return drand48(); 
 }
 
+public double Num$from_text(CORD text, CORD *the_rest) {
+    const char *str = CORD_to_const_char_star(text);
+    char *end = NULL;
+    double d = strtod(str, &end);
+    if (the_rest) *the_rest = CORD_from_char_star(end);
+    return d;
+}
+
 public double Num$nan(CORD tag) {
     return nan(CORD_to_const_char_star(tag));
 }
@@ -132,6 +140,14 @@ public float Num32$mod(float num, float modulus) {
 
 public float Num32$random(void) { 
     return (float)drand48(); 
+}
+
+public float Num32$from_text(CORD text, CORD *the_rest) {
+    const char *str = CORD_to_const_char_star(text);
+    char *end = NULL;
+    double d = strtod(str, &end);
+    if (the_rest) *the_rest = CORD_from_char_star(end);
+    return (float)d;
 }
 
 public float Num32$nan(CORD tag) {

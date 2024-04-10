@@ -60,6 +60,24 @@
         uint32_t r = arc4random_uniform((uint32_t)range); \
         return min + (c_type)r; \
     } \
+    public c_type KindOfInt ## $from_text(CORD text, CORD *the_rest) { \
+        const char *str = CORD_to_const_char_star(text); \
+        long i; \
+        char *end_ptr = NULL; \
+        if (strncmp(str, "0x", 2) == 0) { \
+            i = strtol(str, &end_ptr, 16); \
+        } else if (strncmp(str, "0o", 2) == 0) { \
+            i = strtol(str, &end_ptr, 8); \
+        } else if (strncmp(str, "0b", 2) == 0) { \
+            i = strtol(str, &end_ptr, 2); \
+        } else { \
+            i = strtol(str, &end_ptr, 10); \
+        } \
+        if (the_rest) *the_rest = CORD_from_char_star(end_ptr); \
+        if (i < min_val) i = min_val; \
+        else if (i > max_val) i = min_val; \
+        return (c_type)i; \
+    } \
     public const c_type KindOfInt##$min = min_val; \
     public const c_type KindOfInt##$max = max_val; \
     public const TypeInfo $ ## KindOfInt = { \
