@@ -196,4 +196,27 @@ bool is_idempotent(ast_t *ast)
     }
 }
 
+bool is_constant(ast_t *ast)
+{
+    switch (ast->tag) {
+    case Bool: case Int: case Num: case Nil: case TextLiteral: return true;
+    case TextJoin: {
+        auto text = Match(ast, TextJoin);
+        return !text->children->next;
+    }
+    case Not: return is_constant(Match(ast, Not)->value);
+    case Negative: return is_constant(Match(ast, Negative)->value);
+    case BinaryOp: {
+        auto binop = Match(ast, BinaryOp);
+        switch (binop->op) {
+        case BINOP_UNKNOWN: case BINOP_POWER: case BINOP_CONCAT: case BINOP_MIN: case BINOP_MAX: case BINOP_CMP:
+            return false;
+        default:
+            return is_constant(binop->lhs) && is_constant(binop->rhs);
+        }
+    }
+    default: return false;
+    }
+}
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

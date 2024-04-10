@@ -279,5 +279,6 @@ CORD type_ast_to_xml(type_ast_t *ast);
 int printf_ast(FILE *stream, const struct printf_info *info, const void *const args[]);
 ast_list_t *get_ast_children(ast_t *ast);
 bool is_idempotent(ast_t *ast);
+bool is_constant(ast_t *ast);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

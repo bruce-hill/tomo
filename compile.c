@@ -443,7 +443,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 code = CORD_cat("public ", code);
         }
 
-        env_t *body_scope = global_scope(env);
+        env_t *body_scope = fresh_scope(env);
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
             set_binding(body_scope, arg->name, new(binding_t, .type=arg_type, .code=arg->name));
@@ -1887,9 +1887,27 @@ module_code_t compile_file(ast_t *ast)
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         bind_statement(env, stmt->ast);
-        CORD code = compile_statement(env, stmt->ast);
-        if (code)
-            CORD_appendf(&env->code->main, "%r\n", code);
+    }
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        if (stmt->ast->tag == Declare) {
+            auto decl = Match(stmt->ast, Declare);
+            type_t *t = get_type(env, decl->value);
+            if (t->tag == AbortType || t->tag == VoidType)
+                code_err(stmt->ast, "You can't declare a variable with a %T value", t);
+            if (!is_constant(decl->value))
+                code_err(decl->value, "This value is not a valid constant initializer.");
+            env->code->fndefs = CORD_all(
+                env->code->fndefs,
+                compile_declaration(env, t, Match(decl->var, Var)->name), ";\n");
+            env->code->staticdefs = CORD_all(
+                env->code->staticdefs,
+                "extern ", compile_type(env, t), " ", Match(decl->var, Var)->name, " = ",
+                compile(env, decl->value), ";\n");
+        } else {
+            CORD code = compile_statement(env, stmt->ast);
+            if (code)
+                CORD_appendf(&env->code->main, "%r\n", code);
+        }
     }
 
     return (module_code_t){
