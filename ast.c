@@ -202,7 +202,7 @@ bool is_constant(ast_t *ast)
     case Bool: case Int: case Num: case Nil: case TextLiteral: return true;
     case TextJoin: {
         auto text = Match(ast, TextJoin);
-        return !text->children->next;
+        return !text->children || !text->children->next;
     }
     case Not: return is_constant(Match(ast, Not)->value);
     case Negative: return is_constant(Match(ast, Negative)->value);
