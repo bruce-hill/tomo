@@ -49,7 +49,9 @@ env_t *new_compilation_unit(void)
         CORD struct_val;
         array_t namespace;
     } global_types[] = {
-        {"Bool", Type(BoolType), "Bool_t", "$Bool", {}},
+        {"Bool", Type(BoolType), "Bool_t", "$Bool", $TypedArray(ns_entry_t,
+            {"from_text", "Bool$from_text", "func(text:Text, success=!Bool)->Bool"},
+        )},
         {"Int", Type(IntType, .bits=64), "Int_t", "$Int", $TypedArray(ns_entry_t,
             {"format", "Int$format", "func(i:Int, digits=0)->Text"},
             {"hex", "Int$hex", "func(i:Int, digits=0, uppercase=yes, prefix=yes)->Text"},

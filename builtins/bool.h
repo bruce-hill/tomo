@@ -13,6 +13,7 @@
 #define no (Bool_t)false
 
 CORD Bool$as_text(const bool *b, bool colorize, const TypeInfo *type);
+bool Bool$from_text(CORD text, bool *success);
 
 extern const TypeInfo $Bool;
 
