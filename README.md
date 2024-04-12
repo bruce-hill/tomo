@@ -50,8 +50,8 @@ Tomo has a very small set of dependencies:
 - a C compiler
 - and libc/libm, which should definitely already be installed.
 
-Both of which should be available on your package manager of choice (for
-example, `pacman -S gc libunistring`).
+The Boehm GC and libunistring should be available on your package manager of
+choice (for example, `pacman -S gc libunistring`).
 
 ## Building
 
