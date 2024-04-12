@@ -18,7 +18,7 @@
 #include "typecheck.h"
 #include "types.h"
 
-typedef enum { MODE_TRANSPILE = 0, MODE_COMPILE = 1, MODE_RUN = 2 } mode_e;
+typedef enum { MODE_TRANSPILE = 0, MODE_COMPILE_OBJ = 1, MODE_COMPILE_EXE = 2, MODE_RUN = 3 } mode_e;
 
 static bool verbose = false;
 static const char *autofmt;
@@ -42,7 +42,14 @@ int main(int argc, char *argv[])
         if (streq(argv[i], "-t")) {
             mode = MODE_TRANSPILE;
         } else if (streq(argv[i], "-c")) {
-            mode = MODE_COMPILE;
+            mode = MODE_COMPILE_OBJ;
+        } else if (streq(argv[i], "-r")) {
+            mode = MODE_RUN;
+        } else if (streq(argv[i], "-e")) {
+            mode = MODE_COMPILE_EXE;
+        } else if (streq(argv[i], "-h") || streq(argv[i], "--help")) {
+            printf("Usage: %s [[-t|-c|-e|-r] [option=value]* file.tm [args...]]\n", argv[0]);
+            return 0;
         } else if (strchr(argv[i], '=')) {
             while (argv[i][0] == '-')
                 ++argv[i];
@@ -109,22 +116,23 @@ int main(int argc, char *argv[])
         object_files_cord = object_files_cord ? CORD_all(object_files_cord, " ", dep, ".o") : CORD_cat(dep, ".o");
     }
 
+    if (mode == MODE_COMPILE_OBJ)
+        return 0;
+
     const char *object_files = CORD_to_const_char_star(object_files_cord);
     assert(object_files);
     int executable_status = compile_executable(filename, object_files);
-    if (executable_status != 0)
+    if (mode == MODE_COMPILE_EXE || executable_status != 0)
         return executable_status;
 
-    if (mode == MODE_RUN) {
-        char *exe_name = file_base_name(filename);
-        int num_args = argc - program_arg_index;
-        char *prog_args[num_args + 2];
-        prog_args[0] = exe_name;
-        for (int i = 0; i < num_args; i++)
-            prog_args[i+1] = argv[program_arg_index+i];
-        prog_args[num_args+1] = NULL;
-        execv(exe_name, prog_args);
-    }
+    char *exe_name = file_base_name(filename);
+    int num_args = argc - program_arg_index;
+    char *prog_args[num_args + 2];
+    prog_args[0] = exe_name;
+    for (int i = 0; i < num_args; i++)
+        prog_args[i+1] = argv[program_arg_index+i];
+    prog_args[num_args+1] = NULL;
+    execv(exe_name, prog_args);
 
     return 0;
 }
@@ -327,6 +335,10 @@ int compile_executable(const char *filename, const char *object_files)
 
     CORD_put(program, runner);
     int status = pclose(runner);
+    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+        if (verbose)
+            printf("Compiled executable: %s\n", filename);
+    }
     return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
 }
 
