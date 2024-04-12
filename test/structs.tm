@@ -1,6 +1,8 @@
 
 struct Pair(x,y:Int)
 struct Mixed(x:Int, text:Text)
+struct LinkedList(x:Int, next=!LinkedList)
+struct Password(text:Text; secret)
 
 func test_literals()
 	>> x := Pair(10, 20)
@@ -11,7 +13,6 @@ func test_literals()
 	= yes
 	>> x == Pair(-1, -2)
 	= no
-test_literals()
 
 func test_metamethods()
 	>> x := Pair(10, 20)
@@ -30,7 +31,6 @@ func test_metamethods()
 	= "found"
 	>> t2[y]
 	= "missing"
-test_metamethods()
 
 func test_mixed()
 	>> x := Mixed(10, "Hello")
@@ -48,16 +48,18 @@ func test_mixed()
 	= "found"
 	>> t[y]
 	= "missing"
-test_mixed()
 
-struct LinkedList(x:Int, next=!LinkedList)
->> @LinkedList(10, @LinkedList(20))
+func main()
+	test_literals()
+	test_metamethods()
+	test_mixed()
 
-struct Password(text:Text; secret)
->> my_pass := Password("Swordfish")
-= Password(...)
->> users_by_password := {my_pass=> "User1", Password("xxx")=>"User2"}
-= {Password(...)=>"User1", Password(...)=>"User2"}
->> users_by_password[my_pass]
-= "User1"
+	>> @LinkedList(10, @LinkedList(20))
+
+	>> my_pass := Password("Swordfish")
+	= Password(...)
+	>> users_by_password := {my_pass=> "User1", Password("xxx")=>"User2"}
+	= {Password(...)=>"User1", Password(...)=>"User2"}
+	>> users_by_password[my_pass]
+	= "User1"
 

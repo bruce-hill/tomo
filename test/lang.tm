@@ -14,20 +14,21 @@ lang HTML
 	func paragraph(content:HTML)->HTML
 		return $HTML{}"<p>{content}</p>"
 
->> HTML.HEADER
-= $HTML"<!DOCTYPE HTML>"
+func main()
+	>> HTML.HEADER
+	= $HTML"<!DOCTYPE HTML>"
 
->> user := "I <3 hax"
->> html := $HTML{}"Hello {user}!"
-= $HTML"Hello I &lt;3 hax!"
->> html ++ $HTML{}"<br>"
-= $HTML"Hello I &lt;3 hax!<br>"
+	>> user := "I <3 hax"
+	>> html := $HTML{}"Hello {user}!"
+	= $HTML"Hello I &lt;3 hax!"
+	>> html ++ $HTML{}"<br>"
+	= $HTML"Hello I &lt;3 hax!<br>"
 
->> $HTML{}"{1 + 2}"
-= $HTML"3"
+	>> $HTML{}"{1 + 2}"
+	= $HTML"3"
 
->> $HTML{}"{3_i8}"
-= $HTML"3"
+	>> $HTML{}"{3_i8}"
+	= $HTML"3"
 
->> html:paragraph()
-= $HTML"<p>Hello I &lt;3 hax!</p>"
+	>> html:paragraph()
+	= $HTML"<p>Hello I &lt;3 hax!</p>"

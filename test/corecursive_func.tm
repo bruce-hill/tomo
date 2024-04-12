@@ -10,5 +10,6 @@ func pong(x:Int)->[Text]
 	else
 		return ["pong: {x}"]
 
->> ping(3)
-= ["ping: 3", "pong: 2", "ping: 1", "pong: 0"]
+func main()
+	>> ping(3)
+	= ["ping: 3", "pong: 2", "ping: 1", "pong: 0"]

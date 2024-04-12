@@ -26,10 +26,12 @@ public CORD Bool$as_text(const bool *b, bool colorize, const TypeInfo *type)
 public Bool_t Bool$from_text(CORD text, bool *success)
 {
     CORD lower = Text$lower(text);
-    if (CORD_cmp(lower, "yes") == 0 || CORD_cmp(lower, "on") == 0 || CORD_cmp(lower, "true") == 0) {
+    if (CORD_cmp(lower, "yes") == 0 || CORD_cmp(lower, "on") == 0
+        || CORD_cmp(lower, "true") == 0 || CORD_cmp(lower, "1") == 0) {
         if (success) *success = yes;
         return yes;
-    } else if (CORD_cmp(lower, "no") == 0 || CORD_cmp(lower, "off") == 0 || CORD_cmp(lower, "false") == 0) {
+    } else if (CORD_cmp(lower, "no") == 0 || CORD_cmp(lower, "off") == 0
+               || CORD_cmp(lower, "false") == 0 || CORD_cmp(lower, "0") == 0) {
         if (success) *success = yes;
         return no;
     } else {

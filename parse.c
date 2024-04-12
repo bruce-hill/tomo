@@ -96,6 +96,7 @@ static PARSER(parse_doctest);
 static PARSER(parse_use);
 static PARSER(parse_linker);
 static PARSER(parse_namespace);
+static PARSER(parse_file_body);
 
 static type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos);
 
@@ -509,7 +510,7 @@ type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos) {
     bool is_readonly = match(&pos, "%");
     spaces(&pos);
     type_ast_t *type = expect(ctx, start, &pos, parse_type,
-                             "I couldn't parse a pointer type after this point");
+                              "I couldn't parse a pointer type after this point");
     return NewTypeAST(ctx->file, start, pos, PointerTypeAST, .pointed=type, .is_optional=optional, .is_stack=is_stack, .is_readonly=is_readonly);
 }
 
@@ -1548,7 +1549,8 @@ PARSER(parse_namespace) {
             ||(stmt=optional(ctx, &pos, parse_func_def))
             ||(stmt=optional(ctx, &pos, parse_use))
             ||(stmt=optional(ctx, &pos, parse_linker))
-            ||(stmt=optional(ctx, &pos, parse_statement)))
+            ||(stmt=optional(ctx, &pos, parse_extern))
+            ||(stmt=optional(ctx, &pos, parse_declaration)))
         {
             statements = new(ast_list_t, .ast=stmt, .next=statements);
             pos = stmt->end;
@@ -1559,9 +1561,42 @@ PARSER(parse_namespace) {
             // }
         } else {
             if (get_indent(ctx->file, next) > indent && next < strchrnul(next, '\n'))
-                parser_err(ctx, next, strchrnul(next, '\n'), "I couldn't parse this namespace statement");
+                parser_err(ctx, next, strchrnul(next, '\n'), "I couldn't parse this namespace declaration");
             break;
         }
+    }
+    REVERSE_LIST(statements);
+    return NewAST(ctx->file, start, pos, Block, .statements=statements);
+}
+
+PARSER(parse_file_body) {
+    const char *start = pos;
+    whitespace(&pos);
+    ast_list_t *statements = NULL;
+    for (;;) {
+        const char *next = pos;
+        whitespace(&next);
+        if (get_indent(ctx->file, next) != 0) break;
+        ast_t *stmt;
+        if ((stmt=optional(ctx, &pos, parse_struct_def))
+            ||(stmt=optional(ctx, &pos, parse_enum_def))
+            ||(stmt=optional(ctx, &pos, parse_lang_def))
+            ||(stmt=optional(ctx, &pos, parse_func_def))
+            ||(stmt=optional(ctx, &pos, parse_use))
+            ||(stmt=optional(ctx, &pos, parse_linker))
+            ||(stmt=optional(ctx, &pos, parse_extern))
+            ||(stmt=optional(ctx, &pos, parse_declaration)))
+        {
+            statements = new(ast_list_t, .ast=stmt, .next=statements);
+            pos = stmt->end;
+            whitespace(&pos); // TODO: check for newline
+        } else {
+            break;
+        }
+    }
+    whitespace(&pos);
+    if (pos < ctx->file->text + ctx->file->len && *pos != '\0') {
+        parser_err(ctx, pos, strchrnul(pos, '\n'), "I expect all top-level statements to be declarations of some kind");
     }
     REVERSE_LIST(statements);
     return NewAST(ctx->file, start, pos, Block, .statements=statements);
@@ -1902,7 +1937,7 @@ ast_t *parse_file(file_t *file, jmp_buf *on_err) {
         some_not(&pos, "\r\n");
 
     whitespace(&pos);
-    ast_t *ast = parse_namespace(&ctx, pos);
+    ast_t *ast = parse_file_body(&ctx, pos);
     pos = ast->end;
     whitespace(&pos);
     if (pos < file->text + file->len && *pos != '\0') {

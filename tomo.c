@@ -31,12 +31,13 @@ static const char *cc;
 static array_t get_file_dependencies(const char *filename);
 static int transpile(const char *filename, bool force_retranspile);
 static int compile_object_file(const char *filename, bool force_recompile);
-static int run_program(const char *filename, const char *object_files);
+static int compile_executable(const char *filename, const char *object_files);
 
 int main(int argc, char *argv[])
 {
     mode_e mode = MODE_RUN;
     const char *filename = NULL;
+    int program_arg_index = argc + 1;
     for (int i = 1; i < argc; i++) {
         if (streq(argv[i], "-t")) {
             mode = MODE_TRANSPILE;
@@ -52,6 +53,7 @@ int main(int argc, char *argv[])
             setenv(argv[i], eq + 1, 1);
         } else {
             filename = argv[i];
+            program_arg_index = i + 1;
             break;
         }
     }
@@ -107,11 +109,23 @@ int main(int argc, char *argv[])
         object_files_cord = object_files_cord ? CORD_all(object_files_cord, " ", dep, ".o") : CORD_cat(dep, ".o");
     }
 
+    const char *object_files = CORD_to_const_char_star(object_files_cord);
+    assert(object_files);
+    int executable_status = compile_executable(filename, object_files);
+    if (executable_status != 0)
+        return executable_status;
+
     if (mode == MODE_RUN) {
-        const char *object_files = CORD_to_const_char_star(object_files_cord);
-        assert(object_files);
-        return run_program(filename, object_files);
+        char *exe_name = file_base_name(filename);
+        int num_args = argc - program_arg_index;
+        char *prog_args[num_args + 2];
+        prog_args[0] = exe_name;
+        for (int i = 0; i < num_args; i++)
+            prog_args[i+1] = argv[program_arg_index+i];
+        prog_args[num_args+1] = NULL;
+        execv(exe_name, prog_args);
     }
+
     return 0;
 }
 
@@ -280,11 +294,10 @@ int compile_object_file(const char *filename, bool force_recompile)
     return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
 }
 
-int run_program(const char *filename, const char *object_files)
+int compile_executable(const char *filename, const char *object_files)
 {
     const char *bin_name = file_base_name(filename);
-    const char *run = streq(cc, "tcc") ? heap_strf("%s | tcc %s %s %s %s -run -", autofmt, cflags, ldflags, ldlibs, object_files)
-        : heap_strf("%s | %s %s %s %s %s -x c - -o %s && ./%s", autofmt, cc, cflags, ldflags, ldlibs, object_files, bin_name, bin_name);
+    const char *run = heap_strf("%s | %s %s %s %s %s -x c - -o %s", autofmt, cc, cflags, ldflags, ldlibs, object_files, bin_name);
     if (verbose)
         printf("%s\n", run);
     FILE *runner = popen(run, "w");
@@ -294,17 +307,18 @@ int run_program(const char *filename, const char *object_files)
         "#include <tomo/tomo.h>\n"
         "#include \"", filename, ".h\"\n"
         "\n"
-        "int main(int argc, const char *argv[]) {\n"
+        "int main(int argc, char *argv[]) {\n"
         "(void)argc;\n"
         "(void)argv;\n"
         "GC_INIT();\n"
         "srand(arc4random_uniform(UINT32_MAX));\n"
         "srand48(arc4random_uniform(UINT32_MAX));\n"
         "detect_color();\n",
-        module_name, "$use();\n"
+        module_name, "$main$run(argc, argv);\n",
         "return 0;\n"
         "}\n"
     );
+
     if (verbose) {
         FILE *out = popen(heap_strf("%s | bat -P --file-name=run.c", autofmt), "w");
         CORD_put(program, out);

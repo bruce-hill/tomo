@@ -1,49 +1,50 @@
->> n := 1.5
-= 1.5
+func main()
+	>> n := 1.5
+	= 1.5
 
->> n + n
-= 3
+	>> n + n
+	= 3
 
->> n * 2
-= 3
+	>> n * 2
+	= 3
 
->> n - n
-= 0
+	>> n - n
+	= 0
 
->> Num.PI
-= 3.14159
+	>> Num.PI
+	= 3.14159
 
->> Num.PI:format(precision=10)
-= "3.1415926536"
+	>> Num.PI:format(precision=10)
+	= "3.1415926536"
 
->> Num.random()
+	>> Num.random()
 
->> Num.INF
-= inf
->> Num.INF:isinf()
-= yes
+	>> Num.INF
+	= inf
+	>> Num.INF:isinf()
+	= yes
 
->> Num.nan()
-= nan
->> nan := Num.nan()
->> nan:isnan()
-= yes
->> nan == nan
-= no
+	>> Num.nan()
+	= nan
+	>> nan := Num.nan()
+	>> nan:isnan()
+	= yes
+	>> nan == nan
+	= no
 
->> Num.PI:cos():near(-1)
-= yes
->> Num.PI:sin():near(0)
-= yes
+	>> Num.PI:cos():near(-1)
+	= yes
+	>> Num.PI:sin():near(0)
+	= yes
 
->> 10.0:pow(3)
-= 1000
+	>> 10.0:pow(3)
+	= 1000
 
->> Num.nan():near(Num.nan())
-= no
+	>> Num.nan():near(Num.nan())
+	= no
 
->> Num.INF:near(-Num.INF)
-= no
+	>> Num.INF:near(-Num.INF)
+	= no
 
->> Num32.sqrt(16f32)
-= 4_f32
+	>> Num32.sqrt(16f32)
+	= 4_f32

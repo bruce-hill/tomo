@@ -294,7 +294,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 env->code->imports = CORD_all(env->code->imports, "#include <", path, ".h>\n");
                 env->code->object_files = CORD_all(env->code->object_files, "-l", name, " ");
             }
-            return CORD_all(name, "$use();\n");
+            return CORD_EMPTY;
         } else {
             type_t *t = get_type(env, decl->value);
             if (t->tag == AbortType || t->tag == VoidType)
@@ -917,7 +917,10 @@ static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg
 CORD compile(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
-    case Nil: return CORD_asprintf("$Null(%r)", compile_type_ast(env, Match(ast, Nil)->type));
+    case Nil: {
+        type_t *t = parse_type_ast(env, Match(ast, Nil)->type);
+        return CORD_all("((", compile_type(env, t), "*)NULL)");
+    }
     case Bool: return Match(ast, Bool)->b ? "yes" : "no";
     case Var: {
         binding_t *b = get_binding(env, Match(ast, Var)->name);
@@ -1816,18 +1819,17 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
             auto decl = Match(ast, Declare);
             type_t *t = get_type(ns_env, decl->value);
 
-            CORD var_decl = CORD_all(compile_type(env, t), " ", compile(ns_env, decl->var), ";\n");
+            if (!is_constant(decl->value))
+                code_err(decl->value, "This value is supposed to be a compile-time constant, but I can't figure out how to make it one");
+            CORD var_decl = CORD_all(compile_type(env, t), " ", compile(ns_env, decl->var), " = ", compile(ns_env, decl->value), ";\n");
             env->code->staticdefs = CORD_cat(env->code->staticdefs, var_decl);
-
-            CORD init = CORD_all(compile(ns_env, decl->var), " = ", compile(ns_env, decl->value), ";\n");
-            env->code->main = CORD_cat(env->code->main, init);
 
             env->code->fndefs = CORD_all(env->code->fndefs, "extern ", compile_type(env, t), " ", compile(ns_env, decl->var), ";\n");
             break;
         }
         default: {
             CORD code = compile_statement(ns_env, ast);
-            env->code->main = CORD_cat(env->code->main, code);
+            assert(!code);
             break;
         }
     }
@@ -1877,6 +1879,144 @@ CORD compile_type_info(env_t *env, type_t *t)
     }
 }
 
+static CORD compile_main_arg_parser(env_t *env, const char *module_name, type_t *main_fn_type)
+{
+    CORD code = CORD_all("void ", module_name, "$main$run(int argc, char *argv[]) {\n");
+    auto fn_info = Match(main_fn_type, FunctionType);
+    env_t *main_env = fresh_scope(env);
+
+    CORD usage = CORD_EMPTY;
+    for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
+        usage = CORD_cat(usage, " ");
+        type_t *t = get_arg_type(main_env, arg);
+        CORD flag = Text$replace(arg->name, "_", "-", INT64_MAX);
+        if (arg->default_val) {
+            if (t->tag == BoolType)
+                usage = CORD_all(usage, "[--", flag, "]");
+            else
+                usage = CORD_all(usage, "[--", flag, "=...]");
+        } else {
+            if (t->tag == BoolType)
+                usage = CORD_all(usage, "[--", flag, "|--no-", flag, "]");
+            else
+                usage = CORD_all(usage, "<", flag, ">");
+        }
+    }
+    code = CORD_all(code, "CORD $usage = CORD_all(\"Usage: \", argv[0], ", Text$quoted(usage, false), ");\n",
+                    "#define $USAGE_ERR(...) errx(1, CORD_to_const_char_star(CORD_all(__VA_ARGS__)))\n"
+                    "#define $IS_FLAG(str, flag) (strncmp(str, flag, strlen(flag) == 0 && (str[strlen(flag)] == 0 || str[strlen(flag)] == '=')) == 0)\n");
+
+    // Declare args:
+    for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
+        type_t *t = get_arg_type(main_env, arg);
+        assert(arg->name);
+        code = CORD_all(
+            code, compile_declaration(env, t, arg->name), ";\n",
+            "bool ", arg->name, "$is_set = no;\n");
+        set_binding(env, arg->name, new(binding_t, .type=t, .code=arg->name));
+    }
+    // Provide --flags:
+    code = CORD_all(code, "CORD $flag;\n"
+                    "for (int i = 1; i < argc; ) {\n"
+                    "if (streq(argv[i], \"--\")) {\n"
+                    "argv[i] = NULL;\n"
+                    "break;\n"
+                    "}\n"
+                    "if (strncmp(argv[i], \"--\", 2) != 0) {\n++i;\ncontinue;\n}\n");
+    for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
+        type_t *t = get_arg_type(main_env, arg);
+        CORD flag = Text$replace(arg->name, "_", "-", INT64_MAX);
+        switch (t->tag) {
+        case BoolType: {
+            code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &$flag)) {\n"
+                            "if ($flag) {\n",
+                            arg->name, " = Bool$from_text($flag, &", arg->name, "$is_set", ");\n"
+                            "if (!", arg->name, "$is_set) \n"
+                            "$USAGE_ERR(\"Invalid argument for '--", flag, "'\\n\", $usage);\n",
+                            "} else {\n",
+                            arg->name, " = yes;\n",
+                            arg->name, "$is_set = yes;\n"
+                            "}\n"
+                            "}\n");
+            break;
+        }
+        case TextType: {
+            code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &$flag)) {\n",
+                            arg->name, " = CORD_to_const_char_star($flag);\n",
+                            arg->name, "$is_set = yes;\n"
+                            "}\n");
+            break;
+        }
+        case IntType: case NumType: {
+            CORD type_name = type_to_cord(t);
+            code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &$flag)) {\n",
+                            "if ($flag == CORD_EMPTY)\n"
+                            "$USAGE_ERR(\"No value provided for '--", flag, "'\\n\", $usage);\n"
+                            "CORD $invalid = CORD_EMPTY;\n",
+                            arg->name, " = ", type_name, "$from_text($flag, &$invalid);\n"
+                            "if ($invalid != CORD_EMPTY)\n"
+                            "$USAGE_ERR(\"Invalid value provided for '--", flag, "'\\n\", $usage);\n",
+                            arg->name, "$is_set = yes;\n"
+                            "}\n");
+            break;
+        }
+        default:
+            compiler_err(NULL, NULL, NULL, "Main function has unsupported argument type: %T", t);
+        }
+    }
+
+    code = CORD_all(
+        code, "else {\n"
+        "$USAGE_ERR(\"Unrecognized argument: \", argv[i], \"\\n\", $usage);\n"
+        "}\n"
+        "}\n"
+        "int i = 1;\n"
+        "while (i < argc && argv[i] == NULL)\n"
+        "++i;\n");
+
+    for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
+        code = CORD_all(code, "if (!", arg->name, "$is_set) {\n");
+        type_t *t = get_arg_type(env, arg);
+        if (arg->default_val) {
+            code = CORD_all(code, arg->name, " = ", compile(env, arg->default_val), ";\n");
+        } else {
+            code = CORD_all(
+                code,
+                "if (i < argc) {");
+            if (t->tag == TextType) {
+                code = CORD_all(code, arg->name, " = CORD_from_char_star(argv[i]);\n");
+            } else {
+                code = CORD_all(
+                    code,
+                    "CORD $invalid;\n",
+                    arg->name, " = ", type_to_cord(t), "$from_text(argv[i], &$invalid)", ";\n"
+                    "if ($invalid != CORD_EMPTY)\n"
+                    "$USAGE_ERR(\"Unable to parse this argument as a ", type_to_cord(t), ": \", CORD_from_char_star(argv[i]));\n");
+            }
+            code = CORD_all(
+                code,
+                "argv[i++] = NULL;\n"
+                "while (i < argc && argv[i] == NULL)\n"
+                "++i;\n} else {\n"
+                "$USAGE_ERR(\"Required argument '", arg->name, "' was not provided!\\n\", $usage);\n",
+                "}\n");
+        }
+        code = CORD_all(code, "}\n");
+    }
+
+
+    code = CORD_all(code, "for (; i < argc; i++) {\n"
+                    "if (argv[i])\n$USAGE_ERR(\"Unexpected argument: \", Text$quoted(argv[i], false), \"\\n\", $usage);\n}\n");
+
+    code = CORD_all(code, module_name, "$main(");
+    for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
+        code = CORD_all(code, arg->name);
+        if (arg->next) code = CORD_all(code, ", ");
+    }
+    code = CORD_all(code, ");\n}\n");
+    return code;
+}
+
 module_code_t compile_file(ast_t *ast)
 {
     env_t *env = new_compilation_unit();
@@ -1905,9 +2045,24 @@ module_code_t compile_file(ast_t *ast)
                 compile(env, decl->value), ";\n");
         } else {
             CORD code = compile_statement(env, stmt->ast);
-            if (code)
-                CORD_appendf(&env->code->main, "%r\n", code);
+            assert(!code);
+            // if (code)
+            //     env->code->main = CORD_all(env->code->main, code, "\n");
         }
+    }
+
+    env->code->fndefs = CORD_all(env->code->fndefs, "void ", name, "$main$run(int argc, char *argv[]);\n");
+
+    binding_t *main_fn = get_binding(env, "main");
+    if (!main_fn) {
+        env->code->funcs = CORD_all(env->code->funcs, "public void ", name, "$main$run(int argc, char *argv[]) {\n"
+                                     "(void)argc;\n"
+                                     "(void)argv;\n"
+                                     "}\n");
+    } else if (main_fn->type->tag != FunctionType) {
+        compiler_err(NULL, NULL, NULL, "The name 'main' is bound to something that isn't a function, it's %T", main_fn->type);
+    } else {
+        env->code->funcs = CORD_all(env->code->funcs, compile_main_arg_parser(env, name, main_fn->type));
     }
 
     return (module_code_t){
@@ -1918,22 +2073,14 @@ module_code_t compile_file(ast_t *ast)
             "#include <tomo/tomo.h>\n",
             env->code->typedefs, "\n",
             env->code->typecode, "\n",
-            env->code->fndefs, "\n",
-            "public void ", env->file_prefix, "use(void);\n"
+            env->code->fndefs, "\n"
         ),
         .c_file=CORD_all(
             // CORD_asprintf("#line 0 %r\n", Text$quoted(ast->file->filename, false)),
             env->code->imports, "\n",
             env->code->staticdefs, "\n",
             env->code->funcs, "\n",
-            env->code->typeinfos, "\n",
-            "\n"
-            "public void ", env->file_prefix, "use(void) {\n"
-            "static bool $loaded = no;\n"
-            "if ($loaded) return;\n"
-            "$loaded = yes;\n\n",
-            env->code->main,
-            "}\n"
+            env->code->typeinfos, "\n"
         ),
    };
 }

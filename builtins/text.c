@@ -225,7 +225,7 @@ public CORD Text$replace(CORD text, CORD pat, CORD replacement, int64_t limit)
     if (!text || !pat) return text;
     CORD ret = CORD_EMPTY;
     size_t pos = 0, pat_len = CORD_len(pat);
-    for (size_t found; limit > 0 && (found=CORD_str(text, pos, pat)) != CORD_NOT_FOUND; --limit) {
+    for (size_t found; limit != 0 && (found=CORD_str(text, pos, pat)) != CORD_NOT_FOUND; --limit) {
         ret = CORD_all(ret, CORD_substr(text, pos, found - pos), replacement);
         pos = found + pat_len;
     }

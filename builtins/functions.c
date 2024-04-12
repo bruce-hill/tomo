@@ -8,9 +8,9 @@
 #include <sys/param.h>
 #include <uninorm.h>
 
-#include "files.h"
-#include "util.h"
 #include "array.h"
+#include "bool.h"
+#include "files.h"
 #include "functions.h"
 #include "halfsiphash.h"
 #include "pointer.h"
@@ -18,6 +18,7 @@
 #include "table.h"
 #include "text.h"
 #include "types.h"
+#include "util.h"
 
 extern bool USE_COLOR;
 
@@ -183,6 +184,30 @@ public void say(CORD text)
         puts((char*)normalized);
         if (normalized != buf)
             free(normalized);
+    }
+}
+
+public bool pop_flag(char **argv, int *i, const char *flag, CORD *result)
+{
+    if (argv[*i][0] != '-' || argv[*i][1] != '-') {
+        return false;
+    } else if (streq(argv[*i] + 2, flag)) {
+        *result = CORD_EMPTY;
+        argv[*i] = NULL;
+        *i += 1;
+        return true;
+    } else if (strncmp(argv[*i] + 2, "no-", 3) == 0 && streq(argv[*i] + 5, flag)) {
+        *result = "no";
+        argv[*i] = NULL;
+        *i += 1;
+        return true;
+    } else if (strncmp(argv[*i] + 2, flag, strlen(flag)) == 0 && argv[*i][2 + strlen(flag)] == '=') {
+        *result = CORD_from_char_star(argv[*i] + 2 + strlen(flag) + 1);
+        argv[*i] = NULL;
+        *i += 1;
+        return true;
+    } else {
+        return false;
     }
 }
 
