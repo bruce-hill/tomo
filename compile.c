@@ -1898,6 +1898,8 @@ static CORD compile_main_arg_parser(env_t *env, const char *module_name, type_t 
         } else {
             if (t->tag == BoolType)
                 usage = CORD_all(usage, "[--", flag, "|--no-", flag, "]");
+            else if (t->tag == ArrayType)
+                usage = CORD_all(usage, "<", flag, "...>");
             else
                 usage = CORD_all(usage, "<", flag, ">");
         }
@@ -1947,6 +1949,15 @@ static CORD compile_main_arg_parser(env_t *env, const char *module_name, type_t 
                             "}\n");
             break;
         }
+        case ArrayType: {
+            if (Match(t, ArrayType)->item_type->tag != TextType)
+                compiler_err(NULL, NULL, NULL, "Main function has unsupported argument type: %T (only arrays of Text are supported)", t);
+            code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &$flag)) {\n",
+                            arg->name, " = Text$split(CORD_to_const_char_star($flag), \",\");\n",
+                            arg->name, "$is_set = yes;\n"
+                            "}\n");
+            break;
+        }
         case IntType: case NumType: {
             CORD type_name = type_to_cord(t);
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &$flag)) {\n",
@@ -1975,9 +1986,20 @@ static CORD compile_main_arg_parser(env_t *env, const char *module_name, type_t 
         "++i;\n");
 
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        code = CORD_all(code, "if (!", arg->name, "$is_set) {\n");
         type_t *t = get_arg_type(env, arg);
-        if (arg->default_val) {
+        code = CORD_all(code, "if (!", arg->name, "$is_set) {\n");
+        if (t->tag == ArrayType) {
+            code = CORD_all(
+                code, arg->name, " = (array_t){};\n"
+                "for (; i < argc; i++) {\n"
+                "if (argv[i]) {\n"
+                "CORD $arg = CORD_from_char_star(argv[i]);\n"
+                "Array$insert(&", arg->name, ", &$arg, 0, $ArrayInfo(&$Text));\n"
+                "argv[i] = NULL;\n"
+                "}\n"
+                "}\n",
+                arg->name, "$is_set = yes;\n");
+        } else if (arg->default_val) {
             code = CORD_all(code, arg->name, " = ", compile(env, arg->default_val), ";\n");
         } else {
             code = CORD_all(

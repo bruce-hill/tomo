@@ -11,9 +11,9 @@
 #include <sys/param.h>
 
 #include "array.h"
-#include "types.h"
 #include "functions.h"
 #include "halfsiphash.h"
+#include "types.h"
 #include "util.h"
 
 static inline size_t get_item_size(const TypeInfo *info)
