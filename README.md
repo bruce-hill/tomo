@@ -9,8 +9,9 @@ func greeting(name:Text)->Text
 	greeting := "hello {name}!"
 	return greeting:title()
 
->> greeting("world")
-= "Hello World!"
+func main(name="World")
+	>> greeting(name)
+	= "Hello World!"
 ```
 
 ## Features
@@ -35,6 +36,7 @@ func greeting(name:Text)->Text
 - Structs with known-at-compile-time methods, not OOP objects with vtable
 	lookups
 - Built-in doctests with syntax highlighting
+- Built-in type-safe command line argument parsing
 - Easy interoperability with C
 
 ## Dependencies
