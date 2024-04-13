@@ -21,7 +21,7 @@ func main()
 	= yes
 
 	>> x := Foo.One(123)
-	>> t := {x=>"found"; default="missing"}
+	>> t := {x:"found"; default="missing"}
 	>> t[x]
 	= "found"
 	>> t[Foo.Zero]

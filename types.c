@@ -25,7 +25,7 @@ CORD type_to_cord(type_t *t) {
         }
         case TableType: {
             auto table = Match(t, TableType);
-            return CORD_asprintf("{%r=>%r}", type_to_cord(table->key_type), type_to_cord(table->value_type));
+            return CORD_asprintf("{%r:%r}", type_to_cord(table->key_type), type_to_cord(table->value_type));
         }
         case ClosureType: {
             return type_to_cord(Match(t, ClosureType)->fn);

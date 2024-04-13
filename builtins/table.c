@@ -510,7 +510,7 @@ public CORD Table$as_text(const table_t *t, bool colorize, const TypeInfo *type)
     auto table = type->TableInfo;
 
     if (!t)
-        return CORD_all("{", generic_as_text(NULL, false, table.key), "=>", generic_as_text(NULL, false, table.value), "}");
+        return CORD_all("{", generic_as_text(NULL, false, table.key), ":", generic_as_text(NULL, false, table.value), "}");
 
     int64_t val_off = value_offset(type);
     CORD c = "{";
@@ -519,7 +519,7 @@ public CORD Table$as_text(const table_t *t, bool colorize, const TypeInfo *type)
             c = CORD_cat(c, ", ");
         void *entry = GET_ENTRY(*t, i);
         c = CORD_cat(c, generic_as_text(entry, colorize, table.key));
-        c = CORD_cat(c, "=>");
+        c = CORD_cat(c, ":");
         c = CORD_cat(c, generic_as_text(entry + val_off, colorize, table.value));
     }
 

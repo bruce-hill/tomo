@@ -26,7 +26,7 @@ func test_metamethods()
 
 	>> x < Pair(11, 20)
 	= yes
-	>> t2 := {x=> "found"; default="missing"}
+	>> t2 := {x:"found"; default="missing"}
 	>> t2[x]
 	= "found"
 	>> t2[y]
@@ -43,7 +43,7 @@ func test_mixed()
 	= no
 	>> x < Mixed(11, "Hello")
 	= yes
-	>> t := {x=> "found"; default="missing"}
+	>> t := {x:"found"; default="missing"}
 	>> t[x]
 	= "found"
 	>> t[y]
@@ -58,8 +58,8 @@ func main()
 
 	>> my_pass := Password("Swordfish")
 	= Password(...)
-	>> users_by_password := {my_pass=> "User1", Password("xxx")=>"User2"}
-	= {Password(...)=>"User1", Password(...)=>"User2"}
+	>> users_by_password := {my_pass:"User1", Password("xxx"):"User2"}
+	= {Password(...):"User1", Password(...):"User2"}
 	>> users_by_password[my_pass]
 	= "User1"
 
