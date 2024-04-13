@@ -1904,7 +1904,7 @@ static CORD compile_main_arg_parser(env_t *env, const char *module_name, type_t 
                 usage = CORD_all(usage, "<", flag, ">");
         }
     }
-    code = CORD_all(code, "CORD $usage = CORD_all(\"Usage: \", argv[0], ", Text$quoted(usage, false), ");\n",
+    code = CORD_all(code, "CORD $usage = CORD_all(\"Usage: \", argv[0], ", usage ? Text$quoted(usage, false) : "CORD_EMPTY", ");\n",
                     "#define $USAGE_ERR(...) errx(1, CORD_to_const_char_star(CORD_all(__VA_ARGS__)))\n"
                     "#define $IS_FLAG(str, flag) (strncmp(str, flag, strlen(flag) == 0 && (str[strlen(flag)] == 0 || str[strlen(flag)] == '=')) == 0)\n");
 
