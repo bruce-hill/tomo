@@ -84,7 +84,8 @@ int main(int argc, char *argv[])
 
     cconfig = getenv("CCONFIG");
     if (!cconfig)
-        cconfig = "-std=c11 -fdollars-in-identifiers -fsanitize=signed-integer-overflow -fno-sanitize-recover -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE";
+        cconfig = "-std=c11 -fdollars-in-identifiers -fsanitize=signed-integer-overflow -fno-sanitize-recover"
+            " -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE";
 
     const char *optimization = getenv("O");
     if (!optimization || !optimization[0]) optimization = "-O1";
@@ -337,7 +338,7 @@ int compile_executable(const char *filename, const char *object_files)
     int status = pclose(runner);
     if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
         if (verbose)
-            printf("Compiled executable: %s\n", filename);
+            printf("Compiled executable: %s\n", bin_name);
     }
     return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
 }

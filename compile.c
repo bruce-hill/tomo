@@ -776,9 +776,15 @@ CORD compile_statement(env_t *env, ast_t *ast)
     default:
         return CORD_asprintf("(void)%r;", compile(env, ast));
     }
-    // int64_t line = get_line_number(ast->file, ast->start);
-    // return stmt ? CORD_asprintf("#line %ld\n%r", line, stmt) : stmt;
 }
+
+// CORD compile_statement(env_t *env, ast_t *ast) {
+//     CORD stmt = _compile_statement(env, ast);
+//     if (!stmt)
+//         return stmt;
+//     int64_t line = get_line_number(ast->file, ast->start);
+//     return CORD_asprintf("#line %ld\n%r", line, stmt);
+// }
 
 CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
 {
@@ -2091,14 +2097,14 @@ module_code_t compile_file(ast_t *ast)
         .module_name=name,
         .object_files=env->code->object_files,
         .header=CORD_all(
-            // CORD_asprintf("#line 0 %r\n", Text$quoted(ast->file->filename, false)),
+            // CORD_asprintf("#line 1 %r\n", Text$quoted(ast->file->filename, false)),
             "#include <tomo/tomo.h>\n",
             env->code->typedefs, "\n",
             env->code->typecode, "\n",
             env->code->fndefs, "\n"
         ),
         .c_file=CORD_all(
-            // CORD_asprintf("#line 0 %r\n", Text$quoted(ast->file->filename, false)),
+            // CORD_asprintf("#line 1 %r\n", Text$quoted(ast->file->filename, false)),
             env->code->imports, "\n",
             env->code->staticdefs, "\n",
             env->code->funcs, "\n",

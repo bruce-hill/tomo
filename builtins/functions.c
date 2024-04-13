@@ -1,9 +1,10 @@
 // Built-in functions
+#include <errno.h>
+#include <execinfo.h>
 #include <gc.h>
 #include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <errno.h>
 #include <stdlib.h>
 #include <sys/param.h>
 #include <uninorm.h>
@@ -33,6 +34,26 @@ public void fail(CORD fmt, ...)
     CORD_vfprintf(stderr, fmt, args);
     fputs("\n", stderr);
     va_end(args);
+
+    // Print stack trace:
+    fprintf(stderr, "\x1b[34m");
+    fflush(stderr);
+    void *array[1024];
+    size_t size = backtrace(array, sizeof(array)/sizeof(array[0]));
+    char **strings = strings = backtrace_symbols(array, size);
+    for (size_t i = 1; i < size; i++) {
+        char *filename = strings[i];
+        const char *cmd = heap_strf("addr2line -e %.*s -fip | sed 's/\\$/./g;s/ at /() at /' >&2", strcspn(filename, "("), filename);
+        FILE *fp = popen(cmd, "w");
+        if (fp) {
+            char *paren = strchrnul(strings[i], '(');
+            fprintf(fp, "%.*s\n", strcspn(paren + 1, ")"), paren + 1);
+        }
+        pclose(fp);
+    }
+    fprintf(stderr, "\x1b[m");
+    fflush(stderr);
+
     raise(SIGABRT);
 }
 
