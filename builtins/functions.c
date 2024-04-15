@@ -23,7 +23,7 @@
 
 extern bool USE_COLOR;
 
-public const char *SSS_HASH_VECTOR = "sss hash vector ----------------------------------------------";;
+public const char *TOMO_HASH_VECTOR = "tomo hash vector ---------------------------------------------";
 
 public void fail(CORD fmt, ...)
 {
@@ -90,7 +90,7 @@ public uint32_t generic_hash(const void *obj, const TypeInfo *type)
     default: {
       hash_data:;
         uint32_t hash;
-        halfsiphash((void*)obj, type->size, SSS_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));
+        halfsiphash((void*)obj, type->size, TOMO_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));
         return hash;
     }
     }

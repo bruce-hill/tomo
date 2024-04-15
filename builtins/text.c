@@ -119,7 +119,7 @@ public uint32_t Text$hash(const CORD *cord)
     if (!normalized) errx(1, "Unicode normalization error!");
 
     uint32_t hash;
-    halfsiphash(normalized, norm_len, SSS_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));
+    halfsiphash(normalized, norm_len, TOMO_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));
     if (normalized != buf) free(normalized);
     return hash;
 }

@@ -103,7 +103,7 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
     }
     hash_func = CORD_all(hash_func, "};\n"
                          "uint32_t hash;\n"
-                         "halfsiphash(&field_hashes, sizeof(field_hashes), SSS_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));\n"
+                         "halfsiphash(&field_hashes, sizeof(field_hashes), TOMO_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));\n"
                          "return hash;\n}\n");
     return hash_func;
 }
