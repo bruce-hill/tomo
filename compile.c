@@ -2066,10 +2066,10 @@ module_code_t compile_file(ast_t *ast)
                 code_err(decl->value, "This value is not a valid constant initializer.");
             env->code->fndefs = CORD_all(
                 env->code->fndefs,
-                compile_declaration(env, t, CORD_cat("$", Match(decl->var, Var)->name)), ";\n");
+                compile_declaration(env, t, CORD_cat(env->file_prefix, Match(decl->var, Var)->name)), ";\n");
             env->code->staticdefs = CORD_all(
                 env->code->staticdefs,
-                "extern ", compile_type(env, t), " ", Match(decl->var, Var)->name, " = ",
+                "extern ", compile_type(env, t), " ", env->file_prefix, Match(decl->var, Var)->name, " = ",
                 compile(env, decl->value), ";\n");
         } else {
             CORD code = compile_statement(env, stmt->ast);
