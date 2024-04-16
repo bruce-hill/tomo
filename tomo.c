@@ -317,8 +317,6 @@ int compile_executable(const char *filename, const char *object_files)
         "#include \"", filename, ".h\"\n"
         "\n"
         "int main(int argc, char *argv[]) {\n"
-        "(void)argc;\n"
-        "(void)argv;\n"
         "GC_INIT();\n"
         "srand(arc4random_uniform(UINT32_MAX));\n"
         "srand48(arc4random_uniform(UINT32_MAX));\n"
