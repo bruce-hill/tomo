@@ -2054,7 +2054,11 @@ module_code_t compile_file(ast_t *ast)
     Table$str_set(env->imports, name, env);
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        // Hack: make sure global is bound as foo$var:
+        if (stmt->ast->tag == Declare)
+            env->scope_prefix = heap_strf("%s$", name);
         bind_statement(env, stmt->ast);
+        env->scope_prefix = NULL;
     }
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         if (stmt->ast->tag == Declare) {
