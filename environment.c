@@ -49,10 +49,10 @@ env_t *new_compilation_unit(void)
         CORD struct_val;
         array_t namespace;
     } global_types[] = {
-        {"Bool", Type(BoolType), "Bool_t", "$Bool", $TypedArray(ns_entry_t,
+        {"Bool", Type(BoolType), "Bool_t", "$Bool", TypedArray(ns_entry_t,
             {"from_text", "Bool$from_text", "func(text:Text, success=!Bool)->Bool"},
         )},
-        {"Int", Type(IntType, .bits=64), "Int_t", "$Int", $TypedArray(ns_entry_t,
+        {"Int", Type(IntType, .bits=64), "Int_t", "$Int", TypedArray(ns_entry_t,
             {"format", "Int$format", "func(i:Int, digits=0)->Text"},
             {"hex", "Int$hex", "func(i:Int, digits=0, uppercase=yes, prefix=yes)->Text"},
             {"octal", "Int$octal", "func(i:Int, digits=0, prefix=yes)->Text"},
@@ -63,7 +63,7 @@ env_t *new_compilation_unit(void)
             {"min", "Int$min", "Int"},
             {"max", "Int$max", "Int"},
         )},
-        {"Int32", Type(IntType, .bits=32), "Int32_t", "$Int32", $TypedArray(ns_entry_t,
+        {"Int32", Type(IntType, .bits=32), "Int32_t", "$Int32", TypedArray(ns_entry_t,
             {"format", "Int32$format", "func(i:Int32, digits=0)->Text"},
             {"hex", "Int32$hex", "func(i:Int32, digits=0, uppercase=yes, prefix=yes)->Text"},
             {"octal", "Int32$octal", "func(i:Int32, digits=0, prefix=yes)->Text"},
@@ -74,7 +74,7 @@ env_t *new_compilation_unit(void)
             {"min", "Int32$min", "Int32"},
             {"max", "Int32$max", "Int32"},
         )},
-        {"Int16", Type(IntType, .bits=16), "Int16_t", "$Int16", $TypedArray(ns_entry_t,
+        {"Int16", Type(IntType, .bits=16), "Int16_t", "$Int16", TypedArray(ns_entry_t,
             {"format", "Int16$format", "func(i:Int16, digits=0)->Text"},
             {"hex", "Int16$hex", "func(i:Int16, digits=0, uppercase=yes, prefix=yes)->Text"},
             {"octal", "Int16$octal", "func(i:Int16, digits=0, prefix=yes)->Text"},
@@ -85,7 +85,7 @@ env_t *new_compilation_unit(void)
             {"min", "Int16$min", "Int16"},
             {"max", "Int16$max", "Int16"},
         )},
-        {"Int8", Type(IntType, .bits=8), "Int8_t", "$Int8", $TypedArray(ns_entry_t,
+        {"Int8", Type(IntType, .bits=8), "Int8_t", "$Int8", TypedArray(ns_entry_t,
             {"format", "Int8$format", "func(i:Int8, digits=0)->Text"},
             {"hex", "Int8$hex", "func(i:Int8, digits=0, uppercase=yes, prefix=yes)->Text"},
             {"octal", "Int8$octal", "func(i:Int8, digits=0, prefix=yes)->Text"},
@@ -99,7 +99,7 @@ env_t *new_compilation_unit(void)
 #define C(name) {#name, "M_"#name, "Num"}
 #define F(name) {#name, #name, "func(n:Num)->Num"}
 #define F2(name) {#name, #name, "func(x:Num, y:Num)->Num"}
-        {"Num", Type(NumType, .bits=64), "Num_t", "$Num", $TypedArray(ns_entry_t,
+        {"Num", Type(NumType, .bits=64), "Num_t", "$Num", TypedArray(ns_entry_t,
             {"near", "Num$near", "func(x:Num, y:Num, ratio=1e-9, min_epsilon=1e-9)->Bool"},
             {"format", "Num$format", "func(n:Num, precision=0)->Text"},
             {"scientific", "Num$scientific", "func(n:Num, precision=0)->Text"},
@@ -126,7 +126,7 @@ env_t *new_compilation_unit(void)
 #define C(name) {#name, "(Num32_t)(M_"#name")", "Num32"}
 #define F(name) {#name, #name"f", "func(n:Num32)->Num32"}
 #define F2(name) {#name, #name"f", "func(x:Num32, y:Num32)->Num32"}
-        {"Num32", Type(NumType, .bits=32), "Num32_t", "$Num32", $TypedArray(ns_entry_t,
+        {"Num32", Type(NumType, .bits=32), "Num32_t", "$Num32", TypedArray(ns_entry_t,
             {"near", "Num32$near", "func(x:Num32, y:Num32, ratio=1e-9f32, min_epsilon=1e-9f32)->Bool"},
             {"format", "Num32$format", "func(n:Num32, precision=0)->Text"},
             {"scientific", "Num32$scientific", "func(n:Num32, precision=0)->Text"},
@@ -150,7 +150,7 @@ env_t *new_compilation_unit(void)
 #undef F2
 #undef F
 #undef C
-        {"Text", TEXT_TYPE, "Text_t", "$Text", $TypedArray(ns_entry_t,
+        {"Text", TEXT_TYPE, "Text_t", "$Text", TypedArray(ns_entry_t,
             {"quoted", "Text$quoted", "func(text:Text, color=no)->Text"},
             {"upper", "Text$upper", "func(text:Text)->Text"},
             {"lower", "Text$lower", "func(text:Text)->Text"},
@@ -224,20 +224,20 @@ env_t *for_scope(env_t *env, ast_t *ast)
         switch (iter_t->tag) {
         case ArrayType: {
             type_t *item_t = Match(iter_t, ArrayType)->item_type;
-            set_binding(scope, index, new(binding_t, .type=Type(IntType, .bits=64), .code=index));
-            set_binding(scope, value, new(binding_t, .type=item_t, .code=value));
+            set_binding(scope, index, new(binding_t, .type=Type(IntType, .bits=64), .code=CORD_cat("$", index)));
+            set_binding(scope, value, new(binding_t, .type=item_t, .code=CORD_cat("$", value)));
             return scope;
         }
         case TableType: {
             type_t *key_t = Match(iter_t, TableType)->key_type;
             type_t *value_t = Match(iter_t, TableType)->value_type;
-            set_binding(scope, index, new(binding_t, .type=key_t, .code=index));
-            set_binding(scope, value, new(binding_t, .type=value_t, .code=value));
+            set_binding(scope, index, new(binding_t, .type=key_t, .code=CORD_cat("$", index)));
+            set_binding(scope, value, new(binding_t, .type=value_t, .code=CORD_cat("$", value)));
             return scope;
         }
         case IntType: {
-            set_binding(scope, index, new(binding_t, .type=Type(IntType, .bits=64), .code=index));
-            set_binding(scope, value, new(binding_t, .type=iter_t, .code=value));
+            set_binding(scope, index, new(binding_t, .type=Type(IntType, .bits=64), .code=CORD_cat("$", index)));
+            set_binding(scope, value, new(binding_t, .type=iter_t, .code=CORD_cat("$", value)));
             return scope;
         }
         default: code_err(for_->iter, "Iteration is not implemented for type: %T", iter_t);
@@ -246,16 +246,16 @@ env_t *for_scope(env_t *env, ast_t *ast)
         switch (iter_t->tag) {
         case ArrayType: {
             type_t *item_t = Match(iter_t, ArrayType)->item_type;
-            set_binding(scope, value, new(binding_t, .type=item_t, .code=value));
+            set_binding(scope, value, new(binding_t, .type=item_t, .code=CORD_cat("$", value)));
             return scope;
         }
         case TableType: {
             type_t *key_t = Match(iter_t, TableType)->key_type;
-            set_binding(scope, value, new(binding_t, .type=key_t, .code=value));
+            set_binding(scope, value, new(binding_t, .type=key_t, .code=CORD_cat("$", value)));
             return scope;
         }
         case IntType: {
-            set_binding(scope, value, new(binding_t, .type=iter_t, .code=value));
+            set_binding(scope, value, new(binding_t, .type=iter_t, .code=CORD_cat("$", value)));
             return scope;
         }
         default: code_err(for_->iter, "Iteration is not implemented for type: %T", iter_t);
@@ -283,7 +283,7 @@ binding_t *get_binding(env_t *env, const char *name)
         b = Table$str_get(*env->fn_ctx->closure_scope, name);
         if (b) {
             Table$str_set(env->fn_ctx->closed_vars, name, b);
-            return new(binding_t, .type=b->type, .code=CORD_all("$userdata->", name));
+            return new(binding_t, .type=b->type, .code=CORD_all("userdata->", name));
         }
     }
     return b;

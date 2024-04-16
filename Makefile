@@ -42,7 +42,11 @@ tags:
 
 test: tomo
 	rm -f test/*.tm.[cho]
-	for f in $$(ls test/*.tm | shuf); do echo -e "\x1b[1;4m$$f\x1b[m"; VERBOSE=0 CC=tcc ./tomo "$$f" || break; done
+	for f in $$(ls test/*.tm | shuf); do echo -e "\x1b[1;4m$$f\x1b[m"; \
+		if ! VERBOSE=0 CC=tcc ./tomo "$$f"; then \
+			echo "FAILURE!"; break; \
+		fi; \
+	done; echo -e '\x1b[32;7m ALL TESTS PASSED! \x1b[m'
 
 clean:
 	rm -f tomo *.o SipHash/halfsiphash.o builtins/*.o libtomo.so

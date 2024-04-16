@@ -13,7 +13,7 @@ int32_t Pointer$compare(const void *x, const void *y, const TypeInfo *type);
 bool Pointer$equal(const void *x, const void *y, const TypeInfo *type);
 uint32_t Pointer$hash(const void *x, const TypeInfo *type);
 
-#define $Null(t) (t*)NULL
+#define Null(t) (t*)NULL
 #define POINTER_TYPE(_sigil, _pointed) (&(TypeInfo){\
     .size=sizeof(void*), .align=alignof(void*), .tag=PointerInfo, .PointerInfo.sigil=_sigil, .PointerInfo.pointed=_pointed})
 

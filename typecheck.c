@@ -101,7 +101,7 @@ void bind_statement(env_t *env, ast_t *statement)
         bind_statement(env, decl->value);
         type_t *type = get_type(env, decl->value);
         const char *name = Match(decl->var, Var)->name;
-        CORD code = CORD_cat(env->scope_prefix, name);
+        CORD code = CORD_cat(env->scope_prefix ? env->scope_prefix : "$", name);
         set_binding(env, name, new(binding_t, .type=type, .code=code));
         break;
     }
@@ -673,8 +673,8 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *iter_t = get_type(env, reduction->iter);
         type_t *value_t = iteration_value_type(iter_t);
         env_t *scope = fresh_scope(env);
-        set_binding(scope, "$reduction", new(binding_t, .type=value_t, .code="$reduction"));
-        set_binding(scope, "$iter_value", new(binding_t, .type=value_t, .code="$iter_value"));
+        set_binding(scope, "$reduction", new(binding_t, .type=value_t, .code="reduction"));
+        set_binding(scope, "$iter_value", new(binding_t, .type=value_t, .code="iter_value"));
         type_t *t = get_type(scope, reduction->combination);
         if (!reduction->fallback)
             return t;
