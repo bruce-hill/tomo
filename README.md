@@ -7,11 +7,22 @@ the language design decisions of the future.
 ```
 func greeting(name:Text)->Text
 	greeting := "hello {name}!"
-	return greeting:title()
+	words := greeting:split(" ")
+	return " ":join([w:capitalize() for w in words])
 
 func main(name="World")
-	>> greeting(name)
-	= "Hello World!"
+	to_say := greeting(name)
+	say(to_say)
+```
+
+```bash
+$ tomo hello.tm
+Hello World!
+$ tomo hello.tm --name=åke
+Hello Åke!
+$ tomo -e hello.tm
+$ ./hello --name="john doe"
+Hello John Doe!
 ```
 
 ## Features
