@@ -1939,11 +1939,11 @@ static CORD compile_main_arg_parser(env_t *env, const char *module_name, type_t 
         case BoolType: {
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n"
                             "if (flag) {\n",
-                            arg->name, " = Bool$from_text(flag, &", arg->name, "$is_set", ");\n"
+                            "$", arg->name, " = Bool$from_text(flag, &", arg->name, "$is_set", ");\n"
                             "if (!", arg->name, "$is_set) \n"
                             "USAGE_ERR(\"Invalid argument for '--", flag, "'\\n\", usage);\n",
                             "} else {\n",
-                            arg->name, " = yes;\n",
+                            "$", arg->name, " = yes;\n",
                             arg->name, "$is_set = yes;\n"
                             "}\n"
                             "}\n");
@@ -1951,7 +1951,7 @@ static CORD compile_main_arg_parser(env_t *env, const char *module_name, type_t 
         }
         case TextType: {
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
-                            arg->name, " = CORD_to_const_char_star(flag);\n",
+                            "$", arg->name, " = CORD_to_const_char_star(flag);\n",
                             arg->name, "$is_set = yes;\n"
                             "}\n");
             break;
@@ -1960,7 +1960,7 @@ static CORD compile_main_arg_parser(env_t *env, const char *module_name, type_t 
             if (Match(t, ArrayType)->item_type->tag != TextType)
                 compiler_err(NULL, NULL, NULL, "Main function has unsupported argument type: %T (only arrays of Text are supported)", t);
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
-                            arg->name, " = Text$split(CORD_to_const_char_star(flag), \",\");\n",
+                            "$", arg->name, " = Text$split(CORD_to_const_char_star(flag), \",\");\n",
                             arg->name, "$is_set = yes;\n"
                             "}\n");
             break;
@@ -1971,7 +1971,7 @@ static CORD compile_main_arg_parser(env_t *env, const char *module_name, type_t 
                             "if (flag == CORD_EMPTY)\n"
                             "USAGE_ERR(\"No value provided for '--", flag, "'\\n\", usage);\n"
                             "CORD invalid = CORD_EMPTY;\n",
-                            arg->name, " = ", type_name, "$from_text(flag, &invalid);\n"
+                            "$", arg->name, " = ", type_name, "$from_text(flag, &invalid);\n"
                             "if (invalid != CORD_EMPTY)\n"
                             "USAGE_ERR(\"Invalid value provided for '--", flag, "'\\n\", usage);\n",
                             arg->name, "$is_set = yes;\n"
@@ -1997,28 +1997,28 @@ static CORD compile_main_arg_parser(env_t *env, const char *module_name, type_t 
         code = CORD_all(code, "if (!", arg->name, "$is_set) {\n");
         if (t->tag == ArrayType) {
             code = CORD_all(
-                code, arg->name, " = (array_t){};\n"
+                code, "$", arg->name, " = (array_t){};\n"
                 "for (; i < argc; i++) {\n"
                 "if (argv[i]) {\n"
                 "CORD arg = CORD_from_char_star(argv[i]);\n"
-                "Array$insert(&", arg->name, ", &arg, 0, $ArrayInfo(&$Text));\n"
+                "Array$insert(&$", arg->name, ", &arg, 0, $ArrayInfo(&$Text));\n"
                 "argv[i] = NULL;\n"
                 "}\n"
                 "}\n",
                 arg->name, "$is_set = yes;\n");
         } else if (arg->default_val) {
-            code = CORD_all(code, arg->name, " = ", compile(env, arg->default_val), ";\n");
+            code = CORD_all(code, "$", arg->name, " = ", compile(env, arg->default_val), ";\n");
         } else {
             code = CORD_all(
                 code,
                 "if (i < argc) {");
             if (t->tag == TextType) {
-                code = CORD_all(code, arg->name, " = CORD_from_char_star(argv[i]);\n");
+                code = CORD_all(code, "$", arg->name, " = CORD_from_char_star(argv[i]);\n");
             } else {
                 code = CORD_all(
                     code,
                     "CORD invalid;\n",
-                    arg->name, " = ", type_to_cord(t), "$from_text(argv[i], &invalid)", ";\n"
+                    "$", arg->name, " = ", type_to_cord(t), "$from_text(argv[i], &invalid)", ";\n"
                     "if (invalid != CORD_EMPTY)\n"
                     "USAGE_ERR(\"Unable to parse this argument as a ", type_to_cord(t), ": \", CORD_from_char_star(argv[i]));\n");
             }
@@ -2039,7 +2039,7 @@ static CORD compile_main_arg_parser(env_t *env, const char *module_name, type_t 
 
     code = CORD_all(code, module_name, "$main(");
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        code = CORD_all(code, arg->name);
+        code = CORD_all(code, "$", arg->name);
         if (arg->next) code = CORD_all(code, ", ");
     }
     code = CORD_all(code, ");\n}\n");
