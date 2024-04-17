@@ -414,7 +414,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case FunctionDef: {
         auto fndef = Match(ast, FunctionDef);
-        CORD name = compile(env, fndef->name);
+        bool is_private = Match(fndef->name, Var)->name[0] == '_';
+        CORD name = is_private ? CORD_cat("$", Match(fndef->name, Var)->name) : compile(env, fndef->name);
         type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
 
         CORD arg_signature = "(";
@@ -427,7 +428,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         CORD ret_type_code = compile_type(env, ret_t);
 
-        if (fndef->is_private)
+        if (is_private)
             env->code->staticdefs = CORD_all(env->code->staticdefs, "static ", ret_type_code, " ", name, arg_signature, ";\n");
         else
             env->code->fndefs = CORD_all(env->code->fndefs, ret_type_code, " ", name, arg_signature, ";\n");
@@ -439,7 +440,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             code = CORD_all(ret_type_code, " ", name, arg_signature);
             if (fndef->is_inline)
                 code = CORD_cat("inline ", code);
-            if (!fndef->is_private)
+            if (!is_private)
                 code = CORD_cat("public ", code);
         }
 
@@ -480,7 +481,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             }
 
             CORD wrapper = CORD_all(
-                fndef->is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
+                is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
                 "static table_t cache = {};\n",
                 compile_type(env, args_t), " args = {", all_args, "};\n"
                 "static const TypeInfo *table_type = $TableInfo(", compile_type_info(env, args_t), ", ", compile_type_info(env, ret_t), ");\n",
@@ -2055,7 +2056,7 @@ module_code_t compile_file(ast_t *ast)
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         // Hack: make sure global is bound as foo$var:
-        if (stmt->ast->tag == Declare)
+        if (stmt->ast->tag == Declare && Match(Match(stmt->ast, Declare)->var, Var)->name[0] != '_')
             env->scope_prefix = heap_strf("%s$", name);
         bind_statement(env, stmt->ast);
         env->scope_prefix = NULL;
@@ -2063,18 +2064,28 @@ module_code_t compile_file(ast_t *ast)
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         if (stmt->ast->tag == Declare) {
             auto decl = Match(stmt->ast, Declare);
+            const char *decl_name = Match(decl->var, Var)->name;
+            bool is_private = (decl_name[0] == '_');
             type_t *t = get_type(env, decl->value);
             if (t->tag == AbortType || t->tag == VoidType)
                 code_err(stmt->ast, "You can't declare a variable with a %T value", t);
             if (!is_constant(decl->value))
                 code_err(decl->value, "This value is not a valid constant initializer.");
-            env->code->fndefs = CORD_all(
-                env->code->fndefs,
-                compile_declaration(env, t, CORD_cat(env->file_prefix, Match(decl->var, Var)->name)), ";\n");
-            env->code->staticdefs = CORD_all(
-                env->code->staticdefs,
-                "extern ", compile_type(env, t), " ", env->file_prefix, Match(decl->var, Var)->name, " = ",
-                compile(env, decl->value), ";\n");
+
+            if (is_private) {
+                env->code->staticdefs = CORD_all(
+                    env->code->staticdefs,
+                    "static ", compile_type(env, t), " $", decl_name, " = ",
+                    compile(env, decl->value), ";\n");
+            } else {
+                env->code->fndefs = CORD_all(
+                    env->code->fndefs,
+                    compile_declaration(env, t, CORD_cat(env->file_prefix, decl_name)), ";\n");
+                env->code->staticdefs = CORD_all(
+                    env->code->staticdefs,
+                    "extern ", compile_type(env, t), " ", env->file_prefix, decl_name, " = ",
+                    compile(env, decl->value), ";\n");
+            }
         } else {
             CORD code = compile_statement(env, stmt->ast);
             assert(!code);

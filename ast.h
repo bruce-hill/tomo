@@ -186,7 +186,7 @@ struct ast_s {
             type_ast_t *ret_type;
             ast_t *body;
             ast_t *cache;
-            bool is_inline, is_private;
+            bool is_inline;
         } FunctionDef;
         struct {
             arg_ast_t *args;

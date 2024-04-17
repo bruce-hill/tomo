@@ -109,7 +109,8 @@ void bind_statement(env_t *env, ast_t *statement)
         auto def = Match(statement, FunctionDef);
         type_t *type = get_function_def_type(env, statement);
         const char *name = Match(def->name, Var)->name;
-        CORD code = CORD_all(env->file_prefix, env->scope_prefix, name);
+        bool is_private = (name[0] == '_');
+        CORD code = is_private ? CORD_cat("$", name) : CORD_all(env->file_prefix, env->scope_prefix, name);
         set_binding(env, name, new(binding_t, .type=type, .code=code));
         break;
     }
