@@ -480,11 +480,12 @@ static void siftup(array_t *heap, int64_t pos, closure_t comparison, const TypeI
     assert(pos < endpos);
 
     int64_t item_size = get_item_size(type);
-    /* Bubble up the smaller child until hitting a leaf. */
-    int64_t limit = endpos >> 1;         /* smallest pos that has no child */
+    char old_top[item_size];
+    memcpy(old_top, heap->data + heap->stride*pos, item_size);
+    // Bubble up the smallest leaf node
+    int64_t limit = endpos >> 1;
     while (pos < limit) {
-        /* Set childpos to index of smaller child.   */
-        int64_t childpos = 2*pos + 1;    /* leftmost child position  */
+        int64_t childpos = 2*pos + 1; // Smaller of the two child nodes
         if (childpos + 1 < endpos) {
             typedef int32_t (*cmp_fn_t)(void*, void*, void*);
             int32_t cmp = ((cmp_fn_t)comparison.fn)(
@@ -494,20 +495,12 @@ static void siftup(array_t *heap, int64_t pos, closure_t comparison, const TypeI
             childpos += (cmp >= 0);
         }
 
-        if (heap->data_refcount >= 3) {
-            Array$compact(heap, type);
-            heap->data_refcount = 1;
-        }
-
-        /* Move the smaller child up. */
-        char buf[item_size];
-        memcpy(buf, heap->data + heap->stride*pos, item_size);
+        // Move the child node up:
         memcpy(heap->data + heap->stride*pos, heap->data + heap->stride*childpos, item_size);
-        memcpy(heap->data + heap->stride*childpos, buf, item_size);
-
         pos = childpos;
     }
-    /* Bubble it up to its final resting place (by sifting its parents down). */
+    memcpy(heap->data + heap->stride*pos, old_top, item_size);
+    // Shift the node's parents down:
     siftdown(heap, startpos, pos, comparison, type);
 }
 
