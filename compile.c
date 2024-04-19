@@ -1515,6 +1515,37 @@ CORD compile(env_t *env, ast_t *ast)
                     comparison = CORD_all("(closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "}");
                 }
                 return CORD_all("Array$", call->name, "(", self, ", ", comparison, ", ", compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "heapify")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                CORD comparison;
+                if (call->args) {
+                    type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
+                    type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
+                                        .ret=Type(IntType, .bits=32));
+                    arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t));
+                    comparison = compile_arguments(env, ast, arg_spec, call->args);
+                } else {
+                    comparison = CORD_all("((closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "})");
+                }
+                return CORD_all("Array$heapify(", self, ", ", comparison, ", ", compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "heap_push")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
+                type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
+                                    .ret=Type(IntType, .bits=32));
+                ast_t *default_cmp = FakeAST(InlineCCode, CORD_all("((closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "})"));
+                arg_t *arg_spec = new(arg_t, .name="item", .type=item_t, .next=new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp));
+                CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
+                return CORD_all("Array$heap_push_value(", self, ", ", arg_code, ", ", compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "heap_pop")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
+                type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
+                                    .ret=Type(IntType, .bits=32));
+                ast_t *default_cmp = FakeAST(InlineCCode, CORD_all("((closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "})"));
+                arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp);
+                CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
+                return CORD_all("Array$heap_pop_value(", self, ", ", arg_code, ", ", compile_type_info(env, self_value_t), ", ", compile_type(env, item_t), ")");
             } else if (streq(call->name, "clear")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 (void)compile_arguments(env, ast, NULL, call->args);

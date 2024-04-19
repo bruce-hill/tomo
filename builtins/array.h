@@ -71,5 +71,10 @@ uint32_t Array$hash(const array_t *arr, const TypeInfo *type);
 int32_t Array$compare(const array_t *x, const array_t *y, const TypeInfo *type);
 bool Array$equal(const array_t *x, const array_t *y, const TypeInfo *type);
 CORD Array$as_text(const array_t *arr, bool colorize, const TypeInfo *type);
+void Array$heapify(array_t *heap, closure_t comparison, const TypeInfo *type);
+void Array$heap_push(array_t *heap, const void *item, closure_t comparison, const TypeInfo *type);
+#define Array$heap_push_value(heap, _value, comparison, typeinfo) ({ __typeof(_value) value = _value; Array$heap_push(heap, &value, comparison, typeinfo); })
+void Array$heap_pop(array_t *heap, void *out, closure_t comparison, const TypeInfo *type);
+#define Array$heap_pop_value(heap, comparison, typeinfo, type) ({ type value; Array$heap_pop(heap, &value, comparison, typeinfo); value; })
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

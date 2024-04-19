@@ -514,6 +514,9 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "clear")) return Type(VoidType);
             else if (streq(call->name, "slice")) return self_value_t;
             else if (streq(call->name, "reversed")) return self_value_t;
+            else if (streq(call->name, "heapify")) return Type(VoidType);
+            else if (streq(call->name, "heap_push")) return Type(VoidType);
+            else if (streq(call->name, "heap_pop")) return Match(self_value_t, ArrayType)->item_type;
             else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
         case TableType: {
