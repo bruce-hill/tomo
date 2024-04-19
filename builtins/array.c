@@ -467,13 +467,10 @@ static void siftdown(array_t *heap, int64_t startpos, int64_t pos, closure_t com
         if (cmp >= 0)
             break;
 
-        memcpy(newitem, heap->data + heap->stride*pos, item_size);
-        // swap pos/parentpos:
         memcpy(heap->data + heap->stride*pos, heap->data + heap->stride*parentpos, item_size);
-        memcpy(heap->data + heap->stride*parentpos, newitem, item_size);
-
         pos = parentpos;
     }
+    memcpy(heap->data + heap->stride*pos, newitem, item_size);
 }
 
 static void siftup(array_t *heap, int64_t pos, closure_t comparison, const TypeInfo *type)
