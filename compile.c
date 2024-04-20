@@ -1920,8 +1920,12 @@ CORD compile_type_info(env_t *env, type_t *t)
 CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
 {
     auto fn_info = Match(fn_type, FunctionType);
-    if (!fn_info->args)
-        return "if (argc > 1) errx(1, \"This program doesn't take any arguments.\");\n";
+    if (!fn_info->args) {
+        return CORD_all(
+            "if (argc > 1)\n"
+            "errx(1, \"This program doesn't take any arguments.\");\n",
+            fn_name, "();\n");
+    }
     env_t *main_env = fresh_scope(env);
 
     CORD usage = CORD_EMPTY;
