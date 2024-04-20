@@ -10,6 +10,8 @@
 #include "datatypes.h"
 #include "array.h"
 
+extern bool USE_COLOR;
+
 #define Table(key_t, val_t, key_info, value_info, fb, def, N, ...)  ({ \
     struct { key_t k; val_t v; } ents[N] = {__VA_ARGS__}; \
     table_t table = Table$from_entries((array_t){ \

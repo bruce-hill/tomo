@@ -316,11 +316,13 @@ int compile_executable(const char *filename, const char *object_files)
         "#include <tomo/tomo.h>\n"
         "#include \"", filename, ".h\"\n"
         "\n"
+        "public bool USE_COLOR = true;\n"
+        "\n"
         "int main(int argc, char *argv[]) {\n"
         "GC_INIT();\n"
+        "USE_COLOR = getenv(\"COLOR\") ? strcmp(getenv(\"COLOR\"), \"1\") == 0 : isatty(STDOUT_FILENO);\n"
         "srand(arc4random_uniform(UINT32_MAX));\n"
-        "srand48(arc4random_uniform(UINT32_MAX));\n"
-        "detect_color();\n",
+        "srand48(arc4random_uniform(UINT32_MAX));\n",
         module_name, "$main$run(argc, argv);\n",
         "return 0;\n"
         "}\n"

@@ -10,6 +10,8 @@
 #include "functions.h"
 #include "types.h"
 
+extern bool USE_COLOR;
+
 // Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
 #define Array_get(item_type, arr_expr, index_expr, filename, start, end) *({ \
     const array_t arr = arr_expr; int64_t index = (int64_t)(index_expr); \
