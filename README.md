@@ -27,27 +27,35 @@ Hello John Doe!
 
 ## Features
 
+### Performance
 - Extremely high performance code generation with minimal overhead compared to C
 - Extremely fast parallel compilation times
+- Language-level support for out-of-the-box function caching emphasizing
+	correctness
+- Structs with known-at-compile-time methods, not OOP objects with vtable
+	lookups
+
+## Safety
 - Memory safety (garbage collection, compiler-enforced null safety, automatic
 	array bounds checking, and no uninitialized variables)
 - Arithmetic overflow checking
-- Simple, low-boilerplate type system with type inference
-- Useful and efficient built-in types: arrays, hash tables, structs, tagged
-	unions (sum types), cords (efficient string representation)
-- Well-defined reference and value semantics and mutability rules
-- Language-level support for out-of-the-box function caching emphasizing
-	correctness
 - Type-safe strings representing different languages with automatic prevention
 	of code injection
-- Full UTF8 support for both source code and standard library
 - Pattern matching with exhaustiveness checking for tagged unions
+
+## Simplicity
+- Simple, low-boilerplate type system with type inference
+- Well-defined reference and value semantics and mutability rules
+
+## User-friendliness
+- Useful and efficient built-in types: arrays, hash tables, structs, tagged
+	unions (sum types), cords (efficient string representation)
 - Beautiful and helpful compiler and runtime error messages with emphasis on
 	user-friendliness
-- Structs with known-at-compile-time methods, not OOP objects with vtable
-	lookups
+- Full UTF8 support for all text operations
 - Built-in doctests with syntax highlighting
-- Built-in type-safe command line argument parsing
+- Automatic command line argument parsing with type safety and no need for
+	libraries.
 - Easy interoperability with C
 
 ## Dependencies
