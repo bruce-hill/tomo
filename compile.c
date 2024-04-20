@@ -798,7 +798,7 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
     }
     case NumType: {
         CORD name = type_to_cord(t);
-        return CORD_asprintf("%r$as_text(stack(%r), %r, &$Num%r)", name, expr, color, name);
+        return CORD_asprintf("%r$as_text(stack(%r), %r, &$%r)", name, expr, color, name);
     }
     case TextType: {
         const char *lang = Match(t, TextType)->lang;
