@@ -1917,10 +1917,11 @@ CORD compile_type_info(env_t *env, type_t *t)
     }
 }
 
-static CORD compile_main_arg_parser(env_t *env, const char *module_name, type_t *main_fn_type)
+CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
 {
-    CORD code = CORD_all("void ", module_name, "$main$run(int argc, char *argv[]) {\n");
-    auto fn_info = Match(main_fn_type, FunctionType);
+    auto fn_info = Match(fn_type, FunctionType);
+    if (!fn_info->args)
+        return "if (argc > 1) errx(1, \"This program doesn't take any arguments.\");\n";
     env_t *main_env = fresh_scope(env);
 
     CORD usage = CORD_EMPTY;
@@ -1942,9 +1943,9 @@ static CORD compile_main_arg_parser(env_t *env, const char *module_name, type_t 
                 usage = CORD_all(usage, "<", flag, ">");
         }
     }
-    code = CORD_all(code, "CORD usage = CORD_all(\"Usage: \", argv[0], ", usage ? Text$quoted(usage, false) : "CORD_EMPTY", ");\n",
-                    "#define USAGE_ERR(...) errx(1, CORD_to_const_char_star(CORD_all(__VA_ARGS__)))\n"
-                    "#define IS_FLAG(str, flag) (strncmp(str, flag, strlen(flag) == 0 && (str[strlen(flag)] == 0 || str[strlen(flag)] == '=')) == 0)\n");
+    CORD code = CORD_all("CORD usage = CORD_all(\"Usage: \", argv[0], ", usage ? Text$quoted(usage, false) : "CORD_EMPTY", ");\n",
+                         "#define USAGE_ERR(...) errx(1, CORD_to_const_char_star(CORD_all(__VA_ARGS__)))\n"
+                         "#define IS_FLAG(str, flag) (strncmp(str, flag, strlen(flag) == 0 && (str[strlen(flag)] == 0 || str[strlen(flag)] == '=')) == 0)\n");
 
     // Declare args:
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
@@ -2068,12 +2069,12 @@ static CORD compile_main_arg_parser(env_t *env, const char *module_name, type_t 
     code = CORD_all(code, "for (; i < argc; i++) {\n"
                     "if (argv[i])\nUSAGE_ERR(\"Unexpected argument: \", Text$quoted(argv[i], false), \"\\n\", usage);\n}\n");
 
-    code = CORD_all(code, module_name, "$main(");
+    code = CORD_all(code, fn_name, "(");
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         code = CORD_all(code, "$", arg->name);
         if (arg->next) code = CORD_all(code, ", ");
     }
-    code = CORD_all(code, ");\n}\n");
+    code = CORD_all(code, ");\n");
     return code;
 }
 
@@ -2125,22 +2126,9 @@ module_code_t compile_file(ast_t *ast)
         }
     }
 
-    env->code->fndefs = CORD_all(env->code->fndefs, "void ", name, "$main$run(int argc, char *argv[]);\n");
-
-    binding_t *main_fn = get_binding(env, "main");
-    if (!main_fn) {
-        env->code->funcs = CORD_all(env->code->funcs, "public void ", name, "$main$run(int argc, char *argv[]) {\n"
-                                     "(void)argc;\n"
-                                     "(void)argv;\n"
-                                     "}\n");
-    } else if (main_fn->type->tag != FunctionType) {
-        compiler_err(NULL, NULL, NULL, "The name 'main' is bound to something that isn't a function, it's %T", main_fn->type);
-    } else {
-        env->code->funcs = CORD_all(env->code->funcs, compile_main_arg_parser(env, name, main_fn->type));
-    }
-
     return (module_code_t){
         .module_name=name,
+        .env=env,
         .object_files=env->code->object_files,
         .header=CORD_all(
             // CORD_asprintf("#line 1 %r\n", Text$quoted(ast->file->filename, false)),

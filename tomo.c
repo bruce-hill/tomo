@@ -29,9 +29,9 @@ static const char *ldflags = "-Wl,-rpath '-Wl,$ORIGIN' -L/usr/local/lib";
 static const char *cc;
 
 static array_t get_file_dependencies(const char *filename);
-static int transpile(const char *filename, bool force_retranspile);
+static int transpile(const char *filename, bool force_retranspile, module_code_t *module_code);
 static int compile_object_file(const char *filename, bool force_recompile);
-static int compile_executable(const char *filename, const char *object_files);
+static int compile_executable(const char *filename, const char *object_files, module_code_t *module_code);
 
 int main(int argc, char *argv[])
 {
@@ -104,7 +104,8 @@ int main(int argc, char *argv[])
     cc = getenv("CC");
     if (!cc) cc = "tcc";
 
-    int transpile_status = transpile(filename, true);
+    module_code_t module_code;
+    int transpile_status = transpile(filename, true, &module_code);
     if (mode == MODE_TRANSPILE || transpile_status != 0)
         return transpile_status;
 
@@ -122,7 +123,7 @@ int main(int argc, char *argv[])
 
     const char *object_files = CORD_to_const_char_star(object_files_cord);
     assert(object_files);
-    int executable_status = compile_executable(filename, object_files);
+    int executable_status = compile_executable(filename, object_files, &module_code);
     if (mode == MODE_COMPILE_EXE || executable_status != 0)
         return executable_status;
 
@@ -156,7 +157,7 @@ static void build_file_dependency_graph(const char *filename, table_t *dependenc
     Array$insert(deps, &base_filename, 0, $ArrayInfo(&$Text));
     Table$str_set(dependencies, base_filename, deps);
 
-    transpile(base_filename, false);
+    transpile(base_filename, false, NULL);
 
     const char *to_scan[] = {
         heap_strf("%s.h", base_filename),
@@ -215,7 +216,7 @@ static bool stale(const char *filename, const char *relative_to)
     return target_stat.st_mtime < relative_to_stat.st_mtime;
 }
 
-int transpile(const char *filename, bool force_retranspile)
+int transpile(const char *filename, bool force_retranspile, module_code_t *module_code)
 {
     const char *tm_file = filename;
     const char *c_filename = heap_strf("%s.c", tm_file);
@@ -245,13 +246,13 @@ int transpile(const char *filename, bool force_retranspile)
         pclose(out);
     }
 
-    module_code_t module = compile_file(ast);
+    *module_code = compile_file(ast);
 
     FILE *h_file = fopen(h_filename, "w");
     if (!h_file)
         errx(1, "Couldn't open file: %s", h_filename);
     CORD_put("#pragma once\n", h_file);
-    CORD_put(module.header, h_file);
+    CORD_put(module_code->header, h_file);
     if (fclose(h_file))
         errx(1, "Failed to close file: %s", h_filename);
     if (verbose)
@@ -265,7 +266,7 @@ int transpile(const char *filename, bool force_retranspile)
     FILE *c_file = fopen(c_filename, "w");
     if (!c_file)
         errx(1, "Couldn't open file: %s", c_filename);
-    CORD_put(CORD_all("#include \"", module.module_name, ".tm.h\"\n\n", module.c_file), c_file);
+    CORD_put(CORD_all("#include \"", module_code->module_name, ".tm.h\"\n\n", module_code->c_file), c_file);
     if (fclose(c_file))
         errx(1, "Failed to close file: %s", c_filename);
     if (verbose)
@@ -303,7 +304,7 @@ int compile_object_file(const char *filename, bool force_recompile)
     return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
 }
 
-int compile_executable(const char *filename, const char *object_files)
+int compile_executable(const char *filename, const char *object_files, module_code_t *module_code)
 {
     const char *bin_name = file_base_name(filename);
     const char *run = heap_strf("%s | %s %s %s %s %s -x c - -o %s", autofmt, cc, cflags, ldflags, ldlibs, object_files, bin_name);
@@ -311,7 +312,7 @@ int compile_executable(const char *filename, const char *object_files)
         printf("%s\n", run);
     FILE *runner = popen(run, "w");
 
-    const char *module_name = file_base_name(filename);
+    binding_t *main_binding = get_binding(module_code->env, "main");
     CORD program = CORD_all(
         "#include <tomo/tomo.h>\n"
         "#include \"", filename, ".h\"\n"
@@ -322,9 +323,11 @@ int compile_executable(const char *filename, const char *object_files)
         "GC_INIT();\n"
         "USE_COLOR = getenv(\"COLOR\") ? strcmp(getenv(\"COLOR\"), \"1\") == 0 : isatty(STDOUT_FILENO);\n"
         "srand(arc4random_uniform(UINT32_MAX));\n"
-        "srand48(arc4random_uniform(UINT32_MAX));\n",
-        module_name, "$main$run(argc, argv);\n",
-        "return 0;\n"
+        "srand48(arc4random_uniform(UINT32_MAX));\n"
+        "\n",
+        main_binding && main_binding->type->tag == FunctionType ?
+            CORD_all(compile_cli_arg_call(module_code->env, main_binding->code, main_binding->type), "return 0;\n")
+            : "errx(1, \"No main function is defined!\");\n",
         "}\n"
     );
 
