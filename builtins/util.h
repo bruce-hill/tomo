@@ -6,6 +6,7 @@
 #include <gc.h>
 #include <gc/cord.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <err.h>
 
@@ -23,6 +24,8 @@
 #ifndef public
 #define public __attribute__ ((visibility ("default")))
 #endif
+
+extern bool USE_COLOR;
 
 char *heap_strn(const char *str, size_t len);
 char *heap_str(const char *str);

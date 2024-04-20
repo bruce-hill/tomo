@@ -5,12 +5,10 @@
 #include <stdbool.h>
 #include <gc/cord.h>
 
-#include "util.h"
 #include "datatypes.h"
 #include "functions.h"
 #include "types.h"
-
-extern bool USE_COLOR;
+#include "util.h"
 
 // Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
 #define Array_get(item_type, arr_expr, index_expr, filename, start, end) *({ \

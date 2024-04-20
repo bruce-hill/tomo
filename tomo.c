@@ -317,8 +317,6 @@ int compile_executable(const char *filename, const char *object_files, module_co
         "#include <tomo/tomo.h>\n"
         "#include \"", filename, ".h\"\n"
         "\n"
-        "public bool USE_COLOR = true;\n"
-        "\n"
         "int main(int argc, char *argv[]) {\n"
         "GC_INIT();\n"
         "USE_COLOR = getenv(\"COLOR\") ? strcmp(getenv(\"COLOR\"), \"1\") == 0 : isatty(STDOUT_FILENO);\n"

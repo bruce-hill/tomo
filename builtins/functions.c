@@ -21,8 +21,6 @@
 #include "types.h"
 #include "util.h"
 
-extern bool USE_COLOR;
-
 public const char *TOMO_HASH_VECTOR = "tomo hash vector ---------------------------------------------";
 
 public void fail(CORD fmt, ...)

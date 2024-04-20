@@ -6,11 +6,10 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "types.h"
-#include "datatypes.h"
 #include "array.h"
-
-extern bool USE_COLOR;
+#include "datatypes.h"
+#include "types.h"
+#include "util.h"
 
 #define Table(key_t, val_t, key_info, value_info, fb, def, N, ...)  ({ \
     struct { key_t k; val_t v; } ents[N] = {__VA_ARGS__}; \

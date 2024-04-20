@@ -9,6 +9,8 @@
 
 #include "util.h"
 
+public bool USE_COLOR;
+
 public char *heap_strn(const char *str, size_t len)
 {
     if (!str) return NULL;
