@@ -49,6 +49,8 @@ env_t *new_compilation_unit(void)
         CORD struct_val;
         array_t namespace;
     } global_types[] = {
+        {"Void", Type(VoidType), "Void_t", "$Void", {}},
+        {"Memory", Type(MemoryType), "Memory_t", "$Memory", {}},
         {"Bool", Type(BoolType), "Bool_t", "$Bool", TypedArray(ns_entry_t,
             {"from_text", "Bool$from_text", "func(text:Text, success=!Bool)->Bool"},
         )},

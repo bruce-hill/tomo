@@ -21,6 +21,19 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         const char *name = Match(ast, VarTypeAST)->name;
         type_t *t = Table$str_get(*env->types, name);
         if (t) return t;
+        while (strchr(name, '.')) {
+            char *module_name = heap_strn(name, strcspn(name, "."));
+            binding_t *b = get_binding(env, module_name);
+            if (!b || b->type->tag != ModuleType)
+                code_err(ast, "I don't know a module with the name '%s'", module_name);
+
+            env_t *imported = Table$str_get(*env->imports, Match(b->type, ModuleType)->name);
+            assert(imported);
+            env = imported;
+            name = strchr(name, '.') + 1;
+            t = Table$str_get(*env->types, name);
+            if (t) return t;
+        }
         code_err(ast, "I don't know a type with the name '%s'", name);
     }
     case PointerTypeAST: {

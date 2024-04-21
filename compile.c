@@ -816,7 +816,7 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
     }
     case ArrayType: return CORD_asprintf("Array$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case TableType: return CORD_asprintf("Table$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
-    case FunctionType: return CORD_asprintf("Func$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case FunctionType: case ClosureType: return CORD_asprintf("Func$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case PointerType: return CORD_asprintf("Pointer$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case StructType: case EnumType: return CORD_asprintf("(%r)->CustomInfo.as_text(stack(%r), %r, %r)",
                                                          compile_type_info(env, t), expr, color, compile_type_info(env, t));
@@ -1922,6 +1922,8 @@ CORD compile_type_info(env_t *env, type_t *t)
         return CORD_asprintf("$ClosureInfo(%r)", Text$quoted(type_to_cord(t), false));
     }
     case TypeInfoType: return "&$TypeInfo";
+    case MemoryType: return "&$Memory";
+    case VoidType: return "&$Void";
     default:
         compiler_err(NULL, 0, 0, "I couldn't convert to a type info: %T", t);
     }
@@ -2147,15 +2149,15 @@ module_code_t compile_file(ast_t *ast)
         .env=env,
         .object_files=env->code->object_files,
         .header=CORD_all(
-            // CORD_asprintf("#line 1 %r\n", Text$quoted(ast->file->filename, false)),
+            // "#line 1 ", Text$quoted(ast->file->filename, false), "\n",
             "#include <tomo/tomo.h>\n",
+            env->code->imports, "\n",
             env->code->typedefs, "\n",
             env->code->typecode, "\n",
             env->code->fndefs, "\n"
         ),
         .c_file=CORD_all(
-            // CORD_asprintf("#line 1 %r\n", Text$quoted(ast->file->filename, false)),
-            env->code->imports, "\n",
+            // "#line 1 ", Text$quoted(ast->file->filename, false), "\n",
             env->code->staticdefs, "\n",
             env->code->funcs, "\n",
             env->code->typeinfos, "\n"
