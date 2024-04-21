@@ -157,7 +157,8 @@ static void build_file_dependency_graph(const char *filename, table_t *dependenc
     Array$insert(deps, &base_filename, 0, $ArrayInfo(&$Text));
     Table$str_set(dependencies, base_filename, deps);
 
-    transpile(base_filename, false, NULL);
+    module_code_t _;
+    transpile(base_filename, false, &_);
 
     const char *to_scan[] = {
         heap_strf("%s.h", base_filename),
