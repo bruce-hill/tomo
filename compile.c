@@ -214,16 +214,26 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         if (test->expr->tag == Declare) {
             auto decl = Match(test->expr, Declare);
-            return CORD_asprintf(
-                "%r\n"
-                "test(&%r, %r, %r, %r, %ld, %ld);",
-                compile_statement(env, test->expr),
-                compile(env, decl->var),
-                compile_type_info(env, get_type(env, decl->value)),
-                compile(env, WrapAST(test->expr, TextLiteral, .cord=output)),
-                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
-                (int64_t)(test->expr->start - test->expr->file->text),
-                (int64_t)(test->expr->end - test->expr->file->text));
+            if (decl->value->tag == Use) {
+                assert(compile_statement(env, test->expr) == CORD_EMPTY);
+                return CORD_asprintf(
+                    "test(NULL, NULL, %r, %r, %ld, %ld);",
+                    compile(env, WrapAST(test->expr, TextLiteral, .cord=output)),
+                    compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
+                    (int64_t)(test->expr->start - test->expr->file->text),
+                    (int64_t)(test->expr->end - test->expr->file->text));
+            } else {
+                return CORD_asprintf(
+                    "%r\n"
+                    "test(&%r, %r, %r, %r, %ld, %ld);",
+                    compile_statement(env, test->expr),
+                    compile(env, decl->var),
+                    compile_type_info(env, get_type(env, decl->value)),
+                    compile(env, WrapAST(test->expr, TextLiteral, .cord=output)),
+                    compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
+                    (int64_t)(test->expr->start - test->expr->file->text),
+                    (int64_t)(test->expr->end - test->expr->file->text));
+            }
         } else if (test->expr->tag == Assign) {
             auto assign = Match(test->expr, Assign);
             if (!assign->targets->next && assign->targets->ast->tag == Var) {
@@ -2113,6 +2123,8 @@ module_code_t compile_file(ast_t *ast)
                     env->code->staticdefs,
                     "static ", compile_type(env, t), " $", decl_name, " = ",
                     compile(env, decl->value), ";\n");
+            } else if (decl->value->tag == Use) {
+                assert(compile_statement(env, stmt->ast) == CORD_EMPTY);
             } else {
                 env->code->fndefs = CORD_all(
                     env->code->fndefs,

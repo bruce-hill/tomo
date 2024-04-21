@@ -215,6 +215,7 @@ bool is_constant(ast_t *ast)
             return is_constant(binop->lhs) && is_constant(binop->rhs);
         }
     }
+    case Use: return true;
     default: return false;
     }
 }
