@@ -46,7 +46,7 @@ int op_tightness[] = {
 static const char *keywords[] = {
     "yes", "xor", "while", "when", "use", "then", "struct", "stop", "skip", "return",
     "or", "not", "no", "mod1", "mod", "pass", "lang", "in", "if", "func", "for", "extern",
-    "enum", "else", "do", "and", "_mix_", "_min_", "_max_",
+    "enum", "else", "do", "and", "_min_", "_max_",
     NULL,
 };
 
