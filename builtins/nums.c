@@ -64,6 +64,10 @@ public double Num$random(void) {
     return drand48(); 
 }
 
+public double Num$mix(double amount, double x, double y) { 
+    return (1.0-amount)*x + amount*y;
+}
+
 public double Num$from_text(CORD text, CORD *the_rest) {
     const char *str = CORD_to_const_char_star(text);
     char *end = NULL;
@@ -140,6 +144,10 @@ public float Num32$mod(float num, float modulus) {
 
 public float Num32$random(void) { 
     return (float)drand48(); 
+}
+
+public float Num32$mix(float amount, float x, float y) { 
+    return (1.0-amount)*x + amount*y;
 }
 
 public float Num32$from_text(CORD text, CORD *the_rest) {
