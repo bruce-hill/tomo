@@ -120,8 +120,10 @@ void bind_statement(env_t *env, ast_t *statement)
     }
     case FunctionDef: {
         auto def = Match(statement, FunctionDef);
-        type_t *type = get_function_def_type(env, statement);
         const char *name = Match(def->name, Var)->name;
+        if (get_binding(env, name))
+            code_err(def->name, "A %T called '%s' has already been defined", get_binding(env, name)->type, name);
+        type_t *type = get_function_def_type(env, statement);
         bool is_private = (name[0] == '_');
         CORD code = is_private ? CORD_cat("$", name) : CORD_all(env->file_prefix, env->scope_prefix, name);
         set_binding(env, name, new(binding_t, .type=type, .code=code));
@@ -129,6 +131,8 @@ void bind_statement(env_t *env, ast_t *statement)
     }
     case StructDef: {
         auto def = Match(statement, StructDef);
+        if (get_binding(env, def->name))
+            code_err(statement, "A %T called '%s' has already been defined", get_binding(env, def->name)->type, def->name);
 
         env_t *ns_env = namespace_env(env, def->name);
 
@@ -156,6 +160,8 @@ void bind_statement(env_t *env, ast_t *statement)
     }
     case EnumDef: {
         auto def = Match(statement, EnumDef);
+        if (get_binding(env, def->name))
+            code_err(statement, "A %T called '%s' has already been defined", get_binding(env, def->name)->type, def->name);
 
         env_t *ns_env = namespace_env(env, def->name);
 
@@ -200,6 +206,8 @@ void bind_statement(env_t *env, ast_t *statement)
     }
     case LangDef: {
         auto def = Match(statement, LangDef);
+        if (get_binding(env, def->name))
+            code_err(statement, "A %T called '%s' has already been defined", get_binding(env, def->name)->type, def->name);
 
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(TextType, .lang=def->name, .env=ns_env);
