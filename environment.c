@@ -276,7 +276,7 @@ env_t *namespace_env(env_t *env, const char *namespace_name)
     env_t *ns_env = new(env_t);
     *ns_env = *env;
     ns_env->locals = new(table_t, .fallback=env->locals);
-    ns_env->scope_prefix = CORD_all(env->file_prefix, namespace_name, "$");
+    ns_env->scope_prefix = CORD_all(namespace_name, "$");
     return ns_env;
 }
 
