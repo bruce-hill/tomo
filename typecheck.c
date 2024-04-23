@@ -111,9 +111,11 @@ void bind_statement(env_t *env, ast_t *statement)
     }
     case Declare: {
         auto decl = Match(statement, Declare);
+        const char *name = Match(decl->var, Var)->name;
+        if (get_binding(env, name))
+            code_err(decl->var, "A %T called '%s' has already been defined", get_binding(env, name)->type, name);
         bind_statement(env, decl->value);
         type_t *type = get_type(env, decl->value);
-        const char *name = Match(decl->var, Var)->name;
         CORD code = CORD_cat(env->scope_prefix ? env->scope_prefix : "$", name);
         set_binding(env, name, new(binding_t, .type=type, .code=code));
         break;
