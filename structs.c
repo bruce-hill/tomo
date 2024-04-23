@@ -71,22 +71,25 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
     CORD eq_func = CORD_all("static bool ", full_name, "$equal(const ", full_name, "_t *x, const ", full_name,
                              "_t *y, const TypeInfo *info) {\n"
                              "(void)info;\n");
+    CORD condition = CORD_EMPTY;
     for (arg_ast_t *field = def->fields; field; field = field->next) {
+        if (condition != CORD_EMPTY)
+            condition = CORD_all(condition, " && ");
         type_t *field_type = get_arg_ast_type(env, field);
         switch (field_type->tag) {
         case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
-            eq_func = CORD_all(eq_func, "if (x->", field->name, " != y->", field->name, ") return no;\n");
+            condition = CORD_all(condition, "(x->", field->name, " == y->", field->name, ")");
             break;
         case TextType:
-            eq_func = CORD_all(eq_func, "if (CORD_cmp(x->", field->name, ", y->", field->name, ") != 0) return no;\n");
+            condition = CORD_all(condition, "(CORD_cmp(x->", field->name, ", y->", field->name, ") == 0)");
             break;
         default:
-            eq_func = CORD_all(eq_func, "if (!generic_equal(&x->", field->name, ", &y->", field->name, ", ",
-                                compile_type_info(env, field_type), ")) return no;\n");
+            condition = CORD_all(condition, "generic_equal(&x->", field->name, ", &y->", field->name, ", ",
+                                compile_type_info(env, field_type), ")");
             break;
         }
     }
-    eq_func = CORD_all(eq_func, "return yes;\n}\n");
+    eq_func = CORD_all(eq_func, "return ", condition, ";\n}\n");
     return eq_func;
 }
 
