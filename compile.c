@@ -254,8 +254,14 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
                 CORD code = "{ // Assignment\n";
                 int64_t i = 1;
-                for (ast_list_t *value = assign->values; value; value = value->next)
-                    CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(env, get_type(env, value->ast)), i++, compile(env, value->ast));
+                for (ast_list_t *target = assign->targets, *value = assign->values; target && value; target = target->next, value = value->next) {
+                    type_t *target_type = get_type(env, target->ast);
+                    type_t *value_type = get_type(env, value->ast);
+                    CORD val_code = compile(env, value->ast);
+                    if (!promote(env, &val_code, value_type, target_type))
+                        code_err(value->ast, "This %T value cannot be converted to a %T type", value_type, target_type);
+                    CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(env, target_type), i++, val_code);
+                }
                 i = 1;
                 for (ast_list_t *target = assign->targets; target; target = target->next)
                     code = CORD_all(code, compile_assignment(env, target->ast, CORD_asprintf("$%ld", i++)));
