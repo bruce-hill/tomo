@@ -509,7 +509,7 @@ type_t *get_type(env_t *env, ast_t *ast)
 
         if (fn_type_t->tag == TypeInfoType) {
             type_t *t = Match(fn_type_t, TypeInfoType)->type;
-            if (t->tag == StructType)
+            if (t->tag == StructType || t->tag == IntType || t->tag == NumType)
                 return t; // Constructor
             code_err(call->fn, "This is not a type that has a constructor");
         }

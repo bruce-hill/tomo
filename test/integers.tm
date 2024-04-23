@@ -53,3 +53,6 @@ func main()
 	= "0x7B"
 	>> 123_i8:hex()
 	= "0x7B"
+
+	>> Int(2.1)
+	= 2 : Int

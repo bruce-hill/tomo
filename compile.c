@@ -1621,11 +1621,20 @@ CORD compile(env_t *env, ast_t *ast)
             return CORD_all(fn, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), ")");
         } else if (fn_t->tag == TypeInfoType) {
             type_t *t = Match(fn_t, TypeInfoType)->type;
-            if (!(t->tag == StructType))
+            if (t->tag == StructType) {
+                fn_t = Type(FunctionType, .args=Match(t, StructType)->fields, .ret=t);
+                CORD fn = compile(env, call->fn);
+                return CORD_all(fn, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), ")");
+            } else if (t->tag == IntType || t->tag == NumType) {
+                if (!call->args || call->args->next)
+                    code_err(call->fn, "This constructor takes exactly 1 argument");
+                type_t *actual = get_type(env, call->args->value);
+                if (actual->tag != IntType && actual->tag != NumType)
+                    code_err(call->args->value, "This %T value cannot be converted to a %T", actual, t);
+                return CORD_all("((", compile_type(env, t), ")(", compile(env, call->args->value), "))");
+            } else {
                 code_err(call->fn, "This is not a type that has a constructor");
-            fn_t = Type(FunctionType, .args=Match(t, StructType)->fields, .ret=t);
-            CORD fn = compile(env, call->fn);
-            return CORD_all(fn, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), ")");
+            }
         } else if (fn_t->tag == ClosureType) {
             fn_t = Match(fn_t, ClosureType)->fn;
             arg_t *type_args = Match(fn_t, FunctionType)->args;
