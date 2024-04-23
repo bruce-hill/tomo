@@ -1867,7 +1867,7 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
             auto decl = Match(ast, Declare);
             type_t *t = get_type(ns_env, decl->value);
 
-            if (!is_constant(decl->value))
+            if (!is_constant(env, decl->value))
                 code_err(decl->value, "This value is supposed to be a compile-time constant, but I can't figure out how to make it one");
             CORD var_decl = CORD_all(compile_type(env, t), " ", compile(ns_env, decl->var), " = ", compile(ns_env, decl->value), ";\n");
             env->code->staticdefs = CORD_cat(env->code->staticdefs, var_decl);
@@ -2117,7 +2117,7 @@ module_code_t compile_file(ast_t *ast)
             type_t *t = get_type(env, decl->value);
             if (t->tag == AbortType || t->tag == VoidType)
                 code_err(stmt->ast, "You can't declare a variable with a %T value", t);
-            if (!is_constant(decl->value))
+            if (!is_constant(env, decl->value))
                 code_err(decl->value, "This value is not a valid constant initializer.");
 
             if (is_private) {

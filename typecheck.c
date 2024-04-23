@@ -953,4 +953,40 @@ type_t *parse_type_string(env_t *env, const char *str)
     return ast ? parse_type_ast(env, ast) : NULL;
 }
 
+bool is_constant(env_t *env, ast_t *ast)
+{
+    switch (ast->tag) {
+    case Bool: case Int: case Num: case Nil: case TextLiteral: return true;
+    case TextJoin: {
+        auto text = Match(ast, TextJoin);
+        return !text->children || !text->children->next;
+    }
+    case Not: return is_constant(env, Match(ast, Not)->value);
+    case Negative: return is_constant(env, Match(ast, Negative)->value);
+    case BinaryOp: {
+        auto binop = Match(ast, BinaryOp);
+        switch (binop->op) {
+        case BINOP_UNKNOWN: case BINOP_POWER: case BINOP_CONCAT: case BINOP_MIN: case BINOP_MAX: case BINOP_CMP:
+            return false;
+        default:
+            return is_constant(env, binop->lhs) && is_constant(env, binop->rhs);
+        }
+    }
+    case Use: return true;
+    case FunctionCall: {
+        // Constructors are allowed:
+        auto call = Match(ast, FunctionCall);
+        if (call->fn->tag != Var) return false;
+        binding_t *b = get_binding(env, Match(call->fn, Var)->name);
+        if (b == NULL || b->type->tag != TypeInfoType) return false;
+        for (arg_ast_t *arg = call->args; arg; arg = arg->next) {
+            if (!is_constant(env, arg->value))
+                return false;
+        }
+        return true;
+    }
+    default: return false;
+    }
+}
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
