@@ -300,17 +300,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
     case Declare: {
         auto decl = Match(ast, Declare);
         if (decl->value->tag == Use) {
-            auto use = Match(decl->value, Use);
-            const char *path = use->raw_path;
-            const char *name = file_base_name(path);
-            if (strncmp(path, "./", 2) == 0 || strncmp(path, "../", 3) == 0) {
-                env->code->imports = CORD_all(env->code->imports, "#include \"", path, ".h\"\n");
-                env->code->object_files = CORD_all(env->code->object_files, "'", path, ".o' ");
-            } else {
-                env->code->imports = CORD_all(env->code->imports, "#include <", path, ".h>\n");
-                env->code->object_files = CORD_all(env->code->object_files, "-l", name, " ");
-            }
-            return CORD_EMPTY;
+            return compile_statement(env, decl->value);
         } else {
             type_t *t = get_type(env, decl->value);
             if (t->tag == AbortType || t->tag == VoidType)
@@ -790,6 +780,19 @@ CORD compile_statement(env_t *env, ast_t *ast)
         return CORD_EMPTY;
     }
     case InlineCCode: return Match(ast, InlineCCode)->code;
+    case Use: {
+        auto use = Match(ast, Use);
+        const char *path = use->raw_path;
+        const char *name = file_base_name(path);
+        if (strncmp(path, "./", 2) == 0 || strncmp(path, "../", 3) == 0) {
+            env->code->imports = CORD_all(env->code->imports, "#include \"", path, ".h\"\n");
+            env->code->object_files = CORD_all(env->code->object_files, "'", path, ".o' ");
+        } else {
+            env->code->imports = CORD_all(env->code->imports, "#include <", path, ".h>\n");
+            env->code->object_files = CORD_all(env->code->object_files, "-l", name, " ");
+        }
+        return CORD_EMPTY;
+    }
     default:
         return CORD_asprintf("(void)%r;", compile(env, ast));
     }
@@ -1854,7 +1857,7 @@ CORD compile(env_t *env, ast_t *ast)
         }
     }
     case InlineCCode: return Match(ast, InlineCCode)->code;
-    case Use: code_err(ast, "Uses are not supported yet");
+    case Use: return CORD_EMPTY;
     case LinkerDirective: code_err(ast, "Linker directives are not supported yet");
     case Extern: code_err(ast, "Externs are not supported yet");
     case TableEntry: code_err(ast, "Table entries should not be compiled directly");
@@ -1864,7 +1867,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Unknown: code_err(ast, "Unknown AST");
     }
     code_err(ast, "Unknown AST: %W", ast);
-    return NULL;
+    return CORD_EMPTY;
 }
 
 void compile_namespace(env_t *env, const char *ns_name, ast_t *block)

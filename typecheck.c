@@ -102,6 +102,37 @@ type_t *get_math_type(env_t *env, ast_t *ast, type_t *lhs_t, type_t *rhs_t)
     code_err(ast, "Math operations between %T and %T are not supported", lhs_t, rhs_t);
 }
 
+static env_t *load_module(env_t *env, ast_t *use_ast)
+{
+    auto use = Match(use_ast, Use);
+    const char *name = file_base_name(use->raw_path);
+    env_t *module_env = Table$str_get(*env->imports, name);
+    if (module_env)
+        return module_env;
+
+    module_env = new_compilation_unit();
+    module_env->file_prefix = heap_strf("%s$", name);
+    Table$str_set(module_env->imports, name, module_env);
+    const char *my_name = heap_strn(CORD_to_const_char_star(env->file_prefix), CORD_len(env->file_prefix)-1);
+    Table$str_set(module_env->imports, my_name, env);
+
+    const char *resolved_path = resolve_path(use->raw_path, use_ast->file->filename, getenv("USE_PATH"));
+    if (!resolved_path)
+        code_err(use_ast, "No such file exists: \"%s\"", use->raw_path);
+
+    file_t *f = load_file(resolved_path);
+    if (!f) errx(1, "No such file: %s", resolved_path);
+
+    ast_t *ast = parse_file(f, NULL);
+    if (!ast) errx(1, "Could not compile!");
+
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        bind_statement(module_env, stmt->ast);
+    }
+    Table$str_set(env->imports, name, module_env);
+    return module_env;
+}
+
 void bind_statement(env_t *env, ast_t *statement)
 {
     switch (statement->tag) {
@@ -114,7 +145,10 @@ void bind_statement(env_t *env, ast_t *statement)
         const char *name = Match(decl->var, Var)->name;
         if (get_binding(env, name))
             code_err(decl->var, "A %T called '%s' has already been defined", get_binding(env, name)->type, name);
-        bind_statement(env, decl->value);
+        if (decl->value->tag == Use)
+            (void)load_module(env, decl->value);
+        else
+            bind_statement(env, decl->value);
         type_t *type = get_type(env, decl->value);
         CORD code = CORD_cat(env->scope_prefix ? env->scope_prefix : "$", name);
         set_binding(env, name, new(binding_t, .type=type, .code=code));
@@ -153,7 +187,7 @@ void bind_statement(env_t *env, ast_t *statement)
         type->__data.StructType.opaque = false;
         
         type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env);
-        Table$str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type, .code=CORD_all(env->file_prefix, def->name)));
+        Table$str_set(env->locals, def->name, new(binding_t, .type=typeinfo_type, .code=CORD_all(env->file_prefix, def->name)));
 
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
             bind_statement(ns_env, stmt->ast);
@@ -199,7 +233,7 @@ void bind_statement(env_t *env, ast_t *statement)
         }
         
         type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env);
-        Table$str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type));
+        Table$str_set(env->locals, def->name, new(binding_t, .type=typeinfo_type));
 
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
             bind_statement(ns_env, stmt->ast);
@@ -223,38 +257,36 @@ void bind_statement(env_t *env, ast_t *statement)
                         .code="(Text_t)"));
 
         type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env);
-        Table$str_set(env->globals, def->name, new(binding_t, .type=typeinfo_type));
+        Table$str_set(env->locals, def->name, new(binding_t, .type=typeinfo_type));
 
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             bind_statement(ns_env, stmt->ast);
         break;
     }
     case Use: {
-        auto use = Match(statement, Use);
-        const char *name = file_base_name(use->raw_path);
-        if (Table$str_get(*env->imports, name))
-            break;
-
-        env_t *module_env = new_compilation_unit();
-        module_env->file_prefix = heap_strf("%s$", name);
-        Table$str_set(module_env->imports, name, module_env);
-        const char *my_name = heap_strn(CORD_to_const_char_star(env->file_prefix), CORD_len(env->file_prefix)-1);
-        Table$str_set(module_env->imports, my_name, env);
-
-        const char *resolved_path = resolve_path(use->raw_path, statement->file->filename, getenv("USE_PATH"));
-        if (!resolved_path)
-            code_err(statement, "No such file exists: \"%s\"", use->raw_path);
-
-        file_t *f = load_file(resolved_path);
-        if (!f) errx(1, "No such file: %s", resolved_path);
-
-        ast_t *ast = parse_file(f, NULL);
-        if (!ast) errx(1, "Could not compile!");
-
-        for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-            bind_statement(module_env, stmt->ast);
+        env_t *module_env = load_module(env, statement);
+        for (table_t *bindings = module_env->locals; bindings != module_env->globals; bindings = bindings->fallback) {
+            for (int64_t i = 1; i <= Table$length(*bindings); i++) {
+                struct {const char *name; binding_t *binding; } *entry = Table$entry(*bindings, i);
+                if (entry->name[0] == '_')
+                    continue;
+                if (Table$str_get(*env->locals, entry->name))
+                    code_err(statement, "This module imports a symbol called '%s', which would clobber another variable", entry->name);
+                printf("Imported binding: %s\n", entry->name);
+                Table$str_set(env->locals, entry->name, entry->binding);
+            }
         }
-        Table$str_set(env->imports, name, module_env);
+        for (int64_t i = 1; i <= Table$length(*module_env->types); i++) {
+            struct {const char *name; type_t *type; } *entry = Table$entry(*module_env->types, i);
+            if (entry->name[0] == '_')
+                continue;
+            if (Table$str_get(*env->types, entry->name))
+                continue;
+
+//code_err(statement, "This module imports a type called '%s', which would clobber another type", entry->name);
+            printf("Imported type: %s\n", entry->name);
+            Table$str_set(env->types, entry->name, entry->type);
+        }
         break;
     }
     case Extern: {
