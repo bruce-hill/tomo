@@ -268,11 +268,10 @@ void bind_statement(env_t *env, ast_t *statement)
         for (table_t *bindings = module_env->locals; bindings != module_env->globals; bindings = bindings->fallback) {
             for (int64_t i = 1; i <= Table$length(*bindings); i++) {
                 struct {const char *name; binding_t *binding; } *entry = Table$entry(*bindings, i);
-                if (entry->name[0] == '_')
+                if (entry->name[0] == '_' || streq(entry->name, "main"))
                     continue;
                 if (Table$str_get(*env->locals, entry->name))
                     code_err(statement, "This module imports a symbol called '%s', which would clobber another variable", entry->name);
-                printf("Imported binding: %s\n", entry->name);
                 Table$str_set(env->locals, entry->name, entry->binding);
             }
         }
@@ -284,7 +283,6 @@ void bind_statement(env_t *env, ast_t *statement)
                 continue;
 
 //code_err(statement, "This module imports a type called '%s', which would clobber another type", entry->name);
-            printf("Imported type: %s\n", entry->name);
             Table$str_set(env->types, entry->name, entry->type);
         }
         break;
