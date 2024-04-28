@@ -1,35 +1,35 @@
 
-func all_nums(nums:[Int])->Text
+func all_nums(nums:[Int])->Text:
 	result := ""
-	for num in nums
+	for num in nums:
 		result ++= "{num},"
-	else
+	else:
 		return "EMPTY"
 	return result
 
-func labeled_nums(nums:[Int])->Text
+func labeled_nums(nums:[Int])->Text:
 	result := ""
-	for i,num in nums
+	for i,num in nums:
 		result ++= "{i}:{num},"
-	else
+	else:
 		return "EMPTY"
 	return result
 
-func table_str(t:{Text:Text})->Text
+func table_str(t:{Text:Text})->Text:
 	str := ""
-	for k,v in t
+	for k,v in t:
 		str ++= "{k}:{v},"
-	else return "EMPTY"
+	else: return "EMPTY"
 	return str
 
-func table_key_str(t:{Text:Text})->Text
+func table_key_str(t:{Text:Text})->Text:
 	str := ""
-	for k in t
+	for k in t:
 		str ++= "{k},"
-	else return "EMPTY"
+	else: return "EMPTY"
 	return str
 
-func main()
+func main():
 	>> all_nums([10,20,30])
 	= "10,20,30,"
 	>> all_nums([:Int])

@@ -1,6 +1,6 @@
 enum Foo(Zero, One(x:Int), Two(x,y:Int))
 
-func main()
+func main():
 	>> Foo.Zero
 	= Foo.Zero
 	>> Foo.One(123)
@@ -27,9 +27,9 @@ func main()
 	>> t[Foo.Zero]
 	= "missing"
 
-	when x is o:One
+	when x is o:One:
 		>> o.x
 		= 123
-	else
+	else:
 		fail("Oops")
 

@@ -1,9 +1,9 @@
-func main()
-	if yes
+func main():
+	if yes:
 		>> [:Num32]
 		= [] : [Num32]
 
-	if yes
+	if yes:
 		>> arr := [10, 20, 30]
 		= [10, 20, 30]
 
@@ -16,18 +16,18 @@ func main()
 		= 3
 
 		sum := 0
-		for x in arr
+		for x in arr:
 			sum += x
 		>> sum
 		= 60
 
 		str := ""
-		for i,x in arr
+		for i,x in arr:
 			str ++= "({i},{x})"
 		>> str
 		= "(1,10)(2,20)(3,30)"
 
-	if yes
+	if yes:
 		>> arr := [10, 20] ++ [30, 40]
 		= [10, 20, 30, 40]
 
@@ -39,7 +39,7 @@ func main()
 		>> arr
 		= [10, 20, 30, 40, 50, 60, 70]
 
-	if yes
+	if yes:
 		>> arr := [10, 20]
 		>> copy := arr
 		>> arr ++= 30
@@ -48,7 +48,7 @@ func main()
 		>> copy
 		= [10, 20]
 
-	if yes
+	if yes:
 		>> [10*i for i in 5]
 		= [10, 20, 30, 40, 50]
 
@@ -61,7 +61,7 @@ func main()
 	>> [x for x in y if x > 1 for y in [3, 4, 5] if y < 5]
 	= [2, 3, 2, 3, 4]
 
-	if yes
+	if yes:
 		>> arr := @[10, 20]
 		>> copy := arr[]
 		>> arr:insert(30)
@@ -70,12 +70,12 @@ func main()
 		>> copy
 		= [10, 20]
 
-	if yes
+	if yes:
 		>> arr := [10, 20, 30]
 		>> arr:reversed()
 		= [30, 20, 10]
 
-	if yes
+	if yes:
 		>> nums := [10, -20, 30]
 		// Sorted function doesn't mutate original:
 		>> nums:sorted()
@@ -96,20 +96,20 @@ func main()
 
 	>> ["A", "B", "C"]:sample(10, [1.0, 0.5, 0.0])
 
-	if yes
+	if yes:
 		>> heap := [Int.random(max=50) for _ in 10]
 		>> heap:heapify()
 		>> heap
 		sorted := [:Int]
-		while #heap > 0
+		while #heap > 0:
 			sorted:insert(heap:heap_pop())
 		>> sorted == sorted:sorted()
 		= yes
-		for _ in 10
+		for _ in 10:
 			heap:heap_push(Int.random(max=50))
 		>> heap
 		sorted = [:Int]
-		while #heap > 0
+		while #heap > 0:
 			sorted:insert(heap:heap_pop())
 		>> sorted == sorted:sorted()
 		= yes

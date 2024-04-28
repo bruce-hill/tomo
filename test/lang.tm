@@ -1,6 +1,6 @@
-lang HTML
+lang HTML:
 	HEADER := $HTML{}"<!DOCTYPE HTML>"
-	func escape(t:Text)->HTML
+	func escape(t:Text)->HTML:
 		t = t:replace("&", "&amp;")
 		t = t:replace("<", "&lt;")
 		t = t:replace(">", "&gt;")
@@ -8,13 +8,13 @@ lang HTML
 		t = t:replace("'", "&#39;")
 		return HTML.from_unsafe_text(t)
 
-	func escape_int(i:Int)->HTML
+	func escape_int(i:Int)->HTML:
 		return HTML.from_unsafe_text("{i}")
 	
-	func paragraph(content:HTML)->HTML
+	func paragraph(content:HTML)->HTML:
 		return $HTML{}"<p>{content}</p>"
 
-func main()
+func main():
 	>> HTML.HEADER
 	= $HTML"<!DOCTYPE HTML>"
 

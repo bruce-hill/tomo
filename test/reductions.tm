@@ -1,6 +1,6 @@
 struct Foo(x,y:Int)
 
-func main()
+func main():
 	>> (+) [10, 20, 30]
 	= 60
 

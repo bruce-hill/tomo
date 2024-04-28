@@ -1,4 +1,4 @@
-func main()
+func main():
 	>> t := {"one":1, "two":2; default=999}
 	= {"one":1, "two":2; default=999}
 
@@ -10,7 +10,7 @@ func main()
 	= 999
 
 	t_str := ""
-	for k,v in t
+	for k,v in t:
 		t_str ++= "({k}:{v})"
 	>> t_str
 	= "(one:1)(two:2)"
@@ -45,7 +45,7 @@ func main()
 	= ?%{"one":1, "two":2; default=999}
 
 	t2_str := ""
-	for k,v in t2
+	for k,v in t2:
 		t2_str ++= "({k}:{v})"
 	>> t2_str
 	= "(three:3)"

@@ -1,4 +1,4 @@
-func main()
+func main():
 	>> 2 + 3
 	= 5
 
@@ -27,7 +27,7 @@ func main()
 	= 1
 
 	nums := ""
-	for x in 5
+	for x in 5:
 		nums ++= "{x},"
 	>> nums
 	= "1,2,3,4,5,"

@@ -5,12 +5,12 @@ language that cross-compiles to C. Tomo is designed to anticipate and influence
 the language design decisions of the future.
 
 ```
-func greeting(name:Text)->Text
+func greeting(name:Text)->Text:
 	greeting := "hello {name}!"
 	words := greeting:split(" ")
 	return " ":join([w:capitalize() for w in words])
 
-func main(name="World")
+func main(name="World"):
 	to_say := greeting(name)
 	say(to_say)
 ```

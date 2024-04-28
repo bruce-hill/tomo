@@ -1,4 +1,4 @@
-func main()
+func main():
 	>> str := "Hello Amélie!"
 	>> str:upper()
 	= "HELLO AMÉLIE!"

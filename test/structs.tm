@@ -4,7 +4,7 @@ struct Mixed(x:Int, text:Text)
 struct LinkedList(x:Int, next=!LinkedList)
 struct Password(text:Text; secret)
 
-func test_literals()
+func test_literals():
 	>> x := Pair(10, 20)
 	= Pair(x=10, y=20)
 	>> y := Pair(y=20, 10)
@@ -14,7 +14,7 @@ func test_literals()
 	>> x == Pair(-1, -2)
 	= no
 
-func test_metamethods()
+func test_metamethods():
 	>> x := Pair(10, 20)
 	>> y := Pair(100, 200)
 	>> x == y
@@ -32,7 +32,7 @@ func test_metamethods()
 	>> t2[y]
 	= "missing"
 
-func test_mixed()
+func test_mixed():
 	>> x := Mixed(10, "Hello")
 	>> y := Mixed(99, "Hello")
 	>> x == y
@@ -49,7 +49,7 @@ func test_mixed()
 	>> t[y]
 	= "missing"
 
-func main()
+func main():
 	test_literals()
 	test_metamethods()
 	test_mixed()

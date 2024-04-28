@@ -781,8 +781,10 @@ PARSER(parse_reduction) {
     }
 
     ast_t *fallback = NULL;
-    if (match_word(&pos, "else"))
+    if (match_word(&pos, "else")) {
+        expect_str(ctx, start, &pos, ":", "I expected a ':' here");
         fallback = expect(ctx, pos-4, &pos, parse_expr, "I couldn't parse the expression after this 'else'");
+    }
 
     return NewAST(ctx->file, start, pos, Reduction, .iter=iter, .combination=combination, .fallback=fallback);
 }
@@ -838,7 +840,7 @@ PARSER(parse_if) {
     if (!condition) condition = expect(ctx, start, &pos, parse_expr,
                                        "I expected to find an expression for this 'if'");
 
-    match_word(&pos, "then"); // optional
+    expect_str(ctx, start, &pos, ":", "I expected a ':' here");
 
     ast_t *body = expect(ctx, start, &pos, parse_opt_indented_block, "I expected a body for this 'if' statement"); 
 
@@ -848,6 +850,7 @@ PARSER(parse_if) {
     const char *else_start = pos;
     if (get_indent(ctx->file, tmp) == starting_indent && match_word(&tmp, "else")) {
         pos = tmp;
+        expect_str(ctx, start, &pos, ":", "I expected a ':' here");
         else_body = expect(ctx, else_start, &pos, parse_opt_indented_block, "I expected a body for this 'else'"); 
     }
     return NewAST(ctx->file, start, pos, If, .condition=condition, .body=body, .else_body=else_body);
@@ -881,7 +884,8 @@ PARSER(parse_when) {
             var = NULL;
         }
 
-        match_word(&pos, "then"); // optional
+        expect_str(ctx, start, &pos, ":", "I expected a ':' here");
+
         ast_t *body = expect(ctx, start, &pos, parse_opt_indented_block, "I expected a body for this 'when' clause"); 
         clauses = new(when_clause_t, .var=var, .tag_name=tag_name, .body=body, .next=clauses);
         tmp = pos;
@@ -893,6 +897,7 @@ PARSER(parse_when) {
     const char *else_start = pos;
     if (get_indent(ctx->file, tmp) == starting_indent && match_word(&tmp, "else")) {
         pos = tmp;
+        expect_str(ctx, start, &pos, ":", "I expected a ':' here");
         else_body = expect(ctx, else_start, &pos, parse_opt_indented_block, "I expected a body for this 'else'"); 
     }
     return NewAST(ctx->file, start, pos, When, .subject=subject, .clauses=clauses, .else_body=else_body);
@@ -911,6 +916,7 @@ PARSER(parse_for) {
     }
     expect_str(ctx, start, &pos, "in", "I expected an 'in' for this 'for'");
     ast_t *iter = expect(ctx, start, &pos, parse_expr, "I expected an iterable value for this 'for'");
+    expect_str(ctx, start, &pos, ":", "I expected a ':' here");
     match(&pos, "do"); // optional
     ast_t *body = expect(ctx, start, &pos, parse_opt_indented_block, "I expected a body for this 'for'"); 
 
@@ -919,6 +925,7 @@ PARSER(parse_for) {
     ast_t *empty = NULL;
     if (match_word(&else_start, "else") && get_indent(ctx->file, else_start) == starting_indent) {
         pos = else_start;
+        expect_str(ctx, start, &pos, ":", "I expected a ':' here");
         empty = expect(ctx, pos, &pos, parse_opt_indented_block, "I expected a body for this 'else'");
     }
     return NewAST(ctx->file, start, pos, For, .index=value ? index : NULL, .value=value ? value : index, .iter=iter, .body=body, .empty=empty);
@@ -929,7 +936,7 @@ PARSER(parse_while) {
     const char *start = pos;
     if (!match_word(&pos, "while")) return NULL;
     ast_t *condition = expect(ctx, start, &pos, parse_expr, "I don't see a viable condition for this 'while'");
-    match(&pos, "do"); // optional
+    expect_str(ctx, start, &pos, ":", "I expected a ':' here");
     ast_t *body = expect(ctx, start, &pos, parse_opt_indented_block, "I expected a body for this 'while'"); 
     const char *tmp = pos;
     whitespace(&tmp);
@@ -1603,7 +1610,7 @@ PARSER(parse_file_body) {
 }
 
 PARSER(parse_struct_def) {
-    // struct Foo(...) \n body
+    // struct Foo(...) [: \n body]
     const char *start = pos;
     if (!match_word(&pos, "struct")) return NULL;
 
@@ -1636,13 +1643,15 @@ PARSER(parse_struct_def) {
 
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this struct");
 
-    const char *ns_pos = pos;
-    whitespace(&ns_pos);
-    int64_t ns_indent = get_indent(ctx->file, ns_pos);
     ast_t *namespace = NULL;
-    if (ns_indent > starting_indent) {
-        pos = ns_pos;
-        namespace = optional(ctx, &pos, parse_namespace);
+    if (match(&pos, ":")) {
+        const char *ns_pos = pos;
+        whitespace(&ns_pos);
+        int64_t ns_indent = get_indent(ctx->file, ns_pos);
+        if (ns_indent > starting_indent) {
+            pos = ns_pos;
+            namespace = optional(ctx, &pos, parse_namespace);
+        }
     }
     if (!namespace)
         namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
@@ -1650,7 +1659,7 @@ PARSER(parse_struct_def) {
 }
 
 ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
-    // tagged union: enum Foo[a, b(x:Int,y:Int)=5, ...] \n namespace
+    // tagged union: enum Foo(a, b(x:Int,y:Int)=5, ...) [: \n namespace]
     const char *start = pos;
     if (!match_word(&pos, "enum")) return NULL;
     int64_t starting_indent = get_indent(ctx->file, pos);
@@ -1713,13 +1722,15 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
 
     REVERSE_LIST(tags);
 
-    const char *ns_pos = pos;
-    whitespace(&ns_pos);
-    int64_t ns_indent = get_indent(ctx->file, ns_pos);
     ast_t *namespace = NULL;
-    if (ns_indent > starting_indent) {
-        pos = ns_pos;
-        namespace = optional(ctx, &pos, parse_namespace);
+    if (match(&pos, ":")) {
+        const char *ns_pos = pos;
+        whitespace(&ns_pos);
+        int64_t ns_indent = get_indent(ctx->file, ns_pos);
+        if (ns_indent > starting_indent) {
+            pos = ns_pos;
+            namespace = optional(ctx, &pos, parse_namespace);
+        }
     }
     if (!namespace)
         namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
@@ -1729,7 +1740,7 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
 
 PARSER(parse_lang_def) {
     const char *start = pos;
-    // lang Name [namespace...]
+    // lang Name: [namespace...]
     if (!match_word(&pos, "lang")) return NULL;
     int64_t starting_indent = get_indent(ctx->file, pos);
     spaces(&pos);
@@ -1738,13 +1749,15 @@ PARSER(parse_lang_def) {
         parser_err(ctx, start, pos, "I expected a name for this lang");
     spaces(&pos);
 
-    const char *ns_pos = pos;
-    whitespace(&ns_pos);
-    int64_t ns_indent = get_indent(ctx->file, ns_pos);
     ast_t *namespace = NULL;
-    if (ns_indent > starting_indent) {
-        pos = ns_pos;
-        namespace = optional(ctx, &pos, parse_namespace);
+    if (match(&pos, ":")) {
+        const char *ns_pos = pos;
+        whitespace(&ns_pos);
+        int64_t ns_indent = get_indent(ctx->file, ns_pos);
+        if (ns_indent > starting_indent) {
+            pos = ns_pos;
+            namespace = optional(ctx, &pos, parse_namespace);
+        }
     }
     if (!namespace)
         namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
@@ -1843,9 +1856,10 @@ PARSER(parse_func_def) {
 
     type_ast_t *ret_type = NULL;
     spaces(&pos);
-    if (match(&pos, "->") || match(&pos, ":"))
+    if (match(&pos, "->"))
         ret_type = optional(ctx, &pos, parse_type);
 
+    expect_str(ctx, start, &pos, ":", "I expected a ':' here");
     ast_t *body = expect(ctx, start, &pos, parse_opt_indented_block,
                              "This function needs a body block");
     return NewAST(ctx->file, start, pos, FunctionDef,

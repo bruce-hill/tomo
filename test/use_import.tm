@@ -1,7 +1,7 @@
 struct ImportedType(name:Text)
 
-func get_value()->ImportedType
+func get_value()->ImportedType:
 	return ImportedType("Hello")
 
-func main()
+func main():
 	pass
