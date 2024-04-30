@@ -18,7 +18,7 @@ func main():
 	>> #t
 	= 2
 	>> t.default
-	= ?%999
+	= @%999?
 	>> t.fallback
 	= !{Text:Int}
 
@@ -42,7 +42,7 @@ func main():
 	>> t2.default
 	= !Int
 	>> t2.fallback
-	= ?%{"one":1, "two":2; default=999}
+	= @%{"one":1, "two":2; default=999}?
 
 	t2_str := ""
 	for k,v in t2:

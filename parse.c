@@ -71,6 +71,7 @@ static ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self);
 static ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *lhs);
+static ast_t *parse_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed);
 static PARSER(parse_for);
 static PARSER(parse_while);
@@ -496,11 +497,9 @@ type_ast_t *parse_array_type(parse_ctx_t *ctx, const char *pos) {
 
 type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    bool optional = false, is_stack = false;
+    bool is_stack;
     if (match(&pos, "@"))
-        optional = false;
-    else if (match(&pos, "?"))
-        optional = true;
+        is_stack = false;
     else if (match(&pos, "&"))
         is_stack = true;
     else
@@ -511,6 +510,7 @@ type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos) {
     spaces(&pos);
     type_ast_t *type = expect(ctx, start, &pos, parse_type,
                               "I couldn't parse a pointer type after this point");
+    bool optional = match(&pos, "?");
     return NewTypeAST(ctx->file, start, pos, PointerTypeAST, .pointed=type, .is_optional=optional, .is_stack=is_stack, .is_readonly=is_readonly);
 }
 
@@ -735,6 +735,15 @@ ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     return NewAST(ctx->file, lhs->start, pos, FieldAccess, .fielded=lhs, .field=field);
 }
 
+ast_t *parse_optional_suffix(parse_ctx_t *ctx, ast_t *lhs) {
+    if (!lhs) return NULL;
+    const char *pos = lhs->end;
+    if (match(&pos, "?"))
+        return NewAST(ctx->file, lhs->start, pos, Optional, .value=lhs);
+    else
+        return NULL;
+}
+
 PARSER(parse_reduction) {
     const char *start = pos;
     if (!match(&pos, "(")) return NULL;
@@ -956,7 +965,9 @@ PARSER(parse_heap_alloc) {
     if (!match(&pos, "@")) return NULL;
     spaces(&pos);
     ast_t *val = expect(ctx, start, &pos, parse_term, "I expected an expression for this '@'");
-    return NewAST(ctx->file, start, pos, HeapAllocate, .value=val);
+    ast_t *ast = NewAST(ctx->file, start, pos, HeapAllocate, .value=val);
+    ast_t *optional = parse_optional_suffix(ctx, ast);
+    return optional ? optional : ast; 
 }
 
 PARSER(parse_stack_reference) {
@@ -964,7 +975,9 @@ PARSER(parse_stack_reference) {
     if (!match(&pos, "&")) return NULL;
     spaces(&pos);
     ast_t *val = expect(ctx, start, &pos, parse_term, "I expected an expression for this '&'");
-    return NewAST(ctx->file, start, pos, StackReference, .value=val);
+    ast_t *ast = NewAST(ctx->file, start, pos, StackReference, .value=val);
+    ast_t *optional = parse_optional_suffix(ctx, ast);
+    return optional ? optional : ast; 
 }
 
 PARSER(parse_not) {

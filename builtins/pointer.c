@@ -22,7 +22,8 @@ public CORD Pointer$as_text(const void *x, bool colorize, const TypeInfo *type) 
     auto ptr_info = type->PointerInfo;
     if (!x) {
         CORD typename = generic_as_text(NULL, false, ptr_info.pointed);
-        return colorize ? CORD_asprintf("\x1b[34;1m%s%s\x1b[m", ptr_info.sigil, typename) : CORD_cat(ptr_info.sigil, typename);
+        CORD c = colorize ? CORD_asprintf("\x1b[34;1m%s%s\x1b[m", ptr_info.sigil, typename) : CORD_cat(ptr_info.sigil, typename);
+        return ptr_info.is_optional ? CORD_cat(c, "?") : c;
     }
     const void *ptr = *(const void**)x;
     if (!ptr) {
@@ -36,8 +37,11 @@ public CORD Pointer$as_text(const void *x, bool colorize, const TypeInfo *type) 
     int32_t depth = 0;
     for (recursion_t *r = recursion; r; r = r->next) {
         ++depth;
-        if (r->ptr == ptr)
-            return CORD_asprintf(colorize ? "\x1b[34;1m%s..%d\x1b[m" : "%s..%d", ptr_info.sigil, depth);
+        if (r->ptr == ptr) {
+            CORD c = CORD_asprintf(colorize ? "\x1b[34;1m%s..%d\x1b[m" : "%s..%d", ptr_info.sigil, depth);
+            if (ptr_info.is_optional) c = CORD_cat(c, colorize ? "\x1b[34;1m?\x1b[m" : "?");
+            return c;
+        }
     }
 
     CORD pointed;
@@ -47,7 +51,9 @@ public CORD Pointer$as_text(const void *x, bool colorize, const TypeInfo *type) 
         pointed = generic_as_text(ptr, colorize, ptr_info.pointed);
         recursion = recursion->next;
     }
-    return colorize ? CORD_asprintf("\x1b[34;1m%s\x1b[m%r", ptr_info.sigil, pointed) : CORD_cat(ptr_info.sigil, pointed);
+    CORD c = colorize ? CORD_asprintf("\x1b[34;1m%s\x1b[m%r", ptr_info.sigil, pointed) : CORD_cat(ptr_info.sigil, pointed);
+    if (ptr_info.is_optional) c = CORD_cat(c, colorize ? "\x1b[34;1m?\x1b[m" : "?");
+    return c;
 }
 
 public int32_t Pointer$compare(const void *x, const void *y, const TypeInfo *type) {

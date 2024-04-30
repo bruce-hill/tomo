@@ -1014,6 +1014,9 @@ CORD compile(env_t *env, ast_t *ast)
             return CORD_all("(&", compile(env, subject), ")");
         return CORD_all("stack(", compile(env, subject), ")");
     }
+    case Optional: {
+        return compile(env, Match(ast, Optional)->value);
+    }
     case BinaryOp: {
         auto binop = Match(ast, BinaryOp);
         CORD lhs = compile(env, binop->lhs);
@@ -1929,9 +1932,12 @@ CORD compile_type_info(env_t *env, type_t *t)
     }
     case PointerType: {
         auto ptr = Match(t, PointerType);
-        CORD sigil = ptr->is_stack ? "&" : (ptr->is_optional ? "?" : "@");
+        CORD sigil = ptr->is_stack ? "&" : "@";
         if (ptr->is_readonly) sigil = CORD_cat(sigil, "%");
-        return CORD_asprintf("$PointerInfo(%r, %r)", Text$quoted(sigil, false), compile_type_info(env, ptr->pointed));
+        return CORD_asprintf("$PointerInfo(%r, %r, %s)",
+                             Text$quoted(sigil, false),
+                             compile_type_info(env, ptr->pointed),
+                             ptr->is_optional ? "yes" : "no");
     }
     case FunctionType: {
         return CORD_asprintf("$FunctionInfo(%r)", Text$quoted(type_to_cord(t), false));

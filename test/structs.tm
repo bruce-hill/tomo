@@ -1,7 +1,7 @@
 
 struct Pair(x,y:Int)
 struct Mixed(x:Int, text:Text)
-struct LinkedList(x:Int, next=!LinkedList)
+struct LinkedList(x:Int, next=!@LinkedList)
 struct Password(text:Text; secret)
 
 func test_literals():

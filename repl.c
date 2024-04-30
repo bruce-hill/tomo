@@ -132,11 +132,11 @@ const TypeInfo *type_to_type_info(type_t *t)
     }
     case PointerType: {
         auto ptr = Match(t, PointerType);
-        CORD sigil = ptr->is_stack ? "&" : (ptr->is_optional ? "?" : "@");
+        CORD sigil = ptr->is_stack ? "&" : "@";
         if (ptr->is_readonly) sigil = CORD_cat(sigil, "%");
         const TypeInfo *pointed_info = type_to_type_info(ptr->pointed);
         const TypeInfo pointer_info = {.size=sizeof(void*), .align=__alignof__(void*),
-            .tag=PointerInfo, .PointerInfo.sigil=sigil, .PointerInfo.pointed=pointed_info};
+            .tag=PointerInfo, .PointerInfo={.sigil=sigil, .pointed=pointed_info, .is_optional=ptr->is_optional}};
         return memcpy(GC_MALLOC(sizeof(TypeInfo)), &pointer_info, sizeof(TypeInfo));
     }
     default: errx(1, "Unsupported type: %T", t);

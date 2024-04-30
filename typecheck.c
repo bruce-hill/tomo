@@ -330,8 +330,11 @@ type_t *get_type(env_t *env, ast_t *ast)
     if (!ast) return NULL;
     switch (ast->tag) {
     case Nil: {
-        type_t *pointed = parse_type_ast(env, Match(ast, Nil)->type);
-        return Type(PointerType, .is_optional=true, .pointed=pointed);
+        type_t *t = parse_type_ast(env, Match(ast, Nil)->type);
+        if (t->tag != PointerType)
+            code_err(ast, "This type is not a pointer type, so it doesn't work with a '!' nil expression");
+        auto ptr = Match(t, PointerType);
+        return Type(PointerType, .is_optional=true, .pointed=ptr->pointed, .is_stack=ptr->is_stack, .is_readonly=ptr->is_readonly);
     }
     case Bool: {
         return Type(BoolType);
@@ -384,6 +387,16 @@ type_t *get_type(env_t *env, ast_t *ast)
         }
 
         code_err(ast, "'&' stack references can only be used on variables or fields of variables");
+    }
+    case Optional: {
+        ast_t *value = Match(ast, Optional)->value;
+        type_t *t = get_type(env, value);
+        if (t->tag != PointerType)
+            code_err(ast, "This value is not a pointer, it has type %T, so it can't be optional", t);
+        auto ptr = Match(t, PointerType);
+        if (ptr->is_optional)
+            code_err(ast, "This value is already optional, it can't be converted to optional");
+        return Type(PointerType, .pointed=ptr->pointed, .is_optional=true, .is_stack=ptr->is_stack, .is_readonly=ptr->is_readonly);
     }
     case TextLiteral: return TEXT_TYPE;
     case TextJoin: {
