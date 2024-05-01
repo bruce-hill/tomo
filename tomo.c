@@ -25,7 +25,7 @@ static const char *autofmt;
 static const char *cconfig;
 static const char *cflags;
 static const char *ldlibs;
-static const char *ldflags = "-Wl,-rpath '-Wl,$ORIGIN' -L/usr/local/lib";
+static const char *ldflags;
 static const char *cc;
 
 static array_t get_file_dependencies(const char *filename);
@@ -82,6 +82,9 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    if (strlen(filename) < strlen(".tm") + 1 || strncmp(filename + strlen(filename) - strlen(".tm"), ".tm", strlen(".tm")) != 0)
+        errx(1, "Not a valid .tm file: %s", filename);
+
     cconfig = getenv("CCONFIG");
     if (!cconfig)
         cconfig = "-std=c11 -fdollars-in-identifiers -fsanitize=signed-integer-overflow -fno-sanitize-recover"
@@ -95,11 +98,11 @@ int main(int argc, char *argv[])
     if (!cflags)
         cflags = heap_strf("%s %s -ggdb -I./include -D_DEFAULT_SOURCE", cconfig, optimization);
 
-    ldlibs = "-lgc -lcord -lm -L. -ltomo";
+    ldflags = "-Wl,-rpath '-Wl,$ORIGIN' -L/usr/local/lib -L.";
+
+    ldlibs = "-lgc -lcord -lm -ltomo";
     if (getenv("LDLIBS"))
         ldlibs = heap_strf("%s %s", ldlibs, getenv("LDLIBS"));
-
-    ldflags = "-Wl,-rpath '-Wl,$ORIGIN' -L/usr/local/lib";
 
     cc = getenv("CC");
     if (!cc) cc = "tcc";
@@ -127,7 +130,7 @@ int main(int argc, char *argv[])
     if (mode == MODE_COMPILE_EXE || executable_status != 0)
         return executable_status;
 
-    char *exe_name = file_base_name(filename);
+    char *exe_name = heap_strn(filename, strlen(filename) - strlen(".tm"));
     int num_args = argc - program_arg_index;
     char *prog_args[num_args + 2];
     prog_args[0] = exe_name;
@@ -136,7 +139,7 @@ int main(int argc, char *argv[])
     prog_args[num_args+1] = NULL;
     execv(exe_name, prog_args);
 
-    return 0;
+    errx(1, "Failed to run compiled program");
 }
 
 static void build_file_dependency_graph(const char *filename, table_t *dependencies)
@@ -307,7 +310,7 @@ int compile_object_file(const char *filename, bool force_recompile)
 
 int compile_executable(const char *filename, const char *object_files, module_code_t *module_code)
 {
-    const char *bin_name = file_base_name(filename);
+    const char *bin_name = heap_strn(filename, strlen(filename) - strlen(".tm"));
     const char *run = heap_strf("%s | %s %s %s %s %s -x c - -o %s", autofmt, cc, cflags, ldflags, ldlibs, object_files, bin_name);
     if (verbose)
         printf("%s\n", run);
