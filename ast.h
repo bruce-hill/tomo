@@ -27,17 +27,19 @@ typedef struct ast_list_s {
     struct ast_list_s *next;
 } ast_list_t;
 
-typedef struct when_clause_s {
-    ast_t *var, *tag_name, *body;
-    struct when_clause_s *next;
-} when_clause_t;
-
 typedef struct arg_ast_s {
     const char *name;
     type_ast_t *type;
     ast_t *value;
     struct arg_ast_s *next;
 } arg_ast_t;
+
+typedef struct when_clause_s {
+    ast_t *tag_name;
+    ast_list_t *args;
+    ast_t *body;
+    struct when_clause_s *next;
+} when_clause_t;
 
 typedef enum {
     BINOP_UNKNOWN,

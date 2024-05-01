@@ -862,9 +862,23 @@ type_t *get_type(env_t *env, ast_t *ast)
                 code_err(clause->tag_name, "This is not a valid tag for the type %T", subject_t);
 
             env_t *scope = env;
-            if (clause->var) {
+            auto tag_struct = Match(tag_type, StructType);
+            if (clause->args && !clause->args->next && tag_struct->fields && tag_struct->fields->next) {
                 scope = fresh_scope(scope);
-                set_binding(scope, Match(clause->var, Var)->name, new(binding_t, .type=tag_type));
+                set_binding(scope, Match(clause->args->ast, Var)->name, new(binding_t, .type=tag_type));
+            } else if (clause->args) {
+                scope = fresh_scope(scope);
+                ast_list_t *var = clause->args;
+                arg_t *field = tag_struct->fields;
+                while (var || field) {
+                    if (!var)
+                        code_err(clause->tag_name, "The field %T.%s.%s wasn't accounted for", subject_t, tag_name, field->name);
+                    if (!field)
+                        code_err(var->ast, "This is one more field than %T has", subject_t);
+                    set_binding(scope, Match(var->ast, Var)->name, new(binding_t, .type=field->type));
+                    var = var->next;
+                    field = field->next;
+                }
             }
             type_t *clause_type = get_type(scope, clause->body);
             type_t *merged = type_or_type(overall_t, clause_type);

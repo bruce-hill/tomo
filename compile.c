@@ -182,10 +182,26 @@ CORD compile_statement(env_t *env, ast_t *ast)
             }
             assert(tag_type);
             env_t *scope = env;
-            if (clause->var) {
-                code = CORD_all(code, compile_type(env, tag_type), " ", compile(env, clause->var), " = subject.", clause_tag_name, ";\n");
-                scope = fresh_scope(env);
-                set_binding(scope, Match(clause->var, Var)->name, new(binding_t, .type=tag_type));
+
+            auto tag_struct = Match(tag_type, StructType);
+            if (clause->args && !clause->args->next && tag_struct->fields && tag_struct->fields->next) {
+                code = CORD_all(code, compile_type(env, tag_type), " ", compile(env, clause->args->ast), " = subject.", clause_tag_name, ";\n");
+                scope = fresh_scope(scope);
+                set_binding(scope, Match(clause->args->ast, Var)->name, new(binding_t, .type=tag_type));
+            } else if (clause->args) {
+                scope = fresh_scope(scope);
+                ast_list_t *var = clause->args;
+                arg_t *field = tag_struct->fields;
+                while (var || field) {
+                    if (!var)
+                        code_err(clause->tag_name, "The field %T.%s.%s wasn't accounted for", subject_t, clause_tag_name, field->name);
+                    if (!field)
+                        code_err(var->ast, "This is one more field than %T has", subject_t);
+                    code = CORD_all(code, compile_type(env, field->type), " ", compile(env, var->ast), " = subject.", clause_tag_name, ".", field->name, ";\n");
+                    set_binding(scope, Match(var->ast, Var)->name, new(binding_t, .type=field->type));
+                    var = var->next;
+                    field = field->next;
+                }
             }
             code = CORD_all(code, compile_statement(scope, clause->body), "\nbreak;\n}\n");
         }
