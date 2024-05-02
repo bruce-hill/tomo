@@ -173,7 +173,7 @@ static void build_file_dependency_graph(const char *filename, table_t *dependenc
         file_t *f = load_file(to_scan[s]);
         if (!f) errx(1, "Couldn't find file: %s", to_scan[s]);
         for (int64_t i = 0; i < f->num_lines; i++) {
-            const char *line = f->text + f->lines[i].offset;
+            const char *line = f->text + f->line_offsets[i];
             const char *prefix = "#include \"";
             if (strncmp(line, prefix, strlen(prefix)) == 0) {
                 char *tmp = realpath(heap_strf("%s/%.*s", file_dir, strcspn(line + strlen(prefix), "\"") - 2, line + strlen(prefix)), NULL);

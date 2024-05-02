@@ -93,15 +93,9 @@ static file_t *_load_file(const char* filename, FILE *file)
     FILE *mem = open_memstream(&file_buf, &file_size);
     int64_t line_len = 0;
     while ((line_len = getline(&line_buf, &line_cap, file)) >= 0) {
-        file_line_t line_info = {.offset=file_size, .indent=0, .is_empty=false};
-        char *p;
-        for (p = line_buf; *p == '\t'; ++p)
-            line_info.indent += 1;
-        line_info.is_empty = *p != '\r' && *p != '\n';
-        if (ret->line_capacity <= ret->num_lines) {
-            ret->lines = GC_REALLOC(ret->lines, sizeof(file_line_t)*(ret->line_capacity += 32));
-        }
-        ret->lines[ret->num_lines++] = line_info;
+        if (ret->line_capacity <= ret->num_lines)
+            ret->line_offsets = GC_REALLOC(ret->line_offsets, sizeof(int64_t)*(ret->line_capacity += 32));
+        ret->line_offsets[ret->num_lines++] = file_size;
         fwrite(line_buf, sizeof(char), line_len, mem);
         fflush(mem);
     }
@@ -157,12 +151,12 @@ public int64_t get_line_number(file_t *f, const char *p)
     int64_t offset = (int64_t)(p - f->text);
     while (lo <= hi) {
         int64_t mid = (lo + hi) / 2;
-        file_line_t *line = &f->lines[mid];
-        if (line->offset == offset)
+        int64_t line_offset = f->line_offsets[mid];
+        if (line_offset == offset)
             return mid + 1;
-        else if (line->offset < offset)
+        else if (line_offset < offset)
             lo = mid + 1;    
-        else if (line->offset > offset)
+        else if (line_offset > offset)
             hi = mid - 1;
     }
     return lo; // Return the line number whose line starts closest before p
@@ -174,18 +168,8 @@ public int64_t get_line_number(file_t *f, const char *p)
 public int64_t get_line_column(file_t *f, const char *p)
 {
     int64_t line_no = get_line_number(f, p);
-    file_line_t *line = &f->lines[line_no-1];
-    return 1 + (int64_t)(p - (f->text + line->offset));
-}
-
-//
-// Given a pointer, get the indentation of the line it's on.
-//
-public int64_t get_indent(file_t *f, const char *p)
-{
-    int64_t line_no = get_line_number(f, p);
-    file_line_t *line = &f->lines[line_no-1];
-    return line->indent;
+    int64_t line_offset = f->line_offsets[line_no-1];
+    return 1 + (int64_t)(p - (f->text + line_offset));
 }
 
 //
@@ -194,8 +178,8 @@ public int64_t get_indent(file_t *f, const char *p)
 public const char *get_line(file_t *f, int64_t line_number)
 {
     if (line_number == 0 || line_number > (int64_t)f->num_lines) return NULL;
-    file_line_t *line = &f->lines[line_number-1];
-    return f->text + line->offset;
+    int64_t line_offset = f->line_offsets[line_number-1];
+    return f->text + line_offset;
 }
 
 //

@@ -9,17 +9,11 @@
 #include <unistd.h>
 
 typedef struct {
-    int64_t offset;
-    int64_t indent:63;
-    bool is_empty:1;
-} file_line_t;
-
-typedef struct {
     const char *filename, *relative_filename;
     const char *text;
     int64_t len;
     int64_t num_lines, line_capacity;
-    file_line_t *lines;
+    int64_t *line_offsets;
 } file_t;
 
 char *resolve_path(const char *path, const char *relative_to, const char *system_path);
@@ -33,8 +27,6 @@ __attribute__((pure, nonnull))
 int64_t get_line_number(file_t *f, const char *p);
 __attribute__((pure, nonnull))
 int64_t get_line_column(file_t *f, const char *p);
-__attribute__((pure, nonnull))
-int64_t get_indent(file_t *f, const char *p);
 __attribute__((pure, nonnull))
 const char *get_line(file_t *f, int64_t line_number);
 __attribute__((pure, nonnull))

@@ -25,6 +25,8 @@ typedef ast_t* (parser_t)(parse_ctx_t*,const char*);
 
 extern void builtin_fail(const char *fmt, ...);
 
+#define SPACES_PER_INDENT 4
+
 #define PARSER(name) ast_t *name(parse_ctx_t *ctx, const char *pos)
 
 #define STUB_PARSER(name) PARSER(name) { (void)ctx; (void)pos; return NULL; }
@@ -168,6 +170,29 @@ const char *unescape(const char **out) {
     } else {
         *endpos = escape + 2;
         return heap_strn(escape+1, 1);
+    }
+}
+
+static inline int64_t get_indent(parse_ctx_t *ctx, const char *pos)
+{
+    int64_t line_num = get_line_number(ctx->file, pos);
+    const char *line = get_line(ctx->file, line_num);
+    if (*line == ' ') {
+        int64_t spaces = strspn(line, " ");
+        if (spaces % SPACES_PER_INDENT != 0)
+            parser_err(ctx, line + spaces - (spaces % SPACES_PER_INDENT), line + spaces,
+                       "Indentation must be a multiple of 4 spaces, not %ld", spaces);
+        int64_t indent = spaces / SPACES_PER_INDENT;
+        if (line[indent] == '\t')
+            parser_err(ctx, line + indent, line + indent + 1, "This is a tab following spaces, and you can't mix tabs and spaces");
+        return indent;
+    } else if (*line == '\t') {
+        int64_t indent = strspn(line, "\t");
+        if (line[indent] == ' ')
+            parser_err(ctx, line + indent, line + indent + 1, "This is a space following tabs, and you can't mix tabs and spaces");
+        return indent;
+    } else {
+        return 0;
     }
 }
 
@@ -345,16 +370,16 @@ bool comment(const char **pos) {
 
 bool indent(parse_ctx_t *ctx, const char **out) {
     const char *pos = *out;
-    int64_t starting_indent = get_indent(ctx->file, pos);
+    int64_t starting_indent = get_indent(ctx, pos);
     whitespace(&pos);
-    const char *start_of_line = get_line(ctx->file, get_line_number(ctx->file, pos));
-    if (start_of_line <= *out)
+    const char *next_line = get_line(ctx->file, get_line_number(ctx->file, pos));
+    if (next_line <= *out)
         return false;
 
-    if ((int64_t)strspn(start_of_line, "\t") < starting_indent)
+    if (get_indent(ctx, next_line) != starting_indent + 1)
         return false;
 
-    *out = start_of_line + starting_indent + 1;
+    *out = next_line + strspn(next_line, " \t");
     return true;
 }
 
@@ -369,7 +394,12 @@ bool newline_with_indentation(const char **out, int64_t target) {
         return true;
     }
 
-    if ((int64_t)strspn(pos, "\t") >= target) {
+    if (*pos == ' ') {
+        if ((int64_t)strspn(pos, " ") >= SPACES_PER_INDENT * target) {
+            *out = pos + SPACES_PER_INDENT * target;
+            return true;
+        }
+    } else if ((int64_t)strspn(pos, "\t") >= target) {
         *out = pos + target;
         return true;
     }
@@ -840,7 +870,7 @@ ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr) {
 PARSER(parse_if) {
     // if <condition> [then] <body> [else <body>]
     const char *start = pos;
-    int64_t starting_indent = get_indent(ctx->file, pos);
+    int64_t starting_indent = get_indent(ctx, pos);
 
     if (!match_word(&pos, "if"))
         return NULL;
@@ -857,7 +887,7 @@ PARSER(parse_if) {
     whitespace(&tmp);
     ast_t *else_body = NULL;
     const char *else_start = pos;
-    if (get_indent(ctx->file, tmp) == starting_indent && match_word(&tmp, "else")) {
+    if (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "else")) {
         pos = tmp;
         expect_str(ctx, start, &pos, ":", "I expected a ':' here");
         else_body = expect(ctx, else_start, &pos, parse_opt_indented_block, "I expected a body for this 'else'"); 
@@ -868,7 +898,7 @@ PARSER(parse_if) {
 PARSER(parse_when) {
     // when <expr> (is var : Tag [then] <body>)* [else <body>]
     const char *start = pos;
-    int64_t starting_indent = get_indent(ctx->file, pos);
+    int64_t starting_indent = get_indent(ctx, pos);
 
     if (!match_word(&pos, "when"))
         return NULL;
@@ -880,7 +910,7 @@ PARSER(parse_when) {
     when_clause_t *clauses = NULL;
     const char *tmp = pos;
     whitespace(&tmp);
-    while (get_indent(ctx->file, tmp) == starting_indent && match_word(&tmp, "is")) {
+    while (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "is")) {
         pos = tmp;
         spaces(&pos);
         ast_t *tag_name = expect(ctx, start, &pos, parse_var, "I expected a tag name here");
@@ -911,7 +941,7 @@ PARSER(parse_when) {
 
     ast_t *else_body = NULL;
     const char *else_start = pos;
-    if (get_indent(ctx->file, tmp) == starting_indent && match_word(&tmp, "else")) {
+    if (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "else")) {
         pos = tmp;
         expect_str(ctx, start, &pos, ":", "I expected a ':' here");
         else_body = expect(ctx, else_start, &pos, parse_opt_indented_block, "I expected a body for this 'else'"); 
@@ -923,7 +953,7 @@ PARSER(parse_for) {
     // for [k,] v in iter [<indent>] body
     const char *start = pos;
     if (!match_word(&pos, "for")) return NULL;
-    int64_t starting_indent = get_indent(ctx->file, pos);
+    int64_t starting_indent = get_indent(ctx, pos);
     ast_t *index = expect(ctx, start, &pos, parse_var, "I expected an iteration variable for this 'for'");
     spaces(&pos);
     ast_t *value = NULL;
@@ -939,7 +969,7 @@ PARSER(parse_for) {
     const char *else_start = pos;
     whitespace(&else_start);
     ast_t *empty = NULL;
-    if (match_word(&else_start, "else") && get_indent(ctx->file, else_start) == starting_indent) {
+    if (match_word(&else_start, "else") && get_indent(ctx, else_start) == starting_indent) {
         pos = else_start;
         expect_str(ctx, start, &pos, ":", "I expected a ':' here");
         empty = expect(ctx, pos, &pos, parse_opt_indented_block, "I expected a body for this 'else'");
@@ -1057,7 +1087,7 @@ PARSER(parse_text) {
         return NULL;
     }
 
-    int64_t starting_indent = get_indent(ctx->file, pos);
+    int64_t starting_indent = get_indent(ctx, pos);
     int64_t string_indent = starting_indent + 1;
 
     ast_list_t *chunks = NULL;
@@ -1088,13 +1118,13 @@ PARSER(parse_text) {
             chunks = new(ast_list_t, .ast=interp, .next=chunks);
             chunk_start = pos;
         } else if (!leading_newline && *pos == open_quote && closing[(int)open_quote]) { // Nested pair begin
-            if (get_indent(ctx->file, pos) == starting_indent) {
+            if (get_indent(ctx, pos) == starting_indent) {
                 ++depth;
             }
             chunk = CORD_cat_char(chunk, *pos);
             ++pos;
         } else if (!leading_newline && *pos == close_quote) { // Nested pair end
-            if (get_indent(ctx->file, pos) == starting_indent) {
+            if (get_indent(ctx, pos) == starting_indent) {
                 --depth;
                 if (depth == 0)
                     break;
@@ -1517,17 +1547,11 @@ PARSER(parse_extended_expr) {
 }
 
 PARSER(parse_block) {
-    int64_t block_indent = get_indent(ctx->file, pos);
+    int64_t block_indent = get_indent(ctx, pos);
     const char *start = pos;
     whitespace(&pos);
     ast_list_t *statements = NULL;
     while (*pos) {
-        if (pos > start && pos[-1] == ' ') {
-            const char *space_start = pos-1;
-            while (*space_start == ' ')
-                --space_start;
-            parser_err(ctx, space_start, pos, "Spaces are not allowed for indentation, only tabs!");
-        }
         ast_t *stmt = optional(ctx, &pos, parse_statement);
         if (!stmt) {
             const char *line_start = pos;
@@ -1547,7 +1571,7 @@ PARSER(parse_block) {
         }
         statements = new(ast_list_t, .ast=stmt, .next=statements);
         whitespace(&pos); // TODO: check for newline
-        if (get_indent(ctx->file, pos) != block_indent) {
+        if (get_indent(ctx, pos) != block_indent) {
             pos = stmt->end; // backtrack
             break;
         }
@@ -1563,12 +1587,12 @@ PARSER(parse_opt_indented_block) {
 PARSER(parse_namespace) {
     const char *start = pos;
     whitespace(&pos);
-    int64_t indent = get_indent(ctx->file, pos);
+    int64_t indent = get_indent(ctx, pos);
     ast_list_t *statements = NULL;
     for (;;) {
         const char *next = pos;
         whitespace(&next);
-        if (get_indent(ctx->file, next) != indent) break;
+        if (get_indent(ctx, next) != indent) break;
         ast_t *stmt;
         if ((stmt=optional(ctx, &pos, parse_struct_def))
             ||(stmt=optional(ctx, &pos, parse_enum_def))
@@ -1587,7 +1611,7 @@ PARSER(parse_namespace) {
             //     break;
             // }
         } else {
-            if (get_indent(ctx->file, next) > indent && next < strchrnul(next, '\n'))
+            if (get_indent(ctx, next) > indent && next < strchrnul(next, '\n'))
                 parser_err(ctx, next, strchrnul(next, '\n'), "I couldn't parse this namespace declaration");
             break;
         }
@@ -1603,7 +1627,7 @@ PARSER(parse_file_body) {
     for (;;) {
         const char *next = pos;
         whitespace(&next);
-        if (get_indent(ctx->file, next) != 0) break;
+        if (get_indent(ctx, next) != 0) break;
         ast_t *stmt;
         if ((stmt=optional(ctx, &pos, parse_struct_def))
             ||(stmt=optional(ctx, &pos, parse_enum_def))
@@ -1634,7 +1658,7 @@ PARSER(parse_struct_def) {
     const char *start = pos;
     if (!match_word(&pos, "struct")) return NULL;
 
-    int64_t starting_indent = get_indent(ctx->file, pos);
+    int64_t starting_indent = get_indent(ctx, pos);
 
     spaces(&pos);
     const char *name = get_id(&pos);
@@ -1667,7 +1691,7 @@ PARSER(parse_struct_def) {
     if (match(&pos, ":")) {
         const char *ns_pos = pos;
         whitespace(&ns_pos);
-        int64_t ns_indent = get_indent(ctx->file, ns_pos);
+        int64_t ns_indent = get_indent(ctx, ns_pos);
         if (ns_indent > starting_indent) {
             pos = ns_pos;
             namespace = optional(ctx, &pos, parse_namespace);
@@ -1682,7 +1706,7 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
     // tagged union: enum Foo(a, b(x:Int,y:Int)=5, ...) [: \n namespace]
     const char *start = pos;
     if (!match_word(&pos, "enum")) return NULL;
-    int64_t starting_indent = get_indent(ctx->file, pos);
+    int64_t starting_indent = get_indent(ctx, pos);
     spaces(&pos);
     const char *name = get_id(&pos);
     if (!name)
@@ -1746,7 +1770,7 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
     if (match(&pos, ":")) {
         const char *ns_pos = pos;
         whitespace(&ns_pos);
-        int64_t ns_indent = get_indent(ctx->file, ns_pos);
+        int64_t ns_indent = get_indent(ctx, ns_pos);
         if (ns_indent > starting_indent) {
             pos = ns_pos;
             namespace = optional(ctx, &pos, parse_namespace);
@@ -1762,7 +1786,7 @@ PARSER(parse_lang_def) {
     const char *start = pos;
     // lang Name: [namespace...]
     if (!match_word(&pos, "lang")) return NULL;
-    int64_t starting_indent = get_indent(ctx->file, pos);
+    int64_t starting_indent = get_indent(ctx, pos);
     spaces(&pos);
     const char *name = get_id(&pos);
     if (!name)
@@ -1773,7 +1797,7 @@ PARSER(parse_lang_def) {
     if (match(&pos, ":")) {
         const char *ns_pos = pos;
         whitespace(&ns_pos);
-        int64_t ns_indent = get_indent(ctx->file, ns_pos);
+        int64_t ns_indent = get_indent(ctx, ns_pos);
         if (ns_indent > starting_indent) {
             pos = ns_pos;
             namespace = optional(ctx, &pos, parse_namespace);
