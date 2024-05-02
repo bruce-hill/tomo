@@ -5,3 +5,5 @@
 *.tm.o
 /tomo
 /tags
+/test/*
+!/test/*.tm
