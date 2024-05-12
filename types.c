@@ -268,7 +268,10 @@ bool can_promote(type_t *actual, type_t *needed)
     }
 
     if (needed->tag == ClosureType && actual->tag == FunctionType)
-        return type_eq(actual, Match(needed, ClosureType)->fn);
+        return can_promote(actual, Match(needed, ClosureType)->fn);
+
+    if (needed->tag == ClosureType && actual->tag == ClosureType)
+        return can_promote(Match(actual, ClosureType)->fn, Match(needed, ClosureType)->fn);
 
     if (actual->tag == FunctionType && needed->tag == FunctionType) {
         for (arg_t *actual_arg = Match(actual, FunctionType)->args, *needed_arg = Match(needed, FunctionType)->args;

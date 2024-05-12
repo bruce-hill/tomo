@@ -47,14 +47,17 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
         return promote(env, code, Match(actual, PointerType)->pointed, needed);
     }
 
-    // Optional promotion:
+    // Optional and stack ref promotion:
     if (actual->tag == PointerType && needed->tag == PointerType)
         return true;
 
-    if (needed->tag == ClosureType && actual->tag == FunctionType && type_eq(actual, Match(needed, ClosureType)->fn)) {
+    if (needed->tag == ClosureType && actual->tag == FunctionType) {
         *code = CORD_all("(closure_t){", *code, ", NULL}");
         return true;
     }
+
+    if (needed->tag == ClosureType && actual->tag == ClosureType)
+        return true;
 
     if (needed->tag == FunctionType && actual->tag == FunctionType) {
         *code = CORD_all("(", compile_type(env, needed), ")", *code);
