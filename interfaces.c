@@ -21,7 +21,7 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
     if (dollar) name = dollar + 1;
     CORD str_func = CORD_asprintf("static CORD %r$as_text(%r_t *interface, bool use_color) {\n"
                                   "\tif (!interface) return \"%s\";\n", full_name, full_name, name);
-    return CORD_all(str_func, "\treturn CORD_asprintf(use_color ? \"\\x1b[0;1m", name, "\\x1b[m<%p>\" : \"", name, "<%p>\", interface->$obj);\n}");
+    return CORD_all(str_func, "\treturn CORD_asprintf(use_color ? \"\\x1b[0;1m", name, "\\x1b[m<\\x1b[36m%p\\x1b[m>\" : \"", name, "<%p>\", interface->$obj);\n}");
 }
 
 static CORD compile_compare_method(env_t *env, ast_t *ast)
