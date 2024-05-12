@@ -45,6 +45,9 @@ CORD type_to_cord(type_t *t) {
             auto struct_ = Match(t, StructType);
             return struct_->name;
         }
+        case InterfaceType: {
+            return Match(t, InterfaceType)->name;
+        }
         case PointerType: {
             auto ptr = Match(t, PointerType);
             CORD sigil = ptr->is_stack ? "&" : "@";
@@ -213,6 +216,7 @@ bool has_heap_memory(type_t *t)
         }
         return false;
     }
+    case InterfaceType: return true;
     default: return false;
     }
 }
@@ -289,6 +293,7 @@ bool can_leave_uninitialized(type_t *t)
         }
         return true;
     }
+    case InterfaceType: return false;
     default: return false;
     }
 }
@@ -312,6 +317,13 @@ static bool _can_have_cycles(type_t *t, table_t *seen)
         case EnumType: {
             for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
                 if (tag->type && _can_have_cycles(tag->type, seen))
+                    return true;
+            }
+            return false;
+        }
+        case InterfaceType: {
+            for (arg_t *field = Match(t, InterfaceType)->fields; field; field = field->next) {
+                if (_can_have_cycles(field->type, seen))
                     return true;
             }
             return false;
@@ -362,6 +374,13 @@ type_t *replace_type(type_t *t, type_t *target, type_t *replacement)
             Match((struct type_s*)t, EnumType)->tags = tags;
             return t;
         }
+        case InterfaceType: {
+            auto interface = Match(t, InterfaceType);
+            arg_t *fields = LIST_MAP(interface->fields, field, .type=replace_type(field->type, target, replacement));
+            t = COPY(t);
+            Match((struct type_s*)t, InterfaceType)->fields = fields;
+            return t;
+        }
         default: return t;
     }
 #undef COPY
@@ -382,9 +401,10 @@ size_t type_size(type_t *t)
     case FunctionType: return sizeof(void*);
     case ClosureType: return sizeof(struct {void *fn, *userdata;});
     case PointerType: return sizeof(void*);
-    case StructType: {
-        size_t size = 0;
-        for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
+    case StructType: case InterfaceType: {
+        arg_t *fields = t->tag == StructType ? Match(t, StructType)->fields : Match(t, InterfaceType)->fields;
+        size_t size = t->tag == StructType ? 0 : sizeof(void*);
+        for (arg_t *field = fields; field; field = field->next) {
             type_t *field_type = field->type;
             if (field_type->tag == BoolType) {
                 size += 1; // Bit packing
@@ -432,9 +452,10 @@ size_t type_align(type_t *t)
     case FunctionType: return __alignof__(void*);
     case ClosureType: return __alignof__(struct {void *fn, *userdata;});
     case PointerType: return __alignof__(void*);
-    case StructType: {
-        size_t align = 0;
-        for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
+    case StructType: case InterfaceType: {
+        arg_t *fields = t->tag == StructType ? Match(t, StructType)->fields : Match(t, InterfaceType)->fields;
+        size_t align = t->tag == StructType ? 0 : sizeof(void*);
+        for (arg_t *field = fields; field; field = field->next) {
             size_t field_align = type_align(field->type);
             if (field_align > align) align = field_align;
         }
@@ -461,6 +482,14 @@ type_t *get_field_type(type_t *t, const char *field_name)
     case StructType: {
         auto struct_t = Match(t, StructType);
         for (arg_t *field = struct_t->fields; field; field = field->next) {
+            if (streq(field->name, field_name))
+                return field->type;
+        }
+        return NULL;
+    }
+    case InterfaceType: {
+        auto interface = Match(t, InterfaceType);
+        for (arg_t *field = interface->fields; field; field = field->next) {
             if (streq(field->name, field_name))
                 return field->type;
         }

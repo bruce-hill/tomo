@@ -263,6 +263,41 @@ void bind_statement(env_t *env, ast_t *statement)
             bind_statement(ns_env, stmt->ast);
         break;
     }
+    case InterfaceDef: {
+        auto def = Match(statement, InterfaceDef);
+        if (get_binding(env, def->name))
+            code_err(statement, "A %T called '%s' has already been defined", get_binding(env, def->name)->type, def->name);
+
+        env_t *ns_env = namespace_env(env, def->name);
+
+        arg_t *fields = new(arg_t, .name="$obj", .type=Type(PointerType, .pointed=Type(MemoryType))); // interface implementor
+        type_t *type = Type(InterfaceType, .name=def->name, .fields=fields, .opaque=true, .env=ns_env); // placeholder
+        type_ast_t *replacement_type_ast = NewTypeAST(statement->file, statement->start, statement->end, VarTypeAST, .name=def->name);
+        Table$str_set(env->types, def->name, type);
+        for (arg_ast_t *field_ast = def->fields; field_ast; field_ast = field_ast->next) {
+            if (!field_ast->type)
+                code_err(field_ast->value, "Interface fields must have defined types, not default values");
+            type_ast_t *field_type = replace_type_ast(field_ast->type, def->type_parameter, replacement_type_ast);
+            type_t *field_t = parse_type_ast(env, field_type);
+            if (field_t->tag == ClosureType)
+                field_t = Match(field_t, ClosureType)->fn;
+            if ((field_t->tag == InterfaceType && Match(field_t, InterfaceType)->opaque)
+                || (field_t->tag == EnumType && Match(field_t, EnumType)->opaque))
+                code_err(field_ast->type, "This type is recursive and would create an infinitely sized interface. Try using a pointer.");
+            fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
+        }
+        REVERSE_LIST(fields);
+        type->__data.InterfaceType.fields = fields; // populate placeholder
+        type->__data.InterfaceType.opaque = false;
+        
+        type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env);
+        Table$str_set(env->locals, def->name, new(binding_t, .type=typeinfo_type, .code=CORD_all(env->file_prefix, def->name)));
+
+        for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
+            bind_statement(ns_env, stmt->ast);
+        }
+        break;
+    }
     case Use: {
         env_t *module_env = load_module(env, statement);
         for (table_t *bindings = module_env->locals; bindings != module_env->globals; bindings = bindings->fallback) {
@@ -552,7 +587,7 @@ type_t *get_type(env_t *env, ast_t *ast)
 
         if (fn_type_t->tag == TypeInfoType) {
             type_t *t = Match(fn_type_t, TypeInfoType)->type;
-            if (t->tag == StructType || t->tag == IntType || t->tag == NumType)
+            if (t->tag == StructType || t->tag == InterfaceType || t->tag == IntType || t->tag == NumType)
                 return t; // Constructor
             code_err(call->fn, "This is not a type that has a constructor");
         }
@@ -593,6 +628,31 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "clear")) return Type(VoidType);
             else code_err(ast, "There is no '%s' method for tables", call->name);
         }
+        case InterfaceType: {
+            auto methodcall = Match(ast, MethodCall);
+            binding_t *b = get_namespace_binding(env, methodcall->self, methodcall->name);
+            if (b) {
+                if (b->type->tag != FunctionType)
+                    code_err(ast, "'%s' is not a function, it's a %T", methodcall->name, b->type);
+                return Match(b->type, FunctionType)->ret;
+            } else {
+                auto interface = Match(self_value_t, InterfaceType);
+                for (arg_t *field = interface->fields; field; field = field->next) {
+                    if (streq(field->name, methodcall->name)) {
+                        env_t tmp_env = *env;
+                        tmp_env.types = new(table_t, .fallback=tmp_env.types);
+                        Table$str_set(tmp_env.types, interface->type_parameter, self_value_t);
+                        type_t *field_t = field->type;
+                        if (field_t->tag == ClosureType)
+                            field_t = Match(field_t, ClosureType)->fn;
+                        if (field_t->tag != FunctionType)
+                            code_err(ast, "'%s' is not a function, it's a %T", methodcall->name, b->type);
+                        return Match(field_t, FunctionType)->ret;
+                    }
+                }
+                code_err(ast, "There is no method called '%s' on the interface type %s", methodcall->name, interface->name);
+            }
+        }
         default: {
             type_t *fn_type_t = get_method_type(env, call->self, call->name);
             if (!fn_type_t)
@@ -614,7 +674,7 @@ type_t *get_type(env_t *env, ast_t *ast)
 
         // Early out if the type is knowable without any context from the block:
         switch (last->ast->tag) {
-        case UpdateAssign: case Assign: case Declare: case FunctionDef: case StructDef: case EnumDef: case LangDef:
+        case UpdateAssign: case Assign: case Declare: case FunctionDef: case StructDef: case EnumDef: case LangDef: case InterfaceDef:
             return Type(VoidType);
         default: break;
         }
@@ -791,7 +851,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         return Type(ClosureType, Type(FunctionType, .args=args, .ret=ret));
     }
 
-    case FunctionDef: case StructDef: case EnumDef: case LangDef: {
+    case FunctionDef: case StructDef: case EnumDef: case LangDef: case InterfaceDef: {
         return Type(VoidType);
     }
 
@@ -930,7 +990,7 @@ type_t *get_type(env_t *env, ast_t *ast)
 bool is_discardable(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
-    case UpdateAssign: case Assign: case Declare: case FunctionDef: case StructDef: case EnumDef: case LangDef: case Use:
+    case UpdateAssign: case Assign: case Declare: case FunctionDef: case StructDef: case EnumDef: case LangDef: case InterfaceDef: case Use:
         return true;
     default: break;
     }

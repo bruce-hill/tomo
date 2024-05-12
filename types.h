@@ -52,6 +52,7 @@ struct type_s {
         PointerType,
         StructType,
         EnumType,
+        InterfaceType,
         TypeInfoType,
         ModuleType,
     } tag;
@@ -98,6 +99,12 @@ struct type_s {
             bool opaque;
             struct env_s *env;
         } EnumType;
+        struct {
+            const char *name, *type_parameter;
+            arg_t *fields;
+            bool opaque;
+            struct env_s *env;
+        } InterfaceType;
         struct {
             const char *name;
             type_t *type;

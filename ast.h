@@ -111,7 +111,7 @@ typedef enum {
     Skip, Stop, Pass,
     Return,
     Extern,
-    StructDef, EnumDef, LangDef,
+    StructDef, EnumDef, LangDef, InterfaceDef,
     Index, FieldAccess, Optional,
     DocTest,
     Use,
@@ -250,6 +250,12 @@ struct ast_s {
             ast_t *namespace;
         } LangDef;
         struct {
+            const char *name;
+            type_ast_t *type_parameter;
+            arg_ast_t *fields;
+            ast_t *namespace;
+        } InterfaceDef;
+        struct {
             ast_t *indexed, *index;
             bool unchecked;
         } Index;
@@ -284,5 +290,6 @@ CORD type_ast_to_xml(type_ast_t *ast);
 int printf_ast(FILE *stream, const struct printf_info *info, const void *const args[]);
 ast_list_t *get_ast_children(ast_t *ast);
 bool is_idempotent(ast_t *ast);
+type_ast_t *replace_type_ast(type_ast_t *t, type_ast_t *target, type_ast_t *replacement);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

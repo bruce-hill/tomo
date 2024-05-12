@@ -136,6 +136,7 @@ CORD ast_to_xml(ast_t *ast)
     T(StructDef, "<StructDef name=\"%s\">%r<namespace>%r</namespace></StructDef>", data.name, arg_list_to_xml(data.fields), ast_to_xml(data.namespace))
     T(EnumDef, "<EnumDef name=\"%s\"><tags>%r</tags><namespace>%r</namespace></EnumDef>", data.name, tags_to_xml(data.tags), ast_to_xml(data.namespace))
     T(LangDef, "<LangDef name=\"%s\">%r</LangDef>", data.name, ast_to_xml(data.namespace))
+    T(InterfaceDef, "<InterfaceDef name=\"%s\">%r%r</InterfaceDef>", data.name, type_ast_to_xml(data.type_parameter), arg_list_to_xml(data.fields))
     T(Index, "<Index>%r%r</Index>", optional_tagged("indexed", data.indexed), optional_tagged("index", data.index))
     T(FieldAccess, "<FieldAccess field=\"%s\">%r</FieldAccess>", data.field, ast_to_xml(data.fielded))
     T(Optional, "<Optional>%r</Optional>", ast_to_xml(data.value))
@@ -150,7 +151,7 @@ CORD ast_to_xml(ast_t *ast)
 
 CORD type_ast_to_xml(type_ast_t *t)
 {
-    if (!t) return "\x1b[35mNULL\x1b[m";
+    if (!t) return "NULL";
 
     switch (t->tag) {
 #define T(type, ...) case type: { auto data = t->__data.type; (void)data; return CORD_asprintf(__VA_ARGS__); }
@@ -193,6 +194,74 @@ bool is_idempotent(ast_t *ast)
     }
     default: return false;
     }
+}
+
+bool type_ast_eq(type_ast_t *x, type_ast_t *y)
+{
+    if (x->tag != y->tag) return false;
+    switch (x->tag) {
+    case UnknownTypeAST: return true;
+    case VarTypeAST: return streq(Match(x, VarTypeAST)->name, Match(y, VarTypeAST)->name);
+    case PointerTypeAST: {
+        auto x_info = Match(x, PointerTypeAST);
+        auto y_info = Match(y, PointerTypeAST);
+        return (x_info->is_optional == y_info->is_optional
+                && x_info->is_stack == y_info->is_stack
+                && x_info->is_readonly == y_info->is_readonly
+                && type_ast_eq(x_info->pointed, y_info->pointed));
+    }
+    case ArrayTypeAST: return type_ast_eq(Match(x, ArrayTypeAST)->item, Match(y, ArrayTypeAST)->item);
+    case TableTypeAST: {
+        auto tx = Match(x, TableTypeAST);
+        auto ty = Match(y, TableTypeAST);
+        return type_ast_eq(tx->key, ty->key) && type_ast_eq(tx->value, ty->value);
+    }
+    case FunctionTypeAST: {
+        auto x_fn = Match(x, FunctionTypeAST);
+        auto y_fn = Match(y, FunctionTypeAST);
+        if (!type_ast_eq(x_fn->ret, y_fn->ret))
+            return false;
+        for (arg_ast_t *x_arg = x_fn->args, *y_arg = y_fn->args; x_arg || y_arg; x_arg = x_arg->next, y_arg = y_arg->next) {
+            if (!x_arg || !y_arg) return false;
+            if (!x_arg->type)
+                errx(1, "I can't compare function types that don't have all explicitly typed args");
+            if (!y_arg->type)
+                errx(1, "I can't compare function types that don't have all explicitly typed args");
+            if (!type_ast_eq(x_arg->type, y_arg->type))
+                return false;
+        }
+        return true;
+    }
+    }
+    return true;
+}
+
+type_ast_t *replace_type_ast(type_ast_t *t, type_ast_t *target, type_ast_t *replacement)
+{
+    if (!t) return t;
+    if (type_ast_eq(t, target))
+        return replacement;
+
+#define REPLACED_MEMBER(t, tag, member) ({ t = memcpy(GC_MALLOC(sizeof(type_ast_t)), (t), sizeof(type_ast_t)); Match((struct type_ast_s*)(t), tag)->member = replace_type_ast(Match((t), tag)->member, target, replacement); t; })
+    switch (t->tag) {
+    case UnknownTypeAST:
+    case VarTypeAST: return t;
+    case PointerTypeAST: return REPLACED_MEMBER(t, PointerTypeAST, pointed);
+    case ArrayTypeAST: return REPLACED_MEMBER(t, ArrayTypeAST, item);
+    case TableTypeAST: {
+        t = REPLACED_MEMBER(t, TableTypeAST, key);
+        return REPLACED_MEMBER(t, TableTypeAST, value);
+    }
+    case FunctionTypeAST: {
+        auto fn = Match(t, FunctionTypeAST);
+        t = REPLACED_MEMBER(t, FunctionTypeAST, ret);
+        arg_ast_t *args = LIST_MAP(fn->args, old_arg, .type=replace_type_ast(old_arg->type, target, replacement));
+        Match((struct type_ast_s*)t, FunctionTypeAST)->args = args;
+        return t;
+    }
+    }
+    return t;
+#undef REPLACED_MEMBER
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
