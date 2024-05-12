@@ -270,6 +270,19 @@ bool can_promote(type_t *actual, type_t *needed)
     if (needed->tag == ClosureType && actual->tag == FunctionType)
         return type_eq(actual, Match(needed, ClosureType)->fn);
 
+    if (actual->tag == FunctionType && needed->tag == FunctionType) {
+        for (arg_t *actual_arg = Match(actual, FunctionType)->args, *needed_arg = Match(needed, FunctionType)->args;
+             actual_arg || needed_arg; actual_arg = actual_arg->next, needed_arg = needed_arg->next) {
+            if (!actual_arg || !needed_arg) return false;
+            if (type_eq(actual_arg->type, needed_arg->type)) continue;
+            if (actual_arg->type->tag == PointerType && needed_arg->type->tag == PointerType
+                && can_promote(actual_arg->type, needed_arg->type))
+                continue;
+            return false;
+        }
+        return true;
+    }
+
     return false;
 }
 

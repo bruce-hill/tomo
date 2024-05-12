@@ -56,6 +56,11 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
         return true;
     }
 
+    if (needed->tag == FunctionType && actual->tag == FunctionType) {
+        *code = CORD_all("(", compile_type(env, needed), ")", *code);
+        return true;
+    }
+
     return false;
 }
 
@@ -1710,7 +1715,10 @@ CORD compile(env_t *env, ast_t *ast)
                     binding_t *b = get_namespace_binding(env, impl, field->name);
                     if (b) {
                         // TODO: typecheck implementation!
-                        c = CORD_all(c, ", (void*)", b->code);
+                        CORD field_code = b->code;
+                        if (!promote(env, &field_code, b->type, field->type))
+                            code_err(ast, "I can't promote the method '%s' from %T to %T", field->name, b->type, field->type);
+                        c = CORD_all(c, ", ", field_code);
                     } else {
                         type_t *member_t = get_field_type(impl_t, field->name);
                         if (!member_t)
