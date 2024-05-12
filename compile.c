@@ -1662,10 +1662,11 @@ CORD compile(env_t *env, ast_t *ast)
 
                         arg_t *type_args = Match(field_t, FunctionType)->args;
                         CORD args = compile_arguments(env, ast, type_args->next, methodcall->args);
-                        bool is_ptr = Match(field_t, FunctionType)->args->type->tag == PointerType;
+                        if (Match(field_t, FunctionType)->args->type->tag != PointerType)
+                            code_err(ast, "Interface methods that take value types can't be called");
                         return CORD_all("({ ", compile_type(env, self_value_t), " $self = ",
                                         compile_to_pointer_depth(env, methodcall->self, 0, false), "; ",
-                                        "$self.", methodcall->name, "(", is_ptr ? CORD_EMPTY : "*", "(", compile_type(env, self_value_t), "*)$self.$obj",
+                                        "$self.", methodcall->name, "($self.$obj",
                                         args == CORD_EMPTY ? CORD_EMPTY : ", ", args, "); })");
                     }
                 }
