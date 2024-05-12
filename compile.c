@@ -483,6 +483,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         }
 
         env_t *body_scope = fresh_scope(env);
+        body_scope->scope_prefix = CORD_EMPTY;
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
             set_binding(body_scope, arg->name, new(binding_t, .type=arg_type, .code=CORD_cat("$", arg->name)));
@@ -515,7 +516,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             CORD pop_code = CORD_EMPTY;
             if (fndef->cache->tag == Int && Match(fndef->cache, Int)->i < INT64_MAX) {
                 pop_code = CORD_all("if (Table$length(cache) > ", compile(body_scope, fndef->cache),
-                                    ") Table$remove(&cache, NULL, table_info);\n");
+                                    ") Table$remove(&cache, NULL, table_type);\n");
             }
 
             CORD wrapper = CORD_all(
