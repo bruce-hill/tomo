@@ -272,20 +272,23 @@ void bind_statement(env_t *env, ast_t *statement)
 
         arg_t *fields = new(arg_t, .name="$obj", .type=Type(PointerType, .pointed=Type(MemoryType))); // interface implementor
         type_t *type = Type(InterfaceType, .name=def->name, .fields=fields, .opaque=true, .env=ns_env); // placeholder
-        type_ast_t *replacement_type_ast = NewTypeAST(statement->file, statement->start, statement->end, VarTypeAST, .name=def->name);
         Table$str_set(env->types, def->name, type);
         for (arg_ast_t *field_ast = def->fields; field_ast; field_ast = field_ast->next) {
             if (!field_ast->type)
                 code_err(field_ast->value, "Interface fields must have defined types, not default values");
-            type_ast_t *field_type = replace_type_ast(field_ast->type, def->type_parameter, replacement_type_ast);
-            type_t *field_t = parse_type_ast(env, field_type);
-            if (field_t->tag == ClosureType)
+            type_t *field_t = parse_type_ast(env, field_ast->type);
+            if (field_t->tag == ClosureType) {
                 field_t = Match(field_t, ClosureType)->fn;
-            if ((field_t->tag == InterfaceType && Match(field_t, InterfaceType)->opaque)
-                || (field_t->tag == EnumType && Match(field_t, EnumType)->opaque))
+                // Convert to method:
+                field_t = Type(FunctionType, .args=new(arg_t, .name="$obj", .type=Type(PointerType, .pointed=Type(MemoryType)),
+                                                       .next=Match(field_t, FunctionType)->args),
+                               .ret=Match(field_t, FunctionType)->ret);
+            } else if ((field_t->tag == InterfaceType && Match(field_t, InterfaceType)->opaque)
+                || (field_t->tag == EnumType && Match(field_t, EnumType)->opaque)) {
                 code_err(field_ast->type, "This type is recursive and would create an infinitely sized interface. Try using a pointer.");
-            if (field_t->tag != FunctionType)
+            } else {
                 field_t = Type(PointerType, .pointed=field_t);
+            }
             fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
         }
         REVERSE_LIST(fields);

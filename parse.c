@@ -1825,10 +1825,9 @@ PARSER(parse_interface_def) {
 
     if (!match(&pos, "("))
         parser_err(ctx, pos, pos, "I expected a '(' and a list of fields here");
-    type_ast_t *type_param = expect(ctx, start, &pos, parse_type, "I couldn't parse the type parameter for this interface");
     whitespace(&pos);
-    expect_str(ctx, start, &pos, ";", "I expected a ';' here");
     arg_ast_t *fields = parse_args(ctx, &pos, false);
+    whitespace(&pos);
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this interface definition");
 
     ast_t *namespace = NULL;
@@ -1844,7 +1843,7 @@ PARSER(parse_interface_def) {
     if (!namespace)
         namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
 
-    return NewAST(ctx->file, start, pos, InterfaceDef, .name=name, .type_parameter=type_param, .fields=fields, .namespace=namespace);
+    return NewAST(ctx->file, start, pos, InterfaceDef, .name=name, .fields=fields, .namespace=namespace);
 }
 
 arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed)

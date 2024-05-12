@@ -63,14 +63,17 @@ void compile_interface_def(env_t *env, ast_t *ast)
     CORD_appendf(&env->code->typedefs, "#define %r(...) ((%r_t){__VA_ARGS__})\n", full_name, full_name);
 
     CORD_appendf(&env->code->typecode, "struct %r_s {\nvoid *$obj;\n", full_name);
-    type_ast_t *replacement_type_ast = NewTypeAST(ast->file, ast->start, ast->end, VarTypeAST, .name=def->name);
     for (arg_ast_t *field = def->fields; field; field = field->next) {
-        type_ast_t *field_type = replace_type_ast(field->type, def->type_parameter, replacement_type_ast);
-        type_t *field_t = parse_type_ast(env, field_type);
-        if (field_t->tag == ClosureType)
+        type_t *field_t = parse_type_ast(env, field->type);
+        if (field_t->tag == ClosureType) {
             field_t = Match(field_t, ClosureType)->fn;
-        if (field_t->tag != FunctionType)
+            // Convert to method:
+            field_t = Type(FunctionType, .args=new(arg_t, .name="$obj", .type=Type(PointerType, .pointed=Type(MemoryType)),
+                                                   .next=Match(field_t, FunctionType)->args),
+                           .ret=Match(field_t, FunctionType)->ret);
+        } else {
             field_t = Type(PointerType, .pointed=field_t);
+        }
         CORD decl = compile_declaration(env, field_t, field->name);
         CORD_appendf(&env->code->typecode, "%r%s;\n", decl,
                      field_t->tag == BoolType ? ":1" : "");
