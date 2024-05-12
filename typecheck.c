@@ -284,6 +284,8 @@ void bind_statement(env_t *env, ast_t *statement)
             if ((field_t->tag == InterfaceType && Match(field_t, InterfaceType)->opaque)
                 || (field_t->tag == EnumType && Match(field_t, EnumType)->opaque))
                 code_err(field_ast->type, "This type is recursive and would create an infinitely sized interface. Try using a pointer.");
+            if (field_t->tag != FunctionType)
+                field_t = Type(PointerType, .pointed=field_t);
             fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
         }
         REVERSE_LIST(fields);

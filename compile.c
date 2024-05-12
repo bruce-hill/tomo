@@ -1702,16 +1702,24 @@ CORD compile(env_t *env, ast_t *ast)
                 auto interface = Match(t, InterfaceType);
                 ast_t *impl = call->args->value;
                 type_t *impl_t = get_type(env, impl);
-                if (impl_t->tag != PointerType)
+                if (impl_t->tag != PointerType) {
                     impl = WrapAST(impl, HeapAllocate, impl);
-                CORD c = CORD_all("(", compile_type(env, t), "){", compile(env, impl));
+                    impl_t = Type(PointerType, .pointed=impl_t);
+                }
+                CORD c = CORD_all("({ ", compile_type(env, impl_t), " $impl = ", compile(env, impl), "; (", compile_type(env, t), "){$impl");
                 for (arg_t *field = interface->fields->next; field; field = field->next) {
                     binding_t *b = get_namespace_binding(env, impl, field->name);
-                    if (!b) code_err(ast, "The type %T doesn't have '%s' for the interface %T", impl_t, field->name, t);
-                    // TODO: typecheck implementation!
-                    c = CORD_all(c, ", (void*)", b->code);
+                    if (b) {
+                        // TODO: typecheck implementation!
+                        c = CORD_all(c, ", (void*)", b->code);
+                    } else {
+                        type_t *member_t = get_field_type(impl_t, field->name);
+                        if (!member_t)
+                            code_err(ast, "The type %T doesn't have '%s' for the interface %T", impl_t, field->name, t);
+                        c = CORD_all(c, ", &$impl->", field->name);
+                    }
                 }
-                return CORD_cat(c, "}");
+                return CORD_cat(c, "};})");
             } else if (t->tag == IntType || t->tag == NumType) {
                 // Int/Num constructor:
                 if (!call->args || call->args->next)
@@ -1883,7 +1891,7 @@ CORD compile(env_t *env, ast_t *ast)
             code_err(ast, "There is no '%s' field on tables", f->field);
         }
         case InterfaceType: {
-            code_err(ast, "Interface field access is not yet implemented");
+            return CORD_all("(*(", compile_to_pointer_depth(env, f->fielded, 0, false), ").", f->field, ")");
         }
         case ModuleType: {
             const char *name = Match(value_t, ModuleType)->name;

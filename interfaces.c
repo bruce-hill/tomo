@@ -69,6 +69,8 @@ void compile_interface_def(env_t *env, ast_t *ast)
         type_t *field_t = parse_type_ast(env, field_type);
         if (field_t->tag == ClosureType)
             field_t = Match(field_t, ClosureType)->fn;
+        if (field_t->tag != FunctionType)
+            field_t = Type(PointerType, .pointed=field_t);
         CORD decl = compile_declaration(env, field_t, field->name);
         CORD_appendf(&env->code->typecode, "%r%s;\n", decl,
                      field_t->tag == BoolType ? ":1" : "");

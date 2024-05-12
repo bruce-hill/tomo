@@ -479,6 +479,8 @@ type_t *get_field_type(type_t *t, const char *field_name)
 {
     t = value_type(t);
     switch (t->tag) {
+    case PointerType:
+        return get_field_type(Match(t, PointerType)->pointed, field_name);
     case StructType: {
         auto struct_t = Match(t, StructType);
         for (arg_t *field = struct_t->fields; field; field = field->next) {
@@ -490,8 +492,11 @@ type_t *get_field_type(type_t *t, const char *field_name)
     case InterfaceType: {
         auto interface = Match(t, InterfaceType);
         for (arg_t *field = interface->fields; field; field = field->next) {
-            if (streq(field->name, field_name))
+            if (streq(field->name, field_name)) {
+                if (field->type->tag == PointerType)
+                    return Match(field->type, PointerType)->pointed;
                 return field->type;
+            }
         }
         return NULL;
     }
