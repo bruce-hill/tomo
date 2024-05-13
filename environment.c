@@ -324,10 +324,6 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
         auto enum_ = Match(cls_type, EnumType);
         return enum_->env ? get_binding(enum_->env, name) : NULL;
     }
-    case InterfaceType: {
-        auto interface = Match(cls_type, InterfaceType);
-        return interface->env ? get_binding(interface->env, name) : NULL;
-    }
     case TypeInfoType: {
         auto info = Match(cls_type, TypeInfoType);
         return info->env ? get_binding(info->env, name) : NULL;

@@ -111,7 +111,7 @@ typedef enum {
     Skip, Stop, Pass,
     Return,
     Extern,
-    StructDef, EnumDef, LangDef, InterfaceDef,
+    StructDef, EnumDef, LangDef,
     Index, FieldAccess, Optional,
     DocTest,
     Use,
@@ -249,11 +249,6 @@ struct ast_s {
             const char *name;
             ast_t *namespace;
         } LangDef;
-        struct {
-            const char *name;
-            arg_ast_t *fields;
-            ast_t *namespace;
-        } InterfaceDef;
         struct {
             ast_t *indexed, *index;
             bool unchecked;

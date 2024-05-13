@@ -29,7 +29,7 @@ BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/nums.o builtins/functions
 
 all: libtomo.so tomo
 
-tomo: tomo.c SipHash/halfsiphash.o ast.o parse.o environment.o types.o typecheck.o structs.o enums.o interfaces.o compile.o repl.o
+tomo: tomo.c SipHash/halfsiphash.o ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o repl.o
 
 libtomo.so: $(BUILTIN_OBJS) SipHash/halfsiphash.o
 	$(CC) $^ $(CFLAGS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) -lgc -lcord -lm -lunistring -ldl -Wl,-soname,libtomo.so -shared -o $@

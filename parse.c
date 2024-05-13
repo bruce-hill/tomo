@@ -91,7 +91,6 @@ static PARSER(parse_var);
 static PARSER(parse_enum_def);
 static PARSER(parse_struct_def);
 static PARSER(parse_lang_def);
-static PARSER(parse_interface_def);
 static PARSER(parse_text);
 static PARSER(parse_func_def);
 static PARSER(parse_extern);
@@ -1598,7 +1597,6 @@ PARSER(parse_namespace) {
         if ((stmt=optional(ctx, &pos, parse_struct_def))
             ||(stmt=optional(ctx, &pos, parse_enum_def))
             ||(stmt=optional(ctx, &pos, parse_lang_def))
-            ||(stmt=optional(ctx, &pos, parse_interface_def))
             ||(stmt=optional(ctx, &pos, parse_func_def))
             ||(stmt=optional(ctx, &pos, parse_use))
             ||(stmt=optional(ctx, &pos, parse_linker))
@@ -1634,7 +1632,6 @@ PARSER(parse_file_body) {
         if ((stmt=optional(ctx, &pos, parse_struct_def))
             ||(stmt=optional(ctx, &pos, parse_enum_def))
             ||(stmt=optional(ctx, &pos, parse_lang_def))
-            ||(stmt=optional(ctx, &pos, parse_interface_def))
             ||(stmt=optional(ctx, &pos, parse_func_def))
             ||(stmt=optional(ctx, &pos, parse_use))
             ||(stmt=optional(ctx, &pos, parse_linker))
@@ -1810,40 +1807,6 @@ PARSER(parse_lang_def) {
         namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
 
     return NewAST(ctx->file, start, pos, LangDef, .name=name, .namespace=namespace);
-}
-
-PARSER(parse_interface_def) {
-    // interface Name(T; field:type, ...): namespace...
-    const char *start = pos;
-    if (!match_word(&pos, "interface")) return NULL;
-    int64_t starting_indent = get_indent(ctx, pos);
-    spaces(&pos);
-    const char *name = get_id(&pos);
-    if (!name)
-        parser_err(ctx, start, pos, "I expected a name for this interface");
-    spaces(&pos);
-
-    if (!match(&pos, "("))
-        parser_err(ctx, pos, pos, "I expected a '(' and a list of fields here");
-    whitespace(&pos);
-    arg_ast_t *fields = parse_args(ctx, &pos, false);
-    whitespace(&pos);
-    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this interface definition");
-
-    ast_t *namespace = NULL;
-    if (match(&pos, ":")) {
-        const char *ns_pos = pos;
-        whitespace(&ns_pos);
-        int64_t ns_indent = get_indent(ctx, ns_pos);
-        if (ns_indent > starting_indent) {
-            pos = ns_pos;
-            namespace = optional(ctx, &pos, parse_namespace);
-        }
-    }
-    if (!namespace)
-        namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
-
-    return NewAST(ctx->file, start, pos, InterfaceDef, .name=name, .fields=fields, .namespace=namespace);
 }
 
 arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed)

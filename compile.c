@@ -10,7 +10,6 @@
 #include "compile.h"
 #include "enums.h"
 #include "structs.h"
-#include "interfaces.h"
 #include "environment.h"
 #include "typecheck.h"
 #include "builtins/util.h"
@@ -115,10 +114,6 @@ CORD compile_type(env_t *env, type_t *t)
     case EnumType: {
         auto e = Match(t, EnumType);
         return CORD_all(e->env->file_prefix, e->name, "_t");
-    }
-    case InterfaceType: {
-        auto s = Match(t, InterfaceType);
-        return CORD_all(s->env->file_prefix, s->name, "_t");
     }
     case TypeInfoType: return "TypeInfo";
     default: compiler_err(NULL, NULL, NULL, "Not implemented");
@@ -444,10 +439,6 @@ CORD compile_statement(env_t *env, ast_t *ast)
                      env->file_prefix, def->name, sizeof(CORD), __alignof__(CORD),
                      Text$quoted(def->name, false));
         compile_namespace(env, def->name, def->namespace);
-        return CORD_EMPTY;
-    }
-    case InterfaceDef: {
-        compile_interface_def(env, ast);
         return CORD_EMPTY;
     }
     case FunctionDef: {
@@ -862,7 +853,7 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
     case TableType: return CORD_asprintf("Table$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case FunctionType: case ClosureType: return CORD_asprintf("Func$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case PointerType: return CORD_asprintf("Pointer$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
-    case StructType: case EnumType: case InterfaceType:
+    case StructType: case EnumType:
         return CORD_asprintf("(%r)->CustomInfo.as_text(stack(%r), %r, %r)",
                              compile_type_info(env, t), expr, color, compile_type_info(env, t));
     default: compiler_err(NULL, NULL, NULL, "Stringifying is not supported for %T", t);
@@ -1651,35 +1642,6 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Table$clear(", self, ")");
             } else code_err(ast, "There is no '%s' method for tables", call->name);
         }
-        case InterfaceType: {
-            auto methodcall = Match(ast, MethodCall);
-            binding_t *b = get_namespace_binding(env, methodcall->self, methodcall->name);
-            if (b) {
-                type_t *fn_t = get_method_type(env, methodcall->self, methodcall->name);
-                arg_ast_t *args = new(arg_ast_t, .value=methodcall->self, .next=methodcall->args);
-                return CORD_all(b->code, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, args), ")");
-            } else {
-                auto interface = Match(self_value_t, InterfaceType);
-                for (arg_t *field = interface->fields; field; field = field->next) {
-                    if (streq(field->name, methodcall->name)) {
-                        env_t tmp_env = *env;
-                        tmp_env.types = new(table_t, .fallback=tmp_env.types);
-                        Table$str_set(tmp_env.types, interface->type_parameter, self_value_t);
-                        type_t *field_t = field->type;
-                        if (field_t->tag == ClosureType)
-                            field_t = Match(field_t, ClosureType)->fn;
-
-                        arg_t *type_args = Match(field_t, FunctionType)->args;
-                        CORD args = compile_arguments(env, ast, type_args->next, methodcall->args);
-                        return CORD_all("({ ", compile_type(env, self_value_t), " $self = ",
-                                        compile_to_pointer_depth(env, methodcall->self, 0, false), "; ",
-                                        "$self.", methodcall->name, "($self.$obj",
-                                        args == CORD_EMPTY ? CORD_EMPTY : ", ", args, "); })");
-                    }
-                }
-                code_err(ast, "There is no method called '%s' on the interface type %s", methodcall->name, interface->name);
-            }
-        }
         default: {
             auto methodcall = Match(ast, MethodCall);
             type_t *fn_t = get_method_type(env, methodcall->self, methodcall->name);
@@ -1703,34 +1665,6 @@ CORD compile(env_t *env, ast_t *ast)
                 fn_t = Type(FunctionType, .args=Match(t, StructType)->fields, .ret=t);
                 CORD fn = compile(env, call->fn);
                 return CORD_all(fn, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), ")");
-            } else if (t->tag == InterfaceType) {
-                // Interface constructor:
-                if (!call->args) code_err(ast, "You need to provide an argument to this interface constructor");
-                if (call->args->next) code_err(ast, "This interface constructor only takes one argument");
-                auto interface = Match(t, InterfaceType);
-                ast_t *impl = call->args->value;
-                type_t *impl_t = get_type(env, impl);
-                if (impl_t->tag != PointerType) {
-                    impl = WrapAST(impl, HeapAllocate, impl);
-                    impl_t = Type(PointerType, .pointed=impl_t);
-                }
-                CORD c = CORD_all("({ ", compile_type(env, impl_t), " $impl = ", compile(env, impl), "; (", compile_type(env, t), "){$impl");
-                for (arg_t *field = interface->fields->next; field; field = field->next) {
-                    binding_t *b = get_namespace_binding(env, impl, field->name);
-                    if (b) {
-                        // TODO: typecheck implementation!
-                        CORD field_code = b->code;
-                        if (!promote(env, &field_code, b->type, field->type))
-                            code_err(ast, "I can't promote the method '%s' from %T to %T", field->name, b->type, field->type);
-                        c = CORD_all(c, ", ", field_code);
-                    } else {
-                        type_t *member_t = get_field_type(impl_t, field->name);
-                        if (!member_t)
-                            code_err(ast, "The type %T doesn't have '%s' for the interface %T", impl_t, field->name, t);
-                        c = CORD_all(c, ", &$impl->", field->name);
-                    }
-                }
-                return CORD_cat(c, "};})");
             } else if (t->tag == IntType || t->tag == NumType) {
                 // Int/Num constructor:
                 if (!call->args || call->args->next)
@@ -1901,9 +1835,6 @@ CORD compile(env_t *env, ast_t *ast)
             }
             code_err(ast, "There is no '%s' field on tables", f->field);
         }
-        case InterfaceType: {
-            return CORD_all("(*(", compile_to_pointer_depth(env, f->fielded, 0, false), ").", f->field, ")");
-        }
         case ModuleType: {
             const char *name = Match(value_t, ModuleType)->name;
             env_t *module_env = Table$str_get(*env->imports, name);
@@ -1969,7 +1900,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Extern: code_err(ast, "Externs are not supported yet");
     case TableEntry: code_err(ast, "Table entries should not be compiled directly");
     case Declare: case Assign: case UpdateAssign: case For: case While: case StructDef: case LangDef:
-    case EnumDef: case FunctionDef: case InterfaceDef: case Skip: case Stop: case Pass: case Return: case DocTest:
+    case EnumDef: case FunctionDef: case Skip: case Stop: case Pass: case Return: case DocTest:
         code_err(ast, "This is not a valid expression");
     case Unknown: code_err(ast, "Unknown AST");
     }
@@ -2024,10 +1955,6 @@ CORD compile_type_info(env_t *env, type_t *t)
     case EnumType: {
         auto e = Match(t, EnumType);
         return CORD_all("(&", e->env->file_prefix, e->name, ")");
-    }
-    case InterfaceType: {
-        auto i = Match(t, InterfaceType);
-        return CORD_all("(&", i->env->file_prefix, i->name, ")");
     }
     case ArrayType: {
         type_t *item_t = Match(t, ArrayType)->item_type;
