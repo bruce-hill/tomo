@@ -411,7 +411,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 if (promote(env, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)) {
                     // arr ++= item
                     if (update->lhs->tag == Var)
-                        return CORD_all("Array$insert(&", lhs, ", &(", rhs, "), 0, ", compile_type_info(env, operand_t), ");");
+                        return CORD_all("Array$insert(&", lhs, ", stack(", rhs, "), 0, ", compile_type_info(env, operand_t), ");");
                     else
                         return CORD_all(lhs, "Array$concat(", lhs, ", Array(", rhs, "), ", compile_type_info(env, operand_t), ");");
                 } else {
@@ -844,26 +844,26 @@ CORD compile_statement(env_t *env, ast_t *ast)
 CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
 {
     switch (t->tag) {
-    case MemoryType: return CORD_asprintf("Memory$as_text(&(%r), %r, &$Memory)", expr, color);
-    case BoolType: return CORD_asprintf("Bool$as_text(&(%r), %r, &$Bool)", expr, color);
+    case MemoryType: return CORD_asprintf("Memory$as_text(stack(%r), %r, &$Memory)", expr, color);
+    case BoolType: return CORD_asprintf("Bool$as_text(stack(%r), %r, &$Bool)", expr, color);
     case IntType: {
         CORD name = type_to_cord(t);
-        return CORD_asprintf("%r$as_text(&(%r), %r, &$%r)", name, expr, color, name);
+        return CORD_asprintf("%r$as_text(stack(%r), %r, &$%r)", name, expr, color, name);
     }
     case NumType: {
         CORD name = type_to_cord(t);
-        return CORD_asprintf("%r$as_text(&(%r), %r, &$%r)", name, expr, color, name);
+        return CORD_asprintf("%r$as_text(stack(%r), %r, &$%r)", name, expr, color, name);
     }
     case TextType: {
         const char *lang = Match(t, TextType)->lang;
-        return CORD_asprintf("Text$as_text(&(%r), %r, &%s)", expr, color, lang ? lang : "$Text");
+        return CORD_asprintf("Text$as_text(stack(%r), %r, &%s)", expr, color, lang ? lang : "$Text");
     }
-    case ArrayType: return CORD_asprintf("Array$as_text(&(%r), %r, %r)", expr, color, compile_type_info(env, t));
-    case TableType: return CORD_asprintf("Table$as_text(&(%r), %r, %r)", expr, color, compile_type_info(env, t));
-    case FunctionType: case ClosureType: return CORD_asprintf("Func$as_text(&(%r), %r, %r)", expr, color, compile_type_info(env, t));
-    case PointerType: return CORD_asprintf("Pointer$as_text(&(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case ArrayType: return CORD_asprintf("Array$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case TableType: return CORD_asprintf("Table$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case FunctionType: case ClosureType: return CORD_asprintf("Func$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case PointerType: return CORD_asprintf("Pointer$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case StructType: case EnumType: case InterfaceType:
-        return CORD_asprintf("(%r)->CustomInfo.as_text(&(%r), %r, %r)",
+        return CORD_asprintf("(%r)->CustomInfo.as_text(stack(%r), %r, %r)",
                              compile_type_info(env, t), expr, color, compile_type_info(env, t));
     default: compiler_err(NULL, NULL, NULL, "Stringifying is not supported for %T", t);
     }
@@ -889,7 +889,7 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
             if (ast->tag == Var && target_depth == 1)
                 val = CORD_all("(&", val, ")");
             else
-                val = CORD_all("&(", val, ")");
+                val = CORD_all("stack(", val, ")");
             t = Type(PointerType, .pointed=t, .is_stack=true);
             ++depth;
         } else {
@@ -1048,7 +1048,7 @@ CORD compile(env_t *env, ast_t *ast)
         ast_t *subject = Match(ast, StackReference)->value;
         if (can_be_mutated(env, subject))
             return CORD_all("(&", compile(env, subject), ")");
-        return CORD_all("&(", compile(env, subject), ")");
+        return CORD_all("stack(", compile(env, subject), ")");
     }
     case Optional: {
         return compile(env, Match(ast, Optional)->value);
@@ -1122,7 +1122,7 @@ CORD compile(env_t *env, ast_t *ast)
             case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_asprintf("(%r == %r)", lhs, rhs);
             default:
-                return CORD_asprintf("generic_equal(&(%r), &(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
+                return CORD_asprintf("generic_equal(stack(%r), stack(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
             }
         }
         case BINOP_NE: {
@@ -1130,7 +1130,7 @@ CORD compile(env_t *env, ast_t *ast)
             case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_asprintf("(%r != %r)", lhs, rhs);
             default:
-                return CORD_asprintf("!generic_equal(&(%r), &(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
+                return CORD_asprintf("!generic_equal(stack(%r), stack(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
             }
         }
         case BINOP_LT: {
@@ -1138,7 +1138,7 @@ CORD compile(env_t *env, ast_t *ast)
             case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_asprintf("(%r < %r)", lhs, rhs);
             default:
-                return CORD_asprintf("(generic_compare(&(%r), &(%r), %r) < 0)", lhs, rhs, compile_type_info(env, operand_t));
+                return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) < 0)", lhs, rhs, compile_type_info(env, operand_t));
             }
         }
         case BINOP_LE: {
@@ -1146,7 +1146,7 @@ CORD compile(env_t *env, ast_t *ast)
             case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_asprintf("(%r <= %r)", lhs, rhs);
             default:
-                return CORD_asprintf("(generic_compare(&(%r), &(%r), %r) <= 0)", lhs, rhs, compile_type_info(env, operand_t));
+                return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) <= 0)", lhs, rhs, compile_type_info(env, operand_t));
             }
         }
         case BINOP_GT: {
@@ -1154,7 +1154,7 @@ CORD compile(env_t *env, ast_t *ast)
             case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_asprintf("(%r > %r)", lhs, rhs);
             default:
-                return CORD_asprintf("(generic_compare(&(%r), &(%r), %r) > 0)", lhs, rhs, compile_type_info(env, operand_t));
+                return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) > 0)", lhs, rhs, compile_type_info(env, operand_t));
             }
         }
         case BINOP_GE: {
@@ -1162,7 +1162,7 @@ CORD compile(env_t *env, ast_t *ast)
             case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_asprintf("(%r >= %r)", lhs, rhs);
             default:
-                return CORD_asprintf("(generic_compare(&(%r), &(%r), %r) >= 0)", lhs, rhs, compile_type_info(env, operand_t));
+                return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) >= 0)", lhs, rhs, compile_type_info(env, operand_t));
             }
         }
         case BINOP_AND: {
@@ -1174,7 +1174,7 @@ CORD compile(env_t *env, ast_t *ast)
                 code_err(ast, "Boolean operators are only supported for Bool and integer types");
         }
         case BINOP_CMP: {
-            return CORD_all("generic_compare(&(", lhs, "), &(", rhs, "), ", compile_type_info(env, operand_t), ")");
+            return CORD_all("generic_compare(stack(", lhs, "), stack(", rhs, "), ", compile_type_info(env, operand_t), ")");
         }
         case BINOP_OR: {
             if (operand_t->tag == BoolType)
@@ -1321,7 +1321,7 @@ CORD compile(env_t *env, ast_t *ast)
         else if (key_t->tag == TextType)
             comparison = CORD_all("CORD_cmp(", lhs_key, ", ", rhs_key, ")", (ast->tag == Min ? "<=" : ">="), "0");
         else
-            comparison = CORD_all("generic_compare(&(", lhs_key, "), &(", rhs_key, "), ", compile_type_info(env, key_t), ")",
+            comparison = CORD_all("generic_compare(stack(", lhs_key, "), stack(", rhs_key, "), ", compile_type_info(env, key_t), ")",
                                   (ast->tag == Min ? "<=" : ">="), "0");
 
         return CORD_all(
