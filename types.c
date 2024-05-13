@@ -279,7 +279,15 @@ bool can_promote(type_t *actual, type_t *needed)
                 continue;
             return false;
         }
-        return true;
+        type_t *actual_ret = Match(actual, FunctionType)->ret;
+        if (!actual_ret) actual_ret = Type(VoidType);
+        type_t *needed_ret = Match(needed, FunctionType)->ret;
+        if (!needed_ret) needed_ret = Type(VoidType);
+
+        return (
+            (type_eq(actual_ret, needed_ret))
+            || (actual_ret->tag == PointerType && needed_ret->tag == PointerType
+                && can_promote(actual_ret, needed_ret)));
     }
 
     return false;
