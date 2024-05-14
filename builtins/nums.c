@@ -34,7 +34,7 @@ public bool Num$equal(const double *x, const double *y, const TypeInfo *type) {
 
 public bool Num$near(double a, double b, double ratio, double absolute) {
     if (ratio < 0) ratio = 0;
-    else if (ratio > 0) ratio = 1;
+    else if (ratio > 1) ratio = 1;
 
     if (a == b) return true;
 
@@ -116,7 +116,7 @@ public bool Num32$equal(const float *x, const float *y, const TypeInfo *type) {
 
 public bool Num32$near(float a, float b, float ratio, float absolute) {
     if (ratio < 0) ratio = 0;
-    else if (ratio > 0) ratio = 1;
+    else if (ratio > 1) ratio = 1;
 
     if (a == b) return true;
 
