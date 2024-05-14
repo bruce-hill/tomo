@@ -78,6 +78,13 @@ The Tomo compiler can be compiled with either GCC or Clang by running `make`.
 
 ## Usage
 
+Run Tomo interactively as a REPL (limited functionality):
+
+```bash
+tomo
+# Starts a REPL session
+```
+
 Run a Tomo file directly:
 
 ```bash
