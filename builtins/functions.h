@@ -13,7 +13,11 @@ extern const char *TOMO_HASH_VECTOR;
 void fail(CORD fmt, ...);
 void fail_source(const char *filename, int64_t start, int64_t end, CORD fmt, ...);
 CORD builtin_last_err();
-void test(void *expr, const TypeInfo *type, CORD expected, const char *filename, int64_t start, int64_t end);
+void start_test(const char *filename, int64_t start, int64_t end);
+void end_test(void *expr, const TypeInfo *type, CORD expected, const char *filename, int64_t start, int64_t end);
+#define test(expr, type, expected, filename, start, end) {\
+    start_test(filename, start, end); \
+    end_test(expr, type, expected, filename, start, end); }
 void say(CORD text);
 
 uint32_t generic_hash(const void *obj, const TypeInfo *type);

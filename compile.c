@@ -247,11 +247,14 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     (int64_t)(test->expr->start - test->expr->file->text),
                     (int64_t)(test->expr->end - test->expr->file->text));
             } else {
+                CORD var = CORD_all("$", Match(decl->var, Var)->name);
                 return CORD_asprintf(
-                    "%r\n"
-                    "test(&%r, %r, %r, %r, %ld, %ld);",
-                    compile_statement(env, test->expr),
-                    compile(env, decl->var),
+                    "%r;\n"
+                    "test(({ %s = %r; &%r;}), %r, %r, %r, %ld, %ld);\n",
+                    compile_declaration(env, get_type(env, decl->value), var),
+                    var,
+                    compile(env, decl->value),
+                    var,
                     compile_type_info(env, get_type(env, decl->value)),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=output)),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
@@ -262,21 +265,21 @@ CORD compile_statement(env_t *env, ast_t *ast)
             auto assign = Match(test->expr, Assign);
             if (!assign->targets->next && assign->targets->ast->tag == Var) {
                 // Common case: assigning to one variable:
-                CORD var = compile(env, assign->targets->ast);
-                CORD code = compile_assignment(env, assign->targets->ast, compile(env, assign->values->ast));
-                CORD_appendf(&code, "test(&%r, %r, %r, %r, %ld, %ld);",
-                    var, compile_type_info(env, get_type(env, assign->targets->ast)),
+                return CORD_asprintf(
+                    "test(({ %r; &%r; }), %r, %r, %r, %ld, %ld);",
+                    compile_assignment(env, assign->targets->ast, compile(env, assign->values->ast)),
+                    compile(env, assign->targets->ast),
+                    compile_type_info(env, get_type(env, assign->targets->ast)),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
                     (int64_t)(test->expr->start - test->expr->file->text),
                     (int64_t)(test->expr->end - test->expr->file->text));
-                return code;
             } else {
                 // Multi-assign or assignment to potentially non-idempotent targets
                 if (test->output && assign->targets->next)
                     code_err(ast, "Sorry, but doctesting with '=' is not supported for multi-assignments");
 
-                CORD code = "{ // Assignment\n";
+                CORD code = "test(({ // Assignment\n";
                 int64_t i = 1;
                 for (ast_list_t *target = assign->targets, *value = assign->values; target && value; target = target->next, value = value->next) {
                     type_t *target_type = get_type(env, target->ast);
@@ -290,28 +293,24 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 for (ast_list_t *target = assign->targets; target; target = target->next)
                     code = CORD_all(code, compile_assignment(env, target->ast, CORD_asprintf("$%ld", i++)));
 
-                CORD_appendf(&code, "test(&$1, %r, %r, %r, %ld, %ld);",
+                CORD_appendf(&code, "&$1; }), %r, %r, %r, %ld, %ld);",
                     compile_type_info(env, get_type(env, assign->targets->ast)),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
                     (int64_t)(test->expr->start - test->expr->file->text),
                     (int64_t)(test->expr->end - test->expr->file->text));
-                return CORD_cat(code, "\n}");
+                return code;
             }
         } else if (expr_t->tag == VoidType || expr_t->tag == AbortType) {
             return CORD_asprintf(
-                "%r\n"
-                "test(NULL, NULL, NULL, %r, %ld, %ld);",
+                "test(({ %r; NULL; }), NULL, NULL, %r, %ld, %ld);",
                 compile_statement(env, test->expr),
                 compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else {
             return CORD_asprintf(
-                "{ // Test:\n"
-                "%r = %r;\n"
-                "test(&expr, %r, %r, %r, %ld, %ld);\n"
-                "}",
+                "test(({ %r = %r; &expr; }), %r, %r, %r, %ld, %ld);",
                 compile_declaration(env, expr_t, "expr"),
                 compile(env, test->expr),
                 compile_type_info(env, expr_t),

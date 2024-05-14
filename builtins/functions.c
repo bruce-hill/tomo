@@ -151,44 +151,54 @@ public CORD builtin_last_err()
     return CORD_from_char_star(strerror(errno));
 }
 
-public void test(void *expr, const TypeInfo *type, CORD expected, const char *filename, int64_t start, int64_t end)
+static int TEST_DEPTH = 0;
+static file_t *file = NULL;
+
+public void start_test(const char *filename, int64_t start, int64_t end)
 {
-    static file_t *file = NULL;
     if (filename && (file == NULL || strcmp(file->filename, filename) != 0))
         file = load_file(filename);
 
-    if (filename && file)
+    if (filename && file) {
+        for (int i = 0; i < 3*TEST_DEPTH; i++) fputc(' ', stderr);
         CORD_fprintf(stderr, USE_COLOR ? "\x1b[33;1m>> \x1b[0m%.*s\x1b[m\n" : ">> %.*s\n", (end - start), file->text + start);
+    }
+    ++TEST_DEPTH;
+}
 
-    if (expr) {
-        CORD expr_cord = generic_as_text(expr, USE_COLOR, type);
-        CORD type_name = generic_as_text(NULL, false, type);
+public void end_test(void *expr, const TypeInfo *type, CORD expected, const char *filename, int64_t start, int64_t end)
+{
+    --TEST_DEPTH;
+    if (!expr) return;
 
-        uint8_t buf[512] = {0};
-        size_t buf_len = sizeof(buf)-1;
-        const char *expr_str = CORD_to_const_char_star(expr_cord);
-        uint8_t *normalized_str = u8_normalize(UNINORM_NFD, (uint8_t*)expr_str, strlen(expr_str), buf, &buf_len);
-        normalized_str[buf_len] = 0;
-        if (!normalized_str) errx(1, "Couldn't normalize unicode string!");
-        CORD expr_normalized = CORD_from_char_star((char*)normalized_str);
-        if (normalized_str != buf)
-            free(normalized_str);
+    CORD expr_cord = generic_as_text(expr, USE_COLOR, type);
+    CORD type_name = generic_as_text(NULL, false, type);
 
-        CORD_fprintf(stderr, USE_COLOR ? "\x1b[2m=\x1b[0m %r \x1b[2m: %r\x1b[m\n" : "= %r : %r\n", expr_normalized, type_name);
-        if (expected) {
-            CORD expr_plain = USE_COLOR ? generic_as_text(expr, false, type) : expr_normalized;
-            bool success = Text$equal(&expr_plain, &expected);
-            if (!success && CORD_chr(expected, 0, ':')) {
-                CORD with_type = CORD_catn(3, expr_plain, " : ", type_name);
-                success = Text$equal(&with_type, &expected);
-            }
+    uint8_t buf[512] = {0};
+    size_t buf_len = sizeof(buf)-1;
+    const char *expr_str = CORD_to_const_char_star(expr_cord);
+    uint8_t *normalized_str = u8_normalize(UNINORM_NFD, (uint8_t*)expr_str, strlen(expr_str), buf, &buf_len);
+    normalized_str[buf_len] = 0;
+    if (!normalized_str) errx(1, "Couldn't normalize unicode string!");
+    CORD expr_normalized = CORD_from_char_star((char*)normalized_str);
+    if (normalized_str != buf)
+        free(normalized_str);
 
-            if (!success) {
-                fail_source(filename, start, end, 
-                            USE_COLOR ? "\x1b[31;1mDoctest failure:\nExpected: \x1b[32;1m%s\x1b[0m\n\x1b[31;1m But got:\x1b[m %s\n"
-                            : "Doctest failure:\nExpected: %s\n But got: %s\n",
-                            CORD_to_const_char_star(expected), CORD_to_const_char_star(expr_normalized));
-            }
+    for (int i = 0; i < 3*TEST_DEPTH; i++) fputc(' ', stderr);
+    CORD_fprintf(stderr, USE_COLOR ? "\x1b[2m=\x1b[0m %r \x1b[2m: %r\x1b[m\n" : "= %r : %r\n", expr_normalized, type_name);
+    if (expected) {
+        CORD expr_plain = USE_COLOR ? generic_as_text(expr, false, type) : expr_normalized;
+        bool success = Text$equal(&expr_plain, &expected);
+        if (!success && CORD_chr(expected, 0, ':')) {
+            CORD with_type = CORD_catn(3, expr_plain, " : ", type_name);
+            success = Text$equal(&with_type, &expected);
+        }
+
+        if (!success) {
+            fail_source(filename, start, end, 
+                        USE_COLOR ? "\x1b[31;1mDoctest failure:\nExpected: \x1b[32;1m%s\x1b[0m\n\x1b[31;1m But got:\x1b[m %s\n"
+                        : "Doctest failure:\nExpected: %s\n But got: %s\n",
+                        CORD_to_const_char_star(expected), CORD_to_const_char_star(expr_normalized));
         }
     }
 }
