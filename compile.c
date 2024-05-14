@@ -2161,6 +2161,9 @@ module_code_t compile_file(ast_t *ast)
     Table$str_set(env->imports, name, env);
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        prebind_statement(env, stmt->ast);
+    }
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         // Hack: make sure global is bound as foo$var:
         if (stmt->ast->tag == Declare && Match(Match(stmt->ast, Declare)->var, Var)->name[0] != '_')
             env->scope_prefix = heap_strf("%s$", name);

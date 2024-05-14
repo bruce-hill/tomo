@@ -13,6 +13,7 @@
 
 type_t *parse_type_ast(env_t *env, type_ast_t *ast);
 type_t *get_type(env_t *env, ast_t *ast);
+void prebind_statement(env_t *env, ast_t *statement);
 void bind_statement(env_t *env, ast_t *statement);
 type_t *get_math_type(env_t *env, ast_t *ast, type_t *lhs_t, type_t *rhs_t);
 bool is_discardable(env_t *env, ast_t *ast);

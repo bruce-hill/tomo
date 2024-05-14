@@ -4,6 +4,9 @@ struct Mixed(x:Int, text:Text)
 struct LinkedList(x:Int, next=!@LinkedList)
 struct Password(text:Text; secret)
 
+struct CorecursiveA(other:@CorecursiveB?)
+struct CorecursiveB(other=!@CorecursiveA)
+
 func test_literals():
 	>> x := Pair(10, 20)
 	= Pair(x=10, y=20)
@@ -62,4 +65,6 @@ func main():
 	= {Password(...):"User1", Password(...):"User2"}
 	>> users_by_password[my_pass]
 	= "User1"
+
+	>> CorecursiveA(@CorecursiveB())
 

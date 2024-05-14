@@ -127,10 +127,62 @@ static env_t *load_module(env_t *env, ast_t *use_ast)
     if (!ast) errx(1, "Could not compile!");
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        prebind_statement(module_env, stmt->ast);
+    }
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         bind_statement(module_env, stmt->ast);
     }
     Table$str_set(env->imports, name, module_env);
     return module_env;
+}
+
+void prebind_statement(env_t *env, ast_t *statement)
+{
+    switch (statement->tag) {
+    case DocTest: {
+        prebind_statement(env, Match(statement, DocTest)->expr);
+        break;
+    }
+    case StructDef: {
+        auto def = Match(statement, StructDef);
+        if (get_binding(env, def->name))
+            code_err(statement, "A %T called '%s' has already been defined", get_binding(env, def->name)->type, def->name);
+
+        env_t *ns_env = namespace_env(env, def->name);
+        type_t *type = Type(StructType, .name=def->name, .opaque=true, .env=ns_env); // placeholder
+        Table$str_set(env->types, def->name, type);
+        for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
+            prebind_statement(ns_env, stmt->ast);
+        }
+        break;
+    }
+    case EnumDef: {
+        auto def = Match(statement, EnumDef);
+        if (get_binding(env, def->name))
+            code_err(statement, "A %T called '%s' has already been defined", get_binding(env, def->name)->type, def->name);
+
+        env_t *ns_env = namespace_env(env, def->name);
+        type_t *type = Type(EnumType, .name=def->name, .opaque=true, .env=ns_env); // placeholder
+        Table$str_set(env->types, def->name, type);
+        for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
+            prebind_statement(ns_env, stmt->ast);
+        }
+        break;
+    }
+    case LangDef: {
+        auto def = Match(statement, LangDef);
+        if (get_binding(env, def->name))
+            code_err(statement, "A %T called '%s' has already been defined", get_binding(env, def->name)->type, def->name);
+
+        env_t *ns_env = namespace_env(env, def->name);
+        type_t *type = Type(TextType, .lang=def->name, .env=ns_env);
+        Table$str_set(env->types, def->name, type);
+        for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
+            prebind_statement(ns_env, stmt->ast);
+        break;
+    }
+    default: break;
+    }
 }
 
 void bind_statement(env_t *env, ast_t *statement)
