@@ -1,4 +1,4 @@
-
+// A Read-Evaluate-Print-Loop
 #include <dlfcn.h>
 #include <setjmp.h>
 #include <stdarg.h>
@@ -58,12 +58,13 @@ void repl(void)
                     fflush(stdout);
                 }
             } else {
-                code = heap_strf(">> %s", code);
+                code = heap_strf("func main(): >> %s", code);
             }
             file_t *f = spoof_file("<repl>", code);
             ast_t *ast = parse_file(f, &on_err);
-            if (ast->tag == DocTest) ast->__data.DocTest.skip_source = 1;
-            run(env, ast);
+            ast_t *doctest = Match(Match(Match(ast, Block)->statements->ast, FunctionDef)->body, Block)->statements->ast;
+            if (doctest->tag == DocTest) doctest->__data.DocTest.skip_source = 1;
+            run(env, doctest);
         }
         printf("\x1b[33;1m>>\x1b[m ");
         fflush(stdout);
