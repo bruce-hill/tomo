@@ -230,10 +230,14 @@ void bind_statement(env_t *env, ast_t *statement)
         for (arg_ast_t *field_ast = def->fields; field_ast; field_ast = field_ast->next) {
             type_t *field_t = get_arg_ast_type(env, field_ast);
             if ((field_t->tag == StructType && Match(field_t, StructType)->opaque)
-                || (field_t->tag == EnumType && Match(field_t, EnumType)->opaque))
-                code_err(field_ast->type, "I'm still in the process of defining the fields of %T, so I don't know how to use it as a member."
-                         "\nTry using a @%T pointer for this field or moving the definition of %T before %T in the file.",
-                         field_t, field_t, field_t, type);
+                || (field_t->tag == EnumType && Match(field_t, EnumType)->opaque)) {
+                if (field_t == type)
+                    code_err(field_ast->type, "This is a recursive struct that would be infinitely large. Maybe you meant to use an optional '@%T?' pointer instead?", type);
+                else
+                    code_err(field_ast->type, "I'm still in the process of defining the fields of %T, so I don't know how to use it as a member."
+                             "\nTry using a @%T pointer for this field or moving the definition of %T before %T in the file.",
+                             field_t, field_t, field_t, type);
+            }
             fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
         }
         REVERSE_LIST(fields);
@@ -263,10 +267,14 @@ void bind_statement(env_t *env, ast_t *statement)
             for (arg_ast_t *field_ast = tag_ast->fields; field_ast; field_ast = field_ast->next) {
                 type_t *field_t = get_arg_ast_type(env, field_ast);
                 if ((field_t->tag == StructType && Match(field_t, StructType)->opaque)
-                    || (field_t->tag == EnumType && Match(field_t, EnumType)->opaque))
-                    code_err(field_ast->type, "I'm still in the process of defining the fields of %T, so I don't know how to use it as a member."
-                             "\nTry using a @%T pointer for this field or moving the definition of %T before %T in the file.",
-                             field_t, field_t, field_t, type);
+                    || (field_t->tag == EnumType && Match(field_t, EnumType)->opaque)) {
+                    if (field_t == type)
+                        code_err(field_ast->type, "This is a recursive enum that would be infinitely large. Maybe you meant to use an optional '@%T?' pointer instead?", type);
+                    else
+                        code_err(field_ast->type, "I'm still in the process of defining the fields of %T, so I don't know how to use it as a member."
+                                 "\nTry using a @%T pointer for this field or moving the definition of %T before %T in the file.",
+                                 field_t, field_t, field_t, type);
+                }
                 fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
             }
             REVERSE_LIST(fields);
