@@ -266,11 +266,12 @@ CORD compile_statement(env_t *env, ast_t *ast)
             auto assign = Match(test->expr, Assign);
             if (!assign->targets->next && assign->targets->ast->tag == Var) {
                 // Common case: assigning to one variable:
+                type_t *t = get_type(env, assign->targets->ast);
                 return CORD_asprintf(
                     "test(({ %r; &%r; }), %r, %r, %r, %ld, %ld);",
-                    compile_assignment(env, assign->targets->ast, compile(env, assign->values->ast)),
+                    compile_assignment(env, assign->targets->ast, compile(arg_scope(env, t), assign->values->ast)),
                     compile(env, assign->targets->ast),
-                    compile_type_info(env, get_type(env, assign->targets->ast)),
+                    compile_type_info(env, t),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
                     (int64_t)(test->expr->start - test->expr->file->text),
@@ -285,7 +286,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 for (ast_list_t *target = assign->targets, *value = assign->values; target && value; target = target->next, value = value->next) {
                     type_t *target_type = get_type(env, target->ast);
                     type_t *value_type = get_type(env, value->ast);
-                    CORD val_code = compile(env, value->ast);
+                    CORD val_code = compile(arg_scope(env, target_type), value->ast);
                     if (!promote(env, &val_code, value_type, target_type))
                         code_err(value->ast, "This %T value cannot be converted to a %T type", value_type, target_type);
                     CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(env, target_type), i++, val_code);
@@ -334,14 +335,28 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case Assign: {
         auto assign = Match(ast, Assign);
-        // Single assignment:
-        if (assign->targets && !assign->targets->next)
-            return compile_assignment(env, assign->targets->ast, compile(env, assign->values->ast));
+        // Single assignment, no temp vars needed:
+        if (assign->targets && !assign->targets->next) {
+            type_t *lhs_t = get_type(env, assign->targets->ast);
+            env_t *val_env = arg_scope(env, lhs_t);
+            type_t *rhs_t = get_type(val_env, assign->values->ast);
+            CORD val = compile(val_env, assign->values->ast);
+            if (!promote(env, &val, rhs_t, lhs_t))
+                code_err(assign->values->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
+            return compile_assignment(env, assign->targets->ast, val);
+        }
 
         CORD code = "{ // Assignment\n";
         int64_t i = 1;
-        for (ast_list_t *value = assign->values; value; value = value->next)
-            CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(env, get_type(env, value->ast)), i++, compile(env, value->ast));
+        for (ast_list_t *value = assign->values, *target = assign->targets; value && target; value = value->next, target = target->next) {
+            type_t *lhs_t = get_type(env, target->ast);
+            env_t *val_env = arg_scope(env, lhs_t);
+            type_t *rhs_t = get_type(val_env, value->ast);
+            CORD val = compile(val_env, value->ast);
+            if (!promote(env, &val, rhs_t, lhs_t))
+                code_err(value->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
+            CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(env, lhs_t), i++, val);
+        }
         i = 1;
         for (ast_list_t *target = assign->targets; target; target = target->next) {
             code = CORD_cat(code, compile_assignment(env, target->ast, CORD_asprintf("$%ld", i++)));
