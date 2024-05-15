@@ -572,6 +572,15 @@ CORD compile_statement(env_t *env, ast_t *ast)
         auto ret = Match(ast, Return)->value;
         assert(env->fn_ctx->return_type);
         if (ret) {
+            if (env->fn_ctx->return_type->tag == EnumType) {
+                env = fresh_scope(env);
+                env_t *ns_env = Match(env->fn_ctx->return_type, EnumType)->env;
+                for (tag_t *tag = Match(env->fn_ctx->return_type, EnumType)->tags; tag; tag = tag->next) {
+                    if (get_binding(env, tag->name))
+                        continue;
+                    set_binding(env, tag->name, get_binding(ns_env, tag->name));
+                }
+            }
             type_t *ret_t = get_type(env, ret);
             CORD value = compile(env, ret);
             if (!promote(env, &value, ret_t, env->fn_ctx->return_type))
