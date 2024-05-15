@@ -15,7 +15,7 @@
 #include "builtins/util.h"
 
 static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool allow_optional);
-static env_t *arg_scope(env_t *env, type_t *t);
+static env_t *with_enum_scope(env_t *env, type_t *t);
 
 CORD compile_type_ast(env_t *env, type_ast_t *t)
 {
@@ -269,7 +269,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 type_t *t = get_type(env, assign->targets->ast);
                 return CORD_asprintf(
                     "test(({ %r; &%r; }), %r, %r, %r, %ld, %ld);",
-                    compile_assignment(env, assign->targets->ast, compile(arg_scope(env, t), assign->values->ast)),
+                    compile_assignment(env, assign->targets->ast, compile(with_enum_scope(env, t), assign->values->ast)),
                     compile(env, assign->targets->ast),
                     compile_type_info(env, t),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
@@ -286,7 +286,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 for (ast_list_t *target = assign->targets, *value = assign->values; target && value; target = target->next, value = value->next) {
                     type_t *target_type = get_type(env, target->ast);
                     type_t *value_type = get_type(env, value->ast);
-                    CORD val_code = compile(arg_scope(env, target_type), value->ast);
+                    CORD val_code = compile(with_enum_scope(env, target_type), value->ast);
                     if (!promote(env, &val_code, value_type, target_type))
                         code_err(value->ast, "This %T value cannot be converted to a %T type", value_type, target_type);
                     CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(env, target_type), i++, val_code);
@@ -338,7 +338,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         // Single assignment, no temp vars needed:
         if (assign->targets && !assign->targets->next) {
             type_t *lhs_t = get_type(env, assign->targets->ast);
-            env_t *val_env = arg_scope(env, lhs_t);
+            env_t *val_env = with_enum_scope(env, lhs_t);
             type_t *rhs_t = get_type(val_env, assign->values->ast);
             CORD val = compile(val_env, assign->values->ast);
             if (!promote(env, &val, rhs_t, lhs_t))
@@ -350,7 +350,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         int64_t i = 1;
         for (ast_list_t *value = assign->values, *target = assign->targets; value && target; value = value->next, target = target->next) {
             type_t *lhs_t = get_type(env, target->ast);
-            env_t *val_env = arg_scope(env, lhs_t);
+            env_t *val_env = with_enum_scope(env, lhs_t);
             type_t *rhs_t = get_type(val_env, value->ast);
             CORD val = compile(val_env, value->ast);
             if (!promote(env, &val, rhs_t, lhs_t))
@@ -588,7 +588,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         auto ret = Match(ast, Return)->value;
         assert(env->fn_ctx->return_type);
         if (ret) {
-            env = arg_scope(env, env->fn_ctx->return_type);
+            env = with_enum_scope(env, env->fn_ctx->return_type);
             type_t *ret_t = get_type(env, ret);
             CORD value = compile(env, ret);
             if (!promote(env, &value, ret_t, env->fn_ctx->return_type))
@@ -920,7 +920,7 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
     return val;
 }
 
-env_t *arg_scope(env_t *env, type_t *t)
+env_t *with_enum_scope(env_t *env, type_t *t)
 {
     if (t->tag != EnumType) return env;
     env = fresh_scope(env);
@@ -943,7 +943,7 @@ static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg
         if (spec_arg->name) {
             for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
                 if (call_arg->name && streq(call_arg->name, spec_arg->name)) {
-                    env_t *arg_env = arg_scope(env, spec_arg->type);
+                    env_t *arg_env = with_enum_scope(env, spec_arg->type);
                     type_t *actual_t = get_type(arg_env, call_arg->value);
                     CORD value = compile(arg_env, call_arg->value);
                     if (!promote(arg_env, &value, actual_t, spec_arg->type))
@@ -961,7 +961,7 @@ static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg
             if (call_arg->name) continue;
             const char *pseudoname = heap_strf("%ld", i++);
             if (!Table$str_get(used_args, pseudoname)) {
-                env_t *arg_env = arg_scope(env, spec_arg->type);
+                env_t *arg_env = with_enum_scope(env, spec_arg->type);
                 type_t *actual_t = get_type(arg_env, call_arg->value);
                 CORD value = compile(arg_env, call_arg->value);
                 if (!promote(arg_env, &value, actual_t, spec_arg->type))
