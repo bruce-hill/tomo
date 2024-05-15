@@ -15,6 +15,7 @@
 #include "builtins/util.h"
 
 static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool allow_optional);
+static env_t *arg_scope(env_t *env, type_t *t);
 
 CORD compile_type_ast(env_t *env, type_ast_t *t)
 {
@@ -572,15 +573,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         auto ret = Match(ast, Return)->value;
         assert(env->fn_ctx->return_type);
         if (ret) {
-            if (env->fn_ctx->return_type->tag == EnumType) {
-                env = fresh_scope(env);
-                env_t *ns_env = Match(env->fn_ctx->return_type, EnumType)->env;
-                for (tag_t *tag = Match(env->fn_ctx->return_type, EnumType)->tags; tag; tag = tag->next) {
-                    if (get_binding(env, tag->name))
-                        continue;
-                    set_binding(env, tag->name, get_binding(ns_env, tag->name));
-                }
-            }
+            env = arg_scope(env, env->fn_ctx->return_type);
             type_t *ret_t = get_type(env, ret);
             CORD value = compile(env, ret);
             if (!promote(env, &value, ret_t, env->fn_ctx->return_type))
@@ -912,6 +905,19 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
     return val;
 }
 
+env_t *arg_scope(env_t *env, type_t *t)
+{
+    if (t->tag != EnumType) return env;
+    env = fresh_scope(env);
+    env_t *ns_env = Match(t, EnumType)->env;
+    for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
+        if (get_binding(env, tag->name))
+            continue;
+        set_binding(env, tag->name, get_binding(ns_env, tag->name));
+    }
+    return env;
+}
+
 static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args)
 {
     table_t used_args = {};
@@ -922,9 +928,10 @@ static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg
         if (spec_arg->name) {
             for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
                 if (call_arg->name && streq(call_arg->name, spec_arg->name)) {
-                    type_t *actual_t = get_type(env, call_arg->value);
-                    CORD value = compile(env, call_arg->value);
-                    if (!promote(env, &value, actual_t, spec_arg->type))
+                    env_t *arg_env = arg_scope(env, spec_arg->type);
+                    type_t *actual_t = get_type(arg_env, call_arg->value);
+                    CORD value = compile(arg_env, call_arg->value);
+                    if (!promote(arg_env, &value, actual_t, spec_arg->type))
                         code_err(call_arg->value, "This argument is supposed to be a %T, but this value is a %T", spec_arg->type, actual_t);
                     Table$str_set(&used_args, call_arg->name, call_arg);
                     if (code) code = CORD_cat(code, ", ");
@@ -939,9 +946,10 @@ static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg
             if (call_arg->name) continue;
             const char *pseudoname = heap_strf("%ld", i++);
             if (!Table$str_get(used_args, pseudoname)) {
-                type_t *actual_t = get_type(env, call_arg->value);
-                CORD value = compile(env, call_arg->value);
-                if (!promote(env, &value, actual_t, spec_arg->type))
+                env_t *arg_env = arg_scope(env, spec_arg->type);
+                type_t *actual_t = get_type(arg_env, call_arg->value);
+                CORD value = compile(arg_env, call_arg->value);
+                if (!promote(arg_env, &value, actual_t, spec_arg->type))
                     code_err(call_arg->value, "This argument is supposed to be a %T, but this value is a %T", spec_arg->type, actual_t);
                 Table$str_set(&used_args, pseudoname, call_arg);
                 if (code) code = CORD_cat(code, ", ");
