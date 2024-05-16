@@ -889,7 +889,8 @@ PARSER(parse_if) {
     const char *else_start = pos;
     if (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "else")) {
         pos = tmp;
-        expect_str(ctx, start, &pos, ":", "I expected a ':' here");
+        if (!match_word(&tmp, "if"))
+            expect_str(ctx, start, &pos, ":", "I expected a ':' here");
         else_body = expect(ctx, else_start, &pos, parse_opt_indented_block, "I expected a body for this 'else'"); 
     }
     return NewAST(ctx->file, start, pos, If, .condition=condition, .body=body, .else_body=else_body);
