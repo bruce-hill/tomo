@@ -47,7 +47,7 @@ int op_tightness[] = {
 
 static const char *keywords[] = {
     "yes", "xor", "while", "when", "use", "then", "struct", "stop", "skip", "return",
-    "or", "not", "no", "mod1", "mod", "pass", "lang", "in", "if", "func", "for", "extern",
+    "or", "not", "no", "mod1", "mod", "pass", "lang", "inline", "in", "if", "func", "for", "extern",
     "enum", "else", "do", "and", "_min_", "_max_",
     NULL,
 };
@@ -94,6 +94,7 @@ static PARSER(parse_lang_def);
 static PARSER(parse_text);
 static PARSER(parse_func_def);
 static PARSER(parse_extern);
+static PARSER(parse_inline_c);
 static PARSER(parse_declaration);
 static PARSER(parse_doctest);
 static PARSER(parse_use);
@@ -117,7 +118,7 @@ static void vparser_err(parse_ctx_t *ctx, const char *start, const char *end, co
         fputs(" \x1b[m", stderr);
     fputs("\n\n", stderr);
 
-    fprint_span(stderr, ctx->file, start, end, "\x1b[31;1;7m", 2, isatty(STDERR_FILENO) && !getenv("NO_COLOR"));
+    highlight_error(ctx->file, start, end, "\x1b[31;1;7m", 2, isatty(STDERR_FILENO) && !getenv("NO_COLOR"));
     fputs("\n", stderr);
 
     if (ctx->on_err)
@@ -1254,6 +1255,7 @@ PARSER(parse_term_no_suffix) {
         || (term=parse_return(ctx, pos))
         || (term=parse_not(ctx, pos))
         || (term=parse_extern(ctx, pos))
+        || (term=parse_inline_c(ctx, pos))
         );
     return term;
 }
@@ -1602,6 +1604,7 @@ PARSER(parse_namespace) {
             ||(stmt=optional(ctx, &pos, parse_use))
             ||(stmt=optional(ctx, &pos, parse_linker))
             ||(stmt=optional(ctx, &pos, parse_extern))
+            ||(stmt=optional(ctx, &pos, parse_inline_c))
             ||(stmt=optional(ctx, &pos, parse_declaration)))
         {
             statements = new(ast_list_t, .ast=stmt, .next=statements);
@@ -1637,6 +1640,7 @@ PARSER(parse_file_body) {
             ||(stmt=optional(ctx, &pos, parse_use))
             ||(stmt=optional(ctx, &pos, parse_linker))
             ||(stmt=optional(ctx, &pos, parse_extern))
+            ||(stmt=optional(ctx, &pos, parse_inline_c))
             ||(stmt=optional(ctx, &pos, parse_declaration)))
         {
             statements = new(ast_list_t, .ast=stmt, .next=statements);
@@ -1922,6 +1926,33 @@ PARSER(parse_extern) {
         parser_err(ctx, start, pos, "I couldn't get a type for this extern");
     type_ast_t *type = expect(ctx, start, &pos, parse_type, "I couldn't parse the type for this extern");
     return NewAST(ctx->file, start, pos, Extern, .name=name, .type=type);
+}
+
+PARSER(parse_inline_c) {
+    const char *start = pos;
+    if (!match_word(&pos, "inline")) return NULL;
+    spaces(&pos);
+    if (!match_word(&pos, "C")) return NULL;
+    spaces(&pos);
+    if (!match(&pos, "("))
+        parser_err(ctx, start, pos, "I expected a '(' here");
+
+    int64_t indent = get_indent(ctx, pos);
+    whitespace(&pos);
+    // Block:
+    CORD c_code = CORD_EMPTY;
+    while (get_indent(ctx, pos) > indent) {
+        size_t line_len = strcspn(pos, "\r\n");
+        c_code = CORD_all(c_code, heap_strn(pos, line_len), "\n");
+        pos += line_len;
+        if (whitespace(&pos) == 0) break;
+    }
+    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this inline C");
+    spaces(&pos);
+    type_ast_t *type = NULL;
+    if (match(&pos, ":"))
+        type = expect(ctx, start, &pos, parse_type, "I couldn't parse the type for this extern");
+    return NewAST(ctx->file, start, pos, InlineCCode, .code=c_code, .type=type);
 }
 
 PARSER(parse_doctest) {

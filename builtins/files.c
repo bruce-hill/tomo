@@ -209,7 +209,7 @@ static int fputc_column(FILE *out, char c, char print_char, int *column)
 //
 // Print a span from a file
 //
-public int fprint_span(FILE *out, file_t *file, const char *start, const char *end, const char *hl_color, int64_t context_lines, bool use_color)
+public int highlight_error(file_t *file, const char *start, const char *end, const char *hl_color, int64_t context_lines, bool use_color)
 {
     if (!file) return 0;
 
@@ -229,18 +229,18 @@ public int fprint_span(FILE *out, file_t *file, const char *start, const char *e
         lineno_fmt = "\x1b[0;2m%*lu\x1b(0\x78\x1b(B\x1b[m ";
         normal_color = "\x1b[m";
         empty_marker = "\x1b(0\x61\x1b(B";
-        printed += fprintf(out, "\x1b[33;4;1m%s\x1b[m\n", file->relative_filename);
+        printed += fprintf(stderr, "\x1b[33;4;1m%s\x1b[m\n", file->relative_filename);
     } else {
         lineno_fmt = "%*lu| ";
         hl_color = "";
         normal_color = "";
         empty_marker = " ";
         print_carets = true;
-        printed += fprintf(out, "%s\n", file->relative_filename);
+        printed += fprintf(stderr, "%s\n", file->relative_filename);
     }
 
     if (context_lines == 0)
-        return fprintf(out, "%s%.*s%s", hl_color, (int)(end - start), start, normal_color);
+        return fprintf(stderr, "%s%.*s%s", hl_color, (int)(end - start), start, normal_color);
 
     int64_t start_line = get_line_number(file, start),
             end_line = get_line_number(file, end);
@@ -257,14 +257,14 @@ public int fprint_span(FILE *out, file_t *file, const char *start, const char *e
     for (int64_t line_no = first_line; line_no <= last_line; ++line_no) {
         if (line_no > first_line + 5 && line_no < last_line - 5) {
             if (use_color)
-                printed += fprintf(out, "\x1b[0;2;3;4m     ... %ld lines omitted ...     \x1b[m\n", (last_line - first_line) - 11);
+                printed += fprintf(stderr, "\x1b[0;2;3;4m     ... %ld lines omitted ...     \x1b[m\n", (last_line - first_line) - 11);
             else
-                printed += fprintf(out, "     ... %ld lines omitted ...\n", (last_line - first_line) - 11);
+                printed += fprintf(stderr, "     ... %ld lines omitted ...\n", (last_line - first_line) - 11);
             line_no = last_line - 6;
             continue;
         }
 
-        printed += fprintf(out, lineno_fmt, digits, line_no);
+        printed += fprintf(stderr, lineno_fmt, digits, line_no);
         const char *line = get_line(file, line_no);
         if (!line) break;
 
@@ -272,33 +272,33 @@ public int fprint_span(FILE *out, file_t *file, const char *start, const char *e
         const char *p = line;
         // Before match
         for (; *p && *p != '\r' && *p != '\n' && p < start; ++p)
-            printed += fputc_column(out, *p, *p, &column);
+            printed += fputc_column(stderr, *p, *p, &column);
 
         // Zero-width matches
         if (p == start && start == end) {
-            printed += fprintf(out, "%s%s%s", hl_color, empty_marker, normal_color);
+            printed += fprintf(stderr, "%s%s%s", hl_color, empty_marker, normal_color);
             column += 1;
         }
 
         // Inside match
         if (start <= p && p < end) {
-            printed += fputs(hl_color, out);
+            printed += fputs(hl_color, stderr);
             for (; *p && *p != '\r' && *p != '\n' && p < end; ++p)
-                printed += fputc_column(out, *p, *p, &column);
-            printed += fputs(normal_color, out);
+                printed += fputc_column(stderr, *p, *p, &column);
+            printed += fputs(normal_color, stderr);
         }
 
         // After match
         for (; *p && *p != '\r' && *p != '\n'; ++p)
-            printed += fputc_column(out, *p, *p, &column);
+            printed += fputc_column(stderr, *p, *p, &column);
 
-        printed += fprintf(out, "\n");
+        printed += fprintf(stderr, "\n");
 
         const char *eol = strchrnul(line, '\n');
         if (print_carets && start >= line && start < eol && line <= start) {
             for (int num = 0; num < digits; num++)
-                printed += fputc(' ', out);
-            printed += fputs(": ", out);
+                printed += fputc(' ', stderr);
+            printed += fputs(": ", stderr);
             int col = 0;
             for (const char *sp = line; *sp && *sp != '\n'; ++sp) {
                 char print_char;
@@ -310,12 +310,12 @@ public int fprint_span(FILE *out, file_t *file, const char *start, const char *e
                     print_char = '-';
                 else
                     print_char = ' ';
-                printed += fputc_column(out, *sp, print_char, &col);
+                printed += fputc_column(stderr, *sp, print_char, &col);
             }
-            printed += fputs("\n", out);
+            printed += fputs("\n", stderr);
         }
     }
-    fflush(out);
+    fflush(stderr);
     return printed;
 }
 

@@ -1940,7 +1940,13 @@ CORD compile(env_t *env, ast_t *ast)
         default: code_err(ast, "Indexing is not supported for type: %T", container_t);
         }
     }
-    case InlineCCode: return Match(ast, InlineCCode)->code;
+    case InlineCCode: {
+        type_t *t = get_type(env, ast);
+        if (t->tag == VoidType)
+            return CORD_all("{\n", Match(ast, InlineCCode)->code, "\n}");
+        else
+            return Match(ast, InlineCCode)->code;
+    }
     case Use: return CORD_EMPTY;
     case LinkerDirective: code_err(ast, "Linker directives are not supported yet");
     case Extern: code_err(ast, "Externs are not supported as expressions");

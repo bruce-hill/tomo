@@ -5,7 +5,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <unistd.h>
 
 typedef struct {
@@ -31,6 +30,6 @@ __attribute__((pure, nonnull))
 const char *get_line(file_t *f, int64_t line_number);
 __attribute__((pure, nonnull))
 const char *get_file_pos(file_t *f, const char *p);
-int fprint_span(FILE *out, file_t *file, const char *start, const char *end, const char *hl_color, int64_t context_lines, bool use_color);
+int highlight_error(file_t *file, const char *start, const char *end, const char *hl_color, int64_t context_lines, bool use_color);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

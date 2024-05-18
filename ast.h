@@ -275,6 +275,7 @@ struct ast_s {
         } LinkerDirective;
         struct {
             CORD code;
+            type_ast_t *type;
         } InlineCCode;
     } __data;
 };

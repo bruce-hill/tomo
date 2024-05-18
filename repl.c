@@ -90,7 +90,7 @@ static void repl_err(ast_t *node, const char *fmt, ...)
         fputs(" \x1b[m", stderr);
     fputs("\n\n", stderr);
     if (node)
-        fprint_span(stderr, node->file, node->start, node->end, "\x1b[31;1m", 2, color);
+        highlight_error(node->file, node->start, node->end, "\x1b[31;1m", 2, color);
 
     longjmp(on_err, 1);
 }

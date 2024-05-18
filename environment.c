@@ -360,7 +360,7 @@ void compiler_err(file_t *f, const char *start, const char *end, const char *fmt
         fputs(" \x1b[m", stderr);
     fputs("\n\n", stderr);
     if (f && start && end)
-        fprint_span(stderr, f, start, end, "\x1b[31;1m", 2, isatty(STDERR_FILENO) && !getenv("NO_COLOR"));
+        highlight_error(f, start, end, "\x1b[31;1m", 2, isatty(STDERR_FILENO) && !getenv("NO_COLOR"));
 
     raise(SIGABRT);
     exit(1);

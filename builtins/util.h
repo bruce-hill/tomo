@@ -5,7 +5,6 @@
 #include <assert.h>
 #include <gc.h>
 #include <gc/cord.h>
-#include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 #include <err.h>
