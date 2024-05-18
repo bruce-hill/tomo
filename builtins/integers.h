@@ -5,6 +5,7 @@
 #include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "datatypes.h"
 #include "types.h"

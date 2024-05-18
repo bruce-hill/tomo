@@ -318,7 +318,9 @@ int compile_executable(const char *filename, const char *object_files, module_co
 
     binding_t *main_binding = get_binding(module_code->env, "main");
     CORD program = CORD_all(
+        "#include <stdlib.h>\n"
         "#include <tomo/tomo.h>\n"
+        "#include <unistd.h>\n"
         "#include \"", filename, ".h\"\n"
         "\n"
         "int main(int argc, char *argv[]) {\n"

@@ -3,17 +3,10 @@
 // All of the different builtin modules can be included by including this one
 // import
 
-#include <err.h>
 #include <gc.h>
 #include <gc/cord.h>
-#include <math.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 #include "array.h"
 #include "bool.h"
