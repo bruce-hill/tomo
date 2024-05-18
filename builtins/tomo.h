@@ -17,6 +17,7 @@
 
 #include "array.h"
 #include "bool.h"
+#include "c_string.h"
 #include "datatypes.h"
 #include "functions.h"
 #include "halfsiphash.h"

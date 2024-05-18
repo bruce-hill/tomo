@@ -16,6 +16,7 @@ CORD type_to_cord(type_t *t) {
         case VoidType: return "Void";
         case MemoryType: return "Memory";
         case BoolType: return "Bool";
+        case CStringType: return "CString";
         case TextType: return Match(t, TextType)->lang ? Match(t, TextType)->lang : "Text";
         case IntType: return Match(t, IntType)->bits == 64 ? "Int" : CORD_asprintf("Int%ld", Match(t, IntType)->bits);
         case NumType: return Match(t, NumType)->bits == 64 ? "Num" : CORD_asprintf("Num%ld", Match(t, NumType)->bits);
@@ -398,6 +399,7 @@ size_t type_size(type_t *t)
     case UnknownType: case AbortType: case VoidType: return 0;
     case MemoryType: errx(1, "Memory has undefined type size");
     case BoolType: return sizeof(bool);
+    case CStringType: return sizeof(char*);
     case IntType: return Match(t, IntType)->bits/8;
     case NumType: return Match(t, NumType)->bits/8;
     case TextType: return sizeof(CORD);
@@ -449,6 +451,7 @@ size_t type_align(type_t *t)
     case UnknownType: case AbortType: case VoidType: return 0;
     case MemoryType: errx(1, "Memory has undefined type alignment");
     case BoolType: return __alignof__(bool);
+    case CStringType: return __alignof__(char*);
     case IntType: return Match(t, IntType)->bits/8;
     case NumType: return Match(t, NumType)->bits/8;
     case TextType: return __alignof__(CORD);

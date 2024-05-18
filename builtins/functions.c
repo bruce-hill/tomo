@@ -240,4 +240,24 @@ public bool pop_flag(char **argv, int *i, const char *flag, CORD *result)
     }
 }
 
+public void *xfopen(CORD path, CORD flags)
+{
+    return fopen(CORD_to_const_char_star(path), CORD_to_const_char_star(flags));
+}
+
+public CORD xfread_all(void *fp)
+{
+    return CORD_from_file_eager(fp);
+}
+
+public void xfputs(CORD text, void *fp)
+{
+    CORD_put(text, fp);
+}
+
+public void xfclose(void *fp)
+{
+    fclose(fp);
+}
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

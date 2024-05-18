@@ -26,4 +26,9 @@ bool generic_equal(const void *x, const void *y, const TypeInfo *type);
 CORD generic_as_text(const void *obj, bool colorize, const TypeInfo *type);
 bool pop_flag(char **argv, int *i, const char *flag, CORD *result);
 
+void *xfopen(CORD path, CORD flags);
+CORD xfread_all(void *fp);
+void xfputs(CORD text, void *fp);
+void xfclose(void *fp);
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

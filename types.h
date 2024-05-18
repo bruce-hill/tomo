@@ -44,6 +44,7 @@ struct type_s {
         BoolType,
         IntType,
         NumType,
+        CStringType,
         TextType,
         ArrayType,
         TableType,
@@ -65,6 +66,7 @@ struct type_s {
         struct {
             int64_t bits;
         } NumType;
+        struct {} CStringType;
         struct {
             const char *lang;
             struct env_s *env;

@@ -89,6 +89,7 @@ CORD compile_type(env_t *env, type_t *t)
     case VoidType: return "void";
     case MemoryType: return "void";
     case BoolType: return "Bool_t";
+    case CStringType: return "char*";
     case IntType: return Match(t, IntType)->bits == 64 ? "Int_t" : CORD_asprintf("Int%ld_t", Match(t, IntType)->bits);
     case NumType: return Match(t, NumType)->bits == 64 ? "Num_t" : CORD_asprintf("Num%ld_t", Match(t, NumType)->bits);
     case TextType: {
@@ -854,6 +855,7 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
     switch (t->tag) {
     case MemoryType: return CORD_asprintf("Memory$as_text(stack(%r), %r, &$Memory)", expr, color);
     case BoolType: return CORD_asprintf("Bool$as_text(stack(%r), %r, &$Bool)", expr, color);
+    case CStringType: return CORD_asprintf("CString$as_text(stack(%r), %r, &$CString)", expr, color);
     case IntType: {
         CORD name = type_to_cord(t);
         return CORD_asprintf("%r$as_text(stack(%r), %r, &$%r)", name, expr, color, name);
@@ -1705,6 +1707,18 @@ CORD compile(env_t *env, ast_t *ast)
                 if (actual->tag != IntType && actual->tag != NumType)
                     code_err(call->args->value, "This %T value cannot be converted to a %T", actual, t);
                 return CORD_all("((", compile_type(env, t), ")(", compile(env, call->args->value), "))");
+            } else if (t->tag == TextType) {
+                // Text constructor:
+                if (!call->args || call->args->next)
+                    code_err(call->fn, "This constructor takes exactly 1 argument");
+                type_t *actual = get_type(env, call->args->value);
+                return expr_as_text(env, compile(env, call->args->value), actual, "no");
+            } else if (t->tag == CStringType) {
+                // C String constructor:
+                if (!call->args || call->args->next)
+                    code_err(call->fn, "This constructor takes exactly 1 argument");
+                type_t *actual = get_type(env, call->args->value);
+                return CORD_all("CORD_to_char_star(", expr_as_text(env, compile(env, call->args->value), actual, "no"), ")");
             } else {
                 code_err(call->fn, "This is not a type that has a constructor");
             }
@@ -1929,7 +1943,7 @@ CORD compile(env_t *env, ast_t *ast)
     case InlineCCode: return Match(ast, InlineCCode)->code;
     case Use: return CORD_EMPTY;
     case LinkerDirective: code_err(ast, "Linker directives are not supported yet");
-    case Extern: code_err(ast, "Externs are not supported yet");
+    case Extern: code_err(ast, "Externs are not supported as expressions");
     case TableEntry: code_err(ast, "Table entries should not be compiled directly");
     case Declare: case Assign: case UpdateAssign: case For: case While: case StructDef: case LangDef:
     case EnumDef: case FunctionDef: case Skip: case Stop: case Pass: case Return: case DocTest:
@@ -1975,7 +1989,8 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
 CORD compile_type_info(env_t *env, type_t *t)
 {
     switch (t->tag) {
-    case BoolType: case IntType: case NumType: return CORD_asprintf("&$%r", type_to_cord(t));
+    case BoolType: case IntType: case NumType: case CStringType:
+        return CORD_asprintf("&$%r", type_to_cord(t));
     case TextType: {
         auto text = Match(t, TextType);
         return text->lang ? CORD_all("(&", text->env->file_prefix, text->lang, ")") : "&$Text";

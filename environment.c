@@ -151,6 +151,9 @@ env_t *new_compilation_unit(void)
             F(tan), F(tanh), F(tgamma), F(trunc), F(y0), F(y1),
             F2(atan2), F2(copysign), F2(fdim), F2(hypot), F2(nextafter), F2(pow), F2(remainder),
         )},
+        {"CString", Type(CStringType), "char*", "$CString", TypedArray(ns_entry_t,
+            {"as_text", "CORD_from_char_star", "func(str:CString)->Text"},
+        )},
 #undef F2
 #undef F
 #undef C
@@ -159,6 +162,8 @@ env_t *new_compilation_unit(void)
             {"upper", "Text$upper", "func(text:Text)->Text"},
             {"lower", "Text$lower", "func(text:Text)->Text"},
             {"title", "Text$title", "func(text:Text)->Text"},
+            {"as_c_string", "CORD_to_char_star", "func(text:Text)->CString"},
+            {"from_c_string", "CORD_from_char_star", "func(str:CString)->Text"},
             // {"has", "Text$has", "func(text:Text, target:Text, where=ANYWHERE)->Bool"},
             // {"without", "Text$without", "func(text:Text, target:Text, where=ANYWHERE)->Text"},
             // {"trimmed", "Text$without", "func(text:Text, skip:Text, where=ANYWHERE)->Text"},
