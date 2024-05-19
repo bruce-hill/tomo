@@ -158,6 +158,7 @@ env_t *new_compilation_unit(void)
 #undef F
 #undef C
         {"Text", TEXT_TYPE, "Text_t", "$Text", TypedArray(ns_entry_t,
+            {"slice", "Text$slice", "func(text:Text, index:Int, length=Int.max)->Text"},
             {"quoted", "Text$quoted", "func(text:Text, color=no)->Text"},
             {"upper", "Text$upper", "func(text:Text)->Text"},
             {"lower", "Text$lower", "func(text:Text)->Text"},

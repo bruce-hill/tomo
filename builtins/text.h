@@ -23,6 +23,7 @@ CORD Text$quoted(CORD str, bool colorize);
 int Text$compare(const CORD *x, const CORD *y);
 bool Text$equal(const CORD *x, const CORD *y);
 uint32_t Text$hash(const CORD *cord);
+CORD Text$slice(CORD text, int64_t first, int64_t length);
 CORD Text$upper(CORD str);
 CORD Text$lower(CORD str);
 CORD Text$title(CORD str);
