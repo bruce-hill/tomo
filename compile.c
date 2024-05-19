@@ -732,7 +732,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             auto decl = Match(if_->condition, Declare);
             env_t *true_scope = fresh_scope(env);
             const char *name = Match(decl->var, Var)->name;
-            CORD var_code = CORD_cat(env->scope_prefix, name);
+            CORD var_code = CORD_cat(env->scope_prefix ? env->scope_prefix : "$", name);
             type_t *var_t = get_type(env, decl->value);
             if (var_t->tag == PointerType) {
                 auto ptr = Match(var_t, PointerType);
@@ -2251,11 +2251,12 @@ module_code_t compile_file(ast_t *ast)
                     "extern ", compile_type(env, t), " ", env->file_prefix, decl_name, " = ",
                     compile(env, decl->value), ";\n");
             }
+        } else if (stmt->ast->tag == InlineCCode) {
+            CORD code = compile_statement(env, stmt->ast);
+            env->code->imports = CORD_all(env->code->imports, code, "\n");
         } else {
             CORD code = compile_statement(env, stmt->ast);
             assert(!code);
-            // if (code)
-            //     env->code->main = CORD_all(env->code->main, code, "\n");
         }
     }
 
