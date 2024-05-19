@@ -1120,6 +1120,7 @@ bool is_constant(env_t *env, ast_t *ast)
         }
         return true;
     }
+    case InlineCCode: return true;
     default: return false;
     }
 }

@@ -1934,8 +1934,9 @@ PARSER(parse_inline_c) {
     spaces(&pos);
     if (!match_word(&pos, "C")) return NULL;
     spaces(&pos);
-    if (!match(&pos, "("))
-        parser_err(ctx, start, pos, "I expected a '(' here");
+    char open = *pos;
+    if (!match(&pos, "(") && !match(&pos, "{"))
+        parser_err(ctx, start, pos, "I expected a '(' or '{' here");
 
     int64_t indent = get_indent(ctx, pos);
     whitespace(&pos);
@@ -1947,11 +1948,14 @@ PARSER(parse_inline_c) {
         pos += line_len;
         if (whitespace(&pos) == 0) break;
     }
-    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this inline C");
+    expect_closing(ctx, &pos, open == '(' ? ")" : "}", "I wasn't able to parse the rest of this inline C");
     spaces(&pos);
     type_ast_t *type = NULL;
-    if (match(&pos, ":"))
+    if (open == '(') {
+        if (!match(&pos, ":"))
+            parser_err(ctx, start, pos, "This inline C needs to have a type after it");
         type = expect(ctx, start, &pos, parse_type, "I couldn't parse the type for this extern");
+    }
     return NewAST(ctx->file, start, pos, InlineCCode, .code=c_code, .type=type);
 }
 
