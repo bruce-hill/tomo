@@ -151,9 +151,9 @@ void prebind_statement(env_t *env, ast_t *statement)
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(StructType, .name=def->name, .opaque=true, .env=ns_env); // placeholder
         Table$str_set(env->types, def->name, type);
-        for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
+        set_binding(env, def->name, new(binding_t, .type=Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env), .code=CORD_all(env->file_prefix, def->name)));
+        for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
-        }
         break;
     }
     case EnumDef: {
@@ -164,9 +164,9 @@ void prebind_statement(env_t *env, ast_t *statement)
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(EnumType, .name=def->name, .opaque=true, .env=ns_env); // placeholder
         Table$str_set(env->types, def->name, type);
-        for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
+        set_binding(env, def->name, new(binding_t, .type=Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env), .code=CORD_all(env->file_prefix, def->name)));
+        for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
-        }
         break;
     }
     case LangDef: {
@@ -177,6 +177,7 @@ void prebind_statement(env_t *env, ast_t *statement)
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(TextType, .lang=def->name, .env=ns_env);
         Table$str_set(env->types, def->name, type);
+        set_binding(env, def->name, new(binding_t, .type=Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env), .code=CORD_all(env->file_prefix, def->name)));
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
         break;
@@ -219,14 +220,11 @@ void bind_statement(env_t *env, ast_t *statement)
     }
     case StructDef: {
         auto def = Match(statement, StructDef);
-        if (get_binding(env, def->name))
-            code_err(statement, "A %T called '%s' has already been defined", get_binding(env, def->name)->type, def->name);
-
         env_t *ns_env = namespace_env(env, def->name);
-
+        type_t *type = Table$str_get(*env->types, def->name);
+        if (!type) code_err(statement, "Couldn't find type!");
+        assert(type);
         arg_t *fields = NULL;
-        type_t *type = Type(StructType, .name=def->name, .fields=fields, .opaque=true, .env=ns_env); // placeholder
-        Table$str_set(env->types, def->name, type);
         for (arg_ast_t *field_ast = def->fields; field_ast; field_ast = field_ast->next) {
             type_t *field_t = get_arg_ast_type(env, field_ast);
             if ((field_t->tag == StructType && Match(field_t, StructType)->opaque)
@@ -244,9 +242,6 @@ void bind_statement(env_t *env, ast_t *statement)
         type->__data.StructType.fields = fields; // populate placeholder
         type->__data.StructType.opaque = false;
         
-        type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env);
-        Table$str_set(env->locals, def->name, new(binding_t, .type=typeinfo_type, .code=CORD_all(env->file_prefix, def->name)));
-
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
             bind_statement(ns_env, stmt->ast);
         }
@@ -254,14 +249,10 @@ void bind_statement(env_t *env, ast_t *statement)
     }
     case EnumDef: {
         auto def = Match(statement, EnumDef);
-        if (get_binding(env, def->name))
-            code_err(statement, "A %T called '%s' has already been defined", get_binding(env, def->name)->type, def->name);
-
         env_t *ns_env = namespace_env(env, def->name);
-
+        type_t *type = Table$str_get(*env->types, def->name);
+        assert(type);
         tag_t *tags = NULL;
-        type_t *type = Type(EnumType, .name=def->name, .tags=tags, .opaque=true, .env=ns_env); // placeholder
-        Table$str_set(env->types, def->name, type);
         for (tag_ast_t *tag_ast = def->tags; tag_ast; tag_ast = tag_ast->next) {
             arg_t *fields = NULL;
             for (arg_ast_t *field_ast = tag_ast->fields; field_ast; field_ast = field_ast->next) {
@@ -296,9 +287,6 @@ void bind_statement(env_t *env, ast_t *statement)
             Table$str_set(env->types, heap_strf("%s$%s", def->name, tag->name), tag->type);
         }
         
-        type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env);
-        Table$str_set(env->locals, def->name, new(binding_t, .type=typeinfo_type));
-
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
             bind_statement(ns_env, stmt->ast);
         }
@@ -306,9 +294,6 @@ void bind_statement(env_t *env, ast_t *statement)
     }
     case LangDef: {
         auto def = Match(statement, LangDef);
-        if (get_binding(env, def->name))
-            code_err(statement, "A %T called '%s' has already been defined", get_binding(env, def->name)->type, def->name);
-
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(TextType, .lang=def->name, .env=ns_env);
         Table$str_set(env->types, def->name, type);
@@ -319,9 +304,6 @@ void bind_statement(env_t *env, ast_t *statement)
         set_binding(ns_env, "text_content",
                     new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE), .ret=type),
                         .code="(Text_t)"));
-
-        type_t *typeinfo_type = Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env);
-        Table$str_set(env->locals, def->name, new(binding_t, .type=typeinfo_type));
 
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             bind_statement(ns_env, stmt->ast);
@@ -913,6 +895,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
             const char *tag_name = Match(clause->tag_name, Var)->name;
             type_t *tag_type = NULL;
+            CORD valid_tags = CORD_EMPTY;
             for (match_t *m = matches; m; m = m->next) {
                 if (streq(m->name, tag_name)) {
                     if (m->handled)
@@ -921,10 +904,13 @@ type_t *get_type(env_t *env, ast_t *ast)
                     tag_type = m->type;
                     break;
                 }
+                if (valid_tags) valid_tags = CORD_cat(valid_tags, ", ");
+                valid_tags = CORD_cat(valid_tags, m->name);
             }
 
             if (!tag_type)
-                code_err(clause->tag_name, "This is not a valid tag for the type %T", subject_t);
+                code_err(clause->tag_name, "There is no tag '%s' for the type %T (valid tags: %s)",
+                         tag_name, subject_t, CORD_to_char_star(valid_tags));
 
             env_t *scope = env;
             auto tag_struct = Match(tag_type, StructType);

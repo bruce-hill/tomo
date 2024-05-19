@@ -512,6 +512,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         if (fndef->cache && fndef->cache->tag == Int && Match(fndef->cache, Int)->i > 0) {
             const char *arg_type_name = heap_strf("%s$args", CORD_to_const_char_star(name));
             ast_t *args_def = FakeAST(StructDef, .name=arg_type_name, .fields=fndef->args);
+            prebind_statement(env, args_def);
             bind_statement(env, args_def);
             (void)compile_statement(env, args_def);
             type_t *args_t = Table$str_get(*env->types, arg_type_name);
@@ -772,6 +773,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         CORD code = "{\n";
         env = fresh_scope(env);
+        for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next)
+            prebind_statement(env, stmt->ast);
         for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next) {
             bind_statement(env, stmt->ast);
             code = CORD_all(code, compile_statement(env, stmt->ast), "\n");
@@ -931,7 +934,9 @@ env_t *with_enum_scope(env_t *env, type_t *t)
     for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
         if (get_binding(env, tag->name))
             continue;
-        set_binding(env, tag->name, get_binding(ns_env, tag->name));
+        binding_t *b = get_binding(ns_env, tag->name);
+        assert(b);
+        set_binding(env, tag->name, b);
     }
     return env;
 }
@@ -1314,6 +1319,8 @@ CORD compile(env_t *env, ast_t *ast)
 
         CORD code = "({\n";
         env = fresh_scope(env);
+        for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next)
+            prebind_statement(env, stmt->ast);
         for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next) {
             bind_statement(env, stmt->ast);
             if (stmt->next) {
@@ -1622,7 +1629,7 @@ CORD compile(env_t *env, ast_t *ast)
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                     .ret=Type(IntType, .bits=32));
-                ast_t *default_cmp = FakeAST(InlineCCode, CORD_all("((closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "})"));
+                ast_t *default_cmp = FakeAST(InlineCCode, .code=CORD_all("((closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "})"), .type=NewTypeAST(NULL, NULL, NULL, FunctionTypeAST));
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t, .next=new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp));
                 CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
                 return CORD_all("Array$heap_push_value(", self, ", ", arg_code, ", ", compile_type_info(env, self_value_t), ")");
@@ -1631,7 +1638,7 @@ CORD compile(env_t *env, ast_t *ast)
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                     .ret=Type(IntType, .bits=32));
-                ast_t *default_cmp = FakeAST(InlineCCode, CORD_all("((closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "})"));
+                ast_t *default_cmp = FakeAST(InlineCCode, .code=CORD_all("((closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "})"), .type=NewTypeAST(NULL, NULL, NULL, FunctionTypeAST));
                 arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp);
                 CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
                 return CORD_all("Array$heap_pop_value(", self, ", ", arg_code, ", ", compile_type_info(env, self_value_t), ", ", compile_type(env, item_t), ")");
@@ -1761,6 +1768,7 @@ CORD compile(env_t *env, ast_t *ast)
             CORD condition = Match(Match(if_->condition, Declare)->var, Var)->name;
             CORD decl = compile_statement(env, if_->condition);
             env_t *true_scope = fresh_scope(env);
+            prebind_statement(true_scope, if_->condition);
             bind_statement(true_scope, if_->condition);
             type_t *true_type = get_type(true_scope, if_->body);
             type_t *false_type = get_type(env, if_->else_body);
