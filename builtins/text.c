@@ -128,21 +128,6 @@ public uint32_t Text$hash(const CORD *cord)
     return hash;
 }
 
-public CORD Text$slice(CORD text, int64_t first, int64_t length)
-{
-    if (length == 0) return CORD_EMPTY;
-    int64_t len = CORD_len(text);
-
-    if (length < -len) return CORD_EMPTY;
-
-    if (first <= 0) first = len + first + 1;
-    if (first < 1) first = 1;
-    else if (first > len + 1) first = len + 1;
-
-    if (length < 0) length = len + length;
-    return CORD_substr(text, first - 1, length);
-}
-
 public CORD Text$upper(CORD str)
 {
     if (!str) return str;
