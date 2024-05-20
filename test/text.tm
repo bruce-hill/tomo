@@ -55,3 +55,40 @@ func main():
 
 	>> "Hello":replace("e", "X")
 	= "HXllo"
+
+	>> "Hello":has("l")
+	= yes
+	>> "Hello":has("l", End)
+	= no
+	>> "Hello":has("l", Start)
+	= no
+
+	>> "Hello":has("o")
+	= yes
+	>> "Hello":has("o", where=End)
+	= yes
+	>> "Hello":has("o", where=Start)
+	= no
+
+	>> "Hello":has("H")
+	= yes
+	>> "Hello":has("H", End)
+	= no
+	>> "Hello":has("H", Start)
+	= yes
+
+	>> "Hello":without("l")
+	= "Heo"
+	>> "xxxx":without("x")
+	= ""
+	>> "xxxx":without("y")
+	= "xxxx"
+	>> "One two three four five six":without("e ")
+	= "Ontwo threfour fivsix"
+
+	>> " one ":trimmed()
+	= "one"
+	>> " one ":trimmed(" aeiou")
+	= "n"
+
+	>> amelie:has(amelie2)

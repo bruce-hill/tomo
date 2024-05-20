@@ -8,10 +8,9 @@
 #include <stdint.h>
 
 #include "types.h"
+#include "where.h"
 
 #define Text_t CORD
-
-typedef enum { WHERE_ANYWHERE, WHERE_START, WHERE_END } where_e;
 
 typedef struct {
     enum { FIND_FAILURE, FIND_SUCCESS } status;
@@ -27,9 +26,9 @@ CORD Text$slice(CORD text, int64_t first, int64_t length);
 CORD Text$upper(CORD str);
 CORD Text$lower(CORD str);
 CORD Text$title(CORD str);
-bool Text$has(CORD str, CORD target, where_e where);
-CORD Text$without(CORD str, CORD target, where_e where);
-CORD Text$trimmed(CORD str, CORD skip, where_e where);
+bool Text$has(CORD str, CORD target, Where_t where);
+CORD Text$without(CORD str, CORD target, Where_t where);
+CORD Text$trimmed(CORD str, CORD skip, Where_t where);
 find_result_t Text$find(CORD str, CORD pat);
 CORD Text$replace(CORD text, CORD pat, CORD replacement, int64_t limit);
 array_t Text$split(CORD str, CORD split);

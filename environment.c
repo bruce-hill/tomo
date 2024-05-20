@@ -42,6 +42,21 @@ env_t *new_compilation_unit(void)
         const char *name, *code, *type_str;
     } ns_entry_t;
 
+    type_t *where;
+    {
+        env_t *where_env = namespace_env(env, "Where");
+        type_t *anywhere = Type(StructType, .name="Anywhere");
+        type_t *start = Type(StructType, .name="Start");
+        type_t *end = Type(StructType, .name="End");
+        where = Type(EnumType, .name="Where", .env=where_env,
+                     .tags=new(tag_t, .name="Anywhere", .tag_value=0, .type=anywhere,
+                               .next=new(tag_t, .name="Start", .tag_value=0, .type=start,
+                                         .next=new(tag_t, .name="End", .tag_value=0, .type=end))));
+        set_binding(where_env, "Anywhere", new(binding_t, .type=where, .code="Where$tagged$Anywhere"));
+        set_binding(where_env, "Start", new(binding_t, .type=where, .code="Where$tagged$Start"));
+        set_binding(where_env, "End", new(binding_t, .type=where, .code="Where$tagged$End"));
+    }
+
     struct {
         const char *name;
         type_t *type;
@@ -157,6 +172,7 @@ env_t *new_compilation_unit(void)
 #undef F2
 #undef F
 #undef C
+        {"Where", where, "Where_t", "Where", {}},
         {"Text", TEXT_TYPE, "Text_t", "$Text", TypedArray(ns_entry_t,
             {"slice", "Text$slice", "func(text:Text, index:Int, length=Int.max)->Text"},
             {"quoted", "Text$quoted", "func(text:Text, color=no)->Text"},
@@ -165,9 +181,9 @@ env_t *new_compilation_unit(void)
             {"title", "Text$title", "func(text:Text)->Text"},
             {"as_c_string", "CORD_to_char_star", "func(text:Text)->CString"},
             {"from_c_string", "CORD_from_char_star", "func(str:CString)->Text"},
-            // {"has", "Text$has", "func(text:Text, target:Text, where=ANYWHERE)->Bool"},
-            // {"without", "Text$without", "func(text:Text, target:Text, where=ANYWHERE)->Text"},
-            // {"trimmed", "Text$without", "func(text:Text, skip:Text, where=ANYWHERE)->Text"},
+            {"has", "Text$has", "func(text:Text, target:Text, where=Where.Anywhere)->Bool"},
+            {"without", "Text$without", "func(text:Text, target:Text, where=Where.Anywhere)->Text"},
+            {"trimmed", "Text$trimmed", "func(text:Text, trim=\" {\\n\\r\\t}\", where=Where.Anywhere)->Text"},
             {"title", "Text$title", "func(text:Text)->Text"},
             // {"find", "Text$find", "func(text:Text, pattern:Text)->FindResult"},
             {"replace", "Text$replace", "func(text:Text, pattern:Text, replacement:Text, limit=Int.max)->Text"},
@@ -184,7 +200,20 @@ env_t *new_compilation_unit(void)
     };
 
     for (size_t i = 0; i < sizeof(global_types)/sizeof(global_types[0]); i++) {
-        env_t *ns_env = global_types[i].type == TEXT_TYPE ? Match(TEXT_TYPE, TextType)->env : namespace_env(env, global_types[i].name);
+        env_t *ns_env = NULL;
+        switch (global_types[i].type->tag) {
+        case TextType:
+            ns_env = Match(global_types[i].type, TextType)->env;
+            break;
+        case StructType:
+            ns_env = Match(global_types[i].type, StructType)->env;
+            break;
+        case EnumType:
+            ns_env = Match(global_types[i].type, EnumType)->env;
+            break;
+        default: break;
+        }
+        if (ns_env == NULL) ns_env = namespace_env(env, global_types[i].name);
         binding_t *binding = new(binding_t, .type=Type(TypeInfoType, .name=global_types[i].name, .type=global_types[i].type, .env=ns_env));
         Table$str_set(env->globals, global_types[i].name, binding);
         Table$str_set(env->types, global_types[i].name, global_types[i].type);

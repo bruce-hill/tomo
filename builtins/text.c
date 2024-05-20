@@ -24,6 +24,14 @@
 
 #define CLAMP(x, lo, hi) MIN(hi, MAX(x,lo))
 
+static inline uint8_t *_normalize(CORD str, uint8_t *buf, size_t *len)
+{
+    const uint8_t *str_u8 = (const uint8_t*)CORD_to_const_char_star(str);
+    uint8_t *normalized = u8_normalize(UNINORM_NFD, str_u8, strlen((char*)str_u8)+1, buf, len);
+    if (!normalized) errx(1, "Unicode normalization error!");
+    return normalized;
+}
+
 public CORD Text$as_text(const void *text, bool colorize, const TypeInfo *info)
 {
     if (!text) return info->TextInfo.lang;
@@ -111,12 +119,8 @@ public uint32_t Text$hash(const CORD *cord)
 {
     if (!*cord) return 0;
 
-    const char *str = CORD_to_const_char_star(*cord);
-    size_t len = strlen(str);
-    uint8_t buf[128] = {0};
-    size_t norm_len = sizeof(buf);
-    uint8_t *normalized = u8_normalize(UNINORM_NFD, (uint8_t*)str, len+1, buf, &norm_len);
-    if (!normalized) errx(1, "Unicode normalization error!");
+    uint8_t buf[128] = {0}; size_t norm_len = sizeof(buf);
+    uint8_t *normalized = _normalize(*cord, buf, &norm_len);
 
     uint32_t hash;
     halfsiphash(normalized, norm_len, TOMO_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));
@@ -166,51 +170,75 @@ public CORD Text$title(CORD str)
     return (CORD)u8_totitle((const uint8_t*)str, len-1, uc_locale_language(), NULL, dest, &len);
 }
 
-public bool Text$has(CORD str, CORD target, where_e where)
+public bool Text$has(CORD str, CORD target, Where_t where)
 {
     if (!target) return true;
     if (!str) return false;
 
-    if (where == WHERE_START) {
-        return (CORD_ncmp(str, 0, target, 0, CORD_len(target)) == 0);
-    } else if (where == WHERE_END) {
-        size_t str_len = CORD_len(str);
-        size_t target_len = CORD_len(target);
-        return (str_len >= target_len && CORD_ncmp(str, str_len-target_len, target, 0, target_len) == 0);
+    uint8_t str_buf[128] = {0}; size_t str_norm_len = sizeof(str_buf);
+    uint8_t *str_normalized = _normalize(str, str_buf, &str_norm_len);
+
+    uint8_t target_buf[128] = {0}; size_t target_norm_len = sizeof(target_buf);
+    uint8_t *target_normalized = _normalize(target, target_buf, &target_norm_len);
+
+    if (target_norm_len > str_norm_len) return false;
+
+    bool ret;
+    if (where.$tag == $tag$Where$Start) {
+        ret = (u8_strncmp(str_normalized, target_normalized, target_norm_len-1) == 0);
+    } else if (where.$tag == $tag$Where$End) {
+        ret = (u8_strcmp(str_normalized + str_norm_len - target_norm_len, target_normalized) == 0);
     } else {
-        size_t pos = CORD_str(str, 0, target);
-        return (pos != CORD_NOT_FOUND);
+        assert(where.$tag == $tag$Where$Anywhere);
+        ret = (u8_strstr(str_normalized, target_normalized) != NULL);
     }
+
+    if (str_normalized != str_buf) free(str_normalized);
+    if (target_normalized != target_buf) free(target_normalized);
+    return ret;
 }
 
-public CORD Text$without(CORD str, CORD target, where_e where)
+public CORD Text$without(CORD str, CORD target, Where_t where)
 {
     if (!str || !target) return str;
 
     size_t target_len = CORD_len(target);
     size_t str_len = CORD_len(str);
-    if (where == WHERE_START) {
+    if (where.$tag == $tag$Where$Start) {
         if (CORD_ncmp(str, 0, target, 0, target_len) == 0)
             return CORD_substr(str, target_len, str_len - target_len);
         return str;
-    } else if (where == WHERE_END) {
+    } else if (where.$tag == $tag$Where$End) {
         if (CORD_ncmp(str, str_len-target_len, target, 0, target_len) == 0)
             return CORD_substr(str, 0, str_len - target_len);
         return str;
     } else {
-        errx(1, "Not implemented");
+        CORD ret = CORD_EMPTY;
+        size_t i = 0;
+        for (;;) {
+            size_t match = CORD_str(str, i, target);
+            if (match == CORD_NOT_FOUND) {
+                if (i == 0) return str; // No matches!
+                ret = CORD_cat(ret, CORD_substr(str, i, str_len));
+                break;
+            }
+            ret = CORD_cat(ret, CORD_substr(str, i, (match-i)));
+            i = match + target_len;
+        }
+        return ret;
     }
 }
 
-public CORD Text$trimmed(CORD str, CORD skip, where_e where)
+public CORD Text$trimmed(CORD str, CORD skip, Where_t where)
 {
     if (!str || !skip) return str;
     const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(str);
     const uint8_t *uskip = (const uint8_t*)CORD_to_const_char_star(skip);
-    if (where == WHERE_START) {
+    // TODO: implement proper reverse iteration with u8_prev()
+    if (where.$tag == $tag$Where$Start) {
         size_t span = u8_strspn(ustr, uskip);
         return (CORD)ustr + span;
-    } else if (where == WHERE_END) {
+    } else if (where.$tag == $tag$Where$End) {
         size_t len = u8_strlen(ustr);
         const uint8_t *back = ustr + len;
         size_t back_span = 0;
@@ -287,12 +315,8 @@ public CORD Text$join(CORD glue, array_t pieces)
 public array_t Text$clusters(CORD text)
 {
     array_t clusters = {.atomic=1};
-    const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(text);
-    uint8_t buf[128] = {0};
-    size_t norm_len = sizeof(buf);
-    uint8_t *normalized = u8_normalize(UNINORM_NFD, ustr, strlen((char*)ustr)+1, buf, &norm_len);
-    if (!normalized) errx(1, "Unicode normalization error!");
-
+    uint8_t buf[128] = {0}; size_t norm_len = sizeof(buf);
+    uint8_t *normalized = _normalize(text, buf, &norm_len);
     const uint8_t *end = normalized + strlen((char*)normalized);
     for (const uint8_t *pos = normalized; pos != end; ) {
         const uint8_t *next = u8_grapheme_next(pos, end);
@@ -310,11 +334,8 @@ public array_t Text$clusters(CORD text)
 
 public array_t Text$codepoints(CORD text)
 {
-    const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(text);
-    uint8_t norm_buf[128] = {0};
-    size_t norm_len = sizeof(norm_buf);
-    uint8_t *normalized = u8_normalize(UNINORM_NFD, ustr, strlen((char*)ustr)+1, norm_buf, &norm_len);
-    if (!normalized) errx(1, "Unicode normalization error!");
+    uint8_t norm_buf[128] = {0}; size_t norm_len = sizeof(norm_buf);
+    uint8_t *normalized = _normalize(text, norm_buf, &norm_len);
 
     uint32_t codepoint_buf[128] = {0};
     size_t codepoint_len = sizeof(codepoint_buf);
@@ -333,11 +354,8 @@ public array_t Text$codepoints(CORD text)
 
 public array_t Text$bytes(CORD text)
 {
-    const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(text);
-    uint8_t norm_buf[128] = {0};
-    size_t norm_len = sizeof(norm_buf);
-    uint8_t *normalized = u8_normalize(UNINORM_NFD, ustr, strlen((char*)ustr)+1, norm_buf, &norm_len);
-    if (!normalized) errx(1, "Unicode normalization error!");
+    uint8_t norm_buf[128] = {0}; size_t norm_len = sizeof(norm_buf);
+    uint8_t *normalized = _normalize(text, norm_buf, &norm_len);
 
     --norm_len; // NUL byte
     array_t ret = {
@@ -366,11 +384,8 @@ public int64_t Text$num_clusters(CORD text)
 
 public int64_t Text$num_codepoints(CORD text)
 {
-    const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(text);
-    uint8_t buf[128] = {0};
-    size_t norm_len = sizeof(buf);
-    uint8_t *normalized = u8_normalize(UNINORM_NFD, ustr, strlen((char*)ustr)+1, buf, &norm_len);
-    if (!normalized) errx(1, "Unicode normalization error!");
+    uint8_t buf[128] = {0}; size_t norm_len = sizeof(buf);
+    uint8_t *normalized = _normalize(text, buf, &norm_len);
     int64_t num_codepoints = u8_mbsnlen(normalized, norm_len-1);
     if (normalized != buf) free(normalized);
     return num_codepoints;
@@ -378,10 +393,8 @@ public int64_t Text$num_codepoints(CORD text)
 
 public int64_t Text$num_bytes(CORD text)
 {
-    const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(text);
-    uint8_t norm_buf[128] = {0};
-    size_t norm_len = sizeof(norm_buf);
-    uint8_t *normalized = u8_normalize(UNINORM_NFD, ustr, strlen((char*)ustr)+1, norm_buf, &norm_len);
+    uint8_t norm_buf[128] = {0}; size_t norm_len = sizeof(norm_buf);
+    uint8_t *normalized = _normalize(text, norm_buf, &norm_len);
     --norm_len; // NUL byte
     if (!normalized) errx(1, "Unicode normalization error!");
     if (normalized != norm_buf) free(normalized);
