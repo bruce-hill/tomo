@@ -81,6 +81,7 @@ public uint32_t generic_hash(const void *obj, const TypeInfo *type)
     case TextInfo: return Text$hash(obj);
     case ArrayInfo: return Array$hash(obj, type);
     case TableInfo: return Table$hash(obj, type);
+    case EmptyStruct: return 0;
     case CustomInfo:
         if (!type->CustomInfo.hash)
             goto hash_data;
@@ -101,6 +102,7 @@ public int32_t generic_compare(const void *x, const void *y, const TypeInfo *typ
     case TextInfo: return Text$compare(x, y);
     case ArrayInfo: return Array$compare(x, y, type);
     case TableInfo: return Table$compare(x, y, type);
+    case EmptyStruct: return 0;
     case CustomInfo:
         if (!type->CustomInfo.compare)
             goto compare_data;
@@ -118,6 +120,7 @@ public bool generic_equal(const void *x, const void *y, const TypeInfo *type)
     case TextInfo: return Text$equal(x, y);
     case ArrayInfo: return Array$equal(x, y, type);
     case TableInfo: return Table$equal(x, y, type);
+    case EmptyStruct: return true;
     case CustomInfo:
         if (!type->CustomInfo.equal)
             goto use_generic_compare;
@@ -137,6 +140,7 @@ public CORD generic_as_text(const void *obj, bool colorize, const TypeInfo *type
     case ArrayInfo: return Array$as_text(obj, colorize, type);
     case TableInfo: return Table$as_text(obj, colorize, type);
     case TypeInfoInfo: return Type$as_text(obj, colorize, type);
+    case EmptyStruct: return colorize ? CORD_all("\x1b[0;1m", type->EmptyStruct.name, "\x1b[m()") : CORD_all(type->EmptyStruct.name, "()");
     case CustomInfo:
         if (!type->CustomInfo.as_text)
             fail("No cord function provided for type!\n");

@@ -133,38 +133,45 @@ void compile_struct_def(env_t *env, ast_t *ast)
     type_t *t = Table$str_get(*env->types, def->name);
     assert(t && t->tag == StructType);
     auto struct_ = Match(t, StructType);
-    CORD typeinfo = CORD_asprintf("public const TypeInfo %r = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
-                                  full_name, type_size(t), type_align(t));
+    if (def->fields) {
+        CORD typeinfo = CORD_asprintf("public const TypeInfo %r = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
+                                      full_name, type_size(t), type_align(t));
 
-    typeinfo = CORD_all(typeinfo, ".as_text=(void*)", full_name, "$as_text, ");
-    env->code->funcs = CORD_all(env->code->funcs, compile_str_method(env, ast));
+        typeinfo = CORD_all(typeinfo, ".as_text=(void*)", full_name, "$as_text, ");
+        env->code->funcs = CORD_all(env->code->funcs, compile_str_method(env, ast));
 
-    if (struct_->fields && !struct_->fields->next) { // Single member, can just use its methods
-        type_t *member_t = struct_->fields->type;
-        switch (member_t->tag) {
-        case TextType:
-            typeinfo = CORD_all(typeinfo, ".hash=(void*)", type_to_cord(member_t), "$hash", ", ");
-            // fallthrough
-        case IntType: case NumType:
-            typeinfo = CORD_all(typeinfo, ".compare=(void*)", type_to_cord(member_t), "$compare, "
-                                ".equal=(void*)", type_to_cord(member_t), "$equal, ");
-            // fallthrough
-        case BoolType: goto got_methods;
-        default: break;
+        if (struct_->fields && !struct_->fields->next) { // Single member, can just use its methods
+            type_t *member_t = struct_->fields->type;
+            switch (member_t->tag) {
+            case TextType:
+                typeinfo = CORD_all(typeinfo, ".hash=(void*)", type_to_cord(member_t), "$hash", ", ");
+                // fallthrough
+            case IntType: case NumType:
+                typeinfo = CORD_all(typeinfo, ".compare=(void*)", type_to_cord(member_t), "$compare, "
+                                    ".equal=(void*)", type_to_cord(member_t), "$equal, ");
+                // fallthrough
+            case BoolType: goto got_methods;
+            default: break;
+            }
         }
+        if (struct_->fields) {
+            env->code->funcs = CORD_all(env->code->funcs, compile_compare_method(env, ast),
+                                        compile_equals_method(env, ast), compile_hash_method(env, ast));
+            typeinfo = CORD_all(
+                typeinfo,
+                ".compare=(void*)", full_name, "$compare, "
+                ".equal=(void*)", full_name, "$equal, "
+                ".hash=(void*)", full_name, "$hash");
+        }
+      got_methods:;
+        typeinfo = CORD_cat(typeinfo, "}}};\n");
+        env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
+    } else {
+        // If there are no fields, we can use an EmptyStruct typeinfo, which generates less code:
+        CORD typeinfo = CORD_asprintf("public const TypeInfo %r = {%zu, %zu, {.tag=EmptyStruct, .EmptyStruct.name=%r}};\n",
+                                      full_name, type_size(t), type_align(t), Text$quoted(def->name, false));
+        env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
     }
-    if (struct_->fields) {
-        env->code->funcs = CORD_all(env->code->funcs, compile_compare_method(env, ast),
-                                    compile_equals_method(env, ast), compile_hash_method(env, ast));
-        typeinfo = CORD_all(
-            typeinfo,
-            ".compare=(void*)", full_name, "$compare, "
-            ".equal=(void*)", full_name, "$equal, "
-            ".hash=(void*)", full_name, "$hash");
-    }
-  got_methods:;
-    typeinfo = CORD_cat(typeinfo, "}}};\n");
-    env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
 
     compile_namespace(env, def->name, def->namespace);
 }

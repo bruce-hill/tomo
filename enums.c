@@ -12,6 +12,14 @@
 #include "typecheck.h"
 #include "builtins/util.h"
 
+static bool has_extra_data(tag_ast_t *tags)
+{
+    for (tag_ast_t *tag = tags; tag; tag = tag->next) {
+        if (tag->fields) return true;
+    }
+    return false;
+}
+
 static CORD compile_str_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
@@ -50,6 +58,14 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
     CORD full_name = CORD_cat(env->file_prefix, def->name);
+    if (!has_extra_data(def->tags)) {
+        // Comparisons are simpler if there is only a tag, no tagged data:
+        return CORD_all("static int ", full_name, "$compare(const ", full_name, "_t *x, const ", full_name,
+                        "_t *y, const TypeInfo *info) {\n"
+                        "(void)info;\n"
+                        "return (x->$tag - y->$tag);\n"
+                        "}\n");
+    }
     CORD cmp_func = CORD_all("static int ", full_name, "$compare(const ", full_name, "_t *x, const ", full_name,
                              "_t *y, const TypeInfo *info) {\n"
                              "(void)info;\n"
@@ -73,6 +89,14 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
     CORD full_name = CORD_cat(env->file_prefix, def->name);
+    if (!has_extra_data(def->tags)) {
+        // Equality is simpler if there is only a tag, no tagged data:
+        return CORD_all("static bool ", full_name, "$equal(const ", full_name, "_t *x, const ", full_name,
+                        "_t *y, const TypeInfo *info) {\n"
+                        "(void)info;\n"
+                        "return (x->$tag == y->$tag);\n"
+                        "}\n");
+    }
     CORD eq_func = CORD_all("static bool ", full_name, "$equal(const ", full_name, "_t *x, const ", full_name,
                              "_t *y, const TypeInfo *info) {\n"
                              "(void)info;\n"
@@ -95,6 +119,15 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
     CORD full_name = CORD_cat(env->file_prefix, def->name);
+    if (!has_extra_data(def->tags)) {
+        // Hashing is simpler if there is only a tag, no tagged data:
+        return CORD_all("static uint32_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo *info) {\n"
+                        "(void)info;\n"
+                        "uint32_t hash;\n"
+                        "halfsiphash(&obj->$tag, sizeof(obj->$tag), TOMO_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));\n"
+                        "return hash;"
+                        "\n}\n");
+    }
     CORD hash_func = CORD_all("static uint32_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo *info) {\n"
                               "(void)info;\n"
                               "uint32_t hashes[2] = {(uint32_t)obj->$tag, 0};\n"
@@ -167,17 +200,22 @@ void compile_enum_def(env_t *env, ast_t *ast)
     CORD typeinfo = CORD_asprintf("public const TypeInfo %s = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
                                   full_name, type_size(t), type_align(t));
 
-    env->code->funcs = CORD_all(
-        env->code->funcs,
-        compile_str_method(env, ast),
-        compile_equals_method(env, ast), compile_compare_method(env, ast),
-        compile_hash_method(env, ast));
-    typeinfo = CORD_all(
-        typeinfo,
-        ".as_text=(void*)", full_name, "$as_text, "
-        ".equal=(void*)", full_name, "$equal, "
-        ".hash=(void*)", full_name, "$hash, "
-        ".compare=(void*)", full_name, "$compare");
+    env->code->funcs = CORD_all(env->code->funcs, compile_str_method(env, ast));
+    if (has_extra_data(def->tags)) {
+        env->code->funcs = CORD_all(
+            env->code->funcs, 
+            compile_equals_method(env, ast), compile_compare_method(env, ast),
+            compile_hash_method(env, ast));
+        typeinfo = CORD_all(
+            typeinfo,
+            ".as_text=(void*)", full_name, "$as_text, "
+            ".equal=(void*)", full_name, "$equal, "
+            ".hash=(void*)", full_name, "$hash, "
+            ".compare=(void*)", full_name, "$compare");
+    } else {
+        // No need for custom methods if there is no tagged data
+        typeinfo = CORD_all(typeinfo, ".as_text=(void*)", full_name, "$as_text");
+    }
     typeinfo = CORD_cat(typeinfo, "}}};\n");
     env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
 
