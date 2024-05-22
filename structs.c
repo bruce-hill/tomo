@@ -118,14 +118,15 @@ void compile_struct_def(env_t *env, ast_t *ast)
     CORD_appendf(&env->code->typedefs, "typedef struct %r_s %r_t;\n", full_name, full_name);
     CORD_appendf(&env->code->typedefs, "#define %r(...) ((%r_t){__VA_ARGS__})\n", full_name, full_name);
 
-    CORD_appendf(&env->code->typecode, "struct %r_s {\n", full_name);
+    CORD struct_code = CORD_all("struct ", full_name, "_s {\n");
     for (arg_ast_t *field = def->fields; field; field = field->next) {
         type_t *field_t = get_arg_ast_type(env, field);
         CORD type_code = compile_type(env, field_t);
-        CORD_appendf(&env->code->typecode, "%r %s%s;\n", type_code, field->name,
+        CORD_appendf(&struct_code, "%r %s%s;\n", type_code, field->name,
                      CORD_cmp(type_code, "Bool_t") ? "" : ":1");
     }
-    CORD_appendf(&env->code->typecode, "};\n");
+    struct_code = CORD_all(struct_code, "};\n");
+    env->code->typecode = CORD_all(env->code->typecode, struct_code);
 
     // Typeinfo:
     CORD_appendf(&env->code->typedefs, "extern const TypeInfo %r;\n", full_name);

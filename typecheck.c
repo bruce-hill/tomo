@@ -282,7 +282,8 @@ void bind_statement(env_t *env, ast_t *statement)
                 type_t *constructor_t = Type(FunctionType, .args=Match(tag->type, StructType)->fields, .ret=type);
                 set_binding(ns_env, tag->name, new(binding_t, .type=constructor_t, .code=CORD_all(env->file_prefix, def->name, "$tagged$", tag->name)));
             } else { // Empty singleton value:
-                set_binding(ns_env, tag->name, new(binding_t, .type=type, .code=CORD_all(env->file_prefix, def->name, "$tagged$", tag->name)));
+                CORD code = CORD_all("(", env->file_prefix, def->name, "_t){", env->file_prefix, def->name, "$tag$", tag->name, "}");
+                set_binding(ns_env, tag->name, new(binding_t, .type=type, .code=code));
             }
             Table$str_set(env->types, heap_strf("%s$%s", def->name, tag->name), tag->type);
         }
