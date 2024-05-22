@@ -368,7 +368,7 @@ type_t *get_method_type(env_t *env, ast_t *self, const char *name)
 {
     binding_t *b = get_namespace_binding(env, self, name);
     if (!b || !b->type)
-        code_err(self, "No such method: %s", name);
+        code_err(self, "No such method: %T:%s(...)", get_type(env, self), name);
     return b->type;
 }
 
