@@ -268,6 +268,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (!assign->targets->next && assign->targets->ast->tag == Var) {
                 // Common case: assigning to one variable:
                 type_t *t = get_type(env, assign->targets->ast);
+                if (t->tag == PointerType && Match(t, PointerType)->is_stack)
+                    code_err(test->expr, "Stack references cannot be assigned to local variables because the variable may outlive the stack memory.");
                 return CORD_asprintf(
                     "test(({ %r; &%r; }), %r, %r, %r, %ld, %ld);",
                     compile_assignment(env, assign->targets->ast, compile(with_enum_scope(env, t), assign->values->ast)),
@@ -286,6 +288,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 int64_t i = 1;
                 for (ast_list_t *target = assign->targets, *value = assign->values; target && value; target = target->next, value = value->next) {
                     type_t *target_type = get_type(env, target->ast);
+                    if (target_type->tag == PointerType && Match(target_type, PointerType)->is_stack)
+                        code_err(ast, "Stack references cannot be assigned to local variables because the variable may outlive the stack memory.");
                     env_t *val_scope = with_enum_scope(env, target_type);
                     type_t *value_type = get_type(val_scope, value->ast);
                     CORD val_code = compile(val_scope, value->ast);
@@ -340,6 +344,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
         // Single assignment, no temp vars needed:
         if (assign->targets && !assign->targets->next) {
             type_t *lhs_t = get_type(env, assign->targets->ast);
+            if (lhs_t->tag == PointerType && Match(lhs_t, PointerType)->is_stack)
+                code_err(ast, "Stack references cannot be assigned to local variables because the variable may outlive the stack memory.");
             env_t *val_env = with_enum_scope(env, lhs_t);
             type_t *rhs_t = get_type(val_env, assign->values->ast);
             CORD val = compile(val_env, assign->values->ast);
@@ -352,6 +358,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
         int64_t i = 1;
         for (ast_list_t *value = assign->values, *target = assign->targets; value && target; value = value->next, target = target->next) {
             type_t *lhs_t = get_type(env, target->ast);
+            if (lhs_t->tag == PointerType && Match(lhs_t, PointerType)->is_stack)
+                code_err(ast, "Stack references cannot be assigned to local variables because the variable may outlive the stack memory.");
             env_t *val_env = with_enum_scope(env, lhs_t);
             type_t *rhs_t = get_type(val_env, value->ast);
             CORD val = compile(val_env, value->ast);
