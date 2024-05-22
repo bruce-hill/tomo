@@ -116,7 +116,6 @@ void compile_struct_def(env_t *env, ast_t *ast)
     auto def = Match(ast, StructDef);
     CORD full_name = CORD_cat(env->file_prefix, def->name);
     CORD_appendf(&env->code->typedefs, "typedef struct %r_s %r_t;\n", full_name, full_name);
-    CORD_appendf(&env->code->typedefs, "#define %r(...) ((%r_t){__VA_ARGS__})\n", full_name, full_name);
 
     CORD struct_code = CORD_all("struct ", full_name, "_s {\n");
     for (arg_ast_t *field = def->fields; field; field = field->next) {

@@ -1704,8 +1704,7 @@ CORD compile(env_t *env, ast_t *ast)
             if (t->tag == StructType) {
                 // Struct constructor:
                 fn_t = Type(FunctionType, .args=Match(t, StructType)->fields, .ret=t);
-                CORD fn = compile(env, call->fn);
-                return CORD_all(fn, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), ")");
+                return CORD_all("((", compile_type(env, t), "){", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), "})");
             } else if (t->tag == IntType || t->tag == NumType) {
                 // Int/Num constructor:
                 if (!call->args || call->args->next)
