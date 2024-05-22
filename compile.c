@@ -1864,16 +1864,6 @@ CORD compile(env_t *env, ast_t *ast)
             }
             code_err(ast, "The field '%s' is not a valid field name of %T", f->field, value_t);
         }
-        case EnumType: {
-            auto enum_ = Match(value_t, EnumType);
-            for (tag_t *tag = enum_->tags; tag; tag = tag->next) {
-                if (streq(tag->name, f->field)) {
-                    CORD fielded = compile_to_pointer_depth(env, f->fielded, 0, false);
-                    return CORD_asprintf("$tagged(%r, %r%s, %s)", fielded, env->file_prefix, enum_->name, f->field);
-                }
-            }
-            code_err(ast, "The field '%s' is not a valid field name of %T", f->field, value_t);
-        }
         case TableType: {
             if (streq(f->field, "keys")) {
                 return CORD_all("({ table_t *t = ", compile_to_pointer_depth(env, f->fielded, 1, false), ";\n"
