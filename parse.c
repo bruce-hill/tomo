@@ -84,10 +84,8 @@ static PARSER(parse_expr);
 static PARSER(parse_extended_expr);
 static PARSER(parse_term_no_suffix);
 static PARSER(parse_term);
-static PARSER(parse_inline_block);
 static PARSER(parse_statement);
 static PARSER(parse_block);
-static PARSER(parse_opt_indented_block);
 static PARSER(parse_var);
 static PARSER(parse_enum_def);
 static PARSER(parse_struct_def);
@@ -881,9 +879,7 @@ PARSER(parse_if) {
     if (!condition) condition = expect(ctx, start, &pos, parse_expr,
                                        "I expected to find an expression for this 'if'");
 
-    expect_str(ctx, start, &pos, ":", "I expected a ':' here");
-
-    ast_t *body = expect(ctx, start, &pos, parse_opt_indented_block, "I expected a body for this 'if' statement"); 
+    ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'if' statement"); 
 
     const char *tmp = pos;
     whitespace(&tmp);
@@ -891,9 +887,10 @@ PARSER(parse_if) {
     const char *else_start = pos;
     if (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "else")) {
         pos = tmp;
-        if (!match_word(&tmp, "if"))
-            expect_str(ctx, start, &pos, ":", "I expected a ':' here");
-        else_body = expect(ctx, else_start, &pos, parse_opt_indented_block, "I expected a body for this 'else'"); 
+        spaces(&pos);
+        else_body = optional(ctx, &pos, parse_if);
+        if (!else_body)
+            else_body = expect(ctx, else_start, &pos, parse_block, "I expected a body for this 'else'"); 
     }
     return NewAST(ctx->file, start, pos, If, .condition=condition, .body=body, .else_body=else_body);
 }
@@ -933,9 +930,7 @@ PARSER(parse_when) {
             REVERSE_LIST(args);
         }
 
-        expect_str(ctx, start, &pos, ":", "I expected a ':' here");
-
-        ast_t *body = expect(ctx, start, &pos, parse_opt_indented_block, "I expected a body for this 'when' clause"); 
+        ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'when' clause"); 
         clauses = new(when_clause_t, .tag_name=tag_name, .args=args, .body=body, .next=clauses);
         tmp = pos;
         whitespace(&tmp);
@@ -946,8 +941,7 @@ PARSER(parse_when) {
     const char *else_start = pos;
     if (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "else")) {
         pos = tmp;
-        expect_str(ctx, start, &pos, ":", "I expected a ':' here");
-        else_body = expect(ctx, else_start, &pos, parse_opt_indented_block, "I expected a body for this 'else'"); 
+        else_body = expect(ctx, else_start, &pos, parse_block, "I expected a body for this 'else'"); 
     }
     return NewAST(ctx->file, start, pos, When, .subject=subject, .clauses=clauses, .else_body=else_body);
 }
@@ -965,17 +959,14 @@ PARSER(parse_for) {
     }
     expect_str(ctx, start, &pos, "in", "I expected an 'in' for this 'for'");
     ast_t *iter = expect(ctx, start, &pos, parse_expr, "I expected an iterable value for this 'for'");
-    expect_str(ctx, start, &pos, ":", "I expected a ':' here");
-    match(&pos, "do"); // optional
-    ast_t *body = expect(ctx, start, &pos, parse_opt_indented_block, "I expected a body for this 'for'"); 
+    ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'for'"); 
 
     const char *else_start = pos;
     whitespace(&else_start);
     ast_t *empty = NULL;
     if (match_word(&else_start, "else") && get_indent(ctx, else_start) == starting_indent) {
         pos = else_start;
-        expect_str(ctx, start, &pos, ":", "I expected a ':' here");
-        empty = expect(ctx, pos, &pos, parse_opt_indented_block, "I expected a body for this 'else'");
+        empty = expect(ctx, pos, &pos, parse_block, "I expected a body for this 'else'");
     }
     return NewAST(ctx->file, start, pos, For, .index=value ? index : NULL, .value=value ? value : index, .iter=iter, .body=body, .empty=empty);
 }
@@ -984,8 +975,7 @@ PARSER(parse_do) {
     // do: [<indent>] body
     const char *start = pos;
     if (!match_word(&pos, "do")) return NULL;
-    expect_str(ctx, start, &pos, ":", "I expected a ':' here");
-    ast_t *body = expect(ctx, start, &pos, parse_opt_indented_block, "I expected a body for this 'while'"); 
+    ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'while'"); 
     return NewAST(ctx->file, start, pos, Block, .statements=Match(body, Block)->statements);
 }
 
@@ -1002,8 +992,7 @@ PARSER(parse_while) {
         return NewAST(ctx->file, start, pos, While, .body=when);
     }
     ast_t *condition = expect(ctx, start, &pos, parse_expr, "I don't see a viable condition for this 'while'");
-    expect_str(ctx, start, &pos, ":", "I expected a ':' here");
-    ast_t *body = expect(ctx, start, &pos, parse_opt_indented_block, "I expected a body for this 'while'"); 
+    ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'while'"); 
     return NewAST(ctx->file, start, pos, While, .condition=condition, .body=body);
 }
 
@@ -1226,7 +1215,7 @@ PARSER(parse_lambda) {
     arg_ast_t *args = parse_args(ctx, &pos, false);
     spaces(&pos);
     expect_closing(ctx, &pos, ")", "I was expecting a ')' to finish this anonymous function's arguments");
-    ast_t *body = optional(ctx, &pos, parse_opt_indented_block);
+    ast_t *body = optional(ctx, &pos, parse_block);
     return NewAST(ctx->file, start, pos, Lambda, .args=args, .body=body);
 }
 
@@ -1567,41 +1556,57 @@ PARSER(parse_extended_expr) {
 }
 
 PARSER(parse_block) {
-    int64_t block_indent = get_indent(ctx, pos);
     const char *start = pos;
-    whitespace(&pos);
-    ast_list_t *statements = NULL;
-    while (*pos) {
-        ast_t *stmt = optional(ctx, &pos, parse_statement);
-        if (!stmt) {
-            const char *line_start = pos;
-            if (match_word(&pos, "struct"))
-                parser_err(ctx, line_start, strchrnul(pos, '\n'), "Struct definitions are only allowed at the top level");
-            else if (match_word(&pos, "enum"))
-                parser_err(ctx, line_start, strchrnul(pos, '\n'), "Enum definitions are only allowed at the top level");
-            else if (match_word(&pos, "func"))
-                parser_err(ctx, line_start, strchrnul(pos, '\n'), "Function definitions are only allowed at the top level");
-            else if (match_word(&pos, "use"))
-                parser_err(ctx, line_start, strchrnul(pos, '\n'), "'use' statements are only allowed at the top level");
+    if (!match(&pos, ":")) return NULL;
 
+    ast_list_t *statements = NULL;
+    if (!indent(ctx, &pos)) {
+        // Inline block
+        spaces(&pos);
+        while (*pos) {
             spaces(&pos);
-            if (*pos && *pos != '\r' && *pos != '\n')
-                parser_err(ctx, pos, strchrnul(pos, '\n'), "I couldn't parse this line");
-            break;
+            ast_t *stmt = optional(ctx, &pos, parse_statement);
+            if (!stmt) break;
+            statements = new(ast_list_t, .ast=stmt, .next=statements);
+            spaces(&pos);
+            if (!match(&pos, ";")) break;
         }
-        statements = new(ast_list_t, .ast=stmt, .next=statements);
-        whitespace(&pos); // TODO: check for newline
-        if (get_indent(ctx, pos) != block_indent) {
-            pos = stmt->end; // backtrack
-            break;
+    } else {
+        goto indented;
+    }
+
+    if (indent(ctx, &pos)) {
+      indented:;
+        int64_t block_indent = get_indent(ctx, pos);
+        whitespace(&pos);
+        while (*pos) {
+            ast_t *stmt = optional(ctx, &pos, parse_statement);
+            if (!stmt) {
+                const char *line_start = pos;
+                if (match_word(&pos, "struct"))
+                    parser_err(ctx, line_start, strchrnul(pos, '\n'), "Struct definitions are only allowed at the top level");
+                else if (match_word(&pos, "enum"))
+                    parser_err(ctx, line_start, strchrnul(pos, '\n'), "Enum definitions are only allowed at the top level");
+                else if (match_word(&pos, "func"))
+                    parser_err(ctx, line_start, strchrnul(pos, '\n'), "Function definitions are only allowed at the top level");
+                else if (match_word(&pos, "use"))
+                    parser_err(ctx, line_start, strchrnul(pos, '\n'), "'use' statements are only allowed at the top level");
+
+                spaces(&pos);
+                if (*pos && *pos != '\r' && *pos != '\n')
+                    parser_err(ctx, pos, strchrnul(pos, '\n'), "I couldn't parse this line");
+                break;
+            }
+            statements = new(ast_list_t, .ast=stmt, .next=statements);
+            whitespace(&pos); // TODO: check for newline
+            if (get_indent(ctx, pos) != block_indent) {
+                pos = stmt->end; // backtrack
+                break;
+            }
         }
     }
     REVERSE_LIST(statements);
     return NewAST(ctx->file, start, pos, Block, .statements=statements);
-}
-
-PARSER(parse_opt_indented_block) {
-    return indent(ctx, &pos) ? parse_block(ctx, pos) : parse_inline_block(ctx, pos);
 }
 
 PARSER(parse_namespace) {
@@ -1925,8 +1930,7 @@ PARSER(parse_func_def) {
     if (match(&pos, "->"))
         ret_type = optional(ctx, &pos, parse_type);
 
-    expect_str(ctx, start, &pos, ":", "I expected a ':' here");
-    ast_t *body = expect(ctx, start, &pos, parse_opt_indented_block,
+    ast_t *body = expect(ctx, start, &pos, parse_block,
                              "This function needs a body block");
     return NewAST(ctx->file, start, pos, FunctionDef,
                   .name=name, .args=args, .ret_type=ret_type, .body=body, .cache=cache_ast,
@@ -2017,22 +2021,6 @@ PARSER(parse_linker) {
     size_t len = strcspn(pos, "\r\n");
     const char *directive = heap_strn(pos, len);
     return NewAST(ctx->file, start, pos, LinkerDirective, .directive=directive);
-}
-
-PARSER(parse_inline_block) {
-    spaces(&pos);
-    const char *start = pos;
-    ast_list_t *statements = NULL;
-    while (*pos) {
-        spaces(&pos);
-        ast_t *stmt = optional(ctx, &pos, parse_statement);
-        if (!stmt) break;
-        statements = new(ast_list_t, .ast=stmt, .next=statements);
-        spaces(&pos);
-        if (!match(&pos, ";")) break;
-    }
-    REVERSE_LIST(statements);
-    return NewAST(ctx->file, start, pos, Block, .statements=statements);
 }
 
 ast_t *parse_file(file_t *file, jmp_buf *on_err) {
