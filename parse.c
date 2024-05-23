@@ -76,6 +76,7 @@ static ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed);
 static PARSER(parse_for);
+static PARSER(parse_do);
 static PARSER(parse_while);
 static PARSER(parse_if);
 static PARSER(parse_when);
@@ -979,8 +980,17 @@ PARSER(parse_for) {
     return NewAST(ctx->file, start, pos, For, .index=value ? index : NULL, .value=value ? value : index, .iter=iter, .body=body, .empty=empty);
 }
 
+PARSER(parse_do) {
+    // do: [<indent>] body
+    const char *start = pos;
+    if (!match_word(&pos, "do")) return NULL;
+    expect_str(ctx, start, &pos, ":", "I expected a ':' here");
+    ast_t *body = expect(ctx, start, &pos, parse_opt_indented_block, "I expected a body for this 'while'"); 
+    return NewAST(ctx->file, start, pos, Block, .statements=Match(body, Block)->statements);
+}
+
 PARSER(parse_while) {
-    // while condition [do] [<indent>] body
+    // while condition: [<indent>] body
     const char *start = pos;
     if (!match_word(&pos, "while")) return NULL;
 
@@ -994,8 +1004,6 @@ PARSER(parse_while) {
     ast_t *condition = expect(ctx, start, &pos, parse_expr, "I don't see a viable condition for this 'while'");
     expect_str(ctx, start, &pos, ":", "I expected a ':' here");
     ast_t *body = expect(ctx, start, &pos, parse_opt_indented_block, "I expected a body for this 'while'"); 
-    tmp = pos;
-    whitespace(&tmp);
     return NewAST(ctx->file, start, pos, While, .condition=condition, .body=body);
 }
 
@@ -1551,6 +1559,7 @@ PARSER(parse_extended_expr) {
         || (expr=optional(ctx, &pos, parse_while))
         || (expr=optional(ctx, &pos, parse_if))
         || (expr=optional(ctx, &pos, parse_when))
+        || (expr=optional(ctx, &pos, parse_do))
         )
         return expr;
 
