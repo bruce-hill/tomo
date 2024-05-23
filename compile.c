@@ -623,7 +623,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         CORD body = compile_statement(scope, while_->body);
         if (loop_ctx.skip_label)
             body = CORD_all(body, "\n", loop_ctx.skip_label, ": continue;");
-        CORD loop = CORD_all("while (", compile(scope, while_->condition), ") {\n\t", body, "\n}");
+        CORD loop = CORD_all("while (", while_->condition ? compile(scope, while_->condition) : "yes", ") {\n\t", body, "\n}");
         if (loop_ctx.stop_label)
             loop = CORD_all(loop, "\n", loop_ctx.stop_label, ":;");
         return loop;

@@ -55,3 +55,9 @@ func main():
 	>> choose_text(Foo.Last("XX"))
 	= "else: Foo.Last(t=\"XX\")"
 
+	i := 1
+	cases := [Foo.One(1), Foo.One(2), Foo.Zero]
+	while when cases[i] is One(x):
+		>> x
+		i += 1
+
