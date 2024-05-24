@@ -875,9 +875,8 @@ PARSER(parse_if) {
     if (!match_word(&pos, "if"))
         return NULL;
 
-    ast_t *condition = optional(ctx, &pos, parse_declaration);
-    if (!condition) condition = expect(ctx, start, &pos, parse_expr,
-                                       "I expected to find an expression for this 'if'");
+    ast_t *condition = expect(ctx, start, &pos, parse_expr,
+                              "I expected to find a condition for this 'if'");
 
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'if' statement"); 
 
@@ -913,21 +912,30 @@ PARSER(parse_when) {
     while (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "is")) {
         pos = tmp;
         spaces(&pos);
-        ast_t *tag_name = expect(ctx, start, &pos, parse_var, "I expected a tag name here");
-        spaces(&pos);
-        ast_list_t *args = NULL;
-        if (match(&pos, "(")) {
-            for (;;) {
+        ast_t *tag_name;
+        ast_list_t *args;
+        if (match(&pos, "@")) {
+            tag_name = NewAST(ctx->file, pos-1, pos, Var, .name="@");
+            spaces(&pos);
+            ast_t *arg = optional(ctx, &pos, parse_var);
+            args = arg ? new(ast_list_t, .ast=arg) : NULL;
+        } else {
+            tag_name = expect(ctx, start, &pos, parse_var, "I expected a tag name here");
+            spaces(&pos);
+            args = NULL;
+            if (match(&pos, "(")) {
+                for (;;) {
+                    whitespace(&pos);
+                    ast_t *arg = optional(ctx, &pos, parse_var);
+                    if (!arg) break;
+                    args = new(ast_list_t, .ast=arg, .next=args);
+                    whitespace(&pos);
+                    if (!match(&pos, ",")) break;
+                }
                 whitespace(&pos);
-                ast_t *arg = optional(ctx, &pos, parse_var);
-                if (!arg) break;
-                args = new(ast_list_t, .ast=arg, .next=args);
-                whitespace(&pos);
-                if (!match(&pos, ",")) break;
+                expect_closing(ctx, &pos, ")", "I was expecting a ')' to finish this pattern's arguments");
+                REVERSE_LIST(args);
             }
-            whitespace(&pos);
-            expect_closing(ctx, &pos, ")", "I was expecting a ')' to finish this pattern's arguments");
-            REVERSE_LIST(args);
         }
 
         ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'when' clause"); 
