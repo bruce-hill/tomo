@@ -285,14 +285,19 @@ CORD compile_statement(env_t *env, ast_t *ast)
             auto assign = Match(test->expr, Assign);
             if (!assign->targets->next && assign->targets->ast->tag == Var) {
                 // Common case: assigning to one variable:
-                type_t *t = get_type(env, assign->targets->ast);
-                if (t->tag == PointerType && Match(t, PointerType)->is_stack)
+                type_t *lhs_t = get_type(env, assign->targets->ast);
+                if (lhs_t->tag == PointerType && Match(lhs_t, PointerType)->is_stack)
                     code_err(test->expr, "Stack references cannot be assigned to local variables because the variable may outlive the stack memory.");
+                env_t *val_scope = with_enum_scope(env, lhs_t);
+                type_t *rhs_t = get_type(val_scope, assign->values->ast);
+                CORD value = compile(val_scope, assign->values->ast);
+                if (!promote(env, &value, rhs_t, lhs_t))
+                    code_err(assign->values->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
                 return CORD_asprintf(
                     "test(({ %r; &%r; }), %r, %r, %r, %ld, %ld);",
-                    compile_assignment(env, assign->targets->ast, compile(with_enum_scope(env, t), assign->values->ast)),
+                    compile_assignment(env, assign->targets->ast, value),
                     compile(env, assign->targets->ast),
-                    compile_type_info(env, t),
+                    compile_type_info(env, lhs_t),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
                     (int64_t)(test->expr->start - test->expr->file->text),
