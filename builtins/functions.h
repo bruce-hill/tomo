@@ -10,6 +10,8 @@
 
 extern const char *TOMO_HASH_VECTOR;
 
+void tomo_init(void);
+
 void fail(CORD fmt, ...);
 void fail_source(const char *filename, int64_t start, int64_t end, CORD fmt, ...);
 CORD builtin_last_err();

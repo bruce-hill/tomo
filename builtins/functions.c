@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <sys/param.h>
 #include <uninorm.h>
+#include <unistd.h>
 
 #include "array.h"
 #include "bool.h"
@@ -22,6 +23,14 @@
 #include "util.h"
 
 public const char *TOMO_HASH_VECTOR = "tomo hash vector ---------------------------------------------";
+
+public void tomo_init(void)
+{
+   GC_INIT();
+   USE_COLOR = getenv("COLOR") ? strcmp(getenv("COLOR"), "1") == 0 : isatty(STDOUT_FILENO);
+   srand(arc4random_uniform(UINT32_MAX));
+   srand48(arc4random_uniform(UINT32_MAX));
+}
 
 public void fail(CORD fmt, ...)
 {
