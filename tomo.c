@@ -270,7 +270,10 @@ int transpile(const char *filename, bool force_retranspile, module_code_t *modul
     FILE *c_file = fopen(c_filename, "w");
     if (!c_file)
         errx(1, "Couldn't open file: %s", c_filename);
-    CORD_put(CORD_all("#include \"", module_code->module_name, ".tm.h\"\n\n", module_code->c_file), c_file);
+    CORD_put(CORD_all(
+            "#include <tomo/tomo.h>\n"
+            "#include \"", module_code->module_name, ".tm.h\"\n\n",
+            module_code->c_file), c_file);
     if (fclose(c_file))
         errx(1, "Failed to close file: %s", c_filename);
     if (verbose)
