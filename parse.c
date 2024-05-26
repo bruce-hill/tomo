@@ -2028,6 +2028,7 @@ PARSER(parse_linker) {
     spaces(&pos);
     size_t len = strcspn(pos, "\r\n");
     const char *directive = heap_strn(pos, len);
+    pos += len;
     return NewAST(ctx->file, start, pos, LinkerDirective, .directive=directive);
 }
 
