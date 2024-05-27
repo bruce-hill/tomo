@@ -1544,6 +1544,8 @@ CORD compile(env_t *env, ast_t *ast)
             userdata = CORD_all("new(", name, "$userdata_t");
             for (int64_t i = 1; i <= Table$length(*fn_ctx.closed_vars); i++) {
                 struct { const char *name; binding_t *b; } *entry = Table$entry(*fn_ctx.closed_vars, i);
+                if (entry->b->type->tag == ModuleType)
+                    continue;
                 def = CORD_all(def, compile_declaration(env, entry->b->type, entry->name), "; ");
                 userdata = CORD_all(userdata, ", ", entry->b->code);
             }
