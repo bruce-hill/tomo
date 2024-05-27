@@ -1501,7 +1501,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Lambda: {
         auto lambda = Match(ast, Lambda);
         static int64_t lambda_number = 1;
-        CORD name = CORD_asprintf("lambda$%ld", lambda_number++);
+        CORD name = CORD_asprintf("%slambda$%ld", env->file_prefix, lambda_number++);
 
         env_t *body_scope = fresh_scope(env);
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
