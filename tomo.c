@@ -242,7 +242,7 @@ int transpile(const char *filename, bool force_retranspile, module_code_t *modul
     ast_t *ast = parse_file(f, NULL);
 
     if (!ast)
-        errx(1, "Could not compile!");
+        errx(1, "Could not compile %s", f);
 
     if (verbose) {
         FILE *out = popen(heap_strf("bat -P --file-name='%s'", filename), "w");

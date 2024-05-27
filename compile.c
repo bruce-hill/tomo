@@ -833,13 +833,10 @@ CORD compile_statement(env_t *env, ast_t *ast)
     case Use: {
         auto use = Match(ast, Use);
         const char *path = use->raw_path;
-        const char *name = file_base_name(path);
         if (strncmp(path, "./", 2) == 0 || strncmp(path, "../", 3) == 0) {
             env->code->imports = CORD_all(env->code->imports, "#include \"", path, ".h\"\n");
-            env->code->object_files = CORD_all(env->code->object_files, "'", path, ".o' ");
         } else {
             env->code->imports = CORD_all(env->code->imports, "#include <", path, ".h>\n");
-            env->code->object_files = CORD_all(env->code->object_files, "-l", name, " ");
         }
         return CORD_EMPTY;
     }
@@ -2246,7 +2243,6 @@ module_code_t compile_file(ast_t *ast)
     return (module_code_t){
         .module_name=name,
         .env=env,
-        .object_files=env->code->object_files,
         .header=CORD_all(
             // "#line 1 ", Text$quoted(ast->file->filename, false), "\n",
             "#include <tomo/tomo.h>\n",

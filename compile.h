@@ -12,7 +12,7 @@
 typedef struct {
     const char *module_name;
     env_t *env;
-    CORD header, c_file, object_files;
+    CORD header, c_file;
 } module_code_t;
 
 CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color);
