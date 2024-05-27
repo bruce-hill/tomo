@@ -21,12 +21,7 @@
 typedef enum { MODE_TRANSPILE = 0, MODE_COMPILE_OBJ = 1, MODE_COMPILE_EXE = 2, MODE_RUN = 3 } mode_e;
 
 static bool verbose = false;
-static const char *autofmt;
-static const char *cconfig;
-static const char *cflags;
-static const char *ldlibs;
-static const char *ldflags;
-static const char *cc;
+static const char *autofmt, *cconfig, *cflags, *objfiles, *ldlibs, *ldflags, *cc;
 
 static array_t get_file_dependencies(const char *filename);
 static int transpile(const char *filename, bool force_retranspile, module_code_t *module_code);
@@ -93,6 +88,10 @@ int main(int argc, char *argv[])
     const char *optimization = getenv("O");
     if (!optimization || !optimization[0]) optimization = "-O1";
     else optimization = heap_strf("-O%s", optimization);
+
+    objfiles = getenv("OBJFILES");
+    if (!objfiles)
+        objfiles = "";
 
     cflags = getenv("CFLAGS");
     if (!cflags)
@@ -176,7 +175,12 @@ static void build_file_dependency_graph(const char *filename, table_t *dependenc
             const char *line = f->text + f->line_offsets[i];
             const char *prefix = "#include \"";
             if (strncmp(line, prefix, strlen(prefix)) == 0) {
-                char *tmp = realpath(heap_strf("%s/%.*s", file_dir, strcspn(line + strlen(prefix), "\"") - 2, line + strlen(prefix)), NULL);
+                char *import = heap_strf("%s/%.*s", file_dir, strcspn(line + strlen(prefix), "\""), line + strlen(prefix));
+                if (strstr(import, ".tm.h") != import + strlen(import) - 5)
+                    continue;
+                import[strlen(import)-2] = '\0';
+                char *tmp = realpath(import, NULL);
+                if (!tmp) errx(1, "Couldn't find import: %s", import);
                 const char *resolved_file = heap_str(tmp);
                 free(tmp);
                 Array$insert(deps, &resolved_file, 0, $ArrayInfo(&$Text));
@@ -314,7 +318,7 @@ int compile_object_file(const char *filename, bool force_recompile)
 int compile_executable(const char *filename, const char *object_files, module_code_t *module_code)
 {
     const char *bin_name = heap_strn(filename, strlen(filename) - strlen(".tm"));
-    const char *run = heap_strf("%s | %s %s %s %s %s -x c - -o %s", autofmt, cc, cflags, ldflags, ldlibs, object_files, bin_name);
+    const char *run = heap_strf("%s | %s %s %s %s %s %s -x c - -o %s", autofmt, cc, cflags, ldflags, ldlibs, objfiles, object_files, bin_name);
     if (verbose)
         printf("%s\n", run);
     FILE *runner = popen(run, "w");
