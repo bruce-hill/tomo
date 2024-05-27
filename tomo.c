@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 
     cflags = getenv("CFLAGS");
     if (!cflags)
-        cflags = heap_strf("%s %s -ggdb -I./include -D_DEFAULT_SOURCE", cconfig, optimization);
+        cflags = heap_strf("%s %s -fPIC -ggdb -I./include -D_DEFAULT_SOURCE", cconfig, optimization);
 
     ldflags = "-Wl,-rpath '-Wl,$ORIGIN' -L/usr/local/lib -L.";
 

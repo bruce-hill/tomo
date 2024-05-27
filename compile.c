@@ -1930,7 +1930,7 @@ CORD compile(env_t *env, ast_t *ast)
         else
             return Match(ast, InlineCCode)->code;
     }
-    case Use: return CORD_EMPTY;
+    case Use: code_err(ast, "Compiling 'use' as expression!");
     case LinkerDirective: code_err(ast, "Linker directives are not supported yet");
     case Extern: code_err(ast, "Externs are not supported as expressions");
     case TableEntry: code_err(ast, "Table entries should not be compiled directly");
@@ -2218,13 +2218,13 @@ module_code_t compile_file(ast_t *ast)
             if (!is_constant(env, decl->value))
                 code_err(decl->value, "This value is not a valid constant initializer.");
 
-            if (is_private) {
+            if (decl->value->tag == Use) {
+                assert(compile_statement(env, stmt->ast) == CORD_EMPTY);
+            } else if (is_private) {
                 env->code->staticdefs = CORD_all(
                     env->code->staticdefs,
                     "static ", compile_type(env, t), " $", decl_name, " = ",
                     compile(env, decl->value), ";\n");
-            } else if (decl->value->tag == Use) {
-                assert(compile_statement(env, stmt->ast) == CORD_EMPTY);
             } else {
                 env->code->fndefs = CORD_all(
                     env->code->fndefs,
