@@ -1528,7 +1528,8 @@ CORD compile(env_t *env, ast_t *ast)
         // Find which variables are captured in the closure:
         env_t *tmp_scope = fresh_scope(body_scope);
         for (ast_list_t *stmt = Match(lambda->body, Block)->statements; stmt; stmt = stmt->next) {
-            if (stmt->next)
+            type_t *stmt_type = get_type(tmp_scope, stmt->ast);
+            if (stmt->next || (stmt_type->tag == VoidType || stmt_type->tag == AbortType))
                 (void)compile_statement(tmp_scope, stmt->ast);
             else
                 (void)compile(tmp_scope, stmt->ast);
