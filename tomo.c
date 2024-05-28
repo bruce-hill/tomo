@@ -202,6 +202,7 @@ static void build_file_dependency_graph(const char *filename, table_t *dependenc
         const char *import, *obj_file;
         if (use_path[0] == '/' || strncmp(use_path, "~/", 2) == 0 || strncmp(use_path, "./", 2) == 0 || strncmp(use_path, "../", 3) == 0) {
             import = resolve_path(use_path, filename, "");
+            if (!import) errx(1, "Couldn't resolve path: %s", use_path);
             obj_file = heap_strf("%s.o", resolve_path(use_path, filename, ""));
         } else {
             import = resolve_path(use_path, filename, getenv("TOMO_IMPORT_PATH"));
