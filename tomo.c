@@ -26,7 +26,7 @@ static const char *autofmt, *cconfig, *cflags, *objfiles, *ldlibs, *ldflags, *cc
 
 static array_t get_file_dependencies(const char *filename, array_t *object_files);
 static int transpile(const char *filename, bool force_retranspile, module_code_t *module_code);
-static int compile_object_file(const char *filename, bool force_recompile, bool shared);
+static int compile_object_file(const char *filename, bool force_recompile);
 static int compile_executable(const char *filename, array_t object_files, module_code_t *module_code);
 
 int main(int argc, char *argv[])
@@ -128,9 +128,12 @@ int main(int argc, char *argv[])
         if (transpile_status != 0) return transpile_status;
     }
 
+    int compile_status = compile_object_file(filename, true);
+    if (compile_status != 0) return compile_status;
+
     for (int64_t i = 0; i < file_deps.length; i++) {
         const char *dep = *(char**)(file_deps.data + i*file_deps.stride);
-        int compile_status = compile_object_file(dep, false, false);
+        compile_status = compile_object_file(dep, false);
         if (compile_status != 0) return compile_status;
     }
 
@@ -138,6 +141,18 @@ int main(int argc, char *argv[])
         return 0;
 
     if (mode == MODE_COMPILE_SHARED_OBJ) {
+        const char *base = file_base_name(filename);
+        const char *outfile = heap_strf("lib%s.so", base);
+        const char *cmd = heap_strf("%s %s %s %s %s -Wl,-soname,lib%s.so -shared %s.o -o %s", cc, cflags, ldflags, ldlibs, objfiles, base, filename, outfile);
+        if (verbose)
+            printf("Running: %s\n", cmd);
+        FILE *prog = popen(cmd, "w");
+        int status = pclose(prog);
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+            return WEXITSTATUS(status);
+        if (verbose)
+            printf("Compiled to %s\n", outfile);
+
         printf("Do you want to install your library? [Y/n] ");
         fflush(stdout);
         switch (getchar()) {
@@ -320,7 +335,7 @@ int transpile(const char *filename, bool force_retranspile, module_code_t *modul
     return 0;
 }
 
-int compile_object_file(const char *filename, bool force_recompile, bool shared)
+int compile_object_file(const char *filename, bool force_recompile)
 {
     const char *obj_file = heap_strf("%s.o", filename);
     if (!force_recompile && !is_stale(obj_file, filename)
@@ -328,11 +343,8 @@ int compile_object_file(const char *filename, bool force_recompile, bool shared)
         && !is_stale(obj_file, heap_strf("%s.h", filename))) {
         return 0;
     }
-    const char *base = file_base_name(filename);
-    const char *outfile = shared ? heap_strf("lib%s.so", base) : heap_strf("%s.o", filename);
-    const char *cmd = shared ?
-        heap_strf("%s %s %s %s %s -Wl,-soname,lib%s.so -shared %s.c -o %s", cc, cflags, ldflags, ldlibs, objfiles, base, filename, outfile)
-        : heap_strf("%s %s -c %s.c -o %s", cc, cflags, filename, outfile);
+    const char *outfile = heap_strf("%s.o", filename);
+    const char *cmd = heap_strf("%s %s -c %s.c -o %s", cc, cflags, filename, outfile);
     if (verbose)
         printf("Running: %s\n", cmd);
     FILE *prog = popen(cmd, "w");
