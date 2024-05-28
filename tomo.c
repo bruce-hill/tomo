@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
         ldlibs = heap_strf("%s %s", ldlibs, getenv("LDLIBS"));
 
     cc = getenv("CC");
-    if (!cc) cc = "tcc";
+    if (!cc) cc = "cc";
 
     array_t object_files = {};
     const char *my_obj = heap_strf("%s.o", resolve_path(filename, ".", "."));
