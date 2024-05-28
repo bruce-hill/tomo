@@ -22,6 +22,7 @@ typedef enum { MODE_TRANSPILE = 0, MODE_COMPILE_OBJ = 1, MODE_COMPILE_SHARED_OBJ
 
 static bool verbose = false;
 static bool show_codegen = false;
+static bool cleanup_files = false;
 static const char *autofmt, *cconfig, *cflags, *objfiles, *ldlibs, *ldflags, *cc;
 
 static array_t get_file_dependencies(const char *filename, array_t *object_files);
@@ -45,8 +46,10 @@ int main(int argc, char *argv[])
             mode = MODE_RUN;
         } else if (streq(argv[i], "-e")) {
             mode = MODE_COMPILE_EXE;
+        } else if (streq(argv[i], "-C")) {
+            cleanup_files = true;
         } else if (streq(argv[i], "-h") || streq(argv[i], "--help")) {
-            printf("Usage: %s [[-t|-c|-e|-r] [option=value]* file.tm [args...]]\n", argv[0]);
+            printf("Usage: %s [[-t|-c|-e|-r] [-C] [option=value]* file.tm [args...]]\n", argv[0]);
             return 0;
         } else if (strchr(argv[i], '=')) {
             while (argv[i][0] == '-')
@@ -131,14 +134,14 @@ int main(int argc, char *argv[])
     int compile_status = compile_object_file(filename, true);
     if (compile_status != 0) return compile_status;
 
+    if (mode == MODE_COMPILE_OBJ)
+        return 0;
+
     for (int64_t i = 0; i < file_deps.length; i++) {
         const char *dep = *(char**)(file_deps.data + i*file_deps.stride);
         compile_status = compile_object_file(dep, false);
         if (compile_status != 0) return compile_status;
     }
-
-    if (mode == MODE_COMPILE_OBJ)
-        return 0;
 
     if (mode == MODE_COMPILE_SHARED_OBJ) {
         const char *base = file_base_name(filename);
@@ -156,11 +159,16 @@ int main(int argc, char *argv[])
         printf("Do you want to install your library? [Y/n] ");
         fflush(stdout);
         switch (getchar()) {
-        case 'y': case 'Y': case '\n':
-            system("mkdir -p ~/.local/tomo/lib ~/.local/tomo/src ~/.local/tomo/include");
-            system(heap_strf("cp -v lib%s.so ~/.local/tomo/lib/", file_base_name(filename)));
-            system(heap_strf("cp -v %s %s.c ~/.local/tomo/src/", filename, filename));
-            system(heap_strf("cp -v %s.h ~/.local/tomo/include/", filename));
+        case 'y': case 'Y': case '\n': {
+            const char *name = file_base_name(filename);
+            system(heap_strf("mkdir -p ~/.local/tomo/lib ~/.local/tomo/'%s'", name));
+            system(heap_strf("cp -v 'lib%s.so' ~/.local/tomo/'%s'/", name, name));
+            system(heap_strf("ln -sv '../%s/lib%s.so' ~/.local/tomo/lib/'lib%s.so'", name, name, name));
+            for (int64_t i = 0; i < file_deps.length; i++) {
+                const char *dep = *(char**)(file_deps.data + i*file_deps.stride);
+                system(heap_strf("cp -v %s %s.c %s.h %s.o ~/.local/tomo/%s/", dep, dep, dep, dep, name));
+            }
+        }
         default: break;
         }
         return 0;
@@ -169,6 +177,16 @@ int main(int argc, char *argv[])
     int executable_status = compile_executable(filename, object_files, &module_code);
     if (mode == MODE_COMPILE_EXE || executable_status != 0)
         return executable_status;
+
+    if (cleanup_files) {
+        for (int64_t i = 0; i < file_deps.length; i++) {
+            const char *dep = *(char**)(file_deps.data + i*file_deps.stride);
+            if (verbose)
+                printf("Cleaning up %s files...\n", dep);
+
+            system(heap_strf("rm -f %s.c %s.h %s.o", dep, dep, dep));
+        }
+    }
 
     char *exe_name = heap_strn(filename, strlen(filename) - strlen(".tm"));
     int num_args = argc - program_arg_index;
