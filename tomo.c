@@ -218,6 +218,7 @@ static void build_file_dependency_graph(const char *filename, table_t *dependenc
 array_t get_file_dependencies(const char *filename, array_t *object_files)
 {
     const char *resolved = resolve_path(filename, ".", ".");
+    if (!resolved) errx(1, "Couldn't resolve path: %s", filename);
 
     table_t file_dependencies = {};
     build_file_dependency_graph(resolved, &file_dependencies, object_files);
