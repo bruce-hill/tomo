@@ -2233,7 +2233,7 @@ module_code_t compile_file(ast_t *ast)
             }
         } else if (stmt->ast->tag == InlineCCode) {
             CORD code = compile_statement(env, stmt->ast);
-            env->code->imports = CORD_all(env->code->imports, code, "\n");
+            env->code->staticdefs = CORD_all(env->code->staticdefs, code, "\n");
         } else {
             CORD code = compile_statement(env, stmt->ast);
             assert(!code);
