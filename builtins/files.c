@@ -41,13 +41,13 @@ public char *resolve_path(const char *path, const char *relative_to, const char 
         // Relative path:
         char *relative_dir = dirname(heap_str(relative_to));
         if (!system_path) system_path = ".";
-        char *copy = strdup(system_path);
+        char *copy = heap_str(system_path);
         for (char *dir, *pos = copy; (dir = strsep(&pos, ":")); ) {
             if (dir[0] == '/') {
                 char *resolved = realpath(heap_strf("%s/%s", dir, path), buf);
                 if (resolved) return heap_str(resolved);
             } else if (dir[0] == '~' && (dir[1] == '\0' || dir[1] == '/')) {
-                char *resolved = realpath(heap_strf("%s%s/%s", getenv("HOME"), dir, path), buf);
+                char *resolved = realpath(heap_strf("%s%s/%s", getenv("HOME"), dir+1, path), buf);
                 if (resolved) return heap_str(resolved);
             } else if (streq(dir, ".") || strncmp(dir, "./", 2) == 0) {
                 char *resolved = realpath(heap_strf("%s/%s", relative_dir, path), buf);
@@ -60,7 +60,6 @@ public char *resolve_path(const char *path, const char *relative_to, const char 
                 if (resolved) return heap_str(resolved);
             }
         }
-        free(copy);
     }
     return NULL;
 }

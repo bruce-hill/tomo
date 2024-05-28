@@ -116,7 +116,7 @@ static env_t *load_module(env_t *env, ast_t *use_ast)
     const char *my_name = heap_strn(CORD_to_const_char_star(env->file_prefix), CORD_len(env->file_prefix)-1);
     Table$str_set(module_env->imports, my_name, env);
 
-    const char *resolved_path = resolve_path(use->raw_path, use_ast->file->filename, getenv("USE_PATH"));
+    const char *resolved_path = resolve_path(use->raw_path, use_ast->file->filename, getenv("TOMO_IMPORT_PATH"));
     if (!resolved_path)
         code_err(use_ast, "No such file exists: \"%s\"", use->raw_path);
 
