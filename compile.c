@@ -1958,9 +1958,9 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
             if (!is_constant(env, decl->value))
                 code_err(decl->value, "This value is supposed to be a compile-time constant, but I can't figure out how to make it one");
             CORD var_decl = CORD_all(compile_type(env, t), " ", compile(ns_env, decl->var), " = ", compile(ns_env, decl->value), ";\n");
-            env->code->staticdefs = CORD_all(env->code->staticdefs, "extern ", var_decl);
+            env->code->staticdefs = CORD_all(env->code->staticdefs, var_decl);
 
-            env->code->fndefs = CORD_all(env->code->fndefs, compile_type(env, t), " ", compile(ns_env, decl->var), ";\n");
+            env->code->fndefs = CORD_all(env->code->fndefs, "extern ", compile_type(env, t), " ", compile(ns_env, decl->var), ";\n");
             break;
         }
         default: {
@@ -2225,10 +2225,10 @@ module_code_t compile_file(ast_t *ast)
             } else {
                 env->code->fndefs = CORD_all(
                     env->code->fndefs,
-                    compile_declaration(env, t, CORD_cat(env->file_prefix, decl_name)), ";\n");
+                    "extern ", compile_declaration(env, t, CORD_cat(env->file_prefix, decl_name)), ";\n");
                 env->code->staticdefs = CORD_all(
                     env->code->staticdefs,
-                    "extern ", compile_type(env, t), " ", env->file_prefix, decl_name, " = ",
+                    compile_type(env, t), " ", env->file_prefix, decl_name, " = ",
                     compile(env, decl->value), ";\n");
             }
         } else if (stmt->ast->tag == InlineCCode) {
