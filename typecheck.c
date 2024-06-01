@@ -112,6 +112,7 @@ static env_t *load_module(env_t *env, ast_t *use_ast)
 
     module_env = new_compilation_unit();
     module_env->file_prefix = heap_strf("%s$", name);
+    module_env->scope_prefix = module_env->file_prefix;
     Table$str_set(module_env->imports, name, module_env);
     const char *my_name = heap_strn(CORD_to_const_char_star(env->file_prefix), CORD_len(env->file_prefix)-1);
     Table$str_set(module_env->imports, my_name, env);
