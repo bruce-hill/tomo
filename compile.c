@@ -1025,10 +1025,7 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Int: return CORD_asprintf("I%ld(%ld)", Match(ast, Int)->bits, Match(ast, Int)->i);
     case Num: {
-        // HACK: since the cord library doesn't support the '%a' specifier, this workaround
-        // is necessary:
-        char *buf = asprintfa(Match(ast, Num)->bits == 64 ? "%a" : "%af", Match(ast, Num)->n);
-        return CORD_from_char_star(buf);
+        return CORD_asprintf(Match(ast, Num)->bits == 64 ? "%.9g" : "%.9gf", Match(ast, Num)->n);
     }
     case Length: {
         ast_t *expr = Match(ast, Length)->value;

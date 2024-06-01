@@ -32,8 +32,6 @@ CORD CORD_asprintf(CORD fmt, ...);
 #define CORD_appendf(cord, fmt, ...) CORD_sprintf(cord, "%r" fmt, *(cord) __VA_OPT__(,) __VA_ARGS__)
 #define CORD_all(...) CORD_catn(sizeof((CORD[]){__VA_ARGS__})/sizeof(CORD), __VA_ARGS__)
 
-#define asprintfa(...) ({ char *_buf = alloca(snprintf(0, 0, __VA_ARGS__)); sprintf(_buf, __VA_ARGS__); _buf; })
-
 #define REVERSE_LIST(list) do { \
     __typeof(list) _prev = NULL; \
     __typeof(list) _next = NULL; \
