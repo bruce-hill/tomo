@@ -376,6 +376,11 @@ int compile_object_file(const char *filename, bool force_recompile)
 
 int compile_executable(const char *filename, array_t object_files, module_code_t *module_code)
 {
+    binding_t *main_binding = get_binding(module_code->env, "main");
+    if (!main_binding || main_binding->type->tag != FunctionType) {
+        errx(1, "No main() function has been defined for %s, so it can't be run!", filename);
+    }
+
     const char *bin_name = heap_strn(filename, strlen(filename) - strlen(".tm"));
     const char *run = heap_strf("%s | %s %s %s %s %s %s -x c - -o %s",
                                 autofmt, cc, cflags, ldflags, ldlibs, objfiles, CORD_to_const_char_star(Text$join(" ", object_files)), bin_name);
@@ -383,7 +388,6 @@ int compile_executable(const char *filename, array_t object_files, module_code_t
         printf("%s\n", run);
     FILE *runner = popen(run, "w");
 
-    binding_t *main_binding = get_binding(module_code->env, "main");
     CORD program = CORD_all(
         "#include <tomo/tomo.h>\n"
         "#include \"", filename, ".h\"\n"
@@ -391,9 +395,7 @@ int compile_executable(const char *filename, array_t object_files, module_code_t
         "int main(int argc, char *argv[]) {\n"
         "tomo_init();\n"
         "\n",
-        main_binding && main_binding->type->tag == FunctionType ?
-            CORD_all(compile_cli_arg_call(module_code->env, main_binding->code, main_binding->type), "return 0;\n")
-            : "errx(1, \"No main function is defined!\");\n",
+        CORD_all(compile_cli_arg_call(module_code->env, main_binding->code, main_binding->type), "return 0;\n"),
         "}\n"
     );
 
