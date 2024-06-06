@@ -27,10 +27,12 @@ LDLIBS=-lgc -lcord -lm -lunistring -ldl -L. -ltomo
 BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/nums.o builtins/functions.o builtins/integers.o \
 						 builtins/pointer.o builtins/memory.o builtins/text.o builtins/where.o builtins/c_string.o builtins/table.o \
 						 builtins/types.o builtins/util.o builtins/files.o
+TESTS=$(patsubst %.tm,%.tm.testresult,$(wildcard test/*.tm))
 
 all: libtomo.so tomo
 
 tomo: tomo.c SipHash/halfsiphash.o ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o repl.o
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 libtomo.so: $(BUILTIN_OBJS) SipHash/halfsiphash.o
 	$(CC) $^ $(CFLAGS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) -lgc -lcord -lm -lunistring -ldl -Wl,-soname,libtomo.so -shared -o $@
@@ -41,16 +43,17 @@ SipHash/halfsiphash.c:
 tags:
 	ctags *.[ch] **/*.[ch]
 
-test: tomo
-	rm -f test/*.tm.[cho]
-	for f in $$(ls test/*.tm | shuf); do echo -e "\x1b[1;4m$$f\x1b[m"; \
-		if ! VERBOSE=0 CC=tcc ./tomo "$$f"; then \
-			echo "FAILURE!"; exit 1; \
-		fi; \
-	done; echo -e '\x1b[32;7m ALL TESTS PASSED! \x1b[m'
+%.o: %.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+%.tm.testresult: %.tm tomo
+	VERBOSE=0 COLOR=1 CC=tcc ./tomo $< 2>&1 | tee $@
+
+test: $(TESTS)
+	echo -e '\x1b[32;7m ALL TESTS PASSED! \x1b[m'
 
 clean:
-	rm -f tomo *.o SipHash/halfsiphash.o builtins/*.o libtomo.so
+	rm -f tomo *.o SipHash/halfsiphash.o builtins/*.o libtomo.so test/*.tm.{c,h,o,testresult}
 
 %.1: %.1.md
 	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@
@@ -65,4 +68,5 @@ install: tomo libtomo.so
 uninstall:
 	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/include/tomo" "$(PREFIX)/lib/libtomo.so" "$(PREFIX)/share/tomo"; \
 
+.SUFFIXES:
 .PHONY: all clean install uninstall test tags
