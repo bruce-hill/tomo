@@ -93,7 +93,7 @@ static file_t *_load_file(const char* filename, FILE *file)
     int64_t line_len = 0;
     while ((line_len = getline(&line_buf, &line_cap, file)) >= 0) {
         if (ret->line_capacity <= ret->num_lines)
-            ret->line_offsets = GC_REALLOC(ret->line_offsets, sizeof(int64_t)*(ret->line_capacity += 32));
+            ret->line_offsets = GC_REALLOC(ret->line_offsets, sizeof(int64_t[ret->line_capacity += 32]));
         ret->line_offsets[ret->num_lines++] = file_size;
         fwrite(line_buf, sizeof(char), line_len, mem);
         fflush(mem);

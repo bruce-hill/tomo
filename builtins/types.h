@@ -62,7 +62,7 @@ typedef struct TypeInfo {
                                            .tag=TableInfo, .TableInfo.key=key_expr, .TableInfo.value=value_expr})
 #define $FunctionInfo(typestr) &((TypeInfo){.size=sizeof(void*), .align=__alignof__(void*), \
                                  .tag=FunctionInfo, .FunctionInfo.type_str=typestr})
-#define $ClosureInfo(typestr) &((TypeInfo){.size=2*sizeof(void*), .align=__alignof__(void*), \
+#define $ClosureInfo(typestr) &((TypeInfo){.size=sizeof(void*[2]), .align=__alignof__(void*), \
                                  .tag=FunctionInfo, .FunctionInfo.type_str=typestr})
 #define $TypeInfoInfo(typestr) &((TypeInfo){.size=sizeof(TypeInfo), .align=__alignof__(TypeInfo), \
                                  .tag=TypeInfoInfo, .TypeInfoInfo.type_str=typestr})

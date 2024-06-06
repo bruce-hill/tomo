@@ -102,7 +102,7 @@ static void maybe_copy_on_write(table_t *t, const TypeInfo *type)
     }
 
     if (t->bucket_info && t->bucket_info->data_refcount) {
-        int64_t size = sizeof(bucket_info_t) + t->bucket_info->count*sizeof(bucket_t);
+        int64_t size = sizeof(bucket_info_t) + sizeof(bucket_t[t->bucket_info->count]);
         t->bucket_info = memcpy(GC_MALLOC(size), t->bucket_info, size);
         t->bucket_info->data_refcount = 0;
     }
@@ -208,9 +208,9 @@ static void hashmap_resize_buckets(table_t *t, uint32_t new_capacity, const Type
 {
     hdebug("About to resize from %u to %u\n", t->bucket_info ? t->bucket_info->count : 0, new_capacity);
     hshow(t);
-    int64_t alloc_size = sizeof(bucket_info_t) + (int64_t)(new_capacity)*sizeof(bucket_t);
+    int64_t alloc_size = sizeof(bucket_info_t) + sizeof(bucket_t[new_capacity]);
     t->bucket_info = GC_MALLOC_ATOMIC(alloc_size);
-    memset(t->bucket_info->buckets, 0, (int64_t)new_capacity * sizeof(bucket_t));
+    memset(t->bucket_info->buckets, 0, sizeof(bucket_t[new_capacity]));
     t->bucket_info->count = new_capacity;
     t->bucket_info->last_free = new_capacity-1;
     // Rehash:

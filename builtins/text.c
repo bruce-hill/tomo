@@ -273,7 +273,7 @@ public array_t Text$split(CORD str, CORD split)
         size_t non_split = u8_strcspn(ustr + i, usplit);
         CORD chunk = CORD_substr((CORD)ustr, i, non_split);
         if (capacity <= 0)
-            strings.data = GC_REALLOC(strings.data, sizeof(CORD)*(capacity += 10));
+            strings.data = GC_REALLOC(strings.data, sizeof(CORD[capacity += 10]));
         ((CORD*)strings.data)[strings.length++] = chunk;
 
         i += non_split;
@@ -327,7 +327,7 @@ public array_t Text$codepoints(CORD text)
     uint32_t *codepoints = u8_to_u32(normalized, norm_len-1, codepoint_buf, &codepoint_len);
     array_t ret = {
         .length=codepoint_len,
-        .data=memcpy(GC_MALLOC_ATOMIC(sizeof(int32_t)*codepoint_len), codepoints, sizeof(int32_t)*codepoint_len),
+        .data=memcpy(GC_MALLOC_ATOMIC(sizeof(int32_t[codepoint_len])), codepoints, sizeof(int32_t[codepoint_len])),
         .stride=sizeof(int32_t),
         .atomic=1,
     };
@@ -345,7 +345,7 @@ public array_t Text$bytes(CORD text)
     --norm_len; // NUL byte
     array_t ret = {
         .length=norm_len,
-        .data=memcpy(GC_MALLOC_ATOMIC(sizeof(uint8_t)*norm_len), normalized, sizeof(uint8_t)*norm_len),
+        .data=memcpy(GC_MALLOC_ATOMIC(sizeof(uint8_t[norm_len])), normalized, sizeof(uint8_t[norm_len])),
         .stride=sizeof(uint8_t),
         .atomic=1,
     };
@@ -389,7 +389,7 @@ public int64_t Text$num_bytes(CORD text)
 public array_t Text$character_names(CORD text)
 {
     array_t codepoints = Text$codepoints(text);
-    array_t ret = {.length=codepoints.length, .stride=sizeof(CORD), .data=GC_MALLOC(sizeof(CORD)*codepoints.length)};
+    array_t ret = {.length=codepoints.length, .stride=sizeof(CORD), .data=GC_MALLOC(sizeof(CORD[codepoints.length]))};
     for (int64_t i = 0; i < codepoints.length; i++) {
         char buf[UNINAME_MAX];
         unicode_character_name(*(ucs4_t*)(codepoints.data + codepoints.stride*i), buf);

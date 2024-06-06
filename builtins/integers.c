@@ -43,7 +43,7 @@
         return CORD_asprintf(octal_fmt, (int)digits, (uint64_t)i); \
     } \
     public array_t KindOfInt ## $bits(c_type x) { \
-        array_t bit_array = (array_t){.data=GC_MALLOC_ATOMIC(sizeof(bool)*8*sizeof(c_type)), .atomic=1, .stride=sizeof(bool), .length=8*sizeof(c_type)}; \
+        array_t bit_array = (array_t){.data=GC_MALLOC_ATOMIC(sizeof(bool[8*sizeof(c_type)])), .atomic=1, .stride=sizeof(bool), .length=8*sizeof(c_type)}; \
         bool *bits = bit_array.data + sizeof(c_type)*8; \
         for (size_t i = 0; i < 8*sizeof(c_type); i++) { \
             *(bits--) = x & 1; \
