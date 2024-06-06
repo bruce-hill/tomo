@@ -26,9 +26,9 @@ static bool cleanup_files = false;
 static const char *autofmt, *cconfig, *cflags, *objfiles, *ldlibs, *ldflags, *cc;
 
 static array_t get_file_dependencies(const char *filename, array_t *object_files);
-static int transpile(const char *filename, bool force_retranspile, module_code_t *module_code);
+static int transpile(env_t *base_env, const char *filename, bool force_retranspile);
 static int compile_object_file(const char *filename, bool force_recompile);
-static int compile_executable(const char *filename, array_t object_files, module_code_t *module_code);
+static int compile_executable(env_t *base_env, const char *filename, array_t object_files);
 
 int main(int argc, char *argv[])
 {
@@ -120,14 +120,13 @@ int main(int argc, char *argv[])
     Array$insert(&object_files, &my_obj, 0, $ArrayInfo(&$Text));
     array_t file_deps = get_file_dependencies(filename, &object_files);
 
-    module_code_t module_code = {};
-    int transpile_status = transpile(filename, true, &module_code);
+    env_t *env = new_compilation_unit();
+    int transpile_status = transpile(env, filename, true);
     if (transpile_status != 0) return transpile_status;
 
     for (int64_t i = 0; i < file_deps.length; i++) {
         const char *dep = *(char**)(file_deps.data + i*file_deps.stride);
-        module_code_t _ = {};
-        transpile_status = transpile(dep, false, &_);
+        transpile_status = transpile(env, dep, false);
         if (transpile_status != 0) return transpile_status;
     }
 
@@ -174,7 +173,7 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    int executable_status = compile_executable(filename, object_files, &module_code);
+    int executable_status = compile_executable(env, filename, object_files);
     if (mode == MODE_COMPILE_EXE || executable_status != 0)
         return executable_status;
 
@@ -282,7 +281,7 @@ static bool is_stale(const char *filename, const char *relative_to)
     return target_stat.st_mtime < relative_to_stat.st_mtime;
 }
 
-int transpile(const char *filename, bool force_retranspile, module_code_t *module_code)
+int transpile(env_t *base_env, const char *filename, bool force_retranspile)
 {
     const char *tm_file = filename;
     const char *c_filename = heap_strf("%s.c", tm_file);
@@ -311,18 +310,19 @@ int transpile(const char *filename, bool force_retranspile, module_code_t *modul
         pclose(out);
     }
 
-    *module_code = compile_file(ast);
+    env_t *module_env = load_module_env(base_env, ast);
 
+    CORD h_code = compile_header(module_env, ast);
     FILE *h_file = fopen(h_filename, "w");
     if (!h_file)
         errx(1, "Couldn't open file: %s", h_filename);
-    CORD_put("#pragma once\n", h_file);
-    CORD_put(module_code->header, h_file);
+    CORD_put(h_code, h_file);
     if (fclose(h_file))
         errx(1, "Failed to close file: %s", h_filename);
     if (verbose)
         printf("Transpiled to %s\n", h_filename);
 
+    CORD c_code = compile_file(module_env, ast);
     if (autofmt && autofmt[0]) {
         FILE *prog = popen(heap_strf("%s %s -o %s >/dev/null 2>/dev/null", autofmt, h_filename, h_filename), "w");
         pclose(prog);
@@ -331,10 +331,7 @@ int transpile(const char *filename, bool force_retranspile, module_code_t *modul
     FILE *c_file = fopen(c_filename, "w");
     if (!c_file)
         errx(1, "Couldn't open file: %s", c_filename);
-    CORD_put(CORD_all(
-            "#include <tomo/tomo.h>\n"
-            "#include \"", module_code->module_name, ".tm.h\"\n\n",
-            module_code->c_file), c_file);
+    CORD_put(c_code, c_file);
     if (fclose(c_file))
         errx(1, "Failed to close file: %s", c_filename);
     if (verbose)
@@ -374,9 +371,12 @@ int compile_object_file(const char *filename, bool force_recompile)
     return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
 }
 
-int compile_executable(const char *filename, array_t object_files, module_code_t *module_code)
+int compile_executable(env_t *base_env, const char *filename, array_t object_files)
 {
-    binding_t *main_binding = get_binding(module_code->env, "main");
+    const char *name = file_base_name(filename);
+    env_t *env = Table$str_get(*base_env->imports, name);
+    assert(env);
+    binding_t *main_binding = get_binding(env, "main");
     if (!main_binding || main_binding->type->tag != FunctionType) {
         errx(1, "No main() function has been defined for %s, so it can't be run!", filename);
     }
@@ -395,7 +395,7 @@ int compile_executable(const char *filename, array_t object_files, module_code_t
         "int main(int argc, char *argv[]) {\n"
         "tomo_init();\n"
         "\n",
-        CORD_all(compile_cli_arg_call(module_code->env, main_binding->code, main_binding->type), "return 0;\n"),
+        CORD_all(compile_cli_arg_call(env, main_binding->code, main_binding->type), "return 0;\n"),
         "}\n"
     );
 

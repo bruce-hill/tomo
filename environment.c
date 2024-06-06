@@ -235,6 +235,29 @@ env_t *new_compilation_unit(void)
     return env;
 }
 
+env_t *load_module_env(env_t *env, ast_t *ast)
+{
+    const char *name = file_base_name(ast->file->filename);
+    env_t *cached = Table$str_get(*env->imports, name);
+    if (cached) return cached;
+    env = fresh_scope(env);
+    env->file_prefix = heap_strf("%s$", name);
+    Table$str_set(env->imports, name, env);
+
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
+        prebind_statement(env, stmt->ast);
+
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        // Hack: make sure global variables are bound as foo$var:
+        if (stmt->ast->tag == Declare && Match(Match(stmt->ast, Declare)->var, Var)->name[0] != '_')
+            env->scope_prefix = heap_strf("%s$", name);
+        bind_statement(env, stmt->ast);
+        env->scope_prefix = NULL;
+    }
+    Table$str_set(env->imports, name, env);
+    return env;
+}
+
 env_t *global_scope(env_t *env)
 {
     env_t *scope = new(env_t);

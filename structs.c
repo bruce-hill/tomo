@@ -115,20 +115,6 @@ void compile_struct_def(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
     CORD full_name = CORD_cat(env->file_prefix, def->name);
-    CORD_appendf(&env->code->typedefs, "typedef struct %r_s %r_t;\n", full_name, full_name);
-
-    CORD struct_code = CORD_all("struct ", full_name, "_s {\n");
-    for (arg_ast_t *field = def->fields; field; field = field->next) {
-        type_t *field_t = get_arg_ast_type(env, field);
-        CORD type_code = compile_type(env, field_t);
-        CORD_appendf(&struct_code, "%r %s%s;\n", type_code, field->name,
-                     CORD_cmp(type_code, "Bool_t") ? "" : ":1");
-    }
-    struct_code = CORD_all(struct_code, "};\n");
-    env->code->typecode = CORD_all(env->code->typecode, struct_code);
-
-    // Typeinfo:
-    CORD_appendf(&env->code->typedefs, "extern const TypeInfo %r;\n", full_name);
 
     type_t *t = Table$str_get(*env->types, def->name);
     assert(t && t->tag == StructType);
@@ -174,6 +160,26 @@ void compile_struct_def(env_t *env, ast_t *ast)
     }
 
     compile_namespace(env, def->name, def->namespace);
+}
+
+CORD compile_struct_header(env_t *env, ast_t *ast)
+{
+    auto def = Match(ast, StructDef);
+    CORD full_name = CORD_cat(env->file_prefix, def->name);
+    CORD header = CORD_all("typedef struct ", full_name, "_s ", full_name, "_t;\n");
+
+    CORD struct_code = CORD_all("struct ", full_name, "_s {\n");
+    for (arg_ast_t *field = def->fields; field; field = field->next) {
+        type_t *field_t = get_arg_ast_type(env, field);
+        CORD type_code = compile_type(env, field_t);
+        CORD_appendf(&struct_code, "%r %s%s;\n", type_code, field->name,
+                     CORD_cmp(type_code, "Bool_t") ? "" : ":1");
+    }
+    struct_code = CORD_all(struct_code, "};\n");
+    header = CORD_all(header, struct_code);
+    header = CORD_all(header, "extern const TypeInfo ", full_name, ";\n");
+    header = CORD_all(header, compile_namespace_headers(env, def->name, def->namespace));
+    return header;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -8,10 +8,7 @@
 #include "builtins/table.h"
 
 typedef struct {
-    CORD imports;
-    CORD typedefs;
-    CORD typecode;
-    CORD fndefs;
+    CORD local_typedefs;
     CORD staticdefs;
     CORD funcs;
     CORD typeinfos;
@@ -49,6 +46,7 @@ typedef struct {
 } binding_t;
 
 env_t *new_compilation_unit(void);
+env_t *load_module_env(env_t *env, ast_t *ast);
 env_t *global_scope(env_t *env);
 env_t *fresh_scope(env_t *env);
 env_t *for_scope(env_t *env, ast_t *ast);

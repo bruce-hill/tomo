@@ -19,6 +19,7 @@ static const char closing[128] = {['(']=')', ['[']=']', ['<']='>', ['{']='}'};
 typedef struct {
     file_t *file;
     jmp_buf *on_err;
+    int64_t next_lambda_id;
 } parse_ctx_t;
 
 typedef ast_t* (parser_t)(parse_ctx_t*,const char*);
@@ -1224,7 +1225,7 @@ PARSER(parse_lambda) {
     spaces(&pos);
     expect_closing(ctx, &pos, ")", "I was expecting a ')' to finish this anonymous function's arguments");
     ast_t *body = optional(ctx, &pos, parse_block);
-    return NewAST(ctx->file, start, pos, Lambda, .args=args, .body=body);
+    return NewAST(ctx->file, start, pos, Lambda, .id=ctx->next_lambda_id++, .args=args, .body=body);
 }
 
 PARSER(parse_nil) {
@@ -2076,6 +2077,7 @@ ast_t *parse_expression_str(const char *str) {
     parse_ctx_t ctx = {
         .file=file,
         .on_err=NULL,
+        .next_lambda_id=0,
     };
 
     const char *pos = file->text;

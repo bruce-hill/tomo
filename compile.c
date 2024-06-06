@@ -16,6 +16,7 @@
 
 static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool allow_optional);
 static env_t *with_enum_scope(env_t *env, type_t *t);
+static CORD compile_statement_header(env_t *env, ast_t *ast);
 
 CORD compile_type_ast(env_t *env, type_ast_t *t)
 {
@@ -25,7 +26,7 @@ CORD compile_type_ast(env_t *env, type_ast_t *t)
     case TableTypeAST: return "table_t";
     case ArrayTypeAST: return "array_t";
     case FunctionTypeAST: return "const void*";
-    default: code_err(t, "Not implemented");
+    default: code_err(t, "Compiling type AST is not implemented");
     }
 }
 
@@ -67,6 +68,36 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
     return false;
 }
 
+static table_t *get_closed_vars(env_t *env, ast_t *lambda_ast)
+{
+    auto lambda = Match(lambda_ast, Lambda);
+    env_t *body_scope = fresh_scope(env);
+    for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
+        type_t *arg_type = get_arg_ast_type(env, arg);
+        set_binding(body_scope, arg->name, new(binding_t, .type=arg_type, .code=CORD_cat("$", arg->name)));
+    }
+
+    fn_ctx_t fn_ctx = (fn_ctx_t){
+        .closure_scope=body_scope->locals->fallback,
+        .closed_vars=new(table_t),
+    };
+    body_scope->fn_ctx = &fn_ctx;
+    body_scope->locals->fallback = env->globals;
+    type_t *ret_t = get_type(body_scope, lambda->body);
+    fn_ctx.return_type = ret_t;
+
+    // Find which variables are captured in the closure:
+    env_t *tmp_scope = fresh_scope(body_scope);
+    for (ast_list_t *stmt = Match(lambda->body, Block)->statements; stmt; stmt = stmt->next) {
+        type_t *stmt_type = get_type(tmp_scope, stmt->ast);
+        if (stmt->next || (stmt_type->tag == VoidType || stmt_type->tag == AbortType))
+            (void)compile_statement(tmp_scope, stmt->ast);
+        else
+            (void)compile(tmp_scope, stmt->ast);
+    }
+    return fn_ctx.closed_vars;
+}
+
 CORD compile_declaration(env_t *env, type_t *t, CORD name)
 {
     if (t->tag == FunctionType) {
@@ -77,8 +108,10 @@ CORD compile_declaration(env_t *env, type_t *t, CORD name)
             if (arg->next) code = CORD_cat(code, ", ");
         }
         return CORD_all(code, ")");
-    } else {
+    } else if (t->tag != ModuleType) {
         return CORD_all(compile_type(env, t), " ", name);
+    } else {
+        return CORD_EMPTY;
     }
 }
 
@@ -111,14 +144,14 @@ CORD compile_type(env_t *env, type_t *t)
     case PointerType: return CORD_cat(compile_type(env, Match(t, PointerType)->pointed), "*");
     case StructType: {
         auto s = Match(t, StructType);
-        return CORD_all(s->env->file_prefix, s->name, "_t");
+        return CORD_all("struct ", s->env->file_prefix, s->name, "_s");
     }
     case EnumType: {
         auto e = Match(t, EnumType);
         return CORD_all(e->env->file_prefix, e->name, "_t");
     }
     case TypeInfoType: return "TypeInfo";
-    default: compiler_err(NULL, NULL, NULL, "Not implemented");
+    default: compiler_err(NULL, NULL, NULL, "Compiling type is not implemented for type with tag %d", t->tag);
     }
 }
 
@@ -482,8 +515,6 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case LangDef: {
         auto def = Match(ast, LangDef);
-        CORD_appendf(&env->code->typedefs, "typedef CORD %r%s_t;\n", env->file_prefix, def->name);
-        CORD_appendf(&env->code->typedefs, "extern const TypeInfo %r%s;\n", env->file_prefix, def->name);
         CORD_appendf(&env->code->typeinfos, "public const TypeInfo %r%s = {%zu, %zu, {.tag=TextInfo, .TextInfo={%r}}};\n",
                      env->file_prefix, def->name, sizeof(CORD), __alignof__(CORD),
                      Text$quoted(def->name, false));
@@ -508,8 +539,6 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         if (is_private)
             env->code->staticdefs = CORD_all(env->code->staticdefs, "static ", ret_type_code, " ", name, arg_signature, ";\n");
-        else
-            env->code->fndefs = CORD_all(env->code->fndefs, ret_type_code, " ", name, arg_signature, ";\n");
 
         CORD code;
         if (fndef->cache) {
@@ -560,11 +589,13 @@ CORD compile_statement(env_t *env, ast_t *ast)
                                     ") Table$remove(&cache, NULL, table_type);\n");
             }
 
+            CORD arg_typedef = compile_struct_header(env, args_def);
+            env->code->local_typedefs = CORD_all(env->code->local_typedefs, arg_typedef);
             CORD wrapper = CORD_all(
                 is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
                 "static table_t cache = {};\n",
                 compile_type(env, args_t), " args = {", all_args, "};\n"
-                "static const TypeInfo *table_type = $TableInfo(", compile_type_info(env, args_t), ", ", compile_type_info(env, ret_t), ");\n",
+                "const TypeInfo *table_type = $TableInfo(", compile_type_info(env, args_t), ", ", compile_type_info(env, ret_t), ");\n",
                 ret_type_code, "*cached = Table$get_raw(cache, &args, table_type);\n"
                 "if (cached) return *cached;\n",
                 ret_type_code, " ret = ", name, "$uncached(", all_args, ");\n",
@@ -810,36 +841,9 @@ CORD compile_statement(env_t *env, ast_t *ast)
             return compile_statement(env, loop);
         }
     }
-    case Extern: {
-        auto ext = Match(ast, Extern);
-        type_t *t = parse_type_ast(env, ext->type);
-        CORD decl;
-        if (t->tag == ClosureType) {
-            t = Match(t, ClosureType)->fn;
-            auto fn = Match(t, FunctionType);
-            decl = CORD_all(compile_type(env, fn->ret), " ", ext->name, "(");
-            for (arg_t *arg = fn->args; arg; arg = arg->next) {
-                decl = CORD_all(decl, compile_type(env, arg->type));
-                if (arg->next) decl = CORD_cat(decl, ", ");
-            }
-            decl = CORD_cat(decl, ")");
-        } else {
-            decl = compile_declaration(env, t, ext->name);
-        }
-        env->code->fndefs = CORD_all(env->code->fndefs, "extern ", decl, ";\n");
-        return CORD_EMPTY;
-    }
+    case Extern: return CORD_EMPTY;
     case InlineCCode: return Match(ast, InlineCCode)->code;
-    case Use: {
-        auto use = Match(ast, Use);
-        const char *path = use->raw_path;
-        if (strncmp(path, "./", 2) == 0 || strncmp(path, "../", 3) == 0) {
-            env->code->imports = CORD_all(env->code->imports, "#include \"", path, ".h\"\n");
-        } else {
-            env->code->imports = CORD_all(env->code->imports, "#include <", path, ".h>\n");
-        }
-        return CORD_EMPTY;
-    }
+    case Use: return CORD_EMPTY;
     default:
         if (!is_discardable(env, ast))
             code_err(ast, "The result of this statement cannot be discarded");
@@ -1494,8 +1498,7 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Lambda: {
         auto lambda = Match(ast, Lambda);
-        static int64_t lambda_number = 1;
-        CORD name = CORD_asprintf("%slambda$%ld", env->file_prefix, lambda_number++);
+        CORD name = CORD_asprintf("%slambda$%ld", env->file_prefix, lambda->id);
 
         env_t *body_scope = fresh_scope(env);
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
@@ -1503,15 +1506,14 @@ CORD compile(env_t *env, ast_t *ast)
             set_binding(body_scope, arg->name, new(binding_t, .type=arg_type, .code=CORD_cat("$", arg->name)));
         }
 
-        type_t *ret_t = get_type(body_scope, lambda->body);
-
         fn_ctx_t fn_ctx = (fn_ctx_t){
-            .return_type=ret_t,
             .closure_scope=body_scope->locals->fallback,
             .closed_vars=new(table_t),
         };
         body_scope->fn_ctx = &fn_ctx;
         body_scope->locals->fallback = env->globals;
+        type_t *ret_t = get_type(body_scope, lambda->body);
+        fn_ctx.return_type = ret_t;
 
         CORD code = CORD_all("static ", compile_type(env, ret_t), " ", name, "(");
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
@@ -1519,33 +1521,23 @@ CORD compile(env_t *env, ast_t *ast)
             code = CORD_all(code, compile_type(env, arg_type), " $", arg->name, ", ");
         }
 
-        // Find which variables are captured in the closure:
-        env_t *tmp_scope = fresh_scope(body_scope);
-        for (ast_list_t *stmt = Match(lambda->body, Block)->statements; stmt; stmt = stmt->next) {
-            type_t *stmt_type = get_type(tmp_scope, stmt->ast);
-            if (stmt->next || (stmt_type->tag == VoidType || stmt_type->tag == AbortType))
-                (void)compile_statement(tmp_scope, stmt->ast);
-            else
-                (void)compile(tmp_scope, stmt->ast);
-        }
+        CORD args_typedef = compile_statement_header(env, ast);
+        env->code->local_typedefs = CORD_all(env->code->local_typedefs, args_typedef);
 
+        table_t *closed_vars = get_closed_vars(env, ast);
         CORD userdata;
-        if (Table$length(*fn_ctx.closed_vars) == 0) {
+        if (Table$length(*closed_vars) == 0) {
             code = CORD_cat(code, "void *userdata)");
             userdata = "NULL";
         } else {
-            CORD def = "typedef struct {";
             userdata = CORD_all("new(", name, "$userdata_t");
-            for (int64_t i = 1; i <= Table$length(*fn_ctx.closed_vars); i++) {
-                struct { const char *name; binding_t *b; } *entry = Table$entry(*fn_ctx.closed_vars, i);
+            for (int64_t i = 1; i <= Table$length(*closed_vars); i++) {
+                struct { const char *name; binding_t *b; } *entry = Table$entry(*closed_vars, i);
                 if (entry->b->type->tag == ModuleType)
                     continue;
-                def = CORD_all(def, compile_declaration(env, entry->b->type, entry->name), "; ");
                 userdata = CORD_all(userdata, ", ", entry->b->code);
             }
             userdata = CORD_all(userdata, ")");
-            def = CORD_all(def, "} ", name, "$userdata_t;");
-            env->code->typedefs = CORD_cat(env->code->typedefs, def);
             code = CORD_all(code, name, "$userdata_t *userdata)");
         }
 
@@ -1956,8 +1948,6 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
                 code_err(decl->value, "This value is supposed to be a compile-time constant, but I can't figure out how to make it one");
             CORD var_decl = CORD_all(compile_type(env, t), " ", compile(ns_env, decl->var), " = ", compile(ns_env, decl->value), ";\n");
             env->code->staticdefs = CORD_all(env->code->staticdefs, var_decl);
-
-            env->code->fndefs = CORD_all(env->code->fndefs, "extern ", compile_type(env, t), " ", compile(ns_env, decl->var), ";\n");
             break;
         }
         default: {
@@ -1965,8 +1955,18 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
             assert(!code);
             break;
         }
+        }
     }
+}
+
+CORD compile_namespace_headers(env_t *env, const char *ns_name, ast_t *block)
+{
+    env_t *ns_env = namespace_env(env, ns_name);
+    CORD header = CORD_EMPTY;
+    for (ast_list_t *stmt = block ? Match(block, Block)->statements : NULL; stmt; stmt = stmt->next) {
+        header = CORD_all(header, compile_statement_header(ns_env, stmt->ast));
     }
+    return header;
 }
 
 CORD compile_type_info(env_t *env, type_t *t)
@@ -2183,24 +2183,8 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
     return code;
 }
 
-module_code_t compile_file(ast_t *ast)
+CORD compile_file(env_t *env, ast_t *ast)
 {
-    env_t *env = new_compilation_unit();
-
-    const char *name = file_base_name(ast->file->filename);
-    env->file_prefix = heap_strf("%s$", name);
-    Table$str_set(env->imports, name, env);
-
-    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-        prebind_statement(env, stmt->ast);
-    }
-    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-        // Hack: make sure global is bound as foo$var:
-        if (stmt->ast->tag == Declare && Match(Match(stmt->ast, Declare)->var, Var)->name[0] != '_')
-            env->scope_prefix = heap_strf("%s$", name);
-        bind_statement(env, stmt->ast);
-        env->scope_prefix = NULL;
-    }
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         if (stmt->ast->tag == Declare) {
             auto decl = Match(stmt->ast, Declare);
@@ -2220,9 +2204,6 @@ module_code_t compile_file(ast_t *ast)
                     "static ", compile_type(env, t), " $", decl_name, " = ",
                     compile(env, decl->value), ";\n");
             } else {
-                env->code->fndefs = CORD_all(
-                    env->code->fndefs,
-                    "extern ", compile_declaration(env, t, CORD_cat(env->file_prefix, decl_name)), ";\n");
                 env->code->staticdefs = CORD_all(
                     env->code->staticdefs,
                     compile_type(env, t), " ", env->file_prefix, decl_name, " = ",
@@ -2237,24 +2218,139 @@ module_code_t compile_file(ast_t *ast)
         }
     }
 
-    return (module_code_t){
-        .module_name=name,
-        .env=env,
-        .header=CORD_all(
-            // "#line 1 ", Text$quoted(ast->file->filename, false), "\n",
-            "#include <tomo/tomo.h>\n",
-            env->code->imports, "\n",
-            env->code->typedefs, "\n",
-            env->code->typecode, "\n",
-            env->code->fndefs, "\n"
-        ),
-        .c_file=CORD_all(
-            // "#line 1 ", Text$quoted(ast->file->filename, false), "\n",
-            env->code->staticdefs, "\n",
-            env->code->funcs, "\n",
-            env->code->typeinfos, "\n"
-        ),
-   };
+    const char *name = file_base_name(ast->file->filename);
+    return CORD_all(
+        // "#line 1 ", Text$quoted(ast->file->filename, false), "\n",
+        "#include <tomo/tomo.h>\n"
+        "#include \"", name, ".tm.h\"\n\n",
+        env->code->local_typedefs, "\n",
+        env->code->staticdefs, "\n",
+        env->code->funcs, "\n",
+        env->code->typeinfos, "\n"
+    );
+}
+
+CORD compile_statement_header(env_t *env, ast_t *ast)
+{
+    switch (ast->tag) {
+    case DocTest: {
+        auto test = Match(ast, DocTest);
+        return compile_statement_header(env, test->expr);
+    }
+    case Declare: {
+        auto decl = Match(ast, Declare);
+        if (decl->value->tag == Use) {
+            return compile_statement_header(env, decl->value);
+        }
+        type_t *t = get_type(env, decl->value);
+        assert(t->tag != ModuleType);
+        if (t->tag == AbortType || t->tag == VoidType)
+            code_err(ast, "You can't declare a variable with a %T value", t);
+        const char *decl_name = Match(decl->var, Var)->name;
+        bool is_private = (decl_name[0] == '_');
+        if (!is_constant(env, decl->value))
+            code_err(decl->value, "This value is not a valid constant initializer.");
+
+        CORD code = (decl->value->tag == Use) ? compile_statement_header(env, decl->value) : CORD_EMPTY;
+        if (is_private) {
+            return code;
+        } else {
+            return CORD_all(
+                code, "\n" "extern ", compile_declaration(env, t, CORD_cat(env->file_prefix, decl_name)), ";\n");
+        }
+    }
+    case StructDef: {
+        return compile_struct_header(env, ast);
+    }
+    case EnumDef: {
+        return compile_enum_header(env, ast);
+    }
+    case LangDef: {
+        auto def = Match(ast, LangDef);
+        return CORD_all(
+            "typedef CORD ", env->file_prefix, def->name, "_t;\n",
+            "extern const TypeInfo ", env->file_prefix, def->name, ";\n");
+        compile_namespace(env, def->name, def->namespace);
+        return CORD_EMPTY;
+    }
+    case FunctionDef: {
+        auto fndef = Match(ast, FunctionDef);
+        bool is_private = Match(fndef->name, Var)->name[0] == '_';
+        if (is_private) return CORD_EMPTY;
+        CORD name = compile(env, fndef->name);
+
+        CORD arg_signature = "(";
+        for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
+            type_t *arg_type = get_arg_ast_type(env, arg);
+            arg_signature = CORD_cat(arg_signature, compile_declaration(env, arg_type, CORD_cat("$", arg->name)));
+            if (arg->next) arg_signature = CORD_cat(arg_signature, ", ");
+        }
+        arg_signature = CORD_cat(arg_signature, ")");
+
+        type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
+        CORD ret_type_code = compile_type(env, ret_t);
+        CORD header = CORD_all(ret_type_code, " ", name, arg_signature, ";\n");
+        return header;
+    }
+    case Lambda: {
+        auto lambda = Match(ast, Lambda);
+        CORD name = CORD_asprintf("%slambda$%ld", env->file_prefix, lambda->id);
+        table_t *closed_vars = get_closed_vars(env, ast);
+        if (Table$length(*closed_vars) == 0) {
+            return CORD_EMPTY;
+        } else {
+            CORD def = "typedef struct {";
+            for (int64_t i = 1; i <= Table$length(*closed_vars); i++) {
+                struct { const char *name; binding_t *b; } *entry = Table$entry(*closed_vars, i);
+                if (entry->b->type->tag == ModuleType)
+                    continue;
+                def = CORD_all(def, compile_declaration(env, entry->b->type, entry->name), "; ");
+            }
+            return CORD_all(def, "} ", name, "$userdata_t;");
+        }
+    }
+    case Extern: {
+        auto ext = Match(ast, Extern);
+        type_t *t = parse_type_ast(env, ext->type);
+        CORD decl;
+        if (t->tag == ClosureType) {
+            t = Match(t, ClosureType)->fn;
+            auto fn = Match(t, FunctionType);
+            decl = CORD_all(compile_type(env, fn->ret), " ", ext->name, "(");
+            for (arg_t *arg = fn->args; arg; arg = arg->next) {
+                decl = CORD_all(decl, compile_type(env, arg->type));
+                if (arg->next) decl = CORD_cat(decl, ", ");
+            }
+            decl = CORD_cat(decl, ")");
+        } else {
+            decl = compile_declaration(env, t, ext->name);
+        }
+        return CORD_all("extern ", decl, ";\n");
+    }
+    case Use: {
+        auto use = Match(ast, Use);
+        const char *path = use->raw_path;
+        if (strncmp(path, "./", 2) == 0 || strncmp(path, "../", 3) == 0) {
+            return CORD_all("#include \"", path, ".h\"\n");
+        } else {
+            return CORD_all("#include <", path, ".h>\n");
+        }
+    }
+    default:
+        return CORD_EMPTY;
+    }
+}
+
+CORD compile_header(env_t *env, ast_t *ast)
+{
+    // "#line 1 ", Text$quoted(ast->file->filename, false), "\n",
+    CORD header = "#pragma once\n"
+                  "#include <tomo/tomo.h>\n";
+
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
+        header = CORD_all(header, compile_statement_header(env, stmt->ast));
+
+    return header;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

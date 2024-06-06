@@ -193,6 +193,7 @@ struct ast_s {
         struct {
             arg_ast_t *args;
             ast_t *body;
+            int64_t id;
         } Lambda;
         struct {
             ast_t *fn;
