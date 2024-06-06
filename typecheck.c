@@ -110,13 +110,6 @@ static env_t *load_module(env_t *env, ast_t *use_ast)
     if (module_env)
         return module_env;
 
-    module_env = new_compilation_unit();
-    module_env->file_prefix = heap_strf("%s$", name);
-    module_env->scope_prefix = module_env->file_prefix;
-    Table$str_set(module_env->imports, name, module_env);
-    const char *my_name = heap_strn(CORD_to_const_char_star(env->file_prefix), CORD_len(env->file_prefix)-1);
-    Table$str_set(module_env->imports, my_name, env);
-
     const char *resolved_path = resolve_path(use->raw_path, use_ast->file->filename, getenv("TOMO_IMPORT_PATH"));
     if (!resolved_path)
         code_err(use_ast, "No such file exists: \"%s\"", use->raw_path);
@@ -126,15 +119,7 @@ static env_t *load_module(env_t *env, ast_t *use_ast)
 
     ast_t *ast = parse_file(f, NULL);
     if (!ast) errx(1, "Could not compile!");
-
-    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-        prebind_statement(module_env, stmt->ast);
-    }
-    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-        bind_statement(module_env, stmt->ast);
-    }
-    Table$str_set(env->imports, name, module_env);
-    return module_env;
+    return load_module_env(env, ast);
 }
 
 void prebind_statement(env_t *env, ast_t *statement)
