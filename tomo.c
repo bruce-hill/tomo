@@ -26,7 +26,8 @@ static bool cleanup_files = false;
 static const char *autofmt, *cconfig, *cflags, *objfiles, *ldlibs, *ldflags, *cc;
 
 static array_t get_file_dependencies(const char *filename, array_t *object_files);
-static int transpile(env_t *base_env, const char *filename, bool force_retranspile);
+static int transpile_header(env_t *base_env, const char *filename, bool force_retranspile);
+static int transpile_code(env_t *base_env, const char *filename, bool force_retranspile);
 static int compile_object_file(const char *filename, bool force_recompile);
 static int compile_executable(env_t *base_env, const char *filename, array_t object_files);
 
@@ -121,25 +122,34 @@ int main(int argc, char *argv[])
     array_t file_deps = get_file_dependencies(filename, &object_files);
 
     env_t *env = new_compilation_unit();
-    int transpile_status = transpile(env, filename, true);
-    if (transpile_status != 0) return transpile_status;
+    int status = transpile_header(env, filename, true);
+    if (status != 0) return status;
 
     for (int64_t i = 0; i < file_deps.length; i++) {
         const char *dep = *(char**)(file_deps.data + i*file_deps.stride);
-        transpile_status = transpile(env, dep, false);
-        if (transpile_status != 0) return transpile_status;
+        status = transpile_header(env, dep, false);
+        if (status != 0) return status;
     }
 
-    int compile_status = compile_object_file(filename, true);
-    if (compile_status != 0) return compile_status;
+    env->imports = new(table_t);
+
+    status = transpile_code(env, filename, true);
+    if (status != 0) return status;
+
+    status = compile_object_file(filename, true);
+    if (status != 0) return status;
 
     if (mode == MODE_COMPILE_OBJ)
         return 0;
 
     for (int64_t i = 0; i < file_deps.length; i++) {
         const char *dep = *(char**)(file_deps.data + i*file_deps.stride);
-        compile_status = compile_object_file(dep, false);
-        if (compile_status != 0) return compile_status;
+
+        status = transpile_code(env, dep, false);
+        if (status != 0) return status;
+
+        status = compile_object_file(dep, false);
+        if (status != 0) return status;
     }
 
     if (mode == MODE_COMPILE_SHARED_OBJ) {
@@ -149,7 +159,7 @@ int main(int argc, char *argv[])
         if (verbose)
             printf("Running: %s\n", cmd);
         FILE *prog = popen(cmd, "w");
-        int status = pclose(prog);
+        status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
             return WEXITSTATUS(status);
         if (verbose)
@@ -281,12 +291,10 @@ static bool is_stale(const char *filename, const char *relative_to)
     return target_stat.st_mtime < relative_to_stat.st_mtime;
 }
 
-int transpile(env_t *base_env, const char *filename, bool force_retranspile)
+int transpile_header(env_t *base_env, const char *filename, bool force_retranspile)
 {
-    const char *tm_file = filename;
-    const char *c_filename = heap_strf("%s.c", tm_file);
-    const char *h_filename = heap_strf("%s.h", tm_file);
-    if (!force_retranspile && !is_stale(c_filename, tm_file) && !is_stale(h_filename, tm_file)) {
+    const char *h_filename = heap_strf("%s.h", filename);
+    if (!force_retranspile && !is_stale(h_filename, filename)) {
         return 0;
     }
 
@@ -298,52 +306,73 @@ int transpile(env_t *base_env, const char *filename, bool force_retranspile)
     if (!ast)
         errx(1, "Could not parse %s", f);
 
-    if (show_codegen) {
-        FILE *out = popen(heap_strf("bat -P --file-name='%s'", filename), "w");
-        fputs(f->text, out);
-        pclose(out);
-    }
-
-    if (show_codegen) {
-        FILE *out = popen("xmllint --format - | bat -P --file-name=AST", "w");
-        CORD_put(ast_to_xml(ast), out);
-        pclose(out);
-    }
-
     env_t *module_env = load_module_env(base_env, ast);
 
     CORD h_code = compile_header(module_env, ast);
-    FILE *h_file = fopen(h_filename, "w");
-    if (!h_file)
-        errx(1, "Couldn't open file: %s", h_filename);
-    CORD_put(h_code, h_file);
-    if (fclose(h_file))
-        errx(1, "Failed to close file: %s", h_filename);
+
+    if (autofmt && autofmt[0]) {
+        FILE *prog = popen(heap_strf("%s 2>/dev/null >%s", autofmt, h_filename), "w");
+        CORD_put(h_code, prog);
+        if (pclose(prog) == -1)
+            errx(1, "Failed to run autoformat program on header file: %s", autofmt);
+    } else {
+        FILE *h_file = fopen(h_filename, "w");
+        if (!h_file)
+            errx(1, "Couldn't open file: %s", h_filename);
+        CORD_put(h_code, h_file);
+        if (fclose(h_file))
+            errx(1, "Failed to close file: %s", h_filename);
+    }
+
     if (verbose)
         printf("Transpiled to %s\n", h_filename);
 
-    CORD c_code = compile_file(module_env, ast);
-    if (autofmt && autofmt[0]) {
-        FILE *prog = popen(heap_strf("%s %s -o %s >/dev/null 2>/dev/null", autofmt, h_filename, h_filename), "w");
-        pclose(prog);
+    if (show_codegen) {
+        FILE *out = popen(heap_strf("bat -P %s", h_filename), "w");
+        pclose(out);
     }
 
-    FILE *c_file = fopen(c_filename, "w");
-    if (!c_file)
-        errx(1, "Couldn't open file: %s", c_filename);
-    CORD_put(c_code, c_file);
-    if (fclose(c_file))
-        errx(1, "Failed to close file: %s", c_filename);
+    return 0;
+}
+
+int transpile_code(env_t *base_env, const char *filename, bool force_retranspile)
+{
+    const char *c_filename = heap_strf("%s.c", filename);
+    if (!force_retranspile && !is_stale(c_filename, filename)) {
+        return 0;
+    }
+
+    file_t *f = load_file(filename);
+    if (!f)
+        errx(1, "No such file: %s", filename);
+
+    ast_t *ast = parse_file(f, NULL);
+    if (!ast)
+        errx(1, "Could not parse %s", f);
+
+    env_t *module_env = load_module_env(base_env, ast);
+
+    CORD c_code = compile_file(module_env, ast);
+
+    if (autofmt && autofmt[0]) {
+        FILE *prog = popen(heap_strf("%s 2>/dev/null >%s", autofmt, c_filename), "w");
+        CORD_put(c_code, prog);
+        if (pclose(prog) == -1)
+            errx(1, "Failed to output autoformatted C code to %s: %s", c_filename, autofmt);
+    } else {
+        FILE *c_file = fopen(c_filename, "w");
+        if (!c_file)
+            errx(1, "Couldn't open file: %s", c_filename);
+        CORD_put(c_code, c_file);
+        if (fclose(c_file))
+            errx(1, "Failed to close file: %s", c_filename);
+    }
+
     if (verbose)
         printf("Transpiled to %s\n", c_filename);
 
-    if (autofmt && autofmt[0]) {
-        FILE *prog = popen(heap_strf("%s %s -o %s >/dev/null 2>/dev/null", autofmt, c_filename, c_filename), "w");
-        pclose(prog);
-    }
-
     if (show_codegen) {
-        FILE *out = popen(heap_strf("bat -P %s %s", h_filename, c_filename), "w");
+        FILE *out = popen(heap_strf("bat -P %s", c_filename), "w");
         pclose(out);
     }
 

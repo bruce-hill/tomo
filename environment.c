@@ -241,6 +241,7 @@ env_t *load_module_env(env_t *env, ast_t *ast)
     env_t *cached = Table$str_get(*env->imports, name);
     if (cached) return cached;
     env = fresh_scope(env);
+    env->code = new(compilation_unit_t);
     env->file_prefix = heap_strf("%s$", name);
     Table$str_set(env->imports, name, env);
 

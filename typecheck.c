@@ -303,9 +303,11 @@ void bind_statement(env_t *env, ast_t *statement)
                 struct {const char *name; binding_t *binding; } *entry = Table$entry(*bindings, i);
                 if (entry->name[0] == '_' || streq(entry->name, "main"))
                     continue;
-                if (Table$str_get(*env->locals, entry->name))
+                binding_t *b = Table$str_get(*env->locals, entry->name);
+                if (!b)
+                    Table$str_set(env->locals, entry->name, entry->binding);
+                else if (b != entry->binding)
                     code_err(statement, "This module imports a symbol called '%s', which would clobber another variable", entry->name);
-                Table$str_set(env->locals, entry->name, entry->binding);
             }
         }
         for (int64_t i = 1; i <= Table$length(*module_env->types); i++) {
