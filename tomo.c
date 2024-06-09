@@ -18,24 +18,25 @@
 #include "typecheck.h"
 #include "types.h"
 
+#define ENV_CORD(name) CORD_from_char_star(getenv(name) ? getenv(name) : "")
+#define CORD_RUN(...) ({ CORD _cmd = CORD_all(__VA_ARGS__); if (verbose) CORD_printf("\x1b[33m%r\x1b[m\n", _cmd); popen(CORD_to_const_char_star(_cmd), "w"); })
+
 typedef enum { MODE_TRANSPILE = 0, MODE_COMPILE_OBJ = 1, MODE_COMPILE_SHARED_OBJ = 2, MODE_COMPILE_EXE = 3, MODE_RUN = 4 } mode_e;
 
 static bool verbose = false;
 static bool show_codegen = false;
-static bool cleanup_files = false;
-static const char *autofmt, *cconfig, *cflags, *objfiles, *ldlibs, *ldflags, *cc;
+static CORD autofmt, cconfig, cflags, ldlibs, ldflags, cc;
 
-static array_t get_file_dependencies(const char *filename, array_t *object_files);
 static int transpile_header(env_t *base_env, const char *filename, bool force_retranspile);
 static int transpile_code(env_t *base_env, const char *filename, bool force_retranspile);
 static int compile_object_file(const char *filename, bool force_recompile);
-static int compile_executable(env_t *base_env, const char *filename, array_t object_files);
+static int compile_executable(env_t *base_env, const char *filename, CORD object_files);
+static void build_file_dependency_graph(const char *filename, table_t *to_compile, table_t *to_link);
 
 int main(int argc, char *argv[])
 {
     mode_e mode = MODE_RUN;
-    const char *filename = NULL;
-    int program_arg_index = argc + 1;
+    int after_flags = 1;
     for (int i = 1; i < argc; i++) {
         if (streq(argv[i], "-t")) {
             mode = MODE_TRANSPILE;
@@ -47,10 +48,8 @@ int main(int argc, char *argv[])
             mode = MODE_RUN;
         } else if (streq(argv[i], "-e")) {
             mode = MODE_COMPILE_EXE;
-        } else if (streq(argv[i], "-C")) {
-            cleanup_files = true;
         } else if (streq(argv[i], "-h") || streq(argv[i], "--help")) {
-            printf("Usage: %s [[-t|-c|-e|-r] [-C] [option=value]* file.tm [args...]]\n", argv[0]);
+            printf("Usage: %s | %s [-r] file.tm args... | %s (-t|-c|-s) file1.tm file2.tm...\n", argv[0], argv[0], argv[0]);
             return 0;
         } else if (strchr(argv[i], '=')) {
             while (argv[i][0] == '-')
@@ -61,165 +60,176 @@ int main(int argc, char *argv[])
                 *p = toupper(*p);
             setenv(argv[i], eq + 1, 1);
         } else {
-            filename = argv[i];
-            program_arg_index = i + 1;
+            after_flags = i;
             break;
         }
     }
 
-    // register_printf_modifier(L"p");
     if (register_printf_specifier('T', printf_type, printf_pointer_size))
         errx(1, "Couldn't set printf specifier");
     if (register_printf_specifier('W', printf_ast, printf_pointer_size))
         errx(1, "Couldn't set printf specifier");
 
-    setenv("TOMO_IMPORT_PATH", "~/.local/tomo/src:.", 0);
+    setenv("TOMO_IMPORT_PATH", "~/.local/src/tomo:.", 0);
 
-    autofmt = getenv("AUTOFMT");
+    CORD home = ENV_CORD("HOME");
+    autofmt = ENV_CORD("AUTOFMT");
     if (!autofmt) autofmt = "indent -kr -l100 -nbbo -nut -sob";
     if (!autofmt[0]) autofmt = "cat";
 
     verbose = (getenv("VERBOSE") && (streq(getenv("VERBOSE"), "1") || streq(getenv("VERBOSE"), "2")));
     show_codegen = (getenv("VERBOSE") && streq(getenv("VERBOSE"), "2"));
 
-    if (filename == NULL) {
+    if (after_flags >= argc) {
         repl();
         return 0;
     }
 
-    if (strlen(filename) < strlen(".tm") + 1 || strncmp(filename + strlen(filename) - strlen(".tm"), ".tm", strlen(".tm")) != 0)
-        errx(1, "Not a valid .tm file: %s", filename);
-
-    cconfig = getenv("CCONFIG");
+    cconfig = ENV_CORD("CCONFIG");
     if (!cconfig)
         cconfig = "-std=c11 -fdollars-in-identifiers -fsanitize=signed-integer-overflow -fno-sanitize-recover"
             " -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE";
 
-    const char *optimization = getenv("O");
-    if (!optimization || !optimization[0]) optimization = "-O1";
-    else optimization = heap_strf("-O%s", optimization);
+    CORD optimization = ENV_CORD("O");
+    if (!optimization) optimization = "-O1";
+    else optimization = CORD_all("-O", optimization);
 
-    objfiles = getenv("OBJFILES");
-    if (!objfiles)
-        objfiles = "";
-
-    cflags = getenv("CFLAGS");
+    cflags = ENV_CORD("CFLAGS");
     if (!cflags)
-        cflags = heap_strf("%s %s -fPIC -ggdb -I./include -I%s/.local/tomo/include -D_DEFAULT_SOURCE", cconfig, optimization, getenv("HOME"));
+        cflags = CORD_all(cconfig, " ", optimization, " -fPIC -ggdb -I./include -I'", home, "/.local/include/tomo' -D_DEFAULT_SOURCE");
 
-    ldflags = heap_strf("-Wl,-rpath,'$ORIGIN',-rpath,'%s/.local/tomo/lib' -L. -L%s/.local/tomo/lib", getenv("HOME"), getenv("HOME"));
+    ldflags = CORD_all("-Wl,-rpath='$ORIGIN',-rpath='", home, "/.local/lib/tomo' -L. -L'", home, "/.local/lib/tomo'");
 
     ldlibs = "-lgc -lcord -lm -ltomo";
-    if (getenv("LDLIBS"))
-        ldlibs = heap_strf("%s %s", ldlibs, getenv("LDLIBS"));
 
-    cc = getenv("CC");
+    cc = ENV_CORD("CC");
     if (!cc) cc = "cc";
 
-    array_t object_files = {};
-    const char *my_obj = heap_strf("%s.o", resolve_path(filename, ".", "."));
-    Array$insert(&object_files, &my_obj, 0, $ArrayInfo(&$Text));
-    array_t file_deps = get_file_dependencies(filename, &object_files);
-
     env_t *env = new_compilation_unit();
-    int status = transpile_header(env, filename, true);
-    if (status != 0) return status;
+    table_t dependency_files = {};
+    table_t to_link = {};
 
-    for (int64_t i = 0; i < file_deps.length; i++) {
-        const char *dep = *(char**)(file_deps.data + i*file_deps.stride);
-        status = transpile_header(env, dep, false);
+    for (int i = after_flags; i < argc; i++) {
+        const char *resolved = resolve_path(argv[i], ".", ".");
+        if (!resolved) errx(1, "Couldn't resolve path: %s", argv[i]);
+        build_file_dependency_graph(resolved, &dependency_files, &to_link);
+        if (mode == MODE_RUN) break;
+    }
+
+    int status;
+    // Non-lazily (re)compile header files for each source file passed to the compiler:
+    for (int i = after_flags; i < argc; i++) {
+        const char *filename = argv[i];
+        status = transpile_header(env, filename, true);
         if (status != 0) return status;
     }
 
-    env->imports = new(table_t);
+    // Lazily (re)compile all the header files:
+    for (int64_t i = 0; i < dependency_files.entries.length; i++) {
+        const char *filename = *(char**)(dependency_files.entries.data + i*dependency_files.entries.stride);
+        status = transpile_header(env, filename, false);
+        if (status != 0) return status;
+    }
 
-    status = transpile_code(env, filename, true);
-    if (status != 0) return status;
+    // env->imports = new(table_t);
 
-    status = compile_object_file(filename, true);
-    if (status != 0) return status;
+    // Non-lazily (re)compile object files for each source file passed to the compiler:
+    for (int i = after_flags; i < argc; i++) {
+        const char *filename = argv[i];
+        status = transpile_code(env, filename, true);
+        if (status != 0) return status;
+        status = compile_object_file(filename, true);
+        if (status != 0) return status;
+        if (mode == MODE_RUN) break;
+    }
 
     if (mode == MODE_COMPILE_OBJ)
         return 0;
 
-    for (int64_t i = 0; i < file_deps.length; i++) {
-        const char *dep = *(char**)(file_deps.data + i*file_deps.stride);
-
-        status = transpile_code(env, dep, false);
+    // Lazily (re)compile object files for each dependency:
+    for (int64_t i = 0; i < dependency_files.entries.length; i++) {
+        const char *filename = *(char**)(dependency_files.entries.data + i*dependency_files.entries.stride);
+        status = transpile_code(env, filename, false);
         if (status != 0) return status;
-
-        status = compile_object_file(dep, false);
+        status = compile_object_file(filename, false);
         if (status != 0) return status;
     }
 
+    CORD object_files = CORD_EMPTY;
+    for (int64_t i = 0; i < dependency_files.entries.length; i++) {
+        const char *filename = *(char**)(dependency_files.entries.data + i*dependency_files.entries.stride);
+        object_files = CORD_all(object_files, filename, ".o ");
+    }
+    for (int64_t i = 0; i < to_link.entries.length; i++) {
+        const char *lib = *(char**)(to_link.entries.data + i*to_link.entries.stride);
+        ldlibs = CORD_all(ldlibs, " ", lib);
+    }
+
+    // For shared objects, link up all the object files into one .so file:
     if (mode == MODE_COMPILE_SHARED_OBJ) {
-        const char *base = file_base_name(filename);
-        const char *outfile = heap_strf("lib%s.so", base);
-        const char *cmd = heap_strf("%s %s %s %s %s -Wl,-soname,lib%s.so -shared %s.o -o %s", cc, cflags, ldflags, ldlibs, objfiles, base, filename, outfile);
-        if (verbose)
-            printf("Running: %s\n", cmd);
-        FILE *prog = popen(cmd, "w");
+        const char *first_file = argv[after_flags];
+        const char *libname = file_base_name(first_file);
+
+        const char *h_filename = heap_strf("lib%s.h", libname);
+        FILE *h_file = fopen(h_filename, "w");
+        if (!h_file)
+            errx(1, "Couldn't open file: %s", h_filename);
+        fputs("#pragma once\n", h_file);
+        for (int i = after_flags; i < argc; i++) {
+            const char *filename = argv[i];
+            fprintf(h_file, "#include <%s/%s.h>\n", libname, filename);
+        }
+        if (fclose(h_file))
+            errx(1, "Failed to close file: %s", h_filename);
+
+        CORD outfile = CORD_all("lib", libname, ".so");
+        FILE *prog = CORD_RUN(cc, " ", cflags, " ", ldflags, " ", ldlibs, " -Wl,-soname=", outfile, " -shared ", object_files, " -o ", outfile);
         status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
             return WEXITSTATUS(status);
         if (verbose)
-            printf("Compiled to %s\n", outfile);
+            CORD_printf("Compiled to %r\n", outfile);
 
         printf("Do you want to install your library? [Y/n] ");
         fflush(stdout);
         switch (getchar()) {
         case 'y': case 'Y': case '\n': {
-            const char *name = file_base_name(filename);
-            system(heap_strf("mkdir -p ~/.local/tomo/lib ~/.local/tomo/'%s'", name));
-            system(heap_strf("cp -v 'lib%s.so' ~/.local/tomo/'%s'/", name, name));
-            system(heap_strf("ln -sv '../%s/lib%s.so' ~/.local/tomo/lib/'lib%s.so'", name, name, name));
-            for (int64_t i = 0; i < file_deps.length; i++) {
-                const char *dep = *(char**)(file_deps.data + i*file_deps.stride);
-                system(heap_strf("cp -v %s %s.c %s.h %s.o ~/.local/tomo/%s/", dep, dep, dep, dep, name));
-            }
+            system(heap_strf("mkdir -p ~/.local/lib/tomo ~/.local/include/tomo ~/.local/src/tomo/'%s'", libname));
+            system(heap_strf("cp -rv . ~/.local/src/tomo/'%s'", libname));
+            system(heap_strf("ln -sfv '../../src/tomo/%s/lib%s.so' ~/.local/lib/tomo/'lib%s.so'", libname, libname, libname));
+            system(heap_strf("ln -sfv '../../src/tomo/%s/lib%s.h' ~/.local/include/tomo/'lib%s.h'", libname, libname, libname));
         }
         default: break;
         }
         return 0;
     }
 
+    const char *filename = argv[after_flags];
     int executable_status = compile_executable(env, filename, object_files);
     if (mode == MODE_COMPILE_EXE || executable_status != 0)
         return executable_status;
 
-    if (cleanup_files) {
-        for (int64_t i = 0; i < file_deps.length; i++) {
-            const char *dep = *(char**)(file_deps.data + i*file_deps.stride);
-            if (verbose)
-                printf("Cleaning up %s files...\n", dep);
-
-            system(heap_strf("rm -f %s.c %s.h %s.o", dep, dep, dep));
-        }
-    }
-
     char *exe_name = heap_strn(filename, strlen(filename) - strlen(".tm"));
-    int num_args = argc - program_arg_index;
+    int num_args = argc - after_flags - 1;
     char *prog_args[num_args + 2];
     prog_args[0] = exe_name;
     for (int i = 0; i < num_args; i++)
-        prog_args[i+1] = argv[program_arg_index+i];
+        prog_args[i+1] = argv[after_flags+1+i];
     prog_args[num_args+1] = NULL;
     execv(exe_name, prog_args);
 
     errx(1, "Failed to run compiled program");
 }
 
-static void build_file_dependency_graph(const char *filename, table_t *dependencies, array_t *object_files)
+void build_file_dependency_graph(const char *filename, table_t *to_compile, table_t *to_link)
 {
-    size_t len = strlen(filename);
-    assert(strncmp(filename + len - 3, ".tm", 3) == 0);
-
-    if (Table$str_get(*dependencies, filename))
+    if (Table$str_get(*to_compile, filename))
         return;
 
-    array_t *deps = new(array_t);
-    Array$insert(deps, &filename, 0, $ArrayInfo(&$Text));
-    Table$str_set(dependencies, filename, deps);
+    Table$str_set(to_compile, filename, filename);
+
+    size_t len = strlen(filename);
+    assert(strncmp(filename + len - 3, ".tm", 3) == 0);
 
     file_t *f = load_file(filename);
     if (!f)
@@ -241,43 +251,22 @@ static void build_file_dependency_graph(const char *filename, table_t *dependenc
                 use_path = Match(decl->value, Use)->raw_path;
         }
         if (!use_path) continue;
-        const char *import, *obj_file;
+        const char *import;
         if (use_path[0] == '/' || strncmp(use_path, "~/", 2) == 0 || strncmp(use_path, "./", 2) == 0 || strncmp(use_path, "../", 3) == 0) {
             import = resolve_path(use_path, filename, "");
             if (!import) errx(1, "Couldn't resolve path: %s", use_path);
-            obj_file = heap_strf("%s.o", resolve_path(use_path, filename, ""));
+            const char *path = resolve_path(use_path, filename, "");
+            if (Table$str_get(*to_compile, path))
+                continue;
+            Table$str_set(to_compile, path, path);
         } else {
             import = resolve_path(use_path, filename, getenv("TOMO_IMPORT_PATH"));
-            obj_file = heap_strf("-l%.*s", strlen(use_path)-3, use_path);
+            const char *lib = heap_strf("-l%.*s", strlen(use_path)-strlen(".tm"), use_path);
+            Table$str_set(to_link, lib, lib);
         }
-        Array$insert(deps, &import, 0, $ArrayInfo(&$Text));
-        Array$insert(object_files, &obj_file, 0, $ArrayInfo(&$Text));
-        build_file_dependency_graph(import, dependencies, object_files);
+        build_file_dependency_graph(import, to_compile, to_link);
     }
     free(file_dir);
-}
-
-array_t get_file_dependencies(const char *filename, array_t *object_files)
-{
-    const char *resolved = resolve_path(filename, ".", ".");
-    if (!resolved) errx(1, "Couldn't resolve path: %s", filename);
-
-    table_t file_dependencies = {};
-    build_file_dependency_graph(resolved, &file_dependencies, object_files);
-    table_t dependency_set = {};
-
-    const TypeInfo unit = {.size=0, .align=0, .tag=CustomInfo};
-    const TypeInfo info = {.size=sizeof(table_t), .align=__alignof__(table_t),
-        .tag=TableInfo, .TableInfo.key=&$Text, .TableInfo.value=&unit};
-
-    for (int64_t i = 1; i <= Table$length(file_dependencies); i++) {
-        struct { const char *name; array_t *deps; } *entry = Table$entry(file_dependencies, i);
-        for (int64_t j = 0; j < entry->deps->length; j++) {
-            const char *dep = *(char**)(entry->deps->data + j*entry->deps->stride);
-            Table$set(&dependency_set, &dep, &dep, &info);
-        }
-    }
-    return dependency_set.entries;
 }
 
 static bool is_stale(const char *filename, const char *relative_to)
@@ -310,8 +299,8 @@ int transpile_header(env_t *base_env, const char *filename, bool force_retranspi
 
     CORD h_code = compile_header(module_env, ast);
 
-    if (autofmt && autofmt[0]) {
-        FILE *prog = popen(heap_strf("%s 2>/dev/null >%s", autofmt, h_filename), "w");
+    if (autofmt) {
+        FILE *prog = CORD_RUN(autofmt, " 2>/dev/null >", h_filename);
         CORD_put(h_code, prog);
         if (pclose(prog) == -1)
             errx(1, "Failed to run autoformat program on header file: %s", autofmt);
@@ -328,7 +317,7 @@ int transpile_header(env_t *base_env, const char *filename, bool force_retranspi
         printf("Transpiled to %s\n", h_filename);
 
     if (show_codegen) {
-        FILE *out = popen(heap_strf("bat -P %s", h_filename), "w");
+        FILE *out = CORD_RUN("bat -P ", h_filename);
         pclose(out);
     }
 
@@ -354,8 +343,8 @@ int transpile_code(env_t *base_env, const char *filename, bool force_retranspile
 
     CORD c_code = compile_file(module_env, ast);
 
-    if (autofmt && autofmt[0]) {
-        FILE *prog = popen(heap_strf("%s 2>/dev/null >%s", autofmt, c_filename), "w");
+    if (autofmt) {
+        FILE *prog = CORD_RUN(autofmt, " 2>/dev/null >", c_filename);
         CORD_put(c_code, prog);
         if (pclose(prog) == -1)
             errx(1, "Failed to output autoformatted C code to %s: %s", c_filename, autofmt);
@@ -372,7 +361,7 @@ int transpile_code(env_t *base_env, const char *filename, bool force_retranspile
         printf("Transpiled to %s\n", c_filename);
 
     if (show_codegen) {
-        FILE *out = popen(heap_strf("bat -P %s", c_filename), "w");
+        FILE *out = CORD_RUN("bat -P ", c_filename);
         pclose(out);
     }
 
@@ -387,20 +376,17 @@ int compile_object_file(const char *filename, bool force_recompile)
         && !is_stale(obj_file, heap_strf("%s.h", filename))) {
         return 0;
     }
-    const char *outfile = heap_strf("%s.o", filename);
-    const char *cmd = heap_strf("%s %s -c %s.c -o %s", cc, cflags, filename, outfile);
-    if (verbose)
-        printf("Running: %s\n", cmd);
-    FILE *prog = popen(cmd, "w");
+    CORD outfile = CORD_all(filename, ".o");
+    FILE *prog = CORD_RUN(cc, " ", cflags, " -c ", filename, ".c -o ", outfile);
     int status = pclose(prog);
     if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
         if (verbose)
-            printf("Compiled to %s\n", outfile);
+            CORD_printf("Compiled to %r\n", outfile);
     }
     return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
 }
 
-int compile_executable(env_t *base_env, const char *filename, array_t object_files)
+int compile_executable(env_t *base_env, const char *filename, CORD object_files)
 {
     const char *name = file_base_name(filename);
     env_t *env = Table$str_get(*base_env->imports, name);
@@ -411,11 +397,7 @@ int compile_executable(env_t *base_env, const char *filename, array_t object_fil
     }
 
     const char *bin_name = heap_strn(filename, strlen(filename) - strlen(".tm"));
-    const char *run = heap_strf("%s | %s %s %s %s %s %s -x c - -o %s",
-                                autofmt, cc, cflags, ldflags, ldlibs, objfiles, CORD_to_const_char_star(Text$join(" ", object_files)), bin_name);
-    if (verbose)
-        printf("%s\n", run);
-    FILE *runner = popen(run, "w");
+    FILE *runner = CORD_RUN(autofmt, " | ", cc, " ", cflags, " ", ldflags, " ", ldlibs, " ", object_files, " -x c - -o ", bin_name);
 
     CORD program = CORD_all(
         "#include <tomo/tomo.h>\n"
@@ -429,7 +411,7 @@ int compile_executable(env_t *base_env, const char *filename, array_t object_fil
     );
 
     if (show_codegen) {
-        FILE *out = popen(heap_strf("%s | bat -P --file-name=run.c", autofmt), "w");
+        FILE *out = CORD_RUN(autofmt, " | bat -P --file-name=run.c");
         CORD_put(program, out);
         pclose(out);
     }
