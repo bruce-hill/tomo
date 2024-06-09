@@ -3,7 +3,7 @@ VERSION=0.0.1
 CCONFIG=-std=c11 -Werror -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -I. \
 				-fsanitize=signed-integer-overflow -fno-sanitize-recover -fvisibility=hidden -fdollars-in-identifiers
 LTO=-flto=auto -fno-fat-lto-objects -Wl,-flto 
-LDFLAGS=-Wl,-rpath=$$ORIGIN
+LDFLAGS=
 # MAKEFLAGS := --jobs=$(shell nproc) --output-sync=target
 CWARN=-Wall -Wextra -Wno-format -Wshadow
   # -Wpedantic -Wsign-conversion -Wtype-limits -Wunused-result -Wnull-dereference \
