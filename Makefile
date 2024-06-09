@@ -3,7 +3,7 @@ VERSION=0.0.1
 CCONFIG=-std=c11 -Werror -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -I. \
 				-fsanitize=signed-integer-overflow -fno-sanitize-recover -fvisibility=hidden -fdollars-in-identifiers
 LTO=-flto=auto -fno-fat-lto-objects -Wl,-flto 
-LDFLAGS=-Wl,-rpath '-Wl,$$ORIGIN'
+LDFLAGS=-Wl,-rpath=$$ORIGIN
 # MAKEFLAGS := --jobs=$(shell nproc) --output-sync=target
 CWARN=-Wall -Wextra -Wno-format -Wshadow
   # -Wpedantic -Wsign-conversion -Wtype-limits -Wunused-result -Wnull-dereference \
@@ -23,7 +23,7 @@ EXTRA=
 G=-ggdb
 O=-Og
 CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS)
-LDLIBS=-lgc -lcord -lm -lunistring -ldl -L. -ltomo
+LDLIBS=-lgc -lcord -lm -lunistring -ldl
 BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/nums.o builtins/functions.o builtins/integers.o \
 						 builtins/pointer.o builtins/memory.o builtins/text.o builtins/where.o builtins/c_string.o builtins/table.o \
 						 builtins/types.o builtins/util.o builtins/files.o
@@ -31,8 +31,8 @@ TESTS=$(patsubst %.tm,%.tm.testresult,$(wildcard test/*.tm))
 
 all: libtomo.so tomo
 
-tomo: tomo.c SipHash/halfsiphash.o ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o repl.o
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+tomo: tomo.o $(BUILTIN_OBJS) SipHash/halfsiphash.o ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o repl.o
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 libtomo.so: $(BUILTIN_OBJS) SipHash/halfsiphash.o
 	$(CC) $^ $(CFLAGS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) -lgc -lcord -lm -lunistring -ldl -Wl,-soname,libtomo.so -shared -o $@
@@ -44,7 +44,7 @@ tags:
 	ctags *.[ch] **/*.[ch]
 
 %.o: %.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 %.tm.testresult: %.tm tomo
 	VERBOSE=0 COLOR=1 CC=tcc ./tomo $< 2>&1 | tee $@
