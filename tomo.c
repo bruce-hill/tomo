@@ -37,13 +37,20 @@ int main(int argc, char *argv[])
 {
     mode_e mode = MODE_RUN;
     int after_flags = 1;
+    const char *libname = NULL;
     for (int i = 1; i < argc; i++) {
         if (streq(argv[i], "-t")) {
             mode = MODE_TRANSPILE;
         } else if (streq(argv[i], "-c")) {
             mode = MODE_COMPILE_OBJ;
+        } else if (strncmp(argv[i], "-s=", 3) == 0) {
+            mode = MODE_COMPILE_SHARED_OBJ;
+            libname = argv[i] + strlen("-s=");
         } else if (streq(argv[i], "-s")) {
             mode = MODE_COMPILE_SHARED_OBJ;
+            if (i+1 >= argc)
+                errx(1, "You must provide at least one file to build a shared library");
+            libname = file_base_name(argv[i+1]);
         } else if (streq(argv[i], "-r")) {
             mode = MODE_RUN;
         } else if (streq(argv[i], "-e")) {
@@ -167,9 +174,6 @@ int main(int argc, char *argv[])
 
     // For shared objects, link up all the object files into one .so file:
     if (mode == MODE_COMPILE_SHARED_OBJ) {
-        const char *first_file = argv[after_flags];
-        const char *libname = file_base_name(first_file);
-
         const char *h_filename = heap_strf("lib%s.h", libname);
         FILE *h_file = fopen(h_filename, "w");
         if (!h_file)
