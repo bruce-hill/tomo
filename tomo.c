@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
             " -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE";
 
     CORD optimization = ENV_CORD("O");
-    if (!optimization) optimization = "-O1";
+    if (!optimization) optimization = CORD_EMPTY;
     else optimization = CORD_all("-O", optimization);
 
     cflags = ENV_CORD("CFLAGS");
