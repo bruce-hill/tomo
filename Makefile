@@ -58,12 +58,13 @@ clean:
 %.1: %.1.md
 	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@
 
-install: tomo libtomo.so
+install: tomo libtomo.so tomo.1
 	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
 	cp -v builtins/*.h "$(PREFIX)/include/tomo/"
 	cp -v libtomo.so "$(PREFIX)/lib/"
 	rm -f "$(PREFIX)/bin/tomo"
 	cp -v tomo "$(PREFIX)/bin/"
+	cp -v tomo.1 "$(PREFIX)/man/man1/"
 
 uninstall:
 	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/include/tomo" "$(PREFIX)/lib/libtomo.so" "$(PREFIX)/share/tomo"; \
