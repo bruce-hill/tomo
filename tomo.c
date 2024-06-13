@@ -258,26 +258,23 @@ void build_file_dependency_graph(const char *filename, table_t *to_compile, tabl
     char *file_dir = realpath(filename, NULL);
     dirname(file_dir);
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-        const char *use_path = NULL;
-        if (stmt->ast->tag == Use) {
-            use_path = Match(stmt->ast, Use)->raw_path;
-        } else if (stmt->ast->tag == Declare) {
-            auto decl = Match(stmt->ast, Declare);
-            if (decl->value->tag == Use)
-                use_path = Match(decl->value, Use)->raw_path;
-        }
-        if (!use_path) continue;
-        if (use_path[0] == '/' || strncmp(use_path, "~/", 2) == 0 || strncmp(use_path, "./", 2) == 0 || strncmp(use_path, "../", 3) == 0) {
-            const char *path = resolve_path(heap_strf("%s.tm", use_path), filename, "");
-            if (!path) errx(1, "Couldn't resolve import: %s", use_path);
+        ast_t *stmt_ast = stmt->ast;
+        if (stmt_ast->tag == Declare)
+            stmt_ast = Match(stmt_ast, Declare)->value;
+
+        if (stmt_ast->tag == Import) {
+            const char *path = Match(stmt_ast, Import)->path;
+            path = resolve_path(heap_strf("%s.tm", path), filename, "");
+            if (!path) errx(1, "Couldn't resolve import: %s", path);
             if (Table$str_get(*to_compile, path))
                 continue;
             Table$str_set(to_compile, path, path);
             build_file_dependency_graph(path, to_compile, to_link);
-        } else {
-            const char *libfile = resolve_path(heap_strf("%s/lib%s.so", use_path, use_path), filename, getenv("TOMO_IMPORT_PATH"));
-            if (!libfile) errx(1, "Couldn't resolve path: %s", use_path);
-            const char *lib = heap_strf("-l%s", use_path);
+        } else if (stmt_ast->tag == Use) {
+            const char *name = Match(stmt_ast, Use)->name;
+            const char *libfile = resolve_path(heap_strf("%s/lib%s.so", name, name), filename, getenv("TOMO_IMPORT_PATH"));
+            if (!libfile) errx(1, "Couldn't resolve path: %s", name);
+            const char *lib = heap_strf("-l%s", name);
             Table$str_set(to_link, lib, lib);
         }
     }

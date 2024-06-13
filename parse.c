@@ -48,8 +48,8 @@ int op_tightness[] = {
 
 static const char *keywords[] = {
     "yes", "xor", "while", "when", "use", "then", "struct", "stop", "skip", "return",
-    "or", "not", "no", "mod1", "mod", "pass", "lang", "inline", "in", "if", "func", "for", "extern",
-    "enum", "else", "do", "and", "_min_", "_max_",
+    "or", "not", "no", "mod1", "mod", "pass", "lang", "import", "inline", "in", "if",
+    "func", "for", "extern", "enum", "else", "do", "and", "_min_", "_max_",
     NULL,
 };
 
@@ -98,6 +98,7 @@ static PARSER(parse_inline_c);
 static PARSER(parse_declaration);
 static PARSER(parse_doctest);
 static PARSER(parse_use);
+static PARSER(parse_import);
 static PARSER(parse_linker);
 static PARSER(parse_namespace);
 static PARSER(parse_file_body);
@@ -1463,6 +1464,7 @@ PARSER(parse_declaration) {
     if (!match(&pos, ":=")) return NULL;
     spaces(&pos);
     ast_t *val = optional(ctx, &pos, parse_use);
+    if (!val) val = optional(ctx, &pos, parse_import);
     if (!val) val = optional(ctx, &pos, parse_extended_expr);
     if (!val) parser_err(ctx, pos, strchrnul(pos, '\n'), "This declaration value didn't parse");
     return NewAST(ctx->file, start, pos, Declare, .var=var, .value=val);
@@ -1633,6 +1635,7 @@ PARSER(parse_namespace) {
             ||(stmt=optional(ctx, &pos, parse_lang_def))
             ||(stmt=optional(ctx, &pos, parse_func_def))
             ||(stmt=optional(ctx, &pos, parse_use))
+            ||(stmt=optional(ctx, &pos, parse_import))
             ||(stmt=optional(ctx, &pos, parse_linker))
             ||(stmt=optional(ctx, &pos, parse_extern))
             ||(stmt=optional(ctx, &pos, parse_inline_c))
@@ -2014,13 +2017,26 @@ PARSER(parse_use) {
     const char *start = pos;
     if (!match_word(&pos, "use")) return NULL;
     spaces(&pos);
+    size_t name_len = strcspn(pos, " \t\r\n;");
+    if (name_len < 1)
+        parser_err(ctx, start, pos, "There is no module name here to use");
+    char *name = heap_strn(pos, name_len);
+    pos += name_len;
+    while (match(&pos, ";")) continue;
+    return NewAST(ctx->file, start, pos, Use, .name=name);
+}
+
+PARSER(parse_import) {
+    const char *start = pos;
+    if (!match_word(&pos, "import")) return NULL;
+    spaces(&pos);
     size_t path_len = strcspn(pos, " \t\r\n;");
     if (path_len < 1)
-        parser_err(ctx, start, pos, "There is no filename here to use");
+        parser_err(ctx, start, pos, "There is no path here to import");
     char *path = heap_strn(pos, path_len);
     pos += path_len;
     while (match(&pos, ";")) continue;
-    return NewAST(ctx->file, start, pos, Use, .raw_path=path);
+    return NewAST(ctx->file, start, pos, Import, .path=path);
 }
 
 PARSER(parse_linker) {

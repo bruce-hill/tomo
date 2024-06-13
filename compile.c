@@ -291,7 +291,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         if (test->expr->tag == Declare) {
             auto decl = Match(test->expr, Declare);
-            if (decl->value->tag == Use) {
+            if (decl->value->tag == Use || decl->value->tag == Import) {
                 assert(compile_statement(env, test->expr) == CORD_EMPTY);
                 return CORD_asprintf(
                     "test(NULL, NULL, %r, %r, %ld, %ld);",
@@ -387,7 +387,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case Declare: {
         auto decl = Match(ast, Declare);
-        if (decl->value->tag == Use) {
+        if (decl->value->tag == Use || decl->value->tag == Import) {
             return compile_statement(env, decl->value);
         } else {
             type_t *t = get_type(env, decl->value);
@@ -843,7 +843,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case Extern: return CORD_EMPTY;
     case InlineCCode: return Match(ast, InlineCCode)->code;
-    case Use: return CORD_EMPTY;
+    case Use: case Import: return CORD_EMPTY;
     default:
         if (!is_discardable(env, ast))
             code_err(ast, "The result of this statement cannot be discarded");
@@ -1917,6 +1917,7 @@ CORD compile(env_t *env, ast_t *ast)
             return Match(ast, InlineCCode)->code;
     }
     case Use: code_err(ast, "Compiling 'use' as expression!");
+    case Import: code_err(ast, "Compiling 'import' as expression!");
     case LinkerDirective: code_err(ast, "Linker directives are not supported yet");
     case Extern: code_err(ast, "Externs are not supported as expressions");
     case TableEntry: code_err(ast, "Table entries should not be compiled directly");
@@ -2196,7 +2197,7 @@ CORD compile_file(env_t *env, ast_t *ast)
             if (!is_constant(env, decl->value))
                 code_err(decl->value, "This value is not a valid constant initializer.");
 
-            if (decl->value->tag == Use) {
+            if (decl->value->tag == Use || decl->value->tag == Import) {
                 assert(compile_statement(env, stmt->ast) == CORD_EMPTY);
             } else if (is_private) {
                 env->code->staticdefs = CORD_all(
@@ -2239,7 +2240,7 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
     }
     case Declare: {
         auto decl = Match(ast, Declare);
-        if (decl->value->tag == Use) {
+        if (decl->value->tag == Use || decl->value->tag == Import) {
             return compile_statement_header(env, decl->value);
         }
         type_t *t = get_type(env, decl->value);
@@ -2251,7 +2252,7 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
         if (!is_constant(env, decl->value))
             code_err(decl->value, "This value is not a valid constant initializer.");
 
-        CORD code = (decl->value->tag == Use) ? compile_statement_header(env, decl->value) : CORD_EMPTY;
+        CORD code = (decl->value->tag == Use || decl->value->tag == Import) ? compile_statement_header(env, decl->value) : CORD_EMPTY;
         if (is_private) {
             return code;
         } else {
@@ -2327,14 +2328,13 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
         }
         return CORD_all("extern ", decl, ";\n");
     }
+    case Import: {
+        const char *path = Match(ast, Import)->path;
+        return CORD_all("#include \"", path, ".tm.h\"\n");
+    }
     case Use: {
-        auto use = Match(ast, Use);
-        const char *path = use->raw_path;
-        if (strncmp(path, "./", 2) == 0 || strncmp(path, "../", 3) == 0 || strncmp(path, "~/", 2) == 0 || strncmp(path, "/", 1) == 0) {
-            return CORD_all("#include \"", path, ".tm.h\"\n");
-        } else {
-            return CORD_all("#include <tomo/lib", path, ".h>\n");
-        }
+        const char *name = Match(ast, Use)->name;
+        return CORD_all("#include <tomo/lib", name, ".h>\n");
     }
     default:
         return CORD_EMPTY;

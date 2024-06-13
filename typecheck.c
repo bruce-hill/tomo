@@ -102,20 +102,19 @@ type_t *get_math_type(env_t *env, ast_t *ast, type_t *lhs_t, type_t *rhs_t)
     code_err(ast, "Math operations between %T and %T are not supported", lhs_t, rhs_t);
 }
 
-static env_t *load_module(env_t *env, ast_t *use_ast)
+static env_t *load_module(env_t *env, ast_t *module_ast)
 {
-    auto use = Match(use_ast, Use);
-    const char *name = file_base_name(use->raw_path);
-    env_t *module_env = Table$str_get(*env->imports, name);
-    if (module_env)
-        return module_env;
+    if (module_ast->tag == Import) {
+        auto import = Match(module_ast, Import);
+        const char *name = file_base_name(import->path);
+        env_t *module_env = Table$str_get(*env->imports, name);
+        if (module_env)
+            return module_env;
 
-    if (strncmp(use->raw_path, "/", 1) == 0 || strncmp(use->raw_path, "./", 2) == 0
-        || strncmp(use->raw_path, "../", 3) == 0 || strncmp(use->raw_path, "~/", 2) == 0) {
-        const char *path = heap_strf("%s.tm", use->raw_path);
-        const char *resolved_path = resolve_path(path, use_ast->file->filename, use_ast->file->filename);
+        const char *path = heap_strf("%s.tm", import->path);
+        const char *resolved_path = resolve_path(path, module_ast->file->filename, module_ast->file->filename);
         if (!resolved_path)
-            code_err(use_ast, "No such file exists: \"%s\"", path);
+            code_err(module_ast, "No such file exists: \"%s\"", path);
 
         file_t *f = load_file(resolved_path);
         if (!f) errx(1, "No such file: %s", resolved_path);
@@ -123,11 +122,12 @@ static env_t *load_module(env_t *env, ast_t *use_ast)
         ast_t *ast = parse_file(f, NULL);
         if (!ast) errx(1, "Could not compile!");
         return load_module_env(env, ast);
-    } else {
-        const char *files_filename = heap_strf("%s/lib%s.files", use->raw_path, use->raw_path);
-        const char *resolved_path = resolve_path(files_filename, use_ast->file->filename, getenv("TOMO_IMPORT_PATH"));
+    } else if (module_ast->tag == Use) {
+        const char *name = Match(module_ast, Use)->name;
+        const char *files_filename = heap_strf("%s/lib%s.files", name, name);
+        const char *resolved_path = resolve_path(files_filename, module_ast->file->filename, getenv("TOMO_IMPORT_PATH"));
         if (!resolved_path)
-            code_err(use_ast, "No such library exists: \"lib%s.files\"", use->raw_path);
+            code_err(module_ast, "No such library exists: \"lib%s.files\"", name);
         file_t *files_f = load_file(resolved_path);
         if (!files_f) errx(1, "Couldn't open file: %s", resolved_path);
 
@@ -138,7 +138,7 @@ static env_t *load_module(env_t *env, ast_t *use_ast)
             line = heap_strn(line, strcspn(line, "\r\n"));
             if (!line || line[0] == '\0') continue;
             const char *tm_path = resolve_path(line, resolved_path, ".");
-            if (!tm_path) errx(1, "Couldn't find library %s dependency: %s", use->raw_path, line);
+            if (!tm_path) errx(1, "Couldn't find library %s dependency: %s", name, line);
 
             file_t *tm_f = load_file(tm_path);
             if (!tm_f) errx(1, "No such file: %s", tm_path);
@@ -154,6 +154,8 @@ static env_t *load_module(env_t *env, ast_t *use_ast)
             }
         }
         return env;
+    } else {
+        code_err(module_ast, "This is not a module import");
     }
 }
 
@@ -219,7 +221,7 @@ void bind_statement(env_t *env, ast_t *statement)
         const char *name = Match(decl->var, Var)->name;
         if (get_binding(env, name))
             code_err(decl->var, "A %T called '%s' has already been defined", get_binding(env, name)->type, name);
-        if (decl->value->tag == Use)
+        if (decl->value->tag == Use || decl->value->tag == Import)
             (void)load_module(env, decl->value);
         else
             bind_statement(env, decl->value);
@@ -331,7 +333,7 @@ void bind_statement(env_t *env, ast_t *statement)
             bind_statement(ns_env, stmt->ast);
         break;
     }
-    case Use: {
+    case Use: case Import: {
         env_t *module_env = load_module(env, statement);
         for (table_t *bindings = module_env->locals; bindings != module_env->globals; bindings = bindings->fallback) {
             for (int64_t i = 1; i <= Table$length(*bindings); i++) {
@@ -702,9 +704,12 @@ type_t *get_type(env_t *env, ast_t *ast)
     case Declare: case Assign: case DocTest: case LinkerDirective: {
         return Type(VoidType);
     }
-    case Use: {
-        const char *path = Match(ast, Use)->raw_path;
+    case Import: {
+        const char *path = Match(ast, Import)->path;
         return Type(ModuleType, file_base_name(path));
+    }
+    case Use: {
+        return Type(ModuleType, Match(ast, Use)->name);
     }
     case Return: case Stop: case Skip: {
         return Type(AbortType);
@@ -1015,7 +1020,8 @@ type_t *get_type(env_t *env, ast_t *ast)
 bool is_discardable(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
-    case UpdateAssign: case Assign: case Declare: case FunctionDef: case StructDef: case EnumDef: case LangDef: case Use:
+    case UpdateAssign: case Assign: case Declare: case FunctionDef: case StructDef: case EnumDef:
+    case LangDef: case Use: case Import:
         return true;
     default: break;
     }
@@ -1124,7 +1130,7 @@ bool is_constant(env_t *env, ast_t *ast)
             return is_constant(env, binop->lhs) && is_constant(env, binop->rhs);
         }
     }
-    case Use: return true;
+    case Use: case Import: return true;
     case FunctionCall: {
         // Constructors are allowed:
         auto call = Match(ast, FunctionCall);
