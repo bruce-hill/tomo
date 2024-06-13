@@ -268,8 +268,6 @@ struct ast_s {
         } DocTest;
         struct {
             const char *raw_path;
-            file_t *file;
-            bool main_program;
         } Use;
         struct {
             const char *directive;
