@@ -78,6 +78,7 @@ int main(int argc, char *argv[])
         errx(1, "Couldn't set printf specifier");
 
     setenv("TOMO_IMPORT_PATH", "~/.local/src/tomo:.", 0);
+    setenv("TOMO_LIB_PATH", "~/.local/lib/tomo:.", 0);
 
     CORD home = ENV_CORD("HOME");
     autofmt = ENV_CORD("AUTOFMT");
@@ -103,7 +104,7 @@ int main(int argc, char *argv[])
 
     cflags = ENV_CORD("CFLAGS");
     if (!cflags)
-        cflags = CORD_all(cconfig, " ", optimization, " -fPIC -ggdb -I./include -I'", home, "/.local/include/tomo' -D_DEFAULT_SOURCE");
+        cflags = CORD_all(cconfig, " ", optimization, " -fPIC -ggdb -I./include -I'", home, "/.local/include' -D_DEFAULT_SOURCE");
 
     ldflags = CORD_all("-Wl,-rpath='$ORIGIN',-rpath='", home, "/.local/lib/tomo' -L. -L'", home, "/.local/lib/tomo'");
 
@@ -174,6 +175,7 @@ int main(int argc, char *argv[])
 
     // For shared objects, link up all the object files into one .so file:
     if (mode == MODE_COMPILE_SHARED_OBJ) {
+        // Build a "libwhatever.h" header that loads all the headers:
         const char *h_filename = heap_strf("lib%s.h", libname);
         FILE *h_file = fopen(h_filename, "w");
         if (!h_file)
@@ -181,10 +183,20 @@ int main(int argc, char *argv[])
         fputs("#pragma once\n", h_file);
         for (int i = after_flags; i < argc; i++) {
             const char *filename = argv[i];
-            fprintf(h_file, "#include <%s/%s.h>\n", libname, filename);
+            fprintf(h_file, "#include \"../../src/tomo/%s/%s.h\"\n", libname, filename);
         }
         if (fclose(h_file))
             errx(1, "Failed to close file: %s", h_filename);
+
+        // Also output a "libwhatever.files" file that lists the .tm files it used:
+        const char *files_filename = heap_strf("lib%s.files", libname);
+        FILE *files_file = fopen(files_filename, "w");
+        if (!files_file)
+            errx(1, "Couldn't open file: %s", files_filename);
+        for (int i = after_flags; i < argc; i++)
+            fprintf(files_file, "%s\n", argv[i]);
+        if (fclose(files_file))
+            errx(1, "Failed to close file: %s", files_filename);
 
         CORD outfile = CORD_all("lib", libname, ".so");
         FILE *prog = CORD_RUN(cc, " ", cflags, " ", ldflags, " ", ldlibs, " -Wl,-soname=", outfile, " -shared ", object_files, " -o ", outfile);
@@ -255,20 +267,19 @@ void build_file_dependency_graph(const char *filename, table_t *to_compile, tabl
                 use_path = Match(decl->value, Use)->raw_path;
         }
         if (!use_path) continue;
-        const char *import;
         if (use_path[0] == '/' || strncmp(use_path, "~/", 2) == 0 || strncmp(use_path, "./", 2) == 0 || strncmp(use_path, "../", 3) == 0) {
-            import = resolve_path(use_path, filename, "");
-            if (!import) errx(1, "Couldn't resolve path: %s", use_path);
-            const char *path = resolve_path(use_path, filename, "");
+            const char *path = resolve_path(heap_strf("%s.tm", use_path), filename, "");
+            if (!path) errx(1, "Couldn't resolve import: %s", use_path);
             if (Table$str_get(*to_compile, path))
                 continue;
             Table$str_set(to_compile, path, path);
+            build_file_dependency_graph(path, to_compile, to_link);
         } else {
-            import = resolve_path(use_path, filename, getenv("TOMO_IMPORT_PATH"));
-            const char *lib = heap_strf("-l%.*s", strlen(use_path)-strlen(".tm"), use_path);
+            const char *libfile = resolve_path(heap_strf("%s/lib%s.so", use_path, use_path), filename, getenv("TOMO_IMPORT_PATH"));
+            if (!libfile) errx(1, "Couldn't resolve path: %s", use_path);
+            const char *lib = heap_strf("-l%s", use_path);
             Table$str_set(to_link, lib, lib);
         }
-        build_file_dependency_graph(import, to_compile, to_link);
     }
     free(file_dir);
 }

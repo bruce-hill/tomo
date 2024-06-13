@@ -110,16 +110,51 @@ static env_t *load_module(env_t *env, ast_t *use_ast)
     if (module_env)
         return module_env;
 
-    const char *resolved_path = resolve_path(use->raw_path, use_ast->file->filename, getenv("TOMO_IMPORT_PATH"));
-    if (!resolved_path)
-        code_err(use_ast, "No such file exists: \"%s\"", use->raw_path);
+    if (strncmp(use->raw_path, "/", 1) == 0 || strncmp(use->raw_path, "./", 2) == 0
+        || strncmp(use->raw_path, "../", 3) == 0 || strncmp(use->raw_path, "~/", 2) == 0) {
+        const char *path = heap_strf("%s.tm", use->raw_path);
+        const char *resolved_path = resolve_path(path, use_ast->file->filename, use_ast->file->filename);
+        if (!resolved_path)
+            code_err(use_ast, "No such file exists: \"%s\"", path);
 
-    file_t *f = load_file(resolved_path);
-    if (!f) errx(1, "No such file: %s", resolved_path);
+        file_t *f = load_file(resolved_path);
+        if (!f) errx(1, "No such file: %s", resolved_path);
 
-    ast_t *ast = parse_file(f, NULL);
-    if (!ast) errx(1, "Could not compile!");
-    return load_module_env(env, ast);
+        ast_t *ast = parse_file(f, NULL);
+        if (!ast) errx(1, "Could not compile!");
+        return load_module_env(env, ast);
+    } else {
+        const char *files_filename = heap_strf("%s/lib%s.files", use->raw_path, use->raw_path);
+        const char *resolved_path = resolve_path(files_filename, use_ast->file->filename, getenv("TOMO_IMPORT_PATH"));
+        if (!resolved_path)
+            code_err(use_ast, "No such library exists: \"lib%s.files\"", use->raw_path);
+        file_t *files_f = load_file(resolved_path);
+        if (!files_f) errx(1, "Couldn't open file: %s", resolved_path);
+
+        env = fresh_scope(env);
+        env->imports = new(table_t);
+        for (int64_t i = 1; i <= files_f->num_lines; i++) {
+            const char *line = get_line(files_f, i);
+            line = heap_strn(line, strcspn(line, "\r\n"));
+            if (!line || line[0] == '\0') continue;
+            const char *tm_path = resolve_path(line, resolved_path, ".");
+            if (!tm_path) errx(1, "Couldn't find library %s dependency: %s", use->raw_path, line);
+
+            file_t *tm_f = load_file(tm_path);
+            if (!tm_f) errx(1, "No such file: %s", tm_path);
+
+            ast_t *ast = parse_file(tm_f, NULL);
+            if (!ast) errx(1, "Could not compile!");
+            env_t *subenv = load_module_env(env, ast);
+            for (int64_t j = 0; j < subenv->locals->entries.length; j++) {
+                struct {
+                    const char *name; binding_t *binding;
+                } *entry = subenv->locals->entries.data + j*subenv->locals->entries.stride;
+                set_binding(env, entry->name, entry->binding);
+            }
+        }
+        return env;
+    }
 }
 
 void prebind_statement(env_t *env, ast_t *statement)

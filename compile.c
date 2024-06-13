@@ -2330,10 +2330,10 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
     case Use: {
         auto use = Match(ast, Use);
         const char *path = use->raw_path;
-        if (strncmp(path, "./", 2) == 0 || strncmp(path, "../", 3) == 0) {
-            return CORD_all("#include \"", path, ".h\"\n");
+        if (strncmp(path, "./", 2) == 0 || strncmp(path, "../", 3) == 0 || strncmp(path, "~/", 2) == 0 || strncmp(path, "/", 1) == 0) {
+            return CORD_all("#include \"", path, ".tm.h\"\n");
         } else {
-            return CORD_all("#include <", path, ".h>\n");
+            return CORD_all("#include <tomo/lib", path, ".h>\n");
         }
     }
     default:
