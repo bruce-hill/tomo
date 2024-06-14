@@ -579,6 +579,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (fielded_t->tag == ModuleType) {
             const char *name = Match(fielded_t, ModuleType)->name;
             env_t *module_env = Table$str_get(*env->imports, name);
+            if (!module_env) code_err(access->fielded, "I couldn't find the environment for this module");
             return get_type(module_env, WrapAST(ast, Var, access->field));
         } else if (fielded_t->tag == TypeInfoType) {
             auto info = Match(fielded_t, TypeInfoType);
