@@ -123,11 +123,11 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
         if (!ast) errx(1, "Could not compile!");
         return load_module_env(env, heap_strf("%s$", name), ast);
     } else if (module_ast->tag == Use) {
-        const char *name = Match(module_ast, Use)->name;
-        const char *files_filename = heap_strf("%s/lib%s.files", name, name);
+        const char *libname = Match(module_ast, Use)->name;
+        const char *files_filename = heap_strf("%s/lib%s.files", libname, libname);
         const char *resolved_path = resolve_path(files_filename, module_ast->file->filename, getenv("TOMO_IMPORT_PATH"));
         if (!resolved_path)
-            code_err(module_ast, "No such library exists: \"lib%s.files\"", name);
+            code_err(module_ast, "No such library exists: \"lib%s.files\"", libname);
         file_t *files_f = load_file(resolved_path);
         if (!files_f) errx(1, "Couldn't open file: %s", resolved_path);
 
@@ -137,18 +137,22 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
             line = heap_strn(line, strcspn(line, "\r\n"));
             if (!line || line[0] == '\0') continue;
             const char *tm_path = resolve_path(line, resolved_path, ".");
-            if (!tm_path) errx(1, "Couldn't find library %s dependency: %s", name, line);
+            if (!tm_path) errx(1, "Couldn't find library %s dependency: %s", libname, line);
 
             file_t *tm_f = load_file(tm_path);
             if (!tm_f) errx(1, "No such file: %s", tm_path);
 
             ast_t *ast = parse_file(tm_f, NULL);
             if (!ast) errx(1, "Could not compile!");
-            const char *prefix = file_base_name(line);
             env_t *tmp_env = fresh_scope(env);
-            tmp_env->file_prefix = heap_strf("%s$", name);
+            char *prefix = heap_strf("%s$%s$", libname, file_base_name(line));
+            for (char *p = prefix; *p; p++) {
+                if (!isalnum(*p) && *p != '_' && *p != '$')
+                    *p = '_';
+            }
+            tmp_env->file_prefix = prefix;
             tmp_env->imports = new(table_t);
-            env_t *subenv = load_module_env(tmp_env, heap_strf("%s$%s$", name, prefix), ast);
+            env_t *subenv = load_module_env(tmp_env, prefix, ast);
             for (int64_t j = 0; j < subenv->locals->entries.length; j++) {
                 struct {
                     const char *name; binding_t *binding;

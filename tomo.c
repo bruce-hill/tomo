@@ -182,6 +182,12 @@ int main(int argc, char *argv[])
 
     // For shared objects, link up all the object files into one .so file:
     if (mode == MODE_COMPILE_SHARED_OBJ) {
+        char *libname_id = heap_str(libname);
+        for (char *p = libname_id; *p; p++) {
+            if (!isalnum(*p) && *p != '_' && *p != '$')
+                *p = '_';
+        }
+
         // Build a "libwhatever.h" header that loads all the headers:
         const char *h_filename = heap_strf("lib%s.h", libname);
         FILE *header_prog = CORD_RUN(autofmt ? autofmt : "cat", " 2>/dev/null >", h_filename);
@@ -192,7 +198,7 @@ int main(int argc, char *argv[])
             if (!f) errx(1, "No such file: %s", filename);
             ast_t *ast = parse_file(f, NULL);
             if (!ast) errx(1, "Could not parse %s", f);
-            env->file_prefix = heap_strf("%s$%s$", libname, file_base_name(filename));
+            env->file_prefix = heap_strf("%s$%s$", libname_id, file_base_name(filename));
             
             for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
                 if (stmt->ast->tag == Import || (stmt->ast->tag == Declare && Match(stmt->ast, Declare)->value->tag == Import))
@@ -218,7 +224,7 @@ int main(int argc, char *argv[])
         unlink("symbol_renames.txt");
         FILE *prog;
         for (int i = after_flags; i < argc; i++) {
-            prog = CORD_RUN("nm -U -fjust-symbols ", argv[i], ".o | sed 's/.*/\\0 ", libname, "$\\0/' >>symbol_renames.txt");
+            prog = CORD_RUN("nm -U -fjust-symbols ", argv[i], ".o | sed 's/.*/\\0 ", libname_id, "$\\0/' >>symbol_renames.txt");
             status = pclose(prog);
             if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
                 errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `sed`");
