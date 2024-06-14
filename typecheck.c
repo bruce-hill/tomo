@@ -121,7 +121,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
 
         ast_t *ast = parse_file(f, NULL);
         if (!ast) errx(1, "Could not compile!");
-        return load_module_env(env, ast);
+        return load_module_env(env, heap_strf("%s$", name), ast);
     } else if (module_ast->tag == Use) {
         const char *name = Match(module_ast, Use)->name;
         const char *files_filename = heap_strf("%s/lib%s.files", name, name);
@@ -131,8 +131,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
         file_t *files_f = load_file(resolved_path);
         if (!files_f) errx(1, "Couldn't open file: %s", resolved_path);
 
-        env = fresh_scope(env);
-        env->imports = new(table_t);
+        env_t *ret_env = fresh_scope(env);
         for (int64_t i = 1; i <= files_f->num_lines; i++) {
             const char *line = get_line(files_f, i);
             line = heap_strn(line, strcspn(line, "\r\n"));
@@ -145,15 +144,19 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
 
             ast_t *ast = parse_file(tm_f, NULL);
             if (!ast) errx(1, "Could not compile!");
-            env_t *subenv = load_module_env(env, ast);
+            const char *prefix = file_base_name(line);
+            env_t *tmp_env = fresh_scope(env);
+            tmp_env->file_prefix = heap_strf("%s$", name);
+            tmp_env->imports = new(table_t);
+            env_t *subenv = load_module_env(tmp_env, heap_strf("%s$%s$", name, prefix), ast);
             for (int64_t j = 0; j < subenv->locals->entries.length; j++) {
                 struct {
                     const char *name; binding_t *binding;
                 } *entry = subenv->locals->entries.data + j*subenv->locals->entries.stride;
-                set_binding(env, entry->name, entry->binding);
+                set_binding(ret_env, entry->name, entry->binding);
             }
         }
-        return env;
+        return ret_env;
     } else {
         code_err(module_ast, "This is not a module import");
     }

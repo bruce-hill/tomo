@@ -16,7 +16,6 @@
 
 static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool allow_optional);
 static env_t *with_enum_scope(env_t *env, type_t *t);
-static CORD compile_statement_header(env_t *env, ast_t *ast);
 
 CORD compile_type_ast(env_t *env, type_ast_t *t)
 {
@@ -2276,10 +2275,9 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
     }
     case FunctionDef: {
         auto fndef = Match(ast, FunctionDef);
-        bool is_private = Match(fndef->name, Var)->name[0] == '_';
+        const char *decl_name = Match(fndef->name, Var)->name;
+        bool is_private = decl_name[0] == '_';
         if (is_private) return CORD_EMPTY;
-        CORD name = compile(env, fndef->name);
-
         CORD arg_signature = "(";
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
@@ -2290,7 +2288,7 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
 
         type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
         CORD ret_type_code = compile_type(env, ret_t);
-        CORD header = CORD_all(ret_type_code, " ", name, arg_signature, ";\n");
+        CORD header = CORD_all(ret_type_code, " ", CORD_cat(env->file_prefix, decl_name), arg_signature, ";\n");
         return header;
     }
     case Lambda: {

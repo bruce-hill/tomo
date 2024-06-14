@@ -177,16 +177,25 @@ int main(int argc, char *argv[])
     if (mode == MODE_COMPILE_SHARED_OBJ) {
         // Build a "libwhatever.h" header that loads all the headers:
         const char *h_filename = heap_strf("lib%s.h", libname);
-        FILE *h_file = fopen(h_filename, "w");
-        if (!h_file)
-            errx(1, "Couldn't open file: %s", h_filename);
-        fputs("#pragma once\n", h_file);
+        FILE *header_prog = CORD_RUN(autofmt ? autofmt : "cat", " 2>/dev/null >", h_filename);
+        fputs("#pragma once\n", header_prog);
         for (int i = after_flags; i < argc; i++) {
             const char *filename = argv[i];
-            fprintf(h_file, "#include \"../../src/tomo/%s/%s.h\"\n", libname, filename);
+            file_t *f = load_file(filename);
+            if (!f) errx(1, "No such file: %s", filename);
+            ast_t *ast = parse_file(f, NULL);
+            if (!ast) errx(1, "Could not parse %s", f);
+            env->file_prefix = heap_strf("%s$%s$", libname, file_base_name(filename));
+            
+            for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+                if (stmt->ast->tag == Import || (stmt->ast->tag == Declare && Match(stmt->ast, Declare)->value->tag == Import))
+                    continue;
+                CORD h = compile_statement_header(env, stmt->ast);
+                if (h) CORD_put(h, header_prog);
+            }
         }
-        if (fclose(h_file))
-            errx(1, "Failed to close file: %s", h_filename);
+        if (pclose(header_prog) == -1)
+            errx(1, "Failed to run autoformat program on header file: %s", autofmt);
 
         // Also output a "libwhatever.files" file that lists the .tm files it used:
         const char *files_filename = heap_strf("lib%s.files", libname);
@@ -198,13 +207,36 @@ int main(int argc, char *argv[])
         if (fclose(files_file))
             errx(1, "Failed to close file: %s", files_filename);
 
+        // Build up a list of symbol renamings:
+        unlink("symbol_renames.txt");
+        FILE *prog;
+        for (int i = after_flags; i < argc; i++) {
+            prog = CORD_RUN("nm -U -fjust-symbols ", argv[i], ".o | sed 's/.*/\\0 ", libname, "$\\0/' >>symbol_renames.txt");
+            status = pclose(prog);
+            if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+                errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `sed`");
+        }
+
         CORD outfile = CORD_all("lib", libname, ".so");
-        FILE *prog = CORD_RUN(cc, " ", cflags, " ", ldflags, " ", ldlibs, " -Wl,-soname=", outfile, " -shared ", object_files, " -o ", outfile);
+        prog = CORD_RUN(cc, " ", cflags, " ", ldflags, " ", ldlibs, " -Wl,-soname=", outfile, " -shared ", object_files, " -o ", outfile);
         status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-            return WEXITSTATUS(status);
+            errx(WEXITSTATUS(status), "Failed to compile shared library file");
         if (verbose)
             CORD_printf("Compiled to %r\n", outfile);
+
+        prog = CORD_RUN("objcopy --redefine-syms=symbol_renames.txt lib", libname, ".so");
+        status = pclose(prog);
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+            errx(WEXITSTATUS(status), "Failed to run `objcopy` to add library prefix to symbols");
+
+        prog = CORD_RUN("patchelf --rename-dynamic-symbols symbol_renames.txt lib", libname, ".so");
+        status = pclose(prog);
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+            errx(WEXITSTATUS(status), "Failed to run `patchelf` to rename dynamic symbols with library prefix");
+
+        if (verbose)
+            CORD_printf("Successfully renamed symbols with library prefix!\n");
 
         printf("Do you want to install your library? [Y/n] ");
         fflush(stdout);
@@ -218,23 +250,23 @@ int main(int argc, char *argv[])
         default: break;
         }
         return 0;
+    } else {
+        const char *filename = argv[after_flags];
+        int executable_status = compile_executable(env, filename, object_files);
+        if (mode == MODE_COMPILE_EXE || executable_status != 0)
+            return executable_status;
+
+        char *exe_name = heap_strn(filename, strlen(filename) - strlen(".tm"));
+        int num_args = argc - after_flags - 1;
+        char *prog_args[num_args + 2];
+        prog_args[0] = exe_name;
+        for (int i = 0; i < num_args; i++)
+            prog_args[i+1] = argv[after_flags+1+i];
+        prog_args[num_args+1] = NULL;
+        execv(exe_name, prog_args);
+
+        errx(1, "Failed to run compiled program");
     }
-
-    const char *filename = argv[after_flags];
-    int executable_status = compile_executable(env, filename, object_files);
-    if (mode == MODE_COMPILE_EXE || executable_status != 0)
-        return executable_status;
-
-    char *exe_name = heap_strn(filename, strlen(filename) - strlen(".tm"));
-    int num_args = argc - after_flags - 1;
-    char *prog_args[num_args + 2];
-    prog_args[0] = exe_name;
-    for (int i = 0; i < num_args; i++)
-        prog_args[i+1] = argv[after_flags+1+i];
-    prog_args[num_args+1] = NULL;
-    execv(exe_name, prog_args);
-
-    errx(1, "Failed to run compiled program");
 }
 
 void build_file_dependency_graph(const char *filename, table_t *to_compile, table_t *to_link)
@@ -307,7 +339,7 @@ int transpile_header(env_t *base_env, const char *filename, bool force_retranspi
     if (!ast)
         errx(1, "Could not parse %s", f);
 
-    env_t *module_env = load_module_env(base_env, ast);
+    env_t *module_env = load_module_env(base_env, heap_strf("%s$", file_base_name(filename)), ast);
 
     CORD h_code = compile_header(module_env, ast);
 
@@ -351,7 +383,7 @@ int transpile_code(env_t *base_env, const char *filename, bool force_retranspile
     if (!ast)
         errx(1, "Could not parse %s", f);
 
-    env_t *module_env = load_module_env(base_env, ast);
+    env_t *module_env = load_module_env(base_env, heap_strf("%s$", file_base_name(filename)), ast);
 
     CORD c_code = compile_file(module_env, ast);
 
