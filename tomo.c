@@ -58,6 +58,13 @@ int main(int argc, char *argv[])
         } else if (streq(argv[i], "-h") || streq(argv[i], "--help")) {
             printf("Usage: %s | %s [-r] file.tm args... | %s (-t|-c|-s) file1.tm file2.tm...\n", argv[0], argv[0], argv[0]);
             return 0;
+        } else if (streq(argv[i], "-u")) {
+            // Uninstall libraries:
+            for (int j = i + 1; j < argc; j++) {
+                system(heap_strf("rm -rvf ~/.local/src/tomo/%s ~/.local/include/tomo/lib%s.h ~/.local/lib/tomo/lib%s.so",
+                                 argv[j], argv[j], argv[j]));
+            }
+            return 0;
         } else if (strchr(argv[i], '=')) {
             while (argv[i][0] == '-')
                 ++argv[i];
