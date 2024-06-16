@@ -1672,6 +1672,7 @@ PARSER(parse_file_body) {
             ||(stmt=optional(ctx, &pos, parse_lang_def))
             ||(stmt=optional(ctx, &pos, parse_func_def))
             ||(stmt=optional(ctx, &pos, parse_use))
+            ||(stmt=optional(ctx, &pos, parse_import))
             ||(stmt=optional(ctx, &pos, parse_linker))
             ||(stmt=optional(ctx, &pos, parse_extern))
             ||(stmt=optional(ctx, &pos, parse_inline_c))
