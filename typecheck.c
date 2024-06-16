@@ -351,6 +351,9 @@ void bind_statement(env_t *env, ast_t *statement)
         break;
     }
     case Use: case Import: {
+        if (statement->tag == Use && strncmp(Match(statement, Use)->name, "-l", 2) == 0)
+            break;
+
         env_t *module_env = load_module(env, statement);
         for (table_t *bindings = module_env->locals; bindings != module_env->globals; bindings = bindings->fallback) {
             for (int64_t i = 1; i <= Table$length(*bindings); i++) {

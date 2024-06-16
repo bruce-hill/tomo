@@ -2320,7 +2320,10 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
     }
     case Use: {
         const char *name = Match(ast, Use)->name;
-        return CORD_all("#include <tomo/lib", name, ".h>\n");
+        if (strncmp(name, "-l", 2) == 0)
+            return CORD_EMPTY;
+        else
+            return CORD_all("#include <tomo/lib", name, ".h>\n");
     }
     default:
         return CORD_EMPTY;

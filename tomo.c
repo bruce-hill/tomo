@@ -126,10 +126,6 @@ int main(int argc, char *argv[])
     table_t to_link = {};
 
     for (int i = after_flags; i < argc; i++) {
-        if (strncmp(argv[i], "-l", 2) == 0) {
-            ldlibs = CORD_all(ldlibs, " ", argv[i]);
-            continue;
-        }
         const char *resolved = resolve_path(argv[i], ".", ".");
         if (!resolved) errx(1, "Couldn't resolve path: %s", argv[i]);
         build_file_dependency_graph(resolved, &dependency_files, &to_link);
@@ -139,8 +135,6 @@ int main(int argc, char *argv[])
     int status;
     // Non-lazily (re)compile header files for each source file passed to the compiler:
     for (int i = after_flags; i < argc; i++) {
-        if (strncmp(argv[i], "-l", 2) == 0)
-            continue;
         const char *filename = argv[i];
         status = transpile_header(env, filename, true);
         if (status != 0) return status;
@@ -157,8 +151,6 @@ int main(int argc, char *argv[])
 
     // Non-lazily (re)compile object files for each source file passed to the compiler:
     for (int i = after_flags; i < argc; i++) {
-        if (strncmp(argv[i], "-l", 2) == 0)
-            continue;
         const char *filename = argv[i];
         status = transpile_code(env, filename, true);
         if (status != 0) return status;
@@ -203,8 +195,6 @@ int main(int argc, char *argv[])
         FILE *header_prog = CORD_RUN(autofmt ? autofmt : "cat", " 2>/dev/null >", h_filename);
         fputs("#pragma once\n", header_prog);
         for (int i = after_flags; i < argc; i++) {
-            if (strncmp(argv[i], "-l", 2) == 0)
-                continue;
             const char *filename = argv[i];
             file_t *f = load_file(filename);
             if (!f) errx(1, "No such file: %s", filename);
@@ -227,8 +217,6 @@ int main(int argc, char *argv[])
         if (!files_file)
             errx(1, "Couldn't open file: %s", files_filename);
         for (int i = after_flags; i < argc; i++) {
-            if (strncmp(argv[i], "-l", 2) == 0)
-                continue;
             fprintf(files_file, "%s\n", argv[i]);
         }
         if (fclose(files_file))
@@ -238,8 +226,6 @@ int main(int argc, char *argv[])
         unlink("symbol_renames.txt");
         FILE *prog;
         for (int i = after_flags; i < argc; i++) {
-            if (strncmp(argv[i], "-l", 2) == 0)
-                continue;
             prog = CORD_RUN("nm -U -fjust-symbols ", argv[i], ".o | sed 's/.*/\\0 ", libname_id, "$\\0/' >>symbol_renames.txt");
             status = pclose(prog);
             if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
@@ -280,8 +266,6 @@ int main(int argc, char *argv[])
         }
         return 0;
     } else {
-        while (after_flags < argc && strncmp(argv[after_flags], "-l", 2) == 0)
-            ++after_flags;
         const char *filename = argv[after_flags];
         int executable_status = compile_executable(env, filename, object_files);
         if (mode == MODE_COMPILE_EXE || executable_status != 0)
@@ -335,10 +319,14 @@ void build_file_dependency_graph(const char *filename, table_t *to_compile, tabl
             build_file_dependency_graph(path, to_compile, to_link);
         } else if (stmt_ast->tag == Use) {
             const char *name = Match(stmt_ast, Use)->name;
-            const char *libfile = resolve_path(heap_strf("%s/lib%s.so", name, name), filename, getenv("TOMO_IMPORT_PATH"));
-            if (!libfile) errx(1, "Couldn't resolve path: %s", name);
-            const char *lib = heap_strf("-l%s", name);
-            Table$str_set(to_link, lib, lib);
+            if (strncmp(name, "-l", 2) == 0) {
+                Table$str_set(to_link, name, name);
+            } else {
+                const char *libfile = resolve_path(heap_strf("%s/lib%s.so", name, name), filename, getenv("TOMO_IMPORT_PATH"));
+                if (!libfile) errx(1, "Couldn't resolve path: %s", name);
+                const char *lib = heap_strf("-l%s", name);
+                Table$str_set(to_link, lib, lib);
+            }
         }
     }
     free(file_dir);
