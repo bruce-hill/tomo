@@ -158,7 +158,6 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
                     *p = '_';
             }
             module_file_env->namespace = new(namespace_t, .name=file_prefix);
-            module_file_env->imports = new(table_t);
             env_t *subenv = load_module_env(module_file_env, ast);
             for (int64_t j = 0; j < subenv->locals->entries.length; j++) {
                 struct {
