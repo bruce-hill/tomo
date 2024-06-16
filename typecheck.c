@@ -238,10 +238,13 @@ void bind_statement(env_t *env, ast_t *statement)
         const char *name = Match(decl->var, Var)->name;
         if (get_binding(env, name))
             code_err(decl->var, "A %T called '%s' has already been defined", get_binding(env, name)->type, name);
-        if (decl->value->tag == Use || decl->value->tag == Import)
+        if (decl->value->tag == Use || decl->value->tag == Import) {
+            if (decl->value->tag == Use && strncmp(Match(decl->value, Use)->name, "-l", 2) == 0)
+                code_err(statement, "External library files specified with -l can't be assigned to a variable");
             (void)load_module(env, decl->value);
-        else
+        } else {
             bind_statement(env, decl->value);
+        }
         type_t *type = get_type(env, decl->value);
         CORD prefix = namespace_prefix(env->libname, env->namespace);
         CORD code = CORD_cat(prefix ? prefix : "$", name);
