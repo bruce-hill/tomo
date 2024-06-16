@@ -26,13 +26,18 @@ typedef struct loop_ctx_s {
     CORD skip_label, stop_label;
 } loop_ctx_t;
 
+typedef struct namespace_s {
+    const char *name;
+    struct namespace_s *parent;
+} namespace_t;
+
 typedef struct env_s {
     table_t *types, *globals, *locals;
     table_t *imports; // Map of 'use' name -> env_t*
     compilation_unit_t *code;
     fn_ctx_t *fn_ctx;
     loop_ctx_t *loop_ctx;
-    CORD file_prefix, scope_prefix;
+    namespace_t *namespace;
     const char *comprehension_var;
 } env_t;
 
@@ -45,7 +50,8 @@ typedef struct {
 } binding_t;
 
 env_t *new_compilation_unit(void);
-env_t *load_module_env(env_t *env, const char *prefix, ast_t *ast);
+env_t *load_module_env(env_t *env, ast_t *ast);
+CORD namespace_prefix(namespace_t *ns);
 env_t *global_scope(env_t *env);
 env_t *fresh_scope(env_t *env);
 env_t *for_scope(env_t *env, ast_t *ast);

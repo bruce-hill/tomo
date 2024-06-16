@@ -188,6 +188,34 @@ int main(int argc, char *argv[])
                 *p = '_';
         }
 
+        // Each type's namespace now exists within the library's namespace, on top of whatever
+        // other namespace it was already in:
+        namespace_t *lib_ns = new(namespace_t, .name=libname_id);
+        for (int64_t i = 1; i <= Table$length(*env->types); i++) {
+            struct {const char *name; type_t *type; } *entry = Table$entry(*env->types, i);
+            env_t *type_env = NULL;
+            switch (entry->type->tag) {
+            case TextType: type_env = Match(entry->type, TextType)->env; break;
+            case StructType: type_env = Match(entry->type, StructType)->env; break;
+            case EnumType: type_env = Match(entry->type, EnumType)->env; break;
+            case TypeInfoType: type_env = Match(entry->type, TypeInfoType)->env; break;
+            default: break;
+            }
+
+            if (type_env) {
+                // Find the topmost namespace, and if it's not already `lib_ns`, then
+                // set it to that:
+                for (namespace_t **ns = &type_env->namespace; ; ns = &((*ns)->parent)) {
+                    if (*ns == lib_ns) {
+                        break;
+                    } else if (*ns == NULL) {
+                        *ns = lib_ns;
+                        break;
+                    }
+                }
+            }
+        }
+
         // Build a "libwhatever.h" header that loads all the headers:
         const char *h_filename = heap_strf("lib%s.h", libname);
         FILE *header_prog = CORD_RUN(autofmt ? autofmt : "cat", " 2>/dev/null >", h_filename);
@@ -198,8 +226,7 @@ int main(int argc, char *argv[])
             if (!f) errx(1, "No such file: %s", filename);
             ast_t *ast = parse_file(f, NULL);
             if (!ast) errx(1, "Could not parse %s", f);
-            env->file_prefix = heap_strf("%s$%s$", libname_id, file_base_name(filename));
-            
+            env->namespace = new(namespace_t, .name=file_base_name(filename), .parent=lib_ns);
             for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
                 if (stmt->ast->tag == Import || (stmt->ast->tag == Declare && Match(stmt->ast, Declare)->value->tag == Import))
                     continue;
@@ -352,7 +379,7 @@ int transpile_header(env_t *base_env, const char *filename, bool force_retranspi
     if (!ast)
         errx(1, "Could not parse %s", f);
 
-    env_t *module_env = load_module_env(base_env, heap_strf("%s$", file_base_name(filename)), ast);
+    env_t *module_env = load_module_env(base_env, ast);
 
     CORD h_code = compile_header(module_env, ast);
 
@@ -396,7 +423,7 @@ int transpile_code(env_t *base_env, const char *filename, bool force_retranspile
     if (!ast)
         errx(1, "Could not parse %s", f);
 
-    env_t *module_env = load_module_env(base_env, heap_strf("%s$", file_base_name(filename)), ast);
+    env_t *module_env = load_module_env(base_env, ast);
 
     CORD c_code = compile_file(module_env, ast);
 

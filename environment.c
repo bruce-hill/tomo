@@ -235,28 +235,32 @@ env_t *new_compilation_unit(void)
     return env;
 }
 
-env_t *load_module_env(env_t *env, const char *prefix, ast_t *ast)
+CORD namespace_prefix(namespace_t *ns)
+{
+    CORD prefix = CORD_EMPTY;
+    for (; ns; ns = ns->parent)
+        prefix = CORD_all(ns->name, "$", prefix);
+    return prefix;
+}
+
+env_t *load_module_env(env_t *env, ast_t *ast)
 {
     const char *name = file_base_name(ast->file->filename);
     env_t *cached = Table$str_get(*env->imports, name);
     if (cached) return cached;
-    env = fresh_scope(env);
-    env->code = new(compilation_unit_t);
-    env->file_prefix = prefix;
-    Table$str_set(env->imports, name, env);
+    env_t *module_env = fresh_scope(env);
+    module_env->code = new(compilation_unit_t);
+    module_env->namespace = new(namespace_t, .name=name, .parent=env->namespace), 
+    Table$str_set(module_env->imports, name, module_env);
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
-        prebind_statement(env, stmt->ast);
+        prebind_statement(module_env, stmt->ast);
 
-    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-        // Hack: make sure global variables are bound as foo$var:
-        if (stmt->ast->tag == Declare && Match(Match(stmt->ast, Declare)->var, Var)->name[0] != '_')
-            env->scope_prefix = prefix;
-        bind_statement(env, stmt->ast);
-        env->scope_prefix = NULL;
-    }
-    Table$str_set(env->imports, name, env);
-    return env;
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
+        bind_statement(module_env, stmt->ast);
+
+    Table$str_set(env->imports, name, module_env);
+    return module_env;
 }
 
 env_t *global_scope(env_t *env)
@@ -334,7 +338,7 @@ env_t *namespace_env(env_t *env, const char *namespace_name)
     env_t *ns_env = new(env_t);
     *ns_env = *env;
     ns_env->locals = new(table_t, .fallback=env->locals);
-    ns_env->scope_prefix = CORD_all(namespace_name, "$");
+    ns_env->namespace = new(namespace_t, .name=namespace_name, .parent=env->namespace);
     return ns_env;
 }
 
