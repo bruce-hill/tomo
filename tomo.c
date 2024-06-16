@@ -280,6 +280,8 @@ int main(int argc, char *argv[])
         }
         return 0;
     } else {
+        while (after_flags < argc && strncmp(argv[after_flags], "-l", 2) == 0)
+            ++after_flags;
         const char *filename = argv[after_flags];
         int executable_status = compile_executable(env, filename, object_files);
         if (mode == MODE_COMPILE_EXE || executable_status != 0)
