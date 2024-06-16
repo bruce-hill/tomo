@@ -11,7 +11,7 @@
 
 type_t *TEXT_TYPE = NULL;
 
-env_t *new_compilation_unit(void)
+env_t *new_compilation_unit(CORD *libname)
 {
     env_t *env = new(env_t);
     env->code = new(compilation_unit_t);
@@ -19,6 +19,7 @@ env_t *new_compilation_unit(void)
     env->globals = new(table_t);
     env->locals = new(table_t, .fallback=env->globals);
     env->imports = new(table_t);
+    env->libname = libname;
 
     if (!TEXT_TYPE)
         TEXT_TYPE = Type(TextType, .env=namespace_env(env, "Text"));
@@ -235,11 +236,13 @@ env_t *new_compilation_unit(void)
     return env;
 }
 
-CORD namespace_prefix(namespace_t *ns)
+CORD namespace_prefix(CORD *libname, namespace_t *ns)
 {
     CORD prefix = CORD_EMPTY;
     for (; ns; ns = ns->parent)
         prefix = CORD_all(ns->name, "$", prefix);
+    if (libname && *libname)
+        prefix = CORD_all(*libname, "$", prefix);
     return prefix;
 }
 
@@ -250,7 +253,7 @@ env_t *load_module_env(env_t *env, ast_t *ast)
     if (cached) return cached;
     env_t *module_env = fresh_scope(env);
     module_env->code = new(compilation_unit_t);
-    module_env->namespace = new(namespace_t, .name=name, .parent=env->namespace), 
+    module_env->namespace = new(namespace_t, .name=name); 
     Table$str_set(module_env->imports, name, module_env);
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)

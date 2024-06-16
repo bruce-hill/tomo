@@ -37,6 +37,7 @@ typedef struct env_s {
     compilation_unit_t *code;
     fn_ctx_t *fn_ctx;
     loop_ctx_t *loop_ctx;
+    CORD *libname; // Pointer to currently compiling library name (if any)
     namespace_t *namespace;
     const char *comprehension_var;
 } env_t;
@@ -49,9 +50,9 @@ typedef struct {
     };
 } binding_t;
 
-env_t *new_compilation_unit(void);
+env_t *new_compilation_unit(CORD *libname);
 env_t *load_module_env(env_t *env, ast_t *ast);
-CORD namespace_prefix(namespace_t *ns);
+CORD namespace_prefix(CORD *libname, namespace_t *ns);
 env_t *global_scope(env_t *env);
 env_t *fresh_scope(env_t *env);
 env_t *for_scope(env_t *env, ast_t *ast);

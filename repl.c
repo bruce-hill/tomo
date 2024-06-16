@@ -28,7 +28,7 @@ static void eval(env_t *env, ast_t *ast, void *dest);
 
 void repl(void)
 {
-    env_t *env = new_compilation_unit();
+    env_t *env = new_compilation_unit(NULL);
     void *dl = dlopen("libtomo.so", RTLD_LAZY);
     if (!dl) errx(1, "I couldn't find libtomo.so in your library paths");
 

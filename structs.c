@@ -14,7 +14,7 @@
 static CORD compile_str_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
     const char *name = def->name;
     const char *dollar = strrchr(name, '$');
     if (dollar) name = dollar + 1;
@@ -39,7 +39,7 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
 static CORD compile_compare_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
     CORD cmp_func = CORD_all("static int ", full_name, "$compare(const ", full_name, "_t *x, const ", full_name,
                              "_t *y, const TypeInfo *info) {\n"
                              "(void)info;\n",
@@ -67,7 +67,7 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
 static CORD compile_equals_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
     CORD eq_func = CORD_all("static bool ", full_name, "$equal(const ", full_name, "_t *x, const ", full_name,
                              "_t *y, const TypeInfo *info) {\n"
                              "(void)info;\n");
@@ -96,7 +96,7 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
 static CORD compile_hash_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
     CORD hash_func = CORD_all("static uint32_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo *info) {\n"
                               "(void)info;\n"
                               "uint32_t field_hashes[] = {");
@@ -114,7 +114,7 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
 void compile_struct_def(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
 
     type_t *t = Table$str_get(*env->types, def->name);
     assert(t && t->tag == StructType);
@@ -165,7 +165,7 @@ void compile_struct_def(env_t *env, ast_t *ast)
 CORD compile_struct_header(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
     CORD header = CORD_all("typedef struct ", full_name, "_s ", full_name, "_t;\n");
 
     CORD struct_code = CORD_all("struct ", full_name, "_s {\n");

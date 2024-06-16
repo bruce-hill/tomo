@@ -23,7 +23,7 @@ static bool has_extra_data(tag_ast_t *tags)
 static CORD compile_str_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
     CORD str_func = CORD_all("static CORD ", full_name, "$as_text(", full_name, "_t *obj, bool use_color) {\n"
                              "\tif (!obj) return \"", def->name, "\";\n"
                              "switch (obj->$tag) {\n");
@@ -57,7 +57,7 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
 static CORD compile_compare_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
     if (!has_extra_data(def->tags)) {
         // Comparisons are simpler if there is only a tag, no tagged data:
         return CORD_all("static int ", full_name, "$compare(const ", full_name, "_t *x, const ", full_name,
@@ -88,7 +88,7 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
 static CORD compile_equals_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
     if (!has_extra_data(def->tags)) {
         // Equality is simpler if there is only a tag, no tagged data:
         return CORD_all("static bool ", full_name, "$equal(const ", full_name, "_t *x, const ", full_name,
@@ -118,7 +118,7 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
 static CORD compile_hash_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
     if (!has_extra_data(def->tags)) {
         // Hashing is simpler if there is only a tag, no tagged data:
         return CORD_all("static uint32_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo *info) {\n"
@@ -152,7 +152,7 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
 void compile_enum_def(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         compile_struct_def(env, WrapAST(ast, StructDef, .name=CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)), .fields=tag->fields));
         if (tag->fields) { // Constructor macros:
@@ -203,7 +203,7 @@ void compile_enum_def(env_t *env, ast_t *ast)
 CORD compile_enum_header(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
     CORD header = CORD_all("typedef struct ", full_name, "_s ", full_name, "_t;\n",
                            "extern const TypeInfo ", full_name, ";\n");
     CORD enum_def = CORD_all("struct ", full_name, "_s {\n"
