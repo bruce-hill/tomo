@@ -159,7 +159,7 @@ void compile_enum_def(env_t *env, ast_t *ast)
             CORD arg_sig = CORD_EMPTY;
             for (arg_ast_t *field = tag->fields; field; field = field->next) {
                 type_t *field_t = get_arg_ast_type(env, field);
-                arg_sig = CORD_all(arg_sig, compile_declaration(env, field_t, field->name));
+                arg_sig = CORD_all(arg_sig, compile_declaration(field_t, field->name));
                 if (field->next) arg_sig = CORD_cat(arg_sig, ", ");
             }
             if (arg_sig == CORD_EMPTY) arg_sig = "void";
@@ -223,7 +223,7 @@ CORD compile_enum_header(env_t *env, ast_t *ast)
             CORD arg_sig = CORD_EMPTY;
             for (arg_ast_t *field = tag->fields; field; field = field->next) {
                 type_t *field_t = get_arg_ast_type(env, field);
-                arg_sig = CORD_all(arg_sig, compile_declaration(env, field_t, field->name));
+                arg_sig = CORD_all(arg_sig, compile_declaration(field_t, field->name));
                 if (field->next) arg_sig = CORD_cat(arg_sig, ", ");
             }
             if (arg_sig == CORD_EMPTY) arg_sig = "void";

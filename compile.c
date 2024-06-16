@@ -17,18 +17,6 @@
 static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool allow_optional);
 static env_t *with_enum_scope(env_t *env, type_t *t);
 
-CORD compile_type_ast(env_t *env, type_ast_t *t)
-{
-    switch (t->tag) {
-    case VarTypeAST: return CORD_all(namespace_prefix(env->libname, env->namespace), Match(t, VarTypeAST)->name, "_t");
-    case PointerTypeAST: return CORD_cat(compile_type_ast(env, Match(t, PointerTypeAST)->pointed), "*");
-    case TableTypeAST: return "table_t";
-    case ArrayTypeAST: return "array_t";
-    case FunctionTypeAST: return "const void*";
-    default: code_err(t, "Compiling type AST is not implemented");
-    }
-}
-
 static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
 {
     if (type_eq(actual, needed))
@@ -60,7 +48,7 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
         return true;
 
     if (needed->tag == FunctionType && actual->tag == FunctionType) {
-        *code = CORD_all("(", compile_type(env, needed), ")", *code);
+        *code = CORD_all("(", compile_type(needed), ")", *code);
         return true;
     }
 
@@ -97,24 +85,24 @@ static table_t *get_closed_vars(env_t *env, ast_t *lambda_ast)
     return fn_ctx.closed_vars;
 }
 
-CORD compile_declaration(env_t *env, type_t *t, CORD name)
+CORD compile_declaration(type_t *t, CORD name)
 {
     if (t->tag == FunctionType) {
         auto fn = Match(t, FunctionType);
-        CORD code = CORD_all(compile_type(env, fn->ret), " (*", name, ")(");
+        CORD code = CORD_all(compile_type(fn->ret), " (*", name, ")(");
         for (arg_t *arg = fn->args; arg; arg = arg->next) {
-            code = CORD_all(code, compile_type(env, arg->type));
+            code = CORD_all(code, compile_type(arg->type));
             if (arg->next) code = CORD_cat(code, ", ");
         }
         return CORD_all(code, ")");
     } else if (t->tag != ModuleType) {
-        return CORD_all(compile_type(env, t), " ", name);
+        return CORD_all(compile_type(t), " ", name);
     } else {
         return CORD_EMPTY;
     }
 }
 
-CORD compile_type(env_t *env, type_t *t)
+CORD compile_type(type_t *t)
 {
     switch (t->tag) {
     case AbortType: return "void";
@@ -126,28 +114,28 @@ CORD compile_type(env_t *env, type_t *t)
     case NumType: return Match(t, NumType)->bits == 64 ? "Num_t" : CORD_asprintf("Num%ld_t", Match(t, NumType)->bits);
     case TextType: {
         auto text = Match(t, TextType);
-        return text->lang ? CORD_all(namespace_prefix(env->libname, text->env->namespace->parent), text->lang, "_t") : "Text_t";
+        return text->lang ? CORD_all(namespace_prefix(text->env->libname, text->env->namespace->parent), text->lang, "_t") : "Text_t";
     }
     case ArrayType: return "array_t";
     case TableType: return "table_t";
     case FunctionType: {
         auto fn = Match(t, FunctionType);
-        CORD code = CORD_all(compile_type(env, fn->ret), " (*)(");
+        CORD code = CORD_all(compile_type(fn->ret), " (*)(");
         for (arg_t *arg = fn->args; arg; arg = arg->next) {
-            code = CORD_all(code, compile_type(env, arg->type));
+            code = CORD_all(code, compile_type(arg->type));
             if (arg->next) code = CORD_cat(code, ", ");
         }
         return CORD_all(code, ")");
     }
     case ClosureType: return "closure_t";
-    case PointerType: return CORD_cat(compile_type(env, Match(t, PointerType)->pointed), "*");
+    case PointerType: return CORD_cat(compile_type(Match(t, PointerType)->pointed), "*");
     case StructType: {
         auto s = Match(t, StructType);
-        return CORD_all("struct ", namespace_prefix(env->libname, s->env->namespace->parent), s->name, "_s");
+        return CORD_all("struct ", namespace_prefix(s->env->libname, s->env->namespace->parent), s->name, "_s");
     }
     case EnumType: {
         auto e = Match(t, EnumType);
-        return CORD_all(namespace_prefix(env->libname, e->env->namespace->parent), e->name, "_t");
+        return CORD_all(namespace_prefix(e->env->libname, e->env->namespace->parent), e->name, "_t");
     }
     case TypeInfoType: return "TypeInfo";
     default: compiler_err(NULL, NULL, NULL, "Compiling type is not implemented for type with tag %d", t->tag);
@@ -177,14 +165,14 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
         if (container_t->tag == ArrayType) {
             CORD target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
             type_t *item_type = Match(container_t, ArrayType)->item_type;
-            return CORD_all("Array_lvalue(", compile_type(env, item_type), ", ", target_code, ", ", 
+            return CORD_all("Array_lvalue(", compile_type(item_type), ", ", target_code, ", ", 
                             compile(env, index->index), ", ", compile_type_info(env, container_t),
                             ", ", Text$quoted(ast->file->filename, false), ", ", heap_strf("%ld", ast->start - ast->file->text),
                             ", ", heap_strf("%ld", ast->end - ast->file->text), ")");
         } else if (container_t->tag == TableType) {
             CORD target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
             type_t *value_t = Match(container_t, TableType)->value_type;
-            return CORD_all("*(", compile_type(env, value_t), "*)Table$reserve_value(", target_code, ", ",
+            return CORD_all("*(", compile_type(value_t), "*)Table$reserve_value(", target_code, ", ",
                             compile(env, index->index),", ", compile_type_info(env, container_t), ")");
         } else {
             code_err(ast, "I don't know how to assign to this target");
@@ -222,17 +210,17 @@ CORD compile_statement(env_t *env, ast_t *ast)
             set_binding(non_null_scope, Match(var, Var)->name, new(binding_t, .type=non_optional_t, .code=var_code));
             return CORD_all(
                 "{\n",
-                compile_declaration(env, subject_t, var_code), "  = ", compile(env, when->subject), ";\n"
+                compile_declaration(subject_t, var_code), "  = ", compile(env, when->subject), ";\n"
                 "if (", var_code, ")\n", compile_statement(non_null_scope, when->clauses->body),
                 "\nelse\n", compile_statement(env, when->else_body), "\n}");
         }
 
         auto enum_t = Match(subject_t, EnumType);
-        CORD code = CORD_all("{ ", compile_type(env, subject_t), " subject = ", compile(env, when->subject), ";\n"
+        CORD code = CORD_all("{ ", compile_type(subject_t), " subject = ", compile(env, when->subject), ";\n"
                              "switch (subject.$tag) {");
         for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
             const char *clause_tag_name = Match(clause->tag_name, Var)->name;
-            code = CORD_all(code, "case ", namespace_prefix(env->libname, enum_t->env->namespace), enum_t->name, "$tag$", clause_tag_name, ": {\n");
+            code = CORD_all(code, "case ", namespace_prefix(enum_t->env->libname, enum_t->env->namespace), enum_t->name, "$tag$", clause_tag_name, ": {\n");
             type_t *tag_type = NULL;
             for (tag_t *tag = enum_t->tags; tag; tag = tag->next) {
                 if (streq(tag->name, clause_tag_name)) {
@@ -245,7 +233,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
             auto tag_struct = Match(tag_type, StructType);
             if (clause->args && !clause->args->next && tag_struct->fields && tag_struct->fields->next) {
-                code = CORD_all(code, compile_type(env, tag_type), " ", compile(env, clause->args->ast), " = subject.", clause_tag_name, ";\n");
+                code = CORD_all(code, compile_type(tag_type), " ", compile(env, clause->args->ast), " = subject.", clause_tag_name, ";\n");
                 scope = fresh_scope(scope);
                 set_binding(scope, Match(clause->args->ast, Var)->name, new(binding_t, .type=tag_type));
             } else if (clause->args) {
@@ -257,7 +245,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                         code_err(clause->tag_name, "The field %T.%s.%s wasn't accounted for", subject_t, clause_tag_name, field->name);
                     if (!field)
                         code_err(var->ast, "This is one more field than %T has", subject_t);
-                    code = CORD_all(code, compile_type(env, field->type), " ", compile(env, var->ast), " = subject.", clause_tag_name, ".", field->name, ";\n");
+                    code = CORD_all(code, compile_type(field->type), " ", compile(env, var->ast), " = subject.", clause_tag_name, ".", field->name, ";\n");
                     set_binding(scope, Match(var->ast, Var)->name, new(binding_t, .type=field->type));
                     var = var->next;
                     field = field->next;
@@ -303,7 +291,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 return CORD_asprintf(
                     "%r;\n"
                     "test(({ %r = %r; &%r;}), %r, %r, %r, %ld, %ld);\n",
-                    compile_declaration(env, get_type(env, decl->value), var),
+                    compile_declaration(get_type(env, decl->value), var),
                     var,
                     compile(env, decl->value),
                     var,
@@ -350,14 +338,14 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     CORD val_code = compile(val_scope, value->ast);
                     if (!promote(env, &val_code, value_type, target_type))
                         code_err(value->ast, "This %T value cannot be converted to a %T type", value_type, target_type);
-                    CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(env, target_type), i++, val_code);
+                    CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(target_type), i++, val_code);
                 }
                 i = 1;
                 for (ast_list_t *target = assign->targets; target; target = target->next)
                     code = CORD_all(code, compile_assignment(env, target->ast, CORD_asprintf("$%ld", i++)));
 
                 CORD_appendf(&code, "(%r[1]){$1}; }), %r, %r, %r, %ld, %ld);",
-                    compile_type(env, get_type(env, assign->targets->ast)),
+                    compile_type(get_type(env, assign->targets->ast)),
                     compile_type_info(env, get_type(env, assign->targets->ast)),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
@@ -375,7 +363,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         } else {
             return CORD_asprintf(
                 "test((%r[1]){%r}, %r, %r, %r, %ld, %ld);",
-                compile_type(env, expr_t),
+                compile_type(expr_t),
                 compile(env, test->expr),
                 compile_type_info(env, expr_t),
                 compile(env, WrapAST(test->expr, TextLiteral, .cord=output)),
@@ -392,7 +380,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             type_t *t = get_type(env, decl->value);
             if (t->tag == AbortType || t->tag == VoidType)
                 code_err(ast, "You can't declare a variable with a %T value", t);
-            return CORD_all(compile_declaration(env, t, CORD_cat("$", Match(decl->var, Var)->name)), " = ", compile(env, decl->value), ";");
+            return CORD_all(compile_declaration(t, CORD_cat("$", Match(decl->var, Var)->name)), " = ", compile(env, decl->value), ";");
         }
     }
     case Assign: {
@@ -421,7 +409,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             CORD val = compile(val_env, value->ast);
             if (!promote(env, &val, rhs_t, lhs_t))
                 code_err(value->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
-            CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(env, lhs_t), i++, val);
+            CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(lhs_t), i++, val);
         }
         i = 1;
         for (ast_list_t *target = assign->targets; target; target = target->next) {
@@ -529,12 +517,12 @@ CORD compile_statement(env_t *env, ast_t *ast)
         CORD arg_signature = "(";
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            arg_signature = CORD_cat(arg_signature, compile_declaration(env, arg_type, CORD_cat("$", arg->name)));
+            arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, CORD_cat("$", arg->name)));
             if (arg->next) arg_signature = CORD_cat(arg_signature, ", ");
         }
         arg_signature = CORD_cat(arg_signature, ")");
 
-        CORD ret_type_code = compile_type(env, ret_t);
+        CORD ret_type_code = compile_type(ret_t);
 
         if (is_private)
             env->code->staticdefs = CORD_all(env->code->staticdefs, "static ", ret_type_code, " ", name, arg_signature, ";\n");
@@ -593,7 +581,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             CORD wrapper = CORD_all(
                 is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
                 "static table_t cache = {};\n",
-                compile_type(env, args_t), " args = {", all_args, "};\n"
+                compile_type(args_t), " args = {", all_args, "};\n"
                 "const TypeInfo *table_type = $TableInfo(", compile_type_info(env, args_t), ", ", compile_type_info(env, ret_t), ");\n",
                 ret_type_code, "*cached = Table$get_raw(cache, &args, table_type);\n"
                 "if (cached) return *cached;\n",
@@ -708,8 +696,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
             CORD array = is_idempotent(for_->iter) ? compile(env, for_->iter) : "arr";
             CORD loop = CORD_all("ARRAY_INCREF(", array, ");\n"
                                  "for (int64_t ", index, " = 1; ", index, " <= ", array, ".length; ++", index, ") {\n",
-                                 compile_type(env, item_t), " ", value,
-                                 " = *(", compile_type(env, item_t), "*)(", array, ".data + (",index,"-1)*", array, ".stride);\n",
+                                 compile_type(item_t), " ", value,
+                                 " = *(", compile_type(item_t), "*)(", array, ".data + (",index,"-1)*", array, ".stride);\n",
                                  body, "\n}");
             if (for_->empty)
                 loop = CORD_all("if (", array, ".length > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
@@ -726,16 +714,16 @@ CORD compile_statement(env_t *env, ast_t *ast)
             CORD loop = CORD_all("ARRAY_INCREF(", table, ".entries);\n"
                                  "for (int64_t i = 0; i < ",table,".entries.length; ++i) {\n");
             if (for_->index) {
-                loop = CORD_all(loop, compile_type(env, key_t), " ", compile(env, for_->index), " = *(", compile_type(env, key_t), "*)(",
+                loop = CORD_all(loop, compile_type(key_t), " ", compile(env, for_->index), " = *(", compile_type(key_t), "*)(",
                                 table,".entries.data + i*", table, ".entries.stride);\n");
 
                 size_t value_offset = type_size(key_t);
                 if (type_align(value_t) > 1 && value_offset % type_align(value_t))
                     value_offset += type_align(value_t) - (value_offset % type_align(value_t)); // padding
-                loop = CORD_all(loop, compile_type(env, value_t), " ", compile(env, for_->value), " = *(", compile_type(env, value_t), "*)(",
+                loop = CORD_all(loop, compile_type(value_t), " ", compile(env, for_->value), " = *(", compile_type(value_t), "*)(",
                                 table,".entries.data + i*", table, ".entries.stride + ", heap_strf("%zu", value_offset), ");\n");
             } else {
-                loop = CORD_all(loop, compile_type(env, key_t), " ", compile(env, for_->value), " = *(", compile_type(env, key_t), "*)(",
+                loop = CORD_all(loop, compile_type(key_t), " ", compile(env, for_->value), " = *(", compile_type(key_t), "*)(",
                                 table,".entries.data + i*", table, ".entries.stride);\n");
             }
             loop = CORD_all(loop, body, "\n}");
@@ -1016,7 +1004,7 @@ CORD compile(env_t *env, ast_t *ast)
     switch (ast->tag) {
     case Nil: {
         type_t *t = parse_type_ast(env, Match(ast, Nil)->type);
-        return CORD_all("((", compile_type(env, t), ")NULL)");
+        return CORD_all("((", compile_type(t), ")NULL)");
     }
     case Bool: return Match(ast, Bool)->b ? "yes" : "no";
     case Var: {
@@ -1360,7 +1348,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         return CORD_all(
             "({\n",
-            compile_type(env, t), " ternary$lhs = ", compile(env, lhs), ", ternary$rhs = ", compile(env, rhs), ";\n",
+            compile_type(t), " ternary$lhs = ", compile(env, lhs), ", ternary$rhs = ", compile(env, rhs), ";\n",
             comparison, " ? ternary$lhs : ternary$rhs;\n"
             "})");
     }
@@ -1380,7 +1368,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         {
             type_t *item_type = Match(array_type, ArrayType)->item_type;
-            CORD code = CORD_all("TypedArrayN(", compile_type(env, item_type), CORD_asprintf(", %ld", n));
+            CORD code = CORD_all("TypedArrayN(", compile_type(item_type), CORD_asprintf(", %ld", n));
             for (ast_list_t *item = array->items; item; item = item->next)
                 code = CORD_all(code, ", ", compile(env, item->ast));
             return CORD_cat(code, ")");
@@ -1429,8 +1417,8 @@ CORD compile(env_t *env, ast_t *ast)
            
         { // No comprehension:
             CORD code = CORD_all("Table(",
-                                 compile_type(env, key_t), ", ",
-                                 compile_type(env, value_t), ", ",
+                                 compile_type(key_t), ", ",
+                                 compile_type(value_t), ", ",
                                  compile_type_info(env, key_t), ", ",
                                  compile_type_info(env, value_t));
             if (table->fallback)
@@ -1514,10 +1502,10 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *ret_t = get_type(body_scope, lambda->body);
         fn_ctx.return_type = ret_t;
 
-        CORD code = CORD_all("static ", compile_type(env, ret_t), " ", name, "(");
+        CORD code = CORD_all("static ", compile_type(ret_t), " ", name, "(");
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            code = CORD_all(code, compile_type(env, arg_type), " $", arg->name, ", ");
+            code = CORD_all(code, compile_type(arg_type), " $", arg->name, ", ");
         }
 
         CORD args_typedef = compile_statement_header(env, ast);
@@ -1634,7 +1622,7 @@ CORD compile(env_t *env, ast_t *ast)
                 ast_t *default_cmp = FakeAST(InlineCCode, .code=CORD_all("((closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "})"), .type=NewTypeAST(NULL, NULL, NULL, FunctionTypeAST));
                 arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp);
                 CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
-                return CORD_all("Array$heap_pop_value(", self, ", ", arg_code, ", ", compile_type_info(env, self_value_t), ", ", compile_type(env, item_t), ")");
+                return CORD_all("Array$heap_pop_value(", self, ", ", arg_code, ", ", compile_type_info(env, self_value_t), ", ", compile_type(item_t), ")");
             } else if (streq(call->name, "clear")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
@@ -1697,7 +1685,7 @@ CORD compile(env_t *env, ast_t *ast)
             if (t->tag == StructType) {
                 // Struct constructor:
                 fn_t = Type(FunctionType, .args=Match(t, StructType)->fields, .ret=t);
-                return CORD_all("((", compile_type(env, t), "){", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), "})");
+                return CORD_all("((", compile_type(t), "){", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), "})");
             } else if (t->tag == IntType || t->tag == NumType) {
                 // Int/Num constructor:
                 if (!call->args || call->args->next)
@@ -1705,7 +1693,7 @@ CORD compile(env_t *env, ast_t *ast)
                 type_t *actual = get_type(env, call->args->value);
                 if (actual->tag != IntType && actual->tag != NumType)
                     code_err(call->args->value, "This %T value cannot be converted to a %T", actual, t);
-                return CORD_all("((", compile_type(env, t), ")(", compile(env, call->args->value), "))");
+                return CORD_all("((", compile_type(t), ")(", compile(env, call->args->value), "))");
             } else if (t->tag == TextType) {
                 // Text constructor:
                 if (!call->args || call->args->next)
@@ -1730,7 +1718,7 @@ CORD compile(env_t *env, ast_t *ast)
                 closure_fn_args = new(arg_t, .name=arg->name, .type=arg->type, .default_val=arg->default_val, .next=closure_fn_args);
             closure_fn_args = new(arg_t, .name="userdata", .type=Type(PointerType, .pointed=Type(MemoryType)), .next=closure_fn_args);
             REVERSE_LIST(closure_fn_args);
-            CORD fn_type_code = compile_type(env, Type(FunctionType, .args=closure_fn_args, .ret=Match(fn_t, FunctionType)->ret));
+            CORD fn_type_code = compile_type(Type(FunctionType, .args=closure_fn_args, .ret=Match(fn_t, FunctionType)->ret));
 
             CORD closure = compile(env, call->fn);
             CORD arg_code = compile_arguments(env, ast, type_args, call->args);
@@ -1773,7 +1761,7 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *t = get_type(env, ast);
         CORD code = CORD_all(
             "({ // Reduction:\n",
-            compile_declaration(env, t, "reduction"), ";\n"
+            compile_declaration(t, "reduction"), ";\n"
             );
         env_t *scope = fresh_scope(env);
         ast_t *result = FakeAST(Var, "$reduction");
@@ -1884,9 +1872,9 @@ CORD compile(env_t *env, ast_t *ast)
             CORD index = compile(env, indexing->index);
             file_t *f = indexing->index->file;
             if (indexing->unchecked)
-                return CORD_all("Array_get_unchecked", compile_type(env, item_type), ", ", arr, ", ", index, ")");
+                return CORD_all("Array_get_unchecked", compile_type(item_type), ", ", arr, ", ", index, ")");
             else
-                return CORD_all("Array_get(", compile_type(env, item_type), ", ", arr, ", ", index, ", ",
+                return CORD_all("Array_get(", compile_type(item_type), ", ", arr, ", ", index, ", ",
                                 Text$quoted(f->filename, false), ", ", CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
                                 CORD_asprintf("%ld", (int64_t)(indexing->index->end - f->text)),
                                 ")");
@@ -1899,7 +1887,7 @@ CORD compile(env_t *env, ast_t *ast)
             if (!promote(env, &key, index_t, key_t))
                 code_err(indexing->index, "This value has type %T, but this table can only be index with keys of type %T", index_t, key_t);
             file_t *f = indexing->index->file;
-            return CORD_all("Table_get(", table, ", ", compile_type(env, key_t), ", ", compile_type(env, value_t), ", ",
+            return CORD_all("Table_get(", table, ", ", compile_type(key_t), ", ", compile_type(value_t), ", ",
                             key, ", ", compile_type_info(env, container_t), ", ",
                             Text$quoted(f->filename, false), ", ", CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
                             CORD_asprintf("%ld", (int64_t)(indexing->index->end - f->text)),
@@ -1946,7 +1934,7 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
 
             if (!is_constant(env, decl->value))
                 code_err(decl->value, "This value is supposed to be a compile-time constant, but I can't figure out how to make it one");
-            CORD var_decl = CORD_all(compile_type(env, t), " ", compile(ns_env, decl->var), " = ", compile(ns_env, decl->value), ";\n");
+            CORD var_decl = CORD_all(compile_type(t), " ", compile(ns_env, decl->var), " = ", compile(ns_env, decl->value), ";\n");
             env->code->staticdefs = CORD_all(env->code->staticdefs, var_decl);
             break;
         }
@@ -1976,15 +1964,15 @@ CORD compile_type_info(env_t *env, type_t *t)
         return CORD_asprintf("&$%r", type_to_cord(t));
     case TextType: {
         auto text = Match(t, TextType);
-        return text->lang ? CORD_all("(&", namespace_prefix(env->libname, text->env->namespace->parent), text->lang, ")") : "&$Text";
+        return text->lang ? CORD_all("(&", namespace_prefix(text->env->libname, text->env->namespace->parent), text->lang, ")") : "&$Text";
     }
     case StructType: {
         auto s = Match(t, StructType);
-        return CORD_all("(&", namespace_prefix(env->libname, s->env->namespace->parent), s->name, ")");
+        return CORD_all("(&", namespace_prefix(s->env->libname, s->env->namespace->parent), s->name, ")");
     }
     case EnumType: {
         auto e = Match(t, EnumType);
-        return CORD_all("(&", namespace_prefix(env->libname, e->env->namespace->parent), e->name, ")");
+        return CORD_all("(&", namespace_prefix(e->env->libname, e->env->namespace->parent), e->name, ")");
     }
     case ArrayType: {
         type_t *item_t = Match(t, ArrayType)->item_type;
@@ -2057,7 +2045,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
         type_t *t = get_arg_type(main_env, arg);
         assert(arg->name);
         code = CORD_all(
-            code, compile_declaration(env, t, CORD_cat("$", arg->name)), ";\n",
+            code, compile_declaration(t, CORD_cat("$", arg->name)), ";\n",
             "bool ", arg->name, "$is_set = no;\n");
         set_binding(env, arg->name, new(binding_t, .type=t, .code=CORD_cat("$", arg->name)));
     }
@@ -2201,12 +2189,12 @@ CORD compile_file(env_t *env, ast_t *ast)
             } else if (is_private) {
                 env->code->staticdefs = CORD_all(
                     env->code->staticdefs,
-                    "static ", compile_type(env, t), " ", namespace_prefix(env->libname, env->namespace), decl_name, " = ",
+                    "static ", compile_type(t), " ", namespace_prefix(env->libname, env->namespace), decl_name, " = ",
                     compile(env, decl->value), ";\n");
             } else {
                 env->code->staticdefs = CORD_all(
                     env->code->staticdefs,
-                    compile_type(env, t), " ", namespace_prefix(env->libname, env->namespace), decl_name, " = ",
+                    compile_type(t), " ", namespace_prefix(env->libname, env->namespace), decl_name, " = ",
                     compile(env, decl->value), ";\n");
             }
         } else if (stmt->ast->tag == InlineCCode) {
@@ -2256,7 +2244,7 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
             return code;
         } else {
             return CORD_all(
-                code, "\n" "extern ", compile_declaration(env, t, CORD_cat(namespace_prefix(env->libname, env->namespace), decl_name)), ";\n");
+                code, "\n" "extern ", compile_declaration(t, CORD_cat(namespace_prefix(env->libname, env->namespace), decl_name)), ";\n");
         }
     }
     case StructDef: {
@@ -2281,13 +2269,13 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
         CORD arg_signature = "(";
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            arg_signature = CORD_cat(arg_signature, compile_declaration(env, arg_type, CORD_cat("$", arg->name)));
+            arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, CORD_cat("$", arg->name)));
             if (arg->next) arg_signature = CORD_cat(arg_signature, ", ");
         }
         arg_signature = CORD_cat(arg_signature, ")");
 
         type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
-        CORD ret_type_code = compile_type(env, ret_t);
+        CORD ret_type_code = compile_type(ret_t);
         CORD header = CORD_all(ret_type_code, " ", CORD_cat(namespace_prefix(env->libname, env->namespace), decl_name), arg_signature, ";\n");
         return header;
     }
@@ -2303,7 +2291,7 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
                 struct { const char *name; binding_t *b; } *entry = Table$entry(*closed_vars, i);
                 if (entry->b->type->tag == ModuleType)
                     continue;
-                def = CORD_all(def, compile_declaration(env, entry->b->type, entry->name), "; ");
+                def = CORD_all(def, compile_declaration(entry->b->type, entry->name), "; ");
             }
             return CORD_all(def, "} ", name, "$userdata_t;");
         }
@@ -2315,14 +2303,14 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
         if (t->tag == ClosureType) {
             t = Match(t, ClosureType)->fn;
             auto fn = Match(t, FunctionType);
-            decl = CORD_all(compile_type(env, fn->ret), " ", ext->name, "(");
+            decl = CORD_all(compile_type(fn->ret), " ", ext->name, "(");
             for (arg_t *arg = fn->args; arg; arg = arg->next) {
-                decl = CORD_all(decl, compile_type(env, arg->type));
+                decl = CORD_all(decl, compile_type(arg->type));
                 if (arg->next) decl = CORD_cat(decl, ", ");
             }
             decl = CORD_cat(decl, ")");
         } else {
-            decl = compile_declaration(env, t, ext->name);
+            decl = compile_declaration(t, ext->name);
         }
         return CORD_all("extern ", decl, ";\n");
     }

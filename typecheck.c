@@ -137,7 +137,8 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
             if (!isalnum(*c) && *c != '_')
                 *c = '_';
         }
-        module_env->libname = (const char**)&libname_id;
+        module_env->libname = new(CORD);
+        *module_env->libname = (CORD)libname_id;
         for (int64_t i = 1; i <= files_f->num_lines; i++) {
             const char *line = get_line(files_f, i);
             line = heap_strn(line, strcspn(line, "\r\n"));
@@ -150,7 +151,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
 
             ast_t *ast = parse_file(tm_f, NULL);
             if (!ast) errx(1, "Could not compile!");
-            env_t *module_file_env = fresh_scope(env);
+            env_t *module_file_env = fresh_scope(module_env);
             char *file_prefix = heap_str(file_base_name(line));
             for (char *p = file_prefix; *p; p++) {
                 if (!isalnum(*p) && *p != '_' && *p != '$')

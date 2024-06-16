@@ -171,7 +171,7 @@ CORD compile_struct_header(env_t *env, ast_t *ast)
     CORD struct_code = CORD_all("struct ", full_name, "_s {\n");
     for (arg_ast_t *field = def->fields; field; field = field->next) {
         type_t *field_t = get_arg_ast_type(env, field);
-        CORD type_code = compile_type(env, field_t);
+        CORD type_code = compile_type(field_t);
         CORD_appendf(&struct_code, "%r %s%s;\n", type_code, field->name,
                      CORD_cmp(type_code, "Bool_t") ? "" : ":1");
     }
