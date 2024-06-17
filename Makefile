@@ -47,7 +47,7 @@ tags:
 	$(CC) $(CFLAGS) -c $< -o $@
 
 %.tm.testresult: %.tm tomo
-	VERBOSE=0 COLOR=1 CC=tcc ./tomo $< 2>$@ >$@
+	VERBOSE=0 COLOR=1 CC=tcc ./tomo $< 2>$@ >$@ && cat $@
 
 test: $(TESTS)
 	@echo -e '\x1b[32;7m ALL TESTS PASSED! \x1b[m'
