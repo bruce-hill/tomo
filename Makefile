@@ -50,7 +50,7 @@ tags:
 	VERBOSE=0 COLOR=1 CC=tcc ./tomo $< 2>&1 | tee $@
 
 test: $(TESTS)
-	echo -e '\x1b[32;7m ALL TESTS PASSED! \x1b[m'
+	@echo -e '\x1b[32;7m ALL TESTS PASSED! \x1b[m'
 
 clean:
 	rm -f tomo *.o SipHash/halfsiphash.o builtins/*.o libtomo.so test/*.tm.{c,h,o,testresult}
