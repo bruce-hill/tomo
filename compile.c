@@ -850,7 +850,7 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
 {
     switch (t->tag) {
     case MemoryType: return CORD_asprintf("Memory$as_text(stack(%r), %r, &$Memory)", expr, color);
-    case BoolType: return CORD_asprintf("Bool$as_text(stack(%r), %r, &$Bool)", expr, color);
+    case BoolType: return CORD_asprintf("Bool$as_text((Bool_t[1]){%r}, %r, &$Bool)", expr, color);
     case CStringType: return CORD_asprintf("CString$as_text(stack(%r), %r, &$CString)", expr, color);
     case IntType: {
         CORD name = type_to_cord(t);

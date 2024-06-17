@@ -102,7 +102,10 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
                               "uint32_t field_hashes[] = {");
     for (arg_ast_t *field = def->fields; field; field = field->next) {
         type_t *field_type = get_arg_ast_type(env, field);
-        hash_func = CORD_all(hash_func, "\ngeneric_hash(&obj->", field->name, ", ", compile_type_info(env, field_type), "),");
+        if (field_type->tag == BoolType) // Bools can be bit fields, so you can't use *obj->field there:
+            hash_func = CORD_all(hash_func, "\n(uint32_t)(obj->", field->name, "),");
+        else
+            hash_func = CORD_all(hash_func, "\ngeneric_hash(&obj->", field->name, ", ", compile_type_info(env, field_type), "),");
     }
     hash_func = CORD_all(hash_func, "};\n"
                          "uint32_t hash;\n"
