@@ -253,6 +253,8 @@ int main(int argc, char *argv[])
         if (verbose)
             CORD_printf("Successfully renamed symbols with library prefix!\n");
 
+        unlink("symbol_renames.txt");
+
         printf("Do you want to install your library? [Y/n] ");
         fflush(stdout);
         switch (getchar()) {
