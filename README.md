@@ -25,6 +25,9 @@ $ ./hello --name="john doe"
 Hello John Doe!
 ```
 
+For more examples, see [learnXinY](/learnxiny.tm) which as an overview of many
+language features.
+
 ## Features
 
 ### Performance
