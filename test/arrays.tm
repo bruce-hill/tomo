@@ -1,9 +1,9 @@
 func main():
-	if yes:
+	do:
 		>> [:Num32]
 		= [] : [Num32]
 
-	if yes:
+	do:
 		>> arr := [10, 20, 30]
 		= [10, 20, 30]
 
@@ -27,7 +27,7 @@ func main():
 		>> str
 		= "(1,10)(2,20)(3,30)"
 
-	if yes:
+	do:
 		>> arr := [10, 20] ++ [30, 40]
 		= [10, 20, 30, 40]
 
@@ -39,7 +39,7 @@ func main():
 		>> arr
 		= [10, 20, 30, 40, 50, 60, 70]
 
-	if yes:
+	do:
 		>> arr := [10, 20]
 		>> copy := arr
 		>> arr ++= 30
@@ -48,7 +48,7 @@ func main():
 		>> copy
 		= [10, 20]
 
-	if yes:
+	do:
 		>> [10*i for i in 5]
 		= [10, 20, 30, 40, 50]
 
@@ -61,7 +61,7 @@ func main():
 	>> [x for x in y if x > 1 for y in [3, 4, 5] if y < 5]
 	= [2, 3, 2, 3, 4]
 
-	if yes:
+	do:
 		>> arr := @[10, 20]
 		>> copy := arr[]
 		>> arr:insert(30)
@@ -70,12 +70,15 @@ func main():
 		>> copy
 		= [10, 20]
 
-	if yes:
+		>> arr[1] = 999
+		= @[999, 20, 30]
+
+	do:
 		>> arr := [10, 20, 30]
 		>> arr:reversed()
 		= [30, 20, 10]
 
-	if yes:
+	do:
 		>> nums := [10, -20, 30]
 		// Sorted function doesn't mutate original:
 		>> nums:sorted()
@@ -96,7 +99,7 @@ func main():
 
 	>> ["A", "B", "C"]:sample(10, [1.0, 0.5, 0.0])
 
-	if yes:
+	do:
 		>> heap := [Int.random(max=50) for _ in 10]
 		>> heap:heapify()
 		>> heap
