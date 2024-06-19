@@ -262,7 +262,6 @@ env_t *load_module_env(env_t *env, ast_t *ast)
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
         bind_statement(module_env, stmt->ast);
 
-    Table$str_set(env->imports, name, module_env);
     return module_env;
 }
 

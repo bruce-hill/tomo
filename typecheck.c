@@ -132,6 +132,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
         if (!files_f) errx(1, "Couldn't open file: %s", resolved_path);
 
         env_t *module_env = fresh_scope(env);
+        Table$str_set(env->imports, libname, module_env);
         char *libname_id = heap_str(libname);
         for (char *c = libname_id; *c; c++) {
             if (!isalnum(*c) && *c != '_')
@@ -594,7 +595,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (fielded_t->tag == ModuleType) {
             const char *name = Match(fielded_t, ModuleType)->name;
             env_t *module_env = Table$str_get(*env->imports, name);
-            if (!module_env) code_err(access->fielded, "I couldn't find the environment for this module");
+            if (!module_env) code_err(access->fielded, "I couldn't find the environment for the module %s", name);
             return get_type(module_env, WrapAST(ast, Var, access->field));
         } else if (fielded_t->tag == TypeInfoType) {
             auto info = Match(fielded_t, TypeInfoType);
