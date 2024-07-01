@@ -16,7 +16,7 @@
 
 static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool allow_optional);
 static env_t *with_enum_scope(env_t *env, type_t *t);
-static CORD compile_math_method(env_t *env, ast_t *ast, binop_e op, ast_t *lhs, ast_t *rhs);
+static CORD compile_math_method(env_t *env, ast_t *ast, binop_e op, ast_t *lhs, ast_t *rhs, type_t *required_type);
 
 static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
 {
@@ -422,7 +422,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         auto update = Match(ast, UpdateAssign);
         CORD lhs = compile_lvalue(env, update->lhs);
 
-        CORD method_call = compile_math_method(env, ast, update->op, update->lhs, update->rhs);
+        CORD method_call = compile_math_method(env, ast, update->op, update->lhs, update->rhs, get_type(env, update->lhs));
         if (method_call)
             return CORD_all(lhs, " = ", method_call, ";");
 
@@ -439,6 +439,9 @@ CORD compile_statement(env_t *env, ast_t *ast)
             operand_t = lhs_t;
         else
             code_err(ast, "I can't do operations between %T and %T", lhs_t, rhs_t);
+
+        if (operand_t->tag != IntType && operand_t->tag != NumType)
+            code_err(ast, "I can't do an update assignment with this operator between %T and %T", lhs_t, rhs_t);
         
         switch (update->op) {
         case BINOP_MULT: return CORD_all(lhs, " *= ", rhs, ";");
@@ -1005,7 +1008,7 @@ static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg
     return code;
 }
 
-CORD compile_math_method(env_t *env, ast_t *ast, binop_e op, ast_t *lhs, ast_t *rhs)
+CORD compile_math_method(env_t *env, ast_t *ast, binop_e op, ast_t *lhs, ast_t *rhs, type_t *required_type)
 {
     // Math methods are things like __add(), __sub(), etc. If we don't find a
     // matching method, return CORD_EMPTY.
@@ -1020,7 +1023,8 @@ CORD compile_math_method(env_t *env, ast_t *ast, binop_e op, ast_t *lhs, ast_t *
         if (b && b->type->tag == FunctionType) {
             auto fn = Match(b->type, FunctionType);
             if (fn->args && fn->args->next && can_promote(lhs_t, get_arg_type(env, fn->args))
-                && can_promote(rhs_t, get_arg_type(env, fn->args->next))) {
+                && can_promote(rhs_t, get_arg_type(env, fn->args->next))
+                && (!required_type || can_promote(fn->ret, required_type))) {
                 return CORD_all(
                     b->code, "(",
                     compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=lhs, .next=new(arg_ast_t, .value=rhs))),
@@ -1031,7 +1035,8 @@ CORD compile_math_method(env_t *env, ast_t *ast, binop_e op, ast_t *lhs, ast_t *
         if (b2 && b2->type->tag == FunctionType) {
             auto fn = Match(b2->type, FunctionType);
             if (fn->args && fn->args->next && can_promote(lhs_t, get_arg_type(env, fn->args))
-                && can_promote(rhs_t, get_arg_type(env, fn->args->next))) {
+                && can_promote(rhs_t, get_arg_type(env, fn->args->next))
+                && (!required_type || can_promote(fn->ret, required_type))) {
                 return CORD_all(
                     b2->code, "(",
                     compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=lhs, .next=new(arg_ast_t, .value=rhs))),
@@ -1123,7 +1128,7 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case BinaryOp: {
         auto binop = Match(ast, BinaryOp);
-        CORD method_call = compile_math_method(env, ast, binop->op, binop->lhs, binop->rhs);
+        CORD method_call = compile_math_method(env, ast, binop->op, binop->lhs, binop->rhs, NULL);
         if (method_call != CORD_EMPTY)
             return method_call;
 
