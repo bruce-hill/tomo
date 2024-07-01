@@ -354,6 +354,16 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     (int64_t)(test->expr->end - test->expr->file->text));
                 return code;
             }
+        } else if (test->expr->tag == UpdateAssign) {
+            return CORD_asprintf(
+                "test(({ %r; &%r; }), %r, %r, %r, %ld, %ld);",
+                compile_statement(env, test->expr),
+                compile_lvalue(env, Match(test->expr, UpdateAssign)->lhs),
+                compile_type_info(env, get_type(env, Match(test->expr, UpdateAssign)->lhs)),
+                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
+                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
+                (int64_t)(test->expr->start - test->expr->file->text),
+                (int64_t)(test->expr->end - test->expr->file->text));
         } else if (expr_t->tag == VoidType || expr_t->tag == AbortType) {
             return CORD_asprintf(
                 "test(({ %r; NULL; }), NULL, NULL, %r, %ld, %ld);",
