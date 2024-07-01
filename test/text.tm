@@ -92,3 +92,11 @@ func main():
 	= "n"
 
 	>> amelie:has(amelie2)
+
+
+	>> multiline := "
+		line one
+		line two
+	"
+	= "line one\nline two"
+
