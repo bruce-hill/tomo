@@ -17,6 +17,13 @@ static const char *OP_NAMES[] = {
     [BINOP_AND]="and", [BINOP_OR]="or", [BINOP_XOR]="xor",
 };
 
+const char *binop_method_names[BINOP_XOR+1] = {
+    [BINOP_POWER]="__pow", [BINOP_MULT]="__mul", [BINOP_DIVIDE]="__div",
+    [BINOP_MOD]="__mod", [BINOP_MOD1]="__mod1", [BINOP_PLUS]="__add", [BINOP_MINUS]="__sub",
+    [BINOP_CONCAT]="__concat", [BINOP_LSHIFT]="__lshift", [BINOP_RSHIFT]="__rshift",
+    [BINOP_AND]="__and", [BINOP_OR]="__or", [BINOP_XOR]="__xor",
+};
+
 static CORD ast_list_to_xml(ast_list_t *asts);
 static CORD arg_list_to_xml(arg_ast_t *args);
 static CORD when_clauses_to_xml(when_clause_t *clauses);

@@ -759,6 +759,32 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *lhs_t = get_type(env, binop->lhs),
                *rhs_t = get_type(env, binop->rhs);
 
+        // Check for a binop method like __add() etc:
+        const char *method_name = binop_method_names[binop->op];
+        if (method_name) {
+            for (int64_t n = 1; ; ) {
+                binding_t *b = get_namespace_binding(env, binop->lhs, method_name);
+                if (b && b->type->tag == FunctionType) {
+                    auto fn = Match(b->type, FunctionType);
+                    if (fn->args && fn->args->next && can_promote(lhs_t, get_arg_type(env, fn->args))
+                        && can_promote(rhs_t, get_arg_type(env, fn->args->next)))
+                        return fn->ret;
+                }
+                binding_t *b2 = get_namespace_binding(env, binop->rhs, method_name);
+                if (b2 && b2->type->tag == FunctionType) {
+                    auto fn = Match(b2->type, FunctionType);
+                    if (fn->args && fn->args->next && can_promote(lhs_t, get_arg_type(env, fn->args))
+                        && can_promote(rhs_t, get_arg_type(env, fn->args->next)))
+                        return fn->ret;
+                }
+                if (!b && !b2) break;
+
+                // If we found __foo, but it didn't match the types, check for
+                // __foo2, __foo3, etc. until we stop finding methods with that name.
+                method_name = heap_strf("%s%ld", binop_method_names[binop->op], ++n);
+            }
+        }
+
         switch (binop->op) {
         case BINOP_AND: {
             if (lhs_t->tag == BoolType && rhs_t->tag == BoolType) {

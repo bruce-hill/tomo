@@ -50,6 +50,8 @@ typedef enum {
     BINOP_AND, BINOP_OR, BINOP_XOR,
 } binop_e;
 
+extern const char *binop_method_names[BINOP_XOR+1];
+
 typedef enum {
     UnknownTypeAST,
     VarTypeAST,

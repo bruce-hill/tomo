@@ -999,6 +999,48 @@ static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg
     return code;
 }
 
+CORD compile_math_method(env_t *env, ast_t *ast, binop_e op, ast_t *lhs, ast_t *rhs)
+{
+    // Math methods are things like __add(), __sub(), etc. If we don't find a
+    // matching method, return CORD_EMPTY.
+    const char *method_name = binop_method_names[op];
+    if (!method_name)
+        return CORD_EMPTY;
+
+    type_t *lhs_t = get_type(env, lhs);
+    type_t *rhs_t = get_type(env, rhs);
+    for (int64_t i = 1; ; ) {
+        binding_t *b = get_namespace_binding(env, lhs, method_name);
+        if (b && b->type->tag == FunctionType) {
+            auto fn = Match(b->type, FunctionType);
+            if (fn->args && fn->args->next && can_promote(lhs_t, get_arg_type(env, fn->args))
+                && can_promote(rhs_t, get_arg_type(env, fn->args->next))) {
+                return CORD_all(
+                    b->code, "(",
+                    compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=lhs, .next=new(arg_ast_t, .value=rhs))),
+                    ")");
+            }
+        }
+        binding_t *b2 = get_namespace_binding(env, rhs, method_name);
+        if (b2 && b2->type->tag == FunctionType) {
+            auto fn = Match(b2->type, FunctionType);
+            if (fn->args && fn->args->next && can_promote(lhs_t, get_arg_type(env, fn->args))
+                && can_promote(rhs_t, get_arg_type(env, fn->args->next))) {
+                return CORD_all(
+                    b2->code, "(",
+                    compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=lhs, .next=new(arg_ast_t, .value=rhs))),
+                    ")");
+            }
+        }
+        if (!b && !b2) break;
+
+        // If we found __foo, but it didn't match the types, check for
+        // __foo2, __foo3, etc. until we stop finding methods with that name.
+        method_name = heap_strf("%s%ld", binop_method_names[op], ++i);
+    }
+    return CORD_EMPTY;
+}
+
 CORD compile(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
@@ -1075,6 +1117,10 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case BinaryOp: {
         auto binop = Match(ast, BinaryOp);
+        CORD method_call = compile_math_method(env, ast, binop->op, binop->lhs, binop->rhs);
+        if (method_call != CORD_EMPTY)
+            return method_call;
+
         CORD lhs = compile(env, binop->lhs);
         CORD rhs = compile(env, binop->rhs);
 
