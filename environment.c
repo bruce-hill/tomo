@@ -364,12 +364,8 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
         code_err(self, "I couldn't get this type");
     type_t *cls_type = value_type(self_type);
     switch (cls_type->tag) {
-    case ArrayType: {
-        errx(1, "Array methods not implemented");
-    }
-    case TableType: {
-        errx(1, "Table methods not implemented");
-    }
+    case ArrayType: return NULL;
+    case TableType: return NULL;
     case BoolType: case IntType: case NumType: {
         binding_t *b = get_binding(env, CORD_to_const_char_star(type_to_cord(cls_type)));
         assert(b);

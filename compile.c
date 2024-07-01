@@ -450,16 +450,31 @@ CORD compile_statement(env_t *env, ast_t *ast)
         else
             code_err(ast, "I can't do operations between %T and %T", lhs_t, rhs_t);
 
-        if (operand_t->tag != IntType && operand_t->tag != NumType)
-            code_err(ast, "I can't do an update assignment with this operator between %T and %T", lhs_t, rhs_t);
-        
         switch (update->op) {
-        case BINOP_MULT: return CORD_all(lhs, " *= ", rhs, ";");
-        case BINOP_DIVIDE: return CORD_all(lhs, " /= ", rhs, ";");
-        case BINOP_MOD: return CORD_all(lhs, " = ", lhs, " % ", rhs);
-        case BINOP_MOD1: return CORD_all(lhs, " = (", lhs, " % ", rhs, ") + 1;");
-        case BINOP_PLUS: return CORD_all(lhs, " += ", rhs, ";");
-        case BINOP_MINUS: return CORD_all(lhs, " -= ", rhs, ";");
+        case BINOP_MULT:
+            if (operand_t->tag != IntType && operand_t->tag != NumType)
+                code_err(ast, "I can't do a multiply assignment with this operator between %T and %T", lhs_t, rhs_t);
+            return CORD_all(lhs, " *= ", rhs, ";");
+        case BINOP_DIVIDE:
+            if (operand_t->tag != IntType && operand_t->tag != NumType)
+                code_err(ast, "I can't do a divide assignment with this operator between %T and %T", lhs_t, rhs_t);
+            return CORD_all(lhs, " /= ", rhs, ";");
+        case BINOP_MOD:
+            if (operand_t->tag != IntType && operand_t->tag != NumType)
+                code_err(ast, "I can't do a mod assignment with this operator between %T and %T", lhs_t, rhs_t);
+            return CORD_all(lhs, " = ", lhs, " % ", rhs);
+        case BINOP_MOD1:
+            if (operand_t->tag != IntType && operand_t->tag != NumType)
+                code_err(ast, "I can't do a mod assignment with this operator between %T and %T", lhs_t, rhs_t);
+            return CORD_all(lhs, " = (", lhs, " % ", rhs, ") + 1;");
+        case BINOP_PLUS:
+            if (operand_t->tag != IntType && operand_t->tag != NumType)
+                code_err(ast, "I can't do an addition assignment with this operator between %T and %T", lhs_t, rhs_t);
+            return CORD_all(lhs, " += ", rhs, ";");
+        case BINOP_MINUS:
+            if (operand_t->tag != IntType && operand_t->tag != NumType)
+                code_err(ast, "I can't do a subtraction assignment with this operator between %T and %T", lhs_t, rhs_t);
+            return CORD_all(lhs, " -= ", rhs, ";");
         case BINOP_POWER: {
             if (lhs_t->tag != NumType)
                 code_err(ast, "'^=' is only supported for Num types");
@@ -468,8 +483,14 @@ CORD compile_statement(env_t *env, ast_t *ast)
             else
                 return CORD_all(lhs, " = pow(", lhs, ", ", rhs, ");");
         }
-        case BINOP_LSHIFT: return CORD_all(lhs, " <<= ", rhs, ";");
-        case BINOP_RSHIFT: return CORD_all(lhs, " >>= ", rhs, ";");
+        case BINOP_LSHIFT:
+            if (operand_t->tag != IntType)
+                code_err(ast, "I can't do a shift assignment with this operator between %T and %T", lhs_t, rhs_t);
+            return CORD_all(lhs, " <<= ", rhs, ";");
+        case BINOP_RSHIFT:
+            if (operand_t->tag != IntType)
+                code_err(ast, "I can't do a shift assignment with this operator between %T and %T", lhs_t, rhs_t);
+            return CORD_all(lhs, " >>= ", rhs, ";");
         case BINOP_AND: {
             if (operand_t->tag == BoolType)
                 return CORD_all("if (", lhs, ") ", lhs, " = ", rhs, ";");
@@ -486,7 +507,10 @@ CORD compile_statement(env_t *env, ast_t *ast)
             else
                 code_err(ast, "'or=' is not implemented for %T types", operand_t);
         }
-        case BINOP_XOR: return CORD_all(lhs, " ^= ", rhs, ";");
+        case BINOP_XOR:
+            if (operand_t->tag != IntType && operand_t->tag != BoolType)
+                code_err(ast, "I can't do an xor assignment with this operator between %T and %T", lhs_t, rhs_t);
+            return CORD_all(lhs, " ^= ", rhs, ";");
         case BINOP_CONCAT: {
             if (operand_t->tag == TextType) {
                 return CORD_all(lhs, " = CORD_cat(", lhs, ", ", rhs, ");");
