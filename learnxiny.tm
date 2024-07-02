@@ -21,6 +21,15 @@ func main():
     // Strings can use interpolation with curly braces:
     say("My variable is {my_variable}")
 
+    say("
+        Multiline strings begin with a " at the end of a line and continue in
+        an indented region below.
+          You can have leading spaces after the first line
+          and they'll be preserved.
+
+        The multiline string won't include a leading or trailing newline.
+    ")
+
     // Docstring tests use ">>" and when the program runs, they will print
     // their source code to the console on stderr.
     >> 1 + 2
