@@ -39,3 +39,32 @@ func main():
             say("Made it through inner loop")
 
         say("Made it through the loop")
+    
+    >> thunk := func(return_early=no):
+        say("Entering thunk")
+        defer:
+            say("Deferred thunk cleanup")
+
+        if return_early:
+            say("Returning early...")
+            return
+
+        say("Finished thunk")
+
+    >> thunk(no)
+    >> thunk(yes)
+
+    >> defer_func(yes)
+    >> defer_func(no)
+
+func defer_func(return_early=no):
+    say("Entering defer_func")
+    defer:
+        say("Deferred defer_func cleanup")
+
+    if return_early:
+        say("Returning early...")
+        return
+
+    say("Finished defer_func")
+

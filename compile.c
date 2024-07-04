@@ -583,6 +583,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         }
 
         env_t *body_scope = fresh_scope(env);
+        body_scope->deferred = NULL;
         body_scope->namespace = NULL;
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
@@ -899,7 +900,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         for (deferral_t *deferred = env->deferred; deferred && deferred != prev_deferred; deferred = deferred->next) {
             code = CORD_all(code, compile_statement(deferred->defer_env, deferred->block));
         }
-        return CORD_cat(code, "}");
+        return CORD_cat(code, "}\n");
     }
     case Comprehension: {
         auto comp = Match(ast, Comprehension);
@@ -1673,6 +1674,7 @@ CORD compile(env_t *env, ast_t *ast)
         };
         body_scope->fn_ctx = &fn_ctx;
         body_scope->locals->fallback = env->globals;
+        body_scope->deferred = NULL;
         type_t *ret_t = get_type(body_scope, lambda->body);
         fn_ctx.return_type = ret_t;
 
@@ -1709,7 +1711,10 @@ CORD compile(env_t *env, ast_t *ast)
             else
                 body = CORD_all(body, compile_statement(body_scope, FakeAST(Return, stmt->ast)), "\n");
         }
-        env->code->funcs = CORD_all(env->code->funcs, code, " {\n", body, "\n}");
+        if ((ret_t->tag == VoidType || ret_t->tag == AbortType) && body_scope->deferred)
+            body = CORD_all(body, compile_statement(body_scope, FakeAST(Return)), "\n");
+
+        env->code->funcs = CORD_all(env->code->funcs, code, " {\n", body, "\n}\n");
         return CORD_all("(closure_t){", name, ", ", userdata, "}");
     }
     case MethodCall: {
