@@ -904,8 +904,7 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
         return CORD_asprintf("%r$as_text(stack(%r), %r, &$%r)", name, expr, color, name);
     }
     case TextType: {
-        const char *lang = Match(t, TextType)->lang;
-        return CORD_asprintf("Text$as_text(stack(%r), %r, &%s)", expr, color, lang ? lang : "$Text");
+        return CORD_asprintf("Text$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     }
     case ArrayType: return CORD_asprintf("Array$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case TableType: return CORD_asprintf("Table$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
