@@ -500,7 +500,7 @@ public uint32_t Table$hash(const table_t *t, const TypeInfo *type)
         default_hash,
     };
     uint32_t hash;
-    halfsiphash(&components, sizeof(components), TOMO_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));
+    halfsiphash(&components, sizeof(components), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));
     return hash;
 }
 

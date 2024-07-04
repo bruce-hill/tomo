@@ -71,7 +71,7 @@ public bool Pointer$equal(const void *x, const void *y, const TypeInfo *type) {
 public uint32_t Pointer$hash(const void *x, const TypeInfo *type) {
     (void)type;
     uint32_t hash;
-    halfsiphash(x, sizeof(void*), TOMO_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));
+    halfsiphash(x, sizeof(void*), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));
     return hash;
 }
 

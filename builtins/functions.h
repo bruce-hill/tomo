@@ -8,7 +8,7 @@
 
 #include "types.h"
 
-extern const char *TOMO_HASH_VECTOR;
+extern uint8_t TOMO_HASH_KEY[8];
 
 void tomo_init(void);
 

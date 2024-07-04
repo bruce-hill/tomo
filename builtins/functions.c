@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/param.h>
+#include <sys/random.h>
 #include <uninorm.h>
 #include <unistd.h>
 
@@ -22,14 +23,17 @@
 #include "types.h"
 #include "util.h"
 
-public const char *TOMO_HASH_VECTOR = "tomo hash vector ---------------------------------------------";
+public uint8_t TOMO_HASH_KEY[8] = {0};
 
 public void tomo_init(void)
 {
    GC_INIT();
    USE_COLOR = getenv("COLOR") ? strcmp(getenv("COLOR"), "1") == 0 : isatty(STDOUT_FILENO);
-   srand(arc4random_uniform(UINT32_MAX));
-   srand48(arc4random_uniform(UINT32_MAX));
+   getrandom(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0);
+   unsigned int seed;
+   getrandom(&seed, sizeof(seed), 0);
+   srand(seed);
+   srand48(seed);
 }
 
 public void fail(CORD fmt, ...)
@@ -98,7 +102,7 @@ public uint32_t generic_hash(const void *obj, const TypeInfo *type)
     default: {
       hash_data:;
         uint32_t hash;
-        halfsiphash((void*)obj, type->size, TOMO_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));
+        halfsiphash((void*)obj, type->size, TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));
         return hash;
     }
     }

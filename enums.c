@@ -124,7 +124,7 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
         return CORD_all("static uint32_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo *info) {\n"
                         "(void)info;\n"
                         "uint32_t hash;\n"
-                        "halfsiphash(&obj->$tag, sizeof(obj->$tag), TOMO_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));\n"
+                        "halfsiphash(&obj->$tag, sizeof(obj->$tag), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));\n"
                         "return hash;"
                         "\n}\n");
     }
@@ -144,7 +144,7 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
     }
     hash_func = CORD_all(hash_func, "}\n"
                          "uint32_t hash;\n"
-                         "halfsiphash(&hashes, sizeof(hashes), TOMO_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));\n"
+                         "halfsiphash(&hashes, sizeof(hashes), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));\n"
                          "return hash;\n}\n");
     return hash_func;
 }

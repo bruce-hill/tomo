@@ -38,7 +38,7 @@ public uint32_t CString$hash(const char **c_str)
     if (!*c_str) return 0;
 
     uint32_t hash;
-    halfsiphash(*c_str, strlen(*c_str), TOMO_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));
+    halfsiphash(*c_str, strlen(*c_str), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));
     return hash;
 }
 

@@ -426,7 +426,7 @@ public uint32_t Array$hash(const array_t *arr, const TypeInfo *type)
         for (int64_t i = 0; i < arr->length; i++) {
             if (p >= end) {
                 uint32_t chunk_hash;
-                halfsiphash(&hash_batch, sizeof(hash_batch), TOMO_HASH_VECTOR, (uint8_t*)&chunk_hash, sizeof(chunk_hash));
+                halfsiphash(&hash_batch, sizeof(hash_batch), TOMO_HASH_KEY, (uint8_t*)&chunk_hash, sizeof(chunk_hash));
                 p = hash_batch;
                 *(uint32_t*)p = chunk_hash;
                 p += sizeof(uint32_t);
@@ -434,7 +434,7 @@ public uint32_t Array$hash(const array_t *arr, const TypeInfo *type)
             memcpy((p += item_size), arr->data + i*arr->stride, item_size);
         }
         uint32_t hash;
-        halfsiphash(&hash_batch, ((int64_t)p) - ((int64_t)hash_batch), TOMO_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));
+        halfsiphash(&hash_batch, ((int64_t)p) - ((int64_t)hash_batch), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));
         return hash;
     } else {
         uint32_t hash_batch[16] = {(uint32_t)arr->length};
@@ -442,14 +442,14 @@ public uint32_t Array$hash(const array_t *arr, const TypeInfo *type)
         for (int64_t i = 0; i < arr->length; i++) {
             if (p >= end) {
                 uint64_t chunk_hash;
-                halfsiphash(&hash_batch, sizeof(hash_batch), TOMO_HASH_VECTOR, (uint8_t*)&chunk_hash, sizeof(chunk_hash));
+                halfsiphash(&hash_batch, sizeof(hash_batch), TOMO_HASH_KEY, (uint8_t*)&chunk_hash, sizeof(chunk_hash));
                 p = hash_batch;
                 *(p++) = chunk_hash;
             }
             *(p++) = generic_hash(arr->data + i*arr->stride, item);
         }
         uint32_t hash;
-        halfsiphash(&hash_batch, ((int64_t)p) - ((int64_t)hash_batch), TOMO_HASH_VECTOR, (uint8_t*)&hash, sizeof(hash));
+        halfsiphash(&hash_batch, ((int64_t)p) - ((int64_t)hash_batch), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));
         return hash;
     }
 }
