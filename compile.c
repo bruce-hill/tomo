@@ -649,7 +649,10 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     CORD_sprintf(&ctx->skip_label, "skip_%ld", skip_label_count);
                     ++skip_label_count;
                 }
-                return CORD_all("goto ", ctx->skip_label, ";");
+                CORD code = CORD_EMPTY;
+                for (deferral_t *deferred = env->deferred; deferred && deferred != ctx->deferred; deferred = deferred->next)
+                    code = CORD_all(code, compile_statement(deferred->defer_env, deferred->block));
+                return CORD_all(code, "goto ", ctx->skip_label, ";");
             }
         }
         if (env->loop_ctx)
@@ -669,7 +672,10 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     CORD_sprintf(&ctx->stop_label, "stop_%ld", stop_label_count);
                     ++stop_label_count;
                 }
-                return CORD_all("goto ", ctx->stop_label, ";");
+                CORD code = CORD_EMPTY;
+                for (deferral_t *deferred = env->deferred; deferred && deferred != ctx->deferred; deferred = deferred->next)
+                    code = CORD_all(code, compile_statement(deferred->defer_env, deferred->block));
+                return CORD_all(code, "goto ", ctx->stop_label, ";");
             }
         }
         if (env->loop_ctx)
@@ -680,6 +686,25 @@ CORD compile_statement(env_t *env, ast_t *ast)
             code_err(ast, "I couldn't figure out how to make this stop work!");
     }
     case Pass: return ";";
+    case Defer: {
+        ast_t *body = Match(ast, Defer)->body;
+        table_t *closed_vars = get_closed_vars(env, FakeAST(Lambda, .args=NULL, .body=body));
+
+        static int defer_id = 0;
+        env_t *defer_env = fresh_scope(env);
+        CORD code = CORD_EMPTY;
+        for (int64_t i = 1; i <= Table$length(*closed_vars); i++) {
+            struct { const char *name; binding_t *b; } *entry = Table$entry(*closed_vars, i);
+            if (entry->b->type->tag == ModuleType)
+                continue;
+            CORD defer_name = CORD_asprintf("defer$%d$%s", ++defer_id, entry->name);
+            code = CORD_all(
+                code, compile_declaration(entry->b->type, defer_name), " = ", entry->b->code, ";\n");
+            set_binding(defer_env, entry->name, new(binding_t, .type=entry->b->type, .code=defer_name));
+        }
+        env->deferred = new(deferral_t, .defer_env=defer_env, .block=body, .next=env->deferred);
+        return code;
+    }
     case PrintStatement: {
         ast_list_t *to_print = Match(ast, PrintStatement)->to_print;
         if (!to_print)
@@ -700,6 +725,12 @@ CORD compile_statement(env_t *env, ast_t *ast)
         if (!env->fn_ctx) code_err(ast, "This return statement is not inside any function");
         auto ret = Match(ast, Return)->value;
         assert(env->fn_ctx->return_type);
+
+        CORD code = CORD_EMPTY;
+        for (deferral_t *deferred = env->deferred; deferred; deferred = deferred->next) {
+            code = CORD_all(code, compile_statement(deferred->defer_env, deferred->block));
+        }
+
         if (ret) {
             env = with_enum_scope(env, env->fn_ctx->return_type);
             type_t *ret_t = get_type(env, ret);
@@ -707,11 +738,11 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (!promote(env, &value, ret_t, env->fn_ctx->return_type))
                 code_err(ast, "This function expects a return value of type %T, but this return has type %T", 
                          env->fn_ctx->return_type, ret_t);
-            return CORD_all("return ", value, ";");
+            return CORD_all(code, "return ", value, ";");
         } else {
             if (env->fn_ctx->return_type->tag != VoidType)
                 code_err(ast, "This function expects a return value of type %T", env->fn_ctx->return_type->tag);
-            return "return;";
+            return CORD_all(code, "return;");
         }
     }
     case While: {
@@ -719,6 +750,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         env_t *scope = fresh_scope(env);
         loop_ctx_t loop_ctx = (loop_ctx_t){
             .loop_name="while",
+            .deferred=scope->deferred,
             .next=env->loop_ctx,
         };
         scope->loop_ctx = &loop_ctx;
@@ -740,6 +772,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             .loop_name="for",
             .key_name=for_->index ? Match(for_->index, Var)->name : CORD_EMPTY,
             .value_name=for_->value ? Match(for_->value, Var)->name : CORD_EMPTY,
+            .deferred=body_scope->deferred,
             .next=body_scope->loop_ctx,
         };
         body_scope->loop_ctx = &loop_ctx;
@@ -855,12 +888,16 @@ CORD compile_statement(env_t *env, ast_t *ast)
     case Block: {
         ast_list_t *stmts = Match(ast, Block)->statements;
         CORD code = "{\n";
+        deferral_t *prev_deferred = env->deferred;
         env = fresh_scope(env);
         for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next)
             prebind_statement(env, stmt->ast);
         for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next) {
             bind_statement(env, stmt->ast);
             code = CORD_all(code, compile_statement(env, stmt->ast), "\n");
+        }
+        for (deferral_t *deferred = env->deferred; deferred && deferred != prev_deferred; deferred = deferred->next) {
+            code = CORD_all(code, compile_statement(deferred->defer_env, deferred->block));
         }
         return CORD_cat(code, "}");
     }
@@ -1439,6 +1476,7 @@ CORD compile(env_t *env, ast_t *ast)
             return compile(env, stmts->ast);
 
         CORD code = "({\n";
+        deferral_t *prev_deferred = env->deferred;
         env = fresh_scope(env);
         for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next)
             prebind_statement(env, stmt->ast);
@@ -1447,9 +1485,14 @@ CORD compile(env_t *env, ast_t *ast)
             if (stmt->next) {
                 code = CORD_all(code, compile_statement(env, stmt->ast), "\n");
             } else {
+                // TODO: put defer after evaluating block expression
+                for (deferral_t *deferred = env->deferred; deferred && deferred != prev_deferred; deferred = deferred->next) {
+                    code = CORD_all(code, compile_statement(deferred->defer_env, deferred->block));
+                }
                 code = CORD_all(code, compile(env, stmt->ast), ";\n");
             }
         }
+
         return CORD_cat(code, "})");
     }
     case Min: case Max: {
@@ -2036,6 +2079,7 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Use: code_err(ast, "Compiling 'use' as expression!");
     case Import: code_err(ast, "Compiling 'import' as expression!");
+    case Defer: code_err(ast, "Compiling 'defer' as expression!");
     case LinkerDirective: code_err(ast, "Linker directives are not supported yet");
     case Extern: code_err(ast, "Externs are not supported as expressions");
     case TableEntry: code_err(ast, "Table entries should not be compiled directly");

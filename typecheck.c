@@ -738,7 +738,7 @@ type_t *get_type(env_t *env, ast_t *ast)
     case Return: case Stop: case Skip: case PrintStatement: {
         return Type(AbortType);
     }
-    case Pass: return Type(VoidType);
+    case Pass: case Defer: return Type(VoidType);
     case Length: return Type(IntType, .bits=64);
     case Negative: {
         ast_t *value = Match(ast, Negative)->value;

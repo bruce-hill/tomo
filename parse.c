@@ -49,7 +49,7 @@ int op_tightness[] = {
 static const char *keywords[] = {
     "yes", "xor", "while", "when", "use", "then", "struct", "stop", "skip", "return",
     "or", "not", "no", "mod1", "mod", "pass", "lang", "import", "inline", "in", "if",
-    "func", "for", "extern", "enum", "else", "do", "and", "_min_", "_max_",
+    "func", "for", "extern", "enum", "else", "do", "defer", "and", "_min_", "_max_",
     NULL,
 };
 
@@ -1186,6 +1186,13 @@ PARSER(parse_pass) {
     return match_word(&pos, "pass") ? NewAST(ctx->file, start, pos, Pass) : NULL;
 }
 
+PARSER(parse_defer) {
+    const char *start = pos;
+    if (!match_word(&pos, "defer")) return NULL;
+    ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a block to be deferred here");
+    return NewAST(ctx->file, start, pos, Defer, .body=body);
+}
+
 PARSER(parse_skip) {
     const char *start = pos;
     if (!match_word(&pos, "skip")) return NULL;
@@ -1266,6 +1273,7 @@ PARSER(parse_term_no_suffix) {
         || (term=parse_array(ctx, pos))
         || (term=parse_reduction(ctx, pos))
         || (term=parse_pass(ctx, pos))
+        || (term=parse_defer(ctx, pos))
         || (term=parse_skip(ctx, pos))
         || (term=parse_stop(ctx, pos))
         || (term=parse_return(ctx, pos))

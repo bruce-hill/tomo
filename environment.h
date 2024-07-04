@@ -20,9 +20,16 @@ typedef struct {
     table_t *closed_vars;
 } fn_ctx_t;
 
+typedef struct deferral_s {
+    struct deferral_s *next;
+    struct env_s *defer_env;
+    ast_t *block;
+} deferral_t;
+
 typedef struct loop_ctx_s {
     struct loop_ctx_s *next;
     const char *loop_name, *key_name, *value_name;
+    deferral_t *deferred;
     CORD skip_label, stop_label;
 } loop_ctx_t;
 
@@ -37,6 +44,7 @@ typedef struct env_s {
     compilation_unit_t *code;
     fn_ctx_t *fn_ctx;
     loop_ctx_t *loop_ctx;
+    deferral_t *deferred;
     CORD *libname; // Pointer to currently compiling library name (if any)
     namespace_t *namespace;
     const char *comprehension_var;

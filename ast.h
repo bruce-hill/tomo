@@ -111,6 +111,7 @@ typedef enum {
     For, While, If, When,
     Reduction,
     Skip, Stop, Pass,
+    Defer,
     Return,
     Extern,
     StructDef, EnumDef, LangDef,
@@ -233,6 +234,9 @@ struct ast_s {
             const char *target;
         } Skip, Stop;
         struct {} Pass;
+        struct {
+            ast_t *body;
+        } Defer;
         struct {
             ast_t *value;
         } Return;
