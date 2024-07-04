@@ -99,7 +99,7 @@ typedef enum {
     Unknown = 0,
     Nil, Bool, Var,
     Int, Num,
-    TextLiteral, TextJoin,
+    TextLiteral, TextJoin, PrintStatement,
     Declare, Assign,
     BinaryOp, UpdateAssign,
     Length, Not, Negative, HeapAllocate, StackReference,
@@ -151,6 +151,9 @@ struct ast_s {
             const char *lang;
             ast_list_t *children;
         } TextJoin;
+        struct {
+            ast_list_t *to_print;
+        } PrintStatement;
         struct {
             ast_t *var;
             ast_t *value;

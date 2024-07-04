@@ -1,11 +1,14 @@
 func main():
 	>> str := "Hello Amélie!"
+	!! Testing strings like {str}
+
 	>> str:upper()
 	= "HELLO AMÉLIE!"
 	>> str:lower()
 	= "hello amélie!"
 	>> str:lower():title()
 	= "Hello Amélie!"
+
 
 	>> \UE9
 	= "é"

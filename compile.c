@@ -17,6 +17,7 @@
 static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool allow_optional);
 static env_t *with_enum_scope(env_t *env, type_t *t);
 static CORD compile_math_method(env_t *env, ast_t *ast, binop_e op, ast_t *lhs, ast_t *rhs, type_t *required_type);
+static CORD compile_string(env_t *env, ast_t *ast, CORD color);
 
 static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
 {
@@ -679,6 +680,23 @@ CORD compile_statement(env_t *env, ast_t *ast)
             code_err(ast, "I couldn't figure out how to make this stop work!");
     }
     case Pass: return ";";
+    case PrintStatement: {
+        ast_list_t *to_print = Match(ast, PrintStatement)->to_print;
+        if (!to_print)
+            return CORD_EMPTY;
+
+        CORD code = "say(CORD_all(";
+        for (ast_list_t *chunk = to_print; chunk; chunk = chunk->next) {
+            type_t *t = get_type(env, chunk->ast);
+            if (t->tag == TextType && !Match(t, TextType)->lang) {
+                code = CORD_cat(code, compile(env, chunk->ast));
+            } else {
+                code = CORD_cat(code, compile_string(env, chunk->ast, "USE_COLOR"));
+            }
+            if (chunk->next) code = CORD_cat(code, ", ");
+        }
+        return CORD_cat(code, "));");
+    }
     case Return: {
         if (!env->fn_ctx) code_err(ast, "This return statement is not inside any function");
         auto ret = Match(ast, Return)->value;
@@ -2023,7 +2041,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Extern: code_err(ast, "Externs are not supported as expressions");
     case TableEntry: code_err(ast, "Table entries should not be compiled directly");
     case Declare: case Assign: case UpdateAssign: case For: case While: case StructDef: case LangDef:
-    case EnumDef: case FunctionDef: case Skip: case Stop: case Pass: case Return: case DocTest:
+    case EnumDef: case FunctionDef: case Skip: case Stop: case Pass: case Return: case DocTest: case PrintStatement:
         code_err(ast, "This is not a valid expression");
     case Unknown: code_err(ast, "Unknown AST");
     }

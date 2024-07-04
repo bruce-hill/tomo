@@ -735,7 +735,7 @@ type_t *get_type(env_t *env, ast_t *ast)
     case Use: {
         return Type(ModuleType, Match(ast, Use)->name);
     }
-    case Return: case Stop: case Skip: {
+    case Return: case Stop: case Skip: case PrintStatement: {
         return Type(AbortType);
     }
     case Pass: return Type(VoidType);
