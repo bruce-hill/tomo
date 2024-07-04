@@ -741,10 +741,19 @@ type_t *get_type(env_t *env, ast_t *ast)
     case Pass: return Type(VoidType);
     case Length: return Type(IntType, .bits=64);
     case Negative: {
-        type_t *t = get_type(env, Match(ast, Negative)->value);
+        ast_t *value = Match(ast, Negative)->value;
+        type_t *t = get_type(env, value);
         if (t->tag == IntType || t->tag == NumType)
             return t;
-        code_err(ast, "I only know how to get negatives of numeric types, not %T", t);
+
+        binding_t *b = get_namespace_binding(env, value, "__negative");
+        if (b && b->type->tag == FunctionType) {
+            auto fn = Match(b->type, FunctionType);
+            if (fn->args && can_promote(t, get_arg_type(env, fn->args)))
+                return fn->ret;
+        }
+
+        code_err(ast, "I don't know how to get the negative value of type %T", t);
     }
     case Not: {
         type_t *t = get_type(env, Match(ast, Not)->value);

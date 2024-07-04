@@ -1131,7 +1131,16 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("I64((", table, ").entries.length)");
             }
         }
-        default: code_err(ast, "Length is only supported for strings, arrays, and tables, not: %T", t);
+        default: {
+            binding_t *b = get_namespace_binding(env, expr, "__length");
+            if (b && b->type->tag == FunctionType) {
+                auto fn = Match(b->type, FunctionType);
+                if (type_eq(fn->ret, INT_TYPE) && fn->args && can_promote(t, get_arg_type(env, fn->args)))
+                    return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=expr)), ")");
+            }
+
+            code_err(ast, "Length is not implemented for %T values", t);
+        }
         }
         break;
     }
@@ -1149,7 +1158,22 @@ CORD compile(env_t *env, ast_t *ast)
         else
             code_err(ast, "I don't know how to negate values of type %T", t);
     }
-    case Negative: return CORD_asprintf("-(%r)", compile(env, Match(ast, Negative)->value));
+    case Negative: {
+        ast_t *value = Match(ast, Negative)->value;
+        type_t *t = get_type(env, value);
+        if (t->tag == IntType || t->tag == NumType)
+            return CORD_all("-(", compile(env, value), ")");
+
+        binding_t *b = get_namespace_binding(env, value, "__negative");
+        if (b && b->type->tag == FunctionType) {
+            auto fn = Match(b->type, FunctionType);
+            if (fn->args && can_promote(t, get_arg_type(env, fn->args)))
+                return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=value)), ")");
+        }
+
+        code_err(ast, "I don't know how to get the negative value of type %T", t);
+
+    }
     case HeapAllocate: return CORD_asprintf("heap(%r)", compile(env, Match(ast, HeapAllocate)->value));
     case StackReference: {
         ast_t *subject = Match(ast, StackReference)->value;

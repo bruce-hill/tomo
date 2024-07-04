@@ -17,6 +17,12 @@ struct Vec2(x,y:Int):
     func __mul4(a,b:Vec2; inline)->Vec2:
         return Vec2(a.x*b.x, a.y*b.y)
 
+    func __negative(v:Vec2; inline)->Vec2:
+        return Vec2(-v.x, -v.y)
+
+    func __length(v:Vec2; inline)->Int:
+        return 2
+
 func main():
     >> x := Vec2(10, 20)
     >> y := Vec2(100, 200)
@@ -36,3 +42,10 @@ func main():
     = Vec2(x=11, y=22)
     >> x *= Vec2(10, -1)
     = Vec2(x=110, y=-22)
+
+    >> x = Vec2(1, 2)
+    >> -x
+    = Vec2(x=-1, y=-2)
+    >> #x
+    = 2
+
