@@ -597,6 +597,10 @@ CORD compile_statement(env_t *env, ast_t *ast)
         };
         body_scope->fn_ctx = &fn_ctx;
 
+
+        if (ret_t->tag != VoidType && ret_t->tag != AbortType && get_type(body_scope, fndef->body)->tag != AbortType)
+            code_err(ast, "This function can reach the end without returning a %T value!", ret_t);
+
         CORD body = compile_statement(body_scope, fndef->body);
         if (CORD_fetch(body, 0) != '{')
             body = CORD_asprintf("{\n%r\n}", body);
@@ -733,6 +737,9 @@ CORD compile_statement(env_t *env, ast_t *ast)
         }
 
         if (ret) {
+            if (env->fn_ctx->return_type->tag == VoidType || env->fn_ctx->return_type->tag == AbortType)
+                code_err(ast, "This function is not supposed to return any values, according to its type signature");
+
             env = with_enum_scope(env, env->fn_ctx->return_type);
             type_t *ret_t = get_type(env, ret);
             CORD value = compile(env, ret);
@@ -742,7 +749,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             return CORD_all(code, "return ", value, ";");
         } else {
             if (env->fn_ctx->return_type->tag != VoidType)
-                code_err(ast, "This function expects a return value of type %T", env->fn_ctx->return_type->tag);
+                code_err(ast, "This function expects you to return a %T value", env->fn_ctx->return_type);
             return CORD_all(code, "return;");
         }
     }
