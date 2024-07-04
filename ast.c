@@ -18,9 +18,9 @@ static const char *OP_NAMES[] = {
 };
 
 const char *binop_method_names[BINOP_XOR+1] = {
-    [BINOP_POWER]="__pow", [BINOP_MULT]="__mul", [BINOP_DIVIDE]="__div",
-    [BINOP_MOD]="__mod", [BINOP_MOD1]="__mod1", [BINOP_PLUS]="__add", [BINOP_MINUS]="__sub",
-    [BINOP_CONCAT]="__concat", [BINOP_LSHIFT]="__lshift", [BINOP_RSHIFT]="__rshift",
+    [BINOP_POWER]="__power", [BINOP_MULT]="__multiply", [BINOP_DIVIDE]="__divide",
+    [BINOP_MOD]="__mod", [BINOP_MOD1]="__mod1", [BINOP_PLUS]="__add", [BINOP_MINUS]="__subtract",
+    [BINOP_CONCAT]="__concatenate", [BINOP_LSHIFT]="__left_shift", [BINOP_RSHIFT]="__right_shift",
     [BINOP_AND]="__and", [BINOP_OR]="__or", [BINOP_XOR]="__xor",
 };
 

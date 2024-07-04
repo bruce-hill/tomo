@@ -2,19 +2,19 @@ struct Vec2(x,y:Int):
     func __add(a,b:Vec2; inline)->Vec2:
         return Vec2(a.x+b.x, a.y+b.y)
 
-    func __sub(a,b:Vec2; inline)->Vec2:
+    func __subtract(a,b:Vec2; inline)->Vec2:
         return Vec2(a.x-b.x, a.y-b.y)
 
-    func __mul(a,b:Vec2; inline)->Int:
+    func __multiply(a,b:Vec2; inline)->Int:
         return a.x*b.x + a.y*b.y
 
-    func __mul2(a:Vec2,b:Int; inline)->Vec2:
+    func __multiply2(a:Vec2,b:Int; inline)->Vec2:
         return Vec2(a.x*b, a.y*b)
 
-    func __mul3(a:Int,b:Vec2; inline)->Vec2:
+    func __multiply3(a:Int,b:Vec2; inline)->Vec2:
         return Vec2(a*b.x, a*b.y)
 
-    func __mul4(a,b:Vec2; inline)->Vec2:
+    func __multiply4(a,b:Vec2; inline)->Vec2:
         return Vec2(a.x*b.x, a.y*b.y)
 
     func __negative(v:Vec2; inline)->Vec2:
