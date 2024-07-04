@@ -687,8 +687,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         CORD code = "say(CORD_all(";
         for (ast_list_t *chunk = to_print; chunk; chunk = chunk->next) {
-            type_t *t = get_type(env, chunk->ast);
-            if (t->tag == TextType && !Match(t, TextType)->lang) {
+            if (chunk->ast->tag == TextLiteral) {
                 code = CORD_cat(code, compile(env, chunk->ast));
             } else {
                 code = CORD_cat(code, compile_string(env, chunk->ast, "USE_COLOR"));
