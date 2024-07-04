@@ -1619,7 +1619,16 @@ PARSER(parse_block) {
                 break;
             }
             statements = new(ast_list_t, .ast=stmt, .next=statements);
-            whitespace(&pos); // TODO: check for newline
+            whitespace(&pos);
+
+            // Guard against having two valid statements on the same line, separated by spaces (but no newlines):
+            if (!memchr(stmt->end, '\n', (size_t)(pos - stmt->end))) {
+                if (*pos)
+                    parser_err(ctx, pos, strchrnul(pos, '\n'), "I don't know how to parse the rest of this line");
+                pos = stmt->end;
+                break;
+            }
+
             if (get_indent(ctx, pos) != block_indent) {
                 pos = stmt->end; // backtrack
                 break;
