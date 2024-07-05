@@ -1,6 +1,6 @@
 func main():
 	>> str := "Hello Amélie!"
-	!! Testing strings like {str}
+	| Testing strings like {str}
 
 	>> str:upper()
 	= "HELLO AMÉLIE!"

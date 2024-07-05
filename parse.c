@@ -2035,7 +2035,7 @@ PARSER(parse_doctest) {
 
 PARSER(parse_say) {
     const char *start = pos;
-    if (!match(&pos, "!!")) return NULL;
+    if (!match(&pos, "|")) return NULL;
     spaces(&pos);
 
     ast_list_t *chunks = NULL;
