@@ -69,11 +69,12 @@ Tomo has a very small set of dependencies:
 	garbage collection.
 - [libunistring](https://www.gnu.org/software/libunistring/) for unicode
 	string support.
+- [Binutils](https://www.gnu.org/software/binutils/) for stack traces.
 - a C compiler
 - and libc/libm, which should definitely already be installed.
 
-The Boehm GC and libunistring should be available on your package manager of
-choice (for example, `pacman -S gc libunistring`).
+The Boehm GC, libunistring, and binutils should be available on your package
+manager of choice (for example, `pacman -S gc libunistring binutils`).
 
 ## Building
 
