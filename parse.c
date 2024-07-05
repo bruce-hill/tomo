@@ -12,7 +12,13 @@
 #include <signal.h>
 
 #include "ast.h"
+#include "builtins/table.h"
 #include "builtins/util.h"
+
+// The cache of {filename -> parsed AST} will hold at most this many entries:
+#ifndef PARSE_CACHE_SIZE
+#define PARSE_CACHE_SIZE 100
+#endif
 
 static const char closing[128] = {['(']=')', ['[']=']', ['<']='>', ['{']='}'};
 
@@ -2118,7 +2124,25 @@ PARSER(parse_linker) {
     return NewAST(ctx->file, start, pos, LinkerDirective, .directive=directive);
 }
 
-ast_t *parse_file(file_t *file, jmp_buf *on_err) {
+ast_t *parse_file(const char *path, jmp_buf *on_err) {
+    // NOTE: this cache leaks a bounded amount of memory. The cache will never
+    // hold more than PARSE_CACHE_SIZE entries (see below), but each entry's
+    // AST holds onto a reference to the file it came from, so they could
+    // potentially be somewhat large.
+    static table_t cached = {};
+    ast_t *ast = Table$str_get(cached, path);
+    if (ast) return ast;
+
+    file_t *file;
+    if (path[0] == '<') {
+        const char *endbracket = strchr(path, '>');
+        if (!endbracket) return NULL;
+        file = spoof_file(heap_strn(path, (size_t)(endbracket + 1 - path)), endbracket + 1);
+    } else {
+        file = load_file(path);
+        if (!file) return NULL;
+    }
+
     parse_ctx_t ctx = {
         .file=file,
         .on_err=on_err,
@@ -2129,12 +2153,22 @@ ast_t *parse_file(file_t *file, jmp_buf *on_err) {
         some_not(&pos, "\r\n");
 
     whitespace(&pos);
-    ast_t *ast = parse_file_body(&ctx, pos);
+    ast = parse_file_body(&ctx, pos);
     pos = ast->end;
     whitespace(&pos);
     if (pos < file->text + file->len && *pos != '\0') {
         parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the file");
     }
+
+    // If cache is getting too big, evict a random entry:
+    if (cached.entries.length > PARSE_CACHE_SIZE) {
+        uint32_t i = arc4random_uniform(cached.entries.length);
+        struct {const char *path; ast_t *ast; } *to_remove = Table$entry(cached, i+1);
+        Table$str_remove(&cached, to_remove->path);
+    }
+
+    // Save the AST in the cache:
+    Table$str_set(&cached, path, ast);
     return ast;
 }
 

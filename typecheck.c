@@ -116,11 +116,8 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
         if (!resolved_path)
             code_err(module_ast, "No such file exists: \"%s\"", path);
 
-        file_t *f = load_file(resolved_path);
-        if (!f) errx(1, "No such file: %s", resolved_path);
-
-        ast_t *ast = parse_file(f, NULL);
-        if (!ast) errx(1, "Could not compile!");
+        ast_t *ast = parse_file(resolved_path, NULL);
+        if (!ast) errx(1, "Could not compile file %s", resolved_path);
         return load_module_env(env, ast);
     } else if (module_ast->tag == Use) {
         const char *libname = Match(module_ast, Use)->name;
@@ -147,11 +144,8 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
             const char *tm_path = resolve_path(line, resolved_path, ".");
             if (!tm_path) errx(1, "Couldn't find library %s dependency: %s", libname, line);
 
-            file_t *tm_f = load_file(tm_path);
-            if (!tm_f) errx(1, "No such file: %s", tm_path);
-
-            ast_t *ast = parse_file(tm_f, NULL);
-            if (!ast) errx(1, "Could not compile!");
+            ast_t *ast = parse_file(tm_path, NULL);
+            if (!ast) errx(1, "Could not compile file %s", tm_path);
             env_t *module_file_env = fresh_scope(module_env);
             char *file_prefix = heap_str(file_base_name(line));
             for (char *p = file_prefix; *p; p++) {
@@ -1101,9 +1095,7 @@ bool is_discardable(env_t *env, ast_t *ast)
 
 type_t *get_file_type(env_t *env, const char *path)
 {
-    // auto info = get_file_info(env, path);
-    file_t *f = load_file(path);
-    ast_t *ast = parse_file(f, NULL);
+    ast_t *ast = parse_file(path, NULL);
     if (!ast) compiler_err(NULL, NULL, NULL, "Couldn't parse file: %s", path);
 
     arg_t *ns_fields = NULL;

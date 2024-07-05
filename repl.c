@@ -60,8 +60,7 @@ void repl(void)
             } else {
                 code = heap_strf("func main(): >> %s", code);
             }
-            file_t *f = spoof_file("<repl>", code);
-            ast_t *ast = parse_file(f, &on_err);
+            ast_t *ast = parse_file(heap_strf("<code>%s", code), &on_err);
             ast_t *doctest = Match(Match(Match(ast, Block)->statements->ast, FunctionDef)->body, Block)->statements->ast;
             if (doctest->tag == DocTest) doctest->__data.DocTest.skip_source = 1;
             run(env, doctest);

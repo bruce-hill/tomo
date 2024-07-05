@@ -196,10 +196,8 @@ int main(int argc, char *argv[])
         fputs("#pragma once\n", header_prog);
         for (int i = after_flags; i < argc; i++) {
             const char *filename = argv[i];
-            file_t *f = load_file(filename);
-            if (!f) errx(1, "No such file: %s", filename);
-            ast_t *ast = parse_file(f, NULL);
-            if (!ast) errx(1, "Could not parse %s", f);
+            ast_t *ast = parse_file(filename, NULL);
+            if (!ast) errx(1, "Could not parse file %s", filename);
             env->namespace = new(namespace_t, .name=file_base_name(filename));
             for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
                 if (stmt->ast->tag == Import || (stmt->ast->tag == Declare && Match(stmt->ast, Declare)->value->tag == Import))
@@ -296,13 +294,9 @@ void build_file_dependency_graph(const char *filename, table_t *to_compile, tabl
     size_t len = strlen(filename);
     assert(strncmp(filename + len - 3, ".tm", 3) == 0);
 
-    file_t *f = load_file(filename);
-    if (!f)
-        errx(1, "No such file: %s", filename);
-
-    ast_t *ast = parse_file(f, NULL);
+    ast_t *ast = parse_file(filename, NULL);
     if (!ast)
-        errx(1, "Could not parse %s", f);
+        errx(1, "Could not parse file %s", filename);
 
     char *file_dir = realpath(filename, NULL);
     dirname(file_dir);
@@ -352,13 +346,9 @@ int transpile_header(env_t *base_env, const char *filename, bool force_retranspi
         return 0;
     }
 
-    file_t *f = load_file(filename);
-    if (!f)
-        errx(1, "No such file: %s", filename);
-
-    ast_t *ast = parse_file(f, NULL);
+    ast_t *ast = parse_file(filename, NULL);
     if (!ast)
-        errx(1, "Could not parse %s", f);
+        errx(1, "Could not parse file %s", filename);
 
     env_t *module_env = load_module_env(base_env, ast);
 
@@ -396,13 +386,9 @@ int transpile_code(env_t *base_env, const char *filename, bool force_retranspile
         return 0;
     }
 
-    file_t *f = load_file(filename);
-    if (!f)
-        errx(1, "No such file: %s", filename);
-
-    ast_t *ast = parse_file(f, NULL);
+    ast_t *ast = parse_file(filename, NULL);
     if (!ast)
-        errx(1, "Could not parse %s", f);
+        errx(1, "Could not parse file %s", filename);
 
     env_t *module_env = load_module_env(base_env, ast);
 
