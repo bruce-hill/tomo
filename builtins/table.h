@@ -25,7 +25,7 @@
     const table_t t = table_expr; key_t k = key_expr; const TypeInfo* info = info_expr; \
     const val_t *v = Table$get(t, &k, info); \
     if (__builtin_expect(v == NULL, 0)) \
-        fail_source(filename, start, end, "The key %r is not in this table\n", generic_as_text(&k, USE_COLOR, info->TableInfo.key)); \
+        fail_source(filename, start, end, "The key %r is not in this table\n", generic_as_text(&k, no, info->TableInfo.key)); \
     *v; })
 
 table_t Table$from_entries(array_t entries, const TypeInfo *type);

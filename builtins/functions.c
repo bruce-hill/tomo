@@ -36,23 +36,15 @@ public void tomo_init(void)
    srand48(seed);
 }
 
-public void fail(CORD fmt, ...)
+static void print_stack_trace(FILE *out)
 {
-    if (USE_COLOR) fputs("\x1b[31;7m FAIL: \x1b[m ", stderr);
-    else fputs("FAIL: ", stderr);
-    va_list args;
-    va_start(args, fmt);
-    CORD_vfprintf(stderr, fmt, args);
-    fputs("\n", stderr);
-    va_end(args);
-
     // Print stack trace:
-    fprintf(stderr, "\x1b[34m");
-    fflush(stderr);
+    fprintf(out, "\x1b[34m");
+    fflush(out);
     void *array[1024];
     size_t size = backtrace(array, sizeof(array)/sizeof(array[0]));
     char **strings = strings = backtrace_symbols(array, size);
-    for (size_t i = 1; i < size; i++) {
+    for (size_t i = 2; i < size - 4; i++) {
         char *filename = strings[i];
         const char *cmd = heap_strf("addr2line -e %.*s -fip | sed 's/\\$/./g;s/ at /() at /' >&2", strcspn(filename, "("), filename);
         FILE *fp = popen(cmd, "w");
@@ -62,16 +54,28 @@ public void fail(CORD fmt, ...)
         }
         pclose(fp);
     }
-    fprintf(stderr, "\x1b[m");
-    fflush(stderr);
+    fprintf(out, "\x1b[m");
+}
 
+public void fail(CORD fmt, ...)
+{
+    if (USE_COLOR) fputs("\x1b[31;7m ==================== ERROR ==================== \n\n\x1b[0;1m", stderr);
+    else fputs("==================== ERROR ====================\n\n", stderr);
+    va_list args;
+    va_start(args, fmt);
+    CORD_vfprintf(stderr, fmt, args);
+    if (USE_COLOR) fputs("\x1b[m", stderr);
+    fputs("\n\n", stderr);
+    va_end(args);
+    print_stack_trace(stderr);
+    fflush(stderr);
     raise(SIGABRT);
 }
 
 public void fail_source(const char *filename, int64_t start, int64_t end, CORD fmt, ...)
 {
-    if (USE_COLOR) fputs("\n\x1b[31;7m FAIL: \x1b[m ", stderr);
-    else fputs("\nFAIL: ", stderr);
+    if (USE_COLOR) fputs("\n\x1b[31;7m ==================== ERROR ==================== \n\n\x1b[0;1m", stderr);
+    else fputs("\n==================== ERROR ====================\n\n", stderr);
 
     va_list args;
     va_start(args, fmt);
@@ -82,8 +86,12 @@ public void fail_source(const char *filename, int64_t start, int64_t end, CORD f
     if (filename && file) {
         fputs("\n", stderr);
         highlight_error(file, file->text+start, file->text+end, "\x1b[31;1m", 2, USE_COLOR);
+        fputs("\n", stderr);
     }
+    if (USE_COLOR) fputs("\x1b[m", stderr);
 
+    print_stack_trace(stderr);
+    fflush(stderr);
     raise(SIGABRT);
 }
 
@@ -185,6 +193,9 @@ public void start_test(const char *filename, int64_t start, int64_t end)
 
 public void end_test(void *expr, const TypeInfo *type, CORD expected, const char *filename, int64_t start, int64_t end)
 {
+    (void)filename;
+    (void)start;
+    (void)end;
     --TEST_DEPTH;
     if (!expr) return;
 
@@ -212,10 +223,15 @@ public void end_test(void *expr, const TypeInfo *type, CORD expected, const char
         }
 
         if (!success) {
-            fail_source(filename, start, end, 
-                        USE_COLOR ? "\x1b[31;1mDoctest failure:\nExpected: \x1b[32;1m%s\x1b[0m\n\x1b[31;1m But got:\x1b[m %s\n"
-                        : "Doctest failure:\nExpected: %s\n But got: %s\n",
-                        CORD_to_const_char_star(expected), CORD_to_const_char_star(expr_normalized));
+            fprintf(stderr, 
+                    USE_COLOR
+                    ? "\n\x1b[31;7m ==================== TEST FAILED ==================== \x1b[0;1m\n\nExpected: \x1b[1;32m%s\x1b[0m\n\x1b[1m But got:\x1b[m %s\n\n"
+                    : "\n==================== TEST FAILED ====================\nExpected: %s\n\n But got: %s\n\n",
+                    CORD_to_const_char_star(expected), CORD_to_const_char_star(expr_normalized));
+
+            print_stack_trace(stderr);
+            fflush(stderr);
+            raise(SIGABRT);
         }
     }
 }
