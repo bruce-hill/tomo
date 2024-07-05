@@ -121,3 +121,15 @@ the code).
 ```
 make && sudo make install
 ```
+
+## License
+
+Tomo is provided under the Sustainable Use License (see
+[LICENSE.md](LICENSE.md) for full details). This is a source-available
+[fair-code](https://faircode.io) license that does not grant unlimited rights
+for commercial use, but otherwise has permissive rights for noncommercial use
+and allows distributing and modifying the source code. It does not comply with
+the [Open Source Initiative's definition of "Open
+Source"](https://opensource.org/osd), which does not allow any restrictions on
+commercial use. If you would like to use this project commercially, please
+contact me to work out a licensing agreement.
