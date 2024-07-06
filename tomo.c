@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 
 #include "ast.h"
 #include "builtins/array.h"
@@ -124,52 +125,60 @@ int main(int argc, char *argv[])
     env_t *env = new_compilation_unit(&compilation_library_name);
     table_t dependency_files = {};
     table_t to_link = {};
+    table_t argument_files = {};
 
     for (int i = after_flags; i < argc; i++) {
         const char *resolved = resolve_path(argv[i], ".", ".");
         if (!resolved) errx(1, "Couldn't resolve path: %s", argv[i]);
+        Table$str_set(&argument_files, resolved, argv[i]);
         build_file_dependency_graph(resolved, &dependency_files, &to_link);
         if (mode == MODE_RUN) break;
     }
 
     int status;
-    // Non-lazily (re)compile header files for each source file passed to the compiler:
-    for (int i = after_flags; i < argc; i++) {
-        const char *filename = argv[i];
-        status = transpile_header(env, filename, true);
-        if (status != 0) return status;
-    }
-
-    // Lazily (re)compile all the header files:
+    // (Re)compile header files, eagerly for explicitly passed in files, lazily
+    // for downstream dependencies:
     for (int64_t i = 0; i < dependency_files.entries.length; i++) {
         const char *filename = *(char**)(dependency_files.entries.data + i*dependency_files.entries.stride);
-        status = transpile_header(env, filename, false);
+        bool is_argument_file = (Table$str_get(argument_files, filename) != NULL);
+        status = transpile_header(env, filename, is_argument_file);
         if (status != 0) return status;
     }
 
     env->imports = new(table_t);
 
-    // Non-lazily (re)compile object files for each source file passed to the compiler:
-    for (int i = after_flags; i < argc; i++) {
-        const char *filename = argv[i];
-        status = transpile_code(env, filename, true);
-        if (status != 0) return status;
-        status = compile_object_file(filename, true);
-        if (status != 0) return status;
-        if (mode == MODE_RUN) break;
+    struct child_s {
+        struct child_s *next;
+        pid_t pid;
+    } *child_processes = NULL;
+
+    // (Re)transpile and compile object files, eagerly for files explicitly
+    // specified and lazily for downstream dependencies:
+    for (int64_t i = 0; i < dependency_files.entries.length; i++) {
+        const char *filename = *(char**)(dependency_files.entries.data + i*dependency_files.entries.stride);
+        bool is_argument_file = (Table$str_get(argument_files, filename) != NULL);
+        if (mode == MODE_COMPILE_OBJ && !is_argument_file)
+            continue;
+
+        pid_t pid = fork();
+        if (pid == 0) {
+            status = transpile_code(env, filename, is_argument_file);
+            if (status != 0)
+                _exit(status);
+            status = compile_object_file(filename, is_argument_file);
+            _exit(status);
+        }
+        child_processes = new(struct child_s, .next=child_processes, .pid=pid);
+    }
+
+    for (; child_processes; child_processes = child_processes->next) {
+        waitpid(child_processes->pid, &status, 0);
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+            return EXIT_FAILURE;
     }
 
     if (mode == MODE_COMPILE_OBJ)
         return 0;
-
-    // Lazily (re)compile object files for each dependency:
-    for (int64_t i = 0; i < dependency_files.entries.length; i++) {
-        const char *filename = *(char**)(dependency_files.entries.data + i*dependency_files.entries.stride);
-        status = transpile_code(env, filename, false);
-        if (status != 0) return status;
-        status = compile_object_file(filename, false);
-        if (status != 0) return status;
-    }
 
     CORD object_files = CORD_EMPTY;
     for (int64_t i = 0; i < dependency_files.entries.length; i++) {
@@ -439,9 +448,10 @@ int compile_object_file(const char *filename, bool force_recompile)
 
 int compile_executable(env_t *base_env, const char *filename, CORD object_files)
 {
-    const char *name = file_base_name(filename);
-    env_t *env = Table$str_get(*base_env->imports, name);
-    assert(env);
+    ast_t *ast = parse_file(filename, NULL);
+    if (!ast)
+        errx(1, "Could not parse file %s", filename);
+    env_t *env = load_module_env(base_env, ast);
     binding_t *main_binding = get_binding(env, "main");
     if (!main_binding || main_binding->type->tag != FunctionType) {
         errx(1, "No main() function has been defined for %s, so it can't be run!", filename);
