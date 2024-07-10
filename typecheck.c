@@ -669,7 +669,8 @@ type_t *get_type(env_t *env, ast_t *ast)
                 return Type(PointerType, .pointed=Match(self_value_t, ArrayType)->item_type, .is_optional=true, .is_readonly=true);
             else if (streq(call->name, "sample")) return self_value_t;
             else if (streq(call->name, "clear")) return Type(VoidType);
-            else if (streq(call->name, "slice")) return self_value_t;
+            else if (streq(call->name, "from")) return self_value_t;
+            else if (streq(call->name, "by")) return self_value_t;
             else if (streq(call->name, "reversed")) return self_value_t;
             else if (streq(call->name, "heapify")) return Type(VoidType);
             else if (streq(call->name, "heap_push")) return Type(VoidType);

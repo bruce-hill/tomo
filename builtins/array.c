@@ -261,51 +261,39 @@ public array_t Array$sample(array_t arr, int64_t n, array_t weights, const TypeI
     return selected;
 }
 
-public array_t Array$slice(array_t *array, int64_t first, int64_t length, int64_t stride, const TypeInfo *type)
+public array_t Array$from(array_t *array, int64_t first, int64_t last)
 {
-    if (stride > MAX_STRIDE || stride < MIN_STRIDE)
-        fail("Stride is too big: %ld", stride);
+    if (first < 0)
+        first = array->length + first + 1;
 
-    if (stride == 0 || length <= 0) {
-        // Zero stride
+    if (last < 0)
+        last = array->length + last + 1;
+
+    if (first < 1 || first > array->length || last < first)
         return (array_t){.atomic=array->atomic};
-    } else if (stride < 0) {
-        if (first == INT64_MIN) first = array->length;
-        if (first > array->length) {
-            // Range starting after array
-            int64_t residual = first % -stride;
-            first = array->length - (array->length % -stride) + residual;
-        }
-        if (first > array->length) first += stride;
-        if (first < 1) {
-            // Range outside array
-            return (array_t){.atomic=array->atomic};
-        }
-    } else {
-        if (first == INT64_MIN) first = 1;
-        if (first < 1) {
-            // Range starting before array
-            first = first % stride;
-        }
-        while (first < 1) first += stride;
-        if (first > array->length) {
-            // Range outside array
-            return (array_t){.atomic=array->atomic};
-        }
-    }
 
-    if (length > array->length/labs(stride) + 1) length = array->length/labs(stride) + 1;
-    if (length < 0) length = -length;
+    if (last > array->length)
+        last = array->length;
 
-    // Saturating add:
-    array->data_refcount |= (array->data_refcount << 1) | 1;
-
-    int64_t item_size = get_item_size(type);
     return (array_t){
         .atomic=array->atomic,
-        .data=array->data + item_size*(first-1),
-        .length=length,
-        .stride=(array->stride * stride),
+        .data=array->data + array->stride*(first-1),
+        .length=last - first + 1,
+        .stride=array->stride,
+        .data_refcount=array->data_refcount,
+    };
+}
+
+public array_t Array$by(array_t *array, int64_t stride)
+{
+    if (stride == 0)
+        return (array_t){.atomic=array->atomic};
+
+    return (array_t){
+        .atomic=array->atomic,
+        .data=(stride < 0 ? array->data + (array->stride * (array->length - 1)) : array->data),
+        .length=(stride < 0 ? array->length / -stride : array->length / stride) + ((array->length % stride) != 0),
+        .stride=array->stride * stride,
         .data_refcount=array->data_refcount,
     };
 }
