@@ -670,6 +670,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "sample")) return self_value_t;
             else if (streq(call->name, "clear")) return Type(VoidType);
             else if (streq(call->name, "from")) return self_value_t;
+            else if (streq(call->name, "to")) return self_value_t;
             else if (streq(call->name, "by")) return self_value_t;
             else if (streq(call->name, "reversed")) return self_value_t;
             else if (streq(call->name, "heapify")) return Type(VoidType);

@@ -1815,9 +1815,12 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Array$clear(", self, ")");
             } else if (streq(call->name, "from")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
-                arg_t *arg_spec = new(arg_t, .name="first", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=1, .bits=64),
-                                      .next=new(arg_t, .name="last", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=-1, .bits=64)));
+                arg_t *arg_spec = new(arg_t, .name="first", .type=Type(IntType, .bits=64));
                 return CORD_all("Array$from(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
+            } else if (streq(call->name, "to")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                arg_t *arg_spec = new(arg_t, .name="last", .type=Type(IntType, .bits=64));
+                return CORD_all("Array$to(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "by")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="stride", .type=Type(IntType, .bits=64));

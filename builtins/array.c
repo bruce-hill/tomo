@@ -261,24 +261,38 @@ public array_t Array$sample(array_t arr, int64_t n, array_t weights, const TypeI
     return selected;
 }
 
-public array_t Array$from(array_t *array, int64_t first, int64_t last)
+public array_t Array$from(array_t *array, int64_t first)
 {
     if (first < 0)
         first = array->length + first + 1;
 
-    if (last < 0)
-        last = array->length + last + 1;
-
-    if (first < 1 || first > array->length || last < first)
+    if (first < 1 || first > array->length)
         return (array_t){.atomic=array->atomic};
-
-    if (last > array->length)
-        last = array->length;
 
     return (array_t){
         .atomic=array->atomic,
         .data=array->data + array->stride*(first-1),
-        .length=last - first + 1,
+        .length=array->length - first + 1,
+        .stride=array->stride,
+        .data_refcount=array->data_refcount,
+    };
+}
+
+public array_t Array$to(array_t *array, int64_t last)
+{
+    if (last < 0)
+        last = array->length + last + 1;
+
+    if (last > array->length)
+        last = array->length;
+
+    if (last == 0)
+        return (array_t){.atomic=array->atomic};
+
+    return (array_t){
+        .atomic=array->atomic,
+        .data=array->data,
+        .length=last,
         .stride=array->stride,
         .data_refcount=array->data_refcount,
     };

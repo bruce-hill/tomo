@@ -121,9 +121,9 @@ func main():
 	do:
 		>> [i*10 for i in 5]:from(3)
 		= [30, 40, 50]
-		>> [i*10 for i in 5]:from(last=3)
+		>> [i*10 for i in 5]:to(3)
 		= [10, 20, 30]
-		>> [i*10 for i in 5]:from(last=-2)
+		>> [i*10 for i in 5]:to(-2)
 		= [10, 20, 30, 40]
 		>> [i*10 for i in 5]:from(-2)
 		= [40, 50]
