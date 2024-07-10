@@ -2063,7 +2063,7 @@ CORD compile(env_t *env, ast_t *ast)
             CORD index = compile(env, indexing->index);
             file_t *f = indexing->index->file;
             if (indexing->unchecked)
-                return CORD_all("Array_get_unchecked", compile_type(item_type), ", ", arr, ", ", index, ")");
+                return CORD_all("Array_get_unchecked(", compile_type(item_type), ", ", arr, ", ", index, ")");
             else
                 return CORD_all("Array_get(", compile_type(item_type), ", ", arr, ", ", index, ", ",
                                 Text$quoted(f->filename, false), ", ", CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
