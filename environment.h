@@ -28,7 +28,8 @@ typedef struct deferral_s {
 
 typedef struct loop_ctx_s {
     struct loop_ctx_s *next;
-    const char *loop_name, *key_name, *value_name;
+    const char *loop_name;
+    ast_list_t *loop_vars;
     deferral_t *deferred;
     CORD skip_label, stop_label;
 } loop_ctx_t;

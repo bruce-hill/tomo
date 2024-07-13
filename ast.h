@@ -186,7 +186,8 @@ struct ast_s {
             ast_t *key, *value;
         } TableEntry;
         struct {
-            ast_t *expr, *key, *value, *iter, *filter;
+            ast_list_t *vars;
+            ast_t *expr, *iter, *filter;
         } Comprehension;
         struct {
             ast_t *name;
@@ -214,7 +215,8 @@ struct ast_s {
             ast_list_t *statements;
         } Block;
         struct {
-            ast_t *index, *value, *iter, *body, *empty;
+            ast_list_t *vars;
+            ast_t *iter, *body, *empty;
         } For;
         struct {
             ast_t *condition, *body;

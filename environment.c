@@ -286,48 +286,73 @@ env_t *for_scope(env_t *env, ast_t *ast)
     auto for_ = Match(ast, For);
     type_t *iter_t = get_type(env, for_->iter);
     env_t *scope = fresh_scope(env);
-    const char *value = Match(for_->value, Var)->name;
-    if (for_->index) {
-        const char *index = Match(for_->index, Var)->name;
-        switch (iter_t->tag) {
-        case ArrayType: {
-            type_t *item_t = Match(iter_t, ArrayType)->item_type;
-            set_binding(scope, index, new(binding_t, .type=Type(IntType, .bits=64), .code=CORD_cat("$", index)));
-            set_binding(scope, value, new(binding_t, .type=item_t, .code=CORD_cat("$", value)));
-            return scope;
+    switch (iter_t->tag) {
+    case ArrayType: {
+        type_t *item_t = Match(iter_t, ArrayType)->item_type;
+        const char *vars[2] = {};
+        int64_t num_vars = 0;
+        for (ast_list_t *var = for_->vars; var; var = var->next) {
+            if (num_vars >= 2)
+                code_err(var->ast, "This is too many variables for this loop");
+            vars[num_vars++] = Match(var->ast, Var)->name;
         }
-        case TableType: {
-            type_t *key_t = Match(iter_t, TableType)->key_type;
+        if (num_vars == 1) {
+            set_binding(scope, vars[0], new(binding_t, .type=item_t, .code=CORD_cat("$", vars[0])));
+        } else if (num_vars == 2) {
+            set_binding(scope, vars[0], new(binding_t, .type=Type(IntType, .bits=64), .code=CORD_cat("$", vars[0])));
+            set_binding(scope, vars[1], new(binding_t, .type=item_t, .code=CORD_cat("$", vars[1])));
+        }
+        return scope;
+    }
+    case TableType: {
+        const char *vars[2] = {};
+        int64_t num_vars = 0;
+        for (ast_list_t *var = for_->vars; var; var = var->next) {
+            if (num_vars >= 2)
+                code_err(var->ast, "This is too many variables for this loop");
+            vars[num_vars++] = Match(var->ast, Var)->name;
+        }
+
+        type_t *key_t = Match(iter_t, TableType)->key_type;
+        if (num_vars == 1) {
+            set_binding(scope, vars[0], new(binding_t, .type=key_t, .code=CORD_cat("$", vars[0])));
+        } else if (num_vars == 2) {
+            set_binding(scope, vars[0], new(binding_t, .type=key_t, .code=CORD_cat("$", vars[0])));
             type_t *value_t = Match(iter_t, TableType)->value_type;
-            set_binding(scope, index, new(binding_t, .type=key_t, .code=CORD_cat("$", index)));
-            set_binding(scope, value, new(binding_t, .type=value_t, .code=CORD_cat("$", value)));
-            return scope;
+            set_binding(scope, vars[1], new(binding_t, .type=value_t, .code=CORD_cat("$", vars[1])));
         }
-        case IntType: {
-            set_binding(scope, index, new(binding_t, .type=Type(IntType, .bits=64), .code=CORD_cat("$", index)));
-            set_binding(scope, value, new(binding_t, .type=iter_t, .code=CORD_cat("$", value)));
-            return scope;
+        return scope;
+    }
+    case IntType: {
+        if (for_->vars) {
+            if (for_->vars->next)
+                code_err(for_->vars->next->ast, "This is too many variables for this loop");
+            const char *var = Match(for_->vars->ast, Var)->name;
+            set_binding(scope, var, new(binding_t, .type=Type(IntType, .bits=64), .code=CORD_cat("$", var)));
         }
-        default: code_err(for_->iter, "Iteration is not implemented for type: %T", iter_t);
+        return scope;
+    }
+    case FunctionType: case ClosureType: {
+        auto fn = iter_t->tag == ClosureType ? Match(Match(iter_t, ClosureType)->fn, FunctionType) : Match(iter_t, FunctionType);
+        arg_t *next_arg = fn->args;
+        for (ast_list_t *var = for_->vars; var; var = var->next) {
+            if (next_arg == NULL)
+                code_err(var->ast, "This is too many variables for this iterator function");
+            const char *name = Match(var->ast, Var)->name;
+            type_t *t = get_arg_type(env, next_arg);
+            if (t->tag != PointerType)
+                code_err(for_->iter, "This iterator has type %T, but I need all its arguments to be mutable stack pointers", iter_t);
+            auto ptr = Match(t, PointerType);
+            if (!ptr->is_stack || ptr->is_readonly)
+                code_err(for_->iter, "This iterator has type %T, but I need all its arguments to be mutable stack pointers", iter_t);
+            set_binding(scope, name, new(binding_t, .type=ptr->pointed, .code=CORD_cat("$", name)));
+            next_arg = next_arg->next;
         }
-    } else {
-        switch (iter_t->tag) {
-        case ArrayType: {
-            type_t *item_t = Match(iter_t, ArrayType)->item_type;
-            set_binding(scope, value, new(binding_t, .type=item_t, .code=CORD_cat("$", value)));
-            return scope;
-        }
-        case TableType: {
-            type_t *key_t = Match(iter_t, TableType)->key_type;
-            set_binding(scope, value, new(binding_t, .type=key_t, .code=CORD_cat("$", value)));
-            return scope;
-        }
-        case IntType: {
-            set_binding(scope, value, new(binding_t, .type=iter_t, .code=CORD_cat("$", value)));
-            return scope;
-        }
-        default: code_err(for_->iter, "Iteration is not implemented for type: %T", iter_t);
-        }
+        if (next_arg)
+            code_err(ast, "There are not enough variables given for this loop with an iterator that has type %T", iter_t);
+        return scope;
+    }
+    default: code_err(for_->iter, "Iteration is not implemented for type: %T", iter_t);
     }
 }
 

@@ -858,22 +858,25 @@ ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr) {
     whitespace(&pos);
     if (!match_word(&pos, "for")) return NULL;
 
-    ast_t *key = expect(ctx, start, &pos, parse_var, "I expected an iteration variable for this 'for'");
-    whitespace(&pos);
-    ast_t *value = NULL;
-    if (match(&pos, ",")) {
-        value = expect(ctx, pos-1, &pos, parse_var, "I expected a variable after this comma");
-    } else {
-        value = key;
-        key = NULL;
+    ast_list_t *vars = NULL;
+    for (;;) {
+        ast_t *var = optional(ctx, &pos, parse_var);
+        if (var)
+            vars = new(ast_list_t, .ast=var, .next=vars);
+
+        spaces(&pos);
+        if (!match(&pos, ","))
+            break;
     }
+    REVERSE_LIST(vars);
+
     expect_str(ctx, start, &pos, "in", "I expected an 'in' for this 'for'");
     ast_t *iter = expect(ctx, start, &pos, parse_expr, "I expected an iterable value for this 'for'");
     whitespace(&pos);
     ast_t *filter = NULL;
     if (match_word(&pos, "if"))
         filter = expect(ctx, pos-2, &pos, parse_expr, "I expected a condition for this 'if'");
-    return NewAST(ctx->file, start, pos, Comprehension, .expr=expr, .key=key, .value=value, .iter=iter, .filter=filter);
+    return NewAST(ctx->file, start, pos, Comprehension, .expr=expr, .vars=vars, .iter=iter, .filter=filter);
 }
 
 PARSER(parse_if) {
@@ -968,13 +971,21 @@ PARSER(parse_for) {
     const char *start = pos;
     if (!match_word(&pos, "for")) return NULL;
     int64_t starting_indent = get_indent(ctx, pos);
-    ast_t *index = expect(ctx, start, &pos, parse_var, "I expected an iteration variable for this 'for'");
     spaces(&pos);
-    ast_t *value = NULL;
-    if (match(&pos, ",")) {
-        value = expect(ctx, pos-1, &pos, parse_var, "I expected a variable after this comma");
+    ast_list_t *vars = NULL;
+    for (;;) {
+        ast_t *var = optional(ctx, &pos, parse_var);
+        if (var)
+            vars = new(ast_list_t, .ast=var, .next=vars);
+
+        spaces(&pos);
+        if (!match(&pos, ","))
+            break;
     }
+
+    spaces(&pos);
     expect_str(ctx, start, &pos, "in", "I expected an 'in' for this 'for'");
+
     ast_t *iter = expect(ctx, start, &pos, parse_expr, "I expected an iterable value for this 'for'");
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'for'"); 
 
@@ -985,7 +996,8 @@ PARSER(parse_for) {
         pos = else_start;
         empty = expect(ctx, pos, &pos, parse_block, "I expected a body for this 'else'");
     }
-    return NewAST(ctx->file, start, pos, For, .index=value ? index : NULL, .value=value ? value : index, .iter=iter, .body=body, .empty=empty);
+    REVERSE_LIST(vars);
+    return NewAST(ctx->file, start, pos, For, .vars=vars, .iter=iter, .body=body, .empty=empty);
 }
 
 PARSER(parse_do) {

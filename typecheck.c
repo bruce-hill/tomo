@@ -509,7 +509,8 @@ type_t *get_type(env_t *env, ast_t *ast)
                 env_t *scope = env;
                 while (item_ast->tag == Comprehension) {
                     auto comp = Match(item_ast, Comprehension);
-                    scope = for_scope(scope, FakeAST(For, .iter=comp->iter, .index=comp->key, .value=comp->value));
+                    scope = for_scope(
+                        scope, FakeAST(For, .iter=comp->iter, .vars=comp->vars));
                     item_ast = comp->expr;
                 }
                 type_t *t2 = get_type(scope, item_ast);
@@ -541,7 +542,8 @@ type_t *get_type(env_t *env, ast_t *ast)
                 env_t *scope = env;
                 while (entry_ast->tag == Comprehension) {
                     auto comp = Match(entry_ast, Comprehension);
-                    scope = for_scope(scope, FakeAST(For, .iter=comp->iter, .index=comp->key, .value=comp->value));
+                    scope = for_scope(
+                        scope, FakeAST(For, .iter=comp->iter, .vars=comp->vars));
                     entry_ast = comp->expr;
                 }
 
@@ -573,7 +575,7 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
     case Comprehension: {
         auto comp = Match(ast, Comprehension);
-        env_t *scope = for_scope(env, FakeAST(For, .iter=comp->iter, .index=comp->key, .value=comp->value));
+        env_t *scope = for_scope(env, FakeAST(For, .iter=comp->iter, .vars=comp->vars));
         if (comp->expr->tag == Comprehension) {
             return get_type(scope, comp->expr);
         } else if (comp->expr->tag == TableEntry) {

@@ -120,7 +120,7 @@ CORD ast_to_xml(ast_t *ast)
       optional_tagged("default", data.default_value))
     T(TableEntry, "<TableEntry>%r%r</TableEntry>", ast_to_xml(data.key), ast_to_xml(data.value))
     T(Comprehension, "<Comprehension>%r%r%r%r%r</Comprehension>", optional_tagged("expr", data.expr),
-      optional_tagged("key", data.key), optional_tagged("value", data.value), optional_tagged("iter", data.iter),
+      ast_list_to_xml(data.vars), optional_tagged("iter", data.iter),
       optional_tagged("filter", data.filter))
     T(FunctionDef, "<FunctionDef name=\"%r\">%r%r<body>%r</body></FunctionDef>", ast_to_xml(data.name),
       arg_list_to_xml(data.args), optional_tagged_type("return-type", data.ret_type), ast_to_xml(data.body))
@@ -128,8 +128,8 @@ CORD ast_to_xml(ast_t *ast)
     T(FunctionCall, "<FunctionCall><function>%r</function>%r</FunctionCall>", ast_to_xml(data.fn), arg_list_to_xml(data.args))
     T(MethodCall, "<MethodCall><self>%r</self><method>%s</method>%r</MethodCall>", ast_to_xml(data.self), data.name, arg_list_to_xml(data.args))
     T(Block, "<Block>%r</Block>", ast_list_to_xml(data.statements))
-    T(For, "<For>%r%r%r%r%r</For>", optional_tagged("index", data.index), optional_tagged("value", data.value),
-      optional_tagged("iterable", data.iter), optional_tagged("body", data.body), optional_tagged("empty", data.empty))
+    T(For, "<For>%r%r%r%r%r</For>", ast_list_to_xml(data.vars), optional_tagged("iterable", data.iter),
+      optional_tagged("body", data.body), optional_tagged("empty", data.empty))
     T(While, "<While>%r%r</While>", optional_tagged("condition", data.condition), optional_tagged("body", data.body))
     T(If, "<If>%r%r%r</If>", optional_tagged("condition", data.condition), optional_tagged("body", data.body), optional_tagged("else", data.else_body))
     T(When, "<When><subject>%r</subject>%r%r</When>", ast_to_xml(data.subject), when_clauses_to_xml(data.clauses), optional_tagged("else", data.else_body))
