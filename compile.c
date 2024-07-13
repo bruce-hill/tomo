@@ -909,21 +909,28 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 closure_fn_args = new(arg_t, .name="userdata", .type=Type(PointerType, .pointed=Type(MemoryType)), .next=closure_fn_args);
                 REVERSE_LIST(closure_fn_args);
                 CORD fn_type_code = compile_type(Type(FunctionType, .args=closure_fn_args, .ret=Match(fn_t, FunctionType)->ret));
-                next_fn = CORD_all("((", fn_type_code, ")next.fn)");
+                next_fn = CORD_all("((", fn_type_code, ")next.fn)(");
             } else {
-                next_fn = "next";
+                next_fn = "next(";
             }
 
-            code = CORD_all(code, "for(; ", next_fn, "(");
             for (ast_list_t *var = for_->vars; var; var = var->next) {
                 const char *name = Match(var->ast, Var)->name;
-                code = CORD_all(code, "&$", name);
+                next_fn = CORD_all(next_fn, "&$", name);
                 if (var->next || iter_t->tag == ClosureType)
-                    code = CORD_all(code, ", ");
+                    next_fn = CORD_all(next_fn, ", ");
             }
             if (iter_t->tag == ClosureType)
-                code = CORD_all(code, "next.userdata");
-            code = CORD_all(code, "); ) {\n\t", body, "}\n", stop, "\n}\n");
+                next_fn = CORD_all(next_fn, "next.userdata");
+            next_fn = CORD_all(next_fn, ")");
+
+            if (for_->empty) {
+                code = CORD_all(code, "if (", next_fn, ") {\n"
+                                "\tdo{\n\t\t", body, "\t} while(", next_fn, ");\n"
+                                "} else {\n\t", compile_statement(env, for_->empty), "}", stop, "\n}\n");
+            } else {
+                code = CORD_all(code, "for(; ", next_fn, "; ) {\n\t", body, "}\n", stop, "\n}\n");
+            }
             return code;
         }
         default: code_err(for_->iter, "Iteration is not implemented for type: %T", iter_t);
@@ -1880,6 +1887,11 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$reversed(", self, ")");
+            } else if (streq(call->name, "pairs")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                arg_t *arg_spec = new(arg_t, .name="self_pairs", .default_val=FakeAST(Bool, false), .type=Type(BoolType),
+                                      .next=new(arg_t, .name="ordered", .default_val=FakeAST(Bool, false), .type=Type(BoolType)));
+                return CORD_all("Array$pairs(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type_info(env, self_value_t), ")");
             } else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
         case TableType: {

@@ -678,7 +678,11 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "heapify")) return Type(VoidType);
             else if (streq(call->name, "heap_push")) return Type(VoidType);
             else if (streq(call->name, "heap_pop")) return Match(self_value_t, ArrayType)->item_type;
-            else code_err(ast, "There is no '%s' method for arrays", call->name);
+            else if (streq(call->name, "pairs")) {
+                type_t *ref_t = Type(PointerType, .pointed=Match(self_value_t, ArrayType)->item_type, .is_stack=true);
+                arg_t *args = new(arg_t, .name="x", .type=ref_t, .next=new(arg_t, .name="y", .type=ref_t));
+                return Type(ClosureType, .fn=Type(FunctionType, .args=args, .ret=Type(BoolType)));
+            } else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
         case TableType: {
             auto table = Match(self_value_t, TableType);
