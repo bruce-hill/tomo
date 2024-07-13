@@ -515,23 +515,4 @@ type_t *get_field_type(type_t *t, const char *field_name)
     }
 }
 
-type_t *iteration_key_type(type_t *iterable)
-{
-    switch (iterable->tag) {
-    case IntType: case ArrayType: return Type(IntType, .bits=64);
-    case TableType: return Match(iterable, TableType)->key_type;
-    default: return NULL;
-    }
-}
-
-type_t *iteration_value_type(type_t *iterable)
-{
-    switch (iterable->tag) {
-    case IntType: return iterable;
-    case ArrayType: return Match(iterable, ArrayType)->item_type;
-    case TableType: return Match(iterable, TableType)->value_type;
-    default: return NULL;
-    }
-}
-
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

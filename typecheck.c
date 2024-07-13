@@ -882,7 +882,30 @@ type_t *get_type(env_t *env, ast_t *ast)
     case Reduction: {
         auto reduction = Match(ast, Reduction);
         type_t *iter_t = get_type(env, reduction->iter);
-        type_t *value_t = iteration_value_type(iter_t);
+
+        type_t *value_t;
+        type_t *iter_value_t = value_type(iter_t);
+        switch (iter_value_t->tag) {
+        case IntType: value_t = iter_value_t; break;
+        case ArrayType: value_t = Match(iter_value_t, ArrayType)->item_type; break;
+        case TableType: value_t = Match(iter_value_t, TableType)->key_type; break;
+        case FunctionType: case ClosureType: {
+            auto fn = iter_value_t->tag == ClosureType ?
+                Match(Match(iter_value_t, ClosureType)->fn, FunctionType) : Match(iter_value_t, FunctionType);
+            if (!fn->args || fn->args->next)
+                code_err(reduction->iter, "I expected this iterable to have exactly one argument, not %T", iter_value_t);
+            type_t *arg_type = get_arg_type(env, fn->args);
+            if (arg_type->tag != PointerType)
+                code_err(reduction->iter, "I expected this iterable to have exactly one stack reference argument, not %T", arg_type);
+            auto ptr = Match(arg_type, PointerType);
+            if (!ptr->is_stack || ptr->is_optional || ptr->is_readonly)
+                code_err(reduction->iter, "I expected this iterable to have exactly one stack reference argument, not %T", arg_type);
+            value_t = ptr->pointed;
+            break;
+        }
+        default: code_err(reduction->iter, "I don't know how to do a reduction over %T values", iter_t);
+        }
+
         env_t *scope = fresh_scope(env);
         set_binding(scope, "$reduction", new(binding_t, .type=value_t, .code="reduction"));
         set_binding(scope, "$iter_value", new(binding_t, .type=value_t, .code="iter_value"));

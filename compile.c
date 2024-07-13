@@ -2021,6 +2021,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD code = CORD_all(
             "({ // Reduction:\n",
             compile_declaration(t, "reduction"), ";\n"
+            "Bool_t is_first = yes;\n"
             );
         env_t *scope = fresh_scope(env);
         ast_t *result = FakeAST(Var, "$reduction");
@@ -2040,11 +2041,10 @@ CORD compile(env_t *env, ast_t *ast)
                               Text$quoted(ast->file->filename, false), (long)(reduction->iter->start - reduction->iter->file->text),
                               (long)(reduction->iter->end - reduction->iter->file->text)));
         }
-        ast_t *i = FakeAST(Var, "$i");
         ast_t *item = FakeAST(Var, "$iter_value");
-        set_binding(scope, "$iter_value", new(binding_t, .type=t, .code="iter_value"));
-        ast_t *body = FakeAST(InlineCCode, CORD_all("reduction = $$i == 1 ? iter_value : ", compile(scope, reduction->combination), ";"));
-        ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=i, .next=new(ast_list_t, .ast=item)), .iter=reduction->iter, .body=body, .empty=empty);
+        set_binding(scope, "$iter_value", new(binding_t, .type=t, .code="$$iter_value"));
+        ast_t *body = FakeAST(InlineCCode, CORD_all("if (is_first) {\nreduction = $$iter_value;\nis_first = no;\n} else {\nreduction = ", compile(scope, reduction->combination), ";\n}\n"));
+        ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=item), .iter=reduction->iter, .body=body, .empty=empty);
         code = CORD_all(code, compile_statement(scope, loop), "\nreduction;})");
         return code;
     }
