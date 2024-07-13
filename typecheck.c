@@ -922,7 +922,27 @@ type_t *get_type(env_t *env, ast_t *ast)
         }
         REVERSE_LIST(args);
 
-        type_t *ret = get_type(scope, lambda->body);
+        type_t *ret;
+        auto block = Match(lambda->body, Block);
+        if (!block->statements) {
+            ret = Type(VoidType);
+        } else {
+            ast_list_t *last = block->statements;
+            if (!last)
+                return Type(VoidType);
+            while (last->next)
+                last = last->next;
+
+            env_t *block_env = fresh_scope(env);
+            for (ast_list_t *stmt = block->statements; stmt; stmt = stmt->next)
+                bind_statement(block_env, stmt->ast);
+
+            if (last->ast->tag == Return && Match(last->ast, Return)->value)
+                ret = get_type(block_env, Match(last->ast, Return)->value);
+            else
+                ret = get_type(block_env, last->ast);
+        }
+
         if (has_stack_memory(ret))
             code_err(ast, "Functions can't return stack references because the reference may outlive its stack frame.");
         return Type(ClosureType, Type(FunctionType, .args=args, .ret=ret));
