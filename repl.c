@@ -98,6 +98,7 @@ const TypeInfo *type_to_type_info(type_t *t)
 {
     switch (t->tag) {
     case AbortType: return &$Abort;
+    case ReturnType: errx(1, "Shouldn't be getting a typeinfo for ReturnType");
     case VoidType: return &$Void;
     case MemoryType: return &$Memory;
     case BoolType: return &$Bool;

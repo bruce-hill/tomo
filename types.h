@@ -39,6 +39,7 @@ struct type_s {
     enum {
         UnknownType,
         AbortType,
+        ReturnType,
         VoidType,
         MemoryType,
         BoolType,
@@ -60,6 +61,9 @@ struct type_s {
     union {
         struct {
         } UnknownType, AbortType, VoidType, MemoryType, BoolType;
+        struct {
+            type_t *ret;
+        } ReturnType;
         struct {
             int64_t bits;
         } IntType;

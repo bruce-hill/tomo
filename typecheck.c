@@ -737,7 +737,11 @@ type_t *get_type(env_t *env, ast_t *ast)
     case Use: {
         return Type(ModuleType, Match(ast, Use)->name);
     }
-    case Return: case Stop: case Skip: case PrintStatement: {
+    case Return: {
+        ast_t *val = Match(ast, Return)->value;
+        return Type(ReturnType, .ret=(val ? get_type(env, val) : Type(VoidType)));
+    }
+    case Stop: case Skip: case PrintStatement: {
         return Type(AbortType);
     }
     case Pass: case Defer: return Type(VoidType);
@@ -800,9 +804,9 @@ type_t *get_type(env_t *env, ast_t *ast)
         case BINOP_AND: {
             if (lhs_t->tag == BoolType && rhs_t->tag == BoolType) {
                 return lhs_t;
-            } else if (lhs_t->tag == BoolType && rhs_t->tag == AbortType) {
+            } else if (lhs_t->tag == BoolType && (rhs_t->tag == AbortType || rhs_t->tag == ReturnType)) {
                 return lhs_t;
-            } else if (rhs_t->tag == AbortType) {
+            } else if (rhs_t->tag == AbortType || rhs_t->tag == ReturnType) {
                 return lhs_t;
             } else if (lhs_t->tag == PointerType && rhs_t->tag == PointerType) {
                 auto lhs_ptr = Match(lhs_t, PointerType);
@@ -819,13 +823,13 @@ type_t *get_type(env_t *env, ast_t *ast)
         case BINOP_OR: {
             if (lhs_t->tag == BoolType && rhs_t->tag == BoolType) {
                 return lhs_t;
-            } else if (lhs_t->tag == BoolType && rhs_t->tag == AbortType) {
+            } else if (lhs_t->tag == BoolType && (rhs_t->tag == AbortType || rhs_t->tag == ReturnType)) {
                 return lhs_t;
             } else if (lhs_t->tag == IntType && rhs_t->tag == IntType) {
                 return get_math_type(env, ast, lhs_t, rhs_t);
             } else if (lhs_t->tag == PointerType) {
                 auto lhs_ptr = Match(lhs_t, PointerType);
-                if (rhs_t->tag == AbortType) {
+                if (rhs_t->tag == AbortType || rhs_t->tag == ReturnType) {
                     return Type(PointerType, .pointed=lhs_ptr->pointed, .is_optional=false, .is_readonly=lhs_ptr->is_readonly);
                 } else if (rhs_t->tag == PointerType) {
                     auto rhs_ptr = Match(rhs_t, PointerType);
@@ -886,7 +890,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (!reduction->fallback)
             return t;
         type_t *fallback_t = get_type(env, reduction->fallback);
-        if (fallback_t->tag == AbortType)
+        if (fallback_t->tag == AbortType || fallback_t->tag == ReturnType)
             return t;
         else if (can_promote(fallback_t, t))
             return t;
@@ -922,26 +926,10 @@ type_t *get_type(env_t *env, ast_t *ast)
         }
         REVERSE_LIST(args);
 
-        type_t *ret;
-        auto block = Match(lambda->body, Block);
-        if (!block->statements) {
-            ret = Type(VoidType);
-        } else {
-            ast_list_t *last = block->statements;
-            if (!last)
-                return Type(VoidType);
-            while (last->next)
-                last = last->next;
-
-            env_t *block_env = fresh_scope(env);
-            for (ast_list_t *stmt = block->statements; stmt; stmt = stmt->next)
-                bind_statement(block_env, stmt->ast);
-
-            if (last->ast->tag == Return && Match(last->ast, Return)->value)
-                ret = get_type(block_env, Match(last->ast, Return)->value);
-            else
-                ret = get_type(block_env, last->ast);
-        }
+        type_t *ret = get_type(scope, lambda->body);
+        assert(ret);
+        if (ret->tag == ReturnType)
+            ret = Match(ret, ReturnType)->ret;
 
         if (has_stack_memory(ret))
             code_err(ast, "Functions can't return stack references because the reference may outlive its stack frame.");
@@ -1118,7 +1106,7 @@ bool is_discardable(env_t *env, ast_t *ast)
     default: break;
     }
     type_t *t = get_type(env, ast);
-    return (t->tag == VoidType || t->tag == AbortType);
+    return (t->tag == VoidType || t->tag == AbortType || t->tag == ReturnType);
 }
 
 type_t *get_file_type(env_t *env, const char *path)

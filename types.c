@@ -13,6 +13,7 @@ CORD type_to_cord(type_t *t) {
     switch (t->tag) {
         case UnknownType: return "???";
         case AbortType: return "Abort";
+        case ReturnType: return CORD_all("Return(", type_to_cord(Match(t, ReturnType)->ret), ")");
         case VoidType: return "Void";
         case MemoryType: return "Memory";
         case BoolType: return "Bool";
@@ -126,8 +127,10 @@ type_t *type_or_type(type_t *a, type_t *b)
     if (!b) return a;
     if (type_is_a(b, a)) return a;
     if (type_is_a(a, b)) return b;
-    if (a->tag == AbortType) return non_optional(b);
-    if (b->tag == AbortType) return non_optional(a);
+    if (a->tag == ReturnType && b->tag == ReturnType)
+        return Type(ReturnType, .ret=type_or_type(Match(a, ReturnType)->ret, Match(b, ReturnType)->ret));
+    if (a->tag == AbortType || a->tag == ReturnType) return non_optional(b);
+    if (b->tag == AbortType || b->tag == ReturnType) return non_optional(a);
     if ((a->tag == IntType || a->tag == NumType) && (b->tag == IntType || b->tag == NumType)) {
         switch (compare_precision(a, b)) {
         case NUM_PRECISION_EQUAL: case NUM_PRECISION_MORE: return a;
@@ -396,7 +399,7 @@ type_t *replace_type(type_t *t, type_t *target, type_t *replacement)
 size_t type_size(type_t *t)
 {
     switch (t->tag) {
-    case UnknownType: case AbortType: case VoidType: return 0;
+    case UnknownType: case AbortType: case ReturnType: case VoidType: return 0;
     case MemoryType: errx(1, "Memory has undefined type size");
     case BoolType: return sizeof(bool);
     case CStringType: return sizeof(char*);
@@ -448,7 +451,7 @@ size_t type_size(type_t *t)
 size_t type_align(type_t *t)
 {
     switch (t->tag) {
-    case UnknownType: case AbortType: case VoidType: return 0;
+    case UnknownType: case AbortType: case ReturnType: case VoidType: return 0;
     case MemoryType: errx(1, "Memory has undefined type alignment");
     case BoolType: return __alignof__(bool);
     case CStringType: return __alignof__(char*);

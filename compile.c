@@ -73,14 +73,16 @@ static table_t *get_closed_vars(env_t *env, ast_t *lambda_ast)
     };
     body_scope->fn_ctx = &fn_ctx;
     body_scope->locals->fallback = env->globals;
-    type_t *ret_t = Match(Match(get_type(env, lambda_ast), ClosureType)->fn, FunctionType)->ret;
+    type_t *ret_t = get_type(body_scope, lambda->body);
+    if (ret_t->tag == ReturnType)
+        ret_t = Match(ret_t, ReturnType)->ret;
     fn_ctx.return_type = ret_t;
 
     // Find which variables are captured in the closure:
     env_t *tmp_scope = fresh_scope(body_scope);
     for (ast_list_t *stmt = Match(lambda->body, Block)->statements; stmt; stmt = stmt->next) {
         type_t *stmt_type = get_type(tmp_scope, stmt->ast);
-        if (stmt->next || (stmt_type->tag == VoidType || stmt_type->tag == AbortType || stmt->ast->tag == Return))
+        if (stmt->next || (stmt_type->tag == VoidType || stmt_type->tag == AbortType || get_type(body_scope, stmt->ast)->tag == ReturnType))
             (void)compile_statement(tmp_scope, stmt->ast);
         else
             (void)compile(tmp_scope, stmt->ast);
@@ -108,6 +110,7 @@ CORD compile_declaration(type_t *t, CORD name)
 CORD compile_type(type_t *t)
 {
     switch (t->tag) {
+    case ReturnType: errx(1, "Shouldn't be compiling ReturnType to a type");
     case AbortType: return "void";
     case VoidType: return "void";
     case MemoryType: return "void";
@@ -366,7 +369,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
-        } else if (expr_t->tag == VoidType || expr_t->tag == AbortType) {
+        } else if (expr_t->tag == VoidType || expr_t->tag == AbortType || expr_t->tag == ReturnType) {
             return CORD_asprintf(
                 "test(({ %r; NULL; }), NULL, NULL, %r, %ld, %ld);",
                 compile_statement(env, test->expr),
@@ -391,7 +394,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             return compile_statement(env, decl->value);
         } else {
             type_t *t = get_type(env, decl->value);
-            if (t->tag == AbortType || t->tag == VoidType)
+            if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
                 code_err(ast, "You can't declare a variable with a %T value", t);
             return CORD_all(compile_declaration(t, CORD_cat("$", Match(decl->var, Var)->name)), " = ", compile(env, decl->value), ";");
         }
@@ -598,8 +601,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
         };
         body_scope->fn_ctx = &fn_ctx;
 
-
-        if (ret_t->tag != VoidType && ret_t->tag != AbortType && get_type(body_scope, fndef->body)->tag != AbortType)
+        type_t *body_type = get_type(body_scope, fndef->body);
+        if (ret_t->tag != VoidType && ret_t->tag != AbortType && body_type->tag != AbortType && body_type->tag != ReturnType)
             code_err(ast, "This function can reach the end without returning a %T value!", ret_t);
 
         CORD body = compile_statement(body_scope, fndef->body);
@@ -1740,7 +1743,9 @@ CORD compile(env_t *env, ast_t *ast)
         body_scope->fn_ctx = &fn_ctx;
         body_scope->locals->fallback = env->globals;
         body_scope->deferred = NULL;
-        type_t *ret_t = Match(Match(get_type(env, ast), ClosureType)->fn, FunctionType)->ret;
+        type_t *ret_t = get_type(body_scope, lambda->body);
+        if (ret_t->tag == ReturnType)
+            ret_t = Match(ret_t, ReturnType)->ret;
         fn_ctx.return_type = ret_t;
 
         CORD code = CORD_all("static ", compile_type(ret_t), " ", name, "(");
@@ -1771,7 +1776,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         CORD body = CORD_EMPTY;
         for (ast_list_t *stmt = Match(lambda->body, Block)->statements; stmt; stmt = stmt->next) {
-            if (stmt->next || ret_t->tag == VoidType || ret_t->tag == AbortType || stmt->ast->tag == Return)
+            if (stmt->next || ret_t->tag == VoidType || ret_t->tag == AbortType || get_type(body_scope, stmt->ast)->tag == ReturnType)
                 body = CORD_all(body, compile_statement(body_scope, stmt->ast), "\n");
             else
                 body = CORD_all(body, compile_statement(body_scope, FakeAST(Return, stmt->ast)), "\n");
@@ -2000,10 +2005,10 @@ CORD compile(env_t *env, ast_t *ast)
 
         type_t *true_type = get_type(env, if_->body);
         type_t *false_type = get_type(env, if_->else_body);
-        if (true_type->tag == AbortType)
+        if (true_type->tag == AbortType || true_type->tag == ReturnType)
             return CORD_all("({ if (", compile(env, if_->condition), ") ", compile_statement(env, if_->body),
                             "\n", compile(env, if_->else_body), "; })");
-        else if (false_type->tag == AbortType)
+        else if (false_type->tag == AbortType || false_type->tag == ReturnType)
             return CORD_all("({ if (!(", compile(env, if_->condition), ")) ", compile_statement(env, if_->else_body),
                             "\n", compile(env, if_->body), "; })");
         else
@@ -2023,7 +2028,7 @@ CORD compile(env_t *env, ast_t *ast)
         ast_t *empty = NULL;
         if (reduction->fallback) {
             type_t *fallback_type = get_type(scope, reduction->fallback);
-            if (fallback_type->tag == AbortType) {
+            if (fallback_type->tag == AbortType || fallback_type->tag == ReturnType) {
                 empty = reduction->fallback;
             } else {
                 empty = FakeAST(Assign, .targets=new(ast_list_t, .ast=result), .values=new(ast_list_t, .ast=reduction->fallback));
@@ -2434,7 +2439,7 @@ CORD compile_file(env_t *env, ast_t *ast)
             const char *decl_name = Match(decl->var, Var)->name;
             bool is_private = (decl_name[0] == '_');
             type_t *t = get_type(env, decl->value);
-            if (t->tag == AbortType || t->tag == VoidType)
+            if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
                 code_err(stmt->ast, "You can't declare a variable with a %T value", t);
             if (!is_constant(env, decl->value))
                 code_err(decl->value, "This value is not a valid constant initializer.");
@@ -2487,7 +2492,7 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
         }
         type_t *t = get_type(env, decl->value);
         assert(t->tag != ModuleType);
-        if (t->tag == AbortType || t->tag == VoidType)
+        if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
             code_err(ast, "You can't declare a variable with a %T value", t);
         const char *decl_name = Match(decl->var, Var)->name;
         bool is_private = (decl_name[0] == '_');
