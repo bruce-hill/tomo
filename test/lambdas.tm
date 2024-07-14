@@ -30,3 +30,13 @@ func main():
 	>> abs100 := mul_func(100, Int.abs)
 	>> abs100(-5)
 	= 500
+
+	// Test nested lambdas:
+    outer := "Hello"
+    fn := func():
+        return func():
+            return func():
+                defer: |{outer}
+                return outer
+    >> fn()()()
+	= "Hello"

@@ -14,7 +14,8 @@ typedef struct {
     CORD typeinfos;
 } compilation_unit_t;
 
-typedef struct {
+typedef struct fn_ctx_s {
+    struct fn_ctx_s *parent;
     type_t *return_type;
     table_t *closure_scope;
     table_t *closed_vars;

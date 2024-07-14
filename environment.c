@@ -372,11 +372,16 @@ env_t *namespace_env(env_t *env, const char *namespace_name)
 binding_t *get_binding(env_t *env, const char *name)
 {
     binding_t *b = Table$str_get(*env->locals, name);
-    if (!b && env->fn_ctx && env->fn_ctx->closure_scope) {
-        b = Table$str_get(*env->fn_ctx->closure_scope, name);
-        if (b) {
-            Table$str_set(env->fn_ctx->closed_vars, name, b);
-            return new(binding_t, .type=b->type, .code=CORD_all("userdata->", name));
+    if (!b) {
+        for (fn_ctx_t *fn_ctx = env->fn_ctx; fn_ctx; fn_ctx = fn_ctx->parent) {
+            if (!fn_ctx->closure_scope) continue;
+            b = Table$str_get(*fn_ctx->closure_scope, name);
+            if (b) {
+                Table$str_set(env->fn_ctx->closed_vars, name, b);
+                binding_t *b2 = new(binding_t, .type=b->type, .code=CORD_all("userdata->", name));
+                Table$str_set(env->locals, name, b2);
+                return b2;
+            }
         }
     }
     return b;
