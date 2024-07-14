@@ -81,8 +81,9 @@ static table_t *get_closed_vars(env_t *env, ast_t *lambda_ast)
     // Find which variables are captured in the closure:
     env_t *tmp_scope = fresh_scope(body_scope);
     for (ast_list_t *stmt = Match(lambda->body, Block)->statements; stmt; stmt = stmt->next) {
+        bind_statement(tmp_scope, stmt->ast);
         type_t *stmt_type = get_type(tmp_scope, stmt->ast);
-        if (stmt->next || (stmt_type->tag == VoidType || stmt_type->tag == AbortType || get_type(body_scope, stmt->ast)->tag == ReturnType))
+        if (stmt->next || (stmt_type->tag == VoidType || stmt_type->tag == AbortType || get_type(tmp_scope, stmt->ast)->tag == ReturnType))
             (void)compile_statement(tmp_scope, stmt->ast);
         else
             (void)compile(tmp_scope, stmt->ast);
@@ -1776,6 +1777,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         CORD body = CORD_EMPTY;
         for (ast_list_t *stmt = Match(lambda->body, Block)->statements; stmt; stmt = stmt->next) {
+            bind_statement(body_scope, stmt->ast);
             if (stmt->next || ret_t->tag == VoidType || ret_t->tag == AbortType || get_type(body_scope, stmt->ast)->tag == ReturnType)
                 body = CORD_all(body, compile_statement(body_scope, stmt->ast), "\n");
             else
