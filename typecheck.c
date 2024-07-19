@@ -739,6 +739,19 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
     case Return: {
         ast_t *val = Match(ast, Return)->value;
+        // Support unqualified enum return values:
+        if (env->fn_ctx && env->fn_ctx->return_type->tag == EnumType) {
+            env = fresh_scope(env);
+            auto enum_ = Match(env->fn_ctx->return_type, EnumType);
+            env_t *ns_env = enum_->env;
+            for (tag_t *tag = enum_->tags; tag; tag = tag->next) {
+                if (get_binding(env, tag->name))
+                    continue;
+                binding_t *b = get_binding(ns_env, tag->name);
+                assert(b);
+                set_binding(env, tag->name, b);
+            }
+        }
         return Type(ReturnType, .ret=(val ? get_type(env, val) : Type(VoidType)));
     }
     case Stop: case Skip: case PrintStatement: {
