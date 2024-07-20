@@ -841,7 +841,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 array = Match(for_->iter, MethodCall)->self;
                 array_code = is_idempotent(array) ? compile(env, array) : "arr";
                 CORD first = compile_arguments(env, for_->iter, new(arg_t, .type=Type(IntType, .bits=64), .name="last"), Match(for_->iter, MethodCall)->args);
-                for_code = CORD_all("for (int64_t ", index, " = ", first, "; ", index, " <= ", array_code, ".length; ++", index, ")");
+                for_code = CORD_all("for (int64_t first = ", first, ", ", index, " = MAX(1, first < 1 ? ", array_code, ".length + first + 1 : first", "); ",
+                                    index, " <= ", array_code, ".length; ++", index, ")");
             } else {
                 array_code = is_idempotent(array) ? compile(env, array) : "arr";
                 for_code = CORD_all("for (int64_t ", index, " = 1; ", index, " <= ", array_code, ".length; ++", index, ")");

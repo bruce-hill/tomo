@@ -7,6 +7,7 @@
 #include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/param.h>
 
 #include "array.h"
 #include "bool.h"
