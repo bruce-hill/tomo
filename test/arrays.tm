@@ -143,16 +143,3 @@ func main():
 
 		>> [i*10 for i in 10]:by(2):by(-1)
 		= [90, 70, 50, 30, 10]
-
-	do:
-		strs := ["A", "B", "C"]
-		>> ["{x}{y}" for x, y in strs:pairs()]
-		= ["AB", "AC", "BC"]
-		>> ["{x}{y}" for x, y in strs:pairs(self_pairs=yes)]
-		= ["AA", "AB", "AC", "BB", "BC", "CC"]
-		>> ["{x}{y}" for x, y in strs:pairs(ordered=yes)]
-		= ["AB", "AC", "BA", "BC", "CA", "CB"]
-		>> ["{x}{y}" for x, y in strs:pairs(self_pairs=yes, ordered=yes)]
-		= ["AA", "AB", "AC", "BA", "BB", "BC", "CA", "CB", "CC"]
-		>> ["!" for x,y in [:Text]:pairs()]
-		= []

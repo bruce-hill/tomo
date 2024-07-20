@@ -69,7 +69,6 @@ array_t Array$to(array_t *array, int64_t last);
 array_t Array$by(array_t *array, int64_t stride);
 array_t Array$reversed(array_t array);
 array_t Array$concat(array_t x, array_t y, const TypeInfo *type);
-closure_t Array$pairs(array_t x, bool self_pairs, bool ordered, const TypeInfo *type);
 uint32_t Array$hash(const array_t *arr, const TypeInfo *type);
 int32_t Array$compare(const array_t *x, const array_t *y, const TypeInfo *type);
 bool Array$equal(const array_t *x, const array_t *y, const TypeInfo *type);

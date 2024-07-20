@@ -320,49 +320,6 @@ public array_t Array$reversed(array_t array)
     return reversed;
 }
 
-typedef struct {
-    array_t arr;
-    int64_t i, j, item_size;
-    bool self_pairs:1, ordered:1;
-} pair_info_t;
-
-static bool next_pair(void *x, void *y, pair_info_t *info)
-{
-    if (info->i > info->arr.length || info->j > info->arr.length)
-        return false;
-
-    memcpy(x, info->arr.data + info->arr.stride * (info->i-1), info->item_size);
-    memcpy(y, info->arr.data + info->arr.stride * (info->j-1), info->item_size);
-    info->j += 1;
-    if (!info->self_pairs && info->j == info->i)
-        info->j += 1;
-
-    if (info->j > info->arr.length) {
-        info->i += 1;
-        if (info->ordered)
-            info->j = 1;
-        else if (info->self_pairs)
-            info->j = info->i;
-        else
-            info->j = info->i + 1;
-    }
-    return true;
-}
-
-public closure_t Array$pairs(array_t arr, bool self_pairs, bool ordered, const TypeInfo *type)
-{
-    return (closure_t){
-        .fn=next_pair,
-        .userdata=new(pair_info_t,
-            .arr=arr,
-            .i=1,
-            .j=self_pairs ? 1 : 2,
-            .item_size=get_item_size(type),
-            .self_pairs=self_pairs,
-            .ordered=ordered),
-    };
-}
-
 public array_t Array$concat(array_t x, array_t y, const TypeInfo *type)
 {
     int64_t item_size = get_item_size(type);

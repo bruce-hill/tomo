@@ -899,16 +899,13 @@ CORD compile_statement(env_t *env, ast_t *ast)
             }
         }
         case FunctionType: case ClosureType: {
+            // Iterator function:
             CORD code = "{\n";
-            auto fn = iter_t->tag == ClosureType ? Match(Match(iter_t, ClosureType)->fn, FunctionType) : Match(iter_t, FunctionType);
-            arg_t *next_arg = fn->args;
-            for (ast_list_t *var = for_->vars; var; var = var->next) {
-                const char *name = Match(var->ast, Var)->name;
-                type_t *t = Match(get_arg_type(env, next_arg), PointerType)->pointed;
-                code = CORD_all(code, compile_declaration(t, CORD_cat("$", name)), ";\n");
-            }
 
             code = CORD_all(code, compile_declaration(iter_t, "next"), " = ", compile(env, for_->iter), ";\n");
+
+            auto fn = iter_t->tag == ClosureType ? Match(Match(iter_t, ClosureType)->fn, FunctionType) : Match(iter_t, FunctionType);
+            code = CORD_all(code, compile_declaration(fn->ret, "cur"), ";\n"); // Iteration enum
 
             CORD next_fn;
             if (iter_t->tag == ClosureType) {
@@ -919,20 +916,14 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 closure_fn_args = new(arg_t, .name="userdata", .type=Type(PointerType, .pointed=Type(MemoryType)), .next=closure_fn_args);
                 REVERSE_LIST(closure_fn_args);
                 CORD fn_type_code = compile_type(Type(FunctionType, .args=closure_fn_args, .ret=Match(fn_t, FunctionType)->ret));
-                next_fn = CORD_all("((", fn_type_code, ")next.fn)(");
+                next_fn = CORD_all("((", fn_type_code, ")next.fn)");
             } else {
-                next_fn = "next(";
+                next_fn = "next";
             }
 
-            for (ast_list_t *var = for_->vars; var; var = var->next) {
-                const char *name = Match(var->ast, Var)->name;
-                next_fn = CORD_all(next_fn, "&$", name);
-                if (var->next || iter_t->tag == ClosureType)
-                    next_fn = CORD_all(next_fn, ", ");
-            }
-            if (iter_t->tag == ClosureType)
-                next_fn = CORD_all(next_fn, "next.userdata");
-            next_fn = CORD_all(next_fn, ")");
+            env_t *enum_env = Match(fn->ret, EnumType)->env;
+            next_fn = CORD_all("(cur=", next_fn, iter_t->tag == ClosureType ? "(next.userdata)" : "()", ").$tag == ",
+                               namespace_prefix(enum_env->libname, enum_env->namespace), "tag$Next");
 
             if (for_->empty) {
                 code = CORD_all(code, "if (", next_fn, ") {\n"
@@ -1909,11 +1900,6 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$reversed(", self, ")");
-            } else if (streq(call->name, "pairs")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="self_pairs", .default_val=FakeAST(Bool, false), .type=Type(BoolType),
-                                      .next=new(arg_t, .name="ordered", .default_val=FakeAST(Bool, false), .type=Type(BoolType)));
-                return CORD_all("Array$pairs(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type_info(env, self_value_t), ")");
             } else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
         case TableType: {
@@ -2059,9 +2045,16 @@ CORD compile(env_t *env, ast_t *ast)
                               (long)(reduction->iter->end - reduction->iter->file->text)));
         }
         ast_t *item = FakeAST(Var, "$iter_value");
-        set_binding(scope, "$iter_value", new(binding_t, .type=t, .code="$$iter_value"));
-        ast_t *body = FakeAST(InlineCCode, CORD_all("if (is_first) {\nreduction = $$iter_value;\nis_first = no;\n} else {\nreduction = ", compile(scope, reduction->combination), ";\n}\n"));
+        ast_t *body = FakeAST(InlineCCode, .code="{}"); // placeholder
         ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=item), .iter=reduction->iter, .body=body, .empty=empty);
+        env_t *body_scope = for_scope(scope, loop);
+        body->__data.InlineCCode.code = CORD_all(
+            "if (is_first) {\n"
+            "    reduction = ", compile(body_scope, item), ";\n"
+            "    is_first = no;\n"
+            "} else {\n"
+            "    reduction = ", compile(body_scope, reduction->combination), ";\n"
+            "}\n");
         code = CORD_all(code, compile_statement(scope, loop), "\nreduction;})");
         return code;
     }
