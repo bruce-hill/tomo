@@ -822,17 +822,41 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 }
             }
 
-            CORD array = is_idempotent(for_->iter) ? compile(env, for_->iter) : "arr";
-            CORD loop = CORD_all("ARRAY_INCREF(", array, ");\n"
-                                 "for (int64_t ", index, " = 1; ", index, " <= ", array, ".length; ++", index, ") {\n",
+            ast_t *array = for_->iter;
+            CORD array_code, for_code;
+            // Micro-optimization: inline the logic for iterating over
+            // `array:from(i)` and `array:to(i)` because these happen inside
+            // hot path inner loops and can actually meaningfully affect
+            // performance:
+            if (for_->iter->tag == MethodCall && streq(Match(for_->iter, MethodCall)->name, "to")
+                && value_type(get_type(env, Match(for_->iter, MethodCall)->self))->tag == ArrayType) {
+                array = Match(for_->iter, MethodCall)->self;
+                array_code = is_idempotent(array) ? compile(env, array) : "arr";
+                CORD limit = compile_arguments(env, for_->iter, new(arg_t, .type=Type(IntType, .bits=64), .name="last"), Match(for_->iter, MethodCall)->args);
+                for_code = CORD_all("for (int64_t ", index, " = 1, raw_limit = ", limit,
+                                    ", limit = raw_limit < 0 ? ", array_code, ".length + raw_limit + 1 : raw_limit; ",
+                                    index, " <= limit; ++", index, ")");
+            } else if (for_->iter->tag == MethodCall && streq(Match(for_->iter, MethodCall)->name, "from")
+                && value_type(get_type(env, Match(for_->iter, MethodCall)->self))->tag == ArrayType) {
+                array = Match(for_->iter, MethodCall)->self;
+                array_code = is_idempotent(array) ? compile(env, array) : "arr";
+                CORD first = compile_arguments(env, for_->iter, new(arg_t, .type=Type(IntType, .bits=64), .name="last"), Match(for_->iter, MethodCall)->args);
+                for_code = CORD_all("for (int64_t ", index, " = ", first, "; ", index, " <= ", array_code, ".length; ++", index, ")");
+            } else {
+                array_code = is_idempotent(array) ? compile(env, array) : "arr";
+                for_code = CORD_all("for (int64_t ", index, " = 1; ", index, " <= ", array_code, ".length; ++", index, ")");
+            }
+            CORD loop = CORD_all("ARRAY_INCREF(", array_code, ");\n",
+                                 for_code, "{\n",
                                  compile_type(item_t), " ", value,
-                                 " = *(", compile_type(item_t), "*)(", array, ".data + (",index,"-1)*", array, ".stride);\n",
+                                 " = *(", compile_type(item_t), "*)(", array_code, ".data + (",index,"-1)*", array_code, ".stride);\n",
                                  body, "\n}");
+
             if (for_->empty)
-                loop = CORD_all("if (", array, ".length > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
-            loop = CORD_all(loop, stop, "\nARRAY_DECREF(", array, ");\n");
-            if (!is_idempotent(for_->iter))
-                loop = CORD_all("{\narray_t ",array," = ", compile(env, for_->iter), ";\n", loop, "\n}");
+                loop = CORD_all("if (", array_code, ".length > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
+            loop = CORD_all(loop, stop, "\nARRAY_DECREF(", array_code, ");\n");
+            if (!is_idempotent(array))
+                loop = CORD_all("{\narray_t ",array_code," = ", compile(env, array), ";\n", loop, "\n}");
             return loop;
         }
         case TableType: {

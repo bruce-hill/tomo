@@ -143,3 +143,9 @@ func main():
 
 		>> [i*10 for i in 10]:by(2):by(-1)
 		= [90, 70, 50, 30, 10]
+
+		// Test iterating over array:from() and array:to()
+		xs := ["A", "B", "C", "D"]
+		for i,x in xs:to(-2):
+			for y in xs:from(i+1):
+				say("{x}{y}")
