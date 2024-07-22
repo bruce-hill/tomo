@@ -1083,7 +1083,7 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
             if (ast->tag == Var && target_depth == 1)
                 val = CORD_all("(&", val, ")");
             else
-                val = CORD_all("stack(", val, ")");
+                code_err(ast, "This should be a pointer, not %T", get_type(env, ast));
             t = Type(PointerType, .pointed=t, .is_stack=true);
             ++depth;
         } else {
@@ -1323,8 +1323,9 @@ CORD compile(env_t *env, ast_t *ast)
     case StackReference: {
         ast_t *subject = Match(ast, StackReference)->value;
         if (can_be_mutated(env, subject))
-            return CORD_all("(&", compile(env, subject), ")");
-        return CORD_all("stack(", compile(env, subject), ")");
+            return CORD_all("(&", compile_lvalue(env, subject), ")");
+        else
+            code_err(subject, "This subject can't be mutated!");
     }
     case Optional: {
         return compile(env, Match(ast, Optional)->value);
@@ -1910,15 +1911,15 @@ CORD compile(env_t *env, ast_t *ast)
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$clear(", self, ")");
             } else if (streq(call->name, "from")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="first", .type=Type(IntType, .bits=64));
                 return CORD_all("Array$from(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "to")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="last", .type=Type(IntType, .bits=64));
                 return CORD_all("Array$to(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "by")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="stride", .type=Type(IntType, .bits=64));
                 return CORD_all("Array$by(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "reversed")) {

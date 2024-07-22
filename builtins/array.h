@@ -64,9 +64,9 @@ array_t Array$sample(array_t arr, int64_t n, array_t weights, const TypeInfo *ty
 void Array$clear(array_t *array);
 void Array$compact(array_t *arr, const TypeInfo *type);
 bool Array$contains(array_t array, void *item, const TypeInfo *type);
-array_t Array$from(array_t *array, int64_t first);
-array_t Array$to(array_t *array, int64_t last);
-array_t Array$by(array_t *array, int64_t stride);
+array_t Array$from(array_t array, int64_t first);
+array_t Array$to(array_t array, int64_t last);
+array_t Array$by(array_t array, int64_t stride);
 array_t Array$reversed(array_t array);
 array_t Array$concat(array_t x, array_t y, const TypeInfo *type);
 uint32_t Array$hash(const array_t *arr, const TypeInfo *type);
