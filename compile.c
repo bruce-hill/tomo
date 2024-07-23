@@ -264,6 +264,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
         }
         if (when->else_body) {
             code = CORD_all(code, "default: {\n", compile_statement(env, when->else_body), "\nbreak;\n}");
+        } else {
+            code = CORD_all(code, "default: errx(1, \"Invalid tag!\");\n");
         }
         code = CORD_all(code, "\n}\n}");
         return code;
@@ -615,7 +617,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         env->code->funcs = CORD_all(env->code->funcs, code, " ", body, "\n");
 
         if (fndef->cache && fndef->cache->tag == Int && Match(fndef->cache, Int)->i > 0) {
-            const char *arg_type_name = heap_strf("%s$args", CORD_to_const_char_star(name));
+            const char *arg_type_name = heap_strf("%s$args", Match(fndef->name, Var)->name);
             ast_t *args_def = FakeAST(StructDef, .name=arg_type_name, .fields=fndef->args);
             prebind_statement(env, args_def);
             bind_statement(env, args_def);
@@ -633,8 +635,10 @@ CORD compile_statement(env_t *env, ast_t *ast)
                                     ") Table$remove(&cache, NULL, table_type);\n");
             }
 
-            CORD arg_typedef = compile_struct_header(env, args_def);
+            CORD arg_typedef = compile_struct_typedef(env, args_def);
             env->code->local_typedefs = CORD_all(env->code->local_typedefs, arg_typedef);
+            env->code->staticdefs = CORD_all(env->code->staticdefs,
+                                             "extern const TypeInfo ", namespace_prefix(env->libname, env->namespace), arg_type_name, ";\n");
             CORD wrapper = CORD_all(
                 is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
                 "static table_t cache = {};\n",
@@ -1787,7 +1791,7 @@ CORD compile(env_t *env, ast_t *ast)
             code = CORD_all(code, compile_type(arg_type), " $", arg->name, ", ");
         }
 
-        CORD args_typedef = compile_statement_header(env, ast);
+        CORD args_typedef = compile_statement_typedefs(env, ast);
         env->code->local_typedefs = CORD_all(env->code->local_typedefs, args_typedef);
 
         table_t *closed_vars = get_closed_vars(env, ast);
@@ -2243,12 +2247,12 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
     }
 }
 
-CORD compile_namespace_headers(env_t *env, const char *ns_name, ast_t *block)
+CORD compile_namespace_definitions(env_t *env, const char *ns_name, ast_t *block)
 {
     env_t *ns_env = namespace_env(env, ns_name);
     CORD header = CORD_EMPTY;
     for (ast_list_t *stmt = block ? Match(block, Block)->statements : NULL; stmt; stmt = stmt->next) {
-        header = CORD_all(header, compile_statement_header(ns_env, stmt->ast));
+        header = CORD_all(header, compile_statement_definitions(ns_env, stmt->ast));
     }
     return header;
 }
@@ -2514,17 +2518,83 @@ CORD compile_file(env_t *env, ast_t *ast)
     );
 }
 
-CORD compile_statement_header(env_t *env, ast_t *ast)
+CORD compile_statement_imports(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
     case DocTest: {
         auto test = Match(ast, DocTest);
-        return compile_statement_header(env, test->expr);
+        return compile_statement_imports(env, test->expr);
+    }
+    case Declare: {
+        auto decl = Match(ast, Declare);
+        if (decl->value->tag == Use || decl->value->tag == Import)
+            return compile_statement_imports(env, decl->value);
+        return CORD_EMPTY;
+    }
+    case Import: {
+        const char *path = Match(ast, Import)->path;
+        return CORD_all("#include \"", path, ".tm.h\"\n");
+    }
+    case Use: {
+        const char *name = Match(ast, Use)->name;
+        if (strncmp(name, "-l", 2) == 0)
+            return CORD_EMPTY;
+        else
+            return CORD_all("#include <tomo/lib", name, ".h>\n");
+    }
+    default: return CORD_EMPTY;
+    }
+}
+
+CORD compile_statement_typedefs(env_t *env, ast_t *ast)
+{
+    switch (ast->tag) {
+    case DocTest: {
+        auto test = Match(ast, DocTest);
+        return compile_statement_typedefs(env, test->expr);
+    }
+    case StructDef: {
+        return compile_struct_typedef(env, ast);
+    }
+    case EnumDef: {
+        return compile_enum_typedef(env, ast);
+    }
+    case LangDef: {
+        auto def = Match(ast, LangDef);
+        return CORD_all("typedef CORD ", namespace_prefix(env->libname, env->namespace), def->name, "_t;\n");
+    }
+    case Lambda: {
+        auto lambda = Match(ast, Lambda);
+        table_t *closed_vars = get_closed_vars(env, ast);
+        if (Table$length(*closed_vars) == 0)
+            return CORD_EMPTY;
+
+        CORD def = "typedef struct {";
+        for (int64_t i = 1; i <= Table$length(*closed_vars); i++) {
+            struct { const char *name; binding_t *b; } *entry = Table$entry(*closed_vars, i);
+            if (entry->b->type->tag == ModuleType)
+                continue;
+            def = CORD_all(def, compile_declaration(entry->b->type, entry->name), "; ");
+        }
+        CORD name = CORD_asprintf("%rlambda$%ld", namespace_prefix(env->libname, env->namespace), lambda->id);
+        return CORD_all(def, "} ", name, "$userdata_t;");
+    }
+    default:
+        return CORD_EMPTY;
+    }
+}
+
+CORD compile_statement_definitions(env_t *env, ast_t *ast)
+{
+    switch (ast->tag) {
+    case DocTest: {
+        auto test = Match(ast, DocTest);
+        return compile_statement_definitions(env, test->expr);
     }
     case Declare: {
         auto decl = Match(ast, Declare);
         if (decl->value->tag == Use || decl->value->tag == Import) {
-            return compile_statement_header(env, decl->value);
+            return compile_statement_definitions(env, decl->value);
         }
         type_t *t = get_type(env, decl->value);
         assert(t->tag != ModuleType);
@@ -2535,7 +2605,7 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
         if (!is_constant(env, decl->value))
             code_err(decl->value, "This value is not a valid constant initializer.");
 
-        CORD code = (decl->value->tag == Use || decl->value->tag == Import) ? compile_statement_header(env, decl->value) : CORD_EMPTY;
+        CORD code = (decl->value->tag == Use || decl->value->tag == Import) ? compile_statement_definitions(env, decl->value) : CORD_EMPTY;
         if (is_private) {
             return code;
         } else {
@@ -2544,18 +2614,21 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
         }
     }
     case StructDef: {
-        return compile_struct_header(env, ast);
+        auto def = Match(ast, StructDef);
+        CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
+        return CORD_all(
+            "extern const TypeInfo ", full_name, ";\n",
+            compile_namespace_definitions(env, def->name, def->namespace));
     }
     case EnumDef: {
-        return compile_enum_header(env, ast);
+        return compile_enum_declarations(env, ast);
     }
     case LangDef: {
         auto def = Match(ast, LangDef);
+        CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
         return CORD_all(
-            "typedef CORD ", namespace_prefix(env->libname, env->namespace), def->name, "_t;\n",
-            "extern const TypeInfo ", namespace_prefix(env->libname, env->namespace), def->name, ";\n");
-        compile_namespace(env, def->name, def->namespace);
-        return CORD_EMPTY;
+            "extern const TypeInfo ", full_name, ";\n",
+            compile_namespace_definitions(env, def->name, def->namespace));
     }
     case FunctionDef: {
         auto fndef = Match(ast, FunctionDef);
@@ -2572,25 +2645,7 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
 
         type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
         CORD ret_type_code = compile_type(ret_t);
-        CORD header = CORD_all(ret_type_code, " ", CORD_cat(namespace_prefix(env->libname, env->namespace), decl_name), arg_signature, ";\n");
-        return header;
-    }
-    case Lambda: {
-        auto lambda = Match(ast, Lambda);
-        CORD name = CORD_asprintf("%rlambda$%ld", namespace_prefix(env->libname, env->namespace), lambda->id);
-        table_t *closed_vars = get_closed_vars(env, ast);
-        if (Table$length(*closed_vars) == 0) {
-            return CORD_EMPTY;
-        } else {
-            CORD def = "typedef struct {";
-            for (int64_t i = 1; i <= Table$length(*closed_vars); i++) {
-                struct { const char *name; binding_t *b; } *entry = Table$entry(*closed_vars, i);
-                if (entry->b->type->tag == ModuleType)
-                    continue;
-                def = CORD_all(def, compile_declaration(entry->b->type, entry->name), "; ");
-            }
-            return CORD_all(def, "} ", name, "$userdata_t;");
-        }
+        return CORD_all(ret_type_code, " ", namespace_prefix(env->libname, env->namespace), decl_name, arg_signature, ";\n");
     }
     case Extern: {
         auto ext = Match(ast, Extern);
@@ -2610,17 +2665,6 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
         }
         return CORD_all("extern ", decl, ";\n");
     }
-    case Import: {
-        const char *path = Match(ast, Import)->path;
-        return CORD_all("#include \"", path, ".tm.h\"\n");
-    }
-    case Use: {
-        const char *name = Match(ast, Use)->name;
-        if (strncmp(name, "-l", 2) == 0)
-            return CORD_EMPTY;
-        else
-            return CORD_all("#include <tomo/lib", name, ".h>\n");
-    }
     default:
         return CORD_EMPTY;
     }
@@ -2633,7 +2677,13 @@ CORD compile_header(env_t *env, ast_t *ast)
                   "#include <tomo/tomo.h>\n";
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
-        header = CORD_all(header, compile_statement_header(env, stmt->ast));
+        header = CORD_all(header, compile_statement_imports(env, stmt->ast));
+
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
+        header = CORD_all(header, compile_statement_typedefs(env, stmt->ast));
+
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
+        header = CORD_all(header, compile_statement_definitions(env, stmt->ast));
 
     return header;
 }

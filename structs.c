@@ -165,11 +165,11 @@ void compile_struct_def(env_t *env, ast_t *ast)
     compile_namespace(env, def->name, def->namespace);
 }
 
-CORD compile_struct_header(env_t *env, ast_t *ast)
+CORD compile_struct_typedef(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
     CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
-    CORD header = CORD_all("typedef struct ", full_name, "_s ", full_name, "_t;\n");
+    CORD code = CORD_all("typedef struct ", full_name, "_s ", full_name, "_t;\n");
 
     CORD struct_code = CORD_all("struct ", full_name, "_s {\n");
     for (arg_ast_t *field = def->fields; field; field = field->next) {
@@ -179,10 +179,8 @@ CORD compile_struct_header(env_t *env, ast_t *ast)
                      CORD_cmp(type_code, "Bool_t") ? "" : ":1");
     }
     struct_code = CORD_all(struct_code, "};\n");
-    header = CORD_all(header, struct_code);
-    header = CORD_all(header, "extern const TypeInfo ", full_name, ";\n");
-    header = CORD_all(header, compile_namespace_headers(env, def->name, def->namespace));
-    return header;
+    code = CORD_all(code, struct_code);
+    return code;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

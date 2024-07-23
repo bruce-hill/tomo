@@ -209,9 +209,11 @@ int main(int argc, char *argv[])
             if (!ast) errx(1, "Could not parse file %s", filename);
             env->namespace = new(namespace_t, .name=file_base_name(filename));
             for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-                if (stmt->ast->tag == Import || (stmt->ast->tag == Declare && Match(stmt->ast, Declare)->value->tag == Import))
-                    continue;
-                CORD h = compile_statement_header(env, stmt->ast);
+                CORD h = compile_statement_typedefs(env, stmt->ast);
+                if (h) CORD_put(h, header_prog);
+            }
+            for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+                CORD h = compile_statement_definitions(env, stmt->ast);
                 if (h) CORD_put(h, header_prog);
             }
         }
