@@ -282,9 +282,9 @@ finding the value because the two strings are equivalent under normalization.
 
 ### Patterns
 
-- `string:has("target", at=Anywhere:enum(Anywhere, Start, End))->Bool` Check whether a pattern can be found
-- `string:without("target", at=Anywhere:enum(Anywhere, Start, End))->Text`
-- `string:trimmed("chars...", at=Anywhere:enum(Anywhere, Start, End))->Text`
+- `string:has("target", at=Where.Anywhere|Where.Start|Where.End)->Bool` Check whether a pattern can be found
+- `string:without("target", at=Where.Anywhere|Where.Start|Where.End)->Text`
+- `string:trimmed("chars...", at=Where.Anywhere|Where.Start|Where.End)->Text`
 - `string:find("target")->enum(Failure, Success(index:Int32))`
 - `string:replace("target", "replacement", limit=Int.max)->Text` Returns a copy of the string with replacements
 - `string:split("split")->[Text]`
