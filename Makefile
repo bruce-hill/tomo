@@ -43,7 +43,7 @@ SipHash/halfsiphash.c:
 tags:
 	ctags *.[ch] **/*.[ch]
 
-%.o: %.c
+%.o: %.c ast.h compile.h enums.h environment.h parse.h structs.h typecheck.h types.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 %.tm.testresult: %.tm tomo
