@@ -282,7 +282,7 @@ int main(int argc, char *argv[])
         if (mode == MODE_COMPILE_EXE || executable_status != 0)
             return executable_status;
 
-        char *exe_name = heap_strn(filename, strlen(filename) - strlen(".tm"));
+        char *exe_name = GC_strndup(filename, strlen(filename) - strlen(".tm"));
         int num_args = argc - after_flags - 1;
         char *prog_args[num_args + 2];
         prog_args[0] = exe_name;
@@ -459,7 +459,7 @@ int compile_executable(env_t *base_env, const char *filename, CORD object_files)
         errx(1, "No main() function has been defined for %s, so it can't be run!", filename);
     }
 
-    const char *bin_name = heap_strn(filename, strlen(filename) - strlen(".tm"));
+    const char *bin_name = GC_strndup(filename, strlen(filename) - strlen(".tm"));
     FILE *runner = CORD_RUN(autofmt, " | ", cc, " ", cflags, " ", ldflags, " ", ldlibs, " ", object_files, " -x c - -o ", bin_name);
 
     CORD program = CORD_all(

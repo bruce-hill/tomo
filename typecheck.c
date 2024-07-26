@@ -22,7 +22,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         type_t *t = Table$str_get(*env->types, name);
         if (t) return t;
         while (strchr(name, '.')) {
-            char *module_name = heap_strn(name, strcspn(name, "."));
+            char *module_name = GC_strndup(name, strcspn(name, "."));
             binding_t *b = get_binding(env, module_name);
             if (!b || b->type->tag != ModuleType)
                 code_err(ast, "I don't know a module with the name '%s'", module_name);
@@ -139,7 +139,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
         *module_env->libname = (CORD)libname_id;
         for (int64_t i = 1; i <= files_f->num_lines; i++) {
             const char *line = get_line(files_f, i);
-            line = heap_strn(line, strcspn(line, "\r\n"));
+            line = GC_strndup(line, strcspn(line, "\r\n"));
             if (!line || line[0] == '\0') continue;
             const char *tm_path = resolve_path(line, resolved_path, ".");
             if (!tm_path) errx(1, "Couldn't find library %s dependency: %s", libname, line);

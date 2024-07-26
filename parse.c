@@ -165,20 +165,20 @@ const char *unescape(const char **out) {
         uint8_t buf[bufsize];
         (void)u32_to_u8(ustr, bufsize, buf, &bufsize);
         *endpos = endptr;
-        return heap_strn((char*)buf, bufsize);
+        return GC_strndup((char*)buf, bufsize);
     } else if (escape[1] == 'x' && escape[2] && escape[3]) {
         char *endptr = NULL;
         char c = (char)strtol(escape+2, &endptr, 16);
         *endpos = escape + 4;
-        return heap_strn(&c, 1);
+        return GC_strndup(&c, 1);
     } else if ('0' <= escape[1] && escape[1] <= '7' && '0' <= escape[2] && escape[2] <= '7' && '0' <= escape[3] && escape[3] <= '7') {
         char *endptr = NULL;
         char c = (char)strtol(escape+1, &endptr, 8);
         *endpos = escape + 4;
-        return heap_strn(&c, 1);
+        return GC_strndup(&c, 1);
     } else {
         *endpos = escape + 2;
-        return heap_strn(escape+1, 1);
+        return GC_strndup(escape+1, 1);
     }
 }
 
@@ -356,7 +356,7 @@ const char *get_word(const char **inout) {
             break;
     }
     *inout = (const char*)pos;
-    return heap_strn(word, (size_t)((const char*)pos - word));
+    return GC_strndup(word, (size_t)((const char*)pos - word));
 }
 
 const char *get_id(const char **inout) {
@@ -2015,7 +2015,7 @@ PARSER(parse_inline_c) {
     CORD c_code = CORD_EMPTY;
     while (get_indent(ctx, pos) > indent) {
         size_t line_len = strcspn(pos, "\r\n");
-        c_code = CORD_all(c_code, heap_strn(pos, line_len), "\n");
+        c_code = CORD_all(c_code, GC_strndup(pos, line_len), "\n");
         pos += line_len;
         if (whitespace(&pos) == 0) break;
     }
@@ -2043,7 +2043,7 @@ PARSER(parse_doctest) {
                    *output_end = pos + strcspn(pos, "\r\n");
         if (output_end <= output_start)
             parser_err(ctx, output_start, output_end, "You're missing expected output here");
-        output = heap_strn(output_start, (size_t)(output_end - output_start));
+        output = GC_strndup(output_start, (size_t)(output_end - output_start));
         pos = output_end;
     } else {
         pos = expr->end;
@@ -2107,7 +2107,7 @@ PARSER(parse_use) {
     size_t name_len = strcspn(pos, " \t\r\n;");
     if (name_len < 1)
         parser_err(ctx, start, pos, "There is no module name here to use");
-    char *name = heap_strn(pos, name_len);
+    char *name = GC_strndup(pos, name_len);
     pos += name_len;
     while (match(&pos, ";")) continue;
     return NewAST(ctx->file, start, pos, Use, .name=name);
@@ -2120,7 +2120,7 @@ PARSER(parse_import) {
     size_t path_len = strcspn(pos, " \t\r\n;");
     if (path_len < 1)
         parser_err(ctx, start, pos, "There is no path here to import");
-    char *path = heap_strn(pos, path_len);
+    char *path = GC_strndup(pos, path_len);
     pos += path_len;
     while (match(&pos, ";")) continue;
     return NewAST(ctx->file, start, pos, Import, .path=path);
@@ -2131,7 +2131,7 @@ PARSER(parse_linker) {
     if (!match_word(&pos, "!link")) return NULL;
     spaces(&pos);
     size_t len = strcspn(pos, "\r\n");
-    const char *directive = heap_strn(pos, len);
+    const char *directive = GC_strndup(pos, len);
     pos += len;
     return NewAST(ctx->file, start, pos, LinkerDirective, .directive=directive);
 }
@@ -2149,7 +2149,7 @@ ast_t *parse_file(const char *path, jmp_buf *on_err) {
     if (path[0] == '<') {
         const char *endbracket = strchr(path, '>');
         if (!endbracket) return NULL;
-        file = spoof_file(heap_strn(path, (size_t)(endbracket + 1 - path)), endbracket + 1);
+        file = spoof_file(GC_strndup(path, (size_t)(endbracket + 1 - path)), endbracket + 1);
     } else {
         file = load_file(path);
         if (!file) return NULL;

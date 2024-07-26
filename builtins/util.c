@@ -11,20 +11,10 @@
 
 public bool USE_COLOR;
 
-public char *heap_strn(const char *str, size_t len)
-{
-    if (!str) return NULL;
-    if (len == 0) return "";
-    char *heaped = GC_MALLOC_ATOMIC(len + 1);
-    memcpy(heaped, str, len);
-    heaped[len] = '\0';
-    return heaped;
-}
-
 public char *heap_str(const char *str)
 {
     if (!str) return NULL;
-    return heap_strn(str, strlen(str));
+    return GC_strndup(str, strlen(str));
 }
 
 public char *heap_strf(const char *fmt, ...)
@@ -35,7 +25,7 @@ public char *heap_strf(const char *fmt, ...)
     int len = vasprintf(&tmp, fmt, args);
     if (len < 0) return NULL;
     va_end(args);
-    char *ret = heap_strn(tmp, (size_t)len);
+    char *ret = GC_strndup(tmp, (size_t)len);
     free(tmp);
     return ret;
 }
