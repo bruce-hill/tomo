@@ -156,7 +156,7 @@ const char *unescape(const char **out) {
     assert(*escape == '\\');
     if (unescapes[(int)escape[1]]) {
         *endpos = escape + 2;
-        return heap_str(unescapes[(int)escape[1]]);
+        return GC_strdup(unescapes[(int)escape[1]]);
     } else if (escape[1] == 'U' && escape[2]) {
         char *endptr = NULL;
         long codepoint = strtol(escape+2, &endptr, 16);

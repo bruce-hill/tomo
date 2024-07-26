@@ -50,7 +50,7 @@ void repl(void)
                 || starts_with(line, "func") || starts_with(line, "struct") || starts_with(line, "lang")) {
                 printf("\x1b[33;1m..\x1b[m ");
                 fflush(stdout);
-                code = heap_str(line);
+                code = GC_strdup(line);
                 while ((len=getline(&line, &buf_size, stdin)) >= 0) {
                     if (len == 1) break;
                     code = heap_strf("%s%s", code, line);

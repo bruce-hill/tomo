@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
 
     // For shared objects, link up all the object files into one .so file:
     if (mode == MODE_COMPILE_SHARED_OBJ) {
-        char *libname_id = heap_str(libname);
+        char *libname_id = GC_strdup(libname);
         for (char *p = libname_id; *p; p++) {
             if (!isalnum(*p) && *p != '_' && *p != '$')
                 *p = '_';

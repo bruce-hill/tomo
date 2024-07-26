@@ -28,36 +28,36 @@ public char *resolve_path(const char *path, const char *relative_to, const char 
     char buf[PATH_MAX] = {0};
     if (streq(path, "~") || strncmp(path, "~/", 2) == 0) {
         char *resolved = realpath(heap_strf("%s%s", getenv("HOME"), path+1), buf);
-        if (resolved) return heap_str(resolved);
+        if (resolved) return GC_strdup(resolved);
     } else if (streq(path, ".") || strncmp(path, "./", 2) == 0) {
-        char *relative_dir = dirname(heap_str(relative_to));
+        char *relative_dir = dirname(GC_strdup(relative_to));
         char *resolved = realpath(heap_strf("%s/%s", relative_dir, path), buf);
-        if (resolved) return heap_str(resolved);
+        if (resolved) return GC_strdup(resolved);
     } else if (path[0] == '/') {
         // Absolute path:
         char *resolved = realpath(path, buf);
-        if (resolved) return heap_str(resolved);
+        if (resolved) return GC_strdup(resolved);
     } else {
         // Relative path:
-        char *relative_dir = dirname(heap_str(relative_to));
+        char *relative_dir = dirname(GC_strdup(relative_to));
         if (!system_path) system_path = ".";
-        char *copy = heap_str(system_path);
+        char *copy = GC_strdup(system_path);
         for (char *dir, *pos = copy; (dir = strsep(&pos, ":")); ) {
             if (dir[0] == '/') {
                 char *resolved = realpath(heap_strf("%s/%s", dir, path), buf);
-                if (resolved) return heap_str(resolved);
+                if (resolved) return GC_strdup(resolved);
             } else if (dir[0] == '~' && (dir[1] == '\0' || dir[1] == '/')) {
                 char *resolved = realpath(heap_strf("%s%s/%s", getenv("HOME"), dir+1, path), buf);
-                if (resolved) return heap_str(resolved);
+                if (resolved) return GC_strdup(resolved);
             } else if (streq(dir, ".") || strncmp(dir, "./", 2) == 0) {
                 char *resolved = realpath(heap_strf("%s/%s", relative_dir, path), buf);
-                if (resolved) return heap_str(resolved);
+                if (resolved) return GC_strdup(resolved);
             } else if (streq(dir, ".") || streq(dir, "..") || strncmp(dir, "./", 2) == 0 || strncmp(dir, "../", 3) == 0) {
                 char *resolved = realpath(heap_strf("%s/%s/%s", relative_dir, dir, path), buf);
-                if (resolved) return heap_str(resolved);
+                if (resolved) return GC_strdup(resolved);
             } else {
                 char *resolved = realpath(heap_strf("%s/%s", dir, path), buf);
-                if (resolved) return heap_str(resolved);
+                if (resolved) return GC_strdup(resolved);
             }
         }
     }

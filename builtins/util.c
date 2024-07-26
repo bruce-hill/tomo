@@ -11,12 +11,6 @@
 
 public bool USE_COLOR;
 
-public char *heap_str(const char *str)
-{
-    if (!str) return NULL;
-    return GC_strndup(str, strlen(str));
-}
-
 public char *heap_strf(const char *fmt, ...)
 {
     va_list args;

@@ -130,7 +130,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
 
         env_t *module_env = fresh_scope(env);
         Table$str_set(env->imports, libname, module_env);
-        char *libname_id = heap_str(libname);
+        char *libname_id = GC_strdup(libname);
         for (char *c = libname_id; *c; c++) {
             if (!isalnum(*c) && *c != '_')
                 *c = '_';
@@ -147,7 +147,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
             ast_t *ast = parse_file(tm_path, NULL);
             if (!ast) errx(1, "Could not compile file %s", tm_path);
             env_t *module_file_env = fresh_scope(module_env);
-            char *file_prefix = heap_str(file_base_name(line));
+            char *file_prefix = GC_strdup(file_base_name(line));
             for (char *p = file_prefix; *p; p++) {
                 if (!isalnum(*p) && *p != '_' && *p != '$')
                     *p = '_';
