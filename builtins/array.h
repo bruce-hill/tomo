@@ -17,16 +17,16 @@
     if (__builtin_expect(off < 0 || off >= arr.length, 0)) \
         fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int$as_text(&index, no, NULL), arr.length); \
     (item_type*)(arr.data + arr.stride * off);})
-#define Array_lvalue(item_type, arr_expr, index_expr, typeinfo, filename, start, end) *({ \
+#define Array_lvalue(item_type, arr_expr, index_expr, padded_item_size, filename, start, end) *({ \
     array_t *arr = arr_expr; int64_t index = (int64_t)(index_expr); \
     int64_t off = index + (index < 0) * (arr->length + 1) - 1; \
     if (__builtin_expect(off < 0 || off >= arr->length, 0)) \
         fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int$as_text(&index, no, NULL), arr->length); \
     if (arr->data_refcount > 0) \
-        Array$compact(arr, typeinfo); \
+        Array$compact(arr, padded_item_size); \
     (item_type*)(arr->data + arr->stride * off); })
-#define Array_set(item_type, arr, index, value, typeinfo, filename, start, end) \
-    Array_lvalue(item_type, arr_expr, index, typeinfo, filename, start, end) = value
+#define Array_set(item_type, arr, index, value, padded_item_size, filename, start, end) \
+    Array_lvalue(item_type, arr_expr, index, padded_item_size, filename, start, end) = value
 #define Array_get_unchecked(type, x, i) *({ const array_t arr = x; int64_t index = (int64_t)(i); \
                                           int64_t off = index + (index < 0) * (arr.length + 1) - 1; \
                                           (type*)(arr.data + arr.stride * off);})
@@ -62,7 +62,7 @@ void Array$shuffle(array_t *arr, const TypeInfo *type);
 void *Array$random(array_t arr);
 array_t Array$sample(array_t arr, int64_t n, array_t weights, const TypeInfo *type);
 void Array$clear(array_t *array);
-void Array$compact(array_t *arr, const TypeInfo *type);
+void Array$compact(array_t *arr, int64_t padded_item_size);
 bool Array$contains(array_t array, void *item, const TypeInfo *type);
 array_t Array$from(array_t array, int64_t first);
 array_t Array$to(array_t array, int64_t last);

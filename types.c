@@ -486,6 +486,15 @@ size_t type_align(type_t *t)
     errx(1, "This should not be reachable");
 }
 
+size_t padded_type_size(type_t *t)
+{
+    size_t size = type_size(t);
+    size_t align = type_align(t);
+    if (align > 1 && size % align > 0)
+        size += align - (size % align); // Padding
+    return size;
+}
+
 type_t *get_field_type(type_t *t, const char *field_name)
 {
     t = value_type(t);

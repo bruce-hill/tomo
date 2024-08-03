@@ -136,6 +136,7 @@ bool can_have_cycles(type_t *t);
 type_t *replace_type(type_t *t, type_t *target, type_t *replacement);
 size_t type_size(type_t *t);
 size_t type_align(type_t *t);
+size_t padded_type_size(type_t *t);
 type_t *get_field_type(type_t *t, const char *field_name);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -97,9 +97,8 @@ static inline void hshow(const table_t *t)
 
 static void maybe_copy_on_write(table_t *t, const TypeInfo *type)
 {
-    if (t->entries.data_refcount) {
-        Array$compact(&t->entries, ENTRIES_TYPE(type));
-    }
+    if (t->entries.data_refcount)
+        Array$compact(&t->entries, entry_size(type));
 
     if (t->bucket_info && t->bucket_info->data_refcount) {
         int64_t size = sizeof(bucket_info_t) + sizeof(bucket_t[t->bucket_info->count]);

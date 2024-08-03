@@ -175,7 +175,7 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
             CORD target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
             type_t *item_type = Match(container_t, ArrayType)->item_type;
             return CORD_all("Array_lvalue(", compile_type(item_type), ", ", target_code, ", ", 
-                            compile(env, index->index), ", ", compile_type_info(env, container_t),
+                            compile(env, index->index), ", ", CORD_asprintf("%ld", padded_type_size(item_type)),
                             ", ", Text$quoted(ast->file->filename, false), ", ", heap_strf("%ld", ast->start - ast->file->text),
                             ", ", heap_strf("%ld", ast->end - ast->file->text), ")");
         } else if (container_t->tag == TableType) {
