@@ -275,7 +275,7 @@ public void *Table$reserve(table_t *t, const void *key, const void *value, const
         memcpy(buf + value_offset(type), value, value_size);
     else
         memset(buf + value_offset(type), 0, value_size);
-    Array$insert(&t->entries, buf, 0, ENTRIES_TYPE(type));
+    Array$insert(&t->entries, buf, 0, entry_size(type));
 
     int64_t entry_index = t->entries.length-1;
     void *entry = GET_ENTRY(*t, entry_index);
@@ -361,7 +361,7 @@ public void Table$remove(table_t *t, const void *key, const TypeInfo *type)
     // Last entry is being removed, so clear it out to be safe:
     memset(GET_ENTRY(*t, last_entry), 0, entry_size(type));
 
-    Array$remove(&t->entries, t->entries.length, 1, ENTRIES_TYPE(type));
+    Array$remove(&t->entries, t->entries.length, 1, entry_size(type));
 
     int64_t bucket_to_clear;
     if (prev) { // Middle (or end) of a chain
@@ -439,9 +439,9 @@ public int32_t Table$compare(const table_t *x, const table_t *y, const TypeInfo 
     else if (x->entries.length != y->entries.length)
         return (x->entries.length > y->entries.length) - (x->entries.length < y->entries.length);
 
-    array_t x_entries = x->entries, y_entries = y->entries;
-    Array$sort(&x_entries, (closure_t){.fn=generic_compare, .userdata=(void*)table.key}, table.key);
-    Array$sort(&y_entries, (closure_t){.fn=generic_compare, .userdata=(void*)table.key}, table.key);
+    closure_t cmp = (closure_t){.fn=generic_compare, .userdata=(void*)table.key};
+    array_t x_entries = Array$sorted(x->entries, cmp, entry_size(type));
+    array_t y_entries = Array$sorted(y->entries, cmp, entry_size(type));
     for (int64_t i = 0; i < x_entries.length; i++) {
         void *x_key = x_entries.data + x_entries.stride * i;
         void *y_key = y_entries.data + y_entries.stride * i;

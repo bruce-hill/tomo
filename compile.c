@@ -525,18 +525,19 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (operand_t->tag == TextType) {
                 return CORD_all(lhs, " = CORD_cat(", lhs, ", ", rhs, ");");
             } else if (operand_t->tag == ArrayType) {
+                CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(Match(operand_t, ArrayType)->item_type));
                 if (promote(env, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)) {
                     // arr ++= item
                     if (update->lhs->tag == Var)
-                        return CORD_all("Array$insert(&", lhs, ", stack(", rhs, "), 0, ", compile_type_info(env, operand_t), ");");
+                        return CORD_all("Array$insert(&", lhs, ", stack(", rhs, "), 0, ", padded_item_size, ");");
                     else
-                        return CORD_all(lhs, "Array$concat(", lhs, ", Array(", rhs, "), ", compile_type_info(env, operand_t), ");");
+                        return CORD_all(lhs, "Array$concat(", lhs, ", Array(", rhs, "), ", padded_item_size, ");");
                 } else {
                     // arr ++= [...]
                     if (update->lhs->tag == Var)
-                        return CORD_all("Array$insert_all(&", lhs, ", ", rhs, ", 0, ", compile_type_info(env, operand_t), ");");
+                        return CORD_all("Array$insert_all(&", lhs, ", ", rhs, ", 0, ", padded_item_size, ");");
                     else
-                        return CORD_all(lhs, "Array$concat(", lhs, ", ", rhs, ", ", compile_type_info(env, operand_t), ");");
+                        return CORD_all(lhs, "Array$concat(", lhs, ", ", rhs, ", ", padded_item_size, ");");
                 }
             } else {
                 code_err(ast, "'++=' is not implemented for %T types", operand_t);
@@ -1481,7 +1482,8 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("CORD_cat(", lhs, ", ", rhs, ")");
             }
             case ArrayType: {
-                return CORD_all("Array$concat(", lhs, ", ", rhs, ", ", compile_type_info(env, operand_t), ")");
+                CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(Match(operand_t, ArrayType)->item_type));
+                return CORD_all("Array$concat(", lhs, ", ", rhs, ", ", padded_item_size, ")");
             }
             default:
                 code_err(ast, "Concatenation isn't supported for %T types", operand_t);
@@ -1833,24 +1835,25 @@ CORD compile(env_t *env, ast_t *ast)
         case ArrayType: {
             // TODO: check for readonly
             type_t *item_t = Match(self_value_t, ArrayType)->item_type;
+            CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(Match(self_value_t, ArrayType)->item_type));
             if (streq(call->name, "insert")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
                                       .next=new(arg_t, .name="at", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=0, .bits=64)));
                 return CORD_all("Array$insert_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
-                                compile_type_info(env, self_value_t), ")");
+                                padded_item_size, ")");
             } else if (streq(call->name, "insert_all")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="items", .type=self_value_t,
                                       .next=new(arg_t, .name="at", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=0, .bits=64)));
                 return CORD_all("Array$insert_all(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
-                                compile_type_info(env, self_value_t), ")");
+                                padded_item_size, ")");
             } else if (streq(call->name, "remove")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="index", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=-1, .bits=64),
                                       .next=new(arg_t, .name="count", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=1, .bits=64)));
                 return CORD_all("Array$remove(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
-                                compile_type_info(env, self_value_t), ")");
+                                padded_item_size, ")");
             } else if (streq(call->name, "random")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
@@ -1861,11 +1864,11 @@ CORD compile(env_t *env, ast_t *ast)
                                       .next=new(arg_t, .name="weights", .type=Type(ArrayType, .item_type=Type(NumType, .bits=64)),
                                                 .default_val=FakeAST(Array, .type=new(type_ast_t, .tag=VarTypeAST, .__data.VarTypeAST.name="Num"))));
                 return CORD_all("Array$sample(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
-                                compile_type_info(env, self_value_t), ")");
+                                padded_item_size, ")");
             } else if (streq(call->name, "shuffle")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("Array$shuffle(", self, ", ", compile_type_info(env, self_value_t), ")");
+                return CORD_all("Array$shuffle(", self, ", ", padded_item_size, ")");
             } else if (streq(call->name, "sort") || streq(call->name, "sorted")) {
                 CORD self = compile_to_pointer_depth(env, call->self, streq(call->name, "sort") ? 1 : 0, false);
                 CORD comparison;
@@ -1878,7 +1881,7 @@ CORD compile(env_t *env, ast_t *ast)
                 } else {
                     comparison = CORD_all("(closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "}");
                 }
-                return CORD_all("Array$", call->name, "(", self, ", ", comparison, ", ", compile_type_info(env, self_value_t), ")");
+                return CORD_all("Array$", call->name, "(", self, ", ", comparison, ", ", padded_item_size, ")");
             } else if (streq(call->name, "heapify")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 CORD comparison;
@@ -1891,7 +1894,7 @@ CORD compile(env_t *env, ast_t *ast)
                 } else {
                     comparison = CORD_all("((closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "})");
                 }
-                return CORD_all("Array$heapify(", self, ", ", comparison, ", ", compile_type_info(env, self_value_t), ")");
+                return CORD_all("Array$heapify(", self, ", ", comparison, ", ", padded_item_size, ")");
             } else if (streq(call->name, "heap_push")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
@@ -1900,7 +1903,7 @@ CORD compile(env_t *env, ast_t *ast)
                 ast_t *default_cmp = FakeAST(InlineCCode, .code=CORD_all("((closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "})"), .type=NewTypeAST(NULL, NULL, NULL, FunctionTypeAST));
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t, .next=new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp));
                 CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
-                return CORD_all("Array$heap_push_value(", self, ", ", arg_code, ", ", compile_type_info(env, self_value_t), ")");
+                return CORD_all("Array$heap_push_value(", self, ", ", arg_code, ", ", padded_item_size, ")");
             } else if (streq(call->name, "heap_pop")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
@@ -1909,7 +1912,7 @@ CORD compile(env_t *env, ast_t *ast)
                 ast_t *default_cmp = FakeAST(InlineCCode, .code=CORD_all("((closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "})"), .type=NewTypeAST(NULL, NULL, NULL, FunctionTypeAST));
                 arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp);
                 CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
-                return CORD_all("Array$heap_pop_value(", self, ", ", arg_code, ", ", compile_type_info(env, self_value_t), ", ", compile_type(item_t), ")");
+                return CORD_all("Array$heap_pop_value(", self, ", ", arg_code, ", ", padded_item_size, ", ", compile_type(item_t), ")");
             } else if (streq(call->name, "clear")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
@@ -1925,11 +1928,11 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(call->name, "by")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="stride", .type=Type(IntType, .bits=64));
-                return CORD_all("Array$by(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type_info(env, self_value_t), ")");
+                return CORD_all("Array$by(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
             } else if (streq(call->name, "reversed")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("Array$reversed(", self, ", ", compile_type_info(env, self_value_t), ")");
+                return CORD_all("Array$reversed(", self, ", ", padded_item_size, ")");
             } else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
         case TableType: {

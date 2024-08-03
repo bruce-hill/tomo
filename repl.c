@@ -482,10 +482,9 @@ void eval(env_t *env, ast_t *ast, void *dest)
         array_t arr = {};
         size_t item_size = type_size(Match(t, ArrayType)->item_type);
         char item_buf[item_size] = {};
-        const TypeInfo *type_info = type_to_type_info(t);
         for (ast_list_t *item = Match(ast, Array)->items; item; item = item->next) {
             eval(env, item->ast, item_buf);
-            Array$insert(&arr, item_buf, 0, type_info);
+            Array$insert(&arr, item_buf, 0, padded_type_size(Match(t, ArrayType)->item_type));
         }
         memcpy(dest, &arr, sizeof(array_t));
         break;

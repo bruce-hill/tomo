@@ -46,14 +46,13 @@ public void Array$compact(array_t *arr, int64_t padded_item_size)
     };
 }
 
-public void Array$insert(array_t *arr, const void *item, int64_t index, const TypeInfo *type)
+public void Array$insert(array_t *arr, const void *item, int64_t index, int64_t padded_item_size)
 {
     if (index <= 0) index = arr->length + index + 1;
 
     if (index < 1) index = 1;
     else if (index > (int64_t)arr->length + 1) index = (int64_t)arr->length + 1;
 
-    int64_t padded_item_size = get_padded_item_size(type);
     if (!arr->data) {
         arr->free = 4;
         arr->data = arr->atomic ? GC_MALLOC_ATOMIC(arr->free * padded_item_size) : GC_MALLOC(arr->free * padded_item_size);
@@ -78,14 +77,13 @@ public void Array$insert(array_t *arr, const void *item, int64_t index, const Ty
     memcpy((void*)arr->data + (index-1)*padded_item_size, item, padded_item_size);
 }
 
-public void Array$insert_all(array_t *arr, array_t to_insert, int64_t index, const TypeInfo *type)
+public void Array$insert_all(array_t *arr, array_t to_insert, int64_t index, int64_t padded_item_size)
 {
     if (index < 1) index = arr->length + index + 1;
 
     if (index < 1) index = 1;
     else if (index > (int64_t)arr->length + 1) index = (int64_t)arr->length + 1;
 
-    int64_t padded_item_size = get_padded_item_size(type);
     if (!arr->data) {
         arr->free = to_insert.length;
         arr->data = arr->atomic ? GC_MALLOC_ATOMIC(padded_item_size*arr->free) : GC_MALLOC(padded_item_size*arr->free);
@@ -108,7 +106,7 @@ public void Array$insert_all(array_t *arr, array_t to_insert, int64_t index, con
         memcpy((void*)arr->data + (index-1 + i)*padded_item_size, to_insert.data + i*to_insert.stride, padded_item_size);
 }
 
-public void Array$remove(array_t *arr, int64_t index, int64_t count, const TypeInfo *type)
+public void Array$remove(array_t *arr, int64_t index, int64_t count, int64_t padded_item_size)
 {
     if (index < 1) index = arr->length + index + 1;
 
@@ -119,7 +117,6 @@ public void Array$remove(array_t *arr, int64_t index, int64_t count, const TypeI
 
     // TODO: optimize arr.remove(1) by just updating the .data and .length values
 
-    int64_t padded_item_size = get_padded_item_size(type);
     if (index + count > arr->length) {
         if (arr->free >= 0)
             arr->free += count;
@@ -141,25 +138,23 @@ public void Array$remove(array_t *arr, int64_t index, int64_t count, const TypeI
     arr->length -= count;
 }
 
-public void Array$sort(array_t *arr, closure_t comparison, const TypeInfo *type)
+public void Array$sort(array_t *arr, closure_t comparison, int64_t padded_item_size)
 {
-    int64_t padded_item_size = get_padded_item_size(type);
     if (arr->data_refcount || (int64_t)arr->stride != padded_item_size)
         Array$compact(arr, padded_item_size);
 
     qsort_r(arr->data, arr->length, padded_item_size, comparison.fn, comparison.userdata);
 }
 
-public array_t Array$sorted(array_t arr, closure_t comparison, const TypeInfo *type)
+public array_t Array$sorted(array_t arr, closure_t comparison, int64_t padded_item_size)
 {
     arr.data_refcount = 3;
-    Array$sort(&arr, comparison, type);
+    Array$sort(&arr, comparison, padded_item_size);
     return arr;
 }
 
-public void Array$shuffle(array_t *arr, const TypeInfo *type)
+public void Array$shuffle(array_t *arr, int64_t padded_item_size)
 {
-    int64_t padded_item_size = get_padded_item_size(type);
     if (arr->data_refcount || (int64_t)arr->stride != padded_item_size)
         Array$compact(arr, padded_item_size);
 
@@ -180,12 +175,11 @@ public void *Array$random(array_t arr)
     return arr.data + arr.stride*index;
 }
 
-public array_t Array$sample(array_t arr, int64_t n, array_t weights, const TypeInfo *type)
+public array_t Array$sample(array_t arr, int64_t n, array_t weights, int64_t padded_item_size)
 {
     if (arr.length == 0 || n <= 0)
         return (array_t){};
 
-    int64_t padded_item_size = get_padded_item_size(type);
     array_t selected = {
         .data=arr.atomic ? GC_MALLOC_ATOMIC(n * padded_item_size) : GC_MALLOC(n * padded_item_size),
         .length=n,
@@ -296,13 +290,12 @@ public array_t Array$to(array_t array, int64_t last)
     };
 }
 
-public array_t Array$by(array_t array, int64_t stride, const TypeInfo *type)
+public array_t Array$by(array_t array, int64_t stride, int64_t padded_item_size)
 {
     // In the unlikely event that the stride value would be too large to fit in
     // a 15-bit integer, fall back to creating a copy of the array:
     if (__builtin_expect(array.stride*stride < MIN_STRIDE || array.stride*stride > MAX_STRIDE, 0)) {
         void *copy = NULL;
-        int64_t padded_item_size = get_padded_item_size(type);
         int64_t len = (stride < 0 ? array.length / -stride : array.length / stride) + ((array.length % stride) != 0);
         if (len > 0) {
             copy = array.atomic ? GC_MALLOC_ATOMIC(len * padded_item_size) : GC_MALLOC(len * padded_item_size);
@@ -330,14 +323,14 @@ public array_t Array$by(array_t array, int64_t stride, const TypeInfo *type)
     };
 }
 
-public array_t Array$reversed(array_t array, const TypeInfo *type)
+public array_t Array$reversed(array_t array, int64_t padded_item_size)
 {
     // Just in case negating the stride gives a value that doesn't fit into a
     // 15-bit integer, fall back to Array$by()'s more general method of copying
     // the array. This should only happen if array.stride is MIN_STRIDE to
     // begin with (very unlikely).
     if (__builtin_expect(-array.stride < MIN_STRIDE || -array.stride > MAX_STRIDE, 0))
-        return Array$by(array, -1, type);
+        return Array$by(array, -1, padded_item_size);
 
     array_t reversed = array;
     reversed.stride = -array.stride;
@@ -345,9 +338,8 @@ public array_t Array$reversed(array_t array, const TypeInfo *type)
     return reversed;
 }
 
-public array_t Array$concat(array_t x, array_t y, const TypeInfo *type)
+public array_t Array$concat(array_t x, array_t y, int64_t padded_item_size)
 {
-    int64_t padded_item_size = get_padded_item_size(type);
     void *data = x.atomic ? GC_MALLOC_ATOMIC(padded_item_size*(x.length + y.length)) : GC_MALLOC(padded_item_size*(x.length + y.length));
     if (x.stride == padded_item_size) {
         memcpy(data, x.data, padded_item_size*x.length);
@@ -393,7 +385,10 @@ public int32_t Array$compare(const array_t *x, const array_t *y, const TypeInfo 
 
     const TypeInfo *item = type->ArrayInfo.item;
     if (item->tag == PointerInfo || (item->tag == CustomInfo && item->CustomInfo.compare == NULL)) { // data comparison
-        int64_t item_padded_size = get_padded_item_size(type);
+        int64_t item_padded_size = type->ArrayInfo.item->size;
+        if (type->ArrayInfo.item->align > 1 && item_padded_size % type->ArrayInfo.item->align)
+            item_padded_size += type->ArrayInfo.item->align - (item_padded_size % type->ArrayInfo.item->align); // padding
+
         if ((int64_t)x->stride == item_padded_size && (int64_t)y->stride == item_padded_size && item->size == item_padded_size) {
             int32_t cmp = (int32_t)memcmp(x->data, y->data, MIN(x->length, y->length)*item_padded_size);
             if (cmp != 0) return cmp;
@@ -480,10 +475,9 @@ public uint32_t Array$hash(const array_t *arr, const TypeInfo *type)
     }
 }
 
-static void siftdown(array_t *heap, int64_t startpos, int64_t pos, closure_t comparison, const TypeInfo *type)
+static void siftdown(array_t *heap, int64_t startpos, int64_t pos, closure_t comparison, int64_t padded_item_size)
 {
     assert(pos > 0 && pos < heap->length);
-    int64_t padded_item_size = get_padded_item_size(type);
     char newitem[padded_item_size];
     memcpy(newitem, heap->data + heap->stride*pos, padded_item_size);
     while (pos > startpos) {
@@ -499,13 +493,12 @@ static void siftdown(array_t *heap, int64_t startpos, int64_t pos, closure_t com
     memcpy(heap->data + heap->stride*pos, newitem, padded_item_size);
 }
 
-static void siftup(array_t *heap, int64_t pos, closure_t comparison, const TypeInfo *type)
+static void siftup(array_t *heap, int64_t pos, closure_t comparison, int64_t padded_item_size)
 {
     int64_t endpos = heap->length;
     int64_t startpos = pos;
     assert(pos < endpos);
 
-    int64_t padded_item_size = get_padded_item_size(type);
     char old_top[padded_item_size];
     memcpy(old_top, heap->data + heap->stride*pos, padded_item_size);
     // Bubble up the smallest leaf node
@@ -527,27 +520,25 @@ static void siftup(array_t *heap, int64_t pos, closure_t comparison, const TypeI
     }
     memcpy(heap->data + heap->stride*pos, old_top, padded_item_size);
     // Shift the node's parents down:
-    siftdown(heap, startpos, pos, comparison, type);
+    siftdown(heap, startpos, pos, comparison, padded_item_size);
 }
 
-public void Array$heap_push(array_t *heap, const void *item, closure_t comparison, const TypeInfo *type)
+public void Array$heap_push(array_t *heap, const void *item, closure_t comparison, int64_t padded_item_size)
 {
-    Array$insert(heap, item, 0, type);
+    Array$insert(heap, item, 0, padded_item_size);
 
     if (heap->length > 1) {
         if (heap->data_refcount > 0)
-            Array$compact(heap, get_padded_item_size(type));
-        siftdown(heap, 0, heap->length-1, comparison, type);
+            Array$compact(heap, padded_item_size);
+        siftdown(heap, 0, heap->length-1, comparison, padded_item_size);
     }
 }
 
-public void Array$heap_pop(array_t *heap, void *out, closure_t comparison, const TypeInfo *type)
+public void Array$heap_pop(array_t *heap, closure_t comparison, int64_t padded_item_size)
 {
     if (heap->length == 0)
         fail("Attempt to pop from an empty array");
 
-    int64_t item_size = type->ArrayInfo.item->size;
-    memcpy(out, heap->data, item_size);
     if (heap->length == 1) {
         *heap = (array_t){};
     } else if (heap->length == 2) {
@@ -555,22 +546,22 @@ public void Array$heap_pop(array_t *heap, void *out, closure_t comparison, const
         --heap->length;
     } else {
         if (heap->data_refcount > 0)
-            Array$compact(heap, get_padded_item_size(type));
-        memcpy(heap->data, heap->data + heap->stride*(heap->length-1), item_size);
+            Array$compact(heap, padded_item_size);
+        memcpy(heap->data, heap->data + heap->stride*(heap->length-1), padded_item_size);
         --heap->length;
-        siftup(heap, 0, comparison, type);
+        siftup(heap, 0, comparison, padded_item_size);
     }
 }
 
-public void Array$heapify(array_t *heap, closure_t comparison, const TypeInfo *type)
+public void Array$heapify(array_t *heap, closure_t comparison, int64_t padded_item_size)
 {
     if (heap->data_refcount > 0)
-        Array$compact(heap, get_padded_item_size(type));
+        Array$compact(heap, padded_item_size);
 
     ARRAY_INCREF(*heap);
     int64_t i, n = heap->length;
     for (i = (n >> 1) - 1 ; i >= 0 ; i--)
-        siftup(heap, i, comparison, type);
+        siftup(heap, i, comparison, padded_item_size);
     ARRAY_DECREF(*heap);
 }
 

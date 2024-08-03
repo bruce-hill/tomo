@@ -309,7 +309,7 @@ public array_t Text$clusters(CORD text)
         char cluster_buf[len+1];
         strlcpy(cluster_buf, (char*)pos, len+1);
         CORD cluster = CORD_from_char_star(cluster_buf);
-        Array$insert(&clusters, &cluster, 0, $ArrayInfo(&$Text));
+        Array$insert(&clusters, &cluster, 0, sizeof(CORD));
         pos = next;
     }
 

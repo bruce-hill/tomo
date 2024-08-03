@@ -52,31 +52,31 @@
 #define ARRAY_INCREF(arr) (arr).data_refcount |= ((arr).data_refcount << 1) | 1
 #define ARRAY_DECREF(arr) (arr).data_refcount &= 2
 
-#define Array$insert_value(arr, item_expr, index, type) ({ __typeof(item_expr) item = item_expr; Array$insert(arr, &item, index, type); })
-void Array$insert(array_t *arr, const void *item, int64_t index, const TypeInfo *type);
-void Array$insert_all(array_t *arr, array_t to_insert, int64_t index, const TypeInfo *type);
-void Array$remove(array_t *arr, int64_t index, int64_t count, const TypeInfo *type);
-void Array$sort(array_t *arr, closure_t comparison, const TypeInfo *type);
-array_t Array$sorted(array_t arr, closure_t comparison, const TypeInfo *type);
-void Array$shuffle(array_t *arr, const TypeInfo *type);
+#define Array$insert_value(arr, item_expr, index, padded_item_size) ({ __typeof(item_expr) item = item_expr; Array$insert(arr, &item, index, padded_item_size); })
+void Array$insert(array_t *arr, const void *item, int64_t index, int64_t padded_item_size);
+void Array$insert_all(array_t *arr, array_t to_insert, int64_t index, int64_t padded_item_size);
+void Array$remove(array_t *arr, int64_t index, int64_t count, int64_t padded_item_size);
+void Array$sort(array_t *arr, closure_t comparison, int64_t padded_item_size);
+array_t Array$sorted(array_t arr, closure_t comparison, int64_t padded_item_size);
+void Array$shuffle(array_t *arr, int64_t padded_item_size);
 void *Array$random(array_t arr);
-array_t Array$sample(array_t arr, int64_t n, array_t weights, const TypeInfo *type);
+array_t Array$sample(array_t arr, int64_t n, array_t weights, int64_t padded_item_size);
 void Array$clear(array_t *array);
 void Array$compact(array_t *arr, int64_t padded_item_size);
 bool Array$contains(array_t array, void *item, const TypeInfo *type);
 array_t Array$from(array_t array, int64_t first);
 array_t Array$to(array_t array, int64_t last);
-array_t Array$by(array_t array, int64_t stride, const TypeInfo *type);
-array_t Array$reversed(array_t array, const TypeInfo *type);
-array_t Array$concat(array_t x, array_t y, const TypeInfo *type);
+array_t Array$by(array_t array, int64_t stride, int64_t padded_item_size);
+array_t Array$reversed(array_t array, int64_t padded_item_size);
+array_t Array$concat(array_t x, array_t y, int64_t padded_item_size);
 uint32_t Array$hash(const array_t *arr, const TypeInfo *type);
 int32_t Array$compare(const array_t *x, const array_t *y, const TypeInfo *type);
 bool Array$equal(const array_t *x, const array_t *y, const TypeInfo *type);
 CORD Array$as_text(const array_t *arr, bool colorize, const TypeInfo *type);
-void Array$heapify(array_t *heap, closure_t comparison, const TypeInfo *type);
-void Array$heap_push(array_t *heap, const void *item, closure_t comparison, const TypeInfo *type);
-#define Array$heap_push_value(heap, _value, comparison, typeinfo) ({ __typeof(_value) value = _value; Array$heap_push(heap, &value, comparison, typeinfo); })
-void Array$heap_pop(array_t *heap, void *out, closure_t comparison, const TypeInfo *type);
-#define Array$heap_pop_value(heap, comparison, typeinfo, type) ({ type value; Array$heap_pop(heap, &value, comparison, typeinfo); value; })
+void Array$heapify(array_t *heap, closure_t comparison, int64_t padded_item_size);
+void Array$heap_push(array_t *heap, const void *item, closure_t comparison, int64_t padded_item_size);
+#define Array$heap_push_value(heap, _value, comparison, padded_item_size) ({ __typeof(_value) value = _value; Array$heap_push(heap, &value, comparison, padded_item_size); })
+void Array$heap_pop(array_t *heap, closure_t comparison, int64_t padded_item_size);
+#define Array$heap_pop_value(heap, comparison, padded_item_size, type) ({ array_t *_heap = heap; type value = *(type*)_heap->data; Array$heap_pop(_heap, comparison, padded_item_size); value; })
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
