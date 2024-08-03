@@ -297,12 +297,9 @@ public void Table$remove(table_t *t, const void *key, const TypeInfo *type)
     // TODO: this work doesn't need to be done if the key is already missing
     maybe_copy_on_write(t, type);
 
-    // If unspecified, pop a random key:
-    if (!key) {
-        hdebug("Popping random key\n");
-        uint32_t index = arc4random_uniform(t->entries.length);
-        key = GET_ENTRY(*t, index);
-    }
+    // If unspecified, pop the last key:
+    if (!key)
+        key = GET_ENTRY(*t, t->entries.length-1);
 
     // Steps: look up the bucket for the removed key
     // If missing, then return immediately
@@ -396,6 +393,13 @@ public void Table$clear(table_t *t)
     memset(t, 0, sizeof(table_t));
 }
 
+public table_t Table$sorted(table_t t, const TypeInfo *type)
+{
+    closure_t cmp = (closure_t){.fn=generic_compare, .userdata=(void*)type->TableInfo.key};
+    array_t entries = Array$sorted(t.entries, cmp, entry_size(type));
+    return Table$from_entries(entries, type);
+}
+
 public bool Table$equal(const table_t *x, const table_t *y, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
@@ -408,26 +412,7 @@ public bool Table$equal(const table_t *x, const table_t *y, const TypeInfo *type
     if ((x->fallback != NULL) != (y->fallback != NULL))
         return false;
 
-    const TypeInfo *value_type = type->TableInfo.value;
-    for (int64_t i = 0, length = Table$length(*x); i < length; i++) {
-        void *x_key = GET_ENTRY(*x, i);
-        void *x_value = x_key + value_offset(type);
-        void *y_value = Table$get_raw(*y, x_key, type);
-        if (!y_value)
-            return false;
-        if (!generic_equal(x_value, y_value, value_type))
-            return false;
-    }
-
-    if (x->default_value && y->default_value
-        && !generic_equal(x->default_value, y->default_value, value_type))
-        return false;
-
-    if (x->fallback && y->fallback
-        && !Table$equal(x->fallback, y->fallback, type))
-        return false;
-    
-    return true;
+    return (Table$compare(x, y, type) == 0);
 }
 
 public int32_t Table$compare(const table_t *x, const table_t *y, const TypeInfo *type)
@@ -439,12 +424,9 @@ public int32_t Table$compare(const table_t *x, const table_t *y, const TypeInfo 
     else if (x->entries.length != y->entries.length)
         return (x->entries.length > y->entries.length) - (x->entries.length < y->entries.length);
 
-    closure_t cmp = (closure_t){.fn=generic_compare, .userdata=(void*)table.key};
-    array_t x_entries = Array$sorted(x->entries, cmp, entry_size(type));
-    array_t y_entries = Array$sorted(y->entries, cmp, entry_size(type));
-    for (int64_t i = 0; i < x_entries.length; i++) {
-        void *x_key = x_entries.data + x_entries.stride * i;
-        void *y_key = y_entries.data + y_entries.stride * i;
+    for (int64_t i = 0; i < x->entries.length; i++) {
+        void *x_key = x->entries.data + x->entries.stride * i;
+        void *y_key = y->entries.data + y->entries.stride * i;
         int32_t diff = generic_compare(x_key, y_key, table.key);
         if (diff != 0) return diff;
         void *x_value = x_key + value_offset(type);
@@ -473,30 +455,14 @@ public uint32_t Table$hash(const table_t *t, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
     // Table hashes are computed as:
-    // hash(#t, xor(hash(k) for k in t.keys), xor(hash(v) for v in t.values), hash(t.fallback), hash(t.default))
+    // hash(hash(t.keys), hash(t.values), hash(t.fallback), hash(t.default))
     // Where fallback and default hash to zero if absent
     auto table = type->TableInfo;
-    int64_t val_off = value_offset(type);
-
-    uint32_t key_hashes = 0, value_hashes = 0, fallback_hash = 0, default_hash = 0;
-    for (int64_t i = 0, length = Table$length(*t); i < length; i++) {
-        void *entry = GET_ENTRY(*t, i);
-        key_hashes ^= generic_hash(entry, table.key);
-        value_hashes ^= generic_hash(entry + val_off, table.value);
-    }
-
-    if (t->fallback)
-        fallback_hash = Table$hash(t->fallback, type);
-
-    if (t->default_value)
-        default_hash = generic_hash(t->default_value, table.value);
-
-    struct { int64_t len; uint32_t k, v, f, d; } components = {
-        Table$length(*t),
-        key_hashes,
-        value_hashes,
-        fallback_hash,
-        default_hash,
+    uint32_t components[] = {
+        Array$hash(&t->entries, $ArrayInfo(table.key)),
+        Array$hash(&t->entries + value_offset(type), $ArrayInfo(table.value)),
+        t->fallback ? Table$hash(t->fallback, type) : 0,
+        t->default_value ? generic_hash(t->default_value, table.value) : 0,
     };
     uint32_t hash;
     halfsiphash(&components, sizeof(components), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));

@@ -621,7 +621,10 @@ CORD compile_statement(env_t *env, ast_t *ast)
             body = CORD_asprintf("{\n%r\n}", body);
         env->code->funcs = CORD_all(env->code->funcs, code, " ", body, "\n");
 
-        if (fndef->cache && fndef->cache->tag == Int && Match(fndef->cache, Int)->i > 0) {
+        if (fndef->cache && fndef->cache->tag == Int) {
+            int64_t cache_size = Match(fndef->cache, Int)->i;
+            if (cache_size <= 0)
+                code_err(fndef->cache, "Cache sizes must be greater than 0");
             const char *arg_type_name = heap_strf("%s$args", Match(fndef->name, Var)->name);
             ast_t *args_def = FakeAST(StructDef, .name=arg_type_name, .fields=fndef->args);
             prebind_statement(env, args_def);
@@ -635,9 +638,9 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 all_args = CORD_all(all_args, "$", arg->name, arg->next ? ", " : CORD_EMPTY);
 
             CORD pop_code = CORD_EMPTY;
-            if (fndef->cache->tag == Int && Match(fndef->cache, Int)->i < INT64_MAX) {
+            if (fndef->cache->tag == Int && cache_size < INT64_MAX) {
                 pop_code = CORD_all("if (Table$length(cache) > ", compile(body_scope, fndef->cache),
-                                    ") Table$remove(&cache, NULL, table_type);\n");
+                                    ") Table$remove(&cache, cache.entries.data + cache.entries.stride*Int$random(0, cache.entries.length-1), table_type);\n");
             }
 
             CORD arg_typedef = compile_struct_typedef(env, args_def);
@@ -1961,6 +1964,10 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Table$clear(", self, ")");
+            } else if (streq(call->name, "sorted")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                (void)compile_arguments(env, ast, NULL, call->args);
+                return CORD_all("Table$sorted(", self, ", ", compile_type_info(env, self_value_t), ")");
             } else code_err(ast, "There is no '%s' method for tables", call->name);
         }
         default: {

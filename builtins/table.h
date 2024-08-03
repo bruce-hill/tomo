@@ -39,6 +39,7 @@ void Table$set(table_t *t, const void *key, const void *value, const TypeInfo *t
 #define Table$reserve_value(t, key_expr, type) ({ __typeof(key_expr) k = key_expr; Table$reserve(t, &k, NULL, type); })
 void Table$remove(table_t *t, const void *key, const TypeInfo *type);
 void Table$clear(table_t *t);
+table_t Table$sorted(table_t t, const TypeInfo *type);
 void Table$mark_copy_on_write(table_t *t);
 int32_t Table$compare(const table_t *x, const table_t *y, const TypeInfo *type);
 bool Table$equal(const table_t *x, const table_t *y, const TypeInfo *type);
