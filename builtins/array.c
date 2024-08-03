@@ -13,7 +13,6 @@
 #include "array.h"
 #include "functions.h"
 #include "halfsiphash.h"
-#include "integers.h"
 #include "types.h"
 #include "util.h"
 
@@ -161,7 +160,7 @@ public void Array$shuffle(array_t *arr, int64_t padded_item_size)
 
     char tmp[padded_item_size];
     for (int64_t i = arr->length-1; i > 1; i--) {
-        int64_t j = Int$random(0, i);
+        int32_t j = arc4random_uniform(i+1);
         memcpy(tmp, arr->data + i*padded_item_size, padded_item_size);
         memcpy((void*)arr->data + i*padded_item_size, arr->data + j*padded_item_size, padded_item_size);
         memcpy((void*)arr->data + j*padded_item_size, tmp, padded_item_size);
@@ -172,7 +171,7 @@ public void *Array$random(array_t arr)
 {
     if (arr.length == 0)
         return NULL; // fail("Cannot get a random item from an empty array!");
-    int64_t index = Int$random(0, arr.length-1);
+    uint32_t index = arc4random_uniform(arr.length);
     return arr.data + arr.stride*index;
 }
 
@@ -204,7 +203,7 @@ public array_t Array$sample(array_t arr, int64_t n, array_t weights, int64_t pad
 
     if (total == 0.0) {
         for (int64_t i = 0; i < n; i++) {
-            int64_t index = Int$random(0, arr.length-1);
+            uint32_t index = arc4random_uniform(arr.length);
             memcpy(selected.data + i*padded_item_size, arr.data + arr.stride*index, padded_item_size);
         }
     } else {

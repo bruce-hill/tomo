@@ -1864,7 +1864,7 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(call->name, "random")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("Array$random_value(", self, ", ", compile_type(item_t), ")");
+                return CORD_all("Array$random(", self, ")");
             } else if (streq(call->name, "sample")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="count", .type=Type(IntType, .bits=64),
