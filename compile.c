@@ -1925,11 +1925,11 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(call->name, "by")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="stride", .type=Type(IntType, .bits=64));
-                return CORD_all("Array$by(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
+                return CORD_all("Array$by(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "reversed")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("Array$reversed(", self, ")");
+                return CORD_all("Array$reversed(", self, ", ", compile_type_info(env, self_value_t), ")");
             } else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
         case TableType: {
