@@ -27,7 +27,7 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
         CORD_appendf(&str_func, "\treturn CORD_all(use_color ? \"\\x1b[0;1m%s\\x1b[m(\" : \"%s(\"", name, name);
         for (arg_ast_t *field = def->fields; field; field = field->next) {
             type_t *field_type = get_arg_ast_type(env, field);
-            CORD field_str = expr_as_text(env, CORD_cat("obj->", field->name), field_type, "use_color");
+            CORD field_str = expr_as_text(env, CORD_cat("obj->$", field->name), field_type, "use_color");
             CORD_appendf(&str_func, ", \"%s=\", %r", field->name, field_str);
             if (field->next) CORD_appendf(&str_func, ", \", \"");
         }
@@ -48,13 +48,13 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
         type_t *field_type = get_arg_ast_type(env, field);
         switch (field_type->tag) {
         case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
-            cmp_func = CORD_all(cmp_func, "diff = (x->", field->name, " > y->", field->name, ") - (x->", field->name, " < y->", field->name, ");");
+            cmp_func = CORD_all(cmp_func, "diff = (x->$", field->name, " > y->$", field->name, ") - (x->$", field->name, " < y->$", field->name, ");");
             break;
         case TextType:
-            cmp_func = CORD_all(cmp_func, "diff = CORD_cmp(x->", field->name, ", y->", field->name, ");");
+            cmp_func = CORD_all(cmp_func, "diff = CORD_cmp(x->$", field->name, ", y->$", field->name, ");");
             break;
         default:
-            cmp_func = CORD_all(cmp_func, "diff = generic_compare(&x->", field->name, ", &y->", field->name, ", ",
+            cmp_func = CORD_all(cmp_func, "diff = generic_compare(&x->$", field->name, ", &y->$", field->name, ", ",
                                 compile_type_info(env, field_type), ");\n");
             break;
         }
@@ -78,13 +78,13 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
         type_t *field_type = get_arg_ast_type(env, field);
         switch (field_type->tag) {
         case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
-            condition = CORD_all(condition, "(x->", field->name, " == y->", field->name, ")");
+            condition = CORD_all(condition, "(x->$", field->name, " == y->$", field->name, ")");
             break;
         case TextType:
-            condition = CORD_all(condition, "(CORD_cmp(x->", field->name, ", y->", field->name, ") == 0)");
+            condition = CORD_all(condition, "(CORD_cmp(x->$", field->name, ", y->$", field->name, ") == 0)");
             break;
         default:
-            condition = CORD_all(condition, "generic_equal(&x->", field->name, ", &y->", field->name, ", ",
+            condition = CORD_all(condition, "generic_equal(&x->$", field->name, ", &y->$", field->name, ", ",
                                 compile_type_info(env, field_type), ")");
             break;
         }
@@ -103,9 +103,9 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
     for (arg_ast_t *field = def->fields; field; field = field->next) {
         type_t *field_type = get_arg_ast_type(env, field);
         if (field_type->tag == BoolType) // Bools can be bit fields, so you can't use *obj->field there:
-            hash_func = CORD_all(hash_func, "\n(uint32_t)(obj->", field->name, "),");
+            hash_func = CORD_all(hash_func, "\n(uint32_t)(obj->$", field->name, "),");
         else
-            hash_func = CORD_all(hash_func, "\ngeneric_hash(&obj->", field->name, ", ", compile_type_info(env, field_type), "),");
+            hash_func = CORD_all(hash_func, "\ngeneric_hash(&obj->$", field->name, ", ", compile_type_info(env, field_type), "),");
     }
     hash_func = CORD_all(hash_func, "};\n"
                          "uint32_t hash;\n"
@@ -175,7 +175,7 @@ CORD compile_struct_typedef(env_t *env, ast_t *ast)
     for (arg_ast_t *field = def->fields; field; field = field->next) {
         type_t *field_t = get_arg_ast_type(env, field);
         CORD type_code = compile_type(field_t);
-        CORD_appendf(&struct_code, "%r %s%s;\n", type_code, field->name,
+        CORD_appendf(&struct_code, "%r $%s%s;\n", type_code, field->name,
                      CORD_cmp(type_code, "Bool_t") ? "" : ":1");
     }
     struct_code = CORD_all(struct_code, "};\n");

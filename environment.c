@@ -358,7 +358,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
                 code_err(var->ast, "This is one variable too many for this iterator, which returns a %T", fn->ret);
             const char *name = Match(var->ast, Var)->name;
             type_t *t = get_arg_type(env, iter_field);
-            set_binding(scope, name, new(binding_t, .type=t, .code=CORD_cat("cur.Next.", iter_field->name)));
+            set_binding(scope, name, new(binding_t, .type=t, .code=CORD_cat("cur.$Next.$", iter_field->name)));
             iter_field = iter_field->next;
         }
         return scope;
