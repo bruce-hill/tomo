@@ -77,6 +77,8 @@ void Array$heapify(array_t *heap, closure_t comparison, int64_t padded_item_size
 void Array$heap_push(array_t *heap, const void *item, closure_t comparison, int64_t padded_item_size);
 #define Array$heap_push_value(heap, _value, comparison, padded_item_size) ({ __typeof(_value) value = _value; Array$heap_push(heap, &value, comparison, padded_item_size); })
 void Array$heap_pop(array_t *heap, closure_t comparison, int64_t padded_item_size);
-#define Array$heap_pop_value(heap, comparison, padded_item_size, type) ({ array_t *_heap = heap; type value = *(type*)_heap->data; Array$heap_pop(_heap, comparison, padded_item_size); value; })
+#define Array$heap_pop_value(heap, comparison, padded_item_size, type) \
+    ({ array_t *_heap = heap; if (_heap->length == 0) fail("Attempt to pop from an empty array"); \
+     type value = *(type*)_heap->data; Array$heap_pop(_heap, comparison, padded_item_size); value; })
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
