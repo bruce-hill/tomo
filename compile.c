@@ -181,7 +181,11 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
         } else if (container_t->tag == TableType) {
             CORD target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
             type_t *value_t = Match(container_t, TableType)->value_type;
-            return CORD_all("*(", compile_type(value_t), "*)Table$reserve_value(", target_code, ", ",
+            CORD key = compile(env, index->index);
+            if (!promote(env, &key, get_type(env, index->index), Match(container_t, TableType)->key_type))
+                code_err(index->index, "I couldn't promote this type from %T to %T",
+                         get_type(env, index->index), Match(container_t, TableType)->key_type);
+            return CORD_all("*(", compile_type(value_t), "*)Table$reserve_value(", target_code, ", (", compile_type(Match(container_t, TableType)->key_type), ")",
                             compile(env, index->index),", ", compile_type_info(env, container_t), ")");
         } else {
             code_err(ast, "I don't know how to assign to this target");
@@ -1671,12 +1675,12 @@ CORD compile(env_t *env, ast_t *ast)
     case Table: {
         auto table = Match(ast, Table);
         if (!table->entries) {
-            CORD code = "(table_t){";
+            CORD code = "((table_t){";
             if (table->fallback)
                 code = CORD_all(code, ".fallback=", compile(env, table->fallback),",");
             if (table->default_value)
                 code = CORD_all(code, ".default_value=heap(", compile(env, table->default_value),"),");
-            return CORD_cat(code, "}");
+            return CORD_cat(code, "})");
         }
 
         type_t *table_type = get_type(env, ast);

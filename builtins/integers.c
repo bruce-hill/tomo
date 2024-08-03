@@ -51,14 +51,22 @@
         } \
         return bit_array; \
     } \
-    public c_type KindOfInt ## $random(int64_t min, int64_t max) { \
-        if (min > max) fail("Random min (%ld) is larger than max (%ld)", min, max); \
-        if (min < (int64_t)min_val) fail("Random min (%ld) is smaller than the minimum "#KindOfInt" value", min); \
-        if (max > (int64_t)max_val) fail("Random max (%ld) is smaller than the maximum "#KindOfInt" value", max); \
-        int64_t range = max - min; \
-        if (range > UINT32_MAX) fail("Random range (%ld) is larger than the maximum allowed (%ld)", range, UINT32_MAX); \
-        uint32_t r = arc4random_uniform((uint32_t)range); \
-        return min + (c_type)r; \
+    public c_type KindOfInt ## $random(c_type min, c_type max) { \
+        if (min > max) fail("Random minimum value (%ld) is larger than the maximum value (%ld)", min, max); \
+        if (min == max) return min; \
+        if (min == min_val && max == max_val) { \
+            c_type r; \
+            arc4random_buf(&r, sizeof(r)); \
+            return r; \
+        } \
+        uint64_t range = (uint64_t)max - (uint64_t)min + 1; \
+        uint64_t min_r = -range % range; \
+        uint64_t r; \
+        for (;;) { \
+            arc4random_buf(&r, sizeof(r)); \
+            if (r >= min_r) break; \
+        } \
+        return (c_type)((uint64_t)min + (r % range)); \
     } \
     public c_type KindOfInt ## $from_text(CORD text, CORD *the_rest) { \
         const char *str = CORD_to_const_char_star(text); \
