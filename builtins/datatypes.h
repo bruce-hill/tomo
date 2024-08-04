@@ -6,8 +6,8 @@
 #include <stdbool.h>
 
 #define ARRAY_LENGTH_BITS 42
-#define ARRAY_FREE_BITS 5
-#define ARRAY_REFCOUNT_BITS 4
+#define ARRAY_FREE_BITS 6
+#define ARRAY_REFCOUNT_BITS 3
 #define ARRAY_STRIDE_BITS 12
 
 #define MAX_FOR_N_BITS(N) ((1<<(N))-1)
