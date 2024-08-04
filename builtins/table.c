@@ -97,10 +97,10 @@ static inline void hshow(const table_t *t)
 
 static void maybe_copy_on_write(table_t *t, const TypeInfo *type)
 {
-    if (t->entries.data_refcount)
+    if (t->entries.data_refcount != 0)
         Array$compact(&t->entries, entry_size(type));
 
-    if (t->bucket_info && t->bucket_info->data_refcount) {
+    if (t->bucket_info && t->bucket_info->data_refcount != 0) {
         int64_t size = sizeof(bucket_info_t) + sizeof(bucket_t[t->bucket_info->count]);
         t->bucket_info = memcpy(GC_MALLOC(size), t->bucket_info, size);
         t->bucket_info->data_refcount = 0;
@@ -109,8 +109,8 @@ static void maybe_copy_on_write(table_t *t, const TypeInfo *type)
 
 public void Table$mark_copy_on_write(table_t *t)
 {
-    t->entries.data_refcount = 3;
-    if (t->bucket_info) t->bucket_info->data_refcount = 3;
+    ARRAY_INCREF(t->entries);
+    if (t->bucket_info) t->bucket_info->data_refcount = TABLE_MAX_DATA_REFCOUNT;
 }
 
 // Return address of value or NULL

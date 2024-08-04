@@ -34,6 +34,8 @@ typedef struct {
     uint32_t next_bucket;
 } bucket_t;
 
+#define TABLE_MAX_DATA_REFCOUNT 3
+
 typedef struct {
     uint32_t count:31, last_free:31;
     uint8_t data_refcount:2;
