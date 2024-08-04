@@ -59,7 +59,7 @@ public void Array$insert(array_t *arr, const void *item, int64_t index, int64_t 
         arr->data = arr->atomic ? GC_MALLOC_ATOMIC(arr->free * padded_item_size) : GC_MALLOC(arr->free * padded_item_size);
         arr->stride = padded_item_size;
     } else if (arr->free < 1 || arr->data_refcount != 0 || (int64_t)arr->stride != padded_item_size) {
-        arr->free = MAX(ARRAY_MAX_FREE_ENTRIES, MIN(1, arr->length/4));
+        arr->free = MIN(ARRAY_MAX_FREE_ENTRIES, MAX(8, arr->length/4));
         void *copy = arr->atomic ? GC_MALLOC_ATOMIC((arr->length + arr->free) * padded_item_size) : GC_MALLOC((arr->length + arr->free) * padded_item_size);
         for (int64_t i = 0; i < index-1; i++)
             memcpy(copy + i*padded_item_size, arr->data + arr->stride*i, padded_item_size);
@@ -110,7 +110,7 @@ public void Array$insert_all(array_t *arr, array_t to_insert, int64_t index, int
     } else {
         // Otherwise, allocate a new chunk of memory for the array and populate it:
         int64_t new_len = arr->length + to_insert.length;
-        arr->free = MAX(ARRAY_MAX_FREE_ENTRIES, MIN(1, new_len/4));
+        arr->free = MIN(ARRAY_MAX_FREE_ENTRIES, MAX(8, new_len/4));
         void *data = arr->atomic ? GC_MALLOC_ATOMIC((new_len + arr->free) * padded_item_size)
             : GC_MALLOC((new_len + arr->free) * padded_item_size);
         void *p = data;
