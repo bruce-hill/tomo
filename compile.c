@@ -1633,11 +1633,14 @@ CORD compile(env_t *env, ast_t *ast)
             "})");
     }
     case Array: {
+        type_t *array_type = get_type(env, ast);
+        if (padded_type_size(Match(array_type, ArrayType)->item_type) > ARRAY_MAX_STRIDE)
+            code_err(ast, "This array holds items that take up %ld bytes, but the maximum supported size is %ld bytes. Consider using an array of pointers instead.",
+                     padded_type_size(Match(array_type, ArrayType)->item_type), ARRAY_MAX_STRIDE);
+
         auto array = Match(ast, Array);
         if (!array->items)
             return "(array_t){.length=0}";
-
-        type_t *array_type = get_type(env, ast);
 
         int64_t n = 0;
         for (ast_list_t *item = array->items; item; item = item->next) {

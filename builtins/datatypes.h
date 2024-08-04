@@ -5,14 +5,28 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define MIN_STRIDE (INT16_MIN>>1)
-#define MAX_STRIDE (INT16_MAX>>1)
+#define ARRAY_LENGTH_BITS 42
+#define ARRAY_FREE_BITS 5
+#define ARRAY_REFCOUNT_BITS 4
+#define ARRAY_STRIDE_BITS 12
+
+#define MAX_FOR_N_BITS(N) ((1<<(N))-1)
+#define ARRAY_MAX_STRIDE MAX_FOR_N_BITS(ARRAY_STRIDE_BITS-1)
+#define ARRAY_MIN_STRIDE (~MAX_FOR_N_BITS(ARRAY_STRIDE_BITS-1))
+#define ARRAY_MAX_DATA_REFCOUNT MAX_FOR_N_BITS(ARRAY_REFCOUNT_BITS)
+#define ARRAY_MAX_FREE_ENTRIES MAX_FOR_N_BITS(ARRAY_FREE_BITS)
+
 typedef struct {
     void *data;
-    int64_t length:42;
-    uint8_t free:4, data_refcount:2;
+    // All of the following fields add up to 64 bits, which means that array
+    // structs can be passed in two 64-bit registers. C will handle doing the
+    // bit arithmetic to extract the necessary values, which is cheaper than
+    // spilling onto the stack and needing to retrieve data from the stack.
+    int64_t length:ARRAY_LENGTH_BITS;
+    uint8_t free:ARRAY_FREE_BITS;
     bool atomic:1;
-    int16_t stride:15;
+    uint8_t data_refcount:ARRAY_REFCOUNT_BITS;
+    int16_t stride:ARRAY_STRIDE_BITS;
 } array_t;
 
 typedef struct {

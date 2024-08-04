@@ -49,6 +49,9 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         if (!item_t) code_err(item_type, "I can't figure out what this type is.");
         if (has_stack_memory(item_t))
             code_err(item_type, "Arrays can't have stack references because the array may outlive the stack frame.");
+        if (padded_type_size(item_t) > ARRAY_MAX_STRIDE)
+            code_err(ast, "This array holds items that take up %ld bytes, but the maximum supported size is %ld bytes. Consider using an array of pointers instead.",
+                     padded_type_size(item_t), ARRAY_MAX_STRIDE);
         return Type(ArrayType, .item_type=item_t);
     }
     case TableTypeAST: {

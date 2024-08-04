@@ -49,8 +49,9 @@
                          .data=memcpy(is_atomic(x) ? GC_MALLOC_ATOMIC(sizeof(items)) : GC_MALLOC(sizeof(items)), items, sizeof(items)), \
                          .atomic=is_atomic(x), \
                          .data_refcount=1}; })
-#define ARRAY_INCREF(arr) (arr).data_refcount |= ((arr).data_refcount << 1) | 1
-#define ARRAY_DECREF(arr) (arr).data_refcount &= 2
+// Array refcounts use a saturating add, where once it's at the max value, it stays there.
+#define ARRAY_INCREF(arr) (arr).data_refcount += ((arr).data_refcount < ARRAY_MAX_DATA_REFCOUNT)
+#define ARRAY_DECREF(arr) (arr).data_refcount -= ((arr).data_refcount < ARRAY_MAX_DATA_REFCOUNT)
 
 #define Array$insert_value(arr, item_expr, index, padded_item_size) ({ __typeof(item_expr) item = item_expr; Array$insert(arr, &item, index, padded_item_size); })
 void Array$insert(array_t *arr, const void *item, int64_t index, int64_t padded_item_size);
