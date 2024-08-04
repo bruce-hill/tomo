@@ -199,6 +199,8 @@ static void Table$set_bucket(table_t *t, const void *entry, int32_t index, const
 
 static void hashmap_resize_buckets(table_t *t, uint32_t new_capacity, const TypeInfo *type)
 {
+    if (__builtin_expect(new_capacity > TABLE_MAX_BUCKETS, 0))
+        fail("Table has exceeded the maximum table size (2^31) and cannot grow further!");
     hdebug("About to resize from %u to %u\n", t->bucket_info ? t->bucket_info->count : 0, new_capacity);
     hshow(t);
     int64_t alloc_size = sizeof(bucket_info_t) + sizeof(bucket_t[new_capacity]);
@@ -247,6 +249,8 @@ public void *Table$reserve(table_t *t, const void *key, const void *value, const
     // Resize buckets if necessary
     if (t->entries.length >= (int64_t)t->bucket_info->count) {
         uint32_t newsize = t->bucket_info->count + MIN(t->bucket_info->count, 64);
+        if (__builtin_expect(newsize > TABLE_MAX_BUCKETS, 0))
+            newsize = t->entries.length + 1;
         hashmap_resize_buckets(t, newsize, type);
     }
 
