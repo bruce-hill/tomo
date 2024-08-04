@@ -107,12 +107,6 @@ static void maybe_copy_on_write(table_t *t, const TypeInfo *type)
     }
 }
 
-public void Table$mark_copy_on_write(table_t *t)
-{
-    ARRAY_INCREF(t->entries);
-    if (t->bucket_info) t->bucket_info->data_refcount = TABLE_MAX_DATA_REFCOUNT;
-}
-
 // Return address of value or NULL
 public void *Table$get_raw(table_t t, const void *key, const TypeInfo *type)
 {

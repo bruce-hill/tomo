@@ -41,6 +41,7 @@ void Table$remove(table_t *t, const void *key, const TypeInfo *type);
 void Table$clear(table_t *t);
 table_t Table$sorted(table_t t, const TypeInfo *type);
 void Table$mark_copy_on_write(table_t *t);
+#define TABLE_INCREF(t) ({ ARRAY_INCREF((t).entries); if ((t).bucket_info) (t).bucket_info.data_refcount += ((t).bucket_info.data_refcount < TABLE_MAX_DATA_REFCOUNT); })
 int32_t Table$compare(const table_t *x, const table_t *y, const TypeInfo *type);
 bool Table$equal(const table_t *x, const table_t *y, const TypeInfo *type);
 uint32_t Table$hash(const table_t *t, const TypeInfo *type);
