@@ -602,6 +602,8 @@ public void Array$heapify(array_t *heap, closure_t comparison, int64_t padded_it
     if (heap->data_refcount != 0)
         Array$compact(heap, padded_item_size);
 
+    // It's necessary to bump the refcount because the user's comparison
+    // function could do stuff that modifies the heap's data.
     ARRAY_INCREF(*heap);
     int64_t i, n = heap->length;
     for (i = (n >> 1) - 1 ; i >= 0 ; i--)
