@@ -202,20 +202,10 @@ public void end_test(void *expr, const TypeInfo *type, CORD expected, const char
     CORD expr_cord = generic_as_text(expr, USE_COLOR, type);
     CORD type_name = generic_as_text(NULL, false, type);
 
-    uint8_t buf[512] = {0};
-    size_t buf_len = sizeof(buf)-1;
-    const char *expr_str = CORD_to_const_char_star(expr_cord);
-    uint8_t *normalized_str = u8_normalize(UNINORM_NFD, (uint8_t*)expr_str, strlen(expr_str), buf, &buf_len);
-    normalized_str[buf_len] = 0;
-    if (!normalized_str) errx(1, "Couldn't normalize unicode string!");
-    CORD expr_normalized = CORD_from_char_star((char*)normalized_str);
-    if (normalized_str != buf)
-        free(normalized_str);
-
     for (int i = 0; i < 3*TEST_DEPTH; i++) fputc(' ', stderr);
-    CORD_fprintf(stderr, USE_COLOR ? "\x1b[2m=\x1b[0m %r \x1b[2m: %r\x1b[m\n" : "= %r : %r\n", expr_normalized, type_name);
+    CORD_fprintf(stderr, USE_COLOR ? "\x1b[2m=\x1b[0m %r \x1b[2m: %r\x1b[m\n" : "= %r : %r\n", expr_cord, type_name);
     if (expected) {
-        CORD expr_plain = USE_COLOR ? generic_as_text(expr, false, type) : expr_normalized;
+        CORD expr_plain = USE_COLOR ? generic_as_text(expr, false, type) : expr_cord;
         bool success = Text$equal(&expr_plain, &expected);
         if (!success && CORD_chr(expected, 0, ':')) {
             CORD with_type = CORD_catn(3, expr_plain, " : ", type_name);
@@ -227,7 +217,7 @@ public void end_test(void *expr, const TypeInfo *type, CORD expected, const char
                     USE_COLOR
                     ? "\n\x1b[31;7m ==================== TEST FAILED ==================== \x1b[0;1m\n\nExpected: \x1b[1;32m%s\x1b[0m\n\x1b[1m But got:\x1b[m %s\n\n"
                     : "\n==================== TEST FAILED ====================\nExpected: %s\n\n But got: %s\n\n",
-                    CORD_to_const_char_star(expected), CORD_to_const_char_star(expr_normalized));
+                    CORD_to_const_char_star(expected), CORD_to_const_char_star(expr_cord));
 
             print_stack_trace(stderr);
             fflush(stderr);
