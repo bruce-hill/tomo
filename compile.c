@@ -2170,7 +2170,7 @@ CORD compile(env_t *env, ast_t *ast)
             if (ptr->is_optional)
                 code_err(ast, "This pointer is potentially null, so it can't be safely dereferenced");
             if (ptr->pointed->tag == ArrayType) {
-                return CORD_all("({ array_t *arr = ", compile(env, indexing->indexed), "; arr->data_refcount = 3; *arr; })");
+                return CORD_all("({ array_t *arr = ", compile(env, indexing->indexed), "; ARRAY_INCREF(*arr); *arr; })");
             } else if (ptr->pointed->tag == TableType) {
                 return CORD_all("({ table_t *t = ", compile(env, indexing->indexed), "; Table$mark_copy_on_write(t); *t; })");
             } else {
