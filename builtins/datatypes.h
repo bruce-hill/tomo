@@ -54,4 +54,8 @@ typedef struct {
     void *fn, *userdata;
 } closure_t;
 
+typedef struct Range_s {
+    int64_t first, last, step;
+} Range_t;
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

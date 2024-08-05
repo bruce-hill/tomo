@@ -817,6 +817,22 @@ CORD compile_statement(env_t *env, ast_t *ast)
             body = CORD_all(body, "\n", loop_ctx.skip_label, ": continue;");
         CORD stop = loop_ctx.stop_label ? CORD_all("\n", loop_ctx.stop_label, ":;") : CORD_EMPTY;
 
+        if (iter_t == RANGE_TYPE) {
+            CORD value = for_->vars ? compile(env, for_->vars->ast) : "i";
+            CORD range = compile(env, for_->iter);
+            if (for_->empty)
+                code_err(ast, "Ranges are never empty, they always contain at least their starting element");
+            return CORD_all(
+                "{\n"
+                "const Range_t range = ", range, ";\n"
+                "if (range.step == 0) fail(\"This range has a 'step' of zero and will loop infinitely!\");\n"
+                "for (int64_t ", value, " = range.first; range.step > 0 ? ", value, " <= range.last : ", value, " >= range.last; ", value, " += range.step) {\n"
+                "\t", body,
+                "\n}",
+                stop,
+                "\n}");
+        }
+
         switch (iter_t->tag) {
         case ArrayType: {
             type_t *item_t = Match(iter_t, ArrayType)->item_type;

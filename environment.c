@@ -10,6 +10,7 @@
 #include "builtins/util.h"
 
 type_t *TEXT_TYPE = NULL;
+type_t *RANGE_TYPE = NULL;
 
 env_t *new_compilation_unit(CORD *libname)
 {
@@ -58,6 +59,15 @@ env_t *new_compilation_unit(CORD *libname)
         set_binding(where_env, "End", new(binding_t, .type=where, .code="Where$tagged$End"));
     }
 
+    {
+        env_t *range_env = namespace_env(env, "Range");
+        RANGE_TYPE = Type(
+            StructType, .name="Range", .env=range_env,
+            .fields=new(arg_t, .name="first", .type=INT_TYPE,
+              .next=new(arg_t, .name="last", .type=INT_TYPE,
+              .next=new(arg_t, .name="step", .type=INT_TYPE, .default_val=FakeAST(Int, .i=1, .bits=64)))));
+    }
+
     struct {
         const char *name;
         type_t *type;
@@ -80,6 +90,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"abs", "labs", "func(i:Int)->Int"},
             {"min", "Int$min", "Int"},
             {"max", "Int$max", "Int"},
+            {"to", "Int$to", "func(from:Int,to:Int)->Range"},
         )},
         {"Int32", Type(IntType, .bits=32), "Int32_t", "$Int32", TypedArray(ns_entry_t,
             {"format", "Int32$format", "func(i:Int32, digits=0)->Text"},
@@ -91,6 +102,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"abs", "abs", "func(i:Int32)->Int32"},
             {"min", "Int32$min", "Int32"},
             {"max", "Int32$max", "Int32"},
+            {"to", "Int32$to", "func(from:Int32,to:Int32)->Range"},
         )},
         {"Int16", Type(IntType, .bits=16), "Int16_t", "$Int16", TypedArray(ns_entry_t,
             {"format", "Int16$format", "func(i:Int16, digits=0)->Text"},
@@ -102,6 +114,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"abs", "abs", "func(i:Int16)->Int16"},
             {"min", "Int16$min", "Int16"},
             {"max", "Int16$max", "Int16"},
+            {"to", "Int16$to", "func(from:Int16,to:Int16)->Range"},
         )},
         {"Int8", Type(IntType, .bits=8), "Int8_t", "$Int8", TypedArray(ns_entry_t,
             {"format", "Int8$format", "func(i:Int8, digits=0)->Text"},
@@ -113,6 +126,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"abs", "abs", "func(i:Int8)->Int8"},
             {"min", "Int8$min", "Int8"},
             {"max", "Int8$max", "Int8"},
+            {"to", "Int8$to", "func(from:Int8,to:Int8)->Range"},
         )},
 #define C(name) {#name, "M_"#name, "Num"}
 #define F(name) {#name, #name, "func(n:Num)->Num"}
@@ -174,6 +188,10 @@ env_t *new_compilation_unit(CORD *libname)
 #undef F
 #undef C
         {"Where", where, "Where_t", "Where", {}},
+        {"Range", RANGE_TYPE, "Range_t", "Range", TypedArray(ns_entry_t,
+            {"reversed", "Range$reversed", "func(range:Range)->Range"},
+            {"by", "Range$by", "func(range:Range, step:Int)->Range"},
+        )},
         {"Text", TEXT_TYPE, "Text_t", "$Text", TypedArray(ns_entry_t,
             // {"find", "Text$find", "func(text:Text, pattern:Text)->FindResult"},
             {"as_c_string", "CORD_to_char_star", "func(text:Text)->CString"},
@@ -286,6 +304,17 @@ env_t *for_scope(env_t *env, ast_t *ast)
     auto for_ = Match(ast, For);
     type_t *iter_t = get_type(env, for_->iter);
     env_t *scope = fresh_scope(env);
+
+    if (iter_t == RANGE_TYPE) {
+        if (for_->vars) {
+            if (for_->vars->next)
+                code_err(for_->vars->next->ast, "This is too many variables for this loop");
+            const char *var = Match(for_->vars->ast, Var)->name;
+            set_binding(scope, var, new(binding_t, .type=Type(IntType, .bits=64), .code=CORD_cat("$", var)));
+        }
+        return scope;
+    }
+
     switch (iter_t->tag) {
     case ArrayType: {
         type_t *item_t = Match(iter_t, ArrayType)->item_type;

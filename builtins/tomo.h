@@ -20,6 +20,7 @@
 #include "memory.h"
 #include "nums.h"
 #include "pointer.h"
+#include "range.h"
 #include "table.h"
 #include "text.h"
 #include "types.h"

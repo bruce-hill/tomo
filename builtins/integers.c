@@ -68,6 +68,9 @@
         } \
         return (c_type)((uint64_t)min + (r % range)); \
     } \
+    public Range_t KindOfInt ## $to(c_type from, c_type to) { \
+        return (Range_t){from, to, to >= from ? 1 : -1}; \
+    } \
     public c_type KindOfInt ## $from_text(CORD text, CORD *the_rest) { \
         const char *str = CORD_to_const_char_star(text); \
         long i; \
