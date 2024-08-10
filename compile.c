@@ -1307,7 +1307,7 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Int: return CORD_asprintf("I%ld(%ld)", Match(ast, Int)->bits, Match(ast, Int)->i);
     case Num: {
-        return CORD_asprintf(Match(ast, Num)->bits == 64 ? "%.9g" : "(float)%.9g", Match(ast, Num)->n);
+        return CORD_asprintf(Match(ast, Num)->bits == 64 ? "N64(%.9g)" : "N32(%.9g)", Match(ast, Num)->n);
     }
     case Length: {
         ast_t *expr = Match(ast, Length)->value;

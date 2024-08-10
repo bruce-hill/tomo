@@ -11,6 +11,8 @@
 
 #define Num_t double
 #define Num32_t float
+#define N32(n) ((float)n)
+#define N64(n) ((double)n)
 
 CORD Num$as_text(const double *f, bool colorize, const TypeInfo *type);
 int32_t Num$compare(const double *x, const double *y, const TypeInfo *type);
