@@ -14,6 +14,7 @@
 #include "functions.h"
 #include "halfsiphash.h"
 #include "integers.h"
+#include "table.h"
 #include "types.h"
 #include "util.h"
 
@@ -217,6 +218,20 @@ public void *Array$random(array_t arr)
         return NULL; // fail("Cannot get a random item from an empty array!");
     int64_t index = Int$random(0, arr.length-1);
     return arr.data + arr.stride*index;
+}
+
+public table_t Array$counts(array_t arr, const TypeInfo *type)
+{
+    table_t counts = {};
+    const TypeInfo count_type = {.size=sizeof(table_t), .align=__alignof__(table_t),
+        .tag=TableInfo, .TableInfo.key=type->ArrayInfo.item, .TableInfo.value=&$Int};
+    for (int64_t i = 0; i < arr.length; i++) {
+        void *key = arr.data + i*arr.stride;
+        int64_t *count = Table$get(counts, key, &count_type);
+        int64_t val = count ? *count + 1 : 1;
+        Table$set(&counts, key, &val, &count_type);
+    }
+    return counts;
 }
 
 public array_t Array$sample(array_t arr, int64_t n, array_t weights, int64_t padded_item_size)

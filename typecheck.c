@@ -707,6 +707,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "by")) return self_value_t;
             else if (streq(call->name, "reversed")) return self_value_t;
             else if (streq(call->name, "unique")) return Type(SetType, .item_type=Match(self_value_t, ArrayType)->item_type);
+            else if (streq(call->name, "counts")) return Type(TableType, .key_type=Match(self_value_t, ArrayType)->item_type, .value_type=INT_TYPE);
             else if (streq(call->name, "heapify")) return Type(VoidType);
             else if (streq(call->name, "heap_push")) return Type(VoidType);
             else if (streq(call->name, "heap_pop")) return Match(self_value_t, ArrayType)->item_type;

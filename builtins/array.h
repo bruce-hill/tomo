@@ -63,6 +63,7 @@ void Array$shuffle(array_t *arr, int64_t padded_item_size);
 void *Array$random(array_t arr);
 #define Array$random_value(arr, t) ({ array_t _arr = arr; if (_arr.length == 0) fail("Cannot get a random value from an empty array!"); *(t*)Array$random(_arr); })
 array_t Array$sample(array_t arr, int64_t n, array_t weights, int64_t padded_item_size);
+table_t Array$counts(array_t arr, const TypeInfo *type);
 void Array$clear(array_t *array);
 void Array$compact(array_t *arr, int64_t padded_item_size);
 bool Array$contains(array_t array, void *item, const TypeInfo *type);
