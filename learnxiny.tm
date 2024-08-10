@@ -89,8 +89,15 @@ func main():
     
     // Tables are efficient hash maps
     table := {"one": 1, "two": 2}
-    >> table["two"]
+    >> table:get("two")
     = 2
+
+    // You can supply a default argument in case a key isn't found:
+    >> table:get("xxx", default=0)
+    = 0
+
+    // Otherwise, a runtime error will be raised:
+    // >> table:get("xxx")
 
     // Tables can be iterated over either by key or key,value:
     for key in table:
@@ -106,14 +113,12 @@ func main():
     >> table.values
     = [1, 2]
 
-    // Tables can have default values and fallbacks:
-    table2 := {"three": 3; fallback=table; default=0}
-    >> table2["two"]
+    // Tables can have fallbacks:
+    table2 := {"three": 3; fallback=table}
+    >> table2:get("two")
     = 2
-    >> table2["three"]
+    >> table2:get("three")
     = 3
-    >> table2["???"]
-    = 0
 
     // If no default is provided and a missing key is looked up, the program
     // will print an error message and halt.
@@ -239,7 +244,7 @@ func demo_structs():
     = yes
 
     table := {alice: "first", bob: "second"}
-    >> table[alice]
+    >> table:get(alice)
     = "first"
 
 
