@@ -503,8 +503,22 @@ public CORD Table$as_text(const table_t *t, bool colorize, const TypeInfo *type)
 public table_t Table$from_entries(array_t entries, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
-    table_t t = {.entries=entries};
-    hashmap_resize_buckets(&t, entries.length, type);
+    if (entries.length == 0)
+        return (table_t){};
+
+    table_t t = {};
+    int64_t length = entries.length + entries.length / 4;
+    int64_t alloc_size = sizeof(bucket_info_t) + sizeof(bucket_t[length]);
+    t.bucket_info = GC_MALLOC_ATOMIC(alloc_size);
+    memset(t.bucket_info->buckets, 0, sizeof(bucket_t[length]));
+    t.bucket_info->count = length;
+    t.bucket_info->last_free = length-1;
+
+    int64_t offset = value_offset(type);
+    for (int64_t i = 0; i < entries.length; i++) {
+        void *key = entries.data + i*entries.stride;
+        Table$set(&t, key, key + offset, type);
+    }
     return t;
 }
 
