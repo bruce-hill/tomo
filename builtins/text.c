@@ -265,16 +265,13 @@ public array_t Text$split(CORD str, CORD split)
 {
     if (!str) return (array_t){.data=GC_MALLOC(sizeof(CORD)), .atomic=1, .length=1, .stride=sizeof(CORD)};
     array_t strings = {.stride=sizeof(CORD), .atomic=1};
-    int64_t capacity = 0;
 
     const uint8_t *ustr = (uint8_t*)CORD_to_const_char_star(str);
     const uint8_t *usplit = (uint8_t*)CORD_to_const_char_star(split);
     for (int64_t i = 0; ; ) {
         size_t non_split = u8_strcspn(ustr + i, usplit);
         CORD chunk = CORD_substr((CORD)ustr, i, non_split);
-        if (capacity <= 0)
-            strings.data = GC_REALLOC(strings.data, sizeof(CORD[capacity += 10]));
-        ((CORD*)strings.data)[strings.length++] = chunk;
+        Array$insert(&strings, &chunk, 0, sizeof(CORD));
 
         i += non_split;
 
