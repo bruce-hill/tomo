@@ -6,13 +6,13 @@ the language design decisions of the future.
 
 ```
 func greeting(name:Text)->Text:
-	greeting := "hello {name}!"
-	words := greeting:split(" ")
-	return " ":join([w:capitalize() for w in words])
+    greeting := "hello {name}!"
+    words := greeting:split(" ")
+    return " ":join([w:capitalize() for w in words])
 
 func main(name="World"):
-	to_say := greeting(name)
-	say(to_say)
+    to_say := greeting(name)
+    say(to_say)
 ```
 
 ```bash
@@ -34,31 +34,34 @@ language features.
 - Extremely high performance code generation with minimal overhead compared to C
 - Extremely fast parallel compilation times
 - Language-level support for out-of-the-box function caching emphasizing
-	correctness
+  correctness
 - Structs with known-at-compile-time methods, not OOP objects with vtable
-	lookups
+  lookups
 
 ## Safety
 - Memory safety (garbage collection, compiler-enforced null safety, automatic
-	array bounds checking, and no uninitialized variables)
+  array bounds checking, and no uninitialized variables)
 - Arithmetic overflow checking
 - Type-safe strings representing different languages with automatic prevention
-	of code injection
+  of code injection
 - Pattern matching with exhaustiveness checking for tagged unions
+- Efficient immutable datastructures
 
 ## Simplicity
 - Simple, low-boilerplate type system with type inference
 - Well-defined reference and value semantics and mutability rules
+- No polymorphism, generics, or inheritance
 
 ## User-friendliness
-- Useful and efficient built-in types: arrays, hash tables, structs, tagged
-	unions (sum types), cords (efficient string representation)
+- Useful and efficient built-in types: arrays, hash tables, sets, structs,
+  tagged unions (sum types), cords (efficient string representation)
+- String interpolation and debug printing builtins
 - Beautiful and helpful compiler and runtime error messages with emphasis on
-	user-friendliness
+  user-friendliness
 - Full UTF8 support for all text operations
 - Built-in doctests with syntax highlighting
 - Automatic command line argument parsing with type safety and no need for
-	libraries.
+  libraries.
 - Easy interoperability with C
 
 ## Dependencies
@@ -66,9 +69,9 @@ language features.
 Tomo has a very small set of dependencies:
 
 - The [Boehm garbage collector](https://www.hboehm.info/gc/) for runtime
-	garbage collection.
+  garbage collection.
 - [libunistring](https://www.gnu.org/software/libunistring/) for unicode
-	string support.
+  string support.
 - [Binutils](https://www.gnu.org/software/binutils/) for stack traces.
 - a C compiler
 - and libc/libm, which should definitely already be installed.
