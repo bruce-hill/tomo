@@ -578,8 +578,6 @@ type_t *get_type(env_t *env, ast_t *ast)
             key_type = parse_type_ast(env, table->key_type);
             value_type = parse_type_ast(env, table->value_type);
         } else {
-            if (table->default_value)
-                value_type = get_type(env, table->default_value);
             for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
                 ast_t *entry_ast = entry->ast;
                 env_t *scope = env;
@@ -660,24 +658,15 @@ type_t *get_type(env_t *env, ast_t *ast)
         }
 
         type_t *value_t = value_type(indexed_t);
-        switch (value_t->tag) {
-        case ArrayType: {
+        if (value_t->tag == ArrayType) {
             if (!indexing->index) return indexed_t;
             type_t *index_t = get_type(env, indexing->index);
-            switch (index_t->tag) {
-            case IntType:
+            if (index_t->tag == IntType) {
                 return Match(value_t, ArrayType)->item_type;
-            default: code_err(indexing->index, "I only know how to index lists using integers, not %T", index_t);
             }
-        }
-        case TableType: {
-            return Match(value_t, TableType)->value_type;
-        }
-        // TODO: support ranges like (99..123)[5]
-        // TODO: support slicing arrays like ([1,2,3,4])[2..10]
-        default: {
+            code_err(indexing->index, "I only know how to index lists using integers, not %T", index_t);
+        } else {
             code_err(ast, "I don't know how to index %T values", indexed_t);
-        }
         }
     }
     case FunctionCall: {
@@ -741,6 +730,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             if (streq(call->name, "get")) return table->value_type;
             else if (streq(call->name, "has")) return Type(BoolType);
             else if (streq(call->name, "set")) return Type(VoidType);
+            else if (streq(call->name, "bump")) return Type(VoidType);
             else if (streq(call->name, "remove")) return Type(VoidType);
             else if (streq(call->name, "clear")) return Type(VoidType);
             else if (streq(call->name, "sorted")) return self_value_t;

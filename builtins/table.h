@@ -11,7 +11,7 @@
 #include "types.h"
 #include "util.h"
 
-#define Table(key_t, val_t, key_info, value_info, fb, def, N, ...)  ({ \
+#define Table(key_t, val_t, key_info, value_info, fb, N, ...)  ({ \
     struct { key_t k; val_t v; } ents[N] = {__VA_ARGS__}; \
     table_t table = Table$from_entries((array_t){ \
                        .data=memcpy(GC_MALLOC(sizeof(ents)), ents, sizeof(ents)), \
@@ -19,7 +19,6 @@
                        .stride=(void*)&ents[1] - (void*)&ents[0], \
                        }, $TableInfo(key_info, value_info)); \
     table.fallback = fb; \
-    table.default_value = def; \
     table; })
 #define Set(item_t, item_info, N, ...)  ({ \
     item_t ents[N] = {__VA_ARGS__}; \
@@ -52,6 +51,12 @@ void Table$set(table_t *t, const void *key, const void *value, const TypeInfo *t
 #define Table$set_value(t, key_expr, value_expr, type) ({ __typeof(key_expr) k = key_expr; __typeof(value_expr) v = value_expr; \
                                                         Table$set(t, &k, &v, type); })
 #define Table$reserve_value(t, key_expr, type) ({ __typeof(key_expr) k = key_expr; Table$reserve(t, &k, NULL, type); })
+#define Table$bump(t_expr, key_expr, amount_expr, type) ({ __typeof(key_expr) key = key_expr; \
+                                                         table_t *t = t_expr; \
+                                                         __typeof(amount_expr) *val = Table$get_raw(*t, &key, type); \
+                                                         if (val) *val += amount_expr; \
+                                                         else { __typeof(amount_expr) init = amount_expr; Table$set(t, &key, &init, type); } (void)0; })
+                                                    
 void Table$remove(table_t *t, const void *key, const TypeInfo *type);
 #define Table$remove_value(t, key_expr, type) ({ __typeof(key_expr) k = key_expr; Table$remove(t, &k, type); })
 

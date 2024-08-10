@@ -47,7 +47,6 @@ typedef struct table_s {
     array_t entries;
     bucket_info_t *bucket_info;
     struct table_s *fallback;
-    void *default_value;
 } table_t;
 
 typedef struct {

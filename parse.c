@@ -743,7 +743,7 @@ PARSER(parse_table) {
 
     whitespace(&pos);
 
-    ast_t *fallback = NULL, *default_val = NULL;
+    ast_t *fallback = NULL;
     if (match(&pos, ";")) {
         for (;;) {
             whitespace(&pos);
@@ -754,12 +754,6 @@ PARSER(parse_table) {
                 if (fallback)
                     parser_err(ctx, attr_start, pos, "This table already has a fallback");
                 fallback = expect(ctx, attr_start, &pos, parse_expr, "I expected a fallback table");
-            } else if (match(&pos, "default")) {
-                whitespace(&pos);
-                if (!match(&pos, "=")) parser_err(ctx, attr_start, pos, "I expected an '=' after 'default'");
-                if (default_val)
-                    parser_err(ctx, attr_start, pos, "This table already has a default value");
-                default_val = expect(ctx, attr_start, &pos, parse_expr, "I expected a default value for this table");
             } else {
                 break;
             }
@@ -771,7 +765,7 @@ PARSER(parse_table) {
     whitespace(&pos);
     expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this table");
 
-    return NewAST(ctx->file, start, pos, Table, .key_type=key_type, .value_type=value_type, .entries=entries, .fallback=fallback, .default_value=default_val);
+    return NewAST(ctx->file, start, pos, Table, .key_type=key_type, .value_type=value_type, .entries=entries, .fallback=fallback);
 }
 
 PARSER(parse_set) {

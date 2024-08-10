@@ -117,10 +117,9 @@ CORD ast_to_xml(ast_t *ast)
     T(Set, "<Set>%r%r</Set>",
       optional_tagged_type("item-type", data.item_type),
       ast_list_to_xml(data.items))
-    T(Table, "<Table>%r%r%r%r%r</Table>",
+    T(Table, "<Table>%r%r%r%r</Table>",
       optional_tagged_type("key-type", data.key_type), optional_tagged_type("value-type", data.value_type),
-      ast_list_to_xml(data.entries), optional_tagged("fallback", data.fallback),
-      optional_tagged("default", data.default_value))
+      ast_list_to_xml(data.entries), optional_tagged("fallback", data.fallback))
     T(TableEntry, "<TableEntry>%r%r</TableEntry>", ast_to_xml(data.key), ast_to_xml(data.value))
     T(Comprehension, "<Comprehension>%r%r%r%r%r</Comprehension>", optional_tagged("expr", data.expr),
       ast_list_to_xml(data.vars), optional_tagged("iter", data.iter),

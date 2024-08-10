@@ -186,15 +186,6 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
                             compile(env, index->index), ", ", CORD_asprintf("%ld", padded_type_size(item_type)),
                             ", ", Text$quoted(ast->file->filename, false), ", ", heap_strf("%ld", ast->start - ast->file->text),
                             ", ", heap_strf("%ld", ast->end - ast->file->text), ")");
-        } else if (container_t->tag == TableType) {
-            CORD target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
-            type_t *value_t = Match(container_t, TableType)->value_type;
-            CORD key = compile(env, index->index);
-            if (!promote(env, &key, get_type(env, index->index), Match(container_t, TableType)->key_type))
-                code_err(index->index, "I couldn't promote this type from %T to %T",
-                         get_type(env, index->index), Match(container_t, TableType)->key_type);
-            return CORD_all("*(", compile_type(value_t), "*)Table$reserve_value(", target_code, ", (", compile_type(Match(container_t, TableType)->key_type), ")",
-                            compile(env, index->index),", ", compile_type_info(env, container_t), ")");
         } else {
             code_err(ast, "I don't know how to assign to this target");
         }
@@ -1731,8 +1722,6 @@ CORD compile(env_t *env, ast_t *ast)
             CORD code = "((table_t){";
             if (table->fallback)
                 code = CORD_all(code, ".fallback=", compile(env, table->fallback),",");
-            if (table->default_value)
-                code = CORD_all(code, ".default_value=heap(", compile(env, table->default_value),"),");
             return CORD_cat(code, "})");
         }
 
@@ -1756,11 +1745,6 @@ CORD compile(env_t *env, ast_t *ast)
             else
                 code = CORD_all(code, ", /*fallback:*/ NULL");
 
-            if (table->default_value)
-                code = CORD_all(code, ", /*default:*/ heap(", compile(env, table->default_value), ")");
-            else
-                code = CORD_all(code, ", /*default:*/ NULL");
-
             size_t n = 0;
             for (ast_list_t *entry = table->entries; entry; entry = entry->next)
                 ++n;
@@ -1783,8 +1767,6 @@ CORD compile(env_t *env, ast_t *ast)
             if (table->fallback)
                 code = CORD_all(code, ".fallback=heap(", compile(env, table->fallback), "), ");
 
-            if (table->default_value)
-                code = CORD_all(code, ".default_value=heap(", compile(env, table->default_value), "), ");
             code = CORD_cat(code, "};");
 
             set_binding(scope, scope->comprehension_var, new(binding_t, .type=table_type, .code=scope->comprehension_var));
@@ -2112,9 +2094,19 @@ CORD compile(env_t *env, ast_t *ast)
             auto table = Match(self_value_t, TableType);
             if (streq(call->name, "get")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type, .next=new(arg_t, .name="default", .type=table->value_type));
-                return CORD_all("Table$get_value_or_default(", self, ", ", compile_type(table->key_type), ", ", compile_type(table->value_type), ", ",
-                                compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type_info(env, self_value_t), ")");
+                if (call->args->next) {
+                    arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type, .next=new(arg_t, .name="default", .type=table->value_type));
+                    return CORD_all("Table$get_value_or_default(", self, ", ", compile_type(table->key_type), ", ", compile_type(table->value_type), ", ",
+                                    compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type_info(env, self_value_t), ")");
+                } else {
+                    arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);
+                    file_t *f = ast->file;
+                    return CORD_all("Table$get_value_or_fail(", self, ", ", compile_type(table->key_type), ", ", compile_type(table->value_type), ", ",
+                                    compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type_info(env, self_value_t), ", ",
+                                    Text$quoted(f->filename, false), ", ", CORD_asprintf("%ld", (int64_t)(ast->start - f->text)), ", ",
+                                    CORD_asprintf("%ld", (int64_t)(ast->end - f->text)),
+                                    ")");
+                }
             } else if (streq(call->name, "has")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);
@@ -2125,6 +2117,17 @@ CORD compile(env_t *env, ast_t *ast)
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type,
                                       .next=new(arg_t, .name="value", .type=table->value_type));
                 return CORD_all("Table$set_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                                compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "bump")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                if (!(table->value_type->tag == IntType || table->value_type->tag == NumType))
+                    code_err(ast, "bump() is only supported for tables with numeric value types, not %T", self_value_t);
+                ast_t *one = table->value_type->tag == IntType
+                    ? FakeAST(Int, .i=1, .bits=Match(table->value_type, IntType)->bits)
+                    : FakeAST(Num, .n=1, .bits=Match(table->value_type, NumType)->bits);
+                arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type,
+                                      .next=new(arg_t, .name="amount", .type=table->value_type, .default_val=one));
+                return CORD_all("Table$bump(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "remove")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
@@ -2326,8 +2329,6 @@ CORD compile(env_t *env, ast_t *ast)
                                 ",\n .length=t->entries.length,\n .stride=t->entries.stride,\n .data_refcount=3};})");
             } else if (streq(f->field, "fallback")) {
                 return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0, false), ").fallback");
-            } else if (streq(f->field, "default")) {
-                return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0, false), ").default_value");
             }
             code_err(ast, "There is no '%s' field on tables", f->field);
         }
@@ -2349,16 +2350,13 @@ CORD compile(env_t *env, ast_t *ast)
                 code_err(ast, "This pointer is potentially null, so it can't be safely dereferenced");
             if (ptr->pointed->tag == ArrayType) {
                 return CORD_all("({ array_t *arr = ", compile(env, indexing->indexed), "; ARRAY_INCREF(*arr); *arr; })");
-            } else if (ptr->pointed->tag == TableType) {
-                return CORD_all("({ table_t *t = ", compile(env, indexing->indexed), "; TABLE_INCREF(*t); *t; })");
             } else {
                 return CORD_all("*(", compile(env, indexing->indexed), ")");
             }
         }
         type_t *container_t = value_type(indexed_type);
         type_t *index_t = get_type(env, indexing->index);
-        switch (container_t->tag) {
-        case ArrayType: {
+        if (container_t->tag == ArrayType) {
             if (index_t->tag != IntType)
                 code_err(indexing->index, "Arrays can only be indexed by integers, not %T", index_t);
             type_t *item_type = Match(container_t, ArrayType)->item_type;
@@ -2372,22 +2370,8 @@ CORD compile(env_t *env, ast_t *ast)
                                 Text$quoted(f->filename, false), ", ", CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
                                 CORD_asprintf("%ld", (int64_t)(indexing->index->end - f->text)),
                                 ")");
-        }
-        case TableType: {
-            type_t *key_t = Match(container_t, TableType)->key_type;
-            type_t *value_t = Match(container_t, TableType)->value_type;
-            CORD table = compile_to_pointer_depth(env, indexing->indexed, 0, false);
-            CORD key = compile(env, indexing->index);
-            if (!promote(env, &key, index_t, key_t))
-                code_err(indexing->index, "This value has type %T, but this table can only be index with keys of type %T", index_t, key_t);
-            file_t *f = indexing->index->file;
-            return CORD_all("Table$get_value_or_fail(", table, ", ", compile_type(key_t), ", ", compile_type(value_t), ", ",
-                            key, ", ", compile_type_info(env, container_t), ", ",
-                            Text$quoted(f->filename, false), ", ", CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
-                            CORD_asprintf("%ld", (int64_t)(indexing->index->end - f->text)),
-                            ")");
-        }
-        default: code_err(ast, "Indexing is not supported for type: %T", container_t);
+        } else {
+            code_err(ast, "Indexing is not supported for type: %T", container_t);
         }
     }
     case InlineCCode: {

@@ -1,12 +1,12 @@
 func main():
-	>> t := {"one":1, "two":2; default=999}
-	= {"one":1, "two":2; default=999}
+	>> t := {"one":1, "two":2}
+	= {"one":1, "two":2}
 
-	>> t["one"]
+	>> t:get("one", 999)
 	= 1
-	>> t["two"]
+	>> t:get("two", 999)
 	= 2
-	>> t["???"]
+	>> t:get("???", 999)
 	= 999
 
 	t_str := ""
@@ -17,8 +17,6 @@ func main():
 
 	>> #t
 	= 2
-	>> t.default
-	= @%999?
 	>> t.fallback
 	= !{Text:Int}
 
@@ -28,21 +26,19 @@ func main():
 	= [1, 2]
 
 	>> t2 := {"three":3; fallback=t}
-	= {"three":3; fallback={"one":1, "two":2; default=999}}
+	= {"three":3; fallback={"one":1, "two":2}}
 
-	>> t2["one"]
+	>> t2:get("one", 999)
 	= 1
-	>> t2["three"]
+	>> t2:get("three", 999)
 	= 3
-	>> t2["???"]
+	>> t2:get("???", 999)
 	= 999
 
 	>> #t2
 	= 1
-	>> t2.default
-	= !Int
 	>> t2.fallback
-	= @%{"one":1, "two":2; default=999}?
+	= @%{"one":1, "two":2}?
 
 	t2_str := ""
 	for k,v in t2:
@@ -64,6 +60,8 @@ func main():
 
 	do:
 		>> plain := {1:10, 2:20, 3:30}
+		>> plain:get(2)
+		= 20
 		>> plain:get(2, -999)
 		= 20
 		>> plain:get(456, -999)
@@ -78,10 +76,4 @@ func main():
 		= yes
 		>> fallback:get(1, -999)
 		= 10
-
-		>> default := {5:50; default=0}
-		>> default:has(28273)
-		= yes
-		>> default:get(28273, -999)
-		= 0
 

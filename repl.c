@@ -507,10 +507,6 @@ void eval(env_t *env, ast_t *ast, void *dest)
         }
         if (table_ast->fallback)
             eval(env, table_ast->fallback, &table.fallback);
-        if (table_ast->default_value) {
-            table.default_value = GC_MALLOC(value_size);
-            eval(env, table_ast->default_value, table.default_value);
-        }
         memcpy(dest, &table, sizeof(table_t));
         break;
     }

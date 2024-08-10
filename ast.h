@@ -187,7 +187,7 @@ struct ast_s {
         } Set;
         struct {
             type_ast_t *key_type, *value_type;
-            ast_t *fallback, *default_value;
+            ast_t *fallback;
             ast_list_t *entries;
         } Table;
         struct {

@@ -137,9 +137,6 @@ public void *Table$get(table_t t, const void *key, const TypeInfo *type)
         void *ret = Table$get_raw(*iter, key, type);
         if (ret) return ret;
     }
-    for (const table_t *iter = &t; iter; iter = iter->fallback) {
-        if (iter->default_value) return iter->default_value;
-    }
     return NULL;
 }
 
@@ -258,9 +255,6 @@ public void *Table$reserve(table_t *t, const void *key, const void *value, const
         for (table_t *iter = t->fallback; iter; iter = iter->fallback) {
             value = Table$get_raw(*iter, key, type);
             if (value) break;
-        }
-        for (table_t *iter = t; !value && iter; iter = iter->fallback) {
-            if (iter->default_value) value = iter->default_value;
         }
     }
 
@@ -404,9 +398,6 @@ public bool Table$equal(const table_t *x, const table_t *y, const TypeInfo *type
     if (Table$length(*x) != Table$length(*y))
         return false;
     
-    if ((x->default_value != NULL) != (y->default_value != NULL))
-        return false;
-    
     if ((x->fallback != NULL) != (y->fallback != NULL))
         return false;
 
@@ -433,13 +424,6 @@ public int32_t Table$compare(const table_t *x, const table_t *y, const TypeInfo 
         if (diff != 0) return diff;
     }
 
-    if (!x->default_value != !y->default_value) {
-        return (!x->default_value) - (!y->default_value);
-    } else if (x->default_value && y->default_value) {
-        int32_t diff = generic_compare(x->default_value, y->default_value, table.value);
-        if (diff != 0) return diff;
-    }
-
     if (!x->fallback != !y->fallback) {
         return (!x->fallback) - (!y->fallback);
     } else if (x->fallback && y->fallback) {
@@ -460,7 +444,6 @@ public uint32_t Table$hash(const table_t *t, const TypeInfo *type)
         Array$hash(&t->entries, $ArrayInfo(table.key)),
         Array$hash(&t->entries + value_offset(type), $ArrayInfo(table.value)),
         t->fallback ? Table$hash(t->fallback, type) : 0,
-        t->default_value ? generic_hash(t->default_value, table.value) : 0,
     };
     uint32_t hash;
     halfsiphash(&components, sizeof(components), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));
@@ -493,11 +476,6 @@ public CORD Table$as_text(const table_t *t, bool colorize, const TypeInfo *type)
     if (t->fallback) {
         c = CORD_cat(c, "; fallback=");
         c = CORD_cat(c, Table$as_text(t->fallback, colorize, type));
-    }
-
-    if (t->default_value) {
-        c = CORD_cat(c, "; default=");
-        c = CORD_cat(c, generic_as_text(t->default_value, colorize, table.value));
     }
 
     c = CORD_cat(c, "}");
@@ -545,9 +523,6 @@ public table_t Table$overlap(table_t a, table_t b, const TypeInfo *type)
         *result.fallback = Table$overlap(*a.fallback, b, type);
     }
 
-    if (a.default_value && b.default_value && generic_equal(a.default_value, b.default_value, type->TableInfo.value))
-        result.default_value = a.default_value;
-
     return result;
 }
 
@@ -573,9 +548,6 @@ public table_t Table$with(table_t a, table_t b, const TypeInfo *type)
         result.fallback = a.fallback ? a.fallback : b.fallback;
     }
 
-    // B's default value takes precedence over A's
-    result.default_value = b.default_value ? b.default_value : a.default_value;
-
     return result;
 }
 
@@ -596,11 +568,6 @@ public table_t Table$without(table_t a, table_t b, const TypeInfo *type)
     if (a.fallback) {
         result.fallback = new(table_t);
         *result.fallback = Table$without(*a.fallback, b, type);
-    }
-
-    if (a.default_value) {
-        if (!b.default_value || !generic_equal(a.default_value, b.default_value, type->TableInfo.value))
-            result.default_value = a.default_value;
     }
 
     return result;

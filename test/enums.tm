@@ -36,11 +36,11 @@ func main():
 	= yes
 
 	>> x := Foo.One(123)
-	>> t := {x:"found"; default="missing"}
-	>> t[x]
-	= "found"
-	>> t[Foo.Zero]
-	= "missing"
+	>> t := {x}
+	>> t:has(x)
+	= yes
+	>> t:has(Foo.Zero)
+	= no
 
 	>> choose_text(Foo.Zero)
 	= "Zero"
