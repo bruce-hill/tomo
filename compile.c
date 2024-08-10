@@ -2024,6 +2024,10 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$reversed(", self, ", ", padded_item_size, ")");
+            } else if (streq(call->name, "unique")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                (void)compile_arguments(env, ast, NULL, call->args);
+                return CORD_all("Table$from_entries(", self, ", $SetInfo(", compile_type_info(env, item_t), "))");
             } else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
         case SetType: {
@@ -2304,9 +2308,13 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case SetType: {
             if (streq(f->field, "items")) {
-                return CORD_all("({ table_t *t = ", compile_to_pointer_depth(env, f->fielded, 1, false), ";\n"
-                                "ARRAY_INCREF(t->entries);\n"
-                                "t->entries; })");
+                if (can_be_mutated(env, f->fielded)) {
+                    return CORD_all("({ table_t *t = ", compile_to_pointer_depth(env, f->fielded, 1, false), ";\n"
+                                    "ARRAY_INCREF(t->entries);\n"
+                                    "t->entries; })");
+                } else {
+                    return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries");
+                }
             } else if (streq(f->field, "fallback")) {
                 return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0, false), ").fallback");
             }
