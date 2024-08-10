@@ -472,8 +472,12 @@ public CORD Table$as_text(const table_t *t, bool colorize, const TypeInfo *type)
     assert(type->tag == TableInfo);
     auto table = type->TableInfo;
 
-    if (!t)
-        return CORD_all("{", generic_as_text(NULL, false, table.key), ":", generic_as_text(NULL, false, table.value), "}");
+    if (!t) {
+        if (table.value != &$Void) 
+            return CORD_all("{", generic_as_text(NULL, false, table.key), ":", generic_as_text(NULL, false, table.value), "}");
+        else
+            return CORD_all("{", generic_as_text(NULL, false, table.key), "}");
+    }
 
     int64_t val_off = value_offset(type);
     CORD c = "{";
@@ -482,8 +486,8 @@ public CORD Table$as_text(const table_t *t, bool colorize, const TypeInfo *type)
             c = CORD_cat(c, ", ");
         void *entry = GET_ENTRY(*t, i);
         c = CORD_cat(c, generic_as_text(entry, colorize, table.key));
-        c = CORD_cat(c, ":");
-        c = CORD_cat(c, generic_as_text(entry + val_off, colorize, table.value));
+        if (table.value != &$Void) 
+            c = CORD_all(c, ":", generic_as_text(entry + val_off, colorize, table.value));
     }
 
     if (t->fallback) {
@@ -520,6 +524,103 @@ public table_t Table$from_entries(array_t entries, const TypeInfo *type)
         Table$set(&t, key, key + offset, type);
     }
     return t;
+}
+
+// Overlap is "set intersection" in formal terms
+public table_t Table$overlap(table_t a, table_t b, const TypeInfo *type)
+{
+    // Return a table such that t[k]==a[k] for all k such that a:has(k), b:has(k), and a[k]==b[k]
+    table_t result = {};
+    const size_t offset = value_offset(type);
+    for (int64_t i = 0; i < Table$length(a); i++) {
+        void *key = GET_ENTRY(a, i);
+        void *a_value = key + offset;
+        void *b_value = Table$get(b, key, type);
+        if (b_value && generic_equal(a_value, b_value, type->TableInfo.value))
+            Table$set(&result, key, a_value, type);
+    }
+
+    if (a.fallback) {
+        result.fallback = new(table_t);
+        *result.fallback = Table$overlap(*a.fallback, b, type);
+    }
+
+    if (a.default_value && b.default_value && generic_equal(a.default_value, b.default_value, type->TableInfo.value))
+        result.default_value = a.default_value;
+
+    return result;
+}
+
+// With is "set union" in formal terms
+public table_t Table$with(table_t a, table_t b, const TypeInfo *type)
+{
+    // return a table such that t[k]==b[k] for all k such that b:has(k), and t[k]==a[k] for all k such that a:has(k) and not b:has(k)
+    table_t result = {};
+    const size_t offset = value_offset(type);
+    for (int64_t i = 0; i < Table$length(a); i++) {
+        void *key = GET_ENTRY(a, i);
+        Table$set(&result, key, key + offset, type);
+    }
+    for (int64_t i = 0; i < Table$length(b); i++) {
+        void *key = GET_ENTRY(b, i);
+        Table$set(&result, key, key + offset, type);
+    }
+
+    if (a.fallback && b.fallback) {
+        result.fallback = new(table_t);
+        *result.fallback = Table$with(*a.fallback, *b.fallback, type);
+    } else {
+        result.fallback = a.fallback ? a.fallback : b.fallback;
+    }
+
+    // B's default value takes precedence over A's
+    result.default_value = b.default_value ? b.default_value : a.default_value;
+
+    return result;
+}
+
+// Without is "set difference" in formal terms
+public table_t Table$without(table_t a, table_t b, const TypeInfo *type)
+{
+    // Return a table such that t[k]==a[k] for all k such that not b:has(k) or b[k] != a[k]
+    table_t result = {};
+    const size_t offset = value_offset(type);
+    for (int64_t i = 0; i < Table$length(a); i++) {
+        void *key = GET_ENTRY(a, i);
+        void *a_value = key + offset;
+        void *b_value = Table$get(b, key, type);
+        if (!b_value || !generic_equal(a_value, b_value, type->TableInfo.value))
+            Table$set(&result, key, a_value, type);
+    }
+
+    if (a.fallback) {
+        result.fallback = new(table_t);
+        *result.fallback = Table$without(*a.fallback, b, type);
+    }
+
+    if (a.default_value) {
+        if (!b.default_value || !generic_equal(a.default_value, b.default_value, type->TableInfo.value))
+            result.default_value = a.default_value;
+    }
+
+    return result;
+}
+
+public bool Table$is_subset_of(table_t a, table_t b, bool strict, const TypeInfo *type)
+{
+    if (a.entries.length > b.entries.length || (strict && a.entries.length == b.entries.length))
+        return false;
+
+    for (int64_t i = 0; i < Table$length(a); i++) {
+        void *found = Table$get_raw(b, GET_ENTRY(a, i), type);
+        if (!found) return false;
+    }
+    return true;
+}
+
+public bool Table$is_superset_of(table_t a, table_t b, bool strict, const TypeInfo *type)
+{
+    return Table$is_subset_of(b, a, strict, type);
 }
 
 public void *Table$str_get(table_t t, const char *key)

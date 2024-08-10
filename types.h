@@ -48,6 +48,7 @@ struct type_s {
         CStringType,
         TextType,
         ArrayType,
+        SetType,
         TableType,
         FunctionType,
         ClosureType,
@@ -78,6 +79,9 @@ struct type_s {
         struct {
             type_t *item_type;
         } ArrayType;
+        struct {
+            type_t *item_type;
+        } SetType;
         struct {
             type_t *key_type, *value_type;
         } TableType;

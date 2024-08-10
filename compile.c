@@ -55,6 +55,13 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
         return true;
     }
 
+    // Set -> Array promotion:
+    if (needed->tag == ArrayType && actual->tag == SetType
+        && type_eq(Match(needed, ArrayType)->item_type, Match(actual, SetType)->item_type)) {
+        *code = CORD_all("(", *code, ").entries");
+        return true;
+    }
+
     return false;
 }
 
@@ -126,6 +133,7 @@ CORD compile_type(type_t *t)
         return text->lang ? CORD_all(namespace_prefix(text->env->libname, text->env->namespace->parent), text->lang, "_t") : "Text_t";
     }
     case ArrayType: return "array_t";
+    case SetType: return "table_t";
     case TableType: return "table_t";
     case FunctionType: {
         auto fn = Match(t, FunctionType);
@@ -877,7 +885,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             }
             CORD loop = CORD_all("ARRAY_INCREF(", array_code, ");\n",
                                  for_code, "{\n",
-                                 compile_type(item_t), " ", value,
+                                 compile_declaration(item_t, value),
                                  " = *(", compile_type(item_t), "*)(", array_code, ".data + (",index,"-1)*", array_code, ".stride);\n",
                                  body, "\n}");
 
@@ -886,6 +894,28 @@ CORD compile_statement(env_t *env, ast_t *ast)
             loop = CORD_all(loop, stop, "\nARRAY_DECREF(", array_code, ");\n");
             if (!is_idempotent(array))
                 loop = CORD_all("{\narray_t ",array_code," = ", compile(env, array), ";\n", loop, "\n}");
+            return loop;
+        }
+        case SetType: {
+            type_t *item_type = Match(iter_t, SetType)->item_type;
+
+            CORD set = is_idempotent(for_->iter) ? compile(env, for_->iter) : "set";
+            CORD loop = CORD_all("ARRAY_INCREF(", set, ".entries);\n"
+                                 "for (int64_t i = 0; i < ",set,".entries.length; ++i) {\n");
+
+            if (for_->vars) {
+                if (for_->vars->next)
+                    code_err(for_->vars->next->ast, "This is too many variables for this loop");
+                CORD item = compile(env, for_->vars->ast);
+                loop = CORD_all(loop, compile_declaration(item_type, item), " = *(", compile_type(item_type), "*)(",
+                                set,".entries.data + i*", set, ".entries.stride);\n");
+            }
+            loop = CORD_all(loop, body, "\n}");
+            if (for_->empty)
+                loop = CORD_all("if (", set, ".entries.length > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
+            loop = CORD_all(loop, stop, "\nARRAY_DECREF(", set, ".entries);\n");
+            if (!is_idempotent(for_->iter))
+                loop = CORD_all("{\ntable_t ",set," = ", compile(env, for_->iter), ";\n", loop, "\n}");
             return loop;
         }
         case TableType: {
@@ -910,14 +940,14 @@ CORD compile_statement(env_t *env, ast_t *ast)
             }
 
             if (key) {
-                loop = CORD_all(loop, compile_type(key_t), " ", key, " = *(", compile_type(key_t), "*)(",
+                loop = CORD_all(loop, compile_declaration(key_t, key), " = *(", compile_type(key_t), "*)(",
                                 table,".entries.data + i*", table, ".entries.stride);\n");
             }
             if (value) {
                 size_t value_offset = type_size(key_t);
                 if (type_align(value_t) > 1 && value_offset % type_align(value_t))
                     value_offset += type_align(value_t) - (value_offset % type_align(value_t)); // padding
-                loop = CORD_all(loop, compile_type(value_t), " ", value, " = *(", compile_type(value_t), "*)(",
+                loop = CORD_all(loop, compile_declaration(value_t, value), " = *(", compile_type(value_t), "*)(",
                                 table,".entries.data + i*", table, ".entries.stride + ", heap_strf("%zu", value_offset), ");\n");
             }
             loop = CORD_all(loop, body, "\n}");
@@ -1081,6 +1111,7 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
         return CORD_asprintf("Text$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     }
     case ArrayType: return CORD_asprintf("Array$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case SetType: return CORD_asprintf("Table$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case TableType: return CORD_asprintf("Table$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case FunctionType: case ClosureType: return CORD_asprintf("Func$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case PointerType: return CORD_asprintf("Pointer$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
@@ -1773,6 +1804,58 @@ CORD compile(env_t *env, ast_t *ast)
         }
 
     }
+    case Set: {
+        auto set = Match(ast, Set);
+        if (!set->items)
+            return "((table_t){})";
+
+        type_t *set_type = get_type(env, ast);
+        type_t *item_type = Match(set_type, SetType)->item_type;
+
+        for (ast_list_t *item = set->items; item; item = item->next) {
+            if (item->ast->tag == Comprehension)
+                goto set_comprehension;
+        }
+           
+        { // No comprehension:
+            CORD code = CORD_all("Set(",
+                                 compile_type(item_type), ", ",
+                                 compile_type_info(env, item_type));
+
+            size_t n = 0;
+            for (ast_list_t *item = set->items; item; item = item->next)
+                ++n;
+            CORD_appendf(&code, ", %zu", n);
+
+            for (ast_list_t *item = set->items; item; item = item->next) {
+                code = CORD_all(code, ",\n\t", compile(env, item->ast));
+            }
+            return CORD_cat(code, ")");
+        }
+
+      set_comprehension:
+        {
+            static int64_t comp_num = 1;
+            env_t *scope = fresh_scope(env);
+            scope->comprehension_var = heap_strf("set$%ld", comp_num++);
+
+            CORD code = CORD_all("({ table_t ", scope->comprehension_var, " = {};");
+            set_binding(scope, scope->comprehension_var, new(binding_t, .type=set_type, .code=scope->comprehension_var));
+            for (ast_list_t *item = set->items; item; item = item->next) {
+                if (item->ast->tag == Comprehension) {
+                    code = CORD_all(code, "\n", compile_statement(scope, item->ast));
+                } else {
+                    CORD add_item = compile_statement(
+                        scope, WrapAST(item->ast, MethodCall, .name="add", .self=FakeAST(StackReference, FakeAST(Var, scope->comprehension_var)),
+                                       .args=new(arg_ast_t, .value=item->ast)));
+                    code = CORD_all(code, "\n", add_item);
+                }
+            }
+            code = CORD_all(code, " ", scope->comprehension_var, "; })");
+            return code;
+        }
+
+    }
     case Comprehension: {
         ast_t *base = Match(ast, Comprehension)->expr;
         while (base->tag == Comprehension)
@@ -1961,12 +2044,81 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Array$reversed(", self, ", ", padded_item_size, ")");
             } else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
+        case SetType: {
+            auto set = Match(self_value_t, SetType);
+            if (streq(call->name, "has")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                arg_t *arg_spec = new(arg_t, .name="key", .type=set->item_type);
+                return CORD_all("Table$has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                                compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "add")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                arg_t *arg_spec = new(arg_t, .name="item", .type=set->item_type);
+                return CORD_all("Table$set_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", NULL, ",
+                                compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "add_all")) {
+                arg_t *arg_spec = new(arg_t, .name="items", .type=Type(ArrayType, .item_type=Match(self_value_t, SetType)->item_type));
+                return CORD_all("({ table_t *set = ", compile_to_pointer_depth(env, call->self, 1, false), "; ",
+                                "array_t to_add = ", compile_arguments(env, ast, arg_spec, call->args), "; ",
+                                "for (int64_t i = 0; i < to_add.length; i++)\n"
+                                "Table$set(set, to_add.data + i*to_add.stride, NULL, ", compile_type_info(env, self_value_t), ");\n",
+                                "(void)0; })");
+            } else if (streq(call->name, "remove")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                arg_t *arg_spec = new(arg_t, .name="item", .type=set->item_type);
+                return CORD_all("Table$remove_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                                compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "remove_all")) {
+                arg_t *arg_spec = new(arg_t, .name="items", .type=Type(ArrayType, .item_type=Match(self_value_t, SetType)->item_type));
+                return CORD_all("({ table_t *set = ", compile_to_pointer_depth(env, call->self, 1, false), "; ",
+                                "array_t to_add = ", compile_arguments(env, ast, arg_spec, call->args), "; ",
+                                "for (int64_t i = 0; i < to_add.length; i++)\n"
+                                "Table$remove(set, to_add.data + i*to_add.stride, ", compile_type_info(env, self_value_t), ");\n",
+                                "(void)0; })");
+            } else if (streq(call->name, "clear")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                (void)compile_arguments(env, ast, NULL, call->args);
+                return CORD_all("Table$clear(", self, ")");
+            } else if (streq(call->name, "with")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t);
+                return CORD_all("Table$with(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                                ", ", compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "overlap")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t);
+                return CORD_all("Table$overlap(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                                ", ", compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "without")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t);
+                return CORD_all("Table$without(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                                ", ", compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "is_subset_of")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t,
+                                      .next=new(arg_t, .name="strict", .type=Type(BoolType), .default_val=FakeAST(Bool, false)));
+                return CORD_all("Table$is_subset_of(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                                ", ", compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "is_superset_of")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t,
+                                      .next=new(arg_t, .name="strict", .type=Type(BoolType), .default_val=FakeAST(Bool, false)));
+                return CORD_all("Table$is_superset_of(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                                ", ", compile_type_info(env, self_value_t), ")");
+            } else code_err(ast, "There is no '%s' method for tables", call->name);
+        }
         case TableType: {
             auto table = Match(self_value_t, TableType);
             if (streq(call->name, "get")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="key", .type=Type(PointerType, .pointed=table->key_type, .is_stack=true, .is_readonly=true));
-                return CORD_all("Table$get(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type, .next=new(arg_t, .name="default", .type=table->value_type));
+                return CORD_all("Table$get_value_or_default(", self, ", ", compile_type(table->key_type), ", ", compile_type(table->value_type), ", ",
+                                compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "has")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);
+                return CORD_all("Table$has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "set")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
@@ -2147,6 +2299,16 @@ CORD compile(env_t *env, ast_t *ast)
             }
             code_err(ast, "The field '%s' is not a valid field name of %T", f->field, value_t);
         }
+        case SetType: {
+            if (streq(f->field, "items")) {
+                return CORD_all("({ table_t *t = ", compile_to_pointer_depth(env, f->fielded, 1, false), ";\n"
+                                "ARRAY_INCREF(t->entries);\n"
+                                "t->entries; })");
+            } else if (streq(f->field, "fallback")) {
+                return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0, false), ").fallback");
+            }
+            code_err(ast, "There is no '%s' field on sets", f->field);
+        }
         case TableType: {
             if (streq(f->field, "keys")) {
                 return CORD_all("({ table_t *t = ", compile_to_pointer_depth(env, f->fielded, 1, false), ";\n"
@@ -2219,7 +2381,7 @@ CORD compile(env_t *env, ast_t *ast)
             if (!promote(env, &key, index_t, key_t))
                 code_err(indexing->index, "This value has type %T, but this table can only be index with keys of type %T", index_t, key_t);
             file_t *f = indexing->index->file;
-            return CORD_all("Table_get(", table, ", ", compile_type(key_t), ", ", compile_type(value_t), ", ",
+            return CORD_all("Table$get_value_or_fail(", table, ", ", compile_type(key_t), ", ", compile_type(value_t), ", ",
                             key, ", ", compile_type_info(env, container_t), ", ",
                             Text$quoted(f->filename, false), ", ", CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
                             CORD_asprintf("%ld", (int64_t)(indexing->index->end - f->text)),
@@ -2309,12 +2471,16 @@ CORD compile_type_info(env_t *env, type_t *t)
     }
     case ArrayType: {
         type_t *item_t = Match(t, ArrayType)->item_type;
-        return CORD_asprintf("$ArrayInfo(%r)", compile_type_info(env, item_t));
+        return CORD_all("$ArrayInfo(", compile_type_info(env, item_t), ")");
+    }
+    case SetType: {
+        type_t *item_type = Match(t, SetType)->item_type;
+        return CORD_all("$SetInfo(", compile_type_info(env, item_type), ")");
     }
     case TableType: {
         type_t *key_type = Match(t, TableType)->key_type;
         type_t *value_type = Match(t, TableType)->value_type;
-        return CORD_asprintf("$TableInfo(%r, %r)", compile_type_info(env, key_type), compile_type_info(env, value_type));
+        return CORD_all("$TableInfo(", compile_type_info(env, key_type), ", ", compile_type_info(env, value_type), ")");
     }
     case PointerType: {
         auto ptr = Match(t, PointerType);

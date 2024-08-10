@@ -29,6 +29,10 @@ CORD type_to_cord(type_t *t) {
             auto table = Match(t, TableType);
             return CORD_asprintf("{%r:%r}", type_to_cord(table->key_type), type_to_cord(table->value_type));
         }
+        case SetType: {
+            auto set = Match(t, SetType);
+            return CORD_asprintf("{%r}", type_to_cord(set->item_type));
+        }
         case ClosureType: {
             return type_to_cord(Match(t, ClosureType)->fn);
         }
@@ -202,6 +206,7 @@ bool has_heap_memory(type_t *t)
     switch (t->tag) {
     case ArrayType: return true;
     case TableType: return true;
+    case SetType: return true;
     case PointerType: return true;
     case StructType: {
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
@@ -294,6 +299,11 @@ bool can_promote(type_t *actual, type_t *needed)
                 && can_promote(actual_ret, needed_ret)));
     }
 
+    // Set -> Array promotion
+    if (needed->tag == ArrayType && actual->tag == SetType
+        && type_eq(Match(needed, ArrayType)->item_type, Match(actual, SetType)->item_type))
+        return true;
+
     return false;
 }
 
@@ -329,6 +339,7 @@ static bool _can_have_cycles(type_t *t, table_t *seen)
             auto table = Match(t, TableType);
             return _can_have_cycles(table->key_type, seen) || _can_have_cycles(table->value_type, seen);
         }
+        case SetType: return _can_have_cycles(Match(t, SetType)->item_type, seen);
         case StructType: {
             for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
                 if (_can_have_cycles(field->type, seen))
@@ -363,6 +374,7 @@ type_t *replace_type(type_t *t, type_t *target, type_t *replacement)
 #define REPLACED_MEMBER(t, tag, member) ({ t = memcpy(GC_MALLOC(sizeof(type_t)), (t), sizeof(type_t)); Match((struct type_s*)(t), tag)->member = replace_type(Match((t), tag)->member, target, replacement); t; })
     switch (t->tag) {
         case ArrayType: return REPLACED_MEMBER(t, ArrayType, item_type);
+        case SetType: return REPLACED_MEMBER(t, SetType, item_type);
         case TableType: {
             t = REPLACED_MEMBER(t, TableType, key_type);
             t = REPLACED_MEMBER(t, TableType, value_type);
@@ -407,6 +419,7 @@ size_t type_size(type_t *t)
     case NumType: return Match(t, NumType)->bits/8;
     case TextType: return sizeof(CORD);
     case ArrayType: return sizeof(array_t);
+    case SetType: return sizeof(table_t);
     case TableType: return sizeof(table_t);
     case FunctionType: return sizeof(void*);
     case ClosureType: return sizeof(struct {void *fn, *userdata;});
@@ -458,6 +471,7 @@ size_t type_align(type_t *t)
     case IntType: return Match(t, IntType)->bits/8;
     case NumType: return Match(t, NumType)->bits/8;
     case TextType: return __alignof__(CORD);
+    case SetType: return __alignof__(table_t);
     case ArrayType: return __alignof__(array_t);
     case TableType: return __alignof__(table_t);
     case FunctionType: return __alignof__(void*);
@@ -507,6 +521,13 @@ type_t *get_field_type(type_t *t, const char *field_name)
             if (streq(field->name, field_name))
                 return field->type;
         }
+        return NULL;
+    }
+    case SetType: {
+        if (streq(field_name, "items"))
+            return Type(ArrayType, .item_type=Match(t, SetType)->item_type);
+        else if (streq(field_name, "fallback"))
+            return Type(PointerType, .pointed=t, .is_readonly=true, .is_optional=true);
         return NULL;
     }
     case TableType: {

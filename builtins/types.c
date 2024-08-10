@@ -29,8 +29,8 @@ public const TypeInfo $TypeInfo = {
     .TypeInfoInfo.type_str="TypeInfo",
 };
 
-public const TypeInfo $Void = {.size=0, .align=0};
-public const TypeInfo $Abort = {.size=0, .align=0};
+public const TypeInfo $Void = {.size=0, .align=0, .tag=EmptyStruct};
+public const TypeInfo $Abort = {.size=0, .align=0, .tag=EmptyStruct};
 
 public CORD Func$as_text(const void *fn, bool colorize, const TypeInfo *type)
 {

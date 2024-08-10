@@ -61,3 +61,27 @@ func main():
 	>> t3:remove(3)
 	>> t3
 	= {1:10, 2:20}
+
+	do:
+		>> plain := {1:10, 2:20, 3:30}
+		>> plain:get(2, -999)
+		= 20
+		>> plain:get(456, -999)
+		= -999
+		>> plain:has(2)
+		= yes
+		>> plain:has(456)
+		= no
+
+		>> fallback := {4:40; fallback=plain}
+		>> fallback:has(1)
+		= yes
+		>> fallback:get(1, -999)
+		= 10
+
+		>> default := {5:50; default=0}
+		>> default:has(28273)
+		= yes
+		>> default:get(28273, -999)
+		= 0
+

@@ -114,6 +114,9 @@ CORD ast_to_xml(ast_t *ast)
     T(Min, "<Min>%r%r%r</Min>", ast_to_xml(data.lhs), ast_to_xml(data.rhs), optional_tagged("key", data.key))
     T(Max, "<Max>%r%r%r</Max>", ast_to_xml(data.lhs), ast_to_xml(data.rhs), optional_tagged("key", data.key))
     T(Array, "<Array>%r%r</Array>", optional_tagged_type("item-type", data.type), ast_list_to_xml(data.items))
+    T(Set, "<Set>%r%r</Set>",
+      optional_tagged_type("item-type", data.item_type),
+      ast_list_to_xml(data.items))
     T(Table, "<Table>%r%r%r%r%r</Table>",
       optional_tagged_type("key-type", data.key_type), optional_tagged_type("value-type", data.value_type),
       ast_list_to_xml(data.entries), optional_tagged("fallback", data.fallback),
@@ -169,6 +172,7 @@ CORD type_ast_to_xml(type_ast_t *t)
     T(PointerTypeAST, "<PointerType is_optional=\"%s\" is_stack=\"%s\" is_readonly=\"%s\">%r</PointerType>",
       data.is_optional ? "yes" : "no", data.is_stack ? "yes" : "no", data.is_readonly ? "yes" : "no", type_ast_to_xml(data.pointed))
     T(ArrayTypeAST, "<ArrayType>%r</ArrayType>", type_ast_to_xml(data.item))
+    T(SetTypeAST, "<TableType>%r</TableType>", type_ast_to_xml(data.item))
     T(TableTypeAST, "<TableType>%r %r</TableType>", type_ast_to_xml(data.key), type_ast_to_xml(data.value))
     T(FunctionTypeAST, "<FunctionType>%r %r</FunctionType>", arg_list_to_xml(data.args), type_ast_to_xml(data.ret))
 #undef T
@@ -220,6 +224,7 @@ bool type_ast_eq(type_ast_t *x, type_ast_t *y)
                 && type_ast_eq(x_info->pointed, y_info->pointed));
     }
     case ArrayTypeAST: return type_ast_eq(Match(x, ArrayTypeAST)->item, Match(y, ArrayTypeAST)->item);
+    case SetTypeAST: return type_ast_eq(Match(x, SetTypeAST)->item, Match(y, SetTypeAST)->item);
     case TableTypeAST: {
         auto tx = Match(x, TableTypeAST);
         auto ty = Match(y, TableTypeAST);

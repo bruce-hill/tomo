@@ -513,6 +513,19 @@ type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
     return NewTypeAST(ctx->file, start, pos, TableTypeAST, .key=key_type, .value=value_type);
 }
 
+type_ast_t *parse_set_type(parse_ctx_t *ctx, const char *pos) {
+    const char *start = pos;
+    if (!match(&pos, "{")) return NULL;
+    whitespace(&pos);
+    type_ast_t *item_type = parse_type(ctx, pos);
+    if (!item_type) return NULL;
+    pos = item_type->end;
+    whitespace(&pos);
+    if (match(&pos, ":")) return NULL;
+    expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this set type");
+    return NewTypeAST(ctx->file, start, pos, SetTypeAST, .item=item_type);
+}
+
 type_ast_t *parse_func_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "func")) return NULL;
@@ -576,6 +589,7 @@ type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos) {
         || (type=parse_pointer_type(ctx, pos))
         || (type=parse_array_type(ctx, pos))
         || (type=parse_table_type(ctx, pos))
+        || (type=parse_set_type(ctx, pos))
         || (type=parse_type_name(ctx, pos))
         || (type=parse_func_type(ctx, pos))
     );
@@ -698,7 +712,7 @@ PARSER(parse_table) {
         key_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a key type for this table");
         whitespace(&pos);
         if (!match(&pos, ":"))
-            parser_err(ctx, pos, pos, "I expected an ':' for this table type");
+            return NULL;
         value_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a value type for this table");
         whitespace(&pos);
     }
@@ -758,6 +772,50 @@ PARSER(parse_table) {
     expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this table");
 
     return NewAST(ctx->file, start, pos, Table, .key_type=key_type, .value_type=value_type, .entries=entries, .fallback=fallback, .default_value=default_val);
+}
+
+PARSER(parse_set) {
+    const char *start = pos;
+    if (!match(&pos, "{")) return NULL;
+
+    whitespace(&pos);
+
+    ast_list_t *items = NULL;
+    type_ast_t *item_type = NULL;
+    if (match(&pos, ":")) {
+        whitespace(&pos);
+        item_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a key type for this set");
+        whitespace(&pos);
+        if (match(&pos, ":"))
+            return NULL;
+        whitespace(&pos);
+    }
+
+    for (;;) {
+        ast_t *item = optional(ctx, &pos, parse_extended_expr);
+        if (!item) break;
+        whitespace(&pos);
+        if (match(&pos, ":")) return NULL;
+        ast_t *suffixed = parse_comprehension_suffix(ctx, item);
+        while (suffixed) {
+            item = suffixed;
+            pos = suffixed->end;
+            suffixed = parse_comprehension_suffix(ctx, item);
+        }
+        items = new(ast_list_t, .ast=item, .next=items);
+        if (!match_separator(&pos))
+            break;
+    }
+
+    REVERSE_LIST(items);
+
+    if (!item_type && !items)
+        return NULL;
+
+    whitespace(&pos);
+    expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this set");
+
+    return NewAST(ctx->file, start, pos, Set, .item_type=item_type, .items=items);
 }
 
 ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs) {
@@ -1287,6 +1345,7 @@ PARSER(parse_term_no_suffix) {
         || (term=parse_lambda(ctx, pos))
         || (term=parse_parens(ctx, pos))
         || (term=parse_table(ctx, pos))
+        || (term=parse_set(ctx, pos))
         || (term=parse_var(ctx, pos))
         || (term=parse_array(ctx, pos))
         || (term=parse_reduction(ctx, pos))

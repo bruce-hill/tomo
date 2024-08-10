@@ -54,6 +54,17 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
                      padded_type_size(item_t), ARRAY_MAX_STRIDE);
         return Type(ArrayType, .item_type=item_t);
     }
+    case SetTypeAST: {
+        type_ast_t *item_type = Match(ast, SetTypeAST)->item;
+        type_t *item_t = parse_type_ast(env, item_type);
+        if (!item_t) code_err(item_type, "I can't figure out what this type is.");
+        if (has_stack_memory(item_t))
+            code_err(item_type, "Sets can't have stack references because the array may outlive the stack frame.");
+        if (padded_type_size(item_t) > ARRAY_MAX_STRIDE)
+            code_err(ast, "This set holds items that take up %ld bytes, but the maximum supported size is %ld bytes. Consider using an set of pointers instead.",
+                     padded_type_size(item_t), ARRAY_MAX_STRIDE);
+        return Type(SetType, .item_type=item_t);
+    }
     case TableTypeAST: {
         type_ast_t *key_type_ast = Match(ast, TableTypeAST)->key;
         type_t *key_type = parse_type_ast(env, key_type_ast);
@@ -531,6 +542,35 @@ type_t *get_type(env_t *env, ast_t *ast)
             code_err(ast, "Arrays cannot hold stack references, because the array may outlive the stack frame the reference was created in.");
         return Type(ArrayType, .item_type=item_type);
     }
+    case Set: {
+        auto set = Match(ast, Set);
+        type_t *item_type = NULL;
+        if (set->item_type) {
+            item_type = parse_type_ast(env, set->item_type);
+        } else {
+            for (ast_list_t *item = set->items; item; item = item->next) {
+                ast_t *item_ast = item->ast;
+                env_t *scope = env;
+                while (item_ast->tag == Comprehension) {
+                    auto comp = Match(item_ast, Comprehension);
+                    scope = for_scope(
+                        scope, FakeAST(For, .iter=comp->iter, .vars=comp->vars));
+                    item_ast = comp->expr;
+                }
+
+                type_t *this_item_type = get_type(scope, item_ast);
+                type_t *item_merged = type_or_type(item_type, this_item_type);
+                if (!item_merged)
+                    code_err(item_ast,
+                             "This set item has type %T, which is different from earlier set items which have type %T",
+                             this_item_type, item_type);
+                item_type = item_merged;
+            }
+        }
+        if (has_stack_memory(item_type))
+            code_err(ast, "Sets cannot hold stack references because the set may outlive the reference's stack frame.");
+        return Type(SetType, .item_type=item_type);
+    }
     case Table: {
         auto table = Match(ast, Table);
         type_t *key_type = NULL, *value_type = NULL;
@@ -682,9 +722,24 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "heap_pop")) return Match(self_value_t, ArrayType)->item_type;
             else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
+        case SetType: {
+            if (streq(call->name, "add")) return Type(VoidType);
+            else if (streq(call->name, "has")) return Type(BoolType);
+            else if (streq(call->name, "add_all")) return Type(VoidType);
+            else if (streq(call->name, "remove")) return Type(VoidType);
+            else if (streq(call->name, "remove_all")) return Type(VoidType);
+            else if (streq(call->name, "clear")) return Type(VoidType);
+            else if (streq(call->name, "with")) return self_value_t;
+            else if (streq(call->name, "overlap")) return self_value_t;
+            else if (streq(call->name, "without")) return self_value_t;
+            else if (streq(call->name, "is_subset_of")) return Type(BoolType);
+            else if (streq(call->name, "is_superset_of")) return Type(BoolType);
+            else code_err(ast, "There is no '%s' method for sets", call->name);
+        }
         case TableType: {
             auto table = Match(self_value_t, TableType);
-            if (streq(call->name, "get")) return Type(PointerType, .pointed=table->value_type, .is_readonly=true, .is_optional=true);
+            if (streq(call->name, "get")) return table->value_type;
+            else if (streq(call->name, "has")) return Type(BoolType);
             else if (streq(call->name, "set")) return Type(VoidType);
             else if (streq(call->name, "remove")) return Type(VoidType);
             else if (streq(call->name, "clear")) return Type(VoidType);

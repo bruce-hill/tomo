@@ -21,15 +21,30 @@
     table.fallback = fb; \
     table.default_value = def; \
     table; })
-#define Table_get(table_expr, key_t, val_t, key_expr, info_expr, filename, start, end) ({ \
+#define Set(item_t, item_info, N, ...)  ({ \
+    item_t ents[N] = {__VA_ARGS__}; \
+    table_t set = Table$from_entries((array_t){ \
+                       .data=memcpy(GC_MALLOC(sizeof(ents)), ents, sizeof(ents)), \
+                       .length=sizeof(ents)/sizeof(ents[0]), \
+                       .stride=(void*)&ents[1] - (void*)&ents[0], \
+                       }, $SetInfo(item_info)); \
+    set; })
+
+table_t Table$from_entries(array_t entries, const TypeInfo *type);
+void *Table$get(table_t t, const void *key, const TypeInfo *type);
+#define Table$get_value_or_fail(table_expr, key_t, val_t, key_expr, info_expr, filename, start, end) ({ \
     const table_t t = table_expr; key_t k = key_expr; const TypeInfo* info = info_expr; \
     const val_t *v = Table$get(t, &k, info); \
     if (__builtin_expect(v == NULL, 0)) \
         fail_source(filename, start, end, "The key %r is not in this table\n", generic_as_text(&k, no, info->TableInfo.key)); \
     *v; })
-
-table_t Table$from_entries(array_t entries, const TypeInfo *type);
-void *Table$get(table_t t, const void *key, const TypeInfo *type);
+#define Table$get_value_or_default(table_expr, key_t, val_t, key_expr, default_val, info_expr) ({ \
+    const table_t t = table_expr; const key_t k = key_expr; \
+    const val_t *v = Table$get(t, &k, info_expr); \
+    v ? *v : default_val; })
+#define Table$has_value(table_expr, key_expr, info_expr) ({ \
+    const table_t t = table_expr; __typeof(key_expr) k = key_expr; \
+    (Table$get(t, &k, info_expr) != NULL); })
 void *Table$get_raw(table_t t, const void *key, const TypeInfo *type);
 void *Table$entry(table_t t, int64_t n);
 void *Table$reserve(table_t *t, const void *key, const void *value, const TypeInfo *type);
@@ -39,6 +54,13 @@ void Table$set(table_t *t, const void *key, const void *value, const TypeInfo *t
 #define Table$reserve_value(t, key_expr, type) ({ __typeof(key_expr) k = key_expr; Table$reserve(t, &k, NULL, type); })
 void Table$remove(table_t *t, const void *key, const TypeInfo *type);
 #define Table$remove_value(t, key_expr, type) ({ __typeof(key_expr) k = key_expr; Table$remove(t, &k, type); })
+
+table_t Table$overlap(table_t a, table_t b, const TypeInfo *type);
+table_t Table$with(table_t a, table_t b, const TypeInfo *type);
+table_t Table$without(table_t a, table_t b, const TypeInfo *type);
+bool Table$is_subset_of(table_t a, table_t b, bool strict, const TypeInfo *type);
+bool Table$is_superset_of(table_t a, table_t b, bool strict, const TypeInfo *type);
+
 void Table$clear(table_t *t);
 table_t Table$sorted(table_t t, const TypeInfo *type);
 void Table$mark_copy_on_write(table_t *t);

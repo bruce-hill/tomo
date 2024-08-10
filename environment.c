@@ -333,6 +333,16 @@ env_t *for_scope(env_t *env, ast_t *ast)
         }
         return scope;
     }
+    case SetType: {
+        if (for_->vars) {
+            if (for_->vars->next)
+                code_err(for_->vars->next->ast, "This is too many variables for this loop");
+            type_t *item_type = Match(iter_t, SetType)->item_type;
+            const char *name = Match(for_->vars->ast, Var)->name;
+            set_binding(scope, name, new(binding_t, .type=item_type, .code=CORD_cat("$", name)));
+        }
+        return scope;
+    }
     case TableType: {
         const char *vars[2] = {};
         int64_t num_vars = 0;
