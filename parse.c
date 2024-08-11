@@ -680,8 +680,15 @@ PARSER(parse_channel) {
     const char *start = pos;
     if (!match(&pos, "|:")) return NULL;
     type_ast_t *item_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a type for this channel");
+    ast_t *max_size = NULL;
+    if (match(&pos, ";")) {
+        whitespace(&pos);
+        const char *attr_start = pos;
+        if (match_word(&pos, "max_size") && match(&pos, "="))
+            max_size = expect(ctx, attr_start, &pos, parse_int, "I expected a maximum size for this channel");
+    }
     expect_closing(ctx, &pos, "|", "I wasn't able to parse the rest of this channel");
-    return NewAST(ctx->file, start, pos, Channel, .item_type=item_type);
+    return NewAST(ctx->file, start, pos, Channel, .item_type=item_type, .max_size=max_size);
 }
 
 PARSER(parse_array) {
@@ -770,7 +777,7 @@ PARSER(parse_table) {
         for (;;) {
             whitespace(&pos);
             const char *attr_start = pos;
-            if (match(&pos, "fallback")) {
+            if (match_word(&pos, "fallback")) {
                 whitespace(&pos);
                 if (!match(&pos, "=")) parser_err(ctx, attr_start, pos, "I expected an '=' after 'fallback'");
                 if (fallback)

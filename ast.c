@@ -121,7 +121,7 @@ CORD ast_to_xml(ast_t *ast)
       optional_tagged_type("key-type", data.key_type), optional_tagged_type("value-type", data.value_type),
       ast_list_to_xml(data.entries), optional_tagged("fallback", data.fallback))
     T(TableEntry, "<TableEntry>%r%r</TableEntry>", ast_to_xml(data.key), ast_to_xml(data.value))
-    T(Channel, "<Channel>%r</Channel>", type_ast_to_xml(data.item_type))
+    T(Channel, "<Channel>%r%r</Channel>", type_ast_to_xml(data.item_type), optional_tagged("max-size", data.max_size))
     T(Comprehension, "<Comprehension>%r%r%r%r%r</Comprehension>", optional_tagged("expr", data.expr),
       ast_list_to_xml(data.vars), optional_tagged("iter", data.iter),
       optional_tagged("filter", data.filter))

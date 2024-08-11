@@ -184,6 +184,7 @@ struct ast_s {
         } Array;
         struct {
             type_ast_t *item_type;
+            ast_t *max_size;
         } Channel;
         struct {
             type_ast_t *item_type;

@@ -1747,10 +1747,18 @@ CORD compile(env_t *env, ast_t *ast)
         }
     }
     case Channel: {
-        type_t *item_t = parse_type_ast(env, Match(ast, Channel)->item_type);
+        auto chan = Match(ast, Channel);
+        type_t *item_t = parse_type_ast(env, chan->item_type);
         if (!can_send_over_channel(item_t))
             code_err(ast, "This item type can't be sent over a channel because it contains reference to memory that may not be thread-safe.");
-        return "Channel$new()";
+        if (chan->max_size) {
+            CORD max_size = compile(env, chan->max_size);
+            if (!promote(env, &max_size, get_type(env, chan->max_size), INT_TYPE))
+                code_err(chan->max_size, "This value must be an integer, not %T", get_type(env, chan->max_size));
+            return CORD_all("Channel$new(", max_size, ")");
+        } else {
+            return "Channel$new(INT64_MAX)";
+        }
     }
     case Table: {
         auto table = Match(ast, Table);

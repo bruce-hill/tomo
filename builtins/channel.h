@@ -9,7 +9,7 @@
 #include "types.h"
 #include "util.h"
 
-channel_t *Channel$new(void);
+channel_t *Channel$new(int64_t max_size);
 void Channel$push(channel_t *channel, const void *item, int64_t padded_item_size);
 #define Channel$push_value(channel, item, padded_item_size) ({ __typeof(item) _item = item; Channel$push(channel, &_item, padded_item_size); })
 void Channel$push_all(channel_t *channel, array_t to_push, int64_t padded_item_size);

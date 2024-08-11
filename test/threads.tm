@@ -1,8 +1,8 @@
 enum Job(Increment(x:Int), Decrement(x:Int))
 
 func main():
-    jobs := |:Job|
-    results := |:Int|
+    jobs := |:Job; max_size=1|
+    results := |:Int; max_size=2|
     >> thread := Thread.new(func():
         //! In another thread!
         while yes:
@@ -14,11 +14,27 @@ func main():
 
     >> jobs:push(Increment(5))
     >> jobs:push(Decrement(100))
+    >> jobs:push(Decrement(100))
+    >> jobs:push(Decrement(100))
+    >> jobs:push(Decrement(100))
+    >> jobs:push(Decrement(100))
+    >> jobs:push(Decrement(100))
 
     >> results:pop()
     = 6
 
     >> jobs:push(Increment(1000))
+    >> results:pop()
+    = 99
+
+    >> results:pop()
+    = 99
+    >> results:pop()
+    = 99
+    >> results:pop()
+    = 99
+    >> results:pop()
+    = 99
     >> results:pop()
     = 99
 
