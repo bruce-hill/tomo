@@ -2096,7 +2096,10 @@ PARSER(parse_doctest) {
                    *output_end = pos + strcspn(pos, "\r\n");
         if (output_end <= output_start)
             parser_err(ctx, output_start, output_end, "You're missing expected output here");
-        output = GC_strndup(output_start, (size_t)(output_end - output_start));
+        int64_t trailing_spaces = 0;
+        while (output_end - trailing_spaces - 1 > output_start && (output_end[-trailing_spaces-1] == ' ' || output_end[-trailing_spaces-1] == '\t'))
+            ++trailing_spaces;
+        output = GC_strndup(output_start, (size_t)(output_end - output_start) - trailing_spaces);
         pos = output_end;
     } else {
         pos = expr->end;

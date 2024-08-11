@@ -1,27 +1,51 @@
 struct Vec2(x,y:Int):
-    func __add(a,b:Vec2; inline)->Vec2:
+    func plus(a,b:Vec2; inline)->Vec2:
         return Vec2(a.x+b.x, a.y+b.y)
 
-    func __subtract(a,b:Vec2; inline)->Vec2:
+    func minus(a,b:Vec2; inline)->Vec2:
         return Vec2(a.x-b.x, a.y-b.y)
 
-    func __multiply(a,b:Vec2; inline)->Int:
+    func dot(a,b:Vec2; inline)->Int:
         return a.x*b.x + a.y*b.y
 
-    func __multiply2(a:Vec2,b:Int; inline)->Vec2:
-        return Vec2(a.x*b, a.y*b)
+    func scaled_by(a:Vec2, k:Int; inline)->Vec2:
+        return Vec2(a.x*k, a.y*k)
 
-    func __multiply3(a:Int,b:Vec2; inline)->Vec2:
-        return Vec2(a*b.x, a*b.y)
-
-    func __multiply4(a,b:Vec2; inline)->Vec2:
+    func times(a,b:Vec2; inline)->Vec2:
         return Vec2(a.x*b.x, a.y*b.y)
 
-    func __negative(v:Vec2; inline)->Vec2:
+    func divided_by(a:Vec2, k:Int; inline)->Vec2:
+        return Vec2(a.x/k, a.y/k)
+
+    func negative(v:Vec2; inline)->Vec2:
         return Vec2(-v.x, -v.y)
 
-    func __length(v:Vec2; inline)->Int:
-        return 2
+    func negated(v:Vec2; inline)->Vec2:
+        return Vec2(not v.x, not v.y)
+
+    func bit_and(a,b:Vec2; inline)->Vec2:
+        return Vec2(a.x and b.x, a.y and b.y)
+
+    func bit_or(a,b:Vec2; inline)->Vec2:
+        return Vec2(a.x or b.x, a.y or b.y)
+
+    func bit_xor(a,b:Vec2; inline)->Vec2:
+        return Vec2(a.x xor b.x, a.y xor b.y)
+
+    func left_shifted(v:Vec2, bits:Int; inline)->Vec2:
+        return Vec2(v.x >> bits, v.y >> bits)
+
+    func right_shifted(v:Vec2, bits:Int; inline)->Vec2:
+        return Vec2(v.x << bits, v.y << bits)
+
+    func modulo(v:Vec2, modulus:Int; inline)->Vec2:
+        return Vec2(v.x mod modulus, v.y mod modulus)
+
+    func modulo1(v:Vec2, modulus:Int; inline)->Vec2:
+        return Vec2(v.x mod1 modulus, v.y mod1 modulus)
+
+    func power(v:Vec2, exponent:Num; inline)->Vec2:
+        return Vec2(Int(v.x ^ exponent), Int(v.y ^ exponent))
 
 func main():
     >> x := Vec2(10, 20)
@@ -31,6 +55,8 @@ func main():
     >> x - y
     = Vec2(x=-90, y=-180)
     >> x * y
+    = Vec2(x=1000, y=4000)
+    >> x:dot(y)
     = 5000
     >> x * -1
     = Vec2(x=-10, y=-20)
@@ -43,9 +69,27 @@ func main():
     >> x *= Vec2(10, -1)
     = Vec2(x=110, y=-22)
 
+    >> x *= -1
+    = Vec2(x=-110, y=22)
+
     >> x = Vec2(1, 2)
     >> -x
     = Vec2(x=-1, y=-2)
-    >> #x
-    = 2
+
+    x = Vec2(1, 2)
+    y = Vec2(4, 3)
+    >> x and y
+    = Vec2(x=0, y=2)
+    >> x or y
+    = Vec2(x=5, y=3)
+    >> x xor y
+    = Vec2(x=5, y=1)
+    >> x / 2
+    = Vec2(x=0, y=1)
+    >> x mod 3
+    = Vec2(x=1, y=2)
+    >> x mod1 3
+    = Vec2(x=1, y=2)
+    >> x^2.0
+    = Vec2(x=1, y=4)
 

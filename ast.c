@@ -18,10 +18,10 @@ static const char *OP_NAMES[] = {
 };
 
 const char *binop_method_names[BINOP_XOR+1] = {
-    [BINOP_POWER]="__power", [BINOP_MULT]="__multiply", [BINOP_DIVIDE]="__divide",
-    [BINOP_MOD]="__mod", [BINOP_MOD1]="__mod1", [BINOP_PLUS]="__add", [BINOP_MINUS]="__subtract",
-    [BINOP_CONCAT]="__concatenate", [BINOP_LSHIFT]="__left_shift", [BINOP_RSHIFT]="__right_shift",
-    [BINOP_AND]="__and", [BINOP_OR]="__or", [BINOP_XOR]="__xor",
+    [BINOP_POWER]="power", [BINOP_MULT]="times", [BINOP_DIVIDE]="divided_by",
+    [BINOP_MOD]="modulo", [BINOP_MOD1]="modulo1", [BINOP_PLUS]="plus", [BINOP_MINUS]="minus",
+    [BINOP_CONCAT]="concatenated_with", [BINOP_LSHIFT]="left_shifted", [BINOP_RSHIFT]="right_shifted",
+    [BINOP_AND]="bit_and", [BINOP_OR]="bit_or", [BINOP_XOR]="bit_xor",
 };
 
 static CORD ast_list_to_xml(ast_list_t *asts);
