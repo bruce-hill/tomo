@@ -48,6 +48,7 @@ struct type_s {
         CStringType,
         TextType,
         ArrayType,
+        ChannelType,
         SetType,
         TableType,
         FunctionType,
@@ -78,7 +79,7 @@ struct type_s {
         } TextType;
         struct {
             type_t *item_type;
-        } ArrayType;
+        } ArrayType, ChannelType;
         struct {
             type_t *item_type;
         } SetType;
@@ -134,6 +135,7 @@ typedef enum {NUM_PRECISION_EQUAL, NUM_PRECISION_LESS, NUM_PRECISION_MORE, NUM_P
 precision_cmp_e compare_precision(type_t *a, type_t *b);
 bool has_heap_memory(type_t *t);
 bool has_stack_memory(type_t *t);
+bool can_send_over_channel(type_t *t);
 bool can_promote(type_t *actual, type_t *needed);
 bool can_leave_uninitialized(type_t *t);
 bool can_have_cycles(type_t *t);

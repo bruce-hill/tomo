@@ -65,6 +65,17 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
                      padded_type_size(item_t), ARRAY_MAX_STRIDE);
         return Type(SetType, .item_type=item_t);
     }
+    case ChannelTypeAST: {
+        type_ast_t *item_type = Match(ast, ChannelTypeAST)->item;
+        type_t *item_t = parse_type_ast(env, item_type);
+        if (!item_t) code_err(item_type, "I can't figure out what this type is.");
+        if (!can_send_over_channel(item_t))
+            code_err(ast, "This item type can't be sent over a channel because it contains reference to memory that may not be thread-safe.");
+        if (padded_type_size(item_t) > ARRAY_MAX_STRIDE)
+            code_err(ast, "This channel holds items that take up %ld bytes, but the maximum supported size is %ld bytes.",
+                     padded_type_size(item_t), ARRAY_MAX_STRIDE);
+        return Type(ChannelType, .item_type=item_t);
+    }
     case TableTypeAST: {
         type_ast_t *key_type_ast = Match(ast, TableTypeAST)->key;
         type_t *key_type = parse_type_ast(env, key_type_ast);
@@ -515,8 +526,8 @@ type_t *get_type(env_t *env, ast_t *ast)
     case Array: {
         auto array = Match(ast, Array);
         type_t *item_type = NULL;
-        if (array->type) {
-            item_type = parse_type_ast(env, array->type);
+        if (array->item_type) {
+            item_type = parse_type_ast(env, array->item_type);
         } else if (array->items) {
             for (ast_list_t *item = array->items; item; item = item->next) {
                 ast_t *item_ast = item->ast;
@@ -570,6 +581,11 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (has_stack_memory(item_type))
             code_err(ast, "Sets cannot hold stack references because the set may outlive the reference's stack frame.");
         return Type(SetType, .item_type=item_type);
+    }
+    case Channel: {
+        auto channel = Match(ast, Channel);
+        type_t *item_type = parse_type_ast(env, channel->item_type);
+        return Type(ChannelType, .item_type=item_type);
     }
     case Table: {
         auto table = Match(ast, Table);
@@ -726,6 +742,14 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "is_subset_of")) return Type(BoolType);
             else if (streq(call->name, "is_superset_of")) return Type(BoolType);
             else code_err(ast, "There is no '%s' method for sets", call->name);
+        }
+        case ChannelType: {
+            if (streq(call->name, "push")) return Type(VoidType);
+            else if (streq(call->name, "push_all")) return Type(VoidType);
+            else if (streq(call->name, "pop")) return Match(self_value_t, ChannelType)->item_type;
+            else if (streq(call->name, "clear")) return Type(VoidType);
+            else if (streq(call->name, "view")) return Type(ArrayType, .item_type=Match(self_value_t, ChannelType)->item_type);
+            else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
         case TableType: {
             auto table = Match(self_value_t, TableType);

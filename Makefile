@@ -24,8 +24,8 @@ G=-ggdb
 O=-Og
 CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS)
 LDLIBS=-lgc -lcord -lm -lunistring -ldl
-BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/nums.o builtins/functions.o builtins/integers.o \
-						 builtins/pointer.o builtins/memory.o builtins/text.o builtins/where.o builtins/c_string.o builtins/table.o \
+BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/channel.o builtins/nums.o builtins/functions.o builtins/integers.o \
+						 builtins/pointer.o builtins/memory.o builtins/text.o builtins/thread.o builtins/where.o builtins/c_string.o builtins/table.o \
 						 builtins/types.o builtins/util.o builtins/files.o builtins/range.o
 TESTS=$(patsubst %.tm,%.tm.testresult,$(wildcard test/*.tm))
 

@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <pthread.h>
 
 #define ARRAY_LENGTH_BITS 42
 #define ARRAY_FREE_BITS 6
@@ -56,5 +57,11 @@ typedef struct {
 typedef struct Range_s {
     int64_t first, last, step;
 } Range_t;
+
+typedef struct {
+    array_t items;
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+} channel_t;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

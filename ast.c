@@ -113,7 +113,7 @@ CORD ast_to_xml(ast_t *ast)
     T(StackReference, "<StackReference>%r</StackReference>", ast_to_xml(data.value))
     T(Min, "<Min>%r%r%r</Min>", ast_to_xml(data.lhs), ast_to_xml(data.rhs), optional_tagged("key", data.key))
     T(Max, "<Max>%r%r%r</Max>", ast_to_xml(data.lhs), ast_to_xml(data.rhs), optional_tagged("key", data.key))
-    T(Array, "<Array>%r%r</Array>", optional_tagged_type("item-type", data.type), ast_list_to_xml(data.items))
+    T(Array, "<Array>%r%r</Array>", optional_tagged_type("item-type", data.item_type), ast_list_to_xml(data.items))
     T(Set, "<Set>%r%r</Set>",
       optional_tagged_type("item-type", data.item_type),
       ast_list_to_xml(data.items))
@@ -121,6 +121,7 @@ CORD ast_to_xml(ast_t *ast)
       optional_tagged_type("key-type", data.key_type), optional_tagged_type("value-type", data.value_type),
       ast_list_to_xml(data.entries), optional_tagged("fallback", data.fallback))
     T(TableEntry, "<TableEntry>%r%r</TableEntry>", ast_to_xml(data.key), ast_to_xml(data.value))
+    T(Channel, "<Channel>%r</Channel>", type_ast_to_xml(data.item_type))
     T(Comprehension, "<Comprehension>%r%r%r%r%r</Comprehension>", optional_tagged("expr", data.expr),
       ast_list_to_xml(data.vars), optional_tagged("iter", data.iter),
       optional_tagged("filter", data.filter))
@@ -172,6 +173,7 @@ CORD type_ast_to_xml(type_ast_t *t)
       data.is_optional ? "yes" : "no", data.is_stack ? "yes" : "no", data.is_readonly ? "yes" : "no", type_ast_to_xml(data.pointed))
     T(ArrayTypeAST, "<ArrayType>%r</ArrayType>", type_ast_to_xml(data.item))
     T(SetTypeAST, "<TableType>%r</TableType>", type_ast_to_xml(data.item))
+    T(ChannelTypeAST, "<ChannelType>%r</ChannelType>", type_ast_to_xml(data.item))
     T(TableTypeAST, "<TableType>%r %r</TableType>", type_ast_to_xml(data.key), type_ast_to_xml(data.value))
     T(FunctionTypeAST, "<FunctionType>%r %r</FunctionType>", arg_list_to_xml(data.args), type_ast_to_xml(data.ret))
 #undef T
@@ -224,6 +226,7 @@ bool type_ast_eq(type_ast_t *x, type_ast_t *y)
     }
     case ArrayTypeAST: return type_ast_eq(Match(x, ArrayTypeAST)->item, Match(y, ArrayTypeAST)->item);
     case SetTypeAST: return type_ast_eq(Match(x, SetTypeAST)->item, Match(y, SetTypeAST)->item);
+    case ChannelTypeAST: return type_ast_eq(Match(x, ChannelTypeAST)->item, Match(y, ChannelTypeAST)->item);
     case TableTypeAST: {
         auto tx = Match(x, TableTypeAST);
         auto ty = Match(y, TableTypeAST);

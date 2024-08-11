@@ -18,7 +18,7 @@ typedef CORD (*str_fn_t)(const void*, bool, const struct TypeInfo*);
 typedef struct TypeInfo {
     int64_t size, align;
     struct { // Anonymous tagged union for convenience 
-        enum { CustomInfo, PointerInfo, TextInfo, ArrayInfo, TableInfo, FunctionInfo, TypeInfoInfo, OpaqueInfo, EmptyStruct } tag;
+        enum { CustomInfo, PointerInfo, TextInfo, ArrayInfo, ChannelInfo, TableInfo, FunctionInfo, TypeInfoInfo, OpaqueInfo, EmptyStruct } tag;
         union {
             struct {
                 equal_fn_t equal;
@@ -36,7 +36,7 @@ typedef struct TypeInfo {
             } TextInfo;
             struct {
                 const struct TypeInfo *item;
-            } ArrayInfo;
+            } ArrayInfo, ChannelInfo;
             struct {
                 const struct TypeInfo *key, *value;
             } TableInfo;
@@ -60,6 +60,8 @@ typedef struct TypeInfo {
                                 .tag=ArrayInfo, .ArrayInfo.item=item_info})
 #define $SetInfo(item_info) &((TypeInfo){.size=sizeof(table_t), .align=__alignof__(table_t), \
                               .tag=TableInfo, .TableInfo.key=item_info, .TableInfo.value=&$Void})
+#define $ChannelInfo(item_info) &((TypeInfo){.size=sizeof(channel_t), .align=__alignof__(channel_t), \
+                                .tag=ChannelInfo, .ChannelInfo.item=item_info})
 #define $TableInfo(key_expr, value_expr) &((TypeInfo){.size=sizeof(table_t), .align=__alignof__(table_t), \
                                            .tag=TableInfo, .TableInfo.key=key_expr, .TableInfo.value=value_expr})
 #define $FunctionInfo(typestr) &((TypeInfo){.size=sizeof(void*), .align=__alignof__(void*), \

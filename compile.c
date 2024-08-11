@@ -134,6 +134,7 @@ CORD compile_type(type_t *t)
     }
     case ArrayType: return "array_t";
     case SetType: return "table_t";
+    case ChannelType: return "channel_t*";
     case TableType: return "table_t";
     case FunctionType: {
         auto fn = Match(t, FunctionType);
@@ -148,6 +149,8 @@ CORD compile_type(type_t *t)
     case PointerType: return CORD_cat(compile_type(Match(t, PointerType)->pointed), "*");
     case StructType: {
         auto s = Match(t, StructType);
+        if (t == THREAD_TYPE)
+            return "pthread_t*";
         return CORD_all("struct ", namespace_prefix(s->env->libname, s->env->namespace->parent), s->name, "_s");
     }
     case EnumType: {
@@ -1103,6 +1106,7 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
     }
     case ArrayType: return CORD_asprintf("Array$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case SetType: return CORD_asprintf("Table$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case ChannelType: return CORD_asprintf("Channel$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case TableType: return CORD_asprintf("Table$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case FunctionType: case ClosureType: return CORD_asprintf("Func$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case PointerType: return CORD_asprintf("Pointer$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
@@ -1742,6 +1746,12 @@ CORD compile(env_t *env, ast_t *ast)
             return code;
         }
     }
+    case Channel: {
+        type_t *item_t = parse_type_ast(env, Match(ast, Channel)->item_type);
+        if (!can_send_over_channel(item_t))
+            code_err(ast, "This item type can't be sent over a channel because it contains reference to memory that may not be thread-safe.");
+        return "Channel$new()";
+    }
     case Table: {
         auto table = Match(ast, Table);
         if (!table->entries) {
@@ -1952,7 +1962,7 @@ CORD compile(env_t *env, ast_t *ast)
         case ArrayType: {
             // TODO: check for readonly
             type_t *item_t = Match(self_value_t, ArrayType)->item_type;
-            CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(Match(self_value_t, ArrayType)->item_type));
+            CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(item_t));
             if (streq(call->name, "insert")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
@@ -1979,7 +1989,7 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="count", .type=Type(IntType, .bits=64),
                                       .next=new(arg_t, .name="weights", .type=Type(ArrayType, .item_type=Type(NumType, .bits=64)),
-                                                .default_val=FakeAST(Array, .type=new(type_ast_t, .tag=VarTypeAST, .__data.VarTypeAST.name="Num"))));
+                                                .default_val=FakeAST(Array, .item_type=new(type_ast_t, .tag=VarTypeAST, .__data.VarTypeAST.name="Num"))));
                 return CORD_all("Array$sample(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "shuffle")) {
@@ -2123,6 +2133,33 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Table$is_superset_of(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(env, self_value_t), ")");
             } else code_err(ast, "There is no '%s' method for tables", call->name);
+        }
+        case ChannelType: {
+            type_t *item_t = Match(self_value_t, ChannelType)->item_type;
+            CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(item_t));
+            if (streq(call->name, "push")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                arg_t *arg_spec = new(arg_t, .name="item", .type=item_t);
+                return CORD_all("Channel$push_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                                padded_item_size, ")");
+            } else if (streq(call->name, "push_all")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                arg_t *arg_spec = new(arg_t, .name="to_push", .type=Type(ArrayType, .item_type=item_t));
+                return CORD_all("Channel$push_all(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                                padded_item_size, ")");
+            } else if (streq(call->name, "pop")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                (void)compile_arguments(env, ast, NULL, call->args);
+                return CORD_all("Channel$pop_value(", self, ", ", compile_type(item_t), ", ", padded_item_size, ")");
+            } else if (streq(call->name, "clear")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                (void)compile_arguments(env, ast, NULL, call->args);
+                return CORD_all("Channel$clear(", self, ")");
+            } else if (streq(call->name, "view")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                (void)compile_arguments(env, ast, NULL, call->args);
+                return CORD_all("Channel$view(", self, ")");
+            } else code_err(ast, "There is no '%s' method for channels", call->name);
         }
         case TableType: {
             auto table = Match(self_value_t, TableType);
@@ -2498,6 +2535,10 @@ CORD compile_type_info(env_t *env, type_t *t)
     case SetType: {
         type_t *item_type = Match(t, SetType)->item_type;
         return CORD_all("$SetInfo(", compile_type_info(env, item_type), ")");
+    }
+    case ChannelType: {
+        type_t *item_t = Match(t, ChannelType)->item_type;
+        return CORD_asprintf("$ChannelInfo(%r)", compile_type_info(env, item_t));
     }
     case TableType: {
         type_t *key_type = Match(t, TableType)->key_type;

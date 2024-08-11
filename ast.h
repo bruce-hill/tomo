@@ -58,6 +58,7 @@ typedef enum {
     PointerTypeAST,
     ArrayTypeAST,
     SetTypeAST,
+    ChannelTypeAST,
     TableTypeAST,
     FunctionTypeAST,
 } type_ast_e;
@@ -85,7 +86,7 @@ struct type_ast_s {
         } PointerTypeAST;
         struct {
             type_ast_t *item;
-        } ArrayTypeAST;
+        } ArrayTypeAST, ChannelTypeAST;
         struct {
             type_ast_t *key, *value;
         } TableTypeAST;
@@ -108,7 +109,7 @@ typedef enum {
     BinaryOp, UpdateAssign,
     Length, Not, Negative, HeapAllocate, StackReference,
     Min, Max,
-    Array, Set, Table, TableEntry, Comprehension,
+    Array, Channel, Set, Table, TableEntry, Comprehension,
     FunctionDef, Lambda,
     FunctionCall, MethodCall,
     Block,
@@ -178,9 +179,12 @@ struct ast_s {
             ast_t *lhs, *rhs, *key;
         } Min, Max;
         struct {
-            type_ast_t *type;
+            type_ast_t *item_type;
             ast_list_t *items;
         } Array;
+        struct {
+            type_ast_t *item_type;
+        } Channel;
         struct {
             type_ast_t *item_type;
             ast_list_t *items;

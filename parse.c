@@ -82,6 +82,8 @@ static ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed);
+static PARSER(parse_array);
+static PARSER(parse_channel);
 static PARSER(parse_for);
 static PARSER(parse_do);
 static PARSER(parse_while);
@@ -371,10 +373,12 @@ const char *get_id(const char **inout) {
 }
 
 bool comment(const char **pos) {
-    if (!match(pos, "//"))
+    if ((*pos)[0] == '/' && (*pos)[1] == '/' && (*pos)[2] != '!') {
+        *pos += 2 + strcspn(*pos, "\r\n");
+        return true;
+    } else {
         return false;
-    some_not(pos, "\r\n");
-    return true;
+    }
 }
 
 bool indent(parse_ctx_t *ctx, const char **out) {
@@ -547,6 +551,15 @@ type_ast_t *parse_array_type(parse_ctx_t *ctx, const char *pos) {
     return NewTypeAST(ctx->file, start, pos, ArrayTypeAST, .item=type);
 }
 
+type_ast_t *parse_channel_type(parse_ctx_t *ctx, const char *pos) {
+    const char *start = pos;
+    if (!match(&pos, "|")) return NULL;
+    type_ast_t *type = expect(ctx, start, &pos, parse_type,
+                             "I couldn't parse a channel item type after this point");
+    expect_closing(ctx, &pos, "|", "I wasn't able to parse the rest of this channel");
+    return NewTypeAST(ctx->file, start, pos, ChannelTypeAST, .item=type);
+}
+
 type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     bool is_stack;
@@ -588,6 +601,7 @@ type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos) {
     bool success = (false
         || (type=parse_pointer_type(ctx, pos))
         || (type=parse_array_type(ctx, pos))
+        || (type=parse_channel_type(ctx, pos))
         || (type=parse_table_type(ctx, pos))
         || (type=parse_set_type(ctx, pos))
         || (type=parse_type_name(ctx, pos))
@@ -662,6 +676,14 @@ static inline bool match_separator(const char **pos) { // Either comma or newlin
     }
 }
 
+PARSER(parse_channel) {
+    const char *start = pos;
+    if (!match(&pos, "|:")) return NULL;
+    type_ast_t *item_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a type for this channel");
+    expect_closing(ctx, &pos, "|", "I wasn't able to parse the rest of this channel");
+    return NewAST(ctx->file, start, pos, Channel, .item_type=item_type);
+}
+
 PARSER(parse_array) {
     const char *start = pos;
     if (!match(&pos, "[")) return NULL;
@@ -696,7 +718,7 @@ PARSER(parse_array) {
         parser_err(ctx, start, pos, "Empty arrays must specify what type they would contain (e.g. [:Int])");
 
     REVERSE_LIST(items);
-    return NewAST(ctx->file, start, pos, Array, .type=item_type, .items=items);
+    return NewAST(ctx->file, start, pos, Array, .item_type=item_type, .items=items);
 }
 
 PARSER(parse_table) {
@@ -765,7 +787,7 @@ PARSER(parse_table) {
     whitespace(&pos);
     expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this table");
 
-    return NewAST(ctx->file, start, pos, Table, .key_type=key_type, .value_type=value_type, .entries=entries, .fallback=fallback);
+    return NewAST(ctx->file, start, pos, Table, .key_type=key_type, .value_type=value_type, .entries=entries);
 }
 
 PARSER(parse_set) {
@@ -1002,6 +1024,9 @@ PARSER(parse_when) {
             }
         }
 
+        tmp = pos;
+        if (!match(&tmp, ":"))
+            parser_err(ctx, tmp, tmp, "I expected a colon ':' after this clause");
         ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'when' clause"); 
         clauses = new(when_clause_t, .tag_name=tag_name, .args=args, .body=body, .next=clauses);
         tmp = pos;
@@ -1342,6 +1367,7 @@ PARSER(parse_term_no_suffix) {
         || (term=parse_set(ctx, pos))
         || (term=parse_var(ctx, pos))
         || (term=parse_array(ctx, pos))
+        || (term=parse_channel(ctx, pos))
         || (term=parse_reduction(ctx, pos))
         || (term=parse_pass(ctx, pos))
         || (term=parse_defer(ctx, pos))
@@ -2109,7 +2135,7 @@ PARSER(parse_doctest) {
 
 PARSER(parse_say) {
     const char *start = pos;
-    if (!match(&pos, "|")) return NULL;
+    if (!match(&pos, "//!")) return NULL;
     spaces(&pos);
 
     ast_list_t *chunks = NULL;

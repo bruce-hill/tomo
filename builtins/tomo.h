@@ -12,6 +12,7 @@
 #include "array.h"
 #include "bool.h"
 #include "c_string.h"
+#include "channel.h"
 #include "datatypes.h"
 #include "functions.h"
 #include "halfsiphash.h"
@@ -23,6 +24,7 @@
 #include "range.h"
 #include "table.h"
 #include "text.h"
+#include "thread.h"
 #include "types.h"
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

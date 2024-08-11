@@ -13,6 +13,7 @@
 
 #include "array.h"
 #include "bool.h"
+#include "channel.h"
 #include "files.h"
 #include "functions.h"
 #include "halfsiphash.h"
@@ -101,6 +102,7 @@ public uint32_t generic_hash(const void *obj, const TypeInfo *type)
     case PointerInfo: case FunctionInfo: return Pointer$hash(obj, type);
     case TextInfo: return Text$hash(obj);
     case ArrayInfo: return Array$hash(obj, type);
+    case ChannelInfo: return Channel$hash((const channel_t**)obj, type);
     case TableInfo: return Table$hash(obj, type);
     case EmptyStruct: return 0;
     case CustomInfo:
@@ -122,6 +124,7 @@ public int32_t generic_compare(const void *x, const void *y, const TypeInfo *typ
     case PointerInfo: case FunctionInfo: return Pointer$compare(x, y, type);
     case TextInfo: return Text$compare(x, y);
     case ArrayInfo: return Array$compare(x, y, type);
+    case ChannelInfo: return Channel$compare((const channel_t**)x, (const channel_t**)y, type);
     case TableInfo: return Table$compare(x, y, type);
     case EmptyStruct: return 0;
     case CustomInfo:
@@ -140,6 +143,7 @@ public bool generic_equal(const void *x, const void *y, const TypeInfo *type)
     case PointerInfo: case FunctionInfo: return Pointer$equal(x, y, type);
     case TextInfo: return Text$equal(x, y);
     case ArrayInfo: return Array$equal(x, y, type);
+    case ChannelInfo: return Channel$equal((const channel_t**)x, (const channel_t**)y, type);
     case TableInfo: return Table$equal(x, y, type);
     case EmptyStruct: return true;
     case CustomInfo:
@@ -159,6 +163,7 @@ public CORD generic_as_text(const void *obj, bool colorize, const TypeInfo *type
     case FunctionInfo: return Func$as_text(obj, colorize, type);
     case TextInfo: return Text$as_text(obj, colorize, type);
     case ArrayInfo: return Array$as_text(obj, colorize, type);
+    case ChannelInfo: return Channel$as_text((const channel_t**)obj, colorize, type);
     case TableInfo: return Table$as_text(obj, colorize, type);
     case TypeInfoInfo: return Type$as_text(obj, colorize, type);
     case EmptyStruct: return colorize ? CORD_all("\x1b[0;1m", type->EmptyStruct.name, "\x1b[m()") : CORD_all(type->EmptyStruct.name, "()");

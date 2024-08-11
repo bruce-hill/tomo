@@ -11,6 +11,7 @@
 
 type_t *TEXT_TYPE = NULL;
 type_t *RANGE_TYPE = NULL;
+public type_t *THREAD_TYPE = NULL;
 
 env_t *new_compilation_unit(CORD *libname)
 {
@@ -66,6 +67,11 @@ env_t *new_compilation_unit(CORD *libname)
             .fields=new(arg_t, .name="first", .type=INT_TYPE,
               .next=new(arg_t, .name="last", .type=INT_TYPE,
               .next=new(arg_t, .name="step", .type=INT_TYPE, .default_val=FakeAST(Int, .i=1, .bits=64)))));
+    }
+
+    {
+        env_t *thread_env = namespace_env(env, "Thread");
+        THREAD_TYPE = Type(StructType, .name="Thread", .env=thread_env, .opaque=true);
     }
 
     struct {
@@ -214,6 +220,12 @@ env_t *new_compilation_unit(CORD *libname)
             {"trimmed", "Text$trimmed", "func(text:Text, trim=\" {\\n\\r\\t}\", where=Where.Anywhere)->Text"},
             {"upper", "Text$upper", "func(text:Text)->Text"},
             {"without", "Text$without", "func(text:Text, target:Text, where=Where.Anywhere)->Text"},
+        )},
+        {"Thread", THREAD_TYPE, "pthread_t*", "Thread", TypedArray(ns_entry_t,
+            {"new", "Thread$new", "func(fn:func()->Void)->Thread"},
+            {"cancel", "Thread$cancel", "func(thread:Thread)->Void"},
+            {"join", "Thread$join", "func(thread:Thread)->Void"},
+            {"detach", "Thread$detach", "func(thread:Thread)->Void"},
         )},
     };
 

@@ -25,6 +25,10 @@ CORD type_to_cord(type_t *t) {
             auto array = Match(t, ArrayType);
             return CORD_asprintf("[%r]", type_to_cord(array->item_type));
         }
+        case ChannelType: {
+            auto array = Match(t, ChannelType);
+            return CORD_asprintf("||%r", type_to_cord(array->item_type));
+        }
         case TableType: {
             auto table = Match(t, TableType);
             return CORD_asprintf("{%r:%r}", type_to_cord(table->key_type), type_to_cord(table->value_type));
@@ -205,6 +209,7 @@ bool has_heap_memory(type_t *t)
 {
     switch (t->tag) {
     case ArrayType: return true;
+    case ChannelType: return true;
     case TableType: return true;
     case SetType: return true;
     case PointerType: return true;
@@ -223,6 +228,31 @@ bool has_heap_memory(type_t *t)
         return false;
     }
     default: return false;
+    }
+}
+
+bool can_send_over_channel(type_t *t)
+{
+    switch (t->tag) {
+    case ArrayType: return true;
+    case ChannelType: return true;
+    case TableType: return true;
+    case PointerType: return false;
+    case StructType: {
+        for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
+            if (!can_send_over_channel(field->type))
+                return false;
+        }
+        return true;
+    }
+    case EnumType: {
+        for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
+            if (tag->type && !can_send_over_channel(tag->type))
+                return false;
+        }
+        return true;
+    }
+    default: return true;
     }
 }
 
@@ -313,6 +343,7 @@ bool can_leave_uninitialized(type_t *t)
     case PointerType: return Match(t, PointerType)->is_optional;
     case ArrayType: case IntType: case NumType: case BoolType:
         return true;
+    case ChannelType: return false;
     case StructType: {
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
             if (!can_leave_uninitialized(field->type))
@@ -335,6 +366,7 @@ static bool _can_have_cycles(type_t *t, table_t *seen)
 {
     switch (t->tag) {
         case ArrayType: return _can_have_cycles(Match(t, ArrayType)->item_type, seen);
+        case ChannelType: return _can_have_cycles(Match(t, ChannelType)->item_type, seen);
         case TableType: {
             auto table = Match(t, TableType);
             return _can_have_cycles(table->key_type, seen) || _can_have_cycles(table->value_type, seen);
@@ -375,6 +407,7 @@ type_t *replace_type(type_t *t, type_t *target, type_t *replacement)
     switch (t->tag) {
         case ArrayType: return REPLACED_MEMBER(t, ArrayType, item_type);
         case SetType: return REPLACED_MEMBER(t, SetType, item_type);
+        case ChannelType: return REPLACED_MEMBER(t, ChannelType, item_type);
         case TableType: {
             t = REPLACED_MEMBER(t, TableType, key_type);
             t = REPLACED_MEMBER(t, TableType, value_type);
@@ -420,6 +453,7 @@ size_t type_size(type_t *t)
     case TextType: return sizeof(CORD);
     case ArrayType: return sizeof(array_t);
     case SetType: return sizeof(table_t);
+    case ChannelType: return sizeof(channel_t*);
     case TableType: return sizeof(table_t);
     case FunctionType: return sizeof(void*);
     case ClosureType: return sizeof(struct {void *fn, *userdata;});
@@ -473,6 +507,7 @@ size_t type_align(type_t *t)
     case TextType: return __alignof__(CORD);
     case SetType: return __alignof__(table_t);
     case ArrayType: return __alignof__(array_t);
+    case ChannelType: return __alignof__(channel_t*);
     case TableType: return __alignof__(table_t);
     case FunctionType: return __alignof__(void*);
     case ClosureType: return __alignof__(struct {void *fn, *userdata;});
