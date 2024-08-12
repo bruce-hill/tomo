@@ -1,12 +1,13 @@
 enum Job(Increment(x:Int), Decrement(x:Int))
 
 func main():
-    jobs := |:Job; max_size=1|
-    results := |:Int; max_size=2|
+    jobs := |:Job; max_size=2|
+    results := |:Int; max_size|
     >> thread := Thread.new(func():
         //! In another thread!
         while yes:
-            when jobs:pop() is Increment(x):
+            >> got := jobs:pop()
+            when got is Increment(x):
                 >> results:push(x+1)
             is Decrement(x):
                 >> results:push(x-1)
