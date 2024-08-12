@@ -2407,17 +2407,8 @@ CORD compile(env_t *env, ast_t *ast)
             code_err(ast, "The field '%s' is not a valid field name of %T", f->field, value_t);
         }
         case SetType: {
-            if (streq(f->field, "items")) {
-                if (can_be_mutated(env, f->fielded)) {
-                    return CORD_all("({ table_t *t = ", compile_to_pointer_depth(env, f->fielded, 1, false), ";\n"
-                                    "ARRAY_INCREF(t->entries);\n"
-                                    "t->entries; })");
-                } else {
-                    return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries");
-                }
-            } else if (streq(f->field, "fallback")) {
-                return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0, false), ").fallback");
-            }
+            if (streq(f->field, "items"))
+                return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries");
             code_err(ast, "There is no '%s' field on sets", f->field);
         }
         case TableType: {
