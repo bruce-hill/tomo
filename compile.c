@@ -2422,19 +2422,18 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case TableType: {
             if (streq(f->field, "keys")) {
-                return CORD_all("({ table_t *t = ", compile_to_pointer_depth(env, f->fielded, 1, false), ";\n"
-                                "ARRAY_INCREF(t->entries);\n"
-                                "t->entries; })");
+                return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries");
             } else if (streq(f->field, "values")) {
                 auto table = Match(value_t, TableType);
                 size_t offset = type_size(table->key_type);
                 size_t align = type_align(table->value_type);
                 if (align > 1 && offset % align > 0)
                     offset += align - (offset % align);
-                return CORD_all("({ table_t *t = ", compile_to_pointer_depth(env, f->fielded, 1, false), ";\n"
-                                "ARRAY_INCREF(t->entries);\n"
-                                "(array_t){.data = t->entries.data + ", CORD_asprintf("%zu", offset),
-                                ",\n .length=t->entries.length,\n .stride=t->entries.stride,\n .data_refcount=3};})");
+                return CORD_all("({ array_t *entries = &(", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries;\n"
+                                "ARRAY_INCREF(*entries);\n"
+                                "array_t values = *entries;\n"
+                                "values.data += ", CORD_asprintf("%zu", offset), ";\n"
+                                "values; })");
             } else if (streq(f->field, "fallback")) {
                 return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0, false), ").fallback");
             }
