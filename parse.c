@@ -374,7 +374,7 @@ const char *get_id(const char **inout) {
 
 bool comment(const char **pos) {
     if ((*pos)[0] == '/' && (*pos)[1] == '/' && (*pos)[2] != '!') {
-        *pos += 2 + strcspn(*pos, "\r\n");
+        *pos += strcspn(*pos, "\r\n");
         return true;
     } else {
         return false;
@@ -2053,7 +2053,8 @@ PARSER(parse_func_def) {
         } else if (match_word(&pos, "cached")) {
             if (!cache_ast) cache_ast = NewAST(ctx->file, pos, pos, Int, .i=INT64_MAX, .bits=64);
         } else if (match_word(&pos, "cache_size")) {
-            if (whitespace(&pos), !match(&pos, "="))
+            whitespace(&pos);
+            if (!match(&pos, "="))
                 parser_err(ctx, flag_start, pos, "I expected a value for 'cache_size'");
             whitespace(&pos);
             cache_ast = expect(ctx, start, &pos, parse_expr, "I expected a maximum size for the cache");
@@ -2103,7 +2104,7 @@ PARSER(parse_inline_c) {
         size_t line_len = strcspn(pos, "\r\n");
         c_code = CORD_all(c_code, GC_strndup(pos, line_len), "\n");
         pos += line_len;
-        if (whitespace(&pos) == 0) break;
+        if (whitespace(&pos) == WHITESPACE_NONE) break;
     }
     expect_closing(ctx, &pos, open == '(' ? ")" : "}", "I wasn't able to parse the rest of this inline C");
     spaces(&pos);
