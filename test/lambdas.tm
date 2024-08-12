@@ -36,7 +36,7 @@ func main():
     fn := func():
         return func():
             return func():
-                defer: |{outer}
+                defer: //! {outer}
                 return outer
     >> fn()()()
 	= "Hello"
