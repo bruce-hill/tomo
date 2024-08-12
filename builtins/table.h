@@ -69,7 +69,8 @@ bool Table$is_superset_of(table_t a, table_t b, bool strict, const TypeInfo *typ
 void Table$clear(table_t *t);
 table_t Table$sorted(table_t t, const TypeInfo *type);
 void Table$mark_copy_on_write(table_t *t);
-#define TABLE_INCREF(t) ({ ARRAY_INCREF((t).entries); if ((t).bucket_info) (t).bucket_info.data_refcount += ((t).bucket_info.data_refcount < TABLE_MAX_DATA_REFCOUNT); })
+#define TABLE_INCREF(t) ({ ARRAY_INCREF((t).entries); if ((t).bucket_info) (t).bucket_info->data_refcount += ((t).bucket_info->data_refcount < TABLE_MAX_DATA_REFCOUNT); })
+#define TABLE_COPY(t) ({ TABLE_INCREF(t); t; })
 int32_t Table$compare(const table_t *x, const table_t *y, const TypeInfo *type);
 bool Table$equal(const table_t *x, const table_t *y, const TypeInfo *type);
 uint32_t Table$hash(const table_t *t, const TypeInfo *type);

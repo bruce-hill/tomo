@@ -36,22 +36,23 @@
                          .stride=(int64_t)&items[1] - (int64_t)&items[0], \
                          .data=memcpy(GC_MALLOC(sizeof(items)), items, sizeof(items)), \
                          .atomic=0, \
-                         .data_refcount=1}; })
+                         .data_refcount=0}; })
 #define TypedArrayN(t, N, ...) ({ t items[N] = {__VA_ARGS__}; \
                          (array_t){.length=N, \
                          .stride=(int64_t)&items[1] - (int64_t)&items[0], \
                          .data=memcpy(GC_MALLOC(sizeof(items)), items, sizeof(items)), \
                          .atomic=0, \
-                         .data_refcount=1}; })
+                         .data_refcount=0}; })
 #define Array(x, ...) ({ __typeof(x) items[] = {x, __VA_ARGS__}; \
                          (array_t){.length=sizeof(items)/sizeof(items[0]), \
                          .stride=(int64_t)&items[1] - (int64_t)&items[0], \
                          .data=memcpy(is_atomic(x) ? GC_MALLOC_ATOMIC(sizeof(items)) : GC_MALLOC(sizeof(items)), items, sizeof(items)), \
                          .atomic=is_atomic(x), \
-                         .data_refcount=1}; })
+                         .data_refcount=0}; })
 // Array refcounts use a saturating add, where once it's at the max value, it stays there.
 #define ARRAY_INCREF(arr) (arr).data_refcount += ((arr).data_refcount < ARRAY_MAX_DATA_REFCOUNT)
 #define ARRAY_DECREF(arr) (arr).data_refcount -= ((arr).data_refcount < ARRAY_MAX_DATA_REFCOUNT)
+#define ARRAY_COPY(arr) ({ ARRAY_INCREF(arr); arr; })
 
 #define Array$insert_value(arr, item_expr, index, padded_item_size) ({ __typeof(item_expr) item = item_expr; Array$insert(arr, &item, index, padded_item_size); })
 void Array$insert(array_t *arr, const void *item, int64_t index, int64_t padded_item_size);

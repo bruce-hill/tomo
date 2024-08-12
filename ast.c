@@ -200,7 +200,7 @@ bool is_idempotent(ast_t *ast)
     case Int: case Bool: case Num: case Var: case Nil: case TextLiteral: return true;
     case Index: {
         auto index = Match(ast, Index);
-        return (index->index == NULL) && is_idempotent(index->indexed);
+        return is_idempotent(index->indexed) && index->index != NULL && is_idempotent(index->index);
     }
     case FieldAccess: {
         auto access = Match(ast, FieldAccess);

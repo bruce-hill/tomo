@@ -19,6 +19,7 @@ static env_t *with_enum_scope(env_t *env, type_t *t);
 static CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t *required_type);
 static CORD compile_string(env_t *env, ast_t *ast, CORD color);
 static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args);
+static CORD compile_maybe_incref(env_t *env, ast_t *ast);
 
 static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
 {
@@ -64,6 +65,19 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
 
     return false;
 }
+
+CORD compile_maybe_incref(env_t *env, ast_t *ast)
+{
+    type_t *t = get_type(env, ast);
+    if (is_idempotent(ast) && can_be_mutated(env, ast)) {
+        if (t->tag == ArrayType)
+            return CORD_all("ARRAY_COPY(", compile(env, ast), ")");
+        else if (t->tag == TableType || t->tag == SetType)
+            return CORD_all("TABLE_COPY(", compile(env, ast), ")");
+    }
+    return compile(env, ast);
+}
+
 
 static table_t *get_closed_vars(env_t *env, ast_t *lambda_ast)
 {
@@ -310,7 +324,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     "test(({ %r = %r; &%r;}), %r, %r, %r, %ld, %ld);\n",
                     compile_declaration(get_type(env, decl->value), var),
                     var,
-                    compile(env, decl->value),
+                    compile_maybe_incref(env, decl->value),
                     var,
                     compile_type_info(env, get_type(env, decl->value)),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=output)),
@@ -327,7 +341,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     code_err(test->expr, "Stack references cannot be assigned to local variables because the variable may outlive the stack memory.");
                 env_t *val_scope = with_enum_scope(env, lhs_t);
                 type_t *rhs_t = get_type(val_scope, assign->values->ast);
-                CORD value = compile(val_scope, assign->values->ast);
+                CORD value = compile_maybe_incref(val_scope, assign->values->ast);
                 if (!promote(env, &value, rhs_t, lhs_t))
                     code_err(assign->values->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
                 return CORD_asprintf(
@@ -352,7 +366,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                         code_err(ast, "Stack references cannot be assigned to local variables because the variable may outlive the stack memory.");
                     env_t *val_scope = with_enum_scope(env, target_type);
                     type_t *value_type = get_type(val_scope, value->ast);
-                    CORD val_code = compile(val_scope, value->ast);
+                    CORD val_code = compile_maybe_incref(val_scope, value->ast);
                     if (!promote(env, &val_code, value_type, target_type))
                         code_err(value->ast, "This %T value cannot be converted to a %T type", value_type, target_type);
                     CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(target_type), i++, val_code);
@@ -361,8 +375,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 for (ast_list_t *target = assign->targets; target; target = target->next)
                     code = CORD_all(code, compile_assignment(env, target->ast, CORD_asprintf("$%ld", i++)));
 
-                CORD_appendf(&code, "(%r[1]){$1}; }), %r, %r, %r, %ld, %ld);",
-                    compile_type(get_type(env, assign->targets->ast)),
+                CORD_appendf(&code, "&$1; }), %r, %r, %r, %ld, %ld);",
                     compile_type_info(env, get_type(env, assign->targets->ast)),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
@@ -389,9 +402,9 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else {
             return CORD_asprintf(
-                "test((%r[1]){%r}, %r, %r, %r, %ld, %ld);",
-                compile_type(expr_t),
-                compile(env, test->expr),
+                "test(%r, %r, %r, %r, %ld, %ld);",
+                test->expr->tag == Var ? CORD_all("&", compile(env, test->expr))
+                : CORD_all("(", compile_type(expr_t), "[1]){", compile(env, test->expr), "}"),
                 compile_type_info(env, expr_t),
                 compile(env, WrapAST(test->expr, TextLiteral, .cord=output)),
                 compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
@@ -407,7 +420,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             type_t *t = get_type(env, decl->value);
             if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
                 code_err(ast, "You can't declare a variable with a %T value", t);
-            return CORD_all(compile_declaration(t, CORD_cat("$", Match(decl->var, Var)->name)), " = ", compile(env, decl->value), ";");
+            return CORD_all(compile_declaration(t, CORD_cat("$", Match(decl->var, Var)->name)), " = ", compile_maybe_incref(env, decl->value), ";");
         }
     }
     case Assign: {
@@ -419,7 +432,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 code_err(ast, "Stack references cannot be assigned to local variables because the variable may outlive the stack memory.");
             env_t *val_env = with_enum_scope(env, lhs_t);
             type_t *rhs_t = get_type(val_env, assign->values->ast);
-            CORD val = compile(val_env, assign->values->ast);
+            CORD val = compile_maybe_incref(val_env, assign->values->ast);
             if (!promote(env, &val, rhs_t, lhs_t))
                 code_err(assign->values->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
             return compile_assignment(env, assign->targets->ast, val);
@@ -433,7 +446,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 code_err(ast, "Stack references cannot be assigned to local variables because the variable may outlive the stack memory.");
             env_t *val_env = with_enum_scope(env, lhs_t);
             type_t *rhs_t = get_type(val_env, value->ast);
-            CORD val = compile(val_env, value->ast);
+            CORD val = compile_maybe_incref(val_env, value->ast);
             if (!promote(env, &val, rhs_t, lhs_t))
                 code_err(value->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
             CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(lhs_t), i++, val);
@@ -839,7 +852,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         case ArrayType: {
             type_t *item_t = Match(iter_t, ArrayType)->item_type;
             CORD index = "i";
-            CORD value = "value";
+            CORD value = CORD_EMPTY;
             if (for_->vars) {
                 if (for_->vars->next) {
                     if (for_->vars->next->next)
@@ -852,8 +865,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 }
             }
 
+            CORD loop = CORD_EMPTY;
             ast_t *array = for_->iter;
-            CORD array_code, for_code;
             // Micro-optimization: inline the logic for iterating over
             // `array:from(i)` and `array:to(i)` because these happen inside
             // hot path inner loops and can actually meaningfully affect
@@ -861,95 +874,101 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (for_->iter->tag == MethodCall && streq(Match(for_->iter, MethodCall)->name, "to")
                 && value_type(get_type(env, Match(for_->iter, MethodCall)->self))->tag == ArrayType) {
                 array = Match(for_->iter, MethodCall)->self;
-                array_code = is_idempotent(array) ? compile(env, array) : "arr";
                 CORD limit = compile_arguments(env, for_->iter, new(arg_t, .type=Type(IntType, .bits=64), .name="last"), Match(for_->iter, MethodCall)->args);
-                for_code = CORD_all("for (int64_t ", index, " = 1, raw_limit = ", limit,
-                                    ", limit = raw_limit < 0 ? ", array_code, ".length + raw_limit + 1 : raw_limit; ",
-                                    index, " <= limit; ++", index, ")");
+                loop = CORD_all(loop, "for (int64_t ", index, " = 1, raw_limit = ", limit,
+                                ", limit = raw_limit < 0 ? iterating.length + raw_limit + 1 : raw_limit; ",
+                                index, " <= limit; ++", index, ")");
             } else if (for_->iter->tag == MethodCall && streq(Match(for_->iter, MethodCall)->name, "from")
-                && value_type(get_type(env, Match(for_->iter, MethodCall)->self))->tag == ArrayType) {
+                       && value_type(get_type(env, Match(for_->iter, MethodCall)->self))->tag == ArrayType) {
                 array = Match(for_->iter, MethodCall)->self;
-                array_code = is_idempotent(array) ? compile(env, array) : "arr";
                 CORD first = compile_arguments(env, for_->iter, new(arg_t, .type=Type(IntType, .bits=64), .name="last"), Match(for_->iter, MethodCall)->args);
-                for_code = CORD_all("for (int64_t first = ", first, ", ", index, " = MAX(1, first < 1 ? ", array_code, ".length + first + 1 : first", "); ",
-                                    index, " <= ", array_code, ".length; ++", index, ")");
+                loop = CORD_all(loop, "for (int64_t first = ", first, ", ", index, " = MAX(1, first < 1 ? iterating.length + first + 1 : first", "); ",
+                                index, " <= iterating.length; ++", index, ")");
             } else {
-                array_code = is_idempotent(array) ? compile(env, array) : "arr";
-                for_code = CORD_all("for (int64_t ", index, " = 1; ", index, " <= ", array_code, ".length; ++", index, ")");
+                loop = CORD_all(loop, "for (int64_t ", index, " = 1; ", index, " <= iterating.length; ++", index, ")");
             }
-            CORD loop = CORD_all("ARRAY_INCREF(", array_code, ");\n",
-                                 for_code, "{\n",
-                                 compile_declaration(item_t, value),
-                                 " = *(", compile_type(item_t), "*)(", array_code, ".data + (",index,"-1)*", array_code, ".stride);\n",
-                                 body, "\n}");
+            if (value != CORD_EMPTY) {
+                loop = CORD_all(loop, "{\n",
+                                compile_declaration(item_t, value),
+                                " = *(", compile_type(item_t), "*)(iterating.data + (",index,"-1)*iterating.stride);\n",
+                                body, "\n}");
+            } else {
+                loop = CORD_all(loop, "{\n", body, "\n}");
+            }
 
-            if (for_->empty)
-                loop = CORD_all("if (", array_code, ".length > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
-            loop = CORD_all(loop, stop, "\nARRAY_DECREF(", array_code, ");\n");
-            if (!is_idempotent(array))
-                loop = CORD_all("{\narray_t ",array_code," = ", compile(env, array), ";\n", loop, "\n}");
+            if (can_be_mutated(env, array) && is_idempotent(array)) {
+                CORD array_code = compile(env, array);
+                loop = CORD_all("{\n"
+                                "array_t iterating = ARRAY_COPY(", array_code, ");\n",
+                                loop, 
+                                stop,
+                                "\nARRAY_DECREF(", array_code, ");\n"
+                                "}\n");
+
+                if (for_->empty)
+                    loop = CORD_all("if (", array_code, ".length > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
+            } else {
+                loop = CORD_all("{\n"
+                                "array_t iterating = ", compile(env, array), ";\n",
+                                for_->empty ? "if (iterating.length > 0) {\n" : CORD_EMPTY,
+                                loop, 
+                                for_->empty ? CORD_all("\n} else ", compile_statement(env, for_->empty)) : CORD_EMPTY,
+                                stop,
+                                "}\n");
+            }
             return loop;
         }
-        case SetType: {
-            type_t *item_type = Match(iter_t, SetType)->item_type;
-
-            CORD set = is_idempotent(for_->iter) ? compile(env, for_->iter) : "set";
-            CORD loop = CORD_all("ARRAY_INCREF(", set, ".entries);\n"
-                                 "for (int64_t i = 0; i < ",set,".entries.length; ++i) {\n");
-
+        case SetType: case TableType: {
+            CORD loop = "for (int64_t i = 0; i < iterating.length; ++i) {\n";
             if (for_->vars) {
-                if (for_->vars->next)
-                    code_err(for_->vars->next->ast, "This is too many variables for this loop");
-                CORD item = compile(env, for_->vars->ast);
-                loop = CORD_all(loop, compile_declaration(item_type, item), " = *(", compile_type(item_type), "*)(",
-                                set,".entries.data + i*", set, ".entries.stride);\n");
-            }
-            loop = CORD_all(loop, body, "\n}");
-            if (for_->empty)
-                loop = CORD_all("if (", set, ".entries.length > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
-            loop = CORD_all(loop, stop, "\nARRAY_DECREF(", set, ".entries);\n");
-            if (!is_idempotent(for_->iter))
-                loop = CORD_all("{\ntable_t ",set," = ", compile(env, for_->iter), ";\n", loop, "\n}");
-            return loop;
-        }
-        case TableType: {
-            type_t *key_t = Match(iter_t, TableType)->key_type;
-            type_t *value_t = Match(iter_t, TableType)->value_type;
-
-            CORD table = is_idempotent(for_->iter) ? compile(env, for_->iter) : "table";
-            CORD loop = CORD_all("ARRAY_INCREF(", table, ".entries);\n"
-                                 "for (int64_t i = 0; i < ",table,".entries.length; ++i) {\n");
-
-            CORD key = CORD_EMPTY, value = CORD_EMPTY;
-            if (for_->vars) {
-                if (for_->vars->next) {
-                    if (for_->vars->next->next)
-                        code_err(for_->vars->next->next->ast, "This is too many variables for this loop");
-
-                    key = compile(env, for_->vars->ast);
-                    value = compile(env, for_->vars->next->ast);
+                if (iter_t->tag == SetType) {
+                    if (for_->vars->next)
+                        code_err(for_->vars->next->ast, "This is too many variables for this loop");
+                    CORD item = compile(env, for_->vars->ast);
+                    type_t *item_type = Match(iter_t, SetType)->item_type;
+                    loop = CORD_all(loop, compile_declaration(item_type, item), " = *(", compile_type(item_type), "*)(",
+                                    "iterating.data + i*iterating.stride);\n");
                 } else {
-                    key = compile(env, for_->vars->ast);
+                    CORD key = compile(env, for_->vars->ast);
+                    type_t *key_t = Match(iter_t, TableType)->key_type;
+                    loop = CORD_all(loop, compile_declaration(key_t, key), " = *(", compile_type(key_t), "*)(",
+                                    "iterating.data + i*iterating.stride);\n");
+
+                    if (for_->vars->next) {
+                        if (for_->vars->next->next)
+                            code_err(for_->vars->next->next->ast, "This is too many variables for this loop");
+
+                        type_t *value_t = Match(iter_t, TableType)->value_type;
+                        CORD value = compile(env, for_->vars->next->ast);
+                        size_t value_offset = type_size(key_t);
+                        if (type_align(value_t) > 1 && value_offset % type_align(value_t))
+                            value_offset += type_align(value_t) - (value_offset % type_align(value_t)); // padding
+                        loop = CORD_all(loop, compile_declaration(value_t, value), " = *(", compile_type(value_t), "*)(",
+                                        "iterating.data + i*iterating.stride + ", heap_strf("%zu", value_offset), ");\n");
+                    }
                 }
             }
 
-            if (key) {
-                loop = CORD_all(loop, compile_declaration(key_t, key), " = *(", compile_type(key_t), "*)(",
-                                table,".entries.data + i*", table, ".entries.stride);\n");
-            }
-            if (value) {
-                size_t value_offset = type_size(key_t);
-                if (type_align(value_t) > 1 && value_offset % type_align(value_t))
-                    value_offset += type_align(value_t) - (value_offset % type_align(value_t)); // padding
-                loop = CORD_all(loop, compile_declaration(value_t, value), " = *(", compile_type(value_t), "*)(",
-                                table,".entries.data + i*", table, ".entries.stride + ", heap_strf("%zu", value_offset), ");\n");
-            }
             loop = CORD_all(loop, body, "\n}");
-            if (for_->empty)
-                loop = CORD_all("if (", table, ".entries.length > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
-            loop = CORD_all(loop, stop, "\nARRAY_DECREF(", table, ".entries);\n");
-            if (!is_idempotent(for_->iter))
-                loop = CORD_all("{\ntable_t ",table," = ", compile(env, for_->iter), ";\n", loop, "\n}");
+
+            if (for_->empty) {
+                loop = CORD_all("if (iterating.length > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
+            }
+
+            if (can_be_mutated(env, for_->iter) && is_idempotent(for_->iter)) {
+                loop = CORD_all(
+                    "{\n",
+                    "array_t iterating = ARRAY_COPY((", compile(env, for_->iter), ").entries);\n",
+                    loop,
+                    "ARRAY_DECREF((", compile(env, for_->iter), ").entries);\n"
+                    "}\n");
+            } else {
+                loop = CORD_all(
+                    "{\n",
+                    "array_t iterating = (", compile(env, for_->iter), ").entries;\n",
+                    loop,
+                    "}\n");
+            }
             return loop;
         }
         case IntType: {
@@ -1188,7 +1207,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                 if (call_arg->name && streq(call_arg->name, spec_arg->name)) {
                     env_t *arg_env = with_enum_scope(env, spec_arg->type);
                     type_t *actual_t = get_type(arg_env, call_arg->value);
-                    CORD value = compile(arg_env, call_arg->value);
+                    CORD value = compile_maybe_incref(arg_env, call_arg->value);
                     if (!promote(arg_env, &value, actual_t, spec_arg->type))
                         code_err(call_arg->value, "This argument is supposed to be a %T, but this value is a %T", spec_arg->type, actual_t);
                     Table$str_set(&used_args, call_arg->name, call_arg);
@@ -1206,7 +1225,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
             if (!Table$str_get(used_args, pseudoname)) {
                 env_t *arg_env = with_enum_scope(env, spec_arg->type);
                 type_t *actual_t = get_type(arg_env, call_arg->value);
-                CORD value = compile(arg_env, call_arg->value);
+                CORD value = compile_maybe_incref(arg_env, call_arg->value);
                 if (!promote(arg_env, &value, actual_t, spec_arg->type))
                     code_err(call_arg->value, "This argument is supposed to be a %T, but this value is a %T", spec_arg->type, actual_t);
                 Table$str_set(&used_args, pseudoname, call_arg);
@@ -1218,7 +1237,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
 
         if (spec_arg->default_val) {
             if (code) code = CORD_cat(code, ", ");
-            code = CORD_cat(code, compile(default_scope, spec_arg->default_val));
+            code = CORD_cat(code, compile_maybe_incref(default_scope, spec_arg->default_val));
             goto found_it;
         }
 
@@ -1942,7 +1961,13 @@ CORD compile(env_t *env, ast_t *ast)
                 struct { const char *name; binding_t *b; } *entry = Table$entry(*closed_vars, i);
                 if (entry->b->type->tag == ModuleType)
                     continue;
-                userdata = CORD_all(userdata, ", ", get_binding(env, entry->name)->code);
+                CORD binding_code = get_binding(env, entry->name)->code;
+                if (entry->b->type->tag == ArrayType)
+                    userdata = CORD_all(userdata, ", ARRAY_COPY(", binding_code, ")");
+                else if (entry->b->type->tag == TableType || entry->b->type->tag == SetType)
+                    userdata = CORD_all(userdata, ", TABLE_COPY(", binding_code, ")");
+                else 
+                    userdata = CORD_all(userdata, ", ", binding_code);
             }
             userdata = CORD_all(userdata, ")");
             code = CORD_all(code, name, "$userdata_t *userdata)");
@@ -2427,16 +2452,21 @@ CORD compile(env_t *env, ast_t *ast)
     case Index: {
         auto indexing = Match(ast, Index);
         type_t *indexed_type = get_type(env, indexing->indexed);
-        if (!indexing->index && indexed_type->tag == PointerType) {
+        if (!indexing->index) {
+            if (indexed_type->tag != PointerType)
+                code_err(ast, "Only pointers can use the '[]' operator to dereference the entire value.");
             auto ptr = Match(indexed_type, PointerType);
             if (ptr->is_optional)
                 code_err(ast, "This pointer is potentially null, so it can't be safely dereferenced");
             if (ptr->pointed->tag == ArrayType) {
                 return CORD_all("({ array_t *arr = ", compile(env, indexing->indexed), "; ARRAY_INCREF(*arr); *arr; })");
+            } else if (ptr->pointed->tag == TableType || ptr->pointed->tag == SetType) {
+                return CORD_all("({ table_t *t = ", compile(env, indexing->indexed), "; TABLE_INCREF(*t); *t; })");
             } else {
                 return CORD_all("*(", compile(env, indexing->indexed), ")");
             }
         }
+
         type_t *container_t = value_type(indexed_type);
         type_t *index_t = get_type(env, indexing->index);
         if (container_t->tag == ArrayType) {
@@ -2496,7 +2526,7 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
 
             if (!is_constant(env, decl->value))
                 code_err(decl->value, "This value is supposed to be a compile-time constant, but I can't figure out how to make it one");
-            CORD var_decl = CORD_all(compile_type(t), " ", compile(ns_env, decl->var), " = ", compile(ns_env, decl->value), ";\n");
+            CORD var_decl = CORD_all(compile_type(t), " ", compile(ns_env, decl->var), " = ", compile_maybe_incref(ns_env, decl->value), ";\n");
             env->code->staticdefs = CORD_all(env->code->staticdefs, var_decl);
             break;
         }
@@ -2760,12 +2790,12 @@ CORD compile_file(env_t *env, ast_t *ast)
                 env->code->staticdefs = CORD_all(
                     env->code->staticdefs,
                     "static ", compile_type(t), " ", namespace_prefix(env->libname, env->namespace), decl_name, " = ",
-                    compile(env, decl->value), ";\n");
+                    compile_maybe_incref(env, decl->value), ";\n");
             } else {
                 env->code->staticdefs = CORD_all(
                     env->code->staticdefs,
                     compile_type(t), " ", namespace_prefix(env->libname, env->namespace), decl_name, " = ",
-                    compile(env, decl->value), ";\n");
+                    compile_maybe_incref(env, decl->value), ";\n");
             }
         } else if (stmt->ast->tag == InlineCCode) {
             CORD code = compile_statement(env, stmt->ast);
