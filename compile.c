@@ -2361,6 +2361,9 @@ CORD compile(env_t *env, ast_t *ast)
                 type_t *actual = get_type(env, call->args->value);
                 if (actual->tag != IntType && actual->tag != NumType)
                     code_err(call->args->value, "This %T value cannot be converted to a %T", actual, t);
+                if (actual->tag == IntType && Match(actual, IntType)->bits == 0)
+                    return CORD_all("((", compile_type(t), ")", t->tag == IntType ? "Int$as_i64" : "Int$as_num", "(",
+                                    compile(env, call->args->value), "))");
                 return CORD_all("((", compile_type(t), ")(", compile(env, call->args->value), "))");
             } else if (t->tag == TextType) {
                 // Text constructor:
