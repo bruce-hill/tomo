@@ -92,7 +92,6 @@ env_t *new_compilation_unit(CORD *libname)
             {"octal", "Int$octal", "func(i:Int, digits=0, prefix=yes)->Text"},
             {"random", "Int$random", "func(min:Int, max:Int)->Int"},
             {"from_text", "Int$from_text", "func(text:Text, the_rest=!&Text)->Int"},
-            {"abs", "labs", "func(i:Int)->Int"},
             {"to", "Int$to", "func(from:Int,to:Int)->Range"},
             {"plus", "Int$plus", "func(x:Int,y:Int)->Int"},
             {"minus", "Int$minus", "func(x:Int,y:Int)->Int"},

@@ -81,74 +81,20 @@ Int_t Int$from_i64(int64_t i);
 Int_t Int$from_num(double n);
 #define I(i) ((int64_t)(i) == (int32_t)(i) ? ((Int_t){.small=((uint64_t)(i)<<2)|1}) : Int$from_i64(i))
 
-Int_t Int$slow_plus(Int_t x, Int_t y);
-Int_t Int$slow_minus(Int_t x, Int_t y);
-Int_t Int$slow_times(Int_t x, Int_t y);
-Int_t Int$slow_divided_by(Int_t x, Int_t y);
-Int_t Int$slow_modulo(Int_t x, Int_t y);
-Int_t Int$slow_modulo1(Int_t x, Int_t y);
-Int_t Int$slow_left_shifted(Int_t x, Int_t y);
-Int_t Int$slow_right_shifted(Int_t x, Int_t y);
-Int_t Int$slow_bit_and(Int_t x, Int_t y);
-Int_t Int$slow_bit_or(Int_t x, Int_t y);
-Int_t Int$slow_bit_xor(Int_t x, Int_t y);
-Int_t Int$slow_negative(Int_t x);
-Int_t Int$slow_negated(Int_t x);
-Int_t Int$slow_abs(Int_t x);
-#define Int$plus(_x, _y) ({ \
-                          Int_t x = _x, y = _y; \
-                          const int64_t z = (int64_t)((uint64_t)x.small + (uint64_t)y.small); \
-                          __builtin_expect(((z|2) != (int32_t)z), 0) ? Int$slow_plus(x, y) : (Int_t){.small=(z-1)}; })
-
-#define Int$minus(_x, _y) ({ \
-                          Int_t x = _x, y = _y; \
-                          const int64_t z = (int64_t)(((uint64_t)x.small ^ 3) - (uint64_t)y.small); \
-                          __builtin_expect(((z & ~2) != (int32_t)z), 0) ? Int$slow_minus(x, y) : (Int_t){.small=z}; })
-
-#define Int$times(_x, _y) ({ \
-                           Int_t x = _x, y = _y; \
-                           __builtin_expect(((x.small & y.small) & 1) == 0, 0) ? Int$slow_times(x, y) : ({ \
-                               const int64_t z = (x.small>>1) * (y.small>>1); \
-                               __builtin_expect(z != (int32_t)z, 0) ? Int$slow_times(x, y) : (Int_t){.small=z+1}; }); })
-
-#define Int$divided_by(_x, _y) ({ \
-                           Int_t x = _x, y = _y; \
-                           __builtin_expect(((x.small & y.small) & 1) == 0, 0) ? Int$slow_divided_by(x, y) : ({ \
-                               const int64_t z = 4*(x.small>>1) / (y.small>>1); \
-                               __builtin_expect(z != (int32_t)z, 0) ? Int$slow_divided_by(x, y) : (Int_t){.small=z+1}; }); })
-#define Int$left_shifted(_x, _y) ({ \
-                           Int_t x = _x, y = _y; \
-                           __builtin_expect(((x.small & y.small) & 1) == 0, 0) ? Int$slow_left_shifted(x, y) : ({ \
-                               const int64_t z = 4*((x.small>>2) << (y.small>>2)); \
-                               __builtin_expect(z != (int32_t)z, 0) ? Int$slow_left_shifted(x, y) : (Int_t){.small=z+1}; }); })
-#define Int$right_shifted(_x, _y) ({ \
-                           Int_t x = _x, y = _y; \
-                           __builtin_expect(((x.small & y.small) & 1) == 0, 0) ? Int$slow_right_shifted(x, y) : ({ \
-                               const int64_t z = 4*((x.small>>2) >> (y.small>>2)); \
-                               __builtin_expect(z != (int32_t)z, 0) ? Int$slow_right_shifted(x, y) : (Int_t){.small=z+1}; }); })
-#define Int$bit_and(_x, _y) ({ \
-                           Int_t x = _x, y = _y; \
-                           const int64_t z = x.small & y.small; \
-                           __builtin_expect((z & 1) == 1, 1) ? (Int_t){.small=z} : Int$slow_bit_and(x, y); })
-#define Int$bit_or(_x, _y) ({ \
-                           Int_t x = _x, y = _y; \
-                           __builtin_expect(((x.small & y.small) & 1) == 1, 1) ? (Int_t){.small=(x.small | y.small)} : Int$slow_bit_or(x, y); })
-#define Int$bit_xor(_x, _y) ({ \
-                           Int_t x = _x, y = _y; \
-                           __builtin_expect(((x.small & y.small) & 1) == 1, 1) ? (Int_t){.small=(x.small ^ y.small) | 1} : Int$slow_bit_xor(x, y); })
-
-#define Int$modulo(x, y) Int$slow_modulo(x, y)
-#define Int$modulo1(x, y) Int$slow_modulo1(x, y)
-
-#define Int$negative(_x) ({ \
-                          Int_t x = _x; \
-                          __builtin_expect((x.small & 1), 1) ? (Int_t){.small=4*-((x.small)/4) + 1} : Int$slow_negative(x); })
-#define Int$negated(_x) ({ \
-                          Int_t x = _x; \
-                          __builtin_expect((x.small & 1), 1) ? (Int_t){.small=(~x.small) ^ 3} : Int$slow_negated(x); })
-#define Int$abs(_x) ({ \
-                     Int_t x = _x; \
-                     __builtin_expect((x.small & 1), 1) ? (Int_t){.small=4*labs((x.small)/4) + 1} : Int$slow_abs(x); })
+Int_t Int$plus(Int_t x, Int_t y);
+Int_t Int$minus(Int_t x, Int_t y);
+Int_t Int$times(Int_t x, Int_t y);
+Int_t Int$divided_by(Int_t x, Int_t y);
+Int_t Int$modulo(Int_t x, Int_t y);
+Int_t Int$modulo1(Int_t x, Int_t y);
+Int_t Int$left_shifted(Int_t x, Int_t y);
+Int_t Int$right_shifted(Int_t x, Int_t y);
+Int_t Int$bit_and(Int_t x, Int_t y);
+Int_t Int$bit_or(Int_t x, Int_t y);
+Int_t Int$bit_xor(Int_t x, Int_t y);
+Int_t Int$negative(Int_t x);
+Int_t Int$negated(Int_t x);
+Int_t Int$abs(Int_t x);
 
 extern const TypeInfo $Int;
 

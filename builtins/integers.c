@@ -129,7 +129,12 @@ public CORD Int$octal(Int_t i, Int_t digits_int, bool prefix) {
     }
 }
 
-public Int_t Int$slow_plus(Int_t x, Int_t y) {
+public Int_t Int$plus(Int_t x, Int_t y) {
+
+    const int64_t z = (int64_t)((uint64_t)x.small + (uint64_t)y.small);
+    if (__builtin_expect(((z|2) == (int32_t)z), 1))
+        return (Int_t){.small=(z-1)};
+
     mpz_t result;
     mpz_init_set_int(result, x);
     if (y.small & 1) {
@@ -142,7 +147,11 @@ public Int_t Int$slow_plus(Int_t x, Int_t y) {
     return Int$from_mpz(result);
 }
 
-public Int_t Int$slow_minus(Int_t x, Int_t y) {
+public Int_t Int$minus(Int_t x, Int_t y) {
+    const int64_t z = (int64_t)(((uint64_t)x.small ^ 3) - (uint64_t)y.small);
+    if (__builtin_expect(((z & ~2) == (int32_t)z), 1))
+        return (Int_t){.small=z};
+
     mpz_t result;
     mpz_init_set_int(result, x);
     if (y.small & 1) {
@@ -155,7 +164,13 @@ public Int_t Int$slow_minus(Int_t x, Int_t y) {
     return Int$from_mpz(result);
 }
 
-public Int_t Int$slow_times(Int_t x, Int_t y) {
+public Int_t Int$times(Int_t x, Int_t y) {
+    if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
+        const int64_t z = (x.small>>1) * (y.small>>1);
+        if (__builtin_expect(z == (int32_t)z, 1))
+            return (Int_t){.small=z+1};
+    }
+
     mpz_t result;
     mpz_init_set_int(result, x);
     if (y.small & 1) {
@@ -168,7 +183,13 @@ public Int_t Int$slow_times(Int_t x, Int_t y) {
     return Int$from_mpz(result);
 }
 
-public Int_t Int$slow_divided_by(Int_t x, Int_t y) {
+public Int_t Int$divided_by(Int_t x, Int_t y) {
+    if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
+        const int64_t z = 4*(x.small>>1) / (y.small>>1);
+        if (__builtin_expect(z == (int32_t)z, 1))
+            return (Int_t){.small=z+1};
+    }
+
     mpz_t result;
     mpz_init_set_int(result, x);
     if (y.small & 1) {
@@ -181,7 +202,7 @@ public Int_t Int$slow_divided_by(Int_t x, Int_t y) {
     return Int$from_mpz(result);
 }
 
-public Int_t Int$slow_modulo(Int_t x, Int_t modulus)
+public Int_t Int$modulo(Int_t x, Int_t modulus)
 {
     mpz_t result;
     mpz_init_set_int(result, x);
@@ -191,7 +212,7 @@ public Int_t Int$slow_modulo(Int_t x, Int_t modulus)
     return Int$from_mpz(result);
 }
 
-public Int_t Int$slow_modulo1(Int_t x, Int_t modulus)
+public Int_t Int$modulo1(Int_t x, Int_t modulus)
 {
     mpz_t result;
     mpz_init_set_int(result, x);
@@ -203,8 +224,14 @@ public Int_t Int$slow_modulo1(Int_t x, Int_t modulus)
     return Int$from_mpz(result);
 }
 
-public Int_t Int$slow_left_shifted(Int_t x, Int_t y)
+public Int_t Int$left_shifted(Int_t x, Int_t y)
 {
+    if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
+        const int64_t z = 4*((x.small>>2) << (y.small>>2));
+        if (__builtin_expect(z == (int32_t)z, 1))
+            return (Int_t){.small=z+1};
+    }
+
     mp_bitcnt_t bits = (mp_bitcnt_t)Int$as_i64(y);
     mpz_t result;
     mpz_init_set_int(result, x);
@@ -212,8 +239,14 @@ public Int_t Int$slow_left_shifted(Int_t x, Int_t y)
     return Int$from_mpz(result);
 }
 
-public Int_t Int$slow_right_shifted(Int_t x, Int_t y)
+public Int_t Int$right_shifted(Int_t x, Int_t y)
 {
+    if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
+        const int64_t z = 4*((x.small>>2) >> (y.small>>2));
+        if (__builtin_expect(z == (int32_t)z, 1))
+            return (Int_t){.small=z+1};
+    }
+
     mp_bitcnt_t bits = (mp_bitcnt_t)Int$as_i64(y);
     mpz_t result;
     mpz_init_set_int(result, x);
@@ -221,8 +254,12 @@ public Int_t Int$slow_right_shifted(Int_t x, Int_t y)
     return Int$from_mpz(result);
 }
 
-public Int_t Int$slow_bit_and(Int_t x, Int_t y)
+public Int_t Int$bit_and(Int_t x, Int_t y)
 {
+    const int64_t z = x.small & y.small;
+    if (__builtin_expect((z & 1) == 1, 1))
+        return (Int_t){.small=z};
+
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_t y_mpz;
@@ -231,8 +268,11 @@ public Int_t Int$slow_bit_and(Int_t x, Int_t y)
     return Int$from_mpz(result);
 }
 
-public Int_t Int$slow_bit_or(Int_t x, Int_t y)
+public Int_t Int$bit_or(Int_t x, Int_t y)
 {
+    if (__builtin_expect(((x.small & y.small) & 1) == 1, 1))
+        return (Int_t){.small=(x.small | y.small)};
+
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_t y_mpz;
@@ -241,8 +281,11 @@ public Int_t Int$slow_bit_or(Int_t x, Int_t y)
     return Int$from_mpz(result);
 }
 
-public Int_t Int$slow_bit_xor(Int_t x, Int_t y)
+public Int_t Int$bit_xor(Int_t x, Int_t y)
 {
+    if (__builtin_expect(((x.small & y.small) & 1) == 1, 1))
+        return (Int_t){.small=(x.small ^ y.small) | 1};
+
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_t y_mpz;
@@ -251,8 +294,11 @@ public Int_t Int$slow_bit_xor(Int_t x, Int_t y)
     return Int$from_mpz(result);
 }
 
-public Int_t Int$slow_negated(Int_t x)
+public Int_t Int$negated(Int_t x)
 {
+    if (__builtin_expect((x.small & 1), 1))
+        return (Int_t){.small=(~x.small) ^ 3};
+
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_neg(result, result);
@@ -260,16 +306,22 @@ public Int_t Int$slow_negated(Int_t x)
     return Int$from_mpz(result);
 }
 
-public Int_t Int$slow_negative(Int_t x)
+public Int_t Int$negative(Int_t x)
 {
+    if (__builtin_expect((x.small & 1), 1))
+        return (Int_t){.small=4*-((x.small)>>2) + 1};
+
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_neg(result, result);
     return Int$from_mpz(result);
 }
 
-public Int_t Int$slow_abs(Int_t x)
+public Int_t Int$abs(Int_t x)
 {
+    if (__builtin_expect((x.small & 1), 1))
+        return (Int_t){.small=4*labs((x.small)>>2) + 1};
+
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_abs(result, result);
