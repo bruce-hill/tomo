@@ -17,6 +17,7 @@ typedef union {
     int16_t i16;
     int32_t i32;
     int64_t i64;
+    Int_t integer;
     double n64;
     float n32;
 } number_t;
@@ -156,7 +157,7 @@ static void *get_address(env_t *env, ast_t *ast)
     }
 }
 
-static int64_t ast_to_int(env_t *env, ast_t *ast)
+static Int_t ast_to_int(env_t *env, ast_t *ast)
 {
     type_t *t = get_type(env, ast);
     switch (t->tag) {
@@ -164,10 +165,11 @@ static int64_t ast_to_int(env_t *env, ast_t *ast)
         number_t num;
         eval(env, ast, &num);
         switch (Match(t, IntType)->bits) {
-        case 0: case 64: return (int64_t)num.i64;
-        case 32: return (int64_t)num.i32;
-        case 16: return (int64_t)num.i16;
-        case 8: return (int64_t)num.i8;
+        case 0: return num.integer;
+        case 64: return Int$from_i64((int64_t)num.i64);
+        case 32: return Int$from_i64((int64_t)num.i32);
+        case 16: return Int$from_i64((int64_t)num.i16);
+        case 8: return Int$from_i64((int64_t)num.i8);
         default: errx(1, "Invalid int bits");
         }
     }
@@ -183,7 +185,8 @@ static double ast_to_num(env_t *env, ast_t *ast)
         number_t num;
         eval(env, ast, &num);
         switch (Match(t, IntType)->bits) {
-        case 0: case 64: return (double)num.i64;
+        case 0: return Int$as_num(num.integer);
+        case 64: return (double)num.i64;
         case 32: return (double)num.i32;
         case 16: return (double)num.i16;
         case 8: return (double)num.i8;
@@ -383,33 +386,46 @@ void eval(env_t *env, ast_t *ast, void *dest)
         if (dest) *(CORD*)dest = ret;
         break;
     }
-#define CASE_OP(OP_NAME, C_OP) case BINOP_##OP_NAME: {\
-        if (t->tag == IntType) { \
-            int64_t lhs = ast_to_int(env, binop->lhs); \
-            int64_t rhs = ast_to_int(env, binop->rhs); \
-            switch (Match(t, IntType)->bits) { \
-            case 64: *(int64_t*)dest = lhs C_OP rhs; break; \
-            case 32: *(int32_t*)dest = (int32_t)(lhs C_OP rhs); break; \
-            case 16: *(int16_t*)dest = (int16_t)(lhs C_OP rhs); break; \
-            case 8: *(int8_t*)dest = (int8_t)(lhs C_OP rhs); break; \
-            default: errx(1, "Invalid int bits"); \
-            } \
-        } else if (t->tag == NumType) { \
-            double lhs = ast_to_num(env, binop->lhs); \
-            double rhs = ast_to_num(env, binop->rhs); \
-            if (Match(t, NumType)->bits == 64) \
-                *(double*)dest = (double)(lhs C_OP rhs); \
-            else \
-                *(float*)dest = (float)(lhs C_OP rhs); \
-        } else { \
-            errx(1, "Binary ops are not yet supported for %W", ast); \
+    case BinaryOp: {
+        auto binop = Match(ast, BinaryOp);
+        if (t->tag == IntType) {
+#define CASE_OP(OP_NAME, method_name) case BINOP_##OP_NAME: {\
+        Int_t lhs = ast_to_int(env, binop->lhs); \
+        Int_t rhs = ast_to_int(env, binop->rhs); \
+        Int_t result = Int$ ## method_name (lhs, rhs); \
+        switch (Match(t, IntType)->bits) { \
+        case 0: *(Int_t*)dest = result; return; \
+        case 64: *(int64_t*)dest = (int64_t)Int$as_i64(result); return; \
+        case 32: *(int32_t*)dest = (int32_t)Int$as_i64(result); return; \
+        case 16: *(int16_t*)dest = (int16_t)Int$as_i64(result); return; \
+        case 8: *(int8_t*)dest = (int8_t)Int$as_i64(result); return; \
+        default: errx(1, "Invalid int bits"); \
         } \
         break; \
     }
-    case BinaryOp: {
-        auto binop = Match(ast, BinaryOp);
+            switch (binop->op) {
+            CASE_OP(MULT, times) CASE_OP(DIVIDE, divided_by) CASE_OP(PLUS, plus) CASE_OP(MINUS, minus)
+            CASE_OP(RSHIFT, right_shifted) CASE_OP(LSHIFT, left_shifted)
+            default: break;
+            }
+#undef CASE_OP
+        } else if (t->tag == NumType) {
+#define CASE_OP(OP_NAME, C_OP) case BINOP_##OP_NAME: {\
+        double lhs = ast_to_num(env, binop->lhs); \
+        double rhs = ast_to_num(env, binop->rhs); \
+        if (Match(t, NumType)->bits == 64) \
+            *(double*)dest = (double)(lhs C_OP rhs); \
+        else \
+            *(float*)dest = (float)(lhs C_OP rhs); \
+        return; \
+    }
+            switch (binop->op) {
+            CASE_OP(MULT, *) CASE_OP(DIVIDE, /) CASE_OP(PLUS, +) CASE_OP(MINUS, -)
+            default: break;
+            }
+#undef CASE_OP
+        }
         switch (binop->op) {
-        CASE_OP(MULT, *) CASE_OP(DIVIDE, /) CASE_OP(PLUS, +) CASE_OP(MINUS, -)
         case BINOP_EQ: case BINOP_NE: case BINOP_LT: case BINOP_LE: case BINOP_GT: case BINOP_GE: {
             type_t *t_lhs = get_type(env, binop->lhs);
             if (!type_eq(t_lhs, get_type(env, binop->rhs)))
@@ -431,7 +447,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
             }
             break;
         }
-        default: errx(1, "Binary op not implemented: %W");
+        default: errx(1, "Binary op not implemented for %T: %W", t, ast);
         }
         break;
     }
@@ -443,7 +459,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         case ArrayType: {
             array_t arr;
             eval(env, index->indexed, &arr);
-            int64_t raw_index = ast_to_int(env, index->index);
+            int64_t raw_index = Int$as_i64(ast_to_int(env, index->index));
             int64_t index_int = raw_index;
             if (index_int < 1) index_int = arr.length + index_int + 1;
             if (index_int < 1 || index_int > arr.length)
