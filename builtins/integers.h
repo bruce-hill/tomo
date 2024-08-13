@@ -60,7 +60,7 @@ Range_t Int$to(Int_t from, Int_t to);
 Int_t Int$from_text(CORD text);
 Int_t Int$abs(Int_t x);
 
-#define BIGGEST_SMALL_INT (536870911)
+#define BIGGEST_SMALL_INT ((1<<29)-1)
 
 #define Int$from_mpz(mpz) (\
     mpz_cmpabs_ui(mpz, BIGGEST_SMALL_INT) <= 0 ? ({ \
