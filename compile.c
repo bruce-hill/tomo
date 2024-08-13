@@ -1776,7 +1776,9 @@ CORD compile(env_t *env, ast_t *ast)
 
         type_t *key_t = get_type(expr_env, key);
         CORD comparison;
-        if (key_t->tag == IntType || key_t->tag == NumType || key_t->tag == BoolType || key_t->tag == PointerType)
+        if (key_t->tag == IntType && Match(key_t, IntType)->bits == 0)
+            comparison = CORD_all("(Int$compare_value(", lhs_key, ", ", rhs_key, ")", (ast->tag == Min ? "<=" : ">="), "0)");
+        else if (key_t->tag == IntType || key_t->tag == NumType || key_t->tag == BoolType || key_t->tag == PointerType)
             comparison = CORD_all("((", lhs_key, ")", (ast->tag == Min ? "<=" : ">="), "(", rhs_key, "))");
         else if (key_t->tag == TextType)
             comparison = CORD_all("CORD_cmp(", lhs_key, ", ", rhs_key, ")", (ast->tag == Min ? "<=" : ">="), "0");
