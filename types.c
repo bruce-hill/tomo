@@ -211,6 +211,7 @@ bool has_heap_memory(type_t *t)
     case TableType: return true;
     case SetType: return true;
     case PointerType: return true;
+    case IntType: return (Match(t, IntType)->bits == 0);
     case StructType: {
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
             if (has_heap_memory(field->type))
