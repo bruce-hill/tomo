@@ -850,8 +850,9 @@ CORD compile_statement(env_t *env, ast_t *ast)
             return CORD_all(
                 "{\n"
                 "const Range_t range = ", range, ";\n"
-                "if (range.step == 0) fail(\"This range has a 'step' of zero and will loop infinitely!\");\n"
-                "for (int64_t ", value, " = range.first; range.step > 0 ? ", value, " <= range.last : ", value, " >= range.last; ", value, " += range.step) {\n"
+                "if (range.step.small == 0) fail(\"This range has a 'step' of zero and will loop infinitely!\");\n"
+                "bool negative = (Int$compare_value(range.step, I(0)) < 0);\n"
+                "for (Int_t ", value, " = range.first; negative ? Int$compare_value(", value, ", range.last) >= 0 : Int$compare_value(", value, ", range.last) <= 0 ; ", value, " = Int$plus(", value, ", range.step)) {\n"
                 "\t", body,
                 "\n}",
                 stop,

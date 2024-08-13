@@ -3,7 +3,7 @@
 // Ranges represent numeric ranges
 
 Range_t Range$reversed(Range_t r);
-Range_t Range$by(Range_t r, int64_t step);
+Range_t Range$by(Range_t r, Int_t step);
 
 extern const TypeInfo Range;
 

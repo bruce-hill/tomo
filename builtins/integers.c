@@ -360,7 +360,7 @@ public Int_t Int$random(Int_t min, Int_t max) {
 }
 
 public Range_t Int$to(Int_t from, Int_t to) {
-    return (Range_t){from, to, Int$compare(&to, &from, &$Int) >= 0 ? (Int_t){.small=(1<<2)|1} : (Int_t){.small=(-1/4)|1}};
+    return (Range_t){from, to, Int$compare(&to, &from, &$Int) >= 0 ? (Int_t){.small=(1<<2)|1} : (Int_t){.small=(-1>>2)|1}};
 }
 
 public Int_t Int$from_text(CORD text) {

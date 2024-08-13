@@ -344,7 +344,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
             if (for_->vars->next)
                 code_err(for_->vars->next->ast, "This is too many variables for this loop");
             const char *var = Match(for_->vars->ast, Var)->name;
-            set_binding(scope, var, new(binding_t, .type=Type(IntType, .bits=64), .code=CORD_cat("$", var)));
+            set_binding(scope, var, new(binding_t, .type=INT_TYPE, .code=CORD_cat("$", var)));
         }
         return scope;
     }
