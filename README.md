@@ -41,7 +41,8 @@ language features.
 ## Safety
 - Memory safety (garbage collection, compiler-enforced null safety, automatic
   array bounds checking, and no uninitialized variables)
-- Arithmetic overflow checking
+- Arbitrary-precision integers by default with opt-in fixed-with integers with
+  arithmetic overflow checking
 - Type-safe strings representing different languages with automatic prevention
   of code injection
 - Pattern matching with exhaustiveness checking for tagged unions
