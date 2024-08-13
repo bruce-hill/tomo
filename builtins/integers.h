@@ -60,6 +60,7 @@ Range_t Int$to(Int_t from, Int_t to);
 Int_t Int$from_text(CORD text);
 Int_t Int$abs(Int_t x);
 Int_t Int$power(Int_t base, Int_t exponent);
+Int_t Int$sqrt(Int_t i);
 
 #define BIGGEST_SMALL_INT ((1<<29)-1)
 
