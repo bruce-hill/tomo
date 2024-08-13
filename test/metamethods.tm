@@ -44,9 +44,6 @@ struct Vec2(x,y:Int):
     func modulo1(v:Vec2, modulus:Int; inline)->Vec2:
         return Vec2(v.x mod1 modulus, v.y mod1 modulus)
 
-    func power(v:Vec2, exponent:Num; inline)->Vec2:
-        return Vec2(Int(v.x ^ exponent), Int(v.y ^ exponent))
-
 func main():
     >> x := Vec2(10, 20)
     >> y := Vec2(100, 200)
@@ -90,6 +87,4 @@ func main():
     = Vec2(x=1, y=2)
     >> x mod1 3
     = Vec2(x=1, y=2)
-    >> x^2.0
-    = Vec2(x=1, y=4)
 
