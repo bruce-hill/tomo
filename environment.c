@@ -107,6 +107,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"negative", "Int$negative", "func(x:Int)->Int"},
             {"negated", "Int$negated", "func(x:Int)->Int"},
             {"abs", "Int$abs", "func(x:Int)->Int"},
+            {"power", "Int$power", "func(base:Int,exponent:Int)->Int"},
         )},
         {"Int64", Type(IntType, .bits=64), "Int64_t", "$Int64", TypedArray(ns_entry_t,
             {"format", "Int64$format", "func(i:Int64, digits=0)->Text"},

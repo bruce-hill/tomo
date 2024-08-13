@@ -59,6 +59,7 @@ Int_t Int$random(Int_t min, Int_t max);
 Range_t Int$to(Int_t from, Int_t to);
 Int_t Int$from_text(CORD text);
 Int_t Int$abs(Int_t x);
+Int_t Int$power(Int_t base, Int_t exponent);
 
 #define BIGGEST_SMALL_INT ((1<<29)-1)
 
@@ -72,11 +73,13 @@ Int_t Int$abs(Int_t x);
     }))
 
 #define mpz_init_set_int(mpz, i) do { \
-    if ((i).small & 1) mpz_init_set_si(mpz, (i).small >> 2); \
+    if (__builtin_expect((i).small & 1, 1)) mpz_init_set_si(mpz, (i).small >> 2); \
     else mpz_init_set(mpz, *(i).big); \
 } while (0)
 
-#define Int$as_i64(i) (((i).small & 1) ? (int64_t)((i).small >> 2) : mpz_get_si(*(i).big))
+#define Int$as_i64(i) (__builtin_expect((i).small & 1, 1) ? (int64_t)((i).small >> 2) : \
+                       ({ if (!__builtin_expect(mpz_fits_slong_p(*(i).big), 1)) fail("Integer is too big to fit in a 64-bit integer!"); \
+                        mpz_get_si(*(i).big); }))
 Int_t Int$from_i64(int64_t i);
 Int_t Int$from_num(double n);
 double Int$as_num(Int_t i);

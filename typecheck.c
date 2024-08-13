@@ -899,7 +899,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             break;
         }
         case BINOP_POWER: {
-            if (rhs_t->tag == NumType && binding_works(binop_method_names[binop->op], binop->lhs, lhs_t, rhs_t, lhs_t))
+            if ((rhs_t->tag == NumType || rhs_t->tag == IntType) && binding_works(binop_method_names[binop->op], binop->lhs, lhs_t, rhs_t, lhs_t))
                 return lhs_t;
             break;
         }

@@ -291,6 +291,17 @@ public Int_t Int$abs(Int_t x)
     return Int$from_mpz(result);
 }
 
+public Int_t Int$power(Int_t base, Int_t exponent)
+{
+    int64_t exp = Int$as_i64(exponent);
+    if (__builtin_expect(exp < 0, 0))
+        fail("Cannot take a negative power of an integer!");
+    mpz_t result;
+    mpz_init_set_int(result, base);
+    mpz_pow_ui(result, result, exp);
+    return Int$from_mpz(result);
+}
+
 public Int_t Int$random(Int_t min, Int_t max) {
     int32_t cmp = Int$compare(&min, &max, &$Int);
     if (cmp > 0)

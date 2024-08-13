@@ -1351,7 +1351,7 @@ CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t 
         break;
     }
     case BINOP_POWER: {
-        if (rhs_t->tag == NumType) {
+        if (rhs_t->tag == NumType || rhs_t->tag == IntType) {
             binding_t *b = get_namespace_binding(env, lhs, binop_method_names[op]);
             if (binding_works(b, lhs_t, rhs_t, lhs_t))
                 return CORD_all(b->code, "(", compile(env, lhs), ", ", compile(env, rhs), ")");
