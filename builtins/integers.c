@@ -70,7 +70,7 @@ public bool Int$equal_value(const Int_t x, const Int_t y) {
     return x.small == y.small || (__builtin_expect(((x.small & y.small) & 1) == 0, 0) && mpz_cmp(*x.big, *y.big) == 0);
 }
 
-public bool Int$hash(const Int_t *x, const TypeInfo *type) {
+public uint32_t Int$hash(const Int_t *x, const TypeInfo *type) {
     (void)type;
     uint32_t hash;
     if (__builtin_expect(x->small & 1, 1)) {

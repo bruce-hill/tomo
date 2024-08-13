@@ -46,6 +46,7 @@ DEFINE_INT_TYPE(int8_t,  Int8);
 #define Int8$abs(...) I8(abs(__VA_ARGS__))
 
 CORD Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type);
+uint32_t Int$hash(const Int_t *x, const TypeInfo *type);
 int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo *type);
 int32_t Int$compare_value(const Int_t x, const Int_t y);
 bool Int$equal(const Int_t *x, const Int_t *y, const TypeInfo *type);
