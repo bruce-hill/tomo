@@ -344,10 +344,11 @@ void eval(env_t *env, ast_t *ast, void *dest)
     case Int: {
         if (!dest) return;
         switch (Match(ast, Int)->bits) {
-        case 0: case 64: *(int64_t*)dest = Match(ast, Int)->i; break;
-        case 32: *(int32_t*)dest = Match(ast, Int)->i; break;
-        case 16: *(int16_t*)dest = Match(ast, Int)->i; break;
-        case 8: *(int8_t*)dest = Match(ast, Int)->i; break;
+        case 0: *(Int_t*)dest = Int$from_text(Match(ast, Int)->str); break;
+        case 64: *(int64_t*)dest = Int64$from_text(Match(ast, Int)->str, NULL); break;
+        case 32: *(int32_t*)dest = Int32$from_text(Match(ast, Int)->str, NULL); break;
+        case 16: *(int16_t*)dest = Int16$from_text(Match(ast, Int)->str, NULL); break;
+        case 8: *(int8_t*)dest = Int8$from_text(Match(ast, Int)->str, NULL); break;
         default: errx(1, "Invalid int bits: %ld", Match(ast, Int)->bits);
         }
         break;
@@ -484,7 +485,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         char item_buf[item_size] = {};
         for (ast_list_t *item = Match(ast, Array)->items; item; item = item->next) {
             eval(env, item->ast, item_buf);
-            Array$insert(&arr, item_buf, 0, padded_type_size(Match(t, ArrayType)->item_type));
+            Array$insert(&arr, item_buf, I(0), padded_type_size(Match(t, ArrayType)->item_type));
         }
         memcpy(dest, &arr, sizeof(array_t));
         break;

@@ -34,7 +34,7 @@ public void Channel$push(channel_t *channel, const void *item, int64_t padded_it
     (void)pthread_mutex_lock(&channel->mutex);
     while (channel->items.length >= channel->max_size)
         pthread_cond_wait(&channel->cond, &channel->mutex);
-    Array$insert(&channel->items, item, 0, padded_item_size);
+    Array$insert(&channel->items, item, I(0), padded_item_size);
     (void)pthread_mutex_unlock(&channel->mutex);
     (void)pthread_cond_signal(&channel->cond);
 }
@@ -47,10 +47,10 @@ public void Channel$push_all(channel_t *channel, array_t to_push, int64_t padded
         for (int64_t i = 0; i < to_push.length; i++) {
             while (channel->items.length >= channel->max_size)
                 pthread_cond_wait(&channel->cond, &channel->mutex);
-            Array$insert(&channel->items, to_push.data + i*to_push.stride, 0, padded_item_size);
+            Array$insert(&channel->items, to_push.data + i*to_push.stride, I(0), padded_item_size);
         }
     } else {
-        Array$insert_all(&channel->items, to_push, 0, padded_item_size);
+        Array$insert_all(&channel->items, to_push, I(0), padded_item_size);
     }
     (void)pthread_mutex_unlock(&channel->mutex);
     (void)pthread_cond_signal(&channel->cond);
@@ -62,7 +62,7 @@ public void Channel$pop(channel_t *channel, void *out, int64_t item_size, int64_
     while (channel->items.length == 0)
         pthread_cond_wait(&channel->cond, &channel->mutex);
     memcpy(out, channel->items.data, item_size);
-    Array$remove(&channel->items, 1, 1, padded_item_size);
+    Array$remove(&channel->items, I(1), I(1), padded_item_size);
     (void)pthread_mutex_unlock(&channel->mutex);
     (void)pthread_cond_signal(&channel->cond);
 }

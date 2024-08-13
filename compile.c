@@ -1,11 +1,13 @@
 // Compilation logic
 #include <ctype.h>
-#include <gc/cord.h>
 #include <gc.h>
+#include <gc/cord.h>
+#include <gmp.h>
 #include <stdio.h>
 #include <uninorm.h>
 
 #include "ast.h"
+#include "builtins/integers.h"
 #include "builtins/text.h"
 #include "compile.h"
 #include "enums.h"
@@ -140,7 +142,7 @@ CORD compile_type(type_t *t)
     case MemoryType: return "void";
     case BoolType: return "Bool_t";
     case CStringType: return "char*";
-    case IntType: return Match(t, IntType)->bits == 64 ? "Int_t" : CORD_asprintf("Int%ld_t", Match(t, IntType)->bits);
+    case IntType: return Match(t, IntType)->bits == 0 ? "Int_t" : CORD_asprintf("Int%ld_t", Match(t, IntType)->bits);
     case NumType: return Match(t, NumType)->bits == 64 ? "Num_t" : CORD_asprintf("Num%ld_t", Match(t, NumType)->bits);
     case TextType: {
         auto text = Match(t, TextType);
@@ -548,13 +550,13 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 if (promote(env, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)) {
                     // arr ++= item
                     if (update->lhs->tag == Var)
-                        return CORD_all("Array$insert(&", lhs, ", stack(", rhs, "), 0, ", padded_item_size, ");");
+                        return CORD_all("Array$insert(&", lhs, ", stack(", rhs, "), I(0), ", padded_item_size, ");");
                     else
                         return CORD_all(lhs, "Array$concat(", lhs, ", Array(", rhs, "), ", padded_item_size, ");");
                 } else {
                     // arr ++= [...]
                     if (update->lhs->tag == Var)
-                        return CORD_all("Array$insert_all(&", lhs, ", ", rhs, ", 0, ", padded_item_size, ");");
+                        return CORD_all("Array$insert_all(&", lhs, ", ", rhs, ", I(0), ", padded_item_size, ");");
                     else
                         return CORD_all(lhs, "Array$concat(", lhs, ", ", rhs, ", ", padded_item_size, ");");
                 }
@@ -637,9 +639,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         env->code->funcs = CORD_all(env->code->funcs, code, " ", body, "\n");
 
         if (fndef->cache && fndef->cache->tag == Int) {
-            int64_t cache_size = Match(fndef->cache, Int)->i;
-            if (cache_size <= 0)
-                code_err(fndef->cache, "Cache sizes must be greater than 0");
+            int64_t cache_size = Int64$from_text(Match(fndef->cache, Int)->str, NULL);
             const char *arg_type_name = heap_strf("%s$args", Match(fndef->name, Var)->name);
             ast_t *args_def = FakeAST(StructDef, .name=arg_type_name, .fields=fndef->args);
             prebind_statement(env, args_def);
@@ -653,9 +653,9 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 all_args = CORD_all(all_args, "$", arg->name, arg->next ? ", " : CORD_EMPTY);
 
             CORD pop_code = CORD_EMPTY;
-            if (fndef->cache->tag == Int && cache_size < INT64_MAX) {
-                pop_code = CORD_all("if (Table$length(cache) > ", compile(body_scope, fndef->cache),
-                                    ") Table$remove(&cache, cache.entries.data + cache.entries.stride*Int$random(0, cache.entries.length-1), table_type);\n");
+            if (fndef->cache->tag == Int && cache_size > 0) {
+                pop_code = CORD_all("if (cache.entries.length > ", CORD_asprintf("%ld", cache_size),
+                                    ") Table$remove(&cache, cache.entries.data + cache.entries.stride*Int$random(I(0), I(cache.entries.length-1)), table_type);\n");
             }
 
             CORD arg_typedef = compile_struct_typedef(env, args_def);
@@ -851,7 +851,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         switch (iter_t->tag) {
         case ArrayType: {
             type_t *item_t = Match(iter_t, ArrayType)->item_type;
-            CORD index = "i";
+            CORD index = CORD_EMPTY;
             CORD value = CORD_EMPTY;
             if (for_->vars) {
                 if (for_->vars->next) {
@@ -871,26 +871,30 @@ CORD compile_statement(env_t *env, ast_t *ast)
             // `array:from(i)` and `array:to(i)` because these happen inside
             // hot path inner loops and can actually meaningfully affect
             // performance:
-            if (for_->iter->tag == MethodCall && streq(Match(for_->iter, MethodCall)->name, "to")
-                && value_type(get_type(env, Match(for_->iter, MethodCall)->self))->tag == ArrayType) {
-                array = Match(for_->iter, MethodCall)->self;
-                CORD limit = compile_arguments(env, for_->iter, new(arg_t, .type=Type(IntType, .bits=64), .name="last"), Match(for_->iter, MethodCall)->args);
-                loop = CORD_all(loop, "for (int64_t ", index, " = 1, raw_limit = ", limit,
-                                ", limit = raw_limit < 0 ? iterating.length + raw_limit + 1 : raw_limit; ",
-                                index, " <= limit; ++", index, ")");
-            } else if (for_->iter->tag == MethodCall && streq(Match(for_->iter, MethodCall)->name, "from")
-                       && value_type(get_type(env, Match(for_->iter, MethodCall)->self))->tag == ArrayType) {
-                array = Match(for_->iter, MethodCall)->self;
-                CORD first = compile_arguments(env, for_->iter, new(arg_t, .type=Type(IntType, .bits=64), .name="last"), Match(for_->iter, MethodCall)->args);
-                loop = CORD_all(loop, "for (int64_t first = ", first, ", ", index, " = MAX(1, first < 1 ? iterating.length + first + 1 : first", "); ",
-                                index, " <= iterating.length; ++", index, ")");
-            } else {
-                loop = CORD_all(loop, "for (int64_t ", index, " = 1; ", index, " <= iterating.length; ++", index, ")");
-            }
+            // if (for_->iter->tag == MethodCall && streq(Match(for_->iter, MethodCall)->name, "to")
+            //     && value_type(get_type(env, Match(for_->iter, MethodCall)->self))->tag == ArrayType) {
+            //     array = Match(for_->iter, MethodCall)->self;
+            //     CORD limit = compile_arguments(env, for_->iter, new(arg_t, .type=INT_TYPE, .name="last"), Match(for_->iter, MethodCall)->args);
+            //     loop = CORD_all(loop, "for (int64_t ", index, " = 1, raw_limit = ", limit,
+            //                     ", limit = raw_limit < 0 ? iterating.length + raw_limit + 1 : raw_limit; ",
+            //                     index, " <= limit; ++", index, ")");
+            // } else if (for_->iter->tag == MethodCall && streq(Match(for_->iter, MethodCall)->name, "from")
+            //            && value_type(get_type(env, Match(for_->iter, MethodCall)->self))->tag == ArrayType) {
+            //     array = Match(for_->iter, MethodCall)->self;
+            //     CORD first = compile_arguments(env, for_->iter, new(arg_t, .type=INT_TYPE, .name="last"), Match(for_->iter, MethodCall)->args);
+            //     loop = CORD_all(loop, "for (int64_t first = ", first, ", ", index, " = MAX(1, first < 1 ? iterating.length + first + 1 : first", "); ",
+            //                     index, " <= iterating.length; ++", index, ")");
+            // } else {
+                loop = CORD_all(loop, "for (int64_t i = 1; i <= iterating.length; ++i)");
+            // }
+
+            if (index != CORD_EMPTY)
+                body = CORD_all("Int_t ", index, " = I(i);\n", body);
+
             if (value != CORD_EMPTY) {
                 loop = CORD_all(loop, "{\n",
                                 compile_declaration(item_t, value),
-                                " = *(", compile_type(item_t), "*)(iterating.data + (",index,"-1)*iterating.stride);\n",
+                                " = *(", compile_type(item_t), "*)(iterating.data + (i-1)*iterating.stride);\n",
                                 body, "\n}");
             } else {
                 loop = CORD_all(loop, "{\n", body, "\n}");
@@ -972,14 +976,14 @@ CORD compile_statement(env_t *env, ast_t *ast)
             return loop;
         }
         case IntType: {
-            CORD value = for_->vars ? compile(env, for_->vars->ast) : "i";
             CORD n = compile(env, for_->iter);
             if (for_->empty) {
                 return CORD_all(
                     "{\n"
-                    "int64_t n = ", n, ";\n"
+                    "int64_t n = Int$as_i64(", n, ");\n"
                     "if (n > 0) {\n"
-                    "for (int64_t ", value, " = 1; ", value, " <= n; ++", value, ") {\n"
+                    "for (int64_t i = 1; i <= n; ++i) {\n",
+                    for_->vars ? CORD_all("\tInt_t ", compile(env, for_->vars->ast), " = I(i);\n") : CORD_EMPTY,
                     "\t", body,
                     "\n}"
                     "\n} else ", compile_statement(env, for_->empty),
@@ -987,7 +991,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     "\n}");
             } else {
                 return CORD_all(
-                    "for (int64_t ", value, " = 1, n = ", compile(env, for_->iter), "; ", value, " <= n; ++", value, ") {\n"
+                    "for (int64_t i = 1, n = Int$as_i64(", compile(env, for_->iter), "); i <= n; ++i) {\n",
+                    for_->vars ? CORD_all("\tInt_t ", compile(env, for_->vars->ast), " = I(i);\n") : CORD_EMPTY,
                     "\t", body,
                     "\n}",
                     stop,
@@ -1278,16 +1283,16 @@ CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t 
                                                  && (!required_type || type_eq(required_type, fn->ret))); }))
     switch (op) {
     case BINOP_MULT: {
-        if (lhs_t->tag == NumType || lhs_t->tag == IntType) {
+        if (type_eq(lhs_t, rhs_t)) {
+            binding_t *b = get_namespace_binding(env, lhs, binop_method_names[op]);
+            if (binding_works(b, lhs_t, rhs_t, lhs_t))
+                return CORD_all(b->code, "(", compile(env, lhs), ", ", compile(env, rhs), ")");
+        } else if (lhs_t->tag == NumType || lhs_t->tag == IntType) {
             binding_t *b = get_namespace_binding(env, rhs, "scaled_by");
             if (binding_works(b, rhs_t, lhs_t, rhs_t))
                 return CORD_all(b->code, "(", compile(env, rhs), ", ", compile(env, lhs), ")");
         } else if (rhs_t->tag == NumType || rhs_t->tag == IntType) {
             binding_t *b = get_namespace_binding(env, lhs, "scaled_by");
-            if (binding_works(b, lhs_t, rhs_t, lhs_t))
-                return CORD_all(b->code, "(", compile(env, lhs), ", ", compile(env, rhs), ")");
-        } else if (type_eq(lhs_t, rhs_t)) {
-            binding_t *b = get_namespace_binding(env, lhs, binop_method_names[op]);
             if (binding_works(b, lhs_t, rhs_t, lhs_t))
                 return CORD_all(b->code, "(", compile(env, lhs), ", ", compile(env, rhs), ")");
         }
@@ -1345,7 +1350,38 @@ CORD compile(env_t *env, ast_t *ast)
         return CORD_cat("$", Match(ast, Var)->name);
         // code_err(ast, "I don't know of any variable by this name");
     }
-    case Int: return CORD_asprintf("I%ld(%ld)", Match(ast, Int)->bits, Match(ast, Int)->i);
+    case Int: {
+        const char *str = Match(ast, Int)->str;
+        Int_t int_val = Int$from_text(str);
+        mpz_t i;
+        mpz_init_set_int(i, int_val);
+
+        switch (Match(ast, Int)->bits) {
+        case 0:
+        if ((mpz_cmp_si(i, BIGGEST_SMALL_INT) < 0) && (mpz_cmp_si(i, -BIGGEST_SMALL_INT) > 0)) {
+            return CORD_asprintf("I(%s)", str);
+        } else {
+            return CORD_asprintf("Int$from_text(\"%s\")", str);
+        }
+        case 64:
+        if ((mpz_cmp_si(i, INT64_MAX) < 0) && (mpz_cmp_si(i, INT64_MIN) > 0))
+            return CORD_asprintf("I64(%s)", str);
+        code_err(ast, "This value cannot fit in a 64-bit integer");
+        case 32:
+        if ((mpz_cmp_si(i, INT32_MAX) < 0) && (mpz_cmp_si(i, INT32_MIN) > 0))
+            return CORD_asprintf("I32(%s)", str);
+        code_err(ast, "This value cannot fit in a 32-bit integer");
+        case 16:
+        if ((mpz_cmp_si(i, INT16_MAX) < 0) && (mpz_cmp_si(i, INT16_MIN) > 0))
+            return CORD_asprintf("I16(%s)", str);
+        code_err(ast, "This value cannot fit in a 16-bit integer");
+        case 8:
+        if ((mpz_cmp_si(i, INT8_MAX) < 0) && (mpz_cmp_si(i, INT8_MIN) > 0))
+            return CORD_asprintf("I8(%s)", str);
+        code_err(ast, "This value cannot fit in a 8-bit integer");
+        default: code_err(ast, "Not a valid integer bit width");
+        }
+    }
     case Num: {
         return CORD_asprintf(Match(ast, Num)->bits == 64 ? "N64(%.9g)" : "N32(%.9g)", Match(ast, Num)->n);
     }
@@ -1360,19 +1396,19 @@ CORD compile(env_t *env, ast_t *ast)
         case ArrayType: {
             if (t->tag == PointerType) {
                 CORD arr = compile_to_pointer_depth(env, expr, 1, false);
-                return CORD_all("I64((", arr, ")->length)");
+                return CORD_all("I((", arr, ")->length)");
             } else {
                 CORD arr = compile_to_pointer_depth(env, expr, 0, false);
-                return CORD_all("I64((", arr, ").length)");
+                return CORD_all("I((", arr, ").length)");
             }
         }
         case TableType: {
             if (t->tag == PointerType) {
                 CORD table = compile_to_pointer_depth(env, expr, 1, false);
-                return CORD_all("I64((", table, ")->entries.length)");
+                return CORD_all("I((", table, ")->entries.length)");
             } else {
                 CORD table = compile_to_pointer_depth(env, expr, 0, false);
-                return CORD_all("I64((", table, ").entries.length)");
+                return CORD_all("I((", table, ").entries.length)");
             }
         }
         default: {
@@ -1382,8 +1418,16 @@ CORD compile(env_t *env, ast_t *ast)
         break;
     }
     case Not: {
-        type_t *t = get_type(env, ast);
         ast_t *value = Match(ast, Not)->value;
+        type_t *t = get_type(env, ast);
+
+        binding_t *b = get_namespace_binding(env, value, "negated");
+        if (b && b->type->tag == FunctionType) {
+            auto fn = Match(b->type, FunctionType);
+            if (fn->args && can_promote(t, get_arg_type(env, fn->args)))
+                return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=value)), ")");
+        }
+
         if (t->tag == BoolType)
             return CORD_all("!(", compile(env, value), ")");
         else if (t->tag == IntType)
@@ -1393,27 +1437,20 @@ CORD compile(env_t *env, ast_t *ast)
         else if (t->tag == TextType)
             return CORD_all("!(", compile(env, value), ")");
 
-        binding_t *b = get_namespace_binding(env, value, "negated");
-        if (b && b->type->tag == FunctionType) {
-            auto fn = Match(b->type, FunctionType);
-            if (fn->args && can_promote(t, get_arg_type(env, fn->args)))
-                return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=value)), ")");
-        }
-
         code_err(ast, "I don't know how to negate values of type %T", t);
     }
     case Negative: {
         ast_t *value = Match(ast, Negative)->value;
         type_t *t = get_type(env, value);
-        if (t->tag == IntType || t->tag == NumType)
-            return CORD_all("-(", compile(env, value), ")");
-
         binding_t *b = get_namespace_binding(env, value, "negative");
         if (b && b->type->tag == FunctionType) {
             auto fn = Match(b->type, FunctionType);
             if (fn->args && can_promote(t, get_arg_type(env, fn->args)))
                 return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=value)), ")");
         }
+
+        if (t->tag == IntType || t->tag == NumType)
+            return CORD_all("-(", compile(env, value), ")");
 
         code_err(ast, "I don't know how to get the negative value of type %T", t);
 
@@ -1499,7 +1536,11 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case BINOP_EQ: {
             switch (operand_t->tag) {
-            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+            case IntType:
+                if (Match(operand_t, IntType)->bits == 0)
+                    return CORD_all("Int$equal_value(", lhs, ", ", rhs, ")");
+                return CORD_all("(", lhs, " == ", rhs, ")");
+            case BoolType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " == ", rhs, ")");
             default:
                 return CORD_asprintf("generic_equal(stack(%r), stack(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
@@ -1507,7 +1548,11 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case BINOP_NE: {
             switch (operand_t->tag) {
-            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+            case IntType:
+                if (Match(operand_t, IntType)->bits == 0)
+                    return CORD_all("!Int$equal_value(", lhs, ", ", rhs, ")");
+                return CORD_all("(", lhs, " != ", rhs, ")");
+            case BoolType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " != ", rhs, ")");
             default:
                 return CORD_asprintf("!generic_equal(stack(%r), stack(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
@@ -1515,7 +1560,11 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case BINOP_LT: {
             switch (operand_t->tag) {
-            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+            case IntType:
+                if (Match(operand_t, IntType)->bits == 0)
+                    return CORD_all("(Int$compare_value(", lhs, ", ", rhs, ") < 0)");
+                return CORD_all("(", lhs, " != ", rhs, ")");
+            case BoolType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " < ", rhs, ")");
             default:
                 return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) < 0)", lhs, rhs, compile_type_info(env, operand_t));
@@ -1523,7 +1572,11 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case BINOP_LE: {
             switch (operand_t->tag) {
-            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+            case IntType:
+                if (Match(operand_t, IntType)->bits == 0)
+                    return CORD_all("(Int$compare_value(", lhs, ", ", rhs, ") <= 0)");
+                return CORD_all("(", lhs, " != ", rhs, ")");
+            case BoolType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " <= ", rhs, ")");
             default:
                 return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) <= 0)", lhs, rhs, compile_type_info(env, operand_t));
@@ -1531,7 +1584,11 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case BINOP_GT: {
             switch (operand_t->tag) {
-            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+            case IntType:
+                if (Match(operand_t, IntType)->bits == 0)
+                    return CORD_all("(Int$compare_value(", lhs, ", ", rhs, ") > 0)");
+                return CORD_all("(", lhs, " != ", rhs, ")");
+            case BoolType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " > ", rhs, ")");
             default:
                 return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) > 0)", lhs, rhs, compile_type_info(env, operand_t));
@@ -1539,7 +1596,11 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case BINOP_GE: {
             switch (operand_t->tag) {
-            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+            case IntType:
+                if (Match(operand_t, IntType)->bits == 0)
+                    return CORD_all("(Int$compare_value(", lhs, ", ", rhs, ") >= 0)");
+                return CORD_all("(", lhs, " != ", rhs, ")");
+            case BoolType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " >= ", rhs, ")");
             default:
                 return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) >= 0)", lhs, rhs, compile_type_info(env, operand_t));
@@ -1999,19 +2060,19 @@ CORD compile(env_t *env, ast_t *ast)
             if (streq(call->name, "insert")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
-                                      .next=new(arg_t, .name="at", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=0, .bits=64)));
+                                      .next=new(arg_t, .name="at", .type=INT_TYPE, .default_val=FakeAST(Int, .str="0", .bits=0)));
                 return CORD_all("Array$insert_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "insert_all")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="items", .type=self_value_t,
-                                      .next=new(arg_t, .name="at", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=0, .bits=64)));
+                                      .next=new(arg_t, .name="at", .type=INT_TYPE, .default_val=FakeAST(Int, .str="0", .bits=0)));
                 return CORD_all("Array$insert_all(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "remove")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
-                arg_t *arg_spec = new(arg_t, .name="index", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=-1, .bits=64),
-                                      .next=new(arg_t, .name="count", .type=Type(IntType, .bits=64), .default_val=FakeAST(Int, .i=1, .bits=64)));
+                arg_t *arg_spec = new(arg_t, .name="index", .type=INT_TYPE, .default_val=FakeAST(Int, .str="-1", .bits=0),
+                                      .next=new(arg_t, .name="count", .type=INT_TYPE, .default_val=FakeAST(Int, .str="1", .bits=0)));
                 return CORD_all("Array$remove(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "random")) {
@@ -2020,7 +2081,7 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Array$random_value(", self, ", ", compile_type(item_t), ")");
             } else if (streq(call->name, "sample")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="count", .type=Type(IntType, .bits=64),
+                arg_t *arg_spec = new(arg_t, .name="count", .type=INT_TYPE,
                                       .next=new(arg_t, .name="weights", .type=Type(ArrayType, .item_type=Type(NumType, .bits=64)),
                                                 .default_val=FakeAST(Array, .item_type=new(type_ast_t, .tag=VarTypeAST, .__data.VarTypeAST.name="Num"))));
                 return CORD_all("Array$sample(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
@@ -2079,15 +2140,15 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Array$clear(", self, ")");
             } else if (streq(call->name, "from")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="first", .type=Type(IntType, .bits=64));
+                arg_t *arg_spec = new(arg_t, .name="first", .type=INT_TYPE);
                 return CORD_all("Array$from(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "to")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="last", .type=Type(IntType, .bits=64));
+                arg_t *arg_spec = new(arg_t, .name="last", .type=INT_TYPE);
                 return CORD_all("Array$to(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "by")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="stride", .type=Type(IntType, .bits=64));
+                arg_t *arg_spec = new(arg_t, .name="stride", .type=INT_TYPE);
                 return CORD_all("Array$by(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
             } else if (streq(call->name, "reversed")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
@@ -2227,7 +2288,7 @@ CORD compile(env_t *env, ast_t *ast)
                 if (!(table->value_type->tag == IntType || table->value_type->tag == NumType))
                     code_err(ast, "bump() is only supported for tables with numeric value types, not %T", self_value_t);
                 ast_t *one = table->value_type->tag == IntType
-                    ? FakeAST(Int, .i=1, .bits=Match(table->value_type, IntType)->bits)
+                    ? FakeAST(Int, .str="1", .bits=Match(table->value_type, IntType)->bits)
                     : FakeAST(Num, .n=1, .bits=Match(table->value_type, NumType)->bits);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type,
                                       .next=new(arg_t, .name="amount", .type=table->value_type, .default_val=one));
@@ -2611,7 +2672,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         usage = CORD_cat(usage, " ");
         type_t *t = get_arg_type(main_env, arg);
-        CORD flag = Text$replace(arg->name, "_", "-", INT64_MAX);
+        CORD flag = Text$replace(arg->name, "_", "-", I(-1));
         if (arg->default_val) {
             if (t->tag == BoolType)
                 usage = CORD_all(usage, "[--", flag, "]");
@@ -2649,7 +2710,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                     "if (strncmp(argv[i], \"--\", 2) != 0) {\n++i;\ncontinue;\n}\n");
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         type_t *t = get_arg_type(main_env, arg);
-        CORD flag = Text$replace(arg->name, "_", "-", INT64_MAX);
+        CORD flag = Text$replace(arg->name, "_", "-", I(-1));
         switch (t->tag) {
         case BoolType: {
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n"

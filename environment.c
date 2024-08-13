@@ -66,7 +66,7 @@ env_t *new_compilation_unit(CORD *libname)
             StructType, .name="Range", .env=range_env,
             .fields=new(arg_t, .name="first", .type=INT_TYPE,
               .next=new(arg_t, .name="last", .type=INT_TYPE,
-              .next=new(arg_t, .name="step", .type=INT_TYPE, .default_val=FakeAST(Int, .i=1, .bits=64)))));
+              .next=new(arg_t, .name="step", .type=INT_TYPE, .default_val=FakeAST(Int, .str="1")))));
     }
 
     {
@@ -86,17 +86,40 @@ env_t *new_compilation_unit(CORD *libname)
         {"Bool", Type(BoolType), "Bool_t", "$Bool", TypedArray(ns_entry_t,
             {"from_text", "Bool$from_text", "func(text:Text, success=!&Bool)->Bool"},
         )},
-        {"Int", Type(IntType, .bits=64), "Int_t", "$Int", TypedArray(ns_entry_t,
+        {"Int", Type(IntType, .bits=0), "Int_t", "$Int", TypedArray(ns_entry_t,
             {"format", "Int$format", "func(i:Int, digits=0)->Text"},
             {"hex", "Int$hex", "func(i:Int, digits=0, uppercase=yes, prefix=yes)->Text"},
             {"octal", "Int$octal", "func(i:Int, digits=0, prefix=yes)->Text"},
-            {"random", "Int$random", "func(min=-0x8000000000000000, max=0x7FFFFFFFFFFFFFFF)->Int"},
+            {"random", "Int$random", "func(min:Int, max:Int)->Int"},
             {"from_text", "Int$from_text", "func(text:Text, the_rest=!&Text)->Int"},
-            {"bits", "Int$bits", "func(x:Int)->[Bool]"},
             {"abs", "labs", "func(i:Int)->Int"},
-            {"min", "Int$min", "Int"},
-            {"max", "Int$max", "Int"},
             {"to", "Int$to", "func(from:Int,to:Int)->Range"},
+            {"plus", "Int$plus", "func(x:Int,y:Int)->Int"},
+            {"minus", "Int$minus", "func(x:Int,y:Int)->Int"},
+            {"times", "Int$times", "func(x:Int,y:Int)->Int"},
+            {"divided_by", "Int$divided_by", "func(x:Int,y:Int)->Int"},
+            {"modulo", "Int$modulo", "func(x:Int,y:Int)->Int"},
+            {"modulo1", "Int$modulo1", "func(x:Int,y:Int)->Int"},
+            {"left_shifted", "Int$left_shifted", "func(x:Int,y:Int)->Int"},
+            {"right_shifted", "Int$right_shifted", "func(x:Int,y:Int)->Int"},
+            {"bit_and", "Int$bit_and", "func(x:Int,y:Int)->Int"},
+            {"bit_or", "Int$bit_or", "func(x:Int,y:Int)->Int"},
+            {"bit_xor", "Int$bit_xor", "func(x:Int,y:Int)->Int"},
+            {"negative", "Int$negative", "func(x:Int)->Int"},
+            {"negated", "Int$negated", "func(x:Int)->Int"},
+            {"abs", "Int$abs", "func(x:Int)->Int"},
+        )},
+        {"Int64", Type(IntType, .bits=64), "Int64_t", "$Int64", TypedArray(ns_entry_t,
+            {"format", "Int64$format", "func(i:Int64, digits=0)->Text"},
+            {"hex", "Int64$hex", "func(i:Int64, digits=0, uppercase=yes, prefix=yes)->Text"},
+            {"octal", "Int64$octal", "func(i:Int64, digits=0, prefix=yes)->Text"},
+            {"random", "Int64$random", "func(min=-0x8000000000000000, max=0x7FFFFFFFFFFFFFFF)->Int64"},
+            {"from_text", "Int64$from_text", "func(text:Text, the_rest=!&Text)->Int64"},
+            {"bits", "Int64$bits", "func(x:Int64)->[Bool]"},
+            {"abs", "labs", "func(i:Int64)->Int64"},
+            {"min", "Int64$min", "Int64"},
+            {"max", "Int64$max", "Int64"},
+            {"to", "Int64$to", "func(from:Int64,to:Int64)->Range"},
         )},
         {"Int32", Type(IntType, .bits=32), "Int32_t", "$Int32", TypedArray(ns_entry_t,
             {"format", "Int32$format", "func(i:Int32, digits=0)->Text"},
@@ -213,7 +236,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"num_clusters", "Text$num_clusters", "func(text:Text)->Int"},
             {"num_codepoints", "Text$num_codepoints", "func(text:Text)->Int"},
             {"quoted", "Text$quoted", "func(text:Text, color=no)->Text"},
-            {"replace", "Text$replace", "func(text:Text, pattern:Text, replacement:Text, limit=Int.max)->Text"},
+            {"replace", "Text$replace", "func(text:Text, pattern:Text, replacement:Text, limit=-1)->Text"},
             {"split", "Text$split", "func(text:Text, split:Text)->[Text]"},
             {"title", "Text$title", "func(text:Text)->Text"},
             {"title", "Text$title", "func(text:Text)->Text"},
@@ -340,7 +363,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
         if (num_vars == 1) {
             set_binding(scope, vars[0], new(binding_t, .type=item_t, .code=CORD_cat("$", vars[0])));
         } else if (num_vars == 2) {
-            set_binding(scope, vars[0], new(binding_t, .type=Type(IntType, .bits=64), .code=CORD_cat("$", vars[0])));
+            set_binding(scope, vars[0], new(binding_t, .type=INT_TYPE, .code=CORD_cat("$", vars[0])));
             set_binding(scope, vars[1], new(binding_t, .type=item_t, .code=CORD_cat("$", vars[1])));
         }
         return scope;
@@ -379,7 +402,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
             if (for_->vars->next)
                 code_err(for_->vars->next->ast, "This is too many variables for this loop");
             const char *var = Match(for_->vars->ast, Var)->name;
-            set_binding(scope, var, new(binding_t, .type=Type(IntType, .bits=64), .code=CORD_cat("$", var)));
+            set_binding(scope, var, new(binding_t, .type=INT_TYPE, .code=CORD_cat("$", var)));
         }
         return scope;
     }

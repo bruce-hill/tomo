@@ -17,6 +17,7 @@
 #include "files.h"
 #include "functions.h"
 #include "halfsiphash.h"
+#include "integers.h"
 #include "pointer.h"
 #include "string.h"
 #include "table.h"
@@ -35,6 +36,7 @@ public void tomo_init(void)
    getrandom(&seed, sizeof(seed), 0);
    srand(seed);
    srand48(seed);
+   Int$init_random(seed);
 }
 
 static void print_stack_trace(FILE *out)

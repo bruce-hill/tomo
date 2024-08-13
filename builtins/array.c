@@ -48,8 +48,9 @@ public void Array$compact(array_t *arr, int64_t padded_item_size)
     };
 }
 
-public void Array$insert(array_t *arr, const void *item, int64_t index, int64_t padded_item_size)
+public void Array$insert(array_t *arr, const void *item, Int_t int_index, int64_t padded_item_size)
 {
+    int64_t index = Int$as_i64(int_index);
     if (index <= 0) index = arr->length + index + 1;
 
     if (index < 1) index = 1;
@@ -79,8 +80,9 @@ public void Array$insert(array_t *arr, const void *item, int64_t index, int64_t 
     memcpy((void*)arr->data + (index-1)*padded_item_size, item, padded_item_size);
 }
 
-public void Array$insert_all(array_t *arr, array_t to_insert, int64_t index, int64_t padded_item_size)
+public void Array$insert_all(array_t *arr, array_t to_insert, Int_t int_index, int64_t padded_item_size)
 {
+    int64_t index = Int$as_i64(int_index);
     if (to_insert.length == 0)
         return;
 
@@ -150,10 +152,12 @@ public void Array$insert_all(array_t *arr, array_t to_insert, int64_t index, int
     }
 }
 
-public void Array$remove(array_t *arr, int64_t index, int64_t count, int64_t padded_item_size)
+public void Array$remove(array_t *arr, Int_t int_index, Int_t int_count, int64_t padded_item_size)
 {
+    int64_t index = Int$as_i64(int_index);
     if (index < 1) index = arr->length + index + 1;
 
+    int64_t count = Int$as_i64(int_count);
     if (index < 1 || index > (int64_t)arr->length || count < 1) return;
 
     if (count > arr->length - index + 1)
@@ -205,7 +209,7 @@ public void Array$shuffle(array_t *arr, int64_t padded_item_size)
 
     char tmp[padded_item_size];
     for (int64_t i = arr->length-1; i > 1; i--) {
-        int64_t j = Int$random(0, i);
+        int64_t j = arc4random_uniform(i+1);
         memcpy(tmp, arr->data + i*padded_item_size, padded_item_size);
         memcpy((void*)arr->data + i*padded_item_size, arr->data + j*padded_item_size, padded_item_size);
         memcpy((void*)arr->data + j*padded_item_size, tmp, padded_item_size);
@@ -216,7 +220,7 @@ public void *Array$random(array_t arr)
 {
     if (arr.length == 0)
         return NULL; // fail("Cannot get a random item from an empty array!");
-    int64_t index = Int$random(0, arr.length-1);
+    int64_t index = arc4random_uniform(arr.length);
     return arr.data + arr.stride*index;
 }
 
@@ -234,8 +238,9 @@ public table_t Array$counts(array_t arr, const TypeInfo *type)
     return counts;
 }
 
-public array_t Array$sample(array_t arr, int64_t n, array_t weights, int64_t padded_item_size)
+public array_t Array$sample(array_t arr, Int_t int_n, array_t weights, int64_t padded_item_size)
 {
+    int64_t n = Int$as_i64(int_n);
     if (arr.length == 0 || n <= 0)
         return (array_t){};
 
@@ -262,7 +267,7 @@ public array_t Array$sample(array_t arr, int64_t n, array_t weights, int64_t pad
 
     if (total == 0.0) {
         for (int64_t i = 0; i < n; i++) {
-            int64_t index = Int$random(0, arr.length-1);
+            int64_t index = arc4random_uniform(arr.length);
             memcpy(selected.data + i*padded_item_size, arr.data + arr.stride*index, padded_item_size);
         }
     } else {
@@ -312,8 +317,9 @@ public array_t Array$sample(array_t arr, int64_t n, array_t weights, int64_t pad
     return selected;
 }
 
-public array_t Array$from(array_t array, int64_t first)
+public array_t Array$from(array_t array, Int_t int_first)
 {
+    int64_t first = Int$as_i64(int_first);
     if (first < 0)
         first = array.length + first + 1;
 
@@ -329,8 +335,9 @@ public array_t Array$from(array_t array, int64_t first)
     };
 }
 
-public array_t Array$to(array_t array, int64_t last)
+public array_t Array$to(array_t array, Int_t int_last)
 {
+    int64_t last = Int$as_i64(int_last);
     if (last < 0)
         last = array.length + last + 1;
 
@@ -349,8 +356,9 @@ public array_t Array$to(array_t array, int64_t last)
     };
 }
 
-public array_t Array$by(array_t array, int64_t stride, int64_t padded_item_size)
+public array_t Array$by(array_t array, Int_t int_stride, int64_t padded_item_size)
 {
+    int64_t stride = Int$as_i64(int_stride);
     // In the unlikely event that the stride value would be too large to fit in
     // a 15-bit integer, fall back to creating a copy of the array:
     if (__builtin_expect(array.stride*stride < ARRAY_MIN_STRIDE || array.stride*stride > ARRAY_MAX_STRIDE, 0)) {
@@ -389,7 +397,7 @@ public array_t Array$reversed(array_t array, int64_t padded_item_size)
     // the array. This should only happen if array.stride is MIN_STRIDE to
     // begin with (very unlikely).
     if (__builtin_expect(-array.stride < ARRAY_MIN_STRIDE || -array.stride > ARRAY_MAX_STRIDE, 0))
-        return Array$by(array, -1, padded_item_size);
+        return Array$by(array, I(-1), padded_item_size);
 
     array_t reversed = array;
     reversed.stride = -array.stride;
@@ -584,7 +592,7 @@ static void siftup(array_t *heap, int64_t pos, closure_t comparison, int64_t pad
 
 public void Array$heap_push(array_t *heap, const void *item, closure_t comparison, int64_t padded_item_size)
 {
-    Array$insert(heap, item, 0, padded_item_size);
+    Array$insert(heap, item, I(0), padded_item_size);
 
     if (heap->length > 1) {
         if (heap->data_refcount != 0)

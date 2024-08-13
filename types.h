@@ -121,7 +121,7 @@ struct type_s {
 };
 
 #define Type(typetag, ...) new(type_t, .tag=typetag, .__data.typetag={__VA_ARGS__})
-#define INT_TYPE Type(IntType, .bits=64)
+#define INT_TYPE Type(IntType, .bits=0)
 #define NUM_TYPE Type(NumType, .bits=64)
 
 int printf_pointer_size(const struct printf_info *info, size_t n, int argtypes[n], int size[n]);

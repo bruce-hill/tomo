@@ -7,27 +7,28 @@
 
 #include "datatypes.h"
 #include "functions.h"
+#include "integers.h"
 #include "types.h"
 #include "util.h"
 
 // Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
 #define Array_get(item_type, arr_expr, index_expr, filename, start, end) *({ \
-    const array_t arr = arr_expr; int64_t index = (int64_t)(index_expr); \
+    const array_t arr = arr_expr; int64_t index = Int$as_i64(index_expr); \
     int64_t off = index + (index < 0) * (arr.length + 1) - 1; \
     if (__builtin_expect(off < 0 || off >= arr.length, 0)) \
-        fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int$as_text(&index, no, NULL), arr.length); \
+        fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int64$as_text(&index, no, NULL), arr.length); \
     (item_type*)(arr.data + arr.stride * off);})
 #define Array_lvalue(item_type, arr_expr, index_expr, padded_item_size, filename, start, end) *({ \
-    array_t *arr = arr_expr; int64_t index = (int64_t)(index_expr); \
+    array_t *arr = arr_expr; int64_t index = Int$as_i64(index_expr); \
     int64_t off = index + (index < 0) * (arr->length + 1) - 1; \
     if (__builtin_expect(off < 0 || off >= arr->length, 0)) \
-        fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int$as_text(&index, no, NULL), arr->length); \
+        fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int64$as_text(&index, no, NULL), arr->length); \
     if (arr->data_refcount > 0) \
         Array$compact(arr, padded_item_size); \
     (item_type*)(arr->data + arr->stride * off); })
 #define Array_set(item_type, arr, index, value, padded_item_size, filename, start, end) \
     Array_lvalue(item_type, arr_expr, index, padded_item_size, filename, start, end) = value
-#define Array_get_unchecked(type, x, i) *({ const array_t arr = x; int64_t index = (int64_t)(i); \
+#define Array_get_unchecked(type, x, i) *({ const array_t arr = x; int64_t index = I(i); \
                                           int64_t off = index + (index < 0) * (arr.length + 1) - 1; \
                                           (type*)(arr.data + arr.stride * off);})
 #define is_atomic(x) _Generic(x, bool: true, int8_t: true, int16_t: true, int32_t: true, int64_t: true, float: true, double: true, default: false)
@@ -55,22 +56,22 @@
 #define ARRAY_COPY(arr) ({ ARRAY_INCREF(arr); arr; })
 
 #define Array$insert_value(arr, item_expr, index, padded_item_size) ({ __typeof(item_expr) item = item_expr; Array$insert(arr, &item, index, padded_item_size); })
-void Array$insert(array_t *arr, const void *item, int64_t index, int64_t padded_item_size);
-void Array$insert_all(array_t *arr, array_t to_insert, int64_t index, int64_t padded_item_size);
-void Array$remove(array_t *arr, int64_t index, int64_t count, int64_t padded_item_size);
+void Array$insert(array_t *arr, const void *item, Int_t index, int64_t padded_item_size);
+void Array$insert_all(array_t *arr, array_t to_insert, Int_t index, int64_t padded_item_size);
+void Array$remove(array_t *arr, Int_t index, Int_t count, int64_t padded_item_size);
 void Array$sort(array_t *arr, closure_t comparison, int64_t padded_item_size);
 array_t Array$sorted(array_t arr, closure_t comparison, int64_t padded_item_size);
 void Array$shuffle(array_t *arr, int64_t padded_item_size);
 void *Array$random(array_t arr);
 #define Array$random_value(arr, t) ({ array_t _arr = arr; if (_arr.length == 0) fail("Cannot get a random value from an empty array!"); *(t*)Array$random(_arr); })
-array_t Array$sample(array_t arr, int64_t n, array_t weights, int64_t padded_item_size);
+array_t Array$sample(array_t arr, Int_t n, array_t weights, int64_t padded_item_size);
 table_t Array$counts(array_t arr, const TypeInfo *type);
 void Array$clear(array_t *array);
 void Array$compact(array_t *arr, int64_t padded_item_size);
 bool Array$contains(array_t array, void *item, const TypeInfo *type);
-array_t Array$from(array_t array, int64_t first);
-array_t Array$to(array_t array, int64_t last);
-array_t Array$by(array_t array, int64_t stride, int64_t padded_item_size);
+array_t Array$from(array_t array, Int_t first);
+array_t Array$to(array_t array, Int_t last);
+array_t Array$by(array_t array, Int_t stride, int64_t padded_item_size);
 array_t Array$reversed(array_t array, int64_t padded_item_size);
 array_t Array$concat(array_t x, array_t y, int64_t padded_item_size);
 uint32_t Array$hash(const array_t *arr, const TypeInfo *type);

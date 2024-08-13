@@ -1,6 +1,7 @@
 // Logic for getting a type from an AST node
 #include <ctype.h>
 #include <gc.h>
+#include <gmp.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -828,7 +829,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         return Type(AbortType);
     }
     case Pass: case Defer: return Type(VoidType);
-    case Length: return Type(IntType, .bits=64);
+    case Length: return INT_TYPE;
     case Negative: {
         ast_t *value = Match(ast, Negative)->value;
         type_t *t = get_type(env, value);

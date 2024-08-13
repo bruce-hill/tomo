@@ -1,6 +1,7 @@
 // Recursive descent parser for parsing code
 #include <ctype.h>
 #include <gc.h>
+#include <gmp.h>
 #include <libgen.h>
 #include <linux/limits.h>
 #include <setjmp.h>
@@ -12,6 +13,7 @@
 #include <signal.h>
 
 #include "ast.h"
+#include "builtins/integers.h"
 #include "builtins/table.h"
 #include "builtins/util.h"
 
@@ -439,51 +441,26 @@ PARSER(parse_parens) {
 
 PARSER(parse_int) {
     const char *start = pos;
-    bool negative = match(&pos, "-");
+    (void)match(&pos, "-");
     if (!isdigit(*pos)) return false;
     int64_t i = 0;
     if (match(&pos, "0x")) { // Hex
-        size_t span = strspn(pos, "0123456789abcdefABCDEF_");
-        char *buf = GC_MALLOC_ATOMIC(span+1);
-        memset(buf, 0, span+1);
-        for (char *src = (char*)pos, *dest = buf; src < pos+span; ++src) {
-            if (*src != '_') *(dest++) = *src;
-        }
-        i = strtol(buf, NULL, 16);
-        pos += span;
+        pos += strspn(pos, "0123456789abcdefABCDEF_");
     } else if (match(&pos, "0b")) { // Binary
-        size_t span = strspn(pos, "01_");
-        char *buf = GC_MALLOC_ATOMIC(span+1);
-        memset(buf, 0, span+1);
-        for (char *src = (char*)pos, *dest = buf; src < pos+span; ++src) {
-            if (*src != '_') *(dest++) = *src;
-        }
-        i = strtol(buf, NULL, 2);
-        pos += span;
+        pos += strspn(pos, "01_");
     } else if (match(&pos, "0o")) { // Octal
-        size_t span = strspn(pos, "01234567_");
-        char *buf = GC_MALLOC_ATOMIC(span+1);
-        memset(buf, 0, span+1);
-        for (char *src = (char*)pos, *dest = buf; src < pos+span; ++src) {
-            if (*src != '_') *(dest++) = *src;
-        }
-        i = strtol(buf, NULL, 8);
-        pos += span;
+        pos += strspn(pos, "01234567_");
     } else { // Decimal
-        size_t span = strspn(pos, "0123456789_");
-        char *buf = GC_MALLOC_ATOMIC(span+1);
-        memset(buf, 0, span+1);
-        for (char *src = (char*)pos, *dest = buf; src < pos+span; ++src) {
-            if (*src != '_') *(dest++) = *src;
-        }
-        i = strtol(buf, NULL, 10);
-        pos += span;
+        pos += strspn(pos, "0123456789_");
+    }
+    char *str = GC_MALLOC_ATOMIC((size_t)(pos - start) + 1);
+    memset(str, 0, (size_t)(pos - start) + 1);
+    for (char *src = (char*)start, *dest = str; src < pos; ++src) {
+        if (*src != '_') *(dest++) = *src;
     }
 
     if (match(&pos, "e") || match(&pos, "f")) // floating point literal
         return NULL;
-
-    if (negative) i *= -1;
 
     if (match(&pos, "%")) {
         double d = (double)i / 100.;
@@ -491,7 +468,7 @@ PARSER(parse_int) {
     }
 
     match(&pos, "_");
-    int64_t bits = 64;
+    int64_t bits = 0;
     if (match(&pos, "i64")) bits = 64;
     else if (match(&pos, "i32")) bits = 32;
     else if (match(&pos, "i16")) bits = 16;
@@ -499,7 +476,7 @@ PARSER(parse_int) {
 
     // else if (match(&pos, ".") || match(&pos, "e")) return NULL; // looks like a float
 
-    return NewAST(ctx->file, start, pos, Int, .i=i, .bits=bits);
+    return NewAST(ctx->file, start, pos, Int, .str=str, .bits=bits);
 }
 
 type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
@@ -1908,7 +1885,9 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
         spaces(&pos);
         if (match(&pos, "=")) {
             ast_t *val = expect(ctx, tag_start, &pos, parse_int, "I expected an integer literal after this '='");
-            next_value = Match(val, Int)->i;
+            Int_t i = Int$from_text(Match(val, Int)->str);
+            // TODO check for overflow
+            next_value = (i.small >> 2);
         }
 
         // Check for duplicate values:
@@ -2051,7 +2030,7 @@ PARSER(parse_func_def) {
         if (match_word(&pos, "inline")) {
             is_inline = true;
         } else if (match_word(&pos, "cached")) {
-            if (!cache_ast) cache_ast = NewAST(ctx->file, pos, pos, Int, .i=INT64_MAX, .bits=64);
+            if (!cache_ast) cache_ast = NewAST(ctx->file, pos, pos, Int, .str="-1", .bits=0);
         } else if (match_word(&pos, "cache_size")) {
             whitespace(&pos);
             if (!match(&pos, "="))

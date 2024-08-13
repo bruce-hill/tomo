@@ -143,7 +143,7 @@ struct ast_s {
             const char *name;
         } Var;
         struct {
-            int64_t i;
+            const char *str;
             int64_t bits;
         } Int;
         struct {

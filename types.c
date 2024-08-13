@@ -19,7 +19,7 @@ CORD type_to_cord(type_t *t) {
         case BoolType: return "Bool";
         case CStringType: return "CString";
         case TextType: return Match(t, TextType)->lang ? Match(t, TextType)->lang : "Text";
-        case IntType: return Match(t, IntType)->bits == 64 ? "Int" : CORD_asprintf("Int%ld", Match(t, IntType)->bits);
+        case IntType: return Match(t, IntType)->bits == 0 ? "Int" : CORD_asprintf("Int%ld", Match(t, IntType)->bits);
         case NumType: return Match(t, NumType)->bits == 64 ? "Num" : CORD_asprintf("Num%ld", Match(t, NumType)->bits);
         case ArrayType: {
             auto array = Match(t, ArrayType);
@@ -143,11 +143,7 @@ type_t *type_or_type(type_t *a, type_t *b)
         switch (compare_precision(a, b)) {
         case NUM_PRECISION_EQUAL: case NUM_PRECISION_MORE: return a;
         case NUM_PRECISION_LESS: return b;
-        case NUM_PRECISION_INCOMPARABLE: {
-            if (a->tag == IntType && b->tag == IntType && Match(a, IntType)->bits < 64)
-                return Type(IntType, .bits=Match(a, IntType)->bits * 2);
-            return NULL;
-        }
+        default: return NULL;
         }
         return NULL;
     }
@@ -160,6 +156,7 @@ static inline double type_min_magnitude(type_t *t)
     case BoolType: return (double)false;
     case IntType: {
         switch (Match(t, IntType)->bits) {
+        case 0: return -1./0.;
         case 8: return (double)INT8_MIN;
         case 16: return (double)INT16_MIN;
         case 32: return (double)INT32_MIN;
@@ -178,6 +175,7 @@ static inline double type_max_magnitude(type_t *t)
     case BoolType: return (double)true;
     case IntType: {
         switch (Match(t, IntType)->bits) {
+        case 0: return 1./0.;
         case 8: return (double)INT8_MAX;
         case 16: return (double)INT16_MAX;
         case 32: return (double)INT32_MAX;
@@ -448,7 +446,16 @@ size_t type_size(type_t *t)
     case MemoryType: errx(1, "Memory has undefined type size");
     case BoolType: return sizeof(bool);
     case CStringType: return sizeof(char*);
-    case IntType: return Match(t, IntType)->bits/8;
+    case IntType: {
+        switch (Match(t, IntType)->bits) {
+        case 0: return sizeof(Int_t);
+        case 64: return sizeof(int64_t);
+        case 32: return sizeof(int32_t);
+        case 16: return sizeof(int16_t);
+        case 8: return sizeof(int8_t);
+        default: return 0;
+        }
+    }
     case NumType: return Match(t, NumType)->bits/8;
     case TextType: return sizeof(CORD);
     case ArrayType: return sizeof(array_t);
@@ -502,7 +509,16 @@ size_t type_align(type_t *t)
     case MemoryType: errx(1, "Memory has undefined type alignment");
     case BoolType: return __alignof__(bool);
     case CStringType: return __alignof__(char*);
-    case IntType: return Match(t, IntType)->bits/8;
+    case IntType: {
+        switch (Match(t, IntType)->bits) {
+        case 0: return __alignof__(Int_t);
+        case 64: return __alignof__(int64_t);
+        case 32: return __alignof__(int32_t);
+        case 16: return __alignof__(int16_t);
+        case 8: return __alignof__(int8_t);
+        default: return 0;
+        }
+    }
     case NumType: return Match(t, NumType)->bits/8;
     case TextType: return __alignof__(CORD);
     case SetType: return __alignof__(table_t);

@@ -5,6 +5,7 @@
 #include <printf.h>
 
 #include "ast.h"
+#include "builtins/integers.h"
 #include "builtins/text.h"
 
 static const char *OP_NAMES[] = {
@@ -34,9 +35,9 @@ static CORD optional_tagged_type(const char *tag, type_ast_t *ast);
 
 CORD xml_escape(CORD text)
 {
-    text = Text$replace(text, "&", "&amp;", INT64_MAX);
-    text = Text$replace(text, "<", "&lt;", INT64_MAX);
-    text = Text$replace(text, ">", "&gt;", INT64_MAX);
+    text = Text$replace(text, "&", "&amp;", I(-1));
+    text = Text$replace(text, "<", "&lt;", I(-1));
+    text = Text$replace(text, ">", "&gt;", I(-1));
     return text;
 }
 
@@ -98,7 +99,7 @@ CORD ast_to_xml(ast_t *ast)
     T(Nil, "<Nil>%r</Nil>", type_ast_to_xml(data.type))
     T(Bool, "<Bool value=\"%s\" />", data.b ? "yes" : "no")
     T(Var, "<Var>%s</Var>", data.name)
-    T(Int, "<Int bits=\"%ld\">%ld</Int>", data.bits, data.i)
+    T(Int, "<Int bits=\"%ld\">%s</Int>", data.bits, data.str)
     T(Num, "<Num bits=\"%ld\">%g</Num>", data.bits, data.n)
     T(TextLiteral, "%r", xml_escape(data.cord))
     T(TextJoin, "<Text%r>%r</Text>", data.lang ? CORD_all(" lang=\"", data.lang, "\"") : CORD_EMPTY, ast_list_to_xml(data.children))

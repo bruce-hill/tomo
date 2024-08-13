@@ -101,7 +101,7 @@ func main():
 	>> ["A", "B", "C"]:sample(10, [1.0, 0.5, 0.0])
 
 	do:
-		>> heap := [Int.random(max=50) for _ in 10]
+		>> heap := [Int.random(1, 50) for _ in 10]
 		>> heap:heapify()
 		>> heap
 		sorted := [:Int]
@@ -110,7 +110,7 @@ func main():
 		>> sorted == sorted:sorted()
 		= yes
 		for _ in 10:
-			heap:heap_push(Int.random(max=50))
+			heap:heap_push(Int.random(1, 50))
 		>> heap
 		sorted = [:Int]
 		while #heap > 0:

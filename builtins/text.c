@@ -5,6 +5,7 @@
 #include <err.h>
 #include <gc.h>
 #include <gc/cord.h>
+#include <gmp.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -19,6 +20,7 @@
 #include "array.h"
 #include "functions.h"
 #include "halfsiphash.h"
+#include "integers.h"
 #include "text.h"
 #include "types.h"
 
@@ -248,11 +250,12 @@ public find_result_t Text$find(CORD str, CORD pat)
     return (pos == CORD_NOT_FOUND) ? (find_result_t){.status=FIND_FAILURE} : (find_result_t){.status=FIND_SUCCESS, .index=(int32_t)pos};
 }
 
-public CORD Text$replace(CORD text, CORD pat, CORD replacement, int64_t limit)
+public CORD Text$replace(CORD text, CORD pat, CORD replacement, Int_t int_limit)
 {
     if (!text || !pat) return text;
     CORD ret = CORD_EMPTY;
     size_t pos = 0, pat_len = CORD_len(pat);
+    int64_t limit = Int$as_i64(int_limit);
     for (size_t found; limit != 0 && (found=CORD_str(text, pos, pat)) != CORD_NOT_FOUND; --limit) {
         ret = CORD_all(ret, CORD_substr(text, pos, found - pos), replacement);
         pos = found + pat_len;
@@ -271,7 +274,7 @@ public array_t Text$split(CORD str, CORD split)
     for (int64_t i = 0; ; ) {
         size_t non_split = u8_strcspn(ustr + i, usplit);
         CORD chunk = CORD_substr((CORD)ustr, i, non_split);
-        Array$insert(&strings, &chunk, 0, sizeof(CORD));
+        Array$insert(&strings, &chunk, I(0), sizeof(CORD));
 
         i += non_split;
 
@@ -306,7 +309,7 @@ public array_t Text$clusters(CORD text)
         char cluster_buf[len+1];
         strlcpy(cluster_buf, (char*)pos, len+1);
         CORD cluster = CORD_from_char_star(cluster_buf);
-        Array$insert(&clusters, &cluster, 0, sizeof(CORD));
+        Array$insert(&clusters, &cluster, I(0), sizeof(CORD));
         pos = next;
     }
 
@@ -351,7 +354,7 @@ public array_t Text$bytes(CORD text)
     return ret;
 }
 
-public int64_t Text$num_clusters(CORD text)
+public Int_t Text$num_clusters(CORD text)
 {
     const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(text);
     int64_t num_clusters = 0;
@@ -361,26 +364,26 @@ public int64_t Text$num_clusters(CORD text)
         ++num_clusters;
         pos = next;
     }
-    return num_clusters;
+    return I(num_clusters);
 }
 
-public int64_t Text$num_codepoints(CORD text)
+public Int_t Text$num_codepoints(CORD text)
 {
     uint8_t buf[128] = {0}; size_t norm_len = sizeof(buf);
     uint8_t *normalized = _normalize(text, buf, &norm_len);
     int64_t num_codepoints = u8_mbsnlen(normalized, norm_len-1);
     if (normalized != buf) free(normalized);
-    return num_codepoints;
+    return I(num_codepoints);
 }
 
-public int64_t Text$num_bytes(CORD text)
+public Int_t Text$num_bytes(CORD text)
 {
     uint8_t norm_buf[128] = {0}; size_t norm_len = sizeof(norm_buf);
     uint8_t *normalized = _normalize(text, norm_buf, &norm_len);
     --norm_len; // NUL byte
     if (!normalized) errx(1, "Unicode normalization error!");
     if (normalized != norm_buf) free(normalized);
-    return norm_len;
+    return I(norm_len);
 }
 
 public array_t Text$character_names(CORD text)

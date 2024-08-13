@@ -7,6 +7,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "datatypes.h"
+#include "integers.h"
 #include "types.h"
 #include "where.h"
 
@@ -29,15 +31,15 @@ bool Text$has(CORD str, CORD target, Where_t where);
 CORD Text$without(CORD str, CORD target, Where_t where);
 CORD Text$trimmed(CORD str, CORD skip, Where_t where);
 find_result_t Text$find(CORD str, CORD pat);
-CORD Text$replace(CORD text, CORD pat, CORD replacement, int64_t limit);
+CORD Text$replace(CORD text, CORD pat, CORD replacement, Int_t limit);
 array_t Text$split(CORD str, CORD split);
 CORD Text$join(CORD glue, array_t pieces);
 array_t Text$clusters(CORD text);
 array_t Text$codepoints(CORD text);
 array_t Text$bytes(CORD text);
-int64_t Text$num_clusters(CORD text);
-int64_t Text$num_codepoints(CORD text);
-int64_t Text$num_bytes(CORD text);
+Int_t Text$num_clusters(CORD text);
+Int_t Text$num_codepoints(CORD text);
+Int_t Text$num_bytes(CORD text);
 array_t Text$character_names(CORD text);
 
 extern const TypeInfo $Text;

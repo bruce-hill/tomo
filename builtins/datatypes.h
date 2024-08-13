@@ -2,6 +2,7 @@
 
 // Common datastructures (arrays, tables, closures)
 
+#include <gmp.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <pthread.h>
@@ -16,6 +17,11 @@
 #define ARRAY_MIN_STRIDE (~MAX_FOR_N_BITS(ARRAY_STRIDE_BITS-1))
 #define ARRAY_MAX_DATA_REFCOUNT MAX_FOR_N_BITS(ARRAY_REFCOUNT_BITS)
 #define ARRAY_MAX_FREE_ENTRIES MAX_FOR_N_BITS(ARRAY_FREE_BITS)
+
+typedef union {
+    int64_t small;
+    mpz_t *big;
+} Int_t;
 
 typedef struct {
     void *data;
@@ -55,7 +61,7 @@ typedef struct {
 } closure_t;
 
 typedef struct Range_s {
-    int64_t first, last, step;
+    Int_t first, last, step;
 } Range_t;
 
 typedef struct {
