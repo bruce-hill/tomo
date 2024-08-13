@@ -31,6 +31,11 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
     if (!can_promote(actual, needed))
         return false;
 
+    if (actual->tag == IntType && needed->tag == IntType && Match(needed, IntType)->bits == 0) {
+        *code = CORD_all("I(", *code, ")");
+        return true;
+    }
+
     if (actual->tag == IntType || actual->tag == NumType)
         return true;
 
