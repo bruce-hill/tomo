@@ -406,6 +406,8 @@ void eval(env_t *env, ast_t *ast, void *dest)
             switch (binop->op) {
             CASE_OP(MULT, times) CASE_OP(DIVIDE, divided_by) CASE_OP(PLUS, plus) CASE_OP(MINUS, minus)
             CASE_OP(RSHIFT, right_shifted) CASE_OP(LSHIFT, left_shifted)
+            CASE_OP(MOD, modulo) CASE_OP(MOD1, modulo1)
+            CASE_OP(AND, bit_and) CASE_OP(OR, bit_or) CASE_OP(XOR, bit_xor)
             default: break;
             }
 #undef CASE_OP
