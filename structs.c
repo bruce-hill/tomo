@@ -144,7 +144,11 @@ void compile_struct_def(env_t *env, ast_t *ast)
         if (struct_->fields && !struct_->fields->next) { // Single member, can just use its methods
             type_t *member_t = struct_->fields->type;
             switch (member_t->tag) {
-            case TextType: case IntType: case NumType:
+            case NumType:
+                typeinfo = CORD_all(typeinfo, ".compare=(void*)", type_to_cord(member_t), "$compare, "
+                                    ".equal=(void*)", type_to_cord(member_t), "$equal, ");
+                goto got_methods;
+            case TextType: case IntType:
                 typeinfo = CORD_all(typeinfo, ".hash=(void*)", type_to_cord(member_t), "$hash", ", ",
                                     ".compare=(void*)", type_to_cord(member_t), "$compare, "
                                     ".equal=(void*)", type_to_cord(member_t), "$equal, ");
