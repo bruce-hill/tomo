@@ -23,7 +23,8 @@ public void Int$init_random(long seed)
 
 public Int_t Int$from_i64(int64_t i)
 {
-    if (i == (int32_t)i) return (Int_t){.small=(i*4)+1};
+    int64_t z = i<<2;
+    if (z == (int32_t)z) return (Int_t){.small=z+1};
     mpz_t result;
     mpz_init_set_si(result, i);
     return Int$from_mpz(result);
