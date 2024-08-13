@@ -2331,6 +2331,17 @@ CORD compile(env_t *env, ast_t *ast)
                 // Struct constructor:
                 fn_t = Type(FunctionType, .args=Match(t, StructType)->fields, .ret=t);
                 return CORD_all("((", compile_type(t), "){", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), "})");
+            } else if (t->tag == IntType && Match(t, IntType)->bits == 0) {
+                // Int/Num constructor:
+                if (!call->args || call->args->next)
+                    code_err(call->fn, "This constructor takes exactly 1 argument");
+                type_t *actual = get_type(env, call->args->value);
+                if (actual->tag == IntType)
+                    return CORD_all("I((Int64_t)(", compile(env, call->args->value), "))");
+                else if (actual->tag == NumType)
+                    return CORD_all("Int$from_num((double)(", compile(env, call->args->value), "))");
+                else
+                    code_err(call->args->value, "This %T value cannot be converted to a %T", actual, t);
             } else if (t->tag == IntType || t->tag == NumType) {
                 // Int/Num constructor:
                 if (!call->args || call->args->next)

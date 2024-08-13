@@ -29,6 +29,13 @@ public Int_t Int$from_i64(int64_t i)
     return Int$from_mpz(result);
 }
 
+public Int_t Int$from_num(double n)
+{
+    mpz_t result;
+    mpz_init_set_d(result, n);
+    return Int$from_mpz(result);
+}
+
 public CORD Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type) {
     (void)type;
     if (!i) return "Int";
@@ -341,14 +348,17 @@ public const TypeInfo $Int = {
         (void)type; \
         return *x == *y; \
     } \
-    public CORD KindOfInt ## $format(c_type i, int64_t digits) { \
+    public CORD KindOfInt ## $format(c_type i, Int_t digits_int) { \
+        int64_t digits = Int$as_i64(digits_int); \
         return CORD_asprintf("%0*" fmt, (int)digits, i); \
     } \
-    public CORD KindOfInt ## $hex(c_type i, int64_t digits, bool uppercase, bool prefix) { \
+    public CORD KindOfInt ## $hex(c_type i, Int_t digits_int, bool uppercase, bool prefix) { \
+        int64_t digits = Int$as_i64(digits_int); \
         const char *hex_fmt = uppercase ? (prefix ? "0x%0.*lX" : "%0.*lX") : (prefix ? "0x%0.*lx" : "%0.*lx"); \
         return CORD_asprintf(hex_fmt, (int)digits, (uint64_t)i); \
     } \
-    public CORD KindOfInt ## $octal(c_type i, int64_t digits, bool prefix) { \
+    public CORD KindOfInt ## $octal(c_type i, Int_t digits_int, bool prefix) { \
+        int64_t digits = Int$as_i64(digits_int); \
         const char *octal_fmt = prefix ? "0o%0.*lo" : "%0.*lo"; \
         return CORD_asprintf(octal_fmt, (int)digits, (uint64_t)i); \
     } \

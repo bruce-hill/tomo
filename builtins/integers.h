@@ -24,9 +24,9 @@
     CORD type_name ## $as_text(const c_type *i, bool colorize, const TypeInfo *type); \
     int32_t type_name ## $compare(const c_type *x, const c_type *y, const TypeInfo *type); \
     bool type_name ## $equal(const c_type *x, const c_type *y, const TypeInfo *type); \
-    CORD type_name ## $format(c_type i, int64_t digits); \
-    CORD type_name ## $hex(c_type i, int64_t digits, bool uppercase, bool prefix); \
-    CORD type_name ## $octal(c_type i, int64_t digits, bool prefix); \
+    CORD type_name ## $format(c_type i, Int_t digits); \
+    CORD type_name ## $hex(c_type i, Int_t digits, bool uppercase, bool prefix); \
+    CORD type_name ## $octal(c_type i, Int_t digits, bool prefix); \
     array_t type_name ## $bits(c_type x); \
     c_type type_name ## $random(c_type min, c_type max); \
     Range_t type_name ## $to(c_type from, c_type to); \
@@ -77,6 +77,7 @@ Int_t Int$abs(Int_t x);
 
 #define Int$as_i64(i) (((i).small & 1) ? (int64_t)((i).small >> 2) : mpz_get_si(*(i).big))
 Int_t Int$from_i64(int64_t i);
+Int_t Int$from_num(double n);
 #define I(i) ((int64_t)(i) == (int32_t)(i) ? ((Int_t){.small=((uint64_t)(i)<<2)|1}) : Int$from_i64(i))
 
 Int_t Int$slow_plus(Int_t x, Int_t y);
