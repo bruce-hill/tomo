@@ -36,6 +36,14 @@ public Int_t Int$from_num(double n)
     return Int$from_mpz(result);
 }
 
+public double Int$as_num(Int_t i)
+{
+    if (__builtin_expect(i.small & 1, 1))
+        return (double)(i.small >> 2);
+
+    return mpz_get_d(*i.big);
+}
+
 public CORD Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type) {
     (void)type;
     if (!i) return "Int";

@@ -79,6 +79,7 @@ Int_t Int$abs(Int_t x);
 #define Int$as_i64(i) (((i).small & 1) ? (int64_t)((i).small >> 2) : mpz_get_si(*(i).big))
 Int_t Int$from_i64(int64_t i);
 Int_t Int$from_num(double n);
+double Int$as_num(Int_t i);
 #define I(i) ((int64_t)(i) == (int32_t)(i) ? ((Int_t){.small=((uint64_t)(i)<<2)|1}) : Int$from_i64(i))
 
 Int_t Int$plus(Int_t x, Int_t y);
