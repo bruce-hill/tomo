@@ -58,24 +58,24 @@ public CORD Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type) {
 
 public int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo *type) {
     (void)type;
-    if (__builtin_expect(((x->small & y->small) & 1) == 0, 0))
+    if (__builtin_expect(((x->small | y->small) & 1) == 0, 0))
         return mpz_cmp(*x->big, *y->big);
     return (x->small > y->small) - (x->small < y->small);
 }
 
 public int32_t Int$compare_value(const Int_t x, const Int_t y) {
-    if (__builtin_expect(((x.small & y.small) & 1) == 0, 0))
+    if (__builtin_expect(((x.small | y.small) & 1) == 0, 0))
         return mpz_cmp(*x.big, *y.big);
     return (x.small > y.small) - (x.small < y.small);
 }
 
 public bool Int$equal(const Int_t *x, const Int_t *y, const TypeInfo *type) {
     (void)type;
-    return x->small == y->small || (__builtin_expect(((x->small & y->small) & 1) == 0, 0) && mpz_cmp(*x->big, *y->big) == 0);
+    return x->small == y->small || (__builtin_expect(((x->small | y->small) & 1) == 0, 0) && mpz_cmp(*x->big, *y->big) == 0);
 }
 
 public bool Int$equal_value(const Int_t x, const Int_t y) {
-    return x.small == y.small || (__builtin_expect(((x.small & y.small) & 1) == 0, 0) && mpz_cmp(*x.big, *y.big) == 0);
+    return x.small == y.small || (__builtin_expect(((x.small | y.small) & 1) == 0, 0) && mpz_cmp(*x.big, *y.big) == 0);
 }
 
 public uint32_t Int$hash(const Int_t *x, const TypeInfo *type) {
