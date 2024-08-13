@@ -101,7 +101,7 @@ Int_t Int$slow_abs(Int_t x);
 #define Int$minus(_x, _y) ({ \
                           Int_t x = _x, y = _y; \
                           const int64_t z = (int64_t)(((uint64_t)x.small ^ 3) - (uint64_t)y.small); \
-                          __builtin_expect(((z & ~2) != (int32_t)z), 0) ? Int$slow_minus(x, y) : (Int_t){.small=(z-1)}; })
+                          __builtin_expect(((z & ~2) != (int32_t)z), 0) ? Int$slow_minus(x, y) : (Int_t){.small=z}; })
 
 #define Int$times(_x, _y) ({ \
                            Int_t x = _x, y = _y; \

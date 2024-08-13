@@ -49,8 +49,12 @@ public int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo *type)
 }
 
 public int32_t Int$compare_value(const Int_t x, const Int_t y) {
-    if (__builtin_expect(((x.small & y.small) & 1) == 0, 0))
+    CORD_printf("comparing values %r vs %r\n", Int$as_text(&x, true, NULL), Int$as_text(&y, true, NULL));
+    printf("comparing values %p vs %p\n", x.big, y.big);
+    if (__builtin_expect(((x.small & y.small) & 1) == 0, 0)) {
+        printf("MPZ comparing\n");
         return mpz_cmp(*x.big, *y.big);
+    }
     return (x.small > y.small) - (x.small < y.small);
 }
 
