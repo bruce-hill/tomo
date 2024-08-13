@@ -385,7 +385,7 @@ public const TypeInfo $Int = {
     .CustomInfo={
         .compare=(void*)Int$compare,
         .equal=(void*)Int$equal,
-        .hash=(void*)Int$equal,
+        .hash=(void*)Int$hash,
         .as_text=(void*)Int$as_text,
     },
 };
