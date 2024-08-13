@@ -1221,11 +1221,19 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
         if (spec_arg->name) {
             for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
                 if (call_arg->name && streq(call_arg->name, spec_arg->name)) {
-                    env_t *arg_env = with_enum_scope(env, spec_arg->type);
-                    type_t *actual_t = get_type(arg_env, call_arg->value);
-                    CORD value = compile_maybe_incref(arg_env, call_arg->value);
-                    if (!promote(arg_env, &value, actual_t, spec_arg->type))
-                        code_err(call_arg->value, "This argument is supposed to be a %T, but this value is a %T", spec_arg->type, actual_t);
+                    CORD value;
+                    if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
+                        Int_t int_val = Int$from_text(Match(call_arg->value, Int)->str);
+                        double n = Int$as_num(int_val);
+                        value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == 64
+                                              ? "N64(%.9g)" : "N32(%.9g)", n);
+                    } else {
+                        env_t *arg_env = with_enum_scope(env, spec_arg->type);
+                        type_t *actual_t = get_type(arg_env, call_arg->value);
+                        value = compile_maybe_incref(arg_env, call_arg->value);
+                        if (!promote(arg_env, &value, actual_t, spec_arg->type))
+                            code_err(call_arg->value, "This argument is supposed to be a %T, but this value is a %T", spec_arg->type, actual_t);
+                    }
                     Table$str_set(&used_args, call_arg->name, call_arg);
                     if (code) code = CORD_cat(code, ", ");
                     code = CORD_cat(code, value);
@@ -1239,11 +1247,20 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
             if (call_arg->name) continue;
             const char *pseudoname = heap_strf("%ld", i++);
             if (!Table$str_get(used_args, pseudoname)) {
-                env_t *arg_env = with_enum_scope(env, spec_arg->type);
-                type_t *actual_t = get_type(arg_env, call_arg->value);
-                CORD value = compile_maybe_incref(arg_env, call_arg->value);
-                if (!promote(arg_env, &value, actual_t, spec_arg->type))
-                    code_err(call_arg->value, "This argument is supposed to be a %T, but this value is a %T", spec_arg->type, actual_t);
+                CORD value;
+                if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
+                    Int_t int_val = Int$from_text(Match(call_arg->value, Int)->str);
+                    double n = Int$as_num(int_val);
+                    value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == 64
+                                          ? "N64(%.9g)" : "N32(%.9g)", n);
+                } else {
+                    env_t *arg_env = with_enum_scope(env, spec_arg->type);
+                    type_t *actual_t = get_type(arg_env, call_arg->value);
+                    value = compile_maybe_incref(arg_env, call_arg->value);
+                    if (!promote(arg_env, &value, actual_t, spec_arg->type))
+                        code_err(call_arg->value, "This argument is supposed to be a %T, but this value is a %T", spec_arg->type, actual_t);
+                }
+
                 Table$str_set(&used_args, pseudoname, call_arg);
                 if (code) code = CORD_cat(code, ", ");
                 code = CORD_cat(code, value);
