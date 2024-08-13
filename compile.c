@@ -1850,7 +1850,7 @@ CORD compile(env_t *env, ast_t *ast)
                 code_err(chan->max_size, "This value must be an integer, not %T", get_type(env, chan->max_size));
             return CORD_all("Channel$new(", max_size, ")");
         } else {
-            return "Channel$new(INT64_MAX)";
+            return "Channel$new(I(INT32_MAX))";
         }
     }
     case Table: {

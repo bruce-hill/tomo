@@ -14,18 +14,19 @@
 #include "array.h"
 #include "functions.h"
 #include "halfsiphash.h"
+#include "integers.h"
 #include "types.h"
 #include "util.h"
 
-public channel_t *Channel$new(int64_t max_size)
+public channel_t *Channel$new(Int_t max_size)
 {
-    if (max_size <= 0)
+    if (Int$compare_value(max_size, I(0)) <= 0)
         fail("Cannot create a channel with a size less than one: %ld", max_size);
     channel_t *channel = new(channel_t);
     channel->items = (array_t){};
     channel->mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
     channel->cond = (pthread_cond_t)PTHREAD_COND_INITIALIZER;
-    channel->max_size = max_size;
+    channel->max_size = Int$as_i64(max_size);
     return channel;
 }
 
