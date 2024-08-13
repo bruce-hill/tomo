@@ -14,7 +14,7 @@ func main():
 	>> 1i8 + 2i16
 	= 3_i16
 
-	>> 2 ^ 10
+	>> 1 << 10
 	= 1024 : Num
 
 	>> 3 and 2
@@ -32,7 +32,7 @@ func main():
 	>> nums
 	= "1,2,3,4,5,"
 
-	>> x := 123
+	>> x := 123i64
 	>> x:format(digits=5)
 	= "00123"
 	>> x:hex()
@@ -40,10 +40,10 @@ func main():
 	>> x:octal()
 	= "0o173"
 
-	>> Int.random()
-	>> Int.min
+	>> Int.random(1, 100)
+	>> Int64.min
 	= -9223372036854775808
-	>> Int.max
+	>> Int64.max
 	= 9223372036854775807
 
 

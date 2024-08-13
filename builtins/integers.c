@@ -75,28 +75,48 @@ public bool Int$hash(const Int_t *x, const TypeInfo *type) {
     return hash;
 }
 
-public CORD Int$hex(Int_t i, int64_t digits, bool uppercase, bool prefix) {
+public CORD Int$format(Int_t i, Int_t digits_int)
+{
+    int64_t digits = Int$as_i64(digits_int);
+    if (__builtin_expect(i.small & 1, 1)) {
+        return CORD_asprintf("%0.*ld", digits, (i.small)>>2);
+    } else {
+        CORD str = mpz_get_str(NULL, 10, *i.big);
+        bool negative = (str[0] == '-');
+        if (digits > (int64_t)CORD_len(str)) {
+            if (negative)
+                str = CORD_all("-", CORD_chars('0', digits - CORD_len(str)), CORD_substr(str, 1, ~0));
+            else
+                str = CORD_all(CORD_chars('0', digits - CORD_len(str)), str);
+        }
+        return str;
+    }
+}
+
+public CORD Int$hex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
+    int64_t digits = Int$as_i64(digits_int);
     const char *hex_fmt = uppercase ? (prefix ? "0x%0.*lX" : "%0.*lX") : (prefix ? "0x%0.*lx" : "%0.*lx");
     if (__builtin_expect(i.small & 1, 1)) {
-        return CORD_asprintf(hex_fmt, (i.small)>>2);
+        return CORD_asprintf(hex_fmt, digits, (i.small)>>2);
     } else {
         CORD str = mpz_get_str(NULL, 16, *i.big);
         if (uppercase) str = Text$upper(str);
         if (digits > (int64_t)CORD_len(str))
-            str = CORD_cat(str, CORD_chars('0', digits - CORD_len(str)));
+            str = CORD_cat(CORD_chars('0', digits - CORD_len(str)), str);
         if (prefix) str = CORD_cat("0x", str);
         return str;
     }
 }
 
-public CORD Int$octal(Int_t i, int64_t digits, bool prefix) {
+public CORD Int$octal(Int_t i, Int_t digits_int, bool prefix) {
+    int64_t digits = Int$as_i64(digits_int);
     const char *octal_fmt = prefix ? "0o%0.*lo" : "%0.*lo";
     if (__builtin_expect(i.small & 1, 1)) {
         return CORD_asprintf(octal_fmt, (int)digits, (uint64_t)(i.small >> 2));
     } else {
         CORD str = mpz_get_str(NULL, 8, *i.big);
         if (digits > (int64_t)CORD_len(str))
-            str = CORD_cat(str, CORD_chars('0', digits - CORD_len(str)));
+            str = CORD_cat(CORD_chars('0', digits - CORD_len(str)), str);
         if (prefix) str = CORD_cat("0o", str);
         return str;
     }

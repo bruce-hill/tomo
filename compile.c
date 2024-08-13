@@ -1487,8 +1487,8 @@ CORD compile(env_t *env, ast_t *ast)
 
         switch (binop->op) {
         case BINOP_POWER: {
-            if (operand_t->tag != NumType && operand_t->tag != IntType)
-                code_err(ast, "Exponentiation is only supported for numeric types");
+            if (operand_t->tag != NumType)
+                code_err(ast, "Exponentiation is only supported for Num types");
             if (operand_t->tag == NumType && Match(operand_t, NumType)->bits == 32)
                 return CORD_all("powf(", lhs, ", ", rhs, ")");
             else

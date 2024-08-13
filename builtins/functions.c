@@ -45,9 +45,9 @@ static void print_stack_trace(FILE *out)
     fprintf(out, "\x1b[34m");
     fflush(out);
     void *array[1024];
-    size_t size = backtrace(array, sizeof(array)/sizeof(array[0]));
+    int64_t size = (int64_t)backtrace(array, sizeof(array)/sizeof(array[0]));
     char **strings = strings = backtrace_symbols(array, size);
-    for (size_t i = 2; i < size - 4; i++) {
+    for (int64_t i = 2; i < size - 4; i++) {
         char *filename = strings[i];
         const char *cmd = heap_strf("addr2line -e %.*s -fisp | sed 's/\\$/./g;s/ at /() at /' >&2", strcspn(filename, "("), filename);
         FILE *fp = popen(cmd, "w");
