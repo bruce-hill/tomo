@@ -166,10 +166,10 @@ static Int_t ast_to_int(env_t *env, ast_t *ast)
         eval(env, ast, &num);
         switch (Match(t, IntType)->bits) {
         case 0: return num.integer;
-        case 64: return Int$from_i64((int64_t)num.i64);
-        case 32: return Int$from_i64((int64_t)num.i32);
-        case 16: return Int$from_i64((int64_t)num.i16);
-        case 8: return Int$from_i64((int64_t)num.i8);
+        case 64: return Int64_to_Int((int64_t)num.i64);
+        case 32: return Int32_to_Int(num.i32);
+        case 16: return Int16_to_Int(num.i16);
+        case 8: return Int8_to_Int(num.i8);
         default: errx(1, "Invalid int bits");
         }
     }
@@ -185,7 +185,7 @@ static double ast_to_num(env_t *env, ast_t *ast)
         number_t num;
         eval(env, ast, &num);
         switch (Match(t, IntType)->bits) {
-        case 0: return Int$as_num(num.integer);
+        case 0: return Int_to_Num(num.integer);
         case 64: return (double)num.i64;
         case 32: return (double)num.i32;
         case 16: return (double)num.i16;
@@ -395,10 +395,10 @@ void eval(env_t *env, ast_t *ast, void *dest)
         Int_t result = Int$ ## method_name (lhs, rhs); \
         switch (Match(t, IntType)->bits) { \
         case 0: *(Int_t*)dest = result; return; \
-        case 64: *(int64_t*)dest = (int64_t)Int$as_i64(result); return; \
-        case 32: *(int32_t*)dest = (int32_t)Int$as_i64(result); return; \
-        case 16: *(int16_t*)dest = (int16_t)Int$as_i64(result); return; \
-        case 8: *(int8_t*)dest = (int8_t)Int$as_i64(result); return; \
+        case 64: *(int64_t*)dest = Int_to_Int64(result, false); return; \
+        case 32: *(int32_t*)dest = Int_to_Int32(result, false); return; \
+        case 16: *(int16_t*)dest = Int_to_Int16(result, false); return; \
+        case 8: *(int8_t*)dest = Int_to_Int8(result, false); return; \
         default: errx(1, "Invalid int bits"); \
         } \
         break; \
@@ -461,7 +461,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         case ArrayType: {
             array_t arr;
             eval(env, index->indexed, &arr);
-            int64_t raw_index = Int$as_i64(ast_to_int(env, index->index));
+            int64_t raw_index = Int_to_Int64(ast_to_int(env, index->index), false);
             int64_t index_int = raw_index;
             if (index_int < 1) index_int = arr.length + index_int + 1;
             if (index_int < 1 || index_int > arr.length)

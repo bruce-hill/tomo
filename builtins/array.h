@@ -13,13 +13,13 @@
 
 // Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
 #define Array_get(item_type, arr_expr, index_expr, filename, start, end) *({ \
-    const array_t arr = arr_expr; int64_t index = Int$as_i64(index_expr); \
+    const array_t arr = arr_expr; int64_t index = Int_to_Int64(index_expr, false); \
     int64_t off = index + (index < 0) * (arr.length + 1) - 1; \
     if (__builtin_expect(off < 0 || off >= arr.length, 0)) \
         fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int64$as_text(&index, no, NULL), arr.length); \
     (item_type*)(arr.data + arr.stride * off);})
 #define Array_lvalue(item_type, arr_expr, index_expr, padded_item_size, filename, start, end) *({ \
-    array_t *arr = arr_expr; int64_t index = Int$as_i64(index_expr); \
+    array_t *arr = arr_expr; int64_t index = Int_to_Int64(index_expr, false); \
     int64_t off = index + (index < 0) * (arr->length + 1) - 1; \
     if (__builtin_expect(off < 0 || off >= arr->length, 0)) \
         fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int64$as_text(&index, no, NULL), arr->length); \

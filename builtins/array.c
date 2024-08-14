@@ -50,7 +50,7 @@ public void Array$compact(array_t *arr, int64_t padded_item_size)
 
 public void Array$insert(array_t *arr, const void *item, Int_t int_index, int64_t padded_item_size)
 {
-    int64_t index = Int$as_i64(int_index);
+    int64_t index = Int_to_Int64(int_index, false);
     if (index <= 0) index = arr->length + index + 1;
 
     if (index < 1) index = 1;
@@ -82,7 +82,7 @@ public void Array$insert(array_t *arr, const void *item, Int_t int_index, int64_
 
 public void Array$insert_all(array_t *arr, array_t to_insert, Int_t int_index, int64_t padded_item_size)
 {
-    int64_t index = Int$as_i64(int_index);
+    int64_t index = Int_to_Int64(int_index, false);
     if (to_insert.length == 0)
         return;
 
@@ -154,10 +154,10 @@ public void Array$insert_all(array_t *arr, array_t to_insert, Int_t int_index, i
 
 public void Array$remove(array_t *arr, Int_t int_index, Int_t int_count, int64_t padded_item_size)
 {
-    int64_t index = Int$as_i64(int_index);
+    int64_t index = Int_to_Int64(int_index, false);
     if (index < 1) index = arr->length + index + 1;
 
-    int64_t count = Int$as_i64(int_count);
+    int64_t count = Int_to_Int64(int_count, false);
     if (index < 1 || index > (int64_t)arr->length || count < 1) return;
 
     if (count > arr->length - index + 1)
@@ -240,7 +240,7 @@ public table_t Array$counts(array_t arr, const TypeInfo *type)
 
 public array_t Array$sample(array_t arr, Int_t int_n, array_t weights, int64_t padded_item_size)
 {
-    int64_t n = Int$as_i64(int_n);
+    int64_t n = Int_to_Int64(int_n, false);
     if (arr.length == 0 || n <= 0)
         return (array_t){};
 
@@ -319,7 +319,7 @@ public array_t Array$sample(array_t arr, Int_t int_n, array_t weights, int64_t p
 
 public array_t Array$from(array_t array, Int_t int_first)
 {
-    int64_t first = Int$as_i64(int_first);
+    int64_t first = Int_to_Int64(int_first, false);
     if (first < 0)
         first = array.length + first + 1;
 
@@ -337,7 +337,7 @@ public array_t Array$from(array_t array, Int_t int_first)
 
 public array_t Array$to(array_t array, Int_t int_last)
 {
-    int64_t last = Int$as_i64(int_last);
+    int64_t last = Int_to_Int64(int_last, false);
     if (last < 0)
         last = array.length + last + 1;
 
@@ -358,7 +358,7 @@ public array_t Array$to(array_t array, Int_t int_last)
 
 public array_t Array$by(array_t array, Int_t int_stride, int64_t padded_item_size)
 {
-    int64_t stride = Int$as_i64(int_stride);
+    int64_t stride = Int_to_Int64(int_stride, false);
     // In the unlikely event that the stride value would be too large to fit in
     // a 15-bit integer, fall back to creating a copy of the array:
     if (__builtin_expect(array.stride*stride < ARRAY_MIN_STRIDE || array.stride*stride > ARRAY_MAX_STRIDE, 0)) {

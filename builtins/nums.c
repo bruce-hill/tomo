@@ -48,11 +48,11 @@ public bool Num$near(double a, double b, double ratio, double absolute) {
 }
 
 public CORD Num$format(double f, Int_t precision) { 
-    return CORD_asprintf("%.*f", (int)Int$as_i64(precision), f);
+    return CORD_asprintf("%.*f", (int)Int_to_Int64(precision, false), f);
 }
 
 public CORD Num$scientific(double f, Int_t precision) { 
-    return CORD_asprintf("%.*e", (int)Int$as_i64(precision), f); 
+    return CORD_asprintf("%.*e", (int)Int_to_Int64(precision, false), f); 
 }
 
 public double Num$mod(double num, double modulus) { 
@@ -130,11 +130,11 @@ public bool Num32$near(float a, float b, float ratio, float absolute) {
 }
 
 public CORD Num32$format(float f, Int_t precision) { 
-    return CORD_asprintf("%.*f", (int)Int$as_i64(precision), f); 
+    return CORD_asprintf("%.*f", (int)Int_to_Int64(precision, false), f); 
 }
 
 public CORD Num32$scientific(float f, Int_t precision) { 
-    return CORD_asprintf("%.*e", (int)Int$as_i64(precision), f); 
+    return CORD_asprintf("%.*e", (int)Int_to_Int64(precision, false), f); 
 }
 
 public float Num32$mod(float num, float modulus) { 

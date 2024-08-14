@@ -9,7 +9,10 @@
 #include <gmp.h>
 
 #include "datatypes.h"
+#include "functions.h"
+#include "nums.h"
 #include "types.h"
+#include "util.h"
 
 #define Int64_t int64_t
 #define Int32_t int32_t
@@ -78,13 +81,7 @@ Int_t Int$sqrt(Int_t i);
     else mpz_init_set(mpz, *(i).big); \
 } while (0)
 
-#define Int$as_i64(i) (__builtin_expect((i).small & 1, 1) ? (int64_t)((i).small >> 2) : \
-                       ({ if (!__builtin_expect(mpz_fits_slong_p(*(i).big), 1)) fail("Integer is too big to fit in a 64-bit integer!"); \
-                        mpz_get_si(*(i).big); }))
-Int_t Int$from_i64(int64_t i);
-Int_t Int$from_num(double n);
-double Int$as_num(Int_t i);
-#define I(i) ((int64_t)(i) == (int32_t)(i) ? ((Int_t){.small=((uint64_t)(i)<<2)|1}) : Int$from_i64(i))
+#define I(i) ((int64_t)(i) == (int32_t)(i) ? ((Int_t){.small=((uint64_t)(i)<<2)|1}) : Int64_to_Int(i))
 
 Int_t Int$slow_plus(Int_t x, Int_t y);
 Int_t Int$slow_minus(Int_t x, Int_t y);
@@ -206,5 +203,103 @@ static inline Int_t Int$negative(Int_t x)
         return (Int_t){.small=4*-((x.small)>>2) + 1};
     return Int$slow_negative(x);
 }
+
+// Conversion functions:
+
+static inline Int_t Int64_to_Int(int64_t i)
+{
+    int64_t z = i<<2;
+    if (__builtin_expect(z == (int32_t)z, 1))
+        return (Int_t){.small=z+1};
+    mpz_t result;
+    mpz_init_set_si(result, i);
+    return Int$from_mpz(result);
+}
+
+#define Int32_to_Int(i) Int64_to_Int(i)
+#define Int16_to_Int(i) Int64_to_Int(i)
+#define Int8_to_Int(i) Int64_to_Int(i)
+
+static inline Int64_t Int_to_Int64(Int_t i, bool truncate) {
+    if (__builtin_expect(i.small & 1, 1))
+        return (int64_t)(i.small >> 2);
+    if (__builtin_expect(!truncate && !mpz_fits_slong_p(*i.big), 0))
+        fail("Integer is too big to fit in a 64-bit integer!");
+    return mpz_get_si(*i.big);
+}
+
+static inline Int32_t Int_to_Int32(Int_t i, bool truncate) {
+    int64_t i64 = Int_to_Int64(i, truncate);
+    int32_t i32 = (int32_t)i64;
+    if (__builtin_expect(i64 != i32 && !truncate, 0))
+        fail("Integer is too big to fit in a 32-bit integer!");
+    return i32;
+}
+
+static inline Int16_t Int_to_Int16(Int_t i, bool truncate) {
+    int64_t i64 = Int_to_Int64(i, truncate);
+    int16_t i16 = (int16_t)i64;
+    if (__builtin_expect(i64 != i16 && !truncate, 0))
+        fail("Integer is too big to fit in a 16-bit integer!");
+    return i16;
+}
+
+static inline Int8_t Int_to_Int8(Int_t i, bool truncate) {
+    int64_t i64 = Int_to_Int64(i, truncate);
+    int8_t i8 = (int8_t)i64;
+    if (__builtin_expect(i64 != i8 && !truncate, 0))
+        fail("Integer is too big to fit in an 8-bit integer!");
+    return i8;
+}
+
+static inline Int_t Num_to_Int(double n)
+{
+    mpz_t result;
+    mpz_init_set_d(result, n);
+    return Int$from_mpz(result);
+}
+
+static inline double Int_to_Num(Int_t i)
+{
+    if (__builtin_expect(i.small & 1, 1))
+        return (double)(i.small >> 2);
+
+    return mpz_get_d(*i.big);
+}
+
+#define Int_to_Num32(i) (Num32_t)Int_to_Num(i)
+
+#define CONVERSION_FUNC(hi, lo) \
+    static inline int##lo##_t Int##hi##_to_Int##lo(int##hi##_t i, bool truncate) { \
+        if (__builtin_expect(!truncate && (i != (int##lo##_t)i), 0)) \
+            fail("Cannot truncate the Int" #hi " %ld to an Int" #lo, (int64_t)i); \
+        return (int##lo##_t)i; \
+    }
+
+CONVERSION_FUNC(64, 32)
+CONVERSION_FUNC(64, 16)
+CONVERSION_FUNC(64, 8)
+CONVERSION_FUNC(32, 16)
+CONVERSION_FUNC(32, 8)
+CONVERSION_FUNC(16, 8)
+#undef CONVERSION_FUNC
+
+#define CONVERSION_FUNC(num, int_type) \
+    static inline int_type##_t num##_to_##int_type(num##_t n, bool truncate) { \
+        num##_t rounded = round(n); \
+        if (__builtin_expect(!truncate && (num##_t)(int_type##_t)rounded != rounded, 0)) \
+            fail("Cannot truncate the " #num " %g to an " #int_type, rounded); \
+        return (int_type##_t)rounded; \
+    }
+
+CONVERSION_FUNC(Num, Int64)
+CONVERSION_FUNC(Num, Int32)
+CONVERSION_FUNC(Num, Int16)
+CONVERSION_FUNC(Num, Int8)
+CONVERSION_FUNC(Num32, Int64)
+CONVERSION_FUNC(Num32, Int32)
+CONVERSION_FUNC(Num32, Int16)
+CONVERSION_FUNC(Num32, Int8)
+#undef CONVERSION_FUNC
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

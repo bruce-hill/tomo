@@ -21,30 +21,6 @@ public void Int$init_random(long seed)
     gmp_randseed_ui(Int_rng, (unsigned long)seed);
 }
 
-public Int_t Int$from_i64(int64_t i)
-{
-    int64_t z = i<<2;
-    if (z == (int32_t)z) return (Int_t){.small=z+1};
-    mpz_t result;
-    mpz_init_set_si(result, i);
-    return Int$from_mpz(result);
-}
-
-public Int_t Int$from_num(double n)
-{
-    mpz_t result;
-    mpz_init_set_d(result, n);
-    return Int$from_mpz(result);
-}
-
-public double Int$as_num(Int_t i)
-{
-    if (__builtin_expect(i.small & 1, 1))
-        return (double)(i.small >> 2);
-
-    return mpz_get_d(*i.big);
-}
-
 public CORD Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type) {
     (void)type;
     if (!i) return "Int";
@@ -93,7 +69,7 @@ public uint32_t Int$hash(const Int_t *x, const TypeInfo *type) {
 
 public CORD Int$format(Int_t i, Int_t digits_int)
 {
-    int64_t digits = Int$as_i64(digits_int);
+    int64_t digits = Int_to_Int64(digits_int, false);
     if (__builtin_expect(i.small & 1, 1)) {
         return CORD_asprintf("%0.*ld", digits, (i.small)>>2);
     } else {
@@ -110,7 +86,7 @@ public CORD Int$format(Int_t i, Int_t digits_int)
 }
 
 public CORD Int$hex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
-    int64_t digits = Int$as_i64(digits_int);
+    int64_t digits = Int_to_Int64(digits_int, false);
     const char *hex_fmt = uppercase ? (prefix ? "0x%0.*lX" : "%0.*lX") : (prefix ? "0x%0.*lx" : "%0.*lx");
     if (__builtin_expect(i.small & 1, 1)) {
         return CORD_asprintf(hex_fmt, digits, (i.small)>>2);
@@ -125,7 +101,7 @@ public CORD Int$hex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
 }
 
 public CORD Int$octal(Int_t i, Int_t digits_int, bool prefix) {
-    int64_t digits = Int$as_i64(digits_int);
+    int64_t digits = Int_to_Int64(digits_int, false);
     const char *octal_fmt = prefix ? "0o%0.*lo" : "%0.*lo";
     if (__builtin_expect(i.small & 1, 1)) {
         return CORD_asprintf(octal_fmt, (int)digits, (uint64_t)(i.small >> 2));
@@ -213,7 +189,7 @@ public Int_t Int$slow_modulo1(Int_t x, Int_t modulus)
 
 public Int_t Int$slow_left_shifted(Int_t x, Int_t y)
 {
-    mp_bitcnt_t bits = (mp_bitcnt_t)Int$as_i64(y);
+    mp_bitcnt_t bits = (mp_bitcnt_t)Int_to_Int64(y, false);
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_mul_2exp(result, result, bits);
@@ -222,7 +198,7 @@ public Int_t Int$slow_left_shifted(Int_t x, Int_t y)
 
 public Int_t Int$slow_right_shifted(Int_t x, Int_t y)
 {
-    mp_bitcnt_t bits = (mp_bitcnt_t)Int$as_i64(y);
+    mp_bitcnt_t bits = (mp_bitcnt_t)Int_to_Int64(y, false);
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_tdiv_q_2exp(result, result, bits);
@@ -292,7 +268,7 @@ public Int_t Int$abs(Int_t x)
 
 public Int_t Int$power(Int_t base, Int_t exponent)
 {
-    int64_t exp = Int$as_i64(exponent);
+    int64_t exp = Int_to_Int64(exponent, false);
     if (__builtin_expect(exp < 0, 0))
         fail("Cannot take a negative power of an integer!");
     mpz_t result;
@@ -382,16 +358,16 @@ public const TypeInfo $Int = {
         return *x == *y; \
     } \
     public CORD KindOfInt ## $format(c_type i, Int_t digits_int) { \
-        int64_t digits = Int$as_i64(digits_int); \
+        int64_t digits = Int_to_Int64(digits_int, false); \
         return CORD_asprintf("%0*" fmt, (int)digits, i); \
     } \
     public CORD KindOfInt ## $hex(c_type i, Int_t digits_int, bool uppercase, bool prefix) { \
-        int64_t digits = Int$as_i64(digits_int); \
+        int64_t digits = Int_to_Int64(digits_int, false); \
         const char *hex_fmt = uppercase ? (prefix ? "0x%0.*lX" : "%0.*lX") : (prefix ? "0x%0.*lx" : "%0.*lx"); \
         return CORD_asprintf(hex_fmt, (int)digits, (uint64_t)i); \
     } \
     public CORD KindOfInt ## $octal(c_type i, Int_t digits_int, bool prefix) { \
-        int64_t digits = Int$as_i64(digits_int); \
+        int64_t digits = Int_to_Int64(digits_int, false); \
         const char *octal_fmt = prefix ? "0o%0.*lo" : "%0.*lo"; \
         return CORD_asprintf(octal_fmt, (int)digits, (uint64_t)i); \
     } \
@@ -422,7 +398,7 @@ public const TypeInfo $Int = {
         return (c_type)((uint64_t)min + (r % range)); \
     } \
     public Range_t KindOfInt ## $to(c_type from, c_type to) { \
-        return (Range_t){Int$from_i64(from), Int$from_i64(to), to >= from ? (Int_t){.small=(1<<2)&1} : (Int_t){.small=(1<<2)&1}}; \
+        return (Range_t){Int64_to_Int(from), Int64_to_Int(to), to >= from ? (Int_t){.small=(1<<2)&1} : (Int_t){.small=(1<<2)&1}}; \
     } \
     public c_type KindOfInt ## $from_text(CORD text, CORD *the_rest) { \
         const char *str = CORD_to_const_char_star(text); \

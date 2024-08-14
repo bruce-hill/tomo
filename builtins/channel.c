@@ -26,7 +26,7 @@ public channel_t *Channel$new(Int_t max_size)
     channel->items = (array_t){};
     channel->mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
     channel->cond = (pthread_cond_t)PTHREAD_COND_INITIALIZER;
-    channel->max_size = Int$as_i64(max_size);
+    channel->max_size = Int_to_Int64(max_size, false);
     return channel;
 }
 

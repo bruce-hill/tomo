@@ -36,8 +36,8 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
         return true;
     }
 
-    if (actual->tag == IntType && Match(actual, IntType)->bits == 0 && needed->tag == NumType) {
-        *code = CORD_all("Int$as_num(", *code, ")");
+    if (actual->tag == IntType && needed->tag == NumType) {
+        *code = CORD_all(type_to_cord(actual), "_to_", type_to_cord(needed), "(", *code, ")");
         return true;
     }
 
@@ -991,7 +991,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (for_->empty) {
                 return CORD_all(
                     "{\n"
-                    "int64_t n = Int$as_i64(", n, ");\n"
+                    "int64_t n = Int_to_Int64(", n, ", false);\n"
                     "if (n > 0) {\n"
                     "for (int64_t i = 1; i <= n; ++i) {\n",
                     for_->vars ? CORD_all("\tInt_t ", compile(env, for_->vars->ast), " = I(i);\n") : CORD_EMPTY,
@@ -1002,7 +1002,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     "\n}");
             } else {
                 return CORD_all(
-                    "for (int64_t i = 1, n = Int$as_i64(", compile(env, for_->iter), "); i <= n; ++i) {\n",
+                    "for (int64_t i = 1, n = Int_to_Int64(", compile(env, for_->iter), ", false); i <= n; ++i) {\n",
                     for_->vars ? CORD_all("\tInt_t ", compile(env, for_->vars->ast), " = I(i);\n") : CORD_EMPTY,
                     "\t", body,
                     "\n}",
@@ -1224,7 +1224,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                     CORD value;
                     if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
                         Int_t int_val = Int$from_text(Match(call_arg->value, Int)->str);
-                        double n = Int$as_num(int_val);
+                        double n = Int_to_Num(int_val);
                         value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == 64
                                               ? "N64(%.9g)" : "N32(%.9g)", n);
                     } else {
@@ -1250,7 +1250,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                 CORD value;
                 if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
                     Int_t int_val = Int$from_text(Match(call_arg->value, Int)->str);
-                    double n = Int$as_num(int_val);
+                    double n = Int_to_Num(int_val);
                     value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == 64
                                           ? "N64(%.9g)" : "N32(%.9g)", n);
                 } else {
@@ -1389,7 +1389,7 @@ CORD compile(env_t *env, ast_t *ast)
         if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0) {
             return CORD_asprintf("I(%s)", str);
         } else if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0) {
-            return CORD_asprintf("Int$from_i64(%s)", str);
+            return CORD_asprintf("Int64_to_Int(%s)", str);
         } else {
             return CORD_asprintf("Int$from_text(\"%s\")", str);
         }
@@ -2363,28 +2363,17 @@ CORD compile(env_t *env, ast_t *ast)
                 // Struct constructor:
                 fn_t = Type(FunctionType, .args=Match(t, StructType)->fields, .ret=t);
                 return CORD_all("((", compile_type(t), "){", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), "})");
-            } else if (t->tag == IntType && Match(t, IntType)->bits == 0) {
-                // Int/Num constructor:
-                if (!call->args || call->args->next)
-                    code_err(call->fn, "This constructor takes exactly 1 argument");
+            } else if (t->tag == NumType || (t->tag == IntType && Match(t, IntType)->bits == 0)) {
                 type_t *actual = get_type(env, call->args->value);
-                if (actual->tag == IntType)
-                    return CORD_all("I((Int64_t)(", compile(env, call->args->value), "))");
-                else if (actual->tag == NumType)
-                    return CORD_all("Int$from_num((double)(", compile(env, call->args->value), "))");
-                else
-                    code_err(call->args->value, "This %T value cannot be converted to a %T", actual, t);
-            } else if (t->tag == IntType || t->tag == NumType) {
-                // Int/Num constructor:
-                if (!call->args || call->args->next)
-                    code_err(call->fn, "This constructor takes exactly 1 argument");
+                arg_t *args = new(arg_t, .name="i", .type=actual); // No truncation argument
+                CORD arg_code = compile_arguments(env, ast, args, call->args);
+                return CORD_all(type_to_cord(actual), "_to_", type_to_cord(t), "(", arg_code, ")");
+            } else if (t->tag == IntType) {
                 type_t *actual = get_type(env, call->args->value);
-                if (actual->tag != IntType && actual->tag != NumType)
-                    code_err(call->args->value, "This %T value cannot be converted to a %T", actual, t);
-                if (actual->tag == IntType && Match(actual, IntType)->bits == 0)
-                    return CORD_all("((", compile_type(t), ")", t->tag == IntType ? "Int$as_i64" : "Int$as_num", "(",
-                                    compile(env, call->args->value), "))");
-                return CORD_all("((", compile_type(t), ")(", compile(env, call->args->value), "))");
+                arg_t *args = new(arg_t, .name="i", .type=actual, .next=new(arg_t, .name="truncate", .type=Type(BoolType),
+                                                                            .default_val=FakeAST(Bool, false)));
+                CORD arg_code = compile_arguments(env, ast, args, call->args);
+                return CORD_all(type_to_cord(actual), "_to_", type_to_cord(t), "(", arg_code, ")");
             } else if (t->tag == TextType) {
                 // Text constructor:
                 if (!call->args || call->args->next)
