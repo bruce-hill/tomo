@@ -142,9 +142,10 @@ public Int_t Int$slow_plus(Int_t x, Int_t y) {
     mpz_t result;
     mpz_init_set_int(result, x);
     if (y.small & 1) {
-        mpz_t y_mpz;
-        mpz_init_set_int(y_mpz, y);
-        mpz_add(result, result, y_mpz);
+        if (y.small < 0)
+            mpz_sub_ui(result, result, (uint64_t)(-(y.small >> 2)));
+        else
+            mpz_add_ui(result, result, (uint64_t)(y.small >> 2));
     } else {
         mpz_add(result, result, *y.big);
     }
@@ -155,9 +156,10 @@ public Int_t Int$slow_minus(Int_t x, Int_t y) {
     mpz_t result;
     mpz_init_set_int(result, x);
     if (y.small & 1) {
-        mpz_t y_mpz;
-        mpz_init_set_int(y_mpz, y);
-        mpz_sub(result, result, y_mpz);
+        if (y.small < 0)
+            mpz_add_ui(result, result, (uint64_t)(-(y.small >> 2)));
+        else
+            mpz_sub_ui(result, result, (uint64_t)(y.small >> 2));
     } else {
         mpz_sub(result, result, *y.big);
     }
@@ -167,13 +169,10 @@ public Int_t Int$slow_minus(Int_t x, Int_t y) {
 public Int_t Int$slow_times(Int_t x, Int_t y) {
     mpz_t result;
     mpz_init_set_int(result, x);
-    if (y.small & 1) {
-        mpz_t y_mpz;
-        mpz_init_set_int(y_mpz, y);
-        mpz_mul(result, result, y_mpz);
-    } else {
+    if (y.small & 1)
+        mpz_mul_si(result, result, y.small >> 2);
+    else
         mpz_mul(result, result, *y.big);
-    }
     return Int$from_mpz(result);
 }
 
@@ -182,7 +181,7 @@ public Int_t Int$slow_divided_by(Int_t x, Int_t y) {
     mpz_init_set_int(result, x);
     if (y.small & 1) {
         mpz_t y_mpz;
-        mpz_init_set_int(y_mpz, y);
+        mpz_init_set_si(y_mpz, y.small >> 2);
         mpz_cdiv_q(result, result, y_mpz);
     } else {
         mpz_cdiv_q(result, result, *y.big);
