@@ -682,6 +682,8 @@ type_t *get_type(env_t *env, ast_t *ast)
                 return Match(value_t, ArrayType)->item_type;
             }
             code_err(indexing->index, "I only know how to index lists using integers, not %T", index_t);
+        } else if (value_t->tag == TableType) {
+            code_err(ast, "Tables use the table:get(key) method, not square bracket indexing like table[key]");
         } else {
             code_err(ast, "I don't know how to index %T values", indexed_t);
         }
