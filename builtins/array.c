@@ -72,7 +72,10 @@ public void Array$insert(array_t *arr, const void *item, Int_t int_index, int64_
         arr->stride = padded_item_size;
     } else {
         if (index != arr->length+1)
-            memmove((void*)arr->data + index*padded_item_size, arr->data + (index-1)*padded_item_size, (arr->length - index)*padded_item_size);
+            memmove(
+                arr->data + index*padded_item_size,
+                arr->data + (index-1)*padded_item_size,
+                (arr->length - index + 1)*padded_item_size);
     }
     assert(arr->free > 0);
     --arr->free;
