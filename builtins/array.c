@@ -634,4 +634,22 @@ public void Array$heapify(array_t *heap, closure_t comparison, int64_t padded_it
     ARRAY_DECREF(*heap);
 }
 
+public Int_t Array$binary_search(array_t array, void *target, closure_t comparison)
+{
+    typedef int32_t (*cmp_fn_t)(void*, void*, void*);
+    int64_t lo = 0, hi = array.length-1;
+    while (lo <= hi) {
+        int64_t mid = (lo + hi) / 2;
+        int32_t cmp = ((cmp_fn_t)comparison.fn)(
+            array.data + array.stride*mid, target, comparison.userdata);
+        if (cmp == 0)
+            return I(mid+1);
+        else if (cmp < 0)
+            lo = mid + 1;
+        else if (cmp > 0)
+            hi = mid - 1;
+    }
+    return I(lo+1); // Return the index where the target would be inserted
+}
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

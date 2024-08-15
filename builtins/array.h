@@ -85,5 +85,8 @@ void Array$heap_pop(array_t *heap, closure_t comparison, int64_t padded_item_siz
 #define Array$heap_pop_value(heap, comparison, padded_item_size, type) \
     ({ array_t *_heap = heap; if (_heap->length == 0) fail("Attempt to pop from an empty array"); \
      type value = *(type*)_heap->data; Array$heap_pop(_heap, comparison, padded_item_size); value; })
+Int_t Array$binary_search(array_t array, void *target, closure_t comparison);
+#define Array$binary_search_value(array, target, comparison) \
+    ({ __typeof(target) _target = target; Array$binary_search(array, &_target, comparison); })
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
