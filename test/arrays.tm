@@ -149,3 +149,12 @@ func main():
 		for i,x in xs:to(-2):
 			for y in xs:from(i+1):
 				say("{x}{y}")
+
+	do:
+		>> nums := [-7, -4, -1, 2, 5]
+		>> nums:sort()
+		>> [nums:binary_search(i) for i in nums]
+		= [1, 2, 3, 4, 5]
+		>> nums:sort(func(a,b:&%Int): a:abs() <> b:abs())
+		>> [nums:binary_search(i, func(a,b:&Int): a:abs() <> b:abs()) for i in nums]
+		= [1, 2, 3, 4, 5]
