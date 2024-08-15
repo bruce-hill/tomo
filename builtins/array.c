@@ -211,6 +211,16 @@ public void Array$remove_item(array_t *arr, void *item, Int_t max_removals, cons
     }
 }
 
+public Int_t Array$find(array_t arr, void *item, const TypeInfo *type)
+{
+    const TypeInfo *item_type = type->ArrayInfo.item;
+    for (int64_t i = 0; i < arr.length; i++) {
+        if (generic_equal(item, arr.data + i*arr.stride, item_type))
+            return I(i+1);
+    }
+    return I(0);
+}
+
 public void Array$sort(array_t *arr, closure_t comparison, int64_t padded_item_size)
 {
     if (arr->data_refcount != 0 || (int64_t)arr->stride != padded_item_size)

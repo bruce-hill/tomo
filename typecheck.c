@@ -714,6 +714,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "by")) return self_value_t;
             else if (streq(call->name, "clear")) return Type(VoidType);
             else if (streq(call->name, "counts")) return Type(TableType, .key_type=Match(self_value_t, ArrayType)->item_type, .value_type=INT_TYPE);
+            else if (streq(call->name, "find")) return INT_TYPE;
             else if (streq(call->name, "from")) return self_value_t;
             else if (streq(call->name, "has")) return Type(BoolType);
             else if (streq(call->name, "heap_pop")) return Match(self_value_t, ArrayType)->item_type;
