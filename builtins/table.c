@@ -350,7 +350,7 @@ public void Table$remove(table_t *t, const void *key, const TypeInfo *type)
     // Last entry is being removed, so clear it out to be safe:
     memset(GET_ENTRY(*t, last_entry), 0, entry_size(type));
 
-    Array$remove(&t->entries, I(t->entries.length), I(1), entry_size(type));
+    Array$remove_at(&t->entries, I(t->entries.length), I(1), entry_size(type));
 
     int64_t bucket_to_clear;
     if (prev) { // Middle (or end) of a chain

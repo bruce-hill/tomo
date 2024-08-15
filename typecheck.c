@@ -710,58 +710,60 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *self_value_t = value_type(get_type(env, call->self));
         switch (self_value_t->tag) {
         case ArrayType: {
-            if (streq(call->name, "insert")) return Type(VoidType);
+            if (streq(call->name, "binary_search")) return INT_TYPE;
+            else if (streq(call->name, "by")) return self_value_t;
+            else if (streq(call->name, "clear")) return Type(VoidType);
+            else if (streq(call->name, "counts")) return Type(TableType, .key_type=Match(self_value_t, ArrayType)->item_type, .value_type=INT_TYPE);
+            else if (streq(call->name, "from")) return self_value_t;
+            else if (streq(call->name, "has")) return Type(BoolType);
+            else if (streq(call->name, "heap_pop")) return Match(self_value_t, ArrayType)->item_type;
+            else if (streq(call->name, "heap_push")) return Type(VoidType);
+            else if (streq(call->name, "heapify")) return Type(VoidType);
+            else if (streq(call->name, "insert")) return Type(VoidType);
             else if (streq(call->name, "insert_all")) return Type(VoidType);
-            else if (streq(call->name, "remove")) return Type(VoidType);
-            else if (streq(call->name, "sort")) return Type(VoidType);
-            else if (streq(call->name, "sorted")) return self_value_t;
+            else if (streq(call->name, "random")) return Match(self_value_t, ArrayType)->item_type;
+            else if (streq(call->name, "remove_at")) return Type(VoidType);
+            else if (streq(call->name, "remove_item")) return Type(VoidType);
+            else if (streq(call->name, "reversed")) return self_value_t;
+            else if (streq(call->name, "sample")) return self_value_t;
             else if (streq(call->name, "shuffle")) return Type(VoidType);
             else if (streq(call->name, "shuffled")) return self_value_t;
-            else if (streq(call->name, "random")) return Match(self_value_t, ArrayType)->item_type;
-            else if (streq(call->name, "sample")) return self_value_t;
-            else if (streq(call->name, "clear")) return Type(VoidType);
-            else if (streq(call->name, "from")) return self_value_t;
+            else if (streq(call->name, "sort")) return Type(VoidType);
+            else if (streq(call->name, "sorted")) return self_value_t;
             else if (streq(call->name, "to")) return self_value_t;
-            else if (streq(call->name, "by")) return self_value_t;
-            else if (streq(call->name, "reversed")) return self_value_t;
             else if (streq(call->name, "unique")) return Type(SetType, .item_type=Match(self_value_t, ArrayType)->item_type);
-            else if (streq(call->name, "counts")) return Type(TableType, .key_type=Match(self_value_t, ArrayType)->item_type, .value_type=INT_TYPE);
-            else if (streq(call->name, "heapify")) return Type(VoidType);
-            else if (streq(call->name, "heap_push")) return Type(VoidType);
-            else if (streq(call->name, "heap_pop")) return Match(self_value_t, ArrayType)->item_type;
-            else if (streq(call->name, "binary_search")) return INT_TYPE;
             else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
         case SetType: {
             if (streq(call->name, "add")) return Type(VoidType);
-            else if (streq(call->name, "has")) return Type(BoolType);
             else if (streq(call->name, "add_all")) return Type(VoidType);
-            else if (streq(call->name, "remove")) return Type(VoidType);
-            else if (streq(call->name, "remove_all")) return Type(VoidType);
             else if (streq(call->name, "clear")) return Type(VoidType);
-            else if (streq(call->name, "with")) return self_value_t;
-            else if (streq(call->name, "overlap")) return self_value_t;
-            else if (streq(call->name, "without")) return self_value_t;
+            else if (streq(call->name, "has")) return Type(BoolType);
             else if (streq(call->name, "is_subset_of")) return Type(BoolType);
             else if (streq(call->name, "is_superset_of")) return Type(BoolType);
+            else if (streq(call->name, "overlap")) return self_value_t;
+            else if (streq(call->name, "remove")) return Type(VoidType);
+            else if (streq(call->name, "remove_all")) return Type(VoidType);
+            else if (streq(call->name, "with")) return self_value_t;
+            else if (streq(call->name, "without")) return self_value_t;
             else code_err(ast, "There is no '%s' method for sets", call->name);
         }
         case ChannelType: {
-            if (streq(call->name, "push")) return Type(VoidType);
-            else if (streq(call->name, "push_all")) return Type(VoidType);
+            if (streq(call->name, "clear")) return Type(VoidType);
             else if (streq(call->name, "pop")) return Match(self_value_t, ChannelType)->item_type;
-            else if (streq(call->name, "clear")) return Type(VoidType);
+            else if (streq(call->name, "push")) return Type(VoidType);
+            else if (streq(call->name, "push_all")) return Type(VoidType);
             else if (streq(call->name, "view")) return Type(ArrayType, .item_type=Match(self_value_t, ChannelType)->item_type);
             else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
         case TableType: {
             auto table = Match(self_value_t, TableType);
-            if (streq(call->name, "get")) return table->value_type;
-            else if (streq(call->name, "has")) return Type(BoolType);
-            else if (streq(call->name, "set")) return Type(VoidType);
-            else if (streq(call->name, "bump")) return Type(VoidType);
-            else if (streq(call->name, "remove")) return Type(VoidType);
+            if (streq(call->name, "bump")) return Type(VoidType);
             else if (streq(call->name, "clear")) return Type(VoidType);
+            else if (streq(call->name, "get")) return table->value_type;
+            else if (streq(call->name, "has")) return Type(BoolType);
+            else if (streq(call->name, "remove")) return Type(VoidType);
+            else if (streq(call->name, "set")) return Type(VoidType);
             else if (streq(call->name, "sorted")) return self_value_t;
             else code_err(ast, "There is no '%s' method for tables", call->name);
         }

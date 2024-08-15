@@ -157,7 +157,7 @@ public void Array$insert_all(array_t *arr, array_t to_insert, Int_t int_index, i
     }
 }
 
-public void Array$remove(array_t *arr, Int_t int_index, Int_t int_count, int64_t padded_item_size)
+public void Array$remove_at(array_t *arr, Int_t int_index, Int_t int_count, int64_t padded_item_size)
 {
     int64_t index = Int_to_Int64(int_index, false);
     if (index < 1) index = arr->length + index + 1;
@@ -190,6 +190,25 @@ public void Array$remove(array_t *arr, Int_t int_index, Int_t int_count, int64_t
     }
     arr->length -= count;
     if (arr->length == 0) arr->data = NULL;
+}
+
+public void Array$remove_item(array_t *arr, void *item, Int_t max_removals, const TypeInfo *type)
+{
+    int64_t padded_item_size = get_padded_item_size(type);
+    const Int_t ZERO = (Int_t){.small=(0<<2)|1};
+    const Int_t ONE = (Int_t){.small=(1<<2)|1};
+    const TypeInfo *item_type = type->ArrayInfo.item;
+    for (int64_t i = 0; i < arr->length; ) {
+        if (max_removals.small == ZERO.small) // zero
+            break;
+
+        if (generic_equal(item, arr->data + i*arr->stride, item_type)) {
+            Array$remove_at(arr, I(i+1), ONE, padded_item_size);
+            max_removals = Int$minus(max_removals, ONE);
+        } else {
+            i++;
+        }
+    }
 }
 
 public void Array$sort(array_t *arr, closure_t comparison, int64_t padded_item_size)
@@ -442,12 +461,13 @@ public array_t Array$concat(array_t x, array_t y, int64_t padded_item_size)
     };
 }
 
-public bool Array$contains(array_t array, void *item, const TypeInfo *type)
+public bool Array$has(array_t array, void *item, const TypeInfo *type)
 {
     const TypeInfo *item_type = type->ArrayInfo.item;
-    for (int64_t i = 0; i < array.length; i++)
+    for (int64_t i = 0; i < array.length; i++) {
         if (generic_equal(array.data + i*array.stride, item, item_type))
             return true;
+    }
     return false;
 }
 

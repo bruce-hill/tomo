@@ -2101,16 +2101,27 @@ CORD compile(env_t *env, ast_t *ast)
                                       .next=new(arg_t, .name="at", .type=INT_TYPE, .default_val=FakeAST(Int, .str="0", .bits=0)));
                 return CORD_all("Array$insert_all(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
-            } else if (streq(call->name, "remove")) {
+            } else if (streq(call->name, "remove_at")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="index", .type=INT_TYPE, .default_val=FakeAST(Int, .str="-1", .bits=0),
                                       .next=new(arg_t, .name="count", .type=INT_TYPE, .default_val=FakeAST(Int, .str="1", .bits=0)));
-                return CORD_all("Array$remove(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return CORD_all("Array$remove_at(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
+            } else if (streq(call->name, "remove_item")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
+                arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
+                                      .next=new(arg_t, .name="max_count", .type=INT_TYPE, .default_val=FakeAST(Int, .str="-1", .bits=0)));
+                return CORD_all("Array$remove_item_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                                compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "random")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$random_value(", self, ", ", compile_type(item_t), ")");
+            } else if (streq(call->name, "has")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                arg_t *arg_spec = new(arg_t, .name="item", .type=item_t);
+                return CORD_all("Array$has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                                compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "sample")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="count", .type=INT_TYPE,

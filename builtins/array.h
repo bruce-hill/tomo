@@ -58,7 +58,9 @@
 #define Array$insert_value(arr, item_expr, index, padded_item_size) ({ __typeof(item_expr) item = item_expr; Array$insert(arr, &item, index, padded_item_size); })
 void Array$insert(array_t *arr, const void *item, Int_t index, int64_t padded_item_size);
 void Array$insert_all(array_t *arr, array_t to_insert, Int_t index, int64_t padded_item_size);
-void Array$remove(array_t *arr, Int_t index, Int_t count, int64_t padded_item_size);
+void Array$remove_at(array_t *arr, Int_t index, Int_t count, int64_t padded_item_size);
+void Array$remove_item(array_t *arr, void *item, Int_t max_removals, const TypeInfo *type);
+#define Array$remove_item_value(arr, item_expr, max, type) ({ __typeof(item_expr) item = item_expr; Array$remove_item(arr, &item, max, type); })
 void Array$sort(array_t *arr, closure_t comparison, int64_t padded_item_size);
 array_t Array$sorted(array_t arr, closure_t comparison, int64_t padded_item_size);
 void Array$shuffle(array_t *arr, int64_t padded_item_size);
@@ -69,7 +71,8 @@ array_t Array$sample(array_t arr, Int_t n, array_t weights, int64_t padded_item_
 table_t Array$counts(array_t arr, const TypeInfo *type);
 void Array$clear(array_t *array);
 void Array$compact(array_t *arr, int64_t padded_item_size);
-bool Array$contains(array_t array, void *item, const TypeInfo *type);
+bool Array$has(array_t array, void *item, const TypeInfo *type);
+#define Array$has_value(arr, item_expr, type) ({ __typeof(item_expr) item = item_expr; Array$has(arr, &item, type); })
 array_t Array$from(array_t array, Int_t first);
 array_t Array$to(array_t array, Int_t last);
 array_t Array$by(array_t array, Int_t stride, int64_t padded_item_size);

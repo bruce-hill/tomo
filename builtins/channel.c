@@ -63,7 +63,7 @@ public void Channel$pop(channel_t *channel, void *out, int64_t item_size, int64_
     while (channel->items.length == 0)
         pthread_cond_wait(&channel->cond, &channel->mutex);
     memcpy(out, channel->items.data, item_size);
-    Array$remove(&channel->items, I(1), I(1), padded_item_size);
+    Array$remove_at(&channel->items, I(1), I(1), padded_item_size);
     (void)pthread_mutex_unlock(&channel->mutex);
     (void)pthread_cond_signal(&channel->cond);
 }
