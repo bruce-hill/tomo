@@ -54,7 +54,8 @@ public void Array$insert(array_t *arr, const void *item, Int_t int_index, int64_
     if (index <= 0) index = arr->length + index + 1;
 
     if (index < 1) index = 1;
-    else if (index > (int64_t)arr->length + 1) index = (int64_t)arr->length + 1;
+    else if (index > (int64_t)arr->length + 1)
+        fail("Invalid insertion index %ld for an array with length %ld", index, arr->length);
 
     if (!arr->data) {
         arr->free = 4;
@@ -98,7 +99,8 @@ public void Array$insert_all(array_t *arr, array_t to_insert, Int_t int_index, i
     if (index < 1) index = arr->length + index + 1;
 
     if (index < 1) index = 1;
-    else if (index > (int64_t)arr->length + 1) index = (int64_t)arr->length + 1;
+    else if (index > (int64_t)arr->length + 1)
+        fail("Invalid insertion index %ld for an array with length %ld", index, arr->length);
 
     if ((int64_t)arr->free >= (int64_t)to_insert.length // Adequate free space
         && arr->data_refcount == 0 // Not aliased memory
@@ -217,6 +219,13 @@ public void Array$shuffle(array_t *arr, int64_t padded_item_size)
         memcpy((void*)arr->data + i*padded_item_size, arr->data + j*padded_item_size, padded_item_size);
         memcpy((void*)arr->data + j*padded_item_size, tmp, padded_item_size);
     }
+}
+
+public array_t Array$shuffled(array_t arr, int64_t padded_item_size)
+{
+    Array$compact(&arr, padded_item_size);
+    Array$shuffle(&arr, padded_item_size);
+    return arr;
 }
 
 public void *Array$random(array_t arr)

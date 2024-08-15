@@ -62,6 +62,7 @@ void Array$remove(array_t *arr, Int_t index, Int_t count, int64_t padded_item_si
 void Array$sort(array_t *arr, closure_t comparison, int64_t padded_item_size);
 array_t Array$sorted(array_t arr, closure_t comparison, int64_t padded_item_size);
 void Array$shuffle(array_t *arr, int64_t padded_item_size);
+array_t Array$shuffled(array_t arr, int64_t padded_item_size);
 void *Array$random(array_t arr);
 #define Array$random_value(arr, t) ({ array_t _arr = arr; if (_arr.length == 0) fail("Cannot get a random value from an empty array!"); *(t*)Array$random(_arr); })
 array_t Array$sample(array_t arr, Int_t n, array_t weights, int64_t padded_item_size);

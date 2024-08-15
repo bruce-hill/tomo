@@ -2122,6 +2122,10 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$shuffle(", self, ", ", padded_item_size, ")");
+            } else if (streq(call->name, "shuffled")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                (void)compile_arguments(env, ast, NULL, call->args);
+                return CORD_all("Array$shuffled(", self, ", ", padded_item_size, ")");
             } else if (streq(call->name, "sort") || streq(call->name, "sorted")) {
                 CORD self = compile_to_pointer_depth(env, call->self, streq(call->name, "sort") ? 1 : 0, false);
                 CORD comparison;
