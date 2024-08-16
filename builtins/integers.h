@@ -128,9 +128,9 @@ static inline Int_t Int$times(Int_t x, Int_t y) {
 
 static inline Int_t Int$divided_by(Int_t x, Int_t y) {
     if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
-        const int64_t z = 4*(x.small>>1) / (y.small>>1);
+        const int64_t z = ((x.small>>1) / (y.small>>1)) << 2;
         if (__builtin_expect(z == (int32_t)z, 1))
-            return (Int_t){.small=z+1};
+            return (Int_t){.small=z|1};
     }
     return Int$slow_divided_by(x, y);
 }
