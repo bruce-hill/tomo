@@ -35,7 +35,26 @@
     Range_t type_name ## $to(c_type from, c_type to); \
     c_type type_name ## $from_text(CORD text, CORD *the_rest); \
     extern const c_type type_name ## $min, type_name##$max; \
-    extern const TypeInfo $ ## type_name;
+    extern const TypeInfo $ ## type_name; \
+    static inline c_type type_name ## $divided_by(c_type D, c_type d) { \
+        c_type q = D/d, r = D%d; \
+        if (r < 0) { \
+            if (d > 0) q = q-1; \
+            else q = q+1; \
+        } \
+        return q; \
+    } \
+    static inline c_type type_name ## $modulo(c_type D, c_type d) { \
+        c_type r = D%d; \
+        if (r < 0) { \
+            if (d > 0) r = r + d; \
+            else r = r - d; \
+        } \
+        return r; \
+    } \
+    static inline c_type type_name ## $modulo1(c_type D, c_type d) { \
+        return type_name ## $modulo(D-1, d) + 1; \
+    }
 
 DEFINE_INT_TYPE(int64_t, Int64);
 DEFINE_INT_TYPE(int32_t, Int32);
@@ -128,27 +147,47 @@ static inline Int_t Int$times(Int_t x, Int_t y) {
 
 static inline Int_t Int$divided_by(Int_t x, Int_t y) {
     if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
-        const int64_t z = ((x.small>>1) / (y.small>>1)) << 2;
-        if (__builtin_expect(z == (int32_t)z, 1))
-            return (Int_t){.small=z|1};
+        // Euclidean division, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
+        const int64_t D = (x.small>>2);
+        const int64_t d = (y.small>>2);
+        int64_t q = D/d;
+        int64_t r = D%d;
+        if (r < 0) {
+            if (d > 0) q = q-1;
+            else q = q+1;
+        }
+        if (__builtin_expect(q == (int32_t)q, 1))
+            return (Int_t){.small=(q<<2)|1};
     }
     return Int$slow_divided_by(x, y);
 }
 
 static inline Int_t Int$modulo(Int_t x, Int_t y) {
     if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
-        int64_t mod = (x.small>>2) % (y.small>>2);
-        if (mod < 0) mod += (y.small>>2);
-        return (Int_t){.small=(mod<<2)+1};
+        // Euclidean modulus, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
+        const int64_t D = (x.small>>2);
+        const int64_t d = (y.small>>2);
+        int64_t r = D%d;
+        if (r < 0) {
+            if (d > 0) r = r + d;
+            else r = r - d;
+        }
+        return (Int_t){.small=(r<<2)|1};
     }
     return Int$slow_modulo(x, y);
 }
 
 static inline Int_t Int$modulo1(Int_t x, Int_t y) {
     if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
-        int64_t mod = ((x.small>>2)-1) % (y.small>>2);
-        if (mod < 0) mod += (y.small>>2);
-        return (Int_t){.small=((mod+1)<<2)+1};
+        // Euclidean modulus, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
+        const int64_t D = (x.small>>2)-1;
+        const int64_t d = (y.small>>2);
+        int64_t r = D%d;
+        if (r < 0) {
+            if (d > 0) r = r + d;
+            else r = r - d;
+        }
+        return (Int_t){.small=((r+1)<<2)|1};
     }
     return Int$slow_modulo1(x, y);
 }

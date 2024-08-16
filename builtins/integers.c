@@ -152,17 +152,20 @@ public Int_t Int$slow_times(Int_t x, Int_t y) {
     return Int$from_mpz(result);
 }
 
-public Int_t Int$slow_divided_by(Int_t x, Int_t y) {
-    mpz_t result;
-    mpz_init_set_int(result, x);
-    if (y.small & 1) {
-        mpz_t y_mpz;
-        mpz_init_set_si(y_mpz, y.small >> 2);
-        mpz_cdiv_q(result, result, y_mpz);
-    } else {
-        mpz_cdiv_q(result, result, *y.big);
+public Int_t Int$slow_divided_by(Int_t dividend, Int_t divisor) {
+    // Euclidean division, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
+    mpz_t quotient, remainder;
+    mpz_init_set_int(quotient, dividend);
+    mpz_init_set_int(remainder, divisor);
+    mpz_tdiv_qr(quotient, remainder, quotient, remainder);
+    if (mpz_sgn(remainder) < 0) {
+        bool d_positive = __builtin_expect(divisor.small & 1, 1) ? divisor.small > 0x1 : mpz_sgn(*divisor.big) > 0;
+        if (d_positive)
+            mpz_sub_ui(quotient, quotient, 1);
+        else
+            mpz_add_ui(quotient, quotient, 1);
     }
-    return Int$from_mpz(result);
+    return Int$from_mpz(quotient);
 }
 
 public Int_t Int$slow_modulo(Int_t x, Int_t modulus)
@@ -359,7 +362,7 @@ public const TypeInfo $Int = {
     } \
     public CORD KindOfInt ## $format(c_type i, Int_t digits_int) { \
         int64_t digits = Int_to_Int64(digits_int, false); \
-        return CORD_asprintf("%0*" fmt, (int)digits, i); \
+        return CORD_asprintf("%0*ld", (int)digits, (int64_t)i); \
     } \
     public CORD KindOfInt ## $hex(c_type i, Int_t digits_int, bool uppercase, bool prefix) { \
         int64_t digits = Int_to_Int64(digits_int, false); \
@@ -427,7 +430,7 @@ public const TypeInfo $Int = {
         .CustomInfo={.compare=(void*)KindOfInt##$compare, .as_text=(void*)KindOfInt##$as_text}, \
     };
 
-DEFINE_INT_TYPE(int64_t,  Int64,  "ld",     INT64_MIN, INT64_MAX);
+DEFINE_INT_TYPE(int64_t,  Int64,  "ld_i64", INT64_MIN, INT64_MAX);
 DEFINE_INT_TYPE(int32_t,  Int32,  "d_i32",  INT32_MIN, INT32_MAX);
 DEFINE_INT_TYPE(int16_t,  Int16,  "d_i16",  INT16_MIN, INT16_MAX);
 DEFINE_INT_TYPE(int8_t,   Int8,   "d_i8",   INT8_MIN,  INT8_MAX);
