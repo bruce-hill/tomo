@@ -648,7 +648,19 @@ CORD compile_statement(env_t *env, ast_t *ast)
             body = CORD_asprintf("{\n%r\n}", body);
         env->code->funcs = CORD_all(env->code->funcs, code, " ", body, "\n");
 
-        if (fndef->cache && fndef->cache->tag == Int) {
+        if (fndef->cache && fndef->args == NULL) { // no-args cache just uses a static var
+            CORD wrapper = CORD_all(
+                is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, "(void) {\n"
+                "static ", compile_declaration(ret_t, "cached_result"), ";\n",
+                "static bool initialized = false;\n",
+                "if (!initialized) {\n"
+                "\tcached_result = ", name, "$uncached();\n",
+                "\tinitialized = true;\n",
+                "}\n",
+                "return cached_result;\n"
+                "}\n");
+            env->code->funcs = CORD_cat(env->code->funcs, wrapper);
+        } else if (fndef->cache && fndef->cache->tag == Int) {
             int64_t cache_size = Int64$from_text(Match(fndef->cache, Int)->str, NULL);
             const char *arg_type_name = heap_strf("%s$args", Match(fndef->name, Var)->name);
             ast_t *args_def = FakeAST(StructDef, .name=arg_type_name, .fields=fndef->args);
@@ -677,9 +689,9 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 "static table_t cache = {};\n",
                 compile_type(args_t), " args = {", all_args, "};\n"
                 "const TypeInfo *table_type = $TableInfo(", compile_type_info(env, args_t), ", ", compile_type_info(env, ret_t), ");\n",
-                ret_type_code, "*cached = Table$get_raw(cache, &args, table_type);\n"
+                compile_declaration(Type(PointerType, .pointed=ret_t, .is_optional=true), "cached"), " = Table$get_raw(cache, &args, table_type);\n"
                 "if (cached) return *cached;\n",
-                ret_type_code, " ret = ", name, "$uncached(", all_args, ");\n",
+                compile_declaration(ret_t, "ret"), " = ", name, "$uncached(", all_args, ");\n",
                 pop_code,
                 "Table$set(&cache, &args, &ret, table_type);\n"
                 "return ret;\n"
