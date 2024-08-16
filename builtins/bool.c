@@ -40,6 +40,11 @@ public Bool_t Bool$from_text(CORD text, bool *success)
     }
 }
 
+public Bool_t Bool$random(double p)
+{
+    return (drand48() < p); 
+}
+
 public const TypeInfo $Bool = {
     .size=sizeof(bool),
     .align=__alignof__(bool),

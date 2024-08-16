@@ -14,6 +14,7 @@
 
 CORD Bool$as_text(const bool *b, bool colorize, const TypeInfo *type);
 bool Bool$from_text(CORD text, bool *success);
+Bool_t Bool$random(double p);
 
 extern const TypeInfo $Bool;
 

@@ -85,6 +85,7 @@ env_t *new_compilation_unit(CORD *libname)
         {"Memory", Type(MemoryType), "Memory_t", "$Memory", {}},
         {"Bool", Type(BoolType), "Bool_t", "$Bool", TypedArray(ns_entry_t,
             {"from_text", "Bool$from_text", "func(text:Text, success=!&Bool)->Bool"},
+            {"random", "Bool$random", "func(p=0.5)->Bool"},
         )},
         {"Int", Type(IntType, .bits=0), "Int_t", "$Int", TypedArray(ns_entry_t,
             {"format", "Int$format", "func(i:Int, digits=0)->Text"},
