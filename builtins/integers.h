@@ -155,7 +155,7 @@ static inline Int_t Int$modulo1(Int_t x, Int_t y) {
 
 static inline Int_t Int$left_shifted(Int_t x, Int_t y) {
     if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
-        const int64_t z = 4*((x.small>>2) << (y.small>>2));
+        const int64_t z = ((x.small>>2) << (y.small>>2))<<2;
         if (__builtin_expect(z == (int32_t)z, 1))
             return (Int_t){.small=z+1};
     }
@@ -164,7 +164,7 @@ static inline Int_t Int$left_shifted(Int_t x, Int_t y) {
 
 static inline Int_t Int$right_shifted(Int_t x, Int_t y) {
     if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
-        const int64_t z = 4*((x.small>>2) >> (y.small>>2));
+        const int64_t z = ((x.small>>2) >> (y.small>>2))<<2;
         if (__builtin_expect(z == (int32_t)z, 1))
             return (Int_t){.small=z+1};
     }
@@ -200,7 +200,7 @@ static inline Int_t Int$negated(Int_t x)
 static inline Int_t Int$negative(Int_t x)
 {
     if (__builtin_expect((x.small & 1), 1))
-        return (Int_t){.small=4*-((x.small)>>2) + 1};
+        return (Int_t){.small=((-((x.small)>>2))<<2) | 1};
     return Int$slow_negative(x);
 }
 
