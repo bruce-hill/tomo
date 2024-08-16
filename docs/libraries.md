@@ -13,7 +13,7 @@ To see how local imports work, let's look at a simple file:
 
 ```
 // File: foo.tm
-my_variable := 123
+my_variable := "hello"
 ```
 
 When this file is compiled to a static object file by `tomo -c foo.tm`, it
@@ -24,7 +24,7 @@ produces the following C header file and C source file:
 #pragma once
 #include <tomo/tomo.h>
 
-extern Int_t foo$my_variable;
+extern Text_t foo$my_variable;
 ```
 
 ```c
@@ -32,7 +32,7 @@ extern Int_t foo$my_variable;
 #include <tomo/tomo.h>
 #include "foo.tm.h"
 
-Int_t foo$my_variable = I64(123);
+Text_t foo$my_variable = "hello";
 ```
 
 Notice that the symbols defined here (`foo$my_variable`) use a file-based
@@ -76,7 +76,7 @@ void baz$main();
 
 public void baz$say_stuff()
 {
-  say(CORD_all("I got ", Int$as_text(&foo$my_variable, no, &$Int), " from foo"));
+  say(CORD_all("I got ", foo$my_variable, " from foo"));
 }
 
 public void baz$main()
@@ -138,7 +138,7 @@ header file like this:
 #pragma once
 #include <tomo.h>
 
-extern Int_t qux$1$2$3$foo$my_variable;
+extern Text_t qux$1$2$3$foo$my_variable;
 extern void qux$1$2$3$baz$say_stuff();
 ```
 
