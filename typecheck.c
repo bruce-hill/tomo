@@ -1341,7 +1341,17 @@ type_t *parse_type_string(env_t *env, const char *str)
 bool is_constant(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
-    case Bool: case Int: case Num: case Nil: case TextLiteral: return true;
+    case Bool: case Num: case Nil: case TextLiteral: return true;
+    case Int: {
+        auto info = Match(ast, Int);
+        if (info->bits == 0) {
+            Int_t int_val = Int$from_text(info->str);
+            mpz_t i;
+            mpz_init_set_int(i, int_val);
+            return (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0);
+        }
+        return true;
+    }
     case TextJoin: {
         auto text = Match(ast, TextJoin);
         return !text->children || !text->children->next;
