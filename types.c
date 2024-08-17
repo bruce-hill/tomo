@@ -269,8 +269,13 @@ bool can_promote(type_t *actual, type_t *needed)
     if (type_eq(actual, needed))
         return true;
 
-    if ((actual->tag == IntType || actual->tag == NumType)
-        && (needed->tag == IntType || needed->tag == NumType)) {
+    if (actual->tag == NumType && needed->tag == IntType)
+        return false;
+
+    if (actual->tag == IntType && needed->tag == NumType)
+        return true;
+
+    if (actual->tag == IntType && needed->tag == IntType) {
         auto cmp = compare_precision(actual, needed);
         return cmp == NUM_PRECISION_EQUAL || cmp == NUM_PRECISION_LESS;
     }

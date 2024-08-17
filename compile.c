@@ -41,6 +41,9 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
         return true;
     }
 
+    if (actual->tag == NumType && needed->tag == IntType)
+        return false;
+
     if (actual->tag == IntType || actual->tag == NumType)
         return true;
 
