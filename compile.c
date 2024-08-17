@@ -2358,6 +2358,13 @@ CORD compile(env_t *env, ast_t *ast)
                                     CORD_asprintf("%ld", (int64_t)(ast->end - f->text)),
                                     ")");
                 }
+            } else if (streq(call->name, "get_or_null")) {
+                if (table->value_type->tag != PointerType)
+                    code_err(ast, "The table method :get_or_null() is only supported for tables whose value type is a pointer, not %T", table->value_type);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);
+                return CORD_all("Table$get_value_or_default(", self, ", ", compile_type(table->key_type), ", ", compile_type(table->value_type), ", ",
+                                compile_arguments(env, ast, arg_spec, call->args), ", NULL, ", compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "has")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);

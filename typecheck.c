@@ -764,11 +764,18 @@ type_t *get_type(env_t *env, ast_t *ast)
             if (streq(call->name, "bump")) return Type(VoidType);
             else if (streq(call->name, "clear")) return Type(VoidType);
             else if (streq(call->name, "get")) return table->value_type;
-            else if (streq(call->name, "has")) return Type(BoolType);
+            else if (streq(call->name, "get_or_null")) {
+                if (table->value_type->tag != PointerType)
+                    code_err(ast, "The table method :get_or_null() is only supported for tables whose value type is a pointer, not %T",
+                             table->value_type);
+                auto ptr = Match(table->value_type, PointerType);
+                return Type(PointerType, .pointed=ptr->pointed, .is_stack=ptr->is_stack,
+                            .is_readonly=ptr->is_readonly, .is_optional=true);
+            } else if (streq(call->name, "has")) return Type(BoolType);
             else if (streq(call->name, "remove")) return Type(VoidType);
             else if (streq(call->name, "set")) return Type(VoidType);
             else if (streq(call->name, "sorted")) return self_value_t;
-            else code_err(ast, "There is no '%s' method for tables", call->name);
+            code_err(ast, "There is no '%s' method for %T tables", call->name, self_value_t);
         }
         default: {
             type_t *fn_type_t = get_method_type(env, call->self, call->name);
