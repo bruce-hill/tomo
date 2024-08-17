@@ -644,6 +644,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
             code_err(ast, "This function can reach the end without returning a %T value!", ret_t);
 
         CORD body = compile_statement(body_scope, fndef->body);
+        if (streq(Match(fndef->name, Var)->name, "main"))
+            body = CORD_all("_initialize();\n", body);
         if (CORD_fetch(body, 0) != '{')
             body = CORD_asprintf("{\n%r\n}", body);
         env->code->funcs = CORD_all(env->code->funcs, code, " ", body, "\n");
@@ -855,8 +857,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
         CORD stop = loop_ctx.stop_label ? CORD_all("\n", loop_ctx.stop_label, ":;") : CORD_EMPTY;
 
         if (iter_t == RANGE_TYPE) {
-            CORD value = for_->vars ? compile(env, for_->vars->ast) : "i";
             CORD range = compile(env, for_->iter);
+            CORD value = for_->vars ? compile(body_scope, for_->vars->ast) : "i";
             if (for_->empty)
                 code_err(ast, "Ranges are never empty, they always contain at least their starting element");
             return CORD_all(
@@ -881,10 +883,10 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     if (for_->vars->next->next)
                         code_err(for_->vars->next->next->ast, "This is too many variables for this loop");
 
-                    index = compile(env, for_->vars->ast);
-                    value = compile(env, for_->vars->next->ast);
+                    index = compile(body_scope, for_->vars->ast);
+                    value = compile(body_scope, for_->vars->next->ast);
                 } else {
-                    value = compile(env, for_->vars->ast);
+                    value = compile(body_scope, for_->vars->ast);
                 }
             }
 
@@ -951,12 +953,12 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 if (iter_t->tag == SetType) {
                     if (for_->vars->next)
                         code_err(for_->vars->next->ast, "This is too many variables for this loop");
-                    CORD item = compile(env, for_->vars->ast);
+                    CORD item = compile(body_scope, for_->vars->ast);
                     type_t *item_type = Match(iter_t, SetType)->item_type;
                     loop = CORD_all(loop, compile_declaration(item_type, item), " = *(", compile_type(item_type), "*)(",
                                     "iterating.data + i*iterating.stride);\n");
                 } else {
-                    CORD key = compile(env, for_->vars->ast);
+                    CORD key = compile(body_scope, for_->vars->ast);
                     type_t *key_t = Match(iter_t, TableType)->key_type;
                     loop = CORD_all(loop, compile_declaration(key_t, key), " = *(", compile_type(key_t), "*)(",
                                     "iterating.data + i*iterating.stride);\n");
@@ -966,7 +968,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                             code_err(for_->vars->next->next->ast, "This is too many variables for this loop");
 
                         type_t *value_t = Match(iter_t, TableType)->value_type;
-                        CORD value = compile(env, for_->vars->next->ast);
+                        CORD value = compile(body_scope, for_->vars->next->ast);
                         size_t value_offset = type_size(key_t);
                         if (type_align(value_t) > 1 && value_offset % type_align(value_t))
                             value_offset += type_align(value_t) - (value_offset % type_align(value_t)); // padding
@@ -1006,7 +1008,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     "int64_t n = Int_to_Int64(", n, ", false);\n"
                     "if (n > 0) {\n"
                     "for (int64_t i = 1; i <= n; ++i) {\n",
-                    for_->vars ? CORD_all("\tInt_t ", compile(env, for_->vars->ast), " = I(i);\n") : CORD_EMPTY,
+                    for_->vars ? CORD_all("\tInt_t ", compile(body_scope, for_->vars->ast), " = I(i);\n") : CORD_EMPTY,
                     "\t", body,
                     "\n}"
                     "\n} else ", compile_statement(env, for_->empty),
@@ -1015,7 +1017,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             } else {
                 return CORD_all(
                     "for (int64_t i = 1, n = Int_to_Int64(", compile(env, for_->iter), ", false); i <= n; ++i) {\n",
-                    for_->vars ? CORD_all("\tInt_t ", compile(env, for_->vars->ast), " = I(i);\n") : CORD_EMPTY,
+                    for_->vars ? CORD_all("\tInt_t ", compile(body_scope, for_->vars->ast), " = I(i);\n") : CORD_EMPTY,
                     "\t", body,
                     "\n}",
                     stop,
@@ -2650,6 +2652,29 @@ CORD compile(env_t *env, ast_t *ast)
 void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
 {
     env_t *ns_env = namespace_env(env, ns_name);
+    CORD prefix = namespace_prefix(ns_env->libname, ns_env->namespace);
+
+    // First prepare variable initializers to prevent unitialized access:
+    for (ast_list_t *stmt = block ? Match(block, Block)->statements : NULL; stmt; stmt = stmt->next) {
+        if (stmt->ast->tag == Declare) {
+            auto decl = Match(stmt->ast, Declare);
+            type_t *t = get_type(ns_env, decl->value);
+            if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
+                code_err(stmt->ast, "You can't declare a variable with a %T value", t);
+            CORD name_code = CORD_all(prefix, Match(decl->var, Var)->name);
+
+            if (!is_constant(env, decl->value)) {
+                env->code->variable_initializers = CORD_all(
+                    env->code->variable_initializers,
+                    name_code, " = ", compile_maybe_incref(ns_env, decl->value), ",\n",
+                    name_code, "$initialized = true;\n");
+
+                CORD checked_access = CORD_all("check_initialized(", name_code, ", \"", Match(decl->var, Var)->name, "\")");
+                set_binding(ns_env, Match(decl->var, Var)->name, new(binding_t, .type=t, .code=checked_access));
+            }
+        }
+    }
+
     for (ast_list_t *stmt = block ? Match(block, Block)->statements : NULL; stmt; stmt = stmt->next) {
         ast_t *ast = stmt->ast;
         switch (ast->tag) {
@@ -2661,11 +2686,19 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
         case Declare: {
             auto decl = Match(ast, Declare);
             type_t *t = get_type(ns_env, decl->value);
-
-            if (!is_constant(env, decl->value))
-                code_err(decl->value, "This value is supposed to be a compile-time constant, but I can't figure out how to make it one");
-            CORD var_decl = CORD_all(compile_type(t), " ", compile(ns_env, decl->var), " = ", compile_maybe_incref(ns_env, decl->value), ";\n");
-            env->code->staticdefs = CORD_all(env->code->staticdefs, var_decl);
+            CORD name_code = CORD_all(prefix, Match(decl->var, Var)->name);
+            if (!is_constant(env, decl->value)) {
+                env->code->staticdefs = CORD_all(
+                    env->code->staticdefs,
+                    "static bool ", name_code, "$initialized = false;\n",
+                    // is_private ? "static " : CORD_EMPTY,
+                    compile_declaration(t, name_code), ";\n");
+            } else {
+                env->code->staticdefs = CORD_all(
+                    env->code->staticdefs,
+                    compile_declaration(t, name_code), " = ",
+                    compile(ns_env, decl->value), ";\n");
+            }
             break;
         }
         default: {
@@ -2911,29 +2944,47 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
 
 CORD compile_file(env_t *env, ast_t *ast)
 {
+    // First prepare variable initializers to prevent unitialized access:
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         if (stmt->ast->tag == Declare) {
             auto decl = Match(stmt->ast, Declare);
             const char *decl_name = Match(decl->var, Var)->name;
-            bool is_private = (decl_name[0] == '_');
+            CORD full_name = CORD_all(namespace_prefix(env->libname, env->namespace), decl_name);
             type_t *t = get_type(env, decl->value);
             if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
                 code_err(stmt->ast, "You can't declare a variable with a %T value", t);
-            if (!is_constant(env, decl->value))
-                code_err(decl->value, "This value is not a valid constant initializer.");
+            if (!(decl->value->tag == Use || decl->value->tag == Import || is_constant(env, decl->value))) {
+                env->code->variable_initializers = CORD_all(
+                    env->code->variable_initializers,
+                    full_name, " = ", compile_maybe_incref(env, decl->value), ",\n",
+                    full_name, "$initialized = true;\n");
 
+                CORD checked_access = CORD_all("check_initialized(", full_name, ", \"", decl_name, "\")");
+                set_binding(env, decl_name, new(binding_t, .type=t, .code=checked_access));
+            }
+        }
+    }
+
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        if (stmt->ast->tag == Declare) {
+            auto decl = Match(stmt->ast, Declare);
+            const char *decl_name = Match(decl->var, Var)->name;
+            CORD full_name = CORD_all(namespace_prefix(env->libname, env->namespace), decl_name);
+            bool is_private = (decl_name[0] == '_');
+            type_t *t = get_type(env, decl->value);
             if (decl->value->tag == Use || decl->value->tag == Import) {
                 assert(compile_statement(env, stmt->ast) == CORD_EMPTY);
-            } else if (is_private) {
+            } else if (!is_constant(env, decl->value)) {
                 env->code->staticdefs = CORD_all(
                     env->code->staticdefs,
-                    "static ", compile_type(t), " ", namespace_prefix(env->libname, env->namespace), decl_name, " = ",
-                    compile_maybe_incref(env, decl->value), ";\n");
+                    "static bool ", full_name, "$initialized = false;\n",
+                    is_private ? "static " : CORD_EMPTY,
+                    compile_declaration(t, full_name), ";\n");
             } else {
                 env->code->staticdefs = CORD_all(
                     env->code->staticdefs,
-                    compile_type(t), " ", namespace_prefix(env->libname, env->namespace), decl_name, " = ",
-                    compile_maybe_incref(env, decl->value), ";\n");
+                    is_private ? "static " : CORD_EMPTY,
+                    compile_declaration(t, full_name), " = ", compile(env, decl->value), ";\n");
             }
         } else if (stmt->ast->tag == InlineCCode) {
             CORD code = compile_statement(env, stmt->ast);
@@ -2951,9 +3002,11 @@ CORD compile_file(env_t *env, ast_t *ast)
         "#include \"", name, ".tm.h\"\n\n",
         env->code->local_typedefs, "\n",
         env->code->staticdefs, "\n",
+        "static void _initialize(void) {\n",
+        env->code->variable_initializers,
+        "}\n",
         env->code->funcs, "\n",
-        env->code->typeinfos, "\n"
-    );
+        env->code->typeinfos, "\n");
 }
 
 CORD compile_statement_imports(env_t *env, ast_t *ast)
@@ -3040,9 +3093,6 @@ CORD compile_statement_definitions(env_t *env, ast_t *ast)
             code_err(ast, "You can't declare a variable with a %T value", t);
         const char *decl_name = Match(decl->var, Var)->name;
         bool is_private = (decl_name[0] == '_');
-        if (!is_constant(env, decl->value))
-            code_err(decl->value, "This value is not a valid constant initializer.");
-
         CORD code = (decl->value->tag == Use || decl->value->tag == Import) ? compile_statement_definitions(env, decl->value) : CORD_EMPTY;
         if (is_private) {
             return code;

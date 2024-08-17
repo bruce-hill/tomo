@@ -12,6 +12,7 @@ typedef struct {
     CORD staticdefs;
     CORD funcs;
     CORD typeinfos;
+    CORD variable_initializers;
 } compilation_unit_t;
 
 typedef struct fn_ctx_s {

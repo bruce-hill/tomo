@@ -14,6 +14,8 @@
 #define copy(obj_ptr) ((__typeof(obj_ptr))memcpy(GC_MALLOC(sizeof(*(obj_ptr))), obj_ptr, sizeof(*(obj_ptr))))
 #define Match(x, _tag) ((x)->tag == _tag ? &(x)->__data._tag : (errx(1, __FILE__ ":%d This was supposed to be a " # _tag "\n", __LINE__), &(x)->__data._tag))
 #define Tagged(t, _tag, ...) new(t, .tag=_tag, .__data._tag={__VA_ARGS__})
+#define check_initialized(var, name) *({ if (!var ## $initialized) fail("The variable " name " is being accessed before it has been initialized!"); \
+                                       &var; })
 
 #ifndef auto
 #define auto __auto_type
