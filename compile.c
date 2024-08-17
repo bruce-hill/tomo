@@ -1404,7 +1404,7 @@ CORD compile(env_t *env, ast_t *ast)
         switch (Match(ast, Int)->bits) {
         case 0:
         if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0) {
-            return CORD_asprintf("I(%s)", str);
+            return CORD_asprintf("I_small(%s)", str);
         } else if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0) {
             return CORD_asprintf("Int64_to_Int(%s)", str);
         } else {
