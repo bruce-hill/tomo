@@ -721,6 +721,7 @@ PARSER(parse_table) {
             return NULL;
         value_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a value type for this table");
         whitespace(&pos);
+        match(&pos, ";");
     }
 
     for (;;) {
