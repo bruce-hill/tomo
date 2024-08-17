@@ -148,10 +148,19 @@ void compile_struct_def(env_t *env, ast_t *ast)
                 typeinfo = CORD_all(typeinfo, ".compare=(void*)", type_to_cord(member_t), "$compare, "
                                     ".equal=(void*)", type_to_cord(member_t), "$equal, ");
                 goto got_methods;
-            case TextType: case IntType:
+            case TextType:
                 typeinfo = CORD_all(typeinfo, ".hash=(void*)", type_to_cord(member_t), "$hash", ", ",
                                     ".compare=(void*)", type_to_cord(member_t), "$compare, "
                                     ".equal=(void*)", type_to_cord(member_t), "$equal, ");
+                goto got_methods;
+            case IntType:
+                if (Match(member_t, IntType)->bits == 0)
+                    typeinfo = CORD_all(typeinfo, ".hash=(void*)Int$hash", ", ",
+                                        ".compare=(void*)Int$compare, "
+                                        ".equal=(void*)Int$equal, ");
+                else
+                    typeinfo = CORD_all(typeinfo, ".compare=(void*)", type_to_cord(member_t), "$compare, "
+                                        ".equal=(void*)", type_to_cord(member_t), "$equal, ");
                 goto got_methods;
             case BoolType: goto got_methods;
             default: break;
