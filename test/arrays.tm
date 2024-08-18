@@ -23,7 +23,7 @@ func main():
 
 		str := ""
 		for i,x in arr:
-			str ++= "({i},{x})"
+			str ++= "($i,$x)"
 		>> str
 		= "(1,10)(2,20)(3,30)"
 
@@ -148,7 +148,7 @@ func main():
 		xs := ["A", "B", "C", "D"]
 		for i,x in xs:to(-2):
 			for y in xs:from(i+1):
-				say("{x}{y}")
+				say("$(x)$(y)")
 
 	do:
 		>> nums := [-7, -4, -1, 2, 5]

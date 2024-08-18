@@ -11,7 +11,7 @@ func main():
 
 	t_str := ""
 	for k,v in t:
-		t_str ++= "({k}:{v})"
+		t_str ++= "($k:$v)"
 	>> t_str
 	= "(one:1)(two:2)"
 
@@ -42,7 +42,7 @@ func main():
 
 	t2_str := ""
 	for k,v in t2:
-		t2_str ++= "({k}:{v})"
+		t2_str ++= "($k:$v)"
 	>> t2_str
 	= "(three:3)"
 

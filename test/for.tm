@@ -2,7 +2,7 @@
 func all_nums(nums:[Int])->Text:
 	result := ""
 	for num in nums:
-		result ++= "{num},"
+		result ++= "$num,"
 	else:
 		return "EMPTY"
 	return result
@@ -10,7 +10,7 @@ func all_nums(nums:[Int])->Text:
 func labeled_nums(nums:[Int])->Text:
 	result := ""
 	for i,num in nums:
-		result ++= "{i}:{num},"
+		result ++= "$i:$num,"
 	else:
 		return "EMPTY"
 	return result
@@ -18,14 +18,14 @@ func labeled_nums(nums:[Int])->Text:
 func table_str(t:{Text:Text})->Text:
 	str := ""
 	for k,v in t:
-		str ++= "{k}:{v},"
+		str ++= "$k:$v,"
 	else: return "EMPTY"
 	return str
 
 func table_key_str(t:{Text:Text})->Text:
 	str := ""
 	for k in t:
-		str ++= "{k},"
+		str ++= "$k,"
 	else: return "EMPTY"
 	return str
 

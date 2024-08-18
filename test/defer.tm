@@ -16,7 +16,7 @@ func main():
 
     for word in ["first", "second", "third"]:
         defer:
-            say("Got {word} deferred")
+            say("Got $word deferred")
 
         if word == "second":
             say("<skipped>")
@@ -27,7 +27,7 @@ func main():
 
         for i in 3:
             defer:
-                say("Inner loop deferred {i}")
+                say("Inner loop deferred $i")
 
             if i == 2:
                 say("<skipped inner>")

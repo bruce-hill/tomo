@@ -5,15 +5,15 @@ func choose_text(f:Foo)->Text:
 	when f is Zero:
 		return "Zero"
 	is One(one):
-		return "One: {one}"
+		return "One: $one"
 	is Two(x, y):
-		return "Two: x={x}, y={y}"
+		return "Two: x=$x, y=$y"
 	is Three(three):
-		return "Three: {three}"
+		return "Three: $three"
 	is Four:
 		return "Four"
 	else:
-		return "else: {f}"
+		return "else: $f"
 
 func main():
 	>> Foo.Zero

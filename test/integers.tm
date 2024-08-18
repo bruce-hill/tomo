@@ -28,7 +28,7 @@ func main():
 
 	nums := ""
 	for x in 5:
-		nums ++= "{x},"
+		nums ++= "$x,"
 	>> nums
 	= "1,2,3,4,5,"
 
@@ -79,6 +79,6 @@ func main():
 		for in 20:
 			>> n := Int.random(-999999, 999999)
 			>> d := Int.random(-999, 999)
-			//! n={n}, d={d}:
+			//! n=$n, d=$d:
 			>> (n/d)*d + (n mod d) == n
 			= yes

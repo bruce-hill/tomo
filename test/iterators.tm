@@ -19,15 +19,15 @@ func range(first:Int, last:Int)->func()->RangeIteration:
 func main():
     values := ["A", "B", "C", "D"]
 
-    >> ((++) "({foo}{baz})" for foo, baz in pairwise(values))
+    >> ((++) "($(foo)$(baz))" for foo, baz in pairwise(values))
     = "(AB)(BC)(CD)"
-    >> ["{foo}{baz}" for foo, baz in pairwise(values)]
+    >> ["$(foo)$(baz)" for foo, baz in pairwise(values)]
     = ["AB", "BC", "CD"]
 
     do:
         result := [:Text]
         for foo, baz in pairwise(values):
-            result:insert("{foo}{baz}")
+            result:insert("$(foo)$(baz)")
         >> result
         = ["AB", "BC", "CD"]
 

@@ -1,14 +1,14 @@
 func ping(x:Int)->[Text]:
 	if x > 0:
-		return ["ping: {x}"] ++ pong(x-1)
+		return ["ping: $x"] ++ pong(x-1)
 	else:
-		return ["ping: {x}"]
+		return ["ping: $x"]
 
 func pong(x:Int)->[Text]:
 	if x > 0:
-		return ["pong: {x}"] ++ ping(x-1)
+		return ["pong: $x"] ++ ping(x-1)
 	else:
-		return ["pong: {x}"]
+		return ["pong: $x"]
 
 func main():
 	>> ping(3)

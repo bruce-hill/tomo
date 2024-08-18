@@ -525,7 +525,14 @@ type_t *get_type(env_t *env, ast_t *ast)
     case TextLiteral: return TEXT_TYPE;
     case TextJoin: {
         const char *lang = Match(ast, TextJoin)->lang;
-        return lang ? Match(get_binding(env, lang)->type, TypeInfoType)->type : TEXT_TYPE;
+        if (lang) {
+            binding_t *b = get_binding(env, lang);
+            if (!b || b->type->tag != TypeInfoType || Match(b->type, TypeInfoType)->type->tag != TextType)
+                code_err(ast, "There is no text language called '%s'", lang);
+            return Match(get_binding(env, lang)->type, TypeInfoType)->type;
+        } else {
+            return TEXT_TYPE;
+        }
     }
     case Var: {
         auto var = Match(ast, Var);

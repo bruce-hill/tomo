@@ -1,6 +1,6 @@
 func main():
 	>> str := "Hello Amélie!"
-	//! Testing strings like {str}
+	//! Testing strings like $str
 
 	>> str:upper()
 	= "HELLO AMÉLIE!"
@@ -19,7 +19,7 @@ func main():
 	>> \UE9 == \U65\U301
 	= yes
 
-	>> amelie := "Am{\UE9}lie"
+	>> amelie := "Am$(\UE9)lie"
 	>> amelie:clusters()
 	= ["A", "m", "é", "l", "i", "e"] : [Text]
 	>> amelie:codepoints()
@@ -35,7 +35,7 @@ func main():
 	>> amelie:num_bytes()
 	= 8
 
-	>> amelie2 := "Am{\U65\U301}lie"
+	>> amelie2 := "Am$(\U65\U301)lie"
 	>> amelie2:clusters()
 	= ["A", "m", "é", "l", "i", "e"] : [Text]
 	>> amelie2:codepoints()
@@ -103,3 +103,19 @@ func main():
 	"
 	= "line one\nline two"
 
+	//! Interpolation tests:
+	>> "A $(1+2)"
+	= "A 3"
+	>> 'A $(1+2)'
+	= "A $(1+2)"
+	>> `A $(1+2)`
+	= "A 3"
+
+	>> $"A $(1+2)"
+	= "A 3"
+	>> $$"A $(1+2)"
+	= "A $(1+2)"
+	>> $="A =(1+2)"
+	= "A 3"
+	>> $(one (nested) two $(1+2))
+	= "one (nested) two 3"

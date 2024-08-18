@@ -17,6 +17,7 @@ without using printf-style string formatting.
 // Basic string:
 str := "Hello world"
 str2 := 'Also a string'
+str3 := `Backticks too`
 ```
 
 ## Line Splits
@@ -59,13 +60,18 @@ multi_line := "
 
 ## String Interpolations
 
-Inside a double quoted string, you can use curly braces (`{...}`) to insert an
+Inside a double quoted string, you can use a dollar sign (`$`) to insert an
 expression that you want converted to a string. This is called string
 interpolation:
 
 ```
 // Interpolation:
-str := "Sum: {1 + 2}"
+my_var := 5
+str := "My var is $my_var!"
+// Equivalent to "My var is 5!"
+
+// Using parentheses:
+str := "Sum: $(1 + 2)"
 // equivalent to "Sum: 3"
 ```
 
@@ -73,7 +79,7 @@ Single-quoted strings do not have interpolations:
 
 ```
 // No interpolation here:
-str := 'Sum: {1 + 2}'
+str := 'Sum: $(1 + 2)'
 ```
 
 ## String Escapes
@@ -89,11 +95,12 @@ crlf := \r\n
 quote := \"
 ```
 
-These string literals can be used as interpolation values:
+These string literals can be used as interpolation values with or without
+parentheses, depending on which you find more readable:
 
 ```
-two_lines := "one{\n}two"
-has_quotes := "some {\"}quotes{\"} here"
+two_lines := "one$(\n)two"
+has_quotes := "some $\"quotes$\" here"
 ```
 
 However, in general it is best practice to use multi-line strings to avoid these problems:
@@ -163,32 +170,35 @@ str := "
 >>> str == "{\n}blank lines{\n}"
 ```
 
-### Advanced $-Strings
+### Customizable $-Strings
 
-Sometimes you need to use many `{`s or `"`s inside a string, but you don't want
-to type `{\{}` or `{\"}` each time. In such cases, you can use the more
-advanced form of strings. The advanced form lets you explicitly specify which
-characters are used for interpolation and which characters are used for
-opening/closing the string. Advanced strings begin with a dollar sign (`$`),
-followed by what interpolation style to use, followed by the character to use
-to delimit the string, followed by the string contents and a closing string
-delimiter. The interpolation style can be a matching pair (`()`, `[]`, `{}`, or
-`<>`) or any other single character. When the interpolation style is a matching
-pair, the interpolation is any expression enclosed in that pair (e.g.
-`${}"interpolate {1 + 2}"`). When the interpolation style is a single
-character, the interpolation must be either a parenthesized expression or a
-single term with no infix operators (e.g. a variable), for example:
-`$@"Interpolate @var or @(1 + 2)"`.
+Sometimes you might need to use a lot of literal `$`s or quotation marks in a
+string. In such cases, you can use the more customizable form of strings. The
+customizable form lets you explicitly specify which character to use for
+interpolation and which characters to use for delimiting the string.
+
+The first character after the `$` is the custom interpolation character, which
+can be any of the following symbols: `~!@#$%^&*+=\?`. If none of these
+characters is used, the default interpolation character is `$`. Since this is
+the default, you can disable interpolation altogether by using `$` here (i.e. a
+double `$$`).
+
+The next thing in a customizable string is the character used to delimit the
+string. The string delimiter can be any of the following symbols: `` "'`|/;([{< ``
+If the string delimiter is one of `([{<`, then the string will continue until a
+matching `)]}>` is found, not terminating unless the delimiters are balanced
+(i.e. nested pairs of delimiters are considered part of the string).
 
 Here are some examples:
 
 ```
-$[]"In here, quotes delimit the string and square brackets interpolate: [1 + 2]"
-$@"For single-letter interpolations, the interpolation is a single term like @my_var without a closing symbol"
-$@"But you can parenthesize expressions like: @(x + y) if you need to"
-$$"Double dollars means dollar signs interpolate: $my_var $(1 + 2)"
-$${If you have a string with "quotes" and 'single quotes', you can choose something else like curly braces to delimit the string}
-$?#Here hashes delimit the string and question marks interpolate: ?(1 + 2)#
+$"Equivalent to a normal string with dollar interps: $(1 + 2)"
+$@"The same, but the AT symbol interpolates: @(1 + 2)"
+$$"No interpolation here, $ is just a literal character"
+$|This string is pipe-delimited, so it can have "quotes" and 'single quotes' and interpolates with dollar sign: $(1+2)|
+$(This string is parens-delimited, so you can have (nested) parens without ending the string)
+$=[This string is square-bracket delimited [which can be nested] and uses equals for interps: =(1 + 2)]
+$@/look ma, regex literals!/
 ```
 
 When strings are delimited by matching pairs (`()`, `[]`, `{}`, or `<>`), they

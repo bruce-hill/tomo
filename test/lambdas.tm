@@ -12,7 +12,7 @@ func main():
 	>> add_one(10)
 	= 11
 
-	>> shout := func(msg:Text): say("{msg:upper()}!")
+	>> shout := func(msg:Text): say("$(msg:upper())!")
 	>> shout("hello")
 
 	>> asdf := add_one
@@ -36,7 +36,7 @@ func main():
     fn := func():
         return func():
             return func():
-                defer: //! {outer}
+                defer: //! $outer
                 return outer
     >> fn()()()
 	= "Hello"

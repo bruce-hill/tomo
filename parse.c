@@ -1141,7 +1141,8 @@ PARSER(parse_bool) {
 }
 
 PARSER(parse_text) {
-    // ["$" [name] [interp-char [closing-interp-char]]] ('"' ... '"' / "'" ... "'")
+    // ('"' ... '"' / "'" ... "'" / "`" ... "`")
+    // "$" [name] [interp-char] quote-char ... close-quote
     const char *start = pos;
     const char *lang = NULL;
 
@@ -1156,30 +1157,29 @@ PARSER(parse_text) {
         return NewAST(ctx->file, start, pos, TextLiteral, .cord=cord);
     }
 
-    char open_quote, close_quote, open_interp = '\x03', close_interp = '\x02';
-    if (match(&pos, "\"")) {
-        open_quote = '"', close_quote = '"', open_interp = '{', close_interp = '}';
-    } else if (match(&pos, "'")) {
-        open_quote = '\'', close_quote = '\'';
-    } else if (match(&pos, "$")) {
+    char open_quote, close_quote, open_interp = '$';
+    if (match(&pos, "\"")) { // Double quote
+        open_quote = '"', close_quote = '"', open_interp = '$';
+    } else if (match(&pos, "`")) { // Backtick
+        open_quote = '`', close_quote = '`', open_interp = '$';
+    } else if (match(&pos, "'")) { // Single quote
+        open_quote = '\'', close_quote = '\'', open_interp = '\x03';
+    } else if (match(&pos, "$")) { // Customized strings
         lang = get_id(&pos);
-        if (pos[1] == pos[0]) {
-            // Disable interp using a double opener: $;;...; or $``text`
-            open_quote = *pos;
-            pos += 2;
-        } else {
-            // $@"...." or $()"....."
+        // $"..." or $@"...."
+        static const char *interp_chars = "~!@#$%^&*+=\\?";
+        if (match(&pos, "$")) { // Disable interpolation with $
+            open_interp = '\x03';
+        } else if (strchr(interp_chars, *pos)) {
             open_interp = *pos;
             ++pos;
-            close_interp = closing[(int)open_interp];
-            if (close_interp && *pos == close_interp)
-                ++pos;
-            open_quote = *pos;
-            ++pos;
         }
+        static const char *quote_chars = "\"'`|/;([{<";
+        if (!strchr(quote_chars, *pos))
+            parser_err(ctx, pos, pos+1, "This is not a valid string quotation character. Valid characters are: \"'`|/;([{<");
+        open_quote = *pos;
+        ++pos;
         close_quote = closing[(int)open_quote] ? closing[(int)open_quote] : open_quote;
-        if (open_interp == close_quote)
-            open_interp = '\0';
     } else {
         return NULL;
     }
@@ -1202,16 +1202,9 @@ PARSER(parse_text) {
             }
             ++pos;
             ast_t *interp;
-            if (close_interp) {
-                whitespace(&pos);
-                interp = expect(ctx, interp_start, &pos, parse_expr, "I expected an interpolation expression here");
-                whitespace(&pos);
-                expect_closing(ctx, &pos, (char[]){close_interp, 0}, "I was expecting a '%c' to finish this interpolation", close_interp);
-            } else {
-                if (*pos == ' ' || *pos == '\t')
-                    parser_err(ctx, pos, pos+1, "Whitespace is not allowed before an interpolation here");
-                interp = expect(ctx, interp_start, &pos, parse_term, "I expected an interpolation term here");
-            }
+            if (*pos == ' ' || *pos == '\t')
+                parser_err(ctx, pos, pos+1, "Whitespace is not allowed before an interpolation here");
+            interp = expect(ctx, interp_start, &pos, parse_term, "I expected an interpolation term here");
             chunks = new(ast_list_t, .ast=interp, .next=chunks);
             chunk_start = pos;
         } else if (!leading_newline && *pos == open_quote && closing[(int)open_quote]) { // Nested pair begin
@@ -2128,7 +2121,7 @@ PARSER(parse_say) {
     ast_list_t *chunks = NULL;
     CORD chunk = CORD_EMPTY;
     const char *chunk_start = pos;
-    const char open_interp = '{', close_interp = '}';
+    const char open_interp = '$';
     while (pos < ctx->file->text + ctx->file->len) {
         if (*pos == open_interp) { // Interpolation
             const char *interp_start = pos;
@@ -2139,16 +2132,9 @@ PARSER(parse_say) {
             }
             ++pos;
             ast_t *interp;
-            if (close_interp) {
-                whitespace(&pos);
-                interp = expect(ctx, interp_start, &pos, parse_expr, "I expected an interpolation expression here");
-                whitespace(&pos);
-                expect_closing(ctx, &pos, (char[]){close_interp, 0}, "I was expecting a '%c' to finish this interpolation", close_interp);
-            } else {
-                if (*pos == ' ' || *pos == '\t')
-                    parser_err(ctx, pos, pos+1, "Whitespace is not allowed before an interpolation here");
-                interp = expect(ctx, interp_start, &pos, parse_term, "I expected an interpolation term here");
-            }
+            if (*pos == ' ' || *pos == '\t')
+                parser_err(ctx, pos, pos+1, "Whitespace is not allowed before an interpolation here");
+            interp = expect(ctx, interp_start, &pos, parse_term, "I expected an interpolation term here");
             chunks = new(ast_list_t, .ast=interp, .next=chunks);
             chunk_start = pos;
         } else if (*pos == '\r' || *pos == '\n') { // Newline
