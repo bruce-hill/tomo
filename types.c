@@ -273,7 +273,10 @@ bool can_promote(type_t *actual, type_t *needed)
     if (actual->tag == NumType && needed->tag == IntType)
         return false;
 
-    if (actual->tag == IntType && needed->tag == NumType)
+    if (actual->tag == IntType && (needed->tag == NumType || needed->tag == BigIntType))
+        return true;
+
+    if (actual->tag == BigIntType && needed->tag == NumType)
         return true;
 
     if (actual->tag == IntType && needed->tag == IntType) {
@@ -400,6 +403,16 @@ bool can_have_cycles(type_t *t)
 {
     table_t seen = {0};
     return _can_have_cycles(t, &seen);
+}
+
+bool is_int_type(type_t *t)
+{
+    return t->tag == IntType || t->tag == BigIntType;
+}
+
+bool is_numeric_type(type_t *t)
+{
+    return t->tag == IntType || t->tag == BigIntType || t->tag == NumType;
 }
 
 type_t *replace_type(type_t *t, type_t *target, type_t *replacement)

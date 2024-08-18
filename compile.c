@@ -37,7 +37,7 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
         return true;
     }
 
-    if (actual->tag == IntType && needed->tag == NumType) {
+    if ((actual->tag == IntType || actual->tag == BigIntType) && needed->tag == NumType) {
         *code = CORD_all(type_to_cord(actual), "_to_", type_to_cord(needed), "(", *code, ")");
         return true;
     }
@@ -1022,7 +1022,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             }
             return loop;
         }
-        case IntType: {
+        case BigIntType: {
             CORD n = compile(env, for_->iter);
             if (for_->empty) {
                 return CORD_all(
@@ -1164,7 +1164,7 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
     case MemoryType: return CORD_asprintf("Memory$as_text(stack(%r), %r, &$Memory)", expr, color);
     case BoolType: return CORD_asprintf("Bool$as_text((Bool_t[1]){%r}, %r, &$Bool)", expr, color);
     case CStringType: return CORD_asprintf("CString$as_text(stack(%r), %r, &$CString)", expr, color);
-    case IntType: {
+    case BigIntType: case IntType: {
         CORD name = type_to_cord(t);
         return CORD_asprintf("%r$as_text(stack(%r), %r, &$%r)", name, expr, color, name);
     }
@@ -1387,11 +1387,11 @@ CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t 
             binding_t *b = get_namespace_binding(env, lhs, binop_method_names[op]);
             if (binding_works(b, lhs_t, rhs_t, lhs_t))
                 return CORD_all(b->code, "(", compile(env, lhs), ", ", compile(env, rhs), ")");
-        } else if (lhs_t->tag == NumType || lhs_t->tag == IntType) {
+        } else if (lhs_t->tag == NumType || lhs_t->tag == IntType || lhs_t->tag == BigIntType) {
             binding_t *b = get_namespace_binding(env, rhs, "scaled_by");
             if (binding_works(b, rhs_t, lhs_t, rhs_t))
                 return CORD_all(b->code, "(", compile(env, rhs), ", ", compile(env, lhs), ")");
-        } else if (rhs_t->tag == NumType || rhs_t->tag == IntType) {
+        } else if (rhs_t->tag == NumType || rhs_t->tag == IntType|| rhs_t->tag == BigIntType) {
             binding_t *b = get_namespace_binding(env, lhs, "scaled_by");
             if (binding_works(b, lhs_t, rhs_t, lhs_t))
                 return CORD_all(b->code, "(", compile(env, lhs), ", ", compile(env, rhs), ")");
@@ -1407,7 +1407,7 @@ CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t 
         break;
     }
     case BINOP_DIVIDE: case BINOP_MOD: case BINOP_MOD1: {
-        if (rhs_t->tag == NumType || rhs_t->tag == IntType) {
+        if (rhs_t->tag == NumType || rhs_t->tag == IntType || rhs_t->tag == BigIntType) {
             binding_t *b = get_namespace_binding(env, lhs, binop_method_names[op]);
             if (binding_works(b, lhs_t, rhs_t, lhs_t))
                 return CORD_all(b->code, "(", compile(env, lhs), ", ", compile(env, rhs), ")");
@@ -1415,7 +1415,7 @@ CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t 
         break;
     }
     case BINOP_LSHIFT: case BINOP_RSHIFT: {
-        if (rhs_t->tag == IntType) {
+        if (rhs_t->tag == IntType || rhs_t->tag == BigIntType) {
             binding_t *b = get_namespace_binding(env, lhs, binop_method_names[op]);
             if (binding_works(b, lhs_t, rhs_t, lhs_t))
                 return CORD_all(b->code, "(", compile(env, lhs), ", ", compile(env, rhs), ")");
@@ -1423,7 +1423,7 @@ CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t 
         break;
     }
     case BINOP_POWER: {
-        if (rhs_t->tag == NumType || rhs_t->tag == IntType) {
+        if (rhs_t->tag == NumType || rhs_t->tag == IntType || rhs_t->tag == BigIntType) {
             binding_t *b = get_namespace_binding(env, lhs, binop_method_names[op]);
             if (binding_works(b, lhs_t, rhs_t, lhs_t))
                 return CORD_all(b->code, "(", compile(env, lhs), ", ", compile(env, rhs), ")");
@@ -2677,7 +2677,7 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *container_t = value_type(indexed_type);
         type_t *index_t = get_type(env, indexing->index);
         if (container_t->tag == ArrayType) {
-            if (index_t->tag != IntType)
+            if (index_t->tag != IntType && index_t->tag != BigIntType)
                 code_err(indexing->index, "Arrays can only be indexed by integers, not %T", index_t);
             type_t *item_type = Match(container_t, ArrayType)->item_type;
             CORD arr = compile_to_pointer_depth(env, indexing->indexed, 0, false);
@@ -2792,7 +2792,7 @@ CORD compile_namespace_definitions(env_t *env, const char *ns_name, ast_t *block
 CORD compile_type_info(env_t *env, type_t *t)
 {
     switch (t->tag) {
-    case BoolType: case IntType: case NumType: case CStringType:
+    case BoolType: case IntType: case BigIntType: case NumType: case CStringType:
         return CORD_asprintf("&$%r", type_to_cord(t));
     case TextType: {
         auto text = Match(t, TextType);
@@ -2930,7 +2930,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                             "}\n");
             break;
         }
-        case IntType: case NumType: {
+        case IntType: case BigIntType: case NumType: {
             CORD type_name = type_to_cord(t);
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
                             "if (flag == CORD_EMPTY)\n"

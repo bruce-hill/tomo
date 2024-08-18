@@ -411,7 +411,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
         }
         return scope;
     }
-    case IntType: {
+    case BigIntType: {
         if (for_->vars) {
             if (for_->vars->next)
                 code_err(for_->vars->next->ast, "This is too many variables for this loop");
@@ -495,7 +495,7 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
     switch (cls_type->tag) {
     case ArrayType: return NULL;
     case TableType: return NULL;
-    case BoolType: case IntType: case NumType: {
+    case BoolType: case IntType: case BigIntType: case NumType: {
         binding_t *b = get_binding(env, CORD_to_const_char_star(type_to_cord(cls_type)));
         assert(b);
         return get_binding(Match(b->type, TypeInfoType)->env, name);
@@ -519,7 +519,6 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
     }
     default: break;
     }
-    code_err(self, "No such method!");
     return NULL;
 }
 

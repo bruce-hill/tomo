@@ -141,6 +141,8 @@ bool can_send_over_channel(type_t *t);
 bool can_promote(type_t *actual, type_t *needed);
 bool can_leave_uninitialized(type_t *t);
 bool can_have_cycles(type_t *t);
+bool is_int_type(type_t *t);
+bool is_numeric_type(type_t *t);
 type_t *replace_type(type_t *t, type_t *target, type_t *replacement);
 size_t type_size(type_t *t);
 size_t type_align(type_t *t);

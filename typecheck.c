@@ -687,9 +687,8 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (value_t->tag == ArrayType) {
             if (!indexing->index) return indexed_t;
             type_t *index_t = get_type(env, indexing->index);
-            if (index_t->tag == IntType) {
+            if (index_t->tag == IntType || index_t->tag == BigIntType)
                 return Match(value_t, ArrayType)->item_type;
-            }
             code_err(indexing->index, "I only know how to index lists using integers, not %T", index_t);
         } else if (value_t->tag == TableType) {
             code_err(ast, "Tables use the table:get(key) method, not square bracket indexing like table[key]");
@@ -705,7 +704,8 @@ type_t *get_type(env_t *env, ast_t *ast)
 
         if (fn_type_t->tag == TypeInfoType) {
             type_t *t = Match(fn_type_t, TypeInfoType)->type;
-            if (t->tag == StructType || t->tag == IntType || t->tag == NumType || t->tag == TextType || t->tag == CStringType)
+            if (t->tag == StructType || t->tag == IntType || t->tag == BigIntType || t->tag == NumType
+                || t->tag == TextType || t->tag == CStringType)
                 return t; // Constructor
             code_err(call->fn, "This is not a type that has a constructor");
         }
@@ -898,9 +898,9 @@ type_t *get_type(env_t *env, ast_t *ast)
         // Check for a binop method like plus() etc:
         switch (binop->op) {
         case BINOP_MULT: {
-            if ((lhs_t->tag == NumType || lhs_t->tag == IntType) && binding_works("scaled_by", binop->rhs, rhs_t, lhs_t, rhs_t))
+            if (is_numeric_type(lhs_t) && binding_works("scaled_by", binop->rhs, rhs_t, lhs_t, rhs_t))
                 return rhs_t;
-            else if ((rhs_t->tag == NumType || rhs_t->tag == IntType) && binding_works("scaled_by", binop->lhs, lhs_t, rhs_t, lhs_t))
+            else if (is_numeric_type(rhs_t) && binding_works("scaled_by", binop->lhs, lhs_t, rhs_t, lhs_t))
                 return lhs_t;
             else if (type_eq(lhs_t, rhs_t) && binding_works(binop_method_names[binop->op], binop->lhs, lhs_t, rhs_t, lhs_t))
                 return lhs_t;
@@ -912,17 +912,17 @@ type_t *get_type(env_t *env, ast_t *ast)
             break;
         }
         case BINOP_DIVIDE: case BINOP_MOD: case BINOP_MOD1: {
-            if ((rhs_t->tag == NumType || rhs_t->tag == IntType) && binding_works(binop_method_names[binop->op], binop->lhs, lhs_t, rhs_t, lhs_t))
+            if (is_numeric_type(rhs_t) && binding_works(binop_method_names[binop->op], binop->lhs, lhs_t, rhs_t, lhs_t))
                 return lhs_t;
             break;
         }
         case BINOP_LSHIFT: case BINOP_RSHIFT: {
-            if (rhs_t->tag == IntType && binding_works(binop_method_names[binop->op], binop->lhs, lhs_t, rhs_t, lhs_t))
+            if (is_int_type(rhs_t) && binding_works(binop_method_names[binop->op], binop->lhs, lhs_t, rhs_t, lhs_t))
                 return lhs_t;
             break;
         }
         case BINOP_POWER: {
-            if ((rhs_t->tag == NumType || rhs_t->tag == IntType) && binding_works(binop_method_names[binop->op], binop->lhs, lhs_t, rhs_t, lhs_t))
+            if (is_numeric_type(rhs_t) && binding_works(binop_method_names[binop->op], binop->lhs, lhs_t, rhs_t, lhs_t))
                 return lhs_t;
             break;
         }
@@ -944,7 +944,7 @@ type_t *get_type(env_t *env, ast_t *ast)
                 if (type_eq(lhs_ptr->pointed, rhs_ptr->pointed))
                     return Type(PointerType, .pointed=lhs_ptr->pointed, .is_optional=lhs_ptr->is_optional || rhs_ptr->is_optional,
                                 .is_readonly=lhs_ptr->is_readonly || rhs_ptr->is_readonly);
-            } else if (lhs_t->tag == IntType && rhs_t->tag == IntType) {
+            } else if (is_int_type(lhs_t) && is_int_type(rhs_t)) {
                 return get_math_type(env, ast, lhs_t, rhs_t);
             }
             code_err(ast, "I can't figure out the type of this `and` expression because the left side is a %T, but the right side is a %T",
@@ -955,7 +955,7 @@ type_t *get_type(env_t *env, ast_t *ast)
                 return lhs_t;
             } else if (lhs_t->tag == BoolType && (rhs_t->tag == AbortType || rhs_t->tag == ReturnType)) {
                 return lhs_t;
-            } else if (lhs_t->tag == IntType && rhs_t->tag == IntType) {
+            } else if (is_int_type(lhs_t) && is_int_type(rhs_t)) {
                 return get_math_type(env, ast, lhs_t, rhs_t);
             } else if (lhs_t->tag == PointerType) {
                 auto lhs_ptr = Match(lhs_t, PointerType);
@@ -974,7 +974,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         case BINOP_XOR: {
             if (lhs_t->tag == BoolType && rhs_t->tag == BoolType) {
                 return lhs_t;
-            } else if (lhs_t->tag == IntType && rhs_t->tag == IntType) {
+            } else if (is_int_type(lhs_t) && is_int_type(rhs_t)) {
                 return get_math_type(env, ast, lhs_t, rhs_t);
             }
 
@@ -1016,7 +1016,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *value_t;
         type_t *iter_value_t = value_type(iter_t);
         switch (iter_value_t->tag) {
-        case IntType: value_t = iter_value_t; break;
+        case BigIntType: case IntType: value_t = iter_value_t; break;
         case ArrayType: value_t = Match(iter_value_t, ArrayType)->item_type; break;
         case TableType: value_t = Match(iter_value_t, TableType)->key_type; break;
         case FunctionType: case ClosureType: {
