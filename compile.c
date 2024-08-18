@@ -508,7 +508,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         if (!promote(env, &rhs, rhs_t, lhs_t)) {
             if (update->rhs->tag == Int && lhs_t->tag == IntType)
                 rhs = compile_int_to_type(env, update->rhs, lhs_t);
-            else
+            else if (!(lhs_t->tag == ArrayType && promote(env, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)))
                 code_err(ast, "I can't do operations between %T and %T", lhs_t, rhs_t);
         }
 
