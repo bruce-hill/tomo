@@ -1,5 +1,5 @@
 lang HTML:
-	HEADER := $HTML{}"<!DOCTYPE HTML>"
+	HEADER := $HTML$"<!DOCTYPE HTML>"
 	func escape(t:Text)->HTML:
 		t = t:replace("&", "&amp;")
 		t = t:replace("<", "&lt;")
@@ -12,16 +12,16 @@ lang HTML:
 		return HTML.from_unsafe_text("{i}")
 	
 	func paragraph(content:HTML)->HTML:
-		return $HTML{}"<p>{content}</p>"
+		return $HTML$"<p>$content</p>"
 
 func main():
 	>> HTML.HEADER
 	= $HTML"<!DOCTYPE HTML>"
 
 	>> user := "I <3 hax"
-	>> html := $HTML{}"Hello {user}!"
+	>> html := $HTML$"Hello $user!"
 	= $HTML"Hello I &lt;3 hax!"
-	>> html ++ $HTML{}"<br>"
+	>> html ++ $HTML$"<br>"
 	= $HTML"Hello I &lt;3 hax!<br>"
 
 	>> $HTML{}"{1 + 2}"
@@ -32,3 +32,6 @@ func main():
 
 	>> html:paragraph()
 	= $HTML"<p>Hello I &lt;3 hax!</p>"
+
+	>> Text(html)
+	= "$HTML\"Hello I &lt;3 hax!\""
