@@ -117,6 +117,9 @@ Int_t Int$slow_bit_xor(Int_t x, Int_t y);
 Int_t Int$slow_negative(Int_t x);
 Int_t Int$slow_negated(Int_t x);
 Int_t Int$abs(Int_t x);
+bool Int$is_prime(Int_t x, Int_t reps);
+Int_t Int$next_prime(Int_t x);
+Int_t Int$prev_prime(Int_t x);
 
 extern const TypeInfo $Int;
 

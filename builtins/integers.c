@@ -330,6 +330,33 @@ public Int_t Int$from_text(CORD text) {
     return Int$from_mpz(i);
 }
 
+public bool Int$is_prime(Int_t x, Int_t reps)
+{
+    mpz_t p;
+    mpz_init_set_int(p, x);
+    if (Int$compare(&reps, (Int_t[1]){I_small(9999)}, &$Int) > 0)
+        fail("Number of prime-test repetitions should not be above 9999");
+    int reps_int = Int_to_Int32(reps, false);
+    return (mpz_probab_prime_p(p, reps_int) != 0);
+}
+
+public Int_t Int$next_prime(Int_t x)
+{
+    mpz_t p;
+    mpz_init_set_int(p, x);
+    mpz_nextprime(p, p);
+    return Int$from_mpz(p);
+}
+
+public Int_t Int$prev_prime(Int_t x)
+{
+    mpz_t p;
+    mpz_init_set_int(p, x);
+    if (mpz_prevprime(p, p) == 0)
+        fail("There is no prime number before %r", Int$as_text(&x, false, &$Int));
+    return Int$from_mpz(p);
+}
+
 public const TypeInfo $Int = {
     .size=sizeof(Int_t),
     .align=__alignof__(Int_t),

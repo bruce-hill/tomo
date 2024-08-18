@@ -930,10 +930,13 @@ ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr) {
 
     expect_str(ctx, start, &pos, "in", "I expected an 'in' for this 'for'");
     ast_t *iter = expect(ctx, start, &pos, parse_expr, "I expected an iterable value for this 'for'");
-    whitespace(&pos);
+    const char *next_pos = pos;
+    whitespace(&next_pos);
     ast_t *filter = NULL;
-    if (match_word(&pos, "if"))
+    if (match_word(&next_pos, "if")) {
+        pos = next_pos;
         filter = expect(ctx, pos-2, &pos, parse_expr, "I expected a condition for this 'if'");
+    }
     return NewAST(ctx->file, start, pos, Comprehension, .expr=expr, .vars=vars, .iter=iter, .filter=filter);
 }
 

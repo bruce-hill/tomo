@@ -200,7 +200,7 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
             ast_t *subject = ast->tag == Index ? Match(ast, Index)->indexed : Match(ast, FieldAccess)->fielded;
             code_err(subject, "This is an immutable value, you can't assign to it");
         } else {
-            code_err(ast, "This is a value of type %T and can't be assigned to", get_type(env, ast));
+            code_err(ast, "This is a value of type %T and can't be used as an assignment target", get_type(env, ast));
         }
     }
 
@@ -209,7 +209,7 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
         type_t *container_t = get_type(env, index->indexed);
         if (!index->index && container_t->tag == PointerType) {
             if (Match(container_t, PointerType)->is_optional)
-                code_err(index->indexed, "This pointer might be null, so it can't be safely assigned to");
+                code_err(index->indexed, "This pointer might be null, so it can't be safely used as an assignment target");
             return compile(env, ast);
         }
         container_t = value_type(container_t);
