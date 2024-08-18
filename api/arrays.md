@@ -5,8 +5,92 @@ type in a compact format. Arrays are immutable by default, but use
 copy-on-write semantics to efficiently mutate in place when possible. **Arrays
 are 1-indexed**, which means the first item in the array has index `1`.
 
+## Syntax
+
+Arrays are written using square brackets and a list of comma-separated elements:
+
 ```tomo
 nums := [10, 20, 30]
+```
+
+Each element must have the same type (or be easily promoted to the same type). If
+you want to have an empty array, you must specify what type goes inside the array
+like this:
+
+```tomo
+empty := [:Int]
+```
+
+### Array Comprehensions
+
+Arrays can also use comprehensions, where you specify how to dynamically create
+all the elements by iteration instead of manually specifying each:
+
+```tomo
+>> [i*10 for i in 3:to(8)]
+= [30, 40, 50, 60, 70, 80]
+>> [i*10 for i in 3:to(8) if i != 4]
+= [30, 50, 60, 70, 80]
+```
+
+Comprehensions can be combined with regular items or other comprehensions:
+
+```tomo
+>> [-1, i*10 for i in 3:to(8), i for i in 3]
+= [-1, 30, 40, 50, 60, 70, 80, 1, 2, 3]
+```
+
+## Indexing
+
+Array values are accessed using square bracket indexing. Since arrays are
+1-indexed, the index `1` corresponds to the first item in the array. Negative
+indices are used to refer to items from the back of the array, so `-1` is the
+last item, `-2` is the second-to-last, and so on.
+
+```tomo
+arr := [10, 20, 30, 40]
+>> arr[1]
+= 10
+
+>> arr[2]
+= 20
+
+>> arr[-1]
+= 40
+
+>> arr[-2]
+= 30
+```
+
+If an array index of `0` or any value larger than the length of the array is
+used, it will trigger a runtime error that will print what the invalid array
+index was, the length of the array, and a stack trace. As a performance
+operation, if array bounds checking proves to be a performance hot spot, you
+can explicitly disable bounds checking by adding `arr[i; unchecked]` to the
+array access.
+
+## Iteration
+
+You can iterate over the items in an array like this:
+
+```tomo
+for item in array:
+    ...
+```
+
+Array iteration operates over the value of the array when the loop began, so
+modifying the array during iteration is safe and will not result in the loop
+iterating over any of the new values.
+
+## Concatenation
+
+Arrays can be concatenated with the `++` operator, which returns an array that
+has the items from one appended to the other. This should not be confused with
+the addition operator `+`, which does not work with arrays.
+
+```tomo
+>> [1, 2] ++ [3, 4]
+= [1, 2, 3, 4]
 ```
 
 ## Array Methods
