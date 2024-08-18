@@ -282,7 +282,7 @@ finding the value because the two texts are equivalent under normalization.
 Converts a `Text` value to a C-style string.
 
 **Usage:**  
-```markdown
+```tomo
 as_c_string(text: Text) -> CString
 ```
 
@@ -294,7 +294,7 @@ as_c_string(text: Text) -> CString
 A C-style string (`CString`) representing the text.
 
 **Example:**  
-```markdown
+```tomo
 >> "Hello":as_c_string()
 = CString("Hello")
 ```
@@ -307,7 +307,7 @@ A C-style string (`CString`) representing the text.
 Converts a `Text` value to an array of bytes.
 
 **Usage:**  
-```markdown
+```tomo
 bytes(text: Text) -> [Int8]
 ```
 
@@ -319,7 +319,7 @@ bytes(text: Text) -> [Int8]
 An array of bytes (`[Int8]`) representing the text.
 
 **Example:**  
-```markdown
+```tomo
 >> "Amélie":bytes()
 = [65_i8, 109_i8, 101_i8, -52_i8, -127_i8, 108_i8, 105_i8, 101_i8]
 ```
@@ -332,7 +332,7 @@ An array of bytes (`[Int8]`) representing the text.
 Returns a list of character names from the text.
 
 **Usage:**  
-```markdown
+```tomo
 character_names(text: Text) -> [Text]
 ```
 
@@ -344,7 +344,7 @@ character_names(text: Text) -> [Text]
 A list of character names (`[Text]`).
 
 **Example:**  
-```markdown
+```tomo
 >> "Amélie":character_names()
 = ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E", "COMBINING ACUTE ACCENT", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
 ```
@@ -360,7 +360,7 @@ in a text editor and you hit the left or right arrow key, it will move the
 cursor by one graphical cluster.
 
 **Usage:**  
-```markdown
+```tomo
 clusters(text: Text) -> [Text]
 ```
 
@@ -372,7 +372,7 @@ clusters(text: Text) -> [Text]
 A list of graphical clusters (`[Text]`) within the text.
 
 **Example:**  
-```markdown
+```tomo
 >> "Amélie":clusters()
 = ["A", "m", "é", "l", "i", "e"] : [Text]
 ```
@@ -385,7 +385,7 @@ A list of graphical clusters (`[Text]`) within the text.
 Returns a list of Unicode code points for the text.
 
 **Usage:**  
-```markdown
+```tomo
 codepoints(text: Text) -> [Int32]
 ```
 
@@ -397,7 +397,7 @@ codepoints(text: Text) -> [Int32]
 A list of Unicode code points (`[Int32]`).
 
 **Example:**  
-```markdown
+```tomo
 >> "Amélie":codepoints()
 = [65_i32, 109_i32, 101_i32, 769_i32, 108_i32, 105_i32, 101_i32] : [Int32]
 ```
@@ -410,7 +410,7 @@ A list of Unicode code points (`[Int32]`).
 Converts a C-style string to a `Text` value.
 
 **Usage:**  
-```markdown
+```tomo
 from_c_string(str: CString) -> Text
 ```
 
@@ -422,7 +422,7 @@ from_c_string(str: CString) -> Text
 A `Text` value representing the C-style string.
 
 **Example:**  
-```markdown
+```tomo
 from_c_string(CString("Hello"))  // "Hello"
 ```
 
@@ -434,7 +434,7 @@ from_c_string(CString("Hello"))  // "Hello"
 Checks if the `Text` contains a target substring.
 
 **Usage:**  
-```markdown
+```tomo
 has(text: Text, target: Text, where: Where = Where.Anywhere) -> Bool
 ```
 
@@ -448,7 +448,7 @@ has(text: Text, target: Text, where: Where = Where.Anywhere) -> Bool
 `yes` if the target substring is found, `no` otherwise.
 
 **Example:**  
-```markdown
+```tomo
 has("Hello, world!", "world")  // yes
 ```
 
@@ -460,7 +460,7 @@ has("Hello, world!", "world")  // yes
 Joins a list of text pieces with a specified glue.
 
 **Usage:**  
-```markdown
+```tomo
 join(glue: Text, pieces: [Text]) -> Text
 ```
 
@@ -473,7 +473,7 @@ join(glue: Text, pieces: [Text]) -> Text
 A single `Text` value with the pieces joined by the glue.
 
 **Example:**  
-```markdown
+```tomo
 join(", ", ["apple", "banana", "cherry"])  // "apple, banana, cherry"
 ```
 
@@ -485,7 +485,7 @@ join(", ", ["apple", "banana", "cherry"])  // "apple, banana, cherry"
 Converts all characters in the text to lowercase.
 
 **Usage:**  
-```markdown
+```tomo
 lower(text: Text) -> Text
 ```
 
@@ -497,7 +497,7 @@ lower(text: Text) -> Text
 The lowercase version of the text.
 
 **Example:**  
-```markdown
+```tomo
 lower("HELLO")  // "hello"
 ```
 
@@ -509,7 +509,7 @@ lower("HELLO")  // "hello"
 Returns the number of bytes used by the text.
 
 **Usage:**  
-```markdown
+```tomo
 num_bytes(text: Text) -> Int
 ```
 
@@ -521,7 +521,7 @@ num_bytes(text: Text) -> Int
 The number of bytes used by the text.
 
 **Example:**  
-```markdown
+```tomo
 num_bytes("Hello")  // 5
 ```
 
@@ -533,7 +533,7 @@ num_bytes("Hello")  // 5
 Returns the number of clusters in the text.
 
 **Usage:**  
-```markdown
+```tomo
 num_clusters(text: Text) -> Int
 ```
 
@@ -545,7 +545,7 @@ num_clusters(text: Text) -> Int
 The number of clusters in the text.
 
 **Example:**  
-```markdown
+```tomo
 num_clusters("Hello")  // 5
 ```
 
@@ -557,7 +557,7 @@ num_clusters("Hello")  // 5
 Returns the number of Unicode code points in the text.
 
 **Usage:**  
-```markdown
+```tomo
 num_codepoints(text: Text) -> Int
 ```
 
@@ -569,7 +569,7 @@ num_codepoints(text: Text) -> Int
 The number of Unicode code points in the text.
 
 **Example:**  
-```markdown
+```tomo
 num_codepoints("Hello")  // 5
 ```
 
@@ -581,7 +581,7 @@ num_codepoints("Hello")  // 5
 Formats the text as a quoted string.
 
 **Usage:**  
-```markdown
+```tomo
 quoted(text: Text, color: Bool = no) -> Text
 ```
 
@@ -594,7 +594,7 @@ quoted(text: Text, color: Bool = no) -> Text
 The text formatted as a quoted string.
 
 **Example:**  
-```markdown
+```tomo
 quoted("Hello")  // "\"Hello\""
 ```
 
@@ -606,7 +606,7 @@ quoted("Hello")  // "\"Hello\""
 Replaces occurrences of a pattern in the text with a replacement string.
 
 **Usage:**  
-```markdown
+```tomo
 replace(text: Text, pattern: Text, replacement: Text, limit: Int = -1) -> Text
 ```
 
@@ -621,7 +621,7 @@ replace(text: Text, pattern: Text, replacement: Text, limit: Int = -1) -> Text
 The text with occurrences of the pattern replaced.
 
 **Example:**  
-```markdown
+```tomo
 replace("Hello world", "world", "there")  // "Hello there"
 ```
 
@@ -633,7 +633,7 @@ replace("Hello world", "world", "there")  // "Hello there"
 Splits the text into a list of substrings based on a delimiter.
 
 **Usage:**  
-```markdown
+```tomo
 split(text: Text, split: Text) -> [Text]
 ```
 
@@ -646,7 +646,7 @@ split(text: Text, split: Text) -> [Text]
 A list of substrings resulting from the split.
 
 **Example:**  
-```markdown
+```tomo
 split("apple,banana,cherry", ",")  // ["apple", "banana", "cherry"]
 ```
 
@@ -658,7 +658,7 @@ split("apple,banana,cherry", ",")  // ["apple", "banana", "cherry"]
 Converts the text to title case (capitalizing the first letter of each word).
 
 **Usage:**  
-```markdown
+```tomo
 title(text: Text) -> Text
 ```
 
@@ -670,7 +670,7 @@ title(text: Text) -> Text
 The text in title case.
 
 **Example:**  
-```markdown
+```tomo
 title("hello world")  // "Hello World"
 ```
 
@@ -682,7 +682,7 @@ title("hello world")  // "Hello World"
 Trims characters from the beginning and end of the text.
 
 **Usage:**  
-```markdown
+```tomo
 trimmed(text: Text, trim: Text = " {\n\r\t}", where: Where = Where.Anywhere) -> Text
 ```
 
@@ -696,7 +696,7 @@ trimmed(text: Text, trim: Text = " {\n\r\t}", where: Where = Where.Anywhere) -> 
 The trimmed text.
 
 **Example:**  
-```markdown
+```tomo
 trimmed("  Hello  ")  // "Hello"
 ```
 
@@ -708,7 +708,7 @@ trimmed("  Hello  ")  // "Hello"
 Converts all characters in the text to uppercase.
 
 **Usage:**  
-```markdown
+```tomo
 upper(text: Text) -> Text
 ```
 
@@ -720,7 +720,7 @@ upper(text: Text) -> Text
 The uppercase version of the text.
 
 **Example:**  
-```markdown
+```tomo
 upper("hello")  // "HELLO"
 ```
 
@@ -732,7 +732,7 @@ upper("hello")  // "HELLO"
 Removes all occurrences of a target substring from the text.
 
 **Usage:**  
-```markdown
+```tomo
 without(text: Text, target: Text, where: Where = Where.Anywhere) -> Text
 ```
 
@@ -746,7 +746,7 @@ without(text: Text, target: Text, where: Where = Where.Anywhere) -> Text
 The text with occurrences of the target removed.
 
 **Example:**  
-```markdown
+```tomo
 without("Hello world", "world")  // "Hello "
 ```
 

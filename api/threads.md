@@ -1,0 +1,111 @@
+# Threads
+
+Tomo supports POSIX threads (pthreads) through the `Thread` type. The
+recommended practice is to have each thread interact with other threads only
+through thread-safe Channels with no other shared data.
+
+## Thread Methods
+
+### `new`
+
+**Description:**  
+Creates a new thread to execute a specified function.
+
+**Usage:**  
+```tomo
+Thread.new(fn: func() -> Void) -> Thread
+```
+
+**Parameters:**
+
+- `fn`: The function to be executed by the new thread.
+
+**Returns:**  
+A new `Thread` object representing the created thread.
+
+**Example:**  
+```tomo
+>> jobs := |Int|
+>> results := |Int|
+>> thread := Thread.new(func():
+    while yes:
+        input := jobs:pop()
+        results:push(input + 10
+)
+= Thread<0x12345678>
+>> jobs:push(10)
+>> results:pop()
+= 11
+```
+
+---
+
+### `cancel`
+
+**Description:**  
+Requests the cancellation of a specified thread.
+
+**Usage:**  
+```tomo
+cancel(thread: Thread) -> Void
+```
+
+**Parameters:**
+
+- `thread`: The thread to cancel.
+
+**Returns:**  
+Nothing.
+
+**Example:**  
+```tomo
+>> thread:cancel()
+```
+
+---
+
+### `join`
+
+**Description:**  
+Waits for a specified thread to terminate.
+
+**Usage:**  
+```tomo
+join(thread: Thread) -> Void
+```
+
+**Parameters:**
+
+- `thread`: The thread to join.
+
+**Returns:**  
+Nothing.
+
+**Example:**  
+```tomo
+>> thread:join()
+```
+
+---
+
+### `detach`
+
+**Description:**  
+Detaches a specified thread, allowing it to run independently.
+
+**Usage:**  
+```tomo
+detach(thread: Thread) -> Void
+```
+
+**Parameters:**
+
+- `thread`: The thread to detach.
+
+**Returns:**  
+Nothing.
+
+**Example:**  
+```tomo
+>> thread:detach()
+```
