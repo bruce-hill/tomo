@@ -197,7 +197,7 @@ env_t *new_compilation_unit(CORD *libname)
             F(exp), F(exp2), F(expm1), F(floor), F(j0), F(j1), F(log), F(log10), F(log1p), F(log2), F(logb),
             F(rint), F(round), F(significand), F(sin), F(sinh), F(sqrt),
             F(tan), F(tanh), F(tgamma), F(trunc), F(y0), F(y1),
-            F2(atan2), F2(copysign), F2(fdim), F2(hypot), F2(nextafter), F2(pow), F2(remainder),
+            F2(atan2), F2(copysign), F2(fdim), F2(hypot), F2(nextafter),
         )},
 #undef F2
 #undef F
