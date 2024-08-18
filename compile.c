@@ -216,10 +216,17 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
         if (container_t->tag == ArrayType) {
             CORD target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
             type_t *item_type = Match(container_t, ArrayType)->item_type;
-            return CORD_all("Array_lvalue(", compile_type(item_type), ", ", target_code, ", ", 
-                            compile(env, index->index), ", ", CORD_asprintf("%ld", padded_type_size(item_type)),
-                            ", ", Text$quoted(ast->file->filename, false), ", ", heap_strf("%ld", ast->start - ast->file->text),
-                            ", ", heap_strf("%ld", ast->end - ast->file->text), ")");
+            if (index->unchecked) {
+                return CORD_all("Array_lvalue_unchecked(", compile_type(item_type), ", ", target_code, ", ", 
+                                compile_int_to_type(env, index->index, Type(IntType, .bits=TYPE_IBITS64)),
+                                ", ", CORD_asprintf("%ld", padded_type_size(item_type)), ")");
+            } else {
+                return CORD_all("Array_lvalue(", compile_type(item_type), ", ", target_code, ", ", 
+                                compile_int_to_type(env, index->index, Type(IntType, .bits=TYPE_IBITS64)),
+                                ", ", CORD_asprintf("%ld", padded_type_size(item_type)),
+                                ", ", Text$quoted(ast->file->filename, false), ", ", heap_strf("%ld", ast->start - ast->file->text),
+                                ", ", heap_strf("%ld", ast->end - ast->file->text), ")");
+            }
         } else {
             code_err(ast, "I don't know how to assign to this target");
         }
@@ -2681,12 +2688,13 @@ CORD compile(env_t *env, ast_t *ast)
                 code_err(indexing->index, "Arrays can only be indexed by integers, not %T", index_t);
             type_t *item_type = Match(container_t, ArrayType)->item_type;
             CORD arr = compile_to_pointer_depth(env, indexing->indexed, 0, false);
-            CORD index = compile(env, indexing->index);
             file_t *f = indexing->index->file;
             if (indexing->unchecked)
-                return CORD_all("Array_get_unchecked(", compile_type(item_type), ", ", arr, ", ", index, ")");
+                return CORD_all("Array_get_unchecked(", compile_type(item_type), ", ", arr, ", ",
+                                compile_int_to_type(env, indexing->index, Type(IntType, .bits=TYPE_IBITS64)), ")");
             else
-                return CORD_all("Array_get(", compile_type(item_type), ", ", arr, ", ", index, ", ",
+                return CORD_all("Array_get(", compile_type(item_type), ", ", arr, ", ",
+                                compile_int_to_type(env, indexing->index, Type(IntType, .bits=TYPE_IBITS64)), ", ",
                                 Text$quoted(f->filename, false), ", ", CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
                                 CORD_asprintf("%ld", (int64_t)(indexing->index->end - f->text)),
                                 ")");

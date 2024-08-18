@@ -13,24 +13,30 @@
 
 // Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
 #define Array_get(item_type, arr_expr, index_expr, filename, start, end) *({ \
-    const array_t arr = arr_expr; int64_t index = Int_to_Int64(index_expr, false); \
+    const array_t arr = arr_expr; int64_t index = index_expr; \
     int64_t off = index + (index < 0) * (arr.length + 1) - 1; \
     if (__builtin_expect(off < 0 || off >= arr.length, 0)) \
         fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int64$as_text(&index, no, NULL), arr.length); \
     (item_type*)(arr.data + arr.stride * off);})
+#define Array_get_unchecked(type, x, i) *({ const array_t arr = x; int64_t index = i; \
+                                          int64_t off = index + (index < 0) * (arr.length + 1) - 1; \
+                                          (type*)(arr.data + arr.stride * off);})
 #define Array_lvalue(item_type, arr_expr, index_expr, padded_item_size, filename, start, end) *({ \
-    array_t *arr = arr_expr; int64_t index = Int_to_Int64(index_expr, false); \
+    array_t *arr = arr_expr; int64_t index = index_expr; \
     int64_t off = index + (index < 0) * (arr->length + 1) - 1; \
     if (__builtin_expect(off < 0 || off >= arr->length, 0)) \
         fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int64$as_text(&index, no, NULL), arr->length); \
     if (arr->data_refcount > 0) \
         Array$compact(arr, padded_item_size); \
     (item_type*)(arr->data + arr->stride * off); })
+#define Array_lvalue_unchecked(item_type, arr_expr, index_expr, padded_item_size) *({ \
+    array_t *arr = arr_expr; int64_t index = index_expr; \
+    int64_t off = index + (index < 0) * (arr->length + 1) - 1; \
+    if (arr->data_refcount > 0) \
+        Array$compact(arr, padded_item_size); \
+    (item_type*)(arr->data + arr->stride * off); })
 #define Array_set(item_type, arr, index, value, padded_item_size, filename, start, end) \
     Array_lvalue(item_type, arr_expr, index, padded_item_size, filename, start, end) = value
-#define Array_get_unchecked(type, x, i) *({ const array_t arr = x; int64_t index = I(i); \
-                                          int64_t off = index + (index < 0) * (arr.length + 1) - 1; \
-                                          (type*)(arr.data + arr.stride * off);})
 #define is_atomic(x) _Generic(x, bool: true, int8_t: true, int16_t: true, int32_t: true, int64_t: true, float: true, double: true, default: false)
 #define TypedArray(t, ...) ({ t items[] = {__VA_ARGS__}; \
                          (array_t){.length=sizeof(items)/sizeof(items[0]), \
