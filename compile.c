@@ -2547,6 +2547,14 @@ CORD compile(env_t *env, ast_t *ast)
         switch (value_t->tag) {
         case TypeInfoType: {
             auto info = Match(value_t, TypeInfoType);
+            if (f->field[0] == '_') {
+                for (table_t *locals = env->locals; locals; locals = locals->fallback) {
+                    if (locals == info->env->locals)
+                        goto is_inside_type;
+                }
+                code_err(ast, "Fields that start with underscores are not accessible on types outside of the type definition.", f->field);
+              is_inside_type:;
+            }
             binding_t *b = get_binding(info->env, f->field);
             if (!b) code_err(ast, "I couldn't find the field '%s' on this type", f->field);
             if (!b->code) code_err(ast, "I couldn't figure out how to compile this field");
@@ -2696,16 +2704,18 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
         case Declare: {
             auto decl = Match(ast, Declare);
             type_t *t = get_type(ns_env, decl->value);
+            bool is_private = (Match(decl->var, Var)->name[0] == '_');
             CORD name_code = CORD_all(prefix, Match(decl->var, Var)->name);
             if (!is_constant(env, decl->value)) {
                 env->code->staticdefs = CORD_all(
                     env->code->staticdefs,
                     "static bool ", name_code, "$initialized = false;\n",
-                    // is_private ? "static " : CORD_EMPTY,
+                    is_private ? "static " : CORD_EMPTY,
                     compile_declaration(t, name_code), ";\n");
             } else {
                 env->code->staticdefs = CORD_all(
                     env->code->staticdefs,
+                    is_private ? "static " : CORD_EMPTY,
                     compile_declaration(t, name_code), " = ",
                     compile(ns_env, decl->value), ";\n");
             }
