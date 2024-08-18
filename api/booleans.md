@@ -29,9 +29,15 @@ from_text(text: Text, success: Bool = !&Bool) -> Bool
 
 **Example:**  
 ```tomo
-Boo.from_text("yes")  // yes
-from_text("no")   // no
-from_text("maybe") // !&Bool (default value)
+>> Bool.from_text("yes")
+= yes
+>> Bool.from_text("no")
+= no
+>> success := yes
+>> Bool.from_text("???", &success)
+= no
+>> success
+= no
 ```
 
 ---
@@ -55,6 +61,5 @@ random(p: Float = 0.5) -> Bool
 
 **Example:**  
 ```tomo
-random(0.7)  // yes (with 70% probability)
-random(0.3)  // no (with 70% probability)
+>> Bool.random(70%)  // yes (with 70% probability)
 ```
