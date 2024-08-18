@@ -47,13 +47,10 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
     for (arg_ast_t *field = def->fields; field; field = field->next) {
         type_t *field_type = get_arg_ast_type(env, field);
         switch (field_type->tag) {
-        case IntType:
-            if (Match(field_type, IntType)->bits == 0)
-                cmp_func = CORD_all(cmp_func, "diff = Int$compare_value(x->$", field->name, ", y->$", field->name, ");");
-            else
-                cmp_func = CORD_all(cmp_func, "diff = (x->$", field->name, " > y->$", field->name, ") - (x->$", field->name, " < y->$", field->name, ");");
+        case BigIntType:
+            cmp_func = CORD_all(cmp_func, "diff = Int$compare_value(x->$", field->name, ", y->$", field->name, ");");
             break;
-        case BoolType: case NumType: case PointerType: case FunctionType:
+        case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
             cmp_func = CORD_all(cmp_func, "diff = (x->$", field->name, " > y->$", field->name, ") - (x->$", field->name, " < y->$", field->name, ");");
             break;
         case TextType:
@@ -83,13 +80,10 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
             condition = CORD_all(condition, " && ");
         type_t *field_type = get_arg_ast_type(env, field);
         switch (field_type->tag) {
-        case IntType:
-            if (Match(field_type, IntType)->bits == 0)
-                condition = CORD_all(condition, "Int$equal_value(x->$", field->name, ", y->$", field->name, ")");
-            else
-                condition = CORD_all(condition, "(x->$", field->name, " == y->$", field->name, ")");
+        case BigIntType:
+            condition = CORD_all(condition, "Int$equal_value(x->$", field->name, ", y->$", field->name, ")");
             break;
-        case BoolType: case NumType: case PointerType: case FunctionType:
+        case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
             condition = CORD_all(condition, "(x->$", field->name, " == y->$", field->name, ")");
             break;
         case TextType:
@@ -144,23 +138,14 @@ void compile_struct_def(env_t *env, ast_t *ast)
         if (struct_->fields && !struct_->fields->next) { // Single member, can just use its methods
             type_t *member_t = struct_->fields->type;
             switch (member_t->tag) {
-            case NumType:
+            case IntType: case NumType:
                 typeinfo = CORD_all(typeinfo, ".compare=(void*)", type_to_cord(member_t), "$compare, "
                                     ".equal=(void*)", type_to_cord(member_t), "$equal, ");
                 goto got_methods;
-            case TextType:
+            case BigIntType: case TextType:
                 typeinfo = CORD_all(typeinfo, ".hash=(void*)", type_to_cord(member_t), "$hash", ", ",
                                     ".compare=(void*)", type_to_cord(member_t), "$compare, "
                                     ".equal=(void*)", type_to_cord(member_t), "$equal, ");
-                goto got_methods;
-            case IntType:
-                if (Match(member_t, IntType)->bits == 0)
-                    typeinfo = CORD_all(typeinfo, ".hash=(void*)Int$hash", ", ",
-                                        ".compare=(void*)Int$compare, "
-                                        ".equal=(void*)Int$equal, ");
-                else
-                    typeinfo = CORD_all(typeinfo, ".compare=(void*)", type_to_cord(member_t), "$compare, "
-                                        ".equal=(void*)", type_to_cord(member_t), "$equal, ");
                 goto got_methods;
             case BoolType: goto got_methods;
             default: break;

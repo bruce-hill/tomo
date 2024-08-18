@@ -43,6 +43,7 @@ struct type_s {
         VoidType,
         MemoryType,
         BoolType,
+        BigIntType,
         IntType,
         NumType,
         CStringType,
@@ -66,11 +67,12 @@ struct type_s {
         struct {
             type_t *ret;
         } ReturnType;
+        struct {} BigIntType;
         struct {
-            int64_t bits;
+            enum { TYPE_IBITS8=8, TYPE_IBITS16=16, TYPE_IBITS32=32, TYPE_IBITS64=64 } bits;
         } IntType;
         struct {
-            int64_t bits;
+            enum { TYPE_NBITS32=32, TYPE_NBITS64=64 } bits;
         } NumType;
         struct {} CStringType;
         struct {
@@ -121,8 +123,8 @@ struct type_s {
 };
 
 #define Type(typetag, ...) new(type_t, .tag=typetag, .__data.typetag={__VA_ARGS__})
-#define INT_TYPE Type(IntType, .bits=0)
-#define NUM_TYPE Type(NumType, .bits=64)
+#define INT_TYPE Type(BigIntType)
+#define NUM_TYPE Type(NumType, .bits=TYPE_NBITS64)
 
 int printf_pointer_size(const struct printf_info *info, size_t n, int argtypes[n], int size[n]);
 int printf_type(FILE *stream, const struct printf_info *info, const void *const args[]);

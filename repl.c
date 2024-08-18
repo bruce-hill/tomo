@@ -103,18 +103,19 @@ const TypeInfo *type_to_type_info(type_t *t)
     case VoidType: return &$Void;
     case MemoryType: return &$Memory;
     case BoolType: return &$Bool;
+    case BigIntType: return &$Int;
     case IntType:
         switch (Match(t, IntType)->bits) {
-        case 0: case 64: return &$Int;
-        case 32: return &$Int32;
-        case 16: return &$Int16;
-        case 8: return &$Int8;
+        case TYPE_IBITS64: return &$Int64;
+        case TYPE_IBITS32: return &$Int32;
+        case TYPE_IBITS16: return &$Int16;
+        case TYPE_IBITS8: return &$Int8;
         default: errx(1, "Invalid bits");
         }
     case NumType:
         switch (Match(t, NumType)->bits) {
-        case 0: case 64: return &$Num;
-        case 32: return &$Num32;
+        case TYPE_NBITS64: return &$Num;
+        case TYPE_NBITS32: return &$Num32;
         default: errx(1, "Invalid bits");
         }
     case TextType: return &$Text;
@@ -161,15 +162,19 @@ static Int_t ast_to_int(env_t *env, ast_t *ast)
 {
     type_t *t = get_type(env, ast);
     switch (t->tag) {
+    case BigIntType: {
+        number_t num;
+        eval(env, ast, &num);
+        return num.integer;
+    }
     case IntType: {
         number_t num;
         eval(env, ast, &num);
         switch (Match(t, IntType)->bits) {
-        case 0: return num.integer;
-        case 64: return Int64_to_Int((int64_t)num.i64);
-        case 32: return Int32_to_Int(num.i32);
-        case 16: return Int16_to_Int(num.i16);
-        case 8: return Int8_to_Int(num.i8);
+        case TYPE_IBITS64: return Int64_to_Int((int64_t)num.i64);
+        case TYPE_IBITS32: return Int32_to_Int(num.i32);
+        case TYPE_IBITS16: return Int16_to_Int(num.i16);
+        case TYPE_IBITS8: return Int8_to_Int(num.i8);
         default: errx(1, "Invalid int bits");
         }
     }
@@ -181,22 +186,23 @@ static double ast_to_num(env_t *env, ast_t *ast)
 {
     type_t *t = get_type(env, ast);
     switch (t->tag) {
-    case IntType: {
+    case BigIntType: case IntType: {
         number_t num;
         eval(env, ast, &num);
+        if (t->tag == BigIntType)
+            return Int_to_Num(num.integer);
         switch (Match(t, IntType)->bits) {
-        case 0: return Int_to_Num(num.integer);
-        case 64: return (double)num.i64;
-        case 32: return (double)num.i32;
-        case 16: return (double)num.i16;
-        case 8: return (double)num.i8;
+        case TYPE_IBITS64: return (double)num.i64;
+        case TYPE_IBITS32: return (double)num.i32;
+        case TYPE_IBITS16: return (double)num.i16;
+        case TYPE_IBITS8: return (double)num.i8;
         default: errx(1, "Invalid int bits");
         }
     }
     case NumType: {
         number_t num;
         eval(env, ast, &num);
-        return Match(t, NumType)->bits == 32 ? (double)num.n32 : (double)num.n64;
+        return Match(t, NumType)->bits == TYPE_NBITS32 ? (double)num.n32 : (double)num.n64;
     }
     default: repl_err(NULL, "Cannot convert to number");
     }
@@ -388,13 +394,16 @@ void eval(env_t *env, ast_t *ast, void *dest)
     }
     case BinaryOp: {
         auto binop = Match(ast, BinaryOp);
-        if (t->tag == IntType) {
+        if (t->tag == IntType || t->tag == BigIntType) {
 #define CASE_OP(OP_NAME, method_name) case BINOP_##OP_NAME: {\
         Int_t lhs = ast_to_int(env, binop->lhs); \
         Int_t rhs = ast_to_int(env, binop->rhs); \
         Int_t result = Int$ ## method_name (lhs, rhs); \
+        if (t->tag == BigIntType) {\
+            *(Int_t*)dest = result; \
+            return; \
+        } \
         switch (Match(t, IntType)->bits) { \
-        case 0: *(Int_t*)dest = result; return; \
         case 64: *(int64_t*)dest = Int_to_Int64(result, false); return; \
         case 32: *(int32_t*)dest = Int_to_Int32(result, false); return; \
         case 16: *(int16_t*)dest = Int_to_Int16(result, false); return; \

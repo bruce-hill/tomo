@@ -116,15 +116,11 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
 type_t *get_math_type(env_t *env, ast_t *ast, type_t *lhs_t, type_t *rhs_t)
 {
     (void)env;
-    if (lhs_t->tag == IntType && rhs_t->tag == IntType)
-        return Match(lhs_t, IntType)->bits >= Match(rhs_t, IntType)->bits ? lhs_t : rhs_t;
-    else if (lhs_t->tag == NumType && rhs_t->tag == NumType)
-        return Match(lhs_t, NumType)->bits >= Match(rhs_t, NumType)->bits ? lhs_t : rhs_t;
-    else if (lhs_t->tag == NumType && rhs_t->tag == IntType)
-        return lhs_t;
-    else if (rhs_t->tag == NumType && lhs_t->tag == IntType)
-        return rhs_t;
-
+    switch (compare_precision(lhs_t, rhs_t)) {
+    case NUM_PRECISION_EQUAL: case NUM_PRECISION_MORE: return lhs_t;
+    case NUM_PRECISION_LESS: return rhs_t;
+    default: return NULL;
+    }
     code_err(ast, "Math operations between %T and %T are not supported", lhs_t, rhs_t);
 }
 
@@ -456,11 +452,24 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
     case Int: {
         auto i = Match(ast, Int);
-        return Type(IntType, .bits=i->bits);
+        switch (i->bits) {
+        case IBITS_UNSPECIFIED: return Type(BigIntType);
+        case IBITS8: return Type(IntType, .bits=TYPE_IBITS8);
+        case IBITS16: return Type(IntType, .bits=TYPE_IBITS16);
+        case IBITS32: return Type(IntType, .bits=TYPE_IBITS32);
+        case IBITS64: return Type(IntType, .bits=TYPE_IBITS64);
+        default: errx(1, "Invalid integer bits");
+        }
     }
     case Num: {
         auto n = Match(ast, Num);
-        return Type(NumType, .bits=n->bits);
+        switch (n->bits) {
+        case NBITS_UNSPECIFIED: case NBITS64:
+            return Type(NumType, .bits=TYPE_NBITS64);
+        case NBITS32:
+            return Type(NumType, .bits=TYPE_NBITS32);
+        default: errx(1, "Invalid num bits");
+        }
     }
     case HeapAllocate: {
         type_t *pointed = get_type(env, Match(ast, HeapAllocate)->value);
@@ -987,12 +996,12 @@ type_t *get_type(env_t *env, ast_t *ast)
             return Type(BoolType);
         }
         case BINOP_CMP:
-            return Type(IntType, .bits=32);
+            return Type(IntType, .bits=TYPE_IBITS32);
         case BINOP_POWER: {
             type_t *result = get_math_type(env, ast, lhs_t, rhs_t);
             if (result->tag == NumType)
                 return result;
-            return Type(NumType, .bits=64);
+            return Type(NumType, .bits=TYPE_NBITS64);
         }
         default: {
             return get_math_type(env, ast, lhs_t, rhs_t);
@@ -1351,7 +1360,7 @@ bool is_constant(env_t *env, ast_t *ast)
     case Bool: case Num: case Nil: case TextLiteral: return true;
     case Int: {
         auto info = Match(ast, Int);
-        if (info->bits == 0) {
+        if (info->bits == IBITS_UNSPECIFIED) {
             Int_t int_val = Int$from_text(info->str);
             mpz_t i;
             mpz_init_set_int(i, int_val);

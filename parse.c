@@ -468,11 +468,11 @@ PARSER(parse_int) {
     }
 
     match(&pos, "_");
-    int64_t bits = 0;
-    if (match(&pos, "i64")) bits = 64;
-    else if (match(&pos, "i32")) bits = 32;
-    else if (match(&pos, "i16")) bits = 16;
-    else if (match(&pos, "i8")) bits = 8;
+    auto bits = IBITS_UNSPECIFIED;
+    if (match(&pos, "i64")) bits = IBITS64;
+    else if (match(&pos, "i32")) bits = IBITS32;
+    else if (match(&pos, "i16")) bits = IBITS16;
+    else if (match(&pos, "i8")) bits = IBITS8;
 
     // else if (match(&pos, ".") || match(&pos, "e")) return NULL; // looks like a float
 
@@ -624,14 +624,13 @@ PARSER(parse_num) {
 
     if (negative) d *= -1;
 
-    int64_t bits = 64;
+    auto bits = NBITS_UNSPECIFIED;
     match(&pos, "_");
-    if (match(&pos, "f64")) bits = 64;
-    else if (match(&pos, "f32")) bits = 32;
+    if (match(&pos, "f64")) bits = NBITS64;
+    else if (match(&pos, "f32")) bits = NBITS32;
 
-    if (match(&pos, "%")) {
+    if (match(&pos, "%"))
         d /= 100.;
-    }
 
     return NewAST(ctx->file, start, pos, Num, .n=d, .bits=bits);
 }

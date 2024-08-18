@@ -87,7 +87,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"from_text", "Bool$from_text", "func(text:Text, success=!&Bool)->Bool"},
             {"random", "Bool$random", "func(p=0.5)->Bool"},
         )},
-        {"Int", Type(IntType, .bits=0), "Int_t", "$Int", TypedArray(ns_entry_t,
+        {"Int", Type(BigIntType), "Int_t", "$Int", TypedArray(ns_entry_t,
             {"format", "Int$format", "func(i:Int, digits=0)->Text"},
             {"hex", "Int$hex", "func(i:Int, digits=0, uppercase=yes, prefix=yes)->Text"},
             {"octal", "Int$octal", "func(i:Int, digits=0, prefix=yes)->Text"},
@@ -111,7 +111,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"sqrt", "Int$sqrt", "func(x:Int)->Int"},
             {"power", "Int$power", "func(base:Int,exponent:Int)->Int"},
         )},
-        {"Int64", Type(IntType, .bits=64), "Int64_t", "$Int64", TypedArray(ns_entry_t,
+        {"Int64", Type(IntType, .bits=TYPE_IBITS64), "Int64_t", "$Int64", TypedArray(ns_entry_t,
             {"format", "Int64$format", "func(i:Int64, digits=0)->Text"},
             {"hex", "Int64$hex", "func(i:Int64, digits=0, uppercase=yes, prefix=yes)->Text"},
             {"octal", "Int64$octal", "func(i:Int64, digits=0, prefix=yes)->Text"},
@@ -126,7 +126,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"modulo", "Int64$modulo", "func(x:Int64,y:Int64)->Int64"},
             {"modulo1", "Int64$modulo1", "func(x:Int64,y:Int64)->Int64"},
         )},
-        {"Int32", Type(IntType, .bits=32), "Int32_t", "$Int32", TypedArray(ns_entry_t,
+        {"Int32", Type(IntType, .bits=TYPE_IBITS32), "Int32_t", "$Int32", TypedArray(ns_entry_t,
             {"format", "Int32$format", "func(i:Int32, digits=0)->Text"},
             {"hex", "Int32$hex", "func(i:Int32, digits=0, uppercase=yes, prefix=yes)->Text"},
             {"octal", "Int32$octal", "func(i:Int32, digits=0, prefix=yes)->Text"},
@@ -141,7 +141,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"modulo", "Int32$modulo", "func(x:Int32,y:Int32)->Int32"},
             {"modulo1", "Int32$modulo1", "func(x:Int32,y:Int32)->Int32"},
         )},
-        {"Int16", Type(IntType, .bits=16), "Int16_t", "$Int16", TypedArray(ns_entry_t,
+        {"Int16", Type(IntType, .bits=TYPE_IBITS16), "Int16_t", "$Int16", TypedArray(ns_entry_t,
             {"format", "Int16$format", "func(i:Int16, digits=0)->Text"},
             {"hex", "Int16$hex", "func(i:Int16, digits=0, uppercase=yes, prefix=yes)->Text"},
             {"octal", "Int16$octal", "func(i:Int16, digits=0, prefix=yes)->Text"},
@@ -156,7 +156,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"modulo", "Int16$modulo", "func(x:Int16,y:Int16)->Int16"},
             {"modulo1", "Int16$modulo1", "func(x:Int16,y:Int16)->Int16"},
         )},
-        {"Int8", Type(IntType, .bits=8), "Int8_t", "$Int8", TypedArray(ns_entry_t,
+        {"Int8", Type(IntType, .bits=TYPE_IBITS8), "Int8_t", "$Int8", TypedArray(ns_entry_t,
             {"format", "Int8$format", "func(i:Int8, digits=0)->Text"},
             {"hex", "Int8$hex", "func(i:Int8, digits=0, uppercase=yes, prefix=yes)->Text"},
             {"octal", "Int8$octal", "func(i:Int8, digits=0, prefix=yes)->Text"},
@@ -174,7 +174,7 @@ env_t *new_compilation_unit(CORD *libname)
 #define C(name) {#name, "M_"#name, "Num"}
 #define F(name) {#name, #name, "func(n:Num)->Num"}
 #define F2(name) {#name, #name, "func(x:Num, y:Num)->Num"}
-        {"Num", Type(NumType, .bits=64), "Num_t", "$Num", TypedArray(ns_entry_t,
+        {"Num", Type(NumType, .bits=TYPE_NBITS64), "Num_t", "$Num", TypedArray(ns_entry_t,
             {"near", "Num$near", "func(x:Num, y:Num, ratio=1e-9, min_epsilon=1e-9)->Bool"},
             {"format", "Num$format", "func(n:Num, precision=0)->Text"},
             {"scientific", "Num$scientific", "func(n:Num, precision=0)->Text"},
@@ -202,7 +202,7 @@ env_t *new_compilation_unit(CORD *libname)
 #define C(name) {#name, "(Num32_t)(M_"#name")", "Num32"}
 #define F(name) {#name, #name"f", "func(n:Num32)->Num32"}
 #define F2(name) {#name, #name"f", "func(x:Num32, y:Num32)->Num32"}
-        {"Num32", Type(NumType, .bits=32), "Num32_t", "$Num32", TypedArray(ns_entry_t,
+        {"Num32", Type(NumType, .bits=TYPE_NBITS32), "Num32_t", "$Num32", TypedArray(ns_entry_t,
             {"near", "Num32$near", "func(x:Num32, y:Num32, ratio=1e-9f32, min_epsilon=1e-9f32)->Bool"},
             {"format", "Num32$format", "func(n:Num32, precision=0)->Text"},
             {"scientific", "Num32$scientific", "func(n:Num32, precision=0)->Text"},

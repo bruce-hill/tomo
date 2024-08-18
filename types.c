@@ -19,8 +19,9 @@ CORD type_to_cord(type_t *t) {
         case BoolType: return "Bool";
         case CStringType: return "CString";
         case TextType: return Match(t, TextType)->lang ? Match(t, TextType)->lang : "Text";
-        case IntType: return Match(t, IntType)->bits == 0 ? "Int" : CORD_asprintf("Int%ld", Match(t, IntType)->bits);
-        case NumType: return Match(t, NumType)->bits == 64 ? "Num" : CORD_asprintf("Num%ld", Match(t, NumType)->bits);
+        case BigIntType: return "Int";
+        case IntType: return CORD_asprintf("Int%d", Match(t, IntType)->bits);
+        case NumType: return Match(t, NumType)->bits == TYPE_NBITS32 ? "Num32" : "Num";
         case ArrayType: {
             auto array = Match(t, ArrayType);
             return CORD_asprintf("[%r]", type_to_cord(array->item_type));
@@ -154,14 +155,14 @@ static inline double type_min_magnitude(type_t *t)
 {
     switch (t->tag) {
     case BoolType: return (double)false;
+    case BigIntType: return -1./0.;
     case IntType: {
         switch (Match(t, IntType)->bits) {
-        case 0: return -1./0.;
-        case 8: return (double)INT8_MIN;
-        case 16: return (double)INT16_MIN;
-        case 32: return (double)INT32_MIN;
-        case 64: return (double)INT64_MIN;
-        default: return NAN;
+        case TYPE_IBITS8: return (double)INT8_MIN;
+        case TYPE_IBITS16: return (double)INT16_MIN;
+        case TYPE_IBITS32: return (double)INT32_MIN;
+        case TYPE_IBITS64: return (double)INT64_MIN;
+        default: errx(1, "Invalid integer bit size");
         }
     }
     case NumType: return -1./0.;
@@ -173,14 +174,14 @@ static inline double type_max_magnitude(type_t *t)
 {
     switch (t->tag) {
     case BoolType: return (double)true;
+    case BigIntType: return 1./0.;
     case IntType: {
         switch (Match(t, IntType)->bits) {
-        case 0: return 1./0.;
-        case 8: return (double)INT8_MAX;
-        case 16: return (double)INT16_MAX;
-        case 32: return (double)INT32_MAX;
-        case 64: return (double)INT64_MAX;
-        default: return NAN;
+        case TYPE_IBITS8: return (double)INT8_MAX;
+        case TYPE_IBITS16: return (double)INT16_MAX;
+        case TYPE_IBITS32: return (double)INT32_MAX;
+        case TYPE_IBITS64: return (double)INT64_MAX;
+        default: errx(1, "Invalid integer bit size");
         }
     }
     case NumType: return 1./0.;
@@ -211,7 +212,7 @@ bool has_heap_memory(type_t *t)
     case TableType: return true;
     case SetType: return true;
     case PointerType: return true;
-    case IntType: return (Match(t, IntType)->bits == 0);
+    case BigIntType: return true;
     case StructType: {
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
             if (has_heap_memory(field->type))
@@ -452,17 +453,17 @@ size_t type_size(type_t *t)
     case MemoryType: errx(1, "Memory has undefined type size");
     case BoolType: return sizeof(bool);
     case CStringType: return sizeof(char*);
+    case BigIntType: return sizeof(Int_t);
     case IntType: {
         switch (Match(t, IntType)->bits) {
-        case 0: return sizeof(Int_t);
-        case 64: return sizeof(int64_t);
-        case 32: return sizeof(int32_t);
-        case 16: return sizeof(int16_t);
-        case 8: return sizeof(int8_t);
-        default: return 0;
+        case TYPE_IBITS64: return sizeof(int64_t);
+        case TYPE_IBITS32: return sizeof(int32_t);
+        case TYPE_IBITS16: return sizeof(int16_t);
+        case TYPE_IBITS8: return sizeof(int8_t);
+        default: errx(1, "Invalid integer bit size");
         }
     }
-    case NumType: return Match(t, NumType)->bits/8;
+    case NumType: return Match(t, NumType)->bits == TYPE_NBITS64 ? sizeof(double) : sizeof(float);
     case TextType: return sizeof(CORD);
     case ArrayType: return sizeof(array_t);
     case SetType: return sizeof(table_t);
@@ -515,17 +516,17 @@ size_t type_align(type_t *t)
     case MemoryType: errx(1, "Memory has undefined type alignment");
     case BoolType: return __alignof__(bool);
     case CStringType: return __alignof__(char*);
+    case BigIntType: return __alignof__(Int_t);
     case IntType: {
         switch (Match(t, IntType)->bits) {
-        case 0: return __alignof__(Int_t);
-        case 64: return __alignof__(int64_t);
-        case 32: return __alignof__(int32_t);
-        case 16: return __alignof__(int16_t);
-        case 8: return __alignof__(int8_t);
+        case TYPE_IBITS64: return __alignof__(int64_t);
+        case TYPE_IBITS32: return __alignof__(int32_t);
+        case TYPE_IBITS16: return __alignof__(int16_t);
+        case TYPE_IBITS8: return __alignof__(int8_t);
         default: return 0;
         }
     }
-    case NumType: return Match(t, NumType)->bits/8;
+    case NumType: return Match(t, NumType)->bits == TYPE_NBITS64 ? __alignof__(double) : __alignof__(float);
     case TextType: return __alignof__(CORD);
     case SetType: return __alignof__(table_t);
     case ArrayType: return __alignof__(array_t);

@@ -144,11 +144,11 @@ struct ast_s {
         } Var;
         struct {
             const char *str;
-            int64_t bits;
+            enum { IBITS_UNSPECIFIED=0, IBITS8=8, IBITS16=16, IBITS32=32, IBITS64=64 } bits;
         } Int;
         struct {
             double n;
-            int64_t bits;
+            enum { NBITS_UNSPECIFIED=0, NBITS32=32, NBITS64=64 } bits;
         } Num;
         struct {
             CORD cord;
