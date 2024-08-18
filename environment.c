@@ -256,7 +256,6 @@ env_t *new_compilation_unit(CORD *libname)
             {"replace", "Text$replace", "func(text:Text, pattern:Text, replacement:Text, limit=-1)->Text"},
             {"split", "Text$split", "func(text:Text, split:Text)->[Text]"},
             {"title", "Text$title", "func(text:Text)->Text"},
-            {"title", "Text$title", "func(text:Text)->Text"},
             {"trimmed", "Text$trimmed", "func(text:Text, trim=\" {\\n\\r\\t}\", where=Where.Anywhere)->Text"},
             {"upper", "Text$upper", "func(text:Text)->Text"},
             {"without", "Text$without", "func(text:Text, target:Text, where=Where.Anywhere)->Text"},
