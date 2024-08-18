@@ -22,6 +22,7 @@ static CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, 
 static CORD compile_string(env_t *env, ast_t *ast, CORD color);
 static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args);
 static CORD compile_maybe_incref(env_t *env, ast_t *ast);
+static CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target);
 
 static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
 {
@@ -356,9 +357,14 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     code_err(test->expr, "Stack references cannot be assigned to local variables because the variable may outlive the stack memory.");
                 env_t *val_scope = with_enum_scope(env, lhs_t);
                 type_t *rhs_t = get_type(val_scope, assign->values->ast);
-                CORD value = compile_maybe_incref(val_scope, assign->values->ast);
-                if (!promote(env, &value, rhs_t, lhs_t))
-                    code_err(assign->values->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
+                CORD value;
+                if (lhs_t->tag == IntType && assign->values->ast->tag == Int) {
+                    value = compile_int_to_type(val_scope, assign->values->ast, lhs_t);
+                } else {
+                    value = compile_maybe_incref(val_scope, assign->values->ast);
+                    if (!promote(val_scope, &value, rhs_t, lhs_t))
+                        code_err(assign->values->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
+                }
                 return CORD_asprintf(
                     "test(({ %r; &%r; }), %r, %r, %r, %ld, %ld);",
                     compile_assignment(env, assign->targets->ast, value),
@@ -381,9 +387,14 @@ CORD compile_statement(env_t *env, ast_t *ast)
                         code_err(ast, "Stack references cannot be assigned to local variables because the variable may outlive the stack memory.");
                     env_t *val_scope = with_enum_scope(env, target_type);
                     type_t *value_type = get_type(val_scope, value->ast);
-                    CORD val_code = compile_maybe_incref(val_scope, value->ast);
-                    if (!promote(env, &val_code, value_type, target_type))
-                        code_err(value->ast, "This %T value cannot be converted to a %T type", value_type, target_type);
+                    CORD val_code;
+                    if (target_type->tag == IntType && value->ast->tag == Int) {
+                        val_code = compile_int_to_type(val_scope, value->ast, target_type);
+                    } else {
+                        val_code = compile_maybe_incref(val_scope, value->ast);
+                        if (!promote(val_scope, &val_code, value_type, target_type))
+                            code_err(value->ast, "You cannot assign a %T value to a %T operand", value_type, target_type);
+                    }
                     CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(target_type), i++, val_code);
                 }
                 i = 1;
@@ -447,9 +458,14 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 code_err(ast, "Stack references cannot be assigned to local variables because the variable may outlive the stack memory.");
             env_t *val_env = with_enum_scope(env, lhs_t);
             type_t *rhs_t = get_type(val_env, assign->values->ast);
-            CORD val = compile_maybe_incref(val_env, assign->values->ast);
-            if (!promote(env, &val, rhs_t, lhs_t))
-                code_err(assign->values->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
+            CORD val;
+            if (rhs_t->tag == IntType && assign->values->ast->tag == Int) {
+                val = compile_int_to_type(val_env, assign->values->ast, rhs_t);
+            } else {
+                val = compile_maybe_incref(val_env, assign->values->ast);
+                if (!promote(val_env, &val, lhs_t, rhs_t))
+                    code_err(assign->values->ast, "You cannot assign a %T value to a %T operand", lhs_t, rhs_t);
+            }
             return compile_assignment(env, assign->targets->ast, val);
         }
 
@@ -461,9 +477,14 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 code_err(ast, "Stack references cannot be assigned to local variables because the variable may outlive the stack memory.");
             env_t *val_env = with_enum_scope(env, lhs_t);
             type_t *rhs_t = get_type(val_env, value->ast);
-            CORD val = compile_maybe_incref(val_env, value->ast);
-            if (!promote(env, &val, rhs_t, lhs_t))
-                code_err(value->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
+            CORD val;
+            if (rhs_t->tag == IntType && value->ast->tag == Int) {
+                val = compile_int_to_type(val_env, value->ast, rhs_t);
+            } else {
+                val = compile_maybe_incref(val_env, value->ast);
+                if (!promote(val_env, &val, lhs_t, rhs_t))
+                    code_err(value->ast, "You cannot assign a %T value to a %T operand", lhs_t, rhs_t);
+            }
             CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(lhs_t), i++, val);
         }
         i = 1;
@@ -484,39 +505,36 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         type_t *lhs_t = get_type(env, update->lhs);
         type_t *rhs_t = get_type(env, update->rhs);
-        type_t *operand_t;
-        if (promote(env, &rhs, rhs_t, lhs_t))
-            operand_t = lhs_t;
-        else if (promote(env, &lhs, lhs_t, rhs_t))
-            operand_t = rhs_t;
-        else if (lhs_t->tag == ArrayType && promote(env, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type))
-            operand_t = lhs_t;
-        else
-            code_err(ast, "I can't do operations between %T and %T", lhs_t, rhs_t);
+        if (!promote(env, &rhs, rhs_t, lhs_t)) {
+            if (update->rhs->tag == Int && lhs_t->tag == IntType)
+                rhs = compile_int_to_type(env, update->rhs, lhs_t);
+            else
+                code_err(ast, "I can't do operations between %T and %T", lhs_t, rhs_t);
+        }
 
         switch (update->op) {
         case BINOP_MULT:
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType)
                 code_err(ast, "I can't do a multiply assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " *= ", rhs, ";");
         case BINOP_DIVIDE:
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType)
                 code_err(ast, "I can't do a divide assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " /= ", rhs, ";");
         case BINOP_MOD:
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType)
                 code_err(ast, "I can't do a mod assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " = ", lhs, " % ", rhs);
         case BINOP_MOD1:
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType)
                 code_err(ast, "I can't do a mod assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " = (((", lhs, ") - 1) % ", rhs, ") + 1;");
         case BINOP_PLUS:
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType)
                 code_err(ast, "I can't do an addition assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " += ", rhs, ";");
         case BINOP_MINUS:
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType)
                 code_err(ast, "I can't do a subtraction assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " -= ", rhs, ";");
         case BINOP_POWER: {
@@ -528,38 +546,38 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 return CORD_all(lhs, " = pow(", lhs, ", ", rhs, ");");
         }
         case BINOP_LSHIFT:
-            if (operand_t->tag != IntType)
+            if (lhs_t->tag != IntType)
                 code_err(ast, "I can't do a shift assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " <<= ", rhs, ";");
         case BINOP_RSHIFT:
-            if (operand_t->tag != IntType)
+            if (lhs_t->tag != IntType)
                 code_err(ast, "I can't do a shift assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " >>= ", rhs, ";");
         case BINOP_AND: {
-            if (operand_t->tag == BoolType)
+            if (lhs_t->tag == BoolType)
                 return CORD_all("if (", lhs, ") ", lhs, " = ", rhs, ";");
-            else if (operand_t->tag == IntType)
+            else if (lhs_t->tag == IntType)
                 return CORD_all(lhs, " &= ", rhs, ";");
             else
-                code_err(ast, "'or=' is not implemented for %T types", operand_t);
+                code_err(ast, "'or=' is not implemented for %T types", lhs_t);
         }
         case BINOP_OR: {
-            if (operand_t->tag == BoolType)
+            if (lhs_t->tag == BoolType)
                 return CORD_all("if (!(", lhs, ")) ", lhs, " = ", rhs, ";");
-            else if (operand_t->tag == IntType)
+            else if (lhs_t->tag == IntType)
                 return CORD_all(lhs, " |= ", rhs, ";");
             else
-                code_err(ast, "'or=' is not implemented for %T types", operand_t);
+                code_err(ast, "'or=' is not implemented for %T types", lhs_t);
         }
         case BINOP_XOR:
-            if (operand_t->tag != IntType && operand_t->tag != BoolType)
+            if (lhs_t->tag != IntType && lhs_t->tag != BoolType)
                 code_err(ast, "I can't do an xor assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " ^= ", rhs, ";");
         case BINOP_CONCAT: {
-            if (operand_t->tag == TextType) {
+            if (lhs_t->tag == TextType) {
                 return CORD_all(lhs, " = CORD_cat(", lhs, ", ", rhs, ");");
-            } else if (operand_t->tag == ArrayType) {
-                CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(Match(operand_t, ArrayType)->item_type));
+            } else if (lhs_t->tag == ArrayType) {
+                CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(Match(lhs_t, ArrayType)->item_type));
                 if (promote(env, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)) {
                     // arr ++= item
                     if (update->lhs->tag == Var)
@@ -574,7 +592,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                         return CORD_all(lhs, "Array$concat(", lhs, ", ", rhs, ", ", padded_item_size, ");");
                 }
             } else {
-                code_err(ast, "'++=' is not implemented for %T types", operand_t);
+                code_err(ast, "'++=' is not implemented for %T types", lhs_t);
             }
         }
         default: code_err(ast, "Update assignments are not implemented for this operation");
@@ -1228,6 +1246,36 @@ env_t *with_enum_scope(env_t *env, type_t *t)
     return env;
 }
 
+CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
+{
+    int64_t target_bits = Match(target, IntType)->bits;
+    Int_t int_val = Int$from_text(Match(ast, Int)->str);
+    mpz_t i;
+    mpz_init_set_int(i, int_val);
+
+    switch (target_bits) {
+    case 0: return compile(env, ast);
+    case 64:
+        if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0)
+            return CORD_asprintf("I64(%s)", Match(ast, Int)->str);
+        break;
+    case 32:
+        if (mpz_cmp_si(i, INT32_MAX) <= 0 && mpz_cmp_si(i, INT32_MIN) >= 0)
+            return CORD_asprintf("I32(%s)", Match(ast, Int)->str);
+        break;
+    case 16:
+        if (mpz_cmp_si(i, INT16_MAX) <= 0 && mpz_cmp_si(i, INT16_MIN) >= 0)
+            return CORD_asprintf("I16(%s)", Match(ast, Int)->str);
+        break;
+    case 8:
+        if (mpz_cmp_si(i, INT8_MAX) <= 0 && mpz_cmp_si(i, INT8_MIN) >= 0)
+            return CORD_asprintf("I8(%s)", Match(ast, Int)->str);
+        break;
+    default: break;
+    }
+    code_err(ast, "This integer cannot fit in a %d-bit value", target_bits);
+}
+
 CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args)
 {
     table_t used_args = {};
@@ -1239,7 +1287,9 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
             for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
                 if (call_arg->name && streq(call_arg->name, spec_arg->name)) {
                     CORD value;
-                    if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
+                    if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
+                        value = compile_int_to_type(env, call_arg->value, spec_arg->type);
+                    } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
                         Int_t int_val = Int$from_text(Match(call_arg->value, Int)->str);
                         double n = Int_to_Num(int_val);
                         value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == 64
@@ -1265,7 +1315,9 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
             const char *pseudoname = heap_strf("%ld", i++);
             if (!Table$str_get(used_args, pseudoname)) {
                 CORD value;
-                if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
+                if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
+                    value = compile_int_to_type(env, call_arg->value, spec_arg->type);
+                } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
                     Int_t int_val = Int$from_text(Match(call_arg->value, Int)->str);
                     double n = Int_to_Num(int_val);
                     value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == 64
