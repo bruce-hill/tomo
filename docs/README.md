@@ -7,10 +7,11 @@ This is an overview of the documentation on Tomo.
 A few topics that are documented:
 
 - [Compilation Pipeline](compilation.md)
+- [Functions](functions.md)
 - [Libraries/Modules](libraries.md)
-- [Special Methods](metamethods.md)
 - [Namespacing](namespacing.md)
 - [Operator Overloading](operators.md)
+- [Special Methods](metamethods.md)
 
 ## Types
 

@@ -33,7 +33,7 @@ language features.
 ### Performance
 - Extremely high performance code generation with minimal overhead compared to C
 - Extremely fast parallel [compilation](docs/compilation.md) times
-- Language-level support for correct function caching
+- Language-level support for correct [function caching](docs/functions.md)
 - [Structs](docs/structs.md) with known-at-compile-time methods, not OOP
   objects with vtable lookups
 
