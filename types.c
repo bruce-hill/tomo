@@ -594,6 +594,14 @@ type_t *get_field_type(type_t *t, const char *field_name)
         }
         return NULL;
     }
+    case EnumType: {
+        auto e = Match(t, EnumType);
+        for (tag_t *tag = e->tags; tag; tag = tag->next) {
+            if (streq(field_name, tag->name))
+                return Type(BoolType);
+        }
+        return NULL;
+    }
     case SetType: {
         if (streq(field_name, "length"))
             return INT_TYPE;

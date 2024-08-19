@@ -270,7 +270,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         auto enum_t = Match(subject_t, EnumType);
         CORD code = CORD_all("{ ", compile_type(subject_t), " subject = ", compile(env, when->subject), ";\n"
-                             "switch (subject.$tag) {");
+                             "switch (subject.tag) {");
         for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
             const char *clause_tag_name = Match(clause->tag_name, Var)->name;
             code = CORD_all(code, "case ", namespace_prefix(enum_t->env->libname, enum_t->env->namespace), "tag$", clause_tag_name, ": {\n");
@@ -1077,7 +1077,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             }
 
             env_t *enum_env = Match(fn->ret, EnumType)->env;
-            next_fn = CORD_all("(cur=", next_fn, iter_t->tag == ClosureType ? "(next.userdata)" : "()", ").$tag == ",
+            next_fn = CORD_all("(cur=", next_fn, iter_t->tag == ClosureType ? "(next.userdata)" : "()", ").tag == ",
                                namespace_prefix(enum_env->libname, enum_env->namespace), "tag$Next");
 
             if (for_->empty) {
@@ -2609,6 +2609,22 @@ CORD compile(env_t *env, ast_t *ast)
                 }
             }
             code_err(ast, "The field '%s' is not a valid field name of %T", f->field, value_t);
+        }
+        case EnumType: {
+            auto e = Match(value_t, EnumType);
+            for (tag_t *tag = e->tags; tag; tag = tag->next) {
+                if (streq(f->field, tag->name)) {
+                    CORD prefix = namespace_prefix(e->env->libname, e->env->namespace);
+                    if (fielded_t->tag == PointerType) {
+                        CORD fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
+                        return CORD_all("((", fielded, ")->tag == ", prefix, "tag$", tag->name, ")");
+                    } else {
+                        CORD fielded = compile(env, f->fielded);
+                        return CORD_all("((", fielded, ").tag == ", prefix, "tag$", tag->name, ")");
+                    }
+                }
+            }
+            code_err(ast, "The field '%s' is not a valid tag name of %T", f->field, value_t);
         }
         case ArrayType: {
             if (streq(f->field, "length"))

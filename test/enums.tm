@@ -23,6 +23,12 @@ func main():
 	>> Foo.Two(123, 456)
 	= Foo.Two(x=123, y=456)
 
+	>> one := Foo.One(123)
+	>> one.One
+	= yes
+	>> one.Two
+	= no
+
 	>> Foo.One(10) == Foo.One(10)
 	= yes
 
