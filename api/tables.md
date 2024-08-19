@@ -10,7 +10,74 @@ the methods `:get(key)` and `:set(key, value)`. This is explicit to avoid
 hiding the fact that table lookups and table insertion are performing function
 calls and have edge conditions like a failure to find an entry.
 
----
+## Syntax
+
+Tables are written using `{}` curly braces with `:` colons associating key
+expressions with value expressions and commas between entries:
+
+```tomo
+table := {"A": 10, "B": 20}
+```
+
+Empty tables must specify the key and value types explicitly:
+
+```tomo
+empty := {:Text:Int}
+```
+
+For type annotations, a table that maps keys with type `K` to values of type
+`V` is written as `{K:V}`.
+
+### Comprehensions
+
+Similar to arrays, tables can use comprehensions to dynamically construct tables:
+
+```tomo
+t := {i: 10*i for i in 10}
+t := {i: 10*i for i in 10 if i mod 2 == 0}
+t := {-1:-10, i: 10*i for i in 10}
+```
+
+### Fallback Tables
+
+Tables can specify a fallback table that is used when looking up a value if it
+is not found in the table itself:
+
+```tomo
+t := {"A": 10}
+t2 := {"B": 20; fallback=t}
+>> t2:get("A")
+= 10
+```
+
+## Accessing Keys and Values
+
+The keys and values of a table can be efficiently accessed as arrays using a
+constant-time immutable slice of the internal data from the table:
+
+```tomo
+t := {"A": 10, "B": 20}
+>> t.keys
+= ["A", "B"]
+>> t.values
+= [10, 20]
+```
+
+## Iteration
+
+You can iterate over the key/value pairs in a table like this:
+
+```tomo
+for key, value in table:
+    ...
+
+for key in table:
+    ...
+```
+
+Table iteration operates over the value of the table when the loop began, so
+modifying the table during iteration is safe and will not result in the loop
+iterating over any of the new values.
 
 ## Table Methods
 

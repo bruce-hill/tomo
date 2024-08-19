@@ -21,6 +21,8 @@ like this:
 empty := [:Int]
 ```
 
+For type annotations, an array that holds items with type `T` is written as `[T]`.
+
 ### Array Comprehensions
 
 Arrays can also use comprehensions, where you specify how to dynamically create
@@ -75,6 +77,9 @@ You can iterate over the items in an array like this:
 
 ```tomo
 for item in array:
+    ...
+
+for i, item in array:
     ...
 ```
 

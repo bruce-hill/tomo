@@ -10,11 +10,61 @@ b := {20, 30}
 = {20}
 ```
 
-Here’s the Markdown documentation for set functions:
+## Syntax
 
----
+Sets are written using `{}` curly braces with comma-separated items:
 
-## Set Functions
+```tomo
+nums := {10, 20, 30}
+```
+
+Empty sets must specify the item type explicitly:
+
+```tomo
+empty := {:Int}
+```
+
+For type annotations, a set that holds items with type `T` is written as `{T}`.
+
+### Comprehensions
+
+Similar to arrays, sets can use comprehensions:
+
+```tomo
+set := {10*i for i in 10}
+set2 := {10*i for i in 10 if i mod 2 == 0}
+set3 := {-10, 10*i for i in 10}
+```
+
+## Accessing Items
+
+Sets internally store their items in an array, which you can access with the
+`.items` field. This is a constant-time operation that produces an immutable
+view:
+
+```tomo
+set := {10, 20, 30}
+>> set.items
+= [10, 20, 30]
+```
+
+## Iteration
+
+You can iterate over the items in a table like this:
+
+```tomo
+for item in set:
+    ...
+
+for i, item in set:
+    ...
+```
+
+Set iteration operates over the value of the set when the loop began, so
+modifying the set during iteration is safe and will not result in the loop
+iterating over any of the new values.
+
+## Set Methods
 
 ### `has`
 
