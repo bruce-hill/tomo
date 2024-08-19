@@ -1,8 +1,20 @@
-# API
+# Documentation
 
-Tomo has a small number of built-in functions and bunch of types.
+This is an overview of the documentation on Tomo.
+
+## Topics
+
+A few topics that are documented:
+
+- [Compilation Pipeline](compilation.md)
+- [Libraries/Modules](libraries.md)
+- [Special Methods](metamethods.md)
+- [Namespacing](namespacing.md)
+- [Operator Overloading](operators.md)
 
 ## Types
+
+Information about Tomo's built-in types can be found here:
 
 - [Arrays](arrays.md)
 - [Booleans](booleans.md)
@@ -64,5 +76,3 @@ Nothing, aborts the program.
 ```markdown
 fail("Oh no!")
 ```
-
----
