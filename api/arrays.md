@@ -42,6 +42,15 @@ Comprehensions can be combined with regular items or other comprehensions:
 = [-1, 30, 40, 50, 60, 70, 80, 1, 2, 3]
 ```
 
+## Length
+
+Array length can be accessed by the `.length` field:
+
+```tomo
+>> [10, 20, 30].length
+= 3
+```
+
 ## Indexing
 
 Array values are accessed using square bracket indexing. Since arrays are

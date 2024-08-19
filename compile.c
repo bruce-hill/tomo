@@ -2630,13 +2630,27 @@ CORD compile(env_t *env, ast_t *ast)
             }
             code_err(ast, "The field '%s' is not a valid field name of %T", f->field, value_t);
         }
+        case ArrayType: {
+            if (streq(f->field, "length"))
+                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
+            code_err(ast, "There is no %s field on arrays", f->field);
+        }
+        case ChannelType: {
+            if (streq(f->field, "max_size"))
+                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0, false), ")->max_size)");
+            code_err(ast, "There is no %s field on arrays", f->field);
+        }
         case SetType: {
             if (streq(f->field, "items"))
                 return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries");
+            else if (streq(f->field, "length"))
+                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
             code_err(ast, "There is no '%s' field on sets", f->field);
         }
         case TableType: {
-            if (streq(f->field, "keys")) {
+            if (streq(f->field, "length")) {
+                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
+            } else if (streq(f->field, "keys")) {
                 return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries");
             } else if (streq(f->field, "values")) {
                 auto table = Match(value_t, TableType);

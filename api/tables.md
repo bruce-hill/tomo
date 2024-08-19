@@ -50,6 +50,18 @@ t2 := {"B": 20; fallback=t}
 = 10
 ```
 
+The fallback is available by the `.fallback` field, which returns an optional
+readonly pointer to the fallback table (if present) or null if it is not.
+
+## Length
+
+Table length can be accessed by the `.length` field:
+
+```tomo
+>> {"A":10, "B":20}.length
+= 2
+```
+
 ## Accessing Keys and Values
 
 The keys and values of a table can be efficiently accessed as arrays using a

@@ -595,14 +595,16 @@ type_t *get_field_type(type_t *t, const char *field_name)
         return NULL;
     }
     case SetType: {
-        if (streq(field_name, "items"))
+        if (streq(field_name, "length"))
+            return INT_TYPE;
+        else if (streq(field_name, "items"))
             return Type(ArrayType, .item_type=Match(t, SetType)->item_type);
-        else if (streq(field_name, "fallback"))
-            return Type(PointerType, .pointed=t, .is_readonly=true, .is_optional=true);
         return NULL;
     }
     case TableType: {
-        if (streq(field_name, "keys"))
+        if (streq(field_name, "length"))
+            return INT_TYPE;
+        else if (streq(field_name, "keys"))
             return Type(ArrayType, Match(t, TableType)->key_type);
         else if (streq(field_name, "values"))
             return Type(ArrayType, Match(t, TableType)->value_type);
@@ -610,6 +612,14 @@ type_t *get_field_type(type_t *t, const char *field_name)
             return Type(PointerType, .pointed=Match(t, TableType)->value_type, .is_readonly=true, .is_optional=true);
         else if (streq(field_name, "fallback"))
             return Type(PointerType, .pointed=t, .is_readonly=true, .is_optional=true);
+        return NULL;
+    }
+    case ArrayType: {
+        if (streq(field_name, "length")) return INT_TYPE;
+        return NULL;
+    }
+    case ChannelType: {
+        if (streq(field_name, "max_size")) return INT_TYPE;
         return NULL;
     }
     default: return NULL;

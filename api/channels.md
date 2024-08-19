@@ -5,13 +5,13 @@ although they can also be used as a general-purpose queue.
 
 ## Syntax
 
-The syntax to create a channel is `|T|`, where `T` is the type that will be
+The syntax to create a channel is `|:T|`, where `T` is the type that will be
 passed through the channel. You can also specify a maximum size for the
 channel, which will cause pushing to block until the recipient has popped from
 the channel if the maximum size is reached.
 
 ```tomo
-channel := |Int|
+channel := |:Int|
 channel:push(10)
 channel:push(20)
 >> channel:pop()
@@ -19,7 +19,7 @@ channel:push(20)
 >> channel:pop()
 = 20
 
-small_channel := |Int; max_size=5|
+small_channel := |:Int; max_size=5|
 ```
 
 ## Channel Methods

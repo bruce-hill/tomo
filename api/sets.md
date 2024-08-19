@@ -48,6 +48,15 @@ set := {10, 20, 30}
 = [10, 20, 30]
 ```
 
+## Length
+
+Set length can be accessed by the `.length` field:
+
+```tomo
+>> {10, 20, 30}.length
+= 3
+```
+
 ## Iteration
 
 You can iterate over the items in a table like this:
