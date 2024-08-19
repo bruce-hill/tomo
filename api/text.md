@@ -423,7 +423,8 @@ A `Text` value representing the C-style string.
 
 **Example:**  
 ```tomo
-from_c_string(CString("Hello"))  // "Hello"
+>> Text.from_c_string(CString("Hello"))
+= "Hello"
 ```
 
 ---
@@ -442,14 +443,20 @@ has(text: Text, target: Text, where: Where = Where.Anywhere) -> Bool
 
 - `text`: The text to be searched.
 - `target`: The substring to search for.
-- `where`: The location to search (`Where.Anywhere` by default).
+- `where`: The location to search (`Where.Anywhere` by default). This can
+  also be `Start` or `End`.
 
 **Returns:**  
 `yes` if the target substring is found, `no` otherwise.
 
 **Example:**  
 ```tomo
-has("Hello, world!", "world")  // yes
+>> "hello world":has("wo")
+= yes
+>> "hello world":has("wo", where=Start)
+= no
+>> "hello world":has("he", where=Start)
+= yes
 ```
 
 ---
@@ -474,7 +481,8 @@ A single `Text` value with the pieces joined by the glue.
 
 **Example:**  
 ```tomo
-join(", ", ["apple", "banana", "cherry"])  // "apple, banana, cherry"
+>> ", ":join(["one", "two", "three"])
+= "one, two, three"
 ```
 
 ---
@@ -498,7 +506,8 @@ The lowercase version of the text.
 
 **Example:**  
 ```tomo
-lower("HELLO")  // "hello"
+>> "AMÉLIE":lower()
+= "amélie"
 ```
 
 ---
@@ -522,7 +531,8 @@ The number of bytes used by the text.
 
 **Example:**  
 ```tomo
-num_bytes("Hello")  // 5
+>> "Amélie":num_bytes()
+= 8
 ```
 
 ---
@@ -546,7 +556,8 @@ The number of clusters in the text.
 
 **Example:**  
 ```tomo
-num_clusters("Hello")  // 5
+>> "Amélie":num_clusters()
+= 6
 ```
 
 ---
@@ -570,7 +581,8 @@ The number of Unicode code points in the text.
 
 **Example:**  
 ```tomo
-num_codepoints("Hello")  // 5
+>> "Amélie":num_codepoints()
+= 7
 ```
 
 ---
@@ -595,7 +607,8 @@ The text formatted as a quoted string.
 
 **Example:**  
 ```tomo
-quoted("Hello")  // "\"Hello\""
+>> "one$(\n)two":quoted()
+= "\"one\\ntwo\""
 ```
 
 ---
@@ -622,7 +635,11 @@ The text with occurrences of the pattern replaced.
 
 **Example:**  
 ```tomo
-replace("Hello world", "world", "there")  // "Hello there"
+>> "Hello world":replace("world", "there")
+= "Hello there"
+
+>> "xxxx":replace("x", "y", limit=2)
+= "yyxx"
 ```
 
 ---
@@ -647,7 +664,8 @@ A list of substrings resulting from the split.
 
 **Example:**  
 ```tomo
-split("apple,banana,cherry", ",")  // ["apple", "banana", "cherry"]
+>> "one,two,three":split(",")
+= ["one", "two", "three"]
 ```
 
 ---
@@ -671,7 +689,8 @@ The text in title case.
 
 **Example:**  
 ```tomo
-title("hello world")  // "Hello World"
+>> "amélie":title()
+= "Amélie"
 ```
 
 ---
@@ -697,7 +716,11 @@ The trimmed text.
 
 **Example:**  
 ```tomo
-trimmed("  Hello  ")  // "Hello"
+>> "  xxx   ":trimmed()
+= "xxx"
+
+>> "xxyyxx":trimmed("x", where=Start)
+= "yyxx"
 ```
 
 ---
@@ -721,7 +744,8 @@ The uppercase version of the text.
 
 **Example:**  
 ```tomo
-upper("hello")  // "HELLO"
+>> "amélie":upper()
+= "AMÉLIE"
 ```
 
 ---
@@ -747,7 +771,8 @@ The text with occurrences of the target removed.
 
 **Example:**  
 ```tomo
-without("Hello world", "world")  // "Hello "
+>> "banana":without("na")
+= "ba"
+>> "banana":without("na", where=End)
+= "bana"
 ```
-
----
