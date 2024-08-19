@@ -29,12 +29,12 @@ A new `Thread` object representing the created thread.
 >> results := |Int|
 >> thread := Thread.new(func():
     while yes:
-        input := jobs:pop()
-        results:push(input + 10
+        input := jobs:get()
+        results:give(input + 10
 )
 = Thread<0x12345678>
->> jobs:push(10)
->> results:pop()
+>> jobs:give(10)
+>> results:get()
 = 11
 ```
 

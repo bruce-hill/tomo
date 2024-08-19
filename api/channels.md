@@ -7,16 +7,16 @@ although they can also be used as a general-purpose queue.
 
 The syntax to create a channel is `|:T|`, where `T` is the type that will be
 passed through the channel. You can also specify a maximum size for the
-channel, which will cause pushing to block until the recipient has popped from
+channel, which will cause giving to block until the recipient has gotten from
 the channel if the maximum size is reached.
 
 ```tomo
 channel := |:Int|
-channel:push(10)
-channel:push(20)
->> channel:pop()
+channel:give(10)
+channel:give(20)
+>> channel:get()
 = 10
->> channel:pop()
+>> channel:get()
 = 20
 
 small_channel := |:Int; max_size=5|
@@ -24,14 +24,14 @@ small_channel := |:Int; max_size=5|
 
 ## Channel Methods
 
-### `push`
+### `give`
 
 **Description:**  
 Adds an item to the channel.
 
 **Usage:**  
 ```markdown
-push(channel:|T|, item: T) -> Void
+give(channel:|T|, item: T) -> Void
 ```
 
 **Parameters:**
@@ -44,19 +44,19 @@ Nothing.
 
 **Example:**  
 ```markdown
->> channel:push("Hello")
+>> channel:give("Hello")
 ```
 
 ---
 
-### `push_all`
+### `give_all`
 
 **Description:**  
 Adds multiple items to the channel.
 
 **Usage:**  
 ```markdown
-push_all(channel:|T|, items: [T]) -> Void
+give_all(channel:|T|, items: [T]) -> Void
 ```
 
 **Parameters:**
@@ -69,19 +69,19 @@ Nothing.
 
 **Example:**  
 ```markdown
->> channel:push_all([1, 2, 3])
+>> channel:give_all([1, 2, 3])
 ```
 
 ---
 
-### `pop`
+### `get`
 
 **Description:**  
 Removes and returns an item from the channel. If the channel is empty, it waits until an item is available.
 
 **Usage:**  
 ```markdown
-pop(channel:|T|) -> T
+get(channel:|T|) -> T
 ```
 
 **Parameters:**
@@ -93,7 +93,7 @@ The item removed from the channel.
 
 **Example:**  
 ```markdown
->> channel:pop()
+>> channel:get()
 = "Hello"
 ```
 
