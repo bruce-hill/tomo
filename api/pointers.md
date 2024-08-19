@@ -18,6 +18,7 @@ replace the value that previously resided there.
 ```tomo
 func no_mutation_possible(nums:[Int]):
     nums[1] = 10 // This performs a copy-on-write and creates a new array
+    // The new array is only accessible as a local variable here
 ...
 my_nums := [0, 1, 2]
 no_mutation_possible(my_nums)
@@ -30,7 +31,7 @@ func do_mutation(nums:@[Int]):
 my_nums := @[0, 1, 2]
 do_mutation(my_nums)
 >> my_nums
-= [10, 1, 2]
+= @[10, 1, 2]
 ```
 
 In general, heap pointers can be used as stack pointers if necessary, since
