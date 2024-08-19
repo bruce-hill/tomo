@@ -7,6 +7,8 @@
 #include <gc/cord.h>
 #include <gmp.h>
 #include <limits.h>
+#include <readline/history.h>
+#include <readline/readline.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -395,6 +397,15 @@ public array_t Text$character_names(CORD text)
         unicode_character_name(*(ucs4_t*)(codepoints.data + codepoints.stride*i), buf);
         *(CORD*)(ret.data + ret.stride*i) = CORD_from_char_star(buf);
     }
+    return ret;
+}
+
+public CORD Text$read_line(CORD prompt)
+{
+    char *line = readline(CORD_to_const_char_star(prompt));
+    if (!line) return CORD_EMPTY;
+    CORD ret = CORD_from_char_star(line);
+    free(line);
     return ret;
 }
 

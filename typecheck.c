@@ -361,9 +361,6 @@ void bind_statement(env_t *env, ast_t *statement)
         set_binding(ns_env, "from_unsafe_text",
                     new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE), .ret=type),
                         .code=CORD_all("(", namespace_prefix(env->libname, env->namespace), def->name, "_t)")));
-        set_binding(ns_env, "text_content",
-                    new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=type), .ret=TEXT_TYPE),
-                        .code="(Text_t)"));
 
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             bind_statement(ns_env, stmt->ast);

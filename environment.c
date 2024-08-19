@@ -260,6 +260,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"num_clusters", "Text$num_clusters", "func(text:Text)->Int"},
             {"num_codepoints", "Text$num_codepoints", "func(text:Text)->Int"},
             {"quoted", "Text$quoted", "func(text:Text, color=no)->Text"},
+            {"read_line", "Text$read_line", "func(prompt='')->Text"},
             {"replace", "Text$replace", "func(text:Text, pattern:Text, replacement:Text, limit=-1)->Text"},
             {"split", "Text$split", "func(text:Text, split:Text)->[Text]"},
             {"title", "Text$title", "func(text:Text)->Text"},

@@ -586,6 +586,11 @@ type_t *get_field_type(type_t *t, const char *field_name)
     switch (t->tag) {
     case PointerType:
         return get_field_type(Match(t, PointerType)->pointed, field_name);
+    case TextType: {
+        if (Match(t, TextType)->lang && streq(field_name, "text_content"))
+            return Type(TextType);
+        return NULL;
+    }
     case StructType: {
         auto struct_t = Match(t, StructType);
         for (arg_t *field = struct_t->fields; field; field = field->next) {

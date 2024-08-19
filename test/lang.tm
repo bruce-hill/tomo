@@ -18,6 +18,9 @@ func main():
 	>> HTML.HEADER
 	= $HTML"<!DOCTYPE HTML>"
 
+	>> HTML.HEADER.text_content
+	= "<!DOCTYPE HTML>"
+
 	>> user := "I <3 hax"
 	>> html := $HTML"Hello $user!"
 	= $HTML"Hello I &lt;3 hax!"

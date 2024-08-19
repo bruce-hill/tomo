@@ -2636,6 +2636,14 @@ CORD compile(env_t *env, ast_t *ast)
             if (!b->code) code_err(ast, "I couldn't figure out how to compile this field");
             return b->code;
         }
+        case TextType: {
+            const char *lang = Match(value_t, TextType)->lang; 
+            if (lang && streq(f->field, "text_content")) {
+                CORD text = compile_to_pointer_depth(env, f->fielded, 0, false);
+                return CORD_all("((Text_t)", text, ")");
+            }
+            code_err(ast, "There is no '%s' field on %T values", f->field, value_t);
+        }
         case StructType: {
             for (arg_t *field = Match(value_t, StructType)->fields; field; field = field->next) {
                 if (streq(field->name, f->field)) {

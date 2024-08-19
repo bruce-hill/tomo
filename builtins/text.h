@@ -41,6 +41,7 @@ Int_t Text$num_clusters(CORD text);
 Int_t Text$num_codepoints(CORD text);
 Int_t Text$num_bytes(CORD text);
 array_t Text$character_names(CORD text);
+CORD Text$read_line(CORD prompt);
 
 extern const TypeInfo $Text;
 
