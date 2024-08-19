@@ -12,7 +12,7 @@ func main():
 	= 0
 
 	>> Num.PI
-	= 3.14159
+	= 3.141592653589793
 
 	>> Num.PI:format(precision=10)
 	= "3.1415926536"
