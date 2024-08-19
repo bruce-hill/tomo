@@ -13,7 +13,10 @@ CORD type_to_cord(type_t *t) {
     switch (t->tag) {
         case UnknownType: return "???";
         case AbortType: return "Abort";
-        case ReturnType: return CORD_all("Return(", type_to_cord(Match(t, ReturnType)->ret), ")");
+        case ReturnType: {
+            type_t *ret = Match(t, ReturnType)->ret;
+            return CORD_all("Return(", ret ? type_to_cord(ret) : "Void", ")");
+        }
         case VoidType: return "Void";
         case MemoryType: return "Memory";
         case BoolType: return "Bool";
