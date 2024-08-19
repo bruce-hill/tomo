@@ -4,7 +4,8 @@ Tomo has two floating point number types: `Num` (64-bit, AKA `double`) and
 `Num32` (32-bit, AKA `float`). Num literals can have a decimal point (e.g.
 `5.`), a scientific notation suffix (e.g. `1e8`) or a percent sign. Numbers
 that end in a percent sign are divided by 100 at compile time (i.e. `5% ==
-0.05`).
+0.05`). Numbers can also use the `deg` suffix to represent degrees, which
+are converted to radians at compile time (i.e. `180deg == Nums.PI`).
 
 Nums support the standard math operations (`x+y`, `x-y`, `x*y`, `x/y`) as well as
 powers/exponentiation (`x^y`) and modulus (`x mod y` and `x mod1 y`).
