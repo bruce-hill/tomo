@@ -838,11 +838,16 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 code_err(ast, "This function is not supposed to return any values, according to its type signature");
 
             env = with_enum_scope(env, env->fn_ctx->return_type);
-            type_t *ret_t = get_type(env, ret);
-            CORD value = compile(env, ret);
-            if (!promote(env, &value, ret_t, env->fn_ctx->return_type))
-                code_err(ast, "This function expects a return value of type %T, but this return has type %T", 
-                         env->fn_ctx->return_type, ret_t);
+            CORD value;
+            if (env->fn_ctx->return_type->tag == IntType && ret->tag == Int) {
+                value = compile_int_to_type(env, ret, env->fn_ctx->return_type);
+            } else {
+                type_t *ret_value_t = get_type(env, ret);
+                value = compile(env, ret);
+                if (!promote(env, &value, ret_value_t, env->fn_ctx->return_type))
+                    code_err(ast, "This function expects a return value of type %T, but this return has type %T", 
+                             env->fn_ctx->return_type, ret_value_t);
+            }
             return CORD_all(code, "return ", value, ";");
         } else {
             if (env->fn_ctx->return_type->tag != VoidType)
