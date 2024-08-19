@@ -2363,24 +2363,30 @@ CORD compile(env_t *env, ast_t *ast)
         case ChannelType: {
             type_t *item_t = Match(self_value_t, ChannelType)->item_type;
             CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(item_t));
+            arg_t *where_default_end = new(arg_t, .name="where", .type=WHERE_TYPE,
+                                           .default_val=FakeAST(FieldAccess, .fielded=FakeAST(Var, "Where"), .field="End"));
+            arg_t *where_default_start = new(arg_t, .name="where", .type=WHERE_TYPE,
+                                             .default_val=FakeAST(FieldAccess, .fielded=FakeAST(Var, "Where"), .field="Start"));
             if (streq(call->name, "give")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="item", .type=item_t);
+                arg_t *arg_spec = new(arg_t, .name="item", .type=item_t, .next=where_default_end);
                 return CORD_all("Channel$give_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "give_all")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="to_give", .type=Type(ArrayType, .item_type=item_t));
+                arg_t *arg_spec = new(arg_t, .name="to_give", .type=Type(ArrayType, .item_type=item_t), .next=where_default_end);
                 return CORD_all("Channel$give_all(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "get")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("Channel$get_value(", self, ", ", compile_type(item_t), ", ", padded_item_size, ")");
+                arg_t *arg_spec = where_default_start;
+                return CORD_all("Channel$get_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                                ", ", compile_type(item_t), ", ", padded_item_size, ")");
             } else if (streq(call->name, "peek")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("Channel$peek_value(", self, ", ", compile_type(item_t), ")");
+                arg_t *arg_spec = where_default_start;
+                return CORD_all("Channel$peek_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                                ", ", compile_type(item_t), ")");
             } else if (streq(call->name, "clear")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);

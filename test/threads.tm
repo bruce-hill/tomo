@@ -1,6 +1,24 @@
 enum Job(Increment(x:Int), Decrement(x:Int))
 
 func main():
+
+    do:
+        >> channel := |:Int|
+        >> channel:give(10)
+        >> channel:give(20)
+        >> channel:give(30)
+        >> channel:view()
+        = [10, 20, 30]
+        >> channel:peek()
+        = 10
+        >> channel:peek(End)
+        = 30
+
+        >> channel:give(-10, Start)
+        >> channel:view()
+        = [-10, 10, 20, 30]
+
+
     jobs := |:Job; max_size=2|
     >> jobs:give(Increment(5))
     >> jobs:peek()

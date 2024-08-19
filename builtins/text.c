@@ -171,12 +171,12 @@ public bool Text$has(CORD str, CORD target, Where_t where)
     if (target_norm_len > str_norm_len) return false;
 
     bool ret;
-    if (where.$tag == $tag$Where$Start) {
+    if (where.tag == $tag$Where$Start) {
         ret = (u8_strncmp(str_normalized, target_normalized, target_norm_len-1) == 0);
-    } else if (where.$tag == $tag$Where$End) {
+    } else if (where.tag == $tag$Where$End) {
         ret = (u8_strcmp(str_normalized + str_norm_len - target_norm_len, target_normalized) == 0);
     } else {
-        assert(where.$tag == $tag$Where$Anywhere);
+        assert(where.tag == $tag$Where$Anywhere);
         ret = (u8_strstr(str_normalized, target_normalized) != NULL);
     }
 
@@ -191,11 +191,11 @@ public CORD Text$without(CORD str, CORD target, Where_t where)
 
     size_t target_len = CORD_len(target);
     size_t str_len = CORD_len(str);
-    if (where.$tag == $tag$Where$Start) {
+    if (where.tag == $tag$Where$Start) {
         if (CORD_ncmp(str, 0, target, 0, target_len) == 0)
             return CORD_substr(str, target_len, str_len - target_len);
         return str;
-    } else if (where.$tag == $tag$Where$End) {
+    } else if (where.tag == $tag$Where$End) {
         if (CORD_ncmp(str, str_len-target_len, target, 0, target_len) == 0)
             return CORD_substr(str, 0, str_len - target_len);
         return str;
@@ -222,10 +222,10 @@ public CORD Text$trimmed(CORD str, CORD skip, Where_t where)
     const uint8_t *ustr = (const uint8_t*)CORD_to_const_char_star(str);
     const uint8_t *uskip = (const uint8_t*)CORD_to_const_char_star(skip);
     // TODO: implement proper reverse iteration with u8_prev()
-    if (where.$tag == $tag$Where$Start) {
+    if (where.tag == $tag$Where$Start) {
         size_t span = u8_strspn(ustr, uskip);
         return (CORD)ustr + span;
-    } else if (where.$tag == $tag$Where$End) {
+    } else if (where.tag == $tag$Where$End) {
         size_t len = u8_strlen(ustr);
         const uint8_t *back = ustr + len;
         size_t back_span = 0;

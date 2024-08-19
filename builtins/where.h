@@ -22,7 +22,7 @@ struct Where$Anywhere_s {};
 struct Where$Start_s {};
 struct Where$End_s {};
 struct Where_s {
-    enum { $tag$Where$Anywhere = 0, $tag$Where$Start = 1, $tag$Where$End = 2 } $tag;
+    enum { $tag$Where$Anywhere = 0, $tag$Where$Start = 1, $tag$Where$End = 2 } tag;
     union {
         Where$Anywhere_t Anywhere;
         Where$Start_t Start;

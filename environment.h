@@ -77,5 +77,6 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name);
 extern type_t *TEXT_TYPE;
 extern type_t *RANGE_TYPE;
 extern type_t *THREAD_TYPE;
+extern type_t *WHERE_TYPE;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -31,7 +31,7 @@ static CORD Where$as_text(Where_t *obj, bool use_color)
 {
     if (!obj)
         return "Where";
-    switch (obj->$tag) {
+    switch (obj->tag) {
     case $tag$Where$Anywhere:
         return use_color ? "\x1b[36;1mWhere.Anywhere\x1b[m" : "Where.Anywhere";
     case $tag$Where$Start:
