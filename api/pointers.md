@@ -102,3 +102,24 @@ when optional is @ptr:
 else:
     say("Oh, it was null")
 ```
+
+## Using Pointers
+
+For convenience, most operations that work on values can work with pointers to
+values implicitly. For example, if you have a struct type with a `.foo` field,
+you can use `ptr.foo` on a pointer to that struct type as well, without needing
+to use `ptr[].foo`. The same is true for array accesses like `ptr[i]` and method
+calls like `ptr:reversed()`.
+
+As a matter of convenience, local variables can also be automatically promoted
+to stack references when invoking methods that require a stack reference as the
+first argument. For example:
+
+```tomo
+func swap_first_two(arr:&[Int]):
+    arr[1], arr[2] = arr[2], arr[1]
+...
+my_arr := [10, 20, 30] // not a pointer
+swap_first_two(my_arr) // ok, automatically converted to &my_arr
+my_arr:shuffle() // ok, automatically converted to &my_arr
+```
