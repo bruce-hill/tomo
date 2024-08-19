@@ -84,6 +84,7 @@ static ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self);
 static ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *lhs);
+static ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed);
 static PARSER(parse_array);
@@ -946,6 +947,18 @@ ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr) {
     return NewAST(ctx->file, start, pos, Comprehension, .expr=expr, .vars=vars, .iter=iter, .filter=filter);
 }
 
+ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt) {
+    // <statement> if <condition>
+    if (!stmt) return stmt;
+    const char *start = stmt->start;
+    const char *pos = stmt->end;
+    if (!match_word(&pos, "if"))
+        return stmt;
+
+    ast_t *condition = expect(ctx, pos-2, &pos, parse_expr, "I expected a condition for this 'if'");
+    return NewAST(ctx->file, start, pos, If, .condition=condition, .body=stmt);
+}
+
 PARSER(parse_if) {
     // if <condition> [then] <body> [else <body>]
     const char *start = pos;
@@ -1274,6 +1287,7 @@ PARSER(parse_skip) {
     else if (match_word(&pos, "while")) target = "while";
     else target = get_id(&pos);
     ast_t *skip = NewAST(ctx->file, start, pos, Skip, .target=target);
+    skip = parse_optional_conditional_suffix(ctx, skip);
     return skip;
 }
 
@@ -1285,6 +1299,7 @@ PARSER(parse_stop) {
     else if (match_word(&pos, "while")) target = "while";
     else target = get_id(&pos);
     ast_t *stop = NewAST(ctx->file, start, pos, Stop, .target=target);
+    stop = parse_optional_conditional_suffix(ctx, stop);
     return stop;
 }
 
@@ -1293,6 +1308,7 @@ PARSER(parse_return) {
     if (!match_word(&pos, "return")) return NULL;
     ast_t *value = optional(ctx, &pos, parse_expr);
     ast_t *ret = NewAST(ctx->file, start, pos, Return, .value=value);
+    ret = parse_optional_conditional_suffix(ctx, ret);
     return ret;
 }
 
@@ -1623,11 +1639,15 @@ PARSER(parse_statement) {
     for (bool progress = (stmt != NULL); progress; ) {
         ast_t *new_stmt;
         progress = false;
-        if (stmt->tag == Var)
+        if (stmt->tag == Var) {
             progress = (false
                 || (new_stmt=parse_method_call_suffix(ctx, stmt))
                 || (new_stmt=parse_fncall_suffix(ctx, stmt))
             );
+        } else if (stmt->tag == FunctionCall) {
+            new_stmt = parse_optional_conditional_suffix(ctx, stmt);
+            progress = (new_stmt != stmt);
+        }
 
         if (progress) stmt = new_stmt;
     }
