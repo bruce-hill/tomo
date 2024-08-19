@@ -671,7 +671,6 @@ type_t *get_type(env_t *env, ast_t *ast)
             if (!b) code_err(ast, "I couldn't find the field '%s' on this type", access->field);
             return b->type;
         }
-        // TODO: support automatically generating closures for methods like in python (foo.method -> func(f:Foo, ...) f:method(...))
         type_t *field_t = get_field_type(fielded_t, access->field);
         if (!field_t)
             code_err(ast, "%T objects don't have a field called '%s'", fielded_t, access->field);
