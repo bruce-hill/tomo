@@ -69,6 +69,7 @@ void Array$remove_item(array_t *arr, void *item, Int_t max_removals, const TypeI
 #define Array$remove_item_value(arr, item_expr, max, type) ({ __typeof(item_expr) item = item_expr; Array$remove_item(arr, &item, max, type); })
 Int_t Array$find(array_t arr, void *item, const TypeInfo *type);
 #define Array$find_value(arr, item_expr, type) ({ __typeof(item_expr) item = item_expr; Array$find(arr, &item, type); })
+void *Array$first(array_t arr, closure_t predicate);
 void Array$sort(array_t *arr, closure_t comparison, int64_t padded_item_size);
 array_t Array$sorted(array_t arr, closure_t comparison, int64_t padded_item_size);
 void Array$shuffle(array_t *arr, int64_t padded_item_size);

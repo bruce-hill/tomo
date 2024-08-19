@@ -158,3 +158,14 @@ func main():
 		>> nums:sort(func(a,b:&%Int): a:abs() <> b:abs())
 		>> [nums:binary_search(i, func(a,b:&Int): a:abs() <> b:abs()) for i in nums]
 		= [1, 2, 3, 4, 5]
+
+	>> [10, 20, 30]:find(20)
+	= 2
+	>> [10, 20, 30]:find(999)
+	= 0
+
+    >> [10, 20]:first(func(i:&Int): i:is_prime())
+    = !Int
+    >> [4, 5, 6]:first(func(i:&Int): i:is_prime())
+    = @%5?
+

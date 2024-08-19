@@ -2263,6 +2263,13 @@ CORD compile(env_t *env, ast_t *ast)
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t);
                 return CORD_all("Array$find_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(env, self_value_t), ")");
+            } else if (streq(call->name, "first")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
+                type_t *predicate_type = Type(
+                    ClosureType, .fn=Type(FunctionType, .args=new(arg_t, .name="item", .type=item_ptr), .ret=Type(BoolType)));
+                arg_t *arg_spec = new(arg_t, .name="predicate", .type=predicate_type);
+                return CORD_all("Array$first(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "from")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="first", .type=INT_TYPE);

@@ -728,19 +728,21 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *self_value_t = value_type(get_type(env, call->self));
         switch (self_value_t->tag) {
         case ArrayType: {
+            type_t *item_type = Match(self_value_t, ArrayType)->item_type;
             if (streq(call->name, "binary_search")) return INT_TYPE;
             else if (streq(call->name, "by")) return self_value_t;
             else if (streq(call->name, "clear")) return Type(VoidType);
-            else if (streq(call->name, "counts")) return Type(TableType, .key_type=Match(self_value_t, ArrayType)->item_type, .value_type=INT_TYPE);
+            else if (streq(call->name, "counts")) return Type(TableType, .key_type=item_type, .value_type=INT_TYPE);
             else if (streq(call->name, "find")) return INT_TYPE;
+            else if (streq(call->name, "first")) return Type(PointerType, .pointed=item_type, .is_optional=true, .is_readonly=true);
             else if (streq(call->name, "from")) return self_value_t;
             else if (streq(call->name, "has")) return Type(BoolType);
-            else if (streq(call->name, "heap_pop")) return Match(self_value_t, ArrayType)->item_type;
+            else if (streq(call->name, "heap_pop")) return item_type;
             else if (streq(call->name, "heap_push")) return Type(VoidType);
             else if (streq(call->name, "heapify")) return Type(VoidType);
             else if (streq(call->name, "insert")) return Type(VoidType);
             else if (streq(call->name, "insert_all")) return Type(VoidType);
-            else if (streq(call->name, "random")) return Match(self_value_t, ArrayType)->item_type;
+            else if (streq(call->name, "random")) return item_type;
             else if (streq(call->name, "remove_at")) return Type(VoidType);
             else if (streq(call->name, "remove_item")) return Type(VoidType);
             else if (streq(call->name, "reversed")) return self_value_t;
@@ -750,7 +752,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "sort")) return Type(VoidType);
             else if (streq(call->name, "sorted")) return self_value_t;
             else if (streq(call->name, "to")) return self_value_t;
-            else if (streq(call->name, "unique")) return Type(SetType, .item_type=Match(self_value_t, ArrayType)->item_type);
+            else if (streq(call->name, "unique")) return Type(SetType, .item_type=item_type);
             else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
         case SetType: {

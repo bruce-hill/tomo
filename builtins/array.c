@@ -221,6 +221,17 @@ public Int_t Array$find(array_t arr, void *item, const TypeInfo *type)
     return I(0);
 }
 
+public void *Array$first(array_t arr, closure_t predicate)
+{
+    bool (*is_good)(void*, void*) = (void*)predicate.fn;
+    for (int64_t i = 0; i < arr.length; i++) {
+        if (is_good(arr.data + i*arr.stride, predicate.userdata))
+            return arr.data + i*arr.stride;
+    }
+    return NULL;
+}
+
+
 public void Array$sort(array_t *arr, closure_t comparison, int64_t padded_item_size)
 {
     if (arr->data_refcount != 0 || (int64_t)arr->stride != padded_item_size)
