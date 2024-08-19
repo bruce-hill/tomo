@@ -11,19 +11,26 @@ don't need to save the pointer anywhere.
 Pointers are the way in Tomo that you can create mutable data. All
 datastructures are by default, immutable, but using pointers, you can create
 a region of memory where different immutable values can be held, which change
-over time.
+over time. Essentially, you can think about mutation as the act of creating
+a new, different value and assigning it to a pointer's memory location to
+replace the value that previously resided there.
 
 ```tomo
 func no_mutation_possible(nums:[Int]):
-    nums[1] = 10 // Type error!
+    nums[1] = 10 // This performs a copy-on-write and creates a new array
+...
+my_nums := [0, 1, 2]
+no_mutation_possible(my_nums)
+>> my_nums
+= [0, 1, 2]
 
 func do_mutation(nums:@[Int]):
-    nums[1] = 10 // okay
-
+    nums[1] = 10 // The mutates the value at the given pointer's location
 ...
-
 my_nums := @[0, 1, 2]
 do_mutation(my_nums)
+>> my_nums
+= [10, 1, 2]
 ```
 
 In general, heap pointers can be used as stack pointers if necessary, since
