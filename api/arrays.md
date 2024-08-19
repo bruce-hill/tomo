@@ -234,7 +234,7 @@ find(arr: [T]) -> Int
 - `arr`: The array to search through.
 
 **Returns:**  
-The index of the first occurrence or `-1` if not found.
+The index of the first occurrence or `0` if not found.
 
 **Example:**  
 ```markdown
@@ -242,7 +242,37 @@ The index of the first occurrence or `-1` if not found.
 = 2
 
 >> [10, 20, 30, 40, 50]:find(9999)
-= -1
+= 0
+```
+
+---
+
+### `first`
+
+**Description:**  
+Find the first item that matches a predicate function.
+
+**Usage:**  
+```markdown
+first(arr: [T], predicate: func(item:&T)->Bool) -> Int
+```
+
+**Parameters:**
+
+- `arr`: The array to search through.
+- `predicate`: A function that returns `yes` if the item should be returned or
+  `no` if it should not.
+
+**Returns:**  
+Returns a pointer to the first item that matches the given predicate, or null
+if no match is found.
+
+**Example:**  
+```markdown
+when nums:find(func(i:&Int): i:is_prime()) is @prime:
+    say("Got a prime: $prime")
+else:
+    say("No primes")
 ```
 
 ---
