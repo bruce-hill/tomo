@@ -1320,7 +1320,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                         Int_t int_val = Int$from_text(Match(call_arg->value, Int)->str);
                         double n = Int_to_Num(int_val);
                         value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == TYPE_NBITS64
-                                              ? "N64(%.9g)" : "N32(%.9g)", n);
+                                              ? "N64(%.99g)" : "N32(%.99g)", n);
                     } else {
                         env_t *arg_env = with_enum_scope(env, spec_arg->type);
                         type_t *actual_t = get_type(arg_env, call_arg->value);
@@ -1348,7 +1348,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                     Int_t int_val = Int$from_text(Match(call_arg->value, Int)->str);
                     double n = Int_to_Num(int_val);
                     value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == TYPE_NBITS64
-                                          ? "N64(%.9g)" : "N32(%.9g)", n);
+                                          ? "N64(%.99g)" : "N32(%.99g)", n);
                 } else {
                     env_t *arg_env = with_enum_scope(env, spec_arg->type);
                     type_t *actual_t = get_type(arg_env, call_arg->value);
@@ -1511,9 +1511,9 @@ CORD compile(env_t *env, ast_t *ast)
     case Num: {
         switch (Match(ast, Num)->bits) {
         case NBITS_UNSPECIFIED: case NBITS64:
-            return CORD_asprintf("N64(%.9g)", Match(ast, Num)->n);
+            return CORD_asprintf("N64(%.99g)", Match(ast, Num)->n);
         case NBITS32:
-            return CORD_asprintf("N32(%.9g)", Match(ast, Num)->n);
+            return CORD_asprintf("N32(%.99g)", Match(ast, Num)->n);
         default: code_err(ast, "This is not a valid number bit width");
         }
     }
