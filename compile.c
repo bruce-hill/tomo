@@ -1785,7 +1785,7 @@ CORD compile(env_t *env, ast_t *ast)
         } else if (!chunks->next && chunks->ast->tag == TextLiteral) {
             return compile(env, chunks->ast);
         } else {
-            CORD code = "CORD_all(";
+            CORD code = CORD_EMPTY;
             for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
                 CORD chunk_code;
                 type_t *chunk_t = get_type(env, chunk->ast);
@@ -1818,7 +1818,10 @@ CORD compile(env_t *env, ast_t *ast)
                 code = CORD_cat(code, chunk_code);
                 if (chunk->next) code = CORD_cat(code, ", ");
             }
-            return CORD_cat(code, ")");
+            if (chunks->next)
+                return CORD_all("CORD_all(", code, ")");
+            else
+                return code;
         }
     }
     case Block: {
