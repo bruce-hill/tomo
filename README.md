@@ -33,8 +33,7 @@ language features.
 ### Performance
 - Extremely high performance code generation with minimal overhead compared to C
 - Extremely fast parallel compilation times
-- Language-level support for out-of-the-box function caching emphasizing
-  correctness
+- Language-level support for correct function caching
 - Structs with known-at-compile-time methods, not OOP objects with vtable
   lookups
 
@@ -47,6 +46,7 @@ language features.
   of code injection
 - Pattern matching with exhaustiveness checking for tagged unions
 - Efficient immutable datastructures
+- Privacy-protecting types that help prevent logging sensitive information
 
 ## Simplicity
 - Simple, low-boilerplate type system with type inference
@@ -57,12 +57,12 @@ language features.
 - Useful and efficient built-in types: arrays, hash tables, sets, structs,
   tagged unions (sum types), cords (efficient string representation)
 - String interpolation and debug printing builtins
-- Beautiful and helpful compiler and runtime error messages with emphasis on
+- Docstring tests with syntax highlighted output
   user-friendliness
+- Full-featured modules
 - Full UTF8 support for all text operations
 - Built-in doctests with syntax highlighting
-- Automatic command line argument parsing with type safety and no need for
-  libraries.
+- Automatic command line argument parsing with type safety
 - Easy interoperability with C
 
 ## Dependencies
@@ -73,7 +73,11 @@ Tomo has a very small set of dependencies:
   garbage collection.
 - [libunistring](https://www.gnu.org/software/libunistring/) for unicode
   string support.
+- [GNU multiple precision arithmetic library](https://gmplib.org/manual/index)
+  for arbitrary precision integer math.
 - [Binutils](https://www.gnu.org/software/binutils/) for stack traces.
+- [Readline](https://tiswww.case.edu/php/chet/readline/rltop.html) for reading
+  user input with nice editing.
 - a C compiler
 - and libc/libm, which should definitely already be installed.
 
