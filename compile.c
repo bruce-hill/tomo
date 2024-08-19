@@ -2502,6 +2502,9 @@ CORD compile(env_t *env, ast_t *ast)
                 const char *lang = Match(t, TextType)->lang;
                 if (lang) { // Escape for DSL
                     type_t *first_type = get_type(env, call->args->value);
+                    if (type_eq(first_type, t))
+                        return compile(env, call->args->value);
+
                     binding_t *esc = get_lang_escape_function(env, lang, first_type);
                     if (!esc)
                         code_err(ast, "I don't know how to convert %T to %T", first_type, t);
