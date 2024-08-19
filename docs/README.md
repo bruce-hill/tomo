@@ -23,6 +23,7 @@ Information about Tomo's built-in types can be found here:
 - [Floating point numbers](nums.md)
 - [Integer Ranges](ranges.md)
 - [Integers](integers.md)
+- [Languages](langs.md)
 - [Sets](sets.md)
 - [Structs](structs.md)
 - [Tables](tables.md)
