@@ -38,7 +38,7 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
                      def->name, ".", tag->name, "\\x1b[m(\" : \"", def->name, ".", tag->name, "(\"");
 
         if (tag->secret) {
-            str_func = CORD_cat(str_func, ", \"***)\");\n");
+            str_func = CORD_cat(str_func, ", use_color ? \"\\x1b[2m...\\x1b[m\" : \"...\", \")\");\n");
             continue;
         }
 
