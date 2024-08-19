@@ -2,6 +2,10 @@ enum Job(Increment(x:Int), Decrement(x:Int))
 
 func main():
     jobs := |:Job; max_size=2|
+    >> jobs:give(Increment(5))
+    >> jobs:peek()
+    = Job.Increment(x=5)
+
     results := |:Int; max_size|
     >> thread := Thread.new(func():
         //! In another thread!
@@ -13,7 +17,6 @@ func main():
                 >> results:give(x-1)
     )
 
-    >> jobs:give(Increment(5))
     >> jobs:give(Decrement(100))
     >> jobs:give(Decrement(100))
     >> jobs:give(Decrement(100))

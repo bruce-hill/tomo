@@ -774,6 +774,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "get")) return Match(self_value_t, ChannelType)->item_type;
             else if (streq(call->name, "give")) return Type(VoidType);
             else if (streq(call->name, "give_all")) return Type(VoidType);
+            else if (streq(call->name, "peek")) return Match(self_value_t, ChannelType)->item_type;
             else if (streq(call->name, "view")) return Type(ArrayType, .item_type=Match(self_value_t, ChannelType)->item_type);
             else code_err(ast, "There is no '%s' method for arrays", call->name);
         }

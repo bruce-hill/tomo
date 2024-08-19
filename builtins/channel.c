@@ -68,6 +68,16 @@ public void Channel$get(channel_t *channel, void *out, int64_t item_size, int64_
     (void)pthread_cond_signal(&channel->cond);
 }
 
+public void Channel$peek(channel_t *channel, void *out, int64_t item_size)
+{
+    (void)pthread_mutex_lock(&channel->mutex);
+    while (channel->items.length == 0)
+        pthread_cond_wait(&channel->cond, &channel->mutex);
+    memcpy(out, channel->items.data, item_size);
+    (void)pthread_mutex_unlock(&channel->mutex);
+    (void)pthread_cond_signal(&channel->cond);
+}
+
 public array_t Channel$view(channel_t *channel)
 {
     (void)pthread_mutex_lock(&channel->mutex);

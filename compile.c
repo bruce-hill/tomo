@@ -2377,6 +2377,10 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Channel$get_value(", self, ", ", compile_type(item_t), ", ", padded_item_size, ")");
+            } else if (streq(call->name, "peek")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                (void)compile_arguments(env, ast, NULL, call->args);
+                return CORD_all("Channel$peek_value(", self, ", ", compile_type(item_t), ")");
             } else if (streq(call->name, "clear")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);

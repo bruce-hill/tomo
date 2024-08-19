@@ -93,6 +93,32 @@ The item removed from the channel.
 
 **Example:**  
 ```markdown
+>> channel:peek()
+= "Hello"
+```
+
+---
+
+### `peek`
+
+**Description:**  
+Returns the next item that will come out of the channel, but without removing
+it. If the channel is empty, it waits until an item is available.
+
+**Usage:**  
+```markdown
+peek(channel:|T|) -> T
+```
+
+**Parameters:**
+
+- `channel`: The channel from which to remove an item.
+
+**Returns:**  
+The item removed from the channel.
+
+**Example:**  
+```markdown
 >> channel:get()
 = "Hello"
 ```

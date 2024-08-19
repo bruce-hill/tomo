@@ -15,6 +15,8 @@ void Channel$give(channel_t *channel, const void *item, int64_t padded_item_size
 void Channel$give_all(channel_t *channel, array_t to_give, int64_t padded_item_size);
 void Channel$get(channel_t *channel, void *out, int64_t item_size, int64_t padded_item_size);
 #define Channel$get_value(channel, t, padded_item_size) ({ t _val; Channel$get(channel, &_val, sizeof(t), padded_item_size); _val; })
+void Channel$peek(channel_t *channel, void *out, int64_t item_size);
+#define Channel$peek_value(channel, t) ({ t _val; Channel$peek(channel, &_val, sizeof(t)); _val; })
 void Channel$clear(channel_t *channel);
 array_t Channel$view(channel_t *channel);
 uint32_t Channel$hash(const channel_t **channel, const TypeInfo *type);
