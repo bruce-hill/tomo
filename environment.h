@@ -71,6 +71,7 @@ env_t *namespace_env(env_t *env, const char *namespace_name);
 __attribute__((noreturn))
 void compiler_err(file_t *f, const char *start, const char *end, const char *fmt, ...);
 binding_t *get_binding(env_t *env, const char *name);
+binding_t *get_lang_escape_function(env_t *env, const char *lang_name, type_t *type_to_escape);
 void set_binding(env_t *env, const char *name, binding_t *binding);
 binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name);
 #define code_err(ast, ...) compiler_err((ast)->file, (ast)->start, (ast)->end, __VA_ARGS__)

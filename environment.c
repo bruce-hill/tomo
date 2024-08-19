@@ -531,6 +531,27 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
     return NULL;
 }
 
+binding_t *get_lang_escape_function(env_t *env, const char *lang_name, type_t *type_to_escape)
+{
+    binding_t *typeinfo = get_binding(env, lang_name);
+    assert(typeinfo && typeinfo->type->tag == TypeInfoType);
+    env_t *lang_env = Match(typeinfo->type, TypeInfoType)->env;
+    for (int64_t i = 1; i <= Table$length(*lang_env->locals); i++) {
+        struct {const char *name; binding_t *b; } *entry = Table$entry(*lang_env->locals, i);
+        if (entry->b->type->tag != FunctionType) continue;
+        if (!(streq(entry->name, "escape") || strncmp(entry->name, "escape_", strlen("escape_")) == 0))
+            continue;
+        auto fn = Match(entry->b->type, FunctionType);
+        if (!fn->args || fn->args->next) continue;
+        if (fn->ret->tag != TextType || !streq(Match(fn->ret, TextType)->lang, lang_name))
+            continue;
+        if (!can_promote(type_to_escape, fn->args->type))
+            continue;
+        return entry->b;
+    }
+    return NULL;
+}
+
 void set_binding(env_t *env, const char *name, binding_t *binding)
 {
     if (name && binding)
