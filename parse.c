@@ -4,6 +4,7 @@
 #include <gmp.h>
 #include <libgen.h>
 #include <linux/limits.h>
+#include <math.h>
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -22,6 +23,7 @@
 #define PARSE_CACHE_SIZE 100
 #endif
 
+static const double RADIANS_PER_DEGREE = 0.0174532925199432957692369076848861271344287188854172545609719144;
 static const char closing[128] = {['(']=')', ['[']=']', ['<']='>', ['{']='}'};
 
 typedef struct {
@@ -443,7 +445,6 @@ PARSER(parse_int) {
     const char *start = pos;
     (void)match(&pos, "-");
     if (!isdigit(*pos)) return false;
-    int64_t i = 0;
     if (match(&pos, "0x")) { // Hex
         pos += strspn(pos, "0123456789abcdefABCDEF_");
     } else if (match(&pos, "0b")) { // Binary
@@ -463,8 +464,11 @@ PARSER(parse_int) {
         return NULL;
 
     if (match(&pos, "%")) {
-        double d = (double)i / 100.;
-        return NewAST(ctx->file, start, pos, Num, .n=d, .bits=64);
+        double n = strtod(str, NULL) / 100.;
+        return NewAST(ctx->file, start, pos, Num, .n=n, .bits=64);
+    } else if (match(&pos, "deg")) {
+        double n = strtod(str, NULL) * RADIANS_PER_DEGREE;
+        return NewAST(ctx->file, start, pos, Num, .n=n, .bits=64);
     }
 
     match(&pos, "_");
@@ -631,6 +635,8 @@ PARSER(parse_num) {
 
     if (match(&pos, "%"))
         d /= 100.;
+    else if (match(&pos, "deg"))
+        d *= RADIANS_PER_DEGREE;
 
     return NewAST(ctx->file, start, pos, Num, .n=d, .bits=bits);
 }
