@@ -18,8 +18,8 @@ func main():
     // Floating point numbers are similar, but have a decimal point:
     my_num := 2.0
 
-    // Strings can use interpolation with curly braces:
-    say("My variable is {my_variable}")
+    // Strings can use interpolation with the dollar sign $:
+    say("My variable is $my_variable and this is a sum: $(1 + 2)")
 
     say("
         Multiline strings begin with a " at the end of a line and continue in
@@ -172,7 +172,7 @@ func add(x:Int, y:Int)->Int:
 // Default values for arguments can be provided in place of a type (the type is
 // inferred from the default value):
 func show_both(first:Int, second=0)->Text:
-    return "first={first} second={second}"
+    return "first=$first second=$second"
 
 func demo_keyword_args():
     >> show_both(1, 2)
@@ -207,7 +207,7 @@ struct Person(name:Text, age:Int):
 
     // Methods are defined here as well:
     func say_age(self:Person):
-        say("My age is {self.age}")
+        say("My age is $self.age")
 
     // If you want to mutate a value, you must have a mutable pointer:
     func increase_age(self:@Person, amount=1):
@@ -240,7 +240,7 @@ func demo_structs():
     >> alice == bob
     = no
 
-    >> "{alice}" == 'Person(name="Alice", age=30)'
+    >> "$alice" == 'Person(name="Alice", age=30)'
     = yes
 
     table := {alice: "first", bob: "second"}
@@ -285,7 +285,7 @@ func demo_enums():
     >> my_shape == other_shape
     = no
 
-    >> "{my_shape}" == "Shape.Circle(radius=1)"
+    >> "$my_shape" == "Shape.Circle(radius=1)"
     = yes
 
     >> {my_shape:"nice"}
