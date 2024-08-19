@@ -13,9 +13,9 @@ collide with a user-chosen name like `FooBaz`.
 
 ```
 // File: foo.nl
-struct Baz(x:Int)
+struct Baz(x:Int):
     member := 5
-    func frob(b:Baz)->Int
+    func frob(b:Baz)->Int:
         return b.x
 
 qux := "Loaded!"
