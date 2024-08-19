@@ -32,21 +32,25 @@ language features.
 
 ### Performance
 - Extremely high performance code generation with minimal overhead compared to C
-- Extremely fast parallel compilation times
+- Extremely fast parallel [compilation](docs/compilation.md) times
 - Language-level support for correct function caching
-- Structs with known-at-compile-time methods, not OOP objects with vtable
-  lookups
+- [Structs](docs/structs.md) with known-at-compile-time methods, not OOP
+  objects with vtable lookups
 
 ## Safety
-- Memory safety (garbage collection, compiler-enforced null safety, automatic
-  array bounds checking, and no uninitialized variables)
-- Arbitrary-precision integers by default with opt-in fixed-with integers with
-  arithmetic overflow checking
-- Type-safe strings representing different languages with automatic prevention
-  of code injection
-- Pattern matching with exhaustiveness checking for tagged unions
-- Efficient immutable datastructures
-- Privacy-protecting types that help prevent logging sensitive information
+- Memory safety (garbage collection, [compiler-enforced null
+  safety](docs/pointers.md), [automatic array bounds
+  checking](docs/arrays.md), and no uninitialized variables)
+- [Arbitrary-precision integers](docs/integers.md) by default with opt-in
+  fixed-with integers with arithmetic overflow checking
+- [Type-safe strings representing different languages](docs/langs.md) with
+  automatic prevention of code injection
+- Pattern matching with exhaustiveness checking for [tagged unions
+  (enums)](docs/enums.md)
+- Efficient immutable datastructures: [arrays](docs/arrays.md),
+  [tables](docs/tables.md), [sets](docs/sets.md), [text](docs/text.md).
+- [Privacy-protecting types](docs/structs.md#Secret-Values) that help prevent
+  logging sensitive information
 
 ## Simplicity
 - Simple, low-boilerplate type system with type inference
@@ -54,13 +58,10 @@ language features.
 - No polymorphism, generics, or inheritance
 
 ## User-friendliness
-- Useful and efficient built-in types: arrays, hash tables, sets, structs,
-  tagged unions (sum types), cords (efficient string representation)
-- String interpolation and debug printing builtins
+- [String interpolation](docs/text.md) and debug printing builtins
 - Docstring tests with syntax highlighted output
-  user-friendliness
-- Full-featured modules
-- Full UTF8 support for all text operations
+- Full-featured [libraries/modules](docs/libraries.md)
+- [Full UTF8 support](docs/text.md) for all text operations
 - Built-in doctests with syntax highlighting
 - Automatic command line argument parsing with type safety
 - Easy interoperability with C
