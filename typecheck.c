@@ -771,9 +771,9 @@ type_t *get_type(env_t *env, ast_t *ast)
         }
         case ChannelType: {
             if (streq(call->name, "clear")) return Type(VoidType);
-            else if (streq(call->name, "pop")) return Match(self_value_t, ChannelType)->item_type;
-            else if (streq(call->name, "push")) return Type(VoidType);
-            else if (streq(call->name, "push_all")) return Type(VoidType);
+            else if (streq(call->name, "get")) return Match(self_value_t, ChannelType)->item_type;
+            else if (streq(call->name, "give")) return Type(VoidType);
+            else if (streq(call->name, "give_all")) return Type(VoidType);
             else if (streq(call->name, "view")) return Type(ArrayType, .item_type=Match(self_value_t, ChannelType)->item_type);
             else code_err(ast, "There is no '%s' method for arrays", call->name);
         }

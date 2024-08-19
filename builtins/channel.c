@@ -30,7 +30,7 @@ public channel_t *Channel$new(Int_t max_size)
     return channel;
 }
 
-public void Channel$push(channel_t *channel, const void *item, int64_t padded_item_size)
+public void Channel$give(channel_t *channel, const void *item, int64_t padded_item_size)
 {
     (void)pthread_mutex_lock(&channel->mutex);
     while (channel->items.length >= channel->max_size)
@@ -40,24 +40,24 @@ public void Channel$push(channel_t *channel, const void *item, int64_t padded_it
     (void)pthread_cond_signal(&channel->cond);
 }
 
-public void Channel$push_all(channel_t *channel, array_t to_push, int64_t padded_item_size)
+public void Channel$give_all(channel_t *channel, array_t to_give, int64_t padded_item_size)
 {
-    if (to_push.length == 0) return;
+    if (to_give.length == 0) return;
     (void)pthread_mutex_lock(&channel->mutex);
-    if (channel->items.length + to_push.length >= channel->max_size) {
-        for (int64_t i = 0; i < to_push.length; i++) {
+    if (channel->items.length + to_give.length >= channel->max_size) {
+        for (int64_t i = 0; i < to_give.length; i++) {
             while (channel->items.length >= channel->max_size)
                 pthread_cond_wait(&channel->cond, &channel->mutex);
-            Array$insert(&channel->items, to_push.data + i*to_push.stride, I(0), padded_item_size);
+            Array$insert(&channel->items, to_give.data + i*to_give.stride, I(0), padded_item_size);
         }
     } else {
-        Array$insert_all(&channel->items, to_push, I(0), padded_item_size);
+        Array$insert_all(&channel->items, to_give, I(0), padded_item_size);
     }
     (void)pthread_mutex_unlock(&channel->mutex);
     (void)pthread_cond_signal(&channel->cond);
 }
 
-public void Channel$pop(channel_t *channel, void *out, int64_t item_size, int64_t padded_item_size)
+public void Channel$get(channel_t *channel, void *out, int64_t item_size, int64_t padded_item_size)
 {
     (void)pthread_mutex_lock(&channel->mutex);
     while (channel->items.length == 0)

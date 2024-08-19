@@ -10,11 +10,11 @@
 #include "util.h"
 
 channel_t *Channel$new(Int_t max_size);
-void Channel$push(channel_t *channel, const void *item, int64_t padded_item_size);
-#define Channel$push_value(channel, item, padded_item_size) ({ __typeof(item) _item = item; Channel$push(channel, &_item, padded_item_size); })
-void Channel$push_all(channel_t *channel, array_t to_push, int64_t padded_item_size);
-void Channel$pop(channel_t *channel, void *out, int64_t item_size, int64_t padded_item_size);
-#define Channel$pop_value(channel, t, padded_item_size) ({ t _val; Channel$pop(channel, &_val, sizeof(t), padded_item_size); _val; })
+void Channel$give(channel_t *channel, const void *item, int64_t padded_item_size);
+#define Channel$give_value(channel, item, padded_item_size) ({ __typeof(item) _item = item; Channel$give(channel, &_item, padded_item_size); })
+void Channel$give_all(channel_t *channel, array_t to_give, int64_t padded_item_size);
+void Channel$get(channel_t *channel, void *out, int64_t item_size, int64_t padded_item_size);
+#define Channel$get_value(channel, t, padded_item_size) ({ t _val; Channel$get(channel, &_val, sizeof(t), padded_item_size); _val; })
 void Channel$clear(channel_t *channel);
 array_t Channel$view(channel_t *channel);
 uint32_t Channel$hash(const channel_t **channel, const TypeInfo *type);

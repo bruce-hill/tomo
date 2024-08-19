@@ -6,40 +6,40 @@ func main():
     >> thread := Thread.new(func():
         //! In another thread!
         while yes:
-            >> got := jobs:pop()
+            >> got := jobs:get()
             when got is Increment(x):
-                >> results:push(x+1)
+                >> results:give(x+1)
             is Decrement(x):
-                >> results:push(x-1)
+                >> results:give(x-1)
     )
 
-    >> jobs:push(Increment(5))
-    >> jobs:push(Decrement(100))
-    >> jobs:push(Decrement(100))
-    >> jobs:push(Decrement(100))
-    >> jobs:push(Decrement(100))
-    >> jobs:push(Decrement(100))
-    >> jobs:push(Decrement(100))
+    >> jobs:give(Increment(5))
+    >> jobs:give(Decrement(100))
+    >> jobs:give(Decrement(100))
+    >> jobs:give(Decrement(100))
+    >> jobs:give(Decrement(100))
+    >> jobs:give(Decrement(100))
+    >> jobs:give(Decrement(100))
 
-    >> results:pop()
+    >> results:get()
     = 6
 
-    >> jobs:push(Increment(1000))
-    >> results:pop()
+    >> jobs:give(Increment(1000))
+    >> results:get()
     = 99
 
-    >> results:pop()
+    >> results:get()
     = 99
-    >> results:pop()
+    >> results:get()
     = 99
-    >> results:pop()
+    >> results:get()
     = 99
-    >> results:pop()
+    >> results:get()
     = 99
-    >> results:pop()
+    >> results:get()
     = 99
 
-    >> results:pop()
+    >> results:get()
     = 1001
 
     //! Canceling...
