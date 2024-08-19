@@ -28,6 +28,9 @@ double Num$nan(CORD tag);
 double Num$random(void);
 double Num$mix(double amount, double x, double y);
 double Num$from_text(CORD text, CORD *the_rest);
+static inline double Num$clamped(double x, double low, double high) {
+    return (x <= low) ? low : (x >= high ? high : x);
+}
 extern const TypeInfo $Num;
 
 CORD Num32$as_text(const float *f, bool colorize, const TypeInfo *type);
@@ -44,6 +47,9 @@ float Num32$random(void);
 float Num32$mix(float amount, float x, float y);
 float Num32$from_text(CORD text, CORD *the_rest);
 float Num32$nan(CORD tag);
+static inline float Num32$clamped(float x, float low, float high) {
+    return (x <= low) ? low : (x >= high ? high : x);
+}
 extern const TypeInfo $Num32;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

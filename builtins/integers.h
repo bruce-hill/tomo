@@ -34,6 +34,9 @@
     c_type type_name ## $random(c_type min, c_type max); \
     Range_t type_name ## $to(c_type from, c_type to); \
     c_type type_name ## $from_text(CORD text, CORD *the_rest); \
+    static inline c_type type_name ## $clamped(c_type x, c_type min, c_type max) { \
+        return x < min ? min : (x > max ? max : x); \
+    } \
     extern const c_type type_name ## $min, type_name##$max; \
     extern const TypeInfo $ ## type_name; \
     static inline c_type type_name ## $divided_by(c_type D, c_type d) { \
@@ -122,6 +125,11 @@ Int_t Int$next_prime(Int_t x);
 Int_t Int$prev_prime(Int_t x);
 
 extern const TypeInfo $Int;
+
+static inline Int_t Int$clamped(Int_t x, Int_t low, Int_t high)
+{
+    return (Int$compare(&x, &low, &$Int) <= 0) ? low : (Int$compare(&x, &high, &$Int) >= 0 ? high : x);
+}
 
 // Fast-path inline versions for the common case where integer arithmetic is
 // between two small ints.

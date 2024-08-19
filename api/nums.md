@@ -1344,3 +1344,31 @@ The Bessel function of the second kind of order 1 of `x`.
 >> 1.0:y1()
 = 0.4401
 ```
+
+---
+
+## `clamped`
+
+**Description:**  
+Returns the given number clamped between two values so that it is within
+that range.
+
+**Usage:**  
+```tomo
+clamped(x, low, high: Num) -> Num
+```
+
+**Parameters:**
+
+- `x`: The number to clamp.
+- `low`: The lowest value the result can take.
+- `high`: The highest value the result can take.
+
+**Returns:**  
+The first argument clamped between the other two arguments.
+
+**Example:**  
+```tomo
+>> 2.5:clamped(5.5, 10.5)
+= 5.5
+```

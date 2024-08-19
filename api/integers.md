@@ -302,7 +302,8 @@ The next prime number greater than `x`.
 
 **Example:**  
 ```tomo
-11:next_prime()  // 13
+>> 11:next_prime()
+= 13
 ```
 
 ---
@@ -334,5 +335,34 @@ The previous prime number less than `x`.
 
 **Example:**  
 ```tomo
-11:prev_prime()  // 7
+>> 11:prev_prime()
+= 7
+```
+
+---
+
+## `clamped`
+
+**Description:**  
+Returns the given number clamped between two values so that it is within
+that range.
+
+**Usage:**  
+```tomo
+clamped(x, low, high: Int) -> Int
+```
+
+**Parameters:**
+
+- `x`: The integer to clamp.
+- `low`: The lowest value the result can take.
+- `high`: The highest value the result can take.
+
+**Returns:**  
+The first argument clamped between the other two arguments.
+
+**Example:**  
+```tomo
+>> 2:clamped(5, 10)
+= 5
 ```
