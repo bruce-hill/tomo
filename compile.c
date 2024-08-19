@@ -1259,6 +1259,14 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
     if (target->tag == BigIntType)
         return compile(env, ast);
 
+    if (ast->tag != Int) {
+        CORD code = compile(env, ast);
+        type_t *actual_type = get_type(env, ast);
+        if (!promote(env, &code, actual_type, target))
+            code = CORD_all(type_to_cord(actual_type), "_to_", type_to_cord(target), "(", code, ", no)");
+        return code;
+    }
+
     int64_t target_bits = (int64_t)Match(target, IntType)->bits;
     Int_t int_val = Int$from_text(Match(ast, Int)->str);
     mpz_t i;
@@ -1500,38 +1508,6 @@ CORD compile(env_t *env, ast_t *ast)
         default: code_err(ast, "This is not a valid number bit width");
         }
     }
-    case Length: {
-        ast_t *expr = Match(ast, Length)->value;
-        type_t *t = get_type(env, expr);
-        switch (value_type(t)->tag) {
-        case TextType: {
-            CORD str = compile_to_pointer_depth(env, expr, 0, false);
-            return CORD_all("Text$num_clusters(", str, ")");
-        }
-        case ArrayType: {
-            if (t->tag == PointerType) {
-                CORD arr = compile_to_pointer_depth(env, expr, 1, false);
-                return CORD_all("I((", arr, ")->length)");
-            } else {
-                CORD arr = compile_to_pointer_depth(env, expr, 0, false);
-                return CORD_all("I((", arr, ").length)");
-            }
-        }
-        case TableType: {
-            if (t->tag == PointerType) {
-                CORD table = compile_to_pointer_depth(env, expr, 1, false);
-                return CORD_all("I((", table, ")->entries.length)");
-            } else {
-                CORD table = compile_to_pointer_depth(env, expr, 0, false);
-                return CORD_all("I((", table, ").entries.length)");
-            }
-        }
-        default: {
-            code_err(ast, "Length is not implemented for %T values", t);
-        }
-        }
-        break;
-    }
     case Not: {
         ast_t *value = Match(ast, Not)->value;
         type_t *t = get_type(env, ast);
@@ -1547,10 +1523,14 @@ CORD compile(env_t *env, ast_t *ast)
             return CORD_all("!(", compile(env, value), ")");
         else if (t->tag == IntType)
             return CORD_all("~(", compile(env, value), ")");
-        else if (t->tag == ArrayType || t->tag == TableType)
-            return CORD_all("!(", compile(env, WrapAST(ast, Length, value)), ")");
+        else if (t->tag == ArrayType)
+            return CORD_all("((", compile(env, value), ").length == 0)");
+        else if (t->tag == SetType || t->tag == TableType)
+            return CORD_all("((", compile(env, value), ").entries.length == 0)");
         else if (t->tag == TextType)
-            return CORD_all("!(", compile(env, value), ")");
+            return CORD_all("(", compile(env, value), " == CORD_EMPTY)");
+        else if (t->tag == PointerType && Match(t, PointerType)->is_optional)
+            return CORD_all("(", compile(env, value), " == NULL)");
 
         code_err(ast, "I don't know how to negate values of type %T", t);
     }

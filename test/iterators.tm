@@ -3,7 +3,7 @@ enum PairIteration(Done, Next(x:Text, y:Text))
 func pairwise(strs:[Text])->func()->PairIteration:
     i := 1
     return func():
-        if i + 1 > #strs: return PairIteration.Done
+        if i + 1 > strs.length: return PairIteration.Done
         i += 1
         return PairIteration.Next(strs[i-1], strs[i])
 

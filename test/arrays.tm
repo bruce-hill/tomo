@@ -12,7 +12,7 @@ func main():
 		>> arr[-1]
 		= 30
 
-		>> #arr
+		>> arr.length
 		= 3
 
 		sum := 0
@@ -105,7 +105,7 @@ func main():
 		>> heap:heapify()
 		>> heap
 		sorted := [:Int]
-		while #heap > 0:
+		while heap.length > 0:
 			sorted:insert(heap:heap_pop())
 		>> sorted == sorted:sorted()
 		= yes
@@ -113,7 +113,7 @@ func main():
 			heap:heap_push(Int.random(1, 50))
 		>> heap
 		sorted = [:Int]
-		while #heap > 0:
+		while heap.length > 0:
 			sorted:insert(heap:heap_pop())
 		>> sorted == sorted:sorted()
 		= yes

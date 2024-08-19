@@ -15,7 +15,7 @@ func main():
 	>> t_str
 	= "(one:1)(two:2)"
 
-	>> #t
+	>> t.length
 	= 2
 	>> t.fallback
 	= !{Text:Int}
@@ -35,7 +35,7 @@ func main():
 	>> t2:get("???", 999)
 	= 999
 
-	>> #t2
+	>> t2.length
 	= 1
 	>> t2.fallback
 	= @%{"one":1, "two":2}?

@@ -859,7 +859,6 @@ type_t *get_type(env_t *env, ast_t *ast)
         return Type(AbortType);
     }
     case Pass: case Defer: return Type(VoidType);
-    case Length: return INT_TYPE;
     case Negative: {
         ast_t *value = Match(ast, Negative)->value;
         type_t *t = get_type(env, value);

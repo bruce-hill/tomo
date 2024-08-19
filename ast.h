@@ -107,7 +107,7 @@ typedef enum {
     TextLiteral, TextJoin, PrintStatement,
     Declare, Assign,
     BinaryOp, UpdateAssign,
-    Length, Not, Negative, HeapAllocate, StackReference,
+    Not, Negative, HeapAllocate, StackReference,
     Min, Max,
     Array, Channel, Set, Table, TableEntry, Comprehension,
     FunctionDef, Lambda,
@@ -174,7 +174,7 @@ struct ast_s {
         } BinaryOp, UpdateAssign;
         struct {
             ast_t *value;
-        } Length, Not, Negative, HeapAllocate, StackReference;
+        } Not, Negative, HeapAllocate, StackReference;
         struct {
             ast_t *lhs, *rhs, *key;
         } Min, Max;

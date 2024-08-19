@@ -1089,14 +1089,6 @@ PARSER(parse_while) {
     return NewAST(ctx->file, start, pos, While, .condition=condition, .body=body);
 }
 
-PARSER(parse_length) {
-    const char *start = pos;
-    if (!match(&pos, "#")) return NULL;
-    spaces(&pos);
-    ast_t *val = expect(ctx, start, &pos, parse_term, "I expected an expression for this '#'");
-    return NewAST(ctx->file, start, pos, Length, .value=val);
-}
-
 PARSER(parse_heap_alloc) {
     const char *start = pos;
     if (!match(&pos, "@")) return NULL;
@@ -1335,7 +1327,6 @@ PARSER(parse_term_no_suffix) {
         || (term=parse_nil(ctx, pos))
         || (term=parse_num(ctx, pos))
         || (term=parse_int(ctx, pos))
-        || (term=parse_length(ctx, pos))
         || (term=parse_negative(ctx, pos))
         || (term=parse_heap_alloc(ctx, pos))
         || (term=parse_stack_reference(ctx, pos))
