@@ -674,7 +674,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         CORD body = compile_statement(body_scope, fndef->body);
         if (streq(Match(fndef->name, Var)->name, "main"))
-            body = CORD_all("_initialize();\n", body);
+            body = CORD_all(env->namespace->name, "$$initialize();\n", body);
         if (CORD_fetch(body, 0) != '{')
             body = CORD_asprintf("{\n%r\n}", body);
         env->code->funcs = CORD_all(env->code->funcs, code, " ", body, "\n");
@@ -1149,7 +1149,16 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case Extern: return CORD_EMPTY;
     case InlineCCode: return Match(ast, InlineCCode)->code;
-    case Use: case Import: return CORD_EMPTY;
+    case Use: {
+        CORD name = Match(ast, Use)->name;
+        env->code->variable_initializers = CORD_all( env->code->variable_initializers, name, "$$initialize();\n");
+        return CORD_EMPTY;
+    }
+    case Import: {
+        CORD name = file_base_name(Match(ast, Import)->path);
+        env->code->variable_initializers = CORD_all( env->code->variable_initializers, name, "$$initialize();\n");
+        return CORD_EMPTY;
+    }
     default:
         if (!is_discardable(env, ast))
             code_err(ast, "The result of this statement cannot be discarded");
@@ -3106,7 +3115,10 @@ CORD compile_file(env_t *env, ast_t *ast)
         "#include \"", name, ".tm.h\"\n\n",
         env->code->local_typedefs, "\n",
         env->code->staticdefs, "\n",
-        "static void _initialize(void) {\n",
+        "public void ", env->namespace->name, "$$initialize(void) {\n",
+        "static bool initialized = false;\n",
+        "if (initialized) return;\n",
+        "initialized = true;\n",
         env->code->variable_initializers,
         "}\n",
         env->code->funcs, "\n",
@@ -3276,6 +3288,8 @@ CORD compile_header(env_t *env, ast_t *ast)
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
         header = CORD_all(header, compile_statement_definitions(env, stmt->ast));
+
+    header = CORD_all(header, "void ", env->namespace->name, "$$initialize(void);\n");
 
     return header;
 }
