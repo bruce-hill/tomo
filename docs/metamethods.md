@@ -21,6 +21,11 @@ behavior that is required for all types:
   of `equals` may be faster to compute than `compare` for certain types, such
   as tables.
 
+- `hash(x:&T, type:&TypeInfo)->Int32`: Values are hashed when used as keys in a
+  table or set. Hashing is consistent with equality, so two values that are
+  equal _must_ hash to the same hash value, ideally in a way that makes it
+  unlikely that two different values will have the same hash value.
+
 Metamethods are automatically defined for all user-defined structs, DSLs, and
 enums. At this time, metamethods may not be overridden.
 
@@ -29,19 +34,15 @@ enums. At this time, metamethods may not be overridden.
 Due to the presence of pointers, arrays, tables, and functions, there are
 potentially a very large number of metamethods that would be required if
 _every_ type had its own set of metamethods. To reduce the amount of generated
-code, we use generic metamethods, which are general-purpose functions that take
-an automatically compiled format string and variable number of arguments that
-describe how to run a metamethod for that type. As a simple example, if `foo`
-is an array of `Foo` structs, which has a defined `as_text()` method, then
-rather than define a separate `Foo_Array_as_text()` function which would be 99%
-identical to a `Baz_Array_as_text()` function, we instead insert a call to
-`as_text(&foo, colorize, $ArrayInfo(&Foo))` to convert a `[Foo]` array to a
-string, and you call `as_text(&baz, colorize, $ArrayInfo(&Baz))` to convert a
-`[Baz]` array to a string. The generic metamethod handles all the reusable
-logic like "an array's string form starts with a '[', then iterates over the
-items, getting the item's string form (whatever that is) and putting commas
-between them".
+code, Tomo uses generic metamethods, which are general-purpose functions that
+take an object pointer and a type info struct pointer that has metadata about
+the object's type. That metadata is added automatically at compile time and
+used to perform the appropriate operations. As an example, every array follows
+the same logic when performing comparisons, except that each item is compared
+using the item's comparison function. Therefore, we can compile a single array
+comparison function and reuse it for each type of array if we pass in some
+metadata about how to compare the array's items.
 
-Similarly, to compare two tables, we would use `compare(&x, &y,
-$TableInfo(&KeyType, &ValueType))`. Or to hash an array of arrays of type
-`Foo`, we would use `hash(&foo, $ArrayInfo($ArrayInfo(&Foo)))`.
+When possible, we avoid calling metamethods (for example, doing fixed-sized
+integer comparisons does not require calling a function), but metamethods are
+available as a fallback or for working with container types or pointers.
