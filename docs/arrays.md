@@ -107,6 +107,129 @@ the addition operator `+`, which does not work with arrays.
 = [1, 2, 3, 4]
 ```
 
+## Implementation Details 
+
+Under the hood, arrays are implemented as a struct that contains a pointer to a
+contiguous chunk of memory storing the elements of the array and some other
+metadata. Since Tomo has datatypes with different sizes, like `Bool`s which
+take one byte and `struct`s which can take up many bytes, it's worth noting
+that arrays store the elements compactly and inline, without the need for each
+array cell to hold a pointer to where the data actually lives.
+
+The other metadata stored with an array includes its length as well as the
+_stride_ of the array. The stride is not exposed to the user, but it's the gap
+in bytes between each element in the array. The reason this is mentioned is
+that it is possible to create immutable slices of arrays in constant time by
+creating a new struct that points to the appropriate starting place for the
+array items and has the appropriate stride. The upshot is that a method like
+`array:reversed()` does not actually copy the array, it simply returns a struct
+that points to the back of the array with a negative stride. Arrays adhere to
+copy-on-write semantics, so we can cheaply create many read-only references to
+the same data, and only need to do copying if we plan to modify data. After
+doing a modification, future modifications can be done in-place as long as
+there is only one reference to that data.
+
+Internally, we also take advantage of this inside of tables, which compactly
+store all of the key/value pairs in a contiguous array and we can return an
+immutable slice of that array showing only the keys or only the values by
+choosing the right starting point and stride.
+
+## Copy on Write
+
+Arrays can be thought of as values that have copy-on-write semantics that use
+reference counting to perform efficient in-place mutations instead of copying
+as a performance optimization when it wouldn't affect the program's semantics.
+Without getting too deep into the details, suffice it to say that when you
+create an array, that array can be thought of as a singular "value" in the same
+way that `123` is a value. That variable's value will never change unless you
+explicitly perform an assignment operation on the variable or call a method on
+the variable.
+
+Because it would be tedious to require users to write all array operations as
+pure functions like `array = array:with_value_at_index(value=x, index=i)`, Tomo
+provides the familiar imperative syntax for modifying arrays, but keeps the
+semantics of the pure functional style. Writing `array[i] = x` is
+_semantically_ equivalent to `array = array:with_value_at_index(value=x,
+index=i)`, but much more readable and easy to write. Similarly,
+`array:insert(x)` is semantically equivalent to `array =
+array:with_value_inserted(x)`. We implement these mutating methods as functions
+that take a pointer to an array variable, which then either mutate the array's
+data in-place (if this is the only thing referencing that data) or construct a
+new array and store its value in the memory where the array variable is stored.
+
+When there is only a single reference to an array value, we can perform these
+modifications in-place (arrays typically have a little bit of spare capacity at
+the end, so appending usually doesn't trigger a reallocation). When there are
+shared references, we must create a copy of the array's data before modifying
+it so the other references don't see the effects of the mutation. Here are some
+simple examples:
+
+```tomo
+nums := [10, 20, 30, 39]
+
+// Efficient in-place mutation because data references are not shared:
+nums[4] = 40
+
+// Constant time operation, but increments the reference count:
+tmp := nums
+>> tmp
+= [10, 20, 30, 40]
+
+// Now, a mutation will trigger a copy-on-write,
+// which resets the reference count to zero:
+nums[4] = 999
+>> nums
+= [10, 20, 30, 999]
+
+// Because of the copy-on-write, `tmp` is unchanged:
+>> tmp
+= [10, 20, 30, 40]
+
+// Since the reference count has been reset, we can do more
+// mutations without triggering another copy-on-write:
+nums[4] = -1
+>> nums
+= [10, 20, 30, -1]
+```
+
+Array reference counting is _approximate_, but will only ever err on the side
+of correctness at the expense of performance, not the other way around.
+Occasionally, unnecessary copying may occur, but you should never experience an
+array value changing because of some operation performed on a different array
+value.
+
+## Array Pointers
+
+Since the normal case of arrays is to treat them like immutable values, what do
+we do if we actually want to have a shared reference to an array whose contents
+change over time? In that case, we want to use the `@` operator to create a
+pointer to a heap-allocated array and pass that pointer around. This is the same
+behavior that you get in Python when you create a `list`:
+
+```tomo
+nums := @[10, 20, 30]
+tmp := nums
+
+nums:insert(40)
+>> tmp
+= @[10, 20, 30, 40]
+```
+
+Having multiple pointers to the same heap-allocated array does not cause the
+array's reference count to increase, because there is only one "value" in play:
+the one stored on the heap. It's only when we store the "value" in multiple
+places that we need to increment the reference count:
+
+```tomo
+// Increment the reference count, because `value` now has to hold
+// whatever data was at the pointer's location at this point in time: 
+value := nums[]
+```
+
+The TL;DR is: you can cheaply modify local variables that aren't aliased or
+`@`-allocated arrays, but if you assign a local variable array to another
+variable or dereference a heap pointer, it may trigger copy-on-write behavior.
+
 ## Array Methods
 
 ### `binary_search`
