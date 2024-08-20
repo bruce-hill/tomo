@@ -1347,7 +1347,7 @@ bool can_be_mutated(env_t *env, ast_t *ast)
             auto ptr = Match(indexed_type, PointerType);
             return !ptr->is_readonly;
         }
-        return false;
+        return can_be_mutated(env, index->indexed);
     }
     default: return false;
     }

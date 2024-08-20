@@ -16,7 +16,7 @@
 #include "typecheck.h"
 #include "builtins/util.h"
 
-static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth);
+static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool needs_incref);
 static env_t *with_enum_scope(env_t *env, type_t *t);
 static CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t *required_type);
 static CORD compile_string(env_t *env, ast_t *ast, CORD color);
@@ -214,7 +214,7 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
         }
         container_t = value_type(container_t);
         if (container_t->tag == ArrayType) {
-            CORD target_code = compile_to_pointer_depth(env, index->indexed, 1);
+            CORD target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
             type_t *item_type = Match(container_t, ArrayType)->item_type;
             if (index->unchecked) {
                 return CORD_all("Array_lvalue_unchecked(", compile_type(item_type), ", ", target_code, ", ", 
@@ -1216,13 +1216,18 @@ CORD compile_string(env_t *env, ast_t *ast, CORD color)
     return expr_as_text(env, expr, t, color);
 }
 
-CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth)
+CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool needs_incref)
 {
     CORD val = compile(env, ast);
     type_t *t = get_type(env, ast);
     int64_t depth = 0;
     for (type_t *tt = t; tt->tag == PointerType; tt = Match(tt, PointerType)->pointed)
         ++depth;
+
+    // Passing a literal value won't trigger an incref, because it's ephemeral,
+    // e.g. [10, 20]:reversed()
+    if (t->tag != PointerType && needs_incref && !can_be_mutated(env, ast))
+        needs_incref = false;
 
     while (depth != target_depth) {
         if (depth < target_depth) {
@@ -1248,6 +1253,11 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth)
             code_err(ast, "You can't dereference this value, since it's not guaranteed to be non-null");
         t = ptr->pointed;
     }
+
+    if (needs_incref && t->tag == ArrayType)
+        val = CORD_all("ARRAY_COPY(", val, ")");
+    else if (needs_incref && (t->tag == TableType || t->tag == SetType))
+        val = CORD_all("TABLE_COPY(", val, ")");
 
     return val;
 }
@@ -2147,55 +2157,55 @@ CORD compile(env_t *env, ast_t *ast)
             type_t *item_t = Match(self_value_t, ArrayType)->item_type;
             CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(item_t));
             if (streq(call->name, "insert")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1);
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
                                       .next=new(arg_t, .name="at", .type=INT_TYPE, .default_val=FakeAST(Int, .str="0")));
                 return CORD_all("Array$insert_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "insert_all")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1);
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="items", .type=self_value_t,
                                       .next=new(arg_t, .name="at", .type=INT_TYPE, .default_val=FakeAST(Int, .str="0")));
                 return CORD_all("Array$insert_all(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "remove_at")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1);
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="index", .type=INT_TYPE, .default_val=FakeAST(Int, .str="-1"),
                                       .next=new(arg_t, .name="count", .type=INT_TYPE, .default_val=FakeAST(Int, .str="1")));
                 return CORD_all("Array$remove_at(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "remove_item")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1);
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
                                       .next=new(arg_t, .name="max_count", .type=INT_TYPE, .default_val=FakeAST(Int, .str="-1")));
                 return CORD_all("Array$remove_item_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "random")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$random_value(", self, ", ", compile_type(item_t), ")");
             } else if (streq(call->name, "has")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t);
                 return CORD_all("Array$has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "sample")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="count", .type=INT_TYPE,
                                       .next=new(arg_t, .name="weights", .type=Type(ArrayType, .item_type=Type(NumType)),
                                                 .default_val=FakeAST(Array, .item_type=new(type_ast_t, .tag=VarTypeAST, .__data.VarTypeAST.name="Num"))));
                 return CORD_all("Array$sample(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "shuffle")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1);
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$shuffle(", self, ", ", padded_item_size, ")");
             } else if (streq(call->name, "shuffled")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$shuffled(", self, ", ", padded_item_size, ")");
             } else if (streq(call->name, "sort") || streq(call->name, "sorted")) {
-                CORD self = compile_to_pointer_depth(env, call->self, streq(call->name, "sort") ? 1 : 0);
+                CORD self = compile_to_pointer_depth(env, call->self, streq(call->name, "sort") ? 1 : 0, false);
                 CORD comparison;
                 if (call->args) {
                     type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true, .is_readonly=true);
@@ -2208,7 +2218,7 @@ CORD compile(env_t *env, ast_t *ast)
                 }
                 return CORD_all("Array$", call->name, "(", self, ", ", comparison, ", ", padded_item_size, ")");
             } else if (streq(call->name, "heapify")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1);
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 CORD comparison;
                 if (call->args) {
                     type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
@@ -2221,7 +2231,7 @@ CORD compile(env_t *env, ast_t *ast)
                 }
                 return CORD_all("Array$heapify(", self, ", ", comparison, ", ", padded_item_size, ")");
             } else if (streq(call->name, "heap_push")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1);
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                     .ret=Type(IntType, .bits=TYPE_IBITS32));
@@ -2234,7 +2244,7 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
                 return CORD_all("Array$heap_push_value(", self, ", ", arg_code, ", ", padded_item_size, ")");
             } else if (streq(call->name, "heap_pop")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1);
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                     .ret=Type(IntType, .bits=TYPE_IBITS32));
@@ -2246,7 +2256,7 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
                 return CORD_all("Array$heap_pop_value(", self, ", ", arg_code, ", ", padded_item_size, ", ", compile_type(item_t), ")");
             } else if (streq(call->name, "binary_search")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                     .ret=Type(IntType, .bits=TYPE_IBITS32));
@@ -2259,43 +2269,43 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
                 return CORD_all("Array$binary_search_value(", self, ", ", arg_code, ")");
             } else if (streq(call->name, "clear")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1);
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$clear(", self, ")");
             } else if (streq(call->name, "find")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t);
                 return CORD_all("Array$find_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "first")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *predicate_type = Type(
                     ClosureType, .fn=Type(FunctionType, .args=new(arg_t, .name="item", .type=item_ptr), .ret=Type(BoolType)));
                 arg_t *arg_spec = new(arg_t, .name="predicate", .type=predicate_type);
                 return CORD_all("Array$first(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "from")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, true);
                 arg_t *arg_spec = new(arg_t, .name="first", .type=INT_TYPE);
                 return CORD_all("Array$from(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "to")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, true);
                 arg_t *arg_spec = new(arg_t, .name="last", .type=INT_TYPE);
                 return CORD_all("Array$to(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "by")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, true);
                 arg_t *arg_spec = new(arg_t, .name="stride", .type=INT_TYPE);
                 return CORD_all("Array$by(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
             } else if (streq(call->name, "reversed")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, true);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$reversed(", self, ", ", padded_item_size, ")");
             } else if (streq(call->name, "unique")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Table$from_entries(", self, ", $SetInfo(", compile_type_info(env, item_t), "))");
             } else if (streq(call->name, "counts")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$counts(", self, ", ", compile_type_info(env, self_value_t), ")");
             } else code_err(ast, "There is no '%s' method for arrays", call->name);
@@ -2303,61 +2313,61 @@ CORD compile(env_t *env, ast_t *ast)
         case SetType: {
             auto set = Match(self_value_t, SetType);
             if (streq(call->name, "has")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=set->item_type);
                 return CORD_all("Table$has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "add")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1);
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=set->item_type);
                 return CORD_all("Table$set_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", NULL, ",
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "add_all")) {
                 arg_t *arg_spec = new(arg_t, .name="items", .type=Type(ArrayType, .item_type=Match(self_value_t, SetType)->item_type));
-                return CORD_all("({ table_t *set = ", compile_to_pointer_depth(env, call->self, 1), "; ",
+                return CORD_all("({ table_t *set = ", compile_to_pointer_depth(env, call->self, 1, false), "; ",
                                 "array_t to_add = ", compile_arguments(env, ast, arg_spec, call->args), "; ",
                                 "for (int64_t i = 0; i < to_add.length; i++)\n"
                                 "Table$set(set, to_add.data + i*to_add.stride, NULL, ", compile_type_info(env, self_value_t), ");\n",
                                 "(void)0; })");
             } else if (streq(call->name, "remove")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1);
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=set->item_type);
                 return CORD_all("Table$remove_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "remove_all")) {
                 arg_t *arg_spec = new(arg_t, .name="items", .type=Type(ArrayType, .item_type=Match(self_value_t, SetType)->item_type));
-                return CORD_all("({ table_t *set = ", compile_to_pointer_depth(env, call->self, 1), "; ",
+                return CORD_all("({ table_t *set = ", compile_to_pointer_depth(env, call->self, 1, false), "; ",
                                 "array_t to_add = ", compile_arguments(env, ast, arg_spec, call->args), "; ",
                                 "for (int64_t i = 0; i < to_add.length; i++)\n"
                                 "Table$remove(set, to_add.data + i*to_add.stride, ", compile_type_info(env, self_value_t), ");\n",
                                 "(void)0; })");
             } else if (streq(call->name, "clear")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1);
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Table$clear(", self, ")");
             } else if (streq(call->name, "with")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t);
                 return CORD_all("Table$with(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "overlap")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t);
                 return CORD_all("Table$overlap(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "without")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t);
                 return CORD_all("Table$without(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "is_subset_of")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t,
                                       .next=new(arg_t, .name="strict", .type=Type(BoolType), .default_val=FakeAST(Bool, false)));
                 return CORD_all("Table$is_subset_of(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "is_superset_of")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t,
                                       .next=new(arg_t, .name="strict", .type=Type(BoolType), .default_val=FakeAST(Bool, false)));
                 return CORD_all("Table$is_superset_of(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
@@ -2372,31 +2382,31 @@ CORD compile(env_t *env, ast_t *ast)
             arg_t *where_default_start = new(arg_t, .name="where", .type=WHERE_TYPE,
                                              .default_val=FakeAST(FieldAccess, .fielded=FakeAST(Var, "Where"), .field="Start"));
             if (streq(call->name, "give")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t, .next=where_default_end);
                 return CORD_all("Channel$give_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "give_all")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="to_give", .type=Type(ArrayType, .item_type=item_t), .next=where_default_end);
                 return CORD_all("Channel$give_all(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "get")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = where_default_start;
                 return CORD_all("Channel$get_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type(item_t), ", ", padded_item_size, ")");
             } else if (streq(call->name, "peek")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = where_default_start;
                 return CORD_all("Channel$peek_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type(item_t), ")");
             } else if (streq(call->name, "clear")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Channel$clear(", self, ")");
             } else if (streq(call->name, "view")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Channel$view(", self, ")");
             } else code_err(ast, "There is no '%s' method for channels", call->name);
@@ -2404,7 +2414,7 @@ CORD compile(env_t *env, ast_t *ast)
         case TableType: {
             auto table = Match(self_value_t, TableType);
             if (streq(call->name, "get")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 if (call->args->next) {
                     arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type, .next=new(arg_t, .name="default", .type=table->value_type));
                     return CORD_all("Table$get_value_or_default(", self, ", ", compile_type(table->key_type), ", ", compile_type(table->value_type), ", ",
@@ -2421,23 +2431,23 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(call->name, "get_or_null")) {
                 if (table->value_type->tag != PointerType)
                     code_err(ast, "The table method :get_or_null() is only supported for tables whose value type is a pointer, not %T", table->value_type);
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);
                 return CORD_all("Table$get_value_or_default(", self, ", ", compile_type(table->key_type), ", ", compile_type(table->value_type), ", ",
                                 compile_arguments(env, ast, arg_spec, call->args), ", NULL, ", compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "has")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);
                 return CORD_all("Table$has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "set")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1);
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type,
                                       .next=new(arg_t, .name="value", .type=table->value_type));
                 return CORD_all("Table$set_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "bump")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1);
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 if (!(table->value_type->tag == IntType || table->value_type->tag == NumType))
                     code_err(ast, "bump() is only supported for tables with numeric value types, not %T", self_value_t);
                 ast_t *one = table->value_type->tag == IntType
@@ -2448,16 +2458,16 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Table$bump(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "remove")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1);
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);
                 return CORD_all("Table$remove_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "clear")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 1);
+                CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Table$clear(", self, ")");
             } else if (streq(call->name, "sorted")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Table$sorted(", self, ", ", compile_type_info(env, self_value_t), ")");
             } else code_err(ast, "There is no '%s' method for tables", call->name);
@@ -2638,7 +2648,7 @@ CORD compile(env_t *env, ast_t *ast)
         case TextType: {
             const char *lang = Match(value_t, TextType)->lang; 
             if (lang && streq(f->field, "text_content")) {
-                CORD text = compile_to_pointer_depth(env, f->fielded, 0);
+                CORD text = compile_to_pointer_depth(env, f->fielded, 0, false);
                 return CORD_all("((Text_t)", text, ")");
             }
             code_err(ast, "There is no '%s' field on %T values", f->field, value_t);
@@ -2647,7 +2657,7 @@ CORD compile(env_t *env, ast_t *ast)
             for (arg_t *field = Match(value_t, StructType)->fields; field; field = field->next) {
                 if (streq(field->name, f->field)) {
                     if (fielded_t->tag == PointerType) {
-                        CORD fielded = compile_to_pointer_depth(env, f->fielded, 1);
+                        CORD fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
                         return CORD_asprintf("(%r)->$%s", fielded, f->field);
                     } else {
                         CORD fielded = compile(env, f->fielded);
@@ -2663,7 +2673,7 @@ CORD compile(env_t *env, ast_t *ast)
                 if (streq(f->field, tag->name)) {
                     CORD prefix = namespace_prefix(e->env->libname, e->env->namespace);
                     if (fielded_t->tag == PointerType) {
-                        CORD fielded = compile_to_pointer_depth(env, f->fielded, 1);
+                        CORD fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
                         return CORD_all("((", fielded, ")->tag == ", prefix, "tag$", tag->name, ")");
                     } else {
                         CORD fielded = compile(env, f->fielded);
@@ -2675,39 +2685,39 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case ArrayType: {
             if (streq(f->field, "length"))
-                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0), ").length)");
+                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
             code_err(ast, "There is no %s field on arrays", f->field);
         }
         case ChannelType: {
             if (streq(f->field, "max_size"))
-                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0), ")->max_size)");
+                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0, false), ")->max_size)");
             code_err(ast, "There is no %s field on arrays", f->field);
         }
         case SetType: {
             if (streq(f->field, "items"))
-                return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0), ").entries");
+                return CORD_all("ARRAY_COPY((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries)");
             else if (streq(f->field, "length"))
-                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0), ").entries.length)");
+                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
             code_err(ast, "There is no '%s' field on sets", f->field);
         }
         case TableType: {
             if (streq(f->field, "length")) {
-                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0), ").entries.length)");
+                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
             } else if (streq(f->field, "keys")) {
-                return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0), ").entries");
+                return CORD_all("ARRAY_COPY((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries)");
             } else if (streq(f->field, "values")) {
                 auto table = Match(value_t, TableType);
                 size_t offset = type_size(table->key_type);
                 size_t align = type_align(table->value_type);
                 if (align > 1 && offset % align > 0)
                     offset += align - (offset % align);
-                return CORD_all("({ array_t *entries = &(", compile_to_pointer_depth(env, f->fielded, 0), ").entries;\n"
+                return CORD_all("({ array_t *entries = &(", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries;\n"
                                 "ARRAY_INCREF(*entries);\n"
                                 "array_t values = *entries;\n"
                                 "values.data += ", CORD_asprintf("%zu", offset), ";\n"
                                 "values; })");
             } else if (streq(f->field, "fallback")) {
-                return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0), ").fallback");
+                return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0, false), ").fallback");
             }
             code_err(ast, "There is no '%s' field on tables", f->field);
         }
@@ -2744,7 +2754,7 @@ CORD compile(env_t *env, ast_t *ast)
             if (index_t->tag != IntType && index_t->tag != BigIntType)
                 code_err(indexing->index, "Arrays can only be indexed by integers, not %T", index_t);
             type_t *item_type = Match(container_t, ArrayType)->item_type;
-            CORD arr = compile_to_pointer_depth(env, indexing->indexed, 0);
+            CORD arr = compile_to_pointer_depth(env, indexing->indexed, 0, false);
             file_t *f = indexing->index->file;
             if (indexing->unchecked)
                 return CORD_all("Array_get_unchecked(", compile_type(item_type), ", ", arr, ", ",
