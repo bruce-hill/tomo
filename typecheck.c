@@ -262,6 +262,8 @@ void bind_statement(env_t *env, ast_t *statement)
             bind_statement(env, decl->value);
         }
         type_t *type = get_type(env, decl->value);
+        if (type->tag == FunctionType)
+            type = Type(ClosureType, type);
         CORD prefix = namespace_prefix(env->libname, env->namespace);
         CORD code = CORD_cat(prefix ? prefix : "$", name);
         set_binding(env, name, new(binding_t, .type=type, .code=code));

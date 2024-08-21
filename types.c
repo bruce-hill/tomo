@@ -51,8 +51,10 @@ CORD type_to_cord(type_t *t) {
                 c = CORD_cat(c, type_to_cord(arg->type));
                 if (arg->next) c = CORD_cat(c, ", ");
             }
-            c = CORD_cat(c, ")->");
-            c = CORD_cat(c, type_to_cord(fn->ret));
+            if (fn->ret && fn->ret->tag != VoidType)
+                c = CORD_all(c, ")->", type_to_cord(fn->ret));
+            else
+                c = CORD_all(c, ")");
             return c;
         }
         case StructType: {

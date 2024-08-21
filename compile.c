@@ -343,13 +343,17 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     (int64_t)(test->expr->end - test->expr->file->text));
             } else {
                 CORD var = CORD_all("$", Match(decl->var, Var)->name);
+                type_t *t = get_type(env, decl->value);
+                CORD val_code = compile_maybe_incref(env, decl->value);
+                if (t->tag == FunctionType) {
+                    assert(promote(env, &val_code, t, Type(ClosureType, t)));
+                    t = Type(ClosureType, t);
+                }
                 return CORD_asprintf(
                     "%r;\n"
                     "test(({ %r = %r; &%r;}), %r, %r, %r, %ld, %ld);\n",
-                    compile_declaration(get_type(env, decl->value), var),
-                    var,
-                    compile_maybe_incref(env, decl->value),
-                    var,
+                    compile_declaration(t, var),
+                    var, val_code, var,
                     compile_type_info(env, get_type(env, decl->value)),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=output)),
                     compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
@@ -454,7 +458,14 @@ CORD compile_statement(env_t *env, ast_t *ast)
             type_t *t = get_type(env, decl->value);
             if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
                 code_err(ast, "You can't declare a variable with a %T value", t);
-            return CORD_all(compile_declaration(t, CORD_cat("$", Match(decl->var, Var)->name)), " = ", compile_maybe_incref(env, decl->value), ";");
+
+            CORD val_code = compile_maybe_incref(env, decl->value);
+            if (t->tag == FunctionType) {
+                assert(promote(env, &val_code, t, Type(ClosureType, t)));
+                t = Type(ClosureType, t);
+            }
+
+            return CORD_all(compile_declaration(t, CORD_cat("$", Match(decl->var, Var)->name)), " = ", val_code, ";");
         }
     }
     case Assign: {
@@ -2828,20 +2839,30 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
         case Declare: {
             auto decl = Match(ast, Declare);
             type_t *t = get_type(ns_env, decl->value);
+            if (t->tag == FunctionType)
+                t = Type(ClosureType, t);
             bool is_private = (Match(decl->var, Var)->name[0] == '_');
             CORD name_code = CORD_all(prefix, Match(decl->var, Var)->name);
             if (!is_constant(env, decl->value)) {
+                if (t->tag == FunctionType)
+                    t = Type(ClosureType, t);
+
                 env->code->staticdefs = CORD_all(
                     env->code->staticdefs,
                     "static bool ", name_code, "$initialized = false;\n",
                     is_private ? "static " : CORD_EMPTY,
                     compile_declaration(t, name_code), ";\n");
             } else {
+                CORD val_code = compile_maybe_incref(ns_env, decl->value);
+                if (t->tag == FunctionType) {
+                    assert(promote(env, &val_code, t, Type(ClosureType, t)));
+                    t = Type(ClosureType, t);
+                }
+
                 env->code->staticdefs = CORD_all(
                     env->code->staticdefs,
                     is_private ? "static " : CORD_EMPTY,
-                    compile_declaration(t, name_code), " = ",
-                    compile(ns_env, decl->value), ";\n");
+                    compile_declaration(t, name_code), " = ", val_code, ";\n");
             }
             break;
         }
@@ -3098,9 +3119,15 @@ CORD compile_file(env_t *env, ast_t *ast)
             if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
                 code_err(stmt->ast, "You can't declare a variable with a %T value", t);
             if (!(decl->value->tag == Use || decl->value->tag == Import || is_constant(env, decl->value))) {
+                CORD val_code = compile_maybe_incref(env, decl->value);
+                if (t->tag == FunctionType) {
+                    assert(promote(env, &val_code, t, Type(ClosureType, t)));
+                    t = Type(ClosureType, t);
+                }
+
                 env->code->variable_initializers = CORD_all(
                     env->code->variable_initializers,
-                    full_name, " = ", compile_maybe_incref(env, decl->value), ",\n",
+                    full_name, " = ", val_code, ",\n",
                     full_name, "$initialized = true;\n");
 
                 CORD checked_access = CORD_all("check_initialized(", full_name, ", \"", decl_name, "\")");
@@ -3125,10 +3152,15 @@ CORD compile_file(env_t *env, ast_t *ast)
                     is_private ? "static " : CORD_EMPTY,
                     compile_declaration(t, full_name), ";\n");
             } else {
+                CORD val_code = compile_maybe_incref(env, decl->value);
+                if (t->tag == FunctionType) {
+                    assert(promote(env, &val_code, t, Type(ClosureType, t)));
+                    t = Type(ClosureType, t);
+                }
                 env->code->staticdefs = CORD_all(
                     env->code->staticdefs,
                     is_private ? "static " : CORD_EMPTY,
-                    compile_declaration(t, full_name), " = ", compile(env, decl->value), ";\n");
+                    compile_declaration(t, full_name), " = ", val_code, ";\n");
             }
         } else if (stmt->ast->tag == InlineCCode) {
             CORD code = compile_statement(env, stmt->ast);
@@ -3235,6 +3267,8 @@ CORD compile_statement_definitions(env_t *env, ast_t *ast)
             return compile_statement_definitions(env, decl->value);
         }
         type_t *t = get_type(env, decl->value);
+        if (t->tag == FunctionType)
+            t = Type(ClosureType, t);
         assert(t->tag != ModuleType);
         if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
             code_err(ast, "You can't declare a variable with a %T value", t);

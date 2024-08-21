@@ -269,10 +269,10 @@ env_t *new_compilation_unit(CORD *libname)
             {"without", "Text$without", "func(text:Text, target:Text, where=Where.Anywhere)->Text"},
         )},
         {"Thread", THREAD_TYPE, "pthread_t*", "Thread", TypedArray(ns_entry_t,
-            {"new", "Thread$new", "func(fn:func()->Void)->Thread"},
-            {"cancel", "Thread$cancel", "func(thread:Thread)->Void"},
-            {"join", "Thread$join", "func(thread:Thread)->Void"},
-            {"detach", "Thread$detach", "func(thread:Thread)->Void"},
+            {"new", "Thread$new", "func(fn:func())->Thread"},
+            {"cancel", "Thread$cancel", "func(thread:Thread)"},
+            {"join", "Thread$join", "func(thread:Thread)"},
+            {"detach", "Thread$detach", "func(thread:Thread)"},
         )},
     };
 
