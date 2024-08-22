@@ -43,7 +43,10 @@ typedef struct namespace_s {
 
 typedef struct env_s {
     table_t *types, *globals, *locals;
-    table_t *imports; // Map of 'use' name -> env_t*
+    // Lookup table for env_t* where the key is:
+    //  - Resolved path for local imports (so that `use ./foo.tm` is the same as `use ./baz/../foo.tm`)
+    //  - Raw 'use' string for module imports
+    table_t *imports;
     compilation_unit_t *code;
     fn_ctx_t *fn_ctx;
     loop_ctx_t *loop_ctx;

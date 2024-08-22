@@ -26,10 +26,10 @@ public char *resolve_path(const char *path, const char *relative_to, const char 
     // Resolve the path to an absolute path, assuming it's relative to the file
     // it was found in:
     char buf[PATH_MAX] = {0};
-    if (streq(path, "~") || strncmp(path, "~/", 2) == 0) {
+    if (streq(path, "~") || starts_with(path, "~/")) {
         char *resolved = realpath(heap_strf("%s%s", getenv("HOME"), path+1), buf);
         if (resolved) return GC_strdup(resolved);
-    } else if (streq(path, ".") || strncmp(path, "./", 2) == 0) {
+    } else if (streq(path, ".") || starts_with(path, "./")) {
         char *relative_dir = dirname(GC_strdup(relative_to));
         char *resolved = realpath(heap_strf("%s/%s", relative_dir, path), buf);
         if (resolved) return GC_strdup(resolved);

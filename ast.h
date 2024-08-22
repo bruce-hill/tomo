@@ -122,7 +122,7 @@ typedef enum {
     StructDef, EnumDef, LangDef,
     Index, FieldAccess, Optional,
     DocTest,
-    Import, Use,
+    Use,
     LinkerDirective,
     InlineCCode,
 } ast_e;
@@ -291,10 +291,8 @@ struct ast_s {
             bool skip_source:1;
         } DocTest;
         struct {
-            const char *path;
-        } Import;
-        struct {
             const char *name;
+            enum { USE_LOCAL, USE_MODULE, USE_SHARED_OBJECT, USE_HEADER } what;
         } Use;
         struct {
             const char *directive;

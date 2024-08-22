@@ -333,7 +333,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         if (test->expr->tag == Declare) {
             auto decl = Match(test->expr, Declare);
-            if (decl->value->tag == Use || decl->value->tag == Import) {
+            if (decl->value->tag == Use) {
                 assert(compile_statement(env, test->expr) == CORD_EMPTY);
                 return CORD_asprintf(
                     "test(NULL, NULL, %r, %r, %ld, %ld);",
@@ -452,7 +452,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case Declare: {
         auto decl = Match(ast, Declare);
-        if (decl->value->tag == Use || decl->value->tag == Import) {
+        if (decl->value->tag == Use) {
             return compile_statement(env, decl->value);
         } else {
             type_t *t = get_type(env, decl->value);
@@ -482,7 +482,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 val = compile_int_to_type(val_env, assign->values->ast, rhs_t);
             } else {
                 val = compile_maybe_incref(val_env, assign->values->ast);
-                if (!promote(val_env, &val, lhs_t, rhs_t))
+                if (!promote(val_env, &val, rhs_t, lhs_t))
                     code_err(assign->values->ast, "You cannot assign a %T value to a %T operand", lhs_t, rhs_t);
             }
             return compile_assignment(env, assign->targets->ast, val);
@@ -501,8 +501,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 val = compile_int_to_type(val_env, value->ast, rhs_t);
             } else {
                 val = compile_maybe_incref(val_env, value->ast);
-                if (!promote(val_env, &val, lhs_t, rhs_t))
-                    code_err(value->ast, "You cannot assign a %T value to a %T operand", lhs_t, rhs_t);
+                if (!promote(val_env, &val, rhs_t, lhs_t))
+                    code_err(value->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
             }
             CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(lhs_t), i++, val);
         }
@@ -1166,13 +1166,25 @@ CORD compile_statement(env_t *env, ast_t *ast)
     case Extern: return CORD_EMPTY;
     case InlineCCode: return Match(ast, InlineCCode)->code;
     case Use: {
-        CORD name = Match(ast, Use)->name;
-        env->code->variable_initializers = CORD_all( env->code->variable_initializers, name, "$$initialize();\n");
-        return CORD_EMPTY;
-    }
-    case Import: {
-        CORD name = file_base_name(Match(ast, Import)->path);
-        env->code->variable_initializers = CORD_all( env->code->variable_initializers, name, "$$initialize();\n");
+        auto use = Match(ast, Use);
+        if (use->what == USE_LOCAL) {
+            CORD name = file_base_name(Match(ast, Use)->name);
+            env->code->variable_initializers = CORD_all(env->code->variable_initializers, name, "$$initialize();\n");
+        } else if (use->what == USE_MODULE) {
+            const char *libname = file_base_name(use->name);
+            const char *files_filename = heap_strf("%s/lib%s.files", libname, libname);
+            const char *resolved_path = resolve_path(files_filename, ast->file->filename, getenv("TOMO_IMPORT_PATH"));
+            if (!resolved_path)
+                code_err(ast, "No such library exists: \"lib%s.files\"", libname);
+            file_t *files_f = load_file(resolved_path);
+            if (!files_f) errx(1, "Couldn't open file: %s", resolved_path);
+            for (int64_t i = 1; i <= files_f->num_lines; i++) {
+                const char *line = get_line(files_f, i);
+                line = GC_strndup(line, strcspn(line, "\r\n"));
+                env->code->variable_initializers = CORD_all(
+                    env->code->variable_initializers, use->name, "$", file_base_name(line), "$$initialize();\n");
+            }
+        }
         return CORD_EMPTY;
     }
     default:
@@ -2788,7 +2800,6 @@ CORD compile(env_t *env, ast_t *ast)
             return Match(ast, InlineCCode)->code;
     }
     case Use: code_err(ast, "Compiling 'use' as expression!");
-    case Import: code_err(ast, "Compiling 'import' as expression!");
     case Defer: code_err(ast, "Compiling 'defer' as expression!");
     case LinkerDirective: code_err(ast, "Linker directives are not supported yet");
     case Extern: code_err(ast, "Externs are not supported as expressions");
@@ -3118,7 +3129,7 @@ CORD compile_file(env_t *env, ast_t *ast)
             type_t *t = get_type(env, decl->value);
             if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
                 code_err(stmt->ast, "You can't declare a variable with a %T value", t);
-            if (!(decl->value->tag == Use || decl->value->tag == Import || is_constant(env, decl->value))) {
+            if (!(decl->value->tag == Use || is_constant(env, decl->value))) {
                 CORD val_code = compile_maybe_incref(env, decl->value);
                 if (t->tag == FunctionType) {
                     assert(promote(env, &val_code, t, Type(ClosureType, t)));
@@ -3143,7 +3154,7 @@ CORD compile_file(env_t *env, ast_t *ast)
             CORD full_name = CORD_all(namespace_prefix(env->libname, env->namespace), decl_name);
             bool is_private = (decl_name[0] == '_');
             type_t *t = get_type(env, decl->value);
-            if (decl->value->tag == Use || decl->value->tag == Import) {
+            if (decl->value->tag == Use) {
                 assert(compile_statement(env, stmt->ast) == CORD_EMPTY);
             } else if (!is_constant(env, decl->value)) {
                 env->code->staticdefs = CORD_all(
@@ -3197,20 +3208,22 @@ CORD compile_statement_imports(env_t *env, ast_t *ast)
     }
     case Declare: {
         auto decl = Match(ast, Declare);
-        if (decl->value->tag == Use || decl->value->tag == Import)
+        if (decl->value->tag == Use)
             return compile_statement_imports(env, decl->value);
         return CORD_EMPTY;
     }
-    case Import: {
-        const char *path = Match(ast, Import)->path;
-        return CORD_all("#include \"", path, ".tm.h\"\n");
-    }
     case Use: {
-        const char *name = Match(ast, Use)->name;
-        if (strncmp(name, "-l", 2) == 0)
+        auto use = Match(ast, Use);
+        switch (use->what) {
+        case USE_MODULE: 
+            return CORD_all("#include <tomo/lib", use->name, ".h>\n");
+        case USE_LOCAL: 
+            return CORD_all("#include \"", use->name, ".h\"\n");
+        case USE_HEADER:
+            return CORD_all("#include ", use->name, "\n");
+        default:
             return CORD_EMPTY;
-        else
-            return CORD_all("#include <tomo/lib", name, ".h>\n");
+        }
     }
     default: return CORD_EMPTY;
     }
@@ -3263,7 +3276,7 @@ CORD compile_statement_definitions(env_t *env, ast_t *ast)
     }
     case Declare: {
         auto decl = Match(ast, Declare);
-        if (decl->value->tag == Use || decl->value->tag == Import) {
+        if (decl->value->tag == Use) {
             return compile_statement_definitions(env, decl->value);
         }
         type_t *t = get_type(env, decl->value);
@@ -3274,7 +3287,7 @@ CORD compile_statement_definitions(env_t *env, ast_t *ast)
             code_err(ast, "You can't declare a variable with a %T value", t);
         const char *decl_name = Match(decl->var, Var)->name;
         bool is_private = (decl_name[0] == '_');
-        CORD code = (decl->value->tag == Use || decl->value->tag == Import) ? compile_statement_definitions(env, decl->value) : CORD_EMPTY;
+        CORD code = (decl->value->tag == Use) ? compile_statement_definitions(env, decl->value) : CORD_EMPTY;
         if (is_private) {
             return code;
         } else {

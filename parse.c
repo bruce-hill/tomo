@@ -112,7 +112,6 @@ static PARSER(parse_declaration);
 static PARSER(parse_doctest);
 static PARSER(parse_say);
 static PARSER(parse_use);
-static PARSER(parse_import);
 static PARSER(parse_linker);
 static PARSER(parse_namespace);
 static PARSER(parse_file_body);
@@ -1563,7 +1562,6 @@ PARSER(parse_declaration) {
     if (!match(&pos, ":=")) return NULL;
     spaces(&pos);
     ast_t *val = optional(ctx, &pos, parse_use);
-    if (!val) val = optional(ctx, &pos, parse_import);
     if (!val) val = optional(ctx, &pos, parse_extended_expr);
     if (!val) parser_err(ctx, pos, strchrnul(pos, '\n'), "This declaration value didn't parse");
     return NewAST(ctx->file, start, pos, Declare, .var=var, .value=val);
@@ -1748,7 +1746,6 @@ PARSER(parse_namespace) {
             ||(stmt=optional(ctx, &pos, parse_lang_def))
             ||(stmt=optional(ctx, &pos, parse_func_def))
             ||(stmt=optional(ctx, &pos, parse_use))
-            ||(stmt=optional(ctx, &pos, parse_import))
             ||(stmt=optional(ctx, &pos, parse_linker))
             ||(stmt=optional(ctx, &pos, parse_extern))
             ||(stmt=optional(ctx, &pos, parse_inline_c))
@@ -1785,7 +1782,6 @@ PARSER(parse_file_body) {
             ||(stmt=optional(ctx, &pos, parse_lang_def))
             ||(stmt=optional(ctx, &pos, parse_func_def))
             ||(stmt=optional(ctx, &pos, parse_use))
-            ||(stmt=optional(ctx, &pos, parse_import))
             ||(stmt=optional(ctx, &pos, parse_linker))
             ||(stmt=optional(ctx, &pos, parse_extern))
             ||(stmt=optional(ctx, &pos, parse_inline_c))
@@ -2185,20 +2181,16 @@ PARSER(parse_use) {
     char *name = GC_strndup(pos, name_len);
     pos += name_len;
     while (match(&pos, ";")) continue;
-    return NewAST(ctx->file, start, pos, Use, .name=name);
-}
-
-PARSER(parse_import) {
-    const char *start = pos;
-    if (!match_word(&pos, "import")) return NULL;
-    spaces(&pos);
-    size_t path_len = strcspn(pos, " \t\r\n;");
-    if (path_len < 1)
-        parser_err(ctx, start, pos, "There is no path here to import");
-    char *path = GC_strndup(pos, path_len);
-    pos += path_len;
-    while (match(&pos, ";")) continue;
-    return NewAST(ctx->file, start, pos, Import, .path=path);
+    int what; 
+    if (name[0] == '<')
+        what = USE_HEADER;
+    else if (starts_with(name, "./") || starts_with(name, "/") || starts_with(name, "../") || starts_with(name, "~/"))
+        what = USE_LOCAL;
+    else if (ends_with(name, ".so"))
+        what = USE_SHARED_OBJECT;
+    else
+        what = USE_MODULE;
+    return NewAST(ctx->file, start, pos, Use, .name=name, .what=what);
 }
 
 PARSER(parse_linker) {

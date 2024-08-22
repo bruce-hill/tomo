@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "builtins/tomo.h"
+#include "builtins/util.h"
 #include "typecheck.h"
 #include "parse.h"
 
@@ -46,9 +47,8 @@ void repl(void)
     while ((len=getline(&line, &buf_size, stdin)) >= 0) {
         if (len > 1) {
             char *code = line;
-#define starts_with(line, prefix) (strncmp(line, prefix " ", strlen(prefix)+1) == 0)
-            if (starts_with(line, "if") || starts_with(line, "for") || starts_with(line, "while")
-                || starts_with(line, "func") || starts_with(line, "struct") || starts_with(line, "lang")) {
+            if (starts_with(line, "if ") || starts_with(line, "for ") || starts_with(line, "while ")
+                || starts_with(line, "func ") || starts_with(line, "struct ") || starts_with(line, "lang ")) {
                 printf("\x1b[33;1m..\x1b[m ");
                 fflush(stdout);
                 code = GC_strdup(line);

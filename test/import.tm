@@ -1,4 +1,4 @@
-imported := import ./use_import
+imported := use ./use_import.tm
 
 func asdf()->imported.ImportedType:
 	return imported.get_value()

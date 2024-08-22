@@ -10,6 +10,8 @@
 #include <err.h>
 
 #define streq(a, b) (((a) == NULL && (b) == NULL) || (((a) == NULL) == ((b) == NULL) && strcmp(a, b) == 0))
+#define starts_with(line, prefix) (strncmp(line, prefix, strlen(prefix)) == 0)
+#define ends_with(line, suffix) (strlen(line) >= strlen(suffix) && strcmp(line + strlen(line) - strlen(suffix), suffix) == 0)
 #define new(t, ...) ((t*)memcpy(GC_MALLOC(sizeof(t)), &(t){__VA_ARGS__}, sizeof(t)))
 #define copy(obj_ptr) ((__typeof(obj_ptr))memcpy(GC_MALLOC(sizeof(*(obj_ptr))), obj_ptr, sizeof(*(obj_ptr))))
 #define Match(x, _tag) ((x)->tag == _tag ? &(x)->__data._tag : (errx(1, __FILE__ ":%d This was supposed to be a " # _tag "\n", __LINE__), &(x)->__data._tag))

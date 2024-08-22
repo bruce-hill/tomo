@@ -126,23 +126,23 @@ type_t *get_math_type(env_t *env, ast_t *ast, type_t *lhs_t, type_t *rhs_t)
 
 static env_t *load_module(env_t *env, ast_t *module_ast)
 {
-    if (module_ast->tag == Import) {
-        auto import = Match(module_ast, Import);
-        const char *name = file_base_name(import->path);
-        env_t *module_env = Table$str_get(*env->imports, name);
+    auto use = Match(module_ast, Use);
+    switch (use->what) {
+    case USE_LOCAL: {
+        const char *resolved_path = resolve_path(use->name, module_ast->file->filename, module_ast->file->filename);
+        env_t *module_env = Table$str_get(*env->imports, resolved_path);
         if (module_env)
             return module_env;
 
-        const char *path = heap_strf("%s.tm", import->path);
-        const char *resolved_path = resolve_path(path, module_ast->file->filename, module_ast->file->filename);
         if (!resolved_path)
-            code_err(module_ast, "No such file exists: \"%s\"", path);
+            code_err(module_ast, "No such file exists: \"%s\"", use->name);
 
         ast_t *ast = parse_file(resolved_path, NULL);
         if (!ast) errx(1, "Could not compile file %s", resolved_path);
         return load_module_env(env, ast);
-    } else if (module_ast->tag == Use) {
-        const char *libname = Match(module_ast, Use)->name;
+    }
+    case USE_MODULE: {
+        const char *libname = file_base_name(use->name);
         const char *files_filename = heap_strf("%s/lib%s.files", libname, libname);
         const char *resolved_path = resolve_path(files_filename, module_ast->file->filename, getenv("TOMO_IMPORT_PATH"));
         if (!resolved_path)
@@ -151,7 +151,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
         if (!files_f) errx(1, "Couldn't open file: %s", resolved_path);
 
         env_t *module_env = fresh_scope(env);
-        Table$str_set(env->imports, libname, module_env);
+        Table$str_set(env->imports, use->name, module_env);
         char *libname_id = GC_strdup(libname);
         for (char *c = libname_id; *c; c++) {
             if (!isalnum(*c) && *c != '_')
@@ -184,8 +184,10 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
             }
         }
         return module_env;
-    } else {
-        code_err(module_ast, "This is not a module import");
+    }
+    case USE_SHARED_OBJECT: return NULL;
+    case USE_HEADER: return NULL;
+    default: return NULL;
     }
 }
 
@@ -254,9 +256,7 @@ void bind_statement(env_t *env, ast_t *statement)
         const char *name = Match(decl->var, Var)->name;
         if (get_binding(env, name))
             code_err(decl->var, "A %T called '%s' has already been defined", get_binding(env, name)->type, name);
-        if (decl->value->tag == Use || decl->value->tag == Import) {
-            if (decl->value->tag == Use && strncmp(Match(decl->value, Use)->name, "-l", 2) == 0)
-                code_err(statement, "External library files specified with -l can't be assigned to a variable");
+        if (decl->value->tag == Use) {
             (void)load_module(env, decl->value);
         } else {
             bind_statement(env, decl->value);
@@ -368,11 +368,9 @@ void bind_statement(env_t *env, ast_t *statement)
             bind_statement(ns_env, stmt->ast);
         break;
     }
-    case Use: case Import: {
-        if (statement->tag == Use && strncmp(Match(statement, Use)->name, "-l", 2) == 0)
-            break;
-
+    case Use: {
         env_t *module_env = load_module(env, statement);
+        if (!module_env) break;
         for (table_t *bindings = module_env->locals; bindings != module_env->globals; bindings = bindings->fallback) {
             for (int64_t i = 1; i <= Table$length(*bindings); i++) {
                 struct {const char *name; binding_t *binding; } *entry = Table$entry(*bindings, i);
@@ -832,12 +830,13 @@ type_t *get_type(env_t *env, ast_t *ast)
     case Declare: case Assign: case DocTest: case LinkerDirective: {
         return Type(VoidType);
     }
-    case Import: {
-        const char *path = Match(ast, Import)->path;
-        return Type(ModuleType, file_base_name(path));
-    }
     case Use: {
-        return Type(ModuleType, Match(ast, Use)->name);
+        switch (Match(ast, Use)->what) {
+        case USE_LOCAL:
+            return Type(ModuleType, resolve_path(Match(ast, Use)->name, ast->file->filename, ast->file->filename));
+        default:
+            return Type(ModuleType, Match(ast, Use)->name);
+        }
     }
     case Return: {
         ast_t *val = Match(ast, Return)->value;
@@ -1271,7 +1270,7 @@ bool is_discardable(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
     case UpdateAssign: case Assign: case Declare: case FunctionDef: case StructDef: case EnumDef:
-    case LangDef: case Use: case Import:
+    case LangDef: case Use:
         return true;
     default: break;
     }
@@ -1390,7 +1389,7 @@ bool is_constant(env_t *env, ast_t *ast)
             return is_constant(env, binop->lhs) && is_constant(env, binop->rhs);
         }
     }
-    case Use: case Import: return true;
+    case Use: return true;
     case FunctionCall: {
         // Constructors are allowed:
         auto call = Match(ast, FunctionCall);

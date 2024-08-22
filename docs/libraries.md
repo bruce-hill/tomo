@@ -48,7 +48,7 @@ Now, what happens if we want to _use_ the compiled object file?
 
 ```
 // File: baz.tm
-foo := use ./foo
+foo := use ./foo.tm
 
 func say_stuff():
     say("I got {foo.my_variable} from foo")

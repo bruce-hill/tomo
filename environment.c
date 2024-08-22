@@ -325,12 +325,12 @@ CORD namespace_prefix(CORD *libname, namespace_t *ns)
 
 env_t *load_module_env(env_t *env, ast_t *ast)
 {
-    const char *name = file_base_name(ast->file->filename);
+    const char *name = ast->file->filename;
     env_t *cached = Table$str_get(*env->imports, name);
     if (cached) return cached;
     env_t *module_env = fresh_scope(env);
     module_env->code = new(compilation_unit_t);
-    module_env->namespace = new(namespace_t, .name=name); 
+    module_env->namespace = new(namespace_t, .name=file_base_name(name)); 
     Table$str_set(module_env->imports, name, module_env);
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
