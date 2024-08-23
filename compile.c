@@ -832,7 +832,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             }
             if (chunk->next) code = CORD_cat(code, ", ");
         }
-        return CORD_cat(code, "));");
+        return CORD_cat(code, "), yes);");
     }
     case Return: {
         if (!env->fn_ctx) code_err(ast, "This return statement is not inside any function");

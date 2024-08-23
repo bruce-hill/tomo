@@ -21,7 +21,7 @@ void end_test(void *expr, const TypeInfo *type, CORD expected, const char *filen
 #define test(expr, type, expected, filename, start, end) {\
     start_test(filename, start, end); \
     end_test(expr, type, expected, filename, start, end); }
-void say(CORD text);
+void say(CORD text, bool newline);
 
 uint32_t generic_hash(const void *obj, const TypeInfo *type);
 int32_t generic_compare(const void *x, const void *y, const TypeInfo *type);

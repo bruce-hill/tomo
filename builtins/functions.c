@@ -233,14 +233,16 @@ public void end_test(void *expr, const TypeInfo *type, CORD expected, const char
     }
 }
 
-public void say(CORD text)
+public void say(CORD text, bool newline)
 {
     uint8_t buf[512] = {0};
     size_t buf_len = sizeof(buf)-1;
     const char *str = CORD_to_const_char_star(text);
     uint8_t *normalized = u8_normalize(UNINORM_NFD, (uint8_t*)str, strlen(str), buf, &buf_len);
     if (normalized) {
-        puts((char*)normalized);
+        write(STDOUT_FILENO, normalized, buf_len);
+        if (newline)
+            write(STDOUT_FILENO, "\n", 1);
         if (normalized != buf)
             free(normalized);
     }
