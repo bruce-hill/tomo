@@ -315,18 +315,20 @@ public Range_t Int$to(Int_t from, Int_t to) {
     return (Range_t){from, to, Int$compare(&to, &from, &$Int) >= 0 ? (Int_t){.small=(1<<2)|1} : (Int_t){.small=(-1>>2)|1}};
 }
 
-public Int_t Int$from_text(CORD text) {
+public Int_t Int$from_text(CORD text, bool *success) {
     const char *str = CORD_to_const_char_star(text);
     mpz_t i;
+    int result;
     if (strncmp(str, "0x", 2) == 0) {
-        mpz_init_set_str(i, str + 2, 16);
+        result = mpz_init_set_str(i, str + 2, 16);
     } else if (strncmp(str, "0o", 2) == 0) {
-        mpz_init_set_str(i, str + 2, 8);
+        result = mpz_init_set_str(i, str + 2, 8);
     } else if (strncmp(str, "0b", 2) == 0) {
-        mpz_init_set_str(i, str + 2, 2);
+        result = mpz_init_set_str(i, str + 2, 2);
     } else {
-        mpz_init_set_str(i, str, 10);
+        result = mpz_init_set_str(i, str, 10);
     }
+    if (success) *success = (result == 0);
     return Int$from_mpz(i);
 }
 

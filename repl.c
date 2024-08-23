@@ -353,7 +353,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
     case Int: {
         if (!dest) return;
         switch (Match(ast, Int)->bits) {
-        case 0: *(Int_t*)dest = Int$from_text(Match(ast, Int)->str); break;
+        case 0: *(Int_t*)dest = Int$from_text(Match(ast, Int)->str, NULL); break;
         case 64: *(int64_t*)dest = Int64$from_text(Match(ast, Int)->str, NULL); break;
         case 32: *(int32_t*)dest = Int32$from_text(Match(ast, Int)->str, NULL); break;
         case 16: *(int16_t*)dest = Int16$from_text(Match(ast, Int)->str, NULL); break;

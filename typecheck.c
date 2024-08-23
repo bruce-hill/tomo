@@ -1367,7 +1367,7 @@ bool is_constant(env_t *env, ast_t *ast)
     case Int: {
         auto info = Match(ast, Int);
         if (info->bits == IBITS_UNSPECIFIED) {
-            Int_t int_val = Int$from_text(info->str);
+            Int_t int_val = Int$from_text(info->str, NULL);
             mpz_t i;
             mpz_init_set_int(i, int_val);
             return (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0);
