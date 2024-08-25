@@ -57,7 +57,7 @@ int op_tightness[] = {
 #define MAX_TIGHTNESS 9
 
 static const char *keywords[] = {
-    "yes", "xor", "while", "when", "use", "then", "struct", "stop", "skip", "return",
+    "yes", "xor", "while", "when", "use", "struct", "stop", "skip", "return",
     "or", "not", "no", "mod1", "mod", "pass", "lang", "import", "inline", "in", "if",
     "func", "for", "extern", "enum", "else", "do", "defer", "and", "_min_", "_max_",
     NULL,
@@ -959,7 +959,7 @@ ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt) {
 }
 
 PARSER(parse_if) {
-    // if <condition> [then] <body> [else <body>]
+    // if <condition> <body> [else <body>]
     const char *start = pos;
     int64_t starting_indent = get_indent(ctx, pos);
 
@@ -986,7 +986,7 @@ PARSER(parse_if) {
 }
 
 PARSER(parse_when) {
-    // when <expr> (is var : Tag [then] <body>)* [else <body>]
+    // when <expr> (is var : Tag <body>)* [else <body>]
     const char *start = pos;
     int64_t starting_indent = get_indent(ctx, pos);
 
