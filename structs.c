@@ -18,20 +18,20 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
     const char *name = def->name;
     const char *dollar = strrchr(name, '$');
     if (dollar) name = dollar + 1;
-    CORD str_func = CORD_asprintf("static CORD %r$as_text(%r_t *obj, bool use_color) {\n"
-                                  "\tif (!obj) return \"%s\";\n", full_name, full_name, name);
+    CORD str_func = CORD_asprintf("static Text_t %r$as_text(%r_t *obj, bool use_color) {\n"
+                                  "\tif (!obj) return Text$from_str(\"%s\");\n", full_name, full_name, name);
     if (def->secret) {
-        CORD_appendf(&str_func, "\treturn use_color ? \"\\x1b[0;1m%s\\x1b[m(\\x1b[2m...\\x1b[m)\" : \"%s(...)\";\n}",
+        CORD_appendf(&str_func, "\treturn Text$from_str(use_color ? \"\\x1b[0;1m%s\\x1b[m(\\x1b[2m...\\x1b[m)\" : \"%s(...)\");\n}",
                      name, name);
     } else {
-        CORD_appendf(&str_func, "\treturn CORD_all(use_color ? \"\\x1b[0;1m%s\\x1b[m(\" : \"%s(\"", name, name);
+        CORD_appendf(&str_func, "\treturn Text$concat(Text$from_str(use_color ? \"\\x1b[0;1m%s\\x1b[m(\" : \"%s(\")", name, name);
         for (arg_ast_t *field = def->fields; field; field = field->next) {
             type_t *field_type = get_arg_ast_type(env, field);
             CORD field_str = expr_as_text(env, CORD_cat("obj->$", field->name), field_type, "use_color");
-            CORD_appendf(&str_func, ", \"%s=\", %r", field->name, field_str);
-            if (field->next) CORD_appendf(&str_func, ", \", \"");
+            CORD_appendf(&str_func, ", Text$from_str(\"%s=\"), %r", field->name, field_str);
+            if (field->next) CORD_appendf(&str_func, ", Text$from_str(\", \")");
         }
-        CORD_appendf(&str_func, ", \")\");\n}\n");
+        CORD_appendf(&str_func, ", Text$from_str(\")\"));\n}\n");
     }
     return str_func;
 }
@@ -52,9 +52,6 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
             break;
         case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
             cmp_func = CORD_all(cmp_func, "diff = (x->$", field->name, " > y->$", field->name, ") - (x->$", field->name, " < y->$", field->name, ");");
-            break;
-        case TextType:
-            cmp_func = CORD_all(cmp_func, "diff = CORD_cmp(x->$", field->name, ", y->$", field->name, ");");
             break;
         default:
             cmp_func = CORD_all(cmp_func, "diff = generic_compare(&x->$", field->name, ", &y->$", field->name, ", ",
@@ -85,9 +82,6 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
             break;
         case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
             condition = CORD_all(condition, "(x->$", field->name, " == y->$", field->name, ")");
-            break;
-        case TextType:
-            condition = CORD_all(condition, "(CORD_cmp(x->$", field->name, ", y->$", field->name, ") == 0)");
             break;
         default:
             condition = CORD_all(condition, "generic_equal(&x->$", field->name, ", &y->$", field->name, ", ",
@@ -166,7 +160,7 @@ void compile_struct_def(env_t *env, ast_t *ast)
     } else {
         // If there are no fields, we can use an EmptyStruct typeinfo, which generates less code:
         CORD typeinfo = CORD_asprintf("public const TypeInfo %r = {%zu, %zu, {.tag=EmptyStruct, .EmptyStruct.name=%r}};\n",
-                                      full_name, type_size(t), type_align(t), Text$quoted(Text$from_str(def->name), false));
+                                      full_name, type_size(t), type_align(t), CORD_quoted(def->name));
         env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
     }
 

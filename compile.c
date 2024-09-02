@@ -1763,7 +1763,7 @@ CORD compile(env_t *env, ast_t *ast)
         case BINOP_CONCAT: {
             switch (operand_t->tag) {
             case TextType: {
-                return CORD_all("CORD_cat(", lhs, ", ", rhs, ")");
+                return CORD_all("Text$concat(", lhs, ", ", rhs, ")");
             }
             case ArrayType: {
                 CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(Match(operand_t, ArrayType)->item_type));
@@ -1890,8 +1890,6 @@ CORD compile(env_t *env, ast_t *ast)
             comparison = CORD_all("(Int$compare_value(", lhs_key, ", ", rhs_key, ")", (ast->tag == Min ? "<=" : ">="), "0)");
         else if (key_t->tag == IntType || key_t->tag == NumType || key_t->tag == BoolType || key_t->tag == PointerType)
             comparison = CORD_all("((", lhs_key, ")", (ast->tag == Min ? "<=" : ">="), "(", rhs_key, "))");
-        else if (key_t->tag == TextType)
-            comparison = CORD_all("CORD_cmp(", lhs_key, ", ", rhs_key, ")", (ast->tag == Min ? "<=" : ">="), "0");
         else
             comparison = CORD_all("generic_compare(stack(", lhs_key, "), stack(", rhs_key, "), ", compile_type_info(env, key_t), ")",
                                   (ast->tag == Min ? "<=" : ">="), "0");
@@ -2558,7 +2556,7 @@ CORD compile(env_t *env, ast_t *ast)
                 if (!call->args || call->args->next)
                     code_err(call->fn, "This constructor takes exactly 1 argument");
                 type_t *actual = get_type(env, call->args->value);
-                return CORD_all("CORD_to_char_star(", expr_as_text(env, compile(env, call->args->value), actual, "no"), ")");
+                return CORD_all("Text$as_c_string(", expr_as_text(env, compile(env, call->args->value), actual, "no"), ")");
             } else {
                 code_err(call->fn, "This is not a type that has a constructor");
             }

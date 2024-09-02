@@ -631,7 +631,7 @@ int32_t get_grapheme(Text_t text, int64_t index)
     return _next_grapheme(text, &state, index);
 }
 
-int32_t Text$compare(const Text_t *a, const Text_t *b)
+public int32_t Text$compare(const Text_t *a, const Text_t *b)
 {
     int64_t len = MAX(a->length, b->length);
     iteration_state_t a_state = {0, 0}, b_state = {0, 0};
