@@ -3256,7 +3256,7 @@ CORD compile_statement_typedefs(env_t *env, ast_t *ast)
     }
     case LangDef: {
         auto def = Match(ast, LangDef);
-        return CORD_all("typedef CORD ", namespace_prefix(env->libname, env->namespace), def->name, "_t;\n");
+        return CORD_all("typedef Text_t ", namespace_prefix(env->libname, env->namespace), def->name, "_t;\n");
     }
     case Lambda: {
         auto lambda = Match(ast, Lambda);

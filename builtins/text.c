@@ -237,8 +237,8 @@ public Text_t Text$_concat(int n, Text_t items[n])
 
 public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
 {
-    int64_t first = Int_to_Int64(first_int, false)-1;
-    int64_t last = Int_to_Int64(last_int, false)-1;
+    int64_t first = Int_to_Int64(first_int, false);
+    int64_t last = Int_to_Int64(last_int, false);
     if (first == 0) errx(1, "Invalid index: 0");
     if (last == 0) return (Text_t){.length=0};
 
@@ -1260,17 +1260,17 @@ int64_t match(Text_t text, Text_t pattern, int64_t text_index, int64_t pattern_i
             pattern_index = old_pat_index;
             int32_t pat_grapheme = _next_grapheme(pattern, &pattern_state, pattern_index);
 
-            if (pattern_index == 0 && text_index > 0) {
-                int32_t pat_codepoint = pat_grapheme;
-                if (pat_codepoint < 0)
-                    pat_codepoint = synthetic_graphemes[-pat_codepoint-1].codepoints[0];
+            // if (pattern_index == 0 && text_index > 0) {
+            //     int32_t pat_codepoint = pat_grapheme;
+            //     if (pat_codepoint < 0)
+            //         pat_codepoint = synthetic_graphemes[-pat_codepoint-1].codepoints[0];
 
-                int32_t prev_codepoint = _next_grapheme(text, &text_state, text_index - 1);
-                if (prev_codepoint < 0)
-                    prev_codepoint = synthetic_graphemes[-prev_codepoint-1].codepoints[0];
-                if (uc_is_property_alphabetic(pat_codepoint) && uc_is_property_alphabetic(prev_codepoint))
-                    return -1;
-            }
+            //     int32_t prev_codepoint = _next_grapheme(text, &text_state, text_index - 1);
+            //     if (prev_codepoint < 0)
+            //         prev_codepoint = synthetic_graphemes[-prev_codepoint-1].codepoints[0];
+            //     if (uc_is_property_alphabetic(pat_codepoint) && uc_is_property_alphabetic(prev_codepoint))
+            //         return -1;
+            // }
 
             int32_t text_grapheme = _next_grapheme(text, &text_state, text_index);
             if (pat_grapheme != text_grapheme)
@@ -1279,17 +1279,17 @@ int64_t match(Text_t text, Text_t pattern, int64_t text_index, int64_t pattern_i
             pattern_index += 1;
             text_index += 1;
 
-            if (pattern_index == pattern.length && text_index < text.length) {
-                int32_t pat_codepoint = pat_grapheme;
-                if (pat_codepoint < 0)
-                    pat_codepoint = synthetic_graphemes[-pat_codepoint-1].codepoints[0];
+            // if (pattern_index == pattern.length && text_index < text.length) {
+            //     int32_t pat_codepoint = pat_grapheme;
+            //     if (pat_codepoint < 0)
+            //         pat_codepoint = synthetic_graphemes[-pat_codepoint-1].codepoints[0];
 
-                int32_t next_codepoint = _next_grapheme(text, &text_state, text_index);
-                if (next_codepoint < 0)
-                    next_codepoint = synthetic_graphemes[-next_codepoint-1].codepoints[0];
-                if (uc_is_property_alphabetic(pat_codepoint) && uc_is_property_alphabetic(next_codepoint))
-                    return -1;
-            }
+            //     int32_t next_codepoint = _next_grapheme(text, &text_state, text_index);
+            //     if (next_codepoint < 0)
+            //         next_codepoint = synthetic_graphemes[-next_codepoint-1].codepoints[0];
+            //     if (uc_is_property_alphabetic(pat_codepoint) && uc_is_property_alphabetic(next_codepoint))
+            //         return -1;
+            // }
         }
     }
     if (text_index >= text.length && pattern_index < pattern.length)
@@ -1346,8 +1346,11 @@ public int printf_text(FILE *stream, const struct printf_info *info, const void 
 public Text_t Text$as_text(const void *text, bool colorize, const TypeInfo *info)
 {
     (void)info;
-    if (!text) return Text$from_str("Text");
-    return Text$quoted(*(Text_t*)text, colorize);
+    if (!text) return info && info->TextInfo.lang ? Text$from_str(info->TextInfo.lang) : Text$from_str("Text");
+    Text_t as_text = Text$quoted(*(Text_t*)text, colorize);
+    if (info && info->TextInfo.lang && info != &$Text)
+        as_text = Text$concat(Text$from_str(colorize ? "\x1b[1m$" : "$"), Text$from_str(info->TextInfo.lang), as_text);
+    return as_text;
 }
 
 public Text_t Text$quoted(Text_t text, bool colorize)
@@ -1407,11 +1410,11 @@ public Text_t Text$replace(Text_t text, Text_t pattern, Text_t replacement)
 {
     Text_t ret = {.length=0};
 
-    Int_t i = I_small(0);
+    Int_t i = I_small(1);
     for (;;) {
         int64_t len;
         Int_t found = Text$find(text, pattern, i, &len);
-        if (found.small == I_small(0).small) break;
+        if (I_is_zero(found)) break;
         if (Int$compare(&found, &i, &$Text) > 0) {
             ret = Text$concat(
                 ret,
@@ -1421,6 +1424,7 @@ public Text_t Text$replace(Text_t text, Text_t pattern, Text_t replacement)
         } else {
             ret = concat2(ret, replacement);
         }
+        i = Int$plus(found, Int64_to_Int(len));
     }
     if (Int_to_Int64(i, false) <= text.length) {
         ret = concat2(ret, Text$slice(text, i, Int64_to_Int(text.length)));

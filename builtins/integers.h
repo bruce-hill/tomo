@@ -106,6 +106,7 @@ Int_t Int$sqrt(Int_t i);
 
 #define I(i) ((int64_t)(i) == (int32_t)(i) ? ((Int_t){.small=((uint64_t)(i)<<2)|1}) : Int64_to_Int(i))
 #define I_small(i) ((Int_t){.small=((uint64_t)(i)<<2)|1})
+#define I_is_zero(i) ((i).small == 1)
 
 Int_t Int$slow_plus(Int_t x, Int_t y);
 Int_t Int$slow_minus(Int_t x, Int_t y);

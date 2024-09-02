@@ -1377,7 +1377,8 @@ bool is_constant(env_t *env, ast_t *ast)
     }
     case TextJoin: {
         auto text = Match(ast, TextJoin);
-        return !text->children || !text->children->next;
+        // TODO: support short literal strings
+        return !text->children;
     }
     case Not: return is_constant(env, Match(ast, Not)->value);
     case Negative: return is_constant(env, Match(ast, Negative)->value);
