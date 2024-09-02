@@ -82,6 +82,7 @@ Text_t Int$octal(Int_t i, Int_t digits, bool prefix);
 void Int$init_random(long seed);
 Int_t Int$random(Int_t min, Int_t max);
 Range_t Int$to(Int_t from, Int_t to);
+Int_t Int$from_str(const char *str, bool *success);
 Int_t Int$from_text(Text_t text, bool *success);
 Int_t Int$abs(Int_t x);
 Int_t Int$power(Int_t base, Int_t exponent);

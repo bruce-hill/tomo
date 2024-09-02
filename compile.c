@@ -823,7 +823,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         if (!to_print)
             return CORD_EMPTY;
 
-        CORD code = "say(CORD_all(";
+        CORD code = "say(Text$concat(";
         for (ast_list_t *chunk = to_print; chunk; chunk = chunk->next) {
             if (chunk->ast->tag == TextLiteral) {
                 code = CORD_cat(code, compile(env, chunk->ast));
@@ -1314,7 +1314,7 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
     }
 
     int64_t target_bits = (int64_t)Match(target, IntType)->bits;
-    Int_t int_val = Int$from_text(Text$from_str(Match(ast, Int)->str), NULL);
+    Int_t int_val = Int$from_str(Match(ast, Int)->str, NULL);
     mpz_t i;
     mpz_init_set_int(i, int_val);
 
@@ -1354,7 +1354,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                     if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
                         value = compile_int_to_type(env, call_arg->value, spec_arg->type);
                     } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
-                        Int_t int_val = Int$from_text(Text$from_str(Match(call_arg->value, Int)->str), NULL);
+                        Int_t int_val = Int$from_str(Match(call_arg->value, Int)->str, NULL);
                         double n = Int_to_Num(int_val);
                         value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == TYPE_NBITS64
                                               ? "N64(%.20g)" : "N32(%.10g)", n);
@@ -1382,7 +1382,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                 if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
                     value = compile_int_to_type(env, call_arg->value, spec_arg->type);
                 } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
-                    Int_t int_val = Int$from_text(Text$from_str(Match(call_arg->value, Int)->str), NULL);
+                    Int_t int_val = Int$from_str(Match(call_arg->value, Int)->str, NULL);
                     double n = Int_to_Num(int_val);
                     value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == TYPE_NBITS64
                                           ? "N64(%.20g)" : "N32(%.10g)", n);
@@ -1513,7 +1513,7 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Int: {
         const char *str = Match(ast, Int)->str;
-        Int_t int_val = Int$from_text(Text$from_str(str), NULL);
+        Int_t int_val = Int$from_str(str, NULL);
         mpz_t i;
         mpz_init_set_int(i, int_val);
 
@@ -1524,7 +1524,7 @@ CORD compile(env_t *env, ast_t *ast)
         } else if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0) {
             return CORD_asprintf("Int64_to_Int(%s)", str);
         } else {
-            return CORD_asprintf("Int$from_text(\"%s\", NULL)", str);
+            return CORD_asprintf("Int$from_str(\"%s\", NULL)", str);
         }
         case IBITS64:
         if ((mpz_cmp_si(i, INT64_MAX) < 0) && (mpz_cmp_si(i, INT64_MIN) > 0))
@@ -2629,7 +2629,7 @@ CORD compile(env_t *env, ast_t *ast)
         } else {
             empty = FakeAST(
                 InlineCCode, 
-                CORD_asprintf("fail_source(%s, %ld, %ld, \"This collection was empty!\");\n",
+                CORD_asprintf("fail_source(%r, %ld, %ld, \"This collection was empty!\");\n",
                               CORD_quoted(ast->file->filename),
                               (long)(reduction->iter->start - reduction->iter->file->text),
                               (long)(reduction->iter->end - reduction->iter->file->text)));

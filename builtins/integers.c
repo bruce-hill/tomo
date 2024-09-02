@@ -345,8 +345,7 @@ public Range_t Int$to(Int_t from, Int_t to) {
     return (Range_t){from, to, Int$compare(&to, &from, &$Int) >= 0 ? (Int_t){.small=(1<<2)|1} : (Int_t){.small=(-1>>2)|1}};
 }
 
-public Int_t Int$from_text(Text_t text, bool *success) {
-    const char *str = Text$as_c_string(text);
+public Int_t Int$from_str(const char *str, bool *success) {
     mpz_t i;
     int result;
     if (strncmp(str, "0x", 2) == 0) {
@@ -360,6 +359,10 @@ public Int_t Int$from_text(Text_t text, bool *success) {
     }
     if (success) *success = (result == 0);
     return Int$from_mpz(i);
+}
+
+public Int_t Int$from_text(Text_t text, bool *success) {
+    return Int$from_str(Text$as_c_string(text), success);
 }
 
 public bool Int$is_prime(Int_t x, Int_t reps)
@@ -406,8 +409,7 @@ public const TypeInfo $Int = {
     public Text_t KindOfInt ## $as_text(const c_type *i, bool colorize, const TypeInfo *type) { \
         (void)type; \
         if (!i) return Text$from_str(#KindOfInt); \
-        Int_t as_int = KindOfInt##_to_Int(*i); \
-        return Int$as_text(&as_int, colorize, type); \
+        return Text$format(colorize ? "\x1b[35m%" fmt "\x1b[m" : "%" fmt, *i); \
     } \
     public int32_t KindOfInt ## $compare(const c_type *x, const c_type *y, const TypeInfo *type) { \
         (void)type; \
