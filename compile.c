@@ -628,7 +628,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
     case LangDef: {
         auto def = Match(ast, LangDef);
         CORD_appendf(&env->code->typeinfos, "public const TypeInfo %r%s = {%zu, %zu, {.tag=TextInfo, .TextInfo={%r}}};\n",
-                     namespace_prefix(env->libname, env->namespace), def->name, sizeof(CORD), __alignof__(CORD),
+                     namespace_prefix(env->libname, env->namespace), def->name, sizeof(Text_t), __alignof__(Text_t),
                      CORD_quoted(def->name));
         compile_namespace(env, def->name, def->namespace);
         return CORD_EMPTY;
