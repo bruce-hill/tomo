@@ -442,10 +442,16 @@ static void u8_buf_append(Text_t text, char **buf, size_t *capacity, int64_t *i)
 
 public const char *Text$as_c_string(Text_t text)
 {
-    size_t capacity = text.length;
+    size_t capacity = text.length + 1;
     char *buf = GC_MALLOC_ATOMIC(capacity);
     int64_t i = 0;
     u8_buf_append(text, &buf, &capacity, &i);
+
+    if (i + 1 > (int64_t)capacity) {
+        capacity = i + 1;
+        buf = GC_REALLOC(buf, capacity);
+    }
+    buf[i] = '\0';
     return buf;
 }
 

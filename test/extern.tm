@@ -1,5 +1,5 @@
-extern CORD_cat:func(a:Text, b:Text)->Text
+extern sqrt:func(n:Num)->Num
 
 func main():
-	>> CORD_cat("hello ", "world")
-	= "hello world"
+	>> sqrt(4)
+	= 2
