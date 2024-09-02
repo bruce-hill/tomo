@@ -1427,19 +1427,19 @@ public Text_t Text$format(const char *fmt, ...)
     va_list args;
     va_start(args, fmt);
 
-    char buf[8];
+    char buf[9];
     int len = vsnprintf(buf, sizeof(buf), fmt, args);
     Text_t ret;
-    if (len <= (int)sizeof(buf)) {
+    if (len <= 8) {
         ret = (Text_t){
             .length=len,
-            .tag = TEXT_SHORT_ASCII,
+            .tag=TEXT_SHORT_ASCII,
         };
         for (int i = 0; i < len; i++)
             ret.short_ascii[i] = buf[i];
     } else {
-        char *str = GC_MALLOC_ATOMIC(len);
-        vsnprintf(str, len, fmt, args);
+        char *str = GC_MALLOC_ATOMIC(len+1);
+        vsnprintf(str, len+1, fmt, args);
         ret = Text$from_str(str);
     }
     va_end(args);
