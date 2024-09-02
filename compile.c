@@ -48,6 +48,12 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
     if (actual->tag == IntType || actual->tag == NumType)
         return true;
 
+    // Text to C String
+    if (actual->tag == TextType && !Match(actual, TextType)->lang && needed->tag == CStringType) {
+        *code = CORD_all("Text$as_c_string(", *code, ")");
+        return true;
+    }
+
     // Automatic dereferencing:
     if (actual->tag == PointerType && !Match(actual, PointerType)->is_optional
         && can_promote(Match(actual, PointerType)->pointed, needed)) {

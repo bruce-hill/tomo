@@ -289,6 +289,10 @@ bool can_promote(type_t *actual, type_t *needed)
         return cmp == NUM_PRECISION_EQUAL || cmp == NUM_PRECISION_LESS;
     }
 
+    // Text to C String
+    if (actual->tag == TextType && !Match(actual, TextType)->lang && needed->tag == CStringType)
+        return true;
+
     // Automatic dereferencing:
     if (actual->tag == PointerType && !Match(actual, PointerType)->is_optional
         && can_promote(Match(actual, PointerType)->pointed, needed))

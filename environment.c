@@ -33,7 +33,7 @@ env_t *new_compilation_unit(CORD *libname)
     } global_vars[] = {
         {"say", {.code="say", .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE,
                                                                  .next=new(arg_t, .name="newline", .type=Type(BoolType), .default_val=FakeAST(Bool, true))), .ret=Type(VoidType))}},
-        {"fail", {.code="fail", .type=Type(FunctionType, .args=new(arg_t, .name="message", .type=TEXT_TYPE), .ret=Type(AbortType))}},
+        {"fail", {.code="fail", .type=Type(FunctionType, .args=new(arg_t, .name="message", .type=Type(CStringType)), .ret=Type(AbortType))}},
         {"USE_COLOR", {.code="USE_COLOR", .type=Type(BoolType)}},
     };
 
