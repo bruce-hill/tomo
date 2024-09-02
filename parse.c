@@ -15,6 +15,7 @@
 
 #include "ast.h"
 #include "builtins/integers.h"
+#include "builtins/text.h"
 #include "builtins/table.h"
 #include "builtins/util.h"
 
@@ -1894,7 +1895,7 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
         spaces(&pos);
         if (match(&pos, "=")) {
             ast_t *val = expect(ctx, tag_start, &pos, parse_int, "I expected an integer literal after this '='");
-            Int_t i = Int$from_text(Match(val, Int)->str, NULL);
+            Int_t i = Int$from_text(Text$from_str(Match(val, Int)->str), NULL);
             // TODO check for overflow
             next_value = (i.small >> 2);
         }

@@ -71,4 +71,19 @@ typedef struct {
     int64_t max_size;
 } channel_t;
 
+enum text_type { TEXT_SHORT_ASCII, TEXT_ASCII, TEXT_SHORT_GRAPHEMES, TEXT_GRAPHEMES, TEXT_SUBTEXT };
+
+typedef struct Text_s {
+    int64_t length; // Number of grapheme clusters
+    uint64_t hash:61;
+    uint8_t tag:3;
+    union {
+        char short_ascii[8];
+        const char *ascii;
+        int32_t short_graphemes[2];
+        int32_t *graphemes;
+        struct Text_s *subtexts;
+    };
+} Text_t;
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

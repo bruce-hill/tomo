@@ -9,11 +9,12 @@
 #include <sys/stat.h>
 
 #include "ast.h"
+#include "builtins/text.h"
+#include "builtins/util.h"
 #include "environment.h"
 #include "parse.h"
 #include "typecheck.h"
 #include "types.h"
-#include "builtins/util.h"
 
 type_t *parse_type_ast(env_t *env, type_ast_t *ast)
 {
@@ -1367,7 +1368,7 @@ bool is_constant(env_t *env, ast_t *ast)
     case Int: {
         auto info = Match(ast, Int);
         if (info->bits == IBITS_UNSPECIFIED) {
-            Int_t int_val = Int$from_text(info->str, NULL);
+            Int_t int_val = Int$from_text(Text$from_str(info->str), NULL);
             mpz_t i;
             mpz_init_set_int(i, int_val);
             return (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0);

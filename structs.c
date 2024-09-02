@@ -166,7 +166,7 @@ void compile_struct_def(env_t *env, ast_t *ast)
     } else {
         // If there are no fields, we can use an EmptyStruct typeinfo, which generates less code:
         CORD typeinfo = CORD_asprintf("public const TypeInfo %r = {%zu, %zu, {.tag=EmptyStruct, .EmptyStruct.name=%r}};\n",
-                                      full_name, type_size(t), type_align(t), Text$quoted(def->name, false));
+                                      full_name, type_size(t), type_align(t), Text$quoted(Text$from_str(def->name), false));
         env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
     }
 

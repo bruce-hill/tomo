@@ -1,6 +1,5 @@
 // Type info and methods for "Memory" opaque type
 #include <gc.h>
-#include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -8,17 +7,16 @@
 #include <sys/param.h>
 #include <err.h>
 
-#include "util.h"
 #include "halfsiphash.h"
 #include "memory.h"
+#include "text.h"
 #include "types.h"
+#include "util.h"
 
-public CORD Memory__as_text(const void *p, bool colorize, const TypeInfo *type) {
+public Text_t Memory__as_text(const void *p, bool colorize, const TypeInfo *type) {
     (void)type;
-    if (!p) return "Memory";
-    CORD cord;
-    CORD_sprintf(&cord, colorize ? "\x1b[0;34;1mMemory<%p>\x1b[m" : "Memory<%p>", p);
-    return cord;
+    if (!p) return Text$from_str("Memory");
+    return Text$format(colorize ? "\x1b[0;34;1mMemory<%p>\x1b[m" : "Memory<%p>", p);
 }
 
 public const TypeInfo $Memory = {

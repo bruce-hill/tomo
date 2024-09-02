@@ -16,14 +16,15 @@
 #include <string.h>
 #include <sys/param.h>
 
-#include "util.h"
 #include "array.h"
+#include "c_string.h"
 #include "datatypes.h"
 #include "halfsiphash.h"
 #include "memory.h"
 #include "table.h"
 #include "text.h"
 #include "types.h"
+#include "util.h"
 
 // #define DEBUG_TABLES
 
@@ -51,11 +52,11 @@ static const TypeInfo MemoryPointer = {
     },
 };
 
-const TypeInfo StrToVoidStarTable = {
+const TypeInfo CStrToVoidStarTable = {
     .size=sizeof(table_t),
     .align=__alignof__(table_t),
     .tag=TableInfo,
-    .TableInfo={.key=&$Text, .value=&MemoryPointer},
+    .TableInfo={.key=&$CString, .value=&MemoryPointer},
 };
 
 static inline size_t entry_size(const TypeInfo *info)
@@ -450,36 +451,43 @@ public uint32_t Table$hash(const table_t *t, const TypeInfo *type)
     return hash;
 }
 
-public CORD Table$as_text(const table_t *t, bool colorize, const TypeInfo *type)
+public Text_t Table$as_text(const table_t *t, bool colorize, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
     auto table = type->TableInfo;
 
     if (!t) {
         if (table.value != &$Void) 
-            return CORD_all("{", generic_as_text(NULL, false, table.key), ":", generic_as_text(NULL, false, table.value), "}");
+            return Text$concat(
+                Text$from_str("{"),
+                generic_as_text(NULL, false, table.key),
+                Text$from_str(":"),
+                generic_as_text(NULL, false, table.value),
+                Text$from_str("}"));
         else
-            return CORD_all("{", generic_as_text(NULL, false, table.key), "}");
+            return Text$concat(
+                Text$from_str("{"),
+                generic_as_text(NULL, false, table.key),
+                Text$from_str("}"));
     }
 
     int64_t val_off = value_offset(type);
-    CORD c = "{";
+    Text_t text = Text$from_str("{");
     for (int64_t i = 0, length = Table$length(*t); i < length; i++) {
         if (i > 0)
-            c = CORD_cat(c, ", ");
+            text = Text$concat(text, Text$from_str(", "));
         void *entry = GET_ENTRY(*t, i);
-        c = CORD_cat(c, generic_as_text(entry, colorize, table.key));
+        text = Text$concat(text, generic_as_text(entry, colorize, table.key));
         if (table.value != &$Void) 
-            c = CORD_all(c, ":", generic_as_text(entry + val_off, colorize, table.value));
+            text = Text$concat(text, Text$from_str(":"), generic_as_text(entry + val_off, colorize, table.value));
     }
 
     if (t->fallback) {
-        c = CORD_cat(c, "; fallback=");
-        c = CORD_cat(c, Table$as_text(t->fallback, colorize, type));
+        text = Text$concat(text, Text$from_str("; fallback="), Table$as_text(t->fallback, colorize, type));
     }
 
-    c = CORD_cat(c, "}");
-    return c;
+    text = Text$concat(text, Text$from_str("}"));
+    return text;
 }
 
 public table_t Table$from_entries(array_t entries, const TypeInfo *type)
@@ -592,29 +600,29 @@ public bool Table$is_superset_of(table_t a, table_t b, bool strict, const TypeIn
 
 public void *Table$str_get(table_t t, const char *key)
 {
-    void **ret = Table$get(t, &key, &StrToVoidStarTable);
+    void **ret = Table$get(t, &key, &CStrToVoidStarTable);
     return ret ? *ret : NULL;
 }
 
 public void *Table$str_get_raw(table_t t, const char *key)
 {
-    void **ret = Table$get_raw(t, &key, &StrToVoidStarTable);
+    void **ret = Table$get_raw(t, &key, &CStrToVoidStarTable);
     return ret ? *ret : NULL;
 }
 
 public void *Table$str_reserve(table_t *t, const char *key, const void *value)
 {
-    return Table$reserve(t, &key, &value, &StrToVoidStarTable);
+    return Table$reserve(t, &key, &value, &CStrToVoidStarTable);
 }
 
 public void Table$str_set(table_t *t, const char *key, const void *value)
 {
-    Table$set(t, &key, &value, &StrToVoidStarTable);
+    Table$set(t, &key, &value, &CStrToVoidStarTable);
 }
 
 public void Table$str_remove(table_t *t, const char *key)
 {
-    return Table$remove(t, &key, &StrToVoidStarTable);
+    return Table$remove(t, &key, &CStrToVoidStarTable);
 }
 
 public void *Table$str_entry(table_t t, int64_t n)

@@ -1,27 +1,27 @@
 // A type called "Where" that is an enum for "Anywhere", "Start", or "End"
 // Mainly used for text methods
 
-#include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "text.h"
 #include "types.h"
-#include "where.h"
 #include "util.h"
+#include "where.h"
 
-static CORD Where$as_text(Where_t *obj, bool use_color)
+static Text_t Where$as_text(Where_t *obj, bool use_color)
 {
     if (!obj)
-        return "Where";
+        return Text$from_str("Where");
     switch (obj->tag) {
     case $tag$Where$Anywhere:
-        return use_color ? "\x1b[36;1mWhere.Anywhere\x1b[m" : "Where.Anywhere";
+        return Text$from_str(use_color ? "\x1b[36;1mWhere.Anywhere\x1b[m" : "Where.Anywhere");
     case $tag$Where$Start:
-        return use_color ? "\x1b[36;1mWhere.Start\x1b[m" : "Where.Start";
+        return Text$from_str(use_color ? "\x1b[36;1mWhere.Start\x1b[m" : "Where.Start");
     case $tag$Where$End:
-        return use_color ? "\x1b[36;1mWhere.End\x1b[m" : "Where.End";
+        return Text$from_str(use_color ? "\x1b[36;1mWhere.End\x1b[m" : "Where.End");
     default:
-        return CORD_EMPTY;
+        return (Text_t){.length=0};
     }
 }
 

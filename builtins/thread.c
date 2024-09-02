@@ -3,7 +3,6 @@
 #include <ctype.h>
 #include <err.h>
 #include <gc.h>
-#include <gc/cord.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -14,6 +13,7 @@
 #include "array.h"
 #include "functions.h"
 #include "halfsiphash.h"
+#include "text.h"
 #include "types.h"
 #include "util.h"
 
@@ -39,13 +39,13 @@ public void Thread$detach(pthread_t *thread)
     pthread_detach(*thread);
 }
 
-CORD Thread$as_text(const pthread_t **thread, bool colorize, const TypeInfo *type)
+Text_t Thread$as_text(const pthread_t **thread, bool colorize, const TypeInfo *type)
 {
     (void)type;
     if (!thread) {
-        return colorize ? "\x1b[34;1mThread\x1b[m" : "Thread";
+        return Text$from_str(colorize ? "\x1b[34;1mThread\x1b[m" : "Thread");
     }
-    return CORD_asprintf(colorize ? "\x1b[34;1mThread(%p)\x1b[m" : "Thread(%p)", *thread);
+    return Text$format(colorize ? "\x1b[34;1mThread(%p)\x1b[m" : "Thread(%p)", *thread);
 }
 
 public const TypeInfo Thread = {

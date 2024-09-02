@@ -8,27 +8,39 @@
 #include <stdlib.h>
 #include <sys/param.h>
 
-#include "util.h"
 #include "functions.h"
 #include "halfsiphash.h"
+#include "text.h"
 #include "types.h"
+#include "util.h"
 
 typedef struct recursion_s {
     const void *ptr;
     struct recursion_s *next;
 } recursion_t;
 
-public CORD Pointer$as_text(const void *x, bool colorize, const TypeInfo *type) {
+public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo *type) {
     auto ptr_info = type->PointerInfo;
     if (!x) {
-        CORD typename = generic_as_text(NULL, false, ptr_info.pointed);
-        CORD c = colorize ? CORD_asprintf("\x1b[34;1m%s%s\x1b[m", ptr_info.sigil, typename) : CORD_cat(ptr_info.sigil, typename);
-        return ptr_info.is_optional ? CORD_cat(c, "?") : c;
+        Text_t typename = generic_as_text(NULL, false, ptr_info.pointed);
+        Text_t text;
+        if (colorize)
+            text = Text$concat(Text$from_str("\x1b[34;1m"), Text$from_str(ptr_info.sigil), typename, Text$from_str("\x1b[m"));
+        else
+            text = Text$concat(Text$from_str(ptr_info.sigil), typename);
+
+        if (ptr_info.is_optional)
+            text = Text$concat(text, Text$from_str("?"));
+
+        return text;
     }
     const void *ptr = *(const void**)x;
     if (!ptr) {
-        CORD typename = generic_as_text(NULL, false, ptr_info.pointed);
-        return colorize ? CORD_asprintf("\x1b[34;1m!%s\x1b[m", typename) : CORD_cat("!", typename);
+        Text_t typename = generic_as_text(NULL, false, ptr_info.pointed);
+        if (colorize)
+            return Text$concat(Text$from_str("\x1b[34;1m!"), typename, Text$from_str("\x1b[m"));
+        else
+            return Text$concat(Text$from_str("!"), typename);
     }
 
     // Check for recursive references, so if `x.foo = x`, then it prints as
@@ -38,22 +50,34 @@ public CORD Pointer$as_text(const void *x, bool colorize, const TypeInfo *type) 
     for (recursion_t *r = recursion; r; r = r->next) {
         ++depth;
         if (r->ptr == ptr) {
-            CORD c = CORD_asprintf(colorize ? "\x1b[34;1m%s..%d\x1b[m" : "%s..%d", ptr_info.sigil, depth);
-            if (ptr_info.is_optional) c = CORD_cat(c, colorize ? "\x1b[34;1m?\x1b[m" : "?");
-            return c;
+            Text_t text = Text$concat(
+                Text$from_str(colorize ? "\x1b[34;1m" : ""),
+                Text$from_str(ptr_info.sigil),
+                Text$from_str(".."),
+                Int32$as_text(&depth, false, &$Int32),
+                Text$from_str(colorize ? "\x1b[m" : ""));
+            if (ptr_info.is_optional)
+                text = Text$concat(text, Text$from_str(colorize ? "\x1b[34;1m?\x1b[m" : "?"));
+            return text;
         }
     }
 
-    CORD pointed;
+    Text_t pointed;
     { // Stringify with this pointer flagged as a recursive one:
         recursion_t my_recursion = {.ptr=ptr, .next=recursion};
         recursion = &my_recursion;
         pointed = generic_as_text(ptr, colorize, ptr_info.pointed);
         recursion = recursion->next;
     }
-    CORD c = colorize ? CORD_asprintf("\x1b[34;1m%s\x1b[m%r", ptr_info.sigil, pointed) : CORD_cat(ptr_info.sigil, pointed);
-    if (ptr_info.is_optional) c = CORD_cat(c, colorize ? "\x1b[34;1m?\x1b[m" : "?");
-    return c;
+    Text_t text;
+    if (colorize)
+        text = Text$concat(Text$from_str("\x1b[34;1m"), Text$from_str(ptr_info.sigil), Text$from_str("\x1b[m"), pointed);
+    else
+        text = Text$concat(Text$from_str(ptr_info.sigil), pointed);
+
+    if (ptr_info.is_optional)
+        text = Text$concat(text, Text$from_str("?"));
+    return text;
 }
 
 public int32_t Pointer$compare(const void *x, const void *y, const TypeInfo *type) {
@@ -66,13 +90,6 @@ public bool Pointer$equal(const void *x, const void *y, const TypeInfo *type) {
     (void)type;
     const void *xp = *(const void**)x, *yp = *(const void**)y;
     return xp == yp;
-}
-
-public uint32_t Pointer$hash(const void *x, const TypeInfo *type) {
-    (void)type;
-    uint32_t hash;
-    halfsiphash(x, sizeof(void*), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));
-    return hash;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -14,7 +14,7 @@ pthread_t *Thread$new(closure_t fn);
 void Thread$cancel(pthread_t *thread);
 void Thread$join(pthread_t *thread);
 void Thread$detach(pthread_t *thread);
-CORD Thread$as_text(const pthread_t **thread, bool colorize, const TypeInfo *type);
+Text_t Thread$as_text(const pthread_t **thread, bool colorize, const TypeInfo *type);
 
 extern TypeInfo Thread;
 

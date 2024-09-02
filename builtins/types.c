@@ -9,17 +9,20 @@
 #include "array.h"
 #include "pointer.h"
 #include "table.h"
+#include "text.h"
 #include "types.h"
 
-public CORD Type$as_text(const void *typeinfo, bool colorize, const TypeInfo *type)
+public Text_t Type$as_text(const void *typeinfo, bool colorize, const TypeInfo *type)
 {
-    if (!typeinfo) return "TypeInfo";
+    if (!typeinfo) return Text$from_str("TypeInfo");
 
-    if (!colorize)
-        return type->TypeInfoInfo.type_str;
-    CORD c;
-    CORD_sprintf(&c, "\x1b[36;1m%s\x1b[m", type->TypeInfoInfo.type_str);
-    return c;
+    if (colorize)
+        return Text$concat(
+            Text$from_str("\x1b[36;1m"),
+            Text$from_str(type->TypeInfoInfo.type_str),
+            Text$from_str("\x1b[m"));
+    else
+        return Text$from_str(type->TypeInfoInfo.type_str);
 }
 
 public const TypeInfo $TypeInfo = {
@@ -32,13 +35,13 @@ public const TypeInfo $TypeInfo = {
 public const TypeInfo $Void = {.size=0, .align=0, .tag=EmptyStruct};
 public const TypeInfo $Abort = {.size=0, .align=0, .tag=EmptyStruct};
 
-public CORD Func$as_text(const void *fn, bool colorize, const TypeInfo *type)
+public Text_t Func$as_text(const void *fn, bool colorize, const TypeInfo *type)
 {
     (void)fn;
-    CORD c = type->FunctionInfo.type_str;
+    Text_t text = Text$from_str(type->FunctionInfo.type_str);
     if (fn && colorize)
-        CORD_sprintf(&c, "\x1b[32;1m%r\x1b[m", c);
-    return c;
+        text = Text$concat(Text$from_str("\x1b[32;1m"), text, Text$from_str("\x1b[m"));
+    return text;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

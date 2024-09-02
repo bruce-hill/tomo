@@ -11,15 +11,13 @@
 #include "array.h"
 #include "nums.h"
 #include "string.h"
+#include "text.h"
 #include "types.h"
 
-public CORD Num$as_text(const double *f, bool colorize, const TypeInfo *type) { 
+public Text_t Num$as_text(const double *f, bool colorize, const TypeInfo *type) { 
     (void)type;
-    if (!f) return "Num";
-    CORD c;
-    if (colorize) CORD_sprintf(&c, "\x1b[35m%.16g\x1b[33;2m\x1b[m", *f); 
-    else CORD_sprintf(&c, "%.16g", *f); 
-    return c; 
+    if (!f) return Text$from_str("Num");
+    return Text$format(colorize ? "\x1b[35m%.16g\x1b[33;2m\x1b[m" : "%.16g", *f); 
 } 
 
 public int32_t Num$compare(const double *x, const double *y, const TypeInfo *type) { 
@@ -47,12 +45,12 @@ public bool Num$near(double a, double b, double ratio, double absolute) {
     return (diff < epsilon);
 }
 
-public CORD Num$format(double f, Int_t precision) { 
-    return CORD_asprintf("%.*f", (int)Int_to_Int64(precision, false), f);
+public Text_t Num$format(double f, Int_t precision) { 
+    return Text$format("%.*f", (int)Int_to_Int64(precision, false), f); 
 }
 
-public CORD Num$scientific(double f, Int_t precision) { 
-    return CORD_asprintf("%.*e", (int)Int_to_Int64(precision, false), f); 
+public Text_t Num$scientific(double f, Int_t precision) { 
+    return Text$format("%.*e", (int)Int_to_Int64(precision, false), f); 
 }
 
 public double Num$mod(double num, double modulus) { 
@@ -68,16 +66,16 @@ public double Num$mix(double amount, double x, double y) {
     return (1.0-amount)*x + amount*y;
 }
 
-public double Num$from_text(CORD text, CORD *the_rest) {
-    const char *str = CORD_to_const_char_star(text);
+public double Num$from_text(Text_t text, Text_t *the_rest) {
+    const char *str = Text$as_c_string(text);
     char *end = NULL;
     double d = strtod(str, &end);
-    if (the_rest) *the_rest = CORD_from_char_star(end);
+    if (the_rest) *the_rest = Text$from_str(end);
     return d;
 }
 
-public double Num$nan(CORD tag) {
-    return nan(CORD_to_const_char_star(tag));
+public double Num$nan(Text_t tag) {
+    return nan(Text$as_c_string(tag));
 }
 
 public bool Num$isinf(double n) { return !!isinf(n); }
@@ -95,13 +93,10 @@ public const TypeInfo $Num = {
     },
 };
 
-public CORD Num32$as_text(const float *f, bool colorize, const TypeInfo *type) { 
+public Text_t Num32$as_text(const float *f, bool colorize, const TypeInfo *type) { 
     (void)type;
-    if (!f) return "Num32";
-    CORD c;
-    if (colorize) CORD_sprintf(&c, "\x1b[35m%.8g_f32\x1b[m", *f);
-    else CORD_sprintf(&c, "%.8g_f32", *f);
-    return c;
+    if (!f) return Text$from_str("Num32");
+    return Text$format(colorize ? "\x1b[35m%.8g_f32\x1b[33;2m\x1b[m" : "%.8g_f32", *f); 
 }
 
 public int32_t Num32$compare(const float *x, const float *y, const TypeInfo *type) { 
@@ -129,12 +124,12 @@ public bool Num32$near(float a, float b, float ratio, float absolute) {
     return (diff < epsilon);
 }
 
-public CORD Num32$format(float f, Int_t precision) { 
-    return CORD_asprintf("%.*f", (int)Int_to_Int64(precision, false), f); 
+public Text_t Num32$format(float f, Int_t precision) { 
+    return Text$format("%.*f", (int)Int_to_Int64(precision, false), f); 
 }
 
-public CORD Num32$scientific(float f, Int_t precision) { 
-    return CORD_asprintf("%.*e", (int)Int_to_Int64(precision, false), f); 
+public Text_t Num32$scientific(float f, Int_t precision) { 
+    return Text$format("%.*e", (int)Int_to_Int64(precision, false), f); 
 }
 
 public float Num32$mod(float num, float modulus) { 
@@ -150,16 +145,16 @@ public float Num32$mix(float amount, float x, float y) {
     return (1.0-amount)*x + amount*y;
 }
 
-public float Num32$from_text(CORD text, CORD *the_rest) {
-    const char *str = CORD_to_const_char_star(text);
+public float Num32$from_text(Text_t text, Text_t *the_rest) {
+    const char *str = Text$as_c_string(text);
     char *end = NULL;
     double d = strtod(str, &end);
-    if (the_rest) *the_rest = CORD_from_char_star(end);
+    if (the_rest) *the_rest = Text$from_str(end);
     return (float)d;
 }
 
-public float Num32$nan(CORD tag) {
-    return nanf(CORD_to_const_char_star(tag));
+public float Num32$nan(Text_t tag) {
+    return nanf(Text$as_c_string(tag));
 }
 
 public bool Num32$isinf(float n) { return isinf(n); }

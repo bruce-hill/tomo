@@ -2,7 +2,6 @@
 
 // Type information and methods for TypeInfos (i.e. runtime representations of types)
 
-#include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -13,7 +12,7 @@ struct TypeInfo;
 typedef uint32_t (*hash_fn_t)(const void*, const struct TypeInfo*);
 typedef int32_t (*compare_fn_t)(const void*, const void*, const struct TypeInfo*);
 typedef bool (*equal_fn_t)(const void*, const void*, const struct TypeInfo*);
-typedef CORD (*str_fn_t)(const void*, bool, const struct TypeInfo*);
+typedef Text_t (*text_fn_t)(const void*, bool, const struct TypeInfo*);
 
 typedef struct TypeInfo {
     int64_t size, align;
@@ -24,7 +23,7 @@ typedef struct TypeInfo {
                 equal_fn_t equal;
                 compare_fn_t compare;
                 hash_fn_t hash;
-                str_fn_t as_text;
+                text_fn_t as_text;
             } CustomInfo;
             struct {
                 const char *sigil;
@@ -76,7 +75,7 @@ extern const TypeInfo $Void;
 extern const TypeInfo $Abort;
 #define Void_t void
 
-CORD Type$as_text(const void *typeinfo, bool colorize, const TypeInfo *type);
-CORD Func$as_text(const void *fn, bool colorize, const TypeInfo *type);
+Text_t Type$as_text(const void *typeinfo, bool colorize, const TypeInfo *type);
+Text_t Func$as_text(const void *fn, bool colorize, const TypeInfo *type);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

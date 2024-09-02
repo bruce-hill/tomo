@@ -12,8 +12,8 @@
 #define yes (Bool_t)true
 #define no (Bool_t)false
 
-CORD Bool$as_text(const bool *b, bool colorize, const TypeInfo *type);
-bool Bool$from_text(CORD text, bool *success);
+Text_t Bool$as_text(const bool *b, bool colorize, const TypeInfo *type);
+bool Bool$from_text(Text_t text, bool *success);
 Bool_t Bool$random(double p);
 
 extern const TypeInfo $Bool;

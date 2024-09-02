@@ -13,25 +13,28 @@
 #include "types.h"
 #include "util.h"
 
-public CORD Bool$as_text(const bool *b, bool colorize, const TypeInfo *type)
+public Text_t Bool$as_text(const bool *b, bool colorize, const TypeInfo *type)
 {
     (void)type;
-    if (!b) return "Bool";
+    if (!b) return Text$from_str("Bool");
     if (colorize)
-        return *b ? "\x1b[35myes\x1b[m" : "\x1b[35mno\x1b[m";
+        return *b ? Text$from_str("\x1b[35myes\x1b[m") : Text$from_str("\x1b[35mno\x1b[m");
     else
-        return *b ? "yes" : "no";
+        return *b ? Text$from_str("yes") : Text$from_str("no");
 }
 
-public Bool_t Bool$from_text(CORD text, bool *success)
+public Bool_t Bool$from_text(Text_t text, bool *success)
 {
-    CORD lower = Text$lower(text);
-    if (CORD_cmp(lower, "yes") == 0 || CORD_cmp(lower, "on") == 0
-        || CORD_cmp(lower, "true") == 0 || CORD_cmp(lower, "1") == 0) {
+    if (Text$equal_ignoring_case(text, Text$from_str("yes"))
+        || Text$equal_ignoring_case(text, Text$from_str("on"))
+        || Text$equal_ignoring_case(text, Text$from_str("true"))
+        || Text$equal_ignoring_case(text, Text$from_str("1"))) {
         if (success) *success = yes;
         return yes;
-    } else if (CORD_cmp(lower, "no") == 0 || CORD_cmp(lower, "off") == 0
-               || CORD_cmp(lower, "false") == 0 || CORD_cmp(lower, "0") == 0) {
+    } else if (Text$equal_ignoring_case(text, Text$from_str("no"))
+        || Text$equal_ignoring_case(text, Text$from_str("off"))
+        || Text$equal_ignoring_case(text, Text$from_str("false"))
+        || Text$equal_ignoring_case(text, Text$from_str("0"))) {
         if (success) *success = yes;
         return no;
     } else {

@@ -24,16 +24,16 @@
 #define I8(x) ((int8_t)x)
 
 #define DEFINE_INT_TYPE(c_type, type_name) \
-    CORD type_name ## $as_text(const c_type *i, bool colorize, const TypeInfo *type); \
+    Text_t type_name ## $as_text(const c_type *i, bool colorize, const TypeInfo *type); \
     int32_t type_name ## $compare(const c_type *x, const c_type *y, const TypeInfo *type); \
     bool type_name ## $equal(const c_type *x, const c_type *y, const TypeInfo *type); \
-    CORD type_name ## $format(c_type i, Int_t digits); \
-    CORD type_name ## $hex(c_type i, Int_t digits, bool uppercase, bool prefix); \
-    CORD type_name ## $octal(c_type i, Int_t digits, bool prefix); \
+    Text_t type_name ## $format(c_type i, Int_t digits); \
+    Text_t type_name ## $hex(c_type i, Int_t digits, bool uppercase, bool prefix); \
+    Text_t type_name ## $octal(c_type i, Int_t digits, bool prefix); \
     array_t type_name ## $bits(c_type x); \
     c_type type_name ## $random(c_type min, c_type max); \
     Range_t type_name ## $to(c_type from, c_type to); \
-    c_type type_name ## $from_text(CORD text, CORD *the_rest); \
+    c_type type_name ## $from_text(Text_t text, Text_t *the_rest); \
     static inline c_type type_name ## $clamped(c_type x, c_type min, c_type max) { \
         return x < min ? min : (x > max ? max : x); \
     } \
@@ -70,19 +70,19 @@ DEFINE_INT_TYPE(int8_t,  Int8);
 #define Int16$abs(...) I16(abs(__VA_ARGS__))
 #define Int8$abs(...) I8(abs(__VA_ARGS__))
 
-CORD Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type);
-uint32_t Int$hash(const Int_t *x, const TypeInfo *type);
+Text_t Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type);
+uint64_t Int$hash(const Int_t *x, const TypeInfo *type);
 int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo *type);
 int32_t Int$compare_value(const Int_t x, const Int_t y);
 bool Int$equal(const Int_t *x, const Int_t *y, const TypeInfo *type);
 bool Int$equal_value(const Int_t x, const Int_t y);
-CORD Int$format(Int_t i, Int_t digits);
-CORD Int$hex(Int_t i, Int_t digits, bool uppercase, bool prefix);
-CORD Int$octal(Int_t i, Int_t digits, bool prefix);
+Text_t Int$format(Int_t i, Int_t digits);
+Text_t Int$hex(Int_t i, Int_t digits, bool uppercase, bool prefix);
+Text_t Int$octal(Int_t i, Int_t digits, bool prefix);
 void Int$init_random(long seed);
 Int_t Int$random(Int_t min, Int_t max);
 Range_t Int$to(Int_t from, Int_t to);
-Int_t Int$from_text(CORD text, bool *success);
+Int_t Int$from_text(Text_t text, bool *success);
 Int_t Int$abs(Int_t x);
 Int_t Int$power(Int_t base, Int_t exponent);
 Int_t Int$sqrt(Int_t i);

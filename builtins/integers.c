@@ -1,4 +1,5 @@
 // Integer type infos and methods
+#include <ctype.h>
 #include <gc.h>
 #include <gc/cord.h>
 #include <gmp.h>
@@ -11,7 +12,8 @@
 #include "integers.h"
 #include "text.h"
 #include "types.h"
-#include "SipHash/halfsiphash.h"
+
+#include "siphash.c"
 
 static gmp_randstate_t Int_rng = {};
 
@@ -21,15 +23,17 @@ public void Int$init_random(long seed)
     gmp_randseed_ui(Int_rng, (unsigned long)seed);
 }
 
-public CORD Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type) {
+public Text_t Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type) {
     (void)type;
-    if (!i) return "Int";
+    if (!i) return Text$from_str("Int");
 
     if (__builtin_expect(i->small & 1, 1)) {
-        return CORD_asprintf(colorize ? "\x1b[35m%ld\x1b[33;2m\x1b[m" : "%ld", (i->small)>>2);
+        return Text$format(colorize ? "\x1b[35m%ld\x1b[m" : "%ld", (i->small)>>2);
     } else {
         char *str = mpz_get_str(NULL, 10, *i->big);
-        return CORD_asprintf(colorize ? "\x1b[35m%s\x1b[33;2m\x1b[m" : "%s", str);
+        Text_t text = Text$from_str(str);
+        if (colorize) text = Text$concat(Text$from_str("\x1b[35m"), text, Text$from_str("\x1b[m"));
+        return text;
     }
 }
 
@@ -55,62 +59,86 @@ public bool Int$equal_value(const Int_t x, const Int_t y) {
     return x.small == y.small || (__builtin_expect(((x.small | y.small) & 1) == 0, 0) && mpz_cmp(*x.big, *y.big) == 0);
 }
 
-public uint32_t Int$hash(const Int_t *x, const TypeInfo *type) {
+public uint64_t Int$hash(const Int_t *x, const TypeInfo *type) {
     (void)type;
-    uint32_t hash;
     if (__builtin_expect(x->small & 1, 1)) {
-        halfsiphash(&x->small, sizeof(x->small), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));
+        int64_t i = (x->small>>2);
+        return siphash24((void*)&i, sizeof(i), (uint64_t*)TOMO_HASH_KEY);
     } else {
         char *str = mpz_get_str(NULL, 16, *x->big);
-        halfsiphash(str, strlen(str), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));
+        return siphash24((void*)str, strlen(str), (uint64_t*)TOMO_HASH_KEY);
     }
-    return hash;
 }
 
-public CORD Int$format(Int_t i, Int_t digits_int)
+public Text_t Int$format(Int_t i, Int_t digits_int)
 {
     int64_t digits = Int_to_Int64(digits_int, false);
     if (__builtin_expect(i.small & 1, 1)) {
-        return CORD_asprintf("%0.*ld", digits, (i.small)>>2);
+        return Text$format("%0.*ld", digits, (i.small)>>2);
     } else {
-        CORD str = mpz_get_str(NULL, 10, *i.big);
+        char *str = mpz_get_str(NULL, 10, *i.big);
         bool negative = (str[0] == '-');
-        if (digits > (int64_t)CORD_len(str)) {
-            if (negative)
-                str = CORD_all("-", CORD_chars('0', digits - CORD_len(str)), CORD_substr(str, 1, ~0));
-            else
-                str = CORD_all(CORD_chars('0', digits - CORD_len(str)), str);
+        int64_t needed_zeroes = digits - (int64_t)strlen(str);
+        if (needed_zeroes <= 0)
+            return Text$from_str(str);
+
+        char *zeroes = GC_MALLOC_ATOMIC(needed_zeroes);
+        memset(zeroes, '0', needed_zeroes);
+        if (negative)
+            return Text$concat(Text$from_str("-"), Text$from_str(zeroes), Text$from_str(str + 1));
+        else
+            return Text$concat(Text$from_str(zeroes), Text$from_str(str));
+    }
+}
+
+public Text_t Int$hex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
+    if (Int$compare(&i, (Int_t[1]){I_small(0)}, &$Int) < 0)
+        return Text$concat(Text$from_str("-"), Int$hex(Int$negative(i), digits_int, uppercase, prefix));
+
+    int64_t digits = Int_to_Int64(digits_int, false);
+    if (__builtin_expect(i.small & 1, 1)) {
+        const char *hex_fmt = uppercase ? (prefix ? "0x%0.*lX" : "%0.*lX") : (prefix ? "0x%0.*lx" : "%0.*lx");
+        return Text$format(hex_fmt, digits, (i.small)>>2);
+    } else {
+        char *str = mpz_get_str(NULL, 16, *i.big);
+        if (uppercase) {
+            for (char *c = str; *c; c++)
+                *c = (char)toupper(*c);
         }
-        return str;
+        int64_t needed_zeroes = digits - (int64_t)strlen(str);
+        if (needed_zeroes <= 0)
+            return prefix ? Text$concat(Text$from_str("0x"), Text$from_str(str)) : Text$from_str(str);
+
+        char *zeroes = GC_MALLOC_ATOMIC(needed_zeroes);
+        memset(zeroes, '0', needed_zeroes);
+        if (prefix)
+            return Text$concat(Text$from_str("0x"), Text$from_str(zeroes), Text$from_str(str));
+        else
+            return Text$concat(Text$from_str(zeroes), Text$from_str(str));
     }
 }
 
-public CORD Int$hex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
-    int64_t digits = Int_to_Int64(digits_int, false);
-    const char *hex_fmt = uppercase ? (prefix ? "0x%0.*lX" : "%0.*lX") : (prefix ? "0x%0.*lx" : "%0.*lx");
-    if (__builtin_expect(i.small & 1, 1)) {
-        return CORD_asprintf(hex_fmt, digits, (i.small)>>2);
-    } else {
-        CORD str = mpz_get_str(NULL, 16, *i.big);
-        if (uppercase) str = Text$upper(str);
-        if (digits > (int64_t)CORD_len(str))
-            str = CORD_cat(CORD_chars('0', digits - CORD_len(str)), str);
-        if (prefix) str = CORD_cat("0x", str);
-        return str;
-    }
-}
+public Text_t Int$octal(Int_t i, Int_t digits_int, bool prefix) {
+    Int_t zero = I_small(0);
+    if (Int$compare(&i, &zero, &$Int) < 0)
+        return Text$concat(Text$from_str("-"), Int$octal(Int$negative(i), digits_int, prefix));
 
-public CORD Int$octal(Int_t i, Int_t digits_int, bool prefix) {
     int64_t digits = Int_to_Int64(digits_int, false);
-    const char *octal_fmt = prefix ? "0o%0.*lo" : "%0.*lo";
     if (__builtin_expect(i.small & 1, 1)) {
-        return CORD_asprintf(octal_fmt, (int)digits, (uint64_t)(i.small >> 2));
+        const char *octal_fmt = prefix ? "0o%0.*lo" : "%0.*lo";
+        return Text$format(octal_fmt, digits, (i.small)>>2);
     } else {
-        CORD str = mpz_get_str(NULL, 8, *i.big);
-        if (digits > (int64_t)CORD_len(str))
-            str = CORD_cat(CORD_chars('0', digits - CORD_len(str)), str);
-        if (prefix) str = CORD_cat("0o", str);
-        return str;
+        char *str = mpz_get_str(NULL, 8, *i.big);
+        int64_t needed_zeroes = digits - (int64_t)strlen(str);
+        if (needed_zeroes <= 0)
+            return prefix ? Text$concat(Text$from_str("0o"), Text$from_str(str)) : Text$from_str(str);
+
+        char *zeroes = GC_MALLOC_ATOMIC(needed_zeroes);
+        memset(zeroes, '0', needed_zeroes);
+        if (prefix)
+            return Text$concat(Text$from_str("0o"), Text$from_str(zeroes), Text$from_str(str));
+        else
+            return Text$concat(Text$from_str(zeroes), Text$from_str(str));
     }
 }
 
@@ -290,9 +318,11 @@ public Int_t Int$sqrt(Int_t i)
 
 public Int_t Int$random(Int_t min, Int_t max) {
     int32_t cmp = Int$compare(&min, &max, &$Int);
-    if (cmp > 0)
-        fail("Random minimum value (%r) is larger than the maximum value (%r)",
-             Int$as_text(&min, false, &$Int), Int$as_text(&max, false, &$Int));
+    if (cmp > 0) {
+        Text_t min_text = Int$as_text(&min, false, &$Int), max_text = Int$as_text(&max, false, &$Int);
+        fail("Random minimum value (%k) is larger than the maximum value (%k)",
+             &min_text, &max_text);
+    }
     if (cmp == 0) return min;
 
     mpz_t range_size;
@@ -315,8 +345,8 @@ public Range_t Int$to(Int_t from, Int_t to) {
     return (Range_t){from, to, Int$compare(&to, &from, &$Int) >= 0 ? (Int_t){.small=(1<<2)|1} : (Int_t){.small=(-1>>2)|1}};
 }
 
-public Int_t Int$from_text(CORD text, bool *success) {
-    const char *str = CORD_to_const_char_star(text);
+public Int_t Int$from_text(Text_t text, bool *success) {
+    const char *str = Text$as_c_string(text);
     mpz_t i;
     int result;
     if (strncmp(str, "0x", 2) == 0) {
@@ -355,7 +385,7 @@ public Int_t Int$prev_prime(Int_t x)
     mpz_t p;
     mpz_init_set_int(p, x);
     if (mpz_prevprime(p, p) == 0)
-        fail("There is no prime number before %r", Int$as_text(&x, false, &$Int));
+        fail("There is no prime number before %k", (Text_t[1]){Int$as_text(&x, false, &$Int)});
     return Int$from_mpz(p);
 }
 
@@ -373,13 +403,11 @@ public const TypeInfo $Int = {
 
 
 #define DEFINE_INT_TYPE(c_type, KindOfInt, fmt, min_val, max_val)\
-    public CORD KindOfInt ## $as_text(const c_type *i, bool colorize, const TypeInfo *type) { \
+    public Text_t KindOfInt ## $as_text(const c_type *i, bool colorize, const TypeInfo *type) { \
         (void)type; \
-        if (!i) return #KindOfInt; \
-        CORD c; \
-        if (colorize) CORD_sprintf(&c, "\x1b[35m%"fmt"\x1b[33;2m\x1b[m", *i); \
-        else CORD_sprintf(&c, "%"fmt, *i); \
-        return c; \
+        if (!i) return Text$from_str(#KindOfInt); \
+        Int_t as_int = KindOfInt##_to_Int(*i); \
+        return Int$as_text(&as_int, colorize, type); \
     } \
     public int32_t KindOfInt ## $compare(const c_type *x, const c_type *y, const TypeInfo *type) { \
         (void)type; \
@@ -389,19 +417,17 @@ public const TypeInfo $Int = {
         (void)type; \
         return *x == *y; \
     } \
-    public CORD KindOfInt ## $format(c_type i, Int_t digits_int) { \
-        int64_t digits = Int_to_Int64(digits_int, false); \
-        return CORD_asprintf("%0*ld", (int)digits, (int64_t)i); \
+    public Text_t KindOfInt ## $format(c_type i, Int_t digits_int) { \
+        Int_t as_int = KindOfInt##_to_Int(i); \
+        return Int$format(as_int, digits_int); \
     } \
-    public CORD KindOfInt ## $hex(c_type i, Int_t digits_int, bool uppercase, bool prefix) { \
-        int64_t digits = Int_to_Int64(digits_int, false); \
-        const char *hex_fmt = uppercase ? (prefix ? "0x%0.*lX" : "%0.*lX") : (prefix ? "0x%0.*lx" : "%0.*lx"); \
-        return CORD_asprintf(hex_fmt, (int)digits, (uint64_t)i); \
+    public Text_t KindOfInt ## $hex(c_type i, Int_t digits_int, bool uppercase, bool prefix) { \
+        Int_t as_int = KindOfInt##_to_Int(i); \
+        return Int$hex(as_int, digits_int, uppercase, prefix); \
     } \
-    public CORD KindOfInt ## $octal(c_type i, Int_t digits_int, bool prefix) { \
-        int64_t digits = Int_to_Int64(digits_int, false); \
-        const char *octal_fmt = prefix ? "0o%0.*lo" : "%0.*lo"; \
-        return CORD_asprintf(octal_fmt, (int)digits, (uint64_t)i); \
+    public Text_t KindOfInt ## $octal(c_type i, Int_t digits_int, bool prefix) { \
+        Int_t as_int = KindOfInt##_to_Int(i); \
+        return Int$octal(as_int, digits_int, prefix); \
     } \
     public array_t KindOfInt ## $bits(c_type x) { \
         array_t bit_array = (array_t){.data=GC_MALLOC_ATOMIC(sizeof(bool[8*sizeof(c_type)])), .atomic=1, .stride=sizeof(bool), .length=8*sizeof(c_type)}; \
@@ -432,8 +458,8 @@ public const TypeInfo $Int = {
     public Range_t KindOfInt ## $to(c_type from, c_type to) { \
         return (Range_t){Int64_to_Int(from), Int64_to_Int(to), to >= from ? (Int_t){.small=(1<<2)&1} : (Int_t){.small=(1<<2)&1}}; \
     } \
-    public c_type KindOfInt ## $from_text(CORD text, CORD *the_rest) { \
-        const char *str = CORD_to_const_char_star(text); \
+    public c_type KindOfInt ## $from_text(Text_t text, Text_t *the_rest) { \
+        const char *str = Text$as_c_string(text); \
         long i; \
         char *end_ptr = NULL; \
         if (strncmp(str, "0x", 2) == 0) { \
@@ -445,7 +471,7 @@ public const TypeInfo $Int = {
         } else { \
             i = strtol(str, &end_ptr, 10); \
         } \
-        if (the_rest) *the_rest = CORD_from_char_star(end_ptr); \
+        if (the_rest) *the_rest = Text$from_str(end_ptr); \
         if (i < min_val) i = min_val; \
         else if (i > max_val) i = min_val; \
         return (c_type)i; \

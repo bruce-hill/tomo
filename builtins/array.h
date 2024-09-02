@@ -16,7 +16,7 @@
     const array_t arr = arr_expr; int64_t index = index_expr; \
     int64_t off = index + (index < 0) * (arr.length + 1) - 1; \
     if (__builtin_expect(off < 0 || off >= arr.length, 0)) \
-        fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int64$as_text(&index, no, NULL), arr.length); \
+        fail_source(filename, start, end, "Invalid array index: %s (array has length %ld)\n", Text$as_c_string(Int64$as_text(&index, no, NULL)), arr.length); \
     (item_type*)(arr.data + arr.stride * off);})
 #define Array_get_unchecked(type, x, i) *({ const array_t arr = x; int64_t index = i; \
                                           int64_t off = index + (index < 0) * (arr.length + 1) - 1; \
@@ -25,7 +25,7 @@
     array_t *arr = arr_expr; int64_t index = index_expr; \
     int64_t off = index + (index < 0) * (arr->length + 1) - 1; \
     if (__builtin_expect(off < 0 || off >= arr->length, 0)) \
-        fail_source(filename, start, end, "Invalid array index: %r (array has length %ld)\n", Int64$as_text(&index, no, NULL), arr->length); \
+        fail_source(filename, start, end, "Invalid array index: %s (array has length %ld)\n", Text$as_c_string(Int64$as_text(&index, no, NULL)), arr->length); \
     if (arr->data_refcount > 0) \
         Array$compact(arr, padded_item_size); \
     (item_type*)(arr->data + arr->stride * off); })
@@ -87,10 +87,10 @@ array_t Array$to(array_t array, Int_t last);
 array_t Array$by(array_t array, Int_t stride, int64_t padded_item_size);
 array_t Array$reversed(array_t array, int64_t padded_item_size);
 array_t Array$concat(array_t x, array_t y, int64_t padded_item_size);
-uint32_t Array$hash(const array_t *arr, const TypeInfo *type);
+uint64_t Array$hash(const array_t *arr, const TypeInfo *type);
 int32_t Array$compare(const array_t *x, const array_t *y, const TypeInfo *type);
 bool Array$equal(const array_t *x, const array_t *y, const TypeInfo *type);
-CORD Array$as_text(const array_t *arr, bool colorize, const TypeInfo *type);
+Text_t Array$as_text(const array_t *arr, bool colorize, const TypeInfo *type);
 void Array$heapify(array_t *heap, closure_t comparison, int64_t padded_item_size);
 void Array$heap_push(array_t *heap, const void *item, closure_t comparison, int64_t padded_item_size);
 #define Array$heap_push_value(heap, _value, comparison, padded_item_size) ({ __typeof(_value) value = _value; Array$heap_push(heap, &value, comparison, padded_item_size); })

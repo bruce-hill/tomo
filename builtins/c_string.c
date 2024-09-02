@@ -13,12 +13,12 @@
 #include "types.h"
 #include "util.h"
 
-public CORD CString$as_text(const void *c_string, bool colorize, const TypeInfo *info)
+public Text_t CString$as_text(const void *c_string, bool colorize, const TypeInfo *info)
 {
     (void)info;
-    if (!c_string) return "CString";
-    CORD text = CORD_from_char_star(*(char**)c_string);
-    return CORD_all(colorize ? "\x1b[34mCString\x1b[m(" : "CString(", Text$quoted(text, colorize), ")");
+    if (!c_string) return Text$from_str("CString");
+    Text_t text = Text$from_str(*(char**)c_string);
+    return Text$concat(Text$from_str(colorize ? "\x1b[34mCString\x1b[m(" : "CString("), Text$quoted(text, colorize), Text$from_str(")"));
 }
 
 public int CString$compare(const char **x, const char **y)

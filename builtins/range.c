@@ -4,15 +4,15 @@
 #include <err.h>
 #include <gmp.h>
 #include <gc.h>
-#include <gc/cord.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/param.h>
 
-#include "types.h"
 #include "integers.h"
+#include "text.h"
+#include "types.h"
 #include "util.h"
 
 
@@ -32,15 +32,15 @@ static bool Range$equal(const Range_t *x, const Range_t *y, const TypeInfo *type
     return Int$equal(&x->first, &y->first, &$Int) && Int$equal(&x->last, &y->last, &$Int) && Int$equal(&x->step, &y->step, &$Int);
 }
 
-static CORD Range$as_text(const Range_t *r, bool use_color, const TypeInfo *type)
+static Text_t Range$as_text(const Range_t *r, bool use_color, const TypeInfo *type)
 {
     (void)type;
-    if (!r) return "Range";
+    if (!r) return Text$from_str("Range");
 
-    return CORD_asprintf(use_color ? "\x1b[0;1mRange\x1b[m(first=%r, last=%r, step=%r)"
-                         : "Range(first=%r, last=%r, step=%r)",
-                         Int$as_text(&r->first, use_color, &$Int), Int$as_text(&r->last, use_color, &$Int),
-                         Int$as_text(&r->step, use_color, &$Int));
+    return Text$format(use_color ? "\x1b[0;1mRange\x1b[m(first=%r, last=%r, step=%r)"
+                       : "Range(first=%r, last=%r, step=%r)",
+                       Int$as_text(&r->first, use_color, &$Int), Int$as_text(&r->last, use_color, &$Int),
+                       Int$as_text(&r->step, use_color, &$Int));
 }
 
 public Range_t Range$reversed(Range_t r)

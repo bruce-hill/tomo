@@ -208,7 +208,7 @@ static double ast_to_num(env_t *env, ast_t *ast)
     }
 }
 
-static CORD obj_to_text(type_t *t, const void *obj, bool use_color)
+static Text_t obj_to_text(type_t *t, const void *obj, bool use_color)
 {
     const TypeInfo *info = type_to_type_info(t);
     return generic_as_text(obj, use_color, info);
@@ -272,8 +272,8 @@ void run(env_t *env, ast_t *ast)
         } else {
             void *value = GC_MALLOC(size);
             eval(env, doctest->expr, value);
-            CORD c = obj_to_text(t, value, true);
-            printf("= %s \x1b[2m: %T\x1b[m\n", CORD_to_const_char_star(c), t);
+            Text_t text = obj_to_text(t, value, true);
+            printf("= %k \x1b[2m: %T\x1b[m\n", &text, t);
             fflush(stdout);
         }
         break;
@@ -353,11 +353,11 @@ void eval(env_t *env, ast_t *ast, void *dest)
     case Int: {
         if (!dest) return;
         switch (Match(ast, Int)->bits) {
-        case 0: *(Int_t*)dest = Int$from_text(Match(ast, Int)->str, NULL); break;
-        case 64: *(int64_t*)dest = Int64$from_text(Match(ast, Int)->str, NULL); break;
-        case 32: *(int32_t*)dest = Int32$from_text(Match(ast, Int)->str, NULL); break;
-        case 16: *(int16_t*)dest = Int16$from_text(Match(ast, Int)->str, NULL); break;
-        case 8: *(int8_t*)dest = Int8$from_text(Match(ast, Int)->str, NULL); break;
+        case 0: *(Int_t*)dest = Int$from_text(Text$from_str(Match(ast, Int)->str), NULL); break;
+        case 64: *(int64_t*)dest = Int64$from_text(Text$from_str(Match(ast, Int)->str), NULL); break;
+        case 32: *(int32_t*)dest = Int32$from_text(Text$from_str(Match(ast, Int)->str), NULL); break;
+        case 16: *(int16_t*)dest = Int16$from_text(Text$from_str(Match(ast, Int)->str), NULL); break;
+        case 8: *(int8_t*)dest = Int8$from_text(Text$from_str(Match(ast, Int)->str), NULL); break;
         default: errx(1, "Invalid int bits: %ld", Match(ast, Int)->bits);
         }
         break;
@@ -386,7 +386,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
                 size_t chunk_size = type_size(chunk_t);
                 char buf[chunk_size];
                 eval(env, chunk->ast, buf);
-                ret = CORD_cat(ret, obj_to_text(chunk_t, buf, false));
+                ret = CORD_cat(ret, Text$as_c_string(obj_to_text(chunk_t, buf, false)));
             }
         }
         if (dest) *(CORD*)dest = ret;

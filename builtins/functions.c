@@ -2,7 +2,6 @@
 #include <errno.h>
 #include <execinfo.h>
 #include <gc.h>
-#include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -16,7 +15,6 @@
 #include "channel.h"
 #include "files.h"
 #include "functions.h"
-#include "halfsiphash.h"
 #include "integers.h"
 #include "pointer.h"
 #include "string.h"
@@ -25,7 +23,9 @@
 #include "types.h"
 #include "util.h"
 
-public uint8_t TOMO_HASH_KEY[8] = {0};
+#include "siphash.c"
+
+public uint8_t TOMO_HASH_KEY[16] = {0};
 
 public void tomo_init(void)
 {
@@ -37,6 +37,9 @@ public void tomo_init(void)
    srand(seed);
    srand48(seed);
    Int$init_random(seed);
+
+    if (register_printf_specifier('k', printf_text, printf_text_size))
+        errx(1, "Couldn't set printf specifier");
 }
 
 static void print_stack_trace(FILE *out)
@@ -60,13 +63,13 @@ static void print_stack_trace(FILE *out)
     fprintf(out, "\x1b[m");
 }
 
-public void fail(CORD fmt, ...)
+public void fail(const char *fmt, ...)
 {
     if (USE_COLOR) fputs("\x1b[31;7m ==================== ERROR ==================== \n\n\x1b[0;1m", stderr);
     else fputs("==================== ERROR ====================\n\n", stderr);
     va_list args;
     va_start(args, fmt);
-    CORD_vfprintf(stderr, fmt, args);
+    vfprintf(stderr, fmt, args);
     if (USE_COLOR) fputs("\x1b[m", stderr);
     fputs("\n\n", stderr);
     va_end(args);
@@ -75,14 +78,14 @@ public void fail(CORD fmt, ...)
     raise(SIGABRT);
 }
 
-public void fail_source(const char *filename, int64_t start, int64_t end, CORD fmt, ...)
+public void fail_source(const char *filename, int64_t start, int64_t end, const char *fmt, ...)
 {
     if (USE_COLOR) fputs("\n\x1b[31;7m ==================== ERROR ==================== \n\n\x1b[0;1m", stderr);
     else fputs("\n==================== ERROR ====================\n\n", stderr);
 
     va_list args;
     va_start(args, fmt);
-    CORD_vfprintf(stderr, fmt, args);
+    vfprintf(stderr, fmt, args);
     va_end(args);
 
     file_t *file = filename ? load_file(filename) : NULL;
@@ -98,11 +101,10 @@ public void fail_source(const char *filename, int64_t start, int64_t end, CORD f
     raise(SIGABRT);
 }
 
-public uint32_t generic_hash(const void *obj, const TypeInfo *type)
+public uint64_t generic_hash(const void *obj, const TypeInfo *type)
 {
     switch (type->tag) {
-    case PointerInfo: case FunctionInfo: return Pointer$hash(obj, type);
-    case TextInfo: return Text$hash(obj);
+    case TextInfo: return Text$hash((void*)obj);
     case ArrayInfo: return Array$hash(obj, type);
     case ChannelInfo: return Channel$hash((const channel_t**)obj, type);
     case TableInfo: return Table$hash(obj, type);
@@ -113,9 +115,7 @@ public uint32_t generic_hash(const void *obj, const TypeInfo *type)
         return type->CustomInfo.hash(obj, type);
     default: {
       hash_data:;
-        uint32_t hash;
-        halfsiphash((void*)obj, type->size, TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));
-        return hash;
+        return siphash24((void*)obj, type->size, (uint64_t*)TOMO_HASH_KEY);
     }
     }
 }
@@ -158,7 +158,7 @@ public bool generic_equal(const void *x, const void *y, const TypeInfo *type)
     }
 }
 
-public CORD generic_as_text(const void *obj, bool colorize, const TypeInfo *type)
+public Text_t generic_as_text(const void *obj, bool colorize, const TypeInfo *type)
 {
     switch (type->tag) {
     case PointerInfo: return Pointer$as_text(obj, colorize, type);
@@ -168,19 +168,21 @@ public CORD generic_as_text(const void *obj, bool colorize, const TypeInfo *type
     case ChannelInfo: return Channel$as_text((const channel_t**)obj, colorize, type);
     case TableInfo: return Table$as_text(obj, colorize, type);
     case TypeInfoInfo: return Type$as_text(obj, colorize, type);
-    case EmptyStruct: return colorize ? CORD_all("\x1b[0;1m", type->EmptyStruct.name, "\x1b[m()") : CORD_all(type->EmptyStruct.name, "()");
+    case EmptyStruct: return colorize ?
+                      Text$concat(Text$from_str("\x1b[0;1m"), Text$from_str(type->EmptyStruct.name), Text$from_str("\x1b[m()"))
+                          : Text$concat(Text$from_str(type->EmptyStruct.name), Text$from_str("()"));
     case CustomInfo:
         if (!type->CustomInfo.as_text)
-            fail("No cord function provided for type!\n");
+            fail("No text function provided for type!\n");
         return type->CustomInfo.as_text(obj, colorize, type);
     default: errx(1, "Invalid type tag: %d", type->tag);
     }
 }
 
 
-public CORD builtin_last_err()
+public Text_t builtin_last_err()
 {
-    return CORD_from_char_star(strerror(errno));
+    return Text$from_str(strerror(errno));
 }
 
 static int TEST_DEPTH = 0;
@@ -193,12 +195,12 @@ public void start_test(const char *filename, int64_t start, int64_t end)
 
     if (filename && file) {
         for (int i = 0; i < 3*TEST_DEPTH; i++) fputc(' ', stderr);
-        CORD_fprintf(stderr, USE_COLOR ? "\x1b[33;1m>> \x1b[0m%.*s\x1b[m\n" : ">> %.*s\n", (end - start), file->text + start);
+        fprintf(stderr, USE_COLOR ? "\x1b[33;1m>> \x1b[0m%.*s\x1b[m\n" : ">> %.*s\n", (end - start), file->text + start);
     }
     ++TEST_DEPTH;
 }
 
-public void end_test(void *expr, const TypeInfo *type, CORD expected, const char *filename, int64_t start, int64_t end)
+public void end_test(void *expr, const TypeInfo *type, const char *expected, const char *filename, int64_t start, int64_t end)
 {
     (void)filename;
     (void)start;
@@ -206,25 +208,29 @@ public void end_test(void *expr, const TypeInfo *type, CORD expected, const char
     --TEST_DEPTH;
     if (!expr) return;
 
-    CORD expr_cord = generic_as_text(expr, USE_COLOR, type);
-    CORD type_name = generic_as_text(NULL, false, type);
+    Text_t expr_text = generic_as_text(expr, USE_COLOR, type);
+    Text_t type_name = generic_as_text(NULL, false, type);
 
     for (int i = 0; i < 3*TEST_DEPTH; i++) fputc(' ', stderr);
-    CORD_fprintf(stderr, USE_COLOR ? "\x1b[2m=\x1b[0m %r \x1b[2m: %r\x1b[m\n" : "= %r : %r\n", expr_cord, type_name);
-    if (expected) {
-        CORD expr_plain = USE_COLOR ? generic_as_text(expr, false, type) : expr_cord;
-        bool success = Text$equal(&expr_plain, &expected);
-        if (!success && CORD_chr(expected, 0, ':')) {
-            CORD with_type = CORD_catn(3, expr_plain, " : ", type_name);
-            success = Text$equal(&with_type, &expected);
+    fprintf(stderr, USE_COLOR ? "\x1b[2m=\x1b[0m %k \x1b[2m: %k\x1b[m\n" : "= %k : %k\n", &expr_text, &type_name);
+    if (expected && expected[0]) {
+        Text_t expected_text = Text$from_str(expected);
+        Text_t expr_plain = USE_COLOR ? generic_as_text(expr, false, type) : expr_text;
+        bool success = Text$equal(&expr_plain, &expected_text);
+        if (!success) {
+            Int_t colon = Text$find(expected_text, Text$from_str(":"), I_small(0), NULL);
+            if (colon.small != I_small(0).small) {
+                Text_t with_type = Text$concat(expr_plain, Text$from_str(" : "), type_name);
+                success = Text$equal(&with_type, &expected_text);
+            }
         }
 
         if (!success) {
             fprintf(stderr, 
                     USE_COLOR
-                    ? "\n\x1b[31;7m ==================== TEST FAILED ==================== \x1b[0;1m\n\nExpected: \x1b[1;32m%s\x1b[0m\n\x1b[1m But got:\x1b[m %s\n\n"
-                    : "\n==================== TEST FAILED ====================\nExpected: %s\n\n But got: %s\n\n",
-                    CORD_to_const_char_star(expected), CORD_to_const_char_star(expr_cord));
+                    ? "\n\x1b[31;7m ==================== TEST FAILED ==================== \x1b[0;1m\n\nExpected: \x1b[1;32m%s\x1b[0m\n\x1b[1m But got:\x1b[m %k\n\n"
+                    : "\n==================== TEST FAILED ====================\nExpected: %s\n\n But got: %k\n\n",
+                    expected, &expr_text);
 
             print_stack_trace(stderr);
             fflush(stderr);
@@ -233,37 +239,29 @@ public void end_test(void *expr, const TypeInfo *type, CORD expected, const char
     }
 }
 
-public void say(CORD text, bool newline)
+public void say(Text_t text, bool newline)
 {
-    uint8_t buf[512] = {0};
-    size_t buf_len = sizeof(buf)-1;
-    const char *str = CORD_to_const_char_star(text);
-    uint8_t *normalized = u8_normalize(UNINORM_NFD, (uint8_t*)str, strlen(str), buf, &buf_len);
-    if (normalized) {
-        write(STDOUT_FILENO, normalized, buf_len);
-        if (newline)
-            write(STDOUT_FILENO, "\n", 1);
-        if (normalized != buf)
-            free(normalized);
-    }
+    Text$print(stdout, text);
+    if (newline)
+        fputc('\n', stdout);
 }
 
-public bool pop_flag(char **argv, int *i, const char *flag, CORD *result)
+public bool pop_flag(char **argv, int *i, const char *flag, Text_t *result)
 {
     if (argv[*i][0] != '-' || argv[*i][1] != '-') {
         return false;
     } else if (streq(argv[*i] + 2, flag)) {
-        *result = CORD_EMPTY;
+        *result = (Text_t){.length=0};
         argv[*i] = NULL;
         *i += 1;
         return true;
     } else if (strncmp(argv[*i] + 2, "no-", 3) == 0 && streq(argv[*i] + 5, flag)) {
-        *result = "no";
+        *result = Text$from_str("no");
         argv[*i] = NULL;
         *i += 1;
         return true;
     } else if (strncmp(argv[*i] + 2, flag, strlen(flag)) == 0 && argv[*i][2 + strlen(flag)] == '=') {
-        *result = CORD_from_char_star(argv[*i] + 2 + strlen(flag) + 1);
+        *result = Text$from_str(argv[*i] + 2 + strlen(flag) + 1);
         argv[*i] = NULL;
         *i += 1;
         return true;

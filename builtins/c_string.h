@@ -8,10 +8,10 @@
 
 #include "types.h"
 
-CORD CString$as_text(const void *str, bool colorize, const TypeInfo *info);
+Text_t CString$as_text(const void *str, bool colorize, const TypeInfo *info);
 int CString$compare(const char **x, const char **y);
 bool CString$equal(const char **x, const char **y);
-uint32_t CString$hash(const char **str);
+uint64_t CString$hash(const char **str);
 
 extern const TypeInfo $CString;
 

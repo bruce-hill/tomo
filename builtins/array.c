@@ -12,11 +12,13 @@
 
 #include "array.h"
 #include "functions.h"
-#include "halfsiphash.h"
 #include "integers.h"
 #include "table.h"
+#include "text.h"
 #include "types.h"
 #include "util.h"
+
+#include "siphash.c"
 
 static inline int64_t get_padded_item_size(const TypeInfo *info)
 {
@@ -532,67 +534,38 @@ public bool Array$equal(const array_t *x, const array_t *y, const TypeInfo *type
     return (Array$compare(x, y, type) == 0);
 }
 
-public CORD Array$as_text(const array_t *arr, bool colorize, const TypeInfo *type)
+public Text_t Array$as_text(const array_t *arr, bool colorize, const TypeInfo *type)
 {
     if (!arr)
-        return CORD_all("[", generic_as_text(NULL, false, type->ArrayInfo.item), "]");
+        return Text$concat(Text$from_str("["), generic_as_text(NULL, false, type->ArrayInfo.item), Text$from_str("]"));
 
     const TypeInfo *item_type = type->ArrayInfo.item;
-    CORD c = "[";
+    Text_t text = Text$from_str("[");
     for (int64_t i = 0; i < arr->length; i++) {
         if (i > 0)
-            c = CORD_cat(c, ", ");
-        CORD item_cord = generic_as_text(arr->data + i*arr->stride, colorize, item_type);
-        c = CORD_cat(c, item_cord);
+            text = Text$concat(text, Text$from_str(", "));
+        Text_t item_text = generic_as_text(arr->data + i*arr->stride, colorize, item_type);
+        text = Text$concat(text, item_text);
     }
-    c = CORD_cat(c, "]");
-    return c;
+    text = Text$concat(text, Text$from_str("]"));
+    return text;
 }
 
-public uint32_t Array$hash(const array_t *arr, const TypeInfo *type)
+public uint64_t Array$hash(const array_t *arr, const TypeInfo *type)
 {
-    // Array hash is calculated as a rolling, compacting hash of the length of the array, followed by
-    // the hashes of its items (or the items themselves if they're small plain data)
-    // In other words, it reads in a chunk of items or item hashes, then when it fills up the chunk,
-    // hashes it down to a single item to start the next chunk. This repeats until the end, when it
-    // hashes the last chunk down to a uint32_t.
     const TypeInfo *item = type->ArrayInfo.item;
-    if (item->tag == PointerInfo || (item->tag == CustomInfo && item->CustomInfo.hash == NULL)) { // Raw data hash
-        uint8_t hash_batch[4 + 8*item->size];
-        memset(hash_batch, 0, sizeof(hash_batch));
-        uint8_t *p = hash_batch, *end = hash_batch + sizeof(hash_batch);
-        int64_t length = arr->length;
-        *p = (uint32_t)length;
-        p += sizeof(uint32_t);
-        for (int64_t i = 0; i < arr->length; i++) {
-            if (p >= end) {
-                uint32_t chunk_hash;
-                halfsiphash(&hash_batch, sizeof(hash_batch), TOMO_HASH_KEY, (uint8_t*)&chunk_hash, sizeof(chunk_hash));
-                p = hash_batch;
-                *(uint32_t*)p = chunk_hash;
-                p += sizeof(uint32_t);
-            }
-            memcpy((p += item->size), arr->data + i*arr->stride, item->size);
-        }
-        uint32_t hash;
-        halfsiphash(&hash_batch, ((int64_t)p) - ((int64_t)hash_batch), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));
-        return hash;
+    siphash sh;
+    siphashinit(&sh, sizeof(uint64_t[arr->length]), (uint64_t*)TOMO_HASH_KEY);
+    if (item->tag == PointerInfo || (item->tag == CustomInfo && item->CustomInfo.hash == NULL && item->size == sizeof(void*))) { // Raw data hash
+        for (int64_t i = 0; i < arr->length; i++)
+            siphashadd64bits(&sh, (uint64_t)(arr->data + i*arr->stride));
     } else {
-        uint32_t hash_batch[16] = {(uint32_t)arr->length};
-        uint32_t *p = &hash_batch[1], *end = hash_batch + sizeof(hash_batch)/sizeof(hash_batch[0]);
         for (int64_t i = 0; i < arr->length; i++) {
-            if (p >= end) {
-                uint64_t chunk_hash;
-                halfsiphash(&hash_batch, sizeof(hash_batch), TOMO_HASH_KEY, (uint8_t*)&chunk_hash, sizeof(chunk_hash));
-                p = hash_batch;
-                *(p++) = chunk_hash;
-            }
-            *(p++) = generic_hash(arr->data + i*arr->stride, item);
+            uint64_t item_hash = generic_hash(arr->data + i*arr->stride, item);
+            siphashadd64bits(&sh, item_hash);
         }
-        uint32_t hash;
-        halfsiphash(&hash_batch, ((int64_t)p) - ((int64_t)hash_batch), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));
-        return hash;
     }
+    return siphashfinish_last_part(&sh, 0);
 }
 
 static void siftdown(array_t *heap, int64_t startpos, int64_t pos, closure_t comparison, int64_t padded_item_size)

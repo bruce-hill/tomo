@@ -15,6 +15,7 @@
 #include "functions.h"
 #include "halfsiphash.h"
 #include "integers.h"
+#include "text.h"
 #include "types.h"
 #include "util.h"
 #include "where.h"
@@ -120,15 +121,21 @@ bool Channel$equal(const channel_t **x, const channel_t **y, const TypeInfo *typ
     return (*x == *y);
 }
 
-CORD Channel$as_text(const channel_t **channel, bool colorize, const TypeInfo *type)
+Text_t Channel$as_text(const channel_t **channel, bool colorize, const TypeInfo *type)
 {
     const TypeInfo *item_type = type->ChannelInfo.item;
     if (!channel) {
-        CORD typename = generic_as_text(NULL, false, item_type);
-        return colorize ? CORD_asprintf("\x1b[34;1m|:%s|\x1b[m", typename) : CORD_all("|:", typename, "|");
+        Text_t typename = generic_as_text(NULL, false, item_type);
+        return Text$concat(Text$from_str(colorize ? "\x1b[34;1m|:" : "|:"), typename, Text$from_str(colorize ? "|\x1b[m" : "|"));
     }
-    CORD typename = generic_as_text(NULL, false, item_type);
-    return CORD_asprintf(colorize ? "\x1b[34;1m|:%s|<%p>\x1b[m" : "|:%s|<%p>", typename, *channel);
+    Text_t typename = generic_as_text(NULL, false, item_type);
+    return Text$concat(
+        Text$from_str(colorize ? "\x1b[34;1m|:" : "|:"),
+        typename,
+        Text$from_str("|<"),
+        Int64$hex((int64_t)(void*)*channel, I_small(0), true, true),
+        Text$from_str(colorize ? ">\x1b[m" : ">")
+    );
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -224,7 +224,7 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
                 return CORD_all("Array_lvalue(", compile_type(item_type), ", ", target_code, ", ", 
                                 compile_int_to_type(env, index->index, Type(IntType, .bits=TYPE_IBITS64)),
                                 ", ", CORD_asprintf("%ld", padded_type_size(item_type)),
-                                ", ", Text$quoted(ast->file->filename, false), ", ", heap_strf("%ld", ast->start - ast->file->text),
+                                ", ", CORD_quoted(ast->file->filename), ", ", heap_strf("%ld", ast->start - ast->file->text),
                                 ", ", heap_strf("%ld", ast->end - ast->file->text), ")");
             }
         } else {
@@ -320,7 +320,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         if (!expr_t)
             code_err(test->expr, "I couldn't figure out the type of this expression");
 
-        CORD output = NULL;
+        CORD output = CORD_EMPTY;
         if (test->output) {
             const uint8_t *raw = (const uint8_t*)CORD_to_const_char_star(test->output);
             uint8_t buf[128] = {0};
@@ -328,6 +328,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             uint8_t *norm = u8_normalize(UNINORM_NFD, (uint8_t*)raw, strlen((char*)raw)+1, buf, &norm_len);
             assert(norm[norm_len-1] == 0);
             output = CORD_from_char_star((char*)norm);
+            CORD_printf("OUTPUT: %r\n", output);
             if (norm && norm != buf) free(norm);
         }
 
@@ -337,8 +338,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 assert(compile_statement(env, test->expr) == CORD_EMPTY);
                 return CORD_asprintf(
                     "test(NULL, NULL, %r, %r, %ld, %ld);",
-                    compile(env, WrapAST(test->expr, TextLiteral, .cord=output)),
-                    compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
+                    CORD_quoted(output),
+                    CORD_quoted(test->expr->file->filename),
                     (int64_t)(test->expr->start - test->expr->file->text),
                     (int64_t)(test->expr->end - test->expr->file->text));
             } else {
@@ -355,8 +356,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     compile_declaration(t, var),
                     var, val_code, var,
                     compile_type_info(env, get_type(env, decl->value)),
-                    compile(env, WrapAST(test->expr, TextLiteral, .cord=output)),
-                    compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
+                    CORD_quoted(output),
+                    CORD_quoted(test->expr->file->filename),
                     (int64_t)(test->expr->start - test->expr->file->text),
                     (int64_t)(test->expr->end - test->expr->file->text));
             }
@@ -382,8 +383,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     compile_assignment(env, assign->targets->ast, value),
                     compile(env, assign->targets->ast),
                     compile_type_info(env, lhs_t),
-                    compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
-                    compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
+                    CORD_quoted(test->output),
+                    CORD_quoted(test->expr->file->filename),
                     (int64_t)(test->expr->start - test->expr->file->text),
                     (int64_t)(test->expr->end - test->expr->file->text));
             } else {
@@ -415,8 +416,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
                 CORD_appendf(&code, "&$1; }), %r, %r, %r, %ld, %ld);",
                     compile_type_info(env, get_type(env, assign->targets->ast)),
-                    compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
-                    compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
+                    CORD_quoted(test->output),
+                    CORD_quoted(test->expr->file->filename),
                     (int64_t)(test->expr->start - test->expr->file->text),
                     (int64_t)(test->expr->end - test->expr->file->text));
                 return code;
@@ -427,25 +428,25 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 compile_statement(env, test->expr),
                 compile_lvalue(env, Match(test->expr, UpdateAssign)->lhs),
                 compile_type_info(env, get_type(env, Match(test->expr, UpdateAssign)->lhs)),
-                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->output)),
-                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
+                CORD_quoted(test->output),
+                CORD_quoted(test->expr->file->filename),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else if (expr_t->tag == VoidType || expr_t->tag == AbortType || expr_t->tag == ReturnType) {
             return CORD_asprintf(
                 "test(({ %r; NULL; }), NULL, NULL, %r, %ld, %ld);",
                 compile_statement(env, test->expr),
-                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
+                CORD_quoted(test->expr->file->filename),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else {
             return CORD_asprintf(
                 "test(%r, %r, %r, %r, %ld, %ld);",
                 test->expr->tag == Var ? CORD_all("&", compile(env, test->expr))
-                : CORD_all("(", compile_type(expr_t), "[1]){", compile(env, test->expr), "}"),
+                  : CORD_all("(", compile_type(expr_t), "[1]){", compile(env, test->expr), "}"),
                 compile_type_info(env, expr_t),
-                compile(env, WrapAST(test->expr, TextLiteral, .cord=output)),
-                compile(env, WrapAST(test->expr, TextLiteral, .cord=test->expr->file->filename)),
+                CORD_quoted(output),
+                CORD_quoted(test->expr->file->filename),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         }
@@ -629,7 +630,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         auto def = Match(ast, LangDef);
         CORD_appendf(&env->code->typeinfos, "public const TypeInfo %r%s = {%zu, %zu, {.tag=TextInfo, .TextInfo={%r}}};\n",
                      namespace_prefix(env->libname, env->namespace), def->name, sizeof(CORD), __alignof__(CORD),
-                     Text$quoted(def->name, false));
+                     CORD_quoted(def->name));
         compile_namespace(env, def->name, def->namespace);
         return CORD_EMPTY;
     }
@@ -703,7 +704,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 "}\n");
             env->code->funcs = CORD_cat(env->code->funcs, wrapper);
         } else if (fndef->cache && fndef->cache->tag == Int) {
-            int64_t cache_size = Int64$from_text(Match(fndef->cache, Int)->str, NULL);
+            int64_t cache_size = Int64$from_text(Text$from_str(Match(fndef->cache, Int)->str), NULL);
             const char *arg_type_name = heap_strf("%s$args", Match(fndef->name, Var)->name);
             ast_t *args_def = FakeAST(StructDef, .name=arg_type_name, .fields=fndef->args);
             prebind_statement(env, args_def);
@@ -1314,7 +1315,7 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
     }
 
     int64_t target_bits = (int64_t)Match(target, IntType)->bits;
-    Int_t int_val = Int$from_text(Match(ast, Int)->str, NULL);
+    Int_t int_val = Int$from_text(Text$from_str(Match(ast, Int)->str), NULL);
     mpz_t i;
     mpz_init_set_int(i, int_val);
 
@@ -1354,7 +1355,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                     if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
                         value = compile_int_to_type(env, call_arg->value, spec_arg->type);
                     } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
-                        Int_t int_val = Int$from_text(Match(call_arg->value, Int)->str, NULL);
+                        Int_t int_val = Int$from_text(Text$from_str(Match(call_arg->value, Int)->str), NULL);
                         double n = Int_to_Num(int_val);
                         value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == TYPE_NBITS64
                                               ? "N64(%.20g)" : "N32(%.10g)", n);
@@ -1382,7 +1383,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                 if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
                     value = compile_int_to_type(env, call_arg->value, spec_arg->type);
                 } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
-                    Int_t int_val = Int$from_text(Match(call_arg->value, Int)->str, NULL);
+                    Int_t int_val = Int$from_text(Text$from_str(Match(call_arg->value, Int)->str), NULL);
                     double n = Int_to_Num(int_val);
                     value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == TYPE_NBITS64
                                           ? "N64(%.20g)" : "N32(%.10g)", n);
@@ -1513,7 +1514,7 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Int: {
         const char *str = Match(ast, Int)->str;
-        Int_t int_val = Int$from_text(str, NULL);
+        Int_t int_val = Int$from_text(Text$from_str(str), NULL);
         mpz_t i;
         mpz_init_set_int(i, int_val);
 
@@ -1780,8 +1781,8 @@ CORD compile(env_t *env, ast_t *ast)
     case TextLiteral: {
         CORD literal = Match(ast, TextLiteral)->cord; 
         if (literal == CORD_EMPTY)
-            return "(CORD)CORD_EMPTY";
-        CORD code = "(CORD)\"";
+            return "((Text_t){.length=0})";
+        CORD code = "Text$from_str(\"";
         CORD_pos i;
         CORD_FOR(i, literal) {
             char c = CORD_pos_fetch(i);
@@ -1803,7 +1804,7 @@ CORD compile(env_t *env, ast_t *ast)
             }
             }
         }
-        return CORD_cat_char(code, '"');
+        return CORD_cat(code, "\")");
     }
     case TextJoin: {
         const char *lang = Match(ast, TextJoin)->lang;
@@ -1812,7 +1813,7 @@ CORD compile(env_t *env, ast_t *ast)
             code_err(ast, "%s is not a valid text language name", lang);
         ast_list_t *chunks = Match(ast, TextJoin)->children;
         if (!chunks) {
-            return "(CORD)CORD_EMPTY";
+            return "((Text_t){.length=0})";
         } else if (!chunks->next && chunks->ast->tag == TextLiteral) {
             return compile(env, chunks->ast);
         } else {
@@ -1839,7 +1840,7 @@ CORD compile(env_t *env, ast_t *ast)
                 if (chunk->next) code = CORD_cat(code, ", ");
             }
             if (chunks->next)
-                return CORD_all("CORD_all(", code, ")");
+                return CORD_all("Text$concat(", code, ")");
             else
                 return code;
         }
@@ -2447,7 +2448,8 @@ CORD compile(env_t *env, ast_t *ast)
                     file_t *f = ast->file;
                     return CORD_all("Table$get_value_or_fail(", self, ", ", compile_type(table->key_type), ", ", compile_type(table->value_type), ", ",
                                     compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type_info(env, self_value_t), ", ",
-                                    Text$quoted(f->filename, false), ", ", CORD_asprintf("%ld", (int64_t)(ast->start - f->text)), ", ",
+                                    CORD_quoted(f->filename), ", ",
+                                    CORD_asprintf("%ld", (int64_t)(ast->start - f->text)), ", ",
                                     CORD_asprintf("%ld", (int64_t)(ast->end - f->text)),
                                     ")");
                 }
@@ -2630,8 +2632,9 @@ CORD compile(env_t *env, ast_t *ast)
         } else {
             empty = FakeAST(
                 InlineCCode, 
-                CORD_asprintf("fail_source(%r, %ld, %ld, \"This collection was empty!\");\n",
-                              Text$quoted(ast->file->filename, false), (long)(reduction->iter->start - reduction->iter->file->text),
+                CORD_asprintf("fail_source(%s, %ld, %ld, \"This collection was empty!\");\n",
+                              CORD_quoted(ast->file->filename),
+                              (long)(reduction->iter->start - reduction->iter->file->text),
                               (long)(reduction->iter->end - reduction->iter->file->text)));
         }
         ast_t *item = FakeAST(Var, "$iter_value");
@@ -2785,7 +2788,8 @@ CORD compile(env_t *env, ast_t *ast)
             else
                 return CORD_all("Array_get(", compile_type(item_type), ", ", arr, ", ",
                                 compile_int_to_type(env, indexing->index, Type(IntType, .bits=TYPE_IBITS64)), ", ",
-                                Text$quoted(f->filename, false), ", ", CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
+                                CORD_quoted(f->filename), ", ",
+                                CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
                                 CORD_asprintf("%ld", (int64_t)(indexing->index->end - f->text)),
                                 ")");
         } else {
@@ -2935,15 +2939,15 @@ CORD compile_type_info(env_t *env, type_t *t)
         CORD sigil = ptr->is_stack ? "&" : "@";
         if (ptr->is_readonly) sigil = CORD_cat(sigil, "%");
         return CORD_asprintf("$PointerInfo(%r, %r, %s)",
-                             Text$quoted(sigil, false),
+                             CORD_quoted(sigil),
                              compile_type_info(env, ptr->pointed),
                              ptr->is_optional ? "yes" : "no");
     }
     case FunctionType: {
-        return CORD_asprintf("$FunctionInfo(%r)", Text$quoted(type_to_cord(t), false));
+        return CORD_asprintf("$FunctionInfo(%r)", CORD_quoted(type_to_cord(t)));
     }
     case ClosureType: {
-        return CORD_asprintf("$ClosureInfo(%r)", Text$quoted(type_to_cord(t), false));
+        return CORD_asprintf("$ClosureInfo(%r)", CORD_quoted(type_to_cord(t)));
     }
     case TypeInfoType: return "&$TypeInfo";
     case MemoryType: return "&$Memory";
@@ -2968,7 +2972,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         usage = CORD_cat(usage, " ");
         type_t *t = get_arg_type(main_env, arg);
-        CORD flag = Text$replace(arg->name, "_", "-", I(-1));
+        CORD flag = CORD_replace(arg->name, "_", "-");
         if (arg->default_val) {
             if (t->tag == BoolType)
                 usage = CORD_all(usage, "[--", flag, "]");
@@ -2983,7 +2987,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                 usage = CORD_all(usage, "<", flag, ">");
         }
     }
-    CORD code = CORD_all("CORD usage = CORD_all(\"Usage: \", argv[0], ", usage ? Text$quoted(usage, false) : "CORD_EMPTY", ");\n",
+    CORD code = CORD_all("CORD usage = CORD_all(\"Usage: \", argv[0], ", usage ? CORD_quoted(usage) : "CORD_EMPTY", ");\n",
                          "#define USAGE_ERR(...) errx(1, CORD_to_const_char_star(CORD_all(__VA_ARGS__)))\n"
                          "#define IS_FLAG(str, flag) (strncmp(str, flag, strlen(flag) == 0 && (str[strlen(flag)] == 0 || str[strlen(flag)] == '=')) == 0)\n");
 
@@ -3006,7 +3010,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                     "if (strncmp(argv[i], \"--\", 2) != 0) {\n++i;\ncontinue;\n}\n");
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         type_t *t = get_arg_type(main_env, arg);
-        CORD flag = Text$replace(arg->name, "_", "-", I(-1));
+        CORD flag = CORD_replace(arg->name, "_", "-");
         switch (t->tag) {
         case BoolType: {
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n"

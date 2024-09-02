@@ -84,6 +84,8 @@ int main(int argc, char *argv[])
         errx(1, "Couldn't set printf specifier");
     if (register_printf_specifier('W', printf_ast, printf_pointer_size))
         errx(1, "Couldn't set printf specifier");
+    if (register_printf_specifier('k', printf_text, printf_text_size))
+        errx(1, "Couldn't set printf specifier");
 
     setenv("TOMO_IMPORT_PATH", "~/.local/src/tomo:.", 0);
     setenv("TOMO_LIB_PATH", "~/.local/lib/tomo:.", 0);

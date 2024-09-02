@@ -35,9 +35,9 @@ static CORD optional_tagged_type(const char *tag, type_ast_t *ast);
 
 CORD xml_escape(CORD text)
 {
-    text = Text$replace(text, "&", "&amp;", I(-1));
-    text = Text$replace(text, "<", "&lt;", I(-1));
-    text = Text$replace(text, ">", "&gt;", I(-1));
+    text = CORD_replace(text, "&", "&amp;");
+    text = CORD_replace(text, "<", "&lt;");
+    text = CORD_replace(text, ">", "&gt;");
     return text;
 }
 

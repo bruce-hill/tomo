@@ -74,7 +74,7 @@ void Table$mark_copy_on_write(table_t *t);
 int32_t Table$compare(const table_t *x, const table_t *y, const TypeInfo *type);
 bool Table$equal(const table_t *x, const table_t *y, const TypeInfo *type);
 uint32_t Table$hash(const table_t *t, const TypeInfo *type);
-CORD Table$as_text(const table_t *t, bool colorize, const TypeInfo *type);
+Text_t Table$as_text(const table_t *t, bool colorize, const TypeInfo *type);
 
 void *Table$str_entry(table_t t, int64_t n);
 void *Table$str_get(table_t t, const char *key);
@@ -85,6 +85,6 @@ void Table$str_remove(table_t *t, const char *key);
 
 #define Table$length(t) ((t).entries.length)
 
-extern const TypeInfo StrToVoidStarTable;
+extern const TypeInfo CStrToVoidStarTable;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1
