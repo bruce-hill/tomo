@@ -328,7 +328,6 @@ CORD compile_statement(env_t *env, ast_t *ast)
             uint8_t *norm = u8_normalize(UNINORM_NFD, (uint8_t*)raw, strlen((char*)raw)+1, buf, &norm_len);
             assert(norm[norm_len-1] == 0);
             output = CORD_from_char_star((char*)norm);
-            CORD_printf("OUTPUT: %r\n", output);
             if (norm && norm != buf) free(norm);
         }
 
@@ -595,7 +594,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             return CORD_all(lhs, " ^= ", rhs, ";");
         case BINOP_CONCAT: {
             if (lhs_t->tag == TextType) {
-                return CORD_all(lhs, " = CORD_cat(", lhs, ", ", rhs, ");");
+                return CORD_all(lhs, " = Text$concat(", lhs, ", ", rhs, ");");
             } else if (lhs_t->tag == ArrayType) {
                 CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(Match(lhs_t, ArrayType)->item_type));
                 if (promote(env, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)) {

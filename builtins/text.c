@@ -614,7 +614,7 @@ int32_t _next_grapheme(Text_t text, iteration_state_t *state, int64_t index)
         }
         for (;;) {
             if (index < state->sum_of_previous_subtexts + text.subtexts[state->subtext].length)
-                return _next_grapheme(text.subtexts[state->subtext], NULL, index);
+                return _next_grapheme(text.subtexts[state->subtext], NULL, index - state->sum_of_previous_subtexts);
             state->sum_of_previous_subtexts += text.subtexts[state->subtext].length;
             state->subtext += 1;
         }
