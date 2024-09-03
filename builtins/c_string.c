@@ -16,9 +16,9 @@
 public Text_t CString$as_text(const void *c_string, bool colorize, const TypeInfo *info)
 {
     (void)info;
-    if (!c_string) return Text$from_str("CString");
+    if (!c_string) return Text("CString");
     Text_t text = Text$from_str(*(char**)c_string);
-    return Text$concat(Text$from_str(colorize ? "\x1b[34mCString\x1b[m(" : "CString("), Text$quoted(text, colorize), Text$from_str(")"));
+    return Text$concat(colorize ? Text("\x1b[34mCString\x1b[m(") : Text("CString("), Text$quoted(text, colorize), Text(")"));
 }
 
 public int CString$compare(const char **x, const char **y)

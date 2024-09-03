@@ -169,8 +169,8 @@ public Text_t generic_as_text(const void *obj, bool colorize, const TypeInfo *ty
     case TableInfo: return Table$as_text(obj, colorize, type);
     case TypeInfoInfo: return Type$as_text(obj, colorize, type);
     case EmptyStruct: return colorize ?
-                      Text$concat(Text$from_str("\x1b[0;1m"), Text$from_str(type->EmptyStruct.name), Text$from_str("\x1b[m()"))
-                          : Text$concat(Text$from_str(type->EmptyStruct.name), Text$from_str("()"));
+                      Text$concat(Text("\x1b[0;1m"), Text$from_str(type->EmptyStruct.name), Text("\x1b[m()"))
+                          : Text$concat(Text$from_str(type->EmptyStruct.name), Text("()"));
     case CustomInfo:
         if (!type->CustomInfo.as_text)
             fail("No text function provided for type!\n");
@@ -218,9 +218,9 @@ public void end_test(void *expr, const TypeInfo *type, const char *expected, con
         Text_t expr_plain = USE_COLOR ? generic_as_text(expr, false, type) : expr_text;
         bool success = Text$equal(&expr_plain, &expected_text);
         if (!success) {
-            Int_t colon = Text$find(expected_text, Text$from_str(":"), I_small(1), NULL);
+            Int_t colon = Text$find(expected_text, Text(":"), I_small(1), NULL);
             if (colon.small != I_small(0).small) {
-                Text_t with_type = Text$concat(expr_plain, Text$from_str(" : "), type_name);
+                Text_t with_type = Text$concat(expr_plain, Text(" : "), type_name);
                 success = Text$equal(&with_type, &expected_text);
             }
         }
@@ -256,7 +256,7 @@ public bool pop_flag(char **argv, int *i, const char *flag, Text_t *result)
         *i += 1;
         return true;
     } else if (strncmp(argv[*i] + 2, "no-", 3) == 0 && streq(argv[*i] + 5, flag)) {
-        *result = Text$from_str("no");
+        *result = Text("no");
         argv[*i] = NULL;
         *i += 1;
         return true;

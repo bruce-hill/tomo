@@ -537,17 +537,17 @@ public bool Array$equal(const array_t *x, const array_t *y, const TypeInfo *type
 public Text_t Array$as_text(const array_t *arr, bool colorize, const TypeInfo *type)
 {
     if (!arr)
-        return Text$concat(Text$from_str("["), generic_as_text(NULL, false, type->ArrayInfo.item), Text$from_str("]"));
+        return Text$concat(Text("["), generic_as_text(NULL, false, type->ArrayInfo.item), Text("]"));
 
     const TypeInfo *item_type = type->ArrayInfo.item;
-    Text_t text = Text$from_str("[");
+    Text_t text = Text("[");
     for (int64_t i = 0; i < arr->length; i++) {
         if (i > 0)
-            text = Text$concat(text, Text$from_str(", "));
+            text = Text$concat(text, Text(", "));
         Text_t item_text = generic_as_text(arr->data + i*arr->stride, colorize, item_type);
         text = Text$concat(text, item_text);
     }
-    text = Text$concat(text, Text$from_str("]"));
+    text = Text$concat(text, Text("]"));
     return text;
 }
 

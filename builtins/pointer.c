@@ -25,12 +25,12 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo *type
         Text_t typename = generic_as_text(NULL, false, ptr_info.pointed);
         Text_t text;
         if (colorize)
-            text = Text$concat(Text$from_str("\x1b[34;1m"), Text$from_str(ptr_info.sigil), typename, Text$from_str("\x1b[m"));
+            text = Text$concat(Text("\x1b[34;1m"), Text$from_str(ptr_info.sigil), typename, Text("\x1b[m"));
         else
             text = Text$concat(Text$from_str(ptr_info.sigil), typename);
 
         if (ptr_info.is_optional)
-            text = Text$concat(text, Text$from_str("?"));
+            text = Text$concat(text, Text("?"));
 
         return text;
     }
@@ -38,9 +38,9 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo *type
     if (!ptr) {
         Text_t typename = generic_as_text(NULL, false, ptr_info.pointed);
         if (colorize)
-            return Text$concat(Text$from_str("\x1b[34;1m!"), typename, Text$from_str("\x1b[m"));
+            return Text$concat(Text("\x1b[34;1m!"), typename, Text("\x1b[m"));
         else
-            return Text$concat(Text$from_str("!"), typename);
+            return Text$concat(Text("!"), typename);
     }
 
     // Check for recursive references, so if `x.foo = x`, then it prints as
@@ -51,13 +51,13 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo *type
         ++depth;
         if (r->ptr == ptr) {
             Text_t text = Text$concat(
-                Text$from_str(colorize ? "\x1b[34;1m" : ""),
+                colorize ? Text("\x1b[34;1m") : Text(""),
                 Text$from_str(ptr_info.sigil),
-                Text$from_str(".."),
+                Text(".."),
                 Int32$as_text(&depth, false, &$Int32),
-                Text$from_str(colorize ? "\x1b[m" : ""));
+                colorize ? Text("\x1b[m") : Text(""));
             if (ptr_info.is_optional)
-                text = Text$concat(text, Text$from_str(colorize ? "\x1b[34;1m?\x1b[m" : "?"));
+                text = Text$concat(text, colorize ? Text("\x1b[34;1m?\x1b[m") : Text("?"));
             return text;
         }
     }
@@ -71,12 +71,12 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo *type
     }
     Text_t text;
     if (colorize)
-        text = Text$concat(Text$from_str("\x1b[34;1m"), Text$from_str(ptr_info.sigil), Text$from_str("\x1b[m"), pointed);
+        text = Text$concat(Text("\x1b[34;1m"), Text$from_str(ptr_info.sigil), Text("\x1b[m"), pointed);
     else
         text = Text$concat(Text$from_str(ptr_info.sigil), pointed);
 
     if (ptr_info.is_optional)
-        text = Text$concat(text, Text$from_str("?"));
+        text = Text$concat(text, Text("?"));
     return text;
 }
 

@@ -19,19 +19,19 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
     const char *dollar = strrchr(name, '$');
     if (dollar) name = dollar + 1;
     CORD str_func = CORD_asprintf("static Text_t %r$as_text(%r_t *obj, bool use_color) {\n"
-                                  "\tif (!obj) return Text$from_str(\"%s\");\n", full_name, full_name, name);
+                                  "\tif (!obj) return Text(\"%s\");\n", full_name, full_name, name);
     if (def->secret) {
-        CORD_appendf(&str_func, "\treturn Text$from_str(use_color ? \"\\x1b[0;1m%s\\x1b[m(\\x1b[2m...\\x1b[m)\" : \"%s(...)\");\n}",
+        CORD_appendf(&str_func, "\treturn use_color ? Text(\"\\x1b[0;1m%s\\x1b[m(\\x1b[2m...\\x1b[m)\") : Text(\"%s(...)\");\n}",
                      name, name);
     } else {
-        CORD_appendf(&str_func, "\treturn Text$concat(Text$from_str(use_color ? \"\\x1b[0;1m%s\\x1b[m(\" : \"%s(\")", name, name);
+        CORD_appendf(&str_func, "\treturn Text$concat(use_color ? Text(\"\\x1b[0;1m%s\\x1b[m(\") : Text(\"%s(\")", name, name);
         for (arg_ast_t *field = def->fields; field; field = field->next) {
             type_t *field_type = get_arg_ast_type(env, field);
             CORD field_str = expr_as_text(env, CORD_cat("obj->$", field->name), field_type, "use_color");
-            CORD_appendf(&str_func, ", Text$from_str(\"%s=\"), %r", field->name, field_str);
-            if (field->next) CORD_appendf(&str_func, ", Text$from_str(\", \")");
+            CORD_appendf(&str_func, ", Text(\"%s=\"), %r", field->name, field_str);
+            if (field->next) CORD_appendf(&str_func, ", Text(\", \")");
         }
-        CORD_appendf(&str_func, ", Text$from_str(\")\"));\n}\n");
+        CORD_appendf(&str_func, ", Text(\")\"));\n}\n");
     }
     return str_func;
 }

@@ -16,25 +16,25 @@
 public Text_t Bool$as_text(const bool *b, bool colorize, const TypeInfo *type)
 {
     (void)type;
-    if (!b) return Text$from_str("Bool");
+    if (!b) return Text("Bool");
     if (colorize)
-        return *b ? Text$from_str("\x1b[35myes\x1b[m") : Text$from_str("\x1b[35mno\x1b[m");
+        return *b ? Text("\x1b[35myes\x1b[m") : Text("\x1b[35mno\x1b[m");
     else
-        return *b ? Text$from_str("yes") : Text$from_str("no");
+        return *b ? Text("yes") : Text("no");
 }
 
 public Bool_t Bool$from_text(Text_t text, bool *success)
 {
-    if (Text$equal_ignoring_case(text, Text$from_str("yes"))
-        || Text$equal_ignoring_case(text, Text$from_str("on"))
-        || Text$equal_ignoring_case(text, Text$from_str("true"))
-        || Text$equal_ignoring_case(text, Text$from_str("1"))) {
+    if (Text$equal_ignoring_case(text, Text("yes"))
+        || Text$equal_ignoring_case(text, Text("on"))
+        || Text$equal_ignoring_case(text, Text("true"))
+        || Text$equal_ignoring_case(text, Text("1"))) {
         if (success) *success = yes;
         return yes;
-    } else if (Text$equal_ignoring_case(text, Text$from_str("no"))
-        || Text$equal_ignoring_case(text, Text$from_str("off"))
-        || Text$equal_ignoring_case(text, Text$from_str("false"))
-        || Text$equal_ignoring_case(text, Text$from_str("0"))) {
+    } else if (Text$equal_ignoring_case(text, Text("no"))
+        || Text$equal_ignoring_case(text, Text("off"))
+        || Text$equal_ignoring_case(text, Text("false"))
+        || Text$equal_ignoring_case(text, Text("0"))) {
         if (success) *success = yes;
         return no;
     } else {

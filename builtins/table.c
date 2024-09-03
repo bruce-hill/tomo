@@ -459,34 +459,34 @@ public Text_t Table$as_text(const table_t *t, bool colorize, const TypeInfo *typ
     if (!t) {
         if (table.value != &$Void) 
             return Text$concat(
-                Text$from_str("{"),
+                Text("{"),
                 generic_as_text(NULL, false, table.key),
-                Text$from_str(":"),
+                Text(":"),
                 generic_as_text(NULL, false, table.value),
-                Text$from_str("}"));
+                Text("}"));
         else
             return Text$concat(
-                Text$from_str("{"),
+                Text("{"),
                 generic_as_text(NULL, false, table.key),
-                Text$from_str("}"));
+                Text("}"));
     }
 
     int64_t val_off = value_offset(type);
-    Text_t text = Text$from_str("{");
+    Text_t text = Text("{");
     for (int64_t i = 0, length = Table$length(*t); i < length; i++) {
         if (i > 0)
-            text = Text$concat(text, Text$from_str(", "));
+            text = Text$concat(text, Text(", "));
         void *entry = GET_ENTRY(*t, i);
         text = Text$concat(text, generic_as_text(entry, colorize, table.key));
         if (table.value != &$Void) 
-            text = Text$concat(text, Text$from_str(":"), generic_as_text(entry + val_off, colorize, table.value));
+            text = Text$concat(text, Text(":"), generic_as_text(entry + val_off, colorize, table.value));
     }
 
     if (t->fallback) {
-        text = Text$concat(text, Text$from_str("; fallback="), Table$as_text(t->fallback, colorize, type));
+        text = Text$concat(text, Text("; fallback="), Table$as_text(t->fallback, colorize, type));
     }
 
-    text = Text$concat(text, Text$from_str("}"));
+    text = Text$concat(text, Text("}"));
     return text;
 }
 

@@ -14,13 +14,13 @@
 
 public Text_t Type$as_text(const void *typeinfo, bool colorize, const TypeInfo *type)
 {
-    if (!typeinfo) return Text$from_str("TypeInfo");
+    if (!typeinfo) return Text("TypeInfo");
 
     if (colorize)
         return Text$concat(
-            Text$from_str("\x1b[36;1m"),
+            Text("\x1b[36;1m"),
             Text$from_str(type->TypeInfoInfo.type_str),
-            Text$from_str("\x1b[m"));
+            Text("\x1b[m"));
     else
         return Text$from_str(type->TypeInfoInfo.type_str);
 }
@@ -40,7 +40,7 @@ public Text_t Func$as_text(const void *fn, bool colorize, const TypeInfo *type)
     (void)fn;
     Text_t text = Text$from_str(type->FunctionInfo.type_str);
     if (fn && colorize)
-        text = Text$concat(Text$from_str("\x1b[32;1m"), text, Text$from_str("\x1b[m"));
+        text = Text$concat(Text("\x1b[32;1m"), text, Text("\x1b[m"));
     return text;
 }
 

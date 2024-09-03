@@ -16,7 +16,7 @@
 
 public Text_t Num$as_text(const double *f, bool colorize, const TypeInfo *type) { 
     (void)type;
-    if (!f) return Text$from_str("Num");
+    if (!f) return Text("Num");
     return Text$format(colorize ? "\x1b[35m%.16g\x1b[33;2m\x1b[m" : "%.16g", *f); 
 } 
 
@@ -95,7 +95,7 @@ public const TypeInfo $Num = {
 
 public Text_t Num32$as_text(const float *f, bool colorize, const TypeInfo *type) { 
     (void)type;
-    if (!f) return Text$from_str("Num32");
+    if (!f) return Text("Num32");
     return Text$format(colorize ? "\x1b[35m%.8g_f32\x1b[33;2m\x1b[m" : "%.8g_f32", *f); 
 }
 

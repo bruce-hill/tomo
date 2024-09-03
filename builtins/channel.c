@@ -125,15 +125,15 @@ Text_t Channel$as_text(const channel_t **channel, bool colorize, const TypeInfo 
     const TypeInfo *item_type = type->ChannelInfo.item;
     if (!channel) {
         Text_t typename = generic_as_text(NULL, false, item_type);
-        return Text$concat(Text$from_str(colorize ? "\x1b[34;1m|:" : "|:"), typename, Text$from_str(colorize ? "|\x1b[m" : "|"));
+        return Text$concat(colorize ? Text("\x1b[34;1m|:") : Text("|:"), typename, colorize ? Text("|\x1b[m") : Text("|"));
     }
     Text_t typename = generic_as_text(NULL, false, item_type);
     return Text$concat(
-        Text$from_str(colorize ? "\x1b[34;1m|:" : "|:"),
+        colorize ? Text("\x1b[34;1m|:") : Text("|:"),
         typename,
-        Text$from_str("|<"),
+        Text("|<"),
         Int64$hex((int64_t)(void*)*channel, I_small(0), true, true),
-        Text$from_str(colorize ? ">\x1b[m" : ">")
+        colorize ? Text(">\x1b[m") : Text(">")
     );
 }
 

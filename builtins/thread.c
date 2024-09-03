@@ -43,7 +43,7 @@ Text_t Thread$as_text(const pthread_t **thread, bool colorize, const TypeInfo *t
 {
     (void)type;
     if (!thread) {
-        return Text$from_str(colorize ? "\x1b[34;1mThread\x1b[m" : "Thread");
+        return colorize ? Text("\x1b[34;1mThread\x1b[m") : Text("Thread");
     }
     return Text$format(colorize ? "\x1b[34;1mThread(%p)\x1b[m" : "Thread(%p)", *thread);
 }

@@ -25,30 +25,30 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
     auto def = Match(ast, EnumDef);
     CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
     CORD str_func = CORD_all("static Text_t ", full_name, "$as_text(", full_name, "_t *obj, bool use_color) {\n"
-                             "\tif (!obj) return Text$from_str(\"", def->name, "\");\n"
+                             "\tif (!obj) return Text(\"", def->name, "\");\n"
                              "switch (obj->tag) {\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         if (!tag->fields) {
-            str_func = CORD_all(str_func, "\tcase ", full_name, "$tag$", tag->name, ": return Text$from_str(use_color ? \"\\x1b[36;1m",
-                         def->name, ".", tag->name, "\\x1b[m\" : \"", def->name, ".", tag->name, "\");\n");
+            str_func = CORD_all(str_func, "\tcase ", full_name, "$tag$", tag->name, ": return use_color ? Text(\"\\x1b[36;1m",
+                         def->name, ".", tag->name, "\\x1b[m\") : Text(\"", def->name, ".", tag->name, "\");\n");
             continue;
         }
 
-        str_func = CORD_all(str_func, "\tcase ", full_name, "$tag$", tag->name, ": return Text$concat(Text$from_str(use_color ? \"\\x1b[36;1m",
-                     def->name, ".", tag->name, "\\x1b[m(\" : \"", def->name, ".", tag->name, "(\")");
+        str_func = CORD_all(str_func, "\tcase ", full_name, "$tag$", tag->name, ": return Text$concat(use_color ? Text(\"\\x1b[36;1m",
+                     def->name, ".", tag->name, "\\x1b[m(\") : Text(\"", def->name, ".", tag->name, "(\")");
 
         if (tag->secret) {
-            str_func = CORD_cat(str_func, ", Text$from_str(use_color ? \"\\x1b[2m...\\x1b[m\" : \"...\", \")\"));\n");
+            str_func = CORD_cat(str_func, ", use_color ? Text(\"\\x1b[2m...\\x1b[m\") : Text(\"...\", \")\"));\n");
             continue;
         }
 
         for (arg_ast_t *field = tag->fields; field; field = field->next) {
             type_t *field_t = get_arg_ast_type(env, field);
             CORD field_str = expr_as_text(env, CORD_all("obj->$", tag->name, ".$", field->name), field_t, "use_color");
-            str_func = CORD_all(str_func, ", Text$from_str(\"", field->name, "=\"), ", field_str);
-            if (field->next) str_func = CORD_cat(str_func, ", Text$from_str(\", \")");
+            str_func = CORD_all(str_func, ", Text(\"", field->name, "=\"), ", field_str);
+            if (field->next) str_func = CORD_cat(str_func, ", Text(\", \")");
         }
-        str_func = CORD_cat(str_func, ", Text$from_str(\")\"));\n");
+        str_func = CORD_cat(str_func, ", Text(\")\"));\n");
     }
     str_func = CORD_cat(str_func, "\tdefault: return (Text_t){.length=0};\n\t}\n}\n");
     return str_func;

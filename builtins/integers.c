@@ -25,14 +25,14 @@ public void Int$init_random(long seed)
 
 public Text_t Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type) {
     (void)type;
-    if (!i) return Text$from_str("Int");
+    if (!i) return Text("Int");
 
     if (__builtin_expect(i->small & 1, 1)) {
         return Text$format(colorize ? "\x1b[35m%ld\x1b[m" : "%ld", (i->small)>>2);
     } else {
         char *str = mpz_get_str(NULL, 10, *i->big);
         Text_t text = Text$from_str(str);
-        if (colorize) text = Text$concat(Text$from_str("\x1b[35m"), text, Text$from_str("\x1b[m"));
+        if (colorize) text = Text$concat(Text("\x1b[35m"), text, Text("\x1b[m"));
         return text;
     }
 }
@@ -85,7 +85,7 @@ public Text_t Int$format(Int_t i, Int_t digits_int)
         char *zeroes = GC_MALLOC_ATOMIC(needed_zeroes);
         memset(zeroes, '0', needed_zeroes);
         if (negative)
-            return Text$concat(Text$from_str("-"), Text$from_str(zeroes), Text$from_str(str + 1));
+            return Text$concat(Text("-"), Text$from_str(zeroes), Text$from_str(str + 1));
         else
             return Text$concat(Text$from_str(zeroes), Text$from_str(str));
     }
@@ -93,7 +93,7 @@ public Text_t Int$format(Int_t i, Int_t digits_int)
 
 public Text_t Int$hex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
     if (Int$compare(&i, (Int_t[1]){I_small(0)}, &$Int) < 0)
-        return Text$concat(Text$from_str("-"), Int$hex(Int$negative(i), digits_int, uppercase, prefix));
+        return Text$concat(Text("-"), Int$hex(Int$negative(i), digits_int, uppercase, prefix));
 
     int64_t digits = Int_to_Int64(digits_int, false);
     if (__builtin_expect(i.small & 1, 1)) {
@@ -107,12 +107,12 @@ public Text_t Int$hex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
         }
         int64_t needed_zeroes = digits - (int64_t)strlen(str);
         if (needed_zeroes <= 0)
-            return prefix ? Text$concat(Text$from_str("0x"), Text$from_str(str)) : Text$from_str(str);
+            return prefix ? Text$concat(Text("0x"), Text$from_str(str)) : Text$from_str(str);
 
         char *zeroes = GC_MALLOC_ATOMIC(needed_zeroes);
         memset(zeroes, '0', needed_zeroes);
         if (prefix)
-            return Text$concat(Text$from_str("0x"), Text$from_str(zeroes), Text$from_str(str));
+            return Text$concat(Text("0x"), Text$from_str(zeroes), Text$from_str(str));
         else
             return Text$concat(Text$from_str(zeroes), Text$from_str(str));
     }
@@ -121,7 +121,7 @@ public Text_t Int$hex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
 public Text_t Int$octal(Int_t i, Int_t digits_int, bool prefix) {
     Int_t zero = I_small(0);
     if (Int$compare(&i, &zero, &$Int) < 0)
-        return Text$concat(Text$from_str("-"), Int$octal(Int$negative(i), digits_int, prefix));
+        return Text$concat(Text("-"), Int$octal(Int$negative(i), digits_int, prefix));
 
     int64_t digits = Int_to_Int64(digits_int, false);
     if (__builtin_expect(i.small & 1, 1)) {
@@ -131,12 +131,12 @@ public Text_t Int$octal(Int_t i, Int_t digits_int, bool prefix) {
         char *str = mpz_get_str(NULL, 8, *i.big);
         int64_t needed_zeroes = digits - (int64_t)strlen(str);
         if (needed_zeroes <= 0)
-            return prefix ? Text$concat(Text$from_str("0o"), Text$from_str(str)) : Text$from_str(str);
+            return prefix ? Text$concat(Text("0o"), Text$from_str(str)) : Text$from_str(str);
 
         char *zeroes = GC_MALLOC_ATOMIC(needed_zeroes);
         memset(zeroes, '0', needed_zeroes);
         if (prefix)
-            return Text$concat(Text$from_str("0o"), Text$from_str(zeroes), Text$from_str(str));
+            return Text$concat(Text("0o"), Text$from_str(zeroes), Text$from_str(str));
         else
             return Text$concat(Text$from_str(zeroes), Text$from_str(str));
     }
@@ -408,7 +408,7 @@ public const TypeInfo $Int = {
 #define DEFINE_INT_TYPE(c_type, KindOfInt, fmt, min_val, max_val)\
     public Text_t KindOfInt ## $as_text(const c_type *i, bool colorize, const TypeInfo *type) { \
         (void)type; \
-        if (!i) return Text$from_str(#KindOfInt); \
+        if (!i) return Text(#KindOfInt); \
         return Text$format(colorize ? "\x1b[35m%" fmt "\x1b[m" : "%" fmt, *i); \
     } \
     public int32_t KindOfInt ## $compare(const c_type *x, const c_type *y, const TypeInfo *type) { \

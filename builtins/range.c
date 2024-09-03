@@ -35,7 +35,7 @@ static bool Range$equal(const Range_t *x, const Range_t *y, const TypeInfo *type
 static Text_t Range$as_text(const Range_t *r, bool use_color, const TypeInfo *type)
 {
     (void)type;
-    if (!r) return Text$from_str("Range");
+    if (!r) return Text("Range");
 
     return Text$format(use_color ? "\x1b[0;1mRange\x1b[m(first=%r, last=%r, step=%r)"
                        : "Range(first=%r, last=%r, step=%r)",

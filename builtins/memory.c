@@ -15,7 +15,7 @@
 
 public Text_t Memory__as_text(const void *p, bool colorize, const TypeInfo *type) {
     (void)type;
-    if (!p) return Text$from_str("Memory");
+    if (!p) return Text("Memory");
     return Text$format(colorize ? "\x1b[0;34;1mMemory<%p>\x1b[m" : "Memory<%p>", p);
 }
 
