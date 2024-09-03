@@ -247,7 +247,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"by", "Range$by", "func(range:Range, step:Int)->Range"},
         )},
         {"Text", TEXT_TYPE, "Text_t", "$Text", TypedArray(ns_entry_t,
-            {"find", "Text$find", "func(text:Text, pattern:Text)->Int"},
+            {"find", "Text$find", "func(text:Text, pattern:Text, start=1, length=!&Int64)->Int"},
             {"find_all", "Text$find_all", "func(text:Text, pattern:Text)->[Text]"},
             {"as_c_string", "CORD_to_char_star", "func(text:Text)->CString"},
             {"codepoint_names", "Text$codepoint_names", "func(text:Text)->[Text]"},

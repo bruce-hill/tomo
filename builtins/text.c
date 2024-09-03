@@ -1291,16 +1291,23 @@ int64_t match(Text_t text, Text_t pattern, int64_t text_index, int64_t pattern_i
 
 public Int_t Text$find(Text_t text, Text_t pattern, Int_t from_index, int64_t *match_length)
 {
-    int32_t first = get_grapheme(pattern, 0);
-    bool find_first = (first != '['
-                       && !uc_is_property(first, UC_PROPERTY_QUOTATION_MARK)
-                       && !uc_is_property(first, UC_PROPERTY_PAIRED_PUNCTUATION));
+    int64_t first = Int_to_Int64(from_index, false);
+    if (first == 0) fail("Invalid index: 0");
+    if (first < 0) first = text.length + first + 1;
+    if (first > text.length || first < 1)
+        return I_small(0);
+
+    int32_t first_grapheme = get_grapheme(pattern, 0);
+    bool find_first = (first_grapheme != '['
+                       && !uc_is_property(first_grapheme, UC_PROPERTY_QUOTATION_MARK)
+                       && !uc_is_property(first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
 
     iteration_state_t text_state = {0, 0};
-    for (int64_t i = Int_to_Int64(from_index, false)-1; i < text.length; i++) {
+
+    for (int64_t i = first-1; i < text.length; i++) {
         // Optimization: quickly skip ahead to first char in pattern:
         if (find_first) {
-            while (i < text.length && _next_grapheme(text, &text_state, i) != first)
+            while (i < text.length && _next_grapheme(text, &text_state, i) != first_grapheme)
                 ++i;
         }
 
@@ -1416,7 +1423,7 @@ public array_t Text$find_all(Text_t text, Text_t pattern)
         if (I_is_zero(found)) break;
         Text_t match = Text$slice(text, found, Int$plus(found, Int64_to_Int(len-1)));
         Array$insert(&matches, &match, I_small(0), sizeof(Text_t));
-        i = Int$plus(found, Int64_to_Int(len));
+        i = Int$plus(found, Int64_to_Int(len <= 0 ? 1 : len));
     }
 
     return matches;
@@ -1437,7 +1444,7 @@ public Text_t Text$replace(Text_t text, Text_t pattern, Text_t replacement)
         } else {
             ret = concat2(ret, replacement);
         }
-        i = Int$plus(found, Int64_to_Int(len));
+        i = Int$plus(found, Int64_to_Int(len <= 0 ? 1 : len));
     }
     if (Int_to_Int64(i, false) <= text.length) {
         Text_t last_slice = Text$slice(text, i, Int64_to_Int(text.length));
@@ -1463,7 +1470,7 @@ public array_t Text$split(Text_t text, Text_t pattern)
         if (I_is_zero(found)) break;
         Text_t chunk = Text$slice(text, i, Int$minus(found, I_small(1)));
         Array$insert(&chunks, &chunk, I_small(0), sizeof(Text_t));
-        i = Int$plus(found, Int64_to_Int(len));
+        i = Int$plus(found, Int64_to_Int(len <= 0 ? 1 : len));
     }
 
     Text_t last_chunk = Text$slice(text, i, Int64_to_Int(text.length));

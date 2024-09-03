@@ -129,6 +129,7 @@ func main():
 	>> "one$(\r\n)two$(\r\n)three$(\r\n)":lines()
 	= ["one", "two", "three"]
 
+	//! Test splitting and joining text:
 	>> "one two three":split(" ")
 	= ["one", "two", "three"]
 
@@ -156,6 +157,7 @@ func main():
 	>> "":split()
 	= []
 
+	//! Test text:find_all()
 	>> " one  two three   ":find_all("[..alpha]")
 	= ["one", "two", "three"]
 
@@ -173,3 +175,19 @@ func main():
 
 	>> "Hello":find_all("")
 	= []
+
+	//! Test text:find()
+	>> " one   two  three   ":find("[..id]", start=-999)
+	= 0
+	>> " one   two  three   ":find("[..id]", start=999)
+	= 0
+	>> " one   two  three   ":find("[..id]")
+	= 2
+	>> " one   two  three   ":find("[..id]", start=5)
+	= 8
+
+	>> len := 0_i64
+	>> "   one  ":find("[..id]", length=&len)
+	= 4
+	>> len
+	= 3_i64
