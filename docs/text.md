@@ -284,9 +284,9 @@ See [Text Functions](#Text-Functions) for the full API documentation.
 
 Patterns have three types of syntax:
 
-- `[..` followed by an optional count (`n`, `n-m`, or `n+`), followed by an
+- `{` followed by an optional count (`n`, `n-m`, or `n+`), followed by an
   optional `!` to negate the pattern, followed by an optional pattern name or
-  Unicode character name, followed by a required `]`.
+  Unicode character name, followed by a required `}`.
 
 - Any matching pair of quotes or parentheses or braces with a `?` in the middle
   (e.g. `"?"` or `(?)`).
@@ -296,10 +296,11 @@ Patterns have three types of syntax:
 ## Named Patterns
 
 Named patterns match certain pre-defined patterns that are commonly useful. To
-use a named pattern, use the syntax `[..name]`. Names are case-insensitive and
+use a named pattern, use the syntax `{name}`. Names are case-insensitive and
 mostly ignore spaces, underscores, and dashes.
 
-- ` ` - If no name is given, any character is accepted.
+- `..` - Any character (note that a single `.` would mean the literal period
+  character).
 - `digit` - A unicode digit
 - `email` - an email address
 - `emoji` - an emoji
@@ -315,8 +316,8 @@ mostly ignore spaces, underscores, and dashes.
 - `url` - a URL (URI that specifically starts with `http://`, `https://`, `ws://`, `wss://`, or `ftp://`)
 
 For non-alphabetic characters, any single character is treated as matching
-exactly that character. For example, `[..1 []` matches exactly one `[`
-character. Or, `[..1 (]` matches exactly one `(` character.
+exactly that character. For example, `{1{}` matches exactly one `{`
+character. Or, `{1.}` matches exactly one `.` character.
 
 Patterns can also use any Unicode property name. Some helpful ones are:
 
@@ -326,37 +327,37 @@ Patterns can also use any Unicode property name. Some helpful ones are:
 - `upper` - Uppercase letters
 - `whitespace` - Whitespace characters
 
-Patterns may also use exact Unicode codepoint names. For example: `[..1 latin
-small letter A]` matches `a`.
+Patterns may also use exact Unicode codepoint names. For example: `{1 latin
+small letter A}` matches `a`.
 
 ## Negating Patterns
 
 If an exclamation mark (`!`) is placed before a pattern's name, then characters
-are matched only when they _don't_ match the pattern. For example, `[..!alpha]`
+are matched only when they _don't_ match the pattern. For example, `{!alpha}`
 will match all characters _except_ alphabetic ones.
 
 ## Interpolating Text and Escaping
 
 To escape a character in a pattern (e.g. if you want to match the literal
-character `?`), you can use the syntax `[..1 ?]`. This is almost never
-necessary unless you have text that looks like a Tomo text pattern and has
-something like `[..` or `(?)` inside it.
+character `?`), you can use the syntax `{1 ?}`. This is almost never necessary
+unless you have text that looks like a Tomo text pattern and has something like
+`{` or `(?)` inside it.
 
 However, if you're trying to do an exact match of arbitrary text values, you'll
 want to have the text automatically escaped. Fortunately, Tomo's injection-safe
 DSL text interpolation supports automatic text escaping. This means that if you
 use text interpolation with the `$` sign to insert a text value, the value will
-be automatically escaped using the `[..1 ?]` rule described above:
+be automatically escaped using the `{1 ?}` rule described above:
 
 ```tomo
 # Risk of code injection (would cause an error because 'xxx' is not a valid
 # pattern name:
 >> user_input := get_user_input()
-= "[..xxx]"
+= "{xxx}"
 
 # Interpolation automatically escapes:
 >> $/$user_input/
-= $/[..1 []..xxx]/
+= $/{1{}..xxx}/
 
 # No error:
 >> some_text:find($/$user_input/)
@@ -366,8 +367,8 @@ be automatically escaped using the `[..1 ?]` rule described above:
 If you prefer, you can also use this to insert literal characters:
 
 ```tomo
->> $/literal $"[..]"/
-= $/literal [..1]]..]/
+>> $/literal $"{..}"/
+= $/literal {1{}..}/
 ```
 
 ## Repetitions
@@ -378,11 +379,11 @@ many repetitions you want by putting a number or range of numbers first using
 (`n` or more repetitions):
 
 ```
-[..4-5 alpha]
-0x[..hex]
-[..4 digit]-[..2 digit]-[..2 digit]
-[..2+ space]
-[..0-1 question mark]
+{4-5 alpha}
+0x{hex}
+{4 digit}-{2 digit}-{2 digit}
+{2+ space}
+{0-1 question mark}
 ```
 
 # Text Functions
@@ -625,17 +626,17 @@ found.
 
 **Example:**  
 ```tomo
->> " one   two  three   ":find("[..id]", start=-999)
+>> " one   two  three   ":find("{id}", start=-999)
 = 0
->> " one   two  three   ":find("[..id]", start=999)
+>> " one   two  three   ":find("{id}", start=999)
 = 0
->> " one   two  three   ":find("[..id]")
+>> " one   two  three   ":find("{id}")
 = 2
->> " one   two  three   ":find("[..id]", start=5)
+>> " one   two  three   ":find("{id}", start=5)
 = 8
 
 >> len := 0_i64
->> "   one  ":find("[..id]", length=&len)
+>> "   one  ":find("{id}", length=&len)
 = 4
 >> len
 = 3_i64
@@ -665,16 +666,16 @@ Note: if `text` or `pattern` is empty, an empty array will be returned.
 
 **Example:**  
 ```tomo
->> " one  two three   ":find_all("[..alpha]")
+>> " one  two three   ":find_all("{alpha}")
 = ["one", "two", "three"]
 
->> " one  two three   ":find_all("[..!space]")
+>> " one  two three   ":find_all("{!space}")
 = ["one", "two", "three"]
 
->> "    ":find_all("[..alpha]")
+>> "    ":find_all("{alpha}")
 = []
 
->> " foo(baz(), 1)  doop() ":find_all("[..id](?)")
+>> " foo(baz(), 1)  doop() ":find_all("{id}(?)")
 = ["foo(baz(), 1)", "doop()"]
 
 >> "":find_all("")
@@ -708,11 +709,11 @@ has(text: Text, pattern: Text) -> Bool
 ```tomo
 >> "hello world":has("wo")
 = yes
->> "hello world":has("[..alpha]")
+>> "hello world":has("{alpha}")
 = yes
->> "hello world":has("[..digit]")
+>> "hello world":has("{digit}")
 = no
->> "hello world":has("[..start]he")
+>> "hello world":has("{start}he")
 = yes
 ```
 
@@ -854,7 +855,7 @@ The text with occurrences of the pattern replaced.
 >> "Hello world":replace("world", "there")
 = "Hello there"
 
->> "Hello world":replace("[..id]", "xxx")
+>> "Hello world":replace("{id}", "xxx")
 = "xxx xxx"
 ```
 
@@ -888,7 +889,7 @@ An array of substrings resulting from the split.
 >> "abc":split()
 = ["a", "b", "c"]
 
->> "a    b  c":split("[..space]")
+>> "a    b  c":split("{space}")
 = ["a", "b", "c"]
 
 >> "a,b,c,":split(",")

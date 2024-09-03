@@ -814,28 +814,39 @@ const char *get_property_name(Text_t text, int64_t *i)
             ++dest;
             if (dest >= name + UNINAME_MAX - 1)
                 break;
-        } else if (dest == name && grapheme >= 0 && grapheme != ']') {
-            // Literal character escape: [..[] --> "LEFT SQUARE BRACKET"
-            name = unicode_character_name(grapheme, name);
-            *i += 1;
-            return name;
         } else {
             break;
         }
         *i += 1;
     }
+
+    while (dest > name && dest[-1] == ' ')
+        *(dest--) = '\0';
+
     if (dest == name) return NULL;
     *dest = '\0';
     return name;
 }
 
-#define EAT1(state, cond) ({\
-        int32_t grapheme = _next_grapheme(text, state, text_index); \
+#define EAT1(text, state, index, cond) ({\
+        int32_t grapheme = _next_grapheme(text, state, index); \
         bool success = (cond); \
-        if (success) text_index += 1; \
+        if (success) index += 1; \
         success; })
 
-#define EAT_MANY(state, cond) ({ int64_t _n = 0; while (EAT1(state, cond)) { _n += 1; } _n; })
+#define EAT2(text, state, index, cond1, cond2) ({\
+        int32_t grapheme = _next_grapheme(text, state, index); \
+        bool success = (cond1); \
+        if (success) { \
+            grapheme = _next_grapheme(text, state, index + 1); \
+            success = (cond2); \
+            if (success) \
+                index += 2; \
+        } \
+        success; })
+
+
+#define EAT_MANY(text, state, index, cond) ({ int64_t _n = 0; while (EAT1(text, state, index, cond)) { _n += 1; } _n; })
 
 int64_t match_email(Text_t text, int64_t text_index)
 {
@@ -858,19 +869,21 @@ int64_t match_email(Text_t text, int64_t text_index)
     // Local part:
     int64_t local_len = 0;
     static const char *allowed_local = "!#$%&‘*+–/=?^_`.{|}~";
-    while (EAT1(&state, (grapheme & ~0x7F) || isalnum((char)grapheme) || strchr(allowed_local, (char)grapheme))) {
+    while (EAT1(text, &state, text_index,
+                (grapheme & ~0x7F) || isalnum((char)grapheme) || strchr(allowed_local, (char)grapheme))) {
         local_len += 1;
         if (local_len > 64) return -1;
     }
     
-    if (!EAT1(&state, grapheme == '@'))
+    if (!EAT1(text, &state, text_index, grapheme == '@'))
         return -1;
 
     // Host
     int64_t host_len = 0;
     do {
         int64_t label_len = 0;
-        while (EAT1(&state, (grapheme & ~0x7F) || isalnum((char)grapheme) || grapheme == '-')) {
+        while (EAT1(text, &state, text_index,
+                    (grapheme & ~0x7F) || isalnum((char)grapheme) || grapheme == '-')) {
             label_len += 1;
             if (label_len > 63) return -1;
         }
@@ -882,7 +895,7 @@ int64_t match_email(Text_t text, int64_t text_index)
         if (host_len > 255)
             return -1;
         host_len += 1;
-    } while (EAT1(&state, grapheme == '.'));
+    } while (EAT1(text, &state, text_index, grapheme == '.'));
 
     return text_index - start_index;
 }
@@ -900,21 +913,21 @@ int64_t match_ipv6(Text_t text, int64_t text_index)
     bool double_colon_used = false;
     for (int cluster = 0; cluster < NUM_CLUSTERS; cluster++) {
         for (int digits = 0; digits < 4; digits++) {
-            if (!EAT1(&state, ~(grapheme & ~0x7F) && isxdigit((char)grapheme)))
+            if (!EAT1(text, &state, text_index, ~(grapheme & ~0x7F) && isxdigit((char)grapheme)))
                 break;
         }
-        if (EAT1(&state, ~(grapheme & ~0x7F) && isxdigit((char)grapheme)))
+        if (EAT1(text, &state, text_index, ~(grapheme & ~0x7F) && isxdigit((char)grapheme)))
             return -1; // Too many digits
 
         if (cluster == NUM_CLUSTERS-1) {
             break;
-        } else if (!EAT1(&state, grapheme == ':')) {
+        } else if (!EAT1(text, &state, text_index, grapheme == ':')) {
             if (double_colon_used)
                 break;
             return -1;
         }
 
-        if (EAT1(&state, grapheme == ':')) {
+        if (EAT1(text, &state, text_index, grapheme == ':')) {
             if (double_colon_used)
                 return -1;
             double_colon_used = true;
@@ -936,18 +949,18 @@ static int64_t match_ipv4(Text_t text, int64_t text_index)
     const int NUM_CLUSTERS = 4;
     for (int cluster = 0; cluster < NUM_CLUSTERS; cluster++) {
         for (int digits = 0; digits < 3; digits++) {
-            if (!EAT1(&state, ~(grapheme & ~0x7F) && isdigit((char)grapheme))) {
+            if (!EAT1(text, &state, text_index, ~(grapheme & ~0x7F) && isdigit((char)grapheme))) {
                 if (digits == 0) return -1;
                 break;
             }
         }
 
-        if (EAT1(&state, ~(grapheme & ~0x7F) && isdigit((char)grapheme)))
+        if (EAT1(text, &state, text_index, ~(grapheme & ~0x7F) && isdigit((char)grapheme)))
             return -1; // Too many digits
 
         if (cluster == NUM_CLUSTERS-1)
             break;
-        else if (!EAT1(&state, grapheme == '.'))
+        else if (!EAT1(text, &state, text_index, grapheme == '.'))
             return -1;
     }
     return (text_index - start_index);
@@ -971,10 +984,11 @@ int64_t match_uri(Text_t text, int64_t text_index)
     int64_t start_index = text_index;
 
     // Scheme:
-    if (!EAT1(&state, isalpha(grapheme)))
+    if (!EAT1(text, &state, text_index, isalpha(grapheme)))
         return -1;
 
-    EAT_MANY(&state, !(grapheme & ~0x7F) && (isalnum(grapheme) || grapheme == '+' || grapheme == '.' || grapheme == '-'));
+    EAT_MANY(text, &state, text_index,
+             !(grapheme & ~0x7F) && (isalnum(grapheme) || grapheme == '+' || grapheme == '.' || grapheme == '-'));
 
     if (text_index == start_index)
         return -1;
@@ -987,12 +1001,12 @@ int64_t match_uri(Text_t text, int64_t text_index)
         int64_t authority_start = text_index;
         // Username or host:
         static const char *forbidden = "#?:@ \t\r\n<>[]{}\\^|\"`/";
-        if (EAT_MANY(&state, (grapheme & ~0x7F) || !strchr(forbidden, (char)grapheme)) == 0)
+        if (EAT_MANY(text, &state, text_index, (grapheme & ~0x7F) || !strchr(forbidden, (char)grapheme)) == 0)
             return -1;
 
-        if (EAT1(&state, grapheme == '@')) {
+        if (EAT1(text, &state, text_index, grapheme == '@')) {
             // Found a username, now get a host:
-            if (EAT_MANY(&state, (grapheme & ~0x7F) || !strchr(forbidden, (char)grapheme)) == 0)
+            if (EAT_MANY(text, &state, text_index, (grapheme & ~0x7F) || !strchr(forbidden, (char)grapheme)) == 0)
                 return -1;
         } else {
             int64_t ip = authority_start;
@@ -1007,29 +1021,29 @@ int64_t match_uri(Text_t text, int64_t text_index)
         }
 
         // Port:
-        if (EAT1(&state, grapheme == ':')) {
-            if (EAT_MANY(&state, !(grapheme & ~0x7F) && isdigit(grapheme)) == 0)
+        if (EAT1(text, &state, text_index, grapheme == ':')) {
+            if (EAT_MANY(text, &state, text_index, !(grapheme & ~0x7F) && isdigit(grapheme)) == 0)
                 return -1;
         }
-        if (!EAT1(&state, grapheme == '/'))
+        if (!EAT1(text, &state, text_index, grapheme == '/'))
             return (text_index - start_index); // No path
     } else {
         // Optional path root:
-        EAT1(&state, grapheme == '/');
+        EAT1(text, &state, text_index, grapheme == '/');
     }
 
     // Path:
     static const char *non_path = " \"#?<>[]{}\\^`|";
-    EAT_MANY(&state, (grapheme & ~0x7F) || !strchr(non_path, (char)grapheme));
+    EAT_MANY(text, &state, text_index, (grapheme & ~0x7F) || !strchr(non_path, (char)grapheme));
 
-    if (EAT1(&state, grapheme == '?')) { // Query
+    if (EAT1(text, &state, text_index, grapheme == '?')) { // Query
         static const char *non_query = " \"#<>[]{}\\^`|";
-        EAT_MANY(&state, (grapheme & ~0x7F) || !strchr(non_query, (char)grapheme));
+        EAT_MANY(text, &state, text_index, (grapheme & ~0x7F) || !strchr(non_query, (char)grapheme));
     }
     
-    if (EAT1(&state, grapheme == '#')) { // Fragment
+    if (EAT1(text, &state, text_index, grapheme == '#')) { // Fragment
         static const char *non_fragment = " \"#<>[]{}\\^`|";
-        EAT_MANY(&state, (grapheme & ~0x7F) || !strchr(non_fragment, (char)grapheme));
+        EAT_MANY(text, &state, text_index, (grapheme & ~0x7F) || !strchr(non_fragment, (char)grapheme));
     }
     return text_index - start_index;
 }
@@ -1041,7 +1055,49 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
     iteration_state_t pattern_state = {0, 0}, text_state = {0, 0};
     while (pattern_index < pattern.length) {
         int64_t old_pat_index = pattern_index;
-        if (match_str(pattern, &pattern_index, "[..")) {
+        if (EAT2(pattern, &pattern_state, pattern_index,
+                 uc_is_property(grapheme, UC_PROPERTY_QUOTATION_MARK),
+                 grapheme == '?')) {
+            // Quotations: "?", '?', etc
+            int32_t open = _next_grapheme(pattern, &pattern_state, pattern_index-2);
+            if (!match_grapheme(text, &text_index, open)) return -1;
+            int32_t close = open;
+            uc_mirror_char(open, (uint32_t*)&close);
+            if (!match_grapheme(pattern, &pattern_index, close))
+                fail("Pattern's closing brace is missing: %k", &pattern);
+            while (text_index < text.length) {
+                int32_t c = _next_grapheme(text, &text_state, text_index);
+                if (c == close)
+                    return (text_index - start_index);
+
+                if (c == '\\' && text_index < text.length) {
+                    text_index += 2;
+                } else {
+                    text_index += 1;
+                }
+            }
+            return -1;
+        } else if (EAT2(pattern, &pattern_state, pattern_index,
+                        uc_is_property(grapheme, UC_PROPERTY_PAIRED_PUNCTUATION),
+                        grapheme == '?')) {
+            // Nested punctuation: (?), [?], etc
+            int32_t open = _next_grapheme(pattern, &pattern_state, pattern_index-2);
+            if (!match_grapheme(text, &text_index, open)) return -1;
+            int32_t close = open;
+            uc_mirror_char(open, (uint32_t*)&close);
+            if (!match_grapheme(pattern, &pattern_index, close))
+                fail("Pattern's closing brace is missing: %k", &pattern);
+            int64_t depth = 1;
+            for (; depth > 0 && text_index < text.length; ++text_index) {
+                int32_t c = _next_grapheme(text, &text_state, text_index);
+                if (c == open)
+                    depth += 1;
+                else if (c == close)
+                    depth -= 1;
+            }
+            if (depth > 0) return -1;
+        } else if (EAT1(pattern, &pattern_state, pattern_index,
+                        grapheme == '{')) { // named patterns {id}, {2-3 hex}, etc.
             skip_whitespace(pattern, &pattern_index);
             int64_t min, max;
             if (uc_is_digit(_next_grapheme(pattern, &pattern_state, pattern_index))) {
@@ -1059,21 +1115,42 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
             }
 
             skip_whitespace(pattern, &pattern_index);
-            bool want_to_match = !match_grapheme(pattern, &pattern_index, '!');
-            const char *prop_name = get_property_name(pattern, &pattern_index);
 
-            skip_whitespace(pattern, &pattern_index);
-            if (!match_grapheme(pattern, &pattern_index, ']'))
-                fail("Missing closing ']' in pattern: %k", &pattern);
-
-            int64_t before_group = text_index;
             bool any = false;
             uc_property_t prop;
             int32_t specific_codepoint = UNINAME_INVALID;
+            bool want_to_match = !match_grapheme(pattern, &pattern_index, '!');
+            const char *prop_name;
+            if (match_str(pattern, &pattern_index, ".."))
+                prop_name = "..";
+            else
+                prop_name = get_property_name(pattern, &pattern_index);
 
+            if (!prop_name) {
+                // Literal character, e.g. {1?}
+                specific_codepoint = _next_grapheme(pattern, &pattern_state, pattern_index);
+                pattern_index += 1;
+            } else if (strlen(prop_name) == 1) {
+                // Single letter names: {1+ A}
+                specific_codepoint = prop_name[0];
+                prop_name = NULL;
+            }
+
+            skip_whitespace(pattern, &pattern_index);
+            if (!match_grapheme(pattern, &pattern_index, '}'))
+                fail("Missing closing '}' in pattern: %k", &pattern);
+
+            int64_t before_group = text_index;
 #define FAIL() ({ if (min < 1) { text_index = before_group; continue; } else { return -1; } })
             if (prop_name) {
                 switch (tolower(prop_name[0])) {
+                case '.':
+                    if (prop_name[1] == '.') {
+                        any = true;
+                        prop = UC_PROPERTY_PRIVATE_USE;
+                        break;
+                    }
+                    break;
                 case 'd':
                     if (strcasecmp(prop_name, "digit") == 0) {
                         prop = UC_PROPERTY_DECIMAL_DIGIT;
@@ -1098,13 +1175,16 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                     break;
                 case 'i':
                     if (prop_name && strcasecmp(prop_name, "id") == 0) {
-                        if (!EAT1(&text_state, uc_is_property(grapheme, UC_PROPERTY_XID_START)))
+                        if (!EAT1(text, &text_state, text_index,
+                                  uc_is_property(grapheme, UC_PROPERTY_XID_START)))
                             FAIL();
-                        EAT_MANY(&text_state, uc_is_property(grapheme, UC_PROPERTY_XID_CONTINUE));
+                        EAT_MANY(text, &text_state, text_index,
+                                 uc_is_property(grapheme, UC_PROPERTY_XID_CONTINUE));
                         continue;
                     } else if (prop_name && strcasecmp(prop_name, "int") == 0) {
-                        EAT1(&text_state, grapheme == '-');
-                        int64_t n = EAT_MANY(&text_state, uc_is_property(grapheme, UC_PROPERTY_DECIMAL_DIGIT));
+                        EAT1(text, &text_state, text_index, grapheme == '-');
+                        int64_t n = EAT_MANY(text, &text_state, text_index,
+                                             uc_is_property(grapheme, UC_PROPERTY_DECIMAL_DIGIT));
                         if (n <= 0)
                             FAIL();
                         continue;
@@ -1132,10 +1212,12 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                     break;
                 case 'n':
                     if (prop_name && strcasecmp(prop_name, "num") == 0) {
-                        EAT1(&text_state, grapheme == '-');
-                        int64_t pre_decimal = EAT_MANY(&text_state, uc_is_property(grapheme, UC_PROPERTY_DECIMAL_DIGIT));
-                        bool decimal = (EAT1(&text_state, grapheme == '.') == 1);
-                        int64_t post_decimal = decimal ? EAT_MANY(&text_state, uc_is_property(grapheme, UC_PROPERTY_DECIMAL_DIGIT)) : 0;
+                        EAT1(text, &text_state, text_index, grapheme == '-');
+                        int64_t pre_decimal = EAT_MANY(text, &text_state, text_index,
+                                                       uc_is_property(grapheme, UC_PROPERTY_DECIMAL_DIGIT));
+                        bool decimal = (EAT1(text, &text_state, text_index, grapheme == '.') == 1);
+                        int64_t post_decimal = decimal ? EAT_MANY(text, &text_state, text_index,
+                                                                  uc_is_property(grapheme, UC_PROPERTY_DECIMAL_DIGIT)) : 0;
                         if (pre_decimal == 0 && post_decimal == 0)
                             FAIL();
                         continue;
@@ -1178,9 +1260,6 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                     if (specific_codepoint == UNINAME_INVALID)
                         fail("Not a valid property or character name: %s", prop_name);
                 }
-            } else {
-                any = true;
-                prop = UC_PROPERTY_PRIVATE_USE;
             }
       got_prop:;
 
@@ -1222,80 +1301,16 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                     }
                 }
             }
-        } else if (uc_is_property(_next_grapheme(pattern, &pattern_state, pattern_index), UC_PROPERTY_QUOTATION_MARK)
-                   && (pattern_index += 1, match_grapheme(pattern, &pattern_index, '?'))) {
-            // Quotation: "?", '?', etc
-            int32_t open = _next_grapheme(pattern, &pattern_state, pattern_index-2);
-            if (!match_grapheme(text, &text_index, open)) return -1;
-            int32_t close = open;
-            uc_mirror_char(open, (uint32_t*)&close);
-            if (!match_grapheme(pattern, &pattern_index, close))
-                fail("Pattern's closing brace is missing: %k", &pattern);
-            while (text_index < text.length) {
-                int32_t c = _next_grapheme(text, &text_state, text_index);
-                if (c == close)
-                    return (text_index - start_index);
-
-                if (c == '\\' && text_index < text.length) {
-                    text_index += 2;
-                } else {
-                    text_index += 1;
-                }
-            }
-            return -1;
-        } else if (uc_is_property(_next_grapheme(pattern, &pattern_state, pattern_index), UC_PROPERTY_PAIRED_PUNCTUATION)
-                   && (pattern_index += 1, match_grapheme(pattern, &pattern_index, '?'))) {
-            // Nested punctuation: (?), [?], etc
-            int32_t open = _next_grapheme(pattern, &pattern_state, pattern_index-2);
-            if (!match_grapheme(text, &text_index, open)) return -1;
-            int32_t close = open;
-            uc_mirror_char(open, (uint32_t*)&close);
-            if (!match_grapheme(pattern, &pattern_index, close))
-                fail("Pattern's closing brace is missing: %k", &pattern);
-            int64_t depth = 1;
-            for (; depth > 0 && text_index < text.length; ++text_index) {
-                int32_t c = _next_grapheme(text, &text_state, text_index);
-                if (c == open)
-                    depth += 1;
-                else if (c == close)
-                    depth -= 1;
-            }
-            if (depth > 0) return -1;
         } else {
             // Plain character:
             pattern_index = old_pat_index;
             int32_t pat_grapheme = _next_grapheme(pattern, &pattern_state, pattern_index);
-
-            // if (pattern_index == 0 && text_index > 0) {
-            //     int32_t pat_codepoint = pat_grapheme;
-            //     if (pat_codepoint < 0)
-            //         pat_codepoint = synthetic_graphemes[-pat_codepoint-1].codepoints[0];
-
-            //     int32_t prev_codepoint = _next_grapheme(text, &text_state, text_index - 1);
-            //     if (prev_codepoint < 0)
-            //         prev_codepoint = synthetic_graphemes[-prev_codepoint-1].codepoints[0];
-            //     if (uc_is_property_alphabetic(pat_codepoint) && uc_is_property_alphabetic(prev_codepoint))
-            //         return -1;
-            // }
-
             int32_t text_grapheme = _next_grapheme(text, &text_state, text_index);
             if (pat_grapheme != text_grapheme)
                 return -1;
 
             pattern_index += 1;
             text_index += 1;
-
-            // if (pattern_index == pattern.length && text_index < text.length) {
-            //     int32_t pat_codepoint = pat_grapheme;
-            //     if (pat_codepoint < 0)
-            //         pat_codepoint = synthetic_graphemes[-pat_codepoint-1].codepoints[0];
-
-            //     int32_t next_codepoint = _next_grapheme(text, &text_state, text_index);
-            //     if (next_codepoint < 0)
-            //         next_codepoint = synthetic_graphemes[-next_codepoint-1].codepoints[0];
-            //     if (uc_is_property_alphabetic(pat_codepoint) && uc_is_property_alphabetic(next_codepoint))
-            //         return -1;
-            // }
         }
     }
     if (text_index >= text.length && pattern_index < pattern.length)
@@ -1304,6 +1319,7 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
 }
 
 #undef EAT1
+#undef EAT2
 #undef EAT_MANY
 
 public Int_t Text$find(Text_t text, Pattern_t pattern, Int_t from_index, int64_t *match_length)
@@ -1315,7 +1331,7 @@ public Int_t Text$find(Text_t text, Pattern_t pattern, Int_t from_index, int64_t
         return I_small(0);
 
     int32_t first_grapheme = get_grapheme(pattern, 0);
-    bool find_first = (first_grapheme != '['
+    bool find_first = (first_grapheme != '{'
                        && !uc_is_property(first_grapheme, UC_PROPERTY_QUOTATION_MARK)
                        && !uc_is_property(first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
 
@@ -1677,16 +1693,14 @@ public Pattern_t Pattern$escape_text(Text_t text)
         int32_t g = _next_grapheme(text, &state, i);
         uint32_t g0 = g < 0 ? synthetic_graphemes[-g-1].codepoints[0] : (uint32_t)g;
 
-        if (g == '[') {
-            add_str("[..1[]");
-        } else if (uc_is_property_quotation_mark(g0)) {
-            add_str("[..1");
+        if (g == '{') {
+            add_str("{1{}");
+        } else if (uc_is_property_quotation_mark(g0)
+                   || (uc_is_property_paired_punctuation(g0) && uc_is_property_left_of_pair(g0))) {
+            add_char('{');
+            add_char('1');
             add_char(g);
-            add_char(']');
-        } else if (uc_is_property_paired_punctuation(g0)) {
-            add_str("[..1");
-            add_char(g);
-            add_char(']');
+            add_char('}');
         } else {
             add_char(g);
         }

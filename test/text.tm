@@ -45,23 +45,23 @@ func main():
 
 	>> "Hello":has($/l/)
 	= yes
-	>> "Hello":has($/l[..end]/)
+	>> "Hello":has($/l{end}/)
 	= no
-	>> "Hello":has($/[..start]l/)
+	>> "Hello":has($/{start}l/)
 	= no
 
 	>> "Hello":has($/o/)
 	= yes
-	>> "Hello":has($/o[..end]/)
+	>> "Hello":has($/o{end}/)
 	= yes
-	>> "Hello":has($/[..start]o/)
+	>> "Hello":has($/{start}o/)
 	= no
 
 	>> "Hello":has($/H/)
 	= yes
-	>> "Hello":has($/H[..end]/)
+	>> "Hello":has($/H{end}/)
 	= no
-	>> "Hello":has($/[..start]H/)
+	>> "Hello":has($/{start}H/)
 	= yes
 
 	>> "Hello":replace($/l/, "")
@@ -73,9 +73,9 @@ func main():
 	>> "One two three four five six":replace($/e /, "")
 	= "Ontwo threfour fivsix"
 
-	>> " one ":replace($/[..start][..space]/, "")
+	>> " one ":replace($/{start}{space}/, "")
 	= "one "
-	>> " one ":replace($/[..space][..end]/, "")
+	>> " one ":replace($/{space}{end}/, "")
 	= " one"
 
 	>> amelie:has($/$amelie2/)
@@ -104,9 +104,9 @@ func main():
 	>> $(one (nested) two $(1+2))
 	= "one (nested) two 3"
 
-	>> "one two three":replace($/[..alpha]/, "")
+	>> "one two three":replace($/{alpha}/, "")
 	= "  "
-	>> "one two three":replace($/[..alpha]/, "word")
+	>> "one two three":replace($/{alpha}/, "word")
 	= "word word word"
 
 	>> c := "É̩"
@@ -137,7 +137,7 @@ func main():
 	>> "one,two,three,":split($/,/)
 	= ["one", "two", "three", ""]
 
-	>> "one    two three":split($/[..space]/)
+	>> "one    two three":split($/{space}/)
 	= ["one", "two", "three"]
 
 	>> "abc":split($//)
@@ -159,16 +159,16 @@ func main():
 	= []
 
 	!! Test text:find_all()
-	>> " one  two three   ":find_all($/[..alpha]/)
+	>> " one  two three   ":find_all($/{alpha}/)
 	= ["one", "two", "three"]
 
-	>> " one  two three   ":find_all($/[..!space]/)
+	>> " one  two three   ":find_all($/{!space}/)
 	= ["one", "two", "three"]
 
-	>> "    ":find_all($/[..alpha]/)
+	>> "    ":find_all($/{alpha}/)
 	= []
 
-	>> " foo(baz(), 1)  doop() ":find_all($/[..id](?)/)
+	>> " foo(baz(), 1)  doop() ":find_all($/{id}(?)/)
 	= ["foo(baz(), 1)", "doop()"]
 
 	>> "":find_all($Pattern'')
@@ -178,17 +178,17 @@ func main():
 	= []
 
 	!! Test text:find()
-	>> " one   two  three   ":find($/[..id]/, start=-999)
+	>> " one   two  three   ":find($/{id}/, start=-999)
 	= 0
-	>> " one   two  three   ":find($/[..id]/, start=999)
+	>> " one   two  three   ":find($/{id}/, start=999)
 	= 0
-	>> " one   two  three   ":find($/[..id]/)
+	>> " one   two  three   ":find($/{id}/)
 	= 2
-	>> " one   two  three   ":find($/[..id]/, start=5)
+	>> " one   two  three   ":find($/{id}/, start=5)
 	= 8
 
 	>> len := 0_i64
-	>> "   one  ":find($/[..id]/, length=&len)
+	>> "   one  ":find($/{id}/, length=&len)
 	= 4
 	>> len
 	= 3_i64
@@ -220,8 +220,11 @@ func main():
 	>> Text.from_codepoint_names(["not a valid name here buddy"])
 	= ""
 
-	>> malicious := "[..xxx"
+	>> "one two; three four":find_all($/; {..}/)
+	= ["; three four"]
+
+	>> malicious := "{xxx}"
 	>> $/$malicious/
-	= $/[..1[]..xxx/
+	= $/{1{}xxx}/
 
 
