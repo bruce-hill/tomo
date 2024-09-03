@@ -60,6 +60,7 @@ Text_t Text$title(Text_t text);
 Text_t Text$as_text(const void *text, bool colorize, const TypeInfo *info);
 Text_t Text$quoted(Text_t str, bool colorize);
 Text_t Text$replace(Text_t str, Text_t pat, Text_t replacement);
+array_t Text$split(Text_t text, Text_t pattern);
 Int_t Text$find(Text_t text, Text_t pattern, Int_t i, int64_t *match_length);
 bool Text$has(Text_t text, Text_t pattern);
 const char *Text$as_c_string(Text_t text);

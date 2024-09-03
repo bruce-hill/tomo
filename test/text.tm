@@ -20,7 +20,7 @@ func main():
 	= yes
 
 	>> amelie := "Am$(\UE9)lie"
-	>> amelie:clusters()
+	>> amelie:split()
 	= ["A", "m", "é", "l", "i", "e"] : [Text]
 	>> amelie:utf32_codepoints()
 	= [65_i32, 109_i32, 233_i32, 108_i32, 105_i32, 101_i32] : [Int32]
@@ -28,7 +28,7 @@ func main():
 	= [65_i8, 109_i8, -61_i8, -87_i8, 108_i8, 105_i8, 101_i8] : [Int8]
 
 	>> amelie2 := "Am$(\U65\U301)lie"
-	>> amelie2:clusters()
+	>> amelie2:split()
 	= ["A", "m", "é", "l", "i", "e"] : [Text]
 	>> amelie2:utf32_codepoints()
 	= [65_i32, 109_i32, 233_i32, 108_i32, 105_i32, 101_i32] : [Int32]
@@ -128,3 +128,15 @@ func main():
 	= ["one", "two", "three", ""]
 	>> "one$(\r\n)two$(\r\n)three$(\r\n)":lines()
 	= ["one", "two", "three"]
+
+	>> "one two three":split(" ")
+	= ["one", "two", "three"]
+
+	>> "one,two,three,":split(",")
+	= ["one", "two", "three", ""]
+
+	>> "one    two three":split("[..space]")
+	= ["one", "two", "three"]
+
+	>> "abc":split("")
+	= ["a", "b", "c"]

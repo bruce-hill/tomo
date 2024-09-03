@@ -1426,6 +1426,29 @@ public Text_t Text$replace(Text_t text, Text_t pattern, Text_t replacement)
     return ret;
 }
 
+public array_t Text$split(Text_t text, Text_t pattern)
+{
+    if (pattern.length == 0) // special case
+        return Text$clusters(text);
+
+    array_t chunks = {};
+
+    Int_t i = I_small(1);
+    for (;;) {
+        int64_t len;
+        Int_t found = Text$find(text, pattern, i, &len);
+        if (I_is_zero(found)) break;
+        Text_t chunk = Text$slice(text, i, Int$minus(found, I_small(1)));
+        Array$insert(&chunks, &chunk, I_small(0), sizeof(Text_t));
+        i = Int$plus(found, Int64_to_Int(len));
+    }
+
+    Text_t last_chunk = Text$slice(text, i, Int64_to_Int(text.length));
+    Array$insert(&chunks, &last_chunk, I_small(0), sizeof(Text_t));
+
+    return chunks;
+}
+
 public Text_t Text$format(const char *fmt, ...)
 {
     va_list args;
