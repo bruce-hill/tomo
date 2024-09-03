@@ -1695,7 +1695,8 @@ public Pattern_t Pattern$escape_text(Text_t text)
 
         if (g == '{') {
             add_str("{1{}");
-        } else if (uc_is_property_quotation_mark(g0)
+        } else if (g0 == '?'
+                   || uc_is_property_quotation_mark(g0)
                    || (uc_is_property_paired_punctuation(g0) && uc_is_property_left_of_pair(g0))) {
             add_char('{');
             add_char('1');
