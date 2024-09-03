@@ -262,6 +262,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"quoted", "Text$quoted", "func(text:Text, color=no)->Text"},
             {"replace", "Text$replace", "func(text:Text, pattern:Text, replacement:Text)->Text"},
             {"split", "Text$split", "func(text:Text, pattern='')->[Text]"},
+            {"slice", "Text$slice", "func(text:Text, from=1, to=-1)->Text"},
             {"title", "Text$title", "func(text:Text)->Text"},
             {"trimmed", "Text$trimmed", "func(text:Text, trim=\" {\\n\\r\\t}\", where=Where.Anywhere)->Text"},
             {"upper", "Text$upper", "func(text:Text)->Text"},

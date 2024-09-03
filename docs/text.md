@@ -1,10 +1,11 @@
 # Text
 
 `Text` is Tomo's datatype to represent text. The name `Text` is used instead of
-"string" because Tomo represents text as an immutable UTF-8-encoded value that
-uses the Boehm Cord library for efficient storage and concatenation. These are
-_not_ C-style NULL-terminated character arrays. GNU libunistring is used for
-full Unicode functionality (grapheme cluster counts, capitalization, etc.).
+"string" because Tomo text represents immutable, normalized unicode data with
+fast indexing that has an implementation that is efficient for concatenation.
+These are _not_ C-style NULL-terminated character arrays. GNU libunistring is
+used for full Unicode functionality (grapheme cluster counts, capitalization,
+etc.).
 
 ## Syntax
 
@@ -238,25 +239,24 @@ of text fragments.
 
 ### Text Length
 
-Text length is an ambiguous term in the context of UTF-8 text. There are
-several possible meanings, so each of these meanings is split into a separate
-method:
+Text length gives you the number of grapheme clusters in the text, according to
+the unicode standard. This corresponds to what you would intuitively think of
+when you think of "letters" in a string. If you have text with an emoji that has
+several joining modifiers attached to it, that text has a length of 1.
 
-- Number of grapheme clusters: `text:num_clusters()`. This is probably what
-  you want to use, since it corresponds to the everyday notion of "letters".
-- Size in bytes: `text:num_bytes()`
-- Number of unicode codepoints: `text:num_codepoints()` (you probably want to
-  use clusters, not codepoints in most applications)
-
-Since the typical user expectation is that text length refers to "letters,"
-the `#` length operator returns the number of grapheme clusters, which is the
-closest unicode equivalent to "letters."
+```tomo
+>> "hello".length
+= 5
+>> "👩🏽‍🚀".length
+= 1
+```
 
 ### Iteration
 
-Iteration is *not* supported for text because of the ambiguity between bytes,
-codepoints, and grapheme clusters. It is instead recommended that you
-explicitly iterate over bytes, codepoints, graphemes, words, lines, etc:
+Iteration is *not* supported for text. It is rarely ever the case that you will
+need to iterate over text, but if you do, you can iterate over the length of
+the text and retrieve 1-wide slices. Alternatively, you can split the text into
+its constituent grapheme clusters with `text:split()` and iterate over those.
 
 ### Equality, Comparison, and Hashing
 

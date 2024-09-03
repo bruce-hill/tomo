@@ -191,3 +191,15 @@ func main():
 	= 4
 	>> len
 	= 3_i64
+
+	//! Test text slicing:
+	>> "abcdef":slice()
+	= "abcdef"
+	>> "abcdef":slice(from=3)
+	= "cdef"
+	>> "abcdef":slice(to=-2)
+	= "abcde"
+	>> "abcdef":slice(from=2, to=4)
+	= "bcd"
+	>> "abcdef":slice(from=5, to=1)
+	= ""
