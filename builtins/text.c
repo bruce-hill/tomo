@@ -1148,7 +1148,7 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                     if (prop_name[1] == '.') {
                         any = true;
                         prop = UC_PROPERTY_PRIVATE_USE;
-                        break;
+                        goto got_prop;
                     }
                     break;
                 case 'd':
