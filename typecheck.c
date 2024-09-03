@@ -1377,8 +1377,16 @@ bool is_constant(env_t *env, ast_t *ast)
     }
     case TextJoin: {
         auto text = Match(ast, TextJoin);
-        // TODO: support short literal strings
-        return !text->children;
+        if (!text->children) return true; // Empty string, OK
+        if (text->children->next) return false; // Concatenation, not constant
+
+        CORD literal = Match(text->children->ast, TextLiteral)->cord; 
+        CORD_pos i;
+        CORD_FOR(i, literal) {
+            if (!isascii(CORD_pos_fetch(i)))
+                return false; // Non-ASCII requires grapheme logic, not constant
+        }
+        return true; // Literal ASCII string, OK
     }
     case Not: return is_constant(env, Match(ast, Not)->value);
     case Negative: return is_constant(env, Match(ast, Negative)->value);

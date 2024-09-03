@@ -1786,9 +1786,16 @@ CORD compile(env_t *env, ast_t *ast)
     case TextLiteral: {
         CORD literal = Match(ast, TextLiteral)->cord; 
         if (literal == CORD_EMPTY)
-            return "((Text_t){.length=0})";
-        CORD code = "Text$from_str(\"";
+            return "Text(\"\")";
+        bool all_ascii = true;
         CORD_pos i;
+        CORD_FOR(i, literal) {
+            if (!isascii(CORD_pos_fetch(i))) {
+                all_ascii = false;
+                break;
+            }
+        }
+        CORD code = all_ascii ? "Text(\"" : "Text$from_str(\"";
         CORD_FOR(i, literal) {
             char c = CORD_pos_fetch(i);
             switch (c) {
@@ -1804,7 +1811,7 @@ CORD compile(env_t *env, ast_t *ast)
                 if (isprint(c))
                     code = CORD_cat_char(code, c);
                 else
-                    CORD_sprintf(&code, "%r\"\"\\x%02X\"\"", code, (uint8_t)c);
+                    CORD_sprintf(&code, "%r\\x%02X\"\"", code, (uint8_t)c);
                 break;
             }
             }
@@ -1818,7 +1825,7 @@ CORD compile(env_t *env, ast_t *ast)
             code_err(ast, "%s is not a valid text language name", lang);
         ast_list_t *chunks = Match(ast, TextJoin)->children;
         if (!chunks) {
-            return "((Text_t){.length=0})";
+            return "Text(\"\")";
         } else if (!chunks->next && chunks->ast->tag == TextLiteral) {
             return compile(env, chunks->ast);
         } else {

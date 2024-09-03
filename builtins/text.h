@@ -14,6 +14,8 @@
 int printf_text(FILE *stream, const struct printf_info *info, const void *const args[]);
 int printf_text_size(const struct printf_info *info, size_t n, int argtypes[n], int sizes[n]);
 
+#define Text(str) ((Text_t){.length=sizeof(str)-1, .tag=TEXT_ASCII, .ascii="" str})
+
 int Text$print(FILE *stream, Text_t t);
 void Text$visualize(Text_t t);
 Text_t Text$_concat(int n, Text_t items[n]);
