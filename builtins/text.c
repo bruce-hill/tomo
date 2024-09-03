@@ -35,6 +35,7 @@
 static struct {
     int64_t num_codepoints;
     const uint32_t *codepoints;
+    const uint8_t *utf8;
 } synthetic_graphemes[1024] = {};
 
 static int32_t num_synthetic_graphemes = 0;
@@ -81,6 +82,14 @@ int32_t get_synthetic_grapheme(const uint32_t *codepoints, int64_t len)
         memcpy(buf, codepoints, sizeof(uint32_t[len]));
         synthetic_graphemes[index].codepoints = buf;
         synthetic_graphemes[index].num_codepoints = len;
+
+        size_t u8_len = 0;
+        uint8_t *u8 = u32_to_u8(codepoints, len, NULL, &u8_len);
+        uint8_t *gc_u8 = GC_MALLOC_ATOMIC(u8_len + 1);
+        memcpy(gc_u8, u8, u8_len);
+        gc_u8[u8_len] = '\0';
+        synthetic_graphemes[index].utf8 = gc_u8;
+        free(u8);
 
         ++num_synthetic_graphemes;
         return -(index+1);
@@ -137,12 +146,14 @@ public int Text$print(FILE *stream, Text_t t)
         for (int64_t i = 0; i < t.length; i++) {
             int32_t grapheme = graphemes[i];
             if (grapheme >= 0) {
-                written += ulc_fprintf(stream, "%.*llU", 1, &grapheme);
+                uint8_t buf[8];
+                size_t len = sizeof(buf);
+                uint8_t *u8 = u32_to_u8((uint32_t*)&grapheme, 1, buf, &len);
+                written += fwrite(u8, sizeof(char), len, stream);
+                if (u8 != buf) free(u8);
             } else {
-                written += ulc_fprintf(
-                    stream, "%.*llU",
-                    synthetic_graphemes[-grapheme-1].num_codepoints,
-                    synthetic_graphemes[-grapheme-1].codepoints);
+                const uint8_t *u8 = synthetic_graphemes[-grapheme-1].utf8;
+                written += fwrite(u8, sizeof(uint8_t), strlen((char*)u8), stream);
             }
         }
         return written;
