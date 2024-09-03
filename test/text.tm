@@ -217,3 +217,6 @@ func main():
 	>> "🐧":codepoint_names()
 	= ["PENGUIN"]
 
+	>> Text.from_codepoint_names(["not a valid name here buddy"])
+	= ""
+

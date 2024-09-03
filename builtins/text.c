@@ -1610,7 +1610,8 @@ public Text_t Text$from_codepoint_names(array_t codepoint_names)
         Text_t *name = ((Text_t*)(codepoint_names.data + i*codepoint_names.stride));
         const char *name_str = Text$as_c_string(*name);
         uint32_t codepoint = unicode_name_character(name_str);
-        Array$insert(&codepoints, &codepoint, I_small(0), sizeof(uint32_t));
+        if (codepoint != UNINAME_INVALID)
+            Array$insert(&codepoints, &codepoint, I_small(0), sizeof(uint32_t));
     }
     return Text$from_codepoints(codepoints);
 }
