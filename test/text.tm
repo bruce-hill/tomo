@@ -104,8 +104,10 @@ func main():
 	>> $(one (nested) two $(1+2))
 	= "one (nested) two 3"
 
-
 	>> "one two three":replace("[..alpha]", "")
+	= "  "
+	>> "one two three":replace("[..alpha]", "word")
+	= "word word word"
 
 	>> c := "É̩"
 	>> c:codepoint_names()
@@ -116,5 +118,4 @@ func main():
 	= yes
 	>> c == Text.from_bytes(c:utf8_bytes())
 	= yes
-
 
