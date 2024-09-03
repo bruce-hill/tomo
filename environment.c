@@ -504,8 +504,9 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
     }
     case TextType: {
         auto text = Match(cls_type, TextType);
-        assert(text->env);
-        return get_binding(text->env, name);
+        env_t *text_env = text->env ? text->env : namespace_env(env, text->lang ? text->lang : "Text");
+        assert(text_env);
+        return get_binding(text_env, name);
     }
     case StructType: {
         auto struct_ = Match(cls_type, StructType);
