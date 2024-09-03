@@ -155,3 +155,21 @@ func main():
 
 	>> "":split()
 	= []
+
+	>> " one  two three   ":find_all("[..alpha]")
+	= ["one", "two", "three"]
+
+	>> " one  two three   ":find_all("[..!space]")
+	= ["one", "two", "three"]
+
+	>> "    ":find_all("[..alpha]")
+	= []
+
+	>> " foo(baz(), 1)  doop() ":find_all("[..id](?)")
+	= ["foo(baz(), 1)", "doop()"]
+
+	>> "":find_all("")
+	= []
+
+	>> "Hello":find_all("")
+	= []

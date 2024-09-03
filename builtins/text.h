@@ -12,11 +12,6 @@
 #include "types.h"
 #include "where.h"
 
-typedef struct {
-    enum { FIND_FAILURE, FIND_SUCCESS } status;
-    int32_t index;
-} find_result_t;
-
 int printf_text(FILE *stream, const struct printf_info *info, const void *const args[]);
 int printf_text_size(const struct printf_info *info, size_t n, int argtypes[n], int sizes[n]);
 
@@ -38,6 +33,7 @@ Text_t Text$quoted(Text_t str, bool colorize);
 Text_t Text$replace(Text_t str, Text_t pat, Text_t replacement);
 array_t Text$split(Text_t text, Text_t pattern);
 Int_t Text$find(Text_t text, Text_t pattern, Int_t i, int64_t *match_length);
+array_t Text$find_all(Text_t text, Text_t pattern);
 bool Text$has(Text_t text, Text_t pattern);
 const char *Text$as_c_string(Text_t text);
 public Text_t Text$format(const char *fmt, ...);

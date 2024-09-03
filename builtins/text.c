@@ -1402,6 +1402,26 @@ public Text_t Text$quoted(Text_t text, bool colorize)
 #undef add_escaped
 }
 
+public array_t Text$find_all(Text_t text, Text_t pattern)
+{
+    if (pattern.length == 0) // special case
+        return (array_t){.length=0};
+
+    array_t matches = {};
+
+    Int_t i = I_small(1);
+    for (;;) {
+        int64_t len;
+        Int_t found = Text$find(text, pattern, i, &len);
+        if (I_is_zero(found)) break;
+        Text_t match = Text$slice(text, found, Int$plus(found, Int64_to_Int(len-1)));
+        Array$insert(&matches, &match, I_small(0), sizeof(Text_t));
+        i = Int$plus(found, Int64_to_Int(len));
+    }
+
+    return matches;
+}
+
 public Text_t Text$replace(Text_t text, Text_t pattern, Text_t replacement)
 {
     Text_t ret = {.length=0};
