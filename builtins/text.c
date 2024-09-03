@@ -354,27 +354,24 @@ Text_t text_from_u32(uint32_t *codepoints, int64_t num_codepoints, bool normaliz
         .tag=TEXT_SHORT_GRAPHEMES,
     };
     const uint32_t *src = codepoints;
-    int32_t *dest = &ret.short_graphemes[0];
-    while (src != &codepoints[num_codepoints]) {
-        ++ret.length;
-
-        if (ret.tag == TEXT_SHORT_GRAPHEMES && ret.length > 2) {
-            int32_t *graphemes = GC_MALLOC_ATOMIC(sizeof(int32_t[num_codepoints])); // May be a slight overallocation
+    int32_t *graphemes = ret.short_graphemes;
+    while (src < &codepoints[num_codepoints]) {
+        if (ret.tag == TEXT_SHORT_GRAPHEMES && ret.length + 1 > 2) {
+            graphemes = GC_MALLOC_ATOMIC(sizeof(int32_t[num_codepoints])); // May be a slight overallocation
             graphemes[0] = ret.short_graphemes[0];
             graphemes[1] = ret.short_graphemes[1];
             ret.tag = TEXT_GRAPHEMES;
             ret.graphemes = graphemes;
-            dest = &graphemes[2];
         }
 
         const uint32_t *next = u32_grapheme_next(src, &codepoints[num_codepoints]);
         if (next == &src[1]) {
-            *dest = (int32_t)*src;
+            graphemes[ret.length] = (int32_t)*src;
         } else {
             // Synthetic grapheme
-            *dest = get_synthetic_grapheme(src, next-src);
+            graphemes[ret.length] = get_synthetic_grapheme(src, next-src);
         }
-        ++dest;
+        ++ret.length;
         src = next;
     }
     if (normalize && codepoints != norm_buf) free(codepoints);
@@ -686,11 +683,11 @@ public bool Text$equal_ignoring_case(Text_t a, Text_t b)
 
 public Text_t Text$upper(Text_t text)
 {
-    uint32_t *codepoints = (uint32_t*)Text$as_c_string(text);
+    array_t codepoints = Text$utf32_codepoints(text);
     const char *language = uc_locale_language();
     uint32_t buf[128]; 
     size_t out_len;
-    uint32_t *upper = u32_toupper(codepoints, strlen((char*)codepoints), language, UNINORM_NFC, buf, &out_len);
+    uint32_t *upper = u32_toupper(codepoints.data, codepoints.length, language, UNINORM_NFC, buf, &out_len);
     Text_t ret = text_from_u32(upper, out_len, false);
     if (upper != buf) free(upper);
     return ret;
@@ -698,25 +695,25 @@ public Text_t Text$upper(Text_t text)
 
 public Text_t Text$lower(Text_t text)
 {
-    uint32_t *codepoints = (uint32_t*)Text$as_c_string(text);
+    array_t codepoints = Text$utf32_codepoints(text);
     const char *language = uc_locale_language();
     uint32_t buf[128]; 
     size_t out_len;
-    uint32_t *lower = u32_tolower(codepoints, strlen((char*)codepoints), language, UNINORM_NFC, buf, &out_len);
+    uint32_t *lower = u32_tolower(codepoints.data, codepoints.length, language, UNINORM_NFC, buf, &out_len);
     Text_t ret = text_from_u32(lower, out_len, false);
-    if (lower != codepoints) free(lower);
+    if (lower != buf) free(lower);
     return ret;
 }
 
 public Text_t Text$title(Text_t text)
 {
-    uint32_t *codepoints = (uint32_t*)Text$as_c_string(text);
+    array_t codepoints = Text$utf32_codepoints(text);
     const char *language = uc_locale_language();
     uint32_t buf[128]; 
     size_t out_len;
-    uint32_t *title = u32_totitle(codepoints, strlen((char*)codepoints), language, UNINORM_NFC, buf, &out_len);
+    uint32_t *title = u32_totitle(codepoints.data, codepoints.length, language, UNINORM_NFC, buf, &out_len);
     Text_t ret = text_from_u32(title, out_len, false);
-    if (title != codepoints) free(title);
+    if (title != buf) free(title);
     return ret;
 }
 
