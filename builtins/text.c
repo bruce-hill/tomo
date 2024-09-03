@@ -1034,7 +1034,7 @@ int64_t match_uri(Text_t text, int64_t text_index)
     return text_index - start_index;
 }
 
-int64_t match(Text_t text, Text_t pattern, int64_t text_index, int64_t pattern_index)
+int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t pattern_index)
 {
     if (pattern_index >= pattern.length) return 0;
     int64_t start_index = text_index;
@@ -1306,7 +1306,7 @@ int64_t match(Text_t text, Text_t pattern, int64_t text_index, int64_t pattern_i
 #undef EAT1
 #undef EAT_MANY
 
-public Int_t Text$find(Text_t text, Text_t pattern, Int_t from_index, int64_t *match_length)
+public Int_t Text$find(Text_t text, Pattern_t pattern, Int_t from_index, int64_t *match_length)
 {
     int64_t first = Int_to_Int64(from_index, false);
     if (first == 0) fail("Invalid index: 0");
@@ -1340,7 +1340,7 @@ public Int_t Text$find(Text_t text, Text_t pattern, Int_t from_index, int64_t *m
     return I(0);
 }
 
-public bool Text$has(Text_t text, Text_t pattern)
+public bool Text$has(Text_t text, Pattern_t pattern)
 {
     return !I_is_zero(Text$find(text, pattern, I_small(1), NULL));
 }
@@ -1363,26 +1363,17 @@ public int printf_text(FILE *stream, const struct printf_info *info, const void 
         return Text$print(stream, t);
 }
 
-public Text_t Text$as_text(const void *text, bool colorize, const TypeInfo *info)
-{
-    (void)info;
-    if (!text) return info && info->TextInfo.lang ? Text$from_str(info->TextInfo.lang) : Text$from_str("Text");
-    Text_t as_text = Text$quoted(*(Text_t*)text, colorize);
-    if (info && info->TextInfo.lang && info != &$Text)
-        as_text = Text$concat(Text$from_str(colorize ? "\x1b[1m$" : "$"), Text$from_str(info->TextInfo.lang), as_text);
-    return as_text;
-}
-
-public Text_t Text$quoted(Text_t text, bool colorize)
+static inline Text_t _quoted(Text_t text, bool colorize, char quote_char)
 {
     // TODO: optimize for ASCII and short strings
     array_t graphemes = {.atomic=1};
 #define add_char(c) Array$insert_value(&graphemes, (uint32_t)c, I_small(0), sizeof(uint32_t))
 #define add_str(s) ({ for (char *_c = s; *_c; ++_c) Array$insert_value(&graphemes, (uint32_t)*_c, I_small(0), sizeof(uint32_t)); })
     if (colorize)
-        add_str("\x1b[35m\"");
-    else
-        add_char('"');
+        add_str("\x1b[35m");
+    if (quote_char != '"' && quote_char != '\"' && quote_char != '`')
+        add_char('$');
+    add_char(quote_char);
 
 #define add_escaped(str) ({ if (colorize) add_str("\x1b[34;1m"); add_char('\\'); add_str(str); if (colorize) add_str("\x1b[0;35m"); })
     iteration_state_t state = {0, 0};
@@ -1397,7 +1388,6 @@ public Text_t Text$quoted(Text_t text, bool colorize)
         case '\r': add_escaped("r"); break;
         case '\t': add_escaped("t"); break;
         case '\v': add_escaped("v"); break;
-        case '"': add_escaped("\""); break;
         case '\\': add_escaped("\\"); break;
         case '\x00' ... '\x06': case '\x0E' ... '\x1A':
         case '\x1C' ... '\x1F': case '\x7F' ... '\x7F': {
@@ -1411,14 +1401,19 @@ public Text_t Text$quoted(Text_t text, bool colorize)
                 add_str("\x1b[0;35m");
             break;
         }
-        default: add_char(g); break;
+        default: {
+            if (g == quote_char)
+                add_escaped(((char[2]){quote_char, 0}));
+            else
+               add_char(g);
+            break;
+        }
         }
     }
 
+    add_char(quote_char);
     if (colorize)
-        add_str("\"\x1b[m");
-    else
-        add_char('"');
+        add_str("\x1b[m");
 
     return (Text_t){.length=graphemes.length, .tag=TEXT_GRAPHEMES, .graphemes=graphemes.data};
 #undef add_str
@@ -1426,7 +1421,22 @@ public Text_t Text$quoted(Text_t text, bool colorize)
 #undef add_escaped
 }
 
-public array_t Text$find_all(Text_t text, Text_t pattern)
+public Text_t Text$as_text(const void *text, bool colorize, const TypeInfo *info)
+{
+    (void)info;
+    if (!text) return info && info->TextInfo.lang ? Text$from_str(info->TextInfo.lang) : Text$from_str("Text");
+    Text_t as_text = _quoted(*(Text_t*)text, colorize, info == &Pattern ? '/' : '"');
+    if (info && info->TextInfo.lang && info != &$Text && info != &Pattern)
+        as_text = Text$concat(Text$from_str(colorize ? "\x1b[1m$" : "$"), Text$from_str(info->TextInfo.lang), as_text);
+    return as_text;
+}
+
+public Text_t Text$quoted(Text_t text, bool colorize)
+{
+    return _quoted(text, colorize, '"');
+}
+
+public array_t Text$find_all(Text_t text, Pattern_t pattern)
 {
     if (pattern.length == 0) // special case
         return (array_t){.length=0};
@@ -1446,7 +1456,7 @@ public array_t Text$find_all(Text_t text, Text_t pattern)
     return matches;
 }
 
-public Text_t Text$replace(Text_t text, Text_t pattern, Text_t replacement)
+public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement)
 {
     Text_t ret = {.length=0};
 
@@ -1470,7 +1480,7 @@ public Text_t Text$replace(Text_t text, Text_t pattern, Text_t replacement)
     return ret;
 }
 
-public array_t Text$split(Text_t text, Text_t pattern)
+public array_t Text$split(Text_t text, Pattern_t pattern)
 {
     if (text.length == 0) // special case
         return (array_t){.length=0};
@@ -1654,6 +1664,44 @@ public const TypeInfo $Text = {
     .align=__alignof__(Text_t),
     .tag=TextInfo,
     .TextInfo={.lang="Text"},
+};
+
+public Pattern_t Pattern$escape_text(Text_t text)
+{
+    // TODO: optimize for ASCII and short strings
+    array_t graphemes = {.atomic=1};
+#define add_char(c) Array$insert_value(&graphemes, (uint32_t)c, I_small(0), sizeof(uint32_t))
+#define add_str(s) ({ for (char *_c = s; *_c; ++_c) Array$insert_value(&graphemes, (uint32_t)*_c, I_small(0), sizeof(uint32_t)); })
+    iteration_state_t state = {0, 0};
+    for (int64_t i = 0; i < text.length; i++) {
+        int32_t g = _next_grapheme(text, &state, i);
+        uint32_t g0 = g < 0 ? synthetic_graphemes[-g-1].codepoints[0] : (uint32_t)g;
+
+        if (g == '[') {
+            add_str("[..1[]");
+        } else if (uc_is_property_quotation_mark(g0)) {
+            add_str("[..1");
+            add_char(g);
+            add_char(']');
+        } else if (uc_is_property_paired_punctuation(g0)) {
+            add_str("[..1");
+            add_char(g);
+            add_char(']');
+        } else {
+            add_char(g);
+        }
+    }
+    return (Text_t){.length=graphemes.length, .tag=TEXT_GRAPHEMES, .graphemes=graphemes.data};
+#undef add_str
+#undef add_char
+#undef add_escaped
+}
+
+public const TypeInfo Pattern = {
+    .size=sizeof(Text_t),
+    .align=__alignof__(Text_t),
+    .tag=TextInfo,
+    .TextInfo={.lang="Pattern"},
 };
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

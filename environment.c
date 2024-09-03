@@ -60,6 +60,7 @@ env_t *new_compilation_unit(CORD *libname)
         THREAD_TYPE = Type(StructType, .name="Thread", .env=thread_env, .opaque=true);
     }
 
+
     struct {
         const char *name;
         type_t *type;
@@ -230,22 +231,25 @@ env_t *new_compilation_unit(CORD *libname)
             {"reversed", "Range$reversed", "func(range:Range)->Range"},
             {"by", "Range$by", "func(range:Range, step:Int)->Range"},
         )},
+        {"Pattern", Type(TextType, .lang="Pattern", .env=namespace_env(env, "Pattern")), "Text_t", "Pattern", TypedArray(ns_entry_t,
+            {"escape_text", "Pattern$escape_text", "func(text:Text)->Pattern"},
+        )},
         {"Text", TEXT_TYPE, "Text_t", "$Text", TypedArray(ns_entry_t,
-            {"find", "Text$find", "func(text:Text, pattern:Text, start=1, length=!&Int64)->Int"},
-            {"find_all", "Text$find_all", "func(text:Text, pattern:Text)->[Text]"},
+            {"find", "Text$find", "func(text:Text, pattern:Pattern, start=1, length=!&Int64)->Int"},
+            {"find_all", "Text$find_all", "func(text:Text, pattern:Pattern)->[Text]"},
             {"as_c_string", "CORD_to_char_star", "func(text:Text)->CString"},
             {"codepoint_names", "Text$codepoint_names", "func(text:Text)->[Text]"},
             {"from_bytes", "Text$from_bytes", "func(bytes:[Int8])->Text"},
             {"from_c_string", "Text$from_str", "func(str:CString)->Text"},
             {"from_codepoint_names", "Text$from_codepoint_names", "func(codepoint_names:[Text])->Text"},
             {"from_codepoints", "Text$from_codepoints", "func(codepoints:[Int32])->Text"},
-            {"has", "Text$has", "func(text:Text, pattern:Text)->Bool"},
+            {"has", "Text$has", "func(text:Text, pattern:Pattern)->Bool"},
             {"join", "Text$join", "func(glue:Text, pieces:[Text])->Text"},
             {"lines", "Text$lines", "func(text:Text)->[Text]"},
             {"lower", "Text$lower", "func(text:Text)->Text"},
             {"quoted", "Text$quoted", "func(text:Text, color=no)->Text"},
-            {"replace", "Text$replace", "func(text:Text, pattern:Text, replacement:Text)->Text"},
-            {"split", "Text$split", "func(text:Text, pattern='')->[Text]"},
+            {"replace", "Text$replace", "func(text:Text, pattern:Pattern, replacement:Text)->Text"},
+            {"split", "Text$split", "func(text:Text, pattern=$Pattern'')->[Text]"},
             {"slice", "Text$slice", "func(text:Text, from=1, to=-1)->Text"},
             {"title", "Text$title", "func(text:Text)->Text"},
             {"upper", "Text$upper", "func(text:Text)->Text"},
@@ -293,6 +297,10 @@ env_t *new_compilation_unit(CORD *libname)
             set_binding(ns_env, entry->name, b);
         }
     }
+
+    set_binding(namespace_env(env, "Pattern"), "from_unsafe_text",
+                new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE), .ret=Type(TextType, .lang="Pattern")),
+                    .code="(Pattern_t)"));
 
     return env;
 }

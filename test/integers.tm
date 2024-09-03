@@ -79,7 +79,7 @@ func main():
 		for in 20:
 			>> n := Int.random(-999999, 999999)
 			>> d := Int.random(-999, 999)
-			//! n=$n, d=$d:
+			!! n=$n, d=$d:
 			>> (n/d)*d + (n mod d) == n
 			= yes
 

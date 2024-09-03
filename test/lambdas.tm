@@ -31,12 +31,12 @@ func main():
 	>> abs100(-5)
 	= 500
 
-	// Test nested lambdas:
+	# Test nested lambdas:
     outer := "Hello"
     fn := func():
         return func():
             return func():
-                defer: //! $outer
+                defer: !! $outer
                 return outer
     >> fn()()()
 	= "Hello"

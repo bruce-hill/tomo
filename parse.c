@@ -378,7 +378,7 @@ const char *get_id(const char **inout) {
 }
 
 bool comment(const char **pos) {
-    if ((*pos)[0] == '/' && (*pos)[1] == '/' && (*pos)[2] != '!') {
+    if ((*pos)[0] == '#') {
         *pos += strcspn(*pos, "\r\n");
         return true;
     } else {
@@ -1194,6 +1194,9 @@ PARSER(parse_text) {
         open_quote = *pos;
         ++pos;
         close_quote = closing[(int)open_quote] ? closing[(int)open_quote] : open_quote;
+
+        if (!lang && open_quote == '/')
+            lang = "Pattern";
     } else {
         return NULL;
     }
@@ -2132,7 +2135,7 @@ PARSER(parse_doctest) {
 
 PARSER(parse_say) {
     const char *start = pos;
-    if (!match(&pos, "//!")) return NULL;
+    if (!match(&pos, "!!")) return NULL;
     spaces(&pos);
 
     ast_list_t *chunks = NULL;

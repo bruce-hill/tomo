@@ -29,11 +29,11 @@ Text_t Text$lower(Text_t text);
 Text_t Text$title(Text_t text);
 Text_t Text$as_text(const void *text, bool colorize, const TypeInfo *info);
 Text_t Text$quoted(Text_t str, bool colorize);
-Text_t Text$replace(Text_t str, Text_t pat, Text_t replacement);
-array_t Text$split(Text_t text, Text_t pattern);
-Int_t Text$find(Text_t text, Text_t pattern, Int_t i, int64_t *match_length);
-array_t Text$find_all(Text_t text, Text_t pattern);
-bool Text$has(Text_t text, Text_t pattern);
+Text_t Text$replace(Text_t str, Pattern_t pat, Text_t replacement);
+array_t Text$split(Text_t text, Pattern_t pattern);
+Int_t Text$find(Text_t text, Pattern_t pattern, Int_t i, int64_t *match_length);
+array_t Text$find_all(Text_t text, Pattern_t pattern);
+bool Text$has(Text_t text, Pattern_t pattern);
 const char *Text$as_c_string(Text_t text);
 public Text_t Text$format(const char *fmt, ...);
 array_t Text$clusters(Text_t text);
@@ -47,5 +47,8 @@ array_t Text$lines(Text_t text);
 Text_t Text$join(Text_t glue, array_t pieces);
 
 extern const TypeInfo $Text;
+
+Pattern_t Pattern$escape_text(Text_t text);
+extern const TypeInfo Pattern;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

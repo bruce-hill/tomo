@@ -26,7 +26,7 @@ func main():
 
     results := |:Int; max_size|
     >> thread := Thread.new(func():
-        //! In another thread!
+        !! In another thread!
         while yes:
             >> got := jobs:get()
             when got is Increment(x):
@@ -63,8 +63,8 @@ func main():
     >> results:get()
     = 1001
 
-    //! Canceling...
+    !! Canceling...
     >> thread:cancel()
-    //! Joining...
+    !! Joining...
     >> thread:join()
-    //! Done!
+    !! Done!

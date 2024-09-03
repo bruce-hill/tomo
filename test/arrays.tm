@@ -78,23 +78,23 @@ func main():
 		>> arr := [10, 20, 30]
 		>> reversed := arr:reversed()
 		= [30, 20, 10]
-		// Ensure the copy-on-write behavior triggers:
+		# Ensure the copy-on-write behavior triggers:
 		>> arr[1] = 999
 		>> reversed
 		= [30, 20, 10]
 
 	do:
 		>> nums := [10, -20, 30]
-		// Sorted function doesn't mutate original:
+		# Sorted function doesn't mutate original:
 		>> nums:sorted()
 		= [-20, 10, 30]
 		>> nums
 		= [10, -20, 30]
-		// Sort function does mutate in place:
+		# Sort function does mutate in place:
 		>> nums:sort()
 		>> nums
 		= [-20, 10, 30]
-		// Custom sort functions:
+		# Custom sort functions:
 		>> nums:sort(func(x:&%Int,y:&%Int): x:abs() <> y:abs())
 		>> nums
 		= [10, -20, 30]
@@ -148,7 +148,7 @@ func main():
 		>> [i*10 for i in 10]:by(2):by(-1)
 		= [90, 70, 50, 30, 10]
 
-		// Test iterating over array:from() and array:to()
+		# Test iterating over array:from() and array:to()
 		xs := ["A", "B", "C", "D"]
 		for i,x in xs:to(-2):
 			for y in xs:from(i+1):

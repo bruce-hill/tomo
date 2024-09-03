@@ -262,15 +262,20 @@ Text codebase is around 1.5K lines of code).
 For more advanced use cases, consider linking against a C library for regular
 expressions or pattern matching.
 
+`Pattern` is a [domain-specific language](docs/langs.md), in other words, it's
+like a `Text`, but it has a distinct type. As a convenience, you can use
+`$/.../` to write pattern literals instead of using the general-purpose DSL
+syntax of `$Pattern"..."`.
+
 Patterns are used in a small, but very powerful API that handles many text
 functions that would normally be handled by a more extensive API:
 
 ```
-Text.find(pattern:Text, start=1, length=!&Int64?)->Int
-Text.find_all(pattern:Text)->[Text]
-Text.split(pattern:Text)->[Text]
-Text.replace(pattern:Text, replacement:Text)->[Text]
-Text.has(pattern:Text)->Bool
+Text.find(pattern:Pattern, start=1, length=!&Int64?)->Int
+Text.find_all(pattern:Pattern)->[Text]
+Text.split(pattern:Pattern)->[Text]
+Text.replace(pattern:Pattern, replacement:Text)->[Text]
+Text.has(pattern:Pattern)->Bool
 ```
 
 See [Text Functions](#Text-Functions) for the full API documentation.
@@ -329,6 +334,41 @@ small letter A]` matches `a`.
 If an exclamation mark (`!`) is placed before a pattern's name, then characters
 are matched only when they _don't_ match the pattern. For example, `[..!alpha]`
 will match all characters _except_ alphabetic ones.
+
+## Interpolating Text and Escaping
+
+To escape a character in a pattern (e.g. if you want to match the literal
+character `?`), you can use the syntax `[..1 ?]`. This is almost never
+necessary unless you have text that looks like a Tomo text pattern and has
+something like `[..` or `(?)` inside it.
+
+However, if you're trying to do an exact match of arbitrary text values, you'll
+want to have the text automatically escaped. Fortunately, Tomo's injection-safe
+DSL text interpolation supports automatic text escaping. This means that if you
+use text interpolation with the `$` sign to insert a text value, the value will
+be automatically escaped using the `[..1 ?]` rule described above:
+
+```tomo
+# Risk of code injection (would cause an error because 'xxx' is not a valid
+# pattern name:
+>> user_input := get_user_input()
+= "[..xxx]"
+
+# Interpolation automatically escapes:
+>> $/$user_input/
+= $/[..1 []..xxx]/
+
+# No error:
+>> some_text:find($/$user_input/)
+= 0
+```
+
+If you prefer, you can also use this to insert literal characters:
+
+```tomo
+>> $/literal $"[..]"/
+= $/literal [..1]]..]/
+```
 
 ## Repetitions
 

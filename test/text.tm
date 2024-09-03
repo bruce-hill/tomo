@@ -1,6 +1,6 @@
 func main():
 	>> str := "Hello Amélie!"
-	//! Testing strings like $str
+	!! Testing strings like $str
 
 	>> str:upper()
 	= "HELLO AMÉLIE!"
@@ -40,45 +40,45 @@ func main():
 	>> amelie2:codepoint_names()
 	= ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E WITH ACUTE", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
 
-	>> "Hello":replace("e", "X")
+	>> "Hello":replace($/e/, "X")
 	= "HXllo"
 
-	>> "Hello":has("l")
+	>> "Hello":has($/l/)
 	= yes
-	>> "Hello":has("l[..end]")
+	>> "Hello":has($/l[..end]/)
 	= no
-	>> "Hello":has("[..start]l")
-	= no
-
-	>> "Hello":has("o")
-	= yes
-	>> "Hello":has("o[..end]")
-	= yes
-	>> "Hello":has("[..start]o")
+	>> "Hello":has($/[..start]l/)
 	= no
 
-	>> "Hello":has("H")
+	>> "Hello":has($/o/)
 	= yes
-	>> "Hello":has("H[..end]")
+	>> "Hello":has($/o[..end]/)
+	= yes
+	>> "Hello":has($/[..start]o/)
 	= no
-	>> "Hello":has("[..start]H")
+
+	>> "Hello":has($/H/)
+	= yes
+	>> "Hello":has($/H[..end]/)
+	= no
+	>> "Hello":has($/[..start]H/)
 	= yes
 
-	>> "Hello":replace("l", "")
+	>> "Hello":replace($/l/, "")
 	= "Heo"
-	>> "xxxx":replace("x", "")
+	>> "xxxx":replace($/x/, "")
 	= ""
-	>> "xxxx":replace("y", "")
+	>> "xxxx":replace($/y/, "")
 	= "xxxx"
-	>> "One two three four five six":replace("e ", "")
+	>> "One two three four five six":replace($/e /, "")
 	= "Ontwo threfour fivsix"
 
-	>> " one ":replace("[..start][..space]", "")
+	>> " one ":replace($/[..start][..space]/, "")
 	= "one "
-	>> " one ":replace("[..space][..end]", "")
+	>> " one ":replace($/[..space][..end]/, "")
 	= " one"
 
-	>> amelie:has(amelie2)
+	>> amelie:has($/$amelie2/)
 
 
 	>> multiline := "
@@ -87,7 +87,7 @@ func main():
 	"
 	= "line one\nline two"
 
-	//! Interpolation tests:
+	!! Interpolation tests:
 	>> "A $(1+2)"
 	= "A 3"
 	>> 'A $(1+2)'
@@ -104,9 +104,9 @@ func main():
 	>> $(one (nested) two $(1+2))
 	= "one (nested) two 3"
 
-	>> "one two three":replace("[..alpha]", "")
+	>> "one two three":replace($/[..alpha]/, "")
 	= "  "
-	>> "one two three":replace("[..alpha]", "word")
+	>> "one two three":replace($/[..alpha]/, "word")
 	= "word word word"
 
 	>> c := "É̩"
@@ -130,17 +130,17 @@ func main():
 	>> "":lines()
 	= []
 
-	//! Test splitting and joining text:
-	>> "one two three":split(" ")
+	!! Test splitting and joining text:
+	>> "one two three":split($/ /)
 	= ["one", "two", "three"]
 
-	>> "one,two,three,":split(",")
+	>> "one,two,three,":split($/,/)
 	= ["one", "two", "three", ""]
 
-	>> "one    two three":split("[..space]")
+	>> "one    two three":split($/[..space]/)
 	= ["one", "two", "three"]
 
-	>> "abc":split("")
+	>> "abc":split($//)
 	= ["a", "b", "c"]
 
 	>> ", ":join(["one", "two", "three"])
@@ -158,42 +158,42 @@ func main():
 	>> "":split()
 	= []
 
-	//! Test text:find_all()
-	>> " one  two three   ":find_all("[..alpha]")
+	!! Test text:find_all()
+	>> " one  two three   ":find_all($/[..alpha]/)
 	= ["one", "two", "three"]
 
-	>> " one  two three   ":find_all("[..!space]")
+	>> " one  two three   ":find_all($/[..!space]/)
 	= ["one", "two", "three"]
 
-	>> "    ":find_all("[..alpha]")
+	>> "    ":find_all($/[..alpha]/)
 	= []
 
-	>> " foo(baz(), 1)  doop() ":find_all("[..id](?)")
+	>> " foo(baz(), 1)  doop() ":find_all($/[..id](?)/)
 	= ["foo(baz(), 1)", "doop()"]
 
-	>> "":find_all("")
+	>> "":find_all($Pattern'')
 	= []
 
-	>> "Hello":find_all("")
+	>> "Hello":find_all($Pattern'')
 	= []
 
-	//! Test text:find()
-	>> " one   two  three   ":find("[..id]", start=-999)
+	!! Test text:find()
+	>> " one   two  three   ":find($/[..id]/, start=-999)
 	= 0
-	>> " one   two  three   ":find("[..id]", start=999)
+	>> " one   two  three   ":find($/[..id]/, start=999)
 	= 0
-	>> " one   two  three   ":find("[..id]")
+	>> " one   two  three   ":find($/[..id]/)
 	= 2
-	>> " one   two  three   ":find("[..id]", start=5)
+	>> " one   two  three   ":find($/[..id]/, start=5)
 	= 8
 
 	>> len := 0_i64
-	>> "   one  ":find("[..id]", length=&len)
+	>> "   one  ":find($/[..id]/, length=&len)
 	= 4
 	>> len
 	= 3_i64
 
-	//! Test text slicing:
+	!! Test text slicing:
 	>> "abcdef":slice()
 	= "abcdef"
 	>> "abcdef":slice(from=3)
@@ -219,4 +219,9 @@ func main():
 
 	>> Text.from_codepoint_names(["not a valid name here buddy"])
 	= ""
+
+	>> malicious := "[..xxx"
+	>> $/$malicious/
+	= $/[..1[]..xxx/
+
 
