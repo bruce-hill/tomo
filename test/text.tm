@@ -73,9 +73,9 @@ func main():
 	>> "One two three four five six":replace("e ", "")
 	= "Ontwo threfour fivsix"
 
-	>> " one ":replace("[start][..space]", "")
+	>> " one ":replace("[..start][..space]", "")
 	= "one "
-	>> " one ":replace("[..space][end]", "")
+	>> " one ":replace("[..space][..end]", "")
 	= " one"
 
 	>> amelie:has(amelie2)
