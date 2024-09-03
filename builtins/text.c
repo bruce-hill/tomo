@@ -1428,6 +1428,9 @@ public Text_t Text$replace(Text_t text, Text_t pattern, Text_t replacement)
 
 public array_t Text$split(Text_t text, Text_t pattern)
 {
+    if (text.length == 0) // special case
+        return (array_t){.length=0};
+
     if (pattern.length == 0) // special case
         return Text$clusters(text);
 

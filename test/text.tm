@@ -152,3 +152,6 @@ func main():
 
 	>> "+":join([:Text])
 	= ""
+
+	>> "":split()
+	= []
