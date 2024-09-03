@@ -835,7 +835,7 @@ const char *get_property_name(Text_t text, int64_t *i)
         if (success) text_index += 1; \
         success; })
 
-#define EAT_MANY(state, cond) ({ int64_t n = 0; while (EAT1(state, cond)) { n += 1; } n; })
+#define EAT_MANY(state, cond) ({ int64_t _n = 0; while (EAT1(state, cond)) { _n += 1; } _n; })
 
 int64_t match_email(Text_t text, int64_t text_index)
 {
@@ -1102,6 +1102,12 @@ int64_t match(Text_t text, Text_t pattern, int64_t text_index, int64_t pattern_i
                             FAIL();
                         EAT_MANY(&text_state, uc_is_property(grapheme, UC_PROPERTY_XID_CONTINUE));
                         continue;
+                    } else if (prop_name && strcasecmp(prop_name, "int") == 0) {
+                        EAT1(&text_state, grapheme == '-');
+                        int64_t n = EAT_MANY(&text_state, uc_is_property(grapheme, UC_PROPERTY_DECIMAL_DIGIT));
+                        if (n <= 0)
+                            FAIL();
+                        continue;
                     } else if (prop_name && strcasecmp(prop_name, "ipv4") == 0) {
                         int64_t len = match_ipv4(text, text_index);
                         if (len < 0)
@@ -1121,6 +1127,17 @@ int64_t match(Text_t text, Text_t pattern, int64_t text_index, int64_t pattern_i
                         if (len < 0)
                             FAIL();
                         text_index += len;
+                        continue;
+                    }
+                    break;
+                case 'n':
+                    if (prop_name && strcasecmp(prop_name, "num") == 0) {
+                        EAT1(&text_state, grapheme == '-');
+                        int64_t pre_decimal = EAT_MANY(&text_state, uc_is_property(grapheme, UC_PROPERTY_DECIMAL_DIGIT));
+                        bool decimal = (EAT1(&text_state, grapheme == '.') == 1);
+                        int64_t post_decimal = decimal ? EAT_MANY(&text_state, uc_is_property(grapheme, UC_PROPERTY_DECIMAL_DIGIT)) : 0;
+                        if (pre_decimal == 0 && post_decimal == 0)
+                            FAIL();
                         continue;
                     }
                     break;
