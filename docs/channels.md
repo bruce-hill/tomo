@@ -31,15 +31,14 @@ Adds an item to the channel.
 
 **Usage:**  
 ```markdown
-give(channel:|T|, item: T, where: Where = Where.End) -> Void
+give(channel:|T|, item: T, front: Bool = no) -> Void
 ```
 
 **Parameters:**
 
 - `channel`: The channel to which the item will be added.
 - `item`: The item to add to the channel.
-- `where`: Where to put the item (at the `Start` or `End` of the queue).
-  `Anywhere` defaults to `End`.
+- `front`: Whether to put the item at the front of the channel (as opposed to the back).
 
 **Returns:**  
 Nothing.
@@ -58,15 +57,14 @@ Adds multiple items to the channel.
 
 **Usage:**  
 ```markdown
-give_all(channel:|T|, items: [T], where: Where = Where.End) -> Void
+give_all(channel:|T|, items: [T], front: Bool = no) -> Void
 ```
 
 **Parameters:**
 
 - `channel`: The channel to which the items will be added.
 - `items`: The array of items to add to the channel.
-- `where`: Where to put the items (at the `Start` or `End` of the queue).
-  `Anywhere` defaults to `End`.
+- `front`: Whether to put the item at the front of the channel (as opposed to the back).
 
 **Returns:**  
 Nothing.
@@ -85,14 +83,13 @@ Removes and returns an item from the channel. If the channel is empty, it waits 
 
 **Usage:**  
 ```markdown
-get(channel:|T|, where: Where = Where.Start) -> T
+get(channel:|T|, front: Bool = yes) -> T
 ```
 
 **Parameters:**
 
 - `channel`: The channel from which to remove an item.
-- `where`: Where to get the item from (from the `Start` or `End` of the queue).
-  `Anywhere` defaults to `Start`.
+- `front`: Whether to put the item at the front of the channel (as opposed to the back).
 
 **Returns:**  
 The item removed from the channel.
@@ -113,14 +110,13 @@ it. If the channel is empty, it waits until an item is available.
 
 **Usage:**  
 ```markdown
-peek(channel:|T|, where: Where = Where.Start) -> T
+peek(channel:|T|, front: Bool = yes) -> T
 ```
 
 **Parameters:**
 
 - `channel`: The channel from which to remove an item.
-- `where`: Which end of the channel to peek from (the `Start` or `End`).
-  `Anywhere` defaults to `Start`.
+- `front`: Whether to put the item at the front of the channel (as opposed to the back).
 
 **Returns:**  
 The item removed from the channel.

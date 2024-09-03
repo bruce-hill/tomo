@@ -11,7 +11,6 @@
 
 type_t *TEXT_TYPE = NULL;
 type_t *RANGE_TYPE = NULL;
-type_t *WHERE_TYPE = NULL;
 public type_t *THREAD_TYPE = NULL;
 
 env_t *new_compilation_unit(CORD *libname)
@@ -46,20 +45,6 @@ env_t *new_compilation_unit(CORD *libname)
     typedef struct {
         const char *name, *code, *type_str;
     } ns_entry_t;
-
-    {
-        env_t *where_env = namespace_env(env, "Where");
-        type_t *anywhere = Type(StructType, .name="Anywhere");
-        type_t *start = Type(StructType, .name="Start");
-        type_t *end = Type(StructType, .name="End");
-        WHERE_TYPE = Type(EnumType, .name="Where", .env=where_env,
-                          .tags=new(tag_t, .name="Anywhere", .tag_value=0, .type=anywhere,
-                                    .next=new(tag_t, .name="Start", .tag_value=0, .type=start,
-                                              .next=new(tag_t, .name="End", .tag_value=0, .type=end))));
-        set_binding(where_env, "Anywhere", new(binding_t, .type=WHERE_TYPE, .code="Where$tagged$Anywhere"));
-        set_binding(where_env, "Start", new(binding_t, .type=WHERE_TYPE, .code="Where$tagged$Start"));
-        set_binding(where_env, "End", new(binding_t, .type=WHERE_TYPE, .code="Where$tagged$End"));
-    }
 
     {
         env_t *range_env = namespace_env(env, "Range");
@@ -241,7 +226,6 @@ env_t *new_compilation_unit(CORD *libname)
 #undef F2
 #undef F
 #undef C
-        {"Where", WHERE_TYPE, "Where_t", "Where", {}},
         {"Range", RANGE_TYPE, "Range_t", "Range", TypedArray(ns_entry_t,
             {"reversed", "Range$reversed", "func(range:Range)->Range"},
             {"by", "Range$by", "func(range:Range, step:Int)->Range"},
@@ -264,7 +248,6 @@ env_t *new_compilation_unit(CORD *libname)
             {"split", "Text$split", "func(text:Text, pattern='')->[Text]"},
             {"slice", "Text$slice", "func(text:Text, from=1, to=-1)->Text"},
             {"title", "Text$title", "func(text:Text)->Text"},
-            {"trimmed", "Text$trimmed", "func(text:Text, trim=\" {\\n\\r\\t}\", where=Where.Anywhere)->Text"},
             {"upper", "Text$upper", "func(text:Text)->Text"},
             {"utf32_codepoints", "Text$utf32_codepoints", "func(text:Text)->[Int32]"},
             {"utf8_bytes", "Text$utf8_bytes", "func(text:Text)->[Int8]"},

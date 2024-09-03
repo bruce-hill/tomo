@@ -18,11 +18,10 @@
 #include "text.h"
 #include "types.h"
 #include "util.h"
-#include "where.h"
 
 public channel_t *Channel$new(Int_t max_size)
 {
-    if (Int$compare_value(max_size, I(0)) <= 0)
+    if (Int$compare_value(max_size, I_small(0)) <= 0)
         fail("Cannot create a channel with a size less than one: %ld", max_size);
     channel_t *channel = new(channel_t);
     channel->items = (array_t){};
@@ -32,22 +31,22 @@ public channel_t *Channel$new(Int_t max_size)
     return channel;
 }
 
-public void Channel$give(channel_t *channel, const void *item, Where_t where, int64_t padded_item_size)
+public void Channel$give(channel_t *channel, const void *item, bool front, int64_t padded_item_size)
 {
     (void)pthread_mutex_lock(&channel->mutex);
     while (channel->items.length >= channel->max_size)
         pthread_cond_wait(&channel->cond, &channel->mutex);
-    Int_t index = (where.tag == $tag$Where$Start) ? I(1) : I(0);
+    Int_t index = front ? I_small(1) : I_small(0);
     Array$insert(&channel->items, item, index, padded_item_size);
     (void)pthread_mutex_unlock(&channel->mutex);
     (void)pthread_cond_signal(&channel->cond);
 }
 
-public void Channel$give_all(channel_t *channel, array_t to_give, Where_t where, int64_t padded_item_size)
+public void Channel$give_all(channel_t *channel, array_t to_give, bool front, int64_t padded_item_size)
 {
     if (to_give.length == 0) return;
     (void)pthread_mutex_lock(&channel->mutex);
-    Int_t index = (where.tag == $tag$Where$Start) ? I(1) : I(0);
+    Int_t index = front ? I_small(1) : I_small(0);
     if (channel->items.length + to_give.length >= channel->max_size) {
         for (int64_t i = 0; i < to_give.length; i++) {
             while (channel->items.length >= channel->max_size)
@@ -61,24 +60,24 @@ public void Channel$give_all(channel_t *channel, array_t to_give, Where_t where,
     (void)pthread_cond_signal(&channel->cond);
 }
 
-public void Channel$get(channel_t *channel, void *out, Where_t where, int64_t item_size, int64_t padded_item_size)
+public void Channel$get(channel_t *channel, void *out, bool front, int64_t item_size, int64_t padded_item_size)
 {
     (void)pthread_mutex_lock(&channel->mutex);
     while (channel->items.length == 0)
         pthread_cond_wait(&channel->cond, &channel->mutex);
-    memcpy(out, channel->items.data, item_size);
-    Int_t index = (where.tag == $tag$Where$End) ? I(0) : I(1);
-    Array$remove_at(&channel->items, index, I(1), padded_item_size);
+    memcpy(out, channel->items.data + channel->items.stride * (front ? 0 : channel->items.length-1), item_size);
+    Int_t index = front ? I_small(1) : Int64_to_Int(channel->items.length);
+    Array$remove_at(&channel->items, index, I_small(1), padded_item_size);
     (void)pthread_mutex_unlock(&channel->mutex);
     (void)pthread_cond_signal(&channel->cond);
 }
 
-public void Channel$peek(channel_t *channel, void *out, Where_t where, int64_t item_size)
+public void Channel$peek(channel_t *channel, void *out, bool front, int64_t item_size)
 {
     (void)pthread_mutex_lock(&channel->mutex);
     while (channel->items.length == 0)
         pthread_cond_wait(&channel->cond, &channel->mutex);
-    int64_t index = (where.tag == $tag$Where$End) ? channel->items.length-1 : 0;
+    int64_t index = front ? 0 : channel->items.length-1;
     memcpy(out, channel->items.data + channel->items.stride*index, item_size);
     (void)pthread_mutex_unlock(&channel->mutex);
     (void)pthread_cond_signal(&channel->cond);

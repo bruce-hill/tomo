@@ -270,7 +270,7 @@ Text.find(pattern:Text, start=1, length=!&Int64?)->Int
 Text.find_all(pattern:Text)->[Text]
 Text.split(pattern:Text)->[Text]
 Text.replace(pattern:Text, replacement:Text)->[Text]
-Text.has(pattern:Text, where=Where.Anywhere)->Bool
+Text.has(pattern:Text)->Bool
 ```
 
 See [Text Functions](#Text-Functions) for the full API documentation.
@@ -343,31 +343,6 @@ many repetitions you want by putting a number or range of numbers first using
 [..4 digit]-[..2 digit]-[..2 digit]
 [..2+ space]
 [..0-1 question mark]
-```
-
-## Some Examples
-
-URL query string parameters:
-
-```
-text := "example.com/page?a=b&c=d"
->> text:find(before=$Pat`?`, $Pat`[..]`):split($Pat`&`)
-= ["a=b", "c=d"]
-```
-
-Remove or get file extension:
-
-```
-filename := "foo.txt"
->> filename:without($Pat`.[:id:]`, where=End)
-= "foo"
-
->> filename:find(before=$Pat`.`, $Pat`[:id:][:end:]`)
-= MatchResult.Success(match="txt")
-
->> filename := "foo.tar.gz"
->> ".":join(filename:split($Pat`.`):from(2))
-= "tar.gz"
 ```
 
 # Text Functions

@@ -10,7 +10,6 @@
 #include "datatypes.h"
 #include "integers.h"
 #include "types.h"
-#include "where.h"
 
 int printf_text(FILE *stream, const struct printf_info *info, const void *const args[]);
 int printf_text_size(const struct printf_info *info, size_t n, int argtypes[n], int sizes[n]);

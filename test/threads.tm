@@ -11,10 +11,10 @@ func main():
         = [10, 20, 30]
         >> channel:peek()
         = 10
-        >> channel:peek(End)
+        >> channel:peek(front=no)
         = 30
 
-        >> channel:give(-10, Start)
+        >> channel:give(-10, front=yes)
         >> channel:view()
         = [-10, 10, 20, 30]
 
