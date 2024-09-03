@@ -47,7 +47,12 @@ tags:
 	$(CC) $(CFLAGS) -c $< -o $@
 
 %.tm.testresult: %.tm tomo
-	VERBOSE=0 COLOR=1 CC=gcc O=1 ./tomo $< 2>$@ >$@ && cat $@
+	@printf '\x1b[33;1;4m%s\x1b[m\n' $<
+	@set -o pipefail; \
+	if ! VERBOSE=0 COLOR=1 CC=gcc O=1 ./tomo $< 2>&1 | tee $@; then \
+		rm -f $@; \
+		false; \
+	fi
 
 test: $(TESTS)
 	@echo -e '\x1b[32;7m ALL TESTS PASSED! \x1b[m'
