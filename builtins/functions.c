@@ -218,13 +218,10 @@ public void end_test(void *expr, const TypeInfo *type, const char *expected, con
         Text_t expr_plain = USE_COLOR ? generic_as_text(expr, false, type) : expr_text;
         bool success = Text$equal(&expr_plain, &expected_text);
         if (!success) {
-            printf("Not equal: %k vs %k\n", &expr_plain, &expected_text);
             Int_t colon = Text$find(expected_text, Text$from_str(":"), I_small(0), NULL);
             if (colon.small != I_small(0).small) {
                 Text_t with_type = Text$concat(expr_plain, Text$from_str(" : "), type_name);
                 success = Text$equal(&with_type, &expected_text);
-                if (!success)
-                    printf("Not equal: %k vs %k\n", &with_type, &expected_text);
             }
         }
 

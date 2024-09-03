@@ -268,10 +268,11 @@ public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
 
     switch (text.tag) {
     case TEXT_SHORT_ASCII: {
-        Text_t ret = text;
-        ret.length = last - first + 1;
-        if (first > 1)
-            memcpy(ret.short_ascii, text.short_ascii + (first-1), ret.length);
+        Text_t ret = (Text_t) {
+            .tag=TEXT_SHORT_ASCII,
+            .length=last - first + 1,
+        };
+        memcpy(ret.short_ascii, text.short_ascii + (first-1), ret.length);
         return ret;
     }
     case TEXT_ASCII: {
@@ -317,7 +318,7 @@ public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
             num_subtexts += 1;
         }
         if (num_subtexts == 1)
-            return Text$slice(subtexts[0], Int64_to_Int(first+1), Int64_to_Int(last+1));
+            return Text$slice(subtexts[0], Int64_to_Int(first), Int64_to_Int(last));
 
         Text_t ret = {
             .length=needed_len,
@@ -325,7 +326,7 @@ public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
             .subtexts=GC_MALLOC(sizeof(Text_t[num_subtexts])),
         };
         for (int64_t i = 0; i < num_subtexts; i++) {
-            ret.subtexts[i] = Text$slice(subtexts[i], Int64_to_Int(first+1), Int64_to_Int(last+1));
+            ret.subtexts[i] = Text$slice(subtexts[i], Int64_to_Int(first), Int64_to_Int(last));
             first = 1;
             needed_len -= ret.subtexts[i].length;
             last = first + needed_len - 1;
@@ -410,7 +411,7 @@ static void u8_buf_append(Text_t text, char **buf, int64_t *capacity, int64_t *i
     switch (text.tag) {
     case TEXT_ASCII: case TEXT_SHORT_ASCII: {
         if (*i + text.length > (int64_t)*capacity) {
-            *capacity = *i + text.length;
+            *capacity = *i + text.length + 1;
             *buf = GC_REALLOC(*buf, *capacity);
         }
 
@@ -421,7 +422,7 @@ static void u8_buf_append(Text_t text, char **buf, int64_t *capacity, int64_t *i
     }
     case TEXT_GRAPHEMES: case TEXT_SHORT_GRAPHEMES: {
         const int32_t *graphemes = text.tag == TEXT_GRAPHEMES ? text.graphemes : text.short_graphemes;
-        for (int64_t g = 0; g + 1 < text.length; g++) {
+        for (int64_t g = 0; g < text.length; g++) {
             const uint32_t *codepoints = graphemes[g] < 0 ? synthetic_graphemes[-graphemes[g]-1].codepoints : (uint32_t*)&graphemes[g];
             int64_t num_codepoints = graphemes[g] < 0 ? synthetic_graphemes[-graphemes[g]-1].num_codepoints : 1;
             uint8_t u8_buf[64];
@@ -429,7 +430,7 @@ static void u8_buf_append(Text_t text, char **buf, int64_t *capacity, int64_t *i
             uint8_t *u8 = u32_to_u8(codepoints, num_codepoints, u8_buf, &u8_len);
 
             if (*i + (int64_t)u8_len > (int64_t)*capacity) {
-                *capacity = *i + u8_len;
+                *capacity = *i + u8_len + 1;
                 *buf = GC_REALLOC(*buf, *capacity);
             }
 
@@ -1432,7 +1433,7 @@ public Text_t Text$format(const char *fmt, ...)
 public array_t Text$clusters(Text_t text)
 {
     array_t clusters = {.atomic=1};
-    for (int64_t i = 0; i < text.length; i++) {
+    for (int64_t i = 1; i <= text.length; i++) {
         Text_t cluster = Text$slice(text, Int64_to_Int(i), Int64_to_Int(i));
         Array$insert(&clusters, &cluster, I_small(0), sizeof(Text_t));
     }
