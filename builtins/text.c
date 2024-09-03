@@ -72,10 +72,6 @@ int32_t find_synthetic_grapheme(const uint32_t *codepoints, int64_t len)
 
 int32_t get_synthetic_grapheme(const uint32_t *codepoints, int64_t len)
 {
-    // for (int i = 0; i < (int)num_synthetic_graphemes; i++) {
-    //     if (!synthetic_graphemes[i].utf8)
-    //         errx(1, "Beforehand, missing grapheme utf8 at index %d", i);
-    // }
     int32_t index = find_synthetic_grapheme(codepoints, len);
     if (index >= 0 
         && index < num_synthetic_graphemes
@@ -89,19 +85,9 @@ int32_t get_synthetic_grapheme(const uint32_t *codepoints, int64_t len)
             fail("Too many synthetic graphemes!");
 
         if (num_synthetic_graphemes > 0 && index != num_synthetic_graphemes) {
-            // printf("I have %d graphemes and I need to shift %d of them to open a space at %d\n",
-            //        num_synthetic_graphemes, num_synthetic_graphemes - index, index);
             memmove(&synthetic_graphemes[index + 1], &synthetic_graphemes[index],
                     sizeof(synthetic_grapheme_t[num_synthetic_graphemes - index]));
         }
-        // for (int i = 0; i < index; i++) {
-        //     if (!synthetic_graphemes[i].utf8)
-        //         errx(1, "Missing pre-grapheme utf8 at index %d", i);
-        // }
-        // for (int i = index+1; i < num_synthetic_graphemes+1; i++) {
-        //     if (!synthetic_graphemes[i].utf8)
-        //         errx(1, "Missing post-grapheme utf8 at index %d", i);
-        // }
 
         uint32_t *buf = GC_MALLOC_ATOMIC(sizeof(uint32_t[len]));
         memcpy(buf, codepoints, sizeof(uint32_t[len]));
@@ -118,11 +104,6 @@ int32_t get_synthetic_grapheme(const uint32_t *codepoints, int64_t len)
         free(u8);
 
         ++num_synthetic_graphemes;
-
-        // for (int i = 0; i < (int)num_synthetic_graphemes; i++) {
-        //     if (!synthetic_graphemes[i].utf8)
-        //         errx(1, "Afterwards, missing grapheme utf8 at index %d", i);
-        // }
 
         return -(index+1);
     }
@@ -187,10 +168,6 @@ public int Text$print(FILE *stream, Text_t t)
                 if (u8 != buf) free(u8);
             } else {
                 const uint8_t *u8 = synthetic_graphemes[-grapheme-1].utf8;
-                if (!u8) {
-                    printf("No synthetic grapheme: %d\n", grapheme);
-                    printf("Num = %d\n", num_synthetic_graphemes);
-                }
                 assert(u8);
                 written += fwrite(u8, sizeof(uint8_t), strlen((char*)u8), stream);
             }
@@ -265,7 +242,8 @@ public Text_t Text$_concat(int n, Text_t items[n])
     int64_t len = 0, subtexts = 0;
     for (int i = 0; i < n; i++) {
         len += items[i].length;
-        subtexts += num_subtexts(items[i]);
+        if (items[i].length > 0)
+            subtexts += num_subtexts(items[i]);
     }
 
     Text_t ret = {
@@ -275,6 +253,9 @@ public Text_t Text$_concat(int n, Text_t items[n])
     };
     int64_t sub_i = 0;
     for (int i = 0; i < n; i++) {
+        if (items[i].length == 0)
+            continue;
+
         if (items[i].tag == TEXT_SUBTEXT) {
             for (int64_t j = 0, remainder = items[i].length; remainder > 0; j++) {
                 ret.subtexts[sub_i++] = items[i].subtexts[j];
@@ -1351,9 +1332,11 @@ public int printf_text_size(const struct printf_info *info, size_t n, int argtyp
 
 public int printf_text(FILE *stream, const struct printf_info *info, const void *const args[])
 {
-    (void)info;
     Text_t t = **(Text_t**)args[0];
-    return Text$print(stream, t);
+    if (info->alt)
+        return text_visualize(stream, t);
+    else
+        return Text$print(stream, t);
 }
 
 public Text_t Text$as_text(const void *text, bool colorize, const TypeInfo *info)
@@ -1429,18 +1412,16 @@ public Text_t Text$replace(Text_t text, Text_t pattern, Text_t replacement)
         Int_t found = Text$find(text, pattern, i, &len);
         if (I_is_zero(found)) break;
         if (Int$compare(&found, &i, &$Text) > 0) {
-            ret = Text$concat(
-                ret,
-                Text$slice(text, i, Int$minus(found, I_small(1))),
-                replacement
-            );
+            Text_t before_slice = Text$slice(text, i, Int$minus(found, I_small(1)));
+            ret = Text$concat(ret, before_slice, replacement);
         } else {
             ret = concat2(ret, replacement);
         }
         i = Int$plus(found, Int64_to_Int(len));
     }
     if (Int_to_Int64(i, false) <= text.length) {
-        ret = concat2(ret, Text$slice(text, i, Int64_to_Int(text.length)));
+        Text_t last_slice = Text$slice(text, i, Int64_to_Int(text.length));
+        ret = concat2(ret, last_slice);
     }
     return ret;
 }
