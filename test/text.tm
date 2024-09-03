@@ -119,3 +119,12 @@ func main():
 	>> c == Text.from_bytes(c:utf8_bytes())
 	= yes
 
+
+	>> "one$(\n)two$(\n)three":lines()
+	= ["one", "two", "three"]
+	>> "one$(\n)two$(\n)three$(\n)":lines()
+	= ["one", "two", "three"]
+	>> "one$(\n)two$(\n)three$(\n\n)":lines()
+	= ["one", "two", "three", ""]
+	>> "one$(\r\n)two$(\r\n)three$(\r\n)":lines()
+	= ["one", "two", "three"]

@@ -257,6 +257,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"from_codepoints", "Text$from_codepoints", "func(codepoints:[Int32])->Text"},
             {"has", "Text$has", "func(text:Text, pattern:Text)->Bool"},
             {"join", "Text$join", "func(glue:Text, pieces:[Text])->Text"},
+            {"lines", "Text$lines", "func(text:Text)->[Text]"},
             {"lower", "Text$lower", "func(text:Text)->Text"},
             {"quoted", "Text$quoted", "func(text:Text, color=no)->Text"},
             {"replace", "Text$replace", "func(text:Text, pattern:Text, replacement:Text)->Text"},

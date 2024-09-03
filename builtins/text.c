@@ -1535,6 +1535,29 @@ public Text_t Text$from_bytes(array_t bytes)
     return Text$from_str(bytes.data);
 }
 
+public array_t Text$lines(Text_t text)
+{
+    array_t lines = {};
+    iteration_state_t state = {0, 0};
+    for (int64_t i = 0, line_start = 0; i < text.length; i++) {
+        int32_t grapheme = _next_grapheme(text, &state, i);
+        if (grapheme == '\r' && _next_grapheme(text, &state, i + 1) == '\n') { // CRLF
+            Text_t line = Text$slice(text, Int64_to_Int(line_start+1), Int64_to_Int(i));
+            Array$insert(&lines, &line, I_small(0), sizeof(Text_t));
+            i += 1; // skip one extra for CR
+            line_start = i + 1;
+        } else if (grapheme == '\n') { // newline
+            Text_t line = Text$slice(text, Int64_to_Int(line_start+1), Int64_to_Int(i));
+            Array$insert(&lines, &line, I_small(0), sizeof(Text_t));
+            line_start = i + 1;
+        } else if (i == text.length-1 && line_start != i) { // last line
+            Text_t line = Text$slice(text, Int64_to_Int(line_start+1), Int64_to_Int(i+1));
+            Array$insert(&lines, &line, I_small(0), sizeof(Text_t));
+        }
+    }
+    return lines;
+}
+
 public const TypeInfo $Text = {
     .size=sizeof(Text_t),
     .align=__alignof__(Text_t),

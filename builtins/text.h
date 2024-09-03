@@ -71,6 +71,7 @@ array_t Text$codepoint_names(Text_t text);
 Text_t Text$from_codepoints(array_t codepoints);
 Text_t Text$from_codepoint_names(array_t codepoint_names);
 Text_t Text$from_bytes(array_t bytes);
+array_t Text$lines(Text_t text);
 
 extern const TypeInfo $Text;
 
