@@ -204,3 +204,12 @@ func main():
 	= "bcd"
 	>> "abcdef":slice(from=5, to=1)
 	= ""
+
+	>> house := "家"
+	= "家"
+	>> house.length
+	= 1
+	>> house:codepoint_names()
+	= ["???"]
+	>> house:utf32_codepoints()
+	= [23478_i32]

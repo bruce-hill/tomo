@@ -1573,12 +1573,14 @@ public array_t Text$codepoint_names(Text_t text)
             for (int64_t c = 0; c < synthetic_graphemes[-grapheme-1].num_codepoints; c++) {
                 char *name = GC_MALLOC_ATOMIC(UNINAME_MAX);
                 name = unicode_character_name(synthetic_graphemes[-grapheme-1].codepoints[c], name);
+                if (!name) name = "???";
                 Text_t name_text = (Text_t){.tag=TEXT_ASCII, .length=strlen(name), .ascii=name};
                 Array$insert(&names, &name_text, I_small(0), sizeof(Text_t));
             }
         } else {
             char *name = GC_MALLOC_ATOMIC(UNINAME_MAX);
             name = unicode_character_name(grapheme, name);
+            if (!name) name = "???";
             Text_t name_text = (Text_t){.tag=TEXT_ASCII, .length=strlen(name), .ascii=name};
             Array$insert(&names, &name_text, I_small(0), sizeof(Text_t));
         }
