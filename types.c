@@ -598,6 +598,7 @@ type_t *get_field_type(type_t *t, const char *field_name)
     case TextType: {
         if (Match(t, TextType)->lang && streq(field_name, "text_content"))
             return Type(TextType);
+        else if (streq(field_name, "length")) return INT_TYPE;
         return NULL;
     }
     case StructType: {

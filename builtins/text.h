@@ -61,8 +61,13 @@ Text_t Text$as_text(const void *text, bool colorize, const TypeInfo *info);
 Text_t Text$quoted(Text_t str, bool colorize);
 Text_t Text$replace(Text_t str, Text_t pat, Text_t replacement);
 Int_t Text$find(Text_t text, Text_t pattern, Int_t i, int64_t *match_length);
+bool Text$has(Text_t text, Text_t pattern);
 const char *Text$as_c_string(Text_t text);
 public Text_t Text$format(const char *fmt, ...);
+array_t Text$clusters(Text_t text);
+array_t Text$utf32_codepoints(Text_t text);
+array_t Text$utf8_bytes(Text_t text);
+array_t Text$codepoint_names(Text_t text);
 
 extern const TypeInfo $Text;
 

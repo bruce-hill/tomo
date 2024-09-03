@@ -30,8 +30,10 @@
 #include "text.h"
 #include "types.h"
 
+#include "siphash.c"
+
 static struct {
-    size_t num_codepoints;
+    int64_t num_codepoints;
     const uint32_t *codepoints;
 } synthetic_graphemes[1024] = {};
 
@@ -45,7 +47,7 @@ typedef struct {
 
 static int32_t _next_grapheme(Text_t text, iteration_state_t *state, int64_t index);
 
-int32_t find_synthetic_grapheme(const uint32_t *codepoints, size_t len)
+int32_t find_synthetic_grapheme(const uint32_t *codepoints, int64_t len)
 {
     int32_t lo = 0, hi = num_synthetic_graphemes;
     while (lo <= hi) {
@@ -64,7 +66,7 @@ int32_t find_synthetic_grapheme(const uint32_t *codepoints, size_t len)
     return hi;
 }
 
-int32_t get_synthetic_grapheme(const uint32_t *codepoints, size_t len)
+int32_t get_synthetic_grapheme(const uint32_t *codepoints, int64_t len)
 {
     int32_t index = find_synthetic_grapheme(codepoints, len);
     if (index < num_synthetic_graphemes
@@ -85,11 +87,11 @@ int32_t get_synthetic_grapheme(const uint32_t *codepoints, size_t len)
     }
 }
 
-static inline size_t num_subtexts(Text_t t)
+static inline int64_t num_subtexts(Text_t t)
 {
     if (t.tag != TEXT_SUBTEXT) return 1;
-    size_t len = t.length;
-    size_t n = 0;
+    int64_t len = t.length;
+    int64_t n = 0;
     while (len > 0) {
         len -= t.subtexts[n].length;
         ++n;
@@ -110,7 +112,7 @@ int text_visualize(FILE *stream, Text_t t)
     }
     case TEXT_SUBTEXT: {
         int printed = fprintf(stream, "<text length=%ld>", t.length);
-        size_t to_print = t.length;
+        int64_t to_print = t.length;
         for (int i = 0; to_print > 0; ++i) {
             printed += fprintf(stream, "\n  ");
             printed += text_visualize(stream, t.subtexts[i]);
@@ -148,7 +150,7 @@ public int Text$print(FILE *stream, Text_t t)
     case TEXT_SUBTEXT: {
         int written = 0;
         int i = 0;
-        for (size_t to_print = t.length; to_print > 0; to_print -= t.subtexts[i].length, ++i)
+        for (int64_t to_print = t.length; to_print > 0; to_print -= t.subtexts[i].length, ++i)
             written += Text$print(stream, t.subtexts[i]);
         return written;
     }
@@ -162,8 +164,8 @@ static Text_t concat2(Text_t a, Text_t b)
     if (b.length == 0) return a;
 
     if (a.tag == TEXT_SUBTEXT && b.tag == TEXT_SUBTEXT) {
-        size_t na = num_subtexts(a);
-        size_t nb = num_subtexts(b);
+        int64_t na = num_subtexts(a);
+        int64_t nb = num_subtexts(b);
         Text_t ret = {
             .length=a.length + b.length,
             .tag=TEXT_SUBTEXT,
@@ -173,7 +175,7 @@ static Text_t concat2(Text_t a, Text_t b)
         memcpy(&ret.subtexts[na], b.subtexts, sizeof(Text_t[nb]));
         return ret;
     } else if (a.tag == TEXT_SUBTEXT) {
-        size_t n = num_subtexts(a);
+        int64_t n = num_subtexts(a);
         Text_t ret = {
             .length=a.length + b.length,
             .tag=TEXT_SUBTEXT,
@@ -183,7 +185,7 @@ static Text_t concat2(Text_t a, Text_t b)
         ret.subtexts[n] = b;
         return ret;
     } else if (b.tag == TEXT_SUBTEXT) {
-        size_t n = num_subtexts(b);
+        int64_t n = num_subtexts(b);
         Text_t ret = {
             .length=a.length + b.length,
             .tag=TEXT_SUBTEXT,
@@ -323,7 +325,7 @@ public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
     }
 }
 
-Text_t text_from_u32(uint32_t *codepoints, size_t num_codepoints, bool normalize)
+Text_t text_from_u32(uint32_t *codepoints, int64_t num_codepoints, bool normalize)
 {
     uint32_t norm_buf[128];
     if (normalize) {
@@ -370,7 +372,7 @@ Text_t text_from_u32(uint32_t *codepoints, size_t num_codepoints, bool normalize
 
 public Text_t Text$from_str(const char *str)
 {
-    size_t ascii_span = 0;
+    int64_t ascii_span = 0;
     while (str[ascii_span] && isascii(str[ascii_span]))
         ascii_span++;
 
@@ -378,7 +380,7 @@ public Text_t Text$from_str(const char *str)
         Text_t ret = {.length=ascii_span};
         if (ascii_span <= 8) {
             ret.tag = TEXT_SHORT_ASCII;
-            for (size_t i = 0; i < ascii_span; i++)
+            for (int64_t i = 0; i < ascii_span; i++)
                 ret.short_ascii[i] = str[i];
         } else {
             ret.tag = TEXT_ASCII;
@@ -395,7 +397,7 @@ public Text_t Text$from_str(const char *str)
     }
 }
 
-static void u8_buf_append(Text_t text, char **buf, size_t *capacity, int64_t *i)
+static void u8_buf_append(Text_t text, char **buf, int64_t *capacity, int64_t *i)
 {
     switch (text.tag) {
     case TEXT_ASCII: case TEXT_SHORT_ASCII: {
@@ -413,7 +415,7 @@ static void u8_buf_append(Text_t text, char **buf, size_t *capacity, int64_t *i)
         const int32_t *graphemes = text.tag == TEXT_GRAPHEMES ? text.graphemes : text.short_graphemes;
         for (int64_t g = 0; g + 1 < text.length; g++) {
             const uint32_t *codepoints = graphemes[g] < 0 ? synthetic_graphemes[-graphemes[g]-1].codepoints : (uint32_t*)&graphemes[g];
-            size_t num_codepoints = graphemes[g] < 0 ? synthetic_graphemes[-graphemes[g]-1].num_codepoints : 1;
+            int64_t num_codepoints = graphemes[g] < 0 ? synthetic_graphemes[-graphemes[g]-1].num_codepoints : 1;
             uint8_t u8_buf[64];
             size_t u8_len = sizeof(u8_buf);
             uint8_t *u8 = u32_to_u8(codepoints, num_codepoints, u8_buf, &u8_len);
@@ -442,7 +444,7 @@ static void u8_buf_append(Text_t text, char **buf, size_t *capacity, int64_t *i)
 
 public const char *Text$as_c_string(Text_t text)
 {
-    size_t capacity = text.length + 1;
+    int64_t capacity = text.length + 1;
     char *buf = GC_MALLOC_ATOMIC(capacity);
     int64_t i = 0;
     u8_buf_append(text, &buf, &capacity, &i);
@@ -454,45 +456,6 @@ public const char *Text$as_c_string(Text_t text)
     buf[i] = '\0';
     return buf;
 }
-
-uint32_t *text_to_u32(Text_t text, size_t *length)
-{
-    // Precalculate size:
-    size_t len = 0;
-    if (text.tag == TEXT_ASCII) {
-        len = text.length;
-    } else {
-        iteration_state_t state = {0, 0};
-        for (int64_t i = 0; i < text.length; i++) {
-            int32_t grapheme = _next_grapheme(text, &state, i);
-            if (grapheme < 0)
-                len += synthetic_graphemes[-grapheme-1].num_codepoints;
-            else
-                len += 1;
-        }
-    }
-    assert(length);
-    *length = len;
-
-    // Copy over codepoints one grapheme cluster at a time:
-    uint32_t *ret = GC_MALLOC_ATOMIC(sizeof(uint32_t[len]));
-    uint32_t *dest = ret;
-    iteration_state_t state = {0, 0};
-    for (int64_t i = 0; i < text.length; i++) {
-        int32_t grapheme = _next_grapheme(text, &state, i);
-        if (grapheme < 0) {
-            const uint32_t *codepoints = synthetic_graphemes[-grapheme-1].codepoints;
-            size_t num_codepoints = synthetic_graphemes[-grapheme-1].num_codepoints;
-            for (size_t j = 0; j < num_codepoints; j++)
-                *(dest++) = codepoints[j];
-        } else {
-            *(dest++) = (uint32_t)grapheme;
-        }
-    }
-    return ret;
-}
-
-#include "siphash.c"
 
 public uint64_t Text$hash(Text_t *text)
 {
@@ -696,10 +659,10 @@ public bool Text$equal_ignoring_case(Text_t a, Text_t b)
         int32_t bi = _next_grapheme(b, &b_state, i);
         if (ai != bi) {
             const uint32_t *a_codepoints = ai >= 0 ? (uint32_t*)&ai : synthetic_graphemes[-ai-1].codepoints;
-            size_t a_len = ai >= 0 ? 1 : synthetic_graphemes[-ai-1].num_codepoints;
+            int64_t a_len = ai >= 0 ? 1 : synthetic_graphemes[-ai-1].num_codepoints;
 
             const uint32_t *b_codepoints = bi >= 0 ? (uint32_t*)&bi : synthetic_graphemes[-bi-1].codepoints;
-            size_t b_len = bi >= 0 ? 1 : synthetic_graphemes[-bi-1].num_codepoints;
+            int64_t b_len = bi >= 0 ? 1 : synthetic_graphemes[-bi-1].num_codepoints;
 
             int cmp;
             (void)u32_casecmp(a_codepoints, a_len, b_codepoints, b_len, language, UNINORM_NFC, &cmp);
@@ -712,12 +675,11 @@ public bool Text$equal_ignoring_case(Text_t a, Text_t b)
 
 public Text_t Text$upper(Text_t text)
 {
-    size_t length;
-    uint32_t *codepoints = text_to_u32(text, &length);
+    uint32_t *codepoints = (uint32_t*)Text$as_c_string(text);
     const char *language = uc_locale_language();
     uint32_t buf[128]; 
     size_t out_len;
-    uint32_t *upper = u32_toupper(codepoints, length, language, UNINORM_NFC, buf, &out_len);
+    uint32_t *upper = u32_toupper(codepoints, strlen((char*)codepoints), language, UNINORM_NFC, buf, &out_len);
     Text_t ret = text_from_u32(upper, out_len, false);
     if (upper != buf) free(upper);
     return ret;
@@ -725,12 +687,11 @@ public Text_t Text$upper(Text_t text)
 
 public Text_t Text$lower(Text_t text)
 {
-    size_t length;
-    uint32_t *codepoints = text_to_u32(text, &length);
+    uint32_t *codepoints = (uint32_t*)Text$as_c_string(text);
     const char *language = uc_locale_language();
     uint32_t buf[128]; 
     size_t out_len;
-    uint32_t *lower = u32_tolower(codepoints, length, language, UNINORM_NFC, buf, &out_len);
+    uint32_t *lower = u32_tolower(codepoints, strlen((char*)codepoints), language, UNINORM_NFC, buf, &out_len);
     Text_t ret = text_from_u32(lower, out_len, false);
     if (lower != codepoints) free(lower);
     return ret;
@@ -738,12 +699,11 @@ public Text_t Text$lower(Text_t text)
 
 public Text_t Text$title(Text_t text)
 {
-    size_t length;
-    uint32_t *codepoints = text_to_u32(text, &length);
+    uint32_t *codepoints = (uint32_t*)Text$as_c_string(text);
     const char *language = uc_locale_language();
     uint32_t buf[128]; 
     size_t out_len;
-    uint32_t *title = u32_totitle(codepoints, length, language, UNINORM_NFC, buf, &out_len);
+    uint32_t *title = u32_totitle(codepoints, strlen((char*)codepoints), language, UNINORM_NFC, buf, &out_len);
     Text_t ret = text_from_u32(title, out_len, false);
     if (title != codepoints) free(title);
     return ret;
@@ -1327,6 +1287,11 @@ public Int_t Text$find(Text_t text, Text_t pattern, Int_t from_index, int64_t *m
     return I(0);
 }
 
+public bool Text$has(Text_t text, Text_t pattern)
+{
+    return !I_is_zero(Text$find(text, pattern, I_small(1), NULL));
+}
+
 public int printf_text_size(const struct printf_info *info, size_t n, int argtypes[n], int sizes[n])
 {
     if (n < 1) return -1;
@@ -1454,6 +1419,61 @@ public Text_t Text$format(const char *fmt, ...)
     }
     va_end(args);
     return ret;
+}
+
+public array_t Text$clusters(Text_t text)
+{
+    array_t clusters = {.atomic=1};
+    for (int64_t i = 0; i < text.length; i++) {
+        Text_t cluster = Text$slice(text, Int64_to_Int(i), Int64_to_Int(i));
+        Array$insert(&clusters, &cluster, I_small(0), sizeof(Text_t));
+    }
+    return clusters;
+}
+
+public array_t Text$utf32_codepoints(Text_t text)
+{
+    array_t codepoints = {.atomic=1};
+    iteration_state_t state = {0, 0};
+    for (int64_t i = 0; i < text.length; i++) {
+        int32_t grapheme = _next_grapheme(text, &state, i);
+        if (grapheme < 0) {
+            for (int64_t c = 0; c < synthetic_graphemes[-grapheme-1].num_codepoints; c++)
+                Array$insert(&codepoints, &synthetic_graphemes[-grapheme-1].codepoints[c], I_small(0), sizeof(uint32_t));
+        } else {
+            Array$insert(&codepoints, &grapheme, I_small(0), sizeof(uint32_t));
+        }
+    }
+    return codepoints;
+}
+
+public array_t Text$utf8_bytes(Text_t text)
+{
+    const char *str = Text$as_c_string(text);
+    return (array_t){.length=strlen(str), .stride=1, .atomic=1, .data=(void*)str};
+}
+
+public array_t Text$codepoint_names(Text_t text)
+{
+    array_t names = {};
+    iteration_state_t state = {0, 0};
+    for (int64_t i = 0; i < text.length; i++) {
+        int32_t grapheme = _next_grapheme(text, &state, i);
+        if (grapheme < 0) {
+            for (int64_t c = 0; c < synthetic_graphemes[-grapheme-1].num_codepoints; c++) {
+                char *name = GC_MALLOC_ATOMIC(UNINAME_MAX);
+                name = unicode_character_name(synthetic_graphemes[-grapheme-1].codepoints[c], name);
+                Text_t name_text = (Text_t){.tag=TEXT_ASCII, .length=strlen(name), .ascii=name};
+                Array$insert(&names, &name_text, I_small(0), sizeof(Text_t));
+            }
+        } else {
+            char *name = GC_MALLOC_ATOMIC(UNINAME_MAX);
+            name = unicode_character_name(grapheme, name);
+            Text_t name_text = (Text_t){.tag=TEXT_ASCII, .length=strlen(name), .ascii=name};
+            Array$insert(&names, &name_text, I_small(0), sizeof(Text_t));
+        }
+    }
+    return names;
 }
 
 public const TypeInfo $Text = {

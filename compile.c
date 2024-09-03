@@ -2679,6 +2679,8 @@ CORD compile(env_t *env, ast_t *ast)
             if (lang && streq(f->field, "text_content")) {
                 CORD text = compile_to_pointer_depth(env, f->fielded, 0, false);
                 return CORD_all("((Text_t)", text, ")");
+            } else if (streq(f->field, "length")) {
+                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
             }
             code_err(ast, "There is no '%s' field on %T values", f->field, value_t);
         }

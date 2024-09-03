@@ -22,34 +22,22 @@ func main():
 	>> amelie := "Am$(\UE9)lie"
 	>> amelie:clusters()
 	= ["A", "m", "é", "l", "i", "e"] : [Text]
-	>> amelie:codepoints()
+	>> amelie:utf32_codepoints()
 	= [65_i32, 109_i32, 101_i32, 769_i32, 108_i32, 105_i32, 101_i32] : [Int32]
-	>> amelie:bytes()
+	>> amelie:utf8_bytes()
 	= [65_i8, 109_i8, 101_i8, -52_i8, -127_i8, 108_i8, 105_i8, 101_i8] : [Int8]
-	>> amelie:num_clusters()
-	= 6
-	>> amelie:num_codepoints()
-	= 7
-	>> amelie:num_bytes()
-	= 8
 
 	>> amelie2 := "Am$(\U65\U301)lie"
 	>> amelie2:clusters()
 	= ["A", "m", "é", "l", "i", "e"] : [Text]
-	>> amelie2:codepoints()
+	>> amelie2:utf32_codepoints()
 	= [65_i32, 109_i32, 101_i32, 769_i32, 108_i32, 105_i32, 101_i32] : [Int32]
-	>> amelie2:bytes()
+	>> amelie2:utf8_bytes()
 	= [65_i8, 109_i8, 101_i8, -52_i8, -127_i8, 108_i8, 105_i8, 101_i8] : [Int8]
-	>> amelie2:num_clusters()
-	= 6
-	>> amelie2:num_codepoints()
-	= 7
-	>> amelie2:num_bytes()
-	= 8
 
-	>> amelie:character_names()
+	>> amelie:codepoint_names()
 	= ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E", "COMBINING ACUTE ACCENT", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
-	>> amelie2:character_names()
+	>> amelie2:codepoint_names()
 	= ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E", "COMBINING ACUTE ACCENT", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
 
 	>> "Hello":replace("e", "X")
@@ -57,38 +45,38 @@ func main():
 
 	>> "Hello":has("l")
 	= yes
-	>> "Hello":has("l", End)
+	>> "Hello":has("l[..end]")
 	= no
-	>> "Hello":has("l", Start)
+	>> "Hello":has("[..start]l")
 	= no
 
 	>> "Hello":has("o")
 	= yes
-	>> "Hello":has("o", where=End)
+	>> "Hello":has("o[..end]")
 	= yes
-	>> "Hello":has("o", where=Start)
+	>> "Hello":has("[..start]o")
 	= no
 
 	>> "Hello":has("H")
 	= yes
-	>> "Hello":has("H", End)
+	>> "Hello":has("H[..end]")
 	= no
-	>> "Hello":has("H", Start)
+	>> "Hello":has("[..start]H")
 	= yes
 
-	>> "Hello":without("l")
+	>> "Hello":replace("l", "")
 	= "Heo"
-	>> "xxxx":without("x")
+	>> "xxxx":replace("x", "")
 	= ""
-	>> "xxxx":without("y")
+	>> "xxxx":replace("y", "")
 	= "xxxx"
-	>> "One two three four five six":without("e ")
+	>> "One two three four five six":replace("e ", "")
 	= "Ontwo threfour fivsix"
 
-	>> " one ":trimmed()
-	= "one"
-	>> " one ":trimmed(" aeiou")
-	= "n"
+	>> " one ":replace("[start][..space]", "")
+	= "one "
+	>> " one ":replace("[..space][end]", "")
+	= " one"
 
 	>> amelie:has(amelie2)
 
