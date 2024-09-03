@@ -103,3 +103,18 @@ func main():
 	= "A 3"
 	>> $(one (nested) two $(1+2))
 	= "one (nested) two 3"
+
+
+	>> "one two three":replace("[..alpha]", "")
+
+	>> c := "É̩"
+	>> c:codepoint_names()
+	= ["LATIN CAPITAL LETTER E WITH ACUTE", "COMBINING VERTICAL LINE BELOW"]
+	>> c == Text.from_codepoint_names(c:codepoint_names())
+	= yes
+	>> c == Text.from_codepoints(c:utf32_codepoints())
+	= yes
+	>> c == Text.from_bytes(c:utf8_bytes())
+	= yes
+
+

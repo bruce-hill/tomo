@@ -68,6 +68,9 @@ array_t Text$clusters(Text_t text);
 array_t Text$utf32_codepoints(Text_t text);
 array_t Text$utf8_bytes(Text_t text);
 array_t Text$codepoint_names(Text_t text);
+Text_t Text$from_codepoints(array_t codepoints);
+Text_t Text$from_codepoint_names(array_t codepoint_names);
+Text_t Text$from_bytes(array_t bytes);
 
 extern const TypeInfo $Text;
 

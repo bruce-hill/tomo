@@ -32,11 +32,14 @@
 
 #include "siphash.c"
 
-static struct {
+typedef struct {
     int64_t num_codepoints;
     const uint32_t *codepoints;
     const uint8_t *utf8;
-} synthetic_graphemes[1024] = {};
+} synthetic_grapheme_t;
+
+#define MAX_SYNTHETIC_GRAPHEMES 1024
+static synthetic_grapheme_t synthetic_graphemes[MAX_SYNTHETIC_GRAPHEMES] = {};
 
 static int32_t num_synthetic_graphemes = 0;
 
@@ -69,14 +72,36 @@ int32_t find_synthetic_grapheme(const uint32_t *codepoints, int64_t len)
 
 int32_t get_synthetic_grapheme(const uint32_t *codepoints, int64_t len)
 {
+    // for (int i = 0; i < (int)num_synthetic_graphemes; i++) {
+    //     if (!synthetic_graphemes[i].utf8)
+    //         errx(1, "Beforehand, missing grapheme utf8 at index %d", i);
+    // }
     int32_t index = find_synthetic_grapheme(codepoints, len);
-    if (index < num_synthetic_graphemes
+    if (index >= 0 
+        && index < num_synthetic_graphemes
         && synthetic_graphemes[index].num_codepoints == len
         && memcmp(synthetic_graphemes[index].codepoints, codepoints, len) == 0) {
         return -(index+1);
     } else {
-        if (num_synthetic_graphemes > 0)
-            memmove(&synthetic_graphemes[index], &synthetic_graphemes[index + 1], num_synthetic_graphemes - index);
+        if (index < 0) index = 0;
+
+        if (num_synthetic_graphemes >= MAX_SYNTHETIC_GRAPHEMES)
+            fail("Too many synthetic graphemes!");
+
+        if (num_synthetic_graphemes > 0 && index != num_synthetic_graphemes) {
+            // printf("I have %d graphemes and I need to shift %d of them to open a space at %d\n",
+            //        num_synthetic_graphemes, num_synthetic_graphemes - index, index);
+            memmove(&synthetic_graphemes[index + 1], &synthetic_graphemes[index],
+                    sizeof(synthetic_grapheme_t[num_synthetic_graphemes - index]));
+        }
+        // for (int i = 0; i < index; i++) {
+        //     if (!synthetic_graphemes[i].utf8)
+        //         errx(1, "Missing pre-grapheme utf8 at index %d", i);
+        // }
+        // for (int i = index+1; i < num_synthetic_graphemes+1; i++) {
+        //     if (!synthetic_graphemes[i].utf8)
+        //         errx(1, "Missing post-grapheme utf8 at index %d", i);
+        // }
 
         uint32_t *buf = GC_MALLOC_ATOMIC(sizeof(uint32_t[len]));
         memcpy(buf, codepoints, sizeof(uint32_t[len]));
@@ -89,9 +114,16 @@ int32_t get_synthetic_grapheme(const uint32_t *codepoints, int64_t len)
         memcpy(gc_u8, u8, u8_len);
         gc_u8[u8_len] = '\0';
         synthetic_graphemes[index].utf8 = gc_u8;
+        assert(gc_u8);
         free(u8);
 
         ++num_synthetic_graphemes;
+
+        // for (int i = 0; i < (int)num_synthetic_graphemes; i++) {
+        //     if (!synthetic_graphemes[i].utf8)
+        //         errx(1, "Afterwards, missing grapheme utf8 at index %d", i);
+        // }
+
         return -(index+1);
     }
 }
@@ -137,6 +169,8 @@ int text_visualize(FILE *stream, Text_t t)
 
 public int Text$print(FILE *stream, Text_t t)
 {
+    if (t.length == 0) return 0;
+
     switch (t.tag) {
     case TEXT_SHORT_ASCII: return fwrite(t.short_ascii, sizeof(char), t.length, stream);
     case TEXT_ASCII: return fwrite(t.ascii, sizeof(char), t.length, stream);
@@ -153,6 +187,11 @@ public int Text$print(FILE *stream, Text_t t)
                 if (u8 != buf) free(u8);
             } else {
                 const uint8_t *u8 = synthetic_graphemes[-grapheme-1].utf8;
+                if (!u8) {
+                    printf("No synthetic grapheme: %d\n", grapheme);
+                    printf("Num = %d\n", num_synthetic_graphemes);
+                }
+                assert(u8);
                 written += fwrite(u8, sizeof(uint8_t), strlen((char*)u8), stream);
             }
         }
@@ -252,7 +291,7 @@ public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
 {
     int64_t first = Int_to_Int64(first_int, false);
     int64_t last = Int_to_Int64(last_int, false);
-    if (first == 0) errx(1, "Invalid index: 0");
+    if (first == 0) fail("Invalid index: 0");
     if (last == 0) return (Text_t){.length=0};
 
     if (first < 0) first = text.length + first + 1;
@@ -1044,7 +1083,7 @@ int64_t match(Text_t text, Text_t pattern, int64_t text_index, int64_t pattern_i
 
             skip_whitespace(pattern, &pattern_index);
             if (!match_grapheme(pattern, &pattern_index, ']'))
-                errx(1, "Missing closing ']' in pattern: \"%T\"", &pattern);
+                fail("Missing closing ']' in pattern: %k", &pattern);
 
             int64_t before_group = text_index;
             bool any = false;
@@ -1139,7 +1178,7 @@ int64_t match(Text_t text, Text_t pattern, int64_t text_index, int64_t pattern_i
                 if (!uc_property_is_valid(prop)) {
                     specific_codepoint = unicode_name_character(prop_name);
                     if (specific_codepoint == UNINAME_INVALID)
-                        errx(1, "Not a valid property or character name: %s", prop_name);
+                        fail("Not a valid property or character name: %s", prop_name);
                 }
             } else {
                 any = true;
@@ -1193,7 +1232,7 @@ int64_t match(Text_t text, Text_t pattern, int64_t text_index, int64_t pattern_i
             int32_t close = open;
             uc_mirror_char(open, (uint32_t*)&close);
             if (!match_grapheme(pattern, &pattern_index, close))
-                errx(1, "I expected a closing brace");
+                fail("Pattern's closing brace is missing: %k", &pattern);
             while (text_index < text.length) {
                 int32_t c = _next_grapheme(text, &text_state, text_index);
                 if (c == close)
@@ -1214,7 +1253,7 @@ int64_t match(Text_t text, Text_t pattern, int64_t text_index, int64_t pattern_i
             int32_t close = open;
             uc_mirror_char(open, (uint32_t*)&close);
             if (!match_grapheme(pattern, &pattern_index, close))
-                errx(1, "I expected a closing brace");
+                fail("Pattern's closing brace is missing: %k", &pattern);
             int64_t depth = 1;
             for (; depth > 0 && text_index < text.length; ++text_index) {
                 int32_t c = _next_grapheme(text, &text_state, text_index);
@@ -1483,6 +1522,36 @@ public array_t Text$codepoint_names(Text_t text)
         }
     }
     return names;
+}
+
+public Text_t Text$from_codepoints(array_t codepoints)
+{
+    if (codepoints.stride != sizeof(int32_t))
+        Array$compact(&codepoints, sizeof(int32_t));
+
+    return text_from_u32(codepoints.data, codepoints.length, true);
+}
+
+public Text_t Text$from_codepoint_names(array_t codepoint_names)
+{
+    array_t codepoints = {};
+    for (int64_t i = 0; i < codepoint_names.length; i++) {
+        Text_t *name = ((Text_t*)(codepoint_names.data + i*codepoint_names.stride));
+        const char *name_str = Text$as_c_string(*name);
+        uint32_t codepoint = unicode_name_character(name_str);
+        Array$insert(&codepoints, &codepoint, I_small(0), sizeof(uint32_t));
+    }
+    return Text$from_codepoints(codepoints);
+}
+
+public Text_t Text$from_bytes(array_t bytes)
+{
+    if (bytes.stride != sizeof(int8_t))
+        Array$compact(&bytes, sizeof(int8_t));
+
+    int8_t nul = 0;
+    Array$insert(&bytes, &nul, I_small(0), sizeof(int8_t));
+    return Text$from_str(bytes.data);
 }
 
 public const TypeInfo $Text = {
