@@ -273,6 +273,123 @@ created that has text with the codepoint `U+E9` as a key, then a lookup with
 the same text but with `U+65 U+301` instead of `U+E9` will still succeed in
 finding the value because the two texts are equivalent under normalization.
 
+# Patterns
+
+As an alternative to full regular expressions, Tomo provides a limited string
+matching pattern syntax that is intended to solve 80% of use cases in 1% of the
+code size (PCRE's codebase is roughly 150k lines of code, and Tomo's entire
+Text codebase is around 1.5K lines of code).
+
+For more advanced use cases, consider linking against a C library for regular
+expressions or pattern matching.
+
+Patterns are used in a small, but very powerful API that handles many text
+functions that would normally be handled by a more extensive API:
+
+```
+Text.find(pattern:Text, start=1, length=!&Int64?)->Int
+Text.find_all(pattern:Text)->[Text]
+Text.split(pattern:Text)->[Text]
+Text.replace(pattern:Text, replacement:Text)->[Text]
+Text.has(pattern:Text, where=Where.Anywhere)->Bool
+```
+
+See [Text Functions](#Text-Functions) for the full API documentation.
+
+## Syntax
+
+Patterns have three types of syntax:
+
+- `[..` followed by an optional count (`n`, `n-m`, or `n+`), followed by an
+  optional `!` to negate the pattern, followed by an optional pattern name or
+  Unicode character name, followed by a required `]`.
+
+- Any matching pair of quotes or parentheses or braces with a `?` in the middle
+  (e.g. `"?"` or `(?)`).
+
+- Any other character is treated as a literal to be matched exactly.
+
+## Named Patterns
+
+Named patterns match certain pre-defined patterns that are commonly useful. To
+use a named pattern, use the syntax `[..name]`. Names are case-insensitive and
+mostly ignore spaces, underscores, and dashes.
+
+- ` ` - If no name is given, any character is accepted.
+- `digit` - A unicode digit
+- `email` - an email address
+- `emoji` - an emoji
+- `end` - the very end of the text
+- `id` - A unicode identifier
+- `int` - One or more digits with an optional `-` (minus sign) in front
+- `ip` - an IP address (IPv4 or IPv6)
+- `ipv4` - an IPv4 address
+- `ipv6` - an IPv6 address
+- `num` - One or more digits with an optional `-` (minus sign) in front and an optional `.` and more digits after
+- `start` - the very start of the text
+- `uri` - a URI
+- `url` - a URL (URI that specifically starts with `http://`, `https://`, `ws://`, `wss://`, or `ftp://`)
+
+For non-alphabetic characters, any single character is treated as matching
+exactly that character. For example, `[..1 []` matches exactly one `[`
+character. Or, `[..1 (]` matches exactly one `(` character.
+
+Patterns can also use any Unicode property name. Some helpful ones are:
+
+- `hex` - Hexidecimal digits
+- `lower` - Lowercase letters
+- `space` - The space character
+- `upper` - Uppercase letters
+- `whitespace` - Whitespace characters
+
+Patterns may also use exact Unicode codepoint names. For example: `[..1 latin
+small letter A]` matches `a`.
+
+## Negating Patterns
+
+If an exclamation mark (`!`) is placed before a pattern's name, then characters
+are matched only when they _don't_ match the pattern. For example, `[..!alpha]`
+will match all characters _except_ alphabetic ones.
+
+## Repetitions
+
+By default, named patterns match 1 or more repetitions, but you can specify how
+many repetitions you want by putting a number or range of numbers first using
+`n` (exactly `n` repetitions), `n-m` (between `n` and `m` repetitions), or `n+`
+(`n` or more repetitions):
+
+```
+[..4-5 alpha]
+0x[..hex]
+[..4 digit]-[..2 digit]-[..2 digit]
+[..2+ space]
+[..0-1 question mark]
+```
+
+## Some Examples
+
+URL query string parameters:
+
+```
+text := "example.com/page?a=b&c=d"
+>> text:find(before=$Pat`?`, $Pat`[..]`):split($Pat`&`)
+= ["a=b", "c=d"]
+```
+
+Remove or get file extension:
+
+```
+filename := "foo.txt"
+>> filename:without($Pat`.[:id:]`, where=End)
+= "foo"
+
+>> filename:find(before=$Pat`.`, $Pat`[:id:][:end:]`)
+= MatchResult.Success(match="txt")
+
+>> filename := "foo.tar.gz"
+>> ".":join(filename:split($Pat`.`):from(2))
+= "tar.gz"
+```
 
 # Text Functions
 
@@ -301,10 +418,11 @@ A C-style string (`CString`) representing the text.
 
 ---
 
-## `bytes`
+## `utf8_bytes`
 
 **Description:**  
-Converts a `Text` value to an array of bytes.
+Converts a `Text` value to an array of bytes representing a UTF8 encoding of
+the text.
 
 **Usage:**  
 ```tomo
@@ -313,80 +431,52 @@ bytes(text: Text) -> [Int8]
 
 **Parameters:**
 
-- `text`: The text to be converted to bytes.
+- `text`: The text to be converted to UTF8 bytes.
 
 **Returns:**  
-An array of bytes (`[Int8]`) representing the text.
+An array of bytes (`[Int8]`) representing the text in UTF8 encoding.
 
 **Example:**  
 ```tomo
->> "Amélie":bytes()
-= [65_i8, 109_i8, 101_i8, -52_i8, -127_i8, 108_i8, 105_i8, 101_i8]
+>> "Amélie":utf8_bytes()
+= [65_i8, 109_i8, -61_i8, -87_i8, 108_i8, 105_i8, 101_i8] : [Int8]
 ```
 
 ---
 
-## `character_names`
+## `codepoint_names`
 
 **Description:**  
-Returns a list of character names from the text.
+Returns an array of the names of each codepoint in the text.
 
 **Usage:**  
 ```tomo
-character_names(text: Text) -> [Text]
+codepoint_names(text: Text) -> [Text]
 ```
 
 **Parameters:**
 
-- `text`: The text from which to extract character names.
+- `text`: The text from which to extract codepoint names.
 
 **Returns:**  
-A list of character names (`[Text]`).
+An array of codepoint names (`[Text]`).
 
 **Example:**  
 ```tomo
->> "Amélie":character_names()
-= ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E", "COMBINING ACUTE ACCENT", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
+>> "Amélie":codepoint_names()
+= ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E WITH ACUTE", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
 ```
 
 ---
 
-## `clusters`
+## `utf32_codepoints`
 
 **Description:**  
-Breaks the text into a list of unicode graphical clusters. Clusters are what
-you typically think of when you think of "letters" or "characters". If you're
-in a text editor and you hit the left or right arrow key, it will move the
-cursor by one graphical cluster.
+Returns an array of Unicode code points for UTF32 encoding of the text.
 
 **Usage:**  
 ```tomo
-clusters(text: Text) -> [Text]
-```
-
-**Parameters:**
-
-- `text`: The text to be broken into graphical clusters.
-
-**Returns:**  
-A list of graphical clusters (`[Text]`) within the text.
-
-**Example:**  
-```tomo
->> "Amélie":clusters()
-= ["A", "m", "é", "l", "i", "e"] : [Text]
-```
-
----
-
-## `codepoints`
-
-**Description:**  
-Returns a list of Unicode code points for the text.
-
-**Usage:**  
-```tomo
-codepoints(text: Text) -> [Int32]
+utf32_codepoints(text: Text) -> [Int32]
 ```
 
 **Parameters:**
@@ -394,12 +484,12 @@ codepoints(text: Text) -> [Int32]
 - `text`: The text from which to extract Unicode code points.
 
 **Returns:**  
-A list of Unicode code points (`[Int32]`).
+An array of 32-bit integer Unicode code points (`[Int32]`).
 
 **Example:**  
 ```tomo
->> "Amélie":codepoints()
-= [65_i32, 109_i32, 101_i32, 769_i32, 108_i32, 105_i32, 101_i32] : [Int32]
+>> "Amélie":utf32_codepoints()
+= [65_i32, 109_i32, 233_i32, 108_i32, 105_i32, 101_i32] : [Int32]
 ```
 
 ---
@@ -429,33 +519,206 @@ A `Text` value representing the C-style string.
 
 ---
 
-## `has`
+## `from_codepoint_names`
 
 **Description:**  
-Checks if the `Text` contains a target substring.
+Returns text that has the given codepoint names (according to the Unicode
+specification) as its codepoints. Note: the text will be normalized, so the
+resulting text's codepoints may not exactly match the input codepoints.
 
 **Usage:**  
 ```tomo
-has(text: Text, target: Text, where: Where = Where.Anywhere) -> Bool
+from_codepoint_names(codepoint_names: [Text]) -> [Text]
+```
+
+**Parameters:**
+
+- `codepoint_names`: The names of each codepoint in the desired text. Names
+  are case-insentive.
+
+**Returns:**  
+A new text with the specified codepoints after normalization has been applied.
+Any invalid names are ignored.
+
+**Example:**  
+```tomo
+>> Text.from_codepoint_names([
+  "LATIN CAPITAL LETTER A WITH RING ABOVE",
+  "LATIN SMALL LETTER K",
+  "LATIN SMALL LETTER E",
+]
+= "Åke"
+```
+
+---
+
+## `from_codepoints`
+
+**Description:**  
+Returns text that has been constructed from the given UTF32 codepoints. Note:
+the text will be normalized, so the resulting text's codepoints may not exactly
+match the input codepoints.
+
+**Usage:**  
+```tomo
+from_codepoint_names(codepoints: [Int32]) -> [Text]
+```
+
+**Parameters:**
+
+- `codepoints`: The UTF32 codepoints in the desired text.
+
+**Returns:**  
+A new text with the specified codepoints after normalization has been applied.
+
+**Example:**  
+```tomo
+>> Text.from_codepoints([197_i32, 107_i32, 101_i32])
+= "Åke"
+```
+
+---
+
+## `from_bytes`
+
+**Description:**  
+Returns text that has been constructed from the given UTF8 bytes. Note: the
+text will be normalized, so the resulting text's UTF8 bytes may not exactly
+match the input.
+
+**Usage:**  
+```tomo
+from_codepoint_names(codepoints: [Int32]) -> [Text]
+```
+
+**Parameters:**
+
+- `codepoints`: The UTF32 codepoints in the desired text.
+
+**Returns:**  
+A new text based on the input UTF8 bytes after normalization has been applied.
+
+**Example:**  
+```tomo
+>> Text.from_bytes([-61_i8, -123_i8, 107_i8, 101_i8])
+= "Åke"
+```
+
+---
+
+## `find`
+
+**Description:**  
+Finds the first occurrence of a pattern in the given text (if any).
+See: [Patterns](#Patterns) for more information on patterns.
+
+**Usage:**  
+```tomo
+find(text: Text, pattern: Text, start: Int = 1, length: &Int64? = !&Int64) -> Int
 ```
 
 **Parameters:**
 
 - `text`: The text to be searched.
-- `target`: The substring to search for.
-- `where`: The location to search (`Where.Anywhere` by default). This can
-  also be `Start` or `End`.
+- `pattern`: The pattern to search for.
+- `start`: The index to start the search.
+- `length`: If non-null, this pointer's value will be set to the length of the
+  match, or `-1` if there is no match.
 
 **Returns:**  
-`yes` if the target substring is found, `no` otherwise.
+`0` if the target pattern is not found, otherwise the index where the match was
+found.
+
+**Example:**  
+```tomo
+>> " one   two  three   ":find("[..id]", start=-999)
+= 0
+>> " one   two  three   ":find("[..id]", start=999)
+= 0
+>> " one   two  three   ":find("[..id]")
+= 2
+>> " one   two  three   ":find("[..id]", start=5)
+= 8
+
+>> len := 0_i64
+>> "   one  ":find("[..id]", length=&len)
+= 4
+>> len
+= 3_i64
+```
+
+---
+
+## `find_all`
+
+**Description:**  
+Finds all occurrences of a pattern in the given text.
+See: [Patterns](#Patterns) for more information on patterns.
+
+**Usage:**  
+```tomo
+find_all(text: Text, pattern: Text) -> [Text]
+```
+
+**Parameters:**
+
+- `text`: The text to be searched.
+- `pattern`: The pattern to search for.
+
+**Returns:**  
+An array of every match of the pattern in the given text.
+Note: if `text` or `pattern` is empty, an empty array will be returned.
+
+**Example:**  
+```tomo
+>> " one  two three   ":find_all("[..alpha]")
+= ["one", "two", "three"]
+
+>> " one  two three   ":find_all("[..!space]")
+= ["one", "two", "three"]
+
+>> "    ":find_all("[..alpha]")
+= []
+
+>> " foo(baz(), 1)  doop() ":find_all("[..id](?)")
+= ["foo(baz(), 1)", "doop()"]
+
+>> "":find_all("")
+= []
+
+>> "Hello":find_all("")
+= []
+```
+
+---
+
+## `has`
+
+**Description:**  
+Checks if the `Text` contains a target pattern (see: [Patterns](#Patterns)).
+
+**Usage:**  
+```tomo
+has(text: Text, pattern: Text) -> Bool
+```
+
+**Parameters:**
+
+- `text`: The text to be searched.
+- `pattern`: The pattern to search for.
+
+**Returns:**  
+`yes` if the target pattern is found, `no` otherwise.
 
 **Example:**  
 ```tomo
 >> "hello world":has("wo")
 = yes
->> "hello world":has("wo", where=Start)
+>> "hello world":has("[..alpha]")
+= yes
+>> "hello world":has("[..digit]")
 = no
->> "hello world":has("he", where=Start)
+>> "hello world":has("[..start]he")
 = yes
 ```
 
@@ -464,7 +727,7 @@ has(text: Text, target: Text, where: Where = Where.Anywhere) -> Bool
 ## `join`
 
 **Description:**  
-Joins a list of text pieces with a specified glue.
+Joins an array of text pieces with a specified glue.
 
 **Usage:**  
 ```tomo
@@ -474,7 +737,7 @@ join(glue: Text, pieces: [Text]) -> Text
 **Parameters:**
 
 - `glue`: The text used to join the pieces.
-- `pieces`: The list of text pieces to be joined.
+- `pieces`: The array of text pieces to be joined.
 
 **Returns:**  
 A single `Text` value with the pieces joined by the glue.
@@ -483,6 +746,40 @@ A single `Text` value with the pieces joined by the glue.
 ```tomo
 >> ", ":join(["one", "two", "three"])
 = "one, two, three"
+```
+
+---
+
+## `lines`
+
+**Description:**  
+Splits the text into an array of lines of text, preserving blank lines,
+ignoring trailing newlines, and handling `\r\n` the same as `\n`.
+
+**Usage:**  
+```tomo
+split(text: Text) -> [Text]
+```
+
+**Parameters:**
+
+- `text`: The text to be split into lines.
+
+**Returns:**  
+An array of substrings resulting from the split.
+
+**Example:**  
+```tomo
+>> "one$(\n)two$(\n)three":lines()
+= ["one", "two", "three"]
+>> "one$(\n)two$(\n)three$(\n)":lines()
+= ["one", "two", "three"]
+>> "one$(\n)two$(\n)three$(\n\n)":lines()
+= ["one", "two", "three", ""]
+>> "one$(\r\n)two$(\r\n)three$(\r\n)":lines()
+= ["one", "two", "three"]
+>> "":lines()
+= []
 ```
 
 ---
@@ -508,81 +805,6 @@ The lowercase version of the text.
 ```tomo
 >> "AMÉLIE":lower()
 = "amélie"
-```
-
----
-
-## `num_bytes`
-
-**Description:**  
-Returns the number of bytes used by the text.
-
-**Usage:**  
-```tomo
-num_bytes(text: Text) -> Int
-```
-
-**Parameters:**
-
-- `text`: The text to measure.
-
-**Returns:**  
-The number of bytes used by the text.
-
-**Example:**  
-```tomo
->> "Amélie":num_bytes()
-= 8
-```
-
----
-
-## `num_clusters`
-
-**Description:**  
-Returns the number of clusters in the text.
-
-**Usage:**  
-```tomo
-num_clusters(text: Text) -> Int
-```
-
-**Parameters:**
-
-- `text`: The text to measure.
-
-**Returns:**  
-The number of clusters in the text.
-
-**Example:**  
-```tomo
->> "Amélie":num_clusters()
-= 6
-```
-
----
-
-## `num_codepoints`
-
-**Description:**  
-Returns the number of Unicode code points in the text.
-
-**Usage:**  
-```tomo
-num_codepoints(text: Text) -> Int
-```
-
-**Parameters:**
-
-- `text`: The text to measure.
-
-**Returns:**  
-The number of Unicode code points in the text.
-
-**Example:**  
-```tomo
->> "Amélie":num_codepoints()
-= 7
 ```
 
 ---
@@ -617,18 +839,18 @@ The text formatted as a quoted string.
 
 **Description:**  
 Replaces occurrences of a pattern in the text with a replacement string.
+See [Patterns](#patterns) for more information about patterns.
 
 **Usage:**  
 ```tomo
-replace(text: Text, pattern: Text, replacement: Text, limit: Int = -1) -> Text
+replace(text: Text, pattern: Text, replacement: Text) -> Text
 ```
 
 **Parameters:**
 
 - `text`: The text in which to perform replacements.
-- `pattern`: The substring to be replaced.
+- `pattern`: The pattern to be replaced.
 - `replacement`: The text to replace the pattern with.
-- `limit`: The maximum number of replacements (default is `-1`, meaning no limit).
 
 **Returns:**  
 The text with occurrences of the pattern replaced.
@@ -638,8 +860,8 @@ The text with occurrences of the pattern replaced.
 >> "Hello world":replace("world", "there")
 = "Hello there"
 
->> "xxxx":replace("x", "y", limit=2)
-= "yyxx"
+>> "Hello world":replace("[..id]", "xxx")
+= "xxx xxx"
 ```
 
 ---
@@ -647,25 +869,36 @@ The text with occurrences of the pattern replaced.
 ## `split`
 
 **Description:**  
-Splits the text into a list of substrings based on a delimiter.
+Splits the text into an array of substrings based on a pattern.
+See [Patterns](#patterns) for more information about patterns.
 
 **Usage:**  
 ```tomo
-split(text: Text, split: Text) -> [Text]
+split(text: Text, pattern: Text = "") -> [Text]
 ```
 
 **Parameters:**
 
 - `text`: The text to be split.
-- `split`: The delimiter used to split the text.
+- `pattern`: The pattern used to split the text. If the pattern is the empty
+  string, the text will be split into individual grapheme clusters.
 
 **Returns:**  
-A list of substrings resulting from the split.
+An array of substrings resulting from the split.
 
 **Example:**  
 ```tomo
 >> "one,two,three":split(",")
 = ["one", "two", "three"]
+
+>> "abc":split()
+= ["a", "b", "c"]
+
+>> "a    b  c":split("[..space]")
+= ["a", "b", "c"]
+
+>> "a,b,c,":split(",")
+= ["a", "b", "c", ""]
 ```
 
 ---
@@ -695,36 +928,6 @@ The text in title case.
 
 ---
 
-## `trimmed`
-
-**Description:**  
-Trims characters from the beginning and end of the text.
-
-**Usage:**  
-```tomo
-trimmed(text: Text, trim: Text = " {\n\r\t}", where: Where = Where.Anywhere) -> Text
-```
-
-**Parameters:**
-
-- `text`: The text to be trimmed.
-- `trim`: The set of characters to remove (default is `" {\n\r\t}"`).
-- `where`: Specifies where to trim (`Where.Anywhere` by default).
-
-**Returns:**  
-The trimmed text.
-
-**Example:**  
-```tomo
->> "  xxx   ":trimmed()
-= "xxx"
-
->> "xxyyxx":trimmed("x", where=Start)
-= "yyxx"
-```
-
----
-
 ## `upper`
 
 **Description:**  
@@ -746,33 +949,4 @@ The uppercase version of the text.
 ```tomo
 >> "amélie":upper()
 = "AMÉLIE"
-```
-
----
-
-## `without`
-
-**Description:**  
-Removes all occurrences of a target substring from the text.
-
-**Usage:**  
-```tomo
-without(text: Text, target: Text, where: Where = Where.Anywhere) -> Text
-```
-
-**Parameters:**
-
-- `text`: The text from which to remove substrings.
-- `target`: The substring to remove.
-- `where`: The location to remove the target (`Where.Anywhere` by default).
-
-**Returns:**  
-The text with occurrences of the target removed.
-
-**Example:**  
-```tomo
->> "banana":without("na")
-= "ba"
->> "banana":without("na", where=End)
-= "bana"
 ```

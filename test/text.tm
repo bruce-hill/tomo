@@ -119,7 +119,6 @@ func main():
 	>> c == Text.from_bytes(c:utf8_bytes())
 	= yes
 
-
 	>> "one$(\n)two$(\n)three":lines()
 	= ["one", "two", "three"]
 	>> "one$(\n)two$(\n)three$(\n)":lines()
@@ -128,6 +127,8 @@ func main():
 	= ["one", "two", "three", ""]
 	>> "one$(\r\n)two$(\r\n)three$(\r\n)":lines()
 	= ["one", "two", "three"]
+	>> "":lines()
+	= []
 
 	//! Test splitting and joining text:
 	>> "one two three":split(" ")
