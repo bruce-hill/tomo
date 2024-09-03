@@ -299,7 +299,8 @@ env_t *new_compilation_unit(CORD *libname)
     }
 
     set_binding(namespace_env(env, "Pattern"), "from_unsafe_text",
-                new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE), .ret=Type(TextType, .lang="Pattern")),
+                new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
+                                          .ret=Type(TextType, .lang="Pattern", .env=namespace_env(env, "Pattern"))),
                     .code="(Pattern_t)"));
 
     return env;
