@@ -7,6 +7,43 @@ These are _not_ C-style NULL-terminated character arrays. GNU libunistring is
 used for full Unicode functionality (grapheme cluster counts, capitalization,
 etc.).
 
+## Implementation
+
+Internally, Tomo text's implementation is based on [Raku's
+strings](https://docs.raku.org/language/unicode). Strings store their grapheme
+cluster count and either a compact array of 8-bit ASCII characters (for ASCII
+text), an array of 32-bit normal-form grapheme cluster values (see below), or a
+flat subarray of multiple texts that are either ASCII or graphemes (the
+structure is not arbitrarily nested).
+
+### Normal-Form Graphemes
+
+In order to maintain compact storage, fast indexing, and fast slicing,
+non-ASCII text is stored as 32-bit normal-form graphemes. A normal-form
+grapheme is either a positive value representing a Unicode codepoint that
+corresponds to a grapheme cluster (most Unicode letters used in natural
+language fall into this category after normalization) or a negative value
+representing an index into an internal array of "synthetic grapheme cluster
+codepoints." Here are some examples:
+
+- `A` is a normal codepoint that is also a grapheme cluster, so it would
+  be represented as the number `65`
+- `ABC` is three separate grapheme clusters, one for `A`, one for `B`, one
+  for `C`.
+- `Å` is also a single codepoint (`LATIN CAPITAL LETTER A WITH RING ABOVE`)
+  that is also a grapheme cluster, so it would be represented as the number
+  `197`.
+- `家` (Japanese for "house") is a single codepoint (`CJK Unified
+  Ideograph-5BB6`) that is also a grapheme cluster, so it would be represented
+  as the number `23478`
+-`👩🏽‍🚀` is a single graphical cluster, but it's made up of several
+  combining codepoints (`["WOMAN", "EMOJI MODIFIER FITZPATRICK TYPE-4", "ZERO
+  WITDH JOINER", "ROCKET"]`). Since this can't be represented with a single
+  codepoint, we must create a synthetic codepoint for it. If this was the `n`th
+  synthetic codepoint that we've found, then we would represent it with the
+  number `-n`, which can be used to look it up in a lookup table. The lookup
+  table holds the full sequence of codepoints used in the grapheme cluster.
+
 ## Syntax
 
 Text has a flexible syntax designed to make it easy to hold values from
@@ -20,7 +57,7 @@ str2 := 'Also text'
 str3 := `Backticks too`
 ```
 
-## Line Splits
+### Line Splits
 
 Long text can be split across multiple lines by having two or more dots at the
 start of a new line on the same indentation level that started the text:
@@ -30,7 +67,7 @@ str := "This is a long
 ....... line that is split in code"
 ```
 
-## Multi-line Text
+### Multi-line Text
 
 Multi-line text has indented (i.e. at least one tab more than the start of the
 text) text inside quotation marks. The leading and trailing newline are
@@ -81,7 +118,7 @@ Single-quoted text does not have interpolations:
 str := 'Sum: $(1 + 2)'
 ```
 
-## Text Escapes
+### Text Escapes
 
 Unlike other languages, backslash is *not* a special character inside of text.
 For example, `"x\ny"` has the characters `x`, `\`, `n`, `y`, not a newline.
@@ -109,64 +146,6 @@ str := "
     This has
     multiple lines and "quotes" too!
 "
-```
-
-### Multi-line Text
-
-There are two reasons for text to span multiple lines in code: either you
-have text that contains newlines and you want to represent it without `\n`
-escapes, or you have a long single-line text that you want to split across
-multiple lines for readability. To support this, you can use newlines inside of
-text with indentation-sensitivity. For splitting long lines, use two or more
-"."s at the same indentation level as the start of the text literal:
-
-```
-single_line := "This is a long text that
-... spans multiple lines"
-```
-For text that contains newlines, you may put multiple indented lines inside
-the quotes:
-
-```
-multi_line := "
-    line one
-    line two
-        this line is indented
-    last line
-"
-```
-
-Text may only end on lines with the same indentation as the starting quote
-and nested quotes are ignored:
-
-```
-multi_line := "
-    Quotes in indented regions like this: " don't count
-"
-```
-
-If there is a leading or trailing newline, it is ignored and not included in
-the text.
-
-```
-str := "
-    one line
-"
-
->>> str == "one line"
-=== yes
-```
-
-Additional newlines *are* counted though:
-
-```
-str := "
-    
-    blank lines
-
-"
-
->>> str == "{\n}blank lines{\n}"
 ```
 
 ### Customizable `$`-Text
@@ -231,11 +210,11 @@ shorthand for `${}"foo"`. Singly quoted text with no dollar sign (e.g.
 
 ### Concatenation
 
-Concatenation in the typical case is an O(1) operation: `"{x}{y}"` or `x ++ y`.
+Concatenation in the typical case is a fast operation: `"{x}{y}"` or `x ++ y`.
 
-Because text concatenation is typically an O(1) operation, there is no need for
-a separate "string builder" class in the language and no need to use an array
-of text fragments.
+Because text concatenation is typically fast, there is no need for a separate
+"string builder" class in the language and no need to use an array of text
+fragments.
 
 ### Text Length
 
