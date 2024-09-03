@@ -210,6 +210,10 @@ func main():
 	>> house.length
 	= 1
 	>> house:codepoint_names()
-	= ["???"]
+	= ["CJK Unified Ideographs-5BB6"]
 	>> house:utf32_codepoints()
 	= [23478_i32]
+
+	>> "🐧":codepoint_names()
+	= ["PENGUIN"]
+

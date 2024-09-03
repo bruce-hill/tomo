@@ -1563,6 +1563,17 @@ public array_t Text$utf8_bytes(Text_t text)
     return (array_t){.length=strlen(str), .stride=1, .atomic=1, .data=(void*)str};
 }
 
+static inline const char *codepoint_name(uint32_t c)
+{
+    char *name = GC_MALLOC_ATOMIC(UNINAME_MAX);
+    char *found_name = unicode_character_name(c, name);
+    if (found_name) return found_name;
+    const uc_block_t *block = uc_block(c);
+    assert(block);
+    snprintf(name, UNINAME_MAX, "%s-%X", block->name, c);
+    return name;
+}
+
 public array_t Text$codepoint_names(Text_t text)
 {
     array_t names = {};
@@ -1571,16 +1582,12 @@ public array_t Text$codepoint_names(Text_t text)
         int32_t grapheme = _next_grapheme(text, &state, i);
         if (grapheme < 0) {
             for (int64_t c = 0; c < synthetic_graphemes[-grapheme-1].num_codepoints; c++) {
-                char *name = GC_MALLOC_ATOMIC(UNINAME_MAX);
-                name = unicode_character_name(synthetic_graphemes[-grapheme-1].codepoints[c], name);
-                if (!name) name = "???";
+                const char *name = codepoint_name(synthetic_graphemes[-grapheme-1].codepoints[c]);
                 Text_t name_text = (Text_t){.tag=TEXT_ASCII, .length=strlen(name), .ascii=name};
                 Array$insert(&names, &name_text, I_small(0), sizeof(Text_t));
             }
         } else {
-            char *name = GC_MALLOC_ATOMIC(UNINAME_MAX);
-            name = unicode_character_name(grapheme, name);
-            if (!name) name = "???";
+            const char *name = codepoint_name(grapheme);
             Text_t name_text = (Text_t){.tag=TEXT_ASCII, .length=strlen(name), .ascii=name};
             Array$insert(&names, &name_text, I_small(0), sizeof(Text_t));
         }
