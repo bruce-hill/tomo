@@ -140,3 +140,15 @@ func main():
 
 	>> "abc":split("")
 	= ["a", "b", "c"]
+
+	>> ", ":join(["one", "two", "three"])
+	= "one, two, three"
+
+	>> "":join(["one", "two", "three"])
+	= "onetwothree"
+
+	>> "+":join(["one"])
+	= "one"
+
+	>> "+":join([:Text])
+	= ""

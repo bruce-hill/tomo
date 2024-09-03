@@ -17,30 +17,6 @@ typedef struct {
     int32_t index;
 } find_result_t;
 
-// CORD Text$as_text(const void *str, bool colorize, const TypeInfo *info);
-// CORD Text$quoted(CORD str, bool colorize);
-// // int Text$compare(const CORD *x, const CORD *y);
-// // bool Text$equal(const CORD *x, const CORD *y);
-// // uint32_t Text$hash(const CORD *cord);
-// // CORD Text$upper(CORD str);
-// // CORD Text$lower(CORD str);
-// // CORD Text$title(CORD str);
-// bool Text$has(CORD str, CORD target, Where_t where);
-// CORD Text$without(CORD str, CORD target, Where_t where);
-// CORD Text$trimmed(CORD str, CORD skip, Where_t where);
-// find_result_t Text$find(CORD str, CORD pat);
-// CORD Text$replace(CORD text, CORD pat, CORD replacement, Int_t limit);
-// array_t Text$split(CORD str, CORD split);
-// CORD Text$join(CORD glue, array_t pieces);
-// array_t Text$clusters(CORD text);
-// array_t Text$codepoints(CORD text);
-// array_t Text$bytes(CORD text);
-// Int_t Text$num_clusters(CORD text);
-// Int_t Text$num_codepoints(CORD text);
-// Int_t Text$num_bytes(CORD text);
-// array_t Text$character_names(CORD text);
-// CORD Text$read_line(CORD prompt);
-
 int printf_text(FILE *stream, const struct printf_info *info, const void *const args[]);
 int printf_text_size(const struct printf_info *info, size_t n, int argtypes[n], int sizes[n]);
 
@@ -73,6 +49,7 @@ Text_t Text$from_codepoints(array_t codepoints);
 Text_t Text$from_codepoint_names(array_t codepoint_names);
 Text_t Text$from_bytes(array_t bytes);
 array_t Text$lines(Text_t text);
+Text_t Text$join(Text_t glue, array_t pieces);
 
 extern const TypeInfo $Text;
 

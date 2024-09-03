@@ -1449,6 +1449,17 @@ public array_t Text$split(Text_t text, Text_t pattern)
     return chunks;
 }
 
+public Text_t Text$join(Text_t glue, array_t pieces)
+{
+    if (pieces.length == 0) return (Text_t){.length=0};
+
+    Text_t result = *(Text_t*)pieces.data;
+    for (int64_t i = 1; i < pieces.length; i++) {
+        result = Text$concat(result, glue, *(Text_t*)(pieces.data + i*pieces.stride));
+    }
+    return result;
+}
+
 public Text_t Text$format(const char *fmt, ...)
 {
     va_list args;
