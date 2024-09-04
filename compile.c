@@ -1495,6 +1495,43 @@ CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t 
     return CORD_EMPTY;
 }
 
+static CORD compile_string_literal(CORD literal)
+{
+    CORD code = "\"";
+    CORD_pos i;
+    CORD_FOR(i, literal) {
+        char c = CORD_pos_fetch(i);
+        switch (c) {
+        case '\\': code = CORD_cat(code, "\\\\"); break;
+        case '"': code = CORD_cat(code, "\\\""); break;
+        case '\a': code = CORD_cat(code, "\\a"); break;
+        case '\b': code = CORD_cat(code, "\\b"); break;
+        case '\n': code = CORD_cat(code, "\\n"); break;
+        case '\r': code = CORD_cat(code, "\\r"); break;
+        case '\t': code = CORD_cat(code, "\\t"); break;
+        case '\v': code = CORD_cat(code, "\\v"); break;
+        default: {
+            if (isprint(c))
+                code = CORD_cat_char(code, c);
+            else
+                CORD_sprintf(&code, "%r\\x%02X\"\"", code, (uint8_t)c);
+            break;
+        }
+        }
+    }
+    return CORD_cat(code, "\"");
+}
+
+static bool string_literal_is_all_ascii(CORD literal)
+{
+    CORD_pos i;
+    CORD_FOR(i, literal) {
+        if (!isascii(CORD_pos_fetch(i)))
+            return false;
+    }
+    return true;
+}
+
 CORD compile(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
@@ -1780,47 +1817,30 @@ CORD compile(env_t *env, ast_t *ast)
         CORD literal = Match(ast, TextLiteral)->cord; 
         if (literal == CORD_EMPTY)
             return "Text(\"\")";
-        bool all_ascii = true;
-        CORD_pos i;
-        CORD_FOR(i, literal) {
-            if (!isascii(CORD_pos_fetch(i))) {
-                all_ascii = false;
-                break;
-            }
-        }
-        CORD code = all_ascii ? "Text(\"" : "Text$from_str(\"";
-        CORD_FOR(i, literal) {
-            char c = CORD_pos_fetch(i);
-            switch (c) {
-            case '\\': code = CORD_cat(code, "\\\\"); break;
-            case '"': code = CORD_cat(code, "\\\""); break;
-            case '\a': code = CORD_cat(code, "\\a"); break;
-            case '\b': code = CORD_cat(code, "\\b"); break;
-            case '\n': code = CORD_cat(code, "\\n"); break;
-            case '\r': code = CORD_cat(code, "\\r"); break;
-            case '\t': code = CORD_cat(code, "\\t"); break;
-            case '\v': code = CORD_cat(code, "\\v"); break;
-            default: {
-                if (isprint(c))
-                    code = CORD_cat_char(code, c);
-                else
-                    CORD_sprintf(&code, "%r\\x%02X\"\"", code, (uint8_t)c);
-                break;
-            }
-            }
-        }
-        return CORD_cat(code, "\")");
+
+        if (string_literal_is_all_ascii(literal))
+            return CORD_all("Text(", compile_string_literal(literal), ")");
+        else
+            return CORD_all("Text$from_str(", compile_string_literal(literal), ")");
     }
     case TextJoin: {
         const char *lang = Match(ast, TextJoin)->lang;
-        type_t *text_t = Table$str_get(*env->types, lang ? lang : "Text");
+
+        type_t *text_t = lang ? Table$str_get(*env->types, lang) : TEXT_TYPE;
         if (!text_t || text_t->tag != TextType)
             code_err(ast, "%s is not a valid text language name", lang);
+
+        CORD lang_constructor = !lang ? "Text"
+            : CORD_all(namespace_prefix(Match(text_t, TextType)->env->libname, Match(text_t, TextType)->env->namespace->parent), lang);
+
         ast_list_t *chunks = Match(ast, TextJoin)->children;
         if (!chunks) {
-            return "Text(\"\")";
+            return CORD_all(lang_constructor, "(\"\")");
         } else if (!chunks->next && chunks->ast->tag == TextLiteral) {
-            return compile(env, chunks->ast);
+            CORD literal = Match(chunks->ast, TextLiteral)->cord; 
+            if (string_literal_is_all_ascii(literal))
+                return CORD_all(lang_constructor, "(", compile_string_literal(literal), ")");
+            return CORD_all("((", compile_type(text_t), ")", compile(env, chunks->ast), ")");
         } else {
             CORD code = CORD_EMPTY;
             for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
@@ -1845,7 +1865,7 @@ CORD compile(env_t *env, ast_t *ast)
                 if (chunk->next) code = CORD_cat(code, ", ");
             }
             if (chunks->next)
-                return CORD_all("Texts(", code, ")");
+                return CORD_all(lang_constructor, "s(", code, ")");
             else
                 return code;
         }
@@ -3270,7 +3290,14 @@ CORD compile_statement_typedefs(env_t *env, ast_t *ast)
     }
     case LangDef: {
         auto def = Match(ast, LangDef);
-        return CORD_all("typedef Text_t ", namespace_prefix(env->libname, env->namespace), def->name, "_t;\n");
+        return CORD_all(
+            "typedef Text_t ", namespace_prefix(env->libname, env->namespace), def->name, "_t;\n"
+            // Constructor macro:
+            "#define ", namespace_prefix(env->libname, env->namespace), def->name,
+                "(text) ((", namespace_prefix(env->libname, env->namespace), def->name, "_t){.length=sizeof(text)-1, .tag=TEXT_ASCII, .ascii=\"\" text})\n"
+            "#define ", namespace_prefix(env->libname, env->namespace), def->name,
+                "s(...) ((", namespace_prefix(env->libname, env->namespace), def->name, "_t)Texts(__VA_ARGS__))\n"
+        );
     }
     case Lambda: {
         auto lambda = Match(ast, Lambda);

@@ -52,6 +52,8 @@ Text_t Text$join(Text_t glue, array_t pieces);
 
 extern const TypeInfo $Text;
 
+#define Pattern(text) ((Pattern_t)Text(text))
+#define Patterns(...) ((Pattern_t)Texts(__VA_ARGS__))
 Pattern_t Pattern$escape_text(Text_t text);
 extern const TypeInfo Pattern;
 
