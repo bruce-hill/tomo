@@ -312,6 +312,7 @@ mostly ignore spaces, underscores, and dashes.
 - `ip` - an IP address (IPv4 or IPv6)
 - `ipv4` - an IPv4 address
 - `ipv6` - an IPv6 address
+- `nl`/`newline`/`crlf` - A line break (either `\r\n` or `\n`)
 - `num` - One or more digits with an optional `-` (minus sign) in front and an optional `.` and more digits after
 - `start` - the very start of the text
 - `uri` - a URI
