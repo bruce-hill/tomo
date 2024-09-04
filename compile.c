@@ -2469,7 +2469,6 @@ CORD compile(env_t *env, ast_t *ast)
                     file_t *f = ast->file;
                     return CORD_all("Table$get_value_or_fail(", self, ", ", compile_type(table->key_type), ", ", compile_type(table->value_type), ", ",
                                     compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type_info(env, self_value_t), ", ",
-                                    CORD_quoted(f->filename), ", ",
                                     CORD_asprintf("%ld", (int64_t)(ast->start - f->text)), ", ",
                                     CORD_asprintf("%ld", (int64_t)(ast->end - f->text)),
                                     ")");
