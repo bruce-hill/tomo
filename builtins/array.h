@@ -12,20 +12,20 @@
 #include "util.h"
 
 // Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
-#define Array_get(item_type, arr_expr, index_expr, filename, start, end) *({ \
+#define Array_get(item_type, arr_expr, index_expr, start, end) *({ \
     const array_t arr = arr_expr; int64_t index = index_expr; \
     int64_t off = index + (index < 0) * (arr.length + 1) - 1; \
     if (__builtin_expect(off < 0 || off >= arr.length, 0)) \
-        fail_source(filename, start, end, "Invalid array index: %s (array has length %ld)\n", Text$as_c_string(Int64$as_text(&index, no, NULL)), arr.length); \
+        fail_source(__SOURCE_FILE__, start, end, "Invalid array index: %s (array has length %ld)\n", Text$as_c_string(Int64$as_text(&index, no, NULL)), arr.length); \
     (item_type*)(arr.data + arr.stride * off);})
 #define Array_get_unchecked(type, x, i) *({ const array_t arr = x; int64_t index = i; \
                                           int64_t off = index + (index < 0) * (arr.length + 1) - 1; \
                                           (type*)(arr.data + arr.stride * off);})
-#define Array_lvalue(item_type, arr_expr, index_expr, padded_item_size, filename, start, end) *({ \
+#define Array_lvalue(item_type, arr_expr, index_expr, padded_item_size, start, end) *({ \
     array_t *arr = arr_expr; int64_t index = index_expr; \
     int64_t off = index + (index < 0) * (arr->length + 1) - 1; \
     if (__builtin_expect(off < 0 || off >= arr->length, 0)) \
-        fail_source(filename, start, end, "Invalid array index: %s (array has length %ld)\n", Text$as_c_string(Int64$as_text(&index, no, NULL)), arr->length); \
+        fail_source(__SOURCE_FILE__, start, end, "Invalid array index: %s (array has length %ld)\n", Text$as_c_string(Int64$as_text(&index, no, NULL)), arr->length); \
     if (arr->data_refcount > 0) \
         Array$compact(arr, padded_item_size); \
     (item_type*)(arr->data + arr->stride * off); })
@@ -35,8 +35,8 @@
     if (arr->data_refcount > 0) \
         Array$compact(arr, padded_item_size); \
     (item_type*)(arr->data + arr->stride * off); })
-#define Array_set(item_type, arr, index, value, padded_item_size, filename, start, end) \
-    Array_lvalue(item_type, arr_expr, index, padded_item_size, filename, start, end) = value
+#define Array_set(item_type, arr, index, value, padded_item_size, start, end) \
+    Array_lvalue(item_type, arr_expr, index, padded_item_size, start, end) = value
 #define is_atomic(x) _Generic(x, bool: true, int8_t: true, int16_t: true, int32_t: true, int64_t: true, float: true, double: true, default: false)
 #define TypedArray(t, ...) ({ t items[] = {__VA_ARGS__}; \
                          (array_t){.length=sizeof(items)/sizeof(items[0]), \

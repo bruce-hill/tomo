@@ -230,7 +230,7 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
                 return CORD_all("Array_lvalue(", compile_type(item_type), ", ", target_code, ", ", 
                                 compile_int_to_type(env, index->index, Type(IntType, .bits=TYPE_IBITS64)),
                                 ", ", CORD_asprintf("%ld", padded_type_size(item_type)),
-                                ", ", CORD_quoted(ast->file->filename), ", ", heap_strf("%ld", ast->start - ast->file->text),
+                                ", ", heap_strf("%ld", ast->start - ast->file->text),
                                 ", ", heap_strf("%ld", ast->end - ast->file->text), ")");
             }
         } else {
@@ -2811,7 +2811,6 @@ CORD compile(env_t *env, ast_t *ast)
             else
                 return CORD_all("Array_get(", compile_type(item_type), ", ", arr, ", ",
                                 compile_int_to_type(env, indexing->index, Type(IntType, .bits=TYPE_IBITS64)), ", ",
-                                CORD_quoted(f->filename), ", ",
                                 CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
                                 CORD_asprintf("%ld", (int64_t)(indexing->index->end - f->text)),
                                 ")");
