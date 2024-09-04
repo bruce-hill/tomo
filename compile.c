@@ -3410,7 +3410,6 @@ CORD compile_header(env_t *env, ast_t *ast)
     CORD header = CORD_all(
         "#pragma once\n"
         // "#line 1 ", CORD_quoted(ast->file->filename), "\n",
-        "#define __SOURCE_FILE__ ", CORD_quoted(ast->file->filename), "\n"
         "#include <tomo/tomo.h>\n");
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
