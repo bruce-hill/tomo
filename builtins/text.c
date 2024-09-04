@@ -39,6 +39,7 @@ typedef struct {
 } synthetic_grapheme_t;
 
 #define MAX_SYNTHETIC_GRAPHEMES 1024
+#define MAX_BACKREFS 100
 static synthetic_grapheme_t synthetic_graphemes[MAX_SYNTHETIC_GRAPHEMES] = {};
 
 static int32_t num_synthetic_graphemes = 0;
@@ -338,7 +339,7 @@ public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
             num_subtexts += 1;
         }
         if (num_subtexts == 1)
-            return Text$slice(subtexts[0], Int64_to_Int(first), Int64_to_Int(last));
+            return Text$slice(subtexts[0], I(first), I(last));
 
         Text_t ret = {
             .length=needed_len,
@@ -346,7 +347,7 @@ public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
             .subtexts=GC_MALLOC(sizeof(Text_t[num_subtexts])),
         };
         for (int64_t i = 0; i < num_subtexts; i++) {
-            ret.subtexts[i] = Text$slice(subtexts[i], Int64_to_Int(first), Int64_to_Int(last));
+            ret.subtexts[i] = Text$slice(subtexts[i], I(first), I(last));
             first = 1;
             needed_len -= ret.subtexts[i].length;
             last = first + needed_len - 1;
@@ -1048,7 +1049,11 @@ int64_t match_uri(Text_t text, int64_t text_index)
     return text_index - start_index;
 }
 
-int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t pattern_index)
+typedef struct {
+    int64_t index, length;
+} capture_t;
+
+int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t pattern_index, capture_t *captures, int64_t capture_index)
 {
     if (pattern_index >= pattern.length) return 0;
     int64_t start_index = text_index;
@@ -1061,6 +1066,7 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
             // Quotations: "?", '?', etc
             int32_t open = _next_grapheme(pattern, &pattern_state, pattern_index-2);
             if (!match_grapheme(text, &text_index, open)) return -1;
+            int64_t start_of_quoted_text = text_index;
             int32_t close = open;
             uc_mirror_char(open, (uint32_t*)&close);
             if (!match_grapheme(pattern, &pattern_index, close))
@@ -1068,6 +1074,14 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
             while (text_index < text.length) {
                 int32_t c = _next_grapheme(text, &text_state, text_index);
                 if (c == close) {
+                    // Save this as a capture, including only the interior text:
+                    if (captures && capture_index < MAX_BACKREFS) {
+                        captures[capture_index++] = (capture_t){
+                            start_of_quoted_text,
+                            text_index - start_of_quoted_text,
+                        };
+                    }
+
                     ++text_index;
                     goto next_part_of_pattern;
                 }
@@ -1085,6 +1099,7 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
             // Nested punctuation: (?), [?], etc
             int32_t open = _next_grapheme(pattern, &pattern_state, pattern_index-2);
             if (!match_grapheme(text, &text_index, open)) return -1;
+            int64_t start_of_interior = text_index;
             int32_t close = open;
             uc_mirror_char(open, (uint32_t*)&close);
             if (!match_grapheme(pattern, &pattern_index, close))
@@ -1097,6 +1112,15 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                 else if (c == close)
                     depth -= 1;
             }
+
+            // Save this as a capture, including only the interior text:
+            if (captures && capture_index < MAX_BACKREFS) {
+                captures[capture_index++] = (capture_t){
+                    start_of_interior,
+                    text_index - start_of_interior - 1,
+                };
+            }
+
             if (depth > 0) return -1;
         } else if (EAT1(pattern, &pattern_state, pattern_index,
                         grapheme == '{')) { // named patterns {id}, {2-3 hex}, etc.
@@ -1144,6 +1168,13 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
 
             int64_t before_group = text_index;
 #define FAIL() ({ if (min < 1) { text_index = before_group; continue; } else { return -1; } })
+#define SUCCESS() ({ \
+   if (captures && capture_index < MAX_BACKREFS) { \
+       captures[capture_index++] = (capture_t){ \
+           before_group, \
+           (text_index - before_group), \
+       }; \
+   }; continue; 0; })
             if (prop_name) {
                 switch (tolower(prop_name[0])) {
                 case '.':
@@ -1163,13 +1194,13 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                     if (strcasecmp(prop_name, "end") == 0) {
                         if (text_index != text.length)
                             FAIL();
-                        continue;
+                        SUCCESS();
                     } else if (prop_name && strcasecmp(prop_name, "email") == 0) {
                         int64_t len = match_email(text, text_index);
                         if (len < 0)
                             FAIL();
                         text_index += len;
-                        continue;
+                        SUCCESS();
                     } else if (prop_name && strcasecmp(prop_name, "emoji") == 0) {
                         prop = UC_PROPERTY_EMOJI;
                         goto got_prop;
@@ -1182,26 +1213,26 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                             FAIL();
                         EAT_MANY(text, &text_state, text_index,
                                  uc_is_property(grapheme, UC_PROPERTY_XID_CONTINUE));
-                        continue;
+                        SUCCESS();
                     } else if (prop_name && strcasecmp(prop_name, "int") == 0) {
                         EAT1(text, &text_state, text_index, grapheme == '-');
                         int64_t n = EAT_MANY(text, &text_state, text_index,
                                              uc_is_property(grapheme, UC_PROPERTY_DECIMAL_DIGIT));
                         if (n <= 0)
                             FAIL();
-                        continue;
+                        SUCCESS();
                     } else if (prop_name && strcasecmp(prop_name, "ipv4") == 0) {
                         int64_t len = match_ipv4(text, text_index);
                         if (len < 0)
                             FAIL();
                         text_index += len;
-                        continue;
+                        SUCCESS();
                     } else if (prop_name && strcasecmp(prop_name, "ipv6") == 0) {
                         int64_t len = match_ipv6(text, text_index);
                         if (len < 0)
                             FAIL();
                         text_index += len;
-                        continue;
+                        SUCCESS();
                     } else if (prop_name && strcasecmp(prop_name, "ip") == 0) {
                         int64_t len = match_ipv6(text, text_index);
                         if (len < 0)
@@ -1209,7 +1240,7 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                         if (len < 0)
                             FAIL();
                         text_index += len;
-                        continue;
+                        SUCCESS();
                     }
                     break;
                 case 'n':
@@ -1222,13 +1253,13 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                                                                   uc_is_property(grapheme, UC_PROPERTY_DECIMAL_DIGIT)) : 0;
                         if (pre_decimal == 0 && post_decimal == 0)
                             FAIL();
-                        continue;
+                        SUCCESS();
                     }
                     break;
                 case 's':
                     if (strcasecmp(prop_name, "start") == 0) {
                         if (text_index != 0) return -1;
-                        continue;
+                        SUCCESS();
                     }
                     break;
                 case 'u':
@@ -1237,7 +1268,7 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                         if (len < 0)
                             FAIL();
                         text_index += len;
-                        continue;
+                        SUCCESS();
                     } else if (prop_name && strcasecmp(prop_name, "url") == 0) {
                         int64_t lookahead = text_index;
                         if (!(match_str(text, &lookahead, "https:")
@@ -1251,7 +1282,7 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                         if (len < 0)
                             FAIL();
                         text_index += len;
-                        continue;
+                        SUCCESS();
                     }
                     break;
                 }
@@ -1267,9 +1298,17 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
 
             if (min == 0 && pattern_index < pattern.length) {
                 // Try matching the rest of the pattern immediately:
-                int64_t match_len = match(text, pattern, text_index, pattern_index);
-                if (match_len >= 0)
+                int64_t match_len = match(text, pattern, text_index, pattern_index, captures, capture_index + 1);
+                if (match_len >= 0) {
+                    // Save this as a capture, including only the interior text:
+                    if (captures && capture_index < MAX_BACKREFS) {
+                        captures[capture_index++] = (capture_t){
+                            before_group,
+                            (text_index - before_group) + match_len,
+                        };
+                    }
                     return (text_index - start_index) + match_len;
+                }
             }
 
             for (int64_t count = 0; count < max; ) {
@@ -1296,8 +1335,16 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                 if (count >= min) {
                     if (pattern_index < pattern.length) {
                         // If we have the minimum and we match the rest of the pattern, we're good:
-                        int64_t match_len = match(text, pattern, text_index, pattern_index);
+                        int64_t match_len = match(text, pattern, text_index, pattern_index, captures, capture_index + 1);
                         if (match_len >= 0) {
+                            // Save this as a capture, including only the interior text:
+                            if (captures && capture_index < MAX_BACKREFS) {
+                                captures[capture_index++] = (capture_t){
+                                    before_group,
+                                    (text_index - before_group) + match_len,
+                                };
+                            }
+
                             return (text_index - start_index) + match_len;
                         }
                     } else if (text_index >= text.length) {
@@ -1350,7 +1397,7 @@ public Int_t Text$find(Text_t text, Pattern_t pattern, Int_t from_index, int64_t
                 ++i;
         }
 
-        int64_t m = match(text, pattern, i, 0);
+        int64_t m = match(text, pattern, i, 0, NULL, 0);
         if (m >= 0) {
             if (match_length)
                 *match_length = m;
@@ -1470,156 +1517,112 @@ public array_t Text$find_all(Text_t text, Pattern_t pattern)
         int64_t len;
         Int_t found = Text$find(text, pattern, i, &len);
         if (I_is_zero(found)) break;
-        Text_t match = Text$slice(text, found, Int$plus(found, Int64_to_Int(len-1)));
+        Text_t match = Text$slice(text, found, Int$plus(found, I(len-1)));
         Array$insert(&matches, &match, I_small(0), sizeof(Text_t));
-        i = Int$plus(found, Int64_to_Int(len <= 0 ? 1 : len));
+        i = Int$plus(found, I(len <= 0 ? 1 : len));
     }
 
     return matches;
 }
 
-public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement, Pattern_t placeholder)
+static Text_t apply_backrefs(Text_t text, Text_t replacement, Pattern_t backref_pat, capture_t *captures)
 {
-    Text_t ret = {.length=0};
+    if (backref_pat.length == 0)
+        return replacement;
 
-    Int_t i = I_small(1);
-    for (;;) {
-        int64_t len;
-        Int_t found = Text$find(text, pattern, i, &len);
-        if (I_is_zero(found)) break;
+    int32_t first_grapheme = get_grapheme(backref_pat, 0);
+    bool find_first = (first_grapheme != '{'
+                       && !uc_is_property(first_grapheme, UC_PROPERTY_QUOTATION_MARK)
+                       && !uc_is_property(first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
 
-        Text_t replacement_text = replacement;
-        if (placeholder.length > 0) {
-            Text_t matched_text = Text$slice(text, found, Int$plus(found, Int64_to_Int(len-1)));
-            replacement_text = Text$replace(replacement, placeholder, matched_text, Text(""));
+    Text_t ret = Text("");
+    iteration_state_t state = {0, 0};
+    int64_t nonmatching_pos = 0;
+    for (int64_t pos = 0; pos < replacement.length; ) {
+        // Optimization: quickly skip ahead to first char in the backref pattern:
+        if (find_first) {
+            while (pos < replacement.length && _next_grapheme(replacement, &state, pos) != first_grapheme)
+                ++pos;
         }
 
-        if (Int$compare(&found, &i, &$Text) > 0) {
-            Text_t before_slice = Text$slice(text, i, Int$minus(found, I_small(1)));
-            ret = Text$concat(ret, before_slice, replacement_text);
+        int64_t backref_len = match(replacement, backref_pat, pos, 0, NULL, 0);
+        if (backref_len < 0) {
+            pos += 1;
+            continue;
+        }
+
+        int64_t after_backref = pos + backref_len;
+        int64_t backref = parse_int(replacement, &after_backref);
+        if (after_backref == pos + backref_len) { // Not actually a backref if there's no number
+            pos += 1;
+            continue;
+        }
+        if (backref < 0 || backref > 9) fail("Invalid backref index: %ld (only 0-%d are allowed)", backref, MAX_BACKREFS-1);
+        backref_len = (after_backref - pos);
+
+        if (_next_grapheme(replacement, &state, pos + backref_len) == ';')
+            backref_len += 1; // skip optional semicolon
+
+        Text_t backref_text = Text$slice(text, I(captures[backref].index+1), I(captures[backref].index + captures[backref].length));
+        if (pos > nonmatching_pos) {
+            Text_t before_slice = Text$slice(replacement, I(nonmatching_pos+1), I(pos));
+            ret = Text$concat(ret, before_slice, backref_text);
         } else {
-            ret = concat2(ret, replacement_text);
+            ret = concat2(ret, backref_text);
         }
-        i = Int$plus(found, Int64_to_Int(len <= 0 ? 1 : len));
+
+        pos += backref_len;
+        nonmatching_pos = pos;
     }
-    if (Int_to_Int64(i, false) <= text.length) {
-        Text_t last_slice = Text$slice(text, i, Int64_to_Int(text.length));
+    if (nonmatching_pos < replacement.length) {
+        Text_t last_slice = Text$slice(replacement, I(nonmatching_pos+1), I(replacement.length));
         ret = concat2(ret, last_slice);
     }
     return ret;
 }
 
-public Text_t Text$replace_chain(Text_t text, array_t patterns, array_t replacements, Text_t placeholder)
+public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement, Pattern_t backref_pat)
 {
-    if (patterns.length != replacements.length)
-        fail("The number of patterns given (%ld) is not the same as the number of replacements (%ld)",
-             patterns.length, replacements.length);
-
-    if (patterns.length == 0) return text;
-
     Text_t ret = {.length=0};
 
-    Pattern_t first_pattern = *(Pattern_t*)(patterns.data);
-    int32_t first_grapheme = get_grapheme(first_pattern, 0);
+    int32_t first_grapheme = get_grapheme(pattern, 0);
     bool find_first = (first_grapheme != '{'
                        && !uc_is_property(first_grapheme, UC_PROPERTY_QUOTATION_MARK)
                        && !uc_is_property(first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
 
     iteration_state_t text_state = {0, 0};
-
-    int64_t nonmatch_pos = 0;
-    for (int64_t pos = 0; pos < text.length; ) {
+    int64_t nonmatching_pos = 0;
+    for (int64_t pos = 0; pos < text.length; pos++) {
         // Optimization: quickly skip ahead to first char in pattern:
         if (find_first) {
             while (pos < text.length && _next_grapheme(text, &text_state, pos) != first_grapheme)
                 ++pos;
         }
 
-        // Get all match lengths:
-        int64_t lengths[patterns.length] = {};
-        for (int64_t i = 0, match_pos = pos; i < patterns.length; i++) {
-            Pattern_t pattern = *(Pattern_t*)(patterns.data + i*patterns.stride);
+        capture_t captures[MAX_BACKREFS] = {};
+        int64_t match_len = match(text, pattern, pos, 0, captures, 1);
+        if (match_len < 0) continue;
+        captures[0].index = pos;
+        captures[0].length = match_len;
 
-            // If one of the patterns is `?` sandwiched between two pats
-            if (i > 0 && i < patterns.length-1 && Text$equal(&pattern, (Pattern_t[1]){Text("?")})) {
-                Pattern_t prev_pat = *(Pattern_t*)(patterns.data + (i-1)*patterns.stride);
-                int32_t prev_last_grapheme = get_grapheme(prev_pat, prev_pat.length-1);
-                if (prev_last_grapheme < 0) goto literal_pat;
-
-                Pattern_t next_pat = *(Pattern_t*)(patterns.data + (i+1)*patterns.stride);
-                int32_t next_first_grapheme = get_grapheme(next_pat, 0);
-                if (next_first_grapheme < 0) goto literal_pat;
-
-                int32_t mirrored = prev_last_grapheme;
-                uc_mirror_char(prev_last_grapheme, (uint32_t*)&mirrored);
-
-                if (next_first_grapheme != mirrored)
-                    goto literal_pat;
-
-                if ((uc_is_property_quotation_mark(prev_last_grapheme) && uc_is_property_quotation_mark(next_first_grapheme))
-                    || ((uc_is_property_paired_punctuation(prev_last_grapheme)
-                         && uc_is_property_paired_punctuation(next_first_grapheme)
-                         && uc_is_property_left_of_pair(prev_last_grapheme)))) {
-                    // $/"/, $/?/, $/"/
-                    // $/(/, $/?/, $/)/
-
-                    Pattern_t matching_pair_pat = text_from_u32((uint32_t[3]){prev_last_grapheme, '?', next_first_grapheme}, 3, false);
-                    int64_t enclosing_len = match(text, matching_pair_pat, match_pos-1, 0);
-                    if (enclosing_len < 0) goto no_match;
-
-                    assert(enclosing_len >= 2);
-                    lengths[i] = enclosing_len - 2; // Exclude '(' and ')' or whatever delims
-                    goto found_match;
-                }
-            }
-
-          literal_pat:;
-            lengths[i] = match(text, pattern, match_pos, 0);
-            if (lengths[i] < 0)
-                goto no_match;
-
-          found_match:
-            match_pos += lengths[i];
+        Text_t replacement_text = apply_backrefs(text, replacement, backref_pat, captures);
+        if (pos > nonmatching_pos) {
+            Text_t before_slice = Text$slice(text, I(nonmatching_pos+1), I(pos));
+            ret = Text$concat(ret, before_slice, replacement_text);
+        } else {
+            ret = concat2(ret, replacement_text);
         }
-
-        // If we skipped over some non-matching text before finding a match, insert it here:
-        if (pos > nonmatch_pos) {
-            Text_t before_slice = Text$slice(text, Int64_to_Int(nonmatch_pos+1), Int64_to_Int(pos));
-            ret = concat2(ret, before_slice);
-        }
-
-        // Concatenate the slices/replacements
-        for (int64_t i = 0, replace_pos = pos; i < patterns.length; i++) {
-            Text_t replacement = *(Text_t*)(replacements.data + i*replacements.stride);
-            if (placeholder.length > 0) {
-                Text_t matched_text = Text$slice(text, Int64_to_Int(replace_pos+1), Int64_to_Int(replace_pos + lengths[i]));
-                replacement = Text$replace(replacement, placeholder, matched_text, Text(""));
-            }
-
-            ret = concat2(ret, replacement);
-            replace_pos += lengths[i];
-        }
-
-        int64_t total_match_len = 0;
-        for (int64_t i = 0; i < patterns.length; i++)
-            total_match_len += lengths[i];
-
-        pos += (total_match_len <= 0) ? 1 : total_match_len;
-        nonmatch_pos = pos;
-        continue;
-
-      no_match:
-        pos += 1;
-        continue;
+        nonmatching_pos = pos + match_len;
+        pos += (match_len - 1);
     }
-    if (nonmatch_pos <= text.length) {
-        Text_t last_slice = Text$slice(text, Int64_to_Int(nonmatch_pos+1), Int64_to_Int(text.length));
+    if (nonmatching_pos < text.length) {
+        Text_t last_slice = Text$slice(text, I(nonmatching_pos+1), I(text.length));
         ret = concat2(ret, last_slice);
     }
     return ret;
 }
 
-public Text_t Text$replace_all(Text_t text, table_t replacements, Text_t placeholder)
+public Text_t Text$replace_all(Text_t text, table_t replacements, Text_t backref_pat)
 {
     if (replacements.entries.length == 0) return text;
 
@@ -1630,22 +1633,22 @@ public Text_t Text$replace_all(Text_t text, table_t replacements, Text_t placeho
         // Find the first matching pattern at this position:
         for (int64_t i = 0; i < replacements.entries.length; i++) {
             Pattern_t pattern = *(Pattern_t*)(replacements.entries.data + i*replacements.entries.stride);
-            int64_t len = match(text, pattern, pos, 0);
+            capture_t captures[MAX_BACKREFS] = {};
+            int64_t len = match(text, pattern, pos, 0, captures, 1);
             if (len < 0) continue;
+            captures[0].index = pos;
+            captures[0].length = len;
 
             // If we skipped over some non-matching text before finding a match, insert it here:
             if (pos > nonmatch_pos) {
-                Text_t before_slice = Text$slice(text, Int64_to_Int(nonmatch_pos+1), Int64_to_Int(pos));
+                Text_t before_slice = Text$slice(text, I(nonmatch_pos+1), I(pos));
                 ret = concat2(ret, before_slice);
             }
 
             // Concatenate the replacement:
             Text_t replacement = *(Text_t*)(replacements.entries.data + i*replacements.entries.stride + sizeof(Text_t));
-            if (placeholder.length > 0) {
-                Text_t matched_text = Text$slice(text, Int64_to_Int(pos+1), Int64_to_Int(pos + len));
-                replacement = Text$replace(replacement, placeholder, matched_text, Text(""));
-            }
-            ret = concat2(ret, replacement);
+            Text_t replacement_text = apply_backrefs(text, replacement, backref_pat, captures);
+            ret = concat2(ret, replacement_text);
             pos += len > 0 ? len : 1;
             nonmatch_pos = pos;
             goto next_pos;
@@ -1657,7 +1660,7 @@ public Text_t Text$replace_all(Text_t text, table_t replacements, Text_t placeho
     }
 
     if (nonmatch_pos <= text.length) {
-        Text_t last_slice = Text$slice(text, Int64_to_Int(nonmatch_pos+1), Int64_to_Int(text.length));
+        Text_t last_slice = Text$slice(text, I(nonmatch_pos+1), I(text.length));
         ret = concat2(ret, last_slice);
     }
     return ret;
@@ -1680,10 +1683,10 @@ public array_t Text$split(Text_t text, Pattern_t pattern)
         if (I_is_zero(found)) break;
         Text_t chunk = Text$slice(text, i, Int$minus(found, I_small(1)));
         Array$insert(&chunks, &chunk, I_small(0), sizeof(Text_t));
-        i = Int$plus(found, Int64_to_Int(len <= 0 ? 1 : len));
+        i = Int$plus(found, I(len <= 0 ? 1 : len));
     }
 
-    Text_t last_chunk = Text$slice(text, i, Int64_to_Int(text.length));
+    Text_t last_chunk = Text$slice(text, i, I(text.length));
     Array$insert(&chunks, &last_chunk, I_small(0), sizeof(Text_t));
 
     return chunks;
@@ -1728,7 +1731,7 @@ public array_t Text$clusters(Text_t text)
 {
     array_t clusters = {.atomic=1};
     for (int64_t i = 1; i <= text.length; i++) {
-        Text_t cluster = Text$slice(text, Int64_to_Int(i), Int64_to_Int(i));
+        Text_t cluster = Text$slice(text, I(i), I(i));
         Array$insert(&clusters, &cluster, I_small(0), sizeof(Text_t));
     }
     return clusters;
@@ -1826,16 +1829,16 @@ public array_t Text$lines(Text_t text)
     for (int64_t i = 0, line_start = 0; i < text.length; i++) {
         int32_t grapheme = _next_grapheme(text, &state, i);
         if (grapheme == '\r' && _next_grapheme(text, &state, i + 1) == '\n') { // CRLF
-            Text_t line = Text$slice(text, Int64_to_Int(line_start+1), Int64_to_Int(i));
+            Text_t line = Text$slice(text, I(line_start+1), I(i));
             Array$insert(&lines, &line, I_small(0), sizeof(Text_t));
             i += 1; // skip one extra for CR
             line_start = i + 1;
         } else if (grapheme == '\n') { // newline
-            Text_t line = Text$slice(text, Int64_to_Int(line_start+1), Int64_to_Int(i));
+            Text_t line = Text$slice(text, I(line_start+1), I(i));
             Array$insert(&lines, &line, I_small(0), sizeof(Text_t));
             line_start = i + 1;
         } else if (i == text.length-1 && line_start != i) { // last line
-            Text_t line = Text$slice(text, Int64_to_Int(line_start+1), Int64_to_Int(i+1));
+            Text_t line = Text$slice(text, I(line_start+1), I(i+1));
             Array$insert(&lines, &line, I_small(0), sizeof(Text_t));
         }
     }

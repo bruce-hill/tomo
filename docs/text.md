@@ -277,7 +277,6 @@ Text.find_all(pattern:Pattern)->[Text]
 Text.split(pattern:Pattern)->[Text]
 Text.replace(pattern:Pattern, replacement:Text, placeholder:Pattern=$//)->[Text]
 Text.replace_all(replacements:{Pattern:Text}, placeholder:Pattern=$//)->[Text]
-Text.replace_chain(patterns:[Pattern], replacements:[Text], placeholder:Pattern=$//)->[Text]
 ```
 
 See [Text Functions](#Text-Functions) for the full API documentation.
@@ -836,11 +835,12 @@ The text formatted as a quoted string.
 
 **Description:**  
 Replaces occurrences of a pattern in the text with a replacement string.
+
 See [Patterns](#patterns) for more information about patterns.
 
 **Usage:**  
 ```tomo
-replace(text: Text, pattern: Text, replacement: Text, placeholder: Pattern = $//) -> Text
+replace(text: Text, pattern: Text, replacement: Text, backref: Pattern = $/\/) -> Text
 ```
 
 **Parameters:**
@@ -848,8 +848,22 @@ replace(text: Text, pattern: Text, replacement: Text, placeholder: Pattern = $//
 - `text`: The text in which to perform replacements.
 - `pattern`: The pattern to be replaced.
 - `replacement`: The text to replace the pattern with.
-- `placeholder`: If non-empty, the replacement text will have occurrences of the placeholder
-  pattern replaced with the matching text.
+- `backref`: If non-empty, the replacement text will have occurrences of this
+  pattern followed by a number replaced with the corresponding backreference.
+  By default, the backreference pattern is a single backslash, so
+  backreferences look like `\0`, `\1`, etc.
+
+**Backreferences**
+If a backreference pattern is in the replacement, then that backreference is
+replaced with the corresponding group from the matching text. Backreference
+`0` is the entire matching text, backreference `1` is the first matched group,
+and so on. Literal text is not captured for backreferences, only named group
+captures (`{foo}`), quoted captures (`"?"`), and nested group captures (`(?)`).
+For quoted and nested group captures, the backreference refers to the *inside*
+of the capture without the enclosing punctuation.
+
+If you need to insert a digit immediately after a backreference, you can use an
+optional semicolon: `\1;2` (backref 1, followed by the replacement text`"2"`).
 
 **Returns:**  
 The text with occurrences of the pattern replaced.
@@ -862,8 +876,14 @@ The text with occurrences of the pattern replaced.
 >> "Hello world":replace("{id}", "xxx")
 = "xxx xxx"
 
->> "Hello world":replace("{id}", "(@)", placeholder=$/@/)
+>> "Hello world":replace("{id}", "\0")
 = "(Hello) (world)"
+
+>> "Hello world":replace("{id} {id}", "just \2")
+= "just world"
+
+>> "some (parenthesized (with inner parens) text) here":replace("(?)", "non-\1")
+= "some non-parenthesized (with inner parens) text here"
 ```
 
 ---
@@ -875,11 +895,11 @@ Takes a table mapping patterns to replacement texts and performs all the
 replacements in the table on the whole text. At each position, the first
 matching pattern's replacement is applied and the pattern matching moves on to
 *after* the replacement text, so replacement text is not recursively modified.
-See [Patterns](#patterns) for more information about patterns.
+See [`replace()`](#replace) for more information about replacement behavior.
 
 **Usage:**  
 ```tomo
-replace_all(replacements:{Pattern:Text}, placeholder: Pattern = $//) -> Text
+replace_all(replacements:{Pattern:Text}, backref: Pattern = $/\/) -> Text
 ```
 
 **Parameters:**
@@ -887,8 +907,10 @@ replace_all(replacements:{Pattern:Text}, placeholder: Pattern = $//) -> Text
 - `text`: The text in which to perform replacements.
 - `replacements`: A table mapping from patterns to the replacement text
   associated with that pattern.
-- `placeholder`: If non-empty, the replacement text will have occurrences of
-  the placeholder pattern replaced with the matching text.
+- `backref`: If non-empty, the replacement text will have occurrences of this
+  pattern followed by a number replaced with the corresponding backreference.
+  By default, the backreference pattern is a single backslash, so
+  backreferences look like `\0`, `\1`, etc.
 
 **Returns:**  
 The text with all occurrences of the patterns replaced with their corresponding
@@ -905,52 +927,8 @@ replacement text.
 }
 = "A &lt;tag&gt; &amp; an ampersand"
 
->> "Hello":replace_all({$/{lower}/:"[@]", $/{upper}/:"{@}"}, placeholder=$/@/)
+>> "Hello":replace_all({$/{lower}/:"[\0]", $/{upper}/:"{\0}"})
 = "{H}[ello]"
-```
-
----
-
-## `replace_chain`
-
-**Description:**  
-Takes an array of patterns and a corresponding array of replacement texts and
-if all patterns in the patterns array match _consecutively_, then the
-replacement texts are substituted for the corresponding matches. This is useful
-if you want to replace parts of a match with new text while leaving other parts
-unchanged.
-
-As as special case, if a pattern `$/?/` is sandwiched between corresponding
-matching quotes or matching braces, it will match the inside part of the nested
-or quoted pair.
-
-See [Patterns](#patterns) for more information about patterns.
-
-**Usage:**  
-```tomo
-replace_chain(patterns:[Pattern], replacements:[Text], placeholder: Pattern = $//) -> Text
-```
-
-**Parameters:**
-
-- `text`: The text in which to perform replacements.
-- `patterns`: An array of patterns to be matched consecutively.
-- `replacements`: An array of replacement texts corresponding to each pattern.
-  This must be the same length as `patterns` or an error will be raised.
-- `placeholder`: If non-empty, the replacement text will have occurrences of
-  the placeholder pattern replaced with the matching text.
-
-**Returns:**  
-The text with all occurrences of the patterns replaced with their corresponding
-replacement text.
-
-**Example:**  
-```tomo
->> "  foo(blah(), 2)  ":replace_chain([$/foo(/, $/?/, $/)/], ["baz(", "@", ")"], placeholder=$/@/)
-= "  baz(blah(), 2)  "
-
->> "  foo.field_name  ":replace_chain([$/{id}/, $/.field_name/], ["@", ".other_field"], placeholder=$/@/)
-= "  foo.other_field  "
 ```
 
 ---
