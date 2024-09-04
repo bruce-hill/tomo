@@ -2983,7 +2983,9 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
     env_t *main_env = fresh_scope(env);
 
     CORD usage = CORD_EMPTY;
+    bool has_help = false;
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
+        if (streq(arg->name, "help")) has_help = true;
         usage = CORD_cat(usage, " ");
         type_t *t = get_arg_type(main_env, arg);
         CORD flag = CORD_replace(arg->name, "_", "-");
@@ -3001,6 +3003,10 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                 usage = CORD_all(usage, "<", flag, ">");
         }
     }
+
+    if (!has_help)
+        usage = CORD_all(" [--help]", usage);
+
     CORD code = CORD_all("CORD usage = CORD_all(\"Usage: \", argv[0], ", usage ? CORD_quoted(usage) : "CORD_EMPTY", ");\n",
                          "#define USAGE_ERR(...) errx(1, CORD_to_const_char_star(CORD_all(__VA_ARGS__)))\n"
                          "#define IS_FLAG(str, flag) (strncmp(str, flag, strlen(flag) == 0 && (str[strlen(flag)] == 0 || str[strlen(flag)] == '=')) == 0)\n");
@@ -3022,6 +3028,13 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                     "break;\n"
                     "}\n"
                     "if (strncmp(argv[i], \"--\", 2) != 0) {\n++i;\ncontinue;\n}\n");
+    if (!has_help) {
+        code = CORD_all(code, "else if (pop_flag(argv, &i, \"help\", &flag)) {\n"
+                        "CORD_printf(\"%r\\n\", usage);\n"
+                        "return 0;\n"
+                        "}\n");
+    }
+
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         type_t *t = get_arg_type(main_env, arg);
         CORD flag = CORD_replace(arg->name, "_", "-");
