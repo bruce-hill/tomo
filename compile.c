@@ -822,7 +822,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
         if (!to_print)
             return CORD_EMPTY;
 
-        CORD code = "say(Texts(";
+        CORD code = "say(";
+        if (to_print->next) code = CORD_all(code, "Texts(");
         for (ast_list_t *chunk = to_print; chunk; chunk = chunk->next) {
             if (chunk->ast->tag == TextLiteral) {
                 code = CORD_cat(code, compile(env, chunk->ast));
@@ -831,7 +832,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
             }
             if (chunk->next) code = CORD_cat(code, ", ");
         }
-        return CORD_cat(code, "), yes);");
+        if (to_print->next) code = CORD_all(code, ")");
+        return CORD_cat(code, ", yes);");
     }
     case Return: {
         if (!env->fn_ctx) code_err(ast, "This return statement is not inside any function");
