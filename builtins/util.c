@@ -105,7 +105,7 @@ public CORD CORD_replace(CORD c, CORD to_replace, CORD replacement)
     while (pos < len) {
         size_t found = CORD_str(c, pos, to_replace);
         if (found == CORD_NOT_FOUND) {
-            if (pos < len-1)
+            if (pos < len)
                 ret = CORD_cat(ret, CORD_substr(c, pos, len));
             return ret;
         }

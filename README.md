@@ -6,9 +6,9 @@ the language design decisions of the future.
 
 ```
 func greeting(name:Text)->Text:
-    greeting := "hello {name}!"
-    words := greeting:split(" ")
-    return " ":join([w:capitalize() for w in words])
+    greeting := "hello $name!"
+    words := greeting:split($/ /)
+    return " ":join([w:title() for w in words])
 
 func main(name="World"):
     to_say := greeting(name)
