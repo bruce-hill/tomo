@@ -59,8 +59,8 @@ func main():
     my_numbers := [10, 20, 30]
 
     # Empty arrays require specifying the type:
-    empty := [:Int]
-    >> empty.length
+    empty_array := [:Int]
+    >> empty_array.length
     = 0
 
     # Arrays are 1-indexed, so the first element is at index 1:
@@ -116,7 +116,7 @@ func main():
     # >> table:get("xxx")
 
     # Empty tables require specifying the key and value types:
-    empty := {:Text:Int}
+    empty_table := {:Text:Int}
 
     # Tables can be iterated over either by key or key,value:
     for key in table:
