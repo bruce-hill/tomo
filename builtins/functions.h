@@ -22,6 +22,7 @@ void end_test(const void *expr, const TypeInfo *type, const char *expected, cons
     start_test(__SOURCE_FILE__, start, end); \
     end_test((__typeof__(expr)[1]){expr}, typeinfo, expected, __SOURCE_FILE__, start, end); }
 void say(Text_t text, bool newline);
+Text_t ask(Text_t prompt, bool bold, bool force_tty);
 
 uint64_t generic_hash(const void *obj, const TypeInfo *type);
 int32_t generic_compare(const void *x, const void *y, const TypeInfo *type);

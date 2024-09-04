@@ -246,6 +246,48 @@ public void say(Text_t text, bool newline)
         fputc('\n', stdout);
 }
 
+public Text_t ask(Text_t prompt, bool bold, bool force_tty)
+{
+    Text_t ret = Text("");
+    FILE *out = stdout;
+    FILE *in = stdin;
+
+    if (force_tty && !isatty(STDOUT_FILENO)) {
+        out = fopen("/dev/tty", "w");
+        if (!out) goto cleanup;
+    }
+
+    if (bold) fputs("\x1b[1m", out);
+    Text$print(out, prompt);
+    if (bold) fputs("\x1b[m", out);
+    fflush(out);
+
+    if (force_tty && !isatty(STDIN_FILENO)) {
+        in = fopen("/dev/tty", "r");
+        if (!in) goto cleanup;
+    }
+
+    char *line = NULL;
+    size_t bufsize = 0;
+    ssize_t length = getline(&line, &bufsize, in);
+    if (length == -1) goto cleanup;
+
+    if (length > 0 && line[length-1] == '\n') {
+        line[length-1] = '\0';
+        --length;
+    }
+
+    char *gc_input = GC_MALLOC_ATOMIC(length + 1);
+    memcpy(gc_input, line, length + 1);
+
+    ret = Text$from_strn(gc_input, length);
+
+  cleanup:
+    if (out && out != stdout) fclose(out);
+    if (in && in != stdin) fclose(in);
+    return ret;
+}
+
 public bool pop_flag(char **argv, int *i, const char *flag, Text_t *result)
 {
     if (argv[*i][0] != '-' || argv[*i][1] != '-') {
