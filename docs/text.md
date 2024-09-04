@@ -870,20 +870,20 @@ The text with occurrences of the pattern replaced.
 
 **Example:**  
 ```tomo
->> "Hello world":replace("world", "there")
+>> "Hello world":replace($/world/, "there")
 = "Hello there"
 
->> "Hello world":replace("{id}", "xxx")
+>> "Hello world":replace($/{id}/, "xxx")
 = "xxx xxx"
 
->> "Hello world":replace("{id}", "\0")
+>> "Hello world":replace($/{id}/, "\0")
 = "(Hello) (world)"
 
->> "Hello world":replace("{id} {id}", "just \2")
+>> "Hello world":replace($/{id} {id}/, "just \2")
 = "just world"
 
->> "some (parenthesized (with inner parens) text) here":replace("(?)", "non-\1")
-= "some non-parenthesized (with inner parens) text here"
+>> " foo(x, fn(), y) ":replace($/foo(?)/, "baz(\1)")
+= " baz(x, fn(), y) "
 ```
 
 ---
