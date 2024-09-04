@@ -79,8 +79,6 @@ Tomo has a very small set of dependencies:
 - [GNU multiple precision arithmetic library](https://gmplib.org/manual/index)
   for arbitrary precision integer math.
 - [Binutils](https://www.gnu.org/software/binutils/) for stack traces.
-- [Readline](https://tiswww.case.edu/php/chet/readline/rltop.html) for reading
-  user input with nice editing.
 - a C compiler
 - and libc/libm, which should definitely already be installed.
 

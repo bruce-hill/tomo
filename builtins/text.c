@@ -8,8 +8,6 @@
 #include <gmp.h>
 #include <limits.h>
 #include <printf.h>
-#include <readline/history.h>
-#include <readline/readline.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>

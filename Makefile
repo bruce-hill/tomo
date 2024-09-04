@@ -23,7 +23,7 @@ EXTRA=
 G=-ggdb
 O=-Og
 CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS)
-LDLIBS=-lgc -lcord -lreadline -lm -lunistring -lgmp -ldl
+LDLIBS=-lgc -lcord -lm -lunistring -lgmp -ldl
 BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/channel.o builtins/nums.o builtins/functions.o builtins/integers.o \
 						 builtins/pointer.o builtins/memory.o builtins/text.o builtins/thread.o builtins/c_string.o builtins/table.o \
 						 builtins/types.o builtins/util.o builtins/files.o builtins/range.o
@@ -35,7 +35,7 @@ tomo: tomo.o $(BUILTIN_OBJS) SipHash/halfsiphash.o ast.o parse.o environment.o t
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 libtomo.so: $(BUILTIN_OBJS) SipHash/halfsiphash.o
-	$(CC) $^ $(CFLAGS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) -lgc -lcord -lreadline -lm -lunistring -lgmp -ldl -Wl,-soname,libtomo.so -shared -o $@
+	$(CC) $^ $(CFLAGS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -ldl -Wl,-soname,libtomo.so -shared -o $@
 
 SipHash/halfsiphash.c:
 	git submodule update --init --recursive
