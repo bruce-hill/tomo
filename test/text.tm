@@ -236,3 +236,9 @@ func main():
 	>> "<tag>":replace_all({$/</:"&lt;", $/>/:"&gt;"})
 	= "&lt;tag&gt;"
 
+	>> " BAD(x, fn(y), BAD(z), w) ":replace($/BAD(?)/, "good(\1)", recursive=yes)
+	= " good(x, fn(y), good(z), w) "
+
+	>> " BAD(x, fn(y), BAD(z), w) ":replace($/BAD(?)/, "good(\1)", recursive=no)
+	= " good(x, fn(y), BAD(z), w) "
+

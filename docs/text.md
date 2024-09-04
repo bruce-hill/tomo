@@ -840,7 +840,7 @@ See [Patterns](#patterns) for more information about patterns.
 
 **Usage:**  
 ```tomo
-replace(text: Text, pattern: Text, replacement: Text, backref: Pattern = $/\/) -> Text
+replace(text: Text, pattern: Text, replacement: Text, backref: Pattern = $/\/, recursive: Bool = yes) -> Text
 ```
 
 **Parameters:**
@@ -852,6 +852,9 @@ replace(text: Text, pattern: Text, replacement: Text, backref: Pattern = $/\/) -
   pattern followed by a number replaced with the corresponding backreference.
   By default, the backreference pattern is a single backslash, so
   backreferences look like `\0`, `\1`, etc.
+- `recursive`: For backreferences of a nested capture, if recursive is set to
+  `yes`, then the whole replacement will be reapplied recursively to the
+  backreferenced text if it's used in the replacement.
 
 **Backreferences**
 If a backreference pattern is in the replacement, then that backreference is
@@ -879,11 +882,18 @@ The text with occurrences of the pattern replaced.
 >> "Hello world":replace($/{id}/, "\0")
 = "(Hello) (world)"
 
+>> "Hello world":replace($/{id}/, "(@0)", backref=$/@/)
+= "(Hello) (world)"
+
 >> "Hello world":replace($/{id} {id}/, "just \2")
 = "just world"
 
->> " foo(x, fn(), y) ":replace($/foo(?)/, "baz(\1)")
-= " baz(x, fn(), y) "
+# Recursive is the default behavior:
+>> " BAD(x, BAD(y), z) ":replace($/BAD(?)/, "good(\1)", recursive=yes)
+= " good(x, good(y), z) "
+
+>> " BAD(x, BAD(y), z) ":replace($/BAD(?)/, "good(\1)", recursive=no)
+= " good(x, BAD(y), z) "
 ```
 
 ---
@@ -911,6 +921,9 @@ replace_all(replacements:{Pattern:Text}, backref: Pattern = $/\/) -> Text
   pattern followed by a number replaced with the corresponding backreference.
   By default, the backreference pattern is a single backslash, so
   backreferences look like `\0`, `\1`, etc.
+- `recursive`: For backreferences of a nested capture, if recursive is set to
+  `yes`, then the matching replacement will be reapplied recursively to the
+  backreferenced text if it's used in the replacement.
 
 **Returns:**  
 The text with all occurrences of the patterns replaced with their corresponding

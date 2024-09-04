@@ -1051,6 +1051,7 @@ int64_t match_uri(Text_t text, int64_t text_index)
 
 typedef struct {
     int64_t index, length;
+    bool occupied, recursive;
 } capture_t;
 
 int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t pattern_index, capture_t *captures, int64_t capture_index)
@@ -1077,8 +1078,10 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                     // Save this as a capture, including only the interior text:
                     if (captures && capture_index < MAX_BACKREFS) {
                         captures[capture_index++] = (capture_t){
-                            start_of_quoted_text,
-                            text_index - start_of_quoted_text,
+                            .index=start_of_quoted_text,
+                            .length=text_index - start_of_quoted_text,
+                            .occupied=true,
+                            .recursive=false,
                         };
                     }
 
@@ -1116,8 +1119,10 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
             // Save this as a capture, including only the interior text:
             if (captures && capture_index < MAX_BACKREFS) {
                 captures[capture_index++] = (capture_t){
-                    start_of_interior,
-                    text_index - start_of_interior - 1,
+                    .index=start_of_interior,
+                    .length=text_index - start_of_interior - 1,
+                    .occupied=true,
+                    .recursive=true,
                 };
             }
 
@@ -1171,8 +1176,10 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
 #define SUCCESS() ({ \
    if (captures && capture_index < MAX_BACKREFS) { \
        captures[capture_index++] = (capture_t){ \
-           before_group, \
-           (text_index - before_group), \
+           .index=before_group, \
+           .length=(text_index - before_group), \
+           .occupied=true, \
+           .recursive=false, \
        }; \
    }; continue; 0; })
             if (prop_name) {
@@ -1303,8 +1310,10 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                     // Save this as a capture, including only the interior text:
                     if (captures && capture_index < MAX_BACKREFS) {
                         captures[capture_index++] = (capture_t){
-                            before_group,
-                            (text_index - before_group) + match_len,
+                            .index=before_group,
+                            .length=(text_index - before_group) + match_len,
+                            .occupied=true,
+                            .recursive=false,
                         };
                     }
                     return (text_index - start_index) + match_len;
@@ -1340,8 +1349,10 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                             // Save this as a capture, including only the interior text:
                             if (captures && capture_index < MAX_BACKREFS) {
                                 captures[capture_index++] = (capture_t){
-                                    before_group,
-                                    (text_index - before_group) + match_len,
+                                    .index=before_group,
+                                    .length=(text_index - before_group) + match_len,
+                                    .occupied=true,
+                                    .recursive=false,
                                 };
                             }
 
@@ -1525,7 +1536,7 @@ public array_t Text$find_all(Text_t text, Pattern_t pattern)
     return matches;
 }
 
-static Text_t apply_backrefs(Text_t text, Text_t replacement, Pattern_t backref_pat, capture_t *captures)
+static Text_t apply_backrefs(Text_t text, Pattern_t original_pattern, Text_t replacement, Pattern_t backref_pat, capture_t *captures)
 {
     if (backref_pat.length == 0)
         return replacement;
@@ -1563,7 +1574,14 @@ static Text_t apply_backrefs(Text_t text, Text_t replacement, Pattern_t backref_
         if (_next_grapheme(replacement, &state, pos + backref_len) == ';')
             backref_len += 1; // skip optional semicolon
 
+        if (!captures[backref].occupied)
+            fail("There is no capture number %ld!", backref);
+
         Text_t backref_text = Text$slice(text, I(captures[backref].index+1), I(captures[backref].index + captures[backref].length));
+
+        if (captures[backref].recursive && original_pattern.length > 0)
+            backref_text = Text$replace(backref_text, original_pattern, replacement, backref_pat, true);
+
         if (pos > nonmatching_pos) {
             Text_t before_slice = Text$slice(replacement, I(nonmatching_pos+1), I(pos));
             ret = Text$concat(ret, before_slice, backref_text);
@@ -1581,7 +1599,7 @@ static Text_t apply_backrefs(Text_t text, Text_t replacement, Pattern_t backref_
     return ret;
 }
 
-public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement, Pattern_t backref_pat)
+public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement, Pattern_t backref_pat, bool recursive)
 {
     Text_t ret = {.length=0};
 
@@ -1602,10 +1620,12 @@ public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement, P
         capture_t captures[MAX_BACKREFS] = {};
         int64_t match_len = match(text, pattern, pos, 0, captures, 1);
         if (match_len < 0) continue;
-        captures[0].index = pos;
-        captures[0].length = match_len;
+        captures[0] = (capture_t){
+            .index = pos, .length = match_len,
+            .occupied = true, .recursive = false,
+        };
 
-        Text_t replacement_text = apply_backrefs(text, replacement, backref_pat, captures);
+        Text_t replacement_text = apply_backrefs(text, recursive ? pattern : Text(""), replacement, backref_pat, captures);
         if (pos > nonmatching_pos) {
             Text_t before_slice = Text$slice(text, I(nonmatching_pos+1), I(pos));
             ret = Text$concat(ret, before_slice, replacement_text);
@@ -1622,7 +1642,7 @@ public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement, P
     return ret;
 }
 
-public Text_t Text$replace_all(Text_t text, table_t replacements, Text_t backref_pat)
+public Text_t Text$replace_all(Text_t text, table_t replacements, Text_t backref_pat, bool recursive)
 {
     if (replacements.entries.length == 0) return text;
 
@@ -1647,7 +1667,7 @@ public Text_t Text$replace_all(Text_t text, table_t replacements, Text_t backref
 
             // Concatenate the replacement:
             Text_t replacement = *(Text_t*)(replacements.entries.data + i*replacements.entries.stride + sizeof(Text_t));
-            Text_t replacement_text = apply_backrefs(text, replacement, backref_pat, captures);
+            Text_t replacement_text = apply_backrefs(text, recursive ? pattern : Text(""), replacement, backref_pat, captures);
             ret = concat2(ret, replacement_text);
             pos += len > 0 ? len : 1;
             nonmatch_pos = pos;
