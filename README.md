@@ -5,24 +5,26 @@ language that cross-compiles to C. Tomo is designed to anticipate and influence
 the language design decisions of the future.
 
 ```
-func greeting(name:Text)->Text:
-    greeting := "hello $name!"
-    words := greeting:split($/ /)
-    return " ":join([w:title() for w in words])
+func greeting(name:Text, add_exclamation:Bool)->Text:
+    message := "hello $name"
+    message = " ":join([w:title() for w in message:split($/{space}/)])
+    if add_exclamation:
+        message ++= "!!!"
+    return message
 
-func main(name="World"):
-    to_say := greeting(name)
+func main(name:Text, shout=no):
+    to_say := greeting(name, add_exclamation=shout)
     say(to_say)
 ```
 
 ```bash
-$ tomo hello.tm
-Hello World!
+$ tomo hello.tm world
+Hello World
 $ tomo hello.tm --name=åke
-Hello Åke!
+Hello Åke
 $ tomo -e hello.tm
-$ ./hello --name="john doe"
-Hello John Doe!
+$ ./hello "john doe" --shout
+Hello John Doe!!!
 ```
 
 For more examples, see [learnXinY](/learnxiny.tm) which as an overview of many
