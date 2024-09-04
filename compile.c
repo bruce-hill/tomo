@@ -3073,7 +3073,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
             if (Match(t, ArrayType)->item_type->tag != TextType)
                 compiler_err(NULL, NULL, NULL, "Main function has unsupported argument type: %T (only arrays of Text are supported)", t);
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
-                            "$", arg->name, " = Text$split(flag, \",\");\n",
+                            "$", arg->name, " = Text$split(flag, Pattern(\",\"));\n",
                             arg->name, "$is_set = yes;\n"
                             "}\n");
             break;
@@ -3125,7 +3125,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                 "for (; i < argc; i++) {\n"
                 "if (argv[i]) {\n"
                 "Text_t arg = Text$from_str(argv[i]);\n"
-                "Array$insert(&$", arg->name, ", &arg, 0, $ArrayInfo(&$Text));\n"
+                "Array$insert(&$", arg->name, ", &arg, I(0), sizeof(Text_t));\n"
                 "argv[i] = NULL;\n"
                 "}\n"
                 "}\n",
