@@ -66,11 +66,11 @@ public double Num$mix(double amount, double x, double y) {
     return (1.0-amount)*x + amount*y;
 }
 
-public double Num$from_text(Text_t text, Text_t *the_rest) {
+public double Num$from_text(Text_t text, bool *success) {
     const char *str = Text$as_c_string(text);
     char *end = NULL;
     double d = strtod(str, &end);
-    if (the_rest) *the_rest = Text$from_str(end);
+    if (success) *success = (end > str && end[0] == '\0');
     return d;
 }
 
@@ -145,11 +145,11 @@ public float Num32$mix(float amount, float x, float y) {
     return (1.0-amount)*x + amount*y;
 }
 
-public float Num32$from_text(Text_t text, Text_t *the_rest) {
+public float Num32$from_text(Text_t text, bool *success) {
     const char *str = Text$as_c_string(text);
     char *end = NULL;
     double d = strtod(str, &end);
-    if (the_rest) *the_rest = Text$from_str(end);
+    if (success) *success = (end > str && end[0] == '\0');
     return (float)d;
 }
 

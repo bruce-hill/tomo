@@ -3078,7 +3078,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                             "}\n");
             break;
         }
-        case BigIntType: {
+        case BigIntType: case IntType: case NumType: {
             CORD type_name = type_to_cord(t);
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
                             "if (flag.length == 0)\n"
@@ -3086,19 +3086,6 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                             "$", arg->name, " = ", type_name, "$from_text(flag, &", arg->name, "$is_set);\n"
                             "if (!", arg->name, "$is_set)\n"
                             "USAGE_ERR(\"Invalid value provided for '--", flag, "'\");\n",
-                            "}\n");
-            break;
-        }
-        case IntType: case NumType: {
-            CORD type_name = type_to_cord(t);
-            code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
-                            "if (flag.length == 0)\n"
-                            "USAGE_ERR(\"No value provided for '--", flag, "'\");\n"
-                            "Text_t invalid = Text(\"\");\n",
-                            "$", arg->name, " = ", type_name, "$from_text(flag, &invalid);\n"
-                            "if (invalid.length != 0)\n"
-                            "USAGE_ERR(\"Invalid value provided for '--", flag, "'\");\n",
-                            arg->name, "$is_set = yes;\n"
                             "}\n");
             break;
         }
@@ -3138,19 +3125,12 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                 "if (i < argc) {");
             if (t->tag == TextType) {
                 code = CORD_all(code, "$", arg->name, " = Text$from_str(argv[i]);\n");
-            } else if (t->tag == BoolType || t->tag == BigIntType) {
+            } else {
                 code = CORD_all(
                     code,
                     "bool success = false;\n",
                     "$", arg->name, " = ", type_to_cord(t), "$from_text(Text$from_str(argv[i]), &success)", ";\n"
                     "if (!success)\n"
-                    "USAGE_ERR(\"Unable to parse this argument as a ", type_to_cord(t), ": %s\", argv[i]);\n");
-            } else {
-                code = CORD_all(
-                    code,
-                    "Text_t invalid = Text(\"\");\n",
-                    "$", arg->name, " = ", type_to_cord(t), "$from_text(Text$from_str(argv[i]), &invalid)", ";\n"
-                    "if (invalid.length != 0)\n"
                     "USAGE_ERR(\"Unable to parse this argument as a ", type_to_cord(t), ": %s\", argv[i]);\n");
             }
             code = CORD_all(

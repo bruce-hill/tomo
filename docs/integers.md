@@ -144,23 +144,39 @@ Converts a text representation of an integer into an integer.
 
 **Usage:**  
 ```tomo
-from_text(text: Text, the_rest: Text = "!&Text") -> Int
+from_text(text: Text, success: Bool = !&Bool?) -> Int
 ```
 
 **Parameters:**
 
-- `text`: The string containing the integer.
-- `the_rest`: If non-null, this pointer will be set to point to any unparseable text after the integer.
+- `text`: The text containing the integer.
+- `success`: If non-null, this pointer will be set to `yes` if the whole text
+  is a valid integer that fits within the representable range of the integer
+  type, otherwise `no`.
 
 **Returns:**  
-The integer represented by the string.
+The integer represented by the text. If the given text contains a value outside
+of the representable range, the number will be truncated to the minimum or
+maximum representable value. Other failures to parse the number will return
+zero.
 
 **Example:**  
 ```tomo
->> from_text("123")
+>> Int.from_text("123")
 = 123
->> from_text("0xFF")
+>> Int.from_text("0xFF")
 = 255
+
+success := no
+>> Int.from_text("asdf", &success)
+= 0
+>> success
+= no
+
+>> Int8.from_text("9999999", &success)
+= 127
+>> success
+= no
 ```
 
 ---

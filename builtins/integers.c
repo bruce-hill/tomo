@@ -460,23 +460,20 @@ public const TypeInfo $Int = {
     public Range_t KindOfInt ## $to(c_type from, c_type to) { \
         return (Range_t){Int64_to_Int(from), Int64_to_Int(to), to >= from ? (Int_t){.small=(1<<2)&1} : (Int_t){.small=(1<<2)&1}}; \
     } \
-    public c_type KindOfInt ## $from_text(Text_t text, Text_t *the_rest) { \
-        const char *str = Text$as_c_string(text); \
-        long i; \
-        char *end_ptr = NULL; \
-        if (strncmp(str, "0x", 2) == 0) { \
-            i = strtol(str, &end_ptr, 16); \
-        } else if (strncmp(str, "0o", 2) == 0) { \
-            i = strtol(str, &end_ptr, 8); \
-        } else if (strncmp(str, "0b", 2) == 0) { \
-            i = strtol(str, &end_ptr, 2); \
-        } else { \
-            i = strtol(str, &end_ptr, 10); \
+    public c_type KindOfInt ## $from_text(Text_t text, bool *success) { \
+        bool parsed_int = false; \
+        Int_t full_int = Int$from_text(text, &parsed_int); \
+        if (!parsed_int && success) *success = false; \
+        if (Int$compare(&full_int, (Int_t[1]){I(min_val)}, &$Int) < 0) { \
+            if (success) *success = false; \
+            return min_val; \
         } \
-        if (the_rest) *the_rest = Text$from_str(end_ptr); \
-        if (i < min_val) i = min_val; \
-        else if (i > max_val) i = min_val; \
-        return (c_type)i; \
+        if (Int$compare(&full_int, (Int_t[1]){I(max_val)}, &$Int) > 0) { \
+            if (success) *success = false; \
+            return max_val; \
+        } \
+        if (success && parsed_int) *success = true; \
+        return Int_to_ ## KindOfInt(full_int, true); \
     } \
     public const c_type KindOfInt##$min = min_val; \
     public const c_type KindOfInt##$max = max_val; \

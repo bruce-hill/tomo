@@ -33,7 +33,7 @@
     array_t type_name ## $bits(c_type x); \
     c_type type_name ## $random(c_type min, c_type max); \
     Range_t type_name ## $to(c_type from, c_type to); \
-    c_type type_name ## $from_text(Text_t text, Text_t *the_rest); \
+    c_type type_name ## $from_text(Text_t text, bool *success); \
     static inline c_type type_name ## $clamped(c_type x, c_type min, c_type max) { \
         return x < min ? min : (x > max ? max : x); \
     } \
