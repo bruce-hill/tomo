@@ -339,31 +339,22 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         if (test->expr->tag == Declare) {
             auto decl = Match(test->expr, Declare);
-            if (decl->value->tag == Use) {
-                assert(compile_statement(env, test->expr) == CORD_EMPTY);
-                return CORD_asprintf(
-                    "test(NULL, NULL, %r, %ld, %ld);",
-                    CORD_quoted(output),
-                    (int64_t)(test->expr->start - test->expr->file->text),
-                    (int64_t)(test->expr->end - test->expr->file->text));
-            } else {
-                CORD var = CORD_all("$", Match(decl->var, Var)->name);
-                type_t *t = get_type(env, decl->value);
-                CORD val_code = compile_maybe_incref(env, decl->value);
-                if (t->tag == FunctionType) {
-                    assert(promote(env, &val_code, t, Type(ClosureType, t)));
-                    t = Type(ClosureType, t);
-                }
-                return CORD_asprintf(
-                    "%r;\n"
-                    "test((%r = %r), %r, %r, %ld, %ld);\n",
-                    compile_declaration(t, var),
-                    var, val_code,
-                    compile_type_info(env, get_type(env, decl->value)),
-                    CORD_quoted(output),
-                    (int64_t)(test->expr->start - test->expr->file->text),
-                    (int64_t)(test->expr->end - test->expr->file->text));
+            CORD var = CORD_all("$", Match(decl->var, Var)->name);
+            type_t *t = get_type(env, decl->value);
+            CORD val_code = compile_maybe_incref(env, decl->value);
+            if (t->tag == FunctionType) {
+                assert(promote(env, &val_code, t, Type(ClosureType, t)));
+                t = Type(ClosureType, t);
             }
+            return CORD_asprintf(
+                "%r;\n"
+                "test((%r = %r), %r, %r, %ld, %ld);\n",
+                compile_declaration(t, var),
+                var, val_code,
+                compile_type_info(env, get_type(env, decl->value)),
+                CORD_quoted(output),
+                (int64_t)(test->expr->start - test->expr->file->text),
+                (int64_t)(test->expr->end - test->expr->file->text));
         } else if (test->expr->tag == Assign) {
             auto assign = Match(test->expr, Assign);
             if (!assign->targets->next && assign->targets->ast->tag == Var && is_idempotent(assign->targets->ast)) {
