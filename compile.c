@@ -245,7 +245,7 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
 
 static CORD compile_assignment(env_t *env, ast_t *target, CORD value)
 {
-    return CORD_all(compile_lvalue(env, target), " = ", value, ";\n");
+    return CORD_all(compile_lvalue(env, target), " = ", value);
 }
 
 CORD compile_statement(env_t *env, ast_t *ast)
@@ -342,9 +342,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (decl->value->tag == Use) {
                 assert(compile_statement(env, test->expr) == CORD_EMPTY);
                 return CORD_asprintf(
-                    "test(NULL, NULL, %r, %r, %ld, %ld);",
+                    "test(NULL, NULL, %r, %ld, %ld);",
                     CORD_quoted(output),
-                    CORD_quoted(test->expr->file->filename),
                     (int64_t)(test->expr->start - test->expr->file->text),
                     (int64_t)(test->expr->end - test->expr->file->text));
             } else {
@@ -357,18 +356,17 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 }
                 return CORD_asprintf(
                     "%r;\n"
-                    "test(({ %r = %r; &%r;}), %r, %r, %r, %ld, %ld);\n",
+                    "test((%r = %r, &%r), %r, %r, %ld, %ld);\n",
                     compile_declaration(t, var),
                     var, val_code, var,
                     compile_type_info(env, get_type(env, decl->value)),
                     CORD_quoted(output),
-                    CORD_quoted(test->expr->file->filename),
                     (int64_t)(test->expr->start - test->expr->file->text),
                     (int64_t)(test->expr->end - test->expr->file->text));
             }
         } else if (test->expr->tag == Assign) {
             auto assign = Match(test->expr, Assign);
-            if (!assign->targets->next && assign->targets->ast->tag == Var) {
+            if (!assign->targets->next && assign->targets->ast->tag == Var && is_idempotent(assign->targets->ast)) {
                 // Common case: assigning to one variable:
                 type_t *lhs_t = get_type(env, assign->targets->ast);
                 if (lhs_t->tag == PointerType && Match(lhs_t, PointerType)->is_stack)
@@ -384,12 +382,11 @@ CORD compile_statement(env_t *env, ast_t *ast)
                         code_err(assign->values->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
                 }
                 return CORD_asprintf(
-                    "test(({ %r; &%r; }), %r, %r, %r, %ld, %ld);",
+                    "test((%r, &%r), %r, %r, %ld, %ld);",
                     compile_assignment(env, assign->targets->ast, value),
                     compile(env, assign->targets->ast),
                     compile_type_info(env, lhs_t),
                     CORD_quoted(test->output),
-                    CORD_quoted(test->expr->file->filename),
                     (int64_t)(test->expr->start - test->expr->file->text),
                     (int64_t)(test->expr->end - test->expr->file->text));
             } else {
@@ -417,41 +414,37 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 }
                 i = 1;
                 for (ast_list_t *target = assign->targets; target; target = target->next)
-                    code = CORD_all(code, compile_assignment(env, target->ast, CORD_asprintf("$%ld", i++)));
+                    code = CORD_all(code, compile_assignment(env, target->ast, CORD_asprintf("$%ld", i++)), ";\n");
 
-                CORD_appendf(&code, "&$1; }), %r, %r, %r, %ld, %ld);",
+                CORD_appendf(&code, "&$1; }), %r, %r, %ld, %ld);",
                     compile_type_info(env, get_type(env, assign->targets->ast)),
                     CORD_quoted(test->output),
-                    CORD_quoted(test->expr->file->filename),
                     (int64_t)(test->expr->start - test->expr->file->text),
                     (int64_t)(test->expr->end - test->expr->file->text));
                 return code;
             }
         } else if (test->expr->tag == UpdateAssign) {
             return CORD_asprintf(
-                "test(({ %r; &%r; }), %r, %r, %r, %ld, %ld);",
+                "test(({ %r; &%r; }), %r, %r, %ld, %ld);",
                 compile_statement(env, test->expr),
                 compile_lvalue(env, Match(test->expr, UpdateAssign)->lhs),
                 compile_type_info(env, get_type(env, Match(test->expr, UpdateAssign)->lhs)),
                 CORD_quoted(test->output),
-                CORD_quoted(test->expr->file->filename),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else if (expr_t->tag == VoidType || expr_t->tag == AbortType || expr_t->tag == ReturnType) {
             return CORD_asprintf(
-                "test(({ %r; NULL; }), NULL, NULL, %r, %ld, %ld);",
+                "test(({ %r; NULL; }), NULL, NULL, %ld, %ld);",
                 compile_statement(env, test->expr),
-                CORD_quoted(test->expr->file->filename),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else {
             return CORD_asprintf(
-                "test(%r, %r, %r, %r, %ld, %ld);",
+                "test(%r, %r, %r, %ld, %ld);",
                 test->expr->tag == Var ? CORD_all("&", compile(env, test->expr))
                   : CORD_all("(", compile_type(expr_t), "[1]){", compile(env, test->expr), "}"),
                 compile_type_info(env, expr_t),
                 CORD_quoted(output),
-                CORD_quoted(test->expr->file->filename),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         }
@@ -477,7 +470,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
     case Assign: {
         auto assign = Match(ast, Assign);
         // Single assignment, no temp vars needed:
-        if (assign->targets && !assign->targets->next) {
+        if (assign->targets && !assign->targets->next && is_idempotent(assign->targets->ast)) {
             type_t *lhs_t = get_type(env, assign->targets->ast);
             if (lhs_t->tag == PointerType && Match(lhs_t, PointerType)->is_stack)
                 code_err(ast, "Stack references cannot be assigned to local variables because the variable may outlive the stack memory.");
@@ -491,7 +484,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 if (!promote(val_env, &val, rhs_t, lhs_t))
                     code_err(assign->values->ast, "You cannot assign a %T value to a %T operand", lhs_t, rhs_t);
             }
-            return compile_assignment(env, assign->targets->ast, val);
+            return CORD_all(compile_assignment(env, assign->targets->ast, val), ";\n");
         }
 
         CORD code = "{ // Assignment\n";
@@ -514,7 +507,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         }
         i = 1;
         for (ast_list_t *target = assign->targets; target; target = target->next) {
-            code = CORD_cat(code, compile_assignment(env, target->ast, CORD_asprintf("$%ld", i++)));
+            code = CORD_all(code, compile_assignment(env, target->ast, CORD_asprintf("$%ld", i++)), ";\n");
         }
         return CORD_cat(code, "\n}");
     }
@@ -3216,7 +3209,8 @@ CORD compile_file(env_t *env, ast_t *ast)
 
     const char *name = file_base_name(ast->file->filename);
     return CORD_all(
-        // "#line 1 ", Text$quoted(ast->file->filename, false), "\n",
+        // "#line 1 ", CORD_quoted(ast->file->filename), "\n",
+        "#define __SOURCE_FILE__ ", CORD_quoted(ast->file->filename), "\n",
         "#include <tomo/tomo.h>\n"
         "#include \"", name, ".tm.h\"\n\n",
         env->code->local_typedefs, "\n",
@@ -3386,9 +3380,11 @@ CORD compile_statement_definitions(env_t *env, ast_t *ast)
 
 CORD compile_header(env_t *env, ast_t *ast)
 {
-    // "#line 1 ", Text$quoted(ast->file->filename, false), "\n",
-    CORD header = "#pragma once\n"
-                  "#include <tomo/tomo.h>\n";
+    CORD header = CORD_all(
+        "#pragma once\n"
+        // "#line 1 ", CORD_quoted(ast->file->filename), "\n",
+        "#define __SOURCE_FILE__ ", CORD_quoted(ast->file->filename), "\n"
+        "#include <tomo/tomo.h>\n");
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
         header = CORD_all(header, compile_statement_imports(env, stmt->ast));
