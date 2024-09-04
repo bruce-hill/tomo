@@ -33,6 +33,41 @@ Information about Tomo's built-in types can be found here:
 
 ## Built-in Functions
 
+### `ask`
+
+**Description:**  
+Gets a line of user input text with a prompt.
+
+**Usage:**  
+```markdown
+ask(prompt:Text, bold:Bool = yes, force_tty:Bool = yes) -> Void
+```
+
+**Parameters:**
+
+- `prompt`: The text to print as a prompt before getting the input.
+- `bold`: Whether or not to print make the prompt appear bold on a console
+  using the ANSI escape sequence `\x1b[1m`.
+- `force_tty`: When a program is receiving input from a pipe or writing its
+  output to a pipe, this flag (which is enabled by default) forces the program
+  to write the prompt to `/dev/tty` and read the input from `/dev/tty`, which
+  circumvents the pipe. This means that `foo | ./tomo your-program | baz` will
+  still show a visible prompt and read user input, despite the pipes. Setting
+  this flag to `no` will mean that the prompt is written to `stdout` and input
+  is read from `stdin`, even if those are pipes.
+
+**Returns:**  
+A line of user input text without a trailing newline, or empty text if
+something went wrong (e.g. the user hit `Ctrl-D`).
+
+**Example:**  
+```markdown
+>> ask("What's your name? ")
+= "Arthur Dent"
+```
+
+---
+
 ### `say`
 
 **Description:**  
@@ -40,19 +75,21 @@ Prints a message to the console.
 
 **Usage:**  
 ```markdown
-say(text:Text) -> Void
+say(text:Text, newline:Bool = yes) -> Void
 ```
 
 **Parameters:**
 
 - `text`: The text to print.
+- `newline`: Whether or not to print a newline after the text.
 
 **Returns:**  
 Nothing.
 
 **Example:**  
 ```markdown
-say("Hello world!")
+say("Hello ", newline=no)
+say("world!")
 ```
 
 ---

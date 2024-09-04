@@ -264,13 +264,19 @@ public Text_t ask(Text_t prompt, bool bold, bool force_tty)
 
     if (force_tty && !isatty(STDIN_FILENO)) {
         in = fopen("/dev/tty", "r");
-        if (!in) goto cleanup;
+        if (!in) {
+            fputs("\n", out); // finish the line, since the user can't
+            goto cleanup;
+        }
     }
 
     char *line = NULL;
     size_t bufsize = 0;
     ssize_t length = getline(&line, &bufsize, in);
-    if (length == -1) goto cleanup;
+    if (length == -1) {
+        fputs("\n", out); // finish the line, since we didn't get any input
+        goto cleanup;
+    }
 
     if (length > 0 && line[length-1] == '\n') {
         line[length-1] = '\0';
