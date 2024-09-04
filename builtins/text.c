@@ -41,6 +41,7 @@ typedef struct {
 #define MAX_SYNTHETIC_GRAPHEMES 1024
 #define MAX_BACKREFS 100
 static synthetic_grapheme_t synthetic_graphemes[MAX_SYNTHETIC_GRAPHEMES] = {};
+const int32_t CRLF_GRAPHEME = -MAX_SYNTHETIC_GRAPHEMES-1;
 
 static int32_t num_synthetic_graphemes = 0;
 
@@ -1154,7 +1155,7 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
 
             bool any = false;
             uc_property_t prop;
-            int32_t specific_codepoint = UNINAME_INVALID;
+            int32_t specific_grapheme = UNINAME_INVALID;
             bool want_to_match = !match_grapheme(pattern, &pattern_index, '!');
             const char *prop_name;
             if (match_str(pattern, &pattern_index, ".."))
@@ -1164,11 +1165,11 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
 
             if (!prop_name) {
                 // Literal character, e.g. {1?}
-                specific_codepoint = _next_grapheme(pattern, &pattern_state, pattern_index);
+                specific_grapheme = _next_grapheme(pattern, &pattern_state, pattern_index);
                 pattern_index += 1;
             } else if (strlen(prop_name) == 1) {
                 // Single letter names: {1+ A}
-                specific_codepoint = prop_name[0];
+                specific_grapheme = prop_name[0];
                 prop_name = NULL;
             }
 
@@ -1207,45 +1208,45 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                         if (text_index != text.length)
                             FAIL();
                         SUCCESS();
-                    } else if (prop_name && strcasecmp(prop_name, "email") == 0) {
+                    } else if (strcasecmp(prop_name, "email") == 0) {
                         int64_t len = match_email(text, text_index);
                         if (len < 0)
                             FAIL();
                         text_index += len;
                         SUCCESS();
-                    } else if (prop_name && strcasecmp(prop_name, "emoji") == 0) {
+                    } else if (strcasecmp(prop_name, "emoji") == 0) {
                         prop = UC_PROPERTY_EMOJI;
                         goto got_prop;
                     }
                     break;
                 case 'i':
-                    if (prop_name && strcasecmp(prop_name, "id") == 0) {
+                    if (strcasecmp(prop_name, "id") == 0) {
                         if (!EAT1(text, &text_state, text_index,
                                   uc_is_property(grapheme, UC_PROPERTY_XID_START)))
                             FAIL();
                         EAT_MANY(text, &text_state, text_index,
                                  uc_is_property(grapheme, UC_PROPERTY_XID_CONTINUE));
                         SUCCESS();
-                    } else if (prop_name && strcasecmp(prop_name, "int") == 0) {
+                    } else if (strcasecmp(prop_name, "int") == 0) {
                         EAT1(text, &text_state, text_index, grapheme == '-');
                         int64_t n = EAT_MANY(text, &text_state, text_index,
                                              uc_is_property(grapheme, UC_PROPERTY_DECIMAL_DIGIT));
                         if (n <= 0)
                             FAIL();
                         SUCCESS();
-                    } else if (prop_name && strcasecmp(prop_name, "ipv4") == 0) {
+                    } else if (strcasecmp(prop_name, "ipv4") == 0) {
                         int64_t len = match_ipv4(text, text_index);
                         if (len < 0)
                             FAIL();
                         text_index += len;
                         SUCCESS();
-                    } else if (prop_name && strcasecmp(prop_name, "ipv6") == 0) {
+                    } else if (strcasecmp(prop_name, "ipv6") == 0) {
                         int64_t len = match_ipv6(text, text_index);
                         if (len < 0)
                             FAIL();
                         text_index += len;
                         SUCCESS();
-                    } else if (prop_name && strcasecmp(prop_name, "ip") == 0) {
+                    } else if (strcasecmp(prop_name, "ip") == 0) {
                         int64_t len = match_ipv6(text, text_index);
                         if (len < 0)
                             len = match_ipv4(text, text_index);
@@ -1256,7 +1257,11 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                     }
                     break;
                 case 'n':
-                    if (prop_name && strcasecmp(prop_name, "num") == 0) {
+                    if (strcasecmp(prop_name, "nl") == 0 || strcasecmp(prop_name, "newline") == 0
+                        || strcasecmp(prop_name, "crlf")) {
+                        specific_grapheme = CRLF_GRAPHEME;
+                        goto got_prop;
+                    } else if (strcasecmp(prop_name, "num") == 0) {
                         EAT1(text, &text_state, text_index, grapheme == '-');
                         int64_t pre_decimal = EAT_MANY(text, &text_state, text_index,
                                                        uc_is_property(grapheme, UC_PROPERTY_DECIMAL_DIGIT));
@@ -1275,13 +1280,13 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                     }
                     break;
                 case 'u':
-                    if (prop_name && strcasecmp(prop_name, "uri") == 0) {
+                    if (strcasecmp(prop_name, "uri") == 0) {
                         int64_t len = match_uri(text, text_index);
                         if (len < 0)
                             FAIL();
                         text_index += len;
                         SUCCESS();
-                    } else if (prop_name && strcasecmp(prop_name, "url") == 0) {
+                    } else if (strcasecmp(prop_name, "url") == 0) {
                         int64_t lookahead = text_index;
                         if (!(match_str(text, &lookahead, "https:")
                             || match_str(text, &lookahead, "http:")
@@ -1301,8 +1306,8 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
 
                 prop = uc_property_byname(prop_name);
                 if (!uc_property_is_valid(prop)) {
-                    specific_codepoint = unicode_name_character(prop_name);
-                    if (specific_codepoint == UNINAME_INVALID)
+                    specific_grapheme = unicode_name_character(prop_name);
+                    if (specific_grapheme == UNINAME_INVALID)
                         fail("Not a valid property or character name: %s", prop_name);
                 }
             }
@@ -1331,12 +1336,19 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                     grapheme = synthetic_graphemes[-grapheme-1].codepoints[0];
 
                 bool success;
-                if (any)
+                if (any) {
                     success = true;
-                else if (specific_codepoint != UNINAME_INVALID)
-                    success = (grapheme == specific_codepoint);
-                else
+                } else if (specific_grapheme == CRLF_GRAPHEME) {
+                    if (grapheme == '\r' && _next_grapheme(text, &text_state, text_index + 1) == '\n') {
+                        text_index += 1;
+                        grapheme = '\n';
+                    }
+                    success = (grapheme == '\n');
+                } else if (specific_grapheme != UNINAME_INVALID) {
+                    success = (grapheme == specific_grapheme);
+                } else {
                     success = uc_is_property(grapheme, prop);
+                }
 
                 if (success != want_to_match) {
                     if (count < min) return -1;
