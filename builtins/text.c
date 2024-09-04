@@ -400,13 +400,13 @@ Text_t text_from_u32(uint32_t *codepoints, int64_t num_codepoints, bool normaliz
     return ret;
 }
 
-public Text_t Text$from_str(const char *str)
+public Text_t Text$from_strn(const char *str, size_t len)
 {
     int64_t ascii_span = 0;
-    while (str[ascii_span] && isascii(str[ascii_span]))
+    for (size_t i = 0; i < len && isascii(str[i]); i++)
         ascii_span++;
 
-    if (str[ascii_span] == '\0') { // All ASCII
+    if (ascii_span == (int64_t)len) { // All ASCII
         Text_t ret = {.length=ascii_span};
         if (ascii_span <= 8) {
             ret.tag = TEXT_SHORT_ASCII;
@@ -425,6 +425,11 @@ public Text_t Text$from_str(const char *str)
         if (codepoints != buf) free(codepoints);
         return ret;
     }
+}
+
+public Text_t Text$from_str(const char *str)
+{
+    return Text$from_strn(str, strlen(str));
 }
 
 static void u8_buf_append(Text_t text, char **buf, int64_t *capacity, int64_t *i)

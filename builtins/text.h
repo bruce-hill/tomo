@@ -23,6 +23,7 @@ Text_t Text$_concat(int n, Text_t items[n]);
 #define Texts(...) Text$concat(__VA_ARGS__)
 Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int);
 Text_t Text$from_str(const char *str);
+Text_t Text$from_strn(const char *str, size_t len);
 uint64_t Text$hash(Text_t *text);
 int32_t Text$compare(const Text_t *a, const Text_t *b);
 bool Text$equal(const Text_t *a, const Text_t *b);
