@@ -1169,10 +1169,10 @@ CORD compile_statement(env_t *env, ast_t *ast)
     case Use: {
         auto use = Match(ast, Use);
         if (use->what == USE_LOCAL) {
-            CORD name = file_base_name(Match(ast, Use)->name);
+            CORD name = file_base_name(Match(ast, Use)->path);
             env->code->variable_initializers = CORD_all(env->code->variable_initializers, name, "$$initialize();\n");
         } else if (use->what == USE_MODULE) {
-            const char *libname = file_base_name(use->name);
+            const char *libname = file_base_name(use->path);
             const char *files_filename = heap_strf("%s/lib%s.files", libname, libname);
             const char *resolved_path = resolve_path(files_filename, ast->file->filename, getenv("TOMO_IMPORT_PATH"));
             if (!resolved_path)
@@ -1183,7 +1183,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 const char *line = get_line(files_f, i);
                 line = GC_strndup(line, strcspn(line, "\r\n"));
                 env->code->variable_initializers = CORD_all(
-                    env->code->variable_initializers, use->name, "$", file_base_name(line), "$$initialize();\n");
+                    env->code->variable_initializers, use->path, "$", file_base_name(line), "$$initialize();\n");
             }
         }
         return CORD_EMPTY;
@@ -3262,11 +3262,11 @@ CORD compile_statement_imports(env_t *env, ast_t *ast)
         auto use = Match(ast, Use);
         switch (use->what) {
         case USE_MODULE: 
-            return CORD_all("#include <tomo/lib", use->name, ".h>\n");
+            return CORD_all("#include <tomo/lib", use->path, ".h>\n");
         case USE_LOCAL: 
-            return CORD_all("#include \"", use->name, ".h\"\n");
+            return CORD_all("#include \"", use->path, ".h\"\n");
         case USE_HEADER:
-            return CORD_all("#include ", use->name, "\n");
+            return CORD_all("#include ", use->path, "\n");
         default:
             return CORD_EMPTY;
         }

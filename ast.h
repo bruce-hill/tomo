@@ -291,7 +291,7 @@ struct ast_s {
             bool skip_source:1;
         } DocTest;
         struct {
-            const char *name;
+            const char *path;
             enum { USE_LOCAL, USE_MODULE, USE_SHARED_OBJECT, USE_HEADER } what;
         } Use;
         struct {

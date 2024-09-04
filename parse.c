@@ -110,6 +110,7 @@ static PARSER(parse_func_def);
 static PARSER(parse_extern);
 static PARSER(parse_inline_c);
 static PARSER(parse_declaration);
+static PARSER(parse_top_declaration);
 static PARSER(parse_doctest);
 static PARSER(parse_say);
 static PARSER(parse_use);
@@ -1565,6 +1566,24 @@ PARSER(parse_declaration) {
     spaces(&pos);
     if (!match(&pos, ":=")) return NULL;
     spaces(&pos);
+    ast_t *val = optional(ctx, &pos, parse_extended_expr);
+    if (!val) {
+        if (optional(ctx, &pos, parse_use))
+            parser_err(ctx, start, pos, "'use' statements are only allowed at the top level of a file");
+        else
+            parser_err(ctx, pos, strchrnul(pos, '\n'), "This is not a valid expression");
+    }
+    return NewAST(ctx->file, start, pos, Declare, .var=var, .value=val);
+}
+
+PARSER(parse_top_declaration) {
+    const char *start = pos;
+    ast_t *var = parse_var(ctx, pos);
+    if (!var) return NULL;
+    pos = var->end;
+    spaces(&pos);
+    if (!match(&pos, ":=")) return NULL;
+    spaces(&pos);
     ast_t *val = optional(ctx, &pos, parse_use);
     if (!val) val = optional(ctx, &pos, parse_extended_expr);
     if (!val) parser_err(ctx, pos, strchrnul(pos, '\n'), "This declaration value didn't parse");
@@ -1789,7 +1808,7 @@ PARSER(parse_file_body) {
             ||(stmt=optional(ctx, &pos, parse_linker))
             ||(stmt=optional(ctx, &pos, parse_extern))
             ||(stmt=optional(ctx, &pos, parse_inline_c))
-            ||(stmt=optional(ctx, &pos, parse_declaration)))
+            ||(stmt=optional(ctx, &pos, parse_top_declaration)))
         {
             statements = new(ast_list_t, .ast=stmt, .next=statements);
             pos = stmt->end;
@@ -2194,7 +2213,7 @@ PARSER(parse_use) {
         what = USE_SHARED_OBJECT;
     else
         what = USE_MODULE;
-    return NewAST(ctx->file, start, pos, Use, .name=name, .what=what);
+    return NewAST(ctx->file, start, pos, Use, .path=name, .what=what);
 }
 
 PARSER(parse_linker) {

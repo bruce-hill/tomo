@@ -130,20 +130,20 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
     auto use = Match(module_ast, Use);
     switch (use->what) {
     case USE_LOCAL: {
-        const char *resolved_path = resolve_path(use->name, module_ast->file->filename, module_ast->file->filename);
+        const char *resolved_path = resolve_path(use->path, module_ast->file->filename, module_ast->file->filename);
         env_t *module_env = Table$str_get(*env->imports, resolved_path);
         if (module_env)
             return module_env;
 
         if (!resolved_path)
-            code_err(module_ast, "No such file exists: \"%s\"", use->name);
+            code_err(module_ast, "No such file exists: \"%s\"", use->path);
 
         ast_t *ast = parse_file(resolved_path, NULL);
         if (!ast) errx(1, "Could not compile file %s", resolved_path);
         return load_module_env(env, ast);
     }
     case USE_MODULE: {
-        const char *libname = file_base_name(use->name);
+        const char *libname = file_base_name(use->path);
         const char *files_filename = heap_strf("%s/lib%s.files", libname, libname);
         const char *resolved_path = resolve_path(files_filename, module_ast->file->filename, getenv("TOMO_IMPORT_PATH"));
         if (!resolved_path)
@@ -152,7 +152,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
         if (!files_f) errx(1, "Couldn't open file: %s", resolved_path);
 
         env_t *module_env = fresh_scope(env);
-        Table$str_set(env->imports, use->name, module_env);
+        Table$str_set(env->imports, use->path, module_env);
         char *libname_id = GC_strdup(libname);
         for (char *c = libname_id; *c; c++) {
             if (!isalnum(*c) && *c != '_')
@@ -834,9 +834,9 @@ type_t *get_type(env_t *env, ast_t *ast)
     case Use: {
         switch (Match(ast, Use)->what) {
         case USE_LOCAL:
-            return Type(ModuleType, resolve_path(Match(ast, Use)->name, ast->file->filename, ast->file->filename));
+            return Type(ModuleType, resolve_path(Match(ast, Use)->path, ast->file->filename, ast->file->filename));
         default:
-            return Type(ModuleType, Match(ast, Use)->name);
+            return Type(ModuleType, Match(ast, Use)->path);
         }
     }
     case Return: {

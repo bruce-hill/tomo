@@ -324,9 +324,9 @@ void build_file_dependency_graph(const char *filename, table_t *to_compile, tabl
 
         switch (use->what) {
         case USE_LOCAL: {
-            const char *path = use->name;
+            const char *path = use->path;
             path = resolve_path(path, filename, "");
-            if (!path) errx(1, "Couldn't resolve import: %s", use->name);
+            if (!path) errx(1, "Couldn't resolve import: %s", use->path);
             if (Table$str_get(*to_compile, path))
                 continue;
             build_file_dependency_graph(path, to_compile, to_link);
@@ -334,16 +334,16 @@ void build_file_dependency_graph(const char *filename, table_t *to_compile, tabl
             break;
         }
         case USE_MODULE: {
-            const char *base_name = file_base_name(use->name);
+            const char *base_name = file_base_name(use->path);
             const char *lib_path = heap_strf("%s/lib%s.so", base_name, base_name);
             const char *libfile = resolve_path(lib_path, filename, getenv("TOMO_IMPORT_PATH"));
             if (!libfile) errx(1, "Couldn't resolve path: %s", lib_path);
-            const char *lib = heap_strf("-l%s", use->name);
+            const char *lib = heap_strf("-l%s", use->path);
             Table$str_set(to_link, lib, lib);
             break;
         }
         case USE_SHARED_OBJECT: {
-            const char *lib = heap_strf("-l:%s", use->name);
+            const char *lib = heap_strf("-l:%s", use->path);
             Table$str_set(to_link, lib, lib);
             break;
         }

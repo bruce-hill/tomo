@@ -152,7 +152,7 @@ CORD ast_to_xml(ast_t *ast)
     T(FieldAccess, "<FieldAccess field=\"%s\">%r</FieldAccess>", data.field, ast_to_xml(data.fielded))
     T(Optional, "<Optional>%r</Optional>", ast_to_xml(data.value))
     T(DocTest, "<DocTest>%r<output>%r</output></DocTest>", optional_tagged("expression", data.expr), xml_escape(data.output))
-    T(Use, "<Use>%r</Use>", xml_escape(data.name))
+    T(Use, "<Use>%r</Use>", xml_escape(data.path))
     T(LinkerDirective, "<LinkerDirective>%r</LinkerDirective>", xml_escape(data.directive))
     T(InlineCCode, "<InlineCode>%r</InlineCode>", xml_escape(data.code))
 #undef T
