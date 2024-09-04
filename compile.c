@@ -593,7 +593,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             return CORD_all(lhs, " ^= ", rhs, ";");
         case BINOP_CONCAT: {
             if (lhs_t->tag == TextType) {
-                return CORD_all(lhs, " = Text$concat(", lhs, ", ", rhs, ");");
+                return CORD_all(lhs, " = Texts(", lhs, ", ", rhs, ");");
             } else if (lhs_t->tag == ArrayType) {
                 CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(Match(lhs_t, ArrayType)->item_type));
                 if (promote(env, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)) {
@@ -822,7 +822,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         if (!to_print)
             return CORD_EMPTY;
 
-        CORD code = "say(Text$concat(";
+        CORD code = "say(Texts(";
         for (ast_list_t *chunk = to_print; chunk; chunk = chunk->next) {
             if (chunk->ast->tag == TextLiteral) {
                 code = CORD_cat(code, compile(env, chunk->ast));
@@ -1845,7 +1845,7 @@ CORD compile(env_t *env, ast_t *ast)
                 if (chunk->next) code = CORD_cat(code, ", ");
             }
             if (chunks->next)
-                return CORD_all("Text$concat(", code, ")");
+                return CORD_all("Texts(", code, ")");
             else
                 return code;
         }

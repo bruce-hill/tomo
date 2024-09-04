@@ -20,6 +20,7 @@ int Text$print(FILE *stream, Text_t t);
 void Text$visualize(Text_t t);
 Text_t Text$_concat(int n, Text_t items[n]);
 #define Text$concat(...) Text$_concat(sizeof((Text_t[]){__VA_ARGS__})/sizeof(Text_t), (Text_t[]){__VA_ARGS__})
+#define Texts(...) Text$concat(__VA_ARGS__)
 Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int);
 Text_t Text$from_str(const char *str);
 uint64_t Text$hash(Text_t *text);
