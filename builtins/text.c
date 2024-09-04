@@ -1386,14 +1386,8 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
 #undef EAT2
 #undef EAT_MANY
 
-public Int_t Text$find(Text_t text, Pattern_t pattern, Int_t from_index, int64_t *match_length)
+static int64_t _find(Text_t text, Pattern_t pattern, int64_t first, int64_t last, int64_t *match_length)
 {
-    int64_t first = Int_to_Int64(from_index, false);
-    if (first == 0) fail("Invalid index: 0");
-    if (first < 0) first = text.length + first + 1;
-    if (first > text.length || first < 1)
-        return I_small(0);
-
     int32_t first_grapheme = get_grapheme(pattern, 0);
     bool find_first = (first_grapheme != '{'
                        && !uc_is_property(first_grapheme, UC_PROPERTY_QUOTATION_MARK)
@@ -1401,7 +1395,7 @@ public Int_t Text$find(Text_t text, Pattern_t pattern, Int_t from_index, int64_t
 
     iteration_state_t text_state = {0, 0};
 
-    for (int64_t i = first-1; i < text.length; i++) {
+    for (int64_t i = first; i <= last; i++) {
         // Optimization: quickly skip ahead to first char in pattern:
         if (find_first) {
             while (i < text.length && _next_grapheme(text, &text_state, i) != first_grapheme)
@@ -1412,17 +1406,36 @@ public Int_t Text$find(Text_t text, Pattern_t pattern, Int_t from_index, int64_t
         if (m >= 0) {
             if (match_length)
                 *match_length = m;
-            return I(i+1);
+            return i;
         }
     }
     if (match_length)
         *match_length = -1;
-    return I(0);
+    return -1;
+}
+
+public Int_t Text$find(Text_t text, Pattern_t pattern, Int_t from_index, int64_t *match_length)
+{
+    int64_t first = Int_to_Int64(from_index, false);
+    if (first == 0) fail("Invalid index: 0");
+    if (first < 0) first = text.length + first + 1;
+    if (first > text.length || first < 1)
+        return I(0);
+    int64_t found = _find(text, pattern, first-1, text.length-1, match_length);
+    return I(found+1);
 }
 
 public bool Text$has(Text_t text, Pattern_t pattern)
 {
-    return !I_is_zero(Text$find(text, pattern, I_small(1), NULL));
+    int64_t found = _find(text, pattern, 0, text.length-1, NULL);
+    return (found >= 0);
+}
+
+public bool Text$matches(Text_t text, Pattern_t pattern)
+{
+    int64_t len;
+    int64_t found = _find(text, pattern, 0, 0, &len);
+    return (found >= 0) && len == text.length;
 }
 
 public int printf_text_size(const struct printf_info *info, size_t n, int argtypes[n], int sizes[n])
@@ -1527,14 +1540,13 @@ public array_t Text$find_all(Text_t text, Pattern_t pattern)
 
     array_t matches = {};
 
-    Int_t i = I_small(1);
-    for (;;) {
+    for (int64_t i = 0; ; ) {
         int64_t len;
-        Int_t found = Text$find(text, pattern, i, &len);
-        if (I_is_zero(found)) break;
-        Text_t match = Text$slice(text, found, Int$plus(found, I(len-1)));
+        int64_t found = _find(text, pattern, i, text.length-1, &len);
+        if (found < 0) break;
+        Text_t match = Text$slice(text, I(found+1), I(found + len));
         Array$insert(&matches, &match, I_small(0), sizeof(Text_t));
-        i = Int$plus(found, I(len <= 0 ? 1 : len));
+        i = found + MAX(len, 1);
     }
 
     return matches;
@@ -1673,7 +1685,7 @@ public Text_t Text$replace_all(Text_t text, table_t replacements, Text_t backref
             Text_t replacement = *(Text_t*)(replacements.entries.data + i*replacements.entries.stride + sizeof(Text_t));
             Text_t replacement_text = apply_backrefs(text, recursive ? pattern : Text(""), replacement, backref_pat, captures);
             ret = concat2(ret, replacement_text);
-            pos += len > 0 ? len : 1;
+            pos += MAX(len, 1);
             nonmatch_pos = pos;
             goto next_pos;
         }
@@ -1707,7 +1719,7 @@ public array_t Text$split(Text_t text, Pattern_t pattern)
         if (I_is_zero(found)) break;
         Text_t chunk = Text$slice(text, i, Int$minus(found, I_small(1)));
         Array$insert(&chunks, &chunk, I_small(0), sizeof(Text_t));
-        i = Int$plus(found, I(len <= 0 ? 1 : len));
+        i = Int$plus(found, I(MAX(len, 1)));
     }
 
     Text_t last_chunk = Text$slice(text, i, I(text.length));

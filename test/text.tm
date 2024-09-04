@@ -242,3 +242,11 @@ func main():
 	>> " BAD(x, fn(y), BAD(z), w) ":replace($/BAD(?)/, "good(\1)", recursive=no)
 	= " good(x, fn(y), BAD(z), w) "
 
+	>> "Hello":matches($/{id}/)
+	= yes
+	>> "Hello":matches($/{lower}/)
+	= no
+	>> "Hello":matches($/{upper}/)
+	= no
+	>> "Hello...":matches($/{id}/)
+	= no

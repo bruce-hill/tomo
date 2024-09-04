@@ -38,6 +38,7 @@ array_t Text$split(Text_t text, Pattern_t pattern);
 Int_t Text$find(Text_t text, Pattern_t pattern, Int_t i, int64_t *match_length);
 array_t Text$find_all(Text_t text, Pattern_t pattern);
 bool Text$has(Text_t text, Pattern_t pattern);
+bool Text$matches(Text_t text, Pattern_t pattern);
 const char *Text$as_c_string(Text_t text);
 public Text_t Text$format(const char *fmt, ...);
 array_t Text$clusters(Text_t text);

@@ -274,9 +274,10 @@ functions that would normally be handled by a more extensive API:
 Text.has(pattern:Pattern)->Bool
 Text.find(pattern:Pattern, start=1, length=!&Int64?)->Int
 Text.find_all(pattern:Pattern)->[Text]
-Text.split(pattern:Pattern)->[Text]
+Text.matches(pattern:Pattern)->Bool
 Text.replace(pattern:Pattern, replacement:Text, placeholder:Pattern=$//)->[Text]
 Text.replace_all(replacements:{Pattern:Text}, placeholder:Pattern=$//)->[Text]
+Text.split(pattern:Pattern)->[Text]
 ```
 
 See [Text Functions](#Text-Functions) for the full API documentation.
@@ -708,13 +709,13 @@ has(text: Text, pattern: Text) -> Bool
 
 **Example:**  
 ```tomo
->> "hello world":has("wo")
+>> "hello world":has($/wo/)
 = yes
->> "hello world":has("{alpha}")
+>> "hello world":has($/{alpha}/)
 = yes
->> "hello world":has("{digit}")
+>> "hello world":has($/{digit}/)
 = no
->> "hello world":has("{start}he")
+>> "hello world":has($/{start}he/)
 = yes
 ```
 
@@ -801,6 +802,36 @@ The lowercase version of the text.
 ```tomo
 >> "AMÉLIE":lower()
 = "amélie"
+```
+
+---
+
+## `matches`
+
+**Description:**  
+Checks if the `Text` matches target pattern (see: [Patterns](#Patterns)).
+
+**Usage:**  
+```tomo
+matches(text: Text, pattern: Text) -> Bool
+```
+
+**Parameters:**
+
+- `text`: The text to be searched.
+- `pattern`: The pattern to search for.
+
+**Returns:**  
+`yes` if the target pattern is found, `no` otherwise.
+
+**Example:**  
+```tomo
+>> "Hello":matches($/{id}/)
+= yes
+>> "Hello":matches($/{upper}/)
+= no
+>> "Hello":matches($/{lower}/)
+= no
 ```
 
 ---
