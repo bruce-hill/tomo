@@ -65,7 +65,7 @@ language features.
 - Full-featured [libraries/modules](docs/libraries.md)
 - [Full UTF8 support](docs/text.md) for all text operations
 - Built-in doctests with syntax highlighting
-- Automatic command line argument parsing with type safety
+- [Automatic command line argument parsing with type safety](docs/command-line-parsing.md)
 - Easy interoperability with C
 
 ## Dependencies
