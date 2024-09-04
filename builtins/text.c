@@ -1067,8 +1067,10 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                 fail("Pattern's closing brace is missing: %k", &pattern);
             while (text_index < text.length) {
                 int32_t c = _next_grapheme(text, &text_state, text_index);
-                if (c == close)
-                    return (text_index - start_index);
+                if (c == close) {
+                    ++text_index;
+                    goto next_part_of_pattern;
+                }
 
                 if (c == '\\' && text_index < text.length) {
                     text_index += 2;
@@ -1312,6 +1314,8 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
             pattern_index += 1;
             text_index += 1;
         }
+
+      next_part_of_pattern:;
     }
     if (text_index >= text.length && pattern_index < pattern.length)
         return -1;
