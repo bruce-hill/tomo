@@ -1507,7 +1507,11 @@ public Text_t Text$as_text(const void *text, bool colorize, const TypeInfo *info
     if (!text) return info && info->TextInfo.lang ? Text$from_str(info->TextInfo.lang) : Text("Text");
     Text_t as_text = _quoted(*(Text_t*)text, colorize, info == &Pattern ? '/' : '"');
     if (info && info->TextInfo.lang && info != &$Text && info != &Pattern)
-        as_text = Text$concat(colorize ? Text("\x1b[1m$") : Text("$"), Text$from_str(info->TextInfo.lang), as_text);
+        as_text = Text$concat(
+            colorize ? Text("\x1b[1m$") : Text("$"),
+            Text$from_str(info->TextInfo.lang),
+            colorize ? Text("\x1b[0m") : Text(""),
+            as_text);
     return as_text;
 }
 
