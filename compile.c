@@ -356,9 +356,9 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 }
                 return CORD_asprintf(
                     "%r;\n"
-                    "test((%r = %r, &%r), %r, %r, %ld, %ld);\n",
+                    "test((%r = %r), %r, %r, %ld, %ld);\n",
                     compile_declaration(t, var),
-                    var, val_code, var,
+                    var, val_code,
                     compile_type_info(env, get_type(env, decl->value)),
                     CORD_quoted(output),
                     (int64_t)(test->expr->start - test->expr->file->text),
@@ -382,9 +382,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                         code_err(assign->values->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
                 }
                 return CORD_asprintf(
-                    "test((%r, &%r), %r, %r, %ld, %ld);",
+                    "test((%r), %r, %r, %ld, %ld);",
                     compile_assignment(env, assign->targets->ast, value),
-                    compile(env, assign->targets->ast),
                     compile_type_info(env, lhs_t),
                     CORD_quoted(test->output),
                     (int64_t)(test->expr->start - test->expr->file->text),
@@ -395,6 +394,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     code_err(ast, "Sorry, but doctesting with '=' is not supported for multi-assignments");
 
                 CORD code = "test(({ // Assignment\n";
+
                 int64_t i = 1;
                 for (ast_list_t *target = assign->targets, *value = assign->values; target && value; target = target->next, value = value->next) {
                     type_t *target_type = get_type(env, target->ast);
@@ -416,7 +416,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 for (ast_list_t *target = assign->targets; target; target = target->next)
                     code = CORD_all(code, compile_assignment(env, target->ast, CORD_asprintf("$%ld", i++)), ";\n");
 
-                CORD_appendf(&code, "&$1; }), %r, %r, %ld, %ld);",
+                CORD_appendf(&code, "$1; }), %r, %r, %ld, %ld);",
                     compile_type_info(env, get_type(env, assign->targets->ast)),
                     CORD_quoted(test->output),
                     (int64_t)(test->expr->start - test->expr->file->text),
@@ -424,25 +424,25 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 return code;
             }
         } else if (test->expr->tag == UpdateAssign) {
+            type_t *lhs_t = get_type(env, Match(test->expr, UpdateAssign)->lhs);
             return CORD_asprintf(
-                "test(({ %r; &%r; }), %r, %r, %ld, %ld);",
+                "test(({%r %r;}), %r, %r, %ld, %ld);",
                 compile_statement(env, test->expr),
                 compile_lvalue(env, Match(test->expr, UpdateAssign)->lhs),
-                compile_type_info(env, get_type(env, Match(test->expr, UpdateAssign)->lhs)),
+                compile_type_info(env, lhs_t),
                 CORD_quoted(test->output),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else if (expr_t->tag == VoidType || expr_t->tag == AbortType || expr_t->tag == ReturnType) {
             return CORD_asprintf(
-                "test(({ %r; NULL; }), NULL, NULL, %ld, %ld);",
+                "test(({%r NULL;}), NULL, NULL, %ld, %ld);",
                 compile_statement(env, test->expr),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else {
             return CORD_asprintf(
                 "test(%r, %r, %r, %ld, %ld);",
-                test->expr->tag == Var ? CORD_all("&", compile(env, test->expr))
-                  : CORD_all("(", compile_type(expr_t), "[1]){", compile(env, test->expr), "}"),
+                compile(env, test->expr),
                 compile_type_info(env, expr_t),
                 CORD_quoted(output),
                 (int64_t)(test->expr->start - test->expr->file->text),

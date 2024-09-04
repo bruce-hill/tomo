@@ -206,7 +206,7 @@ public void end_test(void *expr, const TypeInfo *type, const char *expected, con
     (void)start;
     (void)end;
     --TEST_DEPTH;
-    if (!expr) return;
+    if (!expr || !type) return;
 
     Text_t expr_text = generic_as_text(expr, USE_COLOR, type);
     Text_t type_name = generic_as_text(NULL, false, type);

@@ -18,9 +18,9 @@ void fail_source(const char *filename, int64_t start, int64_t end, const char *f
 Text_t builtin_last_err();
 void start_test(const char *filename, int64_t start, int64_t end);
 void end_test(void *expr, const TypeInfo *type, const char *expected, const char *filename, int64_t start, int64_t end);
-#define test(expr, type, expected, start, end) {\
+#define test(expr, typeinfo, expected, start, end) {\
     start_test(__SOURCE_FILE__, start, end); \
-    end_test(expr, type, expected, __SOURCE_FILE__, start, end); }
+    end_test((__typeof__(expr)[1]){expr}, typeinfo, expected, __SOURCE_FILE__, start, end); }
 void say(Text_t text, bool newline);
 
 uint64_t generic_hash(const void *obj, const TypeInfo *type);
