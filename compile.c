@@ -3007,9 +3007,18 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
     if (!has_help)
         usage = CORD_all(" [--help]", usage);
 
-    CORD code = CORD_all("CORD usage = CORD_all(\"Usage: \", argv[0], ", usage ? CORD_quoted(usage) : "CORD_EMPTY", ");\n",
-                         "#define USAGE_ERR(...) errx(1, CORD_to_const_char_star(CORD_all(__VA_ARGS__)))\n"
-                         "#define IS_FLAG(str, flag) (strncmp(str, flag, strlen(flag) == 0 && (str[strlen(flag)] == 0 || str[strlen(flag)] == '=')) == 0)\n");
+
+    CORD code = CORD_EMPTY;
+    CORD usage_code = "usage";
+    binding_t *usage_binding = get_binding(env, "USAGE");
+    if (usage_binding)
+        usage_code = usage_binding->code;
+    else
+        code = CORD_all(code, "Text_t usage = Texts(Text(\"Usage: \"), Text$from_str(argv[0])",
+                        usage == CORD_EMPTY ? CORD_EMPTY : CORD_all(", Text(", CORD_quoted(usage), ")"), ");\n");
+
+    code = CORD_all(code, "#define USAGE_ERR(fmt, ...) errx(1, fmt \"\\n%s\" __VA_OPT__(,) __VA_ARGS__, Text$as_c_string(", usage_code, "))\n"
+                    "#define IS_FLAG(str, flag) (strncmp(str, flag, strlen(flag) == 0 && (str[strlen(flag)] == 0 || str[strlen(flag)] == '=')) == 0)\n");
 
     // Declare args:
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
@@ -3030,7 +3039,8 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                     "if (strncmp(argv[i], \"--\", 2) != 0) {\n++i;\ncontinue;\n}\n");
     if (!has_help) {
         code = CORD_all(code, "else if (pop_flag(argv, &i, \"help\", &flag)) {\n"
-                        "CORD_printf(\"%r\\n\", usage);\n"
+                        "Text$print(stdout, ", usage_code, ");\n"
+                        "puts(\"\");\n"
                         "return 0;\n"
                         "}\n");
     }
@@ -3044,7 +3054,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                             "if (flag.length != 0) {\n",
                             "$", arg->name, " = Bool$from_text(flag, &", arg->name, "$is_set", ");\n"
                             "if (!", arg->name, "$is_set) \n"
-                            "USAGE_ERR(\"Invalid argument for '--", flag, "'\\n\", usage);\n",
+                            "USAGE_ERR(\"Invalid argument for '--", flag, "'\");\n",
                             "} else {\n",
                             "$", arg->name, " = yes;\n",
                             arg->name, "$is_set = yes;\n"
@@ -3072,10 +3082,10 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
             CORD type_name = type_to_cord(t);
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
                             "if (flag.length == 0)\n"
-                            "USAGE_ERR(\"No value provided for '--", flag, "'\\n\", usage);\n"
+                            "USAGE_ERR(\"No value provided for '--", flag, "'\");\n"
                             "$", arg->name, " = ", type_name, "$from_text(flag, &", arg->name, "$is_set);\n"
                             "if (!", arg->name, "$is_set)\n"
-                            "USAGE_ERR(\"Invalid value provided for '--", flag, "'\\n\", usage);\n",
+                            "USAGE_ERR(\"Invalid value provided for '--", flag, "'\");\n",
                             "}\n");
             break;
         }
@@ -3083,11 +3093,11 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
             CORD type_name = type_to_cord(t);
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
                             "if (flag.length == 0)\n"
-                            "USAGE_ERR(\"No value provided for '--", flag, "'\\n\", usage);\n"
+                            "USAGE_ERR(\"No value provided for '--", flag, "'\");\n"
                             "Text_t invalid = Text(\"\");\n",
                             "$", arg->name, " = ", type_name, "$from_text(flag, &invalid);\n"
                             "if (invalid.length != 0)\n"
-                            "USAGE_ERR(\"Invalid value provided for '--", flag, "'\\n\", usage);\n",
+                            "USAGE_ERR(\"Invalid value provided for '--", flag, "'\");\n",
                             arg->name, "$is_set = yes;\n"
                             "}\n");
             break;
@@ -3099,7 +3109,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
 
     code = CORD_all(
         code, "else {\n"
-        "USAGE_ERR(\"Unrecognized argument: \", argv[i], \"\\n\", usage);\n"
+        "USAGE_ERR(\"Unrecognized argument: %s\", argv[i]);\n"
         "}\n"
         "}\n"
         "int i = 1;\n"
@@ -3134,21 +3144,21 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                     "bool success = false;\n",
                     "$", arg->name, " = ", type_to_cord(t), "$from_text(Text$from_str(argv[i]), &success)", ";\n"
                     "if (!success)\n"
-                    "USAGE_ERR(\"Unable to parse this argument as a ", type_to_cord(t), ": \", CORD_from_char_star(argv[i]));\n");
+                    "USAGE_ERR(\"Unable to parse this argument as a ", type_to_cord(t), ": %s\", argv[i]);\n");
             } else {
                 code = CORD_all(
                     code,
                     "Text_t invalid = Text(\"\");\n",
                     "$", arg->name, " = ", type_to_cord(t), "$from_text(Text$from_str(argv[i]), &invalid)", ";\n"
                     "if (invalid.length != 0)\n"
-                    "USAGE_ERR(\"Unable to parse this argument as a ", type_to_cord(t), ": \", CORD_from_char_star(argv[i]));\n");
+                    "USAGE_ERR(\"Unable to parse this argument as a ", type_to_cord(t), ": %s\", argv[i]);\n");
             }
             code = CORD_all(
                 code,
                 "argv[i++] = NULL;\n"
                 "while (i < argc && argv[i] == NULL)\n"
                 "++i;\n} else {\n"
-                "USAGE_ERR(\"Required argument '", arg->name, "' was not provided!\\n\", usage);\n",
+                "USAGE_ERR(\"Required argument '", arg->name, "' was not provided!\");\n",
                 "}\n");
         }
         code = CORD_all(code, "}\n");
@@ -3156,7 +3166,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
 
 
     code = CORD_all(code, "for (; i < argc; i++) {\n"
-                    "if (argv[i])\nUSAGE_ERR(\"Unexpected argument: \", CORD_quoted(argv[i]), \"\\n\", usage);\n}\n");
+                    "if (argv[i])\nUSAGE_ERR(\"Unexpected argument: %s\", argv[i]);\n}\n");
 
     code = CORD_all(code, fn_name, "(");
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
