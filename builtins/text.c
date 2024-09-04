@@ -1266,6 +1266,7 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
       got_prop:;
 
             if (min == 0 && pattern_index < pattern.length) {
+                // Try matching the rest of the pattern immediately:
                 int64_t match_len = match(text, pattern, text_index, pattern_index);
                 if (match_len >= 0)
                     return (text_index - start_index) + match_len;
@@ -1294,6 +1295,7 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
 
                 if (count >= min) {
                     if (pattern_index < pattern.length) {
+                        // If we have the minimum and we match the rest of the pattern, we're good:
                         int64_t match_len = match(text, pattern, text_index, pattern_index);
                         if (match_len >= 0) {
                             return (text_index - start_index) + match_len;
