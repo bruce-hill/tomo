@@ -227,4 +227,12 @@ func main():
 	>> $/$malicious/
 	= $/{1{}xxx}/
 
+	>> "Hello":replace($/{lower}/, "(@)", $/@/)
+	= "H(ello)"
+
+	>> " foo(xyz) foo(yyy) foo(z()) ":replace_chain([$/foo(/, $/?/, $/)/], ["baz[", "@", "]"], $/@/)
+	= " baz[xyz] baz[yyy] baz[z()] "
+
+	>> "<tag>":replace_all({$/</:"&lt;", $/>/:"&gt;"})
+	= "&lt;tag&gt;"
 

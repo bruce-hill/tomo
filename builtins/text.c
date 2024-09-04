@@ -1472,7 +1472,7 @@ public array_t Text$find_all(Text_t text, Pattern_t pattern)
     return matches;
 }
 
-public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement)
+public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement, Pattern_t placeholder)
 {
     Text_t ret = {.length=0};
 
@@ -1481,16 +1481,177 @@ public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement)
         int64_t len;
         Int_t found = Text$find(text, pattern, i, &len);
         if (I_is_zero(found)) break;
+
+        Text_t replacement_text = replacement;
+        if (placeholder.length > 0) {
+            Text_t matched_text = Text$slice(text, found, Int$plus(found, Int64_to_Int(len-1)));
+            replacement_text = Text$replace(replacement, placeholder, matched_text, Text(""));
+        }
+
         if (Int$compare(&found, &i, &$Text) > 0) {
             Text_t before_slice = Text$slice(text, i, Int$minus(found, I_small(1)));
-            ret = Text$concat(ret, before_slice, replacement);
+            ret = Text$concat(ret, before_slice, replacement_text);
         } else {
-            ret = concat2(ret, replacement);
+            ret = concat2(ret, replacement_text);
         }
         i = Int$plus(found, Int64_to_Int(len <= 0 ? 1 : len));
     }
     if (Int_to_Int64(i, false) <= text.length) {
         Text_t last_slice = Text$slice(text, i, Int64_to_Int(text.length));
+        ret = concat2(ret, last_slice);
+    }
+    return ret;
+}
+
+public Text_t Text$replace_chain(Text_t text, array_t patterns, array_t replacements, Text_t placeholder)
+{
+    if (patterns.length != replacements.length)
+        fail("The number of patterns given (%ld) is not the same as the number of replacements (%ld)",
+             patterns.length, replacements.length);
+
+    if (patterns.length == 0) return text;
+
+    Text_t ret = {.length=0};
+
+    Pattern_t first_pattern = *(Pattern_t*)(patterns.data);
+    int32_t first_grapheme = get_grapheme(first_pattern, 0);
+    bool find_first = (first_grapheme != '{'
+                       && !uc_is_property(first_grapheme, UC_PROPERTY_QUOTATION_MARK)
+                       && !uc_is_property(first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
+
+    iteration_state_t text_state = {0, 0};
+
+    int64_t nonmatch_pos = 0;
+    for (int64_t pos = 0; pos < text.length; ) {
+        // Optimization: quickly skip ahead to first char in pattern:
+        if (find_first) {
+            while (pos < text.length && _next_grapheme(text, &text_state, pos) != first_grapheme)
+                ++pos;
+        }
+
+        // Get all match lengths:
+        int64_t lengths[patterns.length] = {};
+        for (int64_t i = 0, match_pos = pos; i < patterns.length; i++) {
+            Pattern_t pattern = *(Pattern_t*)(patterns.data + i*patterns.stride);
+
+            // If one of the patterns is `?` sandwiched between two pats
+            if (i > 0 && i < patterns.length-1 && Text$equal(&pattern, (Pattern_t[1]){Text("?")})) {
+                Pattern_t prev_pat = *(Pattern_t*)(patterns.data + (i-1)*patterns.stride);
+                int32_t prev_last_grapheme = get_grapheme(prev_pat, prev_pat.length-1);
+                if (prev_last_grapheme < 0) goto literal_pat;
+
+                Pattern_t next_pat = *(Pattern_t*)(patterns.data + (i+1)*patterns.stride);
+                int32_t next_first_grapheme = get_grapheme(next_pat, 0);
+                if (next_first_grapheme < 0) goto literal_pat;
+
+                int32_t mirrored = prev_last_grapheme;
+                uc_mirror_char(prev_last_grapheme, (uint32_t*)&mirrored);
+
+                if (next_first_grapheme != mirrored)
+                    goto literal_pat;
+
+                if ((uc_is_property_quotation_mark(prev_last_grapheme) && uc_is_property_quotation_mark(next_first_grapheme))
+                    || ((uc_is_property_paired_punctuation(prev_last_grapheme)
+                         && uc_is_property_paired_punctuation(next_first_grapheme)
+                         && uc_is_property_left_of_pair(prev_last_grapheme)))) {
+                    // $/"/, $/?/, $/"/
+                    // $/(/, $/?/, $/)/
+
+                    Pattern_t matching_pair_pat = text_from_u32((uint32_t[3]){prev_last_grapheme, '?', next_first_grapheme}, 3, false);
+                    int64_t enclosing_len = match(text, matching_pair_pat, match_pos-1, 0);
+                    if (enclosing_len < 0) goto no_match;
+
+                    assert(enclosing_len >= 2);
+                    lengths[i] = enclosing_len - 2; // Exclude '(' and ')' or whatever delims
+                    goto found_match;
+                }
+            }
+
+          literal_pat:;
+            lengths[i] = match(text, pattern, match_pos, 0);
+            if (lengths[i] < 0)
+                goto no_match;
+
+          found_match:
+            match_pos += lengths[i];
+        }
+
+        // If we skipped over some non-matching text before finding a match, insert it here:
+        if (pos > nonmatch_pos) {
+            Text_t before_slice = Text$slice(text, Int64_to_Int(nonmatch_pos+1), Int64_to_Int(pos));
+            ret = concat2(ret, before_slice);
+        }
+
+        // Concatenate the slices/replacements
+        for (int64_t i = 0, replace_pos = pos; i < patterns.length; i++) {
+            Text_t replacement = *(Text_t*)(replacements.data + i*replacements.stride);
+            if (placeholder.length > 0) {
+                Text_t matched_text = Text$slice(text, Int64_to_Int(replace_pos+1), Int64_to_Int(replace_pos + lengths[i]));
+                replacement = Text$replace(replacement, placeholder, matched_text, Text(""));
+            }
+
+            ret = concat2(ret, replacement);
+            replace_pos += lengths[i];
+        }
+
+        int64_t total_match_len = 0;
+        for (int64_t i = 0; i < patterns.length; i++)
+            total_match_len += lengths[i];
+
+        pos += (total_match_len <= 0) ? 1 : total_match_len;
+        nonmatch_pos = pos;
+        continue;
+
+      no_match:
+        pos += 1;
+        continue;
+    }
+    if (nonmatch_pos <= text.length) {
+        Text_t last_slice = Text$slice(text, Int64_to_Int(nonmatch_pos+1), Int64_to_Int(text.length));
+        ret = concat2(ret, last_slice);
+    }
+    return ret;
+}
+
+public Text_t Text$replace_all(Text_t text, table_t replacements, Text_t placeholder)
+{
+    if (replacements.entries.length == 0) return text;
+
+    Text_t ret = {.length=0};
+
+    int64_t nonmatch_pos = 0;
+    for (int64_t pos = 0; pos < text.length; ) {
+        // Find the first matching pattern at this position:
+        for (int64_t i = 0; i < replacements.entries.length; i++) {
+            Pattern_t pattern = *(Pattern_t*)(replacements.entries.data + i*replacements.entries.stride);
+            int64_t len = match(text, pattern, pos, 0);
+            if (len < 0) continue;
+
+            // If we skipped over some non-matching text before finding a match, insert it here:
+            if (pos > nonmatch_pos) {
+                Text_t before_slice = Text$slice(text, Int64_to_Int(nonmatch_pos+1), Int64_to_Int(pos));
+                ret = concat2(ret, before_slice);
+            }
+
+            // Concatenate the replacement:
+            Text_t replacement = *(Text_t*)(replacements.entries.data + i*replacements.entries.stride + sizeof(Text_t));
+            if (placeholder.length > 0) {
+                Text_t matched_text = Text$slice(text, Int64_to_Int(pos+1), Int64_to_Int(pos + len));
+                replacement = Text$replace(replacement, placeholder, matched_text, Text(""));
+            }
+            ret = concat2(ret, replacement);
+            pos += len > 0 ? len : 1;
+            nonmatch_pos = pos;
+            goto next_pos;
+        }
+
+        pos += 1;
+      next_pos:
+        continue;
+    }
+
+    if (nonmatch_pos <= text.length) {
+        Text_t last_slice = Text$slice(text, Int64_to_Int(nonmatch_pos+1), Int64_to_Int(text.length));
         ret = concat2(ret, last_slice);
     }
     return ret;

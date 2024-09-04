@@ -1,11 +1,14 @@
 lang HTML:
 	HEADER := $HTML"<!DOCTYPE HTML>"
 	func escape(t:Text)->HTML:
-		t = t:replace($/&/, "&amp;")
-		t = t:replace($/</, "&lt;")
-		t = t:replace($/>/, "&gt;")
-		t = t:replace($/"/, "&quot;")
-		t = t:replace($/'/, "&#39;")
+		t = t:replace_all({
+			$/&/: "&amp;",
+			$/</: "&lt;",
+			$/>/: "&gt;",
+			$/"/: "&quot",
+			$/'/: "&#39;",
+		})
+
 		return HTML.from_unsafe_text(t)
 
 	func escape_int(i:Int)->HTML:
