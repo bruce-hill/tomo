@@ -17,7 +17,7 @@ void fail(const char *fmt, ...);
 void fail_source(const char *filename, int64_t start, int64_t end, const char *fmt, ...);
 Text_t builtin_last_err();
 void start_test(const char *filename, int64_t start, int64_t end);
-void end_test(void *expr, const TypeInfo *type, const char *expected, const char *filename, int64_t start, int64_t end);
+void end_test(const void *expr, const TypeInfo *type, const char *expected, const char *filename, int64_t start, int64_t end);
 #define test(expr, typeinfo, expected, start, end) {\
     start_test(__SOURCE_FILE__, start, end); \
     end_test((__typeof__(expr)[1]){expr}, typeinfo, expected, __SOURCE_FILE__, start, end); }
