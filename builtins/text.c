@@ -1,5 +1,51 @@
-// Type info and methods for Text datatype, which uses the Boehm "cord" library
-// and libunistr
+// Type info and methods for Text datatype, which uses libunistr for Unicode
+// support and implements a datastructure based on Raku/MoarVM's strings to
+// efficiently store arbitrary unicode data using a mix of densely packed plain
+// ASCII, 32-bit integers representing grapheme clusters (see below), and ropes
+// that represent text that is a composite of multiple subtexts. Subtexts are
+// only nested one level deep, not arbitrarily deep trees.
+//
+// A note on grapheme clusters: In Unicode, codepoints can be represented using
+// a 32-bit integer. Most codepoints correspond to the intuitive notion of a
+// "letter", which is more formally known as a "grapheme cluster". A grapheme
+// cluster is roughly speaking the amount of text that your cursor moves over
+// when you press the arrow key once. However, some codepoints act as modifiers
+// on other codepoints. For example, U+0301 (COMBINING ACUTE ACCENT) can modify
+// a letter like "e" to form "é". During normalization, this frequently
+// resolves down to a single unicode codepoint, in this case, "é" resolves to
+// the single codepoint U+00E9 (LATIN SMALL LETTER E WITH ACUTE). However, in
+// some cases, multiple codepoints make up a grapheme cluster but *don't*
+// normalize to a single codepoint. For example, LATIN SMALL LETTER E (U+0065)
+// + COMBINING VERTICAL LINE BELOW (U+0329) combine to form an unusual glyph
+// that is not used frequently enough to warrant its own unique codepoint (this
+// is basically what Zalgo text is).
+//
+// There are a lot of benefits to storing text with one grapheme cluster per
+// index in a densely packed array. It lets us have one canonical length for
+// the text that can be precomputed and is meaningful to users. It lets us
+// quickly get the Nth "letter" in the text. Substring slicing is fast.
+// However, since not all grapheme clusters take up the same number of
+// codepoints, we're faced with the problem of how to jam multiple codepoints
+// into a single 32-bit slot. Inspired by Raku and MoarVM's approach, this
+// implementation uses "synthetic graphemes" (in Raku's terms, Normal Form
+// Graphemes, aka NFG). A synthetic grapheme is a negative 32-bit signed
+// integer that represents a multi-codepoint grapheme cluster that has been
+// encountered during the program's runtime. These clusters are stored in a
+// lookup array and hash map so that we can rapidly convert between the
+// synthetic grapheme integer ID and the unicode codepoints associated with it.
+// Essentially, it's like we create a supplement to the unicode standard with
+// things that would be nice if they had their own codepoint so things worked
+// out nicely because we're using them right now, and we'll give them a
+// negative number so it doesn't overlap with any real codepoints.
+//
+// Example 1: U+0048, U+00E9
+//    AKA: LATIN CAPITAL LETTER H, LATIN SMALL LETTER E WITH ACUTE
+//    This would be stored as: (int32_t[]){0x48, 0xE9}
+// Example 2: U+0048, U+0065, U+0309
+//    AKA: LATIN CAPITAL LETTER H, LATIN SMALL LETTER E, COMBINING VERTICAL LINE BELOW
+//    This would be stored as: (int32_t[]){0x48, -2}
+//    Where -2 is used as a lookup in an array that holds the actual unicode codepoints:
+//       (uint32_t[]){0x65, 0x0309}
 
 #include <assert.h>
 #include <ctype.h>
@@ -25,88 +71,138 @@
 #include "array.h"
 #include "functions.h"
 #include "integers.h"
+#include "table.h"
 #include "text.h"
 #include "types.h"
 
 #include "siphash.c"
 
 typedef struct {
-    int64_t num_codepoints;
-    const uint32_t *codepoints;
+    uint32_t *utf32_cluster; // length-prefixed
     const uint8_t *utf8;
 } synthetic_grapheme_t;
-
-#define MAX_SYNTHETIC_GRAPHEMES 1024
-#define MAX_BACKREFS 100
-static synthetic_grapheme_t synthetic_graphemes[MAX_SYNTHETIC_GRAPHEMES] = {};
-const int32_t CRLF_GRAPHEME = -MAX_SYNTHETIC_GRAPHEMES-1;
-
-static int32_t num_synthetic_graphemes = 0;
-
-static int32_t get_grapheme(Text_t text, int64_t index);
 
 typedef struct {
     int64_t subtext, sum_of_previous_subtexts;
 } iteration_state_t;
 
+#define MAX_BACKREFS 100
+#define MAX_SYNTHETIC_GRAPHEMES 1024
+
+// Synthetic grapheme clusters (clusters of more than one codepoint):
+static table_t grapheme_ids_by_codepoints = {}; // uint32_t* length-prefixed codepoints -> int32_t ID
+
+static synthetic_grapheme_t synthetic_graphemes[MAX_SYNTHETIC_GRAPHEMES] = {
+    (synthetic_grapheme_t){ // CRLF
+        .utf32_cluster=(uint32_t[]){2, '\r', '\n'},
+        .utf8=(uint8_t[]){'\r', '\n', '\0'},
+    },
+};
+
+#define NUM_GRAPHEME_CODEPOINTS(id) (synthetic_graphemes[-(id)-1].utf32_cluster[0])
+#define GRAPHEME_CODEPOINTS(id) (&synthetic_graphemes[-(id)-1].utf32_cluster[1])
+#define GRAPHEME_UTF8(id) (synthetic_graphemes[-(id)-1].utf8)
+
+static int32_t num_synthetic_graphemes = 1;
+const int32_t CRLF_GRAPHEME = -1;
+
+static int32_t get_grapheme(Text_t text, int64_t index);
 static int32_t _next_grapheme(Text_t text, iteration_state_t *state, int64_t index);
 
-int32_t find_synthetic_grapheme(const uint32_t *codepoints, int64_t len)
-{
-    int32_t lo = 0, hi = num_synthetic_graphemes;
-    while (lo <= hi) {
-        int32_t mid = (lo + hi) / 2;
-        int32_t cmp = (synthetic_graphemes[mid].num_codepoints > len) - (synthetic_graphemes[mid].num_codepoints < len);
-        if (cmp == 0)
-            cmp = memcmp(synthetic_graphemes[mid].codepoints, codepoints, sizeof(uint32_t[len]));
-
-        if (cmp == 0)
-            return mid;
-        else if (cmp < 0)
-            lo = mid + 1;    
-        else if (cmp > 0)
-            hi = mid - 1;
-    }
-    return hi;
+static bool graphemes_equal(uint32_t **a, uint32_t **b) {
+    if ((*a)[0] != (*b)[0]) return false;
+    for (int i = 0; i < (int)(*a)[0]; i++)
+        if ((*a)[i] != (*b)[i]) return false;
+    return true;
 }
 
-int32_t get_synthetic_grapheme(const uint32_t *codepoints, int64_t len)
+static uint64_t grapheme_hash(uint32_t **g) {
+    uint32_t *cluster = *g;
+    return siphash24((void*)&cluster[1], sizeof(uint32_t[cluster[0]]), (uint64_t*)TOMO_HASH_KEY);
+}
+
+static const TypeInfo GraphemeClusterInfo = {
+    .size=sizeof(uint32_t*),
+    .align=__alignof__(uint32_t*),
+    .tag=CustomInfo,
+    .CustomInfo={.equal=(void*)graphemes_equal, .hash=(void*)grapheme_hash},
+};
+
+static const TypeInfo GraphemeIDLookupTableInfo = {
+    .size=sizeof(table_t), .align=__alignof__(table_t),
+    .tag=TableInfo, .TableInfo={.key=&GraphemeClusterInfo, .value=&$Int32},
+};
+
+int32_t get_synthetic_grapheme(const uint32_t *codepoints, int64_t utf32_len)
 {
-    int32_t index = find_synthetic_grapheme(codepoints, len);
-    if (index >= 0 
-        && index < num_synthetic_graphemes
-        && synthetic_graphemes[index].num_codepoints == len
-        && memcmp(synthetic_graphemes[index].codepoints, codepoints, len) == 0) {
-        return -(index+1);
-    } else {
-        if (index < 0) index = 0;
+    if (utf32_len == 2 && codepoints[0] == '\r' && codepoints[1] == '\n')
+        return CRLF_GRAPHEME;
 
-        if (num_synthetic_graphemes >= MAX_SYNTHETIC_GRAPHEMES)
-            fail("Too many synthetic graphemes!");
+    uint32_t length_prefixed[1+utf32_len] = {};
+    length_prefixed[0] = (uint32_t)utf32_len;
+    for (int i = 0; i < utf32_len; i++)
+        length_prefixed[i+1] = codepoints[i];
+    uint32_t *ptr = &length_prefixed[0];
 
-        if (num_synthetic_graphemes > 0 && index != num_synthetic_graphemes) {
-            memmove(&synthetic_graphemes[index + 1], &synthetic_graphemes[index],
-                    sizeof(synthetic_grapheme_t[num_synthetic_graphemes - index]));
-        }
+    // Optimization for common case of one frequently used synthetic grapheme:
+    static int32_t last_grapheme = CRLF_GRAPHEME;
+    if (graphemes_equal(&ptr, &synthetic_graphemes[-last_grapheme-1].utf32_cluster))
+        return last_grapheme;
 
-        uint32_t *buf = GC_MALLOC_ATOMIC(sizeof(uint32_t[len]));
-        memcpy(buf, codepoints, sizeof(uint32_t[len]));
-        synthetic_graphemes[index].codepoints = buf;
-        synthetic_graphemes[index].num_codepoints = len;
+    int32_t *found = Table$get(grapheme_ids_by_codepoints, &ptr, &GraphemeIDLookupTableInfo);
+    if (found) return *found;
 
-        size_t u8_len = 0;
-        uint8_t *u8 = u32_to_u8(codepoints, len, NULL, &u8_len);
-        uint8_t *gc_u8 = GC_MALLOC_ATOMIC(u8_len + 1);
-        memcpy(gc_u8, u8, u8_len);
-        gc_u8[u8_len] = '\0';
-        synthetic_graphemes[index].utf8 = gc_u8;
-        assert(gc_u8);
-        free(u8);
+    // New synthetic grapheme:
+    if (num_synthetic_graphemes >= MAX_SYNTHETIC_GRAPHEMES)
+        fail("Too many synthetic graphemes!");
 
-        ++num_synthetic_graphemes;
+    int32_t grapheme_id = -(num_synthetic_graphemes+1);
+    num_synthetic_graphemes += 1;
 
-        return -(index+1);
+    // Get UTF8 representation:
+    uint8_t u8_buf[64];
+    size_t u8_len = sizeof(u8_buf)/sizeof(u8_buf[0]);
+    uint8_t *u8 = u32_to_u8(codepoints, utf32_len, u8_buf, &u8_len);
+
+    // For performance reasons, use an arena allocator here to ensure that
+    // synthetic graphemes store all of their information in a densely packed
+    // area with good cache locality:
+    static void *arena = NULL, *arena_end = NULL;
+    // Eat up any space needed to make arena 32-bit aligned:
+    if ((long)arena % __alignof__(uint32_t) != 0)
+        arena += __alignof__(uint32_t) - ((long)arena % __alignof__(uint32_t));
+
+    // If we have filled up this arena, allocate a new one:
+    size_t needed_memory = sizeof(uint32_t[1+utf32_len]) + sizeof(uint8_t[u8_len + 1]);
+    if (arena + needed_memory > arena_end) {
+        // Do reasonably big chunks at a time, so most synthetic codepoints are
+        // nearby each other in memory and cache locality is good. This is a
+        // rough guess at a good size:
+        size_t chunk_size = MAX(needed_memory, 512);
+        arena = GC_MALLOC_ATOMIC(chunk_size);
+        arena_end = arena + chunk_size;
     }
+
+    // Copy length-prefixed UTF32 codepoints into the arena and store where they live:
+    uint32_t *codepoint_copy = arena;
+    mempcpy(codepoint_copy, length_prefixed, sizeof(uint32_t[1+utf32_len]));
+    synthetic_graphemes[-grapheme_id-1].utf32_cluster = codepoint_copy;
+    arena += sizeof(uint32_t[1+utf32_len]);
+
+    // Copy UTF8 bytes into the arena and store where they live:
+    uint8_t *utf8_final = arena;
+    memcpy(utf8_final, u8, sizeof(uint8_t[u8_len]));
+    utf8_final[u8_len] = '\0'; // Add a terminating NUL byte
+    synthetic_graphemes[-grapheme_id-1].utf8 = utf8_final;
+    arena += sizeof(uint8_t[u8_len + 1]);
+
+    // Cleanup from unicode API:
+    if (u8 != u8_buf) free(u8);
+
+    Table$set(&grapheme_ids_by_codepoints, &codepoint_copy, &grapheme_id, &GraphemeIDLookupTableInfo);
+
+    last_grapheme = grapheme_id;
+    return grapheme_id;
 }
 
 static inline int64_t num_subtexts(Text_t t)
@@ -167,7 +263,7 @@ public int Text$print(FILE *stream, Text_t t)
                 written += fwrite(u8, sizeof(char), len, stream);
                 if (u8 != buf) free(u8);
             } else {
-                const uint8_t *u8 = synthetic_graphemes[-grapheme-1].utf8;
+                const uint8_t *u8 = GRAPHEME_UTF8(grapheme);
                 assert(u8);
                 written += fwrite(u8, sizeof(uint8_t), strlen((char*)u8), stream);
             }
@@ -484,20 +580,30 @@ static void u8_buf_append(Text_t text, char **buf, int64_t *capacity, int64_t *i
     case TEXT_GRAPHEMES: case TEXT_SHORT_GRAPHEMES: {
         const int32_t *graphemes = text.tag == TEXT_GRAPHEMES ? text.graphemes : text.short_graphemes;
         for (int64_t g = 0; g < text.length; g++) {
-            const uint32_t *codepoints = graphemes[g] < 0 ? synthetic_graphemes[-graphemes[g]-1].codepoints : (uint32_t*)&graphemes[g];
-            int64_t num_codepoints = graphemes[g] < 0 ? synthetic_graphemes[-graphemes[g]-1].num_codepoints : 1;
-            uint8_t u8_buf[64];
-            size_t u8_len = sizeof(u8_buf);
-            uint8_t *u8 = u32_to_u8(codepoints, num_codepoints, u8_buf, &u8_len);
+            if (graphemes[g] >= 0) {
+                uint8_t u8_buf[64];
+                size_t u8_len = sizeof(u8_buf);
+                uint8_t *u8 = u32_to_u8((uint32_t*)&graphemes[g], 1, u8_buf, &u8_len);
 
-            if (*i + (int64_t)u8_len > (int64_t)*capacity) {
-                *capacity = *i + u8_len + 1;
-                *buf = GC_REALLOC(*buf, *capacity);
+                if (*i + (int64_t)u8_len > (int64_t)*capacity) {
+                    *capacity = *i + u8_len + 1;
+                    *buf = GC_REALLOC(*buf, *capacity);
+                }
+
+                memcpy(*buf + *i, u8, u8_len);
+                *i += u8_len;
+                if (u8 != u8_buf) free(u8);
+            } else {
+                const uint8_t *u8 = GRAPHEME_UTF8(graphemes[g]);
+                size_t u8_len = u8_strlen(u8);
+                if (*i + (int64_t)u8_len > (int64_t)*capacity) {
+                    *capacity = *i + u8_len + 1;
+                    *buf = GC_REALLOC(*buf, *capacity);
+                }
+
+                memcpy(*buf + *i, u8, u8_len);
+                *i += u8_len;
             }
-
-            memcpy(*buf + *i, u8, u8_len);
-            *i += u8_len;
-            if (u8 != u8_buf) free(u8);
         }
         break;
     }
@@ -684,19 +790,19 @@ public int32_t Text$compare(const Text_t *a, const Text_t *b)
         } else if (ai > 0) {
             cmp = u32_cmp2(
                 (uint32_t*)&ai, 1,
-                synthetic_graphemes[-bi-1].codepoints,
-                synthetic_graphemes[-bi-1].num_codepoints);
+                GRAPHEME_CODEPOINTS(bi),
+                NUM_GRAPHEME_CODEPOINTS(bi));
         } else if (bi > 0) {
             cmp = u32_cmp2(
-                synthetic_graphemes[-ai-1].codepoints,
-                synthetic_graphemes[-ai-1].num_codepoints,
+                GRAPHEME_CODEPOINTS(ai),
+                NUM_GRAPHEME_CODEPOINTS(ai),
                 (uint32_t*)&bi, 1);
         } else {
             cmp = u32_cmp2(
-                synthetic_graphemes[-ai-1].codepoints,
-                synthetic_graphemes[-ai-1].num_codepoints,
-                synthetic_graphemes[-bi-1].codepoints,
-                synthetic_graphemes[-bi-1].num_codepoints);
+                GRAPHEME_CODEPOINTS(ai),
+                NUM_GRAPHEME_CODEPOINTS(ai),
+                GRAPHEME_CODEPOINTS(bi),
+                NUM_GRAPHEME_CODEPOINTS(bi));
         }
         if (cmp != 0) return cmp;
     }
@@ -728,11 +834,11 @@ public bool Text$equal_ignoring_case(Text_t a, Text_t b)
         int32_t ai = _next_grapheme(a, &a_state, i);
         int32_t bi = _next_grapheme(b, &b_state, i);
         if (ai != bi) {
-            const uint32_t *a_codepoints = ai >= 0 ? (uint32_t*)&ai : synthetic_graphemes[-ai-1].codepoints;
-            int64_t a_len = ai >= 0 ? 1 : synthetic_graphemes[-ai-1].num_codepoints;
+            const uint32_t *a_codepoints = ai >= 0 ? (uint32_t*)&ai : GRAPHEME_CODEPOINTS(ai);
+            int64_t a_len = ai >= 0 ? 1 : NUM_GRAPHEME_CODEPOINTS(ai);
 
-            const uint32_t *b_codepoints = bi >= 0 ? (uint32_t*)&bi : synthetic_graphemes[-bi-1].codepoints;
-            int64_t b_len = bi >= 0 ? 1 : synthetic_graphemes[-bi-1].num_codepoints;
+            const uint32_t *b_codepoints = bi >= 0 ? (uint32_t*)&bi : GRAPHEME_CODEPOINTS(bi);
+            int64_t b_len = bi >= 0 ? 1 : NUM_GRAPHEME_CODEPOINTS(bi);
 
             int cmp;
             (void)u32_casecmp(a_codepoints, a_len, b_codepoints, b_len, language, UNINORM_NFC, &cmp);
@@ -817,7 +923,7 @@ static inline bool match_property(Text_t text, int64_t *i, uc_property_t prop)
     if (*i >= text.length) return false;
     int32_t grapheme = get_grapheme(text, *i);
     if (grapheme < 0) // TODO: check every codepoint in the cluster?
-        grapheme = synthetic_graphemes[-grapheme-1].codepoints[0];
+        grapheme = GRAPHEME_CODEPOINTS(grapheme)[0];
 
     if (uc_is_property(grapheme, prop)) {
         *i += 1;
@@ -833,7 +939,7 @@ static int64_t parse_int(Text_t text, int64_t *i)
     for (;; *i += 1) {
         int32_t grapheme = _next_grapheme(text, &state, *i);
         if (grapheme < 0)
-            grapheme = synthetic_graphemes[-grapheme-1].codepoints[0];
+            grapheme = GRAPHEME_CODEPOINTS(grapheme)[0];
         int digit = uc_digit_value(grapheme);
         if (digit < 0) break;
         if (value >= INT64_MAX/10) break;
@@ -900,7 +1006,7 @@ int64_t match_email(Text_t text, int64_t text_index)
     if (text_index > 0) {
         int32_t prev_codepoint = _next_grapheme(text, &state, text_index - 1);
         if (prev_codepoint < 0)
-            prev_codepoint = synthetic_graphemes[-prev_codepoint-1].codepoints[0];
+            prev_codepoint = GRAPHEME_CODEPOINTS(prev_codepoint)[0];
         if (uc_is_property_alphabetic(prev_codepoint))
             return -1;
     }
@@ -1017,7 +1123,7 @@ int64_t match_uri(Text_t text, int64_t text_index)
     if (text_index > 0) {
         int32_t prev_codepoint = _next_grapheme(text, &state, text_index - 1);
         if (prev_codepoint < 0)
-            prev_codepoint = synthetic_graphemes[-prev_codepoint-1].codepoints[0];
+            prev_codepoint = GRAPHEME_CODEPOINTS(prev_codepoint)[0];
         if (uc_is_property_alphabetic(prev_codepoint))
             return -1;
     }
@@ -1367,7 +1473,7 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
             for (int64_t count = 0; count < max; ) {
                 int32_t grapheme = _next_grapheme(text, &text_state, text_index);
                 if (grapheme < 0)
-                    grapheme = synthetic_graphemes[-grapheme-1].codepoints[0];
+                    grapheme = GRAPHEME_CODEPOINTS(grapheme)[0];
 
                 bool success;
                 if (any) {
@@ -1871,8 +1977,8 @@ public array_t Text$utf32_codepoints(Text_t text)
     for (int64_t i = 0; i < text.length; i++) {
         int32_t grapheme = _next_grapheme(text, &state, i);
         if (grapheme < 0) {
-            for (int64_t c = 0; c < synthetic_graphemes[-grapheme-1].num_codepoints; c++)
-                Array$insert(&codepoints, &synthetic_graphemes[-grapheme-1].codepoints[c], I_small(0), sizeof(uint32_t));
+            for (int64_t c = 0; c < NUM_GRAPHEME_CODEPOINTS(grapheme); c++)
+                Array$insert(&codepoints, &GRAPHEME_CODEPOINTS(grapheme)[c], I_small(0), sizeof(uint32_t));
         } else {
             Array$insert(&codepoints, &grapheme, I_small(0), sizeof(uint32_t));
         }
@@ -1904,8 +2010,8 @@ public array_t Text$codepoint_names(Text_t text)
     for (int64_t i = 0; i < text.length; i++) {
         int32_t grapheme = _next_grapheme(text, &state, i);
         if (grapheme < 0) {
-            for (int64_t c = 0; c < synthetic_graphemes[-grapheme-1].num_codepoints; c++) {
-                const char *name = codepoint_name(synthetic_graphemes[-grapheme-1].codepoints[c]);
+            for (int64_t c = 0; c < NUM_GRAPHEME_CODEPOINTS(grapheme); c++) {
+                const char *name = codepoint_name(GRAPHEME_CODEPOINTS(grapheme)[c]);
                 Text_t name_text = (Text_t){.tag=TEXT_ASCII, .length=strlen(name), .ascii=name};
                 Array$insert(&names, &name_text, I_small(0), sizeof(Text_t));
             }
@@ -1988,7 +2094,7 @@ public Pattern_t Pattern$escape_text(Text_t text)
     iteration_state_t state = {0, 0};
     for (int64_t i = 0; i < text.length; i++) {
         int32_t g = _next_grapheme(text, &state, i);
-        uint32_t g0 = g < 0 ? synthetic_graphemes[-g-1].codepoints[0] : (uint32_t)g;
+        uint32_t g0 = g < 0 ? GRAPHEME_CODEPOINTS(g)[0] : (uint32_t)g;
 
         if (g == '{') {
             add_str("{1{}");
