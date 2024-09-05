@@ -1092,18 +1092,30 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     n = mpz_get_str(NULL, 10, i);
                 else
                     goto big_n;
-            } else {
-              big_n:
-                n = CORD_all("Int_to_Int64(", compile(env, for_->iter), ", false)");
+
+
+                if (for_->empty && mpz_cmp_si(i, 0) == 0) {
+                    return compile_statement(env, for_->empty);
+                } else {
+                    return CORD_all(
+                        "for (int64_t i = 1; i <= ", n, "; ++i) {\n",
+                        for_->vars ? CORD_all("\tInt_t ", compile(body_scope, for_->vars->ast), " = I_small(i);\n") : CORD_EMPTY,
+                        "\t", naked_body,
+                        "}\n",
+                        stop, "\n");
+                }
             }
 
+          big_n:
+            n = compile(env, for_->iter);
+            CORD i = for_->vars ? compile(body_scope, for_->vars->ast) : "i";
+            CORD n_var = for_->vars ? CORD_all("max", i) : "n";
             if (for_->empty) {
                 return CORD_all(
                     "{\n"
-                    "int64_t n = ", n, ";\n"
-                    "if (n > 0) {\n"
-                    "for (int64_t i = 1; i <= n; ++i) {\n",
-                    for_->vars ? CORD_all("\tInt_t ", compile(body_scope, for_->vars->ast), " = I(i);\n") : CORD_EMPTY,
+                    "Int_t ", n_var, " = ", compile(env, for_->iter), ";\n"
+                    "if (!I_is_zero(", n_var, ")) {\n"
+                    "for (Int_t ", i, " = I(1); Int$compare_value(", i, ", ", n_var, ") <= 0; ", i, " = Int$plus(", i, ", I(1))) {\n",
                     "\t", naked_body,
                     "}\n"
                     "} else ", compile_statement(env, for_->empty),
@@ -1111,8 +1123,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     "}\n");
             } else {
                 return CORD_all(
-                    "for (int64_t i = 1, n = ", n, "; i <= n; ++i) {\n",
-                    for_->vars ? CORD_all("\tInt_t ", compile(body_scope, for_->vars->ast), " = I(i);\n") : CORD_EMPTY,
+                    "for (Int_t ", i, " = I(1), ", n_var, " = ", n, "; Int$compare_value(", i, ", ", n_var, ") <= 0; ", i, " = Int$plus(", i, ", I(1))) {\n",
                     "\t", naked_body,
                     "}\n",
                     stop, "\n");

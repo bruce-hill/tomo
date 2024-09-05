@@ -18,8 +18,8 @@ func main():
 	= Foo(x=0, y=-999)
 
 	!! (or) and (and) have early out behavior:
-    >> (or) i == 3 for i in 99999999999999999
+    >> (or) i == 3 for i in 9999999999999999999999999999
     = yes
 
-    >> (and) i < 10 for i in 99999999999999999
+    >> (and) i < 10 for i in 9999999999999999999999999999
     = no
