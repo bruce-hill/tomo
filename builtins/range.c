@@ -18,6 +18,7 @@
 static int32_t Range$compare(const Range_t *x, const Range_t *y, const TypeInfo *type)
 {
     (void)type;
+    if (x == y) return 0;
     int32_t diff = Int$compare(&x->first, &y->first, &$Int);
     if (diff != 0) return diff;
     diff = Int$compare(&x->last, &y->last, &$Int);
@@ -28,6 +29,7 @@ static int32_t Range$compare(const Range_t *x, const Range_t *y, const TypeInfo 
 static bool Range$equal(const Range_t *x, const Range_t *y, const TypeInfo *type)
 {
     (void)type;
+    if (x == y) return true;
     return Int$equal(&x->first, &y->first, &$Int) && Int$equal(&x->last, &y->last, &$Int) && Int$equal(&x->step, &y->step, &$Int);
 }
 

@@ -864,6 +864,8 @@ int32_t get_grapheme(Text_t text, int64_t index)
 
 public int32_t Text$compare(const Text_t *a, const Text_t *b)
 {
+    if (a == b) return 0;
+
     int64_t len = MAX(a->length, b->length);
     iteration_state_t a_state = {0, 0}, b_state = {0, 0};
     for (int64_t i = 0; i < len; i++) {
@@ -897,6 +899,8 @@ public int32_t Text$compare(const Text_t *a, const Text_t *b)
 
 public bool Text$equal(const Text_t *a, const Text_t *b)
 {
+    if (a == b) return true;
+
     if (a->length != b->length || (a->hash != 0 && b->hash != 0 && a->hash != b->hash))
         return false;
     int64_t len = a->length;

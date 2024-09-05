@@ -395,6 +395,8 @@ public table_t Table$sorted(table_t t, const TypeInfo *type)
 
 public bool Table$equal(const table_t *x, const table_t *y, const TypeInfo *type)
 {
+    if (x == y) return true;
+
     assert(type->tag == TableInfo);
     if (Table$length(*x) != Table$length(*y))
         return false;
@@ -407,6 +409,8 @@ public bool Table$equal(const table_t *x, const table_t *y, const TypeInfo *type
 
 public int32_t Table$compare(const table_t *x, const table_t *y, const TypeInfo *type)
 {
+    if (x == y) return 0;
+
     assert(type->tag == TableInfo);
     auto table = type->TableInfo;
     if (x->entries.length == 0)

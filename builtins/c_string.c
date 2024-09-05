@@ -21,10 +21,14 @@ public Text_t CString$as_text(const void *c_string, bool colorize, const TypeInf
     return Text$concat(colorize ? Text("\x1b[34mCString\x1b[m(") : Text("CString("), Text$quoted(text, colorize), Text(")"));
 }
 
-public int CString$compare(const char **x, const char **y)
+public int32_t CString$compare(const char **x, const char **y)
 {
+    if (x == y)
+        return 0;
+
     if (!*x != !*y)
         return (!*y) - (!*x);
+
     return strcmp(*x, *y);
 }
 

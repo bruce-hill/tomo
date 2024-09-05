@@ -122,6 +122,8 @@ public uint64_t generic_hash(const void *obj, const TypeInfo *type)
 
 public int32_t generic_compare(const void *x, const void *y, const TypeInfo *type)
 {
+    if (x == y) return 0;
+
     switch (type->tag) {
     case PointerInfo: case FunctionInfo: return Pointer$compare(x, y, type);
     case TextInfo: return Text$compare(x, y);
@@ -141,6 +143,8 @@ public int32_t generic_compare(const void *x, const void *y, const TypeInfo *typ
 
 public bool generic_equal(const void *x, const void *y, const TypeInfo *type)
 {
+    if (x == y) return true;
+
     switch (type->tag) {
     case PointerInfo: case FunctionInfo: return Pointer$equal(x, y, type);
     case TextInfo: return Text$equal(x, y);

@@ -40,13 +40,13 @@ public Text_t Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type) {
 public int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo *type) {
     (void)type;
     if (__builtin_expect(((x->small | y->small) & 1) == 0, 0))
-        return mpz_cmp(*x->big, *y->big);
+        return x->big == y->big ? 0 : mpz_cmp(*x->big, *y->big);
     return (x->small > y->small) - (x->small < y->small);
 }
 
 public int32_t Int$compare_value(const Int_t x, const Int_t y) {
     if (__builtin_expect(((x.small | y.small) & 1) == 0, 0))
-        return mpz_cmp(*x.big, *y.big);
+        return x.big == y.big ? 0 : mpz_cmp(*x.big, *y.big);
     return (x.small > y.small) - (x.small < y.small);
 }
 
