@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
 
     CORD home = ENV_CORD("HOME");
     autofmt = ENV_CORD("AUTOFMT");
-    if (!autofmt) autofmt = "indent -kr -l100 -nbbo -nut -sob";
+    if (!autofmt) autofmt = "sed '/^\\s*$/d' | indent -kr -l100 -nbbo -nut -sob";
     if (!autofmt[0]) autofmt = "cat";
 
     verbose = (getenv("VERBOSE") && (streq(getenv("VERBOSE"), "1") || streq(getenv("VERBOSE"), "2")));
