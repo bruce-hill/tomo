@@ -38,8 +38,8 @@ public void tomo_init(void)
    srand48(seed);
    Int$init_random(seed);
 
-    if (register_printf_specifier('k', printf_text, printf_text_size))
-        errx(1, "Couldn't set printf specifier");
+   if (register_printf_specifier('k', printf_text, printf_text_size))
+       errx(1, "Couldn't set printf specifier");
 }
 
 static void print_stack_trace(FILE *out)

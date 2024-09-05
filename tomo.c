@@ -421,17 +421,38 @@ int transpile_code(env_t *base_env, const char *filename, bool force_retranspile
 
     CORD c_code = compile_file(module_env, ast);
 
+    FILE *out;
+    bool is_popened = false;
     if (autofmt) {
-        FILE *prog = CORD_RUN(autofmt, " 2>/dev/null >", c_filename);
-        CORD_put(c_code, prog);
-        if (pclose(prog) == -1)
+        out = CORD_RUN(autofmt, " 2>/dev/null >'", c_filename, "'");
+        if (!out)
+            errx(1, "Failed to run autoformat program: %s", autofmt);
+        is_popened = true;
+    } else {
+        out = fopen(c_filename, "w");
+        if (!out)
+            errx(1, "Couldn't open file: %s", c_filename);
+        is_popened = false;
+    }
+
+    CORD_put(c_code, out);
+
+    binding_t *main_binding = get_binding(module_env, "main");
+    if (main_binding && main_binding->type->tag == FunctionType) {
+        CORD_put(CORD_all(
+            "int ", main_binding->code, "$parse_and_run(int argc, char *argv[]) {\n"
+            "tomo_init();\n"
+            "\n",
+            compile_cli_arg_call(module_env, main_binding->code, main_binding->type),
+            "return 0;\n"
+            "}\n"), out);
+    }
+
+    if (is_popened) {
+        if (pclose(out) == -1)
             errx(1, "Failed to output autoformatted C code to %s: %s", c_filename, autofmt);
     } else {
-        FILE *c_file = fopen(c_filename, "w");
-        if (!c_file)
-            errx(1, "Couldn't open file: %s", c_filename);
-        CORD_put(c_code, c_file);
-        if (fclose(c_file))
+        if (fclose(out))
             errx(1, "Failed to close file: %s", c_filename);
     }
 
@@ -439,7 +460,7 @@ int transpile_code(env_t *base_env, const char *filename, bool force_retranspile
         printf("Transpiled to %s\n", c_filename);
 
     if (show_codegen) {
-        FILE *out = CORD_RUN("bat -P ", c_filename);
+        out = CORD_RUN("bat -P ", c_filename);
         pclose(out);
     }
 
@@ -471,26 +492,21 @@ int compile_executable(env_t *base_env, const char *filename, CORD object_files)
         errx(1, "Could not parse file %s", filename);
     env_t *env = load_module_env(base_env, ast);
     binding_t *main_binding = get_binding(env, "main");
-    if (!main_binding || main_binding->type->tag != FunctionType) {
+    if (!main_binding || main_binding->type->tag != FunctionType)
         errx(1, "No main() function has been defined for %s, so it can't be run!", filename);
-    }
 
     const char *bin_name = GC_strndup(filename, strlen(filename) - strlen(".tm"));
-    FILE *runner = CORD_RUN(autofmt, " | ", cc, " ", cflags, " ", ldflags, " ", ldlibs, " ", object_files, " -x c - -o ", bin_name);
+    FILE *runner = CORD_RUN(cc, " ", cflags, " ", ldflags, " ", ldlibs, " ", object_files, " -x c - -o ", bin_name);
 
     CORD program = CORD_all(
-        "#include <tomo/tomo.h>\n"
-        "#include \"", filename, ".h\"\n"
-        "\n"
+        "extern int ", main_binding->code, "$parse_and_run(int argc, char *argv[]);\n"
         "int main(int argc, char *argv[]) {\n"
-        "tomo_init();\n"
-        "\n",
-        CORD_all(compile_cli_arg_call(env, main_binding->code, main_binding->type), "return 0;\n"),
+        "\treturn ", main_binding->code, "$parse_and_run(argc, argv);\n"
         "}\n"
     );
 
     if (show_codegen) {
-        FILE *out = CORD_RUN(autofmt, " | bat -P --file-name=run.c");
+        FILE *out = CORD_RUN("bat -P --file-name=run.c");
         CORD_put(program, out);
         pclose(out);
     }

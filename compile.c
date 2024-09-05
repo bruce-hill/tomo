@@ -3059,58 +3059,65 @@ static CORD get_flag_options(type_t *t, CORD separator)
 CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
 {
     auto fn_info = Match(fn_type, FunctionType);
+
+    binding_t *usage_binding = get_binding(env, "USAGE");
+    CORD usage_code = usage_binding ? usage_binding->code : "usage";
+    binding_t *help_binding = get_binding(env, "HELP");
+    CORD help_code = help_binding ? help_binding->code : usage_code;
+
+    CORD code = CORD_all(
+        "#define USAGE_ERR(fmt, ...) errx(1, fmt \"\\n%s\" __VA_OPT__(,) __VA_ARGS__, Text$as_c_string(", usage_code, "))\n"
+        "#define IS_FLAG(str, flag) (strncmp(str, flag, strlen(flag) == 0 && (str[strlen(flag)] == 0 || str[strlen(flag)] == '=')) == 0)\n");
+
     if (!fn_info->args) {
+        code = CORD_all(code, "Text_t usage = Texts(Text(\"Usage: \"), Text$from_str(argv[0]), Text(\" [--help]\"));\n");
+        code = CORD_all(code, "if (argc > 1 && streq(argv[1], \"--help\")) {\n",
+                        "Text$print(stdout, ", help_code, ");\n"
+                        "puts(\"\");\n"
+                        "return 0;\n}\n");
+
         return CORD_all(
+            code,
             "if (argc > 1)\n"
-            "errx(1, \"This program doesn't take any arguments.\");\n",
+            "USAGE_ERR(\"This program doesn't take any arguments.\");\n",
             fn_name, "();\n");
     }
+
     env_t *main_env = fresh_scope(env);
 
-    CORD usage = CORD_EMPTY;
-    bool has_help = false;
+    bool explicit_help_flag = false;
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        if (streq(arg->name, "help")) has_help = true;
-        usage = CORD_cat(usage, " ");
-        type_t *t = get_arg_type(main_env, arg);
-        CORD flag = CORD_replace(arg->name, "_", "-");
-        if (arg->default_val) {
-            if (t->tag == BoolType)
-                usage = CORD_all(usage, "[--", flag, "|--no-", flag, "]");
-            else
-                usage = CORD_all(usage, "[--", flag, "=", get_flag_options(t, "|"), "]");
-        } else {
-            if (t->tag == BoolType)
-                usage = CORD_all(usage, "[--", flag, "|--no-", flag, "]");
-            else if (t->tag == EnumType)
-                usage = CORD_all(usage, get_flag_options(t, "|"));
-            else if (t->tag == ArrayType)
-                usage = CORD_all(usage, "<", flag, "...>");
-            else
-                usage = CORD_all(usage, "<", flag, ">");
+        if (streq(arg->name, "help")) {
+            explicit_help_flag = true;
+            break;
         }
     }
 
-    if (!has_help)
-        usage = CORD_all(" [--help]", usage);
-
-
-    CORD code = CORD_EMPTY;
-    CORD usage_code = "usage";
-    binding_t *usage_binding = get_binding(env, "USAGE");
-    if (usage_binding)
-        usage_code = usage_binding->code;
-    else
+    if (!usage_binding) {
+        CORD usage = explicit_help_flag ? CORD_EMPTY : " [--help]";
+        for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
+            usage = CORD_cat(usage, " ");
+            type_t *t = get_arg_type(main_env, arg);
+            CORD flag = CORD_replace(arg->name, "_", "-");
+            if (arg->default_val) {
+                if (t->tag == BoolType)
+                    usage = CORD_all(usage, "[--", flag, "|--no-", flag, "]");
+                else
+                    usage = CORD_all(usage, "[--", flag, "=", get_flag_options(t, "|"), "]");
+            } else {
+                if (t->tag == BoolType)
+                    usage = CORD_all(usage, "[--", flag, "|--no-", flag, "]");
+                else if (t->tag == EnumType)
+                    usage = CORD_all(usage, get_flag_options(t, "|"));
+                else if (t->tag == ArrayType)
+                    usage = CORD_all(usage, "<", flag, "...>");
+                else
+                    usage = CORD_all(usage, "<", flag, ">");
+            }
+        }
         code = CORD_all(code, "Text_t usage = Texts(Text(\"Usage: \"), Text$from_str(argv[0])",
                         usage == CORD_EMPTY ? CORD_EMPTY : CORD_all(", Text(", CORD_quoted(usage), ")"), ");\n");
-
-    CORD help_code = "usage";
-    binding_t *help_binding = get_binding(env, "HELP");
-    if (help_binding)
-        help_code = help_binding->code;
-
-    code = CORD_all(code, "#define USAGE_ERR(fmt, ...) errx(1, fmt \"\\n%s\" __VA_OPT__(,) __VA_ARGS__, Text$as_c_string(", usage_code, "))\n"
-                    "#define IS_FLAG(str, flag) (strncmp(str, flag, strlen(flag) == 0 && (str[strlen(flag)] == 0 || str[strlen(flag)] == '=')) == 0)\n");
+    }
 
     // Declare args:
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
@@ -3129,7 +3136,8 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                     "break;\n"
                     "}\n"
                     "if (strncmp(argv[i], \"--\", 2) != 0) {\n++i;\ncontinue;\n}\n");
-    if (!has_help) {
+
+    if (!explicit_help_flag) {
         code = CORD_all(code, "else if (pop_flag(argv, &i, \"help\", &flag)) {\n"
                         "Text$print(stdout, ", help_code, ");\n"
                         "puts(\"\");\n"
