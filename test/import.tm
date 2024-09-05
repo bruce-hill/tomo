@@ -1,12 +1,20 @@
-imported := use ./use_import.tm
+vectors := use ../examples/vectors.tm
+use ./use_import.tm
 
-func asdf()->imported.ImportedType:
-	return imported.get_value()
+func returns_vec()->vectors.Vec2:
+	return vectors.Vec2(1, 2)
+
+func returns_imported_type()->ImportedType:
+	return get_value() # Imported from ./use_import.tm
 
 func main():
-	>> [:imported.ImportedType]
-	>> asdf()
+	>> [:vectors.Vec2]
+	>> returns_vec()
+	= Vec2(x=1, y=2)
+
+	>> [:ImportedType]
+	>> returns_imported_type()
 	= ImportedType(name="Hello")
 
-	>> imported.needs_initializing
+	>> needs_initializing # imported from ./use_import.tm
 	= 999999999999999999
