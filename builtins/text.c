@@ -262,7 +262,7 @@ public int Text$print(FILE *stream, Text_t t)
     case TEXT_SHORT_ASCII: return fwrite(t.short_ascii, sizeof(char), t.length, stream);
     case TEXT_ASCII: return fwrite(t.ascii, sizeof(char), t.length, stream);
     case TEXT_GRAPHEMES: case TEXT_SHORT_GRAPHEMES: {
-        int32_t *graphemes = t.tag == TEXT_SHORT_GRAPHEMES ? t.short_graphemes : t.graphemes;
+        const int32_t *graphemes = t.tag == TEXT_SHORT_GRAPHEMES ? t.short_graphemes : t.graphemes;
         int written = 0;
         for (int64_t i = 0; i < t.length; i++) {
             int32_t grapheme = graphemes[i];
@@ -794,7 +794,7 @@ public uint64_t Text$hash(Text_t *text)
                     siphashadd64bits(&sh, tmp.whole);
                 }
             } else if (subtext.tag == TEXT_GRAPHEMES) {
-                int32_t *graphemes = subtext.graphemes;
+                const int32_t *graphemes = subtext.graphemes;
                 int64_t grapheme = 0;
                 if (leftover) {
                     tmp.chunks[0] = leftover;

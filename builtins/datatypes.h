@@ -81,7 +81,7 @@ typedef struct Text_s {
         char short_ascii[8];
         const char *ascii;
         int32_t short_graphemes[2];
-        int32_t *graphemes;
+        const int32_t *graphemes;
         struct Text_s *subtexts;
     };
 } Text_t;
