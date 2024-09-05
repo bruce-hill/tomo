@@ -19,7 +19,7 @@ public Text_t Memory__as_text(const void *p, bool colorize, const TypeInfo *type
     return Text$format(colorize ? "\x1b[0;34;1mMemory<%p>\x1b[m" : "Memory<%p>", p);
 }
 
-public const TypeInfo $Memory = {
+public const TypeInfo Memory$info = {
     .size=0,
     .align=0,
     .tag=CustomInfo,

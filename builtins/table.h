@@ -17,7 +17,7 @@
                        .data=memcpy(GC_MALLOC(sizeof(ents)), ents, sizeof(ents)), \
                        .length=sizeof(ents)/sizeof(ents[0]), \
                        .stride=(void*)&ents[1] - (void*)&ents[0], \
-                       }, $TableInfo(key_info, value_info)); \
+                       }, Table$info(key_info, value_info)); \
     table.fallback = fb; \
     table; })
 #define Set(item_t, item_info, N, ...)  ({ \
@@ -26,7 +26,7 @@
                        .data=memcpy(GC_MALLOC(sizeof(ents)), ents, sizeof(ents)), \
                        .length=sizeof(ents)/sizeof(ents[0]), \
                        .stride=(void*)&ents[1] - (void*)&ents[0], \
-                       }, $SetInfo(item_info)); \
+                       }, Set$info(item_info)); \
     set; })
 
 Table_t Table$from_entries(Array_t entries, const TypeInfo *type);

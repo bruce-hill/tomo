@@ -8,7 +8,7 @@
 
 #include "types.h"
 
-extern const TypeInfo $Memory;
+extern const TypeInfo Memory$info;
 Text_t Memory$as_text(const void *p, bool colorize, const TypeInfo *type);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

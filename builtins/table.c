@@ -48,7 +48,7 @@ static const TypeInfo MemoryPointer = {
     .tag=PointerInfo,
     .PointerInfo={
         .sigil="@",
-        .pointed=&$Memory,
+        .pointed=&Memory$info,
     },
 };
 
@@ -56,7 +56,7 @@ const TypeInfo CStrToVoidStarTable = {
     .size=sizeof(Table_t),
     .align=__alignof__(Table_t),
     .tag=TableInfo,
-    .TableInfo={.key=&$CString, .value=&MemoryPointer},
+    .TableInfo={.key=&CString$info, .value=&MemoryPointer},
 };
 
 static inline size_t entry_size(const TypeInfo *info)
@@ -446,8 +446,8 @@ public uint32_t Table$hash(const Table_t *t, const TypeInfo *type)
     // Where fallback and default hash to zero if absent
     auto table = type->TableInfo;
     uint32_t components[] = {
-        Array$hash(&t->entries, $ArrayInfo(table.key)),
-        Array$hash(&t->entries + value_offset(type), $ArrayInfo(table.value)),
+        Array$hash(&t->entries, Array$info(table.key)),
+        Array$hash(&t->entries + value_offset(type), Array$info(table.value)),
         t->fallback ? Table$hash(t->fallback, type) : 0,
     };
     uint32_t hash;
@@ -461,7 +461,7 @@ public Text_t Table$as_text(const Table_t *t, bool colorize, const TypeInfo *typ
     auto table = type->TableInfo;
 
     if (!t) {
-        if (table.value != &$Void) 
+        if (table.value != &Void$info) 
             return Text$concat(
                 Text("{"),
                 generic_as_text(NULL, false, table.key),
@@ -482,7 +482,7 @@ public Text_t Table$as_text(const Table_t *t, bool colorize, const TypeInfo *typ
             text = Text$concat(text, Text(", "));
         void *entry = GET_ENTRY(*t, i);
         text = Text$concat(text, generic_as_text(entry, colorize, table.key));
-        if (table.value != &$Void) 
+        if (table.value != &Void$info) 
             text = Text$concat(text, Text(":"), generic_as_text(entry + val_off, colorize, table.value));
     }
 

@@ -54,11 +54,11 @@ Text_t Text$join(Text_t glue, Array_t pieces);
 Text_t Text$map(Text_t text, Pattern_t pattern, closure_t fn);
 Text_t Text$repeat(Text_t text, Int_t count);
 
-extern const TypeInfo $Text;
+extern const TypeInfo Text$info;
 
 #define Pattern(text) ((Pattern_t)Text(text))
 #define Patterns(...) ((Pattern_t)Texts(__VA_ARGS__))
 Pattern_t Pattern$escape_text(Text_t text);
-extern const TypeInfo Pattern;
+extern const TypeInfo Pattern$info;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

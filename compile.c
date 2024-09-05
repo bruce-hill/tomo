@@ -741,7 +741,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
                 "static Table_t cache = {};\n",
                 compile_type(args_t), " args = {", all_args, "};\n"
-                "const TypeInfo *table_type = $TableInfo(", compile_type_info(env, args_t), ", ", compile_type_info(env, ret_t), ");\n",
+                "const TypeInfo *table_type = Table$info(", compile_type_info(env, args_t), ", ", compile_type_info(env, ret_t), ");\n",
                 compile_declaration(Type(PointerType, .pointed=ret_t, .is_optional=true), "cached"), " = Table$get_raw(cache, &args, table_type);\n"
                 "if (cached) return *cached;\n",
                 compile_declaration(ret_t, "ret"), " = ", name, "$uncached(", all_args, ");\n",
@@ -1252,16 +1252,16 @@ CORD compile_statement(env_t *env, ast_t *ast)
 CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
 {
     switch (t->tag) {
-    case MemoryType: return CORD_asprintf("Memory$as_text(stack(%r), %r, &$Memory)", expr, color);
-    case BoolType: return CORD_asprintf("Bool$as_text((Bool_t[1]){%r}, %r, &$Bool)", expr, color);
-    case CStringType: return CORD_asprintf("CString$as_text(stack(%r), %r, &$CString)", expr, color);
+    case MemoryType: return CORD_asprintf("Memory$as_text(stack(%r), %r, &Memory$info)", expr, color);
+    case BoolType: return CORD_asprintf("Bool$as_text((Bool_t[1]){%r}, %r, &Bool$info)", expr, color);
+    case CStringType: return CORD_asprintf("CString$as_text(stack(%r), %r, &CString$info)", expr, color);
     case BigIntType: case IntType: {
         CORD name = type_to_cord(t);
-        return CORD_asprintf("%r$as_text(stack(%r), %r, &$%r)", name, expr, color, name);
+        return CORD_asprintf("%r$as_text(stack(%r), %r, &%r$info)", name, expr, color, name);
     }
     case NumType: {
         CORD name = type_to_cord(t);
-        return CORD_asprintf("%r$as_text(stack(%r), %r, &$%r)", name, expr, color, name);
+        return CORD_asprintf("%r$as_text(stack(%r), %r, &%r$info)", name, expr, color, name);
     }
     case TextType: {
         return CORD_asprintf("Text$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
@@ -2398,7 +2398,7 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(call->name, "unique")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("Table$from_entries(", self, ", $SetInfo(", compile_type_info(env, item_t), "))");
+                return CORD_all("Table$from_entries(", self, ", Set$info(", compile_type_info(env, item_t), "))");
             } else if (streq(call->name, "counts")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
@@ -2985,10 +2985,14 @@ CORD compile_type_info(env_t *env, type_t *t)
 {
     switch (t->tag) {
     case BoolType: case IntType: case BigIntType: case NumType: case CStringType:
-        return CORD_asprintf("&$%r", type_to_cord(t));
+        return CORD_all("&", type_to_cord(t), "$info");
     case TextType: {
         auto text = Match(t, TextType);
-        return text->lang ? CORD_all("(&", namespace_prefix(text->env->libname, text->env->namespace->parent), text->lang, ")") : "&$Text";
+        if (!text->lang)
+            return "&Text$info";
+        else if (streq(text->lang, "Pattern"))
+            return "&Pattern$info";
+        return CORD_all("(&", namespace_prefix(text->env->libname, text->env->namespace->parent), text->lang, ")");
     }
     case StructType: {
         auto s = Match(t, StructType);
@@ -3000,39 +3004,39 @@ CORD compile_type_info(env_t *env, type_t *t)
     }
     case ArrayType: {
         type_t *item_t = Match(t, ArrayType)->item_type;
-        return CORD_all("$ArrayInfo(", compile_type_info(env, item_t), ")");
+        return CORD_all("Array$info(", compile_type_info(env, item_t), ")");
     }
     case SetType: {
         type_t *item_type = Match(t, SetType)->item_type;
-        return CORD_all("$SetInfo(", compile_type_info(env, item_type), ")");
+        return CORD_all("Set$info(", compile_type_info(env, item_type), ")");
     }
     case ChannelType: {
         type_t *item_t = Match(t, ChannelType)->item_type;
-        return CORD_asprintf("$ChannelInfo(%r)", compile_type_info(env, item_t));
+        return CORD_asprintf("Channel$info(%r)", compile_type_info(env, item_t));
     }
     case TableType: {
         type_t *key_type = Match(t, TableType)->key_type;
         type_t *value_type = Match(t, TableType)->value_type;
-        return CORD_all("$TableInfo(", compile_type_info(env, key_type), ", ", compile_type_info(env, value_type), ")");
+        return CORD_all("Table$info(", compile_type_info(env, key_type), ", ", compile_type_info(env, value_type), ")");
     }
     case PointerType: {
         auto ptr = Match(t, PointerType);
         CORD sigil = ptr->is_stack ? "&" : "@";
         if (ptr->is_readonly) sigil = CORD_cat(sigil, "%");
-        return CORD_asprintf("$PointerInfo(%r, %r, %s)",
+        return CORD_asprintf("Pointer$info(%r, %r, %s)",
                              CORD_quoted(sigil),
                              compile_type_info(env, ptr->pointed),
                              ptr->is_optional ? "yes" : "no");
     }
     case FunctionType: {
-        return CORD_asprintf("$FunctionInfo(%r)", CORD_quoted(type_to_cord(t)));
+        return CORD_asprintf("Function$info(%r)", CORD_quoted(type_to_cord(t)));
     }
     case ClosureType: {
-        return CORD_asprintf("$ClosureInfo(%r)", CORD_quoted(type_to_cord(t)));
+        return CORD_asprintf("Closure$info(%r)", CORD_quoted(type_to_cord(t)));
     }
-    case TypeInfoType: return "&$TypeInfo";
-    case MemoryType: return "&$Memory";
-    case VoidType: return "&$Void";
+    case TypeInfoType: return "&TypeInfo$info";
+    case MemoryType: return "&Memory$info";
+    case VoidType: return "&Void$info";
     default:
         compiler_err(NULL, 0, 0, "I couldn't convert to a type info: %T", t);
     }

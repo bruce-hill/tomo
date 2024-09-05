@@ -282,7 +282,7 @@ public Table_t Array$counts(Array_t arr, const TypeInfo *type)
 {
     Table_t counts = {};
     const TypeInfo count_type = {.size=sizeof(Table_t), .align=__alignof__(Table_t),
-        .tag=TableInfo, .TableInfo.key=type->ArrayInfo.item, .TableInfo.value=&$Int};
+        .tag=TableInfo, .TableInfo.key=type->ArrayInfo.item, .TableInfo.value=&Int$info};
     for (int64_t i = 0; i < arr.length; i++) {
         void *key = arr.data + i*arr.stride;
         int64_t *count = Table$get(counts, key, &count_type);

@@ -82,7 +82,7 @@ public bool Num$isinf(double n) { return !!isinf(n); }
 public bool Num$finite(double n) { return !!finite(n); }
 public bool Num$isnan(double n) { return !!isnan(n); }
 
-public const TypeInfo $Num = {
+public const TypeInfo Num$info = {
     .size=sizeof(double),
     .align=__alignof__(double),
     .tag=CustomInfo,
@@ -161,7 +161,7 @@ public bool Num32$isinf(float n) { return isinf(n); }
 public bool Num32$finite(float n) { return finite(n); }
 public bool Num32$isnan(float n) { return isnan(n); }
 
-public const TypeInfo $Num32 = {
+public const TypeInfo Num32$info = {
     .size=sizeof(float),
     .align=__alignof__(float),
     .tag=CustomInfo,

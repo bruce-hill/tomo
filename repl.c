@@ -98,27 +98,27 @@ static void repl_err(ast_t *node, const char *fmt, ...)
 const TypeInfo *type_to_type_info(type_t *t)
 {
     switch (t->tag) {
-    case AbortType: return &$Abort;
+    case AbortType: return &Abort$info;
     case ReturnType: errx(1, "Shouldn't be getting a typeinfo for ReturnType");
-    case VoidType: return &$Void;
-    case MemoryType: return &$Memory;
-    case BoolType: return &$Bool;
-    case BigIntType: return &$Int;
+    case VoidType: return &Void$info;
+    case MemoryType: return &Memory$info;
+    case BoolType: return &Bool$info;
+    case BigIntType: return &Int$info;
     case IntType:
         switch (Match(t, IntType)->bits) {
-        case TYPE_IBITS64: return &$Int64;
-        case TYPE_IBITS32: return &$Int32;
-        case TYPE_IBITS16: return &$Int16;
-        case TYPE_IBITS8: return &$Int8;
+        case TYPE_IBITS64: return &Int64$info;
+        case TYPE_IBITS32: return &Int32$info;
+        case TYPE_IBITS16: return &Int16$info;
+        case TYPE_IBITS8: return &Int8$info;
         default: errx(1, "Invalid bits");
         }
     case NumType:
         switch (Match(t, NumType)->bits) {
-        case TYPE_NBITS64: return &$Num;
-        case TYPE_NBITS32: return &$Num32;
+        case TYPE_NBITS64: return &Num$info;
+        case TYPE_NBITS32: return &Num32$info;
         default: errx(1, "Invalid bits");
         }
-    case TextType: return &$Text;
+    case TextType: return &Text$info;
     case ArrayType: {
         const TypeInfo *item_info = type_to_type_info(Match(t, ArrayType)->item_type);
         const TypeInfo array_info = {.size=sizeof(Array_t), .align=__alignof__(Array_t),

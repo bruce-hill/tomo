@@ -31,7 +31,7 @@ double Num$from_text(Text_t text, bool *success);
 static inline double Num$clamped(double x, double low, double high) {
     return (x <= low) ? low : (x >= high ? high : x);
 }
-extern const TypeInfo $Num;
+extern const TypeInfo Num$info;
 
 Text_t Num32$as_text(const float *f, bool colorize, const TypeInfo *type);
 int32_t Num32$compare(const float *x, const float *y, const TypeInfo *type);
@@ -50,6 +50,6 @@ float Num32$nan(Text_t tag);
 static inline float Num32$clamped(float x, float low, float high) {
     return (x <= low) ? low : (x >= high ? high : x);
 }
-extern const TypeInfo $Num32;
+extern const TypeInfo Num32$info;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

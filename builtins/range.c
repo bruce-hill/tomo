@@ -19,18 +19,18 @@ static int32_t Range$compare(const Range_t *x, const Range_t *y, const TypeInfo 
 {
     (void)type;
     if (x == y) return 0;
-    int32_t diff = Int$compare(&x->first, &y->first, &$Int);
+    int32_t diff = Int$compare(&x->first, &y->first, &Int$info);
     if (diff != 0) return diff;
-    diff = Int$compare(&x->last, &y->last, &$Int);
+    diff = Int$compare(&x->last, &y->last, &Int$info);
     if (diff != 0) return diff;
-    return Int$compare(&x->step, &y->step, &$Int);
+    return Int$compare(&x->step, &y->step, &Int$info);
 }
 
 static bool Range$equal(const Range_t *x, const Range_t *y, const TypeInfo *type)
 {
     (void)type;
     if (x == y) return true;
-    return Int$equal(&x->first, &y->first, &$Int) && Int$equal(&x->last, &y->last, &$Int) && Int$equal(&x->step, &y->step, &$Int);
+    return Int$equal(&x->first, &y->first, &Int$info) && Int$equal(&x->last, &y->last, &Int$info) && Int$equal(&x->step, &y->step, &Int$info);
 }
 
 static Text_t Range$as_text(const Range_t *r, bool use_color, const TypeInfo *type)
@@ -40,8 +40,8 @@ static Text_t Range$as_text(const Range_t *r, bool use_color, const TypeInfo *ty
 
     return Text$format(use_color ? "\x1b[0;1mRange\x1b[m(first=%r, last=%r, step=%r)"
                        : "Range(first=%r, last=%r, step=%r)",
-                       Int$as_text(&r->first, use_color, &$Int), Int$as_text(&r->last, use_color, &$Int),
-                       Int$as_text(&r->step, use_color, &$Int));
+                       Int$as_text(&r->first, use_color, &Int$info), Int$as_text(&r->last, use_color, &Int$info),
+                       Int$as_text(&r->step, use_color, &Int$info));
 }
 
 public Range_t Range$reversed(Range_t r)

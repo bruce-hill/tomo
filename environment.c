@@ -77,13 +77,13 @@ env_t *new_compilation_unit(CORD *libname)
         CORD struct_val;
         Array_t namespace;
     } global_types[] = {
-        {"Void", Type(VoidType), "Void_t", "$Void", {}},
-        {"Memory", Type(MemoryType), "Memory_t", "$Memory", {}},
-        {"Bool", Type(BoolType), "Bool_t", "$Bool", TypedArray(ns_entry_t,
+        {"Void", Type(VoidType), "Void_t", "Void$info", {}},
+        {"Memory", Type(MemoryType), "Memory_t", "Memory$info", {}},
+        {"Bool", Type(BoolType), "Bool_t", "Bool$info", TypedArray(ns_entry_t,
             {"from_text", "Bool$from_text", "func(text:Text, success=!&Bool)->Bool"},
             {"random", "Bool$random", "func(p=0.5)->Bool"},
         )},
-        {"Int", Type(BigIntType), "Int_t", "$Int", TypedArray(ns_entry_t,
+        {"Int", Type(BigIntType), "Int_t", "Int$info", TypedArray(ns_entry_t,
             {"abs", "Int$abs", "func(x:Int)->Int"},
             {"bit_and", "Int$bit_and", "func(x:Int,y:Int)->Int"},
             {"bit_or", "Int$bit_or", "func(x:Int,y:Int)->Int"},
@@ -111,7 +111,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"times", "Int$times", "func(x:Int,y:Int)->Int"},
             {"to", "Int$to", "func(from:Int,to:Int)->Range"},
         )},
-        {"Int64", Type(IntType, .bits=TYPE_IBITS64), "Int64_t", "$Int64", TypedArray(ns_entry_t,
+        {"Int64", Type(IntType, .bits=TYPE_IBITS64), "Int64_t", "Int64$info", TypedArray(ns_entry_t,
             {"abs", "labs", "func(i:Int64)->Int64"},
             {"bits", "Int64$bits", "func(x:Int64)->[Bool]"},
             {"clamped", "Int64$clamped", "func(x:Int64,low:Int64,high:Int64)->Int64"},
@@ -127,7 +127,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"random", "Int64$random", "func(min=-0x8000000000000000_i64, max=0x7FFFFFFFFFFFFFFF_i64)->Int64"},
             {"to", "Int64$to", "func(from:Int64,to:Int64)->Range"},
         )},
-        {"Int32", Type(IntType, .bits=TYPE_IBITS32), "Int32_t", "$Int32", TypedArray(ns_entry_t,
+        {"Int32", Type(IntType, .bits=TYPE_IBITS32), "Int32_t", "Int32$info", TypedArray(ns_entry_t,
             {"abs", "abs", "func(i:Int32)->Int32"},
             {"bits", "Int32$bits", "func(x:Int32)->[Bool]"},
             {"clamped", "Int32$clamped", "func(x:Int32,low:Int32,high:Int32)->Int32"},
@@ -143,7 +143,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"random", "Int32$random", "func(min=-0x80000000_i32, max=0x7FFFFFFF_i32)->Int32"},
             {"to", "Int32$to", "func(from:Int32,to:Int32)->Range"},
         )},
-        {"Int16", Type(IntType, .bits=TYPE_IBITS16), "Int16_t", "$Int16", TypedArray(ns_entry_t,
+        {"Int16", Type(IntType, .bits=TYPE_IBITS16), "Int16_t", "Int16$info", TypedArray(ns_entry_t,
             {"abs", "abs", "func(i:Int16)->Int16"},
             {"bits", "Int16$bits", "func(x:Int16)->[Bool]"},
             {"clamped", "Int16$clamped", "func(x:Int16,low:Int16,high:Int16)->Int16"},
@@ -159,7 +159,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"random", "Int16$random", "func(min=-0x8000_i16, max=0x7FFF_i16)->Int16"},
             {"to", "Int16$to", "func(from:Int16,to:Int16)->Range"},
         )},
-        {"Int8", Type(IntType, .bits=TYPE_IBITS8), "Int8_t", "$Int8", TypedArray(ns_entry_t,
+        {"Int8", Type(IntType, .bits=TYPE_IBITS8), "Int8_t", "Int8$info", TypedArray(ns_entry_t,
             {"abs", "abs", "func(i:Int8)->Int8"},
             {"bits", "Int8$bits", "func(x:Int8)->[Bool]"},
             {"clamped", "Int8$clamped", "func(x:Int8,low:Int8,high:Int8)->Int8"},
@@ -178,7 +178,7 @@ env_t *new_compilation_unit(CORD *libname)
 #define C(name) {#name, "M_"#name, "Num"}
 #define F(name) {#name, #name, "func(n:Num)->Num"}
 #define F2(name) {#name, #name, "func(x:Num, y:Num)->Num"}
-        {"Num", Type(NumType, .bits=TYPE_NBITS64), "Num_t", "$Num", TypedArray(ns_entry_t,
+        {"Num", Type(NumType, .bits=TYPE_NBITS64), "Num_t", "Num$info", TypedArray(ns_entry_t,
             {"near", "Num$near", "func(x:Num, y:Num, ratio=1e-9, min_epsilon=1e-9)->Bool"},
             {"clamped", "Num$clamped", "func(x:Num,low:Num,high:Num)->Num"},
             {"format", "Num$format", "func(n:Num, precision=0)->Text"},
@@ -207,7 +207,7 @@ env_t *new_compilation_unit(CORD *libname)
 #define C(name) {#name, "(Num32_t)(M_"#name")", "Num32"}
 #define F(name) {#name, #name"f", "func(n:Num32)->Num32"}
 #define F2(name) {#name, #name"f", "func(x:Num32, y:Num32)->Num32"}
-        {"Num32", Type(NumType, .bits=TYPE_NBITS32), "Num32_t", "$Num32", TypedArray(ns_entry_t,
+        {"Num32", Type(NumType, .bits=TYPE_NBITS32), "Num32_t", "Num32$info", TypedArray(ns_entry_t,
             {"near", "Num32$near", "func(x:Num32, y:Num32, ratio=1e-9f32, min_epsilon=1e-9f32)->Bool"},
             {"clamped", "Num32$clamped", "func(x:Num32,low:Num32,high:Num32)->Num32"},
             {"format", "Num32$format", "func(n:Num32, precision=0)->Text"},
@@ -230,7 +230,7 @@ env_t *new_compilation_unit(CORD *libname)
             F(tan), F(tanh), F(tgamma), F(trunc), F(y0), F(y1),
             F2(atan2), F2(copysign), F2(fdim), F2(hypot), F2(nextafter), F2(pow), F2(remainder),
         )},
-        {"CString", Type(CStringType), "char*", "$CString", TypedArray(ns_entry_t,
+        {"CString", Type(CStringType), "char*", "CString$info", TypedArray(ns_entry_t,
             {"as_text", "CORD_from_char_star", "func(str:CString)->Text"},
         )},
 #undef F2
@@ -240,10 +240,10 @@ env_t *new_compilation_unit(CORD *libname)
             {"reversed", "Range$reversed", "func(range:Range)->Range"},
             {"by", "Range$by", "func(range:Range, step:Int)->Range"},
         )},
-        {"Pattern", Type(TextType, .lang="Pattern", .env=namespace_env(env, "Pattern")), "Text_t", "Pattern", TypedArray(ns_entry_t,
+        {"Pattern", Type(TextType, .lang="Pattern", .env=namespace_env(env, "Pattern")), "Pattern_t", "Pattern$info", TypedArray(ns_entry_t,
             {"escape_text", "Pattern$escape_text", "func(text:Text)->Pattern"},
         )},
-        {"Text", TEXT_TYPE, "Text_t", "$Text", TypedArray(ns_entry_t,
+        {"Text", TEXT_TYPE, "Text_t", "Text$info", TypedArray(ns_entry_t,
             {"find", "Text$find", "func(text:Text, pattern:Pattern, start=1, length=!&Int64)->Int"},
             {"find_all", "Text$find_all", "func(text:Text, pattern:Pattern)->[Text]"},
             {"as_c_string", "CORD_to_char_star", "func(text:Text)->CString"},

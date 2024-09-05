@@ -25,15 +25,15 @@ public Text_t Type$as_text(const void *typeinfo, bool colorize, const TypeInfo *
         return Text$from_str(type->TypeInfoInfo.type_str);
 }
 
-public const TypeInfo $TypeInfo = {
+public const TypeInfo TypeInfo$info = {
     .size=sizeof(TypeInfo),
     .align=__alignof__(TypeInfo),
     .tag=CustomInfo,
     .TypeInfoInfo.type_str="TypeInfo",
 };
 
-public const TypeInfo $Void = {.size=0, .align=0, .tag=EmptyStruct};
-public const TypeInfo $Abort = {.size=0, .align=0, .tag=EmptyStruct};
+public const TypeInfo Void$info = {.size=0, .align=0, .tag=EmptyStruct};
+public const TypeInfo Abort$info = {.size=0, .align=0, .tag=EmptyStruct};
 
 public Text_t Func$as_text(const void *fn, bool colorize, const TypeInfo *type)
 {

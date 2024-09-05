@@ -16,6 +16,6 @@ Text_t Bool$as_text(const bool *b, bool colorize, const TypeInfo *type);
 bool Bool$from_text(Text_t text, bool *success);
 Bool_t Bool$random(double p);
 
-extern const TypeInfo $Bool;
+extern const TypeInfo Bool$info;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

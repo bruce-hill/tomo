@@ -13,6 +13,6 @@ int CString$compare(const char **x, const char **y);
 bool CString$equal(const char **x, const char **y);
 uint64_t CString$hash(const char **str);
 
-extern const TypeInfo $CString;
+extern const TypeInfo CString$info;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

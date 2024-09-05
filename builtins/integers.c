@@ -318,7 +318,7 @@ public Int_t Int$sqrt(Int_t i)
 public Int_t Int$random(Int_t min, Int_t max) {
     int32_t cmp = Int$compare_value(min, max);
     if (cmp > 0) {
-        Text_t min_text = Int$as_text(&min, false, &$Int), max_text = Int$as_text(&max, false, &$Int);
+        Text_t min_text = Int$as_text(&min, false, &Int$info), max_text = Int$as_text(&max, false, &Int$info);
         fail("Random minimum value (%k) is larger than the maximum value (%k)",
              &min_text, &max_text);
     }
@@ -387,11 +387,11 @@ public Int_t Int$prev_prime(Int_t x)
     mpz_t p;
     mpz_init_set_int(p, x);
     if (mpz_prevprime(p, p) == 0)
-        fail("There is no prime number before %k", (Text_t[1]){Int$as_text(&x, false, &$Int)});
+        fail("There is no prime number before %k", (Text_t[1]){Int$as_text(&x, false, &Int$info)});
     return Int$from_mpz(p);
 }
 
-public const TypeInfo $Int = {
+public const TypeInfo Int$info = {
     .size=sizeof(Int_t),
     .align=__alignof__(Int_t),
     .tag=CustomInfo,
@@ -476,7 +476,7 @@ public const TypeInfo $Int = {
     } \
     public const c_type KindOfInt##$min = min_val; \
     public const c_type KindOfInt##$max = max_val; \
-    public const TypeInfo $ ## KindOfInt = { \
+    public const TypeInfo KindOfInt##$info = { \
         .size=sizeof(c_type), \
         .align=__alignof__(c_type), \
         .tag=CustomInfo, \

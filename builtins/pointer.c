@@ -54,7 +54,7 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo *type
                 colorize ? Text("\x1b[34;1m") : Text(""),
                 Text$from_str(ptr_info.sigil),
                 Text(".."),
-                Int32$as_text(&depth, false, &$Int32),
+                Int32$as_text(&depth, false, &Int32$info),
                 colorize ? Text("\x1b[m") : Text(""));
             if (ptr_info.is_optional)
                 text = Text$concat(text, colorize ? Text("\x1b[34;1m?\x1b[m") : Text("?"));

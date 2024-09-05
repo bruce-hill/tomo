@@ -38,7 +38,7 @@
         return x < min ? min : (x > max ? max : x); \
     } \
     extern const c_type type_name ## $min, type_name##$max; \
-    extern const TypeInfo $ ## type_name; \
+    extern const TypeInfo type_name ## $info; \
     static inline c_type type_name ## $divided_by(c_type D, c_type d) { \
         c_type q = D/d, r = D%d; \
         if (r < 0) { \
@@ -126,11 +126,11 @@ bool Int$is_prime(Int_t x, Int_t reps);
 Int_t Int$next_prime(Int_t x);
 Int_t Int$prev_prime(Int_t x);
 
-extern const TypeInfo $Int;
+extern const TypeInfo Int$info;
 
 static inline Int_t Int$clamped(Int_t x, Int_t low, Int_t high)
 {
-    return (Int$compare(&x, &low, &$Int) <= 0) ? low : (Int$compare(&x, &high, &$Int) >= 0 ? high : x);
+    return (Int$compare(&x, &low, &Int$info) <= 0) ? low : (Int$compare(&x, &high, &Int$info) >= 0 ? high : x);
 }
 
 // Fast-path inline versions for the common case where integer arithmetic is

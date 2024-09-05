@@ -46,7 +46,7 @@ public uint32_t CString$hash(const char **c_str)
     return hash;
 }
 
-public const TypeInfo $CString = {
+public const TypeInfo CString$info = {
     .size=sizeof(char*),
     .align=__alignof__(char*),
     .tag=CustomInfo,

@@ -126,7 +126,7 @@ static const TypeInfo GraphemeClusterInfo = {
 
 static const TypeInfo GraphemeIDLookupTableInfo = {
     .size=sizeof(Table_t), .align=__alignof__(Table_t),
-    .tag=TableInfo, .TableInfo={.key=&GraphemeClusterInfo, .value=&$Int32},
+    .tag=TableInfo, .TableInfo={.key=&GraphemeClusterInfo, .value=&Int32$info},
 };
 
 int32_t get_synthetic_grapheme(const uint32_t *codepoints, int64_t utf32_len)
@@ -1762,8 +1762,8 @@ public Text_t Text$as_text(const void *text, bool colorize, const TypeInfo *info
 {
     (void)info;
     if (!text) return info && info->TextInfo.lang ? Text$from_str(info->TextInfo.lang) : Text("Text");
-    Text_t as_text = _quoted(*(Text_t*)text, colorize, info == &Pattern ? '/' : '"');
-    if (info && info->TextInfo.lang && info != &$Text && info != &Pattern)
+    Text_t as_text = _quoted(*(Text_t*)text, colorize, info == &Pattern$info ? '/' : '"');
+    if (info && info->TextInfo.lang && info != &Text$info && info != &Pattern$info)
         as_text = Text$concat(
             colorize ? Text("\x1b[1m$") : Text("$"),
             Text$from_str(info->TextInfo.lang),
@@ -2165,7 +2165,7 @@ public Array_t Text$lines(Text_t text)
     return lines;
 }
 
-public const TypeInfo $Text = {
+public const TypeInfo Text$info = {
     .size=sizeof(Text_t),
     .align=__alignof__(Text_t),
     .tag=TextInfo,
@@ -2202,7 +2202,7 @@ public Pattern_t Pattern$escape_text(Text_t text)
 #undef add_escaped
 }
 
-public const TypeInfo Pattern = {
+public const TypeInfo Pattern$info = {
     .size=sizeof(Text_t),
     .align=__alignof__(Text_t),
     .tag=TextInfo,

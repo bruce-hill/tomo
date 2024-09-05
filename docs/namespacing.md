@@ -49,7 +49,7 @@ static CORD foo$Baz$as_text(foo$Baz_t *obj, bool use_color)
     if (!obj)
         return "Baz";
     return CORD_all(use_color ? "\x1b[0;1mBaz\x1b[m(" : "Baz(", "x=",
-                    Int$as_text(stack(obj->$x), use_color, &$Int), ")");
+                    Int$as_text(stack(obj->$x), use_color, &Int$info), ")");
 }
 
 public Int_t foo$Baz$frob(struct foo$Baz_s $b)
