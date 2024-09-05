@@ -256,3 +256,20 @@ func main():
 
 	>> "Abc":repeat(3)
 	= "AbcAbcAbc"
+
+	do:
+		!! Testing concatenation-stability:
+		>> ab := Text.from_codepoint_names(["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"])
+		>> ab:codepoint_names()
+		= ["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"]
+		>> ab.length
+		= 1
+
+		>> a := Text.from_codepoint_names(["LATIN SMALL LETTER E"])
+		>> b := Text.from_codepoint_names(["COMBINING VERTICAL LINE BELOW"])
+		>> (a++b):codepoint_names()
+		= ["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"]
+		>> (a++b) == ab
+		= yes
+		>> (a++b).length
+		= 1

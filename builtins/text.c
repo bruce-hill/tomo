@@ -111,6 +111,7 @@ const int32_t CRLF_GRAPHEME = -1;
 
 static int32_t get_grapheme(Text_t text, int64_t index);
 static int32_t _next_grapheme(Text_t text, iteration_state_t *state, int64_t index);
+static Text_t text_from_u32(uint32_t *codepoints, int64_t num_codepoints, bool normalize);
 
 static bool graphemes_equal(uint32_t **a, uint32_t **b) {
     if ((*a)[0] != (*b)[0]) return false;
@@ -299,7 +300,58 @@ public int Text$print(FILE *stream, Text_t t)
     }
 }
 
-static Text_t concat2(Text_t a, Text_t b)
+static bool is_concat_stable(Text_t a, Text_t b)
+{
+    /* If either string is empty, we're good. */
+    if (a.length == 0 || b.length == 0)
+        return true;
+
+    /* Get first and last graphemes of the strings. */
+    int32_t last_a = get_grapheme(a, a.length-1);
+    int32_t first_b = get_grapheme(b, 0);
+
+    if (first_b == '\n')
+        /* If we see \r + \n we need to renormalize. Otherwise we're good */
+        return (last_a != '\r');
+
+    /* As a control code we are always going to break if we see one of these.
+     * Check first_b for speeding up line endings */
+    if (first_b == CRLF_GRAPHEME || last_a == CRLF_GRAPHEME)
+        return 0;
+
+    /* If either is synthetic other than "\r\n", assume we'll have to re-normalize
+     * (this is an over-estimate, most likely). Note if you optimize this that it
+     * serves as a guard for what follows.
+     * TODO get the last codepoint of last_a and first codepoint of first_b and call
+     * MVM_unicode_normalize_should_break */
+    if (last_a < 0 || first_b < 0)
+        return 0;
+
+    /* If both less than the first significant char for NFC we are good */
+    static const int32_t LOWEST_CODEPOINT_TO_CHECK = 0x300;
+    if (last_a < LOWEST_CODEPOINT_TO_CHECK && first_b < LOWEST_CODEPOINT_TO_CHECK)
+        return true;
+
+    /* Check if the two codepoints would be joined during normalization.
+     * Returns 1 if they would break and thus is safe under concat, or 0 if
+     * they would be joined. */
+    uint32_t codepoints[2] = {(uint32_t)last_a, (uint32_t)first_b};
+
+    // Normalization should not exceed 3x in the input length
+    uint32_t norm_buf[3*2];
+    size_t norm_length = sizeof(norm_buf)/sizeof(norm_buf[0]);
+    uint32_t *normalized = u32_normalize(UNINORM_NFC, codepoints, 2, norm_buf, &norm_length);
+    if (norm_length != 2) {
+        if (normalized != norm_buf) free(normalized);
+        return false;
+    }
+
+    const void *second_grapheme = u32_grapheme_next(normalized, &normalized[2]);
+    if (normalized != norm_buf) free(normalized);
+    return (second_grapheme == &normalized[1]);
+}
+
+static Text_t concat2_assuming_safe(Text_t a, Text_t b)
 {
     if (a.length == 0) return b;
     if (b.length == 0) return a;
@@ -347,6 +399,40 @@ static Text_t concat2(Text_t a, Text_t b)
     }
 }
 
+static Text_t concat2(Text_t a, Text_t b)
+{
+    if (a.length == 0) return b;
+    if (b.length == 0) return a;
+
+    if (__builtin_expect(is_concat_stable(a, b), 1))
+        return concat2_assuming_safe(a, b);
+
+    // Do full normalization of the last/first characters
+    int32_t last_a = get_grapheme(a, a.length-1);
+    int32_t first_b = get_grapheme(b, 0);
+
+    size_t utf32_len = (last_a >= 0 ? 1 : NUM_GRAPHEME_CODEPOINTS(last_a)) + (first_b >= 0 ? 1 : NUM_GRAPHEME_CODEPOINTS(first_b)); 
+    uint32_t join_graphemes[utf32_len] = {};
+    uint32_t *p = &join_graphemes[0];
+    if (last_a < 0) p = mempcpy(p, GRAPHEME_CODEPOINTS(last_a), NUM_GRAPHEME_CODEPOINTS(last_a));
+    else *(p++) = last_a;
+    if (first_b < 0) p = mempcpy(p, GRAPHEME_CODEPOINTS(first_b), NUM_GRAPHEME_CODEPOINTS(first_b));
+    else *(p++) = first_b;
+
+    Text_t glue = text_from_u32(join_graphemes, utf32_len, true);
+
+    if (a.length == 1 && b.length == 1)
+        return glue;
+    else if (a.length == 1)
+        return concat2_assuming_safe(glue, Text$slice(b, I(2), I(b.length)));
+    else if (b.length == 1)
+        return concat2_assuming_safe(Text$slice(a, I(1), I(a.length-1)), glue);
+    else
+        return concat2_assuming_safe(
+            concat2_assuming_safe(Text$slice(a, I(1), I(a.length-1)), glue),
+            b);
+}
+
 public Text_t Text$_concat(int n, Text_t items[n])
 {
     if (n == 0) return (Text_t){.length=0};
@@ -361,7 +447,7 @@ public Text_t Text$_concat(int n, Text_t items[n])
     }
 
     Text_t ret = {
-        .length=len,
+        .length=0,
         .tag=TEXT_SUBTEXT,
         .subtexts=GC_MALLOC(sizeof(Text_t[len])),
     };
@@ -369,6 +455,12 @@ public Text_t Text$_concat(int n, Text_t items[n])
     for (int i = 0; i < n; i++) {
         if (items[i].length == 0)
             continue;
+
+        if (i > 0 && !__builtin_expect(is_concat_stable(items[i-1], items[i]), 1)) {
+            // Oops, guess this wasn't stable for concatenation, let's break it
+            // up into subtasks:
+            return concat2(ret, Text$_concat(n-i, &items[i]));
+        }
 
         if (items[i].tag == TEXT_SUBTEXT) {
             for (int64_t j = 0, remainder = items[i].length; remainder > 0; j++) {
@@ -378,6 +470,7 @@ public Text_t Text$_concat(int n, Text_t items[n])
         } else {
             ret.subtexts[sub_i++] = items[i];
         }
+        ret.length += items[i].length;
     }
     return ret;
 }
@@ -509,7 +602,8 @@ public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
 
 Text_t text_from_u32(uint32_t *codepoints, int64_t num_codepoints, bool normalize)
 {
-    uint32_t norm_buf[128];
+    // Normalization is apparently guaranteed to never exceed 3x in the input length
+    uint32_t norm_buf[MIN(256, 3*num_codepoints)];
     if (normalize) {
         size_t norm_length = sizeof(norm_buf)/sizeof(norm_buf[0]);
         uint32_t *normalized = u32_normalize(UNINORM_NFC, codepoints, num_codepoints, norm_buf, &norm_length);
@@ -517,8 +611,8 @@ Text_t text_from_u32(uint32_t *codepoints, int64_t num_codepoints, bool normaliz
         num_codepoints = norm_length;
     }
 
-    char breaks[num_codepoints];
-    u32_grapheme_breaks(codepoints, num_codepoints, breaks);
+    // char breaks[num_codepoints];
+    // u32_grapheme_breaks(codepoints, num_codepoints, breaks);
 
     Text_t ret = {
         .length=0,
@@ -535,6 +629,7 @@ Text_t text_from_u32(uint32_t *codepoints, int64_t num_codepoints, bool normaliz
             ret.graphemes = graphemes;
         }
 
+        // TODO: use grapheme breaks instead of u32_grapheme_next()
         const uint32_t *next = u32_grapheme_next(src, &codepoints[num_codepoints]);
         if (next == &src[1]) {
             graphemes[ret.length] = (int32_t)*src;
