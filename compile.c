@@ -1253,7 +1253,9 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
 {
     switch (t->tag) {
     case MemoryType: return CORD_asprintf("Memory$as_text(stack(%r), %r, &Memory$info)", expr, color);
-    case BoolType: return CORD_asprintf("Bool$as_text((Bool_t[1]){%r}, %r, &Bool$info)", expr, color);
+    case BoolType:
+         // NOTE: this cannot use stack(), since bools may actually be bit fields:
+         return CORD_asprintf("Bool$as_text((Bool_t[1]){%r}, %r, &Bool$info)", expr, color);
     case CStringType: return CORD_asprintf("CString$as_text(stack(%r), %r, &CString$info)", expr, color);
     case BigIntType: case IntType: {
         CORD name = type_to_cord(t);
