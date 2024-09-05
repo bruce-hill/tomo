@@ -248,6 +248,27 @@ static CORD compile_assignment(env_t *env, ast_t *target, CORD value)
     return CORD_all(compile_lvalue(env, target), " = ", value);
 }
 
+static CORD compile_inline_block(env_t *env, ast_t *ast)
+{
+    if (ast->tag != Block)
+        return compile_statement(env, ast);
+
+    CORD code = CORD_EMPTY;
+    ast_list_t *stmts = Match(ast, Block)->statements;
+    deferral_t *prev_deferred = env->deferred;
+    env = fresh_scope(env);
+    for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next)
+        prebind_statement(env, stmt->ast);
+    for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next) {
+        bind_statement(env, stmt->ast);
+        code = CORD_all(code, compile_statement(env, stmt->ast), "\n");
+    }
+    for (deferral_t *deferred = env->deferred; deferred && deferred != prev_deferred; deferred = deferred->next) {
+        code = CORD_all(code, compile_statement(deferred->defer_env, deferred->block));
+    }
+    return code;
+}
+
 CORD compile_statement(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
@@ -910,9 +931,10 @@ CORD compile_statement(env_t *env, ast_t *ast)
             .next=body_scope->loop_ctx,
         };
         body_scope->loop_ctx = &loop_ctx;
-        CORD body = compile_statement(body_scope, for_->body);
+        // Naked means no enclosing braces:
+        CORD naked_body = compile_inline_block(body_scope, for_->body);
         if (loop_ctx.skip_label)
-            body = CORD_all(body, "\n", loop_ctx.skip_label, ": continue;");
+            naked_body = CORD_all(naked_body, "\n", loop_ctx.skip_label, ": continue;");
         CORD stop = loop_ctx.stop_label ? CORD_all("\n", loop_ctx.stop_label, ":;") : CORD_EMPTY;
 
         if (iter_t == RANGE_TYPE) {
@@ -926,7 +948,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 "if (range.step.small == 0) fail(\"This range has a 'step' of zero and will loop infinitely!\");\n"
                 "bool negative = (Int$compare_value(range.step, I(0)) < 0);\n"
                 "for (Int_t ", value, " = range.first; ({ int32_t cmp = Int$compare_value(", value, ", range.last); negative ? cmp >= 0 : cmp <= 0;}) ; ", value, " = Int$plus(", value, ", range.step)) {\n"
-                "\t", body,
+                "\t", naked_body,
                 "\n}",
                 stop,
                 "\n}");
@@ -973,15 +995,15 @@ CORD compile_statement(env_t *env, ast_t *ast)
             // }
 
             if (index != CORD_EMPTY)
-                body = CORD_all("Int_t ", index, " = I(i);\n", body);
+                naked_body = CORD_all("Int_t ", index, " = I(i);\n", naked_body);
 
             if (value != CORD_EMPTY) {
                 loop = CORD_all(loop, "{\n",
                                 compile_declaration(item_t, value),
                                 " = *(", compile_type(item_t), "*)(iterating.data + (i-1)*iterating.stride);\n",
-                                body, "\n}");
+                                naked_body, "\n}");
             } else {
-                loop = CORD_all(loop, "{\n", body, "\n}");
+                loop = CORD_all(loop, "{\n", naked_body, "\n}");
             }
 
             if (can_be_mutated(env, array) && is_idempotent(array)) {
@@ -1037,7 +1059,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 }
             }
 
-            loop = CORD_all(loop, body, "\n}");
+            loop = CORD_all(loop, naked_body, "\n}");
 
             if (for_->empty) {
                 loop = CORD_all("if (iterating.length > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
@@ -1060,27 +1082,40 @@ CORD compile_statement(env_t *env, ast_t *ast)
             return loop;
         }
         case BigIntType: {
-            CORD n = compile(env, for_->iter);
+            CORD n;
+            if (for_->iter->tag == Int) {
+                const char *str = Match(for_->iter, Int)->str;
+                Int_t int_val = Int$from_str(str, NULL);
+                mpz_t i;
+                mpz_init_set_int(i, int_val);
+                if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0)
+                    n = mpz_get_str(NULL, 10, i);
+                else
+                    goto big_n;
+            } else {
+              big_n:
+                n = CORD_all("Int_to_Int64(", compile(env, for_->iter), ", false)");
+            }
+
             if (for_->empty) {
                 return CORD_all(
                     "{\n"
-                    "int64_t n = Int_to_Int64(", n, ", false);\n"
+                    "int64_t n = ", n, ";\n"
                     "if (n > 0) {\n"
                     "for (int64_t i = 1; i <= n; ++i) {\n",
                     for_->vars ? CORD_all("\tInt_t ", compile(body_scope, for_->vars->ast), " = I(i);\n") : CORD_EMPTY,
-                    "\t", body,
-                    "\n}"
-                    "\n} else ", compile_statement(env, for_->empty),
-                    stop,
-                    "\n}");
+                    "\t", naked_body,
+                    "}\n"
+                    "} else ", compile_statement(env, for_->empty),
+                    stop, "\n"
+                    "}\n");
             } else {
                 return CORD_all(
-                    "for (int64_t i = 1, n = Int_to_Int64(", compile(env, for_->iter), ", false); i <= n; ++i) {\n",
+                    "for (int64_t i = 1, n = ", n, "; i <= n; ++i) {\n",
                     for_->vars ? CORD_all("\tInt_t ", compile(body_scope, for_->vars->ast), " = I(i);\n") : CORD_EMPTY,
-                    "\t", body,
-                    "\n}",
-                    stop,
-                    "\n");
+                    "\t", naked_body,
+                    "}\n",
+                    stop, "\n");
             }
         }
         case FunctionType: case ClosureType: {
@@ -1112,10 +1147,10 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
             if (for_->empty) {
                 code = CORD_all(code, "if (", next_fn, ") {\n"
-                                "\tdo{\n\t\t", body, "\t} while(", next_fn, ");\n"
+                                "\tdo{\n\t\t", naked_body, "\t} while(", next_fn, ");\n"
                                 "} else {\n\t", compile_statement(env, for_->empty), "}", stop, "\n}\n");
             } else {
-                code = CORD_all(code, "for(; ", next_fn, "; ) {\n\t", body, "}\n", stop, "\n}\n");
+                code = CORD_all(code, "for(; ", next_fn, "; ) {\n\t", naked_body, "}\n", stop, "\n}\n");
             }
             return code;
         }
@@ -1138,20 +1173,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         return code;
     }
     case Block: {
-        ast_list_t *stmts = Match(ast, Block)->statements;
-        CORD code = "{\n";
-        deferral_t *prev_deferred = env->deferred;
-        env = fresh_scope(env);
-        for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next)
-            prebind_statement(env, stmt->ast);
-        for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next) {
-            bind_statement(env, stmt->ast);
-            code = CORD_all(code, compile_statement(env, stmt->ast), "\n");
-        }
-        for (deferral_t *deferred = env->deferred; deferred && deferred != prev_deferred; deferred = deferred->next) {
-            code = CORD_all(code, compile_statement(deferred->defer_env, deferred->block));
-        }
-        return CORD_cat(code, "}\n");
+        return CORD_all("{\n", compile_inline_block(env, ast), "}\n");
     }
     case Comprehension: {
         auto comp = Match(ast, Comprehension);
