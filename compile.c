@@ -3104,6 +3104,11 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
         code = CORD_all(code, "Text_t usage = Texts(Text(\"Usage: \"), Text$from_str(argv[0])",
                         usage == CORD_EMPTY ? CORD_EMPTY : CORD_all(", Text(", CORD_quoted(usage), ")"), ");\n");
 
+    CORD help_code = "usage";
+    binding_t *help_binding = get_binding(env, "HELP");
+    if (help_binding)
+        help_code = help_binding->code;
+
     code = CORD_all(code, "#define USAGE_ERR(fmt, ...) errx(1, fmt \"\\n%s\" __VA_OPT__(,) __VA_ARGS__, Text$as_c_string(", usage_code, "))\n"
                     "#define IS_FLAG(str, flag) (strncmp(str, flag, strlen(flag) == 0 && (str[strlen(flag)] == 0 || str[strlen(flag)] == '=')) == 0)\n");
 
@@ -3126,7 +3131,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                     "if (strncmp(argv[i], \"--\", 2) != 0) {\n++i;\ncontinue;\n}\n");
     if (!has_help) {
         code = CORD_all(code, "else if (pop_flag(argv, &i, \"help\", &flag)) {\n"
-                        "Text$print(stdout, ", usage_code, ");\n"
+                        "Text$print(stdout, ", help_code, ");\n"
                         "puts(\"\");\n"
                         "return 0;\n"
                         "}\n");
