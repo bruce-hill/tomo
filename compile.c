@@ -877,8 +877,30 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case For: {
         auto for_ = Match(ast, For);
-        // TODO: optimize case for iterating over comprehensions so we don't need to create
-        // an intermediary array/table
+
+        // If we're iterating over a comprehension, that's actually just doing
+        // one loop, we don't need to compile the comprehension as an array
+        // comprehension. This is a common case for reducers like `(+) i*2 for i in 5`
+        // or `(and) x:is_good() for x in xs`
+        if (for_->iter->tag == Comprehension) {
+            auto comp = Match(for_->iter, Comprehension);
+            ast_t *body = for_->body;
+            if (for_->vars) {
+                if (for_->vars->next)
+                    code_err(for_->vars->next->ast, "This is too many variables for iteration");
+
+                body = WrapAST(
+                    ast, Block,
+                    .statements=new(ast_list_t, .ast=WrapAST(ast, Declare, .var=for_->vars->ast, .value=comp->expr),
+                                    .next=body->tag == Block ? Match(body, Block)->statements : new(ast_list_t, .ast=body)));
+            }
+
+            if (comp->filter)
+                body = WrapAST(for_->body, If, .condition=comp->filter, .body=body);
+            ast_t *loop = WrapAST(ast, For, .vars=comp->vars, .iter=comp->iter, .body=body);
+            return compile_statement(env, loop);
+        }
+
         type_t *iter_t = get_type(env, for_->iter);
         env_t *body_scope = for_scope(env, ast);
         loop_ctx_t loop_ctx = (loop_ctx_t){
