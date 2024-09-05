@@ -129,7 +129,7 @@ const TypeInfo *type_to_type_info(type_t *t)
         const TypeInfo *key_info = type_to_type_info(Match(t, TableType)->key_type);
         const TypeInfo *value_info = type_to_type_info(Match(t, TableType)->value_type);
         const TypeInfo table_info = {
-            .size=sizeof(table_t), .align=__alignof__(table_t),
+            .size=sizeof(Table_t), .align=__alignof__(Table_t),
             .tag=TableInfo, .TableInfo.key=key_info, .TableInfo.value=value_info};
         return memcpy(GC_MALLOC(sizeof(TypeInfo)), &table_info, sizeof(TypeInfo));
     }
@@ -481,7 +481,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
             break;
         }
         case TableType: {
-            table_t table;
+            Table_t table;
             eval(env, index->indexed, &table);
             type_t *key_type = Match(indexed_t, TableType)->key_type;
             size_t key_size = type_size(key_type);
@@ -520,7 +520,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
     case Table: {
         assert(t->tag == TableType);
         auto table_ast = Match(ast, Table);
-        table_t table = {};
+        Table_t table = {};
         size_t key_size = type_size(Match(t, TableType)->key_type);
         size_t value_size = type_size(Match(t, TableType)->value_type);
         char key_buf[key_size] = {};
@@ -535,7 +535,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         }
         if (table_ast->fallback)
             eval(env, table_ast->fallback, &table.fallback);
-        memcpy(dest, &table, sizeof(table_t));
+        memcpy(dest, &table, sizeof(Table_t));
         break;
     }
     case Block: {

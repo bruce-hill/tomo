@@ -57,11 +57,11 @@ typedef struct TypeInfo {
                                                  .tag=PointerInfo, .PointerInfo={.sigil=sigil_expr, .pointed=pointed_info, .is_optional=opt}})
 #define $ArrayInfo(item_info) &((TypeInfo){.size=sizeof(Array_t), .align=__alignof__(Array_t), \
                                 .tag=ArrayInfo, .ArrayInfo.item=item_info})
-#define $SetInfo(item_info) &((TypeInfo){.size=sizeof(table_t), .align=__alignof__(table_t), \
+#define $SetInfo(item_info) &((TypeInfo){.size=sizeof(Table_t), .align=__alignof__(Table_t), \
                               .tag=TableInfo, .TableInfo.key=item_info, .TableInfo.value=&$Void})
 #define $ChannelInfo(item_info) &((TypeInfo){.size=sizeof(channel_t), .align=__alignof__(channel_t), \
                                 .tag=ChannelInfo, .ChannelInfo.item=item_info})
-#define $TableInfo(key_expr, value_expr) &((TypeInfo){.size=sizeof(table_t), .align=__alignof__(table_t), \
+#define $TableInfo(key_expr, value_expr) &((TypeInfo){.size=sizeof(Table_t), .align=__alignof__(Table_t), \
                                            .tag=TableInfo, .TableInfo.key=key_expr, .TableInfo.value=value_expr})
 #define $FunctionInfo(typestr) &((TypeInfo){.size=sizeof(void*), .align=__alignof__(void*), \
                                  .tag=FunctionInfo, .FunctionInfo.type_str=typestr})

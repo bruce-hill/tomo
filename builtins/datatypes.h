@@ -54,7 +54,7 @@ typedef struct table_s {
     Array_t entries;
     bucket_info_t *bucket_info;
     struct table_s *fallback;
-} table_t;
+} Table_t;
 
 typedef struct {
     void *fn, *userdata;

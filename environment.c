@@ -17,10 +17,10 @@ env_t *new_compilation_unit(CORD *libname)
 {
     env_t *env = new(env_t);
     env->code = new(compilation_unit_t);
-    env->types = new(table_t);
-    env->globals = new(table_t);
-    env->locals = new(table_t, .fallback=env->globals);
-    env->imports = new(table_t);
+    env->types = new(Table_t);
+    env->globals = new(Table_t);
+    env->locals = new(Table_t, .fallback=env->globals);
+    env->imports = new(Table_t);
     env->libname = libname;
 
     if (!TEXT_TYPE)
@@ -352,7 +352,7 @@ env_t *global_scope(env_t *env)
 {
     env_t *scope = new(env_t);
     *scope = *env;
-    scope->locals = new(table_t, .fallback=env->globals);
+    scope->locals = new(Table_t, .fallback=env->globals);
     return scope;
 }
 
@@ -360,7 +360,7 @@ env_t *fresh_scope(env_t *env)
 {
     env_t *scope = new(env_t);
     *scope = *env;
-    scope->locals = new(table_t, .fallback=env->locals);
+    scope->locals = new(Table_t, .fallback=env->locals);
     return scope;
 }
 
@@ -479,7 +479,7 @@ env_t *namespace_env(env_t *env, const char *namespace_name)
 
     env_t *ns_env = new(env_t);
     *ns_env = *env;
-    ns_env->locals = new(table_t, .fallback=env->locals);
+    ns_env->locals = new(Table_t, .fallback=env->locals);
     ns_env->namespace = new(namespace_t, .name=namespace_name, .parent=env->namespace);
     return ns_env;
 }

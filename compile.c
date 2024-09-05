@@ -101,7 +101,7 @@ CORD compile_maybe_incref(env_t *env, ast_t *ast)
 }
 
 
-static table_t *get_closed_vars(env_t *env, ast_t *lambda_ast)
+static Table_t *get_closed_vars(env_t *env, ast_t *lambda_ast)
 {
     auto lambda = Match(lambda_ast, Lambda);
     env_t *body_scope = fresh_scope(env);
@@ -114,7 +114,7 @@ static table_t *get_closed_vars(env_t *env, ast_t *lambda_ast)
     fn_ctx_t fn_ctx = (fn_ctx_t){
         .parent=env->fn_ctx,
         .closure_scope=env->locals,
-        .closed_vars=new(table_t),
+        .closed_vars=new(Table_t),
     };
     body_scope->fn_ctx = &fn_ctx;
     body_scope->locals->fallback = env->globals;
@@ -170,9 +170,9 @@ CORD compile_type(type_t *t)
         return text->lang ? CORD_all(namespace_prefix(text->env->libname, text->env->namespace->parent), text->lang, "_t") : "Text_t";
     }
     case ArrayType: return "Array_t";
-    case SetType: return "table_t";
+    case SetType: return "Table_t";
     case ChannelType: return "channel_t*";
-    case TableType: return "table_t";
+    case TableType: return "Table_t";
     case FunctionType: {
         auto fn = Match(t, FunctionType);
         CORD code = CORD_all(compile_type(fn->ret), " (*)(");
@@ -739,7 +739,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                                              "extern const TypeInfo ", namespace_prefix(env->libname, env->namespace), arg_type_name, ";\n");
             CORD wrapper = CORD_all(
                 is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
-                "static table_t cache = {};\n",
+                "static Table_t cache = {};\n",
                 compile_type(args_t), " args = {", all_args, "};\n"
                 "const TypeInfo *table_type = $TableInfo(", compile_type_info(env, args_t), ", ", compile_type_info(env, ret_t), ");\n",
                 compile_declaration(Type(PointerType, .pointed=ret_t, .is_optional=true), "cached"), " = Table$get_raw(cache, &args, table_type);\n"
@@ -809,7 +809,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
     case Pass: return ";";
     case Defer: {
         ast_t *body = Match(ast, Defer)->body;
-        table_t *closed_vars = get_closed_vars(env, FakeAST(Lambda, .args=NULL, .body=body));
+        Table_t *closed_vars = get_closed_vars(env, FakeAST(Lambda, .args=NULL, .body=body));
 
         static int defer_id = 0;
         env_t *defer_env = fresh_scope(env);
@@ -1389,7 +1389,7 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
 
 CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args)
 {
-    table_t used_args = {};
+    Table_t used_args = {};
     CORD code = CORD_EMPTY;
     env_t *default_scope = global_scope(env);
     for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
@@ -2037,7 +2037,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Table: {
         auto table = Match(ast, Table);
         if (!table->entries) {
-            CORD code = "((table_t){";
+            CORD code = "((Table_t){";
             if (table->fallback)
                 code = CORD_all(code, ".fallback=", compile(env, table->fallback),",");
             return CORD_cat(code, "})");
@@ -2081,7 +2081,7 @@ CORD compile(env_t *env, ast_t *ast)
             env_t *scope = fresh_scope(env);
             scope->comprehension_var = heap_strf("table$%ld", comp_num++);
 
-            CORD code = CORD_all("({ table_t ", scope->comprehension_var, " = {");
+            CORD code = CORD_all("({ Table_t ", scope->comprehension_var, " = {");
             if (table->fallback)
                 code = CORD_all(code, ".fallback=heap(", compile(env, table->fallback), "), ");
 
@@ -2107,7 +2107,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Set: {
         auto set = Match(ast, Set);
         if (!set->items)
-            return "((table_t){})";
+            return "((Table_t){})";
 
         type_t *set_type = get_type(env, ast);
         type_t *item_type = Match(set_type, SetType)->item_type;
@@ -2139,7 +2139,7 @@ CORD compile(env_t *env, ast_t *ast)
             env_t *scope = fresh_scope(env);
             scope->comprehension_var = heap_strf("set$%ld", comp_num++);
 
-            CORD code = CORD_all("({ table_t ", scope->comprehension_var, " = {};");
+            CORD code = CORD_all("({ Table_t ", scope->comprehension_var, " = {};");
             set_binding(scope, scope->comprehension_var, new(binding_t, .type=set_type, .code=scope->comprehension_var));
             for (ast_list_t *item = set->items; item; item = item->next) {
                 if (item->ast->tag == Comprehension) {
@@ -2178,7 +2178,7 @@ CORD compile(env_t *env, ast_t *ast)
         fn_ctx_t fn_ctx = (fn_ctx_t){
             .parent=env->fn_ctx,
             .closure_scope=env->locals,
-            .closed_vars=new(table_t),
+            .closed_vars=new(Table_t),
         };
         body_scope->fn_ctx = &fn_ctx;
         body_scope->locals->fallback = env->globals;
@@ -2205,7 +2205,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD args_typedef = compile_statement_typedefs(env, ast);
         env->code->local_typedefs = CORD_all(env->code->local_typedefs, args_typedef);
 
-        table_t *closed_vars = get_closed_vars(env, ast);
+        Table_t *closed_vars = get_closed_vars(env, ast);
         CORD userdata;
         if (Table$length(*closed_vars) == 0) {
             code = CORD_cat(code, "void *userdata)");
@@ -2419,7 +2419,7 @@ CORD compile(env_t *env, ast_t *ast)
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "add_all")) {
                 arg_t *arg_spec = new(arg_t, .name="items", .type=Type(ArrayType, .item_type=Match(self_value_t, SetType)->item_type));
-                return CORD_all("({ table_t *set = ", compile_to_pointer_depth(env, call->self, 1, false), "; ",
+                return CORD_all("({ Table_t *set = ", compile_to_pointer_depth(env, call->self, 1, false), "; ",
                                 "Array_t to_add = ", compile_arguments(env, ast, arg_spec, call->args), "; ",
                                 "for (int64_t i = 0; i < to_add.length; i++)\n"
                                 "Table$set(set, to_add.data + i*to_add.stride, NULL, ", compile_type_info(env, self_value_t), ");\n",
@@ -2431,7 +2431,7 @@ CORD compile(env_t *env, ast_t *ast)
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "remove_all")) {
                 arg_t *arg_spec = new(arg_t, .name="items", .type=Type(ArrayType, .item_type=Match(self_value_t, SetType)->item_type));
-                return CORD_all("({ table_t *set = ", compile_to_pointer_depth(env, call->self, 1, false), "; ",
+                return CORD_all("({ Table_t *set = ", compile_to_pointer_depth(env, call->self, 1, false), "; ",
                                 "Array_t to_add = ", compile_arguments(env, ast, arg_spec, call->args), "; ",
                                 "for (int64_t i = 0; i < to_add.length; i++)\n"
                                 "Table$remove(set, to_add.data + i*to_add.stride, ", compile_type_info(env, self_value_t), ");\n",
@@ -2739,7 +2739,7 @@ CORD compile(env_t *env, ast_t *ast)
         case TypeInfoType: {
             auto info = Match(value_t, TypeInfoType);
             if (f->field[0] == '_') {
-                for (table_t *locals = env->locals; locals; locals = locals->fallback) {
+                for (Table_t *locals = env->locals; locals; locals = locals->fallback) {
                     if (locals == info->env->locals)
                         goto is_inside_type;
                 }
@@ -2850,7 +2850,7 @@ CORD compile(env_t *env, ast_t *ast)
             if (ptr->pointed->tag == ArrayType) {
                 return CORD_all("({ Array_t *arr = ", compile(env, indexing->indexed), "; ARRAY_INCREF(*arr); *arr; })");
             } else if (ptr->pointed->tag == TableType || ptr->pointed->tag == SetType) {
-                return CORD_all("({ table_t *t = ", compile(env, indexing->indexed), "; TABLE_INCREF(*t); *t; })");
+                return CORD_all("({ Table_t *t = ", compile(env, indexing->indexed), "; TABLE_INCREF(*t); *t; })");
             } else {
                 return CORD_all("*(", compile(env, indexing->indexed), ")");
             }
@@ -3431,7 +3431,7 @@ CORD compile_statement_typedefs(env_t *env, ast_t *ast)
     }
     case Lambda: {
         auto lambda = Match(ast, Lambda);
-        table_t *closed_vars = get_closed_vars(env, ast);
+        Table_t *closed_vars = get_closed_vars(env, ast);
         if (Table$length(*closed_vars) == 0)
             return CORD_EMPTY;
 

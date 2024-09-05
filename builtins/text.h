@@ -34,7 +34,7 @@ Text_t Text$title(Text_t text);
 Text_t Text$as_text(const void *text, bool colorize, const TypeInfo *info);
 Text_t Text$quoted(Text_t str, bool colorize);
 Text_t Text$replace(Text_t str, Pattern_t pat, Text_t replacement, Pattern_t backref_pat, bool recursive);
-Text_t Text$replace_all(Text_t text, table_t replacements, Pattern_t backref_pat, bool recursive);
+Text_t Text$replace_all(Text_t text, Table_t replacements, Pattern_t backref_pat, bool recursive);
 Array_t Text$split(Text_t text, Pattern_t pattern);
 Int_t Text$find(Text_t text, Pattern_t pattern, Int_t i, int64_t *match_length);
 Array_t Text$find_all(Text_t text, Pattern_t pattern);

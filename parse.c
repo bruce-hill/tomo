@@ -2228,7 +2228,7 @@ ast_t *parse_file(const char *path, jmp_buf *on_err) {
     // hold more than PARSE_CACHE_SIZE entries (see below), but each entry's
     // AST holds onto a reference to the file it came from, so they could
     // potentially be somewhat large.
-    static table_t cached = {};
+    static Table_t cached = {};
     ast_t *ast = Table$str_get(cached, path);
     if (ast) return ast;
 

@@ -379,7 +379,7 @@ bool can_leave_uninitialized(type_t *t)
     }
 }
 
-static bool _can_have_cycles(type_t *t, table_t *seen)
+static bool _can_have_cycles(type_t *t, Table_t *seen)
 {
     switch (t->tag) {
         case ArrayType: return _can_have_cycles(Match(t, ArrayType)->item_type, seen);
@@ -410,7 +410,7 @@ static bool _can_have_cycles(type_t *t, table_t *seen)
 
 bool can_have_cycles(type_t *t)
 {
-    table_t seen = {0};
+    Table_t seen = {0};
     return _can_have_cycles(t, &seen);
 }
 
@@ -488,9 +488,9 @@ size_t type_size(type_t *t)
     case NumType: return Match(t, NumType)->bits == TYPE_NBITS64 ? sizeof(double) : sizeof(float);
     case TextType: return sizeof(Text_t);
     case ArrayType: return sizeof(Array_t);
-    case SetType: return sizeof(table_t);
+    case SetType: return sizeof(Table_t);
     case ChannelType: return sizeof(channel_t*);
-    case TableType: return sizeof(table_t);
+    case TableType: return sizeof(Table_t);
     case FunctionType: return sizeof(void*);
     case ClosureType: return sizeof(struct {void *fn, *userdata;});
     case PointerType: return sizeof(void*);
@@ -550,10 +550,10 @@ size_t type_align(type_t *t)
     }
     case NumType: return Match(t, NumType)->bits == TYPE_NBITS64 ? __alignof__(double) : __alignof__(float);
     case TextType: return __alignof__(Text_t);
-    case SetType: return __alignof__(table_t);
+    case SetType: return __alignof__(Table_t);
     case ArrayType: return __alignof__(Array_t);
     case ChannelType: return __alignof__(channel_t*);
-    case TableType: return __alignof__(table_t);
+    case TableType: return __alignof__(Table_t);
     case FunctionType: return __alignof__(void*);
     case ClosureType: return __alignof__(struct {void *fn, *userdata;});
     case PointerType: return __alignof__(void*);

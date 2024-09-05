@@ -18,8 +18,8 @@ typedef struct {
 typedef struct fn_ctx_s {
     struct fn_ctx_s *parent;
     type_t *return_type;
-    table_t *closure_scope;
-    table_t *closed_vars;
+    Table_t *closure_scope;
+    Table_t *closed_vars;
 } fn_ctx_t;
 
 typedef struct deferral_s {
@@ -42,11 +42,11 @@ typedef struct namespace_s {
 } namespace_t;
 
 typedef struct env_s {
-    table_t *types, *globals, *locals;
+    Table_t *types, *globals, *locals;
     // Lookup table for env_t* where the key is:
     //  - Resolved path for local imports (so that `use ./foo.tm` is the same as `use ./baz/../foo.tm`)
     //  - Raw 'use' string for module imports
-    table_t *imports;
+    Table_t *imports;
     compilation_unit_t *code;
     fn_ctx_t *fn_ctx;
     loop_ctx_t *loop_ctx;

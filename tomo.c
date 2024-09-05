@@ -32,7 +32,7 @@ static int transpile_header(env_t *base_env, const char *filename, bool force_re
 static int transpile_code(env_t *base_env, const char *filename, bool force_retranspile);
 static int compile_object_file(const char *filename, bool force_recompile);
 static int compile_executable(env_t *base_env, const char *filename, CORD object_files);
-static void build_file_dependency_graph(const char *filename, table_t *to_compile, table_t *to_link);
+static void build_file_dependency_graph(const char *filename, Table_t *to_compile, Table_t *to_link);
 
 int main(int argc, char *argv[])
 {
@@ -125,9 +125,9 @@ int main(int argc, char *argv[])
 
     CORD compilation_library_name = CORD_EMPTY;
     env_t *env = new_compilation_unit(&compilation_library_name);
-    table_t dependency_files = {};
-    table_t to_link = {};
-    table_t argument_files = {};
+    Table_t dependency_files = {};
+    Table_t to_link = {};
+    Table_t argument_files = {};
 
     for (int i = after_flags; i < argc; i++) {
         const char *resolved = resolve_path(argv[i], ".", ".");
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
         if (status != 0) return status;
     }
 
-    env->imports = new(table_t);
+    env->imports = new(Table_t);
 
     struct child_s {
         struct child_s *next;
@@ -298,7 +298,7 @@ int main(int argc, char *argv[])
     }
 }
 
-void build_file_dependency_graph(const char *filename, table_t *to_compile, table_t *to_link)
+void build_file_dependency_graph(const char *filename, Table_t *to_compile, Table_t *to_link)
 {
     if (Table$str_get(*to_compile, filename))
         return;

@@ -278,10 +278,10 @@ public void *Array$random(Array_t arr)
     return arr.data + arr.stride*index;
 }
 
-public table_t Array$counts(Array_t arr, const TypeInfo *type)
+public Table_t Array$counts(Array_t arr, const TypeInfo *type)
 {
-    table_t counts = {};
-    const TypeInfo count_type = {.size=sizeof(table_t), .align=__alignof__(table_t),
+    Table_t counts = {};
+    const TypeInfo count_type = {.size=sizeof(Table_t), .align=__alignof__(Table_t),
         .tag=TableInfo, .TableInfo.key=type->ArrayInfo.item, .TableInfo.value=&$Int};
     for (int64_t i = 0; i < arr.length; i++) {
         void *key = arr.data + i*arr.stride;

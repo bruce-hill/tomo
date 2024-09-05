@@ -89,7 +89,7 @@ typedef struct {
 #define MAX_BACKREFS 100
 
 // Synthetic grapheme clusters (clusters of more than one codepoint):
-static table_t grapheme_ids_by_codepoints = {}; // uint32_t* length-prefixed codepoints -> int32_t ID
+static Table_t grapheme_ids_by_codepoints = {}; // uint32_t* length-prefixed codepoints -> int32_t ID
 
 // This will hold a dynamically growing array of synthetic graphemes:
 static synthetic_grapheme_t *synthetic_graphemes = NULL;
@@ -125,7 +125,7 @@ static const TypeInfo GraphemeClusterInfo = {
 };
 
 static const TypeInfo GraphemeIDLookupTableInfo = {
-    .size=sizeof(table_t), .align=__alignof__(table_t),
+    .size=sizeof(Table_t), .align=__alignof__(Table_t),
     .tag=TableInfo, .TableInfo={.key=&GraphemeClusterInfo, .value=&$Int32},
 };
 
@@ -1942,7 +1942,7 @@ public Text_t Text$map(Text_t text, Pattern_t pattern, closure_t fn)
     return ret;
 }
 
-public Text_t Text$replace_all(Text_t text, table_t replacements, Text_t backref_pat, bool recursive)
+public Text_t Text$replace_all(Text_t text, Table_t replacements, Text_t backref_pat, bool recursive)
 {
     if (replacements.entries.length == 0) return text;
 
