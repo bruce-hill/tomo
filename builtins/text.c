@@ -87,17 +87,18 @@ typedef struct {
 } iteration_state_t;
 
 #define MAX_BACKREFS 100
-#define MAX_SYNTHETIC_GRAPHEMES 1024
 
 // Synthetic grapheme clusters (clusters of more than one codepoint):
 static table_t grapheme_ids_by_codepoints = {}; // uint32_t* length-prefixed codepoints -> int32_t ID
 
-static synthetic_grapheme_t synthetic_graphemes[MAX_SYNTHETIC_GRAPHEMES] = {
-    (synthetic_grapheme_t){ // CRLF
-        .utf32_cluster=(uint32_t[]){2, '\r', '\n'},
-        .utf8=(uint8_t[]){'\r', '\n', '\0'},
-    },
+static synthetic_grapheme_t crlf_grapheme = {
+    .utf32_cluster=(uint32_t[]){2, '\r', '\n'},
+    .utf8=(uint8_t[]){'\r', '\n', '\0'},
 };
+// This will hold a dynamically growing array of synthetic graphemes, but for
+// now we can just start it off with an array of one:
+static synthetic_grapheme_t *synthetic_graphemes = &crlf_grapheme;
+static int32_t synthetic_grapheme_capacity = 1;
 
 #define NUM_GRAPHEME_CODEPOINTS(id) (synthetic_graphemes[-(id)-1].utf32_cluster[0])
 #define GRAPHEME_CODEPOINTS(id) (&synthetic_graphemes[-(id)-1].utf32_cluster[1])
@@ -153,8 +154,13 @@ int32_t get_synthetic_grapheme(const uint32_t *codepoints, int64_t utf32_len)
     if (found) return *found;
 
     // New synthetic grapheme:
-    if (num_synthetic_graphemes >= MAX_SYNTHETIC_GRAPHEMES)
-        fail("Too many synthetic graphemes!");
+    if (num_synthetic_graphemes >= synthetic_grapheme_capacity) {
+        // If we don't have space, allocate more:
+        synthetic_grapheme_capacity = MAX(128, synthetic_grapheme_capacity * 2);
+        synthetic_grapheme_t *new = GC_MALLOC(sizeof(synthetic_grapheme_t[synthetic_grapheme_capacity]));
+        memcpy(new, synthetic_graphemes, sizeof(synthetic_grapheme_t[num_synthetic_graphemes]));
+        synthetic_graphemes = new;
+    }
 
     int32_t grapheme_id = -(num_synthetic_graphemes+1);
     num_synthetic_graphemes += 1;
