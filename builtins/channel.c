@@ -24,7 +24,7 @@ public channel_t *Channel$new(Int_t max_size)
     if (Int$compare_value(max_size, I_small(0)) <= 0)
         fail("Cannot create a channel with a size less than one: %ld", max_size);
     channel_t *channel = new(channel_t);
-    channel->items = (array_t){};
+    channel->items = (Array_t){};
     channel->mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
     channel->cond = (pthread_cond_t)PTHREAD_COND_INITIALIZER;
     channel->max_size = Int_to_Int64(max_size, false);
@@ -42,7 +42,7 @@ public void Channel$give(channel_t *channel, const void *item, bool front, int64
     (void)pthread_cond_signal(&channel->cond);
 }
 
-public void Channel$give_all(channel_t *channel, array_t to_give, bool front, int64_t padded_item_size)
+public void Channel$give_all(channel_t *channel, Array_t to_give, bool front, int64_t padded_item_size)
 {
     if (to_give.length == 0) return;
     (void)pthread_mutex_lock(&channel->mutex);
@@ -83,11 +83,11 @@ public void Channel$peek(channel_t *channel, void *out, bool front, int64_t item
     (void)pthread_cond_signal(&channel->cond);
 }
 
-public array_t Channel$view(channel_t *channel)
+public Array_t Channel$view(channel_t *channel)
 {
     (void)pthread_mutex_lock(&channel->mutex);
     ARRAY_INCREF(channel->items);
-    array_t ret = channel->items;
+    Array_t ret = channel->items;
     (void)pthread_mutex_unlock(&channel->mutex);
     return ret;
 }

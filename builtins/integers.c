@@ -430,8 +430,8 @@ public const TypeInfo $Int = {
         Int_t as_int = KindOfInt##_to_Int(i); \
         return Int$octal(as_int, digits_int, prefix); \
     } \
-    public array_t KindOfInt ## $bits(c_type x) { \
-        array_t bit_array = (array_t){.data=GC_MALLOC_ATOMIC(sizeof(bool[8*sizeof(c_type)])), .atomic=1, .stride=sizeof(bool), .length=8*sizeof(c_type)}; \
+    public Array_t KindOfInt ## $bits(c_type x) { \
+        Array_t bit_array = (Array_t){.data=GC_MALLOC_ATOMIC(sizeof(bool[8*sizeof(c_type)])), .atomic=1, .stride=sizeof(bool), .length=8*sizeof(c_type)}; \
         bool *bits = bit_array.data + sizeof(c_type)*8; \
         for (size_t i = 0; i < 8*sizeof(c_type); i++) { \
             *(bits--) = x & 1; \

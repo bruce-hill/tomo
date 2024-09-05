@@ -30,7 +30,7 @@
     Text_t type_name ## $format(c_type i, Int_t digits); \
     Text_t type_name ## $hex(c_type i, Int_t digits, bool uppercase, bool prefix); \
     Text_t type_name ## $octal(c_type i, Int_t digits, bool prefix); \
-    array_t type_name ## $bits(c_type x); \
+    Array_t type_name ## $bits(c_type x); \
     c_type type_name ## $random(c_type min, c_type max); \
     Range_t type_name ## $to(c_type from, c_type to); \
     c_type type_name ## $from_text(Text_t text, bool *success); \

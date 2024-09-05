@@ -55,7 +55,7 @@ typedef struct TypeInfo {
 
 #define $PointerInfo(sigil_expr, pointed_info, opt) &((TypeInfo){.size=sizeof(void*), .align=__alignof__(void*), \
                                                  .tag=PointerInfo, .PointerInfo={.sigil=sigil_expr, .pointed=pointed_info, .is_optional=opt}})
-#define $ArrayInfo(item_info) &((TypeInfo){.size=sizeof(array_t), .align=__alignof__(array_t), \
+#define $ArrayInfo(item_info) &((TypeInfo){.size=sizeof(Array_t), .align=__alignof__(Array_t), \
                                 .tag=ArrayInfo, .ArrayInfo.item=item_info})
 #define $SetInfo(item_info) &((TypeInfo){.size=sizeof(table_t), .align=__alignof__(table_t), \
                               .tag=TableInfo, .TableInfo.key=item_info, .TableInfo.value=&$Void})

@@ -30,7 +30,7 @@ static inline int64_t get_padded_item_size(const TypeInfo *info)
 
 // Replace the array's .data pointer with a new pointer to a copy of the
 // data that is compacted and has a stride of exactly `padded_item_size`
-public void Array$compact(array_t *arr, int64_t padded_item_size)
+public void Array$compact(Array_t *arr, int64_t padded_item_size)
 {
     void *copy = NULL;
     if (arr->length > 0) {
@@ -42,7 +42,7 @@ public void Array$compact(array_t *arr, int64_t padded_item_size)
                 memcpy(copy + i*padded_item_size, arr->data + arr->stride*i, padded_item_size);
         }
     }
-    *arr = (array_t){
+    *arr = (Array_t){
         .data=copy,
         .length=arr->length,
         .stride=padded_item_size,
@@ -50,7 +50,7 @@ public void Array$compact(array_t *arr, int64_t padded_item_size)
     };
 }
 
-public void Array$insert(array_t *arr, const void *item, Int_t int_index, int64_t padded_item_size)
+public void Array$insert(Array_t *arr, const void *item, Int_t int_index, int64_t padded_item_size)
 {
     int64_t index = Int_to_Int64(int_index, false);
     if (index <= 0) index = arr->length + index + 1;
@@ -86,7 +86,7 @@ public void Array$insert(array_t *arr, const void *item, Int_t int_index, int64_
     memcpy((void*)arr->data + (index-1)*padded_item_size, item, padded_item_size);
 }
 
-public void Array$insert_all(array_t *arr, array_t to_insert, Int_t int_index, int64_t padded_item_size)
+public void Array$insert_all(Array_t *arr, Array_t to_insert, Int_t int_index, int64_t padded_item_size)
 {
     int64_t index = Int_to_Int64(int_index, false);
     if (to_insert.length == 0)
@@ -159,7 +159,7 @@ public void Array$insert_all(array_t *arr, array_t to_insert, Int_t int_index, i
     }
 }
 
-public void Array$remove_at(array_t *arr, Int_t int_index, Int_t int_count, int64_t padded_item_size)
+public void Array$remove_at(Array_t *arr, Int_t int_index, Int_t int_count, int64_t padded_item_size)
 {
     int64_t index = Int_to_Int64(int_index, false);
     if (index < 1) index = arr->length + index + 1;
@@ -194,7 +194,7 @@ public void Array$remove_at(array_t *arr, Int_t int_index, Int_t int_count, int6
     if (arr->length == 0) arr->data = NULL;
 }
 
-public void Array$remove_item(array_t *arr, void *item, Int_t max_removals, const TypeInfo *type)
+public void Array$remove_item(Array_t *arr, void *item, Int_t max_removals, const TypeInfo *type)
 {
     int64_t padded_item_size = get_padded_item_size(type);
     const Int_t ZERO = (Int_t){.small=(0<<2)|1};
@@ -213,7 +213,7 @@ public void Array$remove_item(array_t *arr, void *item, Int_t max_removals, cons
     }
 }
 
-public Int_t Array$find(array_t arr, void *item, const TypeInfo *type)
+public Int_t Array$find(Array_t arr, void *item, const TypeInfo *type)
 {
     const TypeInfo *item_type = type->ArrayInfo.item;
     for (int64_t i = 0; i < arr.length; i++) {
@@ -223,7 +223,7 @@ public Int_t Array$find(array_t arr, void *item, const TypeInfo *type)
     return I(0);
 }
 
-public void *Array$first(array_t arr, closure_t predicate)
+public void *Array$first(Array_t arr, closure_t predicate)
 {
     bool (*is_good)(void*, void*) = (void*)predicate.fn;
     for (int64_t i = 0; i < arr.length; i++) {
@@ -234,7 +234,7 @@ public void *Array$first(array_t arr, closure_t predicate)
 }
 
 
-public void Array$sort(array_t *arr, closure_t comparison, int64_t padded_item_size)
+public void Array$sort(Array_t *arr, closure_t comparison, int64_t padded_item_size)
 {
     if (arr->data_refcount != 0 || (int64_t)arr->stride != padded_item_size)
         Array$compact(arr, padded_item_size);
@@ -242,14 +242,14 @@ public void Array$sort(array_t *arr, closure_t comparison, int64_t padded_item_s
     qsort_r(arr->data, arr->length, padded_item_size, comparison.fn, comparison.userdata);
 }
 
-public array_t Array$sorted(array_t arr, closure_t comparison, int64_t padded_item_size)
+public Array_t Array$sorted(Array_t arr, closure_t comparison, int64_t padded_item_size)
 {
     Array$compact(&arr, padded_item_size);
     qsort_r(arr.data, arr.length, padded_item_size, comparison.fn, comparison.userdata);
     return arr;
 }
 
-public void Array$shuffle(array_t *arr, int64_t padded_item_size)
+public void Array$shuffle(Array_t *arr, int64_t padded_item_size)
 {
     if (arr->data_refcount != 0 || (int64_t)arr->stride != padded_item_size)
         Array$compact(arr, padded_item_size);
@@ -263,14 +263,14 @@ public void Array$shuffle(array_t *arr, int64_t padded_item_size)
     }
 }
 
-public array_t Array$shuffled(array_t arr, int64_t padded_item_size)
+public Array_t Array$shuffled(Array_t arr, int64_t padded_item_size)
 {
     Array$compact(&arr, padded_item_size);
     Array$shuffle(&arr, padded_item_size);
     return arr;
 }
 
-public void *Array$random(array_t arr)
+public void *Array$random(Array_t arr)
 {
     if (arr.length == 0)
         return NULL; // fail("Cannot get a random item from an empty array!");
@@ -278,7 +278,7 @@ public void *Array$random(array_t arr)
     return arr.data + arr.stride*index;
 }
 
-public table_t Array$counts(array_t arr, const TypeInfo *type)
+public table_t Array$counts(Array_t arr, const TypeInfo *type)
 {
     table_t counts = {};
     const TypeInfo count_type = {.size=sizeof(table_t), .align=__alignof__(table_t),
@@ -292,13 +292,13 @@ public table_t Array$counts(array_t arr, const TypeInfo *type)
     return counts;
 }
 
-public array_t Array$sample(array_t arr, Int_t int_n, array_t weights, int64_t padded_item_size)
+public Array_t Array$sample(Array_t arr, Int_t int_n, Array_t weights, int64_t padded_item_size)
 {
     int64_t n = Int_to_Int64(int_n, false);
     if (arr.length == 0 || n <= 0)
-        return (array_t){};
+        return (Array_t){};
 
-    array_t selected = {
+    Array_t selected = {
         .data=arr.atomic ? GC_MALLOC_ATOMIC(n * padded_item_size) : GC_MALLOC(n * padded_item_size),
         .length=n,
         .stride=padded_item_size, .atomic=arr.atomic};
@@ -371,16 +371,16 @@ public array_t Array$sample(array_t arr, Int_t int_n, array_t weights, int64_t p
     return selected;
 }
 
-public array_t Array$from(array_t array, Int_t int_first)
+public Array_t Array$from(Array_t array, Int_t int_first)
 {
     int64_t first = Int_to_Int64(int_first, false);
     if (first < 0)
         first = array.length + first + 1;
 
     if (first < 1 || first > array.length)
-        return (array_t){.atomic=array.atomic};
+        return (Array_t){.atomic=array.atomic};
 
-    return (array_t){
+    return (Array_t){
         .atomic=array.atomic,
         .data=array.data + array.stride*(first-1),
         .length=array.length - first + 1,
@@ -389,7 +389,7 @@ public array_t Array$from(array_t array, Int_t int_first)
     };
 }
 
-public array_t Array$to(array_t array, Int_t int_last)
+public Array_t Array$to(Array_t array, Int_t int_last)
 {
     int64_t last = Int_to_Int64(int_last, false);
     if (last < 0)
@@ -399,9 +399,9 @@ public array_t Array$to(array_t array, Int_t int_last)
         last = array.length;
 
     if (last == 0)
-        return (array_t){.atomic=array.atomic};
+        return (Array_t){.atomic=array.atomic};
 
-    return (array_t){
+    return (Array_t){
         .atomic=array.atomic,
         .data=array.data,
         .length=last,
@@ -410,7 +410,7 @@ public array_t Array$to(array_t array, Int_t int_last)
     };
 }
 
-public array_t Array$by(array_t array, Int_t int_stride, int64_t padded_item_size)
+public Array_t Array$by(Array_t array, Int_t int_stride, int64_t padded_item_size)
 {
     int64_t stride = Int_to_Int64(int_stride, false);
     // In the unlikely event that the stride value would be too large to fit in
@@ -424,7 +424,7 @@ public array_t Array$by(array_t array, Int_t int_stride, int64_t padded_item_siz
             for (int64_t i = 0; i < len; i++)
                 memcpy(copy + i*padded_item_size, start + array.stride*stride*i, padded_item_size);
         }
-        return (array_t){
+        return (Array_t){
             .data=copy,
             .length=len,
             .stride=padded_item_size,
@@ -433,9 +433,9 @@ public array_t Array$by(array_t array, Int_t int_stride, int64_t padded_item_siz
     }
 
     if (stride == 0)
-        return (array_t){.atomic=array.atomic};
+        return (Array_t){.atomic=array.atomic};
 
-    return (array_t){
+    return (Array_t){
         .atomic=array.atomic,
         .data=(stride < 0 ? array.data + (array.stride * (array.length - 1)) : array.data),
         .length=(stride < 0 ? array.length / -stride : array.length / stride) + ((array.length % stride) != 0),
@@ -444,7 +444,7 @@ public array_t Array$by(array_t array, Int_t int_stride, int64_t padded_item_siz
     };
 }
 
-public array_t Array$reversed(array_t array, int64_t padded_item_size)
+public Array_t Array$reversed(Array_t array, int64_t padded_item_size)
 {
     // Just in case negating the stride gives a value that doesn't fit into a
     // 15-bit integer, fall back to Array$by()'s more general method of copying
@@ -453,13 +453,13 @@ public array_t Array$reversed(array_t array, int64_t padded_item_size)
     if (__builtin_expect(-array.stride < ARRAY_MIN_STRIDE || -array.stride > ARRAY_MAX_STRIDE, 0))
         return Array$by(array, I(-1), padded_item_size);
 
-    array_t reversed = array;
+    Array_t reversed = array;
     reversed.stride = -array.stride;
     reversed.data = array.data + (array.length-1)*array.stride;
     return reversed;
 }
 
-public array_t Array$concat(array_t x, array_t y, int64_t padded_item_size)
+public Array_t Array$concat(Array_t x, Array_t y, int64_t padded_item_size)
 {
     void *data = x.atomic ? GC_MALLOC_ATOMIC(padded_item_size*(x.length + y.length)) : GC_MALLOC(padded_item_size*(x.length + y.length));
     if (x.stride == padded_item_size) {
@@ -476,7 +476,7 @@ public array_t Array$concat(array_t x, array_t y, int64_t padded_item_size)
             memcpy(data + (x.length + i)*padded_item_size, y.data + i*padded_item_size, padded_item_size);
     }
 
-    return (array_t){
+    return (Array_t){
         .data=data,
         .length=x.length + y.length,
         .stride=padded_item_size,
@@ -484,7 +484,7 @@ public array_t Array$concat(array_t x, array_t y, int64_t padded_item_size)
     };
 }
 
-public bool Array$has(array_t array, void *item, const TypeInfo *type)
+public bool Array$has(Array_t array, void *item, const TypeInfo *type)
 {
     const TypeInfo *item_type = type->ArrayInfo.item;
     for (int64_t i = 0; i < array.length; i++) {
@@ -494,12 +494,12 @@ public bool Array$has(array_t array, void *item, const TypeInfo *type)
     return false;
 }
 
-public void Array$clear(array_t *array)
+public void Array$clear(Array_t *array)
 {
-    *array = (array_t){.data=0, .length=0};
+    *array = (Array_t){.data=0, .length=0};
 }
 
-public int32_t Array$compare(const array_t *x, const array_t *y, const TypeInfo *type)
+public int32_t Array$compare(const Array_t *x, const Array_t *y, const TypeInfo *type)
 {
     // Early out for arrays with the same data, e.g. two copies of the same array:
     if (x->data == y->data && x->stride == y->stride)
@@ -529,12 +529,12 @@ public int32_t Array$compare(const array_t *x, const array_t *y, const TypeInfo 
     return (x->length > y->length) - (x->length < y->length);
 }
 
-public bool Array$equal(const array_t *x, const array_t *y, const TypeInfo *type)
+public bool Array$equal(const Array_t *x, const Array_t *y, const TypeInfo *type)
 {
     return (Array$compare(x, y, type) == 0);
 }
 
-public Text_t Array$as_text(const array_t *arr, bool colorize, const TypeInfo *type)
+public Text_t Array$as_text(const Array_t *arr, bool colorize, const TypeInfo *type)
 {
     if (!arr)
         return Text$concat(Text("["), generic_as_text(NULL, false, type->ArrayInfo.item), Text("]"));
@@ -551,7 +551,7 @@ public Text_t Array$as_text(const array_t *arr, bool colorize, const TypeInfo *t
     return text;
 }
 
-public uint64_t Array$hash(const array_t *arr, const TypeInfo *type)
+public uint64_t Array$hash(const Array_t *arr, const TypeInfo *type)
 {
     const TypeInfo *item = type->ArrayInfo.item;
     siphash sh;
@@ -568,7 +568,7 @@ public uint64_t Array$hash(const array_t *arr, const TypeInfo *type)
     return siphashfinish_last_part(&sh, 0);
 }
 
-static void siftdown(array_t *heap, int64_t startpos, int64_t pos, closure_t comparison, int64_t padded_item_size)
+static void siftdown(Array_t *heap, int64_t startpos, int64_t pos, closure_t comparison, int64_t padded_item_size)
 {
     assert(pos > 0 && pos < heap->length);
     char newitem[padded_item_size];
@@ -586,7 +586,7 @@ static void siftdown(array_t *heap, int64_t startpos, int64_t pos, closure_t com
     memcpy(heap->data + heap->stride*pos, newitem, padded_item_size);
 }
 
-static void siftup(array_t *heap, int64_t pos, closure_t comparison, int64_t padded_item_size)
+static void siftup(Array_t *heap, int64_t pos, closure_t comparison, int64_t padded_item_size)
 {
     int64_t endpos = heap->length;
     int64_t startpos = pos;
@@ -616,7 +616,7 @@ static void siftup(array_t *heap, int64_t pos, closure_t comparison, int64_t pad
     siftdown(heap, startpos, pos, comparison, padded_item_size);
 }
 
-public void Array$heap_push(array_t *heap, const void *item, closure_t comparison, int64_t padded_item_size)
+public void Array$heap_push(Array_t *heap, const void *item, closure_t comparison, int64_t padded_item_size)
 {
     Array$insert(heap, item, I(0), padded_item_size);
 
@@ -627,13 +627,13 @@ public void Array$heap_push(array_t *heap, const void *item, closure_t compariso
     }
 }
 
-public void Array$heap_pop(array_t *heap, closure_t comparison, int64_t padded_item_size)
+public void Array$heap_pop(Array_t *heap, closure_t comparison, int64_t padded_item_size)
 {
     if (heap->length == 0)
         fail("Attempt to pop from an empty array");
 
     if (heap->length == 1) {
-        *heap = (array_t){};
+        *heap = (Array_t){};
     } else if (heap->length == 2) {
         heap->data += heap->stride;
         --heap->length;
@@ -646,7 +646,7 @@ public void Array$heap_pop(array_t *heap, closure_t comparison, int64_t padded_i
     }
 }
 
-public void Array$heapify(array_t *heap, closure_t comparison, int64_t padded_item_size)
+public void Array$heapify(Array_t *heap, closure_t comparison, int64_t padded_item_size)
 {
     if (heap->data_refcount != 0)
         Array$compact(heap, padded_item_size);
@@ -660,7 +660,7 @@ public void Array$heapify(array_t *heap, closure_t comparison, int64_t padded_it
     ARRAY_DECREF(*heap);
 }
 
-public Int_t Array$binary_search(array_t array, void *target, closure_t comparison)
+public Int_t Array$binary_search(Array_t array, void *target, closure_t comparison)
 {
     typedef int32_t (*cmp_fn_t)(void*, void*, void*);
     int64_t lo = 0, hi = array.length-1;

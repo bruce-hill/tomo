@@ -40,7 +40,7 @@
 #define END_OF_CHAIN UINT32_MAX
 
 #define GET_ENTRY(t, i) ((t).entries.data + (t).entries.stride*(i))
-#define ENTRIES_TYPE(type) (&(TypeInfo){.size=sizeof(array_t), .align=__alignof__(array_t), .tag=ArrayInfo, .ArrayInfo.item=(&(TypeInfo){.size=entry_size(type), .align=entry_align(type), .tag=OpaqueInfo})})
+#define ENTRIES_TYPE(type) (&(TypeInfo){.size=sizeof(Array_t), .align=__alignof__(Array_t), .tag=ArrayInfo, .ArrayInfo.item=(&(TypeInfo){.size=entry_size(type), .align=entry_align(type), .tag=OpaqueInfo})})
 
 static const TypeInfo MemoryPointer = {
     .size=sizeof(void*),
@@ -389,7 +389,7 @@ public void Table$clear(table_t *t)
 public table_t Table$sorted(table_t t, const TypeInfo *type)
 {
     closure_t cmp = (closure_t){.fn=generic_compare, .userdata=(void*)type->TableInfo.key};
-    array_t entries = Array$sorted(t.entries, cmp, entry_size(type));
+    Array_t entries = Array$sorted(t.entries, cmp, entry_size(type));
     return Table$from_entries(entries, type);
 }
 
@@ -494,7 +494,7 @@ public Text_t Table$as_text(const table_t *t, bool colorize, const TypeInfo *typ
     return text;
 }
 
-public table_t Table$from_entries(array_t entries, const TypeInfo *type)
+public table_t Table$from_entries(Array_t entries, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
     if (entries.length == 0)

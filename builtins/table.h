@@ -13,7 +13,7 @@
 
 #define Table(key_t, val_t, key_info, value_info, fb, N, ...)  ({ \
     struct { key_t k; val_t v; } ents[N] = {__VA_ARGS__}; \
-    table_t table = Table$from_entries((array_t){ \
+    table_t table = Table$from_entries((Array_t){ \
                        .data=memcpy(GC_MALLOC(sizeof(ents)), ents, sizeof(ents)), \
                        .length=sizeof(ents)/sizeof(ents[0]), \
                        .stride=(void*)&ents[1] - (void*)&ents[0], \
@@ -22,14 +22,14 @@
     table; })
 #define Set(item_t, item_info, N, ...)  ({ \
     item_t ents[N] = {__VA_ARGS__}; \
-    table_t set = Table$from_entries((array_t){ \
+    table_t set = Table$from_entries((Array_t){ \
                        .data=memcpy(GC_MALLOC(sizeof(ents)), ents, sizeof(ents)), \
                        .length=sizeof(ents)/sizeof(ents[0]), \
                        .stride=(void*)&ents[1] - (void*)&ents[0], \
                        }, $SetInfo(item_info)); \
     set; })
 
-table_t Table$from_entries(array_t entries, const TypeInfo *type);
+table_t Table$from_entries(Array_t entries, const TypeInfo *type);
 void *Table$get(table_t t, const void *key, const TypeInfo *type);
 #define Table$get_value_or_fail(table_expr, key_t, val_t, key_expr, info_expr, start, end) ({ \
     const table_t t = table_expr; key_t k = key_expr; const TypeInfo* info = info_expr; \

@@ -487,7 +487,7 @@ size_t type_size(type_t *t)
     }
     case NumType: return Match(t, NumType)->bits == TYPE_NBITS64 ? sizeof(double) : sizeof(float);
     case TextType: return sizeof(Text_t);
-    case ArrayType: return sizeof(array_t);
+    case ArrayType: return sizeof(Array_t);
     case SetType: return sizeof(table_t);
     case ChannelType: return sizeof(channel_t*);
     case TableType: return sizeof(table_t);
@@ -551,7 +551,7 @@ size_t type_align(type_t *t)
     case NumType: return Match(t, NumType)->bits == TYPE_NBITS64 ? __alignof__(double) : __alignof__(float);
     case TextType: return __alignof__(Text_t);
     case SetType: return __alignof__(table_t);
-    case ArrayType: return __alignof__(array_t);
+    case ArrayType: return __alignof__(Array_t);
     case ChannelType: return __alignof__(channel_t*);
     case TableType: return __alignof__(table_t);
     case FunctionType: return __alignof__(void*);

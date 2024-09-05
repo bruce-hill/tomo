@@ -121,7 +121,7 @@ const TypeInfo *type_to_type_info(type_t *t)
     case TextType: return &$Text;
     case ArrayType: {
         const TypeInfo *item_info = type_to_type_info(Match(t, ArrayType)->item_type);
-        const TypeInfo array_info = {.size=sizeof(array_t), .align=__alignof__(array_t),
+        const TypeInfo array_info = {.size=sizeof(Array_t), .align=__alignof__(Array_t),
             .tag=ArrayInfo, .ArrayInfo.item=item_info};
         return memcpy(GC_MALLOC(sizeof(TypeInfo)), &array_info, sizeof(TypeInfo));
     }
@@ -468,7 +468,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         // type_t *index_t = get_type(env, index->index);
         switch (indexed_t->tag) {
         case ArrayType: {
-            array_t arr;
+            Array_t arr;
             eval(env, index->indexed, &arr);
             int64_t raw_index = Int_to_Int64(ast_to_int(env, index->index), false);
             int64_t index_int = raw_index;
@@ -507,14 +507,14 @@ void eval(env_t *env, ast_t *ast, void *dest)
     }
     case Array: {
         assert(t->tag == ArrayType);
-        array_t arr = {};
+        Array_t arr = {};
         size_t item_size = type_size(Match(t, ArrayType)->item_type);
         char item_buf[item_size] = {};
         for (ast_list_t *item = Match(ast, Array)->items; item; item = item->next) {
             eval(env, item->ast, item_buf);
             Array$insert(&arr, item_buf, I(0), padded_type_size(Match(t, ArrayType)->item_type));
         }
-        memcpy(dest, &arr, sizeof(array_t));
+        memcpy(dest, &arr, sizeof(Array_t));
         break;
     }
     case Table: {

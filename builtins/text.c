@@ -941,7 +941,7 @@ public bool Text$equal_ignoring_case(Text_t a, Text_t b)
 
 public Text_t Text$upper(Text_t text)
 {
-    array_t codepoints = Text$utf32_codepoints(text);
+    Array_t codepoints = Text$utf32_codepoints(text);
     const char *language = uc_locale_language();
     uint32_t buf[128]; 
     size_t out_len;
@@ -953,7 +953,7 @@ public Text_t Text$upper(Text_t text)
 
 public Text_t Text$lower(Text_t text)
 {
-    array_t codepoints = Text$utf32_codepoints(text);
+    Array_t codepoints = Text$utf32_codepoints(text);
     const char *language = uc_locale_language();
     uint32_t buf[128]; 
     size_t out_len;
@@ -965,7 +965,7 @@ public Text_t Text$lower(Text_t text)
 
 public Text_t Text$title(Text_t text)
 {
-    array_t codepoints = Text$utf32_codepoints(text);
+    Array_t codepoints = Text$utf32_codepoints(text);
     const char *language = uc_locale_language();
     uint32_t buf[128]; 
     size_t out_len;
@@ -1703,7 +1703,7 @@ public int printf_text(FILE *stream, const struct printf_info *info, const void 
 static inline Text_t _quoted(Text_t text, bool colorize, char quote_char)
 {
     // TODO: optimize for ASCII and short strings
-    array_t graphemes = {.atomic=1};
+    Array_t graphemes = {.atomic=1};
 #define add_char(c) Array$insert_value(&graphemes, (uint32_t)c, I_small(0), sizeof(uint32_t))
 #define add_str(s) ({ for (char *_c = s; *_c; ++_c) Array$insert_value(&graphemes, (uint32_t)*_c, I_small(0), sizeof(uint32_t)); })
     if (colorize)
@@ -1777,12 +1777,12 @@ public Text_t Text$quoted(Text_t text, bool colorize)
     return _quoted(text, colorize, '"');
 }
 
-public array_t Text$find_all(Text_t text, Pattern_t pattern)
+public Array_t Text$find_all(Text_t text, Pattern_t pattern)
 {
     if (pattern.length == 0) // special case
-        return (array_t){.length=0};
+        return (Array_t){.length=0};
 
-    array_t matches = {};
+    Array_t matches = {};
 
     for (int64_t i = 0; ; ) {
         int64_t len;
@@ -1986,15 +1986,15 @@ public Text_t Text$replace_all(Text_t text, table_t replacements, Text_t backref
     return ret;
 }
 
-public array_t Text$split(Text_t text, Pattern_t pattern)
+public Array_t Text$split(Text_t text, Pattern_t pattern)
 {
     if (text.length == 0) // special case
-        return (array_t){.length=0};
+        return (Array_t){.length=0};
 
     if (pattern.length == 0) // special case
         return Text$clusters(text);
 
-    array_t chunks = {};
+    Array_t chunks = {};
 
     Int_t i = I_small(1);
     for (;;) {
@@ -2012,7 +2012,7 @@ public array_t Text$split(Text_t text, Pattern_t pattern)
     return chunks;
 }
 
-public Text_t Text$join(Text_t glue, array_t pieces)
+public Text_t Text$join(Text_t glue, Array_t pieces)
 {
     if (pieces.length == 0) return (Text_t){.length=0};
 
@@ -2047,9 +2047,9 @@ public Text_t Text$format(const char *fmt, ...)
     return ret;
 }
 
-public array_t Text$clusters(Text_t text)
+public Array_t Text$clusters(Text_t text)
 {
-    array_t clusters = {.atomic=1};
+    Array_t clusters = {.atomic=1};
     for (int64_t i = 1; i <= text.length; i++) {
         Text_t cluster = Text$slice(text, I(i), I(i));
         Array$insert(&clusters, &cluster, I_small(0), sizeof(Text_t));
@@ -2057,9 +2057,9 @@ public array_t Text$clusters(Text_t text)
     return clusters;
 }
 
-public array_t Text$utf32_codepoints(Text_t text)
+public Array_t Text$utf32_codepoints(Text_t text)
 {
-    array_t codepoints = {.atomic=1};
+    Array_t codepoints = {.atomic=1};
     iteration_state_t state = {0, 0};
     for (int64_t i = 0; i < text.length; i++) {
         int32_t grapheme = _next_grapheme(text, &state, i);
@@ -2073,10 +2073,10 @@ public array_t Text$utf32_codepoints(Text_t text)
     return codepoints;
 }
 
-public array_t Text$utf8_bytes(Text_t text)
+public Array_t Text$utf8_bytes(Text_t text)
 {
     const char *str = Text$as_c_string(text);
-    return (array_t){.length=strlen(str), .stride=1, .atomic=1, .data=(void*)str};
+    return (Array_t){.length=strlen(str), .stride=1, .atomic=1, .data=(void*)str};
 }
 
 static inline const char *codepoint_name(uint32_t c)
@@ -2090,9 +2090,9 @@ static inline const char *codepoint_name(uint32_t c)
     return name;
 }
 
-public array_t Text$codepoint_names(Text_t text)
+public Array_t Text$codepoint_names(Text_t text)
 {
-    array_t names = {};
+    Array_t names = {};
     iteration_state_t state = {0, 0};
     for (int64_t i = 0; i < text.length; i++) {
         int32_t grapheme = _next_grapheme(text, &state, i);
@@ -2111,7 +2111,7 @@ public array_t Text$codepoint_names(Text_t text)
     return names;
 }
 
-public Text_t Text$from_codepoints(array_t codepoints)
+public Text_t Text$from_codepoints(Array_t codepoints)
 {
     if (codepoints.stride != sizeof(int32_t))
         Array$compact(&codepoints, sizeof(int32_t));
@@ -2119,9 +2119,9 @@ public Text_t Text$from_codepoints(array_t codepoints)
     return text_from_u32(codepoints.data, codepoints.length, true);
 }
 
-public Text_t Text$from_codepoint_names(array_t codepoint_names)
+public Text_t Text$from_codepoint_names(Array_t codepoint_names)
 {
-    array_t codepoints = {};
+    Array_t codepoints = {};
     for (int64_t i = 0; i < codepoint_names.length; i++) {
         Text_t *name = ((Text_t*)(codepoint_names.data + i*codepoint_names.stride));
         const char *name_str = Text$as_c_string(*name);
@@ -2132,7 +2132,7 @@ public Text_t Text$from_codepoint_names(array_t codepoint_names)
     return Text$from_codepoints(codepoints);
 }
 
-public Text_t Text$from_bytes(array_t bytes)
+public Text_t Text$from_bytes(Array_t bytes)
 {
     if (bytes.stride != sizeof(int8_t))
         Array$compact(&bytes, sizeof(int8_t));
@@ -2142,9 +2142,9 @@ public Text_t Text$from_bytes(array_t bytes)
     return Text$from_str(bytes.data);
 }
 
-public array_t Text$lines(Text_t text)
+public Array_t Text$lines(Text_t text)
 {
-    array_t lines = {};
+    Array_t lines = {};
     iteration_state_t state = {0, 0};
     for (int64_t i = 0, line_start = 0; i < text.length; i++) {
         int32_t grapheme = _next_grapheme(text, &state, i);
@@ -2175,7 +2175,7 @@ public const TypeInfo $Text = {
 public Pattern_t Pattern$escape_text(Text_t text)
 {
     // TODO: optimize for ASCII and short strings
-    array_t graphemes = {.atomic=1};
+    Array_t graphemes = {.atomic=1};
 #define add_char(c) Array$insert_value(&graphemes, (uint32_t)c, I_small(0), sizeof(uint32_t))
 #define add_str(s) ({ for (char *_c = s; *_c; ++_c) Array$insert_value(&graphemes, (uint32_t)*_c, I_small(0), sizeof(uint32_t)); })
     iteration_state_t state = {0, 0};

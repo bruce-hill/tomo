@@ -75,7 +75,7 @@ env_t *new_compilation_unit(CORD *libname)
         type_t *type;
         CORD typename;
         CORD struct_val;
-        array_t namespace;
+        Array_t namespace;
     } global_types[] = {
         {"Void", Type(VoidType), "Void_t", "$Void", {}},
         {"Memory", Type(MemoryType), "Memory_t", "$Memory", {}},

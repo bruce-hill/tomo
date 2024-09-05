@@ -169,7 +169,7 @@ CORD compile_type(type_t *t)
         auto text = Match(t, TextType);
         return text->lang ? CORD_all(namespace_prefix(text->env->libname, text->env->namespace->parent), text->lang, "_t") : "Text_t";
     }
-    case ArrayType: return "array_t";
+    case ArrayType: return "Array_t";
     case SetType: return "table_t";
     case ChannelType: return "channel_t*";
     case TableType: return "table_t";
@@ -1009,7 +1009,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (can_be_mutated(env, array) && is_idempotent(array)) {
                 CORD array_code = compile(env, array);
                 loop = CORD_all("{\n"
-                                "array_t iterating = ARRAY_COPY(", array_code, ");\n",
+                                "Array_t iterating = ARRAY_COPY(", array_code, ");\n",
                                 loop, 
                                 stop,
                                 "\nARRAY_DECREF(", array_code, ");\n"
@@ -1019,7 +1019,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     loop = CORD_all("if (", array_code, ".length > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
             } else {
                 loop = CORD_all("{\n"
-                                "array_t iterating = ", compile(env, array), ";\n",
+                                "Array_t iterating = ", compile(env, array), ";\n",
                                 for_->empty ? "if (iterating.length > 0) {\n" : CORD_EMPTY,
                                 loop, 
                                 for_->empty ? CORD_all("\n} else ", compile_statement(env, for_->empty)) : CORD_EMPTY,
@@ -1068,14 +1068,14 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (can_be_mutated(env, for_->iter) && is_idempotent(for_->iter)) {
                 loop = CORD_all(
                     "{\n",
-                    "array_t iterating = ARRAY_COPY((", compile(env, for_->iter), ").entries);\n",
+                    "Array_t iterating = ARRAY_COPY((", compile(env, for_->iter), ").entries);\n",
                     loop,
                     "ARRAY_DECREF((", compile(env, for_->iter), ").entries);\n"
                     "}\n");
             } else {
                 loop = CORD_all(
                     "{\n",
-                    "array_t iterating = (", compile(env, for_->iter), ").entries;\n",
+                    "Array_t iterating = (", compile(env, for_->iter), ").entries;\n",
                     loop,
                     "}\n");
             }
@@ -1982,7 +1982,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         auto array = Match(ast, Array);
         if (!array->items)
-            return "(array_t){.length=0}";
+            return "(Array_t){.length=0}";
 
         int64_t n = 0;
         for (ast_list_t *item = array->items; item; item = item->next) {
@@ -2004,7 +2004,7 @@ CORD compile(env_t *env, ast_t *ast)
             env_t *scope = fresh_scope(env);
             static int64_t comp_num = 1;
             scope->comprehension_var = heap_strf("arr$%ld", comp_num++);
-            CORD code = CORD_all("({ array_t ", scope->comprehension_var, " = {};");
+            CORD code = CORD_all("({ Array_t ", scope->comprehension_var, " = {};");
             set_binding(scope, scope->comprehension_var, new(binding_t, .type=array_type, .code=scope->comprehension_var));
             for (ast_list_t *item = array->items; item; item = item->next) {
                 if (item->ast->tag == Comprehension) {
@@ -2420,7 +2420,7 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(call->name, "add_all")) {
                 arg_t *arg_spec = new(arg_t, .name="items", .type=Type(ArrayType, .item_type=Match(self_value_t, SetType)->item_type));
                 return CORD_all("({ table_t *set = ", compile_to_pointer_depth(env, call->self, 1, false), "; ",
-                                "array_t to_add = ", compile_arguments(env, ast, arg_spec, call->args), "; ",
+                                "Array_t to_add = ", compile_arguments(env, ast, arg_spec, call->args), "; ",
                                 "for (int64_t i = 0; i < to_add.length; i++)\n"
                                 "Table$set(set, to_add.data + i*to_add.stride, NULL, ", compile_type_info(env, self_value_t), ");\n",
                                 "(void)0; })");
@@ -2432,7 +2432,7 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(call->name, "remove_all")) {
                 arg_t *arg_spec = new(arg_t, .name="items", .type=Type(ArrayType, .item_type=Match(self_value_t, SetType)->item_type));
                 return CORD_all("({ table_t *set = ", compile_to_pointer_depth(env, call->self, 1, false), "; ",
-                                "array_t to_add = ", compile_arguments(env, ast, arg_spec, call->args), "; ",
+                                "Array_t to_add = ", compile_arguments(env, ast, arg_spec, call->args), "; ",
                                 "for (int64_t i = 0; i < to_add.length; i++)\n"
                                 "Table$remove(set, to_add.data + i*to_add.stride, ", compile_type_info(env, self_value_t), ");\n",
                                 "(void)0; })");
@@ -2819,9 +2819,9 @@ CORD compile(env_t *env, ast_t *ast)
                 size_t align = type_align(table->value_type);
                 if (align > 1 && offset % align > 0)
                     offset += align - (offset % align);
-                return CORD_all("({ array_t *entries = &(", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries;\n"
+                return CORD_all("({ Array_t *entries = &(", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries;\n"
                                 "ARRAY_INCREF(*entries);\n"
-                                "array_t values = *entries;\n"
+                                "Array_t values = *entries;\n"
                                 "values.data += ", CORD_asprintf("%zu", offset), ";\n"
                                 "values; })");
             } else if (streq(f->field, "fallback")) {
@@ -2848,7 +2848,7 @@ CORD compile(env_t *env, ast_t *ast)
             if (ptr->is_optional)
                 code_err(ast, "This pointer is potentially null, so it can't be safely dereferenced");
             if (ptr->pointed->tag == ArrayType) {
-                return CORD_all("({ array_t *arr = ", compile(env, indexing->indexed), "; ARRAY_INCREF(*arr); *arr; })");
+                return CORD_all("({ Array_t *arr = ", compile(env, indexing->indexed), "; ARRAY_INCREF(*arr); *arr; })");
             } else if (ptr->pointed->tag == TableType || ptr->pointed->tag == SetType) {
                 return CORD_all("({ table_t *t = ", compile(env, indexing->indexed), "; TABLE_INCREF(*t); *t; })");
             } else {
@@ -3229,7 +3229,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
         code = CORD_all(code, "if (!", arg->name, "$is_set) {\n");
         if (t->tag == ArrayType) {
             code = CORD_all(
-                code, "$", arg->name, " = (array_t){};\n"
+                code, "$", arg->name, " = (Array_t){};\n"
                 "for (; i < argc; i++) {\n"
                 "if (argv[i]) {\n"
                 "Text_t arg = Text$from_str(argv[i]);\n"

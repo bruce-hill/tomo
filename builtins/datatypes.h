@@ -34,7 +34,7 @@ typedef struct {
     bool atomic:1;
     uint8_t data_refcount:ARRAY_REFCOUNT_BITS;
     int16_t stride:ARRAY_STRIDE_BITS;
-} array_t;
+} Array_t;
 
 typedef struct {
     uint32_t occupied:1, index:31;
@@ -51,7 +51,7 @@ typedef struct {
 } bucket_info_t;
 
 typedef struct table_s {
-    array_t entries;
+    Array_t entries;
     bucket_info_t *bucket_info;
     struct table_s *fallback;
 } table_t;
@@ -65,7 +65,7 @@ typedef struct Range_s {
 } Range_t;
 
 typedef struct {
-    array_t items;
+    Array_t items;
     pthread_mutex_t mutex;
     pthread_cond_t cond;
     int64_t max_size;
