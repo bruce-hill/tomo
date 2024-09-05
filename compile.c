@@ -1094,7 +1094,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     goto big_n;
 
 
-                if (for_->empty && mpz_cmp_si(i, 0) == 0) {
+                if (for_->empty && mpz_cmp_si(i, 0) <= 0) {
                     return compile_statement(env, for_->empty);
                 } else {
                     return CORD_all(
@@ -1114,7 +1114,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 return CORD_all(
                     "{\n"
                     "Int_t ", n_var, " = ", compile(env, for_->iter), ";\n"
-                    "if (!I_is_zero(", n_var, ")) {\n"
+                    "if (Int$compare_value(", n_var, ", I(0)) > 0) {\n"
                     "for (Int_t ", i, " = I(1); Int$compare_value(", i, ", ", n_var, ") <= 0; ", i, " = Int$plus(", i, ", I(1))) {\n",
                     "\t", naked_body,
                     "}\n"
