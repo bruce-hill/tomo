@@ -275,6 +275,7 @@ Text.has(pattern:Pattern)->Bool
 Text.find(pattern:Pattern, start=1, length=!&Int64?)->Int
 Text.find_all(pattern:Pattern)->[Text]
 Text.matches(pattern:Pattern)->Bool
+Text.map(pattern:Pattern, fn:func(t:Text)->Text)->Text
 Text.replace(pattern:Pattern, replacement:Text, placeholder:Pattern=$//)->[Text]
 Text.replace_all(replacements:{Pattern:Text}, placeholder:Pattern=$//)->[Text]
 Text.split(pattern:Pattern)->[Text]
@@ -833,6 +834,37 @@ matches(text: Text, pattern: Text) -> Bool
 = no
 >> "Hello":matches($/{lower}/)
 = no
+```
+
+---
+
+## `map`
+
+**Description:**  
+For each occurrence of the given pattern, replace the text with the result of
+calling the given function on that text.
+
+**Usage:**  
+```tomo
+map(text: Text, pattern: Text, fn: func(text:Text)->Text) -> Text
+```
+
+**Parameters:**
+
+- `text`: The text to be searched.
+- `pattern`: The pattern to search for.
+- `fn`: The function to apply to each match.
+
+**Returns:**  
+The text with the matching parts replaced with the result of applying the given
+function to each.
+
+**Example:**  
+```tomo
+>> "hello world":map($/world/, Text.upper)
+= "hello WORLD"
+>> "Some nums: 1 2 3 4":map($/{int}/, func(i:Text): "$(Int.from_text(i) + 10)")
+= "Some nums: 11 12 13 14"
 ```
 
 ---

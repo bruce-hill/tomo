@@ -51,6 +51,7 @@ Text_t Text$from_codepoint_names(array_t codepoint_names);
 Text_t Text$from_bytes(array_t bytes);
 array_t Text$lines(Text_t text);
 Text_t Text$join(Text_t glue, array_t pieces);
+Text_t Text$map(Text_t text, Pattern_t pattern, closure_t fn);
 
 extern const TypeInfo $Text;
 

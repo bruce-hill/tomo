@@ -250,3 +250,6 @@ func main():
 	= no
 	>> "Hello...":matches($/{id}/)
 	= no
+
+	>> "hello world":map($/world/, Text.upper)
+	= "hello WORLD"

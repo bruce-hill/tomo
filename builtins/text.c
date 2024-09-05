@@ -1673,6 +1673,46 @@ public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement, P
     return ret;
 }
 
+public Text_t Text$map(Text_t text, Pattern_t pattern, closure_t fn)
+{
+    Text_t ret = {.length=0};
+
+    int32_t first_grapheme = get_grapheme(pattern, 0);
+    bool find_first = (first_grapheme != '{'
+                       && !uc_is_property(first_grapheme, UC_PROPERTY_QUOTATION_MARK)
+                       && !uc_is_property(first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
+
+    iteration_state_t text_state = {0, 0};
+    int64_t nonmatching_pos = 0;
+
+    Text_t (*text_mapper)(Text_t, void*) = fn.fn;
+    for (int64_t pos = 0; pos < text.length; pos++) {
+        // Optimization: quickly skip ahead to first char in pattern:
+        if (find_first) {
+            while (pos < text.length && _next_grapheme(text, &text_state, pos) != first_grapheme)
+                ++pos;
+        }
+
+        int64_t match_len = match(text, pattern, pos, 0, NULL, 0);
+        if (match_len < 0) continue;
+
+        Text_t replacement = text_mapper(Text$slice(text, I(pos+1), I(pos+match_len)), fn.userdata);
+        if (pos > nonmatching_pos) {
+            Text_t before_slice = Text$slice(text, I(nonmatching_pos+1), I(pos));
+            ret = Text$concat(ret, before_slice, replacement);
+        } else {
+            ret = concat2(ret, replacement);
+        }
+        nonmatching_pos = pos + match_len;
+        pos += (match_len - 1);
+    }
+    if (nonmatching_pos < text.length) {
+        Text_t last_slice = Text$slice(text, I(nonmatching_pos+1), I(text.length));
+        ret = concat2(ret, last_slice);
+    }
+    return ret;
+}
+
 public Text_t Text$replace_all(Text_t text, table_t replacements, Text_t backref_pat, bool recursive)
 {
     if (replacements.entries.length == 0) return text;
