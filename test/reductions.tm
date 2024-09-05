@@ -16,3 +16,10 @@ func main():
 	= Foo(x=0, y=10)
 	>> (_max_.y:abs()) [Foo(0, 0), Foo(1, 0), Foo(0, 10), Foo(0, -999)]
 	= Foo(x=0, y=-999)
+
+	!! (or) and (and) have early out behavior:
+    >> (or) i == 3 for i in 99999999999999999
+    = yes
+
+    >> (and) i < 10 for i in 99999999999999999
+    = no

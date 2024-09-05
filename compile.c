@@ -757,7 +757,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         else if (target)
             code_err(ast, "No loop target named '%s' was found", target);
         else
-            code_err(ast, "I couldn't figure out how to make this skip work!");
+            return "continue;";
     }
     case Stop: {
         const char *target = Match(ast, Stop)->target;
@@ -783,7 +783,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         else if (target)
             code_err(ast, "No loop target named '%s' was found", target);
         else
-            code_err(ast, "I couldn't figure out how to make this stop work!");
+            return "break;";
     }
     case Pass: return ";";
     case Defer: {
@@ -2676,12 +2676,24 @@ CORD compile(env_t *env, ast_t *ast)
         ast_t *body = FakeAST(InlineCCode, .code="{}"); // placeholder
         ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=item), .iter=reduction->iter, .body=body, .empty=empty);
         env_t *body_scope = for_scope(scope, loop);
+
+        // For the special case of (or)/(and), we need to early out if we can:
+        CORD early_out = CORD_EMPTY;
+        if (t->tag == BoolType && reduction->combination->tag == BinaryOp) {
+            auto binop = Match(reduction->combination, BinaryOp);
+            if (binop->op == BINOP_AND)
+                early_out = "if (!reduction) break;";
+            else if (binop->op == BINOP_OR)
+                early_out = "if (reduction) break;";
+        }
+
         body->__data.InlineCCode.code = CORD_all(
             "if (is_first) {\n"
             "    reduction = ", compile(body_scope, item), ";\n"
             "    is_first = no;\n"
             "} else {\n"
-            "    reduction = ", compile(body_scope, reduction->combination), ";\n"
+            "    reduction = ", compile(body_scope, reduction->combination), ";\n",
+            early_out,
             "}\n");
         code = CORD_all(code, compile_statement(scope, loop), "\nreduction;})");
         return code;
