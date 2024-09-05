@@ -91,23 +91,15 @@ typedef struct {
 // Synthetic grapheme clusters (clusters of more than one codepoint):
 static table_t grapheme_ids_by_codepoints = {}; // uint32_t* length-prefixed codepoints -> int32_t ID
 
-static synthetic_grapheme_t crlf_grapheme = {
-    .main_codepoint='\n',
-    .utf32_cluster=(uint32_t[]){2, '\r', '\n'},
-    .utf8=(uint8_t[]){'\r', '\n', '\0'},
-};
-// This will hold a dynamically growing array of synthetic graphemes, but for
-// now we can just start it off with an array of one:
-static synthetic_grapheme_t *synthetic_graphemes = &crlf_grapheme;
-static int32_t synthetic_grapheme_capacity = 1;
+// This will hold a dynamically growing array of synthetic graphemes:
+static synthetic_grapheme_t *synthetic_graphemes = NULL;
+static int32_t synthetic_grapheme_capacity = 0;
+static int32_t num_synthetic_graphemes = 0;
 
 #define MAIN_GRAPHEME_CODEPOINT(g) ((g) >= 0 ? (uint32_t)(g) : synthetic_graphemes[-(g)-1].main_codepoint)
 #define NUM_GRAPHEME_CODEPOINTS(id) (synthetic_graphemes[-(id)-1].utf32_cluster[0])
 #define GRAPHEME_CODEPOINTS(id) (&synthetic_graphemes[-(id)-1].utf32_cluster[1])
 #define GRAPHEME_UTF8(id) (synthetic_graphemes[-(id)-1].utf8)
-
-static int32_t num_synthetic_graphemes = 1;
-const int32_t CRLF_GRAPHEME = -1;
 
 static int32_t get_grapheme(Text_t text, int64_t index);
 static int32_t _next_grapheme(Text_t text, iteration_state_t *state, int64_t index);
@@ -139,9 +131,6 @@ static const TypeInfo GraphemeIDLookupTableInfo = {
 
 int32_t get_synthetic_grapheme(const uint32_t *codepoints, int64_t utf32_len)
 {
-    if (utf32_len == 2 && codepoints[0] == '\r' && codepoints[1] == '\n')
-        return CRLF_GRAPHEME;
-
     uint32_t length_prefixed[1+utf32_len] = {};
     length_prefixed[0] = (uint32_t)utf32_len;
     for (int i = 0; i < utf32_len; i++)
@@ -149,8 +138,8 @@ int32_t get_synthetic_grapheme(const uint32_t *codepoints, int64_t utf32_len)
     uint32_t *ptr = &length_prefixed[0];
 
     // Optimization for common case of one frequently used synthetic grapheme:
-    static int32_t last_grapheme = CRLF_GRAPHEME;
-    if (graphemes_equal(&ptr, &synthetic_graphemes[-last_grapheme-1].utf32_cluster))
+    static int32_t last_grapheme = 0;
+    if (last_grapheme != 0 && graphemes_equal(&ptr, &synthetic_graphemes[-last_grapheme-1].utf32_cluster))
         return last_grapheme;
 
     int32_t *found = Table$get(grapheme_ids_by_codepoints, &ptr, &GraphemeIDLookupTableInfo);
@@ -302,50 +291,34 @@ public int Text$print(FILE *stream, Text_t t)
 
 static bool is_concat_stable(Text_t a, Text_t b)
 {
-    /* If either string is empty, we're good. */
     if (a.length == 0 || b.length == 0)
         return true;
 
-    /* Get first and last graphemes of the strings. */
     int32_t last_a = get_grapheme(a, a.length-1);
     int32_t first_b = get_grapheme(b, 0);
 
-    if (first_b == '\n')
-        /* If we see \r + \n we need to renormalize. Otherwise we're good */
-        return (last_a != '\r');
-
-    /* As a control code we are always going to break if we see one of these.
-     * Check first_b for speeding up line endings */
-    if (first_b == CRLF_GRAPHEME || last_a == CRLF_GRAPHEME)
-        return 0;
-
-    /* If either is synthetic other than "\r\n", assume we'll have to re-normalize
-     * (this is an over-estimate, most likely). Note if you optimize this that it
-     * serves as a guard for what follows.
-     * TODO get the last codepoint of last_a and first codepoint of first_b and call
-     * MVM_unicode_normalize_should_break */
+    // Synthetic graphemes are weird and probably need to check with normalization:
     if (last_a < 0 || first_b < 0)
         return 0;
 
-    /* If both less than the first significant char for NFC we are good */
+    // Magic number, we know that no codepoints below here trigger instability:
     static const int32_t LOWEST_CODEPOINT_TO_CHECK = 0x300;
     if (last_a < LOWEST_CODEPOINT_TO_CHECK && first_b < LOWEST_CODEPOINT_TO_CHECK)
         return true;
 
-    /* Check if the two codepoints would be joined during normalization.
-     * Returns 1 if they would break and thus is safe under concat, or 0 if
-     * they would be joined. */
+    // Do a normalization run for these two codepoints and see if it looks different:
     uint32_t codepoints[2] = {(uint32_t)last_a, (uint32_t)first_b};
-
-    // Normalization should not exceed 3x in the input length
-    uint32_t norm_buf[3*2];
+    uint32_t norm_buf[3*2]; // Normalization should not exceed 3x in the input length
     size_t norm_length = sizeof(norm_buf)/sizeof(norm_buf[0]);
     uint32_t *normalized = u32_normalize(UNINORM_NFC, codepoints, 2, norm_buf, &norm_length);
     if (norm_length != 2) {
+        // Looks like these two codepoints merged into one (or maybe had a child, who knows?)
         if (normalized != norm_buf) free(normalized);
         return false;
     }
 
+    // If there's still two codepoints, we might end up with a single grapheme
+    // cluster which will need to turn into a synthetic grapheme:
     const void *second_grapheme = u32_grapheme_next(normalized, &normalized[2]);
     if (normalized != norm_buf) free(normalized);
     return (second_grapheme == &normalized[1]);
@@ -1403,7 +1376,7 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
 
             skip_whitespace(pattern, &pattern_index);
 
-            bool any = false;
+            bool any = false, crlf = false;
             uc_property_t prop;
             int32_t specific_grapheme = UNINAME_INVALID;
             bool want_to_match = !match_grapheme(pattern, &pattern_index, '!');
@@ -1509,7 +1482,8 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                 case 'n':
                     if (strcasecmp(prop_name, "nl") == 0 || strcasecmp(prop_name, "newline") == 0
                         || strcasecmp(prop_name, "crlf")) {
-                        specific_grapheme = CRLF_GRAPHEME;
+                        crlf = true;
+                        prop = UC_PROPERTY_PRIVATE_USE;
                         goto got_prop;
                     } else if (strcasecmp(prop_name, "num") == 0) {
                         EAT1(text, &text_state, text_index, grapheme == '-');
@@ -1587,7 +1561,7 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
                 bool success;
                 if (any) {
                     success = true;
-                } else if (specific_grapheme == CRLF_GRAPHEME) {
+                } else if (crlf) {
                     if (grapheme == '\r' && _next_grapheme(text, &text_state, text_index + 1) == '\n') {
                         text_index += 1;
                         grapheme = '\n';
