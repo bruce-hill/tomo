@@ -895,6 +895,32 @@ The text formatted as a quoted string.
 
 ---
 
+## `repeat`
+
+**Description:**  
+Repeat some text multiple times.
+
+**Usage:**  
+```tomo
+repeat(text: Text, count:Int) -> Text
+```
+
+**Parameters:**
+
+- `text`: The text to repeat.
+- `count`: The number of times to repeat it. (Negative numbers are equivalent to zero).
+
+**Returns:**  
+The text repeated the given number of times.
+
+**Example:**  
+```tomo
+>> "Abc":repeat(3)
+= "AbcAbcAbc"
+```
+
+---
+
 ## `replace`
 
 **Description:**  

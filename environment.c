@@ -259,6 +259,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"map", "Text$map", "func(text:Text, pattern:Pattern, fn:func(text:Text)->Text)->Text"},
             {"matches", "Text$matches", "func(text:Text, pattern:Pattern)->Bool"},
             {"quoted", "Text$quoted", "func(text:Text, color=no)->Text"},
+            {"repeat", "Text$repeat", "func(text:Text, count:Int)->Text"},
             {"replace", "Text$replace", "func(text:Text, pattern:Pattern, replacement:Text, backref=$/\\/, recursive=yes)->Text"},
             {"replace_all", "Text$replace_all", "func(text:Text, replacements:{Pattern:Text}, backref=$/\\/, recursive=yes)->Text"},
             {"split", "Text$split", "func(text:Text, pattern=$Pattern'')->[Text]"},

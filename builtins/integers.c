@@ -92,7 +92,7 @@ public Text_t Int$format(Int_t i, Int_t digits_int)
 }
 
 public Text_t Int$hex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
-    if (Int$compare(&i, (Int_t[1]){I_small(0)}, &$Int) < 0)
+    if (Int$is_negative(i))
         return Text$concat(Text("-"), Int$hex(Int$negative(i), digits_int, uppercase, prefix));
 
     int64_t digits = Int_to_Int64(digits_int, false);
@@ -119,8 +119,7 @@ public Text_t Int$hex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
 }
 
 public Text_t Int$octal(Int_t i, Int_t digits_int, bool prefix) {
-    Int_t zero = I_small(0);
-    if (Int$compare(&i, &zero, &$Int) < 0)
+    if (Int$is_negative(i))
         return Text$concat(Text("-"), Int$octal(Int$negative(i), digits_int, prefix));
 
     int64_t digits = Int_to_Int64(digits_int, false);
@@ -317,7 +316,7 @@ public Int_t Int$sqrt(Int_t i)
 }
 
 public Int_t Int$random(Int_t min, Int_t max) {
-    int32_t cmp = Int$compare(&min, &max, &$Int);
+    int32_t cmp = Int$compare_value(min, max);
     if (cmp > 0) {
         Text_t min_text = Int$as_text(&min, false, &$Int), max_text = Int$as_text(&max, false, &$Int);
         fail("Random minimum value (%k) is larger than the maximum value (%k)",
@@ -342,7 +341,7 @@ public Int_t Int$random(Int_t min, Int_t max) {
 }
 
 public Range_t Int$to(Int_t from, Int_t to) {
-    return (Range_t){from, to, Int$compare(&to, &from, &$Int) >= 0 ? (Int_t){.small=(1<<2)|1} : (Int_t){.small=(-1>>2)|1}};
+    return (Range_t){from, to, Int$compare_value(to, from) >= 0 ? (Int_t){.small=(1<<2)|1} : (Int_t){.small=(-1>>2)|1}};
 }
 
 public Int_t Int$from_str(const char *str, bool *success) {
@@ -369,7 +368,7 @@ public bool Int$is_prime(Int_t x, Int_t reps)
 {
     mpz_t p;
     mpz_init_set_int(p, x);
-    if (Int$compare(&reps, (Int_t[1]){I_small(9999)}, &$Int) > 0)
+    if (Int$compare_value(reps, I(9999)) > 0)
         fail("Number of prime-test repetitions should not be above 9999");
     int reps_int = Int_to_Int32(reps, false);
     return (mpz_probab_prime_p(p, reps_int) != 0);
@@ -464,11 +463,11 @@ public const TypeInfo $Int = {
         bool parsed_int = false; \
         Int_t full_int = Int$from_text(text, &parsed_int); \
         if (!parsed_int && success) *success = false; \
-        if (Int$compare(&full_int, (Int_t[1]){I(min_val)}, &$Int) < 0) { \
+        if (Int$compare_value(full_int, I(min_val)) < 0) { \
             if (success) *success = false; \
             return min_val; \
         } \
-        if (Int$compare(&full_int, (Int_t[1]){I(max_val)}, &$Int) > 0) { \
+        if (Int$compare_value(full_int, I(max_val)) > 0) { \
             if (success) *success = false; \
             return max_val; \
         } \

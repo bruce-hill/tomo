@@ -268,6 +268,42 @@ public Text_t Text$_concat(int n, Text_t items[n])
     return ret;
 }
 
+public Text_t Text$repeat(Text_t text, Int_t count)
+{
+    if (text.length == 0 || Int$is_negative(count))
+        return Text("");
+
+    Int_t result_len = Int$times(count, I(text.length));
+    if (Int$compare_value(result_len, I(1l<<40)) > 0)
+        fail("Text repeating would produce too big of an result!");
+
+    int64_t count64 = Int_to_Int64(count, false);
+    if (text.tag == TEXT_SUBTEXT) {
+        int64_t subtexts = num_subtexts(text);
+        Text_t ret = {
+            .length=text.length * count64,
+            .tag=TEXT_SUBTEXT,
+            .subtexts=GC_MALLOC(sizeof(Text_t[subtexts * count64])),
+        };
+        for (int64_t c = 0; c < count64; c++) {
+            for (int64_t i = 0; i < subtexts; i++) {
+                if (text.subtexts[i].length > 0)
+                    ret.subtexts[c*subtexts + i] = text.subtexts[i];
+            }
+        }
+        return ret;
+    } else {
+        Text_t ret = {
+            .length=text.length * count64,
+            .tag=TEXT_SUBTEXT,
+            .subtexts=GC_MALLOC(sizeof(Text_t[count64])),
+        };
+        for (int64_t i = 0; i < count64; i++)
+            ret.subtexts[i] = text;
+        return ret;
+    }
+}
+
 public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
 {
     int64_t first = Int_to_Int64(first_int, false);

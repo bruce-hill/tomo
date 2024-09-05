@@ -257,6 +257,13 @@ static inline Int_t Int$negative(Int_t x)
     return Int$slow_negative(x);
 }
 
+static inline bool Int$is_negative(Int_t x)
+{
+    if (__builtin_expect((x.small & 1), 1))
+        return x.small < 0;
+    return Int$compare_value(x, I_small(0)) < 0;
+}
+
 // Conversion functions:
 
 static inline Int_t Int64_to_Int(int64_t i)

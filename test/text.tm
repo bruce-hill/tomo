@@ -253,3 +253,6 @@ func main():
 
 	>> "hello world":map($/world/, Text.upper)
 	= "hello WORLD"
+
+	>> "Abc":repeat(3)
+	= "AbcAbcAbc"
