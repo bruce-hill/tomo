@@ -1,7 +1,6 @@
 // Logic for getting a type from an AST node
 #include <ctype.h>
 #include <gc.h>
-#include <gmp.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -1369,9 +1368,7 @@ bool is_constant(env_t *env, ast_t *ast)
         auto info = Match(ast, Int);
         if (info->bits == IBITS_UNSPECIFIED) {
             Int_t int_val = Int$from_text(Text$from_str(info->str), NULL);
-            mpz_t i;
-            mpz_init_set_int(i, int_val);
-            return (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0);
+            return (Int$compare_value(int_val, I(BIGGEST_SMALL_INT)) <= 0);
         }
         return true;
     }

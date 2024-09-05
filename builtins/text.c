@@ -51,7 +51,6 @@
 #include <ctype.h>
 #include <err.h>
 #include <gc.h>
-#include <gmp.h>
 #include <limits.h>
 #include <printf.h>
 #include <stdbool.h>

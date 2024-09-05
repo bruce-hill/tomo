@@ -2,7 +2,6 @@
 
 #include <ctype.h>
 #include <err.h>
-#include <gmp.h>
 #include <gc.h>
 #include <math.h>
 #include <stdbool.h>

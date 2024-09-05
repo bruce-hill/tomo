@@ -1,9 +1,6 @@
 // Recursive descent parser for parsing code
 #include <ctype.h>
 #include <gc.h>
-#include <gmp.h>
-#include <libgen.h>
-#include <linux/limits.h>
 #include <math.h>
 #include <setjmp.h>
 #include <stdarg.h>
