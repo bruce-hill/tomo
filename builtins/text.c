@@ -77,6 +77,7 @@
 #include "siphash.c"
 
 typedef struct {
+    uint32_t main_codepoint;
     uint32_t *utf32_cluster; // length-prefixed
     const uint8_t *utf8;
 } synthetic_grapheme_t;
@@ -91,6 +92,7 @@ typedef struct {
 static table_t grapheme_ids_by_codepoints = {}; // uint32_t* length-prefixed codepoints -> int32_t ID
 
 static synthetic_grapheme_t crlf_grapheme = {
+    .main_codepoint='\n',
     .utf32_cluster=(uint32_t[]){2, '\r', '\n'},
     .utf8=(uint8_t[]){'\r', '\n', '\0'},
 };
@@ -99,6 +101,7 @@ static synthetic_grapheme_t crlf_grapheme = {
 static synthetic_grapheme_t *synthetic_graphemes = &crlf_grapheme;
 static int32_t synthetic_grapheme_capacity = 1;
 
+#define MAIN_GRAPHEME_CODEPOINT(g) ((g) >= 0 ? (uint32_t)(g) : synthetic_graphemes[-(g)-1].main_codepoint)
 #define NUM_GRAPHEME_CODEPOINTS(id) (synthetic_graphemes[-(id)-1].utf32_cluster[0])
 #define GRAPHEME_CODEPOINTS(id) (&synthetic_graphemes[-(id)-1].utf32_cluster[1])
 #define GRAPHEME_UTF8(id) (synthetic_graphemes[-(id)-1].utf8)
@@ -200,6 +203,16 @@ int32_t get_synthetic_grapheme(const uint32_t *codepoints, int64_t utf32_len)
     utf8_final[u8_len] = '\0'; // Add a terminating NUL byte
     synthetic_graphemes[-grapheme_id-1].utf8 = utf8_final;
     arena += sizeof(uint8_t[u8_len + 1]);
+
+    // Sickos at the unicode consortium decreed that you can have grapheme clusters
+    // that begin with *prefix* modifiers, so we gotta check for that case:
+    synthetic_graphemes[-grapheme_id-1].main_codepoint = length_prefixed[1];
+    for (uint32_t i = 0; i < utf32_len; i++) {
+        if (!__builtin_expect(uc_is_property_prepended_concatenation_mark(length_prefixed[1+i]), 0)) {
+            synthetic_graphemes[-grapheme_id-1].main_codepoint = length_prefixed[1+i];
+            break;
+        }
+    }
 
     // Cleanup from unicode API:
     if (u8 != u8_buf) free(u8);
@@ -927,8 +940,8 @@ static inline bool match_property(Text_t text, int64_t *i, uc_property_t prop)
 {
     if (*i >= text.length) return false;
     int32_t grapheme = get_grapheme(text, *i);
-    if (grapheme < 0) // TODO: check every codepoint in the cluster?
-        grapheme = GRAPHEME_CODEPOINTS(grapheme)[0];
+    // TODO: check every codepoint in the cluster?
+    grapheme = MAIN_GRAPHEME_CODEPOINT(grapheme);
 
     if (uc_is_property(grapheme, prop)) {
         *i += 1;
@@ -943,8 +956,7 @@ static int64_t parse_int(Text_t text, int64_t *i)
     int64_t value = 0;
     for (;; *i += 1) {
         int32_t grapheme = _next_grapheme(text, &state, *i);
-        if (grapheme < 0)
-            grapheme = GRAPHEME_CODEPOINTS(grapheme)[0];
+        grapheme = MAIN_GRAPHEME_CODEPOINT(grapheme);
         int digit = uc_digit_value(grapheme);
         if (digit < 0) break;
         if (value >= INT64_MAX/10) break;
@@ -1010,8 +1022,7 @@ int64_t match_email(Text_t text, int64_t text_index)
     iteration_state_t state = {0, 0};
     if (text_index > 0) {
         int32_t prev_codepoint = _next_grapheme(text, &state, text_index - 1);
-        if (prev_codepoint < 0)
-            prev_codepoint = GRAPHEME_CODEPOINTS(prev_codepoint)[0];
+        prev_codepoint = MAIN_GRAPHEME_CODEPOINT(prev_codepoint);
         if (uc_is_property_alphabetic(prev_codepoint))
             return -1;
     }
@@ -1127,8 +1138,7 @@ int64_t match_uri(Text_t text, int64_t text_index)
     iteration_state_t state = {0, 0};
     if (text_index > 0) {
         int32_t prev_codepoint = _next_grapheme(text, &state, text_index - 1);
-        if (prev_codepoint < 0)
-            prev_codepoint = GRAPHEME_CODEPOINTS(prev_codepoint)[0];
+        prev_codepoint = MAIN_GRAPHEME_CODEPOINT(prev_codepoint);
         if (uc_is_property_alphabetic(prev_codepoint))
             return -1;
     }
@@ -1477,8 +1487,7 @@ int64_t match(Text_t text, Pattern_t pattern, int64_t text_index, int64_t patter
 
             for (int64_t count = 0; count < max; ) {
                 int32_t grapheme = _next_grapheme(text, &text_state, text_index);
-                if (grapheme < 0)
-                    grapheme = GRAPHEME_CODEPOINTS(grapheme)[0];
+                grapheme = MAIN_GRAPHEME_CODEPOINT(grapheme);
 
                 bool success;
                 if (any) {
