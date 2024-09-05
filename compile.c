@@ -2971,6 +2971,24 @@ CORD compile_type_info(env_t *env, type_t *t)
     }
 }
 
+static CORD get_flag_options(type_t *t, CORD separator)
+{
+    if (t->tag == BoolType) {
+        return "yes|no";
+    } else if (t->tag == EnumType) {
+        CORD options = CORD_EMPTY;
+        for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
+            options = CORD_all(options, tag->name);
+            if (tag->next) options = CORD_all(options, separator);
+        }
+        return options;
+    } else if (t->tag == IntType || t->tag == NumType || t->tag == BigIntType) {
+        return "N";
+    } else {
+        return "...";
+    }
+}
+
 CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
 {
     auto fn_info = Match(fn_type, FunctionType);
@@ -2991,12 +3009,14 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
         CORD flag = CORD_replace(arg->name, "_", "-");
         if (arg->default_val) {
             if (t->tag == BoolType)
-                usage = CORD_all(usage, "[--", flag, "]");
+                usage = CORD_all(usage, "[--", flag, "|--no-", flag, "]");
             else
-                usage = CORD_all(usage, "[--", flag, "=...]");
+                usage = CORD_all(usage, "[--", flag, "=", get_flag_options(t, "|"), "]");
         } else {
             if (t->tag == BoolType)
                 usage = CORD_all(usage, "[--", flag, "|--no-", flag, "]");
+            else if (t->tag == EnumType)
+                usage = CORD_all(usage, get_flag_options(t, "|"));
             else if (t->tag == ArrayType)
                 usage = CORD_all(usage, "<", flag, "...>");
             else
@@ -3094,12 +3114,10 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
                             "if (flag.length == 0)\n"
                             "USAGE_ERR(\"No value provided for '--", flag, "'\");\n");
-            CORD all_tags = CORD_EMPTY;
             for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
                 if (tag->type && Match(tag->type, StructType)->fields)
                     compiler_err(NULL, NULL, NULL,
                                  "The type %T has enum fields with member values, which is not yet supported for command line arguments.");
-                all_tags = CORD_all(all_tags, " ", tag->name);
                 binding_t *b = get_binding(enum_env, tag->name);
                 code = CORD_all(code,
                                 "if (Text$equal_ignoring_case(flag, Text(\"", tag->name, "\"))) {\n"
@@ -3107,7 +3125,8 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                                 arg->name, "$is_set = yes;\n"
                                 "} else ");
             }
-            code = CORD_all(code, "USAGE_ERR(\"Invalid value provided for '--", flag, "'; valid values are:", all_tags, "\");\n",
+            code = CORD_all(code, "USAGE_ERR(\"Invalid value provided for '--", flag, "', valid values are: ",
+                            get_flag_options(t, ", "), "\");\n",
                             "}\n");
             break;
         }
@@ -3149,12 +3168,10 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                 code = CORD_all(code, "$", arg->name, " = Text$from_str(argv[i]);\n");
             } else if (t->tag == EnumType) {
                 env_t *enum_env = Match(t, EnumType)->env;
-                CORD all_tags = CORD_EMPTY;
                 for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
                     if (tag->type && Match(tag->type, StructType)->fields)
                         compiler_err(NULL, NULL, NULL,
                                      "The type %T has enum fields with member values, which is not yet supported for command line arguments.");
-                    all_tags = CORD_all(all_tags, " ", tag->name);
                     binding_t *b = get_binding(enum_env, tag->name);
                     code = CORD_all(code,
                                     "if (strcasecmp(argv[i], \"", tag->name, "\") == 0) {\n"
@@ -3162,7 +3179,8 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                                     arg->name, "$is_set = yes;\n"
                                     "} else ");
                 }
-                code = CORD_all(code, "USAGE_ERR(\"Invalid value provided for '--", arg->name, "'; valid values are:", all_tags, "\");\n");
+                code = CORD_all(code, "USAGE_ERR(\"Invalid value provided for '--", arg->name, "', valid values are: ",
+                                get_flag_options(t, ", "), "\");\n");
             } else {
                 code = CORD_all(
                     code,
