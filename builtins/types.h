@@ -9,7 +9,7 @@
 
 struct TypeInfo;
 
-typedef uint32_t (*hash_fn_t)(const void*, const struct TypeInfo*);
+typedef uint64_t (*hash_fn_t)(const void*, const struct TypeInfo*);
 typedef int32_t (*compare_fn_t)(const void*, const void*, const struct TypeInfo*);
 typedef bool (*equal_fn_t)(const void*, const void*, const struct TypeInfo*);
 typedef Text_t (*text_fn_t)(const void*, bool, const struct TypeInfo*);

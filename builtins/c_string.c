@@ -8,8 +8,8 @@
 #include <stdlib.h>
 
 #include "functions.h"
-#include "halfsiphash.h"
 #include "text.h"
+#include "siphash.h"
 #include "types.h"
 #include "util.h"
 
@@ -37,13 +37,10 @@ public bool CString$equal(const char **x, const char **y)
     return CString$compare(x, y) == 0;
 }
 
-public uint32_t CString$hash(const char **c_str)
+public uint64_t CString$hash(const char **c_str)
 {
     if (!*c_str) return 0;
-
-    uint32_t hash;
-    halfsiphash(*c_str, strlen(*c_str), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));
-    return hash;
+    return siphash24((void*)*c_str, strlen(*c_str));
 }
 
 public const TypeInfo CString$info = {

@@ -7,7 +7,6 @@
 #include <sys/param.h>
 #include <err.h>
 
-#include "halfsiphash.h"
 #include "memory.h"
 #include "text.h"
 #include "types.h"

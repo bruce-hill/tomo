@@ -13,8 +13,8 @@
 
 #include "array.h"
 #include "functions.h"
-#include "halfsiphash.h"
 #include "integers.h"
+#include "siphash.h"
 #include "text.h"
 #include "types.h"
 #include "util.h"
@@ -100,12 +100,10 @@ public void Channel$clear(channel_t *channel)
     (void)pthread_cond_signal(&channel->cond);
 }
 
-public uint32_t Channel$hash(const channel_t **channel, const TypeInfo *type)
+public uint64_t Channel$hash(const channel_t **channel, const TypeInfo *type)
 {
     (void)type;
-    uint32_t hash;
-    halfsiphash(*channel, sizeof(channel_t*), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));
-    return hash;
+    return siphash24((void*)*channel, sizeof(channel_t*));
 }
 
 public int32_t Channel$compare(const channel_t **x, const channel_t **y, const TypeInfo *type)

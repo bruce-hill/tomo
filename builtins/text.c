@@ -74,7 +74,9 @@
 #include "text.h"
 #include "types.h"
 
-#include "siphash.c"
+// Use inline version of the siphash code for performance:
+#include "siphash.h"
+#include "siphash-internals.h"
 
 typedef struct {
     uint32_t main_codepoint;
@@ -114,7 +116,7 @@ static bool graphemes_equal(uint32_t **a, uint32_t **b) {
 
 static uint64_t grapheme_hash(uint32_t **g) {
     uint32_t *cluster = *g;
-    return siphash24((void*)&cluster[1], sizeof(uint32_t[cluster[0]]), (uint64_t*)TOMO_HASH_KEY);
+    return siphash24((void*)&cluster[1], sizeof(uint32_t[cluster[0]]));
 }
 
 static const TypeInfo GraphemeClusterInfo = {
@@ -723,7 +725,7 @@ public uint64_t Text$hash(Text_t *text)
 {
     if (text->hash != 0) return text->hash;
     siphash sh;
-    siphashinit(&sh, sizeof(int32_t[text->length]), (uint64_t*)TOMO_HASH_KEY);
+    siphashinit(&sh, sizeof(int32_t[text->length]));
 
     union {
         int32_t chunks[2];

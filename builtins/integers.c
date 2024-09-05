@@ -10,10 +10,9 @@
 #include "array.h"
 #include "datatypes.h"
 #include "integers.h"
+#include "siphash.h"
 #include "text.h"
 #include "types.h"
-
-#include "siphash.c"
 
 static gmp_randstate_t Int_rng = {};
 
@@ -63,10 +62,10 @@ public uint64_t Int$hash(const Int_t *x, const TypeInfo *type) {
     (void)type;
     if (__builtin_expect(x->small & 1, 1)) {
         int64_t i = (x->small>>2);
-        return siphash24((void*)&i, sizeof(i), (uint64_t*)TOMO_HASH_KEY);
+        return siphash24((void*)&i, sizeof(i));
     } else {
         char *str = mpz_get_str(NULL, 16, *x->big);
-        return siphash24((void*)str, strlen(str), (uint64_t*)TOMO_HASH_KEY);
+        return siphash24((void*)str, strlen(str));
     }
 }
 

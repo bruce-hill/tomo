@@ -121,16 +121,14 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
     CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
     if (!has_extra_data(def->tags)) {
         // Hashing is simpler if there is only a tag, no tagged data:
-        return CORD_all("static uint32_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo *info) {\n"
+        return CORD_all("static uint64_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo *info) {\n"
                         "(void)info;\n"
-                        "uint32_t hash;\n"
-                        "halfsiphash(&obj->tag, sizeof(obj->tag), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));\n"
-                        "return hash;"
+                        "return siphash24((void*)&obj->tag, sizeof(obj->tag));\n"
                         "\n}\n");
     }
-    CORD hash_func = CORD_all("static uint32_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo *info) {\n"
+    CORD hash_func = CORD_all("static uint64_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo *info) {\n"
                               "(void)info;\n"
-                              "uint32_t hashes[2] = {(uint32_t)obj->tag, 0};\n"
+                              "uint64_t hashes[2] = {(uint64_t)obj->tag, 0};\n"
                               "switch (obj->tag) {\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         if (tag->fields) {
@@ -143,9 +141,7 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
         }
     }
     hash_func = CORD_all(hash_func, "}\n"
-                         "uint32_t hash;\n"
-                         "halfsiphash(&hashes, sizeof(hashes), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));\n"
-                         "return hash;\n}\n");
+                         "return siphash24((void*)&hashes, sizeof(hashes));\n}\n");
     return hash_func;
 }
 

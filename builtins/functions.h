@@ -9,10 +9,7 @@
 #include "datatypes.h"
 #include "types.h"
 
-extern uint8_t TOMO_HASH_KEY[16];
-
 void tomo_init(void);
-
 void fail(const char *fmt, ...);
 void fail_source(const char *filename, int64_t start, int64_t end, const char *fmt, ...);
 Text_t builtin_last_err();

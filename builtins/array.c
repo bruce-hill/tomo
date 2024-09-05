@@ -18,7 +18,9 @@
 #include "types.h"
 #include "util.h"
 
-#include "siphash.c"
+// Use inline version of siphash code:
+#include "siphash.h"
+#include "siphash-internals.h"
 
 static inline int64_t get_padded_item_size(const TypeInfo *info)
 {
@@ -555,7 +557,7 @@ public uint64_t Array$hash(const Array_t *arr, const TypeInfo *type)
 {
     const TypeInfo *item = type->ArrayInfo.item;
     siphash sh;
-    siphashinit(&sh, sizeof(uint64_t[arr->length]), (uint64_t*)TOMO_HASH_KEY);
+    siphashinit(&sh, sizeof(uint64_t[arr->length]));
     if (item->tag == PointerInfo || (item->tag == CustomInfo && item->CustomInfo.hash == NULL && item->size == sizeof(void*))) { // Raw data hash
         for (int64_t i = 0; i < arr->length; i++)
             siphashadd64bits(&sh, (uint64_t)(arr->data + i*arr->stride));

@@ -19,8 +19,8 @@
 #include "array.h"
 #include "c_string.h"
 #include "datatypes.h"
-#include "halfsiphash.h"
 #include "memory.h"
+#include "siphash.h"
 #include "table.h"
 #include "text.h"
 #include "types.h"
@@ -114,11 +114,11 @@ public void *Table$get_raw(Table_t t, const void *key, const TypeInfo *type)
     assert(type->tag == TableInfo);
     if (!key || !t.bucket_info) return NULL;
 
-    uint32_t hash = HASH_KEY(t, key);
+    uint64_t hash = HASH_KEY(t, key);
     hshow(&t);
     hdebug("Getting value with initial probe at %u\n", hash);
     bucket_t *buckets = t.bucket_info->buckets;
-    for (uint32_t i = hash; buckets[i].occupied; i = buckets[i].next_bucket) {
+    for (uint64_t i = hash; buckets[i].occupied; i = buckets[i].next_bucket) {
         hdebug("Checking against key in bucket %u\n", i);
         void *entry = GET_ENTRY(t, buckets[i].index);
         if (EQUAL_KEYS(entry, key)) {
@@ -147,7 +147,7 @@ static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const
     hshow(t);
     const void *key = entry;
     bucket_t *buckets = t->bucket_info->buckets;
-    uint32_t hash = HASH_KEY(*t, key);
+    uint64_t hash = HASH_KEY(*t, key);
     hdebug("Hash value (mod %u) = %u\n", t->bucket_info->count, hash);
     bucket_t *bucket = &buckets[hash];
     if (!bucket->occupied) {
@@ -167,11 +167,11 @@ static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const
         --t->bucket_info->last_free;
     }
 
-    uint32_t collided_hash = HASH_KEY(*t, GET_ENTRY(*t, bucket->index));
+    uint64_t collided_hash = HASH_KEY(*t, GET_ENTRY(*t, bucket->index));
     if (collided_hash != hash) { // Collided with a mid-chain entry
         hdebug("Hit a mid-chain entry at bucket %u (chain starting at %u)\n", hash, collided_hash);
         // Find chain predecessor
-        uint32_t predecessor = collided_hash;
+        uint64_t predecessor = collided_hash;
         while (buckets[predecessor].next_bucket != hash)
             predecessor = buckets[predecessor].next_bucket;
 
@@ -180,7 +180,7 @@ static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const
         buckets[t->bucket_info->last_free] = *bucket;
     } else { // Collided with the start of a chain
         hdebug("Hit start of a chain\n");
-        uint32_t end_of_chain = hash;
+        uint64_t end_of_chain = hash;
         while (buckets[end_of_chain].next_bucket != END_OF_CHAIN)
             end_of_chain = buckets[end_of_chain].next_bucket;
         hdebug("Appending to chain\n");
@@ -309,10 +309,10 @@ public void Table$remove(Table_t *t, const void *key, const TypeInfo *type)
     //    zero out bucket
     //    maybe update lastfree_index1 to removed bucket's index
 
-    uint32_t hash = HASH_KEY(*t, key);
+    uint64_t hash = HASH_KEY(*t, key);
     hdebug("Removing key with hash %u\n", hash);
     bucket_t *bucket, *prev = NULL;
-    for (uint32_t i = hash; t->bucket_info->buckets[i].occupied; i = t->bucket_info->buckets[i].next_bucket) {
+    for (uint64_t i = hash; t->bucket_info->buckets[i].occupied; i = t->bucket_info->buckets[i].next_bucket) {
         if (EQUAL_KEYS(GET_ENTRY(*t, t->bucket_info->buckets[i].index), key)) {
             bucket = &t->bucket_info->buckets[i];
             hdebug("Found key to delete in bucket %u\n", i);
@@ -336,7 +336,7 @@ public void Table$remove(Table_t *t, const void *key, const TypeInfo *type)
         hdebug("Removing key/value from the middle of the entries array\n");
 
         // Find the bucket that points to the last entry's index:
-        uint32_t i = HASH_KEY(*t, GET_ENTRY(*t, last_entry));
+        uint64_t i = HASH_KEY(*t, GET_ENTRY(*t, last_entry));
         while (t->bucket_info->buckets[i].index != last_entry)
             i = t->bucket_info->buckets[i].next_bucket;
         // Update the bucket to point to the last entry's new home (the space
@@ -438,21 +438,19 @@ public int32_t Table$compare(const Table_t *x, const Table_t *y, const TypeInfo 
     return 0;
 }
 
-public uint32_t Table$hash(const Table_t *t, const TypeInfo *type)
+public uint64_t Table$hash(const Table_t *t, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
     // Table hashes are computed as:
     // hash(hash(t.keys), hash(t.values), hash(t.fallback), hash(t.default))
     // Where fallback and default hash to zero if absent
     auto table = type->TableInfo;
-    uint32_t components[] = {
+    uint64_t components[] = {
         Array$hash(&t->entries, Array$info(table.key)),
         Array$hash(&t->entries + value_offset(type), Array$info(table.value)),
         t->fallback ? Table$hash(t->fallback, type) : 0,
     };
-    uint32_t hash;
-    halfsiphash(&components, sizeof(components), TOMO_HASH_KEY, (uint8_t*)&hash, sizeof(hash));
-    return hash;
+    return siphash24((void*)&components, sizeof(components));
 }
 
 public Text_t Table$as_text(const Table_t *t, bool colorize, const TypeInfo *type)

@@ -17,15 +17,14 @@
 #include "functions.h"
 #include "integers.h"
 #include "pointer.h"
+#include "siphash.h"
 #include "string.h"
 #include "table.h"
 #include "text.h"
 #include "types.h"
 #include "util.h"
 
-#include "siphash.c"
-
-public uint8_t TOMO_HASH_KEY[16] = {0};
+public uint64_t TOMO_HASH_KEY[2] = {23, 42}; // Randomized in tomo_init()
 
 public void tomo_init(void)
 {
@@ -115,7 +114,7 @@ public uint64_t generic_hash(const void *obj, const TypeInfo *type)
         return type->CustomInfo.hash(obj, type);
     default: {
       hash_data:;
-        return siphash24((void*)obj, type->size, (uint64_t*)TOMO_HASH_KEY);
+        return siphash24((void*)obj, type->size);
     }
     }
 }

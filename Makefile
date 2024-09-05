@@ -24,21 +24,18 @@ G=-ggdb
 O=-Og
 CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS)
 LDLIBS=-lgc -lcord -lm -lunistring -lgmp -ldl
-BUILTIN_OBJS=builtins/array.o builtins/bool.o builtins/channel.o builtins/nums.o builtins/functions.o builtins/integers.o \
+BUILTIN_OBJS=builtins/siphash.o builtins/array.o builtins/bool.o builtins/channel.o builtins/nums.o builtins/functions.o builtins/integers.o \
 						 builtins/pointer.o builtins/memory.o builtins/text.o builtins/thread.o builtins/c_string.o builtins/table.o \
 						 builtins/types.o builtins/util.o builtins/files.o builtins/range.o
 TESTS=$(patsubst %.tm,%.tm.testresult,$(wildcard test/*.tm))
 
 all: libtomo.so tomo
 
-tomo: tomo.o $(BUILTIN_OBJS) SipHash/halfsiphash.o ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o repl.o
+tomo: tomo.o $(BUILTIN_OBJS) ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o repl.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-libtomo.so: $(BUILTIN_OBJS) SipHash/halfsiphash.o
+libtomo.so: $(BUILTIN_OBJS)
 	$(CC) $^ $(CFLAGS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -ldl -Wl,-soname,libtomo.so -shared -o $@
-
-SipHash/halfsiphash.c:
-	git submodule update --init --recursive
 
 tags:
 	ctags *.[ch] **/*.[ch]
@@ -58,7 +55,7 @@ test: $(TESTS)
 	@echo -e '\x1b[32;7m ALL TESTS PASSED! \x1b[m'
 
 clean:
-	rm -f tomo *.o SipHash/halfsiphash.o builtins/*.o libtomo.so test/*.tm.{c,h,o,testresult}
+	rm -f tomo *.o builtins/*.o libtomo.so test/*.tm.{c,h,o,testresult} examples/*.tm.*{c,h,o}
 
 %.1: %.1.md
 	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@

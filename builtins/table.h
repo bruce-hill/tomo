@@ -73,7 +73,7 @@ void Table$mark_copy_on_write(Table_t *t);
 #define TABLE_COPY(t) ({ TABLE_INCREF(t); t; })
 int32_t Table$compare(const Table_t *x, const Table_t *y, const TypeInfo *type);
 bool Table$equal(const Table_t *x, const Table_t *y, const TypeInfo *type);
-uint32_t Table$hash(const Table_t *t, const TypeInfo *type);
+uint64_t Table$hash(const Table_t *t, const TypeInfo *type);
 Text_t Table$as_text(const Table_t *t, bool colorize, const TypeInfo *type);
 
 void *Table$str_entry(Table_t t, int64_t n);

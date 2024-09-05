@@ -12,7 +12,6 @@
 
 #include "array.h"
 #include "functions.h"
-#include "halfsiphash.h"
 #include "text.h"
 #include "types.h"
 #include "util.h"
