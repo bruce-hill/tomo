@@ -3065,12 +3065,8 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
     binding_t *help_binding = get_binding(env, "HELP");
     CORD help_code = help_binding ? help_binding->code : usage_code;
 
-    CORD code = CORD_all(
-        "#define USAGE_ERR(fmt, ...) errx(1, fmt \"\\n%s\" __VA_OPT__(,) __VA_ARGS__, Text$as_c_string(", usage_code, "))\n"
-        "#define IS_FLAG(str, flag) (strncmp(str, flag, strlen(flag) == 0 && (str[strlen(flag)] == 0 || str[strlen(flag)] == '=')) == 0)\n");
-
     if (!fn_info->args) {
-        code = CORD_all(code, "Text_t usage = Texts(Text(\"Usage: \"), Text$from_str(argv[0]), Text(\" [--help]\"));\n");
+        CORD code = "Text_t usage = Texts(Text(\"Usage: \"), Text$from_str(argv[0]), Text(\" [--help]\"));\n";
         code = CORD_all(code, "if (argc > 1 && streq(argv[1], \"--help\")) {\n",
                         "Text$print(stdout, ", help_code, ");\n"
                         "puts(\"\");\n"
@@ -3079,9 +3075,13 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
         return CORD_all(
             code,
             "if (argc > 1)\n"
-            "USAGE_ERR(\"This program doesn't take any arguments.\");\n",
+            "errx(1, \"This program doesn't take any arguments.\\n%k\", &", usage_code, ");\n",
             fn_name, "();\n");
     }
+
+    CORD code = CORD_all(
+        "#define USAGE_ERR(fmt, ...) errx(1, fmt \"\\n%s\" __VA_OPT__(,) __VA_ARGS__, Text$as_c_string(", usage_code, "))\n"
+        "#define IS_FLAG(str, flag) (strncmp(str, flag, strlen(flag) == 0 && (str[strlen(flag)] == 0 || str[strlen(flag)] == '=')) == 0)\n");
 
     env_t *main_env = fresh_scope(env);
 
