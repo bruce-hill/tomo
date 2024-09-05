@@ -326,7 +326,7 @@ void build_file_dependency_graph(const char *filename, Table_t *to_compile, Tabl
         case USE_LOCAL: {
             const char *path = use->path;
             path = resolve_path(path, filename, "");
-            if (!path) errx(1, "Couldn't resolve import: %s", use->path);
+            if (!path) errx(1, "Couldn't resolve import: %s relative to: %s", use->path, filename);
             if (Table$str_get(*to_compile, path))
                 continue;
             build_file_dependency_graph(path, to_compile, to_link);

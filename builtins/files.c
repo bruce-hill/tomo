@@ -29,7 +29,7 @@ public char *resolve_path(const char *path, const char *relative_to, const char 
     if (streq(path, "~") || starts_with(path, "~/")) {
         char *resolved = realpath(heap_strf("%s%s", getenv("HOME"), path+1), buf);
         if (resolved) return GC_strdup(resolved);
-    } else if (streq(path, ".") || starts_with(path, "./")) {
+    } else if (streq(path, ".") || starts_with(path, "./") || starts_with(path, "../")) {
         char *relative_dir = dirname(GC_strdup(relative_to));
         char *resolved = realpath(heap_strf("%s/%s", relative_dir, path), buf);
         if (resolved) return GC_strdup(resolved);
