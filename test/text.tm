@@ -101,8 +101,8 @@ func main():
 	= "A $(1+2)"
 	>> $="A =(1+2)"
 	= "A 3"
-	>> $(one (nested) two $(1+2))
-	= "one (nested) two 3"
+	>> ${one {nested} two $(1+2)}
+	= "one {nested} two 3"
 
 	>> "one two three":replace($/{alpha}/, "")
 	= "  "
