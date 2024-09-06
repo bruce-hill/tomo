@@ -41,7 +41,7 @@ Int_t Text$find(Text_t text, Pattern_t pattern, Int_t i, int64_t *match_length);
 Array_t Text$find_all(Text_t text, Pattern_t pattern);
 bool Text$has(Text_t text, Pattern_t pattern);
 bool Text$matches(Text_t text, Pattern_t pattern);
-const char *Text$as_c_string(Text_t text);
+char *Text$as_c_string(Text_t text);
 public Text_t Text$format(const char *fmt, ...);
 Array_t Text$clusters(Text_t text);
 Array_t Text$utf32_codepoints(Text_t text);

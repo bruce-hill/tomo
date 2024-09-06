@@ -648,7 +648,7 @@ public Text_t Text$from_strn(const char *str, size_t len)
 
 public Text_t Text$from_str(const char *str)
 {
-    return Text$from_strn(str, strlen(str));
+    return str ? Text$from_strn(str, strlen(str)) : Text("");
 }
 
 static void u8_buf_append(Text_t text, char **buf, int64_t *capacity, int64_t *i)
@@ -706,7 +706,7 @@ static void u8_buf_append(Text_t text, char **buf, int64_t *capacity, int64_t *i
     }
 }
 
-public const char *Text$as_c_string(Text_t text)
+public char *Text$as_c_string(Text_t text)
 {
     int64_t capacity = text.length + 1;
     char *buf = GC_MALLOC_ATOMIC(capacity);

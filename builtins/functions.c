@@ -65,6 +65,7 @@ void print_stack_trace(FILE *out, int start, int stop)
 
 public void fail(const char *fmt, ...)
 {
+    fflush(stdout);
     if (USE_COLOR) fputs("\x1b[31;7m ==================== ERROR ==================== \n\n\x1b[0;1m", stderr);
     else fputs("==================== ERROR ====================\n\n", stderr);
     va_list args;
