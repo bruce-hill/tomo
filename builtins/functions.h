@@ -25,6 +25,7 @@ uint64_t generic_hash(const void *obj, const TypeInfo *type);
 int32_t generic_compare(const void *x, const void *y, const TypeInfo *type);
 bool generic_equal(const void *x, const void *y, const TypeInfo *type);
 Text_t generic_as_text(const void *obj, bool colorize, const TypeInfo *type);
+int generic_print(const void *obj, bool colorize, const TypeInfo *type);
 closure_t spawn(closure_t fn);
 bool pop_flag(char **argv, int *i, const char *flag, Text_t *result);
 

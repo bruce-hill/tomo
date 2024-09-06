@@ -182,6 +182,11 @@ public Text_t generic_as_text(const void *obj, bool colorize, const TypeInfo *ty
     }
 }
 
+public int generic_print(const void *obj, bool colorize, const TypeInfo *type)
+{
+    Text_t text = generic_as_text(obj, colorize, type);
+    return Text$print(stdout, text) + printf("\n");
+}
 
 public Text_t builtin_last_err()
 {
