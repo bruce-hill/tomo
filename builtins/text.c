@@ -86,7 +86,7 @@ typedef struct {
 
 typedef struct {
     int64_t subtext, sum_of_previous_subtexts;
-} iteration_state_t;
+} text_iter_t;
 
 #define MAX_BACKREFS 100
 
@@ -104,7 +104,7 @@ static int32_t num_synthetic_graphemes = 0;
 #define GRAPHEME_UTF8(id) (synthetic_graphemes[-(id)-1].utf8)
 
 static int32_t get_grapheme(Text_t text, int64_t index);
-static int32_t _next_grapheme(Text_t text, iteration_state_t *state, int64_t index);
+static int32_t _next_grapheme(Text_t text, text_iter_t *state, int64_t index);
 static Text_t text_from_u32(uint32_t *codepoints, int64_t num_codepoints, bool normalize);
 
 static bool graphemes_equal(uint32_t **a, uint32_t **b) {
@@ -827,7 +827,7 @@ public uint64_t Text$hash(Text_t *text)
     return text->hash;
 }
 
-int32_t _next_grapheme(Text_t text, iteration_state_t *state, int64_t index)
+int32_t _next_grapheme(Text_t text, text_iter_t *state, int64_t index)
 {
     switch (text.tag) {
     case TEXT_ASCII: return index < text.length ? (int32_t)text.ascii[index] : 0;
@@ -835,7 +835,7 @@ int32_t _next_grapheme(Text_t text, iteration_state_t *state, int64_t index)
     case TEXT_GRAPHEMES: return index < text.length ? text.graphemes[index] : 0;
     case TEXT_SHORT_GRAPHEMES: return index < text.length ? text.short_graphemes[index] : 0;
     case TEXT_SUBTEXT: {
-        iteration_state_t backup_state = {0, 0};
+        text_iter_t backup_state = {0, 0};
         if (!state) state = &backup_state;
 
         if (index < 0 || index >= text.length)
@@ -860,7 +860,7 @@ int32_t _next_grapheme(Text_t text, iteration_state_t *state, int64_t index)
 
 int32_t get_grapheme(Text_t text, int64_t index)
 {
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     return _next_grapheme(text, &state, index);
 }
 
@@ -869,7 +869,7 @@ public int32_t Text$compare(const Text_t *a, const Text_t *b)
     if (a == b) return 0;
 
     int64_t len = MAX(a->length, b->length);
-    iteration_state_t a_state = {0, 0}, b_state = {0, 0};
+    text_iter_t a_state = {0, 0}, b_state = {0, 0};
     for (int64_t i = 0; i < len; i++) {
         int32_t ai = _next_grapheme(*a, &a_state, i);
         int32_t bi = _next_grapheme(*b, &b_state, i);
@@ -906,7 +906,7 @@ public bool Text$equal(const Text_t *a, const Text_t *b)
     if (a->length != b->length || (a->hash != 0 && b->hash != 0 && a->hash != b->hash))
         return false;
     int64_t len = a->length;
-    iteration_state_t a_state = {0, 0}, b_state = {0, 0};
+    text_iter_t a_state = {0, 0}, b_state = {0, 0};
     for (int64_t i = 0; i < len; i++) {
         int32_t ai = _next_grapheme(*a, &a_state, i);
         int32_t bi = _next_grapheme(*b, &b_state, i);
@@ -920,7 +920,7 @@ public bool Text$equal_ignoring_case(Text_t a, Text_t b)
     if (a.length != b.length)
         return false;
     int64_t len = a.length;
-    iteration_state_t a_state = {0, 0}, b_state = {0, 0};
+    text_iter_t a_state = {0, 0}, b_state = {0, 0};
     const char *language = uc_locale_language();
     for (int64_t i = 0; i < len; i++) {
         int32_t ai = _next_grapheme(a, &a_state, i);
@@ -982,7 +982,7 @@ public Text_t Text$title(Text_t text)
 
 static inline void skip_whitespace(Text_t text, int64_t *i)
 {
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     while (*i < text.length) {
         int32_t grapheme = _next_grapheme(text, &state, *i);
         if (grapheme > 0 && !uc_is_property_white_space(grapheme))
@@ -1002,7 +1002,7 @@ static inline bool match_grapheme(Text_t text, int64_t *i, int32_t grapheme)
 
 static inline bool match_str(Text_t text, int64_t *i, const char *str)
 {
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     int64_t matched = 0;
     while (matched[str]) {
         if (*i + matched >= text.length || _next_grapheme(text, &state, *i + matched) != str[matched])
@@ -1029,7 +1029,7 @@ static inline bool match_property(Text_t text, int64_t *i, uc_property_t prop)
 
 static int64_t parse_int(Text_t text, int64_t *i)
 {
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     int64_t value = 0;
     for (;; *i += 1) {
         int32_t grapheme = _next_grapheme(text, &state, *i);
@@ -1047,7 +1047,7 @@ const char *get_property_name(Text_t text, int64_t *i)
     skip_whitespace(text, i);
     char *name = GC_MALLOC_ATOMIC(UNINAME_MAX);
     char *dest = name;
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     while (*i < text.length) {
         int32_t grapheme = _next_grapheme(text, &state, *i);
         if (!(grapheme & ~0xFF) && (isalnum(grapheme) || grapheme == ' ' || grapheme == '_' || grapheme == '-')) {
@@ -1096,7 +1096,7 @@ int64_t match_email(Text_t text, int64_t index)
     // domain = dns-label ("." dns-label)*
     // dns-label = 1-63 ([a-zA-Z0-9-] | non-ascii)
 
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     if (index > 0) {
         int32_t prev_codepoint = _next_grapheme(text, &state, index - 1);
         prev_codepoint = MAIN_GRAPHEME_CODEPOINT(prev_codepoint);
@@ -1142,7 +1142,7 @@ int64_t match_email(Text_t text, int64_t index)
 
 int64_t match_ipv6(Text_t text, int64_t index)
 {
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     if (index > 0) {
         int32_t prev_codepoint = _next_grapheme(text, &state, index - 1);
         if ((prev_codepoint & ~0x7F) && (isxdigit(prev_codepoint) || prev_codepoint == ':'))
@@ -1178,7 +1178,7 @@ int64_t match_ipv6(Text_t text, int64_t index)
 
 static int64_t match_ipv4(Text_t text, int64_t index)
 {
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     if (index > 0) {
         int32_t prev_codepoint = _next_grapheme(text, &state, index - 1);
         if ((prev_codepoint & ~0x7F) && (isdigit(prev_codepoint) || prev_codepoint == '.'))
@@ -1220,7 +1220,7 @@ int64_t match_uri(Text_t text, int64_t index)
     // scheme = [a-zA-Z] [a-zA-Z0-9+.-]
     // authority = [userinfo "@"] host [":" port]
 
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     if (index > 0) {
         int32_t prev_codepoint = _next_grapheme(text, &state, index - 1);
         prev_codepoint = MAIN_GRAPHEME_CODEPOINT(prev_codepoint);
@@ -1310,7 +1310,7 @@ int64_t match_url(Text_t text, int64_t index)
 
 int64_t match_id(Text_t text, int64_t index)
 {
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     if (!EAT1(text, &state, index, uc_is_property(grapheme, UC_PROPERTY_XID_START)))
         return -1;
     return 1 + EAT_MANY(text, &state, index, uc_is_property(grapheme, UC_PROPERTY_XID_CONTINUE));
@@ -1318,14 +1318,14 @@ int64_t match_id(Text_t text, int64_t index)
 
 int64_t match_int(Text_t text, int64_t index)
 {
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     int64_t len = EAT_MANY(text, &state, index, uc_is_property(grapheme, UC_PROPERTY_DECIMAL_DIGIT));
     return len >= 0 ? len : -1;
 }
 
 int64_t match_num(Text_t text, int64_t index)
 {
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     bool negative = EAT1(text, &state, index, grapheme == '-') ? 1 : 0;
     int64_t pre_decimal = EAT_MANY(text, &state, index,
                                    uc_is_property(grapheme, UC_PROPERTY_DECIMAL_DIGIT));
@@ -1342,7 +1342,7 @@ int64_t match_newline(Text_t text, int64_t index)
     if (index >= text.length)
         return -1;
 
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     int32_t grapheme = index >= text.length ? 0 : _next_grapheme(text, &state, index);
     grapheme = MAIN_GRAPHEME_CODEPOINT(grapheme);
     if (grapheme == '\n')
@@ -1370,7 +1370,7 @@ typedef struct {
     };
 } pat_t;
 
-int64_t match_pat(Text_t text, iteration_state_t *state, int64_t index, pat_t pat)
+int64_t match_pat(Text_t text, text_iter_t *state, int64_t index, pat_t pat)
 {
     int32_t grapheme = index >= text.length ? 0 : _next_grapheme(text, state, index);
     grapheme = MAIN_GRAPHEME_CODEPOINT(grapheme);
@@ -1459,7 +1459,7 @@ int64_t match_pat(Text_t text, iteration_state_t *state, int64_t index, pat_t pa
     errx(1, "Unreachable");
 }
 
-pat_t parse_next_pat(Text_t pattern, iteration_state_t *state, int64_t *index)
+pat_t parse_next_pat(Text_t pattern, text_iter_t *state, int64_t *index)
 {
     if (EAT2(pattern, state, *index,
              uc_is_property(grapheme, UC_PROPERTY_QUOTATION_MARK),
@@ -1614,7 +1614,7 @@ int64_t match(Text_t text, int64_t text_index, Pattern_t pattern, int64_t patter
         return 0;
 
     int64_t start_index = text_index;
-    iteration_state_t pattern_state = {0, 0}, text_state = {0, 0};
+    text_iter_t pattern_state = {0, 0}, text_state = {0, 0};
     pat_t pat = parse_next_pat(pattern, &pattern_state, &pattern_index);
 
     if (pat.min == -1 && pat.max == -1) {
@@ -1708,7 +1708,7 @@ static int64_t _find(Text_t text, Pattern_t pattern, int64_t first, int64_t last
                        && !uc_is_property(first_grapheme, UC_PROPERTY_QUOTATION_MARK)
                        && !uc_is_property(first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
 
-    iteration_state_t text_state = {0, 0};
+    text_iter_t text_state = {0, 0};
 
     for (int64_t i = first; i <= last; i++) {
         // Optimization: quickly skip ahead to first char in pattern:
@@ -1784,7 +1784,7 @@ static inline Text_t _quoted(Text_t text, bool colorize, char quote_char)
     add_char(quote_char);
 
 #define add_escaped(str) ({ if (colorize) add_str("\x1b[34;1m"); add_char('\\'); add_str(str); if (colorize) add_str("\x1b[0;35m"); })
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     for (int64_t i = 0; i < text.length; i++) {
         int32_t g = _next_grapheme(text, &state, i);
         switch (g) {
@@ -1878,7 +1878,7 @@ static Text_t apply_backrefs(Text_t text, Pattern_t original_pattern, Text_t rep
                        && !uc_is_property(first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
 
     Text_t ret = Text("");
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     int64_t nonmatching_pos = 0;
     for (int64_t pos = 0; pos < replacement.length; ) {
         // Optimization: quickly skip ahead to first char in the backref pattern:
@@ -1939,7 +1939,7 @@ public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement, P
                        && !uc_is_property(first_grapheme, UC_PROPERTY_QUOTATION_MARK)
                        && !uc_is_property(first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
 
-    iteration_state_t text_state = {0, 0};
+    text_iter_t text_state = {0, 0};
     int64_t nonmatching_pos = 0;
     for (int64_t pos = 0; pos < text.length; ) {
         // Optimization: quickly skip ahead to first char in pattern:
@@ -2006,7 +2006,7 @@ public Text_t Text$map(Text_t text, Pattern_t pattern, closure_t fn)
                        && !uc_is_property(first_grapheme, UC_PROPERTY_QUOTATION_MARK)
                        && !uc_is_property(first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
 
-    iteration_state_t text_state = {0, 0};
+    text_iter_t text_state = {0, 0};
     int64_t nonmatching_pos = 0;
 
     Text_t (*text_mapper)(Text_t, void*) = fn.fn;
@@ -2155,7 +2155,7 @@ public Array_t Text$clusters(Text_t text)
 public Array_t Text$utf32_codepoints(Text_t text)
 {
     Array_t codepoints = {.atomic=1};
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     for (int64_t i = 0; i < text.length; i++) {
         int32_t grapheme = _next_grapheme(text, &state, i);
         if (grapheme < 0) {
@@ -2188,7 +2188,7 @@ static inline const char *codepoint_name(uint32_t c)
 public Array_t Text$codepoint_names(Text_t text)
 {
     Array_t names = {};
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     for (int64_t i = 0; i < text.length; i++) {
         int32_t grapheme = _next_grapheme(text, &state, i);
         if (grapheme < 0) {
@@ -2240,7 +2240,7 @@ public Text_t Text$from_bytes(Array_t bytes)
 public Array_t Text$lines(Text_t text)
 {
     Array_t lines = {};
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     for (int64_t i = 0, line_start = 0; i < text.length; i++) {
         int32_t grapheme = _next_grapheme(text, &state, i);
         if (grapheme == '\r' && _next_grapheme(text, &state, i + 1) == '\n') { // CRLF
@@ -2273,7 +2273,7 @@ public Pattern_t Pattern$escape_text(Text_t text)
     Array_t graphemes = {.atomic=1};
 #define add_char(c) Array$insert_value(&graphemes, (uint32_t)c, I_small(0), sizeof(uint32_t))
 #define add_str(s) ({ for (char *_c = s; *_c; ++_c) Array$insert_value(&graphemes, (uint32_t)*_c, I_small(0), sizeof(uint32_t)); })
-    iteration_state_t state = {0, 0};
+    text_iter_t state = {0, 0};
     for (int64_t i = 0; i < text.length; i++) {
         int32_t g = _next_grapheme(text, &state, i);
         uint32_t g0 = g < 0 ? GRAPHEME_CODEPOINTS(g)[0] : (uint32_t)g;
@@ -2298,8 +2298,8 @@ public Pattern_t Pattern$escape_text(Text_t text)
 }
 
 public const TypeInfo Pattern$info = {
-    .size=sizeof(Text_t),
-    .align=__alignof__(Text_t),
+    .size=sizeof(Pattern_t),
+    .align=__alignof__(Pattern_t),
     .tag=TextInfo,
     .TextInfo={.lang="Pattern"},
 };
