@@ -213,11 +213,11 @@ int main(int argc, char *argv[])
             if (!ast) errx(1, "Could not parse file %s", filename);
             env_t *module_env = load_module_env(env, ast);
             for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-                CORD h = compile_statement_typedefs(&module_env, stmt->ast);
+                CORD h = compile_statement_typedefs(module_env, stmt->ast);
                 if (h) CORD_put(h, header_prog);
             }
             for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-                CORD h = compile_statement_definitions(&module_env, stmt->ast);
+                CORD h = compile_statement_definitions(module_env, stmt->ast);
                 if (h) CORD_put(h, header_prog);
             }
             fprintf(header_prog, "void %s$%s$$initialize(void);\n", libname, file_base_name(filename));

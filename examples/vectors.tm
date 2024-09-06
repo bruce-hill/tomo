@@ -94,6 +94,4 @@ func main():
     = Vec2(x=110, y=120)
     >> Vec3(10, 20, 30)
     >> Vec2.ZERO
-    >> Vec2.ZERO.x = 99
-    >> Vec2.ZERO
 
