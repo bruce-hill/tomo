@@ -211,13 +211,13 @@ int main(int argc, char *argv[])
             const char *filename = argv[i];
             ast_t *ast = parse_file(filename, NULL);
             if (!ast) errx(1, "Could not parse file %s", filename);
-            env->namespace = new(namespace_t, .name=file_base_name(filename));
+            env_t *module_env = load_module_env(env, ast);
             for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-                CORD h = compile_statement_typedefs(env, stmt->ast);
+                CORD h = compile_statement_typedefs(&module_env, stmt->ast);
                 if (h) CORD_put(h, header_prog);
             }
             for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-                CORD h = compile_statement_definitions(env, stmt->ast);
+                CORD h = compile_statement_definitions(&module_env, stmt->ast);
                 if (h) CORD_put(h, header_prog);
             }
             fprintf(header_prog, "void %s$%s$$initialize(void);\n", libname, file_base_name(filename));
