@@ -1,5 +1,7 @@
 # Example Programs
 
+- [coroutine.tm](coroutine.tm): A library for coroutines similar to Lua's
+  (using [libaco](https://libaco.org)).
 - [file.tm](file.tm): A file handling module.
 - [ini.tm](ini.tm): An INI configuration file reader tool.
 - [vectors.tm](vectors.tm): A math vector library.
