@@ -269,6 +269,9 @@ func main():
 	>> "AbcAbcxxxxxxxxAbcAbc":trim($/Abc/)
 	= "AbcxxxxxxxxAbc"
 
+	>> "A=B=C=D":replace($/{..}={..}/, "1:(\1) 2:(\2)")
+	= "1:(A) 2:(B=C=D)"
+
 	do:
 		!! Testing concatenation-stability:
 		>> ab := Text.from_codepoint_names(["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"])
