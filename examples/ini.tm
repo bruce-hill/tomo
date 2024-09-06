@@ -9,27 +9,28 @@ HELP := "
 file := use ./file.tm
 
 func parse_ini(filename:Text)->{Text:{Text:Text}}:
-    when file.read(filename) is Failure(err): fail(err)
-    is Success(text):
-        sections := {:Text:@{Text:Text}}
-        current_section := @{:Text:Text}
-        sections:set("", current_section)
+    text := when file.read(filename) is Failure(err): fail(err)
+    is Success(text): text
 
-        # Line wraps:
-        text = text:replace($/\{1 nl}{0+space}/, " ")
+    sections := {:Text:@{Text:Text}}
+    current_section := @{:Text:Text}
+    sections:set("", current_section)
 
-        for line in text:lines():
-            line = line:trim()
-            if line:matches($/{0+space}[{..}]/):
-                section_name := line:replace($/{0+space}[{..}]{..}/, "\2"):trim():lower()
-                current_section = @{:Text:Text}
-                sections:set(section_name, current_section)
-            else if line:matches($/{..}={..}/):
-                key := line:replace($/{..}={..}/, "\1"):trim():lower()
-                value := line:replace($/{..}={..}/, "\2"):trim()
-                current_section:set(key, value)
+    # Line wraps:
+    text = text:replace($/\{1 nl}{0+space}/, " ")
 
-        return {k:v[] for k,v in sections}
+    for line in text:lines():
+        line = line:trim()
+        if line:matches($/{0+space}[{..}]/):
+            section_name := line:replace($/{0+space}[{..}]{..}/, "\2"):trim():lower()
+            current_section = @{:Text:Text}
+            sections:set(section_name, current_section)
+        else if line:matches($/{..}={..}/):
+            key := line:replace($/{..}={..}/, "\1"):trim():lower()
+            value := line:replace($/{..}={..}/, "\2"):trim()
+            current_section:set(key, value)
+
+    return {k:v[] for k,v in sections}
 
 func main(filename:Text, key:Text):
     keys := key:split($Pattern"/")
