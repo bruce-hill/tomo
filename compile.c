@@ -2657,8 +2657,41 @@ CORD compile(env_t *env, ast_t *ast)
             code_err(call->fn, "This is not a function, it's a %T", fn_t);
         }
     }
-    case When:
-        code_err(ast, "'when' expressions are not yet implemented");
+    case When: {
+        auto original = Match(ast, When);
+        ast_t *when_var = WrapAST(ast, Var, .name="when"); 
+        when_clause_t *new_clauses = NULL;
+        type_t *subject_t = get_type(env, original->subject);
+        for (when_clause_t *clause = original->clauses; clause; clause = clause->next) {
+            type_t *clause_type = get_clause_type(env, subject_t, clause);
+            if (clause_type->tag == AbortType || clause_type->tag == ReturnType) {
+                new_clauses = new(when_clause_t, .tag_name=clause->tag_name, .args=clause->args, .body=clause->body, .next=new_clauses);
+            } else {
+                ast_t *assign = WrapAST(clause->body, Assign,
+                                        .targets=new(ast_list_t, .ast=when_var),
+                                        .values=new(ast_list_t, .ast=clause->body));
+                new_clauses = new(when_clause_t, .tag_name=clause->tag_name, .args=clause->args, .body=assign, .next=new_clauses);
+            }
+        }
+        REVERSE_LIST(new_clauses);
+        ast_t *else_body = original->else_body;
+        if (else_body) {
+            type_t *clause_type = get_type(env, else_body);
+            if (clause_type->tag != AbortType && clause_type->tag != ReturnType) {
+                else_body = WrapAST(else_body, Assign,
+                                    .targets=new(ast_list_t, .ast=when_var),
+                                    .values=new(ast_list_t, .ast=else_body));
+            }
+        }
+
+        type_t *t = get_type(env, ast);
+        env_t *when_env = fresh_scope(env);
+        set_binding(when_env, "when", new(binding_t, .type=t, .code="when"));
+        return CORD_all(
+            "({ ", compile_declaration(t, "when"), ";\n",
+            compile_statement(when_env, WrapAST(ast, When, .subject=original->subject, .clauses=new_clauses, .else_body=else_body)),
+            "when; })");
+    }
     case If: {
         auto if_ = Match(ast, If);
         if (!if_->else_body)

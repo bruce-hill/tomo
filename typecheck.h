@@ -21,6 +21,7 @@ type_t *get_file_type(env_t *env, const char *path);
 type_t *get_function_def_type(env_t *env, ast_t *ast);
 type_t *get_arg_type(env_t *env, arg_t *arg);
 type_t *get_arg_ast_type(env_t *env, arg_ast_t *arg);
+type_t *get_clause_type(env_t *env, type_t *subject_t, when_clause_t *clause);
 bool can_be_mutated(env_t *env, ast_t *ast);
 type_t *parse_type_string(env_t *env, const char *str);
 type_t *get_method_type(env_t *env, ast_t *self, const char *name);

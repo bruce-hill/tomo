@@ -66,4 +66,12 @@ func main():
 	while when cases[i] is One(x):
 		>> x
 		i += 1
+	
+	>> expr := when cases[1] is One(y):
+		y + 1
+	else:
+		-1
+	= 2
+
+
 
