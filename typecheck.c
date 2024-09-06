@@ -855,10 +855,10 @@ type_t *get_type(env_t *env, ast_t *ast)
         }
         return Type(ReturnType, .ret=(val ? get_type(env, val) : Type(VoidType)));
     }
-    case Stop: case Skip: case PrintStatement: {
+    case Stop: case Skip: {
         return Type(AbortType);
     }
-    case Pass: case Defer: return Type(VoidType);
+    case Pass: case Defer: case PrintStatement: return Type(VoidType);
     case Negative: {
         ast_t *value = Match(ast, Negative)->value;
         type_t *t = get_type(env, value);
@@ -1099,6 +1099,8 @@ type_t *get_type(env_t *env, ast_t *ast)
         assert(ret);
         if (ret->tag == ReturnType)
             ret = Match(ret, ReturnType)->ret;
+        if (ret->tag == AbortType)
+            ret = Type(VoidType);
 
         if (has_stack_memory(ret))
             code_err(ast, "Functions can't return stack references because the reference may outlive its stack frame.");
