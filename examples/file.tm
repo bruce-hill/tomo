@@ -56,6 +56,18 @@ func read(path:Text)->FileReadResult:
     }
     return Failure(builtin_last_err())
 
+func resolve_path(path:Text, relative_to=".")->Text:
+    path_c_str := path:as_c_string()
+    relative_to_c_str := relative_to:as_c_string()
+    inline C {
+        extern char *resolve_path(char*, char*, char*);
+    }
+    !! Resolving: ($path_c_str, $relative_to_c_str, $relative_to_c_str)
+    >> resolved := inline C (
+        resolve_path($path_c_str, $relative_to_c_str, $relative_to_c_str)
+    ): CString
+    return Text.from_c_string(resolved)
+
 struct WriteHandle(_file:@Memory):
     func write(h:WriteHandle, text:Text, flush=yes):
         inline C {
