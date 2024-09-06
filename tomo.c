@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
 
     cconfig = ENV_CORD("CCONFIG");
     if (!cconfig)
-        cconfig = "-std=c11 -fdollars-in-identifiers -fsanitize=signed-integer-overflow -fno-sanitize-recover"
+        cconfig = "-fdollars-in-identifiers -std=gnu11 -Wno-trigraphs -fsanitize=signed-integer-overflow -fno-sanitize-recover"
             " -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE";
 
     CORD optimization = ENV_CORD("O");
