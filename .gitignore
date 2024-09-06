@@ -7,3 +7,6 @@
 /tags
 /test/*
 !/test/*.tm
+/examples/*
+!/examples/*.tm
+!/examples/*.ini
