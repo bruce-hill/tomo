@@ -247,6 +247,7 @@ public void say(Text_t text, bool newline)
     Text$print(stdout, text);
     if (newline)
         fputc('\n', stdout);
+    fflush(stdout);
 }
 
 public Text_t ask(Text_t prompt, bool bold, bool force_tty)
