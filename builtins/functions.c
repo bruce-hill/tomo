@@ -41,7 +41,7 @@ public void tomo_init(void)
        errx(1, "Couldn't set printf specifier");
 }
 
-static void print_stack_trace(FILE *out)
+void print_stack_trace(FILE *out, int start, int stop)
 {
     // Print stack trace:
     fprintf(out, "\x1b[34m");
@@ -49,7 +49,7 @@ static void print_stack_trace(FILE *out)
     void *array[1024];
     int64_t size = (int64_t)backtrace(array, sizeof(array)/sizeof(array[0]));
     char **strings = strings = backtrace_symbols(array, size);
-    for (int64_t i = 2; i < size - 4; i++) {
+    for (int64_t i = start; i < size - stop; i++) {
         char *filename = strings[i];
         const char *cmd = heap_strf("addr2line -e %.*s -fisp | sed 's/\\$/./g;s/ at /() at /' >&2", strcspn(filename, "("), filename);
         FILE *fp = popen(cmd, "w");
@@ -60,6 +60,7 @@ static void print_stack_trace(FILE *out)
         pclose(fp);
     }
     fprintf(out, "\x1b[m");
+    fflush(out);
 }
 
 public void fail(const char *fmt, ...)
@@ -72,7 +73,7 @@ public void fail(const char *fmt, ...)
     if (USE_COLOR) fputs("\x1b[m", stderr);
     fputs("\n\n", stderr);
     va_end(args);
-    print_stack_trace(stderr);
+    print_stack_trace(stderr, 2, 4);
     fflush(stderr);
     raise(SIGABRT);
 }
@@ -95,7 +96,7 @@ public void fail_source(const char *filename, int64_t start, int64_t end, const 
     }
     if (USE_COLOR) fputs("\x1b[m", stderr);
 
-    print_stack_trace(stderr);
+    print_stack_trace(stderr, 2, 4);
     fflush(stderr);
     raise(SIGABRT);
 }
@@ -240,7 +241,7 @@ public void end_test(const void *expr, const TypeInfo *type, const char *expecte
                     : "\n==================== TEST FAILED ====================\nExpected: %s\n\n But got: %k\n\n",
                     expected, &expr_text);
 
-            print_stack_trace(stderr);
+            print_stack_trace(stderr, 2, 4);
             fflush(stderr);
             raise(SIGABRT);
         }

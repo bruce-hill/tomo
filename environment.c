@@ -3,11 +3,12 @@
 #include <stdlib.h>
 #include <signal.h>
 
-#include "environment.h"
+#include "builtins/functions.h"
 #include "builtins/table.h"
 #include "builtins/text.h"
-#include "typecheck.h"
 #include "builtins/util.h"
+#include "environment.h"
+#include "typecheck.h"
 
 type_t *TEXT_TYPE = NULL;
 type_t *RANGE_TYPE = NULL;
@@ -587,6 +588,9 @@ void compiler_err(file_t *f, const char *start, const char *end, const char *fmt
     fputs("\n\n", stderr);
     if (f && start && end)
         highlight_error(f, start, end, "\x1b[31;1m", 2, isatty(STDERR_FILENO) && !getenv("NO_COLOR"));
+
+    if (getenv("TOMO_STACKTRACE"))
+        print_stack_trace(stderr, 1, 3);
 
     raise(SIGABRT);
     exit(1);

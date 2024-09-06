@@ -11,6 +11,7 @@
 #include <signal.h>
 
 #include "ast.h"
+#include "builtins/functions.h"
 #include "builtins/integers.h"
 #include "builtins/text.h"
 #include "builtins/table.h"
@@ -134,8 +135,12 @@ static void vparser_err(parse_ctx_t *ctx, const char *start, const char *end, co
     highlight_error(ctx->file, start, end, "\x1b[31;1;7m", 2, isatty(STDERR_FILENO) && !getenv("NO_COLOR"));
     fputs("\n", stderr);
 
+    if (getenv("TOMO_STACKTRACE"))
+        print_stack_trace(stderr, 1, 3);
+
     if (ctx->on_err)
         longjmp(*ctx->on_err, 1);
+
     raise(SIGABRT);
     exit(1);
 }
