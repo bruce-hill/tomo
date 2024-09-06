@@ -26,7 +26,7 @@ CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS)
 LDLIBS=-lgc -lcord -lm -lunistring -lgmp -ldl
 BUILTIN_OBJS=builtins/siphash.o builtins/array.o builtins/bool.o builtins/channel.o builtins/nums.o builtins/functions.o builtins/integers.o \
 						 builtins/pointer.o builtins/memory.o builtins/text.o builtins/thread.o builtins/c_string.o builtins/table.o \
-						 builtins/types.o builtins/util.o builtins/files.o builtins/range.o
+						 builtins/types.o builtins/util.o builtins/files.o builtins/range.o builtins/shell.o
 TESTS=$(patsubst %.tm,%.tm.testresult,$(wildcard test/*.tm))
 
 all: libtomo.so tomo

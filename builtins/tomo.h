@@ -22,6 +22,7 @@
 #include "nums.h"
 #include "pointer.h"
 #include "range.h"
+#include "shell.h"
 #include "siphash.h"
 #include "table.h"
 #include "text.h"

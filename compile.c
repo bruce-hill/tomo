@@ -2994,6 +2994,8 @@ CORD compile_type_info(env_t *env, type_t *t)
             return "&Text$info";
         else if (streq(text->lang, "Pattern"))
             return "&Pattern$info";
+        else if (streq(text->lang, "Shell"))
+            return "&Shell$info";
         return CORD_all("(&", namespace_prefix(text->env->libname, text->env->namespace->parent), text->lang, ")");
     }
     case StructType: {

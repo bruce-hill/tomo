@@ -1185,6 +1185,8 @@ PARSER(parse_text) {
         } else if (strchr(interp_chars, *pos)) {
             open_interp = *pos;
             ++pos;
+        } else if (*pos == '(') {
+            open_interp = '@'; // For shell commands
         }
         static const char *quote_chars = "\"'`|/;([{<";
         if (!strchr(quote_chars, *pos))
@@ -1195,6 +1197,8 @@ PARSER(parse_text) {
 
         if (!lang && open_quote == '/')
             lang = "Pattern";
+        else if (!lang && open_quote == '(')
+            lang = "Shell";
     } else {
         return NULL;
     }
