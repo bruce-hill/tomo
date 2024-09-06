@@ -1410,7 +1410,12 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                     } else {
                         env_t *arg_env = with_enum_scope(env, spec_arg->type);
                         type_t *actual_t = get_type(arg_env, call_arg->value);
-                        value = compile_maybe_incref(arg_env, call_arg->value);
+                        // TODO: not sure if this should always be incref'd or not,
+                        // bug was happening with `"":join(table.keys)`
+                        if (call_arg->value->tag == Var)
+                            value = compile_maybe_incref(arg_env, call_arg->value);
+                        else
+                            value = compile(arg_env, call_arg->value);
                         if (!promote(arg_env, &value, actual_t, spec_arg->type))
                             code_err(call_arg->value, "This argument is supposed to be a %T, but this value is a %T", spec_arg->type, actual_t);
                     }
@@ -1438,7 +1443,12 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                 } else {
                     env_t *arg_env = with_enum_scope(env, spec_arg->type);
                     type_t *actual_t = get_type(arg_env, call_arg->value);
-                    value = compile_maybe_incref(arg_env, call_arg->value);
+                    // TODO: not sure if this should always be incref'd or not,
+                    // bug was happening with `"":join(table.keys)`
+                    if (call_arg->value->tag == Var)
+                        value = compile_maybe_incref(arg_env, call_arg->value);
+                    else
+                        value = compile(arg_env, call_arg->value);
                     if (!promote(arg_env, &value, actual_t, spec_arg->type))
                         code_err(call_arg->value, "This argument is supposed to be a %T, but this value is a %T", spec_arg->type, actual_t);
                 }
@@ -1452,7 +1462,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
 
         if (spec_arg->default_val) {
             if (code) code = CORD_cat(code, ", ");
-            code = CORD_cat(code, compile_maybe_incref(default_scope, spec_arg->default_val));
+            code = CORD_cat(code, compile(default_scope, spec_arg->default_val));
             goto found_it;
         }
 
