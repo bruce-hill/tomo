@@ -91,10 +91,7 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
 CORD compile_maybe_incref(env_t *env, ast_t *ast)
 {
     type_t *t = get_type(env, ast);
-    // TODO: not sure if this is underkill or not, but a
-    // bug was happening with `"":join(table.keys)`
-    // if (is_idempotent(ast) && can_be_mutated(env, ast)) {
-    if (ast->tag == Var && can_be_mutated(env, ast)) {
+    if (is_idempotent(ast) && can_be_mutated(env, ast)) {
         if (t->tag == ArrayType)
             return CORD_all("ARRAY_COPY(", compile(env, ast), ")");
         else if (t->tag == TableType || t->tag == SetType)
@@ -1009,7 +1006,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 loop = CORD_all(loop, "{\n", naked_body, "\n}");
             }
 
-            if (can_be_mutated(env, array) && is_idempotent(array) && array->tag == Var) {
+            if (can_be_mutated(env, array) && is_idempotent(array)) {
                 CORD array_code = compile(env, array);
                 loop = CORD_all("{\n"
                                 "Array_t iterating = ARRAY_COPY(", array_code, ");\n",
@@ -1455,7 +1452,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
 
         if (spec_arg->default_val) {
             if (code) code = CORD_cat(code, ", ");
-            code = CORD_cat(code, compile(default_scope, spec_arg->default_val));
+            code = CORD_cat(code, compile_maybe_incref(default_scope, spec_arg->default_val));
             goto found_it;
         }
 

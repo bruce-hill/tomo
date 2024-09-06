@@ -1333,13 +1333,14 @@ bool can_be_mutated(env_t *env, ast_t *ast)
     case FieldAccess: {
         auto access = Match(ast, FieldAccess);
         type_t *fielded_type = get_type(env, access->fielded);
-        if (fielded_type->tag == TableType && streq(access->field, "values"))
-            return false;
         if (fielded_type->tag == PointerType) {
             auto ptr = Match(fielded_type, PointerType);
             return !ptr->is_readonly;
+        } else if (fielded_type->tag == StructType) {
+            return can_be_mutated(env, access->fielded);
+        } else {
+            return false;
         }
-        return can_be_mutated(env, access->fielded);
     }
     case Index: {
         auto index = Match(ast, Index);
