@@ -35,7 +35,7 @@ void *Table$get(Table_t t, const void *key, const TypeInfo *type);
     const Table_t t = table_expr; key_t k = key_expr; const TypeInfo* info = info_expr; \
     val_t *v = Table$get(t, &k, info); \
     if (__builtin_expect(v == NULL, 0)) \
-        fail_source(__SOURCE_FILE__, start, end, "The key %r is not in this table\n", generic_as_text(&k, no, info->TableInfo.key)); \
+        fail_source(__SOURCE_FILE__, start, end, "The key %k is not in this table\n", (Text_t[1]){generic_as_text(&k, no, info->TableInfo.key)}); \
     *v; })
 #define Table$get_value_or_default(table_expr, key_t, val_t, key_expr, default_val, info_expr) ({ \
     const Table_t t = table_expr; const key_t k = key_expr; \

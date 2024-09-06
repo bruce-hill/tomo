@@ -943,6 +943,7 @@ public bool Text$equal_ignoring_case(Text_t a, Text_t b)
 
 public Text_t Text$upper(Text_t text)
 {
+    if (text.length == 0) return text;
     Array_t codepoints = Text$utf32_codepoints(text);
     const char *language = uc_locale_language();
     uint32_t buf[128]; 
@@ -955,6 +956,7 @@ public Text_t Text$upper(Text_t text)
 
 public Text_t Text$lower(Text_t text)
 {
+    if (text.length == 0) return text;
     Array_t codepoints = Text$utf32_codepoints(text);
     const char *language = uc_locale_language();
     uint32_t buf[128]; 
@@ -967,6 +969,7 @@ public Text_t Text$lower(Text_t text)
 
 public Text_t Text$title(Text_t text)
 {
+    if (text.length == 0) return text;
     Array_t codepoints = Text$utf32_codepoints(text);
     const char *language = uc_locale_language();
     uint32_t buf[128]; 
