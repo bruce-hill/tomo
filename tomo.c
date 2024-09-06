@@ -130,6 +130,8 @@ int main(int argc, char *argv[])
     Table_t argument_files = {};
 
     for (int i = after_flags; i < argc; i++) {
+        if (strlen(argv[i]) < 4 || strncmp(argv[i] + strlen(argv[i]) - 3, ".tm", 3) != 0)
+            errx(1, "Not a valid .tm file: \x1b[31;1m%s\x1b[m", argv[i]);
         const char *resolved = resolve_path(argv[i], ".", ".");
         if (!resolved) errx(1, "Couldn't resolve path: %s", argv[i]);
         Table$str_set(&argument_files, resolved, argv[i]);
