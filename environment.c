@@ -265,6 +265,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"split", "Text$split", "func(text:Text, pattern=$Pattern'')->[Text]"},
             {"slice", "Text$slice", "func(text:Text, from=1, to=-1)->Text"},
             {"title", "Text$title", "func(text:Text)->Text"},
+            {"trim", "Text$trim", "func(text:Text, pattern=$/{whitespace}/, trim_left=yes, trim_right=yes)->Text"},
             {"upper", "Text$upper", "func(text:Text)->Text"},
             {"utf32_codepoints", "Text$utf32_codepoints", "func(text:Text)->[Int32]"},
             {"utf8_bytes", "Text$utf8_bytes", "func(text:Text)->[Int8]"},

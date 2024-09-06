@@ -279,6 +279,7 @@ Text.map(pattern:Pattern, fn:func(t:Text)->Text)->Text
 Text.replace(pattern:Pattern, replacement:Text, placeholder:Pattern=$//)->[Text]
 Text.replace_all(replacements:{Pattern:Text}, placeholder:Pattern=$//)->[Text]
 Text.split(pattern:Pattern)->[Text]
+Text.trim(pattern=$/{whitespace}/, trim_left=yes, trim_right=yes)->[Text]
 ```
 
 See [Text Functions](#Text-Functions) for the full API documentation.
@@ -1094,6 +1095,41 @@ The text in title case.
 ```tomo
 >> "amélie":title()
 = "Amélie"
+```
+
+---
+
+## `trim`
+
+**Description:**  
+Trims the matching pattern from the left and/or right side of the text
+See [Patterns](#patterns) for more information about patterns.
+
+**Usage:**  
+```tomo
+trim(text: Text, pattern: Pattern = $/{whitespace/, trim_left: Bool = yes, trim_right: Bool = yes) -> Text
+```
+
+**Parameters:**
+
+- `text`: The text to be trimmed.
+- `pattern`: The pattern that will be trimmed away.
+- `trim_left`: Whether or not to trim from the front of the text.
+- `trim_right`: Whether or not to trim from the back of the text.
+
+**Returns:**  
+The text without the trim pattern at either end.
+
+**Example:**  
+```tomo
+>> "   x y z    $(\n)":trim()
+= "x y z"
+
+>> "abc123def":trim($/{!digit}/)
+= "123"
+
+>> "   xyz   ":trim(trim_right=no)
+= "xyz   "
 ```
 
 ---

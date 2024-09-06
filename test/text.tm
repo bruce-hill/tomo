@@ -257,6 +257,18 @@ func main():
 	>> "Abc":repeat(3)
 	= "AbcAbcAbc"
 
+	>> "   abc def    ":trim()
+	= "abc def"
+	>> " abc123def ":trim($/{!digit}/)
+	= "123"
+	>> " abc123def ":trim($/{!digit}/, trim_left=no)
+	= " abc123"
+	>> " abc123def ":trim($/{!digit}/, trim_right=no)
+	= "123def "
+	# Only trim single whole matches that bookend the text:
+	>> "AbcAbcxxxxxxxxAbcAbc":trim($/Abc/)
+	= "AbcxxxxxxxxAbc"
+
 	do:
 		!! Testing concatenation-stability:
 		>> ab := Text.from_codepoint_names(["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"])

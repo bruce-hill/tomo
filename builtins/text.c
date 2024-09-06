@@ -1904,6 +1904,27 @@ public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement, P
     return ret;
 }
 
+public Text_t Text$trim(Text_t text, Pattern_t pattern, bool trim_left, bool trim_right)
+{
+    int64_t first = 0, last = text.length-1;
+    if (trim_left) {
+        int64_t match_len = match(text, pattern, 0, 0, NULL, 0);
+        if (match_len > 0)
+            first = match_len;
+    }
+
+    if (trim_right) {
+        for (int64_t i = text.length-1; i >= first; i--) {
+            int64_t match_len = match(text, pattern, i, 0, NULL, 0);
+            if (match_len > 0 && i + match_len == text.length)
+                last = i-1;
+            // else
+            //     break;
+        }
+    }
+    return Text$slice(text, I(first+1), I(last+1));
+}
+
 public Text_t Text$map(Text_t text, Pattern_t pattern, closure_t fn)
 {
     Text_t ret = {.length=0};
