@@ -1630,6 +1630,11 @@ int64_t match(Text_t text, int64_t text_index, Pattern_t pattern, int64_t patter
         }
     }
 
+    if (pat.tag == PAT_ANY && !pat.negated && pattern_index >= pattern.length) {
+        int64_t remaining = text.length - text_index;
+        return remaining >= pat.min ? MIN(remaining, pat.max) : -1;
+    }
+
     int64_t capture_start = text_index;
     int64_t count = 0, capture_len = 0, next_match_len = 0;
 
