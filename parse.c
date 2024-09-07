@@ -1228,7 +1228,7 @@ PARSER(parse_text) {
             ast_t *interp;
             if (*pos == ' ' || *pos == '\t')
                 parser_err(ctx, pos, pos+1, "Whitespace is not allowed before an interpolation here");
-            interp = expect(ctx, interp_start, &pos, parse_term, "I expected an interpolation term here");
+            interp = expect(ctx, interp_start, &pos, parse_term_no_suffix, "I expected an interpolation term here");
             chunks = new(ast_list_t, .ast=interp, .next=chunks);
             chunk_start = pos;
         } else if (!leading_newline && *pos == open_quote && closing[(int)open_quote]) { // Nested pair begin
