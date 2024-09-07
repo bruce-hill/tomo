@@ -1552,7 +1552,7 @@ pat_t parse_next_pat(Text_t pattern, text_iter_t *state, int64_t *index)
             break;
         case 'e':
             if (strcasecmp(prop_name, "end") == 0) {
-                return PAT(PAT_END);
+                return PAT(PAT_END, .non_capturing=!negated);
             } else if (strcasecmp(prop_name, "email") == 0) {
                 return PAT(PAT_FUNCTION, .fn=match_email);
             } else if (strcasecmp(prop_name, "emoji") == 0) {
@@ -1582,7 +1582,7 @@ pat_t parse_next_pat(Text_t pattern, text_iter_t *state, int64_t *index)
             break;
         case 's':
             if (strcasecmp(prop_name, "start") == 0) {
-                return PAT(PAT_START);
+                return PAT(PAT_START, .non_capturing=!negated);
             }
             break;
         case 'u':
