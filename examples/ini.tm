@@ -1,9 +1,9 @@
-USAGE := "
+_USAGE := "
     Usage: ini <filename> "[section[/key]]"
 "
-HELP := "
+_HELP := "
     ini: A .ini config file reader tool.
-    $USAGE
+    $_USAGE
 "
 
 file := use ./file.tm
@@ -37,7 +37,7 @@ func main(filename:Text, key:Text):
     if keys.length > 2:
         fail("
             Too many arguments! 
-            $USAGE
+            $_USAGE
         ")
 
     data := parse_ini(filename)

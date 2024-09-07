@@ -1,55 +1,93 @@
 # Show a Tomo dependency graph
 use file
 
-USAGE := "Usage: dependencies <files...>"
+_USAGE := "Usage: dependencies <files...>"
 
-HELP := "
+_HELP := "
     dependencies: Show a file dependency graph for Tomo source files.
-    $USAGE
+    $_USAGE
 "
 
-func build_dependency_graph(filename:Text, dependencies:&{Text:@{Text}}, module=""):
+func get_module_imports_from_file(file:Text, imports:&{Text}, visited_files:&{Text}):
+    return if visited_files:has(file)
+
+    reader := when LineReader.from_file(file) is Failure(msg):
+        !! Failed: $msg
+        return
+    is Open(reader): reader
+
+    visited_files:add(file)
+
+    while when reader:next_line() is Success(line):
+        if line:matches($/use {..}.tm/):
+            local_import := line:replace($/use {..}/, "\1")
+            resolved := relative_path(resolve_path(local_import, file))
+            if resolved != "":
+                local_import = resolved
+            get_module_imports_from_file(local_import, imports, visited_files)
+        else if line:matches($/use {id}/):
+            other_module := line:replace($/use {..}/, "\1")
+            imports:add(other_module)
+
+func get_module_imports_from_module(module:Text)->{Text}:
+    files_path := resolve_path("~/.local/src/tomo/$module/lib$(module).files")
+    if files_path == "":
+        !! couldn't resolve: $files_path
+        return {:Text}
+
+    when read(files_path) is Failure(msg):
+        !! couldn't read: $files_path $msg
+        return {:Text}
+    is Success(files_content):
+        imports := {:Text}
+        visited := {:Text}
+        for line in files_content:lines():
+            line_resolved := resolve_path(line, relative_to="~/.local/src/tomo/$module/")
+            skip if line_resolved == ""
+            get_module_imports_from_file(line_resolved, &imports, &visited)
+        return imports
+
+func build_module_dependency_graph(module:Text, dependencies:&{Text:@{Text}}):
+    return if dependencies:has(module)
+
+    module_deps := @{:Text}
+    dependencies:set(module, module_deps)
+
+    for dep in get_module_imports_from_module(module):
+        module_deps:add(dep)
+        build_module_dependency_graph(dep, dependencies)
+
+
+func build_file_dependency_graph(filename:Text, dependencies:&{Text:@{Text}}):
+    return if dependencies:has(filename)
+
     reader := when LineReader.from_file(filename) is Failure(msg):
         !! Failed: $msg
         return
     is Open(reader): reader
 
-    key := if module: module else: filename
-    if not dependencies:has(key):
-        dependencies:set(key, @{:Text})
+    file_deps := @{:Text}
+    dependencies:set(filename, file_deps)
 
     while when reader:next_line() is Success(line):
         if line:matches($/use {..}.tm/):
-            import := line:replace($/use {..}/, "\1")
-            resolved := relative_path(resolve_path(import, filename))
+            used_file := line:replace($/use {..}/, "\1")
+            resolved := relative_path(resolve_path(used_file, filename))
             if resolved != "":
-                import = resolved
+                used_file = resolved
 
-            dependencies:get(key):add(import)
-
-            if not dependencies:has(import):
-                build_dependency_graph(import, dependencies)
+            file_deps:add(used_file)
+            build_file_dependency_graph(used_file, dependencies)
         else if line:matches($/use {id}/):
-            import := line:replace($/use {..}/, "\1")
+            module := line:replace($/use {..}/, "\1")
+            file_deps:add(module)
+            build_module_dependency_graph(module, dependencies)
 
-            dependencies:get(key):add(import)
-            files_path := resolve_path("~/.local/src/tomo/$import/lib$(import).files")
-            if files_path == "":
-                !! couldn't resolve: $files_path
-            skip if files_path == ""
-            when read(files_path) is Failure(msg):
-                !! couldn't read: $files_path $msg
-                skip
-            is Success(files_content):
-                for line in files_content:lines():
-                    line_resolved := resolve_path(line, relative_to="~/.local/src/tomo/$import/")
-                    skip if line_resolved == ""
-                    build_dependency_graph(line_resolved, dependencies, module=import)
 
 func get_dependency_graph(file:Text)->{Text:{Text}}:
     graph := {:Text:@{Text}}
     resolved := relative_path(file)
-    build_dependency_graph(resolved, &graph)
+    build_file_dependency_graph(resolved, &graph)
     return {f:deps[] for f,deps in graph}
 
 func draw_tree(file:Text, dependencies:{Text:{Text}}, already_printed:&{Text}, prefix="", is_last=yes):

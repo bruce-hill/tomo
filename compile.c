@@ -3113,9 +3113,9 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
 {
     auto fn_info = Match(fn_type, FunctionType);
 
-    binding_t *usage_binding = get_binding(env, "USAGE");
+    binding_t *usage_binding = get_binding(env, "_USAGE");
     CORD usage_code = usage_binding ? usage_binding->code : "usage";
-    binding_t *help_binding = get_binding(env, "HELP");
+    binding_t *help_binding = get_binding(env, "_HELP");
     CORD help_code = help_binding ? help_binding->code : usage_code;
 
     if (!fn_info->args) {
