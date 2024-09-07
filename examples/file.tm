@@ -62,11 +62,19 @@ func resolve_path(path:Text, relative_to=".")->Text:
     inline C {
         extern char *resolve_path(char*, char*, char*);
     }
-    !! Resolving: ($path_c_str, $relative_to_c_str, $relative_to_c_str)
-    >> resolved := inline C (
+    resolved := inline C (
         resolve_path($path_c_str, $relative_to_c_str, $relative_to_c_str)
     ): CString
     return Text.from_c_string(resolved)
+
+func relative_path(path:Text, relative_to=".")->Text:
+    path = resolve_path(path, relative_to)
+
+    relative_to = resolve_path(relative_to)
+    if path:matches($/{start}$relative_to$"/"{..}/):
+        return path:slice(relative_to.length + 2, -1)
+
+    return path
 
 struct WriteHandle(_file:@Memory):
     func write(h:WriteHandle, text:Text, flush=yes):
@@ -181,12 +189,14 @@ func command(cmd:Text)->FileReadResult:
     else:
         return Failure(builtin_last_err())
 
-func main():
-    word := ""
-    when command("shuf -n 1 /usr/share/dict/words") is Success(w):
-        >> word = w
-    is Failure(msg):
-        fail(msg)
+func main(path:Text, relative_to="."):
+    >> resolve_path(path, relative_to)
+    >> relative_path(resolve_path(path, relative_to))
+    # word := ""
+    # when command("shuf -n 1 /usr/share/dict/words") is Success(w):
+    #     >> word = w
+    # is Failure(msg):
+    #     fail(msg)
 
     # when writing("test.txt") is Open(f):
     #     say("Writing {word} to test.txt")
