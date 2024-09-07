@@ -126,7 +126,14 @@ func draw_tree(file:Text, dependencies:{Text:{Text}}):
         _draw_tree(child, dependencies, already_printed=&printed, is_last=is_child_last)
 
 func main(files:[Text]):
-    for f,file in files:
+    if files.length == 0:
+        say("
+            Please provide at least one file!
+            $_USAGE
+        ")
+        return
+
+    for file in files:
         if not file:matches($/{..}.tm/):
             say("$\x1b[2mSkipping $file$\x1b[m")
             skip
