@@ -1752,9 +1752,8 @@ public bool Text$has(Text_t text, Pattern_t pattern)
 
 public bool Text$matches(Text_t text, Pattern_t pattern)
 {
-    int64_t len = 0;
-    int64_t found = _find(text, pattern, 0, 0, &len);
-    return (found >= 0) && len == text.length;
+    int64_t m = match(text, 0, pattern, 0, NULL, 0);
+    return m == text.length;
 }
 
 public int printf_text_size(const struct printf_info *info, size_t n, int argtypes[n], int sizes[n])
