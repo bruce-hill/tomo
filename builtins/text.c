@@ -637,8 +637,12 @@ public Text_t Text$from_strn(const char *str, size_t len)
         }
         return ret;
     } else {
+        if (u8_check((uint8_t*)str, len) != NULL)
+            return Text("");
+
         uint32_t buf[128];
         size_t length = sizeof(buf)/sizeof(buf[0]);
+
         uint32_t *codepoints = u8_to_u32((uint8_t*)str, ascii_span + strlen(str + ascii_span), buf, &length);
         Text_t ret = text_from_u32(codepoints, length, true);
         if (codepoints != buf) free(codepoints);
@@ -932,7 +936,7 @@ public bool Text$equal_ignoring_case(Text_t a, Text_t b)
             const uint32_t *b_codepoints = bi >= 0 ? (uint32_t*)&bi : GRAPHEME_CODEPOINTS(bi);
             int64_t b_len = bi >= 0 ? 1 : NUM_GRAPHEME_CODEPOINTS(bi);
 
-            int cmp;
+            int cmp = 0;
             (void)u32_casecmp(a_codepoints, a_len, b_codepoints, b_len, language, UNINORM_NFC, &cmp);
             if (cmp != 0)
                 return false;
@@ -947,7 +951,7 @@ public Text_t Text$upper(Text_t text)
     Array_t codepoints = Text$utf32_codepoints(text);
     const char *language = uc_locale_language();
     uint32_t buf[128]; 
-    size_t out_len;
+    size_t out_len = sizeof(buf)/sizeof(buf[0]);
     uint32_t *upper = u32_toupper(codepoints.data, codepoints.length, language, UNINORM_NFC, buf, &out_len);
     Text_t ret = text_from_u32(upper, out_len, false);
     if (upper != buf) free(upper);
@@ -960,7 +964,7 @@ public Text_t Text$lower(Text_t text)
     Array_t codepoints = Text$utf32_codepoints(text);
     const char *language = uc_locale_language();
     uint32_t buf[128]; 
-    size_t out_len;
+    size_t out_len = sizeof(buf)/sizeof(buf[0]);
     uint32_t *lower = u32_tolower(codepoints.data, codepoints.length, language, UNINORM_NFC, buf, &out_len);
     Text_t ret = text_from_u32(lower, out_len, false);
     if (lower != buf) free(lower);
@@ -973,7 +977,7 @@ public Text_t Text$title(Text_t text)
     Array_t codepoints = Text$utf32_codepoints(text);
     const char *language = uc_locale_language();
     uint32_t buf[128]; 
-    size_t out_len;
+    size_t out_len = sizeof(buf)/sizeof(buf[0]);
     uint32_t *title = u32_totitle(codepoints.data, codepoints.length, language, UNINORM_NFC, buf, &out_len);
     Text_t ret = text_from_u32(title, out_len, false);
     if (title != buf) free(title);
@@ -1748,7 +1752,7 @@ public bool Text$has(Text_t text, Pattern_t pattern)
 
 public bool Text$matches(Text_t text, Pattern_t pattern)
 {
-    int64_t len;
+    int64_t len = 0;
     int64_t found = _find(text, pattern, 0, 0, &len);
     return (found >= 0) && len == text.length;
 }
@@ -1856,7 +1860,7 @@ public Array_t Text$find_all(Text_t text, Pattern_t pattern)
     Array_t matches = {};
 
     for (int64_t i = 0; ; ) {
-        int64_t len;
+        int64_t len = 0;
         int64_t found = _find(text, pattern, i, text.length-1, &len);
         if (found < 0) break;
         Text_t match = Text$slice(text, I(found+1), I(found + len));
@@ -2093,7 +2097,7 @@ public Array_t Text$split(Text_t text, Pattern_t pattern)
 
     Int_t i = I_small(1);
     for (;;) {
-        int64_t len;
+        int64_t len = 0;
         Int_t found = Text$find(text, pattern, i, &len);
         if (I_is_zero(found)) break;
         Text_t chunk = Text$slice(text, i, Int$minus(found, I_small(1)));
@@ -2159,8 +2163,10 @@ public Array_t Text$utf32_codepoints(Text_t text)
     for (int64_t i = 0; i < text.length; i++) {
         int32_t grapheme = _next_grapheme(text, &state, i);
         if (grapheme < 0) {
-            for (int64_t c = 0; c < NUM_GRAPHEME_CODEPOINTS(grapheme); c++)
-                Array$insert(&codepoints, &GRAPHEME_CODEPOINTS(grapheme)[c], I_small(0), sizeof(uint32_t));
+            for (int64_t c = 0; c < NUM_GRAPHEME_CODEPOINTS(grapheme); c++) {
+                int32_t subg = GRAPHEME_CODEPOINTS(grapheme)[c];
+                Array$insert(&codepoints, &subg, I_small(0), sizeof(uint32_t));
+            }
         } else {
             Array$insert(&codepoints, &grapheme, I_small(0), sizeof(uint32_t));
         }
