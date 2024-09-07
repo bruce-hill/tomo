@@ -127,11 +127,10 @@ func draw_tree(file:Text, dependencies:{Text:{Text}}):
 
 func main(files:[Text]):
     if files.length == 0:
-        say("
+        exit(1, message="
             Please provide at least one file!
             $_USAGE
         ")
-        return
 
     for file in files:
         if not file:matches($/{..}.tm/):
