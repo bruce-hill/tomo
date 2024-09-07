@@ -6,6 +6,8 @@ use <stdio.h>
 use <sys/mman.h>
 use <sys/stat.h>
 use <unistd.h>
+use <unistr.h>
+use libunistring.so
 
 enum FileReadResult(Success(text:Text), Failure(reason:Text))
 
@@ -45,6 +47,8 @@ func read(path:Text)->FileReadResult:
                 do {
                     just_read = read(fd, buf, chunk_size);
                     if (just_read > 0) {
+                        if (u8_check(buf, just_read) != NULL)
+                            break;
                         contents = Texts(contents, Text$from_strn(buf, just_read));
                         buf = GC_MALLOC_ATOMIC(chunk_size);
                     }
@@ -132,7 +136,7 @@ struct LineReader(_file:@Memory):
                 memcpy(line, buf, len);
                 line[len] = '\0';
                 if (buf) free(buf);
-                Text$from_strn(line, len);
+                u8_check(line, len) ? Text("") : Text$from_strn(line, len);
             })
         ):Text
         return Success(line)
