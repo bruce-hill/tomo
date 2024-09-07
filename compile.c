@@ -1174,11 +1174,17 @@ CORD compile_statement(env_t *env, ast_t *ast)
         if (cond_t->tag == PointerType) {
             if (!Match(cond_t, PointerType)->is_optional)
                 code_err(if_->condition, "This pointer will always be non-null, so it should not be used in a conditional.");
-        } else if (cond_t->tag != BoolType) {
-            code_err(if_->condition, "Only boolean values and optional pointers can be used in conditionals (this is a %T)", cond_t);
+        } else if (cond_t->tag != BoolType && cond_t->tag != TextType) {
+            code_err(if_->condition, "Only boolean values, optional pointers, and text can be used in conditionals (this is a %T)", cond_t);
         }
-        CORD code;
-        CORD_sprintf(&code, "if (%r) %r", compile(env, if_->condition), compile_statement(env, if_->body));
+
+        CORD condition;
+        if (cond_t->tag == TextType)
+            condition = CORD_all("(", compile(env, if_->condition), ").length");
+        else
+            condition = compile(env, if_->condition);
+
+        CORD code = CORD_all("if (", condition, ")", compile_statement(env, if_->body));
         if (if_->else_body)
             code = CORD_all(code, "\nelse ", compile_statement(env, if_->else_body));
         return code;
@@ -2701,16 +2707,22 @@ CORD compile(env_t *env, ast_t *ast)
         if (t->tag == VoidType || t->tag == AbortType)
             code_err(ast, "This expression has a %T type, but it needs to have a real value", t);
 
+        CORD condition;
+        if (get_type(env, if_->condition)->tag == TextType)
+            condition = CORD_all("(", compile(env, if_->condition), ").length");
+        else
+            condition = compile(env, if_->condition);
+
         type_t *true_type = get_type(env, if_->body);
         type_t *false_type = get_type(env, if_->else_body);
         if (true_type->tag == AbortType || true_type->tag == ReturnType)
-            return CORD_all("({ if (", compile(env, if_->condition), ") ", compile_statement(env, if_->body),
+            return CORD_all("({ if (", condition, ") ", compile_statement(env, if_->body),
                             "\n", compile(env, if_->else_body), "; })");
         else if (false_type->tag == AbortType || false_type->tag == ReturnType)
-            return CORD_all("({ if (!(", compile(env, if_->condition), ")) ", compile_statement(env, if_->else_body),
+            return CORD_all("({ if (!(", condition, ")) ", compile_statement(env, if_->else_body),
                             "\n", compile(env, if_->body), "; })");
         else
-            return CORD_all("((", compile(env, if_->condition), ") ? ",
+            return CORD_all("((", condition, ") ? ",
                             compile(env, if_->body), " : ", compile(env, if_->else_body), ")");
     }
     case Reduction: {
