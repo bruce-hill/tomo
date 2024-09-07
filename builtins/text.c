@@ -1391,9 +1391,8 @@ int64_t match_pat(Text_t text, text_iter_t *state, int64_t index, pat_t pat)
         return pat.negated ? 0 : -1;
     }
     case PAT_ANY: {
-        if (index >= text.length)
-            return pat.negated ? 0 : -1;
-        return 1;
+        assert(!pat.negated);
+        return (index < text.length) ? 1 : -1;
     }
     case PAT_GRAPHEME: {
         if (index >= text.length)
@@ -1546,7 +1545,10 @@ pat_t parse_next_pat(Text_t pattern, text_iter_t *state, int64_t *index)
         switch (tolower(prop_name[0])) {
         case '.':
             if (prop_name[1] == '.') {
-                return PAT(PAT_ANY);
+                if (negated)
+                    return ((pat_t){.tag=PAT_END, .min=min, .max=max, .non_capturing=true});
+                else
+                    return PAT(PAT_ANY); 
             }
             break;
         case 'd':
@@ -1633,7 +1635,7 @@ int64_t match(Text_t text, int64_t text_index, Pattern_t pattern, int64_t patter
     int64_t capture_start = text_index;
     int64_t count = 0, capture_len = 0, next_match_len = 0;
 
-    if (pat.tag == PAT_ANY && !pat.negated && pattern_index >= pattern.length) {
+    if (pat.tag == PAT_ANY && pattern_index >= pattern.length) {
         int64_t remaining = text.length - text_index;
         capture_len = remaining >= pat.min ? MIN(remaining, pat.max) : -1;
         text_index += capture_len;
