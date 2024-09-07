@@ -38,6 +38,7 @@ func read(path:Text)->FileReadResult:
                 char *gc_mem = GC_MALLOC_ATOMIC(sb.st_size+1);
                 memcpy(gc_mem, mem, sb.st_size);
                 gc_mem[sb.st_size] = '\0';
+                close(fd);
                 return file$FileReadResult$tagged$Success(Text$from_strn(gc_mem, sb.st_size));
             } else {
                 const int chunk_size = 256;
@@ -130,7 +131,10 @@ struct LineReader(_file:@Memory):
                 char *buf = NULL;
                 size_t space = 0;
                 ssize_t len = getline(&buf, &space, *(FILE**)$r.$_file);
-                if (len < 0) return (file$FileReadResult_t){1, .$Failure={Text("End of file")}};
+                if (len < 0) {
+                    file$_close_file($r.$_file);
+                    return (file$FileReadResult_t){1, .$Failure={Text("End of file")}};
+                }
                 if (len > 0 && buf[len-1] == '\n') --len;
                 char *line = GC_MALLOC_ATOMIC(len + 1);
                 memcpy(line, buf, len);
@@ -185,6 +189,7 @@ func command(cmd:Text)->FileReadResult:
                         buf = GC_MALLOC_ATOMIC(chunk_size);
                     }
                 } while (just_read > 0);
+                pclose($f);
                 contents;
             })
         ):Text
