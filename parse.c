@@ -8,6 +8,7 @@
 #include <string.h>
 #include <unistr.h>
 #include <unictype.h>
+#include <uniname.h>
 #include <signal.h>
 
 #include "ast.h"
@@ -159,7 +160,7 @@ static void parser_err(parse_ctx_t *ctx, const char *start, const char *end, con
 //
 // Convert an escape sequence like \n to a string
 //
-const char *unescape(const char **out) {
+static const char *unescape(parse_ctx_t *ctx, const char **out) {
     const char **endpos = out;
     const char *escape = *out;
     static const char *unescapes[256] = {['a']="\a",['b']="\b",['e']="\e",['f']="\f",['n']="\n",['r']="\r",['t']="\t",['v']="\v",['_']=" "};
@@ -167,6 +168,23 @@ const char *unescape(const char **out) {
     if (unescapes[(int)escape[1]]) {
         *endpos = escape + 2;
         return GC_strdup(unescapes[(int)escape[1]]);
+    } else if (escape[1] == 'U' && escape[2] == '[') {
+        size_t len = strcspn(&escape[3], "\r\n]");
+        if (escape[3+len] != ']')
+            parser_err(ctx, escape, escape + 3 + len, "Missing closing ']'");
+        char name[len+1] = {};
+        memcpy(name, &escape[3], len);
+        name[len] = '\0';
+        uint32_t codepoint = unicode_name_character(name);
+        if (codepoint == UNINAME_INVALID)
+            parser_err(ctx, escape, escape + 4 + len,
+                       "Invalid unicode codepoint name: \"%s\"", name);
+        *endpos = escape + 4 + len;
+        char *str = GC_MALLOC_ATOMIC(16);
+        size_t u8_len = 16;
+        (void)u32_to_u8(&codepoint, 1, (uint8_t*)str, &u8_len);
+        str[u8_len] = '\0';
+        return str;
     } else if (escape[1] == 'U' && escape[2]) {
         char *endptr = NULL;
         long codepoint = strtol(escape+2, &endptr, 16);
@@ -1167,7 +1185,7 @@ PARSER(parse_text) {
     if (*pos == '\\') {
         CORD cord = CORD_EMPTY;
         do {
-            const char *c = unescape(&pos);
+            const char *c = unescape(ctx, &pos);
             cord = CORD_cat(cord, c);
             // cord = CORD_cat_char(cord, c);
         } while (*pos == '\\');
