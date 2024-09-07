@@ -68,6 +68,32 @@ something went wrong (e.g. the user hit `Ctrl-D`).
 
 ---
 
+### `exit`
+
+**Description:**  
+Exits the program with a given status and optionally prints a message.
+
+**Usage:**  
+```markdown
+ask(message:Text = "", status:Int32 = 0_i32) -> Void
+```
+
+**Parameters:**
+
+- `message`: If nonempty, this message will be printed (with a newline) before
+  exiting.
+- `status`: The status code that the program with exit with.
+
+**Returns:**  
+This function never returns.
+
+**Example:**  
+```markdown
+exit(status=1, "Goodbye forever!")
+```
+
+---
+
 ### `say`
 
 **Description:**  
