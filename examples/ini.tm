@@ -35,7 +35,7 @@ func parse_ini(filename:Text)->{Text:{Text:Text}}:
 func main(filename:Text, key:Text):
     keys := key:split($Pattern"/")
     if keys.length > 2:
-        fail("
+        exit(1, message="
             Too many arguments! 
             $_USAGE
         ")
@@ -47,7 +47,7 @@ func main(filename:Text, key:Text):
 
     section := keys[1]:lower()
     if not data:has(section):
-        fail("Invalid section name: $section; valid names: $(", ":join([k:quoted() for k in data.keys]))")
+        exit(1, message="Invalid section name: $section; valid names: $(", ":join([k:quoted() for k in data.keys]))")
 
     section_data := data:get(section)
     if keys.length < 2 or keys[2] == '*':
@@ -56,6 +56,6 @@ func main(filename:Text, key:Text):
 
     section_key := keys[2]:lower()
     if not section_data:has(section_key):
-        fail("Invalid key: $section_key; valid keys: $(", ":join(section_data.keys))")
+        exit(1, message="Invalid key: $section_key; valid keys: $(", ":join(section_data.keys))")
 
     say(section_data:get(section_key))
