@@ -42,6 +42,10 @@ env_t *new_compilation_unit(CORD *libname)
                                                       .next=new(arg_t, .name="force_tty", .type=Type(BoolType),
                                                                 .default_val=FakeAST(Bool, true)))),
                     .ret=TEXT_TYPE)}},
+        {"exit", {.code="tomo_exit",
+                     .type=Type(FunctionType, .args=new(arg_t, .name="message", .type=Type(TextType), .default_val=FakeAST(TextLiteral),
+                     .next=new(arg_t, .name="code", .type=Type(IntType, .bits=TYPE_IBITS32),
+                               .default_val=FakeAST(Int, .bits=IBITS32, .str="0"))), .ret=Type(AbortType))}},
         {"fail", {.code="fail", .type=Type(FunctionType, .args=new(arg_t, .name="message", .type=Type(CStringType)), .ret=Type(AbortType))}},
         {"USE_COLOR", {.code="USE_COLOR", .type=Type(BoolType)}},
     };

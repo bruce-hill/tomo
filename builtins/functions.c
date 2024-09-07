@@ -257,6 +257,13 @@ public void say(Text_t text, bool newline)
     fflush(stdout);
 }
 
+public _Noreturn void tomo_exit(Text_t text, int32_t status)
+{
+    if (text.length > 0)
+        say(text, true);
+    _exit(status);
+}
+
 public Text_t ask(Text_t prompt, bool bold, bool force_tty)
 {
     Text_t ret = Text("");

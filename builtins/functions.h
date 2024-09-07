@@ -20,6 +20,7 @@ void end_test(const void *expr, const TypeInfo *type, const char *expected, cons
     end_test((__typeof__(expr)[1]){expr}, typeinfo, expected, __SOURCE_FILE__, start, end); }
 void say(Text_t text, bool newline);
 Text_t ask(Text_t prompt, bool bold, bool force_tty);
+_Noreturn void tomo_exit(Text_t text, int32_t status);
 
 uint64_t generic_hash(const void *obj, const TypeInfo *type);
 int32_t generic_compare(const void *x, const void *y, const TypeInfo *type);
