@@ -22,6 +22,16 @@ struct Vec2(x,y:Num):
         return a:minus(b):length()
     func angle(v:Vec2; inline)->Num:
         return Num.atan2(v.y, v.x)
+    func norm(v:Vec2; inline)->Vec2:
+        if v.x == 0 and v.y == 0:
+            return v
+        len := v:length()
+        return Vec2(v.x/len, v.y/len)
+    func mix(v,other:Vec2, amount:Num)->Vec2:
+        return Vec2(
+            v.x:mix(other.x, amount),
+            v.y:mix(other.y, amount),
+        )
 
 struct Vec3(x,y,z:Num):
     ZERO := Vec3(0, 0, 0)
@@ -43,6 +53,18 @@ struct Vec3(x,y,z:Num):
         return (v.x*v.x + v.y*v.y + v.z*v.z):sqrt()
     func dist(a,b:Vec3; inline)->Num:
         return a:minus(b):length()
+    func norm(v:Vec3; inline)->Vec3:
+        if v.x == 0 and v.y == 0 and v.z == 0:
+            return v
+        len := v:length()
+        return Vec3(v.x/len, v.y/len, v.z/len)
+    func mix(v,other:Vec3, amount:Num)->Vec3:
+        return Vec3(
+            v.x:mix(other.x, amount),
+            v.y:mix(other.y, amount),
+            v.z:mix(other.z, amount),
+        )
+
 
 struct IVec2(x,y:Int):
     ZERO := IVec2(0, 0)
