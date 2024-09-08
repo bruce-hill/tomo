@@ -263,6 +263,8 @@ void bind_statement(env_t *env, ast_t *statement)
             bind_statement(env, decl->value);
         }
         type_t *type = get_type(env, decl->value);
+        if (!type)
+            code_err(decl->value, "I couldn't figure out the type of this value");
         if (type->tag == FunctionType)
             type = Type(ClosureType, type);
         CORD prefix = namespace_prefix(env->libname, env->namespace);

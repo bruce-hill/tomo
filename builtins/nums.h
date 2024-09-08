@@ -53,4 +53,7 @@ CONSTFUNC static inline float Num32$clamped(float x, float low, float high) {
 }
 extern const TypeInfo Num32$info;
 
+#define Num_to_Num32(n) ((Num32_t)(n))
+#define Num32_to_Num(n) ((Num_t)(n))
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

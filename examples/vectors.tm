@@ -27,10 +27,10 @@ struct Vec2(x,y:Num):
             return v
         len := v:length()
         return Vec2(v.x/len, v.y/len)
-    func mix(v,other:Vec2, amount:Num)->Vec2:
+    func mix(a,b:Vec2, amount:Num)->Vec2:
         return Vec2(
-            v.x:mix(other.x, amount),
-            v.y:mix(other.y, amount),
+            amount:mix(a.x, b.x),
+            amount:mix(a.y, b.y),
         )
 
 struct Vec3(x,y,z:Num):
@@ -58,11 +58,11 @@ struct Vec3(x,y,z:Num):
             return v
         len := v:length()
         return Vec3(v.x/len, v.y/len, v.z/len)
-    func mix(v,other:Vec3, amount:Num)->Vec3:
+    func mix(a,b:Vec3, amount:Num)->Vec3:
         return Vec3(
-            v.x:mix(other.x, amount),
-            v.y:mix(other.y, amount),
-            v.z:mix(other.z, amount),
+            amount:mix(a.x, b.x),
+            amount:mix(a.y, b.y),
+            amount:mix(a.z, b.z),
         )
 
 
