@@ -21,9 +21,9 @@ void Channel$peek(channel_t *channel, void *out, bool front, int64_t item_size);
 #define Channel$peek_value(channel, front, t) ({ t _val; Channel$peek(channel, &_val, front, sizeof(t)); _val; })
 void Channel$clear(channel_t *channel);
 Array_t Channel$view(channel_t *channel);
-uint64_t Channel$hash(const channel_t **channel, const TypeInfo *type);
-int32_t Channel$compare(const channel_t **x, const channel_t **y, const TypeInfo *type);
-bool Channel$equal(const channel_t **x, const channel_t **y, const TypeInfo *type);
+PUREFUNC uint64_t Channel$hash(const channel_t **channel, const TypeInfo *type);
+PUREFUNC int32_t Channel$compare(const channel_t **x, const channel_t **y, const TypeInfo *type);
+PUREFUNC bool Channel$equal(const channel_t **x, const channel_t **y, const TypeInfo *type);
 Text_t Channel$as_text(const channel_t **channel, bool colorize, const TypeInfo *type);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

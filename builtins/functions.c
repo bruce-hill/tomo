@@ -63,7 +63,8 @@ void print_stack_trace(FILE *out, int start, int stop)
     fflush(out);
 }
 
-public void fail(const char *fmt, ...)
+__attribute__((format(printf, 1, 2)))
+public _Noreturn void fail(const char *fmt, ...)
 {
     fflush(stdout);
     if (USE_COLOR) fputs("\x1b[31;7m ==================== ERROR ==================== \n\n\x1b[0;1m", stderr);
@@ -77,9 +78,11 @@ public void fail(const char *fmt, ...)
     print_stack_trace(stderr, 2, 4);
     fflush(stderr);
     raise(SIGABRT);
+    _exit(1);
 }
 
-public void fail_source(const char *filename, int64_t start, int64_t end, const char *fmt, ...)
+__attribute__((format(printf, 4, 5)))
+public _Noreturn void fail_source(const char *filename, int64_t start, int64_t end, const char *fmt, ...)
 {
     if (USE_COLOR) fputs("\n\x1b[31;7m ==================== ERROR ==================== \n\n\x1b[0;1m", stderr);
     else fputs("\n==================== ERROR ====================\n\n", stderr);
@@ -100,9 +103,10 @@ public void fail_source(const char *filename, int64_t start, int64_t end, const 
     print_stack_trace(stderr, 2, 4);
     fflush(stderr);
     raise(SIGABRT);
+    _exit(1);
 }
 
-public uint64_t generic_hash(const void *obj, const TypeInfo *type)
+PUREFUNC public uint64_t generic_hash(const void *obj, const TypeInfo *type)
 {
     switch (type->tag) {
     case TextInfo: return Text$hash((void*)obj);
@@ -114,14 +118,14 @@ public uint64_t generic_hash(const void *obj, const TypeInfo *type)
         if (!type->CustomInfo.hash)
             goto hash_data;
         return type->CustomInfo.hash(obj, type);
-    default: {
+    case PointerInfo: case FunctionInfo: case TypeInfoInfo: case OpaqueInfo: default: {
       hash_data:;
-        return siphash24((void*)obj, type->size);
+        return siphash24((void*)obj, (size_t)(type->size));
     }
     }
 }
 
-public int32_t generic_compare(const void *x, const void *y, const TypeInfo *type)
+PUREFUNC public int32_t generic_compare(const void *x, const void *y, const TypeInfo *type)
 {
     if (x == y) return 0;
 
@@ -136,13 +140,13 @@ public int32_t generic_compare(const void *x, const void *y, const TypeInfo *typ
         if (!type->CustomInfo.compare)
             goto compare_data;
         return type->CustomInfo.compare(x, y, type);
-    default:
+    case TypeInfoInfo: case OpaqueInfo: default:
       compare_data:
-        return (int32_t)memcmp((void*)x, (void*)y, type->size);
+        return (int32_t)memcmp((void*)x, (void*)y, (size_t)(type->size));
     }
 }
 
-public bool generic_equal(const void *x, const void *y, const TypeInfo *type)
+PUREFUNC public bool generic_equal(const void *x, const void *y, const TypeInfo *type)
 {
     if (x == y) return true;
 
@@ -157,7 +161,7 @@ public bool generic_equal(const void *x, const void *y, const TypeInfo *type)
         if (!type->CustomInfo.equal)
             goto use_generic_compare;
         return type->CustomInfo.equal(x, y, type);
-    default:
+    case TypeInfoInfo: case OpaqueInfo: default:
       use_generic_compare:
         return (generic_compare(x, y, type) == 0);
     }
@@ -180,6 +184,7 @@ public Text_t generic_as_text(const void *obj, bool colorize, const TypeInfo *ty
         if (!type->CustomInfo.as_text)
             fail("No text function provided for type!\n");
         return type->CustomInfo.as_text(obj, colorize, type);
+    case OpaqueInfo: return Text("???");
     default: errx(1, "Invalid type tag: %d", type->tag);
     }
 }
@@ -270,6 +275,11 @@ public Text_t ask(Text_t prompt, bool bold, bool force_tty)
     FILE *out = stdout;
     FILE *in = stdin;
 
+    char *line = NULL;
+    size_t bufsize = 0;
+    ssize_t length = 0;
+    char *gc_input = NULL;
+
     if (force_tty && !isatty(STDOUT_FILENO)) {
         out = fopen("/dev/tty", "w");
         if (!out) goto cleanup;
@@ -288,9 +298,7 @@ public Text_t ask(Text_t prompt, bool bold, bool force_tty)
         }
     }
 
-    char *line = NULL;
-    size_t bufsize = 0;
-    ssize_t length = getline(&line, &bufsize, in);
+    length = getline(&line, &bufsize, in);
     if (length == -1) {
         fputs("\n", out); // finish the line, since we didn't get any input
         goto cleanup;
@@ -301,10 +309,10 @@ public Text_t ask(Text_t prompt, bool bold, bool force_tty)
         --length;
     }
 
-    char *gc_input = GC_MALLOC_ATOMIC(length + 1);
-    memcpy(gc_input, line, length + 1);
+    gc_input = GC_MALLOC_ATOMIC((size_t)(length + 1));
+    memcpy(gc_input, line, (size_t)(length + 1));
 
-    ret = Text$from_strn(gc_input, length);
+    ret = Text$from_strn(gc_input, (size_t)(length));
 
   cleanup:
     if (out && out != stdout) fclose(out);

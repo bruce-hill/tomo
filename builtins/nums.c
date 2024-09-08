@@ -14,23 +14,23 @@
 #include "text.h"
 #include "types.h"
 
-public Text_t Num$as_text(const double *f, bool colorize, const TypeInfo *type) { 
+public PUREFUNC Text_t Num$as_text(const double *f, bool colorize, const TypeInfo *type) { 
     (void)type;
     if (!f) return Text("Num");
     return Text$format(colorize ? "\x1b[35m%.16g\x1b[33;2m\x1b[m" : "%.16g", *f); 
 } 
 
-public int32_t Num$compare(const double *x, const double *y, const TypeInfo *type) { 
+public PUREFUNC int32_t Num$compare(const double *x, const double *y, const TypeInfo *type) { 
     (void)type;
     return (*x > *y) - (*x < *y);
 } 
 
-public bool Num$equal(const double *x, const double *y, const TypeInfo *type) { 
+public PUREFUNC bool Num$equal(const double *x, const double *y, const TypeInfo *type) { 
     (void)type;
     return *x == *y;
 } 
 
-public bool Num$near(double a, double b, double ratio, double absolute) {
+public CONSTFUNC bool Num$near(double a, double b, double ratio, double absolute) {
     if (ratio < 0) ratio = 0;
     else if (ratio > 1) ratio = 1;
 
@@ -62,7 +62,7 @@ public double Num$random(void) {
     return drand48(); 
 }
 
-public double Num$mix(double amount, double x, double y) { 
+public CONSTFUNC double Num$mix(double amount, double x, double y) { 
     return (1.0-amount)*x + amount*y;
 }
 
@@ -78,9 +78,9 @@ public double Num$nan(Text_t tag) {
     return nan(Text$as_c_string(tag));
 }
 
-public bool Num$isinf(double n) { return !!isinf(n); }
-public bool Num$finite(double n) { return !!finite(n); }
-public bool Num$isnan(double n) { return !!isnan(n); }
+public CONSTFUNC bool Num$isinf(double n) { return !!isinf(n); }
+public CONSTFUNC bool Num$finite(double n) { return !!finite(n); }
+public CONSTFUNC bool Num$isnan(double n) { return !!isnan(n); }
 
 public const TypeInfo Num$info = {
     .size=sizeof(double),
@@ -93,23 +93,23 @@ public const TypeInfo Num$info = {
     },
 };
 
-public Text_t Num32$as_text(const float *f, bool colorize, const TypeInfo *type) { 
+public PUREFUNC Text_t Num32$as_text(const float *f, bool colorize, const TypeInfo *type) { 
     (void)type;
     if (!f) return Text("Num32");
-    return Text$format(colorize ? "\x1b[35m%.8g_f32\x1b[33;2m\x1b[m" : "%.8g_f32", *f); 
+    return Text$format(colorize ? "\x1b[35m%.8g_f32\x1b[33;2m\x1b[m" : "%.8g_f32", (double)*f); 
 }
 
-public int32_t Num32$compare(const float *x, const float *y, const TypeInfo *type) { 
+public PUREFUNC int32_t Num32$compare(const float *x, const float *y, const TypeInfo *type) { 
     (void)type;
     return (*x > *y) - (*x < *y);
 } 
 
-public bool Num32$equal(const float *x, const float *y, const TypeInfo *type) { 
+public PUREFUNC bool Num32$equal(const float *x, const float *y, const TypeInfo *type) { 
     (void)type;
     return *x == *y;
 }
 
-public bool Num32$near(float a, float b, float ratio, float absolute) {
+public CONSTFUNC bool Num32$near(float a, float b, float ratio, float absolute) {
     if (ratio < 0) ratio = 0;
     else if (ratio > 1) ratio = 1;
 
@@ -125,11 +125,11 @@ public bool Num32$near(float a, float b, float ratio, float absolute) {
 }
 
 public Text_t Num32$format(float f, Int_t precision) { 
-    return Text$format("%.*f", (int)Int_to_Int64(precision, false), f); 
+    return Text$format("%.*f", (int)Int_to_Int64(precision, false), (double)f); 
 }
 
 public Text_t Num32$scientific(float f, Int_t precision) { 
-    return Text$format("%.*e", (int)Int_to_Int64(precision, false), f); 
+    return Text$format("%.*e", (int)Int_to_Int64(precision, false), (double)f); 
 }
 
 public float Num32$mod(float num, float modulus) { 
@@ -141,8 +141,8 @@ public float Num32$random(void) {
     return (float)drand48(); 
 }
 
-public float Num32$mix(float amount, float x, float y) { 
-    return (1.0-amount)*x + amount*y;
+public CONSTFUNC float Num32$mix(float amount, float x, float y) { 
+    return (1.0f-amount)*x + amount*y;
 }
 
 public float Num32$from_text(Text_t text, bool *success) {
@@ -157,9 +157,9 @@ public float Num32$nan(Text_t tag) {
     return nanf(Text$as_c_string(tag));
 }
 
-public bool Num32$isinf(float n) { return isinf(n); }
-public bool Num32$finite(float n) { return finite(n); }
-public bool Num32$isnan(float n) { return isnan(n); }
+public CONSTFUNC bool Num32$isinf(float n) { return isinf(n); }
+public CONSTFUNC bool Num32$finite(float n) { return finite(n); }
+public CONSTFUNC bool Num32$isnan(float n) { return isnan(n); }
 
 public const TypeInfo Num32$info = {
     .size=sizeof(float),

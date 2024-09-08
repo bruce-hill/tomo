@@ -21,7 +21,7 @@ public Text_t CString$as_text(const void *c_string, bool colorize, const TypeInf
     return Text$concat(colorize ? Text("\x1b[34mCString\x1b[m(") : Text("CString("), Text$quoted(text, colorize), Text(")"));
 }
 
-public int32_t CString$compare(const char **x, const char **y)
+PUREFUNC public int32_t CString$compare(const char **x, const char **y)
 {
     if (x == y)
         return 0;
@@ -32,12 +32,12 @@ public int32_t CString$compare(const char **x, const char **y)
     return strcmp(*x, *y);
 }
 
-public bool CString$equal(const char **x, const char **y)
+PUREFUNC public bool CString$equal(const char **x, const char **y)
 {
     return CString$compare(x, y) == 0;
 }
 
-public uint64_t CString$hash(const char **c_str)
+PUREFUNC public uint64_t CString$hash(const char **c_str)
 {
     if (!*c_str) return 0;
     return siphash24((void*)*c_str, strlen(*c_str));

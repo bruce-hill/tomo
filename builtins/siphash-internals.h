@@ -83,6 +83,7 @@ static inline void siphashadd64bits (siphash *sh, const uint64_t in) {
     DOUBLE_ROUND(sh->v0,sh->v1,sh->v2,sh->v3);
     sh->v0 ^= mi;
 }
+#pragma GCC diagnostic ignored "-Winline"
 static inline uint64_t siphashfinish_last_part (siphash *sh, uint64_t t) {
     sh->b |= t;
     sh->v3 ^= sh->b;
@@ -118,6 +119,7 @@ static inline uint64_t siphashfinish (siphash *sh, const uint8_t *src, size_t sr
         case 2: t.u8[1] = src[1];
         /* Falls through */
         case 1: t.u8[0] = src[0];
+        default: break;
     }
     return siphashfinish_last_part(sh, t.u64);
 }

@@ -1401,6 +1401,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
     CORD code = CORD_EMPTY;
     env_t *default_scope = global_scope(env);
     for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
+        int64_t i = 1;
         // Find keyword:
         if (spec_arg->name) {
             for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
@@ -1428,7 +1429,6 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
             }
         }
         // Find positional:
-        int64_t i = 1;
         for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
             if (call_arg->name) continue;
             const char *pseudoname = heap_strf("%ld", i++);
@@ -1555,6 +1555,7 @@ static CORD compile_string_literal(CORD literal)
 {
     CORD code = "\"";
     CORD_pos i;
+#pragma GCC diagnostic ignored "-Wsign-conversion"
     CORD_FOR(i, literal) {
         char c = CORD_pos_fetch(i);
         switch (c) {
@@ -2939,10 +2940,8 @@ CORD compile(env_t *env, ast_t *ast)
     case Declare: case Assign: case UpdateAssign: case For: case While: case StructDef: case LangDef:
     case EnumDef: case FunctionDef: case Skip: case Stop: case Pass: case Return: case DocTest: case PrintStatement:
         code_err(ast, "This is not a valid expression");
-    case Unknown: code_err(ast, "Unknown AST");
+    default: case Unknown: code_err(ast, "Unknown AST");
     }
-    code_err(ast, "Unknown AST: %W", ast);
-    return CORD_EMPTY;
 }
 
 void compile_namespace(env_t *env, const char *ns_name, ast_t *block)

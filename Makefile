@@ -1,28 +1,32 @@
 PREFIX=/usr
 VERSION=0.0.1
-CCONFIG=-std=c11 -Werror -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -I. \
+CC=gcc
+CCONFIG=-std=c23 -Werror -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -I. \
 				-fsanitize=signed-integer-overflow -fno-sanitize-recover -fvisibility=hidden -fdollars-in-identifiers
 LTO=-flto=auto -fno-fat-lto-objects -Wl,-flto 
 LDFLAGS=
 # MAKEFLAGS := --jobs=$(shell nproc) --output-sync=target
-CWARN=-Wall -Wextra -Wno-format -Wshadow
-  # -Wpedantic -Wsign-conversion -Wtype-limits -Wunused-result -Wnull-dereference \
-	# -Waggregate-return -Walloc-zero -Walloca -Warith-conversion -Wcast-align -Wcast-align=strict \
-	# -Wdangling-else -Wdate-time -Wdisabled-optimization -Wdouble-promotion -Wduplicated-branches \
-	# -Wduplicated-cond -Wexpansion-to-defined -Wfloat-conversion -Wfloat-equal -Wformat-nonliteral \
-	# -Wformat-security -Wformat-signedness -Wframe-address -Winline -Winvalid-pch -Wjump-misses-init \
-	# -Wlogical-op -Wlong-long -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn \
-	# -Wnull-dereference -Woverlength-strings -Wpacked -Wpacked-not-aligned -Wpointer-arith \
-	# -Wredundant-decls -Wshadow -Wshadow=compatible-local -Wshadow=global -Wshadow=local \
-	# -Wsign-conversion -Wstack-protector -Wsuggest-attribute=const -Wswitch-default -Wswitch-enum \
-	# -Wsync-nand -Wtrampolines -Wundef -Wunsuffixed-float-constants -Wunused -Wunused-but-set-variable \
-	# -Wunused-const-variable -Wunused-local-typedefs -Wunused-macros -Wvariadic-macros -Wvector-operation-performance \
-	# -Wvla -Wwrite-strings
+CWARN=-Wall -Wextra -Wno-format -Wshadow \
+	  -Wpedantic \
+	  -Wno-pointer-arith \
+	  -Wsign-conversion -Wtype-limits -Wunused-result -Wnull-dereference \
+	  -Walloc-zero -Walloca -Warith-conversion -Wcast-align -Wcast-align=strict \
+	  -Wdangling-else -Wdate-time -Wdisabled-optimization -Wdouble-promotion -Wduplicated-branches \
+	  -Wduplicated-cond -Wexpansion-to-defined -Wfloat-equal \
+	  -Wframe-address -Winline -Winvalid-pch -Wjump-misses-init \
+	  -Wlogical-op -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn \
+	  -Wnull-dereference -Woverlength-strings -Wpacked -Wpacked-not-aligned \
+	  -Wredundant-decls -Wshadow -Wshadow=compatible-local -Wshadow=global -Wshadow=local \
+	  -Wsign-conversion -Wstack-protector -Wsuggest-attribute=const -Wsuggest-attribute=noreturn -Wsuggest-attribute=pure -Wswitch-default \
+	  -Wsync-nand -Wtrampolines -Wundef -Wunused -Wunused-but-set-variable \
+	  -Wunused-const-variable -Wunused-local-typedefs -Wunused-macros -Wvariadic-macros -Wvector-operation-performance \
+	  -Wwrite-strings
 OSFLAGS != case $$(uname -s) in *BSD|Darwin) echo '-D_BSD_SOURCE';; Linux) echo '-D_GNU_SOURCE';; *) echo '-D_DEFAULT_SOURCE';; esac
 EXTRA=
 G=-ggdb
 O=-Og
 CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS)
+CFLAGS_PLACEHOLDER="$$(echo -e '\033[2m<flags...>\033[m')" 
 LDLIBS=-lgc -lcord -lm -lunistring -lgmp -ldl
 BUILTIN_OBJS=builtins/siphash.o builtins/array.o builtins/bool.o builtins/channel.o builtins/nums.o builtins/functions.o builtins/integers.o \
 						 builtins/pointer.o builtins/memory.o builtins/text.o builtins/thread.o builtins/c_string.o builtins/table.o \
@@ -32,16 +36,19 @@ TESTS=$(patsubst %.tm,%.tm.testresult,$(wildcard test/*.tm))
 all: libtomo.so tomo
 
 tomo: tomo.o $(BUILTIN_OBJS) ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o repl.o
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
+	@echo $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $^ $(LDLIBS) -o $@
+	@$(CC) $(CFLAGS) $(CWARN) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 libtomo.so: $(BUILTIN_OBJS)
-	$(CC) $^ $(CFLAGS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -ldl -Wl,-soname,libtomo.so -shared -o $@
+	@echo $(CC) $^ $(CFLAGS_PLACEHOLDER) $(G) $(O) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -ldl -Wl,-soname,libtomo.so -shared -o $@
+	@$(CC) $^ $(CFLAGS) $(CWARN) $(G) $(O) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -ldl -Wl,-soname,libtomo.so -shared -o $@
 
 tags:
 	ctags *.[ch] **/*.[ch]
 
 %.o: %.c ast.h environment.h types.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	@echo $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
+	@$(CC) $(CFLAGS) $(CWARN) -c $< -o $@
 
 %.tm.testresult: %.tm tomo
 	@printf '\x1b[33;1;4m%s\x1b[m\n' $<
@@ -57,7 +64,7 @@ test: $(TESTS)
 clean:
 	rm -f tomo *.o builtins/*.o libtomo.so test/*.tm.{c,h,o,testresult} examples/*.tm.*{c,h,o}
 
-%.1: %.1.md
+%: %.md
 	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@
 
 install: tomo libtomo.so tomo.1

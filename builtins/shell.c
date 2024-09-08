@@ -25,7 +25,7 @@ public Pattern_t Shell$escape_text(Text_t text)
             add_char('"');
             add_char('\'');
         } else
-            add_char(*p);
+            add_char((uint8_t)*p);
     }
     add_char('\'');
 #undef add_char

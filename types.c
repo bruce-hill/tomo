@@ -128,7 +128,7 @@ static type_t *non_optional(type_t *t)
     return ptr->is_optional ? Type(PointerType, .is_optional=false, .pointed=ptr->pointed) : t;
 }
 
-type_t *value_type(type_t *t)
+PUREFUNC type_t *value_type(type_t *t)
 {
     while (t->tag == PointerType)
         t = Match(t, PointerType)->pointed;
@@ -156,7 +156,7 @@ type_t *type_or_type(type_t *a, type_t *b)
     return NULL;
 }
 
-static inline double type_min_magnitude(type_t *t)
+static PUREFUNC inline double type_min_magnitude(type_t *t)
 {
     switch (t->tag) {
     case BoolType: return (double)false;
@@ -175,7 +175,7 @@ static inline double type_min_magnitude(type_t *t)
     }
 }
 
-static inline double type_max_magnitude(type_t *t)
+static PUREFUNC inline double type_max_magnitude(type_t *t)
 {
     switch (t->tag) {
     case BoolType: return (double)true;
@@ -194,7 +194,7 @@ static inline double type_max_magnitude(type_t *t)
     }
 }
 
-precision_cmp_e compare_precision(type_t *a, type_t *b)
+PUREFUNC precision_cmp_e compare_precision(type_t *a, type_t *b)
 {
     double a_min = type_min_magnitude(a),
            b_min = type_min_magnitude(b),
@@ -209,7 +209,7 @@ precision_cmp_e compare_precision(type_t *a, type_t *b)
     else return NUM_PRECISION_INCOMPARABLE;
 }
 
-bool has_heap_memory(type_t *t)
+PUREFUNC bool has_heap_memory(type_t *t)
 {
     switch (t->tag) {
     case ArrayType: return true;
@@ -236,7 +236,7 @@ bool has_heap_memory(type_t *t)
     }
 }
 
-bool can_send_over_channel(type_t *t)
+PUREFUNC bool can_send_over_channel(type_t *t)
 {
     switch (t->tag) {
     case ArrayType: return true;
@@ -261,7 +261,7 @@ bool can_send_over_channel(type_t *t)
     }
 }
 
-bool has_stack_memory(type_t *t)
+PUREFUNC bool has_stack_memory(type_t *t)
 {
     switch (t->tag) {
     case PointerType: return Match(t, PointerType)->is_stack;
@@ -269,7 +269,7 @@ bool has_stack_memory(type_t *t)
     }
 }
 
-bool can_promote(type_t *actual, type_t *needed)
+PUREFUNC bool can_promote(type_t *actual, type_t *needed)
 {
     // No promotion necessary:
     if (type_eq(actual, needed))
@@ -354,7 +354,7 @@ bool can_promote(type_t *actual, type_t *needed)
     return false;
 }
 
-bool can_leave_uninitialized(type_t *t)
+PUREFUNC bool can_leave_uninitialized(type_t *t)
 {
     switch (t->tag) {
     case PointerType: return Match(t, PointerType)->is_optional;
@@ -379,7 +379,7 @@ bool can_leave_uninitialized(type_t *t)
     }
 }
 
-static bool _can_have_cycles(type_t *t, Table_t *seen)
+PUREFUNC static bool _can_have_cycles(type_t *t, Table_t *seen)
 {
     switch (t->tag) {
         case ArrayType: return _can_have_cycles(Match(t, ArrayType)->item_type, seen);
@@ -408,18 +408,18 @@ static bool _can_have_cycles(type_t *t, Table_t *seen)
     }
 }
 
-bool can_have_cycles(type_t *t)
+PUREFUNC bool can_have_cycles(type_t *t)
 {
     Table_t seen = {0};
     return _can_have_cycles(t, &seen);
 }
 
-bool is_int_type(type_t *t)
+PUREFUNC bool is_int_type(type_t *t)
 {
     return t->tag == IntType || t->tag == BigIntType;
 }
 
-bool is_numeric_type(type_t *t)
+PUREFUNC bool is_numeric_type(type_t *t)
 {
     return t->tag == IntType || t->tag == BigIntType || t->tag == NumType;
 }
@@ -468,8 +468,9 @@ type_t *replace_type(type_t *t, type_t *target, type_t *replacement)
 #undef REPLACED_MEMBER
 }
 
-size_t type_size(type_t *t)
+PUREFUNC size_t type_size(type_t *t)
 {
+#pragma GCC diagnostic ignored "-Wswitch-default"
     switch (t->tag) {
     case UnknownType: case AbortType: case ReturnType: case VoidType: return 0;
     case MemoryType: errx(1, "Memory has undefined type size");
@@ -531,7 +532,7 @@ size_t type_size(type_t *t)
     errx(1, "This should not be reachable");
 }
 
-size_t type_align(type_t *t)
+PUREFUNC size_t type_align(type_t *t)
 {
     switch (t->tag) {
     case UnknownType: case AbortType: case ReturnType: case VoidType: return 0;
@@ -580,7 +581,7 @@ size_t type_align(type_t *t)
     errx(1, "This should not be reachable");
 }
 
-size_t padded_type_size(type_t *t)
+PUREFUNC size_t padded_type_size(type_t *t)
 {
     size_t size = type_size(t);
     size_t align = type_align(t);

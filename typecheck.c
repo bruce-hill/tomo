@@ -17,6 +17,7 @@
 
 type_t *parse_type_ast(env_t *env, type_ast_t *ast)
 {
+#pragma GCC diagnostic ignored "-Wswitch-default"
     switch (ast->tag) {
     case VarTypeAST: {
         const char *name = Match(ast, VarTypeAST)->name;
@@ -110,10 +111,10 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
     }
     case UnknownTypeAST: code_err(ast, "I don't know how to get this type");
     }
-    code_err(ast, "I don't know how to get this type");
+    errx(1, "Unreachable");
 }
 
-type_t *get_math_type(env_t *env, ast_t *ast, type_t *lhs_t, type_t *rhs_t)
+PUREFUNC type_t *get_math_type(env_t *env, ast_t *ast, type_t *lhs_t, type_t *rhs_t)
 {
     (void)env;
     switch (compare_precision(lhs_t, rhs_t)) {
@@ -1300,7 +1301,7 @@ type_t *get_type(env_t *env, ast_t *ast)
     code_err(ast, "I can't figure out the type of: %W", ast);
 }
 
-bool is_discardable(env_t *env, ast_t *ast)
+PUREFUNC bool is_discardable(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
     case UpdateAssign: case Assign: case Declare: case FunctionDef: case StructDef: case EnumDef:
@@ -1360,7 +1361,7 @@ type_t *get_arg_type(env_t *env, arg_t *arg)
     return get_type(env, arg->default_val);
 }
 
-bool can_be_mutated(env_t *env, ast_t *ast)
+PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
     case Var: return true;
@@ -1395,7 +1396,7 @@ type_t *parse_type_string(env_t *env, const char *str)
     return ast ? parse_type_ast(env, ast) : NULL;
 }
 
-bool is_constant(env_t *env, ast_t *ast)
+PUREFUNC bool is_constant(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
     case Bool: case Num: case Nil: case TextLiteral: return true;
@@ -1414,6 +1415,7 @@ bool is_constant(env_t *env, ast_t *ast)
 
         CORD literal = Match(text->children->ast, TextLiteral)->cord; 
         CORD_pos i;
+#pragma GCC diagnostic ignored "-Wsign-conversion"
         CORD_FOR(i, literal) {
             if (!isascii(CORD_pos_fetch(i)))
                 return false; // Non-ASCII requires grapheme logic, not constant

@@ -576,7 +576,8 @@ void set_binding(env_t *env, const char *name, binding_t *binding)
         Table$str_set(env->locals, name, binding);
 }
 
-void compiler_err(file_t *f, const char *start, const char *end, const char *fmt, ...)
+__attribute__((format(printf, 4, 5)))
+_Noreturn void compiler_err(file_t *f, const char *start, const char *end, const char *fmt, ...)
 {
     if (isatty(STDERR_FILENO) && !getenv("NO_COLOR"))
         fputs("\x1b[31;7;1m", stderr);

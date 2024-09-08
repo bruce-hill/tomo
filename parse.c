@@ -40,8 +40,6 @@ extern void builtin_fail(const char *fmt, ...);
 
 #define PARSER(name) ast_t *name(parse_ctx_t *ctx, const char *pos)
 
-#define STUB_PARSER(name) PARSER(name) { (void)ctx; (void)pos; return NULL; }
-
 int op_tightness[] = {
     [BINOP_POWER]=9,
     [BINOP_MULT]=8, [BINOP_DIVIDE]=8, [BINOP_MOD]=8, [BINOP_MOD1]=8,
@@ -54,7 +52,6 @@ int op_tightness[] = {
     [BINOP_CMP]=2,
     [BINOP_AND]=1, [BINOP_OR]=1, [BINOP_XOR]=1,
 };
-#define MAX_TIGHTNESS 9
 
 static const char *keywords[] = {
     "yes", "xor", "while", "when", "use", "struct", "stop", "skip", "return",
@@ -122,8 +119,8 @@ static type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos);
 //
 // Print a parse error and exit (or use the on_err longjmp)
 //
-__attribute__((noreturn))
-static void vparser_err(parse_ctx_t *ctx, const char *start, const char *end, const char *fmt, va_list args) {
+__attribute__((noreturn, format(printf, 4, 0)))
+static _Noreturn void vparser_err(parse_ctx_t *ctx, const char *start, const char *end, const char *fmt, va_list args) {
     if (isatty(STDERR_FILENO) && !getenv("NO_COLOR"))
         fputs("\x1b[31;1;7m", stderr);
     fprintf(stderr, "%s:%ld.%ld: ", ctx->file->relative_filename, get_line_number(ctx->file, start),
@@ -149,8 +146,8 @@ static void vparser_err(parse_ctx_t *ctx, const char *start, const char *end, co
 //
 // Wrapper for vparser_err
 //
-__attribute__((noreturn))
-static void parser_err(parse_ctx_t *ctx, const char *start, const char *end, const char *fmt, ...) {
+__attribute__((noreturn, format(printf, 4, 5)))
+static _Noreturn void parser_err(parse_ctx_t *ctx, const char *start, const char *end, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
     vparser_err(ctx, start, end, fmt, args);
@@ -160,10 +157,11 @@ static void parser_err(parse_ctx_t *ctx, const char *start, const char *end, con
 //
 // Convert an escape sequence like \n to a string
 //
+#pragma GCC diagnostic ignored "-Wstack-protector"
 static const char *unescape(parse_ctx_t *ctx, const char **out) {
     const char **endpos = out;
     const char *escape = *out;
-    static const char *unescapes[256] = {['a']="\a",['b']="\b",['e']="\e",['f']="\f",['n']="\n",['r']="\r",['t']="\t",['v']="\v",['_']=" "};
+    static const char *unescapes[256] = {['a']="\a",['b']="\b",['e']="\x1b",['f']="\f",['n']="\n",['r']="\r",['t']="\t",['v']="\v",['_']=" "};
     assert(*escape == '\\');
     if (unescapes[(int)escape[1]]) {
         *endpos = escape + 2;
@@ -210,12 +208,12 @@ static const char *unescape(parse_ctx_t *ctx, const char **out) {
     }
 }
 
-static inline int64_t get_indent(parse_ctx_t *ctx, const char *pos)
+PUREFUNC static inline int64_t get_indent(parse_ctx_t *ctx, const char *pos)
 {
     int64_t line_num = get_line_number(ctx->file, pos);
     const char *line = get_line(ctx->file, line_num);
     if (*line == ' ') {
-        int64_t spaces = strspn(line, " ");
+        int64_t spaces = (int64_t)strspn(line, " ");
         if (spaces % SPACES_PER_INDENT != 0)
             parser_err(ctx, line + spaces - (spaces % SPACES_PER_INDENT), line + spaces,
                        "Indentation must be a multiple of 4 spaces, not %ld", spaces);
@@ -224,7 +222,7 @@ static inline int64_t get_indent(parse_ctx_t *ctx, const char *pos)
             parser_err(ctx, line + indent, line + indent + 1, "This is a tab following spaces, and you can't mix tabs and spaces");
         return indent;
     } else if (*line == '\t') {
-        int64_t indent = strspn(line, "\t");
+        int64_t indent = (int64_t)strspn(line, "\t");
         if (line[indent] == ' ')
             parser_err(ctx, line + indent, line + indent + 1, "This is a space following tabs, and you can't mix tabs and spaces");
         return indent;
@@ -283,6 +281,7 @@ static inline bool is_xid_continue_next(const char *pos) {
 //
 // Expect a string (potentially after whitespace) and emit a parser error if it's not there
 //
+__attribute__((format(printf, 5, 6)))
 static void expect_str(
     parse_ctx_t *ctx, const char *start, const char **pos, const char *target, const char *fmt, ...) {
     spaces(pos);
@@ -305,6 +304,7 @@ static void expect_str(
 //
 // Helper for matching closing parens with good error messages
 //
+__attribute__((format(printf, 4, 5)))
 static void expect_closing(
     parse_ctx_t *ctx, const char **pos, const char *close_str, const char *fmt, ...) {
     const char *start = *pos;
@@ -466,7 +466,7 @@ PARSER(parse_parens) {
 PARSER(parse_int) {
     const char *start = pos;
     (void)match(&pos, "-");
-    if (!isdigit(*pos)) return false;
+    if (!isdigit(*pos)) return NULL;
     if (match(&pos, "0x")) { // Hex
         pos += strspn(pos, "0123456789abcdefABCDEF_");
     } else if (match(&pos, "0b")) { // Binary
@@ -2168,7 +2168,7 @@ PARSER(parse_doctest) {
         int64_t trailing_spaces = 0;
         while (output_end - trailing_spaces - 1 > output_start && (output_end[-trailing_spaces-1] == ' ' || output_end[-trailing_spaces-1] == '\t'))
             ++trailing_spaces;
-        output = GC_strndup(output_start, (size_t)(output_end - output_start) - trailing_spaces);
+        output = GC_strndup(output_start, (size_t)((output_end - output_start) - trailing_spaces));
         pos = output_end;
     } else {
         pos = expr->end;

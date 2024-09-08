@@ -80,16 +80,16 @@ Array_t Array$sample(Array_t arr, Int_t n, Array_t weights, int64_t padded_item_
 Table_t Array$counts(Array_t arr, const TypeInfo *type);
 void Array$clear(Array_t *array);
 void Array$compact(Array_t *arr, int64_t padded_item_size);
-bool Array$has(Array_t array, void *item, const TypeInfo *type);
+PUREFUNC bool Array$has(Array_t array, void *item, const TypeInfo *type);
 #define Array$has_value(arr, item_expr, type) ({ __typeof(item_expr) item = item_expr; Array$has(arr, &item, type); })
-Array_t Array$from(Array_t array, Int_t first);
-Array_t Array$to(Array_t array, Int_t last);
-Array_t Array$by(Array_t array, Int_t stride, int64_t padded_item_size);
-Array_t Array$reversed(Array_t array, int64_t padded_item_size);
+PUREFUNC Array_t Array$from(Array_t array, Int_t first);
+PUREFUNC Array_t Array$to(Array_t array, Int_t last);
+PUREFUNC Array_t Array$by(Array_t array, Int_t stride, int64_t padded_item_size);
+PUREFUNC Array_t Array$reversed(Array_t array, int64_t padded_item_size);
 Array_t Array$concat(Array_t x, Array_t y, int64_t padded_item_size);
-uint64_t Array$hash(const Array_t *arr, const TypeInfo *type);
-int32_t Array$compare(const Array_t *x, const Array_t *y, const TypeInfo *type);
-bool Array$equal(const Array_t *x, const Array_t *y, const TypeInfo *type);
+PUREFUNC uint64_t Array$hash(const Array_t *arr, const TypeInfo *type);
+PUREFUNC int32_t Array$compare(const Array_t *x, const Array_t *y, const TypeInfo *type);
+PUREFUNC bool Array$equal(const Array_t *x, const Array_t *y, const TypeInfo *type);
 Text_t Array$as_text(const Array_t *arr, bool colorize, const TypeInfo *type);
 void Array$heapify(Array_t *heap, closure_t comparison, int64_t padded_item_size);
 void Array$heap_push(Array_t *heap, const void *item, closure_t comparison, int64_t padded_item_size);

@@ -15,7 +15,7 @@
 #include "util.h"
 
 
-static int32_t Range$compare(const Range_t *x, const Range_t *y, const TypeInfo *type)
+PUREFUNC static int32_t Range$compare(const Range_t *x, const Range_t *y, const TypeInfo *type)
 {
     (void)type;
     if (x == y) return 0;
@@ -26,7 +26,7 @@ static int32_t Range$compare(const Range_t *x, const Range_t *y, const TypeInfo 
     return Int$compare(&x->step, &y->step, &Int$info);
 }
 
-static bool Range$equal(const Range_t *x, const Range_t *y, const TypeInfo *type)
+PUREFUNC static bool Range$equal(const Range_t *x, const Range_t *y, const TypeInfo *type)
 {
     (void)type;
     if (x == y) return true;
@@ -44,12 +44,12 @@ static Text_t Range$as_text(const Range_t *r, bool use_color, const TypeInfo *ty
                        Int$as_text(&r->step, use_color, &Int$info));
 }
 
-public Range_t Range$reversed(Range_t r)
+PUREFUNC public Range_t Range$reversed(Range_t r)
 {
     return (Range_t){r.last, r.first, Int$negative(r.step)};
 }
 
-public Range_t Range$by(Range_t r, Int_t step)
+PUREFUNC public Range_t Range$by(Range_t r, Int_t step)
 {
     return (Range_t){r.first, r.last, Int$times(step, r.step)};
 }

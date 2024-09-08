@@ -12,6 +12,7 @@
 
 public bool USE_COLOR;
 
+__attribute__((format(printf, 1, 2)))
 public char *heap_strf(const char *fmt, ...)
 {
     va_list args;
@@ -58,6 +59,7 @@ public char *mangle(const char *name)
     return mangled;
 }
 
+__attribute__((format(printf, 1, 2)))
 public CORD CORD_asprintf(CORD fmt, ...)
 {
     va_list args;
@@ -72,6 +74,7 @@ public CORD CORD_quoted(CORD str)
 {
     CORD quoted = "\"";
     CORD_pos i;
+#pragma GCC diagnostic ignored "-Wsign-conversion"
     CORD_FOR(i, str) {
         char c = CORD_pos_fetch(i);
         switch (c) {

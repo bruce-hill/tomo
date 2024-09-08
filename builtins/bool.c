@@ -13,7 +13,7 @@
 #include "types.h"
 #include "util.h"
 
-public Text_t Bool$as_text(const bool *b, bool colorize, const TypeInfo *type)
+PUREFUNC public Text_t Bool$as_text(const bool *b, bool colorize, const TypeInfo *type)
 {
     (void)type;
     if (!b) return Text("Bool");

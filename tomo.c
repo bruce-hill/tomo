@@ -34,6 +34,7 @@ static int compile_object_file(const char *filename, bool force_recompile);
 static int compile_executable(env_t *base_env, const char *filename, CORD object_files);
 static void build_file_dependency_graph(const char *filename, Table_t *to_compile, Table_t *to_link);
 
+#pragma GCC diagnostic ignored "-Wstack-protector"
 int main(int argc, char *argv[])
 {
     mode_e mode = MODE_RUN;
@@ -349,9 +350,7 @@ void build_file_dependency_graph(const char *filename, Table_t *to_compile, Tabl
             Table$str_set(to_link, lib, lib);
             break;
         }
-        case USE_HEADER: {
-            break;
-        }
+        default: case USE_HEADER: break;
         }
     }
     free(file_dir);

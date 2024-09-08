@@ -76,6 +76,7 @@ struct type_ast_s {
     file_t *file;
     const char *start, *end;
     union {
+#pragma GCC diagnostic ignored "-Wpedantic"
         struct {} UnknownTypeAST;
         struct {
             const char *name;
@@ -308,6 +309,6 @@ CORD ast_to_xml(ast_t *ast);
 CORD type_ast_to_xml(type_ast_t *ast);
 int printf_ast(FILE *stream, const struct printf_info *info, const void *const args[]);
 ast_list_t *get_ast_children(ast_t *ast);
-bool is_idempotent(ast_t *ast);
+PUREFUNC bool is_idempotent(ast_t *ast);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

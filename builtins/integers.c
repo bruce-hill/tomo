@@ -36,29 +36,29 @@ public Text_t Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type) {
     }
 }
 
-public int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo *type) {
+public PUREFUNC int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo *type) {
     (void)type;
     if (__builtin_expect(((x->small | y->small) & 1) == 0, 0))
         return x->big == y->big ? 0 : mpz_cmp(*x->big, *y->big);
     return (x->small > y->small) - (x->small < y->small);
 }
 
-public int32_t Int$compare_value(const Int_t x, const Int_t y) {
+public PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y) {
     if (__builtin_expect(((x.small | y.small) & 1) == 0, 0))
         return x.big == y.big ? 0 : mpz_cmp(*x.big, *y.big);
     return (x.small > y.small) - (x.small < y.small);
 }
 
-public bool Int$equal(const Int_t *x, const Int_t *y, const TypeInfo *type) {
+public PUREFUNC bool Int$equal(const Int_t *x, const Int_t *y, const TypeInfo *type) {
     (void)type;
     return x->small == y->small || (__builtin_expect(((x->small | y->small) & 1) == 0, 0) && mpz_cmp(*x->big, *y->big) == 0);
 }
 
-public bool Int$equal_value(const Int_t x, const Int_t y) {
+public PUREFUNC bool Int$equal_value(const Int_t x, const Int_t y) {
     return x.small == y.small || (__builtin_expect(((x.small | y.small) & 1) == 0, 0) && mpz_cmp(*x.big, *y.big) == 0);
 }
 
-public uint64_t Int$hash(const Int_t *x, const TypeInfo *type) {
+public PUREFUNC uint64_t Int$hash(const Int_t *x, const TypeInfo *type) {
     (void)type;
     if (__builtin_expect(x->small & 1, 1)) {
         int64_t i = (x->small>>2);
@@ -81,8 +81,8 @@ public Text_t Int$format(Int_t i, Int_t digits_int)
         if (needed_zeroes <= 0)
             return Text$from_str(str);
 
-        char *zeroes = GC_MALLOC_ATOMIC(needed_zeroes);
-        memset(zeroes, '0', needed_zeroes);
+        char *zeroes = GC_MALLOC_ATOMIC((size_t)(needed_zeroes));
+        memset(zeroes, '0', (size_t)(needed_zeroes));
         if (negative)
             return Text$concat(Text("-"), Text$from_str(zeroes), Text$from_str(str + 1));
         else
@@ -108,8 +108,8 @@ public Text_t Int$hex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
         if (needed_zeroes <= 0)
             return prefix ? Text$concat(Text("0x"), Text$from_str(str)) : Text$from_str(str);
 
-        char *zeroes = GC_MALLOC_ATOMIC(needed_zeroes);
-        memset(zeroes, '0', needed_zeroes);
+        char *zeroes = GC_MALLOC_ATOMIC((size_t)(needed_zeroes));
+        memset(zeroes, '0', (size_t)(needed_zeroes));
         if (prefix)
             return Text$concat(Text("0x"), Text$from_str(zeroes), Text$from_str(str));
         else
@@ -131,8 +131,8 @@ public Text_t Int$octal(Int_t i, Int_t digits_int, bool prefix) {
         if (needed_zeroes <= 0)
             return prefix ? Text$concat(Text("0o"), Text$from_str(str)) : Text$from_str(str);
 
-        char *zeroes = GC_MALLOC_ATOMIC(needed_zeroes);
-        memset(zeroes, '0', needed_zeroes);
+        char *zeroes = GC_MALLOC_ATOMIC((size_t)(needed_zeroes));
+        memset(zeroes, '0', (size_t)(needed_zeroes));
         if (prefix)
             return Text$concat(Text("0o"), Text$from_str(zeroes), Text$from_str(str));
         else
@@ -302,7 +302,7 @@ public Int_t Int$power(Int_t base, Int_t exponent)
         fail("Cannot take a negative power of an integer!");
     mpz_t result;
     mpz_init_set_int(result, base);
-    mpz_pow_ui(result, result, exp);
+    mpz_pow_ui(result, result, (uint64_t)exp);
     return Int$from_mpz(result);
 }
 
@@ -339,7 +339,7 @@ public Int_t Int$random(Int_t min, Int_t max) {
     return Int$plus(min, Int$from_mpz(r));
 }
 
-public Range_t Int$to(Int_t from, Int_t to) {
+public PUREFUNC Range_t Int$to(Int_t from, Int_t to) {
     return (Range_t){from, to, Int$compare_value(to, from) >= 0 ? (Int_t){.small=(1<<2)|1} : (Int_t){.small=(-1>>2)|1}};
 }
 
@@ -409,11 +409,11 @@ public const TypeInfo Int$info = {
         if (!i) return Text(#KindOfInt); \
         return Text$format(colorize ? "\x1b[35m%" fmt "\x1b[m" : "%" fmt, *i); \
     } \
-    public int32_t KindOfInt ## $compare(const c_type *x, const c_type *y, const TypeInfo *type) { \
+    public PUREFUNC int32_t KindOfInt ## $compare(const c_type *x, const c_type *y, const TypeInfo *type) { \
         (void)type; \
         return (*x > *y) - (*x < *y); \
     } \
-    public bool KindOfInt ## $equal(const c_type *x, const c_type *y, const TypeInfo *type) { \
+    public PUREFUNC bool KindOfInt ## $equal(const c_type *x, const c_type *y, const TypeInfo *type) { \
         (void)type; \
         return *x == *y; \
     } \
@@ -458,7 +458,7 @@ public const TypeInfo Int$info = {
     public Range_t KindOfInt ## $to(c_type from, c_type to) { \
         return (Range_t){Int64_to_Int(from), Int64_to_Int(to), to >= from ? (Int_t){.small=(1<<2)&1} : (Int_t){.small=(1<<2)&1}}; \
     } \
-    public c_type KindOfInt ## $from_text(Text_t text, bool *success) { \
+    public PUREFUNC c_type KindOfInt ## $from_text(Text_t text, bool *success) { \
         bool parsed_int = false; \
         Int_t full_int = Int$from_text(text, &parsed_int); \
         if (!parsed_int && success) *success = false; \
@@ -482,10 +482,10 @@ public const TypeInfo Int$info = {
         .CustomInfo={.compare=(void*)KindOfInt##$compare, .as_text=(void*)KindOfInt##$as_text}, \
     };
 
-DEFINE_INT_TYPE(int64_t,  Int64,  "ld_i64", INT64_MIN, INT64_MAX);
-DEFINE_INT_TYPE(int32_t,  Int32,  "d_i32",  INT32_MIN, INT32_MAX);
-DEFINE_INT_TYPE(int16_t,  Int16,  "d_i16",  INT16_MIN, INT16_MAX);
-DEFINE_INT_TYPE(int8_t,   Int8,   "d_i8",   INT8_MIN,  INT8_MAX);
+DEFINE_INT_TYPE(int64_t,  Int64,  "ld_i64", INT64_MIN, INT64_MAX)
+DEFINE_INT_TYPE(int32_t,  Int32,  "d_i32",  INT32_MIN, INT32_MAX)
+DEFINE_INT_TYPE(int16_t,  Int16,  "d_i16",  INT16_MIN, INT16_MAX)
+DEFINE_INT_TYPE(int8_t,   Int8,   "d_i8",   INT8_MIN,  INT8_MAX)
 #undef DEFINE_INT_TYPE
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

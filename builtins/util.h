@@ -27,9 +27,19 @@
 #define public __attribute__ ((visibility ("default")))
 #endif
 
+#ifndef PUREFUNC
+#define PUREFUNC __attribute__ ((pure))
+#endif
+
+#ifndef CONSTFUNC
+#define CONSTFUNC __attribute__ ((const))
+#endif
+
 extern bool USE_COLOR;
 
+__attribute__((format(printf, 1, 2)))
 char *heap_strf(const char *fmt, ...);
+__attribute__((format(printf, 1, 2)))
 CORD CORD_asprintf(CORD fmt, ...);
 CORD CORD_quoted(CORD str);
 CORD CORD_replace(CORD c, CORD to_replace, CORD replacement);

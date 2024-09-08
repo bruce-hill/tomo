@@ -94,8 +94,8 @@ static file_t *_load_file(const char* filename, FILE *file)
     while ((line_len = getline(&line_buf, &line_cap, file)) >= 0) {
         if (ret->line_capacity <= ret->num_lines)
             ret->line_offsets = GC_REALLOC(ret->line_offsets, sizeof(int64_t[ret->line_capacity += 32]));
-        ret->line_offsets[ret->num_lines++] = file_size;
-        fwrite(line_buf, sizeof(char), line_len, mem);
+        ret->line_offsets[ret->num_lines++] = (int64_t)file_size;
+        fwrite(line_buf, sizeof(char), (size_t)line_len, mem);
         fflush(mem);
     }
     fclose(file);
@@ -104,7 +104,7 @@ static file_t *_load_file(const char* filename, FILE *file)
     memcpy(copy, file_buf, file_size);
     copy[file_size] = '\0';
     ret->text = copy;
-    ret->len = file_size;
+    ret->len = (int64_t)file_size;
     fclose(mem);
 
     free(file_buf);
@@ -114,7 +114,7 @@ static file_t *_load_file(const char* filename, FILE *file)
         // Convert to relative path (if applicable)
         char buf[PATH_MAX];
         char *cwd = getcwd(buf, sizeof(buf));
-        int64_t cwd_len = strlen(cwd);
+        size_t cwd_len = strlen(cwd);
         if (strncmp(cwd, filename, cwd_len) == 0 && filename[cwd_len] == '/')
             ret->relative_filename = &filename[cwd_len+1];
     }

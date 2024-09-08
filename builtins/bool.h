@@ -7,12 +7,13 @@
 #include <stdint.h>
 
 #include "types.h"
+#include "util.h"
 
 #define Bool_t bool
 #define yes (Bool_t)true
 #define no (Bool_t)false
 
-Text_t Bool$as_text(const bool *b, bool colorize, const TypeInfo *type);
+PUREFUNC Text_t Bool$as_text(const bool *b, bool colorize, const TypeInfo *type);
 bool Bool$from_text(Text_t text, bool *success);
 Bool_t Bool$random(double p);
 

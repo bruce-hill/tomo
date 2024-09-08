@@ -7,10 +7,11 @@
 #include <stdint.h>
 
 #include "types.h"
+#include "util.h"
 
 Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo *type);
-int32_t Pointer$compare(const void *x, const void *y, const TypeInfo *type);
-bool Pointer$equal(const void *x, const void *y, const TypeInfo *type);
+PUREFUNC int32_t Pointer$compare(const void *x, const void *y, const TypeInfo *type);
+PUREFUNC bool Pointer$equal(const void *x, const void *y, const TypeInfo *type);
 
 #define Null(t) (t*)NULL
 #define POINTER_TYPE(_sigil, _pointed) (&(TypeInfo){\

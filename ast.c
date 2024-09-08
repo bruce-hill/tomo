@@ -155,9 +155,9 @@ CORD ast_to_xml(ast_t *ast)
     T(Use, "<Use>%r</Use>", xml_escape(data.path))
     T(LinkerDirective, "<LinkerDirective>%r</LinkerDirective>", xml_escape(data.directive))
     T(InlineCCode, "<InlineCode>%r</InlineCode>", xml_escape(data.code))
+    default: return "???";
 #undef T
     }
-    return "???";
 }
 
 CORD type_ast_to_xml(type_ast_t *t)
@@ -176,8 +176,8 @@ CORD type_ast_to_xml(type_ast_t *t)
     T(TableTypeAST, "<TableType>%r %r</TableType>", type_ast_to_xml(data.key), type_ast_to_xml(data.value))
     T(FunctionTypeAST, "<FunctionType>%r %r</FunctionType>", arg_list_to_xml(data.args), type_ast_to_xml(data.ret))
 #undef T
+    default: return CORD_EMPTY;
     }
-    return NULL;
 }
 
 int printf_ast(FILE *stream, const struct printf_info *info, const void *const args[])
@@ -193,7 +193,7 @@ int printf_ast(FILE *stream, const struct printf_info *info, const void *const a
     }
 }
 
-bool is_idempotent(ast_t *ast)
+PUREFUNC bool is_idempotent(ast_t *ast)
 {
     switch (ast->tag) {
     case Int: case Bool: case Num: case Var: case Nil: case TextLiteral: return true;
@@ -207,48 +207,6 @@ bool is_idempotent(ast_t *ast)
     }
     default: return false;
     }
-}
-
-bool type_ast_eq(type_ast_t *x, type_ast_t *y)
-{
-    if (x->tag != y->tag) return false;
-    switch (x->tag) {
-    case UnknownTypeAST: return true;
-    case VarTypeAST: return streq(Match(x, VarTypeAST)->name, Match(y, VarTypeAST)->name);
-    case PointerTypeAST: {
-        auto x_info = Match(x, PointerTypeAST);
-        auto y_info = Match(y, PointerTypeAST);
-        return (x_info->is_optional == y_info->is_optional
-                && x_info->is_stack == y_info->is_stack
-                && x_info->is_readonly == y_info->is_readonly
-                && type_ast_eq(x_info->pointed, y_info->pointed));
-    }
-    case ArrayTypeAST: return type_ast_eq(Match(x, ArrayTypeAST)->item, Match(y, ArrayTypeAST)->item);
-    case SetTypeAST: return type_ast_eq(Match(x, SetTypeAST)->item, Match(y, SetTypeAST)->item);
-    case ChannelTypeAST: return type_ast_eq(Match(x, ChannelTypeAST)->item, Match(y, ChannelTypeAST)->item);
-    case TableTypeAST: {
-        auto tx = Match(x, TableTypeAST);
-        auto ty = Match(y, TableTypeAST);
-        return type_ast_eq(tx->key, ty->key) && type_ast_eq(tx->value, ty->value);
-    }
-    case FunctionTypeAST: {
-        auto x_fn = Match(x, FunctionTypeAST);
-        auto y_fn = Match(y, FunctionTypeAST);
-        if (!type_ast_eq(x_fn->ret, y_fn->ret))
-            return false;
-        for (arg_ast_t *x_arg = x_fn->args, *y_arg = y_fn->args; x_arg || y_arg; x_arg = x_arg->next, y_arg = y_arg->next) {
-            if (!x_arg || !y_arg) return false;
-            if (!x_arg->type)
-                errx(1, "I can't compare function types that don't have all explicitly typed args");
-            if (!y_arg->type)
-                errx(1, "I can't compare function types that don't have all explicitly typed args");
-            if (!type_ast_eq(x_arg->type, y_arg->type))
-                return false;
-        }
-        return true;
-    }
-    }
-    return true;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

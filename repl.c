@@ -73,7 +73,7 @@ void repl(void)
     printf("\n");
 }
 
-__attribute__((noreturn))
+__attribute__((noreturn, format(printf, 2, 3)))
 static void repl_err(ast_t *node, const char *fmt, ...)
 {
     bool color = isatty(STDERR_FILENO) && !getenv("NO_COLOR");
@@ -331,6 +331,7 @@ void run(env_t *env, ast_t *ast)
     }
 }
 
+#pragma GCC diagnostic ignored "-Wstack-protector"
 void eval(env_t *env, ast_t *ast, void *dest)
 {
     type_t *t = get_type(env, ast);
@@ -512,7 +513,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         char item_buf[item_size] = {};
         for (ast_list_t *item = Match(ast, Array)->items; item; item = item->next) {
             eval(env, item->ast, item_buf);
-            Array$insert(&arr, item_buf, I(0), padded_type_size(Match(t, ArrayType)->item_type));
+            Array$insert(&arr, item_buf, I(0), (int64_t)padded_type_size(Match(t, ArrayType)->item_type));
         }
         memcpy(dest, &arr, sizeof(Array_t));
         break;

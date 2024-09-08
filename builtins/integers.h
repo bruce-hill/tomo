@@ -25,16 +25,16 @@
 
 #define DEFINE_INT_TYPE(c_type, type_name) \
     Text_t type_name ## $as_text(const c_type *i, bool colorize, const TypeInfo *type); \
-    int32_t type_name ## $compare(const c_type *x, const c_type *y, const TypeInfo *type); \
-    bool type_name ## $equal(const c_type *x, const c_type *y, const TypeInfo *type); \
+    PUREFUNC int32_t type_name ## $compare(const c_type *x, const c_type *y, const TypeInfo *type); \
+    PUREFUNC bool type_name ## $equal(const c_type *x, const c_type *y, const TypeInfo *type); \
     Text_t type_name ## $format(c_type i, Int_t digits); \
     Text_t type_name ## $hex(c_type i, Int_t digits, bool uppercase, bool prefix); \
     Text_t type_name ## $octal(c_type i, Int_t digits, bool prefix); \
     Array_t type_name ## $bits(c_type x); \
     c_type type_name ## $random(c_type min, c_type max); \
     Range_t type_name ## $to(c_type from, c_type to); \
-    c_type type_name ## $from_text(Text_t text, bool *success); \
-    static inline c_type type_name ## $clamped(c_type x, c_type min, c_type max) { \
+    PUREFUNC c_type type_name ## $from_text(Text_t text, bool *success); \
+    PUREFUNC static inline c_type type_name ## $clamped(c_type x, c_type min, c_type max) { \
         return x < min ? min : (x > max ? max : x); \
     } \
     extern const c_type type_name ## $min, type_name##$max; \
@@ -59,10 +59,10 @@
         return type_name ## $modulo(D-1, d) + 1; \
     }
 
-DEFINE_INT_TYPE(int64_t, Int64);
-DEFINE_INT_TYPE(int32_t, Int32);
-DEFINE_INT_TYPE(int16_t, Int16);
-DEFINE_INT_TYPE(int8_t,  Int8);
+DEFINE_INT_TYPE(int64_t, Int64)
+DEFINE_INT_TYPE(int32_t, Int32)
+DEFINE_INT_TYPE(int16_t, Int16)
+DEFINE_INT_TYPE(int8_t,  Int8)
 #undef DEFINE_INT_TYPE
 
 #define Int64$abs(...) I64(labs(__VA_ARGS__))
@@ -71,17 +71,17 @@ DEFINE_INT_TYPE(int8_t,  Int8);
 #define Int8$abs(...) I8(abs(__VA_ARGS__))
 
 Text_t Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type);
-uint64_t Int$hash(const Int_t *x, const TypeInfo *type);
-int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo *type);
-int32_t Int$compare_value(const Int_t x, const Int_t y);
-bool Int$equal(const Int_t *x, const Int_t *y, const TypeInfo *type);
-bool Int$equal_value(const Int_t x, const Int_t y);
+PUREFUNC uint64_t Int$hash(const Int_t *x, const TypeInfo *type);
+PUREFUNC int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo *type);
+PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y);
+PUREFUNC bool Int$equal(const Int_t *x, const Int_t *y, const TypeInfo *type);
+PUREFUNC bool Int$equal_value(const Int_t x, const Int_t y);
 Text_t Int$format(Int_t i, Int_t digits);
 Text_t Int$hex(Int_t i, Int_t digits, bool uppercase, bool prefix);
 Text_t Int$octal(Int_t i, Int_t digits, bool prefix);
 void Int$init_random(long seed);
 Int_t Int$random(Int_t min, Int_t max);
-Range_t Int$to(Int_t from, Int_t to);
+PUREFUNC Range_t Int$to(Int_t from, Int_t to);
 Int_t Int$from_str(const char *str, bool *success);
 Int_t Int$from_text(Text_t text, bool *success);
 Int_t Int$abs(Int_t x);
@@ -91,20 +91,18 @@ Int_t Int$sqrt(Int_t i);
 #define BIGGEST_SMALL_INT ((1<<29)-1)
 
 #define Int$from_mpz(mpz) (\
-    mpz_cmpabs_ui(mpz, BIGGEST_SMALL_INT) <= 0 ? ({ \
-        (Int_t){.small=(mpz_get_si(mpz)<<2)|1}; \
-    }) : ({ \
-        mpz_t *result_obj = new(mpz_t); \
-        memcpy(result_obj, &mpz, sizeof(mpz_t)); \
-        (Int_t){.big=result_obj}; \
-    }))
+    mpz_cmpabs_ui(mpz, BIGGEST_SMALL_INT) <= 0 ? ( \
+        (Int_t){.small=(mpz_get_si(mpz)<<2)|1} \
+    ) : ( \
+        (Int_t){.big=memcpy(new(mpz_t), &mpz, sizeof(mpz_t))} \
+    ))
 
 #define mpz_init_set_int(mpz, i) do { \
     if (__builtin_expect((i).small & 1, 1)) mpz_init_set_si(mpz, (i).small >> 2); \
     else mpz_init_set(mpz, *(i).big); \
 } while (0)
 
-#define I(i) ((int64_t)(i) == (int32_t)(i) ? ((Int_t){.small=((uint64_t)(i)<<2)|1}) : Int64_to_Int(i))
+#define I(i) ((int64_t)(i) == (int32_t)(i) ? ((Int_t){.small=(int64_t)((uint64_t)(i)<<2)|1}) : Int64_to_Int(i))
 #define I_small(i) ((Int_t){.small=((uint64_t)(i)<<2)|1})
 #define I_is_zero(i) ((i).small == 1)
 
@@ -121,7 +119,6 @@ Int_t Int$slow_bit_or(Int_t x, Int_t y);
 Int_t Int$slow_bit_xor(Int_t x, Int_t y);
 Int_t Int$slow_negative(Int_t x);
 Int_t Int$slow_negated(Int_t x);
-Int_t Int$abs(Int_t x);
 bool Int$is_prime(Int_t x, Int_t reps);
 Int_t Int$next_prime(Int_t x);
 Int_t Int$prev_prime(Int_t x);
@@ -280,7 +277,8 @@ static inline Int_t Int64_to_Int(int64_t i)
 #define Int16_to_Int(i) Int64_to_Int(i)
 #define Int8_to_Int(i) Int64_to_Int(i)
 
-static inline Int64_t Int_to_Int64(Int_t i, bool truncate) {
+#pragma GCC diagnostic ignored "-Winline"
+PUREFUNC static inline Int64_t Int_to_Int64(Int_t i, bool truncate) {
     if (__builtin_expect(i.small & 1, 1))
         return (int64_t)(i.small >> 2);
     if (__builtin_expect(!truncate && !mpz_fits_slong_p(*i.big), 0))
@@ -288,7 +286,7 @@ static inline Int64_t Int_to_Int64(Int_t i, bool truncate) {
     return mpz_get_si(*i.big);
 }
 
-static inline Int32_t Int_to_Int32(Int_t i, bool truncate) {
+PUREFUNC static inline Int32_t Int_to_Int32(Int_t i, bool truncate) {
     int64_t i64 = Int_to_Int64(i, truncate);
     int32_t i32 = (int32_t)i64;
     if (__builtin_expect(i64 != i32 && !truncate, 0))
@@ -296,7 +294,7 @@ static inline Int32_t Int_to_Int32(Int_t i, bool truncate) {
     return i32;
 }
 
-static inline Int16_t Int_to_Int16(Int_t i, bool truncate) {
+PUREFUNC static inline Int16_t Int_to_Int16(Int_t i, bool truncate) {
     int64_t i64 = Int_to_Int64(i, truncate);
     int16_t i16 = (int16_t)i64;
     if (__builtin_expect(i64 != i16 && !truncate, 0))
@@ -304,7 +302,7 @@ static inline Int16_t Int_to_Int16(Int_t i, bool truncate) {
     return i16;
 }
 
-static inline Int8_t Int_to_Int8(Int_t i, bool truncate) {
+PUREFUNC static inline Int8_t Int_to_Int8(Int_t i, bool truncate) {
     int64_t i64 = Int_to_Int64(i, truncate);
     int8_t i8 = (int8_t)i64;
     if (__builtin_expect(i64 != i8 && !truncate, 0))
@@ -312,14 +310,14 @@ static inline Int8_t Int_to_Int8(Int_t i, bool truncate) {
     return i8;
 }
 
-static inline Int_t Num_to_Int(double n)
+PUREFUNC static inline Int_t Num_to_Int(double n)
 {
     mpz_t result;
     mpz_init_set_d(result, n);
     return Int$from_mpz(result);
 }
 
-static inline double Int_to_Num(Int_t i)
+PUREFUNC static inline double Int_to_Num(Int_t i)
 {
     if (__builtin_expect(i.small & 1, 1))
         return (double)(i.small >> 2);
@@ -330,7 +328,7 @@ static inline double Int_to_Num(Int_t i)
 #define Int_to_Num32(i) (Num32_t)Int_to_Num(i)
 
 #define CONVERSION_FUNC(hi, lo) \
-    static inline int##lo##_t Int##hi##_to_Int##lo(int##hi##_t i, bool truncate) { \
+    PUREFUNC static inline int##lo##_t Int##hi##_to_Int##lo(int##hi##_t i, bool truncate) { \
         if (__builtin_expect(!truncate && (i != (int##lo##_t)i), 0)) \
             fail("Cannot truncate the Int" #hi " %ld to an Int" #lo, (int64_t)i); \
         return (int##lo##_t)i; \
@@ -344,11 +342,12 @@ CONVERSION_FUNC(32, 8)
 CONVERSION_FUNC(16, 8)
 #undef CONVERSION_FUNC
 
+#pragma GCC diagnostic ignored "-Wfloat-equal"
 #define CONVERSION_FUNC(num, int_type) \
-    static inline int_type##_t num##_to_##int_type(num##_t n, bool truncate) { \
-        num##_t rounded = round(n); \
+    PUREFUNC static inline int_type##_t num##_to_##int_type(num##_t n, bool truncate) { \
+        num##_t rounded = (num##_t)round((double)n); \
         if (__builtin_expect(!truncate && (num##_t)(int_type##_t)rounded != rounded, 0)) \
-            fail("Cannot truncate the " #num " %g to an " #int_type, rounded); \
+            fail("Cannot truncate the " #num " %g to an " #int_type, (double)rounded); \
         return (int_type##_t)rounded; \
     }
 

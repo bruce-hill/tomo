@@ -45,6 +45,7 @@ typedef struct TypeInfo {
             struct {
                 const char *type_str;
             } TypeInfoInfo;
+#pragma GCC diagnostic ignored "-Wpedantic"
             struct {} OpaqueInfo;
             struct {
                 const char *name;

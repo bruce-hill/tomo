@@ -65,7 +65,7 @@ public void Channel$get(channel_t *channel, void *out, bool front, int64_t item_
     (void)pthread_mutex_lock(&channel->mutex);
     while (channel->items.length == 0)
         pthread_cond_wait(&channel->cond, &channel->mutex);
-    memcpy(out, channel->items.data + channel->items.stride * (front ? 0 : channel->items.length-1), item_size);
+    memcpy(out, channel->items.data + channel->items.stride * (front ? 0 : channel->items.length-1), (size_t)(item_size));
     Int_t index = front ? I_small(1) : Int64_to_Int(channel->items.length);
     Array$remove_at(&channel->items, index, I_small(1), padded_item_size);
     (void)pthread_mutex_unlock(&channel->mutex);
@@ -78,7 +78,7 @@ public void Channel$peek(channel_t *channel, void *out, bool front, int64_t item
     while (channel->items.length == 0)
         pthread_cond_wait(&channel->cond, &channel->mutex);
     int64_t index = front ? 0 : channel->items.length-1;
-    memcpy(out, channel->items.data + channel->items.stride*index, item_size);
+    memcpy(out, channel->items.data + channel->items.stride*index, (size_t)(item_size));
     (void)pthread_mutex_unlock(&channel->mutex);
     (void)pthread_cond_signal(&channel->cond);
 }
@@ -106,13 +106,13 @@ public uint64_t Channel$hash(const channel_t **channel, const TypeInfo *type)
     return siphash24((void*)*channel, sizeof(channel_t*));
 }
 
-public int32_t Channel$compare(const channel_t **x, const channel_t **y, const TypeInfo *type)
+PUREFUNC public int32_t Channel$compare(const channel_t **x, const channel_t **y, const TypeInfo *type)
 {
     (void)type;
     return (*x > *y) - (*x < *y);
 }
 
-bool Channel$equal(const channel_t **x, const channel_t **y, const TypeInfo *type)
+PUREFUNC bool Channel$equal(const channel_t **x, const channel_t **y, const TypeInfo *type)
 {
     (void)type;
     return (*x == *y);

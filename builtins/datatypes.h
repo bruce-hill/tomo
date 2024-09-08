@@ -47,7 +47,7 @@ typedef struct {
 typedef struct {
     uint32_t count:31, last_free:31;
     uint8_t data_refcount:2;
-    bucket_t buckets[0];
+    bucket_t buckets[];
 } bucket_info_t;
 
 typedef struct table_s {

@@ -40,7 +40,6 @@
 #define END_OF_CHAIN UINT32_MAX
 
 #define GET_ENTRY(t, i) ((t).entries.data + (t).entries.stride*(i))
-#define ENTRIES_TYPE(type) (&(TypeInfo){.size=sizeof(Array_t), .align=__alignof__(Array_t), .tag=ArrayInfo, .ArrayInfo.item=(&(TypeInfo){.size=entry_size(type), .align=entry_align(type), .tag=OpaqueInfo})})
 
 static const TypeInfo MemoryPointer = {
     .size=sizeof(void*),
@@ -59,27 +58,27 @@ const TypeInfo CStrToVoidStarTable = {
     .TableInfo={.key=&CString$info, .value=&MemoryPointer},
 };
 
-static inline size_t entry_size(const TypeInfo *info)
+PUREFUNC static inline size_t entry_size(const TypeInfo *info)
 {
-    size_t size = info->TableInfo.key->size;
-    if (info->TableInfo.value->align > 1 && size % info->TableInfo.value->align)
-        size += info->TableInfo.value->align - (size % info->TableInfo.value->align); // padding
-    size += info->TableInfo.value->size;
-    if (info->TableInfo.key->align > 1 && size % info->TableInfo.key->align)
-        size += info->TableInfo.key->align - (size % info->TableInfo.key->align); // padding
+    size_t size = (size_t)info->TableInfo.key->size;
+    if (info->TableInfo.value->align > 1 && size % (size_t)info->TableInfo.value->align)
+        size += (size_t)info->TableInfo.value->align - (size % (size_t)info->TableInfo.value->align); // padding
+    size += (size_t)info->TableInfo.value->size;
+    if (info->TableInfo.key->align > 1 && size % (size_t)info->TableInfo.key->align)
+        size += (size_t)info->TableInfo.key->align - (size % (size_t)info->TableInfo.key->align); // padding
     return size;
 }
 
-static inline size_t entry_align(const TypeInfo *info)
+PUREFUNC static inline size_t entry_align(const TypeInfo *info)
 {
-    return MAX(info->TableInfo.key->align, info->TableInfo.value->align);
+    return (size_t)MAX(info->TableInfo.key->align, info->TableInfo.value->align);
 }
 
-static inline size_t value_offset(const TypeInfo *info)
+PUREFUNC static inline size_t value_offset(const TypeInfo *info)
 {
-    size_t offset = info->TableInfo.key->size;
-    if (info->TableInfo.value->align > 1 && offset % info->TableInfo.value->align)
-        offset += info->TableInfo.value->align - (offset % info->TableInfo.value->align); // padding
+    size_t offset = (size_t)info->TableInfo.key->size;
+    if ((size_t)info->TableInfo.value->align > 1 && offset % (size_t)info->TableInfo.value->align)
+        offset += (size_t)info->TableInfo.value->align - (offset % (size_t)info->TableInfo.value->align); // padding
     return offset;
 }
 
@@ -99,17 +98,17 @@ static inline void hshow(const Table_t *t)
 static void maybe_copy_on_write(Table_t *t, const TypeInfo *type)
 {
     if (t->entries.data_refcount != 0)
-        Array$compact(&t->entries, entry_size(type));
+        Array$compact(&t->entries, (int64_t)entry_size(type));
 
     if (t->bucket_info && t->bucket_info->data_refcount != 0) {
-        int64_t size = sizeof(bucket_info_t) + sizeof(bucket_t[t->bucket_info->count]);
+        size_t size = sizeof(bucket_info_t) + sizeof(bucket_t[t->bucket_info->count]);
         t->bucket_info = memcpy(GC_MALLOC(size), t->bucket_info, size);
         t->bucket_info->data_refcount = 0;
     }
 }
 
 // Return address of value or NULL
-public void *Table$get_raw(Table_t t, const void *key, const TypeInfo *type)
+PUREFUNC public void *Table$get_raw(Table_t t, const void *key, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
     if (!key || !t.bucket_info) return NULL;
@@ -131,7 +130,7 @@ public void *Table$get_raw(Table_t t, const void *key, const TypeInfo *type)
     return NULL;
 }
 
-public void *Table$get(Table_t t, const void *key, const TypeInfo *type)
+PUREFUNC public void *Table$get(Table_t t, const void *key, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
     for (const Table_t *iter = &t; iter; iter = iter->fallback) {
@@ -201,7 +200,7 @@ static void hashmap_resize_buckets(Table_t *t, uint32_t new_capacity, const Type
         fail("Table has exceeded the maximum table size (2^31) and cannot grow further!");
     hdebug("About to resize from %u to %u\n", t->bucket_info ? t->bucket_info->count : 0, new_capacity);
     hshow(t);
-    int64_t alloc_size = sizeof(bucket_info_t) + sizeof(bucket_t[new_capacity]);
+    size_t alloc_size = sizeof(bucket_info_t) + sizeof(bucket_t[new_capacity]);
     t->bucket_info = GC_MALLOC_ATOMIC(alloc_size);
     memset(t->bucket_info->buckets, 0, sizeof(bucket_t[new_capacity]));
     t->bucket_info->count = new_capacity;
@@ -217,6 +216,7 @@ static void hashmap_resize_buckets(Table_t *t, uint32_t new_capacity, const Type
 }
 
 // Return address of value
+#pragma GCC diagnostic ignored "-Wstack-protector"
 public void *Table$reserve(Table_t *t, const void *key, const void *value, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
@@ -237,7 +237,7 @@ public void *Table$reserve(Table_t *t, const void *key, const void *value, const
             value_home = t->entries.data + offset;
 
             if (value && value_size > 0)
-                memcpy(value_home, value, value_size);
+                memcpy(value_home, value, (size_t)value_size);
 
             return value_home;
         }
@@ -246,7 +246,7 @@ public void *Table$reserve(Table_t *t, const void *key, const void *value, const
 
     // Resize buckets if necessary
     if (t->entries.length >= (int64_t)t->bucket_info->count) {
-        uint32_t newsize = t->bucket_info->count + MIN(t->bucket_info->count, 64);
+        uint32_t newsize = (uint32_t)t->bucket_info->count + MIN((uint32_t)t->bucket_info->count, 64);
         if (__builtin_expect(newsize > TABLE_MAX_BUCKETS, 0))
             newsize = t->entries.length + 1;
         hashmap_resize_buckets(t, newsize, type);
@@ -263,12 +263,12 @@ public void *Table$reserve(Table_t *t, const void *key, const void *value, const
 
     char buf[entry_size(type)];
     memset(buf, 0, sizeof(buf));
-    memcpy(buf, key, key_size);
+    memcpy(buf, key, (size_t)key_size);
     if (value && value_size > 0)
-        memcpy(buf + value_offset(type), value, value_size);
+        memcpy(buf + value_offset(type), value, (size_t)value_size);
     else
-        memset(buf + value_offset(type), 0, value_size);
-    Array$insert(&t->entries, buf, I(0), entry_size(type));
+        memset(buf + value_offset(type), 0, (size_t)value_size);
+    Array$insert(&t->entries, buf, I(0), (int64_t)entry_size(type));
 
     int64_t entry_index = t->entries.length-1;
     void *entry = GET_ENTRY(*t, entry_index);
@@ -351,7 +351,7 @@ public void Table$remove(Table_t *t, const void *key, const TypeInfo *type)
     // Last entry is being removed, so clear it out to be safe:
     memset(GET_ENTRY(*t, last_entry), 0, entry_size(type));
 
-    Array$remove_at(&t->entries, I(t->entries.length), I(1), entry_size(type));
+    Array$remove_at(&t->entries, I(t->entries.length), I(1), (int64_t)entry_size(type));
 
     int64_t bucket_to_clear;
     if (prev) { // Middle (or end) of a chain
@@ -374,7 +374,7 @@ public void Table$remove(Table_t *t, const void *key, const TypeInfo *type)
     hshow(t);
 }
 
-public void *Table$entry(Table_t t, int64_t n)
+CONSTFUNC public void *Table$entry(Table_t t, int64_t n)
 {
     if (n < 1 || n > Table$length(t))
         return NULL;
@@ -389,11 +389,11 @@ public void Table$clear(Table_t *t)
 public Table_t Table$sorted(Table_t t, const TypeInfo *type)
 {
     closure_t cmp = (closure_t){.fn=generic_compare, .userdata=(void*)type->TableInfo.key};
-    Array_t entries = Array$sorted(t.entries, cmp, entry_size(type));
+    Array_t entries = Array$sorted(t.entries, cmp, (int64_t)entry_size(type));
     return Table$from_entries(entries, type);
 }
 
-public bool Table$equal(const Table_t *x, const Table_t *y, const TypeInfo *type)
+PUREFUNC public bool Table$equal(const Table_t *x, const Table_t *y, const TypeInfo *type)
 {
     if (x == y) return true;
 
@@ -407,7 +407,7 @@ public bool Table$equal(const Table_t *x, const Table_t *y, const TypeInfo *type
     return (Table$compare(x, y, type) == 0);
 }
 
-public int32_t Table$compare(const Table_t *x, const Table_t *y, const TypeInfo *type)
+PUREFUNC public int32_t Table$compare(const Table_t *x, const Table_t *y, const TypeInfo *type)
 {
     if (x == y) return 0;
 
@@ -438,7 +438,7 @@ public int32_t Table$compare(const Table_t *x, const Table_t *y, const TypeInfo 
     return 0;
 }
 
-public uint64_t Table$hash(const Table_t *t, const TypeInfo *type)
+PUREFUNC public uint64_t Table$hash(const Table_t *t, const TypeInfo *type)
 {
     assert(type->tag == TableInfo);
     // Table hashes are computed as:
@@ -473,7 +473,7 @@ public Text_t Table$as_text(const Table_t *t, bool colorize, const TypeInfo *typ
                 Text("}"));
     }
 
-    int64_t val_off = value_offset(type);
+    int64_t val_off = (int64_t)value_offset(type);
     Text_t text = Text("{");
     for (int64_t i = 0, length = Table$length(*t); i < length; i++) {
         if (i > 0)
@@ -500,13 +500,13 @@ public Table_t Table$from_entries(Array_t entries, const TypeInfo *type)
 
     Table_t t = {};
     int64_t length = entries.length + entries.length / 4;
-    int64_t alloc_size = sizeof(bucket_info_t) + sizeof(bucket_t[length]);
+    size_t alloc_size = sizeof(bucket_info_t) + sizeof(bucket_t[length]);
     t.bucket_info = GC_MALLOC_ATOMIC(alloc_size);
     memset(t.bucket_info->buckets, 0, sizeof(bucket_t[length]));
     t.bucket_info->count = length;
     t.bucket_info->last_free = length-1;
 
-    int64_t offset = value_offset(type);
+    size_t offset = value_offset(type);
     for (int64_t i = 0; i < entries.length; i++) {
         void *key = entries.data + i*entries.stride;
         Table$set(&t, key, key + offset, type);
@@ -583,7 +583,7 @@ public Table_t Table$without(Table_t a, Table_t b, const TypeInfo *type)
     return result;
 }
 
-public bool Table$is_subset_of(Table_t a, Table_t b, bool strict, const TypeInfo *type)
+PUREFUNC public bool Table$is_subset_of(Table_t a, Table_t b, bool strict, const TypeInfo *type)
 {
     if (a.entries.length > b.entries.length || (strict && a.entries.length == b.entries.length))
         return false;
@@ -595,18 +595,18 @@ public bool Table$is_subset_of(Table_t a, Table_t b, bool strict, const TypeInfo
     return true;
 }
 
-public bool Table$is_superset_of(Table_t a, Table_t b, bool strict, const TypeInfo *type)
+PUREFUNC public bool Table$is_superset_of(Table_t a, Table_t b, bool strict, const TypeInfo *type)
 {
     return Table$is_subset_of(b, a, strict, type);
 }
 
-public void *Table$str_get(Table_t t, const char *key)
+PUREFUNC public void *Table$str_get(Table_t t, const char *key)
 {
     void **ret = Table$get(t, &key, &CStrToVoidStarTable);
     return ret ? *ret : NULL;
 }
 
-public void *Table$str_get_raw(Table_t t, const char *key)
+PUREFUNC public void *Table$str_get_raw(Table_t t, const char *key)
 {
     void **ret = Table$get_raw(t, &key, &CStrToVoidStarTable);
     return ret ? *ret : NULL;
@@ -627,7 +627,7 @@ public void Table$str_remove(Table_t *t, const char *key)
     return Table$remove(t, &key, &CStrToVoidStarTable);
 }
 
-public void *Table$str_entry(Table_t t, int64_t n)
+CONSTFUNC public void *Table$str_entry(Table_t t, int64_t n)
 {
     return Table$entry(t, n);
 }

@@ -12,7 +12,7 @@
 #include "typecheck.h"
 #include "builtins/util.h"
 
-static bool has_extra_data(tag_ast_t *tags)
+PUREFUNC static bool has_extra_data(tag_ast_t *tags)
 {
     for (tag_ast_t *tag = tags; tag; tag = tag->next) {
         if (tag->fields) return true;

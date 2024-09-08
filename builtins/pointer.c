@@ -79,13 +79,13 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo *type
     return text;
 }
 
-public int32_t Pointer$compare(const void *x, const void *y, const TypeInfo *type) {
+PUREFUNC public int32_t Pointer$compare(const void *x, const void *y, const TypeInfo *type) {
     (void)type;
     const void *xp = *(const void**)x, *yp = *(const void**)y;
     return (xp > yp) - (xp < yp);
 }
 
-public bool Pointer$equal(const void *x, const void *y, const TypeInfo *type) {
+PUREFUNC public bool Pointer$equal(const void *x, const void *y, const TypeInfo *type) {
     (void)type;
     const void *xp = *(const void**)x, *yp = *(const void**)y;
     return xp == yp;

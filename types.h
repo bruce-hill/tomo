@@ -129,24 +129,24 @@ struct type_s {
 int printf_pointer_size(const struct printf_info *info, size_t n, int argtypes[n], int size[n]);
 int printf_type(FILE *stream, const struct printf_info *info, const void *const args[]);
 CORD type_to_cord(type_t *t);
-bool type_eq(type_t *a, type_t *b);
-bool type_is_a(type_t *t, type_t *req);
+PUREFUNC bool type_eq(type_t *a, type_t *b);
+PUREFUNC bool type_is_a(type_t *t, type_t *req);
 type_t *type_or_type(type_t *a, type_t *b);
 type_t *value_type(type_t *a);
 typedef enum {NUM_PRECISION_EQUAL, NUM_PRECISION_LESS, NUM_PRECISION_MORE, NUM_PRECISION_INCOMPARABLE} precision_cmp_e;
-precision_cmp_e compare_precision(type_t *a, type_t *b);
-bool has_heap_memory(type_t *t);
-bool has_stack_memory(type_t *t);
-bool can_send_over_channel(type_t *t);
-bool can_promote(type_t *actual, type_t *needed);
-bool can_leave_uninitialized(type_t *t);
-bool can_have_cycles(type_t *t);
-bool is_int_type(type_t *t);
-bool is_numeric_type(type_t *t);
+PUREFUNC precision_cmp_e compare_precision(type_t *a, type_t *b);
+PUREFUNC bool has_heap_memory(type_t *t);
+PUREFUNC bool has_stack_memory(type_t *t);
+PUREFUNC bool can_send_over_channel(type_t *t);
+PUREFUNC bool can_promote(type_t *actual, type_t *needed);
+PUREFUNC bool can_leave_uninitialized(type_t *t);
+PUREFUNC bool can_have_cycles(type_t *t);
+PUREFUNC bool is_int_type(type_t *t);
+PUREFUNC bool is_numeric_type(type_t *t);
 type_t *replace_type(type_t *t, type_t *target, type_t *replacement);
-size_t type_size(type_t *t);
-size_t type_align(type_t *t);
-size_t padded_type_size(type_t *t);
+PUREFUNC size_t type_size(type_t *t);
+PUREFUNC size_t type_align(type_t *t);
+PUREFUNC size_t padded_type_size(type_t *t);
 type_t *get_field_type(type_t *t, const char *field_name);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
