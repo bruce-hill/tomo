@@ -3232,8 +3232,13 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                 compiler_err(NULL, NULL, NULL, "Main function has unsupported argument type: %T (only arrays of Text are supported)", t);
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
                             "$", arg->name, " = Text$split(flag, Pattern(\",\"));\n",
-                            arg->name, "$is_set = yes;\n"
-                            "}\n");
+                            arg->name, "$is_set = yes;\n");
+            if (streq(Match(Match(t, ArrayType)->item_type, TextType)->lang, "Path")) {
+                code = CORD_all(code, "for (int64_t j = 0; j < $", arg->name, ".length; j++)\n"
+                                "*(Path_t*)($", arg->name, ".data + j*$", arg->name, ".stride) "
+                                "= Path$cleanup(*(Path_t*)($", arg->name, ".data + j*$", arg->name, ".stride));\n");
+            }
+            code = CORD_all(code, "}\n");
             break;
         }
         case BigIntType: case IntType: case NumType: {
@@ -3286,16 +3291,23 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
         type_t *t = get_arg_type(env, arg);
         code = CORD_all(code, "if (!", arg->name, "$is_set) {\n");
         if (t->tag == ArrayType) {
+            if (Match(t, ArrayType)->item_type->tag != TextType)
+                compiler_err(NULL, NULL, NULL, "Main function has unsupported argument type: %T (only arrays of Text are supported)", t);
+
             code = CORD_all(
                 code, "$", arg->name, " = (Array_t){};\n"
                 "for (; i < argc; i++) {\n"
-                "if (argv[i]) {\n"
-                "Text_t arg = Text$from_str(argv[i]);\n"
-                "Array$insert(&$", arg->name, ", &arg, I(0), sizeof(Text_t));\n"
-                "argv[i] = NULL;\n"
-                "}\n"
-                "}\n",
-                arg->name, "$is_set = yes;\n");
+                "if (argv[i]) {\n");
+            if (streq(Match(Match(t, ArrayType)->item_type, TextType)->lang, "Path")) {
+                code = CORD_all(code, "Path_t arg = Path$cleanup(Text$from_str(argv[i]));\n");
+            } else {
+                code = CORD_all(code, "Text_t arg = Text$from_str(argv[i]);\n");
+            }
+            code = CORD_all(code, "Array$insert(&$", arg->name, ", &arg, I(0), sizeof(Text_t));\n"
+                            "argv[i] = NULL;\n"
+                            "}\n"
+                            "}\n",
+                            arg->name, "$is_set = yes;\n");
         } else if (arg->default_val) {
             code = CORD_all(code, "$", arg->name, " = ", compile(env, arg->default_val), ";\n");
         } else {
