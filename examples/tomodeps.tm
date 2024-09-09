@@ -1,5 +1,4 @@
 # Show a Tomo dependency graph
-use file
 
 _USAGE := "Usage: dependencies <files...>"
 
@@ -8,124 +7,101 @@ _HELP := "
     $_USAGE
 "
 
-func _get_module_imports_from_file(file:Text, imports:&{Text}, visited_files:&{Text}):
-    return if visited_files:has(file)
+enum Dependency(File(path:Path), Module(name:Text))
 
-    reader := when LineReader.from_file(file) is Failure(msg):
-        !! Failed: $msg
-        return
-    is Open(reader): reader
+func _get_file_dependencies(file:Path)->{Dependency}:
+    if not file:is_file():
+        !! Could not read file: $file
+        return {:Dependency}
 
-    visited_files:add(file)
-
-    while when reader:next_line() is Success(line):
+    deps := {:Dependency}
+    for line in file:read():lines():
         if line:matches($/use {..}.tm/):
-            local_import := line:replace($/use {..}/, "\1")
-            resolved := relative_path(resolve_path(local_import, file))
-            if resolved != "":
-                local_import = resolved
-            _get_module_imports_from_file(local_import, imports, visited_files)
+            file_import := Path.from_unsafe_text(line:replace($/use {..}/, "\1")):resolved(relative_to=file)
+            deps:add(Dependency.File(file_import))
         else if line:matches($/use {id}/):
-            other_module := line:replace($/use {..}/, "\1")
-            imports:add(other_module)
+            module_name := line:replace($/use {..}/, "\1")
+            deps:add(Dependency.Module(module_name))
+    return deps
 
-func _get_module_imports_from_module(module:Text)->{Text}:
-    files_path := resolve_path("~/.local/src/tomo/$module/lib$(module).files")
-    if files_path == "":
-        !! couldn't resolve: $files_path
-        return {:Text}
+func _build_dependency_graph(dep:Dependency, dependencies:&{Dependency:{Dependency}}):
+    return if dependencies:has(dep)
 
-    when read(files_path) is Failure(msg):
-        !! couldn't read: $files_path $msg
-        return {:Text}
-    is Success(files_content):
-        imports := {:Text}
-        visited := {:Text}
-        for line in files_content:lines():
-            line_resolved := resolve_path(line, relative_to="~/.local/src/tomo/$module/")
-            skip if line_resolved == ""
-            _get_module_imports_from_file(line_resolved, &imports, &visited)
-        return imports
+    dependencies:set(dep, {:Dependency}) # Placeholder
 
-func _build_module_dependency_graph(module:Text, dependencies:&{Text:@{Text}}):
-    return if dependencies:has(module)
+    dep_deps := when dep is File(path):
+        _get_file_dependencies(path)
+    is Module(module):
+        files_path := (~/.local/src/tomo/$module/lib$module.files):resolved()
+        if not files_path:is_file():
+            !! Could not read file: $files_path
+            return
 
-    module_deps := @{:Text}
-    dependencies:set(module, module_deps)
+        unvisited := {:Path}
+        for line in files_path:read():lines():
+            tm_path := Path.from_unsafe_text(line):resolved(relative_to=(~/.local/src/tomo/$module/))
+            unvisited:add(tm_path)
 
-    for dep in _get_module_imports_from_module(module):
-        module_deps:add(dep)
-        _build_module_dependency_graph(dep, dependencies)
+        module_deps := {:Dependency}
+        visited := {:Path}
+        while unvisited.length > 0:
+            file := unvisited.items[-1]
+            unvisited:remove(file)
+            visited:add(file)
 
+            for file_dep in _get_file_dependencies(file):
+                when file_dep is File(f):
+                    if not visited:has(f):
+                        unvisited:add(f)
+                is Module(m):
+                    module_deps:add(file_dep)
+        module_deps
 
-func _build_file_dependency_graph(filename:Text, dependencies:&{Text:@{Text}}):
-    return if dependencies:has(filename)
+    dependencies:set(dep, dep_deps)
 
-    reader := when LineReader.from_file(filename) is Failure(msg):
-        !! Failed: $msg
-        return
-    is Open(reader): reader
+    for dep2 in dep_deps:
+        _build_dependency_graph(dep2, dependencies)
 
-    file_deps := @{:Text}
-    dependencies:set(filename, file_deps)
+func get_dependency_graph(file:Path)->{Dependency:{Dependency}}:
+    graph := {:Dependency:{Dependency}}
+    _build_dependency_graph(Dependency.File(file:resolved()), &graph)
+    return graph
 
-    while when reader:next_line() is Success(line):
-        if line:matches($/use {..}.tm/):
-            used_file := line:replace($/use {..}/, "\1")
-            resolved := relative_path(resolve_path(used_file, filename))
-            if resolved != "":
-                used_file = resolved
+func _printable_name(dep:Dependency)->Text:
+    when dep is Module(module):
+        return "$(\x1b)[34;1m$module$(\x1b)[m"
+    is File(f):
+        f = f:relative()
+        if f:exists():
+            return "$(f.text_content)"
+        else:
+            return "$(\x1b)[31;1m$(f.text_content) (not found)$(\x1b)[m"
 
-            file_deps:add(used_file)
-            _build_file_dependency_graph(used_file, dependencies)
-        else if line:matches($/use {id}/):
-            module := line:replace($/use {..}/, "\1")
-            file_deps:add(module)
-            _build_module_dependency_graph(module, dependencies)
-
-
-func get_dependency_graph(file:Text)->{Text:{Text}}:
-    graph := {:Text:@{Text}}
-    resolved := relative_path(file)
-    _build_file_dependency_graph(resolved, &graph)
-    return {f:deps[] for f,deps in graph}
-
-func _draw_tree(file:Text, dependencies:{Text:{Text}}, already_printed:&{Text}, prefix="", is_last=yes):
-    color_file := if file:matches($/{id}/):
-        "$\x1b[34;1m$file$\x1b[m"
-    else if resolve_path(file) != "":
-        file
-    else:
-        "$\x1b[31;1m$file (could not resolve)$\x1b[m"
-
-    if already_printed:has(file):
-        say(prefix ++ (if is_last: "└── " else: "├── ") ++ color_file ++ " $\x1b[2m(recursive)$\x1b[m")
+func _draw_tree(dep:Dependency, dependencies:{Dependency:{Dependency}}, already_printed:&{Dependency}, prefix="", is_last=yes):
+    if already_printed:has(dep):
+        say(prefix ++ (if is_last: "└── " else: "├── ") ++ _printable_name(dep) ++ " $\x1b[2m(recursive)$\x1b[m")
         return
 
-    say(prefix ++ (if is_last: "└── " else: "├── ") ++ color_file)
-    already_printed:add(file)
+    say(prefix ++ (if is_last: "└── " else: "├── ") ++ _printable_name(dep))
+    already_printed:add(dep)
     
     child_prefix := prefix ++ (if is_last: "    " else: "│   ")
     
-    children := dependencies:get(file, {:Text})
+    children := dependencies:get(dep, {:Dependency})
     for i,child in children.items:
         is_child_last := (i == children.length)
         _draw_tree(child, dependencies, already_printed, child_prefix, is_child_last)
 
-func draw_tree(file:Text, dependencies:{Text:{Text}}):
-    printed := {:Text}
-    resolved := relative_path(file)
-    if resolved != "":
-        file = resolved
-
-    say(file)
-    printed:add(file)
-    children := dependencies:get(file, {:Text})
-    for i,child in children.items:
-        is_child_last := (i == children.length)
+func draw_tree(dep:Dependency, dependencies:{Dependency:{Dependency}}):
+    printed := {:Dependency}
+    say(_printable_name(dep))
+    printed:add(dep)
+    deps := dependencies:get(dep, {:Dependency})
+    for i,child in deps.items:
+        is_child_last := (i == deps.length)
         _draw_tree(child, dependencies, already_printed=&printed, is_last=is_child_last)
 
-func main(files:[Text]):
+func main(files:[Path]):
     if files.length == 0:
         exit(1, message="
             Please provide at least one file!
@@ -133,10 +109,11 @@ func main(files:[Text]):
         ")
 
     for file in files:
-        if not file:matches($/{..}.tm/):
+        if not file.text_content:matches($/{..}.tm/):
             say("$\x1b[2mSkipping $file$\x1b[m")
             skip
 
+        file = file:resolved()
         dependencies := get_dependency_graph(file)
-        draw_tree(file, dependencies)
+        draw_tree(Dependency.File(file), dependencies)
 
