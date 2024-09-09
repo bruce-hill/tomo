@@ -5,6 +5,12 @@ func main():
     >> (~/):exists()
     = yes
 
+    >> (~/Downloads/file(1).txt)
+    = (~/Downloads/file(1).txt)
+
+    >> (/half\)paren)
+    = (/half\)paren)
+
     >> filename := "example.txt"
     >> (~/$filename)
     = (~/example.txt)
