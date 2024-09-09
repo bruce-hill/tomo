@@ -1909,7 +1909,14 @@ CORD compile(env_t *env, ast_t *ast)
                 if (chunk->ast->tag == TextLiteral) {
                     chunk_code = compile(env, chunk->ast);
                 } else if (chunk_t->tag == TextType && streq(Match(chunk_t, TextType)->lang, lang)) {
-                    chunk_code = compile(env, chunk->ast);
+                    binding_t *esc = get_lang_escape_function(env, lang, chunk_t);
+                    if (esc) {
+                        arg_t *arg_spec = Match(esc->type, FunctionType)->args;
+                        arg_ast_t *args = new(arg_ast_t, .value=chunk->ast);
+                        chunk_code = CORD_all(esc->code, "(", compile_arguments(env, ast, arg_spec, args), ")");
+                    } else {
+                        chunk_code = compile(env, chunk->ast);
+                    }
                 } else if (lang) {
                     binding_t *esc = get_lang_escape_function(env, lang, chunk_t);
                     if (!esc)

@@ -22,10 +22,12 @@
 
 PUREFUNC public Path_t Path$escape_text(Text_t text)
 {
-    if (Text$has(text, Pattern("/")) || Text$has(text, Pattern(";")))
-        fail("Invalid path component: %k", &text);
+    if (Text$has(text, Pattern("/")))
+        fail("Path interpolations cannot contain slashes: %k", &text);
+    else if (Text$has(text, Pattern(";")))
+        fail("Path interpolations cannot contain semicolons: %k", &text);
     else if (Text$equal_values(text, Path(".")) || Text$equal_values(text, Path("..")))
-        fail("Invalid path component: %k", &text);
+        fail("Path interpolation is \"%k\" which is disallowed to prevent security vulnerabilities", &text);
     return (Path_t)text;
 }
 
@@ -113,18 +115,7 @@ static inline Path_t Path$_expand_home(Path_t path)
 
 public Path_t Path$_concat(int n, Path_t items[n])
 {
-    for (int i = 1; i < n; i++) {
-        if (Text$starts_with(items[i], Path("~/")) || Text$starts_with(items[i], Path("/")))
-            fail("Cannot insert absolute path (%k) after another path (%k)", &items[i], &items[0]);
-    }
-
-    Array_t items_array = {
-        .length=n,
-        .stride=sizeof(Path_t),
-        .data=items,
-        .data_refcount=1,
-    };
-    Path_t cleaned_up = Path$cleanup(Text$join(Text("/"), items_array));
+    Path_t cleaned_up = Path$cleanup(Text$_concat(n, items));
     if (cleaned_up.length > PATH_MAX)
         fail("Path exceeds the maximum path length: %k", &cleaned_up);
     return cleaned_up;

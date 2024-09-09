@@ -11,12 +11,13 @@
 
 #define Path_t Text_t
 #define Path(text) ((Path_t)Text(text))
-#define Paths(...) Path$concat(__VA_ARGS__)
+#define Paths(...) Path$_concat(sizeof((Path_t[]){__VA_ARGS__})/sizeof(Path_t), (Path_t[]){__VA_ARGS__})
 
 Path_t Path$cleanup(Path_t path);
 Path_t Path$_concat(int n, Path_t items[n]);
-#define Path$concat(...) Path$_concat(sizeof((Path_t[]){__VA_ARGS__})/sizeof(Path_t), (Path_t[]){__VA_ARGS__})
+#define Path$concat(a, b) Paths(a, Path("/"), b)
 PUREFUNC Path_t Path$escape_text(Text_t text);
+PUREFUNC Path_t Path$escape_path(Text_t path);
 Path_t Path$resolved(Path_t path, Path_t relative_to);
 Path_t Path$relative(Path_t path, Path_t relative_to);
 bool Path$exists(Path_t path);
