@@ -3222,7 +3222,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
         }
         case TextType: {
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
-                            "$", arg->name, " = flag;\n",
+                            "$", arg->name, " = ", streq(Match(t, TextType)->lang, "Path") ? "Path$cleanup(flag)" : "flag",";\n",
                             arg->name, "$is_set = yes;\n"
                             "}\n");
             break;
@@ -3304,6 +3304,9 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                 "if (i < argc) {");
             if (t->tag == TextType) {
                 code = CORD_all(code, "$", arg->name, " = Text$from_str(argv[i]);\n");
+                if (streq(Match(t, TextType)->lang, "Path"))
+                    code = CORD_all(code, "$", arg->name, " = Path$cleanup($", arg->name, ");\n");
+
             } else if (t->tag == EnumType) {
                 env_t *enum_env = Match(t, EnumType)->env;
                 for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {

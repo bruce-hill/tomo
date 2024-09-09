@@ -13,6 +13,7 @@
 #define Path(text) ((Path_t)Text(text))
 #define Paths(...) Path$concat(__VA_ARGS__)
 
+Path_t Path$cleanup(Path_t path);
 Path_t Path$_concat(int n, Path_t items[n]);
 #define Path$concat(...) Path$_concat(sizeof((Path_t[]){__VA_ARGS__})/sizeof(Path_t), (Path_t[]){__VA_ARGS__})
 PUREFUNC Path_t Path$escape_text(Text_t text);

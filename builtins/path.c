@@ -35,8 +35,12 @@ PUREFUNC public Path_t Path$escape_path(Path_t path)
     return path;
 }
 
-static Path_t Path$_cleanup(Path_t path)
+public Path_t Path$cleanup(Path_t path)
 {
+    if (!Text$starts_with(path, Path("/")) && !Text$starts_with(path, Path("./"))
+        && !Text$starts_with(path, Path("../")) && !Text$starts_with(path, Path("~/")))
+        path = Text$concat(Text("./"), path);
+
     // Not fully resolved, but at least get rid of some of the cruft like "/./"
     // and "/foo/../" and "//"
     bool trailing_slash = Text$ends_with(path, Path("/"));
@@ -119,7 +123,7 @@ public Path_t Path$_concat(int n, Path_t items[n])
         .data=items,
         .data_refcount=1,
     };
-    Path_t cleaned_up = Path$_cleanup(Text$join(Text("/"), items_array));
+    Path_t cleaned_up = Path$cleanup(Text$join(Text("/"), items_array));
     if (cleaned_up.length > PATH_MAX)
         fail("Path exceeds the maximum path length: %k", &cleaned_up);
     return cleaned_up;
@@ -127,7 +131,7 @@ public Path_t Path$_concat(int n, Path_t items[n])
 
 public Text_t Path$resolved(Path_t path, Path_t relative_to)
 {
-    path = Path$_cleanup(path);
+    path = Path$cleanup(path);
 
     const char *path_str = Text$as_c_string(path);
     const char *relative_to_str = Text$as_c_string(relative_to);
@@ -393,12 +397,12 @@ public Text_t Path$write_unique(Path_t path, Text_t text)
 
 public Path_t Path$parent(Path_t path)
 {
-    return Path$_cleanup(Text$concat(path, Path("/../")));
+    return Path$cleanup(Text$concat(path, Path("/../")));
 }
 
 public Text_t Path$base_name(Path_t path)
 {
-    path = Path$_cleanup(path);
+    path = Path$cleanup(path);
     if (Text$ends_with(path, Path("/")))
         return Text$replace(path, Pattern("{0+..}/{!/}/{end}"), Text("@2"), Text("@"), false);
     else
