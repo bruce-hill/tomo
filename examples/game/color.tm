@@ -3,10 +3,11 @@
 use <raylib.h>
 use vectors
 
-struct Color(r,g,b:Num32,a=1.0f32):
-    RED := Color(1,0,0)
-    GRAY := Color(.2f32,.2f32,.2f32)
-    LIGHT_GRAY := Color(.7f32,.7f32,.7f32)
+struct Color(r,g,b:Num,a=1.0):
+    PLAYER := Color(.1,.1,.6,1.)
+    GRAY := Color(.4,.4,.4)
+    LIGHT_GRAY := Color(.7,.7,.7)
+    GOAL := Color(.1,.5,.0)
 
     func draw_rectangle(c:Color, pos:Vec2, size:Vec2):
         inline C {

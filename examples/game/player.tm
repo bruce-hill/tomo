@@ -10,7 +10,7 @@ struct Player(pos,prev_pos:Vec2):
     WALK_SPEED := 500.
     ACCEL := 0.3
     FRICTION := 0.99
-    SIZE := Vec2(50, 50)
+    SIZE := Vec2(30, 30)
 
     func update(p:&Player):
         target_x := inline C (
@@ -28,4 +28,4 @@ struct Player(pos,prev_pos:Vec2):
         p.prev_pos, p.pos = p.pos, p.pos + World.DT*vel
 
     func draw(p:&Player):
-        Color.RED:draw_rectangle(p.pos, Player.SIZE)
+        Color.PLAYER:draw_rectangle(p.pos, Player.SIZE)
