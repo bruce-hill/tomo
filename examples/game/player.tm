@@ -27,5 +27,5 @@ struct Player(pos,prev_pos:Vec2):
 
         p.prev_pos, p.pos = p.pos, p.pos + World.DT*vel
 
-    func draw(p:&Player):
+    func draw(p:Player):
         Color.PLAYER:draw_rectangle(p.pos, Player.SIZE)

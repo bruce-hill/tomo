@@ -84,6 +84,7 @@ struct World(player:@Player, goal:@Box, boxes:[@Box], dt_accum=0.0, won=no):
                     (&w.boxes):insert(box)
                 else if cell == "@":
                     pos := Vec2((Num(x)-1) * box_size.x, (Num(y)-1) * box_size.y)
+                    pos += box_size/2. - Player.SIZE/2.
                     w.player = @Player(pos,pos)
                 else if cell == "?":
                     pos := Vec2((Num(x)-1) * box_size.x, (Num(y)-1) * box_size.y)
