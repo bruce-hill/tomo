@@ -1622,7 +1622,7 @@ int64_t match(Text_t text, int64_t text_index, Pattern_t pattern, int64_t patter
 
     if (pat.min == -1 && pat.max == -1) {
         if (pat.tag == PAT_ANY && pattern_index >= pattern.length) {
-            pat.min = pat.max = text.length - text_index;
+            pat.min = pat.max = MAX(1, text.length - text_index);
         } else {
             pat.min = 1;
             pat.max = INT64_MAX;
