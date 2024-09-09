@@ -42,7 +42,7 @@ typedef struct namespace_s {
 } namespace_t;
 
 typedef struct env_s {
-    Table_t *types, *globals, *locals;
+    Table_t *types, *globals, *namespace_bindings, *locals;
     // Lookup table for env_t* where the key is:
     //  - Resolved path for local imports (so that `use ./foo.tm` is the same as `use ./baz/../foo.tm`)
     //  - Raw 'use' string for module imports
@@ -68,6 +68,7 @@ env_t *new_compilation_unit(CORD *libname);
 env_t *load_module_env(env_t *env, ast_t *ast);
 CORD namespace_prefix(CORD *libname, namespace_t *ns);
 env_t *global_scope(env_t *env);
+env_t *namespace_scope(env_t *env);
 env_t *fresh_scope(env_t *env);
 env_t *for_scope(env_t *env, ast_t *ast);
 env_t *namespace_env(env_t *env, const char *namespace_name);

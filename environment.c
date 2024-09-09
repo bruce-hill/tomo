@@ -347,6 +347,7 @@ env_t *load_module_env(env_t *env, ast_t *ast)
     env_t *module_env = fresh_scope(env);
     module_env->code = new(compilation_unit_t);
     module_env->namespace = new(namespace_t, .name=file_base_name(name)); 
+    module_env->namespace_bindings = module_env->locals;
     Table$str_set(module_env->imports, name, module_env);
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
@@ -363,6 +364,14 @@ env_t *global_scope(env_t *env)
     env_t *scope = new(env_t);
     *scope = *env;
     scope->locals = new(Table_t, .fallback=env->globals);
+    return scope;
+}
+
+env_t *namespace_scope(env_t *env)
+{
+    env_t *scope = new(env_t);
+    *scope = *env;
+    scope->locals = new(Table_t, .fallback=env->namespace_bindings ? env->namespace_bindings : env->globals);
     return scope;
 }
 
@@ -491,6 +500,7 @@ env_t *namespace_env(env_t *env, const char *namespace_name)
     *ns_env = *env;
     ns_env->locals = new(Table_t, .fallback=env->locals);
     ns_env->namespace = new(namespace_t, .name=namespace_name, .parent=env->namespace);
+    ns_env->namespace_bindings = ns_env->locals;
     return ns_env;
 }
 

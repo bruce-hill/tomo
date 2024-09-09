@@ -1399,7 +1399,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
 {
     Table_t used_args = {};
     CORD code = CORD_EMPTY;
-    env_t *default_scope = global_scope(env);
+    env_t *default_scope = namespace_scope(env);
     for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
         int64_t i = 1;
         // Find keyword:
@@ -1935,6 +1935,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD code = "({\n";
         deferral_t *prev_deferred = env->deferred;
         env = fresh_scope(env);
+        printf("Prebinding block\n");
         for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next)
             prebind_statement(env, stmt->ast);
         for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next) {
