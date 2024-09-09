@@ -1621,19 +1621,19 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case IBITS64:
         if ((mpz_cmp_si(i, INT64_MAX) < 0) && (mpz_cmp_si(i, INT64_MIN) > 0))
-            return CORD_asprintf("I64(%s)", str);
+            return CORD_asprintf("I64(%ldl)", mpz_get_si(i));
         code_err(ast, "This value cannot fit in a 64-bit integer");
         case IBITS32:
         if ((mpz_cmp_si(i, INT32_MAX) < 0) && (mpz_cmp_si(i, INT32_MIN) > 0))
-            return CORD_asprintf("I32(%s)", str);
+            return CORD_asprintf("I32(%ld)", mpz_get_si(i));
         code_err(ast, "This value cannot fit in a 32-bit integer");
         case IBITS16:
         if ((mpz_cmp_si(i, INT16_MAX) < 0) && (mpz_cmp_si(i, INT16_MIN) > 0))
-            return CORD_asprintf("I16(%s)", str);
+            return CORD_asprintf("I16(%ld)", mpz_get_si(i));
         code_err(ast, "This value cannot fit in a 16-bit integer");
         case IBITS8:
         if ((mpz_cmp_si(i, INT8_MAX) < 0) && (mpz_cmp_si(i, INT8_MIN) > 0))
-            return CORD_asprintf("I8(%s)", str);
+            return CORD_asprintf("I8(%ld)", mpz_get_si(i));
         code_err(ast, "This value cannot fit in a 8-bit integer");
         default: code_err(ast, "Not a valid integer bit width");
         }
