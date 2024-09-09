@@ -8,3 +8,6 @@ interact with an external C library. To run the game:
 ```bash
 tomo game.tm
 ```
+
+An example [Makefile](Makefile) is also provided if you want to use `make` to
+build the game and `make clean` to clean up the built files.
