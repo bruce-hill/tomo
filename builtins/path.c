@@ -323,6 +323,25 @@ public Text_t Path$write_unique(Path_t path, Text_t text)
     return Text$format("%s", buf);
 }
 
+public Path_t Path$parent(Path_t path)
+{
+    return Text$replace(path, Pattern("{..}/{!/}{end}"), Text("@1"), Text("@"), false);
+}
+
+public Text_t Path$base_name(Path_t path)
+{
+    return Text$replace(path, Pattern("{..}/{!/}{end}"), Text("@2"), Text("@"), false);
+}
+
+public Text_t Path$extension(Path_t path, bool full)
+{
+    Text_t base = Path$base_name(path);
+    if (Text$has(base, Pattern("{!.}.{!.}")))
+        return Text$replace(base, full ? Pattern("{!.}.{..}{end}") : Pattern("{..}.{!.}{end}"), Text("@2"), Text("@"), false);
+    else
+        return Text("");
+}
+
 public const TypeInfo Path$info = {
     .size=sizeof(Path_t),
     .align=__alignof__(Path_t),

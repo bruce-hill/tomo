@@ -33,6 +33,9 @@ Array_t Path$files(Path_t path, bool include_hidden);
 Array_t Path$subdirectories(Path_t path, bool include_hidden);
 Path_t Path$unique_directory(Path_t path);
 Text_t Path$write_unique(Path_t path, Text_t text);
+Path_t Path$parent(Path_t path);
+Text_t Path$base_name(Path_t path);
+Text_t Path$extension(Path_t path, bool full);
 
 extern const TypeInfo Path$info;
 
