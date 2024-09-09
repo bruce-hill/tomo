@@ -16,6 +16,10 @@
 Text_t Shell$run(Shell_t command, int32_t *status);
 Shell_t Shell$escape_text(Text_t text);
 
+#define Shell$hash Text$hash
+#define Shell$compare Text$compare
+#define Shell$equal Text$equal
+
 extern const TypeInfo Shell$info;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -64,6 +64,11 @@ extern const TypeInfo Text$info;
 #define Pattern(text) ((Pattern_t)Text(text))
 #define Patterns(...) ((Pattern_t)Texts(__VA_ARGS__))
 Pattern_t Pattern$escape_text(Text_t text);
+
+#define Pattern$hash Text$hash
+#define Pattern$compare Text$compare
+#define Pattern$equal Text$equal
+
 extern const TypeInfo Pattern$info;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
