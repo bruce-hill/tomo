@@ -494,6 +494,32 @@ An array of 32-bit integer Unicode code points (`[Int32]`).
 
 ---
 
+## `ends_with`
+
+**Description:**  
+Checks if the `Text` ends with a literal suffix text.
+
+**Usage:**  
+```tomo
+ends_with(text: Text, suffix: Text) -> Bool
+```
+
+**Parameters:**
+
+- `text`: The text to be searched.
+- `suffix`: The literal suffix text to check for.
+
+**Returns:**  
+`yes` if the text has the target, `no` otherwise.
+
+**Example:**  
+```tomo
+>> "hello world":ends_with("world")
+= yes
+```
+
+---
+
 ## `from_c_string`
 
 **Description:**  
@@ -614,7 +640,7 @@ See: [Patterns](#Patterns) for more information on patterns.
 
 **Usage:**  
 ```tomo
-find(text: Text, pattern: Text, start: Int = 1, length: &Int64? = !&Int64) -> Int
+find(text: Text, pattern: Pattern, start: Int = 1, length: &Int64? = !&Int64) -> Int
 ```
 
 **Parameters:**
@@ -657,7 +683,7 @@ See: [Patterns](#Patterns) for more information on patterns.
 
 **Usage:**  
 ```tomo
-find_all(text: Text, pattern: Text) -> [Text]
+find_all(text: Text, pattern: Pattern) -> [Text]
 ```
 
 **Parameters:**
@@ -699,7 +725,7 @@ Checks if the `Text` contains a target pattern (see: [Patterns](#Patterns)).
 
 **Usage:**  
 ```tomo
-has(text: Text, pattern: Text) -> Bool
+has(text: Text, pattern: Pattern) -> Bool
 ```
 
 **Parameters:**
@@ -816,7 +842,7 @@ Checks if the `Text` matches target pattern (see: [Patterns](#Patterns)).
 
 **Usage:**  
 ```tomo
-matches(text: Text, pattern: Text) -> Bool
+matches(text: Text, pattern: Pattern) -> Bool
 ```
 
 **Parameters:**
@@ -847,7 +873,7 @@ calling the given function on that text.
 
 **Usage:**  
 ```tomo
-map(text: Text, pattern: Text, fn: func(text:Text)->Text) -> Text
+map(text: Text, pattern: Pattern, fn: func(text:Text)->Text) -> Text
 ```
 
 **Parameters:**
@@ -931,7 +957,7 @@ See [Patterns](#patterns) for more information about patterns.
 
 **Usage:**  
 ```tomo
-replace(text: Text, pattern: Text, replacement: Text, backref: Pattern = $/\/, recursive: Bool = yes) -> Text
+replace(text: Text, pattern: Pattern, replacement: Text, backref: Pattern = $/\/, recursive: Bool = yes) -> Text
 ```
 
 **Parameters:**
@@ -1045,7 +1071,7 @@ See [Patterns](#patterns) for more information about patterns.
 
 **Usage:**  
 ```tomo
-split(text: Text, pattern: Text = "") -> [Text]
+split(text: Text, pattern: Pattern = "") -> [Text]
 ```
 
 **Parameters:**
@@ -1070,6 +1096,32 @@ An array of substrings resulting from the split.
 
 >> "a,b,c,":split(",")
 = ["a", "b", "c", ""]
+```
+
+---
+
+## `starts_with`
+
+**Description:**  
+Checks if the `Text` starts with a literal prefix text.
+
+**Usage:**  
+```tomo
+starts_with(text: Text, prefix: Text) -> Bool
+```
+
+**Parameters:**
+
+- `text`: The text to be searched.
+- `prefix`: The literal prefix text to check for.
+
+**Returns:**  
+`yes` if the text has the given prefix, `no` otherwise.
+
+**Example:**  
+```tomo
+>> "hello world":starts_with("hello")
+= yes
 ```
 
 ---

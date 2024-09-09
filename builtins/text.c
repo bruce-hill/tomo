@@ -905,6 +905,32 @@ PUREFUNC public int32_t Text$compare(const Text_t *a, const Text_t *b)
     return 0;
 }
 
+PUREFUNC public bool Text$starts_with(Text_t text, Text_t prefix)
+{
+    if (text.length < prefix.length)
+        return false;
+    text_iter_t text_state = {0, 0}, prefix_state = {0, 0};
+    for (int64_t i = 0; i < prefix.length; i++) {
+        int32_t text_i = _get_grapheme(text, &text_state, i);
+        int32_t prefix_i = _get_grapheme(prefix, &prefix_state, i);
+        if (text_i != prefix_i) return false;
+    }
+    return true;
+}
+
+PUREFUNC public bool Text$ends_with(Text_t text, Text_t suffix)
+{
+    if (text.length < suffix.length)
+        return false;
+    text_iter_t text_state = {0, 0}, prefix_state = {0, 0};
+    for (int64_t i = 0; i < suffix.length; i++) {
+        int32_t text_i = _get_grapheme(text, &text_state, text.length - suffix.length + i);
+        int32_t suffix_i = _get_grapheme(suffix, &prefix_state, i);
+        if (text_i != suffix_i) return false;
+    }
+    return true;
+}
+
 PUREFUNC public bool Text$equal_values(Text_t a, Text_t b)
 {
     if (a.length != b.length || (a.hash != 0 && b.hash != 0 && a.hash != b.hash))
@@ -1756,8 +1782,20 @@ public Int_t Text$find(Text_t text, Pattern_t pattern, Int_t from_index, int64_t
 
 PUREFUNC public bool Text$has(Text_t text, Pattern_t pattern)
 {
-    int64_t found = _find(text, pattern, 0, text.length-1, NULL);
-    return (found >= 0);
+    if (Text$starts_with(pattern, Text("{start}"))) {
+        int64_t m = match(text, 0, pattern, 0, NULL, 0);
+        return m >= 0;
+    } else if (Text$ends_with(text, Text("{end}"))) {
+        for (int64_t i = text.length-1; i >= 0; i--) {
+            int64_t match_len = match(text, i, pattern, 0, NULL, 0);
+            if (match_len >= 0 && i + match_len == text.length)
+                return true;
+        }
+        return false;
+    } else {
+        int64_t found = _find(text, pattern, 0, text.length-1, NULL);
+        return (found >= 0);
+    }
 }
 
 PUREFUNC public bool Text$matches(Text_t text, Pattern_t pattern)
@@ -2008,8 +2046,6 @@ public Text_t Text$trim(Text_t text, Pattern_t pattern, bool trim_left, bool tri
             int64_t match_len = match(text, i, pattern, 0, NULL, 0);
             if (match_len > 0 && i + match_len == text.length)
                 last = i-1;
-            // else
-            //     break;
         }
     }
     return Text$slice(text, I(first+1), I(last+1));

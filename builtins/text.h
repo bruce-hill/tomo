@@ -41,6 +41,8 @@ Text_t Text$trim(Text_t text, Pattern_t pattern, bool trim_left, bool trim_right
 Int_t Text$find(Text_t text, Pattern_t pattern, Int_t i, int64_t *match_length);
 Array_t Text$find_all(Text_t text, Pattern_t pattern);
 PUREFUNC bool Text$has(Text_t text, Pattern_t pattern);
+PUREFUNC bool Text$starts_with(Text_t text, Text_t prefix);
+PUREFUNC bool Text$ends_with(Text_t text, Text_t suffix);
 PUREFUNC bool Text$matches(Text_t text, Pattern_t pattern);
 char *Text$as_c_string(Text_t text);
 __attribute__((format(printf, 1, 2)))

@@ -275,6 +275,16 @@ func main():
 	>> "A=B=C=D":replace($/{..}={..}/, "1:(\1) 2:(\2)")
 	= "1:(A) 2:(B=C=D)"
 
+	>> "abcde":starts_with("ab")
+	= yes
+	>> "abcde":starts_with("bc")
+	= no
+
+	>> "abcde":ends_with("de")
+	= yes
+	>> "abcde":starts_with("cd")
+	= no
+
 	do:
 		!! Testing concatenation-stability:
 		>> ab := Text.from_codepoint_names(["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"])
