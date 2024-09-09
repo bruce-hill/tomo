@@ -347,6 +347,17 @@ env_t *new_compilation_unit(CORD *libname)
         }
     }
 
+
+    set_binding(namespace_env(env, "Shell"), "from_unsafe_text",
+                new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
+                                          .ret=Type(TextType, .lang="Shell", .env=namespace_env(env, "Shell"))),
+                    .code="(Shell_t)"));
+
+    set_binding(namespace_env(env, "Path"), "from_unsafe_text",
+                new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
+                                          .ret=Type(TextType, .lang="Path", .env=namespace_env(env, "Path"))),
+                    .code="(Path_t)"));
+
     set_binding(namespace_env(env, "Pattern"), "from_unsafe_text",
                 new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
                                           .ret=Type(TextType, .lang="Pattern", .env=namespace_env(env, "Pattern"))),
