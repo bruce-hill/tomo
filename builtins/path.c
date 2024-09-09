@@ -8,6 +8,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <unistr.h>
 
 #include "array.h"
@@ -257,24 +258,35 @@ public Text_t Path$read(Path_t path)
         close(fd);
         return Text$from_strn(gc_mem, (size_t)sb.st_size);
     } else {
-        const size_t chunk_size = 256;
-        char *buf = GC_MALLOC_ATOMIC(chunk_size);
-        Text_t contents = Text("");
-        ssize_t just_read;
-        do {
-            just_read = read(fd, buf, chunk_size);
+        size_t capacity = 256, len = 0;
+        char *content = GC_MALLOC_ATOMIC(capacity);
+        for (;;) {
+            char chunk[256];
+            ssize_t just_read = read(fd, chunk, sizeof(chunk));
             if (just_read < 0)
                 fail("Failed while reading file: %k (%s)", &path, strerror(errno));
-            else if (just_read == 0)
+            else if (just_read == 0) {
+                if (errno == EAGAIN || errno == EINTR)
+                    continue;
                 break;
+            }
 
-            if (u8_check((uint8_t*)buf, (size_t)just_read) != NULL)
-                fail("File does not contain valid UTF8 data!");
-            contents = Texts(contents, Text$from_strn(buf, (size_t)just_read));
-            buf = GC_MALLOC_ATOMIC(chunk_size);
-        } while (just_read > 0);
+            if (len + (size_t)just_read >= capacity) {
+                content = GC_REALLOC(content, (capacity *= 2));
+            }
+
+            memcpy(&content[len], chunk, (size_t)just_read);
+            len += (size_t)just_read;
+
+            if ((size_t)just_read < sizeof(chunk))
+                break;
+        }
         close(fd);
-        return contents;
+
+        if (u8_check((uint8_t*)content, len) != NULL)
+            fail("File does not contain valid UTF8 data!");
+
+        return Text$from_strn(content, len);
     }
 }
 
