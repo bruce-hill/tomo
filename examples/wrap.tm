@@ -1,15 +1,15 @@
 HELP := "
     wrap: A tool for wrapping lines of text that are piped in through standard input
 
-    usage: wrap [--help] [--width=80] [--min_split=3] [--no-rewrap] [--hyphen='-']
+    usage: wrap [--help] [--file=/dev/stdin] [--width=80] [--inplace=no] [--min_split=3] [--no-rewrap] [--hyphen='-']
         --help: Print this message and exit
+        --file: The file to wrap
         --width=N: The width to wrap the text
+        --inplace: Whether or not to perform the modification in-place or print the output
         --min-split=N: The minimum amount of text on either end of a hyphenation split
         --rewrap|--no-rewrap: Whether to rewrap text that is already wrapped or only split long lines
         --hyphen='...': The text to use for hyphenation
 "
-
-file := use ./file.tm
 
 UNICODE_HYPHEN := Text.from_codepoint_names(["hyphen"])
 
@@ -77,16 +77,26 @@ func _can_fit_word(line:Text, letters:[Text], width:Int; inline)->Bool:
     else:
         return line.length + 1 + letters.length <= width
 
-func main(width=80, min_split=3, rewrap=yes, hyphen="-"):
-    when file.read("/dev/stdin") is Failure(reason):
-        fail(reason)
-    is Success(text):
+func main(files:[Path], width=80, inplace=no, min_split=3, rewrap=yes, hyphen="-"):
+    if files.length == 0:
+        files = [(/dev/stdin)]
+
+    for file in files:
+        text := file:read()
+
         if rewrap:
             text = unwrap(text)
 
+        out := if file:is_file() and inplace:
+            file
+        else:
+            (/dev/stdout)
+
         first := yes
+        wrapped_paragraphs := [:Text]
         for paragraph in text:split($/{2+ nl}/):
-            if not first:
-                say(\n, newline=no)
-            say(wrap(paragraph, width=width, min_split=min_split, hyphen=hyphen))
-            first = no
+            wrapped_paragraphs:insert(
+                wrap(paragraph, width=width, min_split=min_split, hyphen=hyphen)
+            )
+
+        out:write(\n\n:join(wrapped_paragraphs) ++ \n)
