@@ -253,7 +253,6 @@ env_t *new_compilation_unit(CORD *libname)
             {"base_name", "Path$base_name", "func(path:Path)->Text"},
             {"children", "Path$children", "func(path:Path, include_hidden=no)->[Path]"},
             {"create_directory", "Path$create_directory", "func(path:Path, permissions=0o644_i32)"},
-            {"escape_text", "Path$escape_text", "func(text:Text)->Path"},
             {"exists", "Path$exists", "func(path:Path)->Bool"},
             {"extension", "Path$extension", "func(path:Path, full=yes)->Text"},
             {"files", "Path$children", "func(path:Path, include_hidden=no)->[Path]"},
