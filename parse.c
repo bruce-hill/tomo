@@ -1316,6 +1316,7 @@ PARSER(parse_path) {
             ++pos;
             chunk_text = CORD_asprintf("%r%.*s%c", chunk_text, (size_t)(pos - chunk_start), chunk_start, *pos);
             ++pos;
+            chunk_start = pos;
             continue;
         }
         case '$': {
