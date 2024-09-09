@@ -24,3 +24,16 @@ func main():
 
     >> tmpdir:remove()
 
+    >> p := (/foo/baz.x/qux.tar.gz)
+    >> p:base_name()
+    = "qux.tar.gz"
+    >> p:parent()
+    = (/foo/baz.x)
+    >> p:extension()
+    = "tar.gz"
+    >> p:extension(full=no)
+    = "gz"
+    >> (~/.foo):extension()
+    = ""
+    >> (~/foo):extension()
+    = ""
