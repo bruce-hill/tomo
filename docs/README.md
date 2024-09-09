@@ -25,6 +25,7 @@ Information about Tomo's built-in types can be found here:
 - [Integer Ranges](ranges.md)
 - [Integers](integers.md)
 - [Languages](langs.md)
+- [Paths](paths.md)
 - [Sets](sets.md)
 - [Structs](structs.md)
 - [Tables](tables.md)
