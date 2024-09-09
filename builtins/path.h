@@ -13,7 +13,8 @@
 #define Path(text) ((Path_t)Text(text))
 #define Paths(...) ((Path_t)Texts(__VA_ARGS__))
 
-Path_t Path$escape_text(Text_t text);
+PUREFUNC Path_t Path$concat(Path_t a, Path_t b);
+PUREFUNC Path_t Path$escape_text(Text_t text);
 Path_t Path$resolved(Path_t path, Path_t relative_to);
 Path_t Path$relative(Path_t path, Path_t relative_to);
 bool Path$exists(Path_t path);
@@ -30,6 +31,8 @@ void Path$create_directory(Path_t path, int permissions);
 Array_t Path$children(Path_t path, bool include_hidden);
 Array_t Path$files(Path_t path, bool include_hidden);
 Array_t Path$subdirectories(Path_t path, bool include_hidden);
+Path_t Path$unique_directory(Path_t path);
+Text_t Path$write_unique(Path_t path, Text_t text);
 
 extern const TypeInfo Path$info;
 

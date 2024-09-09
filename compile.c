@@ -1856,6 +1856,9 @@ CORD compile(env_t *env, ast_t *ast)
         case BINOP_CONCAT: {
             switch (operand_t->tag) {
             case TextType: {
+                const char *lang = Match(operand_t, TextType)->lang; 
+                if (streq(lang, "Path"))
+                    return CORD_all("Path$concat(", lhs, ", ", rhs, ")");
                 return CORD_all("Text$concat(", lhs, ", ", rhs, ")");
             }
             case ArrayType: {

@@ -28,6 +28,18 @@ PUREFUNC public Path_t Path$escape_text(Text_t text)
     return (Path_t)text;
 }
 
+PUREFUNC public Path_t Path$concat(Path_t a, Path_t b)
+{
+    Path_t path = Text$concat(a, b);
+    while (Text$has(path, Pattern("/../")))
+        path = Text$replace(path, Pattern("{!/}/../"), Text(""), Text(""), false);
+
+    while (Text$has(path, Pattern("/./")))
+        path = Text$replace(path, Pattern("/./"), Text("/"), Text(""), false);
+
+    return path;
+}
+
 public Text_t Path$resolved(Path_t path, Path_t relative_to)
 {
     while (Text$has(path, Pattern("/../")))
@@ -129,13 +141,13 @@ static void _write(Path_t path, Text_t text, int mode, int permissions)
     const char *path_str = Text$as_c_string(path);
     int fd = open(path_str, mode, permissions);
     if (fd == -1)
-        fail("Could not write to file: %s\n%s", strerror(errno));
+        fail("Could not write to file: %s\n%s", path_str, strerror(errno));
 
     const char *str = Text$as_c_string(text);
     size_t len = strlen(str);
     ssize_t written = write(fd, str, len);
     if (written != (ssize_t)len)
-        fail("Could not write to file: %s\n%s", strerror(errno));
+        fail("Could not write to file: %s\n%s", path_str, strerror(errno));
 }
 
 public void Path$write(Path_t path, Text_t text, int permissions)
@@ -161,7 +173,6 @@ public Text_t Path$read(Path_t path)
         fail("Could not read file: %k (%s)", &path, strerror(errno));
 
     if ((sb.st_mode & S_IFMT) == S_IFREG) { // Use memory mapping if it's a real file:
-        printf("USING MMAP\n");
         const char *mem = mmap(NULL, (size_t)sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
         char *gc_mem = GC_MALLOC_ATOMIC((size_t)sb.st_size+1);
         memcpy(gc_mem, mem, (size_t)sb.st_size);
@@ -268,6 +279,48 @@ public Array_t Path$files(Path_t path, bool include_hidden)
 public Array_t Path$subdirectories(Path_t path, bool include_hidden)
 {
     return _filtered_children(path, include_hidden, S_IFDIR);
+}
+
+public Path_t Path$unique_directory(Path_t path)
+{
+    if (Text$matches(path, Pattern("~/{..}")))
+        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
+    const char *path_str = Text$as_c_string(path);
+    size_t len = strlen(path_str);
+    if (len >= PATH_MAX) fail("Path is too long: %s", path_str);
+    char buf[PATH_MAX] = {};
+    strcpy(buf, path_str);
+    if (buf[len-1] == '/')
+        buf[--len] = '\0';
+    char *created = mkdtemp(buf);
+    if (!created) fail("Failed to create temporary directory: %s (%s)", path_str, strerror(errno));
+    return Text$format("%s/", created);
+}
+
+public Text_t Path$write_unique(Path_t path, Text_t text)
+{
+    if (Text$matches(path, Pattern("~/{..}")))
+        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
+    const char *path_str = Text$as_c_string(path);
+    size_t len = strlen(path_str);
+    if (len >= PATH_MAX) fail("Path is too long: %s", path_str);
+    char buf[PATH_MAX] = {};
+    strcpy(buf, path_str);
+
+    int64_t suffixlen = 0;
+    (void)Text$find(path, Pattern("{0+!X}{end}"), I(1), &suffixlen);
+    if (suffixlen < 0) suffixlen = 0;
+
+    int fd = mkstemps(buf, suffixlen);
+    if (fd == -1)
+        fail("Could not write to unique file: %s\n%s", buf, strerror(errno));
+
+    const char *str = Text$as_c_string(text);
+    size_t write_len = strlen(str);
+    ssize_t written = write(fd, str, write_len);
+    if (written != (ssize_t)write_len)
+        fail("Could not write to file: %s\n%s", buf, strerror(errno));
+    return Text$format("%s", buf);
 }
 
 public const TypeInfo Path$info = {
