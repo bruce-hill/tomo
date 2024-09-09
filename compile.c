@@ -1938,7 +1938,6 @@ CORD compile(env_t *env, ast_t *ast)
         CORD code = "({\n";
         deferral_t *prev_deferred = env->deferred;
         env = fresh_scope(env);
-        printf("Prebinding block\n");
         for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next)
             prebind_statement(env, stmt->ast);
         for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next) {
