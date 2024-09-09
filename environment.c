@@ -287,6 +287,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"from_c_string", "Text$from_str", "func(str:CString)->Text"},
             {"from_codepoint_names", "Text$from_codepoint_names", "func(codepoint_names:[Text])->Text"},
             {"from_codepoints", "Text$from_codepoints", "func(codepoints:[Int32])->Text"},
+            {"from_unsafe_text", "Path$cleanup", "func(text:Text)->Path"},
             {"has", "Text$has", "func(text:Text, pattern:Pattern)->Bool"},
             {"join", "Text$join", "func(glue:Text, pieces:[Text])->Text"},
             {"lines", "Text$lines", "func(text:Text)->[Text]"},
@@ -357,7 +358,8 @@ env_t *new_compilation_unit(CORD *libname)
     set_binding(namespace_env(env, "Path"), "from_unsafe_text",
                 new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
                                           .ret=Type(TextType, .lang="Path", .env=namespace_env(env, "Path"))),
-                    .code="(Path_t)"));
+                    .code="Path$cleanup"));
+
 
     set_binding(namespace_env(env, "Pattern"), "from_unsafe_text",
                 new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),

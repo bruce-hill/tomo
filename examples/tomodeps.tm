@@ -62,9 +62,9 @@ func _build_dependency_graph(dep:Dependency, dependencies:&{Dependency:{Dependen
     for dep2 in dep_deps:
         _build_dependency_graph(dep2, dependencies)
 
-func get_dependency_graph(file:Path)->{Dependency:{Dependency}}:
+func get_dependency_graph(dep:Dependency)->{Dependency:{Dependency}}:
     graph := {:Dependency:{Dependency}}
-    _build_dependency_graph(Dependency.File(file:resolved()), &graph)
+    _build_dependency_graph(dep, &graph)
     return graph
 
 func _printable_name(dep:Dependency)->Text:
@@ -101,19 +101,22 @@ func draw_tree(dep:Dependency, dependencies:{Dependency:{Dependency}}):
         is_child_last := (i == deps.length)
         _draw_tree(child, dependencies, already_printed=&printed, is_last=is_child_last)
 
-func main(files:[Path]):
+func main(files:[Text]):
     if files.length == 0:
         exit(1, message="
             Please provide at least one file!
             $_USAGE
         ")
 
-    for file in files:
-        if not file.text_content:matches($/{..}.tm/):
-            say("$\x1b[2mSkipping $file$\x1b[m")
+    for arg in files:
+        if arg:matches($/{..}.tm/):
+            path := Path.from_unsafe_text(arg):resolved()
+            dependencies := get_dependency_graph(File(path))
+            draw_tree(File(path), dependencies)
+        else if arg:matches($/{id}/):
+            dependencies := get_dependency_graph(Module(arg))
+            draw_tree(Module(arg), dependencies)
+        else:
+            say("$\x1b[2mSkipping $arg$\x1b[m")
             skip
-
-        file = file:resolved()
-        dependencies := get_dependency_graph(file)
-        draw_tree(Dependency.File(file), dependencies)
 
