@@ -5,6 +5,10 @@ func main():
     >> (~/):exists()
     = yes
 
+    >> filename := "example.txt"
+    >> (~/$filename)
+    = (~/example.txt)
+
     >> tmpdir := (/tmp/tomo-test-path-XXXXXX):unique_directory()
     >> (/tmp):subdirectories():has(tmpdir)
     = yes
