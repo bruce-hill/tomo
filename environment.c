@@ -259,6 +259,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"files", "Path$children", "func(path:Path, include_hidden=no)->[Path]"},
             {"is_directory", "Path$is_directory", "func(path:Path, follow_symlinks=yes)->Bool"},
             {"is_file", "Path$is_file", "func(path:Path, follow_symlinks=yes)->Bool"},
+            {"is_pipe", "Path$is_pipe", "func(path:Path, follow_symlinks=yes)->Bool"},
             {"is_socket", "Path$is_socket", "func(path:Path, follow_symlinks=yes)->Bool"},
             {"is_symlink", "Path$is_symlink", "func(path:Path)->Bool"},
             {"parent", "Path$parent", "func(path:Path)->Path"},

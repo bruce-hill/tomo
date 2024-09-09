@@ -6,12 +6,8 @@ _HELP := "
     $_USAGE
 "
 
-file := use ./file.tm
-
-func parse_ini(filename:Text)->{Text:{Text:Text}}:
-    text := when file.read(filename) is Failure(err): fail(err)
-    is Success(text): text
-
+func parse_ini(path:Path)->{Text:{Text:Text}}:
+    text := path:read()
     sections := {:Text:@{Text:Text}}
     current_section := @{:Text:Text}
     sections:set("", current_section)
@@ -21,8 +17,9 @@ func parse_ini(filename:Text)->{Text:{Text:Text}}:
 
     for line in text:lines():
         line = line:trim()
+        skip if line:starts_with(";") or line:starts_with("#")
         if line:matches($/{0+space}[{..}]/):
-            section_name := line:replace($/{0+space}[{..}]{..}/, "\2"):trim():lower()
+            section_name := line:replace($/[?]/, "\1"):trim():lower()
             current_section = @{:Text:Text}
             sections:set(section_name, current_section)
         else if line:matches($/{..}={..}/):
@@ -32,7 +29,7 @@ func parse_ini(filename:Text)->{Text:{Text:Text}}:
 
     return {k:v[] for k,v in sections}
 
-func main(filename:Text, key:Text):
+func main(path:Path, key:Text):
     keys := key:split($Pattern"/")
     if keys.length > 2:
         exit(1, message="
@@ -40,7 +37,10 @@ func main(filename:Text, key:Text):
             $_USAGE
         ")
 
-    data := parse_ini(filename)
+    if not path:is_file() or path:is_pipe():
+        exit(code=1, "Could not read file: $(path.text_content)")
+
+    data := parse_ini(path)
     if keys.length < 1 or keys[1] == '*':
         !! $data
         return
