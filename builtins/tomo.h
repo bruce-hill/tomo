@@ -20,6 +20,7 @@
 #include "macros.h"
 #include "memory.h"
 #include "nums.h"
+#include "path.h"
 #include "pointer.h"
 #include "range.h"
 #include "shell.h"

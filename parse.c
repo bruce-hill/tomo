@@ -84,37 +84,37 @@ static ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed);
+static type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos);
 static PARSER(parse_array);
+static PARSER(parse_block);
 static PARSER(parse_channel);
-static PARSER(parse_for);
+static PARSER(parse_declaration);
 static PARSER(parse_do);
-static PARSER(parse_while);
-static PARSER(parse_if);
-static PARSER(parse_when);
+static PARSER(parse_doctest);
+static PARSER(parse_enum_def);
 static PARSER(parse_expr);
 static PARSER(parse_extended_expr);
-static PARSER(parse_term_no_suffix);
-static PARSER(parse_term);
-static PARSER(parse_statement);
-static PARSER(parse_block);
-static PARSER(parse_var);
-static PARSER(parse_enum_def);
-static PARSER(parse_struct_def);
-static PARSER(parse_lang_def);
-static PARSER(parse_text);
-static PARSER(parse_func_def);
 static PARSER(parse_extern);
+static PARSER(parse_file_body);
+static PARSER(parse_for);
+static PARSER(parse_func_def);
+static PARSER(parse_if);
 static PARSER(parse_inline_c);
-static PARSER(parse_declaration);
-static PARSER(parse_top_declaration);
-static PARSER(parse_doctest);
-static PARSER(parse_say);
-static PARSER(parse_use);
+static PARSER(parse_lang_def);
 static PARSER(parse_linker);
 static PARSER(parse_namespace);
-static PARSER(parse_file_body);
-
-static type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos);
+static PARSER(parse_path);
+static PARSER(parse_say);
+static PARSER(parse_statement);
+static PARSER(parse_struct_def);
+static PARSER(parse_term);
+static PARSER(parse_term_no_suffix);
+static PARSER(parse_text);
+static PARSER(parse_top_declaration);
+static PARSER(parse_use);
+static PARSER(parse_var);
+static PARSER(parse_when);
+static PARSER(parse_while);
 
 //
 // Print a parse error and exit (or use the on_err longjmp)
@@ -630,6 +630,7 @@ PARSER(parse_num) {
     const char *start = pos;
     bool negative = match(&pos, "-");
     if (!isdigit(*pos) && *pos != '.') return NULL;
+    else if (*pos == '.' && !isdigit(pos[1])) return NULL;
 
     size_t len = strspn(pos, "0123456789_");
     if (strncmp(pos+len, "..", 2) == 0)
@@ -1295,6 +1296,75 @@ PARSER(parse_text) {
     return NewAST(ctx->file, start, pos, TextJoin, .lang=lang, .children=chunks);
 }
 
+PARSER(parse_path) {
+    // ("~/" / "./" / "../" / "/") *([^ \t\r\n\\;] / "\" .)
+    const char *start = pos;
+
+    if (!(match(&pos, "~/")
+          || match(&pos, "./")
+          || match(&pos, "../")
+          || match(&pos, "/")))
+        return NULL;
+
+    const char *chunk_start = start;
+    ast_list_t *chunks = NULL;
+    CORD chunk_text = CORD_EMPTY;
+    int depths[] = {[(int)'('] = 0, [(int)'{'] = 0, [(int)'['] = 0};
+    while (pos < ctx->file->text + ctx->file->len) {
+        switch (*pos) {
+        case '\r': case '\n': case ';': case ':': goto end_of_path;
+        case '\\': {
+            ++pos;
+            chunk_text = CORD_asprintf("%r%.*s%c", chunk_text, (size_t)(pos - chunk_start), chunk_start, *pos);
+            ++pos;
+            continue;
+        }
+        case '$': {
+            const char *interp_start = pos;
+            if (chunk_text) {
+                ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk_text);
+                chunks = new(ast_list_t, .ast=literal, .next=chunks);
+                chunk_text = CORD_EMPTY;
+            }
+            ++pos;
+            if (*pos == ' ' || *pos == '\t')
+                parser_err(ctx, pos, pos+1, "Whitespace is not allowed before an interpolation here");
+            ast_t *interp = expect(ctx, interp_start, &pos, parse_term_no_suffix, "I expected an interpolation term here");
+            chunks = new(ast_list_t, .ast=interp, .next=chunks);
+            chunk_start = pos;
+            continue;
+        }
+        case ')': case '}': case ']': {
+            if (depths[(int)*pos] <= 0)
+                goto end_of_path;
+            depths[(int)*pos] -= 1;
+            ++pos;
+            continue;
+        }
+        case '(': case '{': case '[': {
+            depths[(int)*pos] += 1;
+            ++pos;
+            continue;
+        }
+        default: ++pos; continue;
+        }
+    }
+  end_of_path:;
+
+    if (pos > chunk_start)
+        chunk_text = CORD_asprintf("%r%.*s", chunk_text, (size_t)(pos - chunk_start), chunk_start);
+
+    if (chunk_text != CORD_EMPTY) {
+        ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk_text);
+        chunks = new(ast_list_t, .ast=literal, .next=chunks);
+    }
+
+    match(&pos, ";"); // optional trailing semicolon
+
+    REVERSE_LIST(chunks);
+    return NewAST(ctx->file, start, pos, TextJoin, .lang="Path", .children=chunks);
+}
+
 PARSER(parse_pass) {
     const char *start = pos;
     return match_word(&pos, "pass") ? NewAST(ctx->file, start, pos, Pass) : NULL;
@@ -1382,6 +1452,7 @@ PARSER(parse_term_no_suffix) {
         || (term=parse_stack_reference(ctx, pos))
         || (term=parse_bool(ctx, pos))
         || (term=parse_text(ctx, pos))
+        || (term=parse_path(ctx, pos))
         || (term=parse_lambda(ctx, pos))
         || (term=parse_parens(ctx, pos))
         || (term=parse_table(ctx, pos))

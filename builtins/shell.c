@@ -1,4 +1,4 @@
-// Boolean methods/type info
+// A lang for Shell Command Language
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -10,7 +10,7 @@
 #include "types.h"
 #include "util.h"
 
-public Pattern_t Shell$escape_text(Text_t text)
+public Shell_t Shell$escape_text(Text_t text)
 {
     // TODO: optimize for ASCII and short strings
     Array_t shell_graphemes = {.atomic=1};
