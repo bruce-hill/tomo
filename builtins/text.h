@@ -27,6 +27,7 @@ Text_t Text$from_strn(const char *str, size_t len);
 PUREFUNC uint64_t Text$hash(Text_t *text);
 PUREFUNC int32_t Text$compare(const Text_t *a, const Text_t *b);
 PUREFUNC bool Text$equal(const Text_t *a, const Text_t *b);
+PUREFUNC bool Text$equal_values(Text_t a, Text_t b);
 PUREFUNC bool Text$equal_ignoring_case(Text_t a, Text_t b);
 Text_t Text$upper(Text_t text);
 Text_t Text$lower(Text_t text);

@@ -905,20 +905,24 @@ PUREFUNC public int32_t Text$compare(const Text_t *a, const Text_t *b)
     return 0;
 }
 
-PUREFUNC public bool Text$equal(const Text_t *a, const Text_t *b)
+PUREFUNC public bool Text$equal_values(Text_t a, Text_t b)
 {
-    if (a == b) return true;
-
-    if (a->length != b->length || (a->hash != 0 && b->hash != 0 && a->hash != b->hash))
+    if (a.length != b.length || (a.hash != 0 && b.hash != 0 && a.hash != b.hash))
         return false;
-    int64_t len = a->length;
+    int64_t len = a.length;
     text_iter_t a_state = {0, 0}, b_state = {0, 0};
     for (int64_t i = 0; i < len; i++) {
-        int32_t ai = _get_grapheme(*a, &a_state, i);
-        int32_t bi = _get_grapheme(*b, &b_state, i);
+        int32_t ai = _get_grapheme(a, &a_state, i);
+        int32_t bi = _get_grapheme(b, &b_state, i);
         if (ai != bi) return false;
     }
     return true;
+}
+
+PUREFUNC public bool Text$equal(const Text_t *a, const Text_t *b)
+{
+    if (a == b) return true;
+    return Text$equal_values(*a, *b);
 }
 
 PUREFUNC public bool Text$equal_ignoring_case(Text_t a, Text_t b)
