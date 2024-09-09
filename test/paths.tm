@@ -28,7 +28,7 @@ func main():
     >> p:base_name()
     = "qux.tar.gz"
     >> p:parent()
-    = (/foo/baz.x)
+    = (/foo/baz.x/)
     >> p:extension()
     = "tar.gz"
     >> p:extension(full=no)
@@ -37,3 +37,20 @@ func main():
     = ""
     >> (~/foo):extension()
     = ""
+
+    >> (~/.foo.baz.qux):extension()
+    = "baz.qux"
+
+    >> (/):parent()
+    = (/)
+    >> (~/x/.):parent()
+    = (~/)
+    >> (~/x):parent()
+    = (~/)
+    >> (./):parent()
+    = (../)
+    >> (../):parent()
+    = (../../)
+    >> (../foo):parent()
+    = (../)
+
