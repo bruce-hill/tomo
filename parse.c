@@ -1321,6 +1321,10 @@ PARSER(parse_path) {
         }
         case '$': {
             const char *interp_start = pos;
+
+            if (pos > chunk_start)
+                chunk_text = CORD_asprintf("%r%.*s", chunk_text, (size_t)(pos - chunk_start), chunk_start);
+
             if (chunk_text) {
                 ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk_text);
                 chunks = new(ast_list_t, .ast=literal, .next=chunks);
