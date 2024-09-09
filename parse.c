@@ -1297,22 +1297,21 @@ PARSER(parse_text) {
 }
 
 PARSER(parse_path) {
-    // ("~/" / "./" / "../" / "/") *([^ \t\r\n\\;] / "\" .)
+    // "(" ("~/" / "./" / "../" / "/") ... ")"
     const char *start = pos;
 
-    if (!(match(&pos, "~/")
-          || match(&pos, "./")
-          || match(&pos, "../")
-          || match(&pos, "/")))
+    if (!(match(&pos, "(~/")
+          || match(&pos, "(./")
+          || match(&pos, "(../")
+          || match(&pos, "(/")))
         return NULL;
 
-    const char *chunk_start = start;
+    const char *chunk_start = start + 1;
     ast_list_t *chunks = NULL;
     CORD chunk_text = CORD_EMPTY;
-    int depths[] = {[(int)'('] = 0, [(int)'{'] = 0, [(int)'['] = 0};
+    int paren_depth = 1;
     while (pos < ctx->file->text + ctx->file->len) {
         switch (*pos) {
-        case '\r': case '\n': case ';': case ':': goto end_of_path;
         case '\\': {
             ++pos;
             chunk_text = CORD_asprintf("%r%.*s%c", chunk_text, (size_t)(pos - chunk_start), chunk_start, *pos);
@@ -1338,15 +1337,15 @@ PARSER(parse_path) {
             chunk_start = pos;
             continue;
         }
-        case ')': case '}': case ']': {
-            if (depths[(int)*pos] <= 0)
-                goto end_of_path;
-            depths[(int)*pos] -= 1;
+        case '(': {
+            paren_depth += 1;
             ++pos;
             continue;
         }
-        case '(': case '{': case '[': {
-            depths[(int)*pos] += 1;
+        case ')': {
+            paren_depth -= 1;
+            if (paren_depth == 0)
+                goto end_of_path;
             ++pos;
             continue;
         }
@@ -1363,7 +1362,7 @@ PARSER(parse_path) {
         chunks = new(ast_list_t, .ast=literal, .next=chunks);
     }
 
-    match(&pos, ";"); // optional trailing semicolon
+    expect_closing(ctx, &pos, ")", "I was expecting a ')' to finish this path");
 
     REVERSE_LIST(chunks);
     return NewAST(ctx->file, start, pos, TextJoin, .lang="Path", .children=chunks);

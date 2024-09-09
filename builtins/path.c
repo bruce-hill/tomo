@@ -220,7 +220,7 @@ public void Path$create_directory(Path_t path, int permissions)
         fail("Could not create directory: %k (%s)", &path, strerror(errno));
 }
 
-public Array_t Path$children(Path_t path, bool include_hidden)
+static Array_t _filtered_children(Path_t path, bool include_hidden, mode_t filter)
 {
     if (Text$matches(path, Pattern("~/{..}")))
         path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
@@ -240,11 +240,34 @@ public Array_t Path$children(Path_t path, bool include_hidden)
             continue;
         if (streq(dir->d_name, ".") || streq(dir->d_name, ".."))
             continue;
-        Path_t child = Text$format("%.*s/%s", path_len, path_str, dir->d_name); 
+
+        const char *child_str = heap_strf("%.*s/%s", path_len, path_str, dir->d_name);
+        struct stat sb;
+        if (stat(child_str, &sb) != 0)
+            continue;
+        if (!((sb.st_mode & S_IFMT) & filter))
+            continue;
+
+        Path_t child = Text$format("%s%s", child_str, ((sb.st_mode & S_IFMT) == S_IFDIR) ? "/" : ""); // Trailing slash for dirs
         Array$insert(&children, &child, I(0), sizeof(Path_t));
     }
     closedir(d);
     return children;
+}
+
+public Array_t Path$children(Path_t path, bool include_hidden)
+{
+    return _filtered_children(path, include_hidden, (mode_t)-1);
+}
+
+public Array_t Path$files(Path_t path, bool include_hidden)
+{
+    return _filtered_children(path, include_hidden, S_IFREG);
+}
+
+public Array_t Path$subdirectories(Path_t path, bool include_hidden)
+{
+    return _filtered_children(path, include_hidden, S_IFDIR);
 }
 
 public const TypeInfo Path$info = {

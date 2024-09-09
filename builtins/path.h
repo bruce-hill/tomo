@@ -28,6 +28,8 @@ Text_t Path$read(Path_t path);
 void Path$remove(Path_t path, bool ignore_missing);
 void Path$create_directory(Path_t path, int permissions);
 Array_t Path$children(Path_t path, bool include_hidden);
+Array_t Path$files(Path_t path, bool include_hidden);
+Array_t Path$subdirectories(Path_t path, bool include_hidden);
 
 extern const TypeInfo Path$info;
 
