@@ -54,3 +54,49 @@ func main():
     >> (../foo):parent()
     = (../)
 
+
+    # Concatenation tests:
+    !! Basic relative path concatenation:
+    >> (/foo) ++ (./baz)
+    = (/foo/baz)
+
+    !! Concatenation with a current directory (`.`):
+    >> (/foo/bar) ++ (./.)
+    = (/foo/bar)
+
+    !! Trailing slash in the first path:
+    >> (/foo/) ++ (./baz)
+    = (/foo/baz)
+
+    !! Trailing slash in the second path:
+    >> (/foo/bar) ++ (./baz/)
+    = (/foo/bar/baz/)
+
+    !! Removing redundant current directory (`.`):
+    >> (/foo/bar) ++ (./baz/./qux)
+    = (/foo/bar/baz/qux)
+
+    !! Removing redundant parent directory (`..`):
+    >> (/foo/bar) ++ (./baz/qux/../quux)
+    = (/foo/bar/baz/quux)
+
+    !! Collapsing `..` to navigate up:
+    >> (/foo/bar/baz) ++ (../qux)
+    = (/foo/bar/qux)
+
+    !! Current directory and parent directory mixed:
+    >> (/foo/bar) ++ (././../baz)
+    = (/foo/baz)
+
+    !! Path begins with a `.`:
+    >> (/foo) ++ (./baz/../qux)
+    = (/foo/qux)
+
+    !! Multiple slashes:
+    >> (/foo) ++ (./baz//qux)
+    = (/foo/baz/qux)
+
+    !! Complex path with multiple `.` and `..`:
+    >> (/foo/bar/baz) ++ (./.././qux/./../quux)
+    = (/foo/bar/quux)
+

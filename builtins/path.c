@@ -23,30 +23,111 @@ PUREFUNC public Path_t Path$escape_text(Text_t text)
 {
     if (Text$has(text, Pattern("/")) || Text$has(text, Pattern(";")))
         fail("Invalid path component: %k", &text);
-    else if (Text$matches(text, Pattern(".")) || Text$matches(text, Pattern("..")))
+    else if (Text$equal_values(text, Path(".")) || Text$equal_values(text, Path("..")))
         fail("Invalid path component: %k", &text);
     return (Path_t)text;
 }
 
-PUREFUNC public Path_t Path$concat(Path_t a, Path_t b)
+PUREFUNC public Path_t Path$escape_path(Path_t path)
 {
-    Path_t path = Text$concat(a, b);
-    while (Text$has(path, Pattern("/../")))
-        path = Text$replace(path, Pattern("{!/}/../"), Text(""), Text(""), false);
-
-    while (Text$has(path, Pattern("/./")))
-        path = Text$replace(path, Pattern("/./"), Text("/"), Text(""), false);
-
+    if (Text$starts_with(path, Path("~/")) || Text$starts_with(path, Path("/")))
+        fail("Invalid path component: %k", &path);
     return path;
+}
+
+static Path_t Path$_cleanup(Path_t path)
+{
+    // Not fully resolved, but at least get rid of some of the cruft like "/./"
+    // and "/foo/../" and "//"
+    bool trailing_slash = Text$ends_with(path, Path("/"));
+    Array_t components = Text$split(path, Pattern("/"));
+    if (components.length == 0) return Path("/");
+    Path_t root = *(Path_t*)components.data;
+    Array$remove_at(&components, I(1), I(1), sizeof(Path_t));
+
+    for (int64_t i = 0; i < components.length; ) {
+        Path_t component = *(Path_t*)(components.data + i*components.stride);
+        if (component.length == 0 || Text$equal_values(component, Path("."))) { // Skip (//) and (/./)
+            Array$remove_at(&components, I(i+1), I(1), sizeof(Path_t));
+        } else if (Text$equal_values(component, Path(".."))) {
+            if (i == 0) {
+                if (root.length == 0) { // (/..) -> (/)
+                    Array$remove_at(&components, I(i+1), I(1), sizeof(Path_t));
+                    i += 1;
+                } else if (Text$equal_values(root, Path("."))) { // (./..) -> (..)
+                    root = Path("..");
+                    Array$remove_at(&components, I(i+1), I(1), sizeof(Path_t));
+                    i += 1;
+                } else if (Text$equal_values(root, Path("~"))) {
+                    root = Path(""); // Convert $HOME to absolute path:
+
+                    Array$remove_at(&components, I(i+1), I(1), sizeof(Path_t));
+                    // `i` is pointing to where the `..` lived
+
+                    const char *home = getenv("HOME");
+                    if (!home) fail("Could not get $HOME directory!");
+
+                    // Insert all but the last component:
+                    for (const char *p = home + 1; *p; ) {
+                        const char *next_slash = strchr(p, '/');
+                        if (!next_slash) break; // Skip last component
+                        Path_t home_component = Text$format("%.*s", (int)(next_slash - p), p);
+                        Array$insert(&components, &home_component, I(i+1), sizeof(Path_t));
+                        i += 1;
+                        p = next_slash + 1;
+                    }
+                } else { // (../..) -> (../..)
+                    i += 1;
+                }
+            } else if (Text$equal(&component, (Path_t*)(components.data + (i-1)*components.stride))) { // (___/../..) -> (____/../..)
+                i += 1;
+            } else { // (___/foo/..) -> (___)
+                Array$remove_at(&components, I(i), I(2), sizeof(Path_t));
+                i -= 1;
+            }
+        } else { // (___/foo/baz) -> (___/foo/baz)
+            i++;
+        }
+    }
+
+    Text_t cleaned_up = Text$concat(root, Text("/"), Text$join(Text("/"), components));
+    if (trailing_slash && !Text$ends_with(cleaned_up, Text("/")))
+        cleaned_up = Text$concat(cleaned_up, Text("/"));
+    return cleaned_up;
+}
+
+static inline Path_t Path$_expand_home(Path_t path)
+{
+    if (Text$starts_with(path, Path("~/"))) {
+        Path_t after_tilde = Text$slice(path, I(2), I(-1));
+        return Text$format("%s%k", getenv("HOME"), &after_tilde);
+    } else {
+        return path;
+    }
+}
+
+public Path_t Path$_concat(int n, Path_t items[n])
+{
+    for (int i = 1; i < n; i++) {
+        if (Text$starts_with(items[i], Path("~/")) || Text$starts_with(items[i], Path("/")))
+            fail("Cannot insert absolute path (%k) after another path (%k)", &items[i], &items[0]);
+    }
+
+    Array_t items_array = {
+        .length=n,
+        .stride=sizeof(Path_t),
+        .data=items,
+        .data_refcount=1,
+    };
+    Path_t cleaned_up = Path$_cleanup(Text$join(Text("/"), items_array));
+    if (cleaned_up.length > PATH_MAX)
+        fail("Path exceeds the maximum path length: %k", &cleaned_up);
+    return cleaned_up;
 }
 
 public Text_t Path$resolved(Path_t path, Path_t relative_to)
 {
-    while (Text$has(path, Pattern("/../")))
-        path = Text$replace(path, Pattern("{!/}/../"), Text(""), Text(""), false);
-
-    while (Text$has(path, Pattern("/./")))
-        path = Text$replace(path, Pattern("/./"), Text("/"), Text(""), false);
+    path = Path$_cleanup(path);
 
     const char *path_str = Text$as_c_string(path);
     const char *relative_to_str = Text$as_c_string(relative_to);
@@ -58,7 +139,7 @@ public Text_t Path$resolved(Path_t path, Path_t relative_to)
     } else if (path_str[0] == '~' && path_str[1] == '/') {
         return (Path_t)Text$format("%s%s", getenv("HOME"), path_str + 1);
     } else {
-        return Paths(Path$resolved(relative_to, Path(".")), Path("/"), path);
+        return Text$concat(Path$resolved(relative_to, Path(".")), Path("/"), path);
     }
 }
 
@@ -73,17 +154,14 @@ public Text_t Path$relative(Path_t path, Path_t relative_to)
 
 public bool Path$exists(Path_t path)
 {
-    if (Text$matches(path, Pattern("~/{0+..}")))
-        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
-    printf("Path: %k\n", &path);
+    path = Path$_expand_home(path);
     struct stat sb;
     return (stat(Text$as_c_string(path), &sb) == 0);
 }
 
 public bool Path$is_file(Path_t path, bool follow_symlinks)
 {
-    if (Text$matches(path, Pattern("~/{0+..}")))
-        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
+    path = Path$_expand_home(path);
     struct stat sb;
     const char *path_str = Text$as_c_string(path);
     int status = follow_symlinks ? stat(path_str, &sb) : lstat(path_str, &sb);
@@ -93,8 +171,7 @@ public bool Path$is_file(Path_t path, bool follow_symlinks)
 
 public bool Path$is_directory(Path_t path, bool follow_symlinks)
 {
-    if (Text$matches(path, Pattern("~/{0+..}")))
-        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
+    path = Path$_expand_home(path);
     struct stat sb;
     const char *path_str = Text$as_c_string(path);
     int status = follow_symlinks ? stat(path_str, &sb) : lstat(path_str, &sb);
@@ -104,8 +181,7 @@ public bool Path$is_directory(Path_t path, bool follow_symlinks)
 
 public bool Path$is_pipe(Path_t path, bool follow_symlinks)
 {
-    if (Text$matches(path, Pattern("~/{0+..}")))
-        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
+    path = Path$_expand_home(path);
     struct stat sb;
     const char *path_str = Text$as_c_string(path);
     int status = follow_symlinks ? stat(path_str, &sb) : lstat(path_str, &sb);
@@ -115,8 +191,7 @@ public bool Path$is_pipe(Path_t path, bool follow_symlinks)
 
 public bool Path$is_socket(Path_t path, bool follow_symlinks)
 {
-    if (Text$matches(path, Pattern("~/{0+..}")))
-        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
+    path = Path$_expand_home(path);
     struct stat sb;
     const char *path_str = Text$as_c_string(path);
     int status = follow_symlinks ? stat(path_str, &sb) : lstat(path_str, &sb);
@@ -126,8 +201,7 @@ public bool Path$is_socket(Path_t path, bool follow_symlinks)
 
 public bool Path$is_symlink(Path_t path)
 {
-    if (Text$matches(path, Pattern("~/{0+..}")))
-        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
+    path = Path$_expand_home(path);
     struct stat sb;
     const char *path_str = Text$as_c_string(path);
     int status = stat(path_str, &sb);
@@ -137,8 +211,7 @@ public bool Path$is_symlink(Path_t path)
 
 static void _write(Path_t path, Text_t text, int mode, int permissions)
 {
-    if (Text$matches(path, Pattern("~/{0+..}")))
-        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
+    path = Path$_expand_home(path);
     const char *path_str = Text$as_c_string(path);
     int fd = open(path_str, mode, permissions);
     if (fd == -1)
@@ -163,8 +236,7 @@ public void Path$append(Path_t path, Text_t text, int permissions)
 
 public Text_t Path$read(Path_t path)
 {
-    if (Text$matches(path, Pattern("~/{0+..}")))
-        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
+    path = Path$_expand_home(path);
     int fd = open(Text$as_c_string(path), O_RDONLY);
     if (fd == -1)
         fail("Could not read file: %k (%s)", &path, strerror(errno));
@@ -204,8 +276,7 @@ public Text_t Path$read(Path_t path)
 
 public void Path$remove(Path_t path, bool ignore_missing)
 {
-    if (Text$matches(path, Pattern("~/{0+..}")))
-        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
+    path = Path$_expand_home(path);
     const char *path_str = Text$as_c_string(path);
     struct stat sb;
     if (lstat(path_str, &sb) != 0) {
@@ -226,16 +297,14 @@ public void Path$remove(Path_t path, bool ignore_missing)
 
 public void Path$create_directory(Path_t path, int permissions)
 {
-    if (Text$matches(path, Pattern("~/{0+..}")))
-        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
+    path = Path$_expand_home(path);
     if (mkdir(Text$as_c_string(path), (mode_t)permissions) != 0)
         fail("Could not create directory: %k (%s)", &path, strerror(errno));
 }
 
 static Array_t _filtered_children(Path_t path, bool include_hidden, mode_t filter)
 {
-    if (Text$matches(path, Pattern("~/{0+..}")))
-        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
+    path = Path$_expand_home(path);
     struct dirent *dir;
     Array_t children = {};
     const char *path_str = Text$as_c_string(path);
@@ -284,8 +353,7 @@ public Array_t Path$subdirectories(Path_t path, bool include_hidden)
 
 public Path_t Path$unique_directory(Path_t path)
 {
-    if (Text$matches(path, Pattern("~/{0+..}")))
-        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
+    path = Path$_expand_home(path);
     const char *path_str = Text$as_c_string(path);
     size_t len = strlen(path_str);
     if (len >= PATH_MAX) fail("Path is too long: %s", path_str);
@@ -300,8 +368,7 @@ public Path_t Path$unique_directory(Path_t path)
 
 public Text_t Path$write_unique(Path_t path, Text_t text)
 {
-    if (Text$matches(path, Pattern("~/{0+..}")))
-        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
+    path = Path$_expand_home(path);
     const char *path_str = Text$as_c_string(path);
     size_t len = strlen(path_str);
     if (len >= PATH_MAX) fail("Path is too long: %s", path_str);
@@ -326,30 +393,13 @@ public Text_t Path$write_unique(Path_t path, Text_t text)
 
 public Path_t Path$parent(Path_t path)
 {
-    while (Text$has(path, Pattern("/../")))
-        path = Text$replace(path, Pattern("{!/}/../"), Text(""), Text(""), false);
-
-    while (Text$has(path, Pattern("/./")))
-        path = Text$replace(path, Pattern("/./"), Text("/"), Text(""), false);
-
-    path = Text$trim(path, Pattern("/."), false, true);
-
-    if (Text$equal_values(path, Pattern("~/")))
-        path = Text$format("%s", getenv("HOME"));
-
-    if (Text$equal_values(path, Path("/")))
-        return path;
-    else if (Text$equal_values(path, Path("./")))
-        return Path("../");
-    else if (Text$has(path, Pattern("/{..}")))
-        return Text$replace(path, Pattern("{0+..}/{!/}{end}"), Text("@1/"), Text("@"), false);
-    else
-        return Texts(path, Text$matches(path, Pattern("{..}/")) ? Path("../") : Path("/../"));
+    return Path$_cleanup(Text$concat(path, Path("/../")));
 }
 
 public Text_t Path$base_name(Path_t path)
 {
-    if (Text$matches(path, Pattern("/{end}")))
+    path = Path$_cleanup(path);
+    if (Text$ends_with(path, Path("/")))
         return Text$replace(path, Pattern("{0+..}/{!/}/{end}"), Text("@2"), Text("@"), false);
     else
         return Text$replace(path, Pattern("{0+..}/{!/}{end}"), Text("@2"), Text("@"), false);
