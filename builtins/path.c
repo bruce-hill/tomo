@@ -1,4 +1,5 @@
 // A lang for filesystem paths
+#include <dirent.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
@@ -6,6 +7,7 @@
 #include <stdint.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistr.h>
 
 #include "array.h"
@@ -59,12 +61,16 @@ public Text_t Path$relative(Path_t path, Path_t relative_to)
 
 public bool Path$exists(Path_t path)
 {
+    if (Text$matches(path, Pattern("~/{..}")))
+        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
     struct stat sb;
     return (stat(Text$as_c_string(path), &sb) == 0);
 }
 
 public bool Path$is_file(Path_t path, bool follow_symlinks)
 {
+    if (Text$matches(path, Pattern("~/{..}")))
+        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
     struct stat sb;
     const char *path_str = Text$as_c_string(path);
     int status = follow_symlinks ? stat(path_str, &sb) : lstat(path_str, &sb);
@@ -74,6 +80,8 @@ public bool Path$is_file(Path_t path, bool follow_symlinks)
 
 public bool Path$is_directory(Path_t path, bool follow_symlinks)
 {
+    if (Text$matches(path, Pattern("~/{..}")))
+        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
     struct stat sb;
     const char *path_str = Text$as_c_string(path);
     int status = follow_symlinks ? stat(path_str, &sb) : lstat(path_str, &sb);
@@ -83,6 +91,8 @@ public bool Path$is_directory(Path_t path, bool follow_symlinks)
 
 public bool Path$is_pipe(Path_t path, bool follow_symlinks)
 {
+    if (Text$matches(path, Pattern("~/{..}")))
+        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
     struct stat sb;
     const char *path_str = Text$as_c_string(path);
     int status = follow_symlinks ? stat(path_str, &sb) : lstat(path_str, &sb);
@@ -92,6 +102,8 @@ public bool Path$is_pipe(Path_t path, bool follow_symlinks)
 
 public bool Path$is_socket(Path_t path, bool follow_symlinks)
 {
+    if (Text$matches(path, Pattern("~/{..}")))
+        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
     struct stat sb;
     const char *path_str = Text$as_c_string(path);
     int status = follow_symlinks ? stat(path_str, &sb) : lstat(path_str, &sb);
@@ -101,6 +113,8 @@ public bool Path$is_socket(Path_t path, bool follow_symlinks)
 
 public bool Path$is_symlink(Path_t path)
 {
+    if (Text$matches(path, Pattern("~/{..}")))
+        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
     struct stat sb;
     const char *path_str = Text$as_c_string(path);
     int status = stat(path_str, &sb);
@@ -110,6 +124,8 @@ public bool Path$is_symlink(Path_t path)
 
 static void _write(Path_t path, Text_t text, int mode, int permissions)
 {
+    if (Text$matches(path, Pattern("~/{..}")))
+        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
     const char *path_str = Text$as_c_string(path);
     int fd = open(path_str, mode, permissions);
     if (fd == -1)
@@ -134,6 +150,8 @@ public void Path$append(Path_t path, Text_t text, int permissions)
 
 public Text_t Path$read(Path_t path)
 {
+    if (Text$matches(path, Pattern("~/{..}")))
+        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
     int fd = open(Text$as_c_string(path), O_RDONLY);
     if (fd == -1)
         fail("Could not read file: %k (%s)", &path, strerror(errno));
@@ -174,6 +192,8 @@ public Text_t Path$read(Path_t path)
 
 public void Path$remove(Path_t path, bool ignore_missing)
 {
+    if (Text$matches(path, Pattern("~/{..}")))
+        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
     const char *path_str = Text$as_c_string(path);
     struct stat sb;
     if (lstat(path_str, &sb) != 0) {
@@ -194,8 +214,37 @@ public void Path$remove(Path_t path, bool ignore_missing)
 
 public void Path$create_directory(Path_t path, int permissions)
 {
+    if (Text$matches(path, Pattern("~/{..}")))
+        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
     if (mkdir(Text$as_c_string(path), (mode_t)permissions) != 0)
         fail("Could not create directory: %k (%s)", &path, strerror(errno));
+}
+
+public Array_t Path$children(Path_t path, bool include_hidden)
+{
+    if (Text$matches(path, Pattern("~/{..}")))
+        path = Paths(Text$format("%s", getenv("HOME")), Text$slice(path, I(2), I(-1)));
+    struct dirent *dir;
+    Array_t children = {};
+    const char *path_str = Text$as_c_string(path);
+    size_t path_len = strlen(path_str);
+    DIR *d = opendir(path_str);
+    if (!d)
+        fail("Could not open directory: %k (%s)", &path, strerror(errno));
+
+    if (path_str[path_len-1] == '/')
+        --path_len;
+
+    while ((dir = readdir(d)) != NULL) {
+        if (!include_hidden && dir->d_name[0] == '.')
+            continue;
+        if (streq(dir->d_name, ".") || streq(dir->d_name, ".."))
+            continue;
+        Path_t child = Text$format("%.*s/%s", path_len, path_str, dir->d_name); 
+        Array$insert(&children, &child, I(0), sizeof(Path_t));
+    }
+    closedir(d);
+    return children;
 }
 
 public const TypeInfo Path$info = {

@@ -22,12 +22,12 @@ bool Path$is_directory(Path_t path, bool follow_symlinks);
 bool Path$is_pipe(Path_t path, bool follow_symlinks);
 bool Path$is_socket(Path_t path, bool follow_symlinks);
 bool Path$is_symlink(Path_t path);
-
 void Path$write(Path_t path, Text_t text, int permissions);
 void Path$append(Path_t path, Text_t text, int permissions);
 Text_t Path$read(Path_t path);
 void Path$remove(Path_t path, bool ignore_missing);
 void Path$create_directory(Path_t path, int permissions);
+Array_t Path$children(Path_t path, bool include_hidden);
 
 extern const TypeInfo Path$info;
 

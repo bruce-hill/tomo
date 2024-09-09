@@ -250,6 +250,7 @@ env_t *new_compilation_unit(CORD *libname)
         )},
         {"Path", Type(TextType, .lang="Path", .env=namespace_env(env, "Path")), "Text_t", "Text$info", TypedArray(ns_entry_t,
             {"append", "Path$append", "func(path:Path, text:Text, permissions=0o644_i32)"},
+            {"children", "Path$children", "func(path:Path, include_hidden=no)->[Path]"},
             {"create_directory", "Path$create_directory", "func(path:Path, permissions=0o644_i32)"},
             {"escape_text", "Path$escape_text", "func(text:Text)->Path"},
             {"exists", "Path$exists", "func(path:Path)->Bool"},
