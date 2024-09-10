@@ -39,6 +39,7 @@ Text_t Path$write_unique(Path_t path, Text_t text);
 Path_t Path$parent(Path_t path);
 Text_t Path$base_name(Path_t path);
 Text_t Path$extension(Path_t path, bool full);
+closure_t Path$by_line(Path_t path);
 
 #define Path$hash Text$hash
 #define Path$compare Text$compare

@@ -1,10 +1,11 @@
 // A lang for filesystem paths
 #include <dirent.h>
-#include <fcntl.h>
 #include <errno.h>
-#include <string.h>
+#include <fcntl.h>
+#include <gc.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -15,6 +16,7 @@
 #include "files.h"
 #include "functions.h"
 #include "integers.h"
+#include "nextline.h"
 #include "path.h"
 #include "text.h"
 #include "types.h"
@@ -423,11 +425,57 @@ public Text_t Path$extension(Path_t path, bool full)
         return Text("");
 }
 
+static void _line_reader_cleanup(FILE **f)
+{
+    if (f && *f) {
+        fclose(*f);
+        *f = NULL;
+    }
+}
+
+static NextLine_t _next_line(FILE **f)
+{
+    if (!f || !*f) return (NextLine_t){NextLine$tag$Done};
+
+    char *line = NULL;
+    size_t size = 0;
+    ssize_t len = getline(&line, &size, *f);
+    if (len <= 0) {
+        _line_reader_cleanup(f);
+        return (NextLine_t){NextLine$tag$Done};
+    }
+
+    while (len > 0 && (line[len-1] == '\r' || line[len-1] == '\n'))
+        --len;
+
+    if (u8_check((uint8_t*)line, (size_t)len) != NULL)
+        fail("Invalid UTF8!");
+
+    Text_t line_text = Text$format("%.*s", len, line);
+    free(line);
+    return NextLine$tagged$Next(line_text);
+}
+
+public closure_t Path$by_line(Path_t path)
+{
+    path = Path$_expand_home(path);
+
+    FILE *f = fopen(Text$as_c_string(path), "r");
+    if (f == NULL)
+        fail("Could not read file: %k (%s)", &path, strerror(errno));
+
+    FILE **wrapper = GC_MALLOC(sizeof(FILE*));
+    *wrapper = f;
+    GC_register_finalizer(wrapper, (void*)_line_reader_cleanup, NULL, NULL, NULL);
+    return (closure_t){.fn=(void*)_next_line, .userdata=wrapper};
+}
+
 public const TypeInfo Path$info = {
     .size=sizeof(Path_t),
     .align=__alignof__(Path_t),
     .tag=TextInfo,
     .TextInfo={.lang="Path"},
 };
+
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

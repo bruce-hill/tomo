@@ -69,6 +69,16 @@ env_t *new_compilation_unit(CORD *libname)
               .next=new(arg_t, .name="step", .type=INT_TYPE, .default_val=FakeAST(Int, .str="1")))));
     }
 
+    type_t *next_line_type;
+    {
+        next_line_type = Type(
+            EnumType, .name="NextLine", .env=namespace_env(env, "NextLine"),
+            .tags=new(tag_t, .name="Done", .tag_value=0, .type=Type(StructType, .name="NextLine$Done"),
+              .next=new(tag_t, .name="Next", .tag_value=1, .type=Type(StructType, .name="NextLine$Next",
+                                                                      .env=namespace_env(env, "NextLine$Next"),
+                                                                      .fields=new(arg_t, .name="line", .type=TEXT_TYPE)))));
+    }
+
     {
         env_t *thread_env = namespace_env(env, "Thread");
         THREAD_TYPE = Type(StructType, .name="Thread", .env=thread_env, .opaque=true);
@@ -245,12 +255,14 @@ env_t *new_compilation_unit(CORD *libname)
             {"reversed", "Range$reversed", "func(range:Range)->Range"},
             {"by", "Range$by", "func(range:Range, step:Int)->Range"},
         )},
+        {"NextLine", next_line_type, "NextLine_t", "NextLine", {}},
         {"Pattern", Type(TextType, .lang="Pattern", .env=namespace_env(env, "Pattern")), "Pattern_t", "Pattern$info", TypedArray(ns_entry_t,
             {"escape_text", "Pattern$escape_text", "func(text:Text)->Pattern"},
         )},
         {"Path", Type(TextType, .lang="Path", .env=namespace_env(env, "Path")), "Text_t", "Text$info", TypedArray(ns_entry_t,
             {"append", "Path$append", "func(path:Path, text:Text, permissions=0o644_i32)"},
             {"base_name", "Path$base_name", "func(path:Path)->Text"},
+            {"by_line", "Path$by_line", "func(path:Path)->func()->NextLine"},
             {"children", "Path$children", "func(path:Path, include_hidden=no)->[Path]"},
             {"create_directory", "Path$create_directory", "func(path:Path, permissions=0o644_i32)"},
             {"escape_path", "Path$escape_path", "func(path:Path)->Path"},
