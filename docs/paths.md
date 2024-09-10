@@ -88,6 +88,31 @@ The base name of the file or directory.
 
 ---
 
+### `by_line`
+
+**Description:**  
+Returns an iterator that can be used to iterate over a file one line at a time.
+
+**Usage:**  
+```markdown
+by_line(path: Path) -> func()->NextLine
+```
+
+**Parameters:**
+
+- `path`: The path of the file.
+
+**Returns:**  
+An iterator that can be used to get lines from a file one at a time.
+
+**Example:**  
+```markdown
+for line in (/dev/stdin):by_line():
+    say(line:upper())
+```
+
+---
+
 ### `children`
 
 **Description:**  
