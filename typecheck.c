@@ -298,9 +298,10 @@ void bind_statement(env_t *env, ast_t *statement)
         arg_t *fields = NULL;
         for (arg_ast_t *field_ast = def->fields; field_ast; field_ast = field_ast->next) {
             type_t *field_t = get_arg_ast_type(env, field_ast);
-            if ((field_t->tag == StructType && Match(field_t, StructType)->opaque)
-                || (field_t->tag == EnumType && Match(field_t, EnumType)->opaque)) {
-                if (field_t == type)
+            type_t *non_opt_field_t = field_t->tag == OptionalType ? Match(field_t, OptionalType)->type : field_t;
+            if ((non_opt_field_t->tag == StructType && Match(non_opt_field_t, StructType)->opaque)
+                || (non_opt_field_t->tag == EnumType && Match(non_opt_field_t, EnumType)->opaque)) {
+                if (non_opt_field_t == type)
                     code_err(field_ast->type, "This is a recursive struct that would be infinitely large. Maybe you meant to use an optional '@%T?' pointer instead?", type);
                 else
                     code_err(field_ast->type, "I'm still in the process of defining the fields of %T, so I don't know how to use it as a member."
@@ -329,9 +330,10 @@ void bind_statement(env_t *env, ast_t *statement)
             arg_t *fields = NULL;
             for (arg_ast_t *field_ast = tag_ast->fields; field_ast; field_ast = field_ast->next) {
                 type_t *field_t = get_arg_ast_type(env, field_ast);
-                if ((field_t->tag == StructType && Match(field_t, StructType)->opaque)
-                    || (field_t->tag == EnumType && Match(field_t, EnumType)->opaque)) {
-                    if (field_t == type)
+                type_t *non_opt_field_t = field_t->tag == OptionalType ? Match(field_t, OptionalType)->type : field_t;
+                if ((non_opt_field_t->tag == StructType && Match(non_opt_field_t, StructType)->opaque)
+                    || (non_opt_field_t->tag == EnumType && Match(non_opt_field_t, EnumType)->opaque)) {
+                    if (non_opt_field_t == type)
                         code_err(field_ast->type, "This is a recursive enum that would be infinitely large. Maybe you meant to use an optional '@%T?' pointer instead?", type);
                     else
                         code_err(field_ast->type, "I'm still in the process of defining the fields of %T, so I don't know how to use it as a member."
