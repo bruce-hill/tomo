@@ -83,7 +83,9 @@ func main():
         = 123?
         >> nope := maybe_int(no)
         = !Int
-        >> if yep: >> yep
+        >> if yep:
+            >> yep
+            = 123
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
@@ -96,7 +98,9 @@ func main():
         = [10, 20, 30]?
         >> nope := maybe_array(no)
         = ![Int]
-        >> if yep: >> yep
+        >> if yep:
+            >> yep
+            = [10, 20, 30]
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
@@ -109,7 +113,9 @@ func main():
         = no?
         >> nope := maybe_bool(no)
         = !Bool
-        >> if yep: >> yep
+        >> if yep:
+            >> yep
+            = no
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
@@ -122,7 +128,9 @@ func main():
         = "Hello"?
         >> nope := maybe_text(no)
         = !Text
-        >> if yep: >> yep
+        >> if yep:
+            >> yep
+            = "Hello"
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
@@ -135,7 +143,9 @@ func main():
         = 12.3?
         >> nope := maybe_num(no)
         = !Num
-        >> if yep: >> yep
+        >> if yep:
+            >> yep
+            = 12.3
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
@@ -148,7 +158,9 @@ func main():
         = func(): ...?
         >> nope := maybe_lambda(no)
         = !func()
-        >> if yep: >> yep
+        >> if yep:
+            >> yep
+            = func(): ...
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
@@ -161,7 +173,9 @@ func main():
         = Struct(x=123, y="hello")?
         >> nope := Struct.maybe(no)
         = !Struct
-        >> if yep: >> yep
+        >> if yep:
+            >> yep
+            = Struct(x=123, y="hello")
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
@@ -174,7 +188,9 @@ func main():
         = Enum.Y(y=123)?
         >> nope := Enum.maybe(no)
         = !Enum
-        >> if yep: >> yep
+        >> if yep:
+            >> yep
+            = Enum.Y(y=123)
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
@@ -187,7 +203,9 @@ func main():
         = CString("hi")?
         >> nope := maybe_c_string(no)
         = !CString
-        >> if yep: >> yep
+        >> if yep:
+            >> yep
+            = CString("hi")
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
