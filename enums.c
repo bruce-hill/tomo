@@ -171,7 +171,7 @@ void compile_enum_def(env_t *env, ast_t *ast)
     }
 
     type_t *t = Table$str_get(*env->types, def->name);
-    CORD typeinfo = CORD_asprintf("public const TypeInfo %s = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
+    CORD typeinfo = CORD_asprintf("public const TypeInfo %s = {%zu, %zu, {.tag=EnumInfo, .CustomInfo={",
                                   full_name, type_size(t), type_align(t));
 
     env->code->funcs = CORD_all(env->code->funcs, compile_str_method(env, ast));
@@ -202,9 +202,10 @@ CORD compile_enum_typedef(env_t *env, ast_t *ast)
     CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
     CORD all_defs = CORD_all("typedef struct ", full_name, "_s ", full_name, "_t;\n");
     CORD enum_def = CORD_all("struct ", full_name, "_s {\n"
-                             "\tenum {");
+                             "\tenum { ", full_name, "$null=0, ");
+
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-        CORD_appendf(&enum_def, "%r$tag$%s = %ld", full_name, tag->name, tag->value);
+        enum_def = CORD_all(enum_def, full_name, "$tag$", tag->name);
         if (tag->next) enum_def = CORD_cat(enum_def, ", ");
     }
     enum_def = CORD_cat(enum_def, "} tag;\n"

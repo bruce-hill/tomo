@@ -2028,12 +2028,8 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
     if (!match(&pos, "(")) return NULL;
 
     tag_ast_t *tags = NULL;
-    int64_t next_value = 0;
-
     whitespace(&pos);
     for (;;) {
-        const char *tag_start = pos;
-
         spaces(&pos);
         const char *tag_name = get_id(&pos);
         if (!tag_name) break;
@@ -2055,22 +2051,7 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
             fields = NULL;
         }
 
-        spaces(&pos);
-        if (match(&pos, "=")) {
-            ast_t *val = expect(ctx, tag_start, &pos, parse_int, "I expected an integer literal after this '='");
-            Int_t i = Int$from_text(Text$from_str(Match(val, Int)->str), NULL);
-            // TODO check for overflow
-            next_value = (i.small >> 2);
-        }
-
-        // Check for duplicate values:
-        for (tag_ast_t *t = tags; t; t = t->next) {
-            if (t->value == next_value)
-                parser_err(ctx, tag_start, pos, "This tag value (%ld) is a duplicate of an earlier tag value", next_value);
-        }
-
-        tags = new(tag_ast_t, .name=tag_name, .value=next_value, .fields=fields, .secret=secret, .next=tags);
-        ++next_value;
+        tags = new(tag_ast_t, .name=tag_name, .fields=fields, .secret=secret, .next=tags);
 
         if (!match_separator(&pos))
             break;

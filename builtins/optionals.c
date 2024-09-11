@@ -36,11 +36,14 @@ static inline bool is_null(const void *obj, const TypeInfo *non_optional_type)
         case ArrayInfo: return ((Array_t*)obj)->length < 0;
         case TableInfo: return ((Table_t*)obj)->entries.length < 0;
         case FunctionInfo: return *(void**)obj == NULL;
-        case CustomInfo: {
+        case StructInfo: {
             int64_t offset = non_optional_type->size;
             if (offset % non_optional_type->align)
                 offset += non_optional_type->align - (offset % non_optional_type->align);
             return *(bool*)(obj + offset);
+        }
+        case EnumInfo: {
+            return (*(int*)obj) == 0; // NULL tag
         }
         default: {
             Text_t t = generic_as_text(NULL, false, non_optional_type);

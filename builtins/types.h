@@ -17,8 +17,8 @@ typedef Text_t (*text_fn_t)(const void*, bool, const struct TypeInfo*);
 typedef struct TypeInfo {
     int64_t size, align;
     struct { // Anonymous tagged union for convenience 
-        enum { CustomInfo, PointerInfo, TextInfo, ArrayInfo, ChannelInfo, TableInfo, FunctionInfo,
-            OptionalInfo, TypeInfoInfo, OpaqueInfo, EmptyStruct } tag;
+        enum { CustomInfo, StructInfo, EnumInfo, PointerInfo, TextInfo, ArrayInfo, ChannelInfo, TableInfo, FunctionInfo,
+            OptionalInfo, TypeInfoInfo, OpaqueInfo, EmptyStructInfo } tag;
         union {
             struct {
                 equal_fn_t equal;
@@ -52,7 +52,7 @@ typedef struct TypeInfo {
             struct {} OpaqueInfo;
             struct {
                 const char *name;
-            } EmptyStruct;
+            } EmptyStructInfo;
         };
     };
 } TypeInfo;

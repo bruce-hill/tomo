@@ -91,7 +91,7 @@ static uint64_t NextLine$hash(const NextLine_t *obj, const TypeInfo *info)
     return siphash24((void *) &hashes, sizeof(hashes));
 }
 
-public const TypeInfo NextLine$Done = { 0, 0, {.tag = EmptyStruct,.EmptyStruct.name =
+public const TypeInfo NextLine$Done = { 0, 0, {.tag = EmptyStructInfo,.EmptyStructInfo.name =
                                                    "NextLine$Done" } };
 public const TypeInfo NextLine$Next = { 24, 8, {.tag = CustomInfo,.CustomInfo =
                                                     {.as_text =

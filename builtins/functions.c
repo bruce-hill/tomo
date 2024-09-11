@@ -117,8 +117,8 @@ PUREFUNC public uint64_t generic_hash(const void *obj, const TypeInfo *type)
     case OptionalInfo: {
         errx(1, "Optional hash not implemented");
     }
-    case EmptyStruct: return 0;
-    case CustomInfo:
+    case EmptyStructInfo: return 0;
+    case CustomInfo: case StructInfo: case EnumInfo: // These all share the same info
         if (!type->CustomInfo.hash)
             goto hash_data;
         return type->CustomInfo.hash(obj, type);
@@ -142,8 +142,8 @@ PUREFUNC public int32_t generic_compare(const void *x, const void *y, const Type
     case OptionalInfo: {
         errx(1, "Optional compare not implemented");
     }
-    case EmptyStruct: return 0;
-    case CustomInfo:
+    case EmptyStructInfo: return 0;
+    case CustomInfo: case StructInfo: case EnumInfo: // These all share the same info
         if (!type->CustomInfo.compare)
             goto compare_data;
         return type->CustomInfo.compare(x, y, type);
@@ -163,11 +163,11 @@ PUREFUNC public bool generic_equal(const void *x, const void *y, const TypeInfo 
     case ArrayInfo: return Array$equal(x, y, type);
     case ChannelInfo: return Channel$equal((const channel_t**)x, (const channel_t**)y, type);
     case TableInfo: return Table$equal(x, y, type);
-    case EmptyStruct: return true;
+    case EmptyStructInfo: return true;
     case OptionalInfo: {
         errx(1, "Optional equal not implemented");
     }
-    case CustomInfo:
+    case CustomInfo: case StructInfo: case EnumInfo: // These all share the same info
         if (!type->CustomInfo.equal)
             goto use_generic_compare;
         return type->CustomInfo.equal(x, y, type);
@@ -188,10 +188,10 @@ public Text_t generic_as_text(const void *obj, bool colorize, const TypeInfo *ty
     case TableInfo: return Table$as_text(obj, colorize, type);
     case TypeInfoInfo: return Type$as_text(obj, colorize, type);
     case OptionalInfo: return Optional$as_text(obj, colorize, type);
-    case EmptyStruct: return colorize ?
-                      Text$concat(Text("\x1b[0;1m"), Text$from_str(type->EmptyStruct.name), Text("\x1b[m()"))
-                          : Text$concat(Text$from_str(type->EmptyStruct.name), Text("()"));
-    case CustomInfo:
+    case EmptyStructInfo: return colorize ?
+                      Text$concat(Text("\x1b[0;1m"), Text$from_str(type->EmptyStructInfo.name), Text("\x1b[m()"))
+                          : Text$concat(Text$from_str(type->EmptyStructInfo.name), Text("()"));
+    case CustomInfo: case StructInfo: case EnumInfo: // These all share the same info
         if (!type->CustomInfo.as_text)
             fail("No text function provided for type!\n");
         return type->CustomInfo.as_text(obj, colorize, type);

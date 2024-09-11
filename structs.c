@@ -121,7 +121,7 @@ void compile_struct_def(env_t *env, ast_t *ast)
     assert(t && t->tag == StructType);
     auto struct_ = Match(t, StructType);
     if (def->fields) {
-        CORD typeinfo = CORD_asprintf("public const TypeInfo %r = {%zu, %zu, {.tag=CustomInfo, .CustomInfo={",
+        CORD typeinfo = CORD_asprintf("public const TypeInfo %r = {%zu, %zu, {.tag=StructInfo, .CustomInfo={",
                                       full_name, type_size(t), type_align(t));
 
         typeinfo = CORD_all(typeinfo, ".as_text=(void*)", full_name, "$as_text, ");
@@ -156,8 +156,8 @@ void compile_struct_def(env_t *env, ast_t *ast)
         typeinfo = CORD_cat(typeinfo, "}}};\n");
         env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
     } else {
-        // If there are no fields, we can use an EmptyStruct typeinfo, which generates less code:
-        CORD typeinfo = CORD_asprintf("public const TypeInfo %r = {%zu, %zu, {.tag=EmptyStruct, .EmptyStruct.name=%r}};\n",
+        // If there are no fields, we can use an EmptyStructInfo typeinfo, which generates less code:
+        CORD typeinfo = CORD_asprintf("public const TypeInfo %r = {%zu, %zu, {.tag=EmptyStructInfo, .EmptyStructInfo.name=%r}};\n",
                                       full_name, type_size(t), type_align(t), CORD_quoted(def->name));
         env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
     }

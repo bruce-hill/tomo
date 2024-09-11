@@ -222,7 +222,7 @@ CORD compile_type(type_t *t)
         switch (nonnull->tag) {
         case BoolType: case CStringType: case BigIntType: case NumType: case TextType:
         case ArrayType: case SetType: case TableType: case FunctionType: case ClosureType:
-        case PointerType:
+        case PointerType: case EnumType:
             return compile_type(nonnull);
         case IntType:
             return CORD_all("Optional", compile_type(nonnull));
@@ -348,6 +348,8 @@ static CORD compile_optional_check(env_t *env, ast_t *ast)
         return CORD_all("!(", compile(env, ast), ").is_null");
     else if (t->tag == StructType)
         return CORD_all("!(", compile(env, ast), ").is_null");
+    else if (t->tag == EnumType)
+        return CORD_all("((", compile(env, ast), ").tag != 0)");
     errx(1, "Optional check not implemented for: %T", t);
 }
 
@@ -1707,6 +1709,10 @@ CORD compile(env_t *env, ast_t *ast)
         case ClosureType: return "NULL_CLOSURE";
         case NumType: return "nan(\"null\")";
         case StructType: return CORD_all("((", compile_type(Type(OptionalType, .type=t)), "){.is_null=true})");
+        case EnumType: {
+            env_t *enum_env = Match(t, EnumType)->env;
+            return CORD_all("((", compile_type(t), "){", namespace_prefix(enum_env->libname, enum_env->namespace), "null})");
+        }
         default: code_err(ast, "Nil isn't implemented for this type: %T", t);
         }
     }

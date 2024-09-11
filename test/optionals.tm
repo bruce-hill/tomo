@@ -1,11 +1,17 @@
 
 struct Struct(x:Int, y:Text):
-    func maybe(should_i:Bool)-> Struct?:
+    func maybe(should_i:Bool)->Struct?:
         if should_i:
             return Struct(123, "hello")
         else:
             return !Struct
 
+enum Enum(X, Y(y:Int)):
+    func maybe(should_i:Bool)->Enum?:
+        if should_i:
+            return Enum.Y(123)
+        else:
+            return !Enum
 
 func maybe_int(should_i:Bool)->Int?:
     if should_i:
@@ -137,6 +143,19 @@ func main():
         = Struct(x=123, y="hello")?
         >> nope := Struct.maybe(no)
         = !Struct
+        >> if yep: >> yep
+        else: fail("Falsey: $yep")
+        >> if nope:
+            fail("Truthy: $nope")
+        else: !! Falsey: $nope
+
+    do:
+        !! ...
+        !! Enums:
+        >> yep := Enum.maybe(yes)
+        = Enum.Y(y=123)?
+        >> nope := Enum.maybe(no)
+        = !Enum
         >> if yep: >> yep
         else: fail("Falsey: $yep")
         >> if nope:

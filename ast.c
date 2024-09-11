@@ -74,7 +74,7 @@ CORD when_clauses_to_xml(when_clause_t *clauses) {
 CORD tags_to_xml(tag_ast_t *tags) {
     CORD c = CORD_EMPTY;
     for (; tags; tags = tags->next) {
-        c = CORD_all(c, "<tag name=\"", tags->name, "\" value=\"", CORD_asprintf("%ld", tags->value), "\">", arg_list_to_xml(tags->fields), "</tag>");
+        c = CORD_all(c, "<tag name=\"", tags->name, "\">", arg_list_to_xml(tags->fields), "</tag>");
     }
     return c;
 }

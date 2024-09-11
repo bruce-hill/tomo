@@ -324,6 +324,7 @@ void bind_statement(env_t *env, ast_t *statement)
         type_t *type = Table$str_get(*env->types, def->name);
         assert(type);
         tag_t *tags = NULL;
+        int64_t next_tag = 1;
         for (tag_ast_t *tag_ast = def->tags; tag_ast; tag_ast = tag_ast->next) {
             arg_t *fields = NULL;
             for (arg_ast_t *field_ast = tag_ast->fields; field_ast; field_ast = field_ast->next) {
@@ -342,7 +343,7 @@ void bind_statement(env_t *env, ast_t *statement)
             REVERSE_LIST(fields);
             env_t *member_ns = namespace_env(env, heap_strf("%s$%s", def->name, tag_ast->name));
             type_t *tag_type = Type(StructType, .name=heap_strf("%s$%s", def->name, tag_ast->name), .fields=fields, .env=member_ns);
-            tags = new(tag_t, .name=tag_ast->name, .tag_value=tag_ast->value, .type=tag_type, .next=tags);
+            tags = new(tag_t, .name=tag_ast->name, .tag_value=(next_tag++), .type=tag_type, .next=tags);
         }
         REVERSE_LIST(tags);
         type->__data.EnumType.tags = tags;
