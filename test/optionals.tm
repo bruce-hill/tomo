@@ -49,6 +49,12 @@ func maybe_lambda(should_i:Bool)-> func()?:
     else:
         return !func()
 
+func maybe_c_string(should_i:Bool)->CString?:
+    if should_i:
+        return ("hi":as_c_string())?
+    else:
+        return !CString
+
 func main():
     >> 5?
     = 5? : Int?
@@ -156,6 +162,19 @@ func main():
         = Enum.Y(y=123)?
         >> nope := Enum.maybe(no)
         = !Enum
+        >> if yep: >> yep
+        else: fail("Falsey: $yep")
+        >> if nope:
+            fail("Truthy: $nope")
+        else: !! Falsey: $nope
+
+    do:
+        !! ...
+        !! C Strings:
+        >> yep := maybe_c_string(yes)
+        = CString("hi")?
+        >> nope := maybe_c_string(no)
+        = !CString
         >> if yep: >> yep
         else: fail("Falsey: $yep")
         >> if nope:

@@ -328,7 +328,7 @@ static CORD compile_optional_check(env_t *env, ast_t *ast)
 {
     type_t *t = get_type(env, ast);
     t = Match(t, OptionalType)->type;
-    if (t->tag == PointerType || t->tag == FunctionType)
+    if (t->tag == PointerType || t->tag == FunctionType || t->tag == CStringType || t == THREAD_TYPE)
         return CORD_all("(", compile(env, ast), " != NULL)");
     else if (t->tag == BigIntType)
         return CORD_all("((", compile(env, ast), ").small != 0)");
@@ -1688,6 +1688,8 @@ CORD compile(env_t *env, ast_t *ast)
     switch (ast->tag) {
     case Nil: {
         type_t *t = parse_type_ast(env, Match(ast, Nil)->type);
+        if (t == THREAD_TYPE) return "NULL";
+
         switch (t->tag) {
         case BigIntType: return "NULL_INT";
         case IntType: {
@@ -1705,6 +1707,7 @@ CORD compile(env_t *env, ast_t *ast)
         case TableType: return "NULL_TABLE";
         case SetType: return "NULL_TABLE";
         case TextType: return "NULL_TEXT";
+        case CStringType: return "NULL";
         case PointerType: return CORD_all("((", compile_type(t), ")NULL)");
         case ClosureType: return "NULL_CLOSURE";
         case NumType: return "nan(\"null\")";

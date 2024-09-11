@@ -18,7 +18,7 @@ typedef struct TypeInfo {
     int64_t size, align;
     struct { // Anonymous tagged union for convenience 
         enum { CustomInfo, StructInfo, EnumInfo, PointerInfo, TextInfo, ArrayInfo, ChannelInfo, TableInfo, FunctionInfo,
-            OptionalInfo, TypeInfoInfo, OpaqueInfo, EmptyStructInfo } tag;
+            OptionalInfo, TypeInfoInfo, OpaqueInfo, EmptyStructInfo, CStringInfo } tag;
         union {
             struct {
                 equal_fn_t equal;

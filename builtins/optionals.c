@@ -42,9 +42,8 @@ static inline bool is_null(const void *obj, const TypeInfo *non_optional_type)
                 offset += non_optional_type->align - (offset % non_optional_type->align);
             return *(bool*)(obj + offset);
         }
-        case EnumInfo: {
-            return (*(int*)obj) == 0; // NULL tag
-        }
+        case EnumInfo: return (*(int*)obj) == 0; // NULL tag
+        case CStringInfo: return (*(char**)obj) == NULL;
         default: {
             Text_t t = generic_as_text(NULL, false, non_optional_type);
             errx(1, "is_null() not implemented for: %k", &t);

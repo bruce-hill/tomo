@@ -46,7 +46,7 @@ PUREFUNC public uint64_t CString$hash(const char **c_str)
 public const TypeInfo CString$info = {
     .size=sizeof(char*),
     .align=__alignof__(char*),
-    .tag=CustomInfo,
+    .tag=CStringInfo,
     .CustomInfo={.as_text=(void*)CString$as_text, .compare=(void*)CString$compare, .equal=(void*)CString$equal, .hash=(void*)CString$hash},
 };
 
