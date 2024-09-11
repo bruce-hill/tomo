@@ -388,7 +388,7 @@ public void Table$clear(Table_t *t)
 
 public Table_t Table$sorted(Table_t t, const TypeInfo *type)
 {
-    closure_t cmp = (closure_t){.fn=generic_compare, .userdata=(void*)type->TableInfo.key};
+    Closure_t cmp = (Closure_t){.fn=generic_compare, .userdata=(void*)type->TableInfo.key};
     Array_t entries = Array$sorted(t.entries, cmp, (int64_t)entry_size(type));
     return Table$from_entries(entries, type);
 }

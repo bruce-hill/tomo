@@ -58,7 +58,7 @@ typedef struct table_s {
 
 typedef struct {
     void *fn, *userdata;
-} closure_t;
+} Closure_t;
 
 typedef struct Range_s {
     Int_t first, last, step;

@@ -30,7 +30,7 @@ PUREFUNC int32_t generic_compare(const void *x, const void *y, const TypeInfo *t
 PUREFUNC bool generic_equal(const void *x, const void *y, const TypeInfo *type);
 Text_t generic_as_text(const void *obj, bool colorize, const TypeInfo *type);
 int generic_print(const void *obj, bool colorize, const TypeInfo *type);
-closure_t spawn(closure_t fn);
+Closure_t spawn(Closure_t fn);
 bool pop_flag(char **argv, int *i, const char *flag, Text_t *result);
 void print_stack_trace(FILE *out, int start, int stop);
 

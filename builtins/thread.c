@@ -16,7 +16,7 @@
 #include "types.h"
 #include "util.h"
 
-public pthread_t *Thread$new(closure_t fn)
+public pthread_t *Thread$new(Closure_t fn)
 {
     pthread_t *thread = new(pthread_t);
     pthread_create(thread, NULL, fn.fn, fn.userdata);

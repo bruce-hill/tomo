@@ -17,7 +17,7 @@ extern const Bool_t NULL_BOOL;
 extern const Table_t NULL_TABLE;
 extern const Array_t NULL_ARRAY;
 extern const Int_t NULL_INT;
-extern const closure_t NULL_CLOSURE;
+extern const Closure_t NULL_CLOSURE;
 extern const Text_t NULL_TEXT;
 
 Text_t Optional$as_text(const void *obj, bool colorize, const TypeInfo *type);

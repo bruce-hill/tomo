@@ -10,7 +10,7 @@
 #include "types.h"
 #include "util.h"
 
-pthread_t *Thread$new(closure_t fn);
+pthread_t *Thread$new(Closure_t fn);
 void Thread$cancel(pthread_t *thread);
 void Thread$join(pthread_t *thread);
 void Thread$detach(pthread_t *thread);

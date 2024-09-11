@@ -456,7 +456,7 @@ static NextLine_t _next_line(FILE **f)
     return NextLine$tagged$Next(line_text);
 }
 
-public closure_t Path$by_line(Path_t path)
+public Closure_t Path$by_line(Path_t path)
 {
     path = Path$_expand_home(path);
 
@@ -467,7 +467,7 @@ public closure_t Path$by_line(Path_t path)
     FILE **wrapper = GC_MALLOC(sizeof(FILE*));
     *wrapper = f;
     GC_register_finalizer(wrapper, (void*)_line_reader_cleanup, NULL, NULL, NULL);
-    return (closure_t){.fn=(void*)_next_line, .userdata=wrapper};
+    return (Closure_t){.fn=(void*)_next_line, .userdata=wrapper};
 }
 
 public const TypeInfo Path$info = {

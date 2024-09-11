@@ -69,9 +69,9 @@ void Array$remove_item(Array_t *arr, void *item, Int_t max_removals, const TypeI
 #define Array$remove_item_value(arr, item_expr, max, type) ({ __typeof(item_expr) item = item_expr; Array$remove_item(arr, &item, max, type); })
 Int_t Array$find(Array_t arr, void *item, const TypeInfo *type);
 #define Array$find_value(arr, item_expr, type) ({ __typeof(item_expr) item = item_expr; Array$find(arr, &item, type); })
-Int_t Array$first(Array_t arr, closure_t predicate);
-void Array$sort(Array_t *arr, closure_t comparison, int64_t padded_item_size);
-Array_t Array$sorted(Array_t arr, closure_t comparison, int64_t padded_item_size);
+Int_t Array$first(Array_t arr, Closure_t predicate);
+void Array$sort(Array_t *arr, Closure_t comparison, int64_t padded_item_size);
+Array_t Array$sorted(Array_t arr, Closure_t comparison, int64_t padded_item_size);
 void Array$shuffle(Array_t *arr, int64_t padded_item_size);
 Array_t Array$shuffled(Array_t arr, int64_t padded_item_size);
 void *Array$random(Array_t arr);
@@ -91,14 +91,14 @@ PUREFUNC uint64_t Array$hash(const Array_t *arr, const TypeInfo *type);
 PUREFUNC int32_t Array$compare(const Array_t *x, const Array_t *y, const TypeInfo *type);
 PUREFUNC bool Array$equal(const Array_t *x, const Array_t *y, const TypeInfo *type);
 Text_t Array$as_text(const Array_t *arr, bool colorize, const TypeInfo *type);
-void Array$heapify(Array_t *heap, closure_t comparison, int64_t padded_item_size);
-void Array$heap_push(Array_t *heap, const void *item, closure_t comparison, int64_t padded_item_size);
+void Array$heapify(Array_t *heap, Closure_t comparison, int64_t padded_item_size);
+void Array$heap_push(Array_t *heap, const void *item, Closure_t comparison, int64_t padded_item_size);
 #define Array$heap_push_value(heap, _value, comparison, padded_item_size) ({ __typeof(_value) value = _value; Array$heap_push(heap, &value, comparison, padded_item_size); })
-void Array$heap_pop(Array_t *heap, closure_t comparison, int64_t padded_item_size);
+void Array$heap_pop(Array_t *heap, Closure_t comparison, int64_t padded_item_size);
 #define Array$heap_pop_value(heap, comparison, padded_item_size, type) \
     ({ Array_t *_heap = heap; if (_heap->length == 0) fail("Attempt to pop from an empty array"); \
      type value = *(type*)_heap->data; Array$heap_pop(_heap, comparison, padded_item_size); value; })
-Int_t Array$binary_search(Array_t array, void *target, closure_t comparison);
+Int_t Array$binary_search(Array_t array, void *target, Closure_t comparison);
 #define Array$binary_search_value(array, target, comparison) \
     ({ __typeof(target) _target = target; Array$binary_search(array, &_target, comparison); })
 

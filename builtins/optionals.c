@@ -11,7 +11,7 @@ public const Array_t NULL_ARRAY = {.length=-1};
 public const Bool_t NULL_BOOL = -1;
 public const Int_t NULL_INT = {.small=0};
 public const Table_t NULL_TABLE = {.entries.length=-1};
-public const closure_t NULL_CLOSURE = {.fn=NULL};
+public const Closure_t NULL_CLOSURE = {.fn=NULL};
 public const Text_t NULL_TEXT = {.length=-1};
 
 static inline bool is_null(const void *obj, const TypeInfo *non_optional_type)

@@ -231,7 +231,7 @@ public Int_t Array$find(Array_t arr, void *item, const TypeInfo *type)
     return NULL_INT;
 }
 
-public Int_t Array$first(Array_t arr, closure_t predicate)
+public Int_t Array$first(Array_t arr, Closure_t predicate)
 {
     bool (*is_good)(void*, void*) = (void*)predicate.fn;
     for (int64_t i = 0; i < arr.length; i++) {
@@ -241,7 +241,7 @@ public Int_t Array$first(Array_t arr, closure_t predicate)
     return NULL_INT;
 }
 
-public void Array$sort(Array_t *arr, closure_t comparison, int64_t padded_item_size)
+public void Array$sort(Array_t *arr, Closure_t comparison, int64_t padded_item_size)
 {
     if (arr->data_refcount != 0 || (int64_t)arr->stride != padded_item_size)
         Array$compact(arr, padded_item_size);
@@ -249,7 +249,7 @@ public void Array$sort(Array_t *arr, closure_t comparison, int64_t padded_item_s
     qsort_r(arr->data, (size_t)arr->length, (size_t)padded_item_size, comparison.fn, comparison.userdata);
 }
 
-public Array_t Array$sorted(Array_t arr, closure_t comparison, int64_t padded_item_size)
+public Array_t Array$sorted(Array_t arr, Closure_t comparison, int64_t padded_item_size)
 {
     Array$compact(&arr, padded_item_size);
     qsort_r(arr.data, (size_t)arr.length, (size_t)padded_item_size, comparison.fn, comparison.userdata);
@@ -578,7 +578,7 @@ public uint64_t Array$hash(const Array_t *arr, const TypeInfo *type)
 }
 
 #pragma GCC diagnostic ignored "-Wstack-protector"
-static void siftdown(Array_t *heap, int64_t startpos, int64_t pos, closure_t comparison, int64_t padded_item_size)
+static void siftdown(Array_t *heap, int64_t startpos, int64_t pos, Closure_t comparison, int64_t padded_item_size)
 {
     assert(pos > 0 && pos < heap->length);
     char newitem[padded_item_size];
@@ -596,7 +596,7 @@ static void siftdown(Array_t *heap, int64_t startpos, int64_t pos, closure_t com
     memcpy(heap->data + heap->stride*pos, newitem, (size_t)(padded_item_size));
 }
 
-static void siftup(Array_t *heap, int64_t pos, closure_t comparison, int64_t padded_item_size)
+static void siftup(Array_t *heap, int64_t pos, Closure_t comparison, int64_t padded_item_size)
 {
     int64_t endpos = heap->length;
     int64_t startpos = pos;
@@ -626,7 +626,7 @@ static void siftup(Array_t *heap, int64_t pos, closure_t comparison, int64_t pad
     siftdown(heap, startpos, pos, comparison, padded_item_size);
 }
 
-public void Array$heap_push(Array_t *heap, const void *item, closure_t comparison, int64_t padded_item_size)
+public void Array$heap_push(Array_t *heap, const void *item, Closure_t comparison, int64_t padded_item_size)
 {
     Array$insert(heap, item, I(0), padded_item_size);
 
@@ -637,7 +637,7 @@ public void Array$heap_push(Array_t *heap, const void *item, closure_t compariso
     }
 }
 
-public void Array$heap_pop(Array_t *heap, closure_t comparison, int64_t padded_item_size)
+public void Array$heap_pop(Array_t *heap, Closure_t comparison, int64_t padded_item_size)
 {
     if (heap->length == 0)
         fail("Attempt to pop from an empty array");
@@ -656,7 +656,7 @@ public void Array$heap_pop(Array_t *heap, closure_t comparison, int64_t padded_i
     }
 }
 
-public void Array$heapify(Array_t *heap, closure_t comparison, int64_t padded_item_size)
+public void Array$heapify(Array_t *heap, Closure_t comparison, int64_t padded_item_size)
 {
     if (heap->data_refcount != 0)
         Array$compact(heap, padded_item_size);
@@ -670,7 +670,7 @@ public void Array$heapify(Array_t *heap, closure_t comparison, int64_t padded_it
     ARRAY_DECREF(*heap);
 }
 
-public Int_t Array$binary_search(Array_t array, void *target, closure_t comparison)
+public Int_t Array$binary_search(Array_t array, void *target, Closure_t comparison)
 {
     typedef int32_t (*cmp_fn_t)(void*, void*, void*);
     int64_t lo = 0, hi = array.length-1;

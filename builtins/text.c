@@ -2051,7 +2051,7 @@ public Text_t Text$trim(Text_t text, Pattern_t pattern, bool trim_left, bool tri
     return Text$slice(text, I(first+1), I(last+1));
 }
 
-public Text_t Text$map(Text_t text, Pattern_t pattern, closure_t fn)
+public Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn)
 {
     Text_t ret = {.length=0};
 

@@ -91,7 +91,7 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
         return true;
 
     if (needed->tag == ClosureType && actual->tag == FunctionType) {
-        *code = CORD_all("((closure_t){", *code, ", NULL})");
+        *code = CORD_all("((Closure_t){", *code, ", NULL})");
         return true;
     }
 
@@ -207,7 +207,7 @@ CORD compile_type(type_t *t)
         }
         return CORD_all(code, ")");
     }
-    case ClosureType: return "closure_t";
+    case ClosureType: return "Closure_t";
     case PointerType: return CORD_cat(compile_type(Match(t, PointerType)->pointed), "*");
     case StructType: {
         if (t == THREAD_TYPE)
@@ -2388,7 +2388,7 @@ CORD compile(env_t *env, ast_t *ast)
             body = CORD_all(body, compile_statement(body_scope, FakeAST(Return)), "\n");
 
         env->code->funcs = CORD_all(env->code->funcs, code, " {\n", body, "\n}\n");
-        return CORD_all("((closure_t){", name, ", ", userdata, "})");
+        return CORD_all("((Closure_t){", name, ", ", userdata, "})");
     }
     case MethodCall: {
         auto call = Match(ast, MethodCall);
@@ -2457,7 +2457,7 @@ CORD compile(env_t *env, ast_t *ast)
                     arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t));
                     comparison = compile_arguments(env, ast, arg_spec, call->args);
                 } else {
-                    comparison = CORD_all("((closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "})");
+                    comparison = CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "})");
                 }
                 return CORD_all("Array$", call->name, "(", self, ", ", comparison, ", ", padded_item_size, ")");
             } else if (streq(call->name, "heapify")) {
@@ -2470,7 +2470,7 @@ CORD compile(env_t *env, ast_t *ast)
                     arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t));
                     comparison = compile_arguments(env, ast, arg_spec, call->args);
                 } else {
-                    comparison = CORD_all("((closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "})");
+                    comparison = CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(env, item_t), "})");
                 }
                 return CORD_all("Array$heapify(", self, ", ", comparison, ", ", padded_item_size, ")");
             } else if (streq(call->name, "heap_push")) {
@@ -2479,7 +2479,7 @@ CORD compile(env_t *env, ast_t *ast)
                 type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                     .ret=Type(IntType, .bits=TYPE_IBITS32));
                 ast_t *default_cmp = FakeAST(InlineCCode,
-                                             .code=CORD_all("((closure_t){.fn=generic_compare, .userdata=(void*)",
+                                             .code=CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
                                                             compile_type_info(env, item_t), "})"),
                                              .type=NewTypeAST(NULL, NULL, NULL, FunctionTypeAST));
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
@@ -2492,7 +2492,7 @@ CORD compile(env_t *env, ast_t *ast)
                 type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                     .ret=Type(IntType, .bits=TYPE_IBITS32));
                 ast_t *default_cmp = FakeAST(InlineCCode,
-                                             .code=CORD_all("((closure_t){.fn=generic_compare, .userdata=(void*)",
+                                             .code=CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
                                                             compile_type_info(env, item_t), "})"),
                                              .type=NewTypeAST(NULL, NULL, NULL, FunctionTypeAST));
                 arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp);
@@ -2504,7 +2504,7 @@ CORD compile(env_t *env, ast_t *ast)
                 type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                     .ret=Type(IntType, .bits=TYPE_IBITS32));
                 ast_t *default_cmp = FakeAST(InlineCCode,
-                                             .code=CORD_all("((closure_t){.fn=generic_compare, .userdata=(void*)",
+                                             .code=CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
                                                             compile_type_info(env, item_t), "})"),
                                              .type=NewTypeAST(NULL, NULL, NULL, FunctionTypeAST));
                 arg_t *arg_spec = new(arg_t, .name="target", .type=item_t,
@@ -2796,7 +2796,7 @@ CORD compile(env_t *env, ast_t *ast)
             if (call->fn->tag == Var) {
                 return CORD_all("((", fn_type_code, ")", closure, ".fn)(", arg_code, closure, ".userdata)");
             } else {
-                return CORD_all("({ closure_t closure = ", closure, "; ((", fn_type_code, ")closure.fn)(",
+                return CORD_all("({ Closure_t closure = ", closure, "; ((", fn_type_code, ")closure.fn)(",
                                 arg_code, "closure.userdata); })");
             }
         } else {
