@@ -1762,7 +1762,7 @@ CORD compile(env_t *env, ast_t *ast)
         } else if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0) {
             return CORD_asprintf("Int64_to_Int(%s)", str);
         } else {
-            return CORD_asprintf("Int$from_str(\"%s\", NULL)", str);
+            return CORD_asprintf("Int$from_str(\"%s\")", str);
         }
         case IBITS64:
         if ((mpz_cmp_si(i, INT64_MAX) < 0) && (mpz_cmp_si(i, INT64_MIN) > 0))
