@@ -55,6 +55,12 @@ func maybe_c_string(should_i:Bool)->CString?:
     else:
         return !CString
 
+func maybe_channel(should_i:Bool)->|Int|?:
+    if should_i:
+        return |:Int|?
+    else:
+        return !|Int|
+
 func main():
     >> 5?
     = 5? : Int?
@@ -175,6 +181,19 @@ func main():
         = CString("hi")?
         >> nope := maybe_c_string(no)
         = !CString
+        >> if yep: >> yep
+        else: fail("Falsey: $yep")
+        >> if nope:
+            fail("Truthy: $nope")
+        else: !! Falsey: $nope
+
+    do:
+        !! ...
+        !! Channels:
+        >> yep := maybe_channel(yes)
+        # No "=" test here because channels use addresses in the text version
+        >> nope := maybe_channel(no)
+        = !|:Int|
         >> if yep: >> yep
         else: fail("Falsey: $yep")
         >> if nope:

@@ -100,25 +100,25 @@ public void Channel$clear(channel_t *channel)
     (void)pthread_cond_signal(&channel->cond);
 }
 
-public uint64_t Channel$hash(const channel_t **channel, const TypeInfo *type)
+PUREFUNC public uint64_t Channel$hash(channel_t **channel, const TypeInfo *type)
 {
     (void)type;
     return siphash24((void*)*channel, sizeof(channel_t*));
 }
 
-PUREFUNC public int32_t Channel$compare(const channel_t **x, const channel_t **y, const TypeInfo *type)
+PUREFUNC public int32_t Channel$compare(channel_t **x, channel_t **y, const TypeInfo *type)
 {
     (void)type;
     return (*x > *y) - (*x < *y);
 }
 
-PUREFUNC bool Channel$equal(const channel_t **x, const channel_t **y, const TypeInfo *type)
+PUREFUNC public bool Channel$equal(channel_t **x, channel_t **y, const TypeInfo *type)
 {
     (void)type;
     return (*x == *y);
 }
 
-Text_t Channel$as_text(const channel_t **channel, bool colorize, const TypeInfo *type)
+public Text_t Channel$as_text(channel_t **channel, bool colorize, const TypeInfo *type)
 {
     const TypeInfo *item_type = type->ChannelInfo.item;
     if (!channel) {

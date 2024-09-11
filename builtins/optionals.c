@@ -31,6 +31,7 @@ static inline bool is_null(const void *obj, const TypeInfo *non_optional_type)
         return ((OptionalInt8_t*)obj)->is_null;
 
     switch (non_optional_type->tag) {
+        case ChannelInfo: return *(channel_t**)obj == NULL;
         case PointerInfo: return *(void**)obj == NULL;
         case TextInfo: return ((Text_t*)obj)->length < 0;
         case ArrayInfo: return ((Array_t*)obj)->length < 0;
