@@ -51,7 +51,7 @@ t2 := {"B": 20; fallback=t}
 ```
 
 The fallback is available by the `.fallback` field, which returns an optional
-readonly pointer to the fallback table (if present) or null if it is not.
+table value.
 
 ## Length
 
