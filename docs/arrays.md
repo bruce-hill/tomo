@@ -251,7 +251,8 @@ binary_search(arr: [T], by=T.compare) -> Int
 **Returns:**  
 Assuming the input array is sorted according to the given comparison function,
 return the index where the given item would be inserted to maintain the sorted
-order.
+order. That is, if the item is found, return its index, otherwise return the
+place where it would be found if it were inserted and the array were sorted.
 
 **Example:**  
 ```markdown
