@@ -13,6 +13,7 @@
 #include "array.h"
 #include "functions.h"
 #include "integers.h"
+#include "optionals.h"
 #include "table.h"
 #include "text.h"
 #include "types.h"
@@ -227,19 +228,18 @@ public Int_t Array$find(Array_t arr, void *item, const TypeInfo *type)
         if (generic_equal(item, arr.data + i*arr.stride, item_type))
             return I(i+1);
     }
-    return I(0);
+    return NULL_INT;
 }
 
-public void *Array$first(Array_t arr, closure_t predicate)
+public Int_t Array$first(Array_t arr, closure_t predicate)
 {
     bool (*is_good)(void*, void*) = (void*)predicate.fn;
     for (int64_t i = 0; i < arr.length; i++) {
         if (is_good(arr.data + i*arr.stride, predicate.userdata))
-            return arr.data + i*arr.stride;
+            return I(i+1);
     }
-    return NULL;
+    return NULL_INT;
 }
-
 
 public void Array$sort(Array_t *arr, closure_t comparison, int64_t padded_item_size)
 {
