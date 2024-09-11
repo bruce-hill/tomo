@@ -222,7 +222,8 @@ CORD compile_type(type_t *t)
     case OptionalType: {
         type_t *nonnull = Match(t, OptionalType)->type;
         switch (nonnull->tag) {
-        case BoolType: case CStringType: case BigIntType: case NumType: case TextType:
+        case BoolType: return "OptionalBool_t";
+        case CStringType: case BigIntType: case NumType: case TextType:
         case ArrayType: case SetType: case TableType: case FunctionType: case ClosureType:
         case PointerType: case EnumType: case ChannelType:
             return compile_type(nonnull);

@@ -8,7 +8,7 @@
 #include "util.h"
 
 public const Array_t NULL_ARRAY = {.length=-1};
-public const Bool_t NULL_BOOL = -1;
+public const OptionalBool_t NULL_BOOL = 2;
 public const Int_t NULL_INT = {.small=0};
 public const Table_t NULL_TABLE = {.entries.length=-1};
 public const Closure_t NULL_CLOSURE = {.fn=NULL};
@@ -19,7 +19,7 @@ static inline bool is_null(const void *obj, const TypeInfo *non_optional_type)
     if (non_optional_type == &Int$info)
         return ((Int_t*)obj)->small == 0;
     else if (non_optional_type == &Bool$info)
-        return *((Bool_t*)obj) == NULL_BOOL;
+        return *((OptionalBool_t*)obj) == NULL_BOOL;
     else if (non_optional_type == &Num$info)
         return isnan(*((Num_t*)obj));
     else if (non_optional_type == &Int64$info)
