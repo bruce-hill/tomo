@@ -1468,12 +1468,12 @@ PARSER(parse_lambda) {
     return NewAST(ctx->file, start, pos, Lambda, .id=ctx->next_lambda_id++, .args=args, .body=body);
 }
 
-PARSER(parse_nil) {
+PARSER(parse_null) {
     const char *start = pos;
     if (!match(&pos, "!")) return NULL;
     type_ast_t *type = parse_type(ctx, pos);
     if (!type) return NULL;
-    return NewAST(ctx->file, start, type->end, Nil, .type=type);
+    return NewAST(ctx->file, start, type->end, Null, .type=type);
 }
 
 PARSER(parse_var) {
@@ -1488,7 +1488,7 @@ PARSER(parse_term_no_suffix) {
     ast_t *term = NULL;
     (void)(
         false
-        || (term=parse_nil(ctx, pos))
+        || (term=parse_null(ctx, pos))
         || (term=parse_num(ctx, pos))
         || (term=parse_int(ctx, pos))
         || (term=parse_negative(ctx, pos))

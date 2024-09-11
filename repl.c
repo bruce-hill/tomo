@@ -337,7 +337,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
     type_t *t = get_type(env, ast);
     size_t size = type_size(t);
     switch (ast->tag) {
-    case Nil:
+    case Null:
         if (dest) *(void**)dest = 0;
         break;
     case Bool:

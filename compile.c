@@ -1689,8 +1689,8 @@ static bool string_literal_is_all_ascii(CORD literal)
 CORD compile(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
-    case Nil: {
-        type_t *t = parse_type_ast(env, Match(ast, Nil)->type);
+    case Null: {
+        type_t *t = parse_type_ast(env, Match(ast, Null)->type);
         if (t == THREAD_TYPE) return "NULL";
 
         switch (t->tag) {
@@ -1720,7 +1720,7 @@ CORD compile(env_t *env, ast_t *ast)
             env_t *enum_env = Match(t, EnumType)->env;
             return CORD_all("((", compile_type(t), "){", namespace_prefix(enum_env->libname, enum_env->namespace), "null})");
         }
-        default: code_err(ast, "Nil isn't implemented for this type: %T", t);
+        default: code_err(ast, "Null isn't implemented for this type: %T", t);
         }
     }
     case Bool: return Match(ast, Bool)->b ? "yes" : "no";

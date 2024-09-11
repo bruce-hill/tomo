@@ -489,8 +489,8 @@ type_t *get_type(env_t *env, ast_t *ast)
 {
     if (!ast) return NULL;
     switch (ast->tag) {
-    case Nil: {
-        type_t *t = parse_type_ast(env, Match(ast, Nil)->type);
+    case Null: {
+        type_t *t = parse_type_ast(env, Match(ast, Null)->type);
         return Type(OptionalType, .type=t);
     }
     case Bool: {
@@ -726,7 +726,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         auto indexing = Match(ast, Index);
         type_t *indexed_t = get_type(env, indexing->indexed);
         if (indexed_t->tag == OptionalType && !indexing->index)
-            code_err(ast, "You're attempting to dereference a value whose type indicates it could be nil");
+            code_err(ast, "You're attempting to dereference a value whose type indicates it could be null");
 
         if (indexed_t->tag == PointerType && !indexing->index)
             return Match(indexed_t, PointerType)->pointed;
@@ -1360,7 +1360,7 @@ type_t *parse_type_string(env_t *env, const char *str)
 PUREFUNC bool is_constant(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
-    case Bool: case Num: case Nil: case TextLiteral: return true;
+    case Bool: case Num: case Null: case TextLiteral: return true;
     case Int: {
         auto info = Match(ast, Int);
         if (info->bits == IBITS_UNSPECIFIED) {

@@ -106,7 +106,7 @@ struct type_ast_s {
 
 typedef enum {
     Unknown = 0,
-    Nil, Bool, Var,
+    Null, Bool, Var,
     Int, Num,
     TextLiteral, TextJoin, PrintStatement,
     Declare, Assign,
@@ -139,7 +139,7 @@ struct ast_s {
         struct {} Unknown;
         struct {
             type_ast_t *type;
-        } Nil;
+        } Null;
         struct {
             bool b;
         } Bool;
