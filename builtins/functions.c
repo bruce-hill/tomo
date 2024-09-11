@@ -16,6 +16,7 @@
 #include "files.h"
 #include "functions.h"
 #include "integers.h"
+#include "optionals.h"
 #include "pointer.h"
 #include "siphash.h"
 #include "string.h"
@@ -113,6 +114,9 @@ PUREFUNC public uint64_t generic_hash(const void *obj, const TypeInfo *type)
     case ArrayInfo: return Array$hash(obj, type);
     case ChannelInfo: return Channel$hash((const channel_t**)obj, type);
     case TableInfo: return Table$hash(obj, type);
+    case OptionalInfo: {
+        errx(1, "Optional hash not implemented");
+    }
     case EmptyStruct: return 0;
     case CustomInfo:
         if (!type->CustomInfo.hash)
@@ -135,6 +139,9 @@ PUREFUNC public int32_t generic_compare(const void *x, const void *y, const Type
     case ArrayInfo: return Array$compare(x, y, type);
     case ChannelInfo: return Channel$compare((const channel_t**)x, (const channel_t**)y, type);
     case TableInfo: return Table$compare(x, y, type);
+    case OptionalInfo: {
+        errx(1, "Optional compare not implemented");
+    }
     case EmptyStruct: return 0;
     case CustomInfo:
         if (!type->CustomInfo.compare)
@@ -157,6 +164,9 @@ PUREFUNC public bool generic_equal(const void *x, const void *y, const TypeInfo 
     case ChannelInfo: return Channel$equal((const channel_t**)x, (const channel_t**)y, type);
     case TableInfo: return Table$equal(x, y, type);
     case EmptyStruct: return true;
+    case OptionalInfo: {
+        errx(1, "Optional equal not implemented");
+    }
     case CustomInfo:
         if (!type->CustomInfo.equal)
             goto use_generic_compare;
@@ -177,6 +187,7 @@ public Text_t generic_as_text(const void *obj, bool colorize, const TypeInfo *ty
     case ChannelInfo: return Channel$as_text((const channel_t**)obj, colorize, type);
     case TableInfo: return Table$as_text(obj, colorize, type);
     case TypeInfoInfo: return Type$as_text(obj, colorize, type);
+    case OptionalInfo: return Optional$as_text(obj, colorize, type);
     case EmptyStruct: return colorize ?
                       Text$concat(Text("\x1b[0;1m"), Text$from_str(type->EmptyStruct.name), Text("\x1b[m()"))
                           : Text$concat(Text$from_str(type->EmptyStruct.name), Text("()"));

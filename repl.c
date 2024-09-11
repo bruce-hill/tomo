@@ -139,7 +139,7 @@ const TypeInfo *type_to_type_info(type_t *t)
         if (ptr->is_readonly) sigil = CORD_cat(sigil, "%");
         const TypeInfo *pointed_info = type_to_type_info(ptr->pointed);
         const TypeInfo pointer_info = {.size=sizeof(void*), .align=__alignof__(void*),
-            .tag=PointerInfo, .PointerInfo={.sigil=sigil, .pointed=pointed_info, .is_optional=ptr->is_optional}};
+            .tag=PointerInfo, .PointerInfo={.sigil=sigil, .pointed=pointed_info}};
         return memcpy(GC_MALLOC(sizeof(TypeInfo)), &pointer_info, sizeof(TypeInfo));
     }
     default: errx(1, "Unsupported type: %T", t);
@@ -494,8 +494,6 @@ void eval(env_t *env, ast_t *ast, void *dest)
         }
         case PointerType: {
             auto ptr = Match(indexed_t, PointerType);
-            if (ptr->is_optional)
-                repl_err(ast, "You can't dereference an optional pointer because it might be null");
             size_t pointed_size = type_size(ptr->pointed);
             void *pointer;
             eval(env, index->indexed, &pointer);

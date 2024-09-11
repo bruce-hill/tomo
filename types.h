@@ -57,6 +57,7 @@ struct type_s {
         PointerType,
         StructType,
         EnumType,
+        OptionalType,
         TypeInfoType,
         ModuleType,
     } tag;
@@ -97,7 +98,7 @@ struct type_s {
         } ClosureType;
         struct {
             type_t *pointed;
-            bool is_optional:1, is_stack:1, is_readonly:1;
+            bool is_stack:1, is_readonly:1;
         } PointerType;
         struct {
             const char *name;
@@ -111,6 +112,9 @@ struct type_s {
             bool opaque;
             struct env_s *env;
         } EnumType;
+        struct {
+            type_t *type;
+        } OptionalType;
         struct {
             const char *name;
             type_t *type;
@@ -139,11 +143,9 @@ PUREFUNC bool has_heap_memory(type_t *t);
 PUREFUNC bool has_stack_memory(type_t *t);
 PUREFUNC bool can_send_over_channel(type_t *t);
 PUREFUNC bool can_promote(type_t *actual, type_t *needed);
-PUREFUNC bool can_leave_uninitialized(type_t *t);
-PUREFUNC bool can_have_cycles(type_t *t);
 PUREFUNC bool is_int_type(type_t *t);
 PUREFUNC bool is_numeric_type(type_t *t);
-type_t *replace_type(type_t *t, type_t *target, type_t *replacement);
+PUREFUNC bool supports_optionals(type_t *t);
 PUREFUNC size_t type_size(type_t *t);
 PUREFUNC size_t type_align(type_t *t);
 PUREFUNC size_t padded_type_size(type_t *t);

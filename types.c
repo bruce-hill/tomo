@@ -65,11 +65,14 @@ CORD type_to_cord(type_t *t) {
             auto ptr = Match(t, PointerType);
             CORD sigil = ptr->is_stack ? "&" : "@";
             if (ptr->is_readonly) sigil = CORD_cat(sigil, "%");
-            return CORD_all(sigil, type_to_cord(ptr->pointed), ptr->is_optional ? "?" : CORD_EMPTY);
+            return CORD_all(sigil, type_to_cord(ptr->pointed));
         }
         case EnumType: {
             auto tagged = Match(t, EnumType);
             return tagged->name;
+        }
+        case OptionalType: {
+            return CORD_all(type_to_cord(Match(t, OptionalType)->type), "?");
         }
         case TypeInfoType: {
             return CORD_all("TypeInfo(", Match(t, TypeInfoType)->name, ")");
@@ -111,21 +114,20 @@ bool type_eq(type_t *a, type_t *b)
 bool type_is_a(type_t *t, type_t *req)
 {
     if (type_eq(t, req)) return true;
+    if (req->tag == OptionalType)
+        return type_is_a(t, Match(req, OptionalType)->type);
     if (t->tag == PointerType && req->tag == PointerType) {
         auto t_ptr = Match(t, PointerType);
         auto req_ptr = Match(req, PointerType);
         if (type_eq(t_ptr->pointed, req_ptr->pointed))
-            return (!t_ptr->is_stack && !t_ptr->is_optional && req_ptr->is_stack)
-                || (!t_ptr->is_stack && req_ptr->is_optional);
+            return (!t_ptr->is_stack && req_ptr->is_stack) || (!t_ptr->is_stack);
     }
     return false;
 }
 
 static type_t *non_optional(type_t *t)
 {
-    if (t->tag != PointerType) return t;
-    auto ptr = Match(t, PointerType);
-    return ptr->is_optional ? Type(PointerType, .is_optional=false, .pointed=ptr->pointed) : t;
+    return t->tag == OptionalType ? Match(t, OptionalType)->type : t;
 }
 
 PUREFUNC type_t *value_type(type_t *t)
@@ -217,6 +219,7 @@ PUREFUNC bool has_heap_memory(type_t *t)
     case TableType: return true;
     case SetType: return true;
     case PointerType: return true;
+    case OptionalType: return has_heap_memory(Match(t, OptionalType)->type);
     case BigIntType: return true;
     case StructType: {
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
@@ -243,6 +246,7 @@ PUREFUNC bool can_send_over_channel(type_t *t)
     case ChannelType: return true;
     case TableType: return true;
     case PointerType: return false;
+    case OptionalType: return can_send_over_channel(Match(t, OptionalType)->type);
     case StructType: {
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
             if (!can_send_over_channel(field->type))
@@ -265,6 +269,7 @@ PUREFUNC bool has_stack_memory(type_t *t)
 {
     switch (t->tag) {
     case PointerType: return Match(t, PointerType)->is_stack;
+    case OptionalType: return has_stack_memory(Match(t, OptionalType)->type);
     default: return false;
     }
 }
@@ -294,11 +299,13 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
         return true;
 
     // Automatic dereferencing:
-    if (actual->tag == PointerType && !Match(actual, PointerType)->is_optional
-        && can_promote(Match(actual, PointerType)->pointed, needed))
+    if (actual->tag == PointerType && can_promote(Match(actual, PointerType)->pointed, needed))
         return true;
 
     // Optional promotion:
+    if (needed->tag == OptionalType && can_promote(actual, Match(needed, OptionalType)->type))
+        return true;
+
     if (needed->tag == PointerType && actual->tag == PointerType) {
         auto needed_ptr = Match(needed, PointerType);
         auto actual_ptr = Match(actual, PointerType);
@@ -308,9 +315,6 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
             return false;
         else if (actual_ptr->is_stack && !needed_ptr->is_stack)
             // Can't use &x for a function that wants a @Foo or ?Foo
-            return false;
-        else if (actual_ptr->is_optional && !needed_ptr->is_optional)
-            // Can't use !Foo for a function that wants @Foo
             return false;
         else if (actual_ptr->is_readonly && !needed_ptr->is_readonly)
             // Can't use pointer to readonly data when we need a pointer that can write to the data
@@ -354,66 +358,6 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
     return false;
 }
 
-PUREFUNC bool can_leave_uninitialized(type_t *t)
-{
-    switch (t->tag) {
-    case PointerType: return Match(t, PointerType)->is_optional;
-    case ArrayType: case IntType: case NumType: case BoolType:
-        return true;
-    case ChannelType: return false;
-    case StructType: {
-        for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
-            if (!can_leave_uninitialized(field->type))
-                return false;
-        }
-        return true;
-    }
-    case EnumType: {
-        for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
-            if (tag->type && !can_leave_uninitialized(tag->type))
-                return false;
-        }
-        return true;
-    }
-    default: return false;
-    }
-}
-
-PUREFUNC static bool _can_have_cycles(type_t *t, Table_t *seen)
-{
-    switch (t->tag) {
-        case ArrayType: return _can_have_cycles(Match(t, ArrayType)->item_type, seen);
-        case ChannelType: return _can_have_cycles(Match(t, ChannelType)->item_type, seen);
-        case TableType: {
-            auto table = Match(t, TableType);
-            return _can_have_cycles(table->key_type, seen) || _can_have_cycles(table->value_type, seen);
-        }
-        case SetType: return _can_have_cycles(Match(t, SetType)->item_type, seen);
-        case StructType: {
-            for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
-                if (_can_have_cycles(field->type, seen))
-                    return true;
-            }
-            return false;
-        }
-        case PointerType: return _can_have_cycles(Match(t, PointerType)->pointed, seen);
-        case EnumType: {
-            for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
-                if (tag->type && _can_have_cycles(tag->type, seen))
-                    return true;
-            }
-            return false;
-        }
-        default: return false;
-    }
-}
-
-PUREFUNC bool can_have_cycles(type_t *t)
-{
-    Table_t seen = {0};
-    return _can_have_cycles(t, &seen);
-}
-
 PUREFUNC bool is_int_type(type_t *t)
 {
     return t->tag == IntType || t->tag == BigIntType;
@@ -424,48 +368,15 @@ PUREFUNC bool is_numeric_type(type_t *t)
     return t->tag == IntType || t->tag == BigIntType || t->tag == NumType;
 }
 
-type_t *replace_type(type_t *t, type_t *target, type_t *replacement)
+PUREFUNC bool supports_optionals(type_t *t)
 {
-    if (type_eq(t, target))
-        return replacement;
-
-#define COPY(t) memcpy(GC_MALLOC(sizeof(type_t)), (t), sizeof(type_t))
-#define REPLACED_MEMBER(t, tag, member) ({ t = memcpy(GC_MALLOC(sizeof(type_t)), (t), sizeof(type_t)); Match((struct type_s*)(t), tag)->member = replace_type(Match((t), tag)->member, target, replacement); t; })
     switch (t->tag) {
-        case ArrayType: return REPLACED_MEMBER(t, ArrayType, item_type);
-        case SetType: return REPLACED_MEMBER(t, SetType, item_type);
-        case ChannelType: return REPLACED_MEMBER(t, ChannelType, item_type);
-        case TableType: {
-            t = REPLACED_MEMBER(t, TableType, key_type);
-            t = REPLACED_MEMBER(t, TableType, value_type);
-            return t;
-        }
-        case FunctionType: {
-            auto fn = Match(t, FunctionType);
-            t = REPLACED_MEMBER(t, FunctionType, ret);
-            arg_t *args = LIST_MAP(fn->args, old_arg, .type=replace_type(old_arg->type, target, replacement));
-            Match((struct type_s*)t, FunctionType)->args = args;
-            return t;
-        }
-        case StructType: {
-            auto struct_ = Match(t, StructType);
-            arg_t *fields = LIST_MAP(struct_->fields, field, .type=replace_type(field->type, target, replacement));
-            t = COPY(t);
-            Match((struct type_s*)t, StructType)->fields = fields;
-            return t;
-        }
-        case PointerType: return REPLACED_MEMBER(t, PointerType, pointed);
-        case EnumType: {
-            auto tagged = Match(t, EnumType);
-            tag_t *tags = LIST_MAP(tagged->tags, tag, .type=replace_type(tag->type, target, replacement));
-            t = COPY(t);
-            Match((struct type_s*)t, EnumType)->tags = tags;
-            return t;
-        }
-        default: return t;
+    case BoolType: case CStringType: case BigIntType: case NumType: case TextType:
+    case ArrayType: case SetType: case TableType: case FunctionType: case ClosureType:
+    case PointerType:
+        return true;
+    default: return false;
     }
-#undef COPY
-#undef REPLACED_MEMBER
 }
 
 PUREFUNC size_t type_size(type_t *t)
@@ -495,6 +406,20 @@ PUREFUNC size_t type_size(type_t *t)
     case FunctionType: return sizeof(void*);
     case ClosureType: return sizeof(struct {void *fn, *userdata;});
     case PointerType: return sizeof(void*);
+    case OptionalType: {
+        type_t *nonnull = Match(t, OptionalType)->type;
+        switch (nonnull->tag) {
+        case IntType:
+            switch (Match(t, IntType)->bits) {
+            case TYPE_IBITS64: return sizeof(struct { int64_t x; bool is_null; });
+            case TYPE_IBITS32: return sizeof(int64_t);
+            case TYPE_IBITS16: return sizeof(int32_t);
+            case TYPE_IBITS8: return sizeof(int16_t);
+            default: errx(1, "Invalid integer bit size");
+            }
+        default: return type_size(nonnull);
+        }
+    }
     case StructType: {
         arg_t *fields = Match(t, StructType)->fields;
         size_t size = t->tag == StructType ? 0 : sizeof(void*);
@@ -558,6 +483,20 @@ PUREFUNC size_t type_align(type_t *t)
     case FunctionType: return __alignof__(void*);
     case ClosureType: return __alignof__(struct {void *fn, *userdata;});
     case PointerType: return __alignof__(void*);
+    case OptionalType: {
+        type_t *nonnull = Match(t, OptionalType)->type;
+        switch (nonnull->tag) {
+        case IntType:
+            switch (Match(t, IntType)->bits) {
+            case TYPE_IBITS64: return __alignof__(struct { int64_t x; bool is_null; });
+            case TYPE_IBITS32: return __alignof__(int64_t);
+            case TYPE_IBITS16: return __alignof__(int32_t);
+            case TYPE_IBITS8: return __alignof__(int16_t);
+            default: errx(1, "Invalid integer bit size");
+            }
+        default: return type_align(nonnull);
+        }
+    }
     case StructType: {
         arg_t *fields = Match(t, StructType)->fields;
         size_t align = t->tag == StructType ? 0 : sizeof(void*);
@@ -633,9 +572,9 @@ type_t *get_field_type(type_t *t, const char *field_name)
         else if (streq(field_name, "values"))
             return Type(ArrayType, Match(t, TableType)->value_type);
         else if (streq(field_name, "default"))
-            return Type(PointerType, .pointed=Match(t, TableType)->value_type, .is_readonly=true, .is_optional=true);
+            return Type(OptionalType, Match(t, TableType)->value_type);
         else if (streq(field_name, "fallback"))
-            return Type(PointerType, .pointed=t, .is_readonly=true, .is_optional=true);
+            return Type(OptionalType, .type=t);
         return NULL;
     }
     case ArrayType: {

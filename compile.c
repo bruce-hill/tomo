@@ -55,13 +55,17 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
     }
 
     // Automatic dereferencing:
-    if (actual->tag == PointerType && !Match(actual, PointerType)->is_optional
+    if (actual->tag == PointerType
         && can_promote(Match(actual, PointerType)->pointed, needed)) {
         *code = CORD_all("*(", *code, ")");
         return promote(env, code, Match(actual, PointerType)->pointed, needed);
     }
 
-    // Optional and stack ref promotion:
+    // Optional promotion:
+    if (needed->tag == OptionalType && type_eq(actual, Match(needed, OptionalType)->type))
+        return true;
+
+    // Stack ref promotion:
     if (actual->tag == PointerType && needed->tag == PointerType)
         return true;
 
@@ -194,6 +198,12 @@ CORD compile_type(type_t *t)
         auto e = Match(t, EnumType);
         return CORD_all(namespace_prefix(e->env->libname, e->env->namespace->parent), e->name, "_t");
     }
+    case OptionalType: {
+        type_t *nonnull = Match(t, OptionalType)->type;
+        if (!supports_optionals(nonnull))
+            compiler_err(NULL, NULL, NULL, "Optional types are not supported for: %T", t);
+        return compile_type(nonnull);
+    }
     case TypeInfoType: return "TypeInfo";
     default: compiler_err(NULL, NULL, NULL, "Compiling type is not implemented for type with tag %d", t->tag);
     }
@@ -213,11 +223,12 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
     if (ast->tag == Index) {
         auto index = Match(ast, Index);
         type_t *container_t = get_type(env, index->indexed);
-        if (!index->index && container_t->tag == PointerType) {
-            if (Match(container_t, PointerType)->is_optional)
-                code_err(index->indexed, "This pointer might be null, so it can't be safely used as an assignment target");
+        if (container_t->tag == OptionalType)
+            code_err(index->indexed, "This value might be null, so it can't be safely used as an assignment target");
+
+        if (!index->index && container_t->tag == PointerType)
             return compile(env, ast);
-        }
+
         container_t = value_type(container_t);
         if (container_t->tag == ArrayType) {
             CORD target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
@@ -269,6 +280,36 @@ static CORD compile_inline_block(env_t *env, ast_t *ast)
     return code;
 }
 
+static CORD compile_optional_into_nonnull(env_t *env, binding_t *b)
+{
+    (void)env;
+    // TODO: implement
+    return (b->code);
+}
+
+static CORD compile_optional_check(env_t *env, ast_t *ast)
+{
+    type_t *t = get_type(env, ast);
+    t = Match(t, OptionalType)->type;
+    if (t->tag == PointerType || t->tag == FunctionType)
+        return CORD_all("(", compile(env, ast), " != NULL)");
+    else if (t->tag == BigIntType)
+        return CORD_all("((", compile(env, ast), ").small != 0)");
+    else if (t->tag == ClosureType)
+        return CORD_all("((", compile(env, ast), ").fn != NULL)");
+    else if (t->tag == NumType)
+        return CORD_all("!isnan(", compile(env, ast), ")");
+    else if (t->tag == ArrayType)
+        return CORD_all("((", compile(env, ast), ").length >= 0)");
+    else if (t->tag == TableType || t->tag == SetType)
+        return CORD_all("((", compile(env, ast), ").entries.length >= 0)");
+    else if (t->tag == BoolType)
+        return CORD_all("((", compile(env, ast), ") != NULL_BOOL)");
+    else if (t->tag == TextType)
+        return CORD_all("((", compile(env, ast), ").length >= 0)");
+    errx(1, "Optional check not implemented for: %T", t);
+}
+
 CORD compile_statement(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
@@ -279,21 +320,6 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         auto when = Match(ast, When);
         type_t *subject_t = get_type(env, when->subject);
-
-        if (subject_t->tag == PointerType) {
-            ast_t *var = when->clauses->args->ast;
-            CORD var_code = compile(env, var);
-            env_t *non_null_scope = fresh_scope(env);
-            auto ptr = Match(subject_t, PointerType);
-            type_t *non_optional_t = Type(PointerType, .pointed=ptr->pointed, .is_stack=ptr->is_stack,
-                                          .is_readonly=ptr->is_readonly, .is_optional=false);
-            set_binding(non_null_scope, Match(var, Var)->name, new(binding_t, .type=non_optional_t, .code=var_code));
-            return CORD_all(
-                "{\n",
-                compile_declaration(subject_t, var_code), "  = ", compile(env, when->subject), ";\n"
-                "if (", var_code, ")\n", compile_statement(non_null_scope, when->clauses->body),
-                "\nelse\n", compile_statement(env, when->else_body), "\n}");
-        }
 
         auto enum_t = Match(subject_t, EnumType);
         CORD code = CORD_all("{ ", compile_type(subject_t), " subject = ", compile(env, when->subject), ";\n"
@@ -742,7 +768,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 "static Table_t cache = {};\n",
                 compile_type(args_t), " args = {", all_args, "};\n"
                 "const TypeInfo *table_type = Table$info(", compile_type_info(env, args_t), ", ", compile_type_info(env, ret_t), ");\n",
-                compile_declaration(Type(PointerType, .pointed=ret_t, .is_optional=true), "cached"), " = Table$get_raw(cache, &args, table_type);\n"
+                compile_declaration(Type(PointerType, .pointed=ret_t), "cached"), " = Table$get_raw(cache, &args, table_type);\n"
                 "if (cached) return *cached;\n",
                 compile_declaration(ret_t, "ret"), " = ", name, "$uncached(", all_args, ");\n",
                 pop_code,
@@ -1172,19 +1198,32 @@ CORD compile_statement(env_t *env, ast_t *ast)
         auto if_ = Match(ast, If);
         type_t *cond_t = get_type(env, if_->condition);
         if (cond_t->tag == PointerType) {
-            if (!Match(cond_t, PointerType)->is_optional)
-                code_err(if_->condition, "This pointer will always be non-null, so it should not be used in a conditional.");
-        } else if (cond_t->tag != BoolType && cond_t->tag != TextType) {
+            code_err(if_->condition, "This pointer will always be non-null, so it should not be used in a conditional.");
+        } else if (cond_t->tag != BoolType && cond_t->tag != TextType && cond_t->tag != OptionalType) {
             code_err(if_->condition, "Only boolean values, optional pointers, and text can be used in conditionals (this is a %T)", cond_t);
         }
 
+        env_t *truthy_scope = env; 
         CORD condition;
-        if (cond_t->tag == TextType)
+        if (cond_t->tag == TextType) {
             condition = CORD_all("(", compile(env, if_->condition), ").length");
-        else
+        } else if (cond_t->tag == OptionalType) {
+            if (if_->condition->tag == Var) {
+                truthy_scope = fresh_scope(env);
+                const char *varname = Match(if_->condition, Var)->name;
+                binding_t *b = get_binding(env, varname);
+                binding_t *nonnull_b = new(binding_t);
+                *nonnull_b = *b;
+                nonnull_b->type = Match(cond_t, OptionalType)->type;
+                nonnull_b->code = compile_optional_into_nonnull(env, b);
+                set_binding(truthy_scope, varname, nonnull_b);
+            }
+            condition = compile_optional_check(env, if_->condition);
+        } else {
             condition = compile(env, if_->condition);
+        }
 
-        CORD code = CORD_all("if (", condition, ")", compile_statement(env, if_->body));
+        CORD code = CORD_all("if (", condition, ")", compile_statement(truthy_scope, if_->body));
         if (if_->else_body)
             code = CORD_all(code, "\nelse ", compile_statement(env, if_->else_body));
         return code;
@@ -1280,6 +1319,7 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
     case TableType: return CORD_asprintf("Table$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case FunctionType: case ClosureType: return CORD_asprintf("Func$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case PointerType: return CORD_asprintf("Pointer$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case OptionalType: return CORD_asprintf("Optional$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case StructType: case EnumType:
         return CORD_asprintf("(%r)->CustomInfo.as_text(stack(%r), %r, %r)",
                              compile_type_info(env, t), expr, color, compile_type_info(env, t));
@@ -1317,8 +1357,6 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
             ++depth;
         } else {
             auto ptr = Match(t, PointerType);
-            if (ptr->is_optional)
-                code_err(ast, "You can't dereference this value, since it's not guaranteed to be non-null");
             val = CORD_all("*(", val, ")");
             t = ptr->pointed;
             --depth;
@@ -1327,8 +1365,6 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
 
     while (t->tag == PointerType) {
         auto ptr = Match(t, PointerType);
-        if (ptr->is_optional)
-            code_err(ast, "You can't dereference this value, since it's not guaranteed to be non-null");
         t = ptr->pointed;
     }
 
@@ -1594,7 +1630,18 @@ CORD compile(env_t *env, ast_t *ast)
     switch (ast->tag) {
     case Nil: {
         type_t *t = parse_type_ast(env, Match(ast, Nil)->type);
-        return CORD_all("((", compile_type(t), ")NULL)");
+        switch (t->tag) {
+        case BigIntType: return "NULL_INT";
+        case BoolType: return "NULL_BOOL";
+        case ArrayType: return "NULL_ARRAY";
+        case TableType: return "NULL_TABLE";
+        case SetType: return "NULL_TABLE";
+        case TextType: return "NULL_TEXT";
+        case PointerType: return CORD_all("((", compile_type(t), ")NULL)");
+        case ClosureType: return "NULL_CLOSURE";
+        case NumType: return "nan(\"null\")";
+        default: code_err(ast, "Nil isn't implemented for this type: %T", t);
+        }
     }
     case Bool: return Match(ast, Bool)->b ? "yes" : "no";
     case Var: {
@@ -1668,8 +1715,8 @@ CORD compile(env_t *env, ast_t *ast)
             return CORD_all("((", compile(env, value), ").entries.length == 0)");
         else if (t->tag == TextType)
             return CORD_all("(", compile(env, value), " == CORD_EMPTY)");
-        else if (t->tag == PointerType && Match(t, PointerType)->is_optional)
-            return CORD_all("(", compile(env, value), " == NULL)");
+        else if (t->tag == OptionalType)
+            return CORD_all("!(", compile_optional_check(env, value), ")");
 
         code_err(ast, "I don't know how to negate values of type %T", t);
     }
@@ -2058,7 +2105,7 @@ CORD compile(env_t *env, ast_t *ast)
         if (!table->entries) {
             CORD code = "((Table_t){";
             if (table->fallback)
-                code = CORD_all(code, ".fallback=", compile(env, table->fallback),",");
+                code = CORD_all(code, ".fallback=heap(", compile(env, table->fallback),")");
             return CORD_cat(code, "})");
         }
 
@@ -2883,7 +2930,7 @@ CORD compile(env_t *env, ast_t *ast)
                                 "values.data += ", CORD_asprintf("%zu", offset), ";\n"
                                 "values; })");
             } else if (streq(f->field, "fallback")) {
-                return CORD_all("(", compile_to_pointer_depth(env, f->fielded, 0, false), ").fallback");
+                return CORD_all("({ Table_t *_fallback = (", compile_to_pointer_depth(env, f->fielded, 0, false), ").fallback; _fallback ? *_fallback : NULL_TABLE; })");
             }
             code_err(ast, "There is no '%s' field on tables", f->field);
         }
@@ -2903,8 +2950,6 @@ CORD compile(env_t *env, ast_t *ast)
             if (indexed_type->tag != PointerType)
                 code_err(ast, "Only pointers can use the '[]' operator to dereference the entire value.");
             auto ptr = Match(indexed_type, PointerType);
-            if (ptr->is_optional)
-                code_err(ast, "This pointer is potentially null, so it can't be safely dereferenced");
             if (ptr->pointed->tag == ArrayType) {
                 return CORD_all("({ Array_t *arr = ", compile(env, indexing->indexed), "; ARRAY_INCREF(*arr); *arr; })");
             } else if (ptr->pointed->tag == TableType || ptr->pointed->tag == SetType) {
@@ -3083,16 +3128,18 @@ CORD compile_type_info(env_t *env, type_t *t)
         auto ptr = Match(t, PointerType);
         CORD sigil = ptr->is_stack ? "&" : "@";
         if (ptr->is_readonly) sigil = CORD_cat(sigil, "%");
-        return CORD_asprintf("Pointer$info(%r, %r, %s)",
+        return CORD_asprintf("Pointer$info(%r, %r)",
                              CORD_quoted(sigil),
-                             compile_type_info(env, ptr->pointed),
-                             ptr->is_optional ? "yes" : "no");
+                             compile_type_info(env, ptr->pointed));
     }
     case FunctionType: {
         return CORD_asprintf("Function$info(%r)", CORD_quoted(type_to_cord(t)));
     }
     case ClosureType: {
         return CORD_asprintf("Closure$info(%r)", CORD_quoted(type_to_cord(t)));
+    }
+    case OptionalType: {
+        return CORD_asprintf("Optional$info(%r)", compile_type_info(env, Match(t, OptionalType)->type));
     }
     case TypeInfoType: return "&TypeInfo$info";
     case MemoryType: return "&Memory$info";

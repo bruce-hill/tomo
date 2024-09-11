@@ -17,7 +17,8 @@ typedef Text_t (*text_fn_t)(const void*, bool, const struct TypeInfo*);
 typedef struct TypeInfo {
     int64_t size, align;
     struct { // Anonymous tagged union for convenience 
-        enum { CustomInfo, PointerInfo, TextInfo, ArrayInfo, ChannelInfo, TableInfo, FunctionInfo, TypeInfoInfo, OpaqueInfo, EmptyStruct } tag;
+        enum { CustomInfo, PointerInfo, TextInfo, ArrayInfo, ChannelInfo, TableInfo, FunctionInfo,
+            OptionalInfo, TypeInfoInfo, OpaqueInfo, EmptyStruct } tag;
         union {
             struct {
                 equal_fn_t equal;
@@ -27,7 +28,6 @@ typedef struct TypeInfo {
             } CustomInfo;
             struct {
                 const char *sigil;
-                bool is_optional;
                 const struct TypeInfo *pointed;
             } PointerInfo;
             struct {
@@ -45,6 +45,9 @@ typedef struct TypeInfo {
             struct {
                 const char *type_str;
             } TypeInfoInfo;
+            struct {
+                const struct TypeInfo *type;
+            } OptionalInfo;
 #pragma GCC diagnostic ignored "-Wpedantic"
             struct {} OpaqueInfo;
             struct {
@@ -54,8 +57,8 @@ typedef struct TypeInfo {
     };
 } TypeInfo;
 
-#define Pointer$info(sigil_expr, pointed_info, opt) &((TypeInfo){.size=sizeof(void*), .align=__alignof__(void*), \
-                                                      .tag=PointerInfo, .PointerInfo={.sigil=sigil_expr, .pointed=pointed_info, .is_optional=opt}})
+#define Pointer$info(sigil_expr, pointed_info) &((TypeInfo){.size=sizeof(void*), .align=__alignof__(void*), \
+                                                      .tag=PointerInfo, .PointerInfo={.sigil=sigil_expr, .pointed=pointed_info}})
 #define Array$info(item_info) &((TypeInfo){.size=sizeof(Array_t), .align=__alignof__(Array_t), \
                                 .tag=ArrayInfo, .ArrayInfo.item=item_info})
 #define Set$info(item_info) &((TypeInfo){.size=sizeof(Table_t), .align=__alignof__(Table_t), \
@@ -70,6 +73,8 @@ typedef struct TypeInfo {
                                  .tag=FunctionInfo, .FunctionInfo.type_str=typestr})
 #define TypeInfo$info(typestr) &((TypeInfo){.size=sizeof(TypeInfo), .align=__alignof__(TypeInfo), \
                                  .tag=TypeInfoInfo, .TypeInfoInfo.type_str=typestr})
+#define Optional$info(t) &((TypeInfo){.size=(t)->size, .align=(t)->align, \
+                           .tag=OptionalInfo, .OptionalInfo.type=t})
 
 extern const TypeInfo TypeInfo$info;
 extern const TypeInfo Void$info;

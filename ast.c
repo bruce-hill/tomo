@@ -168,13 +168,14 @@ CORD type_ast_to_xml(type_ast_t *t)
 #define T(type, ...) case type: { auto data = t->__data.type; (void)data; return CORD_asprintf(__VA_ARGS__); }
     T(UnknownTypeAST, "<UnknownType/>")
     T(VarTypeAST, "%s", data.name)
-    T(PointerTypeAST, "<PointerType is_optional=\"%s\" is_stack=\"%s\" is_readonly=\"%s\">%r</PointerType>",
-      data.is_optional ? "yes" : "no", data.is_stack ? "yes" : "no", data.is_readonly ? "yes" : "no", type_ast_to_xml(data.pointed))
+    T(PointerTypeAST, "<PointerType is_stack=\"%s\" is_readonly=\"%s\">%r</PointerType>",
+      data.is_stack ? "yes" : "no", data.is_readonly ? "yes" : "no", type_ast_to_xml(data.pointed))
     T(ArrayTypeAST, "<ArrayType>%r</ArrayType>", type_ast_to_xml(data.item))
     T(SetTypeAST, "<TableType>%r</TableType>", type_ast_to_xml(data.item))
     T(ChannelTypeAST, "<ChannelType>%r</ChannelType>", type_ast_to_xml(data.item))
     T(TableTypeAST, "<TableType>%r %r</TableType>", type_ast_to_xml(data.key), type_ast_to_xml(data.value))
     T(FunctionTypeAST, "<FunctionType>%r %r</FunctionType>", arg_list_to_xml(data.args), type_ast_to_xml(data.ret))
+    T(OptionalTypeAST, "<OptionalType>%r</OptionalType>", data.type)
 #undef T
     default: return CORD_EMPTY;
     }

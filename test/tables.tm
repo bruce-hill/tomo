@@ -38,7 +38,7 @@ func main():
 	>> t2.length
 	= 1
 	>> t2.fallback
-	= @%{"one":1, "two":2}?
+	= {"one":1, "two":2}?
 
 	t2_str := ""
 	for k,v in t2:

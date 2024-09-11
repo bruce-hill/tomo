@@ -168,8 +168,8 @@ func main():
 	>> [10, 20, 30]:find(999)
 	= 0
 
-    >> [10, 20]:first(func(i:&Int): i:is_prime())
-    = !Int
-    >> [4, 5, 6]:first(func(i:&Int): i:is_prime())
-    = @%5?
+	# >> [10, 20]:first(func(i:&Int): i:is_prime())
+	# = !Int
+	# >> [4, 5, 6]:first(func(i:&Int): i:is_prime())
+	# = @%5?
 

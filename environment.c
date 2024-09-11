@@ -287,7 +287,7 @@ env_t *new_compilation_unit(CORD *libname)
         )},
         {"Shell", Type(TextType, .lang="Shell", .env=namespace_env(env, "Shell")), "Shell_t", "Shell$info", TypedArray(ns_entry_t,
             {"escape_text", "Shell$escape_text", "func(text:Text)->Shell"},
-            {"run", "Shell$run", "func(command:Shell, status=!&Int32?)->Text"},
+            {"run", "Shell$run", "func(command:Shell, status=!&Int32)->Text"},
         )},
         {"Text", TEXT_TYPE, "Text_t", "Text$info", TypedArray(ns_entry_t,
             {"as_c_string", "Text$as_c_string", "func(text:Text)->CString"},

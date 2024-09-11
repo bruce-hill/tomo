@@ -27,10 +27,6 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo *type
             text = Text$concat(Text("\x1b[34;1m"), Text$from_str(ptr_info.sigil), typename, Text("\x1b[m"));
         else
             text = Text$concat(Text$from_str(ptr_info.sigil), typename);
-
-        if (ptr_info.is_optional)
-            text = Text$concat(text, Text("?"));
-
         return text;
     }
     const void *ptr = *(const void**)x;
@@ -55,8 +51,6 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo *type
                 Text(".."),
                 Int32$as_text(&depth, false, &Int32$info),
                 colorize ? Text("\x1b[m") : Text(""));
-            if (ptr_info.is_optional)
-                text = Text$concat(text, colorize ? Text("\x1b[34;1m?\x1b[m") : Text("?"));
             return text;
         }
     }
@@ -73,9 +67,6 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo *type
         text = Text$concat(Text("\x1b[34;1m"), Text$from_str(ptr_info.sigil), Text("\x1b[m"), pointed);
     else
         text = Text$concat(Text$from_str(ptr_info.sigil), pointed);
-
-    if (ptr_info.is_optional)
-        text = Text$concat(text, Text("?"));
     return text;
 }
 

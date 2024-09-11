@@ -61,6 +61,7 @@ typedef enum {
     ChannelTypeAST,
     TableTypeAST,
     FunctionTypeAST,
+    OptionalTypeAST,
 } type_ast_e;
 
 typedef struct tag_ast_s {
@@ -83,7 +84,7 @@ struct type_ast_s {
         } VarTypeAST;
         struct {
             type_ast_t *pointed;
-            bool is_optional:1, is_stack:1, is_readonly:1;
+            bool is_stack:1, is_readonly:1;
         } PointerTypeAST;
         struct {
             type_ast_t *item;
@@ -98,6 +99,9 @@ struct type_ast_s {
             arg_ast_t *args;
             type_ast_t *ret;
         } FunctionTypeAST;
+        struct {
+            type_ast_t *type;
+        } OptionalTypeAST;
     } __data;
 };
 
