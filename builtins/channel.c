@@ -19,11 +19,11 @@
 #include "types.h"
 #include "util.h"
 
-public channel_t *Channel$new(Int_t max_size)
+public Channel_t *Channel$new(Int_t max_size)
 {
     if (Int$compare_value(max_size, I_small(0)) <= 0)
         fail("Cannot create a channel with a size less than one: %ld", max_size);
-    channel_t *channel = new(channel_t);
+    Channel_t *channel = new(Channel_t);
     channel->items = (Array_t){};
     channel->mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
     channel->cond = (pthread_cond_t)PTHREAD_COND_INITIALIZER;
@@ -31,7 +31,7 @@ public channel_t *Channel$new(Int_t max_size)
     return channel;
 }
 
-public void Channel$give(channel_t *channel, const void *item, bool front, int64_t padded_item_size)
+public void Channel$give(Channel_t *channel, const void *item, bool front, int64_t padded_item_size)
 {
     (void)pthread_mutex_lock(&channel->mutex);
     while (channel->items.length >= channel->max_size)
@@ -42,7 +42,7 @@ public void Channel$give(channel_t *channel, const void *item, bool front, int64
     (void)pthread_cond_signal(&channel->cond);
 }
 
-public void Channel$give_all(channel_t *channel, Array_t to_give, bool front, int64_t padded_item_size)
+public void Channel$give_all(Channel_t *channel, Array_t to_give, bool front, int64_t padded_item_size)
 {
     if (to_give.length == 0) return;
     (void)pthread_mutex_lock(&channel->mutex);
@@ -60,7 +60,7 @@ public void Channel$give_all(channel_t *channel, Array_t to_give, bool front, in
     (void)pthread_cond_signal(&channel->cond);
 }
 
-public void Channel$get(channel_t *channel, void *out, bool front, int64_t item_size, int64_t padded_item_size)
+public void Channel$get(Channel_t *channel, void *out, bool front, int64_t item_size, int64_t padded_item_size)
 {
     (void)pthread_mutex_lock(&channel->mutex);
     while (channel->items.length == 0)
@@ -72,7 +72,7 @@ public void Channel$get(channel_t *channel, void *out, bool front, int64_t item_
     (void)pthread_cond_signal(&channel->cond);
 }
 
-public void Channel$peek(channel_t *channel, void *out, bool front, int64_t item_size)
+public void Channel$peek(Channel_t *channel, void *out, bool front, int64_t item_size)
 {
     (void)pthread_mutex_lock(&channel->mutex);
     while (channel->items.length == 0)
@@ -83,7 +83,7 @@ public void Channel$peek(channel_t *channel, void *out, bool front, int64_t item
     (void)pthread_cond_signal(&channel->cond);
 }
 
-public Array_t Channel$view(channel_t *channel)
+public Array_t Channel$view(Channel_t *channel)
 {
     (void)pthread_mutex_lock(&channel->mutex);
     ARRAY_INCREF(channel->items);
@@ -92,7 +92,7 @@ public Array_t Channel$view(channel_t *channel)
     return ret;
 }
 
-public void Channel$clear(channel_t *channel)
+public void Channel$clear(Channel_t *channel)
 {
     (void)pthread_mutex_lock(&channel->mutex);
     Array$clear(&channel->items);
@@ -100,25 +100,25 @@ public void Channel$clear(channel_t *channel)
     (void)pthread_cond_signal(&channel->cond);
 }
 
-PUREFUNC public uint64_t Channel$hash(channel_t **channel, const TypeInfo *type)
+PUREFUNC public uint64_t Channel$hash(Channel_t **channel, const TypeInfo *type)
 {
     (void)type;
-    return siphash24((void*)*channel, sizeof(channel_t*));
+    return siphash24((void*)*channel, sizeof(Channel_t*));
 }
 
-PUREFUNC public int32_t Channel$compare(channel_t **x, channel_t **y, const TypeInfo *type)
+PUREFUNC public int32_t Channel$compare(Channel_t **x, Channel_t **y, const TypeInfo *type)
 {
     (void)type;
     return (*x > *y) - (*x < *y);
 }
 
-PUREFUNC public bool Channel$equal(channel_t **x, channel_t **y, const TypeInfo *type)
+PUREFUNC public bool Channel$equal(Channel_t **x, Channel_t **y, const TypeInfo *type)
 {
     (void)type;
     return (*x == *y);
 }
 
-public Text_t Channel$as_text(channel_t **channel, bool colorize, const TypeInfo *type)
+public Text_t Channel$as_text(Channel_t **channel, bool colorize, const TypeInfo *type)
 {
     const TypeInfo *item_type = type->ChannelInfo.item;
     if (!channel) {

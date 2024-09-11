@@ -403,7 +403,7 @@ PUREFUNC size_t type_size(type_t *t)
     case TextType: return sizeof(Text_t);
     case ArrayType: return sizeof(Array_t);
     case SetType: return sizeof(Table_t);
-    case ChannelType: return sizeof(channel_t*);
+    case ChannelType: return sizeof(Channel_t*);
     case TableType: return sizeof(Table_t);
     case FunctionType: return sizeof(void*);
     case ClosureType: return sizeof(struct {void *fn, *userdata;});
@@ -481,7 +481,7 @@ PUREFUNC size_t type_align(type_t *t)
     case TextType: return __alignof__(Text_t);
     case SetType: return __alignof__(Table_t);
     case ArrayType: return __alignof__(Array_t);
-    case ChannelType: return __alignof__(channel_t*);
+    case ChannelType: return __alignof__(Channel_t*);
     case TableType: return __alignof__(Table_t);
     case FunctionType: return __alignof__(void*);
     case ClosureType: return __alignof__(struct {void *fn, *userdata;});

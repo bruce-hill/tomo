@@ -69,7 +69,7 @@ typedef struct {
     pthread_mutex_t mutex;
     pthread_cond_t cond;
     int64_t max_size;
-} channel_t;
+} Channel_t;
 
 enum text_type { TEXT_SHORT_ASCII, TEXT_ASCII, TEXT_SHORT_GRAPHEMES, TEXT_GRAPHEMES, TEXT_SUBTEXT };
 

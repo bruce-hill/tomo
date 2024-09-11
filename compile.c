@@ -196,7 +196,7 @@ CORD compile_type(type_t *t)
     }
     case ArrayType: return "Array_t";
     case SetType: return "Table_t";
-    case ChannelType: return "channel_t*";
+    case ChannelType: return "Channel_t*";
     case TableType: return "Table_t";
     case FunctionType: {
         auto fn = Match(t, FunctionType);

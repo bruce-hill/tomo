@@ -63,7 +63,7 @@ typedef struct TypeInfo {
                                 .tag=ArrayInfo, .ArrayInfo.item=item_info})
 #define Set$info(item_info) &((TypeInfo){.size=sizeof(Table_t), .align=__alignof__(Table_t), \
                               .tag=TableInfo, .TableInfo.key=item_info, .TableInfo.value=&Void$info})
-#define Channel$info(item_info) &((TypeInfo){.size=sizeof(channel_t), .align=__alignof__(channel_t), \
+#define Channel$info(item_info) &((TypeInfo){.size=sizeof(Channel_t), .align=__alignof__(Channel_t), \
                                 .tag=ChannelInfo, .ChannelInfo.item=item_info})
 #define Table$info(key_expr, value_expr) &((TypeInfo){.size=sizeof(Table_t), .align=__alignof__(Table_t), \
                                            .tag=TableInfo, .TableInfo.key=key_expr, .TableInfo.value=value_expr})
