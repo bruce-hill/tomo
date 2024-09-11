@@ -238,7 +238,7 @@ func takes_many_types(
     array_of_ints:[Int],
     table_of_text_to_bools:{Text:Bool},
     pointer_to_mutable_array_of_ints:@[Int],
-    maybe_null_pointer_to_int:@Int?,
+    optional_int:Int?,
     function_from_int_to_text:func(x:Int)->Text,
 ):
     pass
