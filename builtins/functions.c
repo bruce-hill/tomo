@@ -112,7 +112,7 @@ PUREFUNC public uint64_t generic_hash(const void *obj, const TypeInfo *type)
     switch (type->tag) {
     case TextInfo: return Text$hash((void*)obj);
     case ArrayInfo: return Array$hash(obj, type);
-    case ChannelInfo: return Channel$hash((const channel_t**)obj, type);
+    case ChannelInfo: return Channel$hash((channel_t**)obj, type);
     case TableInfo: return Table$hash(obj, type);
     case OptionalInfo: {
         errx(1, "Optional hash not implemented");
@@ -137,7 +137,7 @@ PUREFUNC public int32_t generic_compare(const void *x, const void *y, const Type
     case PointerInfo: case FunctionInfo: return Pointer$compare(x, y, type);
     case TextInfo: return Text$compare(x, y);
     case ArrayInfo: return Array$compare(x, y, type);
-    case ChannelInfo: return Channel$compare((const channel_t**)x, (const channel_t**)y, type);
+    case ChannelInfo: return Channel$compare((channel_t**)x, (channel_t**)y, type);
     case TableInfo: return Table$compare(x, y, type);
     case OptionalInfo: {
         errx(1, "Optional compare not implemented");
@@ -161,7 +161,7 @@ PUREFUNC public bool generic_equal(const void *x, const void *y, const TypeInfo 
     case PointerInfo: case FunctionInfo: return Pointer$equal(x, y, type);
     case TextInfo: return Text$equal(x, y);
     case ArrayInfo: return Array$equal(x, y, type);
-    case ChannelInfo: return Channel$equal((const channel_t**)x, (const channel_t**)y, type);
+    case ChannelInfo: return Channel$equal((channel_t**)x, (channel_t**)y, type);
     case TableInfo: return Table$equal(x, y, type);
     case EmptyStructInfo: return true;
     case OptionalInfo: {
@@ -184,7 +184,7 @@ public Text_t generic_as_text(const void *obj, bool colorize, const TypeInfo *ty
     case FunctionInfo: return Func$as_text(obj, colorize, type);
     case TextInfo: return Text$as_text(obj, colorize, type);
     case ArrayInfo: return Array$as_text(obj, colorize, type);
-    case ChannelInfo: return Channel$as_text((const channel_t**)obj, colorize, type);
+    case ChannelInfo: return Channel$as_text((channel_t**)obj, colorize, type);
     case TableInfo: return Table$as_text(obj, colorize, type);
     case TypeInfoInfo: return Type$as_text(obj, colorize, type);
     case OptionalInfo: return Optional$as_text(obj, colorize, type);
