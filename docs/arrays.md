@@ -345,11 +345,11 @@ A table mapping each element to its count.
 ### `find`
 
 **Description:**  
-Finds the index of the first occurrence of an element.
+Finds the index of the first occurrence of an element (if any).
 
 **Usage:**  
 ```markdown
-find(arr: [T]) -> Int
+find(arr: [T]) -> Int?
 ```
 
 **Parameters:**
@@ -357,15 +357,15 @@ find(arr: [T]) -> Int
 - `arr`: The array to search through.
 
 **Returns:**  
-The index of the first occurrence or `0` if not found.
+The index of the first occurrence or `!Int` if not found.
 
 **Example:**  
 ```markdown
 >> [10, 20, 30, 40, 50]:find(20)
-= 2
+= 2?
 
 >> [10, 20, 30, 40, 50]:find(9999)
-= 0
+= !Int
 ```
 
 ---
@@ -373,7 +373,7 @@ The index of the first occurrence or `0` if not found.
 ### `first`
 
 **Description:**  
-Find the first item that matches a predicate function.
+Find the index of the first item that matches a predicate function (if any).
 
 **Usage:**  
 ```markdown
@@ -387,15 +387,15 @@ first(arr: [T], predicate: func(item:&T)->Bool) -> Int
   `no` if it should not.
 
 **Returns:**  
-Returns a pointer to the first item that matches the given predicate, or null
-if no match is found.
+Returns the index of the first item where the predicate is true or `!Int` if no
+item matches.
 
 **Example:**  
 ```markdown
-when nums:find(func(i:&Int): i:is_prime()) is @prime:
-    say("Got a prime: $prime")
-else:
-    say("No primes")
+>> [4, 5, 6]:find(func(i:&Int): i:is_prime())
+= 5?
+>> [4, 6, 8]:find(func(i:&Int): i:is_prime())
+= !Int
 ```
 
 ---
