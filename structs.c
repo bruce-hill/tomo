@@ -169,18 +169,24 @@ CORD compile_struct_typedef(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
     CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
-    CORD code = CORD_all("typedef struct ", full_name, "_s ", full_name, "_t;\n");
 
-    CORD struct_code = CORD_all("struct ", full_name, "_s {\n");
+    CORD fields = CORD_EMPTY;
     for (arg_ast_t *field = def->fields; field; field = field->next) {
         type_t *field_t = get_arg_ast_type(env, field);
         CORD type_code = compile_type(field_t);
-        CORD_appendf(&struct_code, "%r $%s%s;\n", type_code, field->name,
-                     CORD_cmp(type_code, "Bool_t") ? "" : ":1");
+        fields = CORD_all(fields, type_code, " $", field->name, field_t->tag == BoolType ? ":1" : CORD_EMPTY, ";\n");
     }
+    CORD struct_code = CORD_all("struct ", full_name, "_s {\n");
     struct_code = CORD_all(struct_code, "};\n");
-    code = CORD_all(code, struct_code);
-    return code;
+    return CORD_all(
+        "typedef struct ", full_name, "_s ", full_name, "_t;\n",
+        "struct ", full_name, "_s {\n",
+        fields,
+        "};\n",
+        "typedef struct {\n",
+        full_name, "_t value;\n"
+        "Bool_t is_null:1;\n"
+        "} ", namespace_prefix(env->libname, env->namespace), "$Optional", def->name, "_t;\n");
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

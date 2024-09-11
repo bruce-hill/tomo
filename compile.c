@@ -23,7 +23,24 @@ static CORD compile_string(env_t *env, ast_t *ast, CORD color);
 static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args);
 static CORD compile_maybe_incref(env_t *env, ast_t *ast);
 static CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target);
+static CORD promote_to_optional(type_t *t, CORD code);
 
+CORD promote_to_optional(type_t *t, CORD code)
+{
+    if (t->tag == IntType) {
+        switch (Match(t, IntType)->bits) {
+        case TYPE_IBITS8: return CORD_all("((OptionalInt8_t){.i=", code, "})");
+        case TYPE_IBITS16: return CORD_all("((OptionalInt16_t){.i=", code, "})");
+        case TYPE_IBITS32: return CORD_all("((OptionalInt32_t){.i=", code, "})");
+        case TYPE_IBITS64: return CORD_all("((OptionalInt64_t){.i=", code, "})");
+        default: errx(1, "Unsupported in type: %T", t);
+        }
+    } else if (t->tag == StructType) {
+        return CORD_all("((", compile_type(Type(OptionalType, .type=t)), "){.value=", code, "})");
+    } else {
+        return code;
+    }
+}
 static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
 {
     if (type_eq(actual, needed))
@@ -62,8 +79,10 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
     }
 
     // Optional promotion:
-    if (needed->tag == OptionalType && type_eq(actual, Match(needed, OptionalType)->type))
+    if (needed->tag == OptionalType && type_eq(actual, Match(needed, OptionalType)->type)) {
+        *code = promote_to_optional(actual, *code);
         return true;
+    }
 
     // Stack ref promotion:
     if (actual->tag == PointerType && needed->tag == PointerType)
@@ -189,9 +208,9 @@ CORD compile_type(type_t *t)
     case ClosureType: return "closure_t";
     case PointerType: return CORD_cat(compile_type(Match(t, PointerType)->pointed), "*");
     case StructType: {
-        auto s = Match(t, StructType);
         if (t == THREAD_TYPE)
             return "pthread_t*";
+        auto s = Match(t, StructType);
         return CORD_all("struct ", namespace_prefix(s->env->libname, s->env->namespace->parent), s->name, "_s");
     }
     case EnumType: {
@@ -200,11 +219,22 @@ CORD compile_type(type_t *t)
     }
     case OptionalType: {
         type_t *nonnull = Match(t, OptionalType)->type;
-        if (nonnull->tag == IntType)
+        switch (nonnull->tag) {
+        case BoolType: case CStringType: case BigIntType: case NumType: case TextType:
+        case ArrayType: case SetType: case TableType: case FunctionType: case ClosureType:
+        case PointerType:
+            return compile_type(nonnull);
+        case IntType:
             return CORD_all("Optional", compile_type(nonnull));
-        if (!supports_optionals(nonnull))
+        case StructType: {
+            if (nonnull == THREAD_TYPE)
+                return "pthread_t*";
+            auto s = Match(nonnull, StructType);
+            return CORD_all(namespace_prefix(s->env->libname, s->env->namespace->parent), "$Optional", s->name, "_t");
+        }
+        default:
             compiler_err(NULL, NULL, NULL, "Optional types are not supported for: %T", t);
-        return compile_type(nonnull);
+        }
     }
     case TypeInfoType: return "TypeInfo";
     default: compiler_err(NULL, NULL, NULL, "Compiling type is not implemented for type with tag %d", t->tag);
@@ -287,6 +317,8 @@ static CORD optional_var_into_nonnull(binding_t *b)
     switch (b->type->tag) {
     case IntType:
         return CORD_all(b->code, ".i");
+    case StructType:
+        return CORD_all(b->code, ".value");
     default:
         return b->code;
     }
@@ -313,6 +345,8 @@ static CORD compile_optional_check(env_t *env, ast_t *ast)
     else if (t->tag == TextType)
         return CORD_all("((", compile(env, ast), ").length >= 0)");
     else if (t->tag == IntType)
+        return CORD_all("!(", compile(env, ast), ").is_null");
+    else if (t->tag == StructType)
         return CORD_all("!(", compile(env, ast), ").is_null");
     errx(1, "Optional check not implemented for: %T", t);
 }
@@ -1672,6 +1706,7 @@ CORD compile(env_t *env, ast_t *ast)
         case PointerType: return CORD_all("((", compile_type(t), ")NULL)");
         case ClosureType: return "NULL_CLOSURE";
         case NumType: return "nan(\"null\")";
+        case StructType: return CORD_all("((", compile_type(Type(OptionalType, .type=t)), "){.is_null=true})");
         default: code_err(ast, "Nil isn't implemented for this type: %T", t);
         }
     }
@@ -1779,18 +1814,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Optional: {
         ast_t *value = Match(ast, Optional)->value;
         CORD value_code = compile(env, value);
-        type_t *t = get_type(env, value);
-        if (t->tag == IntType) {
-            switch (Match(t, IntType)->bits) {
-            case TYPE_IBITS8: return CORD_all("((OptionalInt8_t){.i=", value_code, "})");
-            case TYPE_IBITS16: return CORD_all("((OptionalInt16_t){.i=", value_code, "})");
-            case TYPE_IBITS32: return CORD_all("((OptionalInt32_t){.i=", value_code, "})");
-            case TYPE_IBITS64: return CORD_all("((OptionalInt64_t){.i=", value_code, "})");
-            default: errx(1, "Unsupported in type: %T", t);
-            }
-        } else {
-            return value_code;
-        }
+        return promote_to_optional(get_type(env, value), value_code);
     }
     case BinaryOp: {
         auto binop = Match(ast, BinaryOp);

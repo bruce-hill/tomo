@@ -1,9 +1,10 @@
 // Logic for handling type_t types
 #include <gc/cord.h>
-#include <stdint.h>
-#include <signal.h>
 #include <limits.h>
 #include <math.h>
+#include <signal.h>
+#include <stdint.h>
+#include <sys/param.h>
 
 #include "builtins/integers.h"
 #include "builtins/table.h"
@@ -418,6 +419,7 @@ PUREFUNC size_t type_size(type_t *t)
             case TYPE_IBITS8: return sizeof(OptionalInt8_t);
             default: errx(1, "Invalid integer bit size");
             }
+        case StructType: return padded_type_size(nonnull) + 1;
         default: return type_size(nonnull);
         }
     }
@@ -495,6 +497,7 @@ PUREFUNC size_t type_align(type_t *t)
             case TYPE_IBITS8: return __alignof__(OptionalInt8_t);
             default: errx(1, "Invalid integer bit size");
             }
+        case StructType: return MAX(1, type_align(nonnull));
         default: return type_align(nonnull);
         }
     }

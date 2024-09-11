@@ -1,3 +1,12 @@
+
+struct Struct(x:Int, y:Text):
+    func maybe(should_i:Bool)-> Struct?:
+        if should_i:
+            return Struct(123, "hello")
+        else:
+            return !Struct
+
+
 func maybe_int(should_i:Bool)->Int?:
     if should_i:
         return 123
@@ -121,6 +130,18 @@ func main():
             fail("Truthy: $nope")
         else: !! Falsey: $nope
 
+    do:
+        !! ...
+        !! Structs:
+        >> yep := Struct.maybe(yes)
+        = Struct(x=123, y="hello")?
+        >> nope := Struct.maybe(no)
+        = !Struct
+        >> if yep: >> yep
+        else: fail("Falsey: $yep")
+        >> if nope:
+            fail("Truthy: $nope")
+        else: !! Falsey: $nope
 
     if yep := maybe_int(yes):
         >> yep
