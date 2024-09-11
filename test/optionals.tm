@@ -121,3 +121,8 @@ func main():
             fail("Truthy: $nope")
         else: !! Falsey: $nope
 
+
+    if yep := maybe_int(yes):
+        >> yep
+        = 123 : Int
+    else: fail("Unreachable")

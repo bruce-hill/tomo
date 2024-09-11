@@ -1003,8 +1003,9 @@ PARSER(parse_if) {
     if (!match_word(&pos, "if"))
         return NULL;
 
-    ast_t *condition = expect(ctx, start, &pos, parse_expr,
-                              "I expected to find a condition for this 'if'");
+    ast_t *condition = optional(ctx, &pos, parse_declaration);
+    if (!condition)
+        condition = expect(ctx, start, &pos, parse_expr, "I expected to find a condition for this 'if'");
 
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'if' statement"); 
 
