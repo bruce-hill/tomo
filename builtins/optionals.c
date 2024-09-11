@@ -3,6 +3,7 @@
 #include "bool.h"
 #include "datatypes.h"
 #include "integers.h"
+#include "thread.h"
 #include "text.h"
 #include "util.h"
 
@@ -29,6 +30,8 @@ static inline bool is_null(const void *obj, const TypeInfo *non_optional_type)
         return ((OptionalInt16_t*)obj)->is_null;
     else if (non_optional_type == &Int8$info)
         return ((OptionalInt8_t*)obj)->is_null;
+    else if (non_optional_type == &Thread)
+        return *(pthread_t**)obj == NULL;
 
     switch (non_optional_type->tag) {
         case ChannelInfo: return *(channel_t**)obj == NULL;

@@ -27,7 +27,9 @@ static CORD promote_to_optional(type_t *t, CORD code);
 
 CORD promote_to_optional(type_t *t, CORD code)
 {
-    if (t->tag == IntType) {
+    if (t == THREAD_TYPE) {
+        return code;
+    } else if (t->tag == IntType) {
         switch (Match(t, IntType)->bits) {
         case TYPE_IBITS8: return CORD_all("((OptionalInt8_t){.i=", code, "})");
         case TYPE_IBITS16: return CORD_all("((OptionalInt16_t){.i=", code, "})");

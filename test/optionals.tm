@@ -61,6 +61,12 @@ func maybe_channel(should_i:Bool)->|Int|?:
     else:
         return !|Int|
 
+func maybe_thread(should_i:Bool)->Thread?:
+    if should_i:
+        return Thread.new(func(): pass)
+    else:
+        return !Thread
+
 func main():
     >> 5?
     = 5? : Int?
@@ -194,6 +200,19 @@ func main():
         # No "=" test here because channels use addresses in the text version
         >> nope := maybe_channel(no)
         = !|:Int|
+        >> if yep: >> yep
+        else: fail("Falsey: $yep")
+        >> if nope:
+            fail("Truthy: $nope")
+        else: !! Falsey: $nope
+
+    do:
+        !! ...
+        !! Threads:
+        >> yep := maybe_thread(yes)
+        # No "=" test here because threads use addresses in the text version
+        >> nope := maybe_thread(no)
+        = !Thread
         >> if yep: >> yep
         else: fail("Falsey: $yep")
         >> if nope:
