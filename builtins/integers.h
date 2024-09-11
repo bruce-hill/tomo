@@ -23,7 +23,11 @@
 #define I16(x) ((int16_t)x)
 #define I8(x) ((int8_t)x)
 
-#define DEFINE_INT_TYPE(c_type, type_name) \
+#define DEFINE_INT_TYPE(c_type, type_name, bits) \
+    typedef struct { \
+        c_type i:bits; \
+        bool is_null:1; \
+    } Optional ## type_name ## _t; \
     Text_t type_name ## $as_text(const c_type *i, bool colorize, const TypeInfo *type); \
     PUREFUNC int32_t type_name ## $compare(const c_type *x, const c_type *y, const TypeInfo *type); \
     PUREFUNC bool type_name ## $equal(const c_type *x, const c_type *y, const TypeInfo *type); \
@@ -59,11 +63,16 @@
         return type_name ## $modulo(D-1, d) + 1; \
     }
 
-DEFINE_INT_TYPE(int64_t, Int64)
-DEFINE_INT_TYPE(int32_t, Int32)
-DEFINE_INT_TYPE(int16_t, Int16)
-DEFINE_INT_TYPE(int8_t,  Int8)
+DEFINE_INT_TYPE(int64_t, Int64, 64)
+DEFINE_INT_TYPE(int32_t, Int32, 32)
+DEFINE_INT_TYPE(int16_t, Int16, 16)
+DEFINE_INT_TYPE(int8_t,  Int8, 8)
 #undef DEFINE_INT_TYPE
+
+#define NULL_INT64 ((OptionalInt64_t){.is_null=true})
+#define NULL_INT32 ((OptionalInt32_t){.is_null=true})
+#define NULL_INT16 ((OptionalInt16_t){.is_null=true})
+#define NULL_INT8 ((OptionalInt8_t){.is_null=true})
 
 #define Int64$abs(...) I64(labs(__VA_ARGS__))
 #define Int32$abs(...) I32(abs(__VA_ARGS__))

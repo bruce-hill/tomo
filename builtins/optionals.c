@@ -2,6 +2,7 @@
 
 #include "bool.h"
 #include "datatypes.h"
+#include "integers.h"
 #include "text.h"
 #include "util.h"
 
@@ -20,6 +21,14 @@ static inline bool is_null(const void *obj, const TypeInfo *non_optional_type)
         return *((Bool_t*)obj) == NULL_BOOL;
     else if (non_optional_type == &Num$info)
         return isnan(*((Num_t*)obj));
+    else if (non_optional_type == &Int64$info)
+        return ((OptionalInt64_t*)obj)->is_null;
+    else if (non_optional_type == &Int32$info)
+        return ((OptionalInt32_t*)obj)->is_null;
+    else if (non_optional_type == &Int16$info)
+        return ((OptionalInt16_t*)obj)->is_null;
+    else if (non_optional_type == &Int8$info)
+        return ((OptionalInt8_t*)obj)->is_null;
 
     switch (non_optional_type->tag) {
         case PointerInfo: return *(void**)obj == NULL;

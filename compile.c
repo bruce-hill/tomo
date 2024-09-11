@@ -200,6 +200,8 @@ CORD compile_type(type_t *t)
     }
     case OptionalType: {
         type_t *nonnull = Match(t, OptionalType)->type;
+        if (nonnull->tag == IntType)
+            return CORD_all("Optional", compile_type(nonnull));
         if (!supports_optionals(nonnull))
             compiler_err(NULL, NULL, NULL, "Optional types are not supported for: %T", t);
         return compile_type(nonnull);
@@ -280,11 +282,14 @@ static CORD compile_inline_block(env_t *env, ast_t *ast)
     return code;
 }
 
-static CORD compile_optional_into_nonnull(env_t *env, binding_t *b)
+static CORD optional_var_into_nonnull(binding_t *b)
 {
-    (void)env;
-    // TODO: implement
-    return (b->code);
+    switch (b->type->tag) {
+    case IntType:
+        return CORD_all(b->code, ".i");
+    default:
+        return b->code;
+    }
 }
 
 static CORD compile_optional_check(env_t *env, ast_t *ast)
@@ -307,6 +312,8 @@ static CORD compile_optional_check(env_t *env, ast_t *ast)
         return CORD_all("((", compile(env, ast), ") != NULL_BOOL)");
     else if (t->tag == TextType)
         return CORD_all("((", compile(env, ast), ").length >= 0)");
+    else if (t->tag == IntType)
+        return CORD_all("!(", compile(env, ast), ").is_null");
     errx(1, "Optional check not implemented for: %T", t);
 }
 
@@ -1225,7 +1232,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 binding_t *nonnull_b = new(binding_t);
                 *nonnull_b = *b;
                 nonnull_b->type = Match(cond_t, OptionalType)->type;
-                nonnull_b->code = compile_optional_into_nonnull(env, b);
+                nonnull_b->code = optional_var_into_nonnull(b);
                 set_binding(truthy_scope, varname, nonnull_b);
             }
             condition_code = compile_optional_check(env, condition);
@@ -1647,6 +1654,16 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *t = parse_type_ast(env, Match(ast, Nil)->type);
         switch (t->tag) {
         case BigIntType: return "NULL_INT";
+        case IntType: {
+            switch (Match(t, IntType)->bits) {
+            case TYPE_IBITS8: return "NULL_INT8";
+            case TYPE_IBITS16: return "NULL_INT16";
+            case TYPE_IBITS32: return "NULL_INT32";
+            case TYPE_IBITS64: return "NULL_INT64";
+            default: errx(1, "Invalid integer bit size");
+            }
+            break;
+        }
         case BoolType: return "NULL_BOOL";
         case ArrayType: return "NULL_ARRAY";
         case TableType: return "NULL_TABLE";
@@ -1760,7 +1777,20 @@ CORD compile(env_t *env, ast_t *ast)
             code_err(subject, "This subject can't be mutated!");
     }
     case Optional: {
-        return compile(env, Match(ast, Optional)->value);
+        ast_t *value = Match(ast, Optional)->value;
+        CORD value_code = compile(env, value);
+        type_t *t = get_type(env, value);
+        if (t->tag == IntType) {
+            switch (Match(t, IntType)->bits) {
+            case TYPE_IBITS8: return CORD_all("((OptionalInt8_t){.i=", value_code, "})");
+            case TYPE_IBITS16: return CORD_all("((OptionalInt16_t){.i=", value_code, "})");
+            case TYPE_IBITS32: return CORD_all("((OptionalInt32_t){.i=", value_code, "})");
+            case TYPE_IBITS64: return CORD_all("((OptionalInt64_t){.i=", value_code, "})");
+            default: errx(1, "Unsupported in type: %T", t);
+            }
+        } else {
+            return value_code;
+        }
     }
     case BinaryOp: {
         auto binop = Match(ast, BinaryOp);

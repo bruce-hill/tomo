@@ -5,9 +5,10 @@
 #include <limits.h>
 #include <math.h>
 
+#include "builtins/integers.h"
 #include "builtins/table.h"
-#include "types.h"
 #include "builtins/util.h"
+#include "types.h"
 
 CORD type_to_cord(type_t *t) {
     switch (t->tag) {
@@ -373,7 +374,7 @@ PUREFUNC bool supports_optionals(type_t *t)
     switch (t->tag) {
     case BoolType: case CStringType: case BigIntType: case NumType: case TextType:
     case ArrayType: case SetType: case TableType: case FunctionType: case ClosureType:
-    case PointerType:
+    case PointerType: case IntType:
         return true;
     default: return false;
     }
@@ -411,10 +412,10 @@ PUREFUNC size_t type_size(type_t *t)
         switch (nonnull->tag) {
         case IntType:
             switch (Match(t, IntType)->bits) {
-            case TYPE_IBITS64: return sizeof(struct { int64_t x; bool is_null; });
-            case TYPE_IBITS32: return sizeof(int64_t);
-            case TYPE_IBITS16: return sizeof(int32_t);
-            case TYPE_IBITS8: return sizeof(int16_t);
+            case TYPE_IBITS64: return sizeof(OptionalInt64_t);
+            case TYPE_IBITS32: return sizeof(OptionalInt32_t);
+            case TYPE_IBITS16: return sizeof(OptionalInt16_t);
+            case TYPE_IBITS8: return sizeof(OptionalInt8_t);
             default: errx(1, "Invalid integer bit size");
             }
         default: return type_size(nonnull);
@@ -488,10 +489,10 @@ PUREFUNC size_t type_align(type_t *t)
         switch (nonnull->tag) {
         case IntType:
             switch (Match(t, IntType)->bits) {
-            case TYPE_IBITS64: return __alignof__(struct { int64_t x; bool is_null; });
-            case TYPE_IBITS32: return __alignof__(int64_t);
-            case TYPE_IBITS16: return __alignof__(int32_t);
-            case TYPE_IBITS8: return __alignof__(int16_t);
+            case TYPE_IBITS64: return __alignof__(OptionalInt64_t);
+            case TYPE_IBITS32: return __alignof__(OptionalInt32_t);
+            case TYPE_IBITS16: return __alignof__(OptionalInt16_t);
+            case TYPE_IBITS8: return __alignof__(OptionalInt8_t);
             default: errx(1, "Invalid integer bit size");
             }
         default: return type_align(nonnull);
