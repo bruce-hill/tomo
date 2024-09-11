@@ -9,6 +9,7 @@
 #include <sys/param.h>
 
 #include "bool.h"
+#include "optionals.h"
 #include "text.h"
 #include "types.h"
 #include "util.h"
@@ -23,23 +24,20 @@ PUREFUNC public Text_t Bool$as_text(const bool *b, bool colorize, const TypeInfo
         return *b ? Text("yes") : Text("no");
 }
 
-public Bool_t Bool$from_text(Text_t text, bool *success)
+PUREFUNC public OptionalBool_t Bool$from_text(Text_t text)
 {
     if (Text$equal_ignoring_case(text, Text("yes"))
         || Text$equal_ignoring_case(text, Text("on"))
         || Text$equal_ignoring_case(text, Text("true"))
         || Text$equal_ignoring_case(text, Text("1"))) {
-        if (success) *success = yes;
         return yes;
     } else if (Text$equal_ignoring_case(text, Text("no"))
         || Text$equal_ignoring_case(text, Text("off"))
         || Text$equal_ignoring_case(text, Text("false"))
         || Text$equal_ignoring_case(text, Text("0"))) {
-        if (success) *success = yes;
         return no;
     } else {
-        if (success) *success = no;
-        return no;
+        return NULL_BOOL;
     }
 }
 

@@ -37,7 +37,7 @@
     Array_t type_name ## $bits(c_type x); \
     c_type type_name ## $random(c_type min, c_type max); \
     Range_t type_name ## $to(c_type from, c_type to); \
-    PUREFUNC c_type type_name ## $from_text(Text_t text, bool *success); \
+    PUREFUNC Optional ## type_name ## _t type_name ## $from_text(Text_t text); \
     PUREFUNC static inline c_type type_name ## $clamped(c_type x, c_type min, c_type max) { \
         return x < min ? min : (x > max ? max : x); \
     } \
@@ -79,6 +79,8 @@ DEFINE_INT_TYPE(int8_t,  Int8, 8)
 #define Int16$abs(...) I16(abs(__VA_ARGS__))
 #define Int8$abs(...) I8(abs(__VA_ARGS__))
 
+#define OptionalInt_t Int_t
+
 Text_t Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type);
 PUREFUNC uint64_t Int$hash(const Int_t *x, const TypeInfo *type);
 PUREFUNC int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo *type);
@@ -91,8 +93,8 @@ Text_t Int$octal(Int_t i, Int_t digits, bool prefix);
 void Int$init_random(long seed);
 Int_t Int$random(Int_t min, Int_t max);
 PUREFUNC Range_t Int$to(Int_t from, Int_t to);
-Int_t Int$from_str(const char *str, bool *success);
-Int_t Int$from_text(Text_t text, bool *success);
+OptionalInt_t Int$from_str(const char *str);
+OptionalInt_t Int$from_text(Text_t text);
 Int_t Int$abs(Int_t x);
 Int_t Int$power(Int_t base, Int_t exponent);
 Int_t Int$sqrt(Int_t i);

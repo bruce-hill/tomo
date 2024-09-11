@@ -1364,7 +1364,8 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast)
     case Int: {
         auto info = Match(ast, Int);
         if (info->bits == IBITS_UNSPECIFIED) {
-            Int_t int_val = Int$from_text(Text$from_str(info->str), NULL);
+            Int_t int_val = Int$from_text(Text$from_str(info->str));
+            if (int_val.small == 0) return false; // Failed to parse
             return (Int$compare_value(int_val, I(BIGGEST_SMALL_INT)) <= 0);
         }
         return true;

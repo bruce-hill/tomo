@@ -10,6 +10,7 @@
 #include "array.h"
 #include "datatypes.h"
 #include "integers.h"
+#include "optionals.h"
 #include "siphash.h"
 #include "text.h"
 #include "types.h"
@@ -343,7 +344,7 @@ public PUREFUNC Range_t Int$to(Int_t from, Int_t to) {
     return (Range_t){from, to, Int$compare_value(to, from) >= 0 ? (Int_t){.small=(1<<2)|1} : (Int_t){.small=(-1>>2)|1}};
 }
 
-public Int_t Int$from_str(const char *str, bool *success) {
+public Int_t Int$from_str(const char *str) {
     mpz_t i;
     int result;
     if (strncmp(str, "0x", 2) == 0) {
@@ -355,12 +356,13 @@ public Int_t Int$from_str(const char *str, bool *success) {
     } else {
         result = mpz_init_set_str(i, str, 10);
     }
-    if (success) *success = (result == 0);
+    if (result != 0)
+        return NULL_INT;
     return Int$from_mpz(i);
 }
 
-public Int_t Int$from_text(Text_t text, bool *success) {
-    return Int$from_str(Text$as_c_string(text), success);
+public OptionalInt_t Int$from_text(Text_t text) {
+    return Int$from_str(Text$as_c_string(text));
 }
 
 public bool Int$is_prime(Int_t x, Int_t reps)
@@ -458,20 +460,16 @@ public const TypeInfo Int$info = {
     public Range_t KindOfInt ## $to(c_type from, c_type to) { \
         return (Range_t){Int64_to_Int(from), Int64_to_Int(to), to >= from ? (Int_t){.small=(1<<2)&1} : (Int_t){.small=(1<<2)&1}}; \
     } \
-    public PUREFUNC c_type KindOfInt ## $from_text(Text_t text, bool *success) { \
-        bool parsed_int = false; \
-        Int_t full_int = Int$from_text(text, &parsed_int); \
-        if (!parsed_int && success) *success = false; \
+    public PUREFUNC Optional ## KindOfInt ## _t KindOfInt ## $from_text(Text_t text) { \
+        OptionalInt_t full_int = Int$from_text(text); \
+        if (full_int.small == 0) return (Optional ## KindOfInt ## _t){.is_null=true}; \
         if (Int$compare_value(full_int, I(min_val)) < 0) { \
-            if (success) *success = false; \
-            return min_val; \
+            return (Optional ## KindOfInt ## _t){.is_null=true}; \
         } \
         if (Int$compare_value(full_int, I(max_val)) > 0) { \
-            if (success) *success = false; \
-            return max_val; \
+            return (Optional ## KindOfInt ## _t){.is_null=true}; \
         } \
-        if (success && parsed_int) *success = true; \
-        return Int_to_ ## KindOfInt(full_int, true); \
+        return (Optional ## KindOfInt ## _t){.i=Int_to_ ## KindOfInt(full_int, true)}; \
     } \
     public const c_type KindOfInt##$min = min_val; \
     public const c_type KindOfInt##$max = max_val; \

@@ -12,6 +12,8 @@
 
 #define Num_t double
 #define Num32_t float
+#define OptionalNum_t double
+#define OptionalNum32_t float
 #define N32(n) ((float)n)
 #define N64(n) ((double)n)
 
@@ -28,7 +30,7 @@ CONSTFUNC bool Num$isnan(double n);
 double Num$nan(Text_t tag);
 double Num$random(void);
 CONSTFUNC double Num$mix(double amount, double x, double y);
-double Num$from_text(Text_t text, bool *success);
+OptionalNum_t Num$from_text(Text_t text);
 CONSTFUNC static inline double Num$clamped(double x, double low, double high) {
     return (x <= low) ? low : (x >= high ? high : x);
 }
@@ -46,7 +48,7 @@ CONSTFUNC bool Num32$finite(float n);
 CONSTFUNC bool Num32$isnan(float n);
 float Num32$random(void);
 CONSTFUNC float Num32$mix(float amount, float x, float y);
-float Num32$from_text(Text_t text, bool *success);
+OptionalNum32_t Num32$from_text(Text_t text);
 float Num32$nan(Text_t tag);
 CONSTFUNC static inline float Num32$clamped(float x, float low, float high) {
     return (x <= low) ? low : (x >= high ? high : x);

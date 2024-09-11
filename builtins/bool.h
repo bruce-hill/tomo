@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #include "types.h"
+#include "optionals.h"
 #include "util.h"
 
 #define Bool_t bool
@@ -14,7 +15,7 @@
 #define no (Bool_t)false
 
 PUREFUNC Text_t Bool$as_text(const bool *b, bool colorize, const TypeInfo *type);
-bool Bool$from_text(Text_t text, bool *success);
+OptionalBool_t Bool$from_text(Text_t text);
 Bool_t Bool$random(double p);
 
 extern const TypeInfo Bool$info;

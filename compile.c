@@ -24,6 +24,7 @@ static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg
 static CORD compile_maybe_incref(env_t *env, ast_t *ast);
 static CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target);
 static CORD promote_to_optional(type_t *t, CORD code);
+static CORD compile_null(type_t *t);
 
 CORD promote_to_optional(type_t *t, CORD code)
 {
@@ -787,7 +788,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 "}\n");
             env->code->funcs = CORD_cat(env->code->funcs, wrapper);
         } else if (fndef->cache && fndef->cache->tag == Int) {
-            int64_t cache_size = Int64$from_text(Text$from_str(Match(fndef->cache, Int)->str), NULL);
+            OptionalInt64_t cache_size = Int64$from_text(Text$from_str(Match(fndef->cache, Int)->str));
             const char *arg_type_name = heap_strf("%s$args", Match(fndef->name, Var)->name);
             ast_t *args_def = FakeAST(StructDef, .name=arg_type_name, .fields=fndef->args);
             prebind_statement(env, args_def);
@@ -801,8 +802,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 all_args = CORD_all(all_args, "$", arg->name, arg->next ? ", " : CORD_EMPTY);
 
             CORD pop_code = CORD_EMPTY;
-            if (fndef->cache->tag == Int && cache_size > 0) {
-                pop_code = CORD_all("if (cache.entries.length > ", CORD_asprintf("%ld", cache_size),
+            if (fndef->cache->tag == Int && !cache_size.is_null && cache_size.i > 0) {
+                pop_code = CORD_all("if (cache.entries.length > ", CORD_asprintf("%ld", cache_size.i),
                                     ") Table$remove(&cache, cache.entries.data + cache.entries.stride*Int$random(I(0), I(cache.entries.length-1)), table_type);\n");
             }
 
@@ -1158,7 +1159,9 @@ CORD compile_statement(env_t *env, ast_t *ast)
             CORD n;
             if (for_->iter->tag == Int) {
                 const char *str = Match(for_->iter, Int)->str;
-                Int_t int_val = Int$from_str(str, NULL);
+                Int_t int_val = Int$from_str(str);
+                if (int_val.small == 0)
+                    code_err(for_->iter, "Failed to parse this integer");
                 mpz_t i;
                 mpz_init_set_int(i, int_val);
                 if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0)
@@ -1467,7 +1470,10 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
     }
 
     int64_t target_bits = (int64_t)Match(target, IntType)->bits;
-    Int_t int_val = Int$from_str(Match(ast, Int)->str, NULL);
+    OptionalInt_t int_val = Int$from_str(Match(ast, Int)->str);
+    if (int_val.small == 0)
+        code_err(ast, "Failed to parse this integer");
+
     mpz_t i;
     mpz_init_set_int(i, int_val);
 
@@ -1508,7 +1514,9 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                     if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
                         value = compile_int_to_type(env, call_arg->value, spec_arg->type);
                     } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
-                        Int_t int_val = Int$from_str(Match(call_arg->value, Int)->str, NULL);
+                        OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Int)->str);
+                        if (int_val.small == 0)
+                            code_err(call_arg->value, "Failed to parse this integer");
                         double n = Int_to_Num(int_val);
                         value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == TYPE_NBITS64
                                               ? "N64(%.20g)" : "N32(%.10g)", n);
@@ -1535,7 +1543,9 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                 if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
                     value = compile_int_to_type(env, call_arg->value, spec_arg->type);
                 } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
-                    Int_t int_val = Int$from_str(Match(call_arg->value, Int)->str, NULL);
+                    OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Int)->str);
+                    if (int_val.small == 0)
+                        code_err(call_arg->value, "Failed to parse this integer");
                     double n = Int_to_Num(int_val);
                     value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == TYPE_NBITS64
                                           ? "N64(%.20g)" : "N32(%.10g)", n);
@@ -1687,42 +1697,47 @@ static bool string_literal_is_all_ascii(CORD literal)
     return true;
 }
 
+CORD compile_null(type_t *t)
+{
+    if (t == THREAD_TYPE) return "NULL";
+
+    switch (t->tag) {
+    case BigIntType: return "NULL_INT";
+    case IntType: {
+        switch (Match(t, IntType)->bits) {
+        case TYPE_IBITS8: return "NULL_INT8";
+        case TYPE_IBITS16: return "NULL_INT16";
+        case TYPE_IBITS32: return "NULL_INT32";
+        case TYPE_IBITS64: return "NULL_INT64";
+        default: errx(1, "Invalid integer bit size");
+        }
+        break;
+    }
+    case BoolType: return "NULL_BOOL";
+    case ArrayType: return "NULL_ARRAY";
+    case TableType: return "NULL_TABLE";
+    case SetType: return "NULL_TABLE";
+    case ChannelType: return "NULL";
+    case TextType: return "NULL_TEXT";
+    case CStringType: return "NULL";
+    case PointerType: return CORD_all("((", compile_type(t), ")NULL)");
+    case ClosureType: return "NULL_CLOSURE";
+    case NumType: return "nan(\"null\")";
+    case StructType: return CORD_all("((", compile_type(Type(OptionalType, .type=t)), "){.is_null=true})");
+    case EnumType: {
+        env_t *enum_env = Match(t, EnumType)->env;
+        return CORD_all("((", compile_type(t), "){", namespace_prefix(enum_env->libname, enum_env->namespace), "null})");
+    }
+    default: compiler_err(NULL, NULL, NULL, "Null isn't implemented for this type: %T", t);
+    }
+}
+
 CORD compile(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
     case Null: {
         type_t *t = parse_type_ast(env, Match(ast, Null)->type);
-        if (t == THREAD_TYPE) return "NULL";
-
-        switch (t->tag) {
-        case BigIntType: return "NULL_INT";
-        case IntType: {
-            switch (Match(t, IntType)->bits) {
-            case TYPE_IBITS8: return "NULL_INT8";
-            case TYPE_IBITS16: return "NULL_INT16";
-            case TYPE_IBITS32: return "NULL_INT32";
-            case TYPE_IBITS64: return "NULL_INT64";
-            default: errx(1, "Invalid integer bit size");
-            }
-            break;
-        }
-        case BoolType: return "NULL_BOOL";
-        case ArrayType: return "NULL_ARRAY";
-        case TableType: return "NULL_TABLE";
-        case SetType: return "NULL_TABLE";
-        case ChannelType: return "NULL";
-        case TextType: return "NULL_TEXT";
-        case CStringType: return "NULL";
-        case PointerType: return CORD_all("((", compile_type(t), ")NULL)");
-        case ClosureType: return "NULL_CLOSURE";
-        case NumType: return "nan(\"null\")";
-        case StructType: return CORD_all("((", compile_type(Type(OptionalType, .type=t)), "){.is_null=true})");
-        case EnumType: {
-            env_t *enum_env = Match(t, EnumType)->env;
-            return CORD_all("((", compile_type(t), "){", namespace_prefix(enum_env->libname, enum_env->namespace), "null})");
-        }
-        default: code_err(ast, "Null isn't implemented for this type: %T", t);
-        }
+        return compile_null(t);
     }
     case Bool: return Match(ast, Bool)->b ? "yes" : "no";
     case Var: {
@@ -1734,7 +1749,9 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Int: {
         const char *str = Match(ast, Int)->str;
-        Int_t int_val = Int$from_str(str, NULL);
+        OptionalInt_t int_val = Int$from_str(str);
+        if (int_val.small == 0)
+            code_err(ast, "Failed to parse this integer");
         mpz_t i;
         mpz_init_set_int(i, int_val);
 
@@ -3317,10 +3334,11 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         type_t *t = get_arg_type(main_env, arg);
         assert(arg->name);
+        type_t *optional = t->tag == OptionalType ? t : Type(OptionalType, .type=t);
+        type_t *non_optional = t->tag == OptionalType ? Match(t, OptionalType)->type : t;
         code = CORD_all(
-            code, compile_declaration(t, CORD_cat("$", arg->name)), ";\n",
-            "bool ", arg->name, "$is_set = no;\n");
-        set_binding(env, arg->name, new(binding_t, .type=t, .code=CORD_cat("$", arg->name)));
+            code, compile_declaration(optional, CORD_cat("$", arg->name)), " = ", compile_null(non_optional), ";\n");
+        set_binding(main_env, arg->name, new(binding_t, .type=optional, .code=CORD_cat("$", arg->name)));
     }
     // Provide --flags:
     code = CORD_all(code, "Text_t flag;\n"
@@ -3341,17 +3359,17 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
 
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         type_t *t = get_arg_type(main_env, arg);
+        type_t *non_optional = t->tag == OptionalType ? Match(t, OptionalType)->type : t;
         CORD flag = CORD_replace(arg->name, "_", "-");
-        switch (t->tag) {
+        switch (non_optional->tag) {
         case BoolType: {
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n"
                             "if (flag.length != 0) {\n",
-                            "$", arg->name, " = Bool$from_text(flag, &", arg->name, "$is_set", ");\n"
-                            "if (!", arg->name, "$is_set) \n"
+                            "$", arg->name, " = Bool$from_text(flag);\n"
+                            "if (!", compile_optional_check(main_env, FakeAST(Var, arg->name)), ") \n"
                             "USAGE_ERR(\"Invalid argument for '--", flag, "'\");\n",
                             "} else {\n",
                             "$", arg->name, " = yes;\n",
-                            arg->name, "$is_set = yes;\n"
                             "}\n"
                             "}\n");
             break;
@@ -3359,7 +3377,6 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
         case TextType: {
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
                             "$", arg->name, " = ", streq(Match(t, TextType)->lang, "Path") ? "Path$cleanup(flag)" : "flag",";\n",
-                            arg->name, "$is_set = yes;\n"
                             "}\n");
             break;
         }
@@ -3367,8 +3384,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
             if (Match(t, ArrayType)->item_type->tag != TextType)
                 compiler_err(NULL, NULL, NULL, "Main function has unsupported argument type: %T (only arrays of Text are supported)", t);
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
-                            "$", arg->name, " = Text$split(flag, Pattern(\",\"));\n",
-                            arg->name, "$is_set = yes;\n");
+                            "$", arg->name, " = Text$split(flag, Pattern(\",\"));\n");
             if (streq(Match(Match(t, ArrayType)->item_type, TextType)->lang, "Path")) {
                 code = CORD_all(code, "for (int64_t j = 0; j < $", arg->name, ".length; j++)\n"
                                 "*(Path_t*)($", arg->name, ".data + j*$", arg->name, ".stride) "
@@ -3378,12 +3394,12 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
             break;
         }
         case BigIntType: case IntType: case NumType: {
-            CORD type_name = type_to_cord(t);
+            CORD type_name = type_to_cord(non_optional);
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
                             "if (flag.length == 0)\n"
                             "USAGE_ERR(\"No value provided for '--", flag, "'\");\n"
-                            "$", arg->name, " = ", type_name, "$from_text(flag, &", arg->name, "$is_set);\n"
-                            "if (!", arg->name, "$is_set)\n"
+                            "$", arg->name, " = ", type_name, "$from_text(flag);\n"
+                            "if (!", compile_optional_check(main_env, FakeAST(Var, arg->name)), ")\n"
                             "USAGE_ERR(\"Invalid value provided for '--", flag, "'\");\n",
                             "}\n");
             break;
@@ -3401,7 +3417,6 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                 code = CORD_all(code,
                                 "if (Text$equal_ignoring_case(flag, Text(\"", tag->name, "\"))) {\n"
                                 "$", arg->name, " = ", b->code, ";\n",
-                                arg->name, "$is_set = yes;\n"
                                 "} else ");
             }
             code = CORD_all(code, "USAGE_ERR(\"Invalid value provided for '--", flag, "', valid values are: ",
@@ -3424,17 +3439,18 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
         "++i;\n");
 
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        type_t *t = get_arg_type(env, arg);
-        code = CORD_all(code, "if (!", arg->name, "$is_set) {\n");
-        if (t->tag == ArrayType) {
-            if (Match(t, ArrayType)->item_type->tag != TextType)
-                compiler_err(NULL, NULL, NULL, "Main function has unsupported argument type: %T (only arrays of Text are supported)", t);
+        type_t *t = get_arg_type(main_env, arg);
+        type_t *non_optional = t->tag == OptionalType ? Match(t, OptionalType)->type : t;
+        code = CORD_all(code, "if (!", compile_optional_check(main_env, FakeAST(Var, arg->name)), ") {\n");
+        if (non_optional->tag == ArrayType) {
+            if (Match(non_optional, ArrayType)->item_type->tag != TextType)
+                compiler_err(NULL, NULL, NULL, "Main function has unsupported argument type: %T (only arrays of Text are supported)", non_optional);
 
             code = CORD_all(
                 code, "$", arg->name, " = (Array_t){};\n"
                 "for (; i < argc; i++) {\n"
                 "if (argv[i]) {\n");
-            if (streq(Match(Match(t, ArrayType)->item_type, TextType)->lang, "Path")) {
+            if (streq(Match(Match(non_optional, ArrayType)->item_type, TextType)->lang, "Path")) {
                 code = CORD_all(code, "Path_t arg = Path$cleanup(Text$from_str(argv[i]));\n");
             } else {
                 code = CORD_all(code, "Text_t arg = Text$from_str(argv[i]);\n");
@@ -3442,49 +3458,50 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
             code = CORD_all(code, "Array$insert(&$", arg->name, ", &arg, I(0), sizeof(Text_t));\n"
                             "argv[i] = NULL;\n"
                             "}\n"
-                            "}\n",
-                            arg->name, "$is_set = yes;\n");
+                            "}\n");
         } else if (arg->default_val) {
-            code = CORD_all(code, "$", arg->name, " = ", compile(env, arg->default_val), ";\n");
+            code = CORD_all(code, "$", arg->name, " = ", compile(main_env, arg->default_val), ";\n");
         } else {
             code = CORD_all(
                 code,
                 "if (i < argc) {");
-            if (t->tag == TextType) {
+            if (non_optional->tag == TextType) {
                 code = CORD_all(code, "$", arg->name, " = Text$from_str(argv[i]);\n");
-                if (streq(Match(t, TextType)->lang, "Path"))
+                if (streq(Match(non_optional, TextType)->lang, "Path"))
                     code = CORD_all(code, "$", arg->name, " = Path$cleanup($", arg->name, ");\n");
 
-            } else if (t->tag == EnumType) {
-                env_t *enum_env = Match(t, EnumType)->env;
-                for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
+            } else if (non_optional->tag == EnumType) {
+                env_t *enum_env = Match(non_optional, EnumType)->env;
+                for (tag_t *tag = Match(non_optional, EnumType)->tags; tag; tag = tag->next) {
                     if (tag->type && Match(tag->type, StructType)->fields)
                         compiler_err(NULL, NULL, NULL,
-                                     "The type %T has enum fields with member values, which is not yet supported for command line arguments.");
+                                     "The type %T has enum fields with member values, which is not yet supported for command line arguments.",
+                                     non_optional);
                     binding_t *b = get_binding(enum_env, tag->name);
                     code = CORD_all(code,
                                     "if (strcasecmp(argv[i], \"", tag->name, "\") == 0) {\n"
                                     "$", arg->name, " = ", b->code, ";\n",
-                                    arg->name, "$is_set = yes;\n"
                                     "} else ");
                 }
                 code = CORD_all(code, "USAGE_ERR(\"Invalid value provided for '--", arg->name, "', valid values are: ",
-                                get_flag_options(t, ", "), "\");\n");
+                                get_flag_options(non_optional, ", "), "\");\n");
             } else {
                 code = CORD_all(
                     code,
-                    "bool success = false;\n",
-                    "$", arg->name, " = ", type_to_cord(t), "$from_text(Text$from_str(argv[i]), &success)", ";\n"
-                    "if (!success)\n"
-                    "USAGE_ERR(\"Unable to parse this argument as a ", type_to_cord(t), ": %s\", argv[i]);\n");
+                    "$", arg->name, " = ", type_to_cord(non_optional), "$from_text(Text$from_str(argv[i]))", ";\n"
+                    "if (!", compile_optional_check(main_env, FakeAST(Var, arg->name)), ")\n"
+                    "USAGE_ERR(\"Unable to parse this argument as a ", type_to_cord(non_optional), ": %s\", argv[i]);\n");
             }
             code = CORD_all(
                 code,
                 "argv[i++] = NULL;\n"
                 "while (i < argc && argv[i] == NULL)\n"
-                "++i;\n} else {\n"
-                "USAGE_ERR(\"Required argument '", arg->name, "' was not provided!\");\n",
-                "}\n");
+                "++i;\n");
+            if (t->tag != OptionalType) {
+                code = CORD_all(code, "} else {\n"
+                                "USAGE_ERR(\"Required argument '", arg->name, "' was not provided!\");\n");
+            }
+            code = CORD_all(code, "}\n");
         }
         code = CORD_all(code, "}\n");
     }
@@ -3495,7 +3512,11 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
 
     code = CORD_all(code, fn_name, "(");
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        code = CORD_all(code, "$", arg->name);
+        if (arg->type->tag == OptionalType)
+            code = CORD_all(code, "$", arg->name);
+        else
+            code = CORD_all(code, optional_var_into_nonnull(get_binding(main_env, arg->name)));
+            
         if (arg->next) code = CORD_all(code, ", ");
     }
     code = CORD_all(code, ");\n");
