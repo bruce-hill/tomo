@@ -575,8 +575,6 @@ type_t *get_field_type(type_t *t, const char *field_name)
             return Type(ArrayType, Match(t, TableType)->key_type);
         else if (streq(field_name, "values"))
             return Type(ArrayType, Match(t, TableType)->value_type);
-        else if (streq(field_name, "default"))
-            return Type(OptionalType, Match(t, TableType)->value_type);
         else if (streq(field_name, "fallback"))
             return Type(OptionalType, .type=t);
         return NULL;
