@@ -276,6 +276,25 @@ PUREFUNC bool has_stack_memory(type_t *t)
     }
 }
 
+PUREFUNC const char *enum_single_value_tag(type_t *enum_type, type_t *t)
+{
+    const char *found = NULL;
+    for (tag_t *tag = Match(enum_type, EnumType)->tags; tag; tag = tag->next) {
+        if (tag->type->tag != StructType) continue;
+        auto s = Match(tag->type, StructType);
+        if (!s->fields || s->fields->next || !s->fields->type)
+            continue;
+
+        if (can_promote(t, s->fields->type)) {
+            if (found) // Ambiguous case, multiple matches
+                return NULL;
+            found = tag->name;
+            // Continue searching to check for ambiguous cases
+        }
+    }
+    return found;
+}
+
 PUREFUNC bool can_promote(type_t *actual, type_t *needed)
 {
     // No promotion necessary:
@@ -295,6 +314,9 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
         auto cmp = compare_precision(actual, needed);
         return cmp == NUM_PRECISION_EQUAL || cmp == NUM_PRECISION_LESS;
     }
+
+    if (needed->tag == EnumType)
+        return (enum_single_value_tag(needed, actual) != NULL);
 
     // Text to C String
     if (actual->tag == TextType && !Match(actual, TextType)->lang && needed->tag == CStringType)

@@ -143,6 +143,7 @@ PUREFUNC bool has_heap_memory(type_t *t);
 PUREFUNC bool has_stack_memory(type_t *t);
 PUREFUNC bool can_send_over_channel(type_t *t);
 PUREFUNC bool can_promote(type_t *actual, type_t *needed);
+PUREFUNC const char *enum_single_value_tag(type_t *enum_type, type_t *t);
 PUREFUNC bool is_int_type(type_t *t);
 PUREFUNC bool is_numeric_type(type_t *t);
 PUREFUNC bool supports_optionals(type_t *t);

@@ -75,6 +75,17 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
     if (actual->tag == IntType || actual->tag == NumType)
         return true;
 
+    if (needed->tag == EnumType) {
+        const char *tag = enum_single_value_tag(needed, actual);
+        binding_t *b = get_binding(Match(needed, EnumType)->env, tag);
+        assert(b && b->type->tag == FunctionType);
+        // Single-value enum constructor:
+        if (!promote(env, code, actual, Match(b->type, FunctionType)->args->type))
+            return false;
+        *code = CORD_all(b->code, "(", *code, ")");
+        return true;
+    }
+
     // Text to C String
     if (actual->tag == TextType && !Match(actual, TextType)->lang && needed->tag == CStringType) {
         *code = CORD_all("Text$as_c_string(", *code, ")");
@@ -1320,7 +1331,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 body = WrapAST(body, If, .condition=comp->filter, .body=body);
             ast_t *loop = WrapAST(ast, For, .vars=comp->vars, .iter=comp->iter, .body=body);
             return compile_statement(env, loop);
-        } else { // Array comprehension
+        } else { // Array or Set comprehension
+            // TODO: support set comprehensions
             ast_t *body = WrapAST(comp->expr, MethodCall, .name="insert", .self=FakeAST(StackReference, FakeAST(Var, env->comprehension_var)),
                                   .args=new(arg_ast_t, .value=comp->expr));
             if (comp->filter)
@@ -1448,6 +1460,15 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
         val = CORD_all("TABLE_COPY(", val, ")");
 
     return val;
+}
+
+static CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
+{
+    CORD code = compile(env, ast);
+    type_t *actual = get_type(env, ast);
+    if (!promote(env, &code, actual, t))
+        code_err(ast, "I expected a %T here, but this is a %T", t, actual);
+    return code;
 }
 
 env_t *with_enum_scope(env_t *env, type_t *t)
@@ -2184,8 +2205,9 @@ CORD compile(env_t *env, ast_t *ast)
         {
             type_t *item_type = Match(array_type, ArrayType)->item_type;
             CORD code = CORD_all("TypedArrayN(", compile_type(item_type), CORD_asprintf(", %ld", n));
-            for (ast_list_t *item = array->items; item; item = item->next)
-                code = CORD_all(code, ", ", compile(env, item->ast));
+            for (ast_list_t *item = array->items; item; item = item->next) {
+                code = CORD_all(code, ", ", compile_to_type(env, item->ast, item_type));
+            }
             return CORD_cat(code, ")");
         }
 
@@ -2260,7 +2282,8 @@ CORD compile(env_t *env, ast_t *ast)
 
             for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
                 auto e = Match(entry->ast, TableEntry);
-                code = CORD_all(code, ",\n\t{", compile(env, e->key), ", ", compile(env, e->value), "}");
+                code = CORD_all(code, ",\n\t{", compile_to_type(env, e->key, key_t), ", ",
+                                compile_to_type(env, e->value, value_t), "}");
             }
             return CORD_cat(code, ")");
         }
@@ -2318,7 +2341,7 @@ CORD compile(env_t *env, ast_t *ast)
             CORD_appendf(&code, ", %zu", n);
 
             for (ast_list_t *item = set->items; item; item = item->next) {
-                code = CORD_all(code, ",\n\t", compile(env, item->ast));
+                code = CORD_all(code, ", ", compile_to_type(env, item->ast, item_type));
             }
             return CORD_cat(code, ")");
         }

@@ -733,6 +733,8 @@ PARSER(parse_array) {
         whitespace(&pos);
         item_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a type for this array");
         whitespace(&pos);
+        match(&pos, ",");
+        whitespace(&pos);
     }
 
     for (;;) {
@@ -842,6 +844,8 @@ PARSER(parse_set) {
         whitespace(&pos);
         if (match(&pos, ":"))
             return NULL;
+        whitespace(&pos);
+        match(&pos, ",");
         whitespace(&pos);
     }
 
