@@ -2187,9 +2187,10 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Array: {
         type_t *array_type = get_type(env, ast);
+        type_t *item_type = Match(array_type, ArrayType)->item_type;
         if (padded_type_size(Match(array_type, ArrayType)->item_type) > ARRAY_MAX_STRIDE)
             code_err(ast, "This array holds items that take up %ld bytes, but the maximum supported size is %ld bytes. Consider using an array of pointers instead.",
-                     padded_type_size(Match(array_type, ArrayType)->item_type), ARRAY_MAX_STRIDE);
+                     padded_type_size(item_type), ARRAY_MAX_STRIDE);
 
         auto array = Match(ast, Array);
         if (!array->items)
@@ -2203,17 +2204,17 @@ CORD compile(env_t *env, ast_t *ast)
         }
 
         {
-            type_t *item_type = Match(array_type, ArrayType)->item_type;
+            env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : env;
             CORD code = CORD_all("TypedArrayN(", compile_type(item_type), CORD_asprintf(", %ld", n));
             for (ast_list_t *item = array->items; item; item = item->next) {
-                code = CORD_all(code, ", ", compile_to_type(env, item->ast, item_type));
+                code = CORD_all(code, ", ", compile_to_type(scope, item->ast, item_type));
             }
             return CORD_cat(code, ")");
         }
 
       array_comprehension:
         {
-            env_t *scope = fresh_scope(env);
+            env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : fresh_scope(env);
             static int64_t comp_num = 1;
             scope->comprehension_var = heap_strf("arr$%ld", comp_num++);
             CORD code = CORD_all("({ Array_t ", scope->comprehension_var, " = {};");
@@ -2265,6 +2266,8 @@ CORD compile(env_t *env, ast_t *ast)
         }
            
         { // No comprehension:
+            env_t *key_scope = key_t->tag == EnumType ? with_enum_scope(env, key_t) : env;
+            env_t *value_scope = value_t->tag == EnumType ? with_enum_scope(env, value_t) : env;
             CORD code = CORD_all("Table(",
                                  compile_type(key_t), ", ",
                                  compile_type(value_t), ", ",
@@ -2282,8 +2285,8 @@ CORD compile(env_t *env, ast_t *ast)
 
             for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
                 auto e = Match(entry->ast, TableEntry);
-                code = CORD_all(code, ",\n\t{", compile_to_type(env, e->key, key_t), ", ",
-                                compile_to_type(env, e->value, value_t), "}");
+                code = CORD_all(code, ",\n\t{", compile_to_type(key_scope, e->key, key_t), ", ",
+                                compile_to_type(value_scope, e->value, value_t), "}");
             }
             return CORD_cat(code, ")");
         }
@@ -2340,8 +2343,9 @@ CORD compile(env_t *env, ast_t *ast)
                 ++n;
             CORD_appendf(&code, ", %zu", n);
 
+            env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : env;
             for (ast_list_t *item = set->items; item; item = item->next) {
-                code = CORD_all(code, ", ", compile_to_type(env, item->ast, item_type));
+                code = CORD_all(code, ", ", compile_to_type(scope, item->ast, item_type));
             }
             return CORD_cat(code, ")");
         }
@@ -2349,7 +2353,7 @@ CORD compile(env_t *env, ast_t *ast)
       set_comprehension:
         {
             static int64_t comp_num = 1;
-            env_t *scope = fresh_scope(env);
+            env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : fresh_scope(env);
             scope->comprehension_var = heap_strf("set$%ld", comp_num++);
 
             CORD code = CORD_all("({ Table_t ", scope->comprehension_var, " = {};");
