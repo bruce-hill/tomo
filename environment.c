@@ -22,7 +22,6 @@ env_t *new_compilation_unit(CORD *libname)
     env->globals = new(Table_t);
     env->locals = new(Table_t, .fallback=env->globals);
     env->imports = new(Table_t);
-    env->libname = libname;
 
     if (!TEXT_TYPE)
         TEXT_TYPE = Type(TextType, .env=namespace_env(env, "Text"));
@@ -381,7 +380,9 @@ env_t *new_compilation_unit(CORD *libname)
                                           .ret=Type(TextType, .lang="Pattern", .env=namespace_env(env, "Pattern"))),
                     .code="(Pattern_t)"));
 
-    return env;
+    env_t *lib_env = fresh_scope(env);
+    lib_env->libname = libname;
+    return lib_env;
 }
 
 CORD namespace_prefix(CORD *libname, namespace_t *ns)
