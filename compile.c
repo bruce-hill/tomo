@@ -32,14 +32,14 @@ CORD promote_to_optional(type_t *t, CORD code)
         return code;
     } else if (t->tag == IntType) {
         switch (Match(t, IntType)->bits) {
-        case TYPE_IBITS8: return CORD_all("((OptionalInt8_t){.i=", code, "})");
-        case TYPE_IBITS16: return CORD_all("((OptionalInt16_t){.i=", code, "})");
-        case TYPE_IBITS32: return CORD_all("((OptionalInt32_t){.i=", code, "})");
-        case TYPE_IBITS64: return CORD_all("((OptionalInt64_t){.i=", code, "})");
+        case TYPE_IBITS8: return CORD_all("((OptionalInt8_t){", code, "})");
+        case TYPE_IBITS16: return CORD_all("((OptionalInt16_t){", code, "})");
+        case TYPE_IBITS32: return CORD_all("((OptionalInt32_t){", code, "})");
+        case TYPE_IBITS64: return CORD_all("((OptionalInt64_t){", code, "})");
         default: errx(1, "Unsupported in type: %T", t);
         }
     } else if (t->tag == StructType) {
-        return CORD_all("((", compile_type(Type(OptionalType, .type=t)), "){.value=", code, "})");
+        return CORD_all("((", compile_type(Type(OptionalType, .type=t)), "){", code, "})");
     } else {
         return code;
     }
@@ -1708,6 +1708,9 @@ static bool string_literal_is_all_ascii(CORD literal)
 
 CORD compile_null(type_t *t)
 {
+    if (t->tag == OptionalType)
+        t = Match(t, OptionalType)->type;
+
     if (t == THREAD_TYPE) return "NULL";
 
     switch (t->tag) {
@@ -2695,26 +2698,12 @@ CORD compile(env_t *env, ast_t *ast)
             auto table = Match(self_value_t, TableType);
             if (streq(call->name, "get")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                if (call->args->next) {
-                    arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type, .next=new(arg_t, .name="default", .type=table->value_type));
-                    return CORD_all("Table$get_value_or_default(", self, ", ", compile_type(table->key_type), ", ", compile_type(table->value_type), ", ",
-                                    compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type_info(env, self_value_t), ")");
-                } else {
-                    arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);
-                    file_t *f = ast->file;
-                    return CORD_all("Table$get_value_or_fail(", self, ", ", compile_type(table->key_type), ", ", compile_type(table->value_type), ", ",
-                                    compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type_info(env, self_value_t), ", ",
-                                    CORD_asprintf("%ld", (int64_t)(ast->start - f->text)), ", ",
-                                    CORD_asprintf("%ld", (int64_t)(ast->end - f->text)),
-                                    ")");
-                }
-            } else if (streq(call->name, "get_or_null")) {
-                if (table->value_type->tag != PointerType)
-                    code_err(ast, "The table method :get_or_null() is only supported for tables whose value type is a pointer, not %T", table->value_type);
-                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);
-                return CORD_all("Table$get_value_or_default(", self, ", ", compile_type(table->key_type), ", ", compile_type(table->value_type), ", ",
-                                compile_arguments(env, ast, arg_spec, call->args), ", NULL, ", compile_type_info(env, self_value_t), ")");
+                return CORD_all(
+                    "Table$get_optional(", self, ", ", compile_type(table->key_type), ", ",
+                    compile_type(table->value_type), ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                    "_, ", optional_into_nonnull(table->value_type, "(*_)"), ", ", compile_null(table->value_type), ", ",
+                    compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "has")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);

@@ -2,12 +2,16 @@ func main():
 	>> t := {"one":1, "two":2}
 	= {"one":1, "two":2}
 
-	>> t:get("one", 999)
+	>> t:get("one")
+	= 1?
+	>> t:get("two")
+	= 2?
+	>> t:get("???")
+	= !Int
+	>> t:get("one")!
 	= 1
-	>> t:get("two", 999)
-	= 2
-	>> t:get("???", 999)
-	= 999
+	>> t:get("???"):or_else(-1)
+	= -1
 
 	t_str := ""
 	for k,v in t:
@@ -28,12 +32,12 @@ func main():
 	>> t2 := {"three":3; fallback=t}
 	= {"three":3; fallback={"one":1, "two":2}}
 
-	>> t2:get("one", 999)
-	= 1
-	>> t2:get("three", 999)
-	= 3
-	>> t2:get("???", 999)
-	= 999
+	>> t2:get("one")
+	= 1?
+	>> t2:get("three")
+	= 3?
+	>> t2:get("???")
+	= !Int
 
 	>> t2.length
 	= 1
@@ -60,11 +64,11 @@ func main():
 
 	do:
 		>> plain := {1:10, 2:20, 3:30}
-		>> plain:get(2)
+		>> plain:get(2)!
 		= 20
-		>> plain:get(2, -999)
+		>> plain:get(2)!
 		= 20
-		>> plain:get(456, -999)
+		>> plain:get(456):or_else(-999)
 		= -999
 		>> plain:has(2)
 		= yes
@@ -74,6 +78,6 @@ func main():
 		>> fallback := {4:40; fallback=plain}
 		>> fallback:has(1)
 		= yes
-		>> fallback:get(1, -999)
+		>> fallback:get(1):or_else(-999)
 		= 10
 

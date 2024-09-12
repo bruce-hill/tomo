@@ -38,6 +38,23 @@ t := {i: 10*i for i in 10 if i mod 2 == 0}
 t := {-1:-10, i: 10*i for i in 10}
 ```
 
+### Getting Values
+
+To get a value from a table, use `:get(key)`, which returns an _optional_
+value, depending on whether it was present in the table or not. For convenience,
+you can use the `!` postifx operator to perform a check to ensure that the value
+was found or error if it wasn't:
+
+```tomo
+>> t := {"x":1, "y":2}
+>> t:get("x")
+= 1?
+>> t:get("????")
+= !Int
+>> t:get("x")!
+= 1
+```
+
 ### Fallback Tables
 
 Tables can specify a fallback table that is used when looking up a value if it
@@ -151,61 +168,35 @@ Nothing.
 ### `get`
 
 **Description:**  
-Retrieves the value associated with a key, or returns a default value if the key is not present.
+Retrieves the value associated with a key, or returns null if the key is not present.
 
 **Usage:**  
 ```markdown
-t:get(key: K, default: V) -> V
+t:get(key: K) -> V?
 ```
 
 **Parameters:**
 
 - `t`: The table.
 - `key`: The key whose associated value is to be retrieved.
-- `default`: The value to return if the key is not present. If this argument is
-  not provided, a runtime error will be created if the key is not present.
 
 **Returns:**  
-The value associated with the key or the default value if the key is not found.
+The value associated with the key or null if the key is not found.
 
 **Example:**  
 ```markdown
 >> t := {"A":1, "B":2}
 >> t:get("A")
-= 1
+= 1? : Int?
 
->> t:get("xxx", 0)
-= 0
-```
+>> t:get("????")
+= !Int : Int?
 
----
+>> t:get("A")!
+= 1 : Int
 
-### `get_or_null`
-
-**Description:**  
-Retrieves the value associated with a key, or returns `null` if the key is not present.
-This method is only available on tables whose values are pointers.
-
-**Usage:**  
-```markdown
-t:get_or_null(key: K) -> @V?
-```
-
-**Parameters:**
-
-- `t`: The table.
-- `key`: The key whose associated value is to be retrieved.
-
-**Returns:**  
-A mutable reference to the value associated with the key or `null` if the key is not found.
-
-**Example:**  
-```markdown
->> t := {"A": @[10]}
->> t:get_or_null("A")
-= @[10]?
->> t:get_or_null("xxx")
-= !@[Int]
+>> t:get("????"):or_else(0)
+= 0 : Int
 ```
 
 ---

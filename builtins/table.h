@@ -31,16 +31,10 @@
 
 Table_t Table$from_entries(Array_t entries, const TypeInfo *type);
 void *Table$get(Table_t t, const void *key, const TypeInfo *type);
-#define Table$get_value_or_fail(table_expr, key_t, val_t, key_expr, info_expr, start, end) ({ \
-    const Table_t t = table_expr; key_t k = key_expr; const TypeInfo* info = info_expr; \
-    val_t *v = Table$get(t, &k, info); \
-    if (__builtin_expect(v == NULL, 0)) \
-        fail_source(__SOURCE_FILE__, start, end, "The key %k is not in this table\n", (Text_t[1]){generic_as_text(&k, no, info->TableInfo.key)}); \
-    *v; })
-#define Table$get_value_or_default(table_expr, key_t, val_t, key_expr, default_val, info_expr) ({ \
+#define Table$get_optional(table_expr, key_t, val_t, key_expr, nonnull_var, nonnull_expr, null_expr, info_expr) ({ \
     const Table_t t = table_expr; const key_t k = key_expr; \
-    val_t *v = Table$get(t, &k, info_expr); \
-    v ? *v : default_val; })
+    val_t *nonnull_var = Table$get(t, &k, info_expr); \
+    nonnull_var ? nonnull_expr : null_expr; })
 #define Table$has_value(table_expr, key_expr, info_expr) ({ \
     const Table_t t = table_expr; __typeof(key_expr) k = key_expr; \
     (Table$get(t, &k, info_expr) != NULL); })
