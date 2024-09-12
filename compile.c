@@ -333,32 +333,32 @@ static CORD optional_var_into_nonnull(binding_t *b)
     }
 }
 
-static CORD compile_optional_check(type_t *t, CORD value)
+static CORD check_null(type_t *t, CORD value)
 {
     t = Match(t, OptionalType)->type;
     if (t->tag == PointerType || t->tag == FunctionType || t->tag == CStringType
         || t->tag == ChannelType || t == THREAD_TYPE)
-        return CORD_all("(", value, " != NULL)");
+        return CORD_all("(", value, " == NULL)");
     else if (t->tag == BigIntType)
-        return CORD_all("((", value, ").small != 0)");
+        return CORD_all("((", value, ").small == 0)");
     else if (t->tag == ClosureType)
-        return CORD_all("((", value, ").fn != NULL)");
+        return CORD_all("((", value, ").fn == NULL)");
     else if (t->tag == NumType)
-        return CORD_all("!isnan(", value, ")");
+        return CORD_all("isnan(", value, ")");
     else if (t->tag == ArrayType)
-        return CORD_all("((", value, ").length >= 0)");
+        return CORD_all("((", value, ").length < 0)");
     else if (t->tag == TableType || t->tag == SetType)
-        return CORD_all("((", value, ").entries.length >= 0)");
+        return CORD_all("((", value, ").entries.length < 0)");
     else if (t->tag == BoolType)
-        return CORD_all("((", value, ") != NULL_BOOL)");
+        return CORD_all("((", value, ") == NULL_BOOL)");
     else if (t->tag == TextType)
-        return CORD_all("((", value, ").length >= 0)");
+        return CORD_all("((", value, ").length < 0)");
     else if (t->tag == IntType)
-        return CORD_all("!(", value, ").is_null");
+        return CORD_all("(", value, ").is_null");
     else if (t->tag == StructType)
-        return CORD_all("!(", value, ").is_null");
+        return CORD_all("(", value, ").is_null");
     else if (t->tag == EnumType)
-        return CORD_all("((", value, ").tag != 0)");
+        return CORD_all("((", value, ").tag == 0)");
     errx(1, "Optional check not implemented for: %T", t);
 }
 
@@ -1233,8 +1233,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 next_fn = "next";
             }
 
-            next_fn = CORD_all("(cur=", next_fn, iter_t->tag == ClosureType ? "(next.userdata)" : "()", ", ",
-                               compile_optional_check(fn->ret, "cur"), ")");
+            next_fn = CORD_all("(cur=", next_fn, iter_t->tag == ClosureType ? "(next.userdata)" : "()", ", !",
+                               check_null(fn->ret, "cur"), ")");
 
             if (for_->vars) {
                 naked_body = CORD_all(
@@ -1289,7 +1289,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 nonnull_b->code = optional_var_into_nonnull(b);
                 set_binding(truthy_scope, varname, nonnull_b);
             }
-            condition_code = compile_optional_check(cond_t, compile(env, condition));
+            condition_code = CORD_all("!", check_null(cond_t, compile(env, condition)));
         } else if (cond_t->tag == BoolType) {
             condition_code = compile(env, condition);
         } else {
@@ -1825,7 +1825,7 @@ CORD compile(env_t *env, ast_t *ast)
         else if (t->tag == TextType)
             return CORD_all("(", compile(env, value), " == CORD_EMPTY)");
         else if (t->tag == OptionalType)
-            return CORD_all("!(", compile_optional_check(t, compile(env, value)), ")");
+            return check_null(t, compile(env, value));
 
         code_err(ast, "I don't know how to negate values of type %T", t);
     }
@@ -2748,15 +2748,15 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="fallback", .type=nonnull);
                 return CORD_all("({ ", compile_declaration(self_value_t, "opt"), " = ", self, "; ",
-                                compile_optional_check(self_value_t, "opt"), " ? ",
-                                optional_var_into_nonnull(new(binding_t, .type=self_value_t, .code="opt")),
-                                " : ", compile_arguments(env, ast, arg_spec, call->args), "; })");
+                                check_null(self_value_t, "opt"), " ? ",
+                                compile_arguments(env, ast, arg_spec, call->args),
+                                " : ", optional_var_into_nonnull(new(binding_t, .type=self_value_t, .code="opt")), "; })");
             } else if (streq(call->name, "or_fail")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="message", .type=TEXT_TYPE,
                                       .default_val=FakeAST(TextLiteral, .cord="This value was expected to be non-null, but it's null!"));
                 return CORD_all("({ ", compile_declaration(self_value_t, "opt"), " = ", self, "; ",
-                                "if (!", compile_optional_check(self_value_t, "opt"), ")\n",
+                                "if (", check_null(self_value_t, "opt"), ")\n",
                                 CORD_asprintf("fail_source(%r, %ld, %ld, Text$as_c_string(%r));\n",
                                               CORD_quoted(ast->file->filename),
                                               (long)(call->self->start - call->self->file->text),
@@ -3398,11 +3398,11 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
         CORD flag = CORD_replace(arg->name, "_", "-");
         switch (non_optional->tag) {
         case BoolType: {
-            CORD optional_check = compile_optional_check(Type(OptionalType, .type=non_optional), CORD_all("$", arg->name));
+            CORD is_null = check_null(Type(OptionalType, .type=non_optional), CORD_all("$", arg->name));
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n"
                             "if (flag.length != 0) {\n",
                             "$", arg->name, " = Bool$from_text(flag);\n"
-                            "if (!", optional_check, ") \n"
+                            "if (", is_null, ") \n"
                             "USAGE_ERR(\"Invalid argument for '--", flag, "'\");\n",
                             "} else {\n",
                             "$", arg->name, " = yes;\n",
@@ -3430,13 +3430,13 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
             break;
         }
         case BigIntType: case IntType: case NumType: {
-            CORD optional_check = compile_optional_check(Type(OptionalType, .type=non_optional), CORD_all("$", arg->name));
+            CORD is_null = check_null(Type(OptionalType, .type=non_optional), CORD_all("$", arg->name));
             CORD type_name = type_to_cord(non_optional);
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
                             "if (flag.length == 0)\n"
                             "USAGE_ERR(\"No value provided for '--", flag, "'\");\n"
                             "$", arg->name, " = ", type_name, "$from_text(flag);\n"
-                            "if (!", optional_check, ")\n"
+                            "if (", is_null, ")\n"
                             "USAGE_ERR(\"Invalid value provided for '--", flag, "'\");\n",
                             "}\n");
             break;
@@ -3478,8 +3478,8 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         type_t *t = get_arg_type(main_env, arg);
         type_t *non_optional = t->tag == OptionalType ? Match(t, OptionalType)->type : t;
-        CORD optional_check = compile_optional_check(Type(OptionalType, .type=non_optional), CORD_all("$", arg->name));
-        code = CORD_all(code, "if (!", optional_check, ") {\n");
+        CORD is_null = check_null(Type(OptionalType, .type=non_optional), CORD_all("$", arg->name));
+        code = CORD_all(code, "if (", is_null, ") {\n");
         if (non_optional->tag == ArrayType) {
             if (Match(non_optional, ArrayType)->item_type->tag != TextType)
                 compiler_err(NULL, NULL, NULL, "Main function has unsupported argument type: %T (only arrays of Text are supported)", non_optional);
@@ -3527,7 +3527,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                 code = CORD_all(
                     code,
                     "$", arg->name, " = ", type_to_cord(non_optional), "$from_text(Text$from_str(argv[i]))", ";\n"
-                    "if (!", optional_check, ")\n"
+                    "if (", is_null, ")\n"
                     "USAGE_ERR(\"Unable to parse this argument as a ", type_to_cord(non_optional), ": %s\", argv[i]);\n");
             }
             code = CORD_all(
