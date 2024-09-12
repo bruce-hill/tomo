@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <sys/param.h>
 #include <sys/random.h>
+#include <time.h>
 #include <uninorm.h>
 #include <unistd.h>
 
@@ -368,6 +369,14 @@ public bool pop_flag(char **argv, int *i, const char *flag, Text_t *result)
     } else {
         return false;
     }
+}
+
+public void sleep_num(double seconds)
+{
+    struct timespec ts;
+    ts.tv_sec = (time_t)seconds;
+    ts.tv_nsec = (long)((seconds - (double)ts.tv_sec) * 1e9);
+    nanosleep(&ts, NULL);
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

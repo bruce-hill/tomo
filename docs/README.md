@@ -121,6 +121,30 @@ say("world!")
 
 ---
 
+### `sleep`
+
+**Description:**  
+Pause execution for a given number of seconds.
+
+**Usage:**  
+```markdown
+sleep(seconds: Num) -> Void
+```
+
+**Parameters:**
+
+- `seconds`: How many seconds to sleep for.
+
+**Returns:**  
+Nothing.
+
+**Example:**  
+```markdown
+sleep(1.5)
+```
+
+---
+
 ### `fail`
 
 **Description:**  

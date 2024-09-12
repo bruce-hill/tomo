@@ -33,5 +33,6 @@ int generic_print(const void *obj, bool colorize, const TypeInfo *type);
 Closure_t spawn(Closure_t fn);
 bool pop_flag(char **argv, int *i, const char *flag, Text_t *result);
 void print_stack_trace(FILE *out, int start, int stop);
+void sleep_num(double seconds);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
