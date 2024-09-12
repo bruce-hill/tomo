@@ -246,7 +246,7 @@ env_t *new_compilation_unit(CORD *libname)
             F2(atan2), F2(copysign), F2(fdim), F2(hypot), F2(nextafter), F2(pow), F2(remainder),
         )},
         {"CString", Type(CStringType), "char*", "CString$info", TypedArray(ns_entry_t,
-            {"as_text", "CORD_from_char_star", "func(str:CString)->Text"},
+            {"as_text", "CString$as_text_simple", "func(str:CString)->Text"},
         )},
 #undef F2
 #undef F
@@ -570,6 +570,7 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
     switch (cls_type->tag) {
     case ArrayType: return NULL;
     case TableType: return NULL;
+    case CStringType:
     case BoolType: case IntType: case BigIntType: case NumType: {
         binding_t *b = get_binding(env, CORD_to_const_char_star(type_to_cord(cls_type)));
         assert(b);

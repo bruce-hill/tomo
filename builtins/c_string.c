@@ -13,12 +13,17 @@
 #include "types.h"
 #include "util.h"
 
-public Text_t CString$as_text(const void *c_string, bool colorize, const TypeInfo *info)
+public Text_t CString$as_text(const char **c_string, bool colorize, const TypeInfo *info)
 {
     (void)info;
     if (!c_string) return Text("CString");
-    Text_t text = Text$from_str(*(char**)c_string);
+    Text_t text = Text$from_str(*c_string);
     return Text$concat(colorize ? Text("\x1b[34mCString\x1b[m(") : Text("CString("), Text$quoted(text, colorize), Text(")"));
+}
+
+public Text_t CString$as_text_simple(const char *str)
+{
+    return Text$format("%s", str);
 }
 
 PUREFUNC public int32_t CString$compare(const char **x, const char **y)
