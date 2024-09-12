@@ -318,7 +318,9 @@ static CORD compile_inline_block(env_t *env, ast_t *ast)
 
 static CORD optional_var_into_nonnull(binding_t *b)
 {
-    switch (b->type->tag) {
+    type_t *t = b->type->tag == OptionalType ? Match(b->type, OptionalType)->type : b->type;
+    switch (t->tag) {
+    case OptionalType:
     case IntType:
         return CORD_all(b->code, ".i");
     case StructType:
@@ -1212,6 +1214,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             code = CORD_all(code, compile_declaration(iter_t, "next"), " = ", compile(env, for_->iter), ";\n");
 
             auto fn = iter_t->tag == ClosureType ? Match(Match(iter_t, ClosureType)->fn, FunctionType) : Match(iter_t, FunctionType);
+            assert(fn->ret->tag == OptionalType);
             code = CORD_all(code, compile_declaration(fn->ret, "cur"), ";\n"); // Iteration enum
 
             CORD next_fn;
@@ -1228,9 +1231,17 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 next_fn = "next";
             }
 
-            env_t *enum_env = Match(fn->ret, EnumType)->env;
-            next_fn = CORD_all("(cur=", next_fn, iter_t->tag == ClosureType ? "(next.userdata)" : "()", ").tag == ",
-                               namespace_prefix(enum_env->libname, enum_env->namespace), "tag$Next");
+            env_t *tmp_env = fresh_scope(env);
+            set_binding(tmp_env, "cur", new(binding_t, .type=fn->ret, .code="cur"));
+            next_fn = CORD_all("(cur=", next_fn, iter_t->tag == ClosureType ? "(next.userdata)" : "()", ", ",
+                               compile_optional_check(tmp_env, FakeAST(Var, "cur")), ")");
+
+            if (for_->vars) {
+                naked_body = CORD_all(
+                    compile_declaration(Match(fn->ret, OptionalType)->type, CORD_all("$", Match(for_->vars->ast, Var)->name)),
+                    " = ", optional_var_into_nonnull(new(binding_t, .type=fn->ret, .code="cur")), ";\n",
+                    naked_body);
+            }
 
             if (for_->empty) {
                 code = CORD_all(code, "if (", next_fn, ") {\n"

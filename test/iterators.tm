@@ -1,33 +1,33 @@
 
-enum PairIteration(Done, Next(x:Text, y:Text))
-func pairwise(strs:[Text])->func()->PairIteration:
+struct Pair(x:Text, y:Text)
+
+func pairwise(strs:[Text])->func()->Pair?:
     i := 1
     return func():
-        if i + 1 > strs.length: return PairIteration.Done
+        if i + 1 > strs.length: return !Pair
         i += 1
-        return PairIteration.Next(strs[i-1], strs[i])
+        return Pair(strs[i-1], strs[i])?
 
-enum RangeIteration(Done, Next(i:Int))
-func range(first:Int, last:Int)->func()->RangeIteration:
+func range(first:Int, last:Int)->func()->Int?:
     i := first
     return func():
         if i > last:
-            return RangeIteration.Done
+            return !Int
         i += 1
-        return RangeIteration.Next(i-1)
+        return (i-1)?
 
 func main():
     values := ["A", "B", "C", "D"]
 
-    >> ((++) "($(foo)$(baz))" for foo, baz in pairwise(values))
+    >> ((++) "($(foo.x)$(foo.y))" for foo in pairwise(values))
     = "(AB)(BC)(CD)"
-    >> ["$(foo)$(baz)" for foo, baz in pairwise(values)]
+    >> ["$(foo.x)$(foo.y)" for foo in pairwise(values)]
     = ["AB", "BC", "CD"]
 
     do:
         result := [:Text]
-        for foo, baz in pairwise(values):
-            result:insert("$(foo)$(baz)")
+        for foo in pairwise(values):
+            result:insert("$(foo.x)$(foo.y)")
         >> result
         = ["AB", "BC", "CD"]
 

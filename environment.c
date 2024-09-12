@@ -509,32 +509,14 @@ env_t *for_scope(env_t *env, ast_t *ast)
     }
     case FunctionType: case ClosureType: {
         auto fn = iter_t->tag == ClosureType ? Match(Match(iter_t, ClosureType)->fn, FunctionType) : Match(iter_t, FunctionType);
-        if (fn->ret->tag != EnumType)
-            code_err(for_->iter, "Iterator functions must return an enum with a Done and Next field");
-        auto iter_enum = Match(fn->ret, EnumType);
-        type_t *next_type = NULL;
-        for (tag_t *tag = iter_enum->tags; tag; tag = tag->next) {
-            if (streq(tag->name, "Done")) {
-                if (Match(tag->type, StructType)->fields)
-                    code_err(for_->iter, "This iterator function returns an enum with a Done field that has values, when none are allowed");
-            } else if (streq(tag->name, "Next")) {
-                next_type = tag->type;
-            } else {
-                code_err(for_->iter, "This iterator function returns an enum with a value that isn't Done or Next: %s", tag->name);
-            }
-        }
+        if (fn->ret->tag != OptionalType)
+            code_err(for_->iter, "Iterator functions must return an optional type, not %T", fn->ret);
 
-        if (!next_type)
-            code_err(for_->iter, "This iterator function returns an enum that doesn't have a Next field");
-
-        arg_t *iter_field = Match(next_type, StructType)->fields;
-        for (ast_list_t *var = for_->vars; var; var = var->next) {
-            if (!iter_field)
-                code_err(var->ast, "This is one variable too many for this iterator, which returns a %T", fn->ret);
-            const char *name = Match(var->ast, Var)->name;
-            type_t *t = get_arg_type(env, iter_field);
-            set_binding(scope, name, new(binding_t, .type=t, .code=CORD_cat("cur.$Next.$", iter_field->name)));
-            iter_field = iter_field->next;
+        if (for_->vars) {
+            if (for_->vars->next)
+                code_err(for_->vars->next->ast, "This is too many variables for this loop");
+            const char *var = Match(for_->vars->ast, Var)->name;
+            set_binding(scope, var, new(binding_t, .type=Match(fn->ret, OptionalType)->type, .code=CORD_cat("$", var)));
         }
         return scope;
     }

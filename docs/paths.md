@@ -95,7 +95,7 @@ Returns an iterator that can be used to iterate over a file one line at a time.
 
 **Usage:**  
 ```markdown
-by_line(path: Path) -> func()->NextLine
+by_line(path: Path) -> func()->Text?
 ```
 
 **Parameters:**

@@ -16,7 +16,7 @@
 #include "files.h"
 #include "functions.h"
 #include "integers.h"
-#include "nextline.h"
+#include "optionals.h"
 #include "path.h"
 #include "text.h"
 #include "types.h"
@@ -433,16 +433,16 @@ static void _line_reader_cleanup(FILE **f)
     }
 }
 
-static NextLine_t _next_line(FILE **f)
+static Text_t _next_line(FILE **f)
 {
-    if (!f || !*f) return (NextLine_t){NextLine$tag$Done};
+    if (!f || !*f) return NULL_TEXT;
 
     char *line = NULL;
     size_t size = 0;
     ssize_t len = getline(&line, &size, *f);
     if (len <= 0) {
         _line_reader_cleanup(f);
-        return (NextLine_t){NextLine$tag$Done};
+        return NULL_TEXT;
     }
 
     while (len > 0 && (line[len-1] == '\r' || line[len-1] == '\n'))
@@ -453,7 +453,7 @@ static NextLine_t _next_line(FILE **f)
 
     Text_t line_text = Text$format("%.*s", len, line);
     free(line);
-    return NextLine$tagged$Next(line_text);
+    return line_text;
 }
 
 public Closure_t Path$by_line(Path_t path)

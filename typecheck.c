@@ -1081,22 +1081,9 @@ type_t *get_type(env_t *env, ast_t *ast)
                 Match(Match(iter_value_t, ClosureType)->fn, FunctionType) : Match(iter_value_t, FunctionType);
             if (fn->args)
                 code_err(reduction->iter, "I expected this iterator function to not take any arguments, but it's %T", iter_value_t);
-            if (fn->ret->tag != EnumType)
-                code_err(reduction->iter, "I expected this iterator function to return an enum, but it's %T", iter_value_t);
-            value_t = NULL;
-            for (tag_t *tag = Match(fn->ret, EnumType)->tags; tag; tag = tag->next) {
-                if (streq(tag->name, "Next")) {
-                    arg_t *fields = Match(tag->type, StructType)->fields;
-                    if (!fields || fields->next)
-                        code_err(reduction->iter,
-                                 "I expected this iterator function to return an enum with a Next() that has exactly one value, not %T",
-                                 tag->type);
-                    value_t = fields->type;
-                    break;
-                }
-            }
-            if (!value_t)
-                code_err(reduction->iter, "This iterator function doesn't return an enum with a Next() value");
+            if (fn->ret->tag != OptionalType)
+                code_err(reduction->iter, "I expected this iterator function to return an optional value, but it's %T", iter_value_t);
+            value_t = Match(fn->ret, OptionalType)->type;
             break;
         }
         default: code_err(reduction->iter, "I don't know how to do a reduction over %T values", iter_t);
