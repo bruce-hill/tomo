@@ -44,6 +44,7 @@ CORD promote_to_optional(type_t *t, CORD code)
         return code;
     }
 }
+
 static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
 {
     if (type_eq(actual, needed))
@@ -51,6 +52,12 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
 
     if (!can_promote(actual, needed))
         return false;
+
+    // Optional promotion:
+    if (needed->tag == OptionalType && type_eq(actual, Match(needed, OptionalType)->type)) {
+        *code = promote_to_optional(actual, *code);
+        return true;
+    }
 
     if (actual->tag == IntType && needed->tag == BigIntType) {
         *code = CORD_all("I(", *code, ")");
@@ -79,12 +86,6 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
         && can_promote(Match(actual, PointerType)->pointed, needed)) {
         *code = CORD_all("*(", *code, ")");
         return promote(env, code, Match(actual, PointerType)->pointed, needed);
-    }
-
-    // Optional promotion:
-    if (needed->tag == OptionalType && type_eq(actual, Match(needed, OptionalType)->type)) {
-        *code = promote_to_optional(actual, *code);
-        return true;
     }
 
     // Stack ref promotion:
