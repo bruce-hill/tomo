@@ -83,6 +83,15 @@ func main():
         5
     = 5? : Int?
 
+    >> (5?):or_else(-1)
+    = 5 : Int
+
+    >> (5?):or_fail()
+    = 5 : Int
+
+    >> (!Int):or_else(-1)
+    = -1 : Int
+
     do:
         !! Ints:
         >> yep := maybe_int(yes)

@@ -28,3 +28,20 @@ func maybe_takes_int(x:Int?):
 This establishes a common language for talking about optional values without
 having to use a more generalized form of `enum` which may have different naming
 conventions and which would generate a lot of unnecessary code. 
+
+In addition to using conditionals to check for null values, you can also use
+`:or_else(fallback)` or `:or_fail()`:
+
+```tomo
+maybe_x := 5?
+>> maybe_x:or_else(-1)
+= 5 : Int
+>> maybe_x:or_fail()
+= 5 : Int
+
+maybe_x = !Int
+>> maybe_x:or_else(-1)
+= -1 : Int
+>> maybe_x:or_fail()
+# Failure!
+```
