@@ -324,6 +324,8 @@ static CORD optional_var_into_nonnull(binding_t *b)
     case IntType:
         return CORD_all(b->code, ".i");
     case StructType:
+        if (t == THREAD_TYPE)
+            return b->code;
         return CORD_all(b->code, ".value");
     default:
         return b->code;
