@@ -2283,7 +2283,7 @@ PARSER(parse_inline_c) {
             parser_err(ctx, start, pos, "This inline C needs to have a type after it");
         type = expect(ctx, start, &pos, parse_type, "I couldn't parse the type for this extern");
     }
-    return NewAST(ctx->file, start, pos, InlineCCode, .code=c_code, .type=type);
+    return NewAST(ctx->file, start, pos, InlineCCode, .code=c_code, .type_ast=type);
 }
 
 PARSER(parse_doctest) {

@@ -303,7 +303,8 @@ struct ast_s {
         } LinkerDirective;
         struct {
             CORD code;
-            type_ast_t *type;
+            struct type_s *type;
+            type_ast_t *type_ast;
         } InlineCCode;
     } __data;
 };

@@ -53,7 +53,7 @@ typedef struct env_s {
     deferral_t *deferred;
     CORD *libname; // Pointer to currently compiling library name (if any)
     namespace_t *namespace;
-    const char *comprehension_var;
+    Closure_t *comprehension_action;
 } env_t;
 
 typedef struct {

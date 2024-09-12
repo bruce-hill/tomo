@@ -34,3 +34,6 @@ func main():
     >> t1:remove_all(t2)
     >> t1
     = {10, 20}
+
+    >> {3, i for i in 5}
+    = {3, 1, 2, 4, 5}

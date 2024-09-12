@@ -1250,7 +1250,10 @@ type_t *get_type(env_t *env, ast_t *ast)
 
     case While: case For: return Type(VoidType);
     case InlineCCode: {
-        type_ast_t *type_ast = Match(ast, InlineCCode)->type;
+        auto inline_code = Match(ast, InlineCCode);
+        if (inline_code->type)
+            return inline_code->type;
+        type_ast_t *type_ast = inline_code->type_ast;
         return type_ast ? parse_type_ast(env, type_ast) : Type(VoidType);
     }
     case Unknown: code_err(ast, "I can't figure out the type of: %W", ast);
