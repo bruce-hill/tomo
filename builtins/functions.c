@@ -221,6 +221,7 @@ public void start_test(const char *filename, int64_t start, int64_t end)
 
     if (filename && file) {
         for (int i = 0; i < 3*TEST_DEPTH; i++) fputc(' ', stderr);
+        // TODO: dedent indented multi-line expressions
         fprintf(stderr, USE_COLOR ? "\x1b[33;1m>> \x1b[0m%.*s\x1b[m\n" : ">> %.*s\n", (end - start), file->text + start);
     }
     ++TEST_DEPTH;

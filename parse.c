@@ -458,6 +458,7 @@ PARSER(parse_parens) {
     whitespace(&pos);
     ast_t *expr = optional(ctx, &pos, parse_extended_expr);
     if (!expr) return NULL;
+    whitespace(&pos);
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this expression");
 
     // Update the span to include the parens:
