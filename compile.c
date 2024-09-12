@@ -2826,6 +2826,12 @@ CORD compile(env_t *env, ast_t *ast)
                 // C String constructor:
                 if (!call->args || call->args->next)
                     code_err(call->fn, "This constructor takes exactly 1 argument");
+                if (call->args->value->tag == TextLiteral)
+                    return compile_string_literal(Match(call->args->value, TextLiteral)->cord);
+                else if (call->args->value->tag == TextJoin && Match(call->args->value, TextJoin)->children == NULL)
+                    return "\"\"";
+                else if (call->args->value->tag == TextJoin && Match(call->args->value, TextJoin)->children->next == NULL)
+                    return compile_string_literal(Match(Match(call->args->value, TextJoin)->children->ast, TextLiteral)->cord);
                 type_t *actual = get_type(env, call->args->value);
                 return CORD_all("Text$as_c_string(", expr_as_text(env, compile(env, call->args->value), actual, "no"), ")");
             } else {
