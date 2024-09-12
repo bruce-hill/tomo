@@ -124,7 +124,7 @@ typedef enum {
     Return,
     Extern,
     StructDef, EnumDef, LangDef,
-    Index, FieldAccess, Optional,
+    Index, FieldAccess, Optional, NonOptional,
     DocTest,
     Use,
     LinkerDirective,
@@ -288,7 +288,7 @@ struct ast_s {
         } FieldAccess;
         struct {
             ast_t *value;
-        } Optional;
+        } Optional, NonOptional;
         struct {
             ast_t *expr;
             const char *output;

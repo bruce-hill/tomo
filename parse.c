@@ -83,6 +83,7 @@ static ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
+static ast_t *parse_non_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed);
 static type_ast_t *parse_non_optional_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos);
@@ -883,6 +884,15 @@ ast_t *parse_optional_suffix(parse_ctx_t *ctx, ast_t *lhs) {
         return NULL;
 }
 
+ast_t *parse_non_optional_suffix(parse_ctx_t *ctx, ast_t *lhs) {
+    if (!lhs) return NULL;
+    const char *pos = lhs->end;
+    if (match(&pos, "!"))
+        return NewAST(ctx->file, lhs->start, pos, NonOptional, .value=lhs);
+    else
+        return NULL;
+}
+
 PARSER(parse_reduction) {
     const char *start = pos;
     if (!match(&pos, "(")) return NULL;
@@ -905,6 +915,7 @@ PARSER(parse_reduction) {
                 || (new_term=parse_method_call_suffix(ctx, key))
                 || (new_term=parse_fncall_suffix(ctx, key))
                 || (new_term=parse_optional_suffix(ctx, key))
+                || (new_term=parse_non_optional_suffix(ctx, key))
                 );
             if (progress) key = new_term;
         }
@@ -1162,8 +1173,12 @@ PARSER(parse_heap_alloc) {
     pos = val->end;
 
     ast_t *ast = NewAST(ctx->file, start, pos, HeapAllocate, .value=val);
-    ast_t *optional = parse_optional_suffix(ctx, ast);
-    if (optional) ast = optional;
+    for (;;) {
+        ast_t *next = parse_optional_suffix(ctx, ast);
+        if (!next) next = parse_non_optional_suffix(ctx, ast);
+        if (!next) break;
+        ast = next;
+    }
     return ast;
 }
 
@@ -1184,8 +1199,12 @@ PARSER(parse_stack_reference) {
     pos = val->end;
 
     ast_t *ast = NewAST(ctx->file, start, pos, StackReference, .value=val);
-    ast_t *optional = parse_optional_suffix(ctx, ast);
-    if (optional) ast = optional;
+    for (;;) {
+        ast_t *next = parse_optional_suffix(ctx, ast);
+        if (!next) next = parse_non_optional_suffix(ctx, ast);
+        if (!next) break;
+        ast = next;
+    }
     return ast;
 }
 
@@ -1529,6 +1548,7 @@ PARSER(parse_term) {
             || (new_term=parse_method_call_suffix(ctx, term))
             || (new_term=parse_fncall_suffix(ctx, term))
             || (new_term=parse_optional_suffix(ctx, term))
+            || (new_term=parse_non_optional_suffix(ctx, term))
             );
         if (progress) term = new_term;
     }
@@ -1672,6 +1692,7 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
                     || (new_term=parse_method_call_suffix(ctx, key))
                     || (new_term=parse_fncall_suffix(ctx, key))
                     || (new_term=parse_optional_suffix(ctx, key))
+                    || (new_term=parse_non_optional_suffix(ctx, key))
                     );
                 if (progress) key = new_term;
             }

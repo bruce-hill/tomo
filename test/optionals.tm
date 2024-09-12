@@ -271,3 +271,6 @@ func main():
         >> yep
         = 123 : Int
     else: fail("Unreachable")
+
+    >> maybe_int(yes)!
+    = 123 : Int

@@ -317,19 +317,18 @@ static CORD compile_inline_block(env_t *env, ast_t *ast)
     return code;
 }
 
-static CORD optional_var_into_nonnull(binding_t *b)
+static CORD optional_into_nonnull(type_t *t, CORD value)
 {
-    type_t *t = b->type->tag == OptionalType ? Match(b->type, OptionalType)->type : b->type;
+    if (t->tag == OptionalType) t = Match(t, OptionalType)->type;
     switch (t->tag) {
-    case OptionalType:
     case IntType:
-        return CORD_all(b->code, ".i");
+        return CORD_all(value, ".i");
     case StructType:
         if (t == THREAD_TYPE)
-            return b->code;
-        return CORD_all(b->code, ".value");
+            return value;
+        return CORD_all(value, ".value");
     default:
-        return b->code;
+        return value;
     }
 }
 
@@ -1239,7 +1238,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (for_->vars) {
                 naked_body = CORD_all(
                     compile_declaration(Match(fn->ret, OptionalType)->type, CORD_all("$", Match(for_->vars->ast, Var)->name)),
-                    " = ", optional_var_into_nonnull(new(binding_t, .type=fn->ret, .code="cur")), ";\n",
+                    " = ", optional_into_nonnull(fn->ret, "cur"), ";\n",
                     naked_body);
             }
 
@@ -1283,11 +1282,10 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 truthy_scope = fresh_scope(env);
                 const char *varname = Match(condition, Var)->name;
                 binding_t *b = get_binding(env, varname);
-                binding_t *nonnull_b = new(binding_t);
-                *nonnull_b = *b;
-                nonnull_b->type = Match(cond_t, OptionalType)->type;
-                nonnull_b->code = optional_var_into_nonnull(b);
-                set_binding(truthy_scope, varname, nonnull_b);
+                assert(b);
+                set_binding(truthy_scope, varname,
+                            new(binding_t, .type=Match(cond_t, OptionalType)->type,
+                                .code=optional_into_nonnull(cond_t, b->code)));
             }
             condition_code = CORD_all("!", check_null(cond_t, compile(env, condition)));
         } else if (cond_t->tag == BoolType) {
@@ -1857,6 +1855,18 @@ CORD compile(env_t *env, ast_t *ast)
         ast_t *value = Match(ast, Optional)->value;
         CORD value_code = compile(env, value);
         return promote_to_optional(get_type(env, value), value_code);
+    }
+    case NonOptional: {
+        ast_t *value = Match(ast, NonOptional)->value;
+        type_t *t = get_type(env, value);
+        CORD value_code = compile(env, value);
+        return CORD_all("({ ", compile_declaration(t, "opt"), " = ", value_code, "; ",
+                        "if (", check_null(t, "opt"), ")\n",
+                        CORD_asprintf("fail_source(%r, %ld, %ld, \"This value was expected to be non-null, but it's null!\");\n",
+                                      CORD_quoted(ast->file->filename),
+                                      (long)(value->start - value->file->text),
+                                      (long)(value->end - value->file->text)),
+                        optional_into_nonnull(t, "opt"), "; })");
     }
     case BinaryOp: {
         auto binop = Match(ast, BinaryOp);
@@ -2750,7 +2760,7 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("({ ", compile_declaration(self_value_t, "opt"), " = ", self, "; ",
                                 check_null(self_value_t, "opt"), " ? ",
                                 compile_arguments(env, ast, arg_spec, call->args),
-                                " : ", optional_var_into_nonnull(new(binding_t, .type=self_value_t, .code="opt")), "; })");
+                                " : ", optional_into_nonnull(self_value_t, "opt"), "; })");
             } else if (streq(call->name, "or_fail")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="message", .type=TEXT_TYPE,
@@ -2762,7 +2772,7 @@ CORD compile(env_t *env, ast_t *ast)
                                               (long)(call->self->start - call->self->file->text),
                                               (long)(call->self->end - call->self->file->text),
                                               compile_arguments(env, ast, arg_spec, call->args)),
-                                optional_var_into_nonnull(new(binding_t, .type=self_value_t, .code="opt")), "; })");
+                                optional_into_nonnull(self_value_t, "opt"), "; })");
             }
             code_err(ast, "There is no '%s' method for optional %T values", call->name, nonnull);
         }
@@ -3550,11 +3560,11 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
 
     code = CORD_all(code, fn_name, "(");
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        if (arg->type->tag == OptionalType)
-            code = CORD_all(code, "$", arg->name);
-        else
-            code = CORD_all(code, optional_var_into_nonnull(get_binding(main_env, arg->name)));
-            
+        CORD arg_code = CORD_all("$", arg->name);
+        if (arg->type->tag != OptionalType)
+            arg_code = optional_into_nonnull(arg->type, arg_code);
+
+        code = CORD_all(code, arg_code);
         if (arg->next) code = CORD_all(code, ", ");
     }
     code = CORD_all(code, ");\n");

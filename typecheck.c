@@ -567,6 +567,13 @@ type_t *get_type(env_t *env, ast_t *ast)
             code_err(ast, "This value is already optional, it can't be converted to optional");
         return Type(OptionalType, .type=t);
     }
+    case NonOptional: {
+        ast_t *value = Match(ast, NonOptional)->value;
+        type_t *t = get_type(env, value);
+        if (t->tag != OptionalType)
+            code_err(value, "This value is not optional. Only optional values can use the '!' operator.");
+        return Match(t, OptionalType)->type;
+    }
     case TextLiteral: return TEXT_TYPE;
     case TextJoin: {
         const char *lang = Match(ast, TextJoin)->lang;
