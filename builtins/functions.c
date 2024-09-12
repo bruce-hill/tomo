@@ -221,8 +221,22 @@ public void start_test(const char *filename, int64_t start, int64_t end)
 
     if (filename && file) {
         for (int i = 0; i < 3*TEST_DEPTH; i++) fputc(' ', stderr);
-        // TODO: dedent indented multi-line expressions
-        fprintf(stderr, USE_COLOR ? "\x1b[33;1m>> \x1b[0m%.*s\x1b[m\n" : ">> %.*s\n", (end - start), file->text + start);
+
+        int64_t first_line_len = (int64_t)strcspn(file->text + start, "\r\n");
+        fprintf(stderr, USE_COLOR ? "\x1b[33;1m>> \x1b[m%.*s\n" : ">> %.*s\n", first_line_len, file->text + start);
+
+        // For multi-line expressions, dedent each and print it on a new line with ".. " in front:
+        if (end > start + first_line_len) {
+            int64_t line_num = get_line_number(file, file->text + start);
+            const char *line_start = get_line(file, line_num);
+            int64_t indent_len = (int64_t)strspn(line_start, " \t");
+            for (const char *line = file->text + start + first_line_len; line < file->text + end; line += strcspn(line, "\r\n")) {
+                line += strspn(line, "\r\n");
+                if ((int64_t)strspn(line, " \t") >= indent_len)
+                    line += indent_len;
+                fprintf(stderr, USE_COLOR ? "\x1b[33m.. \x1b[m%.*s\n" : ".. %.*s\n", strcspn(line, "\r\n"), line);
+            }
+        }
     }
     ++TEST_DEPTH;
 }
