@@ -23,6 +23,11 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
     if (def->secret) {
         CORD_appendf(&str_func, "\treturn use_color ? Text(\"\\x1b[0;1m%s\\x1b[m(\\x1b[2m...\\x1b[m)\") : Text(\"%s(...)\");\n}",
                      name, name);
+    } else if (def->fields && !def->fields->next) { // Single-member structs don't need to print names:
+        type_t *field_type = get_arg_ast_type(env, def->fields);
+        CORD field_str = expr_as_text(env, CORD_cat("obj->$", def->fields->name), field_type, "use_color");
+        str_func = CORD_all(str_func, "\treturn Text$concat(use_color ? Text(\"\\x1b[0;1m", name, "\\x1b[m(\") : Text(\"", name, "(\"), ",
+            field_str, ", Text(\")\"));\n}\n");
     } else {
         CORD_appendf(&str_func, "\treturn Text$concat(use_color ? Text(\"\\x1b[0;1m%s\\x1b[m(\") : Text(\"%s(\")", name, name);
         for (arg_ast_t *field = def->fields; field; field = field->next) {

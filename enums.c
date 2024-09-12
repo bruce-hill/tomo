@@ -42,11 +42,17 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
             continue;
         }
 
-        for (arg_ast_t *field = tag->fields; field; field = field->next) {
-            type_t *field_t = get_arg_ast_type(env, field);
-            CORD field_str = expr_as_text(env, CORD_all("obj->$", tag->name, ".$", field->name), field_t, "use_color");
-            str_func = CORD_all(str_func, ", Text(\"", field->name, "=\"), ", field_str);
-            if (field->next) str_func = CORD_cat(str_func, ", Text(\", \")");
+        if (tag->fields && !tag->fields->next) { // Single-member tags don't need to print member names:
+            type_t *field_t = get_arg_ast_type(env, tag->fields);
+            CORD field_str = expr_as_text(env, CORD_all("obj->$", tag->name, ".$", tag->fields->name), field_t, "use_color");
+            str_func = CORD_all(str_func, ", ", field_str);
+        } else {
+            for (arg_ast_t *field = tag->fields; field; field = field->next) {
+                type_t *field_t = get_arg_ast_type(env, field);
+                CORD field_str = expr_as_text(env, CORD_all("obj->$", tag->name, ".$", field->name), field_t, "use_color");
+                str_func = CORD_all(str_func, ", Text(\"", field->name, "=\"), ", field_str);
+                if (field->next) str_func = CORD_cat(str_func, ", Text(\", \")");
+            }
         }
         str_func = CORD_cat(str_func, ", Text(\")\"));\n");
     }

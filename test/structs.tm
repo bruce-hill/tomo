@@ -1,4 +1,5 @@
 
+struct Single(x:Int)
 struct Pair(x,y:Int)
 struct Mixed(x:Int, text:Text)
 struct LinkedList(x:Int, next=!@LinkedList)
@@ -8,6 +9,8 @@ struct CorecursiveA(other:@CorecursiveB?)
 struct CorecursiveB(other=!@CorecursiveA)
 
 func test_literals():
+	>> Single(123)
+	= Single(123)
 	>> x := Pair(10, 20)
 	= Pair(x=10, y=20)
 	>> y := Pair(y=20, 10)

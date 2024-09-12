@@ -14,7 +14,7 @@ func main():
 
 	>> [:ImportedType]
 	>> returns_imported_type()
-	= ImportedType(name="Hello")
+	= ImportedType("Hello")
 
 	>> needs_initializing # imported from ./use_import.tm
 	= 999999999999999999

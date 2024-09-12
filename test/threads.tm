@@ -22,7 +22,7 @@ func main():
     jobs := |:Job; max_size=2|
     >> jobs:give(Increment(5))
     >> jobs:peek()
-    = Job.Increment(x=5)
+    = Job.Increment(5)
 
     results := |:Int; max_size|
     >> thread := Thread.new(func():

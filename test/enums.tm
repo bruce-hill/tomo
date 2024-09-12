@@ -19,7 +19,7 @@ func main():
 	>> Foo.Zero
 	= Foo.Zero
 	>> Foo.One(123)
-	= Foo.One(x=123)
+	= Foo.One(123)
 	>> Foo.Two(123, 456)
 	= Foo.Two(x=123, y=456)
 
@@ -59,7 +59,7 @@ func main():
 	>> choose_text(Foo.Four(1,2,3,4))
 	= "Four"
 	>> choose_text(Foo.Last("XX"))
-	= "else: Foo.Last(t=\"XX\")"
+	= "else: Foo.Last(\"XX\")"
 
 	i := 1
 	cases := [Foo.One(1), Foo.One(2), Foo.Zero]
