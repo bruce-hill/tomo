@@ -168,24 +168,33 @@ static const char *unescape(parse_ctx_t *ctx, const char **out) {
     if (unescapes[(int)escape[1]]) {
         *endpos = escape + 2;
         return GC_strdup(unescapes[(int)escape[1]]);
-    } else if (escape[1] == 'U' && escape[2] == '[') {
-        size_t len = strcspn(&escape[3], "\r\n]");
-        if (escape[3+len] != ']')
-            parser_err(ctx, escape, escape + 3 + len, "Missing closing ']'");
+    } else if (escape[1] == '[') {
+        // ANSI Control Sequence Indicator: \033 [ ... m
+        size_t len = strcspn(&escape[2], "\r\n]");
+        if (escape[2+len] != ']')
+            parser_err(ctx, escape, escape + 2 + len, "Missing closing ']'");
+        *endpos = escape + 3 + len;
+        return heap_strf("\033[%.*sm", len, &escape[2]);
+    } else if (escape[1] == '{') {
+        // Unicode codepoints by name
+        size_t len = strcspn(&escape[2], "\r\n}");
+        if (escape[2+len] != '}')
+            parser_err(ctx, escape, escape + 2 + len, "Missing closing '}'");
         char name[len+1] = {};
-        memcpy(name, &escape[3], len);
+        memcpy(name, &escape[2], len);
         name[len] = '\0';
         uint32_t codepoint = unicode_name_character(name);
         if (codepoint == UNINAME_INVALID)
-            parser_err(ctx, escape, escape + 4 + len,
+            parser_err(ctx, escape, escape + 3 + len,
                        "Invalid unicode codepoint name: \"%s\"", name);
-        *endpos = escape + 4 + len;
+        *endpos = escape + 3 + len;
         char *str = GC_MALLOC_ATOMIC(16);
         size_t u8_len = 16;
         (void)u32_to_u8(&codepoint, 1, (uint8_t*)str, &u8_len);
         str[u8_len] = '\0';
         return str;
     } else if (escape[1] == 'U' && escape[2]) {
+        // Unicode codepoints by hex
         char *endptr = NULL;
         long codepoint = strtol(escape+2, &endptr, 16);
         uint32_t ustr[2] = {codepoint, 0};
@@ -195,6 +204,7 @@ static const char *unescape(parse_ctx_t *ctx, const char **out) {
         *endpos = endptr;
         return GC_strndup((char*)buf, bufsize);
     } else if (escape[1] == 'x' && escape[2] && escape[3]) {
+        // ASCII 2-digit hex 
         char *endptr = NULL;
         char c = (char)strtol(escape+2, &endptr, 16);
         *endpos = escape + 4;

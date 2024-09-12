@@ -16,8 +16,11 @@ func main():
 	>> \U65\U301
 	= "é"
 
-	>> \U[Penguin]:codepoint_names()
+	>> \{Penguin}:codepoint_names()
 	= ["PENGUIN"]
+
+	>> \[31;1]
+	= "\e[31;1m"
 
 	>> \UE9 == \U65\U301
 	= yes
