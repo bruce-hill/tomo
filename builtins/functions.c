@@ -115,9 +115,7 @@ PUREFUNC public uint64_t generic_hash(const void *obj, const TypeInfo *type)
     case ArrayInfo: return Array$hash(obj, type);
     case ChannelInfo: return Channel$hash((Channel_t**)obj, type);
     case TableInfo: return Table$hash(obj, type);
-    case OptionalInfo: {
-        errx(1, "Optional hash not implemented");
-    }
+    case OptionalInfo: return is_null(obj, type->OptionalInfo.type) ? 0 : generic_hash(obj, type->OptionalInfo.type);
     case EmptyStructInfo: return 0;
     case CustomInfo: case StructInfo: case EnumInfo: case CStringInfo: // These all share the same info
         if (!type->CustomInfo.hash)
@@ -141,7 +139,11 @@ PUREFUNC public int32_t generic_compare(const void *x, const void *y, const Type
     case ChannelInfo: return Channel$compare((Channel_t**)x, (Channel_t**)y, type);
     case TableInfo: return Table$compare(x, y, type);
     case OptionalInfo: {
-        errx(1, "Optional compare not implemented");
+        bool x_is_null = is_null(x, type->OptionalInfo.type);
+        bool y_is_null = is_null(y, type->OptionalInfo.type);
+        if (x_is_null && y_is_null) return 0;
+        else if (x_is_null != y_is_null) return (int32_t)y_is_null - (int32_t)x_is_null;
+        else return generic_compare(x, y, type->OptionalInfo.type);
     }
     case EmptyStructInfo: return 0;
     case CustomInfo: case StructInfo: case EnumInfo: case CStringInfo: // These all share the same info
@@ -166,7 +168,11 @@ PUREFUNC public bool generic_equal(const void *x, const void *y, const TypeInfo 
     case TableInfo: return Table$equal(x, y, type);
     case EmptyStructInfo: return true;
     case OptionalInfo: {
-        errx(1, "Optional equal not implemented");
+        bool x_is_null = is_null(x, type->OptionalInfo.type);
+        bool y_is_null = is_null(y, type->OptionalInfo.type);
+        if (x_is_null && y_is_null) return true;
+        else if (x_is_null != y_is_null) return false;
+        else return generic_equal(x, y, type->OptionalInfo.type);
     }
     case CustomInfo: case StructInfo: case EnumInfo: case CStringInfo: // These all share the same info
         if (!type->CustomInfo.equal)

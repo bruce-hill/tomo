@@ -274,3 +274,13 @@ func main():
 
     >> maybe_int(yes)!
     = 123 : Int
+
+    # Test comparisons, hashing, equality:
+    >> (!Int == 5?)
+    = no
+    >> (5? == 5?)
+    = yes
+    >> {!Int, !Int}
+    = {!Int}
+    >> [5?, !Int, !Int, 6?]:sorted()
+    = [!Int, !Int, 5?, 6?]

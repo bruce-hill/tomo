@@ -14,7 +14,7 @@ public const Table_t NULL_TABLE = {.entries.length=-1};
 public const Closure_t NULL_CLOSURE = {.fn=NULL};
 public const Text_t NULL_TEXT = {.length=-1};
 
-static inline bool is_null(const void *obj, const TypeInfo *non_optional_type)
+public PUREFUNC bool is_null(const void *obj, const TypeInfo *non_optional_type)
 {
     if (non_optional_type == &Int$info)
         return ((Int_t*)obj)->small == 0;
