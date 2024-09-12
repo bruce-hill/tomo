@@ -82,6 +82,7 @@ DEFINE_INT_TYPE(int8_t,  Int8)
 #define OptionalInt_t Int_t
 
 Text_t Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type);
+Text_t Int$value_as_text(Int_t i);
 PUREFUNC uint64_t Int$hash(const Int_t *x, const TypeInfo *type);
 PUREFUNC int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo *type);
 PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y);

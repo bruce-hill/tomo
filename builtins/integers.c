@@ -17,24 +17,27 @@
 
 static gmp_randstate_t Int_rng = {};
 
-public void Int$init_random(long seed)
-{
+public void Int$init_random(long seed) {
     gmp_randinit_default(Int_rng);
     gmp_randseed_ui(Int_rng, (unsigned long)seed);
+}
+
+public Text_t Int$value_as_text(Int_t i) {
+    if (__builtin_expect(i.small & 1, 1)) {
+        return Text$format("%ld", (i.small)>>2);
+    } else {
+        char *str = mpz_get_str(NULL, 10, *i.big);
+        return Text$from_str(str);
+    }
 }
 
 public Text_t Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type) {
     (void)type;
     if (!i) return Text("Int");
 
-    if (__builtin_expect(i->small & 1, 1)) {
-        return Text$format(colorize ? "\x1b[35m%ld\x1b[m" : "%ld", (i->small)>>2);
-    } else {
-        char *str = mpz_get_str(NULL, 10, *i->big);
-        Text_t text = Text$from_str(str);
-        if (colorize) text = Text$concat(Text("\x1b[35m"), text, Text("\x1b[m"));
-        return text;
-    }
+    Text_t text = Int$value_as_text(*i);
+    if (colorize) text = Text$concat(Text("\x1b[35m"), text, Text("\x1b[m"));
+    return text;
 }
 
 public PUREFUNC int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo *type) {
@@ -70,8 +73,7 @@ public PUREFUNC uint64_t Int$hash(const Int_t *x, const TypeInfo *type) {
     }
 }
 
-public Text_t Int$format(Int_t i, Int_t digits_int)
-{
+public Text_t Int$format(Int_t i, Int_t digits_int) {
     int64_t digits = Int_to_Int64(digits_int, false);
     if (__builtin_expect(i.small & 1, 1)) {
         return Text$format("%0.*ld", digits, (i.small)>>2);
