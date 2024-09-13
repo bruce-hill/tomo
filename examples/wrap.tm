@@ -1,19 +1,19 @@
 HELP := "
-    wrap: A tool for wrapping lines of text that are piped in through standard input
+    wrap: A tool for wrapping lines of text
 
-    usage: wrap [--help] [--file=/dev/stdin] [--width=80] [--inplace=no] [--min_split=3] [--no-rewrap] [--hyphen='-']
+    usage: wrap [--help] [files...] [--width=80] [--inplace=no] [--min_split=3] [--no-rewrap] [--hyphen='-']
         --help: Print this message and exit
-        --file: The file to wrap
+        [files...]: The files to wrap (stdin is used if no files are provided)
         --width=N: The width to wrap the text
         --inplace: Whether or not to perform the modification in-place or print the output
         --min-split=N: The minimum amount of text on either end of a hyphenation split
         --rewrap|--no-rewrap: Whether to rewrap text that is already wrapped or only split long lines
-        --hyphen='...': The text to use for hyphenation
+        --hyphen='-': The text to use for hyphenation
 "
 
-UNICODE_HYPHEN := Text.from_codepoint_names(["hyphen"])
+UNICODE_HYPHEN := \{hyphen}
 
-func unwrap(text:Text, preserve_paragraphs=yes, hyphen="-")->Text:
+func unwrap(text:Text, preserve_paragraphs=yes, hyphen=UNICODE_HYPHEN)->Text:
     if preserve_paragraphs:
         paragraphs := text:split($/{2+ nl}/)
         if paragraphs.length > 1:
@@ -77,7 +77,7 @@ func _can_fit_word(line:Text, letters:[Text], width:Int; inline)->Bool:
     else:
         return line.length + 1 + letters.length <= width
 
-func main(files:[Path], width=80, inplace=no, min_split=3, rewrap=yes, hyphen="-"):
+func main(files:[Path], width=80, inplace=no, min_split=3, rewrap=yes, hyphen=UNICODE_HYPHEN):
     if files.length == 0:
         files = [(/dev/stdin)]
 
