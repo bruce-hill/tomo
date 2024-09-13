@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
 
     ldflags = CORD_all("-Wl,-rpath='$ORIGIN',-rpath='", home, "/.local/lib/tomo' -L. -L'", home, "/.local/lib/tomo'");
 
-    ldlibs = "-lgc -lgmp -lcord -lm -ltomo";
+    ldlibs = "-lgc -lgmp -lm -ltomo";
 
     cc = ENV_CORD("CC");
     if (!cc) cc = "cc";
