@@ -27,8 +27,8 @@ $ ./hello "john doe" --shout
 Hello John Doe!!!
 ```
 
-For more examples, see [learnXinY](/learnxiny.tm) which as an overview of many
-language features or the other example programs/modules in
+For more examples, see [learnXinY](/examples/learnxiny.tm) which as an overview
+of many language features or the other example programs/modules in
 [examples/](examples/).
 
 ## Features
