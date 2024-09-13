@@ -18,6 +18,7 @@
 #include "integers.h"
 #include "optionals.h"
 #include "path.h"
+#include "pattern.h"
 #include "text.h"
 #include "types.h"
 #include "util.h"

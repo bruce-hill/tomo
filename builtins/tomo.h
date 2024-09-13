@@ -22,6 +22,7 @@
 #include "nums.h"
 #include "optionals.h"
 #include "path.h"
+#include "pattern.h"
 #include "pointer.h"
 #include "range.h"
 #include "shell.h"

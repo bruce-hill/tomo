@@ -18,6 +18,7 @@
 #include "functions.h"
 #include "integers.h"
 #include "optionals.h"
+#include "pattern.h"
 #include "pointer.h"
 #include "siphash.h"
 #include "string.h"

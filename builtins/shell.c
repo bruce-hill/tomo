@@ -5,6 +5,7 @@
 #include "array.h"
 #include "functions.h"
 #include "integers.h"
+#include "pattern.h"
 #include "shell.h"
 #include "text.h"
 #include "types.h"

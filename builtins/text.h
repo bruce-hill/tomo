@@ -6,10 +6,15 @@
 #include <stdbool.h>
 #include <printf.h>
 #include <stdint.h>
+#include <unistr.h>
 
 #include "datatypes.h"
 #include "integers.h"
 #include "types.h"
+
+typedef struct {
+    int64_t subtext, sum_of_previous_subtexts;
+} TextIter_t;
 
 int printf_text(FILE *stream, const struct printf_info *info, const void *const args[]);
 int printf_text_size(const struct printf_info *info, size_t n, int argtypes[n], int sizes[n]);
@@ -34,16 +39,8 @@ Text_t Text$lower(Text_t text);
 Text_t Text$title(Text_t text);
 Text_t Text$as_text(const void *text, bool colorize, const TypeInfo *info);
 Text_t Text$quoted(Text_t str, bool colorize);
-Text_t Text$replace(Text_t str, Pattern_t pat, Text_t replacement, Pattern_t backref_pat, bool recursive);
-Text_t Text$replace_all(Text_t text, Table_t replacements, Pattern_t backref_pat, bool recursive);
-Array_t Text$split(Text_t text, Pattern_t pattern);
-Text_t Text$trim(Text_t text, Pattern_t pattern, bool trim_left, bool trim_right);
-Int_t Text$find(Text_t text, Pattern_t pattern, Int_t i, int64_t *match_length);
-Array_t Text$find_all(Text_t text, Pattern_t pattern);
-PUREFUNC bool Text$has(Text_t text, Pattern_t pattern);
 PUREFUNC bool Text$starts_with(Text_t text, Text_t prefix);
 PUREFUNC bool Text$ends_with(Text_t text, Text_t suffix);
-PUREFUNC bool Text$matches(Text_t text, Pattern_t pattern);
 char *Text$as_c_string(Text_t text);
 __attribute__((format(printf, 1, 2)))
 public Text_t Text$format(const char *fmt, ...);
@@ -56,19 +53,16 @@ Text_t Text$from_codepoint_names(Array_t codepoint_names);
 Text_t Text$from_bytes(Array_t bytes);
 Array_t Text$lines(Text_t text);
 Text_t Text$join(Text_t glue, Array_t pieces);
-Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn);
 Text_t Text$repeat(Text_t text, Int_t count);
+int32_t Text$get_grapheme_fast(Text_t text, TextIter_t *state, int64_t index);
+ucs4_t Text$get_main_grapheme_fast(Text_t text, TextIter_t *state, int64_t index);
+
+static inline int32_t Text$get_grapheme(Text_t text, int64_t index)
+{
+    TextIter_t state = {0, 0};
+    return Text$get_grapheme_fast(text, &state, index);
+}
 
 extern const TypeInfo Text$info;
-
-#define Pattern(text) ((Pattern_t)Text(text))
-#define Patterns(...) ((Pattern_t)Texts(__VA_ARGS__))
-Pattern_t Pattern$escape_text(Text_t text);
-
-#define Pattern$hash Text$hash
-#define Pattern$compare Text$compare
-#define Pattern$equal Text$equal
-
-extern const TypeInfo Pattern$info;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

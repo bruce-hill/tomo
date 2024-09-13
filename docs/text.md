@@ -255,9 +255,11 @@ finding the value because the two texts are equivalent under normalization.
 # Patterns
 
 As an alternative to full regular expressions, Tomo provides a limited string
-matching pattern syntax that is intended to solve 80% of use cases in 2% of the
-code size (PCRE's codebase is roughly 150k lines of code, and Tomo's entire
-Text codebase is around 1.8K lines of code).
+matching pattern syntax that is intended to solve 80% of use cases in under 1%
+of the code size (PCRE's codebase is roughly 150k lines of code, and Tomo's
+pattern matching code is a bit under 1k lines of code). Tomo's pattern matching
+syntax is highly readable and works well for matching literal text without
+getting [leaning toothpick syndrome](https://en.wikipedia.org/wiki/Leaning_toothpick_syndrome).
 
 For more advanced use cases, consider linking against a C library for regular
 expressions or pattern matching.
