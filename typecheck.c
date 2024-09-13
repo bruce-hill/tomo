@@ -1359,7 +1359,7 @@ type_t *parse_type_string(env_t *env, const char *str)
 PUREFUNC bool is_constant(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
-    case Bool: case Num: case Null: case TextLiteral: return true;
+    case Bool: case Num: case Null: return true;
     case Int: {
         auto info = Match(ast, Int);
         if (info->bits == IBITS_UNSPECIFIED) {
@@ -1373,8 +1373,10 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast)
         auto text = Match(ast, TextJoin);
         if (!text->children) return true; // Empty string, OK
         if (text->children->next) return false; // Concatenation, not constant
-
-        CORD literal = Match(text->children->ast, TextLiteral)->cord; 
+        return is_constant(env, text->children->ast);
+    }
+    case TextLiteral: {
+        CORD literal = Match(ast, TextLiteral)->cord; 
         CORD_pos i;
 #pragma GCC diagnostic ignored "-Wsign-conversion"
         CORD_FOR(i, literal) {
