@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "tomo.h"
+#include "siphash.h"
 
 /* <MIT License>
  Copyright (c) 2013  Marek Majkowski <marek@popcount.org>

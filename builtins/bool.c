@@ -11,7 +11,6 @@
 #include "bool.h"
 #include "optionals.h"
 #include "text.h"
-#include "types.h"
 #include "util.h"
 
 PUREFUNC public Text_t Bool$as_text(const bool *b, bool colorize, const TypeInfo *type)

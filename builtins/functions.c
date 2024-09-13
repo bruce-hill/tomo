@@ -27,8 +27,6 @@
 #include "types.h"
 #include "util.h"
 
-public uint64_t TOMO_HASH_KEY[2] = {23, 42}; // Randomized in tomo_init()
-
 public void tomo_init(void)
 {
    GC_INIT();

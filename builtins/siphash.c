@@ -2,7 +2,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "tomo.h"
+#include "siphash.h"
+#include "util.h"
+
+public uint64_t TOMO_HASH_KEY[2] = {23, 42}; // Randomized in tomo_init()
 
 /* <MIT License>
  Copyright (c) 2013  Marek Majkowski <marek@popcount.org>

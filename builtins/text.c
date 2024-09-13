@@ -49,9 +49,7 @@
 
 #include <assert.h>
 #include <ctype.h>
-#include <err.h>
 #include <gc.h>
-#include <limits.h>
 #include <printf.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -62,17 +60,13 @@
 #include <unictype.h>
 #include <unigbrk.h>
 #include <uniname.h>
-#include <uninorm.h>
-#include <unistd.h>
-#include <unistdio.h>
-#include <unistr.h>
 
 #include "array.h"
 #include "functions.h"
 #include "integers.h"
+#include "pattern.h"
 #include "table.h"
 #include "text.h"
-#include "types.h"
 
 // Use inline version of the siphash code for performance:
 #include "siphash.h"

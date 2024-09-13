@@ -10,7 +10,6 @@
 
 #include "datatypes.h"
 #include "integers.h"
-#include "types.h"
 
 typedef struct {
     int64_t subtext, sum_of_previous_subtexts;

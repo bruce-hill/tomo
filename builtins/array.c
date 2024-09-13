@@ -1,22 +1,14 @@
 // Functions that operate on arrays
 
-#include <ctype.h>
-#include <err.h>
 #include <gc.h>
-#include <gc/cord.h>
-#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <sys/param.h>
 
 #include "array.h"
-#include "functions.h"
-#include "integers.h"
 #include "optionals.h"
 #include "table.h"
 #include "text.h"
-#include "types.h"
 #include "util.h"
 
 // Use inline version of siphash code:

@@ -7,10 +7,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "functions.h"
 #include "text.h"
 #include "siphash.h"
-#include "types.h"
 #include "util.h"
 
 public Text_t CString$as_text(const char **c_string, bool colorize, const TypeInfo *info)
