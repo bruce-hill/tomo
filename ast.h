@@ -2,6 +2,7 @@
 
 // Logic defining ASTs (abstract syntax trees) to represent code
 
+#include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>

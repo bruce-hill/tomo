@@ -7,6 +7,7 @@
 #include "builtins/table.h"
 #include "builtins/text.h"
 #include "builtins/util.h"
+#include "cordhelpers.h"
 #include "environment.h"
 #include "typecheck.h"
 

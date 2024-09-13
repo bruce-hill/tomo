@@ -1,7 +1,6 @@
 // Integer type infos and methods
 #include <ctype.h>
 #include <gc.h>
-#include <gc/cord.h>
 #include <gmp.h>
 #include <stdbool.h>
 #include <stdint.h>

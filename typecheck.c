@@ -10,6 +10,7 @@
 #include "ast.h"
 #include "builtins/text.h"
 #include "builtins/util.h"
+#include "cordhelpers.h"
 #include "environment.h"
 #include "parse.h"
 #include "typecheck.h"

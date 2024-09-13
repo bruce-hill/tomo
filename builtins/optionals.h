@@ -2,7 +2,6 @@
 
 // Optional types
 
-#include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>
 

@@ -2,7 +2,6 @@
 
 // A lang for Shell Command Language
 
-#include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>
 

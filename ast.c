@@ -7,6 +7,7 @@
 #include "ast.h"
 #include "builtins/integers.h"
 #include "builtins/text.h"
+#include "cordhelpers.h"
 
 static const char *OP_NAMES[] = {
     [BINOP_UNKNOWN]="unknown",

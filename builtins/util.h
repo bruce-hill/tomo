@@ -4,7 +4,6 @@
 
 #include <assert.h>
 #include <gc.h>
-#include <gc/cord.h>
 #include <stdbool.h>
 #include <string.h>
 #include <err.h>
@@ -37,9 +36,6 @@
 
 extern bool USE_COLOR;
 
-#define CORD_appendf(cord, fmt, ...) CORD_sprintf(cord, "%r" fmt, *(cord) __VA_OPT__(,) __VA_ARGS__)
-#define CORD_all(...) CORD_catn(sizeof((CORD[]){__VA_ARGS__})/sizeof(CORD), __VA_ARGS__)
-
 #define REVERSE_LIST(list) do { \
     __typeof(list) _prev = NULL; \
     __typeof(list) _next = NULL; \
@@ -66,9 +62,5 @@ extern bool USE_COLOR;
 
 __attribute__((format(printf, 1, 2)))
 char *heap_strf(const char *fmt, ...);
-__attribute__((format(printf, 1, 2)))
-CORD CORD_asprintf(CORD fmt, ...);
-CORD CORD_quoted(CORD str);
-CORD CORD_replace(CORD c, CORD to_replace, CORD replacement);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

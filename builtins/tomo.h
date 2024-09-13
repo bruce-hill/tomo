@@ -4,7 +4,6 @@
 // import
 
 #include <gc.h>
-#include <gc/cord.h>
 #include <gmp.h>
 #include <stdbool.h>
 #include <stdint.h>

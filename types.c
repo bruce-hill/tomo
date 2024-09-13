@@ -9,6 +9,7 @@
 #include "builtins/integers.h"
 #include "builtins/table.h"
 #include "builtins/util.h"
+#include "cordhelpers.h"
 #include "types.h"
 
 CORD type_to_cord(type_t *t) {

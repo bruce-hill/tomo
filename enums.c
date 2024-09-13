@@ -7,6 +7,7 @@
 #include "ast.h"
 #include "builtins/text.h"
 #include "compile.h"
+#include "cordhelpers.h"
 #include "structs.h"
 #include "environment.h"
 #include "typecheck.h"

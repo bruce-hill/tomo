@@ -14,6 +14,7 @@
 #include "builtins/datatypes.h"
 #include "builtins/text.h"
 #include "compile.h"
+#include "cordhelpers.h"
 #include "parse.h"
 #include "repl.h"
 #include "typecheck.h"

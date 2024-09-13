@@ -3,7 +3,6 @@
 #include <ctype.h>
 #include <err.h>
 #include <gc.h>
-#include <gc/cord.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>

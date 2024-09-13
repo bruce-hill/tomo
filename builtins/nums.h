@@ -2,7 +2,6 @@
 
 // Type infos and methods for Nums (floating point)
 
-#include <gc/cord.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>

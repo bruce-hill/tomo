@@ -3,7 +3,6 @@
 // Functions that operate on channels (thread-safe arrays)
 
 #include <stdbool.h>
-#include <gc/cord.h>
 
 #include "datatypes.h"
 #include "types.h"

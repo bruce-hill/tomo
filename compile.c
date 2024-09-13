@@ -10,6 +10,7 @@
 #include "builtins/integers.h"
 #include "builtins/text.h"
 #include "compile.h"
+#include "cordhelpers.h"
 #include "enums.h"
 #include "structs.h"
 #include "environment.h"

@@ -36,7 +36,7 @@ TESTS=$(patsubst %.tm,%.tm.testresult,$(wildcard test/*.tm))
 
 all: libtomo.so tomo
 
-tomo: tomo.o $(BUILTIN_OBJS) ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o repl.o
+tomo: tomo.o $(BUILTIN_OBJS) ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o repl.o cordhelpers.o
 	@echo $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $^ $(LDLIBS) -o $@
 	@$(CC) $(CFLAGS) $(CWARN) $(LDFLAGS) $^ $(LDLIBS) -o $@
 

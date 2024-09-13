@@ -2,7 +2,6 @@
 
 // Built-in functions
 
-#include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>
 

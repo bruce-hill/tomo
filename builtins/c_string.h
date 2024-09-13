@@ -2,7 +2,6 @@
 
 // Type info and methods for CString datatype, which represents C's `char*`
 
-#include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>
 

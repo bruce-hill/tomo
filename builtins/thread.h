@@ -4,7 +4,6 @@
 
 #include <pthread.h>
 #include <stdbool.h>
-#include <gc/cord.h>
 
 #include "datatypes.h"
 #include "types.h"

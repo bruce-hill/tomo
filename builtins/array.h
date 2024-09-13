@@ -3,7 +3,6 @@
 // Functions that operate on arrays
 
 #include <stdbool.h>
-#include <gc/cord.h>
 
 #include "datatypes.h"
 #include "functions.h"

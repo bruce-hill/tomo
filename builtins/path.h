@@ -2,7 +2,6 @@
 
 // A lang for filesystem paths
 
-#include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>
 
