@@ -18,7 +18,7 @@ func parse_ini(path:Path)->{Text:{Text:Text}}:
     for line in text:lines():
         line = line:trim()
         skip if line:starts_with(";") or line:starts_with("#")
-        if line:matches($/{0+space}[{..}]/):
+        if line:matches($/[?]/):
             section_name := line:replace($/[?]/, "\1"):trim():lower()
             current_section = @{:Text:Text}
             sections:set(section_name, current_section)
