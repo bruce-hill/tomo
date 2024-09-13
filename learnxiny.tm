@@ -106,14 +106,17 @@ func main():
     # Tables are efficient hash maps
     table := {"one": 1, "two": 2}
     >> table:get("two")
+    = 2?
+
+    # The value returned is optional (because the key might not be in the table).
+    # Optional values can be converted to regular values using `!` (which will
+    # create a runtime error if the value is null) or :or_else() which uses a
+    # fallback value if it's null.
+    >> table:get("two")!
     = 2
 
-    # You can supply a default argument in case a key isn't found:
-    >> table:get("xxx", default=0)
+    >> table:get("xxx"):or_else(0)
     = 0
-
-    # Otherwise, a runtime error will be raised:
-    # >> table:get("xxx")
 
     # Empty tables require specifying the key and value types:
     empty_table := {:Text:Int}
@@ -135,9 +138,9 @@ func main():
     # Tables can have a fallback table that's used as a fallback when the key
     # isn't found in the table itself:
     table2 := {"three": 3; fallback=table}
-    >> table2:get("two")
+    >> table2:get("two")!
     = 2
-    >> table2:get("three")
+    >> table2:get("three")!
     = 3
 
     # Tables can also be created with comprehension loops:
@@ -150,7 +153,7 @@ func main():
     # Any types can be used in tables, for example, a table mapping arrays to
     # strings:
     table3 := {[10, 20]: "one", [30, 40, 50]: "two"}
-    >> table3:get([10, 20])
+    >> table3:get([10, 20])!
     = "one"
 
     # Sets are similar to tables, but they represent an unordered collection of
@@ -287,7 +290,7 @@ func demo_structs():
     = yes
 
     table := {alice: "first", bob: "second"}
-    >> table:get(alice)
+    >> table:get(alice)!
     = "first"
 
 
@@ -328,11 +331,11 @@ func demo_enums():
     >> my_shape == other_shape
     = no
 
-    >> "$my_shape" == "Shape.Circle(radius=1)"
+    >> "$my_shape" == "Shape.Circle(1)"
     = yes
 
     >> {my_shape:"nice"}
-    = {Shape.Circle(radius=1):"nice"}
+    = {Shape.Circle(1):"nice"}
 
 func demo_lambdas():
     # Lambdas, or anonymous functions, can be used like this:
