@@ -82,6 +82,5 @@ extern const TypeInfo Abort$info;
 #define Void_t void
 
 Text_t Type$as_text(const void *typeinfo, bool colorize, const TypeInfo *type);
-Text_t Func$as_text(const void *fn, bool colorize, const TypeInfo *type);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

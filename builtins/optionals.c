@@ -3,6 +3,7 @@
 #include "bool.h"
 #include "datatypes.h"
 #include "integers.h"
+#include "metamethods.h"
 #include "thread.h"
 #include "text.h"
 #include "util.h"

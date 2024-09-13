@@ -62,7 +62,6 @@
 #include <uniname.h>
 
 #include "array.h"
-#include "functions.h"
 #include "integers.h"
 #include "pattern.h"
 #include "table.h"

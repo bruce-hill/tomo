@@ -20,6 +20,7 @@
 #include "c_string.h"
 #include "datatypes.h"
 #include "memory.h"
+#include "metamethods.h"
 #include "siphash.h"
 #include "table.h"
 #include "text.h"

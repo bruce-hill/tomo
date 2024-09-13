@@ -14,7 +14,6 @@
 
 #include "array.h"
 #include "files.h"
-#include "functions.h"
 #include "integers.h"
 #include "optionals.h"
 #include "path.h"

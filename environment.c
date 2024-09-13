@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <signal.h>
 
-#include "builtins/functions.h"
 #include "builtins/table.h"
 #include "builtins/text.h"
 #include "builtins/util.h"

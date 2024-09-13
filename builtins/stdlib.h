@@ -11,9 +11,6 @@
 #include "util.h"
 
 void tomo_init(void);
-void register_function(void *fn, Text_t name);
-Text_t *get_function_name(void *fn);
-
 __attribute__((format(printf, 1, 2)))
 _Noreturn void fail(const char *fmt, ...);
 __attribute__((format(printf, 4, 5)))
@@ -29,11 +26,6 @@ void say(Text_t text, bool newline);
 Text_t ask(Text_t prompt, bool bold, bool force_tty);
 _Noreturn void tomo_exit(Text_t text, int32_t status);
 
-PUREFUNC uint64_t generic_hash(const void *obj, const TypeInfo *type);
-PUREFUNC int32_t generic_compare(const void *x, const void *y, const TypeInfo *type);
-PUREFUNC bool generic_equal(const void *x, const void *y, const TypeInfo *type);
-Text_t generic_as_text(const void *obj, bool colorize, const TypeInfo *type);
-int generic_print(const void *obj, bool colorize, const TypeInfo *type);
 Closure_t spawn(Closure_t fn);
 bool pop_flag(char **argv, int *i, const char *flag, Text_t *result);
 void print_stack_trace(FILE *out, int start, int stop);

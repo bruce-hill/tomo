@@ -8,8 +8,8 @@
 #include <gmp.h>
 
 #include "datatypes.h"
-#include "functions.h"
 #include "nums.h"
+#include "stdlib.h"
 #include "types.h"
 #include "util.h"
 

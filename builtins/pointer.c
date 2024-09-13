@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <sys/param.h>
 
-#include "functions.h"
+#include "metamethods.h"
 #include "text.h"
 #include "types.h"
 #include "util.h"

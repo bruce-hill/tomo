@@ -6,6 +6,7 @@
 #include <sys/param.h>
 
 #include "array.h"
+#include "metamethods.h"
 #include "optionals.h"
 #include "table.h"
 #include "text.h"

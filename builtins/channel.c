@@ -11,7 +11,7 @@
 #include <sys/param.h>
 
 #include "array.h"
-#include "functions.h"
+#include "metamethods.h"
 #include "integers.h"
 #include "siphash.h"
 #include "text.h"

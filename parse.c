@@ -12,7 +12,6 @@
 #include <signal.h>
 
 #include "ast.h"
-#include "builtins/functions.h"
 #include "builtins/integers.h"
 #include "builtins/text.h"
 #include "builtins/table.h"
