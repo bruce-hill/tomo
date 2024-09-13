@@ -11,6 +11,9 @@
 #include "util.h"
 
 void tomo_init(void);
+void register_function(void *fn, Text_t name);
+Text_t *get_function_name(void *fn);
+
 __attribute__((format(printf, 1, 2)))
 _Noreturn void fail(const char *fmt, ...);
 __attribute__((format(printf, 4, 5)))
@@ -20,7 +23,8 @@ void start_test(const char *filename, int64_t start, int64_t end);
 void end_test(const void *expr, const TypeInfo *type, const char *expected, const char *filename, int64_t start, int64_t end);
 #define test(expr, typeinfo, expected, start, end) {\
     start_test(__SOURCE_FILE__, start, end); \
-    end_test((__typeof__(expr)[1]){expr}, typeinfo, expected, __SOURCE_FILE__, start, end); }
+    auto _expr = expr; \
+    end_test(&_expr, typeinfo, expected, __SOURCE_FILE__, start, end); }
 void say(Text_t text, bool newline);
 Text_t ask(Text_t prompt, bool bold, bool force_tty);
 _Noreturn void tomo_exit(Text_t text, int32_t status);

@@ -842,6 +842,20 @@ CORD compile_statement(env_t *env, ast_t *ast)
             env->code->funcs = CORD_cat(env->code->funcs, wrapper);
         }
 
+        CORD text = CORD_all("func ", Match(fndef->name, Var)->name, "(");
+        for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
+            text = CORD_cat(text, type_to_cord(get_arg_ast_type(env, arg)));
+            if (arg->next) text = CORD_cat(text, ", ");
+        }
+        if (ret_t && ret_t->tag != VoidType)
+            text = CORD_all(text, ")->", type_to_cord(ret_t));
+        else
+            text = CORD_all(text, ")");
+
+        env->code->function_naming = CORD_all(
+            env->code->function_naming,
+            CORD_asprintf("register_function(%r, Text(\"%r [%s.tm:%ld]\"));\n",
+                          name, text, file_base_name(ast->file->filename), get_line_number(ast->file, ast->start)));
         return CORD_EMPTY;
     }
     case Skip: {
@@ -2391,6 +2405,11 @@ CORD compile(env_t *env, ast_t *ast)
         auto lambda = Match(ast, Lambda);
         CORD name = CORD_asprintf("%rlambda$%ld", namespace_prefix(env->libname, env->namespace), lambda->id);
 
+        env->code->function_naming = CORD_all(
+            env->code->function_naming,
+            CORD_asprintf("register_function(%r, Text(\"%r [%s.tm:%ld]\"));\n",
+                          name, type_to_cord(get_type(env, ast)), file_base_name(ast->file->filename), get_line_number(ast->file, ast->start)));
+
         env_t *body_scope = fresh_scope(env);
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
@@ -3670,14 +3689,15 @@ CORD compile_file(env_t *env, ast_t *ast)
         "#include \"", name, ".tm.h\"\n\n",
         env->code->local_typedefs, "\n",
         env->code->staticdefs, "\n",
+        env->code->funcs, "\n",
+        env->code->typeinfos, "\n",
         "public void ", env->namespace->name, "$$initialize(void) {\n",
         "static bool initialized = false;\n",
         "if (initialized) return;\n",
         "initialized = true;\n",
         env->code->variable_initializers,
-        "}\n",
-        env->code->funcs, "\n",
-        env->code->typeinfos, "\n");
+        env->code->function_naming,
+        "}\n");
 }
 
 CORD compile_statement_imports(env_t *env, ast_t *ast)

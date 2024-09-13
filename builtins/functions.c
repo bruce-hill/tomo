@@ -43,6 +43,18 @@ public void tomo_init(void)
        errx(1, "Couldn't set printf specifier");
 }
 
+static Table_t function_names = {};
+
+public void register_function(void *fn, Text_t name)
+{
+    Table$set(&function_names, &fn, &name, Table$info(Function$info("???"), &Text$info));
+}
+
+public Text_t *get_function_name(void *fn)
+{
+    return Table$get(function_names, &fn, Table$info(Function$info("???"), &Text$info));
+}
+
 void print_stack_trace(FILE *out, int start, int stop)
 {
     // Print stack trace:

@@ -185,12 +185,12 @@ func main():
         !! ...
         !! Lambdas:
         >> yep := maybe_lambda(yes)
-        = func(): ...?
+        = func() [optionals.tm:54]?
         >> nope := maybe_lambda(no)
         = !func()
         >> if yep:
             >> yep
-            = func(): ...
+            = func() [optionals.tm:54]
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")

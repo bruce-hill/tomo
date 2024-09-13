@@ -13,6 +13,7 @@ typedef struct {
     CORD funcs;
     CORD typeinfos;
     CORD variable_initializers;
+    CORD function_naming;
 } compilation_unit_t;
 
 typedef struct fn_ctx_s {

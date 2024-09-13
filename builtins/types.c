@@ -39,7 +39,11 @@ public Text_t Func$as_text(const void *fn, bool colorize, const TypeInfo *type)
 {
     (void)fn;
     Text_t text = Text$from_str(type->FunctionInfo.type_str);
-    if (fn) text = Text$concat(text, Text(": ..."));
+    if (fn) {
+        Text_t *name = get_function_name(*(void**)fn);
+        if (name)
+            text = *name;
+    }
     if (fn && colorize)
         text = Text$concat(Text("\x1b[32;1m"), text, Text("\x1b[m"));
     return text;
