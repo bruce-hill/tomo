@@ -76,7 +76,7 @@ void baz$main();
 
 public void baz$say_stuff()
 {
-  say(CORD_all("I got ", foo$my_variable, " from foo"));
+    say(Texts(Text("I got "), foo$my_variable, Text(" from foo")));
 }
 
 public void baz$main()

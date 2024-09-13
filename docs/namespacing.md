@@ -44,12 +44,12 @@ void foo$main();
 Int_t foo$my_var = I_small(123);
 Int_t foo$Baz$member = I_small(5);
 
-static CORD foo$Baz$as_text(foo$Baz_t *obj, bool use_color)
+static Text_t foo$Baz$as_text(foo$Baz_t *obj, bool use_color)
 {
     if (!obj)
         return "Baz";
-    return CORD_all(use_color ? "\x1b[0;1mBaz\x1b[m(" : "Baz(", "x=",
-                    Int$as_text(stack(obj->$x), use_color, &Int$info), ")");
+    return Texts(use_color ? Text("\x1b[0;1mBaz\x1b[m(") : Text("Baz("),
+                    Int$as_text(stack(obj->$x), use_color, &Int$info), Text(")"));
 }
 
 public Int_t foo$Baz$frob(struct foo$Baz_s $b)
