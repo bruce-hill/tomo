@@ -1,6 +1,7 @@
 // Metamethods are methods that all types share for hashing, equality, comparison, and textifying
 
 #include <stdint.h>
+#include <string.h>
 
 #include "arrays.h"
 #include "channels.h"
