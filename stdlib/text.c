@@ -817,17 +817,15 @@ PUREFUNC public uint64_t Text$hash(Text_t *text)
     return text->hash;
 }
 
-public int32_t Text$get_grapheme_fast(Text_t text, TextIter_t *state, int64_t index)
+public int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index)
 {
+    Text_t text = state->text;
     switch (text.tag) {
     case TEXT_ASCII: return index < text.length ? (int32_t)text.ascii[index] : 0;
     case TEXT_SHORT_ASCII: return index < text.length ? (int32_t)text.short_ascii[index] : 0;
     case TEXT_GRAPHEMES: return index < text.length ? text.graphemes[index] : 0;
     case TEXT_SHORT_GRAPHEMES: return index < text.length ? text.short_graphemes[index] : 0;
     case TEXT_SUBTEXT: {
-        TextIter_t backup_state = {0, 0};
-        if (!state) state = &backup_state;
-
         if (index < 0 || index >= text.length)
             return 0;
 
@@ -837,7 +835,7 @@ public int32_t Text$get_grapheme_fast(Text_t text, TextIter_t *state, int64_t in
         }
         for (;;) {
             if (index < state->sum_of_previous_subtexts + text.subtexts[state->subtext].length)
-                return Text$get_grapheme_fast(text.subtexts[state->subtext], NULL, index - state->sum_of_previous_subtexts);
+                return Text$get_grapheme(text.subtexts[state->subtext], index - state->sum_of_previous_subtexts);
             state->sum_of_previous_subtexts += text.subtexts[state->subtext].length;
             state->subtext += 1;
         }
@@ -848,9 +846,9 @@ public int32_t Text$get_grapheme_fast(Text_t text, TextIter_t *state, int64_t in
     return 0;
 }
 
-public ucs4_t Text$get_main_grapheme_fast(Text_t text, TextIter_t *state, int64_t index)
+public ucs4_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index)
 {
-    return MAIN_GRAPHEME_CODEPOINT(Text$get_grapheme_fast(text, state, index));
+    return MAIN_GRAPHEME_CODEPOINT(Text$get_grapheme_fast(state, index));
 }
 
 PUREFUNC public int32_t Text$compare(const Text_t *a, const Text_t *b)
@@ -858,10 +856,10 @@ PUREFUNC public int32_t Text$compare(const Text_t *a, const Text_t *b)
     if (a == b) return 0;
 
     int64_t len = MAX(a->length, b->length);
-    TextIter_t a_state = {0, 0}, b_state = {0, 0};
+    TextIter_t a_state = {*a, 0, 0}, b_state = {*b, 0, 0};
     for (int64_t i = 0; i < len; i++) {
-        int32_t ai = Text$get_grapheme_fast(*a, &a_state, i);
-        int32_t bi = Text$get_grapheme_fast(*b, &b_state, i);
+        int32_t ai = Text$get_grapheme_fast(&a_state, i);
+        int32_t bi = Text$get_grapheme_fast(&b_state, i);
         if (ai == bi) continue;
         int32_t cmp;
         if (ai > 0 && bi > 0) {
@@ -892,10 +890,10 @@ PUREFUNC public bool Text$starts_with(Text_t text, Text_t prefix)
 {
     if (text.length < prefix.length)
         return false;
-    TextIter_t text_state = {0, 0}, prefix_state = {0, 0};
+    TextIter_t text_state = {text, 0, 0}, prefix_state = {prefix, 0, 0};
     for (int64_t i = 0; i < prefix.length; i++) {
-        int32_t text_i = Text$get_grapheme_fast(text, &text_state, i);
-        int32_t prefix_i = Text$get_grapheme_fast(prefix, &prefix_state, i);
+        int32_t text_i = Text$get_grapheme_fast(&text_state, i);
+        int32_t prefix_i = Text$get_grapheme_fast(&prefix_state, i);
         if (text_i != prefix_i) return false;
     }
     return true;
@@ -905,10 +903,10 @@ PUREFUNC public bool Text$ends_with(Text_t text, Text_t suffix)
 {
     if (text.length < suffix.length)
         return false;
-    TextIter_t text_state = {0, 0}, prefix_state = {0, 0};
+    TextIter_t text_state = {text, 0, 0}, suffix_state = {suffix, 0, 0};
     for (int64_t i = 0; i < suffix.length; i++) {
-        int32_t text_i = Text$get_grapheme_fast(text, &text_state, text.length - suffix.length + i);
-        int32_t suffix_i = Text$get_grapheme_fast(suffix, &prefix_state, i);
+        int32_t text_i = Text$get_grapheme_fast(&text_state, text.length - suffix.length + i);
+        int32_t suffix_i = Text$get_grapheme_fast(&suffix_state, i);
         if (text_i != suffix_i) return false;
     }
     return true;
@@ -919,10 +917,10 @@ PUREFUNC public bool Text$equal_values(Text_t a, Text_t b)
     if (a.length != b.length || (a.hash != 0 && b.hash != 0 && a.hash != b.hash))
         return false;
     int64_t len = a.length;
-    TextIter_t a_state = {0, 0}, b_state = {0, 0};
+    TextIter_t a_state = {a, 0, 0}, b_state = {b, 0, 0};
     for (int64_t i = 0; i < len; i++) {
-        int32_t ai = Text$get_grapheme_fast(a, &a_state, i);
-        int32_t bi = Text$get_grapheme_fast(b, &b_state, i);
+        int32_t ai = Text$get_grapheme_fast(&a_state, i);
+        int32_t bi = Text$get_grapheme_fast(&b_state, i);
         if (ai != bi) return false;
     }
     return true;
@@ -939,11 +937,11 @@ PUREFUNC public bool Text$equal_ignoring_case(Text_t a, Text_t b)
     if (a.length != b.length)
         return false;
     int64_t len = a.length;
-    TextIter_t a_state = {0, 0}, b_state = {0, 0};
+    TextIter_t a_state = {a, 0, 0}, b_state = {b, 0, 0};
     const char *language = uc_locale_language();
     for (int64_t i = 0; i < len; i++) {
-        int32_t ai = Text$get_grapheme_fast(a, &a_state, i);
-        int32_t bi = Text$get_grapheme_fast(b, &b_state, i);
+        int32_t ai = Text$get_grapheme_fast(&a_state, i);
+        int32_t bi = Text$get_grapheme_fast(&b_state, i);
         if (ai != bi) {
             const ucs4_t *a_codepoints = ai >= 0 ? (ucs4_t*)&ai : GRAPHEME_CODEPOINTS(ai);
             int64_t a_len = ai >= 0 ? 1 : NUM_GRAPHEME_CODEPOINTS(ai);
@@ -1030,9 +1028,9 @@ static inline Text_t _quoted(Text_t text, bool colorize, char quote_char)
     add_char(quote_char);
 
 #define add_escaped(str) ({ if (colorize) add_str("\x1b[34;1m"); add_char('\\'); add_str(str); if (colorize) add_str("\x1b[0;35m"); })
-    TextIter_t state = {0, 0};
+    TextIter_t state = {text, 0, 0};
     for (int64_t i = 0; i < text.length; i++) {
-        int32_t g = Text$get_grapheme_fast(text, &state, i);
+        int32_t g = Text$get_grapheme_fast(&state, i);
         switch (g) {
         case '\a': add_escaped("a"); break;
         case '\b': add_escaped("b"); break;
@@ -1148,9 +1146,9 @@ public Array_t Text$clusters(Text_t text)
 public Array_t Text$utf32_codepoints(Text_t text)
 {
     Array_t codepoints = {.atomic=1};
-    TextIter_t state = {0, 0};
+    TextIter_t state = {text, 0, 0};
     for (int64_t i = 0; i < text.length; i++) {
-        int32_t grapheme = Text$get_grapheme_fast(text, &state, i);
+        int32_t grapheme = Text$get_grapheme_fast(&state, i);
         if (grapheme < 0) {
             for (int64_t c = 0; c < NUM_GRAPHEME_CODEPOINTS(grapheme); c++) {
                 ucs4_t subg = GRAPHEME_CODEPOINTS(grapheme)[c];
@@ -1183,9 +1181,9 @@ static inline const char *codepoint_name(ucs4_t c)
 public Array_t Text$codepoint_names(Text_t text)
 {
     Array_t names = {};
-    TextIter_t state = {0, 0};
+    TextIter_t state = {text, 0, 0};
     for (int64_t i = 0; i < text.length; i++) {
-        int32_t grapheme = Text$get_grapheme_fast(text, &state, i);
+        int32_t grapheme = Text$get_grapheme_fast(&state, i);
         if (grapheme < 0) {
             for (int64_t c = 0; c < NUM_GRAPHEME_CODEPOINTS(grapheme); c++) {
                 const char *name = codepoint_name(GRAPHEME_CODEPOINTS(grapheme)[c]);
@@ -1235,10 +1233,10 @@ public Text_t Text$from_bytes(Array_t bytes)
 public Array_t Text$lines(Text_t text)
 {
     Array_t lines = {};
-    TextIter_t state = {0, 0};
+    TextIter_t state = {text, 0, 0};
     for (int64_t i = 0, line_start = 0; i < text.length; i++) {
-        int32_t grapheme = Text$get_grapheme_fast(text, &state, i);
-        if (grapheme == '\r' && Text$get_grapheme_fast(text, &state, i + 1) == '\n') { // CRLF
+        int32_t grapheme = Text$get_grapheme_fast(&state, i);
+        if (grapheme == '\r' && Text$get_grapheme_fast(&state, i + 1) == '\n') { // CRLF
             Text_t line = Text$slice(text, I(line_start+1), I(i));
             Array$insert(&lines, &line, I_small(0), sizeof(Text_t));
             i += 1; // skip one extra for CR
@@ -1268,9 +1266,9 @@ public Pattern_t Pattern$escape_text(Text_t text)
     Array_t graphemes = {.atomic=1};
 #define add_char(c) Array$insert_value(&graphemes, (ucs4_t)c, I_small(0), sizeof(ucs4_t))
 #define add_str(s) ({ for (const char *_c = s; *_c; ++_c) Array$insert_value(&graphemes, (ucs4_t)*_c, I_small(0), sizeof(ucs4_t)); })
-    TextIter_t state = {0, 0};
+    TextIter_t state = {text, 0, 0};
     for (int64_t i = 0; i < text.length; i++) {
-        int32_t g = Text$get_grapheme_fast(text, &state, i);
+        int32_t g = Text$get_grapheme_fast(&state, i);
         ucs4_t g0 = g < 0 ? GRAPHEME_CODEPOINTS(g)[0] : (ucs4_t)g;
 
         if (g == '{') {

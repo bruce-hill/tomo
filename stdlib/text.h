@@ -12,6 +12,7 @@
 #include "integers.h"
 
 typedef struct {
+    Text_t text;
     int64_t subtext, sum_of_previous_subtexts;
 } TextIter_t;
 
@@ -53,13 +54,13 @@ Text_t Text$from_bytes(Array_t bytes);
 Array_t Text$lines(Text_t text);
 Text_t Text$join(Text_t glue, Array_t pieces);
 Text_t Text$repeat(Text_t text, Int_t count);
-int32_t Text$get_grapheme_fast(Text_t text, TextIter_t *state, int64_t index);
-ucs4_t Text$get_main_grapheme_fast(Text_t text, TextIter_t *state, int64_t index);
+int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index);
+ucs4_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index);
 
 static inline int32_t Text$get_grapheme(Text_t text, int64_t index)
 {
-    TextIter_t state = {0, 0};
-    return Text$get_grapheme_fast(text, &state, index);
+    TextIter_t state = {text, 0, 0};
+    return Text$get_grapheme_fast(&state, index);
 }
 
 extern const TypeInfo Text$info;
