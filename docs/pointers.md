@@ -101,12 +101,13 @@ optional := &foo?
 ```
 
 The compiler will not allow you to dereference an optionally null pointer
-without explicitly checking for null. To do so, use pattern matching like
-this:
+without explicitly checking for null. To do so, use a conditional check like
+this, and everywhere inside the truthy block will allow you to use the pointer
+as a non-null pointer:
 
 ```
-when optional is @ptr:
-    ok := ptr[]
+if optional:
+    ok := optional[]
 else:
     say("Oh, it was null")
 ```
