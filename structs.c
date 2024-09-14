@@ -5,12 +5,12 @@
 #include <stdio.h>
 
 #include "ast.h"
-#include "builtins/text.h"
+#include "stdlib/text.h"
 #include "compile.h"
 #include "cordhelpers.h"
 #include "environment.h"
 #include "typecheck.h"
-#include "builtins/util.h"
+#include "stdlib/util.h"
 
 static CORD compile_str_method(env_t *env, ast_t *ast)
 {

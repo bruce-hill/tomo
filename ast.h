@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <printf.h>
 
-#include "builtins/files.h"
-#include "builtins/util.h"
+#include "stdlib/files.h"
+#include "stdlib/util.h"
 
 #define NewAST(_file, _start, _end, ast_tag, ...) (new(ast_t, .file=_file, .start=_start, .end=_end,\
                                                      .tag=ast_tag, .__data.ast_tag={__VA_ARGS__}))

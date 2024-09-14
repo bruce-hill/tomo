@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 #include "ast.h"
-#include "builtins/arrays.h"
+#include "stdlib/arrays.h"
 
 typedef struct type_s type_t;
 

@@ -10,9 +10,9 @@
 #include <sys/wait.h>
 
 #include "ast.h"
-#include "builtins/arrays.h"
-#include "builtins/datatypes.h"
-#include "builtins/text.h"
+#include "stdlib/arrays.h"
+#include "stdlib/datatypes.h"
+#include "stdlib/text.h"
 #include "compile.h"
 #include "cordhelpers.h"
 #include "parse.h"

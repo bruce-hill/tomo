@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <signal.h>
 
-#include "builtins/tables.h"
-#include "builtins/text.h"
-#include "builtins/util.h"
+#include "stdlib/tables.h"
+#include "stdlib/text.h"
+#include "stdlib/util.h"
 #include "cordhelpers.h"
 #include "environment.h"
 #include "typecheck.h"

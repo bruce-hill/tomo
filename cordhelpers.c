@@ -3,7 +3,7 @@
 #include <gc/cord.h>
 #include <stdarg.h>
 
-#include "builtins/util.h"
+#include "stdlib/util.h"
 
 __attribute__((format(printf, 1, 2)))
 public CORD CORD_asprintf(CORD fmt, ...)

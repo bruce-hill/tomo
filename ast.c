@@ -5,8 +5,8 @@
 #include <printf.h>
 
 #include "ast.h"
-#include "builtins/integers.h"
-#include "builtins/text.h"
+#include "stdlib/integers.h"
+#include "stdlib/text.h"
 #include "cordhelpers.h"
 
 static const char *OP_NAMES[] = {

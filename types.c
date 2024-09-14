@@ -6,9 +6,9 @@
 #include <stdint.h>
 #include <sys/param.h>
 
-#include "builtins/integers.h"
-#include "builtins/tables.h"
-#include "builtins/util.h"
+#include "stdlib/integers.h"
+#include "stdlib/tables.h"
+#include "stdlib/util.h"
 #include "cordhelpers.h"
 #include "types.h"
 

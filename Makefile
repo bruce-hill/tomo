@@ -28,10 +28,10 @@ O=-Og
 CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS)
 CFLAGS_PLACEHOLDER="$$(echo -e '\033[2m<flags...>\033[m')" 
 LDLIBS=-lgc -lcord -lm -lunistring -lgmp -ldl
-BUILTIN_OBJS=builtins/siphash.o builtins/arrays.o builtins/bools.o builtins/channels.o builtins/nums.o builtins/integers.o \
-						 builtins/pointers.o builtins/memory.o builtins/text.o builtins/threads.o builtins/c_strings.o builtins/tables.o \
-						 builtins/types.o builtins/util.o builtins/files.o builtins/ranges.o builtins/shell.o builtins/paths.o \
-						 builtins/optionals.o builtins/patterns.o builtins/metamethods.o builtins/functiontype.o builtins/stdlib.o
+BUILTIN_OBJS=stdlib/siphash.o stdlib/arrays.o stdlib/bools.o stdlib/channels.o stdlib/nums.o stdlib/integers.o \
+						 stdlib/pointers.o stdlib/memory.o stdlib/text.o stdlib/threads.o stdlib/c_strings.o stdlib/tables.o \
+						 stdlib/types.o stdlib/util.o stdlib/files.o stdlib/ranges.o stdlib/shell.o stdlib/paths.o \
+						 stdlib/optionals.o stdlib/patterns.o stdlib/metamethods.o stdlib/functiontype.o stdlib/stdlib.o
 TESTS=$(patsubst %.tm,%.tm.testresult,$(wildcard test/*.tm))
 
 all: libtomo.so tomo
@@ -63,14 +63,14 @@ test: $(TESTS)
 	@echo -e '\x1b[32;7m ALL TESTS PASSED! \x1b[m'
 
 clean:
-	rm -f tomo *.o builtins/*.o libtomo.so test/*.tm.{c,h,o,testresult} examples/*.tm.*{c,h,o}
+	rm -f tomo *.o stdlib/*.o libtomo.so test/*.tm.{c,h,o,testresult} examples/*.tm.*{c,h,o}
 
 %: %.md
 	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@
 
 install: tomo libtomo.so tomo.1
 	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
-	cp -v builtins/*.h "$(PREFIX)/include/tomo/"
+	cp -v stdlib/*.h "$(PREFIX)/include/tomo/"
 	cp -v libtomo.so "$(PREFIX)/lib/"
 	rm -f "$(PREFIX)/bin/tomo"
 	cp -v tomo "$(PREFIX)/bin/"

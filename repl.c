@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "builtins/tomo.h"
-#include "builtins/util.h"
+#include "stdlib/tomo.h"
+#include "stdlib/util.h"
 #include "typecheck.h"
 #include "parse.h"
 

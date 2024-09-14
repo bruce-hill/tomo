@@ -5,13 +5,13 @@
 #include <stdio.h>
 
 #include "ast.h"
-#include "builtins/text.h"
+#include "stdlib/text.h"
 #include "compile.h"
 #include "cordhelpers.h"
 #include "structs.h"
 #include "environment.h"
 #include "typecheck.h"
-#include "builtins/util.h"
+#include "stdlib/util.h"
 
 PUREFUNC static bool has_extra_data(tag_ast_t *tags)
 {

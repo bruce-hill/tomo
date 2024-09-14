@@ -8,8 +8,8 @@
 #include <sys/stat.h>
 
 #include "ast.h"
-#include "builtins/text.h"
-#include "builtins/util.h"
+#include "stdlib/text.h"
+#include "stdlib/util.h"
 #include "cordhelpers.h"
 #include "environment.h"
 #include "parse.h"

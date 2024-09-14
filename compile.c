@@ -7,15 +7,15 @@
 #include <uninorm.h>
 
 #include "ast.h"
-#include "builtins/integers.h"
-#include "builtins/text.h"
+#include "stdlib/integers.h"
+#include "stdlib/text.h"
 #include "compile.h"
 #include "cordhelpers.h"
 #include "enums.h"
 #include "structs.h"
 #include "environment.h"
 #include "typecheck.h"
-#include "builtins/util.h"
+#include "stdlib/util.h"
 
 typedef ast_t* (*comprehension_body_t)(ast_t*, ast_t*);
 

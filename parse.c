@@ -12,10 +12,10 @@
 #include <signal.h>
 
 #include "ast.h"
-#include "builtins/integers.h"
-#include "builtins/text.h"
-#include "builtins/tables.h"
-#include "builtins/util.h"
+#include "stdlib/integers.h"
+#include "stdlib/text.h"
+#include "stdlib/tables.h"
+#include "stdlib/util.h"
 #include "cordhelpers.h"
 
 // The cache of {filename -> parsed AST} will hold at most this many entries:

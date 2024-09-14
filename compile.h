@@ -6,7 +6,7 @@
 #include <gc.h>
 #include <stdio.h>
 
-#include "builtins/util.h"
+#include "stdlib/util.h"
 #include "environment.h"
 
 CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color);
