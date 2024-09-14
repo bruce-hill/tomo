@@ -10,7 +10,7 @@
 #include <pthread.h>
 #include <sys/param.h>
 
-#include "array.h"
+#include "arrays.h"
 #include "metamethods.h"
 #include "integers.h"
 #include "siphash.h"

@@ -61,10 +61,10 @@
 #include <unigbrk.h>
 #include <uniname.h>
 
-#include "array.h"
+#include "arrays.h"
 #include "integers.h"
-#include "pattern.h"
-#include "table.h"
+#include "patterns.h"
+#include "tables.h"
 #include "text.h"
 
 // Use inline version of the siphash code for performance:

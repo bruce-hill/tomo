@@ -2,14 +2,14 @@
 
 #include <stdint.h>
 
-#include "array.h"
-#include "channel.h"
+#include "arrays.h"
+#include "channels.h"
 #include "functiontype.h"
 #include "metamethods.h"
 #include "optionals.h"
-#include "pointer.h"
+#include "pointers.h"
 #include "siphash.h"
-#include "table.h"
+#include "tables.h"
 #include "text.h"
 #include "util.h"
 

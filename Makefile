@@ -28,10 +28,10 @@ O=-Og
 CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS)
 CFLAGS_PLACEHOLDER="$$(echo -e '\033[2m<flags...>\033[m')" 
 LDLIBS=-lgc -lcord -lm -lunistring -lgmp -ldl
-BUILTIN_OBJS=builtins/siphash.o builtins/array.o builtins/bool.o builtins/channel.o builtins/nums.o builtins/integers.o \
-						 builtins/pointer.o builtins/memory.o builtins/text.o builtins/thread.o builtins/c_string.o builtins/table.o \
-						 builtins/types.o builtins/util.o builtins/files.o builtins/range.o builtins/shell.o builtins/path.o \
-						 builtins/optionals.o builtins/pattern.o builtins/metamethods.o builtins/functiontype.o builtins/stdlib.o
+BUILTIN_OBJS=builtins/siphash.o builtins/arrays.o builtins/bools.o builtins/channels.o builtins/nums.o builtins/integers.o \
+						 builtins/pointers.o builtins/memory.o builtins/text.o builtins/threads.o builtins/c_string.o builtins/tables.o \
+						 builtins/types.o builtins/util.o builtins/files.o builtins/ranges.o builtins/shell.o builtins/paths.o \
+						 builtins/optionals.o builtins/patterns.o builtins/metamethods.o builtins/functiontype.o builtins/stdlib.o
 TESTS=$(patsubst %.tm,%.tm.testresult,$(wildcard test/*.tm))
 
 all: libtomo.so tomo

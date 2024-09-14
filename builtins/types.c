@@ -6,9 +6,9 @@
 #include <sys/param.h>
 
 #include "util.h"
-#include "array.h"
-#include "pointer.h"
-#include "table.h"
+#include "arrays.h"
+#include "pointers.h"
+#include "tables.h"
 #include "text.h"
 #include "types.h"
 

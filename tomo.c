@@ -10,7 +10,7 @@
 #include <sys/wait.h>
 
 #include "ast.h"
-#include "builtins/array.h"
+#include "builtins/arrays.h"
 #include "builtins/datatypes.h"
 #include "builtins/text.h"
 #include "compile.h"

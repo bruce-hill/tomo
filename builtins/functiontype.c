@@ -1,7 +1,7 @@
 // Logic for handling function type values
 
 #include "datatypes.h"
-#include "table.h"
+#include "tables.h"
 #include "text.h"
 #include "types.h"
 #include "util.h"

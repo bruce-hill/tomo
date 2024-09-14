@@ -16,13 +16,13 @@
 #include <string.h>
 #include <sys/param.h>
 
-#include "array.h"
+#include "arrays.h"
 #include "c_string.h"
 #include "datatypes.h"
 #include "memory.h"
 #include "metamethods.h"
 #include "siphash.h"
-#include "table.h"
+#include "tables.h"
 #include "text.h"
 #include "types.h"
 #include "util.h"

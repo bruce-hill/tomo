@@ -10,7 +10,7 @@
 #include <pthread.h>
 #include <sys/param.h>
 
-#include "array.h"
+#include "arrays.h"
 #include "text.h"
 #include "types.h"
 #include "util.h"

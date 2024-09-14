@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "array.h"
+#include "arrays.h"
 #include "datatypes.h"
 #include "types.h"
 #include "util.h"

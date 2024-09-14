@@ -14,7 +14,7 @@
 #include "ast.h"
 #include "builtins/integers.h"
 #include "builtins/text.h"
-#include "builtins/table.h"
+#include "builtins/tables.h"
 #include "builtins/util.h"
 #include "cordhelpers.h"
 

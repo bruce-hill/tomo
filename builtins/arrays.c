@@ -5,10 +5,10 @@
 #include <stdint.h>
 #include <sys/param.h>
 
-#include "array.h"
+#include "arrays.h"
 #include "metamethods.h"
 #include "optionals.h"
-#include "table.h"
+#include "tables.h"
 #include "text.h"
 #include "util.h"
 

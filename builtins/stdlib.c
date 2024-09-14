@@ -13,9 +13,9 @@
 #include "files.h"
 #include "integers.h"
 #include "metamethods.h"
-#include "pattern.h"
+#include "patterns.h"
 #include "siphash.h"
-#include "table.h"
+#include "tables.h"
 #include "text.h"
 #include "util.h"
 

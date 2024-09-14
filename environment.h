@@ -5,7 +5,7 @@
 #include <gc/cord.h>
 
 #include "types.h"
-#include "builtins/table.h"
+#include "builtins/tables.h"
 
 typedef struct {
     CORD local_typedefs;

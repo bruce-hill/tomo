@@ -2,9 +2,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "array.h"
+#include "arrays.h"
 #include "integers.h"
-#include "pattern.h"
+#include "patterns.h"
 #include "shell.h"
 #include "text.h"
 #include "types.h"

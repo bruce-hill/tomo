@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "array.h"
+#include "arrays.h"
 #include "datatypes.h"
 #include "integers.h"
 #include "optionals.h"

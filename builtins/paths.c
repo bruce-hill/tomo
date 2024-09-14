@@ -12,12 +12,12 @@
 #include <unistd.h>
 #include <unistr.h>
 
-#include "array.h"
+#include "arrays.h"
 #include "files.h"
 #include "integers.h"
 #include "optionals.h"
-#include "path.h"
-#include "pattern.h"
+#include "paths.h"
+#include "patterns.h"
 #include "text.h"
 #include "types.h"
 #include "util.h"

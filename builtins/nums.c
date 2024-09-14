@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "array.h"
+#include "arrays.h"
 #include "nums.h"
 #include "string.h"
 #include "text.h"

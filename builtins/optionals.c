@@ -1,10 +1,12 @@
 // Optional types
 
-#include "bool.h"
+#include <pthread.h>
+
+#include "bools.h"
 #include "datatypes.h"
 #include "integers.h"
 #include "metamethods.h"
-#include "thread.h"
+#include "threads.h"
 #include "text.h"
 #include "util.h"
 

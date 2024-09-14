@@ -9,10 +9,10 @@
 #include <stdint.h>
 #include <sys/param.h>
 
-#include "array.h"
-#include "bool.h"
+#include "arrays.h"
+#include "bools.h"
 #include "c_string.h"
-#include "channel.h"
+#include "channels.h"
 #include "datatypes.h"
 #include "functiontype.h"
 #include "integers.h"
@@ -21,15 +21,15 @@
 #include "metamethods.h"
 #include "nums.h"
 #include "optionals.h"
-#include "path.h"
-#include "pattern.h"
-#include "pointer.h"
-#include "range.h"
+#include "paths.h"
+#include "patterns.h"
+#include "pointers.h"
+#include "ranges.h"
 #include "shell.h"
 #include "siphash.h"
-#include "table.h"
+#include "tables.h"
 #include "text.h"
-#include "thread.h"
+#include "threads.h"
 #include "types.h"
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

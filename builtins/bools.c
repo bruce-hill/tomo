@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <sys/param.h>
 
-#include "bool.h"
+#include "bools.h"
 #include "optionals.h"
 #include "text.h"
 #include "util.h"

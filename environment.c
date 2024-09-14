@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <signal.h>
 
-#include "builtins/table.h"
+#include "builtins/tables.h"
 #include "builtins/text.h"
 #include "builtins/util.h"
 #include "cordhelpers.h"
