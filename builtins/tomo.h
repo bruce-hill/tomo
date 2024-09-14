@@ -16,7 +16,6 @@
 #include "datatypes.h"
 #include "functiontype.h"
 #include "integers.h"
-#include "macros.h"
 #include "memory.h"
 #include "metamethods.h"
 #include "nums.h"
