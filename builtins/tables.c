@@ -17,7 +17,7 @@
 #include <sys/param.h>
 
 #include "arrays.h"
-#include "c_string.h"
+#include "c_strings.h"
 #include "datatypes.h"
 #include "memory.h"
 #include "metamethods.h"

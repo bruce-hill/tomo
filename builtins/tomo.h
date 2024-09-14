@@ -11,7 +11,7 @@
 
 #include "arrays.h"
 #include "bools.h"
-#include "c_string.h"
+#include "c_strings.h"
 #include "channels.h"
 #include "datatypes.h"
 #include "functiontype.h"
