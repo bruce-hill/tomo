@@ -1027,8 +1027,12 @@ static inline Text_t _quoted(Text_t text, bool colorize, char quote_char)
         add_char('$');
     add_char(quote_char);
 
-#define add_escaped(str) ({ if (colorize) add_str("\x1b[34;1m"); add_str("$\\"); add_str(str); if (colorize) add_str("\x1b[0;35m"); })
+#define add_escaped(str) ({ if (colorize) add_str("\x1b[34;1m"); \
+                          if (!just_escaped) add_char('$'); \
+                          add_char('\\'); add_str(str); just_escaped = true; \
+                          if (colorize) add_str("\x1b[0;35m"); })
     TextIter_t state = {text, 0, 0};
+    bool just_escaped = false;
     for (int64_t i = 0; i < text.length; i++) {
         int32_t g = Text$get_grapheme_fast(&state, i);
         switch (g) {
