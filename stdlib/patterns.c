@@ -382,6 +382,12 @@ static int64_t match_int(TextIter_t *state, int64_t index)
     return len >= 0 ? len : -1;
 }
 
+static int64_t match_alphanumeric(TextIter_t *state, int64_t index)
+{
+    return EAT1(state, index, uc_is_property_alphabetic((ucs4_t)grapheme) || uc_is_property_numeric((ucs4_t)grapheme))
+        ? 1 : -1;
+}
+
 static int64_t match_num(TextIter_t *state, int64_t index)
 {
     bool negative = EAT1(state, index, grapheme == '-') ? 1 : 0;
@@ -588,6 +594,9 @@ static pat_t parse_next_pat(TextIter_t *state, int64_t *index)
         case 'a':
             if (strcasecmp(prop_name, "authority") == 0) {
                 return PAT(PAT_FUNCTION, .fn=match_authority);
+            } else if (strcasecmp(prop_name, "alphanum") == 0 || strcasecmp(prop_name, "anum") == 0
+                       || strcasecmp(prop_name, "alphanumeric") == 0) {
+                return PAT(PAT_FUNCTION, .fn=match_alphanumeric);
             }
             break;
         case 'd':
