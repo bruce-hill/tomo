@@ -29,16 +29,12 @@ _shared_stack := !@Memory
 
 struct Coroutine(co:@Memory):
     func is_finished(co:Coroutine; inline)->Bool:
-        return inline C (
-            ((aco_t*)$co.$co)->is_finished
-        ):Bool
+        return inline C:Bool {((aco_t*)$co.$co)->is_finished}
 
     func resume(co:Coroutine)->Bool:
         if co:is_finished():
             return no
-        inline C {
-            aco_resume($co.$co);
-        }
+        inline C { aco_resume($co.$co); }
         return yes
 
 func _init():
@@ -46,13 +42,9 @@ func _init():
         aco_set_allocator(GC_malloc, NULL);
         aco_thread_init(aco_exit_fn);
     }
-    _main_co = inline C(
-        aco_create(NULL, NULL, 0, NULL, NULL)
-    ):@Memory
+    _main_co = inline C:@Memory { aco_create(NULL, NULL, 0, NULL, NULL) }
 
-    _shared_stack = inline C(
-        aco_shared_stack_new(0);
-    ):@Memory
+    _shared_stack = inline C:@Memory { aco_shared_stack_new(0) }
 
 func new(co:func())->Coroutine:
     if not _main_co:
@@ -60,9 +52,9 @@ func new(co:func())->Coroutine:
 
     main_co := _main_co
     shared_stack := _shared_stack
-    aco_ptr := inline C (
+    aco_ptr := inline C:@Memory {
         aco_create($main_co, $shared_stack, 0, (void*)$co.fn, $co.userdata)
-    ):@Memory
+    }
     return Coroutine(aco_ptr)
             
 func yield(; inline):

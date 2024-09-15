@@ -12,9 +12,9 @@ _curl := !@Memory
 func _send(method:_Method, url:Text, data:Text?, headers=[:Text])->HTTPResponse:
     chunks := @[:Text]
     save_chunk := func(chunk:CString, size:Int64, n:Int64):
-        chunks:insert(inline C (
+        chunks:insert(inline C:Text {
             Text$format("%.*s", $size*$n, $chunk)
-        ) : Text)
+        })
         return n*size
 
     inline C {

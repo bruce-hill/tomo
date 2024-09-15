@@ -6,15 +6,13 @@ timestamp_format := CString("%F %T")
 logfiles := {:Path}
 
 func _timestamp()->Text:
-    c_str := inline C (
-        ({
+    c_str := inline C:CString {
         char *str = GC_MALLOC_ATOMIC(20);
         time_t t; time(&t);
         struct tm *tm_info = localtime(&t);
         strftime(str, 20, "%F %T", tm_info);
-        str;
-        })
-    ) : CString
+        str
+    }
     return c_str:as_text()
 
 func info(text:Text, newline=yes):

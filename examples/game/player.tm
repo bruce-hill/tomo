@@ -13,12 +13,12 @@ struct Player(pos,prev_pos:Vec2):
     SIZE := Vec2(30, 30)
 
     func update(p:&Player):
-        target_x := inline C (
+        target_x := inline C:Num {
             (Num_t)((IsKeyDown(KEY_A) ? -1 : 0) + (IsKeyDown(KEY_D) ? 1 : 0))
-        ) : Num
-        target_y := inline C (
+        }
+        target_y := inline C:Num {
             (Num_t)((IsKeyDown(KEY_W) ? -1 : 0) + (IsKeyDown(KEY_S) ? 1 : 0))
-        ) : Num
+        }
         target_vel := Vec2(target_x, target_y):norm() * WALK_SPEED
 
         vel := (p.pos - p.prev_pos)/World.DT

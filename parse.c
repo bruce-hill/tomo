@@ -366,22 +366,6 @@ size_t match_word(const char **out, const char *word) {
     return strlen(word);
 }
 
-bool match_group(const char **out, char open) {
-    static char mirror_delim[256] = {['(']=')', ['{']='}', ['<']='>', ['[']=']'};
-    const char *pos = *out;
-    if (*pos != open) return 0;
-    char close = mirror_delim[(int)open] ? mirror_delim[(int)open] : open;
-    int depth = 1;
-    for (++pos; *pos && depth > 0; ++pos) {
-        if (*pos == close) --depth;
-        else if (*pos == open) ++depth;
-    }
-    if (depth == 0) {
-        *out = pos;
-        return true;
-    } else return false;
-}
-
 const char *get_word(const char **inout) {
     const char *word = *inout;
     spaces(&word);
@@ -2258,31 +2242,30 @@ PARSER(parse_extern) {
 PARSER(parse_inline_c) {
     const char *start = pos;
     if (!match_word(&pos, "inline")) return NULL;
+
     spaces(&pos);
     if (!match_word(&pos, "C")) return NULL;
-    spaces(&pos);
-    char open = *pos;
-    if (!match(&pos, "(") && !match(&pos, "{"))
-        parser_err(ctx, start, pos, "I expected a '(' or '{' here");
 
-    int64_t indent = get_indent(ctx, pos);
-    whitespace(&pos);
-    // Block:
-    CORD c_code = CORD_EMPTY;
-    while (get_indent(ctx, pos) > indent) {
-        size_t line_len = strcspn(pos, "\r\n");
-        c_code = CORD_all(c_code, GC_strndup(pos, line_len), "\n");
-        pos += line_len;
-        if (whitespace(&pos) == WHITESPACE_NONE) break;
-    }
-    expect_closing(ctx, &pos, open == '(' ? ")" : "}", "I wasn't able to parse the rest of this inline C");
     spaces(&pos);
     type_ast_t *type = NULL;
-    if (open == '(') {
-        if (!match(&pos, ":"))
-            parser_err(ctx, start, pos, "This inline C needs to have a type after it");
-        type = expect(ctx, start, &pos, parse_type, "I couldn't parse the type for this extern");
+    if (match(&pos, ":"))
+        type = expect(ctx, start, &pos, parse_type, "I couldn't parse the type for this inline C code");
+
+    spaces(&pos);
+    if (!match(&pos, "{"))
+        parser_err(ctx, start, pos, "I expected a '{' here");
+
+    int depth = 1;
+    const char *c_code_start = pos;
+    for (; *pos && depth > 0; ++pos) {
+        if (*pos == '}') --depth;
+        else if (*pos == '{') ++depth;
     }
+
+    if (depth != 0)
+        parser_err(ctx, start, start+1, "I couldn't find the closing '}' for this inline C code");
+
+    CORD c_code = GC_strndup(c_code_start, (size_t)((pos-1) - c_code_start));
     return NewAST(ctx->file, start, pos, InlineCCode, .code=c_code, .type_ast=type);
 }
 
