@@ -43,6 +43,7 @@ struct type_s {
         VoidType,
         MemoryType,
         BoolType,
+        ByteType,
         BigIntType,
         IntType,
         NumType,
@@ -72,6 +73,7 @@ struct type_s {
         struct {
             enum { TYPE_IBITS8=8, TYPE_IBITS16=16, TYPE_IBITS32=32, TYPE_IBITS64=64 } bits;
         } IntType;
+        struct {} ByteType;
         struct {
             enum { TYPE_NBITS32=32, TYPE_NBITS64=64 } bits;
         } NumType;

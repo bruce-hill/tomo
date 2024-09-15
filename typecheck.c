@@ -503,6 +503,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         auto i = Match(ast, Int);
         switch (i->bits) {
         case IBITS_UNSPECIFIED: return Type(BigIntType);
+        case IBITS_BYTE: return Type(ByteType);
         case IBITS8: return Type(IntType, .bits=TYPE_IBITS8);
         case IBITS16: return Type(IntType, .bits=TYPE_IBITS16);
         case IBITS32: return Type(IntType, .bits=TYPE_IBITS32);
@@ -1006,7 +1007,8 @@ type_t *get_type(env_t *env, ast_t *ast)
                 auto rhs_ptr = Match(rhs_t, PointerType);
                 if (type_eq(lhs_ptr->pointed, rhs_ptr->pointed))
                     return Type(PointerType, .pointed=lhs_ptr->pointed, .is_readonly=lhs_ptr->is_readonly || rhs_ptr->is_readonly);
-            } else if (is_int_type(lhs_t) && is_int_type(rhs_t)) {
+            } else if ((is_int_type(lhs_t) && is_int_type(rhs_t))
+                       || (lhs_t->tag == ByteType && rhs_t->tag == ByteType)) {
                 return get_math_type(env, ast, lhs_t, rhs_t);
             }
             code_err(ast, "I can't figure out the type of this `and` expression because the left side is a %T, but the right side is a %T",
@@ -1017,7 +1019,8 @@ type_t *get_type(env_t *env, ast_t *ast)
                 return lhs_t;
             } else if (lhs_t->tag == BoolType && (rhs_t->tag == AbortType || rhs_t->tag == ReturnType)) {
                 return lhs_t;
-            } else if (is_int_type(lhs_t) && is_int_type(rhs_t)) {
+            } else if ((is_int_type(lhs_t) && is_int_type(rhs_t))
+                       || (lhs_t->tag == ByteType && rhs_t->tag == ByteType)) {
                 return get_math_type(env, ast, lhs_t, rhs_t);
             } else if (lhs_t->tag == OptionalType) {
                 if (can_promote(rhs_t, lhs_t))
@@ -1038,7 +1041,8 @@ type_t *get_type(env_t *env, ast_t *ast)
         case BINOP_XOR: {
             if (lhs_t->tag == BoolType && rhs_t->tag == BoolType) {
                 return lhs_t;
-            } else if (is_int_type(lhs_t) && is_int_type(rhs_t)) {
+            } else if ((is_int_type(lhs_t) && is_int_type(rhs_t))
+                       || (lhs_t->tag == ByteType && rhs_t->tag == ByteType)) {
                 return get_math_type(env, ast, lhs_t, rhs_t);
             }
 

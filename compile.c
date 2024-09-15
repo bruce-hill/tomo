@@ -41,6 +41,8 @@ CORD promote_to_optional(type_t *t, CORD code)
         case TYPE_IBITS64: return CORD_all("((OptionalInt64_t){", code, "})");
         default: errx(1, "Unsupported in type: %T", t);
         }
+    } else if (t->tag == ByteType) {
+        return CORD_all("((OptionalByte_t){", code, "})");
     } else if (t->tag == StructType) {
         return CORD_all("((", compile_type(Type(OptionalType, .type=t)), "){", code, "})");
     } else {
@@ -202,6 +204,7 @@ CORD compile_type(type_t *t)
     case VoidType: return "void";
     case MemoryType: return "void";
     case BoolType: return "Bool_t";
+    case ByteType: return "Byte_t";
     case CStringType: return "char*";
     case BigIntType: return "Int_t";
     case IntType: return CORD_asprintf("Int%ld_t", Match(t, IntType)->bits);
@@ -239,6 +242,7 @@ CORD compile_type(type_t *t)
         type_t *nonnull = Match(t, OptionalType)->type;
         switch (nonnull->tag) {
         case BoolType: return "OptionalBool_t";
+        case ByteType: return "OptionalByte_t";
         case CStringType: case BigIntType: case NumType: case TextType:
         case ArrayType: case SetType: case TableType: case FunctionType: case ClosureType:
         case PointerType: case EnumType: case ChannelType:
@@ -366,9 +370,7 @@ static CORD check_null(type_t *t, CORD value)
         return CORD_all("((", value, ") == NULL_BOOL)");
     else if (t->tag == TextType)
         return CORD_all("((", value, ").length < 0)");
-    else if (t->tag == IntType)
-        return CORD_all("(", value, ").is_null");
-    else if (t->tag == StructType)
+    else if (t->tag == IntType || t->tag == ByteType || t->tag == StructType)
         return CORD_all("(", value, ").is_null");
     else if (t->tag == EnumType)
         return CORD_all("((", value, ").tag == 0)");
@@ -635,27 +637,27 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         switch (update->op) {
         case BINOP_MULT:
-            if (lhs_t->tag != IntType && lhs_t->tag != NumType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType)
                 code_err(ast, "I can't do a multiply assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " *= ", rhs, ";");
         case BINOP_DIVIDE:
-            if (lhs_t->tag != IntType && lhs_t->tag != NumType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType)
                 code_err(ast, "I can't do a divide assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " /= ", rhs, ";");
         case BINOP_MOD:
-            if (lhs_t->tag != IntType && lhs_t->tag != NumType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType)
                 code_err(ast, "I can't do a mod assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " = ", lhs, " % ", rhs);
         case BINOP_MOD1:
-            if (lhs_t->tag != IntType && lhs_t->tag != NumType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType)
                 code_err(ast, "I can't do a mod assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " = (((", lhs, ") - 1) % ", rhs, ") + 1;");
         case BINOP_PLUS:
-            if (lhs_t->tag != IntType && lhs_t->tag != NumType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType)
                 code_err(ast, "I can't do an addition assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " += ", rhs, ";");
         case BINOP_MINUS:
-            if (lhs_t->tag != IntType && lhs_t->tag != NumType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType)
                 code_err(ast, "I can't do a subtraction assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " -= ", rhs, ";");
         case BINOP_POWER: {
@@ -667,17 +669,17 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 return CORD_all(lhs, " = pow(", lhs, ", ", rhs, ");");
         }
         case BINOP_LSHIFT:
-            if (lhs_t->tag != IntType)
+            if (lhs_t->tag != IntType && lhs_t->tag != ByteType)
                 code_err(ast, "I can't do a shift assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " <<= ", rhs, ";");
         case BINOP_RSHIFT:
-            if (lhs_t->tag != IntType)
+            if (lhs_t->tag != IntType && lhs_t->tag != ByteType)
                 code_err(ast, "I can't do a shift assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " >>= ", rhs, ";");
         case BINOP_AND: {
             if (lhs_t->tag == BoolType)
                 return CORD_all("if (", lhs, ") ", lhs, " = ", rhs, ";");
-            else if (lhs_t->tag == IntType)
+            else if (lhs_t->tag == IntType || lhs_t->tag == ByteType)
                 return CORD_all(lhs, " &= ", rhs, ";");
             else
                 code_err(ast, "'or=' is not implemented for %T types", lhs_t);
@@ -685,13 +687,13 @@ CORD compile_statement(env_t *env, ast_t *ast)
         case BINOP_OR: {
             if (lhs_t->tag == BoolType)
                 return CORD_all("if (!(", lhs, ")) ", lhs, " = ", rhs, ";");
-            else if (lhs_t->tag == IntType)
+            else if (lhs_t->tag == IntType || lhs_t->tag == ByteType)
                 return CORD_all(lhs, " |= ", rhs, ";");
             else
                 code_err(ast, "'or=' is not implemented for %T types", lhs_t);
         }
         case BINOP_XOR:
-            if (lhs_t->tag != IntType && lhs_t->tag != BoolType)
+            if (lhs_t->tag != IntType && lhs_t->tag != BoolType && lhs_t->tag != ByteType)
                 code_err(ast, "I can't do an xor assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " ^= ", rhs, ";");
         case BINOP_CONCAT: {
@@ -1398,11 +1400,7 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
          // NOTE: this cannot use stack(), since bools may actually be bit fields:
          return CORD_asprintf("Bool$as_text((Bool_t[1]){%r}, %r, &Bool$info)", expr, color);
     case CStringType: return CORD_asprintf("CString$as_text(stack(%r), %r, &CString$info)", expr, color);
-    case BigIntType: case IntType: {
-        CORD name = type_to_cord(t);
-        return CORD_asprintf("%r$as_text(stack(%r), %r, &%r$info)", name, expr, color, name);
-    }
-    case NumType: {
+    case BigIntType: case IntType: case ByteType: case NumType: {
         CORD name = type_to_cord(t);
         return CORD_asprintf("%r$as_text(stack(%r), %r, &%r$info)", name, expr, color, name);
     }
@@ -1757,6 +1755,7 @@ CORD compile_null(type_t *t)
         break;
     }
     case BoolType: return "NULL_BOOL";
+    case ByteType: return "NULL_BYTE";
     case ArrayType: return "NULL_ARRAY";
     case TableType: return "NULL_TABLE";
     case SetType: return "NULL_TABLE";
@@ -1825,21 +1824,25 @@ CORD compile(env_t *env, ast_t *ast)
             return CORD_asprintf("Int$from_str(\"%s\")", str);
         }
         case IBITS64:
-        if ((mpz_cmp_si(i, INT64_MAX) < 0) && (mpz_cmp_si(i, INT64_MIN) > 0))
+        if ((mpz_cmp_si(i, INT64_MAX) <= 0) && (mpz_cmp_si(i, INT64_MIN) >= 0))
             return CORD_asprintf("I64(%ldl)", mpz_get_si(i));
         code_err(ast, "This value cannot fit in a 64-bit integer");
         case IBITS32:
-        if ((mpz_cmp_si(i, INT32_MAX) < 0) && (mpz_cmp_si(i, INT32_MIN) > 0))
+        if ((mpz_cmp_si(i, INT32_MAX) <= 0) && (mpz_cmp_si(i, INT32_MIN) >= 0))
             return CORD_asprintf("I32(%ld)", mpz_get_si(i));
         code_err(ast, "This value cannot fit in a 32-bit integer");
         case IBITS16:
-        if ((mpz_cmp_si(i, INT16_MAX) < 0) && (mpz_cmp_si(i, INT16_MIN) > 0))
+        if ((mpz_cmp_si(i, INT16_MAX) <= 0) && (mpz_cmp_si(i, INT16_MIN) >= 0))
             return CORD_asprintf("I16(%ld)", mpz_get_si(i));
         code_err(ast, "This value cannot fit in a 16-bit integer");
         case IBITS8:
-        if ((mpz_cmp_si(i, INT8_MAX) < 0) && (mpz_cmp_si(i, INT8_MIN) > 0))
+        if ((mpz_cmp_si(i, INT8_MAX) <= 0) && (mpz_cmp_si(i, INT8_MIN) >= 0))
             return CORD_asprintf("I8(%ld)", mpz_get_si(i));
         code_err(ast, "This value cannot fit in a 8-bit integer");
+        case IBITS_BYTE:
+        if ((mpz_cmp_si(i, UINT8_MAX) <= 0) && (mpz_cmp_si(i, 0) >= 0))
+            return CORD_asprintf("Byte(%ld)", mpz_get_si(i));
+        code_err(ast, "This value cannot fit in a byte");
         default: code_err(ast, "Not a valid integer bit width");
         }
     }
@@ -1865,7 +1868,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         if (t->tag == BoolType)
             return CORD_all("!(", compile(env, value), ")");
-        else if (t->tag == IntType)
+        else if (t->tag == IntType || t->tag == ByteType)
             return CORD_all("~(", compile(env, value), ")");
         else if (t->tag == ArrayType)
             return CORD_all("((", compile(env, value), ").length == 0)");
@@ -1948,42 +1951,42 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("pow(", lhs, ", ", rhs, ")");
         }
         case BINOP_MULT: {
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
                 code_err(ast, "Math operations are only supported for numeric types");
             return CORD_all("(", lhs, " * ", rhs, ")");
         }
         case BINOP_DIVIDE: {
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
                 code_err(ast, "Math operations are only supported for numeric types");
             return CORD_all("(", lhs, " / ", rhs, ")");
         }
         case BINOP_MOD: {
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
                 code_err(ast, "Math operations are only supported for numeric types");
             return CORD_all("(", lhs, " % ", rhs, ")");
         }
         case BINOP_MOD1: {
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
                 code_err(ast, "Math operations are only supported for numeric types");
             return CORD_all("((((", lhs, ")-1) % (", rhs, ")) + 1)");
         }
         case BINOP_PLUS: {
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
                 code_err(ast, "Math operations are only supported for numeric types");
             return CORD_all("(", lhs, " + ", rhs, ")");
         }
         case BINOP_MINUS: {
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
                 code_err(ast, "Math operations are only supported for numeric types");
             return CORD_all("(", lhs, " - ", rhs, ")");
         }
         case BINOP_LSHIFT: {
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
                 code_err(ast, "Math operations are only supported for numeric types");
             return CORD_all("(", lhs, " << ", rhs, ")");
         }
         case BINOP_RSHIFT: {
-            if (operand_t->tag != IntType && operand_t->tag != NumType)
+            if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
                 code_err(ast, "Math operations are only supported for numeric types");
             return CORD_all("(", lhs, " >> ", rhs, ")");
         }
@@ -1991,7 +1994,7 @@ CORD compile(env_t *env, ast_t *ast)
             switch (operand_t->tag) {
             case BigIntType:
                 return CORD_all("Int$equal_value(", lhs, ", ", rhs, ")");
-            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+            case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " == ", rhs, ")");
             default:
                 return CORD_asprintf("generic_equal(stack(%r), stack(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
@@ -2001,7 +2004,7 @@ CORD compile(env_t *env, ast_t *ast)
             switch (operand_t->tag) {
             case BigIntType:
                 return CORD_all("!Int$equal_value(", lhs, ", ", rhs, ")");
-            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+            case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " != ", rhs, ")");
             default:
                 return CORD_asprintf("!generic_equal(stack(%r), stack(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
@@ -2011,7 +2014,7 @@ CORD compile(env_t *env, ast_t *ast)
             switch (operand_t->tag) {
             case BigIntType:
                 return CORD_all("(Int$compare_value(", lhs, ", ", rhs, ") < 0)");
-            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+            case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " < ", rhs, ")");
             default:
                 return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) < 0)", lhs, rhs, compile_type_info(env, operand_t));
@@ -2021,7 +2024,7 @@ CORD compile(env_t *env, ast_t *ast)
             switch (operand_t->tag) {
             case BigIntType:
                 return CORD_all("(Int$compare_value(", lhs, ", ", rhs, ") <= 0)");
-            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+            case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " <= ", rhs, ")");
             default:
                 return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) <= 0)", lhs, rhs, compile_type_info(env, operand_t));
@@ -2031,7 +2034,7 @@ CORD compile(env_t *env, ast_t *ast)
             switch (operand_t->tag) {
             case BigIntType:
                 return CORD_all("(Int$compare_value(", lhs, ", ", rhs, ") > 0)");
-            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+            case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " > ", rhs, ")");
             default:
                 return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) > 0)", lhs, rhs, compile_type_info(env, operand_t));
@@ -2041,7 +2044,7 @@ CORD compile(env_t *env, ast_t *ast)
             switch (operand_t->tag) {
             case BigIntType:
                 return CORD_all("(Int$compare_value(", lhs, ", ", rhs, ") >= 0)");
-            case BoolType: case IntType: case NumType: case PointerType: case FunctionType:
+            case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " >= ", rhs, ")");
             default:
                 return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) >= 0)", lhs, rhs, compile_type_info(env, operand_t));
@@ -2050,7 +2053,7 @@ CORD compile(env_t *env, ast_t *ast)
         case BINOP_AND: {
             if (operand_t->tag == BoolType)
                 return CORD_all("(", lhs, " && ", rhs, ")");
-            else if (operand_t->tag == IntType)
+            else if (operand_t->tag == IntType || operand_t->tag == ByteType)
                 return CORD_all("(", lhs, " & ", rhs, ")");
             else
                 code_err(ast, "Boolean operators are only supported for Bool and integer types");
@@ -2061,13 +2064,13 @@ CORD compile(env_t *env, ast_t *ast)
         case BINOP_OR: {
             if (operand_t->tag == BoolType)
                 return CORD_all("(", lhs, " || ", rhs, ")");
-            else if (operand_t->tag == IntType)
+            else if (operand_t->tag == IntType || operand_t->tag == ByteType)
                 return CORD_all("(", lhs, " | ", rhs, ")");
             else
                 code_err(ast, "Boolean operators are only supported for Bool and integer types");
         }
         case BINOP_XOR: {
-            if (operand_t->tag == BoolType || operand_t->tag == IntType)
+            if (operand_t->tag == BoolType || operand_t->tag == IntType || operand_t->tag == ByteType)
                 return CORD_all("(", lhs, " ^ ", rhs, ")");
             else
                 code_err(ast, "Boolean operators are only supported for Bool and integer types");
@@ -2200,7 +2203,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD comparison;
         if (key_t->tag == BigIntType)
             comparison = CORD_all("(Int$compare_value(", lhs_key, ", ", rhs_key, ")", (ast->tag == Min ? "<=" : ">="), "0)");
-        else if (key_t->tag == IntType || key_t->tag == NumType || key_t->tag == BoolType || key_t->tag == PointerType)
+        else if (key_t->tag == IntType || key_t->tag == NumType || key_t->tag == BoolType || key_t->tag == PointerType || key_t->tag == ByteType)
             comparison = CORD_all("((", lhs_key, ")", (ast->tag == Min ? "<=" : ">="), "(", rhs_key, "))");
         else
             comparison = CORD_all("generic_compare(stack(", lhs_key, "), stack(", rhs_key, "), ", compile_type_info(env, key_t), ")",
@@ -3277,7 +3280,7 @@ CORD compile_namespace_definitions(env_t *env, const char *ns_name, ast_t *block
 CORD compile_type_info(env_t *env, type_t *t)
 {
     switch (t->tag) {
-    case BoolType: case IntType: case BigIntType: case NumType: case CStringType:
+    case BoolType: case ByteType: case IntType: case BigIntType: case NumType: case CStringType:
         return CORD_all("&", type_to_cord(t), "$info");
     case TextType: {
         auto text = Match(t, TextType);

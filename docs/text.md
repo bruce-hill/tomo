@@ -441,7 +441,7 @@ An array of bytes (`[Int8]`) representing the text in UTF8 encoding.
 **Example:**  
 ```tomo
 >> "Amélie":utf8_bytes()
-= [65_i8, 109_i8, -61_i8, -87_i8, 108_i8, 105_i8, 101_i8] : [Int8]
+= [65[B], 109[B], 195[B], 169[B], 108[B], 105[B], 101[B]] : [Byte]
 ```
 
 ---
@@ -491,7 +491,7 @@ An array of 32-bit integer Unicode code points (`[Int32]`).
 **Example:**  
 ```tomo
 >> "Amélie":utf32_codepoints()
-= [65_i32, 109_i32, 233_i32, 108_i32, 105_i32, 101_i32] : [Int32]
+= [65[32], 109[32], 233[32], 108[32], 105[32], 101[32]] : [Int32]
 ```
 
 ---
@@ -601,7 +601,7 @@ A new text with the specified codepoints after normalization has been applied.
 
 **Example:**  
 ```tomo
->> Text.from_codepoints([197_i32, 107_i32, 101_i32])
+>> Text.from_codepoints([197[32], 107[32], 101[32]])
 = "Åke"
 ```
 
@@ -628,7 +628,7 @@ A new text based on the input UTF8 bytes after normalization has been applied.
 
 **Example:**  
 ```tomo
->> Text.from_bytes([-61_i8, -123_i8, 107_i8, 101_i8])
+>> Text.from_bytes([195[B], 133[B], 107[B], 101[B]])
 = "Åke"
 ```
 
@@ -668,11 +668,11 @@ found.
 >> " one   two  three   ":find("{id}", start=5)
 = 8
 
->> len := 0_i64
+>> len := 0[64]
 >> "   one  ":find("{id}", length=&len)
 = 4
 >> len
-= 3_i64
+= 3[64]
 ```
 
 ---

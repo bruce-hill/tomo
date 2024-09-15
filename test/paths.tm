@@ -24,6 +24,8 @@ func main():
     >> tmpfile:append("!")
     >> tmpfile:read()
     = "Hello world!"
+    >> tmpfile:read_bytes()
+    = [72[B], 101[B], 108[B], 108[B], 111[B], 32[B], 119[B], 111[B], 114[B], 108[B], 100[B], 33[B]]
     >> tmpdir:files():has(tmpfile)
     = yes
 

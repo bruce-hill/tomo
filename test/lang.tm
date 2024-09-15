@@ -33,7 +33,7 @@ func main():
 	>> $HTML"$(1 + 2)"
 	= $HTML"3"
 
-	>> $HTML"$(3_i8)"
+	>> $HTML"$(3[8])"
 	= $HTML"3"
 
 	>> html:paragraph()

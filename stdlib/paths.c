@@ -207,7 +207,7 @@ public bool Path$is_symlink(Path_t path)
     return (sb.st_mode & S_IFMT) == S_IFLNK;
 }
 
-static void _write(Path_t path, Text_t text, int mode, int permissions)
+static void _write(Path_t path, Array_t bytes, int mode, int permissions)
 {
     path = Path$_expand_home(path);
     const char *path_str = Text$as_c_string(path);
@@ -215,24 +215,36 @@ static void _write(Path_t path, Text_t text, int mode, int permissions)
     if (fd == -1)
         fail("Could not write to file: %s\n%s", path_str, strerror(errno));
 
-    const char *str = Text$as_c_string(text);
-    size_t len = strlen(str);
-    ssize_t written = write(fd, str, len);
-    if (written != (ssize_t)len)
+    if (bytes.stride != 1)
+        Array$compact(&bytes, 1);
+    ssize_t written = write(fd, bytes.data, (size_t)bytes.length);
+    if (written != (ssize_t)bytes.length)
         fail("Could not write to file: %s\n%s", path_str, strerror(errno));
 }
 
 public void Path$write(Path_t path, Text_t text, int permissions)
 {
-    _write(path, text, O_WRONLY | O_CREAT, permissions);
+    Array_t bytes = Text$utf8_bytes(text);
+    _write(path, bytes, O_WRONLY | O_CREAT, permissions);
+}
+
+public void Path$write_bytes(Path_t path, Array_t bytes, int permissions)
+{
+    _write(path, bytes, O_WRONLY | O_CREAT, permissions);
 }
 
 public void Path$append(Path_t path, Text_t text, int permissions)
 {
-    _write(path, text, O_WRONLY | O_APPEND | O_CREAT, permissions);
+    Array_t bytes = Text$utf8_bytes(text);
+    _write(path, bytes, O_WRONLY | O_APPEND | O_CREAT, permissions);
 }
 
-public Text_t Path$read(Path_t path)
+public void Path$append_bytes(Path_t path, Array_t bytes, int permissions)
+{
+    _write(path, bytes, O_WRONLY | O_APPEND | O_CREAT, permissions);
+}
+
+public Array_t Path$read_bytes(Path_t path)
 {
     path = Path$_expand_home(path);
     int fd = open(Text$as_c_string(path), O_RDONLY);
@@ -245,11 +257,11 @@ public Text_t Path$read(Path_t path)
 
     if ((sb.st_mode & S_IFMT) == S_IFREG) { // Use memory mapping if it's a real file:
         const char *mem = mmap(NULL, (size_t)sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-        char *gc_mem = GC_MALLOC_ATOMIC((size_t)sb.st_size+1);
-        memcpy(gc_mem, mem, (size_t)sb.st_size);
-        gc_mem[sb.st_size] = '\0';
+        char *content = GC_MALLOC_ATOMIC((size_t)sb.st_size+1);
+        memcpy(content, mem, (size_t)sb.st_size);
+        content[sb.st_size] = '\0';
         close(fd);
-        return Text$from_strn(gc_mem, (size_t)sb.st_size);
+        return (Array_t){.data=content, .atomic=1, .stride=1, .length=(int64_t)sb.st_size};
     } else {
         size_t capacity = 256, len = 0;
         char *content = GC_MALLOC_ATOMIC(capacity);
@@ -279,8 +291,14 @@ public Text_t Path$read(Path_t path)
         if (u8_check((uint8_t*)content, len) != NULL)
             fail("File does not contain valid UTF8 data!");
 
-        return Text$from_strn(content, len);
+        return (Array_t){.data=content, .atomic=1, .stride=1, .length=len};
     }
+}
+
+public Text_t Path$read(Path_t path)
+{
+    Array_t bytes = Path$read_bytes(path);
+    return Text$from_bytes(bytes);
 }
 
 public void Path$remove(Path_t path, bool ignore_missing)
@@ -375,7 +393,7 @@ public Path_t Path$unique_directory(Path_t path)
     return Text$format("%s/", created);
 }
 
-public Text_t Path$write_unique(Path_t path, Text_t text)
+public Text_t Path$write_unique_bytes(Path_t path, Array_t bytes)
 {
     path = Path$_expand_home(path);
     const char *path_str = Text$as_c_string(path);
@@ -392,12 +410,18 @@ public Text_t Path$write_unique(Path_t path, Text_t text)
     if (fd == -1)
         fail("Could not write to unique file: %s\n%s", buf, strerror(errno));
 
-    const char *str = Text$as_c_string(text);
-    size_t write_len = strlen(str);
-    ssize_t written = write(fd, str, write_len);
-    if (written != (ssize_t)write_len)
+    if (bytes.stride != 1)
+        Array$compact(&bytes, 1);
+
+    ssize_t written = write(fd, bytes.data, (size_t)bytes.length);
+    if (written != (ssize_t)bytes.length)
         fail("Could not write to file: %s\n%s", buf, strerror(errno));
     return Text$format("%s", buf);
+}
+
+public Text_t Path$write_unique(Path_t path, Text_t text)
+{
+    return Path$write_unique_bytes(path, Text$utf8_bytes(text));
 }
 
 public Path_t Path$parent(Path_t path)

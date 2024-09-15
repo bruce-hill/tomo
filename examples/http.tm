@@ -58,7 +58,7 @@ func _send(method:_Method, url:Text, data:Text?, headers=[:Text])->HTTPResponse:
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
     }
 
-    code := 0_i64
+    code := 0[64]
     inline C {
         CURLcode res = curl_easy_perform(curl);
         if (res != CURLE_OK)

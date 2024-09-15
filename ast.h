@@ -149,7 +149,7 @@ struct ast_s {
         } Var;
         struct {
             const char *str;
-            enum { IBITS_UNSPECIFIED=0, IBITS8=8, IBITS16=16, IBITS32=32, IBITS64=64 } bits;
+            enum { IBITS_UNSPECIFIED=0, IBITS_BYTE=7, IBITS8=8, IBITS16=16, IBITS32=32, IBITS64=64 } bits;
         } Int;
         struct {
             double n;

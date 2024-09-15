@@ -76,7 +76,7 @@ Exits the program with a given status and optionally prints a message.
 
 **Usage:**  
 ```markdown
-ask(message:Text = "", status:Int32 = 0_i32) -> Void
+ask(message:Text = "", status:Int32 = 0[32]) -> Void
 ```
 
 **Parameters:**

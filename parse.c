@@ -506,12 +506,12 @@ PARSER(parse_int) {
         return NewAST(ctx->file, start, pos, Num, .n=n, .bits=64);
     }
 
-    match(&pos, "_");
     auto bits = IBITS_UNSPECIFIED;
-    if (match(&pos, "i64")) bits = IBITS64;
-    else if (match(&pos, "i32")) bits = IBITS32;
-    else if (match(&pos, "i16")) bits = IBITS16;
-    else if (match(&pos, "i8")) bits = IBITS8;
+    if (match(&pos, "[64]")) bits = IBITS64;
+    else if (match(&pos, "[32]")) bits = IBITS32;
+    else if (match(&pos, "[16]")) bits = IBITS16;
+    else if (match(&pos, "[8]")) bits = IBITS8;
+    else if (match(&pos, "[B]")) bits = IBITS_BYTE;
 
     // else if (match(&pos, ".") || match(&pos, "e")) return NULL; // looks like a float
 

@@ -23,6 +23,7 @@ CORD type_to_cord(type_t *t) {
         case VoidType: return "Void";
         case MemoryType: return "Memory";
         case BoolType: return "Bool";
+        case ByteType: return "Byte";
         case CStringType: return "CString";
         case TextType: return Match(t, TextType)->lang ? Match(t, TextType)->lang : "Text";
         case BigIntType: return "Int";
@@ -165,6 +166,7 @@ static PUREFUNC inline double type_min_magnitude(type_t *t)
 {
     switch (t->tag) {
     case BoolType: return (double)false;
+    case ByteType: return 0;
     case BigIntType: return -1./0.;
     case IntType: {
         switch (Match(t, IntType)->bits) {
@@ -184,6 +186,7 @@ static PUREFUNC inline double type_max_magnitude(type_t *t)
 {
     switch (t->tag) {
     case BoolType: return (double)true;
+    case ByteType: return (double)UINT8_MAX;
     case BigIntType: return 1./0.;
     case IntType: {
         switch (Match(t, IntType)->bits) {
@@ -396,7 +399,7 @@ PUREFUNC bool is_numeric_type(type_t *t)
 PUREFUNC bool supports_optionals(type_t *t)
 {
     switch (t->tag) {
-    case BoolType: case CStringType: case BigIntType: case NumType: case TextType:
+    case BoolType: case ByteType: case CStringType: case BigIntType: case NumType: case TextType:
     case ArrayType: case SetType: case TableType: case FunctionType: case ClosureType:
     case PointerType: case IntType:
         return true;
@@ -411,6 +414,7 @@ PUREFUNC size_t type_size(type_t *t)
     case UnknownType: case AbortType: case ReturnType: case VoidType: return 0;
     case MemoryType: errx(1, "Memory has undefined type size");
     case BoolType: return sizeof(bool);
+    case ByteType: return sizeof(uint8_t);
     case CStringType: return sizeof(char*);
     case BigIntType: return sizeof(Int_t);
     case IntType: {
@@ -489,6 +493,7 @@ PUREFUNC size_t type_align(type_t *t)
     case UnknownType: case AbortType: case ReturnType: case VoidType: return 0;
     case MemoryType: errx(1, "Memory has undefined type alignment");
     case BoolType: return __alignof__(bool);
+    case ByteType: return __alignof__(uint8_t);
     case CStringType: return __alignof__(char*);
     case BigIntType: return __alignof__(Int_t);
     case IntType: {

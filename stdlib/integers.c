@@ -481,10 +481,10 @@ public const TypeInfo Int$info = {
         .CustomInfo={.compare=(void*)KindOfInt##$compare, .as_text=(void*)KindOfInt##$as_text}, \
     };
 
-DEFINE_INT_TYPE(int64_t,  Int64,  "ld_i64", INT64_MIN, INT64_MAX)
-DEFINE_INT_TYPE(int32_t,  Int32,  "d_i32",  INT32_MIN, INT32_MAX)
-DEFINE_INT_TYPE(int16_t,  Int16,  "d_i16",  INT16_MIN, INT16_MAX)
-DEFINE_INT_TYPE(int8_t,   Int8,   "d_i8",   INT8_MIN,  INT8_MAX)
+DEFINE_INT_TYPE(int64_t,  Int64,  "ld[64]", INT64_MIN, INT64_MAX)
+DEFINE_INT_TYPE(int32_t,  Int32,  "d[32]",  INT32_MIN, INT32_MAX)
+DEFINE_INT_TYPE(int16_t,  Int16,  "d[16]",  INT16_MIN, INT16_MAX)
+DEFINE_INT_TYPE(int8_t,   Int8,   "d[8]",   INT8_MIN,  INT8_MAX)
 #undef DEFINE_INT_TYPE
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

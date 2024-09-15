@@ -40,11 +40,12 @@ intended. Paths can be created from text with slashes using
 ### `append`
 
 **Description:**  
-Appends the given text to the file at the specified path, creating the file if it doesn't already exist. Failure to write will result in a runtime error.
+Appends the given text to the file at the specified path, creating the file if
+it doesn't already exist. Failure to write will result in a runtime error.
 
 **Usage:**  
 ```markdown
-append(path: Path, text: Text, permissions: Int32 = 0o644_i32) -> Void
+append(path: Path, text: Text, permissions: Int32 = 0o644[32]) -> Void
 ```
 
 **Parameters:**
@@ -59,6 +60,33 @@ Nothing.
 **Example:**  
 ```markdown
 (./log.txt):append("extra line$(\n)")
+```
+
+---
+
+### `append_bytes`
+
+**Description:**  
+Appends the given bytes to the file at the specified path, creating the file if
+it doesn't already exist. Failure to write will result in a runtime error.
+
+**Usage:**  
+```markdown
+append_bytes(path: Path, bytes: [Byte], permissions: Int32 = 0o644[32]) -> Void
+```
+
+**Parameters:**
+
+- `path`: The path of the file to append to.
+- `bytes`: The bytes to append to the file.
+- `permissions` (optional): The permissions to set on the file if it is being created (default is `0o644`).
+
+**Returns:**  
+Nothing.
+
+**Example:**  
+```markdown
+(./log.txt):append_bytes([104[B], 105[B]])
 ```
 
 ---
@@ -146,7 +174,7 @@ Creates a new directory at the specified path with the given permissions.
 
 **Usage:**  
 ```markdown
-create_directory(path: Path, permissions=0o644_i32) -> Void
+create_directory(path: Path, permissions=0o644[32]) -> Void
 ```
 
 **Parameters:**
@@ -404,6 +432,29 @@ The contents of the file. If the file does not exist, an error will be raised.
 ```markdown
 content := (./file.txt):read()
 ```
+---
+
+### `read_bytes`
+
+**Description:**  
+Reads the contents of the file at the specified path.
+
+**Usage:**  
+```markdown
+read_bytes(path: Path) -> [Byte]
+```
+
+**Parameters:**
+
+- `path`: The path of the file to read.
+
+**Returns:**  
+The byte contents of the file. If the file does not exist, an error will be raised.
+
+**Example:**  
+```markdown
+content := (./file.txt):read_bytes()
+```
 
 ---
 
@@ -554,7 +605,7 @@ writing cannot be successfully completed, a runtime error is raised.
 
 **Usage:**  
 ```markdown
-write(path: Path, text: Text, permissions=0o644_i32) -> Void
+write(path: Path, text: Text, permissions=0o644[32]) -> Void
 ```
 
 **Parameters:**
@@ -569,6 +620,34 @@ Nothing.
 **Example:**  
 ```markdown
 (./file.txt):write("Hello, world!")
+```
+
+---
+
+### `write_bytes`
+
+**Description:**  
+Writes the given bytes to the file at the specified path, creating the file if
+it doesn't already exist. Sets the file permissions as specified. If the file
+writing cannot be successfully completed, a runtime error is raised.
+
+**Usage:**  
+```markdown
+write(path: Path, bytes: [Byte], permissions=0o644[32]) -> Void
+```
+
+**Parameters:**
+
+- `path`: The path of the file to write to.
+- `bytes`: An array of bytes to write to the file.
+- `permissions` (optional): The permissions to set on the file if it is created (default is `0o644`).
+
+**Returns:**  
+Nothing.
+
+**Example:**  
+```markdown
+(./file.txt):write_bytes([104[B], 105[B]])
 ```
 
 ---
@@ -600,5 +679,37 @@ The path of the newly created unique file.
 = (./file-27QHtq.txt)
 >> created:read()
 = "Hello, world!"
+created:remove()
+```
+
+---
+
+### `write_unique_bytes`
+
+**Description:**  
+Writes the given bytes to a unique file path based on the specified path. The
+file is created if it doesn't exist. This is useful for creating temporary
+files.
+
+**Usage:**  
+```markdown
+write_unique_bytes(path: Path, bytes: [Byte]) -> Path
+```
+
+**Parameters:**
+
+- `path`: The base path for generating the unique file. This path must include
+  the string `XXXXXX` in the file base name.
+- `bytes`: The bytes to write to the file.
+
+**Returns:**  
+The path of the newly created unique file.
+
+**Example:**  
+```markdown
+>> created := (./file-XXXXXX.txt):write_unique_bytes([1[B], 2[B], 3[B]])
+= (./file-27QHtq.txt)
+>> created:read()
+= [1[B], 2[B], 3[B]]
 created:remove()
 ```

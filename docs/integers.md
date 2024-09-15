@@ -8,9 +8,9 @@ Tomo has five types of integers:
   the GNU MP library. These integers are fast for small numbers and guaranteed
   to always be correct and never overflow.
 - `Int8`/`Int16`/`Int32`/`Int64`: Fixed-size integers that take up `N` bits.
-  These integers must be manually specified with their suffix (e.g. `5_i64`)
-  and are subject to overflowing. If an overflow occurs, a runtime error will
-  be raised.
+  These integers must be manually specified with their bits in square brackets
+  (e.g. `5[64]`) and are subject to overflowing. If an overflow occurs, a
+  runtime error will be raised.
 
 Conversion between integer types can be done by calling the target type as a
 function: `Int32(x)`. For fixed-width types, the conversion function also

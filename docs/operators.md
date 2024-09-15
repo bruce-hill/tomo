@@ -25,11 +25,11 @@ value to the user.
 
 ```tomo
 >> 0 <> 99
-= -1_i32
+= -1[32]
 >> 5 <> 5
-= 0_i32
+= 0[32]
 >> 99 <> 0
-= 1_i32
+= 1[32]
 ```
 
 It's particularly handy for using the array `sort()` method, which takes a
