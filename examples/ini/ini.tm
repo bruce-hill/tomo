@@ -10,7 +10,6 @@ func parse_ini(path:Path)->{Text:{Text:Text}}:
     text := path:read():or_exit("Could not read INI file: $\[31;1]$(path.text_content)$\[]")
     sections := {:Text:@{Text:Text}}
     current_section := @{:Text:Text}
-    sections:set("", current_section)
 
     # Line wraps:
     text = text:replace($/\{1 nl}{0+space}/, " ")
