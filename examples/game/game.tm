@@ -2,15 +2,15 @@
 use libraylib.so
 use <raylib.h>
 use <raymath.h>
-use file
 
 use ./world.tm
 
-func main(map="map.txt"):
+func main(map=(./map.txt)):
     extern InitWindow:func(w:Int32, h:Int32, title:CString)->Void
     InitWindow(1600, 900, "raylib [core] example - 2d camera")
 
-    map_contents := when read(map) is Success(m): m
+    map_contents := if contents := map:read():
+        contents
     else: exit(code=1, "Could not find the game map: $map")
 
     World.CURRENT:load_map(map_contents)

@@ -2953,30 +2953,72 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case If: {
         auto if_ = Match(ast, If);
-        if (!if_->else_body)
-            code_err(ast, "'if' expressions can only be used if you also have an 'else' block");
+        ast_t *condition = if_->condition;
+        CORD decl_code = CORD_EMPTY;
+        env_t *truthy_scope = env, *falsey_scope = env;
 
-        type_t *t = get_type(env, ast);
-        if (t->tag == VoidType || t->tag == AbortType)
-            code_err(ast, "This expression has a %T type, but it needs to have a real value", t);
+        type_t *condition_type;
+        if (condition->tag == Declare) {
+            condition_type = get_type(env, Match(condition, Declare)->value);
 
-        CORD condition;
-        if (get_type(env, if_->condition)->tag == TextType)
-            condition = CORD_all("(", compile(env, if_->condition), ").length");
-        else
-            condition = compile(env, if_->condition);
+            const char *varname = Match(Match(condition, Declare)->var, Var)->name;
+            falsey_scope = fresh_scope(env);
+            bind_statement(falsey_scope, condition);
+            binding_t *b = get_binding(falsey_scope, varname);
+            assert(b);
 
-        type_t *true_type = get_type(env, if_->body);
-        type_t *false_type = get_type(env, if_->else_body);
+            truthy_scope = fresh_scope(env);
+            set_binding(truthy_scope, varname,
+                        new(binding_t, .type=Match(condition_type, OptionalType)->type, .code=b->code));
+
+            decl_code = compile_statement(env, condition);
+            condition = Match(condition, Declare)->var;
+        } else if (condition->tag == Var) {
+            condition_type = get_type(env, condition);
+            if (condition_type->tag == OptionalType) {
+                truthy_scope = fresh_scope(env);
+                const char *varname = Match(if_->condition, Var)->name;
+                binding_t *b = get_binding(env, varname);
+                if (!b) code_err(condition, "I don't know what this variable refers to");
+                set_binding(truthy_scope, varname,
+                            new(binding_t, .type=Match(condition_type, OptionalType)->type, .code=b->code));
+            }
+        } else {
+            condition_type = get_type(env, condition);
+        }
+
+        if (condition_type->tag == PointerType)
+            code_err(condition, "This pointer will always be non-null, so it should not be used in a conditional.");
+
+        CORD condition_code;
+        if (condition_type->tag == TextType) {
+            condition_code = CORD_all("(", compile(env, condition), ").length");
+        } else if (condition_type->tag == ArrayType) {
+            condition_code = CORD_all("(", compile(env, condition), ").length");
+        } else if (condition_type->tag == TableType || condition_type->tag == SetType) {
+            condition_code = CORD_all("(", compile(env, condition), ").entries.length");
+        } else if (condition_type->tag == OptionalType) {
+            condition_code = CORD_all("!", check_null(condition_type, compile(env, condition)));
+        } else if (condition_type->tag == BoolType) {
+            condition_code = compile(env, condition);
+        } else {
+            code_err(condition, "%T values cannot be used for conditionals", condition_type);
+        }
+
+        type_t *true_type = get_type(truthy_scope, if_->body);
+        type_t *false_type = get_type(falsey_scope, if_->else_body);
         if (true_type->tag == AbortType || true_type->tag == ReturnType)
-            return CORD_all("({ if (", condition, ") ", compile_statement(env, if_->body),
-                            "\n", compile(env, if_->else_body), "; })");
+            return CORD_all("({ ", decl_code, "if (", condition_code, ") ", compile_statement(truthy_scope, if_->body),
+                            "\n", compile(falsey_scope, if_->else_body), "; })");
         else if (false_type->tag == AbortType || false_type->tag == ReturnType)
-            return CORD_all("({ if (!(", condition, ")) ", compile_statement(env, if_->else_body),
-                            "\n", compile(env, if_->body), "; })");
+            return CORD_all("({ ", decl_code, "if (!(", condition_code, ")) ", compile_statement(falsey_scope, if_->else_body),
+                            "\n", compile(truthy_scope, if_->body), "; })");
+        else if (decl_code != CORD_EMPTY)
+            return CORD_all("({ ", decl_code, "(", condition_code, ") ? ", compile(truthy_scope, if_->body), " : ",
+                            compile(falsey_scope, if_->else_body), ";})");
         else
-            return CORD_all("((", condition, ") ? ",
-                            compile(env, if_->body), " : ", compile(env, if_->else_body), ")");
+            return CORD_all("((", condition_code, ") ? ",
+                            compile(truthy_scope, if_->body), " : ", compile(falsey_scope, if_->else_body), ")");
     }
     case Reduction: {
         auto reduction = Match(ast, Reduction);

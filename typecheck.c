@@ -1161,18 +1161,38 @@ type_t *get_type(env_t *env, ast_t *ast)
 
     case If: {
         auto if_ = Match(ast, If);
-        type_t *true_t = get_type(env, if_->body);
-        if (if_->else_body) {
-            type_t *false_t = get_type(env, if_->else_body);
-            type_t *t_either = type_or_type(true_t, false_t);
-            if (!t_either)
-                code_err(if_->else_body,
-                         "I was expecting this block to have a %T value (based on earlier clauses), but it actually has a %T value.",
-                         true_t, false_t);
-            return t_either;
-        } else {
+        if (!if_->else_body)
             return Type(VoidType);
+
+        env_t *truthy_scope = env;
+        env_t *falsey_scope = env;
+        if (if_->condition->tag == Declare) {
+            type_t *condition_type = get_type(env, Match(if_->condition, Declare)->value);
+            falsey_scope = fresh_scope(env);
+            bind_statement(falsey_scope, if_->condition);
+
+            truthy_scope = fresh_scope(env);
+            const char *varname = Match(Match(if_->condition, Declare)->var, Var)->name;
+            set_binding(truthy_scope, varname,
+                        new(binding_t, .type=Match(condition_type, OptionalType)->type));
+        } else if (if_->condition->tag == Var) {
+            type_t *condition_type = get_type(env, if_->condition);
+            if (condition_type->tag == OptionalType) {
+                truthy_scope = fresh_scope(env);
+                const char *varname = Match(if_->condition, Var)->name;
+                set_binding(truthy_scope, varname,
+                            new(binding_t, .type=Match(condition_type, OptionalType)->type));
+            }
         }
+
+        type_t *true_t = get_type(truthy_scope, if_->body);
+        type_t *false_t = get_type(falsey_scope, if_->else_body);
+        type_t *t_either = type_or_type(true_t, false_t);
+        if (!t_either)
+            code_err(if_->else_body,
+                     "I was expecting this block to have a %T value (based on earlier clauses), but it actually has a %T value.",
+                     true_t, false_t);
+        return t_either;
     }
 
     case When: {

@@ -284,3 +284,31 @@ func main():
     = {!Int}
     >> [5?, !Int, !Int, 6?]:sorted()
     = [!Int, !Int, 5?, 6?]
+
+    do:
+        >> value := if var := 5?:
+            var
+        else:
+            0
+        = 5
+
+    do:
+        >> value := if var := !Int:
+            var
+        else:
+            0
+        = 0
+
+    do:
+        >> opt := 5?
+        >> if opt:
+            >> opt
+        else:
+            >> opt
+
+    do:
+        >> opt := !Int
+        >> if opt:
+            >> opt
+        else:
+            >> opt
