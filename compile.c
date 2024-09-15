@@ -3530,16 +3530,16 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
         }
         case TextType: {
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
-                            "$", arg->name, " = ", streq(Match(t, TextType)->lang, "Path") ? "Path$cleanup(flag)" : "flag",";\n",
+                            "$", arg->name, " = ", streq(Match(non_optional, TextType)->lang, "Path") ? "Path$cleanup(flag)" : "flag",";\n",
                             "}\n");
             break;
         }
         case ArrayType: {
-            if (Match(t, ArrayType)->item_type->tag != TextType)
-                compiler_err(NULL, NULL, NULL, "Main function has unsupported argument type: %T (only arrays of Text are supported)", t);
+            if (Match(non_optional, ArrayType)->item_type->tag != TextType)
+                compiler_err(NULL, NULL, NULL, "Main function has unsupported argument type: %T (only arrays of Text are supported)", non_optional);
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
                             "$", arg->name, " = Text$split(flag, Pattern(\",\"));\n");
-            if (streq(Match(Match(t, ArrayType)->item_type, TextType)->lang, "Path")) {
+            if (streq(Match(Match(non_optional, ArrayType)->item_type, TextType)->lang, "Path")) {
                 code = CORD_all(code, "for (int64_t j = 0; j < $", arg->name, ".length; j++)\n"
                                 "*(Path_t*)($", arg->name, ".data + j*$", arg->name, ".stride) "
                                 "= Path$cleanup(*(Path_t*)($", arg->name, ".data + j*$", arg->name, ".stride));\n");
@@ -3560,11 +3560,11 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
             break;
         }
         case EnumType: {
-            env_t *enum_env = Match(t, EnumType)->env;
+            env_t *enum_env = Match(non_optional, EnumType)->env;
             code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
                             "if (flag.length == 0)\n"
                             "USAGE_ERR(\"No value provided for '--", flag, "'\");\n");
-            for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
+            for (tag_t *tag = Match(non_optional, EnumType)->tags; tag; tag = tag->next) {
                 if (tag->type && Match(tag->type, StructType)->fields)
                     compiler_err(NULL, NULL, NULL,
                                  "The type %T has enum fields with member values, which is not yet supported for command line arguments.");
@@ -3575,7 +3575,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                                 "} else ");
             }
             code = CORD_all(code, "USAGE_ERR(\"Invalid value provided for '--", flag, "', valid values are: ",
-                            get_flag_options(t, ", "), "\");\n",
+                            get_flag_options(non_optional, ", "), "\");\n",
                             "}\n");
             break;
         }
