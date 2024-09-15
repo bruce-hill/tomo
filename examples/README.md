@@ -1,12 +1,12 @@
 # Example Programs
 
-- [coroutine.tm](coroutine.tm): A library for coroutines similar to Lua's
+- [coroutine](coroutine/coroutine.tm): A library for coroutines similar to Lua's
   (using [libaco](https://libaco.org)).
-- [game/](game/): An example game using raylib.
-- [http.tm](http.tm): An HTTP library to make basic synchronous HTTP requests.
-- [ini.tm](ini.tm): An INI configuration file reader tool.
+- [game](game/): An example game using raylib.
+- [http](http/http.tm): An HTTP library to make basic synchronous HTTP requests.
+- [ini](ini/ini.tm): An INI configuration file reader tool.
 - [learnxiny.tm](learnxiny.tm): A quick overview of language features in the
   style of [learnxinyminutes.com](https://learnxinyminutes.com/).
-- [log.tm](log.tm): A logging utility.
-- [vectors.tm](vectors.tm): A math vector library.
-- [wrap.tm](wrap.tm): A command-line program to wrap text.
+- [log](log/log.tm): A logging utility.
+- [vectors](vectors/vectors.tm): A math vector library.
+- [wrap](wrap/wrap.tm): A command-line program to wrap text.
