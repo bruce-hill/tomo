@@ -119,11 +119,12 @@ The base name of the file or directory.
 ### `by_line`
 
 **Description:**  
-Returns an iterator that can be used to iterate over a file one line at a time.
+Returns an iterator that can be used to iterate over a file one line at a time,
+or returns a null value if the file could not be opened.
 
 **Usage:**  
 ```markdown
-by_line(path: Path) -> func()->Text?
+by_line(path: Path) -> (func()->Text?)?
 ```
 
 **Parameters:**
@@ -131,11 +132,20 @@ by_line(path: Path) -> func()->Text?
 - `path`: The path of the file.
 
 **Returns:**  
-An iterator that can be used to get lines from a file one at a time.
+An iterator that can be used to get lines from a file one at a time or a null
+value if the file couldn't be read.
 
 **Example:**  
 ```markdown
-for line in (/dev/stdin):by_line():
+# Safely handle file not being readable:
+if lines := (./file.txt):by_line():
+    for line in lines:
+        say(line:upper())
+else:
+    say("Couldn't read file!")
+
+# Assume the file is readable and error if that's not the case:
+for line in (/dev/stdin):by_line()!:
     say(line:upper())
 ```
 
@@ -414,11 +424,12 @@ The path of the parent directory.
 ### `read`
 
 **Description:**  
-Reads the contents of the file at the specified path.
+Reads the contents of the file at the specified path or a null value if the
+file could not be read.
 
 **Usage:**  
 ```markdown
-read(path: Path) -> Text
+read(path: Path) -> Text?
 ```
 
 **Parameters:**
@@ -426,22 +437,29 @@ read(path: Path) -> Text
 - `path`: The path of the file to read.
 
 **Returns:**  
-The contents of the file. If the file does not exist, an error will be raised.
+The contents of the file. If the file could not be read, a null value will be
+returned. If the file can be read, but is not valid UTF8 data, an error will be
+raised.
 
 **Example:**  
 ```markdown
-content := (./file.txt):read()
+>> (./hello.txt):read()
+= "Hello"?
+
+>> (./nosuchfile.xxx):read()
+= !Text
 ```
 ---
 
 ### `read_bytes`
 
 **Description:**  
-Reads the contents of the file at the specified path.
+Reads the contents of the file at the specified path or a null value if the
+file could not be read.
 
 **Usage:**  
 ```markdown
-read_bytes(path: Path) -> [Byte]
+read_bytes(path: Path) -> [Byte]?
 ```
 
 **Parameters:**
@@ -449,11 +467,16 @@ read_bytes(path: Path) -> [Byte]
 - `path`: The path of the file to read.
 
 **Returns:**  
-The byte contents of the file. If the file does not exist, an error will be raised.
+The byte contents of the file. If the file cannot be read, a null value will be
+returned.
 
 **Example:**  
 ```markdown
-content := (./file.txt):read_bytes()
+>> (./hello.txt):read()
+= [72[B], 101[B], 108[B], 108[B], 111[B]]?
+
+>> (./nosuchfile.xxx):read()
+= ![Byte]
 ```
 
 ---

@@ -244,16 +244,16 @@ public void Path$append_bytes(Path_t path, Array_t bytes, int permissions)
     _write(path, bytes, O_WRONLY | O_APPEND | O_CREAT, permissions);
 }
 
-public Array_t Path$read_bytes(Path_t path)
+public OptionalArray_t Path$read_bytes(Path_t path)
 {
     path = Path$_expand_home(path);
     int fd = open(Text$as_c_string(path), O_RDONLY);
     if (fd == -1)
-        fail("Could not read file: %k (%s)", &path, strerror(errno));
+        return NULL_ARRAY;
 
     struct stat sb;
     if (fstat(fd, &sb) != 0)
-        fail("Could not read file: %k (%s)", &path, strerror(errno));
+        return NULL_ARRAY;
 
     if ((sb.st_mode & S_IFMT) == S_IFREG) { // Use memory mapping if it's a real file:
         const char *mem = mmap(NULL, (size_t)sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
@@ -269,7 +269,7 @@ public Array_t Path$read_bytes(Path_t path)
             char chunk[256];
             ssize_t just_read = read(fd, chunk, sizeof(chunk));
             if (just_read < 0)
-                fail("Failed while reading file: %k (%s)", &path, strerror(errno));
+                return NULL_ARRAY;
             else if (just_read == 0) {
                 if (errno == EAGAIN || errno == EINTR)
                     continue;
@@ -287,17 +287,14 @@ public Array_t Path$read_bytes(Path_t path)
                 break;
         }
         close(fd);
-
-        if (u8_check((uint8_t*)content, len) != NULL)
-            fail("File does not contain valid UTF8 data!");
-
         return (Array_t){.data=content, .atomic=1, .stride=1, .length=len};
     }
 }
 
-public Text_t Path$read(Path_t path)
+public OptionalText_t Path$read(Path_t path)
 {
     Array_t bytes = Path$read_bytes(path);
+    if (bytes.length < 0) return NULL_TEXT;
     return Text$from_bytes(bytes);
 }
 
@@ -480,13 +477,13 @@ static Text_t _next_line(FILE **f)
     return line_text;
 }
 
-public Closure_t Path$by_line(Path_t path)
+public OptionalClosure_t Path$by_line(Path_t path)
 {
     path = Path$_expand_home(path);
 
     FILE *f = fopen(Text$as_c_string(path), "r");
     if (f == NULL)
-        fail("Could not read file: %k (%s)", &path, strerror(errno));
+        return NULL_CLOSURE;
 
     FILE **wrapper = GC_MALLOC(sizeof(FILE*));
     *wrapper = f;
