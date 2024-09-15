@@ -1044,6 +1044,13 @@ static inline Text_t _quoted(Text_t text, bool colorize, char quote_char)
         case '\r': add_escaped("r"); break;
         case '\t': add_escaped("t"); break;
         case '\v': add_escaped("v"); break;
+        case '\\': {
+            if (just_escaped)
+                add_escaped("\\");
+            else
+                add_char('\\');
+            break;
+        }
         case '$': if (quote_char == '\'') add_char('$'); else add_escaped("$"); break;
         case '\x00' ... '\x06': case '\x0E' ... '\x1A':
         case '\x1C' ... '\x1F': case '\x7F' ... '\x7F': {
