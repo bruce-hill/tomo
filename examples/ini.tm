@@ -32,13 +32,13 @@ func parse_ini(path:Path)->{Text:{Text:Text}}:
 func main(path:Path, key:Text):
     keys := key:split($Pattern"/")
     if keys.length > 2:
-        exit(1, message="
+        exit("
             Too many arguments! 
             $_USAGE
         ")
 
     if not path:is_file() or path:is_pipe():
-        exit(code=1, "Could not read file: $(path.text_content)")
+        exit("Could not read file: $(path.text_content)")
 
     data := parse_ini(path)
     if keys.length < 1 or keys[1] == '*':
@@ -47,7 +47,7 @@ func main(path:Path, key:Text):
 
     section := keys[1]:lower()
     if not data:has(section):
-        exit(1, message="Invalid section name: $section; valid names: $(", ":join([k:quoted() for k in data.keys]))")
+        exit("Invalid section name: $section; valid names: $(", ":join([k:quoted() for k in data.keys]))")
 
     section_data := data:get(section)
     if keys.length < 2 or keys[2] == '*':
@@ -56,6 +56,6 @@ func main(path:Path, key:Text):
 
     section_key := keys[2]:lower()
     if not section_data:has(section_key):
-        exit(1, message="Invalid key: $section_key; valid keys: $(", ":join(section_data.keys))")
+        exit("Invalid key: $section_key; valid keys: $(", ":join(section_data.keys))")
 
     say(section_data:get(section_key))

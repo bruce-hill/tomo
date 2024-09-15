@@ -2817,6 +2817,16 @@ CORD compile(env_t *env, ast_t *ast)
                                               (long)(call->self->end - call->self->file->text),
                                               compile_arguments(env, ast, arg_spec, call->args)),
                                 optional_into_nonnull(self_value_t, "opt"), "; })");
+            } else if (streq(call->name, "or_exit")) {
+                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                arg_t *arg_spec = new(arg_t, .name="message", .type=Type(OptionalType, .type=TEXT_TYPE),
+                                      .default_val=FakeAST(Null, .type=new(type_ast_t, .tag=VarTypeAST, .__data.VarTypeAST.name="Text")),
+                                      .next=new(arg_t, .name="code", .type=Type(IntType, .bits=TYPE_IBITS32),
+                                                .default_val=FakeAST(Int, .bits=IBITS32, .str="1")));
+                return CORD_all("({ ", compile_declaration(self_value_t, "opt"), " = ", self, "; ",
+                                "if (", check_null(self_value_t, "opt"), ")\n",
+                                "tomo_exit(", compile_arguments(env, ast, arg_spec, call->args), ");\n",
+                                optional_into_nonnull(self_value_t, "opt"), "; })");
             }
             code_err(ast, "There is no '%s' method for optional %T values", call->name, nonnull);
         }

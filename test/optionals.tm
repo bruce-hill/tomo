@@ -89,6 +89,9 @@ func main():
     >> (5?):or_fail()
     = 5 : Int
 
+    >> (5?):or_exit()
+    = 5 : Int
+
     >> (!Int):or_else(-1)
     = -1 : Int
 

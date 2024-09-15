@@ -30,7 +30,7 @@ having to use a more generalized form of `enum` which may have different naming
 conventions and which would generate a lot of unnecessary code. 
 
 In addition to using conditionals to check for null values, you can also use
-`:or_else(fallback)` or `:or_fail()`:
+`:or_else(fallback)` or `:or_fail()` or `:or_exit()`:
 
 ```tomo
 maybe_x := 5?
@@ -42,6 +42,13 @@ maybe_x := 5?
 maybe_x = !Int
 >> maybe_x:or_else(-1)
 = -1 : Int
->> maybe_x:or_fail()
+>> maybe_x:or_fail("No value!")
 # Failure!
+
+
+maybe_x = !Int
+>> maybe_x:or_exit()
+= -1 : Int
+>> maybe_x:or_exit("No value!")
+# Exit!
 ```

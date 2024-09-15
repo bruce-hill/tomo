@@ -76,14 +76,15 @@ Exits the program with a given status and optionally prints a message.
 
 **Usage:**  
 ```markdown
-ask(message:Text = "", status:Int32 = 0[32]) -> Void
+ask(message:Text? = !Text, status:Int32 = 1[32]) -> Void
 ```
 
 **Parameters:**
 
 - `message`: If nonempty, this message will be printed (with a newline) before
   exiting.
-- `status`: The status code that the program with exit with.
+- `status`: The status code that the program with exit with (default: 1, which
+  is a failure status).
 
 **Returns:**  
 This function never returns.

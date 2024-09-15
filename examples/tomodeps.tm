@@ -103,7 +103,7 @@ func draw_tree(dep:Dependency, dependencies:{Dependency:{Dependency}}):
 
 func main(files:[Text]):
     if files.length == 0:
-        exit(1, message="
+        exit("
             Please provide at least one file!
             $_USAGE
         ")
