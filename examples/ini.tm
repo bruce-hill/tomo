@@ -7,7 +7,7 @@ _HELP := "
 "
 
 func parse_ini(path:Path)->{Text:{Text:Text}}:
-    text := path:read()
+    text := path:read():or_exit("Could not read INI file: $\[31;1]$(path.text_content)$\[]")
     sections := {:Text:@{Text:Text}}
     current_section := @{:Text:Text}
     sections:set("", current_section)
@@ -37,25 +37,23 @@ func main(path:Path, key:Text):
             $_USAGE
         ")
 
-    if not path:is_file() or path:is_pipe():
-        exit("Could not read file: $(path.text_content)")
-
     data := parse_ini(path)
     if keys.length < 1 or keys[1] == '*':
         !! $data
         return
 
     section := keys[1]:lower()
-    if not data:has(section):
-        exit("Invalid section name: $section; valid names: $(", ":join([k:quoted() for k in data.keys]))")
-
-    section_data := data:get(section)
+    section_data := data:get(section):or_exit("
+        Invalid section name: $\[31;1]$section$\[]
+        Valid names: $\[1]$(", ":join([k:quoted() for k in data.keys]))$\[]
+    ")
     if keys.length < 2 or keys[2] == '*':
         !! $section_data
         return
 
     section_key := keys[2]:lower()
-    if not section_data:has(section_key):
-        exit("Invalid key: $section_key; valid keys: $(", ":join(section_data.keys))")
-
-    say(section_data:get(section_key))
+    value := section_data:get(section_key):or_exit("
+        Invalid key: $\[31;1]$section_key$\[]
+        Valid keys: $\[1]$(", ":join([s:quoted() for s in section_data.keys]))$\[]
+    ")
+    say(value)

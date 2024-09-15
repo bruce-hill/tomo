@@ -15,13 +15,14 @@ func _get_file_dependencies(file:Path)->{Dependency}:
         return {:Dependency}
 
     deps := {:Dependency}
-    for line in file:read():lines():
-        if line:matches($/use {..}.tm/):
-            file_import := Path.from_unsafe_text(line:replace($/use {..}/, "\1")):resolved(relative_to=file)
-            deps:add(Dependency.File(file_import))
-        else if line:matches($/use {id}/):
-            module_name := line:replace($/use {..}/, "\1")
-            deps:add(Dependency.Module(module_name))
+    if lines := file:by_line():
+        for line in lines:
+            if line:matches($/use {..}.tm/):
+                file_import := Path.from_unsafe_text(line:replace($/use {..}/, "\1")):resolved(relative_to=file)
+                deps:add(Dependency.File(file_import))
+            else if line:matches($/use {id}/):
+                module_name := line:replace($/use {..}/, "\1")
+                deps:add(Dependency.Module(module_name))
     return deps
 
 func _build_dependency_graph(dep:Dependency, dependencies:&{Dependency:{Dependency}}):
@@ -38,9 +39,10 @@ func _build_dependency_graph(dep:Dependency, dependencies:&{Dependency:{Dependen
             return
 
         unvisited := {:Path}
-        for line in files_path:read():lines():
-            tm_path := Path.from_unsafe_text(line):resolved(relative_to=(~/.local/src/tomo/$module/))
-            unvisited:add(tm_path)
+        if lines := files_path:by_line():
+            for line in lines:
+                tm_path := Path.from_unsafe_text(line):resolved(relative_to=(~/.local/src/tomo/$module/))
+                unvisited:add(tm_path)
 
         module_deps := {:Dependency}
         visited := {:Path}
@@ -87,7 +89,7 @@ func _draw_tree(dep:Dependency, dependencies:{Dependency:{Dependency}}, already_
     
     child_prefix := prefix ++ (if is_last: "    " else: "│   ")
     
-    children := dependencies:get(dep, {:Dependency})
+    children := dependencies:get(dep):or_else({:Dependency})
     for i,child in children.items:
         is_child_last := (i == children.length)
         _draw_tree(child, dependencies, already_printed, child_prefix, is_child_last)
@@ -96,7 +98,7 @@ func draw_tree(dep:Dependency, dependencies:{Dependency:{Dependency}}):
     printed := {:Dependency}
     say(_printable_name(dep))
     printed:add(dep)
-    deps := dependencies:get(dep, {:Dependency})
+    deps := dependencies:get(dep):or_else({:Dependency})
     for i,child in deps.items:
         is_child_last := (i == deps.length)
         _draw_tree(child, dependencies, already_printed=&printed, is_last=is_child_last)
