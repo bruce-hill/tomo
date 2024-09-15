@@ -23,11 +23,26 @@ func main():
     >> tmpfile:write("Hello world")
     >> tmpfile:append("!")
     >> tmpfile:read()
-    = "Hello world!"
+    = "Hello world!"?
     >> tmpfile:read_bytes()
-    = [72[B], 101[B], 108[B], 108[B], 111[B], 32[B], 119[B], 111[B], 114[B], 108[B], 100[B], 33[B]]
+    = [72[B], 101[B], 108[B], 108[B], 111[B], 32[B], 119[B], 111[B], 114[B], 108[B], 100[B], 33[B]]?
     >> tmpdir:files():has(tmpfile)
     = yes
+
+    if tmp_lines := tmpfile:by_line():
+        >> [line for line in tmp_lines]
+        = ["Hello world!"]
+    else:
+        fail("Couldn't read lines in $tmpfile")
+
+    >> (./does-not-exist.xxx):read()
+    = !Text
+    >> (./does-not-exist.xxx):read_bytes()
+    = ![Byte]
+    if lines := (./does-not-exist.xxx):by_line():
+        fail("I could read lines in a nonexistent file")
+    else:
+        pass
 
     >> tmpfile:remove()
 
