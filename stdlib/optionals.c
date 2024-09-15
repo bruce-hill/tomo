@@ -3,6 +3,7 @@
 #include <pthread.h>
 
 #include "bools.h"
+#include "bytes.h"
 #include "datatypes.h"
 #include "integers.h"
 #include "metamethods.h"
@@ -33,6 +34,8 @@ public PUREFUNC bool is_null(const void *obj, const TypeInfo *non_optional_type)
         return ((OptionalInt16_t*)obj)->is_null;
     else if (non_optional_type == &Int8$info)
         return ((OptionalInt8_t*)obj)->is_null;
+    else if (non_optional_type == &Byte$info)
+        return ((OptionalByte_t*)obj)->is_null;
     else if (non_optional_type == &Thread)
         return *(pthread_t**)obj == NULL;
 
