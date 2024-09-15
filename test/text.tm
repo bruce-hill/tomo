@@ -20,7 +20,7 @@ func main():
 	= ["PENGUIN"]
 
 	>> \[31;1]
-	= "\e[31;1m"
+	= "$\e[31;1m"
 
 	>> \UE9 == \U65\U301
 	= yes
@@ -91,20 +91,20 @@ func main():
 		line one
 		line two
 	"
-	= "line one\nline two"
+	= "line one$\nline two"
 
 	!! Interpolation tests:
 	>> "A $(1+2)"
 	= "A 3"
 	>> 'A $(1+2)'
-	= "A $(1+2)"
+	= 'A $(1+2)'
 	>> `A $(1+2)`
 	= "A 3"
 
 	>> $"A $(1+2)"
 	= "A 3"
 	>> $$"A $(1+2)"
-	= "A $(1+2)"
+	= 'A $(1+2)'
 	>> $="A =(1+2)"
 	= "A 3"
 	>> ${one {nested} two $(1+2)}

@@ -55,11 +55,11 @@ func main():
 	>> choose_text(Foo.Two(123, 456))
 	= "Two: x=123, y=456"
 	>> choose_text(Foo.Three(123, "hi", yes))
-	= "Three: Three(x=123, y=\"hi\", z=yes)"
+	= 'Three: Three(x=123, y="hi", z=yes)'
 	>> choose_text(Foo.Four(1,2,3,4))
 	= "Four"
 	>> choose_text(Foo.Last("XX"))
-	= "else: Foo.Last(\"XX\")"
+	= 'else: Foo.Last("XX")'
 
 	i := 1
 	cases := [Foo.One(1), Foo.One(2), Foo.Zero]
@@ -72,6 +72,3 @@ func main():
 	else:
 		-1
 	= 2
-
-
-
