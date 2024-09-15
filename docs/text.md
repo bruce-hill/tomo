@@ -428,7 +428,7 @@ the text.
 
 **Usage:**  
 ```tomo
-bytes(text: Text) -> [Int8]
+utf8_bytes(text: Text) -> [Byte]
 ```
 
 **Parameters:**
@@ -436,7 +436,7 @@ bytes(text: Text) -> [Int8]
 - `text`: The text to be converted to UTF8 bytes.
 
 **Returns:**  
-An array of bytes (`[Int8]`) representing the text in UTF8 encoding.
+An array of bytes (`[Byte]`) representing the text in UTF8 encoding.
 
 **Example:**  
 ```tomo
