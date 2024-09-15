@@ -29,8 +29,8 @@ func parse_ini(path:Path)->{Text:{Text:Text}}:
 
     return {k:v[] for k,v in sections}
 
-func main(path:Path, key:Text):
-    keys := key:split($Pattern"/")
+func main(path:Path, key:Text?):
+    keys := key:or_else(""):split($Pattern"/")
     if keys.length > 2:
         exit("
             Too many arguments! 
