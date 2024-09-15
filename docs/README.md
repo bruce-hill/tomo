@@ -12,6 +12,7 @@ A few topics that are documented:
 - [Namespacing](namespacing.md)
 - [Operator Overloading](operators.md)
 - [Special Methods](metamethods.md)
+- [C Interoperability](c-interoperability.md)
 
 ## Types
 
