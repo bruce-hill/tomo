@@ -5,9 +5,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "arrays.h"
-#include "types.h"
+#include "datatypes.h"
 #include "integers.h"
+#include "types.h"
 #include "util.h"
 
 #define OptionalBool_t uint8_t
