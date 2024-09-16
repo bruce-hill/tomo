@@ -1276,7 +1276,7 @@ PARSER(parse_text) {
         ++pos;
         close_quote = closing[(int)open_quote] ? closing[(int)open_quote] : open_quote;
 
-        if (!lang && open_quote == '/')
+        if (!lang && (open_quote == '/' || open_quote == '|'))
             lang = "Pattern";
         else if (!lang && open_quote == '(')
             lang = "Shell";

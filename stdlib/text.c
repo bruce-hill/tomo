@@ -1045,13 +1045,23 @@ static inline Text_t _quoted(Text_t text, bool colorize, char quote_char)
         case '\t': add_escaped("t"); break;
         case '\v': add_escaped("v"); break;
         case '\\': {
-            if (just_escaped)
+            if (just_escaped) {
                 add_escaped("\\");
-            else
+            } else {
                 add_char('\\');
+                just_escaped = false;
+            }
             break;
         }
-        case '$': if (quote_char == '\'') add_char('$'); else add_escaped("$"); break;
+        case '$': {
+            if (quote_char == '\'') {
+                add_char('$');
+                just_escaped = false;
+            } else {
+                add_escaped("$");
+            }
+            break;
+        }
         case '\x00' ... '\x06': case '\x0E' ... '\x1A':
         case '\x1C' ... '\x1F': case '\x7F' ... '\x7F': {
             if (colorize) add_str("\x1b[34;1m");
@@ -1062,13 +1072,16 @@ static inline Text_t _quoted(Text_t text, bool colorize, char quote_char)
             add_str(tmp);
             if (colorize)
                 add_str("\x1b[0;35m");
+            just_escaped = true;
             break;
         }
         default: {
-            if (g == quote_char)
+            if (g == quote_char) {
                 add_escaped(((char[2]){quote_char, 0}));
-            else
+            } else {
                add_char(g);
+               just_escaped = false;
+            }
             break;
         }
         }
