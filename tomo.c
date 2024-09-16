@@ -247,7 +247,7 @@ int build_library(const char *lib_base_name)
     case '\n': {
         system(heap_strf("rm -rvf ~/.local/share/tomo/installed/'%s'", lib_base_name));
         system(heap_strf("mkdir -p ~/.local/share/tomo/installed/'%s'", lib_base_name));
-        system(heap_strf("cp -rv * ~/.local/share/tomo/installed/'%s'", lib_base_name));
+        system(heap_strf("install -v * ~/.local/share/tomo/installed/'%s'/", lib_base_name));
         system("mkdir -p ~/.local/share/tomo/lib/");
         system(heap_strf("ln -fv -s ../installed/'%s'/lib%s.so  ~/.local/share/tomo/lib/lib%s.so", lib_base_name, libname, libname));
     }
