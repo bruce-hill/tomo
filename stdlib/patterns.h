@@ -21,7 +21,7 @@ Text_t Text$trim(Text_t text, Pattern_t pattern, bool trim_left, bool trim_right
 Int_t Text$find(Text_t text, Pattern_t pattern, Int_t i, int64_t *match_length);
 Array_t Text$find_all(Text_t text, Pattern_t pattern);
 PUREFUNC bool Text$has(Text_t text, Pattern_t pattern);
-PUREFUNC bool Text$matches(Text_t text, Pattern_t pattern);
+Array_t Text$matches(Text_t text, Pattern_t pattern);
 Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn);
 
 #define Pattern$hash Text$hash

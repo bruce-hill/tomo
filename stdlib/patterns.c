@@ -7,6 +7,7 @@
 
 #include "arrays.h"
 #include "integers.h"
+#include "optionals.h"
 #include "patterns.h"
 #include "tables.h"
 #include "text.h"
@@ -824,10 +825,19 @@ PUREFUNC public bool Text$has(Text_t text, Pattern_t pattern)
     }
 }
 
-PUREFUNC public bool Text$matches(Text_t text, Pattern_t pattern)
+public OptionalArray_t Text$matches(Text_t text, Pattern_t pattern)
 {
-    int64_t m = match(text, 0, pattern, 0, NULL, 0);
-    return m == text.length;
+    capture_t captures[MAX_BACKREFS] = {};
+    int64_t match_len = match(text, 0, pattern, 0, captures, 0);
+    if (match_len != text.length)
+        return NULL_ARRAY;
+
+    Array_t capture_array = {};
+    for (int i = 0; captures[i].occupied; i++) {
+        Text_t capture = Text$slice(text, I(captures[i].index+1), I(captures[i].index+captures[i].length));
+        Array$insert(&capture_array, &capture, I(0), sizeof(Text_t));
+    }
+    return capture_array;
 }
 
 public Array_t Text$find_all(Text_t text, Pattern_t pattern)

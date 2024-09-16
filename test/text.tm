@@ -251,13 +251,19 @@ func main():
 	= " good(x, fn(y), BAD(z), w) "
 
 	>> "Hello":matches($/{id}/)
-	= yes
+	= ["Hello"]?
 	>> "Hello":matches($/{lower}/)
-	= no
+	= ![Text]
 	>> "Hello":matches($/{upper}/)
-	= no
+	= ![Text]
 	>> "Hello...":matches($/{id}/)
-	= no
+	= ![Text]
+
+	if matches := "hello world":matches($/{id} {id}/):
+		>> matches
+		= ["hello", "world"]
+	else:
+		fail("Failed to match")
 
 	>> "hello world":map($/world/, Text.upper)
 	= "hello WORLD"

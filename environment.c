@@ -294,7 +294,7 @@ env_t *new_compilation_unit(CORD *libname)
             // Text methods:
             {"ends_with", "Text$ends_with", "func(path:Path, suffix:Text)->Bool"},
             {"has", "Text$has", "func(path:Path, pattern:Pattern)->Bool"},
-            {"matches", "Text$matches", "func(path:Path, pattern:Pattern)->Bool"},
+            {"matches", "Text$matches", "func(path:Path, pattern:Pattern)->[Text]?"},
             {"replace", "Text$replace", "func(path:Path, pattern:Pattern, replacement:Text, backref=$/\\/, recursive=yes)->Path"},
             {"replace_all", "Text$replace_all", "func(path:Path, replacements:{Pattern:Text}, backref=$/\\/, recursive=yes)->Path"},
             {"starts_with", "Text$starts_with", "func(path:Path, prefix:Text)->Bool"},
@@ -320,7 +320,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"lines", "Text$lines", "func(text:Text)->[Text]"},
             {"lower", "Text$lower", "func(text:Text)->Text"},
             {"map", "Text$map", "func(text:Text, pattern:Pattern, fn:func(text:Text)->Text)->Text"},
-            {"matches", "Text$matches", "func(text:Text, pattern:Pattern)->Bool"},
+            {"matches", "Text$matches", "func(text:Text, pattern:Pattern)->[Text]?"},
             {"quoted", "Text$quoted", "func(text:Text, color=no)->Text"},
             {"repeat", "Text$repeat", "func(text:Text, count:Int)->Text"},
             {"replace", "Text$replace", "func(text:Text, pattern:Pattern, replacement:Text, backref=$/\\/, recursive=yes)->Text"},

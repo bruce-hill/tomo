@@ -84,7 +84,7 @@ func main():
     >> (./foo.txt):ends_with(".txt")
     = yes
     >> (./foo.txt):matches($|{..}/foo{..}|)
-    = yes
+    = [".", ".txt"]?
     >> (./foo.txt):replace($/.txt/, ".md")
     = (./foo.md)
 
