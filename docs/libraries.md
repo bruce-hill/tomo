@@ -120,23 +120,8 @@ In Tomo, a shared library is built out of a *directory* that contains multiple
 `.tm` files. Each `.tm` file in the directory (excluding those that start with
 an underscore) will be compiled and linked together to produce a single
 `libwhatever.so` file and `whatever.h` file that can be used by other Tomo
-projects.
-
-### Symbol Uniqueness
-
-In the future, each of these symbols will be given an extra prefix to prevent
-namespace collisions and a standalone header file will be built that defines
-every public symbol in the library in a way that a C compiler can understand.
-In our example, running `tomo -s=qux.1.2.3 foo.tm baz.tm` would produce a
-header file like this:
-
-```c
-#pragma once
-#include <tomo.h>
-
-extern Text_t qux$1$2$3$foo$my_variable;
-extern void qux$1$2$3$baz$say_stuff();
-```
+projects. You can build a library by running `tomo -L dirname/` or `tomo -L` in
+the current directory.
 
 ### Installing
 
@@ -147,8 +132,8 @@ such as `.git`) into `~/.local/share/tomo/installed/`.
 
 ### Using Shared Libraries
 
-To use a shared library, write a statement like `use qux` with an unqualified
-name (i.e. not an absolute or relative path like `/qux` or `./qux`). When a
+To use a shared library, write a statement like `use foo` with an unqualified
+name (i.e. not an absolute or relative path like `/foo` or `./foo`). When a
 program uses a shared library, that shared library gets dynamically linked to
 the executable when compiling, and all of the necessary symbol information is
 read from the source files during compilation.
