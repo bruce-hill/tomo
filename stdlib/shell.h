@@ -5,15 +5,20 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "types.h"
+#include "arrays.h"
 #include "datatypes.h"
+#include "optionals.h"
+#include "text.h"
+#include "types.h"
 
 #define Shell_t Text_t
 #define Shell(text) ((Shell_t)Text(text))
 #define Shells(...) ((Shell_t)Texts(__VA_ARGS__))
 
-Text_t Shell$run(Shell_t command, int32_t *status);
+OptionalClosure_t Shell$by_line(Shell_t command);
 Shell_t Shell$escape_text(Text_t text);
+OptionalArray_t Shell$run_bytes(Shell_t command);
+OptionalText_t Shell$run(Shell_t command);
 
 #define Shell$hash Text$hash
 #define Shell$compare Text$compare

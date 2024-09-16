@@ -1,4 +1,5 @@
 // A lang for Shell Command Language
+#include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -32,29 +33,95 @@ public Shell_t Shell$escape_text(Text_t text)
     return (Text_t){.length=shell_graphemes.length, .tag=TEXT_GRAPHEMES, .graphemes=shell_graphemes.data};
 }
 
-public Text_t Shell$run(Shell_t command, int32_t *status)
+public OptionalArray_t Shell$run_bytes(Shell_t command)
 {
     const char *cmd_str = Text$as_c_string(command);
     FILE *prog = popen(cmd_str, "r");
+    if (!prog)
+        return NULL_ARRAY;
 
-    const int chunk_size = 256;
-    char *buf = GC_MALLOC_ATOMIC(chunk_size);
-    Text_t output = Text("");
+    size_t capacity = 256, len = 0;
+    char *content = GC_MALLOC_ATOMIC(capacity);
+    char chunk[256];
     size_t just_read;
     do {
-        just_read = fread(buf, sizeof(char), chunk_size, prog);
-        if (just_read > 0) {
-            output = Texts(output, Text$from_strn(buf, just_read));
-            buf = GC_MALLOC_ATOMIC(chunk_size);
+        just_read = fread(chunk, 1, sizeof(chunk), prog);
+        if (just_read == 0) {
+            if (errno == EAGAIN || errno == EINTR)
+                continue;
+            break;
         }
-    } while (just_read > 0);
 
-    if (status)
-        *status = WEXITSTATUS(pclose(prog));
-    else
-        pclose(prog);
+        if (len + (size_t)just_read >= capacity)
+            content = GC_REALLOC(content, (capacity *= 2));
 
-    return Text$trim(output, Pattern("{1 nl}"), false, true);
+        memcpy(&content[len], chunk, (size_t)just_read);
+        len += (size_t)just_read;
+    } while (just_read == sizeof(chunk));
+
+    int status = pclose(prog);
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+        return NULL_ARRAY;
+
+    return (Array_t){.data=content, .atomic=1, .stride=1, .length=len};
+}
+
+public OptionalText_t Shell$run(Shell_t command)
+{
+    Array_t bytes = Shell$run_bytes(command);
+    if (bytes.length < 0)
+        return NULL_TEXT;
+
+    if (bytes.length > 0 && *(char*)(bytes.data + (bytes.length-1)*bytes.stride) == '\n') {
+        --bytes.length;
+        if (bytes.length > 0 && *(char*)(bytes.data + (bytes.length-1)*bytes.stride) == '\r')
+            --bytes.length;
+    }
+    return Text$from_bytes(bytes);
+}
+
+static void _line_reader_cleanup(FILE **f)
+{
+    if (f && *f) {
+        pclose(*f);
+        *f = NULL;
+    }
+}
+
+static Text_t _next_line(FILE **f)
+{
+    if (!f || !*f) return NULL_TEXT;
+
+    char *line = NULL;
+    size_t size = 0;
+    ssize_t len = getline(&line, &size, *f);
+    if (len <= 0) {
+        _line_reader_cleanup(f);
+        return NULL_TEXT;
+    }
+
+    while (len > 0 && (line[len-1] == '\r' || line[len-1] == '\n'))
+        --len;
+
+    if (u8_check((uint8_t*)line, (size_t)len) != NULL)
+        fail("Invalid UTF8!");
+
+    Text_t line_text = Text$format("%.*s", len, line);
+    free(line);
+    return line_text;
+}
+
+public OptionalClosure_t Shell$by_line(Shell_t command)
+{
+    const char *cmd_str = Text$as_c_string(command);
+    FILE *prog = popen(cmd_str, "r");
+    if (!prog)
+        return NULL_CLOSURE;
+
+    FILE **wrapper = GC_MALLOC(sizeof(FILE*));
+    *wrapper = prog;
+    GC_register_finalizer(wrapper, (void*)_line_reader_cleanup, NULL, NULL, NULL);
+    return (Closure_t){.fn=(void*)_next_line, .userdata=wrapper};
 }
 
 public const TypeInfo Shell$info = {
