@@ -171,8 +171,9 @@ const char *escape_lib_name(const char *lib_name)
 int build_library(const char *lib_base_name)
 {
     glob_t tm_files;
+    char *library_directory = get_current_dir_name();
     if (glob("[!._0-9]*.tm", 0, NULL, &tm_files) != 0)
-        errx(1, "Couldn't get .tm files in directory: %s", get_current_dir_name());
+        errx(1, "Couldn't get .tm files in directory: %s", library_directory);
     env_t *env = new_compilation_unit(NULL);
     CORD object_files, extra_ldlibs;
     compile_files(env, (int)tm_files.gl_pathc, (const char**)tm_files.gl_pathv, false, &object_files, &extra_ldlibs);
@@ -245,14 +246,19 @@ int build_library(const char *lib_base_name)
         getchar();
         // Fall through
     case '\n': {
-        system(heap_strf("rm -rvf ~/.local/share/tomo/installed/'%s'", lib_base_name));
-        system(heap_strf("mkdir -p ~/.local/share/tomo/installed/'%s'", lib_base_name));
-        system(heap_strf("install -v * ~/.local/share/tomo/installed/'%s'/", lib_base_name));
+        const char *dest = heap_strf("%s/.local/share/tomo/installed/%s", getenv("HOME"), lib_base_name);
+        if (!streq(library_directory, dest)) {
+            system(heap_strf("rm -rvf '%s'", dest));
+            system(heap_strf("mkdir -p '%s'", dest));
+            system(heap_strf("install -v * '%s/'", dest));
+        }
         system("mkdir -p ~/.local/share/tomo/lib/");
         system(heap_strf("ln -fv -s ../installed/'%s'/lib%s.so  ~/.local/share/tomo/lib/lib%s.so", lib_base_name, libname, libname));
     }
     default: break;
     }
+
+    free(library_directory);
     return 0;
 }
 
