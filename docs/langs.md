@@ -11,11 +11,13 @@ where a different type of string is needed.
 ```tomo
 lang HTML:
     func escape(t:Text)->HTML:
-        t = t:replace("&", "&amp;")
-        t = t:replace("<", "&lt;")
-        t = t:replace(">", "&gt;")
-        t = t:replace('"', "&quot;")
-        t = t:replace("'", "&#39;")
+        t = t:replace_all({
+            $/&/: "&amp;",
+            $/</: "&lt;",
+            $/>/: "&gt;",
+            $/"/: "&quot",
+            $/'/: "&#39;",
+        })
         return HTML.from_unsafe_text(t)
 
     func paragraph(content:HTML)->HTML:
@@ -73,12 +75,12 @@ instead of building a global function called `execute()` that takes a
 ```tomo
 lang Sh:
     func escape(text:Text)->Sh:
-        return Sh.from_unsafe_text("'$(text:replace("'", "''"))'")
+        return Sh.from_unsafe_text("'" ++ text:replace($/'/, "''") ++ "'")
 
     func execute(sh:Sh)->Text:
         ...
 
-dir := Text.read_line("List which dir? ")
+dir := ask("List which dir? ")
 cmd := $Sh@(ls -l @dir)
 result := cmd:execute()
 ```
