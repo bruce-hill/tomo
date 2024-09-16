@@ -145,7 +145,7 @@ public Text_t Path$relative(Path_t path, Path_t relative_to)
 {
     path = Path$resolved(path, relative_to);
     relative_to = Path$resolved(relative_to, Path("."));
-    if (Text$matches(path, Patterns(Pattern("{start}"), relative_to, Pattern("{0+..}"))))
+    if (Text$starts_with(path, Text$concat(relative_to, Text("/"))))
         return Text$slice(path, I(relative_to.length + 2), I(-1));
     return path;
 }
@@ -438,10 +438,12 @@ public Text_t Path$base_name(Path_t path)
 public Text_t Path$extension(Path_t path, bool full)
 {
     Text_t base = Path$base_name(path);
-    if (Text$matches(base, Pattern(".{!.}.{..}")))
-        return Text$replace(base, full ? Pattern(".{!.}.{..}") : Pattern(".{..}.{!.}{end}"), Text("@2"), Text("@"), false);
-    else if (Text$matches(base, Pattern("{!.}.{..}")))
-        return Text$replace(base, full ? Pattern("{!.}.{..}") : Pattern("{..}.{!.}{end}"), Text("@2"), Text("@"), false);
+    Array_t results = Text$matches(base, full ? Pattern(".{!.}.{..}") : Pattern(".{..}.{!.}{end}"));
+    if (results.length > 0)
+        return *((Text_t*)(results.data + results.stride*1));
+    results = Text$matches(base, full ? Pattern("{!.}.{..}") : Pattern("{..}.{!.}{end}"));
+    if (results.length > 0)
+        return *((Text_t*)(results.data + results.stride*1));
     else
         return Text("");
 }
