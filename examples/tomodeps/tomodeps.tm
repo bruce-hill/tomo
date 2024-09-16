@@ -36,7 +36,7 @@ func _build_dependency_graph(dep:Dependency, dependencies:&{Dependency:{Dependen
         dir := (~/.local/share/tomo/installed/$module)
         module_deps := {:Dependency}
         visited := {:Path}
-        unvisited := {f:resolved() for f in dir:files() if f.text_content:ends_with(".tm")}
+        unvisited := {f:resolved() for f in dir:files() if f:ends_with(".tm")}
         while unvisited.length > 0:
             file := unvisited.items[-1]
             unvisited:remove(file)
