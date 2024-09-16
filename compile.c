@@ -1865,7 +1865,7 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Not: {
         ast_t *value = Match(ast, Not)->value;
-        type_t *t = get_type(env, ast);
+        type_t *t = get_type(env, value);
 
         binding_t *b = get_namespace_binding(env, value, "negated");
         if (b && b->type->tag == FunctionType) {

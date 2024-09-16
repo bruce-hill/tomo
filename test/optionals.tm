@@ -315,3 +315,9 @@ func main():
             >> opt
         else:
             >> opt
+
+    >> not 5?
+    = no
+
+    >> not !Int
+    = yes
