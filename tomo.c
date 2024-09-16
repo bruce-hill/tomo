@@ -208,7 +208,7 @@ void build_library(const char *lib_base_name)
     FILE *prog;
     for (size_t i = 0; i < tm_files.gl_pathc; i++) {
         const char *filename = tm_files.gl_pathv[i];
-        prog = CORD_RUN("nm -U -fjust-symbols ", filename, ".o | sed 's/.*/\\0 ", libname, "$\\0/' >>symbol_renames.txt");
+        prog = CORD_RUN("nm -Ug -fjust-symbols ", filename, ".o | sed 's/.*/\\0 ", libname, "$\\0/' >>symbol_renames.txt");
         int status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
             errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `sed`");
