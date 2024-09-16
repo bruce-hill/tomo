@@ -29,7 +29,7 @@ typedef enum { MODE_TRANSPILE = 0, MODE_COMPILE_OBJ = 1, MODE_COMPILE_SHARED_OBJ
 
 static bool verbose = false;
 static bool show_codegen = false;
-static CORD autofmt, cconfig, cflags, ldlibs, ldflags, cc;
+static CORD autofmt = CORD_EMPTY, cconfig = CORD_EMPTY, cflags = CORD_EMPTY, ldlibs = CORD_EMPTY, ldflags = CORD_EMPTY, cc = CORD_EMPTY;
 
 static int transpile_header(env_t *base_env, const char *filename, bool force_retranspile);
 static int transpile_code(env_t *base_env, const char *filename, bool force_retranspile);

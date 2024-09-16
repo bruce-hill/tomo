@@ -1387,7 +1387,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     default:
         if (!is_discardable(env, ast))
-            code_err(ast, "The result of this statement cannot be discarded");
+            code_err(ast, "The %T result of this statement cannot be discarded", get_type(env, ast));
         return CORD_asprintf("(void)%r;", compile(env, ast));
     }
 }
