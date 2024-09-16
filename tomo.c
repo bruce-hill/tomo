@@ -31,14 +31,14 @@ static bool verbose = false;
 static bool show_codegen = false;
 static CORD autofmt = CORD_EMPTY, cconfig = CORD_EMPTY, cflags = CORD_EMPTY, ldlibs = CORD_EMPTY, ldflags = CORD_EMPTY, cc = CORD_EMPTY;
 
-static int transpile_header(env_t *base_env, const char *filename, bool force_retranspile);
-static int transpile_code(env_t *base_env, const char *filename, bool force_retranspile);
-static int compile_object_file(const char *filename, bool force_recompile);
-static int compile_executable(env_t *base_env, const char *filename, CORD object_files, CORD extra_ldlibs);
+static void transpile_header(env_t *base_env, const char *filename, bool force_retranspile);
+static void transpile_code(env_t *base_env, const char *filename, bool force_retranspile);
+static void compile_object_file(const char *filename, bool force_recompile);
+static void compile_executable(env_t *base_env, const char *filename, CORD object_files, CORD extra_ldlibs);
 static void build_file_dependency_graph(const char *filename, Table_t *to_compile, Table_t *to_link);
 static const char *escape_lib_name(const char *lib_name);
-static int build_library(const char *lib_base_name);
-static int compile_files(env_t *env, int filec, const char **filev, bool only_compile_arguments, CORD *object_files, CORD *ldlibs);
+static void build_library(const char *lib_base_name);
+static void compile_files(env_t *env, int filec, const char **filev, bool only_compile_arguments, CORD *object_files, CORD *ldlibs);
 
 #pragma GCC diagnostic ignored "-Wstack-protector"
 int main(int argc, char *argv[])
@@ -129,9 +129,9 @@ int main(int argc, char *argv[])
         env_t *env = new_compilation_unit(NULL);
         CORD object_files, extra_ldlibs;
         compile_files(env, 1, &filename, false, &object_files, &extra_ldlibs);
-        int status = compile_executable(env, filename, object_files, extra_ldlibs);
-        if (status != 0 || mode == MODE_COMPILE_EXE)
-            return status;
+        compile_executable(env, filename, object_files, extra_ldlibs);
+        if (mode == MODE_COMPILE_EXE)
+            return 0;
 
         char *exe_name = GC_strndup(filename, strlen(filename) - strlen(".tm"));
         int num_args = argc - after_flags - 1;
@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
         errx(1, "Failed to run compiled program");
     } else if (mode == MODE_COMPILE_OBJ) {
         env_t *env = new_compilation_unit(NULL);
-        return compile_files(env, argc - after_flags, (const char**)&argv[after_flags], true, NULL, NULL);
+        compile_files(env, argc - after_flags, (const char**)&argv[after_flags], true, NULL, NULL);
     } else if (mode == MODE_COMPILE_SHARED_OBJ) {
         char *cwd = get_current_dir_name();
         for (int i = after_flags; i < argc; i++) {
@@ -152,14 +152,13 @@ int main(int argc, char *argv[])
                 errx(1, "Could not enter directory: %s", argv[i]);
             char *libdir = get_current_dir_name();
             char *libdirname = basename(libdir);
-            int status = build_library(libdirname);
-            if (status != 0)
-                return status;
+            build_library(libdirname);
             free(libdir);
             chdir(cwd);
         }
         free(cwd);
     }
+    return 0;
 }
 
 const char *escape_lib_name(const char *lib_name)
@@ -168,7 +167,7 @@ const char *escape_lib_name(const char *lib_name)
         Text$replace(Text$from_str(lib_name), Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false));
 }
 
-int build_library(const char *lib_base_name)
+void build_library(const char *lib_base_name)
 {
     glob_t tm_files;
     char *library_directory = get_current_dir_name();
@@ -259,10 +258,9 @@ int build_library(const char *lib_base_name)
     }
 
     free(library_directory);
-    return 0;
 }
 
-int compile_files(env_t *env, int filec, const char **filev, bool only_compile_arguments, CORD *object_files, CORD *extra_ldlibs)
+void compile_files(env_t *env, int filec, const char **filev, bool only_compile_arguments, CORD *object_files, CORD *extra_ldlibs)
 {
     Table_t to_link = {};
     Table_t argument_files = {};
@@ -282,8 +280,7 @@ int compile_files(env_t *env, int filec, const char **filev, bool only_compile_a
     for (int64_t i = 0; i < dependency_files.entries.length; i++) {
         const char *filename = *(char**)(dependency_files.entries.data + i*dependency_files.entries.stride);
         bool is_argument_file = (Table$str_get(argument_files, filename) != NULL);
-        status = transpile_header(env, filename, is_argument_file);
-        if (status != 0) return status;
+        transpile_header(env, filename, is_argument_file);
     }
 
     env->imports = new(Table_t);
@@ -303,11 +300,9 @@ int compile_files(env_t *env, int filec, const char **filev, bool only_compile_a
 
         pid_t pid = fork();
         if (pid == 0) {
-            status = transpile_code(env, filename, is_argument_file);
-            if (status != 0)
-                _exit(status);
-            status = compile_object_file(filename, is_argument_file);
-            _exit(status);
+            transpile_code(env, filename, is_argument_file);
+            compile_object_file(filename, is_argument_file);
+            _exit(EXIT_SUCCESS);
         }
         child_processes = new(struct child_s, .next=child_processes, .pid=pid);
     }
@@ -315,7 +310,7 @@ int compile_files(env_t *env, int filec, const char **filev, bool only_compile_a
     for (; child_processes; child_processes = child_processes->next) {
         waitpid(child_processes->pid, &status, 0);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-            return EXIT_FAILURE;
+            exit(EXIT_FAILURE);
     }
 
     if (object_files) {
@@ -332,7 +327,6 @@ int compile_files(env_t *env, int filec, const char **filev, bool only_compile_a
             *extra_ldlibs = CORD_all(*extra_ldlibs, " ", lib);
         }
     }
-    return 0;
 }
 
 void build_file_dependency_graph(const char *filename, Table_t *to_compile, Table_t *to_link)
@@ -399,12 +393,11 @@ static bool is_stale(const char *filename, const char *relative_to)
     return target_stat.st_mtime < relative_to_stat.st_mtime;
 }
 
-int transpile_header(env_t *base_env, const char *filename, bool force_retranspile)
+void transpile_header(env_t *base_env, const char *filename, bool force_retranspile)
 {
     const char *h_filename = heap_strf("%s.h", filename);
-    if (!force_retranspile && !is_stale(h_filename, filename)) {
-        return 0;
-    }
+    if (!force_retranspile && !is_stale(h_filename, filename))
+        return;
 
     ast_t *ast = parse_file(filename, NULL);
     if (!ast)
@@ -435,16 +428,13 @@ int transpile_header(env_t *base_env, const char *filename, bool force_retranspi
         FILE *out = CORD_RUN("bat -P ", h_filename);
         pclose(out);
     }
-
-    return 0;
 }
 
-int transpile_code(env_t *base_env, const char *filename, bool force_retranspile)
+void transpile_code(env_t *base_env, const char *filename, bool force_retranspile)
 {
     const char *c_filename = heap_strf("%s.c", filename);
-    if (!force_retranspile && !is_stale(c_filename, filename)) {
-        return 0;
-    }
+    if (!force_retranspile && !is_stale(c_filename, filename))
+        return;
 
     ast_t *ast = parse_file(filename, NULL);
     if (!ast)
@@ -497,29 +487,27 @@ int transpile_code(env_t *base_env, const char *filename, bool force_retranspile
         out = CORD_RUN("bat -P ", c_filename);
         pclose(out);
     }
-
-    return 0;
 }
 
-int compile_object_file(const char *filename, bool force_recompile)
+void compile_object_file(const char *filename, bool force_recompile)
 {
     const char *obj_file = heap_strf("%s.o", filename);
     if (!force_recompile && !is_stale(obj_file, filename)
         && !is_stale(obj_file, heap_strf("%s.c", filename))
         && !is_stale(obj_file, heap_strf("%s.h", filename))) {
-        return 0;
+        return;
     }
     CORD outfile = CORD_all(filename, ".o");
     FILE *prog = CORD_RUN(cc, " ", cflags, " -c ", filename, ".c -o ", outfile);
     int status = pclose(prog);
-    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-        if (verbose)
-            CORD_printf("Compiled to %r\n", outfile);
-    }
-    return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
+    if (!WIFEXITED(status) || !WEXITSTATUS(status) == 0)
+        exit(EXIT_FAILURE);
+
+    if (verbose)
+        CORD_printf("Compiled to %r\n", outfile);
 }
 
-int compile_executable(env_t *base_env, const char *filename, CORD object_files, CORD extra_ldlibs)
+void compile_executable(env_t *base_env, const char *filename, CORD object_files, CORD extra_ldlibs)
 {
     ast_t *ast = parse_file(filename, NULL);
     if (!ast)
@@ -547,11 +535,11 @@ int compile_executable(env_t *base_env, const char *filename, CORD object_files,
 
     CORD_put(program, runner);
     int status = pclose(runner);
-    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-        if (verbose)
-            printf("Compiled executable: %s\n", bin_name);
-    }
-    return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+        exit(EXIT_FAILURE);
+
+    if (verbose)
+        printf("Compiled executable: %s\n", bin_name);
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
