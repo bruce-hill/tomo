@@ -290,6 +290,14 @@ env_t *new_compilation_unit(CORD *libname)
             {"write_bytes", "Path$write_bytes", "func(path:Path, bytes:[Byte], permissions=0o644[32])"},
             {"write_unique", "Path$write_unique", "func(path:Path, text:Text)->Path"},
             {"write_unique_bytes", "Path$write_unique_bytes", "func(path:Path, bytes:[Byte])->Path"},
+
+            // Text methods:
+            {"ends_with", "Text$ends_with", "func(path:Path, suffix:Text)->Bool"},
+            {"has", "Text$has", "func(path:Path, pattern:Pattern)->Bool"},
+            {"matches", "Text$matches", "func(path:Path, pattern:Pattern)->Bool"},
+            {"replace", "Text$replace", "func(path:Path, pattern:Pattern, replacement:Text, backref=$/\\/, recursive=yes)->Path"},
+            {"replace_all", "Text$replace_all", "func(path:Path, replacements:{Pattern:Text}, backref=$/\\/, recursive=yes)->Path"},
+            {"starts_with", "Text$starts_with", "func(path:Path, prefix:Text)->Bool"},
         )},
         {"Shell", Type(TextType, .lang="Shell", .env=namespace_env(env, "Shell")), "Shell_t", "Shell$info", TypedArray(ns_entry_t,
             {"escape_int", "Int$value_as_text", "func(i:Int)->Shell"},

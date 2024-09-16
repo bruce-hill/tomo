@@ -81,6 +81,12 @@ func main():
     >> (../foo):parent()
     = (../)
 
+    >> (./foo.txt):ends_with(".txt")
+    = yes
+    >> (./foo.txt):matches($|{..}/foo{..}|)
+    = yes
+    >> (./foo.txt):replace($/.txt/, ".md")
+    = (./foo.md)
 
     # Concatenation tests:
     !! Basic relative path concatenation:
