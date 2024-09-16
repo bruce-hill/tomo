@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
         char *prog_args[num_args + 2];
         prog_args[0] = exe_name;
         for (int i = 0; i < num_args; i++)
-            prog_args[i+1] = argv[after_flags + i];
+            prog_args[i+1] = argv[after_flags + i + 1];
         prog_args[num_args+1] = NULL;
         execv(exe_name, prog_args);
         errx(1, "Failed to run compiled program");
