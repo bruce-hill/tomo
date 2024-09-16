@@ -2368,6 +2368,10 @@ PARSER(parse_linker) {
 }
 
 ast_t *parse_file(const char *path, jmp_buf *on_err) {
+    const char *resolved = resolve_path(path, ".", ".");
+    if (!resolved)
+        errx(1, "Could not resolve path: %s", path);
+    path = resolved;
     // NOTE: this cache leaks a bounded amount of memory. The cache will never
     // hold more than PARSE_CACHE_SIZE entries (see below), but each entry's
     // AST holds onto a reference to the file it came from, so they could

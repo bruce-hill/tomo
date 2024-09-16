@@ -1,4 +1,4 @@
-vectors := use ../examples/vectors.tm
+vectors := use ../examples/vectors/vectors.tm
 use ./use_import.tm
 
 func returns_vec()->vectors.Vec2:

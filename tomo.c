@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include <gc.h>
 #include <gc/cord.h>
+#include <glob.h>
 #include <libgen.h>
 #include <printf.h>
 #include <stdio.h>
@@ -13,6 +14,7 @@
 #include "stdlib/arrays.h"
 #include "stdlib/datatypes.h"
 #include "stdlib/text.h"
+#include "stdlib/patterns.h"
 #include "compile.h"
 #include "cordhelpers.h"
 #include "parse.h"
@@ -32,39 +34,36 @@ static CORD autofmt, cconfig, cflags, ldlibs, ldflags, cc;
 static int transpile_header(env_t *base_env, const char *filename, bool force_retranspile);
 static int transpile_code(env_t *base_env, const char *filename, bool force_retranspile);
 static int compile_object_file(const char *filename, bool force_recompile);
-static int compile_executable(env_t *base_env, const char *filename, CORD object_files);
+static int compile_executable(env_t *base_env, const char *filename, CORD object_files, CORD extra_ldlibs);
 static void build_file_dependency_graph(const char *filename, Table_t *to_compile, Table_t *to_link);
+static const char *escape_lib_name(const char *lib_name);
+static int build_library(const char *lib_base_name);
+static int compile_files(env_t *env, int filec, const char **filev, bool only_compile_arguments, CORD *object_files, CORD *ldlibs);
 
 #pragma GCC diagnostic ignored "-Wstack-protector"
 int main(int argc, char *argv[])
 {
     mode_e mode = MODE_RUN;
     int after_flags = 1;
-    const char *libname = NULL;
     for (int i = 1; i < argc; i++) {
         if (streq(argv[i], "-t")) {
             mode = MODE_TRANSPILE;
         } else if (streq(argv[i], "-c")) {
             mode = MODE_COMPILE_OBJ;
-        } else if (strncmp(argv[i], "-s=", 3) == 0) {
+        } else if (streq(argv[i], "-L")) {
             mode = MODE_COMPILE_SHARED_OBJ;
-            libname = argv[i] + strlen("-s=");
-        } else if (streq(argv[i], "-s")) {
-            mode = MODE_COMPILE_SHARED_OBJ;
-            if (i+1 >= argc)
-                errx(1, "You must provide at least one file to build a shared library");
-            libname = file_base_name(argv[i+1]);
         } else if (streq(argv[i], "-r")) {
             mode = MODE_RUN;
         } else if (streq(argv[i], "-e")) {
             mode = MODE_COMPILE_EXE;
         } else if (streq(argv[i], "-h") || streq(argv[i], "--help")) {
-            printf("Usage: %s | %s [-r] file.tm args... | %s (-t|-c|-s) file1.tm file2.tm...\n", argv[0], argv[0], argv[0]);
+            printf("Usage: %s | %s [-r] file.tm args... | %s (-t|-c) file1.tm file2.tm... | %s -L [dir]\n",
+                   argv[0], argv[0], argv[0], argv[0]);
             return 0;
         } else if (streq(argv[i], "-u")) {
             // Uninstall libraries:
             for (int j = i + 1; j < argc; j++) {
-                system(heap_strf("rm -rvf ~/.local/src/tomo/%s ~/.local/include/tomo/lib%s.h ~/.local/lib/tomo/lib%s.so",
+                system(heap_strf("rm -rvf ~/.local/share/tomo/installed/%s ~/.local/share/tomo/lib/lib%s.so",
                                  argv[j], argv[j], argv[j]));
             }
             return 0;
@@ -80,6 +79,7 @@ int main(int argc, char *argv[])
             after_flags = i;
             break;
         }
+        after_flags = i + 1;
     }
 
     if (register_printf_specifier('T', printf_type, printf_pointer_size))
@@ -89,9 +89,6 @@ int main(int argc, char *argv[])
     if (register_printf_specifier('k', printf_text, printf_text_size))
         errx(1, "Couldn't set printf specifier");
 
-    setenv("TOMO_IMPORT_PATH", "~/.local/src/tomo:.", 0);
-    setenv("TOMO_LIB_PATH", "~/.local/lib/tomo:.", 0);
-
     CORD home = ENV_CORD("HOME");
     autofmt = ENV_CORD("AUTOFMT");
     if (!autofmt) autofmt = "sed '/^\\s*$/d' | indent -kr -l100 -nbbo -nut -sob";
@@ -100,7 +97,7 @@ int main(int argc, char *argv[])
     verbose = (getenv("VERBOSE") && (streq(getenv("VERBOSE"), "1") || streq(getenv("VERBOSE"), "2")));
     show_codegen = (getenv("VERBOSE") && streq(getenv("VERBOSE"), "2"));
 
-    if (after_flags >= argc) {
+    if (after_flags >= argc && mode != MODE_COMPILE_SHARED_OBJ) {
         repl();
         return 0;
     }
@@ -116,29 +113,161 @@ int main(int argc, char *argv[])
 
     cflags = ENV_CORD("CFLAGS");
     if (!cflags)
-        cflags = CORD_all(cconfig, " ", optimization, " -fPIC -ggdb -I./include -I'", home, "/.local/include' -D_DEFAULT_SOURCE");
+        cflags = CORD_all(cconfig, " ", optimization, " -fPIC -ggdb -D_DEFAULT_SOURCE");
+    cflags = CORD_all(cflags, " -I'", home, "/.local/share/tomo/installed'");
 
-    ldflags = CORD_all("-Wl,-rpath='$ORIGIN',-rpath='", home, "/.local/lib/tomo' -L. -L'", home, "/.local/lib/tomo'");
+    ldflags = CORD_all("-Wl,-rpath='$ORIGIN',-rpath='", home, "/.local/share/tomo/lib' -L. -L'", home, "/.local/share/tomo/lib'");
 
     ldlibs = "-lgc -lgmp -lm -ltomo";
 
     cc = ENV_CORD("CC");
     if (!cc) cc = "cc";
 
-    CORD compilation_library_name = CORD_EMPTY;
-    env_t *env = new_compilation_unit(&compilation_library_name);
-    Table_t dependency_files = {};
+    if (mode == MODE_COMPILE_EXE || mode == MODE_RUN) {
+        const char *filename = argv[after_flags];
+
+        env_t *env = new_compilation_unit(NULL);
+        CORD object_files, extra_ldlibs;
+        compile_files(env, 1, &filename, false, &object_files, &extra_ldlibs);
+        int status = compile_executable(env, filename, object_files, extra_ldlibs);
+        if (status != 0 || mode == MODE_COMPILE_EXE)
+            return status;
+
+        char *exe_name = GC_strndup(filename, strlen(filename) - strlen(".tm"));
+        int num_args = argc - after_flags - 1;
+        char *prog_args[num_args + 2];
+        prog_args[0] = exe_name;
+        for (int i = 0; i < num_args; i++)
+            prog_args[i+1] = argv[after_flags + i];
+        prog_args[num_args+1] = NULL;
+        execv(exe_name, prog_args);
+        errx(1, "Failed to run compiled program");
+    } else if (mode == MODE_COMPILE_OBJ) {
+        env_t *env = new_compilation_unit(NULL);
+        return compile_files(env, argc - after_flags, (const char**)&argv[after_flags], true, NULL, NULL);
+    } else if (mode == MODE_COMPILE_SHARED_OBJ) {
+        char *cwd = get_current_dir_name();
+        for (int i = after_flags; i < argc; i++) {
+            if (chdir(argv[i]) != 0)
+                errx(1, "Could not enter directory: %s", argv[i]);
+            char *libdir = get_current_dir_name();
+            char *libdirname = basename(libdir);
+            int status = build_library(libdirname);
+            if (status != 0)
+                return status;
+            free(libdir);
+            chdir(cwd);
+        }
+        free(cwd);
+    }
+}
+
+const char *escape_lib_name(const char *lib_name)
+{
+    return Text$as_c_string(
+        Text$replace(Text$from_str(lib_name), Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false));
+}
+
+int build_library(const char *lib_base_name)
+{
+    glob_t tm_files;
+    if (glob("[!._0-9]*.tm", 0, NULL, &tm_files) != 0)
+        errx(1, "Couldn't get .tm files in directory: %s", get_current_dir_name());
+    env_t *env = new_compilation_unit(NULL);
+    CORD object_files, extra_ldlibs;
+    compile_files(env, (int)tm_files.gl_pathc, (const char**)tm_files.gl_pathv, false, &object_files, &extra_ldlibs);
+
+    // Library name replaces all stretchs of non-alphanumeric chars with an underscore
+    // So e.g. https://github.com/foo/baz --> https_github_com_foo_baz
+    const char *libname = escape_lib_name(lib_base_name);
+    env->libname = &libname;
+
+    // Build a "whatever.h" header that loads all the headers:
+    FILE *header_prog = CORD_RUN(autofmt ? autofmt : "cat", " 2>/dev/null >", libname, ".h");
+    fputs("#pragma once\n", header_prog);
+    for (size_t i = 0; i < tm_files.gl_pathc; i++) {
+        const char *filename = tm_files.gl_pathv[i];
+        ast_t *ast = parse_file(filename, NULL);
+        if (!ast) errx(1, "Could not parse file %s", filename);
+        env_t *module_env = load_module_env(env, ast);
+        for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+            CORD h = compile_statement_typedefs(module_env, stmt->ast);
+            if (h) CORD_put(h, header_prog);
+        }
+        for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+            CORD h = compile_statement_definitions(module_env, stmt->ast);
+            if (h) CORD_put(h, header_prog);
+        }
+        fprintf(header_prog, "void %s$%s$$initialize(void);\n", libname, file_base_name(filename));
+    }
+    if (pclose(header_prog) == -1)
+        errx(1, "Failed to run autoformat program on header file: %s", autofmt);
+
+    // Build up a list of symbol renamings:
+    unlink("symbol_renames.txt");
+    FILE *prog;
+    for (size_t i = 0; i < tm_files.gl_pathc; i++) {
+        const char *filename = tm_files.gl_pathv[i];
+        prog = CORD_RUN("nm -U -fjust-symbols ", filename, ".o | sed 's/.*/\\0 ", libname, "$\\0/' >>symbol_renames.txt");
+        int status = pclose(prog);
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+            errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `sed`");
+    }
+
+    globfree(&tm_files);
+
+    prog = CORD_RUN(cc, " ", cflags, " ", ldflags, " ", ldlibs, " ", extra_ldlibs, " -Wl,-soname=lib", libname, ".so -shared ", object_files, " -o lib", libname, ".so");
+    int status = pclose(prog);
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+        errx(WEXITSTATUS(status), "Failed to compile shared library file");
+    if (verbose)
+        CORD_printf("Compiled to lib%s.so\n", libname);
+
+    prog = CORD_RUN("objcopy --redefine-syms=symbol_renames.txt lib", libname, ".so");
+    status = pclose(prog);
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+        errx(WEXITSTATUS(status), "Failed to run `objcopy` to add library prefix to symbols");
+
+    prog = CORD_RUN("patchelf --rename-dynamic-symbols symbol_renames.txt lib", libname, ".so");
+    status = pclose(prog);
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+        errx(WEXITSTATUS(status), "Failed to run `patchelf` to rename dynamic symbols with library prefix");
+
+    if (verbose)
+        CORD_printf("Successfully renamed symbols with library prefix!\n");
+
+    unlink("symbol_renames.txt");
+
+    printf("Do you want to install %s? [Y/n] ", libname);
+    fflush(stdout);
+    switch (getchar()) {
+    case 'y': case 'Y':
+        getchar();
+        // Fall through
+    case '\n': {
+        system(heap_strf("rm -rvf ~/.local/share/tomo/installed/'%s'", lib_base_name));
+        system(heap_strf("mkdir -p ~/.local/share/tomo/installed/'%s'", lib_base_name));
+        system(heap_strf("cp -rv * ~/.local/share/tomo/installed/'%s'", lib_base_name));
+        system("mkdir -p ~/.local/share/tomo/lib/");
+        system(heap_strf("ln -fv -s ../installed/'%s'/lib%s.so  ~/.local/share/tomo/lib/lib%s.so", lib_base_name, libname, libname));
+    }
+    default: break;
+    }
+    return 0;
+}
+
+int compile_files(env_t *env, int filec, const char **filev, bool only_compile_arguments, CORD *object_files, CORD *extra_ldlibs)
+{
     Table_t to_link = {};
     Table_t argument_files = {};
-
-    for (int i = after_flags; i < argc; i++) {
-        if (strlen(argv[i]) < 4 || strncmp(argv[i] + strlen(argv[i]) - 3, ".tm", 3) != 0)
-            errx(1, "Not a valid .tm file: \x1b[31;1m%s\x1b[m", argv[i]);
-        const char *resolved = resolve_path(argv[i], ".", ".");
-        if (!resolved) errx(1, "Couldn't resolve path: %s", argv[i]);
-        Table$str_set(&argument_files, resolved, argv[i]);
+    Table_t dependency_files = {};
+    for (int i = 0; i < filec; i++) {
+        if (strlen(filev[i]) < 4 || strncmp(filev[i] + strlen(filev[i]) - 3, ".tm", 3) != 0)
+            errx(1, "Not a valid .tm file: \x1b[31;1m%s\x1b[m", filev[i]);
+        const char *resolved = resolve_path(filev[i], ".", ".");
+        if (!resolved) errx(1, "Couldn't resolve path: %s", filev[i]);
+        Table$str_set(&argument_files, resolved, filev[i]);
         build_file_dependency_graph(resolved, &dependency_files, &to_link);
-        if (mode == MODE_RUN) break;
     }
 
     int status;
@@ -163,7 +292,7 @@ int main(int argc, char *argv[])
     for (int64_t i = 0; i < dependency_files.entries.length; i++) {
         const char *filename = *(char**)(dependency_files.entries.data + i*dependency_files.entries.stride);
         bool is_argument_file = (Table$str_get(argument_files, filename) != NULL);
-        if (mode == MODE_COMPILE_OBJ && !is_argument_file)
+        if (!is_argument_file && only_compile_arguments)
             continue;
 
         pid_t pid = fork();
@@ -183,123 +312,21 @@ int main(int argc, char *argv[])
             return EXIT_FAILURE;
     }
 
-    if (mode == MODE_COMPILE_OBJ)
-        return 0;
-
-    CORD object_files = CORD_EMPTY;
-    for (int64_t i = 0; i < dependency_files.entries.length; i++) {
-        const char *filename = *(char**)(dependency_files.entries.data + i*dependency_files.entries.stride);
-        object_files = CORD_all(object_files, filename, ".o ");
+    if (object_files) {
+        *object_files = CORD_EMPTY;
+        for (int64_t i = 0; i < dependency_files.entries.length; i++) {
+            const char *filename = *(char**)(dependency_files.entries.data + i*dependency_files.entries.stride);
+            *object_files = CORD_all(*object_files, filename, ".o ");
+        }
     }
-    for (int64_t i = 0; i < to_link.entries.length; i++) {
-        const char *lib = *(char**)(to_link.entries.data + i*to_link.entries.stride);
-        ldlibs = CORD_all(ldlibs, " ", lib);
+    if (extra_ldlibs) {
+        *extra_ldlibs = CORD_EMPTY;
+        for (int64_t i = 0; i < to_link.entries.length; i++) {
+            const char *lib = *(char**)(to_link.entries.data + i*to_link.entries.stride);
+            *extra_ldlibs = CORD_all(*extra_ldlibs, " ", lib);
+        }
     }
-
-    // For shared objects, link up all the object files into one .so file:
-    if (mode == MODE_COMPILE_SHARED_OBJ) {
-        char *libname_id = GC_strdup(libname);
-        for (char *p = libname_id; *p; p++) {
-            if (!isalnum(*p) && *p != '_' && *p != '$')
-                *p = '_';
-        }
-        compilation_library_name = libname_id;
-
-        // Build a "libwhatever.h" header that loads all the headers:
-        const char *h_filename = heap_strf("lib%s.h", libname);
-        FILE *header_prog = CORD_RUN(autofmt ? autofmt : "cat", " 2>/dev/null >", h_filename);
-        fputs("#pragma once\n", header_prog);
-        for (int i = after_flags; i < argc; i++) {
-            const char *filename = argv[i];
-            ast_t *ast = parse_file(filename, NULL);
-            if (!ast) errx(1, "Could not parse file %s", filename);
-            env_t *module_env = load_module_env(env, ast);
-            for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-                CORD h = compile_statement_typedefs(module_env, stmt->ast);
-                if (h) CORD_put(h, header_prog);
-            }
-            for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-                CORD h = compile_statement_definitions(module_env, stmt->ast);
-                if (h) CORD_put(h, header_prog);
-            }
-            fprintf(header_prog, "void %s$%s$$initialize(void);\n", libname, file_base_name(filename));
-        }
-        if (pclose(header_prog) == -1)
-            errx(1, "Failed to run autoformat program on header file: %s", autofmt);
-
-        // Also output a "libwhatever.files" file that lists the .tm files it used:
-        const char *files_filename = heap_strf("lib%s.files", libname);
-        FILE *files_file = fopen(files_filename, "w");
-        if (!files_file)
-            errx(1, "Couldn't open file: %s", files_filename);
-        for (int i = after_flags; i < argc; i++) {
-            fprintf(files_file, "%s\n", argv[i]);
-        }
-        if (fclose(files_file))
-            errx(1, "Failed to close file: %s", files_filename);
-
-        // Build up a list of symbol renamings:
-        unlink("symbol_renames.txt");
-        FILE *prog;
-        for (int i = after_flags; i < argc; i++) {
-            prog = CORD_RUN("nm -U -fjust-symbols ", argv[i], ".o | sed 's/.*/\\0 ", libname_id, "$\\0/' >>symbol_renames.txt");
-            status = pclose(prog);
-            if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-                errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `sed`");
-        }
-
-        CORD outfile = CORD_all("lib", libname, ".so");
-        prog = CORD_RUN(cc, " ", cflags, " ", ldflags, " ", ldlibs, " -Wl,-soname=", outfile, " -shared ", object_files, " -o ", outfile);
-        status = pclose(prog);
-        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-            errx(WEXITSTATUS(status), "Failed to compile shared library file");
-        if (verbose)
-            CORD_printf("Compiled to %r\n", outfile);
-
-        prog = CORD_RUN("objcopy --redefine-syms=symbol_renames.txt lib", libname, ".so");
-        status = pclose(prog);
-        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-            errx(WEXITSTATUS(status), "Failed to run `objcopy` to add library prefix to symbols");
-
-        prog = CORD_RUN("patchelf --rename-dynamic-symbols symbol_renames.txt lib", libname, ".so");
-        status = pclose(prog);
-        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-            errx(WEXITSTATUS(status), "Failed to run `patchelf` to rename dynamic symbols with library prefix");
-
-        if (verbose)
-            CORD_printf("Successfully renamed symbols with library prefix!\n");
-
-        unlink("symbol_renames.txt");
-
-        printf("Do you want to install your library? [Y/n] ");
-        fflush(stdout);
-        switch (getchar()) {
-        case 'y': case 'Y': case '\n': {
-            system(heap_strf("mkdir -p ~/.local/lib/tomo ~/.local/include/tomo ~/.local/src/tomo/'%s'", libname));
-            system(heap_strf("cp -rv . ~/.local/src/tomo/'%s'", libname));
-            system(heap_strf("ln -sfv '../../src/tomo/%s/lib%s.so' ~/.local/lib/tomo/'lib%s.so'", libname, libname, libname));
-            system(heap_strf("ln -sfv '../../src/tomo/%s/lib%s.h' ~/.local/include/tomo/'lib%s.h'", libname, libname, libname));
-        }
-        default: break;
-        }
-        return 0;
-    } else {
-        const char *filename = argv[after_flags];
-        int executable_status = compile_executable(env, filename, object_files);
-        if (mode == MODE_COMPILE_EXE || executable_status != 0)
-            return executable_status;
-
-        char *exe_name = GC_strndup(filename, strlen(filename) - strlen(".tm"));
-        int num_args = argc - after_flags - 1;
-        char *prog_args[num_args + 2];
-        prog_args[0] = exe_name;
-        for (int i = 0; i < num_args; i++)
-            prog_args[i+1] = argv[after_flags+1+i];
-        prog_args[num_args+1] = NULL;
-        execv(exe_name, prog_args);
-
-        errx(1, "Failed to run compiled program");
-    }
+    return 0;
 }
 
 void build_file_dependency_graph(const char *filename, Table_t *to_compile, Table_t *to_link)
@@ -338,11 +365,9 @@ void build_file_dependency_graph(const char *filename, Table_t *to_compile, Tabl
             break;
         }
         case USE_MODULE: {
-            const char *base_name = file_base_name(use->path);
-            const char *lib_path = heap_strf("%s/lib%s.so", base_name, base_name);
-            const char *libfile = resolve_path(lib_path, filename, getenv("TOMO_IMPORT_PATH"));
-            if (!libfile) errx(1, "Couldn't resolve path: %s", lib_path);
-            const char *lib = heap_strf("-l%s", use->path);
+            const char *lib_name = escape_lib_name(use->path);
+            // const char *lib = heap_strf("-l:'lib%s.so'", lib_name);
+            const char *lib = heap_strf("'%s/.local/share/tomo/installed/%s/lib%s.so'", getenv("HOME"), lib_name, lib_name);
             Table$str_set(to_link, lib, lib);
             break;
         }
@@ -360,10 +385,10 @@ void build_file_dependency_graph(const char *filename, Table_t *to_compile, Tabl
 static bool is_stale(const char *filename, const char *relative_to)
 {
     struct stat target_stat;
-    if (stat(filename, &target_stat))
+    if (stat(filename, &target_stat) != 0)
         return true;
     struct stat relative_to_stat;
-    if (stat(relative_to, &relative_to_stat))
+    if (stat(relative_to, &relative_to_stat) != 0)
         errx(1, "File doesn't exist: %s", relative_to);
     return target_stat.st_mtime < relative_to_stat.st_mtime;
 }
@@ -488,7 +513,7 @@ int compile_object_file(const char *filename, bool force_recompile)
     return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
 }
 
-int compile_executable(env_t *base_env, const char *filename, CORD object_files)
+int compile_executable(env_t *base_env, const char *filename, CORD object_files, CORD extra_ldlibs)
 {
     ast_t *ast = parse_file(filename, NULL);
     if (!ast)
@@ -499,7 +524,7 @@ int compile_executable(env_t *base_env, const char *filename, CORD object_files)
         errx(1, "No main() function has been defined for %s, so it can't be run!", filename);
 
     const char *bin_name = GC_strndup(filename, strlen(filename) - strlen(".tm"));
-    FILE *runner = CORD_RUN(cc, " ", cflags, " ", ldflags, " ", ldlibs, " ", object_files, " -x c - -o ", bin_name);
+    FILE *runner = CORD_RUN(cc, " ", cflags, " ", ldflags, " ", ldlibs, " ", extra_ldlibs, " ", object_files, " -x c - -o ", bin_name);
 
     CORD program = CORD_all(
         "extern int ", main_binding->code, "$parse_and_run(int argc, char *argv[]);\n"

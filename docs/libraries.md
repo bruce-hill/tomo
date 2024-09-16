@@ -116,15 +116,11 @@ Finally, the resulting binary can be executed to actually run the program!
 
 ## Shared Library Imports
 
-Now, what's the story with shared library imports? The equivalent process for C
-is to create a `.so` or `.dll` file. In order to build a shared library, you
-run the command `tomo -s=qux.1.2.3 file1.tm file2.tm...`. Each specified file
-will have its `.o` static object file compiled, along with its dependencies,
-and all of the resulting `.o` files will be linked together by `tomo` with a
-command like `cc <flags...> -Wl,-soname=libqux.1.2.3.so -shared file1.tm.o
-file2.tm.o dep1.tm.o ... -o libqux.1.2.3.so`. The specified files must not
-define the same public symbols as each other, since `foo` will now be treated
-as a single namespace that holds all the symbols from each of the given files.
+In Tomo, a shared library is built out of a *directory* that contains multiple
+`.tm` files. Each `.tm` file in the directory (excluding those that start with
+an underscore) will be compiled and linked together to produce a single
+`libwhatever.so` file and `whatever.h` file that can be used by other Tomo
+projects.
 
 ### Symbol Uniqueness
 
@@ -144,16 +140,10 @@ extern void qux$1$2$3$baz$say_stuff();
 
 ### Installing
 
-Now, the components necessary to install this shared library on your computer
-are these:
-
-- The `.so` file, installed in a standard location. In our case, we will default
-  to `~/.local/share/tomo/lib/libqux.so`
-- The standalone `.h` file, installed in a standard location. We default to
-  `~/.local/share/tomo/include/qux.h`
-- All of the source `.tm` files (which store type information necessary for tomo
-  to understand what's being imported. These will be installed to
-  `~/.local/share/tomo/src/qux/`
+Once the `libwhatever.so` and `whatever.h` files have been built, Tomo will ask
+if you want to install this library. If you choose to install it, Tomo will
+copy the entire directory (excluding files and directories that begin with `.`
+such as `.git`) into `~/.local/share/tomo/installed/`.
 
 ### Using Shared Libraries
 
@@ -162,22 +152,3 @@ name (i.e. not an absolute or relative path like `/qux` or `./qux`). When a
 program uses a shared library, that shared library gets dynamically linked to
 the executable when compiling, and all of the necessary symbol information is
 read from the source files during compilation.
-
-### Library Versioning
-
-In order to accommodate multiple versions of the same shared libraries on a
-system, users may specify a library version when compiling, for example: `tomo
--s qux.1.2.3 foo.tm baz.tm` During installation, symlinks are created to map
-less specific version numbers to more specific version numbers. For example,
-when installing `qux.1.2.3`, links are created:
-
-- `~/.local/share/lib/tomo/libqux.1.2.so` -> `~/.local/share/lib/tomo/libqux.1.2.3.so`
-- `~/.local/share/lib/tomo/libqux.1.so` -> `~/.local/share/lib/tomo/libqux.1.2.3.so`
-- `~/.local/share/lib/tomo/libqux.so` -> `~/.local/share/lib/tomo/libqux.1.2.3.so`
-- And so on for `include/tomo/libqux.1.2.3.h` and `src/tomo/qux.1.2.3/`
-
-If there are multiple versions (e.g. `1.2.3` and `1.3.0`), then links point at
-the highest-numbered version with the necessary prefix. In this case, `qux ->
-qux.1.3.0`, `qux.1 -> qux.1.3.0`, `qux.1.3 -> qux.1.3.0`, and `qux.1.2 ->
-qux.1.2.3`.
-

@@ -1,5 +1,6 @@
 // Compilation logic
 #include <ctype.h>
+#include <glob.h>
 #include <gc.h>
 #include <gc/cord.h>
 #include <gmp.h>
@@ -7,15 +8,16 @@
 #include <uninorm.h>
 
 #include "ast.h"
-#include "stdlib/integers.h"
-#include "stdlib/text.h"
 #include "compile.h"
 #include "cordhelpers.h"
 #include "enums.h"
-#include "structs.h"
 #include "environment.h"
-#include "typecheck.h"
+#include "stdlib/integers.h"
+#include "stdlib/patterns.h"
+#include "stdlib/text.h"
 #include "stdlib/util.h"
+#include "structs.h"
+#include "typecheck.h"
 
 typedef ast_t* (*comprehension_body_t)(ast_t*, ast_t*);
 
@@ -1367,19 +1369,19 @@ CORD compile_statement(env_t *env, ast_t *ast)
             CORD name = file_base_name(Match(ast, Use)->path);
             env->code->variable_initializers = CORD_all(env->code->variable_initializers, name, "$$initialize();\n");
         } else if (use->what == USE_MODULE) {
-            const char *libname = file_base_name(use->path);
-            const char *files_filename = heap_strf("%s/lib%s.files", libname, libname);
-            const char *resolved_path = resolve_path(files_filename, ast->file->filename, getenv("TOMO_IMPORT_PATH"));
-            if (!resolved_path)
-                code_err(ast, "No such library exists: \"lib%s.files\"", libname);
-            file_t *files_f = load_file(resolved_path);
-            if (!files_f) errx(1, "Couldn't open file: %s", resolved_path);
-            for (int64_t i = 1; i <= files_f->num_lines; i++) {
-                const char *line = get_line(files_f, i);
-                line = GC_strndup(line, strcspn(line, "\r\n"));
+            const char *libname = Text$as_c_string(
+                Text$replace(Text$from_str(use->path), Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false));
+
+            glob_t tm_files;
+            if (glob(heap_strf("~/.local/share/tomo/installed/%s/[!._0-9]*.tm", libname), GLOB_TILDE, NULL, &tm_files) != 0)
+                code_err(ast, "Could not find library");
+
+            for (size_t i = 0; i < tm_files.gl_pathc; i++) {
+                const char *filename = tm_files.gl_pathv[i];
                 env->code->variable_initializers = CORD_all(
-                    env->code->variable_initializers, use->path, "$", file_base_name(line), "$$initialize();\n");
+                    env->code->variable_initializers, use->path, "$", file_base_name(filename), "$$initialize();\n");
             }
+            globfree(&tm_files);
         }
         return CORD_EMPTY;
     }
@@ -3778,8 +3780,11 @@ CORD compile_statement_imports(env_t *env, ast_t *ast)
     case Use: {
         auto use = Match(ast, Use);
         switch (use->what) {
-        case USE_MODULE: 
-            return CORD_all("#include <tomo/lib", use->path, ".h>\n");
+        case USE_MODULE: {
+            const char *libname = Text$as_c_string(
+                Text$replace(Text$from_str(use->path), Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false));
+            return CORD_all("#include <", libname, "/", libname, ".h>\n");
+        }
         case USE_LOCAL: 
             return CORD_all("#include \"", use->path, ".h\"\n");
         case USE_HEADER:

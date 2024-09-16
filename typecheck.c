@@ -1,6 +1,7 @@
 // Logic for getting a type from an AST node
 #include <ctype.h>
 #include <gc.h>
+#include <glob.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -8,11 +9,12 @@
 #include <sys/stat.h>
 
 #include "ast.h"
-#include "stdlib/text.h"
-#include "stdlib/util.h"
 #include "cordhelpers.h"
 #include "environment.h"
 #include "parse.h"
+#include "stdlib/patterns.h"
+#include "stdlib/text.h"
+#include "stdlib/util.h"
 #include "typecheck.h"
 #include "types.h"
 
@@ -151,13 +153,12 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
         return load_module_env(env, ast);
     }
     case USE_MODULE: {
-        const char *libname = file_base_name(use->path);
-        const char *files_filename = heap_strf("%s/lib%s.files", libname, libname);
-        const char *resolved_path = resolve_path(files_filename, module_ast->file->filename, getenv("TOMO_IMPORT_PATH"));
-        if (!resolved_path)
-            code_err(module_ast, "No such library exists: \"lib%s.files\"", libname);
-        file_t *files_f = load_file(resolved_path);
-        if (!files_f) errx(1, "Couldn't open file: %s", resolved_path);
+        const char *libname = Text$as_c_string(
+            Text$replace(Text$from_str(use->path), Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false));
+
+        glob_t tm_files;
+        if (glob(heap_strf("~/.local/share/tomo/installed/%s/[!._0-9]*.tm", libname), GLOB_TILDE, NULL, &tm_files) != 0)
+            code_err(module_ast, "Could not find library");
 
         env_t *module_env = fresh_scope(env);
         Table$str_set(env->imports, use->path, module_env);
@@ -168,17 +169,12 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
         }
         module_env->libname = new(CORD);
         *module_env->libname = (CORD)libname_id;
-        for (int64_t i = 1; i <= files_f->num_lines; i++) {
-            const char *line = get_line(files_f, i);
-            line = GC_strndup(line, strcspn(line, "\r\n"));
-            if (!line || line[0] == '\0') continue;
-            const char *tm_path = resolve_path(line, resolved_path, ".");
-            if (!tm_path) errx(1, "Couldn't find library %s dependency: %s", libname, line);
-
-            ast_t *ast = parse_file(tm_path, NULL);
-            if (!ast) errx(1, "Could not compile file %s", tm_path);
+        for (size_t i = 0; i < tm_files.gl_pathc; i++) {
+            const char *filename = tm_files.gl_pathv[i];
+            ast_t *ast = parse_file(filename, NULL);
+            if (!ast) errx(1, "Could not compile file %s", filename);
             env_t *module_file_env = fresh_scope(module_env);
-            char *file_prefix = GC_strdup(file_base_name(line));
+            char *file_prefix = GC_strdup(file_base_name(filename));
             for (char *p = file_prefix; *p; p++) {
                 if (!isalnum(*p) && *p != '_' && *p != '$')
                     *p = '_';
@@ -192,6 +188,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
                 set_binding(module_env, entry->name, entry->binding);
             }
         }
+        globfree(&tm_files);
         return module_env;
     }
     case USE_SHARED_OBJECT: return NULL;
