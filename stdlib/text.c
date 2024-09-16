@@ -1108,7 +1108,7 @@ public Text_t Text$as_text(const void *text, bool colorize, const TypeInfo *info
     if (!text) return info && info->TextInfo.lang ? Text$from_str(info->TextInfo.lang) : Text("Text");
     char quote_char;
     if (info == &Pattern$info) {
-        quote_char = '/';
+        quote_char = Text$has(*(Text_t*)text, Pattern("/")) && !Text$has(*(Text_t*)text, Pattern("|")) ? '|' : '/';
     } else {
         // Figure out the best quotation mark to use:
         bool has_dollar = false, has_double_quote = false, has_backtick = false,
