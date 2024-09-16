@@ -276,7 +276,7 @@ functions that would normally be handled by a more extensive API:
 Text.has(pattern:Pattern)->Bool
 Text.find(pattern:Pattern, start=1, length=!&Int64?)->Int
 Text.find_all(pattern:Pattern)->[Text]
-Text.matches(pattern:Pattern)->Bool
+Text.matches(pattern:Pattern)->[Text]?
 Text.map(pattern:Pattern, fn:func(t:Text)->Text)->Text
 Text.replace(pattern:Pattern, replacement:Text, placeholder:Pattern=$//)->[Text]
 Text.replace_all(replacements:{Pattern:Text}, placeholder:Pattern=$//)->[Text]
@@ -840,11 +840,13 @@ The lowercase version of the text.
 ## `matches`
 
 **Description:**  
-Checks if the `Text` matches target pattern (see: [Patterns](#Patterns)).
+Checks if the `Text` matches target pattern (see: [Patterns](#Patterns)) and
+returns an array of the matching texts or a null value if the entire text
+doesn't match the pattern.
 
 **Usage:**  
 ```tomo
-matches(text: Text, pattern: Pattern) -> Bool
+matches(text: Text, pattern: Pattern) -> [Text]
 ```
 
 **Parameters:**
@@ -853,16 +855,16 @@ matches(text: Text, pattern: Pattern) -> Bool
 - `pattern`: The pattern to search for.
 
 **Returns:**  
-`yes` if the target pattern is found, `no` otherwise.
+An array of the matching text groups if the entire text matches the pattern, or
+a null value otherwise.
 
 **Example:**  
 ```tomo
->> "Hello":matches($/{id}/)
-= yes
->> "Hello":matches($/{upper}/)
-= no
->> "Hello":matches($/{lower}/)
-= no
+>> "hello world":matches($/{id}/)
+= ![Text]
+
+>> "hello world":matches($/{id} {id}/)
+= ["hello", "world"]?
 ```
 
 ---
