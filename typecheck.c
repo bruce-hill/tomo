@@ -1021,6 +1021,8 @@ type_t *get_type(env_t *env, ast_t *ast)
                        || (lhs_t->tag == ByteType && rhs_t->tag == ByteType)) {
                 return get_math_type(env, ast, lhs_t, rhs_t);
             } else if (lhs_t->tag == OptionalType) {
+                if (rhs_t->tag == AbortType || rhs_t->tag == ReturnType)
+                    return Match(lhs_t, OptionalType)->type;
                 if (can_promote(rhs_t, lhs_t))
                     return rhs_t;
             } else if (lhs_t->tag == PointerType) {

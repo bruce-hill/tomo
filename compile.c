@@ -1936,11 +1936,18 @@ CORD compile(env_t *env, ast_t *ast)
         if (method_call != CORD_EMPTY)
             return method_call;
 
-        CORD lhs = compile(env, binop->lhs);
-        CORD rhs = compile(env, binop->rhs);
-
         type_t *lhs_t = get_type(env, binop->lhs);
         type_t *rhs_t = get_type(env, binop->rhs);
+
+        if (binop->op == BINOP_OR && lhs_t->tag == OptionalType
+            && (rhs_t->tag == AbortType || rhs_t->tag == ReturnType)) {
+            return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop->lhs), "; ",
+                            "if (", check_null(lhs_t, "lhs"), ") ", compile_statement(env, binop->rhs), " ",
+                            optional_into_nonnull(lhs_t, "lhs"), "; })");
+        }
+
+        CORD lhs= compile(env, binop->lhs);
+        CORD rhs = compile(env, binop->rhs);
         type_t *operand_t;
         if (promote(env, &rhs, rhs_t, lhs_t))
             operand_t = lhs_t;
@@ -2059,6 +2066,7 @@ CORD compile(env_t *env, ast_t *ast)
             }
         }
         case BINOP_AND: {
+            // TODO: support optional values in `and` expressions
             if (operand_t->tag == BoolType)
                 return CORD_all("(", lhs, " && ", rhs, ")");
             else if (operand_t->tag == IntType || operand_t->tag == ByteType)
@@ -2078,6 +2086,7 @@ CORD compile(env_t *env, ast_t *ast)
                 code_err(ast, "Boolean operators are only supported for Bool and integer types");
         }
         case BINOP_XOR: {
+            // TODO: support optional values in `xor` expressions
             if (operand_t->tag == BoolType || operand_t->tag == IntType || operand_t->tag == ByteType)
                 return CORD_all("(", lhs, " ^ ", rhs, ")");
             else
