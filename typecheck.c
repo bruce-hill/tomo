@@ -838,13 +838,6 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "sorted")) return self_value_t;
             code_err(ast, "There is no '%s' method for %T tables", call->name, self_value_t);
         }
-        case OptionalType: {
-            type_t *nonnull = Match(self_value_t, OptionalType)->type;
-            if (streq(call->name, "or_else")) return nonnull;
-            else if (streq(call->name, "or_fail")) return nonnull;
-            else if (streq(call->name, "or_exit")) return nonnull;
-            code_err(ast, "There is no '%s' method for optional %T values", call->name, nonnull);
-        }
         default: {
             type_t *fn_type_t = get_method_type(env, call->self, call->name);
             if (!fn_type_t)

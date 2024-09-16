@@ -1939,14 +1939,24 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *lhs_t = get_type(env, binop->lhs);
         type_t *rhs_t = get_type(env, binop->rhs);
 
-        if (binop->op == BINOP_OR && lhs_t->tag == OptionalType
-            && (rhs_t->tag == AbortType || rhs_t->tag == ReturnType)) {
-            return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop->lhs), "; ",
-                            "if (", check_null(lhs_t, "lhs"), ") ", compile_statement(env, binop->rhs), " ",
-                            optional_into_nonnull(lhs_t, "lhs"), "; })");
+        if (binop->op == BINOP_OR && lhs_t->tag == OptionalType) {
+            if (rhs_t->tag == AbortType || rhs_t->tag == ReturnType) {
+                return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop->lhs), "; ",
+                                "if (", check_null(lhs_t, "lhs"), ") ", compile_statement(env, binop->rhs), " ",
+                                optional_into_nonnull(lhs_t, "lhs"), "; })");
+            } else if (rhs_t->tag == OptionalType && type_eq(lhs_t, rhs_t)) {
+                return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop->lhs), "; ",
+                                check_null(lhs_t, "lhs"), " ? ", compile(env, binop->rhs), " : lhs; })");
+            } else if (rhs_t->tag != OptionalType && type_eq(Match(lhs_t, OptionalType)->type, rhs_t)) {
+                return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop->lhs), "; ",
+                                check_null(lhs_t, "lhs"), " ? ", compile(env, binop->rhs), " : ",
+                                optional_into_nonnull(lhs_t, "lhs"), "; })");
+            } else {
+                code_err(ast, "I don't know how to do an 'or' operation between %T and %T", lhs_t, rhs_t);
+            }
         }
 
-        CORD lhs= compile(env, binop->lhs);
+        CORD lhs = compile(env, binop->lhs);
         CORD rhs = compile(env, binop->rhs);
         type_t *operand_t;
         if (promote(env, &rhs, rhs_t, lhs_t))
@@ -2812,40 +2822,6 @@ CORD compile(env_t *env, ast_t *ast)
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Table$sorted(", self, ", ", compile_type_info(env, self_value_t), ")");
             } else code_err(ast, "There is no '%s' method for tables", call->name);
-        }
-        case OptionalType: {
-            type_t *nonnull = Match(self_value_t, OptionalType)->type;
-            if (streq(call->name, "or_else")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="fallback", .type=nonnull);
-                return CORD_all("({ ", compile_declaration(self_value_t, "opt"), " = ", self, "; ",
-                                check_null(self_value_t, "opt"), " ? ",
-                                compile_arguments(env, ast, arg_spec, call->args),
-                                " : ", optional_into_nonnull(self_value_t, "opt"), "; })");
-            } else if (streq(call->name, "or_fail")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="message", .type=TEXT_TYPE,
-                                      .default_val=FakeAST(TextLiteral, .cord="This value was expected to be non-null, but it's null!"));
-                return CORD_all("({ ", compile_declaration(self_value_t, "opt"), " = ", self, "; ",
-                                "if (", check_null(self_value_t, "opt"), ")\n",
-                                CORD_asprintf("fail_source(%r, %ld, %ld, Text$as_c_string(%r));\n",
-                                              CORD_quoted(ast->file->filename),
-                                              (long)(call->self->start - call->self->file->text),
-                                              (long)(call->self->end - call->self->file->text),
-                                              compile_arguments(env, ast, arg_spec, call->args)),
-                                optional_into_nonnull(self_value_t, "opt"), "; })");
-            } else if (streq(call->name, "or_exit")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="message", .type=Type(OptionalType, .type=TEXT_TYPE),
-                                      .default_val=FakeAST(Null, .type=new(type_ast_t, .tag=VarTypeAST, .__data.VarTypeAST.name="Text")),
-                                      .next=new(arg_t, .name="code", .type=Type(IntType, .bits=TYPE_IBITS32),
-                                                .default_val=FakeAST(Int, .bits=IBITS32, .str="1")));
-                return CORD_all("({ ", compile_declaration(self_value_t, "opt"), " = ", self, "; ",
-                                "if (", check_null(self_value_t, "opt"), ")\n",
-                                "tomo_exit(", compile_arguments(env, ast, arg_spec, call->args), ");\n",
-                                optional_into_nonnull(self_value_t, "opt"), "; })");
-            }
-            code_err(ast, "There is no '%s' method for optional %T values", call->name, nonnull);
         }
         default: {
             auto methodcall = Match(ast, MethodCall);

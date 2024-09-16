@@ -80,7 +80,7 @@ func _draw_tree(dep:Dependency, dependencies:{Dependency:{Dependency}}, already_
     
     child_prefix := prefix ++ (if is_last: "    " else: "│   ")
     
-    children := dependencies:get(dep):or_else({:Dependency})
+    children := dependencies:get(dep) or {:Dependency}
     for i,child in children.items:
         is_child_last := (i == children.length)
         _draw_tree(child, dependencies, already_printed, child_prefix, is_child_last)
@@ -89,7 +89,7 @@ func draw_tree(dep:Dependency, dependencies:{Dependency:{Dependency}}):
     printed := {:Dependency}
     say(_printable_name(dep))
     printed:add(dep)
-    deps := dependencies:get(dep):or_else({:Dependency})
+    deps := dependencies:get(dep) or {:Dependency}
     for i,child in deps.items:
         is_child_last := (i == deps.length)
         _draw_tree(child, dependencies, already_printed=&printed, is_last=is_child_last)

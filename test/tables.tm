@@ -10,7 +10,7 @@ func main():
 	= !Int
 	>> t:get("one")!
 	= 1
-	>> t:get("???"):or_else(-1)
+	>> t:get("???") or -1
 	= -1
 
 	t_str := ""
@@ -68,7 +68,7 @@ func main():
 		= 20
 		>> plain:get(2)!
 		= 20
-		>> plain:get(456):or_else(-999)
+		>> plain:get(456) or -999
 		= -999
 		>> plain:has(2)
 		= yes
@@ -78,6 +78,6 @@ func main():
 		>> fallback := {4:40; fallback=plain}
 		>> fallback:has(1)
 		= yes
-		>> fallback:get(1):or_else(-999)
+		>> fallback:get(1) or -999
 		= 10
 

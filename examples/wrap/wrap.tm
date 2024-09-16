@@ -82,7 +82,7 @@ func main(files:[Path], width=80, inplace=no, min_split=3, rewrap=yes, hyphen=UN
         files = [(/dev/stdin)]
 
     for file in files:
-        text := file:read():or_exit("Could not read file: $(file.text_content)")
+        text := file:read() or exit("Could not read file: $(file.text_content)")
 
         if rewrap:
             text = unwrap(text)

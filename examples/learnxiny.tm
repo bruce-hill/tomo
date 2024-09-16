@@ -110,12 +110,11 @@ func main():
 
     # The value returned is optional (because the key might not be in the table).
     # Optional values can be converted to regular values using `!` (which will
-    # create a runtime error if the value is null) or :or_else() which uses a
-    # fallback value if it's null.
+    # create a runtime error if the value is null) or the `or` operator:
     >> table:get("two")!
     = 2
 
-    >> table:get("xxx"):or_else(0)
+    >> table:get("xxx") or 0
     = 0
 
     # Empty tables require specifying the key and value types:

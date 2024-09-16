@@ -30,25 +30,28 @@ having to use a more generalized form of `enum` which may have different naming
 conventions and which would generate a lot of unnecessary code. 
 
 In addition to using conditionals to check for null values, you can also use
-`:or_else(fallback)` or `:or_fail()` or `:or_exit()`:
+`or` to get a non-null value by either providing an alternative non-null value
+or by providing an early out statement like `return`/`skip`/`stop` or a function
+with an `Abort` type like `fail()` or `exit()`:
 
 ```tomo
 maybe_x := 5?
->> maybe_x:or_else(-1)
+>> maybe_x or -1
 = 5 : Int
->> maybe_x:or_fail()
+>> maybe_x or fail("No value!")
 = 5 : Int
 
 maybe_x = !Int
->> maybe_x:or_else(-1)
+>> maybe_x or -1
 = -1 : Int
->> maybe_x:or_fail("No value!")
+>> maybe_x or fail("No value!")
 # Failure!
 
+func do_stuff(matches:[Text]):
+    pass
 
-maybe_x = !Int
->> maybe_x:or_exit()
-= -1 : Int
->> maybe_x:or_exit("No value!")
-# Exit!
+for line in lines:
+    matches := line:matches($/{..},{..}/) or skip
+    # The `or skip` above means that if we're here, `matches` is non-null:
+    do_stuff(matches)
 ```

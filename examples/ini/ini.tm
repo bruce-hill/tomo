@@ -7,7 +7,7 @@ _HELP := "
 "
 
 func parse_ini(path:Path)->{Text:{Text:Text}}:
-    text := path:read():or_exit("Could not read INI file: $\[31;1]$(path.text_content)$\[]")
+    text := path:read() or exit("Could not read INI file: $\[31;1]$(path.text_content)$\[]")
     sections := {:Text:@{Text:Text}}
     current_section := @{:Text:Text}
 
@@ -29,7 +29,7 @@ func parse_ini(path:Path)->{Text:{Text:Text}}:
     return {k:v[] for k,v in sections}
 
 func main(path:Path, key:Text?):
-    keys := key:or_else(""):split($|/|)
+    keys := (key or ""):split($|/|)
     if keys.length > 2:
         exit("
             Too many arguments! 
@@ -42,7 +42,7 @@ func main(path:Path, key:Text?):
         return
 
     section := keys[1]:lower()
-    section_data := data:get(section):or_exit("
+    section_data := data:get(section) or exit("
         Invalid section name: $\[31;1]$section$\[]
         Valid names: $\[1]$(", ":join([k:quoted() for k in data.keys]))$\[]
     ")
@@ -51,7 +51,7 @@ func main(path:Path, key:Text?):
         return
 
     section_key := keys[2]:lower()
-    value := section_data:get(section_key):or_exit("
+    value := section_data:get(section_key) or exit("
         Invalid key: $\[31;1]$section_key$\[]
         Valid keys: $\[1]$(", ":join([s:quoted() for s in section_data.keys]))$\[]
     ")

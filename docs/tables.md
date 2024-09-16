@@ -195,7 +195,7 @@ The value associated with the key or null if the key is not found.
 >> t:get("A")!
 = 1 : Int
 
->> t:get("????"):or_else(0)
+>> t:get("????") or 0
 = 0 : Int
 ```
 

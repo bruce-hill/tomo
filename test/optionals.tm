@@ -83,16 +83,16 @@ func main():
         5
     = 5? : Int?
 
-    >> (5?):or_else(-1)
+    >> 5? or -1
     = 5 : Int
 
-    >> (5?):or_fail()
+    >> 5? or fail("Non-null is falsey")
     = 5 : Int
 
-    >> (5?):or_exit()
+    >> 5? or exit("Non-null is falsey")
     = 5 : Int
 
-    >> (!Int):or_else(-1)
+    >> (!Int) or -1
     = -1 : Int
 
     do:

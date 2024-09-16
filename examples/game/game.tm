@@ -9,7 +9,7 @@ func main(map=(./map.txt)):
     extern InitWindow:func(w:Int32, h:Int32, title:CString)->Void
     InitWindow(1600, 900, "raylib [core] example - 2d camera")
 
-    map_contents := map:read():or_exit("Could not find the game map: $map")
+    map_contents := map:read() or exit("Could not find the game map: $map")
 
     World.CURRENT:load_map(map_contents)
 
