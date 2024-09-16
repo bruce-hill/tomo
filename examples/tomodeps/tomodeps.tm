@@ -1,9 +1,9 @@
 # Show a Tomo dependency graph
 
-_USAGE := "Usage: dependencies <files...>"
+_USAGE := "Usage: tomodeps <files...>"
 
 _HELP := "
-    dependencies: Show a file dependency graph for Tomo source files.
+    tomodeps: Show a file dependency graph for Tomo source files.
     $_USAGE
 "
 
@@ -33,19 +33,10 @@ func _build_dependency_graph(dep:Dependency, dependencies:&{Dependency:{Dependen
     dep_deps := when dep is File(path):
         _get_file_dependencies(path)
     is Module(module):
-        files_path := (~/.local/src/tomo/$module/lib$module.files):resolved()
-        if not files_path:is_file():
-            !! Could not read file: $files_path
-            return
-
-        unvisited := {:Path}
-        if lines := files_path:by_line():
-            for line in lines:
-                tm_path := Path.from_unsafe_text(line):resolved(relative_to=(~/.local/src/tomo/$module/))
-                unvisited:add(tm_path)
-
+        dir := (~/.local/share/tomo/installed/$module)
         module_deps := {:Dependency}
         visited := {:Path}
+        unvisited := {f:resolved() for f in dir:files() if f.text_content:ends_with(".tm")}
         while unvisited.length > 0:
             file := unvisited.items[-1]
             unvisited:remove(file)
