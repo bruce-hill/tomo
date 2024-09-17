@@ -247,7 +247,7 @@ CORD compile_enum_declarations(env_t *env, ast_t *ast)
             all_defs = CORD_cat(all_defs, constructor_def);
         }
     }
-    return CORD_all(all_defs, compile_namespace_definitions(env, def->name, def->namespace));
+    return CORD_all(all_defs, compile_namespace_header(env, def->name, def->namespace));
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

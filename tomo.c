@@ -167,6 +167,68 @@ const char *escape_lib_name(const char *lib_name)
         Text$replace(Text$from_str(lib_name), Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false));
 }
 
+typedef struct {
+    env_t *env;
+    Table_t *used_imports;
+    FILE *output;
+} libheader_info_t;
+
+static void _compile_statement_header_for_library(libheader_info_t *info, ast_t *ast)
+{
+    if (ast->tag == Declare && Match(ast, Declare)->value->tag == Use)
+        ast = Match(ast, Declare)->value;
+
+    if (ast->tag == Use) {
+        auto use = Match(ast, Use);
+        if (use->what == USE_LOCAL)
+            return;
+
+        if (!Table$str_get(*info->used_imports, use->path)) {
+            Table$str_set(info->used_imports, use->path, use->path);
+            CORD_put(compile_statement_header(info->env, ast), info->output);
+        }
+    } else {
+        CORD_put(compile_statement_header(info->env, ast), info->output);
+    }
+}
+
+static void _compile_file_header_for_library(env_t *env, const char *filename, Table_t *visited_files, Table_t *used_imports, FILE *output)
+{
+    if (Table$str_get(*visited_files, filename))
+        return;
+
+    Table$str_set(visited_files, filename, filename);
+
+    ast_t *file_ast = parse_file(filename, NULL);
+    if (!file_ast) errx(1, "Could not parse file %s", filename);
+    env_t *module_env = load_module_env(env, file_ast);
+
+    libheader_info_t info = {
+        .env=module_env,
+        .used_imports=used_imports,
+        .output=output,
+    };
+
+    // Visit files in topological order:
+    for (ast_list_t *stmt = Match(file_ast, Block)->statements; stmt; stmt = stmt->next) {
+        ast_t *ast = stmt->ast;
+        if (ast->tag == Declare)
+            ast = Match(ast, Declare)->value;
+        if (ast->tag != Use) continue;
+
+        auto use = Match(ast, Use);
+        if (use->what == USE_LOCAL) {
+            const char *used_filename = resolve_path(use->path, filename, ".");
+            _compile_file_header_for_library(env, used_filename, visited_files, used_imports, output);
+        }
+    }
+
+    visit_topologically(
+        Match(file_ast, Block)->statements, (Closure_t){.fn=(void*)_compile_statement_header_for_library, &info});
+
+    CORD_fprintf(output, "void %r$initialize(void);\n", namespace_prefix(module_env->libname, module_env->namespace));
+}
+
 void build_library(const char *lib_base_name)
 {
     glob_t tm_files;
@@ -185,20 +247,13 @@ void build_library(const char *lib_base_name)
     // Build a "whatever.h" header that loads all the headers:
     FILE *header_prog = CORD_RUN(autofmt ? autofmt : "cat", " 2>/dev/null >", libname, ".h");
     fputs("#pragma once\n", header_prog);
+    fputs("#include <tomo/tomo.h>\n", header_prog);
+    Table_t visited_files = {};
+    Table_t used_imports = {};
     for (size_t i = 0; i < tm_files.gl_pathc; i++) {
         const char *filename = tm_files.gl_pathv[i];
-        ast_t *ast = parse_file(filename, NULL);
-        if (!ast) errx(1, "Could not parse file %s", filename);
-        env_t *module_env = load_module_env(env, ast);
-        for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-            CORD h = compile_statement_typedefs(module_env, stmt->ast);
-            if (h) CORD_put(h, header_prog);
-        }
-        for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-            CORD h = compile_statement_definitions(module_env, stmt->ast);
-            if (h) CORD_put(h, header_prog);
-        }
-        fprintf(header_prog, "void %s$%s$$initialize(void);\n", libname, file_base_name(filename));
+        filename = resolve_path(filename, ".", ".");
+        _compile_file_header_for_library(env, filename, &visited_files, &used_imports, header_prog);
     }
     if (pclose(header_prog) == -1)
         errx(1, "Failed to run autoformat program on header file: %s", autofmt);
@@ -405,7 +460,7 @@ void transpile_header(env_t *base_env, const char *filename, bool force_retransp
 
     env_t *module_env = load_module_env(base_env, ast);
 
-    CORD h_code = compile_header(module_env, ast);
+    CORD h_code = compile_file_header(module_env, ast);
 
     if (autofmt) {
         FILE *prog = CORD_RUN(autofmt, " 2>/dev/null >", h_filename);

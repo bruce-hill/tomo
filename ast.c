@@ -1,8 +1,8 @@
 // Some basic operations defined on AST nodes, mainly converting to
 // strings for debugging.
 #include <gc/cord.h>
-#include <stdarg.h>
 #include <printf.h>
+#include <stdarg.h>
 
 #include "ast.h"
 #include "stdlib/datatypes.h"
@@ -264,9 +264,11 @@ void _visit_topologically(ast_t *ast, Table_t definitions, Table_t *visited, Clo
 
 void visit_topologically(ast_list_t *asts, Closure_t fn)
 {
-    // Visit each top-level statement in topological order, where typedefs are
-    // visited first, and each typedef's referenced types are visited before it
-    // is, when applicable.
+    // Visit each top-level statement in topological order:
+    // - 'use' statements first
+    // - then typedefs
+    //   - visiting typedefs' dependencies first
+    // - then function/variable declarations
 
     Table_t definitions = {};
     for (ast_list_t *stmt = asts; stmt; stmt = stmt->next) {
@@ -282,14 +284,24 @@ void visit_topologically(ast_list_t *asts, Closure_t fn)
         }
     }
 
+    void (*visit)(void*, ast_t*) = (void*)fn.fn;
     Table_t visited = {};
+    // First: 'use' statements in order:
+    for (ast_list_t *stmt = asts; stmt; stmt = stmt->next) {
+        if (stmt->ast->tag == Use || (stmt->ast->tag == Declare && Match(stmt->ast, Declare)->value->tag == Use))
+            visit(fn.userdata, stmt->ast);
+    }
+    // Then typedefs in topological order:
     for (ast_list_t *stmt = asts; stmt; stmt = stmt->next) {
         if (stmt->ast->tag == StructDef || stmt->ast->tag == EnumDef || stmt->ast->tag == LangDef)
             _visit_topologically(stmt->ast, definitions, &visited, fn);
     }
+    // Then everything else in order:
     for (ast_list_t *stmt = asts; stmt; stmt = stmt->next) {
-        if (!(stmt->ast->tag == StructDef || stmt->ast->tag == EnumDef || stmt->ast->tag == LangDef))
-            _visit_topologically(stmt->ast, definitions, &visited, fn);
+        if (!(stmt->ast->tag == StructDef || stmt->ast->tag == EnumDef || stmt->ast->tag == LangDef
+              || stmt->ast->tag == Use || (stmt->ast->tag == Declare && Match(stmt->ast, Declare)->value->tag == Use))) {
+            visit(fn.userdata, stmt->ast);
+        }
     }
 }
 
