@@ -303,8 +303,8 @@ void bind_statement(env_t *env, ast_t *statement)
                     code_err(field_ast->type, "This is a recursive struct that would be infinitely large. Maybe you meant to use an optional '@%T?' pointer instead?", type);
                 else
                     code_err(field_ast->type, "I'm still in the process of defining the fields of %T, so I don't know how to use it as a member."
-                             "\nTry using a @%T pointer for this field or moving the definition of %T before %T in the file.",
-                             field_t, field_t, field_t, type);
+                             "\nTry using a @%T pointer for this field.",
+                             field_t, field_t);
             }
             fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
         }
@@ -335,8 +335,8 @@ void bind_statement(env_t *env, ast_t *statement)
                         code_err(field_ast->type, "This is a recursive enum that would be infinitely large. Maybe you meant to use an optional '@%T?' pointer instead?", type);
                     else
                         code_err(field_ast->type, "I'm still in the process of defining the fields of %T, so I don't know how to use it as a member."
-                                 "\nTry using a @%T pointer for this field or moving the definition of %T before %T in the file.",
-                                 field_t, field_t, field_t, type);
+                                 "\nTry using a @%T pointer for this field.",
+                                 field_t, field_t);
                 }
                 fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
             }

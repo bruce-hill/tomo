@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <printf.h>
 
+#include "stdlib/datatypes.h"
 #include "stdlib/files.h"
 #include "stdlib/util.h"
 
@@ -315,5 +316,6 @@ CORD type_ast_to_xml(type_ast_t *ast);
 int printf_ast(FILE *stream, const struct printf_info *info, const void *const args[]);
 ast_list_t *get_ast_children(ast_t *ast);
 PUREFUNC bool is_idempotent(ast_t *ast);
+void visit_topologically(ast_list_t *ast, Closure_t fn);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

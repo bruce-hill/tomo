@@ -5,7 +5,9 @@
 #include <printf.h>
 
 #include "ast.h"
+#include "stdlib/datatypes.h"
 #include "stdlib/integers.h"
+#include "stdlib/tables.h"
 #include "stdlib/text.h"
 #include "cordhelpers.h"
 
@@ -209,6 +211,85 @@ PUREFUNC bool is_idempotent(ast_t *ast)
         return is_idempotent(access->fielded);
     }
     default: return false;
+    }
+}
+
+void _visit_topologically(ast_t *ast, Table_t definitions, Table_t *visited, Closure_t fn)
+{
+    void (*visit)(void*, ast_t*) = (void*)fn.fn;
+    if (ast->tag == StructDef) {
+        auto def = Match(ast, StructDef);
+        if (Table$str_get(*visited, def->name))
+            return;
+
+        Table$str_set(visited, def->name, (void*)_visit_topologically);
+        for (arg_ast_t *field = def->fields; field; field = field->next) {
+            if (field->type && field->type->tag == VarTypeAST) {
+                const char *field_type_name = Match(field->type, VarTypeAST)->name;
+                ast_t *dependency = Table$str_get(definitions, field_type_name);
+                if (dependency) {
+                    _visit_topologically(dependency, definitions, visited, fn);
+                }
+            }
+                
+        }
+        visit(fn.userdata, ast);
+    } else if (ast->tag == EnumDef) {
+        auto def = Match(ast, EnumDef);
+        if (Table$str_get(*visited, def->name))
+            return;
+
+        Table$str_set(visited, def->name, (void*)_visit_topologically);
+        for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
+            for (arg_ast_t *field = tag->fields; field; field = field->next) {
+                if (field->type && field->type->tag == VarTypeAST) {
+                    const char *field_type_name = Match(field->type, VarTypeAST)->name;
+                    ast_t *dependency = Table$str_get(definitions, field_type_name);
+                    if (dependency) {
+                        _visit_topologically(dependency, definitions, visited, fn);
+                    }
+                }
+            }
+        }
+        visit(fn.userdata, ast);
+    } else if (ast->tag == LangDef) {
+        auto def = Match(ast, LangDef);
+        if (Table$str_get(*visited, def->name))
+            return;
+        visit(fn.userdata, ast);
+    } else {
+        visit(fn.userdata, ast);
+    }
+}
+
+void visit_topologically(ast_list_t *asts, Closure_t fn)
+{
+    // Visit each top-level statement in topological order, where typedefs are
+    // visited first, and each typedef's referenced types are visited before it
+    // is, when applicable.
+
+    Table_t definitions = {};
+    for (ast_list_t *stmt = asts; stmt; stmt = stmt->next) {
+        if (stmt->ast->tag == StructDef) {
+            auto def = Match(stmt->ast, StructDef);
+            Table$str_set(&definitions, def->name, stmt->ast);
+        } else if (stmt->ast->tag == EnumDef) {
+            auto def = Match(stmt->ast, EnumDef);
+            Table$str_set(&definitions, def->name, stmt->ast);
+        } else if (stmt->ast->tag == LangDef) {
+            auto def = Match(stmt->ast, LangDef);
+            Table$str_set(&definitions, def->name, stmt->ast);
+        }
+    }
+
+    Table_t visited = {};
+    for (ast_list_t *stmt = asts; stmt; stmt = stmt->next) {
+        if (stmt->ast->tag == StructDef || stmt->ast->tag == EnumDef || stmt->ast->tag == LangDef)
+            _visit_topologically(stmt->ast, definitions, &visited, fn);
+    }
+    for (ast_list_t *stmt = asts; stmt; stmt = stmt->next) {
+        if (!(stmt->ast->tag == StructDef || stmt->ast->tag == EnumDef || stmt->ast->tag == LangDef))
+            _visit_topologically(stmt->ast, definitions, &visited, fn);
     }
 }
 

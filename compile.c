@@ -3912,6 +3912,16 @@ CORD compile_statement_definitions(env_t *env, ast_t *ast)
     }
 }
 
+typedef struct {
+    env_t *env;
+    CORD *header;
+} compile_typedef_info_t;
+
+static void _visit_typedef(compile_typedef_info_t *info, ast_t *ast)
+{
+    *info->header = CORD_all(*info->header, compile_statement_typedefs(info->env, ast));
+}
+
 CORD compile_header(env_t *env, ast_t *ast)
 {
     CORD header = CORD_all(
@@ -3922,14 +3932,13 @@ CORD compile_header(env_t *env, ast_t *ast)
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
         header = CORD_all(header, compile_statement_imports(env, stmt->ast));
 
-    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
-        header = CORD_all(header, compile_statement_typedefs(env, stmt->ast));
+    compile_typedef_info_t info = {.env=env, .header=&header};
+    visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn=(void*)_visit_typedef, &info});
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
         header = CORD_all(header, compile_statement_definitions(env, stmt->ast));
 
     header = CORD_all(header, "void ", env->namespace->name, "$$initialize(void);\n");
-
     return header;
 }
 

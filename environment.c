@@ -3,11 +3,12 @@
 #include <stdlib.h>
 #include <signal.h>
 
+#include "cordhelpers.h"
+#include "environment.h"
+#include "stdlib/datatypes.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"
-#include "cordhelpers.h"
-#include "environment.h"
 #include "typecheck.h"
 
 type_t *TEXT_TYPE = NULL;
@@ -421,11 +422,9 @@ env_t *load_module_env(env_t *env, ast_t *ast)
     module_env->namespace_bindings = module_env->locals;
     Table$str_set(module_env->imports, name, module_env);
 
-    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
-        prebind_statement(module_env, stmt->ast);
-
-    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next)
-        bind_statement(module_env, stmt->ast);
+    ast_list_t *statements = Match(ast, Block)->statements;
+    visit_topologically(statements, (Closure_t){.fn=(void*)prebind_statement, .userdata=module_env});
+    visit_topologically(statements, (Closure_t){.fn=(void*)bind_statement, .userdata=module_env});
 
     return module_env;
 }
