@@ -2356,14 +2356,19 @@ PARSER(parse_use) {
     pos += name_len;
     while (match(&pos, ";")) continue;
     int what; 
-    if (name[0] == '<' || name[0] == '"')
+    if (name[0] == '<' || ends_with(name, ".h")) {
         what = USE_HEADER;
-    else if (starts_with(name, "./") || starts_with(name, "/") || starts_with(name, "../") || starts_with(name, "~/"))
+    } else if (ends_with(name, ".c")) {
+        what = USE_C_CODE;
+    } else if (ends_with(name, ".S") || ends_with(name, ".s")) {
+        what = USE_ASM;
+    } else if (starts_with(name, "./") || starts_with(name, "/") || starts_with(name, "../") || starts_with(name, "~/")) {
         what = USE_LOCAL;
-    else if (ends_with(name, ".so"))
+    } else if (ends_with(name, ".so")) {
         what = USE_SHARED_OBJECT;
-    else
+    } else {
         what = USE_MODULE;
+    }
     return NewAST(ctx->file, start, pos, Use, .path=name, .what=what);
 }
 

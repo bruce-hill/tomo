@@ -1371,6 +1371,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
         if (use->what == USE_LOCAL) {
             CORD name = file_base_name(Match(ast, Use)->path);
             env->code->variable_initializers = CORD_all(env->code->variable_initializers, name, "$$initialize();\n");
+        } else if (use->what == USE_C_CODE) {
+            return CORD_all("#include \"", use->path, "\"\n");
         } else if (use->what == USE_MODULE) {
             const char *libname = Text$as_c_string(
                 Text$replace(Text$from_str(use->path), Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false));
@@ -3735,6 +3737,10 @@ CORD compile_file(env_t *env, ast_t *ast)
         } else if (stmt->ast->tag == InlineCCode) {
             CORD code = compile_statement(env, stmt->ast);
             env->code->staticdefs = CORD_all(env->code->staticdefs, code, "\n");
+        } else if (stmt->ast->tag == Use) {
+            CORD code = compile_statement(env, stmt->ast);
+            if (code)
+                env->code->staticdefs = CORD_all(env->code->staticdefs, code);
         } else {
             CORD code = compile_statement(env, stmt->ast);
             assert(!code);
@@ -3795,7 +3801,10 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
         case USE_LOCAL: 
             return CORD_all("#include \"", use->path, ".h\"\n");
         case USE_HEADER:
-            return CORD_all("#include ", use->path, "\n");
+            if (use->path[0] == '<')
+                return CORD_all("#include ", use->path, "\n");
+            else
+                return CORD_all("#include \"", use->path, "\"\n");
         default:
             return CORD_EMPTY;
         }

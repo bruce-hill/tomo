@@ -431,6 +431,10 @@ void build_file_dependency_graph(const char *filename, Table_t *to_compile, Tabl
             Table$str_set(to_link, lib, lib);
             break;
         }
+        case USE_ASM: {
+            Table$str_set(to_link, use->path, use->path);
+            break;
+        }
         default: case USE_HEADER: break;
         }
     }

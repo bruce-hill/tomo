@@ -191,8 +191,6 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
         globfree(&tm_files);
         return module_env;
     }
-    case USE_SHARED_OBJECT: return NULL;
-    case USE_HEADER: return NULL;
     default: return NULL;
     }
 }

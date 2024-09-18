@@ -312,7 +312,7 @@ struct ast_s {
         } DocTest;
         struct {
             const char *path;
-            enum { USE_LOCAL, USE_MODULE, USE_SHARED_OBJECT, USE_HEADER } what;
+            enum { USE_LOCAL, USE_MODULE, USE_SHARED_OBJECT, USE_HEADER, USE_C_CODE, USE_ASM } what;
         } Use;
         struct {
             CORD code;
