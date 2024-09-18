@@ -2411,24 +2411,4 @@ type_ast_t *parse_type_str(const char *str) {
     return ast;
 }
 
-ast_t *parse_expression_str(const char *str) {
-    file_t *file = spoof_file("<expression>", str);
-    parse_ctx_t ctx = {
-        .file=file,
-        .on_err=NULL,
-        .next_lambda_id=0,
-    };
-
-    const char *pos = file->text;
-    whitespace(&pos);
-    ast_t *ast = parse_extended_expr(&ctx, pos);
-    if (!ast) return ast;
-    pos = ast->end;
-    whitespace(&pos);
-    if (strlen(pos) > 0) {
-        parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the expression");
-    }
-    return ast;
-}
-
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
