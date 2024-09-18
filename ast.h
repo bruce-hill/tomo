@@ -129,7 +129,6 @@ typedef enum {
     Index, FieldAccess, Optional, NonOptional,
     DocTest,
     Use,
-    LinkerDirective,
     InlineCCode,
 } ast_e;
 
@@ -300,9 +299,6 @@ struct ast_s {
             const char *path;
             enum { USE_LOCAL, USE_MODULE, USE_SHARED_OBJECT, USE_HEADER } what;
         } Use;
-        struct {
-            const char *directive;
-        } LinkerDirective;
         struct {
             CORD code;
             struct type_s *type;

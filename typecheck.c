@@ -875,7 +875,7 @@ type_t *get_type(env_t *env, ast_t *ast)
     case Extern: {
         return parse_type_ast(env, Match(ast, Extern)->type);
     }
-    case Declare: case Assign: case DocTest: case LinkerDirective: {
+    case Declare: case Assign: case DocTest: {
         return Type(VoidType);
     }
     case Use: {

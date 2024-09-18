@@ -98,7 +98,6 @@ static PARSER(parse_func_def);
 static PARSER(parse_if);
 static PARSER(parse_inline_c);
 static PARSER(parse_lang_def);
-static PARSER(parse_linker);
 static PARSER(parse_namespace);
 static PARSER(parse_path);
 static PARSER(parse_say);
@@ -1916,7 +1915,6 @@ PARSER(parse_namespace) {
             ||(stmt=optional(ctx, &pos, parse_lang_def))
             ||(stmt=optional(ctx, &pos, parse_func_def))
             ||(stmt=optional(ctx, &pos, parse_use))
-            ||(stmt=optional(ctx, &pos, parse_linker))
             ||(stmt=optional(ctx, &pos, parse_extern))
             ||(stmt=optional(ctx, &pos, parse_inline_c))
             ||(stmt=optional(ctx, &pos, parse_declaration)))
@@ -1952,7 +1950,6 @@ PARSER(parse_file_body) {
             ||(stmt=optional(ctx, &pos, parse_lang_def))
             ||(stmt=optional(ctx, &pos, parse_func_def))
             ||(stmt=optional(ctx, &pos, parse_use))
-            ||(stmt=optional(ctx, &pos, parse_linker))
             ||(stmt=optional(ctx, &pos, parse_extern))
             ||(stmt=optional(ctx, &pos, parse_inline_c))
             ||(stmt=optional(ctx, &pos, parse_top_declaration)))
@@ -2341,16 +2338,6 @@ PARSER(parse_use) {
     else
         what = USE_MODULE;
     return NewAST(ctx->file, start, pos, Use, .path=name, .what=what);
-}
-
-PARSER(parse_linker) {
-    const char *start = pos;
-    if (!match_word(&pos, "!link")) return NULL;
-    spaces(&pos);
-    size_t len = strcspn(pos, "\r\n");
-    const char *directive = GC_strndup(pos, len);
-    pos += len;
-    return NewAST(ctx->file, start, pos, LinkerDirective, .directive=directive);
 }
 
 ast_t *parse_file(const char *path, jmp_buf *on_err) {
