@@ -314,7 +314,6 @@ struct ast_s {
 CORD ast_to_xml(ast_t *ast);
 CORD type_ast_to_xml(type_ast_t *ast);
 int printf_ast(FILE *stream, const struct printf_info *info, const void *const args[]);
-ast_list_t *get_ast_children(ast_t *ast);
 PUREFUNC bool is_idempotent(ast_t *ast);
 void visit_topologically(ast_list_t *ast, Closure_t fn);
 
