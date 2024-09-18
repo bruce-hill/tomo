@@ -47,17 +47,6 @@
     list = _prev; \
 } while(0)
 
-#define LIST_MAP(src, var, ...) ({\
-    __typeof(src) mapped = NULL; \
-    __typeof(src) *next = &mapped; \
-    for (__typeof(src) var = src; var; var = var->next) { \
-        *next = GC_MALLOC(sizeof(__typeof(*(src)))); \
-        **next = *var; \
-        **next = (__typeof(*(src))){__VA_ARGS__}; \
-        next = &((*next)->next); \
-    } \
-    mapped; })
-
 __attribute__((format(printf, 1, 2)))
 char *heap_strf(const char *fmt, ...);
 
