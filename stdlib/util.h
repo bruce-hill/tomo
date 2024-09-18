@@ -14,7 +14,6 @@
 #define new(t, ...) ((t*)memcpy(GC_MALLOC(sizeof(t)), &(t){__VA_ARGS__}, sizeof(t)))
 #define heap(x) (__typeof(x)*)memcpy(GC_MALLOC(sizeof(x)), (__typeof(x)[1]){x}, sizeof(x))
 #define stack(x) (__typeof(x)*)((__typeof(x)[1]){x})
-#define Match(x, _tag) ((x)->tag == _tag ? &(x)->__data._tag : (errx(1, __FILE__ ":%d This was supposed to be a " # _tag "\n", __LINE__), &(x)->__data._tag))
 #define check_initialized(var, name) *({ if (!var ## $initialized) fail("The variable " name " is being accessed before it has been initialized!"); \
                                        &var; })
 

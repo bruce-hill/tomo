@@ -2,11 +2,12 @@
 
 // Logic defining ASTs (abstract syntax trees) to represent code
 
+#include <err.h>
 #include <gc/cord.h>
+#include <printf.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <printf.h>
 
 #include "stdlib/datatypes.h"
 #include "stdlib/files.h"
@@ -19,6 +20,7 @@
 #define FakeAST(ast_tag, ...) (new(ast_t, .tag=ast_tag, .__data.ast_tag={__VA_ARGS__}))
 #define WrapAST(ast, ast_tag, ...) (new(ast_t, .file=(ast)->file, .start=(ast)->start, .end=(ast)->end, .tag=ast_tag, .__data.ast_tag={__VA_ARGS__}))
 #define TextAST(ast, _str) WrapAST(ast, TextLiteral, .str=GC_strdup(_str))
+#define Match(x, _tag) ((x)->tag == _tag ? &(x)->__data._tag : (errx(1, __FILE__ ":%d This was supposed to be a " # _tag "\n", __LINE__), &(x)->__data._tag))
 
 #define REVERSE_LIST(list) do { \
     __typeof(list) _prev = NULL; \
