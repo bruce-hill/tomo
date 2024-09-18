@@ -2356,7 +2356,7 @@ PARSER(parse_use) {
     pos += name_len;
     while (match(&pos, ";")) continue;
     int what; 
-    if (name[0] == '<')
+    if (name[0] == '<' || name[0] == '"')
         what = USE_HEADER;
     else if (starts_with(name, "./") || starts_with(name, "/") || starts_with(name, "../") || starts_with(name, "~/"))
         what = USE_LOCAL;
