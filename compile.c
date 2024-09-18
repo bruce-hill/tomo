@@ -833,10 +833,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                                     ") Table$remove(&cache, cache.entries.data + cache.entries.stride*Int$random(I(0), I(cache.entries.length-1)), table_type);\n");
             }
 
-            CORD arg_typedef = compile_struct_typedef(env, args_def);
+            CORD arg_typedef = compile_struct_header(env, args_def);
             env->code->local_typedefs = CORD_all(env->code->local_typedefs, arg_typedef);
-            env->code->staticdefs = CORD_all(env->code->staticdefs,
-                                             "extern const TypeInfo ", namespace_prefix(env->libname, env->namespace), arg_type_name, ";\n");
             CORD wrapper = CORD_all(
                 is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
                 "static Table_t cache = {};\n",
@@ -3803,12 +3801,7 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
         }
     }
     case StructDef: {
-        auto def = Match(ast, StructDef);
-        CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
-        return CORD_all(
-            compile_struct_typedef(env, ast),
-            "extern const TypeInfo ", full_name, ";\n",
-            compile_namespace_header(env, def->name, def->namespace));
+        return compile_struct_header(env, ast);
     }
     case EnumDef: {
         return compile_enum_header(env, ast);

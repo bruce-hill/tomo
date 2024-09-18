@@ -171,7 +171,7 @@ void compile_struct_def(env_t *env, ast_t *ast)
     compile_namespace(env, def->name, def->namespace);
 }
 
-CORD compile_struct_typedef(env_t *env, ast_t *ast)
+CORD compile_struct_header(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
     CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
@@ -192,7 +192,9 @@ CORD compile_struct_typedef(env_t *env, ast_t *ast)
         "typedef struct {\n",
         full_name, "_t value;\n"
         "Bool_t is_null:1;\n"
-        "} ", namespace_prefix(env->libname, env->namespace), "$Optional", def->name, "_t;\n");
+        "} ", namespace_prefix(env->libname, env->namespace), "$Optional", def->name, "_t;\n"
+        "extern const TypeInfo ", full_name, ";\n",
+        compile_namespace_header(env, def->name, def->namespace));
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

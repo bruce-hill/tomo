@@ -218,7 +218,7 @@ CORD compile_enum_header(env_t *env, ast_t *ast)
     enum_def = CORD_all(enum_def, "} tag;\n"
                         "union {\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-        CORD field_def = compile_struct_typedef(env, WrapAST(ast, StructDef, .name=CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)), .fields=tag->fields));
+        CORD field_def = compile_struct_header(env, WrapAST(ast, StructDef, .name=CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)), .fields=tag->fields));
         all_defs = CORD_all(all_defs, field_def);
         enum_def = CORD_all(enum_def, full_name, "$", tag->name, "_t $", tag->name, ";\n");
     }
