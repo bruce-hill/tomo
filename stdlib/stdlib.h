@@ -10,6 +10,8 @@
 #include "types.h"
 #include "util.h"
 
+extern bool USE_COLOR;
+
 void tomo_init(void);
 __attribute__((format(printf, 1, 2)))
 _Noreturn void fail(const char *fmt, ...);

@@ -19,6 +19,8 @@
 #include "text.h"
 #include "util.h"
 
+public bool USE_COLOR;
+
 public void tomo_init(void)
 {
    GC_INIT();

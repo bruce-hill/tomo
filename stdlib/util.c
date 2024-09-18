@@ -9,8 +9,6 @@
 #include "text.h"
 #include "util.h"
 
-public bool USE_COLOR;
-
 __attribute__((format(printf, 1, 2)))
 public char *heap_strf(const char *fmt, ...)
 {

@@ -34,8 +34,6 @@
 #define CONSTFUNC __attribute__ ((const))
 #endif
 
-extern bool USE_COLOR;
-
 #define REVERSE_LIST(list) do { \
     __typeof(list) _prev = NULL; \
     __typeof(list) _next = NULL; \
