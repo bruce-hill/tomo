@@ -32,10 +32,6 @@ typedef struct {
     int64_t next_lambda_id;
 } parse_ctx_t;
 
-typedef ast_t* (parser_t)(parse_ctx_t*,const char*);
-
-extern void builtin_fail(const char *fmt, ...);
-
 #define SPACES_PER_INDENT 4
 
 #define PARSER(name) ast_t *name(parse_ctx_t *ctx, const char *pos)
