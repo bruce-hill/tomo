@@ -71,21 +71,31 @@ static inline const char* get_id(const char **pos);
 static inline bool comment(const char **pos);
 static inline bool indent(parse_ctx_t *ctx, const char **pos);
 static inline binop_e match_binary_operator(const char **pos);
-static ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn);
-static ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self);
+static ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr);
 static ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs);
+static ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn);
 static ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs);
-static ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *lhs);
-static ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *lhs);
-static ast_t *parse_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
+static ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self);
 static ast_t *parse_non_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
+static ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt);
+static ast_t *parse_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed);
+static type_ast_t *parse_array_type(parse_ctx_t *ctx, const char *pos);
+static type_ast_t *parse_channel_type(parse_ctx_t *ctx, const char *pos);
+static type_ast_t *parse_func_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_non_optional_type(parse_ctx_t *ctx, const char *pos);
+static type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos);
+static type_ast_t *parse_set_type(parse_ctx_t *ctx, const char *pos);
+static type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos);
+static type_ast_t *parse_type_name(parse_ctx_t *ctx, const char *pos);
 static PARSER(parse_array);
+static PARSER(parse_assignment);
 static PARSER(parse_block);
+static PARSER(parse_bool);
 static PARSER(parse_channel);
 static PARSER(parse_declaration);
+static PARSER(parse_defer);
 static PARSER(parse_do);
 static PARSER(parse_doctest);
 static PARSER(parse_enum_def);
@@ -95,18 +105,35 @@ static PARSER(parse_extern);
 static PARSER(parse_file_body);
 static PARSER(parse_for);
 static PARSER(parse_func_def);
+static PARSER(parse_heap_alloc);
 static PARSER(parse_if);
 static PARSER(parse_inline_c);
+static PARSER(parse_int);
+static PARSER(parse_lambda);
 static PARSER(parse_lang_def);
 static PARSER(parse_namespace);
+static PARSER(parse_negative);
+static PARSER(parse_not);
+static PARSER(parse_null);
+static PARSER(parse_num);
+static PARSER(parse_parens);
+static PARSER(parse_pass);
 static PARSER(parse_path);
+static PARSER(parse_reduction);
+static PARSER(parse_return);
 static PARSER(parse_say);
+static PARSER(parse_set);
+static PARSER(parse_skip);
+static PARSER(parse_stack_reference);
 static PARSER(parse_statement);
+static PARSER(parse_stop);
 static PARSER(parse_struct_def);
+static PARSER(parse_table);
 static PARSER(parse_term);
 static PARSER(parse_term_no_suffix);
 static PARSER(parse_text);
 static PARSER(parse_top_declaration);
+static PARSER(parse_update);
 static PARSER(parse_use);
 static PARSER(parse_var);
 static PARSER(parse_when);
@@ -1700,7 +1727,7 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
     return lhs;
 }
 
-ast_t *parse_expr(parse_ctx_t *ctx, const char *pos) {
+PARSER(parse_expr) {
     return parse_infix_expr(ctx, pos, 0);
 }
 
@@ -2018,7 +2045,7 @@ PARSER(parse_struct_def) {
     return NewAST(ctx->file, start, pos, StructDef, .name=name, .fields=fields, .namespace=namespace, .secret=secret);
 }
 
-ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
+PARSER(parse_enum_def) {
     // tagged union: enum Foo(a, b(x:Int,y:Int)=5, ...) [: \n namespace]
     const char *start = pos;
     if (!match_word(&pos, "enum")) return NULL;
