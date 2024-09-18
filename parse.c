@@ -61,12 +61,11 @@ static const char *keywords[] = {
 };
 
 enum {NORMAL_FUNCTION=0, EXTERN_FUNCTION=1};
-typedef enum {WHITESPACE_NONE=0, WHITESPACE_SPACES=1, WHITESPACE_NEWLINES=2, WHITESPACE_COMMENTS=4} whitespace_types_e;
 
 static inline size_t some_of(const char **pos, const char *allow);
 static inline size_t some_not(const char **pos, const char *forbid);
 static inline size_t spaces(const char **pos);
-static inline whitespace_types_e whitespace(const char **pos);
+static inline void whitespace(const char **pos);
 static inline size_t match(const char **pos, const char *target);
 static inline void expect_str(parse_ctx_t *ctx, const char *start, const char **pos, const char *target, const char *fmt, ...);
 static inline void expect_closing(parse_ctx_t *ctx, const char **pos, const char *target, const char *fmt, ...);
@@ -262,18 +261,9 @@ size_t spaces(const char **pos) {
     return some_of(pos, " \t");
 }
 
-whitespace_types_e whitespace(const char **pos) {
-    whitespace_types_e spaces = WHITESPACE_NONE;
-    for (;;) {
-        if (some_of(pos, " \t")) {
-            spaces |= WHITESPACE_SPACES;
-        } else if (some_of(pos, "\r\n")) {
-            spaces |= WHITESPACE_NEWLINES;
-        } else if (comment(pos)) {
-            spaces |= WHITESPACE_COMMENTS;
-        } else break;
-    }
-    return spaces;
+void whitespace(const char **pos) {
+    while (some_of(pos, " \t\r\n") || comment(pos))
+        continue;
 }
 
 size_t match(const char **pos, const char *target) {
