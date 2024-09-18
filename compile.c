@@ -455,6 +455,9 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         if (test->expr->tag == Declare) {
             auto decl = Match(test->expr, Declare);
+            const char *varname = Match(decl->var, Var)->name;
+            if (streq(varname, "_"))
+                return compile_statement(env, WrapAST(ast, DocTest, .expr=decl->value, .output=test->output, .skip_source=test->skip_source));
             CORD var = CORD_all("$", Match(decl->var, Var)->name);
             type_t *t = get_type(env, decl->value);
             CORD val_code = compile_maybe_incref(env, decl->value);
@@ -560,6 +563,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
         auto decl = Match(ast, Declare);
         if (decl->value->tag == Use) {
             return compile_statement(env, decl->value);
+        } else if (streq(Match(decl->var, Var)->name, "_")) { // Explicit discard
+            return CORD_all("(void)", compile(env, decl->value), ";");
         } else {
             type_t *t = get_type(env, decl->value);
             if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)

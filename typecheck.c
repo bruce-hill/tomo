@@ -260,6 +260,8 @@ void bind_statement(env_t *env, ast_t *statement)
     case Declare: {
         auto decl = Match(statement, Declare);
         const char *name = Match(decl->var, Var)->name;
+        if (streq(name, "_")) // Explicit discard
+            return;
         if (get_binding(env, name))
             code_err(decl->var, "A %T called '%s' has already been defined", get_binding(env, name)->type, name);
         if (decl->value->tag == Use) {
@@ -1164,10 +1166,12 @@ type_t *get_type(env_t *env, ast_t *ast)
             falsey_scope = fresh_scope(env);
             bind_statement(falsey_scope, if_->condition);
 
-            truthy_scope = fresh_scope(env);
             const char *varname = Match(Match(if_->condition, Declare)->var, Var)->name;
-            set_binding(truthy_scope, varname,
-                        new(binding_t, .type=Match(condition_type, OptionalType)->type));
+            if (!streq(varname, "_")) {
+                truthy_scope = fresh_scope(env);
+                set_binding(truthy_scope, varname,
+                            new(binding_t, .type=Match(condition_type, OptionalType)->type));
+            }
         } else if (if_->condition->tag == Var) {
             type_t *condition_type = get_type(env, if_->condition);
             if (condition_type->tag == OptionalType) {
