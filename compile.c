@@ -3811,8 +3811,7 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
             compile_namespace_header(env, def->name, def->namespace));
     }
     case EnumDef: {
-        return CORD_all(compile_enum_typedef(env, ast),
-                        compile_enum_declarations(env, ast));
+        return compile_enum_header(env, ast);
     }
     case LangDef: {
         auto def = Match(ast, LangDef);

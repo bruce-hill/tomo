@@ -203,35 +203,29 @@ void compile_enum_def(env_t *env, ast_t *ast)
     compile_namespace(env, def->name, def->namespace);
 }
 
-CORD compile_enum_typedef(env_t *env, ast_t *ast)
+CORD compile_enum_header(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
+    CORD full_name = CORD_all(namespace_prefix(env->libname, env->namespace), def->name);
     CORD all_defs = CORD_all("typedef struct ", full_name, "_s ", full_name, "_t;\n");
     CORD enum_def = CORD_all("struct ", full_name, "_s {\n"
                              "\tenum { ", full_name, "$null=0, ");
 
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         enum_def = CORD_all(enum_def, full_name, "$tag$", tag->name);
-        if (tag->next) enum_def = CORD_cat(enum_def, ", ");
+        if (tag->next) enum_def = CORD_all(enum_def, ", ");
     }
-    enum_def = CORD_cat(enum_def, "} tag;\n"
+    enum_def = CORD_all(enum_def, "} tag;\n"
                         "union {\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         CORD field_def = compile_struct_typedef(env, WrapAST(ast, StructDef, .name=CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)), .fields=tag->fields));
         all_defs = CORD_all(all_defs, field_def);
         enum_def = CORD_all(enum_def, full_name, "$", tag->name, "_t $", tag->name, ";\n");
     }
-    enum_def = CORD_cat(enum_def, "};\n};\n");
+    enum_def = CORD_all(enum_def, "};\n};\n");
     all_defs = CORD_all(all_defs, enum_def);
-    return all_defs;
-}
 
-CORD compile_enum_declarations(env_t *env, ast_t *ast)
-{
-    auto def = Match(ast, EnumDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
-    CORD all_defs = CORD_all("extern const TypeInfo ", full_name, ";\n");
+    all_defs = CORD_all(all_defs, "extern const TypeInfo ", full_name, ";\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         all_defs = CORD_all(all_defs,
                             "extern const TypeInfo ", namespace_prefix(env->libname, env->namespace), def->name, "$", tag->name, ";\n");
@@ -240,11 +234,11 @@ CORD compile_enum_declarations(env_t *env, ast_t *ast)
             for (arg_ast_t *field = tag->fields; field; field = field->next) {
                 type_t *field_t = get_arg_ast_type(env, field);
                 arg_sig = CORD_all(arg_sig, compile_declaration(field_t, CORD_all("$", field->name)));
-                if (field->next) arg_sig = CORD_cat(arg_sig, ", ");
+                if (field->next) arg_sig = CORD_all(arg_sig, ", ");
             }
             if (arg_sig == CORD_EMPTY) arg_sig = "void";
             CORD constructor_def = CORD_all(full_name, "_t ", full_name, "$tagged$", tag->name, "(", arg_sig, ");\n");
-            all_defs = CORD_cat(all_defs, constructor_def);
+            all_defs = CORD_all(all_defs, constructor_def);
         }
     }
     return CORD_all(all_defs, compile_namespace_header(env, def->name, def->namespace));
