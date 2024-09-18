@@ -1,7 +1,5 @@
 # Example Programs
 
-- [coroutine](coroutine/coroutine.tm): A library for coroutines similar to Lua's
-  (using [libaco](https://libaco.org)).
 - [game](game/): An example game using raylib.
 - [http](http/http.tm): An HTTP library to make basic synchronous HTTP requests.
 - [ini](ini/ini.tm): An INI configuration file reader tool.
