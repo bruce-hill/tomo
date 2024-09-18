@@ -1295,39 +1295,6 @@ PUREFUNC bool is_discardable(env_t *env, ast_t *ast)
     return (t->tag == VoidType || t->tag == AbortType || t->tag == ReturnType);
 }
 
-type_t *get_file_type(env_t *env, const char *path)
-{
-    ast_t *ast = parse_file(path, NULL);
-    if (!ast) compiler_err(NULL, NULL, NULL, "Couldn't parse file: %s", path);
-
-    arg_t *ns_fields = NULL;
-    for (ast_list_t *stmts = Match(ast, Block)->statements; stmts; stmts = stmts->next) {
-        ast_t *stmt = stmts->ast;
-      doctest_inner:
-        switch (stmt->tag) {
-        case Declare: {
-            auto decl = Match(stmt, Declare);
-            const char *name = Match(decl->var, Var)->name;
-            type_t *t = get_type(env, decl->value);
-            ns_fields = new(arg_t, .name=name, .type=t, .next=ns_fields);
-            break;
-        }
-        case FunctionDef: {
-            type_t *t = get_function_def_type(env, stmt);
-            const char *name = Match(Match(stmt, FunctionDef)->name, Var)->name;
-            ns_fields = new(arg_t, .name=name, .type=t, .next=ns_fields);
-            break;
-        }
-        case DocTest: {
-            stmt = Match(stmt, DocTest)->expr;
-            goto doctest_inner;
-        }
-        default: break;
-        }
-    }
-    return Type(StructType, .name=path, .fields=ns_fields);
-}
-
 type_t *get_arg_ast_type(env_t *env, arg_ast_t *arg)
 {
     assert(arg->type || arg->value);

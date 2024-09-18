@@ -17,7 +17,6 @@ void prebind_statement(env_t *env, ast_t *statement);
 void bind_statement(env_t *env, ast_t *statement);
 PUREFUNC type_t *get_math_type(env_t *env, ast_t *ast, type_t *lhs_t, type_t *rhs_t);
 PUREFUNC bool is_discardable(env_t *env, ast_t *ast);
-type_t *get_file_type(env_t *env, const char *path);
 type_t *get_function_def_type(env_t *env, ast_t *ast);
 type_t *get_arg_type(env_t *env, arg_t *arg);
 type_t *get_arg_ast_type(env_t *env, arg_ast_t *arg);
