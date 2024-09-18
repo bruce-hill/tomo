@@ -396,17 +396,6 @@ PUREFUNC bool is_numeric_type(type_t *t)
     return t->tag == IntType || t->tag == BigIntType || t->tag == NumType;
 }
 
-PUREFUNC bool supports_optionals(type_t *t)
-{
-    switch (t->tag) {
-    case BoolType: case ByteType: case CStringType: case BigIntType: case NumType: case TextType:
-    case ArrayType: case SetType: case TableType: case FunctionType: case ClosureType:
-    case PointerType: case IntType:
-        return true;
-    default: return false;
-    }
-}
-
 PUREFUNC size_t type_size(type_t *t)
 {
 #pragma GCC diagnostic ignored "-Wswitch-default"
