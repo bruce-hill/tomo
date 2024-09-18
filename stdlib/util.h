@@ -34,19 +34,6 @@
 #define CONSTFUNC __attribute__ ((const))
 #endif
 
-#define REVERSE_LIST(list) do { \
-    __typeof(list) _prev = NULL; \
-    __typeof(list) _next = NULL; \
-    auto _current = list; \
-    while (_current != NULL) { \
-        _next = _current->next; \
-        _current->next = _prev; \
-        _prev = _current; \
-        _current = _next; \
-    } \
-    list = _prev; \
-} while(0)
-
 __attribute__((format(printf, 1, 2)))
 char *heap_strf(const char *fmt, ...);
 

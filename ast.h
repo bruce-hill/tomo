@@ -20,6 +20,19 @@
 #define WrapAST(ast, ast_tag, ...) (new(ast_t, .file=(ast)->file, .start=(ast)->start, .end=(ast)->end, .tag=ast_tag, .__data.ast_tag={__VA_ARGS__}))
 #define TextAST(ast, _str) WrapAST(ast, TextLiteral, .str=GC_strdup(_str))
 
+#define REVERSE_LIST(list) do { \
+    __typeof(list) _prev = NULL; \
+    __typeof(list) _next = NULL; \
+    auto _current = list; \
+    while (_current != NULL) { \
+        _next = _current->next; \
+        _current->next = _prev; \
+        _prev = _current; \
+        _current = _next; \
+    } \
+    list = _prev; \
+} while(0)
+
 struct binding_s;
 typedef struct type_ast_s type_ast_t;
 typedef struct ast_s ast_t;
