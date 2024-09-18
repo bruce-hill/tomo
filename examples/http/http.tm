@@ -7,8 +7,6 @@ struct HTTPResponse(code:Int, body:Text)
 
 enum _Method(GET, POST, PUT, PATCH, DELETE)
 
-_curl := !@Memory
-
 func _send(method:_Method, url:Text, data:Text?, headers=[:Text])->HTTPResponse:
     chunks := @[:Text]
     save_chunk := func(chunk:CString, size:Int64, n:Int64):
