@@ -68,7 +68,6 @@ typedef struct {
 env_t *new_compilation_unit(CORD *libname);
 env_t *load_module_env(env_t *env, ast_t *ast);
 CORD namespace_prefix(CORD *libname, namespace_t *ns);
-env_t *global_scope(env_t *env);
 env_t *namespace_scope(env_t *env);
 env_t *fresh_scope(env_t *env);
 env_t *for_scope(env_t *env, ast_t *ast);
