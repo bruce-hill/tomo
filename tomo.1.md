@@ -44,9 +44,14 @@ C code, which is then compiled using a C compiler of your choice.
 `-c`
 : Compile the input files to static objects, rather than running them.
 
-`-s=`*foo.1.2.3*
-: Compile the input files to a shared object file, `libfoo.1.2.3.so`, and shared
-header file, `libfoo.1.2.3.h`. Also offer to install the resulting library.
+`-e`
+: Compile the input file to an executable.
+
+`-L`
+: Compile the input files to a library `.so` file and header.
+
+`-I`
+: Install the compiled executable or library.
 
 ## ENVIRONMENT VARIABLES
 

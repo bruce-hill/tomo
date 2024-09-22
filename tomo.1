@@ -40,11 +40,14 @@ Transpile the input files to C code without compiling them.
 \f[B]-c\f[R]
 Compile the input files to static objects, rather than running them.
 .TP
-\f[B]-s=\f[R]\f[I]foo.1.2.3\f[R]
-Compile the input files to a shared object file,
-\f[B]libfoo.1.2.3.so\f[R], and shared header file,
-\f[B]libfoo.1.2.3.h\f[R].
-Also offer to install the resulting library.
+\f[B]-e\f[R]
+Compile the input file to an executable.
+.TP
+\f[B]-L\f[R]
+Compile the input files to a library \f[B].so\f[R] file and header.
+.TP
+\f[B]-I\f[R]
+Install the compiled executable or library.
 .SS ENVIRONMENT VARIABLES
 Some options can be configured by setting environment variables.
 .TP

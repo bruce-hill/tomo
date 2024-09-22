@@ -125,10 +125,10 @@ the current directory.
 
 ### Installing
 
-Once the `libwhatever.so` and `whatever.h` files have been built, Tomo will ask
-if you want to install this library. If you choose to install it, Tomo will
-copy the entire directory (excluding files and directories that begin with `.`
-such as `.git`) into `~/.local/share/tomo/installed/`.
+If you additionally add the `-I` flag, Tomo will copy the entire directory
+(excluding files and directories that begin with `.` such as `.git`) into
+`~/.local/share/tomo/installed/` and create a symbolic link for the library's
+`.so` file in `~/.local/share/tomo/lib/`.
 
 ### Using Shared Libraries
 

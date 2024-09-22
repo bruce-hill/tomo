@@ -29,12 +29,13 @@ typedef enum { MODE_TRANSPILE = 0, MODE_COMPILE_OBJ = 1, MODE_COMPILE_SHARED_OBJ
 
 static bool verbose = false;
 static bool show_codegen = false;
+static bool should_install = false;
 static CORD autofmt = CORD_EMPTY, cconfig = CORD_EMPTY, cflags = CORD_EMPTY, ldlibs = CORD_EMPTY, ldflags = CORD_EMPTY, cc = CORD_EMPTY;
 
 static void transpile_header(env_t *base_env, const char *filename, bool force_retranspile);
 static void transpile_code(env_t *base_env, const char *filename, bool force_retranspile);
 static void compile_object_file(const char *filename, bool force_recompile);
-static void compile_executable(env_t *base_env, const char *filename, CORD object_files, CORD extra_ldlibs);
+static const char *compile_executable(env_t *base_env, const char *filename, CORD object_files, CORD extra_ldlibs);
 static void build_file_dependency_graph(const char *filename, Table_t *to_compile, Table_t *to_link);
 static const char *escape_lib_name(const char *lib_name);
 static void build_library(const char *lib_base_name);
@@ -52,12 +53,14 @@ int main(int argc, char *argv[])
             mode = MODE_COMPILE_OBJ;
         } else if (streq(argv[i], "-L")) {
             mode = MODE_COMPILE_SHARED_OBJ;
+        } else if (streq(argv[i], "-I")) {
+            should_install = true;
         } else if (streq(argv[i], "-r")) {
             mode = MODE_RUN;
         } else if (streq(argv[i], "-e")) {
             mode = MODE_COMPILE_EXE;
         } else if (streq(argv[i], "-h") || streq(argv[i], "--help")) {
-            printf("Usage: %s | %s [-r] file.tm args... | %s (-t|-c) file1.tm file2.tm... | %s -L [dir]\n",
+            printf("Usage: %s | %s [-r] file.tm args... | %s (-t|-c) file1.tm file2.tm... | %s [-I] -L [dir]\n",
                    argv[0], argv[0], argv[0], argv[0]);
             return 0;
         } else if (streq(argv[i], "-u")) {
@@ -129,9 +132,12 @@ int main(int argc, char *argv[])
         env_t *env = new_compilation_unit(NULL);
         CORD object_files, extra_ldlibs;
         compile_files(env, 1, &filename, false, &object_files, &extra_ldlibs);
-        compile_executable(env, filename, object_files, extra_ldlibs);
-        if (mode == MODE_COMPILE_EXE)
+        const char *bin_name = compile_executable(env, filename, object_files, extra_ldlibs);
+        if (mode == MODE_COMPILE_EXE) {
+            if (should_install)
+                system(heap_strf("cp -v '%s' ~/.local/bin/", bin_name));
             return 0;
+        }
 
         char *exe_name = GC_strndup(filename, strlen(filename) - strlen(".tm"));
         int num_args = argc - after_flags - 1;
@@ -293,13 +299,7 @@ void build_library(const char *lib_base_name)
 
     unlink("symbol_renames.txt");
 
-    printf("Do you want to install %s? [Y/n] ", libname);
-    fflush(stdout);
-    switch (getchar()) {
-    case 'y': case 'Y':
-        getchar();
-        // Fall through
-    case '\n': {
+    if (should_install) {
         const char *dest = heap_strf("%s/.local/share/tomo/installed/%s", getenv("HOME"), lib_base_name);
         if (!streq(library_directory, dest)) {
             system(heap_strf("rm -rvf '%s'", dest));
@@ -308,8 +308,6 @@ void build_library(const char *lib_base_name)
         }
         system("mkdir -p ~/.local/share/tomo/lib/");
         system(heap_strf("ln -fv -s ../installed/'%s'/lib%s.so  ~/.local/share/tomo/lib/lib%s.so", lib_base_name, libname, libname));
-    }
-    default: break;
     }
 
     free(library_directory);
@@ -566,7 +564,7 @@ void compile_object_file(const char *filename, bool force_recompile)
         CORD_printf("Compiled to %r\n", outfile);
 }
 
-void compile_executable(env_t *base_env, const char *filename, CORD object_files, CORD extra_ldlibs)
+const char *compile_executable(env_t *base_env, const char *filename, CORD object_files, CORD extra_ldlibs)
 {
     ast_t *ast = parse_file(filename, NULL);
     if (!ast)
@@ -599,6 +597,7 @@ void compile_executable(env_t *base_env, const char *filename, CORD object_files
 
     if (verbose)
         printf("Compiled executable: %s\n", bin_name);
+    return bin_name;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
