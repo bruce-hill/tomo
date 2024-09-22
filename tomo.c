@@ -38,7 +38,7 @@ static void compile_object_file(const char *filename, bool force_recompile);
 static const char *compile_executable(env_t *base_env, const char *filename, CORD object_files, CORD extra_ldlibs);
 static void build_file_dependency_graph(const char *filename, Table_t *to_compile, Table_t *to_link);
 static const char *escape_lib_name(const char *lib_name);
-static void build_library(const char *lib_base_name);
+static void build_library(const char *lib_dir_name);
 static void compile_files(env_t *env, int filec, const char **filev, bool only_compile_arguments, CORD *object_files, CORD *ldlibs);
 
 #pragma GCC diagnostic ignored "-Wstack-protector"
@@ -235,7 +235,7 @@ static void _compile_file_header_for_library(env_t *env, const char *filename, T
     CORD_fprintf(output, "void %r$initialize(void);\n", namespace_prefix(module_env->libname, module_env->namespace));
 }
 
-void build_library(const char *lib_base_name)
+void build_library(const char *lib_dir_name)
 {
     glob_t tm_files;
     char *library_directory = get_current_dir_name();
@@ -247,11 +247,11 @@ void build_library(const char *lib_base_name)
 
     // Library name replaces all stretchs of non-alphanumeric chars with an underscore
     // So e.g. https://github.com/foo/baz --> https_github_com_foo_baz
-    const char *libname = escape_lib_name(lib_base_name);
-    env->libname = &libname;
+    const char *lib_id = escape_lib_name(lib_dir_name);
+    env->libname = &lib_id;
 
     // Build a "whatever.h" header that loads all the headers:
-    FILE *header_prog = CORD_RUN(autofmt ? autofmt : "cat", " 2>/dev/null >", libname, ".h");
+    FILE *header_prog = CORD_RUN(autofmt ? autofmt : "cat", " 2>/dev/null >'", lib_dir_name, ".h'");
     fputs("#pragma once\n", header_prog);
     fputs("#include <tomo/tomo.h>\n", header_prog);
     Table_t visited_files = {};
@@ -269,7 +269,7 @@ void build_library(const char *lib_base_name)
     FILE *prog;
     for (size_t i = 0; i < tm_files.gl_pathc; i++) {
         const char *filename = tm_files.gl_pathv[i];
-        prog = CORD_RUN("nm -Ug -fjust-symbols ", filename, ".o | sed 's/.*/\\0 ", libname, "$\\0/' >>symbol_renames.txt");
+        prog = CORD_RUN("nm -Ug -fjust-symbols ", filename, ".o | sed 's/.*/\\0 ", lib_id, "$\\0/' >>symbol_renames.txt");
         int status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
             errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `sed`");
@@ -277,19 +277,20 @@ void build_library(const char *lib_base_name)
 
     globfree(&tm_files);
 
-    prog = CORD_RUN(cc, " ", cflags, " ", ldflags, " ", ldlibs, " ", extra_ldlibs, " -Wl,-soname=lib", libname, ".so -shared ", object_files, " -o lib", libname, ".so");
+    prog = CORD_RUN(cc, " ", cflags, " ", ldflags, " ", ldlibs, " ", extra_ldlibs, " '-Wl,-soname=lib", lib_dir_name, ".so' -shared ",
+                    object_files, " -o 'lib", lib_dir_name, ".so'");
     int status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         errx(WEXITSTATUS(status), "Failed to compile shared library file");
     if (verbose)
-        CORD_printf("Compiled to lib%s.so\n", libname);
+        CORD_printf("Compiled to lib%s.so\n", lib_dir_name);
 
-    prog = CORD_RUN("objcopy --redefine-syms=symbol_renames.txt lib", libname, ".so");
+    prog = CORD_RUN("objcopy --redefine-syms=symbol_renames.txt 'lib", lib_dir_name, ".so'");
     status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         errx(WEXITSTATUS(status), "Failed to run `objcopy` to add library prefix to symbols");
 
-    prog = CORD_RUN("patchelf --rename-dynamic-symbols symbol_renames.txt lib", libname, ".so");
+    prog = CORD_RUN("patchelf --rename-dynamic-symbols symbol_renames.txt 'lib", lib_dir_name, ".so'");
     status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         errx(WEXITSTATUS(status), "Failed to run `patchelf` to rename dynamic symbols with library prefix");
@@ -300,14 +301,14 @@ void build_library(const char *lib_base_name)
     unlink("symbol_renames.txt");
 
     if (should_install) {
-        const char *dest = heap_strf("%s/.local/share/tomo/installed/%s", getenv("HOME"), lib_base_name);
+        const char *dest = heap_strf("%s/.local/share/tomo/installed/%s", getenv("HOME"), lib_dir_name);
         if (!streq(library_directory, dest)) {
             system(heap_strf("rm -rvf '%s'", dest));
             system(heap_strf("mkdir -p '%s'", dest));
             system(heap_strf("cp -rv * '%s/'", dest));
         }
         system("mkdir -p ~/.local/share/tomo/lib/");
-        system(heap_strf("ln -fv -s ../installed/'%s'/lib%s.so  ~/.local/share/tomo/lib/lib%s.so", lib_base_name, libname, libname));
+        system(heap_strf("ln -fv -s ../installed/'%s'/lib'%s'.so  ~/.local/share/tomo/lib/lib'%s'.so", lib_dir_name, lib_dir_name, lib_dir_name));
     }
 
     free(library_directory);
@@ -418,9 +419,9 @@ void build_file_dependency_graph(const char *filename, Table_t *to_compile, Tabl
             break;
         }
         case USE_MODULE: {
-            const char *lib_name = escape_lib_name(use->path);
+            // const char *lib_name = escape_lib_name(use->path);
             // const char *lib = heap_strf("-l:'lib%s.so'", lib_name);
-            const char *lib = heap_strf("'%s/.local/share/tomo/installed/%s/lib%s.so'", getenv("HOME"), lib_name, lib_name);
+            const char *lib = heap_strf("'%s/.local/share/tomo/installed/%s/lib%s.so'", getenv("HOME"), use->path, use->path);
             Table$str_set(to_link, lib, lib);
             break;
         }

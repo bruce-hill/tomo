@@ -1374,17 +1374,16 @@ CORD compile_statement(env_t *env, ast_t *ast)
         } else if (use->what == USE_C_CODE) {
             return CORD_all("#include \"", use->path, "\"\n");
         } else if (use->what == USE_MODULE) {
-            const char *libname = Text$as_c_string(
-                Text$replace(Text$from_str(use->path), Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false));
-
             glob_t tm_files;
-            if (glob(heap_strf("~/.local/share/tomo/installed/%s/[!._0-9]*.tm", libname), GLOB_TILDE, NULL, &tm_files) != 0)
+            if (glob(heap_strf("~/.local/share/tomo/installed/%s/[!._0-9]*.tm", use->path), GLOB_TILDE, NULL, &tm_files) != 0)
                 code_err(ast, "Could not find library");
 
+            const char *lib_id = Text$as_c_string(
+                Text$replace(Text$from_str(use->path), Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false));
             for (size_t i = 0; i < tm_files.gl_pathc; i++) {
                 const char *filename = tm_files.gl_pathv[i];
                 env->code->variable_initializers = CORD_all(
-                    env->code->variable_initializers, use->path, "$", file_base_name(filename), "$$initialize();\n");
+                    env->code->variable_initializers, lib_id, "$", file_base_name(filename), "$$initialize();\n");
             }
             globfree(&tm_files);
         }
@@ -3794,9 +3793,7 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
         auto use = Match(ast, Use);
         switch (use->what) {
         case USE_MODULE: {
-            const char *libname = Text$as_c_string(
-                Text$replace(Text$from_str(use->path), Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false));
-            return CORD_all("#include <", libname, "/", libname, ".h>\n");
+            return CORD_all("#include <", use->path, "/", use->path, ".h>\n");
         }
         case USE_LOCAL: 
             return CORD_all("#include \"", use->path, ".h\"\n");

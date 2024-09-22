@@ -153,20 +153,14 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
         return load_module_env(env, ast);
     }
     case USE_MODULE: {
-        const char *libname = Text$as_c_string(
-            Text$replace(Text$from_str(use->path), Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false));
-
         glob_t tm_files;
-        if (glob(heap_strf("~/.local/share/tomo/installed/%s/[!._0-9]*.tm", libname), GLOB_TILDE, NULL, &tm_files) != 0)
+        if (glob(heap_strf("~/.local/share/tomo/installed/%s/[!._0-9]*.tm", use->path), GLOB_TILDE, NULL, &tm_files) != 0)
             code_err(module_ast, "Could not find library");
 
         env_t *module_env = fresh_scope(env);
         Table$str_set(env->imports, use->path, module_env);
-        char *libname_id = GC_strdup(libname);
-        for (char *c = libname_id; *c; c++) {
-            if (!isalnum(*c) && *c != '_')
-                *c = '_';
-        }
+        char *libname_id = Text$as_c_string(
+            Text$replace(Text$from_str(use->path), Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false));
         module_env->libname = new(CORD);
         *module_env->libname = (CORD)libname_id;
         for (size_t i = 0; i < tm_files.gl_pathc; i++) {
