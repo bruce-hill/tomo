@@ -180,11 +180,12 @@ A list of paths for the children.
 ### `create_directory`
 
 **Description:**  
-Creates a new directory at the specified path with the given permissions.
+Creates a new directory at the specified path with the given permissions. If
+any of the parent directories do not exist, they will be created as needed.
 
 **Usage:**  
 ```markdown
-create_directory(path: Path, permissions=0o644[32]) -> Void
+create_directory(path: Path, permissions=0o755[32]) -> Void
 ```
 
 **Parameters:**

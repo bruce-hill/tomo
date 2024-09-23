@@ -322,8 +322,27 @@ public void Path$remove(Path_t path, bool ignore_missing)
 public void Path$create_directory(Path_t path, int permissions)
 {
     path = Path$_expand_home(path);
-    if (mkdir(Text$as_c_string(path), (mode_t)permissions) != 0)
-        fail("Could not create directory: %k (%s)", &path, strerror(errno));
+    char *c_path = Text$as_c_string(path);
+    char *end = c_path + strlen(c_path);
+    if (*end == '/' && end > c_path) {
+        *end = '\0';
+        --end;
+    }
+    char *end_of_component = strchrnul(c_path + 1, '/');
+    for (;;) {
+        if (end_of_component < end)
+            *end_of_component = '\0';
+
+        int status = mkdir(c_path, (mode_t)permissions);
+        if (status != 0 && errno != EEXIST)
+            fail("Could not create directory: %s (%s)", c_path, strerror(errno));
+
+        if (end_of_component >= end)
+            break;
+
+        *end_of_component = '/';
+        end_of_component = strchrnul(end_of_component + 1, '/');
+    }
 }
 
 static Array_t _filtered_children(Path_t path, bool include_hidden, mode_t filter)
