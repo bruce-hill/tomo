@@ -17,6 +17,7 @@
 
 OptionalClosure_t Shell$by_line(Shell_t command);
 Shell_t Shell$escape_text(Text_t text);
+Shell_t Shell$escape_text_array(Array_t texts);
 OptionalArray_t Shell$run_bytes(Shell_t command);
 OptionalText_t Shell$run(Shell_t command);
 

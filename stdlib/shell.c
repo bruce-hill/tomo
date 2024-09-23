@@ -33,6 +33,17 @@ public Shell_t Shell$escape_text(Text_t text)
     return (Text_t){.length=shell_graphemes.length, .tag=TEXT_GRAPHEMES, .graphemes=shell_graphemes.data};
 }
 
+public Shell_t Shell$escape_text_array(Array_t texts)
+{
+    Array_t all_escaped = {};
+    for (int64_t i = 0; i < texts.length; i++) {
+        Text_t raw = *(Text_t*)(texts.data + i*texts.stride);
+        Text_t escaped = Shell$escape_text(raw);
+        Array$insert(&all_escaped, &escaped, I(0), sizeof(Text_t));
+    }
+    return Text$join(Text(" "), all_escaped);
+}
+
 public OptionalArray_t Shell$run_bytes(Shell_t command)
 {
     const char *cmd_str = Text$as_c_string(command);

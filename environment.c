@@ -304,6 +304,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"by_line", "Shell$by_line", "func(command:Shell)->(func()->Text?)?"},
             {"escape_int", "Int$value_as_text", "func(i:Int)->Shell"},
             {"escape_text", "Shell$escape_text", "func(text:Text)->Shell"},
+            {"escape_text_array", "Shell$escape_text_array", "func(texts:[Text])->Shell"},
             {"run_bytes", "Shell$run", "func(command:Shell)->[Byte]?"},
             {"run", "Shell$run", "func(command:Shell)->Text?"},
         )},
