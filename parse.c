@@ -12,11 +12,12 @@
 #include <signal.h>
 
 #include "ast.h"
-#include "stdlib/integers.h"
-#include "stdlib/text.h"
-#include "stdlib/tables.h"
-#include "stdlib/util.h"
 #include "cordhelpers.h"
+#include "stdlib/integers.h"
+#include "stdlib/patterns.h"
+#include "stdlib/tables.h"
+#include "stdlib/text.h"
+#include "stdlib/util.h"
 
 // The cache of {filename -> parsed AST} will hold at most this many entries:
 #ifndef PARSE_CACHE_SIZE
@@ -2368,6 +2369,20 @@ PARSER(parse_use) {
         what = USE_SHARED_OBJECT;
     } else {
         what = USE_MODULE;
+
+        // When `use`ing a URL, convert it to a hash:
+        Text_t text = Text$from_str(name);
+        Array_t m = Text$matches(text, Pattern("{url}"));
+        if (m.length >= 0) {
+            text = Text$trim(text, Pattern("http{0-1 s}://"), true, false);
+            FILE *shasum = popen(heap_strf("echo -n '%s' | sha256sum", Text$as_c_string(text)), "r");
+            const int HASH_LEN = 32;
+            char *hash = GC_MALLOC_ATOMIC(HASH_LEN + 1);
+            size_t just_read = fread(hash, sizeof(char), HASH_LEN, shasum);
+            if (just_read < HASH_LEN)
+                errx(1, "Failed to get SHA sum for 'use': %s", name);
+            name = hash;
+        }
     }
     return NewAST(ctx->file, start, pos, Use, .path=name, .what=what);
 }
