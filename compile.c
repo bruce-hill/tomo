@@ -1653,22 +1653,25 @@ CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t 
          (b && b->type->tag == FunctionType && ({ auto fn = Match(b->type, FunctionType);  \
                                                 (type_eq(fn->ret, ret_t) \
                                                  && (fn->args && type_eq(fn->args->type, lhs_t)) \
-                                                 && (fn->args->next && can_promote(fn->args->next->type, rhs_t)) \
+                                                 && (fn->args->next && can_promote(rhs_t, fn->args->next->type)) \
                                                  && (!required_type || type_eq(required_type, fn->ret))); }))
+    arg_ast_t *args = new(arg_ast_t, .value=lhs, .next=new(arg_ast_t, .value=rhs));
     switch (op) {
     case BINOP_MULT: {
         if (type_eq(lhs_t, rhs_t)) {
             binding_t *b = get_namespace_binding(env, lhs, binop_method_names[op]);
             if (binding_works(b, lhs_t, rhs_t, lhs_t))
-                return CORD_all(b->code, "(", compile(env, lhs), ", ", compile(env, rhs), ")");
+                return CORD_all(b->code, "(", compile_arguments(env, lhs, Match(b->type, FunctionType)->args, args), ")");
         } else if (lhs_t->tag == NumType || lhs_t->tag == IntType || lhs_t->tag == BigIntType) {
             binding_t *b = get_namespace_binding(env, rhs, "scaled_by");
-            if (binding_works(b, rhs_t, lhs_t, rhs_t))
-                return CORD_all(b->code, "(", compile(env, rhs), ", ", compile(env, lhs), ")");
+            if (binding_works(b, rhs_t, lhs_t, rhs_t)) {
+                REVERSE_LIST(args);
+                return CORD_all(b->code, "(", compile_arguments(env, lhs, Match(b->type, FunctionType)->args, args), ")");
+            }
         } else if (rhs_t->tag == NumType || rhs_t->tag == IntType|| rhs_t->tag == BigIntType) {
             binding_t *b = get_namespace_binding(env, lhs, "scaled_by");
             if (binding_works(b, lhs_t, rhs_t, lhs_t))
-                return CORD_all(b->code, "(", compile(env, lhs), ", ", compile(env, rhs), ")");
+                return CORD_all(b->code, "(", compile_arguments(env, lhs, Match(b->type, FunctionType)->args, args), ")");
         }
         break;
     }
@@ -1681,10 +1684,10 @@ CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t 
         break;
     }
     case BINOP_DIVIDE: case BINOP_MOD: case BINOP_MOD1: {
-        if (rhs_t->tag == NumType || rhs_t->tag == IntType || rhs_t->tag == BigIntType) {
+        if (is_numeric_type(rhs_t)) {
             binding_t *b = get_namespace_binding(env, lhs, binop_method_names[op]);
             if (binding_works(b, lhs_t, rhs_t, lhs_t))
-                return CORD_all(b->code, "(", compile(env, lhs), ", ", compile(env, rhs), ")");
+                return CORD_all(b->code, "(", compile_arguments(env, lhs, Match(b->type, FunctionType)->args, args), ")");
         }
         break;
     }
@@ -1692,7 +1695,7 @@ CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t 
         if (rhs_t->tag == IntType || rhs_t->tag == BigIntType) {
             binding_t *b = get_namespace_binding(env, lhs, binop_method_names[op]);
             if (binding_works(b, lhs_t, rhs_t, lhs_t))
-                return CORD_all(b->code, "(", compile(env, lhs), ", ", compile(env, rhs), ")");
+                return CORD_all(b->code, "(", compile_arguments(env, lhs, Match(b->type, FunctionType)->args, args), ")");
         }
         break;
     }
@@ -1700,7 +1703,7 @@ CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t 
         if (rhs_t->tag == NumType || rhs_t->tag == IntType || rhs_t->tag == BigIntType) {
             binding_t *b = get_namespace_binding(env, lhs, binop_method_names[op]);
             if (binding_works(b, lhs_t, rhs_t, lhs_t))
-                return CORD_all(b->code, "(", compile(env, lhs), ", ", compile(env, rhs), ")");
+                return CORD_all(b->code, "(", compile_arguments(env, lhs, Match(b->type, FunctionType)->args, args), ")");
         }
         break;
     }

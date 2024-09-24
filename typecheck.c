@@ -940,7 +940,7 @@ type_t *get_type(env_t *env, ast_t *ast)
          (b && b->type->tag == FunctionType && ({ auto fn = Match(b->type, FunctionType);  \
                                                 (type_eq(fn->ret, ret_t) \
                                                  && (fn->args && type_eq(fn->args->type, lhs_t)) \
-                                                 && (fn->args->next && can_promote(fn->args->next->type, rhs_t))); })); })
+                                                 && (fn->args->next && can_promote(rhs_t, fn->args->next->type))); })); })
         // Check for a binop method like plus() etc:
         switch (binop->op) {
         case BINOP_MULT: {
