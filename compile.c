@@ -2863,13 +2863,31 @@ CORD compile(env_t *env, ast_t *ast)
                 type_t *actual = get_type(env, call->args->value);
                 arg_t *args = new(arg_t, .name="i", .type=actual); // No truncation argument
                 CORD arg_code = compile_arguments(env, ast, args, call->args);
-                return CORD_all(type_to_cord(actual), "_to_", type_to_cord(t), "(", arg_code, ")");
+                if (is_numeric_type(actual)) {
+                    return CORD_all(type_to_cord(actual), "_to_", type_to_cord(t), "(", arg_code, ")");
+                } else if (actual->tag == BoolType) {
+                    if (t->tag == NumType) {
+                        return CORD_all("((", compile_type(t), ")(", arg_code, "))");
+                    } else {
+                        return CORD_all("I((int)(", arg_code, "))");
+                    }
+                } else {
+                    code_err(ast, "You cannot convert a %T to a %T this way.", actual, t);
+                }
             } else if (t->tag == IntType) {
                 type_t *actual = get_type(env, call->args->value);
-                arg_t *args = new(arg_t, .name="i", .type=actual, .next=new(arg_t, .name="truncate", .type=Type(BoolType),
-                                                                            .default_val=FakeAST(Bool, false)));
-                CORD arg_code = compile_arguments(env, ast, args, call->args);
-                return CORD_all(type_to_cord(actual), "_to_", type_to_cord(t), "(", arg_code, ")");
+                if (is_numeric_type(actual)) {
+                    arg_t *args = new(arg_t, .name="i", .type=actual, .next=new(arg_t, .name="truncate", .type=Type(BoolType),
+                                                                                .default_val=FakeAST(Bool, false)));
+                    CORD arg_code = compile_arguments(env, ast, args, call->args);
+                    return CORD_all(type_to_cord(actual), "_to_", type_to_cord(t), "(", arg_code, ")");
+                } else if (actual->tag == BoolType) {
+                    arg_t *args = new(arg_t, .name="i", .type=actual);
+                    CORD arg_code = compile_arguments(env, ast, args, call->args);
+                    return CORD_all("((", compile_type(t),")(", arg_code, "))");
+                } else {
+                    code_err(ast, "You cannot convert a %T to a %T this way.", actual, t);
+                }
             } else if (t->tag == TextType) {
                 if (!call->args) code_err(ast, "This constructor needs a value");
                 const char *lang = Match(t, TextType)->lang;
