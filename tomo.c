@@ -232,7 +232,7 @@ static void _compile_file_header_for_library(env_t *env, const char *filename, T
     visit_topologically(
         Match(file_ast, Block)->statements, (Closure_t){.fn=(void*)_compile_statement_header_for_library, &info});
 
-    CORD_fprintf(output, "void %r$initialize(void);\n", namespace_prefix(module_env->libname, module_env->namespace));
+    CORD_fprintf(output, "void %r$initialize(void);\n", namespace_prefix(module_env, module_env->namespace));
 }
 
 void build_library(const char *lib_dir_name)
@@ -247,8 +247,7 @@ void build_library(const char *lib_dir_name)
 
     // Library name replaces all stretchs of non-alphanumeric chars with an underscore
     // So e.g. https://github.com/foo/baz --> https_github_com_foo_baz
-    const char *lib_id = escape_lib_name(lib_dir_name);
-    env->libname = &lib_id;
+    env->libname = escape_lib_name(lib_dir_name);
 
     // Build a "whatever.h" header that loads all the headers:
     FILE *header_prog = CORD_RUN(autofmt ? autofmt : "cat", " 2>/dev/null >'", lib_dir_name, ".h'");
@@ -269,7 +268,7 @@ void build_library(const char *lib_dir_name)
     FILE *prog;
     for (size_t i = 0; i < tm_files.gl_pathc; i++) {
         const char *filename = tm_files.gl_pathv[i];
-        prog = CORD_RUN("nm -Ug -fjust-symbols ", filename, ".o | sed 's/.*/\\0 ", lib_id, "$\\0/' >>symbol_renames.txt");
+        prog = CORD_RUN("nm -Ug -fjust-symbols ", filename, ".o | sed 's/.*/\\0 $", env->libname, "\\0/' >>symbol_renames.txt");
         int status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
             errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `sed`");
@@ -523,7 +522,7 @@ void transpile_code(env_t *base_env, const char *filename, bool force_retranspil
         CORD_put(CORD_all(
             "int ", main_binding->code, "$parse_and_run(int argc, char *argv[]) {\n"
             "tomo_init();\n",
-            module_env->namespace->name, "$$initialize();\n"
+            "$", module_env->namespace->name, "$$initialize();\n"
             "\n",
             compile_cli_arg_call(module_env, main_binding->code, main_binding->type),
             "return 0;\n"

@@ -54,7 +54,7 @@ PUREFUNC public Range_t Range$by(Range_t r, Int_t step)
     return (Range_t){r.first, r.last, Int$times(step, r.step)};
 }
 
-public const TypeInfo Range = {sizeof(Range_t), __alignof(Range_t), {.tag=CustomInfo, .CustomInfo={
+public const TypeInfo Range$info = {sizeof(Range_t), __alignof(Range_t), {.tag=CustomInfo, .CustomInfo={
     .as_text=(void*)Range$as_text,
     .compare=(void*)Range$compare,
     .equal=(void*)Range$equal,

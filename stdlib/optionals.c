@@ -36,7 +36,7 @@ public PUREFUNC bool is_null(const void *obj, const TypeInfo *non_optional_type)
         return ((OptionalInt8_t*)obj)->is_null;
     else if (non_optional_type == &Byte$info)
         return ((OptionalByte_t*)obj)->is_null;
-    else if (non_optional_type == &Thread)
+    else if (non_optional_type == &Thread$info)
         return *(pthread_t**)obj == NULL;
 
     switch (non_optional_type->tag) {

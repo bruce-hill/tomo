@@ -161,8 +161,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
         Table$str_set(env->imports, use->path, module_env);
         char *libname_id = Text$as_c_string(
             Text$replace(Text$from_str(use->path), Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false));
-        module_env->libname = new(CORD);
-        *module_env->libname = (CORD)libname_id;
+        module_env->libname = libname_id;
         for (size_t i = 0; i < tm_files.gl_pathc; i++) {
             const char *filename = tm_files.gl_pathv[i];
             ast_t *ast = parse_file(filename, NULL);
@@ -205,7 +204,7 @@ void prebind_statement(env_t *env, ast_t *statement)
         type_t *type = Type(StructType, .name=def->name, .opaque=true, .env=ns_env); // placeholder
         Table$str_set(env->types, def->name, type);
         set_binding(env, def->name, new(binding_t, .type=Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
-                                        .code=CORD_all(namespace_prefix(env->libname, env->namespace), def->name)));
+                                        .code=CORD_all(namespace_prefix(env, env->namespace), def->name)));
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
         break;
@@ -219,7 +218,7 @@ void prebind_statement(env_t *env, ast_t *statement)
         type_t *type = Type(EnumType, .name=def->name, .opaque=true, .env=ns_env); // placeholder
         Table$str_set(env->types, def->name, type);
         set_binding(env, def->name, new(binding_t, .type=Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
-                                        .code=CORD_all(namespace_prefix(env->libname, env->namespace), def->name)));
+                                        .code=CORD_all(namespace_prefix(env, env->namespace), def->name)));
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
         break;
@@ -233,7 +232,7 @@ void prebind_statement(env_t *env, ast_t *statement)
         type_t *type = Type(TextType, .lang=def->name, .env=ns_env);
         Table$str_set(env->types, def->name, type);
         set_binding(env, def->name, new(binding_t, .type=Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
-                                        .code=CORD_all(namespace_prefix(env->libname, env->namespace), def->name)));
+                                        .code=CORD_all(namespace_prefix(env, env->namespace), def->name)));
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
         break;
@@ -266,7 +265,7 @@ void bind_statement(env_t *env, ast_t *statement)
             code_err(decl->value, "I couldn't figure out the type of this value");
         if (type->tag == FunctionType)
             type = Type(ClosureType, type);
-        CORD prefix = namespace_prefix(env->libname, env->namespace);
+        CORD prefix = namespace_prefix(env, env->namespace);
         CORD code = CORD_cat(prefix ? prefix : "$", name);
         set_binding(env, name, new(binding_t, .type=type, .code=code));
         break;
@@ -277,7 +276,7 @@ void bind_statement(env_t *env, ast_t *statement)
         if (get_binding(env, name))
             code_err(def->name, "A %T called '%s' has already been defined", get_binding(env, name)->type, name);
         type_t *type = get_function_def_type(env, statement);
-        CORD code = CORD_all(namespace_prefix(env->libname, env->namespace), name);
+        CORD code = CORD_all(namespace_prefix(env, env->namespace), name);
         set_binding(env, name, new(binding_t, .type=type, .code=code));
         break;
     }
@@ -346,9 +345,9 @@ void bind_statement(env_t *env, ast_t *statement)
         for (tag_t *tag = tags; tag; tag = tag->next) {
             if (Match(tag->type, StructType)->fields) { // Constructor:
                 type_t *constructor_t = Type(FunctionType, .args=Match(tag->type, StructType)->fields, .ret=type);
-                set_binding(ns_env, tag->name, new(binding_t, .type=constructor_t, .code=CORD_all(namespace_prefix(env->libname, env->namespace), def->name, "$tagged$", tag->name)));
+                set_binding(ns_env, tag->name, new(binding_t, .type=constructor_t, .code=CORD_all(namespace_prefix(env, env->namespace), def->name, "$tagged$", tag->name)));
             } else { // Empty singleton value:
-                CORD code = CORD_all("(", namespace_prefix(env->libname, env->namespace), def->name, "_t){", namespace_prefix(env->libname, env->namespace), def->name, "$tag$", tag->name, "}");
+                CORD code = CORD_all("(", namespace_prefix(env, env->namespace), def->name, "_t){", namespace_prefix(env, env->namespace), def->name, "$tag$", tag->name, "}");
                 set_binding(ns_env, tag->name, new(binding_t, .type=type, .code=code));
             }
             Table$str_set(env->types, heap_strf("%s$%s", def->name, tag->name), tag->type);
@@ -367,7 +366,7 @@ void bind_statement(env_t *env, ast_t *statement)
 
         set_binding(ns_env, "without_escaping",
                     new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE), .ret=type),
-                        .code=CORD_all("(", namespace_prefix(env->libname, env->namespace), def->name, "_t)")));
+                        .code=CORD_all("(", namespace_prefix(env, env->namespace), def->name, "_t)")));
 
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             bind_statement(ns_env, stmt->ast);

@@ -9,12 +9,14 @@
 #include "types.h"
 #include "util.h"
 
-pthread_t *Thread$new(Closure_t fn);
-void Thread$cancel(pthread_t *thread);
-void Thread$join(pthread_t *thread);
-void Thread$detach(pthread_t *thread);
-Text_t Thread$as_text(const pthread_t **thread, bool colorize, const TypeInfo *type);
+#define Thread_t pthread_t*
 
-extern TypeInfo Thread;
+Thread_t Thread$new(Closure_t fn);
+void Thread$cancel(Thread_t thread);
+void Thread$join(Thread_t thread);
+void Thread$detach(Thread_t thread);
+Text_t Thread$as_text(const Thread_t *thread, bool colorize, const TypeInfo *type);
+
+extern const TypeInfo Thread$info;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

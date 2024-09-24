@@ -15,7 +15,7 @@ type_t *TEXT_TYPE = NULL;
 type_t *RANGE_TYPE = NULL;
 public type_t *THREAD_TYPE = NULL;
 
-env_t *new_compilation_unit(CORD *libname)
+env_t *new_compilation_unit(CORD libname)
 {
     env_t *env = new(env_t);
     env->code = new(compilation_unit_t);
@@ -338,7 +338,7 @@ env_t *new_compilation_unit(CORD *libname)
             {"utf32_codepoints", "Text$utf32_codepoints", "func(text:Text)->[Int32]"},
             {"utf8_bytes", "Text$utf8_bytes", "func(text:Text)->[Byte]"},
         )},
-        {"Thread", THREAD_TYPE, "pthread_t*", "Thread", TypedArray(ns_entry_t,
+        {"Thread", THREAD_TYPE, "Thread_t", "Thread", TypedArray(ns_entry_t,
             {"new", "Thread$new", "func(fn:func())->Thread"},
             {"cancel", "Thread$cancel", "func(thread:Thread)"},
             {"join", "Thread$join", "func(thread:Thread)"},
@@ -402,13 +402,15 @@ env_t *new_compilation_unit(CORD *libname)
     return lib_env;
 }
 
-CORD namespace_prefix(CORD *libname, namespace_t *ns)
+CORD namespace_prefix(env_t *env, namespace_t *ns)
 {
     CORD prefix = CORD_EMPTY;
     for (; ns; ns = ns->parent)
         prefix = CORD_all(ns->name, "$", prefix);
-    if (libname && *libname)
-        prefix = CORD_all(*libname, "$", prefix);
+    if (env->libname)
+        prefix = CORD_all("$", env->libname, "$", prefix);
+    else
+        prefix = CORD_all("$", prefix);
     return prefix;
 }
 

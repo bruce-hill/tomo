@@ -12,32 +12,33 @@
 
 #include "arrays.h"
 #include "text.h"
+#include "threads.h"
 #include "types.h"
 #include "util.h"
 
-public pthread_t *Thread$new(Closure_t fn)
+public Thread_t Thread$new(Closure_t fn)
 {
-    pthread_t *thread = new(pthread_t);
+    Thread_t thread = new(pthread_t);
     pthread_create(thread, NULL, fn.fn, fn.userdata);
     return thread;
 }
 
-public void Thread$join(pthread_t *thread)
+public void Thread$join(Thread_t thread)
 {
     pthread_join(*thread, NULL);
 }
 
-public void Thread$cancel(pthread_t *thread)
+public void Thread$cancel(Thread_t thread)
 {
     pthread_cancel(*thread);
 }
 
-public void Thread$detach(pthread_t *thread)
+public void Thread$detach(Thread_t thread)
 {
     pthread_detach(*thread);
 }
 
-Text_t Thread$as_text(const pthread_t **thread, bool colorize, const TypeInfo *type)
+Text_t Thread$as_text(const Thread_t *thread, bool colorize, const TypeInfo *type)
 {
     (void)type;
     if (!thread) {
@@ -46,8 +47,8 @@ Text_t Thread$as_text(const pthread_t **thread, bool colorize, const TypeInfo *t
     return Text$format(colorize ? "\x1b[34;1mThread(%p)\x1b[m" : "Thread(%p)", *thread);
 }
 
-public const TypeInfo Thread = {
-    .size=sizeof(pthread_t*), .align=__alignof(pthread_t*),
+public const TypeInfo Thread$info = {
+    .size=sizeof(Thread_t), .align=__alignof(Thread_t),
     .tag=CustomInfo,
     .CustomInfo={.as_text=(void*)Thread$as_text},
 };

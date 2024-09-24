@@ -15,7 +15,7 @@
 static CORD compile_str_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
     const char *name = def->name;
     const char *dollar = strrchr(name, '$');
     if (dollar) name = dollar + 1;
@@ -45,7 +45,7 @@ static CORD compile_str_method(env_t *env, ast_t *ast)
 static CORD compile_compare_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
     CORD cmp_func = CORD_all("static int ", full_name, "$compare(const ", full_name, "_t *x, const ", full_name,
                              "_t *y, const TypeInfo *info) {\n"
                              "(void)info;\n",
@@ -73,7 +73,7 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
 static CORD compile_equals_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
     CORD eq_func = CORD_all("static bool ", full_name, "$equal(const ", full_name, "_t *x, const ", full_name,
                              "_t *y, const TypeInfo *info) {\n"
                              "(void)info;\n");
@@ -102,7 +102,7 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
 static CORD compile_hash_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
     CORD hash_func = CORD_all("static uint64_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo *info) {\n"
                               "(void)info;\n"
                               "uint64_t field_hashes[] = {");
@@ -121,7 +121,7 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
 void compile_struct_def(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
 
     type_t *t = Table$str_get(*env->types, def->name);
     assert(t && t->tag == StructType);
@@ -174,7 +174,7 @@ void compile_struct_def(env_t *env, ast_t *ast)
 CORD compile_struct_header(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
-    CORD full_name = CORD_cat(namespace_prefix(env->libname, env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
 
     CORD fields = CORD_EMPTY;
     for (arg_ast_t *field = def->fields; field; field = field->next) {
@@ -192,7 +192,7 @@ CORD compile_struct_header(env_t *env, ast_t *ast)
         "typedef struct {\n",
         full_name, "_t value;\n"
         "Bool_t is_null:1;\n"
-        "} ", namespace_prefix(env->libname, env->namespace), "$Optional", def->name, "_t;\n"
+        "} ", namespace_prefix(env, env->namespace), "$Optional", def->name, "_t;\n"
         "extern const TypeInfo ", full_name, ";\n",
         compile_namespace_header(env, def->name, def->namespace));
 }
