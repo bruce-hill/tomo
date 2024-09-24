@@ -365,7 +365,7 @@ void bind_statement(env_t *env, ast_t *statement)
         type_t *type = Type(TextType, .lang=def->name, .env=ns_env);
         Table$str_set(env->types, def->name, type);
 
-        set_binding(ns_env, "from_unsafe_text",
+        set_binding(ns_env, "without_escaping",
                     new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE), .ret=type),
                         .code=CORD_all("(", namespace_prefix(env->libname, env->namespace), def->name, "_t)")));
 

@@ -9,10 +9,10 @@ lang HTML:
 			$/'/: "&#39;",
 		})
 
-		return HTML.from_unsafe_text(t)
+		return HTML.without_escaping(t)
 
 	func escape_int(i:Int)->HTML:
-		return HTML.from_unsafe_text("$i")
+		return HTML.without_escaping("$i")
 	
 	func paragraph(content:HTML)->HTML:
 		return $HTML"<p>$content</p>"

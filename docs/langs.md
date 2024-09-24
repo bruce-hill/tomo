@@ -18,7 +18,7 @@ lang HTML:
             $/"/: "&quot",
             $/'/: "&#39;",
         })
-        return HTML.from_unsafe_text(t)
+        return HTML.without_escaping(t)
 
     func paragraph(content:HTML)->HTML:
         return $HTML"<p>$content</p>"
@@ -75,7 +75,7 @@ instead of building a global function called `execute()` that takes a
 ```tomo
 lang Sh:
     func escape(text:Text)->Sh:
-        return Sh.from_unsafe_text("'" ++ text:replace($/'/, "''") ++ "'")
+        return Sh.without_escaping("'" ++ text:replace($/'/, "''") ++ "'")
 
     func execute(sh:Sh)->Text:
         ...
