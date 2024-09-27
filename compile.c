@@ -569,9 +569,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case Declare: {
         auto decl = Match(ast, Declare);
-        if (decl->value->tag == Use) {
-            return compile_statement(env, decl->value);
-        } else if (streq(Match(decl->var, Var)->name, "_")) { // Explicit discard
+        if (streq(Match(decl->var, Var)->name, "_")) { // Explicit discard
             return CORD_all("(void)", compile(env, decl->value), ";");
         } else {
             type_t *t = get_type(env, decl->value);
@@ -3584,7 +3582,7 @@ CORD compile_file(env_t *env, ast_t *ast)
             type_t *t = get_type(env, decl->value);
             if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
                 code_err(stmt->ast, "You can't declare a variable with a %T value", t);
-            if (!(decl->value->tag == Use || is_constant(env, decl->value))) {
+            if (!is_constant(env, decl->value)) {
                 CORD val_code = compile_maybe_incref(env, decl->value);
                 if (t->tag == FunctionType) {
                     assert(promote(env, &val_code, t, Type(ClosureType, t)));
@@ -3609,9 +3607,7 @@ CORD compile_file(env_t *env, ast_t *ast)
             CORD full_name = CORD_all(namespace_prefix(env, env->namespace), decl_name);
             bool is_private = (decl_name[0] == '_');
             type_t *t = get_type(env, decl->value);
-            if (decl->value->tag == Use) {
-                assert(compile_statement(env, stmt->ast) == CORD_EMPTY);
-            } else if (!is_constant(env, decl->value)) {
+            if (!is_constant(env, decl->value)) {
                 env->code->staticdefs = CORD_all(
                     env->code->staticdefs,
                     "static bool ", full_name, "$initialized = false;\n",
@@ -3665,9 +3661,6 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
     switch (ast->tag) {
     case Declare: {
         auto decl = Match(ast, Declare);
-        if (decl->value->tag == Use)
-            return compile_statement_header(env, decl->value);
-
         const char *decl_name = Match(decl->var, Var)->name;
         bool is_private = (decl_name[0] == '_');
         if (is_private)

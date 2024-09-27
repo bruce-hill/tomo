@@ -156,7 +156,7 @@ CORD ast_to_xml(ast_t *ast)
     T(Optional, "<Optional>%r</Optional>", ast_to_xml(data.value))
     T(NonOptional, "<NonOptional>%r</NonOptional>", ast_to_xml(data.value))
     T(DocTest, "<DocTest>%r<output>%r</output></DocTest>", optional_tagged("expression", data.expr), xml_escape(data.output))
-    T(Use, "<Use>%r</Use>", xml_escape(data.path))
+    T(Use, "<Use>%r%r</Use>", optional_tagged("var", data.var), xml_escape(data.path))
     T(InlineCCode, "<InlineCode>%r</InlineCode>", xml_escape(data.code))
     default: return "???";
 #undef T

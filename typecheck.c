@@ -255,11 +255,7 @@ void bind_statement(env_t *env, ast_t *statement)
             return;
         if (get_binding(env, name))
             code_err(decl->var, "A %T called '%s' has already been defined", get_binding(env, name)->type, name);
-        if (decl->value->tag == Use) {
-            (void)load_module(env, decl->value);
-        } else {
-            bind_statement(env, decl->value);
-        }
+        bind_statement(env, decl->value);
         type_t *type = get_type(env, decl->value);
         if (!type)
             code_err(decl->value, "I couldn't figure out the type of this value");
@@ -394,8 +390,14 @@ void bind_statement(env_t *env, ast_t *statement)
             if (Table$str_get(*env->types, entry->name))
                 continue;
 
-//code_err(statement, "This module imports a type called '%s', which would clobber another type", entry->name);
             Table$str_set(env->types, entry->name, entry->type);
+        }
+
+        ast_t *var = Match(statement, Use)->var;
+        if (var) {
+            type_t *type = get_type(env, statement);
+            assert(type);
+            set_binding(env, Match(var, Var)->name, new(binding_t, .type=type));
         }
         break;
     }

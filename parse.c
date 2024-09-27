@@ -133,7 +133,6 @@ static PARSER(parse_table);
 static PARSER(parse_term);
 static PARSER(parse_term_no_suffix);
 static PARSER(parse_text);
-static PARSER(parse_top_declaration);
 static PARSER(parse_update);
 static PARSER(parse_use);
 static PARSER(parse_var);
@@ -1750,20 +1749,6 @@ PARSER(parse_declaration) {
     return NewAST(ctx->file, start, pos, Declare, .var=var, .value=val);
 }
 
-PARSER(parse_top_declaration) {
-    const char *start = pos;
-    ast_t *var = parse_var(ctx, pos);
-    if (!var) return NULL;
-    pos = var->end;
-    spaces(&pos);
-    if (!match(&pos, ":=")) return NULL;
-    spaces(&pos);
-    ast_t *val = optional(ctx, &pos, parse_use);
-    if (!val) val = optional(ctx, &pos, parse_extended_expr);
-    if (!val) parser_err(ctx, pos, strchrnul(pos, '\n'), "This declaration value didn't parse");
-    return NewAST(ctx->file, start, pos, Declare, .var=var, .value=val);
-}
-
 PARSER(parse_update) {
     const char *start = pos;
     ast_t *lhs = optional(ctx, &pos, parse_expr);
@@ -1980,7 +1965,7 @@ PARSER(parse_file_body) {
             ||(stmt=optional(ctx, &pos, parse_use))
             ||(stmt=optional(ctx, &pos, parse_extern))
             ||(stmt=optional(ctx, &pos, parse_inline_c))
-            ||(stmt=optional(ctx, &pos, parse_top_declaration)))
+            ||(stmt=optional(ctx, &pos, parse_declaration)))
         {
             statements = new(ast_list_t, .ast=stmt, .next=statements);
             pos = stmt->end;
@@ -2348,6 +2333,15 @@ PARSER(parse_say) {
 
 PARSER(parse_use) {
     const char *start = pos;
+
+    ast_t *var = parse_var(ctx, pos);
+    if (var) {
+        pos = var->end;
+        spaces(&pos);
+        if (!match(&pos, ":=")) return NULL;
+        spaces(&pos);
+    }
+
     if (!match_word(&pos, "use")) return NULL;
     spaces(&pos);
     size_t name_len = strcspn(pos, " \t\r\n;");
@@ -2384,7 +2378,7 @@ PARSER(parse_use) {
             name = hash;
         }
     }
-    return NewAST(ctx->file, start, pos, Use, .path=name, .what=what);
+    return NewAST(ctx->file, start, pos, Use, .var=var, .path=name, .what=what);
 }
 
 ast_t *parse_file(const char *path, jmp_buf *on_err) {
