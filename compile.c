@@ -3466,53 +3466,42 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
 {
     auto fn_info = Match(fn_type, FunctionType);
 
+    env_t *main_env = fresh_scope(env);
+
+    CORD code = CORD_EMPTY;
     binding_t *usage_binding = get_binding(env, "_USAGE");
     CORD usage_code = usage_binding ? usage_binding->code : "usage";
     binding_t *help_binding = get_binding(env, "_HELP");
     CORD help_code = help_binding ? help_binding->code : usage_code;
-
-    if (!fn_info->args) {
-        CORD code = "Text_t usage = Texts(Text(\"Usage: \"), Text$from_str(argv[0]), Text(\" [--help]\"));\n";
-        code = CORD_all(code, "if (argc > 1 && streq(argv[1], \"--help\")) {\n",
-                        "Text$print(stdout, ", help_code, ");\n"
-                        "puts(\"\");\n"
-                        "return 0;\n}\n");
-
-        return CORD_all(
-            code,
-            "if (argc > 1)\n"
-            "errx(1, \"This program doesn't take any arguments.\\n%k\", &", usage_code, ");\n",
-            fn_name, "();\n");
-    }
-
-    CORD code = CORD_all(
-        "#define USAGE_ERR(fmt, ...) errx(1, fmt \"\\n%s\" __VA_OPT__(,) __VA_ARGS__, Text$as_c_string(", usage_code, "))\n"
-        "#define IS_FLAG(str, flag) (strncmp(str, flag, strlen(flag) == 0 && (str[strlen(flag)] == 0 || str[strlen(flag)] == '=')) == 0)\n");
-
-    env_t *main_env = fresh_scope(env);
-
-    bool explicit_help_flag = false;
-    for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        if (streq(arg->name, "help")) {
-            explicit_help_flag = true;
-            break;
-        }
-    }
-
     if (!usage_binding) {
+        bool explicit_help_flag = false;
+        for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
+            if (streq(arg->name, "help")) {
+                explicit_help_flag = true;
+                break;
+            }
+        }
+
         CORD usage = explicit_help_flag ? CORD_EMPTY : " [--help]";
         for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
             usage = CORD_cat(usage, " ");
             type_t *t = get_arg_type(main_env, arg);
             CORD flag = CORD_replace(arg->name, "_", "-");
-            if (arg->default_val) {
-                if (t->tag == BoolType)
-                    usage = CORD_all(usage, "[--", flag, "|--no-", flag, "]");
-                else
-                    usage = CORD_all(usage, "[--", flag, "=", get_flag_options(t, "|"), "]");
+            if (arg->default_val || arg->type->tag == OptionalType) {
+                if (strlen(arg->name) == 1) {
+                    if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
+                        usage = CORD_all(usage, "[-", flag, "]");
+                    else
+                        usage = CORD_all(usage, "[-", flag, " ", get_flag_options(t, "|"), "]");
+                } else {
+                    if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
+                        usage = CORD_all(usage, "[--", flag, "]");
+                    else
+                        usage = CORD_all(usage, "[--", flag, "=", get_flag_options(t, "|"), "]");
+                }
             } else {
                 if (t->tag == BoolType)
-                    usage = CORD_all(usage, "[--", flag, "|--no-", flag, "]");
+                    usage = CORD_all(usage, "<--", flag, "|--no-", flag, ">");
                 else if (t->tag == EnumType)
                     usage = CORD_all(usage, get_flag_options(t, "|"));
                 else if (t->tag == ArrayType)
@@ -3525,188 +3514,32 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                         usage == CORD_EMPTY ? CORD_EMPTY : CORD_all(", Text(", CORD_quoted(usage), ")"), ");\n");
     }
 
-    // Declare args:
+
+    int num_args = 0;
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        type_t *t = get_arg_type(main_env, arg);
-        assert(arg->name);
-        type_t *optional = t->tag == OptionalType ? t : Type(OptionalType, .type=t);
-        type_t *non_optional = t->tag == OptionalType ? Match(t, OptionalType)->type : t;
-        code = CORD_all(
-            code, compile_declaration(optional, CORD_cat("$", arg->name)), " = ", compile_null(non_optional), ";\n");
-        set_binding(main_env, arg->name, new(binding_t, .type=optional, .code=CORD_cat("$", arg->name)));
-    }
-    // Provide --flags:
-    code = CORD_all(code, "Text_t flag;\n"
-                    "for (int i = 1; i < argc; ) {\n"
-                    "if (streq(argv[i], \"--\")) {\n"
-                    "argv[i] = NULL;\n"
-                    "break;\n"
-                    "}\n"
-                    "if (strncmp(argv[i], \"--\", 2) != 0) {\n++i;\ncontinue;\n}\n");
-
-    if (!explicit_help_flag) {
-        code = CORD_all(code, "else if (pop_flag(argv, &i, \"help\", &flag)) {\n"
-                        "Text$print(stdout, ", help_code, ");\n"
-                        "puts(\"\");\n"
-                        "return 0;\n"
-                        "}\n");
-    }
-
-    for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        type_t *t = get_arg_type(main_env, arg);
-        type_t *non_optional = t->tag == OptionalType ? Match(t, OptionalType)->type : t;
-        CORD flag = CORD_replace(arg->name, "_", "-");
-        switch (non_optional->tag) {
-        case BoolType: {
-            CORD is_null = check_null(Type(OptionalType, .type=non_optional), CORD_all("$", arg->name));
-            code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n"
-                            "if (flag.length != 0) {\n",
-                            "$", arg->name, " = Bool$from_text(flag);\n"
-                            "if (", is_null, ") \n"
-                            "USAGE_ERR(\"Invalid argument for '--", flag, "'\");\n",
-                            "} else {\n",
-                            "$", arg->name, " = yes;\n",
-                            "}\n"
-                            "}\n");
-            break;
-        }
-        case TextType: {
-            code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
-                            "$", arg->name, " = ", streq(Match(non_optional, TextType)->lang, "Path") ? "Path$cleanup(flag)" : "flag",";\n",
-                            "}\n");
-            break;
-        }
-        case ArrayType: {
-            if (Match(non_optional, ArrayType)->item_type->tag != TextType)
-                compiler_err(NULL, NULL, NULL, "Main function has unsupported argument type: %T (only arrays of Text are supported)", non_optional);
-            code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
-                            "$", arg->name, " = Text$split(flag, Pattern(\",\"));\n");
-            if (streq(Match(Match(non_optional, ArrayType)->item_type, TextType)->lang, "Path")) {
-                code = CORD_all(code, "for (int64_t j = 0; j < $", arg->name, ".length; j++)\n"
-                                "*(Path_t*)($", arg->name, ".data + j*$", arg->name, ".stride) "
-                                "= Path$cleanup(*(Path_t*)($", arg->name, ".data + j*$", arg->name, ".stride));\n");
-            }
-            code = CORD_all(code, "}\n");
-            break;
-        }
-        case BigIntType: case IntType: case NumType: {
-            CORD is_null = check_null(Type(OptionalType, .type=non_optional), CORD_all("$", arg->name));
-            CORD type_name = type_to_cord(non_optional);
-            code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
-                            "if (flag.length == 0)\n"
-                            "USAGE_ERR(\"No value provided for '--", flag, "'\");\n"
-                            "$", arg->name, " = ", type_name, "$from_text(flag);\n"
-                            "if (", is_null, ")\n"
-                            "USAGE_ERR(\"Invalid value provided for '--", flag, "'\");\n",
-                            "}\n");
-            break;
-        }
-        case EnumType: {
-            env_t *enum_env = Match(non_optional, EnumType)->env;
-            code = CORD_all(code, "else if (pop_flag(argv, &i, \"", flag, "\", &flag)) {\n",
-                            "if (flag.length == 0)\n"
-                            "USAGE_ERR(\"No value provided for '--", flag, "'\");\n");
-            for (tag_t *tag = Match(non_optional, EnumType)->tags; tag; tag = tag->next) {
-                if (tag->type && Match(tag->type, StructType)->fields)
-                    compiler_err(NULL, NULL, NULL,
-                                 "The type %T has enum fields with member values, which is not yet supported for command line arguments.");
-                binding_t *b = get_binding(enum_env, tag->name);
-                code = CORD_all(code,
-                                "if (Text$equal_ignoring_case(flag, Text(\"", tag->name, "\"))) {\n"
-                                "$", arg->name, " = ", b->code, ";\n",
-                                "} else ");
-            }
-            code = CORD_all(code, "USAGE_ERR(\"Invalid value provided for '--", flag, "', valid values are: ",
-                            get_flag_options(non_optional, ", "), "\");\n",
-                            "}\n");
-            break;
-        }
-        default:
-            compiler_err(NULL, NULL, NULL, "Main function has unsupported argument type: %T", t);
-        }
-    }
-
-    code = CORD_all(
-        code, "else {\n"
-        "USAGE_ERR(\"Unrecognized argument: %s\", argv[i]);\n"
-        "}\n"
-        "}\n"
-        "int i = 1;\n"
-        "while (i < argc && argv[i] == NULL)\n"
-        "++i;\n");
-
-    for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        type_t *t = get_arg_type(main_env, arg);
-        type_t *non_optional = t->tag == OptionalType ? Match(t, OptionalType)->type : t;
-        CORD is_null = check_null(Type(OptionalType, .type=non_optional), CORD_all("$", arg->name));
-        code = CORD_all(code, "if (", is_null, ") {\n");
-        if (non_optional->tag == ArrayType) {
-            if (Match(non_optional, ArrayType)->item_type->tag != TextType)
-                compiler_err(NULL, NULL, NULL, "Main function has unsupported argument type: %T (only arrays of Text are supported)", non_optional);
-
-            code = CORD_all(
-                code, "$", arg->name, " = (Array_t){};\n"
-                "for (; i < argc; i++) {\n"
-                "if (argv[i]) {\n");
-            if (streq(Match(Match(non_optional, ArrayType)->item_type, TextType)->lang, "Path")) {
-                code = CORD_all(code, "Path_t arg = Path$cleanup(Text$from_str(argv[i]));\n");
-            } else {
-                code = CORD_all(code, "Text_t arg = Text$from_str(argv[i]);\n");
-            }
-            code = CORD_all(code, "Array$insert(&$", arg->name, ", &arg, I(0), sizeof(Text_t));\n"
-                            "argv[i] = NULL;\n"
-                            "}\n"
-                            "}\n");
-        } else if (arg->default_val) {
-            code = CORD_all(code, "$", arg->name, " = ", compile(main_env, arg->default_val), ";\n");
+        type_t *opt_type = arg->type->tag == OptionalType ? arg->type : Type(OptionalType, .type=arg->type);
+        code = CORD_all(code, compile_declaration(opt_type, CORD_all("$", arg->name)));
+        if (arg->default_val) {
+            CORD default_val = compile(env, arg->default_val);
+            if (arg->type->tag != OptionalType)
+                default_val = promote_to_optional(arg->type, default_val);
+            code = CORD_all(code, " = ", default_val);
         } else {
-            code = CORD_all(
-                code,
-                "if (i < argc) {");
-            if (non_optional->tag == TextType) {
-                code = CORD_all(code, "$", arg->name, " = Text$from_str(argv[i]);\n");
-                if (streq(Match(non_optional, TextType)->lang, "Path"))
-                    code = CORD_all(code, "$", arg->name, " = Path$cleanup($", arg->name, ");\n");
-
-            } else if (non_optional->tag == EnumType) {
-                env_t *enum_env = Match(non_optional, EnumType)->env;
-                for (tag_t *tag = Match(non_optional, EnumType)->tags; tag; tag = tag->next) {
-                    if (tag->type && Match(tag->type, StructType)->fields)
-                        compiler_err(NULL, NULL, NULL,
-                                     "The type %T has enum fields with member values, which is not yet supported for command line arguments.",
-                                     non_optional);
-                    binding_t *b = get_binding(enum_env, tag->name);
-                    code = CORD_all(code,
-                                    "if (strcasecmp(argv[i], \"", tag->name, "\") == 0) {\n"
-                                    "$", arg->name, " = ", b->code, ";\n",
-                                    "} else ");
-                }
-                code = CORD_all(code, "USAGE_ERR(\"Invalid value provided for '--", arg->name, "', valid values are: ",
-                                get_flag_options(non_optional, ", "), "\");\n");
-            } else {
-                code = CORD_all(
-                    code,
-                    "$", arg->name, " = ", type_to_cord(non_optional), "$from_text(Text$from_str(argv[i]))", ";\n"
-                    "if (", is_null, ")\n"
-                    "USAGE_ERR(\"Unable to parse this argument as a ", type_to_cord(non_optional), ": %s\", argv[i]);\n");
-            }
-            code = CORD_all(
-                code,
-                "argv[i++] = NULL;\n"
-                "while (i < argc && argv[i] == NULL)\n"
-                "++i;\n");
-            if (t->tag != OptionalType) {
-                code = CORD_all(code, "} else {\n"
-                                "USAGE_ERR(\"Required argument '", arg->name, "' was not provided!\");\n");
-            }
-            code = CORD_all(code, "}\n");
+            code = CORD_all(code, " = ", compile_null(arg->type));
         }
-        code = CORD_all(code, "}\n");
+        code = CORD_all(code, ";\n");
+        num_args += 1;
     }
 
-
-    code = CORD_all(code, "for (; i < argc; i++) {\n"
-                    "if (argv[i])\nUSAGE_ERR(\"Unexpected argument: %s\", argv[i]);\n}\n");
+    code = CORD_all(code, "tomo_parse_args(", usage_code, ", ", help_code, ", ",
+                    heap_strf("%d", num_args), ", (cli_arg_t[]){");
+    for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
+        code = CORD_all(code, "{", CORD_quoted(CORD_replace(arg->name, "_", "-")), ", ",
+                        (arg->default_val || arg->type->tag == OptionalType) ? "false" : "true", ", ",
+                        compile_type_info(env, arg->type),
+                        ", &", CORD_all("$", arg->name), "}, ");
+    }
+    code = CORD_all(code, "}, argc, argv);\n");
 
     code = CORD_all(code, fn_name, "(");
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {

@@ -12,7 +12,15 @@
 
 extern bool USE_COLOR;
 
+typedef struct {
+    const char *name;
+    bool required;
+    const TypeInfo *type;
+    void *dest;
+} cli_arg_t;
+
 void tomo_init(void);
+void tomo_parse_args(Text_t usage, Text_t help, int spec_len, cli_arg_t spec[spec_len], int argc, char *argv[]);
 __attribute__((format(printf, 1, 2)))
 _Noreturn void fail(const char *fmt, ...);
 __attribute__((format(printf, 4, 5)))
