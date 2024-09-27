@@ -698,6 +698,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 return CORD_all("if (", lhs, ") ", lhs, " = ", rhs, ";");
             else if (lhs_t->tag == IntType || lhs_t->tag == ByteType)
                 return CORD_all(lhs, " &= ", rhs, ";");
+            else if (lhs_t->tag == OptionalType)
+                return CORD_all("if (!(", check_null(lhs_t, lhs), ")) ", lhs, " = ", promote_to_optional(rhs_t, rhs), ";");
             else
                 code_err(ast, "'or=' is not implemented for %T types", lhs_t);
         }
@@ -706,6 +708,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 return CORD_all("if (!(", lhs, ")) ", lhs, " = ", rhs, ";");
             else if (lhs_t->tag == IntType || lhs_t->tag == ByteType)
                 return CORD_all(lhs, " |= ", rhs, ";");
+            else if (lhs_t->tag == OptionalType)
+                return CORD_all("if (", check_null(lhs_t, lhs), ") ", lhs, " = ", promote_to_optional(rhs_t, rhs), ";");
             else
                 code_err(ast, "'or=' is not implemented for %T types", lhs_t);
         }
