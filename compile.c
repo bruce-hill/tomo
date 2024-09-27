@@ -253,13 +253,11 @@ CORD compile_type(type_t *t)
     case OptionalType: {
         type_t *nonnull = Match(t, OptionalType)->type;
         switch (nonnull->tag) {
-        case BoolType: return "OptionalBool_t";
-        case ByteType: return "OptionalByte_t";
-        case CStringType: case BigIntType: case NumType: case TextType:
-        case ArrayType: case SetType: case TableType: case FunctionType: case ClosureType:
+        case CStringType: case FunctionType: case ClosureType:
         case PointerType: case EnumType: case ChannelType:
             return compile_type(nonnull);
-        case IntType:
+        case IntType: case BigIntType: case TextType: case NumType: case BoolType: case ByteType:
+        case ArrayType: case TableType: case SetType:
             return CORD_all("Optional", compile_type(nonnull));
         case StructType: {
             if (nonnull == THREAD_TYPE)
@@ -1265,13 +1263,17 @@ CORD compile_statement(env_t *env, ast_t *ast)
             // Iterator function:
             CORD code = "{\n";
 
-            code = CORD_all(code, compile_declaration(iter_t, "next"), " = ", compile(env, for_->iter), ";\n");
+            CORD next_fn;
+            if (is_idempotent(for_->iter)) {
+                next_fn = compile(env, for_->iter);
+            } else {
+                code = CORD_all(code, compile_declaration(iter_t, "next"), " = ", compile(env, for_->iter), ";\n");
+                next_fn = "next";
+            }
 
             auto fn = iter_t->tag == ClosureType ? Match(Match(iter_t, ClosureType)->fn, FunctionType) : Match(iter_t, FunctionType);
-            assert(fn->ret->tag == OptionalType);
-            code = CORD_all(code, compile_declaration(fn->ret, "cur"), ";\n"); // Iteration enum
 
-            CORD next_fn;
+            CORD get_next;
             if (iter_t->tag == ClosureType) {
                 type_t *fn_t = Match(iter_t, ClosureType)->fn;
                 arg_t *closure_fn_args = NULL;
@@ -1280,28 +1282,41 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 closure_fn_args = new(arg_t, .name="userdata", .type=Type(PointerType, .pointed=Type(MemoryType)), .next=closure_fn_args);
                 REVERSE_LIST(closure_fn_args);
                 CORD fn_type_code = compile_type(Type(FunctionType, .args=closure_fn_args, .ret=Match(fn_t, FunctionType)->ret));
-                next_fn = CORD_all("((", fn_type_code, ")next.fn)");
+                get_next = CORD_all("((", fn_type_code, ")", next_fn, ".fn)(", next_fn, ".userdata)");
             } else {
-                next_fn = "next";
+                get_next = CORD_all(next_fn, "()");
             }
 
-            next_fn = CORD_all("(cur=", next_fn, iter_t->tag == ClosureType ? "(next.userdata)" : "()", ", !",
-                               check_null(fn->ret, "cur"), ")");
-
-            if (for_->vars) {
-                naked_body = CORD_all(
-                    compile_declaration(Match(fn->ret, OptionalType)->type, CORD_all("$", Match(for_->vars->ast, Var)->name)),
-                    " = ", optional_into_nonnull(fn->ret, "cur"), ";\n",
-                    naked_body);
-            }
-
-            if (for_->empty) {
-                code = CORD_all(code, "if (", next_fn, ") {\n"
-                                "\tdo{\n\t\t", naked_body, "\t} while(", next_fn, ");\n"
-                                "} else {\n\t", compile_statement(env, for_->empty), "}", stop, "\n}\n");
+            if (fn->ret->tag == OptionalType) {
+                // Use an optional variable `cur` for each iteration step, which will be checked for null
+                code = CORD_all(code, compile_declaration(fn->ret, "cur"), ";\n");
+                get_next = CORD_all("(cur=", get_next, ", !", check_null(fn->ret, "cur"), ")");
+                if (for_->vars) {
+                    naked_body = CORD_all(
+                        compile_declaration(Match(fn->ret, OptionalType)->type, CORD_all("$", Match(for_->vars->ast, Var)->name)),
+                        " = ", optional_into_nonnull(fn->ret, "cur"), ";\n",
+                        naked_body);
+                }
+                if (for_->empty) {
+                    code = CORD_all(code, "if (", get_next, ") {\n"
+                                    "\tdo{\n\t\t", naked_body, "\t} while(", get_next, ");\n"
+                                    "} else {\n\t", compile_statement(env, for_->empty), "}", stop, "\n}\n");
+                } else {
+                    code = CORD_all(code, "while(", get_next, ") {\n\t", naked_body, "}\n", stop, "\n}\n");
+                }
             } else {
-                code = CORD_all(code, "for(; ", next_fn, "; ) {\n\t", naked_body, "}\n", stop, "\n}\n");
+                if (for_->vars) {
+                    naked_body = CORD_all(
+                        compile_declaration(fn->ret, CORD_all("$", Match(for_->vars->ast, Var)->name)),
+                        " = ", get_next, ";\n", naked_body);
+                } else {
+                    naked_body = CORD_all(get_next, ";\n", naked_body);
+                }
+                if (for_->empty)
+                    code_err(for_->empty, "This iteration loop will always have values, so this block will never run");
+                code = CORD_all(code, "for (;;) {\n\t", naked_body, "}\n", stop, "\n}\n");
             }
+
             return code;
         }
         default: code_err(for_->iter, "Iteration is not implemented for type: %T", iter_t);

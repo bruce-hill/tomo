@@ -522,14 +522,15 @@ env_t *for_scope(env_t *env, ast_t *ast)
     }
     case FunctionType: case ClosureType: {
         auto fn = iter_t->tag == ClosureType ? Match(Match(iter_t, ClosureType)->fn, FunctionType) : Match(iter_t, FunctionType);
-        if (fn->ret->tag != OptionalType)
-            code_err(for_->iter, "Iterator functions must return an optional type, not %T", fn->ret);
+        // if (fn->ret->tag != OptionalType)
+        //     code_err(for_->iter, "Iterator functions must return an optional type, not %T", fn->ret);
 
         if (for_->vars) {
             if (for_->vars->next)
                 code_err(for_->vars->next->ast, "This is too many variables for this loop");
             const char *var = Match(for_->vars->ast, Var)->name;
-            set_binding(scope, var, new(binding_t, .type=Match(fn->ret, OptionalType)->type, .code=CORD_cat("$", var)));
+            type_t *non_opt_type = fn->ret->tag == OptionalType ? Match(fn->ret, OptionalType)->type : fn->ret;
+            set_binding(scope, var, new(binding_t, .type=non_opt_type, .code=CORD_cat("$", var)));
         }
         return scope;
     }
