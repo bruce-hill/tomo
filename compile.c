@@ -765,10 +765,14 @@ CORD compile_statement(env_t *env, ast_t *ast)
         type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
 
         CORD arg_signature = "(";
+        Table_t used_names = {};
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
             arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, CORD_cat("$", arg->name)));
             if (arg->next) arg_signature = CORD_cat(arg_signature, ", ");
+            if (Table$str_get(used_names, arg->name))
+                code_err(ast, "The argument name '%s' is used more than once", arg->name);
+            Table$str_set(&used_names, arg->name, arg->name);
         }
         arg_signature = CORD_cat(arg_signature, ")");
 
