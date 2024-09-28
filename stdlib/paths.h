@@ -9,6 +9,7 @@
 #include "datatypes.h"
 
 #define Path_t Text_t
+#define OptionalPath_t Text_t
 #define Path(text) ((Path_t)Text(text))
 #define Paths(...) Path$_concat(sizeof((Path_t[]){__VA_ARGS__})/sizeof(Path_t), (Path_t[]){__VA_ARGS__})
 
