@@ -3548,15 +3548,14 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
         num_args += 1;
     }
 
-    code = CORD_all(code, "tomo_parse_args(", usage_code, ", ", help_code, ", ",
-                    heap_strf("%d", num_args), ", (cli_arg_t[]){");
+    code = CORD_all(code, "tomo_parse_args(argc, argv, ", usage_code, ", ", help_code);
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        code = CORD_all(code, "{", CORD_quoted(CORD_replace(arg->name, "_", "-")), ", ",
+        code = CORD_all(code, ",\n{", CORD_quoted(CORD_replace(arg->name, "_", "-")), ", ",
                         (arg->default_val || arg->type->tag == OptionalType) ? "false" : "true", ", ",
                         compile_type_info(env, arg->type),
-                        ", &", CORD_all("$", arg->name), "}, ");
+                        ", &", CORD_all("$", arg->name), "}");
     }
-    code = CORD_all(code, "}, argc, argv);\n");
+    code = CORD_all(code, ");\n");
 
     code = CORD_all(code, fn_name, "(");
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {

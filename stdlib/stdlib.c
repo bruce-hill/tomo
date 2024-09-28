@@ -130,7 +130,7 @@ static Array_t parse_array(const TypeInfo *item_info, int n, char *args[])
 }
 
 #pragma GCC diagnostic ignored "-Wstack-protector"
-public void tomo_parse_args(Text_t usage, Text_t help, int spec_len, cli_arg_t spec[spec_len], int argc, char *argv[])
+public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, int spec_len, cli_arg_t spec[spec_len])
 {
     bool populated_args[spec_len] = {};
     bool used_args[argc] = {};
