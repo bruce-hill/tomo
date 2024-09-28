@@ -27,10 +27,8 @@
 #include "typecheck.h"
 #include "types.h"
 
-#define CORD_RUN(...) ({ CORD _cmd = CORD_all(__VA_ARGS__); if (verbose) CORD_printf("\x1b[33m%r\x1b[m\n", _cmd); popen(CORD_to_const_char_star(_cmd), "w"); })
-
-typedef enum { MODE_TRANSPILE = 0, MODE_COMPILE_OBJ = 1, MODE_COMPILE_SHARED_OBJ = 2, MODE_COMPILE_EXE = 3, MODE_RUN = 4 } mode_e;
-
+#define run_cmd(...) ({ const char *_cmd = heap_strf(__VA_ARGS__); if (verbose) puts(_cmd); popen(_cmd, "w"); })
+#define array_str(arr) Text$as_c_string(Text$join(Text(" "), arr))
 
 static OptionalArray_t files = NULL_ARRAY,
                        args = NULL_ARRAY;
@@ -55,13 +53,11 @@ static OptionalText_t autofmt = Text("sed '/^\\s*$/d' | indent -kr -l100 -nbbo -
 static void transpile_header(env_t *base_env, Text_t filename, bool force_retranspile);
 static void transpile_code(env_t *base_env, Text_t filename, bool force_retranspile);
 static void compile_object_file(Text_t filename, bool force_recompile);
-static Text_t compile_executable(env_t *base_env, Text_t filename, CORD object_files, CORD extra_ldlibs);
+static Text_t compile_executable(env_t *base_env, Text_t filename, Array_t object_files, Array_t extra_ldlibs);
 static void build_file_dependency_graph(Text_t filename, Table_t *to_compile, Table_t *to_link);
 static Text_t escape_lib_name(Text_t lib_name);
 static void build_library(Text_t lib_dir_name);
-static void compile_files(env_t *env, Array_t files, bool only_compile_arguments, CORD *object_files, CORD *ldlibs);
-
-#define run_cmd(...) ({ const char *_cmd = heap_strf(__VA_ARGS__); if (verbose) puts(_cmd); popen(_cmd, "w"); })
+static void compile_files(env_t *env, Array_t files, bool only_compile_arguments, Array_t *object_files, Array_t *ldlibs);
 
 #pragma GCC diagnostic ignored "-Wstack-protector"
 int main(int argc, char *argv[])
@@ -149,7 +145,8 @@ int main(int argc, char *argv[])
             errx(1, "Too many files specified!");
         Text_t filename = *(Text_t*)files.data;
         env_t *env = new_compilation_unit(NULL);
-        CORD object_files = CORD_EMPTY, extra_ldlibs = CORD_EMPTY;
+        Array_t object_files = {},
+                extra_ldlibs = {};
         compile_files(env, files, false, &object_files, &extra_ldlibs);
         Text_t exe_name = compile_executable(env, filename, object_files, extra_ldlibs);
         char *prog_args[1 + args.length + 1];
@@ -159,21 +156,22 @@ int main(int argc, char *argv[])
         prog_args[1 + args.length] = NULL;
         execv(prog_args[0], prog_args);
         errx(1, "Failed to run compiled program");
-    }
+    } else {
+        env_t *env = new_compilation_unit(NULL);
+        Array_t object_files = {},
+                extra_ldlibs = {};
+        compile_files(env, files, stop_at_obj_compilation, &object_files, &extra_ldlibs);
+        if (stop_at_obj_compilation)
+            return 0;
 
-    env_t *env = new_compilation_unit(NULL);
-    CORD object_files = CORD_EMPTY, extra_ldlibs = CORD_EMPTY;
-    compile_files(env, args, stop_at_obj_compilation, &object_files, &extra_ldlibs);
-    if (stop_at_obj_compilation)
+        for (int64_t i = 0; i < files.length; i++) {
+            Text_t filename = *(Text_t*)(files.data + i*files.stride);
+            Text_t bin_name = compile_executable(env, filename, object_files, extra_ldlibs);
+            if (should_install)
+                system(heap_strf("cp -v '%k' ~/.local/bin/", &bin_name));
+        }
         return 0;
-
-    for (int64_t i = 0; i < args.length; i++) {
-        Text_t filename = *(Text_t*)(args.data + i*args.stride);
-        Text_t bin_name = compile_executable(env, filename, object_files, extra_ldlibs);
-        if (should_install)
-            system(heap_strf("cp -v '%k' ~/.local/bin/", &bin_name));
     }
-    return 0;
 }
 
 Text_t escape_lib_name(Text_t lib_name)
@@ -256,7 +254,8 @@ void build_library(Text_t lib_dir_name)
         Array$insert(&glob_files, (Text_t[1]){Text$from_str(tm_files.gl_pathv[i])}, I(0), sizeof(Text_t));
 
     env_t *env = new_compilation_unit(NULL);
-    CORD object_files = CORD_EMPTY, extra_ldlibs = CORD_EMPTY;
+    Array_t object_files = {},
+            extra_ldlibs = {};
     compile_files(env, glob_files, false, &object_files, &extra_ldlibs);
 
     // Library name replaces all stretchs of non-alphanumeric chars with an underscore
@@ -282,7 +281,8 @@ void build_library(Text_t lib_dir_name)
     FILE *prog;
     for (size_t i = 0; i < tm_files.gl_pathc; i++) {
         const char *filename = tm_files.gl_pathv[i];
-        prog = CORD_RUN("nm -Ug -fjust-symbols ", filename, ".o | sed 's/.*/\\0 $", env->libname, "\\0/' >>symbol_renames.txt");
+        prog = run_cmd("nm -Ug -fjust-symbols '%s.o' | sed 's/.*/\\0 $%s\\0/' >>symbol_renames.txt",
+                       filename, CORD_to_const_char_star(env->libname));
         int status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
             errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `sed`");
@@ -291,16 +291,15 @@ void build_library(Text_t lib_dir_name)
     globfree(&tm_files);
 
     prog = run_cmd("%k %k -O%k %k %k %s -Wl,-soname='lib%k.so' -shared %s -o 'lib%k.so'",
-                   &cc, &cflags, &optimization, &ldflags, &ldlibs, CORD_to_const_char_star(extra_ldlibs), &lib_dir_name,
-                   CORD_to_const_char_star(object_files), &lib_dir_name);
+                   &cc, &cflags, &optimization, &ldflags, &ldlibs, array_str(extra_ldlibs), &lib_dir_name,
+                   array_str(object_files), &lib_dir_name);
     if (!prog)
         errx(1, "Failed to run C compiler: %k", &cc);
     int status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);
 
-    if (verbose)
-        printf("Compiled to lib%k.so\n", &lib_dir_name);
+    printf("Compiled to lib%k.so\n", &lib_dir_name);
 
     prog = run_cmd("objcopy --redefine-syms=symbol_renames.txt 'lib%k.so'", &lib_dir_name);
     status = pclose(prog);
@@ -332,7 +331,7 @@ void build_library(Text_t lib_dir_name)
     free(library_directory);
 }
 
-void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, CORD *object_files, CORD *extra_ldlibs)
+void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, Array_t *object_files, Array_t *extra_ldlibs)
 {
     TypeInfo *path_table_info = Table$info(&Path$info, &Path$info);
     Table_t to_link = {};
@@ -390,17 +389,17 @@ void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, 
     }
 
     if (object_files) {
-        *object_files = CORD_EMPTY;
         for (int64_t i = 0; i < dependency_files.entries.length; i++) {
-            Path_t filename = *(Path_t*)(dependency_files.entries.data + i*dependency_files.entries.stride);
-            *object_files = CORD_all(*object_files, Text$as_c_string(filename), ".o ");
+            Path_t filename = Text$concat(
+                *(Path_t*)(dependency_files.entries.data + i*dependency_files.entries.stride),
+                Text(".o"));
+            Array$insert(object_files, &filename, I(0), sizeof(Path_t));
         }
     }
     if (extra_ldlibs) {
-        *extra_ldlibs = CORD_EMPTY;
         for (int64_t i = 0; i < to_link.entries.length; i++) {
             Text_t lib = *(Text_t*)(to_link.entries.data + i*to_link.entries.stride);
-            *extra_ldlibs = CORD_all(*extra_ldlibs, " ", Text$as_c_string(lib));
+            Array$insert(extra_ldlibs, &lib, I(0), sizeof(Text_t));
         }
     }
 }
@@ -485,12 +484,10 @@ void transpile_header(env_t *base_env, Text_t filename, bool force_retranspile)
     if (pclose(prog) == -1)
         errx(1, "Failed to run autoformat program on header file: %k", &autofmt);
 
-    if (verbose)
-        printf("Transpiled to %k\n", &h_filename);
+    printf("Transpiled to %k\n", &h_filename);
 
-    if (show_codegen) {
+    if (show_codegen)
         system(heap_strf("bat -P %k", &h_filename));
-    }
 }
 
 void transpile_code(env_t *base_env, Text_t filename, bool force_retranspile)
@@ -528,8 +525,7 @@ void transpile_code(env_t *base_env, Text_t filename, bool force_retranspile)
     if (pclose(out) == -1)
         errx(1, "Failed to output autoformatted C code to %k: %k", &c_filename, &autofmt);
 
-    if (verbose)
-        printf("Transpiled to %k\n", &c_filename);
+    printf("Transpiled to %k\n", &c_filename);
 
     if (show_codegen)
         system(heap_strf("bat -P %k", &c_filename));
@@ -554,11 +550,10 @@ void compile_object_file(Text_t filename, bool force_recompile)
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);
 
-    if (verbose)
-        printf("Compiled to %k\n", &obj_file);
+    printf("Compiled to %k\n", &obj_file);
 }
 
-Text_t compile_executable(env_t *base_env, Text_t filename, CORD object_files, CORD extra_ldlibs)
+Text_t compile_executable(env_t *base_env, Text_t filename, Array_t object_files, Array_t extra_ldlibs)
 {
     ast_t *ast = parse_file(Text$as_c_string(filename), NULL);
     if (!ast)
@@ -571,7 +566,7 @@ Text_t compile_executable(env_t *base_env, Text_t filename, CORD object_files, C
     Text_t bin_name = Text$trim(filename, Text(".tm"), false, true);
     FILE *runner = run_cmd("%k %k -O%k %k %k %s %s -x c - -o %k",
                            &cc, &cflags, &optimization, &ldflags, &ldlibs,
-                           CORD_to_const_char_star(extra_ldlibs), CORD_to_const_char_star(object_files), &bin_name);
+                           array_str(extra_ldlibs), array_str(object_files), &bin_name);
     CORD program = CORD_all(
         "extern int ", main_binding->code, "$parse_and_run(int argc, char *argv[]);\n"
         "int main(int argc, char *argv[]) {\n"
@@ -580,7 +575,7 @@ Text_t compile_executable(env_t *base_env, Text_t filename, CORD object_files, C
     );
 
     if (show_codegen) {
-        FILE *out = CORD_RUN("bat -P --file-name=run.c");
+        FILE *out = run_cmd("bat -P --file-name=run.c");
         CORD_put(program, out);
         pclose(out);
     }
@@ -590,8 +585,7 @@ Text_t compile_executable(env_t *base_env, Text_t filename, CORD object_files, C
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);
 
-    if (verbose)
-        printf("Compiled executable: %k\n", &bin_name);
+    printf("Compiled executable: %k\n", &bin_name);
     return bin_name;
 }
 
