@@ -12,6 +12,7 @@
 #include "types.h"
 
 #define Shell_t Text_t
+#define OptionalShell_t Text_t
 #define Shell(text) ((Shell_t)Text(text))
 #define Shells(...) ((Shell_t)Texts(__VA_ARGS__))
 
