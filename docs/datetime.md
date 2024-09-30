@@ -96,7 +96,7 @@ The date in `YYYY-MM-DD` format.
 
 **Example:**  
 ```markdown
->> DateTime(2024, 9, 29):format("%A")
+>> DateTime(2024, 9, 29):date()
 = "2024-09-29"
 ```
 
@@ -111,14 +111,13 @@ options, return a text representation of the given date in the given format. If
 
 **Usage:**  
 ```markdown
-datetime:format(format: Text = "%c %Z", local_time : Bool = yes) -> Text
+datetime:format(format: Text = "%Y-%m-%dT%H:%M:%S%z", local_time : Bool = yes) -> Text
 ```
 
 **Parameters:**
 
-- `path`: The path of the file to append to.
-- `bytes`: The bytes to append to the file.
-- `permissions` (optional): The permissions to set on the file if it is being created (default is `0o644`).
+- `format`: The `strftime` format to use (default: `"%Y-%m-%dT%H:%M:%S%z"`).
+- `local_time`: Whether to use local time (default: `yes`) or UTC.
 
 **Returns:**  
 Nothing.
@@ -321,14 +320,15 @@ or a null value if the value could not be successfully parsed.
 
 **Usage:**  
 ```markdown
-DateTime.parse(text: Text, format: Text = "%Y-%m-%dT%H:%M:%S. %f%z") -> DateTime?
+DateTime.parse(text: Text, format: Text = "%Y-%m-%dT%H:%M:%S%z") -> DateTime?
 ```
 
 **Parameters:**
 
 - `text`: The text to parse.
 - `format`: The date format of the text being parsed (see:
-  [strptime](https://linux.die.net/man/3/strptime) for more info on this format) (default: `"%c %Z"`).
+  [strptime](https://linux.die.net/man/3/strptime) for more info on this
+  format) (default: `"%Y-%m-%dT%H:%M:%S%z"`).
 
 **Returns:**
 If the text was successfully parsed according to the given format, return a
