@@ -279,6 +279,10 @@ integer, an error will be raised.
 ```markdown
 >> DateTime.new(2024, 9, 29)
 = Mon Sep 30 00:00:00 2024
+
+# March 1642, 2020:
+>> DateTime(2020, 4, 1643)
+= Sat Sep 28 00:00:00 2024
 ```
 
 ---
