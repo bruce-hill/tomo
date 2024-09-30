@@ -104,14 +104,14 @@ PUREFUNC static uint64_t grapheme_hash(ucs4_t **g) {
     return siphash24((void*)&cluster[1], sizeof(ucs4_t[cluster[0]]));
 }
 
-static const TypeInfo GraphemeClusterInfo = {
+static const TypeInfo_t GraphemeClusterInfo = {
     .size=sizeof(ucs4_t*),
     .align=__alignof__(ucs4_t*),
     .tag=CustomInfo,
     .CustomInfo={.equal=(void*)graphemes_equal, .hash=(void*)grapheme_hash},
 };
 
-static const TypeInfo GraphemeIDLookupTableInfo = {
+static const TypeInfo_t GraphemeIDLookupTableInfo = {
     .size=sizeof(Table_t), .align=__alignof__(Table_t),
     .tag=TableInfo, .TableInfo={.key=&GraphemeClusterInfo, .value=&Int32$info},
 };
@@ -1097,7 +1097,7 @@ static inline Text_t _quoted(Text_t text, bool colorize, char quote_char)
 #undef add_escaped
 }
 
-public Text_t Text$as_text(const void *text, bool colorize, const TypeInfo *info)
+public Text_t Text$as_text(const void *text, bool colorize, const TypeInfo_t *info)
 {
     (void)info;
     if (info->TextInfo.lang && streq(info->TextInfo.lang, "Path")) {
@@ -1313,7 +1313,7 @@ public Array_t Text$lines(Text_t text)
     return lines;
 }
 
-public const TypeInfo Text$info = {
+public const TypeInfo_t Text$info = {
     .size=sizeof(Text_t),
     .align=__alignof__(Text_t),
     .tag=TextInfo,
@@ -1350,7 +1350,7 @@ public Pattern_t Pattern$escape_text(Text_t text)
 #undef add_escaped
 }
 
-public const TypeInfo Pattern$info = {
+public const TypeInfo_t Pattern$info = {
     .size=sizeof(Pattern_t),
     .align=__alignof__(Pattern_t),
     .tag=TextInfo,

@@ -28,6 +28,6 @@ Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn);
 #define Pattern$compare Text$compare
 #define Pattern$equal Text$equal
 
-extern const TypeInfo Pattern$info;
+extern const TypeInfo_t Pattern$info;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

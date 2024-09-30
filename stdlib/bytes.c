@@ -10,7 +10,7 @@
 public const Byte_t Byte$min = 0;
 public const Byte_t Byte$max = UINT8_MAX;
 
-PUREFUNC public Text_t Byte$as_text(const Byte_t *b, bool colorize, const TypeInfo *type)
+PUREFUNC public Text_t Byte$as_text(const Byte_t *b, bool colorize, const TypeInfo_t *type)
 {
     (void)type;
     if (!b) return Text("Byte");
@@ -28,7 +28,7 @@ public Byte_t Byte$random(Byte_t min, Byte_t max)
     return (Byte_t)(min + r);
 }
 
-public const TypeInfo Byte$info = {
+public const TypeInfo_t Byte$info = {
     .size=sizeof(Byte_t),
     .align=__alignof__(Byte_t),
     .tag=CustomInfo,

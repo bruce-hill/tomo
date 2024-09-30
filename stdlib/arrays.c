@@ -16,7 +16,7 @@
 #include "siphash.h"
 #include "siphash-internals.h"
 
-PUREFUNC static inline int64_t get_padded_item_size(const TypeInfo *info)
+PUREFUNC static inline int64_t get_padded_item_size(const TypeInfo_t *info)
 {
     int64_t size = info->ArrayInfo.item->size;
     if (info->ArrayInfo.item->align > 1 && size % info->ArrayInfo.item->align)
@@ -195,12 +195,12 @@ public void Array$remove_at(Array_t *arr, Int_t int_index, Int_t int_count, int6
     if (arr->length == 0) arr->data = NULL;
 }
 
-public void Array$remove_item(Array_t *arr, void *item, Int_t max_removals, const TypeInfo *type)
+public void Array$remove_item(Array_t *arr, void *item, Int_t max_removals, const TypeInfo_t *type)
 {
     int64_t padded_item_size = get_padded_item_size(type);
     const Int_t ZERO = (Int_t){.small=(0<<2)|1};
     const Int_t ONE = (Int_t){.small=(1<<2)|1};
-    const TypeInfo *item_type = type->ArrayInfo.item;
+    const TypeInfo_t *item_type = type->ArrayInfo.item;
     for (int64_t i = 0; i < arr->length; ) {
         if (max_removals.small == ZERO.small) // zero
             break;
@@ -214,9 +214,9 @@ public void Array$remove_item(Array_t *arr, void *item, Int_t max_removals, cons
     }
 }
 
-public Int_t Array$find(Array_t arr, void *item, const TypeInfo *type)
+public Int_t Array$find(Array_t arr, void *item, const TypeInfo_t *type)
 {
-    const TypeInfo *item_type = type->ArrayInfo.item;
+    const TypeInfo_t *item_type = type->ArrayInfo.item;
     for (int64_t i = 0; i < arr.length; i++) {
         if (generic_equal(item, arr.data + i*arr.stride, item_type))
             return I(i+1);
@@ -279,10 +279,10 @@ public void *Array$random(Array_t arr)
     return arr.data + arr.stride*index;
 }
 
-public Table_t Array$counts(Array_t arr, const TypeInfo *type)
+public Table_t Array$counts(Array_t arr, const TypeInfo_t *type)
 {
     Table_t counts = {};
-    const TypeInfo count_type = {.size=sizeof(Table_t), .align=__alignof__(Table_t),
+    const TypeInfo_t count_type = {.size=sizeof(Table_t), .align=__alignof__(Table_t),
         .tag=TableInfo, .TableInfo.key=type->ArrayInfo.item, .TableInfo.value=&Int$info};
     for (int64_t i = 0; i < arr.length; i++) {
         void *key = arr.data + i*arr.stride;
@@ -486,9 +486,9 @@ public Array_t Array$concat(Array_t x, Array_t y, int64_t padded_item_size)
     };
 }
 
-public bool Array$has(Array_t array, void *item, const TypeInfo *type)
+public bool Array$has(Array_t array, void *item, const TypeInfo_t *type)
 {
-    const TypeInfo *item_type = type->ArrayInfo.item;
+    const TypeInfo_t *item_type = type->ArrayInfo.item;
     for (int64_t i = 0; i < array.length; i++) {
         if (generic_equal(array.data + i*array.stride, item, item_type))
             return true;
@@ -501,13 +501,13 @@ public void Array$clear(Array_t *array)
     *array = (Array_t){.data=0, .length=0};
 }
 
-public int32_t Array$compare(const Array_t *x, const Array_t *y, const TypeInfo *type)
+public int32_t Array$compare(const Array_t *x, const Array_t *y, const TypeInfo_t *type)
 {
     // Early out for arrays with the same data, e.g. two copies of the same array:
     if (x->data == y->data && x->stride == y->stride)
         return (x->length > y->length) - (x->length < y->length);
 
-    const TypeInfo *item = type->ArrayInfo.item;
+    const TypeInfo_t *item = type->ArrayInfo.item;
     if (item->tag == PointerInfo || (item->tag == CustomInfo && item->CustomInfo.compare == NULL)) { // data comparison
         int64_t item_padded_size = type->ArrayInfo.item->size;
         if (type->ArrayInfo.item->align > 1 && item_padded_size % type->ArrayInfo.item->align)
@@ -531,17 +531,17 @@ public int32_t Array$compare(const Array_t *x, const Array_t *y, const TypeInfo 
     return (x->length > y->length) - (x->length < y->length);
 }
 
-public bool Array$equal(const Array_t *x, const Array_t *y, const TypeInfo *type)
+public bool Array$equal(const Array_t *x, const Array_t *y, const TypeInfo_t *type)
 {
     return x == y || (x->length == y->length && Array$compare(x, y, type) == 0);
 }
 
-public Text_t Array$as_text(const Array_t *arr, bool colorize, const TypeInfo *type)
+public Text_t Array$as_text(const Array_t *arr, bool colorize, const TypeInfo_t *type)
 {
     if (!arr)
         return Text$concat(Text("["), generic_as_text(NULL, false, type->ArrayInfo.item), Text("]"));
 
-    const TypeInfo *item_type = type->ArrayInfo.item;
+    const TypeInfo_t *item_type = type->ArrayInfo.item;
     Text_t text = Text("[");
     for (int64_t i = 0; i < arr->length; i++) {
         if (i > 0)
@@ -553,9 +553,9 @@ public Text_t Array$as_text(const Array_t *arr, bool colorize, const TypeInfo *t
     return text;
 }
 
-public uint64_t Array$hash(const Array_t *arr, const TypeInfo *type)
+public uint64_t Array$hash(const Array_t *arr, const TypeInfo_t *type)
 {
-    const TypeInfo *item = type->ArrayInfo.item;
+    const TypeInfo_t *item = type->ArrayInfo.item;
     siphash sh;
     siphashinit(&sh, sizeof(uint64_t[arr->length]));
     if (item->tag == PointerInfo || (item->tag == CustomInfo && item->CustomInfo.hash == NULL && item->size == sizeof(void*))) { // Raw data hash

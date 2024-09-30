@@ -95,6 +95,8 @@ int main(int argc, char *argv[])
         {"c", false, &Bool$info, &stop_at_obj_compilation},
         {"compile-exe", false, &Bool$info, &stop_at_exe_compilation},
         {"e", false, &Bool$info, &stop_at_exe_compilation},
+        {"uninstall", false, &Bool$info, &uninstall},
+        {"u", false, &Bool$info, &uninstall},
         {"library", false, &Bool$info, &library_mode},
         {"L", false, &Bool$info, &library_mode},
         {"show-codegen", false, &Bool$info, &show_codegen},
@@ -333,7 +335,7 @@ void build_library(Text_t lib_dir_name)
 
 void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, Array_t *object_files, Array_t *extra_ldlibs)
 {
-    TypeInfo *path_table_info = Table$info(&Path$info, &Path$info);
+    TypeInfo_t *path_table_info = Table$info(&Path$info, &Path$info);
     Table_t to_link = {};
     Table_t argument_files = {};
     Table_t dependency_files = {};

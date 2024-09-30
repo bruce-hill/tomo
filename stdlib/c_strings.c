@@ -10,7 +10,7 @@
 #include "siphash.h"
 #include "util.h"
 
-public Text_t CString$as_text(const char **c_string, bool colorize, const TypeInfo *info)
+public Text_t CString$as_text(const char **c_string, bool colorize, const TypeInfo_t *info)
 {
     (void)info;
     if (!c_string) return Text("CString");
@@ -45,7 +45,7 @@ PUREFUNC public uint64_t CString$hash(const char **c_str)
     return siphash24((void*)*c_str, strlen(*c_str));
 }
 
-public const TypeInfo CString$info = {
+public const TypeInfo_t CString$info = {
     .size=sizeof(char*),
     .align=__alignof__(char*),
     .tag=CStringInfo,

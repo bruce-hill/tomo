@@ -38,7 +38,7 @@ public void Thread$detach(Thread_t thread)
     pthread_detach(*thread);
 }
 
-Text_t Thread$as_text(const Thread_t *thread, bool colorize, const TypeInfo *type)
+Text_t Thread$as_text(const Thread_t *thread, bool colorize, const TypeInfo_t *type)
 {
     (void)type;
     if (!thread) {
@@ -47,7 +47,7 @@ Text_t Thread$as_text(const Thread_t *thread, bool colorize, const TypeInfo *typ
     return Text$format(colorize ? "\x1b[34;1mThread(%p)\x1b[m" : "Thread(%p)", *thread);
 }
 
-public const TypeInfo Thread$info = {
+public const TypeInfo_t Thread$info = {
     .size=sizeof(Thread_t), .align=__alignof(Thread_t),
     .tag=CustomInfo,
     .CustomInfo={.as_text=(void*)Thread$as_text},

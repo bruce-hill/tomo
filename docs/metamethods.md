@@ -3,25 +3,25 @@
 This language relies on a small set of "metamethods" which define special
 behavior that is required for all types:
 
-- `as_text(obj:&(optional)T, colorize=no, type:&TypeInfo)->Text`: a method to
+- `as_text(obj:&(optional)T, colorize=no, type:&TypeInfo_t)->Text`: a method to
   convert the type to a string. If `colorize` is `yes`, then the method should
   include ANSI escape codes for syntax highlighting. If the `obj` pointer is
   `NULL`, a string representation of the type will be returned instead.
 
-- `compare(x:&T, y:&T, type:&TypeInfo)->Int32`: Return an integer representing
+- `compare(x:&T, y:&T, type:&TypeInfo_t)->Int32`: Return an integer representing
   the result of comparing `x` and `y`, where negative numbers mean `x` is less
   than `y`, zero means `x` is equal to `y`, and positive numbers mean `x` is
   greater than `y`. For the purpose of floating point numbers, `NaN` is sorted
   as greater than any other number value and `NaN` values are compared bitwise
   between each other.
 
-- `equals(x:&T, y:&T, type:&TypeInfo)->Bool`: This is the same as comparing two
+- `equals(x:&T, y:&T, type:&TypeInfo_t)->Bool`: This is the same as comparing two
   numbers to check for zero, except for some minor differences: floating point
   `NaN` values are _not_ equal to each other (IEEE 754) and the implementation
   of `equals` may be faster to compute than `compare` for certain types, such
   as tables.
 
-- `hash(x:&T, type:&TypeInfo)->Int32`: Values are hashed when used as keys in a
+- `hash(x:&T, type:&TypeInfo_t)->Int32`: Values are hashed when used as keys in a
   table or set. Hashing is consistent with equality, so two values that are
   equal _must_ hash to the same hash value, ideally in a way that makes it
   unlikely that two different values will have the same hash value.

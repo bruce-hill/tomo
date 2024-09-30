@@ -82,7 +82,7 @@ env_t *new_compilation_unit(CORD libname)
         const char *name;
         type_t *type;
         CORD typename;
-        CORD struct_val;
+        CORD typeinfo;
         Array_t namespace;
     } global_types[] = {
         {"Void", Type(VoidType), "Void_t", "Void$info", {}},
@@ -385,7 +385,8 @@ env_t *new_compilation_unit(CORD libname)
         default: break;
         }
         if (ns_env == NULL) ns_env = namespace_env(env, global_types[i].name);
-        binding_t *binding = new(binding_t, .type=Type(TypeInfoType, .name=global_types[i].name, .type=global_types[i].type, .env=ns_env));
+        binding_t *binding = new(binding_t, .type=Type(TypeInfoType, .name=global_types[i].name, .type=global_types[i].type, .env=ns_env),
+                                 .code=global_types[i].typeinfo);
         Table$str_set(env->globals, global_types[i].name, binding);
         Table$str_set(env->types, global_types[i].name, global_types[i].type);
     }

@@ -18,7 +18,7 @@ public Text_t *get_function_name(void *fn)
     return Table$get(function_names, &fn, Table$info(Function$info("???"), &Text$info));
 }
 
-public Text_t Func$as_text(const void *fn, bool colorize, const TypeInfo *type)
+public Text_t Func$as_text(const void *fn, bool colorize, const TypeInfo_t *type)
 {
     (void)fn;
     Text_t text = Text$from_str(type->FunctionInfo.type_str);

@@ -40,7 +40,7 @@ public void tomo_init(void)
        errx(1, "Couldn't set printf specifier");
 }
 
-static bool parse_single_arg(const TypeInfo *info, char *arg, void *dest)
+static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)
 {
     while (info->tag == OptionalInfo)
         info = info->OptionalInfo.type;
@@ -110,7 +110,7 @@ static bool parse_single_arg(const TypeInfo *info, char *arg, void *dest)
     }
 }
 
-static Array_t parse_array(const TypeInfo *item_info, int n, char *args[])
+static Array_t parse_array(const TypeInfo_t *item_info, int n, char *args[])
 {
     int64_t padded_size = item_info->size;
     if ((padded_size % item_info->align) > 0)
@@ -143,7 +143,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
             }
 
             for (int s = 0; s < spec_len; s++) {
-                const TypeInfo *non_opt_type = spec[s].type;
+                const TypeInfo_t *non_opt_type = spec[s].type;
                 while (non_opt_type->tag == OptionalInfo)
                     non_opt_type = non_opt_type->OptionalInfo.type;
 
@@ -171,7 +171,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                             num_args += 1;
                         }
                         populated_args[s] = true;
-                        const TypeInfo *item_type = non_opt_type->tag == ArrayInfo ? non_opt_type->ArrayInfo.item : non_opt_type->TableInfo.key;
+                        const TypeInfo_t *item_type = non_opt_type->tag == ArrayInfo ? non_opt_type->ArrayInfo.item : non_opt_type->TableInfo.key;
                         Array_t items = parse_array(item_type, num_args, &argv[i+1]);
                         if (non_opt_type->tag == ArrayInfo) {
                             *(OptionalArray_t*)spec[s].dest = items;
@@ -211,7 +211,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                     if (spec[s].name[0] != *f || strlen(spec[s].name) > 1)
                         continue;
 
-                    const TypeInfo *non_opt_type = spec[s].type;
+                    const TypeInfo_t *non_opt_type = spec[s].type;
                     while (non_opt_type->tag == OptionalInfo)
                         non_opt_type = non_opt_type->OptionalInfo.type;
 
@@ -225,7 +225,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                             num_args += 1;
                         }
                         populated_args[s] = true;
-                        const TypeInfo *item_type = non_opt_type->tag == ArrayInfo ? non_opt_type->ArrayInfo.item : non_opt_type->TableInfo.key;
+                        const TypeInfo_t *item_type = non_opt_type->tag == ArrayInfo ? non_opt_type->ArrayInfo.item : non_opt_type->TableInfo.key;
                         Array_t items = parse_array(item_type, num_args, &argv[i+1]);
                         if (non_opt_type->tag == ArrayInfo) {
                             *(OptionalArray_t*)spec[s].dest = items;
@@ -279,7 +279,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                 errx(1, "Extra argument: %s\n%k", argv[i], &usage);
         }
 
-        const TypeInfo *non_opt_type = spec[s].type;
+        const TypeInfo_t *non_opt_type = spec[s].type;
         while (non_opt_type->tag == OptionalInfo)
             non_opt_type = non_opt_type->OptionalInfo.type;
 
@@ -296,7 +296,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                 num_args += 1;
             }
             populated_args[s] = true;
-            const TypeInfo *item_type = non_opt_type->tag == ArrayInfo ? non_opt_type->ArrayInfo.item : non_opt_type->TableInfo.key;
+            const TypeInfo_t *item_type = non_opt_type->tag == ArrayInfo ? non_opt_type->ArrayInfo.item : non_opt_type->TableInfo.key;
             Array_t items = parse_array(item_type, num_args, &argv[i]);
             if (non_opt_type->tag == ArrayInfo) {
                 *(OptionalArray_t*)spec[s].dest = items;
@@ -423,7 +423,7 @@ public void start_test(const char *filename, int64_t start, int64_t end)
     ++TEST_DEPTH;
 }
 
-public void end_test(const void *expr, const TypeInfo *type, const char *expected, const char *filename, int64_t start, int64_t end)
+public void end_test(const void *expr, const TypeInfo_t *type, const char *expected, const char *filename, int64_t start, int64_t end)
 {
     (void)filename;
     (void)start;

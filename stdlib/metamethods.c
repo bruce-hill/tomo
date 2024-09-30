@@ -15,7 +15,7 @@
 #include "util.h"
 
 
-PUREFUNC public uint64_t generic_hash(const void *obj, const TypeInfo *type)
+PUREFUNC public uint64_t generic_hash(const void *obj, const TypeInfo_t *type)
 {
     switch (type->tag) {
     case TextInfo: return Text$hash((void*)obj);
@@ -35,7 +35,7 @@ PUREFUNC public uint64_t generic_hash(const void *obj, const TypeInfo *type)
     }
 }
 
-PUREFUNC public int32_t generic_compare(const void *x, const void *y, const TypeInfo *type)
+PUREFUNC public int32_t generic_compare(const void *x, const void *y, const TypeInfo_t *type)
 {
     if (x == y) return 0;
 
@@ -63,7 +63,7 @@ PUREFUNC public int32_t generic_compare(const void *x, const void *y, const Type
     }
 }
 
-PUREFUNC public bool generic_equal(const void *x, const void *y, const TypeInfo *type)
+PUREFUNC public bool generic_equal(const void *x, const void *y, const TypeInfo_t *type)
 {
     if (x == y) return true;
 
@@ -91,7 +91,7 @@ PUREFUNC public bool generic_equal(const void *x, const void *y, const TypeInfo 
     }
 }
 
-public Text_t generic_as_text(const void *obj, bool colorize, const TypeInfo *type)
+public Text_t generic_as_text(const void *obj, bool colorize, const TypeInfo_t *type)
 {
     switch (type->tag) {
     case PointerInfo: return Pointer$as_text(obj, colorize, type);
@@ -114,7 +114,7 @@ public Text_t generic_as_text(const void *obj, bool colorize, const TypeInfo *ty
     }
 }
 
-public int generic_print(const void *obj, bool colorize, const TypeInfo *type)
+public int generic_print(const void *obj, bool colorize, const TypeInfo_t *type)
 {
     Text_t text = generic_as_text(obj, colorize, type);
     return Text$print(stdout, text) + printf("\n");

@@ -10,8 +10,8 @@
 #include "types.h"
 #include "util.h"
 
-Text_t DateTime$as_text(const DateTime_t *dt, bool colorize, const TypeInfo *type);
-PUREFUNC int32_t DateTime$compare(const DateTime_t *a, const DateTime_t *b, const TypeInfo *type);
+Text_t DateTime$as_text(const DateTime_t *dt, bool colorize, const TypeInfo_t *type);
+PUREFUNC int32_t DateTime$compare(const DateTime_t *a, const DateTime_t *b, const TypeInfo_t *type);
 DateTime_t DateTime$now(void);
 DateTime_t DateTime$new(Int_t year, Int_t month, Int_t day, Int_t hour, Int_t minute, double second, OptionalText_t timezone);
 DateTime_t DateTime$after(DateTime_t dt, double seconds, double minutes, double hours, Int_t days, Int_t weeks, Int_t months, Int_t years, OptionalText_t timezone);
@@ -29,7 +29,7 @@ CONSTFUNC DateTime_t DateTime$from_unix_timestamp(Int64_t timestamp);
 void DateTime$set_local_timezone(OptionalText_t timezone);
 Text_t DateTime$get_local_timezone(void);
 
-extern const TypeInfo DateTime$info;
+extern const TypeInfo_t DateTime$info;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
 

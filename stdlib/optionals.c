@@ -12,7 +12,7 @@
 #include "threads.h"
 #include "util.h"
 
-public PUREFUNC bool is_null(const void *obj, const TypeInfo *non_optional_type)
+public PUREFUNC bool is_null(const void *obj, const TypeInfo_t *non_optional_type)
 {
     if (non_optional_type == &Int$info)
         return ((Int_t*)obj)->small == 0;
@@ -58,7 +58,7 @@ public PUREFUNC bool is_null(const void *obj, const TypeInfo *non_optional_type)
 }
 
 #pragma GCC diagnostic ignored "-Wstack-protector"
-public Text_t Optional$as_text(const void *obj, bool colorize, const TypeInfo *type)
+public Text_t Optional$as_text(const void *obj, bool colorize, const TypeInfo_t *type)
 {
     if (!obj)
         return Text$concat(generic_as_text(obj, colorize, type->OptionalInfo.type), Text("?"));

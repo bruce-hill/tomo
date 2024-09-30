@@ -95,7 +95,7 @@ static void repl_err(ast_t *node, const char *fmt, ...)
     longjmp(on_err, 1);
 }
 
-const TypeInfo *type_to_type_info(type_t *t)
+const TypeInfo_t *type_to_type_info(type_t *t)
 {
     switch (t->tag) {
     case AbortType: return &Abort$info;
@@ -120,27 +120,27 @@ const TypeInfo *type_to_type_info(type_t *t)
         }
     case TextType: return &Text$info;
     case ArrayType: {
-        const TypeInfo *item_info = type_to_type_info(Match(t, ArrayType)->item_type);
-        const TypeInfo array_info = {.size=sizeof(Array_t), .align=__alignof__(Array_t),
+        const TypeInfo_t *item_info = type_to_type_info(Match(t, ArrayType)->item_type);
+        const TypeInfo_t array_info = {.size=sizeof(Array_t), .align=__alignof__(Array_t),
             .tag=ArrayInfo, .ArrayInfo.item=item_info};
-        return memcpy(GC_MALLOC(sizeof(TypeInfo)), &array_info, sizeof(TypeInfo));
+        return memcpy(GC_MALLOC(sizeof(TypeInfo_t)), &array_info, sizeof(TypeInfo_t));
     }
     case TableType: {
-        const TypeInfo *key_info = type_to_type_info(Match(t, TableType)->key_type);
-        const TypeInfo *value_info = type_to_type_info(Match(t, TableType)->value_type);
-        const TypeInfo table_info = {
+        const TypeInfo_t *key_info = type_to_type_info(Match(t, TableType)->key_type);
+        const TypeInfo_t *value_info = type_to_type_info(Match(t, TableType)->value_type);
+        const TypeInfo_t table_info = {
             .size=sizeof(Table_t), .align=__alignof__(Table_t),
             .tag=TableInfo, .TableInfo.key=key_info, .TableInfo.value=value_info};
-        return memcpy(GC_MALLOC(sizeof(TypeInfo)), &table_info, sizeof(TypeInfo));
+        return memcpy(GC_MALLOC(sizeof(TypeInfo_t)), &table_info, sizeof(TypeInfo_t));
     }
     case PointerType: {
         auto ptr = Match(t, PointerType);
         CORD sigil = ptr->is_stack ? "&" : "@";
         if (ptr->is_readonly) sigil = CORD_cat(sigil, "%");
-        const TypeInfo *pointed_info = type_to_type_info(ptr->pointed);
-        const TypeInfo pointer_info = {.size=sizeof(void*), .align=__alignof__(void*),
+        const TypeInfo_t *pointed_info = type_to_type_info(ptr->pointed);
+        const TypeInfo_t pointer_info = {.size=sizeof(void*), .align=__alignof__(void*),
             .tag=PointerInfo, .PointerInfo={.sigil=sigil, .pointed=pointed_info}};
-        return memcpy(GC_MALLOC(sizeof(TypeInfo)), &pointer_info, sizeof(TypeInfo));
+        return memcpy(GC_MALLOC(sizeof(TypeInfo_t)), &pointer_info, sizeof(TypeInfo_t));
     }
     default: errx(1, "Unsupported type: %T", t);
     }
@@ -210,7 +210,7 @@ static double ast_to_num(env_t *env, ast_t *ast)
 
 static Text_t obj_to_text(type_t *t, const void *obj, bool use_color)
 {
-    const TypeInfo *info = type_to_type_info(t);
+    const TypeInfo_t *info = type_to_type_info(t);
     return generic_as_text(obj, use_color, info);
 }
 
@@ -256,7 +256,7 @@ void run(env_t *env, ast_t *ast)
             // case Index: {
             //     auto index = Match(target->ast, Index);
             //     type_t *obj_t = get_type(env, index->indexed);
-            //     TypeInfo *table_info = type_to_type_info(t);
+            //     TypeInfo_t *table_info = type_to_type_info(t);
             // }
             default: errx(1, "Assignment not implemented: %W", target->ast);
             }
@@ -442,7 +442,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
             type_t *t_lhs = get_type(env, binop->lhs);
             if (!type_eq(t_lhs, get_type(env, binop->rhs)))
                 repl_err(ast, "Comparisons between different types aren't supported");
-            const TypeInfo *info = type_to_type_info(t_lhs);
+            const TypeInfo_t *info = type_to_type_info(t_lhs);
             size_t value_size = type_size(t_lhs);
             char lhs[value_size], rhs[value_size];
             eval(env, binop->lhs, lhs);
@@ -488,7 +488,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
             size_t key_size = type_size(key_type);
             char key_buf[key_size];
             eval(env, index->index, key_buf);
-            const TypeInfo *table_info = type_to_type_info(indexed_t);
+            const TypeInfo_t *table_info = type_to_type_info(indexed_t);
             memcpy(dest, Table$get(table, key_buf, table_info), key_size);
             break;
         }
@@ -524,7 +524,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         size_t value_size = type_size(Match(t, TableType)->value_type);
         char key_buf[key_size] = {};
         char value_buf[value_size] = {};
-        const TypeInfo *table_info = type_to_type_info(t);
+        const TypeInfo_t *table_info = type_to_type_info(t);
         assert(table_info->tag == TableInfo);
         for (ast_list_t *entry = table_ast->entries; entry; entry = entry->next) {
             auto e = Match(entry->ast, TableEntry);

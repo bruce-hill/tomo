@@ -99,27 +99,27 @@ public void Channel$clear(Channel_t *channel)
     (void)pthread_cond_signal(&channel->cond);
 }
 
-PUREFUNC public uint64_t Channel$hash(Channel_t **channel, const TypeInfo *type)
+PUREFUNC public uint64_t Channel$hash(Channel_t **channel, const TypeInfo_t *type)
 {
     (void)type;
     return siphash24((void*)*channel, sizeof(Channel_t*));
 }
 
-PUREFUNC public int32_t Channel$compare(Channel_t **x, Channel_t **y, const TypeInfo *type)
+PUREFUNC public int32_t Channel$compare(Channel_t **x, Channel_t **y, const TypeInfo_t *type)
 {
     (void)type;
     return (*x > *y) - (*x < *y);
 }
 
-PUREFUNC public bool Channel$equal(Channel_t **x, Channel_t **y, const TypeInfo *type)
+PUREFUNC public bool Channel$equal(Channel_t **x, Channel_t **y, const TypeInfo_t *type)
 {
     (void)type;
     return (*x == *y);
 }
 
-public Text_t Channel$as_text(Channel_t **channel, bool colorize, const TypeInfo *type)
+public Text_t Channel$as_text(Channel_t **channel, bool colorize, const TypeInfo_t *type)
 {
-    const TypeInfo *item_type = type->ChannelInfo.item;
+    const TypeInfo_t *item_type = type->ChannelInfo.item;
     if (!channel) {
         Text_t typename = generic_as_text(NULL, false, item_type);
         return Text$concat(colorize ? Text("\x1b[34;1m|:") : Text("|:"), typename, colorize ? Text("|\x1b[m") : Text("|"));

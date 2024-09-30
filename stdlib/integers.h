@@ -27,9 +27,9 @@
         c_type i; \
         bool is_null:1; \
     } Optional ## type_name ## _t; \
-    Text_t type_name ## $as_text(const c_type *i, bool colorize, const TypeInfo *type); \
-    PUREFUNC int32_t type_name ## $compare(const c_type *x, const c_type *y, const TypeInfo *type); \
-    PUREFUNC bool type_name ## $equal(const c_type *x, const c_type *y, const TypeInfo *type); \
+    Text_t type_name ## $as_text(const c_type *i, bool colorize, const TypeInfo_t *type); \
+    PUREFUNC int32_t type_name ## $compare(const c_type *x, const c_type *y, const TypeInfo_t *type); \
+    PUREFUNC bool type_name ## $equal(const c_type *x, const c_type *y, const TypeInfo_t *type); \
     Text_t type_name ## $format(c_type i, Int_t digits); \
     Text_t type_name ## $hex(c_type i, Int_t digits, bool uppercase, bool prefix); \
     Text_t type_name ## $octal(c_type i, Int_t digits, bool prefix); \
@@ -41,7 +41,7 @@
         return x < min ? min : (x > max ? max : x); \
     } \
     extern const c_type type_name ## $min, type_name##$max; \
-    extern const TypeInfo type_name ## $info; \
+    extern const TypeInfo_t type_name ## $info; \
     static inline c_type type_name ## $divided_by(c_type D, c_type d) { \
         c_type q = D/d, r = D%d; \
         if (r < 0) { \
@@ -80,12 +80,12 @@ DEFINE_INT_TYPE(int8_t,  Int8)
 
 #define OptionalInt_t Int_t
 
-Text_t Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type);
+Text_t Int$as_text(const Int_t *i, bool colorize, const TypeInfo_t *type);
 Text_t Int$value_as_text(Int_t i);
-PUREFUNC uint64_t Int$hash(const Int_t *x, const TypeInfo *type);
-PUREFUNC int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo *type);
+PUREFUNC uint64_t Int$hash(const Int_t *x, const TypeInfo_t *type);
+PUREFUNC int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo_t *type);
 PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y);
-PUREFUNC bool Int$equal(const Int_t *x, const Int_t *y, const TypeInfo *type);
+PUREFUNC bool Int$equal(const Int_t *x, const Int_t *y, const TypeInfo_t *type);
 PUREFUNC bool Int$equal_value(const Int_t x, const Int_t y);
 Text_t Int$format(Int_t i, Int_t digits);
 Text_t Int$hex(Int_t i, Int_t digits, bool uppercase, bool prefix);
@@ -134,7 +134,7 @@ bool Int$is_prime(Int_t x, Int_t reps);
 Int_t Int$next_prime(Int_t x);
 Int_t Int$prev_prime(Int_t x);
 
-extern const TypeInfo Int$info;
+extern const TypeInfo_t Int$info;
 
 static inline Int_t Int$clamped(Int_t x, Int_t low, Int_t high)
 {

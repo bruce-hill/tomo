@@ -17,7 +17,7 @@ typedef struct recursion_s {
     struct recursion_s *next;
 } recursion_t;
 
-public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo *type) {
+public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *type) {
     auto ptr_info = type->PointerInfo;
     if (!x) {
         Text_t typename = generic_as_text(NULL, false, ptr_info.pointed);
@@ -69,13 +69,13 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo *type
     return text;
 }
 
-PUREFUNC public int32_t Pointer$compare(const void *x, const void *y, const TypeInfo *type) {
+PUREFUNC public int32_t Pointer$compare(const void *x, const void *y, const TypeInfo_t *type) {
     (void)type;
     const void *xp = *(const void**)x, *yp = *(const void**)y;
     return (xp > yp) - (xp < yp);
 }
 
-PUREFUNC public bool Pointer$equal(const void *x, const void *y, const TypeInfo *type) {
+PUREFUNC public bool Pointer$equal(const void *x, const void *y, const TypeInfo_t *type) {
     (void)type;
     const void *xp = *(const void**)x, *yp = *(const void**)y;
     return xp == yp;

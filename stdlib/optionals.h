@@ -24,7 +24,7 @@
 #define NULL_TEXT ((OptionalText_t){.length=-1})
 #define NULL_DATETIME ((OptionalDateTime_t){.tv_usec=-1})
 
-PUREFUNC bool is_null(const void *obj, const TypeInfo *non_optional_type);
-Text_t Optional$as_text(const void *obj, bool colorize, const TypeInfo *type);
+PUREFUNC bool is_null(const void *obj, const TypeInfo_t *non_optional_type);
+Text_t Optional$as_text(const void *obj, bool colorize, const TypeInfo_t *type);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

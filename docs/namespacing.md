@@ -30,7 +30,7 @@ struct foo$Baz_s {
 };
 
 extern Int_t foo$my_var;
-extern const TypeInfo foo$Baz;
+extern const TypeInfo_t foo$Baz;
 
 extern Int_t foo$Baz$member;
 Int_t foo$Baz$frob(struct foo$Baz_s $b);

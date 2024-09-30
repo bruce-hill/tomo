@@ -47,7 +47,7 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
     auto def = Match(ast, StructDef);
     CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
     CORD cmp_func = CORD_all("static int ", full_name, "$compare(const ", full_name, "_t *x, const ", full_name,
-                             "_t *y, const TypeInfo *info) {\n"
+                             "_t *y, const TypeInfo_t *info) {\n"
                              "(void)info;\n",
                              "int diff;\n");
     for (arg_ast_t *field = def->fields; field; field = field->next) {
@@ -75,7 +75,7 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
     auto def = Match(ast, StructDef);
     CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
     CORD eq_func = CORD_all("static bool ", full_name, "$equal(const ", full_name, "_t *x, const ", full_name,
-                             "_t *y, const TypeInfo *info) {\n"
+                             "_t *y, const TypeInfo_t *info) {\n"
                              "(void)info;\n");
     CORD condition = CORD_EMPTY;
     for (arg_ast_t *field = def->fields; field; field = field->next) {
@@ -103,7 +103,7 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
     CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
-    CORD hash_func = CORD_all("static uint64_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo *info) {\n"
+    CORD hash_func = CORD_all("static uint64_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo_t *info) {\n"
                               "(void)info;\n"
                               "uint64_t field_hashes[] = {");
     for (arg_ast_t *field = def->fields; field; field = field->next) {
@@ -127,7 +127,7 @@ void compile_struct_def(env_t *env, ast_t *ast)
     assert(t && t->tag == StructType);
     auto struct_ = Match(t, StructType);
     if (def->fields) {
-        CORD typeinfo = CORD_asprintf("public const TypeInfo %r = {%zu, %zu, {.tag=StructInfo, .CustomInfo={",
+        CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r = {%zu, %zu, {.tag=StructInfo, .CustomInfo={",
                                       full_name, type_size(t), type_align(t));
 
         typeinfo = CORD_all(typeinfo, ".as_text=(void*)", full_name, "$as_text, ");
@@ -163,7 +163,7 @@ void compile_struct_def(env_t *env, ast_t *ast)
         env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
     } else {
         // If there are no fields, we can use an EmptyStructInfo typeinfo, which generates less code:
-        CORD typeinfo = CORD_asprintf("public const TypeInfo %r = {%zu, %zu, {.tag=EmptyStructInfo, .EmptyStructInfo.name=%r}};\n",
+        CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r = {%zu, %zu, {.tag=EmptyStructInfo, .EmptyStructInfo.name=%r}};\n",
                                       full_name, type_size(t), type_align(t), CORD_quoted(def->name));
         env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
     }
@@ -193,7 +193,7 @@ CORD compile_struct_header(env_t *env, ast_t *ast)
         full_name, "_t value;\n"
         "Bool_t is_null:1;\n"
         "} ", namespace_prefix(env, env->namespace), "$Optional", def->name, "_t;\n"
-        "extern const TypeInfo ", full_name, ";\n",
+        "extern const TypeInfo_t ", full_name, ";\n",
         compile_namespace_header(env, def->name, def->namespace));
 }
 

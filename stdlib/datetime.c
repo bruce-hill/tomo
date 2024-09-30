@@ -25,7 +25,7 @@ static OptionalText_t _local_timezone = NULL_TEXT;
         body; \
     }})
 
-public Text_t DateTime$as_text(const DateTime_t *dt, bool colorize, const TypeInfo *type)
+public Text_t DateTime$as_text(const DateTime_t *dt, bool colorize, const TypeInfo_t *type)
 {
     (void)type;
     if (!dt)
@@ -41,7 +41,7 @@ public Text_t DateTime$as_text(const DateTime_t *dt, bool colorize, const TypeIn
     return text;
 }
 
-PUREFUNC public int32_t DateTime$compare(const DateTime_t *a, const DateTime_t *b, const TypeInfo *type)
+PUREFUNC public int32_t DateTime$compare(const DateTime_t *a, const DateTime_t *b, const TypeInfo_t *type)
 {
     (void)type;
     if (a->tv_sec != b->tv_sec)
@@ -242,7 +242,7 @@ public Text_t DateTime$get_local_timezone(void)
     return _local_timezone;
 }
 
-public const TypeInfo DateTime$info = {
+public const TypeInfo_t DateTime$info = {
     .size=sizeof(DateTime_t),
     .align=__alignof__(DateTime_t),
     .tag=CustomInfo,

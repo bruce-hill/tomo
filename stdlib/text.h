@@ -37,7 +37,7 @@ PUREFUNC bool Text$equal_ignoring_case(Text_t a, Text_t b);
 Text_t Text$upper(Text_t text);
 Text_t Text$lower(Text_t text);
 Text_t Text$title(Text_t text);
-Text_t Text$as_text(const void *text, bool colorize, const TypeInfo *info);
+Text_t Text$as_text(const void *text, bool colorize, const TypeInfo_t *info);
 Text_t Text$quoted(Text_t str, bool colorize);
 PUREFUNC bool Text$starts_with(Text_t text, Text_t prefix);
 PUREFUNC bool Text$ends_with(Text_t text, Text_t suffix);
@@ -63,6 +63,6 @@ static inline int32_t Text$get_grapheme(Text_t text, int64_t index)
     return Text$get_grapheme_fast(&state, index);
 }
 
-extern const TypeInfo Text$info;
+extern const TypeInfo_t Text$info;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

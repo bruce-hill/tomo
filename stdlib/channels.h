@@ -20,9 +20,9 @@ void Channel$peek(Channel_t *channel, void *out, bool front, int64_t item_size);
 #define Channel$peek_value(channel, front, t) ({ t _val; Channel$peek(channel, &_val, front, sizeof(t)); _val; })
 void Channel$clear(Channel_t *channel);
 Array_t Channel$view(Channel_t *channel);
-PUREFUNC uint64_t Channel$hash(Channel_t **channel, const TypeInfo *type);
-PUREFUNC int32_t Channel$compare(Channel_t **x, Channel_t **y, const TypeInfo *type);
-PUREFUNC bool Channel$equal(Channel_t **x, Channel_t **y, const TypeInfo *type);
-Text_t Channel$as_text(Channel_t **channel, bool colorize, const TypeInfo *type);
+PUREFUNC uint64_t Channel$hash(Channel_t **channel, const TypeInfo_t *type);
+PUREFUNC int32_t Channel$compare(Channel_t **x, Channel_t **y, const TypeInfo_t *type);
+PUREFUNC bool Channel$equal(Channel_t **x, Channel_t **y, const TypeInfo_t *type);
+Text_t Channel$as_text(Channel_t **channel, bool colorize, const TypeInfo_t *type);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

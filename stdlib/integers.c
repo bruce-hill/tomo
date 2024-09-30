@@ -30,7 +30,7 @@ public Text_t Int$value_as_text(Int_t i) {
     }
 }
 
-public Text_t Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type) {
+public Text_t Int$as_text(const Int_t *i, bool colorize, const TypeInfo_t *type) {
     (void)type;
     if (!i) return Text("Int");
 
@@ -39,7 +39,7 @@ public Text_t Int$as_text(const Int_t *i, bool colorize, const TypeInfo *type) {
     return text;
 }
 
-public PUREFUNC int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo *type) {
+public PUREFUNC int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo_t *type) {
     (void)type;
     if (__builtin_expect(((x->small | y->small) & 1) == 0, 0))
         return x->big == y->big ? 0 : mpz_cmp(*x->big, *y->big);
@@ -52,7 +52,7 @@ public PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y) {
     return (x.small > y.small) - (x.small < y.small);
 }
 
-public PUREFUNC bool Int$equal(const Int_t *x, const Int_t *y, const TypeInfo *type) {
+public PUREFUNC bool Int$equal(const Int_t *x, const Int_t *y, const TypeInfo_t *type) {
     (void)type;
     return x->small == y->small || (__builtin_expect(((x->small | y->small) & 1) == 0, 0) && mpz_cmp(*x->big, *y->big) == 0);
 }
@@ -61,7 +61,7 @@ public PUREFUNC bool Int$equal_value(const Int_t x, const Int_t y) {
     return x.small == y.small || (__builtin_expect(((x.small | y.small) & 1) == 0, 0) && mpz_cmp(*x.big, *y.big) == 0);
 }
 
-public PUREFUNC uint64_t Int$hash(const Int_t *x, const TypeInfo *type) {
+public PUREFUNC uint64_t Int$hash(const Int_t *x, const TypeInfo_t *type) {
     (void)type;
     if (__builtin_expect(x->small & 1, 1)) {
         int64_t i = (x->small>>2);
@@ -393,7 +393,7 @@ public Int_t Int$prev_prime(Int_t x)
     return Int$from_mpz(p);
 }
 
-public const TypeInfo Int$info = {
+public const TypeInfo_t Int$info = {
     .size=sizeof(Int_t),
     .align=__alignof__(Int_t),
     .tag=CustomInfo,
@@ -407,16 +407,16 @@ public const TypeInfo Int$info = {
 
 
 #define DEFINE_INT_TYPE(c_type, KindOfInt, fmt, min_val, max_val)\
-    public Text_t KindOfInt ## $as_text(const c_type *i, bool colorize, const TypeInfo *type) { \
+    public Text_t KindOfInt ## $as_text(const c_type *i, bool colorize, const TypeInfo_t *type) { \
         (void)type; \
         if (!i) return Text(#KindOfInt); \
         return Text$format(colorize ? "\x1b[35m%" fmt "\x1b[m" : "%" fmt, *i); \
     } \
-    public PUREFUNC int32_t KindOfInt ## $compare(const c_type *x, const c_type *y, const TypeInfo *type) { \
+    public PUREFUNC int32_t KindOfInt ## $compare(const c_type *x, const c_type *y, const TypeInfo_t *type) { \
         (void)type; \
         return (*x > *y) - (*x < *y); \
     } \
-    public PUREFUNC bool KindOfInt ## $equal(const c_type *x, const c_type *y, const TypeInfo *type) { \
+    public PUREFUNC bool KindOfInt ## $equal(const c_type *x, const c_type *y, const TypeInfo_t *type) { \
         (void)type; \
         return *x == *y; \
     } \
@@ -474,7 +474,7 @@ public const TypeInfo Int$info = {
     } \
     public const c_type KindOfInt##$min = min_val; \
     public const c_type KindOfInt##$max = max_val; \
-    public const TypeInfo KindOfInt##$info = { \
+    public const TypeInfo_t KindOfInt##$info = { \
         .size=sizeof(c_type), \
         .align=__alignof__(c_type), \
         .tag=CustomInfo, \

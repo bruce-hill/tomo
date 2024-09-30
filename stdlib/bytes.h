@@ -11,13 +11,13 @@
 #define Byte_t uint8_t
 #define Byte(b) ((Byte_t)(b))
 
-PUREFUNC Text_t Byte$as_text(const Byte_t *b, bool colorize, const TypeInfo *type);
+PUREFUNC Text_t Byte$as_text(const Byte_t *b, bool colorize, const TypeInfo_t *type);
 Byte_t Byte$random(Byte_t min, Byte_t max);
 
 extern const Byte_t Byte$min;
 extern const Byte_t Byte$max;
 
-extern const TypeInfo Byte$info;
+extern const TypeInfo_t Byte$info;
 
 typedef struct {
     Byte_t value;

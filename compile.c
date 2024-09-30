@@ -270,7 +270,7 @@ CORD compile_type(type_t *t)
             compiler_err(NULL, NULL, NULL, "Optional types are not supported for: %T", t);
         }
     }
-    case TypeInfoType: return "TypeInfo";
+    case TypeInfoType: return "TypeInfo_t";
     default: compiler_err(NULL, NULL, NULL, "Compiling type is not implemented for type with tag %d", t->tag);
     }
 }
@@ -751,7 +751,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case LangDef: {
         auto def = Match(ast, LangDef);
-        CORD_appendf(&env->code->typeinfos, "public const TypeInfo %r%s = {%zu, %zu, {.tag=TextInfo, .TextInfo={%r}}};\n",
+        CORD_appendf(&env->code->typeinfos, "public const TypeInfo_t %r%s = {%zu, %zu, {.tag=TextInfo, .TextInfo={%r}}};\n",
                      namespace_prefix(env, env->namespace), def->name, sizeof(Text_t), __alignof__(Text_t),
                      CORD_quoted(def->name));
         compile_namespace(env, def->name, def->namespace);
@@ -856,7 +856,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
                 "static Table_t cache = {};\n",
                 compile_type(args_t), " args = {", all_args, "};\n"
-                "const TypeInfo *table_type = Table$info(", compile_type_info(env, args_t), ", ", compile_type_info(env, ret_t), ");\n",
+                "const TypeInfo_t *table_type = Table$info(", compile_type_info(env, args_t), ", ", compile_type_info(env, ret_t), ");\n",
                 compile_declaration(Type(PointerType, .pointed=ret_t), "cached"), " = Table$get_raw(cache, &args, table_type);\n"
                 "if (cached) return *cached;\n",
                 compile_declaration(ret_t, "ret"), " = ", name, "$uncached(", all_args, ");\n",
@@ -3467,7 +3467,7 @@ CORD compile_type_info(env_t *env, type_t *t)
     case OptionalType: {
         return CORD_asprintf("Optional$info(%r)", compile_type_info(env, Match(t, OptionalType)->type));
     }
-    case TypeInfoType: return "&TypeInfo$info";
+    case TypeInfoType: return CORD_all("TypeInfo$info(", CORD_quoted(type_to_cord(Match(t, TypeInfoType)->type)), ")");
     case MemoryType: return "&Memory$info";
     case VoidType: return "&Void$info";
     default:
@@ -3723,7 +3723,7 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
                 "(text) ((", namespace_prefix(env, env->namespace), def->name, "_t){.length=sizeof(text)-1, .tag=TEXT_ASCII, .ascii=\"\" text})\n"
             "#define ", namespace_prefix(env, env->namespace), def->name,
                 "s(...) ((", namespace_prefix(env, env->namespace), def->name, "_t)Texts(__VA_ARGS__))\n"
-            "extern const TypeInfo ", full_name, ";\n",
+            "extern const TypeInfo_t ", full_name, ";\n",
             compile_namespace_header(env, def->name, def->namespace)
         );
     }

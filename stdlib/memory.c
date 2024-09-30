@@ -12,13 +12,13 @@
 #include "types.h"
 #include "util.h"
 
-public Text_t Memory__as_text(const void *p, bool colorize, const TypeInfo *type) {
+public Text_t Memory__as_text(const void *p, bool colorize, const TypeInfo_t *type) {
     (void)type;
     if (!p) return Text("Memory");
     return Text$format(colorize ? "\x1b[0;34;1mMemory<%p>\x1b[m" : "Memory<%p>", p);
 }
 
-public const TypeInfo Memory$info = {
+public const TypeInfo_t Memory$info = {
     .size=0,
     .align=0,
     .tag=CustomInfo,

@@ -42,7 +42,7 @@
 
 #define GET_ENTRY(t, i) ((t).entries.data + (t).entries.stride*(i))
 
-static const TypeInfo MemoryPointer = {
+static const TypeInfo_t MemoryPointer = {
     .size=sizeof(void*),
     .align=__alignof__(void*),
     .tag=PointerInfo,
@@ -52,14 +52,14 @@ static const TypeInfo MemoryPointer = {
     },
 };
 
-const TypeInfo CStrToVoidStarTable = {
+const TypeInfo_t CStrToVoidStarTable = {
     .size=sizeof(Table_t),
     .align=__alignof__(Table_t),
     .tag=TableInfo,
     .TableInfo={.key=&CString$info, .value=&MemoryPointer},
 };
 
-PUREFUNC static inline size_t entry_size(const TypeInfo *info)
+PUREFUNC static inline size_t entry_size(const TypeInfo_t *info)
 {
     size_t size = (size_t)info->TableInfo.key->size;
     if (info->TableInfo.value->align > 1 && size % (size_t)info->TableInfo.value->align)
@@ -70,12 +70,12 @@ PUREFUNC static inline size_t entry_size(const TypeInfo *info)
     return size;
 }
 
-PUREFUNC static inline size_t entry_align(const TypeInfo *info)
+PUREFUNC static inline size_t entry_align(const TypeInfo_t *info)
 {
     return (size_t)MAX(info->TableInfo.key->align, info->TableInfo.value->align);
 }
 
-PUREFUNC static inline size_t value_offset(const TypeInfo *info)
+PUREFUNC static inline size_t value_offset(const TypeInfo_t *info)
 {
     size_t offset = (size_t)info->TableInfo.key->size;
     if ((size_t)info->TableInfo.value->align > 1 && offset % (size_t)info->TableInfo.value->align)
@@ -96,7 +96,7 @@ static inline void hshow(const Table_t *t)
     hdebug("}\n");
 }
 
-static void maybe_copy_on_write(Table_t *t, const TypeInfo *type)
+static void maybe_copy_on_write(Table_t *t, const TypeInfo_t *type)
 {
     if (t->entries.data_refcount != 0)
         Array$compact(&t->entries, (int64_t)entry_size(type));
@@ -109,7 +109,7 @@ static void maybe_copy_on_write(Table_t *t, const TypeInfo *type)
 }
 
 // Return address of value or NULL
-PUREFUNC public void *Table$get_raw(Table_t t, const void *key, const TypeInfo *type)
+PUREFUNC public void *Table$get_raw(Table_t t, const void *key, const TypeInfo_t *type)
 {
     assert(type->tag == TableInfo);
     if (!key || !t.bucket_info) return NULL;
@@ -131,7 +131,7 @@ PUREFUNC public void *Table$get_raw(Table_t t, const void *key, const TypeInfo *
     return NULL;
 }
 
-PUREFUNC public void *Table$get(Table_t t, const void *key, const TypeInfo *type)
+PUREFUNC public void *Table$get(Table_t t, const void *key, const TypeInfo_t *type)
 {
     assert(type->tag == TableInfo);
     for (const Table_t *iter = &t; iter; iter = iter->fallback) {
@@ -141,7 +141,7 @@ PUREFUNC public void *Table$get(Table_t t, const void *key, const TypeInfo *type
     return NULL;
 }
 
-static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const TypeInfo *type)
+static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const TypeInfo_t *type)
 {
     assert(t->bucket_info);
     hshow(t);
@@ -195,7 +195,7 @@ static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const
     hshow(t);
 }
 
-static void hashmap_resize_buckets(Table_t *t, uint32_t new_capacity, const TypeInfo *type)
+static void hashmap_resize_buckets(Table_t *t, uint32_t new_capacity, const TypeInfo_t *type)
 {
     if (__builtin_expect(new_capacity > TABLE_MAX_BUCKETS, 0))
         fail("Table has exceeded the maximum table size (2^31) and cannot grow further!");
@@ -218,7 +218,7 @@ static void hashmap_resize_buckets(Table_t *t, uint32_t new_capacity, const Type
 
 // Return address of value
 #pragma GCC diagnostic ignored "-Wstack-protector"
-public void *Table$reserve(Table_t *t, const void *key, const void *value, const TypeInfo *type)
+public void *Table$reserve(Table_t *t, const void *key, const void *value, const TypeInfo_t *type)
 {
     assert(type->tag == TableInfo);
     if (!t || !key) return NULL;
@@ -277,13 +277,13 @@ public void *Table$reserve(Table_t *t, const void *key, const void *value, const
     return entry + value_offset(type);
 }
 
-public void Table$set(Table_t *t, const void *key, const void *value, const TypeInfo *type)
+public void Table$set(Table_t *t, const void *key, const void *value, const TypeInfo_t *type)
 {
     assert(type->tag == TableInfo);
     (void)Table$reserve(t, key, value, type);
 }
 
-public void Table$remove(Table_t *t, const void *key, const TypeInfo *type)
+public void Table$remove(Table_t *t, const void *key, const TypeInfo_t *type)
 {
     assert(type->tag == TableInfo);
     if (!t || Table$length(*t) == 0) return;
@@ -387,14 +387,14 @@ public void Table$clear(Table_t *t)
     memset(t, 0, sizeof(Table_t));
 }
 
-public Table_t Table$sorted(Table_t t, const TypeInfo *type)
+public Table_t Table$sorted(Table_t t, const TypeInfo_t *type)
 {
     Closure_t cmp = (Closure_t){.fn=generic_compare, .userdata=(void*)type->TableInfo.key};
     Array_t entries = Array$sorted(t.entries, cmp, (int64_t)entry_size(type));
     return Table$from_entries(entries, type);
 }
 
-PUREFUNC public bool Table$equal(const Table_t *x, const Table_t *y, const TypeInfo *type)
+PUREFUNC public bool Table$equal(const Table_t *x, const Table_t *y, const TypeInfo_t *type)
 {
     if (x == y) return true;
 
@@ -408,7 +408,7 @@ PUREFUNC public bool Table$equal(const Table_t *x, const Table_t *y, const TypeI
     return (Table$compare(x, y, type) == 0);
 }
 
-PUREFUNC public int32_t Table$compare(const Table_t *x, const Table_t *y, const TypeInfo *type)
+PUREFUNC public int32_t Table$compare(const Table_t *x, const Table_t *y, const TypeInfo_t *type)
 {
     if (x == y) return 0;
 
@@ -439,7 +439,7 @@ PUREFUNC public int32_t Table$compare(const Table_t *x, const Table_t *y, const 
     return 0;
 }
 
-PUREFUNC public uint64_t Table$hash(const Table_t *t, const TypeInfo *type)
+PUREFUNC public uint64_t Table$hash(const Table_t *t, const TypeInfo_t *type)
 {
     assert(type->tag == TableInfo);
     // Table hashes are computed as:
@@ -454,7 +454,7 @@ PUREFUNC public uint64_t Table$hash(const Table_t *t, const TypeInfo *type)
     return siphash24((void*)&components, sizeof(components));
 }
 
-public Text_t Table$as_text(const Table_t *t, bool colorize, const TypeInfo *type)
+public Text_t Table$as_text(const Table_t *t, bool colorize, const TypeInfo_t *type)
 {
     assert(type->tag == TableInfo);
     auto table = type->TableInfo;
@@ -493,7 +493,7 @@ public Text_t Table$as_text(const Table_t *t, bool colorize, const TypeInfo *typ
     return text;
 }
 
-public Table_t Table$from_entries(Array_t entries, const TypeInfo *type)
+public Table_t Table$from_entries(Array_t entries, const TypeInfo_t *type)
 {
     assert(type->tag == TableInfo);
     if (entries.length == 0)
@@ -516,7 +516,7 @@ public Table_t Table$from_entries(Array_t entries, const TypeInfo *type)
 }
 
 // Overlap is "set intersection" in formal terms
-public Table_t Table$overlap(Table_t a, Table_t b, const TypeInfo *type)
+public Table_t Table$overlap(Table_t a, Table_t b, const TypeInfo_t *type)
 {
     // Return a table such that t[k]==a[k] for all k such that a:has(k), b:has(k), and a[k]==b[k]
     Table_t result = {};
@@ -538,7 +538,7 @@ public Table_t Table$overlap(Table_t a, Table_t b, const TypeInfo *type)
 }
 
 // With is "set union" in formal terms
-public Table_t Table$with(Table_t a, Table_t b, const TypeInfo *type)
+public Table_t Table$with(Table_t a, Table_t b, const TypeInfo_t *type)
 {
     // return a table such that t[k]==b[k] for all k such that b:has(k), and t[k]==a[k] for all k such that a:has(k) and not b:has(k)
     Table_t result = {};
@@ -563,7 +563,7 @@ public Table_t Table$with(Table_t a, Table_t b, const TypeInfo *type)
 }
 
 // Without is "set difference" in formal terms
-public Table_t Table$without(Table_t a, Table_t b, const TypeInfo *type)
+public Table_t Table$without(Table_t a, Table_t b, const TypeInfo_t *type)
 {
     // Return a table such that t[k]==a[k] for all k such that not b:has(k) or b[k] != a[k]
     Table_t result = {};
@@ -584,7 +584,7 @@ public Table_t Table$without(Table_t a, Table_t b, const TypeInfo *type)
     return result;
 }
 
-PUREFUNC public bool Table$is_subset_of(Table_t a, Table_t b, bool strict, const TypeInfo *type)
+PUREFUNC public bool Table$is_subset_of(Table_t a, Table_t b, bool strict, const TypeInfo_t *type)
 {
     if (a.entries.length > b.entries.length || (strict && a.entries.length == b.entries.length))
         return false;
@@ -596,7 +596,7 @@ PUREFUNC public bool Table$is_subset_of(Table_t a, Table_t b, bool strict, const
     return true;
 }
 
-PUREFUNC public bool Table$is_superset_of(Table_t a, Table_t b, bool strict, const TypeInfo *type)
+PUREFUNC public bool Table$is_superset_of(Table_t a, Table_t b, bool strict, const TypeInfo_t *type)
 {
     return Table$is_subset_of(b, a, strict, type);
 }

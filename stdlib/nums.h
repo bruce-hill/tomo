@@ -16,9 +16,9 @@
 #define N32(n) ((float)n)
 #define N64(n) ((double)n)
 
-Text_t Num$as_text(const double *f, bool colorize, const TypeInfo *type);
-PUREFUNC int32_t Num$compare(const double *x, const double *y, const TypeInfo *type);
-PUREFUNC bool Num$equal(const double *x, const double *y, const TypeInfo *type);
+Text_t Num$as_text(const double *f, bool colorize, const TypeInfo_t *type);
+PUREFUNC int32_t Num$compare(const double *x, const double *y, const TypeInfo_t *type);
+PUREFUNC bool Num$equal(const double *x, const double *y, const TypeInfo_t *type);
 CONSTFUNC bool Num$near(double a, double b, double ratio, double absolute);
 Text_t Num$format(double f, Int_t precision);
 Text_t Num$scientific(double f, Int_t precision);
@@ -33,11 +33,11 @@ OptionalNum_t Num$from_text(Text_t text);
 CONSTFUNC static inline double Num$clamped(double x, double low, double high) {
     return (x <= low) ? low : (x >= high ? high : x);
 }
-extern const TypeInfo Num$info;
+extern const TypeInfo_t Num$info;
 
-Text_t Num32$as_text(const float *f, bool colorize, const TypeInfo *type);
-PUREFUNC int32_t Num32$compare(const float *x, const float *y, const TypeInfo *type);
-PUREFUNC bool Num32$equal(const float *x, const float *y, const TypeInfo *type);
+Text_t Num32$as_text(const float *f, bool colorize, const TypeInfo_t *type);
+PUREFUNC int32_t Num32$compare(const float *x, const float *y, const TypeInfo_t *type);
+PUREFUNC bool Num32$equal(const float *x, const float *y, const TypeInfo_t *type);
 CONSTFUNC bool Num32$near(float a, float b, float ratio, float absolute);
 Text_t Num32$format(float f, Int_t precision);
 Text_t Num32$scientific(float f, Int_t precision);
@@ -52,7 +52,7 @@ float Num32$nan(Text_t tag);
 CONSTFUNC static inline float Num32$clamped(float x, float low, float high) {
     return (x <= low) ? low : (x >= high ? high : x);
 }
-extern const TypeInfo Num32$info;
+extern const TypeInfo_t Num32$info;
 
 #define Num_to_Num32(n) ((Num32_t)(n))
 #define Num32_to_Num(n) ((Num_t)(n))

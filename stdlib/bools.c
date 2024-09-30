@@ -12,7 +12,7 @@
 #include "text.h"
 #include "util.h"
 
-PUREFUNC public Text_t Bool$as_text(const bool *b, bool colorize, const TypeInfo *type)
+PUREFUNC public Text_t Bool$as_text(const bool *b, bool colorize, const TypeInfo_t *type)
 {
     (void)type;
     if (!b) return Text("Bool");
@@ -44,7 +44,7 @@ public Bool_t Bool$random(double p)
     return (drand48() < p); 
 }
 
-public const TypeInfo Bool$info = {
+public const TypeInfo_t Bool$info = {
     .size=sizeof(bool),
     .align=__alignof__(bool),
     .tag=CustomInfo,

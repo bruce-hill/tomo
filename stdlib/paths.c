@@ -533,7 +533,7 @@ public OptionalClosure_t Path$by_line(Path_t path)
     return (Closure_t){.fn=(void*)_next_line, .userdata=wrapper};
 }
 
-public const TypeInfo Path$info = {
+public const TypeInfo_t Path$info = {
     .size=sizeof(Path_t),
     .align=__alignof__(Path_t),
     .tag=TextInfo,

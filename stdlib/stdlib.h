@@ -15,7 +15,7 @@ extern bool USE_COLOR;
 typedef struct {
     const char *name;
     bool required;
-    const TypeInfo *type;
+    const TypeInfo_t *type;
     void *dest;
 } cli_arg_t;
 
@@ -29,7 +29,7 @@ __attribute__((format(printf, 4, 5)))
 _Noreturn void fail_source(const char *filename, int64_t start, int64_t end, const char *fmt, ...);
 Text_t builtin_last_err();
 void start_test(const char *filename, int64_t start, int64_t end);
-void end_test(const void *expr, const TypeInfo *type, const char *expected, const char *filename, int64_t start, int64_t end);
+void end_test(const void *expr, const TypeInfo_t *type, const char *expected, const char *filename, int64_t start, int64_t end);
 #define test(expr, typeinfo, expected, start, end) {\
     start_test(__SOURCE_FILE__, start, end); \
     auto _expr = expr; \

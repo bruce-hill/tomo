@@ -15,7 +15,7 @@
 #include "util.h"
 
 
-PUREFUNC static int32_t Range$compare(const Range_t *x, const Range_t *y, const TypeInfo *type)
+PUREFUNC static int32_t Range$compare(const Range_t *x, const Range_t *y, const TypeInfo_t *type)
 {
     (void)type;
     if (x == y) return 0;
@@ -26,14 +26,14 @@ PUREFUNC static int32_t Range$compare(const Range_t *x, const Range_t *y, const 
     return Int$compare(&x->step, &y->step, &Int$info);
 }
 
-PUREFUNC static bool Range$equal(const Range_t *x, const Range_t *y, const TypeInfo *type)
+PUREFUNC static bool Range$equal(const Range_t *x, const Range_t *y, const TypeInfo_t *type)
 {
     (void)type;
     if (x == y) return true;
     return Int$equal(&x->first, &y->first, &Int$info) && Int$equal(&x->last, &y->last, &Int$info) && Int$equal(&x->step, &y->step, &Int$info);
 }
 
-static Text_t Range$as_text(const Range_t *r, bool use_color, const TypeInfo *type)
+static Text_t Range$as_text(const Range_t *r, bool use_color, const TypeInfo_t *type)
 {
     (void)type;
     if (!r) return Text("Range");
@@ -54,7 +54,7 @@ PUREFUNC public Range_t Range$by(Range_t r, Int_t step)
     return (Range_t){r.first, r.last, Int$times(step, r.step)};
 }
 
-public const TypeInfo Range$info = {sizeof(Range_t), __alignof(Range_t), {.tag=CustomInfo, .CustomInfo={
+public const TypeInfo_t Range$info = {sizeof(Range_t), __alignof(Range_t), {.tag=CustomInfo, .CustomInfo={
     .as_text=(void*)Range$as_text,
     .compare=(void*)Range$compare,
     .equal=(void*)Range$equal,

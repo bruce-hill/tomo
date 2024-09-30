@@ -13,18 +13,18 @@
 #include "text.h"
 #include "types.h"
 
-public PUREFUNC Text_t Num$as_text(const double *f, bool colorize, const TypeInfo *type) { 
+public PUREFUNC Text_t Num$as_text(const double *f, bool colorize, const TypeInfo_t *type) { 
     (void)type;
     if (!f) return Text("Num");
     return Text$format(colorize ? "\x1b[35m%.16g\x1b[33;2m\x1b[m" : "%.16g", *f); 
 } 
 
-public PUREFUNC int32_t Num$compare(const double *x, const double *y, const TypeInfo *type) { 
+public PUREFUNC int32_t Num$compare(const double *x, const double *y, const TypeInfo_t *type) { 
     (void)type;
     return (*x > *y) - (*x < *y);
 } 
 
-public PUREFUNC bool Num$equal(const double *x, const double *y, const TypeInfo *type) { 
+public PUREFUNC bool Num$equal(const double *x, const double *y, const TypeInfo_t *type) { 
     (void)type;
     return *x == *y;
 } 
@@ -83,7 +83,7 @@ public CONSTFUNC bool Num$isinf(double n) { return !!isinf(n); }
 public CONSTFUNC bool Num$finite(double n) { return !!finite(n); }
 public CONSTFUNC bool Num$isnan(double n) { return !!isnan(n); }
 
-public const TypeInfo Num$info = {
+public const TypeInfo_t Num$info = {
     .size=sizeof(double),
     .align=__alignof__(double),
     .tag=CustomInfo,
@@ -94,18 +94,18 @@ public const TypeInfo Num$info = {
     },
 };
 
-public PUREFUNC Text_t Num32$as_text(const float *f, bool colorize, const TypeInfo *type) { 
+public PUREFUNC Text_t Num32$as_text(const float *f, bool colorize, const TypeInfo_t *type) { 
     (void)type;
     if (!f) return Text("Num32");
     return Text$format(colorize ? "\x1b[35m%.8g_f32\x1b[33;2m\x1b[m" : "%.8g_f32", (double)*f); 
 }
 
-public PUREFUNC int32_t Num32$compare(const float *x, const float *y, const TypeInfo *type) { 
+public PUREFUNC int32_t Num32$compare(const float *x, const float *y, const TypeInfo_t *type) { 
     (void)type;
     return (*x > *y) - (*x < *y);
 } 
 
-public PUREFUNC bool Num32$equal(const float *x, const float *y, const TypeInfo *type) { 
+public PUREFUNC bool Num32$equal(const float *x, const float *y, const TypeInfo_t *type) { 
     (void)type;
     return *x == *y;
 }
@@ -164,7 +164,7 @@ public CONSTFUNC bool Num32$isinf(float n) { return isinf(n); }
 public CONSTFUNC bool Num32$finite(float n) { return finite(n); }
 public CONSTFUNC bool Num32$isnan(float n) { return isnan(n); }
 
-public const TypeInfo Num32$info = {
+public const TypeInfo_t Num32$info = {
     .size=sizeof(float),
     .align=__alignof__(float),
     .tag=CustomInfo,

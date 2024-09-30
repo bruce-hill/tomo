@@ -135,7 +135,7 @@ public OptionalClosure_t Shell$by_line(Shell_t command)
     return (Closure_t){.fn=(void*)_next_line, .userdata=wrapper};
 }
 
-public const TypeInfo Shell$info = {
+public const TypeInfo_t Shell$info = {
     .size=sizeof(Shell_t),
     .align=__alignof__(Shell_t),
     .tag=TextInfo,

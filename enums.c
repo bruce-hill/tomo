@@ -68,13 +68,13 @@ static CORD compile_compare_method(env_t *env, ast_t *ast)
     if (!has_extra_data(def->tags)) {
         // Comparisons are simpler if there is only a tag, no tagged data:
         return CORD_all("static int ", full_name, "$compare(const ", full_name, "_t *x, const ", full_name,
-                        "_t *y, const TypeInfo *info) {\n"
+                        "_t *y, const TypeInfo_t *info) {\n"
                         "(void)info;\n"
                         "return (x->tag - y->tag);\n"
                         "}\n");
     }
     CORD cmp_func = CORD_all("static int ", full_name, "$compare(const ", full_name, "_t *x, const ", full_name,
-                             "_t *y, const TypeInfo *info) {\n"
+                             "_t *y, const TypeInfo_t *info) {\n"
                              "(void)info;\n"
                              "int diff = x->tag - y->tag;\n"
                              "if (diff) return diff;\n"
@@ -99,13 +99,13 @@ static CORD compile_equals_method(env_t *env, ast_t *ast)
     if (!has_extra_data(def->tags)) {
         // Equality is simpler if there is only a tag, no tagged data:
         return CORD_all("static bool ", full_name, "$equal(const ", full_name, "_t *x, const ", full_name,
-                        "_t *y, const TypeInfo *info) {\n"
+                        "_t *y, const TypeInfo_t *info) {\n"
                         "(void)info;\n"
                         "return (x->tag == y->tag);\n"
                         "}\n");
     }
     CORD eq_func = CORD_all("static bool ", full_name, "$equal(const ", full_name, "_t *x, const ", full_name,
-                             "_t *y, const TypeInfo *info) {\n"
+                             "_t *y, const TypeInfo_t *info) {\n"
                              "(void)info;\n"
                              "if (x->tag != y->tag) return no;\n"
                              "switch (x->tag) {\n");
@@ -128,12 +128,12 @@ static CORD compile_hash_method(env_t *env, ast_t *ast)
     CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
     if (!has_extra_data(def->tags)) {
         // Hashing is simpler if there is only a tag, no tagged data:
-        return CORD_all("static uint64_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo *info) {\n"
+        return CORD_all("static uint64_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo_t *info) {\n"
                         "(void)info;\n"
                         "return siphash24((void*)&obj->tag, sizeof(obj->tag));\n"
                         "\n}\n");
     }
-    CORD hash_func = CORD_all("static uint64_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo *info) {\n"
+    CORD hash_func = CORD_all("static uint64_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo_t *info) {\n"
                               "(void)info;\n"
                               "uint64_t hashes[2] = {(uint64_t)obj->tag, 0};\n"
                               "switch (obj->tag) {\n");
@@ -178,7 +178,7 @@ void compile_enum_def(env_t *env, ast_t *ast)
     }
 
     type_t *t = Table$str_get(*env->types, def->name);
-    CORD typeinfo = CORD_asprintf("public const TypeInfo %s = {%zu, %zu, {.tag=EnumInfo, .CustomInfo={",
+    CORD typeinfo = CORD_asprintf("public const TypeInfo_t %s = {%zu, %zu, {.tag=EnumInfo, .CustomInfo={",
                                   full_name, type_size(t), type_align(t));
 
     env->code->funcs = CORD_all(env->code->funcs, compile_str_method(env, ast));
@@ -225,10 +225,10 @@ CORD compile_enum_header(env_t *env, ast_t *ast)
     enum_def = CORD_all(enum_def, "};\n};\n");
     all_defs = CORD_all(all_defs, enum_def);
 
-    all_defs = CORD_all(all_defs, "extern const TypeInfo ", full_name, ";\n");
+    all_defs = CORD_all(all_defs, "extern const TypeInfo_t ", full_name, ";\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         all_defs = CORD_all(all_defs,
-                            "extern const TypeInfo ", namespace_prefix(env, env->namespace), def->name, "$", tag->name, ";\n");
+                            "extern const TypeInfo_t ", namespace_prefix(env, env->namespace), def->name, "$", tag->name, ";\n");
         if (tag->fields) { // Constructor macros:
             CORD arg_sig = CORD_EMPTY;
             for (arg_ast_t *field = tag->fields; field; field = field->next) {

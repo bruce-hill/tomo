@@ -63,9 +63,9 @@
 void Array$insert(Array_t *arr, const void *item, Int_t index, int64_t padded_item_size);
 void Array$insert_all(Array_t *arr, Array_t to_insert, Int_t index, int64_t padded_item_size);
 void Array$remove_at(Array_t *arr, Int_t index, Int_t count, int64_t padded_item_size);
-void Array$remove_item(Array_t *arr, void *item, Int_t max_removals, const TypeInfo *type);
+void Array$remove_item(Array_t *arr, void *item, Int_t max_removals, const TypeInfo_t *type);
 #define Array$remove_item_value(arr, item_expr, max, type) ({ __typeof(item_expr) item = item_expr; Array$remove_item(arr, &item, max, type); })
-Int_t Array$find(Array_t arr, void *item, const TypeInfo *type);
+Int_t Array$find(Array_t arr, void *item, const TypeInfo_t *type);
 #define Array$find_value(arr, item_expr, type) ({ __typeof(item_expr) item = item_expr; Array$find(arr, &item, type); })
 Int_t Array$first(Array_t arr, Closure_t predicate);
 void Array$sort(Array_t *arr, Closure_t comparison, int64_t padded_item_size);
@@ -75,20 +75,20 @@ Array_t Array$shuffled(Array_t arr, int64_t padded_item_size);
 void *Array$random(Array_t arr);
 #define Array$random_value(arr, t) ({ Array_t _arr = arr; if (_arr.length == 0) fail("Cannot get a random value from an empty array!"); *(t*)Array$random(_arr); })
 Array_t Array$sample(Array_t arr, Int_t n, Array_t weights, int64_t padded_item_size);
-Table_t Array$counts(Array_t arr, const TypeInfo *type);
+Table_t Array$counts(Array_t arr, const TypeInfo_t *type);
 void Array$clear(Array_t *array);
 void Array$compact(Array_t *arr, int64_t padded_item_size);
-PUREFUNC bool Array$has(Array_t array, void *item, const TypeInfo *type);
+PUREFUNC bool Array$has(Array_t array, void *item, const TypeInfo_t *type);
 #define Array$has_value(arr, item_expr, type) ({ __typeof(item_expr) item = item_expr; Array$has(arr, &item, type); })
 PUREFUNC Array_t Array$from(Array_t array, Int_t first);
 PUREFUNC Array_t Array$to(Array_t array, Int_t last);
 PUREFUNC Array_t Array$by(Array_t array, Int_t stride, int64_t padded_item_size);
 PUREFUNC Array_t Array$reversed(Array_t array, int64_t padded_item_size);
 Array_t Array$concat(Array_t x, Array_t y, int64_t padded_item_size);
-PUREFUNC uint64_t Array$hash(const Array_t *arr, const TypeInfo *type);
-PUREFUNC int32_t Array$compare(const Array_t *x, const Array_t *y, const TypeInfo *type);
-PUREFUNC bool Array$equal(const Array_t *x, const Array_t *y, const TypeInfo *type);
-Text_t Array$as_text(const Array_t *arr, bool colorize, const TypeInfo *type);
+PUREFUNC uint64_t Array$hash(const Array_t *arr, const TypeInfo_t *type);
+PUREFUNC int32_t Array$compare(const Array_t *x, const Array_t *y, const TypeInfo_t *type);
+PUREFUNC bool Array$equal(const Array_t *x, const Array_t *y, const TypeInfo_t *type);
+Text_t Array$as_text(const Array_t *arr, bool colorize, const TypeInfo_t *type);
 void Array$heapify(Array_t *heap, Closure_t comparison, int64_t padded_item_size);
 void Array$heap_push(Array_t *heap, const void *item, Closure_t comparison, int64_t padded_item_size);
 #define Array$heap_push_value(heap, _value, comparison, padded_item_size) ({ __typeof(_value) value = _value; Array$heap_push(heap, &value, comparison, padded_item_size); })

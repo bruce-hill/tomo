@@ -12,9 +12,9 @@
 #include "text.h"
 #include "types.h"
 
-public Text_t Type$as_text(const void *typeinfo, bool colorize, const TypeInfo *type)
+public Text_t Type$as_text(const void *typeinfo, bool colorize, const TypeInfo_t *type)
 {
-    if (!typeinfo) return Text("TypeInfo");
+    if (!typeinfo) return Text("TypeInfo_t");
 
     if (colorize)
         return Text$concat(
@@ -25,14 +25,7 @@ public Text_t Type$as_text(const void *typeinfo, bool colorize, const TypeInfo *
         return Text$from_str(type->TypeInfoInfo.type_str);
 }
 
-public const TypeInfo TypeInfo$info = {
-    .size=sizeof(TypeInfo),
-    .align=__alignof__(TypeInfo),
-    .tag=CustomInfo,
-    .TypeInfoInfo.type_str="TypeInfo",
-};
-
-public const TypeInfo Void$info = {.size=0, .align=0, .tag=EmptyStructInfo};
-public const TypeInfo Abort$info = {.size=0, .align=0, .tag=EmptyStructInfo};
+public const TypeInfo_t Void$info = {.size=0, .align=0, .tag=EmptyStructInfo};
+public const TypeInfo_t Abort$info = {.size=0, .align=0, .tag=EmptyStructInfo};
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

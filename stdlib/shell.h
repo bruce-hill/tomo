@@ -26,7 +26,7 @@ OptionalText_t Shell$run(Shell_t command);
 #define Shell$compare Text$compare
 #define Shell$equal Text$equal
 
-extern const TypeInfo Shell$info;
+extern const TypeInfo_t Shell$info;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
 
