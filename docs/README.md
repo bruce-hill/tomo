@@ -169,3 +169,28 @@ Nothing, aborts the program.
 ```markdown
 fail("Oh no!")
 ```
+
+---
+
+### `now`
+
+**Description:**  
+Gets the current time. This is an alias for `DateTime.now()`.
+
+**Usage:**  
+```markdown
+now() -> DateTime
+```
+
+**Parameters:**
+
+None.
+
+**Returns:**  
+The current moment as a DateTime.
+
+**Example:**  
+```markdown
+>> now()
+= Sun Sep 29 20:12:33 2024
+```
