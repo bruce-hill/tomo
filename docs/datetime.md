@@ -16,7 +16,7 @@ preferred representation of the DateTime in the current time zone:
 
 ```tomo
 >> DateTime.now()
-= Sun Sep 29 18:20:12 2024
+= Sun Sep 29 18:20:12 2024 EDT
 ```
 
 For various methods, it is assumed by default that users wish to perform
@@ -71,7 +71,7 @@ A new `DateTime` offset by the given amount.
 **Example:**  
 ```markdown
 >> DateTime(2024, 9, 29, hour=19):after(days=1, minutes=30)
-= Mon Sep 30 19:30:00 2024
+= Mon Sep 30 19:30:00 2024 EDT
 ```
 
 ---
@@ -111,7 +111,7 @@ options, return a text representation of the given date in the given format. If
 
 **Usage:**  
 ```markdown
-datetime:format(format: Text = "%c", local_time : Bool = yes) -> Text
+datetime:format(format: Text = "%c %Z", local_time : Bool = yes) -> Text
 ```
 
 **Parameters:**
@@ -278,11 +278,11 @@ integer, an error will be raised.
 **Example:**  
 ```markdown
 >> DateTime.new(2024, 9, 29)
-= Mon Sep 30 00:00:00 2024
+= Mon Sep 30 00:00:00 2024 EDT
 
 # March 1642, 2020:
 >> DateTime(2020, 4, 1643)
-= Sat Sep 28 00:00:00 2024
+= Sat Sep 28 00:00:00 2024 EDT
 ```
 
 ---
@@ -308,7 +308,7 @@ Returns a `DateTime` object representing the current date and time.
 **Example:**  
 ```markdown
 >> DateTime.now()
-= Sun Sep 29 20:22:48 2024
+= Sun Sep 29 20:22:48 2024 EDT
 ```
 
 ---
@@ -321,14 +321,14 @@ or a null value if the value could not be successfully parsed.
 
 **Usage:**  
 ```markdown
-DateTime.parse(text: Text, format: Text = "%c") -> DateTime?
+DateTime.parse(text: Text, format: Text = "%Y-%m-%dT%H:%M:%S. %f%z") -> DateTime?
 ```
 
 **Parameters:**
 
 - `text`: The text to parse.
 - `format`: The date format of the text being parsed (see:
-  [strptime](https://linux.die.net/man/3/strptime) for more info on this format) (default: `"%c"`).
+  [strptime](https://linux.die.net/man/3/strptime) for more info on this format) (default: `"%c %Z"`).
 
 **Returns:**
 If the text was successfully parsed according to the given format, return a
@@ -337,7 +337,7 @@ If the text was successfully parsed according to the given format, return a
 **Example:**  
 ```markdown
 >> DateTime.parse("2024-09-29", "%Y-%m-%d")!
-= Sun Sep 29 00:00:00 2024
+= Sun Sep 29 00:00:00 2024 EDT
 
 >> DateTime.parse("???", "%Y-%m-%d")
 = !DateTime

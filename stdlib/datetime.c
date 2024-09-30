@@ -21,7 +21,7 @@ public Text_t DateTime$as_text(const DateTime_t *dt, bool colorize, const TypeIn
     struct tm info;
     struct tm *final_info = localtime_r(&dt->tv_sec, &info);
     static char buf[256];
-    size_t len = strftime(buf, sizeof(buf), "%c", final_info);
+    size_t len = strftime(buf, sizeof(buf), "%c %Z", final_info);
     Text_t text = Text$format("%.*s", (int)len, buf);
     if (colorize)
         text = Text$concat(Text("\x1b[36m"), text, Text("\x1b[m"));
@@ -141,12 +141,18 @@ public Text_t DateTime$time(DateTime_t dt, bool seconds, bool am_pm, bool local_
 public OptionalDateTime_t DateTime$parse(Text_t text, Text_t format)
 {
     struct tm info = {.tm_isdst=-1};
-    char *invalid = strptime(Text$as_c_string(text), Text$as_c_string(format), &info);
+    const char *str = Text$as_c_string(text);
+    const char *fmt = Text$as_c_string(format);
+    if (strstr(fmt, "%Z"))
+        fail("The %%Z specifier is not supported for time parsing!");
+
+    char *invalid = strptime(str, fmt, &info);
     if (!invalid || invalid[0] != '\0')
         return NULL_DATETIME;
 
+    long offset = info.tm_gmtoff; // Need to cache this because mktime() mutates it to local timezone >:(
     time_t t = mktime(&info);
-    return (DateTime_t){.tv_sec=t};
+    return (DateTime_t){.tv_sec=t + offset - info.tm_gmtoff};
 }
 
 static inline Text_t num_format(long n, const char *unit)
@@ -195,7 +201,7 @@ public Text_t DateTime$relative(DateTime_t dt, DateTime_t relative_to, bool loca
 
 CONSTFUNC public Int64_t DateTime$unix_timestamp(DateTime_t dt)
 {
-    return (Int64_t)(dt.tv_sec);
+    return (Int64_t)dt.tv_sec;
 }
 
 CONSTFUNC public DateTime_t DateTime$from_unix_timestamp(Int64_t timestamp)
