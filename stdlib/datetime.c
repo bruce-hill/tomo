@@ -50,8 +50,6 @@ public DateTime_t DateTime$now(void)
 
 public DateTime_t DateTime$new(Int_t year, Int_t month, Int_t day, Int_t hour, Int_t minute, double second, OptionalText_t timezone)
 {
-    if (timezone.length >= 0)
-        DateTime$set_local_timezone(timezone);
     struct tm info = {
         .tm_min=Int_to_Int32(minute, false),
         .tm_hour=Int_to_Int32(hour, false),
@@ -60,9 +58,16 @@ public DateTime_t DateTime$new(Int_t year, Int_t month, Int_t day, Int_t hour, I
         .tm_year=Int_to_Int32(year, false) - 1900,
         .tm_isdst=-1,
     };
-    time_t t = mktime(&info);
-    if (timezone.length >= 0)
-        DateTime$set_local_timezone(_local_timezone);
+
+    time_t t;
+    if (timezone.length >= 0) {
+        OptionalText_t old_timezone = _local_timezone;
+        DateTime$set_local_timezone(timezone);
+        t = mktime(&info);
+        DateTime$set_local_timezone(old_timezone);
+    } else {
+        t = mktime(&info);
+    }
     return (DateTime_t){.tv_sec=t + (time_t)second, .tv_usec=(suseconds_t)(fmod(second, 1.0) * 1e9)};
 }
 
