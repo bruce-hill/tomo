@@ -16,6 +16,15 @@
 
 static OptionalText_t _local_timezone = NULL_TEXT;
 
+#define WITH_TIMEZONE(tz, body) ({ if (tz.length >= 0) { \
+        OptionalText_t old_timezone = _local_timezone; \
+        DateTime$set_local_timezone(tz); \
+        body; \
+        DateTime$set_local_timezone(old_timezone); \
+    } else { \
+        body; \
+    }})
+
 public Text_t DateTime$as_text(const DateTime_t *dt, bool colorize, const TypeInfo *type)
 {
     (void)type;
@@ -60,14 +69,7 @@ public DateTime_t DateTime$new(Int_t year, Int_t month, Int_t day, Int_t hour, I
     };
 
     time_t t;
-    if (timezone.length >= 0) {
-        OptionalText_t old_timezone = _local_timezone;
-        DateTime$set_local_timezone(timezone);
-        t = mktime(&info);
-        DateTime$set_local_timezone(old_timezone);
-    } else {
-        t = mktime(&info);
-    }
+    WITH_TIMEZONE(timezone, t = mktime(&info));
     return (DateTime_t){.tv_sec=t + (time_t)second, .tv_usec=(suseconds_t)(fmod(second, 1.0) * 1e9)};
 }
 
@@ -77,14 +79,7 @@ public DateTime_t DateTime$after(DateTime_t dt, double seconds, double minutes, 
     dt.tv_sec += (time_t)offset;
 
     struct tm info = {};
-    if (timezone.length >= 0) {
-        OptionalText_t old_timezone = _local_timezone;
-        DateTime$set_local_timezone(timezone);
-        localtime_r(&dt.tv_sec, &info);
-        DateTime$set_local_timezone(old_timezone);
-    } else {
-        localtime_r(&dt.tv_sec, &info);
-    }
+    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
 
     info.tm_mday += Int_to_Int32(days, false) + 7*Int_to_Int32(weeks, false);
     info.tm_mon += Int_to_Int32(months, false);
@@ -117,15 +112,7 @@ public void DateTime$get(
     Int_t *nanosecond, Int_t *weekday, OptionalText_t timezone)
 {
     struct tm info = {};
-
-    if (timezone.length >= 0) {
-        OptionalText_t old_timezone = _local_timezone;
-        DateTime$set_local_timezone(timezone);
-        localtime_r(&dt.tv_sec, &info);
-        DateTime$set_local_timezone(old_timezone);
-    } else {
-        localtime_r(&dt.tv_sec, &info);
-    }
+    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
 
     if (year) *year = I(info.tm_year + 1900);
     if (month) *month = I(info.tm_mon + 1);
@@ -140,14 +127,7 @@ public void DateTime$get(
 public Text_t DateTime$format(DateTime_t dt, Text_t fmt, OptionalText_t timezone)
 {
     struct tm info;
-    if (timezone.length >= 0) {
-        OptionalText_t old_timezone = _local_timezone;
-        DateTime$set_local_timezone(timezone);
-        localtime_r(&dt.tv_sec, &info);
-        DateTime$set_local_timezone(old_timezone);
-    } else {
-        localtime_r(&dt.tv_sec, &info);
-    }
+    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
     static char buf[256];
     size_t len = strftime(buf, sizeof(buf), Text$as_c_string(fmt), &info);
     return Text$format("%.*s", (int)len, buf);
@@ -196,17 +176,10 @@ public Text_t DateTime$relative(DateTime_t dt, DateTime_t relative_to, OptionalT
 {
     struct tm info = {};
     struct tm relative_info = {};
-
-    if (timezone.length >= 0) {
-        OptionalText_t old_timezone = _local_timezone;
-        DateTime$set_local_timezone(timezone);
+    WITH_TIMEZONE(timezone, {
         localtime_r(&dt.tv_sec, &info);
         localtime_r(&relative_to.tv_sec, &relative_info);
-        DateTime$set_local_timezone(old_timezone);
-    } else {
-        localtime_r(&dt.tv_sec, &info);
-        localtime_r(&relative_to.tv_sec, &relative_info);
-    }
+    });
 
     double second_diff = DateTime$seconds_till(relative_to, dt);
     if (info.tm_year != relative_info.tm_year && fabs(second_diff) > 365.*24.*60.*60.)

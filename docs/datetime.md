@@ -41,7 +41,7 @@ at which point it becomes March 31st!
 For various functions where time zones matter, there is an optional `timezone`
 argument that, if set, will override the timezone when performing calculations.
 If unspecified, it is assumed that the current local timezone should be used.
-Time zones are specified by name, such as `America/New_York` or `EDT`.
+Time zones are specified by name, such as `America/New_York` or `UTC`.
 
 ## DateTime Methods
 
