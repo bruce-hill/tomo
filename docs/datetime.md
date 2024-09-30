@@ -15,6 +15,23 @@ is as correct as possible, but counterintuitive behaviors around time zones,
 daylight savings time, leap seconds, and other anomalous time situations can
 still cause bugs if you're not extremely careful.
 
+## Syntax
+
+DateTime literals can be specified using [ISO
+8601](https://en.wikipedia.org/wiki/ISO_8601) syntax with an optional
+square-bracket delimited time zone name afterwards. A space may be used instead
+of a `T` in the ISO 8601 format for readability, and spaces may come before the
+timezone.
+
+```tomo
+2024-09-30
+2024-09-30T13:57
+2024-09-30 13:57
+2024-09-30 13:57:01
+2024-09-30 13:57:01 +04:00
+2024-09-30 13:57:01 [America/New_York]
+```
+
 ## Time Zones
 
 Because humans are not able to easily understand UNIX timestamps, the default
