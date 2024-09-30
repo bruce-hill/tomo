@@ -5,10 +5,11 @@
 #include "bools.h"
 #include "bytes.h"
 #include "datatypes.h"
+#include "datetime.h"
 #include "integers.h"
 #include "metamethods.h"
-#include "threads.h"
 #include "text.h"
+#include "threads.h"
 #include "util.h"
 
 public PUREFUNC bool is_null(const void *obj, const TypeInfo *non_optional_type)
@@ -31,6 +32,8 @@ public PUREFUNC bool is_null(const void *obj, const TypeInfo *non_optional_type)
         return ((OptionalByte_t*)obj)->is_null;
     else if (non_optional_type == &Thread$info)
         return *(pthread_t**)obj == NULL;
+    else if (non_optional_type == &DateTime$info)
+        return ((OptionalDateTime_t*)obj)->tv_usec < 0;
 
     switch (non_optional_type->tag) {
         case ChannelInfo: return *(Channel_t**)obj == NULL;

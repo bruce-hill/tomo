@@ -22,6 +22,7 @@
 #define NULL_TABLE ((OptionalTable_t){.entries.length=-1})
 #define NULL_CLOSURE ((OptionalClosure_t){.fn=NULL})
 #define NULL_TEXT ((OptionalText_t){.length=-1})
+#define NULL_DATETIME ((OptionalDateTime_t){.tv_usec=-1})
 
 PUREFUNC bool is_null(const void *obj, const TypeInfo *non_optional_type);
 Text_t Optional$as_text(const void *obj, bool colorize, const TypeInfo *type);

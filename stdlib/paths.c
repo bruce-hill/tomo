@@ -157,54 +157,75 @@ public bool Path$exists(Path_t path)
     return (stat(Text$as_c_string(path), &sb) == 0);
 }
 
-public bool Path$is_file(Path_t path, bool follow_symlinks)
+static inline int path_stat(Path_t path, bool follow_symlinks, struct stat *sb)
 {
     path = Path$_expand_home(path);
-    struct stat sb;
     const char *path_str = Text$as_c_string(path);
-    int status = follow_symlinks ? stat(path_str, &sb) : lstat(path_str, &sb);
+    return follow_symlinks ? stat(path_str, sb) : lstat(path_str, sb);
+}
+
+public bool Path$is_file(Path_t path, bool follow_symlinks)
+{
+    struct stat sb;
+    int status = path_stat(path, follow_symlinks, &sb);
     if (status != 0) return false;
     return (sb.st_mode & S_IFMT) == S_IFREG;
 }
 
 public bool Path$is_directory(Path_t path, bool follow_symlinks)
 {
-    path = Path$_expand_home(path);
     struct stat sb;
-    const char *path_str = Text$as_c_string(path);
-    int status = follow_symlinks ? stat(path_str, &sb) : lstat(path_str, &sb);
+    int status = path_stat(path, follow_symlinks, &sb);
     if (status != 0) return false;
     return (sb.st_mode & S_IFMT) == S_IFDIR;
 }
 
 public bool Path$is_pipe(Path_t path, bool follow_symlinks)
 {
-    path = Path$_expand_home(path);
     struct stat sb;
-    const char *path_str = Text$as_c_string(path);
-    int status = follow_symlinks ? stat(path_str, &sb) : lstat(path_str, &sb);
+    int status = path_stat(path, follow_symlinks, &sb);
     if (status != 0) return false;
     return (sb.st_mode & S_IFMT) == S_IFIFO;
 }
 
 public bool Path$is_socket(Path_t path, bool follow_symlinks)
 {
-    path = Path$_expand_home(path);
     struct stat sb;
-    const char *path_str = Text$as_c_string(path);
-    int status = follow_symlinks ? stat(path_str, &sb) : lstat(path_str, &sb);
+    int status = path_stat(path, follow_symlinks, &sb);
     if (status != 0) return false;
     return (sb.st_mode & S_IFMT) == S_IFSOCK;
 }
 
 public bool Path$is_symlink(Path_t path)
 {
-    path = Path$_expand_home(path);
     struct stat sb;
-    const char *path_str = Text$as_c_string(path);
-    int status = stat(path_str, &sb);
+    int status = path_stat(path, false, &sb);
     if (status != 0) return false;
     return (sb.st_mode & S_IFMT) == S_IFLNK;
+}
+
+public OptionalDateTime_t Path$modified(Path_t path, bool follow_symlinks)
+{
+    struct stat sb;
+    int status = path_stat(path, follow_symlinks, &sb);
+    if (status != 0) return NULL_DATETIME;
+    return (DateTime_t){.tv_sec=sb.st_mtime};
+}
+
+public OptionalDateTime_t Path$accessed(Path_t path, bool follow_symlinks)
+{
+    struct stat sb;
+    int status = path_stat(path, follow_symlinks, &sb);
+    if (status != 0) return NULL_DATETIME;
+    return (DateTime_t){.tv_sec=sb.st_atime};
+}
+
+public OptionalDateTime_t Path$changed(Path_t path, bool follow_symlinks)
+{
+    struct stat sb;
+    int status = path_stat(path, follow_symlinks, &sb);
+    if (status != 0) return NULL_DATETIME;
+    return (DateTime_t){.tv_sec=sb.st_ctime};
 }
 
 static void _write(Path_t path, Array_t bytes, int mode, int permissions)

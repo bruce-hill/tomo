@@ -211,6 +211,7 @@ CORD compile_type(type_t *t)
     case BoolType: return "Bool_t";
     case ByteType: return "Byte_t";
     case CStringType: return "char*";
+    case DateTimeType: return "DateTime_t";
     case BigIntType: return "Int_t";
     case IntType: return CORD_asprintf("Int%ld_t", Match(t, IntType)->bits);
     case NumType: return Match(t, NumType)->bits == TYPE_NBITS64 ? "Num_t" : CORD_asprintf("Num%ld_t", Match(t, NumType)->bits);
@@ -257,7 +258,7 @@ CORD compile_type(type_t *t)
         case PointerType: case EnumType: case ChannelType:
             return compile_type(nonnull);
         case IntType: case BigIntType: case TextType: case NumType: case BoolType: case ByteType:
-        case ArrayType: case TableType: case SetType:
+        case ArrayType: case TableType: case SetType: case DateTimeType:
             return CORD_all("Optional", compile_type(nonnull));
         case StructType: {
             if (nonnull == THREAD_TYPE)
@@ -384,6 +385,8 @@ static CORD check_null(type_t *t, CORD value)
         return CORD_all("(", value, ").is_null");
     else if (t->tag == EnumType)
         return CORD_all("((", value, ").tag == 0)");
+    else if (t->tag == DateTimeType)
+        return CORD_all("((", value, ").tv_usec < 0)");
     errx(1, "Optional check not implemented for: %T", t);
 }
 
@@ -1443,6 +1446,7 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
          // NOTE: this cannot use stack(), since bools may actually be bit fields:
          return CORD_asprintf("Bool$as_text((Bool_t[1]){%r}, %r, &Bool$info)", expr, color);
     case CStringType: return CORD_asprintf("CString$as_text(stack(%r), %r, &CString$info)", expr, color);
+    case DateTimeType: return CORD_asprintf("DateTime$as_text(stack(%r), %r, &DateTime$info)", expr, color);
     case BigIntType: case IntType: case ByteType: case NumType: {
         CORD name = type_to_cord(t);
         return CORD_asprintf("%r$as_text(stack(%r), %r, &%r$info)", name, expr, color, name);
@@ -1808,6 +1812,7 @@ CORD compile_null(type_t *t)
     case ChannelType: return "NULL";
     case TextType: return "NULL_TEXT";
     case CStringType: return "NULL";
+    case DateTimeType: return "NULL_DATETIME";
     case PointerType: return CORD_all("((", compile_type(t), ")NULL)");
     case ClosureType: return "NULL_CLOSURE";
     case NumType: return "nan(\"null\")";
@@ -3397,7 +3402,7 @@ CORD compile_type_info(env_t *env, type_t *t)
     else if (t == RANGE_TYPE) return "&Range$info";
 
     switch (t->tag) {
-    case BoolType: case ByteType: case IntType: case BigIntType: case NumType: case CStringType:
+    case BoolType: case ByteType: case IntType: case BigIntType: case NumType: case CStringType: case DateTimeType:
         return CORD_all("&", type_to_cord(t), "$info");
     case TextType: {
         auto text = Match(t, TextType);

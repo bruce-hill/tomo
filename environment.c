@@ -50,6 +50,7 @@ env_t *new_compilation_unit(CORD libname)
                                        .default_val=FakeAST(Int, .bits=IBITS32, .str="1"))), .ret=Type(AbortType))}},
         {"fail", {.code="fail", .type=Type(FunctionType, .args=new(arg_t, .name="message", .type=Type(CStringType)), .ret=Type(AbortType))}},
         {"sleep", {.code="sleep_num", .type=Type(FunctionType, .args=new(arg_t, .name="seconds", .type=Type(NumType, .bits=TYPE_NBITS64)), .ret=Type(VoidType))}},
+        {"now", {.code="DateTime$now", .type=Type(FunctionType, .args=NULL, .ret=Type(DateTimeType))}},
         {"USE_COLOR", {.code="USE_COLOR", .type=Type(BoolType)}},
     };
 
@@ -76,7 +77,6 @@ env_t *new_compilation_unit(CORD libname)
         env_t *thread_env = namespace_env(env, "Thread");
         THREAD_TYPE = Type(StructType, .name="Thread", .env=thread_env, .opaque=true);
     }
-
 
     struct {
         const char *name;
@@ -261,6 +261,24 @@ env_t *new_compilation_unit(CORD libname)
             {"escape_int", "Int$value_as_text", "func(i:Int)->Pattern"},
             {"escape_text", "Pattern$escape_text", "func(text:Text)->Pattern"},
         )},
+        {"DateTime", Type(DateTimeType), "DateTime_t", "DateTime", TypedArray(ns_entry_t,
+            // Used as a default for functions below:
+            {"now", "DateTime$now", "func()->DateTime"},
+
+            {"after", "DateTime$after", "func(dt:DateTime,seconds=0.0,minutes=0.0,hours=0.0,days=0,weeks=0,months=0,years=0,local_time=yes)->DateTime"},
+            {"date", "DateTime$date", "func(dt:DateTime,local_time=yes)->Text"},
+            {"format", "DateTime$format", "func(dt:DateTime,format=\"%c\",local_time=yes)->Text"},
+            {"from_unix_timestamp", "DateTime$from_unix_timestamp", "func(timestamp:Int64)->DateTime"},
+            {"get", "DateTime$get", "func(dt:DateTime,year=!&Int,month=!&Int,day=!&Int,hour=!&Int,minute=!&Int,second=!&Int,nanosecond=!&Int,weekday=!&Int, local_time=yes)"},
+            {"hours_till", "DateTime$hours_till", "func(now:DateTime,then:DateTime)->Num"},
+            {"minutes_till", "DateTime$minutes_till", "func(now:DateTime,then:DateTime)->Num"},
+            {"new", "DateTime$new", "func(year:Int,month:Int,day:Int,hour=0,minute=0,second=0.0)->DateTime"},
+            {"parse", "DateTime$parse", "func(text:Text, format=\"%c\")->DateTime?"},
+            {"relative", "DateTime$relative", "func(dt:DateTime,relative_to=DateTime.now(),local_time=yes)->Text"},
+            {"seconds_till", "DateTime$seconds_till", "func(now:DateTime,then:DateTime)->Num"},
+            {"time", "DateTime$time", "func(dt:DateTime,seconds=no,am_pm=yes,local_time=yes)->Text"},
+            {"unix_timestamp", "DateTime$unix_timestamp", "func(dt:DateTime)->Int64"},
+        )},
         {"Path", Type(TextType, .lang="Path", .env=namespace_env(env, "Path")), "Text_t", "Text$info", TypedArray(ns_entry_t,
             {"append", "Path$append", "func(path:Path, text:Text, permissions=0o644[32])"},
             {"append_bytes", "Path$append_bytes", "func(path:Path, bytes:[Byte], permissions=0o644[32])"},
@@ -291,6 +309,10 @@ env_t *new_compilation_unit(CORD libname)
             {"write_bytes", "Path$write_bytes", "func(path:Path, bytes:[Byte], permissions=0o644[32])"},
             {"write_unique", "Path$write_unique", "func(path:Path, text:Text)->Path"},
             {"write_unique_bytes", "Path$write_unique_bytes", "func(path:Path, bytes:[Byte])->Path"},
+
+            {"modified", "Path$modified", "func(path:Path, follow_symlinks=yes)->DateTime?"},
+            {"accessed", "Path$accessed", "func(path:Path, follow_symlinks=yes)->DateTime?"},
+            {"changed", "Path$changed", "func(path:Path, follow_symlinks=yes)->DateTime?"},
 
             // Text methods:
             {"ends_with", "Text$ends_with", "func(path:Path, suffix:Text)->Bool"},
@@ -379,7 +401,6 @@ env_t *new_compilation_unit(CORD libname)
             set_binding(ns_env, entry->name, b);
         }
     }
-
 
     set_binding(namespace_env(env, "Shell"), "without_escaping",
                 new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
@@ -579,7 +600,7 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
     switch (cls_type->tag) {
     case ArrayType: return NULL;
     case TableType: return NULL;
-    case CStringType:
+    case CStringType: case DateTimeType:
     case BoolType: case IntType: case BigIntType: case NumType: {
         binding_t *b = get_binding(env, CORD_to_const_char_star(type_to_cord(cls_type)));
         assert(b);

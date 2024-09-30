@@ -3,9 +3,10 @@
 // Common datastructures (arrays, tables, closures)
 
 #include <gmp.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include <pthread.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <time.h>
 
 #define ARRAY_LENGTH_BITS 42
 #define ARRAY_FREE_BITS 6
@@ -88,5 +89,8 @@ typedef struct Text_s {
 
 #define Pattern_t Text_t
 #define OptionalPattern_t Text_t
+
+typedef struct timeval DateTime_t;
+#define OptionalDateTime_t DateTime_t
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
