@@ -2967,6 +2967,11 @@ CORD compile(env_t *env, ast_t *ast)
                     return compile_string_literal(Match(Match(call->args->value, TextJoin)->children->ast, TextLiteral)->cord);
                 type_t *actual = get_type(env, call->args->value);
                 return CORD_all("Text$as_c_string(", expr_as_text(env, compile(env, call->args->value), actual, "no"), ")");
+            } else if (t->tag == DateTimeType) {
+                // DateTime constructor:
+                binding_t *new_binding = get_binding(Match(fn_t, TypeInfoType)->env, "new");
+                CORD arg_code = compile_arguments(env, ast, Match(new_binding->type, FunctionType)->args, call->args);
+                return CORD_all(new_binding->code, "(", arg_code, ")");
             } else {
                 code_err(call->fn, "This is not a type that has a constructor");
             }
