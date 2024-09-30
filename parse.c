@@ -110,6 +110,7 @@ static PARSER(parse_heap_alloc);
 static PARSER(parse_if);
 static PARSER(parse_inline_c);
 static PARSER(parse_int);
+static PARSER(parse_datetime);
 static PARSER(parse_lambda);
 static PARSER(parse_lang_def);
 static PARSER(parse_namespace);
@@ -512,6 +513,59 @@ PARSER(parse_int) {
     // else if (match(&pos, ".") || match(&pos, "e")) return NULL; // looks like a float
 
     return NewAST(ctx->file, start, pos, Int, .str=str, .bits=bits);
+}
+
+PARSER(parse_datetime) {
+    const char *start = pos;
+    bool negative = match(&pos, "-");
+    if (!isdigit(*pos)) return NULL;
+
+    struct tm info = {.tm_isdst=-1};
+    char *after = strptime(pos, "%Y-%m-%d", &info);
+    if (!after) return NULL;
+    if (negative) info.tm_year = -(info.tm_year + 1900) - 1900;
+    pos = after;
+    if (match(&pos, "T") || spaces(&pos) >= 1) {
+        after = strptime(pos, "%H:%M", &info);
+        if (after) {
+            pos = after;
+            after = strptime(pos, ":%S", &info);
+            if (after) pos = after;
+            // TODO parse nanoseconds
+        }
+    }
+
+    const char *before_spaces = pos;
+    spaces(&pos);
+    DateTime_t dt;
+    if (match(&pos, "[")) {
+        size_t tz_len = strcspn(pos, "\r\n]");
+        const char *tz = heap_strf("%.*s", tz_len, pos);
+        // TODO: check that tz is a valid timezone
+        pos += tz_len;
+        expect_closing(ctx, &pos, "]", "I wasn't able to parse the rest of this datetime timezone");
+        const char *old_tz = getenv("TZ");
+        setenv("TZ", tz, 1);
+        tzset();
+        dt = (DateTime_t){.tv_sec=mktime(&info)};
+        if (old_tz) setenv("TZ", old_tz, 1);
+        else unsetenv("TZ");
+    } else if (*pos == 'Z' || *pos == '-' || *pos == '+') {
+        after = strptime(pos, "%z", &info);
+        if (after) {
+            pos = after;
+            long offset = info.tm_gmtoff; // Need to cache this because mktime() mutates it to local timezone >:(
+            time_t t = mktime(&info);
+            dt = (DateTime_t){.tv_sec=t + offset - info.tm_gmtoff};
+        } else {
+            dt = (DateTime_t){.tv_sec=mktime(&info)};
+        }
+    } else {
+        pos = before_spaces;
+        dt = (DateTime_t){.tv_sec=mktime(&info)};
+    }
+
+    return NewAST(ctx->file, start, pos, DateTime, .dt=dt);
 }
 
 type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
@@ -1518,10 +1572,11 @@ PARSER(parse_term_no_suffix) {
     ast_t *term = NULL;
     (void)(
         false
+        || (term=parse_datetime(ctx, pos)) // Must come before num/int
         || (term=parse_null(ctx, pos))
-        || (term=parse_num(ctx, pos))
+        || (term=parse_num(ctx, pos)) // Must come before int
         || (term=parse_int(ctx, pos))
-        || (term=parse_negative(ctx, pos))
+        || (term=parse_negative(ctx, pos)) // Must come after num/int
         || (term=parse_heap_alloc(ctx, pos))
         || (term=parse_stack_reference(ctx, pos))
         || (term=parse_bool(ctx, pos))

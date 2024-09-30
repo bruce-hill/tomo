@@ -1850,6 +1850,10 @@ CORD compile(env_t *env, ast_t *ast)
         return compile_null(t);
     }
     case Bool: return Match(ast, Bool)->b ? "yes" : "no";
+    case DateTime: {
+        auto dt = Match(ast, DateTime)->dt;
+        return CORD_asprintf("((DateTime_t){.tv_sec=%ld, .tv_usec=%ld})", dt.tv_sec, dt.tv_usec);
+    }
     case Var: {
         binding_t *b = get_binding(env, Match(ast, Var)->name);
         if (b)

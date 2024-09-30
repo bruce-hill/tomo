@@ -142,6 +142,7 @@ typedef enum {
     Extern,
     StructDef, EnumDef, LangDef,
     Index, FieldAccess, Optional, NonOptional,
+    DateTime,
     DocTest,
     Use,
     InlineCCode,
@@ -305,6 +306,9 @@ struct ast_s {
         struct {
             ast_t *value;
         } Optional, NonOptional;
+        struct {
+            DateTime_t dt;
+        } DateTime;
         struct {
             ast_t *expr;
             const char *output;

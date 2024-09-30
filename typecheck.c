@@ -1271,6 +1271,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_ast_t *type_ast = inline_code->type_ast;
         return type_ast ? parse_type_ast(env, type_ast) : Type(VoidType);
     }
+    case DateTime: return Type(DateTimeType);
     case Unknown: code_err(ast, "I can't figure out the type of: %W", ast);
     }
     code_err(ast, "I can't figure out the type of: %W", ast);
