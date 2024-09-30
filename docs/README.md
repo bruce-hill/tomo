@@ -22,6 +22,7 @@ Information about Tomo's built-in types can be found here:
 - [Booleans](booleans.md)
 - [Bytes](bytes.md)
 - [Channels](channels.md)
+- [DateTime](datetime.md)
 - [Enums](enums.md)
 - [Floating point numbers](nums.md)
 - [Integer Ranges](ranges.md)
