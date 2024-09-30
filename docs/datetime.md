@@ -70,7 +70,7 @@ A new `DateTime` offset by the given amount.
 
 **Example:**  
 ```markdown
->> DateTime.new(2024, 9, 29, hour=19):after(days=1, minutes=30)
+>> DateTime(2024, 9, 29, hour=19):after(days=1, minutes=30)
 = Mon Sep 30 19:30:00 2024
 ```
 
@@ -96,7 +96,7 @@ The date in `YYYY-MM-DD` format.
 
 **Example:**  
 ```markdown
->> DateTime.new(2024, 9, 29):format("%A")
+>> DateTime(2024, 9, 29):format("%A")
 = "2024-09-29"
 ```
 
@@ -125,7 +125,7 @@ Nothing.
 
 **Example:**  
 ```markdown
->> DateTime.new(2024, 9, 29):format("%A")
+>> DateTime(2024, 9, 29):format("%A")
 = "Sunday"
 ```
 
@@ -186,7 +186,7 @@ Nothing.
 
 **Example:**  
 ```markdown
-dt := DateTime.new(2024, 9, 29)
+dt := DateTime(2024, 9, 29)
 month := 0
 dt:get(month=&month)
 >> month
@@ -251,7 +251,8 @@ the_future := now():after(minutes=1, seconds=30)
 
 **Description:**  
 Return a new `DateTime` object representing the given time parameters expressed
-in local time.
+in local time. This function is the same as calling `DateTime` directly as a
+constructor.
 
 **Usage:**  
 ```markdown
@@ -278,6 +279,32 @@ integer, an error will be raised.
 ```markdown
 >> DateTime.new(2024, 9, 29)
 = Mon Sep 30 00:00:00 2024
+```
+
+---
+
+### `now`
+
+**Description:**
+Get a `DateTime` object representing the current date and time. This function
+is the same as the global function `now()`.
+
+**Usage:**  
+```markdown
+DateTime.now() -> DateTime
+```
+
+**Parameters:**
+
+None.
+
+**Returns:**
+Returns a `DateTime` object representing the current date and time.
+
+**Example:**  
+```markdown
+>> DateTime.now()
+= Sun Sep 29 20:22:48 2024
 ```
 
 ---
@@ -396,7 +423,7 @@ A text representation of the time component of the datetime.
 
 **Example:**  
 ```markdown
-dt := DateTime.new(2024, 9, 29, hours=13, minutes=59, seconds=30)
+dt := DateTime(2024, 9, 29, hours=13, minutes=59, seconds=30)
 
 >> dt:time()
 = "1:59pm"
