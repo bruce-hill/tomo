@@ -2620,8 +2620,9 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(call->name, "sample")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="count", .type=INT_TYPE,
-                                      .next=new(arg_t, .name="weights", .type=Type(ArrayType, .item_type=Type(NumType)),
-                                                .default_val=FakeAST(Array, .item_type=new(type_ast_t, .tag=VarTypeAST, .__data.VarTypeAST.name="Num"))));
+                    .next=new(arg_t, .name="weights", .type=Type(ArrayType, .item_type=Type(NumType)),
+                              .default_val=FakeAST(Null, .type=new(type_ast_t, .tag=ArrayTypeAST,
+                                   .__data.ArrayTypeAST.item=new(type_ast_t, .tag=VarTypeAST, .__data.VarTypeAST.name="Num")))));
                 return CORD_all("Array$sample(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "shuffle")) {

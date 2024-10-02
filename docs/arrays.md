@@ -731,7 +731,7 @@ probabilities.
 
 **Usage:**  
 ```markdown
-sample(arr: [T], count: Int, weights: [Num]) -> [T]
+sample(arr: [T], count: Int, weights: [Num]? = ![Num]) -> [T]
 ```
 
 **Parameters:**
@@ -740,10 +740,16 @@ sample(arr: [T], count: Int, weights: [Num]) -> [T]
 - `count`: The number of elements to sample.
 - `weights`: The probability weights for each element in the array. These
   values do not need to add up to any particular number, they are relative
-  weights. If no weights are provided, the default is equal probabilities.
-  Negative, infinite, or NaN weights will cause a runtime error. If the number of
-  weights given is less than the length of the array, elements from the rest of
-  the array are considered to have zero weight.
+  weights. If no weights are given, elements will be sampled with uniform
+  probability.
+
+**Errors:**
+Errors will be raised if any of the following conditions occurs:
+- The given array has no elements and `count >= 1`
+- `count < 0` (negative count)
+- The number of weights provided doesn't match the length of the array. 
+- Any weight in the weights array is negative, infinite, or `NaN`
+- The sum of the given weights is zero (zero probability for every element).
 
 **Returns:**  
 A list of sampled elements from the array.
