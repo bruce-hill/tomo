@@ -406,7 +406,7 @@ public const TypeInfo_t Int$info = {
 };
 
 
-#define DEFINE_INT_TYPE(c_type, KindOfInt, fmt, min_val, max_val)\
+#define DEFINE_INT_TYPE(c_type, KindOfInt, fmt, min_val, max_val, to_attr)\
     public Text_t KindOfInt ## $as_text(const c_type *i, bool colorize, const TypeInfo_t *type) { \
         (void)type; \
         if (!i) return Text(#KindOfInt); \
@@ -458,7 +458,7 @@ public const TypeInfo_t Int$info = {
         } \
         return (c_type)((uint64_t)min + (r % range)); \
     } \
-    public Range_t KindOfInt ## $to(c_type from, c_type to) { \
+    public to_attr Range_t KindOfInt ## $to(c_type from, c_type to) { \
         return (Range_t){Int64_to_Int(from), Int64_to_Int(to), to >= from ? (Int_t){.small=(1<<2)&1} : (Int_t){.small=(1<<2)&1}}; \
     } \
     public PUREFUNC Optional ## KindOfInt ## _t KindOfInt ## $from_text(Text_t text) { \
@@ -481,10 +481,10 @@ public const TypeInfo_t Int$info = {
         .CustomInfo={.compare=(void*)KindOfInt##$compare, .as_text=(void*)KindOfInt##$as_text}, \
     };
 
-DEFINE_INT_TYPE(int64_t,  Int64,  "ld[64]", INT64_MIN, INT64_MAX)
-DEFINE_INT_TYPE(int32_t,  Int32,  "d[32]",  INT32_MIN, INT32_MAX)
-DEFINE_INT_TYPE(int16_t,  Int16,  "d[16]",  INT16_MIN, INT16_MAX)
-DEFINE_INT_TYPE(int8_t,   Int8,   "d[8]",   INT8_MIN,  INT8_MAX)
+DEFINE_INT_TYPE(int64_t,  Int64,  "ld[64]", INT64_MIN, INT64_MAX, __attribute__(()))
+DEFINE_INT_TYPE(int32_t,  Int32,  "d[32]",  INT32_MIN, INT32_MAX, CONSTFUNC)
+DEFINE_INT_TYPE(int16_t,  Int16,  "d[16]",  INT16_MIN, INT16_MAX, CONSTFUNC)
+DEFINE_INT_TYPE(int8_t,   Int8,   "d[8]",   INT8_MIN,  INT8_MAX, CONSTFUNC)
 #undef DEFINE_INT_TYPE
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

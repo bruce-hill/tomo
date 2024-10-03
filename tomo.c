@@ -43,6 +43,7 @@ static OptionalBool_t verbose = false,
 
 static OptionalText_t autofmt = Text("sed '/^\\s*$/d' | indent -kr -l100 -nbbo -nut -sob"),
             cflags = Text("-fdollars-in-identifiers -std=gnu11 -Wno-trigraphs -fsanitize=signed-integer-overflow -fno-sanitize-recover"
+                          " -fno-signed-zeros -fno-finite-math-only -fno-signaling-nans -fno-trapping-math -fno-finite-math-only"
                           " -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -fPIC -ggdb"
                           " -I$HOME/.local/share/tomo/installed"),
             ldlibs = Text("-lgc -lgmp -lm -ltomo"),
@@ -292,8 +293,8 @@ void build_library(Text_t lib_dir_name)
 
     globfree(&tm_files);
 
-    prog = run_cmd("%k %k -O%k %k %k %s -Wl,-soname='lib%k.so' -shared %s -o 'lib%k.so'",
-                   &cc, &cflags, &optimization, &ldflags, &ldlibs, array_str(extra_ldlibs), &lib_dir_name,
+    prog = run_cmd("%k -O%k %k %k %k %s -Wl,-soname='lib%k.so' -shared %s -o 'lib%k.so'",
+                   &cc, &optimization, &cflags, &ldflags, &ldlibs, array_str(extra_ldlibs), &lib_dir_name,
                    array_str(object_files), &lib_dir_name);
     if (!prog)
         errx(1, "Failed to run C compiler: %k", &cc);

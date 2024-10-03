@@ -2425,7 +2425,7 @@ PARSER(parse_use) {
         if (m.length >= 0) {
             text = Text$trim(text, Pattern("http{0-1 s}://"), true, false);
             FILE *shasum = popen(heap_strf("echo -n '%s' | sha256sum", Text$as_c_string(text)), "r");
-            const int HASH_LEN = 32;
+            const size_t HASH_LEN = 32;
             char *hash = GC_MALLOC_ATOMIC(HASH_LEN + 1);
             size_t just_read = fread(hash, sizeof(char), HASH_LEN, shasum);
             if (just_read < HASH_LEN)

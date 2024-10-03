@@ -52,7 +52,7 @@ public Text_t Num$scientific(double f, Int_t precision) {
     return Text$format("%.*e", (int)Int_to_Int64(precision, false), f); 
 }
 
-public double Num$mod(double num, double modulus) { 
+public CONSTFUNC double Num$mod(double num, double modulus) { 
     double result = fmod(num, modulus); 
     return (result < 0) != (modulus < 0) ? result + modulus : result; 
 }
@@ -79,9 +79,9 @@ public double Num$nan(Text_t tag) {
     return nan(Text$as_c_string(tag));
 }
 
-public CONSTFUNC bool Num$isinf(double n) { return !!isinf(n); }
-public CONSTFUNC bool Num$finite(double n) { return !!finite(n); }
-public CONSTFUNC bool Num$isnan(double n) { return !!isnan(n); }
+public CONSTFUNC bool Num$isinf(double n) { return (fpclassify(n) == FP_INFINITE); }
+public CONSTFUNC bool Num$finite(double n) { return (fpclassify(n) != FP_INFINITE); }
+public CONSTFUNC bool Num$isnan(double n) { return (fpclassify(n) == FP_NAN); }
 
 public const TypeInfo_t Num$info = {
     .size=sizeof(double),
@@ -133,7 +133,7 @@ public Text_t Num32$scientific(float f, Int_t precision) {
     return Text$format("%.*e", (int)Int_to_Int64(precision, false), (double)f); 
 }
 
-public float Num32$mod(float num, float modulus) { 
+public CONSTFUNC float Num32$mod(float num, float modulus) { 
     float result = fmodf(num, modulus); 
     return (result < 0) != (modulus < 0) ? result + modulus : result; 
 }
@@ -160,9 +160,9 @@ public float Num32$nan(Text_t tag) {
     return nanf(Text$as_c_string(tag));
 }
 
-public CONSTFUNC bool Num32$isinf(float n) { return isinf(n); }
-public CONSTFUNC bool Num32$finite(float n) { return finite(n); }
-public CONSTFUNC bool Num32$isnan(float n) { return isnan(n); }
+public CONSTFUNC bool Num32$isinf(float n) { return (fpclassify(n) == FP_INFINITE); }
+public CONSTFUNC bool Num32$finite(float n) { return (fpclassify(n) != FP_INFINITE); }
+public CONSTFUNC bool Num32$isnan(float n) { return (fpclassify(n) == FP_NAN); }
 
 public const TypeInfo_t Num32$info = {
     .size=sizeof(float),

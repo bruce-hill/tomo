@@ -22,7 +22,7 @@
 #define I16(x) ((int16_t)x)
 #define I8(x) ((int8_t)x)
 
-#define DEFINE_INT_TYPE(c_type, type_name) \
+#define DEFINE_INT_TYPE(c_type, type_name, to_attr) \
     typedef struct { \
         c_type i; \
         bool is_null:1; \
@@ -35,7 +35,7 @@
     Text_t type_name ## $octal(c_type i, Int_t digits, bool prefix); \
     Array_t type_name ## $bits(c_type x); \
     c_type type_name ## $random(c_type min, c_type max); \
-    Range_t type_name ## $to(c_type from, c_type to); \
+    to_attr Range_t type_name ## $to(c_type from, c_type to); \
     PUREFUNC Optional ## type_name ## _t type_name ## $from_text(Text_t text); \
     PUREFUNC static inline c_type type_name ## $clamped(c_type x, c_type min, c_type max) { \
         return x < min ? min : (x > max ? max : x); \
@@ -62,10 +62,10 @@
         return type_name ## $modulo(D-1, d) + 1; \
     }
 
-DEFINE_INT_TYPE(int64_t, Int64)
-DEFINE_INT_TYPE(int32_t, Int32)
-DEFINE_INT_TYPE(int16_t, Int16)
-DEFINE_INT_TYPE(int8_t,  Int8)
+DEFINE_INT_TYPE(int64_t, Int64, __attribute__(()))
+DEFINE_INT_TYPE(int32_t, Int32, CONSTFUNC)
+DEFINE_INT_TYPE(int16_t, Int16, CONSTFUNC)
+DEFINE_INT_TYPE(int8_t,  Int8, CONSTFUNC)
 #undef DEFINE_INT_TYPE
 
 #define NULL_INT64 ((OptionalInt64_t){.is_null=true})

@@ -46,7 +46,7 @@ public uint64_t TOMO_HASH_KEY[2] = {23, 42}; // Randomized in tomo_init()
 
 #include "siphash-internals.h"
 
-public uint64_t siphash24(const uint8_t *src, size_t src_sz) {
+PUREFUNC public uint64_t siphash24(const uint8_t *src, size_t src_sz) {
     siphash sh;
     if ((uint64_t)src % __alignof__(uint64_t) == 0) {
 #pragma GCC diagnostic ignored "-Wcast-align"

@@ -130,9 +130,8 @@ PUREFUNC type_t *get_math_type(env_t *env, ast_t *ast, type_t *lhs_t, type_t *rh
     switch (compare_precision(lhs_t, rhs_t)) {
     case NUM_PRECISION_EQUAL: case NUM_PRECISION_MORE: return lhs_t;
     case NUM_PRECISION_LESS: return rhs_t;
-    default: return NULL;
+    default: code_err(ast, "Math operations between %T and %T are not supported", lhs_t, rhs_t);
     }
-    code_err(ast, "Math operations between %T and %T are not supported", lhs_t, rhs_t);
 }
 
 static env_t *load_module(env_t *env, ast_t *module_ast)
