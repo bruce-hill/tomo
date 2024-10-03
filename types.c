@@ -205,6 +205,11 @@ static PUREFUNC inline double type_max_magnitude(type_t *t)
 
 PUREFUNC precision_cmp_e compare_precision(type_t *a, type_t *b)
 {
+    if (is_int_type(a) && b->tag == NumType)
+        return NUM_PRECISION_LESS;
+    else if (a->tag == NumType && is_int_type(b))
+        return NUM_PRECISION_MORE;
+
     double a_min = type_min_magnitude(a),
            b_min = type_min_magnitude(b),
            a_max = type_max_magnitude(a),
