@@ -69,7 +69,6 @@ CORD type_to_cord(type_t *t) {
         case PointerType: {
             auto ptr = Match(t, PointerType);
             CORD sigil = ptr->is_stack ? "&" : "@";
-            if (ptr->is_readonly) sigil = CORD_cat(sigil, "%");
             return CORD_all(sigil, type_to_cord(ptr->pointed));
         }
         case EnumType: {
@@ -349,9 +348,6 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
             return false;
         else if (actual_ptr->is_stack && !needed_ptr->is_stack)
             // Can't use &x for a function that wants a @Foo or ?Foo
-            return false;
-        else if (actual_ptr->is_readonly && !needed_ptr->is_readonly)
-            // Can't use pointer to readonly data when we need a pointer that can write to the data
             return false;
         else
             return true;

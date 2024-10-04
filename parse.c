@@ -637,11 +637,9 @@ type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos) {
         return NULL;
 
     spaces(&pos);
-    bool is_readonly = match(&pos, "%");
-    spaces(&pos);
     type_ast_t *type = expect(ctx, start, &pos, parse_non_optional_type,
                               "I couldn't parse a pointer type after this point");
-    type_ast_t *ptr_type = NewTypeAST(ctx->file, start, pos, PointerTypeAST, .pointed=type, .is_stack=is_stack, .is_readonly=is_readonly);
+    type_ast_t *ptr_type = NewTypeAST(ctx->file, start, pos, PointerTypeAST, .pointed=type, .is_stack=is_stack);
     spaces(&pos);
     if (match(&pos, "?"))
         return NewTypeAST(ctx->file, start, pos, OptionalTypeAST, .type=ptr_type);

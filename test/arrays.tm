@@ -95,10 +95,10 @@ func main():
 		>> nums
 		= [-20, 10, 30]
 		# Custom sort functions:
-		>> nums:sort(func(x:&%Int,y:&%Int): x:abs() <> y:abs())
+		>> nums:sort(func(x,y:&Int): x:abs() <> y:abs())
 		>> nums
 		= [10, -20, 30]
-		>> nums:sort(func(x:&%Int,y:&%Int): y[] <> x[])
+		>> nums:sort(func(x,y:&Int): y[] <> x[])
 		>> nums
 		= [30, 10, -20]
 
@@ -159,7 +159,7 @@ func main():
 		>> nums:sort()
 		>> [nums:binary_search(i) for i in nums]
 		= [1, 2, 3, 4, 5]
-		>> nums:sort(func(a,b:&%Int): a:abs() <> b:abs())
+		>> nums:sort(func(a,b:&Int): a:abs() <> b:abs())
 		>> [nums:binary_search(i, func(a,b:&Int): a:abs() <> b:abs()) for i in nums]
 		= [1, 2, 3, 4, 5]
 

@@ -101,7 +101,7 @@ struct type_s {
         } ClosureType;
         struct {
             type_t *pointed;
-            bool is_stack:1, is_readonly:1;
+            bool is_stack:1;
         } PointerType;
         struct {
             const char *name;

@@ -100,7 +100,7 @@ struct type_ast_s {
         } VarTypeAST;
         struct {
             type_ast_t *pointed;
-            bool is_stack:1, is_readonly:1;
+            bool is_stack:1;
         } PointerTypeAST;
         struct {
             type_ast_t *item;

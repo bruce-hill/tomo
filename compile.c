@@ -2581,7 +2581,6 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *self_value_t = value_type(self_t);
         switch (self_value_t->tag) {
         case ArrayType: {
-            // TODO: check for readonly
             type_t *item_t = Match(self_value_t, ArrayType)->item_type;
             CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(item_t));
             if (streq(call->name, "insert")) {
@@ -2637,7 +2636,7 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD self = compile_to_pointer_depth(env, call->self, streq(call->name, "sort") ? 1 : 0, false);
                 CORD comparison;
                 if (call->args) {
-                    type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true, .is_readonly=true);
+                    type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                     type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                         .ret=Type(IntType, .bits=TYPE_IBITS32));
                     arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t));
@@ -3454,7 +3453,6 @@ CORD compile_type_info(env_t *env, type_t *t)
     case PointerType: {
         auto ptr = Match(t, PointerType);
         CORD sigil = ptr->is_stack ? "&" : "@";
-        if (ptr->is_readonly) sigil = CORD_cat(sigil, "%");
         return CORD_asprintf("Pointer$info(%r, %r)",
                              CORD_quoted(sigil),
                              compile_type_info(env, ptr->pointed));

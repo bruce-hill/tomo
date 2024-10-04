@@ -46,7 +46,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         type_t *pointed_t = parse_type_ast(env, ptr->pointed);
         if (pointed_t->tag == VoidType)
             code_err(ast, "Void pointers are not supported. You probably meant 'Memory' instead of 'Void'");
-        return Type(PointerType, .pointed=pointed_t, .is_stack=ptr->is_stack, .is_readonly=ptr->is_readonly);
+        return Type(PointerType, .pointed=pointed_t, .is_stack=ptr->is_stack);
     }
     case ArrayTypeAST: {
         type_ast_t *item_type = Match(ast, ArrayTypeAST)->item;
@@ -545,7 +545,7 @@ type_t *get_type(env_t *env, ast_t *ast)
                 code_err(base, "This value might be null, so it can't be safely dereferenced");
             } else if (base_type->tag == PointerType) {
                 auto ptr = Match(base_type, PointerType);
-                return Type(PointerType, .pointed=ref_type, .is_stack=ptr->is_stack, .is_readonly=ptr->is_readonly);
+                return Type(PointerType, .pointed=ref_type, .is_stack=ptr->is_stack);
             } else if (base->tag == Var) {
                 return Type(PointerType, .pointed=ref_type, .is_stack=true);
             }
@@ -991,7 +991,7 @@ type_t *get_type(env_t *env, ast_t *ast)
                 auto lhs_ptr = Match(lhs_t, PointerType);
                 auto rhs_ptr = Match(rhs_t, PointerType);
                 if (type_eq(lhs_ptr->pointed, rhs_ptr->pointed))
-                    return Type(PointerType, .pointed=lhs_ptr->pointed, .is_readonly=lhs_ptr->is_readonly || rhs_ptr->is_readonly);
+                    return Type(PointerType, .pointed=lhs_ptr->pointed);
             } else if ((is_int_type(lhs_t) && is_int_type(rhs_t))
                        || (lhs_t->tag == ByteType && rhs_t->tag == ByteType)) {
                 return get_math_type(env, ast, lhs_t, rhs_t);
@@ -1015,11 +1015,11 @@ type_t *get_type(env_t *env, ast_t *ast)
             } else if (lhs_t->tag == PointerType) {
                 auto lhs_ptr = Match(lhs_t, PointerType);
                 if (rhs_t->tag == AbortType || rhs_t->tag == ReturnType) {
-                    return Type(PointerType, .pointed=lhs_ptr->pointed, .is_readonly=lhs_ptr->is_readonly);
+                    return Type(PointerType, .pointed=lhs_ptr->pointed);
                 } else if (rhs_t->tag == PointerType) {
                     auto rhs_ptr = Match(rhs_t, PointerType);
                     if (type_eq(rhs_ptr->pointed, lhs_ptr->pointed))
-                        return Type(PointerType, .pointed=lhs_ptr->pointed, .is_readonly=lhs_ptr->is_readonly || rhs_ptr->is_readonly);
+                        return Type(PointerType, .pointed=lhs_ptr->pointed);
                 }
             }
             code_err(ast, "I can't figure out the type of this `or` expression because the left side is a %T, but the right side is a %T",
@@ -1311,8 +1311,7 @@ PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast)
         auto access = Match(ast, FieldAccess);
         type_t *fielded_type = get_type(env, access->fielded);
         if (fielded_type->tag == PointerType) {
-            auto ptr = Match(fielded_type, PointerType);
-            return !ptr->is_readonly;
+            return true;
         } else if (fielded_type->tag == StructType) {
             return can_be_mutated(env, access->fielded);
         } else {
@@ -1322,10 +1321,8 @@ PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast)
     case Index: {
         auto index = Match(ast, Index);
         type_t *indexed_type = get_type(env, index->indexed);
-        if (indexed_type->tag == PointerType) {
-            auto ptr = Match(indexed_type, PointerType);
-            return !ptr->is_readonly;
-        }
+        if (indexed_type->tag == PointerType)
+            return true;
         return can_be_mutated(env, index->indexed);
     }
     default: return false;
