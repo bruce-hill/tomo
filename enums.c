@@ -13,193 +13,53 @@
 #include "typecheck.h"
 #include "stdlib/util.h"
 
-PUREFUNC static bool has_extra_data(tag_ast_t *tags)
-{
-    for (tag_ast_t *tag = tags; tag; tag = tag->next) {
-        if (tag->fields) return true;
-    }
-    return false;
-}
-
-static CORD compile_str_method(env_t *env, ast_t *ast)
-{
-    auto def = Match(ast, EnumDef);
-    CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
-    CORD str_func = CORD_all("static Text_t ", full_name, "$as_text(", full_name, "_t *obj, bool use_color) {\n"
-                             "\tif (!obj) return Text(\"", def->name, "\");\n"
-                             "switch (obj->tag) {\n");
-    for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-        if (!tag->fields) {
-            str_func = CORD_all(str_func, "\tcase ", full_name, "$tag$", tag->name, ": return use_color ? Text(\"\\x1b[36;1m",
-                         def->name, ".", tag->name, "\\x1b[m\") : Text(\"", def->name, ".", tag->name, "\");\n");
-            continue;
-        }
-
-        str_func = CORD_all(str_func, "\tcase ", full_name, "$tag$", tag->name, ": return Text$concat(use_color ? Text(\"\\x1b[36;1m",
-                     def->name, ".", tag->name, "\\x1b[m(\") : Text(\"", def->name, ".", tag->name, "(\")");
-
-        if (tag->secret) {
-            str_func = CORD_cat(str_func, ", use_color ? Text(\"\\x1b[2m...\\x1b[m\") : Text(\"...\", \")\"));\n");
-            continue;
-        }
-
-        if (tag->fields && !tag->fields->next) { // Single-member tags don't need to print member names:
-            type_t *field_t = get_arg_ast_type(env, tag->fields);
-            CORD field_str = expr_as_text(env, CORD_all("obj->$", tag->name, ".$", tag->fields->name), field_t, "use_color");
-            str_func = CORD_all(str_func, ", ", field_str);
-        } else {
-            for (arg_ast_t *field = tag->fields; field; field = field->next) {
-                type_t *field_t = get_arg_ast_type(env, field);
-                CORD field_str = expr_as_text(env, CORD_all("obj->$", tag->name, ".$", field->name), field_t, "use_color");
-                str_func = CORD_all(str_func, ", Text(\"", field->name, "=\"), ", field_str);
-                if (field->next) str_func = CORD_cat(str_func, ", Text(\", \")");
-            }
-        }
-        str_func = CORD_cat(str_func, ", Text(\")\"));\n");
-    }
-    str_func = CORD_cat(str_func, "\tdefault: return (Text_t){.length=0};\n\t}\n}\n");
-    return str_func;
-}
-
-static CORD compile_compare_method(env_t *env, ast_t *ast)
-{
-    auto def = Match(ast, EnumDef);
-    CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
-    if (!has_extra_data(def->tags)) {
-        // Comparisons are simpler if there is only a tag, no tagged data:
-        return CORD_all("static int ", full_name, "$compare(const ", full_name, "_t *x, const ", full_name,
-                        "_t *y, const TypeInfo_t *info) {\n"
-                        "(void)info;\n"
-                        "return (x->tag - y->tag);\n"
-                        "}\n");
-    }
-    CORD cmp_func = CORD_all("static int ", full_name, "$compare(const ", full_name, "_t *x, const ", full_name,
-                             "_t *y, const TypeInfo_t *info) {\n"
-                             "(void)info;\n"
-                             "int diff = x->tag - y->tag;\n"
-                             "if (diff) return diff;\n"
-                             "switch (x->tag) {\n");
-    for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-        if (tag->fields) {
-            type_t *tag_type = Table$str_get(*env->types, CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)));
-            cmp_func = CORD_all(cmp_func, "\tcase ", full_name, "$tag$", tag->name, ": "
-                                "return generic_compare(&x->$", tag->name, ", &y->$", tag->name, ", ", compile_type_info(env, tag_type), ");\n");
-        } else {
-            cmp_func = CORD_all(cmp_func, "\tcase ", full_name, "$tag$", tag->name, ": return 0;\n");
-        }
-    }
-    cmp_func = CORD_all(cmp_func, "default: return 0;\n}\n}\n");
-    return cmp_func;
-}
-
-static CORD compile_equals_method(env_t *env, ast_t *ast)
-{
-    auto def = Match(ast, EnumDef);
-    CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
-    if (!has_extra_data(def->tags)) {
-        // Equality is simpler if there is only a tag, no tagged data:
-        return CORD_all("static bool ", full_name, "$equal(const ", full_name, "_t *x, const ", full_name,
-                        "_t *y, const TypeInfo_t *info) {\n"
-                        "(void)info;\n"
-                        "return (x->tag == y->tag);\n"
-                        "}\n");
-    }
-    CORD eq_func = CORD_all("static bool ", full_name, "$equal(const ", full_name, "_t *x, const ", full_name,
-                             "_t *y, const TypeInfo_t *info) {\n"
-                             "(void)info;\n"
-                             "if (x->tag != y->tag) return no;\n"
-                             "switch (x->tag) {\n");
-    for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-        if (tag->fields) {
-            type_t *tag_type = Table$str_get(*env->types, CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)));
-            eq_func = CORD_all(eq_func, "\tcase ", full_name, "$tag$", tag->name, ": "
-                                "return generic_equal(&x->$", tag->name, ", &y->$", tag->name, ", ", compile_type_info(env, tag_type), ");\n");
-        } else {
-            eq_func = CORD_all(eq_func, "\tcase ", full_name, "$tag$", tag->name, ": return yes;\n");
-        }
-    }
-    eq_func = CORD_all(eq_func, "default: return 0;\n}\n}\n");
-    return eq_func;
-}
-
-static CORD compile_hash_method(env_t *env, ast_t *ast)
-{
-    auto def = Match(ast, EnumDef);
-    CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
-    if (!has_extra_data(def->tags)) {
-        // Hashing is simpler if there is only a tag, no tagged data:
-        return CORD_all("static uint64_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo_t *info) {\n"
-                        "(void)info;\n"
-                        "return siphash24((void*)&obj->tag, sizeof(obj->tag));\n"
-                        "\n}\n");
-    }
-    CORD hash_func = CORD_all("static uint64_t ", full_name, "$hash(const ", full_name, "_t *obj, const TypeInfo_t *info) {\n"
-                              "(void)info;\n"
-                              "uint64_t hashes[2] = {(uint64_t)obj->tag, 0};\n"
-                              "switch (obj->tag) {\n");
-    for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-        if (tag->fields) {
-            type_t *tag_type = Table$str_get(*env->types, CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)));
-            hash_func = CORD_all(hash_func, "\tcase ", full_name, "$tag$", tag->name, ": "
-                                 "hashes[1] = generic_hash(&obj->$", tag->name, ", ", compile_type_info(env, tag_type), ");\n"
-                                 "break;\n");
-        } else {
-            hash_func = CORD_all(hash_func, "\tcase ", full_name, "$tag$", tag->name, ": break;\n");
-        }
-    }
-    hash_func = CORD_all(hash_func, "}\n"
-                         "return siphash24((void*)&hashes, sizeof(hashes));\n}\n");
-    return hash_func;
-}
-
 void compile_enum_def(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
     CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
+
+    // Compile member types and constructors:
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-        compile_struct_def(env, WrapAST(ast, StructDef, .name=CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)), .fields=tag->fields));
-        if (tag->fields) { // Constructor macros:
-            CORD arg_sig = CORD_EMPTY;
-            for (arg_ast_t *field = tag->fields; field; field = field->next) {
-                type_t *field_t = get_arg_ast_type(env, field);
-                arg_sig = CORD_all(arg_sig, compile_declaration(field_t, CORD_all("$", field->name)));
-                if (field->next) arg_sig = CORD_cat(arg_sig, ", ");
-            }
-            if (arg_sig == CORD_EMPTY) arg_sig = "void";
-            CORD constructor_impl = CORD_all("public inline ", full_name, "_t ", full_name, "$tagged$", tag->name, "(", arg_sig, ") { return (",
-                                             full_name, "_t){.tag=", full_name, "$tag$", tag->name, ", .$", tag->name, "={");
-            for (arg_ast_t *field = tag->fields; field; field = field->next) {
-                constructor_impl = CORD_all(constructor_impl, "$", field->name);
-                if (field->next) constructor_impl = CORD_cat(constructor_impl, ", ");
-            }
-            constructor_impl = CORD_cat(constructor_impl, "}}; }\n");
-            env->code->funcs = CORD_cat(env->code->funcs, constructor_impl);
+        if (!tag->fields) continue;
+
+        const char *tag_name = heap_strf("%s$%s", def->name, tag->name);
+        compile_struct_def(env, WrapAST(ast, StructDef, .name=tag_name, .fields=tag->fields, .secret=tag->secret));
+        CORD arg_sig = CORD_EMPTY;
+        for (arg_ast_t *field = tag->fields; field; field = field->next) {
+            type_t *field_t = get_arg_ast_type(env, field);
+            arg_sig = CORD_all(arg_sig, compile_declaration(field_t, CORD_all("$", field->name)));
+            if (field->next) arg_sig = CORD_cat(arg_sig, ", ");
         }
+        if (arg_sig == CORD_EMPTY) arg_sig = "void";
+        CORD constructor_impl = CORD_all("public inline ", full_name, "_t ", full_name, "$tagged$", tag->name, "(", arg_sig, ") { return (",
+                                         full_name, "_t){.tag=", full_name, "$tag$", tag->name, ", .$", tag->name, "={");
+        for (arg_ast_t *field = tag->fields; field; field = field->next) {
+            constructor_impl = CORD_all(constructor_impl, "$", field->name);
+            if (field->next) constructor_impl = CORD_cat(constructor_impl, ", ");
+        }
+        constructor_impl = CORD_cat(constructor_impl, "}}; }\n");
+        env->code->funcs = CORD_cat(env->code->funcs, constructor_impl);
     }
+
+    int num_tags = 0;
+    for (tag_ast_t *t = def->tags; t; t = t->next)
+        num_tags += 1;
 
     type_t *t = Table$str_get(*env->types, def->name);
-    CORD typeinfo = CORD_asprintf("public const TypeInfo_t %s = {%zu, %zu, {.tag=EnumInfo, .CustomInfo={",
-                                  full_name, type_size(t), type_align(t));
+    CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r = {%zu, %zu, {.tag=EnumInfo, .EnumInfo={.name=\"%s\", "
+                                  ".num_tags=%d, .tags=(NamedType_t[]){",
+                                  full_name, type_size(t), type_align(t), def->name, num_tags);
 
-    env->code->funcs = CORD_all(env->code->funcs, compile_str_method(env, ast));
-    if (has_extra_data(def->tags)) {
-        env->code->funcs = CORD_all(
-            env->code->funcs, 
-            compile_equals_method(env, ast), compile_compare_method(env, ast),
-            compile_hash_method(env, ast));
-        typeinfo = CORD_all(
-            typeinfo,
-            ".as_text=(void*)", full_name, "$as_text, "
-            ".equal=(void*)", full_name, "$equal, "
-            ".hash=(void*)", full_name, "$hash, "
-            ".compare=(void*)", full_name, "$compare");
-    } else {
-        // No need for custom methods if there is no tagged data
-        typeinfo = CORD_all(typeinfo, ".as_text=(void*)", full_name, "$as_text");
+    for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
+        const char *tag_type_name = heap_strf("%s$%s", def->name, tag->name);
+        type_t *tag_type = Table$str_get(*env->types, tag_type_name);
+        if (tag_type && Match(tag_type, StructType)->fields)
+            typeinfo = CORD_all(typeinfo, "{\"", tag->name, "\", ", compile_type_info(env, tag_type), "}, ");
+        else
+            typeinfo = CORD_all(typeinfo, "{\"", tag->name, "\"}, ");
     }
-    typeinfo = CORD_cat(typeinfo, "}}};\n");
+    typeinfo = CORD_all(typeinfo, "}}}};\n");
     env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
-
     compile_namespace(env, def->name, def->namespace);
 }
 
@@ -211,35 +71,40 @@ CORD compile_enum_header(env_t *env, ast_t *ast)
     CORD enum_def = CORD_all("struct ", full_name, "_s {\n"
                              "\tenum { ", full_name, "$null=0, ");
 
+    bool has_any_tags_with_fields = false;
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         enum_def = CORD_all(enum_def, full_name, "$tag$", tag->name);
         if (tag->next) enum_def = CORD_all(enum_def, ", ");
+        has_any_tags_with_fields = has_any_tags_with_fields || (tag->fields != NULL);
     }
-    enum_def = CORD_all(enum_def, "} tag;\n"
-                        "union {\n");
-    for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-        CORD field_def = compile_struct_header(env, WrapAST(ast, StructDef, .name=CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)), .fields=tag->fields));
-        all_defs = CORD_all(all_defs, field_def);
-        enum_def = CORD_all(enum_def, full_name, "$", tag->name, "_t $", tag->name, ";\n");
+    enum_def = CORD_all(enum_def, "} tag;\n");
+
+    if (has_any_tags_with_fields) {
+        enum_def = CORD_all(enum_def, "union {\n");
+        for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
+            if (!tag->fields) continue;
+            CORD field_def = compile_struct_header(env, WrapAST(ast, StructDef, .name=CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)), .fields=tag->fields));
+            all_defs = CORD_all(all_defs, field_def);
+            enum_def = CORD_all(enum_def, full_name, "$", tag->name, "_t $", tag->name, ";\n");
+        }
+        enum_def = CORD_all(enum_def, "};\n");
     }
-    enum_def = CORD_all(enum_def, "};\n};\n");
+    enum_def = CORD_all(enum_def, "};\n");
     all_defs = CORD_all(all_defs, enum_def);
 
     all_defs = CORD_all(all_defs, "extern const TypeInfo_t ", full_name, ";\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-        all_defs = CORD_all(all_defs,
-                            "extern const TypeInfo_t ", namespace_prefix(env, env->namespace), def->name, "$", tag->name, ";\n");
-        if (tag->fields) { // Constructor macros:
-            CORD arg_sig = CORD_EMPTY;
-            for (arg_ast_t *field = tag->fields; field; field = field->next) {
-                type_t *field_t = get_arg_ast_type(env, field);
-                arg_sig = CORD_all(arg_sig, compile_declaration(field_t, CORD_all("$", field->name)));
-                if (field->next) arg_sig = CORD_all(arg_sig, ", ");
-            }
-            if (arg_sig == CORD_EMPTY) arg_sig = "void";
-            CORD constructor_def = CORD_all(full_name, "_t ", full_name, "$tagged$", tag->name, "(", arg_sig, ");\n");
-            all_defs = CORD_all(all_defs, constructor_def);
+        if (!tag->fields) continue;
+
+        CORD arg_sig = CORD_EMPTY;
+        for (arg_ast_t *field = tag->fields; field; field = field->next) {
+            type_t *field_t = get_arg_ast_type(env, field);
+            arg_sig = CORD_all(arg_sig, compile_declaration(field_t, CORD_all("$", field->name)));
+            if (field->next) arg_sig = CORD_all(arg_sig, ", ");
         }
+        if (arg_sig == CORD_EMPTY) arg_sig = "void";
+        CORD constructor_def = CORD_all(full_name, "_t ", full_name, "$tagged$", tag->name, "(", arg_sig, ");\n");
+        all_defs = CORD_all(all_defs, constructor_def);
     }
     return CORD_all(all_defs, compile_namespace_header(env, def->name, def->namespace));
 }

@@ -7,18 +7,23 @@
 
 #include "datatypes.h"
 
-struct TypeInfo_t;
+typedef struct TypeInfo_s TypeInfo_t;
 
-typedef uint64_t (*hash_fn_t)(const void*, const struct TypeInfo_t*);
-typedef int32_t (*compare_fn_t)(const void*, const void*, const struct TypeInfo_t*);
-typedef bool (*equal_fn_t)(const void*, const void*, const struct TypeInfo_t*);
-typedef Text_t (*text_fn_t)(const void*, bool, const struct TypeInfo_t*);
+typedef uint64_t (*hash_fn_t)(const void*, const TypeInfo_t*);
+typedef int32_t (*compare_fn_t)(const void*, const void*, const TypeInfo_t*);
+typedef bool (*equal_fn_t)(const void*, const void*, const TypeInfo_t*);
+typedef Text_t (*text_fn_t)(const void*, bool, const TypeInfo_t*);
 
-typedef struct TypeInfo_t {
+typedef struct {
+    const char *name;
+    const TypeInfo_t *type;
+} NamedType_t;
+
+struct TypeInfo_s {
     int64_t size, align;
     struct { // Anonymous tagged union for convenience 
-        enum { CustomInfo, StructInfo, EnumInfo, PointerInfo, TextInfo, ArrayInfo, ChannelInfo, TableInfo, FunctionInfo,
-            OptionalInfo, TypeInfoInfo, OpaqueInfo, EmptyStructInfo, CStringInfo } tag;
+        enum { Invalid, CustomInfo, StructInfo, EnumInfo, PointerInfo, TextInfo, ArrayInfo, ChannelInfo, TableInfo, FunctionInfo,
+            OptionalInfo, TypeInfoInfo, OpaqueInfo, CStringInfo } tag;
         union {
             struct {
                 equal_fn_t equal;
@@ -28,16 +33,16 @@ typedef struct TypeInfo_t {
             } CustomInfo;
             struct {
                 const char *sigil;
-                const struct TypeInfo_t *pointed;
+                const TypeInfo_t *pointed;
             } PointerInfo;
             struct {
                 const char *lang;
             } TextInfo;
             struct {
-                const struct TypeInfo_t *item;
+                const TypeInfo_t *item;
             } ArrayInfo, ChannelInfo;
             struct {
-                const struct TypeInfo_t *key, *value;
+                const TypeInfo_t *key, *value;
             } TableInfo;
             struct {
                 const char *type_str;
@@ -46,16 +51,24 @@ typedef struct TypeInfo_t {
                 const char *type_str;
             } TypeInfoInfo;
             struct {
-                const struct TypeInfo_t *type;
+                const TypeInfo_t *type;
             } OptionalInfo;
 #pragma GCC diagnostic ignored "-Wpedantic"
             struct {} OpaqueInfo;
             struct {
                 const char *name;
-            } EmptyStructInfo;
+                int num_tags;
+                NamedType_t *tags;
+            } EnumInfo;
+            struct {
+                const char *name;
+                int num_fields;
+                bool is_secret:1;
+                NamedType_t *fields;
+            } StructInfo;
         };
     };
-} TypeInfo_t;
+};
 
 #define Pointer$info(sigil_expr, pointed_info) &((TypeInfo_t){.size=sizeof(void*), .align=__alignof__(void*), \
                                                       .tag=PointerInfo, .PointerInfo={.sigil=sigil_expr, .pointed=pointed_info}})
@@ -73,7 +86,7 @@ typedef struct TypeInfo_t {
                                  .tag=FunctionInfo, .FunctionInfo.type_str=typestr})
 #define Type$info(typestr) &((TypeInfo_t){.size=sizeof(TypeInfo_t), .align=__alignof__(TypeInfo_t), \
                              .tag=TypeInfoInfo, .TypeInfoInfo.type_str=typestr})
-#define Optional$info(t) &((TypeInfo_t){.size=(t)->size, .align=(t)->align, \
+#define Optional$info(_size, _align, t) &((TypeInfo_t){.size=_size, .align=_align, \
                            .tag=OptionalInfo, .OptionalInfo.type=t})
 
 extern const TypeInfo_t Void$info;

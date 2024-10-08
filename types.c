@@ -431,7 +431,7 @@ PUREFUNC size_t type_size(type_t *t)
         type_t *nonnull = Match(t, OptionalType)->type;
         switch (nonnull->tag) {
         case IntType:
-            switch (Match(t, IntType)->bits) {
+            switch (Match(nonnull, IntType)->bits) {
             case TYPE_IBITS64: return sizeof(OptionalInt64_t);
             case TYPE_IBITS32: return sizeof(OptionalInt32_t);
             case TYPE_IBITS16: return sizeof(OptionalInt16_t);
@@ -511,7 +511,7 @@ PUREFUNC size_t type_align(type_t *t)
         type_t *nonnull = Match(t, OptionalType)->type;
         switch (nonnull->tag) {
         case IntType:
-            switch (Match(t, IntType)->bits) {
+            switch (Match(nonnull, IntType)->bits) {
             case TYPE_IBITS64: return __alignof__(OptionalInt64_t);
             case TYPE_IBITS32: return __alignof__(OptionalInt32_t);
             case TYPE_IBITS16: return __alignof__(OptionalInt16_t);

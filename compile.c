@@ -1461,9 +1461,7 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
     case FunctionType: case ClosureType: return CORD_asprintf("Func$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case PointerType: return CORD_asprintf("Pointer$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case OptionalType: return CORD_asprintf("Optional$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
-    case StructType: case EnumType:
-        return CORD_asprintf("(%r)->CustomInfo.as_text(stack(%r), %r, %r)",
-                             compile_type_info(env, t), expr, color, compile_type_info(env, t));
+    case StructType: case EnumType: return CORD_asprintf("generic_as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     default: compiler_err(NULL, NULL, NULL, "Stringifying is not supported for %T", t);
     }
 }
@@ -1952,6 +1950,7 @@ CORD compile(env_t *env, ast_t *ast)
         code_err(ast, "I don't know how to get the negative value of type %T", t);
 
     }
+    // TODO: for constructors, do new(T, ...) instead of heap((T){...})
     case HeapAllocate: return CORD_asprintf("heap(%r)", compile(env, Match(ast, HeapAllocate)->value));
     case StackReference: {
         ast_t *subject = Match(ast, StackReference)->value;
@@ -3464,7 +3463,8 @@ CORD compile_type_info(env_t *env, type_t *t)
         return CORD_asprintf("Closure$info(%r)", CORD_quoted(type_to_cord(t)));
     }
     case OptionalType: {
-        return CORD_asprintf("Optional$info(%r)", compile_type_info(env, Match(t, OptionalType)->type));
+        type_t *non_optional = Match(t, OptionalType)->type;
+        return CORD_asprintf("Optional$info(%zu, %zu, %r)", type_size(t), type_align(t), compile_type_info(env, non_optional));
     }
     case TypeInfoType: return CORD_all("TypeInfo$info(", CORD_quoted(type_to_cord(Match(t, TypeInfoType)->type)), ")");
     case MemoryType: return "&Memory$info";
@@ -3656,9 +3656,9 @@ CORD compile_file(env_t *env, ast_t *ast)
         "#include <tomo/tomo.h>\n"
         "#include \"", name, ".tm.h\"\n\n",
         env->code->local_typedefs, "\n",
+        env->code->typeinfos, "\n",
         env->code->staticdefs, "\n",
         env->code->funcs, "\n",
-        env->code->typeinfos, "\n",
         "public void $", env->namespace->name, "$$initialize(void) {\n",
         "static bool initialized = false;\n",
         "if (initialized) return;\n",
