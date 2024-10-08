@@ -321,3 +321,6 @@ func main():
 
     >> not !Int
     = yes
+
+    >> [Struct(5,"A")?, Struct(6,"B"), Struct(7,"C")]
+    = [Struct(x=5, y="A")?, Struct(x=6, y="B")?, Struct(x=7, y="C")?]
