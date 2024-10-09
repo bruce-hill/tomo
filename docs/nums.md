@@ -42,7 +42,7 @@ Calculates the absolute value of a number.
 
 **Usage:**
 ```tomo
-abs(n: Num) -> Num
+abs(n: Num -> Num)
 ```
 
 **Parameters:**
@@ -67,7 +67,7 @@ Computes the arc cosine of a number.
 
 **Usage:**
 ```tomo
-acos(x: Num) -> Num
+acos(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -92,7 +92,7 @@ Computes the inverse hyperbolic cosine of a number.
 
 **Usage:**
 ```tomo
-acosh(x: Num) -> Num
+acosh(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -117,7 +117,7 @@ Computes the arc sine of a number.
 
 **Usage:**
 ```tomo
-asin(x: Num) -> Num
+asin(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -142,7 +142,7 @@ Computes the inverse hyperbolic sine of a number.
 
 **Usage:**
 ```tomo
-asinh(x: Num) -> Num
+asinh(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -167,7 +167,7 @@ Computes the arc tangent of the quotient of two numbers.
 
 **Usage:**
 ```tomo
-atan2(x: Num, y: Num) -> Num
+atan2(x: Num, y: Num -> Num)
 ```
 
 **Parameters:**
@@ -193,7 +193,7 @@ Computes the arc tangent of a number.
 
 **Usage:**
 ```tomo
-atan(x: Num) -> Num
+atan(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -218,7 +218,7 @@ Computes the inverse hyperbolic tangent of a number.
 
 **Usage:**
 ```tomo
-atanh(x: Num) -> Num
+atanh(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -243,7 +243,7 @@ Computes the cube root of a number.
 
 **Usage:**
 ```tomo
-cbrt(x: Num) -> Num
+cbrt(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -268,7 +268,7 @@ Rounds a number up to the nearest integer.
 
 **Usage:**
 ```tomo
-ceil(x: Num) -> Num
+ceil(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -293,7 +293,7 @@ Copies the sign of one number to another.
 
 **Usage:**
 ```tomo
-copysign(x: Num, y: Num) -> Num
+copysign(x: Num, y: Num -> Num)
 ```
 
 **Parameters:**
@@ -319,7 +319,7 @@ Computes the cosine of a number (angle in radians).
 
 **Usage:**
 ```tomo
-cos(x: Num) -> Num
+cos(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -344,7 +344,7 @@ Computes the hyperbolic cosine of a number.
 
 **Usage:**
 ```tomo
-cosh(x: Num) -> Num
+cosh(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -369,7 +369,7 @@ Computes the error function of a number.
 
 **Usage:**
 ```tomo
-erf(x: Num) -> Num
+erf(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -394,7 +394,7 @@ Computes the complementary error function of a number.
 
 **Usage:**
 ```tomo
-erfc(x: Num) -> Num
+erfc(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -419,7 +419,7 @@ Computes \( 2^x \) for a number.
 
 **Usage:**
 ```tomo
-exp2(x: Num) -> Num
+exp2(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -444,7 +444,7 @@ Computes the exponential function \( e^x \) for a number.
 
 **Usage:**
 ```tomo
-exp(x: Num) -> Num
+exp(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -469,7 +469,7 @@ Computes \( e^x - 1 \) for a number.
 
 **Usage:**
 ```tomo
-expm1(x: Num) -> Num
+expm1(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -494,7 +494,7 @@ Computes the positive difference between two numbers.
 
 **Usage:**
 ```tomo
-fdim(x: Num, y: Num) -> Num
+fdim(x: Num, y: Num -> Num)
 ```
 
 **Parameters:**
@@ -522,7 +522,7 @@ Rounds a number down to the nearest integer.
 
 **Usage:**
 ```tomo
-floor(x: Num) -> Num
+floor(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -547,7 +547,7 @@ Formats a number as a string with a specified precision.
 
 **Usage:**
 ```tomo
-format(n: Num, precision: Int = 0) -> Text
+format(n: Num, precision: Int = 0 -> Text)
 ```
 
 **Parameters:**
@@ -573,7 +573,7 @@ Converts a string representation of a number into a floating-point number.
 
 **Usage:**
 ```tomo
-from_text(text: Text, the_rest: Text = "!&Text") -> Num
+from_text(text: Text, the_rest: Text = "!&Text" -> Num)
 ```
 
 **Parameters:**
@@ -601,7 +601,7 @@ Computes the Euclidean norm, \( \sqrt{x^2 + y^2} \), of two numbers.
 
 **Usage:**
 ```tomo
-hypot(x: Num, y: Num) -> Num
+hypot(x: Num, y: Num -> Num)
 ```
 
 **Parameters:**
@@ -627,7 +627,7 @@ Checks if a number is finite.
 
 **Usage:**
 ```tomo
-isfinite(n: Num) -> Bool
+isfinite(n: Num -> Bool)
 ```
 
 **Parameters:**
@@ -654,7 +654,7 @@ Checks if a number is infinite.
 
 **Usage:**
 ```tomo
-isinf(n: Num) -> Bool
+isinf(n: Num -> Bool)
 ```
 
 **Parameters:**
@@ -681,7 +681,7 @@ Checks if a number is NaN (Not a Number).
 
 **Usage:**
 ```tomo
-isnan(n: Num) -> Bool
+isnan(n: Num -> Bool)
 ```
 
 **Parameters:**
@@ -708,7 +708,7 @@ Computes the Bessel function of the first kind of order 0.
 
 **Usage:**
 ```tomo
-j0(x: Num) -> Num
+j0(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -733,7 +733,7 @@ Computes the Bessel function of the first kind of order 1.
 
 **Usage:**
 ```tomo
-j1(x: Num) -> Num
+j1(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -758,7 +758,7 @@ Computes the base-10 logarithm of a number.
 
 **Usage:**
 ```tomo
-log10(x: Num) -> Num
+log10(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -783,7 +783,7 @@ Computes \( \log(1 + x) \) for a number.
 
 **Usage:**
 ```tomo
-log1p(x: Num) -> Num
+log1p(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -808,7 +808,7 @@ Computes the base-2 logarithm of a number.
 
 **Usage:**
 ```tomo
-log2(x: Num) -> Num
+log2(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -833,7 +833,7 @@ Computes the natural logarithm (base \( e \)) of a number.
 
 **Usage:**
 ```tomo
-log(x: Num) -> Num
+log(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -858,7 +858,7 @@ Computes the binary exponent (base-2 logarithm) of a number.
 
 **Usage:**
 ```tomo
-logb(x: Num) -> Num
+logb(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -883,7 +883,7 @@ Interpolates between two numbers based on a given amount.
 
 **Usage:**
 ```tomo
-mix(amount: Num, x: Num, y: Num) -> Num
+mix(amount: Num, x: Num, y: Num -> Num)
 ```
 
 **Parameters:**
@@ -912,7 +912,7 @@ Generates a NaN (Not a Number) value.
 
 **Usage:**
 ```tomo
-nan(tag: Text = "") -> Num
+nan(tag: Text = "" -> Num)
 ```
 
 **Parameters:**
@@ -939,7 +939,7 @@ small enough, they are considered near each other.
 
 **Usage:**
 ```tomo
-near(x: Num, y: Num, ratio: Num = 1e-9, min_epsilon: Num = 1e-9) -> Bool
+near(x: Num, y: Num, ratio: Num = 1e-9, min_epsilon: Num = 1e-9 -> Bool)
 ```
 
 **Parameters:**
@@ -973,7 +973,7 @@ Computes the next representable value after a given number towards a specified d
 
 **Usage:**
 ```tomo
-nextafter(x: Num, y: Num) -> Num
+nextafter(x: Num, y: Num -> Num)
 ```
 
 **Parameters:**
@@ -999,7 +999,7 @@ Generates a random floating-point number.
 
 **Usage:**
 ```tomo
-random() -> Num
+random(->Num)
 ```
 
 **Parameters:**
@@ -1023,7 +1023,7 @@ Rounds a number to the nearest integer, with ties rounded to the nearest even in
 
 **Usage:**
 ```tomo
-rint(x: Num) -> Num
+rint(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -1050,7 +1050,7 @@ Rounds a number to the nearest whole number integer.
 
 **Usage:**
 ```tomo
-round(x: Num) -> Num
+round(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -1077,7 +1077,7 @@ Formats a number in scientific notation with a specified precision.
 
 **Usage:**
 ```tomo
-scientific(n: Num, precision: Int = 0) -> Text
+scientific(n: Num, precision: Int = 0 -> Text)
 ```
 
 **Parameters:**
@@ -1103,7 +1103,7 @@ Extracts the significand (or mantissa) of a number.
 
 **Usage:**
 ```tomo
-significand(x: Num) -> Num
+significand(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -1128,7 +1128,7 @@ Computes the sine of a number (angle in radians).
 
 **Usage:**
 ```tomo
-sin(x: Num) -> Num
+sin(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -1153,7 +1153,7 @@ Computes the hyperbolic sine of a number.
 
 **Usage:**
 ```tomo
-sinh(x: Num) -> Num
+sinh(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -1178,7 +1178,7 @@ Computes the square root of a number.
 
 **Usage:**
 ```tomo
-sqrt(x: Num) -> Num
+sqrt(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -1203,7 +1203,7 @@ Computes the tangent of a number (angle in radians).
 
 **Usage:**
 ```tomo
-tan(x: Num) -> Num
+tan(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -1228,7 +1228,7 @@ Computes the hyperbolic tangent of a number.
 
 **Usage:**
 ```tomo
-tanh(x: Num) -> Num
+tanh(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -1253,7 +1253,7 @@ Computes the gamma function of a number.
 
 **Usage:**
 ```tomo
-tgamma(x: Num) -> Num
+tgamma(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -1278,7 +1278,7 @@ Truncates a number to the nearest integer towards zero.
 
 **Usage:**
 ```tomo
-trunc(x: Num) -> Num
+trunc(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -1305,7 +1305,7 @@ Computes the Bessel function of the second kind of order 0.
 
 **Usage:**
 ```tomo
-y0(x: Num) -> Num
+y0(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -1330,7 +1330,7 @@ Computes the Bessel function of the second kind of order 1.
 
 **Usage:**
 ```tomo
-y1(x: Num) -> Num
+y1(x: Num -> Num)
 ```
 
 **Parameters:**
@@ -1356,7 +1356,7 @@ that range.
 
 **Usage:**  
 ```tomo
-clamped(x, low, high: Num) -> Num
+clamped(x, low, high: Num -> Num)
 ```
 
 **Parameters:**

@@ -211,12 +211,12 @@ func main():
 
 # Functions must be declared at the top level of a file and must specify the
 # types of all of their arguments and return value (if any):
-func add(x:Int, y:Int)->Int:
+func add(x:Int, y:Int -> Int):
     return x + y
 
 # Default values for arguments can be provided in place of a type (the type is
 # inferred from the default value):
-func show_both(first:Int, second=0)->Text:
+func show_both(first:Int, second=0 -> Text):
     return "first=$first second=$second"
 
 func demo_keyword_args():
@@ -241,7 +241,7 @@ func takes_many_types(
     table_of_text_to_bools:{Text:Bool},
     pointer_to_mutable_array_of_ints:@[Int],
     optional_int:Int?,
-    function_from_int_to_text:func(x:Int)->Text,
+    function_from_int_to_text:func(x:Int -> Text),
 ):
     pass
 
@@ -259,7 +259,7 @@ struct Person(name:Text, age:Int):
         self.age += amount
 
     # Methods don't have to take a Person as their first argument:
-    func get_cool_name()->Text:
+    func get_cool_name(->Text):
         return "Blade"
 
 func demo_structs():
@@ -304,7 +304,7 @@ enum Shape(
 ):
     # Just like with structs, you define methods and constants inside a level
     # of indentation:
-    func get_area(self:Shape)->Num:
+    func get_area(self:Shape->Num):
         # In order to work with an enum, it's most often handy to use a 'when'
         # statement to get the internal values:
         when self is Point:

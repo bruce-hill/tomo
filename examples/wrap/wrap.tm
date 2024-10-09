@@ -13,7 +13,7 @@ HELP := "
 
 UNICODE_HYPHEN := \{hyphen}
 
-func unwrap(text:Text, preserve_paragraphs=yes, hyphen=UNICODE_HYPHEN)->Text:
+func unwrap(text:Text, preserve_paragraphs=yes, hyphen=UNICODE_HYPHEN -> Text):
     if preserve_paragraphs:
         paragraphs := text:split($/{2+ nl}/)
         if paragraphs.length > 1:
@@ -21,7 +21,7 @@ func unwrap(text:Text, preserve_paragraphs=yes, hyphen=UNICODE_HYPHEN)->Text:
 
     return text:replace($/$(hyphen)$(\n)/, "")
 
-func wrap(text:Text, width:Int, min_split=3, hyphen="-")->Text:
+func wrap(text:Text, width:Int, min_split=3, hyphen="-" -> Text):
     if width <= 0:
         fail("Width must be a positive integer, not $width")
 
@@ -71,7 +71,7 @@ func wrap(text:Text, width:Int, min_split=3, hyphen="-")->Text:
 
     return \n:join(lines)
 
-func _can_fit_word(line:Text, letters:[Text], width:Int; inline)->Bool:
+func _can_fit_word(line:Text, letters:[Text], width:Int -> Bool; inline):
     if line == "":
         return letters.length <= width
     else:

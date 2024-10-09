@@ -1,7 +1,7 @@
-func add(x:Int, y:Int)->Int:
+func add(x:Int, y:Int -> Int):
 	return x + y
 
-func cached_heap(x:Int; cached)->@Int:
+func cached_heap(x:Int->@Int; cached):
 	return @x
 
 func main():

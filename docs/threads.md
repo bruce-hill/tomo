@@ -13,7 +13,7 @@ Creates a new thread to execute a specified function.
 
 **Usage:**  
 ```tomo
-Thread.new(fn: func() -> Void) -> Thread
+Thread.new(fn: func(->Void) -> Thread)
 ```
 
 **Parameters:**
@@ -47,7 +47,7 @@ Requests the cancellation of a specified thread.
 
 **Usage:**  
 ```tomo
-cancel(thread: Thread) -> Void
+cancel(thread: Thread)
 ```
 
 **Parameters:**
@@ -71,7 +71,7 @@ Waits for a specified thread to terminate.
 
 **Usage:**  
 ```tomo
-join(thread: Thread) -> Void
+join(thread: Thread)
 ```
 
 **Parameters:**
@@ -95,7 +95,7 @@ Detaches a specified thread, allowing it to run independently.
 
 **Usage:**  
 ```tomo
-detach(thread: Thread) -> Void
+detach(thread: Thread)
 ```
 
 **Parameters:**

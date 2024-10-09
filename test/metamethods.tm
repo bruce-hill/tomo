@@ -1,47 +1,47 @@
 struct Vec2(x,y:Int):
-    func plus(a,b:Vec2; inline)->Vec2:
+    func plus(a,b:Vec2 -> Vec2; inline):
         return Vec2(a.x+b.x, a.y+b.y)
 
-    func minus(a,b:Vec2; inline)->Vec2:
+    func minus(a,b:Vec2 -> Vec2; inline):
         return Vec2(a.x-b.x, a.y-b.y)
 
-    func dot(a,b:Vec2; inline)->Int:
+    func dot(a,b:Vec2 -> Int; inline):
         return a.x*b.x + a.y*b.y
 
-    func scaled_by(a:Vec2, k:Int; inline)->Vec2:
+    func scaled_by(a:Vec2, k:Int -> Vec2; inline):
         return Vec2(a.x*k, a.y*k)
 
-    func times(a,b:Vec2; inline)->Vec2:
+    func times(a,b:Vec2 -> Vec2; inline):
         return Vec2(a.x*b.x, a.y*b.y)
 
-    func divided_by(a:Vec2, k:Int; inline)->Vec2:
+    func divided_by(a:Vec2, k:Int -> Vec2; inline):
         return Vec2(a.x/k, a.y/k)
 
-    func negative(v:Vec2; inline)->Vec2:
+    func negative(v:Vec2 -> Vec2; inline):
         return Vec2(-v.x, -v.y)
 
-    func negated(v:Vec2; inline)->Vec2:
+    func negated(v:Vec2 -> Vec2; inline):
         return Vec2(not v.x, not v.y)
 
-    func bit_and(a,b:Vec2; inline)->Vec2:
+    func bit_and(a,b:Vec2 -> Vec2; inline):
         return Vec2(a.x and b.x, a.y and b.y)
 
-    func bit_or(a,b:Vec2; inline)->Vec2:
+    func bit_or(a,b:Vec2 -> Vec2; inline):
         return Vec2(a.x or b.x, a.y or b.y)
 
-    func bit_xor(a,b:Vec2; inline)->Vec2:
+    func bit_xor(a,b:Vec2 -> Vec2; inline):
         return Vec2(a.x xor b.x, a.y xor b.y)
 
-    func left_shifted(v:Vec2, bits:Int; inline)->Vec2:
+    func left_shifted(v:Vec2, bits:Int -> Vec2; inline):
         return Vec2(v.x >> bits, v.y >> bits)
 
-    func right_shifted(v:Vec2, bits:Int; inline)->Vec2:
+    func right_shifted(v:Vec2, bits:Int -> Vec2; inline):
         return Vec2(v.x << bits, v.y << bits)
 
-    func modulo(v:Vec2, modulus:Int; inline)->Vec2:
+    func modulo(v:Vec2, modulus:Int -> Vec2; inline):
         return Vec2(v.x mod modulus, v.y mod modulus)
 
-    func modulo1(v:Vec2, modulus:Int; inline)->Vec2:
+    func modulo1(v:Vec2, modulus:Int -> Vec2; inline):
         return Vec2(v.x mod1 modulus, v.y mod1 modulus)
 
 func main():

@@ -1,10 +1,10 @@
 vectors := use ../examples/vectors/vectors.tm
 use ./use_import.tm
 
-func returns_vec()->vectors.Vec2:
+func returns_vec(->vectors.Vec2):
 	return vectors.Vec2(1, 2)
 
-func returns_imported_type()->ImportedType:
+func returns_imported_type(->ImportedType):
 	return get_value() # Imported from ./use_import.tm
 
 func main():

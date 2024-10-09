@@ -1,10 +1,10 @@
-func make_adder(x:Int)-> func(y:Int)->Int:
+func make_adder(x:Int -> func(y:Int->Int)):
 	return func(y:Int): x + y
 
-func suffix_fn(fn:func(t:Text)->Text, suffix:Text)->func(t:Text)->Text:
+func suffix_fn(fn:func(t:Text->Text), suffix:Text -> func(t:Text->Text)):
 	return func(t:Text): fn(t)++suffix
 
-func mul_func(n:Int, fn:func(x:Int)->Int)-> func(x:Int)->Int:
+func mul_func(n:Int, fn:func(x:Int->Int) -> func(x:Int->Int)):
 	return func(x:Int): n*fn(x)
 
 func main():

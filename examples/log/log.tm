@@ -5,7 +5,7 @@ timestamp_format := CString("%F %T")
 
 logfiles := {:Path}
 
-func _timestamp()->Text:
+func _timestamp(->Text):
     c_str := inline C:CString {
         char *str = GC_MALLOC_ATOMIC(20);
         time_t t; time(&t);

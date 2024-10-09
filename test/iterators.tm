@@ -1,14 +1,14 @@
 
 struct Pair(x:Text, y:Text)
 
-func pairwise(strs:[Text])->func()->Pair?:
+func pairwise(strs:[Text] -> func(->Pair?)):
     i := 1
     return func():
         if i + 1 > strs.length: return !Pair
         i += 1
         return Pair(strs[i-1], strs[i])?
 
-func range(first:Int, last:Int)->func()->Int?:
+func range(first:Int, last:Int -> func(->Int?)):
     i := first
     return func():
         if i > last:

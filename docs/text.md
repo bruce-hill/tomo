@@ -402,7 +402,7 @@ Converts a `Text` value to a C-style string.
 
 **Usage:**  
 ```tomo
-as_c_string(text: Text) -> CString
+as_c_string(text: Text -> CString)
 ```
 
 **Parameters:**
@@ -428,7 +428,7 @@ the text.
 
 **Usage:**  
 ```tomo
-utf8_bytes(text: Text) -> [Byte]
+utf8_bytes(text: Text -> [Byte])
 ```
 
 **Parameters:**
@@ -453,7 +453,7 @@ Returns an array of the names of each codepoint in the text.
 
 **Usage:**  
 ```tomo
-codepoint_names(text: Text) -> [Text]
+codepoint_names(text: Text -> [Text])
 ```
 
 **Parameters:**
@@ -478,7 +478,7 @@ Returns an array of Unicode code points for UTF32 encoding of the text.
 
 **Usage:**  
 ```tomo
-utf32_codepoints(text: Text) -> [Int32]
+utf32_codepoints(text: Text -> [Int32])
 ```
 
 **Parameters:**
@@ -503,7 +503,7 @@ Checks if the `Text` ends with a literal suffix text.
 
 **Usage:**  
 ```tomo
-ends_with(text: Text, suffix: Text) -> Bool
+ends_with(text: Text, suffix: Text -> Bool)
 ```
 
 **Parameters:**
@@ -529,7 +529,7 @@ Converts a C-style string to a `Text` value.
 
 **Usage:**  
 ```tomo
-from_c_string(str: CString) -> Text
+from_c_string(str: CString -> Text)
 ```
 
 **Parameters:**
@@ -556,7 +556,7 @@ resulting text's codepoints may not exactly match the input codepoints.
 
 **Usage:**  
 ```tomo
-from_codepoint_names(codepoint_names: [Text]) -> [Text]
+from_codepoint_names(codepoint_names: [Text] -> [Text])
 ```
 
 **Parameters:**
@@ -589,7 +589,7 @@ match the input codepoints.
 
 **Usage:**  
 ```tomo
-from_codepoint_names(codepoints: [Int32]) -> [Text]
+from_codepoint_names(codepoints: [Int32] -> [Text])
 ```
 
 **Parameters:**
@@ -616,7 +616,7 @@ match the input.
 
 **Usage:**  
 ```tomo
-from_codepoint_names(codepoints: [Int32]) -> [Text]
+from_codepoint_names(codepoints: [Int32] -> [Text])
 ```
 
 **Parameters:**
@@ -642,7 +642,7 @@ See: [Patterns](#Patterns) for more information on patterns.
 
 **Usage:**  
 ```tomo
-find(text: Text, pattern: Pattern, start: Int = 1, length: &Int64? = !&Int64) -> Int
+find(text: Text, pattern: Pattern, start: Int = 1, length: &Int64? = !&Int64 -> Int)
 ```
 
 **Parameters:**
@@ -685,7 +685,7 @@ See: [Patterns](#Patterns) for more information on patterns.
 
 **Usage:**  
 ```tomo
-find_all(text: Text, pattern: Pattern) -> [Text]
+find_all(text: Text, pattern: Pattern -> [Text])
 ```
 
 **Parameters:**
@@ -727,7 +727,7 @@ Checks if the `Text` contains a target pattern (see: [Patterns](#Patterns)).
 
 **Usage:**  
 ```tomo
-has(text: Text, pattern: Pattern) -> Bool
+has(text: Text, pattern: Pattern -> Bool)
 ```
 
 **Parameters:**
@@ -759,7 +759,7 @@ Joins an array of text pieces with a specified glue.
 
 **Usage:**  
 ```tomo
-join(glue: Text, pieces: [Text]) -> Text
+join(glue: Text, pieces: [Text] -> Text)
 ```
 
 **Parameters:**
@@ -786,7 +786,7 @@ ignoring trailing newlines, and handling `\r\n` the same as `\n`.
 
 **Usage:**  
 ```tomo
-split(text: Text) -> [Text]
+split(text: Text -> [Text])
 ```
 
 **Parameters:**
@@ -819,7 +819,7 @@ Converts all characters in the text to lowercase.
 
 **Usage:**  
 ```tomo
-lower(text: Text) -> Text
+lower(text: Text -> Text)
 ```
 
 **Parameters:**
@@ -846,7 +846,7 @@ doesn't match the pattern.
 
 **Usage:**  
 ```tomo
-matches(text: Text, pattern: Pattern) -> [Text]
+matches(text: Text, pattern: Pattern -> [Text])
 ```
 
 **Parameters:**
@@ -877,7 +877,7 @@ calling the given function on that text.
 
 **Usage:**  
 ```tomo
-map(text: Text, pattern: Pattern, fn: func(text:Text)->Text) -> Text
+map(text: Text, pattern: Pattern, fn: func(text:Text)->Text -> Text)
 ```
 
 **Parameters:**
@@ -907,7 +907,7 @@ Formats the text as a quoted string.
 
 **Usage:**  
 ```tomo
-quoted(text: Text, color: Bool = no) -> Text
+quoted(text: Text, color: Bool = no -> Text)
 ```
 
 **Parameters:**
@@ -933,7 +933,7 @@ Repeat some text multiple times.
 
 **Usage:**  
 ```tomo
-repeat(text: Text, count:Int) -> Text
+repeat(text: Text, count:Int -> Text)
 ```
 
 **Parameters:**
@@ -961,7 +961,7 @@ See [Patterns](#patterns) for more information about patterns.
 
 **Usage:**  
 ```tomo
-replace(text: Text, pattern: Pattern, replacement: Text, backref: Pattern = $/\/, recursive: Bool = yes) -> Text
+replace(text: Text, pattern: Pattern, replacement: Text, backref: Pattern = $/\/, recursive: Bool = yes -> Text)
 ```
 
 **Parameters:**
@@ -1030,7 +1030,7 @@ See [`replace()`](#replace) for more information about replacement behavior.
 
 **Usage:**  
 ```tomo
-replace_all(replacements:{Pattern:Text}, backref: Pattern = $/\/) -> Text
+replace_all(replacements:{Pattern:Text}, backref: Pattern = $/\/ -> Text)
 ```
 
 **Parameters:**
@@ -1075,7 +1075,7 @@ See [Patterns](#patterns) for more information about patterns.
 
 **Usage:**  
 ```tomo
-split(text: Text, pattern: Pattern = "") -> [Text]
+split(text: Text, pattern: Pattern = "" -> [Text])
 ```
 
 **Parameters:**
@@ -1111,7 +1111,7 @@ Checks if the `Text` starts with a literal prefix text.
 
 **Usage:**  
 ```tomo
-starts_with(text: Text, prefix: Text) -> Bool
+starts_with(text: Text, prefix: Text -> Bool)
 ```
 
 **Parameters:**
@@ -1137,7 +1137,7 @@ Converts the text to title case (capitalizing the first letter of each word).
 
 **Usage:**  
 ```tomo
-title(text: Text) -> Text
+title(text: Text -> Text)
 ```
 
 **Parameters:**
@@ -1163,7 +1163,7 @@ See [Patterns](#patterns) for more information about patterns.
 
 **Usage:**  
 ```tomo
-trim(text: Text, pattern: Pattern = $/{whitespace/, trim_left: Bool = yes, trim_right: Bool = yes) -> Text
+trim(text: Text, pattern: Pattern = $/{whitespace/, trim_left: Bool = yes, trim_right: Bool = yes -> Text)
 ```
 
 **Parameters:**
@@ -1197,7 +1197,7 @@ Converts all characters in the text to uppercase.
 
 **Usage:**  
 ```tomo
-upper(text: Text) -> Text
+upper(text: Text -> Text)
 ```
 
 **Parameters:**

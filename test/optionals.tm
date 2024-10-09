@@ -1,73 +1,73 @@
 
 struct Struct(x:Int, y:Text):
-    func maybe(should_i:Bool)->Struct?:
+    func maybe(should_i:Bool->Struct?):
         if should_i:
             return Struct(123, "hello")
         else:
             return !Struct
 
 enum Enum(X, Y(y:Int)):
-    func maybe(should_i:Bool)->Enum?:
+    func maybe(should_i:Bool->Enum?):
         if should_i:
             return Enum.Y(123)
         else:
             return !Enum
 
-func maybe_int(should_i:Bool)->Int?:
+func maybe_int(should_i:Bool->Int?):
     if should_i:
         return 123
     else:
         return !Int
 
-func maybe_int64(should_i:Bool)->Int64?:
+func maybe_int64(should_i:Bool->Int64?):
     if should_i:
         return 123[64]
     else:
         return !Int64
 
-func maybe_array(should_i:Bool)->[Int]?:
+func maybe_array(should_i:Bool->[Int]?):
     if should_i:
         return [10, 20, 30]
     else:
         return ![Int]
 
-func maybe_bool(should_i:Bool)->Bool?:
+func maybe_bool(should_i:Bool->Bool?):
     if should_i:
         return no
     else:
         return !Bool
 
-func maybe_text(should_i:Bool)->Text?:
+func maybe_text(should_i:Bool->Text?):
     if should_i:
         return "Hello"
     else:
         return !Text
 
-func maybe_num(should_i:Bool)->Num?:
+func maybe_num(should_i:Bool->Num?):
     if should_i:
         return 12.3
     else:
         return !Num
 
-func maybe_lambda(should_i:Bool)-> func()?:
+func maybe_lambda(should_i:Bool-> func()?):
     if should_i:
         return func(): say("hi!")
     else:
         return !func()
 
-func maybe_c_string(should_i:Bool)->CString?:
+func maybe_c_string(should_i:Bool->CString?):
     if should_i:
         return ("hi":as_c_string())?
     else:
         return !CString
 
-func maybe_channel(should_i:Bool)->|Int|?:
+func maybe_channel(should_i:Bool->|Int|?):
     if should_i:
         return |:Int|?
     else:
         return !|Int|
 
-func maybe_thread(should_i:Bool)->Thread?:
+func maybe_thread(should_i:Bool->Thread?):
     if should_i:
         return Thread.new(func(): pass)
     else:

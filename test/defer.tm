@@ -76,7 +76,7 @@ func defer_func(return_early=no):
 
     say("Finished defer_func")
 
-func make_counter()->func()->Int:
+func make_counter(->func(->Int)):
     i := 1
     return func():
         defer: i += 1

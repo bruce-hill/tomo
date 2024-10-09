@@ -1,4 +1,4 @@
-extern sqrt:func(n:Num)->Num
+extern sqrt:func(n:Num->Num)
 
 func main():
 	>> sqrt(4)

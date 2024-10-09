@@ -2519,6 +2519,16 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *ret_t = get_type(body_scope, lambda->body);
         if (ret_t->tag == ReturnType)
             ret_t = Match(ret_t, ReturnType)->ret;
+
+        if (lambda->ret_type) {
+            type_t *declared = parse_type_ast(env, lambda->ret_type);
+            if (can_promote(ret_t, declared))
+                ret_t = declared;
+            else
+                code_err(ast, "This function was declared to return a value of type %T, but actually returns a value of type %T",
+                         declared, ret_t);
+        }
+
         fn_ctx.return_type = ret_t;
 
         if (env->fn_ctx->closed_vars) {

@@ -54,7 +54,7 @@ from a function with an explicit return type:
 enum ArgumentType(AnInt(x:Int), SomeText(text:Text))
 enum ReturnType(Nothing, AnInt(x:Int))
 
-func increment(arg:ArgumentType)->ReturnType:
+func increment(arg:ArgumentType -> ReturnType):
     when arg is AnInt(x):
         return AnInt(x + 1)
     is SomeText:

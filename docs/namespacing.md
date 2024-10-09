@@ -17,7 +17,7 @@ my_var := 123
 
 struct Baz(x:Int):
     member := 5
-    func frob(b:Baz)->Int:
+    func frob(b:Baz -> Int):
         return b.x
 ```
 

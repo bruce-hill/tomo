@@ -16,7 +16,7 @@ Generates a random byte value in the specified range.
 
 **Usage:**  
 ```tomo
-random(min: Byte = Byte.min, max: Byte = Byte.max) -> Byte
+random(min: Byte = Byte.min, max: Byte = Byte.max -> Byte)
 ```
 
 **Parameters:**

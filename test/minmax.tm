@@ -1,6 +1,6 @@
 
 struct Foo(x:Int, y:Int):
-	func len(f:Foo)->Num:
+	func len(f:Foo->Num):
 		return Num.sqrt(f.x*f.x + f.y*f.y)
 
 func main():

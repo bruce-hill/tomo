@@ -10,7 +10,7 @@ where a different type of string is needed.
 
 ```tomo
 lang HTML:
-    func escape(t:Text)->HTML:
+    func escape(t:Text -> HTML):
         t = t:replace_all({
             $/&/: "&amp;",
             $/</: "&lt;",
@@ -20,7 +20,7 @@ lang HTML:
         })
         return HTML.without_escaping(t)
 
-    func paragraph(content:HTML)->HTML:
+    func paragraph(content:HTML -> HTML):
         return $HTML"<p>$content</p>"
 ```
 
@@ -74,10 +74,10 @@ instead of building a global function called `execute()` that takes a
 
 ```tomo
 lang Sh:
-    func escape(text:Text)->Sh:
+    func escape(text:Text -> Sh):
         return Sh.without_escaping("'" ++ text:replace($/'/, "''") ++ "'")
 
-    func execute(sh:Sh)->Text:
+    func execute(sh:Sh -> Text):
         ...
 
 dir := ask("List which dir? ")

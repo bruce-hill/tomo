@@ -118,7 +118,7 @@ not already in the table, its value will be assumed to be zero.
 
 **Usage:**  
 ```markdown
-bump(t:{K:V}, key: K, amount: Int = 1) -> Void
+bump(t:{K:V}, key: K, amount: Int = 1 -> Void)
 ```
 
 **Parameters:**
@@ -148,7 +148,7 @@ Removes all key-value pairs from the table.
 
 **Usage:**  
 ```markdown
-t:clear() -> Void
+t:clear()
 ```
 
 **Parameters:**
@@ -172,7 +172,7 @@ Retrieves the value associated with a key, or returns null if the key is not pre
 
 **Usage:**  
 ```markdown
-t:get(key: K) -> V?
+t:get(key: K -> V?)
 ```
 
 **Parameters:**
@@ -208,7 +208,7 @@ Checks if the table contains a specified key.
 
 **Usage:**  
 ```markdown
-has(t:{K:V}, key: K) -> Bool
+has(t:{K:V}, key: K -> Bool)
 ```
 
 **Parameters:**
@@ -236,7 +236,7 @@ Removes the key-value pair associated with a specified key.
 
 **Usage:**  
 ```markdown
-remove(t:{K:V}, key: K) -> Void
+remove(t:{K:V}, key: K -> Void)
 ```
 
 **Parameters:**
@@ -264,7 +264,7 @@ Sets or updates the value associated with a specified key.
 
 **Usage:**  
 ```markdown
-set(t:{K:V}, key: K, value: V) -> Void
+set(t:{K:V}, key: K, value: V -> Void)
 ```
 
 **Parameters:**

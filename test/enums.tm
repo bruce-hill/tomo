@@ -1,6 +1,6 @@
 enum Foo(Zero, One(x:Int), Two(x:Int, y:Int), Three(x:Int, y:Text, z:Bool), Four(x,y,z,w:Int), Last(t:Text))
 
-func choose_text(f:Foo)->Text:
+func choose_text(f:Foo->Text):
 	>> f
 	when f is Zero:
 		return "Zero"

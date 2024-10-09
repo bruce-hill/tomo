@@ -239,7 +239,7 @@ Performs a binary search on a sorted array.
 
 **Usage:**  
 ```markdown
-binary_search(arr: [T], by=T.compare) -> Int
+binary_search(arr: [T], by=T.compare -> Int)
 ```
 
 **Parameters:**
@@ -275,7 +275,7 @@ Creates a new array with elements spaced by the specified step value.
 
 **Usage:**  
 ```markdown
-by(arr: [T], step: Int) -> [T]
+by(arr: [T], step: Int -> [T])
 ```
 
 **Parameters:**
@@ -301,7 +301,7 @@ Clears all elements from the array.
 
 **Usage:**  
 ```markdown
-clear(arr: & [T]) -> Void
+clear(arr: & [T] -> Void)
 ```
 
 **Parameters:**
@@ -325,7 +325,7 @@ Counts the occurrences of each element in the array.
 
 **Usage:**  
 ```markdown
-counts(arr: [T]) -> {T: Int}
+counts(arr: [T] -> {T: Int})
 ```
 
 **Parameters:**
@@ -350,7 +350,7 @@ Finds the index of the first occurrence of an element (if any).
 
 **Usage:**  
 ```markdown
-find(arr: [T]) -> Int?
+find(arr: [T] -> Int?)
 ```
 
 **Parameters:**
@@ -378,7 +378,7 @@ Find the index of the first item that matches a predicate function (if any).
 
 **Usage:**  
 ```markdown
-first(arr: [T], predicate: func(item:&T)->Bool) -> Int
+first(arr: [T], predicate: func(item:&T)->Bool -> Int)
 ```
 
 **Parameters:**
@@ -408,7 +408,7 @@ Returns a slice of the array starting from a specified index.
 
 **Usage:**  
 ```markdown
-from(arr: [T], first: Int) -> [T]
+from(arr: [T], first: Int -> [T])
 ```
 
 **Parameters:**
@@ -434,7 +434,7 @@ Checks if the array has any elements.
 
 **Usage:**  
 ```markdown
-has(arr: [T]) -> Bool
+has(arr: [T] -> Bool)
 ```
 
 **Parameters:**
@@ -460,7 +460,7 @@ Removes and returns the top element of a heap. By default, this is the
 
 **Usage:**  
 ```markdown
-heap_pop(arr: & [T], by=T.compare) -> T
+heap_pop(arr: & [T], by=T.compare -> T)
 ```
 
 **Parameters:**
@@ -490,7 +490,7 @@ is a *minimum* heap.
 
 **Usage:**  
 ```markdown
-heap_push(arr: & [T], item: T, by=T.compare) -> Void
+heap_push(arr: & [T], item: T, by=T.compare -> Void)
 ```
 
 **Parameters:**
@@ -517,7 +517,7 @@ Converts an array into a heap.
 
 **Usage:**  
 ```markdown
-heapify(arr: & [T], by=T.compare) -> Void
+heapify(arr: & [T], by=T.compare -> Void)
 ```
 
 **Parameters:**
@@ -544,7 +544,7 @@ Inserts an element at a specified position in the array.
 
 **Usage:**  
 ```markdown
-insert(arr: & [T], item: T, at: Int = 0) -> Void
+insert(arr: & [T], item: T, at: Int = 0 -> Void)
 ```
 
 **Parameters:**
@@ -579,7 +579,7 @@ Inserts an array of items at a specified position in the array.
 
 **Usage:**  
 ```markdown
-insert_all(arr: & [T], items: [T], at: Int = 0) -> Void
+insert_all(arr: & [T], items: [T], at: Int = 0 -> Void)
 ```
 
 **Parameters:**
@@ -614,7 +614,7 @@ Selects a random element from the array.
 
 **Usage:**  
 ```markdown
-random(arr: [T]) -> T
+random(arr: [T] -> T)
 ```
 
 **Parameters:**
@@ -639,7 +639,7 @@ Removes elements from the array starting at a specified index.
 
 **Usage:**  
 ```markdown
-remove_at(arr: & [T], at: Int = -1, count: Int = 1) -> Void
+remove_at(arr: & [T], at: Int = -1, count: Int = 1 -> Void)
 ```
 
 **Parameters:**
@@ -672,7 +672,7 @@ Removes all occurrences of a specified item from the array.
 
 **Usage:**  
 ```markdown
-remove_item(arr: & [T], item: T, max_count: Int = -1) -> Void
+remove_item(arr: & [T], item: T, max_count: Int = -1 -> Void)
 ```
 
 **Parameters:**
@@ -705,7 +705,7 @@ Returns a reversed slice of the array.
 
 **Usage:**  
 ```markdown
-reversed(arr: [T]) -> [T]
+reversed(arr: [T] -> [T])
 ```
 
 **Parameters:**
@@ -731,7 +731,7 @@ probabilities.
 
 **Usage:**  
 ```markdown
-sample(arr: [T], count: Int, weights: [Num]? = ![Num]) -> [T]
+sample(arr: [T], count: Int, weights: [Num]? = ![Num] -> [T])
 ```
 
 **Parameters:**
@@ -769,7 +769,7 @@ Shuffles the elements of the array in place.
 
 **Usage:**  
 ```markdown
-shuffle(arr: & [T]) -> Void
+shuffle(arr: & [T] -> Void)
 ```
 
 **Parameters:**
@@ -793,7 +793,7 @@ Creates a new array with elements shuffled.
 
 **Usage:**  
 ```markdown
-shuffled(arr: [T]) -> [T]
+shuffled(arr: [T] -> [T])
 ```
 
 **Parameters:**
@@ -818,7 +818,7 @@ Sorts the elements of the array in place in ascending order (small to large).
 
 **Usage:**  
 ```markdown
-sort(arr: & [T], by=T.compare) -> Void
+sort(arr: & [T], by=T.compare -> Void)
 ```
 
 **Parameters:**
@@ -851,7 +851,7 @@ Creates a new array with elements sorted.
 
 **Usage:**  
 ```markdown
-sorted(arr: [T], by=T.compare) -> [T]
+sorted(arr: [T], by=T.compare -> [T])
 ```
 
 **Parameters:**
@@ -881,7 +881,7 @@ Returns a slice of the array from the start of the original array up to a specif
 
 **Usage:**  
 ```markdown
-to(arr: [T], last: Int) -> [T]
+to(arr: [T], last: Int -> [T])
 ```
 
 **Parameters:**
@@ -910,7 +910,7 @@ Returns a Set that contains the unique elements of the array.
 
 **Usage:**  
 ```markdown
-unique(arr: [T]) -> {T}
+unique(arr: [T] -> {T})
 ```
 
 **Parameters:**

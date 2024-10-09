@@ -6,7 +6,7 @@ use ./color.tm
 use ./box.tm
 
 # Return a displacement relative to `a` that will push it out of `b`
-func solve_overlap(a_pos:Vec2, a_size:Vec2, b_pos:Vec2, b_size:Vec2)->Vec2:
+func solve_overlap(a_pos:Vec2, a_size:Vec2, b_pos:Vec2, b_size:Vec2 -> Vec2):
     a_left := a_pos.x
     a_right := a_pos.x + a_size.x
     a_top := a_pos.y

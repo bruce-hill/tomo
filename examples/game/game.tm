@@ -6,7 +6,7 @@ use <raymath.h>
 use ./world.tm
 
 func main(map=(./map.txt)):
-    extern InitWindow:func(w:Int32, h:Int32, title:CString)->Void
+    extern InitWindow:func(w:Int32, h:Int32, title:CString)
     InitWindow(1600, 900, "raylib [core] example - 2d camera")
 
     map_contents := map:read() or exit("Could not find the game map: $map")
@@ -16,10 +16,10 @@ func main(map=(./map.txt)):
     extern SetTargetFPS:func(fps:Int32)
     SetTargetFPS(60)
 
-    extern WindowShouldClose:func()->Bool
+    extern WindowShouldClose:func(->Bool)
 
     while not WindowShouldClose():
-        extern GetFrameTime:func()->Num32
+        extern GetFrameTime:func(->Num32)
         dt := GetFrameTime()
         World.CURRENT:update(Num(dt))
 

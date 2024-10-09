@@ -7,7 +7,7 @@ struct HTTPResponse(code:Int, body:Text)
 
 enum _Method(GET, POST, PUT, PATCH, DELETE)
 
-func _send(method:_Method, url:Text, data:Text?, headers=[:Text])->HTTPResponse:
+func _send(method:_Method, url:Text, data:Text?, headers=[:Text] -> HTTPResponse):
     chunks := @[:Text]
     save_chunk := func(chunk:CString, size:Int64, n:Int64):
         chunks:insert(inline C:Text {
@@ -69,16 +69,16 @@ func _send(method:_Method, url:Text, data:Text?, headers=[:Text])->HTTPResponse:
     }
     return HTTPResponse(code, "":join(chunks))
 
-func get(url:Text, headers=[:Text])->HTTPResponse:
+func get(url:Text, headers=[:Text] -> HTTPResponse):
     return _send(GET, url, !Text, headers)
 
-func post(url:Text, data="", headers=["Content-Type: application/json", "Accept: application/json"])->HTTPResponse:
+func post(url:Text, data="", headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):
     return _send(POST, url, data, headers)
 
-func put(url:Text, data="", headers=["Content-Type: application/json", "Accept: application/json"])->HTTPResponse:
+func put(url:Text, data="", headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):
     return _send(PUT, url, data, headers)
 
-func delete(url:Text, data=!Text, headers=["Content-Type: application/json", "Accept: application/json"])->HTTPResponse:
+func delete(url:Text, data=!Text, headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):
     return _send(DELETE, url, data, headers)
 
 func main():

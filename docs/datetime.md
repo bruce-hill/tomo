@@ -79,7 +79,7 @@ calculated.
 
 **Usage:**  
 ```markdown
-datetime:after(seconds : Num = 0.0, minutes : Num = 0.0, hours : Num = 0.0, days : Int = 0, weeks : Int = 0, months : Int = 0, years : Int = 0, timezone : Text? = !Text) -> DateTime
+datetime:after(seconds : Num = 0.0, minutes : Num = 0.0, hours : Num = 0.0, days : Int = 0, weeks : Int = 0, months : Int = 0, years : Int = 0, timezone : Text? = !Text -> DateTime)
 ```
 
 **Parameters:**
@@ -113,7 +113,7 @@ specifier, which gives the date in `YYYY-MM-DD` form.
 
 **Usage:**  
 ```markdown
-datetime:date(timezone : Text? = !Text) -> Text
+datetime:date(timezone : Text? = !Text -> Text)
 ```
 
 **Parameters:**
@@ -141,7 +141,7 @@ timezone.
 
 **Usage:**  
 ```markdown
-datetime:format(format: Text = "%Y-%m-%dT%H:%M:%S%z", timezone : Text? = !Text) -> Text
+datetime:format(format: Text = "%Y-%m-%dT%H:%M:%S%z", timezone : Text? = !Text -> Text)
 ```
 
 **Parameters:**
@@ -168,7 +168,7 @@ the given UNIX epoch timestamp (seconds since January 1, 1970 UTC).
 
 **Usage:**  
 ```markdown
-DateTime.from_unix_timestamp(timestamp: Int64) -> DateTime
+DateTime.from_unix_timestamp(timestamp: Int64 -> DateTime)
 ```
 
 **Parameters:**
@@ -195,7 +195,7 @@ provided optional fields.
 
 **Usage:**  
 ```markdown
-datetime:get(year : &Int? = !&Int, month : &Int? = !&Int, day : &Int? = !&Int, hour : &Int? = !&Int, minute : &Int? = !&Int, second : &Int? = !&Int, nanosecond : &Int? = !&Int, weekday : &Int? = !&Int, timezone : Text? = !Text) -> Void
+datetime:get(year : &Int? = !&Int, month : &Int? = !&Int, day : &Int? = !&Int, hour : &Int? = !&Int, minute : &Int? = !&Int, second : &Int? = !&Int, nanosecond : &Int? = !&Int, weekday : &Int? = !&Int, timezone : Text? = !Text -> Void)
 ```
 
 **Parameters:**
@@ -233,7 +233,7 @@ calling `DateTime.set_local_timezone(...)`.
 
 **Usage:**  
 ```markdown
-DateTime.get_local_timezone() -> Text
+DateTime.get_local_timezone(->Text)
 ```
 
 **Parameters:**
@@ -258,7 +258,7 @@ Return the number of hours until a given datetime.
 
 **Usage:**  
 ```markdown
-datetime:hours_till(then:DateTime) -> Num
+datetime:hours_till(then:DateTime -> Num)
 ```
 
 **Parameters:**
@@ -284,7 +284,7 @@ Return the number of minutes until a given datetime.
 
 **Usage:**  
 ```markdown
-datetime:minutes_till(then:DateTime) -> Num
+datetime:minutes_till(then:DateTime -> Num)
 ```
 
 **Parameters:**
@@ -312,7 +312,7 @@ constructor.
 
 **Usage:**  
 ```markdown
-DateTime.new(year : Int, month : Int, day : Int, hour : Int = 0, minute : Int = 0, second : Num = 0.0) -> DateTime
+DateTime.new(year : Int, month : Int, day : Int, hour : Int = 0, minute : Int = 0, second : Num = 0.0 -> DateTime)
 ```
 
 **Parameters:**
@@ -351,7 +351,7 @@ is the same as the global function `now()`.
 
 **Usage:**  
 ```markdown
-DateTime.now() -> DateTime
+DateTime.now(->DateTime)
 ```
 
 **Parameters:**
@@ -377,7 +377,7 @@ or a null value if the value could not be successfully parsed.
 
 **Usage:**  
 ```markdown
-DateTime.parse(text: Text, format: Text = "%Y-%m-%dT%H:%M:%S%z") -> DateTime?
+DateTime.parse(text: Text, format: Text = "%Y-%m-%dT%H:%M:%S%z" -> DateTime?)
 ```
 
 **Parameters:**
@@ -410,7 +410,7 @@ between two `DateTime`s. For example: `5 minutes ago` or `1 day later`
 
 **Usage:**  
 ```markdown
-datetime:relative(relative_to : DateTime = DateTime.now(), timezone : Text? = !Text) -> Text
+datetime:relative(relative_to : DateTime = DateTime.now(), timezone : Text? = !Text -> Text)
 ```
 
 **Parameters:**
@@ -445,7 +445,7 @@ Return the number of seconds until a given datetime.
 
 **Usage:**  
 ```markdown
-datetime:seconds_till(then:DateTime) -> Num
+datetime:seconds_till(then:DateTime -> Num)
 ```
 
 **Parameters:**
@@ -475,7 +475,7 @@ converted to text.
 
 **Usage:**  
 ```markdown
-DateTime.set_local_timezone(timezone : Text? = !Text) -> Void
+DateTime.set_local_timezone(timezone : Text? = !Text -> Void)
 ```
 
 **Parameters:**
@@ -501,7 +501,7 @@ Return a text representation of the time component of the given datetime.
 
 **Usage:**  
 ```markdown
-datetime:time(seconds : Bool = no, am_pm : Bool = yes, timezone : Text? = !Text) -> Text
+datetime:time(seconds : Bool = no, am_pm : Bool = yes, timezone : Text? = !Text -> Text)
 ```
 
 **Parameters:**
@@ -537,7 +537,7 @@ January 1, 1970 UTC).
 
 **Usage:**  
 ```markdown
-datetime:unix_timestamp() -> Int64
+datetime:unix_timestamp(->Int64)
 ```
 
 **Parameters:**

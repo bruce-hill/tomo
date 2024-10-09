@@ -31,7 +31,7 @@ Adds an item to the channel.
 
 **Usage:**  
 ```markdown
-give(channel:|T|, item: T, front: Bool = no) -> Void
+give(channel:|T|, item: T, front: Bool = no -> Void)
 ```
 
 **Parameters:**
@@ -57,7 +57,7 @@ Adds multiple items to the channel.
 
 **Usage:**  
 ```markdown
-give_all(channel:|T|, items: [T], front: Bool = no) -> Void
+give_all(channel:|T|, items: [T], front: Bool = no -> Void)
 ```
 
 **Parameters:**
@@ -83,7 +83,7 @@ Removes and returns an item from the channel. If the channel is empty, it waits 
 
 **Usage:**  
 ```markdown
-get(channel:|T|, front: Bool = yes) -> T
+get(channel:|T|, front: Bool = yes -> T)
 ```
 
 **Parameters:**
@@ -110,7 +110,7 @@ it. If the channel is empty, it waits until an item is available.
 
 **Usage:**  
 ```markdown
-peek(channel:|T|, front: Bool = yes) -> T
+peek(channel:|T|, front: Bool = yes -> T)
 ```
 
 **Parameters:**
@@ -136,7 +136,7 @@ Removes all items from the channel.
 
 **Usage:**  
 ```markdown
-clear(channel:|T|) -> Void
+clear(channel:|T| -> Void)
 ```
 
 **Parameters:**
@@ -160,7 +160,7 @@ Returns a list of all items currently in the channel without removing them.
 
 **Usage:**  
 ```markdown
-channel:view() -> [T]
+channel:view(->[T])
 ```
 
 **Parameters:**

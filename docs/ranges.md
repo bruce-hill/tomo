@@ -20,7 +20,7 @@ Returns a reversed copy of the range.
 
 **Usage:**  
 ```tomo
-reversed(range: Range) -> Range
+reversed(range: Range -> Range)
 ```
 
 **Parameters:**
@@ -45,7 +45,7 @@ Creates a new range with a specified step value.
 
 **Usage:**  
 ```tomo
-by(range: Range, step: Int) -> Range
+by(range: Range, step: Int -> Range)
 ```
 
 **Parameters:**

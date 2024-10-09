@@ -602,9 +602,9 @@ type_ast_t *parse_func_type(parse_ctx_t *ctx, const char *pos) {
     spaces(&pos);
     if (!match(&pos, "(")) return NULL;
     arg_ast_t *args = parse_args(ctx, &pos);
-    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this function type");
     spaces(&pos);
     type_ast_t *ret = match(&pos, "->") ? optional(ctx, &pos, parse_type) : NULL;
+    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this function type");
     return NewTypeAST(ctx->file, start, pos, FunctionTypeAST, .args=args, .ret=ret);
 }
 
@@ -691,6 +691,7 @@ type_ast_t *parse_non_optional_type(parse_ctx_t *ctx, const char *pos) {
 type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     type_ast_t *type = parse_non_optional_type(ctx, pos);
+    if (!type) return NULL;
     pos = type->end;
     spaces(&pos);
     if (match(&pos, "?"))
@@ -1548,10 +1549,12 @@ PARSER(parse_lambda) {
         return NULL;
     arg_ast_t *args = parse_args(ctx, &pos);
     spaces(&pos);
+    type_ast_t *ret = match(&pos, "->") ? optional(ctx, &pos, parse_type) : NULL;
+    spaces(&pos);
     expect_closing(ctx, &pos, ")", "I was expecting a ')' to finish this anonymous function's arguments");
     ast_t *body = optional(ctx, &pos, parse_block);
     if (!body) body = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
-    return NewAST(ctx->file, start, pos, Lambda, .id=ctx->next_lambda_id++, .args=args, .body=body);
+    return NewAST(ctx->file, start, pos, Lambda, .id=ctx->next_lambda_id++, .args=args, .ret_type=ret, .body=body);
 }
 
 PARSER(parse_null) {
@@ -2242,6 +2245,8 @@ PARSER(parse_func_def) {
     if (!match(&pos, "(")) return NULL;
 
     arg_ast_t *args = parse_args(ctx, &pos);
+    spaces(&pos);
+    type_ast_t *ret_type = match(&pos, "->") ? optional(ctx, &pos, parse_type) : NULL;
     whitespace(&pos);
     bool is_inline = false;
     ast_t *cache_ast = NULL;
@@ -2260,11 +2265,6 @@ PARSER(parse_func_def) {
         }
     }
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this function definition");
-
-    type_ast_t *ret_type = NULL;
-    spaces(&pos);
-    if (match(&pos, "->"))
-        ret_type = optional(ctx, &pos, parse_type);
 
     ast_t *body = expect(ctx, start, &pos, parse_block,
                              "This function needs a body block");

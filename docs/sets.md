@@ -82,7 +82,7 @@ Checks if the set contains a specified item.
 
 **Usage:**  
 ```tomo
-has(set:{T}, item:T) -> Bool
+has(set:{T}, item:T -> Bool)
 ```
 
 **Parameters:**
@@ -108,7 +108,7 @@ Adds an item to the set.
 
 **Usage:**  
 ```tomo
-add(set:{T}, item: T) -> Void
+add(set:{T}, item: T -> Void)
 ```
 
 **Parameters:**
@@ -133,7 +133,7 @@ Adds multiple items to the set.
 
 **Usage:**  
 ```tomo
-add_all(set:&{T}, items: [T]) -> Void
+add_all(set:&{T}, items: [T] -> Void)
 ```
 
 **Parameters:**
@@ -158,7 +158,7 @@ Removes an item from the set.
 
 **Usage:**  
 ```tomo
-remove(set:&{T}, item: T) -> Void
+remove(set:&{T}, item: T -> Void)
 ```
 
 **Parameters:**
@@ -183,7 +183,7 @@ Removes multiple items from the set.
 
 **Usage:**  
 ```tomo
-remove_all(set:&{T}, items: [T]) -> Void
+remove_all(set:&{T}, items: [T] -> Void)
 ```
 
 **Parameters:**
@@ -208,7 +208,7 @@ Removes all items from the set.
 
 **Usage:**  
 ```tomo
-clear(set:&{T}) -> Void
+clear(set:&{T} -> Void)
 ```
 
 **Parameters:**
@@ -232,7 +232,7 @@ Creates a new set that is the union of the original set and another set.
 
 **Usage:**  
 ```tomo
-with(set:{T}, other: {T}) -> {T}
+with(set:{T}, other: {T} -> {T})
 ```
 
 **Parameters:**
@@ -258,7 +258,7 @@ Creates a new set with items that are in both the original set and another set.
 
 **Usage:**  
 ```tomo
-overlap(set:{T}, other: {T}) -> {T}
+overlap(set:{T}, other: {T} -> {T})
 ```
 
 **Parameters:**
@@ -284,7 +284,7 @@ Creates a new set with items from the original set but without items from anothe
 
 **Usage:**  
 ```tomo
-without(set:{T}, other: {T}) -> {T}
+without(set:{T}, other: {T} -> {T})
 ```
 
 **Parameters:**
@@ -310,7 +310,7 @@ Checks if the set is a subset of another set.
 
 **Usage:**  
 ```tomo
-set:is_subset_of(other: {T}, strict: Bool = no) -> Bool
+set:is_subset_of(other: {T}, strict: Bool = no -> Bool)
 ```
 
 **Parameters:**
@@ -337,7 +337,7 @@ Checks if the set is a superset of another set.
 
 **Usage:**  
 ```tomo
-is_superset_of(set:{T}, other: {T}, strict: Bool = no) -> Bool
+is_superset_of(set:{T}, other: {T}, strict: Bool = no -> Bool)
 ```
 
 **Parameters:**

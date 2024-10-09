@@ -9,7 +9,7 @@ _HELP := "
 
 enum Dependency(File(path:Path), Module(name:Text))
 
-func _get_file_dependencies(file:Path)->{Dependency}:
+func _get_file_dependencies(file:Path -> {Dependency}):
     if not file:is_file():
         !! Could not read file: $file
         return {:Dependency}
@@ -55,12 +55,12 @@ func _build_dependency_graph(dep:Dependency, dependencies:&{Dependency:{Dependen
     for dep2 in dep_deps:
         _build_dependency_graph(dep2, dependencies)
 
-func get_dependency_graph(dep:Dependency)->{Dependency:{Dependency}}:
+func get_dependency_graph(dep:Dependency -> {Dependency:{Dependency}}):
     graph := {:Dependency:{Dependency}}
     _build_dependency_graph(dep, &graph)
     return graph
 
-func _printable_name(dep:Dependency)->Text:
+func _printable_name(dep:Dependency -> Text):
     when dep is Module(module):
         return "$(\x1b)[34;1m$module$(\x1b)[m"
     is File(f):

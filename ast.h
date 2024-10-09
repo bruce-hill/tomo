@@ -233,6 +233,7 @@ struct ast_s {
         } FunctionDef;
         struct {
             arg_ast_t *args;
+            type_ast_t *ret_type;
             ast_t *body;
             int64_t id;
         } Lambda;

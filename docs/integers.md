@@ -37,7 +37,7 @@ Formats an integer as a string with a specified number of digits.
 
 **Usage:**  
 ```tomo
-format(i: Int, digits: Int = 0) -> Text
+format(i: Int, digits: Int = 0 -> Text)
 ```
 
 **Parameters:**
@@ -63,7 +63,7 @@ Converts an integer to its hexadecimal representation.
 
 **Usage:**  
 ```tomo
-hex(i: Int, digits: Int = 0, uppercase: Bool = yes, prefix: Bool = yes) -> Text
+hex(i: Int, digits: Int = 0, uppercase: Bool = yes, prefix: Bool = yes -> Text)
 ```
 
 **Parameters:**
@@ -91,7 +91,7 @@ Converts an integer to its octal representation.
 
 **Usage:**  
 ```tomo
-octal(i: Int, digits: Int = 0, prefix: Bool = yes) -> Text
+octal(i: Int, digits: Int = 0, prefix: Bool = yes -> Text)
 ```
 
 **Parameters:**
@@ -118,7 +118,7 @@ Generates a random integer between the specified minimum and maximum values.
 
 **Usage:**  
 ```tomo
-random(min: Int, max: Int) -> Int
+random(min: Int, max: Int -> Int)
 ```
 
 **Parameters:**
@@ -144,7 +144,7 @@ Converts a text representation of an integer into an integer.
 
 **Usage:**  
 ```tomo
-from_text(text: Text, success: Bool = !&Bool?) -> Int
+from_text(text: Text, success: Bool = !&Bool? -> Int)
 ```
 
 **Parameters:**
@@ -188,7 +188,7 @@ Creates an inclusive range of integers between the specified start and end value
 
 **Usage:**  
 ```tomo
-to(from: Int, to: Int) -> Range
+to(from: Int, to: Int -> Range)
 ```
 
 **Parameters:**
@@ -214,7 +214,7 @@ Calculates the absolute value of an integer.
 
 **Usage:**  
 ```tomo
-abs(x: Int) -> Int
+abs(x: Int -> Int)
 ```
 
 **Parameters:**
@@ -239,7 +239,7 @@ Calculates the square root of an integer.
 
 **Usage:**  
 ```tomo
-sqrt(x: Int) -> Int
+sqrt(x: Int -> Int)
 ```
 
 **Parameters:**
@@ -272,7 +272,7 @@ for more details.
 
 **Usage:**  
 ```tomo
-is_prime(x: Int, reps: Int = 50) -> Bool
+is_prime(x: Int, reps: Int = 50 -> Bool)
 ```
 
 **Parameters:**
@@ -306,7 +306,7 @@ for more details.
 
 **Usage:**  
 ```tomo
-next_prime(x: Int) -> Int
+next_prime(x: Int -> Int)
 ```
 
 **Parameters:**
@@ -339,7 +339,7 @@ for more details.
 
 **Usage:**  
 ```tomo
-prev_prime(x: Int) -> Int
+prev_prime(x: Int -> Int)
 ```
 
 **Parameters:**
@@ -365,7 +365,7 @@ that range.
 
 **Usage:**  
 ```tomo
-clamped(x, low, high: Int) -> Int
+clamped(x, low, high: Int -> Int)
 ```
 
 **Parameters:**

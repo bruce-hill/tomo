@@ -3,7 +3,7 @@
 In Tomo, you can define functions with the `func` keyword:
 
 ```tomo
-func add(x:Int, y:Int)->Int:
+func add(x:Int, y:Int -> Int):
     return x + y
 ```
 
@@ -11,7 +11,7 @@ Functions require you to explicitly write out the types of each argument and
 the return type of the function (unless the function doesn't return any values).
 
 For convenience, you can lump arguments with the same type together to avoid
-having to retype the same type name: `func add(x, y:Int)->Int`
+having to retype the same type name: `func add(x, y:Int -> Int)`
 
 ## Default Arguments
 
@@ -19,7 +19,7 @@ Instead of giving a type, you can provide a default argument and the type
 checker will infer the type of the argument from that value:
 
 ```tomo
-func increment(x:Int, amount=1)->Int:
+func increment(x:Int, amount=1 -> Int):
     return x + amount
 ```
 
@@ -35,7 +35,7 @@ callsite:
 ```
 
 **Note:** Default arguments are re-evaluated at the callsite for each function
-call, so if your default argument is `func foo(x=Int.random(1,10))->Int`, then
+call, so if your default argument is `func foo(x=Int.random(1,10) -> Int)`, then
 each time you call the function without an `x` argument, it will give you a new
 random number.
 
@@ -68,7 +68,7 @@ Tomo supports automatic function caching using the `cached` or `cache_size=N`
 attributes on a function definition:
 
 ```tomo
-func add(x, y:Int; cached)->Int:
+func add(x, y:Int -> Int; cached):
     return x + y
 ```
 
@@ -78,13 +78,13 @@ return value for those arguments. The above example is functionally similar to
 the following code:
 
 ```tomo
-func _add(x, y:Int)->Int:
+func _add(x, y:Int -> Int):
     return x + y
 
 struct add_args(x,y:Int)
 add_cache := @{:add_args:Int}
 
-func add(x, y:Int)->Int:
+func add(x, y:Int -> Int):
     args := add_args(x, y)
     if add_cache:has(args):
         return add_cache:get(args)
@@ -98,7 +98,7 @@ evicted if the cache has reached the maximum size and needs to insert a new
 entry:
 
 ```tomo
-func doop(x:Int, y:Text, z:[Int]; cache_size=100)->Text:
+func doop(x:Int, y:Text, z:[Int]; cache_size=100 -> Text):
     return "x=$x y=$y z=$z"
 ```
 
@@ -108,7 +108,7 @@ Functions can also be given an `inline` attribute, which encourages the
 compiler to inline the function when possible:
 
 ```tomo
-func add(x, y:Int; inline)->Int:
+func add(x, y:Int -> Int; inline):
     return x + y
 ```
 
@@ -137,7 +137,10 @@ fn := func(x,y:Int):
 Lambda functions must declare the types of their arguments, but do not require
 declaring the return type. Because lambdas cannot be recursive or corecursive
 (since they aren't declared with a name), it is always possible to infer the
-return type without much difficulty.
+return type without much difficulty. If you do choose to declare a return type,
+the compiler will attempt to promote return values to that type, or give a
+compiler error if the return value is not compatible with the declared return
+type.
 
 ## Closures
 
@@ -148,7 +151,7 @@ values. **Captured values are copied to a new location at the moment the lambda
 is created and will not reflect changes to local variables.**
 
 ```tomo
-func create_adder(n:Int) -> func(i:Int)->Int:
+func create_adder(n:Int -> func(i:Int -> Int)):
     adder := func(i:Int):
         return n + i
 

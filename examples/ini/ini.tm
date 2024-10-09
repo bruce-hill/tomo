@@ -6,7 +6,7 @@ _HELP := "
     $_USAGE
 "
 
-func parse_ini(path:Path)->{Text:{Text:Text}}:
+func parse_ini(path:Path -> {Text:{Text:Text}}):
     text := path:read() or exit("Could not read INI file: $\[31;1]$(path.text_content)$\[]")
     sections := {:Text:@{Text:Text}}
     current_section := @{:Text:Text}

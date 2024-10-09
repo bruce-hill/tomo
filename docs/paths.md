@@ -45,7 +45,7 @@ it doesn't already exist. Failure to write will result in a runtime error.
 
 **Usage:**  
 ```markdown
-append(path: Path, text: Text, permissions: Int32 = 0o644[32]) -> Void
+append(path: Path, text: Text, permissions: Int32 = 0o644[32] -> Void)
 ```
 
 **Parameters:**
@@ -72,7 +72,7 @@ it doesn't already exist. Failure to write will result in a runtime error.
 
 **Usage:**  
 ```markdown
-append_bytes(path: Path, bytes: [Byte], permissions: Int32 = 0o644[32]) -> Void
+append_bytes(path: Path, bytes: [Byte], permissions: Int32 = 0o644[32] -> Void)
 ```
 
 **Parameters:**
@@ -98,7 +98,7 @@ Returns the base name of the file or directory at the specified path.
 
 **Usage:**  
 ```markdown
-base_name(path: Path) -> Text
+base_name(path: Path -> Text)
 ```
 
 **Parameters:**
@@ -124,7 +124,7 @@ or returns a null value if the file could not be opened.
 
 **Usage:**  
 ```markdown
-by_line(path: Path) -> (func()->Text?)?
+by_line(path: Path -> (func()->Text?)?)
 ```
 
 **Parameters:**
@@ -158,7 +158,7 @@ Returns a list of children (files and directories) within the directory at the s
 
 **Usage:**  
 ```markdown
-children(path: Path, include_hidden=no) -> [Path]
+children(path: Path, include_hidden=no -> [Path])
 ```
 
 **Parameters:**
@@ -185,7 +185,7 @@ any of the parent directories do not exist, they will be created as needed.
 
 **Usage:**  
 ```markdown
-create_directory(path: Path, permissions=0o755[32]) -> Void
+create_directory(path: Path, permissions=0o755[32] -> Void)
 ```
 
 **Parameters:**
@@ -210,7 +210,7 @@ Checks if a file or directory exists at the specified path.
 
 **Usage:**  
 ```markdown
-exists(path: Path) -> Bool
+exists(path: Path -> Bool)
 ```
 
 **Parameters:**
@@ -235,7 +235,7 @@ Returns the file extension of the file at the specified path. Optionally returns
 
 **Usage:**  
 ```markdown
-extension(path: Path, full=yes) -> Text
+extension(path: Path, full=yes -> Text)
 ```
 
 **Parameters:**
@@ -269,7 +269,7 @@ Returns a list of files within the directory at the specified path. Optionally i
 
 **Usage:**  
 ```markdown
-files(path: Path, include_hidden=no) -> [Path]
+files(path: Path, include_hidden=no -> [Path])
 ```
 
 **Parameters:**
@@ -295,7 +295,7 @@ Checks if the path represents a directory. Optionally follows symbolic links.
 
 **Usage:**  
 ```markdown
-is_directory(path: Path, follow_symlinks=yes) -> Bool
+is_directory(path: Path, follow_symlinks=yes -> Bool)
 ```
 
 **Parameters:**
@@ -324,7 +324,7 @@ Checks if the path represents a file. Optionally follows symbolic links.
 
 **Usage:**  
 ```markdown
-is_file(path: Path, follow_symlinks=yes) -> Bool
+is_file(path: Path, follow_symlinks=yes -> Bool)
 ```
 
 **Parameters:**
@@ -353,7 +353,7 @@ Checks if the path represents a socket. Optionally follows symbolic links.
 
 **Usage:**  
 ```markdown
-is_socket(path: Path, follow_symlinks=yes) -> Bool
+is_socket(path: Path, follow_symlinks=yes -> Bool)
 ```
 
 **Parameters:**
@@ -379,7 +379,7 @@ Checks if the path represents a symbolic link.
 
 **Usage:**  
 ```markdown
-is_symlink(path: Path) -> Bool
+is_symlink(path: Path -> Bool)
 ```
 
 **Parameters:**
@@ -404,7 +404,7 @@ Returns the parent directory of the file or directory at the specified path.
 
 **Usage:**  
 ```markdown
-parent(path: Path) -> Path
+parent(path: Path -> Path)
 ```
 
 **Parameters:**
@@ -430,7 +430,7 @@ file could not be read.
 
 **Usage:**  
 ```markdown
-read(path: Path) -> Text?
+read(path: Path -> Text?)
 ```
 
 **Parameters:**
@@ -460,7 +460,7 @@ file could not be read.
 
 **Usage:**  
 ```markdown
-read_bytes(path: Path) -> [Byte]?
+read_bytes(path: Path -> [Byte]?)
 ```
 
 **Parameters:**
@@ -489,7 +489,7 @@ Returns the path relative to a given base path. By default, the base path is the
 
 **Usage:**  
 ```markdown
-relative(path: Path, relative_to=(./)) -> Path
+relative(path: Path, relative_to=(./) -> Path)
 ```
 
 **Parameters:**
@@ -515,7 +515,7 @@ Removes the file or directory at the specified path. A runtime error is raised i
 
 **Usage:**  
 ```markdown
-remove(path: Path, ignore_missing=no) -> Void
+remove(path: Path, ignore_missing=no -> Void)
 ```
 
 **Parameters:**
@@ -540,7 +540,7 @@ Resolves the absolute path of the given path relative to a base path. By default
 
 **Usage:**  
 ```markdown
-resolved(path: Path, relative_to=(./)) -> Path
+resolved(path: Path, relative_to=(./) -> Path)
 ```
 
 **Parameters:**
@@ -569,7 +569,7 @@ Returns a list of subdirectories within the directory at the specified path. Opt
 
 **Usage:**  
 ```markdown
-subdirectories(path: Path, include_hidden=no) -> [Path]
+subdirectories(path: Path, include_hidden=no -> [Path])
 ```
 
 **Parameters:**
@@ -598,7 +598,7 @@ Generates a unique directory path based on the given path. Useful for creating t
 
 **Usage:**  
 ```markdown
-unique_directory(path: Path) -> Path
+unique_directory(path: Path -> Path)
 ```
 
 **Parameters:**
@@ -629,7 +629,7 @@ writing cannot be successfully completed, a runtime error is raised.
 
 **Usage:**  
 ```markdown
-write(path: Path, text: Text, permissions=0o644[32]) -> Void
+write(path: Path, text: Text, permissions=0o644[32] -> Void)
 ```
 
 **Parameters:**
@@ -657,7 +657,7 @@ writing cannot be successfully completed, a runtime error is raised.
 
 **Usage:**  
 ```markdown
-write(path: Path, bytes: [Byte], permissions=0o644[32]) -> Void
+write(path: Path, bytes: [Byte], permissions=0o644[32] -> Void)
 ```
 
 **Parameters:**
@@ -685,7 +685,7 @@ files.
 
 **Usage:**  
 ```markdown
-write_unique(path: Path, text: Text) -> Path
+write_unique(path: Path, text: Text -> Path)
 ```
 
 **Parameters:**
@@ -717,7 +717,7 @@ files.
 
 **Usage:**  
 ```markdown
-write_unique_bytes(path: Path, bytes: [Byte]) -> Path
+write_unique_bytes(path: Path, bytes: [Byte] -> Path)
 ```
 
 **Parameters:**

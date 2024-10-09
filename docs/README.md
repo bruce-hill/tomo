@@ -44,7 +44,7 @@ Gets a line of user input text with a prompt.
 
 **Usage:**  
 ```markdown
-ask(prompt:Text, bold:Bool = yes, force_tty:Bool = yes) -> Void
+ask(prompt:Text, bold:Bool = yes, force_tty:Bool = yes -> Void)
 ```
 
 **Parameters:**
@@ -79,7 +79,7 @@ Exits the program with a given status and optionally prints a message.
 
 **Usage:**  
 ```markdown
-ask(message:Text? = !Text, status:Int32 = 1[32]) -> Void
+ask(message:Text? = !Text, status:Int32 = 1[32] -> Void)
 ```
 
 **Parameters:**
@@ -106,7 +106,7 @@ Prints a message to the console.
 
 **Usage:**  
 ```markdown
-say(text:Text, newline:Bool = yes) -> Void
+say(text:Text, newline:Bool = yes -> Void)
 ```
 
 **Parameters:**
@@ -132,7 +132,7 @@ Pause execution for a given number of seconds.
 
 **Usage:**  
 ```markdown
-sleep(seconds: Num) -> Void
+sleep(seconds: Num -> Void)
 ```
 
 **Parameters:**
@@ -156,7 +156,7 @@ Prints a message to the console, aborts the program, and prints a stack trace.
 
 **Usage:**  
 ```markdown
-fail(message:Text) -> Abort
+fail(message:Text -> Abort)
 ```
 
 **Parameters:**
@@ -180,7 +180,7 @@ Gets the current time. This is an alias for `DateTime.now()`.
 
 **Usage:**  
 ```markdown
-now() -> DateTime
+now(->DateTime)
 ```
 
 **Parameters:**

@@ -130,7 +130,8 @@ CORD ast_to_xml(ast_t *ast)
       optional_tagged("filter", data.filter))
     T(FunctionDef, "<FunctionDef name=\"%r\">%r%r<body>%r</body></FunctionDef>", ast_to_xml(data.name),
       arg_list_to_xml(data.args), optional_tagged_type("return-type", data.ret_type), ast_to_xml(data.body))
-    T(Lambda, "<Lambda>%r<body>%r</body></Lambda>)", arg_list_to_xml(data.args), ast_to_xml(data.body))
+    T(Lambda, "<Lambda>%r%r<body>%r</body></Lambda>)", arg_list_to_xml(data.args),
+      optional_tagged_type("return-type", data.ret_type), ast_to_xml(data.body))
     T(FunctionCall, "<FunctionCall><function>%r</function>%r</FunctionCall>", ast_to_xml(data.fn), arg_list_to_xml(data.args))
     T(MethodCall, "<MethodCall><self>%r</self><method>%s</method>%r</MethodCall>", ast_to_xml(data.self), data.name, arg_list_to_xml(data.args))
     T(Block, "<Block>%r</Block>", ast_list_to_xml(data.statements))

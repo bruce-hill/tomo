@@ -1,6 +1,6 @@
 lang HTML:
 	HEADER := $HTML"<!DOCTYPE HTML>"
-	func escape(t:Text)->HTML:
+	func escape(t:Text->HTML):
 		t = t:replace_all({
 			$/&/: "&amp;",
 			$/</: "&lt;",
@@ -11,10 +11,10 @@ lang HTML:
 
 		return HTML.without_escaping(t)
 
-	func escape_int(i:Int)->HTML:
+	func escape_int(i:Int->HTML):
 		return HTML.without_escaping("$i")
 	
-	func paragraph(content:HTML)->HTML:
+	func paragraph(content:HTML->HTML):
 		return $HTML"<p>$content</p>"
 
 func main():

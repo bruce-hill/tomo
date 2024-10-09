@@ -1138,6 +1138,15 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (ret->tag == AbortType)
             ret = Type(VoidType);
 
+        if (lambda->ret_type) {
+            type_t *declared = parse_type_ast(env, lambda->ret_type);
+            if (can_promote(ret, declared))
+                ret = declared;
+            else
+                code_err(ast, "This function was declared to return a value of type %T, but actually returns a value of type %T",
+                         declared, ret);
+        }
+
         if (has_stack_memory(ret))
             code_err(ast, "Functions can't return stack references because the reference may outlive its stack frame.");
         return Type(ClosureType, Type(FunctionType, .args=args, .ret=ret));

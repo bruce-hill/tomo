@@ -16,7 +16,7 @@ boolean values are case-insensitive variations of `yes`/`no`, `y`/`n`,
 
 **Usage:**  
 ```tomo
-from_text(text: Text, success: Bool = !&Bool) -> Bool
+from_text(text: Text, success: Bool = !&Bool -> Bool)
 ```
 
 **Parameters:**
@@ -49,7 +49,7 @@ Generates a random boolean value based on a specified probability.
 
 **Usage:**  
 ```tomo
-random(p: Float = 0.5) -> Bool
+random(p: Float = 0.5 -> Bool)
 ```
 
 **Parameters:**
