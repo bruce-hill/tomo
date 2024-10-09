@@ -46,7 +46,7 @@ CORD promote_to_optional(type_t *t, CORD code)
     } else if (t->tag == ByteType) {
         return CORD_all("((OptionalByte_t){", code, "})");
     } else if (t->tag == StructType) {
-        return CORD_all("((", compile_type(Type(OptionalType, .type=t)), "){", code, "})");
+        return CORD_all("({ ", compile_type(Type(OptionalType, .type=t)), " nonnull = {.value=", code, "}; nonnull.is_null = false; nonnull; })");
     } else {
         return code;
     }
@@ -302,11 +302,11 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
             if (index->unchecked) {
                 return CORD_all("Array_lvalue_unchecked(", compile_type(item_type), ", ", target_code, ", ", 
                                 compile_int_to_type(env, index->index, Type(IntType, .bits=TYPE_IBITS64)),
-                                ", ", CORD_asprintf("%ld", padded_type_size(item_type)), ")");
+                                ", ", CORD_asprintf("%ld", type_size(item_type)), ")");
             } else {
                 return CORD_all("Array_lvalue(", compile_type(item_type), ", ", target_code, ", ", 
                                 compile_int_to_type(env, index->index, Type(IntType, .bits=TYPE_IBITS64)),
-                                ", ", CORD_asprintf("%ld", padded_type_size(item_type)),
+                                ", ", CORD_asprintf("%ld", type_size(item_type)),
                                 ", ", heap_strf("%ld", ast->start - ast->file->text),
                                 ", ", heap_strf("%ld", ast->end - ast->file->text), ")");
             }
@@ -720,7 +720,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (lhs_t->tag == TextType) {
                 return CORD_all(lhs, " = Texts(", lhs, ", ", rhs, ");");
             } else if (lhs_t->tag == ArrayType) {
-                CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(Match(lhs_t, ArrayType)->item_type));
+                CORD padded_item_size = CORD_asprintf("%ld", type_size(Match(lhs_t, ArrayType)->item_type));
                 if (promote(env, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)) {
                     // arr ++= item
                     if (update->lhs->tag == Var)
@@ -1814,7 +1814,7 @@ CORD compile_null(type_t *t)
     case PointerType: return CORD_all("((", compile_type(t), ")NULL)");
     case ClosureType: return "NULL_CLOSURE";
     case NumType: return "nan(\"null\")";
-    case StructType: return CORD_all("((", compile_type(Type(OptionalType, .type=t)), "){.is_null=true})");
+    case StructType: return CORD_all("((", compile_type(Type(OptionalType, .type=t)), "){.is_null=yes})");
     case EnumType: {
         env_t *enum_env = Match(t, EnumType)->env;
         return CORD_all("((", compile_type(t), "){", namespace_prefix(enum_env, enum_env->namespace), "null})");
@@ -2157,7 +2157,7 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Text$concat(", lhs, ", ", rhs, ")");
             }
             case ArrayType: {
-                CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(Match(operand_t, ArrayType)->item_type));
+                CORD padded_item_size = CORD_asprintf("%ld", type_size(Match(operand_t, ArrayType)->item_type));
                 return CORD_all("Array$concat(", lhs, ", ", rhs, ", ", padded_item_size, ")");
             }
             default:
@@ -2296,9 +2296,9 @@ CORD compile(env_t *env, ast_t *ast)
     case Array: {
         type_t *array_type = get_type(env, ast);
         type_t *item_type = Match(array_type, ArrayType)->item_type;
-        if (padded_type_size(Match(array_type, ArrayType)->item_type) > ARRAY_MAX_STRIDE)
+        if (type_size(Match(array_type, ArrayType)->item_type) > ARRAY_MAX_STRIDE)
             code_err(ast, "This array holds items that take up %ld bytes, but the maximum supported size is %ld bytes. Consider using an array of pointers instead.",
-                     padded_type_size(item_type), ARRAY_MAX_STRIDE);
+                     type_size(item_type), ARRAY_MAX_STRIDE);
 
         auto array = Match(ast, Array);
         if (!array->items)
@@ -2581,7 +2581,7 @@ CORD compile(env_t *env, ast_t *ast)
         switch (self_value_t->tag) {
         case ArrayType: {
             type_t *item_t = Match(self_value_t, ArrayType)->item_type;
-            CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(item_t));
+            CORD padded_item_size = CORD_asprintf("%ld", type_size(item_t));
             if (streq(call->name, "insert")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
@@ -2803,7 +2803,7 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case ChannelType: {
             type_t *item_t = Match(self_value_t, ChannelType)->item_type;
-            CORD padded_item_size = CORD_asprintf("%ld", padded_type_size(item_t));
+            CORD padded_item_size = CORD_asprintf("%ld", type_size(item_t));
             arg_t *front_default_end = new(arg_t, .name="front", .type=Type(BoolType), .default_val=FakeAST(Bool, false));
             arg_t *front_default_start = new(arg_t, .name="front", .type=Type(BoolType), .default_val=FakeAST(Bool, true));
             if (streq(call->name, "give")) {

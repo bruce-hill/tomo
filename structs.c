@@ -55,14 +55,20 @@ CORD compile_struct_header(env_t *env, ast_t *ast)
     }
     CORD struct_code = CORD_all("struct ", full_name, "_s {\n");
     struct_code = CORD_all(struct_code, "};\n");
+    type_t *t = Table$str_get(*env->types, def->name);
     return CORD_all(
         "typedef struct ", full_name, "_s ", full_name, "_t;\n",
         "struct ", full_name, "_s {\n",
         fields,
         "};\n",
         "typedef struct {\n",
+        "union {\n",
         full_name, "_t value;\n"
-        "Bool_t is_null:1;\n"
+        "struct {\n"
+        "char _padding[", heap_strf("%zu", unpadded_struct_size(t)), "];\n",
+        "Bool_t is_null;\n"
+        "};\n"
+        "};\n"
         "} ", namespace_prefix(env, env->namespace), "$Optional", def->name, "_t;\n"
         "extern const TypeInfo_t ", full_name, ";\n",
         compile_namespace_header(env, def->name, def->namespace));

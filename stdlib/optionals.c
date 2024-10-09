@@ -43,9 +43,13 @@ public PUREFUNC bool is_null(const void *obj, const TypeInfo_t *non_optional_typ
         case TableInfo: return ((Table_t*)obj)->entries.length < 0;
         case FunctionInfo: return *(void**)obj == NULL;
         case StructInfo: {
-            int64_t offset = non_optional_type->size;
-            if (offset % non_optional_type->align)
-                offset += non_optional_type->align - (offset % non_optional_type->align);
+            int64_t offset = 0;
+            for (int i = 0; i < non_optional_type->StructInfo.num_fields; i++) {
+                NamedType_t field = non_optional_type->StructInfo.fields[i];
+                if (offset > 0 && (offset % field.type->align) > 0)
+                    offset += field.type->align - (offset % field.type->align);
+                offset += field.type->size;
+            }
             return *(bool*)(obj + offset);
         }
         case EnumInfo: return (*(int*)obj) == 0; // NULL tag

@@ -20,7 +20,7 @@ PUREFUNC static inline int64_t get_padded_item_size(const TypeInfo_t *info)
 {
     int64_t size = info->ArrayInfo.item->size;
     if (info->ArrayInfo.item->align > 1 && size % info->ArrayInfo.item->align)
-        size += info->ArrayInfo.item->align - (size % info->ArrayInfo.item->align); // padding
+        errx(1, "Item size is not padded!");
     return size;
 }
 
@@ -524,7 +524,7 @@ public int32_t Array$compare(const Array_t *x, const Array_t *y, const TypeInfo_
     if (item->tag == PointerInfo || (item->tag == CustomInfo && item->CustomInfo.compare == NULL)) { // data comparison
         int64_t item_padded_size = type->ArrayInfo.item->size;
         if (type->ArrayInfo.item->align > 1 && item_padded_size % type->ArrayInfo.item->align)
-            item_padded_size += type->ArrayInfo.item->align - (item_padded_size % type->ArrayInfo.item->align); // padding
+            errx(1, "Item size is not padded!");
 
         if ((int64_t)x->stride == item_padded_size && (int64_t)y->stride == item_padded_size && item->size == item_padded_size) {
             int32_t cmp = (int32_t)memcmp(x->data, y->data, (size_t)(MIN(x->length, y->length)*item_padded_size));

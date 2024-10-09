@@ -398,6 +398,24 @@ PUREFUNC bool is_numeric_type(type_t *t)
     return t->tag == IntType || t->tag == BigIntType || t->tag == NumType;
 }
 
+PUREFUNC size_t unpadded_struct_size(type_t *t)
+{
+    arg_t *fields = Match(t, StructType)->fields;
+    size_t size = 0;
+    for (arg_t *field = fields; field; field = field->next) {
+        type_t *field_type = field->type;
+        if (field_type->tag == BoolType) {
+            size += 1; // Bit packing
+        } else {
+            size_t align = type_align(field_type);
+            if (align > 1 && size % align > 0)
+                size += align - (size % align); // Padding
+            size += type_size(field_type);
+        }
+    }
+    return size;
+}
+
 PUREFUNC size_t type_size(type_t *t)
 {
 #pragma GCC diagnostic ignored "-Wswitch-default"
@@ -438,24 +456,22 @@ PUREFUNC size_t type_size(type_t *t)
             case TYPE_IBITS8: return sizeof(OptionalInt8_t);
             default: errx(1, "Invalid integer bit size");
             }
-        case StructType: return padded_type_size(nonnull) + 1;
+        case StructType: {
+            size_t size = unpadded_struct_size(nonnull);
+            size += sizeof(bool); // is_null flag
+            size_t align = type_align(nonnull);
+            if (align > 0 && (size % align) > 0)
+                size = (size + align) - (size % align);
+            return size;
+        }
         default: return type_size(nonnull);
         }
     }
     case StructType: {
-        arg_t *fields = Match(t, StructType)->fields;
-        size_t size = t->tag == StructType ? 0 : sizeof(void*);
-        for (arg_t *field = fields; field; field = field->next) {
-            type_t *field_type = field->type;
-            if (field_type->tag == BoolType) {
-                size += 1; // Bit packing
-            } else {
-                size_t align = type_align(field_type);
-                if (align > 1 && size % align > 0)
-                    size += align - (size % align); // Padding
-                size += type_size(field_type);
-            }
-        }
+        size_t size = unpadded_struct_size(t);
+        size_t align = type_align(t);
+        if (size > 0 && align > 0 && (size % align) > 0)
+            size = (size + align) - (size % align);
         return size;
     }
     case EnumType: {
@@ -468,9 +484,12 @@ PUREFUNC size_t type_size(type_t *t)
             if (size > max_size) max_size = size;
         }
         size_t size = sizeof(UnknownType); // generic enum
-        if (max_align > 1 && size % max_align > 0)
+        if (max_align > 1 && size % max_align > 0) // Padding before first union field
             size += max_align - (size % max_align);
         size += max_size;
+        size_t align = MAX(__alignof__(UnknownType), max_align);
+        if (size % align > 0) // Padding after union
+            size += align - (size % align);
         return size;
     }
     case TypeInfoType: return sizeof(TypeInfo_t);
@@ -543,15 +562,6 @@ PUREFUNC size_t type_align(type_t *t)
     case ModuleType: return 0;
     }
     errx(1, "This should not be reachable");
-}
-
-PUREFUNC size_t padded_type_size(type_t *t)
-{
-    size_t size = type_size(t);
-    size_t align = type_align(t);
-    if (align > 1 && size % align > 0)
-        size += align - (size % align); // Padding
-    return size;
 }
 
 type_t *get_field_type(type_t *t, const char *field_name)

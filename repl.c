@@ -510,7 +510,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         char item_buf[item_size] = {};
         for (ast_list_t *item = Match(ast, Array)->items; item; item = item->next) {
             eval(env, item->ast, item_buf);
-            Array$insert(&arr, item_buf, I(0), (int64_t)padded_type_size(Match(t, ArrayType)->item_type));
+            Array$insert(&arr, item_buf, I(0), (int64_t)type_size(Match(t, ArrayType)->item_type));
         }
         memcpy(dest, &arr, sizeof(Array_t));
         break;
