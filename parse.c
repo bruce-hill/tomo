@@ -1005,7 +1005,7 @@ PARSER(parse_reduction) {
 
     ast_t *fallback = NULL;
     if (match_word(&pos, "else")) {
-        expect_str(ctx, start, &pos, ":", "I expected a ':' here");
+        expect_str(ctx, pos-strlen("else"), &pos, ":", "I expected a ':' for this 'else'");
         fallback = expect(ctx, pos-4, &pos, parse_expr, "I couldn't parse the expression after this 'else'");
     }
 
