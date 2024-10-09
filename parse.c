@@ -712,8 +712,12 @@ PARSER(parse_num) {
         len += 1 + strspn(pos + len + 1, "0123456789");
     else if (pos[len] != 'e' && pos[len] != 'f' && pos[len] != '%')
         return NULL;
-    if (pos[len] == 'e')
-        len += 1 + strspn(pos + len + 1, "-0123456789_");
+    if (pos[len] == 'e') {
+        len += 1;
+        if (pos[len] == '-')
+            len += 1;
+        len += strspn(pos + len, "0123456789_");
+    }
     char *buf = GC_MALLOC_ATOMIC(len+1);
     memset(buf, 0, len+1);
     for (char *src = (char*)pos, *dest = buf; src < pos+len; ++src) {
