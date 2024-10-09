@@ -34,13 +34,16 @@ of many language features or the other example programs/modules in
 ## Features
 
 ### Performance
-- Extremely high performance code generation with minimal overhead compared to C
-- Extremely fast parallel [compilation](docs/compilation.md) times
-- Language-level support for correct [function caching](docs/functions.md)
+
+- Generates performant C code with minimal overhead that runs as fast as C
+  code, because it *is* C code.
+- Extremely fast [incremental and parallel compilation](docs/compilation.md)
+- Language-level support for [correct function caching](docs/functions.md)
 - [Structs](docs/structs.md) with known-at-compile-time methods, not OOP
   objects with vtable lookups
 
-## Safety
+### Safety
+
 - Memory safety (garbage collection, [compiler-enforced null
   safety](docs/pointers.md), [automatic array bounds
   checking](docs/arrays.md), and no uninitialized variables)
@@ -48,25 +51,36 @@ of many language features or the other example programs/modules in
   fixed-with integers with arithmetic overflow checking
 - [Type-safe strings representing different languages](docs/langs.md) with
   automatic prevention of code injection
-- Pattern matching with exhaustiveness checking for [tagged unions
-  (enums)](docs/enums.md)
-- Efficient immutable datastructures: [arrays](docs/arrays.md),
-  [tables](docs/tables.md), [sets](docs/sets.md), [text](docs/text.md).
+- Pattern matching with exhaustiveness checking for [enumerated types (tagged
+  unions/enums)](docs/enums.md)
+- Type-safe [optional values](docs/optionals.tm) with low syntax overhead
+- Efficient datastructures with immutable value semantics:
+  [arrays](docs/arrays.md), [tables](docs/tables.md), [sets](docs/sets.md),
+  [text](docs/text.md).
 - [Privacy-protecting types](docs/structs.md#Secret-Values) that help prevent
-  logging sensitive information
+  accidentally logging sensitive information
+- [Integers](docs/integers.md) with the default type do not overflow, they
+  seamlessly transition from fixed-width integers to bigints as needed.
 
-## Simplicity
+### Simplicity
+
 - Simple, low-boilerplate type system with type inference
 - Well-defined reference and value semantics and mutability rules
 - No polymorphism, generics, or inheritance
 
-## User-friendliness
+### User-friendliness
+
 - [String interpolation](docs/text.md) and debug printing builtins
+- Built-in datastructures with a rich library of commonly used methods:
+  [arrays](docs/arrays.md), [tables](docs/tables.md), [sets](docs/sets.md),
+  [text](docs/text.md).  
 - Full-featured [libraries/modules](docs/libraries.md)
 - [Full UTF8 support](docs/text.md) for all text operations
 - Built-in doctests with syntax highlighting
 - [Automatic command line argument parsing with type safety](docs/command-line-parsing.md)
 - [Easy interoperability with C](docs/c-interoperability.md)
+- Support for [POSIX threads](docs/threads.tm) and thread-safe message passing
+  queues over [channels](docs/channels.tm).
 
 ## Dependencies
 
