@@ -1073,6 +1073,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         switch (iter_value_t->tag) {
         case BigIntType: case IntType: value_t = iter_value_t; break;
         case ArrayType: value_t = Match(iter_value_t, ArrayType)->item_type; break;
+        case SetType: value_t = Match(iter_value_t, SetType)->item_type; break;
         case TableType: value_t = Match(iter_value_t, TableType)->key_type; break;
         case FunctionType: case ClosureType: {
             // Iterator function
