@@ -116,14 +116,14 @@ iterating over any of the new values.
 Increments the value associated with a key by a specified amount. If the key is
 not already in the table, its value will be assumed to be zero.
 
-**Usage:**  
-```markdown
-bump(t:{K:V}, key: K, amount: Int = 1 -> Void)
+**Signature:**  
+```tomo
+func bump(t:&{K:V}, key: K, amount: Int = 1 -> Void)
 ```
 
 **Parameters:**
 
-- `t`: The mutable reference to the table.
+- `t`: The reference to the table.
 - `key`: The key whose value is to be incremented.
 - `amount`: The amount to increment the value by (default: 1).
 
@@ -131,7 +131,7 @@ bump(t:{K:V}, key: K, amount: Int = 1 -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 >> t := {"A":1}
 t:bump("A")
 t:bump("B", 10)
@@ -146,20 +146,20 @@ t:bump("B", 10)
 **Description:**  
 Removes all key-value pairs from the table.
 
-**Usage:**  
-```markdown
-t:clear()
+**Signature:**  
+```tomo
+func clear(t:&{K:V})
 ```
 
 **Parameters:**
 
-- `t`: The mutable reference to the table.
+- `t`: The reference to the table.
 
 **Returns:**  
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 >> t:clear()
 ```
 
@@ -170,9 +170,9 @@ Nothing.
 **Description:**  
 Retrieves the value associated with a key, or returns null if the key is not present.
 
-**Usage:**  
-```markdown
-t:get(key: K -> V?)
+**Signature:**  
+```tomo
+func get(t:{K:V}, key: K -> V?)
 ```
 
 **Parameters:**
@@ -184,7 +184,7 @@ t:get(key: K -> V?)
 The value associated with the key or null if the key is not found.
 
 **Example:**  
-```markdown
+```tomo
 >> t := {"A":1, "B":2}
 >> t:get("A")
 = 1? : Int?
@@ -206,9 +206,9 @@ The value associated with the key or null if the key is not found.
 **Description:**  
 Checks if the table contains a specified key.
 
-**Usage:**  
-```markdown
-has(t:{K:V}, key: K -> Bool)
+**Signature:**  
+```tomo
+func has(t:{K:V}, key: K -> Bool)
 ```
 
 **Parameters:**
@@ -220,7 +220,7 @@ has(t:{K:V}, key: K -> Bool)
 `yes` if the key is present, `no` otherwise.
 
 **Example:**  
-```markdown
+```tomo
 >> {"A":1, "B":2}:has("A")
 = yes
 >> {"A":1, "B":2}:has("xxx")
@@ -234,21 +234,21 @@ has(t:{K:V}, key: K -> Bool)
 **Description:**  
 Removes the key-value pair associated with a specified key.
 
-**Usage:**  
-```markdown
-remove(t:{K:V}, key: K -> Void)
+**Signature:**  
+```tomo
+func remove(t:{K:V}, key: K -> Void)
 ```
 
 **Parameters:**
 
-- `t`: The mutable reference to the table.
+- `t`: The reference to the table.
 - `key`: The key of the key-value pair to remove.
 
 **Returns:**  
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 t := {"A":1, "B":2}
 t:remove("A")
 >> t
@@ -262,14 +262,14 @@ t:remove("A")
 **Description:**  
 Sets or updates the value associated with a specified key.
 
-**Usage:**  
-```markdown
-set(t:{K:V}, key: K, value: V -> Void)
+**Signature:**  
+```tomo
+func set(t:{K:V}, key: K, value: V -> Void)
 ```
 
 **Parameters:**
 
-- `t`: The mutable reference to the table.
+- `t`: The reference to the table.
 - `key`: The key to set or update.
 - `value`: The value to associate with the key.
 
@@ -277,7 +277,7 @@ set(t:{K:V}, key: K, value: V -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 t := {"A": 1, "B": 2}
 t:set("C", 3)
 >> t

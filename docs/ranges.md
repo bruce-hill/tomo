@@ -18,9 +18,9 @@ created using the `Int.to()` method like so: `5:to(10)`. Ranges are
 **Description:**  
 Returns a reversed copy of the range.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-reversed(range: Range -> Range)
+func reversed(range: Range -> Range)
 ```
 
 **Parameters:**
@@ -43,9 +43,9 @@ A new `Range` with the order of elements reversed.
 **Description:**  
 Creates a new range with a specified step value.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-by(range: Range, step: Int -> Range)
+func by(range: Range, step: Int -> Range)
 ```
 
 **Parameters:**

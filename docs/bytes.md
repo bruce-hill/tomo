@@ -14,9 +14,9 @@ integer with a `[B]` suffix, e.g. `255[B]`.
 **Description:**  
 Generates a random byte value in the specified range.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-random(min: Byte = Byte.min, max: Byte = Byte.max -> Byte)
+func random(min: Byte = Byte.min, max: Byte = Byte.max -> Byte)
 ```
 
 **Parameters:**

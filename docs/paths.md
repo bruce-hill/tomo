@@ -43,9 +43,9 @@ intended. Paths can be created from text with slashes using
 Appends the given text to the file at the specified path, creating the file if
 it doesn't already exist. Failure to write will result in a runtime error.
 
-**Usage:**  
-```markdown
-append(path: Path, text: Text, permissions: Int32 = 0o644[32] -> Void)
+**Signature:**  
+```tomo
+func append(path: Path, text: Text, permissions: Int32 = 0o644[32] -> Void)
 ```
 
 **Parameters:**
@@ -58,7 +58,7 @@ append(path: Path, text: Text, permissions: Int32 = 0o644[32] -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 (./log.txt):append("extra line$(\n)")
 ```
 
@@ -70,9 +70,9 @@ Nothing.
 Appends the given bytes to the file at the specified path, creating the file if
 it doesn't already exist. Failure to write will result in a runtime error.
 
-**Usage:**  
-```markdown
-append_bytes(path: Path, bytes: [Byte], permissions: Int32 = 0o644[32] -> Void)
+**Signature:**  
+```tomo
+func append_bytes(path: Path, bytes: [Byte], permissions: Int32 = 0o644[32] -> Void)
 ```
 
 **Parameters:**
@@ -85,7 +85,7 @@ append_bytes(path: Path, bytes: [Byte], permissions: Int32 = 0o644[32] -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 (./log.txt):append_bytes([104[B], 105[B]])
 ```
 
@@ -96,9 +96,9 @@ Nothing.
 **Description:**  
 Returns the base name of the file or directory at the specified path.
 
-**Usage:**  
-```markdown
-base_name(path: Path -> Text)
+**Signature:**  
+```tomo
+func base_name(path: Path -> Text)
 ```
 
 **Parameters:**
@@ -109,7 +109,7 @@ base_name(path: Path -> Text)
 The base name of the file or directory.
 
 **Example:**  
-```markdown
+```tomo
 >> (./path/to/file.txt):base_name()
 = "file.txt"
 ```
@@ -122,9 +122,9 @@ The base name of the file or directory.
 Returns an iterator that can be used to iterate over a file one line at a time,
 or returns a null value if the file could not be opened.
 
-**Usage:**  
-```markdown
-by_line(path: Path -> func(->Text?)?)
+**Signature:**  
+```tomo
+func by_line(path: Path -> func(->Text?)?)
 ```
 
 **Parameters:**
@@ -136,7 +136,7 @@ An iterator that can be used to get lines from a file one at a time or a null
 value if the file couldn't be read.
 
 **Example:**  
-```markdown
+```tomo
 # Safely handle file not being readable:
 if lines := (./file.txt):by_line():
     for line in lines:
@@ -156,9 +156,9 @@ for line in (/dev/stdin):by_line()!:
 **Description:**  
 Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files.
 
-**Usage:**  
-```markdown
-children(path: Path, include_hidden=no -> [Path])
+**Signature:**  
+```tomo
+func children(path: Path, include_hidden=no -> [Path])
 ```
 
 **Parameters:**
@@ -170,7 +170,7 @@ children(path: Path, include_hidden=no -> [Path])
 A list of paths for the children.
 
 **Example:**  
-```markdown
+```tomo
 >> (./directory):children(include_hidden=yes)
 = [".git", "foo.txt"]
 ```
@@ -183,9 +183,9 @@ A list of paths for the children.
 Creates a new directory at the specified path with the given permissions. If
 any of the parent directories do not exist, they will be created as needed.
 
-**Usage:**  
-```markdown
-create_directory(path: Path, permissions=0o755[32] -> Void)
+**Signature:**  
+```tomo
+func create_directory(path: Path, permissions=0o755[32] -> Void)
 ```
 
 **Parameters:**
@@ -197,7 +197,7 @@ create_directory(path: Path, permissions=0o755[32] -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 (./new_directory):create_directory()
 ```
 
@@ -208,9 +208,9 @@ Nothing.
 **Description:**  
 Checks if a file or directory exists at the specified path.
 
-**Usage:**  
-```markdown
-exists(path: Path -> Bool)
+**Signature:**  
+```tomo
+func exists(path: Path -> Bool)
 ```
 
 **Parameters:**
@@ -221,7 +221,7 @@ exists(path: Path -> Bool)
 `True` if the file or directory exists, `False` otherwise.
 
 **Example:**  
-```markdown
+```tomo
 >> (/):exists()
 = yes
 ```
@@ -233,9 +233,9 @@ exists(path: Path -> Bool)
 **Description:**  
 Returns the file extension of the file at the specified path. Optionally returns the full extension.
 
-**Usage:**  
-```markdown
-extension(path: Path, full=yes -> Text)
+**Signature:**  
+```tomo
+func extension(path: Path, full=yes -> Text)
 ```
 
 **Parameters:**
@@ -249,7 +249,7 @@ The file extension (not including the leading `.`) or an empty text if there is
 no file extension.
 
 **Example:**  
-```markdown
+```tomo
 >> (./file.tar.gz):extension()
 = "tar.gz"
 >> (./file.tar.gz):extension(full=no)
@@ -267,9 +267,9 @@ no file extension.
 **Description:**  
 Returns a list of files within the directory at the specified path. Optionally includes hidden files.
 
-**Usage:**  
-```markdown
-files(path: Path, include_hidden=no -> [Path])
+**Signature:**  
+```tomo
+func files(path: Path, include_hidden=no -> [Path])
 ```
 
 **Parameters:**
@@ -281,7 +281,7 @@ files(path: Path, include_hidden=no -> [Path])
 A list of file paths.
 
 **Example:**  
-```markdown
+```tomo
 >> (./directory):files(include_hidden=yes)
 = [(./directory/file1.txt), (./directory/file2.txt)]
 ```
@@ -293,9 +293,9 @@ A list of file paths.
 **Description:**  
 Checks if the path represents a directory. Optionally follows symbolic links.
 
-**Usage:**  
-```markdown
-is_directory(path: Path, follow_symlinks=yes -> Bool)
+**Signature:**  
+```tomo
+func is_directory(path: Path, follow_symlinks=yes -> Bool)
 ```
 
 **Parameters:**
@@ -307,7 +307,7 @@ is_directory(path: Path, follow_symlinks=yes -> Bool)
 `True` if the path is a directory, `False` otherwise.
 
 **Example:**  
-```markdown
+```tomo
 >> (./directory/):is_directory()
 = yes
 
@@ -322,9 +322,9 @@ is_directory(path: Path, follow_symlinks=yes -> Bool)
 **Description:**  
 Checks if the path represents a file. Optionally follows symbolic links.
 
-**Usage:**  
-```markdown
-is_file(path: Path, follow_symlinks=yes -> Bool)
+**Signature:**  
+```tomo
+func is_file(path: Path, follow_symlinks=yes -> Bool)
 ```
 
 **Parameters:**
@@ -336,7 +336,7 @@ is_file(path: Path, follow_symlinks=yes -> Bool)
 `True` if the path is a file, `False` otherwise.
 
 **Example:**  
-```markdown
+```tomo
 >> (./file.txt):is_file()
 = yes
 
@@ -351,9 +351,9 @@ is_file(path: Path, follow_symlinks=yes -> Bool)
 **Description:**  
 Checks if the path represents a socket. Optionally follows symbolic links.
 
-**Usage:**  
-```markdown
-is_socket(path: Path, follow_symlinks=yes -> Bool)
+**Signature:**  
+```tomo
+func is_socket(path: Path, follow_symlinks=yes -> Bool)
 ```
 
 **Parameters:**
@@ -365,7 +365,7 @@ is_socket(path: Path, follow_symlinks=yes -> Bool)
 `True` if the path is a socket, `False` otherwise.
 
 **Example:**  
-```markdown
+```tomo
 >> (./socket):is_socket()
 = yes
 ```
@@ -377,9 +377,9 @@ is_socket(path: Path, follow_symlinks=yes -> Bool)
 **Description:**  
 Checks if the path represents a symbolic link.
 
-**Usage:**  
-```markdown
-is_symlink(path: Path -> Bool)
+**Signature:**  
+```tomo
+func is_symlink(path: Path -> Bool)
 ```
 
 **Parameters:**
@@ -390,7 +390,7 @@ is_symlink(path: Path -> Bool)
 `True` if the path is a symbolic link, `False` otherwise.
 
 **Example:**  
-```markdown
+```tomo
 >> (./link):is_symlink()
 = yes
 ```
@@ -402,9 +402,9 @@ is_symlink(path: Path -> Bool)
 **Description:**  
 Returns the parent directory of the file or directory at the specified path.
 
-**Usage:**  
-```markdown
-parent(path: Path -> Path)
+**Signature:**  
+```tomo
+func parent(path: Path -> Path)
 ```
 
 **Parameters:**
@@ -415,7 +415,7 @@ parent(path: Path -> Path)
 The path of the parent directory.
 
 **Example:**  
-```markdown
+```tomo
 >> (./path/to/file.txt):parent()
 = (./path/to/)
 ```
@@ -428,9 +428,9 @@ The path of the parent directory.
 Reads the contents of the file at the specified path or a null value if the
 file could not be read.
 
-**Usage:**  
-```markdown
-read(path: Path -> Text?)
+**Signature:**  
+```tomo
+func read(path: Path -> Text?)
 ```
 
 **Parameters:**
@@ -443,7 +443,7 @@ returned. If the file can be read, but is not valid UTF8 data, an error will be
 raised.
 
 **Example:**  
-```markdown
+```tomo
 >> (./hello.txt):read()
 = "Hello"?
 
@@ -458,9 +458,9 @@ raised.
 Reads the contents of the file at the specified path or a null value if the
 file could not be read.
 
-**Usage:**  
-```markdown
-read_bytes(path: Path -> [Byte]?)
+**Signature:**  
+```tomo
+func read_bytes(path: Path -> [Byte]?)
 ```
 
 **Parameters:**
@@ -472,7 +472,7 @@ The byte contents of the file. If the file cannot be read, a null value will be
 returned.
 
 **Example:**  
-```markdown
+```tomo
 >> (./hello.txt):read()
 = [72[B], 101[B], 108[B], 108[B], 111[B]]?
 
@@ -487,9 +487,9 @@ returned.
 **Description:**  
 Returns the path relative to a given base path. By default, the base path is the current directory.
 
-**Usage:**  
-```markdown
-relative(path: Path, relative_to=(./) -> Path)
+**Signature:**  
+```tomo
+func relative(path: Path, relative_to=(./) -> Path)
 ```
 
 **Parameters:**
@@ -501,7 +501,7 @@ relative(path: Path, relative_to=(./) -> Path)
 The relative path.
 
 **Example:**  
-```markdown
+```tomo
 >> (./path/to/file.txt):relative(relative_to=(./path))
 = (./to/file.txt)
 ```
@@ -513,9 +513,9 @@ The relative path.
 **Description:**  
 Removes the file or directory at the specified path. A runtime error is raised if something goes wrong.
 
-**Usage:**  
-```markdown
-remove(path: Path, ignore_missing=no -> Void)
+**Signature:**  
+```tomo
+func remove(path: Path, ignore_missing=no -> Void)
 ```
 
 **Parameters:**
@@ -527,7 +527,7 @@ remove(path: Path, ignore_missing=no -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 (./file.txt):remove()
 ```
 
@@ -538,9 +538,9 @@ Nothing.
 **Description:**  
 Resolves the absolute path of the given path relative to a base path. By default, the base path is the current directory.
 
-**Usage:**  
-```markdown
-resolved(path: Path, relative_to=(./) -> Path)
+**Signature:**  
+```tomo
+func resolved(path: Path, relative_to=(./) -> Path)
 ```
 
 **Parameters:**
@@ -552,7 +552,7 @@ resolved(path: Path, relative_to=(./) -> Path)
 The resolved absolute path.
 
 **Example:**  
-```markdown
+```tomo
 >> (~/foo):resolved()
 = (/home/user/foo)
 
@@ -567,9 +567,9 @@ The resolved absolute path.
 **Description:**  
 Returns a list of subdirectories within the directory at the specified path. Optionally includes hidden subdirectories.
 
-**Usage:**  
-```markdown
-subdirectories(path: Path, include_hidden=no -> [Path])
+**Signature:**  
+```tomo
+func subdirectories(path: Path, include_hidden=no -> [Path])
 ```
 
 **Parameters:**
@@ -581,7 +581,7 @@ subdirectories(path: Path, include_hidden=no -> [Path])
 A list of subdirectory paths.
 
 **Example:**  
-```markdown
+```tomo
 >> (./directory):subdirectories()
 = [(./directory/subdir1), (./directory/subdir2)]
 
@@ -596,9 +596,9 @@ A list of subdirectory paths.
 **Description:**  
 Generates a unique directory path based on the given path. Useful for creating temporary directories.
 
-**Usage:**  
-```markdown
-unique_directory(path: Path -> Path)
+**Signature:**  
+```tomo
+func unique_directory(path: Path -> Path)
 ```
 
 **Parameters:**
@@ -627,9 +627,9 @@ Writes the given text to the file at the specified path, creating the file if
 it doesn't already exist. Sets the file permissions as specified. If the file
 writing cannot be successfully completed, a runtime error is raised.
 
-**Usage:**  
-```markdown
-write(path: Path, text: Text, permissions=0o644[32] -> Void)
+**Signature:**  
+```tomo
+func write(path: Path, text: Text, permissions=0o644[32] -> Void)
 ```
 
 **Parameters:**
@@ -642,7 +642,7 @@ write(path: Path, text: Text, permissions=0o644[32] -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 (./file.txt):write("Hello, world!")
 ```
 
@@ -655,9 +655,9 @@ Writes the given bytes to the file at the specified path, creating the file if
 it doesn't already exist. Sets the file permissions as specified. If the file
 writing cannot be successfully completed, a runtime error is raised.
 
-**Usage:**  
-```markdown
-write(path: Path, bytes: [Byte], permissions=0o644[32] -> Void)
+**Signature:**  
+```tomo
+func write(path: Path, bytes: [Byte], permissions=0o644[32] -> Void)
 ```
 
 **Parameters:**
@@ -670,7 +670,7 @@ write(path: Path, bytes: [Byte], permissions=0o644[32] -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 (./file.txt):write_bytes([104[B], 105[B]])
 ```
 
@@ -683,9 +683,9 @@ Writes the given text to a unique file path based on the specified path. The
 file is created if it doesn't exist. This is useful for creating temporary
 files.
 
-**Usage:**  
-```markdown
-write_unique(path: Path, text: Text -> Path)
+**Signature:**  
+```tomo
+func write_unique(path: Path, text: Text -> Path)
 ```
 
 **Parameters:**
@@ -698,7 +698,7 @@ write_unique(path: Path, text: Text -> Path)
 The path of the newly created unique file.
 
 **Example:**  
-```markdown
+```tomo
 >> created := (./file-XXXXXX.txt):write_unique("Hello, world!")
 = (./file-27QHtq.txt)
 >> created:read()
@@ -715,9 +715,9 @@ Writes the given bytes to a unique file path based on the specified path. The
 file is created if it doesn't exist. This is useful for creating temporary
 files.
 
-**Usage:**  
-```markdown
-write_unique_bytes(path: Path, bytes: [Byte] -> Path)
+**Signature:**  
+```tomo
+func write_unique_bytes(path: Path, bytes: [Byte] -> Path)
 ```
 
 **Parameters:**
@@ -730,7 +730,7 @@ write_unique_bytes(path: Path, bytes: [Byte] -> Path)
 The path of the newly created unique file.
 
 **Example:**  
-```markdown
+```tomo
 >> created := (./file-XXXXXX.txt):write_unique_bytes([1[B], 2[B], 3[B]])
 = (./file-27QHtq.txt)
 >> created:read()

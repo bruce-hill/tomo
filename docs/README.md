@@ -42,9 +42,9 @@ Information about Tomo's built-in types can be found here:
 **Description:**  
 Gets a line of user input text with a prompt.
 
-**Usage:**  
-```markdown
-ask(prompt:Text, bold:Bool = yes, force_tty:Bool = yes -> Void)
+**Signature:**  
+```tomo
+func ask(prompt:Text, bold:Bool = yes, force_tty:Bool = yes -> Void)
 ```
 
 **Parameters:**
@@ -65,7 +65,7 @@ A line of user input text without a trailing newline, or empty text if
 something went wrong (e.g. the user hit `Ctrl-D`).
 
 **Example:**  
-```markdown
+```tomo
 >> ask("What's your name? ")
 = "Arthur Dent"
 ```
@@ -77,9 +77,9 @@ something went wrong (e.g. the user hit `Ctrl-D`).
 **Description:**  
 Exits the program with a given status and optionally prints a message.
 
-**Usage:**  
-```markdown
-ask(message:Text? = !Text, status:Int32 = 1[32] -> Void)
+**Signature:**  
+```tomo
+func ask(message:Text? = !Text, status:Int32 = 1[32] -> Void)
 ```
 
 **Parameters:**
@@ -93,7 +93,7 @@ ask(message:Text? = !Text, status:Int32 = 1[32] -> Void)
 This function never returns.
 
 **Example:**  
-```markdown
+```tomo
 exit(status=1, "Goodbye forever!")
 ```
 
@@ -104,9 +104,9 @@ exit(status=1, "Goodbye forever!")
 **Description:**  
 Prints a message to the console.
 
-**Usage:**  
-```markdown
-say(text:Text, newline:Bool = yes -> Void)
+**Signature:**  
+```tomo
+func say(text:Text, newline:Bool = yes -> Void)
 ```
 
 **Parameters:**
@@ -118,7 +118,7 @@ say(text:Text, newline:Bool = yes -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 say("Hello ", newline=no)
 say("world!")
 ```
@@ -130,9 +130,9 @@ say("world!")
 **Description:**  
 Pause execution for a given number of seconds.
 
-**Usage:**  
-```markdown
-sleep(seconds: Num -> Void)
+**Signature:**  
+```tomo
+func sleep(seconds: Num -> Void)
 ```
 
 **Parameters:**
@@ -143,7 +143,7 @@ sleep(seconds: Num -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 sleep(1.5)
 ```
 
@@ -154,9 +154,9 @@ sleep(1.5)
 **Description:**  
 Prints a message to the console, aborts the program, and prints a stack trace.
 
-**Usage:**  
-```markdown
-fail(message:Text -> Abort)
+**Signature:**  
+```tomo
+func fail(message:Text -> Abort)
 ```
 
 **Parameters:**
@@ -167,7 +167,7 @@ fail(message:Text -> Abort)
 Nothing, aborts the program.
 
 **Example:**  
-```markdown
+```tomo
 fail("Oh no!")
 ```
 
@@ -178,9 +178,9 @@ fail("Oh no!")
 **Description:**  
 Gets the current time. This is an alias for `DateTime.now()`.
 
-**Usage:**  
-```markdown
-now(->DateTime)
+**Signature:**  
+```tomo
+func now(->DateTime)
 ```
 
 **Parameters:**
@@ -191,7 +191,7 @@ None.
 The current moment as a DateTime.
 
 **Example:**  
-```markdown
+```tomo
 >> now()
 = Sun Sep 29 20:12:33 2024
 ```

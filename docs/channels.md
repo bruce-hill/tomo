@@ -29,9 +29,9 @@ small_channel := |:Int; max_size=5|
 **Description:**  
 Adds an item to the channel.
 
-**Usage:**  
-```markdown
-give(channel:|T|, item: T, front: Bool = no -> Void)
+**Signature:**  
+```tomo
+func give(channel:|T|, item: T, front: Bool = no -> Void)
 ```
 
 **Parameters:**
@@ -44,7 +44,7 @@ give(channel:|T|, item: T, front: Bool = no -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 >> channel:give("Hello")
 ```
 
@@ -55,9 +55,9 @@ Nothing.
 **Description:**  
 Adds multiple items to the channel.
 
-**Usage:**  
-```markdown
-give_all(channel:|T|, items: [T], front: Bool = no -> Void)
+**Signature:**  
+```tomo
+func give_all(channel:|T|, items: [T], front: Bool = no -> Void)
 ```
 
 **Parameters:**
@@ -70,7 +70,7 @@ give_all(channel:|T|, items: [T], front: Bool = no -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 >> channel:give_all([1, 2, 3])
 ```
 
@@ -81,9 +81,9 @@ Nothing.
 **Description:**  
 Removes and returns an item from the channel. If the channel is empty, it waits until an item is available.
 
-**Usage:**  
-```markdown
-get(channel:|T|, front: Bool = yes -> T)
+**Signature:**  
+```tomo
+func get(channel:|T|, front: Bool = yes -> T)
 ```
 
 **Parameters:**
@@ -95,7 +95,7 @@ get(channel:|T|, front: Bool = yes -> T)
 The item removed from the channel.
 
 **Example:**  
-```markdown
+```tomo
 >> channel:peek()
 = "Hello"
 ```
@@ -108,9 +108,9 @@ The item removed from the channel.
 Returns the next item that will come out of the channel, but without removing
 it. If the channel is empty, it waits until an item is available.
 
-**Usage:**  
-```markdown
-peek(channel:|T|, front: Bool = yes -> T)
+**Signature:**  
+```tomo
+func peek(channel:|T|, front: Bool = yes -> T)
 ```
 
 **Parameters:**
@@ -122,7 +122,7 @@ peek(channel:|T|, front: Bool = yes -> T)
 The item removed from the channel.
 
 **Example:**  
-```markdown
+```tomo
 >> channel:get()
 = "Hello"
 ```
@@ -134,9 +134,9 @@ The item removed from the channel.
 **Description:**  
 Removes all items from the channel.
 
-**Usage:**  
-```markdown
-clear(channel:|T| -> Void)
+**Signature:**  
+```tomo
+func clear(channel:|T| -> Void)
 ```
 
 **Parameters:**
@@ -147,7 +147,7 @@ clear(channel:|T| -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 >> channel:clear()
 ```
 
@@ -158,9 +158,9 @@ Nothing.
 **Description:**  
 Returns a list of all items currently in the channel without removing them.
 
-**Usage:**  
-```markdown
-channel:view(->[T])
+**Signature:**  
+```tomo
+func channel:view(->[T])
 ```
 
 **Parameters:**
@@ -171,7 +171,7 @@ channel:view(->[T])
 An array of items currently in the channel.
 
 **Example:**  
-```markdown
+```tomo
 >> channel:view()
 = [1, 2, 3]
 ```

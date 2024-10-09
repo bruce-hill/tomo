@@ -35,9 +35,9 @@ can be called either on the type itself: `Int.sqrt(x)` or as a method call:
 **Description:**  
 Formats an integer as a string with a specified number of digits.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-format(i: Int, digits: Int = 0 -> Text)
+func format(i: Int, digits: Int = 0 -> Text)
 ```
 
 **Parameters:**
@@ -61,9 +61,9 @@ A string representation of the integer, padded to the specified number of digits
 **Description:**  
 Converts an integer to its hexadecimal representation.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-hex(i: Int, digits: Int = 0, uppercase: Bool = yes, prefix: Bool = yes -> Text)
+func hex(i: Int, digits: Int = 0, uppercase: Bool = yes, prefix: Bool = yes -> Text)
 ```
 
 **Parameters:**
@@ -89,9 +89,9 @@ The hexadecimal string representation of the integer.
 **Description:**  
 Converts an integer to its octal representation.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-octal(i: Int, digits: Int = 0, prefix: Bool = yes -> Text)
+func octal(i: Int, digits: Int = 0, prefix: Bool = yes -> Text)
 ```
 
 **Parameters:**
@@ -116,9 +116,9 @@ The octal string representation of the integer.
 **Description:**  
 Generates a random integer between the specified minimum and maximum values.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-random(min: Int, max: Int -> Int)
+func random(min: Int, max: Int -> Int)
 ```
 
 **Parameters:**
@@ -142,9 +142,9 @@ A random integer between `min` and `max` (inclusive).
 **Description:**  
 Converts a text representation of an integer into an integer.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-from_text(text: Text, success: Bool = !&Bool? -> Int)
+func from_text(text: Text, success: Bool = !&Bool? -> Int)
 ```
 
 **Parameters:**
@@ -186,9 +186,9 @@ success := no
 **Description:**  
 Creates an inclusive range of integers between the specified start and end values.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-to(from: Int, to: Int -> Range)
+func to(from: Int, to: Int -> Range)
 ```
 
 **Parameters:**
@@ -212,9 +212,9 @@ A range object representing all integers from `from` to `to` (inclusive).
 **Description:**  
 Calculates the absolute value of an integer.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-abs(x: Int -> Int)
+func abs(x: Int -> Int)
 ```
 
 **Parameters:**
@@ -237,9 +237,9 @@ The absolute value of `x`.
 **Description:**  
 Calculates the square root of an integer. 
 
-**Usage:**  
+**Signature:**  
 ```tomo
-sqrt(x: Int -> Int)
+func sqrt(x: Int -> Int)
 ```
 
 **Parameters:**
@@ -270,9 +270,9 @@ getting an incorrect answer are astronomically small (on the order of 10^(-30)).
 See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp)
 for more details.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-is_prime(x: Int, reps: Int = 50 -> Bool)
+func is_prime(x: Int, reps: Int = 50 -> Bool)
 ```
 
 **Parameters:**
@@ -304,9 +304,9 @@ answer are astronomically small (on the order of 10^(-30)).
 See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp)
 for more details.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-next_prime(x: Int -> Int)
+func next_prime(x: Int -> Int)
 ```
 
 **Parameters:**
@@ -337,9 +337,9 @@ answer are astronomically small (on the order of 10^(-30)).
 See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp)
 for more details.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-prev_prime(x: Int -> Int)
+func prev_prime(x: Int -> Int)
 ```
 
 **Parameters:**
@@ -363,9 +363,9 @@ The previous prime number less than `x`.
 Returns the given number clamped between two values so that it is within
 that range.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-clamped(x, low, high: Int -> Int)
+func clamped(x, low, high: Int -> Int)
 ```
 
 **Parameters:**

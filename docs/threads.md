@@ -11,9 +11,9 @@ through thread-safe Channels with no other shared data.
 **Description:**  
 Creates a new thread to execute a specified function.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-Thread.new(fn: func(->Void) -> Thread)
+func new(fn: func(->Void) -> Thread)
 ```
 
 **Parameters:**
@@ -45,9 +45,9 @@ A new `Thread` object representing the created thread.
 **Description:**  
 Requests the cancellation of a specified thread.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-cancel(thread: Thread)
+func cancel(thread: Thread)
 ```
 
 **Parameters:**
@@ -69,9 +69,9 @@ Nothing.
 **Description:**  
 Waits for a specified thread to terminate.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-join(thread: Thread)
+func join(thread: Thread)
 ```
 
 **Parameters:**
@@ -93,9 +93,9 @@ Nothing.
 **Description:**  
 Detaches a specified thread, allowing it to run independently.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-detach(thread: Thread)
+func detach(thread: Thread)
 ```
 
 **Parameters:**

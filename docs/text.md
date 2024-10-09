@@ -400,9 +400,9 @@ many repetitions you want by putting a number or range of numbers first using
 **Description:**  
 Converts a `Text` value to a C-style string.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-as_c_string(text: Text -> CString)
+func as_c_string(text: Text -> CString)
 ```
 
 **Parameters:**
@@ -426,9 +426,9 @@ A C-style string (`CString`) representing the text.
 Converts a `Text` value to an array of bytes representing a UTF8 encoding of
 the text.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-utf8_bytes(text: Text -> [Byte])
+func utf8_bytes(text: Text -> [Byte])
 ```
 
 **Parameters:**
@@ -451,9 +451,9 @@ An array of bytes (`[Byte]`) representing the text in UTF8 encoding.
 **Description:**  
 Returns an array of the names of each codepoint in the text.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-codepoint_names(text: Text -> [Text])
+func codepoint_names(text: Text -> [Text])
 ```
 
 **Parameters:**
@@ -476,9 +476,9 @@ An array of codepoint names (`[Text]`).
 **Description:**  
 Returns an array of Unicode code points for UTF32 encoding of the text.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-utf32_codepoints(text: Text -> [Int32])
+func utf32_codepoints(text: Text -> [Int32])
 ```
 
 **Parameters:**
@@ -501,9 +501,9 @@ An array of 32-bit integer Unicode code points (`[Int32]`).
 **Description:**  
 Checks if the `Text` ends with a literal suffix text.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-ends_with(text: Text, suffix: Text -> Bool)
+func ends_with(text: Text, suffix: Text -> Bool)
 ```
 
 **Parameters:**
@@ -527,9 +527,9 @@ ends_with(text: Text, suffix: Text -> Bool)
 **Description:**  
 Converts a C-style string to a `Text` value.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-from_c_string(str: CString -> Text)
+func from_c_string(str: CString -> Text)
 ```
 
 **Parameters:**
@@ -554,9 +554,9 @@ Returns text that has the given codepoint names (according to the Unicode
 specification) as its codepoints. Note: the text will be normalized, so the
 resulting text's codepoints may not exactly match the input codepoints.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-from_codepoint_names(codepoint_names: [Text] -> [Text])
+func from_codepoint_names(codepoint_names: [Text] -> [Text])
 ```
 
 **Parameters:**
@@ -587,9 +587,9 @@ Returns text that has been constructed from the given UTF32 codepoints. Note:
 the text will be normalized, so the resulting text's codepoints may not exactly
 match the input codepoints.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-from_codepoint_names(codepoints: [Int32] -> [Text])
+func from_codepoint_names(codepoints: [Int32] -> [Text])
 ```
 
 **Parameters:**
@@ -614,9 +614,9 @@ Returns text that has been constructed from the given UTF8 bytes. Note: the
 text will be normalized, so the resulting text's UTF8 bytes may not exactly
 match the input.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-from_codepoint_names(codepoints: [Int32] -> [Text])
+func from_codepoint_names(codepoints: [Int32] -> [Text])
 ```
 
 **Parameters:**
@@ -640,9 +640,9 @@ A new text based on the input UTF8 bytes after normalization has been applied.
 Finds the first occurrence of a pattern in the given text (if any).
 See: [Patterns](#Patterns) for more information on patterns.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-find(text: Text, pattern: Pattern, start: Int = 1, length: &Int64? = !&Int64 -> Int)
+func find(text: Text, pattern: Pattern, start: Int = 1, length: &Int64? = !&Int64 -> Int)
 ```
 
 **Parameters:**
@@ -683,9 +683,9 @@ found.
 Finds all occurrences of a pattern in the given text.
 See: [Patterns](#Patterns) for more information on patterns.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-find_all(text: Text, pattern: Pattern -> [Text])
+func find_all(text: Text, pattern: Pattern -> [Text])
 ```
 
 **Parameters:**
@@ -725,9 +725,9 @@ Note: if `text` or `pattern` is empty, an empty array will be returned.
 **Description:**  
 Checks if the `Text` contains a target pattern (see: [Patterns](#Patterns)).
 
-**Usage:**  
+**Signature:**  
 ```tomo
-has(text: Text, pattern: Pattern -> Bool)
+func has(text: Text, pattern: Pattern -> Bool)
 ```
 
 **Parameters:**
@@ -757,9 +757,9 @@ has(text: Text, pattern: Pattern -> Bool)
 **Description:**  
 Joins an array of text pieces with a specified glue.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-join(glue: Text, pieces: [Text] -> Text)
+func join(glue: Text, pieces: [Text] -> Text)
 ```
 
 **Parameters:**
@@ -784,9 +784,9 @@ A single `Text` value with the pieces joined by the glue.
 Splits the text into an array of lines of text, preserving blank lines,
 ignoring trailing newlines, and handling `\r\n` the same as `\n`.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-split(text: Text -> [Text])
+func split(text: Text -> [Text])
 ```
 
 **Parameters:**
@@ -817,9 +817,9 @@ An array of substrings resulting from the split.
 **Description:**  
 Converts all characters in the text to lowercase.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-lower(text: Text -> Text)
+func lower(text: Text -> Text)
 ```
 
 **Parameters:**
@@ -844,9 +844,9 @@ Checks if the `Text` matches target pattern (see: [Patterns](#Patterns)) and
 returns an array of the matching texts or a null value if the entire text
 doesn't match the pattern.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-matches(text: Text, pattern: Pattern -> [Text])
+func matches(text: Text, pattern: Pattern -> [Text])
 ```
 
 **Parameters:**
@@ -875,9 +875,9 @@ a null value otherwise.
 For each occurrence of the given pattern, replace the text with the result of
 calling the given function on that text.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-map(text: Text, pattern: Pattern, fn: func(text:Text)->Text -> Text)
+func map(text: Text, pattern: Pattern, fn: func(text:Text)->Text -> Text)
 ```
 
 **Parameters:**
@@ -905,9 +905,9 @@ function to each.
 **Description:**  
 Formats the text as a quoted string.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-quoted(text: Text, color: Bool = no -> Text)
+func quoted(text: Text, color: Bool = no -> Text)
 ```
 
 **Parameters:**
@@ -931,9 +931,9 @@ The text formatted as a quoted string.
 **Description:**  
 Repeat some text multiple times.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-repeat(text: Text, count:Int -> Text)
+func repeat(text: Text, count:Int -> Text)
 ```
 
 **Parameters:**
@@ -959,9 +959,9 @@ Replaces occurrences of a pattern in the text with a replacement string.
 
 See [Patterns](#patterns) for more information about patterns.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-replace(text: Text, pattern: Pattern, replacement: Text, backref: Pattern = $/\/, recursive: Bool = yes -> Text)
+func replace(text: Text, pattern: Pattern, replacement: Text, backref: Pattern = $/\/, recursive: Bool = yes -> Text)
 ```
 
 **Parameters:**
@@ -1028,9 +1028,9 @@ matching pattern's replacement is applied and the pattern matching moves on to
 *after* the replacement text, so replacement text is not recursively modified.
 See [`replace()`](#replace) for more information about replacement behavior.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-replace_all(replacements:{Pattern:Text}, backref: Pattern = $/\/ -> Text)
+func replace_all(replacements:{Pattern:Text}, backref: Pattern = $/\/ -> Text)
 ```
 
 **Parameters:**
@@ -1073,9 +1073,9 @@ replacement text.
 Splits the text into an array of substrings based on a pattern.
 See [Patterns](#patterns) for more information about patterns.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-split(text: Text, pattern: Pattern = "" -> [Text])
+func split(text: Text, pattern: Pattern = "" -> [Text])
 ```
 
 **Parameters:**
@@ -1109,9 +1109,9 @@ An array of substrings resulting from the split.
 **Description:**  
 Checks if the `Text` starts with a literal prefix text.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-starts_with(text: Text, prefix: Text -> Bool)
+func starts_with(text: Text, prefix: Text -> Bool)
 ```
 
 **Parameters:**
@@ -1135,9 +1135,9 @@ starts_with(text: Text, prefix: Text -> Bool)
 **Description:**  
 Converts the text to title case (capitalizing the first letter of each word).
 
-**Usage:**  
+**Signature:**  
 ```tomo
-title(text: Text -> Text)
+func title(text: Text -> Text)
 ```
 
 **Parameters:**
@@ -1161,9 +1161,9 @@ The text in title case.
 Trims the matching pattern from the left and/or right side of the text
 See [Patterns](#patterns) for more information about patterns.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-trim(text: Text, pattern: Pattern = $/{whitespace/, trim_left: Bool = yes, trim_right: Bool = yes -> Text)
+func trim(text: Text, pattern: Pattern = $/{whitespace/, trim_left: Bool = yes, trim_right: Bool = yes -> Text)
 ```
 
 **Parameters:**
@@ -1195,9 +1195,9 @@ The text without the trim pattern at either end.
 **Description:**  
 Converts all characters in the text to uppercase.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-upper(text: Text -> Text)
+func upper(text: Text -> Text)
 ```
 
 **Parameters:**

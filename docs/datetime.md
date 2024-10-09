@@ -77,13 +77,14 @@ affected by leap seconds. For this reason, `after()` takes an argument,
 `timezone` which is used to determine in which timezone the offsets should be
 calculated.
 
-**Usage:**  
-```markdown
-datetime:after(seconds : Num = 0.0, minutes : Num = 0.0, hours : Num = 0.0, days : Int = 0, weeks : Int = 0, months : Int = 0, years : Int = 0, timezone : Text? = !Text -> DateTime)
+**Signature:**  
+```tomo
+func after(datetime: DateTime, seconds : Num = 0.0, minutes : Num = 0.0, hours : Num = 0.0, days : Int = 0, weeks : Int = 0, months : Int = 0, years : Int = 0, timezone : Text? = !Text -> DateTime)
 ```
 
 **Parameters:**
 
+- `datetime`: The datetime used as a starting point.
 - `seconds` (optional): An amount of seconds to offset the datetime (default: 0).
 - `minutes` (optional): An amount of minutes to offset the datetime (default: 0).
 - `hours` (optional): An amount of hours to offset the datetime (default: 0).
@@ -98,7 +99,7 @@ datetime:after(seconds : Num = 0.0, minutes : Num = 0.0, hours : Num = 0.0, days
 A new `DateTime` offset by the given amount.
 
 **Example:**  
-```markdown
+```tomo
 >> DateTime(2024, 9, 29, hour=19):after(days=1, minutes=30)
 = Mon Sep 30 19:30:00 2024 EDT
 ```
@@ -111,20 +112,21 @@ A new `DateTime` offset by the given amount.
 Return a text representation of the datetime using the `"%F"` format
 specifier, which gives the date in `YYYY-MM-DD` form.
 
-**Usage:**  
-```markdown
-datetime:date(timezone : Text? = !Text -> Text)
+**Signature:**  
+```tomo
+func date(datetime: DateTime, timezone : Text? = !Text -> Text)
 ```
 
 **Parameters:**
 
+- `datetime`: The datetime to get the date from.
 - `timezone` (optional): If specified, give the date in the given timezone (otherwise, use the current local timezone).
 
 **Returns:**  
 The date in `YYYY-MM-DD` format.
 
 **Example:**  
-```markdown
+```tomo
 >> DateTime(2024, 9, 29):date()
 = "2024-09-29"
 ```
@@ -139,13 +141,14 @@ options, return a text representation of the given date in the given format. If
 `timezone` is specified, use that timezone instead of the current local
 timezone.
 
-**Usage:**  
-```markdown
-datetime:format(format: Text = "%Y-%m-%dT%H:%M:%S%z", timezone : Text? = !Text -> Text)
+**Signature:**  
+```tomo
+func format(datetime: DateTime, format: Text = "%Y-%m-%dT%H:%M:%S%z", timezone : Text? = !Text -> Text)
 ```
 
 **Parameters:**
 
+- `datetime`: The datetime to format.
 - `format`: The `strftime` format to use (default: `"%Y-%m-%dT%H:%M:%S%z"`).
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
 
@@ -153,7 +156,7 @@ datetime:format(format: Text = "%Y-%m-%dT%H:%M:%S%z", timezone : Text? = !Text -
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 >> DateTime(2024, 9, 29):format("%A")
 = "Sunday"
 ```
@@ -166,9 +169,9 @@ Nothing.
 Return a datetime object that represents the same moment in time as
 the given UNIX epoch timestamp (seconds since January 1, 1970 UTC).
 
-**Usage:**  
-```markdown
-DateTime.from_unix_timestamp(timestamp: Int64 -> DateTime)
+**Signature:**  
+```tomo
+func from_unix_timestamp(timestamp: Int64 -> DateTime)
 ```
 
 **Parameters:**
@@ -179,7 +182,7 @@ DateTime.from_unix_timestamp(timestamp: Int64 -> DateTime)
 A `DateTime` object representing the same moment as the given UNIX timestamp.
 
 **Example:**  
-```markdown
+```tomo
 # In the New York timezone:
 >> DateTime.from_unix_timestamp(0)
 = Wed Dec 31 19:00:00 1969
@@ -193,13 +196,14 @@ A `DateTime` object representing the same moment as the given UNIX timestamp.
 Get various components of the given datetime object and store them in the
 provided optional fields.
 
-**Usage:**  
-```markdown
-datetime:get(year : &Int? = !&Int, month : &Int? = !&Int, day : &Int? = !&Int, hour : &Int? = !&Int, minute : &Int? = !&Int, second : &Int? = !&Int, nanosecond : &Int? = !&Int, weekday : &Int? = !&Int, timezone : Text? = !Text -> Void)
+**Signature:**  
+```tomo
+func get(datetime: DateTime, year : &Int? = !&Int, month : &Int? = !&Int, day : &Int? = !&Int, hour : &Int? = !&Int, minute : &Int? = !&Int, second : &Int? = !&Int, nanosecond : &Int? = !&Int, weekday : &Int? = !&Int, timezone : Text? = !Text -> Void)
 ```
 
 **Parameters:**
 
+- `datetime`: The datetime from which to extract information.
 - `year`: If non-null, store the year here.
 - `month`: If non-null, store the month here (1-12).
 - `day`: If non-null, store the day of the month here (1-31).
@@ -214,7 +218,7 @@ datetime:get(year : &Int? = !&Int, month : &Int? = !&Int, day : &Int? = !&Int, h
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 dt := DateTime(2024, 9, 29)
 month := 0
 dt:get(month=&month)
@@ -231,9 +235,9 @@ Get the local timezone's name (e.g. `America/New_York` or `UTC`. By default,
 this value is read from `/etc/localtime`, however, this can be overridden by
 calling `DateTime.set_local_timezone(...)`.
 
-**Usage:**  
-```markdown
-DateTime.get_local_timezone(->Text)
+**Signature:**  
+```tomo
+func get_local_timezone(->Text)
 ```
 
 **Parameters:**
@@ -244,7 +248,7 @@ None.
 The name of the current local timezone.
 
 **Example:**  
-```markdown
+```tomo
 >> DateTime.get_local_timezone()
 = "America/New_York"
 ```
@@ -256,20 +260,21 @@ The name of the current local timezone.
 **Description:**  
 Return the number of hours until a given datetime.
 
-**Usage:**  
-```markdown
-datetime:hours_till(then:DateTime -> Num)
+**Signature:**  
+```tomo
+func hours_till(datetime: DateTime, then:DateTime -> Num)
 ```
 
 **Parameters:**
 
+- `datetime`: The starting point datetime.
 - `then`: Another datetime that we want to calculate the time offset from (in hours).
 
 **Returns:**
 The number of hours (possibly fractional, possibly negative) until the given time.
 
 **Example:**  
-```markdown
+```tomo
 the_future := now():after(hours=1, minutes=30)
 >> now():hours_till(the_future)
 = 1.5
@@ -282,20 +287,21 @@ the_future := now():after(hours=1, minutes=30)
 **Description:**  
 Return the number of minutes until a given datetime.
 
-**Usage:**  
-```markdown
-datetime:minutes_till(then:DateTime -> Num)
+**Signature:**  
+```tomo
+func minutes_till(datetime: DateTime, then:DateTime -> Num)
 ```
 
 **Parameters:**
 
+- `datetime`: The starting point datetime.
 - `then`: Another datetime that we want to calculate the time offset from (in minutes).
 
 **Returns:**
 The number of minutes (possibly fractional, possibly negative) until the given time.
 
 **Example:**  
-```markdown
+```tomo
 the_future := now():after(minutes=1, seconds=30)
 >> now():minutes_till(the_future)
 = 1.5
@@ -310,9 +316,9 @@ Return a new `DateTime` object representing the given time parameters expressed
 in local time. This function is the same as calling `DateTime` directly as a
 constructor.
 
-**Usage:**  
-```markdown
-DateTime.new(year : Int, month : Int, day : Int, hour : Int = 0, minute : Int = 0, second : Num = 0.0 -> DateTime)
+**Signature:**  
+```tomo
+func new(year : Int, month : Int, day : Int, hour : Int = 0, minute : Int = 0, second : Num = 0.0 -> DateTime)
 ```
 
 **Parameters:**
@@ -332,7 +338,7 @@ example, `DateTime.new(..., hour=3, minute=65)` is the same as
 integer, an error will be raised.
 
 **Example:**  
-```markdown
+```tomo
 >> DateTime.new(2024, 9, 29)
 = Mon Sep 30 00:00:00 2024 EDT
 
@@ -349,9 +355,9 @@ integer, an error will be raised.
 Get a `DateTime` object representing the current date and time. This function
 is the same as the global function `now()`.
 
-**Usage:**  
-```markdown
-DateTime.now(->DateTime)
+**Signature:**  
+```tomo
+func now(->DateTime)
 ```
 
 **Parameters:**
@@ -362,7 +368,7 @@ None.
 Returns a `DateTime` object representing the current date and time.
 
 **Example:**  
-```markdown
+```tomo
 >> DateTime.now()
 = Sun Sep 29 20:22:48 2024 EDT
 ```
@@ -375,9 +381,9 @@ Returns a `DateTime` object representing the current date and time.
 Return a new `DateTime` object parsed from the given string in the given format,
 or a null value if the value could not be successfully parsed.
 
-**Usage:**  
-```markdown
-DateTime.parse(text: Text, format: Text = "%Y-%m-%dT%H:%M:%S%z" -> DateTime?)
+**Signature:**  
+```tomo
+func parse(text: Text, format: Text = "%Y-%m-%dT%H:%M:%S%z" -> DateTime?)
 ```
 
 **Parameters:**
@@ -392,7 +398,7 @@ If the text was successfully parsed according to the given format, return a
 `DateTime` representing that information. Otherwise, return a null value.
 
 **Example:**  
-```markdown
+```tomo
 >> DateTime.parse("2024-09-29", "%Y-%m-%d")!
 = Sun Sep 29 00:00:00 2024 EDT
 
@@ -408,13 +414,14 @@ If the text was successfully parsed according to the given format, return a
 Return a plain English textual representation of the approximate time difference
 between two `DateTime`s. For example: `5 minutes ago` or `1 day later`
 
-**Usage:**  
-```markdown
-datetime:relative(relative_to : DateTime = DateTime.now(), timezone : Text? = !Text -> Text)
+**Signature:**  
+```tomo
+func relative(datetime: DateTime, relative_to : DateTime = DateTime.now(), timezone : Text? = !Text -> Text)
 ```
 
 **Parameters:**
 
+- `datetime`: The datetime whose relative time you're getting.
 - `relative_to` (optional): The time against which the relative time is calculated (default: `DateTime.now()`).
 - `timezone` (optional): If specified, perform calculations in the given
   timezone (otherwise, use the current local timezone).
@@ -428,7 +435,7 @@ represented as `2 days later`. Datetimes in the past will have the suffix `"
 ago"`, while datetimes in the future will have the suffix `" later"`.
 
 **Example:**  
-```markdown
+```tomo
 >> now():after(days=2):relative()
 = "2 days later"
 
@@ -443,20 +450,21 @@ ago"`, while datetimes in the future will have the suffix `" later"`.
 **Description:**  
 Return the number of seconds until a given datetime.
 
-**Usage:**  
-```markdown
-datetime:seconds_till(then:DateTime -> Num)
+**Signature:**  
+```tomo
+func seconds_till(datetime: DateTime, then:DateTime -> Num)
 ```
 
 **Parameters:**
 
+- `datetime`: The starting point datetime.
 - `then`: Another datetime that we want to calculate the time offset from (in seconds).
 
 **Returns:**
 The number of seconds (possibly fractional, possibly negative) until the given time.
 
 **Example:**  
-```markdown
+```tomo
 the_future := now():after(seconds=1)
 >> now():seconds_till(the_future)
 = 1
@@ -473,9 +481,9 @@ timezone for performing calculations and constructing `DateTime` objects from
 component parts. It's also used as the default way that `DateTime` objects are
 converted to text.
 
-**Usage:**  
-```markdown
-DateTime.set_local_timezone(timezone : Text? = !Text -> Void)
+**Signature:**  
+```tomo
+func set_local_timezone(timezone : Text? = !Text -> Void)
 ```
 
 **Parameters:**
@@ -488,7 +496,7 @@ DateTime.set_local_timezone(timezone : Text? = !Text -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 DateTime.set_local_timezone("America/Los_Angeles")
 ```
 
@@ -499,13 +507,14 @@ DateTime.set_local_timezone("America/Los_Angeles")
 **Description:**  
 Return a text representation of the time component of the given datetime.
 
-**Usage:**  
-```markdown
-datetime:time(seconds : Bool = no, am_pm : Bool = yes, timezone : Text? = !Text -> Text)
+**Signature:**  
+```tomo
+func time(datetime: DateTime, seconds : Bool = no, am_pm : Bool = yes, timezone : Text? = !Text -> Text)
 ```
 
 **Parameters:**
 
+- `datetime`: The datetime whose time value you want to get.
 - `seconds`: Whether to include seconds in the time (default: `no`).
 - `am_pm`: Whether to use am/pm in the representation or use a 24-hour clock (default: `yes`).
 - `timezone` (optional): If specified, give the time in the given timezone (otherwise, use the current local timezone).
@@ -514,7 +523,7 @@ datetime:time(seconds : Bool = no, am_pm : Bool = yes, timezone : Text? = !Text 
 A text representation of the time component of the datetime.
 
 **Example:**  
-```markdown
+```tomo
 dt := DateTime(2024, 9, 29, hours=13, minutes=59, seconds=30)
 
 >> dt:time()
@@ -535,20 +544,20 @@ dt := DateTime(2024, 9, 29, hours=13, minutes=59, seconds=30)
 Get the UNIX timestamp of the given datetime (seconds since the UNIX epoch:
 January 1, 1970 UTC).
 
-**Usage:**  
-```markdown
-datetime:unix_timestamp(->Int64)
+**Signature:**  
+```tomo
+func unix_timestamp(datetime:DateTime->Int64)
 ```
 
 **Parameters:**
 
-None.
+`datetime`: The datetime whose UNIX timestamp you want to get.
 
 **Returns:**  
 A 64-bit integer representation of the UNIX timestamp.
 
 **Example:**  
-```markdown
+```tomo
 >> now():unix_timestamp()
 = 1727654730[64]
 ```

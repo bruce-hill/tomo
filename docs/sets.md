@@ -80,9 +80,9 @@ iterating over any of the new values.
 **Description:**  
 Checks if the set contains a specified item.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-has(set:{T}, item:T -> Bool)
+func has(set:{T}, item:T -> Bool)
 ```
 
 **Parameters:**
@@ -106,9 +106,9 @@ has(set:{T}, item:T -> Bool)
 **Description:**  
 Adds an item to the set.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-add(set:{T}, item: T -> Void)
+func add(set:{T}, item: T -> Void)
 ```
 
 **Parameters:**
@@ -131,9 +131,9 @@ Nothing.
 **Description:**  
 Adds multiple items to the set.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-add_all(set:&{T}, items: [T] -> Void)
+func add_all(set:&{T}, items: [T] -> Void)
 ```
 
 **Parameters:**
@@ -156,9 +156,9 @@ Nothing.
 **Description:**  
 Removes an item from the set.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-remove(set:&{T}, item: T -> Void)
+func remove(set:&{T}, item: T -> Void)
 ```
 
 **Parameters:**
@@ -181,9 +181,9 @@ Nothing.
 **Description:**  
 Removes multiple items from the set.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-remove_all(set:&{T}, items: [T] -> Void)
+func remove_all(set:&{T}, items: [T] -> Void)
 ```
 
 **Parameters:**
@@ -206,9 +206,9 @@ Nothing.
 **Description:**  
 Removes all items from the set.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-clear(set:&{T} -> Void)
+func clear(set:&{T} -> Void)
 ```
 
 **Parameters:**
@@ -230,9 +230,9 @@ Nothing.
 **Description:**  
 Creates a new set that is the union of the original set and another set.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-with(set:{T}, other: {T} -> {T})
+func with(set:{T}, other: {T} -> {T})
 ```
 
 **Parameters:**
@@ -256,9 +256,9 @@ A new set containing all items from both sets.
 **Description:**  
 Creates a new set with items that are in both the original set and another set.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-overlap(set:{T}, other: {T} -> {T})
+func overlap(set:{T}, other: {T} -> {T})
 ```
 
 **Parameters:**
@@ -282,9 +282,9 @@ A new set containing only items present in both sets.
 **Description:**  
 Creates a new set with items from the original set but without items from another set.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-without(set:{T}, other: {T} -> {T})
+func without(set:{T}, other: {T} -> {T})
 ```
 
 **Parameters:**
@@ -308,9 +308,9 @@ A new set containing items from the original set excluding those in the other se
 **Description:**  
 Checks if the set is a subset of another set.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-set:is_subset_of(other: {T}, strict: Bool = no -> Bool)
+func (set: {T}, other: {T}, strict: Bool = no -> Bool)
 ```
 
 **Parameters:**
@@ -335,9 +335,9 @@ set:is_subset_of(other: {T}, strict: Bool = no -> Bool)
 **Description:**  
 Checks if the set is a superset of another set.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-is_superset_of(set:{T}, other: {T}, strict: Bool = no -> Bool)
+func is_superset_of(set:{T}, other: {T}, strict: Bool = no -> Bool)
 ```
 
 **Parameters:**

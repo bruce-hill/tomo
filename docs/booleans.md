@@ -14,9 +14,9 @@ Converts a string representation of a boolean value into a boolean. Acceptable
 boolean values are case-insensitive variations of `yes`/`no`, `y`/`n`,
 `true`/`false`, `on`/`off`.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-from_text(text: Text, success: Bool = !&Bool -> Bool)
+func from_text(text: Text, success: Bool = !&Bool -> Bool)
 ```
 
 **Parameters:**
@@ -47,9 +47,9 @@ from_text(text: Text, success: Bool = !&Bool -> Bool)
 **Description:**  
 Generates a random boolean value based on a specified probability.
 
-**Usage:**  
+**Signature:**  
 ```tomo
-random(p: Float = 0.5 -> Bool)
+func random(p: Float = 0.5 -> Bool)
 ```
 
 **Parameters:**

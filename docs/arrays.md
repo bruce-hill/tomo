@@ -237,9 +237,9 @@ variable or dereference a heap pointer, it may trigger copy-on-write behavior.
 **Description:**  
 Performs a binary search on a sorted array.
 
-**Usage:**  
-```markdown
-binary_search(arr: [T], by=T.compare -> Int)
+**Signature:**  
+```tomo
+func binary_search(arr: [T], by: func(x,y:&T->Int32) = T.compare -> Int)
 ```
 
 **Parameters:**
@@ -255,7 +255,7 @@ order. That is, if the item is found, return its index, otherwise return the
 place where it would be found if it were inserted and the array were sorted.
 
 **Example:**  
-```markdown
+```tomo
 >> [1, 3, 5, 7, 9]:binary_search(5)
 = 3
 
@@ -273,9 +273,9 @@ place where it would be found if it were inserted and the array were sorted.
 **Description:**  
 Creates a new array with elements spaced by the specified step value.
 
-**Usage:**  
-```markdown
-by(arr: [T], step: Int -> [T])
+**Signature:**  
+```tomo
+func by(arr: [T], step: Int -> [T])
 ```
 
 **Parameters:**
@@ -287,7 +287,7 @@ by(arr: [T], step: Int -> [T])
 A new array with every `step`-th element from the original array.
 
 **Example:**  
-```markdown
+```tomo
 >> [1, 2, 3, 4, 5, 6]:by(2)
 = [1, 3, 5]
 ```
@@ -299,9 +299,9 @@ A new array with every `step`-th element from the original array.
 **Description:**  
 Clears all elements from the array.
 
-**Usage:**  
-```markdown
-clear(arr: & [T] -> Void)
+**Signature:**  
+```tomo
+func clear(arr: &[T] -> Void)
 ```
 
 **Parameters:**
@@ -312,7 +312,7 @@ clear(arr: & [T] -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 >> my_array:clear()
 ```
 
@@ -323,9 +323,9 @@ Nothing.
 **Description:**  
 Counts the occurrences of each element in the array.
 
-**Usage:**  
-```markdown
-counts(arr: [T] -> {T: Int})
+**Signature:**  
+```tomo
+func counts(arr: [T] -> {T: Int})
 ```
 
 **Parameters:**
@@ -336,7 +336,7 @@ counts(arr: [T] -> {T: Int})
 A table mapping each element to its count.
 
 **Example:**  
-```markdown
+```tomo
 >> [10, 20, 30, 30, 30]:counts()
 = {10: 1, 20: 1, 30: 3}
 ```
@@ -348,9 +348,9 @@ A table mapping each element to its count.
 **Description:**  
 Finds the index of the first occurrence of an element (if any).
 
-**Usage:**  
-```markdown
-find(arr: [T] -> Int?)
+**Signature:**  
+```tomo
+func find(arr: [T] -> Int?)
 ```
 
 **Parameters:**
@@ -361,7 +361,7 @@ find(arr: [T] -> Int?)
 The index of the first occurrence or `!Int` if not found.
 
 **Example:**  
-```markdown
+```tomo
 >> [10, 20, 30, 40, 50]:find(20)
 = 2?
 
@@ -376,9 +376,9 @@ The index of the first occurrence or `!Int` if not found.
 **Description:**  
 Find the index of the first item that matches a predicate function (if any).
 
-**Usage:**  
-```markdown
-first(arr: [T], predicate: func(item:&T)->Bool -> Int)
+**Signature:**  
+```tomo
+func first(arr: [T], predicate: func(item:&T -> Bool) -> Int)
 ```
 
 **Parameters:**
@@ -392,7 +392,7 @@ Returns the index of the first item where the predicate is true or `!Int` if no
 item matches.
 
 **Example:**  
-```markdown
+```tomo
 >> [4, 5, 6]:find(func(i:&Int): i:is_prime())
 = 5?
 >> [4, 6, 8]:find(func(i:&Int): i:is_prime())
@@ -406,9 +406,9 @@ item matches.
 **Description:**  
 Returns a slice of the array starting from a specified index.
 
-**Usage:**  
-```markdown
-from(arr: [T], first: Int -> [T])
+**Signature:**  
+```tomo
+func from(arr: [T], first: Int -> [T])
 ```
 
 **Parameters:**
@@ -420,7 +420,7 @@ from(arr: [T], first: Int -> [T])
 A new array starting from the specified index.
 
 **Example:**  
-```markdown
+```tomo
 >> [10, 20, 30, 40, 50]:from(3)
 = [30, 40, 50]
 ```
@@ -432,9 +432,9 @@ A new array starting from the specified index.
 **Description:**  
 Checks if the array has any elements.
 
-**Usage:**  
-```markdown
-has(arr: [T] -> Bool)
+**Signature:**  
+```tomo
+func has(arr: [T] -> Bool)
 ```
 
 **Parameters:**
@@ -445,7 +445,7 @@ has(arr: [T] -> Bool)
 `yes` if the array has elements, `no` otherwise.
 
 **Example:**  
-```markdown
+```tomo
 >> [10, 20, 30]:has(20)
 = yes
 ```
@@ -458,9 +458,9 @@ has(arr: [T] -> Bool)
 Removes and returns the top element of a heap. By default, this is the
 *minimum* value in the heap.
 
-**Usage:**  
-```markdown
-heap_pop(arr: & [T], by=T.compare -> T)
+**Signature:**  
+```tomo
+func heap_pop(arr: &[T], by: func(x,y:&T->Int32) = T.compare -> T)
 ```
 
 **Parameters:**
@@ -473,7 +473,7 @@ heap_pop(arr: & [T], by=T.compare -> T)
 The removed top element of the heap.
 
 **Example:**  
-```markdown
+```tomo
 >> my_heap := [30, 10, 20]
 >> my_heap:heapify()
 >> my_heap:heap_pop()
@@ -488,9 +488,9 @@ The removed top element of the heap.
 Adds an element to the heap and maintains the heap property. By default, this
 is a *minimum* heap.
 
-**Usage:**  
-```markdown
-heap_push(arr: & [T], item: T, by=T.compare -> Void)
+**Signature:**  
+```tomo
+func heap_push(arr: &[T], item: T, by=T.compare -> Void)
 ```
 
 **Parameters:**
@@ -504,7 +504,7 @@ heap_push(arr: & [T], item: T, by=T.compare -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 >> my_heap:heap_push(10)
 ```
 
@@ -515,9 +515,9 @@ Nothing.
 **Description:**  
 Converts an array into a heap.
 
-**Usage:**  
-```markdown
-heapify(arr: & [T], by=T.compare -> Void)
+**Signature:**  
+```tomo
+func heapify(arr: &[T], by: func(x,y:&T->Int32) = T.compare -> Void)
 ```
 
 **Parameters:**
@@ -530,7 +530,7 @@ heapify(arr: & [T], by=T.compare -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 >> my_heap := [30, 10, 20]
 >> my_heap:heapify()
 ```
@@ -542,9 +542,9 @@ Nothing.
 **Description:**  
 Inserts an element at a specified position in the array.
 
-**Usage:**  
-```markdown
-insert(arr: & [T], item: T, at: Int = 0 -> Void)
+**Signature:**  
+```tomo
+func insert(arr: &[T], item: T, at: Int = 0 -> Void)
 ```
 
 **Parameters:**
@@ -559,7 +559,7 @@ insert(arr: & [T], item: T, at: Int = 0 -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 >> arr := [10, 20]
 >> arr:insert(30)
 >> arr
@@ -577,9 +577,9 @@ Nothing.
 **Description:**  
 Inserts an array of items at a specified position in the array.
 
-**Usage:**  
-```markdown
-insert_all(arr: & [T], items: [T], at: Int = 0 -> Void)
+**Signature:**  
+```tomo
+func insert_all(arr: &[T], items: [T], at: Int = 0 -> Void)
 ```
 
 **Parameters:**
@@ -594,7 +594,7 @@ insert_all(arr: & [T], items: [T], at: Int = 0 -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 arr := [10, 20]
 arr:insert_all([30, 40])
 >> arr
@@ -612,9 +612,9 @@ arr:insert_all([99, 100], at=2)
 **Description:**  
 Selects a random element from the array.
 
-**Usage:**  
-```markdown
-random(arr: [T] -> T)
+**Signature:**  
+```tomo
+func random(arr: [T] -> T)
 ```
 
 **Parameters:**
@@ -625,7 +625,7 @@ random(arr: [T] -> T)
 A random element from the array.
 
 **Example:**  
-```markdown
+```tomo
 >> [10, 20, 30]:random()
 = 20
 ```
@@ -637,9 +637,9 @@ A random element from the array.
 **Description:**  
 Removes elements from the array starting at a specified index.
 
-**Usage:**  
-```markdown
-remove_at(arr: & [T], at: Int = -1, count: Int = 1 -> Void)
+**Signature:**  
+```tomo
+func remove_at(arr: &[T], at: Int = -1, count: Int = 1 -> Void)
 ```
 
 **Parameters:**
@@ -652,7 +652,7 @@ remove_at(arr: & [T], at: Int = -1, count: Int = 1 -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 arr := [10, 20, 30, 40, 50]
 arr:remove_at(2)
 >> arr
@@ -670,9 +670,9 @@ arr:remove_at(2, count=2)
 **Description:**  
 Removes all occurrences of a specified item from the array.
 
-**Usage:**  
-```markdown
-remove_item(arr: & [T], item: T, max_count: Int = -1 -> Void)
+**Signature:**  
+```tomo
+func remove_item(arr: &[T], item: T, max_count: Int = -1 -> Void)
 ```
 
 **Parameters:**
@@ -685,7 +685,7 @@ remove_item(arr: & [T], item: T, max_count: Int = -1 -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 arr := [10, 20, 10, 20, 30]
 arr:remove_item(10)
 >> arr
@@ -703,9 +703,9 @@ arr:remove_item(20, max_count=1)
 **Description:**  
 Returns a reversed slice of the array.
 
-**Usage:**  
-```markdown
-reversed(arr: [T] -> [T])
+**Signature:**  
+```tomo
+func reversed(arr: [T] -> [T])
 ```
 
 **Parameters:**
@@ -716,7 +716,7 @@ reversed(arr: [T] -> [T])
 A slice of the array with elements in reverse order.
 
 **Example:**  
-```markdown
+```tomo
 >> [10, 20, 30]:reversed()
 = [30, 20, 10]
 ```
@@ -729,9 +729,9 @@ A slice of the array with elements in reverse order.
 Selects a sample of elements from the array, optionally with weighted
 probabilities.
 
-**Usage:**  
-```markdown
-sample(arr: [T], count: Int, weights: [Num]? = ![Num] -> [T])
+**Signature:**  
+```tomo
+func sample(arr: [T], count: Int, weights: [Num]? = ![Num] -> [T])
 ```
 
 **Parameters:**
@@ -755,7 +755,7 @@ Errors will be raised if any of the following conditions occurs:
 A list of sampled elements from the array.
 
 **Example:**  
-```markdown
+```tomo
 >> [10, 20, 30]:sample(2, weights=[90%, 5%, 5%])
 = [10, 10]
 ```
@@ -767,9 +767,9 @@ A list of sampled elements from the array.
 **Description:**  
 Shuffles the elements of the array in place.
 
-**Usage:**  
-```markdown
-shuffle(arr: & [T] -> Void)
+**Signature:**  
+```tomo
+func shuffle(arr: &[T] -> Void)
 ```
 
 **Parameters:**
@@ -780,7 +780,7 @@ shuffle(arr: & [T] -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 >> arr:shuffle()
 ```
 
@@ -791,9 +791,9 @@ Nothing.
 **Description:**  
 Creates a new array with elements shuffled.
 
-**Usage:**  
-```markdown
-shuffled(arr: [T] -> [T])
+**Signature:**  
+```tomo
+func shuffled(arr: [T] -> [T])
 ```
 
 **Parameters:**
@@ -804,7 +804,7 @@ shuffled(arr: [T] -> [T])
 A new array with shuffled elements.
 
 **Example:**  
-```markdown
+```tomo
 >> [10, 20, 30, 40]:shuffled()
 = [40, 10, 30, 20]
 ```
@@ -816,9 +816,9 @@ A new array with shuffled elements.
 **Description:**  
 Sorts the elements of the array in place in ascending order (small to large).
 
-**Usage:**  
-```markdown
-sort(arr: & [T], by=T.compare -> Void)
+**Signature:**  
+```tomo
+func sort(arr: &[T], by=T.compare -> Void)
 ```
 
 **Parameters:**
@@ -831,7 +831,7 @@ sort(arr: & [T], by=T.compare -> Void)
 Nothing.
 
 **Example:**  
-```markdown
+```tomo
 arr := [40, 10, -30, 20]
 arr:sort()
 >> arr
@@ -849,8 +849,8 @@ arr:sort(func(a,b:&Int): a:abs() <> b:abs())
 **Description:**  
 Creates a new array with elements sorted.
 
-**Usage:**  
-```markdown
+**Signature:**  
+```tomo
 sorted(arr: [T], by=T.compare -> [T])
 ```
 
@@ -864,7 +864,7 @@ sorted(arr: [T], by=T.compare -> [T])
 A new array with sorted elements.
 
 **Example:**  
-```markdown
+```tomo
 >> [40, 10, -30, 20]:sorted()
 = [-30, 10, 20, 40]
 
@@ -879,8 +879,8 @@ A new array with sorted elements.
 **Description:**  
 Returns a slice of the array from the start of the original array up to a specified index (inclusive).
 
-**Usage:**  
-```markdown
+**Signature:**  
+```tomo
 to(arr: [T], last: Int -> [T])
 ```
 
@@ -893,7 +893,7 @@ to(arr: [T], last: Int -> [T])
 A new array containing elements from the start up to the specified index.
 
 **Example:**  
-```markdown
+```tomo
 >> [10, 20, 30, 40, 50]:to(3)
 = [10, 20, 30]
 
@@ -908,8 +908,8 @@ A new array containing elements from the start up to the specified index.
 **Description:**  
 Returns a Set that contains the unique elements of the array.
 
-**Usage:**  
-```markdown
+**Signature:**  
+```tomo
 unique(arr: [T] -> {T})
 ```
 
@@ -921,7 +921,7 @@ unique(arr: [T] -> {T})
 A set containing only unique elements from the array.
 
 **Example:**  
-```markdown
+```tomo
 >> [10, 20, 10, 10, 30]:unique()
 = {10, 20, 30}
 ```

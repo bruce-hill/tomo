@@ -18,10 +18,10 @@ for the arguments to `main()`:
 ```bash
 $ tomo greet.tm 
 greet: Required argument 'name' was not provided!
-Usage: greet [--help] <name> [--be-excited]
+Signature: greet [--help] <name> [--be-excited]
 
 $ tomo greet.tm --help
-Usage: greet [--help] <name> [--be-excited]
+Signature: greet [--help] <name> [--be-excited]
 
 $ tomo greet.tm "Zaphod"
 Hi Zaphod. 
@@ -34,7 +34,7 @@ Hi Zaphod.
 
 $ tomo greet.tm --not-a-real-argument "Bob"
 greet: Unrecognized argument: --not-a-real-argument
-Usage: greet [--help] <name> [--be-excited]
+Signature: greet [--help] <name> [--be-excited]
 ```
 
 Underscores in argument names are converted to dashes when parsing command line
@@ -88,13 +88,13 @@ enum Foo(One, Two, Three)
 func main(foo:Foo):
     >> foo
 
-# Usage:
+# Signature:
 $ tomo foo.tm one
 >> Foo.One
 
 $ tomo foo.tm xxx
 foo: Invalid value provided for --foo; valid values are: One Two
-Usage: foo [--help] <foo>
+Signature: foo [--help] <foo>
 ```
 
 ### Arrays of Text
