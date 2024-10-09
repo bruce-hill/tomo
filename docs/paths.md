@@ -124,7 +124,7 @@ or returns a null value if the file could not be opened.
 
 **Usage:**  
 ```markdown
-by_line(path: Path -> (func()->Text?)?)
+by_line(path: Path -> func(->Text?)?)
 ```
 
 **Parameters:**
