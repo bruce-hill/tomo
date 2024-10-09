@@ -3112,30 +3112,13 @@ CORD compile(env_t *env, ast_t *ast)
         CORD code = CORD_all(
             "({ // Reduction:\n",
             compile_declaration(t, "reduction"), ";\n"
-            "Bool_t is_first = yes;\n"
+            "Bool_t has_value = no;\n"
             );
         env_t *scope = fresh_scope(env);
-        ast_t *result = FakeAST(Var, "$reduction");
         set_binding(scope, "$reduction", new(binding_t, .type=t, .code="reduction"));
-        ast_t *empty = NULL;
-        if (reduction->fallback) {
-            type_t *fallback_type = get_type(scope, reduction->fallback);
-            if (fallback_type->tag == AbortType || fallback_type->tag == ReturnType) {
-                empty = reduction->fallback;
-            } else {
-                empty = FakeAST(Assign, .targets=new(ast_list_t, .ast=result), .values=new(ast_list_t, .ast=reduction->fallback));
-            }
-        } else {
-            empty = FakeAST(
-                InlineCCode, 
-                CORD_asprintf("fail_source(%r, %ld, %ld, \"This collection was empty!\");\n",
-                              CORD_quoted(ast->file->filename),
-                              (long)(reduction->iter->start - reduction->iter->file->text),
-                              (long)(reduction->iter->end - reduction->iter->file->text)));
-        }
         ast_t *item = FakeAST(Var, "$iter_value");
         ast_t *body = FakeAST(InlineCCode, .code="{}"); // placeholder
-        ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=item), .iter=reduction->iter, .body=body, .empty=empty);
+        ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=item), .iter=reduction->iter, .body=body);
         env_t *body_scope = for_scope(scope, loop);
 
         // For the special case of (or)/(and), we need to early out if we can:
@@ -3149,14 +3132,29 @@ CORD compile(env_t *env, ast_t *ast)
         }
 
         body->__data.InlineCCode.code = CORD_all(
-            "if (is_first) {\n"
+            "if (!has_value) {\n"
             "    reduction = ", compile(body_scope, item), ";\n"
-            "    is_first = no;\n"
+            "    has_value = yes;\n"
             "} else {\n"
             "    reduction = ", compile(body_scope, reduction->combination), ";\n",
             early_out,
             "}\n");
-        code = CORD_all(code, compile_statement(scope, loop), "\nreduction;})");
+
+        CORD empty_handling;
+        if (reduction->fallback) {
+            type_t *fallback_type = get_type(scope, reduction->fallback);
+            if (fallback_type->tag == AbortType || fallback_type->tag == ReturnType) {
+                empty_handling = CORD_all("if (!has_value) ", compile_statement(env, reduction->fallback), "\n");
+            } else {
+                empty_handling = CORD_all("if (!has_value) reduction = ", compile(env, reduction->fallback), ";\n");
+            }
+        } else {
+            empty_handling = CORD_asprintf("if (!has_value) fail_source(%r, %ld, %ld, \"This collection was empty!\");\n",
+                                           CORD_quoted(ast->file->filename),
+                                           (long)(reduction->iter->start - reduction->iter->file->text),
+                                           (long)(reduction->iter->end - reduction->iter->file->text));
+        }
+        code = CORD_all(code, compile_statement(scope, loop), "\n", empty_handling, "reduction;})");
         return code;
     }
     case FieldAccess: {
