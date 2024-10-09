@@ -80,7 +80,7 @@ static ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self);
 static ast_t *parse_non_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt);
 static ast_t *parse_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
-static arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed);
+static arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos);
 static type_ast_t *parse_array_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_channel_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_func_type(parse_ctx_t *ctx, const char *pos);
@@ -601,7 +601,7 @@ type_ast_t *parse_func_type(parse_ctx_t *ctx, const char *pos) {
     if (!match_word(&pos, "func")) return NULL;
     spaces(&pos);
     if (!match(&pos, "(")) return NULL;
-    arg_ast_t *args = parse_args(ctx, &pos, true);
+    arg_ast_t *args = parse_args(ctx, &pos);
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this function type");
     spaces(&pos);
     type_ast_t *ret = match(&pos, "->") ? optional(ctx, &pos, parse_type) : NULL;
@@ -1542,7 +1542,7 @@ PARSER(parse_lambda) {
     spaces(&pos);
     if (!match(&pos, "("))
         return NULL;
-    arg_ast_t *args = parse_args(ctx, &pos, false);
+    arg_ast_t *args = parse_args(ctx, &pos);
     spaces(&pos);
     expect_closing(ctx, &pos, ")", "I was expecting a ')' to finish this anonymous function's arguments");
     ast_t *body = optional(ctx, &pos, parse_block);
@@ -2050,7 +2050,7 @@ PARSER(parse_struct_def) {
     if (!match(&pos, "("))
         parser_err(ctx, pos, pos, "I expected a '(' and a list of fields here");
 
-    arg_ast_t *fields = parse_args(ctx, &pos, false);
+    arg_ast_t *fields = parse_args(ctx, &pos);
 
     whitespace(&pos);
     bool secret = false;
@@ -2108,7 +2108,7 @@ PARSER(parse_enum_def) {
         bool secret = false;
         if (match(&pos, "(")) {
             whitespace(&pos);
-            fields = parse_args(ctx, &pos, false);
+            fields = parse_args(ctx, &pos);
             whitespace(&pos);
             if (match(&pos, ";")) { // Extra flags
                 whitespace(&pos);
@@ -2174,7 +2174,7 @@ PARSER(parse_lang_def) {
     return NewAST(ctx->file, start, pos, LangDef, .name=name, .namespace=namespace);
 }
 
-arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed)
+arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos)
 {
     arg_ast_t *args = NULL;
     for (;;) {
@@ -2190,7 +2190,6 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed)
         name_list_t *names = NULL;
         for (;;) {
             whitespace(pos);
-            const char *name_start = *pos;
             const char *name = get_id(pos);
             if (!name) break;
             whitespace(pos);
@@ -2201,12 +2200,6 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos, bool allow_unnamed)
             } else if (match(pos, ":")) {
                 type = expect(ctx, *pos-1, pos, parse_type, "I expected a type here");
                 names = new(name_list_t, .name=name, .next=names);
-                break;
-            } else if (allow_unnamed) {
-                *pos = name_start;
-                type = optional(ctx, pos, parse_type);
-                if (type)
-                    names = new(name_list_t, .name=NULL, .next=names);
                 break;
             } else if (name) {
                 names = new(name_list_t, .name=name, .next=names);
@@ -2244,7 +2237,7 @@ PARSER(parse_func_def) {
 
     if (!match(&pos, "(")) return NULL;
 
-    arg_ast_t *args = parse_args(ctx, &pos, false);
+    arg_ast_t *args = parse_args(ctx, &pos);
     whitespace(&pos);
     bool is_inline = false;
     ast_t *cache_ast = NULL;
