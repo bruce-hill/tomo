@@ -57,6 +57,14 @@ func main():
     >> defer_func(yes)
     >> defer_func(no)
 
+    >> counter := make_counter()
+    >> counter()
+    = 1
+    >> counter()
+    = 2
+    >> counter()
+    = 3
+
 func defer_func(return_early=no):
     say("Entering defer_func")
     defer:
@@ -67,4 +75,10 @@ func defer_func(return_early=no):
         return
 
     say("Finished defer_func")
+
+func make_counter()->func()->Int:
+    i := 1
+    return func():
+        defer: i += 1
+        return i
 
