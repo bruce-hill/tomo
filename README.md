@@ -18,9 +18,9 @@ func main(name:Text, shout=no):
 ```
 
 ```bash
-$ tomo hello.tm world
+$ tomo hello.tm -- world
 Hello World
-$ tomo hello.tm --name=åke
+$ tomo hello.tm -- --name=åke
 Hello Åke
 $ tomo -e hello.tm
 $ ./hello "john doe" --shout
