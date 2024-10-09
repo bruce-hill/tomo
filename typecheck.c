@@ -1074,7 +1074,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         case BigIntType: case IntType: value_t = iter_value_t; break;
         case ArrayType: value_t = Match(iter_value_t, ArrayType)->item_type; break;
         case SetType: value_t = Match(iter_value_t, SetType)->item_type; break;
-        case TableType: value_t = Match(iter_value_t, TableType)->key_type; break;
+        case TableType: code_err(reduction->iter, "To do a reduction over a table, please specify either .keys or .values");
         case FunctionType: case ClosureType: {
             // Iterator function
             auto fn = iter_value_t->tag == ClosureType ?
