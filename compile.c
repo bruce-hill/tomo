@@ -947,10 +947,14 @@ CORD compile_statement(env_t *env, ast_t *ast)
             struct { const char *name; binding_t *b; } *entry = Table$entry(*closed_vars, i);
             if (entry->b->type->tag == ModuleType)
                 continue;
-            CORD defer_name = CORD_asprintf("defer$%d$%s", ++defer_id, entry->name);
-            code = CORD_all(
-                code, compile_declaration(entry->b->type, defer_name), " = ", entry->b->code, ";\n");
-            set_binding(defer_env, entry->name, new(binding_t, .type=entry->b->type, .code=defer_name));
+            if (CORD_ncmp(entry->b->code, 0, "userdata->", 0, strlen("userdata->")) == 0) {
+                set_binding(defer_env, entry->name, entry->b);
+            } else {
+                CORD defer_name = CORD_asprintf("defer$%d$%s", ++defer_id, entry->name);
+                code = CORD_all(
+                    code, compile_declaration(entry->b->type, defer_name), " = ", entry->b->code, ";\n");
+                set_binding(defer_env, entry->name, new(binding_t, .type=entry->b->type, .code=defer_name));
+            }
 
             if (env->fn_ctx->closed_vars)
                 Table$str_set(env->fn_ctx->closed_vars, entry->name, entry->b);
@@ -1001,6 +1005,12 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     code_err(ast, "This function expects a return value of type %T, but this return has type %T", 
                              env->fn_ctx->return_type, ret_value_t);
             }
+
+            if (env->deferred) {
+                code = CORD_all(compile_declaration(env->fn_ctx->return_type, "ret"), " = ", value, ";\n", code);
+                value = "ret";
+            }
+
             return CORD_all(code, "return ", value, ";");
         } else {
             if (env->fn_ctx->return_type->tag != VoidType)
