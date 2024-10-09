@@ -2526,6 +2526,7 @@ CORD compile(env_t *env, ast_t *ast)
                 struct { const char *name; binding_t *b; } *entry = Table$entry(*closed_vars, i);
                 if (entry->b->type->tag == ModuleType)
                     continue;
+                set_binding(body_scope, entry->name, new(binding_t, .type=entry->b->type, .code=CORD_cat("userdata->", entry->name)));
                 def = CORD_all(def, compile_declaration(entry->b->type, entry->name), "; ");
             }
             def = CORD_all(def, "} ", name, "$userdata_t;");
