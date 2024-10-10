@@ -18,6 +18,8 @@ typedef struct {
 char *resolve_path(const char *path, const char *relative_to, const char *system_path);
 __attribute__((pure, nonnull))
 char *file_base_name(const char *path);
+__attribute__((pure, nonnull))
+char *file_base_id(const char *path);
 __attribute__((nonnull))
 file_t *load_file(const char *filename);
 __attribute__((nonnull, returns_nonnull))

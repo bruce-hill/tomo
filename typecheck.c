@@ -166,11 +166,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
             ast_t *ast = parse_file(filename, NULL);
             if (!ast) errx(1, "Could not compile file %s", filename);
             env_t *module_file_env = fresh_scope(module_env);
-            char *file_prefix = GC_strdup(file_base_name(filename));
-            for (char *p = file_prefix; *p; p++) {
-                if (!isalnum(*p) && *p != '_' && *p != '$')
-                    *p = '_';
-            }
+            char *file_prefix = file_base_id(filename);
             module_file_env->namespace = new(namespace_t, .name=file_prefix);
             env_t *subenv = load_module_env(module_file_env, ast);
             for (int64_t j = 0; j < subenv->locals->entries.length; j++) {

@@ -1429,7 +1429,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
     case Use: {
         auto use = Match(ast, Use);
         if (use->what == USE_LOCAL) {
-            CORD name = file_base_name(Match(ast, Use)->path);
+            CORD name = file_base_id(Match(ast, Use)->path);
             env->code->variable_initializers = CORD_all(env->code->variable_initializers, "$", name, "$$initialize();\n");
         } else if (use->what == USE_C_CODE) {
             return CORD_all("#include \"", use->path, "\"\n");
@@ -1443,7 +1443,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             for (size_t i = 0; i < tm_files.gl_pathc; i++) {
                 const char *filename = tm_files.gl_pathv[i];
                 env->code->variable_initializers = CORD_all(
-                    env->code->variable_initializers, "$", lib_id, "$", file_base_name(filename), "$$initialize();\n");
+                    env->code->variable_initializers, "$", lib_id, "$", file_base_id(filename), "$$initialize();\n");
             }
             globfree(&tm_files);
         }

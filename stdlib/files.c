@@ -75,6 +75,19 @@ public char *file_base_name(const char *path)
     char *buf = GC_MALLOC_ATOMIC(len+1);
     strncpy(buf, path, len);
     buf[len] = '\0';
+    return buf;
+}
+
+public char *file_base_id(const char *path)
+{
+    const char *slash = strrchr(path, '/');
+    if (slash) path = slash + 1;
+    assert(!isdigit(*path));
+    const char *end = strchrnul(path, '.');
+    size_t len = (size_t)(end - path);
+    char *buf = GC_MALLOC_ATOMIC(len+1);
+    strncpy(buf, path, len);
+    buf[len] = '\0';
     for (char *p = buf; *p; p++) {
         if (!isalnum(*p))
             *p = '_';

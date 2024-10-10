@@ -445,7 +445,7 @@ env_t *load_module_env(env_t *env, ast_t *ast)
     if (cached) return cached;
     env_t *module_env = fresh_scope(env);
     module_env->code = new(compilation_unit_t);
-    module_env->namespace = new(namespace_t, .name=file_base_name(name)); 
+    module_env->namespace = new(namespace_t, .name=file_base_id(name)); 
     module_env->namespace_bindings = module_env->locals;
     Table$str_set(module_env->imports, name, module_env);
 
