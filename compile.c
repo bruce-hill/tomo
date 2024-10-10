@@ -437,10 +437,26 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     field = field->next;
                 }
             }
-            code = CORD_all(code, compile_statement(scope, clause->body), "\nbreak;\n}\n");
+            if (clause->body->tag == Block) {
+                ast_list_t *statements = Match(clause->body, Block)->statements;
+                if (!statements || (statements->ast->tag == Pass && !statements->next))
+                    code = CORD_all(code, "break;\n}\n");
+                else
+                    code = CORD_all(code, compile_inline_block(scope, clause->body), "\nbreak;\n}\n");
+            } else {
+                code = CORD_all(code, compile_statement(scope, clause->body), "\nbreak;\n}\n");
+            }
         }
         if (when->else_body) {
-            code = CORD_all(code, "default: {\n", compile_statement(env, when->else_body), "\nbreak;\n}");
+            if (when->else_body->tag == Block) {
+                ast_list_t *statements = Match(when->else_body, Block)->statements;
+                if (!statements || (statements->ast->tag == Pass && !statements->next))
+                    code = CORD_all(code, "default: break;");
+                else
+                    code = CORD_all(code, "default: {\n", compile_inline_block(env, when->else_body), "\nbreak;\n}\n");
+            } else {
+                code = CORD_all(code, "default: {\n", compile_statement(env, when->else_body), "\nbreak;\n}\n");
+            }
         } else {
             code = CORD_all(code, "default: errx(1, \"Invalid tag!\");\n");
         }
