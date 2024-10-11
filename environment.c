@@ -605,7 +605,7 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
     case TableType: return NULL;
     case CStringType: case DateTimeType:
     case BoolType: case IntType: case BigIntType: case NumType: {
-        binding_t *b = get_binding(env, CORD_to_const_char_star(type_to_cord(cls_type)));
+        binding_t *b = get_binding(env, Text$as_c_string(type_to_text(cls_type)));
         assert(b);
         return get_binding(Match(b->type, TypeInfoType)->env, name);
     }

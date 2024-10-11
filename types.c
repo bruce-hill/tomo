@@ -1,91 +1,91 @@
 // Logic for handling type_t types
-#include <gc/cord.h>
 #include <limits.h>
 #include <math.h>
 #include <signal.h>
 #include <stdint.h>
 #include <sys/param.h>
 
+#include "stdlib/datatypes.h"
 #include "stdlib/integers.h"
 #include "stdlib/tables.h"
+#include "stdlib/text.h"
 #include "stdlib/util.h"
-#include "cordhelpers.h"
 #include "types.h"
 
-CORD type_to_cord(type_t *t) {
+Text_t type_to_text(type_t *t) {
     switch (t->tag) {
-        case UnknownType: return "???";
-        case AbortType: return "Abort";
+        case UnknownType: return Text("???");
+        case AbortType: return Text("Abort");
         case ReturnType: {
             type_t *ret = Match(t, ReturnType)->ret;
-            return CORD_all("Return(", ret ? type_to_cord(ret) : "Void", ")");
+            return Texts(Text("Return("), ret ? type_to_text(ret) : Text("Void"), Text(")"));
         }
-        case VoidType: return "Void";
-        case MemoryType: return "Memory";
-        case BoolType: return "Bool";
-        case ByteType: return "Byte";
-        case CStringType: return "CString";
-        case DateTimeType: return "DateTime";
-        case TextType: return Match(t, TextType)->lang ? Match(t, TextType)->lang : "Text";
-        case BigIntType: return "Int";
-        case IntType: return CORD_asprintf("Int%d", Match(t, IntType)->bits);
-        case NumType: return Match(t, NumType)->bits == TYPE_NBITS32 ? "Num32" : "Num";
+        case VoidType: return Text("Void");
+        case MemoryType: return Text("Memory");
+        case BoolType: return Text("Bool");
+        case ByteType: return Text("Byte");
+        case CStringType: return Text("CString");
+        case DateTimeType: return Text("DateTime");
+        case TextType: return Match(t, TextType)->lang ? Text$from_str(Match(t, TextType)->lang) : Text("Text");
+        case BigIntType: return Text("Int");
+        case IntType: return Text$format("Int%d", Match(t, IntType)->bits);
+        case NumType: return Match(t, NumType)->bits == TYPE_NBITS32 ? Text("Num32") : Text("Num");
         case ArrayType: {
             auto array = Match(t, ArrayType);
-            return CORD_asprintf("[%r]", type_to_cord(array->item_type));
+            return Texts(Text("["), type_to_text(array->item_type), Text("]"));
         }
         case ChannelType: {
             auto array = Match(t, ChannelType);
-            return CORD_asprintf("||%r", type_to_cord(array->item_type));
+            return Texts(Text("||"), type_to_text(array->item_type));
         }
         case TableType: {
             auto table = Match(t, TableType);
-            return CORD_asprintf("{%r:%r}", type_to_cord(table->key_type), type_to_cord(table->value_type));
+            return Texts(Text("{"), type_to_text(table->key_type), Text(":"), type_to_text(table->value_type), Text("}"));
         }
         case SetType: {
             auto set = Match(t, SetType);
-            return CORD_asprintf("{%r}", type_to_cord(set->item_type));
+            return Texts(Text("{"), type_to_text(set->item_type), Text("}"));
         }
         case ClosureType: {
-            return type_to_cord(Match(t, ClosureType)->fn);
+            return type_to_text(Match(t, ClosureType)->fn);
         }
         case FunctionType: {
-            CORD c = "func(";
+            Text_t text = Text("func(");
             auto fn = Match(t, FunctionType);
             for (arg_t *arg = fn->args; arg; arg = arg->next) {
-                c = CORD_cat(c, type_to_cord(arg->type));
-                if (arg->next) c = CORD_cat(c, ", ");
+                text = Texts(text, type_to_text(arg->type));
+                if (arg->next) text = Texts(text, Text(", "));
             }
             if (fn->ret && fn->ret->tag != VoidType)
-                c = CORD_all(c, "->", type_to_cord(fn->ret));
-            c = CORD_all(c, ")");
-            return c;
+                text = Texts(text, Text("->"), type_to_text(fn->ret));
+            text = Texts(text, Text(")"));
+            return text;
         }
         case StructType: {
             auto struct_ = Match(t, StructType);
-            return struct_->name;
+            return Text$from_str(struct_->name);
         }
         case PointerType: {
             auto ptr = Match(t, PointerType);
-            CORD sigil = ptr->is_stack ? "&" : "@";
-            return CORD_all(sigil, type_to_cord(ptr->pointed));
+            Text_t sigil = ptr->is_stack ? Text("&") : Text("@");
+            return Texts(sigil, type_to_text(ptr->pointed));
         }
         case EnumType: {
             auto tagged = Match(t, EnumType);
-            return tagged->name;
+            return Text$from_str(tagged->name);
         }
         case OptionalType: {
-            return CORD_all(type_to_cord(Match(t, OptionalType)->type), "?");
+            return Texts(type_to_text(Match(t, OptionalType)->type), Text("?"));
         }
         case TypeInfoType: {
-            return CORD_all("Type$info(", Match(t, TypeInfoType)->name, ")");
+            return Texts(Text("Type$info("), Text$from_str(Match(t, TypeInfoType)->name), Text(")"));
         }
         case ModuleType: {
-            return CORD_all("Module(", Match(t, ModuleType)->name, ")");
+            return Texts(Text("Module("), Text$from_str(Match(t, ModuleType)->name), Text(")"));
         }
         default: {
             raise(SIGABRT);
-            return CORD_asprintf("Unknown type: %d", t->tag);
+            return Text$format("Unknown type: %d", t->tag);
         }
     }
 }
@@ -104,14 +104,14 @@ int printf_type(FILE *stream, const struct printf_info *info, const void *const 
     (void)info;
     type_t *t = *(type_t**)args[0];
     if (!t) return fputs("(null)", stream);
-    return CORD_put(type_to_cord(t), stream);
+    return Text$print(stream, type_to_text(t));
 }
 
 bool type_eq(type_t *a, type_t *b)
 {
     if (a == b) return true;
     if (a->tag != b->tag) return false;
-    return (CORD_cmp(type_to_cord(a), type_to_cord(b)) == 0);
+    return Text$equal_values(type_to_text(a), type_to_text(b));
 }
 
 bool type_is_a(type_t *t, type_t *req)

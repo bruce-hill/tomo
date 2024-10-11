@@ -19,6 +19,8 @@
 #include "structs.h"
 #include "typecheck.h"
 
+#define type_to_cord(t) Text$as_c_string(type_to_text(t))
+
 typedef ast_t* (*comprehension_body_t)(ast_t*, ast_t*);
 
 static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool needs_incref);
@@ -72,7 +74,7 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
     }
 
     if ((actual->tag == IntType || actual->tag == BigIntType) && needed->tag == NumType) {
-        *code = CORD_all(type_to_cord(actual), "_to_", type_to_cord(needed), "(", *code, ")");
+        *code = CORD_all(Text$as_c_string(type_to_text(actual)), "_to_", Text$as_c_string(type_to_text(needed)), "(", *code, ")");
         return true;
     }
 
@@ -885,11 +887,11 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         CORD text = CORD_all("func ", Match(fndef->name, Var)->name, "(");
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-            text = CORD_cat(text, type_to_cord(get_arg_ast_type(env, arg)));
+            text = CORD_cat(text, Text$as_c_string(type_to_text(get_arg_ast_type(env, arg))));
             if (arg->next) text = CORD_cat(text, ", ");
         }
         if (ret_t && ret_t->tag != VoidType)
-            text = CORD_all(text, ")->", type_to_cord(ret_t));
+            text = CORD_all(text, ")->", Text$as_c_string(type_to_text(ret_t)));
         else
             text = CORD_all(text, ")");
 
@@ -1474,8 +1476,8 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
     case CStringType: return CORD_asprintf("CString$as_text(stack(%r), %r, &CString$info)", expr, color);
     case DateTimeType: return CORD_asprintf("DateTime$as_text(stack(%r), %r, &DateTime$info)", expr, color);
     case BigIntType: case IntType: case ByteType: case NumType: {
-        CORD name = type_to_cord(t);
-        return CORD_asprintf("%r$as_text(stack(%r), %r, &%r$info)", name, expr, color, name);
+        Text_t name = type_to_text(t);
+        return CORD_asprintf("%r$as_text(stack(%r), %r, &%r$info)", Text$as_c_string(name), expr, color, name);
     }
     case TextType: {
         return CORD_asprintf("Text$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));

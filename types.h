@@ -7,6 +7,7 @@
 
 #include "ast.h"
 #include "stdlib/arrays.h"
+#include "stdlib/datatypes.h"
 
 typedef struct type_s type_t;
 
@@ -135,7 +136,7 @@ struct type_s {
 
 int printf_pointer_size(const struct printf_info *info, size_t n, int argtypes[n], int size[n]);
 int printf_type(FILE *stream, const struct printf_info *info, const void *const args[]);
-CORD type_to_cord(type_t *t);
+Text_t type_to_text(type_t *t);
 PUREFUNC bool type_eq(type_t *a, type_t *b);
 PUREFUNC bool type_is_a(type_t *t, type_t *req);
 type_t *type_or_type(type_t *a, type_t *b);
