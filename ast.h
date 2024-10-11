@@ -3,7 +3,6 @@
 // Logic defining ASTs (abstract syntax trees) to represent code
 
 #include <err.h>
-#include <gc/cord.h>
 #include <printf.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -172,7 +171,7 @@ struct ast_s {
             enum { NBITS_UNSPECIFIED=0, NBITS32=32, NBITS64=64 } bits;
         } Num;
         struct {
-            CORD cord;
+            Text_t text;
         } TextLiteral;
         struct {
             const char *lang;
@@ -321,15 +320,15 @@ struct ast_s {
             enum { USE_LOCAL, USE_MODULE, USE_SHARED_OBJECT, USE_HEADER, USE_C_CODE, USE_ASM } what;
         } Use;
         struct {
-            CORD code;
+            Text_t code;
             struct type_s *type;
             type_ast_t *type_ast;
         } InlineCCode;
     } __data;
 };
 
-CORD ast_to_xml(ast_t *ast);
-CORD type_ast_to_xml(type_ast_t *ast);
+Text_t ast_to_xml(ast_t *ast);
+Text_t type_ast_to_xml(type_ast_t *ast);
 int printf_ast(FILE *stream, const struct printf_info *info, const void *const args[]);
 PUREFUNC bool is_idempotent(ast_t *ast);
 void visit_topologically(ast_list_t *ast, Closure_t fn);

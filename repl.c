@@ -372,24 +372,24 @@ void eval(env_t *env, ast_t *ast, void *dest)
         break;
     }
     case TextLiteral:
-        if (dest) *(CORD*)dest = Match(ast, TextLiteral)->cord;
+        if (dest) *(Text_t*)dest = Match(ast, TextLiteral)->text;
         break;
     case TextJoin: {
-        CORD ret = CORD_EMPTY;
+        Text_t ret = Text("");
         for (ast_list_t *chunk = Match(ast, TextJoin)->children; chunk; chunk = chunk->next) {
             type_t *chunk_t = get_type(env, chunk->ast);
             if (chunk_t->tag == TextType) {
-                CORD c;
-                eval(env, chunk->ast, &c);
-                ret = CORD_cat(ret, c);
+                Text_t chunk_text;
+                eval(env, chunk->ast, &chunk_text);
+                ret = Texts(ret, chunk_text);
             } else {
                 size_t chunk_size = type_size(chunk_t);
                 char buf[chunk_size];
                 eval(env, chunk->ast, buf);
-                ret = CORD_cat(ret, Text$as_c_string(obj_to_text(chunk_t, buf, false)));
+                ret = Texts(ret, obj_to_text(chunk_t, buf, false));
             }
         }
-        if (dest) *(CORD*)dest = ret;
+        if (dest) *(Text_t*)dest = ret;
         break;
     }
     case BinaryOp: {

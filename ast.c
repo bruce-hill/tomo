@@ -1,15 +1,19 @@
 // Some basic operations defined on AST nodes, mainly converting to
 // strings for debugging.
-#include <gc/cord.h>
 #include <printf.h>
 #include <stdarg.h>
 
 #include "ast.h"
+#include "stdlib/arrays.h"
 #include "stdlib/datatypes.h"
 #include "stdlib/integers.h"
+#include "stdlib/patterns.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
-#include "cordhelpers.h"
+#include "stdlib/util.h"
+
+#define ast_to_xml_ptr(ast) stack(ast_to_xml(ast))
+#define type_ast_to_xml_ptr(ast) stack(type_ast_to_xml(ast))
 
 static const char *OP_NAMES[] = {
     [BINOP_UNKNOWN]="unknown",
@@ -28,160 +32,172 @@ const char *binop_method_names[BINOP_XOR+1] = {
     [BINOP_AND]="bit_and", [BINOP_OR]="bit_or", [BINOP_XOR]="bit_xor",
 };
 
-static CORD ast_list_to_xml(ast_list_t *asts);
-static CORD arg_list_to_xml(arg_ast_t *args);
-static CORD when_clauses_to_xml(when_clause_t *clauses);
-static CORD tags_to_xml(tag_ast_t *tags);
-static CORD xml_escape(CORD text);
-static CORD optional_tagged(const char *tag, ast_t *ast);
-static CORD optional_tagged_type(const char *tag, type_ast_t *ast);
+static Text_t _ast_list_to_xml(ast_list_t *asts);
+#define ast_list_to_xml(ast) stack(_ast_list_to_xml(ast))
+static Text_t _arg_list_to_xml(arg_ast_t *args);
+#define arg_list_to_xml(ast) stack(_arg_list_to_xml(ast))
+static Text_t _when_clauses_to_xml(when_clause_t *clauses);
+#define when_clauses_to_xml(...) stack(_when_clauses_to_xml(__VA_ARGS__))
+static Text_t _tags_to_xml(tag_ast_t *tags);
+#define tags_to_xml(...) stack(_tags_to_xml(__VA_ARGS__))
+static Text_t _xml_escape(Text_t text);
+#define xml_escape(...) stack(_xml_escape(__VA_ARGS__))
+static Text_t _optional_tagged(const char *tag, ast_t *ast);
+#define optional_tagged(...) stack(_optional_tagged(__VA_ARGS__))
+static Text_t _optional_tagged_type(const char *tag, type_ast_t *ast);
+#define optional_tagged_type(...) stack(_optional_tagged_type(__VA_ARGS__))
 
-CORD xml_escape(CORD text)
+Text_t _xml_escape(Text_t text)
 {
-    text = CORD_replace(text, "&", "&amp;");
-    text = CORD_replace(text, "<", "&lt;");
-    text = CORD_replace(text, ">", "&gt;");
+    typedef struct {Text_t k,v;} replacement_t;
+    Array_t replacements = TypedArray(
+        replacement_t,
+        {Text("&"), Text("&amp;")},
+        {Text("<"), Text("&lt;")},
+        {Text(">"), Text("&gt;")});
+    return Text$replace_all(text, Table$from_entries(replacements, Table$info(&Pattern$info, &Text$info)), Text(""), false);
+}
+
+Text_t _ast_list_to_xml(ast_list_t *asts)
+{
+    Text_t text = Text("");
+    for (; asts; asts = asts->next) {
+        text = Texts(text, ast_to_xml(asts->ast));
+    }
     return text;
 }
 
-CORD ast_list_to_xml(ast_list_t *asts)
-{
-    CORD c = CORD_EMPTY;
-    for (; asts; asts = asts->next) {
-        c = CORD_cat(c, ast_to_xml(asts->ast));
-    }
-    return c;
-}
-
-CORD arg_list_to_xml(arg_ast_t *args) {
-    CORD c = "<args>";
+Text_t _arg_list_to_xml(arg_ast_t *args) {
+    Text_t text = Text("<args>");
     for (; args; args = args->next) {
-        CORD arg_cord = args->name ? CORD_all("<arg name=\"", args->name, "\">") : "<arg>";
+        Text_t arg_text = args->name ? Text$format("<arg name=\"%s\">", args->name) : Text("<arg>");
         if (args->type)
-            arg_cord = CORD_all(arg_cord, "<type>", type_ast_to_xml(args->type), "</type>");
+            arg_text = Texts(arg_text, Text("<type>"), type_ast_to_xml(args->type), Text("</type>"));
         if (args->value)
-            arg_cord = CORD_all(arg_cord, "<value>", ast_to_xml(args->value), "</value>");
-        c = CORD_all(c, arg_cord, "</arg>");
+            arg_text = Texts(text, Text("<value>"), ast_to_xml(args->value), Text("</value>"));
+        text = Texts(text, arg_text, Text("</arg>"));
     }
-    return CORD_cat(c, "</args>");
+    return Texts(text, Text("</args>"));
 }
 
-CORD when_clauses_to_xml(when_clause_t *clauses) {
-    CORD c = CORD_EMPTY;
+Text_t _when_clauses_to_xml(when_clause_t *clauses) {
+    Text_t text = Text("");
     for (; clauses; clauses = clauses->next) {
-        c = CORD_all(c, "<case tag=\"", ast_to_xml(clauses->tag_name), "\">", ast_list_to_xml(clauses->args), ast_to_xml(clauses->body), "</case>");
+        text = Texts(text, Text("<case tag=\""), ast_to_xml(clauses->tag_name), Text("\">"),
+                     _ast_list_to_xml(clauses->args), ast_to_xml(clauses->body), Text("</case>"));
     }
-    return c;
+    return text;
 }
 
-CORD tags_to_xml(tag_ast_t *tags) {
-    CORD c = CORD_EMPTY;
+Text_t _tags_to_xml(tag_ast_t *tags) {
+    Text_t text = Text("");
     for (; tags; tags = tags->next) {
-        c = CORD_all(c, "<tag name=\"", tags->name, "\">", arg_list_to_xml(tags->fields), "</tag>");
+        text = Texts(text, Text$format("<tag name=\"%s\">%k</tag>", tags->name, arg_list_to_xml(tags->fields)));
     }
-    return c;
+    return text;
 }
 
-CORD optional_tagged(const char *tag, ast_t *ast)
+Text_t _optional_tagged(const char *tag, ast_t *ast)
 {
-    return ast ? CORD_all("<", tag, ">", ast_to_xml(ast), "</", tag, ">") : CORD_EMPTY;
+    return ast ? Text$format("<%s>%k</%s>", tag, ast_to_xml_ptr(ast), tag) : Text("");
 }
 
-CORD optional_tagged_type(const char *tag, type_ast_t *ast)
+Text_t _optional_tagged_type(const char *tag, type_ast_t *ast)
 {
-    return ast ? CORD_all("<", tag, ">", type_ast_to_xml(ast), "</", tag, ">") : CORD_EMPTY;
+    return ast ? Text$format("<%s>%k</%s>", tag, stack(type_ast_to_xml(ast)), tag) : Text("");
 }
 
-CORD ast_to_xml(ast_t *ast)
+Text_t ast_to_xml(ast_t *ast)
 {
-    if (!ast) return CORD_EMPTY;
+    if (!ast) return Text("");
 
     switch (ast->tag) {
-#define T(type, ...) case type: { auto data = ast->__data.type; (void)data; return CORD_asprintf(__VA_ARGS__); }
+#define T(type, ...) case type: { auto data = ast->__data.type; (void)data; return Text$format(__VA_ARGS__); }
     T(Unknown,  "<Unknown>")
-    T(Null, "<Null>%r</Null>", type_ast_to_xml(data.type))
+    T(Null, "<Null>%k</Null>", stack(type_ast_to_xml(data.type)))
     T(Bool, "<Bool value=\"%s\" />", data.b ? "yes" : "no")
     T(Var, "<Var>%s</Var>", data.name)
     T(Int, "<Int bits=\"%d\">%s</Int>", data.bits, data.str)
     T(Num, "<Num bits=\"%d\">%g</Num>", data.bits, data.n)
-    T(TextLiteral, "%r", xml_escape(data.cord))
-    T(TextJoin, "<Text%r>%r</Text>", data.lang ? CORD_all(" lang=\"", data.lang, "\"") : CORD_EMPTY, ast_list_to_xml(data.children))
-    T(Declare, "<Declare var=\"%r\">%r</Declare>", ast_to_xml(data.var), ast_to_xml(data.value))
-    T(Assign, "<Assign><targets>%r</targets><values>%r</values></Assign>", ast_list_to_xml(data.targets), ast_list_to_xml(data.values))
-    T(BinaryOp, "<BinaryOp op=\"%r\">%r %r</BinaryOp>", xml_escape(OP_NAMES[data.op]), ast_to_xml(data.lhs), ast_to_xml(data.rhs))
-    T(UpdateAssign, "<UpdateAssign op=\"%r\">%r %r</UpdateAssign>", xml_escape(OP_NAMES[data.op]), ast_to_xml(data.lhs), ast_to_xml(data.rhs))
-    T(Negative, "<Negative>%r</Negative>", ast_to_xml(data.value))
-    T(Not, "<Not>%r</Not>", ast_to_xml(data.value))
-    T(HeapAllocate, "<HeapAllocate>%r</HeapAllocate>", ast_to_xml(data.value))
-    T(StackReference, "<StackReference>%r</StackReference>", ast_to_xml(data.value))
-    T(Min, "<Min>%r%r%r</Min>", ast_to_xml(data.lhs), ast_to_xml(data.rhs), optional_tagged("key", data.key))
-    T(Max, "<Max>%r%r%r</Max>", ast_to_xml(data.lhs), ast_to_xml(data.rhs), optional_tagged("key", data.key))
-    T(Array, "<Array>%r%r</Array>", optional_tagged_type("item-type", data.item_type), ast_list_to_xml(data.items))
-    T(Set, "<Set>%r%r</Set>",
-      optional_tagged_type("item-type", data.item_type),
-      ast_list_to_xml(data.items))
-    T(Table, "<Table>%r%r%r%r</Table>",
+    T(TextLiteral, "%k", xml_escape(data.text))
+    T(TextJoin, "<Text%k>%k</Text>", stack(data.lang ? Text$format(" lang=\"%s\"", data.lang) : Text("")), ast_list_to_xml(data.children))
+    T(Declare, "<Declare var=\"%k\">%k</Declare>", ast_to_xml_ptr(data.var), ast_to_xml_ptr(data.value))
+    T(Assign, "<Assign><targets>%k</targets><values>%k</values></Assign>", ast_list_to_xml(data.targets), ast_list_to_xml(data.values))
+    T(BinaryOp, "<BinaryOp op=\"%k\">%k %k</BinaryOp>", xml_escape(Text$from_str(OP_NAMES[data.op])),
+      ast_to_xml_ptr(data.lhs), ast_to_xml_ptr(data.rhs))
+    T(UpdateAssign, "<UpdateAssign op=\"%k\">%k %k</UpdateAssign>", xml_escape(Text$from_str(OP_NAMES[data.op])),
+      ast_to_xml_ptr(data.lhs), ast_to_xml_ptr(data.rhs))
+    T(Negative, "<Negative>%k</Negative>", ast_to_xml_ptr(data.value))
+    T(Not, "<Not>%k</Not>", ast_to_xml_ptr(data.value))
+    T(HeapAllocate, "<HeapAllocate>%k</HeapAllocate>", ast_to_xml_ptr(data.value))
+    T(StackReference, "<StackReference>%k</StackReference>", ast_to_xml_ptr(data.value))
+    T(Min, "<Min>%k%k%k</Min>", ast_to_xml_ptr(data.lhs), ast_to_xml_ptr(data.rhs), optional_tagged("key", data.key))
+    T(Max, "<Max>%k%k%k</Max>", ast_to_xml_ptr(data.lhs), ast_to_xml_ptr(data.rhs), optional_tagged("key", data.key))
+    T(Array, "<Array>%k%k</Array>", optional_tagged_type("item-type", data.item_type), ast_list_to_xml(data.items))
+    T(Set, "<Set>%k%k</Set>",
+      optional_tagged_type("item-type", data.item_type), ast_list_to_xml(data.items))
+    T(Table, "<Table>%k%k%k%k</Table>",
       optional_tagged_type("key-type", data.key_type), optional_tagged_type("value-type", data.value_type),
       ast_list_to_xml(data.entries), optional_tagged("fallback", data.fallback))
-    T(TableEntry, "<TableEntry>%r%r</TableEntry>", ast_to_xml(data.key), ast_to_xml(data.value))
-    T(Channel, "<Channel>%r%r</Channel>", type_ast_to_xml(data.item_type), optional_tagged("max-size", data.max_size))
-    T(Comprehension, "<Comprehension>%r%r%r%r%r</Comprehension>", optional_tagged("expr", data.expr),
+    T(TableEntry, "<TableEntry>%k%k</TableEntry>", ast_to_xml_ptr(data.key), ast_to_xml_ptr(data.value))
+    T(Channel, "<Channel>%k%k</Channel>", type_ast_to_xml_ptr(data.item_type), optional_tagged("max-size", data.max_size))
+    T(Comprehension, "<Comprehension>%k%k%k%k%k</Comprehension>", optional_tagged("expr", data.expr),
       ast_list_to_xml(data.vars), optional_tagged("iter", data.iter),
       optional_tagged("filter", data.filter))
-    T(FunctionDef, "<FunctionDef name=\"%r\">%r%r<body>%r</body></FunctionDef>", ast_to_xml(data.name),
-      arg_list_to_xml(data.args), optional_tagged_type("return-type", data.ret_type), ast_to_xml(data.body))
-    T(Lambda, "<Lambda>%r%r<body>%r</body></Lambda>)", arg_list_to_xml(data.args),
-      optional_tagged_type("return-type", data.ret_type), ast_to_xml(data.body))
-    T(FunctionCall, "<FunctionCall><function>%r</function>%r</FunctionCall>", ast_to_xml(data.fn), arg_list_to_xml(data.args))
-    T(MethodCall, "<MethodCall><self>%r</self><method>%s</method>%r</MethodCall>", ast_to_xml(data.self), data.name, arg_list_to_xml(data.args))
-    T(Block, "<Block>%r</Block>", ast_list_to_xml(data.statements))
-    T(For, "<For>%r%r%r%r%r</For>", ast_list_to_xml(data.vars), optional_tagged("iterable", data.iter),
+    T(FunctionDef, "<FunctionDef name=\"%k\">%k%k<body>%k</body></FunctionDef>", ast_to_xml_ptr(data.name),
+      arg_list_to_xml(data.args), optional_tagged_type("return-type", data.ret_type), ast_to_xml_ptr(data.body))
+    T(Lambda, "<Lambda>%k%k<body>%k</body></Lambda>)", arg_list_to_xml(data.args),
+      optional_tagged_type("return-type", data.ret_type), ast_to_xml_ptr(data.body))
+    T(FunctionCall, "<FunctionCall><function>%k</function>%k</FunctionCall>", ast_to_xml_ptr(data.fn), arg_list_to_xml(data.args))
+    T(MethodCall, "<MethodCall><self>%k</self><method>%s</method>%k</MethodCall>", ast_to_xml_ptr(data.self), data.name, arg_list_to_xml(data.args))
+    T(Block, "<Block>%k</Block>", ast_list_to_xml(data.statements))
+    T(For, "<For>%k%k%k%k%k</For>", ast_list_to_xml(data.vars), optional_tagged("iterable", data.iter),
       optional_tagged("body", data.body), optional_tagged("empty", data.empty))
-    T(While, "<While>%r%r</While>", optional_tagged("condition", data.condition), optional_tagged("body", data.body))
-    T(If, "<If>%r%r%r</If>", optional_tagged("condition", data.condition), optional_tagged("body", data.body), optional_tagged("else", data.else_body))
-    T(When, "<When><subject>%r</subject>%r%r</When>", ast_to_xml(data.subject), when_clauses_to_xml(data.clauses), optional_tagged("else", data.else_body))
-    T(Reduction, "<Reduction>%r%r%r</Reduction>", optional_tagged("iterable", data.iter),
+    T(While, "<While>%k%k</While>", optional_tagged("condition", data.condition), optional_tagged("body", data.body))
+    T(If, "<If>%k%k%k</If>", optional_tagged("condition", data.condition), optional_tagged("body", data.body), optional_tagged("else", data.else_body))
+    T(When, "<When><subject>%k</subject>%k%k</When>", ast_to_xml_ptr(data.subject), when_clauses_to_xml(data.clauses), optional_tagged("else", data.else_body))
+    T(Reduction, "<Reduction>%k%k%k</Reduction>", optional_tagged("iterable", data.iter),
       optional_tagged("combination", data.combination), optional_tagged("fallback", data.fallback))
-    T(Skip, "<Skip>%r</Skip>", data.target)
-    T(Stop, "<Stop>%r</Stop>", data.target)
-    T(PrintStatement, "<PrintStatement>%r</PrintStatement>", ast_list_to_xml(data.to_print))
+    T(Skip, "<Skip>%s</Skip>", data.target)
+    T(Stop, "<Stop>%s</Stop>", data.target)
+    T(PrintStatement, "<PrintStatement>%k</PrintStatement>", ast_list_to_xml(data.to_print))
     T(Pass, "<Pass/>")
-    T(Defer, "<Defer>%r<Defer/>", ast_to_xml(data.body))
-    T(Return, "<Return>%r</Return>", ast_to_xml(data.value))
-    T(Extern, "<Extern name=\"%s\">%r</Extern>", data.name, type_ast_to_xml(data.type))
-    T(StructDef, "<StructDef name=\"%s\">%r<namespace>%r</namespace></StructDef>", data.name, arg_list_to_xml(data.fields), ast_to_xml(data.namespace))
-    T(EnumDef, "<EnumDef name=\"%s\"><tags>%r</tags><namespace>%r</namespace></EnumDef>", data.name, tags_to_xml(data.tags), ast_to_xml(data.namespace))
-    T(LangDef, "<LangDef name=\"%s\">%r</LangDef>", data.name, ast_to_xml(data.namespace))
-    T(Index, "<Index>%r%r</Index>", optional_tagged("indexed", data.indexed), optional_tagged("index", data.index))
-    T(FieldAccess, "<FieldAccess field=\"%s\">%r</FieldAccess>", data.field, ast_to_xml(data.fielded))
-    T(Optional, "<Optional>%r</Optional>", ast_to_xml(data.value))
-    T(NonOptional, "<NonOptional>%r</NonOptional>", ast_to_xml(data.value))
-    T(DocTest, "<DocTest>%r<output>%r</output></DocTest>", optional_tagged("expression", data.expr), xml_escape(data.output))
-    T(Use, "<Use>%r%r</Use>", optional_tagged("var", data.var), xml_escape(data.path))
-    T(InlineCCode, "<InlineCode>%r</InlineCode>", xml_escape(data.code))
-    default: return "???";
+    T(Defer, "<Defer>%k<Defer/>", ast_to_xml_ptr(data.body))
+    T(Return, "<Return>%k</Return>", ast_to_xml_ptr(data.value))
+    T(Extern, "<Extern name=\"%s\">%k</Extern>", data.name, type_ast_to_xml_ptr(data.type))
+    T(StructDef, "<StructDef name=\"%s\">%k<namespace>%k</namespace></StructDef>", data.name, arg_list_to_xml(data.fields), ast_to_xml_ptr(data.namespace))
+    T(EnumDef, "<EnumDef name=\"%s\"><tags>%k</tags><namespace>%k</namespace></EnumDef>", data.name, tags_to_xml(data.tags), ast_to_xml_ptr(data.namespace))
+    T(LangDef, "<LangDef name=\"%s\">%k</LangDef>", data.name, ast_to_xml_ptr(data.namespace))
+    T(Index, "<Index>%k%k</Index>", optional_tagged("indexed", data.indexed), optional_tagged("index", data.index))
+    T(FieldAccess, "<FieldAccess field=\"%s\">%k</FieldAccess>", data.field, ast_to_xml_ptr(data.fielded))
+    T(Optional, "<Optional>%k</Optional>", ast_to_xml_ptr(data.value))
+    T(NonOptional, "<NonOptional>%k</NonOptional>", ast_to_xml_ptr(data.value))
+    T(DocTest, "<DocTest>%k<output>%k</output></DocTest>", optional_tagged("expression", data.expr), xml_escape(Text$from_str(data.output)))
+    T(Use, "<Use>%k%k</Use>", optional_tagged("var", data.var), xml_escape(Text$from_str(data.path)))
+    T(InlineCCode, "<InlineCode>%k</InlineCode>", xml_escape(data.code))
+    default: return Text("???");
 #undef T
     }
 }
 
-CORD type_ast_to_xml(type_ast_t *t)
+Text_t type_ast_to_xml(type_ast_t *t)
 {
-    if (!t) return "NULL";
+    if (!t) return Text("NULL");
 
     switch (t->tag) {
-#define T(type, ...) case type: { auto data = t->__data.type; (void)data; return CORD_asprintf(__VA_ARGS__); }
+#define T(type, ...) case type: { auto data = t->__data.type; (void)data; return Text$format(__VA_ARGS__); }
     T(UnknownTypeAST, "<UnknownType/>")
     T(VarTypeAST, "%s", data.name)
-    T(PointerTypeAST, "<PointerType is_stack=\"%s\">%r</PointerType>",
-      data.is_stack ? "yes" : "no", type_ast_to_xml(data.pointed))
-    T(ArrayTypeAST, "<ArrayType>%r</ArrayType>", type_ast_to_xml(data.item))
-    T(SetTypeAST, "<TableType>%r</TableType>", type_ast_to_xml(data.item))
-    T(ChannelTypeAST, "<ChannelType>%r</ChannelType>", type_ast_to_xml(data.item))
-    T(TableTypeAST, "<TableType>%r %r</TableType>", type_ast_to_xml(data.key), type_ast_to_xml(data.value))
-    T(FunctionTypeAST, "<FunctionType>%r %r</FunctionType>", arg_list_to_xml(data.args), type_ast_to_xml(data.ret))
-    T(OptionalTypeAST, "<OptionalType>%r</OptionalType>", data.type)
+    T(PointerTypeAST, "<PointerType is_stack=\"%s\">%k</PointerType>",
+      data.is_stack ? "yes" : "no", type_ast_to_xml_ptr(data.pointed))
+    T(ArrayTypeAST, "<ArrayType>%k</ArrayType>", type_ast_to_xml_ptr(data.item))
+    T(SetTypeAST, "<TableType>%k</TableType>", type_ast_to_xml_ptr(data.item))
+    T(ChannelTypeAST, "<ChannelType>%k</ChannelType>", type_ast_to_xml_ptr(data.item))
+    T(TableTypeAST, "<TableType>%k %k</TableType>", type_ast_to_xml_ptr(data.key), type_ast_to_xml_ptr(data.value))
+    T(FunctionTypeAST, "<FunctionType>%k %k</FunctionType>", arg_list_to_xml(data.args), type_ast_to_xml_ptr(data.ret))
+    T(OptionalTypeAST, "<OptionalType>%k</OptionalType>", type_ast_to_xml_ptr(data.type))
 #undef T
-    default: return CORD_EMPTY;
+    default: return Text("");
     }
 }
 
@@ -192,7 +208,7 @@ int printf_ast(FILE *stream, const struct printf_info *info, const void *const a
         if (info->alt)
             return fprintf(stream, "%.*s", (int)(ast->end - ast->start), ast->start);
         else
-            return CORD_put(ast_to_xml(ast), stream);
+            return Text$print(stream, ast_to_xml(ast));
     } else {
         return fputs("(null)", stream);
     }

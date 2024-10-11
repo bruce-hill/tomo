@@ -1310,13 +1310,12 @@ PARSER(parse_text) {
 
     // Escape sequence, e.g. \r\n
     if (*pos == '\\') {
-        CORD cord = CORD_EMPTY;
+        Text_t text = Text("");
         do {
             const char *c = unescape(ctx, &pos);
-            cord = CORD_cat(cord, c);
-            // cord = CORD_cat_char(cord, c);
+            text = Texts(text, Text$from_str(c));
         } while (*pos == '\\');
-        return NewAST(ctx->file, start, pos, TextLiteral, .cord=cord);
+        return NewAST(ctx->file, start, pos, TextLiteral, .text=text);
     }
 
     char open_quote, close_quote, open_interp = '$';
@@ -1357,17 +1356,17 @@ PARSER(parse_text) {
     int64_t string_indent = starting_indent + 1;
 
     ast_list_t *chunks = NULL;
-    CORD chunk = CORD_EMPTY;
+    Text_t chunk = Text("");
     const char *chunk_start = pos;
     int depth = 1;
     bool leading_newline = false;
     for (; pos < ctx->file->text + ctx->file->len && depth > 0; ) {
         if (*pos == open_interp) { // Interpolation
             const char *interp_start = pos;
-            if (chunk) {
-                ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk);
+            if (chunk.length > 0) {
+                ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .text=Text$format("%k", &chunk)); // Collapse text
                 chunks = new(ast_list_t, .ast=literal, .next=chunks);
-                chunk = NULL;
+                chunk = Text("");
             }
             ++pos;
             ast_t *interp;
@@ -1380,7 +1379,7 @@ PARSER(parse_text) {
             if (get_indent(ctx, pos) == starting_indent) {
                 ++depth;
             }
-            chunk = CORD_cat_char(chunk, *pos);
+            chunk = Texts(chunk, Text$format("%c", *pos));
             ++pos;
         } else if (!leading_newline && *pos == close_quote) { // Nested pair end
             if (get_indent(ctx, pos) == starting_indent) {
@@ -1388,13 +1387,13 @@ PARSER(parse_text) {
                 if (depth == 0)
                     break;
             }
-            chunk = CORD_cat_char(chunk, *pos);
+            chunk = Texts(chunk, Text$format("%c", *pos));
             ++pos;
         } else if (newline_with_indentation(&pos, string_indent)) { // Newline
-            if (!leading_newline && !(chunk || chunks)) {
+            if (!leading_newline && !(chunk.length > 0 || chunks)) {
                 leading_newline = true;
             } else {
-                chunk = CORD_cat_char(chunk, '\n');
+                chunk = Texts(chunk, Text("\n"));
             }
         } else if (newline_with_indentation(&pos, starting_indent)) { // Line continuation (..)
             if (*pos == close_quote) {
@@ -1406,15 +1405,14 @@ PARSER(parse_text) {
                 parser_err(ctx, pos, strchrnul(pos, '\n'), "This multi-line string should be either indented or have '..' at the front");
             }
         } else { // Plain character
-            chunk = CORD_cat_char(chunk, *pos);
+            chunk = Texts(chunk, Text$format("%c", *pos));
             ++pos;
         }
     }
 
-    if (chunk) {
-        ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk);
+    if (chunk.length > 0) {
+        ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .text=Text$format("%k", &chunk)); // Collapse text
         chunks = new(ast_list_t, .ast=literal, .next=chunks);
-        chunk = NULL;
     }
 
     REVERSE_LIST(chunks);
@@ -1434,13 +1432,13 @@ PARSER(parse_path) {
 
     const char *chunk_start = start + 1;
     ast_list_t *chunks = NULL;
-    CORD chunk_text = CORD_EMPTY;
+    Text_t chunk_text = Text("");
     int paren_depth = 1;
     while (pos < ctx->file->text + ctx->file->len) {
         switch (*pos) {
         case '\\': {
             ++pos;
-            chunk_text = CORD_asprintf("%r%.*s%c", chunk_text, (size_t)(pos - chunk_start), chunk_start, *pos);
+            chunk_text = Text$format("%k%.*s%c", &chunk_text, (size_t)(pos - chunk_start), chunk_start, *pos);
             ++pos;
             chunk_start = pos;
             continue;
@@ -1449,12 +1447,12 @@ PARSER(parse_path) {
             const char *interp_start = pos;
 
             if (pos > chunk_start)
-                chunk_text = CORD_asprintf("%r%.*s", chunk_text, (size_t)(pos - chunk_start), chunk_start);
+                chunk_text = Text$format("%k%.*s", &chunk_text, (size_t)(pos - chunk_start), chunk_start);
 
-            if (chunk_text) {
-                ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk_text);
+            if (chunk_text.length > 0) {
+                ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .text=chunk_text);
                 chunks = new(ast_list_t, .ast=literal, .next=chunks);
-                chunk_text = CORD_EMPTY;
+                chunk_text = Text("");
             }
             ++pos;
             if (*pos == ' ' || *pos == '\t')
@@ -1482,10 +1480,10 @@ PARSER(parse_path) {
   end_of_path:;
 
     if (pos > chunk_start)
-        chunk_text = CORD_asprintf("%r%.*s", chunk_text, (size_t)(pos - chunk_start), chunk_start);
+        chunk_text = Text$format("%k%.*s", &chunk_text, (size_t)(pos - chunk_start), chunk_start);
 
-    if (chunk_text != CORD_EMPTY) {
-        ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk_text);
+    if (chunk_text.length > 0) {
+        ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .text=chunk_text);
         chunks = new(ast_list_t, .ast=literal, .next=chunks);
     }
 
@@ -2311,7 +2309,7 @@ PARSER(parse_inline_c) {
     if (depth != 0)
         parser_err(ctx, start, start+1, "I couldn't find the closing '}' for this inline C code");
 
-    CORD c_code = GC_strndup(c_code_start, (size_t)((pos-1) - c_code_start));
+    Text_t c_code = Text$format("%.*s", (size_t)((pos-1) - c_code_start), c_code_start);
     return NewAST(ctx->file, start, pos, InlineCCode, .code=c_code, .type_ast=type);
 }
 
@@ -2345,16 +2343,16 @@ PARSER(parse_say) {
     spaces(&pos);
 
     ast_list_t *chunks = NULL;
-    CORD chunk = CORD_EMPTY;
+    Text_t chunk = Text("");
     const char *chunk_start = pos;
     const char open_interp = '$';
     while (pos < ctx->file->text + ctx->file->len) {
         if (*pos == open_interp) { // Interpolation
             const char *interp_start = pos;
-            if (chunk) {
-                ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk);
+            if (chunk.length > 0) {
+                ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .text=Text$format("%k", &chunk));
                 chunks = new(ast_list_t, .ast=literal, .next=chunks);
-                chunk = NULL;
+                chunk = Text("");
             }
             ++pos;
             ast_t *interp;
@@ -2366,15 +2364,14 @@ PARSER(parse_say) {
         } else if (*pos == '\r' || *pos == '\n') { // Newline
             break;
         } else { // Plain character
-            chunk = CORD_cat_char(chunk, *pos);
+            chunk = Texts(chunk, Text$format("%c", *pos));
             ++pos;
         }
     }
 
-    if (chunk) {
-        ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk);
+    if (chunk.length > 0) {
+        ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .text=Text$format("%k", &chunk));
         chunks = new(ast_list_t, .ast=literal, .next=chunks);
-        chunk = NULL;
     }
 
     REVERSE_LIST(chunks);

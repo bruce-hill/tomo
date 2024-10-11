@@ -1424,9 +1424,9 @@ CORD compile_statement(env_t *env, ast_t *ast)
     case InlineCCode: {
         auto inline_code = Match(ast, InlineCCode);
         if (inline_code->type)
-            return CORD_all("({ ", inline_code->code, "; })");
+            return CORD_all("({ ", Text$as_c_string(inline_code->code), "; })");
         else
-            return inline_code->code;
+            return Text$as_c_string(inline_code->code);
     }
     case Use: {
         auto use = Match(ast, Use);
@@ -2197,7 +2197,7 @@ CORD compile(env_t *env, ast_t *ast)
         code_err(ast, "unimplemented binop");
     }
     case TextLiteral: {
-        CORD literal = Match(ast, TextLiteral)->cord; 
+        CORD literal = Text$as_c_string(Match(ast, TextLiteral)->text); 
         if (literal == CORD_EMPTY)
             return "Text(\"\")";
 
@@ -2225,7 +2225,7 @@ CORD compile(env_t *env, ast_t *ast)
         if (!chunks) {
             return CORD_all(lang_constructor, "(\"\")");
         } else if (!chunks->next && chunks->ast->tag == TextLiteral) {
-            CORD literal = Match(chunks->ast, TextLiteral)->cord; 
+            CORD literal = Text$as_c_string(Match(chunks->ast, TextLiteral)->text); 
             if (string_literal_is_all_ascii(literal))
                 return CORD_all(lang_constructor, "(", compile_string_literal(literal), ")");
             return CORD_all("((", compile_type(text_t), ")", compile(env, chunks->ast), ")");
@@ -2353,7 +2353,7 @@ CORD compile(env_t *env, ast_t *ast)
             env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : fresh_scope(env);
             static int64_t comp_num = 1;
             const char *comprehension_name = heap_strf("arr$%ld", comp_num++);
-            ast_t *comprehension_var = FakeAST(InlineCCode, .code=CORD_all("&", comprehension_name),
+            ast_t *comprehension_var = FakeAST(InlineCCode, .code=Text$format("&%s", comprehension_name),
                                                .type=Type(PointerType, .pointed=array_type, .is_stack=true));
             Closure_t comp_action = {.fn=add_to_array_comprehension, .userdata=comprehension_var};
             scope->comprehension_action = &comp_action;
@@ -2432,7 +2432,7 @@ CORD compile(env_t *env, ast_t *ast)
             static int64_t comp_num = 1;
             env_t *scope = fresh_scope(env);
             const char *comprehension_name = heap_strf("table$%ld", comp_num++);
-            ast_t *comprehension_var = FakeAST(InlineCCode, .code=CORD_all("&", comprehension_name),
+            ast_t *comprehension_var = FakeAST(InlineCCode, .code=Text$format("&%s", comprehension_name),
                                                .type=Type(PointerType, .pointed=table_type, .is_stack=true));
 
             CORD code = CORD_all("({ Table_t ", comprehension_name, " = {");
@@ -2486,7 +2486,7 @@ CORD compile(env_t *env, ast_t *ast)
             static int64_t comp_num = 1;
             env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : fresh_scope(env);
             const char *comprehension_name = heap_strf("set$%ld", comp_num++);
-            ast_t *comprehension_var = FakeAST(InlineCCode, .code=CORD_all("&", comprehension_name),
+            ast_t *comprehension_var = FakeAST(InlineCCode, .code=Text$format("&%s", comprehension_name),
                                                .type=Type(PointerType, .pointed=set_type, .is_stack=true));
             CORD code = CORD_all("({ Table_t ", comprehension_name, " = {};");
             Closure_t comp_action = {.fn=add_to_set_comprehension, .userdata=comprehension_var};
@@ -2702,8 +2702,8 @@ CORD compile(env_t *env, ast_t *ast)
                 type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                     .ret=Type(IntType, .bits=TYPE_IBITS32));
                 ast_t *default_cmp = FakeAST(InlineCCode,
-                                             .code=CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
-                                                            compile_type_info(env, item_t), "})"),
+                                             .code=Text$format("((Closure_t){.fn=generic_compare, .userdata=(void*)%s})",
+                                                            CORD_to_const_char_star(compile_type_info(env, item_t))),
                                              .type=Type(ClosureType, .fn=fn_t));
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
                                       .next=new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp));
@@ -2715,8 +2715,8 @@ CORD compile(env_t *env, ast_t *ast)
                 type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                     .ret=Type(IntType, .bits=TYPE_IBITS32));
                 ast_t *default_cmp = FakeAST(InlineCCode,
-                                             .code=CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
-                                                            compile_type_info(env, item_t), "})"),
+                                             .code=Text$format("((Closure_t){.fn=generic_compare, .userdata=(void*)%s})",
+                                                            CORD_to_const_char_star(compile_type_info(env, item_t))),
                                              .type=Type(ClosureType, .fn=fn_t));
                 arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp);
                 CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
@@ -2727,8 +2727,8 @@ CORD compile(env_t *env, ast_t *ast)
                 type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                     .ret=Type(IntType, .bits=TYPE_IBITS32));
                 ast_t *default_cmp = FakeAST(InlineCCode,
-                                             .code=CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
-                                                            compile_type_info(env, item_t), "})"),
+                                             .code=Text$format("((Closure_t){.fn=generic_compare, .userdata=(void*)%s})",
+                                                            CORD_to_const_char_star(compile_type_info(env, item_t))),
                                              .type=Type(ClosureType, .fn=fn_t));
                 arg_t *arg_spec = new(arg_t, .name="target", .type=item_t,
                                       .next=new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp));
@@ -3002,11 +3002,11 @@ CORD compile(env_t *env, ast_t *ast)
                 if (!call->args || call->args->next)
                     code_err(call->fn, "This constructor takes exactly 1 argument");
                 if (call->args->value->tag == TextLiteral)
-                    return compile_string_literal(Match(call->args->value, TextLiteral)->cord);
+                    return compile_string_literal(Text$as_c_string(Match(call->args->value, TextLiteral)->text));
                 else if (call->args->value->tag == TextJoin && Match(call->args->value, TextJoin)->children == NULL)
                     return "\"\"";
                 else if (call->args->value->tag == TextJoin && Match(call->args->value, TextJoin)->children->next == NULL)
-                    return compile_string_literal(Match(Match(call->args->value, TextJoin)->children->ast, TextLiteral)->cord);
+                    return compile_string_literal(Text$as_c_string(Match(Match(call->args->value, TextJoin)->children->ast, TextLiteral)->text));
                 type_t *actual = get_type(env, call->args->value);
                 return CORD_all("Text$as_c_string(", expr_as_text(env, compile(env, call->args->value), actual, "no"), ")");
             } else if (t->tag == DateTimeType) {
@@ -3156,7 +3156,7 @@ CORD compile(env_t *env, ast_t *ast)
         env_t *scope = fresh_scope(env);
         set_binding(scope, "$reduction", new(binding_t, .type=t, .code="reduction"));
         ast_t *item = FakeAST(Var, "$iter_value");
-        ast_t *body = FakeAST(InlineCCode, .code="{}"); // placeholder
+        ast_t *body = FakeAST(InlineCCode, .code=Text("{}")); // placeholder
         ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=item), .iter=reduction->iter, .body=body);
         env_t *body_scope = for_scope(scope, loop);
 
@@ -3170,14 +3170,16 @@ CORD compile(env_t *env, ast_t *ast)
                 early_out = "if (reduction) break;";
         }
 
-        body->__data.InlineCCode.code = CORD_all(
+        body->__data.InlineCCode.code = Text$format(
             "if (!has_value) {\n"
-            "    reduction = ", compile(body_scope, item), ";\n"
+            "    reduction = %s;\n"
             "    has_value = yes;\n"
             "} else {\n"
-            "    reduction = ", compile(body_scope, reduction->combination), ";\n",
-            early_out,
-            "}\n");
+            "    reduction = %s;\n"
+            "}\n",
+            CORD_to_const_char_star(compile(body_scope, item)),
+            CORD_to_const_char_star(compile(body_scope, reduction->combination)),
+            CORD_to_const_char_star(early_out));
 
         CORD empty_handling;
         if (reduction->fallback) {
@@ -3343,9 +3345,9 @@ CORD compile(env_t *env, ast_t *ast)
     case InlineCCode: {
         type_t *t = get_type(env, ast);
         if (t->tag == VoidType)
-            return CORD_all("{\n", Match(ast, InlineCCode)->code, "\n}");
+            return CORD_all("{\n", Text$as_c_string(Match(ast, InlineCCode)->code), "\n}");
         else
-            return CORD_all("({ ", Match(ast, InlineCCode)->code, "; })");
+            return CORD_all("({ ", Text$as_c_string(Match(ast, InlineCCode)->code), "; })");
     }
     case Use: code_err(ast, "Compiling 'use' as expression!");
     case Defer: code_err(ast, "Compiling 'defer' as expression!");

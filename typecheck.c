@@ -1361,14 +1361,8 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast)
         return is_constant(env, text->children->ast);
     }
     case TextLiteral: {
-        CORD literal = Match(ast, TextLiteral)->cord; 
-        CORD_pos i;
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-        CORD_FOR(i, literal) {
-            if (!isascii(CORD_pos_fetch(i)))
-                return false; // Non-ASCII requires grapheme logic, not constant
-        }
-        return true; // Literal ASCII string, OK
+        Text_t text = Match(ast, TextLiteral)->text; 
+        return (text.tag == TEXT_SHORT_ASCII || text.tag == TEXT_ASCII);
     }
     case Not: return is_constant(env, Match(ast, Not)->value);
     case Negative: return is_constant(env, Match(ast, Negative)->value);
