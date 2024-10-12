@@ -629,7 +629,7 @@ public Text_t Text$from_strn(const char *str, size_t len)
         ucs4_t buf[128];
         size_t length = sizeof(buf)/sizeof(buf[0]);
 
-        ucs4_t *codepoints = u8_to_u32((uint8_t*)str, (size_t)ascii_span + strlen(str + ascii_span), buf, &length);
+        ucs4_t *codepoints = u8_to_u32((uint8_t*)str, len, buf, &length);
         Text_t ret = text_from_u32(codepoints, (int64_t)length, true);
         if (codepoints != buf) free(codepoints);
         return ret;

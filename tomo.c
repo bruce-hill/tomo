@@ -60,6 +60,13 @@ static Text_t escape_lib_name(Text_t lib_name);
 static void build_library(Text_t lib_dir_name);
 static void compile_files(env_t *env, Array_t files, bool only_compile_arguments, Array_t *object_files, Array_t *ldlibs);
 
+static int printf_cord(FILE *stream, const struct printf_info *info, const void *const argv[])
+{
+    (void)info;
+    CORD c = *(CORD*)argv[0];
+    return CORD_put(c, stream);
+}
+
 #pragma GCC diagnostic ignored "-Wstack-protector"
 int main(int argc, char *argv[])
 {
@@ -68,6 +75,8 @@ int main(int argc, char *argv[])
     if (register_printf_specifier('W', printf_ast, printf_pointer_size))
         errx(1, "Couldn't set printf specifier");
     if (register_printf_specifier('k', printf_text, printf_text_size))
+        errx(1, "Couldn't set printf specifier");
+    if (register_printf_specifier('r', printf_cord, printf_pointer_size))
         errx(1, "Couldn't set printf specifier");
 
 

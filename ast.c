@@ -104,7 +104,7 @@ Text_t _optional_tagged(const char *tag, ast_t *ast)
 
 Text_t _optional_tagged_type(const char *tag, type_ast_t *ast)
 {
-    return ast ? Text$format("<%s>%k</%s>", tag, stack(type_ast_to_xml(ast)), tag) : Text("");
+    return ast ? Text$format("<%s>%k</%s>", tag, type_ast_to_xml_ptr(ast), tag) : Text("");
 }
 
 Text_t ast_to_xml(ast_t *ast)

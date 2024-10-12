@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <unistr.h>
+#include <unigbrk.h>
 #include <unictype.h>
 #include <uniname.h>
 #include <signal.h>
@@ -1404,9 +1405,13 @@ PARSER(parse_text) {
             } else {
                 parser_err(ctx, pos, strchrnul(pos, '\n'), "This multi-line string should be either indented or have '..' at the front");
             }
-        } else { // Plain character
-            chunk = Texts(chunk, Text$format("%c", *pos));
-            ++pos;
+        } else { // Regular grapheme cluster (no escapes etc.)
+            char *next = (char*)u8_grapheme_next((const uint8_t*)pos, (const uint8_t*)ctx->file->text + ctx->file->len);
+            while (next < ctx->file->text + ctx->file->len && !isascii(*next))
+                next = (char*)u8_grapheme_next((const uint8_t*)next, (const uint8_t*)ctx->file->text + ctx->file->len);
+            Text_t cluster = Text$from_strn(pos, (size_t)(next-pos));
+            chunk = Texts(chunk, cluster);
+            pos = next;
         }
     }
 

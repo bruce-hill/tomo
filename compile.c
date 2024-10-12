@@ -19,7 +19,7 @@
 #include "structs.h"
 #include "typecheck.h"
 
-#define type_to_cord(t) Text$as_c_string(type_to_text(t))
+#define type_to_cord(t) ({ Text_t text = type_to_text(t); text.length > 0 ? Text$as_c_string(text) : CORD_EMPTY; })
 
 typedef ast_t* (*comprehension_body_t)(ast_t*, ast_t*);
 
@@ -215,8 +215,8 @@ CORD compile_type(type_t *t)
     case CStringType: return "char*";
     case DateTimeType: return "DateTime_t";
     case BigIntType: return "Int_t";
-    case IntType: return CORD_asprintf("Int%ld_t", Match(t, IntType)->bits);
-    case NumType: return Match(t, NumType)->bits == TYPE_NBITS64 ? "Num_t" : CORD_asprintf("Num%ld_t", Match(t, NumType)->bits);
+    case IntType: return heap_strf("Int%ld_t", Match(t, IntType)->bits);
+    case NumType: return Match(t, NumType)->bits == TYPE_NBITS64 ? "Num_t" : heap_strf("Num%ld_t", Match(t, NumType)->bits);
     case TextType: {
         auto text = Match(t, TextType);
         if (!text->lang || streq(text->lang, "Text"))
@@ -304,11 +304,11 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
             if (index->unchecked) {
                 return CORD_all("Array_lvalue_unchecked(", compile_type(item_type), ", ", target_code, ", ", 
                                 compile_int_to_type(env, index->index, Type(IntType, .bits=TYPE_IBITS64)),
-                                ", ", CORD_asprintf("%ld", type_size(item_type)), ")");
+                                ", ", heap_strf("%ld", type_size(item_type)), ")");
             } else {
                 return CORD_all("Array_lvalue(", compile_type(item_type), ", ", target_code, ", ", 
                                 compile_int_to_type(env, index->index, Type(IntType, .bits=TYPE_IBITS64)),
-                                ", ", CORD_asprintf("%ld", type_size(item_type)),
+                                ", ", heap_strf("%ld", type_size(item_type)),
                                 ", ", heap_strf("%ld", ast->start - ast->file->text),
                                 ", ", heap_strf("%ld", ast->end - ast->file->text), ")");
             }
@@ -494,7 +494,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 assert(promote(env, &val_code, t, Type(ClosureType, t)));
                 t = Type(ClosureType, t);
             }
-            return CORD_asprintf(
+            return heap_strf(
                 "%r;\n"
                 "test((%r = %r), %r, %r, %ld, %ld);\n",
                 compile_declaration(t, var),
@@ -520,7 +520,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     if (!promote(val_scope, &value, rhs_t, lhs_t))
                         code_err(assign->values->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
                 }
-                return CORD_asprintf(
+                return heap_strf(
                     "test((%r), %r, %r, %ld, %ld);",
                     compile_assignment(env, assign->targets->ast, value),
                     compile_type_info(env, lhs_t),
@@ -553,7 +553,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 }
                 i = 1;
                 for (ast_list_t *target = assign->targets; target; target = target->next)
-                    code = CORD_all(code, compile_assignment(env, target->ast, CORD_asprintf("$%ld", i++)), ";\n");
+                    code = CORD_all(code, compile_assignment(env, target->ast, heap_strf("$%ld", i++)), ";\n");
 
                 CORD_appendf(&code, "$1; }), %r, %r, %ld, %ld);",
                     compile_type_info(env, get_type(env, assign->targets->ast)),
@@ -564,7 +564,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             }
         } else if (test->expr->tag == UpdateAssign) {
             type_t *lhs_t = get_type(env, Match(test->expr, UpdateAssign)->lhs);
-            return CORD_asprintf(
+            return heap_strf(
                 "test(({%r %r;}), %r, %r, %ld, %ld);",
                 compile_statement(env, test->expr),
                 compile_lvalue(env, Match(test->expr, UpdateAssign)->lhs),
@@ -573,13 +573,13 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else if (expr_t->tag == VoidType || expr_t->tag == AbortType || expr_t->tag == ReturnType) {
-            return CORD_asprintf(
+            return heap_strf(
                 "test(({%r NULL;}), NULL, NULL, %ld, %ld);",
                 compile_statement(env, test->expr),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else {
-            return CORD_asprintf(
+            return heap_strf(
                 "test(%r, %r, %r, %ld, %ld);",
                 compile(env, test->expr),
                 compile_type_info(env, expr_t),
@@ -646,7 +646,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         }
         i = 1;
         for (ast_list_t *target = assign->targets; target; target = target->next) {
-            code = CORD_all(code, compile_assignment(env, target->ast, CORD_asprintf("$%ld", i++)), ";\n");
+            code = CORD_all(code, compile_assignment(env, target->ast, heap_strf("$%ld", i++)), ";\n");
         }
         return CORD_cat(code, "\n}");
     }
@@ -738,7 +738,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (lhs_t->tag == TextType) {
                 return CORD_all(lhs, " = Texts(", lhs, ", ", rhs, ");");
             } else if (lhs_t->tag == ArrayType) {
-                CORD padded_item_size = CORD_asprintf("%ld", type_size(Match(lhs_t, ArrayType)->item_type));
+                CORD padded_item_size = heap_strf("%ld", type_size(Match(lhs_t, ArrayType)->item_type));
                 if (promote(env, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)) {
                     // arr ++= item
                     if (update->lhs->tag == Var)
@@ -833,7 +833,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         if (streq(Match(fndef->name, Var)->name, "main"))
             body = CORD_all("$", env->namespace->name, "$$initialize();\n", body);
         if (CORD_fetch(body, 0) != '{')
-            body = CORD_asprintf("{\n%r\n}", body);
+            body = heap_strf("{\n%r\n}", body);
         env->code->funcs = CORD_all(env->code->funcs, code, " ", body, "\n");
 
         if (fndef->cache && fndef->args == NULL) { // no-args cache just uses a static var
@@ -864,7 +864,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
             CORD pop_code = CORD_EMPTY;
             if (fndef->cache->tag == Int && !cache_size.is_null && cache_size.i > 0) {
-                pop_code = CORD_all("if (cache.entries.length > ", CORD_asprintf("%ld", cache_size.i),
+                pop_code = CORD_all("if (cache.entries.length > ", heap_strf("%ld", cache_size.i),
                                     ") Table$remove(&cache, cache.entries.data + cache.entries.stride*Int$random(I(0), I(cache.entries.length-1)), table_type);\n");
             }
 
@@ -897,7 +897,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         env->code->function_naming = CORD_all(
             env->code->function_naming,
-            CORD_asprintf("register_function(%r, Text(\"%r [%s.tm:%ld]\"));\n",
+            heap_strf("register_function(%r, Text(\"%r [%s.tm:%ld]\"));\n",
                           name, text, file_base_name(ast->file->filename), get_line_number(ast->file, ast->start)));
         return CORD_EMPTY;
     }
@@ -968,7 +968,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (CORD_ncmp(entry->b->code, 0, "userdata->", 0, strlen("userdata->")) == 0) {
                 set_binding(defer_env, entry->name, entry->b);
             } else {
-                CORD defer_name = CORD_asprintf("defer$%d$%s", ++defer_id, entry->name);
+                CORD defer_name = heap_strf("defer$%d$%s", ++defer_id, entry->name);
                 code = CORD_all(
                     code, compile_declaration(entry->b->type, defer_name), " = ", entry->b->code, ";\n");
                 set_binding(defer_env, entry->name, new(binding_t, .type=entry->b->type, .code=defer_name));
@@ -1454,7 +1454,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
     default:
         if (!is_discardable(env, ast))
             code_err(ast, "The %T result of this statement cannot be discarded", get_type(env, ast));
-        return CORD_asprintf("(void)%r;", compile(env, ast));
+        return heap_strf("(void)%r;", compile(env, ast));
     }
 }
 
@@ -1463,33 +1463,33 @@ CORD compile_statement(env_t *env, ast_t *ast)
 //     if (!stmt)
 //         return stmt;
 //     int64_t line = get_line_number(ast->file, ast->start);
-//     return CORD_asprintf("#line %ld\n%r", line, stmt);
+//     return heap_strf("#line %ld\n%r", line, stmt);
 // }
 
 CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
 {
     switch (t->tag) {
-    case MemoryType: return CORD_asprintf("Memory$as_text(stack(%r), %r, &Memory$info)", expr, color);
+    case MemoryType: return heap_strf("Memory$as_text(stack(%r), %r, &Memory$info)", expr, color);
     case BoolType:
          // NOTE: this cannot use stack(), since bools may actually be bit fields:
-         return CORD_asprintf("Bool$as_text((Bool_t[1]){%r}, %r, &Bool$info)", expr, color);
-    case CStringType: return CORD_asprintf("CString$as_text(stack(%r), %r, &CString$info)", expr, color);
-    case DateTimeType: return CORD_asprintf("DateTime$as_text(stack(%r), %r, &DateTime$info)", expr, color);
+         return heap_strf("Bool$as_text((Bool_t[1]){%r}, %r, &Bool$info)", expr, color);
+    case CStringType: return heap_strf("CString$as_text(stack(%r), %r, &CString$info)", expr, color);
+    case DateTimeType: return heap_strf("DateTime$as_text(stack(%r), %r, &DateTime$info)", expr, color);
     case BigIntType: case IntType: case ByteType: case NumType: {
         Text_t name = type_to_text(t);
-        return CORD_asprintf("%r$as_text(stack(%r), %r, &%r$info)", Text$as_c_string(name), expr, color, name);
+        return heap_strf("%k$as_text(stack(%r), %r, &%k$info)", &name, expr, color, &name);
     }
     case TextType: {
-        return CORD_asprintf("Text$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+        return heap_strf("Text$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     }
-    case ArrayType: return CORD_asprintf("Array$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
-    case SetType: return CORD_asprintf("Table$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
-    case ChannelType: return CORD_asprintf("Channel$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
-    case TableType: return CORD_asprintf("Table$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
-    case FunctionType: case ClosureType: return CORD_asprintf("Func$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
-    case PointerType: return CORD_asprintf("Pointer$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
-    case OptionalType: return CORD_asprintf("Optional$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
-    case StructType: case EnumType: return CORD_asprintf("generic_as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case ArrayType: return heap_strf("Array$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case SetType: return heap_strf("Table$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case ChannelType: return heap_strf("Channel$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case TableType: return heap_strf("Table$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case FunctionType: case ClosureType: return heap_strf("Func$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case PointerType: return heap_strf("Pointer$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case OptionalType: return heap_strf("Optional$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case StructType: case EnumType: return heap_strf("generic_as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     default: compiler_err(NULL, NULL, NULL, "Stringifying is not supported for %T", t);
     }
 }
@@ -1591,19 +1591,19 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
     switch (target_bits) {
     case TYPE_IBITS64:
         if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0)
-            return CORD_asprintf("I64(%s)", Match(ast, Int)->str);
+            return heap_strf("I64(%s)", Match(ast, Int)->str);
         break;
     case TYPE_IBITS32:
         if (mpz_cmp_si(i, INT32_MAX) <= 0 && mpz_cmp_si(i, INT32_MIN) >= 0)
-            return CORD_asprintf("I32(%s)", Match(ast, Int)->str);
+            return heap_strf("I32(%s)", Match(ast, Int)->str);
         break;
     case TYPE_IBITS16:
         if (mpz_cmp_si(i, INT16_MAX) <= 0 && mpz_cmp_si(i, INT16_MIN) >= 0)
-            return CORD_asprintf("I16(%s)", Match(ast, Int)->str);
+            return heap_strf("I16(%s)", Match(ast, Int)->str);
         break;
     case TYPE_IBITS8:
         if (mpz_cmp_si(i, INT8_MAX) <= 0 && mpz_cmp_si(i, INT8_MIN) >= 0)
-            return CORD_asprintf("I8(%s)", Match(ast, Int)->str);
+            return heap_strf("I8(%s)", Match(ast, Int)->str);
         break;
     default: break;
     }
@@ -1629,7 +1629,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                         if (int_val.small == 0)
                             code_err(call_arg->value, "Failed to parse this integer");
                         double n = Int_to_Num(int_val);
-                        value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == TYPE_NBITS64
+                        value = heap_strf(Match(spec_arg->type, NumType)->bits == TYPE_NBITS64
                                               ? "N64(%.20g)" : "N32(%.10g)", n);
                     } else {
                         env_t *arg_env = with_enum_scope(env, spec_arg->type);
@@ -1658,7 +1658,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                     if (int_val.small == 0)
                         code_err(call_arg->value, "Failed to parse this integer");
                     double n = Int_to_Num(int_val);
-                    value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == TYPE_NBITS64
+                    value = heap_strf(Match(spec_arg->type, NumType)->bits == TYPE_NBITS64
                                           ? "N64(%.20g)" : "N32(%.10g)", n);
                 } else {
                     env_t *arg_env = with_enum_scope(env, spec_arg->type);
@@ -1878,7 +1878,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Bool: return Match(ast, Bool)->b ? "yes" : "no";
     case DateTime: {
         auto dt = Match(ast, DateTime)->dt;
-        return CORD_asprintf("((DateTime_t){.tv_sec=%ld, .tv_usec=%ld})", dt.tv_sec, dt.tv_usec);
+        return heap_strf("((DateTime_t){.tv_sec=%ld, .tv_usec=%ld})", dt.tv_sec, dt.tv_usec);
     }
     case Var: {
         binding_t *b = get_binding(env, Match(ast, Var)->name);
@@ -1898,31 +1898,31 @@ CORD compile(env_t *env, ast_t *ast)
         switch (Match(ast, Int)->bits) {
         case IBITS_UNSPECIFIED:
         if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0) {
-            return CORD_asprintf("I_small(%s)", str);
+            return heap_strf("I_small(%s)", str);
         } else if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0) {
-            return CORD_asprintf("Int64_to_Int(%s)", str);
+            return heap_strf("Int64_to_Int(%s)", str);
         } else {
-            return CORD_asprintf("Int$from_str(\"%s\")", str);
+            return heap_strf("Int$from_str(\"%s\")", str);
         }
         case IBITS64:
         if ((mpz_cmp_si(i, INT64_MAX) <= 0) && (mpz_cmp_si(i, INT64_MIN) >= 0))
-            return CORD_asprintf("I64(%ldl)", mpz_get_si(i));
+            return heap_strf("I64(%ldl)", mpz_get_si(i));
         code_err(ast, "This value cannot fit in a 64-bit integer");
         case IBITS32:
         if ((mpz_cmp_si(i, INT32_MAX) <= 0) && (mpz_cmp_si(i, INT32_MIN) >= 0))
-            return CORD_asprintf("I32(%ld)", mpz_get_si(i));
+            return heap_strf("I32(%ld)", mpz_get_si(i));
         code_err(ast, "This value cannot fit in a 32-bit integer");
         case IBITS16:
         if ((mpz_cmp_si(i, INT16_MAX) <= 0) && (mpz_cmp_si(i, INT16_MIN) >= 0))
-            return CORD_asprintf("I16(%ld)", mpz_get_si(i));
+            return heap_strf("I16(%ld)", mpz_get_si(i));
         code_err(ast, "This value cannot fit in a 16-bit integer");
         case IBITS8:
         if ((mpz_cmp_si(i, INT8_MAX) <= 0) && (mpz_cmp_si(i, INT8_MIN) >= 0))
-            return CORD_asprintf("I8(%ld)", mpz_get_si(i));
+            return heap_strf("I8(%ld)", mpz_get_si(i));
         code_err(ast, "This value cannot fit in a 8-bit integer");
         case IBITS_BYTE:
         if ((mpz_cmp_si(i, UINT8_MAX) <= 0) && (mpz_cmp_si(i, 0) >= 0))
-            return CORD_asprintf("Byte(%ld)", mpz_get_si(i));
+            return heap_strf("Byte(%ld)", mpz_get_si(i));
         code_err(ast, "This value cannot fit in a byte");
         default: code_err(ast, "Not a valid integer bit width");
         }
@@ -1930,9 +1930,9 @@ CORD compile(env_t *env, ast_t *ast)
     case Num: {
         switch (Match(ast, Num)->bits) {
         case NBITS_UNSPECIFIED: case NBITS64:
-            return CORD_asprintf("N64(%.20g)", Match(ast, Num)->n);
+            return heap_strf("N64(%.20g)", Match(ast, Num)->n);
         case NBITS32:
-            return CORD_asprintf("N32(%.10g)", Match(ast, Num)->n);
+            return heap_strf("N32(%.10g)", Match(ast, Num)->n);
         default: code_err(ast, "This is not a valid number bit width");
         }
     }
@@ -1979,7 +1979,7 @@ CORD compile(env_t *env, ast_t *ast)
 
     }
     // TODO: for constructors, do new(T, ...) instead of heap((T){...})
-    case HeapAllocate: return CORD_asprintf("heap(%r)", compile(env, Match(ast, HeapAllocate)->value));
+    case HeapAllocate: return heap_strf("heap(%r)", compile(env, Match(ast, HeapAllocate)->value));
     case StackReference: {
         ast_t *subject = Match(ast, StackReference)->value;
         if (can_be_mutated(env, subject))
@@ -1998,7 +1998,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD value_code = compile(env, value);
         return CORD_all("({ ", compile_declaration(t, "opt"), " = ", value_code, "; ",
                         "if (", check_null(t, "opt"), ")\n",
-                        CORD_asprintf("fail_source(%r, %ld, %ld, \"This value was expected to be non-null, but it's null!\");\n",
+                        heap_strf("fail_source(%r, %ld, %ld, \"This value was expected to be non-null, but it's null!\");\n",
                                       CORD_quoted(ast->file->filename),
                                       (long)(value->start - value->file->text),
                                       (long)(value->end - value->file->text)),
@@ -2096,7 +2096,7 @@ CORD compile(env_t *env, ast_t *ast)
             case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " == ", rhs, ")");
             default:
-                return CORD_asprintf("generic_equal(stack(%r), stack(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
+                return heap_strf("generic_equal(stack(%r), stack(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
             }
         }
         case BINOP_NE: {
@@ -2106,7 +2106,7 @@ CORD compile(env_t *env, ast_t *ast)
             case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " != ", rhs, ")");
             default:
-                return CORD_asprintf("!generic_equal(stack(%r), stack(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
+                return heap_strf("!generic_equal(stack(%r), stack(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
             }
         }
         case BINOP_LT: {
@@ -2116,7 +2116,7 @@ CORD compile(env_t *env, ast_t *ast)
             case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " < ", rhs, ")");
             default:
-                return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) < 0)", lhs, rhs, compile_type_info(env, operand_t));
+                return heap_strf("(generic_compare(stack(%r), stack(%r), %r) < 0)", lhs, rhs, compile_type_info(env, operand_t));
             }
         }
         case BINOP_LE: {
@@ -2126,7 +2126,7 @@ CORD compile(env_t *env, ast_t *ast)
             case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " <= ", rhs, ")");
             default:
-                return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) <= 0)", lhs, rhs, compile_type_info(env, operand_t));
+                return heap_strf("(generic_compare(stack(%r), stack(%r), %r) <= 0)", lhs, rhs, compile_type_info(env, operand_t));
             }
         }
         case BINOP_GT: {
@@ -2136,7 +2136,7 @@ CORD compile(env_t *env, ast_t *ast)
             case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " > ", rhs, ")");
             default:
-                return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) > 0)", lhs, rhs, compile_type_info(env, operand_t));
+                return heap_strf("(generic_compare(stack(%r), stack(%r), %r) > 0)", lhs, rhs, compile_type_info(env, operand_t));
             }
         }
         case BINOP_GE: {
@@ -2146,7 +2146,7 @@ CORD compile(env_t *env, ast_t *ast)
             case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
                 return CORD_all("(", lhs, " >= ", rhs, ")");
             default:
-                return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) >= 0)", lhs, rhs, compile_type_info(env, operand_t));
+                return heap_strf("(generic_compare(stack(%r), stack(%r), %r) >= 0)", lhs, rhs, compile_type_info(env, operand_t));
             }
         }
         case BINOP_AND: {
@@ -2185,7 +2185,7 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Text$concat(", lhs, ", ", rhs, ")");
             }
             case ArrayType: {
-                CORD padded_item_size = CORD_asprintf("%ld", type_size(Match(operand_t, ArrayType)->item_type));
+                CORD padded_item_size = heap_strf("%ld", type_size(Match(operand_t, ArrayType)->item_type));
                 return CORD_all("Array$concat(", lhs, ", ", rhs, ", ", padded_item_size, ")");
             }
             default:
@@ -2197,7 +2197,7 @@ CORD compile(env_t *env, ast_t *ast)
         code_err(ast, "unimplemented binop");
     }
     case TextLiteral: {
-        CORD literal = Text$as_c_string(Match(ast, TextLiteral)->text); 
+        CORD literal = CORD_from_char_star(Text$as_c_string(Match(ast, TextLiteral)->text)); 
         if (literal == CORD_EMPTY)
             return "Text(\"\")";
 
@@ -2341,7 +2341,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         {
             env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : env;
-            CORD code = CORD_all("TypedArrayN(", compile_type(item_type), CORD_asprintf(", %ld", n));
+            CORD code = CORD_all("TypedArrayN(", compile_type(item_type), heap_strf(", %ld", n));
             for (ast_list_t *item = array->items; item; item = item->next) {
                 code = CORD_all(code, ", ", compile_to_type(scope, item->ast, item_type));
             }
@@ -2513,11 +2513,11 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Lambda: {
         auto lambda = Match(ast, Lambda);
-        CORD name = CORD_asprintf("%rlambda$%ld", namespace_prefix(env, env->namespace), lambda->id);
+        CORD name = heap_strf("%rlambda$%ld", namespace_prefix(env, env->namespace), lambda->id);
 
         env->code->function_naming = CORD_all(
             env->code->function_naming,
-            CORD_asprintf("register_function(%r, Text(\"%r [%s.tm:%ld]\"));\n",
+            heap_strf("register_function(%r, Text(\"%r [%s.tm:%ld]\"));\n",
                           name, type_to_cord(get_type(env, ast)), file_base_name(ast->file->filename), get_line_number(ast->file, ast->start)));
 
         env_t *body_scope = fresh_scope(env);
@@ -2620,7 +2620,7 @@ CORD compile(env_t *env, ast_t *ast)
         switch (self_value_t->tag) {
         case ArrayType: {
             type_t *item_t = Match(self_value_t, ArrayType)->item_type;
-            CORD padded_item_size = CORD_asprintf("%ld", type_size(item_t));
+            CORD padded_item_size = heap_strf("%ld", type_size(item_t));
             if (streq(call->name, "insert")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
@@ -2842,7 +2842,7 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case ChannelType: {
             type_t *item_t = Match(self_value_t, ChannelType)->item_type;
-            CORD padded_item_size = CORD_asprintf("%ld", type_size(item_t));
+            CORD padded_item_size = heap_strf("%ld", type_size(item_t));
             arg_t *front_default_end = new(arg_t, .name="front", .type=Type(BoolType), .default_val=FakeAST(Bool, false));
             arg_t *front_default_start = new(arg_t, .name="front", .type=Type(BoolType), .default_val=FakeAST(Bool, true));
             if (streq(call->name, "give")) {
@@ -3176,7 +3176,7 @@ CORD compile(env_t *env, ast_t *ast)
             "    has_value = yes;\n"
             "} else {\n"
             "    reduction = %s;\n"
-            "}\n",
+            "}\n%s\n",
             CORD_to_const_char_star(compile(body_scope, item)),
             CORD_to_const_char_star(compile(body_scope, reduction->combination)),
             CORD_to_const_char_star(early_out));
@@ -3190,7 +3190,7 @@ CORD compile(env_t *env, ast_t *ast)
                 empty_handling = CORD_all("if (!has_value) reduction = ", compile(env, reduction->fallback), ";\n");
             }
         } else {
-            empty_handling = CORD_asprintf("if (!has_value) fail_source(%r, %ld, %ld, \"This collection was empty!\");\n",
+            empty_handling = heap_strf("if (!has_value) fail_source(%r, %ld, %ld, \"This collection was empty!\");\n",
                                            CORD_quoted(ast->file->filename),
                                            (long)(reduction->iter->start - reduction->iter->file->text),
                                            (long)(reduction->iter->end - reduction->iter->file->text));
@@ -3233,10 +3233,10 @@ CORD compile(env_t *env, ast_t *ast)
                 if (streq(field->name, f->field)) {
                     if (fielded_t->tag == PointerType) {
                         CORD fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
-                        return CORD_asprintf("(%r)->$%s", fielded, f->field);
+                        return heap_strf("(%r)->$%s", fielded, f->field);
                     } else {
                         CORD fielded = compile(env, f->fielded);
-                        return CORD_asprintf("(%r).$%s", fielded, f->field);
+                        return heap_strf("(%r).$%s", fielded, f->field);
                     }
                 }
             }
@@ -3289,7 +3289,7 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("({ Array_t *entries = &(", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries;\n"
                                 "ARRAY_INCREF(*entries);\n"
                                 "Array_t values = *entries;\n"
-                                "values.data += ", CORD_asprintf("%zu", offset), ";\n"
+                                "values.data += ", heap_strf("%zu", offset), ";\n"
                                 "values; })");
             } else if (streq(f->field, "fallback")) {
                 return CORD_all("({ Table_t *_fallback = (", compile_to_pointer_depth(env, f->fielded, 0, false), ").fallback; _fallback ? *_fallback : NULL_TABLE; })");
@@ -3335,8 +3335,8 @@ CORD compile(env_t *env, ast_t *ast)
             else
                 return CORD_all("Array_get(", compile_type(item_type), ", ", arr, ", ",
                                 compile_int_to_type(env, indexing->index, Type(IntType, .bits=TYPE_IBITS64)), ", ",
-                                CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
-                                CORD_asprintf("%ld", (int64_t)(indexing->index->end - f->text)),
+                                heap_strf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
+                                heap_strf("%ld", (int64_t)(indexing->index->end - f->text)),
                                 ")");
         } else {
             code_err(ast, "Indexing is not supported for type: %T", container_t);
@@ -3481,7 +3481,7 @@ CORD compile_type_info(env_t *env, type_t *t)
     }
     case ChannelType: {
         type_t *item_t = Match(t, ChannelType)->item_type;
-        return CORD_asprintf("Channel$info(%r)", compile_type_info(env, item_t));
+        return heap_strf("Channel$info(%r)", compile_type_info(env, item_t));
     }
     case TableType: {
         type_t *key_type = Match(t, TableType)->key_type;
@@ -3491,19 +3491,19 @@ CORD compile_type_info(env_t *env, type_t *t)
     case PointerType: {
         auto ptr = Match(t, PointerType);
         CORD sigil = ptr->is_stack ? "&" : "@";
-        return CORD_asprintf("Pointer$info(%r, %r)",
+        return heap_strf("Pointer$info(%r, %r)",
                              CORD_quoted(sigil),
                              compile_type_info(env, ptr->pointed));
     }
     case FunctionType: {
-        return CORD_asprintf("Function$info(%r)", CORD_quoted(type_to_cord(t)));
+        return heap_strf("Function$info(%r)", CORD_quoted(type_to_cord(t)));
     }
     case ClosureType: {
-        return CORD_asprintf("Closure$info(%r)", CORD_quoted(type_to_cord(t)));
+        return heap_strf("Closure$info(%r)", CORD_quoted(type_to_cord(t)));
     }
     case OptionalType: {
         type_t *non_optional = Match(t, OptionalType)->type;
-        return CORD_asprintf("Optional$info(%zu, %zu, %r)", type_size(t), type_align(t), compile_type_info(env, non_optional));
+        return heap_strf("Optional$info(%zu, %zu, %r)", type_size(t), type_align(t), compile_type_info(env, non_optional));
     }
     case TypeInfoType: return CORD_all("TypeInfo$info(", CORD_quoted(type_to_cord(Match(t, TypeInfoType)->type)), ")");
     case MemoryType: return "&Memory$info";
