@@ -324,7 +324,7 @@ void build_library(Text_t lib_dir_name)
         errx(WEXITSTATUS(status), "Failed to run `patchelf` to rename dynamic symbols with library prefix");
 
     if (verbose)
-        CORD_printf("Successfully renamed symbols with library prefix!\n");
+        printf("Successfully renamed symbols with library prefix!\n");
 
     unlink("symbol_renames.txt");
 
