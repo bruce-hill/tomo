@@ -135,7 +135,7 @@ const TypeInfo_t *type_to_type_info(type_t *t)
     }
     case PointerType: {
         auto ptr = Match(t, PointerType);
-        CORD sigil = ptr->is_stack ? "&" : "@";
+        const char *sigil = ptr->is_stack ? "&" : "@";
         const TypeInfo_t *pointed_info = type_to_type_info(ptr->pointed);
         const TypeInfo_t pointer_info = {.size=sizeof(void*), .align=__alignof__(void*),
             .tag=PointerInfo, .PointerInfo={.sigil=sigil, .pointed=pointed_info}};
