@@ -3,8 +3,6 @@
 // All of the different builtin modules can be included by including this one
 // import
 
-#include <gc.h>
-#include <gmp.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/param.h>
