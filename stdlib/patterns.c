@@ -67,7 +67,7 @@ static inline bool match_str(TextIter_t *state, int64_t *i, const char *str)
 static inline bool match_property(TextIter_t *state, int64_t *i, uc_property_t prop)
 {
     if (*i >= state->text.length) return false;
-    ucs4_t grapheme = Text$get_main_grapheme_fast(state, *i);
+    uint32_t grapheme = Text$get_main_grapheme_fast(state, *i);
     // TODO: check every codepoint in the cluster?
     if (uc_is_property(grapheme, prop)) {
         *i += 1;
@@ -80,8 +80,8 @@ static int64_t parse_int(TextIter_t *state, int64_t *i)
 {
     int64_t value = 0;
     for (;; *i += 1) {
-        ucs4_t grapheme = Text$get_main_grapheme_fast(state, *i);
-        int digit = uc_digit_value((ucs4_t)grapheme);
+        uint32_t grapheme = Text$get_main_grapheme_fast(state, *i);
+        int digit = uc_digit_value(grapheme);
         if (digit < 0) break;
         if (value >= INT64_MAX/10) break;
         value = 10*value + digit;
@@ -143,8 +143,8 @@ static int64_t match_email(TextIter_t *state, int64_t index)
     // dns-label = 1-63 ([a-zA-Z0-9-] | non-ascii)
 
     if (index > 0) {
-        ucs4_t prev_codepoint = Text$get_main_grapheme_fast(state, index - 1);
-        if (uc_is_property_alphabetic((ucs4_t)prev_codepoint))
+        uint32_t prev_codepoint = Text$get_main_grapheme_fast(state, index - 1);
+        if (uc_is_property_alphabetic(prev_codepoint))
             return -1;
     }
 
@@ -310,7 +310,7 @@ static int64_t match_uri(TextIter_t *state, int64_t index)
 
     if (index > 0) {
         // Don't match if we're not at a word edge:
-        ucs4_t prev_codepoint = Text$get_main_grapheme_fast(state, index - 1);
+        uint32_t prev_codepoint = Text$get_main_grapheme_fast(state, index - 1);
         if (uc_is_property_alphabetic(prev_codepoint))
             return -1;
     }
@@ -407,7 +407,7 @@ static int64_t match_newline(TextIter_t *state, int64_t index)
     if (index >= state->text.length)
         return -1;
 
-    ucs4_t grapheme = index >= state->text.length ? 0 : Text$get_main_grapheme_fast(state, index);
+    uint32_t grapheme = index >= state->text.length ? 0 : Text$get_main_grapheme_fast(state, index);
     if (grapheme == '\n')
         return 1;
     if (grapheme == '\r' && Text$get_grapheme_fast(state, index + 1) == '\n')
