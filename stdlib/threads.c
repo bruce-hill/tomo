@@ -11,6 +11,7 @@
 #include <sys/param.h>
 
 #include "arrays.h"
+#include "datatypes.h"
 #include "text.h"
 #include "threads.h"
 #include "types.h"
