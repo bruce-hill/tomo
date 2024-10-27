@@ -29,9 +29,7 @@ func main():
     >> t:hours_till(t:after(minutes=60))
     = 1
 
-    weekday := 0
-    >> t:get(weekday=&weekday)
-    >> weekday # 1 = Sun, 2 = Mon, 3 = Tue
+    >> t:day_of_week() # 1 = Sun, 2 = Mon, 3 = Tue
     = 3
 
     >> t:format("%A")

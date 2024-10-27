@@ -124,6 +124,68 @@ public void DateTime$get(
     if (weekday) *weekday = I(info.tm_wday + 1);
 }
 
+public Int_t DateTime$year(DateTime_t dt, OptionalText_t timezone)
+{
+    struct tm info = {};
+    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    return I(info.tm_year + 1900);
+}
+
+public Int_t DateTime$month(DateTime_t dt, OptionalText_t timezone)
+{
+    struct tm info = {};
+    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    return I(info.tm_mon + 1);
+}
+
+public Int_t DateTime$day_of_week(DateTime_t dt, OptionalText_t timezone)
+{
+    struct tm info = {};
+    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    return I(info.tm_wday + 1);
+}
+
+public Int_t DateTime$day_of_month(DateTime_t dt, OptionalText_t timezone)
+{
+    struct tm info = {};
+    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    return I(info.tm_mday);
+}
+
+public Int_t DateTime$day_of_year(DateTime_t dt, OptionalText_t timezone)
+{
+    struct tm info = {};
+    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    return I(info.tm_yday);
+}
+
+public Int_t DateTime$hour(DateTime_t dt, OptionalText_t timezone)
+{
+    struct tm info = {};
+    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    return I(info.tm_hour);
+}
+
+public Int_t DateTime$minute(DateTime_t dt, OptionalText_t timezone)
+{
+    struct tm info = {};
+    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    return I(info.tm_min);
+}
+
+public Int_t DateTime$second(DateTime_t dt, OptionalText_t timezone)
+{
+    struct tm info = {};
+    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    return I(info.tm_sec);
+}
+
+public Int_t DateTime$nanosecond(DateTime_t dt, OptionalText_t timezone)
+{
+    (void)timezone;
+    return I(dt.tv_usec);
+}
+
 public Text_t DateTime$format(DateTime_t dt, Text_t fmt, OptionalText_t timezone)
 {
     struct tm info;
