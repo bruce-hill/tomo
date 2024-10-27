@@ -2671,7 +2671,8 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(call->name, "sort") || streq(call->name, "sorted")) {
                 CORD self = streq(call->name, "sort")
                     ? compile_to_pointer_depth(env, call->self, 1, false)
-                    : compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
+                    // No need to do an ARRAY_COPY() here because it happens inside Array$sorted():
+                    : compile_to_pointer_depth(env, call->self, 0, false);
                 CORD comparison;
                 if (call->args) {
                     type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
