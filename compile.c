@@ -2669,7 +2669,9 @@ CORD compile(env_t *env, ast_t *ast)
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$shuffled(", self, ", ", padded_item_size, ")");
             } else if (streq(call->name, "sort") || streq(call->name, "sorted")) {
-                CORD self = compile_to_pointer_depth(env, call->self, streq(call->name, "sort") ? 1 : 0, false);
+                CORD self = streq(call->name, "sort")
+                    ? compile_to_pointer_depth(env, call->self, 1, false)
+                    : compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
                 CORD comparison;
                 if (call->args) {
                     type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
@@ -2720,7 +2722,7 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
                 return CORD_all("Array$heap_pop_value(", self, ", ", arg_code, ", ", padded_item_size, ", ", compile_type(item_t), ")");
             } else if (streq(call->name, "binary_search")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                     .ret=Type(IntType, .bits=TYPE_IBITS32));
@@ -2742,7 +2744,7 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Array$find_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "first")) {
-                CORD self = compile_to_pointer_depth(env, call->self, 0, false);
+                CORD self = compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *predicate_type = Type(
                     ClosureType, .fn=Type(FunctionType, .args=new(arg_t, .name="item", .type=item_ptr), .ret=Type(BoolType)));
