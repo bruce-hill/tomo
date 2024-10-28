@@ -118,7 +118,7 @@ not already in the table, its value will be assumed to be zero.
 
 **Signature:**  
 ```tomo
-func bump(t:&{K:V}, key: K, amount: Int = 1 -> Void)
+func bump(t:@{K:V}, key: K, amount: Int = 1 -> Void)
 ```
 
 **Parameters:**
@@ -148,7 +148,7 @@ Removes all key-value pairs from the table.
 
 **Signature:**  
 ```tomo
-func clear(t:&{K:V})
+func clear(t:@{K:V})
 ```
 
 **Parameters:**

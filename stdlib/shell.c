@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <unistr.h>
 
 #include "arrays.h"
 #include "integers.h"

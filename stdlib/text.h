@@ -6,7 +6,6 @@
 #include <stdbool.h>
 #include <printf.h>
 #include <stdint.h>
-#include <unistr.h>
 
 #include "datatypes.h"
 #include "integers.h"
@@ -55,7 +54,7 @@ Array_t Text$lines(Text_t text);
 Text_t Text$join(Text_t glue, Array_t pieces);
 Text_t Text$repeat(Text_t text, Int_t count);
 int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index);
-ucs4_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index);
+uint32_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index);
 
 static inline int32_t Text$get_grapheme(Text_t text, int64_t index)
 {

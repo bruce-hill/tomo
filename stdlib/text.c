@@ -56,6 +56,7 @@
 #include <stdlib.h>
 #include <sys/param.h>
 
+#include <unistr.h>
 #include <unicase.h>
 #include <unictype.h>
 #include <unigbrk.h>
@@ -846,7 +847,7 @@ public int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index)
     return 0;
 }
 
-public ucs4_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index)
+public uint32_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index)
 {
     return MAIN_GRAPHEME_CODEPOINT(Text$get_grapheme_fast(state, index));
 }

@@ -67,7 +67,7 @@ static inline bool match_str(TextIter_t *state, int64_t *i, const char *str)
 static inline bool match_property(TextIter_t *state, int64_t *i, uc_property_t prop)
 {
     if (*i >= state->text.length) return false;
-    ucs4_t grapheme = Text$get_main_grapheme_fast(state, *i);
+    uint32_t grapheme = Text$get_main_grapheme_fast(state, *i);
     // TODO: check every codepoint in the cluster?
     if (uc_is_property(grapheme, prop)) {
         *i += 1;
@@ -80,8 +80,8 @@ static int64_t parse_int(TextIter_t *state, int64_t *i)
 {
     int64_t value = 0;
     for (;; *i += 1) {
-        ucs4_t grapheme = Text$get_main_grapheme_fast(state, *i);
-        int digit = uc_digit_value((ucs4_t)grapheme);
+        uint32_t grapheme = Text$get_main_grapheme_fast(state, *i);
+        int digit = uc_digit_value(grapheme);
         if (digit < 0) break;
         if (value >= INT64_MAX/10) break;
         value = 10*value + digit;
@@ -143,8 +143,8 @@ static int64_t match_email(TextIter_t *state, int64_t index)
     // dns-label = 1-63 ([a-zA-Z0-9-] | non-ascii)
 
     if (index > 0) {
-        ucs4_t prev_codepoint = Text$get_main_grapheme_fast(state, index - 1);
-        if (uc_is_property_alphabetic((ucs4_t)prev_codepoint))
+        uint32_t prev_codepoint = Text$get_main_grapheme_fast(state, index - 1);
+        if (uc_is_property_alphabetic(prev_codepoint))
             return -1;
     }
 
@@ -310,7 +310,7 @@ static int64_t match_uri(TextIter_t *state, int64_t index)
 
     if (index > 0) {
         // Don't match if we're not at a word edge:
-        ucs4_t prev_codepoint = Text$get_main_grapheme_fast(state, index - 1);
+        uint32_t prev_codepoint = Text$get_main_grapheme_fast(state, index - 1);
         if (uc_is_property_alphabetic(prev_codepoint))
             return -1;
     }
@@ -407,7 +407,7 @@ static int64_t match_newline(TextIter_t *state, int64_t index)
     if (index >= state->text.length)
         return -1;
 
-    ucs4_t grapheme = index >= state->text.length ? 0 : Text$get_main_grapheme_fast(state, index);
+    uint32_t grapheme = index >= state->text.length ? 0 : Text$get_main_grapheme_fast(state, index);
     if (grapheme == '\n')
         return 1;
     if (grapheme == '\r' && Text$get_grapheme_fast(state, index + 1) == '\n')
@@ -796,14 +796,14 @@ static int64_t _find(Text_t text, Pattern_t pattern, int64_t first, int64_t last
     return -1;
 }
 
-public Int_t Text$find(Text_t text, Pattern_t pattern, Int_t from_index, int64_t *match_length)
+public Int_t Text$find(Text_t text, Pattern_t pattern, Int_t from_index)
 {
     int64_t first = Int_to_Int64(from_index, false);
     if (first == 0) fail("Invalid index: 0");
     if (first < 0) first = text.length + first + 1;
     if (first > text.length || first < 1)
         return I(0);
-    int64_t found = _find(text, pattern, first-1, text.length-1, match_length);
+    int64_t found = _find(text, pattern, first-1, text.length-1, NULL);
     return I(found+1);
 }
 
@@ -1081,17 +1081,17 @@ public Array_t Text$split(Text_t text, Pattern_t pattern)
 
     Array_t chunks = {};
 
-    Int_t i = I_small(1);
+    int64_t i = 0;
     for (;;) {
         int64_t len = 0;
-        Int_t found = Text$find(text, pattern, i, &len);
-        if (I_is_zero(found)) break;
-        Text_t chunk = Text$slice(text, i, Int$minus(found, I_small(1)));
+        int64_t found = _find(text, pattern, i, text.length-1, &len);
+        if (found < 0) break;
+        Text_t chunk = Text$slice(text, I(i+1), I(found));
         Array$insert(&chunks, &chunk, I_small(0), sizeof(Text_t));
-        i = Int$plus(found, I(MAX(len, 1)));
+        i = found + MAX(len, 1);
     }
 
-    Text_t last_chunk = Text$slice(text, i, I(text.length));
+    Text_t last_chunk = Text$slice(text, I(i+1), I(text.length));
     Array$insert(&chunks, &last_chunk, I_small(0), sizeof(Text_t));
 
     return chunks;

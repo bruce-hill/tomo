@@ -127,7 +127,6 @@ static PARSER(parse_return);
 static PARSER(parse_say);
 static PARSER(parse_set);
 static PARSER(parse_skip);
-static PARSER(parse_stack_reference);
 static PARSER(parse_statement);
 static PARSER(parse_stop);
 static PARSER(parse_struct_def);
@@ -629,18 +628,18 @@ type_ast_t *parse_channel_type(parse_ctx_t *ctx, const char *pos) {
 
 type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    bool is_stack;
+    bool is_view;
     if (match(&pos, "@"))
-        is_stack = false;
+        is_view = false;
     else if (match(&pos, "&"))
-        is_stack = true;
+        is_view = true;
     else
         return NULL;
 
     spaces(&pos);
     type_ast_t *type = expect(ctx, start, &pos, parse_non_optional_type,
                               "I couldn't parse a pointer type after this point");
-    type_ast_t *ptr_type = NewTypeAST(ctx->file, start, pos, PointerTypeAST, .pointed=type, .is_stack=is_stack);
+    type_ast_t *ptr_type = NewTypeAST(ctx->file, start, pos, PointerTypeAST, .pointed=type, .is_view=is_view);
     spaces(&pos);
     if (match(&pos, "?"))
         return NewTypeAST(ctx->file, start, pos, OptionalTypeAST, .type=ptr_type);
@@ -1251,32 +1250,6 @@ PARSER(parse_heap_alloc) {
     return ast;
 }
 
-PARSER(parse_stack_reference) {
-    const char *start = pos;
-    if (!match(&pos, "&")) return NULL;
-    spaces(&pos);
-    ast_t *val = expect(ctx, start, &pos, parse_term_no_suffix, "I expected an expression for this '&'");
-
-    for (;;) {
-        ast_t *new_term;
-        if ((new_term=parse_index_suffix(ctx, val))
-            || (new_term=parse_fncall_suffix(ctx, val))
-            || (new_term=parse_field_suffix(ctx, val))) {
-            val = new_term;
-        } else break;
-    }
-    pos = val->end;
-
-    ast_t *ast = NewAST(ctx->file, start, pos, StackReference, .value=val);
-    for (;;) {
-        ast_t *next = parse_optional_suffix(ctx, ast);
-        if (!next) next = parse_non_optional_suffix(ctx, ast);
-        if (!next) break;
-        ast = next;
-    }
-    return ast;
-}
-
 PARSER(parse_not) {
     const char *start = pos;
     if (!match_word(&pos, "not")) return NULL;
@@ -1586,7 +1559,6 @@ PARSER(parse_term_no_suffix) {
         || (term=parse_int(ctx, pos))
         || (term=parse_negative(ctx, pos)) // Must come after num/int
         || (term=parse_heap_alloc(ctx, pos))
-        || (term=parse_stack_reference(ctx, pos))
         || (term=parse_bool(ctx, pos))
         || (term=parse_text(ctx, pos))
         || (term=parse_path(ctx, pos))
@@ -2323,6 +2295,11 @@ PARSER(parse_doctest) {
     if (!match(&pos, ">>")) return NULL;
     spaces(&pos);
     ast_t *expr = expect(ctx, start, &pos, parse_statement, "I couldn't parse the expression for this doctest");
+    spaces(&pos);
+    comment(&pos);
+    // We need at least one newline before looking for "= <expected value>"
+    if (strspn(pos, "\r\n") < 1 && strcspn(pos, "\r\n") > 0)
+        parser_err(ctx, pos, pos + strcspn(pos, "\r\n"), "I couldn't parse this code as part of the doctest expression");
     whitespace(&pos);
     const char* output = NULL;
     if (match(&pos, "=")) {

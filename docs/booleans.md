@@ -16,13 +16,12 @@ boolean values are case-insensitive variations of `yes`/`no`, `y`/`n`,
 
 **Signature:**  
 ```tomo
-func from_text(text: Text, success: Bool = !&Bool -> Bool)
+func from_text(text: Text -> Bool?)
 ```
 
 **Parameters:**
 
 - `text`: The string containing the boolean value.
-- `success`: If provided, this boolean value reference will be set to `yes` if the given text is a recognizable boolean value or `no` otherwise.
 
 **Returns:**  
 `yes` if the string matches a recognized truthy boolean value; otherwise return `no`.
@@ -30,14 +29,11 @@ func from_text(text: Text, success: Bool = !&Bool -> Bool)
 **Example:**  
 ```tomo
 >> Bool.from_text("yes")
-= yes
+= yes?
 >> Bool.from_text("no")
-= no
->> success := yes
->> Bool.from_text("???", &success)
-= no
->> success
-= no
+= no?
+>> Bool.from_text("???")
+= !Bool
 ```
 
 ---

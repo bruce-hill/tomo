@@ -38,18 +38,18 @@ func solve_overlap(a_pos:Vec2, a_size:Vec2, b_pos:Vec2, b_size:Vec2 -> Vec2):
 
     return Vec2(0, 0)
 
-struct World(player:@Player, goal:@Box, boxes:[@Box], dt_accum=0.0, won=no):
+struct World(player:@Player, goal:@Box, boxes:@[@Box], dt_accum=0.0, won=no):
     DT := 1./60.
-    CURRENT := @World(@Player(Vec2(0,0), Vec2(0,0)), @Box(Vec2(0,0), Vec2(0,0), Color.GOAL), [:@Box])
+    CURRENT := @World(@Player(Vec2(0,0), Vec2(0,0)), @Box(Vec2(0,0), Vec2(0,0), Color.GOAL), @[:@Box])
     STIFFNESS := 0.3
 
-    func update(w:&World, dt:Num):
+    func update(w:@World, dt:Num):
         w.dt_accum += dt
         while w.dt_accum > 0:
             w:update_once()
             w.dt_accum -= World.DT
 
-    func update_once(w:&World):
+    func update_once(w:@World):
         w.player:update()
 
         if solve_overlap(w.player.pos, Player.SIZE, w.goal.pos, w.goal.size) != Vec2(0,0):
@@ -57,11 +57,11 @@ struct World(player:@Player, goal:@Box, boxes:[@Box], dt_accum=0.0, won=no):
 
         # Resolve player overlapping with any boxes:
         for i in 3:
-            for b in w.boxes:
+            for b in w.boxes[]:
                 w.player.pos += STIFFNESS * solve_overlap(w.player.pos, Player.SIZE, b.pos, b.size)
 
-    func draw(w:&World):
-        for b in w.boxes:
+    func draw(w:@World):
+        for b in w.boxes[]:
             b:draw()
         w.goal:draw()
         w.player:draw()
@@ -71,17 +71,17 @@ struct World(player:@Player, goal:@Box, boxes:[@Box], dt_accum=0.0, won=no):
                 DrawText("WINNER", GetScreenWidth()/2-48*3, GetScreenHeight()/2-24, 48, (Color){0,0,0,0xFF});
             }
 
-    func load_map(w:&World, map:Text):
+    func load_map(w:@World, map:Text):
         if map:has($/[]/):
             map = map:replace_all({$/[]/: "#", $/@{1..}/: "@", $/  /: " "})
-        w.boxes = [:@Box]
+        w.boxes = @[:@Box]
         box_size := Vec2(50., 50.)
         for y,line in map:lines():
             for x,cell in line:split():
                 if cell == "#":
                     pos := Vec2((Num(x)-1) * box_size.x, (Num(y)-1) * box_size.y)
                     box := @Box(pos, size=box_size, color=Color.GRAY)
-                    (&w.boxes):insert(box)
+                    w.boxes:insert(box)
                 else if cell == "@":
                     pos := Vec2((Num(x)-1) * box_size.x, (Num(y)-1) * box_size.y)
                     pos += box_size/2. - Player.SIZE/2.

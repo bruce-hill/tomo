@@ -133,6 +133,85 @@ The date in `YYYY-MM-DD` format.
 
 ---
 
+### `day_of_month`
+
+**Description:**  
+Return the integer day of the month (1-31).
+
+**Signature:**  
+```tomo
+func day_of_month(datetime: DateTime, timezone : Text? = !Text -> Int)
+```
+
+**Parameters:**
+
+- `datetime`: The datetime to get the day of the month from.
+- `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
+
+**Returns:**  
+The day of the month as an integer (1-31).
+
+**Example:**  
+```tomo
+>> DateTime(2024, 9, 29):day_of_month()
+= 29
+```
+
+---
+
+### `day_of_week`
+
+**Description:**  
+Return the integer day of the week (1-7), where 1 = Sunday, 2 = Monday,
+3 = Tuesday, 4 = Wednesday, 5 = Thursday, 6 = Friday, 7 = Saturday.
+
+**Signature:**  
+```tomo
+func day_of_week(datetime: DateTime, timezone : Text? = !Text -> Int)
+```
+
+**Parameters:**
+
+- `datetime`: The datetime to get the day of the week from.
+- `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
+
+**Returns:**  
+The day of the week as an integer (1-7).
+
+**Example:**  
+```tomo
+>> DateTime(2024, 9, 29):day_of_week()
+= 1
+```
+
+---
+
+### `day_of_year`
+
+**Description:**  
+Return the integer day of the year (1-366, including leap years).
+
+**Signature:**  
+```tomo
+func day_of_year(datetime: DateTime, timezone : Text? = !Text -> Int)
+```
+
+**Parameters:**
+
+- `datetime`: The datetime to get the day of the year from.
+- `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
+
+**Returns:**  
+The day of the year as an integer (1-366).
+
+**Example:**  
+```tomo
+>> DateTime(2024, 9, 29):day_of_year()
+= 272
+```
+
+---
+
 ### `format`
 
 **Description:**  
@@ -188,46 +267,6 @@ A `DateTime` object representing the same moment as the given UNIX timestamp.
 = Wed Dec 31 19:00:00 1969
 ```
 
----
-
-### `get`
-
-**Description:**  
-Get various components of the given datetime object and store them in the
-provided optional fields.
-
-**Signature:**  
-```tomo
-func get(datetime: DateTime, year : &Int? = !&Int, month : &Int? = !&Int, day : &Int? = !&Int, hour : &Int? = !&Int, minute : &Int? = !&Int, second : &Int? = !&Int, nanosecond : &Int? = !&Int, weekday : &Int? = !&Int, timezone : Text? = !Text -> Void)
-```
-
-**Parameters:**
-
-- `datetime`: The datetime from which to extract information.
-- `year`: If non-null, store the year here.
-- `month`: If non-null, store the month here (1-12).
-- `day`: If non-null, store the day of the month here (1-31).
-- `hour`: If non-null, store the hour of the day here (0-23).
-- `minute`: If non-null, store the minute of the hour here (0-59).
-- `second`: If non-null, store the second of the minute here (0-59).
-- `nanosecond`: If non-null, store the nanosecond of the second here (0-1,000,000,000).
-- `weekday`: If non-null, store the day of the week here (sunday=1, saturday=7)
-- `timezone` (optional): If specified, give values in the given timezone (otherwise, use the current local timezone).
-
-**Returns:**
-Nothing.
-
-**Example:**  
-```tomo
-dt := DateTime(2024, 9, 29)
-month := 0
-dt:get(month=&month)
->> month
-= 9
-```
-
----
-
 ### `get_local_timezone`
 
 **Description:**
@@ -251,6 +290,32 @@ The name of the current local timezone.
 ```tomo
 >> DateTime.get_local_timezone()
 = "America/New_York"
+```
+
+---
+
+### `hour`
+
+**Description:**  
+Return the hour of the day as an integer (1-24).
+
+**Signature:**  
+```tomo
+func hour(datetime: DateTime, timezone : Text? = !Text -> Int)
+```
+
+**Parameters:**
+
+- `datetime`: The datetime to get the hour from.
+- `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
+
+**Returns:**  
+The hour of the day as an integer (1-24).
+
+**Example:**  
+```tomo
+>> DateTime(2024, 9, 29, 11, 59):hour()
+= 11
 ```
 
 ---
@@ -282,6 +347,32 @@ the_future := now():after(hours=1, minutes=30)
 
 ---
 
+### `minute`
+
+**Description:**  
+Return the minute of the day as an integer (0-59).
+
+**Signature:**  
+```tomo
+func minute(datetime: DateTime, timezone : Text? = !Text -> Int)
+```
+
+**Parameters:**
+
+- `datetime`: The datetime to get the minute from.
+- `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
+
+**Returns:**  
+The minute of the hour as an integer (0-59).
+
+**Example:**  
+```tomo
+>> DateTime(2024, 9, 29, 11, 59):minute()
+= 59
+```
+
+---
+
 ### `minutes_till`
 
 **Description:**  
@@ -305,6 +396,58 @@ The number of minutes (possibly fractional, possibly negative) until the given t
 the_future := now():after(minutes=1, seconds=30)
 >> now():minutes_till(the_future)
 = 1.5
+```
+
+---
+
+### `month`
+
+**Description:**  
+Return the month of the year as an integer (1-12).
+
+**Signature:**  
+```tomo
+func month(datetime: DateTime, timezone : Text? = !Text -> Int)
+```
+
+**Parameters:**
+
+- `datetime`: The datetime to get the month from.
+- `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
+
+**Returns:**  
+The month of the year as an integer (1-12).
+
+**Example:**  
+```tomo
+>> DateTime(2024, 9, 29, 11, 59):month()
+= 9
+```
+
+---
+
+### `nanosecond`
+
+**Description:**  
+Return the nanosecond of the second as an integer (0-999,999,999).
+
+**Signature:**  
+```tomo
+func nanosecond(datetime: DateTime, timezone : Text? = !Text -> Int)
+```
+
+**Parameters:**
+
+- `datetime`: The datetime to get the nanosecond from.
+- `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
+
+**Returns:**  
+The nanosecond of the second as an integer (0-999,999,999).
+
+**Example:**  
+```tomo
+>> DateTime(2024, 9, 29, 11, 59):month()
+= 9
 ```
 
 ---
@@ -441,6 +584,32 @@ ago"`, while datetimes in the future will have the suffix `" later"`.
 
 >> now():after(minutes=-65):relative()
 = "1 hour ago"
+```
+
+---
+
+### `second`
+
+**Description:**  
+Return the second of the minute as an integer (0-59).
+
+**Signature:**  
+```tomo
+func second(datetime: DateTime, timezone : Text? = !Text -> Int)
+```
+
+**Parameters:**
+
+- `datetime`: The datetime to get the second from.
+- `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
+
+**Returns:**  
+The second of the hour as an integer (0-59).
+
+**Example:**  
+```tomo
+>> DateTime(2024, 9, 29, 11, 30, 59):second()
+= 59
 ```
 
 ---

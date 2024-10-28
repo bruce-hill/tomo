@@ -18,7 +18,15 @@ DateTime_t DateTime$after(DateTime_t dt, double seconds, double minutes, double 
 CONSTFUNC double DateTime$seconds_till(DateTime_t now, DateTime_t then);
 CONSTFUNC double DateTime$minutes_till(DateTime_t now, DateTime_t then);
 CONSTFUNC double DateTime$hours_till(DateTime_t now, DateTime_t then);
-void DateTime$get(DateTime_t dt, Int_t *year, Int_t *month, Int_t *day, Int_t *hour, Int_t *minute, Int_t *second, Int_t *nanosecond, Int_t *weekday, OptionalText_t timezone);
+Int_t DateTime$year(DateTime_t dt, OptionalText_t timezone);
+Int_t DateTime$month(DateTime_t dt, OptionalText_t timezone);
+Int_t DateTime$day_of_week(DateTime_t dt, OptionalText_t timezone);
+Int_t DateTime$day_of_month(DateTime_t dt, OptionalText_t timezone);
+Int_t DateTime$day_of_year(DateTime_t dt, OptionalText_t timezone);
+Int_t DateTime$hour(DateTime_t dt, OptionalText_t timezone);
+Int_t DateTime$minute(DateTime_t dt, OptionalText_t timezone);
+Int_t DateTime$second(DateTime_t dt, OptionalText_t timezone);
+Int_t DateTime$nanosecond(DateTime_t dt, OptionalText_t timezone);
 Text_t DateTime$format(DateTime_t dt, Text_t fmt, OptionalText_t timezone);
 Text_t DateTime$date(DateTime_t dt, OptionalText_t timezone);
 Text_t DateTime$time(DateTime_t dt, bool seconds, bool am_pm, OptionalText_t timezone);

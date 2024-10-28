@@ -99,7 +99,7 @@ struct type_ast_s {
         } VarTypeAST;
         struct {
             type_ast_t *pointed;
-            bool is_stack:1;
+            bool is_view:1;
         } PointerTypeAST;
         struct {
             type_ast_t *item;
@@ -127,7 +127,7 @@ typedef enum {
     TextLiteral, TextJoin, PrintStatement,
     Declare, Assign,
     BinaryOp, UpdateAssign,
-    Not, Negative, HeapAllocate, StackReference,
+    Not, Negative, HeapAllocate,
     Min, Max,
     Array, Channel, Set, Table, TableEntry, Comprehension,
     FunctionDef, Lambda,
@@ -194,7 +194,7 @@ struct ast_s {
         } BinaryOp, UpdateAssign;
         struct {
             ast_t *value;
-        } Not, Negative, HeapAllocate, StackReference;
+        } Not, Negative, HeapAllocate;
         struct {
             ast_t *lhs, *rhs, *key;
         } Min, Max;

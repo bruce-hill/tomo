@@ -3,7 +3,7 @@
 This language relies on a small set of "metamethods" which define special
 behavior that is required for all types:
 
-- `func as_text(obj:&(optional)T, colorize=no, type:&TypeInfo_t -> Text)`: a method to
+- `func as_text(obj:&T?, colorize=no, type:&TypeInfo_t -> Text)`: a method to
   convert the type to a string. If `colorize` is `yes`, then the method should
   include ANSI escape codes for syntax highlighting. If the `obj` pointer is
   `NULL`, a string representation of the type will be returned instead.

@@ -12,7 +12,7 @@ struct Player(pos,prev_pos:Vec2):
     FRICTION := 0.99
     SIZE := Vec2(30, 30)
 
-    func update(p:&Player):
+    func update(p:@Player):
         target_x := inline C:Num {
             (Num_t)((IsKeyDown(KEY_A) ? -1 : 0) + (IsKeyDown(KEY_D) ? 1 : 0))
         }

@@ -130,7 +130,6 @@ Text_t ast_to_xml(ast_t *ast)
     T(Negative, "<Negative>%k</Negative>", ast_to_xml_ptr(data.value))
     T(Not, "<Not>%k</Not>", ast_to_xml_ptr(data.value))
     T(HeapAllocate, "<HeapAllocate>%k</HeapAllocate>", ast_to_xml_ptr(data.value))
-    T(StackReference, "<StackReference>%k</StackReference>", ast_to_xml_ptr(data.value))
     T(Min, "<Min>%k%k%k</Min>", ast_to_xml_ptr(data.lhs), ast_to_xml_ptr(data.rhs), optional_tagged("key", data.key))
     T(Max, "<Max>%k%k%k</Max>", ast_to_xml_ptr(data.lhs), ast_to_xml_ptr(data.rhs), optional_tagged("key", data.key))
     T(Array, "<Array>%k%k</Array>", optional_tagged_type("item-type", data.item_type), ast_list_to_xml(data.items))
@@ -188,8 +187,8 @@ Text_t type_ast_to_xml(type_ast_t *t)
 #define T(type, ...) case type: { auto data = t->__data.type; (void)data; return Text$format(__VA_ARGS__); }
     T(UnknownTypeAST, "<UnknownType/>")
     T(VarTypeAST, "%s", data.name)
-    T(PointerTypeAST, "<PointerType is_stack=\"%s\">%k</PointerType>",
-      data.is_stack ? "yes" : "no", type_ast_to_xml_ptr(data.pointed))
+    T(PointerTypeAST, "<PointerType is_view=\"%s\">%k</PointerType>",
+      data.is_view ? "yes" : "no", type_ast_to_xml_ptr(data.pointed))
     T(ArrayTypeAST, "<ArrayType>%k</ArrayType>", type_ast_to_xml_ptr(data.item))
     T(SetTypeAST, "<TableType>%k</TableType>", type_ast_to_xml_ptr(data.item))
     T(ChannelTypeAST, "<ChannelType>%k</ChannelType>", type_ast_to_xml_ptr(data.item))

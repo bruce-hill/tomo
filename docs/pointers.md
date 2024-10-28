@@ -1,12 +1,8 @@
 # Pointers
 
 Pointers are numeric values that represent a location in memory where some type
-of data lives. Pointers are created using either the `@` prefix operator to
-**a**llocate heap memory or the `&` prefix operator to get the address of a
-variable. Stack pointers (`&`) are more limited than heap pointers (`@`) and
-cannot be stored inside an array, set, table, struct, enum, or channel.
-However, stack pointers are useful for methods that mutate local variables and
-don't need to save the pointer anywhere.
+of data lives. Pointers are created using the `@` prefix operator to
+**a**llocate heap memory.
 
 Pointers are the way in Tomo that you can create mutable data. All
 datastructures are by default, immutable, but using pointers, you can create
@@ -32,25 +28,6 @@ my_nums := @[0, 1, 2]
 do_mutation(my_nums)
 >> my_nums
 = @[10, 1, 2]
-```
-
-In general, heap pointers can be used as stack pointers if necessary, since
-the usage of stack pointers is restricted, but heap pointers don't have the
-same restrictions, so it's good practice to define functions that don't need
-to store pointers to use stack references. This lets you pass references to
-local variables or pointers to heap data depending on your needs.
-
-```tomo
-func swap_first_two(data:&[Int]):
-    data[1], data[2] = data[2], data[1]
-
-...
-
-heap_nums := @[10, 20, 30]
-swap_first_two(heap_nums)
-
-local_nums := [10, 20, 30]
-swap_first_two(&local_nums)
 ```
 
 ## Dereferencing
@@ -89,15 +66,14 @@ consistent.
 ## Null Safety
 
 Tomo pointers are, by default, guaranteed to be non-null. If you write a
-function that takes either a `&T` or `@T`, the value that will be given
-is always non-null. However, optional pointers can be used by adding a
-question mark to the type: `&T?` or `@T?`. A null value can be created
-using the syntax `!@T` or `!&T`. You can also append a question mark to
-a pointer value so the type checker knows it's supposed to be optional:
+function that takes a `@T`, the value that will be given is always non-null.
+However, optional pointers can be used by adding a question mark to the type:
+`@T?`. A null value can be created using the syntax `!@T`. You can also append
+a question mark to a pointer value so the type checker knows it's supposed to
+be optional:
 
 ```
 optional := @[10, 20]?
-optional := &foo?
 ```
 
 The compiler will not allow you to dereference an optionally null pointer
@@ -120,15 +96,25 @@ you can use `ptr.foo` on a pointer to that struct type as well, without needing
 to use `ptr[].foo`. The same is true for array accesses like `ptr[i]` and method
 calls like `ptr:reversed()`.
 
-As a matter of convenience, local variables can also be automatically promoted
-to stack references when invoking methods that require a stack reference as the
-first argument. For example:
+# Read-Only Views
+
+In a small number of API methods (`array:first()`, `array:binary_search()`,
+`array:sort()`, `array:sorted()`, and `array:heapify()`), the methods allow you
+to provide custom comparison functions. However, for safety, we don't actually
+want the comparison methods to be able mutate the values inside of immutable
+array values. For implementation reasons, we can't pass the values themselves
+to the comparison functions, but need to pass pointers to the array members.
+So, to work around this, Tomo allows you to define functions that take
+immutable view pointers as arguments. These behave similarly to `@` pointers,
+but their type signature uses `&` instead of `@` and read-only view pointers
+cannot be used to mutate the contents that they point to and cannot be stored
+inside of any datastructures as elements or members.
 
 ```tomo
-func swap_first_two(arr:&[Int]):
-    arr[1], arr[2] = arr[2], arr[1]
-...
-my_arr := [10, 20, 30] // not a pointer
-swap_first_two(my_arr) // ok, automatically converted to &my_arr
-my_arr:shuffle() // ok, automatically converted to &my_arr
+nums := @[10, 20, 30]
+>> nums:first(func(x:&Int): x / 2 == 10)
+= 2?
 ```
+
+Normal `@` pointers can be promoted to immutable view pointers automatically,
+but not vice versa.
