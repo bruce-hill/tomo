@@ -278,9 +278,20 @@ CORD compile_type(type_t *t)
 static CORD compile_lvalue(env_t *env, ast_t *ast)
 {
     if (!can_be_mutated(env, ast)) {
-        if (ast->tag == Index || ast->tag == FieldAccess) {
-            ast_t *subject = ast->tag == Index ? Match(ast, Index)->indexed : Match(ast, FieldAccess)->fielded;
-            code_err(subject, "This is an immutable value, you can't assign to it");
+        if (ast->tag == Index) {
+            ast_t *subject = Match(ast, Index)->indexed;
+            type_t *t = get_type(env, subject);
+            if (t->tag == PointerType && Match(t, PointerType)->is_view)
+                code_err(ast, "This is a read-only view and you can't mutate its contents");
+            else
+                code_err(subject, "This is an immutable value, you can't mutate its contents");
+        } else if (ast->tag == FieldAccess) {
+            ast_t *subject = Match(ast, FieldAccess)->fielded;
+            type_t *t = get_type(env, subject);
+            if (t->tag == PointerType && Match(t, PointerType)->is_view)
+                code_err(subject, "This is a read-only view and you can't mutate its fields");
+            else
+                code_err(subject, "This is an immutable value, you can't assign to its fields");
         } else {
             code_err(ast, "This is a value of type %T and can't be used as an assignment target", get_type(env, ast));
         }

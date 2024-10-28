@@ -1293,7 +1293,7 @@ PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast)
         auto index = Match(ast, Index);
         type_t *indexed_type = get_type(env, index->indexed);
         if (indexed_type->tag == PointerType)
-            return true;
+            return !Match(indexed_type, PointerType)->is_view;
         return can_be_mutated(env, index->indexed);
     }
     default: return false;
