@@ -439,9 +439,11 @@ public Text_t Path$write_unique_bytes(Path_t path, Array_t bytes)
     char buf[PATH_MAX] = {};
     strcpy(buf, path_str);
 
-    int64_t suffixlen = 0;
-    (void)Text$find(path, Pattern("{0+!X}{end}"), I(1), &suffixlen);
-    if (suffixlen < 0) suffixlen = 0;
+    // Count the number of trailing characters leading up to the last "X"
+    // (e.g. "foo_XXXXXX.tmp" would yield suffixlen = 4)
+    size_t suffixlen = 0;
+    while (suffixlen < len && buf[len - 1 - suffixlen] != 'X')
+        ++suffixlen;
 
     int fd = mkstemps(buf, suffixlen);
     if (fd == -1)
