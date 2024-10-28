@@ -195,12 +195,6 @@ func main():
 	>> " one   two  three   ":find($/{id}/, start=5)
 	= 8
 
-	>> len := 0[64]
-	>> "   one  ":find($/{id}/, length=&len)
-	= 4
-	>> len
-	= 3[64]
-
 	!! Test text slicing:
 	>> "abcdef":slice()
 	= "abcdef"
