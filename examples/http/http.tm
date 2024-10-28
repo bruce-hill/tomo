@@ -39,6 +39,14 @@ func _send(method:_Method, url:Text, data:Text?, headers=[:Text] -> HTTPResponse
             inline C {
                 curl_easy_setopt(curl, CURLOPT_POSTFIELDS, Text$as_c_string($putting));
             }
+    is PATCH:
+        inline C {
+            curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
+        }
+        if patching := data:
+            inline C {
+                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, Text$as_c_string($patching));
+            }
     is DELETE:
         inline C {
             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
@@ -77,6 +85,9 @@ func post(url:Text, data="", headers=["Content-Type: application/json", "Accept:
 
 func put(url:Text, data="", headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):
     return _send(PUT, url, data, headers)
+
+func patch(url:Text, data="", headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):
+    return _send(PATCH, url, data, headers)
 
 func delete(url:Text, data=!Text, headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):
     return _send(DELETE, url, data, headers)
