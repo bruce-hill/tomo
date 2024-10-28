@@ -543,7 +543,7 @@ The largest integer less than or equal to `x`.
 ### `format`
 
 **Description:**
-Formats a number as a string with a specified precision.
+Formats a number as a text with a specified precision.
 
 **Signature:**
 ```tomo
@@ -556,7 +556,7 @@ func format(n: Num, precision: Int = 0 -> Text)
 - `precision`: The number of decimal places. Default is `0`.
 
 **Returns:**
-A string representation of the number with the specified precision.
+A text representation of the number with the specified precision.
 
 **Example:**
 ```tomo
@@ -569,20 +569,19 @@ A string representation of the number with the specified precision.
 ### `from_text`
 
 **Description:**
-Converts a string representation of a number into a floating-point number.
+Converts a text representation of a number into a floating-point number.
 
 **Signature:**
 ```tomo
-func from_text(text: Text, the_rest: Text = "!&Text" -> Num)
+func from_text(text: Text -> Num?)
 ```
 
 **Parameters:**
 
-- `text`: The string containing the number.
-- `the_rest`: A string indicating what to return if the conversion fails. Default is `"!&Text"`.
+- `text`: The text containing the number.
 
 **Returns:**
-The number represented by the string.
+The number represented by the text or a null value if the entire text can't be parsed as a number.
 
 **Example:**
 ```tomo
@@ -917,7 +916,7 @@ func nan(tag: Text = "" -> Num)
 
 **Parameters:**
 
-- `tag`: An optional tag to describe the NaN. Default is an empty string.
+- `tag`: An optional tag to describe the NaN. Default is an empty text.
 
 **Returns:**
 A NaN value.
@@ -1086,7 +1085,7 @@ func scientific(n: Num, precision: Int = 0 -> Text)
 - `precision`: The number of decimal places. Default is `0`.
 
 **Returns:**
-A string representation of the number in scientific notation with the specified precision.
+A text representation of the number in scientific notation with the specified precision.
 
 **Example:**
 ```tomo

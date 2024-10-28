@@ -301,7 +301,7 @@ Clears all elements from the array.
 
 **Signature:**  
 ```tomo
-func clear(arr: &[T] -> Void)
+func clear(arr: @[T] -> Void)
 ```
 
 **Parameters:**
@@ -460,7 +460,7 @@ Removes and returns the top element of a heap. By default, this is the
 
 **Signature:**  
 ```tomo
-func heap_pop(arr: &[T], by: func(x,y:&T->Int32) = T.compare -> T)
+func heap_pop(arr: @[T], by: func(x,y:&T->Int32) = T.compare -> T)
 ```
 
 **Parameters:**
@@ -490,7 +490,7 @@ is a *minimum* heap.
 
 **Signature:**  
 ```tomo
-func heap_push(arr: &[T], item: T, by=T.compare -> Void)
+func heap_push(arr: @[T], item: T, by=T.compare -> Void)
 ```
 
 **Parameters:**
@@ -517,7 +517,7 @@ Converts an array into a heap.
 
 **Signature:**  
 ```tomo
-func heapify(arr: &[T], by: func(x,y:&T->Int32) = T.compare -> Void)
+func heapify(arr: @[T], by: func(x,y:&T->Int32) = T.compare -> Void)
 ```
 
 **Parameters:**
@@ -544,7 +544,7 @@ Inserts an element at a specified position in the array.
 
 **Signature:**  
 ```tomo
-func insert(arr: &[T], item: T, at: Int = 0 -> Void)
+func insert(arr: @[T], item: T, at: Int = 0 -> Void)
 ```
 
 **Parameters:**
@@ -579,7 +579,7 @@ Inserts an array of items at a specified position in the array.
 
 **Signature:**  
 ```tomo
-func insert_all(arr: &[T], items: [T], at: Int = 0 -> Void)
+func insert_all(arr: @[T], items: [T], at: Int = 0 -> Void)
 ```
 
 **Parameters:**
@@ -639,7 +639,7 @@ Removes elements from the array starting at a specified index.
 
 **Signature:**  
 ```tomo
-func remove_at(arr: &[T], at: Int = -1, count: Int = 1 -> Void)
+func remove_at(arr: @[T], at: Int = -1, count: Int = 1 -> Void)
 ```
 
 **Parameters:**
@@ -672,7 +672,7 @@ Removes all occurrences of a specified item from the array.
 
 **Signature:**  
 ```tomo
-func remove_item(arr: &[T], item: T, max_count: Int = -1 -> Void)
+func remove_item(arr: @[T], item: T, max_count: Int = -1 -> Void)
 ```
 
 **Parameters:**
@@ -769,7 +769,7 @@ Shuffles the elements of the array in place.
 
 **Signature:**  
 ```tomo
-func shuffle(arr: &[T] -> Void)
+func shuffle(arr: @[T] -> Void)
 ```
 
 **Parameters:**
@@ -818,7 +818,7 @@ Sorts the elements of the array in place in ascending order (small to large).
 
 **Signature:**  
 ```tomo
-func sort(arr: &[T], by=T.compare -> Void)
+func sort(arr: @[T], by=T.compare -> Void)
 ```
 
 **Parameters:**

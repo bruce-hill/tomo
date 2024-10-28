@@ -133,7 +133,7 @@ Adds multiple items to the set.
 
 **Signature:**  
 ```tomo
-func add_all(set:&{T}, items: [T] -> Void)
+func add_all(set:@{T}, items: [T] -> Void)
 ```
 
 **Parameters:**
@@ -158,7 +158,7 @@ Removes an item from the set.
 
 **Signature:**  
 ```tomo
-func remove(set:&{T}, item: T -> Void)
+func remove(set:@{T}, item: T -> Void)
 ```
 
 **Parameters:**
@@ -183,7 +183,7 @@ Removes multiple items from the set.
 
 **Signature:**  
 ```tomo
-func remove_all(set:&{T}, items: [T] -> Void)
+func remove_all(set:@{T}, items: [T] -> Void)
 ```
 
 **Parameters:**
@@ -208,7 +208,7 @@ Removes all items from the set.
 
 **Signature:**  
 ```tomo
-func clear(set:&{T} -> Void)
+func clear(set:@{T} -> Void)
 ```
 
 **Parameters:**

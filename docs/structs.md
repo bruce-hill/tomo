@@ -27,10 +27,10 @@ struct Foo(name:Text, age:Int):
     func greet(f:Foo):
         say("Hi my name is $f.name and I am $f.age years old!")
 
-    func get_older(f:&Foo):
+    func get_older(f:@Foo):
         f.age += 1
 ...
-my_foo := Foo("Alice", 28)
+my_foo := @Foo("Alice", 28)
 my_foo:greet()
 my_foo:get_older()
 ```

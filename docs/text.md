@@ -274,7 +274,7 @@ functions that would normally be handled by a more extensive API:
 
 ```
 Text.has(pattern:Pattern)->Bool
-Text.find(pattern:Pattern, start=1, length=!&Int64?)->Int
+Text.find(pattern:Pattern, start=1)->Int
 Text.find_all(pattern:Pattern)->[Text]
 Text.matches(pattern:Pattern)->[Text]?
 Text.map(pattern:Pattern, fn:func(t:Text)->Text)->Text
@@ -642,7 +642,7 @@ See: [Patterns](#Patterns) for more information on patterns.
 
 **Signature:**  
 ```tomo
-func find(text: Text, pattern: Pattern, start: Int = 1, length: &Int64? = !&Int64 -> Int)
+func find(text: Text, pattern: Pattern, start: Int = 1)
 ```
 
 **Parameters:**
@@ -650,8 +650,6 @@ func find(text: Text, pattern: Pattern, start: Int = 1, length: &Int64? = !&Int6
 - `text`: The text to be searched.
 - `pattern`: The pattern to search for.
 - `start`: The index to start the search.
-- `length`: If non-null, this pointer's value will be set to the length of the
-  match, or `-1` if there is no match.
 
 **Returns:**  
 `0` if the target pattern is not found, otherwise the index where the match was
@@ -667,12 +665,6 @@ found.
 = 2
 >> " one   two  three   ":find("{id}", start=5)
 = 8
-
->> len := 0[64]
->> "   one  ":find("{id}", length=&len)
-= 4
->> len
-= 3[64]
 ```
 
 ---
