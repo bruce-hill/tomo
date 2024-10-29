@@ -133,3 +133,5 @@ func main():
     >> (/foo/bar/baz) ++ (./.././qux/./../quux)
     = (/foo/bar/quux)
 
+    !! Globbing:
+    >> (./*.tm):glob()

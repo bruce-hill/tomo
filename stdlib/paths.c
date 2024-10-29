@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <gc.h>
+#include <glob.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -535,12 +536,29 @@ public OptionalClosure_t Path$by_line(Path_t path)
     return (Closure_t){.fn=(void*)_next_line, .userdata=wrapper};
 }
 
+public Array_t Path$glob(Path_t path)
+{
+    glob_t glob_result;
+    int status = glob(Text$as_c_string(path), GLOB_BRACE | GLOB_TILDE | GLOB_TILDE_CHECK, NULL, &glob_result);
+    if (status != 0 && status != GLOB_NOMATCH)
+        fail("Failed to perform globbing");
+
+    Array_t glob_files = {};
+    for (size_t i = 0; i < glob_result.gl_pathc; i++) {
+        size_t len = strlen(glob_result.gl_pathv[i]);
+        if ((len >= 2 && glob_result.gl_pathv[i][len-1] == '.' && glob_result.gl_pathv[i][len-2] == '/')
+            || (len >= 2 && glob_result.gl_pathv[i][len-1] == '.' && glob_result.gl_pathv[i][len-2] == '.' && glob_result.gl_pathv[i][len-3] == '/'))
+            continue;
+        Array$insert(&glob_files, (Text_t[1]){Text$from_str(glob_result.gl_pathv[i])}, I(0), sizeof(Text_t));
+    }
+    return glob_files;
+}
+
 public const TypeInfo_t Path$info = {
     .size=sizeof(Path_t),
     .align=__alignof__(Path_t),
     .tag=TextInfo,
     .TextInfo={.lang="Path"},
 };
-
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -302,6 +302,7 @@ env_t *new_compilation_unit(CORD libname)
             {"exists", "Path$exists", "func(path:Path -> Bool)"},
             {"extension", "Path$extension", "func(path:Path, full=yes -> Text)"},
             {"files", "Path$children", "func(path:Path, include_hidden=no -> [Path])"},
+            {"glob", "Path$glob", "func(path:Path -> [Path])"},
             {"is_directory", "Path$is_directory", "func(path:Path, follow_symlinks=yes -> Bool)"},
             {"is_file", "Path$is_file", "func(path:Path, follow_symlinks=yes -> Bool)"},
             {"is_pipe", "Path$is_pipe", "func(path:Path, follow_symlinks=yes -> Bool)"},

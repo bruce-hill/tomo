@@ -288,6 +288,53 @@ A list of file paths.
 
 ---
 
+### `glob`
+
+**Description:**  
+Perform a globbing operation and return an array of matching paths. Some glob
+specific details:
+
+- The paths "." and ".." are *not* included in any globbing results.
+- Files or directories that begin with "." will not match `*`, but will match `.*`.
+- Globs do support `{a,b}` syntax for matching files that match any of several
+  choices of patterns.
+- The shell-style syntax `**` for matching subdirectories is not supported.
+
+**Signature:**  
+```tomo
+func glob(path: Path -> [Path])
+```
+
+**Parameters:**
+
+- `path`: The path of the directory which may contain special globbing characters
+  like `*`, `?`, or `{...}`
+
+**Returns:**  
+A list of file paths that match the glob.
+
+**Example:**  
+```tomo
+# Current directory includes: foo.txt, baz.txt, qux.jpg, .hidden
+>> (./*):glob()
+= [(./foo.txt), (./baz.txt), (./qux.jpg)]
+
+>> (./*.txt):glob()
+= [(./foo.txt), (./baz.txt)]
+
+>> (./*.{txt,jpg}):glob()
+= [(./foo.txt), (./baz.txt), (./qux.jpg)]
+
+>> (./.*):glob()
+= [(./.hidden)]
+
+# Globs with no matches return an empty array:
+>> (./*.xxx):glob()
+= []
+```
+
+---
+
 ### `is_directory`
 
 **Description:**  

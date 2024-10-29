@@ -47,6 +47,7 @@ Path_t Path$parent(Path_t path);
 Text_t Path$base_name(Path_t path);
 Text_t Path$extension(Path_t path, bool full);
 Closure_t Path$by_line(Path_t path);
+Array_t Path$glob(Path_t path);
 
 #define Path$hash Text$hash
 #define Path$compare Text$compare
