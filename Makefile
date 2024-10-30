@@ -39,18 +39,18 @@ all: libtomo.so tomo
 
 tomo: tomo.o $(BUILTIN_OBJS) ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o repl.o cordhelpers.o
 	@echo $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $^ $(LDLIBS) -o $@
-	@$(CC) $(CFLAGS) $(CWARN) $(LDFLAGS) $^ $(LDLIBS) -o $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 libtomo.so: $(BUILTIN_OBJS)
 	@echo $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -ldl -Wl,-soname,libtomo.so -shared -o $@
-	@$(CC) $^ $(CFLAGS) $(CWARN) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -ldl -Wl,-soname,libtomo.so -shared -o $@
+	@$(CC) $^ $(CFLAGS) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -ldl -Wl,-soname,libtomo.so -shared -o $@
 
 tags:
 	ctags *.[ch] **/*.[ch]
 
 %.o: %.c ast.h environment.h types.h
 	@echo $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
-	@$(CC) $(CFLAGS) $(CWARN) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 %.tm.testresult: %.tm tomo
 	@printf '\x1b[33;1;4m%s\x1b[m\n' $<
