@@ -59,7 +59,7 @@ const TypeInfo_t CStrToVoidStarTable = {
     .TableInfo={.key=&CString$info, .value=&MemoryPointer},
 };
 
-PUREFUNC static inline size_t entry_size(const TypeInfo_t *info)
+PUREFUNC static INLINE size_t entry_size(const TypeInfo_t *info)
 {
     size_t size = (size_t)info->TableInfo.key->size;
     if (info->TableInfo.value->align > 1 && size % (size_t)info->TableInfo.value->align)
@@ -70,12 +70,12 @@ PUREFUNC static inline size_t entry_size(const TypeInfo_t *info)
     return size;
 }
 
-PUREFUNC static inline size_t entry_align(const TypeInfo_t *info)
+PUREFUNC static INLINE size_t entry_align(const TypeInfo_t *info)
 {
     return (size_t)MAX(info->TableInfo.key->align, info->TableInfo.value->align);
 }
 
-PUREFUNC static inline size_t value_offset(const TypeInfo_t *info)
+PUREFUNC static INLINE size_t value_offset(const TypeInfo_t *info)
 {
     size_t offset = (size_t)info->TableInfo.key->size;
     if ((size_t)info->TableInfo.value->align > 1 && offset % (size_t)info->TableInfo.value->align)
@@ -83,7 +83,7 @@ PUREFUNC static inline size_t value_offset(const TypeInfo_t *info)
     return offset;
 }
 
-static inline void hshow(const Table_t *t)
+static INLINE void hshow(const Table_t *t)
 {
     hdebug("{");
     for (uint32_t i = 0; t->bucket_info && i < t->bucket_info->count; i++) {
@@ -217,6 +217,7 @@ static void hashmap_resize_buckets(Table_t *t, uint32_t new_capacity, const Type
 }
 
 // Return address of value
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
 public void *Table$reserve(Table_t *t, const void *key, const void *value, const TypeInfo_t *type)
 {
@@ -276,6 +277,7 @@ public void *Table$reserve(Table_t *t, const void *key, const void *value, const
     Table$set_bucket(t, entry, entry_index, type);
     return entry + value_offset(type);
 }
+#pragma GCC diagnostic pop
 
 public void Table$set(Table_t *t, const void *key, const void *value, const TypeInfo_t *type)
 {

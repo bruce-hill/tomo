@@ -33,7 +33,7 @@ typedef struct {
     };
 } pat_t;
 
-static inline void skip_whitespace(TextIter_t *state, int64_t *i)
+static INLINE void skip_whitespace(TextIter_t *state, int64_t *i)
 {
     while (*i < state->text.length) {
         int32_t grapheme = Text$get_grapheme_fast(state, *i);
@@ -43,7 +43,7 @@ static inline void skip_whitespace(TextIter_t *state, int64_t *i)
     }
 }
 
-static inline bool match_grapheme(TextIter_t *state, int64_t *i, int32_t grapheme)
+static INLINE bool match_grapheme(TextIter_t *state, int64_t *i, int32_t grapheme)
 {
     if (*i < state->text.length && Text$get_grapheme_fast(state, *i) == grapheme) {
         *i += 1;
@@ -52,7 +52,7 @@ static inline bool match_grapheme(TextIter_t *state, int64_t *i, int32_t graphem
     return false;
 }
 
-static inline bool match_str(TextIter_t *state, int64_t *i, const char *str)
+static INLINE bool match_str(TextIter_t *state, int64_t *i, const char *str)
 {
     int64_t matched = 0;
     while (matched[str]) {
@@ -64,7 +64,7 @@ static inline bool match_str(TextIter_t *state, int64_t *i, const char *str)
     return true;
 }
 
-static inline bool match_property(TextIter_t *state, int64_t *i, uc_property_t prop)
+static INLINE bool match_property(TextIter_t *state, int64_t *i, uc_property_t prop)
 {
     if (*i >= state->text.length) return false;
     uint32_t grapheme = Text$get_main_grapheme_fast(state, *i);

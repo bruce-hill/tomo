@@ -37,12 +37,12 @@
     c_type type_name ## $random(c_type min, c_type max); \
     to_attr Range_t type_name ## $to(c_type from, c_type to); \
     PUREFUNC Optional ## type_name ## _t type_name ## $from_text(Text_t text); \
-    PUREFUNC static inline c_type type_name ## $clamped(c_type x, c_type min, c_type max) { \
+    PUREFUNC static INLINE c_type type_name ## $clamped(c_type x, c_type min, c_type max) { \
         return x < min ? min : (x > max ? max : x); \
     } \
     extern const c_type type_name ## $min, type_name##$max; \
     extern const TypeInfo_t type_name ## $info; \
-    static inline c_type type_name ## $divided_by(c_type D, c_type d) { \
+    static INLINE c_type type_name ## $divided_by(c_type D, c_type d) { \
         c_type q = D/d, r = D%d; \
         if (r < 0) { \
             if (d > 0) q = q-1; \
@@ -50,7 +50,7 @@
         } \
         return q; \
     } \
-    static inline c_type type_name ## $modulo(c_type D, c_type d) { \
+    static INLINE c_type type_name ## $modulo(c_type D, c_type d) { \
         c_type r = D%d; \
         if (r < 0) { \
             if (d > 0) r = r + d; \
@@ -58,7 +58,7 @@
         } \
         return r; \
     } \
-    static inline c_type type_name ## $modulo1(c_type D, c_type d) { \
+    static INLINE c_type type_name ## $modulo1(c_type D, c_type d) { \
         return type_name ## $modulo(D-1, d) + 1; \
     }
 
@@ -136,7 +136,7 @@ Int_t Int$prev_prime(Int_t x);
 
 extern const TypeInfo_t Int$info;
 
-static inline Int_t Int$clamped(Int_t x, Int_t low, Int_t high)
+static INLINE Int_t Int$clamped(Int_t x, Int_t low, Int_t high)
 {
     return (Int$compare(&x, &low, &Int$info) <= 0) ? low : (Int$compare(&x, &high, &Int$info) >= 0 ? high : x);
 }
@@ -144,21 +144,21 @@ static inline Int_t Int$clamped(Int_t x, Int_t low, Int_t high)
 // Fast-path inline versions for the common case where integer arithmetic is
 // between two small ints.
 
-static inline Int_t Int$plus(Int_t x, Int_t y) {
+static INLINE Int_t Int$plus(Int_t x, Int_t y) {
     const int64_t z = (int64_t)((uint64_t)x.small + (uint64_t)y.small);
     if (__builtin_expect(((z|2) == (int32_t)z), 1))
         return (Int_t){.small=(z-1)};
     return Int$slow_plus(x, y);
 }
 
-static inline Int_t Int$minus(Int_t x, Int_t y) {
+static INLINE Int_t Int$minus(Int_t x, Int_t y) {
     const int64_t z = (int64_t)(((uint64_t)x.small ^ 3) - (uint64_t)y.small);
     if (__builtin_expect(((z & ~2) == (int32_t)z), 1))
         return (Int_t){.small=z};
     return Int$slow_minus(x, y);
 }
 
-static inline Int_t Int$times(Int_t x, Int_t y) {
+static INLINE Int_t Int$times(Int_t x, Int_t y) {
     if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
         const int64_t z = (x.small>>1) * (y.small>>1);
         if (__builtin_expect(z == (int32_t)z, 1))
@@ -167,7 +167,7 @@ static inline Int_t Int$times(Int_t x, Int_t y) {
     return Int$slow_times(x, y);
 }
 
-static inline Int_t Int$divided_by(Int_t x, Int_t y) {
+static INLINE Int_t Int$divided_by(Int_t x, Int_t y) {
     if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
         // Euclidean division, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
         const int64_t D = (x.small>>2);
@@ -184,7 +184,7 @@ static inline Int_t Int$divided_by(Int_t x, Int_t y) {
     return Int$slow_divided_by(x, y);
 }
 
-static inline Int_t Int$modulo(Int_t x, Int_t y) {
+static INLINE Int_t Int$modulo(Int_t x, Int_t y) {
     if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
         // Euclidean modulus, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
         const int64_t D = (x.small>>2);
@@ -199,7 +199,7 @@ static inline Int_t Int$modulo(Int_t x, Int_t y) {
     return Int$slow_modulo(x, y);
 }
 
-static inline Int_t Int$modulo1(Int_t x, Int_t y) {
+static INLINE Int_t Int$modulo1(Int_t x, Int_t y) {
     if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
         // Euclidean modulus, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
         const int64_t D = (x.small>>2)-1;
@@ -214,7 +214,7 @@ static inline Int_t Int$modulo1(Int_t x, Int_t y) {
     return Int$slow_modulo1(x, y);
 }
 
-static inline Int_t Int$left_shifted(Int_t x, Int_t y) {
+static INLINE Int_t Int$left_shifted(Int_t x, Int_t y) {
     if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
         const int64_t z = ((x.small>>2) << (y.small>>2))<<2;
         if (__builtin_expect(z == (int32_t)z, 1))
@@ -223,7 +223,7 @@ static inline Int_t Int$left_shifted(Int_t x, Int_t y) {
     return Int$slow_left_shifted(x, y);
 }
 
-static inline Int_t Int$right_shifted(Int_t x, Int_t y) {
+static INLINE Int_t Int$right_shifted(Int_t x, Int_t y) {
     if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
         const int64_t z = ((x.small>>2) >> (y.small>>2))<<2;
         if (__builtin_expect(z == (int32_t)z, 1))
@@ -232,40 +232,40 @@ static inline Int_t Int$right_shifted(Int_t x, Int_t y) {
     return Int$slow_right_shifted(x, y);
 }
 
-static inline Int_t Int$bit_and(Int_t x, Int_t y) {
+static INLINE Int_t Int$bit_and(Int_t x, Int_t y) {
     const int64_t z = x.small & y.small;
     if (__builtin_expect((z & 1) == 1, 1))
         return (Int_t){.small=z};
     return Int$slow_bit_and(x, y);
 }
 
-static inline Int_t Int$bit_or(Int_t x, Int_t y) {
+static INLINE Int_t Int$bit_or(Int_t x, Int_t y) {
     if (__builtin_expect(((x.small & y.small) & 1) == 1, 1))
         return (Int_t){.small=(x.small | y.small)};
     return Int$slow_bit_or(x, y);
 }
 
-static inline Int_t Int$bit_xor(Int_t x, Int_t y) {
+static INLINE Int_t Int$bit_xor(Int_t x, Int_t y) {
     if (__builtin_expect(((x.small & y.small) & 1) == 1, 1))
         return (Int_t){.small=(x.small ^ y.small) | 1};
     return Int$slow_bit_xor(x, y);
 }
 
-static inline Int_t Int$negated(Int_t x)
+static INLINE Int_t Int$negated(Int_t x)
 {
     if (__builtin_expect((x.small & 1), 1))
         return (Int_t){.small=(~x.small) ^ 3};
     return Int$slow_negated(x);
 }
 
-static inline Int_t Int$negative(Int_t x)
+static INLINE Int_t Int$negative(Int_t x)
 {
     if (__builtin_expect((x.small & 1), 1))
         return (Int_t){.small=((-((x.small)>>2))<<2) | 1};
     return Int$slow_negative(x);
 }
 
-static inline bool Int$is_negative(Int_t x)
+static INLINE bool Int$is_negative(Int_t x)
 {
     if (__builtin_expect((x.small & 1), 1))
         return x.small < 0;
@@ -274,7 +274,7 @@ static inline bool Int$is_negative(Int_t x)
 
 // Conversion functions:
 
-static inline Int_t Int64_to_Int(int64_t i)
+static INLINE Int_t Int64_to_Int(int64_t i)
 {
     int64_t z = i<<2;
     if (__builtin_expect(z == (int32_t)z, 1))
@@ -288,16 +288,18 @@ static inline Int_t Int64_to_Int(int64_t i)
 #define Int16_to_Int(i) Int64_to_Int(i)
 #define Int8_to_Int(i) Int64_to_Int(i)
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Winline"
-PUREFUNC static inline Int64_t Int_to_Int64(Int_t i, bool truncate) {
+PUREFUNC static INLINE Int64_t Int_to_Int64(Int_t i, bool truncate) {
     if (__builtin_expect(i.small & 1, 1))
         return (int64_t)(i.small >> 2);
     if (__builtin_expect(!truncate && !mpz_fits_slong_p(*i.big), 0))
         fail("Integer is too big to fit in a 64-bit integer!");
     return mpz_get_si(*i.big);
 }
+#pragma GCC diagnostic pop
 
-PUREFUNC static inline Int32_t Int_to_Int32(Int_t i, bool truncate) {
+PUREFUNC static INLINE Int32_t Int_to_Int32(Int_t i, bool truncate) {
     int64_t i64 = Int_to_Int64(i, truncate);
     int32_t i32 = (int32_t)i64;
     if (__builtin_expect(i64 != i32 && !truncate, 0))
@@ -305,7 +307,7 @@ PUREFUNC static inline Int32_t Int_to_Int32(Int_t i, bool truncate) {
     return i32;
 }
 
-PUREFUNC static inline Int16_t Int_to_Int16(Int_t i, bool truncate) {
+PUREFUNC static INLINE Int16_t Int_to_Int16(Int_t i, bool truncate) {
     int64_t i64 = Int_to_Int64(i, truncate);
     int16_t i16 = (int16_t)i64;
     if (__builtin_expect(i64 != i16 && !truncate, 0))
@@ -313,7 +315,7 @@ PUREFUNC static inline Int16_t Int_to_Int16(Int_t i, bool truncate) {
     return i16;
 }
 
-PUREFUNC static inline Int8_t Int_to_Int8(Int_t i, bool truncate) {
+PUREFUNC static INLINE Int8_t Int_to_Int8(Int_t i, bool truncate) {
     int64_t i64 = Int_to_Int64(i, truncate);
     int8_t i8 = (int8_t)i64;
     if (__builtin_expect(i64 != i8 && !truncate, 0))
@@ -321,14 +323,14 @@ PUREFUNC static inline Int8_t Int_to_Int8(Int_t i, bool truncate) {
     return i8;
 }
 
-PUREFUNC static inline Int_t Num_to_Int(double n)
+PUREFUNC static INLINE Int_t Num_to_Int(double n)
 {
     mpz_t result;
     mpz_init_set_d(result, n);
     return Int$from_mpz(result);
 }
 
-PUREFUNC static inline double Int_to_Num(Int_t i)
+PUREFUNC static INLINE double Int_to_Num(Int_t i)
 {
     if (__builtin_expect(i.small & 1, 1))
         return (double)(i.small >> 2);
@@ -339,7 +341,7 @@ PUREFUNC static inline double Int_to_Num(Int_t i)
 #define Int_to_Num32(i) (Num32_t)Int_to_Num(i)
 
 #define CONVERSION_FUNC(hi, lo) \
-    PUREFUNC static inline int##lo##_t Int##hi##_to_Int##lo(int##hi##_t i, bool truncate) { \
+    PUREFUNC static INLINE int##lo##_t Int##hi##_to_Int##lo(int##hi##_t i, bool truncate) { \
         if (__builtin_expect(!truncate && (i != (int##lo##_t)i), 0)) \
             fail("Cannot truncate the Int" #hi " %ld to an Int" #lo, (int64_t)i); \
         return (int##lo##_t)i; \
@@ -353,9 +355,10 @@ CONVERSION_FUNC(32, 8)
 CONVERSION_FUNC(16, 8)
 #undef CONVERSION_FUNC
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"
 #define CONVERSION_FUNC(num, int_type) \
-    PUREFUNC static inline int_type##_t num##_to_##int_type(num##_t n, bool truncate) { \
+    PUREFUNC static INLINE int_type##_t num##_to_##int_type(num##_t n, bool truncate) { \
         num##_t rounded = (num##_t)round((double)n); \
         if (__builtin_expect(!truncate && (num##_t)(int_type##_t)rounded != rounded, 0)) \
             fail("Cannot truncate the " #num " %g to an " #int_type, (double)rounded); \
@@ -370,6 +373,7 @@ CONVERSION_FUNC(Num32, Int64)
 CONVERSION_FUNC(Num32, Int32)
 CONVERSION_FUNC(Num32, Int16)
 CONVERSION_FUNC(Num32, Int8)
+#pragma GCC diagnostic pop
 #undef CONVERSION_FUNC
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

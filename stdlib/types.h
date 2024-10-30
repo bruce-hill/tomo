@@ -53,7 +53,6 @@ struct TypeInfo_s {
             struct {
                 const TypeInfo_t *type;
             } OptionalInfo;
-#pragma GCC diagnostic ignored "-Wpedantic"
             struct {} OpaqueInfo;
             struct {
                 const char *name;

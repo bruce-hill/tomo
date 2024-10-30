@@ -60,6 +60,7 @@ static Text_t escape_lib_name(Text_t lib_name);
 static void build_library(Text_t lib_dir_name);
 static void compile_files(env_t *env, Array_t files, bool only_compile_arguments, Array_t *object_files, Array_t *ldlibs);
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
 int main(int argc, char *argv[])
 {
@@ -176,6 +177,7 @@ int main(int argc, char *argv[])
         return 0;
     }
 }
+#pragma GCC diagnostic pop
 
 Text_t escape_lib_name(Text_t lib_name)
 {

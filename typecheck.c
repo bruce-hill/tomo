@@ -20,6 +20,7 @@
 
 type_t *parse_type_ast(env_t *env, type_ast_t *ast)
 {
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-default"
     switch (ast->tag) {
     case VarTypeAST: {
@@ -121,6 +122,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
     }
     case UnknownTypeAST: code_err(ast, "I don't know how to get this type");
     }
+#pragma GCC diagnostic pop
     errx(1, "Unreachable");
 }
 
@@ -478,6 +480,8 @@ type_t *get_clause_type(env_t *env, type_t *subject_t, when_clause_t *clause)
 type_t *get_type(env_t *env, ast_t *ast)
 {
     if (!ast) return NULL;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch-default"
     switch (ast->tag) {
     case Null: {
         type_t *t = parse_type_ast(env, Match(ast, Null)->type);
@@ -1244,6 +1248,7 @@ type_t *get_type(env_t *env, ast_t *ast)
     case DateTime: return Type(DateTimeType);
     case Unknown: code_err(ast, "I can't figure out the type of: %W", ast);
     }
+#pragma GCC diagnostic pop
     code_err(ast, "I can't figure out the type of: %W", ast);
 }
 
@@ -1328,11 +1333,13 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast)
     case TextLiteral: {
         CORD literal = Match(ast, TextLiteral)->cord; 
         CORD_pos i;
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
         CORD_FOR(i, literal) {
             if (!isascii(CORD_pos_fetch(i)))
                 return false; // Non-ASCII requires grapheme logic, not constant
         }
+#pragma GCC diagnostic pop
         return true; // Literal ASCII string, OK
     }
     case Not: return is_constant(env, Match(ast, Not)->value);

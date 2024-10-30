@@ -330,6 +330,7 @@ void run(env_t *env, ast_t *ast)
     }
 }
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
 void eval(env_t *env, ast_t *ast, void *dest)
 {
@@ -550,5 +551,6 @@ void eval(env_t *env, ast_t *ast, void *dest)
         errx(1, "Eval not implemented for %W", ast);
     }
 }
+#pragma GCC diagnostic pop
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -8,17 +8,17 @@ LTO=-flto=auto -fno-fat-lto-objects -Wl,-flto
 LDFLAGS=
 # MAKEFLAGS := --jobs=$(shell nproc) --output-sync=target
 CWARN=-Wall -Wextra -Wno-format -Wshadow \
-	  -Wpedantic \
+	  -Wno-pedantic \
 	  -Wno-pointer-arith \
 	  -Wsign-conversion -Wtype-limits -Wunused-result -Wnull-dereference \
 	  -Walloc-zero -Walloca -Warith-conversion -Wcast-align -Wcast-align=strict \
 	  -Wdangling-else -Wdate-time -Wdisabled-optimization -Wdouble-promotion -Wduplicated-branches \
-	  -Wduplicated-cond -Wexpansion-to-defined -Wfloat-equal \
+	  -Wduplicated-cond -Wexpansion-to-defined -Wno-float-equal \
 	  -Wframe-address -Winline -Winvalid-pch -Wjump-misses-init \
 	  -Wlogical-op -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn \
 	  -Wnull-dereference -Woverlength-strings -Wpacked -Wpacked-not-aligned \
 	  -Wredundant-decls -Wshadow -Wshadow=compatible-local -Wshadow=global -Wshadow=local \
-	  -Wsign-conversion -Wstack-protector -Wsuggest-attribute=const -Wsuggest-attribute=noreturn -Wsuggest-attribute=pure -Wswitch-default \
+	  -Wsign-conversion -Wno-stack-protector -Wsuggest-attribute=const -Wsuggest-attribute=noreturn -Wsuggest-attribute=pure -Wswitch-default \
 	  -Wsync-nand -Wtrampolines -Wundef -Wunused -Wunused-but-set-variable \
 	  -Wunused-const-variable -Wunused-local-typedefs -Wunused-macros -Wvariadic-macros -Wvector-operation-performance \
 	  -Wwrite-strings
@@ -26,7 +26,7 @@ OSFLAGS != case $$(uname -s) in *BSD|Darwin) echo '-D_BSD_SOURCE';; Linux) echo 
 EXTRA=
 G=-ggdb
 O=-Og
-CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS)
+CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO)
 CFLAGS_PLACEHOLDER="$$(echo -e '\033[2m<flags...>\033[m')" 
 LDLIBS=-lgc -lcord -lm -lunistring -lgmp -ldl
 BUILTIN_OBJS=stdlib/siphash.o stdlib/arrays.o stdlib/bools.o stdlib/bytes.o stdlib/channels.o stdlib/nums.o stdlib/integers.o \

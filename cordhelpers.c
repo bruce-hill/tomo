@@ -20,8 +20,10 @@ public CORD CORD_quoted(CORD str)
 {
     CORD quoted = "\"";
     CORD_pos i;
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
     CORD_FOR(i, str) {
+#pragma GCC diagnostic pop
         char c = CORD_pos_fetch(i);
         switch (c) {
         case '\a': quoted = CORD_cat(quoted, "\\a"); break;
@@ -34,7 +36,6 @@ public CORD CORD_quoted(CORD str)
         case '\v': quoted = CORD_cat(quoted, "\\v"); break;
         case '"': quoted = CORD_cat(quoted, "\\\""); break;
         case '\\': quoted = CORD_cat(quoted, "\\\\"); break;
-#pragma GCC diagnostic ignored "-Wpedantic"
         case '\x00' ... '\x06': case '\x0E' ... '\x1A':
         case '\x1C' ... '\x1F': case '\x7F' ... '\x7F':
             CORD_sprintf(&quoted, "%r\\x%02X", quoted, c);

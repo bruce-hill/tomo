@@ -161,7 +161,7 @@ type_t *type_or_type(type_t *a, type_t *b)
     return NULL;
 }
 
-static PUREFUNC inline double type_min_magnitude(type_t *t)
+static PUREFUNC INLINE double type_min_magnitude(type_t *t)
 {
     switch (t->tag) {
     case BoolType: return (double)false;
@@ -181,7 +181,7 @@ static PUREFUNC inline double type_min_magnitude(type_t *t)
     }
 }
 
-static PUREFUNC inline double type_max_magnitude(type_t *t)
+static PUREFUNC INLINE double type_max_magnitude(type_t *t)
 {
     switch (t->tag) {
     case BoolType: return (double)true;
@@ -417,6 +417,7 @@ PUREFUNC size_t unpadded_struct_size(type_t *t)
 
 PUREFUNC size_t type_size(type_t *t)
 {
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-default"
     switch (t->tag) {
     case UnknownType: case AbortType: case ReturnType: case VoidType: return 0;
@@ -494,11 +495,14 @@ PUREFUNC size_t type_size(type_t *t)
     case TypeInfoType: return sizeof(TypeInfo_t);
     case ModuleType: return 0;
     }
+#pragma GCC diagnostic pop
     errx(1, "This should not be reachable");
 }
 
 PUREFUNC size_t type_align(type_t *t)
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch-default"
     switch (t->tag) {
     case UnknownType: case AbortType: case ReturnType: case VoidType: return 0;
     case MemoryType: errx(1, "Memory has undefined type alignment");
@@ -560,6 +564,7 @@ PUREFUNC size_t type_align(type_t *t)
     case TypeInfoType: return __alignof__(TypeInfo_t);
     case ModuleType: return 0;
     }
+#pragma GCC diagnostic pop
     errx(1, "This should not be reachable");
 }
 

@@ -33,6 +33,10 @@
 #define CONSTFUNC __attribute__ ((const))
 #endif
 
+#ifndef INLINE
+#define INLINE inline __attribute__ ((always_inline))
+#endif
+
 __attribute__((format(printf, 1, 2)))
 char *heap_strf(const char *fmt, ...);
 

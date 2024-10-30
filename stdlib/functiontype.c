@@ -13,7 +13,7 @@ public void register_function(void *fn, Text_t name)
     Table$set(&function_names, &fn, &name, Table$info(Function$info("???"), &Text$info));
 }
 
-public Text_t *get_function_name(void *fn)
+PUREFUNC public Text_t *get_function_name(void *fn)
 {
     return Table$get(function_names, &fn, Table$info(Function$info("???"), &Text$info));
 }

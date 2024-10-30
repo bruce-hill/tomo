@@ -227,7 +227,7 @@ public OptionalDateTime_t DateTime$parse(Text_t text, Text_t format)
     return (DateTime_t){.tv_sec=t + offset - info.tm_gmtoff};
 }
 
-static inline Text_t num_format(long n, const char *unit)
+static INLINE Text_t num_format(long n, const char *unit)
 {
     if (n == 0)
         return Text("now");

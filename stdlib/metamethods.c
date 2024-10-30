@@ -16,6 +16,7 @@
 #include "util.h"
 
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
 PUREFUNC public uint64_t generic_hash(const void *obj, const TypeInfo_t *type)
 {
@@ -82,6 +83,7 @@ PUREFUNC public uint64_t generic_hash(const void *obj, const TypeInfo_t *type)
     }
     }
 }
+#pragma GCC diagnostic pop
 
 PUREFUNC public int32_t generic_compare(const void *x, const void *y, const TypeInfo_t *type)
 {

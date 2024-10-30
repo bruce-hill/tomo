@@ -86,7 +86,6 @@ static synthetic_grapheme_t *synthetic_graphemes = NULL;
 static int32_t synthetic_grapheme_capacity = 0;
 static int32_t num_synthetic_graphemes = 0;
 
-#define MAIN_GRAPHEME_CODEPOINT(_g) ({ int32_t g = _g; (g) >= 0 ? (ucs4_t)(g) : synthetic_graphemes[-(g)-1].main_codepoint; })
 #define NUM_GRAPHEME_CODEPOINTS(id) (synthetic_graphemes[-(id)-1].utf32_cluster[0])
 #define GRAPHEME_CODEPOINTS(id) (&synthetic_graphemes[-(id)-1].utf32_cluster[1])
 #define GRAPHEME_UTF8(id) (synthetic_graphemes[-(id)-1].utf8)
@@ -117,6 +116,7 @@ static const TypeInfo_t GraphemeIDLookupTableInfo = {
     .tag=TableInfo, .TableInfo={.key=&GraphemeClusterInfo, .value=&Int32$info},
 };
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
 public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_len)
 {
@@ -201,6 +201,7 @@ public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_le
     last_grapheme = grapheme_id;
     return grapheme_id;
 }
+#pragma GCC diagnostic pop
 
 PUREFUNC static inline int64_t num_subtexts(Text_t t)
 {
@@ -849,7 +850,8 @@ public int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index)
 
 public uint32_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index)
 {
-    return MAIN_GRAPHEME_CODEPOINT(Text$get_grapheme_fast(state, index));
+    int32_t g = Text$get_grapheme_fast(state, index);
+    return (g) >= 0 ? (ucs4_t)(g) : synthetic_graphemes[-(g)-1].main_codepoint;
 }
 
 PUREFUNC public int32_t Text$compare(const Text_t *a, const Text_t *b)
@@ -1016,7 +1018,7 @@ public int printf_text(FILE *stream, const struct printf_info *info, const void 
         return Text$print(stream, t);
 }
 
-static inline Text_t _quoted(Text_t text, bool colorize, char quote_char)
+static INLINE Text_t _quoted(Text_t text, bool colorize, char quote_char)
 {
     // TODO: optimize for ASCII and short strings
     Array_t graphemes = {.atomic=1};
@@ -1228,7 +1230,7 @@ public Array_t Text$utf8_bytes(Text_t text)
     return (Array_t){.length=strlen(str), .stride=1, .atomic=1, .data=(void*)str};
 }
 
-static inline const char *codepoint_name(ucs4_t c)
+static INLINE const char *codepoint_name(ucs4_t c)
 {
     char *name = GC_MALLOC_ATOMIC(UNINAME_MAX);
     char *found_name = unicode_character_name(c, name);

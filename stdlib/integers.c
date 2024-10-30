@@ -405,7 +405,6 @@ public const TypeInfo_t Int$info = {
     },
 };
 
-
 #define DEFINE_INT_TYPE(c_type, KindOfInt, fmt, min_val, max_val, to_attr)\
     public Text_t KindOfInt ## $as_text(const c_type *i, bool colorize, const TypeInfo_t *type) { \
         (void)type; \

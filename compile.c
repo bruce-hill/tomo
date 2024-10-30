@@ -1778,8 +1778,10 @@ static CORD compile_string_literal(CORD literal)
 {
     CORD code = "\"";
     CORD_pos i;
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
     CORD_FOR(i, literal) {
+#pragma GCC diagnostic pop
         char c = CORD_pos_fetch(i);
         switch (c) {
         case '\\': code = CORD_cat(code, "\\\\"); break;
@@ -1805,7 +1807,10 @@ static CORD compile_string_literal(CORD literal)
 static bool string_literal_is_all_ascii(CORD literal)
 {
     CORD_pos i;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
     CORD_FOR(i, literal) {
+#pragma GCC diagnostic pop
         if (!isascii(CORD_pos_fetch(i)))
             return false;
     }

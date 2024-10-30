@@ -16,7 +16,7 @@
 #include "siphash.h"
 #include "siphash-internals.h"
 
-PUREFUNC static inline int64_t get_padded_item_size(const TypeInfo_t *info)
+PUREFUNC static INLINE int64_t get_padded_item_size(const TypeInfo_t *info)
 {
     int64_t size = info->ArrayInfo.item->size;
     if (info->ArrayInfo.item->align > 1 && size % info->ArrayInfo.item->align)
@@ -249,6 +249,7 @@ public Array_t Array$sorted(Array_t arr, Closure_t comparison, int64_t padded_it
     return arr;
 }
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
 public void Array$shuffle(Array_t *arr, int64_t padded_item_size)
 {
@@ -263,6 +264,7 @@ public void Array$shuffle(Array_t *arr, int64_t padded_item_size)
         memcpy((void*)arr->data + j*padded_item_size, tmp, (size_t)padded_item_size);
     }
 }
+#pragma GCC diagnostic pop
 
 public Array_t Array$shuffled(Array_t arr, int64_t padded_item_size)
 {
@@ -583,7 +585,6 @@ public uint64_t Array$hash(const Array_t *arr, const TypeInfo_t *type)
     return siphashfinish_last_part(&sh, 0);
 }
 
-#pragma GCC diagnostic ignored "-Wstack-protector"
 static void siftdown(Array_t *heap, int64_t startpos, int64_t pos, Closure_t comparison, int64_t padded_item_size)
 {
     assert(pos > 0 && pos < heap->length);

@@ -106,7 +106,7 @@ public Path_t Path$cleanup(Path_t path)
     return cleaned_up;
 }
 
-static inline Path_t Path$_expand_home(Path_t path)
+static INLINE Path_t Path$_expand_home(Path_t path)
 {
     if (Text$starts_with(path, Path("~/"))) {
         Path_t after_tilde = Text$slice(path, I(2), I(-1));
@@ -158,7 +158,7 @@ public bool Path$exists(Path_t path)
     return (stat(Text$as_c_string(path), &sb) == 0);
 }
 
-static inline int path_stat(Path_t path, bool follow_symlinks, struct stat *sb)
+static INLINE int path_stat(Path_t path, bool follow_symlinks, struct stat *sb)
 {
     path = Path$_expand_home(path);
     const char *path_str = Text$as_c_string(path);

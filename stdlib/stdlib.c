@@ -129,6 +129,7 @@ static Array_t parse_array(const TypeInfo_t *item_info, int n, char *args[])
     return items;
 }
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
 public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, int spec_len, cli_arg_t spec[spec_len])
 {
@@ -322,6 +323,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
         }
     }
 }
+#pragma GCC diagnostic pop
 
 void print_stack_trace(FILE *out, int start, int stop)
 {

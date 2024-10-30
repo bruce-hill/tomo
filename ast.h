@@ -93,7 +93,6 @@ struct type_ast_s {
     file_t *file;
     const char *start, *end;
     union {
-#pragma GCC diagnostic ignored "-Wpedantic"
         struct {} UnknownTypeAST;
         struct {
             const char *name;

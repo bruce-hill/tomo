@@ -59,19 +59,19 @@ static const char *keywords[] = {
 
 enum {NORMAL_FUNCTION=0, EXTERN_FUNCTION=1};
 
-static inline size_t some_of(const char **pos, const char *allow);
-static inline size_t some_not(const char **pos, const char *forbid);
-static inline size_t spaces(const char **pos);
-static inline void whitespace(const char **pos);
-static inline size_t match(const char **pos, const char *target);
-static inline void expect_str(parse_ctx_t *ctx, const char *start, const char **pos, const char *target, const char *fmt, ...);
-static inline void expect_closing(parse_ctx_t *ctx, const char **pos, const char *target, const char *fmt, ...);
-static inline size_t match_word(const char **pos, const char *word);
-static inline const char* get_word(const char **pos);
-static inline const char* get_id(const char **pos);
-static inline bool comment(const char **pos);
-static inline bool indent(parse_ctx_t *ctx, const char **pos);
-static inline binop_e match_binary_operator(const char **pos);
+static INLINE size_t some_of(const char **pos, const char *allow);
+static INLINE size_t some_not(const char **pos, const char *forbid);
+static INLINE size_t spaces(const char **pos);
+static INLINE void whitespace(const char **pos);
+static INLINE size_t match(const char **pos, const char *target);
+static void expect_str(parse_ctx_t *ctx, const char *start, const char **pos, const char *target, const char *fmt, ...);
+static void expect_closing(parse_ctx_t *ctx, const char **pos, const char *target, const char *fmt, ...);
+static INLINE size_t match_word(const char **pos, const char *word);
+static INLINE const char* get_word(const char **pos);
+static INLINE const char* get_id(const char **pos);
+static INLINE bool comment(const char **pos);
+static INLINE bool indent(parse_ctx_t *ctx, const char **pos);
+static INLINE binop_e match_binary_operator(const char **pos);
 static ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr);
 static ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn);
@@ -180,6 +180,7 @@ static _Noreturn void parser_err(parse_ctx_t *ctx, const char *start, const char
 //
 // Convert an escape sequence like \n to a string
 //
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
 static const char *unescape(parse_ctx_t *ctx, const char **out) {
     const char **endpos = out;
@@ -240,8 +241,9 @@ static const char *unescape(parse_ctx_t *ctx, const char **out) {
         return GC_strndup(escape+1, 1);
     }
 }
+#pragma GCC diagnostic pop
 
-PUREFUNC static inline int64_t get_indent(parse_ctx_t *ctx, const char *pos)
+PUREFUNC static INLINE int64_t get_indent(parse_ctx_t *ctx, const char *pos)
 {
     int64_t line_num = get_line_number(ctx->file, pos);
     const char *line = get_line(ctx->file, line_num);
@@ -296,7 +298,7 @@ size_t match(const char **pos, const char *target) {
     return len;
 }
 
-static inline bool is_xid_continue_next(const char *pos) {
+static INLINE bool is_xid_continue_next(const char *pos) {
     ucs4_t point = 0;
     u8_next(&point, (const uint8_t*)pos);
     return uc_is_property_xid_continue(point);
@@ -741,7 +743,7 @@ PARSER(parse_num) {
     return NewAST(ctx->file, start, pos, Num, .n=d, .bits=bits);
 }
 
-static inline bool match_separator(const char **pos) { // Either comma or newline
+static INLINE bool match_separator(const char **pos) { // Either comma or newline
     const char *p = *pos;
     int separators = 0;
     for (;;) {
