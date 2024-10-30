@@ -106,7 +106,7 @@ CORD compile_enum_header(env_t *env, ast_t *ast)
         CORD constructor_def = CORD_all(full_name, "_t ", full_name, "$tagged$", tag->name, "(", arg_sig, ");\n");
         all_defs = CORD_all(all_defs, constructor_def);
     }
-    return CORD_all(all_defs, compile_namespace_header(env, def->name, def->namespace));
+    return all_defs;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -17,7 +17,8 @@ CORD compile(env_t *env, ast_t *ast);
 void compile_namespace(env_t *env, const char *ns_name, ast_t *block);
 CORD compile_namespace_header(env_t *env, const char *ns_name, ast_t *block);
 CORD compile_statement(env_t *env, ast_t *ast);
-CORD compile_statement_header(env_t *env, ast_t *ast);
+CORD compile_statement_type_header(env_t *env, ast_t *ast);
+CORD compile_statement_namespace_header(env_t *env, ast_t *ast);
 CORD compile_type_info(env_t *env, type_t *t);
 CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type);
 

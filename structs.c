@@ -74,8 +74,7 @@ CORD compile_struct_header(env_t *env, ast_t *ast)
         "};\n"
         "};\n"
         "} ", namespace_prefix(env, env->namespace), "$Optional", def->name, "_t;\n"
-        "extern const TypeInfo_t ", full_name, ";\n",
-        compile_namespace_header(env, def->name, def->namespace));
+        "extern const TypeInfo_t ", full_name, ";\n");
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

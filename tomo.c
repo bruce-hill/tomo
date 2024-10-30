@@ -203,10 +203,12 @@ static void _compile_statement_header_for_library(libheader_info_t *info, ast_t 
         Text_t path = Text$from_str(use->path);
         if (!Table$get(*info->used_imports, &path, Table$info(&Path$info, &Path$info))) {
             Table$set(info->used_imports, &path, &path, Table$info(&Text$info, &Text$info));
-            CORD_put(compile_statement_header(info->env, ast), info->output);
+            CORD_put(compile_statement_type_header(info->env, ast), info->output);
+            CORD_put(compile_statement_namespace_header(info->env, ast), info->output);
         }
     } else {
-        CORD_put(compile_statement_header(info->env, ast), info->output);
+        CORD_put(compile_statement_type_header(info->env, ast), info->output);
+        CORD_put(compile_statement_namespace_header(info->env, ast), info->output);
     }
 }
 

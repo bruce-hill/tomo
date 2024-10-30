@@ -805,7 +805,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         } else {
             code = CORD_all(ret_type_code, " ", name, arg_signature);
             if (fndef->is_inline)
-                code = CORD_cat("inline ", code);
+                code = CORD_cat("INLINE ", code);
             if (!is_private)
                 code = CORD_cat("public ", code);
         }
@@ -896,10 +896,12 @@ CORD compile_statement(env_t *env, ast_t *ast)
         else
             text = CORD_all(text, ")");
 
-        env->code->function_naming = CORD_all(
-            env->code->function_naming,
-            CORD_asprintf("register_function(%r, Text(\"%r [%s.tm:%ld]\"));\n",
-                          name, text, file_base_name(ast->file->filename), get_line_number(ast->file, ast->start)));
+        if (!fndef->is_inline) {
+            env->code->function_naming = CORD_all(
+                env->code->function_naming,
+                CORD_asprintf("register_function(%r, Text(\"%r [%s.tm:%ld]\"));\n",
+                              name, text, file_base_name(ast->file->filename), get_line_number(ast->file, ast->start)));
+        }
         return CORD_EMPTY;
     }
     case Skip: {
@@ -3433,16 +3435,6 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
     }
 }
 
-CORD compile_namespace_header(env_t *env, const char *ns_name, ast_t *block)
-{
-    env_t *ns_env = namespace_env(env, ns_name);
-    CORD header = CORD_EMPTY;
-    for (ast_list_t *stmt = block ? Match(block, Block)->statements : NULL; stmt; stmt = stmt->next) {
-        header = CORD_all(header, compile_statement_header(ns_env, stmt->ast));
-    }
-    return header;
-}
-
 CORD compile_type_info(env_t *env, type_t *t)
 {
     if (t == THREAD_TYPE) return "&Thread$info";
@@ -3707,7 +3699,7 @@ CORD compile_file(env_t *env, ast_t *ast)
         "}\n");
 }
 
-CORD compile_statement_header(env_t *env, ast_t *ast)
+CORD compile_statement_type_header(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
     case Declare: {
@@ -3725,7 +3717,7 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
             code_err(ast, "You can't declare a variable with a %T value", t);
 
         return CORD_all(
-            compile_statement_header(env, decl->value),
+            compile_statement_type_header(env, decl->value),
             "extern ", compile_declaration(t, CORD_cat(namespace_prefix(env, env->namespace), decl_name)), ";\n");
     }
     case Use: {
@@ -3761,8 +3753,7 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
                 "(text) ((", namespace_prefix(env, env->namespace), def->name, "_t){.length=sizeof(text)-1, .tag=TEXT_ASCII, .ascii=\"\" text})\n"
             "#define ", namespace_prefix(env, env->namespace), def->name,
                 "s(...) ((", namespace_prefix(env, env->namespace), def->name, "_t)Texts(__VA_ARGS__))\n"
-            "extern const TypeInfo_t ", full_name, ";\n",
-            compile_namespace_header(env, def->name, def->namespace)
+            "extern const TypeInfo_t ", full_name, ";\n"
         );
     }
     case FunctionDef: {
@@ -3805,6 +3796,39 @@ CORD compile_statement_header(env_t *env, ast_t *ast)
     }
 }
 
+CORD compile_statement_namespace_header(env_t *env, ast_t *ast)
+{
+    const char *ns_name = NULL;
+    ast_t *block = NULL;
+    switch (ast->tag) {
+    case LangDef: {
+        auto def = Match(ast, LangDef);
+        ns_name = def->name;
+        block = def->namespace;
+        break;
+    }
+    case StructDef: {
+        auto def = Match(ast, StructDef);
+        ns_name = def->name;
+        block = def->namespace;
+        break;
+    }
+    case EnumDef: {
+        auto def = Match(ast, EnumDef);
+        ns_name = def->name;
+        block = def->namespace;
+        break;
+    }
+    default: return CORD_EMPTY;
+    }
+    env_t *ns_env = namespace_env(env, ns_name);
+    CORD header = CORD_EMPTY;
+    for (ast_list_t *stmt = block ? Match(block, Block)->statements : NULL; stmt; stmt = stmt->next) {
+        header = CORD_all(header, compile_statement_namespace_header(ns_env, stmt->ast));
+    }
+    return header;
+}
+
 typedef struct {
     env_t *env;
     CORD *header;
@@ -3812,7 +3836,9 @@ typedef struct {
 
 static void _visit_statement(compile_typedef_info_t *info, ast_t *ast)
 {
-    *info->header = CORD_all(*info->header, compile_statement_header(info->env, ast));
+    *info->header = CORD_all(*info->header,
+                             compile_statement_type_header(info->env, ast),
+                             compile_statement_namespace_header(info->env, ast));
 }
 
 CORD compile_file_header(env_t *env, ast_t *ast)
