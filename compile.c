@@ -3702,24 +3702,6 @@ CORD compile_file(env_t *env, ast_t *ast)
 CORD compile_statement_type_header(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
-    case Declare: {
-        auto decl = Match(ast, Declare);
-        const char *decl_name = Match(decl->var, Var)->name;
-        bool is_private = (decl_name[0] == '_');
-        if (is_private)
-            return CORD_EMPTY;
-
-        type_t *t = get_type(env, decl->value);
-        if (t->tag == FunctionType)
-            t = Type(ClosureType, t);
-        assert(t->tag != ModuleType);
-        if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
-            code_err(ast, "You can't declare a variable with a %T value", t);
-
-        return CORD_all(
-            compile_statement_type_header(env, decl->value),
-            "extern ", compile_declaration(t, CORD_cat(namespace_prefix(env, env->namespace), decl_name)), ";\n");
-    }
     case Use: {
         auto use = Match(ast, Use);
         switch (use->what) {
@@ -3756,24 +3738,6 @@ CORD compile_statement_type_header(env_t *env, ast_t *ast)
             "extern const TypeInfo_t ", full_name, ";\n"
         );
     }
-    case Extern: {
-        auto ext = Match(ast, Extern);
-        type_t *t = parse_type_ast(env, ext->type);
-        CORD decl;
-        if (t->tag == ClosureType) {
-            t = Match(t, ClosureType)->fn;
-            auto fn = Match(t, FunctionType);
-            decl = CORD_all(compile_type(fn->ret), " ", ext->name, "(");
-            for (arg_t *arg = fn->args; arg; arg = arg->next) {
-                decl = CORD_all(decl, compile_type(arg->type));
-                if (arg->next) decl = CORD_cat(decl, ", ");
-            }
-            decl = CORD_cat(decl, ")");
-        } else {
-            decl = compile_declaration(t, ext->name);
-        }
-        return CORD_all("extern ", decl, ";\n");
-    }
     default:
         return CORD_EMPTY;
     }
@@ -3801,6 +3765,42 @@ CORD compile_statement_namespace_header(env_t *env, ast_t *ast)
         ns_name = def->name;
         block = def->namespace;
         break;
+    }
+    case Extern: {
+        auto ext = Match(ast, Extern);
+        type_t *t = parse_type_ast(env, ext->type);
+        CORD decl;
+        if (t->tag == ClosureType) {
+            t = Match(t, ClosureType)->fn;
+            auto fn = Match(t, FunctionType);
+            decl = CORD_all(compile_type(fn->ret), " ", ext->name, "(");
+            for (arg_t *arg = fn->args; arg; arg = arg->next) {
+                decl = CORD_all(decl, compile_type(arg->type));
+                if (arg->next) decl = CORD_cat(decl, ", ");
+            }
+            decl = CORD_cat(decl, ")");
+        } else {
+            decl = compile_declaration(t, ext->name);
+        }
+        return CORD_all("extern ", decl, ";\n");
+    }
+    case Declare: {
+        auto decl = Match(ast, Declare);
+        const char *decl_name = Match(decl->var, Var)->name;
+        bool is_private = (decl_name[0] == '_');
+        if (is_private)
+            return CORD_EMPTY;
+
+        type_t *t = get_type(env, decl->value);
+        if (t->tag == FunctionType)
+            t = Type(ClosureType, t);
+        assert(t->tag != ModuleType);
+        if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
+            code_err(ast, "You can't declare a variable with a %T value", t);
+
+        return CORD_all(
+            compile_statement_type_header(env, decl->value),
+            "extern ", compile_declaration(t, CORD_cat(namespace_prefix(env, env->namespace), decl_name)), ";\n");
     }
     case FunctionDef: {
         auto fndef = Match(ast, FunctionDef);
