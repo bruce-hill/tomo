@@ -9,6 +9,7 @@
 
 #include "datatypes.h"
 #include "integers.h"
+#include "util.h"
 
 typedef struct {
     Text_t text;
@@ -56,7 +57,7 @@ Text_t Text$repeat(Text_t text, Int_t count);
 int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index);
 uint32_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index);
 
-static INLINE int32_t Text$get_grapheme(Text_t text, int64_t index)
+MACROLIKE int32_t Text$get_grapheme(Text_t text, int64_t index)
 {
     TextIter_t state = {text, 0, 0};
     return Text$get_grapheme_fast(&state, index);

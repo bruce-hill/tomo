@@ -37,6 +37,12 @@
 #define INLINE inline __attribute__ ((always_inline))
 #endif
 
+// GCC lets you define macro-like functions which are always inlined and never
+// compiled using this combination of flags. See: https://gcc.gnu.org/onlinedocs/gcc/Inline.html
+#ifndef MACROLIKE
+#define MACROLIKE extern inline __attribute__((gnu_inline, always_inline))
+#endif
+
 __attribute__((format(printf, 1, 2)))
 char *heap_strf(const char *fmt, ...);
 

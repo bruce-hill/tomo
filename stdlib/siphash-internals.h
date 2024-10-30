@@ -68,7 +68,7 @@ typedef struct siphash siphash;
     HALF_ROUND(v0,v1,v2,v3,13,16); \
     HALF_ROUND(v2,v1,v0,v3,17,21);
 
-static INLINE void siphashinit (siphash *sh, size_t src_sz) {
+MACROLIKE void siphashinit (siphash *sh, size_t src_sz) {
     const uint64_t k0 = TOMO_HASH_KEY[0];
     const uint64_t k1 = TOMO_HASH_KEY[1];
     sh->b = (uint64_t)src_sz << 56;
@@ -77,13 +77,13 @@ static INLINE void siphashinit (siphash *sh, size_t src_sz) {
     sh->v2 = k0 ^ 0x6c7967656e657261ULL;
     sh->v3 = k1 ^ 0x7465646279746573ULL;
 }
-static INLINE void siphashadd64bits (siphash *sh, const uint64_t in) {
+MACROLIKE void siphashadd64bits (siphash *sh, const uint64_t in) {
     const uint64_t mi = in;
     sh->v3 ^= mi;
     DOUBLE_ROUND(sh->v0,sh->v1,sh->v2,sh->v3);
     sh->v0 ^= mi;
 }
-static INLINE uint64_t siphashfinish_last_part (siphash *sh, uint64_t t) {
+MACROLIKE uint64_t siphashfinish_last_part (siphash *sh, uint64_t t) {
     sh->b |= t;
     sh->v3 ^= sh->b;
     DOUBLE_ROUND(sh->v0,sh->v1,sh->v2,sh->v3);
@@ -101,7 +101,7 @@ union SipHash64_union {
     uint32_t u32;
     uint8_t  u8[8];
 };
-static INLINE uint64_t siphashfinish (siphash *sh, const uint8_t *src, size_t src_sz) {
+MACROLIKE uint64_t siphashfinish (siphash *sh, const uint8_t *src, size_t src_sz) {
     union SipHash64_union t = { 0 };
     switch (src_sz) {
         /* Falls through */
