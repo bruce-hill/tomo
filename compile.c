@@ -3756,23 +3756,6 @@ CORD compile_statement_type_header(env_t *env, ast_t *ast)
             "extern const TypeInfo_t ", full_name, ";\n"
         );
     }
-    case FunctionDef: {
-        auto fndef = Match(ast, FunctionDef);
-        const char *decl_name = Match(fndef->name, Var)->name;
-        bool is_private = decl_name[0] == '_';
-        if (is_private) return CORD_EMPTY;
-        CORD arg_signature = "(";
-        for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-            type_t *arg_type = get_arg_ast_type(env, arg);
-            arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, CORD_cat("$", arg->name)));
-            if (arg->next) arg_signature = CORD_cat(arg_signature, ", ");
-        }
-        arg_signature = CORD_cat(arg_signature, ")");
-
-        type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
-        CORD ret_type_code = compile_type(ret_t);
-        return CORD_all(ret_type_code, " ", namespace_prefix(env, env->namespace), decl_name, arg_signature, ";\n");
-    }
     case Extern: {
         auto ext = Match(ast, Extern);
         type_t *t = parse_type_ast(env, ext->type);
@@ -3818,6 +3801,23 @@ CORD compile_statement_namespace_header(env_t *env, ast_t *ast)
         ns_name = def->name;
         block = def->namespace;
         break;
+    }
+    case FunctionDef: {
+        auto fndef = Match(ast, FunctionDef);
+        const char *decl_name = Match(fndef->name, Var)->name;
+        bool is_private = decl_name[0] == '_';
+        if (is_private) return CORD_EMPTY;
+        CORD arg_signature = "(";
+        for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
+            type_t *arg_type = get_arg_ast_type(env, arg);
+            arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, CORD_cat("$", arg->name)));
+            if (arg->next) arg_signature = CORD_cat(arg_signature, ", ");
+        }
+        arg_signature = CORD_cat(arg_signature, ")");
+
+        type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
+        CORD ret_type_code = compile_type(ret_t);
+        return CORD_all(ret_type_code, " ", namespace_prefix(env, env->namespace), decl_name, arg_signature, ";\n");
     }
     default: return CORD_EMPTY;
     }
