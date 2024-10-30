@@ -27,16 +27,20 @@ void compile_struct_def(env_t *env, ast_t *ast)
         short_name = strrchr(short_name, '$') + 1;
 
     env->code->typeinfos = CORD_all("public const TypeInfo_t ", full_name, ";\n", env->code->typeinfos);
-    CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r = {%zu, %zu, .tag=StructInfo, .StructInfo.name=\"%s\"%s, "
-                                  ".StructInfo.num_fields=%ld, .StructInfo.fields=(NamedType_t[%d]){",
+    CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r = {.size=%zu, .align=%zu, .tag=StructInfo, .StructInfo.name=\"%s\"%s, "
+                                  ".StructInfo.num_fields=%ld",
                                   full_name, type_size(t), type_align(t), short_name, def->secret ? ", .StructInfo.is_secret=true" : "",
-                                  num_fields, num_fields);
-    for (arg_ast_t *f = def->fields; f; f = f->next) {
-        type_t *field_type = get_arg_ast_type(env, f);
-        typeinfo = CORD_all(typeinfo, "{\"", f->name, "\", ", compile_type_info(env, field_type), "}");
-        if (f->next) typeinfo = CORD_all(typeinfo, ", ");
+                                  num_fields);
+    if (def->fields) {
+        typeinfo = CORD_asprintf("%r, .StructInfo.fields=(NamedType_t[%d]){", typeinfo, num_fields);
+        for (arg_ast_t *f = def->fields; f; f = f->next) {
+            type_t *field_type = get_arg_ast_type(env, f);
+            typeinfo = CORD_all(typeinfo, "{\"", f->name, "\", ", compile_type_info(env, field_type), "}");
+            if (f->next) typeinfo = CORD_all(typeinfo, ", ");
+        }
+        typeinfo = CORD_all(typeinfo, "}");
     }
-    typeinfo = CORD_all(typeinfo, "}};\n");
+    typeinfo = CORD_all(typeinfo, "};\n");
     env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
 
     compile_namespace(env, def->name, def->namespace);
