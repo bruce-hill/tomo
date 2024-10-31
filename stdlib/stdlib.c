@@ -430,11 +430,8 @@ public void start_test(const char *filename, int64_t start, int64_t end)
     ++TEST_DEPTH;
 }
 
-public void end_test(const void *expr, const TypeInfo_t *type, const char *expected, const char *filename, int64_t start, int64_t end)
+public void end_test(const void *expr, const TypeInfo_t *type, const char *expected)
 {
-    (void)filename;
-    (void)start;
-    (void)end;
     --TEST_DEPTH;
     if (!expr || !type) return;
 

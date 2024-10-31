@@ -29,11 +29,11 @@ __attribute__((format(printf, 4, 5)))
 _Noreturn void fail_source(const char *filename, int64_t start, int64_t end, const char *fmt, ...);
 Text_t builtin_last_err();
 void start_test(const char *filename, int64_t start, int64_t end);
-void end_test(const void *expr, const TypeInfo_t *type, const char *expected, const char *filename, int64_t start, int64_t end);
+void end_test(const void *expr, const TypeInfo_t *type, const char *expected);
 #define test(expr, typeinfo, expected, start, end) {\
     start_test(__SOURCE_FILE__, start, end); \
     auto _expr = expr; \
-    end_test(&_expr, typeinfo, expected, __SOURCE_FILE__, start, end); }
+    end_test(&_expr, typeinfo, expected); }
 void say(Text_t text, bool newline);
 Text_t ask(Text_t prompt, bool bold, bool force_tty);
 _Noreturn void tomo_exit(Text_t text, int32_t status);
