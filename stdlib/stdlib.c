@@ -404,21 +404,26 @@ public void start_test(const char *filename, int64_t start, int64_t end)
         file = load_file(filename);
 
     if (filename && file) {
-        for (int i = 0; i < 3*TEST_DEPTH; i++) fputc(' ', stderr);
-
+        const char *spaces = "                                                  ";
         int64_t first_line_len = (int64_t)strcspn(file->text + start, "\r\n");
-        fprintf(stderr, USE_COLOR ? "\x1b[33;1m>> \x1b[m%.*s\n" : ">> %.*s\n", first_line_len, file->text + start);
+        const char *slash = strrchr(filename, '/');
+        const char *file_base = slash ? slash + 1 : filename;
+
+        int64_t line_num = get_line_number(file, file->text + start);
+        fprintf(stderr, USE_COLOR ? "%.*s\x1b[33;1m>> \x1b[m%.*s   %.*s\x1b[32;2m[%s:%ld]\x1b[m\n" : "%.*s>> %.*s   %.*s[%s:%ld]\n",
+                3*TEST_DEPTH, spaces, first_line_len, file->text + start,
+                MAX(0, 35-first_line_len-3*TEST_DEPTH), spaces, file_base, line_num);
 
         // For multi-line expressions, dedent each and print it on a new line with ".. " in front:
         if (end > start + first_line_len) {
-            int64_t line_num = get_line_number(file, file->text + start);
             const char *line_start = get_line(file, line_num);
             int64_t indent_len = (int64_t)strspn(line_start, " \t");
             for (const char *line = file->text + start + first_line_len; line < file->text + end; line += strcspn(line, "\r\n")) {
                 line += strspn(line, "\r\n");
                 if ((int64_t)strspn(line, " \t") >= indent_len)
                     line += indent_len;
-                fprintf(stderr, USE_COLOR ? "\x1b[33m.. \x1b[m%.*s\n" : ".. %.*s\n", strcspn(line, "\r\n"), line);
+                fprintf(stderr, USE_COLOR ? "%.*s\x1b[33m.. \x1b[m%.*s\n" : "%.*s.. %.*s\n",
+                        3*TEST_DEPTH, spaces, strcspn(line, "\r\n"), line);
             }
         }
     }
@@ -437,7 +442,7 @@ public void end_test(const void *expr, const TypeInfo_t *type, const char *expec
     Text_t type_name = generic_as_text(NULL, false, type);
 
     for (int i = 0; i < 3*TEST_DEPTH; i++) fputc(' ', stderr);
-    fprintf(stderr, USE_COLOR ? "\x1b[2m=\x1b[0m %k \x1b[2m: %k\x1b[m\n" : "= %k : %k\n", &expr_text, &type_name);
+    fprintf(stderr, USE_COLOR ? "\x1b[2m=\x1b[0m %k \x1b[2m: \x1b[36m%k\x1b[m\n" : "= %k : %k\n", &expr_text, &type_name);
     if (expected && expected[0]) {
         Text_t expected_text = Text$from_str(expected);
         Text_t expr_plain = USE_COLOR ? generic_as_text(expr, false, type) : expr_text;
