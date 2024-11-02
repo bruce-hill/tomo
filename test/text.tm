@@ -187,13 +187,13 @@ func main():
 
 	!! Test text:find()
 	>> " one   two  three   ":find($/{id}/, start=-999)
-	= 0
+	= !Int
 	>> " one   two  three   ":find($/{id}/, start=999)
-	= 0
+	= !Int
 	>> " one   two  three   ":find($/{id}/)
-	= 2
+	= 2?
 	>> " one   two  three   ":find($/{id}/, start=5)
-	= 8
+	= 8?
 
 	!! Test text slicing:
 	>> "abcdef":slice()

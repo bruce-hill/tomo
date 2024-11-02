@@ -273,15 +273,15 @@ Patterns are used in a small, but very powerful API that handles many text
 functions that would normally be handled by a more extensive API:
 
 ```
-Text.has(pattern:Pattern)->Bool
-Text.find(pattern:Pattern, start=1)->Int
-Text.find_all(pattern:Pattern)->[Text]
-Text.matches(pattern:Pattern)->[Text]?
-Text.map(pattern:Pattern, fn:func(t:Text)->Text)->Text
-Text.replace(pattern:Pattern, replacement:Text, placeholder:Pattern=$//)->[Text]
-Text.replace_all(replacements:{Pattern:Text}, placeholder:Pattern=$//)->[Text]
-Text.split(pattern:Pattern)->[Text]
-Text.trim(pattern=$/{whitespace}/, trim_left=yes, trim_right=yes)->[Text]
+Text.has(pattern:Pattern -> Bool)
+Text.find(pattern:Pattern, start=1 -> Int?)
+Text.find_all(pattern:Pattern -> [Text])
+Text.matches(pattern:Pattern -> [Text]?)
+Text.map(pattern:Pattern, fn:func(t:Text -> Text) -> Text)
+Text.replace(pattern:Pattern, replacement:Text, placeholder:Pattern=$// -> [Text])
+Text.replace_all(replacements:{Pattern:Text}, placeholder:Pattern=$// -> [Text])
+Text.split(pattern:Pattern -> [Text])
+Text.trim(pattern=$/{whitespace}/, trim_left=yes, trim_right=yes -> [Text])
 ```
 
 See [Text Functions](#Text-Functions) for the full API documentation.
@@ -642,7 +642,7 @@ See: [Patterns](#Patterns) for more information on patterns.
 
 **Signature:**  
 ```tomo
-func find(text: Text, pattern: Pattern, start: Int = 1)
+func find(text: Text, pattern: Pattern, start: Int = 1 -> Int?)
 ```
 
 **Parameters:**
@@ -652,19 +652,19 @@ func find(text: Text, pattern: Pattern, start: Int = 1)
 - `start`: The index to start the search.
 
 **Returns:**  
-`0` if the target pattern is not found, otherwise the index where the match was
-found.
+`!Int` if the target pattern is not found, otherwise the index where the match
+was found.
 
 **Example:**  
 ```tomo
 >> " one   two  three   ":find("{id}", start=-999)
-= 0
+= !Int
 >> " one   two  three   ":find("{id}", start=999)
-= 0
+= !Int
 >> " one   two  three   ":find("{id}")
-= 2
+= 2?
 >> " one   two  three   ":find("{id}", start=5)
-= 8
+= 8?
 ```
 
 ---

@@ -796,15 +796,15 @@ static int64_t _find(Text_t text, Pattern_t pattern, int64_t first, int64_t last
     return -1;
 }
 
-public Int_t Text$find(Text_t text, Pattern_t pattern, Int_t from_index)
+public OptionalInt_t Text$find(Text_t text, Pattern_t pattern, Int_t from_index)
 {
     int64_t first = Int_to_Int64(from_index, false);
     if (first == 0) fail("Invalid index: 0");
     if (first < 0) first = text.length + first + 1;
     if (first > text.length || first < 1)
-        return I(0);
+        return NULL_INT;
     int64_t found = _find(text, pattern, first-1, text.length-1, NULL);
-    return I(found+1);
+    return found == -1 ? NULL_INT : I(found+1);
 }
 
 PUREFUNC public bool Text$has(Text_t text, Pattern_t pattern)
