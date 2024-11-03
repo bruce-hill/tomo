@@ -7,6 +7,7 @@
 
 #include "types.h"
 #include "datatypes.h"
+#include "optionals.h"
 
 #define Path_t Text_t
 #define OptionalPath_t Text_t
@@ -34,7 +35,7 @@ void Path$write_bytes(Path_t path, Array_t bytes, int permissions);
 void Path$append(Path_t path, Text_t text, int permissions);
 void Path$append_bytes(Path_t path, Array_t bytes, int permissions);
 OptionalText_t Path$read(Path_t path);
-OptionalArray_t Path$read_bytes(Path_t path);
+OptionalArray_t Path$read_bytes(Path_t path, OptionalInt_t limit);
 void Path$remove(Path_t path, bool ignore_missing);
 void Path$create_directory(Path_t path, int permissions);
 Array_t Path$children(Path_t path, bool include_hidden);

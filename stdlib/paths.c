@@ -266,7 +266,7 @@ public void Path$append_bytes(Path_t path, Array_t bytes, int permissions)
     _write(path, bytes, O_WRONLY | O_APPEND | O_CREAT, permissions);
 }
 
-public OptionalArray_t Path$read_bytes(Path_t path)
+public OptionalArray_t Path$read_bytes(Path_t path, OptionalInt_t count)
 {
     path = Path$_expand_home(path);
     int fd = open(Text$as_c_string(path), O_RDONLY);
@@ -277,26 +277,37 @@ public OptionalArray_t Path$read_bytes(Path_t path)
     if (fstat(fd, &sb) != 0)
         return NULL_ARRAY;
 
+    int64_t const target_count = count.small ? Int_to_Int64(count, false) : INT64_MAX;
+    if (target_count < 0)
+        fail("Cannot read a negative number of bytes!");
+
     if ((sb.st_mode & S_IFMT) == S_IFREG) { // Use memory mapping if it's a real file:
         const char *mem = mmap(NULL, (size_t)sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
         char *content = GC_MALLOC_ATOMIC((size_t)sb.st_size+1);
         memcpy(content, mem, (size_t)sb.st_size);
         content[sb.st_size] = '\0';
         close(fd);
-        return (Array_t){.data=content, .atomic=1, .stride=1, .length=(int64_t)sb.st_size};
+        if (count.small && (int64_t)sb.st_size < target_count)
+            fail("Could not read %ld bytes from %k (only got %zu)", target_count, &path, sb.st_size);
+        int64_t len = count.small ? target_count : (int64_t)sb.st_size;
+        return (Array_t){.data=content, .atomic=1, .stride=1, .length=len};
     } else {
         size_t capacity = 256, len = 0;
         char *content = GC_MALLOC_ATOMIC(capacity);
+        int64_t count_remaining = target_count;
         for (;;) {
             char chunk[256];
-            ssize_t just_read = read(fd, chunk, sizeof(chunk));
-            if (just_read < 0)
+            size_t to_read = count_remaining < (int64_t)sizeof(chunk) ? (size_t)count_remaining : sizeof(chunk);
+            ssize_t just_read = read(fd, chunk, to_read);
+            if (just_read < 0) {
+                close(fd);
                 return NULL_ARRAY;
-            else if (just_read == 0) {
+            } else if (just_read == 0) {
                 if (errno == EAGAIN || errno == EINTR)
                     continue;
                 break;
             }
+            count_remaining -= (int64_t)just_read;
 
             if (len + (size_t)just_read >= capacity) {
                 content = GC_REALLOC(content, (capacity *= 2));
@@ -309,13 +320,15 @@ public OptionalArray_t Path$read_bytes(Path_t path)
                 break;
         }
         close(fd);
+        if (count.small != 0 && (int64_t)len < target_count)
+            fail("Could not read %ld bytes from %k (only got %zu)", target_count, &path, len);
         return (Array_t){.data=content, .atomic=1, .stride=1, .length=len};
     }
 }
 
 public OptionalText_t Path$read(Path_t path)
 {
-    Array_t bytes = Path$read_bytes(path);
+    Array_t bytes = Path$read_bytes(path, NULL_INT);
     if (bytes.length < 0) return NULL_TEXT;
     return Text$from_bytes(bytes);
 }

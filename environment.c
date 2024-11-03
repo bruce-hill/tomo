@@ -326,7 +326,7 @@ env_t *new_compilation_unit(CORD libname)
             {"is_symlink", "Path$is_symlink", "func(path:Path -> Bool)"},
             {"parent", "Path$parent", "func(path:Path -> Path)"},
             {"read", "Path$read", "func(path:Path -> Text?)"},
-            {"read_bytes", "Path$read_bytes", "func(path:Path -> [Byte]?)"},
+            {"read_bytes", "Path$read_bytes", "func(path:Path, limit=!Int -> [Byte]?)"},
             {"relative", "Path$relative", "func(path:Path, relative_to=(./) -> Path)"},
             {"remove", "Path$remove", "func(path:Path, ignore_missing=no)"},
             {"resolved", "Path$resolved", "func(path:Path, relative_to=(./) -> Path)"},
