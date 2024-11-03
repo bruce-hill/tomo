@@ -19,7 +19,7 @@ func range(first:Int, last:Int -> func(->Int?)):
 func main():
     values := ["A", "B", "C", "D"]
 
-    >> ((++) "($(foo.x)$(foo.y))" for foo in pairwise(values))
+    >> (++: "($(foo.x)$(foo.y))" for foo in pairwise(values))!
     = "(AB)(BC)(CD)"
     >> ["$(foo.x)$(foo.y)" for foo in pairwise(values)]
     = ["AB", "BC", "CD"]
@@ -34,5 +34,5 @@ func main():
     >> [i for i in range(5, 10)]
     = [5, 6, 7, 8, 9, 10]
 
-    >> (+) range(5, 10)
+    >> (+: range(5, 10))!
     = 45

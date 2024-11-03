@@ -23,5 +23,5 @@ func main():
 
 
 	>> foos := [Foo(5, 1), Foo(5, 99), Foo(-999, -999)]
-	>> (_max_) foos
+	>> (_max_: foos)!
 	= Foo(x=5, y=99)

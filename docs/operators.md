@@ -50,13 +50,13 @@ reducers in action:
 
 ```tomo
 >> nums := [10, 20, 30]
->> (+) nums
+>> (+: nums)!
 = 60
->> (or) n > 15 for n in nums
+>> (or: n > 15 for n in nums)!
 = yes
 
 >> texts := ["one", "two", "three"]
->> (++) texts
+>> (++: texts)!
 = "onetwothree"
 ```
 
@@ -75,7 +75,7 @@ if you use a reducer on something that has no values:
 
 ```tomo
 >> nums := [:Int]
->> (+) nums
+>> (+: nums)!
 
 Error: this collection was empty!
 ```
@@ -84,7 +84,7 @@ If you want to handle this case, you can either wrap it in a conditional
 statement or you can provide a fallback option with `else` like this:
 
 ```tomo
->> (+) nums else: 0
+>> (+: nums) or 0
 = 0
 ```
 
@@ -103,10 +103,10 @@ struct Foo(x,y:Int):
 
 >> foos := [Foo(1, 2), Foo(-10, 20)]
 
->> (+).x foos
+>> (+.x: foos)
 = -9
 // Shorthand for:
->> (+) f.x for f in foos
+>> (+: f.x for f in foos)
 = -9
 
 >> (or):is_even() foos
@@ -114,7 +114,7 @@ struct Foo(x,y:Int):
 // Shorthand for:
 >> (or) f:is_even() for f in foos
 
->> (+).x:abs() foos
+>> (+.x:abs(): foos)
 = 11
 ```
 

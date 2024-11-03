@@ -1054,21 +1054,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         default: code_err(reduction->iter, "I don't know how to do a reduction over %T values", iter_t);
         }
 
-        env_t *scope = fresh_scope(env);
-        set_binding(scope, "$reduction", new(binding_t, .type=value_t));
-        set_binding(scope, "$iter_value", new(binding_t, .type=value_t));
-        type_t *t = get_type(scope, reduction->combination);
-        if (!reduction->fallback)
-            return t;
-        type_t *fallback_t = get_type(env, reduction->fallback);
-        if (fallback_t->tag == AbortType || fallback_t->tag == ReturnType)
-            return t;
-        else if (can_promote(fallback_t, t))
-            return t;
-        else if (can_promote(t, fallback_t))
-            return fallback_t;
-        else
-            return NULL;
+        return Type(OptionalType, .type=value_t);
     }
 
     case UpdateAssign:

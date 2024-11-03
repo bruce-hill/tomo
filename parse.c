@@ -966,7 +966,7 @@ PARSER(parse_reduction) {
     const char *start = pos;
     if (!match(&pos, "(")) return NULL;
     
-    spaces(&pos);
+    whitespace(&pos);
     const char *combo_start = pos;
     binop_e op = match_binary_operator(&pos);
     if (op == BINOP_UNKNOWN) return NULL;
@@ -997,8 +997,8 @@ PARSER(parse_reduction) {
         combination = NewAST(ctx->file, combo_start, pos, BinaryOp, .op=op, .lhs=lhs, .rhs=rhs);
     }
 
-    spaces(&pos);
-    if (!match(&pos, ")")) return NULL;
+    whitespace(&pos);
+    if (!match(&pos, ":")) return NULL;
 
     ast_t *iter = optional(ctx, &pos, parse_extended_expr);
     if (!iter) return NULL;
@@ -1009,13 +1009,10 @@ PARSER(parse_reduction) {
         suffixed = parse_comprehension_suffix(ctx, iter);
     }
 
-    ast_t *fallback = NULL;
-    if (match_word(&pos, "else")) {
-        expect_str(ctx, pos-strlen("else"), &pos, ":", "I expected a ':' for this 'else'");
-        fallback = expect(ctx, pos-4, &pos, parse_expr, "I couldn't parse the expression after this 'else'");
-    }
+    whitespace(&pos);
+    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this reduction");
 
-    return NewAST(ctx->file, start, pos, Reduction, .iter=iter, .combination=combination, .fallback=fallback);
+    return NewAST(ctx->file, start, pos, Reduction, .iter=iter, .combination=combination);
 }
 
 ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs) {

@@ -1061,7 +1061,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         // If we're iterating over a comprehension, that's actually just doing
         // one loop, we don't need to compile the comprehension as an array
-        // comprehension. This is a common case for reducers like `(+) i*2 for i in 5`
+        // comprehension. This is a common case for reducers like `(+: i*2 for i in 5)`
         // or `(and) x:is_good() for x in xs`
         if (for_->iter->tag == Comprehension) {
             auto comp = Match(for_->iter, Comprehension);
@@ -3151,7 +3151,8 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Reduction: {
         auto reduction = Match(ast, Reduction);
-        type_t *t = get_type(env, ast);
+        type_t *optional_t = get_type(env, ast);
+        type_t *t = Match(optional_t, OptionalType)->type;
         CORD code = CORD_all(
             "({ // Reduction:\n",
             compile_declaration(t, "reduction"), ";\n"
@@ -3166,12 +3167,22 @@ CORD compile(env_t *env, ast_t *ast)
 
         // For the special case of (or)/(and), we need to early out if we can:
         CORD early_out = CORD_EMPTY;
-        if (t->tag == BoolType && reduction->combination->tag == BinaryOp) {
+        if (reduction->combination->tag == BinaryOp) {
             auto binop = Match(reduction->combination, BinaryOp);
-            if (binop->op == BINOP_AND)
+            if (t->tag != BoolType && (binop->op == BINOP_EQ || binop->op == BINOP_NE
+                || binop->op == BINOP_LT || binop->op == BINOP_LE
+                || binop->op == BINOP_GT || binop->op == BINOP_GE))
+                code_err(ast, "Reductions are not supported for this type of infix operator");
+            else if ((t->tag != IntType || Match(t, IntType)->bits != TYPE_IBITS32) && binop->op == BINOP_CMP)
+                code_err(ast, "<> reductions are only supported for Int32 values");
+            else if (t->tag == BoolType && binop->op == BINOP_AND)
                 early_out = "if (!reduction) break;";
-            else if (binop->op == BINOP_OR)
+            else if (t->tag == BoolType && binop->op == BINOP_OR)
                 early_out = "if (reduction) break;";
+            else if (t->tag == OptionalType && binop->op == BINOP_AND)
+                early_out = CORD_all("if (", check_null(t, "reduction"), ") break;");
+            else if (t->tag == OptionalType && binop->op == BINOP_OR)
+                early_out = CORD_all("if (!", check_null(t, "reduction"), ") break;");
         }
 
         body->__data.InlineCCode.code = CORD_all(
@@ -3183,21 +3194,7 @@ CORD compile(env_t *env, ast_t *ast)
             early_out,
             "}\n");
 
-        CORD empty_handling;
-        if (reduction->fallback) {
-            type_t *fallback_type = get_type(scope, reduction->fallback);
-            if (fallback_type->tag == AbortType || fallback_type->tag == ReturnType) {
-                empty_handling = CORD_all("if (!has_value) ", compile_statement(env, reduction->fallback), "\n");
-            } else {
-                empty_handling = CORD_all("if (!has_value) reduction = ", compile(env, reduction->fallback), ";\n");
-            }
-        } else {
-            empty_handling = CORD_asprintf("if (!has_value) fail_source(%r, %ld, %ld, \"This collection was empty!\");\n",
-                                           CORD_quoted(ast->file->filename),
-                                           (long)(reduction->iter->start - reduction->iter->file->text),
-                                           (long)(reduction->iter->end - reduction->iter->file->text));
-        }
-        code = CORD_all(code, compile_statement(scope, loop), "\n", empty_handling, "reduction;})");
+        code = CORD_all(code, compile_statement(scope, loop), "\nhas_value ? ", promote_to_optional(t, "reduction"), " : ", compile_null(t), ";})");
         return code;
     }
     case FieldAccess: {
