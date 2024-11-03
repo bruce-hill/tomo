@@ -1202,7 +1202,7 @@ PARSER(parse_do) {
     // do: [<indent>] body
     const char *start = pos;
     if (!match_word(&pos, "do")) return NULL;
-    ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'while'"); 
+    ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'do'"); 
     return NewAST(ctx->file, start, pos, Block, .statements=Match(body, Block)->statements);
 }
 
