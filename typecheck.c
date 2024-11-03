@@ -927,10 +927,8 @@ type_t *get_type(env_t *env, ast_t *ast)
                 return lhs_t;
             break;
         }
-        case BINOP_LSHIFT: case BINOP_RSHIFT: {
-            if (is_int_type(rhs_t) && binding_works(binop_method_names[binop->op], binop->lhs, lhs_t, rhs_t, lhs_t))
-                return lhs_t;
-            break;
+        case BINOP_LSHIFT: case BINOP_RSHIFT: case BINOP_ULSHIFT: case BINOP_URSHIFT: {
+            return lhs_t;
         }
         case BINOP_POWER: {
             if (is_numeric_type(rhs_t) && binding_works(binop_method_names[binop->op], binop->lhs, lhs_t, rhs_t, lhs_t))

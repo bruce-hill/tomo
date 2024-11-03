@@ -1704,13 +1704,26 @@ binop_e match_binary_operator(const char **pos)
     case '*': *pos += 1; return BINOP_MULT;
     case '/': *pos += 1; return BINOP_DIVIDE;
     case '^': *pos += 1; return BINOP_POWER;
-    case '<':
+    case '<': {
         *pos += 1;
         if (match(pos, "=")) return BINOP_LE;
         else if (match(pos, ">")) return BINOP_CMP;
-        else if (match(pos, "<")) return BINOP_LSHIFT;
-        else return BINOP_LT;
-    case '>': *pos += 1; return match(pos, "=") ? BINOP_GE : (match(pos, ">") ? BINOP_RSHIFT : BINOP_GT);
+        else if (match(pos, "<")) {
+            if (match(pos, "[u]"))
+                return BINOP_ULSHIFT;
+            return BINOP_LSHIFT;
+        } else return BINOP_LT;
+    }
+    case '>': {
+        *pos += 1;
+        if (match(pos, "=")) return BINOP_GE;
+        if (match(pos, ">")) {
+            if (match(pos, "[u]"))
+                return BINOP_URSHIFT;
+            return BINOP_RSHIFT;
+        }
+        return BINOP_GT;
+    }
     default: {
         if (match(pos, "!=")) return BINOP_NE;
         else if (match(pos, "==") && **pos != '=') return BINOP_EQ;

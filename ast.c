@@ -15,7 +15,8 @@ static const char *OP_NAMES[] = {
     [BINOP_UNKNOWN]="unknown",
     [BINOP_POWER]="^", [BINOP_MULT]="*", [BINOP_DIVIDE]="/",
     [BINOP_MOD]="mod", [BINOP_MOD1]="mod1", [BINOP_PLUS]="+", [BINOP_MINUS]="minus",
-    [BINOP_CONCAT]="++", [BINOP_LSHIFT]="<<", [BINOP_RSHIFT]=">>", [BINOP_MIN]="min",
+    [BINOP_CONCAT]="++", [BINOP_LSHIFT]="<<", [BINOP_ULSHIFT]="<<[u]",
+    [BINOP_RSHIFT]=">>", [BINOP_URSHIFT]=">>[u]", [BINOP_MIN]="min",
     [BINOP_MAX]="max", [BINOP_EQ]="==", [BINOP_NE]="!=", [BINOP_LT]="<",
     [BINOP_LE]="<=", [BINOP_GT]=">", [BINOP_GE]=">=", [BINOP_CMP]="<>",
     [BINOP_AND]="and", [BINOP_OR]="or", [BINOP_XOR]="xor",
@@ -25,6 +26,7 @@ const char *binop_method_names[BINOP_XOR+1] = {
     [BINOP_POWER]="power", [BINOP_MULT]="times", [BINOP_DIVIDE]="divided_by",
     [BINOP_MOD]="modulo", [BINOP_MOD1]="modulo1", [BINOP_PLUS]="plus", [BINOP_MINUS]="minus",
     [BINOP_CONCAT]="concatenated_with", [BINOP_LSHIFT]="left_shifted", [BINOP_RSHIFT]="right_shifted",
+    [BINOP_ULSHIFT]="unsigned_left_shifted", [BINOP_URSHIFT]="unsigned_right_shifted",
     [BINOP_AND]="bit_and", [BINOP_OR]="bit_or", [BINOP_XOR]="bit_xor",
 };
 

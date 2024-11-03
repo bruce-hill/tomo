@@ -28,6 +28,7 @@ static CORD compile_string(env_t *env, ast_t *ast, CORD color);
 static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args);
 static CORD compile_maybe_incref(env_t *env, ast_t *ast);
 static CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target);
+static CORD compile_unsigned_type(type_t *t);
 static CORD promote_to_optional(type_t *t, CORD code);
 static CORD compile_null(type_t *t);
 
@@ -195,6 +196,19 @@ CORD compile_declaration(type_t *t, CORD name)
         return CORD_all(compile_type(t), " ", name);
     } else {
         return CORD_EMPTY;
+    }
+}
+
+PUREFUNC CORD compile_unsigned_type(type_t *t)
+{
+    if (t->tag != IntType)
+        errx(1, "Not an int type, so unsigned doesn't make sense!");
+    switch (Match(t, IntType)->bits) {
+    case TYPE_IBITS8: return "uint8_t";
+    case TYPE_IBITS16: return "uint16_t";
+    case TYPE_IBITS32: return "uint32_t";
+    case TYPE_IBITS64: return "uint64_t";
+    default: errx(1, "Invalid integer bit size");
     }
 }
 
@@ -1772,7 +1786,7 @@ CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t 
         }
         break;
     }
-    case BINOP_LSHIFT: case BINOP_RSHIFT: {
+    case BINOP_LSHIFT: case BINOP_RSHIFT: case BINOP_ULSHIFT: case BINOP_URSHIFT: {
         if (rhs_t->tag == IntType || rhs_t->tag == BigIntType) {
             binding_t *b = get_namespace_binding(env, lhs, binop_method_names[op]);
             if (binding_works(b, lhs_t, rhs_t, lhs_t))
@@ -2051,13 +2065,17 @@ CORD compile(env_t *env, ast_t *ast)
         CORD lhs = compile(env, binop->lhs);
 
         // Special case for bit shifting by an integer literal:
-        if (binop->op == BINOP_LSHIFT || binop->op == BINOP_RSHIFT) {
+        if (binop->op == BINOP_LSHIFT || binop->op == BINOP_RSHIFT || binop->op == BINOP_ULSHIFT || binop->op == BINOP_URSHIFT) {
             if (lhs_t->tag == IntType && rhs_t->tag == BigIntType && binop->rhs->tag == Int) {
                 CORD shift_amount = compile_int_to_type(env, binop->rhs, lhs_t);
                 if (binop->op == BINOP_LSHIFT)
                     return CORD_all("(", lhs, " << ", shift_amount, ")");
-                else
+                else if (binop->op == BINOP_ULSHIFT)
+                    return CORD_all("(", compile_type(lhs_t), ")((", compile_unsigned_type(lhs_t), ")", lhs, " << ", shift_amount, ")");
+                else if (binop->op == BINOP_RSHIFT)
                     return CORD_all("(", lhs, " >> ", shift_amount, ")");
+                else if (binop->op == BINOP_URSHIFT)
+                    return CORD_all("(", compile_type(lhs_t), ")((", compile_unsigned_type(lhs_t), ")", lhs, " >> ", shift_amount, ")");
             }
         }
 
@@ -2119,6 +2137,16 @@ CORD compile(env_t *env, ast_t *ast)
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
                 code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
             return CORD_all("(", lhs, " >> ", rhs, ")");
+        }
+        case BINOP_ULSHIFT: {
+            if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
+            return CORD_all("(", compile_type(operand_t), ")((", compile_unsigned_type(lhs_t), ")", lhs, " << ", rhs, ")");
+        }
+        case BINOP_URSHIFT: {
+            if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
+            return CORD_all("(", compile_type(operand_t), ")((", compile_unsigned_type(lhs_t), ")", lhs, " >> ", rhs, ")");
         }
         case BINOP_EQ: {
             switch (operand_t->tag) {
