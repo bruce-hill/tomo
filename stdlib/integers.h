@@ -60,6 +60,12 @@
     } \
     MACROLIKE c_type type_name ## $modulo1(c_type D, c_type d) { \
         return type_name ## $modulo(D-1, d) + 1; \
+    } \
+    MACROLIKE PUREFUNC c_type type_name ## $wrapping_plus(c_type x, c_type y) { \
+        return (c_type)((u##c_type)x + (u##c_type)y); \
+    } \
+    MACROLIKE PUREFUNC c_type type_name ## $wrapping_minus(c_type x, c_type y) { \
+        return (c_type)((u##c_type)x + (u##c_type)y); \
     }
 
 DEFINE_INT_TYPE(int64_t, Int64, __attribute__(()))

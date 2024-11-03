@@ -138,6 +138,8 @@ env_t *new_compilation_unit(CORD libname)
             {"modulo1", "Int64$modulo1", "func(x,y:Int64 -> Int64)"},
             {"octal", "Int64$octal", "func(i:Int64, digits=0, prefix=yes -> Text)"},
             {"to", "Int64$to", "func(from:Int64,to:Int64 -> Range)"},
+            {"wrapping_minus", "Int64$wrapping_minus", "func(x:Int64,y:Int64 -> Int64)"},
+            {"wrapping_plus", "Int64$wrapping_plus", "func(x:Int64,y:Int64 -> Int64)"},
             // Must be defined after min/max:
             {"random", "Int64$random", "func(min=Int64.min, max=Int64.max -> Int64)"},
         )},
@@ -155,6 +157,8 @@ env_t *new_compilation_unit(CORD libname)
             {"modulo1", "Int32$modulo1", "func(x,y:Int32 -> Int32)"},
             {"octal", "Int32$octal", "func(i:Int32, digits=0, prefix=yes -> Text)"},
             {"to", "Int32$to", "func(from:Int32,to:Int32 -> Range)"},
+            {"wrapping_minus", "Int32$wrapping_minus", "func(x:Int32,y:Int32 -> Int32)"},
+            {"wrapping_plus", "Int32$wrapping_plus", "func(x:Int32,y:Int32 -> Int32)"},
             // Must be defined after min/max:
             {"random", "Int32$random", "func(min=Int32.min, max=Int32.max -> Int32)"},
         )},
@@ -172,6 +176,8 @@ env_t *new_compilation_unit(CORD libname)
             {"modulo1", "Int16$modulo1", "func(x,y:Int16 -> Int16)"},
             {"octal", "Int16$octal", "func(i:Int16, digits=0, prefix=yes -> Text)"},
             {"to", "Int16$to", "func(from:Int16,to:Int16 -> Range)"},
+            {"wrapping_minus", "Int16$wrapping_minus", "func(x:Int16,y:Int16 -> Int16)"},
+            {"wrapping_plus", "Int16$wrapping_plus", "func(x:Int16,y:Int16 -> Int16)"},
             // Must be defined after min/max:
             {"random", "Int16$random", "func(min=Int16.min, max=Int16.max -> Int16)"},
         )},
@@ -189,6 +195,8 @@ env_t *new_compilation_unit(CORD libname)
             {"modulo1", "Int8$modulo1", "func(x,y:Int8 -> Int8)"},
             {"octal", "Int8$octal", "func(i:Int8, digits=0, prefix=yes -> Text)"},
             {"to", "Int8$to", "func(from:Int8,to:Int8 -> Range)"},
+            {"wrapping_minus", "Int8$wrapping_minus", "func(x:Int8,y:Int8 -> Int8)"},
+            {"wrapping_plus", "Int8$wrapping_plus", "func(x:Int8,y:Int8 -> Int8)"},
             // Must be defined after min/max:
             {"random", "Int8$random", "func(min=Int8.min, max=Int8.max -> Int8)"},
         )},
