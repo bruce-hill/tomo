@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <sys/param.h>
+#include <sys/random.h>
 
 #include "arrays.h"
 #include "datatypes.h"
@@ -17,10 +18,20 @@
 #include "types.h"
 #include "util.h"
 
+static void *run_thread(Closure_t *closure)
+{
+    long seed;
+    getrandom(&seed, sizeof(seed), 0);
+    Int$init_random(seed);
+    ((void(*)(void*))closure->fn)(closure->userdata);
+    return NULL;
+}
+
 public Thread_t Thread$new(Closure_t fn)
 {
     Thread_t thread = new(pthread_t);
-    pthread_create(thread, NULL, fn.fn, fn.userdata);
+    Closure_t *doop = new(Closure_t, .fn=fn.fn, .userdata=fn.userdata);
+    pthread_create(thread, NULL, (void*)run_thread, doop);
     return thread;
 }
 

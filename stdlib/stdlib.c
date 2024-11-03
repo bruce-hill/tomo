@@ -34,7 +34,10 @@ public void tomo_init(void)
    getrandom(&seed, sizeof(seed), 0);
    srand(seed);
    srand48(seed);
-   Int$init_random(seed);
+
+   long long_seed;
+   getrandom(&long_seed, sizeof(long_seed), 0);
+   Int$init_random(long_seed);
 
    if (register_printf_specifier('k', printf_text, printf_text_size))
        errx(1, "Couldn't set printf specifier");
