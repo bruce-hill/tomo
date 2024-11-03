@@ -14,7 +14,7 @@
 #include "text.h"
 #include "types.h"
 
-static gmp_randstate_t Int_rng = {};
+static _Thread_local gmp_randstate_t Int_rng = {};
 
 public void Int$init_random(long seed) {
     gmp_randinit_default(Int_rng);
