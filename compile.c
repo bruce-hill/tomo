@@ -1056,6 +1056,23 @@ CORD compile_statement(env_t *env, ast_t *ast)
             loop = CORD_all(loop, "\n", loop_ctx.stop_label, ":;");
         return loop;
     }
+    case Repeat: {
+        ast_t *body = Match(ast, Repeat)->body;
+        env_t *scope = fresh_scope(env);
+        loop_ctx_t loop_ctx = (loop_ctx_t){
+            .loop_name="repeat",
+            .deferred=scope->deferred,
+            .next=env->loop_ctx,
+        };
+        scope->loop_ctx = &loop_ctx;
+        CORD body_code = compile_statement(scope, body);
+        if (loop_ctx.skip_label)
+            body_code = CORD_all(body_code, "\n", loop_ctx.skip_label, ": continue;");
+        CORD loop = CORD_all("for (;;) {\n\t", body_code, "\n}");
+        if (loop_ctx.stop_label)
+            loop = CORD_all(loop, "\n", loop_ctx.stop_label, ":;");
+        return loop;
+    }
     case For: {
         auto for_ = Match(ast, For);
 
@@ -3385,7 +3402,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Defer: code_err(ast, "Compiling 'defer' as expression!");
     case Extern: code_err(ast, "Externs are not supported as expressions");
     case TableEntry: code_err(ast, "Table entries should not be compiled directly");
-    case Declare: case Assign: case UpdateAssign: case For: case While: case StructDef: case LangDef:
+    case Declare: case Assign: case UpdateAssign: case For: case While: case Repeat: case StructDef: case LangDef:
     case EnumDef: case FunctionDef: case Skip: case Stop: case Pass: case Return: case DocTest: case PrintStatement:
         code_err(ast, "This is not a valid expression");
     default: case Unknown: code_err(ast, "Unknown AST");

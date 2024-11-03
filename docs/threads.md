@@ -28,7 +28,7 @@ A new `Thread` object representing the created thread.
 >> jobs := |Int|
 >> results := |Int|
 >> thread := Thread.new(func():
-    while yes:
+    repeat:
         input := jobs:get()
         results:give(input + 10
 )

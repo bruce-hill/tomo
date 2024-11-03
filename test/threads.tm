@@ -27,7 +27,7 @@ func main():
     results := |:Int; max_size|
     >> thread := Thread.new(func():
         !! In another thread!
-        while yes:
+        repeat:
             >> got := jobs:get()
             when got is Increment(x):
                 >> results:give(x+1)

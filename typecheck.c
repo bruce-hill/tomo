@@ -1229,7 +1229,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         }
     }
 
-    case While: case For: return Type(VoidType);
+    case While: case Repeat: case For: return Type(VoidType);
     case InlineCCode: {
         auto inline_code = Match(ast, InlineCCode);
         if (inline_code->type)

@@ -122,6 +122,7 @@ static PARSER(parse_parens);
 static PARSER(parse_pass);
 static PARSER(parse_path);
 static PARSER(parse_reduction);
+static PARSER(parse_repeat);
 static PARSER(parse_return);
 static PARSER(parse_say);
 static PARSER(parse_set);
@@ -1222,6 +1223,14 @@ PARSER(parse_while) {
     return NewAST(ctx->file, start, pos, While, .condition=condition, .body=body);
 }
 
+PARSER(parse_repeat) {
+    // repeat: [<indent>] body
+    const char *start = pos;
+    if (!match_word(&pos, "repeat")) return NULL;
+    ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'repeat'"); 
+    return NewAST(ctx->file, start, pos, Repeat, .body=body);
+}
+
 PARSER(parse_heap_alloc) {
     const char *start = pos;
     if (!match(&pos, "@")) return NULL;
@@ -1874,6 +1883,7 @@ PARSER(parse_extended_expr) {
         || (expr=optional(ctx, &pos, parse_while))
         || (expr=optional(ctx, &pos, parse_if))
         || (expr=optional(ctx, &pos, parse_when))
+        || (expr=optional(ctx, &pos, parse_repeat))
         || (expr=optional(ctx, &pos, parse_do))
         )
         return expr;

@@ -133,7 +133,7 @@ typedef enum {
     FunctionDef, Lambda,
     FunctionCall, MethodCall,
     Block,
-    For, While, If, When,
+    For, While, If, When, Repeat,
     Reduction,
     Skip, Stop, Pass,
     Defer,
@@ -255,6 +255,9 @@ struct ast_s {
         struct {
             ast_t *condition, *body;
         } While;
+        struct {
+            ast_t *body;
+        } Repeat;
         struct {
             ast_t *condition, *body, *else_body;
         } If;
