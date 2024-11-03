@@ -2049,8 +2049,21 @@ CORD compile(env_t *env, ast_t *ast)
         }
 
         CORD lhs = compile(env, binop->lhs);
+
+        // Special case for bit shifting by an integer literal:
+        if (binop->op == BINOP_LSHIFT || binop->op == BINOP_RSHIFT) {
+            if (lhs_t->tag == IntType && rhs_t->tag == BigIntType && binop->rhs->tag == Int) {
+                CORD shift_amount = compile_int_to_type(env, binop->rhs, lhs_t);
+                if (binop->op == BINOP_LSHIFT)
+                    return CORD_all("(", lhs, " << ", shift_amount, ")");
+                else
+                    return CORD_all("(", lhs, " >> ", shift_amount, ")");
+            }
+        }
+
         CORD rhs = compile(env, binop->rhs);
         type_t *operand_t;
+
         if (promote(env, &rhs, rhs_t, lhs_t))
             operand_t = lhs_t;
         else if (promote(env, &lhs, lhs_t, rhs_t))
@@ -2061,7 +2074,7 @@ CORD compile(env_t *env, ast_t *ast)
         switch (binop->op) {
         case BINOP_POWER: {
             if (operand_t->tag != NumType)
-                code_err(ast, "Exponentiation is only supported for Num types");
+                code_err(ast, "Exponentiation is only supported for Num types, not %T", operand_t);
             if (operand_t->tag == NumType && Match(operand_t, NumType)->bits == TYPE_NBITS32)
                 return CORD_all("powf(", lhs, ", ", rhs, ")");
             else
@@ -2069,42 +2082,42 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case BINOP_MULT: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for numeric types");
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
             return CORD_all("(", lhs, " * ", rhs, ")");
         }
         case BINOP_DIVIDE: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for numeric types");
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
             return CORD_all("(", lhs, " / ", rhs, ")");
         }
         case BINOP_MOD: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for numeric types");
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
             return CORD_all("(", lhs, " % ", rhs, ")");
         }
         case BINOP_MOD1: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for numeric types");
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
             return CORD_all("((((", lhs, ")-1) % (", rhs, ")) + 1)");
         }
         case BINOP_PLUS: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for numeric types");
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
             return CORD_all("(", lhs, " + ", rhs, ")");
         }
         case BINOP_MINUS: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for numeric types");
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
             return CORD_all("(", lhs, " - ", rhs, ")");
         }
         case BINOP_LSHIFT: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for numeric types");
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
             return CORD_all("(", lhs, " << ", rhs, ")");
         }
         case BINOP_RSHIFT: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for numeric types");
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
             return CORD_all("(", lhs, " >> ", rhs, ")");
         }
         case BINOP_EQ: {
