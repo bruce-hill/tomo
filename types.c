@@ -626,4 +626,24 @@ type_t *get_field_type(type_t *t, const char *field_name)
     }
 }
 
+PUREFUNC type_t *get_iterated_type(type_t *t)
+{
+    type_t *iter_value_t = value_type(t);
+    switch (iter_value_t->tag) {
+    case BigIntType: case IntType: return iter_value_t; break;
+    case ArrayType: return Match(iter_value_t, ArrayType)->item_type; break;
+    case SetType: return Match(iter_value_t, SetType)->item_type; break;
+    case TableType: return NULL;
+    case FunctionType: case ClosureType: {
+        // Iterator function
+        auto fn = iter_value_t->tag == ClosureType ?
+            Match(Match(iter_value_t, ClosureType)->fn, FunctionType) : Match(iter_value_t, FunctionType);
+        if (fn->args || fn->ret->tag != OptionalType)
+            return NULL;
+        return Match(fn->ret, OptionalType)->type;
+    }
+    default: return NULL;
+    }
+}
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

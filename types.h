@@ -153,5 +153,6 @@ PUREFUNC size_t type_size(type_t *t);
 PUREFUNC size_t type_align(type_t *t);
 PUREFUNC size_t unpadded_struct_size(type_t *t);
 type_t *get_field_type(type_t *t, const char *field_name);
+PUREFUNC type_t *get_iterated_type(type_t *t);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -3153,49 +3153,82 @@ CORD compile(env_t *env, ast_t *ast)
         auto reduction = Match(ast, Reduction);
         type_t *optional_t = get_type(env, ast);
         type_t *t = Match(optional_t, OptionalType)->type;
-        CORD code = CORD_all(
-            "({ // Reduction:\n",
-            compile_declaration(t, "reduction"), ";\n"
-            "Bool_t has_value = no;\n"
-            );
-        env_t *scope = fresh_scope(env);
-        set_binding(scope, "$reduction", new(binding_t, .type=t, .code="reduction"));
-        ast_t *item = FakeAST(Var, "$iter_value");
-        ast_t *body = FakeAST(InlineCCode, .code="{}"); // placeholder
-        ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=item), .iter=reduction->iter, .body=body);
-        env_t *body_scope = for_scope(scope, loop);
+        binop_e op = reduction->combination->tag == BinaryOp ? Match(reduction->combination, BinaryOp)->op : BINOP_UNKNOWN;
 
-        // For the special case of (or)/(and), we need to early out if we can:
-        CORD early_out = CORD_EMPTY;
-        if (reduction->combination->tag == BinaryOp) {
-            auto binop = Match(reduction->combination, BinaryOp);
-            if (t->tag != BoolType && (binop->op == BINOP_EQ || binop->op == BINOP_NE
-                || binop->op == BINOP_LT || binop->op == BINOP_LE
-                || binop->op == BINOP_GT || binop->op == BINOP_GE))
-                code_err(ast, "Reductions are not supported for this type of infix operator");
-            else if ((t->tag != IntType || Match(t, IntType)->bits != TYPE_IBITS32) && binop->op == BINOP_CMP)
-                code_err(ast, "<> reductions are only supported for Int32 values");
-            else if (t->tag == BoolType && binop->op == BINOP_AND)
-                early_out = "if (!reduction) break;";
-            else if (t->tag == BoolType && binop->op == BINOP_OR)
-                early_out = "if (reduction) break;";
-            else if (t->tag == OptionalType && binop->op == BINOP_AND)
-                early_out = CORD_all("if (", check_null(t, "reduction"), ") break;");
-            else if (t->tag == OptionalType && binop->op == BINOP_OR)
-                early_out = CORD_all("if (!", check_null(t, "reduction"), ") break;");
+        if (op == BINOP_EQ || op == BINOP_NE || op == BINOP_LT || op == BINOP_LE || op == BINOP_GT || op == BINOP_GE) {
+            // Chained comparisons like ==, <, etc.
+            type_t *iter_t = get_type(env, reduction->iter);
+            type_t *item_t = get_iterated_type(iter_t);
+            if (!item_t) code_err(reduction->iter, "I couldn't figure out how to iterate over this type: %T", iter_t);
+            CORD code = CORD_all(
+                "({ // Reduction:\n",
+                compile_declaration(item_t, "prev"), ";\n"
+                "OptionalBool_t result = NULL_BOOL;\n"
+                );
+            env_t *scope = fresh_scope(env);
+            set_binding(scope, "$reduction", new(binding_t, .type=item_t, .code="prev"));
+            ast_t *item = FakeAST(Var, "$iter_value");
+            ast_t *body = FakeAST(InlineCCode, .code="{}"); // placeholder
+            ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=item), .iter=reduction->iter, .body=body);
+            env_t *body_scope = for_scope(scope, loop);
+
+            body->__data.InlineCCode.code = CORD_all(
+                "if (result == NULL_BOOL) {\n"
+                "    prev = ", compile(body_scope, item), ";\n"
+                "    result = yes;\n"
+                "} else {\n"
+                "    if (", compile(body_scope, reduction->combination), ") {\n",
+                "        prev = ", compile(body_scope, item), ";\n",
+                "    } else {\n"
+                "        result = no;\n",
+                "        break;\n",
+                "    }\n",
+                "}\n");
+            code = CORD_all(code, compile_statement(scope, loop), "\nresult;})");
+            return code;
+        } else {
+            // Accumulator-style reductions like +, ++, *, etc.
+            CORD code = CORD_all(
+                "({ // Reduction:\n",
+                compile_declaration(t, "reduction"), ";\n"
+                "Bool_t has_value = no;\n"
+                );
+            env_t *scope = fresh_scope(env);
+            set_binding(scope, "$reduction", new(binding_t, .type=t, .code="reduction"));
+            ast_t *item = FakeAST(Var, "$iter_value");
+            ast_t *body = FakeAST(InlineCCode, .code="{}"); // placeholder
+            ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=item), .iter=reduction->iter, .body=body);
+            env_t *body_scope = for_scope(scope, loop);
+
+            // For the special case of (or)/(and), we need to early out if we can:
+            CORD early_out = CORD_EMPTY;
+            if (op == BINOP_CMP) {
+                if (t->tag != IntType || Match(t, IntType)->bits != TYPE_IBITS32)
+                    code_err(ast, "<> reductions are only supported for Int32 values");
+            } else if (op == BINOP_AND) {
+                if (t->tag == BoolType)
+                    early_out = "if (!reduction) break;";
+                else if (t->tag == OptionalType)
+                    early_out = CORD_all("if (", check_null(t, "reduction"), ") break;");
+            } else if (op == BINOP_OR) {
+                if (t->tag == BoolType)
+                    early_out = "if (reduction) break;";
+                else if (t->tag == OptionalType)
+                    early_out = CORD_all("if (!", check_null(t, "reduction"), ") break;");
+            }
+
+            body->__data.InlineCCode.code = CORD_all(
+                "if (!has_value) {\n"
+                "    reduction = ", compile(body_scope, item), ";\n"
+                "    has_value = yes;\n"
+                "} else {\n"
+                "    reduction = ", compile(body_scope, reduction->combination), ";\n",
+                early_out,
+                "}\n");
+
+            code = CORD_all(code, compile_statement(scope, loop), "\nhas_value ? ", promote_to_optional(t, "reduction"), " : ", compile_null(t), ";})");
+            return code;
         }
-
-        body->__data.InlineCCode.code = CORD_all(
-            "if (!has_value) {\n"
-            "    reduction = ", compile(body_scope, item), ";\n"
-            "    has_value = yes;\n"
-            "} else {\n"
-            "    reduction = ", compile(body_scope, reduction->combination), ";\n",
-            early_out,
-            "}\n");
-
-        code = CORD_all(code, compile_statement(scope, loop), "\nhas_value ? ", promote_to_optional(t, "reduction"), " : ", compile_null(t), ";})");
-        return code;
     }
     case FieldAccess: {
         auto f = Match(ast, FieldAccess);
