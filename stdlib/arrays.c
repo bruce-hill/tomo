@@ -249,36 +249,51 @@ public Array_t Array$sorted(Array_t arr, Closure_t comparison, int64_t padded_it
     return arr;
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstack-protector"
-public void Array$shuffle(Array_t *arr, int64_t padded_item_size)
+static uint64_t random_range(Closure_t rng, uint64_t upper_bound)
+{
+    if (upper_bound < 2)
+        return 0;
+
+    // This approach is taken from arc4random_uniform()
+    uint64_t min = -upper_bound % upper_bound;
+    uint64_t r;
+    for (;;) {
+        r = ((uint64_t(*)(void*))rng.fn)(rng.userdata);
+        if (r >= min)
+            break;
+    }
+
+    return r % upper_bound;
+}
+
+public void Array$shuffle(Array_t *arr, Closure_t rng, int64_t padded_item_size)
 {
     if (arr->data_refcount != 0 || (int64_t)arr->stride != padded_item_size)
         Array$compact(arr, padded_item_size);
 
     char tmp[padded_item_size];
     for (int64_t i = arr->length-1; i > 1; i--) {
-        int64_t j = arc4random_uniform(i+1);
+        int64_t j = (int64_t)random_range(rng, (uint64_t)(i+1));
         memcpy(tmp, arr->data + i*padded_item_size, (size_t)padded_item_size);
         memcpy((void*)arr->data + i*padded_item_size, arr->data + j*padded_item_size, (size_t)padded_item_size);
         memcpy((void*)arr->data + j*padded_item_size, tmp, (size_t)padded_item_size);
     }
 }
-#pragma GCC diagnostic pop
 
-public Array_t Array$shuffled(Array_t arr, int64_t padded_item_size)
+public Array_t Array$shuffled(Array_t arr, Closure_t rng, int64_t padded_item_size)
 {
     Array$compact(&arr, padded_item_size);
-    Array$shuffle(&arr, padded_item_size);
+    Array$shuffle(&arr, rng, padded_item_size);
     return arr;
 }
 
-public void *Array$random(Array_t arr)
+public void *Array$random(Array_t arr, Closure_t rng)
 {
     if (arr.length == 0)
         return NULL; // fail("Cannot get a random item from an empty array!");
-    int64_t index = arc4random_uniform(arr.length);
-    return arr.data + arr.stride*index;
+
+    uint64_t index = random_range(rng, (uint64_t)arr.length);
+    return arr.data + arr.stride*(int64_t)index;
 }
 
 public Table_t Array$counts(Array_t arr, const TypeInfo_t *type)

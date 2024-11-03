@@ -2688,6 +2688,12 @@ CORD compile(env_t *env, ast_t *ast)
         case ArrayType: {
             type_t *item_t = Match(self_value_t, ArrayType)->item_type;
             CORD padded_item_size = CORD_asprintf("%ld", type_size(item_t));
+
+            type_t *rng_fn = Type(ClosureType, .fn=Type(FunctionType, .args=NULL, .ret=Type(IntType, .bits=TYPE_IBITS64)));
+            ast_t *default_rng = FakeAST(InlineCCode,
+                                         .code=CORD_all("((Closure_t){.fn=Int64$full_random})"),
+                                         .type=rng_fn);
+
             if (streq(call->name, "insert")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
@@ -2714,8 +2720,8 @@ CORD compile(env_t *env, ast_t *ast)
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "random")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("Array$random_value(", self, ", ", compile_type(item_t), ")");
+                arg_t *arg_spec = new(arg_t, .name="rng", .type=rng_fn, .default_val=default_rng);
+                return CORD_all("Array$random_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type(item_t), ")");
             } else if (streq(call->name, "has")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t);
@@ -2731,12 +2737,12 @@ CORD compile(env_t *env, ast_t *ast)
                                 padded_item_size, ")");
             } else if (streq(call->name, "shuffle")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
-                (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("Array$shuffle(", self, ", ", padded_item_size, ")");
+                arg_t *arg_spec = new(arg_t, .name="rng", .type=rng_fn, .default_val=default_rng);
+                return CORD_all("Array$shuffle(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
             } else if (streq(call->name, "shuffled")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("Array$shuffled(", self, ", ", padded_item_size, ")");
+                arg_t *arg_spec = new(arg_t, .name="rng", .type=rng_fn, .default_val=default_rng);
+                return CORD_all("Array$shuffled(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
             } else if (streq(call->name, "sort") || streq(call->name, "sorted")) {
                 CORD self = streq(call->name, "sort")
                     ? compile_to_pointer_depth(env, call->self, 1, false)

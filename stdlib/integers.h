@@ -35,6 +35,7 @@
     Text_t type_name ## $octal(c_type i, Int_t digits, bool prefix); \
     Array_t type_name ## $bits(c_type x); \
     c_type type_name ## $random(c_type min, c_type max); \
+    c_type type_name ## $full_random(void); \
     to_attr Range_t type_name ## $to(c_type from, c_type to); \
     PUREFUNC Optional ## type_name ## _t type_name ## $from_text(Text_t text); \
     MACROLIKE PUREFUNC c_type type_name ## $clamped(c_type x, c_type min, c_type max) { \

@@ -440,14 +440,16 @@ public const TypeInfo_t Int$info = {
         } \
         return bit_array; \
     } \
+    public c_type KindOfInt ## $full_random(void) { \
+        c_type r; \
+        arc4random_buf(&r, sizeof(r)); \
+        return r; \
+    } \
     public c_type KindOfInt ## $random(c_type min, c_type max) { \
         if (min > max) fail("Random minimum value (%ld) is larger than the maximum value (%ld)", min, max); \
         if (min == max) return min; \
-        if (min == min_val && max == max_val) { \
-            c_type r; \
-            arc4random_buf(&r, sizeof(r)); \
-            return r; \
-        } \
+        if (min == min_val && max == max_val) \
+            return KindOfInt ## $full_random(); \
         uint64_t range = (uint64_t)max - (uint64_t)min + 1; \
         uint64_t min_r = -range % range; \
         uint64_t r; \
