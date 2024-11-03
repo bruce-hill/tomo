@@ -1706,21 +1706,21 @@ binop_e match_binary_operator(const char **pos)
     case '^': *pos += 1; return BINOP_POWER;
     case '<': {
         *pos += 1;
-        if (match(pos, "=")) return BINOP_LE;
-        else if (match(pos, ">")) return BINOP_CMP;
+        if (match(pos, "=")) return BINOP_LE; // "<="
+        else if (match(pos, ">")) return BINOP_CMP; // "<>"
         else if (match(pos, "<")) {
-            if (match(pos, "[u]"))
-                return BINOP_ULSHIFT;
-            return BINOP_LSHIFT;
+            if (match(pos, "<"))
+                return BINOP_ULSHIFT; // "<<<"
+            return BINOP_LSHIFT; // "<<"
         } else return BINOP_LT;
     }
     case '>': {
         *pos += 1;
-        if (match(pos, "=")) return BINOP_GE;
+        if (match(pos, "=")) return BINOP_GE; // ">="
         if (match(pos, ">")) {
-            if (match(pos, "[u]"))
-                return BINOP_URSHIFT;
-            return BINOP_RSHIFT;
+            if (match(pos, ">"))
+                return BINOP_URSHIFT; // ">>>"
+            return BINOP_RSHIFT; // ">>"
         }
         return BINOP_GT;
     }
@@ -1814,6 +1814,10 @@ PARSER(parse_update) {
     else if (match(&pos, "*=")) op = BINOP_MULT;
     else if (match(&pos, "/=")) op = BINOP_DIVIDE;
     else if (match(&pos, "^=")) op = BINOP_POWER;
+    else if (match(&pos, "<<=")) op = BINOP_LSHIFT;
+    else if (match(&pos, "<<<=")) op = BINOP_ULSHIFT;
+    else if (match(&pos, ">>=")) op = BINOP_RSHIFT;
+    else if (match(&pos, ">>>=")) op = BINOP_URSHIFT;
     else if (match(&pos, "and=")) op = BINOP_AND;
     else if (match(&pos, "or=")) op = BINOP_OR;
     else if (match(&pos, "xor=")) op = BINOP_XOR;

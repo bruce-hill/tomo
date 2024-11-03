@@ -67,10 +67,10 @@
     MACROLIKE PUREFUNC c_type type_name ## $wrapping_minus(c_type x, c_type y) { \
         return (c_type)((u##c_type)x + (u##c_type)y); \
     } \
-    MACROLIKE PUREFUNC c_type type_name ## $unsigned_left_shift(c_type x, c_type y) { \
+    MACROLIKE PUREFUNC c_type type_name ## $unsigned_left_shifted(c_type x, c_type y) { \
         return (c_type)((u##c_type)x << y); \
     } \
-    MACROLIKE PUREFUNC c_type type_name ## $unsigned_right_shift(c_type x, c_type y) { \
+    MACROLIKE PUREFUNC c_type type_name ## $unsigned_right_shifted(c_type x, c_type y) { \
         return (c_type)((u##c_type)x >> y); \
     }
 

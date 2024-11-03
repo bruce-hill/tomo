@@ -725,6 +725,14 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (lhs_t->tag != IntType && lhs_t->tag != ByteType)
                 code_err(ast, "I can't do a shift assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " >>= ", rhs, ";");
+        case BINOP_ULSHIFT:
+            if (lhs_t->tag != IntType && lhs_t->tag != ByteType)
+                code_err(ast, "I can't do a shift assignment with this operator between %T and %T", lhs_t, rhs_t);
+            return CORD_all("{ ", compile_unsigned_type(lhs_t), " *dest = (void*)&(", lhs, "); *dest <<= ", rhs, "; }");
+        case BINOP_URSHIFT:
+            if (lhs_t->tag != IntType && lhs_t->tag != ByteType)
+                code_err(ast, "I can't do a shift assignment with this operator between %T and %T", lhs_t, rhs_t);
+            return CORD_all("{ ", compile_unsigned_type(lhs_t), " *dest = (void*)&(", lhs, "); *dest >>= ", rhs, "; }");
         case BINOP_AND: {
             if (lhs_t->tag == BoolType)
                 return CORD_all("if (", lhs, ") ", lhs, " = ", rhs, ";");

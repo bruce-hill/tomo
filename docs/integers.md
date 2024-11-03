@@ -21,8 +21,9 @@ truncated form of the input value.
 
 Integers support the standard math operations (`x+y`, `x-y`, `x*y`, `x/y`) as
 well as powers/exponentiation (`x^y`), modulus (`x mod y` and `x mod1 y`), and
-bitwise operations: `x and y`, `x or y`, `x xor y`, `x << y`, and `x >> y`. The
-operators `and`, `or`, and `xor` are _bitwise_, not logical operators.
+bitwise operations: `x and y`, `x or y`, `x xor y`, `x << y`, `x >> y`, `x >>>
+y` (unsigned right shift), and `x <<< y` (unsighted left shift). The operators
+`and`, `or`, and `xor` are _bitwise_, not logical operators.
 
 # Integer Functions
 

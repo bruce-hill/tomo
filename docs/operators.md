@@ -10,6 +10,7 @@ Tomo supports a number of operators, both infix and prefix:
   is particularly useful for doing wraparound behavior on 1-indexed arrays.
 - `++`: concatenation (for text and arrays)
 - `<<`, `>>`: bitwise left shift and right shift for integers
+- `<<<`, `>>>`: unsigned bitwise left shift and right shift for integers
 - `_min_`/`_max_`: minimum and maximum (see below)
 - `<`, `<=`, `>`, `>=`, `==`, `!=`: comparisons
 - `<>`: the signed comparison operator (see below)
@@ -283,8 +284,10 @@ and will return a value of the same type.
 #### Bit Operations
 
 ```
-func left_shift(T, Int)->T
-func right_shift(T, Int)->T
+func left_shifted(T, Int)->T
+func right_shifted(T, Int)->T
+func unsigned_left_shifted(T, Int)->T
+func unsigned_right_shifted(T, Int)->T
 func bit_and(T, T)->T
 func bit_or(T, T)->T
 func bit_xor(T, T)->T
@@ -292,7 +295,8 @@ func bit_xor(T, T)->T
 
 In a bit shifting expression, `a >> b` or `a << b`, if `a` has type `T` and `b`
 is an `Int`, then the method `left_shift()` or `right_shift()` will be invoked.
-A value of type `T` will be returned.
+A value of type `T` will be returned. The same is true for `>>>`
+(`unsigned_right_shift()`) and `<<<` (`unsigned_left_shift`).
 
 In a bitwise binary operation `a and b`, `a or b`, or `a xor b`, then the
 method `bit_and()`, `bit_or()`, or `bit_xor()` will be invoked, assuming that
