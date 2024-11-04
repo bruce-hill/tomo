@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/param.h>
 
 #include "arrays.h"
@@ -22,7 +23,7 @@ public _Thread_local RNG_t default_rng;
 struct RNGState_t {
     chacha_ctx chacha;
     size_t unused_bytes;
-    uint8_t buf[16*64];
+    uint8_t random_bytes[1024];
 };
 
 PUREFUNC static Text_t RNG$as_text(const RNG_t *rng, bool colorize, const TypeInfo_t *type)
@@ -63,12 +64,12 @@ public RNG_t RNG$new(Array_t seed)
 static void rekey(RNG_t rng)
 {
     // Fill the buffer with the keystream
-    chacha_encrypt_bytes(&rng->chacha, rng->buf, rng->buf, sizeof(rng->buf));
+    chacha_encrypt_bytes(&rng->chacha, rng->random_bytes, rng->random_bytes, sizeof(rng->random_bytes));
     // Immediately reinitialize for backtracking resistance
-    chacha_keysetup(&rng->chacha, rng->buf, KEYSZ/8);
-    chacha_ivsetup(&rng->chacha, rng->buf + KEYSZ);
-    memset(rng->buf, 0, KEYSZ + IVSZ);
-    rng->unused_bytes = sizeof(rng->buf) - KEYSZ - IVSZ;
+    chacha_keysetup(&rng->chacha, rng->random_bytes, KEYSZ/8);
+    chacha_ivsetup(&rng->chacha, rng->random_bytes + KEYSZ);
+    explicit_bzero(rng->random_bytes, KEYSZ + IVSZ);
+    rng->unused_bytes = sizeof(rng->random_bytes) - KEYSZ - IVSZ;
 }
 
 static void random_bytes(RNG_t rng, uint8_t *dest, size_t needed)
@@ -76,7 +77,7 @@ static void random_bytes(RNG_t rng, uint8_t *dest, size_t needed)
     while (needed > 0) {
         if (rng->unused_bytes > 0) {
             size_t to_get = MIN(needed, rng->unused_bytes);
-            uint8_t *keystream = rng->buf + sizeof(rng->buf) - rng->unused_bytes;
+            uint8_t *keystream = rng->random_bytes + sizeof(rng->random_bytes) - rng->unused_bytes;
             memcpy(dest, keystream, to_get);
             memset(keystream, 0, to_get);
             dest += to_get;
