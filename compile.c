@@ -679,7 +679,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         type_t *lhs_t = get_type(env, update->lhs);
         type_t *rhs_t = get_type(env, update->rhs);
         if (!promote(env, &rhs, rhs_t, lhs_t)) {
-            if (update->rhs->tag == Int && lhs_t->tag == IntType)
+            if (update->rhs->tag == Int && (lhs_t->tag == IntType || lhs_t->tag == ByteType))
                 rhs = compile_int_to_type(env, update->rhs, lhs_t);
             else if (!(lhs_t->tag == ArrayType && promote(env, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)))
                 code_err(ast, "I can't do operations between %T and %T", lhs_t, rhs_t);
@@ -1623,7 +1623,6 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
         return code;
     }
 
-    int64_t target_bits = (int64_t)Match(target, IntType)->bits;
     OptionalInt_t int_val = Int$from_str(Match(ast, Int)->str);
     if (int_val.small == 0)
         code_err(ast, "Failed to parse this integer");
@@ -1631,6 +1630,13 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
     mpz_t i;
     mpz_init_set_int(i, int_val);
 
+    if (target->tag == ByteType) {
+        if (mpz_cmp_si(i, UINT8_MAX) <= 0 && mpz_cmp_si(i, 0) >= 0)
+            return CORD_asprintf("(Byte_t)(%s)", Match(ast, Int)->str);
+        code_err(ast, "This integer cannot fit in a byte");
+    }
+
+    int64_t target_bits = (int64_t)Match(target, IntType)->bits;
     switch (target_bits) {
     case TYPE_IBITS64:
         if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0)
@@ -2075,7 +2081,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         // Special case for bit shifting by an integer literal:
         if (binop->op == BINOP_LSHIFT || binop->op == BINOP_RSHIFT || binop->op == BINOP_ULSHIFT || binop->op == BINOP_URSHIFT) {
-            if (lhs_t->tag == IntType && rhs_t->tag == BigIntType && binop->rhs->tag == Int) {
+            if ((lhs_t->tag == IntType || lhs_t->tag == ByteType) && rhs_t->tag == BigIntType && binop->rhs->tag == Int) {
                 CORD shift_amount = compile_int_to_type(env, binop->rhs, lhs_t);
                 if (binop->op == BINOP_LSHIFT)
                     return CORD_all("(", lhs, " << ", shift_amount, ")");
@@ -3024,7 +3030,7 @@ CORD compile(env_t *env, ast_t *ast)
                 type_t *actual = get_type(env, call->args->value);
                 arg_t *args = new(arg_t, .name="i", .type=actual); // No truncation argument
                 CORD arg_code = compile_arguments(env, ast, args, call->args);
-                if (is_numeric_type(actual)) {
+                if (is_numeric_type(actual) || actual->tag == ByteType) {
                     return CORD_all(type_to_cord(actual), "_to_", type_to_cord(t), "(", arg_code, ")");
                 } else if (actual->tag == BoolType) {
                     if (t->tag == NumType) {
@@ -3035,9 +3041,9 @@ CORD compile(env_t *env, ast_t *ast)
                 } else {
                     code_err(ast, "You cannot convert a %T to a %T this way.", actual, t);
                 }
-            } else if (t->tag == IntType) {
+            } else if (t->tag == IntType || t->tag == ByteType) {
                 type_t *actual = get_type(env, call->args->value);
-                if (is_numeric_type(actual)) {
+                if (is_numeric_type(actual) || actual->tag == ByteType) {
                     arg_t *args = new(arg_t, .name="i", .type=actual, .next=new(arg_t, .name="truncate", .type=Type(BoolType),
                                                                                 .default_val=FakeAST(Bool, false)));
                     CORD arg_code = compile_arguments(env, ast, args, call->args);
@@ -3427,7 +3433,7 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *container_t = value_type(indexed_type);
         type_t *index_t = get_type(env, indexing->index);
         if (container_t->tag == ArrayType) {
-            if (index_t->tag != IntType && index_t->tag != BigIntType)
+            if (index_t->tag != IntType && index_t->tag != BigIntType && index_t->tag != ByteType)
                 code_err(indexing->index, "Arrays can only be indexed by integers, not %T", index_t);
             type_t *item_type = Match(container_t, ArrayType)->item_type;
             CORD arr = compile_to_pointer_depth(env, indexing->indexed, 0, false);

@@ -1764,7 +1764,7 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
             else pos = key->end;
         }
 
-        spaces(&pos);
+        whitespace(&pos);
         ast_t *rhs = parse_infix_expr(ctx, pos, op_tightness[op] + 1);
         if (!rhs) break;
         pos = rhs->end;

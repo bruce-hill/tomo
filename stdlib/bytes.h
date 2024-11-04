@@ -13,6 +13,16 @@
 
 PUREFUNC Text_t Byte$as_text(const Byte_t *b, bool colorize, const TypeInfo_t *type);
 
+#define Byte_to_Int64(b, _) ((Int64_t)(b))
+#define Byte_to_Int32(b, _) ((Int32_t)(b))
+#define Byte_to_Int16(b, _) ((Int16_t)(b))
+#define Byte_to_Int8(b, _) ((Int8_t)(b))
+
+#define Int64_to_Byte(b, _) ((Byte_t)(b))
+#define Int32_to_Byte(b, _) ((Byte_t)(b))
+#define Int16_to_Byte(b, _) ((Byte_t)(b))
+#define Int8_to_Byte(b, _) ((Byte_t)(b))
+
 extern const Byte_t Byte$min;
 extern const Byte_t Byte$max;
 

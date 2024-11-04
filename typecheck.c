@@ -702,7 +702,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (value_t->tag == ArrayType) {
             if (!indexing->index) return indexed_t;
             type_t *index_t = get_type(env, indexing->index);
-            if (index_t->tag == IntType || index_t->tag == BigIntType)
+            if (index_t->tag == IntType || index_t->tag == BigIntType || index_t->tag == ByteType)
                 return Match(value_t, ArrayType)->item_type;
             code_err(indexing->index, "I only know how to index lists using integers, not %T", index_t);
         } else if (value_t->tag == TableType) {
@@ -720,7 +720,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (fn_type_t->tag == TypeInfoType) {
             type_t *t = Match(fn_type_t, TypeInfoType)->type;
             if (t->tag == StructType || t->tag == IntType || t->tag == BigIntType || t->tag == NumType
-                || t->tag == TextType || t->tag == CStringType || t->tag == DateTimeType)
+                || t->tag == ByteType || t->tag == TextType || t->tag == CStringType || t->tag == DateTimeType)
                 return t; // Constructor
             code_err(call->fn, "This is not a type that has a constructor");
         }
