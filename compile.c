@@ -1590,6 +1590,8 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
 
 static CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
 {
+    if (ast->tag == Int && is_numeric_type(t))
+        return compile_int_to_type(env, ast, t);
     CORD code = compile(env, ast);
     type_t *actual = get_type(env, ast);
     if (!promote(env, &code, actual, t))
@@ -1636,29 +1638,37 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
         if (mpz_cmp_si(i, UINT8_MAX) <= 0 && mpz_cmp_si(i, 0) >= 0)
             return CORD_asprintf("(Byte_t)(%s)", Match(ast, Int)->str);
         code_err(ast, "This integer cannot fit in a byte");
+    } else if (target->tag == NumType) {
+        if (Match(target, NumType)->bits == TYPE_NBITS64) {
+            return CORD_asprintf("N64(%s)", Match(ast, Int)->str);
+        } else {
+            return CORD_asprintf("N32(%s)", Match(ast, Int)->str);
+        }
+    } else if (target->tag == IntType) {
+        int64_t target_bits = (int64_t)Match(target, IntType)->bits;
+        switch (target_bits) {
+        case TYPE_IBITS64:
+            if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0)
+                return CORD_asprintf("I64(%s)", Match(ast, Int)->str);
+            break;
+        case TYPE_IBITS32:
+            if (mpz_cmp_si(i, INT32_MAX) <= 0 && mpz_cmp_si(i, INT32_MIN) >= 0)
+                return CORD_asprintf("I32(%s)", Match(ast, Int)->str);
+            break;
+        case TYPE_IBITS16:
+            if (mpz_cmp_si(i, INT16_MAX) <= 0 && mpz_cmp_si(i, INT16_MIN) >= 0)
+                return CORD_asprintf("I16(%s)", Match(ast, Int)->str);
+            break;
+        case TYPE_IBITS8:
+            if (mpz_cmp_si(i, INT8_MAX) <= 0 && mpz_cmp_si(i, INT8_MIN) >= 0)
+                return CORD_asprintf("I8(%s)", Match(ast, Int)->str);
+            break;
+        default: break;
+        }
+        code_err(ast, "This integer cannot fit in a %d-bit value", target_bits);
+    } else {
+        code_err(ast, "I don't know how to compile this to a %T", target);
     }
-
-    int64_t target_bits = (int64_t)Match(target, IntType)->bits;
-    switch (target_bits) {
-    case TYPE_IBITS64:
-        if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0)
-            return CORD_asprintf("I64(%s)", Match(ast, Int)->str);
-        break;
-    case TYPE_IBITS32:
-        if (mpz_cmp_si(i, INT32_MAX) <= 0 && mpz_cmp_si(i, INT32_MIN) >= 0)
-            return CORD_asprintf("I32(%s)", Match(ast, Int)->str);
-        break;
-    case TYPE_IBITS16:
-        if (mpz_cmp_si(i, INT16_MAX) <= 0 && mpz_cmp_si(i, INT16_MIN) >= 0)
-            return CORD_asprintf("I16(%s)", Match(ast, Int)->str);
-        break;
-    case TYPE_IBITS8:
-        if (mpz_cmp_si(i, INT8_MAX) <= 0 && mpz_cmp_si(i, INT8_MIN) >= 0)
-            return CORD_asprintf("I8(%s)", Match(ast, Int)->str);
-        break;
-    default: break;
-    }
-    code_err(ast, "This integer cannot fit in a %d-bit value", target_bits);
 }
 
 CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args)
@@ -2079,26 +2089,21 @@ CORD compile(env_t *env, ast_t *ast)
             }
         }
 
-        CORD lhs = compile(env, binop->lhs);
-
-        // Special case for bit shifting by an integer literal:
-        if (binop->op == BINOP_LSHIFT || binop->op == BINOP_RSHIFT || binop->op == BINOP_ULSHIFT || binop->op == BINOP_URSHIFT) {
-            if ((lhs_t->tag == IntType || lhs_t->tag == ByteType) && rhs_t->tag == BigIntType && binop->rhs->tag == Int) {
-                CORD shift_amount = compile_int_to_type(env, binop->rhs, lhs_t);
-                if (binop->op == BINOP_LSHIFT)
-                    return CORD_all("(", lhs, " << ", shift_amount, ")");
-                else if (binop->op == BINOP_ULSHIFT)
-                    return CORD_all("(", compile_type(lhs_t), ")((", compile_unsigned_type(lhs_t), ")", lhs, " << ", shift_amount, ")");
-                else if (binop->op == BINOP_RSHIFT)
-                    return CORD_all("(", lhs, " >> ", shift_amount, ")");
-                else if (binop->op == BINOP_URSHIFT)
-                    return CORD_all("(", compile_type(lhs_t), ")((", compile_unsigned_type(lhs_t), ")", lhs, " >> ", shift_amount, ")");
-            }
+        CORD lhs, rhs;
+        if (lhs_t->tag == BigIntType && rhs_t->tag != BigIntType && is_numeric_type(rhs_t) && binop->lhs->tag == Int) {
+            lhs = compile_int_to_type(env, binop->lhs, rhs_t);
+            lhs_t = rhs_t;
+            rhs = compile(env, binop->rhs);
+        } else if (rhs_t->tag == BigIntType && lhs_t->tag != BigIntType && is_numeric_type(lhs_t) && binop->rhs->tag == Int) {
+            lhs = compile(env, binop->lhs);
+            rhs = compile_int_to_type(env, binop->rhs, lhs_t);
+            rhs_t = lhs_t;
+        } else {
+            lhs = compile(env, binop->lhs);
+            rhs = compile(env, binop->rhs);
         }
 
-        CORD rhs = compile(env, binop->rhs);
         type_t *operand_t;
-
         if (promote(env, &rhs, rhs_t, lhs_t))
             operand_t = lhs_t;
         else if (promote(env, &lhs, lhs_t, rhs_t))
@@ -3032,7 +3037,7 @@ CORD compile(env_t *env, ast_t *ast)
                 type_t *actual = get_type(env, call->args->value);
                 arg_t *args = new(arg_t, .name="i", .type=actual); // No truncation argument
                 CORD arg_code = compile_arguments(env, ast, args, call->args);
-                if (is_numeric_type(actual) || actual->tag == ByteType) {
+                if (is_numeric_type(actual)) {
                     return CORD_all(type_to_cord(actual), "_to_", type_to_cord(t), "(", arg_code, ")");
                 } else if (actual->tag == BoolType) {
                     if (t->tag == NumType) {
@@ -3045,7 +3050,7 @@ CORD compile(env_t *env, ast_t *ast)
                 }
             } else if (t->tag == IntType || t->tag == ByteType) {
                 type_t *actual = get_type(env, call->args->value);
-                if (is_numeric_type(actual) || actual->tag == ByteType) {
+                if (is_numeric_type(actual)) {
                     arg_t *args = new(arg_t, .name="i", .type=actual, .next=new(arg_t, .name="truncate", .type=Type(BoolType),
                                                                                 .default_val=FakeAST(Bool, false)));
                     CORD arg_code = compile_arguments(env, ast, args, call->args);

@@ -900,6 +900,13 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *lhs_t = get_type(env, binop->lhs),
                *rhs_t = get_type(env, binop->rhs);
 
+        if (lhs_t->tag == BigIntType && rhs_t->tag != BigIntType && is_numeric_type(rhs_t) && binop->lhs->tag == Int) {
+            lhs_t = rhs_t;
+        } else if (rhs_t->tag == BigIntType && lhs_t->tag != BigIntType && is_numeric_type(lhs_t) && binop->rhs->tag == Int) {
+
+            rhs_t = lhs_t;
+        }
+
 #define binding_works(name, self, lhs_t, rhs_t, ret_t) \
         ({ binding_t *b = get_namespace_binding(env, self, name); \
          (b && b->type->tag == FunctionType && ({ auto fn = Match(b->type, FunctionType);  \

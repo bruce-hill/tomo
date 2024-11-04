@@ -394,7 +394,7 @@ PUREFUNC bool is_int_type(type_t *t)
 
 PUREFUNC bool is_numeric_type(type_t *t)
 {
-    return t->tag == IntType || t->tag == BigIntType || t->tag == NumType;
+    return t->tag == IntType || t->tag == BigIntType || t->tag == NumType || t->tag == ByteType;
 }
 
 PUREFUNC size_t unpadded_struct_size(type_t *t)
