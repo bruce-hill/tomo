@@ -607,7 +607,7 @@ Text_t text_from_u32(ucs4_t *codepoints, int64_t num_codepoints, bool normalize)
     return ret;
 }
 
-public Text_t Text$from_strn(const char *str, size_t len)
+public OptionalText_t Text$from_strn(const char *str, size_t len)
 {
     int64_t ascii_span = 0;
     for (size_t i = 0; i < len && isascii(str[i]); i++)
@@ -626,7 +626,7 @@ public Text_t Text$from_strn(const char *str, size_t len)
         return ret;
     } else {
         if (u8_check((uint8_t*)str, len) != NULL)
-            return Text("");
+            return NULL_TEXT;
 
         ucs4_t buf[128];
         size_t length = sizeof(buf)/sizeof(buf[0]);
@@ -638,7 +638,7 @@ public Text_t Text$from_strn(const char *str, size_t len)
     }
 }
 
-public Text_t Text$from_str(const char *str)
+public OptionalText_t Text$from_str(const char *str)
 {
     return str ? Text$from_strn(str, strlen(str)) : Text("");
 }
@@ -1270,20 +1270,21 @@ public Text_t Text$from_codepoints(Array_t codepoints)
     return text_from_u32(codepoints.data, codepoints.length, true);
 }
 
-public Text_t Text$from_codepoint_names(Array_t codepoint_names)
+public OptionalText_t Text$from_codepoint_names(Array_t codepoint_names)
 {
     Array_t codepoints = {};
     for (int64_t i = 0; i < codepoint_names.length; i++) {
         Text_t *name = ((Text_t*)(codepoint_names.data + i*codepoint_names.stride));
         const char *name_str = Text$as_c_string(*name);
         ucs4_t codepoint = unicode_name_character(name_str);
-        if (codepoint != UNINAME_INVALID)
-            Array$insert(&codepoints, &codepoint, I_small(0), sizeof(ucs4_t));
+        if (codepoint == UNINAME_INVALID)
+            return NULL_TEXT;
+        Array$insert(&codepoints, &codepoint, I_small(0), sizeof(ucs4_t));
     }
     return Text$from_codepoints(codepoints);
 }
 
-public Text_t Text$from_bytes(Array_t bytes)
+public OptionalText_t Text$from_bytes(Array_t bytes)
 {
     if (bytes.stride != sizeof(int8_t))
         Array$compact(&bytes, sizeof(int8_t));

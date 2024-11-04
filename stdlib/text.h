@@ -9,6 +9,7 @@
 
 #include "datatypes.h"
 #include "integers.h"
+#include "optionals.h"
 #include "util.h"
 
 typedef struct {
@@ -27,8 +28,8 @@ Text_t Text$_concat(int n, Text_t items[n]);
 #define Text$concat(...) Text$_concat(sizeof((Text_t[]){__VA_ARGS__})/sizeof(Text_t), (Text_t[]){__VA_ARGS__})
 #define Texts(...) Text$concat(__VA_ARGS__)
 Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int);
-Text_t Text$from_str(const char *str);
-Text_t Text$from_strn(const char *str, size_t len);
+OptionalText_t Text$from_str(const char *str);
+OptionalText_t Text$from_strn(const char *str, size_t len);
 PUREFUNC uint64_t Text$hash(Text_t *text);
 PUREFUNC int32_t Text$compare(const Text_t *a, const Text_t *b);
 PUREFUNC bool Text$equal(const Text_t *a, const Text_t *b);
@@ -49,8 +50,8 @@ Array_t Text$utf32_codepoints(Text_t text);
 Array_t Text$utf8_bytes(Text_t text);
 Array_t Text$codepoint_names(Text_t text);
 Text_t Text$from_codepoints(Array_t codepoints);
-Text_t Text$from_codepoint_names(Array_t codepoint_names);
-Text_t Text$from_bytes(Array_t bytes);
+OptionalText_t Text$from_codepoint_names(Array_t codepoint_names);
+OptionalText_t Text$from_bytes(Array_t bytes);
 Array_t Text$lines(Text_t text);
 Text_t Text$join(Text_t glue, Array_t pieces);
 Text_t Text$repeat(Text_t text, Int_t count);

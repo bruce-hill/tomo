@@ -32,8 +32,10 @@ func main():
 	= [65[32], 109[32], 233[32], 108[32], 105[32], 101[32]] : [Int32]
 	>> amelie:utf8_bytes()
 	= [65[B], 109[B], 195[B], 169[B], 108[B], 105[B], 101[B]] : [Byte]
-	>> Text.from_bytes([65[B], 109[B], 195[B], 169[B], 108[B], 105[B], 101[B]])
+	>> Text.from_bytes([65[B], 109[B], 195[B], 169[B], 108[B], 105[B], 101[B]])!
 	= "Amélie"
+	>> Text.from_bytes([255[B]])
+	= !Text
 
 	>> amelie2 := "Am$(\U65\U301)lie"
 	>> amelie2:split()
@@ -120,11 +122,11 @@ func main():
 	>> c := "É̩"
 	>> c:codepoint_names()
 	= ["LATIN CAPITAL LETTER E WITH ACUTE", "COMBINING VERTICAL LINE BELOW"]
-	>> c == Text.from_codepoint_names(c:codepoint_names())
+	>> c == Text.from_codepoint_names(c:codepoint_names())!
 	= yes
 	>> c == Text.from_codepoints(c:utf32_codepoints())
 	= yes
-	>> c == Text.from_bytes(c:utf8_bytes())
+	>> c == Text.from_bytes(c:utf8_bytes())!
 	= yes
 
 	>> "one$(\n)two$(\n)three":lines()
@@ -220,7 +222,7 @@ func main():
 	= ["PENGUIN"]
 
 	>> Text.from_codepoint_names(["not a valid name here buddy"])
-	= ""
+	= !Text
 
 	>> "one two; three four":find_all($/; {..}/)
 	= ["; three four"]
@@ -292,14 +294,14 @@ func main():
 
 	do:
 		!! Testing concatenation-stability:
-		>> ab := Text.from_codepoint_names(["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"])
+		>> ab := Text.from_codepoint_names(["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"])!
 		>> ab:codepoint_names()
 		= ["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"]
 		>> ab.length
 		= 1
 
-		>> a := Text.from_codepoint_names(["LATIN SMALL LETTER E"])
-		>> b := Text.from_codepoint_names(["COMBINING VERTICAL LINE BELOW"])
+		>> a := Text.from_codepoint_names(["LATIN SMALL LETTER E"])!
+		>> b := Text.from_codepoint_names(["COMBINING VERTICAL LINE BELOW"])!
 		>> (a++b):codepoint_names()
 		= ["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"]
 		>> (a++b) == ab
