@@ -17,17 +17,6 @@ PUREFUNC public Text_t Byte$as_text(const Byte_t *b, bool colorize, const TypeIn
     return Text$format(colorize ? "\x1b[35m%u[B]\x1b[m" : "%u[B]", *b);
 }
 
-public Byte_t Byte$random(Byte_t min, Byte_t max)
-{
-    if (min > max)
-        fail("Random minimum value (%u) is larger than the maximum value (%u)", min, max);
-    if (min == max)
-        return min;
-
-    uint32_t r = arc4random_uniform((uint32_t)max - (uint32_t)min + 1u);
-    return (Byte_t)(min + r);
-}
-
 public const TypeInfo_t Byte$info = {
     .size=sizeof(Byte_t),
     .align=__alignof__(Byte_t),

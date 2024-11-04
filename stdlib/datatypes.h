@@ -93,4 +93,6 @@ typedef struct Text_s {
 typedef struct timeval DateTime_t;
 #define OptionalDateTime_t DateTime_t
 
+typedef struct RNGState_t* RNG_t;
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

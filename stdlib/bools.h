@@ -15,7 +15,6 @@
 
 PUREFUNC Text_t Bool$as_text(const bool *b, bool colorize, const TypeInfo_t *type);
 OptionalBool_t Bool$from_text(Text_t text);
-Bool_t Bool$random(double p);
 
 extern const TypeInfo_t Bool$info;
 

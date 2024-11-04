@@ -216,6 +216,7 @@ CORD compile_type(type_t *t)
 {
     if (t == THREAD_TYPE) return "Thread_t";
     else if (t == RANGE_TYPE) return "Range_t";
+    else if (t == RNG_TYPE) return "RNG_t";
 
     switch (t->tag) {
     case ReturnType: errx(1, "Shouldn't be compiling ReturnType to a type");
@@ -888,7 +889,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             CORD pop_code = CORD_EMPTY;
             if (fndef->cache->tag == Int && !cache_size.is_null && cache_size.i > 0) {
                 pop_code = CORD_all("if (cache.entries.length > ", CORD_asprintf("%ld", cache_size.i),
-                                    ") Table$remove(&cache, cache.entries.data + cache.entries.stride*Int$random(I(0), I(cache.entries.length-1)), table_type);\n");
+                                    ") Table$remove(&cache, cache.entries.data + cache.entries.stride*RNG$int64(default_rng, I(0), I(cache.entries.length-1)), table_type);\n");
             }
 
             CORD arg_typedef = compile_struct_header(env, args_def);
@@ -2689,10 +2690,7 @@ CORD compile(env_t *env, ast_t *ast)
             type_t *item_t = Match(self_value_t, ArrayType)->item_type;
             CORD padded_item_size = CORD_asprintf("%ld", type_size(item_t));
 
-            type_t *rng_fn = Type(ClosureType, .fn=Type(FunctionType, .args=NULL, .ret=Type(IntType, .bits=TYPE_IBITS64)));
-            ast_t *default_rng = FakeAST(InlineCCode,
-                                         .code=CORD_all("((Closure_t){.fn=Int64$full_random})"),
-                                         .type=rng_fn);
+            ast_t *default_rng = FakeAST(InlineCCode, .code="default_rng", .type=RNG_TYPE);
 
             if (streq(call->name, "insert")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
@@ -2720,7 +2718,7 @@ CORD compile(env_t *env, ast_t *ast)
                                 compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "random")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="rng", .type=rng_fn, .default_val=default_rng);
+                arg_t *arg_spec = new(arg_t, .name="rng", .type=RNG_TYPE, .default_val=default_rng);
                 return CORD_all("Array$random_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type(item_t), ")");
             } else if (streq(call->name, "has")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
@@ -2732,16 +2730,17 @@ CORD compile(env_t *env, ast_t *ast)
                 arg_t *arg_spec = new(arg_t, .name="count", .type=INT_TYPE,
                     .next=new(arg_t, .name="weights", .type=Type(ArrayType, .item_type=Type(NumType)),
                               .default_val=FakeAST(Null, .type=new(type_ast_t, .tag=ArrayTypeAST,
-                                   .__data.ArrayTypeAST.item=new(type_ast_t, .tag=VarTypeAST, .__data.VarTypeAST.name="Num")))));
+                                   .__data.ArrayTypeAST.item=new(type_ast_t, .tag=VarTypeAST, .__data.VarTypeAST.name="Num"))),
+                              .next=new(arg_t, .name="rng", .type=RNG_TYPE, .default_val=default_rng)));
                 return CORD_all("Array$sample(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "shuffle")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 1, false);
-                arg_t *arg_spec = new(arg_t, .name="rng", .type=rng_fn, .default_val=default_rng);
+                arg_t *arg_spec = new(arg_t, .name="rng", .type=RNG_TYPE, .default_val=default_rng);
                 return CORD_all("Array$shuffle(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
             } else if (streq(call->name, "shuffled")) {
                 CORD self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="rng", .type=rng_fn, .default_val=default_rng);
+                arg_t *arg_spec = new(arg_t, .name="rng", .type=RNG_TYPE, .default_val=default_rng);
                 return CORD_all("Array$shuffled(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
             } else if (streq(call->name, "sort") || streq(call->name, "sorted")) {
                 CORD self = streq(call->name, "sort")
@@ -3541,6 +3540,7 @@ CORD compile_type_info(env_t *env, type_t *t)
 {
     if (t == THREAD_TYPE) return "&Thread$info";
     else if (t == RANGE_TYPE) return "&Range$info";
+    else if (t == RNG_TYPE) return "&RNG$info";
 
     switch (t->tag) {
     case BoolType: case ByteType: case IntType: case BigIntType: case NumType: case CStringType: case DateTimeType:

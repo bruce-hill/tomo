@@ -112,32 +112,6 @@ The octal string representation of the integer.
 
 ---
 
-## `random`
-
-**Description:**  
-Generates a random integer between the specified minimum and maximum values.
-
-**Signature:**  
-```tomo
-func random(min: Int, max: Int -> Int)
-```
-
-**Parameters:**
-
-- `min`: The minimum value of the range.
-- `max`: The maximum value of the range.
-
-**Returns:**  
-A random integer between `min` and `max` (inclusive).
-
-**Example:**  
-```tomo
->> Int.random(1, 100)
-= 47
-```
-
----
-
 ## `from_text`
 
 **Description:**  

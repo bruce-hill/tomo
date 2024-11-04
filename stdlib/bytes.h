@@ -12,7 +12,6 @@
 #define Byte(b) ((Byte_t)(b))
 
 PUREFUNC Text_t Byte$as_text(const Byte_t *b, bool colorize, const TypeInfo_t *type);
-Byte_t Byte$random(Byte_t min, Byte_t max);
 
 extern const Byte_t Byte$min;
 extern const Byte_t Byte$max;

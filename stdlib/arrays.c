@@ -8,6 +8,7 @@
 #include "arrays.h"
 #include "metamethods.h"
 #include "optionals.h"
+#include "rng.h"
 #include "tables.h"
 #include "text.h"
 #include "util.h"
@@ -249,51 +250,34 @@ public Array_t Array$sorted(Array_t arr, Closure_t comparison, int64_t padded_it
     return arr;
 }
 
-static uint64_t random_range(Closure_t rng, uint64_t upper_bound)
-{
-    if (upper_bound < 2)
-        return 0;
-
-    // This approach is taken from arc4random_uniform()
-    uint64_t min = -upper_bound % upper_bound;
-    uint64_t r;
-    for (;;) {
-        r = ((uint64_t(*)(void*))rng.fn)(rng.userdata);
-        if (r >= min)
-            break;
-    }
-
-    return r % upper_bound;
-}
-
-public void Array$shuffle(Array_t *arr, Closure_t rng, int64_t padded_item_size)
+public void Array$shuffle(Array_t *arr, RNG_t rng, int64_t padded_item_size)
 {
     if (arr->data_refcount != 0 || (int64_t)arr->stride != padded_item_size)
         Array$compact(arr, padded_item_size);
 
     char tmp[padded_item_size];
     for (int64_t i = arr->length-1; i > 1; i--) {
-        int64_t j = (int64_t)random_range(rng, (uint64_t)(i+1));
+        int64_t j = RNG$int64(rng, 0, i);
         memcpy(tmp, arr->data + i*padded_item_size, (size_t)padded_item_size);
         memcpy((void*)arr->data + i*padded_item_size, arr->data + j*padded_item_size, (size_t)padded_item_size);
         memcpy((void*)arr->data + j*padded_item_size, tmp, (size_t)padded_item_size);
     }
 }
 
-public Array_t Array$shuffled(Array_t arr, Closure_t rng, int64_t padded_item_size)
+public Array_t Array$shuffled(Array_t arr, RNG_t rng, int64_t padded_item_size)
 {
     Array$compact(&arr, padded_item_size);
     Array$shuffle(&arr, rng, padded_item_size);
     return arr;
 }
 
-public void *Array$random(Array_t arr, Closure_t rng)
+public void *Array$random(Array_t arr, RNG_t rng)
 {
     if (arr.length == 0)
         return NULL; // fail("Cannot get a random item from an empty array!");
 
-    uint64_t index = random_range(rng, (uint64_t)arr.length);
-    return arr.data + arr.stride*(int64_t)index;
+    int64_t index = RNG$int64(rng, 0, arr.length-1);
+    return arr.data + arr.stride*index;
 }
 
 public Table_t Array$counts(Array_t arr, const TypeInfo_t *type)
@@ -310,7 +294,7 @@ public Table_t Array$counts(Array_t arr, const TypeInfo_t *type)
     return counts;
 }
 
-public Array_t Array$sample(Array_t arr, Int_t int_n, Array_t weights, int64_t padded_item_size)
+public Array_t Array$sample(Array_t arr, Int_t int_n, Array_t weights, RNG_t rng, int64_t padded_item_size)
 {
     int64_t n = Int_to_Int64(int_n, false);
     if (n < 0)
@@ -329,7 +313,7 @@ public Array_t Array$sample(Array_t arr, Int_t int_n, Array_t weights, int64_t p
 
     if (weights.length < 0) {
         for (int64_t i = 0; i < n; i++) {
-            int64_t index = arc4random_uniform(arr.length);
+            int64_t index = RNG$int64(rng, 0, arr.length-1);
             memcpy(selected.data + i*padded_item_size, arr.data + arr.stride*index, (size_t)padded_item_size);
         }
         return selected;
@@ -393,7 +377,7 @@ public Array_t Array$sample(Array_t arr, Int_t int_n, Array_t weights, int64_t p
             aliases[i].alias = i;
 
     for (int64_t i = 0; i < n; i++) {
-        double r = drand48() * arr.length;
+        double r = RNG$num(rng, 0, arr.length);
         int64_t index = (int64_t)r;
         if ((r - (double)index) > aliases[index].odds)
             index = aliases[index].alias;

@@ -39,11 +39,6 @@ PUREFUNC public OptionalBool_t Bool$from_text(Text_t text)
     }
 }
 
-public Bool_t Bool$random(double p)
-{
-    return (drand48() < p); 
-}
-
 public const TypeInfo_t Bool$info = {
     .size=sizeof(bool),
     .align=__alignof__(bool),

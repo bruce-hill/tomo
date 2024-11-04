@@ -34,8 +34,6 @@
     Text_t type_name ## $hex(c_type i, Int_t digits, bool uppercase, bool prefix); \
     Text_t type_name ## $octal(c_type i, Int_t digits, bool prefix); \
     Array_t type_name ## $bits(c_type x); \
-    c_type type_name ## $random(c_type min, c_type max); \
-    c_type type_name ## $full_random(void); \
     to_attr Range_t type_name ## $to(c_type from, c_type to); \
     PUREFUNC Optional ## type_name ## _t type_name ## $from_text(Text_t text); \
     MACROLIKE PUREFUNC c_type type_name ## $clamped(c_type x, c_type min, c_type max) { \
@@ -103,8 +101,6 @@ PUREFUNC bool Int$equal_value(const Int_t x, const Int_t y);
 Text_t Int$format(Int_t i, Int_t digits);
 Text_t Int$hex(Int_t i, Int_t digits, bool uppercase, bool prefix);
 Text_t Int$octal(Int_t i, Int_t digits, bool prefix);
-void Int$init_random(long seed);
-Int_t Int$random(Int_t min, Int_t max);
 PUREFUNC Range_t Int$to(Int_t from, Int_t to);
 OptionalInt_t Int$from_str(const char *str);
 OptionalInt_t Int$from_text(Text_t text);
@@ -127,7 +123,7 @@ Int_t Int$sqrt(Int_t i);
 } while (0)
 
 #define I(i) ((int64_t)(i) == (int32_t)(i) ? ((Int_t){.small=(int64_t)((uint64_t)(i)<<2)|1}) : Int64_to_Int(i))
-#define I_small(i) ((Int_t){.small=((uint64_t)(i)<<2)|1})
+#define I_small(i) ((Int_t){.small=(int64_t)((uint64_t)(i)<<2)|1})
 #define I_is_zero(i) ((i).small == 1)
 
 Int_t Int$slow_plus(Int_t x, Int_t y);

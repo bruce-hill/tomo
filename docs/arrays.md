@@ -614,12 +614,13 @@ Selects a random element from the array.
 
 **Signature:**  
 ```tomo
-func random(arr: [T] -> T)
+func random(arr: [T], rng: RNG = random -> T)
 ```
 
 **Parameters:**
 
 - `arr`: The array from which to select a random element.
+- `rng`: The [random number generator](rng.md) to use.
 
 **Returns:**  
 A random element from the array.
@@ -731,7 +732,7 @@ probabilities.
 
 **Signature:**  
 ```tomo
-func sample(arr: [T], count: Int, weights: [Num]? = ![Num] -> [T])
+func sample(arr: [T], count: Int, weights: [Num]? = ![Num], rng: RNG = random -> [T])
 ```
 
 **Parameters:**
@@ -742,6 +743,7 @@ func sample(arr: [T], count: Int, weights: [Num]? = ![Num] -> [T])
   values do not need to add up to any particular number, they are relative
   weights. If no weights are given, elements will be sampled with uniform
   probability.
+- `rng`: The [random number generator](rng.md) to use.
 
 **Errors:**
 Errors will be raised if any of the following conditions occurs:
@@ -769,12 +771,13 @@ Shuffles the elements of the array in place.
 
 **Signature:**  
 ```tomo
-func shuffle(arr: @[T] -> Void)
+func shuffle(arr: @[T], rng: RNG = random -> Void)
 ```
 
 **Parameters:**
 
 - `arr`: The mutable reference to the array to be shuffled.
+- `rng`: The [random number generator](rng.md) to use.
 
 **Returns:**  
 Nothing.
@@ -793,12 +796,13 @@ Creates a new array with elements shuffled.
 
 **Signature:**  
 ```tomo
-func shuffled(arr: [T] -> [T])
+func shuffled(arr: [T], rng: RNG = random -> [T])
 ```
 
 **Parameters:**
 
 - `arr`: The array to be shuffled.
+- `rng`: The [random number generator](rng.md) to use.
 
 **Returns:**  
 A new array with shuffled elements.

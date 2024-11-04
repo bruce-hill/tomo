@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <execinfo.h>
+#include <fcntl.h>
 #include <gc.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -17,6 +18,7 @@
 #include "metamethods.h"
 #include "patterns.h"
 #include "paths.h"
+#include "rng.h"
 #include "siphash.h"
 #include "stdlib.h"
 #include "tables.h"
@@ -30,14 +32,15 @@ public void tomo_init(void)
    GC_INIT();
    USE_COLOR = getenv("COLOR") ? strcmp(getenv("COLOR"), "1") == 0 : isatty(STDOUT_FILENO);
    getrandom(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0);
-   unsigned int seed;
-   getrandom(&seed, sizeof(seed), 0);
-   srand(seed);
-   srand48(seed);
 
-   long long_seed;
-   getrandom(&long_seed, sizeof(long_seed), 0);
-   Int$init_random(long_seed);
+   int rng_fd = open("/dev/urandom", O_RDONLY);
+   if (rng_fd < 0)
+       fail("Couldn't read from /dev/urandom");
+   uint8_t *random_bytes = GC_MALLOC_ATOMIC(40);
+   if (read(rng_fd, (void*)random_bytes, 40) < 40)
+       fail("Couldn't read from /dev/urandom");
+   Array_t rng_seed = {.length=40, .data=random_bytes, .stride=1, .atomic=1};
+   default_rng = RNG$new(rng_seed);
 
    if (register_printf_specifier('k', printf_text, printf_text_size))
        errx(1, "Couldn't set printf specifier");

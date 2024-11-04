@@ -2,6 +2,7 @@
 
 #include <ctype.h>
 #include <err.h>
+#include <fcntl.h>
 #include <gc.h>
 #include <math.h>
 #include <stdbool.h>
@@ -13,6 +14,7 @@
 
 #include "arrays.h"
 #include "datatypes.h"
+#include "rng.h"
 #include "text.h"
 #include "threads.h"
 #include "types.h"
@@ -20,9 +22,10 @@
 
 static void *run_thread(Closure_t *closure)
 {
-    long seed;
-    getrandom(&seed, sizeof(seed), 0);
-    Int$init_random(seed);
+    uint8_t *random_bytes = GC_MALLOC_ATOMIC(40);
+    getrandom(random_bytes, 40, 0);
+    Array_t rng_seed = {.length=40, .data=random_bytes, .stride=1, .atomic=1};
+    default_rng = RNG$new(rng_seed);
     ((void(*)(void*))closure->fn)(closure->userdata);
     return NULL;
 }

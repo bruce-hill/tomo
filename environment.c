@@ -13,6 +13,7 @@
 
 type_t *TEXT_TYPE = NULL;
 type_t *RANGE_TYPE = NULL;
+type_t *RNG_TYPE = NULL;
 public type_t *THREAD_TYPE = NULL;
 
 env_t *new_compilation_unit(CORD libname)
@@ -78,6 +79,13 @@ env_t *new_compilation_unit(CORD libname)
         THREAD_TYPE = Type(StructType, .name="Thread", .env=thread_env, .opaque=true);
     }
 
+    {
+        env_t *rng_env = namespace_env(env, "RNG");
+        RNG_TYPE = Type(
+            StructType, .name="RNG", .env=rng_env,
+            .fields=new(arg_t, .name="state", .type=Type(PointerType, .pointed=Type(MemoryType))));
+    }
+
     struct {
         const char *name;
         type_t *type;
@@ -89,12 +97,10 @@ env_t *new_compilation_unit(CORD libname)
         {"Memory", Type(MemoryType), "Memory_t", "Memory$info", {}},
         {"Bool", Type(BoolType), "Bool_t", "Bool$info", TypedArray(ns_entry_t,
             {"from_text", "Bool$from_text", "func(text:Text -> Bool?)"},
-            {"random", "Bool$random", "func(p=0.5 -> Bool)"},
         )},
         {"Byte", Type(ByteType), "Byte_t", "Byte$info", TypedArray(ns_entry_t,
             {"max", "Byte$max", "Byte"},
             {"min", "Byte$min", "Byte"},
-            {"random", "Byte$random", "func(min=Byte.min, max=Byte.max -> Byte)"},
         )},
         {"Int", Type(BigIntType), "Int_t", "Int$info", TypedArray(ns_entry_t,
             {"abs", "Int$abs", "func(x:Int -> Int)"},
@@ -118,7 +124,6 @@ env_t *new_compilation_unit(CORD libname)
             {"plus", "Int$plus", "func(x,y:Int -> Int)"},
             {"power", "Int$power", "func(base:Int,exponent:Int -> Int)"},
             {"prev_prime", "Int$prev_prime", "func(x:Int -> Int)"},
-            {"random", "Int$random", "func(min,max:Int -> Int)"},
             {"right_shifted", "Int$right_shifted", "func(x,y:Int -> Int)"},
             {"sqrt", "Int$sqrt", "func(x:Int -> Int)"},
             {"times", "Int$times", "func(x,y:Int -> Int)"},
@@ -142,8 +147,6 @@ env_t *new_compilation_unit(CORD libname)
             {"unsigned_right_shifted", "Int64$unsigned_right_shifted", "func(x:Int64,y:Int64 -> Int64)"},
             {"wrapping_minus", "Int64$wrapping_minus", "func(x:Int64,y:Int64 -> Int64)"},
             {"wrapping_plus", "Int64$wrapping_plus", "func(x:Int64,y:Int64 -> Int64)"},
-            // Must be defined after min/max:
-            {"random", "Int64$random", "func(min=Int64.min, max=Int64.max -> Int64)"},
         )},
         {"Int32", Type(IntType, .bits=TYPE_IBITS32), "Int32_t", "Int32$info", TypedArray(ns_entry_t,
             {"abs", "abs", "func(i:Int32 -> Int32)"},
@@ -163,8 +166,6 @@ env_t *new_compilation_unit(CORD libname)
             {"unsigned_right_shifted", "Int32$unsigned_right_shifted", "func(x:Int32,y:Int32 -> Int32)"},
             {"wrapping_minus", "Int32$wrapping_minus", "func(x:Int32,y:Int32 -> Int32)"},
             {"wrapping_plus", "Int32$wrapping_plus", "func(x:Int32,y:Int32 -> Int32)"},
-            // Must be defined after min/max:
-            {"random", "Int32$random", "func(min=Int32.min, max=Int32.max -> Int32)"},
         )},
         {"Int16", Type(IntType, .bits=TYPE_IBITS16), "Int16_t", "Int16$info", TypedArray(ns_entry_t,
             {"abs", "abs", "func(i:Int16 -> Int16)"},
@@ -184,8 +185,6 @@ env_t *new_compilation_unit(CORD libname)
             {"unsigned_right_shifted", "Int16$unsigned_right_shifted", "func(x:Int16,y:Int16 -> Int16)"},
             {"wrapping_minus", "Int16$wrapping_minus", "func(x:Int16,y:Int16 -> Int16)"},
             {"wrapping_plus", "Int16$wrapping_plus", "func(x:Int16,y:Int16 -> Int16)"},
-            // Must be defined after min/max:
-            {"random", "Int16$random", "func(min=Int16.min, max=Int16.max -> Int16)"},
         )},
         {"Int8", Type(IntType, .bits=TYPE_IBITS8), "Int8_t", "Int8$info", TypedArray(ns_entry_t,
             {"abs", "abs", "func(i:Int8 -> Int8)"},
@@ -205,8 +204,6 @@ env_t *new_compilation_unit(CORD libname)
             {"unsigned_right_shifted", "Int8$unsigned_right_shifted", "func(x:Int8,y:Int8 -> Int8)"},
             {"wrapping_minus", "Int8$wrapping_minus", "func(x:Int8,y:Int8 -> Int8)"},
             {"wrapping_plus", "Int8$wrapping_plus", "func(x:Int8,y:Int8 -> Int8)"},
-            // Must be defined after min/max:
-            {"random", "Int8$random", "func(min=Int8.min, max=Int8.max -> Int8)"},
         )},
 #define C(name) {#name, "M_"#name, "Num"}
 #define F(name) {#name, #name, "func(n:Num -> Num)"}
@@ -224,7 +221,6 @@ env_t *new_compilation_unit(CORD libname)
             C(PI), C(PI_4), C(SQRT2), C(SQRT1_2),
             {"INF", "(Num_t)(INFINITY)", "Num"},
             {"TAU", "(Num_t)(2.*M_PI)", "Num"},
-            {"random", "Num$random", "func(->Num)"},
             {"mix", "Num$mix", "func(amount,x,y:Num -> Num)"},
             {"from_text", "Num$from_text", "func(text:Text -> Num?)"},
             {"abs", "fabs", "func(n:Num -> Num)"},
@@ -253,7 +249,6 @@ env_t *new_compilation_unit(CORD libname)
             C(PI), C(PI_4), C(SQRT2), C(SQRT1_2),
             {"INF", "(Num32_t)(INFINITY)", "Num32"},
             {"TAU", "(Num32_t)(2.f*M_PI)", "Num32"},
-            {"random", "Num32$random", "func(->Num32)"},
             {"mix", "Num32$mix", "func(amount,x,y:Num32 -> Num32)"},
             {"from_text", "Num32$from_text", "func(text:Text -> Num32?)"},
             {"abs", "fabsf", "func(n:Num32 -> Num32)"},
@@ -348,6 +343,22 @@ env_t *new_compilation_unit(CORD libname)
             {"replace", "Text$replace", "func(path:Path, pattern:Pattern, replacement:Text, backref=$/\\/, recursive=yes -> Path)"},
             {"replace_all", "Text$replace_all", "func(path:Path, replacements:{Pattern:Text}, backref=$/\\/, recursive=yes -> Path)"},
             {"starts_with", "Text$starts_with", "func(path:Path, prefix:Text -> Bool)"},
+        )},
+        // RNG must come after Path so we can read bytes from /dev/urandom
+        {"RNG", RNG_TYPE, "RNG_t", "RNG", TypedArray(ns_entry_t,
+            {"bool", "RNG$bool", "func(rng:RNG, p=0.5 -> Bool)"},
+            {"byte", "RNG$byte", "func(rng:RNG -> Byte)"},
+            {"bytes", "RNG$bytes", "func(rng:RNG, count:Int -> [Byte])"},
+            {"copy", "RNG$copy", "func(rng:RNG -> RNG)"},
+            {"int", "RNG$int", "func(rng:RNG, min,max:Int -> Int)"},
+            {"int16", "RNG$int16", "func(rng:RNG, min=Int16.min, max=Int16.max -> Int16)"},
+            {"int32", "RNG$int32", "func(rng:RNG, min=Int32.min, max=Int32.max -> Int32)"},
+            {"int64", "RNG$int64", "func(rng:RNG, min=Int64.min, max=Int64.max -> Int64)"},
+            {"int8", "RNG$int8", "func(rng:RNG, min=Int8.min, max=Int8.max -> Int8)"},
+            {"new", "RNG$new", "func(seed=(/dev/urandom):read_bytes(40) -> RNG)"},
+            {"num", "RNG$num", "func(rng:RNG, min=0.0, max=1.0 -> Num)"},
+            {"num32", "RNG$num32", "func(rng:RNG, min=0.0_f32, max=1.0_f32 -> Num32)"},
+            {"set_seed", "RNG$set_seed", "func(rng:RNG, seed:[Byte])"},
         )},
         {"Shell", Type(TextType, .lang="Shell", .env=namespace_env(env, "Shell")), "Shell_t", "Shell$info", TypedArray(ns_entry_t,
             {"by_line", "Shell$by_line", "func(command:Shell -> func(->Text?)?)"},
@@ -445,6 +456,8 @@ env_t *new_compilation_unit(CORD libname)
                 new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
                                           .ret=Type(TextType, .lang="Pattern", .env=namespace_env(env, "Pattern"))),
                     .code="(Pattern_t)"));
+
+    Table$str_set(env->globals, "random", new(binding_t, .type=RNG_TYPE, .code="default_rng"));
 
     env_t *lib_env = fresh_scope(env);
     lib_env->libname = libname;

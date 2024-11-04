@@ -27,7 +27,6 @@ CONSTFUNC bool Num$isinf(double n);
 CONSTFUNC bool Num$finite(double n);
 CONSTFUNC bool Num$isnan(double n);
 double Num$nan(Text_t tag);
-double Num$random(void);
 CONSTFUNC double Num$mix(double amount, double x, double y);
 OptionalNum_t Num$from_text(Text_t text);
 MACROLIKE CONSTFUNC double Num$clamped(double x, double low, double high) {
@@ -45,7 +44,6 @@ float Num32$mod(float num, float modulus);
 CONSTFUNC bool Num32$isinf(float n);
 CONSTFUNC bool Num32$finite(float n);
 CONSTFUNC bool Num32$isnan(float n);
-float Num32$random(void);
 CONSTFUNC float Num32$mix(float amount, float x, float y);
 OptionalNum32_t Num32$from_text(Text_t text);
 float Num32$nan(Text_t tag);

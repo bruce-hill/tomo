@@ -57,10 +57,6 @@ public CONSTFUNC double Num$mod(double num, double modulus) {
     return (result < 0) != (modulus < 0) ? result + modulus : result; 
 }
 
-public double Num$random(void) { 
-    return drand48(); 
-}
-
 public CONSTFUNC double Num$mix(double amount, double x, double y) { 
     return (1.0-amount)*x + amount*y;
 }
@@ -136,10 +132,6 @@ public Text_t Num32$scientific(float f, Int_t precision) {
 public CONSTFUNC float Num32$mod(float num, float modulus) { 
     float result = fmodf(num, modulus); 
     return (result < 0) != (modulus < 0) ? result + modulus : result; 
-}
-
-public float Num32$random(void) { 
-    return (float)drand48(); 
 }
 
 public CONSTFUNC float Num32$mix(float amount, float x, float y) { 

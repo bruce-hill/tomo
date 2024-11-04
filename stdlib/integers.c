@@ -14,13 +14,6 @@
 #include "text.h"
 #include "types.h"
 
-static _Thread_local gmp_randstate_t Int_rng = {};
-
-public void Int$init_random(long seed) {
-    gmp_randinit_default(Int_rng);
-    gmp_randseed_ui(Int_rng, (unsigned long)seed);
-}
-
 public Text_t Int$value_as_text(Int_t i) {
     if (__builtin_expect(i.small & 1, 1)) {
         return Text$format("%ld", (i.small)>>2);
@@ -316,31 +309,6 @@ public Int_t Int$sqrt(Int_t i)
     return Int$from_mpz(result);
 }
 
-public Int_t Int$random(Int_t min, Int_t max) {
-    int32_t cmp = Int$compare_value(min, max);
-    if (cmp > 0) {
-        Text_t min_text = Int$as_text(&min, false, &Int$info), max_text = Int$as_text(&max, false, &Int$info);
-        fail("Random minimum value (%k) is larger than the maximum value (%k)",
-             &min_text, &max_text);
-    }
-    if (cmp == 0) return min;
-
-    mpz_t range_size;
-    mpz_init_set_int(range_size, max);
-    if (min.small & 1) {
-        mpz_t min_mpz;
-        mpz_init_set_si(min_mpz, min.small >> 2);
-        mpz_sub(range_size, range_size, min_mpz);
-    } else {
-        mpz_sub(range_size, range_size, *min.big);
-    }
-
-    mpz_t r;
-    mpz_init(r);
-    mpz_urandomm(r, Int_rng, range_size);
-    return Int$plus(min, Int$from_mpz(r));
-}
-
 public PUREFUNC Range_t Int$to(Int_t from, Int_t to) {
     return (Range_t){from, to, Int$compare_value(to, from) >= 0 ? (Int_t){.small=(1<<2)|1} : (Int_t){.small=(-1>>2)|1}};
 }
@@ -439,25 +407,6 @@ public const TypeInfo_t Int$info = {
             x >>= 1; \
         } \
         return bit_array; \
-    } \
-    public c_type KindOfInt ## $full_random(void) { \
-        c_type r; \
-        arc4random_buf(&r, sizeof(r)); \
-        return r; \
-    } \
-    public c_type KindOfInt ## $random(c_type min, c_type max) { \
-        if (min > max) fail("Random minimum value (%ld) is larger than the maximum value (%ld)", min, max); \
-        if (min == max) return min; \
-        if (min == min_val && max == max_val) \
-            return KindOfInt ## $full_random(); \
-        uint64_t range = (uint64_t)max - (uint64_t)min + 1; \
-        uint64_t min_r = -range % range; \
-        uint64_t r; \
-        for (;;) { \
-            arc4random_buf(&r, sizeof(r)); \
-            if (r >= min_r) break; \
-        } \
-        return (c_type)((uint64_t)min + (r % range)); \
     } \
     public to_attr Range_t KindOfInt ## $to(c_type from, c_type to) { \
         return (Range_t){Int64_to_Int(from), Int64_to_Int(to), to >= from ? (Int_t){.small=(1<<2)&1} : (Int_t){.small=(1<<2)&1}}; \

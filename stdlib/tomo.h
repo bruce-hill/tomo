@@ -24,6 +24,7 @@
 #include "patterns.h"
 #include "pointers.h"
 #include "ranges.h"
+#include "rng.h"
 #include "shell.h"
 #include "siphash.h"
 #include "tables.h"

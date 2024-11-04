@@ -35,27 +35,3 @@ func from_text(text: Text -> Bool?)
 >> Bool.from_text("???")
 = !Bool
 ```
-
----
-
-## `random`
-
-**Description:**  
-Generates a random boolean value based on a specified probability.
-
-**Signature:**  
-```tomo
-func random(p: Float = 0.5 -> Bool)
-```
-
-**Parameters:**
-
-- `p`: The probability (between `0` and `1`) of returning `yes`. Default is `0.5`.
-
-**Returns:**  
-`yes` with probability `p`, and `no` with probability `1 - p`.
-
-**Example:**  
-```tomo
->> Bool.random(70%)  // yes (with 70% probability)
-```

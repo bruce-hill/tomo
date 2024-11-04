@@ -9,27 +9,4 @@ integer with a `[B]` suffix, e.g. `255[B]`.
 
 # Byte Methods
 
-## `random`
-
-**Description:**  
-Generates a random byte value in the specified range.
-
-**Signature:**  
-```tomo
-func random(min: Byte = Byte.min, max: Byte = Byte.max -> Byte)
-```
-
-**Parameters:**
-
-- `min`: The minimum value to generate (inclusive).
-- `max`: The maximum value to generate (inclusive).
-
-**Returns:**  
-A random byte chosen with uniform probability from within the given range
-(inclusive). If `min` is greater than `max`, an error will be raised.
-
-**Example:**  
-```tomo
->> Byte.random()
-= 42[B]
-```
+None.

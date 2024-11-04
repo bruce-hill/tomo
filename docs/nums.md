@@ -991,30 +991,6 @@ The next representable value after `x` in the direction of `y`.
 
 ---
 
-### `random`
-
-**Description:**
-Generates a random floating-point number.
-
-**Signature:**
-```tomo
-func random(->Num)
-```
-
-**Parameters:**
-None
-
-**Returns:**
-A random floating-point number between 0 and 1.
-
-**Example:**
-```tomo
->> Num.random()
-= 0.4521
-```
-
----
-
 ### `rint`
 
 **Description:**
