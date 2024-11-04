@@ -17,8 +17,6 @@ func main():
 	>> Num.PI:format(precision=10)
 	= "3.1415926536"
 
-	>> Num.random()
-
 	>> Num.INF
 	= inf
 	>> Num.INF:isinf()

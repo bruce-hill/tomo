@@ -50,7 +50,6 @@ func main():
 	>> x:octal()
 	= "0o173"
 
-	>> Int.random(1, 100)
 	>> Int64.min
 	= -9223372036854775808[64]
 	>> Int64.max
@@ -87,8 +86,8 @@ func main():
 
 	do:
 		for in 20:
-			>> n := Int.random(-999999, 999999)
-			>> d := Int.random(-999, 999)
+			>> n := random:int(-999999, 999999)
+			>> d := random:int(-999, 999)
 			!! n=$n, d=$d:
 			>> (n/d)*d + (n mod d) == n
 			= yes

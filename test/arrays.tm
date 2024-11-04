@@ -105,7 +105,7 @@ func main():
 	>> ["A", "B", "C"]:sample(10, [1.0, 0.5, 0.0])
 
 	do:
-		>> heap := [Int.random(1, 50) for _ in 10]
+		>> heap := [random:int(1, 50) for _ in 10]
 		>> heap:heapify()
 		>> heap
 		sorted := [:Int]
@@ -114,7 +114,7 @@ func main():
 		>> sorted == sorted:sorted()
 		= yes
 		for _ in 10:
-			heap:heap_push(Int.random(1, 50))
+			heap:heap_push(random:int(1, 50))
 		>> heap
 		sorted = [:Int]
 		while heap.length > 0:
@@ -172,29 +172,3 @@ func main():
 	= !Int
 	>> [4, 5, 6]:first(func(i:&Int): i:is_prime())
 	= 2?
-
-	test_seeded_rng()
-
-# Inspired by: https://nullprogram.com/blog/2017/09/21/
-struct RNGxoroshiro128(s0=Int64.random(),s1=Int64.random()):
-	func int_fn(rng:@RNGxoroshiro128 -> func(->Int64)):
-		return func(-> Int64):
-			s0 := rng.s0
-			s1 := rng.s1
-			result := s0:wrapping_plus(s1)
-			s1 xor= s0
-			rng.s0 = (s0 <<< 55) or (s0 >>> 9) xor s1 xor (s1 <<< 14)
-			rng.s1 = (s1 <<< 36) or (s1 >>> 28)
-			return result
-
-func test_seeded_rng():
-	!! Seeded RNG:
-	rng_state := RNGxoroshiro128(Int64.random(), Int64.random())
-	rng1 := @rng_state:int_fn()
-	rng2 := @rng_state:int_fn()
-
-	nums := [i*10 for i in 20]
-	>> nums:random(rng1) == nums:random(rng2)
-	= yes
-	>> nums:shuffled(rng1) == nums:shuffled(rng2)
-	= yes
