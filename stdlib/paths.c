@@ -315,9 +315,6 @@ public OptionalArray_t Path$read_bytes(Path_t path, OptionalInt_t count)
 
             memcpy(&content[len], chunk, (size_t)just_read);
             len += (size_t)just_read;
-
-            if ((size_t)just_read < sizeof(chunk))
-                break;
         }
         close(fd);
         if (count.small != 0 && (int64_t)len < target_count)
