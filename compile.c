@@ -272,7 +272,9 @@ CORD compile_type(type_t *t)
         case CStringType: case FunctionType: case ClosureType:
         case PointerType: case EnumType: case ChannelType:
             return compile_type(nonnull);
-        case IntType: case BigIntType: case TextType: case NumType: case BoolType: case ByteType:
+        case TextType:
+            return Match(nonnull, TextType)->lang ? compile_type(nonnull) : "OptionalText_t";
+        case IntType: case BigIntType: case NumType: case BoolType: case ByteType:
         case ArrayType: case TableType: case SetType: case DateTimeType:
             return CORD_all("Optional", compile_type(nonnull));
         case StructType: {
