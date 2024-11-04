@@ -172,7 +172,7 @@ Return a new random number generator.
 
 **Signature:**  
 ```tomo
-func new(seed: [Byte] = (/dev/urandom):read_bytes(40) -> RNG)
+func new(seed: [Byte] = (/dev/urandom):read_bytes(40)! -> RNG)
 ```
 
 **Parameters:**

@@ -355,7 +355,7 @@ env_t *new_compilation_unit(CORD libname)
             {"int32", "RNG$int32", "func(rng:RNG, min=Int32.min, max=Int32.max -> Int32)"},
             {"int64", "RNG$int64", "func(rng:RNG, min=Int64.min, max=Int64.max -> Int64)"},
             {"int8", "RNG$int8", "func(rng:RNG, min=Int8.min, max=Int8.max -> Int8)"},
-            {"new", "RNG$new", "func(seed=(/dev/urandom):read_bytes(40) -> RNG)"},
+            {"new", "RNG$new", "func(seed=(/dev/urandom):read_bytes(40)! -> RNG)"},
             {"num", "RNG$num", "func(rng:RNG, min=0.0, max=1.0 -> Num)"},
             {"num32", "RNG$num32", "func(rng:RNG, min=0.0_f32, max=1.0_f32 -> Num32)"},
             {"set_seed", "RNG$set_seed", "func(rng:RNG, seed:[Byte])"},
