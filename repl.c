@@ -353,23 +353,12 @@ void eval(env_t *env, ast_t *ast, void *dest)
     }
     case Int: {
         if (!dest) return;
-        switch (Match(ast, Int)->bits) {
-        case 0: *(Int_t*)dest = Int$from_text(Text$from_str(Match(ast, Int)->str)); break;
-        case 64: *(int64_t*)dest = Int64$from_text(Text$from_str(Match(ast, Int)->str)).i; break;
-        case 32: *(int32_t*)dest = Int32$from_text(Text$from_str(Match(ast, Int)->str)).i; break;
-        case 16: *(int16_t*)dest = Int16$from_text(Text$from_str(Match(ast, Int)->str)).i; break;
-        case 8: *(int8_t*)dest = Int8$from_text(Text$from_str(Match(ast, Int)->str)).i; break;
-        default: errx(1, "Invalid int bits: %ld", Match(ast, Int)->bits);
-        }
+        *(Int_t*)dest = Int$from_text(Text$from_str(Match(ast, Int)->str)); break;
         break;
     }
     case Num: {
         if (!dest) return;
-        switch (Match(ast, Num)->bits) {
-        case 0: case 64: *(double*)dest = Match(ast, Num)->n; break;
-        case 32: *(float*)dest = Match(ast, Num)->n; break;
-        default: errx(1, "Invalid num bits: %ld", Match(ast, Num)->bits);
-        }
+        *(double*)dest = Match(ast, Num)->n; break;
         break;
     }
     case TextLiteral:

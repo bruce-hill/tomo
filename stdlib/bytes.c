@@ -14,7 +14,7 @@ PUREFUNC public Text_t Byte$as_text(const Byte_t *b, bool colorize, const TypeIn
 {
     (void)type;
     if (!b) return Text("Byte");
-    return Text$format(colorize ? "\x1b[35m%u[B]\x1b[m" : "%u[B]", *b);
+    return Text$format(colorize ? "\x1b[36mByte\x1b[m(\x1b[35m0x%02X\x1b[m)" : "Byte(0x%02X)", *b);
 }
 
 public const TypeInfo_t Byte$info = {

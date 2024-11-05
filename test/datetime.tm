@@ -36,8 +36,8 @@ func main():
     = "Tuesday"
 
     >> t:unix_timestamp()
-    = 1704221100[64]
-    >> t == DateTime.from_unix_timestamp(1704221100[64])
+    = Int64(1704221100)
+    >> t == DateTime.from_unix_timestamp(1704221100)
     = yes
 
     >> t < t:after(minutes=1)

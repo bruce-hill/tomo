@@ -377,7 +377,7 @@ public const TypeInfo_t Int$info = {
     public Text_t KindOfInt ## $as_text(const c_type *i, bool colorize, const TypeInfo_t *type) { \
         (void)type; \
         if (!i) return Text(#KindOfInt); \
-        return Text$format(colorize ? "\x1b[35m%" fmt "\x1b[m" : "%" fmt, *i); \
+        return Text$format(colorize ? "\x1b[36m" #KindOfInt "\x1b[m(\x1b[35m" fmt "\x1b[m)" : #KindOfInt "(" fmt ")", *i); \
     } \
     public PUREFUNC int32_t KindOfInt ## $compare(const c_type *x, const c_type *y, const TypeInfo_t *type) { \
         (void)type; \
@@ -431,10 +431,10 @@ public const TypeInfo_t Int$info = {
         .CustomInfo={.compare=(void*)KindOfInt##$compare, .as_text=(void*)KindOfInt##$as_text}, \
     };
 
-DEFINE_INT_TYPE(int64_t,  Int64,  "ld[64]", INT64_MIN, INT64_MAX, __attribute__(()))
-DEFINE_INT_TYPE(int32_t,  Int32,  "d[32]",  INT32_MIN, INT32_MAX, CONSTFUNC)
-DEFINE_INT_TYPE(int16_t,  Int16,  "d[16]",  INT16_MIN, INT16_MAX, CONSTFUNC)
-DEFINE_INT_TYPE(int8_t,   Int8,   "d[8]",   INT8_MIN,  INT8_MAX, CONSTFUNC)
+DEFINE_INT_TYPE(int64_t,  Int64,  "%ld", INT64_MIN, INT64_MAX, __attribute__(()))
+DEFINE_INT_TYPE(int32_t,  Int32,  "%d",  INT32_MIN, INT32_MAX, CONSTFUNC)
+DEFINE_INT_TYPE(int16_t,  Int16,  "%d",  INT16_MIN, INT16_MAX, CONSTFUNC)
+DEFINE_INT_TYPE(int8_t,   Int8,   "%d",  INT8_MIN,  INT8_MAX, CONSTFUNC)
 #undef DEFINE_INT_TYPE
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

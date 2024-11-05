@@ -64,7 +64,7 @@ func _send(method:_Method, url:Text, data:Text?, headers=[:Text] -> HTTPResponse
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
     }
 
-    code := 0[64]
+    code := Int64(0)
     inline C {
         CURLcode res = curl_easy_perform(curl);
         if (res != CURLE_OK)
@@ -75,7 +75,7 @@ func _send(method:_Method, url:Text, data:Text?, headers=[:Text] -> HTTPResponse
             curl_slist_free_all(chunk);
         curl_easy_cleanup(curl);
     }
-    return HTTPResponse(code, "":join(chunks))
+    return HTTPResponse(Int(code), "":join(chunks))
 
 func get(url:Text, headers=[:Text] -> HTTPResponse):
     return _send(GET, url, !Text, headers)

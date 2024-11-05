@@ -499,22 +499,13 @@ PARSER(parse_int) {
 
     if (match(&pos, "%")) {
         double n = strtod(str, NULL) / 100.;
-        return NewAST(ctx->file, start, pos, Num, .n=n, .bits=64);
+        return NewAST(ctx->file, start, pos, Num, .n=n);
     } else if (match(&pos, "deg")) {
         double n = strtod(str, NULL) * RADIANS_PER_DEGREE;
-        return NewAST(ctx->file, start, pos, Num, .n=n, .bits=64);
+        return NewAST(ctx->file, start, pos, Num, .n=n);
     }
 
-    auto bits = IBITS_UNSPECIFIED;
-    if (match(&pos, "[64]")) bits = IBITS64;
-    else if (match(&pos, "[32]")) bits = IBITS32;
-    else if (match(&pos, "[16]")) bits = IBITS16;
-    else if (match(&pos, "[8]")) bits = IBITS8;
-    else if (match(&pos, "[B]")) bits = IBITS_BYTE;
-
-    // else if (match(&pos, ".") || match(&pos, "e")) return NULL; // looks like a float
-
-    return NewAST(ctx->file, start, pos, Int, .str=str, .bits=bits);
+    return NewAST(ctx->file, start, pos, Int, .str=str);
 }
 
 PARSER(parse_datetime) {
@@ -731,17 +722,12 @@ PARSER(parse_num) {
 
     if (negative) d *= -1;
 
-    auto bits = NBITS_UNSPECIFIED;
-    match(&pos, "_");
-    if (match(&pos, "f64")) bits = NBITS64;
-    else if (match(&pos, "f32")) bits = NBITS32;
-
     if (match(&pos, "%"))
         d /= 100.;
     else if (match(&pos, "deg"))
         d *= RADIANS_PER_DEGREE;
 
-    return NewAST(ctx->file, start, pos, Num, .n=d, .bits=bits);
+    return NewAST(ctx->file, start, pos, Num, .n=d);
 }
 
 static INLINE bool match_separator(const char **pos) { // Either comma or newline
@@ -2253,7 +2239,7 @@ PARSER(parse_func_def) {
         if (match_word(&pos, "inline")) {
             is_inline = true;
         } else if (match_word(&pos, "cached")) {
-            if (!cache_ast) cache_ast = NewAST(ctx->file, pos, pos, Int, .str="-1", .bits=0);
+            if (!cache_ast) cache_ast = NewAST(ctx->file, pos, pos, Int, .str="-1");
         } else if (match_word(&pos, "cache_size")) {
             whitespace(&pos);
             if (!match(&pos, "="))

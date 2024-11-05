@@ -12,23 +12,23 @@ func main():
         >> rng:int(1, 1000)
         = 921
         >> rng:int64(1, 1000)
-        = 324[64]
+        = Int64(324)
         >> rng:int32(1, 1000)
-        = 586[32]
+        = Int32(586)
         >> rng:int16(1, 1000)
-        = 453[16]
+        = Int16(453)
         >> rng:int8(1, 100)
-        = 53[8]
+        = Int8(53)
         >> rng:byte()
-        = 220[B]
+        = Byte(0xDC)
         >> rng:bytes(10)
-        = [160[B], 90[B], 16[B], 63[B], 108[B], 209[B], 53[B], 194[B], 135[B], 140[B]]
+        = [Byte(0xA0), Byte(0x5A), Byte(0x10), Byte(0x3F), Byte(0x6C), Byte(0xD1), Byte(0x35), Byte(0xC2), Byte(0x87), Byte(0x8C)]
         >> rng:bool(p=0.8)
         = yes
         >> rng:num()
         = 0.03492503353647658
         >> rng:num32(1, 1000)
-        = 761.05908_f32
+        = Num32(761.05908)
 
         !! Random array methods:
         >> nums := [10*i for i in 10]

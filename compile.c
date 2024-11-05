@@ -1616,9 +1616,6 @@ env_t *with_enum_scope(env_t *env, type_t *t)
 
 CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
 {
-    if (target->tag == BigIntType)
-        return compile(env, ast);
-
     if (ast->tag != Int) {
         CORD code = compile(env, ast);
         type_t *actual_type = get_type(env, ast);
@@ -1627,41 +1624,54 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
         return code;
     }
 
-    OptionalInt_t int_val = Int$from_str(Match(ast, Int)->str);
+    if (target->tag == BigIntType)
+        return compile(env, ast);
+
+    const char *literal = Match(ast, Int)->str;
+    OptionalInt_t int_val = Int$from_str(literal);
     if (int_val.small == 0)
         code_err(ast, "Failed to parse this integer");
 
     mpz_t i;
     mpz_init_set_int(i, int_val);
 
+    char *c_literal;
+    if (strncmp(literal, "0x", 2) == 0 || strncmp(literal, "0X", 2) == 0 || strncmp(literal, "0b", 2) == 0) {
+        gmp_asprintf(&c_literal, "0x%ZX", i);
+    } else if (strncmp(literal, "0o", 2) == 0) {
+        gmp_asprintf(&c_literal, "%#Zo", i);
+    } else {
+        gmp_asprintf(&c_literal, "%#Zd", i);
+    }
+
     if (target->tag == ByteType) {
         if (mpz_cmp_si(i, UINT8_MAX) <= 0 && mpz_cmp_si(i, 0) >= 0)
-            return CORD_asprintf("(Byte_t)(%s)", Match(ast, Int)->str);
+            return CORD_asprintf("(Byte_t)(%s)", c_literal);
         code_err(ast, "This integer cannot fit in a byte");
     } else if (target->tag == NumType) {
         if (Match(target, NumType)->bits == TYPE_NBITS64) {
-            return CORD_asprintf("N64(%s)", Match(ast, Int)->str);
+            return CORD_asprintf("N64(%s)", c_literal);
         } else {
-            return CORD_asprintf("N32(%s)", Match(ast, Int)->str);
+            return CORD_asprintf("N32(%s)", c_literal);
         }
     } else if (target->tag == IntType) {
         int64_t target_bits = (int64_t)Match(target, IntType)->bits;
         switch (target_bits) {
         case TYPE_IBITS64:
             if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0)
-                return CORD_asprintf("I64(%s)", Match(ast, Int)->str);
+                return CORD_asprintf("I64(%s)", c_literal);
             break;
         case TYPE_IBITS32:
             if (mpz_cmp_si(i, INT32_MAX) <= 0 && mpz_cmp_si(i, INT32_MIN) >= 0)
-                return CORD_asprintf("I32(%s)", Match(ast, Int)->str);
+                return CORD_asprintf("I32(%s)", c_literal);
             break;
         case TYPE_IBITS16:
             if (mpz_cmp_si(i, INT16_MAX) <= 0 && mpz_cmp_si(i, INT16_MIN) >= 0)
-                return CORD_asprintf("I16(%s)", Match(ast, Int)->str);
+                return CORD_asprintf("I16(%s)", c_literal);
             break;
         case TYPE_IBITS8:
             if (mpz_cmp_si(i, INT8_MAX) <= 0 && mpz_cmp_si(i, INT8_MIN) >= 0)
-                return CORD_asprintf("I8(%s)", Match(ast, Int)->str);
+                return CORD_asprintf("I8(%s)", c_literal);
             break;
         default: break;
         }
@@ -1934,6 +1944,22 @@ static ast_t *add_to_set_comprehension(ast_t *item, ast_t *subject)
     return WrapAST(item, MethodCall, .name="add", .self=subject, .args=new(arg_ast_t, .value=item));
 }
 
+static CORD compile_num_to_type(ast_t *ast, type_t *type)
+{
+    double n = Match(ast, Num)->n;
+
+    if (type->tag != NumType)
+        code_err(ast, "I can't compile a number literal to a %T", type);
+
+    switch (Match(type, NumType)->bits) {
+    case TYPE_NBITS64:
+        return CORD_asprintf("N64(%.20g)", n);
+    case TYPE_NBITS32:
+        return CORD_asprintf("N32(%.10g)", n);
+    default: code_err(ast, "This is not a valid number bit width");
+    }
+}
+
 CORD compile(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
@@ -1960,9 +1986,6 @@ CORD compile(env_t *env, ast_t *ast)
             code_err(ast, "Failed to parse this integer");
         mpz_t i;
         mpz_init_set_int(i, int_val);
-
-        switch (Match(ast, Int)->bits) {
-        case IBITS_UNSPECIFIED:
         if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0) {
             return CORD_asprintf("I_small(%s)", str);
         } else if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0) {
@@ -1970,37 +1993,9 @@ CORD compile(env_t *env, ast_t *ast)
         } else {
             return CORD_asprintf("Int$from_str(\"%s\")", str);
         }
-        case IBITS64:
-        if ((mpz_cmp_si(i, INT64_MAX) <= 0) && (mpz_cmp_si(i, INT64_MIN) >= 0))
-            return CORD_asprintf("I64(%ldl)", mpz_get_si(i));
-        code_err(ast, "This value cannot fit in a 64-bit integer");
-        case IBITS32:
-        if ((mpz_cmp_si(i, INT32_MAX) <= 0) && (mpz_cmp_si(i, INT32_MIN) >= 0))
-            return CORD_asprintf("I32(%ld)", mpz_get_si(i));
-        code_err(ast, "This value cannot fit in a 32-bit integer");
-        case IBITS16:
-        if ((mpz_cmp_si(i, INT16_MAX) <= 0) && (mpz_cmp_si(i, INT16_MIN) >= 0))
-            return CORD_asprintf("I16(%ld)", mpz_get_si(i));
-        code_err(ast, "This value cannot fit in a 16-bit integer");
-        case IBITS8:
-        if ((mpz_cmp_si(i, INT8_MAX) <= 0) && (mpz_cmp_si(i, INT8_MIN) >= 0))
-            return CORD_asprintf("I8(%ld)", mpz_get_si(i));
-        code_err(ast, "This value cannot fit in a 8-bit integer");
-        case IBITS_BYTE:
-        if ((mpz_cmp_si(i, UINT8_MAX) <= 0) && (mpz_cmp_si(i, 0) >= 0))
-            return CORD_asprintf("Byte(%ld)", mpz_get_si(i));
-        code_err(ast, "This value cannot fit in a byte");
-        default: code_err(ast, "Not a valid integer bit width");
-        }
     }
     case Num: {
-        switch (Match(ast, Num)->bits) {
-        case NBITS_UNSPECIFIED: case NBITS64:
-            return CORD_asprintf("N64(%.20g)", Match(ast, Num)->n);
-        case NBITS32:
-            return CORD_asprintf("N32(%.10g)", Match(ast, Num)->n);
-        default: code_err(ast, "This is not a valid number bit width");
-        }
+        return CORD_asprintf("N64(%.20g)", Match(ast, Num)->n);
     }
     case Not: {
         ast_t *value = Match(ast, Not)->value;
@@ -3032,6 +3027,14 @@ CORD compile(env_t *env, ast_t *ast)
                 // Struct constructor:
                 fn_t = Type(FunctionType, .args=Match(t, StructType)->fields, .ret=t);
                 return CORD_all("((", compile_type(t), "){", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), "})");
+            } else if (is_numeric_type(t) && call->args && call->args->value->tag == Int) {
+                if (call->args->next)
+                    code_err(call->args->next->value, "This is too many arguments to an integer literal constructor");
+                return compile_int_to_type(env, call->args->value, t);
+            } else if (t->tag == NumType && call->args && call->args->value->tag == Num) {
+                if (call->args->next)
+                    code_err(call->args->next->value, "This is too many arguments to a number literal constructor");
+                return compile_num_to_type(call->args->value, t);
             } else if (t->tag == NumType || t->tag == BigIntType) {
                 if (!call->args) code_err(ast, "This constructor needs a value");
                 type_t *actual = get_type(env, call->args->value);

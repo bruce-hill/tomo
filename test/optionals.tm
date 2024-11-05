@@ -21,7 +21,7 @@ func maybe_int(should_i:Bool->Int?):
 
 func maybe_int64(should_i:Bool->Int64?):
     if should_i:
-        return 123[64]
+        return Int64(123)
     else:
         return !Int64
 
@@ -113,12 +113,12 @@ func main():
         !! ...
         !! Int64s:
         >> yep := maybe_int64(yes)
-        = 123[64]?
+        = Int64(123)?
         >> nope := maybe_int64(no)
         = !Int64
         >> if yep:
             >> yep
-            = 123[64]
+            = Int64(123)
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")

@@ -29,21 +29,21 @@ func main():
 	>> amelie:split()
 	= ["A", "m", "é", "l", "i", "e"] : [Text]
 	>> amelie:utf32_codepoints()
-	= [65[32], 109[32], 233[32], 108[32], 105[32], 101[32]] : [Int32]
+	= [Int32(65), Int32(109), Int32(233), Int32(108), Int32(105), Int32(101)]
 	>> amelie:utf8_bytes()
-	= [65[B], 109[B], 195[B], 169[B], 108[B], 105[B], 101[B]] : [Byte]
-	>> Text.from_bytes([65[B], 109[B], 195[B], 169[B], 108[B], 105[B], 101[B]])!
+	= [Byte(0x41), Byte(0x6D), Byte(0xC3), Byte(0xA9), Byte(0x6C), Byte(0x69), Byte(0x65)]
+	>> Text.from_bytes([:Byte 0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65])!
 	= "Amélie"
-	>> Text.from_bytes([255[B]])
+	>> Text.from_bytes([Byte(0xFF)])
 	= !Text
 
 	>> amelie2 := "Am$(\U65\U301)lie"
 	>> amelie2:split()
 	= ["A", "m", "é", "l", "i", "e"] : [Text]
 	>> amelie2:utf32_codepoints()
-	= [65[32], 109[32], 233[32], 108[32], 105[32], 101[32]] : [Int32]
+	= [Int32(65), Int32(109), Int32(233), Int32(108), Int32(105), Int32(101)]
 	>> amelie2:utf8_bytes()
-	= [65[B], 109[B], 195[B], 169[B], 108[B], 105[B], 101[B]] : [Byte]
+	= [Byte(0x41), Byte(0x6D), Byte(0xC3), Byte(0xA9), Byte(0x6C), Byte(0x69), Byte(0x65)]
 
 	>> amelie:codepoint_names()
 	= ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E WITH ACUTE", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
@@ -216,7 +216,7 @@ func main():
 	>> house:codepoint_names()
 	= ["CJK Unified Ideographs-5BB6"]
 	>> house:utf32_codepoints()
-	= [23478[32]]
+	= [Int32(23478)]
 
 	>> "🐧":codepoint_names()
 	= ["PENGUIN"]

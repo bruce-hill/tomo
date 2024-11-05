@@ -2,7 +2,7 @@
 
 _enc := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/":utf8_bytes()
 
-_EQUAL_BYTE := 0x3D[B]
+_EQUAL_BYTE := Byte(0x3D)
 
 _dec := [
     :Byte
@@ -29,9 +29,9 @@ lang Base64:
         return Base64.from_bytes(text:utf8_bytes())
 
     func from_bytes(bytes:[Byte] -> Base64?):
-        output := [0[B] for _ in bytes.length * 4 / 3 + 4]
-        src := 1[64]
-        dest := 1[64]
+        output := [Byte(0) for _ in bytes.length * 4 / 3 + 4]
+        src := Int64(1)
+        dest := Int64(1)
         while src + 2 <= bytes.length:
             chunk24 := (
                 (Int32(bytes[src]) <<< 16) or (Int32(bytes[src+1]) <<< 8) or Int32(bytes[src+2])
@@ -66,9 +66,9 @@ lang Base64:
 
     func decode_bytes(b64:Base64 -> [Byte]?):
         bytes := b64.text_content:utf8_bytes()
-        output := [0[B] for _ in bytes.length/4 * 3]
-        src := 1[64]
-        dest := 1[64]
+        output := [Byte(0) for _ in bytes.length/4 * 3]
+        src := Int64(1)
+        dest := Int64(1)
         while src + 3 <= bytes.length:
             chunk24 := (
                 (Int32(_dec[1+bytes[src]]) <<< 18) or

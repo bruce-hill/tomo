@@ -491,26 +491,10 @@ type_t *get_type(env_t *env, ast_t *ast)
         return Type(BoolType);
     }
     case Int: {
-        auto i = Match(ast, Int);
-        switch (i->bits) {
-        case IBITS_UNSPECIFIED: return Type(BigIntType);
-        case IBITS_BYTE: return Type(ByteType);
-        case IBITS8: return Type(IntType, .bits=TYPE_IBITS8);
-        case IBITS16: return Type(IntType, .bits=TYPE_IBITS16);
-        case IBITS32: return Type(IntType, .bits=TYPE_IBITS32);
-        case IBITS64: return Type(IntType, .bits=TYPE_IBITS64);
-        default: errx(1, "Invalid integer bits");
-        }
+        return Type(BigIntType);
     }
     case Num: {
-        auto n = Match(ast, Num);
-        switch (n->bits) {
-        case NBITS_UNSPECIFIED: case NBITS64:
-            return Type(NumType, .bits=TYPE_NBITS64);
-        case NBITS32:
-            return Type(NumType, .bits=TYPE_NBITS32);
-        default: errx(1, "Invalid num bits");
-        }
+        return Type(NumType, .bits=TYPE_NBITS64);
     }
     case HeapAllocate: {
         type_t *pointed = get_type(env, Match(ast, HeapAllocate)->value);
@@ -1314,12 +1298,9 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast)
     case Bool: case Num: case Null: return true;
     case Int: {
         auto info = Match(ast, Int);
-        if (info->bits == IBITS_UNSPECIFIED) {
-            Int_t int_val = Int$from_text(Text$from_str(info->str));
-            if (int_val.small == 0) return false; // Failed to parse
-            return (Int$compare_value(int_val, I(BIGGEST_SMALL_INT)) <= 0);
-        }
-        return true;
+        Int_t int_val = Int$from_text(Text$from_str(info->str));
+        if (int_val.small == 0) return false; // Failed to parse
+        return (Int$compare_value(int_val, I(BIGGEST_SMALL_INT)) <= 0);
     }
     case TextJoin: {
         auto text = Match(ast, TextJoin);
@@ -1357,6 +1338,14 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast)
         if (call->fn->tag != Var) return false;
         binding_t *b = get_binding(env, Match(call->fn, Var)->name);
         if (b == NULL || b->type->tag != TypeInfoType) return false;
+
+        type_t *t = Match(b->type, TypeInfoType)->type;
+        if (t->tag == IntType) {
+            return call->args->value->tag == Int;
+        } else if (t->tag == NumType) {
+            return call->args->value->tag == Num;
+        }
+
         for (arg_ast_t *arg = call->args; arg; arg = arg->next) {
             if (!is_constant(env, arg->value))
                 return false;

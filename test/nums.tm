@@ -41,8 +41,8 @@ func main():
 	>> Num.INF:near(-Num.INF)
 	= no
 
-	>> Num32.sqrt(16f32)
-	= 4_f32
+	>> Num32.sqrt(16)
+	= Num32(4)
 
 	>> 0.25:mix(10, 20)
 	= 12.5

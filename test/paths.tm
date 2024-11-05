@@ -25,7 +25,7 @@ func main():
     >> tmpfile:read()
     = "Hello world!"?
     >> tmpfile:read_bytes()
-    = [72[B], 101[B], 108[B], 108[B], 111[B], 32[B], 119[B], 111[B], 114[B], 108[B], 100[B], 33[B]]?
+    = [Byte(0x48), Byte(0x65), Byte(0x6C), Byte(0x6C), Byte(0x6F), Byte(0x20), Byte(0x77), Byte(0x6F), Byte(0x72), Byte(0x6C), Byte(0x64), Byte(0x21)]? : [Byte]?
     >> tmpdir:files():has(tmpfile)
     = yes
 

@@ -10,6 +10,8 @@ are converted to radians at compile time (i.e. `180deg == Nums.PI`).
 Nums support the standard math operations (`x+y`, `x-y`, `x*y`, `x/y`) as well as
 powers/exponentiation (`x^y`) and modulus (`x mod y` and `x mod1 y`).
 
+32-bit numbers can be constructed using the type name: `Num32(123.456)`.
+
 # Num Functions
 
 Each Num type has its own version of the following functions. Functions can be

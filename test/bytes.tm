@@ -1,8 +1,8 @@
 
 func main():
     !! Test bytes:
-    >> 100[B]
-    = 100[B]
+    >> Byte(100)
+    = Byte(0x64)
 
-    >> 0xFF[B]
-    = 255[B]
+    >> Byte(0xFF)
+    = Byte(0xFF)
