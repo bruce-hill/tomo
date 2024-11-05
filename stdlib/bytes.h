@@ -28,6 +28,8 @@ extern const Byte_t Byte$max;
 
 extern const TypeInfo_t Byte$info;
 
+Text_t Byte$hex(Byte_t byte, bool uppercase, bool prefix);
+
 typedef struct {
     Byte_t value;
     bool is_null:1;

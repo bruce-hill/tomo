@@ -101,6 +101,7 @@ env_t *new_compilation_unit(CORD libname)
         )},
         {"Byte", Type(ByteType), "Byte_t", "Byte$info", TypedArray(ns_entry_t,
             {"max", "Byte$max", "Byte"},
+            {"hex", "Byte$hex", "func(byte:Byte, uppercase=yes, prefix=no -> Text)"},
             {"min", "Byte$min", "Byte"},
         )},
         {"Int", Type(BigIntType), "Int_t", "Int$info", TypedArray(ns_entry_t,
@@ -643,7 +644,7 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
     case ArrayType: return NULL;
     case TableType: return NULL;
     case CStringType: case DateTimeType:
-    case BoolType: case IntType: case BigIntType: case NumType: {
+    case BoolType: case IntType: case BigIntType: case NumType: case ByteType: {
         binding_t *b = get_binding(env, CORD_to_const_char_star(type_to_cord(cls_type)));
         assert(b);
         return get_binding(Match(b->type, TypeInfoType)->env, name);

@@ -17,6 +17,19 @@ PUREFUNC public Text_t Byte$as_text(const Byte_t *b, bool colorize, const TypeIn
     return Text$format(colorize ? "\x1b[36mByte\x1b[m(\x1b[35m0x%02X\x1b[m)" : "Byte(0x%02X)", *b);
 }
 
+public Text_t Byte$hex(Byte_t byte, bool uppercase, bool prefix) {
+    Text_t text = {.tag=TEXT_SHORT_ASCII};
+    if (prefix && uppercase)
+        text.length = (int64_t)snprintf(text.short_ascii, sizeof(text.short_ascii), "0x%02X", byte);
+    else if (prefix && !uppercase)
+        text.length = (int64_t)snprintf(text.short_ascii, sizeof(text.short_ascii), "0x%02x", byte);
+    else if (!prefix && uppercase)
+        text.length = (int64_t)snprintf(text.short_ascii, sizeof(text.short_ascii), "%02X", byte);
+    else if (!prefix && !uppercase)
+        text.length = (int64_t)snprintf(text.short_ascii, sizeof(text.short_ascii), "%02x", byte);
+    return text;
+}
+
 public const TypeInfo_t Byte$info = {
     .size=sizeof(Byte_t),
     .align=__alignof__(Byte_t),
