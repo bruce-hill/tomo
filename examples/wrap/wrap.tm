@@ -49,12 +49,12 @@ func wrap(text:Text, width:Int, min_split=3, hyphen="-" -> Text):
                 split = split _max_ min_split
                 split = split _min_ (letters.length - min_split)
                 if line != "": line ++= " "
-                line ++= ((++) letters:to(split)) ++ hyphen
+                line ++= ((++: letters:to(split)) or "") ++ hyphen
                 letters = letters:from(split + 1)
             else if line == "":
                 # Force split word without hyphenation:
                 if line != "": line ++= " "
-                line ++= ((++) letters:to(line_space))
+                line ++= (++: letters:to(line_space)) or ""
                 letters = letters:from(line_space + 1)
             else:
                 pass # Move to next line
@@ -64,7 +64,7 @@ func wrap(text:Text, width:Int, min_split=3, hyphen="-" -> Text):
 
         if letters.length > 0:
             if line != "": line ++= " "
-            line ++= (++) letters
+            line ++= (++: letters) or ""
 
     if line != "":
         lines:insert(line)
