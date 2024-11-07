@@ -2082,6 +2082,17 @@ CORD compile(env_t *env, ast_t *ast)
             } else {
                 code_err(ast, "I don't know how to do an 'or' operation between %T and %T", lhs_t, rhs_t);
             }
+        } else if (binop->op == BINOP_AND && lhs_t->tag == OptionalType) {
+            if (rhs_t->tag == AbortType || rhs_t->tag == ReturnType) {
+                return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop->lhs), "; ",
+                                "if (!", check_null(lhs_t, "lhs"), ") ", compile_statement(env, binop->rhs), " ",
+                                optional_into_nonnull(lhs_t, "lhs"), "; })");
+            } else if (rhs_t->tag == OptionalType && type_eq(lhs_t, rhs_t)) {
+                return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop->lhs), "; ",
+                                check_null(lhs_t, "lhs"), " ? lhs : ", compile(env, binop->rhs), "; })");
+            } else {
+                code_err(ast, "I don't know how to do an 'or' operation between %T and %T", lhs_t, rhs_t);
+            }
         }
 
         CORD lhs, rhs;
@@ -2226,13 +2237,12 @@ CORD compile(env_t *env, ast_t *ast)
             }
         }
         case BINOP_AND: {
-            // TODO: support optional values in `and` expressions
             if (operand_t->tag == BoolType)
                 return CORD_all("(", lhs, " && ", rhs, ")");
             else if (operand_t->tag == IntType || operand_t->tag == ByteType)
                 return CORD_all("(", lhs, " & ", rhs, ")");
             else
-                code_err(ast, "Boolean operators are only supported for Bool and integer types");
+                code_err(ast, "The 'and' operator isn't supported for %T and %T", lhs_t, rhs_t);
         }
         case BINOP_CMP: {
             return CORD_all("generic_compare(stack(", lhs, "), stack(", rhs, "), ", compile_type_info(env, operand_t), ")");
@@ -2243,14 +2253,14 @@ CORD compile(env_t *env, ast_t *ast)
             else if (operand_t->tag == IntType || operand_t->tag == ByteType)
                 return CORD_all("(", lhs, " | ", rhs, ")");
             else
-                code_err(ast, "Boolean operators are only supported for Bool and integer types");
+                code_err(ast, "The 'or' operator isn't supported for %T and %T", lhs_t, rhs_t);
         }
         case BINOP_XOR: {
             // TODO: support optional values in `xor` expressions
             if (operand_t->tag == BoolType || operand_t->tag == IntType || operand_t->tag == ByteType)
                 return CORD_all("(", lhs, " ^ ", rhs, ")");
             else
-                code_err(ast, "Boolean operators are only supported for Bool and integer types");
+                code_err(ast, "The 'xor' operator isn't supported for %T and %T", lhs_t, rhs_t);
         }
         case BINOP_CONCAT: {
             switch (operand_t->tag) {
@@ -3238,15 +3248,13 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Reduction: {
         auto reduction = Match(ast, Reduction);
-        type_t *optional_t = get_type(env, ast);
-        type_t *t = Match(optional_t, OptionalType)->type;
         binop_e op = reduction->combination->tag == BinaryOp ? Match(reduction->combination, BinaryOp)->op : BINOP_UNKNOWN;
 
+        type_t *iter_t = get_type(env, reduction->iter);
+        type_t *item_t = get_iterated_type(iter_t);
+        if (!item_t) code_err(reduction->iter, "I couldn't figure out how to iterate over this type: %T", iter_t);
         if (op == BINOP_EQ || op == BINOP_NE || op == BINOP_LT || op == BINOP_LE || op == BINOP_GT || op == BINOP_GE) {
             // Chained comparisons like ==, <, etc.
-            type_t *iter_t = get_type(env, reduction->iter);
-            type_t *item_t = get_iterated_type(iter_t);
-            if (!item_t) code_err(reduction->iter, "I couldn't figure out how to iterate over this type: %T", iter_t);
             CORD code = CORD_all(
                 "({ // Reduction:\n",
                 compile_declaration(item_t, "prev"), ";\n"
@@ -3277,11 +3285,11 @@ CORD compile(env_t *env, ast_t *ast)
             // Accumulator-style reductions like +, ++, *, etc.
             CORD code = CORD_all(
                 "({ // Reduction:\n",
-                compile_declaration(t, "reduction"), ";\n"
+                compile_declaration(item_t, "reduction"), ";\n"
                 "Bool_t has_value = no;\n"
                 );
             env_t *scope = fresh_scope(env);
-            set_binding(scope, "$reduction", new(binding_t, .type=t, .code="reduction"));
+            set_binding(scope, "$reduction", new(binding_t, .type=item_t, .code="reduction"));
             ast_t *item = FakeAST(Var, "$iter_value");
             ast_t *body = FakeAST(InlineCCode, .code="{}"); // placeholder
             ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=item), .iter=reduction->iter, .body=body);
@@ -3290,18 +3298,18 @@ CORD compile(env_t *env, ast_t *ast)
             // For the special case of (or)/(and), we need to early out if we can:
             CORD early_out = CORD_EMPTY;
             if (op == BINOP_CMP) {
-                if (t->tag != IntType || Match(t, IntType)->bits != TYPE_IBITS32)
+                if (item_t->tag != IntType || Match(item_t, IntType)->bits != TYPE_IBITS32)
                     code_err(ast, "<> reductions are only supported for Int32 values");
             } else if (op == BINOP_AND) {
-                if (t->tag == BoolType)
+                if (item_t->tag == BoolType)
                     early_out = "if (!reduction) break;";
-                else if (t->tag == OptionalType)
-                    early_out = CORD_all("if (", check_null(t, "reduction"), ") break;");
+                else if (item_t->tag == OptionalType)
+                    early_out = CORD_all("if (", check_null(item_t, "reduction"), ") break;");
             } else if (op == BINOP_OR) {
-                if (t->tag == BoolType)
+                if (item_t->tag == BoolType)
                     early_out = "if (reduction) break;";
-                else if (t->tag == OptionalType)
-                    early_out = CORD_all("if (!", check_null(t, "reduction"), ") break;");
+                else if (item_t->tag == OptionalType)
+                    early_out = CORD_all("if (!", check_null(item_t, "reduction"), ") break;");
             }
 
             body->__data.InlineCCode.code = CORD_all(
@@ -3313,7 +3321,8 @@ CORD compile(env_t *env, ast_t *ast)
                 early_out,
                 "}\n");
 
-            code = CORD_all(code, compile_statement(scope, loop), "\nhas_value ? ", promote_to_optional(t, "reduction"), " : ", compile_null(t), ";})");
+            code = CORD_all(code, compile_statement(scope, loop), "\nhas_value ? ", promote_to_optional(item_t, "reduction"),
+                            " : ", compile_null(item_t), ";})");
             return code;
         }
     }

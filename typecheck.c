@@ -950,8 +950,7 @@ type_t *get_type(env_t *env, ast_t *ast)
                        || (lhs_t->tag == ByteType && rhs_t->tag == ByteType)) {
                 return get_math_type(env, ast, lhs_t, rhs_t);
             }
-            code_err(ast, "I can't figure out the type of this `and` expression because the left side is a %T, but the right side is a %T",
-                         lhs_t, rhs_t);
+            code_err(ast, "I can't figure out the type of this `and` expression between a %T and a %T", lhs_t, rhs_t);
         }
         case BINOP_OR: {
             if (lhs_t->tag == BoolType && rhs_t->tag == BoolType) {
@@ -976,8 +975,7 @@ type_t *get_type(env_t *env, ast_t *ast)
                         return Type(PointerType, .pointed=lhs_ptr->pointed);
                 }
             }
-            code_err(ast, "I can't figure out the type of this `or` expression because the left side is a %T, but the right side is a %T",
-                         lhs_t, rhs_t);
+            code_err(ast, "I can't figure out the type of this `or` expression between a %T and a %T", lhs_t, rhs_t);
         }
         case BINOP_XOR: {
             if (lhs_t->tag == BoolType && rhs_t->tag == BoolType) {
@@ -987,8 +985,7 @@ type_t *get_type(env_t *env, ast_t *ast)
                 return get_math_type(env, ast, lhs_t, rhs_t);
             }
 
-            code_err(ast, "I can't figure out the type of this `xor` expression because the left side is a %T, but the right side is a %T",
-                         lhs_t, rhs_t);
+            code_err(ast, "I can't figure out the type of this `xor` expression between a %T and a %T", lhs_t, rhs_t);
         }
         case BINOP_CONCAT: {
             if (!type_eq(lhs_t, rhs_t))
@@ -1028,28 +1025,10 @@ type_t *get_type(env_t *env, ast_t *ast)
                 return Type(OptionalType, .type=Type(BoolType));
         }
 
-        type_t *value_t;
-        type_t *iter_value_t = value_type(iter_t);
-        switch (iter_value_t->tag) {
-        case BigIntType: case IntType: value_t = iter_value_t; break;
-        case ArrayType: value_t = Match(iter_value_t, ArrayType)->item_type; break;
-        case SetType: value_t = Match(iter_value_t, SetType)->item_type; break;
-        case TableType: code_err(reduction->iter, "To do a reduction over a table, please specify either .keys or .values");
-        case FunctionType: case ClosureType: {
-            // Iterator function
-            auto fn = iter_value_t->tag == ClosureType ?
-                Match(Match(iter_value_t, ClosureType)->fn, FunctionType) : Match(iter_value_t, FunctionType);
-            if (fn->args)
-                code_err(reduction->iter, "I expected this iterator function to not take any arguments, but it's %T", iter_value_t);
-            if (fn->ret->tag != OptionalType)
-                code_err(reduction->iter, "I expected this iterator function to return an optional value, but it's %T", iter_value_t);
-            value_t = Match(fn->ret, OptionalType)->type;
-            break;
-        }
-        default: code_err(reduction->iter, "I don't know how to do a reduction over %T values", iter_t);
-        }
-
-        return Type(OptionalType, .type=value_t);
+        type_t *iterated = get_iterated_type(iter_t);
+        if (!iterated)
+            code_err(reduction->iter, "I don't know how to do a reduction over %T values", iter_t);
+        return iterated->tag == OptionalType ? iterated : Type(OptionalType, .type=iterated);
     }
 
     case UpdateAssign:
