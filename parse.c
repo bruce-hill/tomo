@@ -1601,6 +1601,7 @@ ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self) {
     spaces(&pos);
     if (!match(&pos, ":")) return NULL;
     const char *fn = get_id(&pos);
+    if (!fn) return NULL;
     spaces(&pos);
     if (!match(&pos, "(")) return NULL;
     whitespace(&pos);
