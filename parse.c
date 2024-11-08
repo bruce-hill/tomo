@@ -954,15 +954,12 @@ PARSER(parse_reduction) {
     if (!match(&pos, "(")) return NULL;
     
     whitespace(&pos);
-    const char *combo_start = pos;
     binop_e op = match_binary_operator(&pos);
     if (op == BINOP_UNKNOWN) return NULL;
 
-    ast_t *combination;
-    ast_t *lhs = NewAST(ctx->file, pos, pos, Var, .name="$reduction");
-    ast_t *rhs = NewAST(ctx->file, pos, pos, Var, .name="$iter_value");
+    ast_t *key = NULL;
     if (op == BINOP_MIN || op == BINOP_MAX) {
-        ast_t *key = NewAST(ctx->file, pos, pos, Var, .name="$");
+        key = NewAST(ctx->file, pos, pos, Var, .name="$");
         for (bool progress = true; progress; ) {
             ast_t *new_term;
             progress = (false
@@ -977,11 +974,6 @@ PARSER(parse_reduction) {
         }
         if (key->tag == Var) key = NULL;
         else pos = key->end;
-        combination = op == BINOP_MIN ?
-            NewAST(ctx->file, combo_start, pos, Min, .lhs=lhs, .rhs=rhs, .key=key)
-            : NewAST(ctx->file, combo_start, pos, Max, .lhs=lhs, .rhs=rhs, .key=key);
-    } else {
-        combination = NewAST(ctx->file, combo_start, pos, BinaryOp, .op=op, .lhs=lhs, .rhs=rhs);
     }
 
     whitespace(&pos);
@@ -999,7 +991,7 @@ PARSER(parse_reduction) {
     whitespace(&pos);
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this reduction");
 
-    return NewAST(ctx->file, start, pos, Reduction, .iter=iter, .combination=combination);
+    return NewAST(ctx->file, start, pos, Reduction, .iter=iter, .op=op, .key=key);
 }
 
 ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs) {

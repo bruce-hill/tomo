@@ -265,7 +265,8 @@ struct ast_s {
             ast_t *else_body;
         } When;
         struct {
-            ast_t *iter, *combination;
+            ast_t *iter, *key;
+            binop_e op;
         } Reduction;
         struct {
             const char *target;

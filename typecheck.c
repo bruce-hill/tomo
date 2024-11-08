@@ -1019,11 +1019,9 @@ type_t *get_type(env_t *env, ast_t *ast)
         auto reduction = Match(ast, Reduction);
         type_t *iter_t = get_type(env, reduction->iter);
 
-        if (reduction->combination && reduction->combination->tag == BinaryOp) {
-            binop_e op = Match(reduction->combination, BinaryOp)->op;
-            if (op == BINOP_EQ || op == BINOP_NE || op == BINOP_LT || op == BINOP_LE || op == BINOP_GT || op == BINOP_GE)
-                return Type(OptionalType, .type=Type(BoolType));
-        }
+        if (reduction->op == BINOP_EQ || reduction->op == BINOP_NE || reduction->op == BINOP_LT
+            || reduction->op == BINOP_LE || reduction->op == BINOP_GT || reduction->op == BINOP_GE)
+            return Type(OptionalType, .type=Type(BoolType));
 
         type_t *iterated = get_iterated_type(iter_t);
         if (!iterated)

@@ -142,8 +142,8 @@ CORD ast_to_xml(ast_t *ast)
     T(Repeat, "<Repeat>%r</Repeat>", optional_tagged("body", data.body))
     T(If, "<If>%r%r%r</If>", optional_tagged("condition", data.condition), optional_tagged("body", data.body), optional_tagged("else", data.else_body))
     T(When, "<When><subject>%r</subject>%r%r</When>", ast_to_xml(data.subject), when_clauses_to_xml(data.clauses), optional_tagged("else", data.else_body))
-    T(Reduction, "<Reduction>%r%r</Reduction>", optional_tagged("iterable", data.iter),
-      optional_tagged("combination", data.combination))
+    T(Reduction, "<Reduction op=%r%r>%r</Reduction>", xml_escape(OP_NAMES[data.op]), optional_tagged("key", data.key),
+      optional_tagged("iterable", data.iter))
     T(Skip, "<Skip>%r</Skip>", data.target)
     T(Stop, "<Stop>%r</Stop>", data.target)
     T(PrintStatement, "<PrintStatement>%r</PrintStatement>", ast_list_to_xml(data.to_print))
