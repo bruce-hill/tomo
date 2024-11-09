@@ -1259,17 +1259,10 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     loop,
                     "ARRAY_DECREF(t->entries);\n"
                     "}\n");
-            } else if (can_be_mutated(env, for_->iter)) {
-                loop = CORD_all(
-                    "{\n",
-                    "Table_t t = ", compile_to_pointer_depth(env, for_->iter, 0, false), ";\n"
-                    "Array_t iterating = t.entries;\n",
-                    loop,
-                    "}\n");
             } else {
                 loop = CORD_all(
                     "{\n",
-                    "Array_t iterating = (", compile(env, for_->iter), ").entries;\n",
+                    "Array_t iterating = (", compile_to_pointer_depth(env, for_->iter, 0, false), ").entries;\n",
                     loop,
                     "}\n");
             }
