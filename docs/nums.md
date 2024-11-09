@@ -568,14 +568,14 @@ A text representation of the number with the specified precision.
 
 ---
 
-### `from_text`
+### `parse`
 
 **Description:**
 Converts a text representation of a number into a floating-point number.
 
 **Signature:**
 ```tomo
-func from_text(text: Text -> Num?)
+func parse(text: Text -> Num?)
 ```
 
 **Parameters:**
@@ -587,9 +587,9 @@ The number represented by the text or a null value if the entire text can't be p
 
 **Example:**
 ```tomo
->> Num.from_text("3.14")
+>> Num.parse("3.14")
 = 3.14
->> Num.from_text("1e3")
+>> Num.parse("1e3")
 = 1000
 ```
 

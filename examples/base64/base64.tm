@@ -25,7 +25,7 @@ _dec := [
 ]
 
 lang Base64:
-    func from_text(text:Text -> Base64?):
+    func parse(text:Text -> Base64?):
         return Base64.from_bytes(text:utf8_bytes())
 
     func from_bytes(bytes:[Byte] -> Base64?):
@@ -94,4 +94,4 @@ func main(input=(/dev/stdin), decode=no):
         say(b:decode_text()!)
     else:
         text := input:read()!
-        say(Base64.from_text(text)!.text_content)
+        say(Base64.parse(text)!.text_content)

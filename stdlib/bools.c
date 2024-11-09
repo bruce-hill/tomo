@@ -22,7 +22,7 @@ PUREFUNC public Text_t Bool$as_text(const bool *b, bool colorize, const TypeInfo
         return *b ? Text("yes") : Text("no");
 }
 
-PUREFUNC public OptionalBool_t Bool$from_text(Text_t text)
+PUREFUNC public OptionalBool_t Bool$parse(Text_t text)
 {
     if (Text$equal_ignoring_case(text, Text("yes"))
         || Text$equal_ignoring_case(text, Text("on"))

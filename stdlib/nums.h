@@ -28,7 +28,7 @@ CONSTFUNC bool Num$finite(double n);
 CONSTFUNC bool Num$isnan(double n);
 double Num$nan(Text_t tag);
 CONSTFUNC double Num$mix(double amount, double x, double y);
-OptionalNum_t Num$from_text(Text_t text);
+OptionalNum_t Num$parse(Text_t text);
 MACROLIKE CONSTFUNC double Num$clamped(double x, double low, double high) {
     return (x <= low) ? low : (x >= high ? high : x);
 }
@@ -45,7 +45,7 @@ CONSTFUNC bool Num32$isinf(float n);
 CONSTFUNC bool Num32$finite(float n);
 CONSTFUNC bool Num32$isnan(float n);
 CONSTFUNC float Num32$mix(float amount, float x, float y);
-OptionalNum32_t Num32$from_text(Text_t text);
+OptionalNum32_t Num32$parse(Text_t text);
 float Num32$nan(Text_t tag);
 MACROLIKE CONSTFUNC float Num32$clamped(float x, float low, float high) {
     return (x <= low) ? low : (x >= high ? high : x);

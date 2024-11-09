@@ -353,7 +353,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
     }
     case Int: {
         if (!dest) return;
-        *(Int_t*)dest = Int$from_text(Text$from_str(Match(ast, Int)->str)); break;
+        *(Int_t*)dest = Int$parse(Text$from_str(Match(ast, Int)->str)); break;
         break;
     }
     case Num: {

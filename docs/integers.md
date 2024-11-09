@@ -154,14 +154,14 @@ The octal string representation of the integer.
 
 ---
 
-## `from_text`
+## `parse`
 
 **Description:**  
 Converts a text representation of an integer into an integer.
 
 **Signature:**  
 ```tomo
-func from_text(text: Text -> Int?)
+func parse(text: Text -> Int?)
 ```
 
 **Parameters:**
@@ -175,17 +175,17 @@ a null value will be returned.
 
 **Example:**  
 ```tomo
->> Int.from_text("123")
+>> Int.parse("123")
 = 123?
->> Int.from_text("0xFF")
+>> Int.parse("0xFF")
 = 255?
 
 # Can't parse:
->> Int.from_text("asdf")
+>> Int.parse("asdf")
 = !Int
 
 # Outside valid range:
->> Int8.from_text("9999999")
+>> Int8.parse("9999999")
 = !Int
 ```
 

@@ -14,7 +14,7 @@
 #define no (Bool_t)false
 
 PUREFUNC Text_t Bool$as_text(const bool *b, bool colorize, const TypeInfo_t *type);
-OptionalBool_t Bool$from_text(Text_t text);
+OptionalBool_t Bool$parse(Text_t text);
 
 extern const TypeInfo_t Bool$info;
 

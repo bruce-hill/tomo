@@ -886,7 +886,7 @@ function to each.
 ```tomo
 >> "hello world":map($/world/, Text.upper)
 = "hello WORLD"
->> "Some nums: 1 2 3 4":map($/{int}/, func(i:Text): "$(Int.from_text(i) + 10)")
+>> "Some nums: 1 2 3 4":map($/{int}/, func(i:Text): "$(Int.parse(i)! + 10)")
 = "Some nums: 11 12 13 14"
 ```
 

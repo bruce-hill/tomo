@@ -875,7 +875,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 "}\n");
             env->code->funcs = CORD_cat(env->code->funcs, wrapper);
         } else if (fndef->cache && fndef->cache->tag == Int) {
-            OptionalInt64_t cache_size = Int64$from_text(Text$from_str(Match(fndef->cache, Int)->str));
+            OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(fndef->cache, Int)->str));
             const char *arg_type_name = heap_strf("%s$args", Match(fndef->name, Var)->name);
             ast_t *args_def = FakeAST(StructDef, .name=arg_type_name, .fields=fndef->args);
             prebind_statement(env, args_def);

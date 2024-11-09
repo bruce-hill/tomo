@@ -61,7 +61,7 @@ public CONSTFUNC double Num$mix(double amount, double x, double y) {
     return (1.0-amount)*x + amount*y;
 }
 
-public OptionalNum_t Num$from_text(Text_t text) {
+public OptionalNum_t Num$parse(Text_t text) {
     const char *str = Text$as_c_string(text);
     char *end = NULL;
     double d = strtod(str, &end);
@@ -138,7 +138,7 @@ public CONSTFUNC float Num32$mix(float amount, float x, float y) {
     return (1.0f-amount)*x + amount*y;
 }
 
-public OptionalNum32_t Num32$from_text(Text_t text) {
+public OptionalNum32_t Num32$parse(Text_t text) {
     const char *str = Text$as_c_string(text);
     char *end = NULL;
     double d = strtod(str, &end);

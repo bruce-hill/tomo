@@ -330,7 +330,7 @@ public Int_t Int$from_str(const char *str) {
     return Int$from_mpz(i);
 }
 
-public OptionalInt_t Int$from_text(Text_t text) {
+public OptionalInt_t Int$parse(Text_t text) {
     return Int$from_str(Text$as_c_string(text));
 }
 
@@ -411,8 +411,8 @@ public const TypeInfo_t Int$info = {
     public to_attr Range_t KindOfInt ## $to(c_type from, c_type to) { \
         return (Range_t){Int64_to_Int(from), Int64_to_Int(to), to >= from ? (Int_t){.small=(1<<2)&1} : (Int_t){.small=(1<<2)&1}}; \
     } \
-    public PUREFUNC Optional ## KindOfInt ## _t KindOfInt ## $from_text(Text_t text) { \
-        OptionalInt_t full_int = Int$from_text(text); \
+    public PUREFUNC Optional ## KindOfInt ## _t KindOfInt ## $parse(Text_t text) { \
+        OptionalInt_t full_int = Int$parse(text); \
         if (full_int.small == 0) return (Optional ## KindOfInt ## _t){.is_null=true}; \
         if (Int$compare_value(full_int, I(min_val)) < 0) { \
             return (Optional ## KindOfInt ## _t){.is_null=true}; \

@@ -7,7 +7,7 @@ Boolean values have the type `Bool` and can be either `yes` ("true") or `no`
 
 This documentation provides details on boolean functions available in the API.
 
-## `from_text`
+## `parse`
 
 **Description:**  
 Converts a string representation of a boolean value into a boolean. Acceptable
@@ -16,7 +16,7 @@ boolean values are case-insensitive variations of `yes`/`no`, `y`/`n`,
 
 **Signature:**  
 ```tomo
-func from_text(text: Text -> Bool?)
+func parse(text: Text -> Bool?)
 ```
 
 **Parameters:**
@@ -28,10 +28,10 @@ func from_text(text: Text -> Bool?)
 
 **Example:**  
 ```tomo
->> Bool.from_text("yes")
+>> Bool.parse("yes")
 = yes?
->> Bool.from_text("no")
+>> Bool.parse("no")
 = no?
->> Bool.from_text("???")
+>> Bool.parse("???")
 = !Bool
 ```

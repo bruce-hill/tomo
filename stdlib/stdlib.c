@@ -57,37 +57,37 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)
             *(OptionalInt_t*)dest = parsed;
         return parsed.small != 0;
     } else if (info == &Int64$info) {
-        OptionalInt64_t parsed = Int64$from_text(Text$from_str(arg));
+        OptionalInt64_t parsed = Int64$parse(Text$from_str(arg));
         if (!parsed.is_null)
             *(OptionalInt64_t*)dest = parsed;
         return !parsed.is_null;
     } else if (info == &Int32$info) {
-        OptionalInt32_t parsed = Int32$from_text(Text$from_str(arg));
+        OptionalInt32_t parsed = Int32$parse(Text$from_str(arg));
         if (!parsed.is_null)
             *(OptionalInt32_t*)dest = parsed;
         return !parsed.is_null;
     } else if (info == &Int16$info) {
-        OptionalInt16_t parsed = Int16$from_text(Text$from_str(arg));
+        OptionalInt16_t parsed = Int16$parse(Text$from_str(arg));
         if (!parsed.is_null)
             *(OptionalInt16_t*)dest = parsed;
         return !parsed.is_null;
     } else if (info == &Int8$info) {
-        OptionalInt8_t parsed = Int8$from_text(Text$from_str(arg));
+        OptionalInt8_t parsed = Int8$parse(Text$from_str(arg));
         if (!parsed.is_null)
             *(OptionalInt8_t*)dest = parsed;
         return !parsed.is_null;
     } else if (info == &Bool$info) {
-        OptionalBool_t parsed = Bool$from_text(Text$from_str(arg));
+        OptionalBool_t parsed = Bool$parse(Text$from_str(arg));
         if (parsed != NULL_BOOL)
             *(OptionalBool_t*)dest = parsed;
         return parsed != NULL_BOOL;
     } else if (info == &Num$info) {
-        OptionalNum_t parsed = Num$from_text(Text$from_str(arg));
+        OptionalNum_t parsed = Num$parse(Text$from_str(arg));
         if (!isnan(parsed))
             *(OptionalNum_t*)dest = parsed;
         return !isnan(parsed);
     } else if (info == &Num32$info) {
-        OptionalNum32_t parsed = Num32$from_text(Text$from_str(arg));
+        OptionalNum32_t parsed = Num32$parse(Text$from_str(arg));
         if (!isnan(parsed))
             *(OptionalNum32_t*)dest = parsed;
         return !isnan(parsed);
