@@ -8,7 +8,7 @@ _HELP := "
 
 func parse_ini(path:Path -> {Text:{Text:Text}}):
     text := path:read() or exit("Could not read INI file: $\[31;1]$(path.text_content)$\[]")
-    sections := {:Text:@{Text:Text}}
+    sections := @{:Text:@{Text:Text}}
     current_section := @{:Text:Text}
 
     # Line wraps:
@@ -26,7 +26,7 @@ func parse_ini(path:Path -> {Text:{Text:Text}}):
             value := line:replace($/{..}={..}/, "\2"):trim()
             current_section:set(key, value)
 
-    return {k:v[] for k,v in sections}
+    return {k:v[] for k,v in sections[]}
 
 func main(path:Path, key:Text?):
     keys := (key or ""):split($|/|)

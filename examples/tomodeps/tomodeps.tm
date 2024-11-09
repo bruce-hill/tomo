@@ -14,7 +14,7 @@ func _get_file_dependencies(file:Path -> {Dependency}):
         !! Could not read file: $file
         return {:Dependency}
 
-    deps := {:Dependency}
+    deps := @{:Dependency}
     if lines := file:by_line():
         for line in lines:
             if line:matches($/use {..}.tm/):
@@ -23,7 +23,7 @@ func _get_file_dependencies(file:Path -> {Dependency}):
             else if line:matches($/use {id}/):
                 module_name := line:replace($/use {..}/, "\1")
                 deps:add(Dependency.Module(module_name))
-    return deps
+    return deps[]
 
 func _build_dependency_graph(dep:Dependency, dependencies:@{Dependency:{Dependency}}):
     return if dependencies:has(dep)
@@ -34,9 +34,9 @@ func _build_dependency_graph(dep:Dependency, dependencies:@{Dependency:{Dependen
         _get_file_dependencies(path)
     is Module(module):
         dir := (~/.local/share/tomo/installed/$module)
-        module_deps := {:Dependency}
-        visited := {:Path}
-        unvisited := {f:resolved() for f in dir:files() if f:ends_with(".tm")}
+        module_deps := @{:Dependency}
+        visited := @{:Path}
+        unvisited := @{f:resolved() for f in dir:files() if f:ends_with(".tm")}
         while unvisited.length > 0:
             file := unvisited.items[-1]
             unvisited:remove(file)
@@ -48,7 +48,7 @@ func _build_dependency_graph(dep:Dependency, dependencies:@{Dependency:{Dependen
                         unvisited:add(f)
                 is Module(m):
                     module_deps:add(file_dep)
-        module_deps
+        module_deps[]
 
     dependencies:set(dep, dep_deps)
 

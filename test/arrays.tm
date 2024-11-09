@@ -84,31 +84,31 @@ func main():
 		= [30, 20, 10]
 
 	do:
-		>> nums := [10, -20, 30]
+		>> nums := @[10, -20, 30]
 		# Sorted function doesn't mutate original:
 		>> nums:sorted()
 		= [-20, 10, 30]
 		>> nums
-		= [10, -20, 30]
+		= @[10, -20, 30]
 		# Sort function does mutate in place:
 		>> nums:sort()
 		>> nums
-		= [-20, 10, 30]
+		= @[-20, 10, 30]
 		# Custom sort functions:
 		>> nums:sort(func(x,y:&Int): x:abs() <> y:abs())
 		>> nums
-		= [10, -20, 30]
+		= @[10, -20, 30]
 		>> nums:sort(func(x,y:&Int): y[] <> x[])
 		>> nums
-		= [30, 10, -20]
+		= @[30, 10, -20]
 
 	>> ["A", "B", "C"]:sample(10, [1.0, 0.5, 0.0])
 
 	do:
-		>> heap := [random:int(1, 50) for _ in 10]
+		>> heap := @[random:int(1, 50) for _ in 10]
 		>> heap:heapify()
 		>> heap
-		sorted := [:Int]
+		sorted := @[:Int]
 		while heap.length > 0:
 			sorted:insert(heap:heap_pop())
 		>> sorted == sorted:sorted()
@@ -116,7 +116,7 @@ func main():
 		for _ in 10:
 			heap:heap_push(random:int(1, 50))
 		>> heap
-		sorted = [:Int]
+		sorted = @[:Int]
 		while heap.length > 0:
 			sorted:insert(heap:heap_pop())
 		>> sorted == sorted:sorted()
@@ -155,12 +155,12 @@ func main():
 				say("$(x)$(y)")
 
 	do:
-		>> nums := [-7, -4, -1, 2, 5]
+		>> nums := @[-7, -4, -1, 2, 5]
 		>> nums:sort()
-		>> [nums:binary_search(i) for i in nums]
+		>> [nums:binary_search(i) for i in nums[]]
 		= [1, 2, 3, 4, 5]
 		>> nums:sort(func(a,b:&Int): a:abs() <> b:abs())
-		>> [nums:binary_search(i, func(a,b:&Int): a:abs() <> b:abs()) for i in nums]
+		>> [nums:binary_search(i, func(a,b:&Int): a:abs() <> b:abs()) for i in nums[]]
 		= [1, 2, 3, 4, 5]
 
 	>> ["a", "b", "c"]:find("b")
