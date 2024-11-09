@@ -57,11 +57,11 @@ struct World(player:@Player, goal:@Box, boxes:@[@Box], dt_accum=0.0, won=no):
 
         # Resolve player overlapping with any boxes:
         for i in 3:
-            for b in w.boxes[]:
+            for b in w.boxes:
                 w.player.pos += STIFFNESS * solve_overlap(w.player.pos, Player.SIZE, b.pos, b.size)
 
     func draw(w:@World):
-        for b in w.boxes[]:
+        for b in w.boxes:
             b:draw()
         w.goal:draw()
         w.player:draw()

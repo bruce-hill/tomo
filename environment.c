@@ -529,7 +529,7 @@ env_t *fresh_scope(env_t *env)
 env_t *for_scope(env_t *env, ast_t *ast)
 {
     auto for_ = Match(ast, For);
-    type_t *iter_t = get_type(env, for_->iter);
+    type_t *iter_t = value_type(get_type(env, for_->iter));
     env_t *scope = fresh_scope(env);
 
     if (iter_t == RANGE_TYPE) {
