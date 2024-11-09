@@ -637,12 +637,12 @@ CORD compile_statement(env_t *env, ast_t *ast)
             env_t *val_env = with_enum_scope(env, lhs_t);
             type_t *rhs_t = get_type(val_env, assign->values->ast);
             CORD val;
-            if (rhs_t->tag == IntType && assign->values->ast->tag == Int) {
-                val = compile_int_to_type(val_env, assign->values->ast, rhs_t);
+            if (lhs_t->tag == IntType && assign->values->ast->tag == Int) {
+                val = compile_int_to_type(val_env, assign->values->ast, lhs_t);
             } else {
                 val = compile_maybe_incref(val_env, assign->values->ast);
                 if (!promote(val_env, &val, rhs_t, lhs_t))
-                    code_err(assign->values->ast, "You cannot assign a %T value to a %T operand", lhs_t, rhs_t);
+                    code_err(assign->values->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
             }
             return CORD_all(compile_assignment(env, assign->targets->ast, val), ";\n");
         }
