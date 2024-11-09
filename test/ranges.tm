@@ -1,5 +1,14 @@
 
 func main():
+    >> r := 5:to(10):by(2)
+    = Range(first=5, last=10, step=2)
+    >> r.first
+    = 5
+    >> r.last
+    = 10
+    >> r.step
+    = 2
+
     >> Range(1, 5) == 1:to(5)
     = yes
 

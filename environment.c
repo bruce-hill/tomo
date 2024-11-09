@@ -12,6 +12,7 @@
 #include "typecheck.h"
 
 type_t *TEXT_TYPE = NULL;
+type_t *MATCH_TYPE = NULL;
 type_t *RANGE_TYPE = NULL;
 type_t *RNG_TYPE = NULL;
 public type_t *THREAD_TYPE = NULL;
@@ -73,6 +74,15 @@ env_t *new_compilation_unit(CORD libname)
             .fields=new(arg_t, .name="first", .type=INT_TYPE,
               .next=new(arg_t, .name="last", .type=INT_TYPE,
               .next=new(arg_t, .name="step", .type=INT_TYPE, .default_val=FakeAST(Int, .str="1")))));
+    }
+
+    {
+        env_t *match_env = namespace_env(env, "Match");
+        MATCH_TYPE = Type(
+            StructType, .name="Match", .env=match_env,
+            .fields=new(arg_t, .name="text", .type=TEXT_TYPE,
+              .next=new(arg_t, .name="index", .type=INT_TYPE,
+              .next=new(arg_t, .name="captures", .type=Type(ArrayType, .item_type=TEXT_TYPE)))));
     }
 
     {
@@ -270,6 +280,9 @@ env_t *new_compilation_unit(CORD libname)
             {"reversed", "Range$reversed", "func(range:Range -> Range)"},
             {"by", "Range$by", "func(range:Range, step:Int -> Range)"},
         )},
+        {"Match", MATCH_TYPE, "Match_t", "Match", TypedArray(ns_entry_t,
+             // No methods
+        )},
         {"Pattern", Type(TextType, .lang="Pattern", .env=namespace_env(env, "Pattern")), "Pattern_t", "Pattern$info", TypedArray(ns_entry_t,
             {"escape_int", "Int$value_as_text", "func(i:Int -> Pattern)"},
             {"escape_text", "Pattern$escape_text", "func(text:Text -> Pattern)"},
@@ -374,8 +387,8 @@ env_t *new_compilation_unit(CORD libname)
             {"as_c_string", "Text$as_c_string", "func(text:Text -> CString)"},
             {"codepoint_names", "Text$codepoint_names", "func(text:Text -> [Text])"},
             {"ends_with", "Text$ends_with", "func(text,suffix:Text -> Bool)"},
-            {"find", "Text$find", "func(text:Text, pattern:Pattern, start=1 -> Int?)"},
-            {"find_all", "Text$find_all", "func(text:Text, pattern:Pattern -> [Text])"},
+            {"find", "Text$find", "func(text:Text, pattern:Pattern, start=1 -> Match?)"},
+            {"find_all", "Text$find_all", "func(text:Text, pattern:Pattern -> [Match])"},
             {"from_bytes", "Text$from_bytes", "func(bytes:[Byte] -> Text?)"},
             {"from_c_string", "Text$from_str", "func(str:CString -> Text?)"},
             {"from_codepoint_names", "Text$from_codepoint_names", "func(codepoint_names:[Text] -> Text?)"},
@@ -385,7 +398,7 @@ env_t *new_compilation_unit(CORD libname)
             {"join", "Text$join", "func(glue:Text, pieces:[Text] -> Text)"},
             {"lines", "Text$lines", "func(text:Text -> [Text])"},
             {"lower", "Text$lower", "func(text:Text -> Text)"},
-            {"map", "Text$map", "func(text:Text, pattern:Pattern, fn:func(text:Text -> Text) -> Text)"},
+            {"map", "Text$map", "func(text:Text, pattern:Pattern, fn:func(match:Match -> Text) -> Text)"},
             {"matches", "Text$matches", "func(text:Text, pattern:Pattern -> [Text]?)"},
             {"quoted", "Text$quoted", "func(text:Text, color=no -> Text)"},
             {"repeat", "Text$repeat", "func(text:Text, count:Int -> Text)"},

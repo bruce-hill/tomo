@@ -1354,11 +1354,4 @@ public Pattern_t Pattern$escape_text(Text_t text)
 #undef add_escaped
 }
 
-public const TypeInfo_t Pattern$info = {
-    .size=sizeof(Pattern_t),
-    .align=__alignof__(Pattern_t),
-    .tag=TextInfo,
-    .TextInfo={.lang="Pattern"},
-};
-
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

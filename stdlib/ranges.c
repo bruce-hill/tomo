@@ -38,10 +38,11 @@ static Text_t Range$as_text(const Range_t *r, bool use_color, const TypeInfo_t *
     (void)type;
     if (!r) return Text("Range");
 
-    return Text$format(use_color ? "\x1b[0;1mRange\x1b[m(first=%r, last=%r, step=%r)"
-                       : "Range(first=%r, last=%r, step=%r)",
-                       Int$as_text(&r->first, use_color, &Int$info), Int$as_text(&r->last, use_color, &Int$info),
-                       Int$as_text(&r->step, use_color, &Int$info));
+    Text_t first = Int$as_text(&r->first, use_color, &Int$info);
+    Text_t last = Int$as_text(&r->last, use_color, &Int$info);
+    Text_t step = Int$as_text(&r->step, use_color, &Int$info);
+    return Text$format(use_color ? "\x1b[0;1mRange\x1b[m(first=%k, last=%k, step=%k)"
+                       : "Range(first=%k, last=%k, step=%k)", &first, &last, &step);
 }
 
 PUREFUNC public Range_t Range$reversed(Range_t r)

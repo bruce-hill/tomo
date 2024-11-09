@@ -80,6 +80,7 @@ void set_binding(env_t *env, const char *name, binding_t *binding);
 binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name);
 #define code_err(ast, ...) compiler_err((ast)->file, (ast)->start, (ast)->end, __VA_ARGS__)
 extern type_t *TEXT_TYPE;
+extern type_t *MATCH_TYPE;
 extern type_t *RANGE_TYPE;
 extern type_t *RNG_TYPE;
 extern type_t *THREAD_TYPE;

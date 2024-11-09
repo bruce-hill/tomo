@@ -8,6 +8,7 @@
 #include "datetime.h"
 #include "integers.h"
 #include "metamethods.h"
+#include "patterns.h"
 #include "text.h"
 #include "threads.h"
 #include "util.h"
@@ -34,6 +35,8 @@ public PUREFUNC bool is_null(const void *obj, const TypeInfo_t *non_optional_typ
         return *(pthread_t**)obj == NULL;
     else if (non_optional_type == &DateTime$info)
         return ((OptionalDateTime_t*)obj)->tv_usec < 0;
+    else if (non_optional_type == &Match$info)
+        return ((OptionalMatch_t*)obj)->index.small == 0;
 
     switch (non_optional_type->tag) {
         case ChannelInfo: return *(Channel_t**)obj == NULL;

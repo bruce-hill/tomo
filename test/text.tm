@@ -169,17 +169,17 @@ func main():
 	= []
 
 	!! Test text:find_all()
-	>> " one  two three   ":find_all($/{alpha}/)
-	= ["one", "two", "three"]
+	>> " #one  #two #three   ":find_all($/#{alpha}/)
+	= [Match(text="#one", index=2, captures=["one"]), Match(text="#two", index=8, captures=["two"]), Match(text="#three", index=13, captures=["three"])]
 
-	>> " one  two three   ":find_all($/{!space}/)
-	= ["one", "two", "three"]
+	>> " #one  #two #three   ":find_all($/#{!space}/)
+	= [Match(text="#one", index=2, captures=["one"]), Match(text="#two", index=8, captures=["two"]), Match(text="#three", index=13, captures=["three"])]
 
 	>> "    ":find_all($/{alpha}/)
 	= []
 
 	>> " foo(baz(), 1)  doop() ":find_all($/{id}(?)/)
-	= ["foo(baz(), 1)", "doop()"]
+	= [Match(text="foo(baz(), 1)", index=2, captures=["foo", "baz(), 1"]), Match(text="doop()", index=17, captures=["doop", ""])]
 
 	>> "":find_all($Pattern'')
 	= []
@@ -189,13 +189,13 @@ func main():
 
 	!! Test text:find()
 	>> " one   two  three   ":find($/{id}/, start=-999)
-	= !Int
+	= !Match
 	>> " one   two  three   ":find($/{id}/, start=999)
-	= !Int
+	= !Match
 	>> " one   two  three   ":find($/{id}/)
-	= 2?
+	= Match(text="one", index=2, captures=["one"])?
 	>> " one   two  three   ":find($/{id}/, start=5)
-	= 8?
+	= Match(text="two", index=8, captures=["two"])?
 
 	!! Test text slicing:
 	>> "abcdef":slice()
@@ -225,7 +225,7 @@ func main():
 	= !Text
 
 	>> "one two; three four":find_all($/; {..}/)
-	= ["; three four"]
+	= [Match(text="; three four", index=8, captures=["three four"])]
 
 	>> malicious := "{xxx}"
 	>> $/$malicious/
@@ -261,7 +261,7 @@ func main():
 	else:
 		fail("Failed to match")
 
-	>> "hello world":map($/world/, Text.upper)
+	>> "hello world":map($/world/, func(m:Match): m.text:upper())
 	= "hello WORLD"
 
 	>> "Abc":repeat(3)

@@ -380,7 +380,7 @@ static int64_t match_id(TextIter_t *state, int64_t index)
 static int64_t match_int(TextIter_t *state, int64_t index)
 {
     int64_t len = EAT_MANY(state, index, uc_is_property((ucs4_t)grapheme, UC_PROPERTY_DECIMAL_DIGIT));
-    return len >= 0 ? len : -1;
+    return len > 0 ? len : -1;
 }
 
 static int64_t match_alphanumeric(TextIter_t *state, int64_t index)
@@ -769,7 +769,7 @@ static int64_t match(Text_t text, int64_t text_index, Pattern_t pattern, int64_t
 #undef EAT2
 #undef EAT_MANY
 
-static int64_t _find(Text_t text, Pattern_t pattern, int64_t first, int64_t last, int64_t *match_length)
+static int64_t _find(Text_t text, Pattern_t pattern, int64_t first, int64_t last, int64_t *match_length, capture_t *captures)
 {
     int32_t first_grapheme = Text$get_grapheme(pattern, 0);
     bool find_first = (first_grapheme != '{'
@@ -784,7 +784,7 @@ static int64_t _find(Text_t text, Pattern_t pattern, int64_t first, int64_t last
                 ++i;
         }
 
-        int64_t m = match(text, i, pattern, 0, NULL, 0);
+        int64_t m = match(text, i, pattern, 0, captures, 0);
         if (m >= 0) {
             if (match_length)
                 *match_length = m;
@@ -796,15 +796,30 @@ static int64_t _find(Text_t text, Pattern_t pattern, int64_t first, int64_t last
     return -1;
 }
 
-public OptionalInt_t Text$find(Text_t text, Pattern_t pattern, Int_t from_index)
+public OptionalMatch_t Text$find(Text_t text, Pattern_t pattern, Int_t from_index)
 {
     int64_t first = Int_to_Int64(from_index, false);
     if (first == 0) fail("Invalid index: 0");
     if (first < 0) first = text.length + first + 1;
     if (first > text.length || first < 1)
-        return NULL_INT;
-    int64_t found = _find(text, pattern, first-1, text.length-1, NULL);
-    return found == -1 ? NULL_INT : I(found+1);
+        return NULL_MATCH;
+
+    capture_t captures[MAX_BACKREFS] = {};
+    int64_t len = 0;
+    int64_t found = _find(text, pattern, first-1, text.length-1, &len, captures);
+    if (found == -1)
+        return NULL_MATCH;
+
+    Array_t capture_array = {};
+    for (int i = 0; captures[i].occupied; i++) {
+        Text_t capture = Text$slice(text, I(captures[i].index+1), I(captures[i].index+captures[i].length));
+        Array$insert(&capture_array, &capture, I(0), sizeof(Text_t));
+    }
+    return (OptionalMatch_t){
+        .text=Text$slice(text, I(found+1), I(found+len)),
+        .index=I(found+1),
+        .captures=capture_array,
+    };
 }
 
 PUREFUNC public bool Text$has(Text_t text, Pattern_t pattern)
@@ -820,7 +835,7 @@ PUREFUNC public bool Text$has(Text_t text, Pattern_t pattern)
         }
         return false;
     } else {
-        int64_t found = _find(text, pattern, 0, text.length-1, NULL);
+        int64_t found = _find(text, pattern, 0, text.length-1, NULL, NULL);
         return (found >= 0);
     }
 }
@@ -846,16 +861,13 @@ public Array_t Text$find_all(Text_t text, Pattern_t pattern)
         return (Array_t){.length=0};
 
     Array_t matches = {};
-
-    for (int64_t i = 0; ; ) {
-        int64_t len = 0;
-        int64_t found = _find(text, pattern, i, text.length-1, &len);
-        if (found < 0) break;
-        Text_t match = Text$slice(text, I(found+1), I(found + len));
-        Array$insert(&matches, &match, I_small(0), sizeof(Text_t));
-        i = found + MAX(len, 1);
+    for (int64_t i = 1; ; ) {
+        OptionalMatch_t m = Text$find(text, pattern, I(i));
+        if (!m.index.small)
+            break;
+        i = Int_to_Int64(m.index, false) + m.text.length;
+        Array$insert(&matches, &m, I_small(0), sizeof(Match_t));
     }
-
     return matches;
 }
 
@@ -999,7 +1011,7 @@ public Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn)
     TextIter_t text_state = {text, 0, 0};
     int64_t nonmatching_pos = 0;
 
-    Text_t (*text_mapper)(Text_t, void*) = fn.fn;
+    Text_t (*text_mapper)(Match_t, void*) = fn.fn;
     for (int64_t pos = 0; pos < text.length; pos++) {
         // Optimization: quickly skip ahead to first char in pattern:
         if (find_first) {
@@ -1007,10 +1019,21 @@ public Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn)
                 ++pos;
         }
 
-        int64_t match_len = match(text, pos, pattern, 0, NULL, 0);
+        capture_t captures[MAX_BACKREFS] = {};
+        int64_t match_len = match(text, pos, pattern, 0, captures, 0);
         if (match_len < 0) continue;
 
-        Text_t replacement = text_mapper(Text$slice(text, I(pos+1), I(pos+match_len)), fn.userdata);
+        Match_t m = {
+            .text=Text$slice(text, I(pos+1), I(pos+match_len)),
+            .index=I(pos+1),
+            .captures={},
+        };
+        for (int i = 0; captures[i].occupied; i++) {
+            Text_t capture = Text$slice(text, I(captures[i].index+1), I(captures[i].index+captures[i].length));
+            Array$insert(&m.captures, &capture, I(0), sizeof(Text_t));
+        }
+
+        Text_t replacement = text_mapper(m, fn.userdata);
         if (pos > nonmatching_pos) {
             Text_t before_slice = Text$slice(text, I(nonmatching_pos+1), I(pos));
             ret = Text$concat(ret, before_slice, replacement);
@@ -1084,7 +1107,7 @@ public Array_t Text$split(Text_t text, Pattern_t pattern)
     int64_t i = 0;
     for (;;) {
         int64_t len = 0;
-        int64_t found = _find(text, pattern, i, text.length-1, &len);
+        int64_t found = _find(text, pattern, i, text.length-1, &len, NULL);
         if (found < 0) break;
         Text_t chunk = Text$slice(text, I(i+1), I(found));
         Array$insert(&chunks, &chunk, I_small(0), sizeof(Text_t));
@@ -1097,5 +1120,27 @@ public Array_t Text$split(Text_t text, Pattern_t pattern)
     return chunks;
 }
 
+public const TypeInfo_t Pattern$info = {
+    .size=sizeof(Pattern_t),
+    .align=__alignof__(Pattern_t),
+    .tag=TextInfo,
+    .TextInfo={.lang="Pattern"},
+};
+
+static NamedType_t _match_fields[3] = {
+    {"text", &Text$info},
+    {"index", &Int$info},
+    {"captures", Array$info(&Text$info)},
+};
+public const TypeInfo_t Match$info = {
+    .size=sizeof(Match_t),
+    .align=__alignof__(Match_t),
+    .tag=StructInfo,
+    .StructInfo={
+        .name="Match",
+        .num_fields=3,
+        .fields=_match_fields,
+    },
+};
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

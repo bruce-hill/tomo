@@ -217,6 +217,7 @@ CORD compile_type(type_t *t)
     if (t == THREAD_TYPE) return "Thread_t";
     else if (t == RANGE_TYPE) return "Range_t";
     else if (t == RNG_TYPE) return "RNG_t";
+    else if (t == MATCH_TYPE) return "Match_t";
 
     switch (t->tag) {
     case ReturnType: errx(1, "Shouldn't be compiling ReturnType to a type");
@@ -3396,12 +3397,13 @@ CORD compile(env_t *env, ast_t *ast)
         case StructType: {
             for (arg_t *field = Match(value_t, StructType)->fields; field; field = field->next) {
                 if (streq(field->name, f->field)) {
+                    const char *prefix = (value_t == RANGE_TYPE || value_t == MATCH_TYPE) ? "" : "$";
                     if (fielded_t->tag == PointerType) {
                         CORD fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
-                        return CORD_asprintf("(%r)->$%s", fielded, f->field);
+                        return CORD_asprintf("(%r)->%s%s", fielded, prefix, f->field);
                     } else {
                         CORD fielded = compile(env, f->fielded);
-                        return CORD_asprintf("(%r).$%s", fielded, f->field);
+                        return CORD_asprintf("(%r).%s%s", fielded, prefix, f->field);
                     }
                 }
             }
@@ -3602,6 +3604,7 @@ CORD compile_type_info(env_t *env, type_t *t)
 {
     if (t == THREAD_TYPE) return "&Thread$info";
     else if (t == RANGE_TYPE) return "&Range$info";
+    else if (t == MATCH_TYPE) return "&Match$info";
     else if (t == RNG_TYPE) return "&RNG$info";
 
     switch (t->tag) {

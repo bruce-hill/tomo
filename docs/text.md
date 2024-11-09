@@ -274,15 +274,21 @@ functions that would normally be handled by a more extensive API:
 
 ```
 Text.has(pattern:Pattern -> Bool)
-Text.find(pattern:Pattern, start=1 -> Int?)
-Text.find_all(pattern:Pattern -> [Text])
+Text.find(pattern:Pattern, start=1 -> Match?)
+Text.find_all(pattern:Pattern -> [Match])
 Text.matches(pattern:Pattern -> [Text]?)
-Text.map(pattern:Pattern, fn:func(t:Text -> Text) -> Text)
+Text.map(pattern:Pattern, fn:func(m:Match -> Text) -> Text)
 Text.replace(pattern:Pattern, replacement:Text, placeholder:Pattern=$// -> [Text])
 Text.replace_all(replacements:{Pattern:Text}, placeholder:Pattern=$// -> [Text])
 Text.split(pattern:Pattern -> [Text])
 Text.trim(pattern=$/{whitespace}/, trim_left=yes, trim_right=yes -> [Text])
 ```
+
+Pattern matching functions work with a type called `Match` that has three fields:
+
+- `text`: The full text of the match.
+- `index`: The index in the text where the match was found.
+- `captures`: An array containing the matching text of each non-literal pattern group.
 
 See [Text Functions](#Text-Functions) for the full API documentation.
 
@@ -652,19 +658,19 @@ func find(text: Text, pattern: Pattern, start: Int = 1 -> Int?)
 - `start`: The index to start the search.
 
 **Returns:**  
-`!Int` if the target pattern is not found, otherwise the index where the match
-was found.
+`!Match` if the target pattern is not found, otherwise a `Match` struct
+containing information about the match.
 
 **Example:**  
 ```tomo
->> " one   two  three   ":find("{id}", start=-999)
-= !Int
->> " one   two  three   ":find("{id}", start=999)
-= !Int
->> " one   two  three   ":find("{id}")
-= 2?
->> " one   two  three   ":find("{id}", start=5)
-= 8?
+>> " #one   #two  #three   ":find($/#{id}/, start=-999)
+= !Match
+>> " #one   #two  #three   ":find($/#{id}/, start=999)
+= !Match
+>> " #one   #two  #three   ":find($/#{id}/)
+= Match(text="#one", index=2, captures=["one"])?
+>> " #one   #two  #three   ":find("{id}", start=6)
+= Match(text="#two", index=9, captures=["two"])?
 ```
 
 ---
@@ -677,7 +683,7 @@ See: [Patterns](#Patterns) for more information on patterns.
 
 **Signature:**  
 ```tomo
-func find_all(text: Text, pattern: Pattern -> [Text])
+func find_all(text: Text, pattern: Pattern -> [Match])
 ```
 
 **Parameters:**
@@ -691,22 +697,19 @@ Note: if `text` or `pattern` is empty, an empty array will be returned.
 
 **Example:**  
 ```tomo
->> " one  two three   ":find_all("{alpha}")
-= ["one", "two", "three"]
-
->> " one  two three   ":find_all("{!space}")
-= ["one", "two", "three"]
+>> " #one  #two #three   ":find_all($/#{alpha}/)
+= [Match(text="#one", index=2, captures=["one"]), Match(text="#two", index=8, captures=["two"]), Match(text="#three", index=13, captures=["three"])]
 
 >> "    ":find_all("{alpha}")
 = []
 
 >> " foo(baz(), 1)  doop() ":find_all("{id}(?)")
-= ["foo(baz(), 1)", "doop()"]
+= [Match(text="foo(baz(), 1)", index=2, captures=["foo", "baz(), 1"]), Match(text="doop()", index=17, captures=["doop", ""])]
 
->> "":find_all("")
+>> "":find_all($//)
 = []
 
->> "Hello":find_all("")
+>> "Hello":find_all($//)
 = []
 ```
 
@@ -833,8 +836,8 @@ The lowercase version of the text.
 
 **Description:**  
 Checks if the `Text` matches target pattern (see: [Patterns](#Patterns)) and
-returns an array of the matching texts or a null value if the entire text
-doesn't match the pattern.
+returns an array of the matching text captures or a null value if the entire
+text doesn't match the pattern.
 
 **Signature:**  
 ```tomo
@@ -847,8 +850,8 @@ func matches(text: Text, pattern: Pattern -> [Text])
 - `pattern`: The pattern to search for.
 
 **Returns:**  
-An array of the matching text groups if the entire text matches the pattern, or
-a null value otherwise.
+An array of the matching text captures if the entire text matches the pattern,
+or a null value otherwise.
 
 **Example:**  
 ```tomo
@@ -865,11 +868,11 @@ a null value otherwise.
 
 **Description:**  
 For each occurrence of the given pattern, replace the text with the result of
-calling the given function on that text.
+calling the given function on that match.
 
 **Signature:**  
 ```tomo
-func map(text: Text, pattern: Pattern, fn: func(text:Text)->Text -> Text)
+func map(text: Text, pattern: Pattern, fn: func(text:Match)->Text -> Text)
 ```
 
 **Parameters:**
@@ -884,9 +887,9 @@ function to each.
 
 **Example:**  
 ```tomo
->> "hello world":map($/world/, Text.upper)
+>> "hello world":map($/world/, func(m:Match): m.text:upper())
 = "hello WORLD"
->> "Some nums: 1 2 3 4":map($/{int}/, func(i:Text): "$(Int.parse(i)! + 10)")
+>> "Some nums: 1 2 3 4":map($/{int}/, func(m:Match): "$(Int.parse(m.text)! + 10)")
 = "Some nums: 11 12 13 14"
 ```
 
@@ -1081,16 +1084,16 @@ An array of substrings resulting from the split.
 
 **Example:**  
 ```tomo
->> "one,two,three":split(",")
+>> "one,two,three":split($/,/)
 = ["one", "two", "three"]
 
 >> "abc":split()
 = ["a", "b", "c"]
 
->> "a    b  c":split("{space}")
+>> "a    b  c":split($/{space}/)
 = ["a", "b", "c"]
 
->> "a,b,c,":split(",")
+>> "a,b,c,":split($/,/)
 = ["a", "b", "c", ""]
 ```
 
