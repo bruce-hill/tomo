@@ -387,6 +387,7 @@ env_t *new_compilation_unit(CORD libname)
             {"as_c_string", "Text$as_c_string", "func(text:Text -> CString)"},
             {"codepoint_names", "Text$codepoint_names", "func(text:Text -> [Text])"},
             {"ends_with", "Text$ends_with", "func(text,suffix:Text -> Bool)"},
+            {"each", "Text$each", "func(text:Text, pattern:Pattern, fn:func(match:Match))"},
             {"find", "Text$find", "func(text:Text, pattern:Pattern, start=1 -> Match?)"},
             {"find_all", "Text$find_all", "func(text:Text, pattern:Pattern -> [Match])"},
             {"from_bytes", "Text$from_bytes", "func(bytes:[Byte] -> Text?)"},

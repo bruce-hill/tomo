@@ -1050,6 +1050,41 @@ public Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn)
     return ret;
 }
 
+public void Text$each(Text_t text, Pattern_t pattern, Closure_t fn)
+{
+    int32_t first_grapheme = Text$get_grapheme(pattern, 0);
+    bool find_first = (first_grapheme != '{'
+                       && !uc_is_property((ucs4_t)first_grapheme, UC_PROPERTY_QUOTATION_MARK)
+                       && !uc_is_property((ucs4_t)first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
+
+    TextIter_t text_state = {text, 0, 0};
+    void (*action)(Match_t, void*) = fn.fn;
+    for (int64_t pos = 0; pos < text.length; pos++) {
+        // Optimization: quickly skip ahead to first char in pattern:
+        if (find_first) {
+            while (pos < text.length && Text$get_grapheme_fast(&text_state, pos) != first_grapheme)
+                ++pos;
+        }
+
+        capture_t captures[MAX_BACKREFS] = {};
+        int64_t match_len = match(text, pos, pattern, 0, captures, 0);
+        if (match_len < 0) continue;
+
+        Match_t m = {
+            .text=Text$slice(text, I(pos+1), I(pos+match_len)),
+            .index=I(pos+1),
+            .captures={},
+        };
+        for (int i = 0; captures[i].occupied; i++) {
+            Text_t capture = Text$slice(text, I(captures[i].index+1), I(captures[i].index+captures[i].length));
+            Array$insert(&m.captures, &capture, I(0), sizeof(Text_t));
+        }
+
+        action(m, fn.userdata);
+        pos += (match_len - 1);
+    }
+}
+
 public Text_t Text$replace_all(Text_t text, Table_t replacements, Text_t backref_pat, bool recursive)
 {
     if (replacements.entries.length == 0) return text;

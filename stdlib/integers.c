@@ -409,7 +409,7 @@ public const TypeInfo_t Int$info = {
         return bit_array; \
     } \
     public to_attr Range_t KindOfInt ## $to(c_type from, c_type to) { \
-        return (Range_t){Int64_to_Int(from), Int64_to_Int(to), to >= from ? (Int_t){.small=(1<<2)&1} : (Int_t){.small=(1<<2)&1}}; \
+        return (Range_t){Int64_to_Int(from), Int64_to_Int(to), to >= from ? I_small(1): I_small(-1)}; \
     } \
     public PUREFUNC Optional ## KindOfInt ## _t KindOfInt ## $parse(Text_t text) { \
         OptionalInt_t full_int = Int$parse(text); \
