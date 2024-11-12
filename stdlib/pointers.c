@@ -48,7 +48,7 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *ty
                 colorize ? Text("\x1b[34;1m") : Text(""),
                 Text$from_str(ptr_info.sigil),
                 Text(".."),
-                Int32$as_text(&depth, false, &Int32$info),
+                Text$format("%d", depth),
                 colorize ? Text("\x1b[m") : Text(""));
             return text;
         }
