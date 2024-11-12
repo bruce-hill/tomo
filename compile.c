@@ -419,6 +419,26 @@ static CORD check_null(type_t *t, CORD value)
     errx(1, "Optional check not implemented for: %T", t);
 }
 
+static CORD compile_condition(env_t *env, ast_t *ast)
+{
+    type_t *t = get_type(env, ast);
+    if (t->tag == BoolType) {
+        return compile(env, ast);
+    } else if (t->tag == TextType) {
+        return CORD_all("(", compile(env, ast), ").length");
+    } else if (t->tag == ArrayType) {
+        return CORD_all("(", compile(env, ast), ").length");
+    } else if (t->tag == TableType || t->tag == SetType) {
+        return CORD_all("(", compile(env, ast), ").entries.length");
+    } else if (t->tag == OptionalType) {
+        return CORD_all("!", check_null(t, compile(env, ast)));
+    } else if (t->tag == PointerType) {
+        code_err(ast, "This pointer will always be non-null, so it should not be used in a conditional.");
+    } else {
+        code_err(ast, "%T values cannot be used for conditionals", t);
+    }
+}
+
 CORD compile_statement(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
@@ -1384,50 +1404,37 @@ CORD compile_statement(env_t *env, ast_t *ast)
     case If: {
         auto if_ = Match(ast, If);
         ast_t *condition = if_->condition;
-        CORD code = CORD_EMPTY;
         if (condition->tag == Declare) {
-            env = fresh_scope(env);
-            code = compile_statement(env, condition);
-            bind_statement(env, condition);
-            condition = Match(condition, Declare)->var;
-        }
-
-        type_t *cond_t = get_type(env, condition);
-        if (cond_t->tag == PointerType)
-            code_err(condition, "This pointer will always be non-null, so it should not be used in a conditional.");
-
-        env_t *truthy_scope = env; 
-        CORD condition_code;
-        if (cond_t->tag == TextType) {
-            condition_code = CORD_all("(", compile(env, condition), ").length");
-        } else if (cond_t->tag == ArrayType) {
-            condition_code = CORD_all("(", compile(env, condition), ").length");
-        } else if (cond_t->tag == TableType || cond_t->tag == SetType) {
-            condition_code = CORD_all("(", compile(env, condition), ").entries.length");
-        } else if (cond_t->tag == OptionalType) {
-            if (condition->tag == Var) {
-                truthy_scope = fresh_scope(env);
-                const char *varname = Match(condition, Var)->name;
-                binding_t *b = get_binding(env, varname);
-                assert(b);
-                set_binding(truthy_scope, varname,
+            env_t *truthy_scope = fresh_scope(env);
+            CORD code = CORD_all("IF_DECLARE(", compile_statement(truthy_scope, condition), ", ");
+            bind_statement(truthy_scope, condition);
+            ast_t *var = Match(condition, Declare)->var;
+            code = CORD_all(code, compile_condition(truthy_scope, var), ", ");
+            type_t *cond_t = get_type(truthy_scope, var);
+            if (cond_t->tag == OptionalType) {
+                set_binding(truthy_scope, Match(var, Var)->name,
                             new(binding_t, .type=Match(cond_t, OptionalType)->type,
-                                .code=optional_into_nonnull(cond_t, b->code)));
+                                .code=optional_into_nonnull(cond_t, compile(truthy_scope, var))));
             }
-            condition_code = CORD_all("!", check_null(cond_t, compile(env, condition)));
-        } else if (cond_t->tag == BoolType) {
-            condition_code = compile(env, condition);
+            code = CORD_all(code, compile_statement(truthy_scope, if_->body), ")");
+            if (if_->else_body)
+                code = CORD_all(code, "\nelse ", compile_statement(env, if_->else_body));
+            return code;
         } else {
-            code_err(condition, "%T values cannot be used for conditionals", cond_t);
+            CORD code = CORD_all("if (", compile_condition(env, condition), ")");
+            env_t *truthy_scope = env;
+            type_t *cond_t = get_type(env, condition);
+            if (condition->tag == Var && cond_t->tag == OptionalType) {
+                truthy_scope = fresh_scope(env);
+                set_binding(truthy_scope, Match(condition, Var)->name,
+                            new(binding_t, .type=Match(cond_t, OptionalType)->type,
+                                .code=optional_into_nonnull(cond_t, compile(truthy_scope, condition))));
+            }
+            code = CORD_all(code, compile_statement(truthy_scope, if_->body));
+            if (if_->else_body)
+                code = CORD_all(code, "\nelse ", compile_statement(env, if_->else_body));
+            return code;
         }
-
-        code = CORD_all(code, "if (", condition_code, ")", compile_statement(truthy_scope, if_->body));
-        if (if_->else_body)
-            code = CORD_all(code, "\nelse ", compile_statement(env, if_->else_body));
-
-        if (if_->condition->tag == Declare)
-            code = CORD_all("{\n", code, "}\n");
-        return code;
     }
     case Block: {
         return CORD_all("{\n", compile_inline_block(env, ast), "}\n");
@@ -3180,52 +3187,31 @@ CORD compile(env_t *env, ast_t *ast)
         CORD decl_code = CORD_EMPTY;
         env_t *truthy_scope = env, *falsey_scope = env;
 
-        type_t *condition_type;
+        CORD condition_code;
         if (condition->tag == Declare) {
-            condition_type = get_type(env, Match(condition, Declare)->value);
-
-            const char *varname = Match(Match(condition, Declare)->var, Var)->name;
-            falsey_scope = fresh_scope(env);
-            bind_statement(falsey_scope, condition);
-            binding_t *b = get_binding(falsey_scope, varname);
-            assert(b);
-
-            truthy_scope = fresh_scope(env);
-            set_binding(truthy_scope, varname,
-                        new(binding_t, .type=Match(condition_type, OptionalType)->type, .code=b->code));
+            type_t *condition_type = get_type(env, Match(condition, Declare)->value);
+            if (condition_type->tag != OptionalType)
+                code_err(condition, "This `if var := ...:` declaration should be an optional type, not %T", condition_type);
 
             decl_code = compile_statement(env, condition);
-            condition = Match(condition, Declare)->var;
+            ast_t *var = Match(condition, Declare)->var;
+            truthy_scope = fresh_scope(env);
+            bind_statement(truthy_scope, condition);
+            condition_code = compile_condition(truthy_scope, var);
+            set_binding(truthy_scope, Match(var, Var)->name,
+                        new(binding_t, .type=Match(condition_type, OptionalType)->type,
+                            .code=optional_into_nonnull(condition_type, compile(truthy_scope, var))));
         } else if (condition->tag == Var) {
-            condition_type = get_type(env, condition);
+            type_t *condition_type = get_type(env, condition);
+            condition_code = compile(env, condition);
             if (condition_type->tag == OptionalType) {
                 truthy_scope = fresh_scope(env);
-                const char *varname = Match(if_->condition, Var)->name;
-                binding_t *b = get_binding(env, varname);
-                if (!b) code_err(condition, "I don't know what this variable refers to");
-                set_binding(truthy_scope, varname,
-                            new(binding_t, .type=Match(condition_type, OptionalType)->type, .code=b->code));
+                set_binding(truthy_scope, Match(condition, Var)->name,
+                            new(binding_t, .type=Match(condition_type, OptionalType)->type,
+                                .code=optional_into_nonnull(condition_type, compile(truthy_scope, condition))));
             }
         } else {
-            condition_type = get_type(env, condition);
-        }
-
-        if (condition_type->tag == PointerType)
-            code_err(condition, "This pointer will always be non-null, so it should not be used in a conditional.");
-
-        CORD condition_code;
-        if (condition_type->tag == TextType) {
-            condition_code = CORD_all("(", compile(env, condition), ").length");
-        } else if (condition_type->tag == ArrayType) {
-            condition_code = CORD_all("(", compile(env, condition), ").length");
-        } else if (condition_type->tag == TableType || condition_type->tag == SetType) {
-            condition_code = CORD_all("(", compile(env, condition), ").entries.length");
-        } else if (condition_type->tag == OptionalType) {
-            condition_code = CORD_all("!", check_null(condition_type, compile(env, condition)));
-        } else if (condition_type->tag == BoolType) {
             condition_code = compile(env, condition);
-        } else {
-            code_err(condition, "%T values cannot be used for conditionals", condition_type);
         }
 
         type_t *true_type = get_type(truthy_scope, if_->body);

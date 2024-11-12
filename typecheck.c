@@ -1088,15 +1088,16 @@ type_t *get_type(env_t *env, ast_t *ast)
         env_t *falsey_scope = env;
         if (if_->condition->tag == Declare) {
             type_t *condition_type = get_type(env, Match(if_->condition, Declare)->value);
-            falsey_scope = fresh_scope(env);
-            bind_statement(falsey_scope, if_->condition);
-
             const char *varname = Match(Match(if_->condition, Declare)->var, Var)->name;
-            if (!streq(varname, "_")) {
-                truthy_scope = fresh_scope(env);
+            if (streq(varname, "_"))
+                code_err(if_->condition, "To use `if var := ...:`, you must choose a real variable name, not `_`");
+
+            truthy_scope = fresh_scope(env);
+            if (condition_type->tag == OptionalType)
                 set_binding(truthy_scope, varname,
                             new(binding_t, .type=Match(condition_type, OptionalType)->type));
-            }
+            else
+                set_binding(truthy_scope, varname, new(binding_t, .type=condition_type));
         } else if (if_->condition->tag == Var) {
             type_t *condition_type = get_type(env, if_->condition);
             if (condition_type->tag == OptionalType) {

@@ -17,6 +17,8 @@
 #define check_initialized(var, name) *({ if (!var ## $initialized) fail("The variable " name " is being accessed before it has been initialized!"); \
                                        &var; })
 
+#define IF_DECLARE(decl, expr, block) if (({ decl; expr ? ({ block; 1; }) : 0; })) {}
+
 #ifndef auto
 #define auto __auto_type
 #endif
