@@ -5,9 +5,9 @@
 #include "bools.h"
 #include "bytes.h"
 #include "datatypes.h"
-#include "datetime.h"
 #include "integers.h"
 #include "metamethods.h"
+#include "moments.h"
 #include "patterns.h"
 #include "text.h"
 #include "threads.h"
@@ -33,8 +33,8 @@ public PUREFUNC bool is_null(const void *obj, const TypeInfo_t *non_optional_typ
         return ((OptionalByte_t*)obj)->is_null;
     else if (non_optional_type == &Thread$info)
         return *(pthread_t**)obj == NULL;
-    else if (non_optional_type == &DateTime$info)
-        return ((OptionalDateTime_t*)obj)->tv_usec < 0;
+    else if (non_optional_type == &Moment$info)
+        return ((OptionalMoment_t*)obj)->tv_usec < 0;
     else if (non_optional_type == &Match$info)
         return ((OptionalMatch_t*)obj)->index.small == 0;
 

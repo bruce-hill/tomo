@@ -22,7 +22,7 @@ Information about Tomo's built-in types can be found here:
 - [Booleans](booleans.md)
 - [Bytes](bytes.md)
 - [Channels](channels.md)
-- [DateTime](datetime.md)
+- [Moment](moments.md)
 - [Enums](enums.md)
 - [Floating point numbers](nums.md)
 - [Integer Ranges](ranges.md)
@@ -177,11 +177,11 @@ fail("Oh no!")
 ### `now`
 
 **Description:**  
-Gets the current time. This is an alias for `DateTime.now()`.
+Gets the current time. This is an alias for `Moment.now()`.
 
 **Signature:**  
 ```tomo
-func now(->DateTime)
+func now(->Moment)
 ```
 
 **Parameters:**
@@ -189,7 +189,7 @@ func now(->DateTime)
 None.
 
 **Returns:**  
-The current moment as a DateTime.
+The current moment as a Moment.
 
 **Example:**  
 ```tomo

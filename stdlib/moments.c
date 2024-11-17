@@ -1,4 +1,4 @@
-// DateTime methods/type info
+// Moment methods/type info
 #include <ctype.h>
 #include <gc.h>
 #include <err.h>
@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 #include "datatypes.h"
-#include "datetime.h"
+#include "moments.h"
 #include "optionals.h"
 #include "patterns.h"
 #include "stdlib.h"
@@ -18,21 +18,21 @@ static OptionalText_t _local_timezone = NULL_TEXT;
 
 #define WITH_TIMEZONE(tz, body) ({ if (tz.length >= 0) { \
         OptionalText_t old_timezone = _local_timezone; \
-        DateTime$set_local_timezone(tz); \
+        Moment$set_local_timezone(tz); \
         body; \
-        DateTime$set_local_timezone(old_timezone); \
+        Moment$set_local_timezone(old_timezone); \
     } else { \
         body; \
     }})
 
-public Text_t DateTime$as_text(const DateTime_t *dt, bool colorize, const TypeInfo_t *type)
+public Text_t Moment$as_text(const Moment_t *moment, bool colorize, const TypeInfo_t *type)
 {
     (void)type;
-    if (!dt)
-        return Text("DateTime");
+    if (!moment)
+        return Text("Moment");
 
     struct tm info;
-    struct tm *final_info = localtime_r(&dt->tv_sec, &info);
+    struct tm *final_info = localtime_r(&moment->tv_sec, &info);
     static char buf[256];
     size_t len = strftime(buf, sizeof(buf), "%c %Z", final_info);
     Text_t text = Text$format("%.*s", (int)len, buf);
@@ -41,7 +41,7 @@ public Text_t DateTime$as_text(const DateTime_t *dt, bool colorize, const TypeIn
     return text;
 }
 
-PUREFUNC public int32_t DateTime$compare(const DateTime_t *a, const DateTime_t *b, const TypeInfo_t *type)
+PUREFUNC public int32_t Moment$compare(const Moment_t *a, const Moment_t *b, const TypeInfo_t *type)
 {
     (void)type;
     if (a->tv_sec != b->tv_sec)
@@ -49,15 +49,15 @@ PUREFUNC public int32_t DateTime$compare(const DateTime_t *a, const DateTime_t *
     return (a->tv_usec > b->tv_usec) - (a->tv_usec < b->tv_usec);
 }
 
-public DateTime_t DateTime$now(void)
+public Moment_t Moment$now(void)
 {
     struct timespec ts;
     if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
         fail("Couldn't get the time!");
-    return (DateTime_t){.tv_sec=ts.tv_sec, .tv_usec=ts.tv_nsec};
+    return (Moment_t){.tv_sec=ts.tv_sec, .tv_usec=ts.tv_nsec};
 }
 
-public DateTime_t DateTime$new(Int_t year, Int_t month, Int_t day, Int_t hour, Int_t minute, double second, OptionalText_t timezone)
+public Moment_t Moment$new(Int_t year, Int_t month, Int_t day, Int_t hour, Int_t minute, double second, OptionalText_t timezone)
 {
     struct tm info = {
         .tm_min=Int_to_Int32(minute, false),
@@ -70,49 +70,49 @@ public DateTime_t DateTime$new(Int_t year, Int_t month, Int_t day, Int_t hour, I
 
     time_t t;
     WITH_TIMEZONE(timezone, t = mktime(&info));
-    return (DateTime_t){.tv_sec=t + (time_t)second, .tv_usec=(suseconds_t)(fmod(second, 1.0) * 1e9)};
+    return (Moment_t){.tv_sec=t + (time_t)second, .tv_usec=(suseconds_t)(fmod(second, 1.0) * 1e9)};
 }
 
-public DateTime_t DateTime$after(DateTime_t dt, double seconds, double minutes, double hours, Int_t days, Int_t weeks, Int_t months, Int_t years, OptionalText_t timezone)
+public Moment_t Moment$after(Moment_t moment, double seconds, double minutes, double hours, Int_t days, Int_t weeks, Int_t months, Int_t years, OptionalText_t timezone)
 {
     double offset = seconds + 60.*minutes + 3600.*hours;
-    dt.tv_sec += (time_t)offset;
+    moment.tv_sec += (time_t)offset;
 
     struct tm info = {};
-    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    WITH_TIMEZONE(timezone, localtime_r(&moment.tv_sec, &info));
 
     info.tm_mday += Int_to_Int32(days, false) + 7*Int_to_Int32(weeks, false);
     info.tm_mon += Int_to_Int32(months, false);
     info.tm_year += Int_to_Int32(years, false);
 
     time_t t = mktime(&info);
-    return (DateTime_t){
+    return (Moment_t){
         .tv_sec=t,
-        .tv_usec=dt.tv_usec + (suseconds_t)(fmod(offset, 1.0) * 1e9),
+        .tv_usec=moment.tv_usec + (suseconds_t)(fmod(offset, 1.0) * 1e9),
     };
 }
 
-CONSTFUNC public double DateTime$seconds_till(DateTime_t now, DateTime_t then)
+CONSTFUNC public double Moment$seconds_till(Moment_t now, Moment_t then)
 {
     return (double)(then.tv_sec - now.tv_sec) + 1e-9*(double)(then.tv_usec - now.tv_usec);
 }
 
-CONSTFUNC public double DateTime$minutes_till(DateTime_t now, DateTime_t then)
+CONSTFUNC public double Moment$minutes_till(Moment_t now, Moment_t then)
 {
-    return DateTime$seconds_till(now, then)/60.;
+    return Moment$seconds_till(now, then)/60.;
 }
 
-CONSTFUNC public double DateTime$hours_till(DateTime_t now, DateTime_t then)
+CONSTFUNC public double Moment$hours_till(Moment_t now, Moment_t then)
 {
-    return DateTime$seconds_till(now, then)/3600.;
+    return Moment$seconds_till(now, then)/3600.;
 }
 
-public void DateTime$get(
-    DateTime_t dt, Int_t *year, Int_t *month, Int_t *day, Int_t *hour, Int_t *minute, Int_t *second,
+public void Moment$get(
+    Moment_t moment, Int_t *year, Int_t *month, Int_t *day, Int_t *hour, Int_t *minute, Int_t *second,
     Int_t *nanosecond, Int_t *weekday, OptionalText_t timezone)
 {
     struct tm info = {};
-    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    WITH_TIMEZONE(timezone, localtime_r(&moment.tv_sec, &info));
 
     if (year) *year = I(info.tm_year + 1900);
     if (month) *month = I(info.tm_mon + 1);
@@ -120,97 +120,97 @@ public void DateTime$get(
     if (hour) *hour = I(info.tm_hour);
     if (minute) *minute = I(info.tm_min);
     if (second) *second = I(info.tm_sec);
-    if (nanosecond) *nanosecond = I(dt.tv_usec);
+    if (nanosecond) *nanosecond = I(moment.tv_usec);
     if (weekday) *weekday = I(info.tm_wday + 1);
 }
 
-public Int_t DateTime$year(DateTime_t dt, OptionalText_t timezone)
+public Int_t Moment$year(Moment_t moment, OptionalText_t timezone)
 {
     struct tm info = {};
-    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    WITH_TIMEZONE(timezone, localtime_r(&moment.tv_sec, &info));
     return I(info.tm_year + 1900);
 }
 
-public Int_t DateTime$month(DateTime_t dt, OptionalText_t timezone)
+public Int_t Moment$month(Moment_t moment, OptionalText_t timezone)
 {
     struct tm info = {};
-    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    WITH_TIMEZONE(timezone, localtime_r(&moment.tv_sec, &info));
     return I(info.tm_mon + 1);
 }
 
-public Int_t DateTime$day_of_week(DateTime_t dt, OptionalText_t timezone)
+public Int_t Moment$day_of_week(Moment_t moment, OptionalText_t timezone)
 {
     struct tm info = {};
-    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    WITH_TIMEZONE(timezone, localtime_r(&moment.tv_sec, &info));
     return I(info.tm_wday + 1);
 }
 
-public Int_t DateTime$day_of_month(DateTime_t dt, OptionalText_t timezone)
+public Int_t Moment$day_of_month(Moment_t moment, OptionalText_t timezone)
 {
     struct tm info = {};
-    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    WITH_TIMEZONE(timezone, localtime_r(&moment.tv_sec, &info));
     return I(info.tm_mday);
 }
 
-public Int_t DateTime$day_of_year(DateTime_t dt, OptionalText_t timezone)
+public Int_t Moment$day_of_year(Moment_t moment, OptionalText_t timezone)
 {
     struct tm info = {};
-    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    WITH_TIMEZONE(timezone, localtime_r(&moment.tv_sec, &info));
     return I(info.tm_yday);
 }
 
-public Int_t DateTime$hour(DateTime_t dt, OptionalText_t timezone)
+public Int_t Moment$hour(Moment_t moment, OptionalText_t timezone)
 {
     struct tm info = {};
-    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    WITH_TIMEZONE(timezone, localtime_r(&moment.tv_sec, &info));
     return I(info.tm_hour);
 }
 
-public Int_t DateTime$minute(DateTime_t dt, OptionalText_t timezone)
+public Int_t Moment$minute(Moment_t moment, OptionalText_t timezone)
 {
     struct tm info = {};
-    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    WITH_TIMEZONE(timezone, localtime_r(&moment.tv_sec, &info));
     return I(info.tm_min);
 }
 
-public Int_t DateTime$second(DateTime_t dt, OptionalText_t timezone)
+public Int_t Moment$second(Moment_t moment, OptionalText_t timezone)
 {
     struct tm info = {};
-    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    WITH_TIMEZONE(timezone, localtime_r(&moment.tv_sec, &info));
     return I(info.tm_sec);
 }
 
-public Int_t DateTime$nanosecond(DateTime_t dt, OptionalText_t timezone)
+public Int_t Moment$nanosecond(Moment_t moment, OptionalText_t timezone)
 {
     (void)timezone;
-    return I(dt.tv_usec);
+    return I(moment.tv_usec);
 }
 
-public Text_t DateTime$format(DateTime_t dt, Text_t fmt, OptionalText_t timezone)
+public Text_t Moment$format(Moment_t moment, Text_t fmt, OptionalText_t timezone)
 {
     struct tm info;
-    WITH_TIMEZONE(timezone, localtime_r(&dt.tv_sec, &info));
+    WITH_TIMEZONE(timezone, localtime_r(&moment.tv_sec, &info));
     static char buf[256];
     size_t len = strftime(buf, sizeof(buf), Text$as_c_string(fmt), &info);
     return Text$format("%.*s", (int)len, buf);
 }
 
-public Text_t DateTime$date(DateTime_t dt, OptionalText_t timezone)
+public Text_t Moment$date(Moment_t moment, OptionalText_t timezone)
 {
-    return DateTime$format(dt, Text("%F"), timezone);
+    return Moment$format(moment, Text("%F"), timezone);
 }
 
-public Text_t DateTime$time(DateTime_t dt, bool seconds, bool am_pm, OptionalText_t timezone)
+public Text_t Moment$time(Moment_t moment, bool seconds, bool am_pm, OptionalText_t timezone)
 {
     Text_t text;
     if (seconds)
-        text = DateTime$format(dt, am_pm ? Text("%l:%M:%S%P") : Text("%T"), timezone);
+        text = Moment$format(moment, am_pm ? Text("%l:%M:%S%P") : Text("%T"), timezone);
     else
-        text = DateTime$format(dt, am_pm ? Text("%l:%M%P") : Text("%H:%M"), timezone);
+        text = Moment$format(moment, am_pm ? Text("%l:%M%P") : Text("%H:%M"), timezone);
     return Text$trim(text, Pattern(" "), true, true);
 }
 
-public OptionalDateTime_t DateTime$parse(Text_t text, Text_t format)
+public OptionalMoment_t Moment$parse(Text_t text, Text_t format)
 {
     struct tm info = {.tm_isdst=-1};
     const char *str = Text$as_c_string(text);
@@ -220,11 +220,11 @@ public OptionalDateTime_t DateTime$parse(Text_t text, Text_t format)
 
     char *invalid = strptime(str, fmt, &info);
     if (!invalid || invalid[0] != '\0')
-        return NULL_DATETIME;
+        return NULL_MOMENT;
 
     long offset = info.tm_gmtoff; // Need to cache this because mktime() mutates it to local timezone >:(
     time_t t = mktime(&info);
-    return (DateTime_t){.tv_sec=t + offset - info.tm_gmtoff};
+    return (Moment_t){.tv_sec=t + offset - info.tm_gmtoff};
 }
 
 static INLINE Text_t num_format(long n, const char *unit)
@@ -234,16 +234,16 @@ static INLINE Text_t num_format(long n, const char *unit)
     return Text$format((n == 1 || n == -1) ? "%ld %s %s" : "%ld %ss %s", n < 0 ? -n : n, unit, n < 0 ? "ago" : "later");
 }
 
-public Text_t DateTime$relative(DateTime_t dt, DateTime_t relative_to, OptionalText_t timezone)
+public Text_t Moment$relative(Moment_t moment, Moment_t relative_to, OptionalText_t timezone)
 {
     struct tm info = {};
     struct tm relative_info = {};
     WITH_TIMEZONE(timezone, {
-        localtime_r(&dt.tv_sec, &info);
+        localtime_r(&moment.tv_sec, &info);
         localtime_r(&relative_to.tv_sec, &relative_info);
     });
 
-    double second_diff = DateTime$seconds_till(relative_to, dt);
+    double second_diff = Moment$seconds_till(relative_to, moment);
     if (info.tm_year != relative_info.tm_year && fabs(second_diff) > 365.*24.*60.*60.)
         return num_format((long)info.tm_year - (long)relative_info.tm_year, "year");
     else if (info.tm_mon != relative_info.tm_mon && fabs(second_diff) > 31.*24.*60.*60.)
@@ -266,17 +266,17 @@ public Text_t DateTime$relative(DateTime_t dt, DateTime_t relative_to, OptionalT
     }
 }
 
-CONSTFUNC public Int64_t DateTime$unix_timestamp(DateTime_t dt)
+CONSTFUNC public Int64_t Moment$unix_timestamp(Moment_t moment)
 {
-    return (Int64_t)dt.tv_sec;
+    return (Int64_t)moment.tv_sec;
 }
 
-CONSTFUNC public DateTime_t DateTime$from_unix_timestamp(Int64_t timestamp)
+CONSTFUNC public Moment_t Moment$from_unix_timestamp(Int64_t timestamp)
 {
-    return (DateTime_t){.tv_sec=(time_t)timestamp};
+    return (Moment_t){.tv_sec=(time_t)timestamp};
 }
 
-public void DateTime$set_local_timezone(OptionalText_t timezone)
+public void Moment$set_local_timezone(OptionalText_t timezone)
 {
     if (timezone.length >= 0) {
         setenv("TZ", Text$as_c_string(timezone), 1);
@@ -287,7 +287,7 @@ public void DateTime$set_local_timezone(OptionalText_t timezone)
     tzset();
 }
 
-public Text_t DateTime$get_local_timezone(void)
+public Text_t Moment$get_local_timezone(void)
 {
     if (_local_timezone.length < 0) {
         static char buf[PATH_MAX];
@@ -304,13 +304,13 @@ public Text_t DateTime$get_local_timezone(void)
     return _local_timezone;
 }
 
-public const TypeInfo_t DateTime$info = {
-    .size=sizeof(DateTime_t),
-    .align=__alignof__(DateTime_t),
+public const TypeInfo_t Moment$info = {
+    .size=sizeof(Moment_t),
+    .align=__alignof__(Moment_t),
     .tag=CustomInfo,
     .CustomInfo={
-        .as_text=(void*)DateTime$as_text,
-        .compare=(void*)DateTime$compare,
+        .as_text=(void*)Moment$as_text,
+        .compare=(void*)Moment$compare,
     },
 };
 

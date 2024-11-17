@@ -2,7 +2,7 @@
 func main():
     >> 2024-1-1 12:00[America/New_York] == 2024-1-1T09:00[America/Los_Angeles]
     = yes
-    >> 2024-1-1 12:00[America/New_York] == DateTime(2024, 1, 1, hour=9, timezone="America/Los_Angeles")
+    >> 2024-1-1 12:00[America/New_York] == Moment(2024, 1, 1, hour=9, timezone="America/Los_Angeles")
     = yes
 
     >> t := 2024-1-2 13:45[America/New_York]
@@ -37,7 +37,7 @@ func main():
 
     >> t:unix_timestamp()
     = Int64(1704221100)
-    >> t == DateTime.from_unix_timestamp(1704221100)
+    >> t == Moment.from_unix_timestamp(1704221100)
     = yes
 
     >> t < t:after(minutes=1)

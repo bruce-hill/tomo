@@ -53,7 +53,7 @@ env_t *new_compilation_unit(CORD libname)
                          .ret=Type(AbortType))}},
         {"fail", {.code="fail", .type=Type(FunctionType, .args=new(arg_t, .name="message", .type=Type(CStringType)), .ret=Type(AbortType))}},
         {"sleep", {.code="sleep_num", .type=Type(FunctionType, .args=new(arg_t, .name="seconds", .type=Type(NumType, .bits=TYPE_NBITS64)), .ret=Type(VoidType))}},
-        {"now", {.code="DateTime$now", .type=Type(FunctionType, .args=NULL, .ret=Type(DateTimeType))}},
+        {"now", {.code="Moment$now", .type=Type(FunctionType, .args=NULL, .ret=Type(MomentType))}},
         {"USE_COLOR", {.code="USE_COLOR", .type=Type(BoolType)}},
     };
 
@@ -287,33 +287,33 @@ env_t *new_compilation_unit(CORD libname)
             {"escape_int", "Int$value_as_text", "func(i:Int -> Pattern)"},
             {"escape_text", "Pattern$escape_text", "func(text:Text -> Pattern)"},
         )},
-        {"DateTime", Type(DateTimeType), "DateTime_t", "DateTime", TypedArray(ns_entry_t,
+        {"Moment", Type(MomentType), "Moment_t", "Moment", TypedArray(ns_entry_t,
             // Used as a default for functions below:
-            {"now", "DateTime$now", "func(->DateTime)"},
+            {"now", "Moment$now", "func(->Moment)"},
 
-            {"after", "DateTime$after", "func(dt:DateTime,seconds,minutes,hours=0.0,days,weeks,months,years=0,timezone=!Text -> DateTime)"},
-            {"date", "DateTime$date", "func(dt:DateTime,timezone=!Text -> Text)"},
-            {"day_of_month", "DateTime$day_of_month", "func(dt:DateTime,timezone=!Text -> Int)"},
-            {"day_of_week", "DateTime$day_of_week", "func(dt:DateTime,timezone=!Text -> Int)"},
-            {"day_of_year", "DateTime$day_of_year", "func(dt:DateTime,timezone=!Text -> Int)"},
-            {"format", "DateTime$format", "func(dt:DateTime,format=\"%Y-%m-%dT%H:%M:%S%z\",timezone=!Text -> Text)"},
-            {"from_unix_timestamp", "DateTime$from_unix_timestamp", "func(timestamp:Int64 -> DateTime)"},
-            {"get_local_timezone", "DateTime$get_local_timezone", "func(->Text)"},
-            {"hour", "DateTime$hour", "func(dt:DateTime,timezone=!Text -> Int)"},
-            {"hours_till", "DateTime$hours_till", "func(now,then:DateTime -> Num)"},
-            {"minute", "DateTime$minute", "func(dt:DateTime,timezone=!Text -> Int)"},
-            {"minutes_till", "DateTime$minutes_till", "func(now,then:DateTime -> Num)"},
-            {"month", "DateTime$month", "func(dt:DateTime,timezone=!Text -> Int)"},
-            {"nanosecond", "DateTime$nanosecond", "func(dt:DateTime,timezone=!Text -> Int)"},
-            {"new", "DateTime$new", "func(year,month,day:Int,hour,minute=0,second=0.0,timezone=!Text -> DateTime)"},
-            {"parse", "DateTime$parse", "func(text:Text, format=\"%Y-%m-%dT%H:%M:%S%z\" -> DateTime?)"},
-            {"relative", "DateTime$relative", "func(dt:DateTime,relative_to=DateTime.now(),timezone=!Text -> Text)"},
-            {"second", "DateTime$second", "func(dt:DateTime,timezone=!Text -> Int)"},
-            {"seconds_till", "DateTime$seconds_till", "func(now:DateTime,then:DateTime -> Num)"},
-            {"set_local_timezone", "DateTime$set_local_timezone", "func(timezone=!Text)"},
-            {"time", "DateTime$time", "func(dt:DateTime,seconds=no,am_pm=yes,timezone=!Text -> Text)"},
-            {"unix_timestamp", "DateTime$unix_timestamp", "func(dt:DateTime -> Int64)"},
-            {"year", "DateTime$year", "func(dt:DateTime,timezone=!Text -> Int)"},
+            {"after", "Moment$after", "func(moment:Moment,seconds,minutes,hours=0.0,days,weeks,months,years=0,timezone=!Text -> Moment)"},
+            {"date", "Moment$date", "func(moment:Moment,timezone=!Text -> Text)"},
+            {"day_of_month", "Moment$day_of_month", "func(moment:Moment,timezone=!Text -> Int)"},
+            {"day_of_week", "Moment$day_of_week", "func(moment:Moment,timezone=!Text -> Int)"},
+            {"day_of_year", "Moment$day_of_year", "func(moment:Moment,timezone=!Text -> Int)"},
+            {"format", "Moment$format", "func(moment:Moment,format=\"%Y-%m-%dT%H:%M:%S%z\",timezone=!Text -> Text)"},
+            {"from_unix_timestamp", "Moment$from_unix_timestamp", "func(timestamp:Int64 -> Moment)"},
+            {"get_local_timezone", "Moment$get_local_timezone", "func(->Text)"},
+            {"hour", "Moment$hour", "func(moment:Moment,timezone=!Text -> Int)"},
+            {"hours_till", "Moment$hours_till", "func(now,then:Moment -> Num)"},
+            {"minute", "Moment$minute", "func(moment:Moment,timezone=!Text -> Int)"},
+            {"minutes_till", "Moment$minutes_till", "func(now,then:Moment -> Num)"},
+            {"month", "Moment$month", "func(moment:Moment,timezone=!Text -> Int)"},
+            {"nanosecond", "Moment$nanosecond", "func(moment:Moment,timezone=!Text -> Int)"},
+            {"new", "Moment$new", "func(year,month,day:Int,hour,minute=0,second=0.0,timezone=!Text -> Moment)"},
+            {"parse", "Moment$parse", "func(text:Text, format=\"%Y-%m-%dT%H:%M:%S%z\" -> Moment?)"},
+            {"relative", "Moment$relative", "func(moment:Moment,relative_to=Moment.now(),timezone=!Text -> Text)"},
+            {"second", "Moment$second", "func(moment:Moment,timezone=!Text -> Int)"},
+            {"seconds_till", "Moment$seconds_till", "func(now:Moment,then:Moment -> Num)"},
+            {"set_local_timezone", "Moment$set_local_timezone", "func(timezone=!Text)"},
+            {"time", "Moment$time", "func(moment:Moment,seconds=no,am_pm=yes,timezone=!Text -> Text)"},
+            {"unix_timestamp", "Moment$unix_timestamp", "func(moment:Moment -> Int64)"},
+            {"year", "Moment$year", "func(moment:Moment,timezone=!Text -> Int)"},
         )},
         {"Path", Type(TextType, .lang="Path", .env=namespace_env(env, "Path")), "Text_t", "Text$info", TypedArray(ns_entry_t,
             {"append", "Path$append", "func(path:Path, text:Text, permissions=Int32(0o644))"},
@@ -347,9 +347,9 @@ env_t *new_compilation_unit(CORD libname)
             {"write_unique", "Path$write_unique", "func(path:Path, text:Text -> Path)"},
             {"write_unique_bytes", "Path$write_unique_bytes", "func(path:Path, bytes:[Byte] -> Path)"},
 
-            {"modified", "Path$modified", "func(path:Path, follow_symlinks=yes -> DateTime?)"},
-            {"accessed", "Path$accessed", "func(path:Path, follow_symlinks=yes -> DateTime?)"},
-            {"changed", "Path$changed", "func(path:Path, follow_symlinks=yes -> DateTime?)"},
+            {"modified", "Path$modified", "func(path:Path, follow_symlinks=yes -> Moment?)"},
+            {"accessed", "Path$accessed", "func(path:Path, follow_symlinks=yes -> Moment?)"},
+            {"changed", "Path$changed", "func(path:Path, follow_symlinks=yes -> Moment?)"},
 
             // Text methods:
             {"ends_with", "Text$ends_with", "func(path:Path, suffix:Text -> Bool)"},
@@ -657,7 +657,7 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
     switch (cls_type->tag) {
     case ArrayType: return NULL;
     case TableType: return NULL;
-    case CStringType: case DateTimeType:
+    case CStringType: case MomentType:
     case BoolType: case IntType: case BigIntType: case NumType: case ByteType: {
         binding_t *b = get_binding(env, CORD_to_const_char_star(type_to_cord(cls_type)));
         assert(b);

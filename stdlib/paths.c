@@ -205,28 +205,28 @@ public bool Path$is_symlink(Path_t path)
     return (sb.st_mode & S_IFMT) == S_IFLNK;
 }
 
-public OptionalDateTime_t Path$modified(Path_t path, bool follow_symlinks)
+public OptionalMoment_t Path$modified(Path_t path, bool follow_symlinks)
 {
     struct stat sb;
     int status = path_stat(path, follow_symlinks, &sb);
-    if (status != 0) return NULL_DATETIME;
-    return (DateTime_t){.tv_sec=sb.st_mtime};
+    if (status != 0) return NULL_MOMENT;
+    return (Moment_t){.tv_sec=sb.st_mtime};
 }
 
-public OptionalDateTime_t Path$accessed(Path_t path, bool follow_symlinks)
+public OptionalMoment_t Path$accessed(Path_t path, bool follow_symlinks)
 {
     struct stat sb;
     int status = path_stat(path, follow_symlinks, &sb);
-    if (status != 0) return NULL_DATETIME;
-    return (DateTime_t){.tv_sec=sb.st_atime};
+    if (status != 0) return NULL_MOMENT;
+    return (Moment_t){.tv_sec=sb.st_atime};
 }
 
-public OptionalDateTime_t Path$changed(Path_t path, bool follow_symlinks)
+public OptionalMoment_t Path$changed(Path_t path, bool follow_symlinks)
 {
     struct stat sb;
     int status = path_stat(path, follow_symlinks, &sb);
-    if (status != 0) return NULL_DATETIME;
-    return (DateTime_t){.tv_sec=sb.st_ctime};
+    if (status != 0) return NULL_MOMENT;
+    return (Moment_t){.tv_sec=sb.st_ctime};
 }
 
 static void _write(Path_t path, Array_t bytes, int mode, int permissions)

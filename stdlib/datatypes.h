@@ -90,8 +90,8 @@ typedef struct Text_s {
 #define Pattern_t Text_t
 #define OptionalPattern_t Text_t
 
-typedef struct timeval DateTime_t;
-#define OptionalDateTime_t DateTime_t
+typedef struct timeval Moment_t;
+#define OptionalMoment_t Moment_t
 
 typedef struct RNGState_t* RNG_t;
 

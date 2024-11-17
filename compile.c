@@ -227,7 +227,7 @@ CORD compile_type(type_t *t)
     case BoolType: return "Bool_t";
     case ByteType: return "Byte_t";
     case CStringType: return "char*";
-    case DateTimeType: return "DateTime_t";
+    case MomentType: return "Moment_t";
     case BigIntType: return "Int_t";
     case IntType: return CORD_asprintf("Int%ld_t", Match(t, IntType)->bits);
     case NumType: return Match(t, NumType)->bits == TYPE_NBITS64 ? "Num_t" : CORD_asprintf("Num%ld_t", Match(t, NumType)->bits);
@@ -276,7 +276,7 @@ CORD compile_type(type_t *t)
         case TextType:
             return Match(nonnull, TextType)->lang ? compile_type(nonnull) : "OptionalText_t";
         case IntType: case BigIntType: case NumType: case BoolType: case ByteType:
-        case ArrayType: case TableType: case SetType: case DateTimeType:
+        case ArrayType: case TableType: case SetType: case MomentType:
             return CORD_all("Optional", compile_type(nonnull));
         case StructType: {
             if (nonnull == THREAD_TYPE)
@@ -414,7 +414,7 @@ static CORD check_null(type_t *t, CORD value)
         return CORD_all("(", value, ").is_null");
     else if (t->tag == EnumType)
         return CORD_all("((", value, ").tag == 0)");
-    else if (t->tag == DateTimeType)
+    else if (t->tag == MomentType)
         return CORD_all("((", value, ").tv_usec < 0)");
     errx(1, "Optional check not implemented for: %T", t);
 }
@@ -1511,7 +1511,7 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
          // NOTE: this cannot use stack(), since bools may actually be bit fields:
          return CORD_asprintf("Bool$as_text((Bool_t[1]){%r}, %r, &Bool$info)", expr, color);
     case CStringType: return CORD_asprintf("CString$as_text(stack(%r), %r, &CString$info)", expr, color);
-    case DateTimeType: return CORD_asprintf("DateTime$as_text(stack(%r), %r, &DateTime$info)", expr, color);
+    case MomentType: return CORD_asprintf("Moment$as_text(stack(%r), %r, &Moment$info)", expr, color);
     case BigIntType: case IntType: case ByteType: case NumType: {
         CORD name = type_to_cord(t);
         return CORD_asprintf("%r$as_text(stack(%r), %r, &%r$info)", name, expr, color, name);
@@ -1906,7 +1906,7 @@ CORD compile_null(type_t *t)
     case ChannelType: return "NULL";
     case TextType: return "NULL_TEXT";
     case CStringType: return "NULL";
-    case DateTimeType: return "NULL_DATETIME";
+    case MomentType: return "NULL_MOMENT";
     case PointerType: return CORD_all("((", compile_type(t), ")NULL)");
     case ClosureType: return "NULL_CLOSURE";
     case NumType: return "nan(\"null\")";
@@ -1960,9 +1960,9 @@ CORD compile(env_t *env, ast_t *ast)
         return compile_null(t);
     }
     case Bool: return Match(ast, Bool)->b ? "yes" : "no";
-    case DateTime: {
-        auto dt = Match(ast, DateTime)->dt;
-        return CORD_asprintf("((DateTime_t){.tv_sec=%ld, .tv_usec=%ld})", dt.tv_sec, dt.tv_usec);
+    case Moment: {
+        auto moment = Match(ast, Moment)->moment;
+        return CORD_asprintf("((Moment_t){.tv_sec=%ld, .tv_usec=%ld})", moment.tv_sec, moment.tv_usec);
     }
     case Var: {
         binding_t *b = get_binding(env, Match(ast, Var)->name);
@@ -3114,8 +3114,8 @@ CORD compile(env_t *env, ast_t *ast)
                     return compile_string_literal(Match(Match(call->args->value, TextJoin)->children->ast, TextLiteral)->cord);
                 type_t *actual = get_type(env, call->args->value);
                 return CORD_all("Text$as_c_string(", expr_as_text(env, compile(env, call->args->value), actual, "no"), ")");
-            } else if (t->tag == DateTimeType) {
-                // DateTime constructor:
+            } else if (t->tag == MomentType) {
+                // Moment constructor:
                 binding_t *new_binding = get_binding(Match(fn_t, TypeInfoType)->env, "new");
                 CORD arg_code = compile_arguments(env, ast, Match(new_binding->type, FunctionType)->args, call->args);
                 return CORD_all(new_binding->code, "(", arg_code, ")");
@@ -3590,7 +3590,7 @@ CORD compile_type_info(env_t *env, type_t *t)
     else if (t == RNG_TYPE) return "&RNG$info";
 
     switch (t->tag) {
-    case BoolType: case ByteType: case IntType: case BigIntType: case NumType: case CStringType: case DateTimeType:
+    case BoolType: case ByteType: case IntType: case BigIntType: case NumType: case CStringType: case MomentType:
         return CORD_all("&", type_to_cord(t), "$info");
     case TextType: {
         auto text = Match(t, TextType);

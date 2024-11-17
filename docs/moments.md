@@ -1,23 +1,24 @@
-# DateTime
+# Moments
 
 Tomo has a builtin datatype for representing a specific single point in time:
-`DateTime`. A DateTime object is internally represented using a UNIX timestamp
-in seconds and a number of nanoseconds to represent sub-second times (in C, the
-equivalent of `struct timeval`). DateTime values do not represent calendar
-dates or clock times, they represent an exact moment in time, such as the
-moment when a file was last modified on the filesystem or the current moment
-(`DateTime.now()`).
+`Moment`. This is similar to a "datetime" in other languages, but it does not
+represent a locale-specific time with a timezone. A Moment object is internally
+represented using a UNIX timestamp in seconds and a number of nanoseconds to
+represent sub-second times (in C, the equivalent of `struct timeval`). Moment
+values do not represent calendar dates or clock times, they represent an exact
+moment in time, such as the moment when a file was last modified on the
+filesystem or the current moment (`Moment.now()`).
 
 ⚠️⚠️⚠️ **WARNING** ⚠️⚠️⚠️ Dates and times are deeply counterintuitive and you should
 be extremely cautious when writing code that deals with dates and times. Effort
-has been made to ensure that Tomo's `DateTime` code uses standard libraries and
+has been made to ensure that Tomo's `Moment` code uses standard libraries and
 is as correct as possible, but counterintuitive behaviors around time zones,
 daylight savings time, leap seconds, and other anomalous time situations can
 still cause bugs if you're not extremely careful.
 
 ## Syntax
 
-DateTime literals can be specified using [ISO
+Moment literals can be specified using [ISO
 8601](https://en.wikipedia.org/wiki/ISO_8601) syntax with an optional
 square-bracket delimited time zone name afterwards. A space may be used instead
 of a `T` in the ISO 8601 format for readability, and spaces may come before the
@@ -35,16 +36,16 @@ timezone.
 ## Time Zones
 
 Because humans are not able to easily understand UNIX timestamps, the default
-textual representation of `DateTime` objects uses the current locale's
-preferred representation of the DateTime in the current time zone:
+textual representation of `Moment` objects uses the current locale's
+preferred representation of the Moment in the current time zone:
 
 ```tomo
->> DateTime.now()
+>> Moment.now()
 = Sun Sep 29 18:20:12 2024 EDT
 ```
 
 For various methods, it is assumed by default that users wish to perform
-calculations and specify datetimes using the local time zone and daylight
+calculations and specify moments using the local time zone and daylight
 savings time rules. For example, if a program is running in New York and it is
 currently 11pm on February 28th, 2023 (the last day of the month) in local
 time, it is assumed that "one month from now" refers to 11pm on March 28th,
@@ -60,12 +61,12 @@ argument that, if set, will override the timezone when performing calculations.
 If unspecified, it is assumed that the current local timezone should be used.
 Time zones are specified by name, such as `America/New_York` or `UTC`.
 
-## DateTime Methods
+## Moment Methods
 
 ### `after`
 
 **Description:**  
-Returns a DateTime that occurs after the specified time differences. Time
+Returns a Moment that occurs after the specified time differences. Time
 differences may be either positive or negative.
 
 **Note:** time offsets for days, months, weeks, and years do not refer to fixed
@@ -79,28 +80,28 @@ calculated.
 
 **Signature:**  
 ```tomo
-func after(datetime: DateTime, seconds : Num = 0.0, minutes : Num = 0.0, hours : Num = 0.0, days : Int = 0, weeks : Int = 0, months : Int = 0, years : Int = 0, timezone : Text? = !Text -> DateTime)
+func after(moment: Moment, seconds : Num = 0.0, minutes : Num = 0.0, hours : Num = 0.0, days : Int = 0, weeks : Int = 0, months : Int = 0, years : Int = 0, timezone : Text? = !Text -> Moment)
 ```
 
 **Parameters:**
 
-- `datetime`: The datetime used as a starting point.
-- `seconds` (optional): An amount of seconds to offset the datetime (default: 0).
-- `minutes` (optional): An amount of minutes to offset the datetime (default: 0).
-- `hours` (optional): An amount of hours to offset the datetime (default: 0).
-- `days` (optional): An amount of days to offset the datetime (default: 0).
-- `weeks` (optional): An amount of weeks to offset the datetime (default: 0).
-- `months` (optional): An amount of months to offset the datetime (default: 0).
-- `years` (optional): An amount of years to offset the datetime (default: 0).
+- `moment`: The moment used as a starting point.
+- `seconds` (optional): An amount of seconds to offset the moment (default: 0).
+- `minutes` (optional): An amount of minutes to offset the moment (default: 0).
+- `hours` (optional): An amount of hours to offset the moment (default: 0).
+- `days` (optional): An amount of days to offset the moment (default: 0).
+- `weeks` (optional): An amount of weeks to offset the moment (default: 0).
+- `months` (optional): An amount of months to offset the moment (default: 0).
+- `years` (optional): An amount of years to offset the moment (default: 0).
 - `timezone` (optional): If specified, perform perform the calculations in the
   given timezone. If unspecified, the current local timezone will be used.
 
 **Returns:**  
-A new `DateTime` offset by the given amount.
+A new `Moment` offset by the given amount.
 
 **Example:**  
 ```tomo
->> DateTime(2024, 9, 29, hour=19):after(days=1, minutes=30)
+>> Moment(2024, 9, 29, hour=19):after(days=1, minutes=30)
 = Mon Sep 30 19:30:00 2024 EDT
 ```
 
@@ -109,17 +110,17 @@ A new `DateTime` offset by the given amount.
 ### `date`
 
 **Description:**  
-Return a text representation of the datetime using the `"%F"` format
+Return a text representation of the moment using the `"%F"` format
 specifier, which gives the date in `YYYY-MM-DD` form.
 
 **Signature:**  
 ```tomo
-func date(datetime: DateTime, timezone : Text? = !Text -> Text)
+func date(moment: Moment, timezone : Text? = !Text -> Text)
 ```
 
 **Parameters:**
 
-- `datetime`: The datetime to get the date from.
+- `moment`: The moment to get the date from.
 - `timezone` (optional): If specified, give the date in the given timezone (otherwise, use the current local timezone).
 
 **Returns:**  
@@ -127,7 +128,7 @@ The date in `YYYY-MM-DD` format.
 
 **Example:**  
 ```tomo
->> DateTime(2024, 9, 29):date()
+>> Moment(2024, 9, 29):date()
 = "2024-09-29"
 ```
 
@@ -140,12 +141,12 @@ Return the integer day of the month (1-31).
 
 **Signature:**  
 ```tomo
-func day_of_month(datetime: DateTime, timezone : Text? = !Text -> Int)
+func day_of_month(moment: Moment, timezone : Text? = !Text -> Int)
 ```
 
 **Parameters:**
 
-- `datetime`: The datetime to get the day of the month from.
+- `moment`: The moment to get the day of the month from.
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
 
 **Returns:**  
@@ -153,7 +154,7 @@ The day of the month as an integer (1-31).
 
 **Example:**  
 ```tomo
->> DateTime(2024, 9, 29):day_of_month()
+>> Moment(2024, 9, 29):day_of_month()
 = 29
 ```
 
@@ -167,12 +168,12 @@ Return the integer day of the week (1-7), where 1 = Sunday, 2 = Monday,
 
 **Signature:**  
 ```tomo
-func day_of_week(datetime: DateTime, timezone : Text? = !Text -> Int)
+func day_of_week(moment: Moment, timezone : Text? = !Text -> Int)
 ```
 
 **Parameters:**
 
-- `datetime`: The datetime to get the day of the week from.
+- `moment`: The moment to get the day of the week from.
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
 
 **Returns:**  
@@ -180,7 +181,7 @@ The day of the week as an integer (1-7).
 
 **Example:**  
 ```tomo
->> DateTime(2024, 9, 29):day_of_week()
+>> Moment(2024, 9, 29):day_of_week()
 = 1
 ```
 
@@ -193,12 +194,12 @@ Return the integer day of the year (1-366, including leap years).
 
 **Signature:**  
 ```tomo
-func day_of_year(datetime: DateTime, timezone : Text? = !Text -> Int)
+func day_of_year(moment: Moment, timezone : Text? = !Text -> Int)
 ```
 
 **Parameters:**
 
-- `datetime`: The datetime to get the day of the year from.
+- `moment`: The moment to get the day of the year from.
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
 
 **Returns:**  
@@ -206,7 +207,7 @@ The day of the year as an integer (1-366).
 
 **Example:**  
 ```tomo
->> DateTime(2024, 9, 29):day_of_year()
+>> Moment(2024, 9, 29):day_of_year()
 = 272
 ```
 
@@ -222,12 +223,12 @@ timezone.
 
 **Signature:**  
 ```tomo
-func format(datetime: DateTime, format: Text = "%Y-%m-%dT%H:%M:%S%z", timezone : Text? = !Text -> Text)
+func format(moment: Moment, format: Text = "%Y-%m-%dT%H:%M:%S%z", timezone : Text? = !Text -> Text)
 ```
 
 **Parameters:**
 
-- `datetime`: The datetime to format.
+- `moment`: The moment to format.
 - `format`: The `strftime` format to use (default: `"%Y-%m-%dT%H:%M:%S%z"`).
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
 
@@ -236,7 +237,7 @@ Nothing.
 
 **Example:**  
 ```tomo
->> DateTime(2024, 9, 29):format("%A")
+>> Moment(2024, 9, 29):format("%A")
 = "Sunday"
 ```
 
@@ -245,12 +246,12 @@ Nothing.
 ### `from_unix_timestamp`
 
 **Description:**  
-Return a datetime object that represents the same moment in time as
+Return a moment object that represents the same moment in time as
 the given UNIX epoch timestamp (seconds since January 1, 1970 UTC).
 
 **Signature:**  
 ```tomo
-func from_unix_timestamp(timestamp: Int64 -> DateTime)
+func from_unix_timestamp(timestamp: Int64 -> Moment)
 ```
 
 **Parameters:**
@@ -258,12 +259,12 @@ func from_unix_timestamp(timestamp: Int64 -> DateTime)
 - `timestamp`: The UNIX timestamp.
 
 **Returns:**  
-A `DateTime` object representing the same moment as the given UNIX timestamp.
+A `Moment` object representing the same moment as the given UNIX timestamp.
 
 **Example:**  
 ```tomo
 # In the New York timezone:
->> DateTime.from_unix_timestamp(0)
+>> Moment.from_unix_timestamp(0)
 = Wed Dec 31 19:00:00 1969
 ```
 
@@ -272,7 +273,7 @@ A `DateTime` object representing the same moment as the given UNIX timestamp.
 **Description:**
 Get the local timezone's name (e.g. `America/New_York` or `UTC`. By default,
 this value is read from `/etc/localtime`, however, this can be overridden by
-calling `DateTime.set_local_timezone(...)`.
+calling `Moment.set_local_timezone(...)`.
 
 **Signature:**  
 ```tomo
@@ -288,7 +289,7 @@ The name of the current local timezone.
 
 **Example:**  
 ```tomo
->> DateTime.get_local_timezone()
+>> Moment.get_local_timezone()
 = "America/New_York"
 ```
 
@@ -301,12 +302,12 @@ Return the hour of the day as an integer (1-24).
 
 **Signature:**  
 ```tomo
-func hour(datetime: DateTime, timezone : Text? = !Text -> Int)
+func hour(moment: Moment, timezone : Text? = !Text -> Int)
 ```
 
 **Parameters:**
 
-- `datetime`: The datetime to get the hour from.
+- `moment`: The moment to get the hour from.
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
 
 **Returns:**  
@@ -314,7 +315,7 @@ The hour of the day as an integer (1-24).
 
 **Example:**  
 ```tomo
->> DateTime(2024, 9, 29, 11, 59):hour()
+>> Moment(2024, 9, 29, 11, 59):hour()
 = 11
 ```
 
@@ -323,17 +324,17 @@ The hour of the day as an integer (1-24).
 ### `hours_till`
 
 **Description:**  
-Return the number of hours until a given datetime.
+Return the number of hours until a given moment.
 
 **Signature:**  
 ```tomo
-func hours_till(datetime: DateTime, then:DateTime -> Num)
+func hours_till(moment: Moment, then:Moment -> Num)
 ```
 
 **Parameters:**
 
-- `datetime`: The starting point datetime.
-- `then`: Another datetime that we want to calculate the time offset from (in hours).
+- `moment`: The starting point moment.
+- `then`: Another moment that we want to calculate the time offset from (in hours).
 
 **Returns:**
 The number of hours (possibly fractional, possibly negative) until the given time.
@@ -354,12 +355,12 @@ Return the minute of the day as an integer (0-59).
 
 **Signature:**  
 ```tomo
-func minute(datetime: DateTime, timezone : Text? = !Text -> Int)
+func minute(moment: Moment, timezone : Text? = !Text -> Int)
 ```
 
 **Parameters:**
 
-- `datetime`: The datetime to get the minute from.
+- `moment`: The moment to get the minute from.
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
 
 **Returns:**  
@@ -367,7 +368,7 @@ The minute of the hour as an integer (0-59).
 
 **Example:**  
 ```tomo
->> DateTime(2024, 9, 29, 11, 59):minute()
+>> Moment(2024, 9, 29, 11, 59):minute()
 = 59
 ```
 
@@ -376,17 +377,17 @@ The minute of the hour as an integer (0-59).
 ### `minutes_till`
 
 **Description:**  
-Return the number of minutes until a given datetime.
+Return the number of minutes until a given moment.
 
 **Signature:**  
 ```tomo
-func minutes_till(datetime: DateTime, then:DateTime -> Num)
+func minutes_till(moment: Moment, then:Moment -> Num)
 ```
 
 **Parameters:**
 
-- `datetime`: The starting point datetime.
-- `then`: Another datetime that we want to calculate the time offset from (in minutes).
+- `moment`: The starting point moment.
+- `then`: Another moment that we want to calculate the time offset from (in minutes).
 
 **Returns:**
 The number of minutes (possibly fractional, possibly negative) until the given time.
@@ -407,12 +408,12 @@ Return the month of the year as an integer (1-12).
 
 **Signature:**  
 ```tomo
-func month(datetime: DateTime, timezone : Text? = !Text -> Int)
+func month(moment: Moment, timezone : Text? = !Text -> Int)
 ```
 
 **Parameters:**
 
-- `datetime`: The datetime to get the month from.
+- `moment`: The moment to get the month from.
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
 
 **Returns:**  
@@ -420,7 +421,7 @@ The month of the year as an integer (1-12).
 
 **Example:**  
 ```tomo
->> DateTime(2024, 9, 29, 11, 59):month()
+>> Moment(2024, 9, 29, 11, 59):month()
 = 9
 ```
 
@@ -433,12 +434,12 @@ Return the nanosecond of the second as an integer (0-999,999,999).
 
 **Signature:**  
 ```tomo
-func nanosecond(datetime: DateTime, timezone : Text? = !Text -> Int)
+func nanosecond(moment: Moment, timezone : Text? = !Text -> Int)
 ```
 
 **Parameters:**
 
-- `datetime`: The datetime to get the nanosecond from.
+- `moment`: The moment to get the nanosecond from.
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
 
 **Returns:**  
@@ -446,7 +447,7 @@ The nanosecond of the second as an integer (0-999,999,999).
 
 **Example:**  
 ```tomo
->> DateTime(2024, 9, 29, 11, 59):month()
+>> Moment(2024, 9, 29, 11, 59):month()
 = 9
 ```
 
@@ -455,13 +456,13 @@ The nanosecond of the second as an integer (0-999,999,999).
 ### `new`
 
 **Description:**  
-Return a new `DateTime` object representing the given time parameters expressed
-in local time. This function is the same as calling `DateTime` directly as a
+Return a new `Moment` object representing the given time parameters expressed
+in local time. This function is the same as calling `Moment` directly as a
 constructor.
 
 **Signature:**  
 ```tomo
-func new(year : Int, month : Int, day : Int, hour : Int = 0, minute : Int = 0, second : Num = 0.0 -> DateTime)
+func new(year : Int, month : Int, day : Int, hour : Int = 0, minute : Int = 0, second : Num = 0.0 -> Moment)
 ```
 
 **Parameters:**
@@ -474,19 +475,19 @@ func new(year : Int, month : Int, day : Int, hour : Int = 0, minute : Int = 0, s
 - `second`: The second of the minute (0-59) (default: 0.0).
 
 **Returns:**
-A `DateTime` representing the given information in local time. If the given
+A `Moment` representing the given information in local time. If the given
 parameters exceed reasonable bounds, the time values will wrap around. For
-example, `DateTime.new(..., hour=3, minute=65)` is the same as
-`DateTime.new(..., hour=4, minute=5)`. If any arguments cannot fit in a 32-bit
+example, `Moment.new(..., hour=3, minute=65)` is the same as
+`Moment.new(..., hour=4, minute=5)`. If any arguments cannot fit in a 32-bit
 integer, an error will be raised.
 
 **Example:**  
 ```tomo
->> DateTime.new(2024, 9, 29)
+>> Moment.new(2024, 9, 29)
 = Mon Sep 30 00:00:00 2024 EDT
 
 # March 1642, 2020:
->> DateTime(2020, 4, 1643)
+>> Moment(2020, 4, 1643)
 = Sat Sep 28 00:00:00 2024 EDT
 ```
 
@@ -495,12 +496,12 @@ integer, an error will be raised.
 ### `now`
 
 **Description:**
-Get a `DateTime` object representing the current date and time. This function
+Get a `Moment` object representing the current date and time. This function
 is the same as the global function `now()`.
 
 **Signature:**  
 ```tomo
-func now(->DateTime)
+func now(->Moment)
 ```
 
 **Parameters:**
@@ -508,11 +509,11 @@ func now(->DateTime)
 None.
 
 **Returns:**
-Returns a `DateTime` object representing the current date and time.
+Returns a `Moment` object representing the current date and time.
 
 **Example:**  
 ```tomo
->> DateTime.now()
+>> Moment.now()
 = Sun Sep 29 20:22:48 2024 EDT
 ```
 
@@ -521,12 +522,12 @@ Returns a `DateTime` object representing the current date and time.
 ### `parse`
 
 **Description:**  
-Return a new `DateTime` object parsed from the given string in the given format,
+Return a new `Moment` object parsed from the given string in the given format,
 or a null value if the value could not be successfully parsed.
 
 **Signature:**  
 ```tomo
-func parse(text: Text, format: Text = "%Y-%m-%dT%H:%M:%S%z" -> DateTime?)
+func parse(text: Text, format: Text = "%Y-%m-%dT%H:%M:%S%z" -> Moment?)
 ```
 
 **Parameters:**
@@ -538,15 +539,15 @@ func parse(text: Text, format: Text = "%Y-%m-%dT%H:%M:%S%z" -> DateTime?)
 
 **Returns:**
 If the text was successfully parsed according to the given format, return a
-`DateTime` representing that information. Otherwise, return a null value.
+`Moment` representing that information. Otherwise, return a null value.
 
 **Example:**  
 ```tomo
->> DateTime.parse("2024-09-29", "%Y-%m-%d")!
+>> Moment.parse("2024-09-29", "%Y-%m-%d")!
 = Sun Sep 29 00:00:00 2024 EDT
 
->> DateTime.parse("???", "%Y-%m-%d")
-= !DateTime
+>> Moment.parse("???", "%Y-%m-%d")
+= !Moment
 ```
 
 ---
@@ -555,27 +556,27 @@ If the text was successfully parsed according to the given format, return a
 
 **Description:**  
 Return a plain English textual representation of the approximate time difference
-between two `DateTime`s. For example: `5 minutes ago` or `1 day later`
+between two `Moment`s. For example: `5 minutes ago` or `1 day later`
 
 **Signature:**  
 ```tomo
-func relative(datetime: DateTime, relative_to : DateTime = DateTime.now(), timezone : Text? = !Text -> Text)
+func relative(moment: Moment, relative_to : Moment = Moment.now(), timezone : Text? = !Text -> Text)
 ```
 
 **Parameters:**
 
-- `datetime`: The datetime whose relative time you're getting.
-- `relative_to` (optional): The time against which the relative time is calculated (default: `DateTime.now()`).
+- `moment`: The moment whose relative time you're getting.
+- `relative_to` (optional): The time against which the relative time is calculated (default: `Moment.now()`).
 - `timezone` (optional): If specified, perform calculations in the given
   timezone (otherwise, use the current local timezone).
 
 **Returns:**
 Return a plain English textual representation of the approximate time
-difference between two `DateTime`s. For example: `5 minutes ago` or `1 day
+difference between two `Moment`s. For example: `5 minutes ago` or `1 day
 later`. Return values are approximate and use only one significant unit of
 measure with one significant digit, so a difference of 1.6 days will be
-represented as `2 days later`. Datetimes in the past will have the suffix `"
-ago"`, while datetimes in the future will have the suffix `" later"`.
+represented as `2 days later`. moments in the past will have the suffix `"
+ago"`, while moments in the future will have the suffix `" later"`.
 
 **Example:**  
 ```tomo
@@ -595,12 +596,12 @@ Return the second of the minute as an integer (0-59).
 
 **Signature:**  
 ```tomo
-func second(datetime: DateTime, timezone : Text? = !Text -> Int)
+func second(moment: Moment, timezone : Text? = !Text -> Int)
 ```
 
 **Parameters:**
 
-- `datetime`: The datetime to get the second from.
+- `moment`: The moment to get the second from.
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
 
 **Returns:**  
@@ -608,7 +609,7 @@ The second of the hour as an integer (0-59).
 
 **Example:**  
 ```tomo
->> DateTime(2024, 9, 29, 11, 30, 59):second()
+>> Moment(2024, 9, 29, 11, 30, 59):second()
 = 59
 ```
 
@@ -617,17 +618,17 @@ The second of the hour as an integer (0-59).
 ### `seconds_till`
 
 **Description:**  
-Return the number of seconds until a given datetime.
+Return the number of seconds until a given moment.
 
 **Signature:**  
 ```tomo
-func seconds_till(datetime: DateTime, then:DateTime -> Num)
+func seconds_till(moment: Moment, then:Moment -> Num)
 ```
 
 **Parameters:**
 
-- `datetime`: The starting point datetime.
-- `then`: Another datetime that we want to calculate the time offset from (in seconds).
+- `moment`: The starting point moment.
+- `then`: Another moment that we want to calculate the time offset from (in seconds).
 
 **Returns:**
 The number of seconds (possibly fractional, possibly negative) until the given time.
@@ -646,8 +647,8 @@ the_future := now():after(seconds=1)
 **Description:**
 Set the current local timezone to a given value by name (e.g.
 `America/New_York` or `UTC`). The local timezone is used as the default
-timezone for performing calculations and constructing `DateTime` objects from
-component parts. It's also used as the default way that `DateTime` objects are
+timezone for performing calculations and constructing `Moment` objects from
+component parts. It's also used as the default way that `Moment` objects are
 converted to text.
 
 **Signature:**  
@@ -666,7 +667,7 @@ Nothing.
 
 **Example:**  
 ```tomo
-DateTime.set_local_timezone("America/Los_Angeles")
+Moment.set_local_timezone("America/Los_Angeles")
 ```
 
 ---
@@ -674,26 +675,26 @@ DateTime.set_local_timezone("America/Los_Angeles")
 ### `time`
 
 **Description:**  
-Return a text representation of the time component of the given datetime.
+Return a text representation of the time component of the given moment.
 
 **Signature:**  
 ```tomo
-func time(datetime: DateTime, seconds : Bool = no, am_pm : Bool = yes, timezone : Text? = !Text -> Text)
+func time(moment: Moment, seconds : Bool = no, am_pm : Bool = yes, timezone : Text? = !Text -> Text)
 ```
 
 **Parameters:**
 
-- `datetime`: The datetime whose time value you want to get.
+- `moment`: The moment whose time value you want to get.
 - `seconds`: Whether to include seconds in the time (default: `no`).
 - `am_pm`: Whether to use am/pm in the representation or use a 24-hour clock (default: `yes`).
 - `timezone` (optional): If specified, give the time in the given timezone (otherwise, use the current local timezone).
 
 **Returns:**  
-A text representation of the time component of the datetime.
+A text representation of the time component of the moment.
 
 **Example:**  
 ```tomo
-dt := DateTime(2024, 9, 29, hours=13, minutes=59, seconds=30)
+moment := Moment(2024, 9, 29, hours=13, minutes=59, seconds=30)
 
 >> dt:time()
 = "1:59pm"
@@ -710,17 +711,17 @@ dt := DateTime(2024, 9, 29, hours=13, minutes=59, seconds=30)
 ### `unix_timestamp`
 
 **Description:**
-Get the UNIX timestamp of the given datetime (seconds since the UNIX epoch:
+Get the UNIX timestamp of the given moment (seconds since the UNIX epoch:
 January 1, 1970 UTC).
 
 **Signature:**  
 ```tomo
-func unix_timestamp(datetime:DateTime->Int64)
+func unix_timestamp(moment:Moment->Int64)
 ```
 
 **Parameters:**
 
-`datetime`: The datetime whose UNIX timestamp you want to get.
+`moment`: The moment whose UNIX timestamp you want to get.
 
 **Returns:**  
 A 64-bit integer representation of the UNIX timestamp.

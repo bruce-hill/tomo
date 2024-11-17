@@ -25,7 +25,7 @@ CORD type_to_cord(type_t *t) {
         case BoolType: return "Bool";
         case ByteType: return "Byte";
         case CStringType: return "CString";
-        case DateTimeType: return "DateTime";
+        case MomentType: return "Moment";
         case TextType: return Match(t, TextType)->lang ? Match(t, TextType)->lang : "Text";
         case BigIntType: return "Int";
         case IntType: return CORD_asprintf("Int%d", Match(t, IntType)->bits);
@@ -425,7 +425,7 @@ PUREFUNC size_t type_size(type_t *t)
     case BoolType: return sizeof(bool);
     case ByteType: return sizeof(uint8_t);
     case CStringType: return sizeof(char*);
-    case DateTimeType: return sizeof(DateTime_t);
+    case MomentType: return sizeof(Moment_t);
     case BigIntType: return sizeof(Int_t);
     case IntType: {
         switch (Match(t, IntType)->bits) {
@@ -509,7 +509,7 @@ PUREFUNC size_t type_align(type_t *t)
     case BoolType: return __alignof__(bool);
     case ByteType: return __alignof__(uint8_t);
     case CStringType: return __alignof__(char*);
-    case DateTimeType: return __alignof__(DateTime_t);
+    case MomentType: return __alignof__(Moment_t);
     case BigIntType: return __alignof__(Int_t);
     case IntType: {
         switch (Match(t, IntType)->bits) {
