@@ -244,24 +244,21 @@ static const char *unescape(parse_ctx_t *ctx, const char **out) {
 }
 #pragma GCC diagnostic pop
 
+// Indent is in number of spaces (assuming that \t is 4 spaces)
 PUREFUNC static INLINE int64_t get_indent(parse_ctx_t *ctx, const char *pos)
 {
     int64_t line_num = get_line_number(ctx->file, pos);
     const char *line = get_line(ctx->file, line_num);
     if (*line == ' ') {
         int64_t spaces = (int64_t)strspn(line, " ");
-        if (spaces % SPACES_PER_INDENT != 0)
-            parser_err(ctx, line + spaces - (spaces % SPACES_PER_INDENT), line + spaces,
-                       "Indentation must be a multiple of 4 spaces, not %ld", spaces);
-        int64_t indent = spaces / SPACES_PER_INDENT;
-        if (line[indent] == '\t')
-            parser_err(ctx, line + indent, line + indent + 1, "This is a tab following spaces, and you can't mix tabs and spaces");
-        return indent;
+        if (line[spaces] == '\t')
+            parser_err(ctx, line + spaces, line + spaces + 1, "This is a tab following spaces, and you can't mix tabs and spaces");
+        return spaces;
     } else if (*line == '\t') {
         int64_t indent = (int64_t)strspn(line, "\t");
         if (line[indent] == ' ')
             parser_err(ctx, line + indent, line + indent + 1, "This is a space following tabs, and you can't mix tabs and spaces");
-        return indent;
+        return indent * SPACES_PER_INDENT;
     } else {
         return 0;
     }
@@ -426,7 +423,7 @@ bool indent(parse_ctx_t *ctx, const char **out) {
     if (next_line <= *out)
         return false;
 
-    if (get_indent(ctx, next_line) != starting_indent + 1)
+    if (get_indent(ctx, next_line) != starting_indent + SPACES_PER_INDENT)
         return false;
 
     *out = next_line + strspn(next_line, " \t");
@@ -445,12 +442,12 @@ bool newline_with_indentation(const char **out, int64_t target) {
     }
 
     if (*pos == ' ') {
-        if ((int64_t)strspn(pos, " ") >= SPACES_PER_INDENT * target) {
-            *out = pos + SPACES_PER_INDENT * target;
+        if ((int64_t)strspn(pos, " ") >= target) {
+            *out = pos + target;
             return true;
         }
-    } else if ((int64_t)strspn(pos, "\t") >= target) {
-        *out = pos + target;
+    } else if ((int64_t)strspn(pos, "\t") * SPACES_PER_INDENT >= target) {
+        *out = pos + target / SPACES_PER_INDENT;
         return true;
     }
     return false;
@@ -1330,7 +1327,7 @@ PARSER(parse_text) {
     }
 
     int64_t starting_indent = get_indent(ctx, pos);
-    int64_t string_indent = starting_indent + 1;
+    int64_t string_indent = starting_indent + SPACES_PER_INDENT;
 
     ast_list_t *chunks = NULL;
     CORD chunk = CORD_EMPTY;
@@ -1739,6 +1736,8 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
     ast_t *lhs = optional(ctx, &pos, parse_term);
     if (!lhs) return NULL;
 
+    int64_t starting_line = get_line_number(ctx->file, pos);
+    int64_t starting_indent = get_indent(ctx, pos);
     spaces(&pos);
     for (binop_e op; (op=match_binary_operator(&pos)) != BINOP_UNKNOWN && op_tightness[op] >= min_tightness; spaces(&pos)) {
         ast_t *key = NULL;
@@ -1761,6 +1760,9 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
         }
 
         whitespace(&pos);
+        if (get_line_number(ctx->file, pos) != starting_line && get_indent(ctx, pos) <= starting_indent)
+            parser_err(ctx, pos, strchrnul(pos, '\n'), "I expected this line to be more indented than the line above it");
+
         ast_t *rhs = parse_infix_expr(ctx, pos, op_tightness[op] + 1);
         if (!rhs) break;
         pos = rhs->end;
