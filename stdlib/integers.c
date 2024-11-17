@@ -57,8 +57,7 @@ public PUREFUNC bool Int$equal_value(const Int_t x, const Int_t y) {
 public PUREFUNC uint64_t Int$hash(const Int_t *x, const TypeInfo_t *type) {
     (void)type;
     if (__builtin_expect(x->small & 1, 1)) {
-        int64_t i = (x->small>>2);
-        return siphash24((void*)&i, sizeof(i));
+        return siphash24((void*)x, sizeof(Int_t));
     } else {
         char *str = mpz_get_str(NULL, 16, *x->big);
         return siphash24((void*)str, strlen(str));
