@@ -6,8 +6,8 @@ represent a locale-specific time with a timezone. A Moment object is internally
 represented using a UNIX timestamp in seconds and a number of nanoseconds to
 represent sub-second times (in C, the equivalent of `struct timeval`). Moment
 values do not represent calendar dates or clock times, they represent an exact
-moment in time, such as the moment when a file was last modified on the
-filesystem or the current moment (`Moment.now()`).
+nanosecond-long sliver of time, such as the moment when a file was last
+modified on the filesystem or the current moment (`Moment.now()`).
 
 ⚠️⚠️⚠️ **WARNING** ⚠️⚠️⚠️ Dates and times are deeply counterintuitive and you should
 be extremely cautious when writing code that deals with dates and times. Effort
