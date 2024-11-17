@@ -51,7 +51,7 @@ int op_tightness[] = {
 };
 
 static const char *keywords[] = {
-    "yes", "xor", "while", "when", "use", "struct", "stop", "skip", "return",
+    "yes", "xor", "while", "when", "use", "unless", "struct", "stop", "skip", "return",
     "or", "not", "no", "mod1", "mod", "pass", "lang", "inline", "in", "if",
     "func", "for", "extern", "enum", "else", "do", "defer", "and", "_min_", "_max_",
     NULL,
@@ -1008,7 +1008,7 @@ ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs) {
 }
 
 ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr) {
-    // <expr> for [<index>,]<var> in <iter> [if <condition>]
+    // <expr> "for" [<index>,]<var> "in" <iter> ["if" <condition> | "unless" <condition>]
     if (!expr) return NULL;
     const char *start = expr->start;
     const char *pos = expr->end;
@@ -1035,33 +1035,50 @@ ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr) {
     if (match_word(&next_pos, "if")) {
         pos = next_pos;
         filter = expect(ctx, pos-2, &pos, parse_expr, "I expected a condition for this 'if'");
+    } else if (match_word(&next_pos, "unless")) {
+        pos = next_pos;
+        filter = expect(ctx, pos-2, &pos, parse_expr, "I expected a condition for this 'unless'");
+        filter = WrapAST(filter, Not, filter);
     }
     return NewAST(ctx->file, start, pos, Comprehension, .expr=expr, .vars=vars, .iter=iter, .filter=filter);
 }
 
 ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt) {
-    // <statement> if <condition>
+    // <statement> "if" <condition> | <statement> "unless" <condition>
     if (!stmt) return stmt;
     const char *start = stmt->start;
     const char *pos = stmt->end;
-    if (!match_word(&pos, "if"))
+    if (match_word(&pos, "if")) {
+        ast_t *condition = expect(ctx, pos-2, &pos, parse_expr, "I expected a condition for this 'if'");
+        return NewAST(ctx->file, start, pos, If, .condition=condition, .body=stmt);
+    } else if (match_word(&pos, "unless")) {
+        ast_t *condition = expect(ctx, pos-2, &pos, parse_expr, "I expected a condition for this 'unless'");
+        condition = WrapAST(condition, Not, condition);
+        return NewAST(ctx->file, start, pos, If, .condition=condition, .body=stmt);
+    } else {
         return stmt;
-
-    ast_t *condition = expect(ctx, pos-2, &pos, parse_expr, "I expected a condition for this 'if'");
-    return NewAST(ctx->file, start, pos, If, .condition=condition, .body=stmt);
+    }
 }
 
 PARSER(parse_if) {
-    // if <condition> <body> [else <body>]
+    // "if" <condition> <body> ["else" <body>] | "unless" <condition> <body> ["else" <body>]
     const char *start = pos;
     int64_t starting_indent = get_indent(ctx, pos);
 
-    if (!match_word(&pos, "if"))
+    bool unless;
+    if (match_word(&pos, "if"))
+        unless = false;
+    else if (match_word(&pos, "unless"))
+        unless = true;
+    else
         return NULL;
 
-    ast_t *condition = optional(ctx, &pos, parse_declaration);
+    ast_t *condition = unless ? NULL : optional(ctx, &pos, parse_declaration);
     if (!condition)
         condition = expect(ctx, start, &pos, parse_expr, "I expected to find a condition for this 'if'");
+
+    if (unless)
+        condition = WrapAST(condition, Not, condition);
 
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'if' statement"); 
 
