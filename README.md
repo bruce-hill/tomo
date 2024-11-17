@@ -47,8 +47,8 @@ of many language features or the other example programs/modules in
 - Memory safety (garbage collection, [compiler-enforced null
   safety](docs/pointers.md), [automatic array bounds
   checking](docs/arrays.md), and no uninitialized variables)
-- [Arbitrary-precision integers](docs/integers.md) by default with opt-in
-  fixed-with integers with arithmetic overflow checking
+- High-performance [arbitrary-precision integers](docs/integers.md) by default
+  with opt-in fixed-size integers with arithmetic overflow checking
 - [Type-safe strings representing different languages](docs/langs.md) with
   automatic prevention of code injection
 - Pattern matching with exhaustiveness checking for [enumerated types (tagged
@@ -59,8 +59,6 @@ of many language features or the other example programs/modules in
   [text](docs/text.md).
 - [Privacy-protecting types](docs/structs.md#Secret-Values) that help prevent
   accidentally logging sensitive information
-- [Integers](docs/integers.md) with the default type do not overflow, they
-  seamlessly transition from fixed-width integers to bigints as needed.
 
 ### Simplicity
 
