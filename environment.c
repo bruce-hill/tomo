@@ -385,6 +385,7 @@ env_t *new_compilation_unit(CORD libname)
         )},
         {"Text", TEXT_TYPE, "Text_t", "Text$info", TypedArray(ns_entry_t,
             {"as_c_string", "Text$as_c_string", "func(text:Text -> CString)"},
+            {"at", "Text$cluster", "func(text:Text, index:Int -> Text)"},
             {"codepoint_names", "Text$codepoint_names", "func(text:Text -> [Text])"},
             {"ends_with", "Text$ends_with", "func(text,suffix:Text -> Bool)"},
             {"each", "Text$each", "func(text:Text, pattern:Pattern, fn:func(match:Match))"},

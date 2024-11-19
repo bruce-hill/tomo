@@ -563,6 +563,58 @@ public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
     }
 }
 
+public Text_t Text$cluster(Text_t text, Int_t index_int)
+{
+    int64_t index = Int_to_Int64(index_int, false);
+    if (index == 0) fail("Invalid index: 0");
+
+    if (index < 0) index = text.length + index + 1;
+
+    if (index > text.length || index < 1)
+        fail("Invalid index: %ld is beyond the length of the text (length = %ld)",
+             Int_to_Int64(index_int, false), text.length);
+
+    switch (text.tag) {
+    case TEXT_SHORT_ASCII: {
+        return (Text_t) {
+            .tag=TEXT_SHORT_ASCII,
+            .length=1,
+            .short_ascii={text.short_ascii[index-1]},
+        };
+    }
+    case TEXT_ASCII: {
+        return (Text_t) {
+            .tag=TEXT_SHORT_ASCII,
+            .length=1,
+            .short_ascii={text.ascii[index-1]},
+        };
+    }
+    case TEXT_SHORT_GRAPHEMES: {
+        return (Text_t) {
+            .tag=TEXT_SHORT_GRAPHEMES,
+            .length=1,
+            .short_graphemes={text.short_graphemes[index-1]},
+        };
+    }
+    case TEXT_GRAPHEMES: {
+        return (Text_t) {
+            .tag=TEXT_SHORT_GRAPHEMES,
+            .length=1,
+            .short_graphemes={text.graphemes[index-1]},
+        };
+    }
+    case TEXT_SUBTEXT: {
+        Text_t *subtext = text.subtexts;
+        while (index > subtext[0].length) {
+            index -= subtext[0].length;
+            ++subtext;
+        }
+        return Text$cluster(*subtext, I(index));
+    }
+    default: errx(1, "Invalid tag");
+    }
+}
+
 Text_t text_from_u32(ucs4_t *codepoints, int64_t num_codepoints, bool normalize)
 {
     // Normalization is apparently guaranteed to never exceed 3x in the input length

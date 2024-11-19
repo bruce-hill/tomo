@@ -426,6 +426,35 @@ A C-style string (`CString`) representing the text.
 
 ---
 
+## `at`
+
+**Description:**  
+Get the graphical cluster at a given index. This is similar to `str[i]` with
+ASCII text, but has more correct behavior for unicode text.
+
+**Signature:**  
+```tomo
+func at(text: Text, index: Int -> Text)
+```
+
+**Parameters:**
+
+- `text`: The text from which to get a cluster.
+- `index`: The index of the graphical cluster (1-indexed).
+
+**Returns:**  
+A `Text` with the single graphical cluster at the given index. Note: negative
+indices are counted from the back of the text, so `-1` means the last cluster,
+`-2` means the second-to-last, and so on.
+
+**Example:**  
+```tomo
+>> "Amélie":at(3)
+= "é"
+```
+
+---
+
 ## `utf8_bytes`
 
 **Description:**  
