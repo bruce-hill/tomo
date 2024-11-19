@@ -1062,6 +1062,42 @@ replacement text.
 
 ---
 
+## `slice`
+
+**Description:**  
+Get a slice of the text.
+
+**Signature:**  
+```tomo
+func slice(text: Text, from: Int = 1, to: Int = -1 -> Text)
+```
+
+**Parameters:**
+
+- `text`: The text to be sliced.
+- `from`: The index of the first grapheme cluster to include (1-indexed).
+- `to`: The index of the last grapheme cluster to include (1-indexed).
+
+**Returns:**  
+The text that spans the given grapheme cluster indices. Note: a negative index
+counts backwards from the end of the text, so `-1` refers to the last cluster,
+`-2` the second-to-last, etc. Slice ranges will be truncated to the length of
+the string.
+
+**Example:**  
+```tomo
+>> "hello":slice(2, 3)
+= "el"
+
+>> "hello":slice(to=-2)
+= "hell"
+
+>> "hello":slice(from=2)
+= "ello"
+```
+
+---
+
 ## `split`
 
 **Description:**  
