@@ -113,12 +113,12 @@ func main():
         !! ...
         !! Int64s:
         >> yep := maybe_int64(yes)
-        = Int64(123)?
+        = 123?
         >> nope := maybe_int64(no)
         = !Int64
         >> if yep:
             >> yep
-            = Int64(123)
+            = 123
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")

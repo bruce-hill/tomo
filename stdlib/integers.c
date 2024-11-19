@@ -376,7 +376,7 @@ public const TypeInfo_t Int$info = {
     public Text_t KindOfInt ## $as_text(const c_type *i, bool colorize, const TypeInfo_t *type) { \
         (void)type; \
         if (!i) return Text(#KindOfInt); \
-        return Text$format(colorize ? "\x1b[36m" #KindOfInt "\x1b[m(\x1b[35m" fmt "\x1b[m)" : #KindOfInt "(" fmt ")", *i); \
+        return Text$format(colorize ? "\x1b[35m" fmt "\x1b[m" : fmt, *i); \
     } \
     public PUREFUNC int32_t KindOfInt ## $compare(const c_type *x, const c_type *y, const TypeInfo_t *type) { \
         (void)type; \

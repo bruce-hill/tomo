@@ -93,7 +93,7 @@ public const TypeInfo_t Num$info = {
 public PUREFUNC Text_t Num32$as_text(const float *f, bool colorize, const TypeInfo_t *type) { 
     (void)type;
     if (!f) return Text("Num32");
-    return Text$format(colorize ? "\x1b[36mNum32(\x1b[35m%.8g\x1b[33;2m\x1b[m)" : "Num32(%.8g)", (double)*f); 
+    return Text$format(colorize ? "\x1b[35m%.8g\x1b[33;2m\x1b[m" : "%.8g", (double)*f); 
 }
 
 public PUREFUNC int32_t Num32$compare(const float *x, const float *y, const TypeInfo_t *type) { 

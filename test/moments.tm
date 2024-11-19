@@ -36,7 +36,7 @@ func main():
     = "Tuesday"
 
     >> t:unix_timestamp()
-    = Int64(1704221100)
+    = 1704221100 : Int64
     >> t == Moment.from_unix_timestamp(1704221100)
     = yes
 

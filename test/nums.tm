@@ -42,7 +42,7 @@ func main():
 	= no
 
 	>> Num32.sqrt(16)
-	= Num32(4)
+	= 4 : Num32
 
 	>> 0.25:mix(10, 20)
 	= 12.5
