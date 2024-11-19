@@ -55,10 +55,18 @@ func test_mixed():
 	>> set:has(y)
 	= no
 
+func test_text():
+	>> b := @CorecursiveB()
+	>> a := @CorecursiveA(b)
+	>> b.other = a
+	>> a
+	= @CorecursiveA(@CorecursiveB(@~1?)?)
+
 func main():
 	test_literals()
 	test_metamethods()
 	test_mixed()
+	test_text()
 
 	>> @LinkedList(10, @LinkedList(20))
 

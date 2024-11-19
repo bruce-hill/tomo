@@ -7,15 +7,12 @@
 #include <stdlib.h>
 #include <sys/param.h>
 
+#include "integers.h"
 #include "metamethods.h"
+#include "tables.h"
 #include "text.h"
 #include "types.h"
 #include "util.h"
-
-typedef struct recursion_s {
-    const void *ptr;
-    struct recursion_s *next;
-} recursion_t;
 
 public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *type) {
     auto ptr_info = type->PointerInfo;
@@ -37,30 +34,33 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *ty
             return Text$concat(Text("!"), typename);
     }
 
+    static const void *root = NULL;
+    static Table_t pending = {};
+    bool top_level = (root == NULL);
+
     // Check for recursive references, so if `x.foo = x`, then it prints as
-    // `@Foo{foo=@..1}` instead of overflowing the stack:
-    static recursion_t *recursion = NULL;
-    int32_t depth = 0;
-    for (recursion_t *r = recursion; r; r = r->next) {
-        ++depth;
-        if (r->ptr == ptr) {
-            Text_t text = Text$concat(
-                colorize ? Text("\x1b[34;1m") : Text(""),
-                Text$from_str(ptr_info.sigil),
-                Text(".."),
-                Text$format("%d", depth),
-                colorize ? Text("\x1b[m") : Text(""));
-            return text;
-        }
+    // `@Foo{foo=@~1}` instead of overflowing the stack:
+    if (top_level) {
+        root = ptr;
+    } else if (ptr == root) {
+        return Text$format(colorize ? "\x1b[34;1m%s~1\x1b[m" : "%s~1", ptr_info.sigil);
+    } else {
+        TypeInfo_t rec_table = ((TypeInfo_t){.size=sizeof(Table_t), .align=__alignof__(Table_t), \
+                                .tag=TableInfo, .TableInfo.key=type, .TableInfo.value=&Int64$info});
+        int64_t *id = Table$get(pending, x, &rec_table);
+        if (id)
+            return Text$format(colorize ? "\x1b[34;1m%s~%ld\x1b[m" : "%s~%ld", ptr_info.sigil, *id);
+        int64_t next_id = pending.entries.length + 2;
+        Table$set(&pending, x, &next_id, &rec_table);
     }
 
-    Text_t pointed;
-    { // Stringify with this pointer flagged as a recursive one:
-        recursion_t my_recursion = {.ptr=ptr, .next=recursion};
-        recursion = &my_recursion;
-        pointed = generic_as_text(ptr, colorize, ptr_info.pointed);
-        recursion = recursion->next;
+    Text_t pointed = generic_as_text(ptr, colorize, ptr_info.pointed);
+
+    if (top_level) {
+        pending = (Table_t){}; // Restore
+        root = NULL;
     }
+
     Text_t text;
     if (colorize)
         text = Text$concat(Text("\x1b[34;1m"), Text$from_str(ptr_info.sigil), Text("\x1b[m"), pointed);
