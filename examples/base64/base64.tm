@@ -1,6 +1,6 @@
 # Base 64 encoding and decoding
 
-_enc := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/":utf8_bytes()
+_enc := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/":bytes()
 
 _EQUAL_BYTE := Byte(0x3D)
 
@@ -26,7 +26,7 @@ _dec := [
 
 lang Base64:
     func parse(text:Text -> Base64?):
-        return Base64.from_bytes(text:utf8_bytes())
+        return Base64.from_bytes(text:bytes())
 
     func from_bytes(bytes:[Byte] -> Base64?):
         output := [Byte(0) for _ in bytes.length * 4 / 3 + 4]
@@ -65,7 +65,7 @@ lang Base64:
         return Text.from_bytes(b64:decode_bytes() or return !Text)
 
     func decode_bytes(b64:Base64 -> [Byte]?):
-        bytes := b64.text_content:utf8_bytes()
+        bytes := b64.text_content:bytes()
         output := [Byte(0) for _ in bytes.length/4 * 3]
         src := Int64(1)
         dest := Int64(1)

@@ -455,7 +455,7 @@ indices are counted from the back of the text, so `-1` means the last cluster,
 
 ---
 
-## `utf8_bytes`
+## `bytes`
 
 **Description:**  
 Converts a `Text` value to an array of bytes representing a UTF8 encoding of
@@ -463,7 +463,7 @@ the text.
 
 **Signature:**  
 ```tomo
-func utf8_bytes(text: Text -> [Byte])
+func bytes(text: Text -> [Byte])
 ```
 
 **Parameters:**
@@ -475,7 +475,7 @@ An array of bytes (`[Byte]`) representing the text in UTF8 encoding.
 
 **Example:**  
 ```tomo
->> "Amélie":utf8_bytes()
+>> "Amélie":bytes()
 = [65[B], 109[B], 195[B], 169[B], 108[B], 105[B], 101[B]] : [Byte]
 ```
 
