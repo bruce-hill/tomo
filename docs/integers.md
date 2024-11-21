@@ -171,22 +171,22 @@ func parse(text: Text -> Int?)
 **Returns:**  
 The integer represented by the text. If the given text contains a value outside
 of the representable range or if the entire text can't be parsed as an integer,
-a null value will be returned.
+`NULL` will be returned.
 
 **Example:**  
 ```tomo
 >> Int.parse("123")
-= 123?
+= 123 : Int?
 >> Int.parse("0xFF")
-= 255?
+= 255 : Int?
 
 # Can't parse:
 >> Int.parse("asdf")
-= !Int
+= NULL : Int?
 
 # Outside valid range:
 >> Int8.parse("9999999")
-= !Int
+= NULL : Int8?
 ```
 
 ---

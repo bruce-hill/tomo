@@ -4,7 +4,7 @@ struct Struct(x:Int, y:Text):
         if should_i:
             return Struct(123, "hello")
         else:
-            return !Struct
+            return NULL
 
 enum Enum(X, Y(y:Int)):
     func maybe(should_i:Bool->Enum?):
@@ -75,13 +75,13 @@ func maybe_thread(should_i:Bool->Thread?):
 
 func main():
     >> 5?
-    = 5? : Int?
+    = 5 : Int?
 
     >> if no:
         !Int
     else:
         5
-    = 5? : Int?
+    = 5 : Int?
 
     >> 5? or -1
     = 5 : Int
@@ -98,9 +98,9 @@ func main():
     do:
         !! Ints:
         >> yep := maybe_int(yes)
-        = 123?
+        = 123 : Int?
         >> nope := maybe_int(no)
-        = !Int
+        = NULL : Int?
         >> if yep:
             >> yep
             = 123
@@ -113,9 +113,9 @@ func main():
         !! ...
         !! Int64s:
         >> yep := maybe_int64(yes)
-        = 123?
+        = 123 : Int64?
         >> nope := maybe_int64(no)
-        = !Int64
+        = NULL : Int64?
         >> if yep:
             >> yep
             = 123
@@ -128,9 +128,9 @@ func main():
         !! ...
         !! Arrays:
         >> yep := maybe_array(yes)
-        = [10, 20, 30]?
+        = [10, 20, 30] : [Int]?
         >> nope := maybe_array(no)
-        = ![Int]
+        = NULL : [Int]?
         >> if yep:
             >> yep
             = [10, 20, 30]
@@ -143,9 +143,9 @@ func main():
         !! ...
         !! Bools:
         >> yep := maybe_bool(yes)
-        = no?
+        = no : Bool?
         >> nope := maybe_bool(no)
-        = !Bool
+        = NULL : Bool?
         >> if yep:
             >> yep
             = no
@@ -158,9 +158,9 @@ func main():
         !! ...
         !! Text:
         >> yep := maybe_text(yes)
-        = "Hello"?
+        = "Hello" : Text?
         >> nope := maybe_text(no)
-        = !Text
+        = NULL : Text?
         >> if yep:
             >> yep
             = "Hello"
@@ -173,9 +173,9 @@ func main():
         !! ...
         !! Nums:
         >> yep := maybe_num(yes)
-        = 12.3?
+        = 12.3 : Num?
         >> nope := maybe_num(no)
-        = !Num
+        = NULL : Num?
         >> if yep:
             >> yep
             = 12.3
@@ -188,9 +188,9 @@ func main():
         !! ...
         !! Lambdas:
         >> yep := maybe_lambda(yes)
-        = func() [optionals.tm:54]?
+        = func() [optionals.tm:54] : func()?
         >> nope := maybe_lambda(no)
-        = !func()
+        = NULL : func()?
         >> if yep:
             >> yep
             = func() [optionals.tm:54]
@@ -203,9 +203,9 @@ func main():
         !! ...
         !! Structs:
         >> yep := Struct.maybe(yes)
-        = Struct(x=123, y="hello")?
+        = Struct(x=123, y="hello") : Struct?
         >> nope := Struct.maybe(no)
-        = !Struct
+        = NULL : Struct?
         >> if yep:
             >> yep
             = Struct(x=123, y="hello")
@@ -218,9 +218,9 @@ func main():
         !! ...
         !! Enums:
         >> yep := Enum.maybe(yes)
-        = Enum.Y(123)?
+        = Enum.Y(123) : Enum?
         >> nope := Enum.maybe(no)
-        = !Enum
+        = NULL : Enum?
         >> if yep:
             >> yep
             = Enum.Y(123)
@@ -233,9 +233,9 @@ func main():
         !! ...
         !! C Strings:
         >> yep := maybe_c_string(yes)
-        = CString("hi")?
+        = CString("hi") : CString?
         >> nope := maybe_c_string(no)
-        = !CString
+        = NULL : CString?
         >> if yep:
             >> yep
             = CString("hi")
@@ -250,7 +250,7 @@ func main():
         >> yep := maybe_channel(yes)
         # No "=" test here because channels use addresses in the text version
         >> nope := maybe_channel(no)
-        = !|:Int|
+        = NULL : |:Int|?
         >> if yep: >> yep
         else: fail("Falsey: $yep")
         >> if nope:
@@ -263,7 +263,7 @@ func main():
         >> yep := maybe_thread(yes)
         # No "=" test here because threads use addresses in the text version
         >> nope := maybe_thread(no)
-        = !Thread
+        = NULL : Thread?
         >> if yep: >> yep
         else: fail("Falsey: $yep")
         >> if nope:
@@ -284,9 +284,9 @@ func main():
     >> (5? == 5?)
     = yes
     >> {!Int, !Int}
-    = {!Int}
+    = {NULL}
     >> [5?, !Int, !Int, 6?]:sorted()
-    = [!Int, !Int, 5?, 6?]
+    = [NULL, NULL, 5, 6]
 
     do:
         >> value := if var := 5?:
@@ -323,4 +323,4 @@ func main():
     = yes
 
     >> [Struct(5,"A")?, Struct(6,"B"), Struct(7,"C")]
-    = [Struct(x=5, y="A")?, Struct(x=6, y="B")?, Struct(x=7, y="C")?]
+    = [Struct(x=5, y="A"), Struct(x=6, y="B"), Struct(x=7, y="C")]

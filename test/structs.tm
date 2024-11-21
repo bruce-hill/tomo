@@ -60,7 +60,7 @@ func test_text():
 	>> a := @CorecursiveA(b)
 	>> b.other = a
 	>> a
-	= @CorecursiveA(@CorecursiveB(@~1?)?)
+	= @CorecursiveA(@CorecursiveB(@~1))
 
 func main():
 	test_literals()

@@ -29,9 +29,9 @@ func parse(text: Text -> Bool?)
 **Example:**  
 ```tomo
 >> Bool.parse("yes")
-= yes?
+= yes : Bool?
 >> Bool.parse("no")
-= no?
+= no : Bool?
 >> Bool.parse("???")
-= !Bool
+= NULL : Bool?
 ```

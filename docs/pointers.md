@@ -113,7 +113,7 @@ inside of any datastructures as elements or members.
 ```tomo
 nums := @[10, 20, 30]
 >> nums:first(func(x:&Int): x / 2 == 10)
-= 2?
+= 2 : Int?
 ```
 
 Normal `@` pointers can be promoted to immutable view pointers automatically,

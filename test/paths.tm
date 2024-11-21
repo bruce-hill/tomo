@@ -23,9 +23,9 @@ func main():
     >> tmpfile:write("Hello world")
     >> tmpfile:append("!")
     >> tmpfile:read()
-    = "Hello world!"?
+    = "Hello world!" : Text?
     >> tmpfile:read_bytes()
-    = [0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x77, 0x6F, 0x72, 0x6C, 0x64, 0x21]? : [Byte]?
+    = [0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x77, 0x6F, 0x72, 0x6C, 0x64, 0x21] : [Byte]?
     >> tmpdir:files():has(tmpfile)
     = yes
 
@@ -36,9 +36,9 @@ func main():
         fail("Couldn't read lines in $tmpfile")
 
     >> (./does-not-exist.xxx):read()
-    = !Text
+    = NULL : Text?
     >> (./does-not-exist.xxx):read_bytes()
-    = ![Byte]
+    = NULL : [Byte]?
     if lines := (./does-not-exist.xxx):by_line():
         fail("I could read lines in a nonexistent file")
     else:
@@ -84,7 +84,7 @@ func main():
     >> (./foo.txt):ends_with(".txt")
     = yes
     >> (./foo.txt):matches($|{..}/foo{..}|)
-    = [".", ".txt"]?
+    = [".", ".txt"] : [Text]?
     >> (./foo.txt):replace($/.txt/, ".md")
     = (./foo.md)
 

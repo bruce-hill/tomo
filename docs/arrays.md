@@ -363,10 +363,10 @@ The index of the first occurrence or `!Int` if not found.
 **Example:**  
 ```tomo
 >> [10, 20, 30, 40, 50]:find(20)
-= 2?
+= 2 : Int?
 
 >> [10, 20, 30, 40, 50]:find(9999)
-= !Int
+= NULL : Int?
 ```
 
 ---
@@ -394,9 +394,9 @@ item matches.
 **Example:**  
 ```tomo
 >> [4, 5, 6]:find(func(i:&Int): i:is_prime())
-= 5?
+= 5 : Int?
 >> [4, 6, 8]:find(func(i:&Int): i:is_prime())
-= !Int
+= NULL : Int?
 ```
 
 ---

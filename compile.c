@@ -31,6 +31,7 @@ static CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target);
 static CORD compile_unsigned_type(type_t *t);
 static CORD promote_to_optional(type_t *t, CORD code);
 static CORD compile_null(type_t *t);
+static CORD compile_to_type(env_t *env, ast_t *ast, type_t *t);
 
 CORD promote_to_optional(type_t *t, CORD code)
 {
@@ -556,15 +557,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 // Common case: assigning to one variable:
                 type_t *lhs_t = get_type(env, assign->targets->ast);
                 env_t *val_scope = with_enum_scope(env, lhs_t);
-                type_t *rhs_t = get_type(val_scope, assign->values->ast);
-                CORD value;
-                if (lhs_t->tag == IntType && assign->values->ast->tag == Int) {
-                    value = compile_int_to_type(val_scope, assign->values->ast, lhs_t);
-                } else {
-                    value = compile_maybe_incref(val_scope, assign->values->ast);
-                    if (!promote(val_scope, &value, rhs_t, lhs_t))
-                        code_err(assign->values->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
-                }
+                CORD value = compile_to_type(val_scope, assign->values->ast, lhs_t);
                 return CORD_asprintf(
                     "test((%r), %r, %r, %ld, %ld);",
                     compile_assignment(env, assign->targets->ast, value),
@@ -583,15 +576,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 for (ast_list_t *target = assign->targets, *value = assign->values; target && value; target = target->next, value = value->next) {
                     type_t *target_type = get_type(env, target->ast);
                     env_t *val_scope = with_enum_scope(env, target_type);
-                    type_t *value_type = get_type(val_scope, value->ast);
-                    CORD val_code;
-                    if (target_type->tag == IntType && value->ast->tag == Int) {
-                        val_code = compile_int_to_type(val_scope, value->ast, target_type);
-                    } else {
-                        val_code = compile_maybe_incref(val_scope, value->ast);
-                        if (!promote(val_scope, &val_code, value_type, target_type))
-                            code_err(value->ast, "You cannot assign a %T value to a %T operand", value_type, target_type);
-                    }
+                    CORD val_code = compile_to_type(val_scope, value->ast, target_type);
                     CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(target_type), i++, val_code);
                 }
                 i = 1;
@@ -655,15 +640,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         if (assign->targets && !assign->targets->next && is_idempotent(assign->targets->ast)) {
             type_t *lhs_t = get_type(env, assign->targets->ast);
             env_t *val_env = with_enum_scope(env, lhs_t);
-            type_t *rhs_t = get_type(val_env, assign->values->ast);
-            CORD val;
-            if (lhs_t->tag == IntType && assign->values->ast->tag == Int) {
-                val = compile_int_to_type(val_env, assign->values->ast, lhs_t);
-            } else {
-                val = compile_maybe_incref(val_env, assign->values->ast);
-                if (!promote(val_env, &val, rhs_t, lhs_t))
-                    code_err(assign->values->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
-            }
+            CORD val = compile_to_type(val_env, assign->values->ast, lhs_t);
             return CORD_all(compile_assignment(env, assign->targets->ast, val), ";\n");
         }
 
@@ -672,15 +649,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         for (ast_list_t *value = assign->values, *target = assign->targets; value && target; value = value->next, target = target->next) {
             type_t *lhs_t = get_type(env, target->ast);
             env_t *val_env = with_enum_scope(env, lhs_t);
-            type_t *rhs_t = get_type(val_env, value->ast);
-            CORD val;
-            if (rhs_t->tag == IntType && value->ast->tag == Int) {
-                val = compile_int_to_type(val_env, value->ast, rhs_t);
-            } else {
-                val = compile_maybe_incref(val_env, value->ast);
-                if (!promote(val_env, &val, rhs_t, lhs_t))
-                    code_err(value->ast, "You cannot assign a %T value to a %T operand", rhs_t, lhs_t);
-            }
+            CORD val = compile_to_type(val_env, value->ast, lhs_t);
             CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(lhs_t), i++, val);
         }
         i = 1;
@@ -1062,17 +1031,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 code_err(ast, "This function is not supposed to return any values, according to its type signature");
 
             env = with_enum_scope(env, env->fn_ctx->return_type);
-            CORD value;
-            if (env->fn_ctx->return_type->tag == IntType && ret->tag == Int) {
-                value = compile_int_to_type(env, ret, env->fn_ctx->return_type);
-            } else {
-                type_t *ret_value_t = get_type(env, ret);
-                value = compile(env, ret);
-                if (!promote(env, &value, ret_value_t, env->fn_ctx->return_type))
-                    code_err(ast, "This function expects a return value of type %T, but this return has type %T", 
-                             env->fn_ctx->return_type, ret_value_t);
-            }
-
+            CORD value = compile_to_type(env, ret, env->fn_ctx->return_type);
             if (env->deferred) {
                 code = CORD_all(compile_declaration(env->fn_ctx->return_type, "ret"), " = ", value, ";\n", code);
                 value = "ret";
@@ -1580,10 +1539,12 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
     return val;
 }
 
-static CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
+CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
 {
     if (ast->tag == Int && is_numeric_type(t))
         return compile_int_to_type(env, ast, t);
+    if (ast->tag == Null && Match(ast, Null)->type == NULL)
+        return compile_null(t);
     CORD code = compile(env, ast);
     type_t *actual = get_type(env, ast);
     if (!promote(env, &code, actual, t))
@@ -1956,6 +1917,8 @@ CORD compile(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
     case Null: {
+        if (!Match(ast, Null)->type)
+            code_err(ast, "This 'NULL' needs to specify what type it is using `!Type` syntax");
         type_t *t = parse_type_ast(env, Match(ast, Null)->type);
         return compile_null(t);
     }

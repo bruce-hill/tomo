@@ -64,18 +64,14 @@ public PUREFUNC bool is_null(const void *obj, const TypeInfo_t *non_optional_typ
     }
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstack-protector"
 public Text_t Optional$as_text(const void *obj, bool colorize, const TypeInfo_t *type)
 {
     if (!obj)
         return Text$concat(generic_as_text(obj, colorize, type->OptionalInfo.type), Text("?"));
 
     if (is_null(obj, type->OptionalInfo.type))
-        return Text$concat(colorize ? Text("\x1b[31m!") : Text("!"), generic_as_text(NULL, false, type->OptionalInfo.type),
-                           colorize ? Text("\x1b[m") : Text(""));
-    return Text$concat(generic_as_text(obj, colorize, type->OptionalInfo.type), colorize ? Text("\x1b[33m?\x1b[m") : Text("?"));
+        return colorize ? Text("\x1b[31mNULL\x1b[m") : Text("NULL");
+    return generic_as_text(obj, colorize, type->OptionalInfo.type);
 }
-#pragma GCC diagnostic pop
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1

@@ -3,11 +3,11 @@ func main():
 	= {"one":1, "two":2}
 
 	>> t:get("one")
-	= 1?
+	= 1 : Int?
 	>> t:get("two")
-	= 2?
+	= 2 : Int?
 	>> t:get("???")
-	= !Int
+	= NULL : Int?
 	>> t:get("one")!
 	= 1
 	>> t:get("???") or -1
@@ -22,7 +22,7 @@ func main():
 	>> t.length
 	= 2
 	>> t.fallback
-	= !{Text:Int}
+	= NULL : {Text:Int}?
 
 	>> t.keys
 	= ["one", "two"]
@@ -33,16 +33,16 @@ func main():
 	= {"three":3; fallback={"one":1, "two":2}}
 
 	>> t2:get("one")
-	= 1?
+	= 1 : Int?
 	>> t2:get("three")
-	= 3?
+	= 3 : Int?
 	>> t2:get("???")
-	= !Int
+	= NULL : Int?
 
 	>> t2.length
 	= 1
 	>> t2.fallback
-	= {"one":1, "two":2}?
+	= {"one":1, "two":2} : {Text:Int}?
 
 	t2_str := ""
 	for k,v in t2:

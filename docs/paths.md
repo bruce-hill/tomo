@@ -492,10 +492,10 @@ raised.
 **Example:**  
 ```tomo
 >> (./hello.txt):read()
-= "Hello"?
+= "Hello" : Text?
 
 >> (./nosuchfile.xxx):read()
-= !Text
+= NULL : Text?
 ```
 ---
 
@@ -521,10 +521,10 @@ returned.
 **Example:**  
 ```tomo
 >> (./hello.txt):read()
-= [72[B], 101[B], 108[B], 108[B], 111[B]]?
+= [72[B], 101[B], 108[B], 108[B], 111[B]] : [Byte]?
 
 >> (./nosuchfile.xxx):read()
-= ![Byte]
+= NULL : [Byte]?
 ```
 
 ---

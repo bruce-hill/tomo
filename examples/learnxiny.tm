@@ -106,13 +106,13 @@ func main():
     # Tables are efficient hash maps
     table := {"one": 1, "two": 2}
     >> table:get("two")
-    = 2?
+    = 2 : Int?
 
     # The value returned is optional (because the key might not be in the table).
     # Optional values can be converted to regular values using `!` (which will
     # create a runtime error if the value is null) or the `or` operator:
     >> table:get("two")!
-    = 2
+    = 2 : Int
 
     >> table:get("xxx") or 0
     = 0

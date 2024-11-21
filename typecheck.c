@@ -484,6 +484,8 @@ type_t *get_type(env_t *env, ast_t *ast)
 #pragma GCC diagnostic ignored "-Wswitch-default"
     switch (ast->tag) {
     case Null: {
+        if (!Match(ast, Null)->type)
+            return Type(OptionalType, .type=NULL);
         type_t *t = parse_type_ast(env, Match(ast, Null)->type);
         return Type(OptionalType, .type=t);
     }
@@ -1060,6 +1062,9 @@ type_t *get_type(env_t *env, ast_t *ast)
             ret = Match(ret, ReturnType)->ret;
         if (ret->tag == AbortType)
             ret = Type(VoidType);
+
+        if (ret->tag == OptionalType && !Match(ret, OptionalType)->type)
+            code_err(lambda->body, "This function doesn't return a specific optional type");
 
         if (lambda->ret_type) {
             type_t *declared = parse_type_ast(env, lambda->ret_type);

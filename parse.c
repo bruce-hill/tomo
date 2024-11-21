@@ -1532,6 +1532,8 @@ PARSER(parse_lambda) {
 
 PARSER(parse_null) {
     const char *start = pos;
+    if (match_word(&pos, "NULL"))
+        return NewAST(ctx->file, start, pos, Null, .type=NULL);
     if (!match(&pos, "!")) return NULL;
     type_ast_t *type = parse_type(ctx, pos);
     if (!type) return NULL;

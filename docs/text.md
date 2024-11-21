@@ -693,13 +693,13 @@ containing information about the match.
 **Example:**  
 ```tomo
 >> " #one   #two  #three   ":find($/#{id}/, start=-999)
-= !Match
+= NULL : Match?
 >> " #one   #two  #three   ":find($/#{id}/, start=999)
-= !Match
+= NULL : Match?
 >> " #one   #two  #three   ":find($/#{id}/)
-= Match(text="#one", index=2, captures=["one"])?
+= Match(text="#one", index=2, captures=["one"]) : Match?
 >> " #one   #two  #three   ":find("{id}", start=6)
-= Match(text="#two", index=9, captures=["two"])?
+= Match(text="#two", index=9, captures=["two"]) : Match?
 ```
 
 ---
@@ -885,10 +885,10 @@ or a null value otherwise.
 **Example:**  
 ```tomo
 >> "hello world":matches($/{id}/)
-= ![Text]
+= NULL : [Text]?
 
 >> "hello world":matches($/{id} {id}/)
-= ["hello", "world"]?
+= ["hello", "world"] : [Text]?
 ```
 
 ---

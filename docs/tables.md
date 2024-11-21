@@ -48,9 +48,9 @@ was found or error if it wasn't:
 ```tomo
 >> t := {"x":1, "y":2}
 >> t:get("x")
-= 1?
+= 1 : Int?
 >> t:get("????")
-= !Int
+= NULL : Int?
 >> t:get("x")!
 = 1
 ```
@@ -187,10 +187,10 @@ The value associated with the key or null if the key is not found.
 ```tomo
 >> t := {"A":1, "B":2}
 >> t:get("A")
-= 1? : Int?
+= 1 : Int?
 
 >> t:get("????")
-= !Int : Int?
+= NULL : Int?
 
 >> t:get("A")!
 = 1 : Int

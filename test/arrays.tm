@@ -164,11 +164,11 @@ func main():
 		= [1, 2, 3, 4, 5]
 
 	>> ["a", "b", "c"]:find("b")
-	= 2?
+	= 2 : Int?
 	>> ["a", "b", "c"]:find("XXX")
-	= !Int
+	= NULL : Int?
 
 	>> [10, 20]:first(func(i:&Int): i:is_prime())
-	= !Int
+	= NULL : Int?
 	>> [4, 5, 6]:first(func(i:&Int): i:is_prime())
-	= 2?
+	= 2 : Int?

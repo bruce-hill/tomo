@@ -8,7 +8,7 @@ infix operator followed by a colon, followed by a collection:
 nums := [10, 20, 30]
 sum := (+: nums)
 >> sum
-= 60?
+= 60 : Int?
 ```
 
 Reductions return an optional value which will be a null value if the thing
@@ -22,7 +22,7 @@ nums := [:Int]
 sum := (+: nums)
 
 >> sum
-= !Int
+= NULL : Int?
 
 >> sum or 0
 = 0

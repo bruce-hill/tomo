@@ -523,7 +523,7 @@ Returns a `Moment` object representing the current date and time.
 
 **Description:**  
 Return a new `Moment` object parsed from the given string in the given format,
-or a null value if the value could not be successfully parsed.
+or `NULL` if the value could not be successfully parsed.
 
 **Signature:**  
 ```tomo
@@ -539,7 +539,7 @@ func parse(text: Text, format: Text = "%Y-%m-%dT%H:%M:%S%z" -> Moment?)
 
 **Returns:**
 If the text was successfully parsed according to the given format, return a
-`Moment` representing that information. Otherwise, return a null value.
+`Moment` representing that information. Otherwise, return `NULL`.
 
 **Example:**  
 ```tomo

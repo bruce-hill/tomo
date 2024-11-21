@@ -117,7 +117,7 @@ bool type_eq(type_t *a, type_t *b)
 bool type_is_a(type_t *t, type_t *req)
 {
     if (type_eq(t, req)) return true;
-    if (req->tag == OptionalType)
+    if (req->tag == OptionalType && Match(req, OptionalType)->type)
         return type_is_a(t, Match(req, OptionalType)->type);
     if (t->tag == PointerType && req->tag == PointerType) {
         auto t_ptr = Match(t, PointerType);
@@ -144,10 +144,14 @@ type_t *type_or_type(type_t *a, type_t *b)
 {
     if (!a) return b;
     if (!b) return a;
-    if (type_is_a(b, a)) return a;
-    if (type_is_a(a, b)) return b;
+    if (a->tag == OptionalType && !Match(a, OptionalType)->type)
+        return b->tag == OptionalType ? b : Type(OptionalType, b);
+    if (b->tag == OptionalType && !Match(b, OptionalType)->type)
+        return a->tag == OptionalType ? a : Type(OptionalType, a);
     if (a->tag == ReturnType && b->tag == ReturnType)
         return Type(ReturnType, .ret=type_or_type(Match(a, ReturnType)->ret, Match(b, ReturnType)->ret));
+    if (type_is_a(b, a)) return a;
+    if (type_is_a(a, b)) return b;
     if (a->tag == AbortType || a->tag == ReturnType) return non_optional(b);
     if (b->tag == AbortType || b->tag == ReturnType) return non_optional(a);
     if ((a->tag == IntType || a->tag == NumType) && (b->tag == IntType || b->tag == NumType)) {

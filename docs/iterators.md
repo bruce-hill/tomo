@@ -16,13 +16,13 @@ successively gets one line from a file at a time until the file is exhausted:
 
 >> iter := (./test.txt):each_line()
 >> iter()
-= "line one"?
+= "line one" : Text?
 >> iter()
-= "line two"?
+= "line two" : Text?
 >> iter()
-= "line three"?
+= "line three" : Text?
 >> iter()
-= !Text
+= NULL : Text?
 
 for line in (./test.txt):each_line():
     pass
