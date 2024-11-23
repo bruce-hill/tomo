@@ -19,9 +19,16 @@ public PUREFUNC Text_t Num$as_text(const double *f, bool colorize, const TypeInf
     return Text$format(colorize ? "\x1b[35m%.16g\x1b[33;2m\x1b[m" : "%.16g", *f); 
 } 
 
-public PUREFUNC int32_t Num$compare(const double *x, const double *y, const TypeInfo_t *type) { 
-    (void)type;
-    return (*x > *y) - (*x < *y);
+public PUREFUNC int32_t Num$compare(const double *x, const double *y, const TypeInfo_t *) { 
+    int64_t rx = *(int64_t*)x,
+            ry = *(int64_t*)y;
+
+    if (rx == ry) return 0;
+
+    if (rx < 0) rx ^= INT64_MAX;
+    if (ry < 0) ry ^= INT64_MAX;
+
+    return (rx > ry) - (rx < ry);
 } 
 
 public PUREFUNC bool Num$equal(const double *x, const double *y, const TypeInfo_t *type) { 
