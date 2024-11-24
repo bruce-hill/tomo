@@ -13,6 +13,9 @@
 #include "types.h"
 
 CORD type_to_cord(type_t *t) {
+    if (!t)
+        return "(Unknown type)";
+
     switch (t->tag) {
         case UnknownType: return "???";
         case AbortType: return "Abort";
@@ -75,7 +78,11 @@ CORD type_to_cord(type_t *t) {
             return tagged->name;
         }
         case OptionalType: {
-            return CORD_all(type_to_cord(Match(t, OptionalType)->type), "?");
+            type_t *opt = Match(t, OptionalType)->type;
+            if (opt)
+                return CORD_all(type_to_cord(opt), "?");
+            else
+                return "(Unknown optional type)";
         }
         case TypeInfoType: {
             return CORD_all("Type$info(", Match(t, TypeInfoType)->name, ")");
