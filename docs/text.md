@@ -372,6 +372,8 @@ be automatically escaped using the `{1 ?}` rule described above:
 >> $/$user_input/
 = $/{1{}..xxx}/
 
+# This is: `{ 1{ }` (one open brace) followed by the literal text "..xxx}"
+
 # No error:
 >> some_text:find($/$user_input/)
 = 0
