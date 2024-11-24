@@ -21,6 +21,8 @@ public PUREFUNC bool is_null(const void *obj, const TypeInfo_t *non_optional_typ
         return *((OptionalBool_t*)obj) == NULL_BOOL;
     else if (non_optional_type == &Num$info)
         return isnan(*((Num_t*)obj));
+    else if (non_optional_type == &Num32$info)
+        return isnan(*((Num32_t*)obj));
     else if (non_optional_type == &Int64$info)
         return ((OptionalInt64_t*)obj)->is_null;
     else if (non_optional_type == &Int32$info)

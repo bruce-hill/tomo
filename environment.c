@@ -137,7 +137,7 @@ env_t *new_compilation_unit(CORD libname)
             {"power", "Int$power", "func(base:Int,exponent:Int -> Int)"},
             {"prev_prime", "Int$prev_prime", "func(x:Int -> Int)"},
             {"right_shifted", "Int$right_shifted", "func(x,y:Int -> Int)"},
-            {"sqrt", "Int$sqrt", "func(x:Int -> Int)"},
+            {"sqrt", "Int$sqrt", "func(x:Int -> Int?)"},
             {"times", "Int$times", "func(x,y:Int -> Int)"},
             {"to", "Int$to", "func(from:Int,to:Int -> Range)"},
         )},
@@ -219,61 +219,65 @@ env_t *new_compilation_unit(CORD libname)
         )},
 #define C(name) {#name, "M_"#name, "Num"}
 #define F(name) {#name, #name, "func(n:Num -> Num)"}
+#define F_opt(name) {#name, #name, "func(n:Num -> Num?)"}
 #define F2(name) {#name, #name, "func(x,y:Num -> Num)"}
         {"Num", Type(NumType, .bits=TYPE_NBITS64), "Num_t", "Num$info", TypedArray(ns_entry_t,
             {"near", "Num$near", "func(x,y:Num, ratio=1e-9, min_epsilon=1e-9 -> Bool)"},
             {"clamped", "Num$clamped", "func(x,low,high:Num -> Num)"},
             {"format", "Num$format", "func(n:Num, precision=0 -> Text)"},
             {"scientific", "Num$scientific", "func(n:Num,precision=0 -> Text)"},
-            {"nan", "Num$nan", "func(tag=\"\" -> Num)"},
             {"isinf", "Num$isinf", "func(n:Num -> Bool)"},
             {"isfinite", "Num$isfinite", "func(n:Num -> Bool)"},
-            {"isnan", "Num$isnan", "func(n:Num -> Bool)"},
             C(2_SQRTPI), C(E), C(PI_2), C(2_PI), C(1_PI), C(LN10), C(LN2), C(LOG2E),
             C(PI), C(PI_4), C(SQRT2), C(SQRT1_2),
             {"INF", "(Num_t)(INFINITY)", "Num"},
+            {"NAN", "((Num_t)NAN)", "Num?"},
             {"TAU", "(Num_t)(2.*M_PI)", "Num"},
             {"mix", "Num$mix", "func(amount,x,y:Num -> Num)"},
             {"parse", "Num$parse", "func(text:Text -> Num?)"},
             {"abs", "fabs", "func(n:Num -> Num)"},
-            F(acos), F(acosh), F(asin), F(asinh), F(atan), F(atanh), F(cbrt), F(ceil), F(cos), F(cosh), F(erf), F(erfc),
-            F(exp), F(exp2), F(expm1), F(floor), F(j0), F(j1), F(log), F(log10), F(log1p), F(log2), F(logb),
-            F(rint), F(round), F(significand), F(sin), F(sinh), F(sqrt),
-            F(tan), F(tanh), F(tgamma), F(trunc), F(y0), F(y1),
+            F_opt(acos), F_opt(acosh), F_opt(asin), F(asinh), F(atan), F_opt(atanh),
+            F(cbrt), F(ceil), F_opt(cos), F(cosh), F(erf), F(erfc),
+            F(exp), F(exp2), F(expm1), F(floor), F(j0), F(j1), F_opt(log), F_opt(log10), F_opt(log1p),
+            F_opt(log2), F(logb), F(rint), F(round), F(significand), F_opt(sin), F(sinh), F_opt(sqrt),
+            F_opt(tan), F(tanh), F_opt(tgamma), F(trunc), F_opt(y0), F_opt(y1),
             F2(atan2), F2(copysign), F2(fdim), F2(hypot), F2(nextafter),
         )},
 #undef F2
+#undef F_opt
 #undef F
 #undef C
 #define C(name) {#name, "(Num32_t)(M_"#name")", "Num32"}
 #define F(name) {#name, #name"f", "func(n:Num32 -> Num32)"}
+#define F_opt(name) {#name, #name"f", "func(n:Num32 -> Num32?)"}
 #define F2(name) {#name, #name"f", "func(x,y:Num32 -> Num32)"}
         {"Num32", Type(NumType, .bits=TYPE_NBITS32), "Num32_t", "Num32$info", TypedArray(ns_entry_t,
             {"near", "Num32$near", "func(x,y:Num32, ratio=Num32(1e-9), min_epsilon=Num32(1e-9) -> Bool)"},
             {"clamped", "Num32$clamped", "func(x,low,high:Num32 -> Num32)"},
             {"format", "Num32$format", "func(n:Num32, precision=0 -> Text)"},
             {"scientific", "Num32$scientific", "func(n:Num32, precision=0 -> Text)"},
-            {"nan", "Num32$nan", "func(tag=\"\" -> Num32)"},
             {"isinf", "Num32$isinf", "func(n:Num32 -> Bool)"},
             {"isfinite", "Num32$isfinite", "func(n:Num32 -> Bool)"},
-            {"isnan", "Num32$isnan", "func(n:Num32 -> Bool)"},
             C(2_SQRTPI), C(E), C(PI_2), C(2_PI), C(1_PI), C(LN10), C(LN2), C(LOG2E),
             C(PI), C(PI_4), C(SQRT2), C(SQRT1_2),
             {"INF", "(Num32_t)(INFINITY)", "Num32"},
+            {"NAN", "((Num32_t)NAN)", "Num32?"},
             {"TAU", "(Num32_t)(2.f*M_PI)", "Num32"},
             {"mix", "Num32$mix", "func(amount,x,y:Num32 -> Num32)"},
             {"parse", "Num32$parse", "func(text:Text -> Num32?)"},
             {"abs", "fabsf", "func(n:Num32 -> Num32)"},
-            F(acos), F(acosh), F(asin), F(asinh), F(atan), F(atanh), F(cbrt), F(ceil), F(cos), F(cosh), F(erf), F(erfc),
-            F(exp), F(exp2), F(expm1), F(floor), F(j0), F(j1), F(log), F(log10), F(log1p), F(log2), F(logb),
-            F(rint), F(round), F(significand), F(sin), F(sinh), F(sqrt),
-            F(tan), F(tanh), F(tgamma), F(trunc), F(y0), F(y1),
-            F2(atan2), F2(copysign), F2(fdim), F2(hypot), F2(nextafter), F2(pow), F2(remainder),
+            F_opt(acos), F_opt(acosh), F_opt(asin), F(asinh), F(atan), F_opt(atanh),
+            F(cbrt), F(ceil), F_opt(cos), F(cosh), F(erf), F(erfc),
+            F(exp), F(exp2), F(expm1), F(floor), F(j0), F(j1), F_opt(log), F_opt(log10), F_opt(log1p),
+            F_opt(log2), F(logb), F(rint), F(round), F(significand), F_opt(sin), F(sinh), F_opt(sqrt),
+            F_opt(tan), F(tanh), F_opt(tgamma), F(trunc), F_opt(y0), F_opt(y1),
+            F2(atan2), F2(copysign), F2(fdim), F2(hypot), F2(nextafter),
         )},
         {"CString", Type(CStringType), "char*", "CString$info", TypedArray(ns_entry_t,
             {"as_text", "CString$as_text_simple", "func(str:CString -> Text)"},
         )},
 #undef F2
+#undef F_opt
 #undef F
 #undef C
         {"Range", RANGE_TYPE, "Range_t", "Range", TypedArray(ns_entry_t,

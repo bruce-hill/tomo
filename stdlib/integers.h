@@ -106,7 +106,7 @@ OptionalInt_t Int$from_str(const char *str);
 OptionalInt_t Int$parse(Text_t text);
 Int_t Int$abs(Int_t x);
 Int_t Int$power(Int_t base, Int_t exponent);
-Int_t Int$sqrt(Int_t i);
+OptionalInt_t Int$sqrt(Int_t i);
 
 #define BIGGEST_SMALL_INT ((1<<29)-1)
 

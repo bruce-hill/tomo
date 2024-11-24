@@ -27,6 +27,18 @@
 
 public bool USE_COLOR;
 
+static void signal_handler(int sig, siginfo_t *, void *)
+{
+    assert(sig == SIGILL);
+    fflush(stdout);
+    if (USE_COLOR) fputs("\x1b[31;7m ===== ILLEGAL INSTRUCTION ===== \n\n\x1b[m", stderr);
+    else fputs("===== ILLEGAL INSTRUCTION =====\n\n", stderr);
+    print_stack_trace(stderr, 3, 4);
+    fflush(stderr);
+    raise(SIGABRT);
+    _exit(1);
+}
+
 public void tomo_init(void)
 {
    GC_INIT();
@@ -44,6 +56,12 @@ public void tomo_init(void)
 
    if (register_printf_specifier('k', printf_text, printf_text_size))
        errx(1, "Couldn't set printf specifier");
+
+   struct sigaction sigact;
+   sigact.sa_sigaction = signal_handler;
+   sigemptyset(&sigact.sa_mask);
+   sigact.sa_flags = 0;
+   sigaction(SIGILL, &sigact, (struct sigaction *)NULL);
 }
 
 static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)

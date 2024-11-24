@@ -207,6 +207,11 @@ static PUREFUNC INLINE double type_max_magnitude(type_t *t)
 
 PUREFUNC precision_cmp_e compare_precision(type_t *a, type_t *b)
 {
+    if (a->tag == OptionalType && Match(a, OptionalType)->type->tag == NumType)
+        a = Match(a, OptionalType)->type;
+    if (b->tag == OptionalType && Match(b, OptionalType)->type->tag == NumType)
+        b = Match(b, OptionalType)->type;
+
     if (is_int_type(a) && b->tag == NumType)
         return NUM_PRECISION_LESS;
     else if (a->tag == NumType && is_int_type(b))
@@ -337,6 +342,10 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
     // Automatic dereferencing:
     if (actual->tag == PointerType && can_promote(Match(actual, PointerType)->pointed, needed))
         return true;
+
+    // Optional num -> num
+    if (needed->tag == NumType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == NumType)
+        return can_promote(Match(actual, OptionalType)->type, needed);
 
     // Optional promotion:
     if (needed->tag == OptionalType && can_promote(actual, Match(needed, OptionalType)->type))

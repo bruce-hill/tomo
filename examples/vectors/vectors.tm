@@ -17,7 +17,7 @@ struct Vec2(x,y:Num):
     func divided_by(v:Vec2, divisor:Num->Vec2; inline):
         return Vec2(v.x/divisor, v.y/divisor)
     func length(v:Vec2->Num; inline):
-        return (v.x*v.x + v.y*v.y):sqrt()
+        return (v.x*v.x + v.y*v.y)!:sqrt()
     func dist(a,b:Vec2->Num; inline):
         return a:minus(b):length()
     func angle(v:Vec2->Num; inline):
@@ -50,7 +50,7 @@ struct Vec3(x,y,z:Num):
     func divided_by(v:Vec3, divisor:Num->Vec3; inline):
         return Vec3(v.x/divisor, v.y/divisor, v.z/divisor)
     func length(v:Vec3->Num; inline):
-        return (v.x*v.x + v.y*v.y + v.z*v.z):sqrt()
+        return (v.x*v.x + v.y*v.y + v.z*v.z)!:sqrt()
     func dist(a,b:Vec3->Num; inline):
         return a:minus(b):length()
     func norm(v:Vec3->Vec3; inline):

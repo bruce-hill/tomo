@@ -300,8 +300,10 @@ public Int_t Int$power(Int_t base, Int_t exponent)
     return Int$from_mpz(result);
 }
 
-public Int_t Int$sqrt(Int_t i)
+public OptionalInt_t Int$sqrt(Int_t i)
 {
+    if (Int$compare_value(i, I(0)) < 0)
+        return NULL_INT;
     mpz_t result;
     mpz_init_set_int(result, i);
     mpz_sqrt(result, result);

@@ -32,6 +32,8 @@ static CORD compile_unsigned_type(type_t *t);
 static CORD promote_to_optional(type_t *t, CORD code);
 static CORD compile_null(type_t *t);
 static CORD compile_to_type(env_t *env, ast_t *ast, type_t *t);
+static CORD check_null(type_t *t, CORD value);
+static CORD optional_into_nonnull(type_t *t, CORD value);
 
 CORD promote_to_optional(type_t *t, CORD code)
 {
@@ -54,7 +56,7 @@ CORD promote_to_optional(type_t *t, CORD code)
     }
 }
 
-static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
+static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *needed)
 {
     if (type_eq(actual, needed))
         return true;
@@ -65,6 +67,18 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
     // Optional promotion:
     if (needed->tag == OptionalType && type_eq(actual, Match(needed, OptionalType)->type)) {
         *code = promote_to_optional(actual, *code);
+        return true;
+    }
+
+    // Automatic optional checking for nums:
+    if (needed->tag == NumType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == NumType) {
+        *code = CORD_all("({ ", compile_declaration(actual, "opt"), " = ", *code, "; ",
+                         "if (", check_null(actual, "opt"), ")\n",
+                        CORD_asprintf("fail_source(%r, %ld, %ld, \"This value was expected to be non-null, but it's null!\");\n",
+                                      CORD_quoted(ast->file->filename),
+                                      (long)(ast->start - ast->file->text),
+                                      (long)(ast->end - ast->file->text)),
+                         optional_into_nonnull(actual, "opt"), "; })");
         return true;
     }
 
@@ -89,7 +103,7 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
         binding_t *b = get_binding(Match(needed, EnumType)->env, tag);
         assert(b && b->type->tag == FunctionType);
         // Single-value enum constructor:
-        if (!promote(env, code, actual, Match(b->type, FunctionType)->args->type))
+        if (!promote(env, ast, code, actual, Match(b->type, FunctionType)->args->type))
             return false;
         *code = CORD_all(b->code, "(", *code, ")");
         return true;
@@ -105,7 +119,7 @@ static bool promote(env_t *env, CORD *code, type_t *actual, type_t *needed)
     if (actual->tag == PointerType
         && can_promote(Match(actual, PointerType)->pointed, needed)) {
         *code = CORD_all("*(", *code, ")");
-        return promote(env, code, Match(actual, PointerType)->pointed, needed);
+        return promote(env, ast, code, Match(actual, PointerType)->pointed, needed);
     }
 
     // Stack ref promotion:
@@ -376,7 +390,7 @@ static CORD compile_inline_block(env_t *env, ast_t *ast)
     return code;
 }
 
-static CORD optional_into_nonnull(type_t *t, CORD value)
+CORD optional_into_nonnull(type_t *t, CORD value)
 {
     if (t->tag == OptionalType) t = Match(t, OptionalType)->type;
     switch (t->tag) {
@@ -391,7 +405,7 @@ static CORD optional_into_nonnull(type_t *t, CORD value)
     }
 }
 
-static CORD check_null(type_t *t, CORD value)
+CORD check_null(type_t *t, CORD value)
 {
     t = Match(t, OptionalType)->type;
     if (t->tag == PointerType || t->tag == FunctionType || t->tag == CStringType
@@ -539,7 +553,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             type_t *t = get_type(env, decl->value);
             CORD val_code = compile_maybe_incref(env, decl->value);
             if (t->tag == FunctionType) {
-                assert(promote(env, &val_code, t, Type(ClosureType, t)));
+                assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
                 t = Type(ClosureType, t);
             }
             return CORD_asprintf(
@@ -627,7 +641,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
             CORD val_code = compile_maybe_incref(env, decl->value);
             if (t->tag == FunctionType) {
-                assert(promote(env, &val_code, t, Type(ClosureType, t)));
+                assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
                 t = Type(ClosureType, t);
             }
 
@@ -670,10 +684,10 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         type_t *lhs_t = get_type(env, update->lhs);
         type_t *rhs_t = get_type(env, update->rhs);
-        if (!promote(env, &rhs, rhs_t, lhs_t)) {
+        if (!promote(env, update->rhs, &rhs, rhs_t, lhs_t)) {
             if (update->rhs->tag == Int && (lhs_t->tag == IntType || lhs_t->tag == ByteType))
                 rhs = compile_int_to_type(env, update->rhs, lhs_t);
-            else if (!(lhs_t->tag == ArrayType && promote(env, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)))
+            else if (!(lhs_t->tag == ArrayType && promote(env, update->rhs, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)))
                 code_err(ast, "I can't do operations between %T and %T", lhs_t, rhs_t);
         }
 
@@ -755,7 +769,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 return CORD_all(lhs, " = Texts(", lhs, ", ", rhs, ");");
             } else if (lhs_t->tag == ArrayType) {
                 CORD padded_item_size = CORD_asprintf("%ld", type_size(Match(lhs_t, ArrayType)->item_type));
-                if (promote(env, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)) {
+                if (promote(env, update->rhs, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)) {
                     // arr ++= item
                     if (update->lhs->tag == Var)
                         return CORD_all("Array$insert(&", lhs, ", stack(", rhs, "), I(0), ", padded_item_size, ");");
@@ -1547,7 +1561,7 @@ CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
         return compile_null(t);
     CORD code = compile(env, ast);
     type_t *actual = get_type(env, ast);
-    if (!promote(env, &code, actual, t))
+    if (!promote(env, ast, &code, actual, t))
         code_err(ast, "I expected a %T here, but this is a %T", t, actual);
     return code;
 }
@@ -1572,7 +1586,7 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
     if (ast->tag != Int) {
         CORD code = compile(env, ast);
         type_t *actual_type = get_type(env, ast);
-        if (!promote(env, &code, actual_type, target))
+        if (!promote(env, ast, &code, actual_type, target))
             code = CORD_all(type_to_cord(actual_type), "_to_", type_to_cord(target), "(", code, ", no)");
         return code;
     }
@@ -1659,7 +1673,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                         env_t *arg_env = with_enum_scope(env, spec_arg->type);
                         type_t *actual_t = get_type(arg_env, call_arg->value);
                         value = compile_maybe_incref(arg_env, call_arg->value);
-                        if (!promote(arg_env, &value, actual_t, spec_arg->type))
+                        if (!promote(arg_env, call_arg->value, &value, actual_t, spec_arg->type))
                             code_err(call_arg->value, "This argument is supposed to be a %T, but this value is a %T", spec_arg->type, actual_t);
                     }
                     Table$str_set(&used_args, call_arg->name, call_arg);
@@ -1688,7 +1702,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                     env_t *arg_env = with_enum_scope(env, spec_arg->type);
                     type_t *actual_t = get_type(arg_env, call_arg->value);
                     value = compile_maybe_incref(arg_env, call_arg->value);
-                    if (!promote(arg_env, &value, actual_t, spec_arg->type))
+                    if (!promote(arg_env, call_arg->value, &value, actual_t, spec_arg->type))
                         code_err(call_arg->value, "This argument is supposed to be a %T, but this value is a %T", spec_arg->type, actual_t);
                 }
 
@@ -2050,6 +2064,13 @@ CORD compile(env_t *env, ast_t *ast)
             }
         }
 
+        bool lhs_is_optional_num = (lhs_t->tag == OptionalType && Match(lhs_t, OptionalType)->type->tag == NumType);
+        if (lhs_is_optional_num)
+            lhs_t = Match(lhs_t, OptionalType)->type;
+        bool rhs_is_optional_num = (rhs_t->tag == OptionalType && Match(rhs_t, OptionalType)->type->tag == NumType);
+        if (rhs_is_optional_num)
+            rhs_t = Match(rhs_t, OptionalType)->type;
+
         CORD lhs, rhs;
         if (lhs_t->tag == BigIntType && rhs_t->tag != BigIntType && is_numeric_type(rhs_t) && binop->lhs->tag == Int) {
             lhs = compile_int_to_type(env, binop->lhs, rhs_t);
@@ -2065,9 +2086,9 @@ CORD compile(env_t *env, ast_t *ast)
         }
 
         type_t *operand_t;
-        if (promote(env, &rhs, rhs_t, lhs_t))
+        if (promote(env, binop->rhs, &rhs, rhs_t, lhs_t))
             operand_t = lhs_t;
-        else if (promote(env, &lhs, lhs_t, rhs_t))
+        else if (promote(env, binop->lhs, &lhs, lhs_t, rhs_t))
             operand_t = rhs_t;
         else
             code_err(ast, "I can't do operations between %T and %T", lhs_t, rhs_t);
@@ -2136,6 +2157,8 @@ CORD compile(env_t *env, ast_t *ast)
             case BigIntType:
                 return CORD_all("Int$equal_value(", lhs, ", ", rhs, ")");
             case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
+                if (lhs_is_optional_num || rhs_is_optional_num)
+                    return CORD_asprintf("generic_equal(stack(%r), stack(%r), %r)", lhs, rhs, compile_type_info(env, Type(OptionalType, operand_t)));
                 return CORD_all("(", lhs, " == ", rhs, ")");
             default:
                 return CORD_asprintf("generic_equal(stack(%r), stack(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
@@ -2146,6 +2169,8 @@ CORD compile(env_t *env, ast_t *ast)
             case BigIntType:
                 return CORD_all("!Int$equal_value(", lhs, ", ", rhs, ")");
             case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
+                if (lhs_is_optional_num || rhs_is_optional_num)
+                    return CORD_asprintf("!generic_equal(stack(%r), stack(%r), %r)", lhs, rhs, compile_type_info(env, Type(OptionalType, operand_t)));
                 return CORD_all("(", lhs, " != ", rhs, ")");
             default:
                 return CORD_asprintf("!generic_equal(stack(%r), stack(%r), %r)", lhs, rhs, compile_type_info(env, operand_t));
@@ -2156,6 +2181,8 @@ CORD compile(env_t *env, ast_t *ast)
             case BigIntType:
                 return CORD_all("(Int$compare_value(", lhs, ", ", rhs, ") < 0)");
             case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
+                if (lhs_is_optional_num || rhs_is_optional_num)
+                    return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) < 0)", lhs, rhs, compile_type_info(env, Type(OptionalType, operand_t)));
                 return CORD_all("(", lhs, " < ", rhs, ")");
             default:
                 return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) < 0)", lhs, rhs, compile_type_info(env, operand_t));
@@ -2166,6 +2193,8 @@ CORD compile(env_t *env, ast_t *ast)
             case BigIntType:
                 return CORD_all("(Int$compare_value(", lhs, ", ", rhs, ") <= 0)");
             case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
+                if (lhs_is_optional_num || rhs_is_optional_num)
+                    return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) <= 0)", lhs, rhs, compile_type_info(env, Type(OptionalType, operand_t)));
                 return CORD_all("(", lhs, " <= ", rhs, ")");
             default:
                 return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) <= 0)", lhs, rhs, compile_type_info(env, operand_t));
@@ -2176,6 +2205,8 @@ CORD compile(env_t *env, ast_t *ast)
             case BigIntType:
                 return CORD_all("(Int$compare_value(", lhs, ", ", rhs, ") > 0)");
             case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
+                if (lhs_is_optional_num || rhs_is_optional_num)
+                    return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) > 0)", lhs, rhs, compile_type_info(env, Type(OptionalType, operand_t)));
                 return CORD_all("(", lhs, " > ", rhs, ")");
             default:
                 return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) > 0)", lhs, rhs, compile_type_info(env, operand_t));
@@ -2186,6 +2217,8 @@ CORD compile(env_t *env, ast_t *ast)
             case BigIntType:
                 return CORD_all("(Int$compare_value(", lhs, ", ", rhs, ") >= 0)");
             case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
+                if (lhs_is_optional_num || rhs_is_optional_num)
+                    return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) >= 0)", lhs, rhs, compile_type_info(env, Type(OptionalType, operand_t)));
                 return CORD_all("(", lhs, " >= ", rhs, ")");
             default:
                 return CORD_asprintf("(generic_compare(stack(%r), stack(%r), %r) >= 0)", lhs, rhs, compile_type_info(env, operand_t));
@@ -2200,6 +2233,8 @@ CORD compile(env_t *env, ast_t *ast)
                 code_err(ast, "The 'and' operator isn't supported for %T and %T", lhs_t, rhs_t);
         }
         case BINOP_CMP: {
+            if (lhs_is_optional_num || rhs_is_optional_num)
+                operand_t = Type(OptionalType, operand_t);
             return CORD_all("generic_compare(stack(", lhs, "), stack(", rhs, "), ", compile_type_info(env, operand_t), ")");
         }
         case BINOP_OR: {
@@ -2417,7 +2452,7 @@ CORD compile(env_t *env, ast_t *ast)
             code_err(ast, "This item type can't be sent over a channel because it contains reference to memory that may not be thread-safe.");
         if (chan->max_size) {
             CORD max_size = compile(env, chan->max_size);
-            if (!promote(env, &max_size, get_type(env, chan->max_size), INT_TYPE))
+            if (!promote(env, chan->max_size, &max_size, get_type(env, chan->max_size), INT_TYPE))
                 code_err(chan->max_size, "This value must be an integer, not %T", get_type(env, chan->max_size));
             return CORD_all("Channel$new(", max_size, ")");
         } else {
@@ -3525,7 +3560,7 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
             } else {
                 CORD val_code = compile_maybe_incref(ns_env, decl->value);
                 if (t->tag == FunctionType) {
-                    assert(promote(env, &val_code, t, Type(ClosureType, t)));
+                    assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
                     t = Type(ClosureType, t);
                 }
 
@@ -3740,7 +3775,7 @@ CORD compile_file(env_t *env, ast_t *ast)
             if (!is_constant(env, decl->value)) {
                 CORD val_code = compile_maybe_incref(env, decl->value);
                 if (t->tag == FunctionType) {
-                    assert(promote(env, &val_code, t, Type(ClosureType, t)));
+                    assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
                     t = Type(ClosureType, t);
                 }
 
@@ -3771,7 +3806,7 @@ CORD compile_file(env_t *env, ast_t *ast)
             } else {
                 CORD val_code = compile_maybe_incref(env, decl->value);
                 if (t->tag == FunctionType) {
-                    assert(promote(env, &val_code, t, Type(ClosureType, t)));
+                    assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
                     t = Type(ClosureType, t);
                 }
                 env->code->staticdefs = CORD_all(

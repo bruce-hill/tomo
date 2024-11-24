@@ -22,27 +22,47 @@ func main():
 	>> Num.INF:isinf()
 	= yes
 
-	>> Num.nan()
-	= nan
-	>> nan := Num.nan()
-	>> nan:isnan()
-	= yes
+	>> Num.NAN
+	= NULL : Num?
+	>> nan := Num.NAN
+	= NULL : Num?
 	>> nan == nan
-	= no
-
-	>> Num.PI:cos():near(-1)
 	= yes
-	>> Num.PI:sin():near(0)
-	= yes
-
-	>> Num.nan():near(Num.nan())
+	>> nan < nan
 	= no
+	>> nan > nan
+	= no
+	>> nan != nan
+	= no
+	>> nan <> nan
+	= 0
+	>> nan == 0.0
+	= no
+	>> nan < 0.0
+	= yes
+	>> nan > 0.0
+	= no
+	>> nan != 0.0
+	= yes
+	>> nan <> 0.0
+	= -1
+
+	>> nan + 1
+	= NULL : Num?
+
+	>> 0./0.
+	= NULL : Num?
+
+	>> Num.PI:cos()!:near(-1)
+	= yes
+	>> Num.PI:sin()!:near(0)
+	= yes
 
 	>> Num.INF:near(-Num.INF)
 	= no
 
 	>> Num32.sqrt(16)
-	= 4 : Num32
+	= 4 : Num32?
 
 	>> 0.25:mix(10, 20)
 	= 12.5

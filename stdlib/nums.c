@@ -78,10 +78,6 @@ public OptionalNum_t Num$parse(Text_t text) {
         return nan("null");
 }
 
-public double Num$nan(Text_t tag) {
-    return nan(Text$as_c_string(tag));
-}
-
 public CONSTFUNC bool Num$isinf(double n) { return (fpclassify(n) == FP_INFINITE); }
 public CONSTFUNC bool Num$finite(double n) { return (fpclassify(n) != FP_INFINITE); }
 public CONSTFUNC bool Num$isnan(double n) { return (fpclassify(n) == FP_NAN); }
@@ -153,10 +149,6 @@ public OptionalNum32_t Num32$parse(Text_t text) {
         return d;
     else
         return nan("null");
-}
-
-public float Num32$nan(Text_t tag) {
-    return nanf(Text$as_c_string(tag));
 }
 
 public CONSTFUNC bool Num32$isinf(float n) { return (fpclassify(n) == FP_INFINITE); }
