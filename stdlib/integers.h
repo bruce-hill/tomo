@@ -79,10 +79,10 @@ DEFINE_INT_TYPE(int16_t, Int16, CONSTFUNC)
 DEFINE_INT_TYPE(int8_t,  Int8, CONSTFUNC)
 #undef DEFINE_INT_TYPE
 
-#define NULL_INT64 ((OptionalInt64_t){.is_null=true})
-#define NULL_INT32 ((OptionalInt32_t){.is_null=true})
-#define NULL_INT16 ((OptionalInt16_t){.is_null=true})
-#define NULL_INT8 ((OptionalInt8_t){.is_null=true})
+#define NONE_INT64 ((OptionalInt64_t){.is_null=true})
+#define NONE_INT32 ((OptionalInt32_t){.is_null=true})
+#define NONE_INT16 ((OptionalInt16_t){.is_null=true})
+#define NONE_INT8 ((OptionalInt8_t){.is_null=true})
 
 #define Int64$abs(...) I64(labs(__VA_ARGS__))
 #define Int32$abs(...) I32(abs(__VA_ARGS__))

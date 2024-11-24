@@ -209,7 +209,7 @@ public OptionalMoment_t Path$modified(Path_t path, bool follow_symlinks)
 {
     struct stat sb;
     int status = path_stat(path, follow_symlinks, &sb);
-    if (status != 0) return NULL_MOMENT;
+    if (status != 0) return NONE_MOMENT;
     return (Moment_t){.tv_sec=sb.st_mtime};
 }
 
@@ -217,7 +217,7 @@ public OptionalMoment_t Path$accessed(Path_t path, bool follow_symlinks)
 {
     struct stat sb;
     int status = path_stat(path, follow_symlinks, &sb);
-    if (status != 0) return NULL_MOMENT;
+    if (status != 0) return NONE_MOMENT;
     return (Moment_t){.tv_sec=sb.st_atime};
 }
 
@@ -225,7 +225,7 @@ public OptionalMoment_t Path$changed(Path_t path, bool follow_symlinks)
 {
     struct stat sb;
     int status = path_stat(path, follow_symlinks, &sb);
-    if (status != 0) return NULL_MOMENT;
+    if (status != 0) return NONE_MOMENT;
     return (Moment_t){.tv_sec=sb.st_ctime};
 }
 
@@ -271,11 +271,11 @@ public OptionalArray_t Path$read_bytes(Path_t path, OptionalInt_t count)
     path = Path$_expand_home(path);
     int fd = open(Text$as_c_string(path), O_RDONLY);
     if (fd == -1)
-        return NULL_ARRAY;
+        return NONE_ARRAY;
 
     struct stat sb;
     if (fstat(fd, &sb) != 0)
-        return NULL_ARRAY;
+        return NONE_ARRAY;
 
     int64_t const target_count = count.small ? Int_to_Int64(count, false) : INT64_MAX;
     if (target_count < 0)
@@ -301,7 +301,7 @@ public OptionalArray_t Path$read_bytes(Path_t path, OptionalInt_t count)
             ssize_t just_read = read(fd, chunk, to_read);
             if (just_read < 0) {
                 close(fd);
-                return NULL_ARRAY;
+                return NONE_ARRAY;
             } else if (just_read == 0) {
                 if (errno == EAGAIN || errno == EINTR)
                     continue;
@@ -325,8 +325,8 @@ public OptionalArray_t Path$read_bytes(Path_t path, OptionalInt_t count)
 
 public OptionalText_t Path$read(Path_t path)
 {
-    Array_t bytes = Path$read_bytes(path, NULL_INT);
-    if (bytes.length < 0) return NULL_TEXT;
+    Array_t bytes = Path$read_bytes(path, NONE_INT);
+    if (bytes.length < 0) return NONE_TEXT;
     return Text$from_bytes(bytes);
 }
 
@@ -511,14 +511,14 @@ static void _line_reader_cleanup(FILE **f)
 
 static Text_t _next_line(FILE **f)
 {
-    if (!f || !*f) return NULL_TEXT;
+    if (!f || !*f) return NONE_TEXT;
 
     char *line = NULL;
     size_t size = 0;
     ssize_t len = getline(&line, &size, *f);
     if (len <= 0) {
         _line_reader_cleanup(f);
-        return NULL_TEXT;
+        return NONE_TEXT;
     }
 
     while (len > 0 && (line[len-1] == '\r' || line[len-1] == '\n'))
@@ -538,7 +538,7 @@ public OptionalClosure_t Path$by_line(Path_t path)
 
     FILE *f = fopen(Text$as_c_string(path), "r");
     if (f == NULL)
-        return NULL_CLOSURE;
+        return NONE_CLOSURE;
 
     FILE **wrapper = GC_MALLOC(sizeof(FILE*));
     *wrapper = f;

@@ -96,9 +96,9 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)
         return !parsed.is_null;
     } else if (info == &Bool$info) {
         OptionalBool_t parsed = Bool$parse(Text$from_str(arg));
-        if (parsed != NULL_BOOL)
+        if (parsed != NONE_BOOL)
             *(OptionalBool_t*)dest = parsed;
-        return parsed != NULL_BOOL;
+        return parsed != NONE_BOOL;
     } else if (info == &Num$info) {
         OptionalNum_t parsed = Num$parse(Text$from_str(arg));
         if (!isnan(parsed))

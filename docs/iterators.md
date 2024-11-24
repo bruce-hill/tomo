@@ -22,7 +22,7 @@ successively gets one line from a file at a time until the file is exhausted:
 >> iter()
 = "line three" : Text?
 >> iter()
-= NULL : Text?
+= NONE : Text?
 
 for line in (./test.txt):each_line():
     pass

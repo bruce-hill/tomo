@@ -222,7 +222,7 @@ public Int_t Array$find(Array_t arr, void *item, const TypeInfo_t *type)
         if (generic_equal(item, arr.data + i*arr.stride, item_type))
             return I(i+1);
     }
-    return NULL_INT;
+    return NONE_INT;
 }
 
 public Int_t Array$first(Array_t arr, Closure_t predicate)
@@ -232,7 +232,7 @@ public Int_t Array$first(Array_t arr, Closure_t predicate)
         if (is_good(arr.data + i*arr.stride, predicate.userdata))
             return I(i+1);
     }
-    return NULL_INT;
+    return NONE_INT;
 }
 
 public void Array$sort(Array_t *arr, Closure_t comparison, int64_t padded_item_size)

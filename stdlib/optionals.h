@@ -16,13 +16,13 @@
 #define OptionalText_t Text_t
 #define OptionalClosure_t Closure_t
 
-#define NULL_ARRAY ((Array_t){.length=-1})
-#define NULL_BOOL ((OptionalBool_t)2)
-#define NULL_INT ((OptionalInt_t){.small=0})
-#define NULL_TABLE ((OptionalTable_t){.entries.length=-1})
-#define NULL_CLOSURE ((OptionalClosure_t){.fn=NULL})
-#define NULL_TEXT ((OptionalText_t){.length=-1})
-#define NULL_MOMENT ((OptionalMoment_t){.tv_usec=-1})
+#define NONE_ARRAY ((Array_t){.length=-1})
+#define NONE_BOOL ((OptionalBool_t)2)
+#define NONE_INT ((OptionalInt_t){.small=0})
+#define NONE_TABLE ((OptionalTable_t){.entries.length=-1})
+#define NONE_CLOSURE ((OptionalClosure_t){.fn=NULL})
+#define NONE_TEXT ((OptionalText_t){.length=-1})
+#define NONE_MOMENT ((OptionalMoment_t){.tv_usec=-1})
 
 PUREFUNC bool is_null(const void *obj, const TypeInfo_t *non_optional_type);
 Text_t Optional$as_text(const void *obj, bool colorize, const TypeInfo_t *type);

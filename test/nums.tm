@@ -23,9 +23,9 @@ func main():
 	= yes
 
 	>> Num.NAN
-	= NULL : Num?
+	= NONE : Num?
 	>> nan := Num.NAN
-	= NULL : Num?
+	= NONE : Num?
 	>> nan == nan
 	= yes
 	>> nan < nan
@@ -48,10 +48,10 @@ func main():
 	= -1
 
 	>> nan + 1
-	= NULL : Num?
+	= NONE : Num?
 
 	>> 0./0.
-	= NULL : Num?
+	= NONE : Num?
 
 	>> Num.PI:cos()!:near(-1)
 	= yes

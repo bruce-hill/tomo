@@ -35,6 +35,6 @@ typedef struct {
     bool is_null:1;
 } OptionalByte_t;
 
-#define NULL_BYTE ((OptionalByte_t){.is_null=true})
+#define NONE_BYTE ((OptionalByte_t){.is_null=true})
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

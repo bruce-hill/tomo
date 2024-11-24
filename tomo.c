@@ -30,8 +30,8 @@
 #define run_cmd(...) ({ const char *_cmd = heap_strf(__VA_ARGS__); if (verbose) puts(_cmd); popen(_cmd, "w"); })
 #define array_str(arr) Text$as_c_string(Text$join(Text(" "), arr))
 
-static OptionalArray_t files = NULL_ARRAY,
-                       args = NULL_ARRAY;
+static OptionalArray_t files = NONE_ARRAY,
+                       args = NONE_ARRAY;
 static OptionalBool_t verbose = false,
                       show_codegen = false,
                       stop_at_transpile = false,

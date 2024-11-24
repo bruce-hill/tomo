@@ -14,7 +14,7 @@
 #include "text.h"
 #include "util.h"
 
-static OptionalText_t _local_timezone = NULL_TEXT;
+static OptionalText_t _local_timezone = NONE_TEXT;
 
 #define WITH_TIMEZONE(tz, body) ({ if (tz.length >= 0) { \
         OptionalText_t old_timezone = _local_timezone; \
@@ -220,7 +220,7 @@ public OptionalMoment_t Moment$parse(Text_t text, Text_t format)
 
     char *invalid = strptime(str, fmt, &info);
     if (!invalid || invalid[0] != '\0')
-        return NULL_MOMENT;
+        return NONE_MOMENT;
 
     long offset = info.tm_gmtoff; // Need to cache this because mktime() mutates it to local timezone >:(
     time_t t = mktime(&info);

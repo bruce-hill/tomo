@@ -303,7 +303,7 @@ public Int_t Int$power(Int_t base, Int_t exponent)
 public OptionalInt_t Int$sqrt(Int_t i)
 {
     if (Int$compare_value(i, I(0)) < 0)
-        return NULL_INT;
+        return NONE_INT;
     mpz_t result;
     mpz_init_set_int(result, i);
     mpz_sqrt(result, result);
@@ -327,7 +327,7 @@ public Int_t Int$from_str(const char *str) {
         result = mpz_init_set_str(i, str, 10);
     }
     if (result != 0)
-        return NULL_INT;
+        return NONE_INT;
     return Int$from_mpz(i);
 }
 

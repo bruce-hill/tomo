@@ -53,7 +53,7 @@ int op_tightness[] = {
 static const char *keywords[] = {
     "yes", "xor", "while", "when", "use", "unless", "struct", "stop", "skip", "return",
     "or", "not", "no", "mod1", "mod", "pass", "lang", "inline", "in", "if",
-    "func", "for", "extern", "enum", "else", "do", "defer", "and", "_min_", "_max_",
+    "func", "for", "extern", "enum", "else", "do", "defer", "and", "NONE", "_min_", "_max_",
     NULL,
 };
 
@@ -1532,7 +1532,7 @@ PARSER(parse_lambda) {
 
 PARSER(parse_null) {
     const char *start = pos;
-    if (match_word(&pos, "NULL"))
+    if (match_word(&pos, "NONE"))
         return NewAST(ctx->file, start, pos, Null, .type=NULL);
     if (!match(&pos, "!")) return NULL;
     type_ast_t *type = parse_type(ctx, pos);

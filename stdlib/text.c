@@ -678,7 +678,7 @@ public OptionalText_t Text$from_strn(const char *str, size_t len)
         return ret;
     } else {
         if (u8_check((uint8_t*)str, len) != NULL)
-            return NULL_TEXT;
+            return NONE_TEXT;
 
         ucs4_t buf[128];
         size_t length = sizeof(buf)/sizeof(buf[0]);
@@ -1330,7 +1330,7 @@ public OptionalText_t Text$from_codepoint_names(Array_t codepoint_names)
         const char *name_str = Text$as_c_string(*name);
         ucs4_t codepoint = unicode_name_character(name_str);
         if (codepoint == UNINAME_INVALID)
-            return NULL_TEXT;
+            return NONE_TEXT;
         Array$insert(&codepoints, &codepoint, I_small(0), sizeof(ucs4_t));
     }
     return Text$from_codepoints(codepoints);

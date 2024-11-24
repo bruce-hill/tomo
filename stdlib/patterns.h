@@ -21,7 +21,7 @@ typedef struct {
 } Match_t;
 
 typedef Match_t OptionalMatch_t;
-#define NULL_MATCH ((OptionalMatch_t){.index=NULL_INT})
+#define NONE_MATCH ((OptionalMatch_t){.index=NONE_INT})
 
 Text_t Text$replace(Text_t str, Pattern_t pat, Text_t replacement, Pattern_t backref_pat, bool recursive);
 Pattern_t Pattern$escape_text(Text_t text);

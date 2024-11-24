@@ -63,7 +63,7 @@ x = !Int
 
 ## Type Inference
 
-For convenience, null values can also be written as `NULL` for any type in
+For convenience, null values can also be written as `NONE` for any type in
 situations where the compiler knows what type of optional value is expected:
 
 - When assigning to a variable that has already been declared as optional.
@@ -74,12 +74,12 @@ Here are some examples:
 
 ```tomo
 x := 5?
-x = NULL
+x = NONE
 
 func doop(arg:Int?)->Text?:
-    return NULL
+    return NONE
 
-doop(NULL)
+doop(NONE)
 ```
 
 Non-null values can also be automatically promoted to optional values without

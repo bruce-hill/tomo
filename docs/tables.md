@@ -50,7 +50,7 @@ was found or error if it wasn't:
 >> t:get("x")
 = 1 : Int?
 >> t:get("????")
-= NULL : Int?
+= NONE : Int?
 >> t:get("x")!
 = 1
 ```
@@ -190,7 +190,7 @@ The value associated with the key or null if the key is not found.
 = 1 : Int?
 
 >> t:get("????")
-= NULL : Int?
+= NONE : Int?
 
 >> t:get("A")!
 = 1 : Int

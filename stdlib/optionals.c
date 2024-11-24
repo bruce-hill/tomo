@@ -18,7 +18,7 @@ public PUREFUNC bool is_null(const void *obj, const TypeInfo_t *non_optional_typ
     if (non_optional_type == &Int$info)
         return ((Int_t*)obj)->small == 0;
     else if (non_optional_type == &Bool$info)
-        return *((OptionalBool_t*)obj) == NULL_BOOL;
+        return *((OptionalBool_t*)obj) == NONE_BOOL;
     else if (non_optional_type == &Num$info)
         return isnan(*((Num_t*)obj));
     else if (non_optional_type == &Num32$info)
@@ -72,7 +72,7 @@ public Text_t Optional$as_text(const void *obj, bool colorize, const TypeInfo_t 
         return Text$concat(generic_as_text(obj, colorize, type->OptionalInfo.type), Text("?"));
 
     if (is_null(obj, type->OptionalInfo.type))
-        return colorize ? Text("\x1b[31mNULL\x1b[m") : Text("NULL");
+        return colorize ? Text("\x1b[31mNONE\x1b[m") : Text("NONE");
     return generic_as_text(obj, colorize, type->OptionalInfo.type);
 }
 

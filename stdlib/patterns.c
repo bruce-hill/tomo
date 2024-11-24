@@ -802,13 +802,13 @@ public OptionalMatch_t Text$find(Text_t text, Pattern_t pattern, Int_t from_inde
     if (first == 0) fail("Invalid index: 0");
     if (first < 0) first = text.length + first + 1;
     if (first > text.length || first < 1)
-        return NULL_MATCH;
+        return NONE_MATCH;
 
     capture_t captures[MAX_BACKREFS] = {};
     int64_t len = 0;
     int64_t found = _find(text, pattern, first-1, text.length-1, &len, captures);
     if (found == -1)
-        return NULL_MATCH;
+        return NONE_MATCH;
 
     Array_t capture_array = {};
     for (int i = 0; captures[i].occupied; i++) {
@@ -845,7 +845,7 @@ public OptionalArray_t Text$matches(Text_t text, Pattern_t pattern)
     capture_t captures[MAX_BACKREFS] = {};
     int64_t match_len = match(text, 0, pattern, 0, captures, 0);
     if (match_len != text.length)
-        return NULL_ARRAY;
+        return NONE_ARRAY;
 
     Array_t capture_array = {};
     for (int i = 0; captures[i].occupied; i++) {

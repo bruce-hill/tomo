@@ -50,7 +50,7 @@ public OptionalArray_t Shell$run_bytes(Shell_t command)
     const char *cmd_str = Text$as_c_string(command);
     FILE *prog = popen(cmd_str, "r");
     if (!prog)
-        return NULL_ARRAY;
+        return NONE_ARRAY;
 
     size_t capacity = 256, len = 0;
     char *content = GC_MALLOC_ATOMIC(capacity);
@@ -73,7 +73,7 @@ public OptionalArray_t Shell$run_bytes(Shell_t command)
 
     int status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-        return NULL_ARRAY;
+        return NONE_ARRAY;
 
     return (Array_t){.data=content, .atomic=1, .stride=1, .length=len};
 }
@@ -82,7 +82,7 @@ public OptionalText_t Shell$run(Shell_t command)
 {
     Array_t bytes = Shell$run_bytes(command);
     if (bytes.length < 0)
-        return NULL_TEXT;
+        return NONE_TEXT;
 
     if (bytes.length > 0 && *(char*)(bytes.data + (bytes.length-1)*bytes.stride) == '\n') {
         --bytes.length;
@@ -102,14 +102,14 @@ static void _line_reader_cleanup(FILE **f)
 
 static Text_t _next_line(FILE **f)
 {
-    if (!f || !*f) return NULL_TEXT;
+    if (!f || !*f) return NONE_TEXT;
 
     char *line = NULL;
     size_t size = 0;
     ssize_t len = getline(&line, &size, *f);
     if (len <= 0) {
         _line_reader_cleanup(f);
-        return NULL_TEXT;
+        return NONE_TEXT;
     }
 
     while (len > 0 && (line[len-1] == '\r' || line[len-1] == '\n'))
@@ -128,7 +128,7 @@ public OptionalClosure_t Shell$by_line(Shell_t command)
     const char *cmd_str = Text$as_c_string(command);
     FILE *prog = popen(cmd_str, "r");
     if (!prog)
-        return NULL_CLOSURE;
+        return NONE_CLOSURE;
 
     FILE **wrapper = GC_MALLOC(sizeof(FILE*));
     *wrapper = prog;

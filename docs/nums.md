@@ -583,7 +583,7 @@ func parse(text: Text -> Num?)
 - `text`: The text containing the number.
 
 **Returns:**
-The number represented by the text or `NULL` if the entire text can't be parsed
+The number represented by the text or `NONE` if the entire text can't be parsed
 as a number.
 
 **Example:**

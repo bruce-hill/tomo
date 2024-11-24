@@ -35,7 +35,7 @@ PUREFUNC public OptionalBool_t Bool$parse(Text_t text)
         || Text$equal_ignoring_case(text, Text("0"))) {
         return no;
     } else {
-        return NULL_BOOL;
+        return NONE_BOOL;
     }
 }
 

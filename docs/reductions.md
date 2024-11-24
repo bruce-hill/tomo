@@ -22,7 +22,7 @@ nums := [:Int]
 sum := (+: nums)
 
 >> sum
-= NULL : Int?
+= NONE : Int?
 
 >> sum or 0
 = 0

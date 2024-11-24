@@ -3,7 +3,7 @@
 `Text` is Tomo's datatype to represent text. The name `Text` is used instead of
 "string" because Tomo text represents immutable, normalized unicode data with
 fast indexing that has an implementation that is efficient for concatenation.
-These are _not_ C-style NULL-terminated character arrays. GNU libunistring is
+These are _not_ C-style NUL-terminated character arrays. GNU libunistring is
 used for full Unicode functionality (grapheme cluster counts, capitalization,
 etc.).
 
@@ -695,9 +695,9 @@ containing information about the match.
 **Example:**  
 ```tomo
 >> " #one   #two  #three   ":find($/#{id}/, start=-999)
-= NULL : Match?
+= NONE : Match?
 >> " #one   #two  #three   ":find($/#{id}/, start=999)
-= NULL : Match?
+= NONE : Match?
 >> " #one   #two  #three   ":find($/#{id}/)
 = Match(text="#one", index=2, captures=["one"]) : Match?
 >> " #one   #two  #three   ":find("{id}", start=6)
@@ -887,7 +887,7 @@ or a null value otherwise.
 **Example:**  
 ```tomo
 >> "hello world":matches($/{id}/)
-= NULL : [Text]?
+= NONE : [Text]?
 
 >> "hello world":matches($/{id} {id}/)
 = ["hello", "world"] : [Text]?

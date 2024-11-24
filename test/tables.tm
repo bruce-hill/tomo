@@ -7,7 +7,7 @@ func main():
 	>> t:get("two")
 	= 2 : Int?
 	>> t:get("???")
-	= NULL : Int?
+	= NONE : Int?
 	>> t:get("one")!
 	= 1
 	>> t:get("???") or -1
@@ -22,7 +22,7 @@ func main():
 	>> t.length
 	= 2
 	>> t.fallback
-	= NULL : {Text:Int}?
+	= NONE : {Text:Int}?
 
 	>> t.keys
 	= ["one", "two"]
@@ -37,7 +37,7 @@ func main():
 	>> t2:get("three")
 	= 3 : Int?
 	>> t2:get("???")
-	= NULL : Int?
+	= NONE : Int?
 
 	>> t2.length
 	= 1

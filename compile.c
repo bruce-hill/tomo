@@ -422,7 +422,7 @@ CORD check_null(type_t *t, CORD value)
     else if (t->tag == TableType || t->tag == SetType)
         return CORD_all("((", value, ").entries.length < 0)");
     else if (t->tag == BoolType)
-        return CORD_all("((", value, ") == NULL_BOOL)");
+        return CORD_all("((", value, ") == NONE_BOOL)");
     else if (t->tag == TextType)
         return CORD_all("((", value, ").length < 0)");
     else if (t->tag == IntType || t->tag == ByteType || t->tag == StructType)
@@ -1862,28 +1862,28 @@ CORD compile_null(type_t *t)
     if (t == THREAD_TYPE) return "NULL";
 
     switch (t->tag) {
-    case BigIntType: return "NULL_INT";
+    case BigIntType: return "NONE_INT";
     case IntType: {
         switch (Match(t, IntType)->bits) {
-        case TYPE_IBITS8: return "NULL_INT8";
-        case TYPE_IBITS16: return "NULL_INT16";
-        case TYPE_IBITS32: return "NULL_INT32";
-        case TYPE_IBITS64: return "NULL_INT64";
+        case TYPE_IBITS8: return "NONE_INT8";
+        case TYPE_IBITS16: return "NONE_INT16";
+        case TYPE_IBITS32: return "NONE_INT32";
+        case TYPE_IBITS64: return "NONE_INT64";
         default: errx(1, "Invalid integer bit size");
         }
         break;
     }
-    case BoolType: return "NULL_BOOL";
-    case ByteType: return "NULL_BYTE";
-    case ArrayType: return "NULL_ARRAY";
-    case TableType: return "NULL_TABLE";
-    case SetType: return "NULL_TABLE";
+    case BoolType: return "NONE_BOOL";
+    case ByteType: return "NONE_BYTE";
+    case ArrayType: return "NONE_ARRAY";
+    case TableType: return "NONE_TABLE";
+    case SetType: return "NONE_TABLE";
     case ChannelType: return "NULL";
-    case TextType: return "NULL_TEXT";
+    case TextType: return "NONE_TEXT";
     case CStringType: return "NULL";
-    case MomentType: return "NULL_MOMENT";
+    case MomentType: return "NONE_MOMENT";
     case PointerType: return CORD_all("((", compile_type(t), ")NULL)");
-    case ClosureType: return "NULL_CLOSURE";
+    case ClosureType: return "NONE_CLOSURE";
     case NumType: return "nan(\"null\")";
     case StructType: return CORD_all("((", compile_type(Type(OptionalType, .type=t)), "){.is_null=yes})");
     case EnumType: {
@@ -3245,12 +3245,12 @@ CORD compile(env_t *env, ast_t *ast)
             CORD code = CORD_all(
                 "({ // Reduction:\n",
                 compile_declaration(item_t, "prev"), ";\n"
-                "OptionalBool_t result = NULL_BOOL;\n"
+                "OptionalBool_t result = NONE_BOOL;\n"
                 );
 
             ast_t *comparison = WrapAST(ast, BinaryOp, .op=op, .lhs=FakeAST(InlineCCode, .code="prev", .type=item_t), .rhs=item);
             body->__data.InlineCCode.code = CORD_all(
-                "if (result == NULL_BOOL) {\n"
+                "if (result == NONE_BOOL) {\n"
                 "    prev = ", compile(body_scope, item), ";\n"
                 "    result = yes;\n"
                 "} else {\n"
@@ -3439,7 +3439,7 @@ CORD compile(env_t *env, ast_t *ast)
                                 "values.data += ", CORD_asprintf("%zu", offset), ";\n"
                                 "values; })");
             } else if (streq(f->field, "fallback")) {
-                return CORD_all("({ Table_t *_fallback = (", compile_to_pointer_depth(env, f->fielded, 0, false), ").fallback; _fallback ? *_fallback : NULL_TABLE; })");
+                return CORD_all("({ Table_t *_fallback = (", compile_to_pointer_depth(env, f->fielded, 0, false), ").fallback; _fallback ? *_fallback : NONE_TABLE; })");
             }
             code_err(ast, "There is no '%s' field on tables", f->field);
         }
