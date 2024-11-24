@@ -1557,7 +1557,7 @@ CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
 {
     if (ast->tag == Int && is_numeric_type(t))
         return compile_int_to_type(env, ast, t);
-    if (ast->tag == Null && Match(ast, Null)->type == NULL)
+    if (ast->tag == None && Match(ast, None)->type == NULL)
         return compile_null(t);
     CORD code = compile(env, ast);
     type_t *actual = get_type(env, ast);
@@ -1890,7 +1890,7 @@ CORD compile_null(type_t *t)
         env_t *enum_env = Match(t, EnumType)->env;
         return CORD_all("((", compile_type(t), "){", namespace_prefix(enum_env, enum_env->namespace), "null})");
     }
-    default: compiler_err(NULL, NULL, NULL, "Null isn't implemented for this type: %T", t);
+    default: compiler_err(NULL, NULL, NULL, "NONE isn't implemented for this type: %T", t);
     }
 }
 
@@ -1930,10 +1930,10 @@ static CORD compile_num_to_type(ast_t *ast, type_t *type)
 CORD compile(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
-    case Null: {
-        if (!Match(ast, Null)->type)
-            code_err(ast, "This 'NULL' needs to specify what type it is using `!Type` syntax");
-        type_t *t = parse_type_ast(env, Match(ast, Null)->type);
+    case None: {
+        if (!Match(ast, None)->type)
+            code_err(ast, "This 'NONE' needs to specify what type it is using `NONE:Type` syntax");
+        type_t *t = parse_type_ast(env, Match(ast, None)->type);
         return compile_null(t);
     }
     case Bool: return Match(ast, Bool)->b ? "yes" : "no";
@@ -2746,7 +2746,7 @@ CORD compile(env_t *env, ast_t *ast)
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="count", .type=INT_TYPE,
                     .next=new(arg_t, .name="weights", .type=Type(ArrayType, .item_type=Type(NumType)),
-                              .default_val=FakeAST(Null, .type=new(type_ast_t, .tag=ArrayTypeAST,
+                              .default_val=FakeAST(None, .type=new(type_ast_t, .tag=ArrayTypeAST,
                                    .__data.ArrayTypeAST.item=new(type_ast_t, .tag=VarTypeAST, .__data.VarTypeAST.name="Num"))),
                               .next=new(arg_t, .name="rng", .type=RNG_TYPE, .default_val=default_rng)));
                 return CORD_all("Array$sample(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",

@@ -101,7 +101,7 @@ CORD ast_to_xml(ast_t *ast)
     switch (ast->tag) {
 #define T(type, ...) case type: { auto data = ast->__data.type; (void)data; return CORD_asprintf(__VA_ARGS__); }
     T(Unknown,  "<Unknown>")
-    T(Null, "<Null>%r</Null>", type_ast_to_xml(data.type))
+    T(None, "<None>%r</None>", type_ast_to_xml(data.type))
     T(Bool, "<Bool value=\"%s\" />", data.b ? "yes" : "no")
     T(Var, "<Var>%s</Var>", data.name)
     T(Int, "<Int>%s</Int>", data.str)
@@ -203,7 +203,7 @@ int printf_ast(FILE *stream, const struct printf_info *info, const void *const a
 PUREFUNC bool is_idempotent(ast_t *ast)
 {
     switch (ast->tag) {
-    case Int: case Bool: case Num: case Var: case Null: case TextLiteral: return true;
+    case Int: case Bool: case Num: case Var: case None: case TextLiteral: return true;
     case Index: {
         auto index = Match(ast, Index);
         return is_idempotent(index->indexed) && index->index != NULL && is_idempotent(index->index);

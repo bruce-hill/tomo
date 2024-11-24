@@ -505,10 +505,10 @@ type_t *get_type(env_t *env, ast_t *ast)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-default"
     switch (ast->tag) {
-    case Null: {
-        if (!Match(ast, Null)->type)
+    case None: {
+        if (!Match(ast, None)->type)
             return Type(OptionalType, .type=NULL);
-        type_t *t = parse_type_ast(env, Match(ast, Null)->type);
+        type_t *t = parse_type_ast(env, Match(ast, None)->type);
         return Type(OptionalType, .type=t);
     }
     case Bool: {
@@ -1310,7 +1310,7 @@ type_t *parse_type_string(env_t *env, const char *str)
 PUREFUNC bool is_constant(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
-    case Bool: case Num: case Null: return true;
+    case Bool: case Num: case None: return true;
     case Int: {
         auto info = Match(ast, Int);
         Int_t int_val = Int$parse(Text$from_str(info->str));

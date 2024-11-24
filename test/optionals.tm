@@ -11,74 +11,74 @@ enum Enum(X, Y(y:Int)):
         if should_i:
             return Enum.Y(123)
         else:
-            return !Enum
+            return NONE
 
 func maybe_int(should_i:Bool->Int?):
     if should_i:
         return 123
     else:
-        return !Int
+        return NONE
 
 func maybe_int64(should_i:Bool->Int64?):
     if should_i:
         return Int64(123)
     else:
-        return !Int64
+        return NONE
 
 func maybe_array(should_i:Bool->[Int]?):
     if should_i:
         return [10, 20, 30]
     else:
-        return ![Int]
+        return NONE
 
 func maybe_bool(should_i:Bool->Bool?):
     if should_i:
         return no
     else:
-        return !Bool
+        return NONE
 
 func maybe_text(should_i:Bool->Text?):
     if should_i:
         return "Hello"
     else:
-        return !Text
+        return NONE
 
 func maybe_num(should_i:Bool->Num?):
     if should_i:
         return 12.3
     else:
-        return !Num
+        return NONE
 
 func maybe_lambda(should_i:Bool-> func()?):
     if should_i:
         return func(): say("hi!")
     else:
-        return !func()
+        return NONE
 
 func maybe_c_string(should_i:Bool->CString?):
     if should_i:
         return ("hi":as_c_string())?
     else:
-        return !CString
+        return NONE
 
 func maybe_channel(should_i:Bool->|Int|?):
     if should_i:
         return |:Int|?
     else:
-        return !|Int|
+        return NONE
 
 func maybe_thread(should_i:Bool->Thread?):
     if should_i:
         return Thread.new(func(): pass)
     else:
-        return !Thread
+        return NONE
 
 func main():
     >> 5?
     = 5 : Int?
 
     >> if no:
-        !Int
+        NONE:Int
     else:
         5
     = 5 : Int?
@@ -92,7 +92,7 @@ func main():
     >> 5? or exit("Non-null is falsey")
     = 5 : Int
 
-    >> (!Int) or -1
+    >> (NONE:Int) or -1
     = -1 : Int
 
     do:
@@ -279,13 +279,13 @@ func main():
     = 123 : Int
 
     # Test comparisons, hashing, equality:
-    >> (!Int == 5?)
+    >> (NONE:Int == 5?)
     = no
     >> (5? == 5?)
     = yes
-    >> {!Int, !Int}
+    >> {NONE:Int, NONE:Int}
     = {NONE}
-    >> [5?, !Int, !Int, 6?]:sorted()
+    >> [5?, NONE:Int, NONE:Int, 6?]:sorted()
     = [NONE, NONE, 5, 6]
 
     do:
@@ -296,7 +296,7 @@ func main():
         = 5
 
     do:
-        >> value := if var := !Int:
+        >> value := if var := NONE:Int:
             var
         else:
             0
@@ -310,7 +310,7 @@ func main():
             >> opt
 
     do:
-        >> opt := !Int
+        >> opt := NONE:Int
         >> if opt:
             >> opt
         else:
@@ -319,7 +319,7 @@ func main():
     >> not 5?
     = no
 
-    >> not !Int
+    >> not NONE:Int
     = yes
 
     >> [Struct(5,"A")?, Struct(6,"B"), Struct(7,"C")]

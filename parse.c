@@ -116,7 +116,7 @@ static PARSER(parse_lang_def);
 static PARSER(parse_namespace);
 static PARSER(parse_negative);
 static PARSER(parse_not);
-static PARSER(parse_null);
+static PARSER(parse_none);
 static PARSER(parse_num);
 static PARSER(parse_parens);
 static PARSER(parse_pass);
@@ -1530,14 +1530,17 @@ PARSER(parse_lambda) {
     return NewAST(ctx->file, start, pos, Lambda, .id=ctx->next_lambda_id++, .args=args, .ret_type=ret, .body=body);
 }
 
-PARSER(parse_null) {
+PARSER(parse_none) {
     const char *start = pos;
-    if (match_word(&pos, "NONE"))
-        return NewAST(ctx->file, start, pos, Null, .type=NULL);
-    if (!match(&pos, "!")) return NULL;
+    if (!match_word(&pos, "NONE"))
+        return NULL;
+
+    if (!match(&pos, ":"))
+        return NewAST(ctx->file, start, pos, None, .type=NULL);
+
     type_ast_t *type = parse_type(ctx, pos);
     if (!type) return NULL;
-    return NewAST(ctx->file, start, type->end, Null, .type=type);
+    return NewAST(ctx->file, start, type->end, None, .type=type);
 }
 
 PARSER(parse_var) {
@@ -1553,7 +1556,7 @@ PARSER(parse_term_no_suffix) {
     (void)(
         false
         || (term=parse_moment(ctx, pos)) // Must come before num/int
-        || (term=parse_null(ctx, pos))
+        || (term=parse_none(ctx, pos))
         || (term=parse_num(ctx, pos)) // Must come before int
         || (term=parse_int(ctx, pos))
         || (term=parse_negative(ctx, pos)) // Must come after num/int
