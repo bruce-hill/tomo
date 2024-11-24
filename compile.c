@@ -2064,10 +2064,22 @@ CORD compile(env_t *env, ast_t *ast)
             }
         }
 
-        bool lhs_is_optional_num = (lhs_t->tag == OptionalType && Match(lhs_t, OptionalType)->type->tag == NumType);
+        type_t *non_optional_lhs = lhs_t;
+        if (lhs_t->tag == OptionalType) non_optional_lhs = Match(lhs_t, OptionalType)->type;
+        type_t *non_optional_rhs = rhs_t;
+        if (rhs_t->tag == OptionalType) non_optional_rhs = Match(rhs_t, OptionalType)->type;
+
+        if (!non_optional_lhs && !non_optional_rhs)
+            code_err(ast, "Both of these values do not specify a type");
+        else if (!non_optional_lhs)
+            non_optional_lhs = non_optional_rhs;
+        else if (!non_optional_rhs)
+            non_optional_rhs = non_optional_lhs;
+
+        bool lhs_is_optional_num = (lhs_t->tag == OptionalType && non_optional_lhs->tag == NumType);
         if (lhs_is_optional_num)
             lhs_t = Match(lhs_t, OptionalType)->type;
-        bool rhs_is_optional_num = (rhs_t->tag == OptionalType && Match(rhs_t, OptionalType)->type->tag == NumType);
+        bool rhs_is_optional_num = (rhs_t->tag == OptionalType && non_optional_rhs->tag == NumType);
         if (rhs_is_optional_num)
             rhs_t = Match(rhs_t, OptionalType)->type;
 

@@ -998,6 +998,8 @@ type_t *get_type(env_t *env, ast_t *ast)
                     if (type_eq(rhs_ptr->pointed, lhs_ptr->pointed))
                         return Type(PointerType, .pointed=lhs_ptr->pointed);
                 }
+            } else if (rhs_t->tag == OptionalType) {
+                return type_or_type(lhs_t, rhs_t);
             }
             code_err(ast, "I can't figure out the type of this `or` expression between a %T and a %T", lhs_t, rhs_t);
         }
