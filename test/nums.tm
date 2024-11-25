@@ -22,9 +22,7 @@ func main():
 	>> Num.INF:isinf()
 	= yes
 
-	>> Num.NAN
-	= NONE : Num?
-	>> nan := Num.NAN
+	>> nan := NONE : Num
 	= NONE : Num?
 	>> nan == nan
 	= yes

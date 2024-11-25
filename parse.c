@@ -1535,9 +1535,12 @@ PARSER(parse_none) {
     if (!match_word(&pos, "NONE"))
         return NULL;
 
+    const char *none_end = pos;
+    spaces(&pos);
     if (!match(&pos, ":"))
-        return NewAST(ctx->file, start, pos, None, .type=NULL);
+        return NewAST(ctx->file, start, none_end, None, .type=NULL);
 
+    spaces(&pos);
     type_ast_t *type = parse_type(ctx, pos);
     if (!type) return NULL;
     return NewAST(ctx->file, start, type->end, None, .type=type);
