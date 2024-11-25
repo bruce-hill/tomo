@@ -43,18 +43,12 @@
     extern const TypeInfo_t type_name ## $info; \
     MACROLIKE c_type type_name ## $divided_by(c_type D, c_type d) { \
         c_type q = D/d, r = D%d; \
-        if (r < 0) { \
-            if (d > 0) q = q-1; \
-            else q = q+1; \
-        } \
+        q -= (r < 0) * (2*(d > 0) - 1); \
         return q; \
     } \
     MACROLIKE c_type type_name ## $modulo(c_type D, c_type d) { \
         c_type r = D%d; \
-        if (r < 0) { \
-            if (d > 0) r = r + d; \
-            else r = r - d; \
-        } \
+        r -= (r < 0) * (2*(d < 0) - 1) * d; \
         return r; \
     } \
     MACROLIKE c_type type_name ## $modulo1(c_type D, c_type d) { \
@@ -180,12 +174,8 @@ MACROLIKE Int_t Int$divided_by(Int_t x, Int_t y) {
         // Euclidean division, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
         const int64_t D = (x.small>>2);
         const int64_t d = (y.small>>2);
-        int64_t q = D/d;
-        int64_t r = D%d;
-        if (r < 0) {
-            if (d > 0) q = q-1;
-            else q = q+1;
-        }
+        int64_t q = D/d, r = D%d;
+        q -= (r < 0) * (2*(d > 0) - 1);
         if (__builtin_expect(q == (int32_t)q, 1))
             return (Int_t){.small=(q<<2)|1};
     }
@@ -198,10 +188,7 @@ MACROLIKE Int_t Int$modulo(Int_t x, Int_t y) {
         const int64_t D = (x.small>>2);
         const int64_t d = (y.small>>2);
         int64_t r = D%d;
-        if (r < 0) {
-            if (d > 0) r = r + d;
-            else r = r - d;
-        }
+        r -= (r < 0) * (2*(d < 0) - 1) * d;
         return (Int_t){.small=(r<<2)|1};
     }
     return Int$slow_modulo(x, y);
@@ -213,10 +200,7 @@ MACROLIKE Int_t Int$modulo1(Int_t x, Int_t y) {
         const int64_t D = (x.small>>2)-1;
         const int64_t d = (y.small>>2);
         int64_t r = D%d;
-        if (r < 0) {
-            if (d > 0) r = r + d;
-            else r = r - d;
-        }
+        r -= (r < 0) * (2*(d < 0) - 1) * d;
         return (Int_t){.small=((r+1)<<2)|1};
     }
     return Int$slow_modulo1(x, y);
@@ -289,9 +273,15 @@ MACROLIKE Int_t Int64_to_Int(int64_t i)
     return Int$from_mpz(result);
 }
 
-#define Int32_to_Int(i) Int64_to_Int(i)
-#define Int16_to_Int(i) Int64_to_Int(i)
-#define Int8_to_Int(i) Int64_to_Int(i)
+#define Int32_to_Int(i, ...) Int64_to_Int(i)
+#define Int16_to_Int(i, ...) Int64_to_Int(i)
+#define Int8_to_Int(i, ...) Int64_to_Int(i)
+#define Int32_to_Int64(i, ...) (Int64_t)(i)
+#define Int16_to_Int64(i, ...) (Int64_t)(i)
+#define Int8_to_Int64(i, ...) (Int64_t)(i)
+#define Int16_to_Int32(i, ...) (Int32_t)(i)
+#define Int8_to_Int32(i, ...) (Int32_t)(i)
+#define Int8_to_Int16(i, ...) (Int16_t)(i)
 
 MACROLIKE PUREFUNC Int64_t Int_to_Int64(Int_t i, bool truncate) {
     if (__builtin_expect(i.small & 1, 1))
