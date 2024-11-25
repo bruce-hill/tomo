@@ -12,11 +12,87 @@ powers/exponentiation (`x^y`) and modulus (`x mod y` and `x mod1 y`).
 
 32-bit numbers can be constructed using the type name: `Num32(123.456)`.
 
-# Num Functions
+## NaN
 
-Each Num type has its own version of the following functions. Functions can be
-called either on the type itself: `Num.sqrt(x)` or as a method call:
-`x:sqrt()`. Method call syntax is preferred.
+IEEE-754 floating point numbers define a concept call `NaN` (Not a Number),
+which is the result value used to signal various operations (e.g. `0/0`) that
+have no mathematically defined result value. NaNs are implemented at the
+hardware level and propagate through floating point operations. This allows you
+to perform many chained operations on the assumption that it's unlikely to have
+NaN values, and only perform checks at the end of the chain of operations,
+instead of performing checks after each operation. Unfortunately, it's also
+easy to forget to perform any checks at all because most type systems don't
+differentiate between possibly-NaN values and definitely-not-NaN values.
+
+Tomo has a separate concept for expressing the lack of a defined value:
+optional types. Consequently, Tomo has merged these two concepts, so `NaN` is
+called `NONE` and has the type `Num?` or `Num32?`. In this way, it's no
+different from optional integers or optional arrays. This means that if a
+variable has type `Num`, it is guaranteed to not hold a NaN value. This also
+means that operations which may produce NaN values have a result type of
+`Num?`. For example, division can take two non-NaN values and return a result
+that is NaN (zero divided by zero). Similarly, multiplication can produce NaN
+values (zero times infinity), and many math functions like `sqrt()` can return
+NaN for some inputs.
+
+Unfortunately, one of the big downsides of optional types is that explicit
+`NONE` handling can be very verbose. To make Nums actually usable, Tomo applies
+very liberal use of type coercion and implicit `NONE` checks when values are
+required to be non-NONE. Here are a few examples:
+
+```tomo
+>> x := 0.0
+= 0 : Num
+
+y := 1.0
+
+# Division might produce NONE:
+>> x / y
+= 0 : Num?
+>> x / x
+= NONE : Num?
+
+# Optional types and NONE values propagate:
+>> x/y + 1 + 2
+= 3 : Num?
+>> x/x + 1 + 2
+= NONE : Num?
+
+# Optional Nums can be handled explicitly using `or` and `!`:
+>> x/x or -123
+= -123 : Num
+
+# This would raise a runtime error if `x` and `y` were zero:
+>> (x/y)!
+= 0 : Num
+
+# Assigning to a non-optional variable will do an implicit check for NONE and
+# raise a runtime error if the value is NONE, essentially the same as an
+# implicit `!`:
+x = x/y
+
+func doop(x:Num -> Num):
+    # If a function's return type is non-optional and an optional value is
+    # used in a return statement, an implicit NONE check will be inserted and
+    # will error if the value is NONE:
+    return x / 2
+
+# Function arguments are also implicitly checked for NONE if the given value
+# is optional and the function needs a non-optional value:
+>> doop(x/y)
+= 0 : Num
+```
+
+Hopefully the end result of this system is one where users can take advantage
+of the performance benefits of hardware NaN propagation, while still having the
+compiler enforce checking for undefined values. Users who don't want automatic
+NaN-checking can use optional types and explicit checks where necessary. By
+default, automatic NaN-checking happens at interface boundaries (function
+arguments, return values, and variable assignments), so NaN values should be
+caught early when an error message would have helpful context, while
+eliminating conditional branching inside of compound math expressions. Users
+should also be able to write code that can safely assume that all values
+provided are not NaN.
 
 ## Constants
 
@@ -36,6 +112,12 @@ called either on the type itself: `Num.sqrt(x)` or as a method call:
 - **`TAU`**: Tau (\( 2 \times \pi \))
 
 ## Functions
+
+Each Num type has its own version of the following functions. Functions can be
+called either on the type itself: `Num.sqrt(x)` or as a method call:
+`x:sqrt()`. Method call syntax is preferred.
+
+---
 
 ### `abs`
 
@@ -676,33 +758,6 @@ func isinf(n: Num -> Bool)
 
 ---
 
-### `isnan`
-
-**Description:**
-Checks if a number is NaN (Not a Number).
-
-**Signature:**
-```tomo
-func isnan(n: Num -> Bool)
-```
-
-**Parameters:**
-
-- `n`: The number to be checked.
-
-**Returns:**
-`yes` if `n` is NaN, `no` otherwise.
-
-**Example:**
-```tomo
->> Num.nan():isnan()
-= yes
->> 1.0:isnan()
-= no
-```
-
----
-
 ### `j0`
 
 **Description:**
@@ -903,31 +958,6 @@ The interpolated number between `x` and `y` based on `amount`.
 = 15
 >> 0.25:mix(10, 20)
 = 12.5
-```
-
----
-
-### `nan`
-
-**Description:**
-Generates a NaN (Not a Number) value.
-
-**Signature:**
-```tomo
-func nan(tag: Text = "" -> Num)
-```
-
-**Parameters:**
-
-- `tag`: An optional tag to describe the NaN. Default is an empty text.
-
-**Returns:**
-A NaN value.
-
-**Example:**
-```tomo
->> Num.nan()
-= NaN
 ```
 
 ---
