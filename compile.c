@@ -3069,16 +3069,8 @@ CORD compile(env_t *env, ast_t *ast)
             return CORD_all(fn, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), ")");
         } else if (fn_t->tag == TypeInfoType) {
             type_t *t = Match(fn_t, TypeInfoType)->type;
-            if (!call->args)
-                code_err(ast, "This constructor requires an argument!");
 
-            type_t *actual = get_type(env, call->args->value);
-            if (type_eq(actual, t)) {
-                if (call->args->next)
-                    code_err(ast, "This is too many arguments!");
-                return compile(env, call->args->value);
-            }
-
+            type_t *actual = call->args ? get_type(env, call->args->value) : NULL;
             if (t->tag == StructType) {
                 // Struct constructor:
                 fn_t = Type(FunctionType, .args=Match(t, StructType)->fields, .ret=t);
@@ -3093,6 +3085,15 @@ CORD compile(env_t *env, ast_t *ast)
                 return compile_num_to_type(call->args->value, t);
             } else if (t->tag == NumType || t->tag == BigIntType) {
                 if (!call->args) code_err(ast, "This constructor needs a value");
+                if (!call->args)
+                    code_err(ast, "This constructor requires an argument!");
+
+                if (type_eq(actual, t)) {
+                    if (call->args->next)
+                        code_err(ast, "This is too many arguments!");
+                    return compile(env, call->args->value);
+                }
+
                 arg_t *args = new(arg_t, .name="i", .type=actual); // No truncation argument
                 CORD arg_code = compile_arguments(env, ast, args, call->args);
                 if (is_numeric_type(actual)) {
@@ -3107,6 +3108,15 @@ CORD compile(env_t *env, ast_t *ast)
                     code_err(ast, "You cannot convert a %T to a %T this way.", actual, t);
                 }
             } else if (t->tag == IntType || t->tag == ByteType) {
+                if (!call->args)
+                    code_err(ast, "This constructor requires an argument!");
+
+                if (type_eq(actual, t)) {
+                    if (call->args->next)
+                        code_err(ast, "This is too many arguments!");
+                    return compile(env, call->args->value);
+                }
+
                 if (is_numeric_type(actual)) {
                     arg_t *args = new(arg_t, .name="i", .type=actual, .next=new(arg_t, .name="truncate", .type=Type(BoolType),
                                                                                 .default_val=FakeAST(Bool, false)));
