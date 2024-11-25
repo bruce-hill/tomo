@@ -684,16 +684,17 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         type_t *lhs_t = get_type(env, update->lhs);
         type_t *rhs_t = get_type(env, update->rhs);
-        if (!promote(env, update->rhs, &rhs, rhs_t, lhs_t)) {
-            if (update->rhs->tag == Int && (lhs_t->tag == IntType || lhs_t->tag == ByteType))
-                rhs = compile_int_to_type(env, update->rhs, lhs_t);
-            else if (!(lhs_t->tag == ArrayType && promote(env, update->rhs, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)))
+        if (update->rhs->tag == Int && is_numeric_type(non_optional(lhs_t))) {
+            rhs = compile_int_to_type(env, update->rhs, lhs_t);
+        } else if (!promote(env, update->rhs, &rhs, rhs_t, lhs_t)) {
+            if (!(lhs_t->tag == ArrayType && promote(env, update->rhs, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)))
                 code_err(ast, "I can't do operations between %T and %T", lhs_t, rhs_t);
         }
 
+        bool lhs_is_optional_num = (lhs_t->tag == OptionalType && Match(lhs_t, OptionalType)->type && Match(lhs_t, OptionalType)->type->tag == NumType);
         switch (update->op) {
         case BINOP_MULT:
-            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType && !lhs_is_optional_num)
                 code_err(ast, "I can't do a multiply assignment with this operator between %T and %T", lhs_t, rhs_t);
             if (lhs_t->tag == NumType) { // 0*INF -> NaN, needs checking
                 return CORD_asprintf("%r *= %r;\n"
@@ -706,7 +707,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             }
             return CORD_all(lhs, " *= ", rhs, ";");
         case BINOP_DIVIDE:
-            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType && !lhs_is_optional_num)
                 code_err(ast, "I can't do a divide assignment with this operator between %T and %T", lhs_t, rhs_t);
             if (lhs_t->tag == NumType) { // 0/0 or INF/INF -> NaN, needs checking
                 return CORD_asprintf("%r /= %r;\n"
@@ -719,23 +720,23 @@ CORD compile_statement(env_t *env, ast_t *ast)
             }
             return CORD_all(lhs, " /= ", rhs, ";");
         case BINOP_MOD:
-            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType && !lhs_is_optional_num)
                 code_err(ast, "I can't do a mod assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " = ", lhs, " % ", rhs);
         case BINOP_MOD1:
-            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType && !lhs_is_optional_num)
                 code_err(ast, "I can't do a mod assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " = (((", lhs, ") - 1) % ", rhs, ") + 1;");
         case BINOP_PLUS:
-            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType && !lhs_is_optional_num)
                 code_err(ast, "I can't do an addition assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " += ", rhs, ";");
         case BINOP_MINUS:
-            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType)
+            if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType && !lhs_is_optional_num)
                 code_err(ast, "I can't do a subtraction assignment with this operator between %T and %T", lhs_t, rhs_t);
             return CORD_all(lhs, " -= ", rhs, ";");
         case BINOP_POWER: {
-            if (lhs_t->tag != NumType)
+            if (lhs_t->tag != NumType && !lhs_is_optional_num)
                 code_err(ast, "'^=' is only supported for Num types");
             if (lhs_t->tag == NumType && Match(lhs_t, NumType)->bits == TYPE_NBITS32)
                 return CORD_all(lhs, " = powf(", lhs, ", ", rhs, ");");
@@ -1611,6 +1612,9 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
 
     if (target->tag == BigIntType)
         return compile(env, ast);
+
+    if (target->tag == OptionalType && Match(target, OptionalType)->type)
+        return compile_int_to_type(env, ast, Match(target, OptionalType)->type);
 
     const char *literal = Match(ast, Int)->str;
     OptionalInt_t int_val = Int$from_str(literal);

@@ -135,7 +135,7 @@ bool type_is_a(type_t *t, type_t *req)
     return false;
 }
 
-static type_t *non_optional(type_t *t)
+type_t *non_optional(type_t *t)
 {
     return t->tag == OptionalType ? Match(t, OptionalType)->type : t;
 }
