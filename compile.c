@@ -74,7 +74,7 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
     if (needed->tag == NumType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == NumType) {
         *code = CORD_all("({ ", compile_declaration(actual, "opt"), " = ", *code, "; ",
                          "if (", check_null(actual, "opt"), ")\n",
-                        CORD_asprintf("fail_source(%r, %ld, %ld, \"This value was expected to be non-null, but it's null!\");\n",
+                        CORD_asprintf("fail_source(%r, %ld, %ld, \"This value was expected to be non-NONE, but it's NONE!\");\n",
                                       CORD_quoted(ast->file->filename),
                                       (long)(ast->start - ast->file->text),
                                       (long)(ast->end - ast->file->text)),
@@ -448,7 +448,7 @@ static CORD compile_condition(env_t *env, ast_t *ast)
     } else if (t->tag == OptionalType) {
         return CORD_all("!", check_null(t, compile(env, ast)));
     } else if (t->tag == PointerType) {
-        code_err(ast, "This pointer will always be non-null, so it should not be used in a conditional.");
+        code_err(ast, "This pointer will always be non-NONE, so it should not be used in a conditional.");
     } else {
         code_err(ast, "%T values cannot be used for conditionals", t);
     }
@@ -695,10 +695,28 @@ CORD compile_statement(env_t *env, ast_t *ast)
         case BINOP_MULT:
             if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType)
                 code_err(ast, "I can't do a multiply assignment with this operator between %T and %T", lhs_t, rhs_t);
+            if (lhs_t->tag == NumType) { // 0*INF -> NaN, needs checking
+                return CORD_asprintf("%r *= %r;\n"
+                                     "if (isnan(%r))\n"
+                                     "fail_source(%r, %ld, %ld, \"This update assignment created a NaN value (probably multiplying zero with infinity), but the type is not optional!\");\n",
+                                     lhs, rhs, lhs,
+                                     CORD_quoted(ast->file->filename),
+                                     (long)(ast->start - ast->file->text),
+                                     (long)(ast->end - ast->file->text));
+            }
             return CORD_all(lhs, " *= ", rhs, ";");
         case BINOP_DIVIDE:
             if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType)
                 code_err(ast, "I can't do a divide assignment with this operator between %T and %T", lhs_t, rhs_t);
+            if (lhs_t->tag == NumType) { // 0/0 or INF/INF -> NaN, needs checking
+                return CORD_asprintf("%r /= %r;\n"
+                                     "if (isnan(%r))\n"
+                                     "fail_source(%r, %ld, %ld, \"This update assignment created a NaN value (probably 0/0 or INF/INF), but the type is not optional!\");\n",
+                                     lhs, rhs, lhs,
+                                     CORD_quoted(ast->file->filename),
+                                     (long)(ast->start - ast->file->text),
+                                     (long)(ast->end - ast->file->text));
+            }
             return CORD_all(lhs, " /= ", rhs, ";");
         case BINOP_MOD:
             if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType)
@@ -2021,7 +2039,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD value_code = compile(env, value);
         return CORD_all("({ ", compile_declaration(t, "opt"), " = ", value_code, "; ",
                         "if (", check_null(t, "opt"), ")\n",
-                        CORD_asprintf("fail_source(%r, %ld, %ld, \"This value was expected to be non-null, but it's null!\");\n",
+                        CORD_asprintf("fail_source(%r, %ld, %ld, \"This value was expected to be non-NONE, but it's NONE!\");\n",
                                       CORD_quoted(ast->file->filename),
                                       (long)(value->start - value->file->text),
                                       (long)(value->end - value->file->text)),
@@ -3047,6 +3065,16 @@ CORD compile(env_t *env, ast_t *ast)
             return CORD_all(fn, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), ")");
         } else if (fn_t->tag == TypeInfoType) {
             type_t *t = Match(fn_t, TypeInfoType)->type;
+            if (!call->args)
+                code_err(ast, "This constructor requires an argument!");
+
+            type_t *actual = get_type(env, call->args->value);
+            if (type_eq(actual, t)) {
+                if (call->args->next)
+                    code_err(ast, "This is too many arguments!");
+                return compile(env, call->args->value);
+            }
+
             if (t->tag == StructType) {
                 // Struct constructor:
                 fn_t = Type(FunctionType, .args=Match(t, StructType)->fields, .ret=t);
@@ -3061,7 +3089,6 @@ CORD compile(env_t *env, ast_t *ast)
                 return compile_num_to_type(call->args->value, t);
             } else if (t->tag == NumType || t->tag == BigIntType) {
                 if (!call->args) code_err(ast, "This constructor needs a value");
-                type_t *actual = get_type(env, call->args->value);
                 arg_t *args = new(arg_t, .name="i", .type=actual); // No truncation argument
                 CORD arg_code = compile_arguments(env, ast, args, call->args);
                 if (is_numeric_type(actual)) {
@@ -3076,7 +3103,6 @@ CORD compile(env_t *env, ast_t *ast)
                     code_err(ast, "You cannot convert a %T to a %T this way.", actual, t);
                 }
             } else if (t->tag == IntType || t->tag == ByteType) {
-                type_t *actual = get_type(env, call->args->value);
                 if (is_numeric_type(actual)) {
                     arg_t *args = new(arg_t, .name="i", .type=actual, .next=new(arg_t, .name="truncate", .type=Type(BoolType),
                                                                                 .default_val=FakeAST(Bool, false)));
@@ -3107,7 +3133,6 @@ CORD compile(env_t *env, ast_t *ast)
                     // Text constructor:
                     if (!call->args || call->args->next)
                         code_err(call->fn, "This constructor takes exactly 1 argument");
-                    type_t *actual = get_type(env, call->args->value);
                     if (type_eq(actual, t))
                         return compile(env, call->args->value);
                     return expr_as_text(env, compile(env, call->args->value), actual, "no");
@@ -3122,7 +3147,6 @@ CORD compile(env_t *env, ast_t *ast)
                     return "\"\"";
                 else if (call->args->value->tag == TextJoin && Match(call->args->value, TextJoin)->children->next == NULL)
                     return compile_string_literal(Match(Match(call->args->value, TextJoin)->children->ast, TextLiteral)->cord);
-                type_t *actual = get_type(env, call->args->value);
                 return CORD_all("Text$as_c_string(", expr_as_text(env, compile(env, call->args->value), actual, "no"), ")");
             } else if (t->tag == MomentType) {
                 // Moment constructor:
