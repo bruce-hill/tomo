@@ -31,7 +31,7 @@ bitwise operations: `x and y`, `x or y`, `x xor y`, `x << y`, `x >> y`, `x >>>
 y` (unsigned right shift), and `x <<< y` (unsighted left shift). The operators
 `and`, `or`, and `xor` are _bitwise_, not logical operators.
 
-# Integer Literals
+## Integer Literals
 
 The simplest form of integer literal is a string of digits, which is inferred
 to have type `Int` (unbounded size).
@@ -67,13 +67,62 @@ my_int8 := Int32(123)
 A compiler error will be raised if you attempt to construct a value that cannot
 fit in the specified integer size (e.g. `Int8(99999)`).
 
-# Integer Functions
+## A Note on Division
+
+Unlike some other languages (including C), Tomo uses a mathematically
+consistent definition of division called [Euclidean
+Division](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf)
+that upholds the following invariants for all inputs:
+
+```tomo
+quotient := numerator / denominator
+remainder := numerator mod denominator
+
+# Modulus always gives a non-negative result:
+>> remainder >= 0
+= yes
+
+# The numerator can be reconstructed sensibly:
+>> numerator == denominator * quotient + remainder
+= yes
+```
+
+Importantly, these invariants hold for both positive and negative numerators
+and denominators. When the numerator and denominator are both positive, you
+will not notice any difference from how integer division and modulus work in
+other programming languages. However, the behavior is a bit different when
+negative numbers are involved. Integer division rounds _down_ instead of
+rounding _towards zero_, and modulus never gives negative results:
+
+```tomo
+>> quotient := -1 / 5
+= -1
+
+>> remainder := -1 mod 5
+= 4
+
+>> -1 == 5 * -1 + 4
+= yes
+```
+
+```tomo
+>> quotient := 16 / -5
+= -3
+
+>> remainder := -1 mod 5
+= 1
+
+>> 16 == -5 * -3 + 1
+= yes
+```
+
+## Integer Functions
 
 Each integer type has its own version of the following functions. Functions
 can be called either on the type itself: `Int.sqrt(x)` or as a method call:
 `x:sqrt()`. Method call syntax is preferred.
 
-## `format`
+### `format`
 
 **Description:**  
 Formats an integer as a string with a specified number of digits.
@@ -99,7 +148,7 @@ A string representation of the integer, padded to the specified number of digits
 
 ---
 
-## `hex`
+### `hex`
 
 **Description:**  
 Converts an integer to its hexadecimal representation.
@@ -127,7 +176,7 @@ The hexadecimal string representation of the integer.
 
 ---
 
-## `octal`
+### `octal`
 
 **Description:**  
 Converts an integer to its octal representation.
@@ -154,7 +203,7 @@ The octal string representation of the integer.
 
 ---
 
-## `parse`
+### `parse`
 
 **Description:**  
 Converts a text representation of an integer into an integer.
@@ -191,7 +240,7 @@ of the representable range or if the entire text can't be parsed as an integer,
 
 ---
 
-## `to`
+### `to`
 
 **Description:**  
 Creates an inclusive range of integers between the specified start and end values.
@@ -217,7 +266,7 @@ A range object representing all integers from `from` to `to` (inclusive).
 
 ---
 
-## `abs`
+### `abs`
 
 **Description:**  
 Calculates the absolute value of an integer.
@@ -242,7 +291,7 @@ The absolute value of `x`.
 
 ---
 
-## `sqrt`
+### `sqrt`
 
 **Description:**  
 Calculates the square root of an integer. 
@@ -269,7 +318,7 @@ The integer part of the square root of `x`.
 
 ---
 
-## `is_prime`
+### `is_prime`
 
 **Description:**  
 Determines if an integer is a prime number.
@@ -303,7 +352,7 @@ func is_prime(x: Int, reps: Int = 50 -> Bool)
 
 ---
 
-## `next_prime`
+### `next_prime`
 
 **Description:**  
 Finds the next prime number greater than the given integer.
@@ -334,7 +383,7 @@ The next prime number greater than `x`.
 
 ---
 
-## `prev_prime`
+### `prev_prime`
 
 **Description:**  
 Finds the previous prime number less than the given integer.
@@ -367,7 +416,7 @@ The previous prime number less than `x`.
 
 ---
 
-## `clamped`
+### `clamped`
 
 **Description:**  
 Returns the given number clamped between two values so that it is within
