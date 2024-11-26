@@ -1769,8 +1769,8 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
         }
 
         whitespace(&pos);
-        if (get_line_number(ctx->file, pos) != starting_line && get_indent(ctx, pos) <= starting_indent)
-            parser_err(ctx, pos, strchrnul(pos, '\n'), "I expected this line to be more indented than the line above it");
+        if (get_line_number(ctx->file, pos) != starting_line && get_indent(ctx, pos) < starting_indent)
+            parser_err(ctx, pos, strchrnul(pos, '\n'), "I expected this line to be at least as indented than the line above it");
 
         ast_t *rhs = parse_infix_expr(ctx, pos, op_tightness[op] + 1);
         if (!rhs) break;
