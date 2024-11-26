@@ -26,7 +26,7 @@ static env_t *with_enum_scope(env_t *env, type_t *t);
 static CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t *required_type);
 static CORD compile_string(env_t *env, ast_t *ast, CORD color);
 static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args);
-static CORD compile_maybe_incref(env_t *env, ast_t *ast);
+static CORD compile_maybe_incref(env_t *env, ast_t *ast, type_t *t);
 static CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target);
 static CORD compile_unsigned_type(type_t *t);
 static CORD promote_to_optional(type_t *t, CORD code);
@@ -149,16 +149,15 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
     return false;
 }
 
-CORD compile_maybe_incref(env_t *env, ast_t *ast)
+CORD compile_maybe_incref(env_t *env, ast_t *ast, type_t *t)
 {
-    type_t *t = get_type(env, ast);
     if (is_idempotent(ast) && can_be_mutated(env, ast)) {
         if (t->tag == ArrayType)
-            return CORD_all("ARRAY_COPY(", compile(env, ast), ")");
+            return CORD_all("ARRAY_COPY(", compile_to_type(env, ast, t), ")");
         else if (t->tag == TableType || t->tag == SetType)
-            return CORD_all("TABLE_COPY(", compile(env, ast), ")");
+            return CORD_all("TABLE_COPY(", compile_to_type(env, ast, t), ")");
     }
-    return compile(env, ast);
+    return compile_to_type(env, ast, t);
 }
 
 
@@ -551,7 +550,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 return compile_statement(env, WrapAST(ast, DocTest, .expr=decl->value, .output=test->output, .skip_source=test->skip_source));
             CORD var = CORD_all("$", Match(decl->var, Var)->name);
             type_t *t = get_type(env, decl->value);
-            CORD val_code = compile_maybe_incref(env, decl->value);
+            CORD val_code = compile_maybe_incref(env, decl->value, t);
             if (t->tag == FunctionType) {
                 assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
                 t = Type(ClosureType, t);
@@ -639,7 +638,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
                 code_err(ast, "You can't declare a variable with a %T value", t);
 
-            CORD val_code = compile_maybe_incref(env, decl->value);
+            CORD val_code = compile_maybe_incref(env, decl->value, t);
             if (t->tag == FunctionType) {
                 assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
                 t = Type(ClosureType, t);
@@ -1693,10 +1692,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                                               ? "N64(%.20g)" : "N32(%.10g)", n);
                     } else {
                         env_t *arg_env = with_enum_scope(env, spec_arg->type);
-                        type_t *actual_t = get_type(arg_env, call_arg->value);
-                        value = compile_maybe_incref(arg_env, call_arg->value);
-                        if (!promote(arg_env, call_arg->value, &value, actual_t, spec_arg->type))
-                            code_err(call_arg->value, "This argument is supposed to be a %T, but this value is a %T", spec_arg->type, actual_t);
+                        value = compile_maybe_incref(arg_env, call_arg->value, spec_arg->type);
                     }
                     Table$str_set(&used_args, call_arg->name, call_arg);
                     if (code) code = CORD_cat(code, ", ");
@@ -1722,10 +1718,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                                           ? "N64(%.20g)" : "N32(%.10g)", n);
                 } else {
                     env_t *arg_env = with_enum_scope(env, spec_arg->type);
-                    type_t *actual_t = get_type(arg_env, call_arg->value);
-                    value = compile_maybe_incref(arg_env, call_arg->value);
-                    if (!promote(arg_env, call_arg->value, &value, actual_t, spec_arg->type))
-                        code_err(call_arg->value, "This argument is supposed to be a %T, but this value is a %T", spec_arg->type, actual_t);
+                    value = compile_maybe_incref(arg_env, call_arg->value, spec_arg->type);
                 }
 
                 Table$str_set(&used_args, pseudoname, call_arg);
@@ -1737,7 +1730,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
 
         if (spec_arg->default_val) {
             if (code) code = CORD_cat(code, ", ");
-            code = CORD_cat(code, compile_maybe_incref(default_scope, spec_arg->default_val));
+            code = CORD_cat(code, compile_maybe_incref(default_scope, spec_arg->default_val, get_type(env, spec_arg->default_val)));
             goto found_it;
         }
 
@@ -3574,7 +3567,7 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
             if (!is_constant(env, decl->value)) {
                 env->code->variable_initializers = CORD_all(
                     env->code->variable_initializers,
-                    name_code, " = ", compile_maybe_incref(ns_env, decl->value), ",\n",
+                    name_code, " = ", compile_maybe_incref(ns_env, decl->value, t), ",\n",
                     name_code, "$initialized = true;\n");
 
                 CORD checked_access = CORD_all("check_initialized(", name_code, ", \"", Match(decl->var, Var)->name, "\")");
@@ -3608,7 +3601,7 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
                     is_private ? "static " : CORD_EMPTY,
                     compile_declaration(t, name_code), ";\n");
             } else {
-                CORD val_code = compile_maybe_incref(ns_env, decl->value);
+                CORD val_code = compile_maybe_incref(ns_env, decl->value, t);
                 if (t->tag == FunctionType) {
                     assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
                     t = Type(ClosureType, t);
@@ -3823,7 +3816,7 @@ CORD compile_file(env_t *env, ast_t *ast)
             if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
                 code_err(stmt->ast, "You can't declare a variable with a %T value", t);
             if (!is_constant(env, decl->value)) {
-                CORD val_code = compile_maybe_incref(env, decl->value);
+                CORD val_code = compile_maybe_incref(env, decl->value, t);
                 if (t->tag == FunctionType) {
                     assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
                     t = Type(ClosureType, t);
@@ -3854,7 +3847,7 @@ CORD compile_file(env_t *env, ast_t *ast)
                     is_private ? "static " : CORD_EMPTY,
                     compile_declaration(t, full_name), ";\n");
             } else {
-                CORD val_code = compile_maybe_incref(env, decl->value);
+                CORD val_code = compile_maybe_incref(env, decl->value, t);
                 if (t->tag == FunctionType) {
                     assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
                     t = Type(ClosureType, t);
