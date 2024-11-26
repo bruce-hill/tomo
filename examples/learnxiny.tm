@@ -108,14 +108,19 @@ func main():
     >> table:get("two")
     = 2 : Int?
 
-    # The value returned is optional (because the key might not be in the table).
+    # The value returned is optional because NONE will be returned if the key
+    # is not in the table:
+    >> table:get("xxx")!
+    = NONE : Int?
+
     # Optional values can be converted to regular values using `!` (which will
-    # create a runtime error if the value is null) or the `or` operator:
+    # create a runtime error if the value is null):
     >> table:get("two")!
     = 2 : Int
 
+    # You can also use `or` to provide a fallback value to replace NONE:
     >> table:get("xxx") or 0
-    = 0
+    = 0 : Int
 
     # Empty tables require specifying the key and value types:
     empty_table := {:Text:Int}
