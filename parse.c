@@ -995,6 +995,7 @@ ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     if (!lhs) return NULL;
     const char *start = lhs->start;
     const char *pos = lhs->end;
+    spaces(&pos);
     if (!match(&pos, "[")) return NULL;
     whitespace(&pos);
     ast_t *index = optional(ctx, &pos, parse_extended_expr);
