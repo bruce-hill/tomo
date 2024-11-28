@@ -1577,8 +1577,14 @@ CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
         return compile_int_to_type(env, ast, t);
     if (ast->tag == None && Match(ast, None)->type == NULL)
         return compile_null(t);
-    CORD code = compile(env, ast);
+
     type_t *actual = get_type(env, ast);
+
+    // Promote values to views-of-values if needed:
+    if (t->tag == PointerType && Match(t, PointerType)->is_view && actual->tag != PointerType)
+        return CORD_all("stack(", compile_to_type(env, ast, Match(t, PointerType)->pointed), ")");
+
+    CORD code = compile(env, ast);
     if (!promote(env, ast, &code, actual, t))
         code_err(ast, "I expected a %T here, but this is a %T", t, actual);
     return code;
