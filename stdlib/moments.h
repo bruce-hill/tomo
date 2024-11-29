@@ -10,8 +10,8 @@
 #include "types.h"
 #include "util.h"
 
-Text_t Moment$as_text(const Moment_t *moment, bool colorize, const TypeInfo_t *type);
-PUREFUNC int32_t Moment$compare(const Moment_t *a, const Moment_t *b, const TypeInfo_t *type);
+Text_t Moment$as_text(const void *moment, bool colorize, const TypeInfo_t *type);
+PUREFUNC int32_t Moment$compare(const void *a, const void *b, const TypeInfo_t *type);
 Moment_t Moment$now(void);
 Moment_t Moment$new(Int_t year, Int_t month, Int_t day, Int_t hour, Int_t minute, double second, OptionalText_t timezone);
 Moment_t Moment$after(Moment_t moment, double seconds, double minutes, double hours, Int_t days, Int_t weeks, Int_t months, Int_t years, OptionalText_t timezone);

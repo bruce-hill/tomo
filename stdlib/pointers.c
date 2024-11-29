@@ -45,8 +45,7 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *ty
     } else if (ptr == root) {
         return Text$format(colorize ? "\x1b[34;1m%s~1\x1b[m" : "%s~1", ptr_info.sigil);
     } else {
-        TypeInfo_t rec_table = ((TypeInfo_t){.size=sizeof(Table_t), .align=__alignof__(Table_t), \
-                                .tag=TableInfo, .TableInfo.key=type, .TableInfo.value=&Int64$info});
+        TypeInfo_t rec_table = *Table$info(type, &Int64$info);
         int64_t *id = Table$get(pending, x, &rec_table);
         if (id)
             return Text$format(colorize ? "\x1b[34;1m%s~%ld\x1b[m" : "%s~%ld", ptr_info.sigil, *id);
@@ -69,16 +68,19 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *ty
     return text;
 }
 
-PUREFUNC public int32_t Pointer$compare(const void *x, const void *y, const TypeInfo_t *type) {
-    (void)type;
+PUREFUNC public int32_t Pointer$compare(const void *x, const void *y, const TypeInfo_t*) {
     const void *xp = *(const void**)x, *yp = *(const void**)y;
     return (xp > yp) - (xp < yp);
 }
 
-PUREFUNC public bool Pointer$equal(const void *x, const void *y, const TypeInfo_t *type) {
-    (void)type;
+PUREFUNC public bool Pointer$equal(const void *x, const void *y, const TypeInfo_t*) {
     const void *xp = *(const void**)x, *yp = *(const void**)y;
     return xp == yp;
+}
+
+PUREFUNC public bool Pointer$is_none(const void *x, const TypeInfo_t*)
+{
+    return *(void**)x == NULL;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

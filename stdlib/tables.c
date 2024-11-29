@@ -21,6 +21,7 @@
 #include "datatypes.h"
 #include "memory.h"
 #include "metamethods.h"
+#include "pointers.h"
 #include "siphash.h"
 #include "tables.h"
 #include "text.h"
@@ -42,7 +43,7 @@
 
 #define GET_ENTRY(t, i) ((t).entries.data + (t).entries.stride*(i))
 
-static const TypeInfo_t MemoryPointer = {
+static TypeInfo_t MemoryPointer = {
     .size=sizeof(void*),
     .align=__alignof__(void*),
     .tag=PointerInfo,
@@ -50,6 +51,7 @@ static const TypeInfo_t MemoryPointer = {
         .sigil="@",
         .pointed=&Memory$info,
     },
+    .metamethods=Pointer$metamethods,
 };
 
 const TypeInfo_t CStrToVoidStarTable = {
@@ -57,6 +59,7 @@ const TypeInfo_t CStrToVoidStarTable = {
     .align=__alignof__(Table_t),
     .tag=TableInfo,
     .TableInfo={.key=&CString$info, .value=&MemoryPointer},
+    .metamethods=Table$metamethods,
 };
 
 PUREFUNC static INLINE size_t entry_size(const TypeInfo_t *info)
@@ -396,9 +399,10 @@ public Table_t Table$sorted(Table_t t, const TypeInfo_t *type)
     return Table$from_entries(entries, type);
 }
 
-PUREFUNC public bool Table$equal(const Table_t *x, const Table_t *y, const TypeInfo_t *type)
+PUREFUNC public bool Table$equal(const void *vx, const void *vy, const TypeInfo_t *type)
 {
-    if (x == y) return true;
+    if (vx == vy) return true;
+    Table_t *x = (Table_t*)vx, *y = (Table_t*)vy;
 
     assert(type->tag == TableInfo);
     if (Table$length(*x) != Table$length(*y))
@@ -410,10 +414,11 @@ PUREFUNC public bool Table$equal(const Table_t *x, const Table_t *y, const TypeI
     return (Table$compare(x, y, type) == 0);
 }
 
-PUREFUNC public int32_t Table$compare(const Table_t *x, const Table_t *y, const TypeInfo_t *type)
+PUREFUNC public int32_t Table$compare(const void *vx, const void *vy, const TypeInfo_t *type)
 {
-    if (x == y) return 0;
+    if (vx == vy) return 0;
 
+    Table_t *x = (Table_t*)vx, *y = (Table_t*)vy;
     assert(type->tag == TableInfo);
     auto table = type->TableInfo;
     if (x->entries.length == 0)
@@ -441,9 +446,10 @@ PUREFUNC public int32_t Table$compare(const Table_t *x, const Table_t *y, const 
     return 0;
 }
 
-PUREFUNC public uint64_t Table$hash(const Table_t *t, const TypeInfo_t *type)
+PUREFUNC public uint64_t Table$hash(const void *obj, const TypeInfo_t *type)
 {
     assert(type->tag == TableInfo);
+    Table_t *t = (Table_t*)obj;
     // Table hashes are computed as:
     // hash(hash(t.keys), hash(t.values), hash(t.fallback), hash(t.default))
     // Where fallback and default hash to zero if absent
@@ -456,8 +462,9 @@ PUREFUNC public uint64_t Table$hash(const Table_t *t, const TypeInfo_t *type)
     return siphash24((void*)&components, sizeof(components));
 }
 
-public Text_t Table$as_text(const Table_t *t, bool colorize, const TypeInfo_t *type)
+public Text_t Table$as_text(const void *obj, bool colorize, const TypeInfo_t *type)
 {
+    Table_t *t = (Table_t*)obj;
     assert(type->tag == TableInfo);
     auto table = type->TableInfo;
 
@@ -633,6 +640,11 @@ public void Table$str_remove(Table_t *t, const char *key)
 CONSTFUNC public void *Table$str_entry(Table_t t, int64_t n)
 {
     return Table$entry(t, n);
+}
+
+PUREFUNC public bool Table$is_none(const void *obj, const TypeInfo_t*)
+{
+    return ((Table_t*)obj)->entries.length < 0;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1

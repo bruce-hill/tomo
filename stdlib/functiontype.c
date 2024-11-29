@@ -1,6 +1,9 @@
 // Logic for handling function type values
 
+#include <stdbool.h>
+
 #include "datatypes.h"
+#include "functiontype.h"
 #include "tables.h"
 #include "text.h"
 #include "types.h"
@@ -30,6 +33,11 @@ public Text_t Func$as_text(const void *fn, bool colorize, const TypeInfo_t *type
     if (fn && colorize)
         text = Text$concat(Text("\x1b[32;1m"), text, Text("\x1b[m"));
     return text;
+}
+
+public PUREFUNC bool Func$is_none(const void *obj, const TypeInfo_t*)
+{
+    return *(void**)obj == NULL;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

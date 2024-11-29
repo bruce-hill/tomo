@@ -15,10 +15,10 @@
 #include "util.h"
 
 
-PUREFUNC static int32_t Range$compare(const Range_t *x, const Range_t *y, const TypeInfo_t *type)
+PUREFUNC static int32_t Range$compare(const void *vx, const void *vy, const TypeInfo_t *)
 {
-    (void)type;
-    if (x == y) return 0;
+    if (vx == vy) return 0;
+    Range_t *x = (Range_t*)vx, *y = (Range_t*)vy;
     int32_t diff = Int$compare(&x->first, &y->first, &Int$info);
     if (diff != 0) return diff;
     diff = Int$compare(&x->last, &y->last, &Int$info);
@@ -26,18 +26,18 @@ PUREFUNC static int32_t Range$compare(const Range_t *x, const Range_t *y, const 
     return Int$compare(&x->step, &y->step, &Int$info);
 }
 
-PUREFUNC static bool Range$equal(const Range_t *x, const Range_t *y, const TypeInfo_t *type)
+PUREFUNC static bool Range$equal(const void *vx, const void *vy, const TypeInfo_t*)
 {
-    (void)type;
-    if (x == y) return true;
+    if (vx == vy) return true;
+    Range_t *x = (Range_t*)vx, *y = (Range_t*)vy;
     return Int$equal(&x->first, &y->first, &Int$info) && Int$equal(&x->last, &y->last, &Int$info) && Int$equal(&x->step, &y->step, &Int$info);
 }
 
-static Text_t Range$as_text(const Range_t *r, bool use_color, const TypeInfo_t *type)
+static Text_t Range$as_text(const void *obj, bool use_color, const TypeInfo_t *)
 {
-    (void)type;
-    if (!r) return Text("Range");
+    if (!obj) return Text("Range");
 
+    Range_t *r = (Range_t*)obj;
     Text_t first = Int$as_text(&r->first, use_color, &Int$info);
     Text_t last = Int$as_text(&r->last, use_color, &Int$info);
     Text_t step = Int$as_text(&r->step, use_color, &Int$info);
@@ -55,10 +55,20 @@ PUREFUNC public Range_t Range$by(Range_t r, Int_t step)
     return (Range_t){r.first, r.last, Int$times(step, r.step)};
 }
 
-public const TypeInfo_t Range$info = {sizeof(Range_t), __alignof(Range_t), {.tag=CustomInfo, .CustomInfo={
-    .as_text=(void*)Range$as_text,
-    .compare=(void*)Range$compare,
-    .equal=(void*)Range$equal,
-}}};
+static bool Range$is_none(const void *obj, const TypeInfo_t*)
+{
+    return ((Range_t*)obj)->step.small == 0x1;
+}
+
+public const TypeInfo_t Range$info = {
+    .size=sizeof(Range_t),
+    .align=__alignof(Range_t),
+    .metamethods={
+        .as_text=Range$as_text,
+        .compare=Range$compare,
+        .equal=Range$equal,
+        .is_none=Range$is_none,
+    },
+};
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

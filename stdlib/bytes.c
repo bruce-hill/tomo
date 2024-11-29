@@ -10,11 +10,10 @@
 public const Byte_t Byte$min = 0;
 public const Byte_t Byte$max = UINT8_MAX;
 
-PUREFUNC public Text_t Byte$as_text(const Byte_t *b, bool colorize, const TypeInfo_t *type)
+PUREFUNC public Text_t Byte$as_text(const void *b, bool colorize, const TypeInfo_t*)
 {
-    (void)type;
     if (!b) return Text("Byte");
-    return Text$format(colorize ? "\x1b[35m0x%02X\x1b[m" : "0x%02X", *b);
+    return Text$format(colorize ? "\x1b[35m0x%02X\x1b[m" : "0x%02X", *(Byte_t*)b);
 }
 
 public Text_t Byte$hex(Byte_t byte, bool uppercase, bool prefix) {
@@ -33,8 +32,9 @@ public Text_t Byte$hex(Byte_t byte, bool uppercase, bool prefix) {
 public const TypeInfo_t Byte$info = {
     .size=sizeof(Byte_t),
     .align=__alignof__(Byte_t),
-    .tag=CustomInfo,
-    .CustomInfo={.as_text=(void*)Byte$as_text},
+    .metamethods={
+        .as_text=Byte$as_text,
+    },
 };
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

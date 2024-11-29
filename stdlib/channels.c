@@ -99,25 +99,23 @@ public void Channel$clear(Channel_t *channel)
     (void)pthread_cond_signal(&channel->cond);
 }
 
-PUREFUNC public uint64_t Channel$hash(Channel_t **channel, const TypeInfo_t *type)
+PUREFUNC public uint64_t Channel$hash(const void *channel, const TypeInfo_t *type)
 {
     (void)type;
-    return siphash24((void*)*channel, sizeof(Channel_t*));
+    return siphash24(*(void**)channel, sizeof(Channel_t*));
 }
 
-PUREFUNC public int32_t Channel$compare(Channel_t **x, Channel_t **y, const TypeInfo_t *type)
+PUREFUNC public int32_t Channel$compare(const void *x, const void *y, const TypeInfo_t*)
 {
-    (void)type;
-    return (*x > *y) - (*x < *y);
+    return (*(Channel_t**)x > *(Channel_t**)y) - (*(Channel_t**)x < *(Channel_t**)y);
 }
 
-PUREFUNC public bool Channel$equal(Channel_t **x, Channel_t **y, const TypeInfo_t *type)
+PUREFUNC public bool Channel$equal(const void *x, const void *y, const TypeInfo_t*)
 {
-    (void)type;
-    return (*x == *y);
+    return (*(void**)x == *(void**)y);
 }
 
-public Text_t Channel$as_text(Channel_t **channel, bool colorize, const TypeInfo_t *type)
+public Text_t Channel$as_text(const void *channel, bool colorize, const TypeInfo_t *type)
 {
     const TypeInfo_t *item_type = type->ChannelInfo.item;
     if (!channel) {
@@ -129,9 +127,14 @@ public Text_t Channel$as_text(Channel_t **channel, bool colorize, const TypeInfo
         colorize ? Text("\x1b[34;1m|:") : Text("|:"),
         typename,
         Text("|<"),
-        Int64$hex((int64_t)(void*)*channel, I_small(0), true, true),
+        Int64$hex(*(int64_t*)channel, I_small(0), true, true),
         colorize ? Text(">\x1b[m") : Text(">")
     );
+}
+
+public PUREFUNC bool Channel$is_none(const void *obj, const TypeInfo_t*)
+{
+    return *(void**)obj == NULL;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

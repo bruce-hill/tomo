@@ -92,28 +92,27 @@ static int32_t num_synthetic_graphemes = 0;
 
 static Text_t text_from_u32(ucs4_t *codepoints, int64_t num_codepoints, bool normalize);
 
-PUREFUNC static bool graphemes_equal(ucs4_t **a, ucs4_t **b) {
-    if ((*a)[0] != (*b)[0]) return false;
-    for (int i = 0; i < (int)(*a)[0]; i++)
-        if ((*a)[i] != (*b)[i]) return false;
+PUREFUNC static bool graphemes_equal(const void *va, const void *vb, const TypeInfo_t*) {
+    ucs4_t *a = *(ucs4_t**)va;
+    ucs4_t *b = *(ucs4_t**)vb;
+    if (a[0] != b[0]) return false;
+    for (int i = 0; i < (int)a[0]; i++)
+        if (a[i] != b[i]) return false;
     return true;
 }
 
-PUREFUNC static uint64_t grapheme_hash(ucs4_t **g) {
-    ucs4_t *cluster = *g;
+PUREFUNC static uint64_t grapheme_hash(const void *g, const TypeInfo_t*) {
+    ucs4_t *cluster = *(ucs4_t**)g;
     return siphash24((void*)&cluster[1], sizeof(ucs4_t[cluster[0]]));
 }
 
 static const TypeInfo_t GraphemeClusterInfo = {
     .size=sizeof(ucs4_t*),
     .align=__alignof__(ucs4_t*),
-    .tag=CustomInfo,
-    .CustomInfo={.equal=(void*)graphemes_equal, .hash=(void*)grapheme_hash},
-};
-
-static const TypeInfo_t GraphemeIDLookupTableInfo = {
-    .size=sizeof(Table_t), .align=__alignof__(Table_t),
-    .tag=TableInfo, .TableInfo={.key=&GraphemeClusterInfo, .value=&Int32$info},
+    .metamethods={
+        .equal=graphemes_equal,
+        .hash=grapheme_hash,
+    },
 };
 
 #pragma GCC diagnostic push
@@ -128,9 +127,10 @@ public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_le
 
     // Optimization for common case of one frequently used synthetic grapheme:
     static int32_t last_grapheme = 0;
-    if (last_grapheme != 0 && graphemes_equal(&ptr, &synthetic_graphemes[-last_grapheme-1].utf32_cluster))
+    if (last_grapheme != 0 && graphemes_equal(&ptr, &synthetic_graphemes[-last_grapheme-1].utf32_cluster, NULL))
         return last_grapheme;
 
+    TypeInfo_t GraphemeIDLookupTableInfo = *Table$info(&GraphemeClusterInfo, &Int32$info);
     int32_t *found = Table$get(grapheme_ids_by_codepoints, &ptr, &GraphemeIDLookupTableInfo);
     if (found) return *found;
 
@@ -765,8 +765,9 @@ public char *Text$as_c_string(Text_t text)
     return buf;
 }
 
-PUREFUNC public uint64_t Text$hash(Text_t *text)
+PUREFUNC public uint64_t Text$hash(const void *obj, const TypeInfo_t*)
 {
+    Text_t *text = (Text_t*)obj;
     if (text->hash != 0) return text->hash;
     siphash sh;
     siphashinit(&sh, sizeof(int32_t[text->length]));
@@ -906,9 +907,11 @@ public uint32_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index)
     return (g) >= 0 ? (ucs4_t)(g) : synthetic_graphemes[-(g)-1].main_codepoint;
 }
 
-PUREFUNC public int32_t Text$compare(const Text_t *a, const Text_t *b)
+PUREFUNC public int32_t Text$compare(const void *va, const void *vb, const TypeInfo_t*)
 {
-    if (a == b) return 0;
+    if (va == vb) return 0;
+    const Text_t *a = (const Text_t*)va;
+    const Text_t *b = (const Text_t*)vb;
 
     int64_t len = MAX(a->length, b->length);
     TextIter_t a_state = {*a, 0, 0}, b_state = {*b, 0, 0};
@@ -981,10 +984,10 @@ PUREFUNC public bool Text$equal_values(Text_t a, Text_t b)
     return true;
 }
 
-PUREFUNC public bool Text$equal(const Text_t *a, const Text_t *b)
+PUREFUNC public bool Text$equal(const void *a, const void *b, const TypeInfo_t*)
 {
     if (a == b) return true;
-    return Text$equal_values(*a, *b);
+    return Text$equal_values(*(Text_t*)a, *(Text_t*)b);
 }
 
 PUREFUNC public bool Text$equal_ignoring_case(Text_t a, Text_t b)
@@ -1369,11 +1372,17 @@ public Array_t Text$lines(Text_t text)
     return lines;
 }
 
+PUREFUNC public bool Text$is_none(const void *t, const TypeInfo_t*)
+{
+    return ((Text_t*)t)->length < 0;
+}
+
 public const TypeInfo_t Text$info = {
     .size=sizeof(Text_t),
     .align=__alignof__(Text_t),
     .tag=TextInfo,
     .TextInfo={.lang="Text"},
+    .metamethods=Text$metamethods,
 };
 
 public Pattern_t Pattern$escape_text(Text_t text)

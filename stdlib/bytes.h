@@ -11,7 +11,7 @@
 #define Byte_t uint8_t
 #define Byte(b) ((Byte_t)(b))
 
-PUREFUNC Text_t Byte$as_text(const Byte_t *b, bool colorize, const TypeInfo_t *type);
+PUREFUNC Text_t Byte$as_text(const void *b, bool colorize, const TypeInfo_t *type);
 
 #define Byte_to_Int64(b, _) ((Int64_t)(b))
 #define Byte_to_Int32(b, _) ((Int32_t)(b))

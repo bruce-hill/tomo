@@ -9,9 +9,9 @@
 
 Text_t CString$as_text(char **str, bool colorize, const TypeInfo_t *info);
 Text_t CString$as_text_simple(const char *str);
-PUREFUNC int CString$compare(const char **x, const char **y);
-PUREFUNC bool CString$equal(const char **x, const char **y);
-PUREFUNC uint64_t CString$hash(const char **str);
+PUREFUNC int CString$compare(const void *x, const void *y, const TypeInfo_t *type);
+PUREFUNC bool CString$equal(const void *x, const void *y, const TypeInfo_t *type);
+PUREFUNC uint64_t CString$hash(const void *str, const TypeInfo_t *type);
 
 extern const TypeInfo_t CString$info;
 

@@ -23,17 +23,16 @@ public Text_t Int$value_as_text(Int_t i) {
     }
 }
 
-public Text_t Int$as_text(const Int_t *i, bool colorize, const TypeInfo_t *type) {
-    (void)type;
+public Text_t Int$as_text(const void *i, bool colorize, const TypeInfo_t*) {
     if (!i) return Text("Int");
-
-    Text_t text = Int$value_as_text(*i);
+    Text_t text = Int$value_as_text(*(Int_t*)i);
     if (colorize) text = Text$concat(Text("\x1b[35m"), text, Text("\x1b[m"));
     return text;
 }
 
-public PUREFUNC int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo_t *type) {
-    (void)type;
+public PUREFUNC int32_t Int$compare(const void *vx, const void *vy, const TypeInfo_t*) {
+    Int_t *x = (Int_t*)vx;
+    Int_t *y = (Int_t*)vy;
     if (__builtin_expect(((x->small | y->small) & 1) == 0, 0))
         return x->big == y->big ? 0 : mpz_cmp(*x->big, *y->big);
     return (x->small > y->small) - (x->small < y->small);
@@ -45,8 +44,9 @@ public PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y) {
     return (x.small > y.small) - (x.small < y.small);
 }
 
-public PUREFUNC bool Int$equal(const Int_t *x, const Int_t *y, const TypeInfo_t *type) {
-    (void)type;
+public PUREFUNC bool Int$equal(const void *vx, const void *vy, const TypeInfo_t*) {
+    Int_t *x = (Int_t*)vx;
+    Int_t *y = (Int_t*)vy;
     return x->small == y->small || (__builtin_expect(((x->small | y->small) & 1) == 0, 0) && mpz_cmp(*x->big, *y->big) == 0);
 }
 
@@ -54,8 +54,8 @@ public PUREFUNC bool Int$equal_value(const Int_t x, const Int_t y) {
     return x.small == y.small || (__builtin_expect(((x.small | y.small) & 1) == 0, 0) && mpz_cmp(*x.big, *y.big) == 0);
 }
 
-public PUREFUNC uint64_t Int$hash(const Int_t *x, const TypeInfo_t *type) {
-    (void)type;
+public PUREFUNC uint64_t Int$hash(const void *vx, const TypeInfo_t*) {
+    Int_t *x = (Int_t*)vx;
     if (__builtin_expect(x->small & 1, 1)) {
         return siphash24((void*)x, sizeof(Int_t));
     } else {
@@ -362,31 +362,33 @@ public Int_t Int$prev_prime(Int_t x)
     return Int$from_mpz(p);
 }
 
+static bool Int$is_none(const void *i, const TypeInfo_t*)
+{
+    return ((Int_t*)i)->small == 0;
+}
+
 public const TypeInfo_t Int$info = {
     .size=sizeof(Int_t),
     .align=__alignof__(Int_t),
-    .tag=CustomInfo,
-    .CustomInfo={
-        .compare=(void*)Int$compare,
-        .equal=(void*)Int$equal,
-        .hash=(void*)Int$hash,
-        .as_text=(void*)Int$as_text,
+    .metamethods={
+        .compare=Int$compare,
+        .equal=Int$equal,
+        .hash=Int$hash,
+        .as_text=Int$as_text,
+        .is_none=Int$is_none,
     },
 };
 
 #define DEFINE_INT_TYPE(c_type, KindOfInt, fmt, min_val, max_val, to_attr)\
-    public Text_t KindOfInt ## $as_text(const c_type *i, bool colorize, const TypeInfo_t *type) { \
-        (void)type; \
+    public Text_t KindOfInt ## $as_text(const void *i, bool colorize, const TypeInfo_t*) { \
         if (!i) return Text(#KindOfInt); \
-        return Text$format(colorize ? "\x1b[35m" fmt "\x1b[m" : fmt, *i); \
+        return Text$format(colorize ? "\x1b[35m" fmt "\x1b[m" : fmt, *(c_type*)i); \
     } \
-    public PUREFUNC int32_t KindOfInt ## $compare(const c_type *x, const c_type *y, const TypeInfo_t *type) { \
-        (void)type; \
-        return (*x > *y) - (*x < *y); \
+    public PUREFUNC int32_t KindOfInt ## $compare(const void *x, const void *y, const TypeInfo_t*) { \
+        return (*(c_type*)x > *(c_type*)y) - (*(c_type*)x < *(c_type*)y); \
     } \
-    public PUREFUNC bool KindOfInt ## $equal(const c_type *x, const c_type *y, const TypeInfo_t *type) { \
-        (void)type; \
-        return *x == *y; \
+    public PUREFUNC bool KindOfInt ## $equal(const void *x, const void *y, const TypeInfo_t*) { \
+        return *(c_type*)x == *(c_type*)y; \
     } \
     public Text_t KindOfInt ## $format(c_type i, Int_t digits_int) { \
         Int_t as_int = KindOfInt##_to_Int(i); \
@@ -428,8 +430,10 @@ public const TypeInfo_t Int$info = {
     public const TypeInfo_t KindOfInt##$info = { \
         .size=sizeof(c_type), \
         .align=__alignof__(c_type), \
-        .tag=CustomInfo, \
-        .CustomInfo={.compare=(void*)KindOfInt##$compare, .as_text=(void*)KindOfInt##$as_text}, \
+        .metamethods={ \
+            .compare=KindOfInt##$compare, \
+            .as_text=KindOfInt##$as_text, \
+        }, \
     };
 
 DEFINE_INT_TYPE(int64_t,  Int64,  "%ld", INT64_MIN, INT64_MAX, __attribute__(()))

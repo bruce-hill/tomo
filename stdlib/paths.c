@@ -89,7 +89,7 @@ public Path_t Path$cleanup(Path_t path)
                 } else { // (../..) -> (../..)
                     i += 1;
                 }
-            } else if (Text$equal(&component, (Path_t*)(components.data + (i-1)*components.stride))) { // (___/../..) -> (____/../..)
+            } else if (Text$equal(&component, (Path_t*)(components.data + (i-1)*components.stride), &Text$info)) { // (___/../..) -> (____/../..)
                 i += 1;
             } else { // (___/foo/..) -> (___)
                 Array$remove_at(&components, I(i), I(2), sizeof(Path_t));
@@ -569,6 +569,7 @@ public const TypeInfo_t Path$info = {
     .align=__alignof__(Path_t),
     .tag=TextInfo,
     .TextInfo={.lang="Path"},
+    .metamethods=Text$metamethods,
 };
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

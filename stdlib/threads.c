@@ -53,19 +53,25 @@ public void Thread$detach(Thread_t thread)
     pthread_detach(*thread);
 }
 
-Text_t Thread$as_text(const Thread_t *thread, bool colorize, const TypeInfo_t *type)
+Text_t Thread$as_text(const void *thread, bool colorize, const TypeInfo_t*)
 {
-    (void)type;
     if (!thread) {
         return colorize ? Text("\x1b[34;1mThread\x1b[m") : Text("Thread");
     }
-    return Text$format(colorize ? "\x1b[34;1mThread(%p)\x1b[m" : "Thread(%p)", *thread);
+    return Text$format(colorize ? "\x1b[34;1mThread(%p)\x1b[m" : "Thread(%p)", *(Thread_t**)thread);
+}
+
+static bool Thread$is_none(const void *obj, const TypeInfo_t*)
+{
+    return *(Thread_t*)obj == NULL;
 }
 
 public const TypeInfo_t Thread$info = {
     .size=sizeof(Thread_t), .align=__alignof(Thread_t),
-    .tag=CustomInfo,
-    .CustomInfo={.as_text=(void*)Thread$as_text},
+    .metamethods={
+        .as_text=Thread$as_text,
+        .is_none=Thread$is_none,
+    },
 };
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

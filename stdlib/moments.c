@@ -25,14 +25,13 @@ static OptionalText_t _local_timezone = NONE_TEXT;
         body; \
     }})
 
-public Text_t Moment$as_text(const Moment_t *moment, bool colorize, const TypeInfo_t *type)
+public Text_t Moment$as_text(const void *moment, bool colorize, const TypeInfo_t*)
 {
-    (void)type;
     if (!moment)
         return Text("Moment");
 
     struct tm info;
-    struct tm *final_info = localtime_r(&moment->tv_sec, &info);
+    struct tm *final_info = localtime_r(&((Moment_t*)moment)->tv_sec, &info);
     static char buf[256];
     size_t len = strftime(buf, sizeof(buf), "%c %Z", final_info);
     Text_t text = Text$format("%.*s", (int)len, buf);
@@ -41,9 +40,9 @@ public Text_t Moment$as_text(const Moment_t *moment, bool colorize, const TypeIn
     return text;
 }
 
-PUREFUNC public int32_t Moment$compare(const Moment_t *a, const Moment_t *b, const TypeInfo_t *type)
+PUREFUNC public int32_t Moment$compare(const void *va, const void *vb, const TypeInfo_t*)
 {
-    (void)type;
+    Moment_t *a = (Moment_t*)va, *b = (Moment_t*)vb;
     if (a->tv_sec != b->tv_sec)
         return (a->tv_sec > b->tv_sec) - (a->tv_sec < b->tv_sec);
     return (a->tv_usec > b->tv_usec) - (a->tv_usec < b->tv_usec);
@@ -307,10 +306,9 @@ public Text_t Moment$get_local_timezone(void)
 public const TypeInfo_t Moment$info = {
     .size=sizeof(Moment_t),
     .align=__alignof__(Moment_t),
-    .tag=CustomInfo,
-    .CustomInfo={
-        .as_text=(void*)Moment$as_text,
-        .compare=(void*)Moment$compare,
+    .metamethods={
+        .as_text=Moment$as_text,
+        .compare=Moment$compare,
     },
 };
 

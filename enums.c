@@ -46,7 +46,7 @@ void compile_enum_def(env_t *env, ast_t *ast)
         num_tags += 1;
 
     type_t *t = Table$str_get(*env->types, def->name);
-    CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r = {%zu, %zu, {.tag=EnumInfo, .EnumInfo={.name=\"%s\", "
+    CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r = {%zu, %zu, .metamethods=Enum$metamethods, {.tag=EnumInfo, .EnumInfo={.name=\"%s\", "
                                   ".num_tags=%d, .tags=(NamedType_t[]){",
                                   full_name, type_size(t), type_align(t), def->name, num_tags);
 

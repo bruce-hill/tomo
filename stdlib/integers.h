@@ -27,9 +27,9 @@
         c_type i; \
         bool is_null:1; \
     } Optional ## type_name ## _t; \
-    Text_t type_name ## $as_text(const c_type *i, bool colorize, const TypeInfo_t *type); \
-    PUREFUNC int32_t type_name ## $compare(const c_type *x, const c_type *y, const TypeInfo_t *type); \
-    PUREFUNC bool type_name ## $equal(const c_type *x, const c_type *y, const TypeInfo_t *type); \
+    Text_t type_name ## $as_text(const void *i, bool colorize, const TypeInfo_t *type); \
+    PUREFUNC int32_t type_name ## $compare(const void *x, const void *y, const TypeInfo_t *type); \
+    PUREFUNC bool type_name ## $equal(const void *x, const void *y, const TypeInfo_t *type); \
     Text_t type_name ## $format(c_type i, Int_t digits); \
     Text_t type_name ## $hex(c_type i, Int_t digits, bool uppercase, bool prefix); \
     Text_t type_name ## $octal(c_type i, Int_t digits, bool prefix); \
@@ -85,12 +85,12 @@ DEFINE_INT_TYPE(int8_t,  Int8, CONSTFUNC)
 
 #define OptionalInt_t Int_t
 
-Text_t Int$as_text(const Int_t *i, bool colorize, const TypeInfo_t *type);
+Text_t Int$as_text(const void *i, bool colorize, const TypeInfo_t *type);
 Text_t Int$value_as_text(Int_t i);
-PUREFUNC uint64_t Int$hash(const Int_t *x, const TypeInfo_t *type);
-PUREFUNC int32_t Int$compare(const Int_t *x, const Int_t *y, const TypeInfo_t *type);
+PUREFUNC uint64_t Int$hash(const void *x, const TypeInfo_t *type);
+PUREFUNC int32_t Int$compare(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y);
-PUREFUNC bool Int$equal(const Int_t *x, const Int_t *y, const TypeInfo_t *type);
+PUREFUNC bool Int$equal(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC bool Int$equal_value(const Int_t x, const Int_t y);
 Text_t Int$format(Int_t i, Int_t digits);
 Text_t Int$hex(Int_t i, Int_t digits, bool uppercase, bool prefix);

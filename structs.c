@@ -27,7 +27,8 @@ void compile_struct_def(env_t *env, ast_t *ast)
         short_name = strrchr(short_name, '$') + 1;
 
     env->code->typeinfos = CORD_all("public const TypeInfo_t ", full_name, ";\n", env->code->typeinfos);
-    CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r = {.size=%zu, .align=%zu, .tag=StructInfo, .StructInfo.name=\"%s\"%s, "
+    CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r = {.size=%zu, .align=%zu, .metamethods=Struct$metamethods, "
+                                  ".tag=StructInfo, .StructInfo.name=\"%s\"%s, "
                                   ".StructInfo.num_fields=%ld",
                                   full_name, type_size(t), type_align(t), short_name, def->secret ? ", .StructInfo.is_secret=true" : "",
                                   num_fields);

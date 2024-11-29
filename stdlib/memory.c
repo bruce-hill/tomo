@@ -12,8 +12,7 @@
 #include "types.h"
 #include "util.h"
 
-public Text_t Memory__as_text(const void *p, bool colorize, const TypeInfo_t *type) {
-    (void)type;
+public Text_t Memory$as_text(const void *p, bool colorize, const TypeInfo_t *) {
     if (!p) return Text("Memory");
     return Text$format(colorize ? "\x1b[0;34;1mMemory<%p>\x1b[m" : "Memory<%p>", p);
 }
@@ -21,8 +20,9 @@ public Text_t Memory__as_text(const void *p, bool colorize, const TypeInfo_t *ty
 public const TypeInfo_t Memory$info = {
     .size=0,
     .align=0,
-    .tag=CustomInfo,
-    .CustomInfo={.as_text=(void*)Memory__as_text},
+    .metamethods={
+        .as_text=Memory$as_text,
+    },
 };
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

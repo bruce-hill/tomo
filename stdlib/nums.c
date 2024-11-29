@@ -13,13 +13,12 @@
 #include "text.h"
 #include "types.h"
 
-public PUREFUNC Text_t Num$as_text(const double *f, bool colorize, const TypeInfo_t *type) { 
-    (void)type;
+public PUREFUNC Text_t Num$as_text(const void *f, bool colorize, const TypeInfo_t*) { 
     if (!f) return Text("Num");
-    return Text$format(colorize ? "\x1b[35m%.16g\x1b[33;2m\x1b[m" : "%.16g", *f); 
+    return Text$format(colorize ? "\x1b[35m%.16g\x1b[33;2m\x1b[m" : "%.16g", *(double*)f); 
 } 
 
-public PUREFUNC int32_t Num$compare(const double *x, const double *y, const TypeInfo_t *) { 
+public PUREFUNC int32_t Num$compare(const void *x, const void *y, const TypeInfo_t*) { 
     int64_t rx = *(int64_t*)x,
             ry = *(int64_t*)y;
 
@@ -31,9 +30,8 @@ public PUREFUNC int32_t Num$compare(const double *x, const double *y, const Type
     return (rx > ry) - (rx < ry);
 } 
 
-public PUREFUNC bool Num$equal(const double *x, const double *y, const TypeInfo_t *type) { 
-    (void)type;
-    return *x == *y;
+public PUREFUNC bool Num$equal(const void *x, const void *y, const TypeInfo_t*) { 
+    return *(double*)x == *(double*)y;
 } 
 
 public CONSTFUNC bool Num$near(double a, double b, double ratio, double absolute) {
@@ -78,6 +76,11 @@ public OptionalNum_t Num$parse(Text_t text) {
         return nan("null");
 }
 
+static bool Num$is_none(const void *n, const TypeInfo_t*)
+{
+    return isnan(*(Num_t*)n);
+}
+
 public CONSTFUNC bool Num$isinf(double n) { return (fpclassify(n) == FP_INFINITE); }
 public CONSTFUNC bool Num$finite(double n) { return (fpclassify(n) != FP_INFINITE); }
 public CONSTFUNC bool Num$isnan(double n) { return (fpclassify(n) == FP_NAN); }
@@ -85,28 +88,25 @@ public CONSTFUNC bool Num$isnan(double n) { return (fpclassify(n) == FP_NAN); }
 public const TypeInfo_t Num$info = {
     .size=sizeof(double),
     .align=__alignof__(double),
-    .tag=CustomInfo,
-    .CustomInfo={
-        .compare=(void*)Num$compare,
-        .equal=(void*)Num$equal,
-        .as_text=(void*)Num$as_text,
+    .metamethods={
+        .compare=Num$compare,
+        .equal=Num$equal,
+        .as_text=Num$as_text,
+        .is_none=Num$is_none,
     },
 };
 
-public PUREFUNC Text_t Num32$as_text(const float *f, bool colorize, const TypeInfo_t *type) { 
-    (void)type;
+public PUREFUNC Text_t Num32$as_text(const void *f, bool colorize, const TypeInfo_t*) { 
     if (!f) return Text("Num32");
-    return Text$format(colorize ? "\x1b[35m%.8g\x1b[33;2m\x1b[m" : "%.8g", (double)*f); 
+    return Text$format(colorize ? "\x1b[35m%.8g\x1b[33;2m\x1b[m" : "%.8g", (double)*(float*)f); 
 }
 
-public PUREFUNC int32_t Num32$compare(const float *x, const float *y, const TypeInfo_t *type) { 
-    (void)type;
-    return (*x > *y) - (*x < *y);
+public PUREFUNC int32_t Num32$compare(const void *x, const void *y, const TypeInfo_t*) { 
+    return (*(float*)x > *(float*)y) - (*(float*)x < *(float*)y);
 } 
 
-public PUREFUNC bool Num32$equal(const float *x, const float *y, const TypeInfo_t *type) { 
-    (void)type;
-    return *x == *y;
+public PUREFUNC bool Num32$equal(const void *x, const void *y, const TypeInfo_t*) { 
+    return *(float*)x == *(float*)y;
 }
 
 public CONSTFUNC bool Num32$near(float a, float b, float ratio, float absolute) {
@@ -151,6 +151,11 @@ public OptionalNum32_t Num32$parse(Text_t text) {
         return nan("null");
 }
 
+static bool Num32$is_none(const void *n, const TypeInfo_t*)
+{
+    return isnan(*(Num32_t*)n);
+}
+
 public CONSTFUNC bool Num32$isinf(float n) { return (fpclassify(n) == FP_INFINITE); }
 public CONSTFUNC bool Num32$finite(float n) { return (fpclassify(n) != FP_INFINITE); }
 public CONSTFUNC bool Num32$isnan(float n) { return (fpclassify(n) == FP_NAN); }
@@ -158,11 +163,11 @@ public CONSTFUNC bool Num32$isnan(float n) { return (fpclassify(n) == FP_NAN); }
 public const TypeInfo_t Num32$info = {
     .size=sizeof(float),
     .align=__alignof__(float),
-    .tag=CustomInfo,
-    .CustomInfo={
-        .compare=(void*)Num32$compare,
-        .equal=(void*)Num32$equal,
-        .as_text=(void*)Num32$as_text,
+    .metamethods={
+        .compare=Num32$compare,
+        .equal=Num32$equal,
+        .as_text=Num32$as_text,
+        .is_none=Num32$is_none,
     },
 };
 

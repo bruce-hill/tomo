@@ -283,8 +283,7 @@ public void *Array$random(Array_t arr, RNG_t rng)
 public Table_t Array$counts(Array_t arr, const TypeInfo_t *type)
 {
     Table_t counts = {};
-    const TypeInfo_t count_type = {.size=sizeof(Table_t), .align=__alignof__(Table_t),
-        .tag=TableInfo, .TableInfo.key=type->ArrayInfo.item, .TableInfo.value=&Int$info};
+    const TypeInfo_t count_type = *Table$info(type->ArrayInfo.item, &Int$info);
     for (int64_t i = 0; i < arr.length; i++) {
         void *key = arr.data + i*arr.stride;
         int64_t *count = Table$get(counts, key, &count_type);
@@ -515,14 +514,15 @@ public void Array$clear(Array_t *array)
     *array = (Array_t){.data=0, .length=0};
 }
 
-public int32_t Array$compare(const Array_t *x, const Array_t *y, const TypeInfo_t *type)
+public int32_t Array$compare(const void *vx, const void *vy, const TypeInfo_t *type)
 {
+    const Array_t *x = (Array_t*)vx, *y = (Array_t*)vy;
     // Early out for arrays with the same data, e.g. two copies of the same array:
     if (x->data == y->data && x->stride == y->stride)
         return (x->length > y->length) - (x->length < y->length);
 
     const TypeInfo_t *item = type->ArrayInfo.item;
-    if (item->tag == PointerInfo || (item->tag == CustomInfo && item->CustomInfo.compare == NULL)) { // data comparison
+    if (item->tag == PointerInfo || !item->metamethods.compare) { // data comparison
         int64_t item_padded_size = type->ArrayInfo.item->size;
         if (type->ArrayInfo.item->align > 1 && item_padded_size % type->ArrayInfo.item->align)
             errx(1, "Item size is not padded!");
@@ -545,13 +545,14 @@ public int32_t Array$compare(const Array_t *x, const Array_t *y, const TypeInfo_
     return (x->length > y->length) - (x->length < y->length);
 }
 
-public bool Array$equal(const Array_t *x, const Array_t *y, const TypeInfo_t *type)
+public bool Array$equal(const void *x, const void *y, const TypeInfo_t *type)
 {
-    return x == y || (x->length == y->length && Array$compare(x, y, type) == 0);
+    return x == y || (((Array_t*)x)->length == ((Array_t*)y)->length && Array$compare(x, y, type) == 0);
 }
 
-public Text_t Array$as_text(const Array_t *arr, bool colorize, const TypeInfo_t *type)
+public Text_t Array$as_text(const void *obj, bool colorize, const TypeInfo_t *type)
 {
+    Array_t *arr = (Array_t*)obj;
     if (!arr)
         return Text$concat(Text("["), generic_as_text(NULL, false, type->ArrayInfo.item), Text("]"));
 
@@ -567,12 +568,13 @@ public Text_t Array$as_text(const Array_t *arr, bool colorize, const TypeInfo_t 
     return text;
 }
 
-public uint64_t Array$hash(const Array_t *arr, const TypeInfo_t *type)
+public uint64_t Array$hash(const void *obj, const TypeInfo_t *type)
 {
+    const Array_t *arr = (Array_t*)obj;
     const TypeInfo_t *item = type->ArrayInfo.item;
     siphash sh;
     siphashinit(&sh, sizeof(uint64_t[arr->length]));
-    if (item->tag == PointerInfo || (item->tag == CustomInfo && item->CustomInfo.hash == NULL && item->size == sizeof(void*))) { // Raw data hash
+    if (item->tag == PointerInfo || (!item->metamethods.hash && item->size == sizeof(void*))) { // Raw data hash
         for (int64_t i = 0; i < arr->length; i++)
             siphashadd64bits(&sh, (uint64_t)(arr->data + i*arr->stride));
     } else {
@@ -692,6 +694,11 @@ public Int_t Array$binary_search(Array_t array, void *target, Closure_t comparis
             hi = mid - 1;
     }
     return I(lo+1); // Return the index where the target would be inserted
+}
+
+public PUREFUNC bool Array$is_none(const void *obj, const TypeInfo_t*)
+{
+    return ((Array_t*)obj)->length < 0;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

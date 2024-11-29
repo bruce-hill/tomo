@@ -85,10 +85,11 @@ PUREFUNC Array_t Array$to(Array_t array, Int_t last);
 PUREFUNC Array_t Array$by(Array_t array, Int_t stride, int64_t padded_item_size);
 PUREFUNC Array_t Array$reversed(Array_t array, int64_t padded_item_size);
 Array_t Array$concat(Array_t x, Array_t y, int64_t padded_item_size);
-PUREFUNC uint64_t Array$hash(const Array_t *arr, const TypeInfo_t *type);
-PUREFUNC int32_t Array$compare(const Array_t *x, const Array_t *y, const TypeInfo_t *type);
-PUREFUNC bool Array$equal(const Array_t *x, const Array_t *y, const TypeInfo_t *type);
-Text_t Array$as_text(const Array_t *arr, bool colorize, const TypeInfo_t *type);
+PUREFUNC uint64_t Array$hash(const void *arr, const TypeInfo_t *type);
+PUREFUNC int32_t Array$compare(const void *x, const void *y, const TypeInfo_t *type);
+PUREFUNC bool Array$equal(const void *x, const void *y, const TypeInfo_t *type);
+PUREFUNC bool Array$is_none(const void *obj, const TypeInfo_t*);
+Text_t Array$as_text(const void *arr, bool colorize, const TypeInfo_t *type);
 void Array$heapify(Array_t *heap, Closure_t comparison, int64_t padded_item_size);
 void Array$heap_push(Array_t *heap, const void *item, Closure_t comparison, int64_t padded_item_size);
 #define Array$heap_push_value(heap, _value, comparison, padded_item_size) ({ __typeof(_value) value = _value; Array$heap_push(heap, &value, comparison, padded_item_size); })
@@ -99,5 +100,17 @@ void Array$heap_pop(Array_t *heap, Closure_t comparison, int64_t padded_item_siz
 Int_t Array$binary_search(Array_t array, void *target, Closure_t comparison);
 #define Array$binary_search_value(array, target, comparison) \
     ({ __typeof(target) _target = target; Array$binary_search(array, &_target, comparison); })
+
+#define Array$metamethods ((metamethods_t){ \
+    .as_text=Array$as_text, \
+    .compare=Array$compare, \
+    .equal=Array$equal, \
+    .hash=Array$hash, \
+    .is_none=Array$is_none, \
+})
+
+#define Array$info(item_info) &((TypeInfo_t){.size=sizeof(Array_t), .align=__alignof__(Array_t), \
+                                .tag=ArrayInfo, .ArrayInfo.item=item_info, \
+                                .metamethods=Array$metamethods})
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

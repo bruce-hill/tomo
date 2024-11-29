@@ -15,7 +15,7 @@ Thread_t Thread$new(Closure_t fn);
 void Thread$cancel(Thread_t thread);
 void Thread$join(Thread_t thread);
 void Thread$detach(Thread_t thread);
-Text_t Thread$as_text(const Thread_t *thread, bool colorize, const TypeInfo_t *type);
+Text_t Thread$as_text(const void *thread, bool colorize, const TypeInfo_t *type);
 
 extern const TypeInfo_t Thread$info;
 

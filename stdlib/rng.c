@@ -26,11 +26,10 @@ struct RNGState_t {
     uint8_t random_bytes[1024];
 };
 
-PUREFUNC static Text_t RNG$as_text(const RNG_t *rng, bool colorize, const TypeInfo_t *type)
+PUREFUNC static Text_t RNG$as_text(const void *rng, bool colorize, const TypeInfo_t*)
 {
-    (void)type;
     if (!rng) return Text("RNG");
-    return Text$format(colorize ? "\x1b[34;1mRNG(%p)\x1b[m" : "RNG(%p)", *rng);
+    return Text$format(colorize ? "\x1b[34;1mRNG(%p)\x1b[m" : "RNG(%p)", *(RNG_t**)rng);
 }
 
 #define KEYSZ 32
@@ -259,8 +258,9 @@ public Array_t RNG$bytes(RNG_t rng, Int_t count)
 public const TypeInfo_t RNG$info = {
     .size=sizeof(void*),
     .align=__alignof__(void*),
-    .tag=CustomInfo,
-    .CustomInfo={.as_text=(void*)RNG$as_text},
+    .metamethods={
+        .as_text=RNG$as_text,
+    },
 };
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

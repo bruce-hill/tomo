@@ -121,24 +121,20 @@ const TypeInfo_t *type_to_type_info(type_t *t)
     case TextType: return &Text$info;
     case ArrayType: {
         const TypeInfo_t *item_info = type_to_type_info(Match(t, ArrayType)->item_type);
-        const TypeInfo_t array_info = {.size=sizeof(Array_t), .align=__alignof__(Array_t),
-            .tag=ArrayInfo, .ArrayInfo.item=item_info};
+        TypeInfo_t array_info = *Array$info(item_info);
         return memcpy(GC_MALLOC(sizeof(TypeInfo_t)), &array_info, sizeof(TypeInfo_t));
     }
     case TableType: {
         const TypeInfo_t *key_info = type_to_type_info(Match(t, TableType)->key_type);
         const TypeInfo_t *value_info = type_to_type_info(Match(t, TableType)->value_type);
-        const TypeInfo_t table_info = {
-            .size=sizeof(Table_t), .align=__alignof__(Table_t),
-            .tag=TableInfo, .TableInfo.key=key_info, .TableInfo.value=value_info};
+        const TypeInfo_t table_info = *Table$info(key_info, value_info);
         return memcpy(GC_MALLOC(sizeof(TypeInfo_t)), &table_info, sizeof(TypeInfo_t));
     }
     case PointerType: {
         auto ptr = Match(t, PointerType);
         CORD sigil = ptr->is_view ? "&" : "@";
         const TypeInfo_t *pointed_info = type_to_type_info(ptr->pointed);
-        const TypeInfo_t pointer_info = {.size=sizeof(void*), .align=__alignof__(void*),
-            .tag=PointerInfo, .PointerInfo={.sigil=sigil, .pointed=pointed_info}};
+        const TypeInfo_t pointer_info = *Pointer$info(sigil, pointed_info);
         return memcpy(GC_MALLOC(sizeof(TypeInfo_t)), &pointer_info, sizeof(TypeInfo_t));
     }
     default: errx(1, "Unsupported type: %T", t);

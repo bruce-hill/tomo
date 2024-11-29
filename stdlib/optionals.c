@@ -15,55 +15,36 @@
 
 public PUREFUNC bool is_null(const void *obj, const TypeInfo_t *non_optional_type)
 {
-    if (non_optional_type == &Int$info)
-        return ((Int_t*)obj)->small == 0;
-    else if (non_optional_type == &Bool$info)
-        return *((OptionalBool_t*)obj) == NONE_BOOL;
-    else if (non_optional_type == &Num$info)
-        return isnan(*((Num_t*)obj));
-    else if (non_optional_type == &Num32$info)
-        return isnan(*((Num32_t*)obj));
-    else if (non_optional_type == &Int64$info)
-        return ((OptionalInt64_t*)obj)->is_null;
-    else if (non_optional_type == &Int32$info)
-        return ((OptionalInt32_t*)obj)->is_null;
-    else if (non_optional_type == &Int16$info)
-        return ((OptionalInt16_t*)obj)->is_null;
-    else if (non_optional_type == &Int8$info)
-        return ((OptionalInt8_t*)obj)->is_null;
-    else if (non_optional_type == &Byte$info)
-        return ((OptionalByte_t*)obj)->is_null;
-    else if (non_optional_type == &Thread$info)
-        return *(pthread_t**)obj == NULL;
-    else if (non_optional_type == &Moment$info)
-        return ((OptionalMoment_t*)obj)->tv_usec < 0;
-    else if (non_optional_type == &Match$info)
-        return ((OptionalMatch_t*)obj)->index.small == 0;
+    if (non_optional_type->metamethods.is_none)
+        return non_optional_type->metamethods.is_none(obj, non_optional_type);
 
-    switch (non_optional_type->tag) {
-        case ChannelInfo: return *(Channel_t**)obj == NULL;
-        case PointerInfo: return *(void**)obj == NULL;
-        case TextInfo: return ((Text_t*)obj)->length < 0;
-        case ArrayInfo: return ((Array_t*)obj)->length < 0;
-        case TableInfo: return ((Table_t*)obj)->entries.length < 0;
-        case FunctionInfo: return *(void**)obj == NULL;
-        case StructInfo: {
-            int64_t offset = 0;
-            for (int i = 0; i < non_optional_type->StructInfo.num_fields; i++) {
-                NamedType_t field = non_optional_type->StructInfo.fields[i];
-                if (offset > 0 && (offset % field.type->align) > 0)
-                    offset += field.type->align - (offset % field.type->align);
-                offset += field.type->size;
-            }
-            return *(bool*)(obj + offset);
-        }
-        case EnumInfo: return (*(int*)obj) == 0; // NULL tag
-        case CStringInfo: return (*(char**)obj) == NULL;
-        default: {
-            Text_t t = generic_as_text(NULL, false, non_optional_type);
-            errx(1, "is_null() not implemented for: %k", &t);
-        }
-    }
+    return *(bool*)(obj + non_optional_type->size);
+}
+
+PUREFUNC public uint64_t Optional$hash(const void *obj, const TypeInfo_t *type)
+{
+    return is_null(obj, type->OptionalInfo.type) ? 0 : generic_hash(obj, type->OptionalInfo.type);
+}
+
+PUREFUNC public int32_t Optional$compare(const void *x, const void *y, const TypeInfo_t *type)
+{
+    if (x == y) return 0;
+    bool x_is_null = is_null(x, type->OptionalInfo.type);
+    bool y_is_null = is_null(y, type->OptionalInfo.type);
+    if (x_is_null && y_is_null) return 0;
+    else if (x_is_null != y_is_null) return (int32_t)y_is_null - (int32_t)x_is_null;
+    else return generic_compare(x, y, type->OptionalInfo.type);
+}
+
+PUREFUNC public bool Optional$equal(const void *x, const void *y, const TypeInfo_t *type)
+{
+    if (x == y) return true;
+
+    bool x_is_null = is_null(x, type->OptionalInfo.type);
+    bool y_is_null = is_null(y, type->OptionalInfo.type);
+    if (x_is_null && y_is_null) return true;
+    else if (x_is_null != y_is_null) return false;
+    else return generic_equal(x, y, type->OptionalInfo.type);
 }
 
 public Text_t Optional$as_text(const void *obj, bool colorize, const TypeInfo_t *type)

@@ -817,7 +817,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case LangDef: {
         auto def = Match(ast, LangDef);
-        CORD_appendf(&env->code->typeinfos, "public const TypeInfo_t %r%s = {%zu, %zu, {.tag=TextInfo, .TextInfo={%r}}};\n",
+        CORD_appendf(&env->code->typeinfos, "public const TypeInfo_t %r%s = {%zu, %zu, .metamethods=Text$metamethods, .tag=TextInfo, .TextInfo={%r}};\n",
                      namespace_prefix(env, env->namespace), def->name, sizeof(Text_t), __alignof__(Text_t),
                      CORD_quoted(def->name));
         compile_namespace(env, def->name, def->namespace);
@@ -1507,9 +1507,7 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
         CORD name = type_to_cord(t);
         return CORD_asprintf("%r$as_text(stack(%r), %r, &%r$info)", name, expr, color, name);
     }
-    case TextType: {
-        return CORD_asprintf("Text$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
-    }
+    case TextType: return CORD_asprintf("Text$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case ArrayType: return CORD_asprintf("Array$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case SetType: return CORD_asprintf("Table$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case ChannelType: return CORD_asprintf("Channel$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));

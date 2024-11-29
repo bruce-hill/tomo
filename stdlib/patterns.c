@@ -9,6 +9,7 @@
 #include "integers.h"
 #include "optionals.h"
 #include "patterns.h"
+#include "structs.h"
 #include "tables.h"
 #include "text.h"
 #include "types.h"
@@ -1160,6 +1161,7 @@ public const TypeInfo_t Pattern$info = {
     .align=__alignof__(Pattern_t),
     .tag=TextInfo,
     .TextInfo={.lang="Pattern"},
+    .metamethods=Text$metamethods,
 };
 
 static NamedType_t _match_fields[3] = {
@@ -1167,6 +1169,12 @@ static NamedType_t _match_fields[3] = {
     {"index", &Int$info},
     {"captures", Array$info(&Text$info)},
 };
+
+static bool Match$is_none(const void *m, const TypeInfo_t*)
+{
+    return ((OptionalMatch_t*)m)->index.small == 0;
+}
+
 public const TypeInfo_t Match$info = {
     .size=sizeof(Match_t),
     .align=__alignof__(Match_t),
@@ -1175,6 +1183,13 @@ public const TypeInfo_t Match$info = {
         .name="Match",
         .num_fields=3,
         .fields=_match_fields,
+    },
+    .metamethods={
+        .as_text=Struct$as_text,
+        .hash=Struct$hash,
+        .compare=Struct$compare,
+        .equal=Struct$equal,
+        .is_none=Match$is_none,
     },
 };
 

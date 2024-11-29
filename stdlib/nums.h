@@ -16,9 +16,9 @@
 #define N32(n) ((float)n)
 #define N64(n) ((double)n)
 
-Text_t Num$as_text(const double *f, bool colorize, const TypeInfo_t *type);
-PUREFUNC int32_t Num$compare(const double *x, const double *y, const TypeInfo_t *type);
-PUREFUNC bool Num$equal(const double *x, const double *y, const TypeInfo_t *type);
+Text_t Num$as_text(const void *f, bool colorize, const TypeInfo_t *type);
+PUREFUNC int32_t Num$compare(const void *x, const void *y, const TypeInfo_t *type);
+PUREFUNC bool Num$equal(const void *x, const void *y, const TypeInfo_t *type);
 CONSTFUNC bool Num$near(double a, double b, double ratio, double absolute);
 Text_t Num$format(double f, Int_t precision);
 Text_t Num$scientific(double f, Int_t precision);
@@ -34,9 +34,9 @@ MACROLIKE CONSTFUNC double Num$clamped(double x, double low, double high) {
 }
 extern const TypeInfo_t Num$info;
 
-Text_t Num32$as_text(const float *f, bool colorize, const TypeInfo_t *type);
-PUREFUNC int32_t Num32$compare(const float *x, const float *y, const TypeInfo_t *type);
-PUREFUNC bool Num32$equal(const float *x, const float *y, const TypeInfo_t *type);
+Text_t Num32$as_text(const void *f, bool colorize, const TypeInfo_t *type);
+PUREFUNC int32_t Num32$compare(const void *x, const void *y, const TypeInfo_t *type);
+PUREFUNC bool Num32$equal(const void *x, const void *y, const TypeInfo_t *type);
 CONSTFUNC bool Num32$near(float a, float b, float ratio, float absolute);
 Text_t Num32$format(float f, Int_t precision);
 Text_t Num32$scientific(float f, Int_t precision);

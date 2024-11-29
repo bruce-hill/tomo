@@ -65,10 +65,11 @@ Table_t Table$sorted(Table_t t, const TypeInfo_t *type);
 void Table$mark_copy_on_write(Table_t *t);
 #define TABLE_INCREF(t) ({ ARRAY_INCREF((t).entries); if ((t).bucket_info) (t).bucket_info->data_refcount += ((t).bucket_info->data_refcount < TABLE_MAX_DATA_REFCOUNT); })
 #define TABLE_COPY(t) ({ TABLE_INCREF(t); t; })
-PUREFUNC int32_t Table$compare(const Table_t *x, const Table_t *y, const TypeInfo_t *type);
-PUREFUNC bool Table$equal(const Table_t *x, const Table_t *y, const TypeInfo_t *type);
-PUREFUNC uint64_t Table$hash(const Table_t *t, const TypeInfo_t *type);
-Text_t Table$as_text(const Table_t *t, bool colorize, const TypeInfo_t *type);
+PUREFUNC int32_t Table$compare(const void *x, const void *y, const TypeInfo_t *type);
+PUREFUNC bool Table$equal(const void *x, const void *y, const TypeInfo_t *type);
+PUREFUNC uint64_t Table$hash(const void *t, const TypeInfo_t *type);
+Text_t Table$as_text(const void *t, bool colorize, const TypeInfo_t *type);
+PUREFUNC bool Table$is_none(const void *obj, const TypeInfo_t*);
 
 CONSTFUNC void *Table$str_entry(Table_t t, int64_t n);
 PUREFUNC void *Table$str_get(Table_t t, const char *key);
@@ -80,5 +81,18 @@ void Table$str_remove(Table_t *t, const char *key);
 #define Table$length(t) ((t).entries.length)
 
 extern const TypeInfo_t CStrToVoidStarTable;
+
+#define Table$metamethods ((metamethods_t){ \
+    .as_text=Table$as_text, \
+    .compare=Table$compare, \
+    .equal=Table$equal, \
+    .hash=Table$hash, \
+    .is_none=Table$is_none, \
+})
+
+#define Table$info(key_expr, value_expr) &((TypeInfo_t){.size=sizeof(Table_t), .align=__alignof__(Table_t), \
+                                           .tag=TableInfo, .TableInfo.key=key_expr, .TableInfo.value=value_expr, .metamethods=Table$metamethods})
+#define Set$info(item_info) &((TypeInfo_t){.size=sizeof(Table_t), .align=__alignof__(Table_t), \
+                              .tag=TableInfo, .TableInfo.key=item_info, .TableInfo.value=&Void$info, .metamethods=Table$metamethods})
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1
