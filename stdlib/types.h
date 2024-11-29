@@ -4,6 +4,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "datatypes.h"
 
@@ -15,6 +16,8 @@ typedef struct {
     bool (*equal)(const void*, const void*, const TypeInfo_t*);
     Text_t (*as_text)(const void*, bool, const TypeInfo_t*);
     bool (*is_none)(const void*, const TypeInfo_t*);
+    void (*serialize)(const void*, FILE*, Table_t*, const TypeInfo_t*);
+    void (*deserialize)(FILE*, void*, Array_t*, const TypeInfo_t*);
 } metamethods_t;
 
 typedef struct {
@@ -68,7 +71,8 @@ struct TypeInfo_s {
 };
 
 #define Type$info(typestr) &((TypeInfo_t){.size=sizeof(TypeInfo_t), .align=__alignof__(TypeInfo_t), \
-                             .tag=TypeInfoInfo, .TypeInfoInfo.type_str=typestr})
+                             .tag=TypeInfoInfo, .TypeInfoInfo.type_str=typestr, \
+                             .metamethods={.serialize=cannot_serialize, .deserialize=cannot_deserialize}})
 
 extern const TypeInfo_t Void$info;
 extern const TypeInfo_t Abort$info;

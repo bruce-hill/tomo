@@ -71,7 +71,7 @@ CORD compile_struct_header(env_t *env, ast_t *ast)
         full_name, "_t value;\n"
         "struct {\n"
         "char _padding[", heap_strf("%zu", unpadded_struct_size(t)), "];\n",
-        "Bool_t is_null;\n"
+        "Bool_t is_none:1;\n"
         "};\n"
         "};\n"
         "} ", namespace_prefix(env, env->namespace), "$Optional", def->name, "_t;\n"

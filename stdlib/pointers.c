@@ -83,4 +83,43 @@ PUREFUNC public bool Pointer$is_none(const void *x, const TypeInfo_t*)
     return *(void**)x == NULL;
 }
 
+public void Pointer$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
+{
+    void *ptr = *(void**)obj;
+    assert(ptr != NULL);
+
+    const TypeInfo_t ptr_to_int_table = {.size=sizeof(Table_t), .align=__alignof__(Table_t),
+        .tag=TableInfo, .TableInfo.key=type, .TableInfo.value=&Int64$info};
+
+    int64_t *id_ptr = Table$get(*pointers, &ptr, &ptr_to_int_table);
+    int64_t id;
+    if (id_ptr) {
+        id = *id_ptr;
+    } else {
+        id = pointers->entries.length + 1;
+        Table$set(pointers, &ptr, &id, &ptr_to_int_table);
+    }
+
+    Int64$serialize(&id, out, pointers, &Int64$info);
+
+    if (!id_ptr)
+        _serialize(ptr, out, pointers, type->PointerInfo.pointed);
+}
+
+public void Pointer$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type)
+{
+    int64_t id = 0;
+    Int64$deserialize(in, &id, pointers, &Int64$info);
+    assert(id != 0);
+
+    if (id > pointers->length) {
+        void *obj = GC_MALLOC((size_t)type->PointerInfo.pointed->size);
+        Array$insert(pointers, &obj, I(0), sizeof(void*));
+        _deserialize(in, obj, pointers, type->PointerInfo.pointed);
+        *(void**)outval = obj;
+    } else {
+        *(void**)outval = *(void**)(pointers->data + (id-1)*pointers->stride);
+    }
+}
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

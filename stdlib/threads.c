@@ -14,6 +14,7 @@
 
 #include "arrays.h"
 #include "datatypes.h"
+#include "metamethods.h"
 #include "rng.h"
 #include "text.h"
 #include "threads.h"
@@ -71,6 +72,8 @@ public const TypeInfo_t Thread$info = {
     .metamethods={
         .as_text=Thread$as_text,
         .is_none=Thread$is_none,
+        .serialize=cannot_serialize,
+        .deserialize=cannot_deserialize,
     },
 };
 

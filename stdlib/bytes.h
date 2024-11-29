@@ -32,9 +32,9 @@ Text_t Byte$hex(Byte_t byte, bool uppercase, bool prefix);
 
 typedef struct {
     Byte_t value;
-    bool is_null:1;
+    bool has_value:1;
 } OptionalByte_t;
 
-#define NONE_BYTE ((OptionalByte_t){.is_null=true})
+#define NONE_BYTE ((OptionalByte_t){.has_value=false})
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

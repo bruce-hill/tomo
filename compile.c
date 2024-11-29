@@ -50,7 +50,7 @@ CORD promote_to_optional(type_t *t, CORD code)
     } else if (t->tag == ByteType) {
         return CORD_all("((OptionalByte_t){", code, "})");
     } else if (t->tag == StructType) {
-        return CORD_all("({ ", compile_type(Type(OptionalType, .type=t)), " nonnull = {.value=", code, "}; nonnull.is_null = false; nonnull; })");
+        return CORD_all("({ ", compile_type(Type(OptionalType, .type=t)), " nonnull = {.value=", code, "}; nonnull.is_none = false; nonnull; })");
     } else {
         return code;
     }
@@ -205,6 +205,7 @@ CORD compile_declaration(type_t *t, CORD name)
             code = CORD_all(code, compile_type(arg->type));
             if (arg->next) code = CORD_cat(code, ", ");
         }
+        if (!fn->args) code = CORD_all(code, "void");
         return CORD_all(code, ")");
     } else if (t->tag != ModuleType) {
         return CORD_all(compile_type(t), " ", name);
@@ -269,6 +270,8 @@ CORD compile_type(type_t *t)
             code = CORD_all(code, compile_type(arg->type));
             if (arg->next) code = CORD_cat(code, ", ");
         }
+        if (!fn->args)
+            code = CORD_all(code, "void");
         return CORD_all(code, ")");
     }
     case ClosureType: return "Closure_t";
@@ -425,7 +428,7 @@ CORD check_null(type_t *t, CORD value)
     else if (t->tag == TextType)
         return CORD_all("((", value, ").length < 0)");
     else if (t->tag == IntType || t->tag == ByteType || t->tag == StructType)
-        return CORD_all("(", value, ").is_null");
+        return CORD_all("(", value, ").is_none");
     else if (t->tag == EnumType)
         return CORD_all("((", value, ").tag == 0)");
     else if (t->tag == MomentType)
@@ -911,7 +914,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 all_args = CORD_all(all_args, "$", arg->name, arg->next ? ", " : CORD_EMPTY);
 
             CORD pop_code = CORD_EMPTY;
-            if (fndef->cache->tag == Int && !cache_size.is_null && cache_size.i > 0) {
+            if (fndef->cache->tag == Int && !cache_size.is_none && cache_size.i > 0) {
                 pop_code = CORD_all("if (cache.entries.length > ", CORD_asprintf("%ld", cache_size.i),
                                     ") Table$remove(&cache, cache.entries.data + cache.entries.stride*RNG$int64(default_rng, I(0), I(cache.entries.length-1)), table_type);\n");
             }
@@ -1904,7 +1907,7 @@ CORD compile_null(type_t *t)
     case PointerType: return CORD_all("((", compile_type(t), ")NULL)");
     case ClosureType: return "NONE_CLOSURE";
     case NumType: return "nan(\"null\")";
-    case StructType: return CORD_all("((", compile_type(Type(OptionalType, .type=t)), "){.is_null=yes})");
+    case StructType: return CORD_all("((", compile_type(Type(OptionalType, .type=t)), "){.is_none=true})");
     case EnumType: {
         env_t *enum_env = Match(t, EnumType)->env;
         return CORD_all("((", compile_type(t), "){", namespace_prefix(enum_env, enum_env->namespace), "null})");
@@ -2723,6 +2726,14 @@ CORD compile(env_t *env, ast_t *ast)
     case MethodCall: {
         auto call = Match(ast, MethodCall);
         type_t *self_t = get_type(env, call->self);
+
+        if (streq(call->name, "serialize")) {
+            if (call->args)
+                code_err(ast, ":serialize() doesn't take any arguments"); 
+            return CORD_all("generic_serialize((", compile_declaration(self_t, "[1]"), "){",
+                            compile(env, call->self), "}, ", compile_type_info(env, self_t), ")");
+        }
+
         int64_t pointer_depth = 0;
         type_t *self_value_t = self_t;
         for (; self_value_t->tag == PointerType; self_value_t = Match(self_value_t, PointerType)->pointed)
@@ -3190,6 +3201,21 @@ CORD compile(env_t *env, ast_t *ast)
         } else {
             code_err(call->fn, "This is not a function, it's a %T", fn_t);
         }
+    }
+    case Serialize: {
+        ast_t *value = Match(ast, Serialize)->value;
+        type_t *t = get_type(env, value);
+        return CORD_all("generic_serialize((", compile_declaration(t, "[1]"), "){", compile(env, value), "}, ", compile_type_info(env, t), ")");
+    }
+    case Deserialize: {
+        ast_t *value = Match(ast, Deserialize)->value;
+        type_t *value_type = get_type(env, value);
+        if (!type_eq(value_type, Type(ArrayType, Type(ByteType))))
+            code_err(value, "This value should be an array of bytes, not a %T", value_type);
+        type_t *t = parse_type_ast(env, Match(ast, Deserialize)->type);
+        return CORD_all("({ ", compile_declaration(t, "deserialized"), ";\n"
+                        "generic_deserialize(", compile(env, value), ", &deserialized, ", compile_type_info(env, t), ");\n"
+                        "deserialized; })");
     }
     case When: {
         auto original = Match(ast, When);

@@ -137,4 +137,21 @@ public PUREFUNC bool Channel$is_none(const void *obj, const TypeInfo_t*)
     return *(void**)obj == NULL;
 }
 
+public void Channel$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
+{
+    Channel_t *channel = (Channel_t*)obj;
+    Array$serialize(&channel->items, out, pointers, Array$info(type->ChannelInfo.item));
+    Int64$serialize(&channel->max_size, out, pointers, &Int64$info);
+}
+
+public void Channel$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type)
+{
+    Channel_t *channel = new(Channel_t);
+    channel->mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
+    channel->cond = (pthread_cond_t)PTHREAD_COND_INITIALIZER;
+    Array$deserialize(in, &channel->items, pointers, Array$info(type->ChannelInfo.item));
+    Int64$deserialize(in, &channel->max_size, pointers, &Int64$info);
+    *(Channel_t**)outval = channel;
+}
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

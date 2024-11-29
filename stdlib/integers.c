@@ -1,4 +1,6 @@
 // Integer type infos and methods
+#include <stdio.h> // Must be before gmp.h
+
 #include <ctype.h>
 #include <gc.h>
 #include <gmp.h>
@@ -367,6 +369,21 @@ static bool Int$is_none(const void *i, const TypeInfo_t*)
     return ((Int_t*)i)->small == 0;
 }
 
+static void Int$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo_t*)
+{
+    mpz_t n;
+    mpz_init_set_int(n, *(Int_t*)obj);
+    mpz_out_raw(out, n);
+}
+
+static void Int$deserialize(FILE *in, void *obj, Array_t*, const TypeInfo_t*)
+{
+    mpz_t n;
+    mpz_init(n);
+    mpz_inp_raw(n, in);
+    *(Int_t*)obj = Int$from_mpz(n);
+}
+
 public const TypeInfo_t Int$info = {
     .size=sizeof(Int_t),
     .align=__alignof__(Int_t),
@@ -376,8 +393,60 @@ public const TypeInfo_t Int$info = {
         .hash=Int$hash,
         .as_text=Int$as_text,
         .is_none=Int$is_none,
+        .serialize=Int$serialize,
+        .deserialize=Int$deserialize,
     },
 };
+
+public void Int64$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo_t*)
+{
+    int64_t i = *(int64_t*)obj;
+    uint64_t z = (uint64_t)((i << 1) ^ (i >> 63)); // Zigzag encode
+    while (z >= 0x80) {
+        fputc((uint8_t)(z | 0x80), out);
+        z >>= 7;
+    }
+    fputc((uint8_t)z, out);
+}
+
+public void Int64$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t*)
+{
+    uint64_t z = 0;
+    for(size_t shift = 0; ; shift += 7) {
+        uint8_t byte = (uint8_t)fgetc(in);
+        z |= ((uint64_t)(byte & 0x7F)) << shift;
+        if ((byte & 0x80) == 0) break;
+    }
+    *(int64_t*)outval = (int64_t)((z >> 1) ^ -(z & 1)); // Zigzag decode
+}
+
+public void Int32$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo_t*) 
+{
+    int32_t i = *(int32_t*)obj;
+    uint32_t z = (uint32_t)((i << 1) ^ (i >> 31)); // Zigzag encode
+    while (z >= 0x80) {
+        fputc((uint8_t)(z | 0x80), out);
+        z >>= 7;
+    }
+    fputc((uint8_t)z, out);
+}
+
+public void Int32$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t*)
+{
+    uint32_t z = 0;
+    for(size_t shift = 0; ; shift += 7) {
+        uint8_t byte = (uint8_t)fgetc(in);
+        z |= ((uint32_t)(byte & 0x7F)) << shift;
+        if ((byte & 0x80) == 0) break;
+    }
+    *(int32_t*)outval = (int32_t)((z >> 1) ^ -(z & 1)); // Zigzag decode
+}
+
+// The space savings for smaller ints are not worth having:
+#define Int16$serialize NULL
+#define Int16$deserialize NULL
+#define Int8$serialize NULL
+#define Int8$deserialize NULL
 
 #define DEFINE_INT_TYPE(c_type, KindOfInt, fmt, min_val, max_val, to_attr)\
     public Text_t KindOfInt ## $as_text(const void *i, bool colorize, const TypeInfo_t*) { \
@@ -416,12 +485,12 @@ public const TypeInfo_t Int$info = {
     } \
     public PUREFUNC Optional ## KindOfInt ## _t KindOfInt ## $parse(Text_t text) { \
         OptionalInt_t full_int = Int$parse(text); \
-        if (full_int.small == 0) return (Optional ## KindOfInt ## _t){.is_null=true}; \
+        if (full_int.small == 0) return (Optional ## KindOfInt ## _t){.is_none=true}; \
         if (Int$compare_value(full_int, I(min_val)) < 0) { \
-            return (Optional ## KindOfInt ## _t){.is_null=true}; \
+            return (Optional ## KindOfInt ## _t){.is_none=true}; \
         } \
         if (Int$compare_value(full_int, I(max_val)) > 0) { \
-            return (Optional ## KindOfInt ## _t){.is_null=true}; \
+            return (Optional ## KindOfInt ## _t){.is_none=true}; \
         } \
         return (Optional ## KindOfInt ## _t){.i=Int_to_ ## KindOfInt(full_int, true)}; \
     } \
@@ -433,6 +502,8 @@ public const TypeInfo_t Int$info = {
         .metamethods={ \
             .compare=KindOfInt##$compare, \
             .as_text=KindOfInt##$as_text, \
+            .serialize=KindOfInt##$serialize, \
+            .deserialize=KindOfInt##$deserialize, \
         }, \
     };
 

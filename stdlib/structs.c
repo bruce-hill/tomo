@@ -167,4 +167,58 @@ PUREFUNC public bool Struct$is_none(const void *obj, const TypeInfo_t *type)
     return *(bool*)(obj + type->size);
 }
 
+public void Struct$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
+{
+    ptrdiff_t byte_offset = 0;
+    ptrdiff_t bit_offset = 0;
+    for (int i = 0; i < type->StructInfo.num_fields; i++) {
+        NamedType_t field = type->StructInfo.fields[i];
+        if (field.type == &Bool$info) {
+            bool b = ((*(char*)(obj + byte_offset)) >> bit_offset) & 0x1;
+            fputc((int)b, out);
+            bit_offset += 1;
+            if (bit_offset >= 8) {
+                byte_offset += 1;
+                bit_offset = 0;
+            }
+        } else {
+            if (bit_offset > 0) {
+                byte_offset += 1;
+                bit_offset = 0;
+            }
+            if (field.type->align && byte_offset % field.type->align > 0)
+                byte_offset += field.type->align - (byte_offset % field.type->align);
+            _serialize(obj + byte_offset, out, pointers, field.type);
+            byte_offset += field.type->size;
+        }
+    }
+}
+
+public void Struct$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type)
+{
+    ptrdiff_t byte_offset = 0;
+    ptrdiff_t bit_offset = 0;
+    for (int i = 0; i < type->StructInfo.num_fields; i++) {
+        NamedType_t field = type->StructInfo.fields[i];
+        if (field.type == &Bool$info) {
+            bool b = (bool)fgetc(in);
+            *(char*)(outval + byte_offset) |= (b << bit_offset);
+            bit_offset += 1;
+            if (bit_offset >= 8) {
+                byte_offset += 1;
+                bit_offset = 0;
+            }
+        } else {
+            if (bit_offset > 0) {
+                byte_offset += 1;
+                bit_offset = 0;
+            }
+            if (field.type->align && byte_offset % field.type->align > 0)
+                byte_offset += field.type->align - (byte_offset % field.type->align);
+            _deserialize(in, outval + byte_offset, pointers, field.type);
+            byte_offset += field.type->size;
+        }
+    }
+}
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

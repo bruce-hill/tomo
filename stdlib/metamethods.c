@@ -5,14 +5,17 @@
 
 #include "arrays.h"
 #include "bools.h"
+#include "bytes.h"
 #include "channels.h"
 #include "functiontype.h"
+#include "integers.h"
 #include "metamethods.h"
 #include "optionals.h"
 #include "pointers.h"
 #include "siphash.h"
 #include "tables.h"
 #include "text.h"
+#include "types.h"
 #include "util.h"
 
 PUREFUNC public uint64_t generic_hash(const void *obj, const TypeInfo_t *type)
@@ -51,10 +54,72 @@ public Text_t generic_as_text(const void *obj, bool colorize, const TypeInfo_t *
     return type->metamethods.as_text(obj, colorize, type);
 }
 
+public void _serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
+{
+    if (type->metamethods.serialize)
+        return type->metamethods.serialize(obj, out, pointers, type);
+
+    fwrite(obj, (size_t)type->size, 1, out);
+}
+
+public Array_t generic_serialize(const void *x, const TypeInfo_t *type)
+{
+    char *buf = NULL;
+    size_t size = 0;
+    FILE *stream = open_memstream(&buf, &size);
+    Table_t pointers = {};
+    _serialize(x, stream, &pointers, type);
+    fclose(stream);
+    Array_t bytes = {
+        .data=GC_MALLOC_ATOMIC(size),
+        .length=(int64_t)size,
+        .stride=1,
+        .atomic=1,
+    };
+    memcpy(bytes.data, buf, size);
+    free(buf);
+    return bytes;
+}
+
+public void _deserialize(FILE *input, void *outval, Array_t *pointers, const TypeInfo_t *type)
+{
+    if (type->metamethods.deserialize) {
+        type->metamethods.deserialize(input, outval, pointers, type);
+        return;
+    }
+
+    fread(outval, (size_t)type->size, 1, input);
+}
+
+public void generic_deserialize(Array_t bytes, void *outval, const TypeInfo_t *type)
+{
+    if (bytes.stride != 1)
+        Array$compact(&bytes, 1);
+
+    FILE *input = fmemopen(bytes.data, (size_t)bytes.length, "r");
+    Array_t pointers = {};
+    _deserialize(input, outval, &pointers, type);
+    fclose(input);
+}
+
 public int generic_print(const void *obj, bool colorize, const TypeInfo_t *type)
 {
     Text_t text = generic_as_text(obj, colorize, type);
     return Text$print(stdout, text) + printf("\n");
+}
+
+__attribute__((noreturn))
+public void cannot_serialize(const void*, FILE*, Table_t*, const TypeInfo_t *type)
+{
+    Text_t typestr = generic_as_text(NULL, false, type);
+    fail("Values of type %k cannot be serialized or deserialized!", &typestr);
+}
+
+__attribute__((noreturn))
+public void cannot_deserialize(FILE*, void*, Array_t*, const TypeInfo_t *type)
+{
+    Text_t typestr = generic_as_text(NULL, false, type);
+    fail("Values of type %k cannot be serialized or deserialized!", &typestr);
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

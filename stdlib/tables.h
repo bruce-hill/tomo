@@ -77,6 +77,8 @@ PUREFUNC void *Table$str_get_raw(Table_t t, const char *key);
 void Table$str_set(Table_t *t, const char *key, const void *value);
 void *Table$str_reserve(Table_t *t, const char *key, const void *value);
 void Table$str_remove(Table_t *t, const char *key);
+void Table$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type);
+void Table$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type);
 
 #define Table$length(t) ((t).entries.length)
 
@@ -88,6 +90,8 @@ extern const TypeInfo_t CStrToVoidStarTable;
     .equal=Table$equal, \
     .hash=Table$hash, \
     .is_none=Table$is_none, \
+    .serialize=Table$serialize, \
+    .deserialize=Table$deserialize, \
 })
 
 #define Table$info(key_expr, value_expr) &((TypeInfo_t){.size=sizeof(Table_t), .align=__alignof__(Table_t), \

@@ -54,6 +54,7 @@ static const char *keywords[] = {
     "yes", "xor", "while", "when", "use", "unless", "struct", "stop", "skip", "return",
     "or", "not", "no", "mod1", "mod", "pass", "lang", "inline", "in", "if",
     "func", "for", "extern", "enum", "else", "do", "defer", "and", "NONE", "_min_", "_max_",
+    "DESERIALIZE",
     NULL,
 };
 
@@ -139,6 +140,7 @@ static PARSER(parse_use);
 static PARSER(parse_var);
 static PARSER(parse_when);
 static PARSER(parse_while);
+static PARSER(parse_deserialize);
 
 //
 // Print a parse error and exit (or use the on_err longjmp)
@@ -1547,6 +1549,22 @@ PARSER(parse_none) {
     return NewAST(ctx->file, start, type->end, None, .type=type);
 }
 
+PARSER(parse_deserialize) {
+    const char *start = pos;
+    if (!match_word(&pos, "DESERIALIZE"))
+        return NULL;
+
+    spaces(&pos);
+    ast_t *value = expect(ctx, start, &pos, parse_parens, "I expected an expression here");
+
+    spaces(&pos);
+    if (!match(&pos, ":"))
+        parser_err(ctx, pos, pos, "I expected a ':' and a type here");
+
+    type_ast_t *type = expect(ctx, start, &pos, parse_type, "I couldn't parse the type for this deserialization");
+    return NewAST(ctx->file, start, pos, Deserialize, .value=value, .type=type);
+}
+
 PARSER(parse_var) {
     const char *start = pos;
     const char* name = get_id(&pos);
@@ -1572,6 +1590,7 @@ PARSER(parse_term_no_suffix) {
         || (term=parse_parens(ctx, pos))
         || (term=parse_table(ctx, pos))
         || (term=parse_set(ctx, pos))
+        || (term=parse_deserialize(ctx, pos))
         || (term=parse_var(ctx, pos))
         || (term=parse_array(ctx, pos))
         || (term=parse_channel(ctx, pos))

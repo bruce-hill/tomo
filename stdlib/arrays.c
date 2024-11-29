@@ -6,6 +6,7 @@
 #include <sys/param.h>
 
 #include "arrays.h"
+#include "integers.h"
 #include "metamethods.h"
 #include "optionals.h"
 #include "rng.h"
@@ -699,6 +700,48 @@ public Int_t Array$binary_search(Array_t array, void *target, Closure_t comparis
 public PUREFUNC bool Array$is_none(const void *obj, const TypeInfo_t*)
 {
     return ((Array_t*)obj)->length < 0;
+}
+
+public void Array$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
+{
+    Array_t arr = *(Array_t*)obj;
+    int64_t len = arr.length;
+    Int64$serialize(&len, out, pointers, &Int64$info);
+    auto item_serialize = type->ArrayInfo.item->metamethods.serialize;
+    if (item_serialize) {
+        for (int64_t i = 0; i < len; i++)
+            item_serialize(arr.data + i*arr.stride, out, pointers, type->ArrayInfo.item);
+    } else if (arr.stride == type->ArrayInfo.item->size) {
+        fwrite(arr.data, (size_t)type->ArrayInfo.item->size, (size_t)len, out);
+    } else {
+        for (int64_t i = 0; i < len; i++)
+            fwrite(arr.data + i*arr.stride, (size_t)type->ArrayInfo.item->size, 1, out);
+    }
+}
+
+public void Array$deserialize(FILE *in, void *obj, Array_t *pointers, const TypeInfo_t *type)
+{
+    int64_t len = -1;
+    Int64$deserialize(in, &len, pointers, &Int64$info);
+    int64_t padded_size = type->ArrayInfo.item->size;
+    if (type->ArrayInfo.item->align > 0 && padded_size % type->ArrayInfo.item->align > 0)
+        padded_size += type->ArrayInfo.item->align - (padded_size % type->ArrayInfo.item->align);
+    Array_t arr = {
+        .length=len,
+        .data=GC_MALLOC((size_t)(len*padded_size)),
+        .stride=padded_size,
+    };
+    auto item_deserialize = type->ArrayInfo.item->metamethods.deserialize;
+    if (item_deserialize) {
+        for (int64_t i = 0; i < len; i++)
+            item_deserialize(in, arr.data + i*arr.stride, pointers, type->ArrayInfo.item);
+    } else if (arr.stride == type->ArrayInfo.item->size) {
+        fread(arr.data, (size_t)type->ArrayInfo.item->size, (size_t)len, in);
+    } else {
+        for (int64_t i = 0; i < len; i++)
+            fread(arr.data + i*arr.stride, (size_t)type->ArrayInfo.item->size, 1, in);
+    }
+    *(Array_t*)obj = arr;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

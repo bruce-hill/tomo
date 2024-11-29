@@ -60,6 +60,8 @@ Text_t Text$join(Text_t glue, Array_t pieces);
 Text_t Text$repeat(Text_t text, Int_t count);
 int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index);
 uint32_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index);
+void Text$serialize(const void *obj, FILE *out, Table_t *, const TypeInfo_t *);
+void Text$deserialize(FILE *in, void *out, Array_t *, const TypeInfo_t *);
 
 MACROLIKE int32_t Text$get_grapheme(Text_t text, int64_t index)
 {
@@ -75,6 +77,8 @@ extern const TypeInfo_t Text$info;
     .compare=Text$compare, \
     .equal=Text$equal, \
     .is_none=Text$is_none, \
+    .serialize=Text$serialize, \
+    .deserialize=Text$deserialize, \
 })
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

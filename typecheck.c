@@ -721,6 +721,11 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
     case FunctionCall: {
         auto call = Match(ast, FunctionCall);
+
+        // HACK:
+        if (call->fn->tag == Var && streq(Match(call->fn, Var)->name, "serialize"))
+            return Type(ArrayType, Type(ByteType));
+
         type_t *fn_type_t = get_type(env, call->fn);
         if (!fn_type_t)
             code_err(call->fn, "I couldn't find this function");
@@ -741,6 +746,10 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
     case MethodCall: {
         auto call = Match(ast, MethodCall);
+
+        if (streq(call->name, "serialize"))
+            return Type(ArrayType, Type(ByteType));
+
         type_t *self_value_t = value_type(get_type(env, call->self));
         switch (self_value_t->tag) {
         case ArrayType: {
@@ -1245,6 +1254,8 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
     case Moment: return Type(MomentType);
     case Unknown: code_err(ast, "I can't figure out the type of: %W", ast);
+    case Serialize: return Type(ArrayType, Type(ByteType));
+    case Deserialize: return parse_type_ast(env, Match(ast, Deserialize)->type);
     }
 #pragma GCC diagnostic pop
     code_err(ast, "I can't figure out the type of: %W", ast);

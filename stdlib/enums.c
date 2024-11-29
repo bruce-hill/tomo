@@ -7,6 +7,7 @@
 #include "bools.h"
 #include "channels.h"
 #include "functiontype.h"
+#include "integers.h"
 #include "metamethods.h"
 #include "optionals.h"
 #include "pointers.h"
@@ -87,6 +88,34 @@ public Text_t Enum$as_text(const void *obj, bool colorize, const TypeInfo_t *typ
 PUREFUNC public bool Enum$is_none(const void *x, const TypeInfo_t*)
 {
     return *(int32_t*)x == 0;
+}
+
+public void Enum$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
+{
+    int32_t tag = *(int32_t*)obj;
+    Int32$serialize(&tag, out, pointers, &Int32$info);
+
+    NamedType_t value = type->EnumInfo.tags[tag-1];
+    if (value.type && value.type->size > 0) {
+        ptrdiff_t byte_offset = sizeof(int32_t);
+        if (value.type->align && byte_offset % value.type->align > 0)
+            byte_offset += value.type->align - (byte_offset % value.type->align);
+        _serialize(obj + byte_offset, out, pointers, value.type);
+    }
+}
+
+public void Enum$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type)
+{
+    int32_t tag = 0;
+    Int32$deserialize(in, &tag, pointers, &Int32$info);
+
+    NamedType_t value = type->EnumInfo.tags[tag-1];
+    if (value.type && value.type->size > 0) {
+        ptrdiff_t byte_offset = sizeof(int32_t);
+        if (value.type->align && byte_offset % value.type->align > 0)
+            byte_offset += value.type->align - (byte_offset % value.type->align);
+        _deserialize(in, outval + byte_offset, pointers, value.type);
+    }
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

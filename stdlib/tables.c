@@ -647,4 +647,41 @@ PUREFUNC public bool Table$is_none(const void *obj, const TypeInfo_t*)
     return ((Table_t*)obj)->entries.length < 0;
 }
 
+public void Table$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
+{
+    Table_t *t = (Table_t*)obj;
+    int64_t len = t->entries.length;
+    Int64$serialize(&len, out, pointers, &Int64$info);
+
+    size_t offset = value_offset(type);
+    for (int64_t i = 0; i < len; i++) {
+        _serialize(t->entries.data + i*t->entries.stride, out, pointers, type->TableInfo.key);
+        _serialize(t->entries.data + i*t->entries.stride + offset, out, pointers, type->TableInfo.value);
+    }
+
+    Optional$serialize(&t->fallback, out, pointers, Optional$info(sizeof(void*), __alignof__(void*), Pointer$info("&", type)));
+}
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstack-protector"
+public void Table$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type)
+{
+    int64_t len;
+    Int64$deserialize(in, &len, pointers, &Int$info);
+
+    Table_t t = {};
+    for (int64_t i = 0; i < len; i++) {
+        char key[type->TableInfo.key->size];
+        _deserialize(in, key, pointers, type->TableInfo.key);
+        char value[type->TableInfo.value->size];
+        _deserialize(in, value, pointers, type->TableInfo.value);
+        Table$set(&t, key, value, type);
+    }
+
+    Optional$deserialize(in, &t.fallback, pointers, Optional$info(sizeof(void*), __alignof__(void*), Pointer$info("&", type)));
+
+    *(Table_t*)outval = t;
+}
+#pragma GCC diagnostic pop
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1

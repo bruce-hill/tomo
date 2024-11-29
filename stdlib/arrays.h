@@ -100,6 +100,8 @@ void Array$heap_pop(Array_t *heap, Closure_t comparison, int64_t padded_item_siz
 Int_t Array$binary_search(Array_t array, void *target, Closure_t comparison);
 #define Array$binary_search_value(array, target, comparison) \
     ({ __typeof(target) _target = target; Array$binary_search(array, &_target, comparison); })
+void Array$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type);
+void Array$deserialize(FILE *in, void *obj, Array_t *pointers, const TypeInfo_t *type);
 
 #define Array$metamethods ((metamethods_t){ \
     .as_text=Array$as_text, \
@@ -107,6 +109,8 @@ Int_t Array$binary_search(Array_t array, void *target, Closure_t comparison);
     .equal=Array$equal, \
     .hash=Array$hash, \
     .is_none=Array$is_none, \
+    .serialize=Array$serialize, \
+    .deserialize=Array$deserialize, \
 })
 
 #define Array$info(item_info) &((TypeInfo_t){.size=sizeof(Array_t), .align=__alignof__(Array_t), \

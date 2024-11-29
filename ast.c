@@ -161,6 +161,8 @@ CORD ast_to_xml(ast_t *ast)
     T(DocTest, "<DocTest>%r<output>%r</output></DocTest>", optional_tagged("expression", data.expr), xml_escape(data.output))
     T(Use, "<Use>%r%r</Use>", optional_tagged("var", data.var), xml_escape(data.path))
     T(InlineCCode, "<InlineCode>%r</InlineCode>", xml_escape(data.code))
+    T(Serialize, "<Serialize>%r</Serialize>", ast_to_xml(data.value))
+    T(Deserialize, "<Deserialize><type>%r</type>%r</Deserialize>", type_ast_to_xml(data.type), ast_to_xml(data.value))
     default: return "???";
 #undef T
     }

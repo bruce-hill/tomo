@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 
+#include "metamethods.h"
 #include "types.h"
 #include "util.h"
 
@@ -15,6 +16,8 @@ PUREFUNC bool Func$is_none(const void *obj, const TypeInfo_t*);
 #define Func$metamethods ((metamethods_t){ \
     .as_text=Func$as_text, \
     .is_none=Func$is_none, \
+    .serialize=cannot_serialize, \
+    .deserialize=cannot_deserialize, \
 })
 
 #define Function$info(typestr) &((TypeInfo_t){.size=sizeof(void*), .align=__alignof__(void*), \

@@ -1377,6 +1377,24 @@ PUREFUNC public bool Text$is_none(const void *t, const TypeInfo_t*)
     return ((Text_t*)t)->length < 0;
 }
 
+public void Text$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *)
+{
+    const char *str = Text$as_c_string(*(Text_t*)obj);
+    int64_t len = (int64_t)strlen(str);
+    Int64$serialize(&len, out, pointers, &Int64$info);
+    fwrite(str, sizeof(char), (size_t)len, out);
+}
+
+public void Text$deserialize(FILE *in, void *out, Array_t *pointers, const TypeInfo_t *)
+{
+    int64_t len = -1;
+    Int64$deserialize(in, &len, pointers, &Int64$info);
+    char *buf = GC_MALLOC_ATOMIC((size_t)len+1);
+    fread(buf, sizeof(char), (size_t)len, in);
+    buf[len+1] = '\0';
+    *(Text_t*)out = Text$from_strn(buf, (size_t)len);
+}
+
 public const TypeInfo_t Text$info = {
     .size=sizeof(Text_t),
     .align=__alignof__(Text_t),

@@ -8,6 +8,7 @@
 #include <err.h>
 
 #include "memory.h"
+#include "metamethods.h"
 #include "text.h"
 #include "types.h"
 #include "util.h"
@@ -22,6 +23,8 @@ public const TypeInfo_t Memory$info = {
     .align=0,
     .metamethods={
         .as_text=Memory$as_text,
+        .serialize=cannot_serialize,
+        .deserialize=cannot_deserialize,
     },
 };
 

@@ -25,6 +25,8 @@ PUREFUNC int32_t Channel$compare(const void *x, const void *y, const TypeInfo_t 
 PUREFUNC bool Channel$equal(const void *x, const void *y, const TypeInfo_t *type);
 Text_t Channel$as_text(const void *channel, bool colorize, const TypeInfo_t *type);
 PUREFUNC bool Channel$is_none(const void *obj, const TypeInfo_t*);
+void Channel$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t*);
+void Channel$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t*);
 
 #define Channel$metamethods ((metamethods_t){ \
     .as_text=Channel$as_text, \
@@ -32,6 +34,8 @@ PUREFUNC bool Channel$is_none(const void *obj, const TypeInfo_t*);
     .equal=Channel$equal, \
     .hash=Channel$hash, \
     .is_none=Channel$is_none, \
+    .serialize=Channel$serialize, \
+    .deserialize=Channel$deserialize, \
 })
 
 #define Channel$info(item_info) &((TypeInfo_t){.size=sizeof(Channel_t), .align=__alignof__(Channel_t), \

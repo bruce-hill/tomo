@@ -29,12 +29,16 @@ PUREFUNC uint64_t Optional$hash(const void *obj, const TypeInfo_t *type);
 PUREFUNC int32_t Optional$compare(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC bool Optional$equal(const void *x, const void *y, const TypeInfo_t *type);
 Text_t Optional$as_text(const void *obj, bool colorize, const TypeInfo_t *type);
+void Optional$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type);
+void Optional$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type);
 
 #define Optional$metamethods ((metamethods_t){ \
     .hash=Optional$hash, \
     .compare=Optional$compare, \
     .equal=Optional$equal, \
     .as_text=Optional$as_text, \
+    .serialize=Optional$serialize, \
+    .deserialize=Optional$deserialize, \
 })
 
 #define Optional$info(_size, _align, t) &((TypeInfo_t){.size=_size, .align=_align, \

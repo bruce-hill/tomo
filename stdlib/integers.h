@@ -25,7 +25,7 @@
 #define DEFINE_INT_TYPE(c_type, type_name, to_attr) \
     typedef struct { \
         c_type i; \
-        bool is_null:1; \
+        bool is_none:1; \
     } Optional ## type_name ## _t; \
     Text_t type_name ## $as_text(const void *i, bool colorize, const TypeInfo_t *type); \
     PUREFUNC int32_t type_name ## $compare(const void *x, const void *y, const TypeInfo_t *type); \
@@ -73,15 +73,20 @@ DEFINE_INT_TYPE(int16_t, Int16, CONSTFUNC)
 DEFINE_INT_TYPE(int8_t,  Int8, CONSTFUNC)
 #undef DEFINE_INT_TYPE
 
-#define NONE_INT64 ((OptionalInt64_t){.is_null=true})
-#define NONE_INT32 ((OptionalInt32_t){.is_null=true})
-#define NONE_INT16 ((OptionalInt16_t){.is_null=true})
-#define NONE_INT8 ((OptionalInt8_t){.is_null=true})
+#define NONE_INT64 ((OptionalInt64_t){.is_none=true})
+#define NONE_INT32 ((OptionalInt32_t){.is_none=true})
+#define NONE_INT16 ((OptionalInt16_t){.is_none=true})
+#define NONE_INT8 ((OptionalInt8_t){.is_none=true})
 
 #define Int64$abs(...) I64(labs(__VA_ARGS__))
 #define Int32$abs(...) I32(abs(__VA_ARGS__))
 #define Int16$abs(...) I16(abs(__VA_ARGS__))
 #define Int8$abs(...) I8(abs(__VA_ARGS__))
+
+void Int64$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo_t*);
+void Int64$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t*);
+void Int32$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo_t*);
+void Int32$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t*);
 
 #define OptionalInt_t Int_t
 

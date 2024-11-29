@@ -4,6 +4,7 @@
 #include <gc.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "text.h"
@@ -50,6 +51,24 @@ PUREFUNC public bool CString$is_none(const void *c_str, const TypeInfo_t*)
     return *(char**)c_str == NULL;
 }
 
+static void CString$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t*)
+{
+    const char *str = *(const char **)obj;
+    int64_t len = (int64_t)strlen(str);
+    Int64$serialize(&len, out, pointers, &Int64$info);
+    fwrite(str, sizeof(char), (size_t)len, out);
+}
+
+static void CString$deserialize(FILE *in, void *out, Array_t *pointers, const TypeInfo_t *)
+{
+    int64_t len = -1;
+    Int64$deserialize(in, &len, pointers, &Int64$info);
+    char *str = GC_MALLOC_ATOMIC((size_t)len+1);
+    fread(str, sizeof(char), (size_t)len, in);
+    str[len+1] = '\0';
+    *(char**)out = str;
+}
+
 public const TypeInfo_t CString$info = {
     .size=sizeof(char*),
     .align=__alignof__(char*),
@@ -59,6 +78,8 @@ public const TypeInfo_t CString$info = {
         .equal=CString$equal,
         .as_text=CString$as_text,
         .is_none=CString$is_none,
+        .serialize=CString$serialize,
+        .deserialize=CString$deserialize,
     },
 };
 
