@@ -703,8 +703,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
         if (update->rhs->tag == Int && is_numeric_type(non_optional(lhs_t))) {
             rhs = compile_int_to_type(env, update->rhs, lhs_t);
         } else if (!promote(env, update->rhs, &rhs, rhs_t, lhs_t)) {
-            if (!(lhs_t->tag == ArrayType && promote(env, update->rhs, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)))
-                code_err(ast, "I can't do operations between %T and %T", lhs_t, rhs_t);
+            code_err(ast, "I can't do operations between %T and %T", lhs_t, rhs_t);
         }
 
         bool lhs_is_optional_num = (lhs_t->tag == OptionalType && Match(lhs_t, OptionalType)->type && Match(lhs_t, OptionalType)->type->tag == NumType);
@@ -804,19 +803,11 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 return CORD_all(lhs, " = Texts(", lhs, ", ", rhs, ");");
             } else if (lhs_t->tag == ArrayType) {
                 CORD padded_item_size = CORD_asprintf("%ld", type_size(Match(lhs_t, ArrayType)->item_type));
-                if (promote(env, update->rhs, &rhs, rhs_t, Match(lhs_t, ArrayType)->item_type)) {
-                    // arr ++= item
-                    if (update->lhs->tag == Var)
-                        return CORD_all("Array$insert(&", lhs, ", stack(", rhs, "), I(0), ", padded_item_size, ");");
-                    else
-                        return CORD_all(lhs, "Array$concat(", lhs, ", Array(", rhs, "), ", padded_item_size, ");");
-                } else {
-                    // arr ++= [...]
-                    if (update->lhs->tag == Var)
-                        return CORD_all("Array$insert_all(&", lhs, ", ", rhs, ", I(0), ", padded_item_size, ");");
-                    else
-                        return CORD_all(lhs, "Array$concat(", lhs, ", ", rhs, ", ", padded_item_size, ");");
-                }
+                // arr ++= [...]
+                if (update->lhs->tag == Var)
+                    return CORD_all("Array$insert_all(&", lhs, ", ", rhs, ", I(0), ", padded_item_size, ");");
+                else
+                    return CORD_all(lhs, "Array$concat(", lhs, ", ", rhs, ", ", padded_item_size, ");");
             } else {
                 code_err(ast, "'++=' is not implemented for %T types", lhs_t);
             }
