@@ -79,6 +79,7 @@ of many language features or the other example programs/modules in
 - [Easy interoperability with C](docs/c-interoperability.md)
 - Support for [POSIX threads](docs/threads.tm) and thread-safe message passing
   queues over [channels](docs/channels.tm).
+- Built-in data serialization and deserialization for datatypes.
 
 ## Dependencies
 

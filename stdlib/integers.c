@@ -369,19 +369,33 @@ static bool Int$is_none(const void *i, const TypeInfo_t*)
     return ((Int_t*)i)->small == 0;
 }
 
-static void Int$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo_t*)
+static void Int$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t*)
 {
-    mpz_t n;
-    mpz_init_set_int(n, *(Int_t*)obj);
-    mpz_out_raw(out, n);
+    Int_t i = *(Int_t*)obj;
+    if (__builtin_expect((i.small & 1), 1)) {
+        fputc(0, out);
+        int64_t i64 = i.small >> 2;
+        Int64$serialize(&i64, out, pointers, &Int64$info);
+    } else {
+        fputc(1, out);
+        mpz_t n;
+        mpz_init_set_int(n, *(Int_t*)obj);
+        mpz_out_raw(out, n);
+    }
 }
 
-static void Int$deserialize(FILE *in, void *obj, Array_t*, const TypeInfo_t*)
+static void Int$deserialize(FILE *in, void *obj, Array_t *pointers, const TypeInfo_t*)
 {
-    mpz_t n;
-    mpz_init(n);
-    mpz_inp_raw(n, in);
-    *(Int_t*)obj = Int$from_mpz(n);
+    if (fgetc(in) == 0) {
+        int64_t i = 0;
+        Int64$deserialize(in, &i, pointers, &Int64$info);
+        *(Int_t*)obj = (Int_t){.small=(i<<2) | 1};
+    } else {
+        mpz_t n;
+        mpz_init(n);
+        mpz_inp_raw(n, in);
+        *(Int_t*)obj = Int$from_mpz(n);
+    }
 }
 
 public const TypeInfo_t Int$info = {
