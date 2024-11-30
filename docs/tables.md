@@ -5,11 +5,6 @@ Map. Tables are efficiently implemented as a hash table that preserves
 insertion order and has fast access to keys and values as array slices. Tables
 support *all* types as both keys and values.
 
-Tables do not support square bracket indexing (`t[key]`), but instead rely on
-the methods `:get(key)` and `:set(key, value)`. This is explicit to avoid
-hiding the fact that table lookups and table insertion are performing function
-calls and have edge conditions like a failure to find an entry.
-
 ## Syntax
 
 Tables are written using `{}` curly braces with `:` colons associating key
@@ -38,21 +33,29 @@ t := {i: 10*i for i in 10 if i mod 2 == 0}
 t := {-1:-10, i: 10*i for i in 10}
 ```
 
-### Getting Values
+## Accessing Values
 
-To get a value from a table, use `:get(key)`, which returns an _optional_
-value, depending on whether it was present in the table or not. For convenience,
-you can use the `!` postifx operator to perform a check to ensure that the value
-was found or error if it wasn't:
+Table values can be accessed with square bracket indexing. The result is an
+optional value:
 
 ```tomo
->> t := {"x":1, "y":2}
->> t:get("x")
+table := {"A": 1, "B": 2}
+>> table["A"]
 = 1 : Int?
->> t:get("????")
+>> table["missing"]
 = NONE : Int?
->> t:get("x")!
-= 1
+```
+
+As with all optional values, you can use the `!` postfix operator to assert
+that the value is non-NONE (and create a runtime error if it is), or you can
+use the `or` operator to provide a fallback value in the case that it's NONE:
+
+```tomo
+>> table["A"]!
+= 1 : Int
+
+>> table["missing"] or -1
+= -1 : Int
 ```
 
 ### Fallback Tables
@@ -63,12 +66,32 @@ is not found in the table itself:
 ```tomo
 t := {"A": 10}
 t2 := {"B": 20; fallback=t}
->> t2:get("A")
-= 10
+>> t2["A"]
+= 10 : Int?
 ```
 
 The fallback is available by the `.fallback` field, which returns an optional
-table value.
+table value:
+
+```tomo
+>> t2.fallback
+= {"A":10} : {Text:Int}?
+>> t.fallback
+= NONE : {Text:Int}?
+```
+
+## Setting Values
+
+You can assign a new key/value mapping or overwrite an existing one using
+`:set(key, value)` or an `=` assignment statement:
+
+```tomo
+t := {"A": 1, "B": 2}
+t["B"] = 222
+t["C"] = 333
+>> t
+= {"A":1, "B":222, "C":333}
+```
 
 ## Length
 

@@ -356,6 +356,15 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
                                 ", ", heap_strf("%ld", ast->start - ast->file->text),
                                 ", ", heap_strf("%ld", ast->end - ast->file->text), ")");
             }
+        } else if (container_t->tag == TableType) {
+            type_t *key_type = Match(container_t, TableType)->key_type;
+            type_t *value_type = Match(container_t, TableType)->value_type;
+            if (index->unchecked)
+                code_err(ast, "Table indexes cannot be unchecked");
+            return CORD_all("*(", compile_type(Type(PointerType, value_type)), ")Table$reserve(",
+                            compile_to_pointer_depth(env, index->indexed, 1, false), ", ",
+                            compile_to_type(env, index->index, Type(PointerType, key_type, .is_view=true)), ", NULL,",
+                            compile_type_info(env, container_t), ")");
         } else {
             code_err(ast, "I don't know how to assign to this target");
         }
@@ -669,6 +678,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
         int64_t i = 1;
         for (ast_list_t *value = assign->values, *target = assign->targets; value && target; value = value->next, target = target->next) {
             type_t *lhs_t = get_type(env, target->ast);
+            if (target->ast->tag == Index && get_type(env, Match(target->ast, Index)->indexed)->tag == TableType)
+                lhs_t = Match(lhs_t, OptionalType)->type;
             env_t *val_env = with_enum_scope(env, lhs_t);
             CORD val = compile_to_type(val_env, value->ast, lhs_t);
             CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(lhs_t), i++, val);
@@ -3566,6 +3577,16 @@ CORD compile(env_t *env, ast_t *ast)
                                 CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
                                 CORD_asprintf("%ld", (int64_t)(indexing->index->end - f->text)),
                                 ")");
+        } else if (container_t->tag == TableType) {
+            type_t *key_type = Match(container_t, TableType)->key_type;
+            type_t *value_type = Match(container_t, TableType)->value_type;
+            if (indexing->unchecked)
+                code_err(ast, "Table indexes cannot be unchecked");
+            return CORD_all("({ ", compile_declaration(Type(PointerType, value_type, .is_view=true), "value"),
+                            " = Table$get(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
+                            compile_to_type(env, indexing->index, Type(PointerType, key_type, .is_view=true)), ", ",
+                            compile_type_info(env, container_t), "); \n"
+                            "value ? ", promote_to_optional(value_type, "*value"), " : ", compile_null(value_type), "; })");
         } else {
             code_err(ast, "Indexing is not supported for type: %T", container_t);
         }

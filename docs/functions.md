@@ -86,10 +86,10 @@ add_cache := @{:add_args:Int}
 
 func add(x, y:Int -> Int):
     args := add_args(x, y)
-    if add_cache:has(args):
-        return add_cache:get(args)
+    if cached := add_cache[args]:
+        return cached
     ret := _add(x, y)
-    add_cache:set(args, ret)
+    add_cache[args] = ret
     return ret
 ```
 

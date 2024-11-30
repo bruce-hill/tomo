@@ -28,7 +28,7 @@ func _get_file_dependencies(file:Path -> {Dependency}):
 func _build_dependency_graph(dep:Dependency, dependencies:@{Dependency:{Dependency}}):
     return if dependencies:has(dep)
 
-    dependencies:set(dep, {:Dependency}) # Placeholder
+    dependencies[dep] = {:Dependency} # Placeholder
 
     dep_deps := when dep is File(path):
         _get_file_dependencies(path)
@@ -50,7 +50,7 @@ func _build_dependency_graph(dep:Dependency, dependencies:@{Dependency:{Dependen
                     module_deps:add(file_dep)
         module_deps[]
 
-    dependencies:set(dep, dep_deps)
+    dependencies[dep] = dep_deps
 
     for dep2 in dep_deps:
         _build_dependency_graph(dep2, dependencies)
@@ -80,7 +80,7 @@ func _draw_tree(dep:Dependency, dependencies:{Dependency:{Dependency}}, already_
     
     child_prefix := prefix ++ (if is_last: "    " else: "│   ")
     
-    children := dependencies:get(dep) or {:Dependency}
+    children := dependencies[dep] or {:Dependency}
     for i,child in children.items:
         is_child_last := (i == children.length)
         _draw_tree(child, dependencies, already_printed, child_prefix, is_child_last)
@@ -89,7 +89,7 @@ func draw_tree(dep:Dependency, dependencies:{Dependency:{Dependency}}):
     printed := @{:Dependency}
     say(_printable_name(dep))
     printed:add(dep)
-    deps := dependencies:get(dep) or {:Dependency}
+    deps := dependencies[dep] or {:Dependency}
     for i,child in deps.items:
         is_child_last := (i == deps.length)
         _draw_tree(child, dependencies, already_printed=printed, is_last=is_child_last)

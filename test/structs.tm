@@ -74,7 +74,7 @@ func main():
 	= Password(...)
 	>> users_by_password := {my_pass:"User1", Password("xxx"):"User2"}
 	= {Password(...):"User1", Password(...):"User2"}
-	>> users_by_password:get(my_pass)!
+	>> users_by_password[my_pass]!
 	= "User1"
 
 	>> CorecursiveA(@CorecursiveB())

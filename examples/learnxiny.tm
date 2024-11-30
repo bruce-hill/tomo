@@ -105,21 +105,21 @@ func main():
 
     # Tables are efficient hash maps
     table := {"one": 1, "two": 2}
-    >> table:get("two")
+    >> table["two"]
     = 2 : Int?
 
     # The value returned is optional because NONE will be returned if the key
     # is not in the table:
-    >> table:get("xxx")!
+    >> table["xxx"]!
     = NONE : Int?
 
     # Optional values can be converted to regular values using `!` (which will
     # create a runtime error if the value is null):
-    >> table:get("two")!
+    >> table["two"]!
     = 2 : Int
 
     # You can also use `or` to provide a fallback value to replace NONE:
-    >> table:get("xxx") or 0
+    >> table["xxx"] or 0
     = 0 : Int
 
     # Empty tables require specifying the key and value types:
@@ -142,9 +142,9 @@ func main():
     # Tables can have a fallback table that's used as a fallback when the key
     # isn't found in the table itself:
     table2 := {"three": 3; fallback=table}
-    >> table2:get("two")!
+    >> table2["two"]!
     = 2
-    >> table2:get("three")!
+    >> table2["three"]!
     = 3
 
     # Tables can also be created with comprehension loops:
@@ -157,7 +157,7 @@ func main():
     # Any types can be used in tables, for example, a table mapping arrays to
     # strings:
     table3 := {[10, 20]: "one", [30, 40, 50]: "two"}
-    >> table3:get([10, 20])!
+    >> table3[[10, 20]]!
     = "one"
 
     # Sets are similar to tables, but they represent an unordered collection of
@@ -294,7 +294,7 @@ func demo_structs():
     = yes
 
     table := {alice: "first", bob: "second"}
-    >> table:get(alice)!
+    >> table[alice]!
     = "first"
 
 

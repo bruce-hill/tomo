@@ -2,15 +2,15 @@ func main():
 	>> t := {"one":1, "two":2}
 	= {"one":1, "two":2}
 
-	>> t:get("one")
+	>> t["one"]
 	= 1 : Int?
-	>> t:get("two")
+	>> t["two"]
 	= 2 : Int?
-	>> t:get("???")
+	>> t["???"]
 	= NONE : Int?
-	>> t:get("one")!
+	>> t["one"]!
 	= 1
-	>> t:get("???") or -1
+	>> t["???"] or -1
 	= -1
 
 	t_str := ""
@@ -32,11 +32,11 @@ func main():
 	>> t2 := {"three":3; fallback=t}
 	= {"three":3; fallback={"one":1, "two":2}}
 
-	>> t2:get("one")
+	>> t2["one"]
 	= 1 : Int?
-	>> t2:get("three")
+	>> t2["three"]
 	= 3 : Int?
-	>> t2:get("???")
+	>> t2["???"]
 	= NONE : Int?
 
 	>> t2.length
@@ -64,11 +64,11 @@ func main():
 
 	do:
 		>> plain := {1:10, 2:20, 3:30}
-		>> plain:get(2)!
+		>> plain[2]!
 		= 20
-		>> plain:get(2)!
+		>> plain[2]!
 		= 20
-		>> plain:get(456) or -999
+		>> plain[456] or -999
 		= -999
 		>> plain:has(2)
 		= yes
@@ -78,6 +78,13 @@ func main():
 		>> fallback := {4:40; fallback=plain}
 		>> fallback:has(1)
 		= yes
-		>> fallback:get(1) or -999
+		>> fallback[1] or -999
 		= 10
+
+	do:
+		>> t4 := {"one": 1}
+		>> t4["one"] = 999
+		>> t4["two"] = 222
+		>> t4
+		= {"one":999, "two":222}
 
