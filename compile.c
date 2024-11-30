@@ -608,10 +608,15 @@ CORD compile_statement(env_t *env, ast_t *ast)
             }
         } else if (test->expr->tag == UpdateAssign) {
             type_t *lhs_t = get_type(env, Match(test->expr, UpdateAssign)->lhs);
+            auto update = Match(test->expr, UpdateAssign);
+            ast_t *update_var = WrapAST(ast, UpdateAssign,
+                .lhs=WrapAST(update->lhs, Index, .indexed=WrapAST(update->lhs, InlineCCode, .code="expr", .type=Type(PointerType, lhs_t))),
+                .op=update->op, .rhs=update->rhs);
             return CORD_asprintf(
-                "test(({%r %r;}), %r, %r, %ld, %ld);",
-                compile_statement(env, test->expr),
-                compile_lvalue(env, Match(test->expr, UpdateAssign)->lhs),
+                "test(({%r = &(%r); %r; *expr;}), %r, %r, %ld, %ld);",
+                compile_declaration(Type(PointerType, lhs_t), "expr"),
+                compile_lvalue(env, update->lhs),
+                compile_statement(env, update_var),
                 compile_type_info(env, lhs_t),
                 CORD_quoted(test->output),
                 (int64_t)(test->expr->start - test->expr->file->text),
@@ -676,6 +681,15 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case UpdateAssign: {
         auto update = Match(ast, UpdateAssign);
+        if (!is_idempotent(update->lhs)) {
+            type_t *lhs_t = get_type(env, update->lhs);
+            return CORD_all("{ ", compile_declaration(Type(PointerType, lhs_t), "update_lhs"), " = &",
+                            compile_lvalue(env, update->lhs), ";\n",
+                            "*update_lhs = ", compile(env, WrapAST(ast, BinaryOp,
+                                                            .lhs=WrapAST(update->lhs, InlineCCode, .code="(*update_lhs)", .type=lhs_t),
+                                                            .op=update->op, .rhs=update->rhs)), "; }");
+        }
+
         CORD lhs = compile_lvalue(env, update->lhs);
 
         CORD method_call = compile_math_method(env, update->op, update->lhs, update->rhs, get_type(env, update->lhs));
