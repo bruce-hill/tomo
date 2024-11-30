@@ -131,16 +131,34 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)
     } else if (info->tag == EnumInfo) {
         for (int t = 0; t < info->EnumInfo.num_tags; t++) {
             NamedType_t named = info->EnumInfo.tags[t];
-            if (streq(arg, named.name)) {
-                if (!named.type || (named.type->tag == StructInfo && named.type->StructInfo.num_fields == 0)) {
-                    *(int32_t*)dest = (t + 1);
+            size_t len = strlen(named.name);
+            if (strncmp(arg, named.name, len) == 0 && (arg[len] == '\0' || arg[len] == ':')) {
+                *(int32_t*)dest = (t + 1);
+
+                // Simple tag (no associated data):
+                if (!named.type || (named.type->tag == StructInfo && named.type->StructInfo.num_fields == 0))
                     return true;
-                } else {
-                    errx(1, "Unsupported type for argument parsing: %k.%s", &t, named.name);
-                }
+
+                // Single-argument tag:
+                if (arg[len] != ':')
+                    errx(1, "Invalid value for %k.%s: %s", &t, named.name, arg);
+                size_t offset = sizeof(int32_t);
+                if (named.type->align > 0 && offset % (size_t)named.type->align > 0)
+                    offset += (size_t)named.type->align - (offset % (size_t)named.type->align);
+                if (!parse_single_arg(named.type, arg + len + 1, dest + offset))
+                    return false;
+                return true;
             }
         }
-        return false;
+        errx(1, "Invalid value for %s: %s", info->EnumInfo.name, arg);
+    } else if (info->tag == StructInfo) {
+        if (info->StructInfo.num_fields == 0)
+            return true;
+        else if (info->StructInfo.num_fields == 1)
+            return parse_single_arg(info->StructInfo.fields[0].type, arg, dest);
+
+        Text_t t = generic_as_text(NULL, false, info);
+        errx(1, "Unsupported multi-argument struct type for argument parsing: %k", &t);
     } else {
         Text_t t = generic_as_text(NULL, false, info);
         errx(1, "Unsupported type for argument parsing: %k", &t);
