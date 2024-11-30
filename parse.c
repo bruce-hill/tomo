@@ -53,9 +53,8 @@ int op_tightness[] = {
 static const char *keywords[] = {
     "yes", "xor", "while", "when", "use", "unless", "struct", "stop", "skip", "return",
     "or", "not", "no", "mod1", "mod", "pass", "lang", "inline", "in", "if",
-    "func", "for", "extern", "enum", "else", "do", "defer", "and", "NONE", "_min_", "_max_",
-    "DESERIALIZE",
-    NULL,
+    "func", "for", "extern", "enum", "else", "do", "deserialize", "defer", "and", "NONE",
+    "_min_", "_max_", NULL,
 };
 
 enum {NORMAL_FUNCTION=0, EXTERN_FUNCTION=1};
@@ -1551,17 +1550,19 @@ PARSER(parse_none) {
 
 PARSER(parse_deserialize) {
     const char *start = pos;
-    if (!match_word(&pos, "DESERIALIZE"))
+    if (!match_word(&pos, "deserialize"))
         return NULL;
 
     spaces(&pos);
-    ast_t *value = expect(ctx, start, &pos, parse_parens, "I expected an expression here");
-
-    spaces(&pos);
-    if (!match(&pos, ":"))
-        parser_err(ctx, pos, pos, "I expected a ':' and a type here");
-
+    expect_str(ctx, start, &pos, "(", "I expected arguments for this `deserialize` call");
+    whitespace(&pos);
+    ast_t *value = expect(ctx, start, &pos, parse_extended_expr, "I expected an expression here");
+    whitespace(&pos);
+    expect_str(ctx, start, &pos, "->", "I expected a `-> Type` for this `deserialize` call so I know what it deserializes to");
+    whitespace(&pos);
     type_ast_t *type = expect(ctx, start, &pos, parse_type, "I couldn't parse the type for this deserialization");
+    whitespace(&pos);
+    expect_closing(ctx, &pos, ")", "I expected a closing ')' for this `deserialize` call");
     return NewAST(ctx->file, start, pos, Deserialize, .value=value, .type=type);
 }
 

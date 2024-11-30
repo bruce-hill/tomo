@@ -25,14 +25,14 @@ because it's a small number.
 
 ## Deserializing 
 
-To deserialize data, you must provide its type explicitly. The current syntax
-is a placeholder, but it looks like this:
+To deserialize data, you must provide its type explicitly using the syntax
+`deserialize(bytes -> Type)`:
 
 ```tomo
 i := 123
 bytes := i:serialized()
 
-roundtripped := DESERIALIZE(bytes):Int
+roundtripped := deserialize(bytes -> Int)
 >> roundtripped
 = 123 :Int
 ```
