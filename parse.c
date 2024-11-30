@@ -1633,8 +1633,8 @@ ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self) {
     const char *start = self->start;
     const char *pos = self->end;
 
-    spaces(&pos);
     if (!match(&pos, ":")) return NULL;
+    if (*pos == ' ') return NULL;
     const char *fn = get_id(&pos);
     if (!fn) return NULL;
     spaces(&pos);
