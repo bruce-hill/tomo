@@ -14,7 +14,7 @@
 
 public Text_t Type$as_text(const void *typeinfo, bool colorize, const TypeInfo_t *type)
 {
-    if (!typeinfo) return Text("TypeInfo_t");
+    if (!typeinfo) return Text("Type");
 
     if (colorize)
         return Text$concat(
