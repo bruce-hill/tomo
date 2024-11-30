@@ -3717,7 +3717,7 @@ CORD compile_type_info(env_t *env, type_t *t)
         type_t *non_optional = Match(t, OptionalType)->type;
         return CORD_asprintf("Optional$info(%zu, %zu, %r)", type_size(t), type_align(t), compile_type_info(env, non_optional));
     }
-    case TypeInfoType: return CORD_all("TypeInfo$info(", CORD_quoted(type_to_cord(Match(t, TypeInfoType)->type)), ")");
+    case TypeInfoType: return CORD_all("Type$info(", CORD_quoted(type_to_cord(Match(t, TypeInfoType)->type)), ")");
     case MemoryType: return "&Memory$info";
     case VoidType: return "&Void$info";
     default:

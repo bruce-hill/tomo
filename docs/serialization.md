@@ -67,3 +67,10 @@ c.next = @Cycle("B", next=c)
 The deserialized version of the data correctly preserves the cycle
 (`roundtrip.next.next == roundtrip`). The representation is also very compact:
 only 9 bytes for the whole thing!
+
+## Unserializable Types
+
+Unfortunately, not all types can be easily serialized. In particular,
+`Thread`s, types, and functions cannot be serialized because their data
+contents cannot be easily converted to portable byte arrays. All other
+datatypes _can_ be serialized.
