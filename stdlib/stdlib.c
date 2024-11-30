@@ -128,6 +128,19 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)
     } else if (info->tag == TextInfo) {
         *(OptionalText_t*)dest = Text$from_str(arg);
         return true;
+    } else if (info->tag == EnumInfo) {
+        for (int t = 0; t < info->EnumInfo.num_tags; t++) {
+            NamedType_t named = info->EnumInfo.tags[t];
+            if (streq(arg, named.name)) {
+                if (!named.type || (named.type->tag == StructInfo && named.type->StructInfo.num_fields == 0)) {
+                    *(int32_t*)dest = (t + 1);
+                    return true;
+                } else {
+                    errx(1, "Unsupported type for argument parsing: %k.%s", &t, named.name);
+                }
+            }
+        }
+        return false;
     } else {
         Text_t t = generic_as_text(NULL, false, info);
         errx(1, "Unsupported type for argument parsing: %k", &t);
