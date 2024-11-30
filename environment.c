@@ -306,7 +306,7 @@ env_t *new_compilation_unit(CORD libname)
             {"minute", "Moment$minute", "func(moment:Moment,timezone=NONE:Text -> Int)"},
             {"minutes_till", "Moment$minutes_till", "func(now,then:Moment -> Num)"},
             {"month", "Moment$month", "func(moment:Moment,timezone=NONE:Text -> Int)"},
-            {"nanosecond", "Moment$nanosecond", "func(moment:Moment,timezone=NONE:Text -> Int)"},
+            {"microsecond", "Moment$microsecond", "func(moment:Moment,timezone=NONE:Text -> Int)"},
             {"new", "Moment$new", "func(year,month,day:Int,hour,minute=0,second=0.0,timezone=NONE:Text -> Moment)"},
             {"parse", "Moment$parse", "func(text:Text, format=\"%Y-%m-%dT%H:%M:%S%z\" -> Moment?)"},
             {"relative", "Moment$relative", "func(moment:Moment,relative_to=Moment.now(),timezone=NONE:Text -> Text)"},

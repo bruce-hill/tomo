@@ -360,6 +360,9 @@ CONVERSION_FUNC(16, 8)
         if (__builtin_expect(!truncate && (num##_t)(int_type##_t)rounded != rounded, 0)) \
             fail("Cannot truncate the " #num " %g to an " #int_type, (double)rounded); \
         return (int_type##_t)rounded; \
+    } \
+    MACROLIKE PUREFUNC num##_t int_type##_to_##num(int_type##_t n) { \
+        return (num##_t)n; \
     }
 
 CONVERSION_FUNC(Num, Int64)

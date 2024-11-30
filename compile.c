@@ -3554,6 +3554,14 @@ CORD compile(env_t *env, ast_t *ast)
             env_t *module_env = Table$str_get(*env->imports, name);
             return compile(module_env, WrapAST(ast, Var, f->field));
         }
+        case MomentType: {
+            if (streq(f->field, "seconds")) {
+                return CORD_all("I64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").tv_sec)");
+            } else if (streq(f->field, "microseconds")) {
+                return CORD_all("I64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").tv_usec)");
+            }
+            code_err(ast, "There is no '%s' field on Moments", f->field);
+        }
         default:
             code_err(ast, "Field accesses are not supported on %T values", fielded_t);
         }

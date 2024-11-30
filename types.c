@@ -638,6 +638,11 @@ type_t *get_field_type(type_t *t, const char *field_name)
         if (streq(field_name, "length")) return INT_TYPE;
         return NULL;
     }
+    case MomentType: {
+        if (streq(field_name, "seconds")) return Type(IntType, .bits=TYPE_IBITS64);
+        else if (streq(field_name, "microseconds")) return Type(IntType, .bits=TYPE_IBITS64);
+        return NULL;
+    }
     case ChannelType: {
         if (streq(field_name, "max_size")) return INT_TYPE;
         return NULL;

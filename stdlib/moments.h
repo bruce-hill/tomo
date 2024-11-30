@@ -26,7 +26,7 @@ Int_t Moment$day_of_year(Moment_t moment, OptionalText_t timezone);
 Int_t Moment$hour(Moment_t moment, OptionalText_t timezone);
 Int_t Moment$minute(Moment_t moment, OptionalText_t timezone);
 Int_t Moment$second(Moment_t moment, OptionalText_t timezone);
-Int_t Moment$nanosecond(Moment_t moment, OptionalText_t timezone);
+Int_t Moment$microsecond(Moment_t moment, OptionalText_t timezone);
 Text_t Moment$format(Moment_t moment, Text_t fmt, OptionalText_t timezone);
 Text_t Moment$date(Moment_t moment, OptionalText_t timezone);
 Text_t Moment$time(Moment_t moment, bool seconds, bool am_pm, OptionalText_t timezone);

@@ -54,7 +54,7 @@ public Moment_t Moment$now(void)
     struct timespec ts;
     if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
         fail("Couldn't get the time!");
-    return (Moment_t){.tv_sec=ts.tv_sec, .tv_usec=ts.tv_nsec};
+    return (Moment_t){.tv_sec=ts.tv_sec, .tv_usec=ts.tv_nsec/1000};
 }
 
 public Moment_t Moment$new(Int_t year, Int_t month, Int_t day, Int_t hour, Int_t minute, double second, OptionalText_t timezone)
@@ -180,7 +180,7 @@ public Int_t Moment$second(Moment_t moment, OptionalText_t timezone)
     return I(info.tm_sec);
 }
 
-public Int_t Moment$nanosecond(Moment_t moment, OptionalText_t timezone)
+public Int_t Moment$microsecond(Moment_t moment, OptionalText_t timezone)
 {
     (void)timezone;
     return I(moment.tv_usec);
