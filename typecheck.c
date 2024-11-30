@@ -1292,6 +1292,7 @@ PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
     case Var: return true;
+    case InlineCCode: return true;
     case FieldAccess: {
         auto access = Match(ast, FieldAccess);
         type_t *fielded_type = get_type(env, access->fielded);

@@ -359,7 +359,7 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
         } else {
             code_err(ast, "I don't know how to assign to this target");
         }
-    } else if (ast->tag == Var || ast->tag == FieldAccess) {
+    } else if (ast->tag == Var || ast->tag == FieldAccess || ast->tag == InlineCCode) {
         return compile(env, ast);
     } else {
         code_err(ast, "I don't know how to assign to this");
@@ -610,7 +610,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             type_t *lhs_t = get_type(env, Match(test->expr, UpdateAssign)->lhs);
             auto update = Match(test->expr, UpdateAssign);
             ast_t *update_var = WrapAST(ast, UpdateAssign,
-                .lhs=WrapAST(update->lhs, Index, .indexed=WrapAST(update->lhs, InlineCCode, .code="expr", .type=Type(PointerType, lhs_t))),
+                .lhs=WrapAST(update->lhs, InlineCCode, .code="(*expr)", .type=lhs_t),
                 .op=update->op, .rhs=update->rhs);
             return CORD_asprintf(
                 "test(({%r = &(%r); %r; *expr;}), %r, %r, %ld, %ld);",
