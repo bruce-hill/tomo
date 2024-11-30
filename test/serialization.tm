@@ -93,3 +93,9 @@ func main():
         >> DESERIALIZE(bytes):Num? == obj
         = yes
 
+    do:
+        cases := [0, -1, 1, 10, 100000, 999999999999999999999999999]
+        for i in cases:
+            >> bytes := i:serialize()
+            >> DESERIALIZE(bytes):Int == i
+            = yes
