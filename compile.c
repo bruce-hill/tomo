@@ -618,6 +618,13 @@ CORD compile_statement(env_t *env, ast_t *ast)
         } else if (test->expr->tag == UpdateAssign) {
             type_t *lhs_t = get_type(env, Match(test->expr, UpdateAssign)->lhs);
             auto update = Match(test->expr, UpdateAssign);
+
+            if (update->lhs->tag == Index) {
+                type_t *indexed = value_type(get_type(env, Match(update->lhs, Index)->indexed));
+                if (indexed->tag == TableType)
+                    code_err(update->lhs, "Update assignments are not currently supported for tables");
+            }
+
             ast_t *update_var = WrapAST(ast, UpdateAssign,
                 .lhs=WrapAST(update->lhs, InlineCCode, .code="(*expr)", .type=lhs_t),
                 .op=update->op, .rhs=update->rhs);
@@ -692,6 +699,13 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case UpdateAssign: {
         auto update = Match(ast, UpdateAssign);
+
+        if (update->lhs->tag == Index) {
+            type_t *indexed = value_type(get_type(env, Match(update->lhs, Index)->indexed));
+            if (indexed->tag == TableType)
+                code_err(update->lhs, "Update assignments are not currently supported for tables");
+        }
+
         if (!is_idempotent(update->lhs)) {
             type_t *lhs_t = get_type(env, update->lhs);
             return CORD_all("{ ", compile_declaration(Type(PointerType, lhs_t), "update_lhs"), " = &",
