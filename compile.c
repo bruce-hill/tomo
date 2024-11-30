@@ -2727,9 +2727,9 @@ CORD compile(env_t *env, ast_t *ast)
         auto call = Match(ast, MethodCall);
         type_t *self_t = get_type(env, call->self);
 
-        if (streq(call->name, "serialize")) {
+        if (streq(call->name, "serialized")) {
             if (call->args)
-                code_err(ast, ":serialize() doesn't take any arguments"); 
+                code_err(ast, ":serialized() doesn't take any arguments"); 
             return CORD_all("generic_serialize((", compile_declaration(self_t, "[1]"), "){",
                             compile(env, call->self), "}, ", compile_type_info(env, self_t), ")");
         }

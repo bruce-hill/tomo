@@ -10,12 +10,12 @@ original value.
 
 ## Serializing
 
-To serialize data, simply call the method `:serialize()` on any value and it
+To serialize data, simply call the method `:serialized()` on any value and it
 will return an array of bytes that encode the value's data:
 
 ```tomo
 value := Int64(5)
->> serialized := value:serialize()
+>> serialized := value:serialized()
 = [0x0A] : [Byte]
 ```
 
@@ -30,7 +30,7 @@ is a placeholder, but it looks like this:
 
 ```tomo
 i := 123
-bytes := i:serialize()
+bytes := i:serialized()
 
 roundtripped := DESERIALIZE(bytes):Int
 >> roundtripped
@@ -58,7 +58,7 @@ c := @Cycle("A")
 c.next = @Cycle("B", next=c)
 >> c
 = @Cycle(name="A", next=@Cycle(name="B", next=@~1))
->> serialized := c:serialize()
+>> serialized := c:serialized()
 = [0x02, 0x02, 0x41, 0x01, 0x04, 0x02, 0x42, 0x01, 0x02] : [Byte]
 >> roundtrip := DESERIALIZE(serialized):@Cycle
 = @Cycle(name="A", next=@Cycle(name="B", next=@~1)) : @Cycle

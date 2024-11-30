@@ -722,10 +722,6 @@ type_t *get_type(env_t *env, ast_t *ast)
     case FunctionCall: {
         auto call = Match(ast, FunctionCall);
 
-        // HACK:
-        if (call->fn->tag == Var && streq(Match(call->fn, Var)->name, "serialize"))
-            return Type(ArrayType, Type(ByteType));
-
         type_t *fn_type_t = get_type(env, call->fn);
         if (!fn_type_t)
             code_err(call->fn, "I couldn't find this function");
@@ -747,7 +743,7 @@ type_t *get_type(env_t *env, ast_t *ast)
     case MethodCall: {
         auto call = Match(ast, MethodCall);
 
-        if (streq(call->name, "serialize"))
+        if (streq(call->name, "serialized")) // Data serialization
             return Type(ArrayType, Type(ByteType));
 
         type_t *self_value_t = value_type(get_type(env, call->self));
