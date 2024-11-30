@@ -93,6 +93,8 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         if (!val_type) code_err(val_type_ast, "I can't figure out what type this is.");
         if (has_view_memory(val_type))
             code_err(val_type_ast, "Tables can't have stack references because the array may outlive the stack frame.");
+        else if (val_type->tag == OptionalType)
+            code_err(ast, "Tables with optional-typed values are not currently supported");
         return Type(TableType, .key_type=key_type, .value_type=val_type);
     }
     case FunctionTypeAST: {
@@ -118,6 +120,8 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         type_t *t = parse_type_ast(env, opt->type);
         if (t->tag == VoidType || t->tag == AbortType || t->tag == ReturnType)
             code_err(ast, "Optional %T types are not supported.", t);
+        else if (t->tag == OptionalType)
+            code_err(ast, "Nested optional types are not currently supported");
         return Type(OptionalType, .type=t);
     }
     case UnknownTypeAST: code_err(ast, "I don't know how to get this type");

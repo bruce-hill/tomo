@@ -2520,6 +2520,9 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *key_t = Match(table_type, TableType)->key_type;
         type_t *value_t = Match(table_type, TableType)->value_type;
 
+        if (value_t->tag == OptionalType)
+            code_err(ast, "Tables whose values are optional (%T) are not currently supported.", value_t);
+
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
             if (entry->ast->tag == Comprehension)
                 goto table_comprehension;

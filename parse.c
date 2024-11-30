@@ -632,10 +632,9 @@ type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos) {
                               "I couldn't parse a pointer type after this point");
     type_ast_t *ptr_type = NewTypeAST(ctx->file, start, pos, PointerTypeAST, .pointed=type, .is_view=is_view);
     spaces(&pos);
-    if (match(&pos, "?"))
-        return NewTypeAST(ctx->file, start, pos, OptionalTypeAST, .type=ptr_type);
-    else
-        return ptr_type;
+    while (match(&pos, "?"))
+        ptr_type = NewTypeAST(ctx->file, start, pos, OptionalTypeAST, .type=ptr_type);
+    return ptr_type;
 }
 
 type_ast_t *parse_type_name(parse_ctx_t *ctx, const char *pos) {
@@ -685,10 +684,9 @@ type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos) {
     if (!type) return NULL;
     pos = type->end;
     spaces(&pos);
-    if (match(&pos, "?"))
-        return NewTypeAST(ctx->file, start, pos, OptionalTypeAST, .type=type);
-    else
-        return type;
+    while (match(&pos, "?"))
+        type = NewTypeAST(ctx->file, start, pos, OptionalTypeAST, .type=type);
+    return type;
 }
 
 PARSER(parse_num) {
