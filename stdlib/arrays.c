@@ -488,7 +488,7 @@ public Array_t Array$concat(Array_t x, Array_t y, int64_t padded_item_size)
     if (y.stride == padded_item_size) {
         memcpy(data + padded_item_size*x.length, y.data, (size_t)(padded_item_size*y.length));
     } else {
-        for (int64_t i = 0; i < x.length; i++)
+        for (int64_t i = 0; i < y.length; i++)
             memcpy(data + (x.length + i)*padded_item_size, y.data + i*padded_item_size, (size_t)padded_item_size);
     }
 
