@@ -1253,7 +1253,7 @@ public Text_t Text$format(const char *fmt, ...)
 
 public Array_t Text$clusters(Text_t text)
 {
-    Array_t clusters = {.atomic=1};
+    Array_t clusters = {};
     for (int64_t i = 1; i <= text.length; i++) {
         Text_t cluster = Text$slice(text, I(i), I(i));
         Array$insert(&clusters, &cluster, I_small(0), sizeof(Text_t));
