@@ -186,12 +186,12 @@ static Table_t *get_closed_vars(env_t *env, ast_t *lambda_ast)
     // Find which variables are captured in the closure:
     env_t *tmp_scope = fresh_scope(body_scope);
     for (ast_list_t *stmt = Match(lambda->body, Block)->statements; stmt; stmt = stmt->next) {
-        bind_statement(tmp_scope, stmt->ast);
         type_t *stmt_type = get_type(tmp_scope, stmt->ast);
         if (stmt->next || (stmt_type->tag == VoidType || stmt_type->tag == AbortType || get_type(tmp_scope, stmt->ast)->tag == ReturnType))
             (void)compile_statement(tmp_scope, stmt->ast);
         else
             (void)compile(tmp_scope, stmt->ast);
+        bind_statement(tmp_scope, stmt->ast);
     }
     return fn_ctx.closed_vars;
 }
@@ -392,8 +392,8 @@ static CORD compile_inline_block(env_t *env, ast_t *ast)
     for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next)
         prebind_statement(env, stmt->ast);
     for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next) {
-        bind_statement(env, stmt->ast);
         code = CORD_all(code, compile_statement(env, stmt->ast), "\n");
+        bind_statement(env, stmt->ast);
     }
     for (deferral_t *deferred = env->deferred; deferred && deferred != prev_deferred; deferred = deferred->next) {
         code = CORD_all(code, compile_statement(deferred->defer_env, deferred->block));
@@ -655,7 +655,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
     case Declare: {
         auto decl = Match(ast, Declare);
-        if (streq(Match(decl->var, Var)->name, "_")) { // Explicit discard
+        const char *name = Match(decl->var, Var)->name;
+        if (streq(name, "_")) { // Explicit discard
             return CORD_all("(void)", compile(env, decl->value), ";");
         } else {
             type_t *t = get_type(env, decl->value);
@@ -667,8 +668,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
                 t = Type(ClosureType, t);
             }
-
-            return CORD_all(compile_declaration(t, CORD_cat("$", Match(decl->var, Var)->name)), " = ", val_code, ";");
+            return CORD_all(compile_declaration(t, CORD_cat("$", name)), " = ", val_code, ";");
         }
     }
     case Assign: {
@@ -2416,7 +2416,6 @@ CORD compile(env_t *env, ast_t *ast)
         for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next)
             prebind_statement(env, stmt->ast);
         for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next) {
-            bind_statement(env, stmt->ast);
             if (stmt->next) {
                 code = CORD_all(code, compile_statement(env, stmt->ast), "\n");
             } else {
@@ -2426,6 +2425,7 @@ CORD compile(env_t *env, ast_t *ast)
                 }
                 code = CORD_all(code, compile(env, stmt->ast), ";\n");
             }
+            bind_statement(env, stmt->ast);
         }
 
         return CORD_cat(code, "})");
@@ -2722,7 +2722,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         CORD userdata;
         if (Table$length(*closed_vars) == 0) {
-            code = CORD_cat(code, "void *userdata)");
+            code = CORD_cat(code, "void *)");
             userdata = "NULL";
         } else {
             userdata = CORD_all("new(", name, "$userdata_t");
@@ -2744,11 +2744,11 @@ CORD compile(env_t *env, ast_t *ast)
 
         CORD body = CORD_EMPTY;
         for (ast_list_t *stmt = Match(lambda->body, Block)->statements; stmt; stmt = stmt->next) {
-            bind_statement(body_scope, stmt->ast);
             if (stmt->next || ret_t->tag == VoidType || ret_t->tag == AbortType || get_type(body_scope, stmt->ast)->tag == ReturnType)
                 body = CORD_all(body, compile_statement(body_scope, stmt->ast), "\n");
             else
                 body = CORD_all(body, compile_statement(body_scope, FakeAST(Return, stmt->ast)), "\n");
+            bind_statement(body_scope, stmt->ast);
         }
         if ((ret_t->tag == VoidType || ret_t->tag == AbortType) && body_scope->deferred)
             body = CORD_all(body, compile_statement(body_scope, FakeAST(Return)), "\n");
