@@ -567,11 +567,18 @@ type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
     if (!key_type) return NULL;
     pos = key_type->end;
     whitespace(&pos);
-    if (!match(&pos, ":")) return NULL;
-    type_ast_t *value_type = expect(ctx, start, &pos, parse_type, "I couldn't parse the rest of this table type");
+    type_ast_t *value_type = NULL;
+    ast_t *default_value = NULL;
+    if (match(&pos, ":")) {
+        value_type = expect(ctx, start, &pos, parse_type, "I couldn't parse the rest of this table type");
+    } else if (match(&pos, "=")) {
+        default_value = expect(ctx, start, &pos, parse_extended_expr, "I couldn't parse the rest of this table type");
+    } else {
+        return NULL;
+    }
     whitespace(&pos);
     expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this table type");
-    return NewTypeAST(ctx->file, start, pos, TableTypeAST, .key=key_type, .value=value_type);
+    return NewTypeAST(ctx->file, start, pos, TableTypeAST, .key=key_type, .value=value_type, .default_value=default_value);
 }
 
 type_ast_t *parse_set_type(parse_ctx_t *ctx, const char *pos) {
@@ -805,13 +812,18 @@ PARSER(parse_table) {
 
     ast_list_t *entries = NULL;
     type_ast_t *key_type = NULL, *value_type = NULL;
+    ast_t *default_value = NULL;
     if (match(&pos, ":")) {
         whitespace(&pos);
         key_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a key type for this table");
         whitespace(&pos);
-        if (!match(&pos, ":"))
+        if (match(&pos, ":")) {
+            value_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse the value type for this table");
+        } else if (match(&pos, "=")) {
+            default_value = expect(ctx, pos-1, &pos, parse_extended_expr, "I couldn't parse the default value for this table");
+        } else {
             return NULL;
-        value_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a value type for this table");
+        }
         whitespace(&pos);
         match(&pos, ",");
     }
@@ -864,7 +876,8 @@ PARSER(parse_table) {
     whitespace(&pos);
     expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this table");
 
-    return NewAST(ctx->file, start, pos, Table, .key_type=key_type, .value_type=value_type, .entries=entries, .fallback=fallback);
+    return NewAST(ctx->file, start, pos, Table, .key_type=key_type, .value_type=value_type,
+                  .default_value=default_value, .entries=entries, .fallback=fallback);
 }
 
 PARSER(parse_set) {

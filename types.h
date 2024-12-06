@@ -91,6 +91,7 @@ struct type_s {
         } SetType;
         struct {
             type_t *key_type, *value_type;
+            ast_t *default_value;
         } TableType;
         struct {
             arg_t *args;

@@ -83,19 +83,25 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         return Type(ChannelType, .item_type=item_t);
     }
     case TableTypeAST: {
-        type_ast_t *key_type_ast = Match(ast, TableTypeAST)->key;
+        auto table_type = Match(ast, TableTypeAST);
+        type_ast_t *key_type_ast = table_type->key;
         type_t *key_type = parse_type_ast(env, key_type_ast);
         if (!key_type) code_err(key_type_ast, "I can't figure out what type this is.");
         if (has_view_memory(key_type))
             code_err(key_type_ast, "Tables can't have stack references because the array may outlive the stack frame.");
-        type_ast_t *val_type_ast = Match(ast, TableTypeAST)->value;
-        type_t *val_type = parse_type_ast(env, val_type_ast);
-        if (!val_type) code_err(val_type_ast, "I can't figure out what type this is.");
-        if (has_view_memory(val_type))
-            code_err(val_type_ast, "Tables can't have stack references because the array may outlive the stack frame.");
-        else if (val_type->tag == OptionalType)
-            code_err(ast, "Tables with optional-typed values are not currently supported");
-        return Type(TableType, .key_type=key_type, .value_type=val_type);
+        if (table_type->value) {
+            type_t *val_type = parse_type_ast(env, table_type->value);
+            if (!val_type) code_err(table_type->value, "I can't figure out what type this is.");
+            if (has_view_memory(val_type))
+                code_err(table_type->value, "Tables can't have stack references because the array may outlive the stack frame.");
+            else if (val_type->tag == OptionalType)
+                code_err(ast, "Tables with optional-typed values are not currently supported");
+            return Type(TableType, .key_type=key_type, .value_type=val_type);
+        } else if (table_type->default_value) {
+            return Type(TableType, .key_type=key_type, .default_value=table_type->default_value);
+        } else {
+            code_err(ast, "No value type or default value!");
+        }
     }
     case FunctionTypeAST: {
         auto fn = Match(ast, FunctionTypeAST);
@@ -634,6 +640,9 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (table->key_type && table->value_type) {
             key_type = parse_type_ast(env, table->key_type);
             value_type = parse_type_ast(env, table->value_type);
+        } else if (table->key_type && table->default_value) {
+            key_type = parse_type_ast(env, table->key_type);
+            value_type = get_type(env, table->default_value);
         } else {
             for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
                 ast_t *entry_ast = entry->ast;
@@ -666,7 +675,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         }
         if (has_view_memory(key_type) || has_view_memory(value_type))
             code_err(ast, "Tables cannot hold stack references because the table may outlive the reference's stack frame.");
-        return Type(TableType, .key_type=key_type, .value_type=value_type);
+        return Type(TableType, .key_type=key_type, .value_type=value_type, .default_value=table->default_value);
     }
     case TableEntry: {
         code_err(ast, "Table entries should not be typechecked directly");
@@ -720,7 +729,13 @@ type_t *get_type(env_t *env, ast_t *ast)
                 return Match(value_t, ArrayType)->item_type;
             code_err(indexing->index, "I only know how to index lists using integers, not %T", index_t);
         } else if (value_t->tag == TableType) {
-            return Type(OptionalType, Match(value_t, TableType)->value_type);
+            auto table_type = Match(value_t, TableType);
+            if (table_type->default_value)
+                return get_type(env, table_type->default_value);
+            else if (table_type->value_type)
+                return Type(OptionalType, table_type->value_type);
+            else
+                code_err(indexing->indexed, "This type doesn't have a value type or a default value");
         } else {
             code_err(ast, "I don't know how to index %T values", indexed_t);
         }
@@ -1028,10 +1043,10 @@ type_t *get_type(env_t *env, ast_t *ast)
             if (!type_eq(lhs_t, rhs_t))
                 code_err(ast, "The type on the left side of this concatenation doesn't match the right side: %T vs. %T",
                              lhs_t, rhs_t);
-            if (lhs_t->tag == ArrayType || lhs_t->tag == TextType)
+            if (lhs_t->tag == ArrayType || lhs_t->tag == TextType || lhs_t->tag == SetType)
                 return lhs_t;
 
-            code_err(ast, "Only array/text value types support concatenation, not %T", lhs_t);
+            code_err(ast, "Only array/set/text value types support concatenation, not %T", lhs_t);
         }
         case BINOP_EQ: case BINOP_NE: case BINOP_LT: case BINOP_LE: case BINOP_GT: case BINOP_GE: {
             if (!can_promote(lhs_t, rhs_t) && !can_promote(rhs_t, lhs_t))

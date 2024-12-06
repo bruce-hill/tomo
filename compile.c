@@ -357,6 +357,17 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
                                 ", ", heap_strf("%ld", ast->end - ast->file->text), ")");
             }
         } else if (container_t->tag == TableType) {
+            auto table_type = Match(container_t, TableType);
+            if (table_type->default_value) {
+                type_t *value_type = get_type(env, table_type->default_value);
+                return CORD_all("*Table$get_or_setdefault(",
+                                compile_lvalue(env, index->indexed), ", ",
+                                compile_type(table_type->key_type), ", ",
+                                compile_type(value_type), ", ",
+                                compile(env, index->index), ", ",
+                                compile(env, table_type->default_value), ", ",
+                                compile_type_info(env, container_t), ")");
+            }
             type_t *key_type = Match(container_t, TableType)->key_type;
             type_t *value_type = Match(container_t, TableType)->value_type;
             if (index->unchecked)
@@ -581,6 +592,9 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (!assign->targets->next && assign->targets->ast->tag == Var && is_idempotent(assign->targets->ast)) {
                 // Common case: assigning to one variable:
                 type_t *lhs_t = get_type(env, assign->targets->ast);
+                if (assign->targets->ast->tag == Index && lhs_t->tag == OptionalType
+                    && value_type(get_type(env, Match(assign->targets->ast, Index)->indexed))->tag == TableType)
+                    lhs_t = Match(lhs_t, OptionalType)->type;
                 env_t *val_scope = with_enum_scope(env, lhs_t);
                 CORD value = compile_to_type(val_scope, assign->values->ast, lhs_t);
                 return CORD_asprintf(
@@ -598,18 +612,24 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 CORD code = "test(({ // Assignment\n";
 
                 int64_t i = 1;
+                type_t *first_type = NULL;
                 for (ast_list_t *target = assign->targets, *value = assign->values; target && value; target = target->next, value = value->next) {
-                    type_t *target_type = get_type(env, target->ast);
-                    env_t *val_scope = with_enum_scope(env, target_type);
-                    CORD val_code = compile_to_type(val_scope, value->ast, target_type);
-                    CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(target_type), i++, val_code);
+                    type_t *lhs_t = get_type(env, target->ast);
+                    if (target->ast->tag == Index && lhs_t->tag == OptionalType
+                        && value_type(get_type(env, Match(target->ast, Index)->indexed))->tag == TableType)
+                        lhs_t = Match(lhs_t, OptionalType)->type;
+                    if (target == assign->targets)
+                        first_type = lhs_t;
+                    env_t *val_scope = with_enum_scope(env, lhs_t);
+                    CORD val_code = compile_to_type(val_scope, value->ast, lhs_t);
+                    CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(lhs_t), i++, val_code);
                 }
                 i = 1;
                 for (ast_list_t *target = assign->targets; target; target = target->next)
                     code = CORD_all(code, compile_assignment(env, target->ast, CORD_asprintf("$%ld", i++)), ";\n");
 
                 CORD_appendf(&code, "$1; }), %r, %r, %ld, %ld);",
-                    compile_type_info(env, get_type(env, assign->targets->ast)),
+                    compile_type_info(env, first_type),
                     CORD_quoted(test->output),
                     (int64_t)(test->expr->start - test->expr->file->text),
                     (int64_t)(test->expr->end - test->expr->file->text));
@@ -621,7 +641,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
             if (update->lhs->tag == Index) {
                 type_t *indexed = value_type(get_type(env, Match(update->lhs, Index)->indexed));
-                if (indexed->tag == TableType)
+                if (indexed->tag == TableType && Match(indexed, TableType)->default_value == NULL)
                     code_err(update->lhs, "Update assignments are not currently supported for tables");
             }
 
@@ -674,8 +694,11 @@ CORD compile_statement(env_t *env, ast_t *ast)
     case Assign: {
         auto assign = Match(ast, Assign);
         // Single assignment, no temp vars needed:
-        if (assign->targets && !assign->targets->next && is_idempotent(assign->targets->ast)) {
+        if (assign->targets && !assign->targets->next) {
             type_t *lhs_t = get_type(env, assign->targets->ast);
+            if (assign->targets->ast->tag == Index && lhs_t->tag == OptionalType
+                && value_type(get_type(env, Match(assign->targets->ast, Index)->indexed))->tag == TableType)
+                lhs_t = Match(lhs_t, OptionalType)->type;
             env_t *val_env = with_enum_scope(env, lhs_t);
             CORD val = compile_to_type(val_env, assign->values->ast, lhs_t);
             return CORD_all(compile_assignment(env, assign->targets->ast, val), ";\n");
@@ -685,7 +708,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
         int64_t i = 1;
         for (ast_list_t *value = assign->values, *target = assign->targets; value && target; value = value->next, target = target->next) {
             type_t *lhs_t = get_type(env, target->ast);
-            if (target->ast->tag == Index && get_type(env, Match(target->ast, Index)->indexed)->tag == TableType)
+            if (target->ast->tag == Index && lhs_t->tag == OptionalType
+                && value_type(get_type(env, Match(target->ast, Index)->indexed))->tag == TableType)
                 lhs_t = Match(lhs_t, OptionalType)->type;
             env_t *val_env = with_enum_scope(env, lhs_t);
             CORD val = compile_to_type(val_env, value->ast, lhs_t);
@@ -702,7 +726,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
         if (update->lhs->tag == Index) {
             type_t *indexed = value_type(get_type(env, Match(update->lhs, Index)->indexed));
-            if (indexed->tag == TableType)
+            if (indexed->tag == TableType && Match(indexed, TableType)->default_value == NULL)
                 code_err(update->lhs, "Update assignments are not currently supported for tables");
         }
 
@@ -1826,7 +1850,35 @@ CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t 
         }
         break;
     }
-    case BINOP_PLUS: case BINOP_MINUS: case BINOP_AND: case BINOP_OR: case BINOP_XOR: {
+    case BINOP_OR: case BINOP_CONCAT: {
+        type_t *lhs_value_t = value_type(lhs_t);
+        arg_t *arg_spec = new(arg_t, .type=lhs_value_t, .next=new(arg_t, .type=lhs_value_t));
+        if (lhs_value_t->tag == SetType) {
+            return CORD_all("Table$with(", compile_arguments(env, lhs, arg_spec, args),
+                            ", ", compile_type_info(env, lhs_value_t), ")");
+        }
+        goto fallthrough;
+    }
+    case BINOP_AND: {
+        type_t *lhs_value_t = value_type(lhs_t);
+        arg_t *arg_spec = new(arg_t, .type=lhs_value_t, .next=new(arg_t, .type=lhs_value_t));
+        if (lhs_value_t->tag == SetType) {
+            return CORD_all("Table$overlap(", compile_arguments(env, lhs, arg_spec, args),
+                            ", ", compile_type_info(env, lhs_value_t), ")");
+        }
+        goto fallthrough;
+    }
+    case BINOP_MINUS: {
+        type_t *lhs_value_t = value_type(lhs_t);
+        arg_t *arg_spec = new(arg_t, .type=lhs_value_t, .next=new(arg_t, .type=lhs_value_t));
+        if (lhs_value_t->tag == SetType) {
+            return CORD_all("Table$without(", compile_arguments(env, lhs, arg_spec, args),
+                            ", ", compile_type_info(env, lhs_value_t), ")");
+        }
+        goto fallthrough;
+    }
+    case BINOP_PLUS: case BINOP_XOR: {
+      fallthrough:
         if (type_eq(lhs_t, rhs_t)) {
             binding_t *b = get_namespace_binding(env, lhs, binop_method_names[op]);
             if (binding_works(b, lhs_t, rhs_t, lhs_t))
@@ -3600,15 +3652,30 @@ CORD compile(env_t *env, ast_t *ast)
                                 CORD_asprintf("%ld", (int64_t)(indexing->index->end - f->text)),
                                 ")");
         } else if (container_t->tag == TableType) {
-            type_t *key_type = Match(container_t, TableType)->key_type;
-            type_t *value_type = Match(container_t, TableType)->value_type;
+            auto table_type = Match(container_t, TableType);
             if (indexing->unchecked)
                 code_err(ast, "Table indexes cannot be unchecked");
-            return CORD_all("({ ", compile_declaration(Type(PointerType, value_type, .is_view=true), "value"),
-                            " = Table$get(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
-                            compile_to_type(env, indexing->index, Type(PointerType, key_type, .is_view=true)), ", ",
-                            compile_type_info(env, container_t), "); \n"
-                            "value ? ", promote_to_optional(value_type, "*value"), " : ", compile_null(value_type), "; })");
+            if (table_type->default_value) {
+                type_t *value_type = get_type(env, table_type->default_value);
+                return CORD_all("Table$get_or_default(",
+                                compile(env, indexing->indexed), ", ",
+                                compile_type(table_type->key_type), ", ",
+                                compile_type(value_type), ", ",
+                                compile(env, indexing->index), ", ",
+                                compile(env, table_type->default_value), ", ",
+                                compile_type_info(env, container_t), ")");
+            } else if (table_type->value_type) {
+                return CORD_all("Table$get_optional(",
+                                compile(env, indexing->indexed), ", ",
+                                compile_type(table_type->key_type), ", ",
+                                compile_type(table_type->value_type), ", ",
+                                compile(env, indexing->index), ", "
+                                "_, ", promote_to_optional(table_type->value_type, "(*_)"), ", ",
+                                compile_null(table_type->value_type), ", ",
+                                compile_type_info(env, container_t), ")");
+            } else {
+                code_err(indexing->index, "This table doesn't have a value type or a default value");
+            }
         } else {
             code_err(ast, "Indexing is not supported for type: %T", container_t);
         }

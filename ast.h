@@ -106,6 +106,7 @@ struct type_ast_s {
         } ArrayTypeAST, ChannelTypeAST;
         struct {
             type_ast_t *key, *value;
+            ast_t *default_value;
         } TableTypeAST;
         struct {
             type_ast_t *item;
@@ -211,6 +212,7 @@ struct ast_s {
         } Set;
         struct {
             type_ast_t *key_type, *value_type;
+            ast_t *default_value;
             ast_t *fallback;
             ast_list_t *entries;
         } Table;

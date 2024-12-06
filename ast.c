@@ -123,6 +123,7 @@ CORD ast_to_xml(ast_t *ast)
       ast_list_to_xml(data.items))
     T(Table, "<Table>%r%r%r%r</Table>",
       optional_tagged_type("key-type", data.key_type), optional_tagged_type("value-type", data.value_type),
+      optional_tagged("default-value", data.default_value),
       ast_list_to_xml(data.entries), optional_tagged("fallback", data.fallback))
     T(TableEntry, "<TableEntry>%r%r</TableEntry>", ast_to_xml(data.key), ast_to_xml(data.value))
     T(Channel, "<Channel>%r%r</Channel>", type_ast_to_xml(data.item_type), optional_tagged("max-size", data.max_size))
