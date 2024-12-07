@@ -5,7 +5,7 @@ func main():
 	= 60 : Int?
 
 	>> (+: [:Int])
-	= NONE : Int?
+	= none : Int?
 
 	>> (+: [10, 20, 30]) or 0
 	= 60
@@ -37,7 +37,7 @@ func main():
 	= yes
 
 	>> (<=: [:Int])
-	= NONE : Bool?
+	= none : Bool?
 
 	>> (<=: [5, 4, 3, 2, 1])!
 	= no

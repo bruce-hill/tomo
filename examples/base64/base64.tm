@@ -59,10 +59,10 @@ lang Base64:
             output[dest+2] = _EQUAL_BYTE
             output[dest+3] = _EQUAL_BYTE
 
-        return Base64.without_escaping(Text.from_bytes(output) or return NONE)
+        return Base64.without_escaping(Text.from_bytes(output) or return none)
 
     func decode_text(b64:Base64 -> Text?):
-        return Text.from_bytes(b64:decode_bytes() or return NONE)
+        return Text.from_bytes(b64:decode_bytes() or return none)
 
     func decode_bytes(b64:Base64 -> [Byte]?):
         bytes := b64.text_content:bytes()

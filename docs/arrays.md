@@ -366,7 +366,7 @@ The index of the first occurrence or `!Int` if not found.
 = 2 : Int?
 
 >> [10, 20, 30, 40, 50]:find(9999)
-= NONE : Int?
+= none : Int?
 ```
 
 ---
@@ -396,7 +396,7 @@ item matches.
 >> [4, 5, 6]:find(func(i:&Int): i:is_prime())
 = 5 : Int?
 >> [4, 6, 8]:find(func(i:&Int): i:is_prime())
-= NONE : Int?
+= none : Int?
 ```
 
 ---

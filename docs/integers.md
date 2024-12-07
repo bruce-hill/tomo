@@ -220,7 +220,7 @@ func parse(text: Text -> Int?)
 **Returns:**  
 The integer represented by the text. If the given text contains a value outside
 of the representable range or if the entire text can't be parsed as an integer,
-`NONE` will be returned.
+`none` will be returned.
 
 **Example:**  
 ```tomo
@@ -231,11 +231,11 @@ of the representable range or if the entire text can't be parsed as an integer,
 
 # Can't parse:
 >> Int.parse("asdf")
-= NONE : Int?
+= none : Int?
 
 # Outside valid range:
 >> Int8.parse("9999999")
-= NONE : Int8?
+= none : Int8?
 ```
 
 ---

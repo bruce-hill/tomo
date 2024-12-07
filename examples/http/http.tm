@@ -78,7 +78,7 @@ func _send(method:_Method, url:Text, data:Text?, headers=[:Text] -> HTTPResponse
     return HTTPResponse(Int(code), "":join(chunks))
 
 func get(url:Text, headers=[:Text] -> HTTPResponse):
-    return _send(GET, url, NONE, headers)
+    return _send(GET, url, none, headers)
 
 func post(url:Text, data="", headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):
     return _send(POST, url, data, headers)
@@ -89,7 +89,7 @@ func put(url:Text, data="", headers=["Content-Type: application/json", "Accept: 
 func patch(url:Text, data="", headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):
     return _send(PATCH, url, data, headers)
 
-func delete(url:Text, data=NONE:Text, headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):
+func delete(url:Text, data=none:Text, headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):
     return _send(DELETE, url, data, headers)
 
 func main():

@@ -6,7 +6,7 @@ behavior that is required for all types:
 - `func as_text(obj:&T?, colorize=no, type:&TypeInfo_t -> Text)`: a method to
   convert the type to a string. If `colorize` is `yes`, then the method should
   include ANSI escape codes for syntax highlighting. If the `obj` pointer is
-  `NONE`, a string representation of the type will be returned instead.
+  `none`, a string representation of the type will be returned instead.
 
 - `func compare(x:&T, y:&T, type:&TypeInfo_t -> Int32)`: Return an integer representing
   the result of comparing `x` and `y`, where negative numbers mean `x` is less

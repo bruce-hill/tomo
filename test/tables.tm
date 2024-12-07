@@ -7,7 +7,7 @@ func main():
 	>> t["two"]
 	= 2 : Int?
 	>> t["???"]
-	= NONE : Int?
+	= none : Int?
 	>> t["one"]!
 	= 1
 	>> t["???"] or -1
@@ -22,7 +22,7 @@ func main():
 	>> t.length
 	= 2
 	>> t.fallback
-	= NONE : {Text:Int}?
+	= none : {Text:Int}?
 
 	>> t.keys
 	= ["one", "two"]
@@ -37,7 +37,7 @@ func main():
 	>> t2["three"]
 	= 3 : Int?
 	>> t2["???"]
-	= NONE : Int?
+	= none : Int?
 
 	>> t2.length
 	= 1

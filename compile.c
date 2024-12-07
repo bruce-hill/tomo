@@ -74,7 +74,7 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
     if (needed->tag == NumType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == NumType) {
         *code = CORD_all("({ ", compile_declaration(actual, "opt"), " = ", *code, "; ",
                          "if unlikely (", check_none(actual, "opt"), ")\n",
-                        CORD_asprintf("fail_source(%r, %ld, %ld, \"This was expected to be a value, but it's NONE\");\n",
+                        CORD_asprintf("fail_source(%r, %ld, %ld, \"This was expected to be a value, but it's none\");\n",
                                       CORD_quoted(ast->file->filename),
                                       (long)(ast->start - ast->file->text),
                                       (long)(ast->end - ast->file->text)),
@@ -470,7 +470,7 @@ static CORD compile_condition(env_t *env, ast_t *ast)
     } else if (t->tag == OptionalType) {
         return CORD_all("!", check_none(t, compile(env, ast)));
     } else if (t->tag == PointerType) {
-        code_err(ast, "This pointer will always be non-NONE, so it should not be used in a conditional.");
+        code_err(ast, "This pointer will always be non-none, so it should not be used in a conditional.");
     } else {
         code_err(ast, "%T values cannot be used for conditionals", t);
     }
@@ -1991,7 +1991,7 @@ CORD compile_none(type_t *t)
         env_t *enum_env = Match(t, EnumType)->env;
         return CORD_all("((", compile_type(t), "){", namespace_prefix(enum_env, enum_env->namespace), "null})");
     }
-    default: compiler_err(NULL, NULL, NULL, "NONE isn't implemented for this type: %T", t);
+    default: compiler_err(NULL, NULL, NULL, "none isn't implemented for this type: %T", t);
     }
 }
 
@@ -2033,7 +2033,7 @@ CORD compile(env_t *env, ast_t *ast)
     switch (ast->tag) {
     case None: {
         if (!Match(ast, None)->type)
-            code_err(ast, "This 'NONE' needs to specify what type it is using `NONE:Type` syntax");
+            code_err(ast, "This 'none' needs to specify what type it is using `none:Type` syntax");
         type_t *t = parse_type_ast(env, Match(ast, None)->type);
         return compile_none(t);
     }
@@ -2122,7 +2122,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD value_code = compile(env, value);
         return CORD_all("({ ", compile_declaration(t, "opt"), " = ", value_code, "; ",
                         "if unlikely (", check_none(t, "opt"), ")\n",
-                        CORD_asprintf("fail_source(%r, %ld, %ld, \"This was expected to be a value, but it's NONE\");\n",
+                        CORD_asprintf("fail_source(%r, %ld, %ld, \"This was expected to be a value, but it's none\");\n",
                                       CORD_quoted(ast->file->filename),
                                       (long)(value->start - value->file->text),
                                       (long)(value->end - value->file->text)),

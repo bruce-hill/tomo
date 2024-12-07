@@ -162,9 +162,9 @@ func main():
 	>> ["a", "b", "c"]:find("b")
 	= 2 : Int?
 	>> ["a", "b", "c"]:find("XXX")
-	= NONE : Int?
+	= none : Int?
 
 	>> [10, 20]:first(func(i:&Int): i:is_prime())
-	= NONE : Int?
+	= none : Int?
 	>> [4, 5, 6]:first(func(i:&Int): i:is_prime())
 	= 2 : Int?

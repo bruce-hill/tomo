@@ -35,12 +35,12 @@ Optional types are written using a `?` after the type name. So, an optional
 integer would be written as `Int?` and an optional array of texts would be
 written as `[Text]?`.
 
-None can be written explicitly using `NONE` with a type annotation. For
+None can be written explicitly using `none` with a type annotation. For
 example, if you wanted to declare a variable that could be either an integer
-value or `NONE` and initialize it as none, you would write it as:
+value or `none` and initialize it as none, you would write it as:
 
 ```tomo
-x := NONE:Int
+x := none:Int
 ```
 
 Similarly, if you wanted to declare a variable that could be an array of texts
@@ -51,7 +51,7 @@ x := ![Text]
 ```
 
 If you want to declare a variable and initialize it with a non-none value, but
-keep open the possibility of assigning `NONE` later, you can use the postfix
+keep open the possibility of assigning `none` later, you can use the postfix
 `?` operator to indicate that a value is optional:
 
 ```tomo
@@ -62,7 +62,7 @@ x = !Int
 
 ## Type Inference
 
-For convenience, `NONE` can also be written without the explicit type
+For convenience, `none` can also be written without the explicit type
 annotation for any type in situations where the compiler knows what type of
 optional value is expected:
 
@@ -74,12 +74,12 @@ Here are some examples:
 
 ```tomo
 x := 5?
-x = NONE
+x = none
 
 func doop(arg:Int?)->Text?:
-    return NONE
+    return none
 
-doop(NONE)
+doop(none)
 ```
 
 Non-none values can also be automatically promoted to optional values without
@@ -97,7 +97,7 @@ doop(123)
 
 ## None Checking
 
-In addition to using conditionals to check for `NONE`, you can also use `or` to
+In addition to using conditionals to check for `none`, you can also use `or` to
 get a non-none value by either providing an alternative non-none value or by
 providing an early out statement like `return`/`skip`/`stop` or a function with
 an `Abort` type like `fail()` or `exit()`:

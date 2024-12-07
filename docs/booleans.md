@@ -33,5 +33,5 @@ func parse(text: Text -> Bool?)
 >> Bool.parse("no")
 = no : Bool?
 >> Bool.parse("???")
-= NONE : Bool?
+= none : Bool?
 ```

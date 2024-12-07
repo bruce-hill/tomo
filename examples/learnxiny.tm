@@ -108,17 +108,17 @@ func main():
     >> table["two"]
     = 2 : Int?
 
-    # The value returned is optional because NONE will be returned if the key
+    # The value returned is optional because none will be returned if the key
     # is not in the table:
     >> table["xxx"]!
-    = NONE : Int?
+    = none : Int?
 
     # Optional values can be converted to regular values using `!` (which will
     # create a runtime error if the value is null):
     >> table["two"]!
     = 2 : Int
 
-    # You can also use `or` to provide a fallback value to replace NONE:
+    # You can also use `or` to provide a fallback value to replace none:
     >> table["xxx"] or 0
     = 0 : Int
 

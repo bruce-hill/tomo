@@ -53,7 +53,7 @@ public Text_t Optional$as_text(const void *obj, bool colorize, const TypeInfo_t 
         return Text$concat(generic_as_text(obj, colorize, type->OptionalInfo.type), Text("?"));
 
     if (is_none(obj, type->OptionalInfo.type))
-        return colorize ? Text("\x1b[31mNONE\x1b[m") : Text("NONE");
+        return colorize ? Text("\x1b[31mnone\x1b[m") : Text("none");
     return generic_as_text(obj, colorize, type->OptionalInfo.type);
 }
 

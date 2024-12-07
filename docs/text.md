@@ -695,9 +695,9 @@ containing information about the match.
 **Example:**  
 ```tomo
 >> " #one   #two  #three   ":find($/#{id}/, start=-999)
-= NONE : Match?
+= none : Match?
 >> " #one   #two  #three   ":find($/#{id}/, start=999)
-= NONE : Match?
+= none : Match?
 >> " #one   #two  #three   ":find($/#{id}/)
 = Match(text="#one", index=2, captures=["one"]) : Match?
 >> " #one   #two  #three   ":find("{id}", start=6)
@@ -887,7 +887,7 @@ or a null value otherwise.
 **Example:**  
 ```tomo
 >> "hello world":matches($/{id}/)
-= NONE : [Text]?
+= none : [Text]?
 
 >> "hello world":matches($/{id} {id}/)
 = ["hello", "world"] : [Text]?

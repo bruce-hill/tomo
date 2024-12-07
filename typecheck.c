@@ -520,7 +520,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             return Type(OptionalType, .type=NULL);
         type_t *t = parse_type_ast(env, Match(ast, None)->type);
         if (t->tag == OptionalType)
-            code_err(ast, "Nested optional types are not supported. This should be: `NONE:%T`", Match(t, OptionalType)->type);
+            code_err(ast, "Nested optional types are not supported. This should be: `none:%T`", Match(t, OptionalType)->type);
         return Type(OptionalType, .type=t);
     }
     case Bool: {

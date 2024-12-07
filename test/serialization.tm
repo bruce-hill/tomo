@@ -1,5 +1,5 @@
 
-struct Foo(name:Text, next=NONE:@Foo)
+struct Foo(name:Text, next=none:@Foo)
 
 enum MyEnum(Zero, One(x:Int), Two(x:Num, y:Text))
 
@@ -88,7 +88,7 @@ func main():
         = yes
 
     do:
-        >> obj := NONE:Num
+        >> obj := none:Num
         >> bytes := obj:serialized()
         >> deserialize(bytes -> Num?) == obj
         = yes

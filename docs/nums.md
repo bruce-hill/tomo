@@ -26,7 +26,7 @@ differentiate between possibly-NaN values and definitely-not-NaN values.
 
 Tomo has a separate concept for expressing the lack of a defined value:
 optional types. Consequently, Tomo has merged these two concepts, so `NaN` is
-called `NONE` and has the type `Num?` or `Num32?`. In this way, it's no
+called `none` and has the type `Num?` or `Num32?`. In this way, it's no
 different from optional integers or optional arrays. This means that if a
 variable has type `Num`, it is guaranteed to not hold a NaN value. This also
 means that operations which may produce NaN values have a result type of
@@ -36,9 +36,9 @@ values (zero times infinity), and many math functions like `sqrt()` can return
 NaN for some inputs.
 
 Unfortunately, one of the big downsides of optional types is that explicit
-`NONE` handling can be very verbose. To make Nums actually usable, Tomo applies
-very liberal use of type coercion and implicit `NONE` checks when values are
-required to be non-NONE. Here are a few examples:
+`none` handling can be very verbose. To make Nums actually usable, Tomo applies
+very liberal use of type coercion and implicit `none` checks when values are
+required to be non-none. Here are a few examples:
 
 ```tomo
 >> x := 0.0
@@ -46,17 +46,17 @@ required to be non-NONE. Here are a few examples:
 
 y := 1.0
 
-# Division might produce NONE:
+# Division might produce none:
 >> x / y
 = 0 : Num?
 >> x / x
-= NONE : Num?
+= none : Num?
 
-# Optional types and NONE values propagate:
+# Optional types and none values propagate:
 >> x/y + 1 + 2
 = 3 : Num?
 >> x/x + 1 + 2
-= NONE : Num?
+= none : Num?
 
 # Optional Nums can be handled explicitly using `or` and `!`:
 >> x/x or -123
@@ -66,18 +66,18 @@ y := 1.0
 >> (x/y)!
 = 0 : Num
 
-# Assigning to a non-optional variable will do an implicit check for NONE and
-# raise a runtime error if the value is NONE, essentially the same as an
+# Assigning to a non-optional variable will do an implicit check for none and
+# raise a runtime error if the value is none, essentially the same as an
 # implicit `!`:
 x = x/y
 
 func doop(x:Num -> Num):
     # If a function's return type is non-optional and an optional value is
-    # used in a return statement, an implicit NONE check will be inserted and
-    # will error if the value is NONE:
+    # used in a return statement, an implicit none check will be inserted and
+    # will error if the value is none:
     return x / 2
 
-# Function arguments are also implicitly checked for NONE if the given value
+# Function arguments are also implicitly checked for none if the given value
 # is optional and the function needs a non-optional value:
 >> doop(x/y)
 = 0 : Num
@@ -665,7 +665,7 @@ func parse(text: Text -> Num?)
 - `text`: The text containing the number.
 
 **Returns:**
-The number represented by the text or `NONE` if the entire text can't be parsed
+The number represented by the text or `none` if the entire text can't be parsed
 as a number.
 
 **Example:**

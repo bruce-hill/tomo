@@ -85,7 +85,7 @@ func main():
 
     t := PThread.new(func():
         say("In another thread!")
-        item := @NONE:Int
+        item := @none:Int
         while item[] != 30:
             g:guarded(func():
                 while queue.length == 0:

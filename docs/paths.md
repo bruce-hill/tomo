@@ -495,7 +495,7 @@ raised.
 = "Hello" : Text?
 
 >> (./nosuchfile.xxx):read()
-= NONE : Text?
+= none : Text?
 ```
 ---
 
@@ -524,7 +524,7 @@ returned.
 = [72[B], 101[B], 108[B], 108[B], 111[B]] : [Byte]?
 
 >> (./nosuchfile.xxx):read()
-= NONE : [Byte]?
+= none : [Byte]?
 ```
 
 ---

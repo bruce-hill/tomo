@@ -43,12 +43,12 @@ table := {"A": 1, "B": 2}
 >> table["A"]
 = 1 : Int?
 >> table["missing"]
-= NONE : Int?
+= none : Int?
 ```
 
 As with all optional values, you can use the `!` postfix operator to assert
-that the value is non-NONE (and create a runtime error if it is), or you can
-use the `or` operator to provide a fallback value in the case that it's NONE:
+that the value is non-none (and create a runtime error if it is), or you can
+use the `or` operator to provide a fallback value in the case that it's none:
 
 ```tomo
 >> table["A"]!
@@ -77,7 +77,7 @@ table value:
 >> t2.fallback
 = {"A":10} : {Text:Int}?
 >> t.fallback
-= NONE : {Text:Int}?
+= none : {Text:Int}?
 ```
 
 ## Setting Values
@@ -213,7 +213,7 @@ The value associated with the key or null if the key is not found.
 = 1 : Int?
 
 >> t:get("????")
-= NONE : Int?
+= none : Int?
 
 >> t:get("A")!
 = 1 : Int

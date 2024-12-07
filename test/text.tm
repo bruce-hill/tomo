@@ -35,7 +35,7 @@ func main():
 	>> Text.from_bytes([:Byte 0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65])!
 	= "Amélie"
 	>> Text.from_bytes([Byte(0xFF)])
-	= NONE : Text?
+	= none : Text?
 
 	>> amelie2 := "Am$(\U65\U301)lie"
 	>> amelie2:split()
@@ -189,9 +189,9 @@ func main():
 
 	!! Test text:find()
 	>> " one   two  three   ":find($/{id}/, start=-999)
-	= NONE : Match?
+	= none : Match?
 	>> " one   two  three   ":find($/{id}/, start=999)
-	= NONE : Match?
+	= none : Match?
 	>> " one   two  three   ":find($/{id}/)
 	= Match(text="one", index=2, captures=["one"]) : Match?
 	>> " one   two  three   ":find($/{id}/, start=5)
@@ -222,7 +222,7 @@ func main():
 	= ["PENGUIN"]
 
 	>> Text.from_codepoint_names(["not a valid name here buddy"])
-	= NONE : Text?
+	= none : Text?
 
 	>> "one two; three four":find_all($/; {..}/)
 	= [Match(text="; three four", index=8, captures=["three four"])]
@@ -249,11 +249,11 @@ func main():
 	>> "Hello":matches($/{id}/)
 	= ["Hello"] : [Text]?
 	>> "Hello":matches($/{lower}/)
-	= NONE : [Text]?
+	= none : [Text]?
 	>> "Hello":matches($/{upper}/)
-	= NONE : [Text]?
+	= none : [Text]?
 	>> "Hello...":matches($/{id}/)
-	= NONE : [Text]?
+	= none : [Text]?
 
 	if matches := "hello world":matches($/{id} {id}/):
 		>> matches
