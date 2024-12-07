@@ -30,10 +30,10 @@ static CORD compile_maybe_incref(env_t *env, ast_t *ast, type_t *t);
 static CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target);
 static CORD compile_unsigned_type(type_t *t);
 static CORD promote_to_optional(type_t *t, CORD code);
-static CORD compile_null(type_t *t);
+static CORD compile_none(type_t *t);
 static CORD compile_to_type(env_t *env, ast_t *ast, type_t *t);
-static CORD check_null(type_t *t, CORD value);
-static CORD optional_into_nonnull(type_t *t, CORD value);
+static CORD check_none(type_t *t, CORD value);
+static CORD optional_into_nonnone(type_t *t, CORD value);
 
 CORD promote_to_optional(type_t *t, CORD code)
 {
@@ -73,12 +73,12 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
     // Automatic optional checking for nums:
     if (needed->tag == NumType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == NumType) {
         *code = CORD_all("({ ", compile_declaration(actual, "opt"), " = ", *code, "; ",
-                         "if (", check_null(actual, "opt"), ")\n",
+                         "if (__builtin_expect(", check_none(actual, "opt"), ", 0))\n",
                         CORD_asprintf("fail_source(%r, %ld, %ld, \"This value was expected to be non-NONE, but it's NONE!\");\n",
                                       CORD_quoted(ast->file->filename),
                                       (long)(ast->start - ast->file->text),
                                       (long)(ast->end - ast->file->text)),
-                         optional_into_nonnull(actual, "opt"), "; })");
+                         optional_into_nonnone(actual, "opt"), "; })");
         return true;
     }
 
@@ -412,7 +412,7 @@ static CORD compile_inline_block(env_t *env, ast_t *ast)
     return code;
 }
 
-CORD optional_into_nonnull(type_t *t, CORD value)
+CORD optional_into_nonnone(type_t *t, CORD value)
 {
     if (t->tag == OptionalType) t = Match(t, OptionalType)->type;
     switch (t->tag) {
@@ -427,7 +427,7 @@ CORD optional_into_nonnull(type_t *t, CORD value)
     }
 }
 
-CORD check_null(type_t *t, CORD value)
+CORD check_none(type_t *t, CORD value)
 {
     t = Match(t, OptionalType)->type;
     if (t->tag == PointerType || t->tag == FunctionType || t->tag == CStringType
@@ -468,7 +468,7 @@ static CORD compile_condition(env_t *env, ast_t *ast)
     } else if (t->tag == TableType || t->tag == SetType) {
         return CORD_all("(", compile(env, ast), ").entries.length");
     } else if (t->tag == OptionalType) {
-        return CORD_all("!", check_null(t, compile(env, ast)));
+        return CORD_all("!", check_none(t, compile(env, ast)));
     } else if (t->tag == PointerType) {
         code_err(ast, "This pointer will always be non-NONE, so it should not be used in a conditional.");
     } else {
@@ -829,7 +829,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             else if (lhs_t->tag == IntType || lhs_t->tag == ByteType)
                 return CORD_all(lhs, " &= ", rhs, ";");
             else if (lhs_t->tag == OptionalType)
-                return CORD_all("if (!(", check_null(lhs_t, lhs), ")) ", lhs, " = ", promote_to_optional(rhs_t, rhs), ";");
+                return CORD_all("if (!(", check_none(lhs_t, lhs), ")) ", lhs, " = ", promote_to_optional(rhs_t, rhs), ";");
             else
                 code_err(ast, "'or=' is not implemented for %T types", lhs_t);
         }
@@ -839,7 +839,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             else if (lhs_t->tag == IntType || lhs_t->tag == ByteType)
                 return CORD_all(lhs, " |= ", rhs, ";");
             else if (lhs_t->tag == OptionalType)
-                return CORD_all("if (", check_null(lhs_t, lhs), ") ", lhs, " = ", promote_to_optional(rhs_t, rhs), ";");
+                return CORD_all("if (", check_none(lhs_t, lhs), ") ", lhs, " = ", promote_to_optional(rhs_t, rhs), ";");
             else
                 code_err(ast, "'or=' is not implemented for %T types", lhs_t);
         }
@@ -1417,11 +1417,11 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (fn->ret->tag == OptionalType) {
                 // Use an optional variable `cur` for each iteration step, which will be checked for null
                 code = CORD_all(code, compile_declaration(fn->ret, "cur"), ";\n");
-                get_next = CORD_all("(cur=", get_next, ", !", check_null(fn->ret, "cur"), ")");
+                get_next = CORD_all("(cur=", get_next, ", !", check_none(fn->ret, "cur"), ")");
                 if (for_->vars) {
                     naked_body = CORD_all(
                         compile_declaration(Match(fn->ret, OptionalType)->type, CORD_all("$", Match(for_->vars->ast, Var)->name)),
-                        " = ", optional_into_nonnull(fn->ret, "cur"), ";\n",
+                        " = ", optional_into_nonnone(fn->ret, "cur"), ";\n",
                         naked_body);
                 }
                 if (for_->empty) {
@@ -1462,7 +1462,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (cond_t->tag == OptionalType) {
                 set_binding(truthy_scope, Match(var, Var)->name,
                             new(binding_t, .type=Match(cond_t, OptionalType)->type,
-                                .code=optional_into_nonnull(cond_t, compile(truthy_scope, var))));
+                                .code=optional_into_nonnone(cond_t, compile(truthy_scope, var))));
             }
             code = CORD_all(code, compile_statement(truthy_scope, if_->body), ")");
             if (if_->else_body)
@@ -1476,7 +1476,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 truthy_scope = fresh_scope(env);
                 set_binding(truthy_scope, Match(condition, Var)->name,
                             new(binding_t, .type=Match(cond_t, OptionalType)->type,
-                                .code=optional_into_nonnull(cond_t, compile(truthy_scope, condition))));
+                                .code=optional_into_nonnone(cond_t, compile(truthy_scope, condition))));
             }
             code = CORD_all(code, compile_statement(truthy_scope, if_->body));
             if (if_->else_body)
@@ -1631,7 +1631,7 @@ CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
     if (ast->tag == Int && is_numeric_type(t))
         return compile_int_to_type(env, ast, t);
     if (ast->tag == None && Match(ast, None)->type == NULL)
-        return compile_null(t);
+        return compile_none(t);
 
     type_t *actual = get_type(env, ast);
 
@@ -1955,7 +1955,7 @@ static bool string_literal_is_all_ascii(CORD literal)
     return true;
 }
 
-CORD compile_null(type_t *t)
+CORD compile_none(type_t *t)
 {
     if (t->tag == OptionalType)
         t = Match(t, OptionalType)->type;
@@ -2035,7 +2035,7 @@ CORD compile(env_t *env, ast_t *ast)
         if (!Match(ast, None)->type)
             code_err(ast, "This 'NONE' needs to specify what type it is using `NONE:Type` syntax");
         type_t *t = parse_type_ast(env, Match(ast, None)->type);
-        return compile_null(t);
+        return compile_none(t);
     }
     case Bool: return Match(ast, Bool)->b ? "yes" : "no";
     case Moment: {
@@ -2089,7 +2089,7 @@ CORD compile(env_t *env, ast_t *ast)
         else if (t->tag == TextType)
             return CORD_all("(", compile(env, value), " == CORD_EMPTY)");
         else if (t->tag == OptionalType)
-            return check_null(t, compile(env, value));
+            return check_none(t, compile(env, value));
 
         code_err(ast, "I don't know how to negate values of type %T", t);
     }
@@ -2121,12 +2121,12 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *t = get_type(env, value);
         CORD value_code = compile(env, value);
         return CORD_all("({ ", compile_declaration(t, "opt"), " = ", value_code, "; ",
-                        "if (", check_null(t, "opt"), ")\n",
+                        "if (__builtin_expect(", check_none(t, "opt"), ", 0))\n",
                         CORD_asprintf("fail_source(%r, %ld, %ld, \"This value was expected to be non-NONE, but it's NONE!\");\n",
                                       CORD_quoted(ast->file->filename),
                                       (long)(value->start - value->file->text),
                                       (long)(value->end - value->file->text)),
-                        optional_into_nonnull(t, "opt"), "; })");
+                        optional_into_nonnone(t, "opt"), "; })");
     }
     case BinaryOp: {
         auto binop = Match(ast, BinaryOp);
@@ -2140,26 +2140,26 @@ CORD compile(env_t *env, ast_t *ast)
         if (binop->op == BINOP_OR && lhs_t->tag == OptionalType) {
             if (rhs_t->tag == AbortType || rhs_t->tag == ReturnType) {
                 return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop->lhs), "; ",
-                                "if (", check_null(lhs_t, "lhs"), ") ", compile_statement(env, binop->rhs), " ",
-                                optional_into_nonnull(lhs_t, "lhs"), "; })");
+                                "if (", check_none(lhs_t, "lhs"), ") ", compile_statement(env, binop->rhs), " ",
+                                optional_into_nonnone(lhs_t, "lhs"), "; })");
             } else if (rhs_t->tag == OptionalType && type_eq(lhs_t, rhs_t)) {
                 return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop->lhs), "; ",
-                                check_null(lhs_t, "lhs"), " ? ", compile(env, binop->rhs), " : lhs; })");
+                                check_none(lhs_t, "lhs"), " ? ", compile(env, binop->rhs), " : lhs; })");
             } else if (rhs_t->tag != OptionalType && type_eq(Match(lhs_t, OptionalType)->type, rhs_t)) {
                 return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop->lhs), "; ",
-                                check_null(lhs_t, "lhs"), " ? ", compile(env, binop->rhs), " : ",
-                                optional_into_nonnull(lhs_t, "lhs"), "; })");
+                                check_none(lhs_t, "lhs"), " ? ", compile(env, binop->rhs), " : ",
+                                optional_into_nonnone(lhs_t, "lhs"), "; })");
             } else {
                 code_err(ast, "I don't know how to do an 'or' operation between %T and %T", lhs_t, rhs_t);
             }
         } else if (binop->op == BINOP_AND && lhs_t->tag == OptionalType) {
             if (rhs_t->tag == AbortType || rhs_t->tag == ReturnType) {
                 return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop->lhs), "; ",
-                                "if (!", check_null(lhs_t, "lhs"), ") ", compile_statement(env, binop->rhs), " ",
-                                optional_into_nonnull(lhs_t, "lhs"), "; })");
+                                "if (!", check_none(lhs_t, "lhs"), ") ", compile_statement(env, binop->rhs), " ",
+                                optional_into_nonnone(lhs_t, "lhs"), "; })");
             } else if (rhs_t->tag == OptionalType && type_eq(lhs_t, rhs_t)) {
                 return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop->lhs), "; ",
-                                check_null(lhs_t, "lhs"), " ? lhs : ", compile(env, binop->rhs), "; })");
+                                check_none(lhs_t, "lhs"), " ? lhs : ", compile(env, binop->rhs), "; })");
             } else {
                 code_err(ast, "I don't know how to do an 'or' operation between %T and %T", lhs_t, rhs_t);
             }
@@ -3101,7 +3101,7 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all(
                     "Table$get_optional(", self, ", ", compile_type(table->key_type), ", ",
                     compile_type(table->value_type), ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
-                    "_, ", optional_into_nonnull(table->value_type, "(*_)"), ", ", compile_null(table->value_type), ", ",
+                    "_, ", optional_into_nonnone(table->value_type, "(*_)"), ", ", compile_none(table->value_type), ", ",
                     compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "has")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
@@ -3353,7 +3353,7 @@ CORD compile(env_t *env, ast_t *ast)
             condition_code = compile_condition(truthy_scope, var);
             set_binding(truthy_scope, Match(var, Var)->name,
                         new(binding_t, .type=Match(condition_type, OptionalType)->type,
-                            .code=optional_into_nonnull(condition_type, compile(truthy_scope, var))));
+                            .code=optional_into_nonnone(condition_type, compile(truthy_scope, var))));
         } else if (condition->tag == Var) {
             type_t *condition_type = get_type(env, condition);
             condition_code = compile(env, condition);
@@ -3361,7 +3361,7 @@ CORD compile(env_t *env, ast_t *ast)
                 truthy_scope = fresh_scope(env);
                 set_binding(truthy_scope, Match(condition, Var)->name,
                             new(binding_t, .type=Match(condition_type, OptionalType)->type,
-                                .code=optional_into_nonnull(condition_type, compile(truthy_scope, condition))));
+                                .code=optional_into_nonnone(condition_type, compile(truthy_scope, condition))));
             }
         } else {
             condition_code = compile(env, condition);
@@ -3457,7 +3457,7 @@ CORD compile(env_t *env, ast_t *ast)
 
 
             code = CORD_all(code, compile_statement(env, loop), "\nhas_value ? ", promote_to_optional(item_t, superlative),
-                            " : ", compile_null(item_t), ";})");
+                            " : ", compile_none(item_t), ";})");
             return code;
         } else {
             // Accumulator-style reductions like +, ++, *, etc.
@@ -3476,12 +3476,12 @@ CORD compile(env_t *env, ast_t *ast)
                 if (item_t->tag == BoolType)
                     early_out = "if (!reduction) break;";
                 else if (item_t->tag == OptionalType)
-                    early_out = CORD_all("if (", check_null(item_t, "reduction"), ") break;");
+                    early_out = CORD_all("if (", check_none(item_t, "reduction"), ") break;");
             } else if (op == BINOP_OR) {
                 if (item_t->tag == BoolType)
                     early_out = "if (reduction) break;";
                 else if (item_t->tag == OptionalType)
-                    early_out = CORD_all("if (!", check_null(item_t, "reduction"), ") break;");
+                    early_out = CORD_all("if (!", check_none(item_t, "reduction"), ") break;");
             }
 
             ast_t *combination = WrapAST(ast, BinaryOp, .op=op, .lhs=FakeAST(InlineCCode, .code="reduction", .type=item_t), .rhs=item);
@@ -3495,7 +3495,7 @@ CORD compile(env_t *env, ast_t *ast)
                 "}\n");
 
             code = CORD_all(code, compile_statement(env, loop), "\nhas_value ? ", promote_to_optional(item_t, "reduction"),
-                            " : ", compile_null(item_t), ";})");
+                            " : ", compile_none(item_t), ";})");
             return code;
         }
     }
@@ -3668,7 +3668,7 @@ CORD compile(env_t *env, ast_t *ast)
                                 compile_type(table_type->value_type), ", ",
                                 compile(env, indexing->index), ", "
                                 "_, ", promote_to_optional(table_type->value_type, "(*_)"), ", ",
-                                compile_null(table_type->value_type), ", ",
+                                compile_none(table_type->value_type), ", ",
                                 compile_type_info(env, container_t), ")");
             } else {
                 code_err(indexing->index, "This table doesn't have a value type or a default value");
@@ -3921,7 +3921,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                 default_val = promote_to_optional(arg->type, default_val);
             code = CORD_all(code, " = ", default_val);
         } else {
-            code = CORD_all(code, " = ", compile_null(arg->type));
+            code = CORD_all(code, " = ", compile_none(arg->type));
         }
         code = CORD_all(code, ";\n");
         num_args += 1;
@@ -3940,7 +3940,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         CORD arg_code = CORD_all("$", arg->name);
         if (arg->type->tag != OptionalType)
-            arg_code = optional_into_nonnull(arg->type, arg_code);
+            arg_code = optional_into_nonnone(arg->type, arg_code);
 
         code = CORD_all(code, arg_code);
         if (arg->next) code = CORD_all(code, ", ");
