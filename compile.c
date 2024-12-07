@@ -1851,29 +1851,26 @@ CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t 
         break;
     }
     case BINOP_OR: case BINOP_CONCAT: {
-        type_t *lhs_value_t = value_type(lhs_t);
-        arg_t *arg_spec = new(arg_t, .type=lhs_value_t, .next=new(arg_t, .type=lhs_value_t));
-        if (lhs_value_t->tag == SetType) {
+        if (lhs_t->tag == SetType) {
+            arg_t *arg_spec = new(arg_t, .type=lhs_t, .next=new(arg_t, .type=lhs_t));
             return CORD_all("Table$with(", compile_arguments(env, lhs, arg_spec, args),
-                            ", ", compile_type_info(env, lhs_value_t), ")");
+                            ", ", compile_type_info(env, lhs_t), ")");
         }
         goto fallthrough;
     }
     case BINOP_AND: {
-        type_t *lhs_value_t = value_type(lhs_t);
-        arg_t *arg_spec = new(arg_t, .type=lhs_value_t, .next=new(arg_t, .type=lhs_value_t));
-        if (lhs_value_t->tag == SetType) {
+        if (lhs_t->tag == SetType) {
+            arg_t *arg_spec = new(arg_t, .type=lhs_t, .next=new(arg_t, .type=lhs_t));
             return CORD_all("Table$overlap(", compile_arguments(env, lhs, arg_spec, args),
-                            ", ", compile_type_info(env, lhs_value_t), ")");
+                            ", ", compile_type_info(env, lhs_t), ")");
         }
         goto fallthrough;
     }
     case BINOP_MINUS: {
-        type_t *lhs_value_t = value_type(lhs_t);
-        arg_t *arg_spec = new(arg_t, .type=lhs_value_t, .next=new(arg_t, .type=lhs_value_t));
-        if (lhs_value_t->tag == SetType) {
+        if (lhs_t->tag == SetType) {
+            arg_t *arg_spec = new(arg_t, .type=lhs_t, .next=new(arg_t, .type=lhs_t));
             return CORD_all("Table$without(", compile_arguments(env, lhs, arg_spec, args),
-                            ", ", compile_type_info(env, lhs_value_t), ")");
+                            ", ", compile_type_info(env, lhs_t), ")");
         }
         goto fallthrough;
     }
@@ -2220,52 +2217,52 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case BINOP_MULT: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
             return CORD_all("(", lhs, " * ", rhs, ")");
         }
         case BINOP_DIVIDE: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
             return CORD_all("(", lhs, " / ", rhs, ")");
         }
         case BINOP_MOD: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
             return CORD_all("(", lhs, " % ", rhs, ")");
         }
         case BINOP_MOD1: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
             return CORD_all("((((", lhs, ")-1) % (", rhs, ")) + 1)");
         }
         case BINOP_PLUS: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
             return CORD_all("(", lhs, " + ", rhs, ")");
         }
         case BINOP_MINUS: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
             return CORD_all("(", lhs, " - ", rhs, ")");
         }
         case BINOP_LSHIFT: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
             return CORD_all("(", lhs, " << ", rhs, ")");
         }
         case BINOP_RSHIFT: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
             return CORD_all("(", lhs, " >> ", rhs, ")");
         }
         case BINOP_ULSHIFT: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
             return CORD_all("(", compile_type(operand_t), ")((", compile_unsigned_type(lhs_t), ")", lhs, " << ", rhs, ")");
         }
         case BINOP_URSHIFT: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T vs %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
             return CORD_all("(", compile_type(operand_t), ")((", compile_unsigned_type(lhs_t), ")", lhs, " >> ", rhs, ")");
         }
         case BINOP_EQ: {
@@ -2346,7 +2343,7 @@ CORD compile(env_t *env, ast_t *ast)
             else if (operand_t->tag == IntType || operand_t->tag == ByteType)
                 return CORD_all("(", lhs, " & ", rhs, ")");
             else
-                code_err(ast, "The 'and' operator isn't supported for %T and %T", lhs_t, rhs_t);
+                code_err(ast, "The 'and' operator isn't supported between %T and %T values", lhs_t, rhs_t);
         }
         case BINOP_CMP: {
             if (lhs_is_optional_num || rhs_is_optional_num)
@@ -2359,14 +2356,14 @@ CORD compile(env_t *env, ast_t *ast)
             else if (operand_t->tag == IntType || operand_t->tag == ByteType)
                 return CORD_all("(", lhs, " | ", rhs, ")");
             else
-                code_err(ast, "The 'or' operator isn't supported for %T and %T", lhs_t, rhs_t);
+                code_err(ast, "The 'or' operator isn't supported between %T and %T values", lhs_t, rhs_t);
         }
         case BINOP_XOR: {
             // TODO: support optional values in `xor` expressions
             if (operand_t->tag == BoolType || operand_t->tag == IntType || operand_t->tag == ByteType)
                 return CORD_all("(", lhs, " ^ ", rhs, ")");
             else
-                code_err(ast, "The 'xor' operator isn't supported for %T and %T", lhs_t, rhs_t);
+                code_err(ast, "The 'xor' operator isn't supported between %T and %T values", lhs_t, rhs_t);
         }
         case BINOP_CONCAT: {
             switch (operand_t->tag) {
@@ -2381,7 +2378,7 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Array$concat(", lhs, ", ", rhs, ", ", padded_item_size, ")");
             }
             default:
-                code_err(ast, "Concatenation isn't supported for %T types", operand_t);
+                code_err(ast, "Concatenation isn't supported between %T and %T values", lhs_t, rhs_t);
             }
         }
         default: break;
