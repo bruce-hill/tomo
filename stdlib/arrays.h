@@ -13,7 +13,7 @@
 #define Array_get(item_type, arr_expr, index_expr, start, end) *({ \
     const Array_t arr = arr_expr; int64_t index = index_expr; \
     int64_t off = index + (index < 0) * (arr.length + 1) - 1; \
-    if (__builtin_expect(off < 0 || off >= arr.length, 0)) \
+    if (unlikely(off < 0 || off >= arr.length)) \
         fail_source(__SOURCE_FILE__, start, end, "Invalid array index: %s (array has length %ld)\n", Text$as_c_string(Int64$as_text(&index, no, NULL)), arr.length); \
     (item_type*)(arr.data + arr.stride * off);})
 #define Array_get_unchecked(type, x, i) *({ const Array_t arr = x; int64_t index = i; \
@@ -22,7 +22,7 @@
 #define Array_lvalue(item_type, arr_expr, index_expr, padded_item_size, start, end) *({ \
     Array_t *arr = arr_expr; int64_t index = index_expr; \
     int64_t off = index + (index < 0) * (arr->length + 1) - 1; \
-    if (__builtin_expect(off < 0 || off >= arr->length, 0)) \
+    if (unlikely(off < 0 || off >= arr->length)) \
         fail_source(__SOURCE_FILE__, start, end, "Invalid array index: %s (array has length %ld)\n", Text$as_c_string(Int64$as_text(&index, no, NULL)), arr->length); \
     if (arr->data_refcount > 0) \
         Array$compact(arr, padded_item_size); \

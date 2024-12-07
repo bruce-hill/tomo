@@ -187,10 +187,10 @@ public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_le
     // that begin with *prefix* modifiers, so we gotta check for that case:
     synthetic_graphemes[-grapheme_id-1].main_codepoint = length_prefixed[1];
     for (ucs4_t i = 0; i < utf32_len; i++) {
-        if (!__builtin_expect(uc_is_property_prepended_concatenation_mark(length_prefixed[1+i]), 0)) {
-            synthetic_graphemes[-grapheme_id-1].main_codepoint = length_prefixed[1+i];
-            break;
-        }
+        if (unlikely(uc_is_property_prepended_concatenation_mark(length_prefixed[1+i])))
+            continue;
+        synthetic_graphemes[-grapheme_id-1].main_codepoint = length_prefixed[1+i];
+        break;
     }
 
     // Cleanup from unicode API:
@@ -367,7 +367,7 @@ static Text_t concat2(Text_t a, Text_t b)
     if (a.length == 0) return b;
     if (b.length == 0) return a;
 
-    if (__builtin_expect(is_concat_stable(a, b), 1))
+    if (likely(is_concat_stable(a, b)))
         return concat2_assuming_safe(a, b);
 
     // Do full normalization of the last/first characters
@@ -419,7 +419,7 @@ public Text_t Text$_concat(int n, Text_t items[n])
         if (items[i].length == 0)
             continue;
 
-        if (i > 0 && !__builtin_expect(is_concat_stable(items[i-1], items[i]), 1)) {
+        if (i > 0 && unlikely(!is_concat_stable(items[i-1], items[i]))) {
             // Oops, guess this wasn't stable for concatenation, let's break it
             // up into subtasks:
             return concat2(ret, Text$_concat(n-i, &items[i]));

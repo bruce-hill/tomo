@@ -39,6 +39,14 @@
 #define INLINE inline __attribute__ ((always_inline))
 #endif
 
+#ifndef likely
+#define likely(x) (__builtin_expect(!!(x), 1))
+#endif
+
+#ifndef unlikely
+#define unlikely(x) (__builtin_expect(!!(x), 0))
+#endif
+
 // GCC lets you define macro-like functions which are always inlined and never
 // compiled using this combination of flags. See: https://gcc.gnu.org/onlinedocs/gcc/Inline.html
 #ifndef MACROLIKE

@@ -430,7 +430,7 @@ public Array_t Array$by(Array_t array, Int_t int_stride, int64_t padded_item_siz
     int64_t stride = Int_to_Int64(int_stride, false);
     // In the unlikely event that the stride value would be too large to fit in
     // a 15-bit integer, fall back to creating a copy of the array:
-    if (__builtin_expect(array.stride*stride < ARRAY_MIN_STRIDE || array.stride*stride > ARRAY_MAX_STRIDE, 0)) {
+    if (unlikely(array.stride*stride < ARRAY_MIN_STRIDE || array.stride*stride > ARRAY_MAX_STRIDE)) {
         void *copy = NULL;
         int64_t len = (stride < 0 ? array.length / -stride : array.length / stride) + ((array.length % stride) != 0);
         if (len > 0) {
@@ -465,7 +465,7 @@ public Array_t Array$reversed(Array_t array, int64_t padded_item_size)
     // 15-bit integer, fall back to Array$by()'s more general method of copying
     // the array. This should only happen if array.stride is MIN_STRIDE to
     // begin with (very unlikely).
-    if (__builtin_expect(-array.stride < ARRAY_MIN_STRIDE || -array.stride > ARRAY_MAX_STRIDE, 0))
+    if (unlikely(-array.stride < ARRAY_MIN_STRIDE || -array.stride > ARRAY_MAX_STRIDE))
         return Array$by(array, I(-1), padded_item_size);
 
     Array_t reversed = array;

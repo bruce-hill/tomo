@@ -101,7 +101,7 @@ public Bool_t RNG$bool(RNG_t rng, Num_t p)
 
 public Int_t RNG$int(RNG_t rng, Int_t min, Int_t max)
 {
-    if (__builtin_expect(((min.small & max.small) & 1) != 0, 1)) {
+    if (likely(((min.small & max.small) & 1) != 0)) {
         int32_t r = RNG$int32(rng, (int32_t)(min.small >> 2), (int32_t)(max.small >> 2));
         return I_small(r);
     }

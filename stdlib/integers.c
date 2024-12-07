@@ -17,7 +17,7 @@
 #include "types.h"
 
 public Text_t Int$value_as_text(Int_t i) {
-    if (__builtin_expect(i.small & 1, 1)) {
+    if (likely(i.small & 1)) {
         return Text$format("%ld", (i.small)>>2);
     } else {
         char *str = mpz_get_str(NULL, 10, *i.big);
@@ -32,33 +32,35 @@ public Text_t Int$as_text(const void *i, bool colorize, const TypeInfo_t*) {
     return text;
 }
 
-public PUREFUNC int32_t Int$compare(const void *vx, const void *vy, const TypeInfo_t*) {
-    Int_t *x = (Int_t*)vx;
-    Int_t *y = (Int_t*)vy;
-    if (__builtin_expect(((x->small | y->small) & 1) == 0, 0))
-        return x->big == y->big ? 0 : mpz_cmp(*x->big, *y->big);
-    return (x->small > y->small) - (x->small < y->small);
-}
-
 public PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y) {
-    if (__builtin_expect(((x.small | y.small) & 1) == 0, 0))
+    if (likely(x.small & y.small & 1))
+        return (x.small > y.small) - (x.small < y.small);
+    else if (x.small & 1)
+        return -mpz_cmp_si(*y.big, x.small);
+    else if (y.small & 1)
+        return mpz_cmp_si(*x.big, y.small);
+    else
         return x.big == y.big ? 0 : mpz_cmp(*x.big, *y.big);
-    return (x.small > y.small) - (x.small < y.small);
 }
 
-public PUREFUNC bool Int$equal(const void *vx, const void *vy, const TypeInfo_t*) {
-    Int_t *x = (Int_t*)vx;
-    Int_t *y = (Int_t*)vy;
-    return x->small == y->small || (__builtin_expect(((x->small | y->small) & 1) == 0, 0) && mpz_cmp(*x->big, *y->big) == 0);
+public PUREFUNC int32_t Int$compare(const void *x, const void *y, const TypeInfo_t*) {
+    return Int$compare_value(*(Int_t*)x, *(Int_t*)y);
 }
 
 public PUREFUNC bool Int$equal_value(const Int_t x, const Int_t y) {
-    return x.small == y.small || (__builtin_expect(((x.small | y.small) & 1) == 0, 0) && mpz_cmp(*x.big, *y.big) == 0);
+    if (likely((x.small | y.small) & 1))
+        return x.small == y.small;
+    else
+        return x.big == y.big ? 0 : (mpz_cmp(*x.big, *y.big) == 0);
+}
+
+public PUREFUNC bool Int$equal(const void *x, const void *y, const TypeInfo_t*) {
+    return Int$equal_value(*(Int_t*)x, *(Int_t*)y);
 }
 
 public PUREFUNC uint64_t Int$hash(const void *vx, const TypeInfo_t*) {
     Int_t *x = (Int_t*)vx;
-    if (__builtin_expect(x->small & 1, 1)) {
+    if (likely(x->small & 1)) {
         return siphash24((void*)x, sizeof(Int_t));
     } else {
         char *str = mpz_get_str(NULL, 16, *x->big);
@@ -68,7 +70,7 @@ public PUREFUNC uint64_t Int$hash(const void *vx, const TypeInfo_t*) {
 
 public Text_t Int$format(Int_t i, Int_t digits_int) {
     int64_t digits = Int_to_Int64(digits_int, false);
-    if (__builtin_expect(i.small & 1, 1)) {
+    if (likely(i.small & 1)) {
         return Text$format("%0.*ld", digits, (i.small)>>2);
     } else {
         char *str = mpz_get_str(NULL, 10, *i.big);
@@ -91,7 +93,7 @@ public Text_t Int$hex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
         return Text$concat(Text("-"), Int$hex(Int$negative(i), digits_int, uppercase, prefix));
 
     int64_t digits = Int_to_Int64(digits_int, false);
-    if (__builtin_expect(i.small & 1, 1)) {
+    if (likely(i.small & 1)) {
         const char *hex_fmt = uppercase ? (prefix ? "0x%0.*lX" : "%0.*lX") : (prefix ? "0x%0.*lx" : "%0.*lx");
         return Text$format(hex_fmt, digits, (i.small)>>2);
     } else {
@@ -118,7 +120,7 @@ public Text_t Int$octal(Int_t i, Int_t digits_int, bool prefix) {
         return Text$concat(Text("-"), Int$octal(Int$negative(i), digits_int, prefix));
 
     int64_t digits = Int_to_Int64(digits_int, false);
-    if (__builtin_expect(i.small & 1, 1)) {
+    if (likely(i.small & 1)) {
         const char *octal_fmt = prefix ? "0o%0.*lo" : "%0.*lo";
         return Text$format(octal_fmt, digits, (i.small)>>2);
     } else {
@@ -181,7 +183,7 @@ public Int_t Int$slow_divided_by(Int_t dividend, Int_t divisor) {
     mpz_init_set_int(remainder, divisor);
     mpz_tdiv_qr(quotient, remainder, quotient, remainder);
     if (mpz_sgn(remainder) < 0) {
-        bool d_positive = __builtin_expect(divisor.small & 1, 1) ? divisor.small > 0x1 : mpz_sgn(*divisor.big) > 0;
+        bool d_positive = likely(divisor.small & 1) ? divisor.small > 0x1 : mpz_sgn(*divisor.big) > 0;
         if (d_positive)
             mpz_sub_ui(quotient, quotient, 1);
         else
@@ -271,7 +273,7 @@ public Int_t Int$slow_negated(Int_t x)
 
 public Int_t Int$slow_negative(Int_t x)
 {
-    if (__builtin_expect((x.small & 1), 1))
+    if (likely(x.small & 1))
         return (Int_t){.small=4*-((x.small)>>2) + 1};
 
     mpz_t result;
@@ -282,7 +284,7 @@ public Int_t Int$slow_negative(Int_t x)
 
 public Int_t Int$abs(Int_t x)
 {
-    if (__builtin_expect((x.small & 1), 1))
+    if (likely(x.small & 1))
         return (Int_t){.small=4*labs((x.small)>>2) + 1};
 
     mpz_t result;
@@ -294,7 +296,7 @@ public Int_t Int$abs(Int_t x)
 public Int_t Int$power(Int_t base, Int_t exponent)
 {
     int64_t exp = Int_to_Int64(exponent, false);
-    if (__builtin_expect(exp < 0, 0))
+    if (unlikely(exp < 0))
         fail("Cannot take a negative power of an integer!");
     mpz_t result;
     mpz_init_set_int(result, base);
@@ -341,7 +343,7 @@ public bool Int$is_prime(Int_t x, Int_t reps)
 {
     mpz_t p;
     mpz_init_set_int(p, x);
-    if (Int$compare_value(reps, I(9999)) > 0)
+    if (unlikely(Int$compare_value(reps, I(9999)) > 0))
         fail("Number of prime-test repetitions should not be above 9999");
     int reps_int = Int_to_Int32(reps, false);
     return (mpz_probab_prime_p(p, reps_int) != 0);
@@ -359,7 +361,7 @@ public Int_t Int$prev_prime(Int_t x)
 {
     mpz_t p;
     mpz_init_set_int(p, x);
-    if (mpz_prevprime(p, p) == 0)
+    if (unlikely(mpz_prevprime(p, p) == 0))
         fail("There is no prime number before %k", (Text_t[1]){Int$as_text(&x, false, &Int$info)});
     return Int$from_mpz(p);
 }
@@ -372,7 +374,7 @@ static bool Int$is_none(const void *i, const TypeInfo_t*)
 static void Int$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t*)
 {
     Int_t i = *(Int_t*)obj;
-    if (__builtin_expect((i.small & 1), 1)) {
+    if (likely(i.small & 1)) {
         fputc(0, out);
         int64_t i64 = i.small >> 2;
         Int64$serialize(&i64, out, pointers, &Int64$info);

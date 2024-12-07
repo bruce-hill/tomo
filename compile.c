@@ -73,8 +73,8 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
     // Automatic optional checking for nums:
     if (needed->tag == NumType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == NumType) {
         *code = CORD_all("({ ", compile_declaration(actual, "opt"), " = ", *code, "; ",
-                         "if (__builtin_expect(", check_none(actual, "opt"), ", 0))\n",
-                        CORD_asprintf("fail_source(%r, %ld, %ld, \"This value was expected to be non-NONE, but it's NONE!\");\n",
+                         "if unlikely (", check_none(actual, "opt"), ")\n",
+                        CORD_asprintf("fail_source(%r, %ld, %ld, \"This was expected to be a value, but it's NONE\");\n",
                                       CORD_quoted(ast->file->filename),
                                       (long)(ast->start - ast->file->text),
                                       (long)(ast->end - ast->file->text)),
@@ -2121,8 +2121,8 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *t = get_type(env, value);
         CORD value_code = compile(env, value);
         return CORD_all("({ ", compile_declaration(t, "opt"), " = ", value_code, "; ",
-                        "if (__builtin_expect(", check_none(t, "opt"), ", 0))\n",
-                        CORD_asprintf("fail_source(%r, %ld, %ld, \"This value was expected to be non-NONE, but it's NONE!\");\n",
+                        "if unlikely (", check_none(t, "opt"), ")\n",
+                        CORD_asprintf("fail_source(%r, %ld, %ld, \"This was expected to be a value, but it's NONE\");\n",
                                       CORD_quoted(ast->file->filename),
                                       (long)(value->start - value->file->text),
                                       (long)(value->end - value->file->text)),

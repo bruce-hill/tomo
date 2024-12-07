@@ -117,7 +117,7 @@ OptionalInt_t Int$sqrt(Int_t i);
     ))
 
 #define mpz_init_set_int(mpz, i) do { \
-    if (__builtin_expect((i).small & 1, 1)) mpz_init_set_si(mpz, (i).small >> 2); \
+    if likely ((i).small & 1) mpz_init_set_si(mpz, (i).small >> 2); \
     else mpz_init_set(mpz, *(i).big); \
 } while (0)
 
@@ -153,42 +153,42 @@ MACROLIKE PUREFUNC Int_t Int$clamped(Int_t x, Int_t low, Int_t high) {
 
 MACROLIKE Int_t Int$plus(Int_t x, Int_t y) {
     const int64_t z = (int64_t)((uint64_t)x.small + (uint64_t)y.small);
-    if (__builtin_expect(((z|2) == (int32_t)z), 1))
+    if likely ((z|2) == (int32_t)z)
         return (Int_t){.small=(z-1)};
     return Int$slow_plus(x, y);
 }
 
 MACROLIKE Int_t Int$minus(Int_t x, Int_t y) {
     const int64_t z = (int64_t)(((uint64_t)x.small ^ 3) - (uint64_t)y.small);
-    if (__builtin_expect(((z & ~2) == (int32_t)z), 1))
+    if likely ((z & ~2) == (int32_t)z)
         return (Int_t){.small=z};
     return Int$slow_minus(x, y);
 }
 
 MACROLIKE Int_t Int$times(Int_t x, Int_t y) {
-    if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
+    if likely ((x.small & y.small) & 1) {
         const int64_t z = (x.small>>1) * (y.small>>1);
-        if (__builtin_expect(z == (int32_t)z, 1))
+        if likely (z == (int32_t)z)
             return (Int_t){.small=z+1};
     }
     return Int$slow_times(x, y);
 }
 
 MACROLIKE Int_t Int$divided_by(Int_t x, Int_t y) {
-    if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
+    if likely (x.small & y.small & 1) {
         // Euclidean division, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
         const int64_t D = (x.small>>2);
         const int64_t d = (y.small>>2);
         int64_t q = D/d, r = D%d;
         q -= (r < 0) * (2*(d > 0) - 1);
-        if (__builtin_expect(q == (int32_t)q, 1))
+        if likely (q == (int32_t)q)
             return (Int_t){.small=(q<<2)|1};
     }
     return Int$slow_divided_by(x, y);
 }
 
 MACROLIKE Int_t Int$modulo(Int_t x, Int_t y) {
-    if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
+    if likely (x.small & y.small & 1) {
         // Euclidean modulus, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
         const int64_t D = (x.small>>2);
         const int64_t d = (y.small>>2);
@@ -200,7 +200,7 @@ MACROLIKE Int_t Int$modulo(Int_t x, Int_t y) {
 }
 
 MACROLIKE Int_t Int$modulo1(Int_t x, Int_t y) {
-    if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
+    if likely (x.small & y.small & 1) {
         // Euclidean modulus, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
         const int64_t D = (x.small>>2)-1;
         const int64_t d = (y.small>>2);
@@ -212,18 +212,18 @@ MACROLIKE Int_t Int$modulo1(Int_t x, Int_t y) {
 }
 
 MACROLIKE Int_t Int$left_shifted(Int_t x, Int_t y) {
-    if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
+    if likely (x.small & y.small & 1) {
         const int64_t z = ((x.small>>2) << (y.small>>2))<<2;
-        if (__builtin_expect(z == (int32_t)z, 1))
+        if likely (z == (int32_t)z)
             return (Int_t){.small=z+1};
     }
     return Int$slow_left_shifted(x, y);
 }
 
 MACROLIKE Int_t Int$right_shifted(Int_t x, Int_t y) {
-    if (__builtin_expect(((x.small & y.small) & 1) != 0, 1)) {
+    if likely (x.small & y.small & 1) {
         const int64_t z = ((x.small>>2) >> (y.small>>2))<<2;
-        if (__builtin_expect(z == (int32_t)z, 1))
+        if likely (z == (int32_t)z)
             return (Int_t){.small=z+1};
     }
     return Int$slow_right_shifted(x, y);
@@ -231,37 +231,37 @@ MACROLIKE Int_t Int$right_shifted(Int_t x, Int_t y) {
 
 MACROLIKE Int_t Int$bit_and(Int_t x, Int_t y) {
     const int64_t z = x.small & y.small;
-    if (__builtin_expect((z & 1) == 1, 1))
+    if likely (z & 1)
         return (Int_t){.small=z};
     return Int$slow_bit_and(x, y);
 }
 
 MACROLIKE Int_t Int$bit_or(Int_t x, Int_t y) {
-    if (__builtin_expect(((x.small & y.small) & 1) == 1, 1))
+    if likely (x.small & y.small & 1)
         return (Int_t){.small=(x.small | y.small)};
     return Int$slow_bit_or(x, y);
 }
 
 MACROLIKE Int_t Int$bit_xor(Int_t x, Int_t y) {
-    if (__builtin_expect(((x.small & y.small) & 1) == 1, 1))
+    if likely (x.small & y.small & 1)
         return (Int_t){.small=(x.small ^ y.small) | 1};
     return Int$slow_bit_xor(x, y);
 }
 
 MACROLIKE Int_t Int$negated(Int_t x) {
-    if (__builtin_expect((x.small & 1), 1))
+    if likely (x.small & 1)
         return (Int_t){.small=(~x.small) ^ 3};
     return Int$slow_negated(x);
 }
 
 MACROLIKE Int_t Int$negative(Int_t x) {
-    if (__builtin_expect((x.small & 1), 1))
+    if likely (x.small & 1)
         return (Int_t){.small=((-((x.small)>>2))<<2) | 1};
     return Int$slow_negative(x);
 }
 
 MACROLIKE PUREFUNC bool Int$is_negative(Int_t x) {
-    if (__builtin_expect((x.small & 1), 1))
+    if likely (x.small & 1)
         return x.small < 0;
     return Int$compare_value(x, I_small(0)) < 0;
 }
@@ -271,7 +271,7 @@ MACROLIKE PUREFUNC bool Int$is_negative(Int_t x) {
 MACROLIKE Int_t Int64_to_Int(int64_t i)
 {
     int64_t z = i<<2;
-    if (__builtin_expect(z == (int32_t)z, 1))
+    if likely (z == (int32_t)z)
         return (Int_t){.small=z+1};
     mpz_t result;
     mpz_init_set_si(result, i);
@@ -289,9 +289,9 @@ MACROLIKE Int_t Int64_to_Int(int64_t i)
 #define Int8_to_Int16(i, ...) (Int16_t)(i)
 
 MACROLIKE PUREFUNC Int64_t Int_to_Int64(Int_t i, bool truncate) {
-    if (__builtin_expect(i.small & 1, 1))
+    if likely (i.small & 1)
         return (int64_t)(i.small >> 2);
-    if (__builtin_expect(!truncate && !mpz_fits_slong_p(*i.big), 0))
+    if (!truncate && unlikely(!mpz_fits_slong_p(*i.big)))
         fail("Integer is too big to fit in a 64-bit integer!");
     return mpz_get_si(*i.big);
 }
@@ -299,7 +299,7 @@ MACROLIKE PUREFUNC Int64_t Int_to_Int64(Int_t i, bool truncate) {
 MACROLIKE PUREFUNC Int32_t Int_to_Int32(Int_t i, bool truncate) {
     int64_t i64 = Int_to_Int64(i, truncate);
     int32_t i32 = (int32_t)i64;
-    if (__builtin_expect(i64 != i32 && !truncate, 0))
+    if (!truncate && unlikely(i64 != i32))
         fail("Integer is too big to fit in a 32-bit integer!");
     return i32;
 }
@@ -307,7 +307,7 @@ MACROLIKE PUREFUNC Int32_t Int_to_Int32(Int_t i, bool truncate) {
 MACROLIKE PUREFUNC Int16_t Int_to_Int16(Int_t i, bool truncate) {
     int64_t i64 = Int_to_Int64(i, truncate);
     int16_t i16 = (int16_t)i64;
-    if (__builtin_expect(i64 != i16 && !truncate, 0))
+    if (!truncate && unlikely(i64 != i16))
         fail("Integer is too big to fit in a 16-bit integer!");
     return i16;
 }
@@ -315,7 +315,7 @@ MACROLIKE PUREFUNC Int16_t Int_to_Int16(Int_t i, bool truncate) {
 MACROLIKE PUREFUNC Int8_t Int_to_Int8(Int_t i, bool truncate) {
     int64_t i64 = Int_to_Int64(i, truncate);
     int8_t i8 = (int8_t)i64;
-    if (__builtin_expect(i64 != i8 && !truncate, 0))
+    if (!truncate && unlikely(i64 != i8))
         fail("Integer is too big to fit in an 8-bit integer!");
     return i8;
 }
@@ -329,7 +329,7 @@ MACROLIKE PUREFUNC Int_t Num_to_Int(double n)
 
 MACROLIKE PUREFUNC double Int_to_Num(Int_t i)
 {
-    if (__builtin_expect(i.small & 1, 1))
+    if likely (i.small & 1)
         return (double)(i.small >> 2);
 
     return mpz_get_d(*i.big);
@@ -339,7 +339,7 @@ MACROLIKE PUREFUNC double Int_to_Num(Int_t i)
 
 #define CONVERSION_FUNC(hi, lo) \
     MACROLIKE PUREFUNC int##lo##_t Int##hi##_to_Int##lo(int##hi##_t i, bool truncate) { \
-        if (__builtin_expect(!truncate && (i != (int##lo##_t)i), 0)) \
+        if (!truncate && unlikely(i != (int##lo##_t)i)) \
             fail("Cannot truncate the Int" #hi " %ld to an Int" #lo, (int64_t)i); \
         return (int##lo##_t)i; \
     }
@@ -357,7 +357,7 @@ CONVERSION_FUNC(16, 8)
 #define CONVERSION_FUNC(num, int_type) \
     MACROLIKE PUREFUNC int_type##_t num##_to_##int_type(num##_t n, bool truncate) { \
         num##_t rounded = (num##_t)round((double)n); \
-        if (__builtin_expect(!truncate && (num##_t)(int_type##_t)rounded != rounded, 0)) \
+        if (!truncate && unlikely((num##_t)(int_type##_t)rounded != rounded)) \
             fail("Cannot truncate the " #num " %g to an " #int_type, (double)rounded); \
         return (int_type##_t)rounded; \
     } \
