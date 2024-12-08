@@ -39,6 +39,7 @@
     MACROLIKE PUREFUNC c_type type_name ## $clamped(c_type x, c_type min, c_type max) { \
         return x < min ? min : (x > max ? max : x); \
     } \
+    CONSTFUNC c_type type_name ## $gcd(c_type x, c_type y); \
     extern const c_type type_name ## $min, type_name##$max; \
     extern const TypeInfo_t type_name ## $info; \
     MACROLIKE c_type type_name ## $divided_by(c_type D, c_type d) { \
@@ -105,6 +106,7 @@ OptionalInt_t Int$from_str(const char *str);
 OptionalInt_t Int$parse(Text_t text);
 Int_t Int$abs(Int_t x);
 Int_t Int$power(Int_t base, Int_t exponent);
+Int_t Int$gcd(Int_t x, Int_t y);
 OptionalInt_t Int$sqrt(Int_t i);
 
 #define BIGGEST_SMALL_INT ((1<<29)-1)

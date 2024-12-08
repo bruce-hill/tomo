@@ -304,6 +304,22 @@ public Int_t Int$power(Int_t base, Int_t exponent)
     return Int$from_mpz(result);
 }
 
+public Int_t Int$gcd(Int_t x, Int_t y)
+{
+    if (likely(x.small & y.small & 0x1))
+        return I_small(Int32$gcd(x.small >> 2, y.small >> 2));
+
+    mpz_t result;
+    mpz_init(result);
+    if (x.small & 0x1)
+        mpz_gcd_ui(result, *y.big, (uint64_t)labs(x.small>>2));
+    else if (y.small & 0x1)
+        mpz_gcd_ui(result, *x.big, (uint64_t)labs(y.small>>2));
+    else
+        mpz_gcd(result, *x.big, *y.big);
+    return Int$from_mpz(result);
+}
+
 public OptionalInt_t Int$sqrt(Int_t i)
 {
     if (Int$compare_value(i, I(0)) < 0)
@@ -509,6 +525,16 @@ public void Int32$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t
             return (Optional ## KindOfInt ## _t){.is_none=true}; \
         } \
         return (Optional ## KindOfInt ## _t){.i=Int_to_ ## KindOfInt(full_int, true)}; \
+    } \
+    public CONSTFUNC c_type KindOfInt ## $gcd(c_type x, c_type y) { \
+        if (x == 0 || y == 0) return 0; \
+        x = KindOfInt##$abs(x); \
+        y = KindOfInt##$abs(y); \
+        while (x != y) { \
+            if (x > y) x -= y; \
+            else y -= x; \
+        } \
+        return x; \
     } \
     public const c_type KindOfInt##$min = min_val; \
     public const c_type KindOfInt##$max = max_val; \
