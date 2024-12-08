@@ -1852,25 +1852,19 @@ CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t 
     }
     case BINOP_OR: case BINOP_CONCAT: {
         if (lhs_t->tag == SetType) {
-            arg_t *arg_spec = new(arg_t, .type=lhs_t, .next=new(arg_t, .type=lhs_t));
-            return CORD_all("Table$with(", compile_arguments(env, lhs, arg_spec, args),
-                            ", ", compile_type_info(env, lhs_t), ")");
+            return CORD_all("Table$with(", compile(env, lhs), ", ", compile(env, rhs), ", ", compile_type_info(env, lhs_t), ")");
         }
         goto fallthrough;
     }
     case BINOP_AND: {
         if (lhs_t->tag == SetType) {
-            arg_t *arg_spec = new(arg_t, .type=lhs_t, .next=new(arg_t, .type=lhs_t));
-            return CORD_all("Table$overlap(", compile_arguments(env, lhs, arg_spec, args),
-                            ", ", compile_type_info(env, lhs_t), ")");
+            return CORD_all("Table$overlap(", compile(env, lhs), ", ", compile(env, rhs), ", ", compile_type_info(env, lhs_t), ")");
         }
         goto fallthrough;
     }
     case BINOP_MINUS: {
         if (lhs_t->tag == SetType) {
-            arg_t *arg_spec = new(arg_t, .type=lhs_t, .next=new(arg_t, .type=lhs_t));
-            return CORD_all("Table$without(", compile_arguments(env, lhs, arg_spec, args),
-                            ", ", compile_type_info(env, lhs_t), ")");
+            return CORD_all("Table$without(", compile(env, lhs), ", ", compile(env, rhs), ", ", compile_type_info(env, lhs_t), ")");
         }
         goto fallthrough;
     }
