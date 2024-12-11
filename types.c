@@ -325,6 +325,9 @@ PUREFUNC const char *enum_single_value_tag(type_t *enum_type, type_t *t)
 
 PUREFUNC bool can_promote(type_t *actual, type_t *needed)
 {
+    if (!actual || !needed)
+        return false;
+
     // No promotion necessary:
     if (type_eq(actual, needed))
         return true;
@@ -354,13 +357,19 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
     if (actual->tag == PointerType && can_promote(Match(actual, PointerType)->pointed, needed))
         return true;
 
-    // Optional num -> num
-    if (needed->tag == NumType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == NumType)
-        return can_promote(Match(actual, OptionalType)->type, needed);
+    if (actual->tag == OptionalType) {
+        // Ambiguous `none` to concrete optional
+        if (Match(actual, OptionalType)->type == NULL)
+            return (needed->tag == OptionalType);
 
-    // Optional promotion:
-    if (needed->tag == OptionalType && can_promote(actual, Match(needed, OptionalType)->type))
-        return true;
+        // Optional num -> num
+        if (needed->tag == NumType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == NumType)
+            return can_promote(Match(actual, OptionalType)->type, needed);
+
+        // Optional promotion:
+        if (needed->tag == OptionalType && Match(needed, OptionalType)->type != NULL && can_promote(actual, Match(needed, OptionalType)->type))
+            return true;
+    }
 
     if (needed->tag == PointerType && actual->tag == PointerType) {
         auto needed_ptr = Match(needed, PointerType);
