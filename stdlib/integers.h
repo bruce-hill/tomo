@@ -109,7 +109,8 @@ Int_t Int$power(Int_t base, Int_t exponent);
 Int_t Int$gcd(Int_t x, Int_t y);
 OptionalInt_t Int$sqrt(Int_t i);
 
-#define BIGGEST_SMALL_INT ((1<<29)-1)
+#define BIGGEST_SMALL_INT 0x3fffffff
+#define SMALLEST_SMALL_INT -0x40000000
 
 #define Int$from_mpz(mpz) (\
     mpz_cmpabs_ui(mpz, BIGGEST_SMALL_INT) <= 0 ? ( \
@@ -123,7 +124,7 @@ OptionalInt_t Int$sqrt(Int_t i);
     else mpz_init_set(mpz, *(i).big); \
 } while (0)
 
-#define I(i) ((int64_t)(i) == (int32_t)(i) ? ((Int_t){.small=(int64_t)((uint64_t)(i)<<2)|1}) : Int64_to_Int(i))
+#define I(i) ((i) >= SMALLEST_SMALL_INT && (i) <= BIGGEST_SMALL_INT ? ((Int_t){.small=(int64_t)((uint64_t)(i)<<2)|1}) : Int64_to_Int(i))
 #define I_small(i) ((Int_t){.small=(int64_t)((uint64_t)(i)<<2)|1})
 #define I_is_zero(i) ((i).small == 1)
 
@@ -272,9 +273,8 @@ MACROLIKE PUREFUNC bool Int$is_negative(Int_t x) {
 
 MACROLIKE Int_t Int64_to_Int(int64_t i)
 {
-    int64_t z = i<<2;
-    if likely (z == (int32_t)z)
-        return (Int_t){.small=z+1};
+    if likely (i >= SMALLEST_SMALL_INT && i <= BIGGEST_SMALL_INT)
+        return (Int_t){.small=(i<<2)|1};
     mpz_t result;
     mpz_init_set_si(result, i);
     return Int$from_mpz(result);
