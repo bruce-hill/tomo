@@ -970,7 +970,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             CORD pop_code = CORD_EMPTY;
             if (fndef->cache->tag == Int && !cache_size.is_none && cache_size.i > 0) {
                 pop_code = CORD_all("if (cache.entries.length > ", CORD_asprintf("%ld", cache_size.i),
-                                    ") Table$remove(&cache, cache.entries.data + cache.entries.stride*RNG$int64(default_rng, I(0), I(cache.entries.length-1)), table_type);\n");
+                                    ") Table$remove(&cache, cache.entries.data + cache.entries.stride*RNG$int64(default_rng, 0, cache.entries.length-1), table_type);\n");
             }
 
             CORD arg_typedef = compile_struct_header(env, args_def);
