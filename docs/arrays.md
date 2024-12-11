@@ -350,12 +350,13 @@ Finds the index of the first occurrence of an element (if any).
 
 **Signature:**  
 ```tomo
-func find(arr: [T] -> Int?)
+func find(arr: [T], target: T -> Int?)
 ```
 
 **Parameters:**
 
 - `arr`: The array to search through.
+- `item`: The item to find in the array.
 
 **Returns:**  
 The index of the first occurrence or `!Int` if not found.
