@@ -18,7 +18,7 @@
 
 #include "chacha.h"
 
-public _Thread_local RNG_t default_rng;
+public _Thread_local RNG_t default_rng = NULL;
 
 struct RNGState_t {
     chacha_ctx chacha;
@@ -69,22 +69,26 @@ static void rekey(RNG_t rng)
     chacha_ivsetup(&rng->chacha, rng->random_bytes + KEYSZ);
     explicit_bzero(rng->random_bytes, KEYSZ + IVSZ);
     rng->unused_bytes = sizeof(rng->random_bytes) - KEYSZ - IVSZ;
+    assert(rng->unused_bytes <= sizeof(rng->random_bytes));
 }
 
 static void random_bytes(RNG_t rng, uint8_t *dest, size_t needed)
 {
     while (needed > 0) {
-        if (rng->unused_bytes > 0) {
+        assert(rng->unused_bytes <= sizeof(rng->random_bytes));
+        if (rng->unused_bytes == 0) {
+            rekey(rng);
+        } else {
             size_t to_get = MIN(needed, rng->unused_bytes);
+            assert(to_get <= rng->unused_bytes);
             uint8_t *keystream = rng->random_bytes + sizeof(rng->random_bytes) - rng->unused_bytes;
             memcpy(dest, keystream, to_get);
             memset(keystream, 0, to_get);
             dest += to_get;
             needed -= to_get;
             rng->unused_bytes -= to_get;
+            assert(rng->unused_bytes <= sizeof(rng->random_bytes));
         }
-        if (rng->unused_bytes == 0)
-            rekey(rng);
     }
 }
 
