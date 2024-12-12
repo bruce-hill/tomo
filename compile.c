@@ -326,7 +326,7 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
             if (t->tag == PointerType && Match(t, PointerType)->is_view)
                 code_err(subject, "This is a read-only view and you can't mutate its fields");
             else
-                code_err(subject, "This is an immutable value, you can't assign to its fields");
+                code_err(subject, "This is an immutable %T value, you can't assign to its fields", t);
         } else {
             code_err(ast, "This is a value of type %T and can't be used as an assignment target", get_type(env, ast));
         }
@@ -3657,7 +3657,7 @@ CORD compile(env_t *env, ast_t *ast)
                                 compile_type_info(env, container_t), ")");
             } else if (table_type->value_type) {
                 return CORD_all("Table$get_optional(",
-                                compile(env, indexing->indexed), ", ",
+                                compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
                                 compile_type(table_type->key_type), ", ",
                                 compile_type(table_type->value_type), ", ",
                                 compile(env, indexing->index), ", "
