@@ -365,11 +365,11 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
         // Optional num -> num
         if (needed->tag == NumType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == NumType)
             return can_promote(Match(actual, OptionalType)->type, needed);
-
-        // Optional promotion:
-        if (needed->tag == OptionalType && Match(needed, OptionalType)->type != NULL && can_promote(actual, Match(needed, OptionalType)->type))
-            return true;
     }
+
+    // Optional promotion:
+    if (needed->tag == OptionalType && Match(needed, OptionalType)->type != NULL && can_promote(actual, Match(needed, OptionalType)->type))
+        return true;
 
     if (needed->tag == PointerType && actual->tag == PointerType) {
         auto needed_ptr = Match(needed, PointerType);
