@@ -380,8 +380,9 @@ static int64_t match_id(TextIter_t *state, int64_t index)
 
 static int64_t match_int(TextIter_t *state, int64_t index)
 {
+    int64_t negative = EAT1(state, index, grapheme == '-') ? 1 : 0;
     int64_t len = EAT_MANY(state, index, uc_is_property((ucs4_t)grapheme, UC_PROPERTY_DECIMAL_DIGIT));
-    return len > 0 ? len : -1;
+    return len > 0 ? negative + len : -1;
 }
 
 static int64_t match_alphanumeric(TextIter_t *state, int64_t index)
