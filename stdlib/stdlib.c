@@ -540,7 +540,7 @@ public _Noreturn void tomo_exit(Text_t text, int32_t status)
 
 public Text_t ask(Text_t prompt, bool bold, bool force_tty)
 {
-    Text_t ret = Text("");
+    OptionalText_t ret = NONE_TEXT;
     FILE *out = stdout;
     FILE *in = stdin;
 

@@ -43,7 +43,7 @@ env_t *new_compilation_unit(CORD libname)
                                                       .default_val=FakeAST(Bool, true),
                                                       .next=new(arg_t, .name="force_tty", .type=Type(BoolType),
                                                                 .default_val=FakeAST(Bool, true)))),
-                    .ret=TEXT_TYPE)}},
+                    .ret=Type(OptionalType, TEXT_TYPE))}},
         {"exit", {.code="tomo_exit",
                      .type=Type(FunctionType, .args=new(
                              arg_t, .name="message", .type=Type(OptionalType, .type=Type(TextType)),
