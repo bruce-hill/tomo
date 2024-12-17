@@ -206,13 +206,13 @@ public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_le
 PUREFUNC static inline int64_t num_subtexts(Text_t t)
 {
     if (t.tag != TEXT_SUBTEXT) return 1;
-    int64_t len = t.length;
-    int64_t n = 0;
-    while (len > 0) {
-        len -= t.subtexts[n].length;
-        ++n;
+    int64_t remaining = t.length;
+    int64_t subtexts = 0;
+    while (remaining > 0) {
+        remaining -= t.subtexts[subtexts].length;
+        ++subtexts;
     }
-    return n;
+    return subtexts;
 }
 
 int text_visualize(FILE *stream, Text_t t)
@@ -402,9 +402,8 @@ public Text_t Text$_concat(int n, Text_t items[n])
     if (n == 1) return items[0];
     if (n == 2) return concat2(items[0], items[1]);
 
-    int64_t len = 0, subtexts = 0;
+    int64_t subtexts = 0;
     for (int i = 0; i < n; i++) {
-        len += items[i].length;
         if (items[i].length > 0)
             subtexts += num_subtexts(items[i]);
     }
@@ -412,14 +411,14 @@ public Text_t Text$_concat(int n, Text_t items[n])
     Text_t ret = {
         .length=0,
         .tag=TEXT_SUBTEXT,
-        .subtexts=GC_MALLOC(sizeof(Text_t[len])),
+        .subtexts=GC_MALLOC(sizeof(Text_t[subtexts])),
     };
     int64_t sub_i = 0;
     for (int i = 0; i < n; i++) {
         if (items[i].length == 0)
             continue;
 
-        if (i > 0 && unlikely(!is_concat_stable(items[i-1], items[i]))) {
+        if (i > 0 && unlikely(!is_concat_stable(ret, items[i]))) {
             // Oops, guess this wasn't stable for concatenation, let's break it
             // up into subtasks:
             return concat2(ret, Text$_concat(n-i, &items[i]));

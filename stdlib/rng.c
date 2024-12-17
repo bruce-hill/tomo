@@ -76,19 +76,17 @@ static void random_bytes(RNG_t rng, uint8_t *dest, size_t needed)
 {
     while (needed > 0) {
         assert(rng->unused_bytes <= sizeof(rng->random_bytes));
-        if (rng->unused_bytes == 0) {
+        if (rng->unused_bytes == 0)
             rekey(rng);
-        } else {
-            size_t to_get = MIN(needed, rng->unused_bytes);
-            assert(to_get <= rng->unused_bytes);
-            uint8_t *keystream = rng->random_bytes + sizeof(rng->random_bytes) - rng->unused_bytes;
-            memcpy(dest, keystream, to_get);
-            memset(keystream, 0, to_get);
-            dest += to_get;
-            needed -= to_get;
-            rng->unused_bytes -= to_get;
-            assert(rng->unused_bytes <= sizeof(rng->random_bytes));
-        }
+
+        size_t batch_size = MIN(needed, rng->unused_bytes);
+        uint8_t *batch_src = rng->random_bytes + sizeof(rng->random_bytes) - rng->unused_bytes;
+        memcpy(dest, batch_src, batch_size);
+        memset(batch_src, 0, batch_size);
+        rng->unused_bytes -= batch_size;
+        dest += batch_size;
+        needed -= batch_size;
+        assert(rng->unused_bytes <= sizeof(rng->random_bytes));
     }
 }
 
@@ -224,7 +222,7 @@ public Num_t RNG$num(RNG_t rng, Num_t min, Num_t max)
     union {
         Num_t num;
         uint64_t bits;
-    } r, one = {.num=1.0};
+    } r = {.bits=0}, one = {.num=1.0};
     random_bytes(rng, (void*)&r, sizeof(r));
 
     // Set r.num to 1.<random-bits>
