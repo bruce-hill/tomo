@@ -71,7 +71,7 @@ func main():
 		= @[999, 20, 30]
 
 	do:
-		>> arr := [10, 20, 30]
+		>> arr := &[10, 20, 30]
 		>> reversed := arr:reversed()
 		= [30, 20, 10]
 		# Ensure the copy-on-write behavior triggers:

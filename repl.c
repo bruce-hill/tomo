@@ -132,7 +132,7 @@ const TypeInfo_t *type_to_type_info(type_t *t)
     }
     case PointerType: {
         auto ptr = Match(t, PointerType);
-        CORD sigil = ptr->is_view ? "&" : "@";
+        CORD sigil = ptr->is_stack ? "&" : "@";
         const TypeInfo_t *pointed_info = type_to_type_info(ptr->pointed);
         const TypeInfo_t pointer_info = *Pointer$info(sigil, pointed_info);
         return memcpy(GC_MALLOC(sizeof(TypeInfo_t)), &pointer_info, sizeof(TypeInfo_t));

@@ -115,6 +115,7 @@ CORD ast_to_xml(ast_t *ast)
     T(Negative, "<Negative>%r</Negative>", ast_to_xml(data.value))
     T(Not, "<Not>%r</Not>", ast_to_xml(data.value))
     T(HeapAllocate, "<HeapAllocate>%r</HeapAllocate>", ast_to_xml(data.value))
+    T(StackReference, "<StackReference>%r</StackReference>", ast_to_xml(data.value))
     T(Min, "<Min>%r%r%r</Min>", ast_to_xml(data.lhs), ast_to_xml(data.rhs), optional_tagged("key", data.key))
     T(Max, "<Max>%r%r%r</Max>", ast_to_xml(data.lhs), ast_to_xml(data.rhs), optional_tagged("key", data.key))
     T(Array, "<Array>%r%r</Array>", optional_tagged_type("item-type", data.item_type), ast_list_to_xml(data.items))
@@ -177,8 +178,8 @@ CORD type_ast_to_xml(type_ast_t *t)
 #define T(type, ...) case type: { auto data = t->__data.type; (void)data; return CORD_asprintf(__VA_ARGS__); }
     T(UnknownTypeAST, "<UnknownType/>")
     T(VarTypeAST, "%s", data.name)
-    T(PointerTypeAST, "<PointerType is_view=\"%s\">%r</PointerType>",
-      data.is_view ? "yes" : "no", type_ast_to_xml(data.pointed))
+    T(PointerTypeAST, "<PointerType is_stack=\"%s\">%r</PointerType>",
+      data.is_stack ? "yes" : "no", type_ast_to_xml(data.pointed))
     T(ArrayTypeAST, "<ArrayType>%r</ArrayType>", type_ast_to_xml(data.item))
     T(SetTypeAST, "<TableType>%r</TableType>", type_ast_to_xml(data.item))
     T(ChannelTypeAST, "<ChannelType>%r</ChannelType>", type_ast_to_xml(data.item))

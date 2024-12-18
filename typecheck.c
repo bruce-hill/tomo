@@ -47,13 +47,13 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         type_t *pointed_t = parse_type_ast(env, ptr->pointed);
         if (pointed_t->tag == VoidType)
             code_err(ast, "Void pointers are not supported. You probably meant 'Memory' instead of 'Void'");
-        return Type(PointerType, .pointed=pointed_t, .is_view=ptr->is_view);
+        return Type(PointerType, .pointed=pointed_t, .is_stack=ptr->is_stack);
     }
     case ArrayTypeAST: {
         type_ast_t *item_type = Match(ast, ArrayTypeAST)->item;
         type_t *item_t = parse_type_ast(env, item_type);
         if (!item_t) code_err(item_type, "I can't figure out what this type is.");
-        if (has_view_memory(item_t))
+        if (has_stack_memory(item_t))
             code_err(item_type, "Arrays can't have stack references because the array may outlive the stack frame.");
         if (type_size(item_t) > ARRAY_MAX_STRIDE)
             code_err(ast, "This array holds items that take up %ld bytes, but the maximum supported size is %ld bytes. Consider using an array of pointers instead.",
@@ -64,7 +64,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         type_ast_t *item_type = Match(ast, SetTypeAST)->item;
         type_t *item_t = parse_type_ast(env, item_type);
         if (!item_t) code_err(item_type, "I can't figure out what this type is.");
-        if (has_view_memory(item_t))
+        if (has_stack_memory(item_t))
             code_err(item_type, "Sets can't have stack references because the array may outlive the stack frame.");
         if (type_size(item_t) > ARRAY_MAX_STRIDE)
             code_err(ast, "This set holds items that take up %ld bytes, but the maximum supported size is %ld bytes. Consider using an set of pointers instead.",
@@ -87,18 +87,21 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         type_ast_t *key_type_ast = table_type->key;
         type_t *key_type = parse_type_ast(env, key_type_ast);
         if (!key_type) code_err(key_type_ast, "I can't figure out what type this is.");
-        if (has_view_memory(key_type))
+        if (has_stack_memory(key_type))
             code_err(key_type_ast, "Tables can't have stack references because the array may outlive the stack frame.");
         if (table_type->value) {
             type_t *val_type = parse_type_ast(env, table_type->value);
             if (!val_type) code_err(table_type->value, "I can't figure out what type this is.");
-            if (has_view_memory(val_type))
+            if (has_stack_memory(val_type))
                 code_err(table_type->value, "Tables can't have stack references because the array may outlive the stack frame.");
             else if (val_type->tag == OptionalType)
                 code_err(ast, "Tables with optional-typed values are not currently supported");
             return Type(TableType, .key_type=key_type, .value_type=val_type);
         } else if (table_type->default_value) {
-            return Type(TableType, .key_type=key_type, .default_value=table_type->default_value);
+            type_t *t = Type(TableType, .key_type=key_type, .default_value=table_type->default_value);
+            if (has_stack_memory(t))
+                code_err(ast, "Tables can't have stack references because the array may outlive the stack frame.");
+            return t;
         } else {
             code_err(ast, "No value type or default value!");
         }
@@ -106,7 +109,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
     case FunctionTypeAST: {
         auto fn = Match(ast, FunctionTypeAST);
         type_t *ret_t = fn->ret ? parse_type_ast(env, fn->ret) : Type(VoidType);
-        if (has_view_memory(ret_t))
+        if (has_stack_memory(ret_t))
             code_err(fn->ret, "Functions are not allowed to return stack references, because the reference may no longer exist on the stack.");
         arg_t *type_args = NULL;
         for (arg_ast_t *arg = fn->args; arg; arg = arg->next) {
@@ -455,7 +458,7 @@ type_t *get_function_def_type(env_t *env, ast_t *ast)
     REVERSE_LIST(args);
 
     type_t *ret = fn->ret_type ? parse_type_ast(scope, fn->ret_type) : Type(VoidType);
-    if (has_view_memory(ret))
+    if (has_stack_memory(ret))
         code_err(ast, "Functions can't return stack references because the reference may outlive its stack frame.");
     return Type(FunctionType, .args=args, .ret=ret);
 }
@@ -534,9 +537,48 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
     case HeapAllocate: {
         type_t *pointed = get_type(env, Match(ast, HeapAllocate)->value);
-        if (has_view_memory(pointed))
+        if (has_stack_memory(pointed))
             code_err(ast, "Stack references cannot be moved to the heap because they may outlive the stack frame they were created in.");
         return Type(PointerType, .pointed=pointed);
+    }
+    case StackReference: {
+        // Supported:
+        //   &variable
+        //   &struct_variable.field.(...)
+        //   &struct_ptr.field.(...)
+        //   &[10, 20, 30]; &{key:value}; &{10, 20, 30}
+        //   &Foo(...)
+        //   &(expression)
+        // Not supported:
+        //   &ptr[]
+        //   &list[index]
+        //   &table[key]
+        //   &(expression).field
+        //   &optional_struct_ptr.field
+        ast_t *value = Match(ast, StackReference)->value;
+        switch (value->tag) {
+        case FieldAccess: {
+            ast_t *base = value;
+            while (base->tag == FieldAccess)
+                base = Match(base, FieldAccess)->fielded;
+
+            type_t *ref_type = get_type(env, value);
+            type_t *base_type = get_type(env, base);
+            if (base_type->tag == OptionalType) {
+                code_err(base, "This value might be null, so it can't be safely dereferenced");
+            } else if (base_type->tag == PointerType) {
+                auto ptr = Match(base_type, PointerType);
+                return Type(PointerType, .pointed=ref_type, .is_stack=ptr->is_stack);
+            } else if (base->tag == Var) {
+                return Type(PointerType, .pointed=ref_type, .is_stack=true);
+            }
+            code_err(ast, "'&' stack references can only be used on the fields of pointers and local variables");
+        }
+        case Index:
+            code_err(ast, "'&' stack references are not supported for array or table indexing");
+        default:
+            return Type(PointerType, .pointed=get_type(env, value), .is_stack=true);
+        }
     }
     case Optional: {
         ast_t *value = Match(ast, Optional)->value;
@@ -596,7 +638,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         } else {
             code_err(ast, "I can't figure out what type this array has because it has no members or explicit type");
         }
-        if (has_view_memory(item_type))
+        if (has_stack_memory(item_type))
             code_err(ast, "Arrays cannot hold stack references, because the array may outlive the stack frame the reference was created in.");
         return Type(ArrayType, .item_type=item_type);
     }
@@ -625,7 +667,7 @@ type_t *get_type(env_t *env, ast_t *ast)
                 item_type = item_merged;
             }
         }
-        if (has_view_memory(item_type))
+        if (has_stack_memory(item_type))
             code_err(ast, "Sets cannot hold stack references because the set may outlive the reference's stack frame.");
         return Type(SetType, .item_type=item_type);
     }
@@ -673,7 +715,7 @@ type_t *get_type(env_t *env, ast_t *ast)
                 value_type = val_merged;
             }
         }
-        if (has_view_memory(key_type) || has_view_memory(value_type))
+        if (has_stack_memory(key_type) || has_stack_memory(value_type))
             code_err(ast, "Tables cannot hold stack references because the table may outlive the reference's stack frame.");
         return Type(TableType, .key_type=key_type, .value_type=value_type, .default_value=table->default_value);
     }
@@ -1135,7 +1177,7 @@ type_t *get_type(env_t *env, ast_t *ast)
                          declared, ret);
         }
 
-        if (has_view_memory(ret))
+        if (has_stack_memory(ret))
             code_err(ast, "Functions can't return stack references because the reference may outlive its stack frame.");
         return Type(ClosureType, Type(FunctionType, .args=args, .ret=ret));
     }
@@ -1324,9 +1366,7 @@ PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast)
     case Index: {
         auto index = Match(ast, Index);
         type_t *indexed_type = get_type(env, index->indexed);
-        if (indexed_type->tag == PointerType)
-            return !Match(indexed_type, PointerType)->is_view;
-        return can_be_mutated(env, index->indexed);
+        return (indexed_type->tag == PointerType);
     }
     default: return false;
     }

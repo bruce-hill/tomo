@@ -74,7 +74,7 @@ CORD type_to_cord(type_t *t) {
         }
         case PointerType: {
             auto ptr = Match(t, PointerType);
-            CORD sigil = ptr->is_view ? "&" : "@";
+            CORD sigil = ptr->is_stack ? "&" : "@";
             return CORD_all(sigil, type_to_cord(ptr->pointed));
         }
         case EnumType: {
@@ -134,7 +134,7 @@ bool type_is_a(type_t *t, type_t *req)
         auto t_ptr = Match(t, PointerType);
         auto req_ptr = Match(req, PointerType);
         if (type_eq(t_ptr->pointed, req_ptr->pointed))
-            return (!t_ptr->is_view && req_ptr->is_view) || (!t_ptr->is_view);
+            return (!t_ptr->is_stack && req_ptr->is_stack) || (!t_ptr->is_stack);
     }
     return false;
 }
@@ -295,11 +295,11 @@ PUREFUNC bool can_send_over_channel(type_t *t)
     }
 }
 
-PUREFUNC bool has_view_memory(type_t *t)
+PUREFUNC bool has_stack_memory(type_t *t)
 {
     switch (t->tag) {
-    case PointerType: return Match(t, PointerType)->is_view;
-    case OptionalType: return has_view_memory(Match(t, OptionalType)->type);
+    case PointerType: return Match(t, PointerType)->is_stack;
+    case OptionalType: return has_stack_memory(Match(t, OptionalType)->type);
     default: return false;
     }
 }
@@ -378,7 +378,7 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
             // Can't use @Foo for a function that wants @Baz
             // But you *can* use @Foo for a function that wants @Memory
             return false;
-        else if (actual_ptr->is_view && !needed_ptr->is_view)
+        else if (actual_ptr->is_stack && !needed_ptr->is_stack)
             // Can't use &x for a function that wants a @Foo or ?Foo
             return false;
         else

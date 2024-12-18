@@ -102,7 +102,7 @@ struct type_s {
         } ClosureType;
         struct {
             type_t *pointed;
-            bool is_view:1;
+            bool is_stack:1;
         } PointerType;
         struct {
             const char *name;
@@ -144,7 +144,7 @@ type_t *value_type(type_t *a);
 typedef enum {NUM_PRECISION_EQUAL, NUM_PRECISION_LESS, NUM_PRECISION_MORE, NUM_PRECISION_INCOMPARABLE} precision_cmp_e;
 PUREFUNC precision_cmp_e compare_precision(type_t *a, type_t *b);
 PUREFUNC bool has_heap_memory(type_t *t);
-PUREFUNC bool has_view_memory(type_t *t);
+PUREFUNC bool has_stack_memory(type_t *t);
 PUREFUNC bool can_send_over_channel(type_t *t);
 PUREFUNC bool can_promote(type_t *actual, type_t *needed);
 PUREFUNC const char *enum_single_value_tag(type_t *enum_type, type_t *t);

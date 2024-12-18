@@ -315,18 +315,11 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
     if (!can_be_mutated(env, ast)) {
         if (ast->tag == Index) {
             ast_t *subject = Match(ast, Index)->indexed;
-            type_t *t = get_type(env, subject);
-            if (t->tag == PointerType && Match(t, PointerType)->is_view)
-                code_err(ast, "This is a read-only view and you can't mutate its contents");
-            else
-                code_err(subject, "This is an immutable value, you can't mutate its contents");
+            code_err(subject, "This is an immutable value, you can't mutate its contents");
         } else if (ast->tag == FieldAccess) {
             ast_t *subject = Match(ast, FieldAccess)->fielded;
             type_t *t = get_type(env, subject);
-            if (t->tag == PointerType && Match(t, PointerType)->is_view)
-                code_err(subject, "This is a read-only view and you can't mutate its fields");
-            else
-                code_err(subject, "This is an immutable %T value, you can't assign to its fields", t);
+            code_err(subject, "This is an immutable %T value, you can't assign to its fields", t);
         } else {
             code_err(ast, "This is a value of type %T and can't be used as an assignment target", get_type(env, ast));
         }
@@ -374,7 +367,7 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
                 code_err(ast, "Table indexes cannot be unchecked");
             return CORD_all("*(", compile_type(Type(PointerType, value_type)), ")Table$reserve(",
                             compile_to_pointer_depth(env, index->indexed, 1, false), ", ",
-                            compile_to_type(env, index->index, Type(PointerType, key_type, .is_view=true)), ", NULL,",
+                            compile_to_type(env, index->index, Type(PointerType, key_type, .is_stack=true)), ", NULL,",
                             compile_type_info(env, container_t), ")");
         } else {
             code_err(ast, "I don't know how to assign to this target");
@@ -595,6 +588,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 if (assign->targets->ast->tag == Index && lhs_t->tag == OptionalType
                     && value_type(get_type(env, Match(assign->targets->ast, Index)->indexed))->tag == TableType)
                     lhs_t = Match(lhs_t, OptionalType)->type;
+                if (has_stack_memory(lhs_t))
+                    code_err(test->expr, "Stack references cannot be assigned to variables because the variable's scope may outlive the scope of the stack memory.");
                 env_t *val_scope = with_enum_scope(env, lhs_t);
                 CORD value = compile_to_type(val_scope, assign->values->ast, lhs_t);
                 return CORD_asprintf(
@@ -618,6 +613,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     if (target->ast->tag == Index && lhs_t->tag == OptionalType
                         && value_type(get_type(env, Match(target->ast, Index)->indexed))->tag == TableType)
                         lhs_t = Match(lhs_t, OptionalType)->type;
+                    if (has_stack_memory(lhs_t))
+                        code_err(ast, "Stack references cannot be assigned to variables because the variable's scope may outlive the scope of the stack memory.");
                     if (target == assign->targets)
                         first_type = lhs_t;
                     env_t *val_scope = with_enum_scope(env, lhs_t);
@@ -699,6 +696,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (assign->targets->ast->tag == Index && lhs_t->tag == OptionalType
                 && value_type(get_type(env, Match(assign->targets->ast, Index)->indexed))->tag == TableType)
                 lhs_t = Match(lhs_t, OptionalType)->type;
+            if (has_stack_memory(lhs_t))
+                code_err(ast, "Stack references cannot be assigned to variables because the variable's scope may outlive the scope of the stack memory.");
             env_t *val_env = with_enum_scope(env, lhs_t);
             CORD val = compile_to_type(val_env, assign->values->ast, lhs_t);
             return CORD_all(compile_assignment(env, assign->targets->ast, val), ";\n");
@@ -711,6 +710,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
             if (target->ast->tag == Index && lhs_t->tag == OptionalType
                 && value_type(get_type(env, Match(target->ast, Index)->indexed))->tag == TableType)
                 lhs_t = Match(lhs_t, OptionalType)->type;
+            if (has_stack_memory(lhs_t))
+                code_err(ast, "Stack references cannot be assigned to variables because the variable's scope may outlive the scope of the stack memory.");
             env_t *val_env = with_enum_scope(env, lhs_t);
             CORD val = compile_to_type(val_env, value->ast, lhs_t);
             CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(lhs_t), i++, val);
@@ -1603,7 +1604,7 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
                 val = CORD_all("(&", val, ")");
             else
                 code_err(ast, "This should be a pointer, not %T", get_type(env, ast));
-            t = Type(PointerType, .pointed=t, .is_view=true);
+            t = Type(PointerType, .pointed=t, .is_stack=true);
             ++depth;
         } else {
             auto ptr = Match(t, PointerType);
@@ -1636,7 +1637,7 @@ CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
     type_t *actual = get_type(env, ast);
 
     // Promote values to views-of-values if needed:
-    if (t->tag == PointerType && Match(t, PointerType)->is_view && actual->tag != PointerType)
+    if (t->tag == PointerType && Match(t, PointerType)->is_stack && actual->tag != PointerType)
         return CORD_all("stack(", compile_to_type(env, ast, Match(t, PointerType)->pointed), ")");
 
     CORD code = compile(env, ast);
@@ -2105,6 +2106,13 @@ CORD compile(env_t *env, ast_t *ast)
     }
     // TODO: for constructors, do new(T, ...) instead of heap((T){...})
     case HeapAllocate: return CORD_asprintf("heap(%r)", compile(env, Match(ast, HeapAllocate)->value));
+    case StackReference: {
+        ast_t *subject = Match(ast, StackReference)->value;
+        if (can_be_mutated(env, subject))
+            return CORD_all("(&", compile_lvalue(env, subject), ")");
+        else
+            return CORD_all("stack(", compile(env, subject), ")");
+    }
     case Optional: {
         ast_t *value = Match(ast, Optional)->value;
         CORD value_code = compile(env, value);
@@ -2537,7 +2545,7 @@ CORD compile(env_t *env, ast_t *ast)
             static int64_t comp_num = 1;
             const char *comprehension_name = heap_strf("arr$%ld", comp_num++);
             ast_t *comprehension_var = FakeAST(InlineCCode, .code=CORD_all("&", comprehension_name),
-                                               .type=Type(PointerType, .pointed=array_type, .is_view=true));
+                                               .type=Type(PointerType, .pointed=array_type, .is_stack=true));
             Closure_t comp_action = {.fn=add_to_array_comprehension, .userdata=comprehension_var};
             scope->comprehension_action = &comp_action;
             CORD code = CORD_all("({ Array_t ", comprehension_name, " = {};");
@@ -2619,7 +2627,7 @@ CORD compile(env_t *env, ast_t *ast)
             env_t *scope = fresh_scope(env);
             const char *comprehension_name = heap_strf("table$%ld", comp_num++);
             ast_t *comprehension_var = FakeAST(InlineCCode, .code=CORD_all("&", comprehension_name),
-                                               .type=Type(PointerType, .pointed=table_type, .is_view=true));
+                                               .type=Type(PointerType, .pointed=table_type, .is_stack=true));
 
             CORD code = CORD_all("({ Table_t ", comprehension_name, " = {");
             if (table->fallback)
@@ -2673,7 +2681,7 @@ CORD compile(env_t *env, ast_t *ast)
             env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : fresh_scope(env);
             const char *comprehension_name = heap_strf("set$%ld", comp_num++);
             ast_t *comprehension_var = FakeAST(InlineCCode, .code=CORD_all("&", comprehension_name),
-                                               .type=Type(PointerType, .pointed=set_type, .is_view=true));
+                                               .type=Type(PointerType, .pointed=set_type, .is_stack=true));
             CORD code = CORD_all("({ Table_t ", comprehension_name, " = {};");
             Closure_t comp_action = {.fn=add_to_set_comprehension, .userdata=comprehension_var};
             scope->comprehension_action = &comp_action;
@@ -2748,6 +2756,9 @@ CORD compile(env_t *env, ast_t *ast)
             CORD def = "typedef struct {";
             for (int64_t i = 1; i <= Table$length(*closed_vars); i++) {
                 struct { const char *name; binding_t *b; } *entry = Table$entry(*closed_vars, i);
+                if (has_stack_memory(entry->b->type))
+                    code_err(ast, "This function is holding onto a reference to %T stack memory in the variable `%s`, but the function may outlive the stack memory",
+                             entry->b->type, entry->name);
                 if (entry->b->type->tag == ModuleType)
                     continue;
                 set_binding(body_scope, entry->name, new(binding_t, .type=entry->b->type, .code=CORD_cat("userdata->", entry->name)));
@@ -2818,8 +2829,8 @@ CORD compile(env_t *env, ast_t *ast)
         CORD self = compile(env, call->self);
 
 #define EXPECT_POINTER(article, name) do { \
-    if (pointer_depth < 1) code_err(call->self, "I expected "article" "name" @pointer here, not "article" "name" value"); \
-    else if (pointer_depth > 1) code_err(call->self, "I expected "article" "name" @pointer here, not a nested "name" pointer"); \
+    if (pointer_depth < 1) code_err(call->self, "I expected "article" "name" pointer here, not "article" "name" value"); \
+    else if (pointer_depth > 1) code_err(call->self, "I expected "article" "name" pointer here, not a nested "name" pointer"); \
 } while (0)
         switch (self_value_t->tag) {
         case ArrayType: {
@@ -2884,7 +2895,7 @@ CORD compile(env_t *env, ast_t *ast)
                     self = compile_to_pointer_depth(env, call->self, 0, false);
                 CORD comparison;
                 if (call->args) {
-                    type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_view=true);
+                    type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                     type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                         .ret=Type(IntType, .bits=TYPE_IBITS32));
                     arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t));
@@ -2897,7 +2908,7 @@ CORD compile(env_t *env, ast_t *ast)
                 EXPECT_POINTER("an", "array");
                 CORD comparison;
                 if (call->args) {
-                    type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_view=true);
+                    type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                     type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                         .ret=Type(IntType, .bits=TYPE_IBITS32));
                     arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t));
@@ -2908,7 +2919,7 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Array$heapify(", self, ", ", comparison, ", ", padded_item_size, ")");
             } else if (streq(call->name, "heap_push")) {
                 EXPECT_POINTER("an", "array");
-                type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_view=true);
+                type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                     .ret=Type(IntType, .bits=TYPE_IBITS32));
                 ast_t *default_cmp = FakeAST(InlineCCode,
@@ -2921,7 +2932,7 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Array$heap_push_value(", self, ", ", arg_code, ", ", padded_item_size, ")");
             } else if (streq(call->name, "heap_pop")) {
                 EXPECT_POINTER("an", "array");
-                type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_view=true);
+                type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                     .ret=Type(IntType, .bits=TYPE_IBITS32));
                 ast_t *default_cmp = FakeAST(InlineCCode,
@@ -2933,7 +2944,7 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Array$heap_pop_value(", self, ", ", arg_code, ", ", padded_item_size, ", ", compile_type(item_t), ")");
             } else if (streq(call->name, "binary_search")) {
                 self = compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
-                type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_view=true);
+                type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
                                     .ret=Type(IntType, .bits=TYPE_IBITS32));
                 ast_t *default_cmp = FakeAST(InlineCCode,
@@ -2955,7 +2966,7 @@ CORD compile(env_t *env, ast_t *ast)
                                 ", ", compile_type_info(env, self_value_t), ")");
             } else if (streq(call->name, "first")) {
                 self = compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
-                type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_view=true);
+                type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *predicate_type = Type(
                     ClosureType, .fn=Type(FunctionType, .args=new(arg_t, .name="item", .type=item_ptr), .ret=Type(BoolType)));
                 arg_t *arg_spec = new(arg_t, .name="predicate", .type=predicate_type);
@@ -3811,7 +3822,7 @@ CORD compile_type_info(env_t *env, type_t *t)
     }
     case PointerType: {
         auto ptr = Match(t, PointerType);
-        CORD sigil = ptr->is_view ? "&" : "@";
+        CORD sigil = ptr->is_stack ? "&" : "@";
         return CORD_asprintf("Pointer$info(%r, %r)",
                              CORD_quoted(sigil),
                              compile_type_info(env, ptr->pointed));
