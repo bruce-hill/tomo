@@ -374,7 +374,9 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
     if (needed->tag == PointerType && actual->tag == PointerType) {
         auto needed_ptr = Match(needed, PointerType);
         auto actual_ptr = Match(actual, PointerType);
-        if (needed_ptr->pointed->tag != MemoryType && !type_eq(needed_ptr->pointed, actual_ptr->pointed))
+        if (needed_ptr->pointed->tag == TableType && actual_ptr->pointed->tag == TableType)
+            return can_promote(actual_ptr->pointed, needed_ptr->pointed);
+        else if (needed_ptr->pointed->tag != MemoryType && !type_eq(needed_ptr->pointed, actual_ptr->pointed))
             // Can't use @Foo for a function that wants @Baz
             // But you *can* use @Foo for a function that wants @Memory
             return false;
@@ -382,6 +384,15 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
             // Can't use &x for a function that wants a @Foo or ?Foo
             return false;
         else
+            return true;
+    }
+
+    // Cross-promotion between tables with default values and without
+    if (needed->tag == TableType && actual->tag == TableType) {
+        auto actual_table = Match(actual, TableType);
+        auto needed_table = Match(needed, TableType);
+        if (type_eq(needed_table->key_type, actual_table->key_type)
+            && type_eq(needed_table->value_type, actual_table->value_type))
             return true;
     }
 

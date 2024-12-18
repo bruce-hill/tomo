@@ -126,6 +126,10 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
     if (actual->tag == PointerType && needed->tag == PointerType)
         return true;
 
+    // Cross-promotion between tables with default values and without
+    if (needed->tag == TableType && actual->tag == TableType)
+        return true;
+
     if (needed->tag == ClosureType && actual->tag == FunctionType) {
         *code = CORD_all("((Closure_t){", *code, ", NULL})");
         return true;
