@@ -43,11 +43,11 @@ CORD type_to_cord(type_t *t) {
         }
         case TableType: {
             auto table = Match(t, TableType);
-            if (table->value_type)
-                return CORD_asprintf("{%r:%r}", type_to_cord(table->key_type), type_to_cord(table->value_type));
-            else
+            if (table->default_value)
                 return CORD_asprintf("{%r=%.*s}", type_to_cord(table->key_type),
                                      table->default_value->end - table->default_value->start, table->default_value->start);
+            else
+                return CORD_asprintf("{%r:%r}", type_to_cord(table->key_type), type_to_cord(table->value_type));
         }
         case SetType: {
             auto set = Match(t, SetType);
