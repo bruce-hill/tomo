@@ -1004,8 +1004,8 @@ CORD compile_statement(env_t *env, ast_t *ast)
         if (!fndef->is_inline) {
             env->code->function_naming = CORD_all(
                 env->code->function_naming,
-                CORD_asprintf("register_function(%r, Text(\"%r [%s.tm:%ld]\"));\n",
-                              name, text, file_base_name(ast->file->filename), get_line_number(ast->file, ast->start)));
+                CORD_asprintf("register_function(%r, Text(%r \" [%s.tm:%ld]\"));\n",
+                              name, CORD_quoted(text), file_base_name(ast->file->filename), get_line_number(ast->file, ast->start)));
         }
         return CORD_EMPTY;
     }
@@ -2711,8 +2711,8 @@ CORD compile(env_t *env, ast_t *ast)
 
         env->code->function_naming = CORD_all(
             env->code->function_naming,
-            CORD_asprintf("register_function(%r, Text(\"%r [%s.tm:%ld]\"));\n",
-                          name, type_to_cord(get_type(env, ast)), file_base_name(ast->file->filename), get_line_number(ast->file, ast->start)));
+            CORD_asprintf("register_function(%r, Text(%r \" [%s.tm:%ld]\"));\n",
+                          name, CORD_quoted(type_to_cord(get_type(env, ast))), file_base_name(ast->file->filename), get_line_number(ast->file, ast->start)));
 
         env_t *body_scope = fresh_scope(env);
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
@@ -3816,8 +3816,10 @@ CORD compile_type_info(env_t *env, type_t *t)
         return CORD_asprintf("Channel$info(%r)", compile_type_info(env, item_t));
     }
     case TableType: {
-        type_t *key_type = Match(t, TableType)->key_type;
-        type_t *value_type = Match(t, TableType)->value_type;
+        auto table = Match(t, TableType);
+        type_t *key_type = table->key_type;
+        type_t *value_type = table->value_type;
+        if (!value_type) value_type = get_type(env, table->default_value);
         return CORD_all("Table$info(", compile_type_info(env, key_type), ", ", compile_type_info(env, value_type), ")");
     }
     case PointerType: {
