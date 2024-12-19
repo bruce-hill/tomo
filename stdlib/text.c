@@ -572,6 +572,47 @@ public Text_t Text$to(Text_t text, Int_t last)
     return Text$slice(text, I_small(1), last);
 }
 
+public Text_t Text$reversed(Text_t text)
+{
+    switch (text.tag) {
+    case TEXT_SHORT_ASCII: {
+        Text_t ret = text;
+        for (int64_t i = 0; i < text.length; i++)
+            ret.short_ascii[text.length-1-i] = text.short_ascii[i];
+        return ret;
+    }
+    case TEXT_ASCII: {
+        Text_t ret = text;
+        ret.ascii = GC_MALLOC_ATOMIC(sizeof(uint8_t[text.length]));
+        for (int64_t i = 0; i < text.length; i++)
+            ((char*)ret.ascii)[text.length-1-i] = text.ascii[i];
+        return ret;
+    }
+    case TEXT_SHORT_GRAPHEMES: {
+        Text_t ret = text;
+        for (int64_t i = 0; i < text.length; i++)
+            ret.short_graphemes[text.length-1-i] = text.short_graphemes[i];
+        return ret;
+    }
+    case TEXT_GRAPHEMES: {
+        Text_t ret = text;
+        ret.graphemes = GC_MALLOC_ATOMIC(sizeof(int32_t[text.length]));
+        for (int64_t i = 0; i < text.length; i++)
+            ((int32_t*)ret.graphemes)[text.length-1-i] = text.graphemes[i];
+        return ret;
+    }
+    case TEXT_SUBTEXT: {
+        Text_t ret = text;
+        int64_t n = num_subtexts(text);
+        ret.subtexts = GC_MALLOC(sizeof(Text_t*[n]));
+        for (int64_t i = 0; i < n; i++)
+            ret.subtexts[n-1-i] = Text$reversed(text.subtexts[i]);
+        return ret;
+    }
+    default: errx(1, "Invalid tag");
+    }
+}
+
 public Text_t Text$cluster(Text_t text, Int_t index_int)
 {
     int64_t index = Int_to_Int64(index_int, false);

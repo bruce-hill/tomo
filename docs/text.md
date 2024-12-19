@@ -1125,6 +1125,31 @@ replacement text.
 
 ---
 
+## `reversed`
+
+**Description:**  
+Return a text that has the grapheme clusters in reverse order.
+
+**Signature:**  
+```tomo
+func reversed(text: Text -> Text)
+```
+
+**Parameters:**
+
+- `text`: The text to reverse.
+
+**Returns:**  
+A reversed version of the text.
+
+**Example:**  
+```tomo
+>> "Abc":reversed()
+= "cbA"
+```
+
+---
+
 ## `slice`
 
 **Description:**  

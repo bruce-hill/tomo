@@ -415,6 +415,7 @@ env_t *new_compilation_unit(CORD libname)
             {"repeat", "Text$repeat", "func(text:Text, count:Int -> Text)"},
             {"replace", "Text$replace", "func(text:Text, pattern:Pattern, replacement:Text, backref=$/\\/, recursive=yes -> Text)"},
             {"replace_all", "Text$replace_all", "func(text:Text, replacements:{Pattern:Text}, backref=$/\\/, recursive=yes -> Text)"},
+            {"reversed", "Text$reversed", "func(text:Text -> Text)"},
             {"slice", "Text$slice", "func(text:Text, from=1, to=-1 -> Text)"},
             {"split", "Text$split", "func(text:Text, pattern=$Pattern'' -> [Text])"},
             {"starts_with", "Text$starts_with", "func(text,prefix:Text -> Bool)"},

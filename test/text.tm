@@ -292,6 +292,9 @@ func main():
 	>> "abcde":starts_with("cd")
 	= no
 
+	>> ("hello" ++ " " ++ "Amélie"):reversed()
+	= "eilémA olleh" : Text
+
 	do:
 		!! Testing concatenation-stability:
 		>> ab := Text.from_codepoint_names(["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"])!

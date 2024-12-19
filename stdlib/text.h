@@ -31,6 +31,7 @@ Text_t Text$_concat(int n, Text_t items[n]);
 Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int);
 Text_t Text$from(Text_t text, Int_t first);
 Text_t Text$to(Text_t text, Int_t last);
+Text_t Text$reversed(Text_t text);
 Text_t Text$cluster(Text_t text, Int_t index_int);
 OptionalText_t Text$from_str(const char *str);
 OptionalText_t Text$from_strn(const char *str, size_t len);
