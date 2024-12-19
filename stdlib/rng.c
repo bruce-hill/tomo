@@ -18,7 +18,7 @@
 
 #include "chacha.h"
 
-public _Thread_local RNG_t default_rng = NULL;
+public RNG_t default_rng = NULL;
 
 struct RNGState_t {
     chacha_ctx chacha;
