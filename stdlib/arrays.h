@@ -83,6 +83,7 @@ PUREFUNC bool Array$has(Array_t array, void *item, const TypeInfo_t *type);
 PUREFUNC Array_t Array$from(Array_t array, Int_t first);
 PUREFUNC Array_t Array$to(Array_t array, Int_t last);
 PUREFUNC Array_t Array$by(Array_t array, Int_t stride, int64_t padded_item_size);
+PUREFUNC Array_t Array$slice(Array_t array, Int_t int_first, Int_t int_last);
 PUREFUNC Array_t Array$reversed(Array_t array, int64_t padded_item_size);
 Array_t Array$concat(Array_t x, Array_t y, int64_t padded_item_size);
 PUREFUNC uint64_t Array$hash(const void *arr, const TypeInfo_t *type);

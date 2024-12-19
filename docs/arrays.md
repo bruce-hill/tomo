@@ -816,6 +816,38 @@ A new array with shuffled elements.
 
 ---
 
+### `slice`
+
+**Description:**  
+Returns a slice of the array spanning the given indices (inclusive).
+
+**Signature:**  
+```tomo
+func slice(arr: [T], from: Int, to: Int -> [T])
+```
+
+**Parameters:**
+
+- `arr`: The original array.
+- `from`: The first index to include.
+- `to`: The last index to include.
+
+**Returns:**  
+A new array spanning the given indices. Note: negative indices are counted from
+the back of the array, so `-1` refers to the last element, `-2` the
+second-to-last, and so on.
+
+**Example:**  
+```tomo
+>> [10, 20, 30, 40, 50]:slice(2, 4)
+= [20, 30, 40]
+
+>> [10, 20, 30, 40, 50]:slice(-3, -2)
+= [30, 40]
+```
+
+---
+
 ### `sort`
 
 **Description:**  

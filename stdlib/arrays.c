@@ -386,43 +386,14 @@ public Array_t Array$sample(Array_t arr, Int_t int_n, Array_t weights, RNG_t rng
     return selected;
 }
 
-public Array_t Array$from(Array_t array, Int_t int_first)
+public Array_t Array$from(Array_t array, Int_t first)
 {
-    int64_t first = Int_to_Int64(int_first, false);
-    if (first < 0)
-        first = array.length + first + 1;
-
-    if (first < 1 || first > array.length)
-        return (Array_t){.atomic=array.atomic};
-
-    return (Array_t){
-        .atomic=array.atomic,
-        .data=array.data + array.stride*(first-1),
-        .length=array.length - first + 1,
-        .stride=array.stride,
-        .data_refcount=array.data_refcount,
-    };
+    return Array$slice(array, first, I_small(-1));
 }
 
-public Array_t Array$to(Array_t array, Int_t int_last)
+public Array_t Array$to(Array_t array, Int_t last)
 {
-    int64_t last = Int_to_Int64(int_last, false);
-    if (last < 0)
-        last = array.length + last + 1;
-
-    if (last > array.length)
-        last = array.length;
-
-    if (last == 0)
-        return (Array_t){.atomic=array.atomic};
-
-    return (Array_t){
-        .atomic=array.atomic,
-        .data=array.data,
-        .length=last,
-        .stride=array.stride,
-        .data_refcount=array.data_refcount,
-    };
+    return Array$slice(array, I_small(1), last);
 }
 
 public Array_t Array$by(Array_t array, Int_t int_stride, int64_t padded_item_size)
@@ -455,6 +426,32 @@ public Array_t Array$by(Array_t array, Int_t int_stride, int64_t padded_item_siz
         .data=(stride < 0 ? array.data + (array.stride * (array.length - 1)) : array.data),
         .length=(stride < 0 ? array.length / -stride : array.length / stride) + ((array.length % stride) != 0),
         .stride=array.stride * stride,
+        .data_refcount=array.data_refcount,
+    };
+}
+
+public Array_t Array$slice(Array_t array, Int_t int_first, Int_t int_last)
+
+{
+    int64_t first = Int_to_Int64(int_first, false);
+    if (first < 0)
+        first = array.length + first + 1;
+
+    int64_t last = Int_to_Int64(int_last, false);
+    if (last < 0)
+        last = array.length + last + 1;
+
+    if (last > array.length)
+        last = array.length;
+
+    if (first < 1 || first > array.length || last == 0)
+        return (Array_t){.atomic=array.atomic};
+
+    return (Array_t){
+        .atomic=array.atomic,
+        .data=array.data + array.stride*(first-1),
+        .length=last - first + 1,
+        .stride=array.stride,
         .data_refcount=array.data_refcount,
     };
 }

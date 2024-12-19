@@ -746,6 +746,38 @@ Note: if `text` or `pattern` is empty, an empty array will be returned.
 
 ---
 
+## `from`
+
+**Description:**  
+Get a slice of the text, starting at the given position.
+
+**Signature:**  
+```tomo
+func from(text: Text, first: Int -> Text)
+```
+
+**Parameters:**
+
+- `text`: The text to be sliced.
+- `frist`: The index of the first grapheme cluster to include (1-indexed).
+
+**Returns:**  
+The text from the given grapheme cluster to the end of the text. Note: a
+negative index counts backwards from the end of the text, so `-1` refers to the
+last cluster, `-2` the second-to-last, etc. Slice ranges will be truncated to
+the length of the string.
+
+**Example:**  
+```tomo
+>> "hello":from(2)
+= "ello"
+
+>> "hello":from(-2)
+= "lo"
+```
+
+---
+
 ## `has`
 
 **Description:**  
@@ -1213,6 +1245,38 @@ The text in title case.
 ```tomo
 >> "amélie":title()
 = "Amélie"
+```
+
+---
+
+## `to`
+
+**Description:**  
+Get a slice of the text, ending at the given position.
+
+**Signature:**  
+```tomo
+func to(text: Text, last: Int -> Text)
+```
+
+**Parameters:**
+
+- `text`: The text to be sliced.
+- `last`: The index of the last grapheme cluster to include (1-indexed).
+
+**Returns:**  
+The text up to and including the given grapheme cluster. Note: a negative index
+counts backwards from the end of the text, so `-1` refers to the last cluster,
+`-2` the second-to-last, etc. Slice ranges will be truncated to the length of
+the string.
+
+**Example:**  
+```tomo
+>> "goodbye":to(3)
+= "goo"
+
+>> "goodbye":to(-2)
+= "goodby"
 ```
 
 ---

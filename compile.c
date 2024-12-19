@@ -2892,6 +2892,10 @@ CORD compile(env_t *env, ast_t *ast)
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="rng", .type=RNG_TYPE, .default_val=default_rng);
                 return CORD_all("Array$shuffled(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
+            } else if (streq(call->name, "slice")) {
+                self = compile_to_pointer_depth(env, call->self, 0, true);
+                arg_t *arg_spec = new(arg_t, .name="first", .type=INT_TYPE, .next=new(arg_t, .name="last", .type=INT_TYPE));
+                return CORD_all("Array$slice(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "sort") || streq(call->name, "sorted")) {
                 if (streq(call->name, "sort"))
                     EXPECT_POINTER("an", "array");
