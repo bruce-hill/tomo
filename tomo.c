@@ -33,6 +33,7 @@
 static OptionalArray_t files = NONE_ARRAY,
                        args = NONE_ARRAY;
 static OptionalBool_t verbose = false,
+                      quiet = false,
                       show_codegen = false,
                       stop_at_transpile = false,
                       stop_at_obj_compilation = false,
@@ -83,7 +84,9 @@ int main(int argc, char *argv[])
                         "  --verbose|-v: verbose output\n"
                         "  --install|-I: install the executable or library\n"
                         "  --c-compiler <compiler>: the C compiler to use (default: cc)\n"
-                        "  --optimization|-O <level>: set optimization level");
+                        "  --optimization|-O <level>: set optimization level\n"
+                        "  --quiet|-q: quiet output\n"
+                        );
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     tomo_parse_args(
         argc, argv, usage, help,
@@ -110,6 +113,8 @@ int main(int argc, char *argv[])
         {"c-compiler", false, &Text$info, &cc},
         {"optimization", false, &Text$info, &optimization},
         {"O", false, &Text$info, &optimization},
+        {"quiet", false, &Bool$info, &quiet},
+        {"q", false, &Bool$info, &quiet},
     );
 
     if (uninstall) {
@@ -306,7 +311,8 @@ void build_library(Text_t lib_dir_name)
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);
 
-    printf("\x1b[2mCompiled to lib%k.so\x1b[m\n", &lib_dir_name);
+    if (!quiet || verbose)
+        printf("\x1b[2mCompiled to lib%k.so\x1b[m\n", &lib_dir_name);
 
     prog = run_cmd("objcopy --redefine-syms=symbol_renames.txt 'lib%k.so'", &lib_dir_name);
     status = pclose(prog);
@@ -491,7 +497,8 @@ void transpile_header(env_t *base_env, Text_t filename, bool force_retranspile)
     if (pclose(prog) == -1)
         errx(1, "Failed to run autoformat program on header file: %k", &autofmt);
 
-    printf("\x1b[2mTranspiled to %k\x1b[m\n", &h_filename);
+    if (!quiet || verbose)
+        printf("\x1b[2mTranspiled to %k\x1b[m\n", &h_filename);
 
     if (show_codegen)
         system(heap_strf("bat -P %k", &h_filename));
@@ -532,7 +539,8 @@ void transpile_code(env_t *base_env, Text_t filename, bool force_retranspile)
     if (pclose(out) == -1)
         errx(1, "Failed to output autoformatted C code to %k: %k", &c_filename, &autofmt);
 
-    printf("\x1b[2mTranspiled to %k\x1b[m\n", &c_filename);
+    if (!quiet || verbose)
+        printf("\x1b[2mTranspiled to %k\x1b[m\n", &c_filename);
 
     if (show_codegen)
         system(heap_strf("bat -P %k", &c_filename));
@@ -557,7 +565,8 @@ void compile_object_file(Text_t filename, bool force_recompile)
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);
 
-    printf("\x1b[2mCompiled to %k\x1b[m\n", &obj_file);
+    if (!quiet || verbose)
+        printf("\x1b[2mCompiled to %k\x1b[m\n", &obj_file);
 }
 
 Text_t compile_executable(env_t *base_env, Text_t filename, Array_t object_files, Array_t extra_ldlibs)
@@ -592,7 +601,8 @@ Text_t compile_executable(env_t *base_env, Text_t filename, Array_t object_files
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);
 
-    printf("\x1b[2mCompiled executable: %k\x1b[m\n", &bin_name);
+    if (!quiet || verbose)
+        printf("\x1b[2mCompiled executable: %k\x1b[m\n", &bin_name);
     return bin_name;
 }
 

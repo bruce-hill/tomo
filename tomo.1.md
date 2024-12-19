@@ -53,19 +53,27 @@ C code, which is then compiled using a C compiler of your choice.
 `-I`
 : Install the compiled executable or library.
 
+`-C`
+: Print transpiled C code to the console.
+
+`--c-compiler`
+: Set which C compiler is used.
+
+`-f`, `--autoformat`
+: Set which autoformat program is used.
+
+`-v`, `--verbose`
+: Print extra verbose output.
+
+`-q`, `--quiet`
+: Be extra quiet and do not print what the compiler is doing, only program output.
+
 ## ENVIRONMENT VARIABLES
 
 Some options can be configured by setting environment variables.
 
-`VERBOSE=0|1|2`
-: Set the verbosity level.
-
 `CC=`*c-compiler*
 : Set which C compiler is used.
-
-`O=`*optimization-level*
-: Set which optimization level is passed to the C compiler. Valid values are
-  those accepted by your compiler's `-O` flag.
 
 `AUTOFMT=`*autoformatter*
 : The program used to autoformat generated C code. Default: `indent -kr -l100 -nbbo -nut -sob`
