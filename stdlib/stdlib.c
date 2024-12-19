@@ -54,7 +54,7 @@ public void tomo_init(void)
    if (read(rng_fd, (void*)random_bytes, 40) < 40)
        fail("Couldn't read from /dev/urandom");
    Array_t rng_seed = {.length=40, .data=random_bytes, .stride=1, .atomic=1};
-   default_rng = RNG$new(rng_seed);
+   RNG$set_seed(default_rng, rng_seed);
 
    if (register_printf_specifier('k', printf_text, printf_text_size))
        errx(1, "Couldn't set printf specifier");
