@@ -70,6 +70,12 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
         return true;
     }
 
+    // Optional -> Bool promotion
+    if (actual->tag == OptionalType && needed->tag == BoolType) {
+        *code = CORD_all("(!", check_none(actual, *code), ")");
+        return true;
+    }
+
     // Automatic optional checking for nums:
     if (needed->tag == NumType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == NumType) {
         *code = CORD_all("({ ", compile_declaration(actual, "opt"), " = ", *code, "; ",
@@ -2155,6 +2161,8 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop->lhs), "; ",
                                 check_none(lhs_t, "lhs"), " ? ", compile(env, binop->rhs), " : ",
                                 optional_into_nonnone(lhs_t, "lhs"), "; })");
+            } else if (rhs_t->tag == BoolType) {
+                return CORD_all("((!", check_none(lhs_t, compile(env, binop->lhs)), ") || ", compile(env, binop->rhs), ")");
             } else {
                 code_err(ast, "I don't know how to do an 'or' operation between %T and %T", lhs_t, rhs_t);
             }
@@ -2166,6 +2174,8 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (rhs_t->tag == OptionalType && type_eq(lhs_t, rhs_t)) {
                 return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop->lhs), "; ",
                                 check_none(lhs_t, "lhs"), " ? lhs : ", compile(env, binop->rhs), "; })");
+            } else if (rhs_t->tag == BoolType) {
+                return CORD_all("((!", check_none(lhs_t, compile(env, binop->lhs)), ") && ", compile(env, binop->rhs), ")");
             } else {
                 code_err(ast, "I don't know how to do an 'or' operation between %T and %T", lhs_t, rhs_t);
             }

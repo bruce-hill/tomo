@@ -358,6 +358,9 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
         return true;
 
     if (actual->tag == OptionalType) {
+        if (needed->tag == BoolType)
+            return true;
+
         // Ambiguous `none` to concrete optional
         if (Match(actual, OptionalType)->type == NULL)
             return (needed->tag == OptionalType);

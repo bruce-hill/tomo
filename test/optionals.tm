@@ -326,3 +326,8 @@ func main():
 
     >> [Struct(5,"A")?, Struct(6,"B"), Struct(7,"C")]
     = [Struct(x=5, y="A"), Struct(x=6, y="B"), Struct(x=7, y="C")]
+
+    if 5? or no:
+        say("Binary op 'or' works with optionals")
+    else:
+        fail("Failed to do binary op 'or' on optional")

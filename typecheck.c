@@ -1027,6 +1027,9 @@ type_t *get_type(env_t *env, ast_t *ast)
         case BINOP_AND: {
             if (lhs_t->tag == BoolType && rhs_t->tag == BoolType) {
                 return lhs_t;
+            } else if ((lhs_t->tag == BoolType && rhs_t->tag == OptionalType) ||
+                       (lhs_t->tag == OptionalType && rhs_t->tag == BoolType)) {
+                return Type(BoolType);
             } else if (lhs_t->tag == BoolType && (rhs_t->tag == AbortType || rhs_t->tag == ReturnType)) {
                 return lhs_t;
             } else if (rhs_t->tag == AbortType || rhs_t->tag == ReturnType) {
@@ -1048,6 +1051,9 @@ type_t *get_type(env_t *env, ast_t *ast)
         case BINOP_OR: {
             if (lhs_t->tag == BoolType && rhs_t->tag == BoolType) {
                 return lhs_t;
+            } else if ((lhs_t->tag == BoolType && rhs_t->tag == OptionalType) ||
+                       (lhs_t->tag == OptionalType && rhs_t->tag == BoolType)) {
+                return Type(BoolType);
             } else if (lhs_t->tag == BoolType && (rhs_t->tag == AbortType || rhs_t->tag == ReturnType)) {
                 return lhs_t;
             } else if ((is_int_type(lhs_t) && is_int_type(rhs_t))
@@ -1075,6 +1081,9 @@ type_t *get_type(env_t *env, ast_t *ast)
         case BINOP_XOR: {
             if (lhs_t->tag == BoolType && rhs_t->tag == BoolType) {
                 return lhs_t;
+            } else if ((lhs_t->tag == BoolType && rhs_t->tag == OptionalType) ||
+                       (lhs_t->tag == OptionalType && rhs_t->tag == BoolType)) {
+                return Type(BoolType);
             } else if ((is_int_type(lhs_t) && is_int_type(rhs_t))
                        || (lhs_t->tag == ByteType && rhs_t->tag == ByteType)) {
                 return get_math_type(env, ast, lhs_t, rhs_t);
