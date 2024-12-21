@@ -457,6 +457,101 @@ indices are counted from the back of the text, so `-1` means the last cluster,
 
 ---
 
+## `by_line`
+
+**Description:**  
+Returns an iterator function that can be used to iterate over the lines in a
+text.
+
+**Signature:**  
+```tomo
+func by_line(text: Text -> func(->Text?))
+```
+
+**Parameters:**
+
+- `text`: The text to be iterated over, line by line.
+
+**Returns:**  
+An iterator function that returns one line at a time, until it runs out and
+returns `none`. **Note:** this function ignores a trailing newline if there is
+one. If you don't want this behavior, use `text:by_split($/{1 nl}/)` instead.
+
+**Example:**  
+```tomo
+text := "
+    line one
+    line two
+"
+for line in text:by_line():
+    # Prints: "line one" then "line two":
+    say(line)
+```
+
+---
+
+## `by_match`
+
+**Description:**  
+Returns an iterator function that can be used to iterate over the occurrences
+of a pattern in a text.
+
+**Signature:**  
+```tomo
+func by_match(text: Text, pattern: Pattern -> func(->Match?))
+```
+
+**Parameters:**
+
+- `text`: The text to be iterated over looking for matches.
+- `pattern`: The pattern to look for.
+
+**Returns:**  
+An iterator function that returns one match result at a time, until it runs out
+and returns `none`. **Note:** if a zero-length match is found, the iterator
+will return it exactly once. Matches are always non-overlapping.
+
+**Example:**  
+```tomo
+text := "one two three"
+for match in text:by_match($/{alpha}/):
+    # Prints: "one" then "two" then "three":
+    say(match.text)
+```
+
+---
+
+## `by_split`
+
+**Description:**  
+Returns an iterator function that can be used to iterate over text separated by
+a pattern.
+
+**Signature:**  
+```tomo
+func by_split(text: Text, pattern: Pattern = $// -> func(->Text?))
+```
+
+**Parameters:**
+
+- `text`: The text to be iterated over in pattern-delimited chunks.
+- `pattern`: The pattern to split the text on.
+
+**Returns:**  
+An iterator function that returns one chunk of text at a time, separated by the
+given pattern, until it runs out and returns `none`. **Note:** using an empty
+pattern (the default) will iterate over single grapheme clusters in the text.
+
+**Example:**  
+```tomo
+text := "one,two,three"
+for chunk in text:by_split($/,/):
+    # Prints: "one" then "two" then "three":
+    say(chunk)
+```
+
+---
+
 ## `bytes`
 
 **Description:**  

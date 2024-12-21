@@ -873,6 +873,33 @@ public Array_t Text$find_all(Text_t text, Pattern_t pattern)
     return matches;
 }
 
+typedef struct {
+    TextIter_t state;
+    Int_t i;
+    Pattern_t pattern;
+} match_iter_state_t;
+
+static OptionalMatch_t next_match(match_iter_state_t *state)
+{
+    if (Int_to_Int64(state->i, false) > state->state.text.length)
+        return NONE_MATCH;
+
+    OptionalMatch_t m = Text$find(state->state.text, state->pattern, state->i);
+    if (m.index.small == 0) // No match
+        state->i = I(state->state.text.length + 1);
+    else
+        state->i = Int$plus(m.index, I(MAX(1, m.text.length)));
+    return m;
+}
+
+public Closure_t Text$by_match(Text_t text, Pattern_t pattern)
+{
+    return (Closure_t){
+        .fn=(void*)next_match,
+        .userdata=new(match_iter_state_t, .state={text, 0, 0}, .i=I_small(1), .pattern=pattern),
+    };
+}
+
 static Text_t apply_backrefs(Text_t text, Pattern_t original_pattern, Text_t replacement, Pattern_t backref_pat, capture_t *captures)
 {
     if (backref_pat.length == 0)
@@ -1145,16 +1172,65 @@ public Array_t Text$split(Text_t text, Pattern_t pattern)
     for (;;) {
         int64_t len = 0;
         int64_t found = _find(text, pattern, i, text.length-1, &len, NULL);
+        if (found == i && len == 0)
+            found = _find(text, pattern, i + 1, text.length-1, &len, NULL);
         if (found < 0) break;
         Text_t chunk = Text$slice(text, I(i+1), I(found));
         Array$insert(&chunks, &chunk, I_small(0), sizeof(Text_t));
-        i = found + MAX(len, 1);
+        i = MAX(found + len, i + 1);
     }
 
     Text_t last_chunk = Text$slice(text, I(i+1), I(text.length));
     Array$insert(&chunks, &last_chunk, I_small(0), sizeof(Text_t));
 
     return chunks;
+}
+
+typedef struct {
+    TextIter_t state;
+    int64_t i;
+    Pattern_t pattern;
+} split_iter_state_t;
+
+static OptionalText_t next_split(split_iter_state_t *state)
+{
+    Text_t text = state->state.text;
+    if (state->i >= text.length) {
+        if (state->pattern.length > 0 && state->i == text.length) { // special case
+            state->i = text.length + 1;
+            return (Text_t){.length=0};
+        }
+        return NONE_TEXT;
+    }
+
+    if (state->pattern.length == 0) { // special case
+        Text_t ret = Text$cluster(text, I(state->i+1));
+        state->i += 1;
+        return ret;
+    }
+
+    int64_t start = state->i;
+    int64_t len = 0;
+    int64_t found = _find(text, state->pattern, start, text.length-1, &len, NULL);
+
+    if (found == start && len == 0)
+        found = _find(text, state->pattern, start + 1, text.length-1, &len, NULL);
+
+    if (found >= 0) {
+        state->i = MAX(found + len, state->i + 1);
+        return Text$slice(text, I(start+1), I(found));
+    } else {
+        state->i = state->state.text.length + 1;
+        return Text$slice(text, I(start+1), I(text.length));
+    }
+}
+
+public Closure_t Text$by_split(Text_t text, Pattern_t pattern)
+{
+    return (Closure_t){
+        .fn=(void*)next_split,
+        .userdata=new(split_iter_state_t, .state={text, 0, 0}, .i=0, .pattern=pattern),
+    };
 }
 
 public const TypeInfo_t Pattern$info = {

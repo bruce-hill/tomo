@@ -27,9 +27,11 @@ Text_t Text$replace(Text_t str, Pattern_t pat, Text_t replacement, Pattern_t bac
 Pattern_t Pattern$escape_text(Text_t text);
 Text_t Text$replace_all(Text_t text, Table_t replacements, Pattern_t backref_pat, bool recursive);
 Array_t Text$split(Text_t text, Pattern_t pattern);
+Closure_t Text$by_split(Text_t text, Pattern_t pattern);
 Text_t Text$trim(Text_t text, Pattern_t pattern, bool trim_left, bool trim_right);
 OptionalMatch_t Text$find(Text_t text, Pattern_t pattern, Int_t i);
 Array_t Text$find_all(Text_t text, Pattern_t pattern);
+Closure_t Text$by_match(Text_t text, Pattern_t pattern);
 PUREFUNC bool Text$has(Text_t text, Pattern_t pattern);
 OptionalArray_t Text$matches(Text_t text, Pattern_t pattern);
 Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn);

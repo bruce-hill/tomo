@@ -59,6 +59,7 @@ Text_t Text$from_codepoints(Array_t codepoints);
 OptionalText_t Text$from_codepoint_names(Array_t codepoint_names);
 OptionalText_t Text$from_bytes(Array_t bytes);
 Array_t Text$lines(Text_t text);
+Closure_t Text$by_line(Text_t text);
 Text_t Text$join(Text_t glue, Array_t pieces);
 Text_t Text$repeat(Text_t text, Int_t count);
 int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index);

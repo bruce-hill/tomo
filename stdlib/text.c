@@ -1422,6 +1422,41 @@ public Array_t Text$lines(Text_t text)
     return lines;
 }
 
+typedef struct {
+    TextIter_t state;
+    int64_t i;
+} line_iter_state_t;
+
+static OptionalText_t next_line(line_iter_state_t *state)
+{
+    Text_t text = state->state.text;
+    for (int64_t i = state->i; i < text.length; i++) {
+        int32_t grapheme = Text$get_grapheme_fast(&state->state, i);
+        if (grapheme == '\r' && Text$get_grapheme_fast(&state->state, i + 1) == '\n') { // CRLF
+            Text_t line = Text$slice(text, I(state->i+1), I(i));
+            state->i = i + 2; // skip one extra for CR
+            return line;
+        } else if (grapheme == '\n') { // newline
+            Text_t line = Text$slice(text, I(state->i+1), I(i));
+            state->i = i + 1;
+            return line;
+        } else if (i == text.length-1 && state->i != i) { // last line
+            Text_t line = Text$slice(text, I(state->i+1), I(i+1));
+            state->i = i + 1;
+            return line;
+        }
+    }
+    return NONE_TEXT;
+}
+
+public Closure_t Text$by_line(Text_t text)
+{
+    return (Closure_t){
+        .fn=(void*)next_line,
+        .userdata=new(line_iter_state_t, .state={text, 0, 0}, .i=0),
+    };
+}
+
 PUREFUNC public bool Text$is_none(const void *t, const TypeInfo_t*)
 {
     return ((Text_t*)t)->length < 0;

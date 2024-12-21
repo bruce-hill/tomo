@@ -308,6 +308,8 @@ CORD compile_type(type_t *t)
         case StructType: {
             if (nonnull == THREAD_TYPE)
                 return "Thread_t";
+            if (nonnull == MATCH_TYPE)
+                return "OptionalMatch_t";
             auto s = Match(nonnull, StructType);
             return CORD_all(namespace_prefix(s->env, s->env->namespace->parent), "$Optional", s->name, "_t");
         }
@@ -422,7 +424,7 @@ CORD optional_into_nonnone(type_t *t, CORD value)
     case IntType:
         return CORD_all(value, ".i");
     case StructType:
-        if (t == THREAD_TYPE)
+        if (t == THREAD_TYPE || t == MATCH_TYPE)
             return value;
         return CORD_all(value, ".value");
     default:
@@ -436,6 +438,8 @@ CORD check_none(type_t *t, CORD value)
     if (t->tag == PointerType || t->tag == FunctionType || t->tag == CStringType
         || t->tag == ChannelType || t == THREAD_TYPE)
         return CORD_all("(", value, " == NULL)");
+    else if (t == MATCH_TYPE)
+        return CORD_all("((", value, ").index.small == 0)");
     else if (t->tag == BigIntType)
         return CORD_all("((", value, ").small == 0)");
     else if (t->tag == ClosureType)
