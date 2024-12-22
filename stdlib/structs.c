@@ -45,13 +45,7 @@ PUREFUNC public uint64_t Struct$hash(const void *obj, const TypeInfo_t *type)
             }
             if (field.type->align && byte_offset % field.type->align > 0)
                 byte_offset += field.type->align - (byte_offset % field.type->align);
-
-            if (field.type->metamethods.hash == NULL && (size_t)field.type->size < sizeof(uint64_t)) {
-                memcpy(&field_hashes[i], obj + byte_offset, (size_t)field.type->size);
-            } else {
-                field_hashes[i] = generic_hash(obj + byte_offset, field.type);
-            }
-
+            field_hashes[i] = generic_hash(obj + byte_offset, field.type);
             byte_offset += field.type->size;
         }
     }
