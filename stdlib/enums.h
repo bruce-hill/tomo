@@ -25,4 +25,14 @@ void Enum$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_
     .deserialize=Enum$deserialize, \
 })
 
+#define PackedDataEnum$metamethods ((metamethods_t){ \
+    .hash=PackedData$hash, \
+    .compare=Enum$compare, \
+    .equal=PackedData$equal, \
+    .as_text=Enum$as_text, \
+    .is_none=Enum$is_none, \
+    .serialize=Enum$serialize, \
+    .deserialize=Enum$deserialize, \
+})
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

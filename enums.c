@@ -46,9 +46,10 @@ void compile_enum_def(env_t *env, ast_t *ast)
         num_tags += 1;
 
     type_t *t = Table$str_get(*env->types, def->name);
-    CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r = {%zu, %zu, .metamethods=Enum$metamethods, {.tag=EnumInfo, .EnumInfo={.name=\"%s\", "
+    const char *metamethods = is_packed_data(t) ? "PackedDataEnum$metamethods" : "Enum$metamethods";
+    CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r = {%zu, %zu, .metamethods=%s, {.tag=EnumInfo, .EnumInfo={.name=\"%s\", "
                                   ".num_tags=%d, .tags=(NamedType_t[]){",
-                                  full_name, type_size(t), type_align(t), def->name, num_tags);
+                                  full_name, type_size(t), type_align(t), metamethods, def->name, num_tags);
 
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         const char *tag_type_name = heap_strf("%s$%s", def->name, tag->name);

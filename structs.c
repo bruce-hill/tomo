@@ -27,10 +27,11 @@ void compile_struct_def(env_t *env, ast_t *ast)
         short_name = strrchr(short_name, '$') + 1;
 
     env->code->typeinfos = CORD_all("public const TypeInfo_t ", full_name, ";\n", env->code->typeinfos);
-    CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r = {.size=%zu, .align=%zu, .metamethods=Struct$metamethods, "
+    const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
+    CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r = {.size=%zu, .align=%zu, .metamethods=%s, "
                                   ".tag=StructInfo, .StructInfo.name=\"%s\"%s, "
                                   ".StructInfo.num_fields=%ld",
-                                  full_name, type_size(t), type_align(t), short_name, def->secret ? ", .StructInfo.is_secret=true" : "",
+                                  full_name, type_size(t), type_align(t), metamethods, short_name, def->secret ? ", .StructInfo.is_secret=true" : "",
                                   num_fields);
     if (def->fields) {
         typeinfo = CORD_asprintf("%r, .StructInfo.fields=(NamedType_t[%d]){", typeinfo, num_fields);

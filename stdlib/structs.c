@@ -53,6 +53,14 @@ PUREFUNC public uint64_t Struct$hash(const void *obj, const TypeInfo_t *type)
 }
 #pragma GCC diagnostic pop
 
+PUREFUNC public uint64_t PackedData$hash(const void *obj, const TypeInfo_t *type)
+{
+    if (type->StructInfo.num_fields == 0)
+        return 0;
+
+    return siphash24(obj, (size_t)type->size);
+}
+
 PUREFUNC public int32_t Struct$compare(const void *x, const void *y, const TypeInfo_t *type)
 {
     if (x == y)
@@ -120,6 +128,12 @@ PUREFUNC public bool Struct$equal(const void *x, const void *y, const TypeInfo_t
         }
     }
     return true;
+}
+
+PUREFUNC public bool PackedData$equal(const void *x, const void *y, const TypeInfo_t *type)
+{
+    if (x == y) return true;
+    return (memcmp(x, y, (size_t)type->size) == 0);
 }
 
 PUREFUNC public Text_t Struct$as_text(const void *obj, bool colorize, const TypeInfo_t *type)

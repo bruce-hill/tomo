@@ -150,6 +150,7 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed);
 PUREFUNC const char *enum_single_value_tag(type_t *enum_type, type_t *t);
 PUREFUNC bool is_int_type(type_t *t);
 PUREFUNC bool is_numeric_type(type_t *t);
+PUREFUNC bool is_packed_data(type_t *t);
 PUREFUNC size_t type_size(type_t *t);
 PUREFUNC size_t type_align(type_t *t);
 PUREFUNC size_t unpadded_struct_size(type_t *t);

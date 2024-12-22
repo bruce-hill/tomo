@@ -444,20 +444,54 @@ PUREFUNC bool is_numeric_type(type_t *t)
     return t->tag == IntType || t->tag == BigIntType || t->tag == NumType || t->tag == ByteType;
 }
 
+PUREFUNC bool is_packed_data(type_t *t)
+{
+    if (t->tag == IntType || t->tag == NumType || t->tag == ByteType || t->tag == PointerType || t->tag == BoolType || t->tag == FunctionType) {
+        return true;
+    } else if (t->tag == StructType) {
+        for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
+            if (!is_packed_data(field->type))
+                return false;
+        }
+        return true;
+    } else if (t->tag == EnumType) {
+        for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
+            if (!is_packed_data(tag->type))
+                return false;
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
+
 PUREFUNC size_t unpadded_struct_size(type_t *t)
 {
     arg_t *fields = Match(t, StructType)->fields;
     size_t size = 0;
+    size_t bit_offset = 0;
     for (arg_t *field = fields; field; field = field->next) {
         type_t *field_type = field->type;
         if (field_type->tag == BoolType) {
-            size += 1; // Bit packing
+            bit_offset += 1;
+            if (bit_offset >= 8) {
+                size += 1;
+                bit_offset = 0;
+            }
         } else {
+            if (bit_offset > 0) {
+                size += 1;
+                bit_offset = 0;
+            }
             size_t align = type_align(field_type);
             if (align > 1 && size % align > 0)
                 size += align - (size % align); // Padding
             size += type_size(field_type);
         }
+    }
+    if (bit_offset > 0) {
+        size += 1;
+        bit_offset = 0;
     }
     return size;
 }
