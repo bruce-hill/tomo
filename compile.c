@@ -366,7 +366,7 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
             if (table_type->default_value) {
                 type_t *value_type = get_type(env, table_type->default_value);
                 return CORD_all("*Table$get_or_setdefault(",
-                                compile_lvalue(env, index->indexed), ", ",
+                                compile_to_pointer_depth(env, index->indexed, 1, false), ", ",
                                 compile_type(table_type->key_type), ", ",
                                 compile_type(value_type), ", ",
                                 compile(env, index->index), ", ",
@@ -871,7 +871,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 if (update->lhs->tag == Var)
                     return CORD_all("Array$insert_all(&", lhs, ", ", rhs, ", I(0), ", padded_item_size, ");");
                 else
-                    return CORD_all(lhs, "Array$concat(", lhs, ", ", rhs, ", ", padded_item_size, ");");
+                    return CORD_all(lhs, " = Array$concat(", lhs, ", ", rhs, ", ", padded_item_size, ");");
             } else {
                 code_err(ast, "'++=' is not implemented for %T types", lhs_t);
             }
@@ -3682,7 +3682,7 @@ CORD compile(env_t *env, ast_t *ast)
             if (table_type->default_value) {
                 type_t *value_type = get_type(env, table_type->default_value);
                 return CORD_all("Table$get_or_default(",
-                                compile(env, indexing->indexed), ", ",
+                                compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
                                 compile_type(table_type->key_type), ", ",
                                 compile_type(value_type), ", ",
                                 compile(env, indexing->index), ", ",

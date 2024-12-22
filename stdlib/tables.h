@@ -36,7 +36,7 @@ void *Table$get(Table_t t, const void *key, const TypeInfo_t *type);
     val_t *nonnull_var = Table$get(t, &k, info_expr); \
     nonnull_var ? nonnull_expr : null_expr; })
 #define Table$get_or_setdefault(table_expr, key_t, val_t, key_expr, default_expr, info_expr) ({ \
-    Table_t *t = &table_expr; const key_t k = key_expr; \
+    Table_t *t = table_expr; const key_t k = key_expr; \
     val_t *v = Table$get(*t, &k, info_expr); \
     v ? v : (val_t*)Table$reserve(t, &k, (val_t[1]){default_expr}, info_expr); })
 #define Table$get_or_default(table_expr, key_t, val_t, key_expr, default_expr, info_expr) ({ \
