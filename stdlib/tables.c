@@ -231,7 +231,7 @@ public void *Table$reserve(Table_t *t, const void *key, const void *value, const
     int64_t key_size = type->TableInfo.key->size,
             value_size = type->TableInfo.value->size;
     if (!t->bucket_info || t->bucket_info->count == 0) {
-        hashmap_resize_buckets(t, 4, type);
+        hashmap_resize_buckets(t, 8, type);
     } else {
         // Check if we are clobbering a value:
         void *value_home = Table$get_raw(*t, key, type);
@@ -251,7 +251,8 @@ public void *Table$reserve(Table_t *t, const void *key, const void *value, const
 
     // Resize buckets if necessary
     if (t->entries.length >= (int64_t)t->bucket_info->count) {
-        uint32_t newsize = (uint32_t)t->bucket_info->count + MIN((uint32_t)t->bucket_info->count, 64);
+        // Current resize policy: +50% at a time:
+        uint32_t newsize = (3*(uint32_t)t->bucket_info->count)/2;
         if (unlikely(newsize > TABLE_MAX_BUCKETS))
             newsize = t->entries.length + 1;
         hashmap_resize_buckets(t, newsize, type);
