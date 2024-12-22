@@ -254,7 +254,7 @@ public void *Table$reserve(Table_t *t, const void *key, const void *value, const
         // Current resize policy: +50% at a time:
         uint32_t newsize = (3*(uint32_t)t->bucket_info->count)/2;
         if (unlikely(newsize > TABLE_MAX_BUCKETS))
-            newsize = t->entries.length + 1;
+            newsize = TABLE_MAX_BUCKETS;
         hashmap_resize_buckets(t, newsize, type);
     }
 
