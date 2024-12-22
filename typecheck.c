@@ -98,7 +98,8 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
                 code_err(ast, "Tables with optional-typed values are not currently supported");
             return Type(TableType, .key_type=key_type, .value_type=val_type);
         } else if (table_type->default_value) {
-            type_t *t = Type(TableType, .key_type=key_type, .default_value=table_type->default_value);
+            type_t *t = Type(TableType, .key_type=key_type,
+                             .value_type=get_type(env, table_type->default_value), .default_value=table_type->default_value);
             if (has_stack_memory(t))
                 code_err(ast, "Tables can't have stack references because the array may outlive the stack frame.");
             return t;

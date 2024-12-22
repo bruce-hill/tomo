@@ -377,14 +377,16 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
     if (needed->tag == PointerType && actual->tag == PointerType) {
         auto needed_ptr = Match(needed, PointerType);
         auto actual_ptr = Match(actual, PointerType);
+
+        if (actual_ptr->is_stack && !needed_ptr->is_stack)
+            // Can't use &x for a function that wants a @Foo or ?Foo
+            return false;
+
         if (needed_ptr->pointed->tag == TableType && actual_ptr->pointed->tag == TableType)
             return can_promote(actual_ptr->pointed, needed_ptr->pointed);
         else if (needed_ptr->pointed->tag != MemoryType && !type_eq(needed_ptr->pointed, actual_ptr->pointed))
             // Can't use @Foo for a function that wants @Baz
             // But you *can* use @Foo for a function that wants @Memory
-            return false;
-        else if (actual_ptr->is_stack && !needed_ptr->is_stack)
-            // Can't use &x for a function that wants a @Foo or ?Foo
             return false;
         else
             return true;
