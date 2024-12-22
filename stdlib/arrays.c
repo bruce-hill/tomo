@@ -64,7 +64,8 @@ public void Array$insert(Array_t *arr, const void *item, Int_t int_index, int64_
             : GC_MALLOC((size_t)arr->free * (size_t)padded_item_size);
         arr->stride = padded_item_size;
     } else if (arr->free < 1 || arr->data_refcount != 0 || (int64_t)arr->stride != padded_item_size) {
-        arr->free = MIN(ARRAY_MAX_FREE_ENTRIES, MAX(8, arr->length/4));
+        // Resize policy: +50% growth (clamped between 8 and ARRAY_MAX_FREE_ENTRIES)
+        arr->free = MIN(ARRAY_MAX_FREE_ENTRIES, MAX(8, arr->length)/2);
         void *copy = arr->atomic ? GC_MALLOC_ATOMIC((size_t)(arr->length + arr->free) * (size_t)padded_item_size)
             : GC_MALLOC((size_t)(arr->length + arr->free) * (size_t)padded_item_size);
         for (int64_t i = 0; i < index-1; i++)
