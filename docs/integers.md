@@ -122,6 +122,60 @@ Each integer type has its own version of the following functions. Functions
 can be called either on the type itself: `Int.sqrt(x)` or as a method call:
 `x:sqrt()`. Method call syntax is preferred.
 
+### `choose`
+
+**Description:**  
+Computes the binomial coefficient of the given numbers (the equivalent of `n`
+choose `k` in combinatorics). This is equal to `n:factorial()/(k:factorial() *
+(n-k):factorial())`.
+
+**Signature:**  
+```tomo
+func choose(n: Int, k: Int -> Int)
+```
+
+**Parameters:**
+
+- `n`: The number of things to choose from.
+- `k`: The number of things to be chosen.
+
+**Returns:**  
+The binomial coefficient, equivalent to the number of ways to uniquely choose
+`k` objects from among `n` objects, ignoring order.
+
+**Example:**  
+```tomo
+>> 4:choose(2)
+= 6
+```
+
+---
+
+### `factorial`
+
+**Description:**  
+Computes the factorial of an integer.
+
+**Signature:**  
+```tomo
+func factorial(n: Int -> Text)
+```
+
+**Parameters:**
+
+- `n`: The integer to compute the factorial of.
+
+**Returns:**  
+The factorial of the given integer.
+
+**Example:**  
+```tomo
+>> 10:factorial()
+= 3628800
+```
+
+---
+
 ### `format`
 
 **Description:**  

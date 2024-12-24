@@ -382,6 +382,39 @@ public Int_t Int$prev_prime(Int_t x)
     return Int$from_mpz(p);
 }
 
+public Int_t Int$choose(Int_t n, Int_t k)
+{
+    if unlikely (Int$compare_value(n, I_small(0)) < 0)
+        fail("Negative inputs are not supported for choose()");
+
+    mpz_t ret;
+    mpz_init(ret);
+
+    int64_t k_i64 = Int_to_Int64(k, false);
+    if unlikely (k_i64 < 0)
+        fail("Negative inputs are not supported for choose()");
+
+    if likely (n.small & 1) {
+        mpz_bin_uiui(ret, (unsigned long)(n.small >> 2), (unsigned long)k_i64);
+    } else {
+        mpz_t n_mpz;
+        mpz_init_set_int(n_mpz, n);
+        mpz_bin_ui(ret, n_mpz, (unsigned long)k_i64);
+    }
+    return Int$from_mpz(ret);
+}
+
+public Int_t Int$factorial(Int_t n)
+{
+    mpz_t ret;
+    mpz_init(ret);
+    int64_t n_i64 = Int_to_Int64(n, false);
+    if unlikely (n_i64 < 0)
+        fail("Factorials are not defined for negative numbers");
+    mpz_fac_ui(ret, (unsigned long)n_i64);
+    return Int$from_mpz(ret);
+}
+
 static bool Int$is_none(const void *i, const TypeInfo_t*)
 {
     return ((Int_t*)i)->small == 0;
