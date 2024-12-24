@@ -3383,7 +3383,7 @@ CORD compile(env_t *env, ast_t *ast)
                             .code=optional_into_nonnone(condition_type, compile(truthy_scope, var))));
         } else if (condition->tag == Var) {
             type_t *condition_type = get_type(env, condition);
-            condition_code = compile(env, condition);
+            condition_code = compile_condition(env, condition);
             if (condition_type->tag == OptionalType) {
                 truthy_scope = fresh_scope(env);
                 set_binding(truthy_scope, Match(condition, Var)->name,
@@ -3391,7 +3391,7 @@ CORD compile(env_t *env, ast_t *ast)
                                 .code=optional_into_nonnone(condition_type, compile(truthy_scope, condition))));
             }
         } else {
-            condition_code = compile(env, condition);
+            condition_code = compile_condition(env, condition);
         }
 
         type_t *true_type = get_type(truthy_scope, if_->body);
