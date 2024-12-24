@@ -130,3 +130,9 @@ func main():
 	= 1 : Int64
 	>> Int64(no)
 	= 0 : Int64
+
+	>> 4:choose(2)
+	= 6
+
+	>> 4:factorial()
+	= 24
