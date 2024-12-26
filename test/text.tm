@@ -8,7 +8,11 @@ func main():
 	= "hello amélie!"
 	>> str:lower():title()
 	= "Hello Amélie!"
+	>> str[1]
+	= "H"
 
+	>> str[9]
+	= "é"
 
 	>> \UE9
 	= "é"

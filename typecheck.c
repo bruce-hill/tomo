@@ -779,6 +779,8 @@ type_t *get_type(env_t *env, ast_t *ast)
                 return Type(OptionalType, table_type->value_type);
             else
                 code_err(indexing->indexed, "This type doesn't have a value type or a default value");
+        } else if (value_t->tag == TextType) {
+            return value_t;
         } else {
             code_err(ast, "I don't know how to index %T values", indexed_t);
         }

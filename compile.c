@@ -3700,6 +3700,8 @@ CORD compile(env_t *env, ast_t *ast)
             } else {
                 code_err(indexing->index, "This table doesn't have a value type or a default value");
             }
+        } else if (container_t->tag == TextType) {
+            return CORD_all("Text$cluster(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ", compile_to_type(env, indexing->index, Type(BigIntType)), ")");
         } else {
             code_err(ast, "Indexing is not supported for type: %T", container_t);
         }
