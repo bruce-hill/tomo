@@ -829,7 +829,7 @@ PUREFUNC public uint64_t Text$hash(const void *obj, const TypeInfo_t*)
     switch (text->tag) {
     case TEXT_ASCII: case TEXT_SHORT_ASCII: {
         const char *bytes = text->tag == TEXT_ASCII ? text->ascii : text->short_ascii;
-        for (int64_t i = 0; i + 1 < text->length; i++) {
+        for (int64_t i = 0; i + 1 < text->length; i += 2) {
             tmp.chunks[0] = (int32_t)bytes[i];
             tmp.chunks[1] = (int32_t)bytes[i+1];
             siphashadd64bits(&sh, tmp.whole);
@@ -840,7 +840,7 @@ PUREFUNC public uint64_t Text$hash(const void *obj, const TypeInfo_t*)
     }
     case TEXT_GRAPHEMES: {
         const int32_t *graphemes = text->graphemes;
-        for (int64_t i = 0; i + 1 < text->length; i++) {
+        for (int64_t i = 0; i + 1 < text->length; i += 2) {
             tmp.chunks[0] = graphemes[i];
             tmp.chunks[1] = graphemes[i];
             siphashadd64bits(&sh, tmp.whole);
