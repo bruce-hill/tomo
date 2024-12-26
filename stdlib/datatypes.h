@@ -53,6 +53,7 @@ typedef struct {
 
 typedef struct table_s {
     Array_t entries;
+    uint64_t hash;
     bucket_info_t *bucket_info;
     struct table_s *fallback;
 } Table_t;
