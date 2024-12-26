@@ -21,6 +21,9 @@ func main():
 	>> HTML.HEADER
 	= $HTML"<!DOCTYPE HTML>"
 
+	>> HTML.HEADER[1]
+	= $HTML"<"
+
 	>> HTML.HEADER.text_content
 	= "<!DOCTYPE HTML>"
 
