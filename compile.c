@@ -3650,9 +3650,9 @@ CORD compile(env_t *env, ast_t *ast)
                 code_err(ast, "Only pointers can use the '[]' operator to dereference the entire value.");
             auto ptr = Match(indexed_type, PointerType);
             if (ptr->pointed->tag == ArrayType) {
-                return CORD_all("({ Array_t *arr = ", compile(env, indexing->indexed), "; ARRAY_INCREF(*arr); *arr; })");
+                return CORD_all("*({ Array_t *arr = ", compile(env, indexing->indexed), "; ARRAY_INCREF(*arr); arr; })");
             } else if (ptr->pointed->tag == TableType || ptr->pointed->tag == SetType) {
-                return CORD_all("({ Table_t *t = ", compile(env, indexing->indexed), "; TABLE_INCREF(*t); *t; })");
+                return CORD_all("*({ Table_t *t = ", compile(env, indexing->indexed), "; TABLE_INCREF(*t); t; })");
             } else {
                 return CORD_all("*(", compile(env, indexing->indexed), ")");
             }
