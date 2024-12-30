@@ -3,7 +3,8 @@ VERSION=0.0.1
 CC=gcc
 CCONFIG=-std=c23 -Werror -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -I. \
 		-fno-signed-zeros -fno-finite-math-only -fno-signaling-nans -fno-trapping-math \
-		-fsanitize=signed-integer-overflow -fno-sanitize-recover -fvisibility=hidden -fdollars-in-identifiers
+		-fsanitize=signed-integer-overflow -fno-sanitize-recover -fvisibility=hidden -fdollars-in-identifiers \
+		-DGC_THREADS
 LTO=-flto=auto -fno-fat-lto-objects -Wl,-flto 
 LDFLAGS=
 # MAKEFLAGS := --jobs=$(shell nproc) --output-sync=target
