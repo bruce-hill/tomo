@@ -105,16 +105,16 @@ func main():
 		>> heap:heapify()
 		>> heap
 		sorted := @[:Int]
-		while heap.length > 0:
-			sorted:insert(heap:heap_pop())
+		repeat:
+			sorted:insert(heap:heap_pop() or stop)
 		>> sorted == sorted:sorted()
 		= yes
 		for _ in 10:
 			heap:heap_push(random:int(1, 50))
 		>> heap
 		sorted = @[:Int]
-		while heap.length > 0:
-			sorted:insert(heap:heap_pop())
+		repeat:
+			sorted:insert(heap:heap_pop() or stop)
 		>> sorted == sorted:sorted()
 		= yes
 
