@@ -456,12 +456,12 @@ func has(arr: [T] -> Bool)
 ### `heap_pop`
 
 **Description:**  
-Removes and returns the top element of a heap. By default, this is the
-*minimum* value in the heap.
+Removes and returns the top element of a heap or `none` if the array is empty.
+By default, this is the *minimum* value in the heap.
 
 **Signature:**  
 ```tomo
-func heap_pop(arr: @[T], by: func(x,y:&T->Int32) = T.compare -> T)
+func heap_pop(arr: @[T], by: func(x,y:&T->Int32) = T.compare -> T?)
 ```
 
 **Parameters:**
@@ -471,7 +471,7 @@ func heap_pop(arr: @[T], by: func(x,y:&T->Int32) = T.compare -> T)
   default comparison function for the item type will be used.
 
 **Returns:**  
-The removed top element of the heap.
+The removed top element of the heap or `none` if the array is empty.
 
 **Example:**  
 ```tomo

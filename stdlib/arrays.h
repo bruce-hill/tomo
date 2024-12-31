@@ -107,9 +107,13 @@ void Array$heapify(Array_t *heap, Closure_t comparison, int64_t padded_item_size
 void Array$heap_push(Array_t *heap, const void *item, Closure_t comparison, int64_t padded_item_size);
 #define Array$heap_push_value(heap, _value, comparison, padded_item_size) ({ __typeof(_value) value = _value; Array$heap_push(heap, &value, comparison, padded_item_size); })
 void Array$heap_pop(Array_t *heap, Closure_t comparison, int64_t padded_item_size);
-#define Array$heap_pop_value(heap, comparison, padded_item_size, type) \
-    ({ Array_t *_heap = heap; if (_heap->length == 0) fail("Attempt to pop from an empty array"); \
-     type value = *(type*)_heap->data; Array$heap_pop(_heap, comparison, padded_item_size); value; })
+#define Array$heap_pop_value(heap, comparison, type, nonnone_var, nonnone_expr, none_expr, padded_item_size) \
+    ({ Array_t *_heap = heap; \
+     (_heap->length > 0) ? ({ \
+         type nonnone_var = *(type*)_heap->data; \
+         Array$heap_pop(_heap, comparison, padded_item_size); \
+         nonnone_expr; \
+     }) : none_expr; })
 Int_t Array$binary_search(Array_t array, void *target, Closure_t comparison);
 #define Array$binary_search_value(array, target, comparison) \
     ({ __typeof(target) _target = target; Array$binary_search(array, &_target, comparison); })

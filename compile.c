@@ -2963,7 +2963,8 @@ CORD compile(env_t *env, ast_t *ast)
                                              .type=Type(ClosureType, .fn=fn_t));
                 arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp);
                 CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
-                return CORD_all("Array$heap_pop_value(", self, ", ", arg_code, ", ", padded_item_size, ", ", compile_type(item_t), ")");
+                return CORD_all("Array$heap_pop_value(", self, ", ", arg_code, ", ", compile_type(item_t), ", _, ",
+                                promote_to_optional(item_t, "_"), ", ", compile_none(item_t), ", ", padded_item_size, ")");
             } else if (streq(call->name, "binary_search")) {
                 self = compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
