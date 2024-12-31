@@ -3013,6 +3013,12 @@ CORD compile(env_t *env, ast_t *ast)
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Table$from_entries(", self, ", Set$info(", compile_type_info(env, item_t), "))");
+            } else if (streq(call->name, "pop")) {
+                EXPECT_POINTER("an", "array");
+                arg_t *arg_spec = new(arg_t, .name="index", .type=INT_TYPE, .default_val=FakeAST(Int, "-1"));
+                CORD index = compile_arguments(env, ast, arg_spec, call->args);
+                return CORD_all("Array$pop(", self, ", ", index, ", ", compile_type(item_t), ", _, ",
+                                promote_to_optional(item_t, "_"), ", ", compile_none(item_t), ", ", padded_item_size, ")");
             } else if (streq(call->name, "counts")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);

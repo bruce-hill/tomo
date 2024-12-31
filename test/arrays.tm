@@ -168,3 +168,19 @@ func main():
 	= none : Int?
 	>> [4, 5, 6]:first(func(i:&Int): i:is_prime())
 	= 2 : Int?
+
+	do:
+		>> nums := &[10, 20, 30, 40, 50]
+		>> nums:pop()
+		= 50
+		>> nums
+		= &[10, 20, 30, 40]
+		>> nums:pop(2)
+		= 20
+		>> nums
+		= &[10, 30, 40]
+		>> nums:clear()
+		>> nums
+		= &[]
+		>> nums:pop()
+		= none

@@ -829,6 +829,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "heapify")) return Type(VoidType);
             else if (streq(call->name, "insert")) return Type(VoidType);
             else if (streq(call->name, "insert_all")) return Type(VoidType);
+            else if (streq(call->name, "pop")) return Type(OptionalType, .type=item_type);
             else if (streq(call->name, "random")) return item_type;
             else if (streq(call->name, "remove_at")) return Type(VoidType);
             else if (streq(call->name, "remove_item")) return Type(VoidType);

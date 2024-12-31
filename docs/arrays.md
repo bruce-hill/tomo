@@ -608,6 +608,44 @@ arr:insert_all([99, 100], at=2)
 
 ---
 
+### `pop`
+
+**Description:**  
+Removes and returns an item from the array. If the given index is present in
+the array, the item at that index will be removed and the array will become one
+element shorter.
+
+**Signature:**  
+```tomo
+func pop(arr: &[T], index: Int = -1 -> T?)
+```
+
+**Parameters:**
+
+- `arr`: The array to remove an item from.
+- `index`: The index from which to remove the item (default: the last item).
+
+**Returns:**  
+`none` if the array is empty or the given index does not exist in the array,
+otherwise the item at the given index.
+
+**Example:**  
+```tomo
+>> arr := [10, 20, 30, 40]
+
+>> arr:pop()
+= 40
+>> arr
+= &[10, 20, 30]
+
+>> arr:pop(index=2)
+= 20
+>> arr
+= &[10, 30]
+```
+
+---
+
 ### `random`
 
 **Description:**  

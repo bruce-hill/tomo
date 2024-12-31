@@ -217,7 +217,7 @@ public void Array$remove_item(Array_t *arr, void *item, Int_t max_removals, cons
     }
 }
 
-public Int_t Array$find(Array_t arr, void *item, const TypeInfo_t *type)
+public OptionalInt_t Array$find(Array_t arr, void *item, const TypeInfo_t *type)
 {
     const TypeInfo_t *item_type = type->ArrayInfo.item;
     for (int64_t i = 0; i < arr.length; i++) {
@@ -227,7 +227,7 @@ public Int_t Array$find(Array_t arr, void *item, const TypeInfo_t *type)
     return NONE_INT;
 }
 
-public Int_t Array$first(Array_t arr, Closure_t predicate)
+public OptionalInt_t Array$first(Array_t arr, Closure_t predicate)
 {
     bool (*is_good)(void*, void*) = (void*)predicate.fn;
     for (int64_t i = 0; i < arr.length; i++) {

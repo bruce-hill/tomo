@@ -65,9 +65,21 @@ void Array$insert_all(Array_t *arr, Array_t to_insert, Int_t index, int64_t padd
 void Array$remove_at(Array_t *arr, Int_t index, Int_t count, int64_t padded_item_size);
 void Array$remove_item(Array_t *arr, void *item, Int_t max_removals, const TypeInfo_t *type);
 #define Array$remove_item_value(arr, item_expr, max, type) ({ __typeof(item_expr) item = item_expr; Array$remove_item(arr, &item, max, type); })
-Int_t Array$find(Array_t arr, void *item, const TypeInfo_t *type);
+
+#define Array$pop(arr_expr, index_expr, item_type, nonnone_var, nonnone_expr, none_expr, padded_item_size) ({ \
+    Array_t *arr = arr_expr; \
+    Int_t index = index_expr; \
+    int64_t index64 = Int_to_Int64(index, false); \
+    int64_t off = index64 + (index64 < 0) * (arr->length + 1) - 1; \
+    (off >= 0 && off < arr->length) ? ({ \
+        item_type nonnone_var = *(item_type*)(arr->data + off*arr->stride); \
+        Array$remove_at(arr, index, I_small(1), padded_item_size); \
+        nonnone_expr; \
+    }) : none_expr; })
+
+OptionalInt_t Array$find(Array_t arr, void *item, const TypeInfo_t *type);
 #define Array$find_value(arr, item_expr, type) ({ __typeof(item_expr) item = item_expr; Array$find(arr, &item, type); })
-Int_t Array$first(Array_t arr, Closure_t predicate);
+OptionalInt_t Array$first(Array_t arr, Closure_t predicate);
 void Array$sort(Array_t *arr, Closure_t comparison, int64_t padded_item_size);
 Array_t Array$sorted(Array_t arr, Closure_t comparison, int64_t padded_item_size);
 void Array$shuffle(Array_t *arr, RNG_t rng, int64_t padded_item_size);
