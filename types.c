@@ -6,10 +6,11 @@
 #include <stdint.h>
 #include <sys/param.h>
 
+#include "cordhelpers.h"
+#include "environment.h"
 #include "stdlib/integers.h"
 #include "stdlib/tables.h"
 #include "stdlib/util.h"
-#include "cordhelpers.h"
 #include "types.h"
 
 CORD type_to_cord(type_t *t) {
@@ -469,6 +470,7 @@ PUREFUNC size_t unpadded_struct_size(type_t *t)
 
 PUREFUNC size_t type_size(type_t *t)
 {
+    if (t == THREAD_TYPE) return sizeof(pthread_t*);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-default"
     switch (t->tag) {
@@ -552,6 +554,7 @@ PUREFUNC size_t type_size(type_t *t)
 
 PUREFUNC size_t type_align(type_t *t)
 {
+    if (t == THREAD_TYPE) return __alignof__(pthread_t*);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-default"
     switch (t->tag) {
