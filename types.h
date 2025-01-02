@@ -51,7 +51,6 @@ struct type_s {
         MomentType,
         TextType,
         ArrayType,
-        ChannelType,
         SetType,
         TableType,
         FunctionType,
@@ -85,7 +84,7 @@ struct type_s {
         } TextType;
         struct {
             type_t *item_type;
-        } ArrayType, ChannelType;
+        } ArrayType;
         struct {
             type_t *item_type;
         } SetType;
@@ -145,7 +144,6 @@ typedef enum {NUM_PRECISION_EQUAL, NUM_PRECISION_LESS, NUM_PRECISION_MORE, NUM_P
 PUREFUNC precision_cmp_e compare_precision(type_t *a, type_t *b);
 PUREFUNC bool has_heap_memory(type_t *t);
 PUREFUNC bool has_stack_memory(type_t *t);
-PUREFUNC bool can_send_over_channel(type_t *t);
 PUREFUNC bool can_promote(type_t *actual, type_t *needed);
 PUREFUNC const char *enum_single_value_tag(type_t *enum_type, type_t *t);
 PUREFUNC bool is_int_type(type_t *t);

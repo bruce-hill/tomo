@@ -19,7 +19,6 @@ some common functionality.
 - Arrays: [header](stdlib/arrays.h), [implementation](stdlib/arrays.c)
 - Bools: [header](stdlib/bools.h), [implementation](stdlib/bools.c)
 - Bytes: [header](stdlib/bytes.h), [implementation](stdlib/bytes.c)
-- Channels: [header](stdlib/channels.h), [implementation](stdlib/channels.c)
 - C Strings: [header](stdlib/c_strings.h), [implementation](stdlib/c_strings.c)
 - Files (used internally only): [header](stdlib/files.h), [implementation](stdlib/files.c)
 - Functiontype: [header](stdlib/functiontype.h), [implementation](stdlib/functiontype.c)

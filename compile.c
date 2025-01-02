@@ -64,6 +64,11 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
     if (!can_promote(actual, needed))
         return false;
 
+    if (needed->tag == ClosureType && actual->tag == FunctionType) {
+        *code = CORD_all("((Closure_t){", *code, ", NULL})");
+        return true;
+    }
+
     // Optional promotion:
     if (needed->tag == OptionalType && type_eq(actual, Match(needed, OptionalType)->type)) {
         *code = promote_to_optional(actual, *code);
@@ -135,11 +140,6 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
     // Cross-promotion between tables with default values and without
     if (needed->tag == TableType && actual->tag == TableType)
         return true;
-
-    if (needed->tag == ClosureType && actual->tag == FunctionType) {
-        *code = CORD_all("((Closure_t){", *code, ", NULL})");
-        return true;
-    }
 
     if (needed->tag == ClosureType && actual->tag == ClosureType)
         return true;
@@ -271,7 +271,6 @@ CORD compile_type(type_t *t)
     }
     case ArrayType: return "Array_t";
     case SetType: return "Table_t";
-    case ChannelType: return "Channel_t*";
     case TableType: return "Table_t";
     case FunctionType: {
         auto fn = Match(t, FunctionType);
@@ -298,7 +297,7 @@ CORD compile_type(type_t *t)
         type_t *nonnull = Match(t, OptionalType)->type;
         switch (nonnull->tag) {
         case CStringType: case FunctionType: case ClosureType:
-        case PointerType: case EnumType: case ChannelType:
+        case PointerType: case EnumType:
             return compile_type(nonnull);
         case TextType:
             return Match(nonnull, TextType)->lang ? compile_type(nonnull) : "OptionalText_t";
@@ -436,7 +435,7 @@ CORD check_none(type_t *t, CORD value)
 {
     t = Match(t, OptionalType)->type;
     if (t->tag == PointerType || t->tag == FunctionType || t->tag == CStringType
-        || t->tag == ChannelType || t == THREAD_TYPE)
+        || t == THREAD_TYPE)
         return CORD_all("(", value, " == NULL)");
     else if (t == MATCH_TYPE)
         return CORD_all("((", value, ").index.small == 0)");
@@ -1582,7 +1581,6 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
     case TextType: return CORD_asprintf("Text$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case ArrayType: return CORD_asprintf("Array$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case SetType: return CORD_asprintf("Table$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
-    case ChannelType: return CORD_asprintf("Channel$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case TableType: return CORD_asprintf("Table$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case FunctionType: case ClosureType: return CORD_asprintf("Func$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case PointerType: return CORD_asprintf("Pointer$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
@@ -1988,7 +1986,6 @@ CORD compile_none(type_t *t)
     case ArrayType: return "NONE_ARRAY";
     case TableType: return "NONE_TABLE";
     case SetType: return "NONE_TABLE";
-    case ChannelType: return "NULL";
     case TextType: return "NONE_TEXT";
     case CStringType: return "NULL";
     case MomentType: return "NONE_MOMENT";
@@ -2126,6 +2123,9 @@ CORD compile(env_t *env, ast_t *ast)
             return CORD_all("(&", compile_lvalue(env, subject), ")");
         else
             return CORD_all("stack(", compile(env, subject), ")");
+    }
+    case Mutexed: {
+        return CORD_all("mutexed(", compile(env, Match(ast, Mutexed)->value), ")");
     }
     case Optional: {
         ast_t *value = Match(ast, Optional)->value;
@@ -2576,20 +2576,6 @@ CORD compile(env_t *env, ast_t *ast)
             }
             code = CORD_all(code, " ", comprehension_name, "; })");
             return code;
-        }
-    }
-    case Channel: {
-        auto chan = Match(ast, Channel);
-        type_t *item_t = parse_type_ast(env, chan->item_type);
-        if (!can_send_over_channel(item_t))
-            code_err(ast, "This item type can't be sent over a channel because it contains reference to memory that may not be thread-safe.");
-        if (chan->max_size) {
-            CORD max_size = compile(env, chan->max_size);
-            if (!promote(env, chan->max_size, &max_size, get_type(env, chan->max_size), INT_TYPE))
-                code_err(chan->max_size, "This value must be an integer, not %T", get_type(env, chan->max_size));
-            return CORD_all("Channel$new(", max_size, ")");
-        } else {
-            return "Channel$new(I(INT32_MAX))";
         }
     }
     case Table: {
@@ -3092,41 +3078,6 @@ CORD compile(env_t *env, ast_t *ast)
                                 ", ", compile_type_info(env, self_value_t), ")");
             } else code_err(ast, "There is no '%s' method for tables", call->name);
         }
-        case ChannelType: {
-            type_t *item_t = Match(self_value_t, ChannelType)->item_type;
-            CORD padded_item_size = CORD_asprintf("%ld", type_size(item_t));
-            arg_t *front_default_end = new(arg_t, .name="front", .type=Type(BoolType), .default_val=FakeAST(Bool, false));
-            arg_t *front_default_start = new(arg_t, .name="front", .type=Type(BoolType), .default_val=FakeAST(Bool, true));
-            if (streq(call->name, "give")) {
-                self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="item", .type=item_t, .next=front_default_end);
-                return CORD_all("Channel$give_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
-                                padded_item_size, ")");
-            } else if (streq(call->name, "give_all")) {
-                self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="to_give", .type=Type(ArrayType, .item_type=item_t), .next=front_default_end);
-                return CORD_all("Channel$give_all(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
-                                padded_item_size, ")");
-            } else if (streq(call->name, "get")) {
-                self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = front_default_start;
-                return CORD_all("Channel$get_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
-                                ", ", compile_type(item_t), ", ", padded_item_size, ")");
-            } else if (streq(call->name, "peek")) {
-                self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = front_default_start;
-                return CORD_all("Channel$peek_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
-                                ", ", compile_type(item_t), ")");
-            } else if (streq(call->name, "clear")) {
-                self = compile_to_pointer_depth(env, call->self, 0, false);
-                (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("Channel$clear(", self, ")");
-            } else if (streq(call->name, "view")) {
-                self = compile_to_pointer_depth(env, call->self, 0, false);
-                (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("Channel$view(", self, ")");
-            } else code_err(ast, "There is no '%s' method for channels", call->name);
-        }
         case TableType: {
             auto table = Match(self_value_t, TableType);
             if (streq(call->name, "get")) {
@@ -3599,11 +3550,6 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
             code_err(ast, "There is no %s field on arrays", f->field);
         }
-        case ChannelType: {
-            if (streq(f->field, "max_size"))
-                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0, false), ")->max_size)");
-            code_err(ast, "There is no %s field on arrays", f->field);
-        }
         case SetType: {
             if (streq(f->field, "items"))
                 return CORD_all("ARRAY_COPY((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries)");
@@ -3841,10 +3787,6 @@ CORD compile_type_info(env_t *env, type_t *t)
     case SetType: {
         type_t *item_type = Match(t, SetType)->item_type;
         return CORD_all("Set$info(", compile_type_info(env, item_type), ")");
-    }
-    case ChannelType: {
-        type_t *item_t = Match(t, ChannelType)->item_type;
-        return CORD_asprintf("Channel$info(%r)", compile_type_info(env, item_t));
     }
     case TableType: {
         auto table = Match(t, TableType);

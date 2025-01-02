@@ -37,10 +37,6 @@ CORD type_to_cord(type_t *t) {
             auto array = Match(t, ArrayType);
             return CORD_asprintf("[%r]", type_to_cord(array->item_type));
         }
-        case ChannelType: {
-            auto array = Match(t, ChannelType);
-            return CORD_asprintf("||%r", type_to_cord(array->item_type));
-        }
         case TableType: {
             auto table = Match(t, TableType);
             if (table->default_value)
@@ -245,7 +241,6 @@ PUREFUNC bool has_heap_memory(type_t *t)
 {
     switch (t->tag) {
     case ArrayType: return true;
-    case ChannelType: return true;
     case TableType: return true;
     case SetType: return true;
     case PointerType: return true;
@@ -266,32 +261,6 @@ PUREFUNC bool has_heap_memory(type_t *t)
         return false;
     }
     default: return false;
-    }
-}
-
-PUREFUNC bool can_send_over_channel(type_t *t)
-{
-    switch (t->tag) {
-    case ArrayType: return true;
-    case ChannelType: return true;
-    case TableType: return true;
-    case PointerType: return false;
-    case OptionalType: return can_send_over_channel(Match(t, OptionalType)->type);
-    case StructType: {
-        for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
-            if (!can_send_over_channel(field->type))
-                return false;
-        }
-        return true;
-    }
-    case EnumType: {
-        for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
-            if (tag->type && !can_send_over_channel(tag->type))
-                return false;
-        }
-        return true;
-    }
-    default: return true;
     }
 }
 
@@ -523,7 +492,6 @@ PUREFUNC size_t type_size(type_t *t)
     case TextType: return sizeof(Text_t);
     case ArrayType: return sizeof(Array_t);
     case SetType: return sizeof(Table_t);
-    case ChannelType: return sizeof(Channel_t*);
     case TableType: return sizeof(Table_t);
     case FunctionType: return sizeof(void*);
     case ClosureType: return sizeof(struct {void *fn, *userdata;});
@@ -607,7 +575,6 @@ PUREFUNC size_t type_align(type_t *t)
     case TextType: return __alignof__(Text_t);
     case SetType: return __alignof__(Table_t);
     case ArrayType: return __alignof__(Array_t);
-    case ChannelType: return __alignof__(Channel_t*);
     case TableType: return __alignof__(Table_t);
     case FunctionType: return __alignof__(void*);
     case ClosureType: return __alignof__(struct {void *fn, *userdata;});
@@ -704,10 +671,6 @@ type_t *get_field_type(type_t *t, const char *field_name)
     case MomentType: {
         if (streq(field_name, "seconds")) return Type(IntType, .bits=TYPE_IBITS64);
         else if (streq(field_name, "microseconds")) return Type(IntType, .bits=TYPE_IBITS64);
-        return NULL;
-    }
-    case ChannelType: {
-        if (streq(field_name, "max_size")) return INT_TYPE;
         return NULL;
     }
     default: return NULL;

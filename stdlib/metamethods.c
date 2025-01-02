@@ -6,7 +6,6 @@
 #include "arrays.h"
 #include "bools.h"
 #include "bytes.h"
-#include "channels.h"
 #include "functiontype.h"
 #include "integers.h"
 #include "metamethods.h"

@@ -5,7 +5,6 @@
 
 #include "arrays.h"
 #include "bools.h"
-#include "channels.h"
 #include "functiontype.h"
 #include "metamethods.h"
 #include "optionals.h"

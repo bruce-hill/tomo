@@ -29,7 +29,7 @@ struct TypeInfo_s {
     int64_t size, align;
     metamethods_t metamethods;
     struct { // Anonymous tagged union for convenience 
-        enum { OpaqueInfo, StructInfo, EnumInfo, PointerInfo, TextInfo, ArrayInfo, ChannelInfo, TableInfo, FunctionInfo,
+        enum { OpaqueInfo, StructInfo, EnumInfo, PointerInfo, TextInfo, ArrayInfo, TableInfo, FunctionInfo,
             OptionalInfo, TypeInfoInfo } tag;
         union {
             struct {} OpaqueInfo;
@@ -42,7 +42,7 @@ struct TypeInfo_s {
             } TextInfo;
             struct {
                 const TypeInfo_t *item;
-            } ArrayInfo, ChannelInfo;
+            } ArrayInfo;
             struct {
                 const TypeInfo_t *key, *value;
             } TableInfo;

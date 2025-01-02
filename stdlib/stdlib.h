@@ -42,5 +42,7 @@ Closure_t spawn(Closure_t fn);
 bool pop_flag(char **argv, int *i, const char *flag, Text_t *result);
 void print_stack_trace(FILE *out, int start, int stop);
 void sleep_num(double seconds);
+public Closure_t _mutexed(const void *item, size_t size);
+#define mutexed(item) _mutexed((__typeof(item)[1]){item}, sizeof(item))
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

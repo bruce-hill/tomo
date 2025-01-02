@@ -1,66 +1,74 @@
 enum Job(Increment(x:Int), Decrement(x:Int))
 
 func main():
-
     do:
-        >> channel := |:Int|
-        >> channel:give(10)
-        >> channel:give(20)
-        >> channel:give(30)
-        >> channel:view()
-        = [10, 20, 30]
-        >> channel:peek()
-        = 10
-        >> channel:peek(front=no)
-        = 30
-
-        >> channel:give(-10, front=yes)
-        >> channel:view()
-        = [-10, 10, 20, 30]
+        >> with_nums := mutexed [10, 20, 30]
+        with_nums(func(nums:&[Int]):
+            >> nums[]
+            = [10, 20, 30]
+            nums:insert(40)
+        )
+        with_nums(func(nums:&[Int]):
+            >> nums[]
+            = [10, 20, 30, 40]
+        )
 
 
-    jobs := |:Job; max_size=2|
-    >> jobs:give(Increment(5))
-    >> jobs:peek()
-    = Job.Increment(5)
+    with_jobs := mutexed [Job.Increment(5)]
+    enqueue_job := func(job:Job):
+        with_jobs(func(jobs:&[Job]): jobs:insert(job))
+    dequeue_job := func():
+        job := @none:Job
+        with_jobs(func(jobs:&[Job]): job[] = jobs:pop(1))
+        job[]
 
-    results := |:Int; max_size|
+    with_results := mutexed [:Int]
+    enqueue_result := func(result:Int):
+        with_results(func(results:&[Int]): results:insert(result))
+    dequeue_result := func():
+        result := @none:Int
+        repeat:
+            with_results(func(results:&[Int]): result[] = results:pop(1))
+            stop if result[]
+            sleep(0.00001)
+        result[]!
+
     >> thread := Thread.new(func():
         !! In another thread!
         repeat:
-            >> got := jobs:get()
-            when got is Increment(x):
-                >> results:give(x+1)
+            job := dequeue_job() or stop
+            when job is Increment(x):
+                enqueue_result(x + 1)
             is Decrement(x):
-                >> results:give(x-1)
+                enqueue_result(x - 1)
     )
 
-    >> jobs:give(Decrement(100))
-    >> jobs:give(Decrement(100))
-    >> jobs:give(Decrement(100))
-    >> jobs:give(Decrement(100))
-    >> jobs:give(Decrement(100))
-    >> jobs:give(Decrement(100))
+    enqueue_job(Decrement(100))
+    enqueue_job(Decrement(200))
+    enqueue_job(Decrement(300))
+    enqueue_job(Decrement(400))
+    enqueue_job(Decrement(500))
+    enqueue_job(Decrement(600))
 
-    >> results:get()
+    >> enqueue_job(Increment(1000))
+
+    >> dequeue_result()
     = 6
-
-    >> jobs:give(Increment(1000))
-    >> results:get()
+    >> dequeue_result()
     = 99
 
-    >> results:get()
-    = 99
-    >> results:get()
-    = 99
-    >> results:get()
-    = 99
-    >> results:get()
-    = 99
-    >> results:get()
-    = 99
+    >> dequeue_result()
+    = 199
+    >> dequeue_result()
+    = 299
+    >> dequeue_result()
+    = 399
+    >> dequeue_result()
+    = 499
+    >> dequeue_result()
+    = 599
 
-    >> results:get()
+    >> dequeue_result()
     = 1001
 
     !! Canceling...

@@ -77,8 +77,7 @@ of many language features or the other example programs/modules in
 - Built-in doctests with syntax highlighting
 - [Automatic command line argument parsing with type safety](docs/command-line-parsing.md)
 - [Easy interoperability with C](docs/c-interoperability.md)
-- Support for [POSIX threads](docs/threads.tm) and thread-safe message passing
-  queues over [channels](docs/channels.tm).
+- Support for [POSIX threads](docs/threads.tm) and mutex-guarded datastructures.
 - Built-in [data serialization and deserialization](docs/serialization.md).
 
 ## Dependencies

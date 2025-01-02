@@ -66,13 +66,6 @@ typedef struct Range_s {
     Int_t first, last, step;
 } Range_t;
 
-typedef struct {
-    Array_t items;
-    pthread_mutex_t mutex;
-    pthread_cond_t cond;
-    int64_t max_size;
-} Channel_t;
-
 enum text_type { TEXT_SHORT_ASCII, TEXT_ASCII, TEXT_SHORT_GRAPHEMES, TEXT_GRAPHEMES, TEXT_SUBTEXT };
 
 typedef struct Text_s {

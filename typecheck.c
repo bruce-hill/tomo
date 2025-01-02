@@ -71,17 +71,6 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
                      type_size(item_t), ARRAY_MAX_STRIDE);
         return Type(SetType, .item_type=item_t);
     }
-    case ChannelTypeAST: {
-        type_ast_t *item_type = Match(ast, ChannelTypeAST)->item;
-        type_t *item_t = parse_type_ast(env, item_type);
-        if (!item_t) code_err(item_type, "I can't figure out what this type is.");
-        if (!can_send_over_channel(item_t))
-            code_err(ast, "This item type can't be sent over a channel because it contains reference to memory that may not be thread-safe.");
-        if (type_size(item_t) > ARRAY_MAX_STRIDE)
-            code_err(ast, "This channel holds items that take up %ld bytes, but the maximum supported size is %ld bytes.",
-                     type_size(item_t), ARRAY_MAX_STRIDE);
-        return Type(ChannelType, .item_type=item_t);
-    }
     case TableTypeAST: {
         auto table_type = Match(ast, TableTypeAST);
         type_ast_t *key_type_ast = table_type->key;
@@ -672,11 +661,6 @@ type_t *get_type(env_t *env, ast_t *ast)
             code_err(ast, "Sets cannot hold stack references because the set may outlive the reference's stack frame.");
         return Type(SetType, .item_type=item_type);
     }
-    case Channel: {
-        auto channel = Match(ast, Channel);
-        type_t *item_type = parse_type_ast(env, channel->item_type);
-        return Type(ChannelType, .item_type=item_type);
-    }
     case Table: {
         auto table = Match(ast, Table);
         type_t *key_type = NULL, *value_type = NULL;
@@ -787,7 +771,6 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
     case FunctionCall: {
         auto call = Match(ast, FunctionCall);
-
         type_t *fn_type_t = get_type(env, call->fn);
         if (!fn_type_t)
             code_err(call->fn, "I couldn't find this function");
@@ -857,15 +840,6 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "with")) return self_value_t;
             else if (streq(call->name, "without")) return self_value_t;
             else code_err(ast, "There is no '%s' method for sets", call->name);
-        }
-        case ChannelType: {
-            if (streq(call->name, "clear")) return Type(VoidType);
-            else if (streq(call->name, "get")) return Match(self_value_t, ChannelType)->item_type;
-            else if (streq(call->name, "give")) return Type(VoidType);
-            else if (streq(call->name, "give_all")) return Type(VoidType);
-            else if (streq(call->name, "peek")) return Match(self_value_t, ChannelType)->item_type;
-            else if (streq(call->name, "view")) return Type(ArrayType, .item_type=Match(self_value_t, ChannelType)->item_type);
-            else code_err(ast, "There is no '%s' method for arrays", call->name);
         }
         case TableType: {
             auto table = Match(self_value_t, TableType);
@@ -975,6 +949,12 @@ type_t *get_type(env_t *env, ast_t *ast)
                 return t;
         }
         code_err(ast, "I only know how to get 'not' of boolean, numeric, and optional pointer types, not %T", t);
+    }
+    case Mutexed: {
+        type_t *item_type = get_type(env, Match(ast, Mutexed)->value);
+        type_t *user_thunk = Type(ClosureType, Type(FunctionType, .args=new(arg_t, .name="object", .type=Type(PointerType, .pointed=item_type, .is_stack=true)),
+                                  .ret=Type(VoidType)));
+        return Type(ClosureType, Type(FunctionType, .args=new(arg_t, .name="fn", .type=user_thunk), .ret=Type(VoidType)));
     }
     case BinaryOp: {
         auto binop = Match(ast, BinaryOp);

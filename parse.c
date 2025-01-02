@@ -52,7 +52,7 @@ int op_tightness[] = {
 
 static const char *keywords[] = {
     "yes", "xor", "while", "when", "use", "unless", "struct", "stop", "skip", "return",
-    "or", "not", "no", "mod1", "mod", "pass", "lang", "inline", "in", "if",
+    "or", "not", "no", "mutexed", "mod1", "mod", "pass", "lang", "inline", "in", "if",
     "func", "for", "extern", "enum", "else", "do", "deserialize", "defer", "and", "none",
     "_min_", "_max_", NULL,
 };
@@ -82,7 +82,6 @@ static ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt);
 static ast_t *parse_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos);
 static type_ast_t *parse_array_type(parse_ctx_t *ctx, const char *pos);
-static type_ast_t *parse_channel_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_func_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_non_optional_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos);
@@ -94,7 +93,6 @@ static PARSER(parse_array);
 static PARSER(parse_assignment);
 static PARSER(parse_block);
 static PARSER(parse_bool);
-static PARSER(parse_channel);
 static PARSER(parse_declaration);
 static PARSER(parse_defer);
 static PARSER(parse_do);
@@ -113,6 +111,7 @@ static PARSER(parse_int);
 static PARSER(parse_moment);
 static PARSER(parse_lambda);
 static PARSER(parse_lang_def);
+static PARSER(parse_mutexed);
 static PARSER(parse_namespace);
 static PARSER(parse_negative);
 static PARSER(parse_not);
@@ -616,15 +615,6 @@ type_ast_t *parse_array_type(parse_ctx_t *ctx, const char *pos) {
     return NewTypeAST(ctx->file, start, pos, ArrayTypeAST, .item=type);
 }
 
-type_ast_t *parse_channel_type(parse_ctx_t *ctx, const char *pos) {
-    const char *start = pos;
-    if (!match(&pos, "|")) return NULL;
-    type_ast_t *type = expect(ctx, start, &pos, parse_type,
-                             "I couldn't parse a channel item type after this point");
-    expect_closing(ctx, &pos, "|", "I wasn't able to parse the rest of this channel");
-    return NewTypeAST(ctx->file, start, pos, ChannelTypeAST, .item=type);
-}
-
 type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     bool is_stack;
@@ -667,7 +657,6 @@ type_ast_t *parse_non_optional_type(parse_ctx_t *ctx, const char *pos) {
     bool success = (false
         || (type=parse_pointer_type(ctx, pos))
         || (type=parse_array_type(ctx, pos))
-        || (type=parse_channel_type(ctx, pos))
         || (type=parse_table_type(ctx, pos))
         || (type=parse_set_type(ctx, pos))
         || (type=parse_type_name(ctx, pos))
@@ -749,21 +738,6 @@ static INLINE bool match_separator(const char **pos) { // Either comma or newlin
     } else {
         return false;
     }
-}
-
-PARSER(parse_channel) {
-    const char *start = pos;
-    if (!match(&pos, "|:")) return NULL;
-    type_ast_t *item_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a type for this channel");
-    ast_t *max_size = NULL;
-    if (match(&pos, ";")) {
-        whitespace(&pos);
-        const char *attr_start = pos;
-        if (match_word(&pos, "max_size") && match(&pos, "="))
-            max_size = expect(ctx, attr_start, &pos, parse_int, "I expected a maximum size for this channel");
-    }
-    expect_closing(ctx, &pos, "|", "I wasn't able to parse the rest of this channel");
-    return NewAST(ctx->file, start, pos, Channel, .item_type=item_type, .max_size=max_size);
 }
 
 PARSER(parse_array) {
@@ -1289,6 +1263,14 @@ PARSER(parse_stack_reference) {
     return ast;
 }
 
+PARSER(parse_mutexed) {
+    const char *start = pos;
+    if (!match_word(&pos, "mutexed")) return NULL;
+    spaces(&pos);
+    ast_t *val = expect(ctx, start, &pos, parse_term, "I expected an expression for this 'mutexed'");
+    return NewAST(ctx->file, start, pos, Mutexed, .value=val);
+}
+
 PARSER(parse_not) {
     const char *start = pos;
     if (!match_word(&pos, "not")) return NULL;
@@ -1633,7 +1615,6 @@ PARSER(parse_term_no_suffix) {
         || (term=parse_deserialize(ctx, pos))
         || (term=parse_var(ctx, pos))
         || (term=parse_array(ctx, pos))
-        || (term=parse_channel(ctx, pos))
         || (term=parse_reduction(ctx, pos))
         || (term=parse_pass(ctx, pos))
         || (term=parse_defer(ctx, pos))
@@ -1641,6 +1622,7 @@ PARSER(parse_term_no_suffix) {
         || (term=parse_stop(ctx, pos))
         || (term=parse_return(ctx, pos))
         || (term=parse_not(ctx, pos))
+        || (term=parse_mutexed(ctx, pos))
         || (term=parse_extern(ctx, pos))
         || (term=parse_inline_c(ctx, pos))
         );

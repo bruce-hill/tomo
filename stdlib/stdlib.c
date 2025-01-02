@@ -621,4 +621,34 @@ public void sleep_num(double seconds)
     nanosleep(&ts, NULL);
 }
 
+static void use_mutexed(Closure_t fn, void *userdata)
+{
+    void (*call)(void*, void*) = fn.fn;
+    struct data_t {
+        pthread_mutex_t mutex;
+        char item[0] __attribute__ ((aligned (8)));
+    };
+    pthread_mutex_t *mutex = &((struct data_t*)userdata)->mutex;
+    pthread_mutex_lock(mutex);
+    void *mutexed_item = (void*)((struct data_t*)userdata)->item;
+    call(mutexed_item, fn.userdata);
+    pthread_mutex_unlock(mutex);
+}
+
+public Closure_t _mutexed(const void *item, size_t size)
+{
+    struct data_t {
+        pthread_mutex_t mutex;
+        char item[size] __attribute__ ((aligned (8)));
+    };
+    struct data_t *userdata = GC_MALLOC(sizeof(struct data_t));
+
+    pthread_mutex_init(&userdata->mutex, NULL);
+    memcpy(userdata->item, item, size);
+    return (Closure_t){
+        .fn=(void*)use_mutexed,
+        .userdata=(void*)userdata,
+    };
+}
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
