@@ -2,7 +2,7 @@
 
 Tomo supports POSIX threads (pthreads) through the `Thread` type. The
 recommended practice is to have each thread interact with other threads only
-through mutex-guarded datastructures.
+through [mutex-guarded datastructures](mutexed.md).
 
 ## Thread Methods
 
