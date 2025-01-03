@@ -18,12 +18,10 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *ty
     auto ptr_info = type->PointerInfo;
     if (!x) {
         Text_t typename = generic_as_text(NULL, false, ptr_info.pointed);
-        Text_t text;
         if (colorize)
-            text = Text$concat(Text("\x1b[34;1m"), Text$from_str(ptr_info.sigil), typename, Text("\x1b[m"));
+            return Text$concat(Text("\x1b[34;1m"), Text$from_str(ptr_info.sigil), typename, Text("\x1b[m"));
         else
-            text = Text$concat(Text$from_str(ptr_info.sigil), typename);
-        return text;
+            return Text$concat(Text$from_str(ptr_info.sigil), typename);
     }
     const void *ptr = *(const void**)x;
     if (!ptr) {

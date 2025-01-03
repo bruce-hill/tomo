@@ -85,6 +85,13 @@ CORD type_to_cord(type_t *t) {
             else
                 return "(Unknown optional type)";
         }
+        case MutexedType: {
+            type_t *opt = Match(t, MutexedType)->type;
+            if (opt)
+                return CORD_all("mutexed ", type_to_cord(opt));
+            else
+                return "(Unknown optional type)";
+        }
         case TypeInfoType: {
             return CORD_all("Type$info(", Match(t, TypeInfoType)->name, ")");
         }
@@ -246,6 +253,7 @@ PUREFUNC bool has_heap_memory(type_t *t)
     case SetType: return true;
     case PointerType: return true;
     case OptionalType: return has_heap_memory(Match(t, OptionalType)->type);
+    case MutexedType: return true;
     case BigIntType: return true;
     case StructType: {
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
@@ -270,6 +278,7 @@ PUREFUNC bool has_stack_memory(type_t *t)
     switch (t->tag) {
     case PointerType: return Match(t, PointerType)->is_stack;
     case OptionalType: return has_stack_memory(Match(t, OptionalType)->type);
+    case MutexedType: return has_stack_memory(Match(t, MutexedType)->type);
     default: return false;
     }
 }
@@ -498,6 +507,7 @@ PUREFUNC size_t type_size(type_t *t)
     case FunctionType: return sizeof(void*);
     case ClosureType: return sizeof(struct {void *fn, *userdata;});
     case PointerType: return sizeof(void*);
+    case MutexedType: return sizeof(MutexedData_t);
     case OptionalType: {
         type_t *nonnull = Match(t, OptionalType)->type;
         switch (nonnull->tag) {
@@ -582,6 +592,7 @@ PUREFUNC size_t type_align(type_t *t)
     case FunctionType: return __alignof__(void*);
     case ClosureType: return __alignof__(struct {void *fn, *userdata;});
     case PointerType: return __alignof__(void*);
+    case MutexedType: return __alignof__(MutexedData_t);
     case OptionalType: {
         type_t *nonnull = Match(t, OptionalType)->type;
         switch (nonnull->tag) {

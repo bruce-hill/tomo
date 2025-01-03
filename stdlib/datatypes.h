@@ -89,4 +89,9 @@ typedef struct timeval Moment_t;
 
 typedef struct RNGState_t* RNG_t;
 
+typedef struct MutexedData_s {
+    pthread_mutex_t mutex;
+    void *data;
+} *MutexedData_t;
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

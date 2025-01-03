@@ -249,6 +249,7 @@ CORD compile_type(type_t *t)
     case AbortType: return "void";
     case VoidType: return "void";
     case MemoryType: return "void";
+    case MutexedType: return "MutexedData_t";
     case BoolType: return "Bool_t";
     case ByteType: return "Byte_t";
     case CStringType: return "char*";
@@ -296,7 +297,7 @@ CORD compile_type(type_t *t)
     case OptionalType: {
         type_t *nonnull = Match(t, OptionalType)->type;
         switch (nonnull->tag) {
-        case CStringType: case FunctionType: case ClosureType:
+        case CStringType: case FunctionType: case ClosureType: case MutexedType:
         case PointerType: case EnumType:
             return compile_type(nonnull);
         case TextType:
@@ -459,6 +460,8 @@ CORD check_none(type_t *t, CORD value)
         return CORD_all("((", value, ").tag == 0)");
     else if (t->tag == MomentType)
         return CORD_all("((", value, ").tv_usec < 0)");
+    else if (t->tag == MutexedType)
+        return CORD_all("(", value, " == NULL)");
     errx(1, "Optional check not implemented for: %T", t);
 }
 
@@ -1038,7 +1041,10 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 CORD code = CORD_EMPTY;
                 for (deferral_t *deferred = env->deferred; deferred && deferred != ctx->deferred; deferred = deferred->next)
                     code = CORD_all(code, compile_statement(deferred->defer_env, deferred->block));
-                return CORD_all(code, "goto ", ctx->skip_label, ";");
+                if (code)
+                    return CORD_all("{\n", code, "goto ", ctx->skip_label, ";\n}\n");
+                else
+                    return CORD_all("goto ", ctx->skip_label, ";");
             }
         }
         if (env->loop_ctx)
@@ -1064,7 +1070,10 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 CORD code = CORD_EMPTY;
                 for (deferral_t *deferred = env->deferred; deferred && deferred != ctx->deferred; deferred = deferred->next)
                     code = CORD_all(code, compile_statement(deferred->defer_env, deferred->block));
-                return CORD_all(code, "goto ", ctx->stop_label, ";");
+                if (code)
+                    return CORD_all("{\n", code, "goto ", ctx->stop_label, ";\n}\n");
+                else
+                    return CORD_all("goto ", ctx->stop_label, ";");
             }
         }
         if (env->loop_ctx)
@@ -1180,6 +1189,30 @@ CORD compile_statement(env_t *env, ast_t *ast)
         if (loop_ctx.stop_label)
             loop = CORD_all(loop, "\n", loop_ctx.stop_label, ":;");
         return loop;
+    }
+    case Holding: {
+        ast_t *held = Match(ast, Holding)->mutexed;
+        type_t *held_type = get_type(env, held);
+        if (held_type->tag != MutexedType)
+            code_err(held, "This is a %t, not a mutexed value", held_type);
+        CORD code = CORD_all(
+            "{ // Holding\n",
+            "MutexedData_t mutexed = ", compile(env, held), ";\n",
+            "pthread_mutex_lock(&mutexed->mutex);\n");
+
+        env_t *body_scope = fresh_scope(env);
+        body_scope->deferred = new(deferral_t, .defer_env=env,
+                                   .block=FakeAST(InlineCCode, .code="pthread_mutex_unlock(&mutexed->mutex);"),
+                                   .next=body_scope->deferred);
+        if (held->tag == Var) {
+            CORD held_var = CORD_all(Match(held, Var)->name, "$held");
+            set_binding(body_scope, Match(held, Var)->name, new(binding_t, .type=Type(PointerType, .pointed=Match(held_type, MutexedType)->type, .is_stack=true),
+                                                                .code=held_var));
+            code = CORD_all(code, compile_declaration(Type(PointerType, .pointed=Match(held_type, MutexedType)->type), held_var),
+                            " = (", compile_type(Type(PointerType, .pointed=Match(held_type, MutexedType)->type)), ")mutexed->data;\n");
+        }
+        return CORD_all(code, compile_statement(body_scope, Match(ast, Holding)->body),
+                        "pthread_mutex_unlock(&mutexed->mutex);\n}");
     }
     case For: {
         auto for_ = Match(ast, For);
@@ -1585,7 +1618,8 @@ CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
     case FunctionType: case ClosureType: return CORD_asprintf("Func$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case PointerType: return CORD_asprintf("Pointer$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     case OptionalType: return CORD_asprintf("Optional$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
-    case StructType: case EnumType: return CORD_asprintf("generic_as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
+    case StructType: case EnumType: case MutexedType:
+        return CORD_asprintf("generic_as_text(stack(%r), %r, %r)", expr, color, compile_type_info(env, t));
     default: compiler_err(NULL, NULL, NULL, "Stringifying is not supported for %T", t);
     }
 }
@@ -1997,6 +2031,7 @@ CORD compile_none(type_t *t)
         env_t *enum_env = Match(t, EnumType)->env;
         return CORD_all("((", compile_type(t), "){", namespace_prefix(enum_env, enum_env->namespace), "null})");
     }
+    case MutexedType: return "NONE_MUTEXED_DATA";
     default: compiler_err(NULL, NULL, NULL, "none isn't implemented for this type: %T", t);
     }
 }
@@ -2125,7 +2160,34 @@ CORD compile(env_t *env, ast_t *ast)
             return CORD_all("stack(", compile(env, subject), ")");
     }
     case Mutexed: {
-        return CORD_all("mutexed(", compile(env, Match(ast, Mutexed)->value), ")");
+        ast_t *mutexed = Match(ast, Mutexed)->value;
+        return CORD_all("new(struct MutexedData_s, .mutex=PTHREAD_MUTEX_INITIALIZER, .data=", compile(env, WrapAST(mutexed, HeapAllocate, mutexed)), ")");
+    }
+    case Holding: {
+        ast_t *held = Match(ast, Holding)->mutexed;
+        type_t *held_type = get_type(env, held);
+        if (held_type->tag != MutexedType)
+            code_err(held, "This is a %t, not a mutexed value", held_type);
+        CORD code = CORD_all(
+            "({ // Holding\n",
+            "MutexedData_t mutexed = ", compile(env, held), ";\n",
+            "pthread_mutex_lock(&mutexed->mutex);\n");
+
+        env_t *body_scope = fresh_scope(env);
+        body_scope->deferred = new(deferral_t, .defer_env=env,
+                                   .block=FakeAST(InlineCCode, .code="pthread_mutex_unlock(&mutexed->mutex);"),
+                                   .next=body_scope->deferred);
+        if (held->tag == Var) {
+            CORD held_var = CORD_all(Match(held, Var)->name, "$held");
+            set_binding(body_scope, Match(held, Var)->name, new(binding_t, .type=Type(PointerType, .pointed=Match(held_type, MutexedType)->type, .is_stack=true),
+                                                                .code=held_var));
+            code = CORD_all(code, compile_declaration(Type(PointerType, .pointed=Match(held_type, MutexedType)->type), held_var),
+                            " = (", compile_type(Type(PointerType, .pointed=Match(held_type, MutexedType)->type)), ")mutexed->data;\n");
+        }
+        type_t *body_type = get_type(env, ast);
+        return CORD_all(code, compile_declaration(body_type, "result"), " = ", compile(body_scope, Match(ast, Holding)->body), ";\n"
+                        "pthread_mutex_unlock(&mutexed->mutex);\n"
+                        "result;\n})");
     }
     case Optional: {
         ast_t *value = Match(ast, Optional)->value;
@@ -3811,6 +3873,10 @@ CORD compile_type_info(env_t *env, type_t *t)
     case OptionalType: {
         type_t *non_optional = Match(t, OptionalType)->type;
         return CORD_asprintf("Optional$info(%zu, %zu, %r)", type_size(t), type_align(t), compile_type_info(env, non_optional));
+    }
+    case MutexedType: {
+        type_t *mutexed = Match(t, MutexedType)->type;
+        return CORD_all("MutexedData$info(", compile_type_info(env, mutexed), ")");
     }
     case TypeInfoType: return CORD_all("Type$info(", CORD_quoted(type_to_cord(Match(t, TypeInfoType)->type)), ")");
     case MemoryType: return "&Memory$info";

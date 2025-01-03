@@ -67,6 +67,12 @@ func maybe_thread(should_i:Bool->Thread?):
     else:
         return none
 
+func maybe_mutexed(should_i:Bool->mutexed(Bool)?):
+    if should_i:
+        return mutexed no
+    else:
+        return none
+
 func main():
     >> 5?
     = 5 : Int?
@@ -250,6 +256,20 @@ func main():
         >> if nope:
             fail("Truthy: $nope")
         else: !! Falsey: $nope
+
+    do:
+        !! ...
+        !! Mutexed:
+        >> yep := maybe_mutexed(yes)
+        # No "=" test here because threads use addresses in the text version
+        >> nope := maybe_mutexed(no)
+        = none : mutexed(Bool)?
+        >> if yep: >> yep
+        else: fail("Falsey: $yep")
+        >> if nope:
+            fail("Truthy: $nope")
+        else: !! Falsey: $nope
+
 
     if yep := maybe_int(yes):
         >> yep

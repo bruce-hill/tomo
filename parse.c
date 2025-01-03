@@ -52,7 +52,7 @@ int op_tightness[] = {
 
 static const char *keywords[] = {
     "yes", "xor", "while", "when", "use", "unless", "struct", "stop", "skip", "return",
-    "or", "not", "no", "mutexed", "mod1", "mod", "pass", "lang", "inline", "in", "if",
+    "or", "not", "no", "mutexed", "mod1", "mod", "pass", "lang", "inline", "in", "if", "holding",
     "func", "for", "extern", "enum", "else", "do", "deserialize", "defer", "and", "none",
     "_min_", "_max_", NULL,
 };
@@ -85,6 +85,7 @@ static type_ast_t *parse_array_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_func_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_non_optional_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos);
+static type_ast_t *parse_mutexed_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_set_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos);
@@ -105,6 +106,7 @@ static PARSER(parse_file_body);
 static PARSER(parse_for);
 static PARSER(parse_func_def);
 static PARSER(parse_heap_alloc);
+static PARSER(parse_holding);
 static PARSER(parse_if);
 static PARSER(parse_inline_c);
 static PARSER(parse_int);
@@ -635,6 +637,19 @@ type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos) {
     return ptr_type;
 }
 
+type_ast_t *parse_mutexed_type(parse_ctx_t *ctx, const char *pos) {
+    const char *start = pos;
+    if (!match_word(&pos, "mutexed")) return NULL;
+    spaces(&pos);
+    if (!match(&pos, "(")) return NULL;
+    spaces(&pos);
+    type_ast_t *mutexed = expect(ctx, start, &pos, parse_type,
+                                 "I couldn't parse a mutexed type after this point");
+    spaces(&pos);
+    if (!match(&pos, ")")) return NULL;
+    return NewTypeAST(ctx->file, start, pos, MutexedTypeAST, .type=mutexed);
+}
+
 type_ast_t *parse_type_name(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     const char *id = get_id(&pos);
@@ -661,6 +676,7 @@ type_ast_t *parse_non_optional_type(parse_ctx_t *ctx, const char *pos) {
         || (type=parse_set_type(ctx, pos))
         || (type=parse_type_name(ctx, pos))
         || (type=parse_func_type(ctx, pos))
+        || (type=parse_mutexed_type(ctx, pos))
     );
     if (!success && match(&pos, "(")) {
         whitespace(&pos);
@@ -1269,6 +1285,15 @@ PARSER(parse_mutexed) {
     spaces(&pos);
     ast_t *val = expect(ctx, start, &pos, parse_term, "I expected an expression for this 'mutexed'");
     return NewAST(ctx->file, start, pos, Mutexed, .value=val);
+}
+
+PARSER(parse_holding) {
+    const char *start = pos;
+    if (!match_word(&pos, "holding")) return NULL;
+    spaces(&pos);
+    ast_t *mutexed = expect(ctx, start, &pos, parse_expr, "I expected an expression for this 'holding'");
+    ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a block to be here");
+    return NewAST(ctx->file, start, pos, Holding, .mutexed=mutexed, .body=body);
 }
 
 PARSER(parse_not) {
@@ -1950,6 +1975,7 @@ PARSER(parse_extended_expr) {
         || (expr=optional(ctx, &pos, parse_when))
         || (expr=optional(ctx, &pos, parse_repeat))
         || (expr=optional(ctx, &pos, parse_do))
+        || (expr=optional(ctx, &pos, parse_holding))
         )
         return expr;
 

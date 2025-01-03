@@ -117,6 +117,7 @@ CORD ast_to_xml(ast_t *ast)
     T(HeapAllocate, "<HeapAllocate>%r</HeapAllocate>", ast_to_xml(data.value))
     T(StackReference, "<StackReference>%r</StackReference>", ast_to_xml(data.value))
     T(Mutexed, "<Mutexed>%r</Mutexed>", ast_to_xml(data.value))
+    T(Holding, "<Holding>%r%r</Holding>", ast_to_xml(data.mutexed), ast_to_xml(data.body))
     T(Min, "<Min>%r%r%r</Min>", ast_to_xml(data.lhs), ast_to_xml(data.rhs), optional_tagged("key", data.key))
     T(Max, "<Max>%r%r%r</Max>", ast_to_xml(data.lhs), ast_to_xml(data.rhs), optional_tagged("key", data.key))
     T(Array, "<Array>%r%r</Array>", optional_tagged_type("item-type", data.item_type), ast_list_to_xml(data.items))
@@ -185,6 +186,7 @@ CORD type_ast_to_xml(type_ast_t *t)
     T(TableTypeAST, "<TableType>%r %r</TableType>", type_ast_to_xml(data.key), type_ast_to_xml(data.value))
     T(FunctionTypeAST, "<FunctionType>%r %r</FunctionType>", arg_list_to_xml(data.args), type_ast_to_xml(data.ret))
     T(OptionalTypeAST, "<OptionalType>%r</OptionalType>", data.type)
+    T(MutexedTypeAST, "<MutexedType>%r</MutexedType>", data.type)
 #undef T
     default: return CORD_EMPTY;
     }

@@ -78,6 +78,7 @@ typedef enum {
     TableTypeAST,
     FunctionTypeAST,
     OptionalTypeAST,
+    MutexedTypeAST,
 } type_ast_e;
 
 typedef struct tag_ast_s {
@@ -116,7 +117,7 @@ struct type_ast_s {
         } FunctionTypeAST;
         struct {
             type_ast_t *type;
-        } OptionalTypeAST;
+        } OptionalTypeAST, MutexedTypeAST;
     } __data;
 };
 
@@ -127,7 +128,7 @@ typedef enum {
     TextLiteral, TextJoin, PrintStatement,
     Declare, Assign,
     BinaryOp, UpdateAssign,
-    Not, Negative, HeapAllocate, StackReference, Mutexed,
+    Not, Negative, HeapAllocate, StackReference, Mutexed, Holding,
     Min, Max,
     Array, Set, Table, TableEntry, Comprehension,
     FunctionDef, Lambda,
@@ -194,6 +195,9 @@ struct ast_s {
         struct {
             ast_t *value;
         } Not, Negative, HeapAllocate, StackReference, Mutexed;
+        struct {
+            ast_t *mutexed, *body;
+        } Holding;
         struct {
             ast_t *lhs, *rhs, *key;
         } Min, Max;

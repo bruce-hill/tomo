@@ -59,12 +59,12 @@
 #define ARRAY_DECREF(arr) (arr).data_refcount -= ((arr).data_refcount < ARRAY_MAX_DATA_REFCOUNT)
 #define ARRAY_COPY(arr) ({ ARRAY_INCREF(arr); arr; })
 
-#define Array$insert_value(arr, item_expr, index, padded_item_size) ({ __typeof(item_expr) item = item_expr; Array$insert(arr, &item, index, padded_item_size); })
+#define Array$insert_value(arr, item_expr, index, padded_item_size) Array$insert(arr, (__typeof(item_expr)[1]){item_expr}, index, padded_item_size)
 void Array$insert(Array_t *arr, const void *item, Int_t index, int64_t padded_item_size);
 void Array$insert_all(Array_t *arr, Array_t to_insert, Int_t index, int64_t padded_item_size);
 void Array$remove_at(Array_t *arr, Int_t index, Int_t count, int64_t padded_item_size);
 void Array$remove_item(Array_t *arr, void *item, Int_t max_removals, const TypeInfo_t *type);
-#define Array$remove_item_value(arr, item_expr, max, type) ({ __typeof(item_expr) item = item_expr; Array$remove_item(arr, &item, max, type); })
+#define Array$remove_item_value(arr, item_expr, max, type) Array$remove_item(arr, (__typeof(item_expr)[1]){item_expr}, max, type)
 
 #define Array$pop(arr_expr, index_expr, item_type, nonnone_var, nonnone_expr, none_expr, padded_item_size) ({ \
     Array_t *arr = arr_expr; \
