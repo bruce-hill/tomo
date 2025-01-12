@@ -325,7 +325,7 @@ Counts the occurrences of each element in the array.
 
 **Signature:**  
 ```tomo
-func counts(arr: [T] -> {T: Int})
+func counts(arr: [T] -> {T,Int})
 ```
 
 **Parameters:**
@@ -338,7 +338,7 @@ A table mapping each element to its count.
 **Example:**  
 ```tomo
 >> [10, 20, 30, 30, 30]:counts()
-= {10: 1, 20: 1, 30: 3}
+= {10=1, 20=1, 30=3}
 ```
 
 ---

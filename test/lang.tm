@@ -2,11 +2,11 @@ lang HTML:
 	HEADER := $HTML"<!DOCTYPE HTML>"
 	func escape(t:Text->HTML):
 		t = t:replace_all({
-			$/&/: "&amp;",
-			$/</: "&lt;",
-			$/>/: "&gt;",
-			$/"/: "&quot",
-			$/'/: "&#39;",
+			$/&/="&amp;",
+			$/</="&lt;",
+			$/>/="&gt;",
+			$/"/="&quot",
+			$/'/="&#39;",
 		})
 
 		return HTML.without_escaping(t)

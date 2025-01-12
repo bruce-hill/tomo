@@ -584,7 +584,7 @@ public Text_t Table$as_text(const void *obj, bool colorize, const TypeInfo_t *ty
             return Text$concat(
                 Text("{"),
                 generic_as_text(NULL, false, table.key),
-                Text(":"),
+                Text(","),
                 generic_as_text(NULL, false, table.value),
                 Text("}"));
         else
@@ -602,7 +602,7 @@ public Text_t Table$as_text(const void *obj, bool colorize, const TypeInfo_t *ty
         void *entry = GET_ENTRY(*t, i);
         text = Text$concat(text, generic_as_text(entry, colorize, table.key));
         if (table.value != &Void$info) 
-            text = Text$concat(text, Text(":"), generic_as_text(entry + val_off, colorize, table.value));
+            text = Text$concat(text, Text("="), generic_as_text(entry + val_off, colorize, table.value));
     }
 
     if (t->fallback) {

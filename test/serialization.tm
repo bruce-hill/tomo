@@ -57,9 +57,9 @@ func main():
         = yes
 
     do:
-        >> obj := {"A":10, "B":20; fallback={"C":30}}
+        >> obj := {"A"=10, "B"=20; fallback={"C"=30}}
         >> bytes := obj:serialized()
-        >> deserialize(bytes -> {Text:Int}) == obj
+        >> deserialize(bytes -> {Text,Int}) == obj
         = yes
 
     do:

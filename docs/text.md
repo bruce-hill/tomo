@@ -279,7 +279,7 @@ Text.find_all(pattern:Pattern -> [Match])
 Text.matches(pattern:Pattern -> [Text]?)
 Text.map(pattern:Pattern, fn:func(m:Match -> Text) -> Text)
 Text.replace(pattern:Pattern, replacement:Text, placeholder:Pattern=$// -> [Text])
-Text.replace_all(replacements:{Pattern:Text}, placeholder:Pattern=$// -> [Text])
+Text.replace_all(replacements:{Pattern,Text}, placeholder:Pattern=$// -> [Text])
 Text.split(pattern:Pattern -> [Text])
 Text.trim(pattern=$/{whitespace}/, trim_left=yes, trim_right=yes -> [Text])
 ```
@@ -1183,7 +1183,7 @@ See [`replace()`](#replace) for more information about replacement behavior.
 
 **Signature:**  
 ```tomo
-func replace_all(replacements:{Pattern:Text}, backref: Pattern = $/\/ -> Text)
+func replace_all(replacements:{Pattern,Text}, backref: Pattern = $/\/ -> Text)
 ```
 
 **Parameters:**
@@ -1206,15 +1206,15 @@ replacement text.
 **Example:**  
 ```tomo
 >> "A <tag> & an amperand":replace_all({
-    $/&/: "&amp;",
-    $/</: "&lt;",
-    $/>/: "&gt;",
-    $/"/: "&quot",
-    $/'/: "&#39;",
+    $/&/ = "&amp;",
+    $/</ = "&lt;",
+    $/>/ = "&gt;",
+    $/"/ = "&quot",
+    $/'/ = "&#39;",
 }
 = "A &lt;tag&gt; &amp; an ampersand"
 
->> "Hello":replace_all({$/{lower}/:"[\0]", $/{upper}/:"{\0}"})
+>> "Hello":replace_all({$/{lower}/="[\0]", $/{upper}/="{\0}"})
 = "{H}[ello]"
 ```
 

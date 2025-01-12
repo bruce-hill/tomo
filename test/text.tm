@@ -241,7 +241,7 @@ func main():
 	>> " foo(xyz) foo(yyy) foo(z()) ":replace($/foo(?)/, "baz(\1)")
 	= " baz(xyz) baz(yyy) baz(z()) "
 
-	>> "<tag>":replace_all({$/</:"&lt;", $/>/:"&gt;"})
+	>> "<tag>":replace_all({$/</="&lt;", $/>/="&gt;"})
 	= "&lt;tag&gt;"
 
 	>> " BAD(x, fn(y), BAD(z), w) ":replace($/BAD(?)/, "good(\1)", recursive=yes)

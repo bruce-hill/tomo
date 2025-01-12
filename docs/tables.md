@@ -17,20 +17,20 @@ table := {"A": 10, "B": 20}
 Empty tables must specify the key and value types explicitly:
 
 ```tomo
-empty := {:Text:Int}
+empty := {:Text,Int}
 ```
 
 For type annotations, a table that maps keys with type `K` to values of type
-`V` is written as `{K:V}`.
+`V` is written as `{K,V}`.
 
 ### Comprehensions
 
 Similar to arrays, tables can use comprehensions to dynamically construct tables:
 
 ```tomo
-t := {i: 10*i for i in 10}
-t := {i: 10*i for i in 10 if i mod 2 == 0}
-t := {-1:-10, i: 10*i for i in 10}
+t := {i=10*i for i in 10}
+t := {i=10*i for i in 10 if i mod 2 == 0}
+t := {-1=-10, i=10*i for i in 10}
 ```
 
 ## Accessing Values
@@ -39,7 +39,7 @@ Table values can be accessed with square bracket indexing. The result is an
 optional value:
 
 ```tomo
-table := {"A": 1, "B": 2}
+table := {"A"=1, "B"=2}
 >> table["A"]
 = 1 : Int?
 >> table["missing"]
@@ -64,8 +64,8 @@ Tables can specify a fallback table that is used when looking up a value if it
 is not found in the table itself:
 
 ```tomo
-t := {"A": 10}
-t2 := {"B": 20; fallback=t}
+t := {"A"=10}
+t2 := {"B"=20; fallback=t}
 >> t2["A"]
 = 10 : Int?
 ```
@@ -75,9 +75,9 @@ table value:
 
 ```tomo
 >> t2.fallback
-= {"A":10} : {Text:Int}?
+= {"A"=10} : {Text,Int}?
 >> t.fallback
-= none : {Text:Int}?
+= none : {Text,Int}?
 ```
 
 ## Setting Values
@@ -86,11 +86,11 @@ You can assign a new key/value mapping or overwrite an existing one using
 `:set(key, value)` or an `=` assignment statement:
 
 ```tomo
-t := {"A": 1, "B": 2}
+t := {"A"=1, "B"=2}
 t["B"] = 222
 t["C"] = 333
 >> t
-= {"A":1, "B":222, "C":333}
+= {"A"=1, "B"=222, "C"=333}
 ```
 
 ## Length
@@ -98,7 +98,7 @@ t["C"] = 333
 Table length can be accessed by the `.length` field:
 
 ```tomo
->> {"A":10, "B":20}.length
+>> {"A"=10, "B"=20}.length
 = 2
 ```
 
@@ -108,7 +108,7 @@ The keys and values of a table can be efficiently accessed as arrays using a
 constant-time immutable slice of the internal data from the table:
 
 ```tomo
-t := {"A": 10, "B": 20}
+t := {"A"=10, "B"=20}
 >> t.keys
 = ["A", "B"]
 >> t.values
@@ -141,7 +141,7 @@ not already in the table, its value will be assumed to be zero.
 
 **Signature:**  
 ```tomo
-func bump(t:@{K:V}, key: K, amount: Int = 1 -> Void)
+func bump(t:@{K,V}, key: K, amount: Int = 1 -> Void)
 ```
 
 **Parameters:**
@@ -155,11 +155,11 @@ Nothing.
 
 **Example:**  
 ```tomo
->> t := {"A":1}
+>> t := {"A"=1}
 t:bump("A")
 t:bump("B", 10)
 >> t
-= {"A": 2, "B": 10}
+= {"A"=2, "B"=10}
 ```
 
 ---
@@ -171,7 +171,7 @@ Removes all key-value pairs from the table.
 
 **Signature:**  
 ```tomo
-func clear(t:@{K:V})
+func clear(t:@{K,V})
 ```
 
 **Parameters:**
@@ -195,7 +195,7 @@ Retrieves the value associated with a key, or returns null if the key is not pre
 
 **Signature:**  
 ```tomo
-func get(t:{K:V}, key: K -> V?)
+func get(t:{K,V}, key: K -> V?)
 ```
 
 **Parameters:**
@@ -208,7 +208,7 @@ The value associated with the key or null if the key is not found.
 
 **Example:**  
 ```tomo
->> t := {"A":1, "B":2}
+>> t := {"A"=1, "B"=2}
 >> t:get("A")
 = 1 : Int?
 
@@ -231,7 +231,7 @@ Checks if the table contains a specified key.
 
 **Signature:**  
 ```tomo
-func has(t:{K:V}, key: K -> Bool)
+func has(t:{K,V}, key: K -> Bool)
 ```
 
 **Parameters:**
@@ -244,9 +244,9 @@ func has(t:{K:V}, key: K -> Bool)
 
 **Example:**  
 ```tomo
->> {"A":1, "B":2}:has("A")
+>> {"A"=1, "B"=2}:has("A")
 = yes
->> {"A":1, "B":2}:has("xxx")
+>> {"A"=1, "B"=2}:has("xxx")
 = no
 ```
 
@@ -259,7 +259,7 @@ Removes the key-value pair associated with a specified key.
 
 **Signature:**  
 ```tomo
-func remove(t:{K:V}, key: K -> Void)
+func remove(t:{K,V}, key: K -> Void)
 ```
 
 **Parameters:**
@@ -272,10 +272,10 @@ Nothing.
 
 **Example:**  
 ```tomo
-t := {"A":1, "B":2}
+t := {"A"=1, "B"=2}
 t:remove("A")
 >> t
-= {"B": 2}
+= {"B"=2}
 ```
 
 ---
@@ -287,7 +287,7 @@ Sets or updates the value associated with a specified key.
 
 **Signature:**  
 ```tomo
-func set(t:{K:V}, key: K, value: V -> Void)
+func set(t:{K,V}, key: K, value: V -> Void)
 ```
 
 **Parameters:**
@@ -301,8 +301,8 @@ Nothing.
 
 **Example:**  
 ```tomo
-t := {"A": 1, "B": 2}
+t := {"A"=1, "B"=2}
 t:set("C", 3)
 >> t
-= {"A": 1, "B": 2, "C": 3}
+= {"A"=1, "B"=2, "C"=3}
 ```

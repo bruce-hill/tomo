@@ -571,7 +571,7 @@ type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
     whitespace(&pos);
     type_ast_t *value_type = NULL;
     ast_t *default_value = NULL;
-    if (match(&pos, ":")) {
+    if (match(&pos, ",")) {
         value_type = expect(ctx, start, &pos, parse_type, "I couldn't parse the rest of this table type");
     } else if (match(&pos, "=")) {
         default_value = expect(ctx, start, &pos, parse_extended_expr, "I couldn't parse the rest of this table type");
@@ -591,7 +591,7 @@ type_ast_t *parse_set_type(parse_ctx_t *ctx, const char *pos) {
     if (!item_type) return NULL;
     pos = item_type->end;
     whitespace(&pos);
-    if (match(&pos, ":")) return NULL;
+    if (match(&pos, ",")) return NULL;
     expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this set type");
     return NewTypeAST(ctx->file, start, pos, SetTypeAST, .item=item_type);
 }
@@ -808,7 +808,7 @@ PARSER(parse_table) {
         whitespace(&pos);
         key_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a key type for this table");
         whitespace(&pos);
-        if (match(&pos, ":")) {
+        if (match(&pos, ",")) {
             value_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse the value type for this table");
         } else if (match(&pos, "=")) {
             default_value = expect(ctx, pos-1, &pos, parse_extended_expr, "I couldn't parse the default value for this table");
@@ -824,7 +824,7 @@ PARSER(parse_table) {
         ast_t *key = optional(ctx, &pos, parse_extended_expr);
         if (!key) break;
         whitespace(&pos);
-        if (!match(&pos, ":")) return NULL;
+        if (!match(&pos, "=")) return NULL;
         ast_t *value = expect(ctx, pos-1, &pos, parse_expr, "I couldn't parse the value for this table entry");
         ast_t *entry = NewAST(ctx->file, entry_start, pos, TableEntry, .key=key, .value=value);
         ast_t *suffixed = parse_comprehension_suffix(ctx, entry);
@@ -883,7 +883,7 @@ PARSER(parse_set) {
         whitespace(&pos);
         item_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a key type for this set");
         whitespace(&pos);
-        if (match(&pos, ":"))
+        if (match(&pos, ","))
             return NULL;
         whitespace(&pos);
         match(&pos, ",");
@@ -894,7 +894,7 @@ PARSER(parse_set) {
         ast_t *item = optional(ctx, &pos, parse_extended_expr);
         if (!item) break;
         whitespace(&pos);
-        if (match(&pos, ":")) return NULL;
+        if (match(&pos, "=")) return NULL;
         ast_t *suffixed = parse_comprehension_suffix(ctx, item);
         while (suffixed) {
             item = suffixed;

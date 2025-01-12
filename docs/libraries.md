@@ -51,7 +51,7 @@ Now, what happens if we want to _use_ the compiled object file?
 foo := use ./foo.tm
 
 func say_stuff():
-    say("I got {foo.my_variable} from foo")
+    say("I got $(foo.my_variable) from foo")
 
 func main():
     say_stuff()

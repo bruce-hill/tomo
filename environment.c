@@ -365,7 +365,7 @@ env_t *new_compilation_unit(CORD libname)
             {"has", "Text$has", "func(path:Path, pattern:Pattern -> Bool)"},
             {"matches", "Text$matches", "func(path:Path, pattern:Pattern -> [Text]?)"},
             {"replace", "Text$replace", "func(path:Path, pattern:Pattern, replacement:Text, backref=$/\\/, recursive=yes -> Path)"},
-            {"replace_all", "Text$replace_all", "func(path:Path, replacements:{Pattern:Text}, backref=$/\\/, recursive=yes -> Path)"},
+            {"replace_all", "Text$replace_all", "func(path:Path, replacements:{Pattern,Text}, backref=$/\\/, recursive=yes -> Path)"},
             {"starts_with", "Text$starts_with", "func(path:Path, prefix:Text -> Bool)"},
         )},
         // RNG must come after Path so we can read bytes from /dev/urandom
@@ -419,7 +419,7 @@ env_t *new_compilation_unit(CORD libname)
             {"quoted", "Text$quoted", "func(text:Text, color=no -> Text)"},
             {"repeat", "Text$repeat", "func(text:Text, count:Int -> Text)"},
             {"replace", "Text$replace", "func(text:Text, pattern:Pattern, replacement:Text, backref=$/\\/, recursive=yes -> Text)"},
-            {"replace_all", "Text$replace_all", "func(text:Text, replacements:{Pattern:Text}, backref=$/\\/, recursive=yes -> Text)"},
+            {"replace_all", "Text$replace_all", "func(text:Text, replacements:{Pattern,Text}, backref=$/\\/, recursive=yes -> Text)"},
             {"reversed", "Text$reversed", "func(text:Text -> Text)"},
             {"slice", "Text$slice", "func(text:Text, from=1, to=-1 -> Text)"},
             {"split", "Text$split", "func(text:Text, pattern=$Pattern'' -> [Text])"},
