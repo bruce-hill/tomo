@@ -73,7 +73,7 @@ struct World(player:@Player, goal:@Box, boxes:@[@Box], dt_accum=0.0, won=no):
 
     func load_map(w:@World, map:Text):
         if map:has($/[]/):
-            map = map:replace_all({$/[]/: "#", $/@{1..}/: "@", $/  /: " "})
+            map = map:replace_all({$/[]/="#", $/@{1..}/="@", $/  /=" "})
         w.boxes = @[:@Box]
         box_size := Vec2(50., 50.)
         for y,line in map:lines():

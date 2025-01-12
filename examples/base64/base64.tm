@@ -29,7 +29,7 @@ lang Base64:
         return Base64.from_bytes(text:bytes())
 
     func from_bytes(bytes:[Byte] -> Base64?):
-        output := [Byte(0) for _ in bytes.length * 4 / 3 + 4]
+        output := &[Byte(0) for _ in bytes.length * 4 / 3 + 4]
         src := Int64(1)
         dest := Int64(1)
         while src + 2 <= bytes.length:
@@ -59,14 +59,14 @@ lang Base64:
             output[dest+2] = _EQUAL_BYTE
             output[dest+3] = _EQUAL_BYTE
 
-        return Base64.without_escaping(Text.from_bytes(output) or return none)
+        return Base64.without_escaping(Text.from_bytes(output[]) or return none)
 
     func decode_text(b64:Base64 -> Text?):
         return Text.from_bytes(b64:decode_bytes() or return none)
 
     func decode_bytes(b64:Base64 -> [Byte]?):
         bytes := b64.text_content:bytes()
-        output := [Byte(0) for _ in bytes.length/4 * 3]
+        output := &[Byte(0) for _ in bytes.length/4 * 3]
         src := Int64(1)
         dest := Int64(1)
         while src + 3 <= bytes.length:
@@ -84,9 +84,9 @@ lang Base64:
             dest += 3
 
         while output[-1] == 0xFF:
-            output = output:to(-2)
+            output[] = output:to(-2)
 
-        return output
+        return output[]
 
 func main(input=(/dev/stdin), decode=no):
     if decode:
