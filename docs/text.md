@@ -9,12 +9,22 @@ etc.).
 
 ## Implementation
 
-Internally, Tomo text's implementation is based on [Raku's
-strings](https://docs.raku.org/language/unicode). Strings store their grapheme
-cluster count and either a compact array of 8-bit ASCII characters (for ASCII
-text), an array of 32-bit normal-form grapheme cluster values (see below), or a
-flat subarray of multiple texts that are either ASCII or graphemes (the
-structure is not arbitrarily nested).
+Internally, Tomo text's implementation is based on [Raku/MoarVM's
+strings](https://docs.raku.org/language/unicode) and [Boehm et al's
+Cords](https://www.cs.tufts.edu/comp/150FP/archive/hans-boehm/ropes.pdf).
+Strings store their grapheme cluster count and either a compact array of 8-bit
+ASCII characters (for ASCII text), an array of 32-bit normal-form grapheme
+cluster values (see below), or a (roughly) balanced binary tree concatenation
+of two texts. The upside is that repeated concatenations are typically a
+constant-time operation, which will occasionally require a small rebalancing
+operation. Index-based text operations (like retrieving an arbitrary index or
+slicing) are very fast: typically a constant-time operation for arbitrary
+unicode text, but in the worst case scenario (text built from many
+concatenations), `O(log(n))` time with very generous constant factors typically
+amounting to only a handful of steps. Since concatenations use shared
+substructures, they are very memory-efficient and can be used efficiently for
+applications like implementing a text editor that stores a full edit history of
+a large file's contents.
 
 ### Normal-Form Graphemes
 

@@ -13,10 +13,17 @@
 #include "types.h"
 #include "util.h"
 
+#define MAX_TEXT_DEPTH 48
+
 typedef struct {
-    Text_t text;
-    int64_t subtext, sum_of_previous_subtexts;
+    struct {
+        Text_t text;
+        int64_t offset;
+    } stack[MAX_TEXT_DEPTH];
+    int64_t stack_index;
 } TextIter_t;
+
+#define NEW_TEXT_ITER_STATE(t) (TextIter_t){.stack={{t, 0}}, .stack_index=0}
 
 int printf_text(FILE *stream, const struct printf_info *info, const void *const args[]);
 int printf_text_size(const struct printf_info *info, size_t n, int argtypes[n], int sizes[n]);
@@ -24,7 +31,6 @@ int printf_text_size(const struct printf_info *info, size_t n, int argtypes[n], 
 #define Text(str) ((Text_t){.length=sizeof(str)-1, .tag=TEXT_ASCII, .ascii="" str})
 
 int Text$print(FILE *stream, Text_t t);
-void Text$visualize(Text_t t);
 Text_t Text$_concat(int n, Text_t items[n]);
 #define Text$concat(...) Text$_concat(sizeof((Text_t[]){__VA_ARGS__})/sizeof(Text_t), (Text_t[]){__VA_ARGS__})
 #define Texts(...) Text$concat(__VA_ARGS__)
@@ -69,11 +75,12 @@ void Text$deserialize(FILE *in, void *out, Array_t *, const TypeInfo_t *);
 
 MACROLIKE int32_t Text$get_grapheme(Text_t text, int64_t index)
 {
-    TextIter_t state = {text, 0, 0};
+    TextIter_t state = NEW_TEXT_ITER_STATE(text);
     return Text$get_grapheme_fast(&state, index);
 }
 
 extern const TypeInfo_t Text$info;
+extern Text_t EMPTY_TEXT;
 
 #define Text$metamethods ((metamethods_t){ \
     .as_text=Text$as_text, \

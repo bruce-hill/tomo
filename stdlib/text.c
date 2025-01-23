@@ -1,9 +1,15 @@
-// Type info and methods for Text datatype, which uses libunistr for Unicode
-// support and implements a datastructure based on Raku/MoarVM's strings to
-// efficiently store arbitrary unicode data using a mix of densely packed plain
-// ASCII, 32-bit integers representing grapheme clusters (see below), and ropes
-// that represent text that is a composite of multiple subtexts. Subtexts are
-// only nested one level deep, not arbitrarily deep trees.
+// This file defines type info and methods for the Text datatype, which uses
+// libunistr for Unicode support and implements a datastructure based on a
+// hybrid of Raku/MoarVM's space-efficient grapheme cluster representation of
+// strings and Cords (Boehm et al), which have good runtime performance for
+// text constructed by a series of many concatenations.
+//
+// For more information on MoarVM's grapheme cluster strings, see:
+//     https://docs.raku.org/language/unicode
+//     https://github.com/MoarVM/MoarVM/blob/main/docs/strings.asciidoc For more
+// information on Cords, see the paper "Ropes: an Alternative to Strings"
+// (Boehm, Atkinson, Plass 1995):
+//     https://www.cs.tufts.edu/comp/150FP/archive/hans-boehm/ropes.pdf
 //
 // A note on grapheme clusters: In Unicode, codepoints can be represented using
 // a 32-bit integer. Most codepoints correspond to the intuitive notion of a
@@ -20,8 +26,9 @@
 // that is not used frequently enough to warrant its own unique codepoint (this
 // is basically what Zalgo text is).
 //
-// There are a lot of benefits to storing text with one grapheme cluster per
-// index in a densely packed array. It lets us have one canonical length for
+// There are a lot of benefits to storing unicode text with one grapheme
+// cluster per index in a densely packed array instead of storing the text as
+// variable-width UTF8-encoded bytes. It lets us have one canonical length for
 // the text that can be precomputed and is meaningful to users. It lets us
 // quickly get the Nth "letter" in the text. Substring slicing is fast.
 // However, since not all grapheme clusters take up the same number of
@@ -38,14 +45,12 @@
 // out nicely because we're using them right now, and we'll give them a
 // negative number so it doesn't overlap with any real codepoints.
 //
-// Example 1: U+0048, U+00E9
-//    AKA: LATIN CAPITAL LETTER H, LATIN SMALL LETTER E WITH ACUTE
-//    This would be stored as: (int32_t[]){0x48, 0xE9}
-// Example 2: U+0048, U+0065, U+0309
-//    AKA: LATIN CAPITAL LETTER H, LATIN SMALL LETTER E, COMBINING VERTICAL LINE BELOW
-//    This would be stored as: (int32_t[]){0x48, -2}
-//    Where -2 is used as a lookup in an array that holds the actual unicode codepoints:
-//       (ucs4_t[]){0x65, 0x0309}
+// Example 1: U+0048, U+00E9 AKA: LATIN CAPITAL LETTER H, LATIN SMALL LETTER E
+// WITH ACUTE This would be stored as: (int32_t[]){0x48, 0xE9} Example 2:
+// U+0048, U+0065, U+0309 AKA: LATIN CAPITAL LETTER H, LATIN SMALL LETTER E,
+// COMBINING VERTICAL LINE BELOW This would be stored as: (int32_t[]){0x48, -2}
+// Where -2 is used as a lookup in an array that holds the actual unicode
+// codepoints: (ucs4_t[]){0x65, 0x0309}
 
 #include <assert.h>
 #include <ctype.h>
@@ -90,7 +95,20 @@ static int32_t num_synthetic_graphemes = 0;
 #define GRAPHEME_CODEPOINTS(id) (&synthetic_graphemes[-(id)-1].utf32_cluster[1])
 #define GRAPHEME_UTF8(id) (synthetic_graphemes[-(id)-1].utf8)
 
+// Somewhat arbitrarily chosen, if two short literal ASCII or grapheme chunks
+// are concatenated below this length threshold, we just merge them into a
+// single literal node instead of a concatenation node.
+#define SHORT_ASCII_LENGTH 64
+#define SHORT_GRAPHEMES_LENGTH 16
+
 static Text_t text_from_u32(ucs4_t *codepoints, int64_t num_codepoints, bool normalize);
+static Text_t simple_concatenation(Text_t a, Text_t b);
+
+public Text_t EMPTY_TEXT = {
+    .length=0,
+    .tag=TEXT_ASCII,
+    .ascii=0,
+};
 
 PUREFUNC static bool graphemes_equal(const void *va, const void *vb, const TypeInfo_t*) {
     ucs4_t *a = *(ucs4_t**)va;
@@ -138,7 +156,7 @@ public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_le
     if (num_synthetic_graphemes >= synthetic_grapheme_capacity) {
         // If we don't have space, allocate more:
         synthetic_grapheme_capacity = MAX(128, synthetic_grapheme_capacity * 2);
-        synthetic_grapheme_t *new = GC_MALLOC(sizeof(synthetic_grapheme_t[synthetic_grapheme_capacity]));
+        synthetic_grapheme_t *new = GC_MALLOC_ATOMIC(sizeof(synthetic_grapheme_t[synthetic_grapheme_capacity]));
         memcpy(new, synthetic_graphemes, sizeof(synthetic_grapheme_t[num_synthetic_graphemes]));
         synthetic_graphemes = new;
     }
@@ -203,39 +221,29 @@ public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_le
 }
 #pragma GCC diagnostic pop
 
-PUREFUNC static inline int64_t num_subtexts(Text_t t)
-{
-    if (t.tag != TEXT_SUBTEXT) return 1;
-    int64_t remaining = t.length;
-    int64_t subtexts = 0;
-    while (remaining > 0) {
-        remaining -= t.subtexts[subtexts].length;
-        ++subtexts;
-    }
-    return subtexts;
-}
-
-int text_visualize(FILE *stream, Text_t t)
+int text_visualize(FILE *stream, Text_t t, int depth)
 {
     switch (t.tag) {
-    case TEXT_SHORT_ASCII: return fprintf(stream, "<ascii length=%ld>%.*s</ascii>", t.length, t.length, t.short_ascii);
     case TEXT_ASCII: return fprintf(stream, "<ascii length=%ld>%.*s</ascii>", t.length, t.length, t.ascii);
-    case TEXT_GRAPHEMES: case TEXT_SHORT_GRAPHEMES: {
+    case TEXT_GRAPHEMES: {
         int printed = fprintf(stream, "<graphemes length=%ld>", t.length);
         printed += Text$print(stream, t);
         printed += fprintf(stream, "</graphemes>");
         return printed;
     }
-    case TEXT_SUBTEXT: {
-        int printed = fprintf(stream, "<text length=%ld>", t.length);
-        int64_t to_print = t.length;
-        for (int i = 0; to_print > 0; ++i) {
-            printed += fprintf(stream, "\n  ");
-            printed += text_visualize(stream, t.subtexts[i]);
-            to_print -= t.subtexts[i].length;
-            if (t.subtexts[i].length == 0) break;
-        }
-        printed += fprintf(stream, "\n</text>");
+    case TEXT_CONCAT: {
+        int printed = fprintf(stream, "<concat depth=%ld length=%ld>\n", t.depth, t.length);
+        for (int i = 0; i < depth+1; i++)
+            printed += fputc(' ', stream);
+        printed += text_visualize(stream, *t.left, depth+1);
+        printed += fputc('\n', stream);
+        for (int i = 0; i < depth+1; i++)
+            printed += fputc(' ', stream);
+        printed += text_visualize(stream, *t.right, depth+1);
+        printed += fputc('\n', stream);
+        for (int i = 0; i < depth; i++)
+            printed += fputc(' ', stream);
+        printed += fprintf(stream, "</concat>");
         return printed;
     }
     default: return 0;
@@ -247,10 +255,9 @@ public int Text$print(FILE *stream, Text_t t)
     if (t.length == 0) return 0;
 
     switch (t.tag) {
-    case TEXT_SHORT_ASCII: return fwrite(t.short_ascii, sizeof(char), (size_t)t.length, stream);
     case TEXT_ASCII: return fwrite(t.ascii, sizeof(char), (size_t)t.length, stream);
-    case TEXT_GRAPHEMES: case TEXT_SHORT_GRAPHEMES: {
-        const int32_t *graphemes = t.tag == TEXT_SHORT_GRAPHEMES ? t.short_graphemes : t.graphemes;
+    case TEXT_GRAPHEMES: {
+        const int32_t *graphemes = t.graphemes;
         int written = 0;
         for (int64_t i = 0; i < t.length; i++) {
             int32_t grapheme = graphemes[i];
@@ -268,12 +275,9 @@ public int Text$print(FILE *stream, Text_t t)
         }
         return written;
     }
-    case TEXT_SUBTEXT: {
-        int written = 0;
-        int i = 0;
-        for (int64_t to_print = t.length; to_print > 0; to_print -= t.subtexts[i].length, ++i)
-            written += Text$print(stream, t.subtexts[i]);
-        return written;
+    case TEXT_CONCAT: {
+        return (Text$print(stream, *t.left)
+                + Text$print(stream, *t.right));
     }
     default: return 0;
     }
@@ -314,52 +318,140 @@ static bool is_concat_stable(Text_t a, Text_t b)
     return (second_grapheme == &normalized[1]);
 }
 
+static const int64_t min_len_for_depth[MAX_TEXT_DEPTH] = {
+    // Fibonacci numbers (skipping first two)
+    1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765, 10946,
+    17711, 28657, 46368, 75025, 121393, 196418, 317811, 514229, 832040, 1346269, 2178309, 3524578,
+    5702887, 9227465, 14930352, 24157817, 39088169, 63245986, 102334155, 165580141, 267914296,
+    433494437, 701408733, 1134903170, 1836311903, 2971215073, 4807526976, 7778742049,
+};
+
+#define IS_BALANCED_TEXT(t) ((t).length >= min_len_for_depth[(t).depth])
+
+static void insert_balanced(Text_t balanced_texts[MAX_TEXT_DEPTH], Text_t to_insert)
+{
+    int i = 0;
+    Text_t accumulator = EMPTY_TEXT;
+    for (; to_insert.length > min_len_for_depth[i + 1]; i++) {
+        if (balanced_texts[i].length) {
+            accumulator = simple_concatenation(balanced_texts[i], accumulator);
+            balanced_texts[i] = EMPTY_TEXT;
+        }
+    }
+
+    accumulator = simple_concatenation(accumulator, to_insert);
+
+    while (accumulator.length >= min_len_for_depth[i]) {
+        if (balanced_texts[i].length) {
+            accumulator = simple_concatenation(balanced_texts[i], accumulator);
+            balanced_texts[i] = EMPTY_TEXT;
+        }
+        i++;
+    }
+    i--;
+    balanced_texts[i] = accumulator;
+}
+
+static void insert_balanced_recursive(Text_t balanced_texts[MAX_TEXT_DEPTH], Text_t text)
+{
+    if (text.tag == TEXT_CONCAT && (!IS_BALANCED_TEXT(text) || text.depth >= MAX_TEXT_DEPTH)) {
+        insert_balanced_recursive(balanced_texts, *text.left);
+        insert_balanced_recursive(balanced_texts, *text.right);
+    } else {
+        insert_balanced(balanced_texts, text);
+    }
+}
+
+static Text_t rebalanced(Text_t a, Text_t b)
+{
+    Text_t balanced_texts[MAX_TEXT_DEPTH] = {};
+    insert_balanced_recursive(balanced_texts, a);
+    insert_balanced_recursive(balanced_texts, b);
+
+    Text_t ret = EMPTY_TEXT;
+    for (int i = 0; ret.length < a.length + b.length; i++) {
+        if (balanced_texts[i].length)
+            ret = simple_concatenation(balanced_texts[i], ret);
+    }
+    return ret;
+}
+
+Text_t simple_concatenation(Text_t a, Text_t b)
+{
+    if (a.length == 0) return b;
+    if (b.length == 0) return a;
+
+    uint16_t new_depth = 1 + MAX(a.depth, b.depth);
+    // Rebalance only if depth exceeds the maximum allowed. We don't require
+    // every concatenation to yield a balanced text, since many concatenations
+    // are ephemeral (e.g. doing a loop repeatedly concatenating without using
+    // the intermediary values).
+    if (new_depth >= MAX_TEXT_DEPTH)
+        return rebalanced(a, b);
+
+    Text_t *children = GC_MALLOC(sizeof(Text_t[2]));
+    children[0] = a;
+    children[1] = b;
+    return (Text_t){
+        .tag=TEXT_CONCAT,
+        .length=a.length + b.length,
+        .depth=new_depth,
+        .left=&children[0],
+        .right=&children[1],
+    };
+}
+
 static Text_t concat2_assuming_safe(Text_t a, Text_t b)
 {
     if (a.length == 0) return b;
     if (b.length == 0) return a;
 
-    if (a.tag == TEXT_SUBTEXT && b.tag == TEXT_SUBTEXT) {
-        int64_t na = num_subtexts(a);
-        int64_t nb = num_subtexts(b);
-        Text_t ret = {
+    if (a.tag == TEXT_ASCII && b.tag == TEXT_ASCII && (size_t)(a.length + b.length) <= SHORT_ASCII_LENGTH) {
+        struct Text_s ret = {
+            .tag=TEXT_ASCII,
             .length=a.length + b.length,
-            .tag=TEXT_SUBTEXT,
-            .subtexts=GC_MALLOC(sizeof(Text_t[na + nb])),
         };
-        memcpy(&ret.subtexts[0], a.subtexts, sizeof(Text_t[na]));
-        memcpy(&ret.subtexts[na], b.subtexts, sizeof(Text_t[nb]));
+        ret.ascii = GC_MALLOC_ATOMIC(sizeof(char[ret.length]));
+        memcpy((char*)ret.ascii, a.ascii, sizeof(char[a.length]));
+        memcpy((char*)&ret.ascii[a.length], b.ascii, sizeof(char[b.length]));
         return ret;
-    } else if (a.tag == TEXT_SUBTEXT) {
-        int64_t n = num_subtexts(a);
-        Text_t ret = {
+    } else if (a.tag == TEXT_GRAPHEMES && b.tag == TEXT_GRAPHEMES && (size_t)(a.length + b.length) <= SHORT_GRAPHEMES_LENGTH) {
+        struct Text_s ret = {
+            .tag=TEXT_GRAPHEMES,
             .length=a.length + b.length,
-            .tag=TEXT_SUBTEXT,
-            .subtexts=GC_MALLOC(sizeof(Text_t[n + 1])),
         };
-        memcpy(ret.subtexts, a.subtexts, sizeof(Text_t[n]));
-        ret.subtexts[n] = b;
+        ret.graphemes = GC_MALLOC_ATOMIC(sizeof(int32_t[ret.length]));
+        memcpy((int32_t*)ret.graphemes, a.graphemes, sizeof(int32_t[a.length]));
+        memcpy((int32_t*)&ret.graphemes[a.length], b.graphemes, sizeof(int32_t[b.length]));
         return ret;
-    } else if (b.tag == TEXT_SUBTEXT) {
-        int64_t n = num_subtexts(b);
-        Text_t ret = {
+    } else if (a.tag != TEXT_CONCAT && b.tag != TEXT_CONCAT && (size_t)(a.length + b.length) <= SHORT_GRAPHEMES_LENGTH) {
+        // Turn a small bit of ASCII into graphemes if it helps make things smaller
+        // Text structs come with an extra 8 bytes, so allocate enough to hold the text
+        struct Text_s ret = {
+            .tag=TEXT_GRAPHEMES,
             .length=a.length + b.length,
-            .tag=TEXT_SUBTEXT,
-            .subtexts=GC_MALLOC(sizeof(Text_t[n + 1])),
         };
-        ret.subtexts[0] = a;
-        memcpy(&ret.subtexts[1], b.subtexts, sizeof(Text_t[n]));
-        return ret;
-    } else {
-        Text_t ret = {
-            .length=a.length + b.length,
-            .tag=TEXT_SUBTEXT,
-            .subtexts=GC_MALLOC(sizeof(Text_t[2])),
-        };
-        ret.subtexts[0] = a;
-        ret.subtexts[1] = b;
+        ret.graphemes = GC_MALLOC_ATOMIC(sizeof(int32_t[ret.length]));
+        int32_t *dest = (int32_t*)ret.graphemes;
+        if (a.tag == TEXT_GRAPHEMES) {
+            dest = mempcpy(dest, a.graphemes, sizeof(int32_t[a.length]));
+        } else {
+            for (int64_t i = 0; i < a.length; i++)
+                *(dest++) = (int32_t)a.ascii[i];
+        }
+        if (b.tag == TEXT_GRAPHEMES) {
+            memcpy(dest, b.graphemes, sizeof(int32_t[b.length]));
+        } else {
+            for (int64_t i = 0; i < b.length; i++)
+                *(dest++) = (int32_t)b.ascii[i];
+        }
         return ret;
     }
+
+    if (a.tag == TEXT_CONCAT && b.tag != TEXT_CONCAT && a.right->tag != TEXT_CONCAT)
+        return concat2_assuming_safe(*a.left, concat2_assuming_safe(*a.right, b));
+
+    return simple_concatenation(a, b);
 }
 
 static Text_t concat2(Text_t a, Text_t b)
@@ -398,41 +490,12 @@ static Text_t concat2(Text_t a, Text_t b)
 
 public Text_t Text$_concat(int n, Text_t items[n])
 {
-    if (n == 0) return (Text_t){.length=0};
-    if (n == 1) return items[0];
-    if (n == 2) return concat2(items[0], items[1]);
+    if (n == 0) return EMPTY_TEXT;
 
-    int64_t subtexts = 0;
-    for (int i = 0; i < n; i++) {
+    Text_t ret = items[0];
+    for (int i = 1; i < n; i++) {
         if (items[i].length > 0)
-            subtexts += num_subtexts(items[i]);
-    }
-
-    Text_t ret = {
-        .length=0,
-        .tag=TEXT_SUBTEXT,
-        .subtexts=GC_MALLOC(sizeof(Text_t[subtexts])),
-    };
-    int64_t sub_i = 0;
-    for (int i = 0; i < n; i++) {
-        if (items[i].length == 0)
-            continue;
-
-        if (i > 0 && unlikely(!is_concat_stable(ret, items[i]))) {
-            // Oops, guess this wasn't stable for concatenation, let's break it
-            // up into subtasks:
-            return concat2(ret, Text$_concat(n-i, &items[i]));
-        }
-
-        if (items[i].tag == TEXT_SUBTEXT) {
-            for (int64_t j = 0, remainder = items[i].length; remainder > 0; j++) {
-                ret.subtexts[sub_i++] = items[i].subtexts[j];
-                remainder -= items[i].subtexts[j].length;
-            }
-        } else {
-            ret.subtexts[sub_i++] = items[i];
-        }
-        ret.length += items[i].length;
+            ret = concat2(ret, items[i]);
     }
     return ret;
 }
@@ -440,37 +503,17 @@ public Text_t Text$_concat(int n, Text_t items[n])
 public Text_t Text$repeat(Text_t text, Int_t count)
 {
     if (text.length == 0 || Int$is_negative(count))
-        return Text("");
+        return EMPTY_TEXT;
 
     Int_t result_len = Int$times(count, I(text.length));
     if (Int$compare_value(result_len, I(1l<<40)) > 0)
         fail("Text repeating would produce too big of an result!");
 
     int64_t count64 = Int_to_Int64(count, false);
-    if (text.tag == TEXT_SUBTEXT) {
-        int64_t subtexts = num_subtexts(text);
-        Text_t ret = {
-            .length=text.length * count64,
-            .tag=TEXT_SUBTEXT,
-            .subtexts=GC_MALLOC(sizeof(Text_t[subtexts * count64])),
-        };
-        for (int64_t c = 0; c < count64; c++) {
-            for (int64_t i = 0; i < subtexts; i++) {
-                if (text.subtexts[i].length > 0)
-                    ret.subtexts[c*subtexts + i] = text.subtexts[i];
-            }
-        }
-        return ret;
-    } else {
-        Text_t ret = {
-            .length=text.length * count64,
-            .tag=TEXT_SUBTEXT,
-            .subtexts=GC_MALLOC(sizeof(Text_t[count64])),
-        };
-        for (int64_t i = 0; i < count64; i++)
-            ret.subtexts[i] = text;
-        return ret;
-    }
+    Text_t ret = text;
+    for (int64_t c = 1; c < count64; c++)
+        ret = concat2(ret, text);
+    return ret;
 }
 
 public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
@@ -478,7 +521,7 @@ public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
     int64_t first = Int_to_Int64(first_int, false);
     int64_t last = Int_to_Int64(last_int, false);
     if (first == 0) fail("Invalid index: 0");
-    if (last == 0) return (Text_t){.length=0};
+    if (last == 0) return EMPTY_TEXT;
 
     if (first < 0) first = text.length + first + 1;
     if (last < 0) last = text.length + last + 1;
@@ -486,77 +529,38 @@ public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
     if (last > text.length) last = text.length;
 
     if (first > text.length || last < first)
-        return (Text_t){.length=0};
+        return EMPTY_TEXT;
 
     if (first == 1 && last == text.length)
         return text;
 
-    switch (text.tag) {
-    case TEXT_SHORT_ASCII: {
-        Text_t ret = (Text_t) {
-            .tag=TEXT_SHORT_ASCII,
-            .length=last - first + 1,
-        };
-        memcpy(ret.short_ascii, text.short_ascii + (first-1), (size_t)ret.length);
-        return ret;
+    while (text.tag == TEXT_CONCAT) {
+        if (last < text.left->length) {
+            text = *text.left;
+        } else if (first > text.left->length) {
+            first -= text.left->length;
+            last -= text.left->length;
+            text = *text.right;
+        } else {
+            return concat2(Text$slice(*text.left, I(first), I(text.length)),
+                           Text$slice(*text.right, I(1), I(last-text.left->length)));
+        }
     }
+
+    switch (text.tag) {
     case TEXT_ASCII: {
-        Text_t ret = {
+        return (Text_t){
             .tag=TEXT_ASCII,
             .length=last - first + 1,
             .ascii=text.ascii + (first-1),
         };
-        return ret;
-    }
-    case TEXT_SHORT_GRAPHEMES: {
-        assert((first == 1 && last == 1) || (first == 2 && last == 2));
-        Text_t ret = {
-            .tag=TEXT_SHORT_GRAPHEMES,
-            .length=1,
-            .short_graphemes={text.short_graphemes[first-1]},
-        };
-        return ret;
     }
     case TEXT_GRAPHEMES: {
-        Text_t ret = {
+        return (Text_t){
             .tag=TEXT_GRAPHEMES,
             .length=last - first + 1,
             .graphemes=text.graphemes + (first-1),
         };
-        return ret;
-    }
-    case TEXT_SUBTEXT: {
-        Text_t *subtexts = text.subtexts;
-        while (first > subtexts[0].length) {
-            first -= subtexts[0].length;
-            last -= subtexts[0].length;
-            ++subtexts;
-        }
-
-        int64_t needed_len = (last - first) + 1;
-        int64_t num_subtexts = 0;
-        for (int64_t included = 0; included < needed_len; ) {
-            if (included == 0)
-                included += subtexts[num_subtexts].length - first + 1;
-            else
-                included += subtexts[num_subtexts].length;
-            num_subtexts += 1;
-        }
-        if (num_subtexts == 1)
-            return Text$slice(subtexts[0], I(first), I(last));
-
-        Text_t ret = {
-            .length=needed_len,
-            .tag=TEXT_SUBTEXT,
-            .subtexts=GC_MALLOC(sizeof(Text_t[num_subtexts])),
-        };
-        for (int64_t i = 0; i < num_subtexts; i++) {
-            ret.subtexts[i] = Text$slice(subtexts[i], I(first), I(last));
-            first = 1;
-            needed_len -= ret.subtexts[i].length;
-            last = first + needed_len - 1;
-        }
-        return ret;
     }
     default: errx(1, "Invalid tag");
     }
@@ -575,45 +579,34 @@ public Text_t Text$to(Text_t text, Int_t last)
 public Text_t Text$reversed(Text_t text)
 {
     switch (text.tag) {
-    case TEXT_SHORT_ASCII: {
-        Text_t ret = text;
-        for (int64_t i = 0; i < text.length; i++)
-            ret.short_ascii[text.length-1-i] = text.short_ascii[i];
-        return ret;
-    }
     case TEXT_ASCII: {
-        Text_t ret = text;
-        ret.ascii = GC_MALLOC_ATOMIC(sizeof(uint8_t[text.length]));
+        struct Text_s ret = {
+            .tag=TEXT_ASCII,
+            .length=text.length,
+        };
+        ret.ascii = GC_MALLOC_ATOMIC(sizeof(char[ret.length]));
         for (int64_t i = 0; i < text.length; i++)
             ((char*)ret.ascii)[text.length-1-i] = text.ascii[i];
         return ret;
     }
-    case TEXT_SHORT_GRAPHEMES: {
-        Text_t ret = text;
-        for (int64_t i = 0; i < text.length; i++)
-            ret.short_graphemes[text.length-1-i] = text.short_graphemes[i];
-        return ret;
-    }
     case TEXT_GRAPHEMES: {
-        Text_t ret = text;
-        ret.graphemes = GC_MALLOC_ATOMIC(sizeof(int32_t[text.length]));
+        struct Text_s ret = {
+            .tag=TEXT_GRAPHEMES,
+            .length=text.length,
+        };
+        ret.graphemes = GC_MALLOC_ATOMIC(sizeof(int32_t[ret.length]));
         for (int64_t i = 0; i < text.length; i++)
             ((int32_t*)ret.graphemes)[text.length-1-i] = text.graphemes[i];
         return ret;
     }
-    case TEXT_SUBTEXT: {
-        Text_t ret = text;
-        int64_t n = num_subtexts(text);
-        ret.subtexts = GC_MALLOC(sizeof(Text_t*[n]));
-        for (int64_t i = 0; i < n; i++)
-            ret.subtexts[n-1-i] = Text$reversed(text.subtexts[i]);
-        return ret;
+    case TEXT_CONCAT: {
+        return concat2(Text$reversed(*text.right), Text$reversed(*text.left));
     }
     default: errx(1, "Invalid tag");
     }
 }
 
-public Text_t Text$cluster(Text_t text, Int_t index_int)
+public PUREFUNC Text_t Text$cluster(Text_t text, Int_t index_int)
 {
     int64_t index = Int_to_Int64(index_int, false);
     if (index == 0) fail("Invalid index: 0");
@@ -624,42 +617,31 @@ public Text_t Text$cluster(Text_t text, Int_t index_int)
         fail("Invalid index: %ld is beyond the length of the text (length = %ld)",
              Int_to_Int64(index_int, false), text.length);
 
+    while (text.tag == TEXT_CONCAT) {
+        if (index <= text.left->length)
+            text = *text.left;
+        else
+            text = *text.right;
+    }
+
     switch (text.tag) {
-    case TEXT_SHORT_ASCII: {
-        return (Text_t) {
-            .tag=TEXT_SHORT_ASCII,
-            .length=1,
-            .short_ascii={text.short_ascii[index-1]},
-        };
-    }
     case TEXT_ASCII: {
-        return (Text_t) {
-            .tag=TEXT_SHORT_ASCII,
+        struct Text_s ret = {
+            .tag=TEXT_ASCII,
             .length=1,
-            .short_ascii={text.ascii[index-1]},
+            .ascii=GC_MALLOC_ATOMIC(sizeof(char)),
         };
-    }
-    case TEXT_SHORT_GRAPHEMES: {
-        return (Text_t) {
-            .tag=TEXT_SHORT_GRAPHEMES,
-            .length=1,
-            .short_graphemes={text.short_graphemes[index-1]},
-        };
+        *(char*)&ret.ascii[0] = text.ascii[index-1];
+        return ret;
     }
     case TEXT_GRAPHEMES: {
-        return (Text_t) {
-            .tag=TEXT_SHORT_GRAPHEMES,
+        struct Text_s ret = {
+            .tag=TEXT_GRAPHEMES,
             .length=1,
-            .short_graphemes={text.graphemes[index-1]},
+            .graphemes=GC_MALLOC_ATOMIC(sizeof(int32_t)),
         };
-    }
-    case TEXT_SUBTEXT: {
-        Text_t *subtext = text.subtexts;
-        while (index > subtext[0].length) {
-            index -= subtext[0].length;
-            ++subtext;
-        }
-        return Text$cluster(*subtext, I(index));
+        *(int32_t*)&ret.graphemes[0] = text.graphemes[index-1];
+        return ret;
     }
     default: errx(1, "Invalid tag");
     }
@@ -676,25 +658,18 @@ Text_t text_from_u32(ucs4_t *codepoints, int64_t num_codepoints, bool normalize)
         num_codepoints = (int64_t)norm_length;
     }
 
-    // char breaks[num_codepoints];
-    // u32_grapheme_breaks(codepoints, num_codepoints, breaks);
-
-    Text_t ret = {
+    // Intentionally overallocate here: allocate assuming each codepoint is a
+    // grapheme cluster. If that's not true, we'll have extra space at the end
+    // of the array, but the length will still be calculated correctly.
+    int32_t *graphemes = GC_MALLOC_ATOMIC(sizeof(int32_t[num_codepoints]));
+    struct Text_s ret = {
+        .tag=TEXT_GRAPHEMES,
         .length=0,
-        .tag=TEXT_SHORT_GRAPHEMES,
+        .graphemes=graphemes,
     };
     const ucs4_t *src = codepoints;
-    int32_t *graphemes = ret.short_graphemes;
     while (src < &codepoints[num_codepoints]) {
-        if (ret.tag == TEXT_SHORT_GRAPHEMES && ret.length + 1 > 2) {
-            graphemes = GC_MALLOC_ATOMIC(sizeof(int32_t[num_codepoints])); // May be a slight overallocation
-            graphemes[0] = ret.short_graphemes[0];
-            graphemes[1] = ret.short_graphemes[1];
-            ret.tag = TEXT_GRAPHEMES;
-            ret.graphemes = graphemes;
-        }
-
-        // TODO: use grapheme breaks instead of u32_grapheme_next()
+        // TODO: use grapheme breaks instead of u32_grapheme_next()?
         const ucs4_t *next = u32_grapheme_next(src, &codepoints[num_codepoints]);
         if (next == &src[1]) {
             graphemes[ret.length] = (int32_t)*src;
@@ -716,16 +691,13 @@ public OptionalText_t Text$from_strn(const char *str, size_t len)
         ascii_span++;
 
     if (ascii_span == (int64_t)len) { // All ASCII
-        Text_t ret = {.length=ascii_span};
-        if (ascii_span <= 8) {
-            ret.tag = TEXT_SHORT_ASCII;
-            for (int64_t i = 0; i < ascii_span; i++)
-                ret.short_ascii[i] = str[i];
-        } else {
-            ret.tag = TEXT_ASCII;
-            ret.ascii = str;
-        }
-        return ret;
+        char *copy = GC_MALLOC_ATOMIC(len);
+        memcpy(copy, str, len);
+        return (Text_t){
+            .tag=TEXT_ASCII,
+            .length=ascii_span,
+            .ascii=copy,
+        };
     } else {
         if (u8_check((uint8_t*)str, len) != NULL)
             return NONE_TEXT;
@@ -748,19 +720,19 @@ public OptionalText_t Text$from_str(const char *str)
 static void u8_buf_append(Text_t text, char **buf, int64_t *capacity, int64_t *i)
 {
     switch (text.tag) {
-    case TEXT_ASCII: case TEXT_SHORT_ASCII: {
+    case TEXT_ASCII: {
         if (*i + text.length > (int64_t)*capacity) {
             *capacity = *i + text.length + 1;
             *buf = GC_REALLOC(*buf, (size_t)*capacity);
         }
 
-        const char *bytes = text.tag == TEXT_ASCII ? text.ascii : text.short_ascii;
+        const char *bytes = text.ascii;
         memcpy(*buf + *i, bytes, (size_t)text.length);
         *i += text.length;
         break;
     }
-    case TEXT_GRAPHEMES: case TEXT_SHORT_GRAPHEMES: {
-        const int32_t *graphemes = text.tag == TEXT_GRAPHEMES ? text.graphemes : text.short_graphemes;
+    case TEXT_GRAPHEMES: {
+        const int32_t *graphemes = text.graphemes;
         for (int64_t g = 0; g < text.length; g++) {
             if (graphemes[g] >= 0) {
                 uint8_t u8_buf[64];
@@ -789,11 +761,9 @@ static void u8_buf_append(Text_t text, char **buf, int64_t *capacity, int64_t *i
         }
         break;
     }
-    case TEXT_SUBTEXT: {
-        for (int64_t s = 0, remaining = text.length; remaining > 0; s++) {
-            u8_buf_append(text.subtexts[s], buf, capacity, i);
-            remaining -= text.subtexts[s].length;
-        }
+    case TEXT_CONCAT: {
+        u8_buf_append(*text.left, buf, capacity, i);
+        u8_buf_append(*text.right, buf, capacity, i);
         break;
     }
     default: break;
@@ -817,135 +787,95 @@ public char *Text$as_c_string(Text_t text)
 
 PUREFUNC public uint64_t Text$hash(const void *obj, const TypeInfo_t*)
 {
-    Text_t *text = (Text_t*)obj;
-    if (text->hash != 0) return text->hash;
+    Text_t text = *(Text_t*)obj;
     siphash sh;
-    siphashinit(&sh, sizeof(int32_t[text->length]));
+    siphashinit(&sh, sizeof(int32_t[text.length]));
 
     union {
         int32_t chunks[2];
         uint64_t whole;
     } tmp;
-    switch (text->tag) {
-    case TEXT_ASCII: case TEXT_SHORT_ASCII: {
-        const char *bytes = text->tag == TEXT_ASCII ? text->ascii : text->short_ascii;
-        for (int64_t i = 0; i + 1 < text->length; i += 2) {
+    switch (text.tag) {
+    case TEXT_ASCII: {
+        const char *bytes = text.ascii;
+        for (int64_t i = 0; i + 1 < text.length; i += 2) {
             tmp.chunks[0] = (int32_t)bytes[i];
             tmp.chunks[1] = (int32_t)bytes[i+1];
             siphashadd64bits(&sh, tmp.whole);
         }
-        int32_t last = text->length & 0x1 ? (int32_t)bytes[text->length-1] : 0; // Odd number of graphemes
-        text->hash = siphashfinish_last_part(&sh, (uint64_t)last);
-        break;
+        int32_t last = text.length & 0x1 ? (int32_t)bytes[text.length-1] : 0; // Odd number of graphemes
+        return siphashfinish_last_part(&sh, (uint64_t)last);
     }
     case TEXT_GRAPHEMES: {
-        const int32_t *graphemes = text->graphemes;
-        for (int64_t i = 0; i + 1 < text->length; i += 2) {
+        const int32_t *graphemes = text.graphemes;
+        for (int64_t i = 0; i + 1 < text.length; i += 2) {
             tmp.chunks[0] = graphemes[i];
             tmp.chunks[1] = graphemes[i];
             siphashadd64bits(&sh, tmp.whole);
         }
-        int32_t last = text->length & 0x1 ? graphemes[text->length-1] : 0; // Odd number of graphemes
-        text->hash = siphashfinish_last_part(&sh, (uint64_t)last);
-        break;
+        int32_t last = text.length & 0x1 ? graphemes[text.length-1] : 0; // Odd number of graphemes
+        return siphashfinish_last_part(&sh, (uint64_t)last);
     }
-    case TEXT_SHORT_GRAPHEMES: {
-        tmp.chunks[0] = text->short_graphemes[0];
-        if (text->length > 1)
-            tmp.chunks[1] = text->short_graphemes[1];
-        text->hash = siphashfinish_last_part(&sh, (uint64_t)tmp.whole);
-        break;
-    }
-    case TEXT_SUBTEXT: {
-        int32_t leftover = 0;
-        for (int64_t sub_i = 0, to_hash = text->length; to_hash > 0; ) {
-            Text_t subtext = text->subtexts[sub_i];
-            if (subtext.tag == TEXT_ASCII || subtext.tag == TEXT_SHORT_ASCII) {
-                const char *bytes = subtext.tag == TEXT_ASCII ? subtext.ascii : subtext.short_ascii;
-                int64_t grapheme = 0;
-                if (leftover) {
-                    tmp.chunks[0] = leftover;
-                    tmp.chunks[1] = (int32_t)bytes[0];
-                    siphashadd64bits(&sh, tmp.whole);
-                    grapheme += 1;
-                }
-                for (; grapheme + 1 < subtext.length; grapheme += 2) {
-                    tmp.chunks[0] = (int32_t)bytes[grapheme];
-                    tmp.chunks[1] = (int32_t)bytes[grapheme+1];
-                    siphashadd64bits(&sh, tmp.whole);
-                }
-                leftover = grapheme < subtext.length ? (int32_t)bytes[grapheme] : 0;
-            } else if (subtext.tag == TEXT_SHORT_GRAPHEMES) {
-                if (leftover) {
-                    tmp.chunks[0] = leftover;
-                    tmp.chunks[1] = subtext.short_graphemes[0];
-                    siphashadd64bits(&sh, tmp.whole);
-                    leftover = subtext.length > 1 ? subtext.short_graphemes[1] : 0;
-                } else if (subtext.length == 1) {
-                    leftover = subtext.short_graphemes[0];
-                } else {
-                    tmp.chunks[0] = subtext.short_graphemes[0];
-                    tmp.chunks[1] = subtext.short_graphemes[1];
-                    siphashadd64bits(&sh, tmp.whole);
-                }
-            } else if (subtext.tag == TEXT_GRAPHEMES) {
-                const int32_t *graphemes = subtext.graphemes;
-                int64_t grapheme = 0;
-                if (leftover) {
-                    tmp.chunks[0] = leftover;
-                    tmp.chunks[1] = graphemes[0];
-                    siphashadd64bits(&sh, tmp.whole);
-                    grapheme += 1;
-                }
-                for (; grapheme + 1 < subtext.length; grapheme += 2) {
-                    tmp.chunks[0] = graphemes[grapheme];
-                    tmp.chunks[1] = graphemes[grapheme+1];
-                    siphashadd64bits(&sh, tmp.whole);
-                }
-                leftover = grapheme < subtext.length ? graphemes[grapheme] : 0;
-            }
-        
-            to_hash -= text->subtexts[sub_i].length;
-
-            ++sub_i;
+    case TEXT_CONCAT: {
+        TextIter_t state = NEW_TEXT_ITER_STATE(text);
+        for (int64_t i = 0; i < (text.length & ~0x1); i += 2) {
+            tmp.chunks[0] = Text$get_grapheme_fast(&state, i);
+            tmp.chunks[0] = Text$get_grapheme_fast(&state, i+1);
+            siphashadd64bits(&sh, tmp.whole);
         }
 
-        text->hash = siphashfinish_last_part(&sh, (uint64_t)leftover);
-        break;
+        int32_t last = (text.length & 0x1) ? Text$get_grapheme_fast(&state, text.length-1) : 0;
+        return siphashfinish_last_part(&sh, (uint64_t)last);
     }
     default: errx(1, "Invalid text");
     }
-
-    if (text->hash == 0)
-        text->hash = 1;
-
-    return text->hash;
 }
 
 public int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index)
 {
-    Text_t text = state->text;
-    switch (text.tag) {
-    case TEXT_ASCII: return index < text.length ? (int32_t)text.ascii[index] : 0;
-    case TEXT_SHORT_ASCII: return index < text.length ? (int32_t)text.short_ascii[index] : 0;
-    case TEXT_GRAPHEMES: return index < text.length ? text.graphemes[index] : 0;
-    case TEXT_SHORT_GRAPHEMES: return index < text.length ? text.short_graphemes[index] : 0;
-    case TEXT_SUBTEXT: {
-        if (index < 0 || index >= text.length)
-            return 0;
+    if (index < 0) return 0;
+    if (index >= state->stack[0].text.length) return 0;
 
-        while (index < state->sum_of_previous_subtexts && state->subtext > 0) {
-            state->sum_of_previous_subtexts -= text.subtexts[state->subtext].length;
-            state->subtext -= 1;
+    assert(state->stack[0].text.depth <= MAX_TEXT_DEPTH);
+
+    // Go up the stack as needed:
+    while (index < state->stack[state->stack_index].offset
+           || index >= state->stack[state->stack_index].offset + state->stack[state->stack_index].text.length) {
+        state->stack_index -= 1;
+        assert(state->stack_index >= 0);
+    }
+
+    assert(state->stack_index >= 0 && state->stack_index <= MAX_TEXT_DEPTH);
+
+    // Go down the stack as needed:
+    while (state->stack[state->stack_index].text.tag == TEXT_CONCAT) {
+        Text_t text = state->stack[state->stack_index].text;
+        int64_t offset = state->stack[state->stack_index].offset;
+        assert(state->stack_index <= MAX_TEXT_DEPTH);
+        assert(index >= offset);
+        assert(index < offset + text.length);
+
+        state->stack_index += 1;
+        if (index < offset + text.left->length) {
+            state->stack[state->stack_index].text = *text.left;
+            state->stack[state->stack_index].offset = offset;
+        } else {
+            state->stack[state->stack_index].text = *text.right;
+            state->stack[state->stack_index].offset = offset + text.left->length;
         }
-        for (;;) {
-            if (index < state->sum_of_previous_subtexts + text.subtexts[state->subtext].length)
-                return Text$get_grapheme(text.subtexts[state->subtext], index - state->sum_of_previous_subtexts);
-            state->sum_of_previous_subtexts += text.subtexts[state->subtext].length;
-            state->subtext += 1;
-        }
+        assert(state->stack_index >= 0 && state->stack_index <= MAX_TEXT_DEPTH);
+    }
+
+    Text_t text = state->stack[state->stack_index].text;
+    int64_t offset = state->stack[state->stack_index].offset;
+
+    if (index < offset || index >= offset + text.length) {
         return 0;
     }
+
+    switch (text.tag) {
+    case TEXT_ASCII: return (int32_t)text.ascii[index - offset];
+    case TEXT_GRAPHEMES: return text.graphemes[index - offset];
     default: errx(1, "Invalid text");
     }
     return 0;
@@ -960,11 +890,12 @@ public uint32_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index)
 PUREFUNC public int32_t Text$compare(const void *va, const void *vb, const TypeInfo_t*)
 {
     if (va == vb) return 0;
-    const Text_t *a = (const Text_t*)va;
-    const Text_t *b = (const Text_t*)vb;
+    const Text_t a = *(const Text_t*)va;
+    const Text_t b = *(const Text_t*)vb;
 
-    int64_t len = MAX(a->length, b->length);
-    TextIter_t a_state = {*a, 0, 0}, b_state = {*b, 0, 0};
+    // TODO: make this smarter and more efficient
+    int64_t len = MAX(a.length, b.length);
+    TextIter_t a_state = NEW_TEXT_ITER_STATE(a), b_state = NEW_TEXT_ITER_STATE(b);
     for (int64_t i = 0; i < len; i++) {
         int32_t ai = Text$get_grapheme_fast(&a_state, i);
         int32_t bi = Text$get_grapheme_fast(&b_state, i);
@@ -998,7 +929,7 @@ PUREFUNC public bool Text$starts_with(Text_t text, Text_t prefix)
 {
     if (text.length < prefix.length)
         return false;
-    TextIter_t text_state = {text, 0, 0}, prefix_state = {prefix, 0, 0};
+    TextIter_t text_state = NEW_TEXT_ITER_STATE(text), prefix_state = NEW_TEXT_ITER_STATE(prefix);
     for (int64_t i = 0; i < prefix.length; i++) {
         int32_t text_i = Text$get_grapheme_fast(&text_state, i);
         int32_t prefix_i = Text$get_grapheme_fast(&prefix_state, i);
@@ -1011,7 +942,7 @@ PUREFUNC public bool Text$ends_with(Text_t text, Text_t suffix)
 {
     if (text.length < suffix.length)
         return false;
-    TextIter_t text_state = {text, 0, 0}, suffix_state = {suffix, 0, 0};
+    TextIter_t text_state = NEW_TEXT_ITER_STATE(text), suffix_state = NEW_TEXT_ITER_STATE(suffix);
     for (int64_t i = 0; i < suffix.length; i++) {
         int32_t text_i = Text$get_grapheme_fast(&text_state, text.length - suffix.length + i);
         int32_t suffix_i = Text$get_grapheme_fast(&suffix_state, i);
@@ -1022,10 +953,11 @@ PUREFUNC public bool Text$ends_with(Text_t text, Text_t suffix)
 
 PUREFUNC public bool Text$equal_values(Text_t a, Text_t b)
 {
-    if (a.length != b.length || (a.hash != 0 && b.hash != 0 && a.hash != b.hash))
+    if (a.length != b.length)
         return false;
     int64_t len = a.length;
-    TextIter_t a_state = {a, 0, 0}, b_state = {b, 0, 0};
+    TextIter_t a_state = NEW_TEXT_ITER_STATE(a), b_state = NEW_TEXT_ITER_STATE(b);
+    // TODO: make this smarter and more efficient
     for (int64_t i = 0; i < len; i++) {
         int32_t ai = Text$get_grapheme_fast(&a_state, i);
         int32_t bi = Text$get_grapheme_fast(&b_state, i);
@@ -1045,7 +977,7 @@ PUREFUNC public bool Text$equal_ignoring_case(Text_t a, Text_t b)
     if (a.length != b.length)
         return false;
     int64_t len = a.length;
-    TextIter_t a_state = {a, 0, 0}, b_state = {b, 0, 0};
+    TextIter_t a_state = NEW_TEXT_ITER_STATE(a), b_state = NEW_TEXT_ITER_STATE(b);
     const char *language = uc_locale_language();
     for (int64_t i = 0; i < len; i++) {
         int32_t ai = Text$get_grapheme_fast(&a_state, i);
@@ -1110,37 +1042,36 @@ public int printf_text_size(const struct printf_info *info, size_t n, int argtyp
     if (n < 1) return -1;
     (void)info;
     argtypes[0] = PA_POINTER;
-    sizes[0] = sizeof(Text_t*);
+    sizes[0] = sizeof(Text_t);
     return 1;
 }
 
 public int printf_text(FILE *stream, const struct printf_info *info, const void *const args[])
 {
-    Text_t t = **(Text_t**)args[0];
+    Text_t *t = *(Text_t**)args[0];
     if (info->alt)
-        return text_visualize(stream, t);
+        return text_visualize(stream, *t, 0);
     else
-        return Text$print(stream, t);
+        return Text$print(stream, *t);
 }
 
 static INLINE Text_t _quoted(Text_t text, bool colorize, char quote_char)
 {
-    // TODO: optimize for ASCII and short strings
-    Array_t graphemes = {.atomic=1};
-#define add_char(c) Array$insert_value(&graphemes, (ucs4_t)c, I_small(0), sizeof(ucs4_t))
-#define add_str(s) ({ for (const char *_c = s; *_c; ++_c) Array$insert_value(&graphemes, (ucs4_t)*_c, I_small(0), sizeof(ucs4_t)); })
-    if (colorize)
-        add_str("\x1b[35m");
+    Text_t ret = colorize ? Text("\x1b[35m") : EMPTY_TEXT;
     if (quote_char != '"' && quote_char != '\'' && quote_char != '`')
-        add_char('$');
-    add_char(quote_char);
+        ret = concat2_assuming_safe(ret, Text("$"));
 
-#define add_escaped(str) ({ if (colorize) add_str("\x1b[34;1m"); \
-                          if (!just_escaped) add_char('$'); \
-                          add_char('\\'); add_str(str); just_escaped = true; \
-                          if (colorize) add_str("\x1b[0;35m"); })
-    TextIter_t state = {text, 0, 0};
+    Text_t quote_text = Text$from_strn(&quote_char, 1);
+    ret = concat2_assuming_safe(ret, quote_text);
+
+#define add_escaped(str) ({ if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[34;1m")); \
+                          if (!just_escaped) ret = concat2_assuming_safe(ret, Text("$")); \
+                          ret = concat2_assuming_safe(ret, Text("\\" str)); \
+                          just_escaped = true; \
+                          if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[0;35m")); })
+    TextIter_t state = NEW_TEXT_ITER_STATE(text);
     bool just_escaped = false;
+    // TODO: optimize for spans of non-escaped text
     for (int64_t i = 0; i < text.length; i++) {
         int32_t g = Text$get_grapheme_fast(&state, i);
         switch (g) {
@@ -1156,14 +1087,14 @@ static INLINE Text_t _quoted(Text_t text, bool colorize, char quote_char)
             if (just_escaped) {
                 add_escaped("\\");
             } else {
-                add_char('\\');
+                ret = concat2_assuming_safe(ret, Text("\\"));
                 just_escaped = false;
             }
             break;
         }
         case '$': {
             if (quote_char == '\'') {
-                add_char('$');
+                ret = concat2_assuming_safe(ret, Text("$"));
                 just_escaped = false;
             } else {
                 add_escaped("$");
@@ -1172,57 +1103,57 @@ static INLINE Text_t _quoted(Text_t text, bool colorize, char quote_char)
         }
         case '\x00' ... '\x06': case '\x0E' ... '\x1A':
         case '\x1C' ... '\x1F': case '\x7F' ... '\x7F': {
-            if (colorize) add_str("\x1b[34;1m");
-            add_char('\\');
-            add_char('x');
-            char tmp[4];
+            if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[34;1m"));
+            ret = concat2_assuming_safe(ret, Text("\\x"));
+            char tmp[2];
             sprintf(tmp, "%02X", g);
-            add_str(tmp);
+            ret = concat2_assuming_safe(ret, Text$from_strn(tmp, 2));
             if (colorize)
-                add_str("\x1b[0;35m");
+                ret = concat2_assuming_safe(ret, Text("\x1b[0;35m"));
             just_escaped = true;
             break;
         }
         default: {
             if (g == quote_char) {
-                add_escaped(((char[2]){quote_char, 0}));
+                ret = concat2_assuming_safe(ret, quote_text);
             } else {
-               add_char(g);
-               just_escaped = false;
+                ret = concat2_assuming_safe(ret, Text$slice(text, I(i+1), I(i+1)));
+                just_escaped = false;
             }
             break;
         }
         }
     }
-
-    add_char(quote_char);
-    if (colorize)
-        add_str("\x1b[m");
-
-    return (Text_t){.length=graphemes.length, .tag=TEXT_GRAPHEMES, .graphemes=graphemes.data};
-#undef add_str
-#undef add_char
 #undef add_escaped
+
+    ret = concat2_assuming_safe(ret, quote_text);
+    if (colorize)
+        ret = concat2_assuming_safe(ret, Text("\x1b[m"));
+
+    return ret;
 }
 
-public Text_t Text$as_text(const void *text, bool colorize, const TypeInfo_t *info)
+public Text_t Text$as_text(const void *vtext, bool colorize, const TypeInfo_t *info)
 {
     (void)info;
     if (info->TextInfo.lang && streq(info->TextInfo.lang, "Path")) {
-        if (!text) return Text("Path");
-        return Text$format("(%s%k%s)", colorize ? "\x1b[35m" : "", text, colorize ? "\x1b[m" : "");
+        if (!vtext) return Text("Path");
+        Text_t text = *(Text_t*)vtext;
+        return Text$format("(%s%k%s)", colorize ? "\x1b[35m" : "", &text, colorize ? "\x1b[m" : "");
     }
 
-    if (!text) return info && info->TextInfo.lang ? Text$from_str(info->TextInfo.lang) : Text("Text");
+    if (!vtext) return info && info->TextInfo.lang ? Text$from_str(info->TextInfo.lang) : Text("Text");
+
+    Text_t text = *(Text_t*)vtext;
     char quote_char;
     if (info == &Pattern$info) {
-        quote_char = Text$has(*(Text_t*)text, Pattern("/")) && !Text$has(*(Text_t*)text, Pattern("|")) ? '|' : '/';
+        quote_char = Text$has(text, Pattern("/")) && !Text$has(text, Pattern("|")) ? '|' : '/';
     } else {
         // Figure out the best quotation mark to use:
         bool has_dollar = false, has_double_quote = false, has_backtick = false,
              has_single_quote = false, needs_escapes = false;
-        TextIter_t state = {*(Text_t*)text, 0, 0};
-        for (int64_t i = 0; i < state.text.length; i++) {
+        TextIter_t state = NEW_TEXT_ITER_STATE(text);
+        for (int64_t i = 0; i < text.length; i++) {
             int32_t g = Text$get_grapheme_fast(&state, i);
             if (g == '$') {
                 has_dollar = true;
@@ -1250,7 +1181,7 @@ public Text_t Text$as_text(const void *text, bool colorize, const TypeInfo_t *in
             quote_char = '"';
     }
 
-    Text_t as_text = _quoted(*(Text_t*)text, colorize, quote_char);
+    Text_t as_text = _quoted(text, colorize, quote_char);
     if (info && info->TextInfo.lang && info != &Text$info && info != &Pattern$info)
         as_text = Text$concat(
             colorize ? Text("\x1b[1m$") : Text("$"),
@@ -1267,7 +1198,7 @@ public Text_t Text$quoted(Text_t text, bool colorize)
 
 public Text_t Text$join(Text_t glue, Array_t pieces)
 {
-    if (pieces.length == 0) return (Text_t){.length=0};
+    if (pieces.length == 0) return EMPTY_TEXT;
 
     Text_t result = *(Text_t*)pieces.data;
     for (int64_t i = 1; i < pieces.length; i++) {
@@ -1284,19 +1215,9 @@ public Text_t Text$format(const char *fmt, ...)
 
     char buf[9];
     int len = vsnprintf(buf, sizeof(buf), fmt, args);
-    Text_t ret;
-    if (len <= 8) {
-        ret = (Text_t){
-            .length=len,
-            .tag=TEXT_SHORT_ASCII,
-        };
-        for (int i = 0; i < len; i++)
-            ret.short_ascii[i] = buf[i];
-    } else {
-        char *str = GC_MALLOC_ATOMIC((size_t)(len+1));
-        vsnprintf(str, (size_t)(len+1), fmt, args);
-        ret = Text$from_str(str);
-    }
+    char *str = GC_MALLOC_ATOMIC((size_t)(len+1));
+    vsnprintf(str, (size_t)(len+1), fmt, args);
+    Text_t ret = Text$from_str(str);
     va_end(args);
     return ret;
 }
@@ -1314,7 +1235,7 @@ public Array_t Text$clusters(Text_t text)
 public Array_t Text$utf32_codepoints(Text_t text)
 {
     Array_t codepoints = {.atomic=1};
-    TextIter_t state = {text, 0, 0};
+    TextIter_t state = NEW_TEXT_ITER_STATE(text);
     for (int64_t i = 0; i < text.length; i++) {
         int32_t grapheme = Text$get_grapheme_fast(&state, i);
         if (grapheme < 0) {
@@ -1349,18 +1270,18 @@ static INLINE const char *codepoint_name(ucs4_t c)
 public Array_t Text$codepoint_names(Text_t text)
 {
     Array_t names = {};
-    TextIter_t state = {text, 0, 0};
+    TextIter_t state = NEW_TEXT_ITER_STATE(text);
     for (int64_t i = 0; i < text.length; i++) {
         int32_t grapheme = Text$get_grapheme_fast(&state, i);
         if (grapheme < 0) {
             for (int64_t c = 0; c < NUM_GRAPHEME_CODEPOINTS(grapheme); c++) {
                 const char *name = codepoint_name(GRAPHEME_CODEPOINTS(grapheme)[c]);
-                Text_t name_text = (Text_t){.tag=TEXT_ASCII, .length=(int64_t)strlen(name), .ascii=name};
+                Text_t name_text = Text$from_str(name);
                 Array$insert(&names, &name_text, I_small(0), sizeof(Text_t));
             }
         } else {
             const char *name = codepoint_name((ucs4_t)grapheme);
-            Text_t name_text = (Text_t){.tag=TEXT_ASCII, .length=(int64_t)strlen(name), .ascii=name};
+            Text_t name_text = Text$from_str(name);
             Array$insert(&names, &name_text, I_small(0), sizeof(Text_t));
         }
     }
@@ -1394,15 +1315,13 @@ public OptionalText_t Text$from_bytes(Array_t bytes)
     if (bytes.stride != sizeof(int8_t))
         Array$compact(&bytes, sizeof(int8_t));
 
-    int8_t nul = 0;
-    Array$insert(&bytes, &nul, I_small(0), sizeof(int8_t));
-    return Text$from_str(bytes.data);
+    return Text$from_strn(bytes.data, (size_t)bytes.length);
 }
 
 public Array_t Text$lines(Text_t text)
 {
     Array_t lines = {};
-    TextIter_t state = {text, 0, 0};
+    TextIter_t state = NEW_TEXT_ITER_STATE(text);
     for (int64_t i = 0, line_start = 0; i < text.length; i++) {
         int32_t grapheme = Text$get_grapheme_fast(&state, i);
         if (grapheme == '\r' && Text$get_grapheme_fast(&state, i + 1) == '\n') { // CRLF
@@ -1429,7 +1348,7 @@ typedef struct {
 
 static OptionalText_t next_line(line_iter_state_t *state)
 {
-    Text_t text = state->state.text;
+    Text_t text = state->state.stack[0].text;
     for (int64_t i = state->i; i < text.length; i++) {
         int32_t grapheme = Text$get_grapheme_fast(&state->state, i);
         if (grapheme == '\r' && Text$get_grapheme_fast(&state->state, i + 1) == '\n') { // CRLF
@@ -1453,7 +1372,7 @@ public Closure_t Text$by_line(Text_t text)
 {
     return (Closure_t){
         .fn=(void*)next_line,
-        .userdata=new(line_iter_state_t, .state={text, 0, 0}, .i=0),
+        .userdata=new(line_iter_state_t, .state=NEW_TEXT_ITER_STATE(text), .i=0),
     };
 }
 
@@ -1490,32 +1409,24 @@ public const TypeInfo_t Text$info = {
 
 public Pattern_t Pattern$escape_text(Text_t text)
 {
-    // TODO: optimize for ASCII and short strings
-    Array_t graphemes = {.atomic=1};
-#define add_char(c) Array$insert_value(&graphemes, (ucs4_t)c, I_small(0), sizeof(ucs4_t))
-#define add_str(s) ({ for (const char *_c = s; *_c; ++_c) Array$insert_value(&graphemes, (ucs4_t)*_c, I_small(0), sizeof(ucs4_t)); })
-    TextIter_t state = {text, 0, 0};
+    // TODO: optimize for spans of non-escaped text
+    Text_t ret = EMPTY_TEXT;
+    TextIter_t state = NEW_TEXT_ITER_STATE(text);
     for (int64_t i = 0; i < text.length; i++) {
         int32_t g = Text$get_grapheme_fast(&state, i);
         ucs4_t g0 = g < 0 ? GRAPHEME_CODEPOINTS(g)[0] : (ucs4_t)g;
 
         if (g == '{') {
-            add_str("{1{}");
+            ret = concat2_assuming_safe(ret, Text("{1{}"));
         } else if (g0 == '?'
                    || uc_is_property_quotation_mark(g0)
                    || (uc_is_property_paired_punctuation(g0) && uc_is_property_left_of_pair(g0))) {
-            add_char('{');
-            add_char('1');
-            add_char(g);
-            add_char('}');
+            ret = Text$concat(ret, Text("{1"), Text$slice(text, I(i+1), I(i+1)), Text("}"));
         } else {
-            add_char(g);
+            ret = concat2_assuming_safe(ret, Text$slice(text, I(i+1), I(i+1)));
         }
     }
-    return (Text_t){.length=graphemes.length, .tag=TEXT_GRAPHEMES, .graphemes=graphemes.data};
-#undef add_str
-#undef add_char
-#undef add_escaped
+    return ret;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -74,7 +74,7 @@ public void Optional$deserialize(FILE *in, void *outval, Array_t *pointers, cons
         _deserialize(in, outval, pointers, nonnull);
     } else {
         if (nonnull->tag == TextInfo)
-            *(Text_t*)outval = (Text_t){.length=-1};
+            *(Text_t*)outval = NONE_TEXT;
         else if (nonnull->tag == ArrayInfo)
             *(Array_t*)outval = (Array_t){.length=-1};
         else if (nonnull->tag == TableInfo)

@@ -36,7 +36,7 @@ typedef struct {
 
 static INLINE void skip_whitespace(TextIter_t *state, int64_t *i)
 {
-    while (*i < state->text.length) {
+    while (*i < state->stack[0].text.length) {
         int32_t grapheme = Text$get_grapheme_fast(state, *i);
         if (grapheme > 0 && !uc_is_property_white_space((ucs4_t)grapheme))
             return;
@@ -46,7 +46,7 @@ static INLINE void skip_whitespace(TextIter_t *state, int64_t *i)
 
 static INLINE bool match_grapheme(TextIter_t *state, int64_t *i, int32_t grapheme)
 {
-    if (*i < state->text.length && Text$get_grapheme_fast(state, *i) == grapheme) {
+    if (*i < state->stack[0].text.length && Text$get_grapheme_fast(state, *i) == grapheme) {
         *i += 1;
         return true;
     }
@@ -57,7 +57,7 @@ static INLINE bool match_str(TextIter_t *state, int64_t *i, const char *str)
 {
     int64_t matched = 0;
     while (matched[str]) {
-        if (*i + matched >= state->text.length || Text$get_grapheme_fast(state, *i + matched) != str[matched])
+        if (*i + matched >= state->stack[0].text.length || Text$get_grapheme_fast(state, *i + matched) != str[matched])
             return false;
         matched += 1;
     }
@@ -67,7 +67,7 @@ static INLINE bool match_str(TextIter_t *state, int64_t *i, const char *str)
 
 static INLINE bool match_property(TextIter_t *state, int64_t *i, uc_property_t prop)
 {
-    if (*i >= state->text.length) return false;
+    if (*i >= state->stack[0].text.length) return false;
     uint32_t grapheme = Text$get_main_grapheme_fast(state, *i);
     // TODO: check every codepoint in the cluster?
     if (uc_is_property(grapheme, prop)) {
@@ -95,7 +95,7 @@ static const char *get_property_name(TextIter_t *state, int64_t *i)
     skip_whitespace(state, i);
     char *name = GC_MALLOC_ATOMIC(UNINAME_MAX);
     char *dest = name;
-    while (*i < state->text.length) {
+    while (*i < state->stack[0].text.length) {
         int32_t grapheme = Text$get_grapheme_fast(state, *i);
         if (!(grapheme & ~0xFF) && (isalnum(grapheme) || grapheme == ' ' || grapheme == '_' || grapheme == '-')) {
             *dest = (char)grapheme;
@@ -406,10 +406,10 @@ static int64_t match_num(TextIter_t *state, int64_t index)
 
 static int64_t match_newline(TextIter_t *state, int64_t index)
 {
-    if (index >= state->text.length)
+    if (index >= state->stack[0].text.length)
         return -1;
 
-    uint32_t grapheme = index >= state->text.length ? 0 : Text$get_main_grapheme_fast(state, index);
+    uint32_t grapheme = index >= state->stack[0].text.length ? 0 : Text$get_main_grapheme_fast(state, index);
     if (grapheme == '\n')
         return 1;
     if (grapheme == '\r' && Text$get_grapheme_fast(state, index + 1) == '\n')
@@ -419,7 +419,7 @@ static int64_t match_newline(TextIter_t *state, int64_t index)
 
 static int64_t match_pat(TextIter_t *state, int64_t index, pat_t pat)
 {
-    Text_t text = state->text;
+    Text_t text = state->stack[0].text;
     int32_t grapheme = index >= text.length ? 0 : Text$get_grapheme_fast(state, index);
 
     switch (pat.tag) {
@@ -516,7 +516,7 @@ static pat_t parse_next_pat(TextIter_t *state, int64_t *index)
         int32_t close = open;
         uc_mirror_char((ucs4_t)open, (ucs4_t*)&close);
         if (!match_grapheme(state, index, close))
-            fail("Pattern's closing quote is missing: %k", &state->text);
+            fail("Pattern's closing quote is missing: %k", &state->stack[0].text);
 
         return (pat_t){
             .tag=PAT_QUOTE,
@@ -531,7 +531,7 @@ static pat_t parse_next_pat(TextIter_t *state, int64_t *index)
         int32_t close = open;
         uc_mirror_char((ucs4_t)open, (ucs4_t*)&close);
         if (!match_grapheme(state, index, close))
-            fail("Pattern's closing brace is missing: %k", &state->text);
+            fail("Pattern's closing brace is missing: %k", &state->stack[0].text);
         
         return (pat_t){
             .tag=PAT_PAIR,
@@ -571,19 +571,19 @@ static pat_t parse_next_pat(TextIter_t *state, int64_t *index)
             skip_whitespace(state, index);
             int32_t grapheme = Text$get_grapheme_fast(state, (*index)++);
             if (!match_grapheme(state, index, '}'))
-                fail("Missing closing '}' in pattern: %k", &state->text);
+                fail("Missing closing '}' in pattern: %k", &state->stack[0].text);
             return PAT(PAT_GRAPHEME, .grapheme=grapheme);
         } else if (strlen(prop_name) == 1) {
             // Single letter names: {1+ A}
             skip_whitespace(state, index);
             if (!match_grapheme(state, index, '}'))
-                fail("Missing closing '}' in pattern: %k", &state->text);
+                fail("Missing closing '}' in pattern: %k", &state->stack[0].text);
             return PAT(PAT_GRAPHEME, .grapheme=prop_name[0]);
         }
 
         skip_whitespace(state, index);
         if (!match_grapheme(state, index, '}'))
-            fail("Missing closing '}' in pattern: %k", &state->text);
+            fail("Missing closing '}' in pattern: %k", &state->stack[0].text);
 
         switch (tolower(prop_name[0])) {
         case '.':
@@ -677,7 +677,7 @@ static int64_t match(Text_t text, int64_t text_index, Pattern_t pattern, int64_t
         return 0;
 
     int64_t start_index = text_index;
-    TextIter_t pattern_state = {pattern, 0, 0}, text_state = {text, 0, 0};
+    TextIter_t pattern_state = NEW_TEXT_ITER_STATE(pattern), text_state = NEW_TEXT_ITER_STATE(text);
     pat_t pat = parse_next_pat(&pattern_state, &pattern_index);
 
     if (pat.min == -1 && pat.max == -1) {
@@ -778,7 +778,7 @@ static int64_t _find(Text_t text, Pattern_t pattern, int64_t first, int64_t last
                        && !uc_is_property((ucs4_t)first_grapheme, UC_PROPERTY_QUOTATION_MARK)
                        && !uc_is_property((ucs4_t)first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
 
-    TextIter_t text_state = {text, 0, 0};
+    TextIter_t text_state = NEW_TEXT_ITER_STATE(text);
     for (int64_t i = first; i <= last; i++) {
         // Optimization: quickly skip ahead to first char in pattern:
         if (find_first) {
@@ -881,12 +881,12 @@ typedef struct {
 
 static OptionalMatch_t next_match(match_iter_state_t *state)
 {
-    if (Int_to_Int64(state->i, false) > state->state.text.length)
+    if (Int_to_Int64(state->i, false) > state->state.stack[0].text.length)
         return NONE_MATCH;
 
-    OptionalMatch_t m = Text$find(state->state.text, state->pattern, state->i);
+    OptionalMatch_t m = Text$find(state->state.stack[0].text, state->pattern, state->i);
     if (m.index.small == 0) // No match
-        state->i = I(state->state.text.length + 1);
+        state->i = I(state->state.stack[0].text.length + 1);
     else
         state->i = Int$plus(m.index, I(MAX(1, m.text.length)));
     return m;
@@ -896,7 +896,7 @@ public Closure_t Text$by_match(Text_t text, Pattern_t pattern)
 {
     return (Closure_t){
         .fn=(void*)next_match,
-        .userdata=new(match_iter_state_t, .state={text, 0, 0}, .i=I_small(1), .pattern=pattern),
+        .userdata=new(match_iter_state_t, .state=NEW_TEXT_ITER_STATE(text), .i=I_small(1), .pattern=pattern),
     };
 }
 
@@ -911,7 +911,7 @@ static Text_t apply_backrefs(Text_t text, Pattern_t original_pattern, Text_t rep
                        && !uc_is_property((ucs4_t)first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
 
     Text_t ret = Text("");
-    TextIter_t replacement_state = {replacement, 0, 0};
+    TextIter_t replacement_state = NEW_TEXT_ITER_STATE(replacement);
     int64_t nonmatching_pos = 0;
     for (int64_t pos = 0; pos < replacement.length; ) {
         // Optimization: quickly skip ahead to first char in the backref pattern:
@@ -965,14 +965,14 @@ static Text_t apply_backrefs(Text_t text, Pattern_t original_pattern, Text_t rep
 
 public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement, Pattern_t backref_pat, bool recursive)
 {
-    Text_t ret = {.length=0};
+    Text_t ret = EMPTY_TEXT;
 
     int32_t first_grapheme = Text$get_grapheme(pattern, 0);
     bool find_first = (first_grapheme != '{'
                        && !uc_is_property((ucs4_t)first_grapheme, UC_PROPERTY_QUOTATION_MARK)
                        && !uc_is_property((ucs4_t)first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
 
-    TextIter_t text_state = {text, 0, 0};
+    TextIter_t text_state = NEW_TEXT_ITER_STATE(text);
     int64_t nonmatching_pos = 0;
     for (int64_t pos = 0; pos < text.length; ) {
         // Optimization: quickly skip ahead to first char in pattern:
@@ -1030,14 +1030,14 @@ public Text_t Text$trim(Text_t text, Pattern_t pattern, bool trim_left, bool tri
 
 public Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn)
 {
-    Text_t ret = {.length=0};
+    Text_t ret = EMPTY_TEXT;
 
     int32_t first_grapheme = Text$get_grapheme(pattern, 0);
     bool find_first = (first_grapheme != '{'
                        && !uc_is_property((ucs4_t)first_grapheme, UC_PROPERTY_QUOTATION_MARK)
                        && !uc_is_property((ucs4_t)first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
 
-    TextIter_t text_state = {text, 0, 0};
+    TextIter_t text_state = NEW_TEXT_ITER_STATE(text);
     int64_t nonmatching_pos = 0;
 
     Text_t (*text_mapper)(Match_t, void*) = fn.fn;
@@ -1086,7 +1086,7 @@ public void Text$each(Text_t text, Pattern_t pattern, Closure_t fn)
                        && !uc_is_property((ucs4_t)first_grapheme, UC_PROPERTY_QUOTATION_MARK)
                        && !uc_is_property((ucs4_t)first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
 
-    TextIter_t text_state = {text, 0, 0};
+    TextIter_t text_state = NEW_TEXT_ITER_STATE(text);
     void (*action)(Match_t, void*) = fn.fn;
     for (int64_t pos = 0; pos < text.length; pos++) {
         // Optimization: quickly skip ahead to first char in pattern:
@@ -1118,7 +1118,7 @@ public Text_t Text$replace_all(Text_t text, Table_t replacements, Text_t backref
 {
     if (replacements.entries.length == 0) return text;
 
-    Text_t ret = {.length=0};
+    Text_t ret = EMPTY_TEXT;
 
     int64_t nonmatch_pos = 0;
     for (int64_t pos = 0; pos < text.length; ) {
@@ -1194,11 +1194,11 @@ typedef struct {
 
 static OptionalText_t next_split(split_iter_state_t *state)
 {
-    Text_t text = state->state.text;
+    Text_t text = state->state.stack[0].text;
     if (state->i >= text.length) {
         if (state->pattern.length > 0 && state->i == text.length) { // special case
             state->i = text.length + 1;
-            return (Text_t){.length=0};
+            return EMPTY_TEXT;
         }
         return NONE_TEXT;
     }
@@ -1220,7 +1220,7 @@ static OptionalText_t next_split(split_iter_state_t *state)
         state->i = MAX(found + len, state->i + 1);
         return Text$slice(text, I(start+1), I(found));
     } else {
-        state->i = state->state.text.length + 1;
+        state->i = state->state.stack[0].text.length + 1;
         return Text$slice(text, I(start+1), I(text.length));
     }
 }
@@ -1229,7 +1229,7 @@ public Closure_t Text$by_split(Text_t text, Pattern_t pattern)
 {
     return (Closure_t){
         .fn=(void*)next_split,
-        .userdata=new(split_iter_state_t, .state={text, 0, 0}, .i=0, .pattern=pattern),
+        .userdata=new(split_iter_state_t, .state=NEW_TEXT_ITER_STATE(text), .i=0, .pattern=pattern),
     };
 }
 

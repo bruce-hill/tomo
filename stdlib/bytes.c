@@ -17,15 +17,16 @@ PUREFUNC public Text_t Byte$as_text(const void *b, bool colorize, const TypeInfo
 }
 
 public Text_t Byte$hex(Byte_t byte, bool uppercase, bool prefix) {
-    Text_t text = {.tag=TEXT_SHORT_ASCII};
+    struct Text_s text = {.tag=TEXT_ASCII};
+    text.ascii = GC_MALLOC_ATOMIC(8);
     if (prefix && uppercase)
-        text.length = (int64_t)snprintf(text.short_ascii, sizeof(text.short_ascii), "0x%02X", byte);
+        text.length = (int64_t)snprintf((char*)text.ascii, 8, "0x%02X", byte);
     else if (prefix && !uppercase)
-        text.length = (int64_t)snprintf(text.short_ascii, sizeof(text.short_ascii), "0x%02x", byte);
+        text.length = (int64_t)snprintf((char*)text.ascii, 8, "0x%02x", byte);
     else if (!prefix && uppercase)
-        text.length = (int64_t)snprintf(text.short_ascii, sizeof(text.short_ascii), "%02X", byte);
+        text.length = (int64_t)snprintf((char*)text.ascii, 8, "%02X", byte);
     else if (!prefix && !uppercase)
-        text.length = (int64_t)snprintf(text.short_ascii, sizeof(text.short_ascii), "%02x", byte);
+        text.length = (int64_t)snprintf((char*)text.ascii, 8, "%02x", byte);
     return text;
 }
 

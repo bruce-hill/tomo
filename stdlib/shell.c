@@ -14,24 +14,7 @@
 
 public Shell_t Shell$escape_text(Text_t text)
 {
-    // TODO: optimize for ASCII and short strings
-    Array_t shell_graphemes = {.atomic=1};
-#define add_char(c) Array$insert(&shell_graphemes, (uint32_t[1]){c}, I_small(0), sizeof(uint32_t))
-    add_char('\'');
-    const char *text_utf8 = Text$as_c_string(text);
-    for (const char *p = text_utf8; *p; p++) {
-        if (*p == '\'') {
-            add_char('\'');
-            add_char('"');
-            add_char('\'');
-            add_char('"');
-            add_char('\'');
-        } else
-            add_char((uint8_t)*p);
-    }
-    add_char('\'');
-#undef add_char
-    return (Text_t){.length=shell_graphemes.length, .tag=TEXT_GRAPHEMES, .graphemes=shell_graphemes.data};
+    return Text$replace(text, Text("'"), Text("'\"'\"'"), Text(""), false);
 }
 
 public Shell_t Shell$escape_text_array(Array_t texts)

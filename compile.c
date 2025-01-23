@@ -34,6 +34,7 @@ static CORD compile_none(type_t *t);
 static CORD compile_to_type(env_t *env, ast_t *ast, type_t *t);
 static CORD check_none(type_t *t, CORD value);
 static CORD optional_into_nonnone(type_t *t, CORD value);
+static CORD compile_string_literal(CORD literal);
 
 CORD promote_to_optional(type_t *t, CORD code)
 {
@@ -569,7 +570,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             const uint8_t *raw = (const uint8_t*)CORD_to_const_char_star(test->output);
             uint8_t buf[128] = {0};
             size_t norm_len = sizeof(buf);
-            uint8_t *norm = u8_normalize(UNINORM_NFD, (uint8_t*)raw, strlen((char*)raw)+1, buf, &norm_len);
+            uint8_t *norm = u8_normalize(UNINORM_NFC, (uint8_t*)raw, strlen((char*)raw)+1, buf, &norm_len);
             assert(norm[norm_len-1] == 0);
             output = CORD_from_char_star((char*)norm);
             if (norm && norm != buf) free(norm);
@@ -579,7 +580,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
             auto decl = Match(test->expr, Declare);
             const char *varname = Match(decl->var, Var)->name;
             if (streq(varname, "_"))
-                return compile_statement(env, WrapAST(ast, DocTest, .expr=decl->value, .output=test->output, .skip_source=test->skip_source));
+                return compile_statement(env, WrapAST(ast, DocTest, .expr=decl->value, .output=output, .skip_source=test->skip_source));
             CORD var = CORD_all("$", Match(decl->var, Var)->name);
             type_t *t = get_type(env, decl->value);
             CORD val_code = compile_maybe_incref(env, decl->value, t);
@@ -593,7 +594,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 compile_declaration(t, var),
                 var, val_code,
                 compile_type_info(env, get_type(env, decl->value)),
-                CORD_quoted(output),
+                compile_string_literal(output),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else if (test->expr->tag == Assign) {
@@ -612,12 +613,12 @@ CORD compile_statement(env_t *env, ast_t *ast)
                     "test((%r), %r, %r, %ld, %ld);",
                     compile_assignment(env, assign->targets->ast, value),
                     compile_type_info(env, lhs_t),
-                    CORD_quoted(test->output),
+                    compile_string_literal(output),
                     (int64_t)(test->expr->start - test->expr->file->text),
                     (int64_t)(test->expr->end - test->expr->file->text));
             } else {
                 // Multi-assign or assignment to potentially non-idempotent targets
-                if (test->output && assign->targets->next)
+                if (output && assign->targets->next)
                     code_err(ast, "Sorry, but doctesting with '=' is not supported for multi-assignments");
 
                 CORD code = "test(({ // Assignment\n";
@@ -643,7 +644,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
 
                 CORD_appendf(&code, "$1; }), %r, %r, %ld, %ld);",
                     compile_type_info(env, first_type),
-                    CORD_quoted(test->output),
+                    compile_string_literal(output),
                     (int64_t)(test->expr->start - test->expr->file->text),
                     (int64_t)(test->expr->end - test->expr->file->text));
                 return code;
@@ -667,7 +668,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 compile_lvalue(env, update->lhs),
                 compile_statement(env, update_var),
                 compile_type_info(env, lhs_t),
-                CORD_quoted(test->output),
+                compile_string_literal(output),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else if (expr_t->tag == VoidType || expr_t->tag == AbortType || expr_t->tag == ReturnType) {
@@ -681,7 +682,7 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 "test(%r, %r, %r, %ld, %ld);",
                 compile(env, test->expr),
                 compile_type_info(env, expr_t),
-                CORD_quoted(output),
+                compile_string_literal(output),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         }
@@ -1953,7 +1954,7 @@ CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t 
     return CORD_EMPTY;
 }
 
-static CORD compile_string_literal(CORD literal)
+CORD compile_string_literal(CORD literal)
 {
     CORD code = "\"";
     CORD_pos i;

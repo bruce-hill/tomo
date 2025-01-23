@@ -500,12 +500,12 @@ public void end_test(const void *expr, const TypeInfo_t *type, const char *expec
     if (expected && expected[0]) {
         Text_t expected_text = Text$from_str(expected);
         Text_t expr_plain = USE_COLOR ? generic_as_text(expr, false, type) : expr_text;
-        bool success = Text$equal(&expr_plain, &expected_text, &Text$info);
+        bool success = Text$equal_values(expr_plain, expected_text);
         if (!success) {
             OptionalMatch_t colon = Text$find(expected_text, Text(":"), I_small(1));
             if (colon.index.small) {
                 Text_t with_type = Text$concat(expr_plain, Text(" : "), type_name);
-                success = Text$equal(&with_type, &expected_text, &Text$info);
+                success = Text$equal_values(with_type, expected_text);
             }
         }
 
@@ -594,7 +594,7 @@ public bool pop_flag(char **argv, int *i, const char *flag, Text_t *result)
     if (argv[*i][0] != '-' || argv[*i][1] != '-') {
         return false;
     } else if (streq(argv[*i] + 2, flag)) {
-        *result = (Text_t){.length=0};
+        *result = EMPTY_TEXT;
         argv[*i] = NULL;
         *i += 1;
         return true;

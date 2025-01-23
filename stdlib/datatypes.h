@@ -66,18 +66,24 @@ typedef struct Range_s {
     Int_t first, last, step;
 } Range_t;
 
-enum text_type { TEXT_SHORT_ASCII, TEXT_ASCII, TEXT_SHORT_GRAPHEMES, TEXT_GRAPHEMES, TEXT_SUBTEXT };
+enum text_type { TEXT_ASCII, TEXT_GRAPHEMES, TEXT_CONCAT };
 
 typedef struct Text_s {
-    int64_t length; // Number of grapheme clusters
-    uint64_t hash:61;
-    uint8_t tag:3;
+    int64_t length:54; // Number of grapheme clusters
+    uint8_t depth:8;
+    uint8_t tag:2;
     union {
-        char short_ascii[8];
-        const char *ascii;
-        int32_t short_graphemes[2];
-        const int32_t *graphemes;
-        struct Text_s *subtexts;
+        struct {
+            const char *ascii;
+            // char ascii_buf[8];
+        };
+        struct {
+            const int32_t *graphemes;
+            // int32_t grapheme_buf[2];
+        };
+        struct {
+            const struct Text_s *left, *right;
+        };
     };
 } Text_t;
 
