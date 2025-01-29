@@ -70,8 +70,8 @@ enum text_type { TEXT_ASCII, TEXT_GRAPHEMES, TEXT_CONCAT };
 
 typedef struct Text_s {
     int64_t length:54; // Number of grapheme clusters
-    uint8_t depth:8;
     uint8_t tag:2;
+    uint8_t depth:8;
     union {
         struct {
             const char *ascii;
