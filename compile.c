@@ -972,40 +972,72 @@ CORD compile_statement(env_t *env, ast_t *ast)
                 "}\n");
             env->code->funcs = CORD_cat(env->code->funcs, wrapper);
         } else if (fndef->cache && fndef->cache->tag == Int) {
+            assert(fndef->args);
             OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(fndef->cache, Int)->str));
-            const char *arg_type_name = heap_strf("%s$args", Match(fndef->name, Var)->name);
-            ast_t *args_def = FakeAST(StructDef, .name=arg_type_name, .fields=fndef->args);
-            prebind_statement(env, args_def);
-            bind_statement(env, args_def);
-            (void)compile_statement(env, args_def);
-            type_t *args_t = Table$str_get(*env->types, arg_type_name);
-            assert(args_t);
-
-            CORD all_args = CORD_EMPTY;
-            for (arg_ast_t *arg = fndef->args; arg; arg = arg->next)
-                all_args = CORD_all(all_args, "$", arg->name, arg->next ? ", " : CORD_EMPTY);
-
             CORD pop_code = CORD_EMPTY;
             if (fndef->cache->tag == Int && !cache_size.is_none && cache_size.i > 0) {
                 pop_code = CORD_all("if (cache.entries.length > ", CORD_asprintf("%ld", cache_size.i),
                                     ") Table$remove(&cache, cache.entries.data + cache.entries.stride*RNG$int64(default_rng, 0, cache.entries.length-1), table_type);\n");
             }
 
-            CORD arg_typedef = compile_struct_header(env, args_def);
-            env->code->local_typedefs = CORD_all(env->code->local_typedefs, arg_typedef);
-            CORD wrapper = CORD_all(
-                is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
-                "static Table_t cache = {};\n",
-                compile_type(args_t), " args = {", all_args, "};\n"
-                "const TypeInfo_t *table_type = Table$info(", compile_type_info(env, args_t), ", ", compile_type_info(env, ret_t), ");\n",
-                compile_declaration(Type(PointerType, .pointed=ret_t), "cached"), " = Table$get_raw(cache, &args, table_type);\n"
-                "if (cached) return *cached;\n",
-                compile_declaration(ret_t, "ret"), " = ", name, "$uncached(", all_args, ");\n",
-                pop_code,
-                "Table$set(&cache, &args, &ret, table_type);\n"
-                "return ret;\n"
-                "}\n");
-            env->code->funcs = CORD_cat(env->code->funcs, wrapper);
+            if (!fndef->args->next) {
+                // Single-argument functions have simplified caching logic
+                type_t *arg_type = get_arg_ast_type(env, fndef->args);
+                CORD wrapper = CORD_all(
+                    is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
+                    "static Table_t cache = {};\n",
+                    "const TypeInfo_t *table_type = Table$info(", compile_type_info(env, arg_type), ", ", compile_type_info(env, ret_t), ");\n",
+                    compile_declaration(Type(PointerType, .pointed=ret_t), "cached"), " = Table$get_raw(cache, &$", fndef->args->name, ", table_type);\n"
+                    "if (cached) return *cached;\n",
+                    compile_declaration(ret_t, "ret"), " = ", name, "$uncached($", fndef->args->name, ");\n",
+                    pop_code,
+                    "Table$set(&cache, &$", fndef->args->name, ", &ret, table_type);\n"
+                    "return ret;\n"
+                    "}\n");
+                env->code->funcs = CORD_cat(env->code->funcs, wrapper);
+            } else {
+                // Multi-argument functions use a custom struct type (only defined internally) as a cache key:
+                arg_t *fields = NULL;
+                for (arg_ast_t *arg = fndef->args; arg; arg = arg->next)
+                    fields = new(arg_t, .name=arg->name, .type=get_arg_ast_type(env, arg), .next=fields);
+                REVERSE_LIST(fields);
+                type_t *t = Type(StructType, .name=heap_strf("%s$args", fndef->name), .fields=fields, .env=env);
+
+                int64_t num_fields = used_names.entries.length;
+                const char *short_name = Match(fndef->name, Var)->name;
+                const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
+                CORD args_typeinfo = CORD_asprintf("((TypeInfo_t[1]){{.size=%zu, .align=%zu, .metamethods=%s, "
+                                                   ".tag=StructInfo, .StructInfo.name=\"%s\", "
+                                                   ".StructInfo.num_fields=%ld, .StructInfo.fields=(NamedType_t[%ld]){",
+                                                   type_size(t), type_align(t), metamethods, short_name,
+                                                   num_fields, num_fields);
+                CORD args_type = "struct { ";
+                for (arg_t *f = fields; f; f = f->next) {
+                    args_typeinfo = CORD_all(args_typeinfo, "{\"", f->name, "\", ", compile_type_info(env, f->type), "}");
+                    args_type = CORD_all(args_type, compile_declaration(f->type, f->name), "; ");
+                    if (f->next) args_typeinfo = CORD_all(args_typeinfo, ", ");
+                }
+                args_type = CORD_all(args_type, "}");
+                args_typeinfo = CORD_all(args_typeinfo, "}}})");
+
+                CORD all_args = CORD_EMPTY;
+                for (arg_ast_t *arg = fndef->args; arg; arg = arg->next)
+                    all_args = CORD_all(all_args, "$", arg->name, arg->next ? ", " : CORD_EMPTY);
+
+                CORD wrapper = CORD_all(
+                    is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
+                    "static Table_t cache = {};\n",
+                    args_type, " args = {", all_args, "};\n"
+                    "const TypeInfo_t *table_type = Table$info(", args_typeinfo, ", ", compile_type_info(env, ret_t), ");\n",
+                    compile_declaration(Type(PointerType, .pointed=ret_t), "cached"), " = Table$get_raw(cache, &args, table_type);\n"
+                    "if (cached) return *cached;\n",
+                    compile_declaration(ret_t, "ret"), " = ", name, "$uncached(", all_args, ");\n",
+                    pop_code,
+                    "Table$set(&cache, &args, &ret, table_type);\n"
+                    "return ret;\n"
+                    "}\n");
+                env->code->funcs = CORD_cat(env->code->funcs, wrapper);
+            }
         }
 
         CORD text = CORD_all("func ", Match(fndef->name, Var)->name, "(");
