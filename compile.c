@@ -370,17 +370,15 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
                                 compile_to_pointer_depth(env, index->indexed, 1, false), ", ",
                                 compile_type(table_type->key_type), ", ",
                                 compile_type(value_type), ", ",
-                                compile(env, index->index), ", ",
+                                compile_to_type(env, index->index, table_type->key_type), ", ",
                                 compile(env, table_type->default_value), ", ",
                                 compile_type_info(env, container_t), ")");
             }
-            type_t *key_type = Match(container_t, TableType)->key_type;
-            type_t *value_type = Match(container_t, TableType)->value_type;
             if (index->unchecked)
                 code_err(ast, "Table indexes cannot be unchecked");
-            return CORD_all("*(", compile_type(Type(PointerType, value_type)), ")Table$reserve(",
+            return CORD_all("*(", compile_type(Type(PointerType, table_type->value_type)), ")Table$reserve(",
                             compile_to_pointer_depth(env, index->indexed, 1, false), ", ",
-                            compile_to_type(env, index->index, Type(PointerType, key_type, .is_stack=true)), ", NULL,",
+                            compile_to_type(env, index->index, Type(PointerType, table_type->key_type, .is_stack=true)), ", NULL,",
                             compile_type_info(env, container_t), ")");
         } else {
             code_err(ast, "I don't know how to assign to this target");
@@ -757,15 +755,22 @@ CORD compile_statement(env_t *env, ast_t *ast)
                                                             .op=update->op, .rhs=update->rhs)), "; }");
         }
 
+        type_t *lhs_t = get_type(env, update->lhs);
         CORD lhs = compile_lvalue(env, update->lhs);
-
-        CORD method_call = compile_math_method(env, update->op, update->lhs, update->rhs, get_type(env, update->lhs));
-        if (method_call)
-            return CORD_all(lhs, " = ", method_call, ";");
+        
+        if (update->lhs->tag == Index && value_type(get_type(env, Match(update->lhs, Index)->indexed))->tag == TableType) {
+            ast_t *lhs_placeholder = WrapAST(update->lhs, InlineCCode, .code="(*lhs)", .type=lhs_t);
+            CORD method_call = compile_math_method(env, update->op, lhs_placeholder, update->rhs, lhs_t);
+            if (method_call)
+                return CORD_all("{ ", compile_declaration(Type(PointerType, .pointed=lhs_t), "lhs"), " = &", lhs, "; *lhs = ", method_call, "; }");
+        } else {
+            CORD method_call = compile_math_method(env, update->op, update->lhs, update->rhs, lhs_t);
+            if (method_call)
+                return CORD_all(lhs, " = ", method_call, ";");
+        }
 
         CORD rhs = compile(env, update->rhs);
 
-        type_t *lhs_t = get_type(env, update->lhs);
         type_t *rhs_t = get_type(env, update->rhs);
         if (update->rhs->tag == Int && is_numeric_type(non_optional(lhs_t))) {
             rhs = compile_int_to_type(env, update->rhs, lhs_t);
