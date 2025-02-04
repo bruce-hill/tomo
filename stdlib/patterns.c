@@ -654,6 +654,11 @@ static pat_t parse_next_pat(TextIter_t *state, int64_t *index)
                 return PAT(PAT_FUNCTION, .fn=match_url);
             }
             break;
+        case 'w':
+            if (strcasecmp(prop_name, "word") == 0) {
+                return PAT(PAT_FUNCTION, .fn=match_id);
+            }
+            break;
         default: break;
         }
 

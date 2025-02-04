@@ -337,6 +337,7 @@ mostly ignore spaces, underscores, and dashes.
 - `start` - the very start of the text
 - `uri` - a URI
 - `url` - a URL (URI that specifically starts with `http://`, `https://`, `ws://`, `wss://`, or `ftp://`)
+- `word` - A unicode identifier (same as `id`)
 
 For non-alphabetic characters, any single character is treated as matching
 exactly that character. For example, `{1{}` matches exactly one `{`
