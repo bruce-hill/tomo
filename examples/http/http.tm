@@ -11,16 +11,16 @@ func _send(method:_Method, url:Text, data:Text?, headers=[:Text] -> HTTPResponse
     chunks := @[:Text]
     save_chunk := func(chunk:CString, size:Int64, n:Int64):
         chunks:insert(inline C:Text {
-            Text$format("%.*s", $size*$n, $chunk)
+            Text$format("%.*s", _$size*_$n, _$chunk)
         })
         return n*size
 
     inline C {
         CURL *curl = curl_easy_init();
         struct curl_slist *chunk = NULL;
-        curl_easy_setopt(curl, CURLOPT_URL, Text$as_c_string($url));
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, $save_chunk.fn);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, $save_chunk.userdata);
+        curl_easy_setopt(curl, CURLOPT_URL, Text$as_c_string(_$url));
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, _$save_chunk.fn);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, _$save_chunk.userdata);
     }
 
     when method is POST:
@@ -29,7 +29,7 @@ func _send(method:_Method, url:Text, data:Text?, headers=[:Text] -> HTTPResponse
         }
         if posting := data:
             inline C {
-                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, Text$as_c_string($posting));
+                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, Text$as_c_string(_$posting));
             }
     is PUT:
         inline C {
@@ -37,7 +37,7 @@ func _send(method:_Method, url:Text, data:Text?, headers=[:Text] -> HTTPResponse
         }
         if putting := data:
             inline C {
-                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, Text$as_c_string($putting));
+                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, Text$as_c_string(_$putting));
             }
     is PATCH:
         inline C {
@@ -45,7 +45,7 @@ func _send(method:_Method, url:Text, data:Text?, headers=[:Text] -> HTTPResponse
         }
         if patching := data:
             inline C {
-                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, Text$as_c_string($patching));
+                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, Text$as_c_string(_$patching));
             }
     is DELETE:
         inline C {
@@ -56,7 +56,7 @@ func _send(method:_Method, url:Text, data:Text?, headers=[:Text] -> HTTPResponse
 
     for header in headers:
         inline C {
-            chunk = curl_slist_append(chunk, Text$as_c_string($header));
+            chunk = curl_slist_append(chunk, Text$as_c_string(_$header));
         }
 
     inline C {
@@ -70,7 +70,7 @@ func _send(method:_Method, url:Text, data:Text?, headers=[:Text] -> HTTPResponse
         if (res != CURLE_OK)
             fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
 
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &$code);
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &_$code);
         if (chunk)
             curl_slist_free_all(chunk);
         curl_easy_cleanup(curl);

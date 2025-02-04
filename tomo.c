@@ -530,7 +530,7 @@ void transpile_code(env_t *base_env, Text_t filename, bool force_retranspile)
         CORD_put(CORD_all(
             "int ", main_binding->code, "$parse_and_run(int argc, char *argv[]) {\n"
             "tomo_init();\n",
-            "$", module_env->namespace->name, "$$initialize();\n"
+            "_$", module_env->namespace->name, "$$initialize();\n"
             "\n",
             compile_cli_arg_call(module_env, main_binding->code, main_binding->type),
             "return 0;\n"

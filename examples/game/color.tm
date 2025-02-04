@@ -12,12 +12,12 @@ struct Color(r,g,b:Num,a=1.0):
     func draw_rectangle(c:Color, pos:Vec2, size:Vec2):
         inline C {
             DrawRectangle(
-                (int)($pos.$x), (int)($pos.$y), (int)($size.$x), (int)($size.$y),
+                (int)(_$pos.$x), (int)(_$pos.$y), (int)(_$size.$x), (int)(_$size.$y),
                 ((Color){
-                    (int8_t)(uint8_t)(255.*$c.$r),
-                    (int8_t)(uint8_t)(255.*$c.$g),
-                    (int8_t)(uint8_t)(255.*$c.$b),
-                    (int8_t)(uint8_t)(255.*$c.$a),
+                    (int8_t)(uint8_t)(255.*_$c.$r),
+                    (int8_t)(uint8_t)(255.*_$c.$g),
+                    (int8_t)(uint8_t)(255.*_$c.$b),
+                    (int8_t)(uint8_t)(255.*_$c.$a),
                 })
             );
         }

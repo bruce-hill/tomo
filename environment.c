@@ -502,9 +502,9 @@ CORD namespace_prefix(env_t *env, namespace_t *ns)
     for (; ns; ns = ns->parent)
         prefix = CORD_all(ns->name, "$", prefix);
     if (env->libname)
-        prefix = CORD_all("$", env->libname, "$", prefix);
+        prefix = CORD_all("_$", env->libname, "$", prefix);
     else
-        prefix = CORD_all("$", prefix);
+        prefix = CORD_all("_$", prefix);
     return prefix;
 }
 
@@ -553,7 +553,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
             if (for_->vars->next)
                 code_err(for_->vars->next->ast, "This is too many variables for this loop");
             const char *var = Match(for_->vars->ast, Var)->name;
-            set_binding(scope, var, new(binding_t, .type=INT_TYPE, .code=CORD_cat("$", var)));
+            set_binding(scope, var, new(binding_t, .type=INT_TYPE, .code=CORD_cat("_$", var)));
         }
         return scope;
     }
@@ -569,10 +569,10 @@ env_t *for_scope(env_t *env, ast_t *ast)
             vars[num_vars++] = Match(var->ast, Var)->name;
         }
         if (num_vars == 1) {
-            set_binding(scope, vars[0], new(binding_t, .type=item_t, .code=CORD_cat("$", vars[0])));
+            set_binding(scope, vars[0], new(binding_t, .type=item_t, .code=CORD_cat("_$", vars[0])));
         } else if (num_vars == 2) {
-            set_binding(scope, vars[0], new(binding_t, .type=INT_TYPE, .code=CORD_cat("$", vars[0])));
-            set_binding(scope, vars[1], new(binding_t, .type=item_t, .code=CORD_cat("$", vars[1])));
+            set_binding(scope, vars[0], new(binding_t, .type=INT_TYPE, .code=CORD_cat("_$", vars[0])));
+            set_binding(scope, vars[1], new(binding_t, .type=item_t, .code=CORD_cat("_$", vars[1])));
         }
         return scope;
     }
@@ -582,7 +582,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
                 code_err(for_->vars->next->ast, "This is too many variables for this loop");
             type_t *item_type = Match(iter_t, SetType)->item_type;
             const char *name = Match(for_->vars->ast, Var)->name;
-            set_binding(scope, name, new(binding_t, .type=item_type, .code=CORD_cat("$", name)));
+            set_binding(scope, name, new(binding_t, .type=item_type, .code=CORD_cat("_$", name)));
         }
         return scope;
     }
@@ -597,11 +597,11 @@ env_t *for_scope(env_t *env, ast_t *ast)
 
         type_t *key_t = Match(iter_t, TableType)->key_type;
         if (num_vars == 1) {
-            set_binding(scope, vars[0], new(binding_t, .type=key_t, .code=CORD_cat("$", vars[0])));
+            set_binding(scope, vars[0], new(binding_t, .type=key_t, .code=CORD_cat("_$", vars[0])));
         } else if (num_vars == 2) {
-            set_binding(scope, vars[0], new(binding_t, .type=key_t, .code=CORD_cat("$", vars[0])));
+            set_binding(scope, vars[0], new(binding_t, .type=key_t, .code=CORD_cat("_$", vars[0])));
             type_t *value_t = Match(iter_t, TableType)->value_type;
-            set_binding(scope, vars[1], new(binding_t, .type=value_t, .code=CORD_cat("$", vars[1])));
+            set_binding(scope, vars[1], new(binding_t, .type=value_t, .code=CORD_cat("_$", vars[1])));
         }
         return scope;
     }
@@ -610,7 +610,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
             if (for_->vars->next)
                 code_err(for_->vars->next->ast, "This is too many variables for this loop");
             const char *var = Match(for_->vars->ast, Var)->name;
-            set_binding(scope, var, new(binding_t, .type=INT_TYPE, .code=CORD_cat("$", var)));
+            set_binding(scope, var, new(binding_t, .type=INT_TYPE, .code=CORD_cat("_$", var)));
         }
         return scope;
     }
@@ -624,7 +624,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
                 code_err(for_->vars->next->ast, "This is too many variables for this loop");
             const char *var = Match(for_->vars->ast, Var)->name;
             type_t *non_opt_type = fn->ret->tag == OptionalType ? Match(fn->ret, OptionalType)->type : fn->ret;
-            set_binding(scope, var, new(binding_t, .type=non_opt_type, .code=CORD_cat("$", var)));
+            set_binding(scope, var, new(binding_t, .type=non_opt_type, .code=CORD_cat("_$", var)));
         }
         return scope;
     }

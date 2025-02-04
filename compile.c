@@ -179,7 +179,7 @@ static Table_t *get_closed_vars(env_t *env, ast_t *lambda_ast)
     body_scope->code = new(compilation_unit_t); // Don't put any code in the headers or anything
     for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
         type_t *arg_type = get_arg_ast_type(env, arg);
-        set_binding(body_scope, arg->name, new(binding_t, .type=arg_type, .code=CORD_cat("$", arg->name)));
+        set_binding(body_scope, arg->name, new(binding_t, .type=arg_type, .code=CORD_cat("_$", arg->name)));
     }
 
     fn_ctx_t fn_ctx = (fn_ctx_t){
@@ -579,7 +579,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             const char *varname = Match(decl->var, Var)->name;
             if (streq(varname, "_"))
                 return compile_statement(env, WrapAST(ast, DocTest, .expr=decl->value, .output=output, .skip_source=test->skip_source));
-            CORD var = CORD_all("$", Match(decl->var, Var)->name);
+            CORD var = CORD_all("_$", Match(decl->var, Var)->name);
             type_t *t = get_type(env, decl->value);
             CORD val_code = compile_maybe_incref(env, decl->value, t);
             if (t->tag == FunctionType) {
@@ -700,7 +700,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
                 t = Type(ClosureType, t);
             }
-            return CORD_all(compile_declaration(t, CORD_cat("$", name)), " = ", val_code, ";");
+            return CORD_all(compile_declaration(t, CORD_cat("_$", name)), " = ", val_code, ";");
         }
     }
     case Assign: {
@@ -913,7 +913,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         Table_t used_names = {};
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, CORD_cat("$", arg->name)));
+            arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, CORD_cat("_$", arg->name)));
             if (arg->next) arg_signature = CORD_cat(arg_signature, ", ");
             if (Table$str_get(used_names, arg->name))
                 code_err(ast, "The argument name '%s' is used more than once", arg->name);
@@ -942,7 +942,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         body_scope->namespace = NULL;
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            set_binding(body_scope, arg->name, new(binding_t, .type=arg_type, .code=CORD_cat("$", arg->name)));
+            set_binding(body_scope, arg->name, new(binding_t, .type=arg_type, .code=CORD_cat("_$", arg->name)));
         }
 
         fn_ctx_t fn_ctx = (fn_ctx_t){
@@ -959,7 +959,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
         CORD body = compile_statement(body_scope, fndef->body);
         if (streq(Match(fndef->name, Var)->name, "main"))
-            body = CORD_all("$", env->namespace->name, "$$initialize();\n", body);
+            body = CORD_all("_$", env->namespace->name, "$$initialize();\n", body);
         if (CORD_fetch(body, 0) != '{')
             body = CORD_asprintf("{\n%r\n}", body);
         env->code->funcs = CORD_all(env->code->funcs, code, " ", body, "\n");
@@ -992,11 +992,11 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                     is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
                     "static Table_t cache = {};\n",
                     "const TypeInfo_t *table_type = Table$info(", compile_type_info(env, arg_type), ", ", compile_type_info(env, ret_t), ");\n",
-                    compile_declaration(Type(PointerType, .pointed=ret_t), "cached"), " = Table$get_raw(cache, &$", fndef->args->name, ", table_type);\n"
+                    compile_declaration(Type(PointerType, .pointed=ret_t), "cached"), " = Table$get_raw(cache, &_$", fndef->args->name, ", table_type);\n"
                     "if (cached) return *cached;\n",
-                    compile_declaration(ret_t, "ret"), " = ", name, "$uncached($", fndef->args->name, ");\n",
+                    compile_declaration(ret_t, "ret"), " = ", name, "$uncached(_$", fndef->args->name, ");\n",
                     pop_code,
-                    "Table$set(&cache, &$", fndef->args->name, ", &ret, table_type);\n"
+                    "Table$set(&cache, &_$", fndef->args->name, ", &ret, table_type);\n"
                     "return ret;\n"
                     "}\n");
                 env->code->funcs = CORD_cat(env->code->funcs, wrapper);
@@ -1027,7 +1027,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
                 CORD all_args = CORD_EMPTY;
                 for (arg_ast_t *arg = fndef->args; arg; arg = arg->next)
-                    all_args = CORD_all(all_args, "$", arg->name, arg->next ? ", " : CORD_EMPTY);
+                    all_args = CORD_all(all_args, "_$", arg->name, arg->next ? ", " : CORD_EMPTY);
 
                 CORD wrapper = CORD_all(
                     is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
@@ -1505,7 +1505,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 get_next = CORD_all("(cur=", get_next, ", !", check_none(fn->ret, "cur"), ")");
                 if (for_->vars) {
                     naked_body = CORD_all(
-                        compile_declaration(Match(fn->ret, OptionalType)->type, CORD_all("$", Match(for_->vars->ast, Var)->name)),
+                        compile_declaration(Match(fn->ret, OptionalType)->type, CORD_all("_$", Match(for_->vars->ast, Var)->name)),
                         " = ", optional_into_nonnone(fn->ret, "cur"), ";\n",
                         naked_body);
                 }
@@ -1519,7 +1519,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             } else {
                 if (for_->vars) {
                     naked_body = CORD_all(
-                        compile_declaration(fn->ret, CORD_all("$", Match(for_->vars->ast, Var)->name)),
+                        compile_declaration(fn->ret, CORD_all("_$", Match(for_->vars->ast, Var)->name)),
                         " = ", get_next, ";\n", naked_body);
                 } else {
                     naked_body = CORD_all(get_next, ";\n", naked_body);
@@ -1602,7 +1602,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         auto use = Match(ast, Use);
         if (use->what == USE_LOCAL) {
             CORD name = file_base_id(Match(ast, Use)->path);
-            env->code->variable_initializers = CORD_all(env->code->variable_initializers, "$", name, "$$initialize();\n");
+            env->code->variable_initializers = CORD_all(env->code->variable_initializers, "_$", name, "$$initialize();\n");
         } else if (use->what == USE_C_CODE) {
             return CORD_all("#include \"", use->path, "\"\n");
         } else if (use->what == USE_MODULE) {
@@ -1615,7 +1615,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             for (size_t i = 0; i < tm_files.gl_pathc; i++) {
                 const char *filename = tm_files.gl_pathv[i];
                 env->code->variable_initializers = CORD_all(
-                    env->code->variable_initializers, "$", lib_id, "$", file_base_id(filename), "$$initialize();\n");
+                    env->code->variable_initializers, "_$", lib_id, "$", file_base_id(filename), "$$initialize();\n");
             }
             globfree(&tm_files);
         }
@@ -2124,8 +2124,8 @@ CORD compile(env_t *env, ast_t *ast)
     case Var: {
         binding_t *b = get_binding(env, Match(ast, Var)->name);
         if (b)
-            return b->code ? b->code : CORD_cat("$", Match(ast, Var)->name);
-        return CORD_cat("$", Match(ast, Var)->name);
+            return b->code ? b->code : CORD_cat("_$", Match(ast, Var)->name);
+        return CORD_cat("_$", Match(ast, Var)->name);
         // code_err(ast, "I don't know of any variable by this name");
     }
     case Int: {
@@ -2821,7 +2821,7 @@ CORD compile(env_t *env, ast_t *ast)
         env_t *body_scope = fresh_scope(env);
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            set_binding(body_scope, arg->name, new(binding_t, .type=arg_type, .code=CORD_cat("$", arg->name)));
+            set_binding(body_scope, arg->name, new(binding_t, .type=arg_type, .code=CORD_cat("_$", arg->name)));
         }
 
         fn_ctx_t fn_ctx = (fn_ctx_t){
@@ -2875,7 +2875,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD code = CORD_all("static ", compile_type(ret_t), " ", name, "(");
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            code = CORD_all(code, compile_type(arg_type), " $", arg->name, ", ");
+            code = CORD_all(code, compile_type(arg_type), " _$", arg->name, ", ");
         }
 
         CORD userdata;
@@ -3998,7 +3998,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
     int num_args = 0;
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         type_t *opt_type = arg->type->tag == OptionalType ? arg->type : Type(OptionalType, .type=arg->type);
-        code = CORD_all(code, compile_declaration(opt_type, CORD_all("$", arg->name)));
+        code = CORD_all(code, compile_declaration(opt_type, CORD_all("_$", arg->name)));
         if (arg->default_val) {
             CORD default_val = compile(env, arg->default_val);
             if (arg->type->tag != OptionalType)
@@ -4016,13 +4016,13 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
         code = CORD_all(code, ",\n{", CORD_quoted(CORD_replace(arg->name, "_", "-")), ", ",
                         (arg->default_val || arg->type->tag == OptionalType) ? "false" : "true", ", ",
                         compile_type_info(env, arg->type),
-                        ", &", CORD_all("$", arg->name), "}");
+                        ", &", CORD_all("_$", arg->name), "}");
     }
     code = CORD_all(code, ");\n");
 
     code = CORD_all(code, fn_name, "(");
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        CORD arg_code = CORD_all("$", arg->name);
+        CORD arg_code = CORD_all("_$", arg->name);
         if (arg->type->tag != OptionalType)
             arg_code = optional_into_nonnone(arg->type, arg_code);
 
@@ -4109,7 +4109,7 @@ CORD compile_file(env_t *env, ast_t *ast)
         env->code->typeinfos, "\n",
         env->code->staticdefs, "\n",
         env->code->funcs, "\n",
-        "public void $", env->namespace->name, "$$initialize(void) {\n",
+        "public void _$", env->namespace->name, "$$initialize(void) {\n",
         "static bool initialized = false;\n",
         "if (initialized) return;\n",
         "initialized = true;\n",
@@ -4229,7 +4229,7 @@ CORD compile_statement_namespace_header(env_t *env, ast_t *ast)
         CORD arg_signature = "(";
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, CORD_cat("$", arg->name)));
+            arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, CORD_cat("_$", arg->name)));
             if (arg->next) arg_signature = CORD_cat(arg_signature, ", ");
         }
         arg_signature = CORD_cat(arg_signature, ")");
@@ -4270,7 +4270,7 @@ CORD compile_file_header(env_t *env, ast_t *ast)
     compile_typedef_info_t info = {.env=env, .header=&header};
     visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn=(void*)_visit_statement, &info});
 
-    header = CORD_all(header, "void $", env->namespace->name, "$$initialize(void);\n");
+    header = CORD_all(header, "void _$", env->namespace->name, "$$initialize(void);\n");
     return header;
 }
 

@@ -13,11 +13,11 @@ struct Mutex(_mutex:@Memory):
 
     func do_locked(m:Mutex, fn:func(); inline):
         inline C {
-            pthread_mutex_lock((pthread_mutex_t*)$m.$_mutex);
+            pthread_mutex_lock((pthread_mutex_t*)_$m.$_mutex);
         }
         fn()
         inline C {
-            pthread_mutex_unlock((pthread_mutex_t*)$m.$_mutex);
+            pthread_mutex_unlock((pthread_mutex_t*)_$m.$_mutex);
         }
 
 struct ThreadCondition(_cond:@Memory):
@@ -33,17 +33,17 @@ struct ThreadCondition(_cond:@Memory):
 
     func wait(c:ThreadCondition, m:Mutex; inline):
         inline C {
-            pthread_cond_wait((pthread_cond_t*)$c.$_cond, (pthread_mutex_t*)$m.$_mutex);
+            pthread_cond_wait((pthread_cond_t*)_$c.$_cond, (pthread_mutex_t*)_$m.$_mutex);
         }
 
     func signal(c:ThreadCondition; inline):
         inline C {
-            pthread_cond_signal((pthread_cond_t*)$c.$_cond);
+            pthread_cond_signal((pthread_cond_t*)_$c.$_cond);
         }
 
     func broadcast(c:ThreadCondition; inline):
         inline C {
-            pthread_cond_broadcast((pthread_cond_t*)$c.$_cond);
+            pthread_cond_broadcast((pthread_cond_t*)_$c.$_cond);
         }
 
 struct Guard(mutex=Mutex.new(), cond=ThreadCondition.new()):
@@ -59,24 +59,24 @@ struct PThread(_thread:@Memory):
         return PThread(
             inline C : @Memory {
                 pthread_t *thread = new(pthread_t);
-                pthread_create(thread, NULL, $fn.fn, $fn.userdata);
+                pthread_create(thread, NULL, _$fn.fn, _$fn.userdata);
                 thread
             }
         )
 
     func join(t:PThread):
         inline C {
-            pthread_join(*(pthread_t*)$t.$_thread, NULL);
+            pthread_join(*(pthread_t*)_$t.$_thread, NULL);
         }
 
     func cancel(t:PThread):
         inline C {
-            pthread_cancel(*(pthread_t*)$t.$_thread);
+            pthread_cancel(*(pthread_t*)_$t.$_thread);
         }
 
     func detatch(t:PThread):
         inline C {
-            pthread_detach(*(pthread_t*)$t.$_thread);
+            pthread_detach(*(pthread_t*)_$t.$_thread);
         }
 
 func main():
