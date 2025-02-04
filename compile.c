@@ -484,7 +484,7 @@ static CORD compile_condition(env_t *env, ast_t *ast)
     }
 }
 
-CORD compile_statement(env_t *env, ast_t *ast)
+static CORD _compile_statement(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
     case When: {
@@ -1628,13 +1628,13 @@ CORD compile_statement(env_t *env, ast_t *ast)
     }
 }
 
-// CORD compile_statement(env_t *env, ast_t *ast) {
-//     CORD stmt = _compile_statement(env, ast);
-//     if (!stmt)
-//         return stmt;
-//     int64_t line = get_line_number(ast->file, ast->start);
-//     return CORD_asprintf("#line %ld\n%r", line, stmt);
-// }
+CORD compile_statement(env_t *env, ast_t *ast) {
+    CORD stmt = _compile_statement(env, ast);
+    if (!stmt || !ast->file)
+        return stmt;
+    int64_t line = get_line_number(ast->file, ast->start);
+    return CORD_asprintf("#line %ld\n%r", line, stmt);
+}
 
 CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
 {
@@ -4101,7 +4101,7 @@ CORD compile_file(env_t *env, ast_t *ast)
 
     const char *name = file_base_name(ast->file->filename);
     return CORD_all(
-        // "#line 1 ", CORD_quoted(ast->file->filename), "\n",
+        "#line 1 ", CORD_quoted(ast->file->filename), "\n",
         "#define __SOURCE_FILE__ ", CORD_quoted(ast->file->filename), "\n",
         "#include <tomo/tomo.h>\n"
         "#include \"", name, ".tm.h\"\n\n",
