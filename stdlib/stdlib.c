@@ -392,7 +392,7 @@ void print_stack_trace(FILE *out, int start, int stop)
     char **strings = strings = backtrace_symbols(array, size);
     for (int64_t i = start; i < size - stop; i++) {
         char *filename = strings[i];
-        const char *cmd = heap_strf("addr2line -e %.*s -fisp | sed 's/\\$/./g;s/ at /() at /' >&2", strcspn(filename, "("), filename);
+        const char *cmd = heap_strf("addr2line -e %.*s -fisp | sed 's/^_\\$//;s/\\$/./g;s/ at /() at /' >&2", strcspn(filename, "("), filename);
         FILE *fp = popen(cmd, "w");
         if (fp) {
             char *paren = strchrnul(strings[i], '(');
