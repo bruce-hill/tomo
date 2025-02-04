@@ -529,6 +529,7 @@ void transpile_code(env_t *base_env, Text_t filename, bool force_retranspile)
     if (main_binding && main_binding->type->tag == FunctionType) {
         CORD_put(CORD_all(
             "int ", main_binding->code, "$parse_and_run(int argc, char *argv[]) {\n"
+            "#line 1\n"
             "tomo_init();\n",
             "_$", module_env->namespace->name, "$$initialize();\n"
             "\n",

@@ -57,6 +57,14 @@ CORD promote_to_optional(type_t *t, CORD code)
     }
 }
 
+static CORD with_source_info(ast_t *ast, CORD code)
+{
+    if (code == CORD_EMPTY || !ast || !ast->file)
+        return code;
+    int64_t line = get_line_number(ast->file, ast->start);
+    return CORD_asprintf("#line %ld\n%r", line, code);
+}
+
 static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *needed)
 {
     if (type_eq(actual, needed))
@@ -962,7 +970,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             body = CORD_all("_$", env->namespace->name, "$$initialize();\n", body);
         if (CORD_fetch(body, 0) != '{')
             body = CORD_asprintf("{\n%r\n}", body);
-        env->code->funcs = CORD_all(env->code->funcs, code, " ", body, "\n");
+        env->code->funcs = CORD_all(env->code->funcs, with_source_info(ast, CORD_all(code, " ", body, "\n")));
 
         if (fndef->cache && fndef->args == NULL) { // no-args cache just uses a static var
             CORD wrapper = CORD_all(
@@ -1602,7 +1610,8 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         auto use = Match(ast, Use);
         if (use->what == USE_LOCAL) {
             CORD name = file_base_id(Match(ast, Use)->path);
-            env->code->variable_initializers = CORD_all(env->code->variable_initializers, "_$", name, "$$initialize();\n");
+            env->code->variable_initializers = CORD_all(env->code->variable_initializers,
+                                                        with_source_info(ast, CORD_all("_$", name, "$$initialize();\n")));
         } else if (use->what == USE_C_CODE) {
             return CORD_all("#include \"", use->path, "\"\n");
         } else if (use->what == USE_MODULE) {
@@ -1615,7 +1624,8 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             for (size_t i = 0; i < tm_files.gl_pathc; i++) {
                 const char *filename = tm_files.gl_pathv[i];
                 env->code->variable_initializers = CORD_all(
-                    env->code->variable_initializers, "_$", lib_id, "$", file_base_id(filename), "$$initialize();\n");
+                    env->code->variable_initializers,
+                    with_source_info(ast, CORD_all("_$", lib_id, "$", file_base_id(filename), "$$initialize();\n")));
             }
             globfree(&tm_files);
         }
@@ -1630,10 +1640,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
 CORD compile_statement(env_t *env, ast_t *ast) {
     CORD stmt = _compile_statement(env, ast);
-    if (!stmt || !ast->file)
-        return stmt;
-    int64_t line = get_line_number(ast->file, ast->start);
-    return CORD_asprintf("#line %ld\n%r", line, stmt);
+    return with_source_info(ast, stmt);
 }
 
 CORD expr_as_text(env_t *env, CORD expr, type_t *t, CORD color)
@@ -3794,8 +3801,10 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
             if (!is_constant(env, decl->value)) {
                 env->code->variable_initializers = CORD_all(
                     env->code->variable_initializers,
-                    name_code, " = ", compile_maybe_incref(ns_env, decl->value, t), ",\n",
-                    name_code, "$initialized = true;\n");
+                    with_source_info(
+                        stmt->ast,
+                        CORD_all(name_code, " = ", compile_maybe_incref(ns_env, decl->value, t), ",\n",
+                                 name_code, "$initialized = true;\n")));
 
                 CORD checked_access = CORD_all("check_initialized(", name_code, ", \"", Match(decl->var, Var)->name, "\")");
                 set_binding(ns_env, Match(decl->var, Var)->name, new(binding_t, .type=t, .code=checked_access));
@@ -4053,8 +4062,11 @@ CORD compile_file(env_t *env, ast_t *ast)
 
                 env->code->variable_initializers = CORD_all(
                     env->code->variable_initializers,
-                    full_name, " = ", val_code, ",\n",
-                    full_name, "$initialized = true;\n");
+                    with_source_info(
+                        stmt->ast,
+                        CORD_all(
+                            full_name, " = ", val_code, ",\n",
+                            full_name, "$initialized = true;\n")));
 
                 CORD checked_access = CORD_all("check_initialized(", full_name, ", \"", decl_name, "\")");
                 set_binding(env, decl_name, new(binding_t, .type=t, .code=checked_access));
@@ -4072,9 +4084,12 @@ CORD compile_file(env_t *env, ast_t *ast)
             if (!is_constant(env, decl->value)) {
                 env->code->staticdefs = CORD_all(
                     env->code->staticdefs,
-                    "static bool ", full_name, "$initialized = false;\n",
-                    is_private ? "static " : CORD_EMPTY,
-                    compile_declaration(t, full_name), ";\n");
+                    with_source_info(
+                        stmt->ast,
+                        CORD_all(
+                            "static bool ", full_name, "$initialized = false;\n",
+                            is_private ? "static " : CORD_EMPTY,
+                            compile_declaration(t, full_name), ";\n")));
             } else {
                 CORD val_code = compile_maybe_incref(env, decl->value, t);
                 if (t->tag == FunctionType) {
@@ -4083,8 +4098,10 @@ CORD compile_file(env_t *env, ast_t *ast)
                 }
                 env->code->staticdefs = CORD_all(
                     env->code->staticdefs,
-                    is_private ? "static " : CORD_EMPTY,
-                    compile_declaration(t, full_name), " = ", val_code, ";\n");
+                    with_source_info(
+                        stmt->ast,
+                        CORD_all(is_private ? "static " : CORD_EMPTY,
+                                 compile_declaration(t, full_name), " = ", val_code, ";\n")));
             }
         } else if (stmt->ast->tag == InlineCCode) {
             CORD code = compile_statement(env, stmt->ast);
