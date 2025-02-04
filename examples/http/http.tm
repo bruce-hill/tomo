@@ -23,6 +23,13 @@ func _send(method:_Method, url:Text, data:Text?, headers=[:Text] -> HTTPResponse
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, _$save_chunk.userdata);
     }
 
+    defer:
+        inline C {
+            if (chunk)
+                curl_slist_free_all(chunk);
+            curl_easy_cleanup(curl);
+        }
+
     when method is POST:
         inline C {
             curl_easy_setopt(curl, CURLOPT_POST, 1L);
@@ -71,9 +78,6 @@ func _send(method:_Method, url:Text, data:Text?, headers=[:Text] -> HTTPResponse
             fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
 
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &_$code);
-        if (chunk)
-            curl_slist_free_all(chunk);
-        curl_easy_cleanup(curl);
     }
     return HTTPResponse(Int(code), "":join(chunks))
 
