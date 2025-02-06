@@ -28,6 +28,23 @@ static jmp_buf on_err;
 static void run(env_t *env, ast_t *ast);
 static void eval(env_t *env, ast_t *ast, void *dest);
 
+typedef struct {
+    type_t *type;
+    void *value;
+} repl_binding_t;
+
+static PUREFUNC repl_binding_t *get_repl_binding(env_t *env, const char *name)
+{
+    repl_binding_t *b = Table$str_get(*env->locals, name);
+    if (b) return b;
+    for (fn_ctx_t *fn_ctx = env->fn_ctx; fn_ctx; fn_ctx = fn_ctx->parent) {
+        if (!fn_ctx->closure_scope) continue;
+        b = Table$str_get(*fn_ctx->closure_scope, name);
+        if (b) return b;
+    }
+    return b;
+}
+
 void repl(void)
 {
     env_t *env = new_compilation_unit(NULL);
@@ -141,11 +158,11 @@ const TypeInfo_t *type_to_type_info(type_t *t)
     }
 }
 
-static void *get_address(env_t *env, ast_t *ast)
+static PUREFUNC void *get_address(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
     case Var: {
-        binding_t *b = get_binding(env, Match(ast, Var)->name);
+        repl_binding_t *b = get_repl_binding(env, Match(ast, Var)->name);
         if (!b) repl_err(ast, "No such variable");
         return b->value;
     }
@@ -216,9 +233,9 @@ void run(env_t *env, ast_t *ast)
         auto decl = Match(ast, Declare);
         const char *name = Match(decl->var, Var)->name;
         type_t *type = get_type(env, decl->value);
-        binding_t *binding = new(binding_t, .type=type, .value=GC_MALLOC(type_size(type)));
+        repl_binding_t *binding = new(repl_binding_t, .type=type, .value=GC_MALLOC(type_size(type)));
         eval(env, decl->value, binding->value);
-        set_binding(env, name, binding);
+        Table$str_set(env->locals, name, binding);
         break;
     }
     case Assign: {
@@ -341,7 +358,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         break;
     case Var: {
         if (!dest) return;
-        binding_t *b = get_binding(env, Match(ast, Var)->name);
+        repl_binding_t *b = get_repl_binding(env, Match(ast, Var)->name);
         if (!b)
             repl_err(ast, "No such variable: %s", Match(ast, Var)->name);
         memcpy(dest, b->value, size);
