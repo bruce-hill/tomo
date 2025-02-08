@@ -315,3 +315,29 @@ func main():
 		= yes
 		>> (a++b).length
 		= 1
+
+
+	do:
+		>> concat := "e" ++ Text.from_codepoints([Int32(0x300)])
+		>> concat.length
+		= 1
+
+		>> concat2 := concat ++ Text.from_codepoints([Int32(0x302)])
+		>> concat2.length
+		= 1
+
+		>> concat3 := concat2 ++ Text.from_codepoints([Int32(0x303)])
+		>> concat3.length
+		= 1
+
+		>> final := Text.from_codepoints([Int32(0x65), Int32(0x300), Int32(0x302), Int32(0x303)])
+		>> final.length
+		= 1
+		>> concat3 == final
+		= yes
+
+		>> concat4 := Text.from_codepoints([Int32(0x65), Int32(0x300)]) ++ Text.from_codepoints([Int32(0x302), Int32(0x303)])
+		>> concat4.length
+		= 1
+		>> concat4 == final
+		= yes

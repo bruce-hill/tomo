@@ -283,41 +283,6 @@ public int Text$print(FILE *stream, Text_t t)
     }
 }
 
-static bool is_concat_stable(Text_t a, Text_t b)
-{
-    if (a.length == 0 || b.length == 0)
-        return true;
-
-    int32_t last_a = Text$get_grapheme(a, a.length-1);
-    int32_t first_b = Text$get_grapheme(b, 0);
-
-    // Synthetic graphemes are weird and probably need to check with normalization:
-    if (last_a < 0 || first_b < 0)
-        return 0;
-
-    // Magic number, we know that no codepoints below here trigger instability:
-    static const int32_t LOWEST_CODEPOINT_TO_CHECK = 0x300;
-    if (last_a < LOWEST_CODEPOINT_TO_CHECK && first_b < LOWEST_CODEPOINT_TO_CHECK)
-        return true;
-
-    // Do a normalization run for these two codepoints and see if it looks different:
-    ucs4_t codepoints[2] = {(ucs4_t)last_a, (ucs4_t)first_b};
-    ucs4_t norm_buf[3*2]; // Normalization should not exceed 3x in the input length
-    size_t norm_length = sizeof(norm_buf)/sizeof(norm_buf[0]);
-    ucs4_t *normalized = u32_normalize(UNINORM_NFC, codepoints, 2, norm_buf, &norm_length);
-    if (norm_length != 2) {
-        // Looks like these two codepoints merged into one (or maybe had a child, who knows?)
-        if (normalized != norm_buf) free(normalized);
-        return false;
-    }
-
-    // If there's still two codepoints, we might end up with a single grapheme
-    // cluster which will need to turn into a synthetic grapheme:
-    const void *second_grapheme = u32_grapheme_next(normalized, &normalized[2]);
-    if (normalized != norm_buf) free(normalized);
-    return (second_grapheme == &normalized[1]);
-}
-
 static const int64_t min_len_for_depth[MAX_TEXT_DEPTH] = {
     // Fibonacci numbers (skipping first two)
     1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765, 10946,
@@ -459,22 +424,53 @@ static Text_t concat2(Text_t a, Text_t b)
     if (a.length == 0) return b;
     if (b.length == 0) return a;
 
-    if (likely(is_concat_stable(a, b)))
-        return concat2_assuming_safe(a, b);
-
-    // Do full normalization of the last/first characters
     int32_t last_a = Text$get_grapheme(a, a.length-1);
     int32_t first_b = Text$get_grapheme(b, 0);
 
-    size_t utf32_len = (last_a >= 0 ? 1 : NUM_GRAPHEME_CODEPOINTS(last_a)) + (first_b >= 0 ? 1 : NUM_GRAPHEME_CODEPOINTS(first_b)); 
-    ucs4_t join_graphemes[utf32_len] = {};
-    ucs4_t *p = &join_graphemes[0];
-    if (last_a < 0) p = mempcpy(p, GRAPHEME_CODEPOINTS(last_a), NUM_GRAPHEME_CODEPOINTS(last_a));
-    else *(p++) = (ucs4_t)last_a;
-    if (first_b < 0) p = mempcpy(p, GRAPHEME_CODEPOINTS(first_b), NUM_GRAPHEME_CODEPOINTS(first_b));
-    else *(p++) = (ucs4_t)first_b;
+    // Magic number, we know that no codepoints below here trigger instability:
+    static const int32_t LOWEST_CODEPOINT_TO_CHECK = 0x300; // COMBINING GRAVE ACCENT
+    if (last_a >= 0 && last_a < LOWEST_CODEPOINT_TO_CHECK && first_b >= 0 && first_b < LOWEST_CODEPOINT_TO_CHECK)
+        return concat2_assuming_safe(a, b);
 
-    Text_t glue = text_from_u32(join_graphemes, (int64_t)utf32_len, true);
+    size_t len = (last_a >= 0) ? 1 : NUM_GRAPHEME_CODEPOINTS(last_a);
+    len += (first_b >= 0) ? 1 : NUM_GRAPHEME_CODEPOINTS(first_b);
+
+    ucs4_t codepoints[len] = {};
+    ucs4_t *dest = codepoints;
+    if (last_a < 0)
+        dest = mempcpy(dest, GRAPHEME_CODEPOINTS(last_a), sizeof(ucs4_t[NUM_GRAPHEME_CODEPOINTS(last_a)]));
+    else
+        *(dest++) = (ucs4_t)last_a;
+
+    if (first_b < 0)
+        dest = mempcpy(dest, GRAPHEME_CODEPOINTS(first_b), sizeof(ucs4_t[NUM_GRAPHEME_CODEPOINTS(first_b)]));
+    else
+        *(dest++) = (ucs4_t)first_b;
+
+    // Do a normalization run for these two codepoints and see if it looks different.
+    // Normalization should not exceed 3x in the input length (but if it does, it will be
+    // handled gracefully)
+    ucs4_t norm_buf[3*len] = {};
+    size_t norm_length = sizeof(norm_buf)/sizeof(norm_buf[0]);
+    ucs4_t *normalized = u32_normalize(UNINORM_NFC, codepoints, len, norm_buf, &norm_length);
+    bool stable = (norm_length == len && memcmp(codepoints, normalized, sizeof(codepoints)) == 0);
+
+    if (stable) {
+        const void *second_grapheme = u32_grapheme_next(normalized, &normalized[norm_length]);
+        if (second_grapheme == &normalized[norm_length])
+            stable = false;
+    }
+
+    if likely (stable) {
+        if (normalized != norm_buf)
+            free(normalized);
+        return concat2_assuming_safe(a, b);
+    }
+
+    Text_t glue = text_from_u32(norm_buf, (int64_t)norm_length, false);
+
+    if (normalized != norm_buf)
+        free(normalized);
 
     if (a.length == 1 && b.length == 1)
         return glue;
@@ -485,7 +481,7 @@ static Text_t concat2(Text_t a, Text_t b)
     else
         return concat2_assuming_safe(
             concat2_assuming_safe(Text$slice(a, I(1), I(a.length-1)), glue),
-            b);
+            Text$slice(b, I(2), I(b.length)));
 }
 
 public Text_t Text$_concat(int n, Text_t items[n])
