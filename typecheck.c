@@ -1323,7 +1323,6 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
     case Moment: return Type(MomentType);
     case Unknown: code_err(ast, "I can't figure out the type of: %W", ast);
-    case Serialize: return Type(ArrayType, Type(ByteType));
     case Deserialize: return parse_type_ast(env, Match(ast, Deserialize)->type);
     }
 #pragma GCC diagnostic pop

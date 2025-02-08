@@ -3376,11 +3376,6 @@ CORD compile(env_t *env, ast_t *ast)
             code_err(call->fn, "This is not a function, it's a %T", fn_t);
         }
     }
-    case Serialize: {
-        ast_t *value = Match(ast, Serialize)->value;
-        type_t *t = get_type(env, value);
-        return CORD_all("generic_serialize((", compile_declaration(t, "[1]"), "){", compile(env, value), "}, ", compile_type_info(env, t), ")");
-    }
     case Deserialize: {
         ast_t *value = Match(ast, Deserialize)->value;
         type_t *value_type = get_type(env, value);

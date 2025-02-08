@@ -146,7 +146,7 @@ typedef enum {
     DocTest,
     Use,
     InlineCCode,
-    Serialize, Deserialize,
+    Deserialize,
 } ast_e;
 
 struct ast_s {
@@ -328,9 +328,6 @@ struct ast_s {
             struct type_s *type;
             type_ast_t *type_ast;
         } InlineCCode;
-        struct {
-            ast_t *value;
-        } Serialize;
         struct {
             ast_t *value;
             type_ast_t *type;
