@@ -36,12 +36,6 @@ typedef struct {
 static PUREFUNC repl_binding_t *get_repl_binding(env_t *env, const char *name)
 {
     repl_binding_t *b = Table$str_get(*env->locals, name);
-    if (b) return b;
-    for (fn_ctx_t *fn_ctx = env->fn_ctx; fn_ctx; fn_ctx = fn_ctx->parent) {
-        if (!fn_ctx->closure_scope) continue;
-        b = Table$str_get(*fn_ctx->closure_scope, name);
-        if (b) return b;
-    }
     return b;
 }
 

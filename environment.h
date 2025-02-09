@@ -16,13 +16,6 @@ typedef struct {
     CORD function_naming;
 } compilation_unit_t;
 
-typedef struct fn_ctx_s {
-    struct fn_ctx_s *parent;
-    type_t *return_type;
-    Table_t *closure_scope;
-    Table_t *closed_vars;
-} fn_ctx_t;
-
 typedef struct deferral_s {
     struct deferral_s *next;
     struct env_s *defer_env;
@@ -49,7 +42,7 @@ typedef struct env_s {
     //  - Raw 'use' string for module imports
     Table_t *imports;
     compilation_unit_t *code;
-    fn_ctx_t *fn_ctx;
+    type_t *fn_ret;
     loop_ctx_t *loop_ctx;
     deferral_t *deferred;
     CORD libname; // Currently compiling library name (if any)

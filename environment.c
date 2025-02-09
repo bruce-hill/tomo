@@ -646,22 +646,9 @@ env_t *namespace_env(env_t *env, const char *namespace_name)
     return ns_env;
 }
 
-binding_t *get_binding(env_t *env, const char *name)
+PUREFUNC binding_t *get_binding(env_t *env, const char *name)
 {
-    binding_t *b = Table$str_get(*env->locals, name);
-    if (!b) {
-        for (fn_ctx_t *fn_ctx = env->fn_ctx; fn_ctx; fn_ctx = fn_ctx->parent) {
-            if (!fn_ctx->closure_scope) continue;
-            b = Table$str_get(*fn_ctx->closure_scope, name);
-            if (b) {
-                Table$str_set(env->fn_ctx->closed_vars, name, b);
-                binding_t *b2 = new(binding_t, .type=b->type, .code=CORD_all("userdata->", name));
-                Table$str_set(env->locals, name, b2);
-                return b2;
-            }
-        }
-    }
-    return b;
+    return Table$str_get(*env->locals, name);
 }
 
 binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
@@ -702,7 +689,7 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
     return NULL;
 }
 
-binding_t *get_lang_escape_function(env_t *env, const char *lang_name, type_t *type_to_escape)
+PUREFUNC binding_t *get_lang_escape_function(env_t *env, const char *lang_name, type_t *type_to_escape)
 {
     if (!lang_name) lang_name = "Text";
     binding_t *typeinfo = get_binding(env, lang_name);

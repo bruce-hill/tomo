@@ -908,9 +908,9 @@ type_t *get_type(env_t *env, ast_t *ast)
     case Return: {
         ast_t *val = Match(ast, Return)->value;
         // Support unqualified enum return values:
-        if (env->fn_ctx && env->fn_ctx->return_type && env->fn_ctx->return_type->tag == EnumType) {
+        if (env->fn_ret && env->fn_ret->tag == EnumType) {
             env = fresh_scope(env);
-            auto enum_ = Match(env->fn_ctx->return_type, EnumType);
+            auto enum_ = Match(env->fn_ret, EnumType);
             env_t *ns_env = enum_->env;
             for (tag_t *tag = enum_->tags; tag; tag = tag->next) {
                 if (get_binding(env, tag->name))
@@ -1163,7 +1163,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         arg_t *args = NULL;
         env_t *scope = fresh_scope(env); // For now, just use closed variables in scope normally
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
-            type_t *t = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->value);
+            type_t *t = get_arg_ast_type(env, arg);
             args = new(arg_t, .name=arg->name, .type=t, .next=args);
             set_binding(scope, arg->name, new(binding_t, .type=t));
         }
