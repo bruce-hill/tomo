@@ -62,7 +62,6 @@ CORD compile_struct_header(env_t *env, ast_t *ast)
     struct_code = CORD_all(struct_code, "};\n");
     type_t *t = Table$str_get(*env->types, def->name);
     return CORD_all(
-        "typedef struct ", full_name, "_s ", full_name, "_t;\n",
         "struct ", full_name, "_s {\n",
         fields,
         "};\n",

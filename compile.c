@@ -4389,7 +4389,6 @@ CORD compile_statement_type_header(env_t *env, ast_t *ast)
         auto def = Match(ast, LangDef);
         CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
         return CORD_all(
-            "typedef Text_t ", namespace_prefix(env, env->namespace), def->name, "_t;\n"
             // Constructor macro:
             "#define ", namespace_prefix(env, env->namespace), def->name,
                 "(text) ((", namespace_prefix(env, env->namespace), def->name, "_t){.length=sizeof(text)-1, .tag=TEXT_ASCII, .ascii=\"\" text})\n"
@@ -4494,7 +4493,28 @@ typedef struct {
     CORD *header;
 } compile_typedef_info_t;
 
-static void _visit_statement(compile_typedef_info_t *info, ast_t *ast)
+static void _make_typedefs(compile_typedef_info_t *info, ast_t *ast)
+{
+    if (ast->tag == StructDef) {
+        auto def = Match(ast, StructDef);
+        CORD full_name = CORD_cat(namespace_prefix(info->env, info->env->namespace), def->name);
+        *info->header = CORD_all(*info->header, "typedef struct ", full_name, "_s ", full_name, "_t;\n");
+    } else if (ast->tag == EnumDef) {
+        auto def = Match(ast, EnumDef);
+        CORD full_name = CORD_cat(namespace_prefix(info->env, info->env->namespace), def->name);
+        *info->header = CORD_all(*info->header, "typedef struct ", full_name, "_s ", full_name, "_t;\n");
+
+        for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
+            if (!tag->fields) continue;
+            *info->header = CORD_all(*info->header, "typedef struct ", full_name, "$", tag->name, "_s ", full_name, "$", tag->name, "_t;\n");
+        }
+    } else if (ast->tag == LangDef) {
+        auto def = Match(ast, LangDef);
+        *info->header = CORD_all(*info->header, "typedef Text_t ", namespace_prefix(info->env, info->env->namespace), def->name, "_t;\n");
+    }
+}
+
+static void _define_types(compile_typedef_info_t *info, ast_t *ast)
 {
     *info->header = CORD_all(*info->header,
                              compile_statement_type_header(info->env, ast),
@@ -4509,7 +4529,8 @@ CORD compile_file_header(env_t *env, ast_t *ast)
         "#include <tomo/tomo.h>\n");
 
     compile_typedef_info_t info = {.env=env, .header=&header};
-    visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn=(void*)_visit_statement, &info});
+    visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn=(void*)_make_typedefs, &info});
+    visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn=(void*)_define_types, &info});
 
     header = CORD_all(header, "void _$", env->namespace->name, "$$initialize(void);\n");
     return header;

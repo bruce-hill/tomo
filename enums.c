@@ -68,7 +68,7 @@ CORD compile_enum_header(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, EnumDef);
     CORD full_name = CORD_all(namespace_prefix(env, env->namespace), def->name);
-    CORD all_defs = CORD_all("typedef struct ", full_name, "_s ", full_name, "_t;\n");
+    CORD all_defs = CORD_EMPTY;
     CORD enum_def = CORD_all("struct ", full_name, "_s {\n"
                              "\tenum { ", full_name, "$null=0, ");
 
