@@ -292,7 +292,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         auto lambda = Match(ast, Lambda);
         env_t *lambda_scope = fresh_scope(env);
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next)
-            set_binding(lambda_scope, arg->name, new(binding_t, .type=get_arg_ast_type(env, arg)));
+            set_binding(lambda_scope, arg->name, get_arg_ast_type(env, arg), CORD_all("_$", arg->name));
         add_closed_vars(closed_vars, enclosing_scope, lambda_scope, lambda->body);
         break;
     }
@@ -339,7 +339,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
             type_t *cond_t = get_type(truthy_scope, var);
             if (cond_t->tag == OptionalType) {
                 set_binding(truthy_scope, Match(var, Var)->name,
-                            new(binding_t, .type=Match(cond_t, OptionalType)->type));
+                            Match(cond_t, OptionalType)->type, CORD_EMPTY);
             }
             add_closed_vars(closed_vars, enclosing_scope, truthy_scope, if_->body);
             add_closed_vars(closed_vars, enclosing_scope, env, if_->else_body);
@@ -349,7 +349,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
             if (condition->tag == Var && cond_t->tag == OptionalType) {
                 truthy_scope = fresh_scope(env);
                 set_binding(truthy_scope, Match(condition, Var)->name,
-                            new(binding_t, .type=Match(cond_t, OptionalType)->type));
+                            Match(cond_t, OptionalType)->type, CORD_EMPTY);
             }
             add_closed_vars(closed_vars, enclosing_scope, truthy_scope, if_->body);
             add_closed_vars(closed_vars, enclosing_scope, env, if_->else_body);
@@ -377,7 +377,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
             auto tag_struct = Match(tag_type, StructType);
             if (clause->args && !clause->args->next && tag_struct->fields && tag_struct->fields->next) {
                 scope = fresh_scope(scope);
-                set_binding(scope, Match(clause->args->ast, Var)->name, new(binding_t, .type=tag_type));
+                set_binding(scope, Match(clause->args->ast, Var)->name, tag_type, CORD_EMPTY);
             } else if (clause->args) {
                 scope = fresh_scope(scope);
                 ast_list_t *var = clause->args;
@@ -387,7 +387,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
                         code_err(clause->tag_name, "The field %T.%s.%s wasn't accounted for", subject_t, clause_tag_name, field->name);
                     if (!field)
                         code_err(var->ast, "This is one more field than %T has", subject_t);
-                    set_binding(scope, Match(var->ast, Var)->name, new(binding_t, .type=field->type));
+                    set_binding(scope, Match(var->ast, Var)->name, field->type, CORD_EMPTY);
                     var = var->next;
                     field = field->next;
                 }
@@ -458,7 +458,7 @@ static Table_t get_closed_vars(env_t *env, arg_ast_t *args, ast_t *block)
     env_t *body_scope = fresh_scope(env);
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
         type_t *arg_type = get_arg_ast_type(env, arg);
-        set_binding(body_scope, arg->name, new(binding_t, .type=arg_type, .code=CORD_cat("_$", arg->name)));
+        set_binding(body_scope, arg->name, arg_type, CORD_cat("_$", arg->name));
     }
 
     Table_t closed_vars = {};
@@ -774,7 +774,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             if (clause->args && !clause->args->next && tag_struct->fields && tag_struct->fields->next) {
                 code = CORD_all(code, compile_declaration(tag_type, compile(env, clause->args->ast)), " = subject.$", clause_tag_name, ";\n");
                 scope = fresh_scope(scope);
-                set_binding(scope, Match(clause->args->ast, Var)->name, new(binding_t, .type=tag_type));
+                set_binding(scope, Match(clause->args->ast, Var)->name, tag_type, CORD_EMPTY);
             } else if (clause->args) {
                 scope = fresh_scope(scope);
                 ast_list_t *var = clause->args;
@@ -785,7 +785,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                     if (!field)
                         code_err(var->ast, "This is one more field than %T has", subject_t);
                     code = CORD_all(code, compile_declaration(field->type, compile(env, var->ast)), " = subject.$", clause_tag_name, ".$", field->name, ";\n");
-                    set_binding(scope, Match(var->ast, Var)->name, new(binding_t, .type=field->type));
+                    set_binding(scope, Match(var->ast, Var)->name, field->type, CORD_EMPTY);
                     var = var->next;
                     field = field->next;
                 }
@@ -1201,7 +1201,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         body_scope->namespace = NULL;
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            set_binding(body_scope, arg->name, new(binding_t, .type=arg_type, .code=CORD_cat("_$", arg->name)));
+            set_binding(body_scope, arg->name, arg_type, CORD_cat("_$", arg->name));
         }
 
         body_scope->fn_ret = ret_t;
@@ -1387,12 +1387,12 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             if (entry->b->type->tag == ModuleType)
                 continue;
             if (CORD_ncmp(entry->b->code, 0, "userdata->", 0, strlen("userdata->")) == 0) {
-                set_binding(defer_env, entry->name, entry->b);
+                Table$str_set(defer_env->locals, entry->name, entry->b);
             } else {
                 CORD defer_name = CORD_asprintf("defer$%d$%s", ++defer_id, entry->name);
                 code = CORD_all(
                     code, compile_declaration(entry->b->type, defer_name), " = ", entry->b->code, ";\n");
-                set_binding(defer_env, entry->name, new(binding_t, .type=entry->b->type, .code=defer_name));
+                set_binding(defer_env, entry->name, entry->b->type, defer_name);
             }
         }
         env->deferred = new(deferral_t, .defer_env=defer_env, .block=body, .next=env->deferred);
@@ -1493,8 +1493,8 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                                    .next=body_scope->deferred);
         if (held->tag == Var) {
             CORD held_var = CORD_all(Match(held, Var)->name, "$held");
-            set_binding(body_scope, Match(held, Var)->name, new(binding_t, .type=Type(PointerType, .pointed=Match(held_type, MutexedType)->type, .is_stack=true),
-                                                                .code=held_var));
+            set_binding(body_scope, Match(held, Var)->name,
+                        Type(PointerType, .pointed=Match(held_type, MutexedType)->type, .is_stack=true), held_var);
             code = CORD_all(code, compile_declaration(Type(PointerType, .pointed=Match(held_type, MutexedType)->type), held_var),
                             " = (", compile_type(Type(PointerType, .pointed=Match(held_type, MutexedType)->type)), ")mutexed->data;\n");
         }
@@ -1795,8 +1795,8 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             type_t *cond_t = get_type(truthy_scope, var);
             if (cond_t->tag == OptionalType) {
                 set_binding(truthy_scope, Match(var, Var)->name,
-                            new(binding_t, .type=Match(cond_t, OptionalType)->type,
-                                .code=optional_into_nonnone(cond_t, compile(truthy_scope, var))));
+                            Match(cond_t, OptionalType)->type,
+                            optional_into_nonnone(cond_t, compile(truthy_scope, var)));
             }
             code = CORD_all(code, compile_statement(truthy_scope, if_->body), ")");
             if (if_->else_body)
@@ -1809,8 +1809,8 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             if (condition->tag == Var && cond_t->tag == OptionalType) {
                 truthy_scope = fresh_scope(env);
                 set_binding(truthy_scope, Match(condition, Var)->name,
-                            new(binding_t, .type=Match(cond_t, OptionalType)->type,
-                                .code=optional_into_nonnone(cond_t, compile(truthy_scope, condition))));
+                            Match(cond_t, OptionalType)->type,
+                            optional_into_nonnone(cond_t, compile(truthy_scope, condition)));
             }
             code = CORD_all(code, compile_statement(truthy_scope, if_->body));
             if (if_->else_body)
@@ -1988,7 +1988,7 @@ env_t *with_enum_scope(env_t *env, type_t *t)
             continue;
         binding_t *b = get_binding(ns_env, tag->name);
         assert(b);
-        set_binding(env, tag->name, b);
+        Table$str_set(env->locals, tag->name, b);
     }
     return env;
 }
@@ -2465,8 +2465,8 @@ CORD compile(env_t *env, ast_t *ast)
                                    .next=body_scope->deferred);
         if (held->tag == Var) {
             CORD held_var = CORD_all(Match(held, Var)->name, "$held");
-            set_binding(body_scope, Match(held, Var)->name, new(binding_t, .type=Type(PointerType, .pointed=Match(held_type, MutexedType)->type, .is_stack=true),
-                                                                .code=held_var));
+            set_binding(body_scope, Match(held, Var)->name,
+                        Type(PointerType, .pointed=Match(held_type, MutexedType)->type, .is_stack=true), held_var);
             code = CORD_all(code, compile_declaration(Type(PointerType, .pointed=Match(held_type, MutexedType)->type), held_var),
                             " = (", compile_type(Type(PointerType, .pointed=Match(held_type, MutexedType)->type)), ")mutexed->data;\n");
         }
@@ -2856,10 +2856,10 @@ CORD compile(env_t *env, ast_t *ast)
         if (key == NULL) key = FakeAST(Var, key_name);
 
         env_t *expr_env = fresh_scope(env);
-        set_binding(expr_env, key_name, new(binding_t, .type=t, .code="ternary$lhs"));
+        set_binding(expr_env, key_name, t, "ternary$lhs");
         CORD lhs_key = compile(expr_env, key);
 
-        set_binding(expr_env, key_name, new(binding_t, .type=t, .code="ternary$rhs"));
+        set_binding(expr_env, key_name, t, "ternary$rhs");
         CORD rhs_key = compile(expr_env, key);
 
         type_t *key_t = get_type(expr_env, key);
@@ -2915,7 +2915,7 @@ CORD compile(env_t *env, ast_t *ast)
             Closure_t comp_action = {.fn=add_to_array_comprehension, .userdata=comprehension_var};
             scope->comprehension_action = &comp_action;
             CORD code = CORD_all("({ Array_t ", comprehension_name, " = {};");
-            // set_binding(scope, comprehension_name, new(binding_t, .type=array_type, .code=comprehension_name));
+            // set_binding(scope, comprehension_name, array_type, comprehension_name);
             for (ast_list_t *item = array->items; item; item = item->next) {
                 if (item->ast->tag == Comprehension)
                     code = CORD_all(code, "\n", compile_statement(scope, item->ast));
@@ -3070,7 +3070,7 @@ CORD compile(env_t *env, ast_t *ast)
         body_scope->deferred = NULL;
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            set_binding(body_scope, arg->name, new(binding_t, .type=arg_type, .code=CORD_all("_$", arg->name)));
+            set_binding(body_scope, arg->name, arg_type, CORD_all("_$", arg->name));
         }
 
         type_t *ret_t = get_type(body_scope, lambda->body);
@@ -3098,7 +3098,7 @@ CORD compile(env_t *env, ast_t *ast)
                              entry->b->type, entry->name);
                 if (entry->b->type->tag == ModuleType)
                     continue;
-                set_binding(body_scope, entry->name, new(binding_t, .type=entry->b->type, .code=CORD_cat("userdata->", entry->name)));
+                set_binding(body_scope, entry->name, entry->b->type, CORD_cat("userdata->", entry->name));
                 def = CORD_all(def, compile_declaration(entry->b->type, entry->name), "; ");
             }
             def = CORD_all(def, "} ", name, "$userdata_t;");
@@ -3644,7 +3644,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         type_t *t = get_type(env, ast);
         env_t *when_env = fresh_scope(env);
-        set_binding(when_env, "when", new(binding_t, .type=t, .code="when"));
+        set_binding(when_env, "when", t, "when");
         return CORD_all(
             "({ ", compile_declaration(t, "when"), ";\n",
             compile_statement(when_env, WrapAST(ast, When, .subject=original->subject, .clauses=new_clauses, .else_body=else_body)),
@@ -3668,16 +3668,16 @@ CORD compile(env_t *env, ast_t *ast)
             bind_statement(truthy_scope, condition);
             condition_code = compile_condition(truthy_scope, var);
             set_binding(truthy_scope, Match(var, Var)->name,
-                        new(binding_t, .type=Match(condition_type, OptionalType)->type,
-                            .code=optional_into_nonnone(condition_type, compile(truthy_scope, var))));
+                        Match(condition_type, OptionalType)->type,
+                        optional_into_nonnone(condition_type, compile(truthy_scope, var)));
         } else if (condition->tag == Var) {
             type_t *condition_type = get_type(env, condition);
             condition_code = compile_condition(env, condition);
             if (condition_type->tag == OptionalType) {
                 truthy_scope = fresh_scope(env);
                 set_binding(truthy_scope, Match(condition, Var)->name,
-                            new(binding_t, .type=Match(condition_type, OptionalType)->type,
-                                .code=optional_into_nonnone(condition_type, compile(truthy_scope, condition))));
+                            Match(condition_type, OptionalType)->type,
+                            optional_into_nonnone(condition_type, compile(truthy_scope, condition)));
             }
         } else {
             condition_code = compile_condition(env, condition);
@@ -3747,7 +3747,7 @@ CORD compile(env_t *env, ast_t *ast)
             binop_e cmp_op = op == BINOP_MIN ? BINOP_LT : BINOP_GT;
             if (reduction->key) {
                 env_t *key_scope = fresh_scope(env);
-                set_binding(key_scope, "$", new(binding_t, .type=item_t, .code=item_code));
+                set_binding(key_scope, "$", item_t, item_code);
                 type_t *key_type = get_type(key_scope, reduction->key);
                 const char *superlative_key = op == BINOP_MIN ? "min_key" : "max_key";
                 code = CORD_all(code, compile_declaration(key_type, superlative_key), ";\n");
@@ -4031,7 +4031,7 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
                                  name_code, "$initialized = true;\n")));
 
                 CORD checked_access = CORD_all("check_initialized(", name_code, ", \"", Match(decl->var, Var)->name, "\")");
-                set_binding(ns_env, Match(decl->var, Var)->name, new(binding_t, .type=t, .code=checked_access));
+                set_binding(ns_env, Match(decl->var, Var)->name, t, checked_access);
             }
         }
     }
@@ -4293,7 +4293,7 @@ CORD compile_file(env_t *env, ast_t *ast)
                             full_name, "$initialized = true;\n")));
 
                 CORD checked_access = CORD_all("check_initialized(", full_name, ", \"", decl_name, "\")");
-                set_binding(env, decl_name, new(binding_t, .type=t, .code=checked_access));
+                set_binding(env, decl_name, t, checked_access);
             }
         }
     }

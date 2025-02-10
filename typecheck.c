@@ -207,7 +207,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
                 struct {
                     const char *name; binding_t *binding;
                 } *entry = subenv->locals->entries.data + j*subenv->locals->entries.stride;
-                set_binding(module_env, entry->name, entry->binding);
+                Table$str_set(module_env->locals, entry->name, entry->binding);
             }
         }
         globfree(&tm_files);
@@ -232,8 +232,8 @@ void prebind_statement(env_t *env, ast_t *statement)
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(StructType, .name=def->name, .opaque=true, .env=ns_env); // placeholder
         Table$str_set(env->types, def->name, type);
-        set_binding(env, def->name, new(binding_t, .type=Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
-                                        .code=CORD_all(namespace_prefix(env, env->namespace), def->name)));
+        set_binding(env, def->name, Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
+                    CORD_all(namespace_prefix(env, env->namespace), def->name));
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
         break;
@@ -246,8 +246,8 @@ void prebind_statement(env_t *env, ast_t *statement)
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(EnumType, .name=def->name, .opaque=true, .env=ns_env); // placeholder
         Table$str_set(env->types, def->name, type);
-        set_binding(env, def->name, new(binding_t, .type=Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
-                                        .code=CORD_all(namespace_prefix(env, env->namespace), def->name)));
+        set_binding(env, def->name, Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
+                    CORD_all(namespace_prefix(env, env->namespace), def->name));
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
         break;
@@ -260,8 +260,8 @@ void prebind_statement(env_t *env, ast_t *statement)
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(TextType, .lang=def->name, .env=ns_env);
         Table$str_set(env->types, def->name, type);
-        set_binding(env, def->name, new(binding_t, .type=Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
-                                        .code=CORD_all(namespace_prefix(env, env->namespace), def->name)));
+        set_binding(env, def->name, Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
+                    CORD_all(namespace_prefix(env, env->namespace), def->name));
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
         break;
@@ -292,7 +292,7 @@ void bind_statement(env_t *env, ast_t *statement)
             type = Type(ClosureType, type);
         CORD prefix = namespace_prefix(env, env->namespace);
         CORD code = CORD_cat(prefix ? prefix : "$", name);
-        set_binding(env, name, new(binding_t, .type=type, .code=code));
+        set_binding(env, name, type, code);
         break;
     }
     case FunctionDef: {
@@ -302,7 +302,7 @@ void bind_statement(env_t *env, ast_t *statement)
             code_err(def->name, "A %T called '%s' has already been defined", get_binding(env, name)->type, name);
         type_t *type = get_function_def_type(env, statement);
         CORD code = CORD_all(namespace_prefix(env, env->namespace), name);
-        set_binding(env, name, new(binding_t, .type=type, .code=code));
+        set_binding(env, name, type, code);
         break;
     }
     case StructDef: {
@@ -370,10 +370,10 @@ void bind_statement(env_t *env, ast_t *statement)
         for (tag_t *tag = tags; tag; tag = tag->next) {
             if (Match(tag->type, StructType)->fields) { // Constructor:
                 type_t *constructor_t = Type(FunctionType, .args=Match(tag->type, StructType)->fields, .ret=type);
-                set_binding(ns_env, tag->name, new(binding_t, .type=constructor_t, .code=CORD_all(namespace_prefix(env, env->namespace), def->name, "$tagged$", tag->name)));
+                set_binding(ns_env, tag->name, constructor_t, CORD_all(namespace_prefix(env, env->namespace), def->name, "$tagged$", tag->name));
             } else { // Empty singleton value:
                 CORD code = CORD_all("(", namespace_prefix(env, env->namespace), def->name, "_t){", namespace_prefix(env, env->namespace), def->name, "$tag$", tag->name, "}");
-                set_binding(ns_env, tag->name, new(binding_t, .type=type, .code=code));
+                set_binding(ns_env, tag->name, type, code);
             }
             Table$str_set(env->types, heap_strf("%s$%s", def->name, tag->name), tag->type);
         }
@@ -390,8 +390,8 @@ void bind_statement(env_t *env, ast_t *statement)
         Table$str_set(env->types, def->name, type);
 
         set_binding(ns_env, "without_escaping",
-                    new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE), .ret=type),
-                        .code=CORD_all("(", namespace_prefix(env, env->namespace), def->name, "_t)")));
+                    Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE), .ret=type),
+                    CORD_all("(", namespace_prefix(env, env->namespace), def->name, "_t)"));
 
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             bind_statement(ns_env, stmt->ast);
@@ -426,7 +426,7 @@ void bind_statement(env_t *env, ast_t *statement)
         if (var) {
             type_t *type = get_type(env, statement);
             assert(type);
-            set_binding(env, Match(var, Var)->name, new(binding_t, .type=type));
+            set_binding(env, Match(var, Var)->name, type, CORD_EMPTY);
         }
         break;
     }
@@ -435,7 +435,7 @@ void bind_statement(env_t *env, ast_t *statement)
         type_t *t = parse_type_ast(env, ext->type);
         if (t->tag == ClosureType)
             t = Match(t, ClosureType)->fn;
-        set_binding(env, ext->name, new(binding_t, .type=t, .code=ext->name));
+        set_binding(env, ext->name, t, ext->name);
         break;
     }
     default: break;
@@ -450,7 +450,7 @@ type_t *get_function_def_type(env_t *env, ast_t *ast)
     for (arg_ast_t *arg = fn->args; arg; arg = arg->next) {
         type_t *t = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->value);
         args = new(arg_t, .name=arg->name, .type=t, .default_val=arg->value, .next=args);
-        set_binding(scope, arg->name, new(binding_t, .type=t));
+        set_binding(scope, arg->name, t, CORD_EMPTY);
     }
     REVERSE_LIST(args);
 
@@ -492,7 +492,7 @@ type_t *get_clause_type(env_t *env, type_t *subject_t, when_clause_t *clause)
     env_t *scope = fresh_scope(env);
     auto tag_struct = Match(tag_type, StructType);
     if (!clause->args->next && tag_struct->fields && tag_struct->fields->next) {
-        set_binding(scope, Match(clause->args->ast, Var)->name, new(binding_t, .type=tag_type));
+        set_binding(scope, Match(clause->args->ast, Var)->name, tag_type, CORD_EMPTY);
     } else {
         ast_list_t *var = clause->args;
         arg_t *field = tag_struct->fields;
@@ -501,7 +501,7 @@ type_t *get_clause_type(env_t *env, type_t *subject_t, when_clause_t *clause)
                 code_err(clause->tag_name, "The field %T.%s.%s wasn't accounted for", subject_t, tag_name, field->name);
             if (!field)
                 code_err(var->ast, "This is one more field than %T has", subject_t);
-            set_binding(scope, Match(var->ast, Var)->name, new(binding_t, .type=field->type));
+            set_binding(scope, Match(var->ast, Var)->name, field->type, CORD_EMPTY);
             var = var->next;
             field = field->next;
         }
@@ -917,7 +917,7 @@ type_t *get_type(env_t *env, ast_t *ast)
                     continue;
                 binding_t *b = get_binding(ns_env, tag->name);
                 assert(b);
-                set_binding(env, tag->name, b);
+                Table$str_set(env->locals, tag->name, b);
             }
         }
         return Type(ReturnType, .ret=(val ? get_type(env, val) : Type(VoidType)));
@@ -968,7 +968,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             code_err(held, "This is a %t, not a mutexed value", held_type);
         if (held->tag == Var) {
             env = fresh_scope(env);
-            set_binding(env, Match(held, Var)->name, new(binding_t, .type=Type(PointerType, .pointed=Match(held_type, MutexedType)->type, .is_stack=true)));
+            set_binding(env, Match(held, Var)->name, Type(PointerType, .pointed=Match(held_type, MutexedType)->type, .is_stack=true), CORD_EMPTY);
         }
         return get_type(env, Match(ast, Holding)->body);
     }
@@ -1165,7 +1165,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
             type_t *t = get_arg_ast_type(env, arg);
             args = new(arg_t, .name=arg->name, .type=t, .next=args);
-            set_binding(scope, arg->name, new(binding_t, .type=t));
+            set_binding(scope, arg->name, t, CORD_EMPTY);
         }
         REVERSE_LIST(args);
 
@@ -1212,16 +1212,16 @@ type_t *get_type(env_t *env, ast_t *ast)
             truthy_scope = fresh_scope(env);
             if (condition_type->tag == OptionalType)
                 set_binding(truthy_scope, varname,
-                            new(binding_t, .type=Match(condition_type, OptionalType)->type));
+                            Match(condition_type, OptionalType)->type, CORD_EMPTY);
             else
-                set_binding(truthy_scope, varname, new(binding_t, .type=condition_type));
+                set_binding(truthy_scope, varname, condition_type, CORD_EMPTY);
         } else if (if_->condition->tag == Var) {
             type_t *condition_type = get_type(env, if_->condition);
             if (condition_type->tag == OptionalType) {
                 truthy_scope = fresh_scope(env);
                 const char *varname = Match(if_->condition, Var)->name;
                 set_binding(truthy_scope, varname,
-                            new(binding_t, .type=Match(condition_type, OptionalType)->type));
+                            Match(condition_type, OptionalType)->type, CORD_EMPTY);
             }
         }
 

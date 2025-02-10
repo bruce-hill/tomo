@@ -468,26 +468,25 @@ env_t *new_compilation_unit(CORD libname)
             type_t *type = parse_type_string(ns_env, entry->type_str);
             if (!type) compiler_err(NULL, NULL, NULL, "Couldn't parse type string: %s", entry->type_str);
             if (type->tag == ClosureType) type = Match(type, ClosureType)->fn;
-            binding_t *b = new(binding_t, .code=entry->code, .type=type);
-            set_binding(ns_env, entry->name, b);
+            set_binding(ns_env, entry->name, type, entry->code);
         }
     }
 
     set_binding(namespace_env(env, "Shell"), "without_escaping",
-                new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
-                                          .ret=Type(TextType, .lang="Shell", .env=namespace_env(env, "Shell"))),
-                    .code="(Shell_t)"));
+                Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
+                     .ret=Type(TextType, .lang="Shell", .env=namespace_env(env, "Shell"))),
+                "(Shell_t)");
 
     set_binding(namespace_env(env, "Path"), "without_escaping",
-                new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
-                                          .ret=Type(TextType, .lang="Path", .env=namespace_env(env, "Path"))),
-                    .code="Path$cleanup"));
+                Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
+                     .ret=Type(TextType, .lang="Path", .env=namespace_env(env, "Path"))),
+                "Path$cleanup");
 
 
     set_binding(namespace_env(env, "Pattern"), "without_escaping",
-                new(binding_t, .type=Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
-                                          .ret=Type(TextType, .lang="Pattern", .env=namespace_env(env, "Pattern"))),
-                    .code="(Pattern_t)"));
+                Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
+                     .ret=Type(TextType, .lang="Pattern", .env=namespace_env(env, "Pattern"))),
+                "(Pattern_t)");
 
     Table$str_set(env->globals, "random", new(binding_t, .type=RNG_TYPE, .code="default_rng"));
 
@@ -553,7 +552,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
             if (for_->vars->next)
                 code_err(for_->vars->next->ast, "This is too many variables for this loop");
             const char *var = Match(for_->vars->ast, Var)->name;
-            set_binding(scope, var, new(binding_t, .type=INT_TYPE, .code=CORD_cat("_$", var)));
+            set_binding(scope, var, INT_TYPE, CORD_cat("_$", var));
         }
         return scope;
     }
@@ -569,10 +568,10 @@ env_t *for_scope(env_t *env, ast_t *ast)
             vars[num_vars++] = Match(var->ast, Var)->name;
         }
         if (num_vars == 1) {
-            set_binding(scope, vars[0], new(binding_t, .type=item_t, .code=CORD_cat("_$", vars[0])));
+            set_binding(scope, vars[0], item_t, CORD_cat("_$", vars[0]));
         } else if (num_vars == 2) {
-            set_binding(scope, vars[0], new(binding_t, .type=INT_TYPE, .code=CORD_cat("_$", vars[0])));
-            set_binding(scope, vars[1], new(binding_t, .type=item_t, .code=CORD_cat("_$", vars[1])));
+            set_binding(scope, vars[0], INT_TYPE, CORD_cat("_$", vars[0]));
+            set_binding(scope, vars[1], item_t, CORD_cat("_$", vars[1]));
         }
         return scope;
     }
@@ -582,7 +581,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
                 code_err(for_->vars->next->ast, "This is too many variables for this loop");
             type_t *item_type = Match(iter_t, SetType)->item_type;
             const char *name = Match(for_->vars->ast, Var)->name;
-            set_binding(scope, name, new(binding_t, .type=item_type, .code=CORD_cat("_$", name)));
+            set_binding(scope, name, item_type, CORD_cat("_$", name));
         }
         return scope;
     }
@@ -597,11 +596,11 @@ env_t *for_scope(env_t *env, ast_t *ast)
 
         type_t *key_t = Match(iter_t, TableType)->key_type;
         if (num_vars == 1) {
-            set_binding(scope, vars[0], new(binding_t, .type=key_t, .code=CORD_cat("_$", vars[0])));
+            set_binding(scope, vars[0], key_t, CORD_cat("_$", vars[0]));
         } else if (num_vars == 2) {
-            set_binding(scope, vars[0], new(binding_t, .type=key_t, .code=CORD_cat("_$", vars[0])));
+            set_binding(scope, vars[0], key_t, CORD_cat("_$", vars[0]));
             type_t *value_t = Match(iter_t, TableType)->value_type;
-            set_binding(scope, vars[1], new(binding_t, .type=value_t, .code=CORD_cat("_$", vars[1])));
+            set_binding(scope, vars[1], value_t, CORD_cat("_$", vars[1]));
         }
         return scope;
     }
@@ -610,7 +609,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
             if (for_->vars->next)
                 code_err(for_->vars->next->ast, "This is too many variables for this loop");
             const char *var = Match(for_->vars->ast, Var)->name;
-            set_binding(scope, var, new(binding_t, .type=INT_TYPE, .code=CORD_cat("_$", var)));
+            set_binding(scope, var, INT_TYPE, CORD_cat("_$", var));
         }
         return scope;
     }
@@ -624,7 +623,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
                 code_err(for_->vars->next->ast, "This is too many variables for this loop");
             const char *var = Match(for_->vars->ast, Var)->name;
             type_t *non_opt_type = fn->ret->tag == OptionalType ? Match(fn->ret, OptionalType)->type : fn->ret;
-            set_binding(scope, var, new(binding_t, .type=non_opt_type, .code=CORD_cat("_$", var)));
+            set_binding(scope, var, non_opt_type, CORD_cat("_$", var));
         }
         return scope;
     }
@@ -711,10 +710,10 @@ PUREFUNC binding_t *get_lang_escape_function(env_t *env, const char *lang_name, 
     return NULL;
 }
 
-void set_binding(env_t *env, const char *name, binding_t *binding)
+void set_binding(env_t *env, const char *name, type_t *type, CORD code)
 {
-    if (name && binding)
-        Table$str_set(env->locals, name, binding);
+    assert(name);
+    Table$str_set(env->locals, name, new(binding_t, .type=type, .code=code));
 }
 
 __attribute__((format(printf, 4, 5)))
