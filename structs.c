@@ -26,7 +26,6 @@ void compile_struct_def(env_t *env, ast_t *ast)
     if (strchr(short_name, '$'))
         short_name = strrchr(short_name, '$') + 1;
 
-    env->code->typeinfos = CORD_all("public const TypeInfo_t ", full_name, ";\n", env->code->typeinfos);
     const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
     CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r = {.size=%zu, .align=%zu, .metamethods=%s, "
                                   ".tag=StructInfo, .StructInfo.name=\"%s\"%s, "
