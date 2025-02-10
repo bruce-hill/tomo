@@ -4505,7 +4505,7 @@ CORD compile_file_header(env_t *env, ast_t *ast)
 {
     CORD header = CORD_all(
         "#pragma once\n"
-        // "#line 1 ", CORD_quoted(ast->file->filename), "\n",
+        "#line 1 ", CORD_quoted(ast->file->filename), "\n",
         "#include <tomo/tomo.h>\n");
 
     compile_typedef_info_t info = {.env=env, .header=&header};
