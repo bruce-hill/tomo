@@ -9,9 +9,9 @@
 
 typedef struct {
     CORD local_typedefs;
+    CORD typeinfos;
     CORD staticdefs;
     CORD funcs;
-    CORD typeinfos;
     CORD variable_initializers;
     CORD function_naming;
 } compilation_unit_t;
