@@ -294,7 +294,7 @@ void build_library(Text_t lib_dir_name)
     FILE *prog;
     for (size_t i = 0; i < tm_files.gl_pathc; i++) {
         const char *filename = tm_files.gl_pathv[i];
-        prog = run_cmd("nm -Ug -fjust-symbols '%s.o' | sed 's/.*/\\0 $%s\\0/' >>symbol_renames.txt",
+        prog = run_cmd("nm -Ug -fjust-symbols '%s.o' | sed 's/_\\$\\(.*\\)/\\0 _$%s$\\1/' >>symbol_renames.txt",
                        filename, CORD_to_const_char_star(env->libname));
         int status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
