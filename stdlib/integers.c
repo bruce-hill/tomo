@@ -32,6 +32,11 @@ public Text_t Int$as_text(const void *i, bool colorize, const TypeInfo_t*) {
     return text;
 }
 
+static bool Int$is_none(const void *i, const TypeInfo_t*)
+{
+    return ((Int_t*)i)->small == 0;
+}
+
 public PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y) {
     if (likely(x.small & y.small & 1))
         return (x.small > y.small) - (x.small < y.small);
@@ -330,8 +335,31 @@ public OptionalInt_t Int$sqrt(Int_t i)
     return Int$from_mpz(result);
 }
 
-public PUREFUNC Range_t Int$to(Int_t from, Int_t to) {
-    return (Range_t){from, to, Int$compare_value(to, from) >= 0 ? (Int_t){.small=(1<<2)|1} : (Int_t){.small=(-1>>2)|1}};
+typedef struct {
+    OptionalInt_t current, last;
+    Int_t step;
+} IntRange_t;
+
+static OptionalInt_t _next_int(IntRange_t *info)
+{
+    OptionalInt_t i = info->current;
+    if (!Int$is_none(&i, &Int$info)) {
+        Int_t next = Int$plus(i, info->step);
+        if (!Int$is_none(&info->last, &Int$info) && Int$compare_value(next, info->last) == Int$compare_value(info->step, I(0)))
+            next = NONE_INT;
+        info->current = next;
+    }
+    return i;
+}
+
+public PUREFUNC Closure_t Int$to(Int_t first, Int_t last, OptionalInt_t step) {
+    IntRange_t *range = GC_MALLOC(sizeof(IntRange_t));
+    range->current = first;
+    range->last = last;
+    range->step = Int$is_none(&step, &Int$info) ?
+        Int$compare_value(last, first) >= 0 ? (Int_t){.small=(1<<2)|1} : (Int_t){.small=(-1>>2)|1}
+        : step;
+    return (Closure_t){.fn=_next_int, .userdata=range};
 }
 
 public Int_t Int$from_str(const char *str) {
@@ -413,11 +441,6 @@ public Int_t Int$factorial(Int_t n)
         fail("Factorials are not defined for negative numbers");
     mpz_fac_ui(ret, (unsigned long)n_i64);
     return Int$from_mpz(ret);
-}
-
-static bool Int$is_none(const void *i, const TypeInfo_t*)
-{
-    return ((Int_t*)i)->small == 0;
 }
 
 static void Int$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t*)
@@ -545,8 +568,12 @@ public void Int32$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t
         } \
         return bit_array; \
     } \
-    public to_attr Range_t KindOfInt ## $to(c_type from, c_type to) { \
-        return (Range_t){Int64_to_Int(from), Int64_to_Int(to), to >= from ? I_small(1): I_small(-1)}; \
+    public to_attr Closure_t KindOfInt ## $to(c_type first, c_type last, Optional ## KindOfInt ## _t step) { \
+        IntRange_t *range = GC_MALLOC(sizeof(IntRange_t)); \
+        range->current = KindOfInt##_to_Int(first); \
+        range->last = KindOfInt##_to_Int(last); \
+        range->step = step.is_none ? (last >= first ? I_small(1) : I_small(-1)) : KindOfInt##_to_Int(step.i); \
+        return (Closure_t){.fn=_next_int, .userdata=range}; \
     } \
     public PUREFUNC Optional ## KindOfInt ## _t KindOfInt ## $parse(Text_t text) { \
         OptionalInt_t full_int = Int$parse(text); \

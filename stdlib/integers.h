@@ -22,7 +22,7 @@
 #define I16(x) ((int16_t)x)
 #define I8(x) ((int8_t)x)
 
-#define DEFINE_INT_TYPE(c_type, type_name, to_attr) \
+#define DEFINE_INT_TYPE(c_type, type_name) \
     typedef struct { \
         c_type i; \
         bool is_none:1; \
@@ -34,7 +34,7 @@
     Text_t type_name ## $hex(c_type i, Int_t digits, bool uppercase, bool prefix); \
     Text_t type_name ## $octal(c_type i, Int_t digits, bool prefix); \
     Array_t type_name ## $bits(c_type x); \
-    to_attr Range_t type_name ## $to(c_type from, c_type to); \
+    Closure_t type_name ## $to(c_type first, c_type last, Optional ## type_name ## _t step); \
     PUREFUNC Optional ## type_name ## _t type_name ## $parse(Text_t text); \
     MACROLIKE PUREFUNC c_type type_name ## $clamped(c_type x, c_type min, c_type max) { \
         return x < min ? min : (x > max ? max : x); \
@@ -68,10 +68,10 @@
         return (c_type)((u##c_type)x >> y); \
     }
 
-DEFINE_INT_TYPE(int64_t, Int64, __attribute__(()))
-DEFINE_INT_TYPE(int32_t, Int32, CONSTFUNC)
-DEFINE_INT_TYPE(int16_t, Int16, CONSTFUNC)
-DEFINE_INT_TYPE(int8_t,  Int8, CONSTFUNC)
+DEFINE_INT_TYPE(int64_t, Int64)
+DEFINE_INT_TYPE(int32_t, Int32)
+DEFINE_INT_TYPE(int16_t, Int16)
+DEFINE_INT_TYPE(int8_t,  Int8)
 #undef DEFINE_INT_TYPE
 
 #define NONE_INT64 ((OptionalInt64_t){.is_none=true})
@@ -101,7 +101,7 @@ PUREFUNC bool Int$equal_value(const Int_t x, const Int_t y);
 Text_t Int$format(Int_t i, Int_t digits);
 Text_t Int$hex(Int_t i, Int_t digits, bool uppercase, bool prefix);
 Text_t Int$octal(Int_t i, Int_t digits, bool prefix);
-PUREFUNC Range_t Int$to(Int_t from, Int_t to);
+PUREFUNC Closure_t Int$to(Int_t first, Int_t last, OptionalInt_t step);
 OptionalInt_t Int$from_str(const char *str);
 OptionalInt_t Int$parse(Text_t text);
 Int_t Int$abs(Int_t x);

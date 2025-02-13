@@ -13,7 +13,6 @@
 
 type_t *TEXT_TYPE = NULL;
 type_t *MATCH_TYPE = NULL;
-type_t *RANGE_TYPE = NULL;
 type_t *RNG_TYPE = NULL;
 public type_t *THREAD_TYPE = NULL;
 
@@ -66,15 +65,6 @@ env_t *new_compilation_unit(CORD libname)
     typedef struct {
         const char *name, *code, *type_str;
     } ns_entry_t;
-
-    {
-        env_t *range_env = namespace_env(env, "Range");
-        RANGE_TYPE = Type(
-            StructType, .name="Range", .env=range_env,
-            .fields=new(arg_t, .name="first", .type=INT_TYPE,
-              .next=new(arg_t, .name="last", .type=INT_TYPE,
-              .next=new(arg_t, .name="step", .type=INT_TYPE, .default_val=FakeAST(Int, .str="1")))));
-    }
 
     {
         env_t *match_env = namespace_env(env, "Match");
@@ -142,7 +132,7 @@ env_t *new_compilation_unit(CORD libname)
             {"right_shifted", "Int$right_shifted", "func(x,y:Int -> Int)"},
             {"sqrt", "Int$sqrt", "func(x:Int -> Int?)"},
             {"times", "Int$times", "func(x,y:Int -> Int)"},
-            {"to", "Int$to", "func(from:Int,to:Int -> Range)"},
+            {"to", "Int$to", "func(from:Int,to:Int,step=none:Int -> func(->Int?))"},
         )},
         {"Int64", Type(IntType, .bits=TYPE_IBITS64), "Int64_t", "Int64$info", TypedArray(ns_entry_t,
             {"abs", "labs", "func(i:Int64 -> Int64)"},
@@ -158,7 +148,7 @@ env_t *new_compilation_unit(CORD libname)
             {"modulo", "Int64$modulo", "func(x,y:Int64 -> Int64)"},
             {"modulo1", "Int64$modulo1", "func(x,y:Int64 -> Int64)"},
             {"octal", "Int64$octal", "func(i:Int64, digits=0, prefix=yes -> Text)"},
-            {"to", "Int64$to", "func(from:Int64,to:Int64 -> Range)"},
+            {"to", "Int64$to", "func(from:Int64,to:Int64,step=none:Int64 -> func(->Int?))"},
             {"unsigned_left_shifted", "Int64$unsigned_left_shifted", "func(x:Int64,y:Int64 -> Int64)"},
             {"unsigned_right_shifted", "Int64$unsigned_right_shifted", "func(x:Int64,y:Int64 -> Int64)"},
             {"wrapping_minus", "Int64$wrapping_minus", "func(x:Int64,y:Int64 -> Int64)"},
@@ -178,7 +168,7 @@ env_t *new_compilation_unit(CORD libname)
             {"modulo", "Int32$modulo", "func(x,y:Int32 -> Int32)"},
             {"modulo1", "Int32$modulo1", "func(x,y:Int32 -> Int32)"},
             {"octal", "Int32$octal", "func(i:Int32, digits=0, prefix=yes -> Text)"},
-            {"to", "Int32$to", "func(from:Int32,to:Int32 -> Range)"},
+            {"to", "Int32$to", "func(from:Int32,to:Int32,step=none:Int32 -> func(->Int?))"},
             {"unsigned_left_shifted", "Int32$unsigned_left_shifted", "func(x:Int32,y:Int32 -> Int32)"},
             {"unsigned_right_shifted", "Int32$unsigned_right_shifted", "func(x:Int32,y:Int32 -> Int32)"},
             {"wrapping_minus", "Int32$wrapping_minus", "func(x:Int32,y:Int32 -> Int32)"},
@@ -198,7 +188,7 @@ env_t *new_compilation_unit(CORD libname)
             {"modulo", "Int16$modulo", "func(x,y:Int16 -> Int16)"},
             {"modulo1", "Int16$modulo1", "func(x,y:Int16 -> Int16)"},
             {"octal", "Int16$octal", "func(i:Int16, digits=0, prefix=yes -> Text)"},
-            {"to", "Int16$to", "func(from:Int16,to:Int16 -> Range)"},
+            {"to", "Int16$to", "func(from:Int16,to:Int16,step=none:Int16 -> func(->Int?))"},
             {"unsigned_left_shifted", "Int16$unsigned_left_shifted", "func(x:Int16,y:Int16 -> Int16)"},
             {"unsigned_right_shifted", "Int16$unsigned_right_shifted", "func(x:Int16,y:Int16 -> Int16)"},
             {"wrapping_minus", "Int16$wrapping_minus", "func(x:Int16,y:Int16 -> Int16)"},
@@ -218,7 +208,7 @@ env_t *new_compilation_unit(CORD libname)
             {"modulo", "Int8$modulo", "func(x,y:Int8 -> Int8)"},
             {"modulo1", "Int8$modulo1", "func(x,y:Int8 -> Int8)"},
             {"octal", "Int8$octal", "func(i:Int8, digits=0, prefix=yes -> Text)"},
-            {"to", "Int8$to", "func(from:Int8,to:Int8 -> Range)"},
+            {"to", "Int8$to", "func(from:Int8,to:Int8,step=none:Int8 -> func(->Int?))"},
             {"unsigned_left_shifted", "Int8$unsigned_left_shifted", "func(x:Int8,y:Int8 -> Int8)"},
             {"unsigned_right_shifted", "Int8$unsigned_right_shifted", "func(x:Int8,y:Int8 -> Int8)"},
             {"wrapping_minus", "Int8$wrapping_minus", "func(x:Int8,y:Int8 -> Int8)"},
@@ -285,10 +275,6 @@ env_t *new_compilation_unit(CORD libname)
 #undef F_opt
 #undef F
 #undef C
-        {"Range", RANGE_TYPE, "Range_t", "Range", TypedArray(ns_entry_t,
-            {"reversed", "Range$reversed", "func(range:Range -> Range)"},
-            {"by", "Range$by", "func(range:Range, step:Int -> Range)"},
-        )},
         {"Match", MATCH_TYPE, "Match_t", "Match", TypedArray(ns_entry_t,
              // No methods
         )},
@@ -546,16 +532,6 @@ env_t *for_scope(env_t *env, ast_t *ast)
     auto for_ = Match(ast, For);
     type_t *iter_t = value_type(get_type(env, for_->iter));
     env_t *scope = fresh_scope(env);
-
-    if (iter_t == RANGE_TYPE) {
-        if (for_->vars) {
-            if (for_->vars->next)
-                code_err(for_->vars->next->ast, "This is too many variables for this loop");
-            const char *var = Match(for_->vars->ast, Var)->name;
-            set_binding(scope, var, INT_TYPE, CORD_cat("_$", var));
-        }
-        return scope;
-    }
 
     switch (iter_t->tag) {
     case ArrayType: {

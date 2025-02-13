@@ -24,7 +24,6 @@ Information about Tomo's built-in types can be found here:
 - [Moment](moments.md)
 - [Enums](enums.md)
 - [Floating point numbers](nums.md)
-- [Integer Ranges](ranges.md)
 - [Integers](integers.md)
 - [Languages](langs.md)
 - [Mutexed Data](mutexed.md)

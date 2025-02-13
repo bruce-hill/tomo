@@ -29,7 +29,6 @@ some common functionality.
 - Paths: [header](stdlib/paths.h), [implementation](stdlib/paths.c)
 - Patterns: [header](stdlib/patterns.h), [implementation](stdlib/patterns.c)
 - Pointers: [header](stdlib/pointers.h), [implementation](stdlib/pointers.c)
-- Ranges: [header](stdlib/ranges.h), [implementation](stdlib/ranges.c)
 - Shell: [header](stdlib/shell.h), [implementation](stdlib/shell.c)
 - Tables: [header](stdlib/tables.h), [implementation](stdlib/tables.c)
 - Text: [header](stdlib/text.h), [implementation](stdlib/text.c)

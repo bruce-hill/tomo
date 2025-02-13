@@ -500,7 +500,6 @@ PUREFUNC CORD compile_unsigned_type(type_t *t)
 CORD compile_type(type_t *t)
 {
     if (t == THREAD_TYPE) return "Thread_t";
-    else if (t == RANGE_TYPE) return "Range_t";
     else if (t == RNG_TYPE) return "RNG_t";
     else if (t == MATCH_TYPE) return "Match_t";
 
@@ -1541,25 +1540,57 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             naked_body = CORD_all(naked_body, "\n", loop_ctx.skip_label, ": continue;");
         CORD stop = loop_ctx.stop_label ? CORD_all("\n", loop_ctx.stop_label, ":;") : CORD_EMPTY;
 
+        // Special case for improving performance for numeric iteration:
+        if (for_->iter->tag == MethodCall && streq(Match(for_->iter, MethodCall)->name, "to") &&
+            get_type(env, Match(for_->iter, MethodCall)->self)->tag == BigIntType) {
+            arg_ast_t *args = Match(for_->iter, MethodCall)->args;
+            if (!args) code_err(for_->iter, "to() needs at least one argument");
+
+            CORD last = CORD_EMPTY, step = CORD_EMPTY, optional_step = CORD_EMPTY;
+            if (!args->name || streq(args->name, "last")) {
+                last = compile_to_type(env, args->value, INT_TYPE);
+                if (args->next) {
+                    if (args->next->name && !streq(args->next->name, "step"))
+                        code_err(args->next->value, "Invalid argument name: %s", args->next->name);
+                    if (get_type(env, args->next->value)->tag == OptionalType)
+                        optional_step = compile_to_type(env, args->next->value, Type(OptionalType, .type=INT_TYPE));
+                    else
+                        step = compile_to_type(env, args->next->value, INT_TYPE);
+                }
+            } else if (streq(args->name, "step")) {
+                if (get_type(env, args->value)->tag == OptionalType)
+                    optional_step = compile_to_type(env, args->value, Type(OptionalType, .type=INT_TYPE));
+                else
+                    step = compile_to_type(env, args->value, INT_TYPE);
+                if (args->next) {
+                    if (args->next->name && !streq(args->next->name, "last"))
+                        code_err(args->next->value, "Invalid argument name: %s", args->next->name);
+                    last = compile_to_type(env, args->next->value, INT_TYPE);
+                }
+            }
+
+            if (!last)
+                code_err(for_->iter, "No `last` argument was given");
+            
+            if (step && optional_step)
+                step = CORD_all("({ OptionalInt_t maybe_step = ", optional_step, "; maybe_step->small == 0 ? (Int$compare_value(last, first) >= 0 ? I_small(1) : I_small(-1)) : (Int_t)maybe_step; })");
+            else if (!step)
+                step = "Int$compare_value(last, first) >= 0 ? I_small(1) : I_small(-1)";
+
+            CORD value = for_->vars ? compile(body_scope, for_->vars->ast) : "i";
+            return CORD_all(
+                "for (Int_t first = ", compile(env, Match(for_->iter, MethodCall)->self), ", ",
+                value, " = first, "
+                "last = ", last, ", "
+                "step = ", step, "; "
+                "Int$compare_value(", value, ", last) != Int$compare_value(step, I_small(0)); ", value, " = Int$plus(", value, ", step)) {\n"
+                "\t", naked_body,
+                "}",
+                stop);
+        }
+
         type_t *iter_t = value_type(get_type(env, for_->iter));
         type_t *iter_value_t = value_type(iter_t);
-
-        if (iter_value_t == RANGE_TYPE) {
-            CORD range = compile_to_pointer_depth(env, for_->iter, 0, false);
-            CORD value = for_->vars ? compile(body_scope, for_->vars->ast) : "i";
-            if (for_->empty)
-                code_err(ast, "Ranges are never empty, they always contain at least their starting element");
-            return CORD_all(
-                "{\n"
-                "const Range_t range = ", range, ";\n"
-                "if (range.step.small == 0) fail(\"This range has a 'step' of zero and will loop infinitely!\");\n"
-                "bool negative = (Int$compare_value(range.step, I(0)) < 0);\n"
-                "for (Int_t ", value, " = range.first; ({ int32_t cmp = Int$compare_value(", value, ", range.last); negative ? cmp >= 0 : cmp <= 0;}) ; ", value, " = Int$plus(", value, ", range.step)) {\n"
-                "\t", naked_body,
-                "\n}",
-                stop,
-                "\n}");
-        }
 
         switch (iter_value_t->tag) {
         case ArrayType: {
@@ -3848,7 +3879,7 @@ CORD compile(env_t *env, ast_t *ast)
         case StructType: {
             for (arg_t *field = Match(value_t, StructType)->fields; field; field = field->next) {
                 if (streq(field->name, f->field)) {
-                    const char *prefix = (value_t == RANGE_TYPE || value_t == MATCH_TYPE) ? "" : "$";
+                    const char *prefix = (value_t == MATCH_TYPE) ? "" : "$";
                     if (fielded_t->tag == PointerType) {
                         CORD fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
                         return CORD_asprintf("(%r)->%s%s", fielded, prefix, f->field);
@@ -4086,7 +4117,6 @@ void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
 CORD compile_type_info(env_t *env, type_t *t)
 {
     if (t == THREAD_TYPE) return "&Thread$info";
-    else if (t == RANGE_TYPE) return "&Range$info";
     else if (t == MATCH_TYPE) return "&Match$info";
     else if (t == RNG_TYPE) return "&RNG$info";
 

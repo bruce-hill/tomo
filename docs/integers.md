@@ -297,25 +297,34 @@ of the representable range or if the entire text can't be parsed as an integer,
 ### `to`
 
 **Description:**  
-Creates an inclusive range of integers between the specified start and end values.
+Returns an iterator function that iterates over the range of numbers specified.
+Iteration is assumed to be nonempty and 
 
 **Signature:**  
 ```tomo
-func to(from: Int, to: Int -> Range)
+func to(first: Int, last: Int, step : Int? = none:Int -> func(->Int?))
 ```
 
 **Parameters:**
 
-- `from`: The starting value of the range.
-- `to`: The ending value of the range.
+- `first`: The starting value of the range.
+- `last`: The ending value of the range.
+- `step`: An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.
 
 **Returns:**  
-A range object representing all integers from `from` to `to` (inclusive).
+An iterator function that returns each integer in the given range (inclusive).
 
 **Example:**  
 ```tomo
->> 1:to(5)
-= Range(first=1, last=5, step=1)
+>> 2:to(5)
+= func(->Int?)
+>> [x for x in 2:to(5)]
+= [2, 3, 4, 5]
+>> [x for x in 5:to(2)]
+= [5, 4, 3, 2]
+
+>> [x for x in 2:to(5, step=2)]
+= [2, 4]
 ```
 
 ---

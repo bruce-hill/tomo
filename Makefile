@@ -32,7 +32,7 @@ CFLAGS_PLACEHOLDER="$$(echo -e '\033[2m<flags...>\033[m')"
 LDLIBS=-lgc -lcord -lm -lunistring -lgmp -ldl
 BUILTIN_OBJS=stdlib/siphash.o stdlib/arrays.o stdlib/bools.o stdlib/bytes.o stdlib/nums.o stdlib/integers.o \
 						 stdlib/pointers.o stdlib/memory.o stdlib/text.o stdlib/threads.o stdlib/c_strings.o stdlib/tables.o \
-						 stdlib/types.o stdlib/util.o stdlib/files.o stdlib/ranges.o stdlib/shell.o stdlib/paths.o stdlib/rng.o \
+						 stdlib/types.o stdlib/util.o stdlib/files.o stdlib/shell.o stdlib/paths.o stdlib/rng.o \
 						 stdlib/optionals.o stdlib/patterns.o stdlib/metamethods.o stdlib/functiontype.o stdlib/stdlib.o \
 						 stdlib/structs.o stdlib/enums.o stdlib/moments.o stdlib/mutexeddata.o
 TESTS=$(patsubst %.tm,%.tm.testresult,$(wildcard test/*.tm))

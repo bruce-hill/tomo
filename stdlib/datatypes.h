@@ -62,10 +62,6 @@ typedef struct {
     void *fn, *userdata;
 } Closure_t;
 
-typedef struct Range_s {
-    Int_t first, last, step;
-} Range_t;
-
 enum text_type { TEXT_ASCII, TEXT_GRAPHEMES, TEXT_CONCAT };
 
 typedef struct Text_s {
