@@ -1543,6 +1543,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         // Special case for improving performance for numeric iteration:
         if (for_->iter->tag == MethodCall && streq(Match(for_->iter, MethodCall)->name, "to") &&
             get_type(env, Match(for_->iter, MethodCall)->self)->tag == BigIntType) {
+            // TODO: support other integer types
             arg_ast_t *args = Match(for_->iter, MethodCall)->args;
             if (!args) code_err(for_->iter, "to() needs at least one argument");
 
@@ -1584,6 +1585,19 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 "last = ", last, ", "
                 "step = ", step, "; "
                 "Int$compare_value(", value, ", last) != Int$compare_value(step, I_small(0)); ", value, " = Int$plus(", value, ", step)) {\n"
+                "\t", naked_body,
+                "}",
+                stop);
+        } else if (for_->iter->tag == MethodCall && streq(Match(for_->iter, MethodCall)->name, "onward") &&
+            get_type(env, Match(for_->iter, MethodCall)->self)->tag == BigIntType) {
+            // Special case for Int:onward()
+            arg_ast_t *args = Match(for_->iter, MethodCall)->args;
+            arg_t *arg_spec = new(arg_t, .name="step", .type=INT_TYPE, .default_val=FakeAST(Int, .str="1"), .next=NULL);
+            CORD step = compile_arguments(env, for_->iter, arg_spec, args);
+            CORD value = for_->vars ? compile(body_scope, for_->vars->ast) : "i";
+            return CORD_all(
+                "for (Int_t ", value, " = ", compile(env, Match(for_->iter, MethodCall)->self), ", ",
+                "step = ", step, "; ; ", value, " = Int$plus(", value, ", step)) {\n"
                 "\t", naked_body,
                 "}",
                 stop);

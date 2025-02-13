@@ -35,6 +35,7 @@
     Text_t type_name ## $octal(c_type i, Int_t digits, bool prefix); \
     Array_t type_name ## $bits(c_type x); \
     Closure_t type_name ## $to(c_type first, c_type last, Optional ## type_name ## _t step); \
+    Closure_t type_name ## $onward(c_type first, c_type step); \
     PUREFUNC Optional ## type_name ## _t type_name ## $parse(Text_t text); \
     MACROLIKE PUREFUNC c_type type_name ## $clamped(c_type x, c_type min, c_type max) { \
         return x < min ? min : (x > max ? max : x); \
@@ -102,6 +103,7 @@ Text_t Int$format(Int_t i, Int_t digits);
 Text_t Int$hex(Int_t i, Int_t digits, bool uppercase, bool prefix);
 Text_t Int$octal(Int_t i, Int_t digits, bool prefix);
 PUREFUNC Closure_t Int$to(Int_t first, Int_t last, OptionalInt_t step);
+PUREFUNC Closure_t Int$onward(Int_t first, Int_t step);
 OptionalInt_t Int$from_str(const char *str);
 OptionalInt_t Int$parse(Text_t text);
 Int_t Int$abs(Int_t x);

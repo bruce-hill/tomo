@@ -362,6 +362,14 @@ public PUREFUNC Closure_t Int$to(Int_t first, Int_t last, OptionalInt_t step) {
     return (Closure_t){.fn=_next_int, .userdata=range};
 }
 
+public PUREFUNC Closure_t Int$onward(Int_t first, Int_t step) {
+    IntRange_t *range = GC_MALLOC(sizeof(IntRange_t));
+    range->current = first;
+    range->last = NONE_INT;
+    range->step = step;
+    return (Closure_t){.fn=_next_int, .userdata=range};
+}
+
 public Int_t Int$from_str(const char *str) {
     mpz_t i;
     int result;
@@ -573,6 +581,13 @@ public void Int32$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t
         range->current = KindOfInt##_to_Int(first); \
         range->last = KindOfInt##_to_Int(last); \
         range->step = step.is_none ? (last >= first ? I_small(1) : I_small(-1)) : KindOfInt##_to_Int(step.i); \
+        return (Closure_t){.fn=_next_int, .userdata=range}; \
+    } \
+    public to_attr Closure_t KindOfInt ## $onward(c_type first, c_type step) { \
+        IntRange_t *range = GC_MALLOC(sizeof(IntRange_t)); \
+        range->current = KindOfInt##_to_Int(first); \
+        range->last = NONE_INT; \
+        range->step = KindOfInt##_to_Int(step); \
         return (Closure_t){.fn=_next_int, .userdata=range}; \
     } \
     public PUREFUNC Optional ## KindOfInt ## _t KindOfInt ## $parse(Text_t text) { \

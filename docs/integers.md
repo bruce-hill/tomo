@@ -257,6 +257,37 @@ The octal string representation of the integer.
 
 ---
 
+### `onward`
+
+**Description:**  
+Return an iterator that counts infinitely from the starting integer (with an
+optional step size).
+
+**Signature:**  
+```tomo
+func onward(first: Int, step: Int = 1 -> Text)
+```
+
+**Parameters:**
+
+- `first`: The starting integer.
+- `step`: The increment step size (default: 1).
+
+**Returns:**  
+An iterator function that counts onward from the starting integer.
+
+**Example:**  
+```tomo
+nums := &[:Int]
+for i in 5:onward():
+    nums:insert(i)
+    stop if i == 10
+>> nums[]
+= [5, 6, 7, 8, 9, 10]
+```
+
+---
+
 ### `parse`
 
 **Description:**  
