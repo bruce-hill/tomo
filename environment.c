@@ -463,6 +463,27 @@ env_t *new_compilation_unit(CORD libname)
         }
     }
 
+    // Conversion constructors:
+#define ADD_CONSTRUCTOR(ns_env, identifier, typestr) Array$insert(&ns_env->namespace->constructors, ((binding_t[1]){{.code=identifier, .type=Match(parse_type_string(ns_env, typestr), ClosureType)->fn}}), I(0), sizeof(binding_t))
+    {
+        env_t *ns_env = namespace_env(env, "Pattern");
+        ADD_CONSTRUCTOR(ns_env, "Pattern$escape_text", "func(text:Text -> Pattern)");
+        ADD_CONSTRUCTOR(ns_env, "Int$value_as_text", "func(i:Int -> Pattern)");
+    }
+    {
+        env_t *ns_env = namespace_env(env, "Path");
+        ADD_CONSTRUCTOR(ns_env, "Path$escape_text", "func(text:Text -> Path)");
+        ADD_CONSTRUCTOR(ns_env, "Path$escape_path", "func(path:Path -> Path)");
+        ADD_CONSTRUCTOR(ns_env, "Int$value_as_text", "func(i:Int -> Path)");
+    }
+    {
+        env_t *ns_env = namespace_env(env, "Shell");
+        ADD_CONSTRUCTOR(ns_env, "Shell$escape_text", "func(text:Text -> Shell)");
+        ADD_CONSTRUCTOR(ns_env, "Shell$escape_text_array", "func(texts:[Text] -> Shell)");
+        ADD_CONSTRUCTOR(ns_env, "Int$value_as_text", "func(i:Int -> Shell)");
+    }
+
+
     set_binding(namespace_env(env, "Shell"), "without_escaping",
                 Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
                      .ret=Type(TextType, .lang="Shell", .env=namespace_env(env, "Shell"))),
@@ -675,18 +696,16 @@ PUREFUNC binding_t *get_lang_escape_function(env_t *env, const char *lang_name, 
     binding_t *typeinfo = get_binding(env, lang_name);
     assert(typeinfo && typeinfo->type->tag == TypeInfoType);
     env_t *lang_env = Match(typeinfo->type, TypeInfoType)->env;
-    for (int64_t i = 1; i <= Table$length(*lang_env->locals); i++) {
-        struct {const char *name; binding_t *b; } *entry = Table$entry(*lang_env->locals, i);
-        if (entry->b->type->tag != FunctionType) continue;
-        if (!(streq(entry->name, "escape") || strncmp(entry->name, "escape_", strlen("escape_")) == 0))
-            continue;
-        auto fn = Match(entry->b->type, FunctionType);
+    Array_t constructors = lang_env->namespace->constructors;
+    for (int64_t i = 0; i < constructors.length; i++) {
+        binding_t *b = constructors.data + i*constructors.stride;
+        auto fn = Match(b->type, FunctionType);
         if (!fn->args || fn->args->next) continue;
         if (fn->ret->tag != TextType || !streq(Match(fn->ret, TextType)->lang, lang_name))
             continue;
         if (!can_promote(type_to_escape, fn->args->type))
             continue;
-        return entry->b;
+        return b;
     }
     return NULL;
 }

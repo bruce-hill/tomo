@@ -298,9 +298,16 @@ void bind_statement(env_t *env, ast_t *statement)
     case FunctionDef: {
         auto def = Match(statement, FunctionDef);
         const char *name = Match(def->name, Var)->name;
+        type_t *type = get_function_def_type(env, statement);
+        if (env->namespace && env->namespace->parent && env->namespace->name && streq(name, env->namespace->name)) {
+            CORD code = CORD_asprintf("%r%ld", namespace_prefix(env, env->namespace), get_line_number(statement->file, statement->start));
+            binding_t binding = {.type=type, .code=code};
+            Array$insert(&env->namespace->constructors, &binding, I(0), sizeof(binding));
+            break;
+        }
+
         if (get_binding(env, name))
             code_err(def->name, "A %T called '%s' has already been defined", get_binding(env, name)->type, name);
-        type_t *type = get_function_def_type(env, statement);
         CORD code = CORD_all(namespace_prefix(env, env->namespace), name);
         set_binding(env, name, type, code);
         break;

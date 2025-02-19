@@ -10,7 +10,7 @@ where a different type of string is needed.
 
 ```tomo
 lang HTML:
-    func escape(t:Text -> HTML):
+    func HTML(t:Text -> HTML):
         t = t:replace_all({
             $/&/ = "&amp;",
             $/</ = "&lt;",
@@ -57,8 +57,8 @@ Hello &lt;script&gt;alert(&#39;pwned&#39;)&lt;/script&gt;! How are you?
 ```
 
 This works because the compiler checks for a function in the HTML namespace
-called `HTML.escape` or any method that starts with `HTML.escape_` that takes a
-`Text` argument and returns an `HTML` value. When performing interpolation, the
+that was defined with the name `HTML` that takes a `Text` argument and returns
+an `HTML` value (a constructor). When performing interpolation, the
 interpolation will only succeed if such a function exists and it will apply
 that function to the value before concatenating it.
 
@@ -74,7 +74,7 @@ instead of building a global function called `execute()` that takes a
 
 ```tomo
 lang Sh:
-    func escape(text:Text -> Sh):
+    func Sh(text:Text -> Sh):
         return Sh.without_escaping("'" ++ text:replace($/'/, "''") ++ "'")
 
     func execute(sh:Sh -> Text):

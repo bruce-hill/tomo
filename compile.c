@@ -4082,6 +4082,8 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
     auto fndef = Match(ast, FunctionDef);
     bool is_private = Match(fndef->name, Var)->name[0] == '_';
     CORD name = compile(env, fndef->name);
+    if (env->namespace && env->namespace->parent && env->namespace->name && streq(Match(fndef->name, Var)->name, env->namespace->name))
+        name = CORD_asprintf("%r$%ld", name, get_line_number(ast->file, ast->start));
     type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
 
     CORD arg_signature = "(";
@@ -4485,7 +4487,10 @@ CORD compile_statement_namespace_header(env_t *env, ast_t *ast)
 
         type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
         CORD ret_type_code = compile_type(ret_t);
-        return CORD_all(ret_type_code, " ", namespace_prefix(env, env->namespace), decl_name, arg_signature, ";\n");
+        CORD name = CORD_all(namespace_prefix(env, env->namespace), decl_name);
+        if (env->namespace && env->namespace->parent && env->namespace->name && streq(decl_name, env->namespace->name))
+            name = CORD_asprintf("%r$%ld", name, get_line_number(ast->file, ast->start));
+        return CORD_all(ret_type_code, " ", name, arg_signature, ";\n");
     }
     default: return CORD_EMPTY;
     }
