@@ -14,7 +14,7 @@
 
 public Shell_t Shell$escape_text(Text_t text)
 {
-    return Text$replace(text, Text("'"), Text("'\"'\"'"), Text(""), false);
+    return Texts(Text("'"), Text$replace(text, Text("'"), Text("'\"'\"'"), Text(""), false), Text("'"));
 }
 
 public Shell_t Shell$escape_text_array(Array_t texts)
