@@ -1146,173 +1146,15 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         }
     }
     case StructDef: {
-        compile_struct_def(env, ast);
         return CORD_EMPTY;
     }
     case EnumDef: {
-        compile_enum_def(env, ast);
         return CORD_EMPTY;
     }
     case LangDef: {
-        auto def = Match(ast, LangDef);
-        CORD_appendf(&env->code->typeinfos, "public const TypeInfo_t %r%s = {%zu, %zu, .metamethods=Text$metamethods, .tag=TextInfo, .TextInfo={%r}};\n",
-                     namespace_prefix(env, env->namespace), def->name, sizeof(Text_t), __alignof__(Text_t),
-                     CORD_quoted(def->name));
-        compile_namespace(env, def->name, def->namespace);
         return CORD_EMPTY;
     }
     case FunctionDef: {
-        auto fndef = Match(ast, FunctionDef);
-        bool is_private = Match(fndef->name, Var)->name[0] == '_';
-        CORD name = compile(env, fndef->name);
-        type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
-
-        CORD arg_signature = "(";
-        Table_t used_names = {};
-        for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-            type_t *arg_type = get_arg_ast_type(env, arg);
-            arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, CORD_cat("_$", arg->name)));
-            if (arg->next) arg_signature = CORD_cat(arg_signature, ", ");
-            if (Table$str_get(used_names, arg->name))
-                code_err(ast, "The argument name '%s' is used more than once", arg->name);
-            Table$str_set(&used_names, arg->name, arg->name);
-        }
-        arg_signature = CORD_cat(arg_signature, ")");
-
-        CORD ret_type_code = compile_type(ret_t);
-
-        if (is_private)
-            env->code->staticdefs = CORD_all(env->code->staticdefs, "static ", ret_type_code, " ", name, arg_signature, ";\n");
-
-        CORD code;
-        if (fndef->cache) {
-            code = CORD_all("static ", ret_type_code, " ", name, "$uncached", arg_signature);
-        } else {
-            code = CORD_all(ret_type_code, " ", name, arg_signature);
-            if (fndef->is_inline)
-                code = CORD_cat("INLINE ", code);
-            if (!is_private)
-                code = CORD_cat("public ", code);
-        }
-
-        env_t *body_scope = fresh_scope(env);
-        body_scope->deferred = NULL;
-        body_scope->namespace = NULL;
-        for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-            type_t *arg_type = get_arg_ast_type(env, arg);
-            set_binding(body_scope, arg->name, arg_type, CORD_cat("_$", arg->name));
-        }
-
-        body_scope->fn_ret = ret_t;
-
-        type_t *body_type = get_type(body_scope, fndef->body);
-        if (ret_t->tag != VoidType && ret_t->tag != AbortType && body_type->tag != AbortType && body_type->tag != ReturnType)
-            code_err(ast, "This function can reach the end without returning a %T value!", ret_t);
-
-        CORD body = compile_statement(body_scope, fndef->body);
-        if (streq(Match(fndef->name, Var)->name, "main"))
-            body = CORD_all("_$", env->namespace->name, "$$initialize();\n", body);
-        if (CORD_fetch(body, 0) != '{')
-            body = CORD_asprintf("{\n%r\n}", body);
-        env->code->funcs = CORD_all(env->code->funcs, with_source_info(ast, CORD_all(code, " ", body, "\n")));
-
-        if (fndef->cache && fndef->args == NULL) { // no-args cache just uses a static var
-            CORD wrapper = CORD_all(
-                is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, "(void) {\n"
-                "static ", compile_declaration(ret_t, "cached_result"), ";\n",
-                "static bool initialized = false;\n",
-                "if (!initialized) {\n"
-                "\tcached_result = ", name, "$uncached();\n",
-                "\tinitialized = true;\n",
-                "}\n",
-                "return cached_result;\n"
-                "}\n");
-            env->code->funcs = CORD_cat(env->code->funcs, wrapper);
-        } else if (fndef->cache && fndef->cache->tag == Int) {
-            assert(fndef->args);
-            OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(fndef->cache, Int)->str));
-            CORD pop_code = CORD_EMPTY;
-            if (fndef->cache->tag == Int && !cache_size.is_none && cache_size.i > 0) {
-                pop_code = CORD_all("if (cache.entries.length > ", CORD_asprintf("%ld", cache_size.i),
-                                    ") Table$remove(&cache, cache.entries.data + cache.entries.stride*RNG$int64(default_rng, 0, cache.entries.length-1), table_type);\n");
-            }
-
-            if (!fndef->args->next) {
-                // Single-argument functions have simplified caching logic
-                type_t *arg_type = get_arg_ast_type(env, fndef->args);
-                CORD wrapper = CORD_all(
-                    is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
-                    "static Table_t cache = {};\n",
-                    "const TypeInfo_t *table_type = Table$info(", compile_type_info(env, arg_type), ", ", compile_type_info(env, ret_t), ");\n",
-                    compile_declaration(Type(PointerType, .pointed=ret_t), "cached"), " = Table$get_raw(cache, &_$", fndef->args->name, ", table_type);\n"
-                    "if (cached) return *cached;\n",
-                    compile_declaration(ret_t, "ret"), " = ", name, "$uncached(_$", fndef->args->name, ");\n",
-                    pop_code,
-                    "Table$set(&cache, &_$", fndef->args->name, ", &ret, table_type);\n"
-                    "return ret;\n"
-                    "}\n");
-                env->code->funcs = CORD_cat(env->code->funcs, wrapper);
-            } else {
-                // Multi-argument functions use a custom struct type (only defined internally) as a cache key:
-                arg_t *fields = NULL;
-                for (arg_ast_t *arg = fndef->args; arg; arg = arg->next)
-                    fields = new(arg_t, .name=arg->name, .type=get_arg_ast_type(env, arg), .next=fields);
-                REVERSE_LIST(fields);
-                type_t *t = Type(StructType, .name=heap_strf("%s$args", fndef->name), .fields=fields, .env=env);
-
-                int64_t num_fields = used_names.entries.length;
-                const char *short_name = Match(fndef->name, Var)->name;
-                const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
-                CORD args_typeinfo = CORD_asprintf("((TypeInfo_t[1]){{.size=%zu, .align=%zu, .metamethods=%s, "
-                                                   ".tag=StructInfo, .StructInfo.name=\"%s\", "
-                                                   ".StructInfo.num_fields=%ld, .StructInfo.fields=(NamedType_t[%ld]){",
-                                                   type_size(t), type_align(t), metamethods, short_name,
-                                                   num_fields, num_fields);
-                CORD args_type = "struct { ";
-                for (arg_t *f = fields; f; f = f->next) {
-                    args_typeinfo = CORD_all(args_typeinfo, "{\"", f->name, "\", ", compile_type_info(env, f->type), "}");
-                    args_type = CORD_all(args_type, compile_declaration(f->type, f->name), "; ");
-                    if (f->next) args_typeinfo = CORD_all(args_typeinfo, ", ");
-                }
-                args_type = CORD_all(args_type, "}");
-                args_typeinfo = CORD_all(args_typeinfo, "}}})");
-
-                CORD all_args = CORD_EMPTY;
-                for (arg_ast_t *arg = fndef->args; arg; arg = arg->next)
-                    all_args = CORD_all(all_args, "_$", arg->name, arg->next ? ", " : CORD_EMPTY);
-
-                CORD wrapper = CORD_all(
-                    is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
-                    "static Table_t cache = {};\n",
-                    args_type, " args = {", all_args, "};\n"
-                    "const TypeInfo_t *table_type = Table$info(", args_typeinfo, ", ", compile_type_info(env, ret_t), ");\n",
-                    compile_declaration(Type(PointerType, .pointed=ret_t), "cached"), " = Table$get_raw(cache, &args, table_type);\n"
-                    "if (cached) return *cached;\n",
-                    compile_declaration(ret_t, "ret"), " = ", name, "$uncached(", all_args, ");\n",
-                    pop_code,
-                    "Table$set(&cache, &args, &ret, table_type);\n"
-                    "return ret;\n"
-                    "}\n");
-                env->code->funcs = CORD_cat(env->code->funcs, wrapper);
-            }
-        }
-
-        CORD text = CORD_all("func ", Match(fndef->name, Var)->name, "(");
-        for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-            text = CORD_cat(text, type_to_cord(get_arg_ast_type(env, arg)));
-            if (arg->next) text = CORD_cat(text, ", ");
-        }
-        if (ret_t && ret_t->tag != VoidType)
-            text = CORD_all(text, ")->", type_to_cord(ret_t));
-        else
-            text = CORD_all(text, ")");
-
-        if (!fndef->is_inline) {
-            env->code->function_naming = CORD_all(
-                env->code->function_naming,
-                CORD_asprintf("register_function(%r, Text(%r \" [%s.tm:%ld]\"));\n",
-                              name, CORD_quoted(text), file_base_name(ast->file->filename), get_line_number(ast->file, ast->start)));
-        }
         return CORD_EMPTY;
     }
     case Skip: {
@@ -1896,26 +1738,26 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         auto use = Match(ast, Use);
         if (use->what == USE_LOCAL) {
             CORD name = file_base_id(Match(ast, Use)->path);
-            env->code->variable_initializers = CORD_all(env->code->variable_initializers,
-                                                        with_source_info(ast, CORD_all("_$", name, "$$initialize();\n")));
-        } else if (use->what == USE_C_CODE) {
-            return CORD_all("#include \"", use->path, "\"\n");
+            return with_source_info(ast, CORD_all("_$", name, "$$initialize();\n"));
         } else if (use->what == USE_MODULE) {
             glob_t tm_files;
             if (glob(heap_strf("~/.local/share/tomo/installed/%s/[!._0-9]*.tm", use->path), GLOB_TILDE, NULL, &tm_files) != 0)
                 code_err(ast, "Could not find library");
 
+            CORD initialization = CORD_EMPTY;
             const char *lib_id = Text$as_c_string(
                 Text$replace(Text$from_str(use->path), Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false));
             for (size_t i = 0; i < tm_files.gl_pathc; i++) {
                 const char *filename = tm_files.gl_pathv[i];
-                env->code->variable_initializers = CORD_all(
-                    env->code->variable_initializers,
+                initialization = CORD_all(
+                    initialization,
                     with_source_info(ast, CORD_all("_$", lib_id, "$", file_base_id(filename), "$$initialize();\n")));
             }
             globfree(&tm_files);
+            return initialization;
+        } else {
+            return CORD_EMPTY;
         }
-        return CORD_EMPTY;
     }
     default:
         if (!is_discardable(env, ast))
@@ -3192,7 +3034,7 @@ CORD compile(env_t *env, ast_t *ast)
         if ((ret_t->tag == VoidType || ret_t->tag == AbortType) && body_scope->deferred)
             body = CORD_all(body, compile_statement(body_scope, FakeAST(Return)), "\n");
 
-        env->code->funcs = CORD_all(env->code->funcs, code, " {\n", body, "\n}\n");
+        env->code->lambdas = CORD_all(env->code->lambdas, code, " {\n", body, "\n}\n");
         return CORD_all("((Closure_t){", name, ", ", userdata, "})");
     }
     case MethodCall: {
@@ -4053,81 +3895,6 @@ CORD compile(env_t *env, ast_t *ast)
     }
 }
 
-void compile_namespace(env_t *env, const char *ns_name, ast_t *block)
-{
-    env_t *ns_env = namespace_env(env, ns_name);
-    CORD prefix = namespace_prefix(ns_env, ns_env->namespace);
-
-    // First prepare variable initializers to prevent unitialized access:
-    for (ast_list_t *stmt = block ? Match(block, Block)->statements : NULL; stmt; stmt = stmt->next) {
-        if (stmt->ast->tag == Declare) {
-            auto decl = Match(stmt->ast, Declare);
-            type_t *t = get_type(ns_env, decl->value);
-            if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
-                code_err(stmt->ast, "You can't declare a variable with a %T value", t);
-            CORD name_code = CORD_all(prefix, Match(decl->var, Var)->name);
-
-            if (!is_constant(env, decl->value)) {
-                env->code->variable_initializers = CORD_all(
-                    env->code->variable_initializers,
-                    with_source_info(
-                        stmt->ast,
-                        CORD_all(name_code, " = ", compile_maybe_incref(ns_env, decl->value, t), ",\n",
-                                 name_code, "$initialized = true;\n")));
-
-                CORD checked_access = CORD_all("check_initialized(", name_code, ", \"", Match(decl->var, Var)->name, "\")");
-                set_binding(ns_env, Match(decl->var, Var)->name, t, checked_access);
-            }
-        }
-    }
-
-    for (ast_list_t *stmt = block ? Match(block, Block)->statements : NULL; stmt; stmt = stmt->next) {
-        ast_t *ast = stmt->ast;
-        switch (ast->tag) {
-        case FunctionDef: {
-            CORD code = compile_statement(ns_env, ast);
-            env->code->funcs = CORD_cat(env->code->funcs, code);
-            break;
-        }
-        case Declare: {
-            auto decl = Match(ast, Declare);
-            type_t *t = get_type(ns_env, decl->value);
-            if (t->tag == FunctionType)
-                t = Type(ClosureType, t);
-            bool is_private = (Match(decl->var, Var)->name[0] == '_');
-            CORD name_code = CORD_all(prefix, Match(decl->var, Var)->name);
-            if (!is_constant(env, decl->value)) {
-                if (t->tag == FunctionType)
-                    t = Type(ClosureType, t);
-
-                env->code->staticdefs = CORD_all(
-                    env->code->staticdefs,
-                    "static bool ", name_code, "$initialized = false;\n",
-                    is_private ? "static " : CORD_EMPTY,
-                    compile_declaration(t, name_code), ";\n");
-            } else {
-                CORD val_code = compile_maybe_incref(ns_env, decl->value, t);
-                if (t->tag == FunctionType) {
-                    assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
-                    t = Type(ClosureType, t);
-                }
-
-                env->code->staticdefs = CORD_all(
-                    env->code->staticdefs,
-                    is_private ? "static " : CORD_EMPTY,
-                    compile_declaration(t, name_code), " = ", val_code, ";\n");
-            }
-            break;
-        }
-        default: {
-            CORD code = compile_statement(ns_env, ast);
-            assert(!code);
-            break;
-        }
-        }
-    }
-}
-
 CORD compile_type_info(env_t *env, type_t *t)
 {
     if (t == THREAD_TYPE) return "&Thread$info";
@@ -4310,24 +4077,260 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
     return code;
 }
 
+CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
+{
+    auto fndef = Match(ast, FunctionDef);
+    bool is_private = Match(fndef->name, Var)->name[0] == '_';
+    CORD name = compile(env, fndef->name);
+    type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
+
+    CORD arg_signature = "(";
+    Table_t used_names = {};
+    for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
+        type_t *arg_type = get_arg_ast_type(env, arg);
+        arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, CORD_cat("_$", arg->name)));
+        if (arg->next) arg_signature = CORD_cat(arg_signature, ", ");
+        if (Table$str_get(used_names, arg->name))
+            code_err(ast, "The argument name '%s' is used more than once", arg->name);
+        Table$str_set(&used_names, arg->name, arg->name);
+    }
+    arg_signature = CORD_cat(arg_signature, ")");
+
+    CORD ret_type_code = compile_type(ret_t);
+
+    if (is_private)
+        *staticdefs = CORD_all(*staticdefs, "static ", ret_type_code, " ", name, arg_signature, ";\n");
+
+    CORD code;
+    if (fndef->cache) {
+        code = CORD_all("static ", ret_type_code, " ", name, "$uncached", arg_signature);
+    } else {
+        code = CORD_all(ret_type_code, " ", name, arg_signature);
+        if (fndef->is_inline)
+            code = CORD_cat("INLINE ", code);
+        if (!is_private)
+            code = CORD_cat("public ", code);
+    }
+
+    env_t *body_scope = fresh_scope(env);
+    body_scope->deferred = NULL;
+    body_scope->namespace = NULL;
+    for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
+        type_t *arg_type = get_arg_ast_type(env, arg);
+        set_binding(body_scope, arg->name, arg_type, CORD_cat("_$", arg->name));
+    }
+
+    body_scope->fn_ret = ret_t;
+
+    type_t *body_type = get_type(body_scope, fndef->body);
+    if (ret_t->tag != VoidType && ret_t->tag != AbortType && body_type->tag != AbortType && body_type->tag != ReturnType)
+        code_err(ast, "This function can reach the end without returning a %T value!", ret_t);
+
+    CORD body = compile_statement(body_scope, fndef->body);
+    if (streq(Match(fndef->name, Var)->name, "main"))
+        body = CORD_all("_$", env->namespace->name, "$$initialize();\n", body);
+    if (CORD_fetch(body, 0) != '{')
+        body = CORD_asprintf("{\n%r\n}", body);
+
+    CORD definition = with_source_info(ast, CORD_all(code, " ", body, "\n"));
+
+    if (fndef->cache && fndef->args == NULL) { // no-args cache just uses a static var
+        CORD wrapper = CORD_all(
+            is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, "(void) {\n"
+            "static ", compile_declaration(ret_t, "cached_result"), ";\n",
+            "static bool initialized = false;\n",
+            "if (!initialized) {\n"
+            "\tcached_result = ", name, "$uncached();\n",
+            "\tinitialized = true;\n",
+            "}\n",
+            "return cached_result;\n"
+            "}\n");
+        definition = CORD_cat(definition, wrapper);
+    } else if (fndef->cache && fndef->cache->tag == Int) {
+        assert(fndef->args);
+        OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(fndef->cache, Int)->str));
+        CORD pop_code = CORD_EMPTY;
+        if (fndef->cache->tag == Int && !cache_size.is_none && cache_size.i > 0) {
+            pop_code = CORD_all("if (cache.entries.length > ", CORD_asprintf("%ld", cache_size.i),
+                                ") Table$remove(&cache, cache.entries.data + cache.entries.stride*RNG$int64(default_rng, 0, cache.entries.length-1), table_type);\n");
+        }
+
+        if (!fndef->args->next) {
+            // Single-argument functions have simplified caching logic
+            type_t *arg_type = get_arg_ast_type(env, fndef->args);
+            CORD wrapper = CORD_all(
+                is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
+                "static Table_t cache = {};\n",
+                "const TypeInfo_t *table_type = Table$info(", compile_type_info(env, arg_type), ", ", compile_type_info(env, ret_t), ");\n",
+                compile_declaration(Type(PointerType, .pointed=ret_t), "cached"), " = Table$get_raw(cache, &_$", fndef->args->name, ", table_type);\n"
+                "if (cached) return *cached;\n",
+                compile_declaration(ret_t, "ret"), " = ", name, "$uncached(_$", fndef->args->name, ");\n",
+                pop_code,
+                "Table$set(&cache, &_$", fndef->args->name, ", &ret, table_type);\n"
+                "return ret;\n"
+                "}\n");
+            definition = CORD_cat(definition, wrapper);
+        } else {
+            // Multi-argument functions use a custom struct type (only defined internally) as a cache key:
+            arg_t *fields = NULL;
+            for (arg_ast_t *arg = fndef->args; arg; arg = arg->next)
+                fields = new(arg_t, .name=arg->name, .type=get_arg_ast_type(env, arg), .next=fields);
+            REVERSE_LIST(fields);
+            type_t *t = Type(StructType, .name=heap_strf("%s$args", fndef->name), .fields=fields, .env=env);
+
+            int64_t num_fields = used_names.entries.length;
+            const char *short_name = Match(fndef->name, Var)->name;
+            const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
+            CORD args_typeinfo = CORD_asprintf("((TypeInfo_t[1]){{.size=%zu, .align=%zu, .metamethods=%s, "
+                                               ".tag=StructInfo, .StructInfo.name=\"%s\", "
+                                               ".StructInfo.num_fields=%ld, .StructInfo.fields=(NamedType_t[%ld]){",
+                                               type_size(t), type_align(t), metamethods, short_name,
+                                               num_fields, num_fields);
+            CORD args_type = "struct { ";
+            for (arg_t *f = fields; f; f = f->next) {
+                args_typeinfo = CORD_all(args_typeinfo, "{\"", f->name, "\", ", compile_type_info(env, f->type), "}");
+                args_type = CORD_all(args_type, compile_declaration(f->type, f->name), "; ");
+                if (f->next) args_typeinfo = CORD_all(args_typeinfo, ", ");
+            }
+            args_type = CORD_all(args_type, "}");
+            args_typeinfo = CORD_all(args_typeinfo, "}}})");
+
+            CORD all_args = CORD_EMPTY;
+            for (arg_ast_t *arg = fndef->args; arg; arg = arg->next)
+                all_args = CORD_all(all_args, "_$", arg->name, arg->next ? ", " : CORD_EMPTY);
+
+            CORD wrapper = CORD_all(
+                is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
+                "static Table_t cache = {};\n",
+                args_type, " args = {", all_args, "};\n"
+                "const TypeInfo_t *table_type = Table$info(", args_typeinfo, ", ", compile_type_info(env, ret_t), ");\n",
+                compile_declaration(Type(PointerType, .pointed=ret_t), "cached"), " = Table$get_raw(cache, &args, table_type);\n"
+                "if (cached) return *cached;\n",
+                compile_declaration(ret_t, "ret"), " = ", name, "$uncached(", all_args, ");\n",
+                pop_code,
+                "Table$set(&cache, &args, &ret, table_type);\n"
+                "return ret;\n"
+                "}\n");
+            definition = CORD_cat(definition, wrapper);
+        }
+    }
+
+    CORD text = CORD_all("func ", Match(fndef->name, Var)->name, "(");
+    for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
+        text = CORD_cat(text, type_to_cord(get_arg_ast_type(env, arg)));
+        if (arg->next) text = CORD_cat(text, ", ");
+    }
+    if (ret_t && ret_t->tag != VoidType)
+        text = CORD_all(text, ")->", type_to_cord(ret_t));
+    else
+        text = CORD_all(text, ")");
+
+    if (!fndef->is_inline) {
+        env->code->function_naming = CORD_all(
+            env->code->function_naming,
+            CORD_asprintf("register_function(%r, Text(%r \" [%s.tm:%ld]\"));\n",
+                          name, CORD_quoted(text), file_base_name(ast->file->filename), get_line_number(ast->file, ast->start)));
+    }
+    return definition;
+}
+
+CORD compile_top_level_code(env_t *env, ast_t *ast)
+{
+    if (!ast) return CORD_EMPTY;
+
+    switch (ast->tag) {
+    case Declare: {
+        auto decl = Match(ast, Declare);
+        const char *decl_name = Match(decl->var, Var)->name;
+        CORD full_name = CORD_all(namespace_prefix(env, env->namespace), decl_name);
+        type_t *t = get_type(env, decl->value);
+        if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
+            code_err(ast, "You can't declare a variable with a %T value", t);
+
+        CORD val_code = compile_maybe_incref(env, decl->value, t);
+        if (t->tag == FunctionType) {
+            assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
+            t = Type(ClosureType, t);
+        }
+
+        bool is_private = decl_name[0] == '_';
+        if (is_constant(env, decl->value)) {
+            set_binding(env, decl_name, t, full_name);
+            return CORD_all(
+                is_private ? "static " : CORD_EMPTY,
+                compile_declaration(t, full_name), " = ", val_code, ";\n");
+        } else {
+            CORD checked_access = CORD_all("check_initialized(", full_name, ", \"", decl_name, "\")");
+            set_binding(env, decl_name, t, checked_access);
+
+            return CORD_all(
+                "static bool ", full_name, "$initialized = false;\n",
+                is_private ? "static " : CORD_EMPTY,
+                compile_declaration(t, full_name), ";\n");
+        }
+    }
+    case FunctionDef: {
+        return compile_function(env, ast, &env->code->staticdefs);
+    }
+    case StructDef: {
+        auto def = Match(ast, StructDef);
+        CORD code = compile_struct_typeinfo(env, ast);
+        env_t *ns_env = namespace_env(env, def->name);
+        return CORD_all(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : CORD_EMPTY);
+    }
+    case EnumDef: {
+        auto def = Match(ast, EnumDef);
+        CORD code = compile_enum_typeinfo(env, ast);
+        code = CORD_all(code, compile_enum_constructors(env, ast));
+        env_t *ns_env = namespace_env(env, def->name);
+        return CORD_all(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : CORD_EMPTY);
+    }
+    case LangDef: {
+        auto def = Match(ast, LangDef);
+        CORD code = CORD_asprintf("public const TypeInfo_t %r%s = {%zu, %zu, .metamethods=Text$metamethods, .tag=TextInfo, .TextInfo={%r}};\n",
+                                  namespace_prefix(env, env->namespace), def->name, sizeof(Text_t), __alignof__(Text_t),
+                                  CORD_quoted(def->name));
+        env_t *ns_env = namespace_env(env, def->name);
+        return CORD_all(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : CORD_EMPTY);
+    }
+    case Block: {
+        CORD code = CORD_EMPTY;
+        for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+            code = CORD_all(code, compile_top_level_code(env, stmt->ast));
+        }
+        return code;
+    }
+    default: return CORD_EMPTY;
+    }
+}
+
 CORD compile_file(env_t *env, ast_t *ast)
 {
+    CORD top_level_code = compile_top_level_code(env, ast);
+    CORD use_imports = CORD_EMPTY;
+
     // First prepare variable initializers to prevent unitialized access:
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-        if (stmt->ast->tag == Declare) {
+        if (stmt->ast->tag == InlineCCode) {
+            CORD code = compile_statement(env, stmt->ast);
+            env->code->staticdefs = CORD_all(env->code->staticdefs, code, "\n");
+        } else if (stmt->ast->tag == Use) {
+            use_imports = CORD_all(use_imports, compile_statement(env, stmt->ast));
+        } else if (stmt->ast->tag == Declare) {
             auto decl = Match(stmt->ast, Declare);
             const char *decl_name = Match(decl->var, Var)->name;
             CORD full_name = CORD_all(namespace_prefix(env, env->namespace), decl_name);
             type_t *t = get_type(env, decl->value);
             if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
                 code_err(stmt->ast, "You can't declare a variable with a %T value", t);
-            if (!is_constant(env, decl->value)) {
-                CORD val_code = compile_maybe_incref(env, decl->value, t);
-                if (t->tag == FunctionType) {
-                    assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
-                    t = Type(ClosureType, t);
-                }
 
+            CORD val_code = compile_maybe_incref(env, decl->value, t);
+            if (t->tag == FunctionType) {
+                assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
+                t = Type(ClosureType, t);
+            }
+
+            if (!is_constant(env, decl->value)) {
                 env->code->variable_initializers = CORD_all(
                     env->code->variable_initializers,
                     with_source_info(
@@ -4335,51 +4338,10 @@ CORD compile_file(env_t *env, ast_t *ast)
                         CORD_all(
                             full_name, " = ", val_code, ",\n",
                             full_name, "$initialized = true;\n")));
-
-                CORD checked_access = CORD_all("check_initialized(", full_name, ", \"", decl_name, "\")");
-                set_binding(env, decl_name, t, checked_access);
             }
-        }
-    }
-
-    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-        if (stmt->ast->tag == Declare) {
-            auto decl = Match(stmt->ast, Declare);
-            const char *decl_name = Match(decl->var, Var)->name;
-            CORD full_name = CORD_all(namespace_prefix(env, env->namespace), decl_name);
-            bool is_private = (decl_name[0] == '_');
-            type_t *t = get_type(env, decl->value);
-            if (!is_constant(env, decl->value)) {
-                env->code->staticdefs = CORD_all(
-                    env->code->staticdefs,
-                    with_source_info(
-                        stmt->ast,
-                        CORD_all(
-                            "static bool ", full_name, "$initialized = false;\n",
-                            is_private ? "static " : CORD_EMPTY,
-                            compile_declaration(t, full_name), ";\n")));
-            } else {
-                CORD val_code = compile_maybe_incref(env, decl->value, t);
-                if (t->tag == FunctionType) {
-                    assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
-                    t = Type(ClosureType, t);
-                }
-                env->code->staticdefs = CORD_all(
-                    env->code->staticdefs,
-                    with_source_info(
-                        stmt->ast,
-                        CORD_all(is_private ? "static " : CORD_EMPTY,
-                                 compile_declaration(t, full_name), " = ", val_code, ";\n")));
-            }
-        } else if (stmt->ast->tag == InlineCCode) {
-            CORD code = compile_statement(env, stmt->ast);
-            env->code->staticdefs = CORD_all(env->code->staticdefs, code, "\n");
-        } else if (stmt->ast->tag == Use) {
-            CORD code = compile_statement(env, stmt->ast);
-            if (code)
-                env->code->staticdefs = CORD_all(env->code->staticdefs, code);
         } else {
             CORD code = compile_statement(env, stmt->ast);
+            if (code) code_err(stmt->ast, "I did not expect this to generate code");
             assert(!code);
         }
     }
@@ -4391,13 +4353,14 @@ CORD compile_file(env_t *env, ast_t *ast)
         "#include <tomo/tomo.h>\n"
         "#include \"", name, ".tm.h\"\n\n",
         env->code->local_typedefs, "\n",
-        env->code->typeinfos, "\n",
+        env->code->lambdas, "\n",
         env->code->staticdefs, "\n",
-        env->code->funcs, "\n",
+        top_level_code,
         "public void _$", env->namespace->name, "$$initialize(void) {\n",
         "static bool initialized = false;\n",
         "if (initialized) return;\n",
         "initialized = true;\n",
+        use_imports,
         env->code->variable_initializers,
         env->code->function_naming,
         "}\n");
@@ -4419,6 +4382,8 @@ CORD compile_statement_type_header(env_t *env, ast_t *ast)
                 return CORD_all("#include ", use->path, "\n");
             else
                 return CORD_all("#include \"", use->path, "\"\n");
+        case USE_C_CODE:
+            return CORD_all("#include \"", use->path, "\"\n");
         default:
             return CORD_EMPTY;
         }

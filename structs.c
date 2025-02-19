@@ -12,7 +12,7 @@
 #include "typecheck.h"
 #include "stdlib/util.h"
 
-void compile_struct_def(env_t *env, ast_t *ast)
+CORD compile_struct_typeinfo(env_t *env, ast_t *ast)
 {
     auto def = Match(ast, StructDef);
     CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
@@ -41,10 +41,7 @@ void compile_struct_def(env_t *env, ast_t *ast)
         }
         typeinfo = CORD_all(typeinfo, "}");
     }
-    typeinfo = CORD_all(typeinfo, "};\n");
-    env->code->typeinfos = CORD_all(env->code->typeinfos, typeinfo);
-
-    compile_namespace(env, def->name, def->namespace);
+    return CORD_all(typeinfo, "};\n");
 }
 
 CORD compile_struct_header(env_t *env, ast_t *ast)
