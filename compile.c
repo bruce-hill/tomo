@@ -2681,7 +2681,7 @@ CORD compile(env_t *env, ast_t *ast)
                 if (chunk->ast->tag == TextLiteral) {
                     chunk_code = compile(env, chunk->ast);
                 } else if (chunk_t->tag == TextType && streq(Match(chunk_t, TextType)->lang, lang)) {
-                    binding_t *esc = get_lang_escape_function(env, lang, chunk_t);
+                    binding_t *esc = get_constructor(env, text_t, new(arg_ast_t, .value=chunk->ast));
                     if (esc) {
                         arg_t *arg_spec = Match(esc->type, FunctionType)->args;
                         arg_ast_t *args = new(arg_ast_t, .value=chunk->ast);
@@ -2690,7 +2690,7 @@ CORD compile(env_t *env, ast_t *ast)
                         chunk_code = compile(env, chunk->ast);
                     }
                 } else if (lang) {
-                    binding_t *esc = get_lang_escape_function(env, lang, chunk_t);
+                    binding_t *esc = get_constructor(env, text_t, new(arg_ast_t, .value=chunk->ast));
                     if (!esc)
                         code_err(chunk->ast, "I don't know how to convert %T to %T", chunk_t, text_t);
 
@@ -3368,6 +3368,12 @@ CORD compile(env_t *env, ast_t *ast)
         } else if (fn_t->tag == TypeInfoType) {
             type_t *t = Match(fn_t, TypeInfoType)->type;
 
+            binding_t *constructor = get_constructor(env, t, call->args);
+            if (constructor) {
+                arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
+                return CORD_all(constructor->code, "(", compile_arguments(env, ast, arg_spec, call->args), ")");
+            }
+
             type_t *actual = call->args ? get_type(env, call->args->value) : NULL;
             if (t->tag == StructType) {
                 // Struct constructor:
@@ -3430,25 +3436,14 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (t->tag == TextType) {
                 if (!call->args) code_err(ast, "This constructor needs a value");
                 const char *lang = Match(t, TextType)->lang;
-                if (lang) { // Escape for DSL
-                    type_t *first_type = get_type(env, call->args->value);
-                    if (type_eq(first_type, t))
-                        return compile(env, call->args->value);
-
-                    binding_t *esc = get_lang_escape_function(env, lang, first_type);
-                    if (!esc)
-                        code_err(ast, "I don't know how to convert %T to %T", first_type, t);
-
-                    arg_t *arg_spec = Match(esc->type, FunctionType)->args;
-                    return CORD_all(esc->code, "(", compile_arguments(env, ast, arg_spec, call->args), ")");
-                } else {
-                    // Text constructor:
-                    if (!call->args || call->args->next)
-                        code_err(call->fn, "This constructor takes exactly 1 argument");
-                    if (type_eq(actual, t))
-                        return compile(env, call->args->value);
-                    return expr_as_text(env, compile(env, call->args->value), actual, "no");
-                }
+                if (lang)
+                    code_err(call->fn, "I don't have a constructor defined for these arguments");
+                // Text constructor:
+                if (!call->args || call->args->next)
+                    code_err(call->fn, "This constructor takes exactly 1 argument");
+                if (type_eq(actual, t))
+                    return compile(env, call->args->value);
+                return expr_as_text(env, compile(env, call->args->value), actual, "no");
             } else if (t->tag == CStringType) {
                 // C String constructor:
                 if (!call->args || call->args->next)
@@ -4489,7 +4484,7 @@ CORD compile_statement_namespace_header(env_t *env, ast_t *ast)
         CORD ret_type_code = compile_type(ret_t);
         CORD name = CORD_all(namespace_prefix(env, env->namespace), decl_name);
         if (env->namespace && env->namespace->parent && env->namespace->name && streq(decl_name, env->namespace->name))
-            name = CORD_asprintf("%r$%ld", name, get_line_number(ast->file, ast->start));
+            name = CORD_asprintf("%r%ld", namespace_prefix(env, env->namespace), get_line_number(ast->file, ast->start));
         return CORD_all(ret_type_code, " ", name, arg_signature, ";\n");
     }
     default: return CORD_EMPTY;

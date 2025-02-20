@@ -65,7 +65,7 @@ env_t *namespace_env(env_t *env, const char *namespace_name);
 __attribute__((format(printf, 4, 5)))
 _Noreturn void compiler_err(file_t *f, const char *start, const char *end, const char *fmt, ...);
 binding_t *get_binding(env_t *env, const char *name);
-binding_t *get_lang_escape_function(env_t *env, const char *lang_name, type_t *type_to_escape);
+binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args);
 void set_binding(env_t *env, const char *name, type_t *type, CORD code);
 binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name);
 #define code_err(ast, ...) compiler_err((ast)->file, (ast)->start, (ast)->end, __VA_ARGS__)

@@ -791,7 +791,11 @@ type_t *get_type(env_t *env, ast_t *ast)
 
         if (fn_type_t->tag == TypeInfoType) {
             type_t *t = Match(fn_type_t, TypeInfoType)->type;
-            if (t->tag == StructType || t->tag == IntType || t->tag == BigIntType || t->tag == NumType
+
+            binding_t *constructor = get_constructor(env, t, call->args);
+            if (constructor)
+                return t;
+            else if (t->tag == StructType || t->tag == IntType || t->tag == BigIntType || t->tag == NumType
                 || t->tag == ByteType || t->tag == TextType || t->tag == CStringType || t->tag == MomentType)
                 return t; // Constructor
             code_err(call->fn, "This is not a type that has a constructor");
@@ -1361,6 +1365,58 @@ type_t *get_arg_type(env_t *env, arg_t *arg)
     assert(arg->type || arg->default_val);
     if (arg->type) return arg->type;
     return get_type(env, arg->default_val);
+}
+
+bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bool promotion_allowed)
+{
+    Table_t used_args = {};
+    for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
+        type_t *spec_type = get_arg_type(env, spec_arg);
+        int64_t i = 1;
+        // Find keyword:
+        if (spec_arg->name) {
+            for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
+                if (call_arg->name && streq(call_arg->name, spec_arg->name)) {
+                    type_t *call_type = get_arg_ast_type(env, call_arg);
+                    if (!(type_eq(call_type, spec_type) || (promotion_allowed && can_promote(call_type, spec_type))))
+                        return false;
+                    Table$str_set(&used_args, call_arg->name, call_arg);
+                    goto found_it;
+                }
+            }
+        }
+        // Find positional:
+        for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
+            if (call_arg->name) continue;
+            const char *pseudoname = heap_strf("%ld", i++);
+            if (!Table$str_get(used_args, pseudoname)) {
+                type_t *call_type = get_arg_ast_type(env, call_arg);
+                if (!(type_eq(call_type, spec_type) || (promotion_allowed && can_promote(call_type, spec_type))))
+                    return false;
+                Table$str_set(&used_args, pseudoname, call_arg);
+                goto found_it;
+            }
+        }
+
+        if (spec_arg->default_val)
+            goto found_it;
+
+        return false;
+      found_it: continue;
+    }
+
+    int64_t i = 1;
+    for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
+        if (call_arg->name) {
+            if (!Table$str_get(used_args, call_arg->name))
+                return false;
+        } else {
+            const char *pseudoname = heap_strf("%ld", i++);
+            if (!Table$str_get(used_args, pseudoname))
+                return false;
+        }
+    }
+    return true;
 }
 
 PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast)

@@ -690,22 +690,50 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
     return NULL;
 }
 
-PUREFUNC binding_t *get_lang_escape_function(env_t *env, const char *lang_name, type_t *type_to_escape)
+PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args)
 {
-    if (!lang_name) lang_name = "Text";
-    binding_t *typeinfo = get_binding(env, lang_name);
+    const char *type_name;
+    t = value_type(t);
+    switch (t->tag) {
+    case TextType: {
+        type_name = Match(t, TextType)->lang;
+        if (type_name == NULL) type_name = "Text";
+        break;
+    }
+    case StructType: {
+        type_name = Match(t, StructType)->name;
+        break;
+    }
+    case EnumType: {
+        type_name = Match(t, EnumType)->name;
+        break;
+    }
+    default: {
+        type_name = NULL;
+        break;
+    }
+    }
+
+    if (!type_name)
+        return NULL;
+
+    binding_t *typeinfo = get_binding(env, type_name);
     assert(typeinfo && typeinfo->type->tag == TypeInfoType);
-    env_t *lang_env = Match(typeinfo->type, TypeInfoType)->env;
-    Array_t constructors = lang_env->namespace->constructors;
+    env_t *type_env = Match(typeinfo->type, TypeInfoType)->env;
+    Array_t constructors = type_env->namespace->constructors;
+    // Prioritize exact matches:
     for (int64_t i = 0; i < constructors.length; i++) {
         binding_t *b = constructors.data + i*constructors.stride;
         auto fn = Match(b->type, FunctionType);
-        if (!fn->args || fn->args->next) continue;
-        if (fn->ret->tag != TextType || !streq(Match(fn->ret, TextType)->lang, lang_name))
-            continue;
-        if (!can_promote(type_to_escape, fn->args->type))
-            continue;
-        return b;
+        if (is_valid_call(env, fn->args, args, false))
+            return b;
+    }
+    // Fall back to promotion:
+    for (int64_t i = 0; i < constructors.length; i++) {
+        binding_t *b = constructors.data + i*constructors.stride;
+        auto fn = Match(b->type, FunctionType);
+        if (is_valid_call(env, fn->args, args, true))
+            return b;
     }
     return NULL;
 }
