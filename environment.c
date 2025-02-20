@@ -482,7 +482,7 @@ env_t *new_compilation_unit(CORD libname)
         ADD_CONSTRUCTOR(ns_env, "Shell$escape_text_array", "func(texts:[Text] -> Shell)");
         ADD_CONSTRUCTOR(ns_env, "Int$value_as_text", "func(i:Int -> Shell)");
     }
-
+#undef ADD_CONSTRUCTOR
 
     set_binding(namespace_env(env, "Shell"), "without_escaping",
                 Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
