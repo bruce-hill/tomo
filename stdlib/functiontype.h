@@ -1,15 +1,19 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "metamethods.h"
+#include "optionals.h"
 #include "types.h"
 #include "util.h"
 
 // Logic for handling function type values
 
-void register_function(void *fn, Text_t name);
-Text_t *get_function_name(void *fn);
+void register_function(void *fn, Text_t filename, int64_t line_num, Text_t name);
+OptionalText_t get_function_name(void *fn);
+OptionalText_t get_function_filename(void *fn);
+int64_t get_function_line_num(void *fn);
 Text_t Func$as_text(const void *fn, bool colorize, const TypeInfo_t *type);
 PUREFUNC bool Func$is_none(const void *obj, const TypeInfo_t*);
 

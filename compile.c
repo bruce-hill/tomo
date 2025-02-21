@@ -2950,8 +2950,9 @@ CORD compile(env_t *env, ast_t *ast)
 
         env->code->function_naming = CORD_all(
             env->code->function_naming,
-            CORD_asprintf("register_function(%r, Text(%r \" [%s.tm:%ld]\"));\n",
-                          name, CORD_quoted(type_to_cord(get_type(env, ast))), file_base_name(ast->file->filename), get_line_number(ast->file, ast->start)));
+            CORD_asprintf("register_function(%r, Text(\"%s.tm\"), %ld, Text(%r));\n",
+                          name, file_base_name(ast->file->filename), get_line_number(ast->file, ast->start),
+                          CORD_quoted(type_to_cord(get_type(env, ast)))));
 
         env_t *body_scope = fresh_scope(env);
         body_scope->deferred = NULL;
@@ -4225,8 +4226,8 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
     if (!fndef->is_inline) {
         env->code->function_naming = CORD_all(
             env->code->function_naming,
-            CORD_asprintf("register_function(%r, Text(%r \" [%s.tm:%ld]\"));\n",
-                          name, CORD_quoted(text), file_base_name(ast->file->filename), get_line_number(ast->file, ast->start)));
+            CORD_asprintf("register_function(%r, Text(\"%s.tm\"), %ld, Text(%r));\n",
+                          name, file_base_name(ast->file->filename), get_line_number(ast->file, ast->start), CORD_quoted(text)));
     }
     return definition;
 }
