@@ -59,9 +59,6 @@ C code, which is then compiled using a C compiler of your choice.
 `--c-compiler`
 : Set which C compiler is used.
 
-`-f`, `--autoformat`
-: Set which autoformat program is used.
-
 `-v`, `--verbose`
 : Print extra verbose output.
 
@@ -74,6 +71,3 @@ Some options can be configured by setting environment variables.
 
 `CC=`*c-compiler*
 : Set which C compiler is used.
-
-`AUTOFMT=`*autoformatter*
-: The program used to autoformat generated C code. Default: `indent -kr -l100 -nbbo -nut -sob`

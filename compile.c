@@ -62,7 +62,7 @@ static CORD with_source_info(ast_t *ast, CORD code)
     if (code == CORD_EMPTY || !ast || !ast->file)
         return code;
     int64_t line = get_line_number(ast->file, ast->start);
-    return CORD_asprintf("#line %ld\n%r", line, code);
+    return CORD_asprintf("\n#line %ld\n%r", line, code);
 }
 
 static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *needed)

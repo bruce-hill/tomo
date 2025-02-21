@@ -130,14 +130,6 @@ tomo -t foo.tm
 # Outputs: foo.tm.h foo.tm.c
 ```
 
-Tomo uses the environment variables (`$CC`, `$VERBOSE`, and `$AUTOFMT`), which
-control the compilation/running behavior of Tomo. The default behavior is to
-use `tcc` (Tiny C Compiler) for fast compilation, `VERBOSE=0`, and
-`AUTOFMT='indent -kr -l100 -nbbo -nut -sob'` for autoformatting generated code.
-Any of these variables may be overridden, e.g. `CC=gcc VERBOSE=1 AUTOFMT= tomo
-foo.tm` (compile with GCC and verbose compiler output without autoformatting
-the code).
-
 ## Installing
 
 ```

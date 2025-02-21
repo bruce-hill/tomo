@@ -42,7 +42,7 @@ static OptionalBool_t verbose = false,
                       library_mode = false,
                       uninstall = false;
 
-static OptionalText_t autofmt = Text("sed '/^\\s*$/d' | indent -kr -l100 -nbbo -nut -sob"),
+static OptionalText_t 
             cflags = Text("-Werror -fdollars-in-identifiers -std=gnu11 -Wno-trigraphs -fsanitize=signed-integer-overflow -fno-sanitize-recover"
                           " -fno-signed-zeros -fno-finite-math-only -fno-signaling-nans -fno-trapping-math"
                           " -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -fPIC -ggdb"
@@ -109,8 +109,6 @@ int main(int argc, char *argv[])
         {"C", false, &Bool$info, &show_codegen},
         {"install", false, &Bool$info, &should_install},
         {"I", false, &Bool$info, &should_install},
-        {"autoformat", false, &Text$info, &autofmt},
-        {"f", false, &Text$info, &autofmt},
         {"c-compiler", false, &Text$info, &cc},
         {"optimization", false, &Text$info, &optimization},
         {"O", false, &Text$info, &optimization},
@@ -299,18 +297,18 @@ void build_library(Text_t lib_dir_name)
     env->libname = Text$as_c_string(escape_lib_name(lib_dir_name));
 
     // Build a "whatever.h" header that loads all the headers:
-    FILE *header_prog = run_cmd("%k 2>/dev/null >'%k.h'", &autofmt, &lib_dir_name);
-    fputs("#pragma once\n", header_prog);
-    fputs("#include <tomo/tomo.h>\n", header_prog);
+    FILE *header = fopen(heap_strf("%k.h", &lib_dir_name), "w");
+    fputs("#pragma once\n", header);
+    fputs("#include <tomo/tomo.h>\n", header);
     Table_t visited_files = {};
     Table_t used_imports = {};
     for (size_t i = 0; i < tm_files.gl_pathc; i++) {
         const char *filename = tm_files.gl_pathv[i];
         Path_t resolved = Path$resolved(Text$from_str(filename), Path("."));
-        _compile_file_header_for_library(env, resolved, &visited_files, &used_imports, header_prog);
+        _compile_file_header_for_library(env, resolved, &visited_files, &used_imports, header);
     }
-    if (pclose(header_prog) == -1)
-        errx(1, "Failed to run autoformat program on header file: %k", &autofmt);
+    if (fclose(header) == -1)
+        errx(1, "Failed to write header file: %k.h", &lib_dir_name);
 
     // Build up a list of symbol renamings:
     unlink("symbol_renames.txt");
@@ -516,10 +514,10 @@ void transpile_header(env_t *base_env, Text_t filename, bool force_retranspile)
 
     CORD h_code = compile_file_header(module_env, ast);
 
-    FILE *prog = run_cmd("%k 2>/dev/null >'%k'", &autofmt, &h_filename);
-    CORD_put(h_code, prog);
-    if (pclose(prog) == -1)
-        errx(1, "Failed to run autoformat program on header file: %k", &autofmt);
+    FILE *header = fopen(Text$as_c_string(h_filename), "w");
+    CORD_put(h_code, header);
+    if (fclose(header) == -1)
+        errx(1, "Failed to write header file: %k", &h_filename);
 
     if (!quiet || verbose)
         printf("\x1b[2mTranspiled to %k\x1b[m\n", &h_filename);
@@ -542,11 +540,11 @@ void transpile_code(env_t *base_env, Text_t filename, bool force_retranspile)
 
     CORD c_code = compile_file(module_env, ast);
 
-    FILE *out = run_cmd("%k 2>/dev/null >'%k'", &autofmt, &c_filename);
-    if (!out)
-        errx(1, "Failed to run autoformat program: %k", &autofmt);
+    FILE *c_file = fopen(Text$as_c_string(c_filename), "w");
+    if (!c_file)
+        errx(1, "Failed to write C file: %k", &c_filename);
 
-    CORD_put(c_code, out);
+    CORD_put(c_code, c_file);
 
     binding_t *main_binding = get_binding(module_env, "main");
     if (main_binding && main_binding->type->tag == FunctionType) {
@@ -558,11 +556,11 @@ void transpile_code(env_t *base_env, Text_t filename, bool force_retranspile)
             "\n",
             compile_cli_arg_call(module_env, main_binding->code, main_binding->type),
             "return 0;\n"
-            "}\n"), out);
+            "}\n"), c_file);
     }
 
-    if (pclose(out) == -1)
-        errx(1, "Failed to output autoformatted C code to %k: %k", &c_filename, &autofmt);
+    if (fclose(c_file) == -1)
+        errx(1, "Failed to output C code to %k", &c_filename);
 
     if (!quiet || verbose)
         printf("\x1b[2mTranspiled to %k\x1b[m\n", &c_filename);
