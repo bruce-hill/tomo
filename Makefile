@@ -57,7 +57,7 @@ tags:
 %.tm.testresult: %.tm tomo
 	@printf '\x1b[33;1;4m%s\x1b[m\n' $<
 	@set -o pipefail; \
-	if ! VERBOSE=0 COLOR=1 CC=gcc O=1 ./tomo $< 2>&1 | tee $@; then \
+	if ! VERBOSE=0 COLOR=1 CC=gcc ./tomo -O 1 $< 2>&1 | tee $@; then \
 		rm -f $@; \
 		false; \
 	fi
