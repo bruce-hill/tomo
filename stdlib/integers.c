@@ -576,19 +576,35 @@ public void Int32$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t
         } \
         return bit_array; \
     } \
+    typedef struct { \
+        Optional##KindOfInt##_t current, last; \
+        KindOfInt##_t step; \
+    } KindOfInt##Range_t; \
+    static Optional##KindOfInt##_t _next_##KindOfInt(KindOfInt##Range_t *info) \
+    { \
+        Optional##KindOfInt##_t i = info->current; \
+        if (!i.is_none) { \
+            KindOfInt##_t next; bool overflow = __builtin_add_overflow(i.i, info->step, &next); \
+            if (overflow || (!info->last.is_none && (info->step >= 0 ? next > info->last.i : next < info->last.i))) \
+                info->current = (Optional##KindOfInt##_t){.is_none=true}; \
+            else \
+                info->current = (Optional##KindOfInt##_t){.i=next}; \
+        } \
+        return i; \
+    } \
     public to_attr Closure_t KindOfInt ## $to(c_type first, c_type last, Optional ## KindOfInt ## _t step) { \
-        IntRange_t *range = GC_MALLOC(sizeof(IntRange_t)); \
-        range->current = KindOfInt##_to_Int(first); \
-        range->last = KindOfInt##_to_Int(last); \
-        range->step = step.is_none ? (last >= first ? I_small(1) : I_small(-1)) : KindOfInt##_to_Int(step.i); \
-        return (Closure_t){.fn=_next_int, .userdata=range}; \
+        KindOfInt##Range_t *range = GC_MALLOC(sizeof(KindOfInt##Range_t)); \
+        range->current = (Optional##KindOfInt##_t){.i=first}; \
+        range->last = (Optional##KindOfInt##_t){.i=last}; \
+        range->step = step.is_none ? (last >= first ? 1 : -1) : step.i; \
+        return (Closure_t){.fn=_next_##KindOfInt, .userdata=range}; \
     } \
     public to_attr Closure_t KindOfInt ## $onward(c_type first, c_type step) { \
-        IntRange_t *range = GC_MALLOC(sizeof(IntRange_t)); \
-        range->current = KindOfInt##_to_Int(first); \
-        range->last = NONE_INT; \
-        range->step = KindOfInt##_to_Int(step); \
-        return (Closure_t){.fn=_next_int, .userdata=range}; \
+        KindOfInt##Range_t *range = GC_MALLOC(sizeof(KindOfInt##Range_t)); \
+        range->current = (Optional##KindOfInt##_t){.i=first}; \
+        range->last = (Optional##KindOfInt##_t){.is_none=true}; \
+        range->step = step; \
+        return (Closure_t){.fn=_next_##KindOfInt, .userdata=range}; \
     } \
     public PUREFUNC Optional ## KindOfInt ## _t KindOfInt ## $parse(Text_t text) { \
         OptionalInt_t full_int = Int$parse(text); \
