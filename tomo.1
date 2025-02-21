@@ -35,26 +35,30 @@ compiler of your choice.
 \f[B]\-h\f[R], \f[B]\-\-help\f[R]
 Print the usage and exit.
 .TP
-\f[B]\-t\f[R]
+\f[B]\-t\f[R], \f[B]\-\-transpile\f[R]
 Transpile the input files to C code without compiling them.
 .TP
-\f[B]\-c\f[R]
+\f[B]\-c\f[R], \f[B]\-\-compile\-obj\f[R]
 Compile the input files to static objects, rather than running them.
 .TP
-\f[B]\-e\f[R]
+\f[B]\-e\f[R], \f[B]\-\-compile\-exe\f[R]
 Compile the input file to an executable.
 .TP
-\f[B]\-L\f[R]
+\f[B]\-L\f[R], \f[B]\-\-library\f[R]
 Compile the input files to a library \f[B].so\f[R] file and header.
 .TP
-\f[B]\-I\f[R]
+\f[B]\-I\f[R], \f[B]\-\-install\f[R]
 Install the compiled executable or library.
 .TP
-\f[B]\-C\f[R]
-Print transpiled C code to the console.
+\f[B]\-C\f[R] \f[I]\f[R], \f[B]\-\-show\-codegen\f[R] \f[I]\f[R]
+Set a program (e.g.\ \f[B]cat\f[R] or \f[B]bat\f[R]) to display the
+generated code
 .TP
 \f[B]\-\-c\-compiler\f[R]
 Set which C compiler is used.
+.TP
+\f[B]\-O\f[R] \f[B]level\f[R], \f[B]\-\-optimization\f[R] \f[B]level\f[R]
+Set the optimization level.
 .TP
 \f[B]\-v\f[R], \f[B]\-\-verbose\f[R]
 Print extra verbose output.

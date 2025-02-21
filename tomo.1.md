@@ -38,26 +38,29 @@ C code, which is then compiled using a C compiler of your choice.
 `-h`, `--help`
 : Print the usage and exit.
 
-`-t`
+`-t`, `--transpile`
 : Transpile the input files to C code without compiling them.
 
-`-c`
+`-c`, `--compile-obj`
 : Compile the input files to static objects, rather than running them.
 
-`-e`
+`-e`, `--compile-exe`
 : Compile the input file to an executable.
 
-`-L`
+`-L`, `--library`
 : Compile the input files to a library `.so` file and header.
 
-`-I`
+`-I`, `--install`
 : Install the compiled executable or library.
 
-`-C`
-: Print transpiled C code to the console.
+`-C` *<program>*, `--show-codegen` *<program>*
+: Set a program (e.g. `cat` or `bat`) to display the generated code
 
 `--c-compiler`
 : Set which C compiler is used.
+
+`-O` **level**, `--optimization` **level**
+: Set the optimization level.
 
 `-v`, `--verbose`
 : Print extra verbose output.

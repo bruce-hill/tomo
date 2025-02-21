@@ -34,7 +34,6 @@ static OptionalArray_t files = NONE_ARRAY,
                        args = NONE_ARRAY;
 static OptionalBool_t verbose = false,
                       quiet = false,
-                      show_codegen = false,
                       stop_at_transpile = false,
                       stop_at_obj_compilation = false,
                       stop_at_exe_compilation = false,
@@ -43,6 +42,7 @@ static OptionalBool_t verbose = false,
                       uninstall = false;
 
 static OptionalText_t 
+            show_codegen = NONE_TEXT,
             cflags = Text("-Werror -fdollars-in-identifiers -std=gnu11 -Wno-trigraphs -fsanitize=signed-integer-overflow -fno-sanitize-recover"
                           " -fno-signed-zeros -fno-finite-math-only -fno-signaling-nans -fno-trapping-math"
                           " -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -fPIC -ggdb"
@@ -105,8 +105,8 @@ int main(int argc, char *argv[])
         {"u", false, &Bool$info, &uninstall},
         {"library", false, &Bool$info, &library_mode},
         {"L", false, &Bool$info, &library_mode},
-        {"show-codegen", false, &Bool$info, &show_codegen},
-        {"C", false, &Bool$info, &show_codegen},
+        {"show-codegen", false, &Text$info, &show_codegen},
+        {"C", false, &Text$info, &show_codegen},
         {"install", false, &Bool$info, &should_install},
         {"I", false, &Bool$info, &should_install},
         {"c-compiler", false, &Text$info, &cc},
@@ -522,8 +522,8 @@ void transpile_header(env_t *base_env, Text_t filename, bool force_retranspile)
     if (!quiet || verbose)
         printf("\x1b[2mTranspiled to %k\x1b[m\n", &h_filename);
 
-    if (show_codegen)
-        system(heap_strf("bat -P %k", &h_filename));
+    if (show_codegen.length > 0)
+        system(heap_strf("%k %k", &show_codegen, &h_filename));
 }
 
 void transpile_code(env_t *base_env, Text_t filename, bool force_retranspile)
@@ -565,8 +565,8 @@ void transpile_code(env_t *base_env, Text_t filename, bool force_retranspile)
     if (!quiet || verbose)
         printf("\x1b[2mTranspiled to %k\x1b[m\n", &c_filename);
 
-    if (show_codegen)
-        system(heap_strf("bat -P %k", &c_filename));
+    if (show_codegen.length > 0)
+        system(heap_strf("%k %k", &show_codegen, &c_filename));
 }
 
 void compile_object_file(Text_t filename, bool force_recompile)
@@ -613,8 +613,8 @@ Text_t compile_executable(env_t *base_env, Text_t filename, Array_t object_files
         "}\n"
     );
 
-    if (show_codegen) {
-        FILE *out = run_cmd("bat -P --file-name=run.c");
+    if (show_codegen.length > 0) {
+        FILE *out = run_cmd("%k", &show_codegen);
         CORD_put(program, out);
         pclose(out);
     }
