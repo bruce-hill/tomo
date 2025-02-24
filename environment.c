@@ -479,7 +479,9 @@ env_t *new_compilation_unit(CORD libname)
     {
         env_t *ns_env = namespace_env(env, "Shell");
         ADD_CONSTRUCTOR(ns_env, "Shell$escape_text", "func(text:Text -> Shell)");
+        ADD_CONSTRUCTOR(ns_env, "Shell$escape_text", "func(path:Path -> Shell)");
         ADD_CONSTRUCTOR(ns_env, "Shell$escape_text_array", "func(texts:[Text] -> Shell)");
+        ADD_CONSTRUCTOR(ns_env, "Shell$escape_text_array", "func(paths:[Path] -> Shell)");
         ADD_CONSTRUCTOR(ns_env, "Int$value_as_text", "func(i:Int -> Shell)");
     }
 #undef ADD_CONSTRUCTOR
