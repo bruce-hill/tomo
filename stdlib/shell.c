@@ -75,6 +75,12 @@ public OptionalText_t Shell$run(Shell_t command)
     return Text$from_bytes(bytes);
 }
 
+public int32_t Shell$execute(Shell_t command)
+{
+    const char *cmd_str = Text$as_c_string(command);
+    return system(cmd_str);
+}
+
 static void _line_reader_cleanup(FILE **f)
 {
     if (f && *f) {
