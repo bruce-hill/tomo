@@ -50,7 +50,7 @@ public OptionalArray_t Shell$run_bytes(Shell_t command)
         if (len + (size_t)just_read >= capacity)
             content = GC_REALLOC(content, (capacity *= 2));
 
-        memcpy(&content[len], chunk, (size_t)just_read);
+        memcpy(content + len, chunk, (size_t)just_read);
         len += (size_t)just_read;
     } while (just_read == sizeof(chunk));
 
@@ -75,10 +75,14 @@ public OptionalText_t Shell$run(Shell_t command)
     return Text$from_bytes(bytes);
 }
 
-public int32_t Shell$execute(Shell_t command)
+public OptionalInt32_t Shell$execute(Shell_t command)
 {
     const char *cmd_str = Text$as_c_string(command);
-    return system(cmd_str);
+    int status = system(cmd_str);
+    if (WIFEXITED(status))
+        return (OptionalInt32_t){.i=WEXITSTATUS(status)};
+    else
+        return (OptionalInt32_t){.is_none=true};
 }
 
 static void _line_reader_cleanup(FILE **f)
