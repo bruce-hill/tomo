@@ -514,7 +514,7 @@ public void end_test(const void *expr, const TypeInfo_t *type, const char *expec
             fprintf(stderr, 
                     USE_COLOR
                     ? "\n\x1b[31;7m ==================== TEST FAILED ==================== \x1b[0;1m\n\nExpected: \x1b[1;32m%s\x1b[0m\n\x1b[1m But got:\x1b[m %k\n\n"
-                    : "\n==================== TEST FAILED ====================\nExpected: %s\n\n But got: %k\n\n",
+                    : "\n==================== TEST FAILED ====================\n\nExpected: %s\n But got: %k\n\n",
                     expected, &expr_text);
 
             print_stack_trace(stderr, 2, 4);
