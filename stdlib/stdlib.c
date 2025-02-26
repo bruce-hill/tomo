@@ -383,26 +383,69 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
 }
 #pragma GCC diagnostic pop
 
+static void print_stack_line(FILE *out, OptionalText_t fn_name, const char *filename, int64_t line_num)
+{
+    // NOTE: this function is a bit inefficient. Each time we print a line, we
+    // do a linear scan through the whole file. However, performance shouldn't
+    // really matter if we only print stack lines when there's a crash.
+    if (filename) {
+        fprintf(out, "\033[34mFile\033[m \033[35;1m%s\033[m", filename);
+        if (line_num >= 1)
+            fprintf(out, "\033[34m line\033[m \033[35;1m%ld\033[m", line_num);
+    }
+    if (fn_name.length > 0) {
+        fprintf(out, filename ? "\033[34m, in \033[m \033[36;1m%k\033[m" : "\033[36;1m%k\033[m", &fn_name);
+    }
+    fprintf(out, "\n");
+
+    FILE *f = fopen(filename, "r");
+    char *line = NULL;
+    size_t size = 0;
+    ssize_t nread;
+    int64_t cur_line = 1;
+    while ((nread = getline(&line, &size, f)) != -1) {
+        if (line[strlen(line)-1] == '\n')
+            line[strlen(line)-1] = '\0';
+
+        if (cur_line >= line_num)
+            fprintf(out, "\033[33;1m%s\033[m\n", line);
+
+        cur_line += 1;
+        if (cur_line > line_num)
+            break;
+    }
+    if (line) free(line);
+    fclose(f);
+}
+
 void print_stack_trace(FILE *out, int start, int stop)
 {
     // Print stack trace:
-    fprintf(out, "\x1b[34m");
-    fflush(out);
-    void *array[1024];
-    int64_t size = (int64_t)backtrace(array, sizeof(array)/sizeof(array[0]));
-    char **strings = strings = backtrace_symbols(array, size);
+    void *stack[1024];
+    int64_t size = (int64_t)backtrace(stack, sizeof(stack)/sizeof(stack[0]));
+    char **strings = strings = backtrace_symbols(stack, size);
     for (int64_t i = start; i < size - stop; i++) {
         char *filename = strings[i];
-        const char *cmd = heap_strf("addr2line -e %.*s -fisp | sed 's/^_\\$//;s/\\$/./g;s/ at /() at /' >&2", strcspn(filename, "("), filename);
-        FILE *fp = popen(cmd, "w");
+        char *paren = strchrnul(strings[i], '(');
+        char *addr_end = paren + 1 + strcspn(paren + 1, ")");
+        ptrdiff_t offset = strtol(paren + 1, &addr_end, 16) - 1;
+        const char *cmd = heap_strf("addr2line -e %.*s -is +0x%x", strcspn(filename, "("), filename, offset);
+        FILE *fp = popen(cmd, "r");
+        OptionalText_t fn_name = get_function_name(stack[i]);
+        const char *src_filename = NULL;
+        int64_t line_number = 0;
         if (fp) {
-            char *paren = strchrnul(strings[i], '(');
-            fprintf(fp, "%.*s\n", strcspn(paren + 1, ")"), paren + 1);
+            char buf[PATH_MAX + 10] = {};
+            if (fgets(buf, sizeof(buf), fp)) {
+                char *saveptr, *line_num_str;
+                if ((src_filename=strtok_r(buf, ":", &saveptr))
+                    && (line_num_str=strtok_r(NULL, ":", &saveptr)))
+                    line_number = atoi(line_num_str);
+            }
+            pclose(fp);
         }
-        pclose(fp);
+        print_stack_line(out, fn_name, src_filename, line_number);
     }
-    fprintf(out, "\x1b[m");
-    fflush(out);
 }
 
 __attribute__((format(printf, 1, 2)))

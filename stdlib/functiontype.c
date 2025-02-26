@@ -52,13 +52,13 @@ PUREFUNC static func_info_t *get_function_info(void *fn)
     return info;
 }
 
-PUREFUNC public Text_t get_function_name(void *fn)
+PUREFUNC public OptionalText_t get_function_name(void *fn)
 {
     func_info_t *info = get_function_info(fn);
     return info ? info->name : NONE_TEXT;
 }
 
-PUREFUNC public Text_t get_function_filename(void *fn)
+PUREFUNC public OptionalText_t get_function_filename(void *fn)
 {
     func_info_t *info = get_function_info(fn);
     return info ? info->filename : NONE_TEXT;
