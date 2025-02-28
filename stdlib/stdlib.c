@@ -69,6 +69,8 @@ public void tomo_init(void)
 
 static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)
 {
+    if (!arg) return false;
+
     while (info->tag == OptionalInfo)
         info = info->OptionalInfo.type;
 
@@ -241,6 +243,8 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                         populated_args[s] = true;
                         *(OptionalBool_t*)spec[s].dest = true;
                     } else {
+                        if (i + 1 >= argc)
+                            errx(1, "Missing argument: %s\n%k", argv[i], &usage);
                         used_args[i+1] = true;
                         populated_args[s] = parse_single_arg(spec[s].type, argv[i+1], spec[s].dest);
                         if (!populated_args[s])
