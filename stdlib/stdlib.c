@@ -403,6 +403,7 @@ static void print_stack_line(FILE *out, OptionalText_t fn_name, const char *file
     fprintf(out, "\n");
 
     FILE *f = fopen(filename, "r");
+    if (!f) return;
     char *line = NULL;
     size_t size = 0;
     ssize_t nread;
