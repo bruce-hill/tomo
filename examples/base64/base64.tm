@@ -65,7 +65,7 @@ lang Base64:
         return Text.from_bytes(b64:decode_bytes() or return none)
 
     func decode_bytes(b64:Base64 -> [Byte]?):
-        bytes := b64.text_content:bytes()
+        bytes := b64.text:bytes()
         output := &[Byte(0) for _ in bytes.length/4 * 3]
         src := Int64(1)
         dest := Int64(1)
@@ -94,4 +94,4 @@ func main(input=(/dev/stdin), decode=no):
         say(b:decode_text()!)
     else:
         text := input:read()!
-        say(Base64.parse(text)!.text_content)
+        say(Base64.parse(text)!.text)

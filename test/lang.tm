@@ -28,7 +28,7 @@ func main():
 	>> HTML.HEADER[1]
 	= $HTML"<"
 
-	>> HTML.HEADER.text_content
+	>> HTML.HEADER.text
 	= "<!DOCTYPE HTML>"
 
 	>> user := "I <3 hax"

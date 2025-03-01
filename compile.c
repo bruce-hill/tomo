@@ -3722,7 +3722,7 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case TextType: {
             const char *lang = Match(value_t, TextType)->lang; 
-            if (lang && streq(f->field, "text_content")) {
+            if (lang && streq(f->field, "text")) {
                 CORD text = compile_to_pointer_depth(env, f->fielded, 0, false);
                 return CORD_all("((Text_t)", text, ")");
             } else if (streq(f->field, "length")) {

@@ -7,7 +7,7 @@ _HELP := "
 "
 
 func parse_ini(path:Path -> {Text,{Text,Text}}):
-    text := path:read() or exit("Could not read INI file: $\[31;1]$(path.text_content)$\[]")
+    text := path:read() or exit("Could not read INI file: $\[31;1]$(path.text)$\[]")
     sections := @{:Text,@{Text,Text}}
     current_section := @{:Text,Text}
 

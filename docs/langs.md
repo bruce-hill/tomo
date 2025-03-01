@@ -36,7 +36,7 @@ page := $HTML"
     Hello $username! How are you?
     </body></html>
 "
-say(page.text_content)
+say(page.text)
 ```
 
 What we _don't_ want to happen is to get a page that looks like:

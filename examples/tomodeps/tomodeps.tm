@@ -66,9 +66,9 @@ func _printable_name(dep:Dependency -> Text):
     is File(f):
         f = f:relative()
         if f:exists():
-            return "$(f.text_content)"
+            return "$(f.text)"
         else:
-            return "$(\x1b)[31;1m$(f.text_content) (not found)$(\x1b)[m"
+            return "$(\x1b)[31;1m$(f.text) (not found)$(\x1b)[m"
 
 func _draw_tree(dep:Dependency, dependencies:{Dependency,{Dependency}}, already_printed:@{Dependency}, prefix="", is_last=yes):
     if already_printed:has(dep):
