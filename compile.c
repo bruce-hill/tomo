@@ -4219,9 +4219,8 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
         if (arg->next) text = CORD_cat(text, ", ");
     }
     if (ret_t && ret_t->tag != VoidType)
-        text = CORD_all(text, ")->", type_to_cord(ret_t));
-    else
-        text = CORD_all(text, ")");
+        text = CORD_all(text, "->", type_to_cord(ret_t));
+    text = CORD_all(text, ")");
 
     if (!fndef->is_inline) {
         env->code->function_naming = CORD_all(
