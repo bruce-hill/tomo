@@ -4213,7 +4213,10 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
         }
     }
 
-    CORD text = CORD_all("func ", Match(fndef->name, Var)->name, "(");
+    CORD qualified_name = Match(fndef->name, Var)->name;
+    if (env->namespace && env->namespace->parent && env->namespace->name)
+        qualified_name = CORD_all(env->namespace->name, ".", qualified_name);
+    CORD text = CORD_all("func ", qualified_name, "(");
     for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
         text = CORD_cat(text, type_to_cord(get_arg_ast_type(env, arg)));
         if (arg->next) text = CORD_cat(text, ", ");
