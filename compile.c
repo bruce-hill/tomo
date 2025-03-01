@@ -2680,23 +2680,25 @@ CORD compile(env_t *env, ast_t *ast)
                 type_t *chunk_t = get_type(env, chunk->ast);
                 if (chunk->ast->tag == TextLiteral) {
                     chunk_code = compile(env, chunk->ast);
-                } else if (chunk_t->tag == TextType && streq(Match(chunk_t, TextType)->lang, lang)) {
-                    binding_t *esc = get_constructor(env, text_t, new(arg_ast_t, .value=chunk->ast));
-                    if (esc) {
-                        arg_t *arg_spec = Match(esc->type, FunctionType)->args;
+                } else if (chunk_t->tag == TextType && streq(Match(chunk_t, TextType)->lang, lang)) { // Interp is same type as text literal
+                    binding_t *constructor = get_constructor(env, text_t, new(arg_ast_t, .value=chunk->ast), text_t);
+                    if (constructor) {
+                        arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
                         arg_ast_t *args = new(arg_ast_t, .value=chunk->ast);
-                        chunk_code = CORD_all(esc->code, "(", compile_arguments(env, ast, arg_spec, args), ")");
+                        chunk_code = CORD_all(constructor->code, "(", compile_arguments(env, ast, arg_spec, args), ")");
                     } else {
                         chunk_code = compile(env, chunk->ast);
                     }
-                } else if (lang) {
-                    binding_t *esc = get_constructor(env, text_t, new(arg_ast_t, .value=chunk->ast));
-                    if (!esc)
+                } else if (lang) { // Interp is different type from text literal (which is a DSL)
+                    binding_t *constructor = get_constructor(env, text_t, new(arg_ast_t, .value=chunk->ast), text_t);
+                    if (!constructor)
+                        constructor = get_constructor(env, chunk_t, new(arg_ast_t, .value=chunk->ast), text_t);
+                    if (!constructor)
                         code_err(chunk->ast, "I don't know how to convert %T to %T", chunk_t, text_t);
 
-                    arg_t *arg_spec = Match(esc->type, FunctionType)->args;
+                    arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
                     arg_ast_t *args = new(arg_ast_t, .value=chunk->ast);
-                    chunk_code = CORD_all(esc->code, "(", compile_arguments(env, ast, arg_spec, args), ")");
+                    chunk_code = CORD_all(constructor->code, "(", compile_arguments(env, ast, arg_spec, args), ")");
                 } else {
                     chunk_code = compile_string(env, chunk->ast, "no");
                 }
@@ -3369,7 +3371,7 @@ CORD compile(env_t *env, ast_t *ast)
         } else if (fn_t->tag == TypeInfoType) {
             type_t *t = Match(fn_t, TypeInfoType)->type;
 
-            binding_t *constructor = get_constructor(env, t, call->args);
+            binding_t *constructor = get_constructor(env, t, call->args, t);
             if (constructor) {
                 arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
                 return CORD_all(constructor->code, "(", compile_arguments(env, ast, arg_spec, call->args), ")");
@@ -4076,11 +4078,15 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
 CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
 {
     auto fndef = Match(ast, FunctionDef);
-    bool is_private = Match(fndef->name, Var)->name[0] == '_';
-    CORD name = compile(env, fndef->name);
-    if (env->namespace && env->namespace->parent && env->namespace->name && streq(Match(fndef->name, Var)->name, env->namespace->name))
-        name = CORD_asprintf("%r$%ld", name, get_line_number(ast->file, ast->start));
+    const char *raw_name = Match(fndef->name, Var)->name;
+    bool is_private = raw_name[0] == '_';
+    CORD name_code = CORD_all(namespace_prefix(env, env->namespace), raw_name);
+    binding_t *clobbered = get_binding(env, raw_name);
     type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
+    // Check for a constructor:
+    if (clobbered && clobbered->type->tag == TypeInfoType && type_eq(ret_t, Match(clobbered->type, TypeInfoType)->type)) {
+        name_code = CORD_asprintf("%r$%ld", name_code, get_line_number(ast->file, ast->start));
+    }
 
     CORD arg_signature = "(";
     Table_t used_names = {};
@@ -4097,13 +4103,13 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
     CORD ret_type_code = compile_type(ret_t);
 
     if (is_private)
-        *staticdefs = CORD_all(*staticdefs, "static ", ret_type_code, " ", name, arg_signature, ";\n");
+        *staticdefs = CORD_all(*staticdefs, "static ", ret_type_code, " ", name_code, arg_signature, ";\n");
 
     CORD code;
     if (fndef->cache) {
-        code = CORD_all("static ", ret_type_code, " ", name, "$uncached", arg_signature);
+        code = CORD_all("static ", ret_type_code, " ", name_code, "$uncached", arg_signature);
     } else {
-        code = CORD_all(ret_type_code, " ", name, arg_signature);
+        code = CORD_all(ret_type_code, " ", name_code, arg_signature);
         if (fndef->is_inline)
             code = CORD_cat("INLINE ", code);
         if (!is_private)
@@ -4125,7 +4131,7 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
         code_err(ast, "This function can reach the end without returning a %T value!", ret_t);
 
     CORD body = compile_statement(body_scope, fndef->body);
-    if (streq(Match(fndef->name, Var)->name, "main"))
+    if (streq(raw_name, "main"))
         body = CORD_all("_$", env->namespace->name, "$$initialize();\n", body);
     if (CORD_fetch(body, 0) != '{')
         body = CORD_asprintf("{\n%r\n}", body);
@@ -4134,11 +4140,11 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
 
     if (fndef->cache && fndef->args == NULL) { // no-args cache just uses a static var
         CORD wrapper = CORD_all(
-            is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, "(void) {\n"
+            is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name_code, "(void) {\n"
             "static ", compile_declaration(ret_t, "cached_result"), ";\n",
             "static bool initialized = false;\n",
             "if (!initialized) {\n"
-            "\tcached_result = ", name, "$uncached();\n",
+            "\tcached_result = ", name_code, "$uncached();\n",
             "\tinitialized = true;\n",
             "}\n",
             "return cached_result;\n"
@@ -4157,12 +4163,12 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
             // Single-argument functions have simplified caching logic
             type_t *arg_type = get_arg_ast_type(env, fndef->args);
             CORD wrapper = CORD_all(
-                is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
+                is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name_code, arg_signature, "{\n"
                 "static Table_t cache = {};\n",
                 "const TypeInfo_t *table_type = Table$info(", compile_type_info(env, arg_type), ", ", compile_type_info(env, ret_t), ");\n",
                 compile_declaration(Type(PointerType, .pointed=ret_t), "cached"), " = Table$get_raw(cache, &_$", fndef->args->name, ", table_type);\n"
                 "if (cached) return *cached;\n",
-                compile_declaration(ret_t, "ret"), " = ", name, "$uncached(_$", fndef->args->name, ");\n",
+                compile_declaration(ret_t, "ret"), " = ", name_code, "$uncached(_$", fndef->args->name, ");\n",
                 pop_code,
                 "Table$set(&cache, &_$", fndef->args->name, ", &ret, table_type);\n"
                 "return ret;\n"
@@ -4177,7 +4183,7 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
             type_t *t = Type(StructType, .name=heap_strf("%s$args", fndef->name), .fields=fields, .env=env);
 
             int64_t num_fields = used_names.entries.length;
-            const char *short_name = Match(fndef->name, Var)->name;
+            const char *short_name = raw_name;
             const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
             CORD args_typeinfo = CORD_asprintf("((TypeInfo_t[1]){{.size=%zu, .align=%zu, .metamethods=%s, "
                                                ".tag=StructInfo, .StructInfo.name=\"%s\", "
@@ -4198,13 +4204,13 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
                 all_args = CORD_all(all_args, "_$", arg->name, arg->next ? ", " : CORD_EMPTY);
 
             CORD wrapper = CORD_all(
-                is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name, arg_signature, "{\n"
+                is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name_code, arg_signature, "{\n"
                 "static Table_t cache = {};\n",
                 args_type, " args = {", all_args, "};\n"
                 "const TypeInfo_t *table_type = Table$info(", args_typeinfo, ", ", compile_type_info(env, ret_t), ");\n",
                 compile_declaration(Type(PointerType, .pointed=ret_t), "cached"), " = Table$get_raw(cache, &args, table_type);\n"
                 "if (cached) return *cached;\n",
-                compile_declaration(ret_t, "ret"), " = ", name, "$uncached(", all_args, ");\n",
+                compile_declaration(ret_t, "ret"), " = ", name_code, "$uncached(", all_args, ");\n",
                 pop_code,
                 "Table$set(&cache, &args, &ret, table_type);\n"
                 "return ret;\n"
@@ -4213,7 +4219,7 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
         }
     }
 
-    CORD qualified_name = Match(fndef->name, Var)->name;
+    CORD qualified_name = raw_name;
     if (env->namespace && env->namespace->parent && env->namespace->name)
         qualified_name = CORD_all(env->namespace->name, ".", qualified_name);
     CORD text = CORD_all("func ", qualified_name, "(");
@@ -4229,7 +4235,7 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
         env->code->function_naming = CORD_all(
             env->code->function_naming,
             CORD_asprintf("register_function(%r, Text(\"%s.tm\"), %ld, Text(%r));\n",
-                          name, file_base_name(ast->file->filename), get_line_number(ast->file, ast->start), CORD_quoted(text)));
+                          name_code, file_base_name(ast->file->filename), get_line_number(ast->file, ast->start), CORD_quoted(text)));
     }
     return definition;
 }

@@ -17,6 +17,10 @@ lang HTML:
 	func paragraph(content:HTML->HTML):
 		return $HTML"<p>$content</p>"
 
+struct Bold(text:Text):
+	func HTML(b:Bold -> HTML):
+		return $HTML"<b>$(b.text)</b>"
+
 func main():
 	>> HTML.HEADER
 	= $HTML"<!DOCTYPE HTML>"
@@ -44,3 +48,8 @@ func main():
 
 	>> Text(html)
 	= '$HTML"Hello I &lt;3 hax!"'
+
+	>> b := Bold("Some <text> with junk")
+	>> $HTML"Your text: $b"
+	= $HTML"Your text: <b>Some &lt;text&gt; with junk</b>"
+

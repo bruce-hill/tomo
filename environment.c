@@ -636,6 +636,36 @@ env_t *for_scope(env_t *env, ast_t *ast)
     }
 }
 
+static env_t *get_namespace_by_type(env_t *env, type_t *t)
+{
+    t = value_type(t);
+    switch (t->tag) {
+    case ArrayType: return NULL;
+    case TableType: return NULL;
+    case CStringType: case MomentType:
+    case BoolType: case IntType: case BigIntType: case NumType: case ByteType: {
+        binding_t *b = get_binding(env, CORD_to_const_char_star(type_to_cord(t)));
+        assert(b);
+        return Match(b->type, TypeInfoType)->env;
+    }
+    case TextType: return Match(t, TextType)->env;
+    case StructType: {
+        auto struct_ = Match(t, StructType);
+        return struct_->env;
+    }
+    case EnumType: {
+        auto enum_ = Match(t, EnumType);
+        return enum_->env;
+    }
+    case TypeInfoType: {
+        auto info = Match(t, TypeInfoType);
+        return info->env;
+    }
+    default: break;
+    }
+    return NULL;
+}
+
 env_t *namespace_env(env_t *env, const char *namespace_name)
 {
     binding_t *b = get_binding(env, namespace_name);
@@ -660,82 +690,26 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
     type_t *self_type = get_type(env, self);
     if (!self_type)
         code_err(self, "I couldn't get this type");
-    type_t *cls_type = value_type(self_type);
-    switch (cls_type->tag) {
-    case ArrayType: return NULL;
-    case TableType: return NULL;
-    case CStringType: case MomentType:
-    case BoolType: case IntType: case BigIntType: case NumType: case ByteType: {
-        binding_t *b = get_binding(env, CORD_to_const_char_star(type_to_cord(cls_type)));
-        assert(b);
-        return get_binding(Match(b->type, TypeInfoType)->env, name);
-    }
-    case TextType: {
-        auto text = Match(cls_type, TextType);
-        env_t *text_env = text->env ? text->env : namespace_env(env, text->lang ? text->lang : "Text");
-        assert(text_env);
-        return get_binding(text_env, name);
-    }
-    case StructType: {
-        auto struct_ = Match(cls_type, StructType);
-        return struct_->env ? get_binding(struct_->env, name) : NULL;
-    }
-    case EnumType: {
-        auto enum_ = Match(cls_type, EnumType);
-        return enum_->env ? get_binding(enum_->env, name) : NULL;
-    }
-    case TypeInfoType: {
-        auto info = Match(cls_type, TypeInfoType);
-        return info->env ? get_binding(info->env, name) : NULL;
-    }
-    default: break;
-    }
-    return NULL;
+    env_t *ns_env = get_namespace_by_type(env, self_type);
+    return ns_env ? get_binding(ns_env, name) : NULL;
 }
 
-PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args)
+PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args, type_t *constructed_type)
 {
-    const char *type_name;
-    t = value_type(t);
-    switch (t->tag) {
-    case TextType: {
-        type_name = Match(t, TextType)->lang;
-        if (type_name == NULL) type_name = "Text";
-        break;
-    }
-    case StructType: {
-        type_name = Match(t, StructType)->name;
-        break;
-    }
-    case EnumType: {
-        type_name = Match(t, EnumType)->name;
-        break;
-    }
-    default: {
-        type_name = NULL;
-        break;
-    }
-    }
-
-    if (!type_name)
-        return NULL;
-
-    binding_t *typeinfo = get_binding(env, type_name);
-    assert(typeinfo && typeinfo->type->tag == TypeInfoType);
-    env_t *type_env = Match(typeinfo->type, TypeInfoType)->env;
+    env_t *type_env = get_namespace_by_type(env, t);
     Array_t constructors = type_env->namespace->constructors;
     // Prioritize exact matches:
     for (int64_t i = 0; i < constructors.length; i++) {
         binding_t *b = constructors.data + i*constructors.stride;
         auto fn = Match(b->type, FunctionType);
-        if (is_valid_call(env, fn->args, args, false))
+        if (type_eq(fn->ret, constructed_type) && is_valid_call(env, fn->args, args, false))
             return b;
     }
     // Fall back to promotion:
     for (int64_t i = 0; i < constructors.length; i++) {
         binding_t *b = constructors.data + i*constructors.stride;
         auto fn = Match(b->type, FunctionType);
-        if (is_valid_call(env, fn->args, args, true))
+        if (type_eq(fn->ret, constructed_type) && is_valid_call(env, fn->args, args, true))
             return b;
     }
     return NULL;

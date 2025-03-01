@@ -299,15 +299,17 @@ void bind_statement(env_t *env, ast_t *statement)
         auto def = Match(statement, FunctionDef);
         const char *name = Match(def->name, Var)->name;
         type_t *type = get_function_def_type(env, statement);
-        if (env->namespace && env->namespace->parent && env->namespace->name && streq(name, env->namespace->name)) {
-            CORD code = CORD_asprintf("%r%ld", namespace_prefix(env, env->namespace), get_line_number(statement->file, statement->start));
+        binding_t *clobber = get_binding(env, name);
+        if (clobber && clobber->type->tag == TypeInfoType && type_eq(Match(clobber->type, TypeInfoType)->type, Match(type, FunctionType)->ret)) {
+            CORD code = CORD_asprintf("%r%r$%ld", namespace_prefix(env, env->namespace), name,
+                                      get_line_number(statement->file, statement->start));
             binding_t binding = {.type=type, .code=code};
             Array$insert(&env->namespace->constructors, &binding, I(0), sizeof(binding));
             break;
         }
 
-        if (get_binding(env, name))
-            code_err(def->name, "A %T called '%s' has already been defined", get_binding(env, name)->type, name);
+        if (clobber)
+            code_err(def->name, "A %T called '%s' has already been defined", clobber->type, name);
         CORD code = CORD_all(namespace_prefix(env, env->namespace), name);
         set_binding(env, name, type, code);
         break;
@@ -792,7 +794,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (fn_type_t->tag == TypeInfoType) {
             type_t *t = Match(fn_type_t, TypeInfoType)->type;
 
-            binding_t *constructor = get_constructor(env, t, call->args);
+            binding_t *constructor = get_constructor(env, t, call->args, t);
             if (constructor)
                 return t;
             else if (t->tag == StructType || t->tag == IntType || t->tag == BigIntType || t->tag == NumType
