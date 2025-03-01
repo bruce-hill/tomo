@@ -697,6 +697,7 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
 PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args, type_t *constructed_type)
 {
     env_t *type_env = get_namespace_by_type(env, t);
+    if (!type_env) return NULL;
     Array_t constructors = type_env->namespace->constructors;
     // Prioritize exact matches:
     for (int64_t i = 0; i < constructors.length; i++) {
