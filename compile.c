@@ -4018,6 +4018,8 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                 } else {
                     if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
                         usage = CORD_all(usage, "[--", flag, "]");
+                    else if (t->tag == ArrayType)
+                        usage = CORD_all(usage, "[--", flag, " ", get_flag_options(t, "|"), "]");
                     else
                         usage = CORD_all(usage, "[--", flag, "=", get_flag_options(t, "|"), "]");
                 }
@@ -4027,7 +4029,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
                 else if (t->tag == EnumType)
                     usage = CORD_all(usage, get_flag_options(t, "|"));
                 else if (t->tag == ArrayType)
-                    usage = CORD_all(usage, "<", flag, "...>");
+                    usage = CORD_all(usage, "[", flag, "...]");
                 else
                     usage = CORD_all(usage, "<", flag, ">");
             }
