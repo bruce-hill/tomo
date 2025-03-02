@@ -68,6 +68,9 @@ C code, which is then compiled using a C compiler of your choice.
 `-q`, `--quiet`
 : Be extra quiet and do not print what the compiler is doing, only program output.
 
+`-r`, `--run`
+: Run an installed tomo program from `~/.local/share/tomo/installed`.
+
 ## ENVIRONMENT VARIABLES
 
 Some options can be configured by setting environment variables.

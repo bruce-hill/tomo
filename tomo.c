@@ -72,7 +72,15 @@ int main(int argc, char *argv[])
         errx(1, "Couldn't set printf specifier");
     if (register_printf_specifier('k', printf_text, printf_text_size))
         errx(1, "Couldn't set printf specifier");
-
+    
+    // Run a tool:
+    if ((streq(argv[1], "-r") || streq(argv[1], "--run")) && argc >= 3) {
+        if (strcspn(argv[2], "/;$") == strlen(argv[2])) {
+            const char *program = heap_strf("%s/.local/share/tomo/installed/%s/%s", getenv("HOME"), argv[2], argv[2]);
+            execv(program, &argv[2]);
+        }
+        errx(1, "This is not an installed tomo program: \033[31;1m%s\033[m", argv[2]);
+    }
 
     Text_t usage = Text("\x1b[33;4;1mUsage:\x1b[m\n"
                         "\x1b[1mRun a program:\x1b[m         tomo file.tm [-- args...]\n"
@@ -87,6 +95,7 @@ int main(int argc, char *argv[])
                         "  --c-compiler <compiler>: the C compiler to use (default: cc)\n"
                         "  --optimization|-O <level>: set optimization level\n"
                         "  --quiet|-q: quiet output\n"
+                        "  --run|-r: run a program from ~/.local/share/tomo/installed\n"
                         );
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     tomo_parse_args(
