@@ -164,6 +164,10 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)
 
         Text_t t = generic_as_text(NULL, false, info);
         errx(1, "Unsupported multi-argument struct type for argument parsing: %k", &t);
+    } else if (info->tag == ArrayInfo) {
+        errx(1, "Array arguments must be specified as `--flag ...` not `--flag=...`");
+    } else if (info->tag == TableInfo) {
+        errx(1, "Table arguments must be specified as `--flag ...` not `--flag=...`");
     } else {
         Text_t t = generic_as_text(NULL, false, info);
         errx(1, "Unsupported type for argument parsing: %k", &t);
