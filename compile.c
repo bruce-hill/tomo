@@ -4310,18 +4310,14 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
     }
 }
 
-CORD compile_file(env_t *env, ast_t *ast)
+static void initialize_vars_and_statics(env_t *env, ast_t *ast)
 {
-    CORD top_level_code = compile_top_level_code(env, ast);
-    CORD use_imports = CORD_EMPTY;
+    if (!ast) return;
 
-    // First prepare variable initializers to prevent unitialized access:
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         if (stmt->ast->tag == InlineCCode) {
             CORD code = compile_statement(env, stmt->ast);
             env->code->staticdefs = CORD_all(env->code->staticdefs, code, "\n");
-        } else if (stmt->ast->tag == Use) {
-            use_imports = CORD_all(use_imports, compile_statement(env, stmt->ast));
         } else if (stmt->ast->tag == Declare) {
             auto decl = Match(stmt->ast, Declare);
             const char *decl_name = Match(decl->var, Var)->name;
@@ -4345,12 +4341,37 @@ CORD compile_file(env_t *env, ast_t *ast)
                             full_name, " = ", val_code, ",\n",
                             full_name, "$initialized = true;\n")));
             }
+        } else if (stmt->ast->tag == StructDef) {
+            initialize_vars_and_statics(namespace_env(env, Match(stmt->ast, StructDef)->name),
+                                        Match(stmt->ast, StructDef)->namespace);
+        } else if (stmt->ast->tag == EnumDef) {
+            initialize_vars_and_statics(namespace_env(env, Match(stmt->ast, EnumDef)->name),
+                                        Match(stmt->ast, EnumDef)->namespace);
+        } else if (stmt->ast->tag == LangDef) {
+            initialize_vars_and_statics(namespace_env(env, Match(stmt->ast, LangDef)->name),
+                                        Match(stmt->ast, LangDef)->namespace);
+        } else if (stmt->ast->tag == Use) {
+            continue;
         } else {
             CORD code = compile_statement(env, stmt->ast);
             if (code) code_err(stmt->ast, "I did not expect this to generate code");
             assert(!code);
         }
     }
+}
+
+CORD compile_file(env_t *env, ast_t *ast)
+{
+    CORD top_level_code = compile_top_level_code(env, ast);
+    CORD use_imports = CORD_EMPTY;
+
+    // First prepare variable initializers to prevent unitialized access:
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        if (stmt->ast->tag == Use)
+            use_imports = CORD_all(use_imports, compile_statement(env, stmt->ast));
+    }
+
+    initialize_vars_and_statics(env, ast);
 
     const char *name = file_base_name(ast->file->filename);
     return CORD_all(
