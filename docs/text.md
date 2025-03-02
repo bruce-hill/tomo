@@ -288,8 +288,8 @@ Text.find(pattern:Pattern, start=1 -> Match?)
 Text.find_all(pattern:Pattern -> [Match])
 Text.matches(pattern:Pattern -> [Text]?)
 Text.map(pattern:Pattern, fn:func(m:Match -> Text) -> Text)
-Text.replace(pattern:Pattern, replacement:Text, placeholder:Pattern=$// -> [Text])
-Text.replace_all(replacements:{Pattern,Text}, placeholder:Pattern=$// -> [Text])
+Text.replace(pattern:Pattern, replacement:Text, placeholder:Pattern=$//, recursive=yes -> [Text])
+Text.replace_all(replacements:{Pattern,Text}, placeholder:Pattern=$//, recursive=yes -> [Text])
 Text.split(pattern:Pattern -> [Text])
 Text.trim(pattern=$/{whitespace}/, trim_left=yes, trim_right=yes -> [Text])
 ```
@@ -1194,7 +1194,7 @@ See [`replace()`](#replace) for more information about replacement behavior.
 
 **Signature:**  
 ```tomo
-func replace_all(replacements:{Pattern,Text}, backref: Pattern = $/\/ -> Text)
+func replace_all(replacements:{Pattern,Text}, backref: Pattern = $/\/, recursive: Bool = yes -> Text)
 ```
 
 **Parameters:**
