@@ -640,7 +640,7 @@ type_t *get_field_type(type_t *t, const char *field_name)
         return get_field_type(Match(t, PointerType)->pointed, field_name);
     case TextType: {
         if (Match(t, TextType)->lang && streq(field_name, "text"))
-            return Type(TextType);
+            return TEXT_TYPE;
         else if (streq(field_name, "length")) return INT_TYPE;
         return NULL;
     }
