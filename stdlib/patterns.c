@@ -34,6 +34,8 @@ typedef struct {
     };
 } pat_t;
 
+static Text_t Text$replace_array(Text_t text, Array_t replacements, Text_t backref_pat, bool recursive);
+
 static INLINE void skip_whitespace(TextIter_t *state, int64_t *i)
 {
     while (*i < state->stack[0].text.length) {
@@ -905,7 +907,7 @@ public Closure_t Text$by_match(Text_t text, Pattern_t pattern)
     };
 }
 
-static Text_t apply_backrefs(Text_t text, Pattern_t original_pattern, Text_t replacement, Pattern_t backref_pat, capture_t *captures)
+static Text_t apply_backrefs(Text_t text, Array_t recursive_replacements, Text_t replacement, Pattern_t backref_pat, capture_t *captures)
 {
     if (backref_pat.length == 0)
         return replacement;
@@ -948,8 +950,8 @@ static Text_t apply_backrefs(Text_t text, Pattern_t original_pattern, Text_t rep
 
         Text_t backref_text = Text$slice(text, I(captures[backref].index+1), I(captures[backref].index + captures[backref].length));
 
-        if (captures[backref].recursive && original_pattern.length > 0)
-            backref_text = Text$replace(backref_text, original_pattern, replacement, backref_pat, true);
+        if (captures[backref].recursive && recursive_replacements.length > 0)
+            backref_text = Text$replace_array(backref_text, recursive_replacements, backref_pat, true);
 
         if (pos > nonmatching_pos) {
             Text_t before_slice = Text$slice(replacement, I(nonmatching_pos+1), I(pos));
@@ -977,6 +979,13 @@ public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement, P
                        && !uc_is_property((ucs4_t)first_grapheme, UC_PROPERTY_QUOTATION_MARK)
                        && !uc_is_property((ucs4_t)first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
 
+    Text_t entries[2] = {pattern, replacement};
+    Array_t replacements = {
+        .data=entries,
+        .length=1,
+        .stride=sizeof(entries),
+    };
+
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text);
     int64_t nonmatching_pos = 0;
     for (int64_t pos = 0; pos < text.length; ) {
@@ -997,7 +1006,7 @@ public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement, P
             .occupied = true, .recursive = false,
         };
 
-        Text_t replacement_text = apply_backrefs(text, recursive ? pattern : Text(""), replacement, backref_pat, captures);
+        Text_t replacement_text = apply_backrefs(text, recursive ? replacements : (Array_t){}, replacement, backref_pat, captures);
         if (pos > nonmatching_pos) {
             Text_t before_slice = Text$slice(text, I(nonmatching_pos+1), I(pos));
             ret = Text$concat(ret, before_slice, replacement_text);
@@ -1119,17 +1128,17 @@ public void Text$each(Text_t text, Pattern_t pattern, Closure_t fn)
     }
 }
 
-public Text_t Text$replace_all(Text_t text, Table_t replacements, Text_t backref_pat, bool recursive)
+Text_t Text$replace_array(Text_t text, Array_t replacements, Text_t backref_pat, bool recursive)
 {
-    if (replacements.entries.length == 0) return text;
+    if (replacements.length == 0) return text;
 
     Text_t ret = EMPTY_TEXT;
 
     int64_t nonmatch_pos = 0;
     for (int64_t pos = 0; pos < text.length; ) {
         // Find the first matching pattern at this position:
-        for (int64_t i = 0; i < replacements.entries.length; i++) {
-            Pattern_t pattern = *(Pattern_t*)(replacements.entries.data + i*replacements.entries.stride);
+        for (int64_t i = 0; i < replacements.length; i++) {
+            Pattern_t pattern = *(Pattern_t*)(replacements.data + i*replacements.stride);
             capture_t captures[MAX_BACKREFS] = {};
             int64_t len = match(text, pos, pattern, 0, captures, 1);
             if (len < 0) continue;
@@ -1143,8 +1152,8 @@ public Text_t Text$replace_all(Text_t text, Table_t replacements, Text_t backref
             }
 
             // Concatenate the replacement:
-            Text_t replacement = *(Text_t*)(replacements.entries.data + i*replacements.entries.stride + sizeof(Text_t));
-            Text_t replacement_text = apply_backrefs(text, recursive ? pattern : Text(""), replacement, backref_pat, captures);
+            Text_t replacement = *(Text_t*)(replacements.data + i*replacements.stride + sizeof(Text_t));
+            Text_t replacement_text = apply_backrefs(text, recursive ? replacements : (Array_t){}, replacement, backref_pat, captures);
             ret = Text$concat(ret, replacement_text);
             pos += MAX(len, 1);
             nonmatch_pos = pos;
@@ -1161,6 +1170,11 @@ public Text_t Text$replace_all(Text_t text, Table_t replacements, Text_t backref
         ret = Text$concat(ret, last_slice);
     }
     return ret;
+}
+
+public Text_t Text$replace_all(Text_t text, Table_t replacements, Text_t backref_pat, bool recursive)
+{
+    return Text$replace_array(text, replacements.entries, backref_pat, recursive);
 }
 
 public Array_t Text$split(Text_t text, Pattern_t pattern)
