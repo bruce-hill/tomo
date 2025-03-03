@@ -33,6 +33,7 @@ Information about Tomo's built-in types can be found here:
 - [Structs](structs.md)
 - [Tables](tables.md)
 - [Text](text.md)
+  - [Text Pattern Matching](patterns.md)
 - [Threads](threads.md)
 
 ## Built-in Functions

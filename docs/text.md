@@ -264,153 +264,9 @@ finding the value because the two texts are equivalent under normalization.
 
 # Patterns
 
-As an alternative to full regular expressions, Tomo provides a limited string
-matching pattern syntax that is intended to solve 80% of use cases in under 1%
-of the code size (PCRE's codebase is roughly 150k lines of code, and Tomo's
-pattern matching code is a bit under 1k lines of code). Tomo's pattern matching
-syntax is highly readable and works well for matching literal text without
-getting [leaning toothpick syndrome](https://en.wikipedia.org/wiki/Leaning_toothpick_syndrome).
-
-For more advanced use cases, consider linking against a C library for regular
-expressions or pattern matching.
-
-`Pattern` is a [domain-specific language](docs/langs.md), in other words, it's
-like a `Text`, but it has a distinct type. As a convenience, you can use
-`$/.../` to write pattern literals instead of using the general-purpose DSL
-syntax of `$Pattern"..."`.
-
-Patterns are used in a small, but very powerful API that handles many text
-functions that would normally be handled by a more extensive API:
-
-```
-Text.has(pattern:Pattern -> Bool)
-Text.find(pattern:Pattern, start=1 -> Match?)
-Text.find_all(pattern:Pattern -> [Match])
-Text.matches(pattern:Pattern -> [Text]?)
-Text.map(pattern:Pattern, fn:func(m:Match -> Text) -> Text)
-Text.replace(pattern:Pattern, replacement:Text, placeholder:Pattern=$//, recursive=yes -> [Text])
-Text.replace_all(replacements:{Pattern,Text}, placeholder:Pattern=$//, recursive=yes -> [Text])
-Text.split(pattern:Pattern -> [Text])
-Text.trim(pattern=$/{whitespace}/, trim_left=yes, trim_right=yes -> [Text])
-```
-
-Pattern matching functions work with a type called `Match` that has three fields:
-
-- `text`: The full text of the match.
-- `index`: The index in the text where the match was found.
-- `captures`: An array containing the matching text of each non-literal pattern group.
-
-See [Text Functions](#Text-Functions) for the full API documentation.
-
-## Syntax
-
-Patterns have three types of syntax:
-
-- `{` followed by an optional count (`n`, `n-m`, or `n+`), followed by an
-  optional `!` to negate the pattern, followed by an optional pattern name or
-  Unicode character name, followed by a required `}`.
-
-- Any matching pair of quotes or parentheses or braces with a `?` in the middle
-  (e.g. `"?"` or `(?)`).
-
-- Any other character is treated as a literal to be matched exactly.
-
-## Named Patterns
-
-Named patterns match certain pre-defined patterns that are commonly useful. To
-use a named pattern, use the syntax `{name}`. Names are case-insensitive and
-mostly ignore spaces, underscores, and dashes.
-
-- `..` - Any character (note that a single `.` would mean the literal period
-  character).
-- `digit` - A unicode digit
-- `email` - an email address
-- `emoji` - an emoji
-- `end` - the very end of the text
-- `id` - A unicode identifier
-- `int` - One or more digits with an optional `-` (minus sign) in front
-- `ip` - an IP address (IPv4 or IPv6)
-- `ipv4` - an IPv4 address
-- `ipv6` - an IPv6 address
-- `nl`/`newline`/`crlf` - A line break (either `\r\n` or `\n`)
-- `num` - One or more digits with an optional `-` (minus sign) in front and an optional `.` and more digits after
-- `start` - the very start of the text
-- `uri` - a URI
-- `url` - a URL (URI that specifically starts with `http://`, `https://`, `ws://`, `wss://`, or `ftp://`)
-- `word` - A unicode identifier (same as `id`)
-
-For non-alphabetic characters, any single character is treated as matching
-exactly that character. For example, `{1{}` matches exactly one `{`
-character. Or, `{1.}` matches exactly one `.` character.
-
-Patterns can also use any Unicode property name. Some helpful ones are:
-
-- `hex` - Hexidecimal digits
-- `lower` - Lowercase letters
-- `space` - The space character
-- `upper` - Uppercase letters
-- `whitespace` - Whitespace characters
-
-Patterns may also use exact Unicode codepoint names. For example: `{1 latin
-small letter A}` matches `a`.
-
-## Negating Patterns
-
-If an exclamation mark (`!`) is placed before a pattern's name, then characters
-are matched only when they _don't_ match the pattern. For example, `{!alpha}`
-will match all characters _except_ alphabetic ones.
-
-## Interpolating Text and Escaping
-
-To escape a character in a pattern (e.g. if you want to match the literal
-character `?`), you can use the syntax `{1 ?}`. This is almost never necessary
-unless you have text that looks like a Tomo text pattern and has something like
-`{` or `(?)` inside it.
-
-However, if you're trying to do an exact match of arbitrary text values, you'll
-want to have the text automatically escaped. Fortunately, Tomo's injection-safe
-DSL text interpolation supports automatic text escaping. This means that if you
-use text interpolation with the `$` sign to insert a text value, the value will
-be automatically escaped using the `{1 ?}` rule described above:
-
-```tomo
-# Risk of code injection (would cause an error because 'xxx' is not a valid
-# pattern name:
->> user_input := get_user_input()
-= "{xxx}"
-
-# Interpolation automatically escapes:
->> $/$user_input/
-= $/{1{}..xxx}/
-
-# This is: `{ 1{ }` (one open brace) followed by the literal text "..xxx}"
-
-# No error:
->> some_text:find($/$user_input/)
-= 0
-```
-
-If you prefer, you can also use this to insert literal characters:
-
-```tomo
->> $/literal $"{..}"/
-= $/literal {1{}..}/
-```
-
-## Repetitions
-
-By default, named patterns match 1 or more repetitions, but you can specify how
-many repetitions you want by putting a number or range of numbers first using
-`n` (exactly `n` repetitions), `n-m` (between `n` and `m` repetitions), or `n+`
-(`n` or more repetitions):
-
-```
-{4-5 alpha}
-0x{hex}
-{4 digit}-{2 digit}-{2 digit}
-{2+ space}
-{0-1 question mark}
-```
+Texts use a custom pattern matching syntax for text matching and replacement as
+a lightweight, but powerful alternative to regular expressions. See [the
+pattern documentation](patterns.md) for more details.
 
 # Text Functions
 
@@ -515,7 +371,7 @@ func by_match(text: Text, pattern: Pattern -> func(->Match?))
 **Parameters:**
 
 - `text`: The text to be iterated over looking for matches.
-- `pattern`: The pattern to look for.
+- `pattern`: The [pattern](patterns.md) to look for.
 
 **Returns:**  
 An iterator function that returns one match result at a time, until it runs out
@@ -546,7 +402,7 @@ func by_split(text: Text, pattern: Pattern = $// -> func(->Text?))
 **Parameters:**
 
 - `text`: The text to be iterated over in pattern-delimited chunks.
-- `pattern`: The pattern to split the text on.
+- `pattern`: The [pattern](patterns.md) to split the text on.
 
 **Returns:**  
 An iterator function that returns one chunk of text at a time, separated by the
@@ -635,6 +491,37 @@ An array of 32-bit integer Unicode code points (`[Int32]`).
 ```tomo
 >> "Amélie":utf32_codepoints()
 = [65[32], 109[32], 233[32], 108[32], 105[32], 101[32]] : [Int32]
+```
+
+---
+
+## `each`
+
+**Description:**  
+Iterates over each match of a [pattern](patterns.md) and passes the match to
+the given function.
+
+**Signature:**  
+```tomo
+func each(text: Text, pattern: Pattern, fn: func(m: Match), recursive: Bool = yes -> Int?)
+```
+
+**Parameters:**
+
+- `text`: The text to be searched.
+- `pattern`: The [pattern](patterns.md) to search for.
+- `fn`: A function to be called on each match that was found.
+- `recursive`: For each match, if recursive is set to `yes`, then call `each()`
+  recursively on its captures before calling `fn` on the match.
+
+**Returns:**  
+None.
+
+**Example:**  
+```tomo
+>> " #one   #two  #three   ":each($/#{word}/, func(m:Match):
+    say("Found word $(m.captures[1])")
+)
 ```
 
 ---
@@ -780,8 +667,8 @@ A new text based on the input UTF8 bytes after normalization has been applied.
 ## `find`
 
 **Description:**  
-Finds the first occurrence of a pattern in the given text (if any).
-See: [Patterns](#Patterns) for more information on patterns.
+Finds the first occurrence of a [pattern](patterns.md) in the given text (if
+any).
 
 **Signature:**  
 ```tomo
@@ -791,12 +678,12 @@ func find(text: Text, pattern: Pattern, start: Int = 1 -> Int?)
 **Parameters:**
 
 - `text`: The text to be searched.
-- `pattern`: The pattern to search for.
+- `pattern`: The [pattern](patterns.md) to search for.
 - `start`: The index to start the search.
 
 **Returns:**  
-`!Match` if the target pattern is not found, otherwise a `Match` struct
-containing information about the match.
+`!Match` if the target [pattern](patterns.md) is not found, otherwise a `Match`
+struct containing information about the match.
 
 **Example:**  
 ```tomo
@@ -815,8 +702,7 @@ containing information about the match.
 ## `find_all`
 
 **Description:**  
-Finds all occurrences of a pattern in the given text.
-See: [Patterns](#Patterns) for more information on patterns.
+Finds all occurrences of a [pattern](patterns.md) in the given text.
 
 **Signature:**  
 ```tomo
@@ -826,10 +712,10 @@ func find_all(text: Text, pattern: Pattern -> [Match])
 **Parameters:**
 
 - `text`: The text to be searched.
-- `pattern`: The pattern to search for.
+- `pattern`: The [pattern](patterns.md) to search for.
 
 **Returns:**  
-An array of every match of the pattern in the given text.
+An array of every match of the [pattern](patterns.md) in the given text.
 Note: if `text` or `pattern` is empty, an empty array will be returned.
 
 **Example:**  
@@ -887,7 +773,7 @@ the length of the string.
 ## `has`
 
 **Description:**  
-Checks if the `Text` contains a target pattern (see: [Patterns](#Patterns)).
+Checks if the `Text` contains a target [pattern](patterns.md).
 
 **Signature:**  
 ```tomo
@@ -897,7 +783,7 @@ func has(text: Text, pattern: Pattern -> Bool)
 **Parameters:**
 
 - `text`: The text to be searched.
-- `pattern`: The pattern to search for.
+- `pattern`: The [pattern](patterns.md) to search for.
 
 **Returns:**  
 `yes` if the target pattern is found, `no` otherwise.
@@ -1004,9 +890,9 @@ The lowercase version of the text.
 ## `matches`
 
 **Description:**  
-Checks if the `Text` matches target pattern (see: [Patterns](#Patterns)) and
-returns an array of the matching text captures or a null value if the entire
-text doesn't match the pattern.
+Checks if the `Text` matches target [pattern](patterns.md) and returns an array
+of the matching text captures or a null value if the entire text doesn't match
+the pattern.
 
 **Signature:**  
 ```tomo
@@ -1016,7 +902,7 @@ func matches(text: Text, pattern: Pattern -> [Text])
 **Parameters:**
 
 - `text`: The text to be searched.
-- `pattern`: The pattern to search for.
+- `pattern`: The [pattern](patterns.md) to search for.
 
 **Returns:**  
 An array of the matching text captures if the entire text matches the pattern,
@@ -1036,19 +922,21 @@ or a null value otherwise.
 ## `map`
 
 **Description:**  
-For each occurrence of the given pattern, replace the text with the result of
-calling the given function on that match.
+For each occurrence of the given [pattern](patterns.md), replace the text with
+the result of calling the given function on that match.
 
 **Signature:**  
 ```tomo
-func map(text: Text, pattern: Pattern, fn: func(text:Match)->Text -> Text)
+func map(text: Text, pattern: Pattern, fn: func(text:Match)->Text -> Text, recursive: Bool = yes)
 ```
 
 **Parameters:**
 
 - `text`: The text to be searched.
-- `pattern`: The pattern to search for.
+- `pattern`: The [pattern](patterns.md) to search for.
 - `fn`: The function to apply to each match.
+- `recursive`: Whether to recursively map `fn` to each of the captures of the
+  pattern before handing them to `fn`.
 
 **Returns:**  
 The text with the matching parts replaced with the result of applying the given
@@ -1119,9 +1007,8 @@ The text repeated the given number of times.
 ## `replace`
 
 **Description:**  
-Replaces occurrences of a pattern in the text with a replacement string.
-
-See [Patterns](#patterns) for more information about patterns.
+Replaces occurrences of a [pattern](patterns.md) in the text with a replacement
+string.
 
 **Signature:**  
 ```tomo
@@ -1131,7 +1018,7 @@ func replace(text: Text, pattern: Pattern, replacement: Text, backref: Pattern =
 **Parameters:**
 
 - `text`: The text in which to perform replacements.
-- `pattern`: The pattern to be replaced.
+- `pattern`: The [pattern](patterns.md) to be replaced.
 - `replacement`: The text to replace the pattern with.
 - `backref`: If non-empty, the replacement text will have occurrences of this
   pattern followed by a number replaced with the corresponding backreference.
@@ -1186,11 +1073,12 @@ The text with occurrences of the pattern replaced.
 ## `replace_all`
 
 **Description:**  
-Takes a table mapping patterns to replacement texts and performs all the
-replacements in the table on the whole text. At each position, the first
-matching pattern's replacement is applied and the pattern matching moves on to
-*after* the replacement text, so replacement text is not recursively modified.
-See [`replace()`](#replace) for more information about replacement behavior.
+Takes a table mapping [patterns](patterns.md) to replacement texts and performs
+all the replacements in the table on the whole text. At each position, the
+first matching pattern's replacement is applied and the pattern matching moves
+on to *after* the replacement text, so replacement text is not recursively
+modified. See [`replace()`](#replace) for more information about replacement
+behavior.
 
 **Signature:**  
 ```tomo
@@ -1200,8 +1088,8 @@ func replace_all(replacements:{Pattern,Text}, backref: Pattern = $/\/, recursive
 **Parameters:**
 
 - `text`: The text in which to perform replacements.
-- `replacements`: A table mapping from patterns to the replacement text
-  associated with that pattern.
+- `replacements`: A table mapping from [pattern](patterns.md) to the
+  replacement text associated with that pattern.
 - `backref`: If non-empty, the replacement text will have occurrences of this
   pattern followed by a number replaced with the corresponding backreference.
   By default, the backreference pattern is a single backslash, so
@@ -1295,8 +1183,7 @@ the string.
 ## `split`
 
 **Description:**  
-Splits the text into an array of substrings based on a pattern.
-See [Patterns](#patterns) for more information about patterns.
+Splits the text into an array of substrings based on a [pattern](patterns.md).
 
 **Signature:**  
 ```tomo
@@ -1306,8 +1193,8 @@ func split(text: Text, pattern: Pattern = "" -> [Text])
 **Parameters:**
 
 - `text`: The text to be split.
-- `pattern`: The pattern used to split the text. If the pattern is the empty
-  string, the text will be split into individual grapheme clusters.
+- `pattern`: The [pattern](patterns.md) used to split the text. If the pattern
+  is the empty string, the text will be split into individual grapheme clusters.
 
 **Returns:**  
 An array of substrings resulting from the split.
@@ -1415,8 +1302,7 @@ the string.
 ## `trim`
 
 **Description:**  
-Trims the matching pattern from the left and/or right side of the text
-See [Patterns](#patterns) for more information about patterns.
+Trims the matching [pattern](patterns.md) from the left and/or right side of the text.
 
 **Signature:**  
 ```tomo
@@ -1426,7 +1312,7 @@ func trim(text: Text, pattern: Pattern = $/{whitespace/, trim_left: Bool = yes, 
 **Parameters:**
 
 - `text`: The text to be trimmed.
-- `pattern`: The pattern that will be trimmed away.
+- `pattern`: The [pattern](patterns.md) that will be trimmed away.
 - `trim_left`: Whether or not to trim from the front of the text.
 - `trim_right`: Whether or not to trim from the back of the text.
 

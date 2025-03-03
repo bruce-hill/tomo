@@ -1042,7 +1042,7 @@ public Text_t Text$trim(Text_t text, Pattern_t pattern, bool trim_left, bool tri
     return Text$slice(text, I(first+1), I(last+1));
 }
 
-public Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn)
+public Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn, bool recursive)
 {
     Text_t ret = EMPTY_TEXT;
 
@@ -1073,6 +1073,8 @@ public Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn)
         };
         for (int i = 0; captures[i].occupied; i++) {
             Text_t capture = Text$slice(text, I(captures[i].index+1), I(captures[i].index+captures[i].length));
+            if (recursive)
+                capture = Text$map(capture, pattern, fn, recursive);
             Array$insert(&m.captures, &capture, I(0), sizeof(Text_t));
         }
 
@@ -1093,7 +1095,7 @@ public Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn)
     return ret;
 }
 
-public void Text$each(Text_t text, Pattern_t pattern, Closure_t fn)
+public void Text$each(Text_t text, Pattern_t pattern, Closure_t fn, bool recursive)
 {
     int32_t first_grapheme = Text$get_grapheme(pattern, 0);
     bool find_first = (first_grapheme != '{'
@@ -1120,6 +1122,8 @@ public void Text$each(Text_t text, Pattern_t pattern, Closure_t fn)
         };
         for (int i = 0; captures[i].occupied; i++) {
             Text_t capture = Text$slice(text, I(captures[i].index+1), I(captures[i].index+captures[i].length));
+            if (recursive)
+                Text$each(capture, pattern, fn, recursive);
             Array$insert(&m.captures, &capture, I(0), sizeof(Text_t));
         }
 

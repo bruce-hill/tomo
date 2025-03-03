@@ -34,8 +34,8 @@ Array_t Text$find_all(Text_t text, Pattern_t pattern);
 Closure_t Text$by_match(Text_t text, Pattern_t pattern);
 PUREFUNC bool Text$has(Text_t text, Pattern_t pattern);
 OptionalArray_t Text$matches(Text_t text, Pattern_t pattern);
-Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn);
-void Text$each(Text_t text, Pattern_t pattern, Closure_t fn);
+Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn, bool recursive);
+void Text$each(Text_t text, Pattern_t pattern, Closure_t fn, bool recursive);
 
 #define Pattern$hash Text$hash
 #define Pattern$compare Text$compare
