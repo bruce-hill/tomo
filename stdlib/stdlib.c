@@ -193,6 +193,43 @@ static Array_t parse_array(const TypeInfo_t *item_info, int n, char *args[])
     return items;
 }
 
+// Arguments take the form key=value, with a guarantee that there is an '='
+static Table_t parse_table(const TypeInfo_t *table, int n, char *args[])
+{
+    const TypeInfo_t *key = table->TableInfo.key, *value = table->TableInfo.value;
+    int64_t padded_size = key->size;
+    if ((padded_size % value->align) > 0)
+        padded_size = padded_size + value->align - (padded_size % value->align);
+    int64_t value_offset = padded_size;
+    padded_size += value->size;
+    if ((padded_size % key->align) > 0)
+        padded_size = padded_size + key->align - (padded_size % key->align);
+
+    Array_t entries = {
+        .stride=padded_size,
+        .length=n,
+        .data=GC_MALLOC((size_t)(padded_size*n)),
+    };
+    for (int i = 0; i < n; i++) {
+        char *key_arg = args[i];
+        char *equals = strchr(key_arg, '=');
+        assert(equals);
+        char *value_arg = equals + 1;
+        *equals = '\0';
+
+        bool success = parse_single_arg(key, key_arg, entries.data + entries.stride*i);
+        if (!success)
+            errx(1, "Couldn't parse table key: %s", key_arg);
+
+        success = parse_single_arg(value, value_arg, entries.data + entries.stride*i + value_offset);
+        if (!success)
+            errx(1, "Couldn't parse table value: %s", value_arg);
+
+        *equals = '=';
+    }
+    return Table$from_entries(entries, table);
+}
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
 public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, int spec_len, cli_arg_t spec[spec_len])
@@ -227,7 +264,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                 char after_name = argv[i][2+strlen(spec[s].name)];
                 if (after_name == '\0') { // --foo val
                     used_args[i] = true;
-                    if (non_opt_type->tag == ArrayInfo || non_opt_type->tag == TableInfo) {
+                    if (non_opt_type->tag == ArrayInfo) {
                         int num_args = 0;
                         while (i + 1 + num_args < argc) {
                             if (argv[i+1+num_args][0] == '-')
@@ -236,13 +273,17 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                             num_args += 1;
                         }
                         populated_args[s] = true;
-                        const TypeInfo_t *item_type = non_opt_type->tag == ArrayInfo ? non_opt_type->ArrayInfo.item : non_opt_type->TableInfo.key;
-                        Array_t items = parse_array(item_type, num_args, &argv[i+1]);
-                        if (non_opt_type->tag == ArrayInfo) {
-                            *(OptionalArray_t*)spec[s].dest = items;
-                        } else {
-                            *(OptionalTable_t*)spec[s].dest = Table$from_entries(items, non_opt_type);
+                        *(OptionalArray_t*)spec[s].dest = parse_array(non_opt_type->ArrayInfo.item, num_args, &argv[i+1]);
+                    } else if (non_opt_type->tag == TableInfo) {
+                        int num_args = 0;
+                        while (i + 1 + num_args < argc) {
+                            if (argv[i+1+num_args][0] == '-' || !strchr(argv[i+1+num_args], '='))
+                                break;
+                            used_args[i+1+num_args] = true;
+                            num_args += 1;
                         }
+                        populated_args[s] = true;
+                        *(OptionalTable_t*)spec[s].dest = parse_table(non_opt_type, num_args, &argv[i+1]);
                     } else if (non_opt_type == &Bool$info) { // --flag
                         populated_args[s] = true;
                         *(OptionalBool_t*)spec[s].dest = true;
@@ -282,7 +323,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                     while (non_opt_type->tag == OptionalInfo)
                         non_opt_type = non_opt_type->OptionalInfo.type;
 
-                    if (non_opt_type->tag == ArrayInfo || non_opt_type->tag == TableInfo) {
+                    if (non_opt_type->tag == ArrayInfo) {
                         if (f[1]) errx(1, "No value provided for -%c\n%k", *f, &usage);
                         int num_args = 0;
                         while (i + 1 + num_args < argc) {
@@ -292,13 +333,17 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                             num_args += 1;
                         }
                         populated_args[s] = true;
-                        const TypeInfo_t *item_type = non_opt_type->tag == ArrayInfo ? non_opt_type->ArrayInfo.item : non_opt_type->TableInfo.key;
-                        Array_t items = parse_array(item_type, num_args, &argv[i+1]);
-                        if (non_opt_type->tag == ArrayInfo) {
-                            *(OptionalArray_t*)spec[s].dest = items;
-                        } else {
-                            *(OptionalTable_t*)spec[s].dest = Table$from_entries(items, non_opt_type);
+                        *(OptionalArray_t*)spec[s].dest = parse_array(non_opt_type->ArrayInfo.item, num_args, &argv[i+1]);
+                    } else if (non_opt_type->tag == TableInfo) {
+                        int num_args = 0;
+                        while (i + 1 + num_args < argc) {
+                            if (argv[i+1+num_args][0] == '-' || !strchr(argv[i+1+num_args], '='))
+                                break;
+                            used_args[i+1+num_args] = true;
+                            num_args += 1;
                         }
+                        populated_args[s] = true;
+                        *(OptionalTable_t*)spec[s].dest = parse_table(non_opt_type, num_args, &argv[i+1]);
                     } else if (non_opt_type == &Bool$info) { // -f
                         populated_args[s] = true;
                         *(OptionalBool_t*)spec[s].dest = true;
@@ -354,7 +399,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
         if (non_opt_type == &Bool$info)
             goto next_non_bool_flag;
 
-        if (non_opt_type->tag == ArrayInfo || non_opt_type->tag == TableInfo) {
+        if (non_opt_type->tag == ArrayInfo) {
             int num_args = 0;
             while (i + num_args < argc) {
                 if (!ignore_dashes && argv[i+num_args][0] == '-')
@@ -363,13 +408,17 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                 num_args += 1;
             }
             populated_args[s] = true;
-            const TypeInfo_t *item_type = non_opt_type->tag == ArrayInfo ? non_opt_type->ArrayInfo.item : non_opt_type->TableInfo.key;
-            Array_t items = parse_array(item_type, num_args, &argv[i]);
-            if (non_opt_type->tag == ArrayInfo) {
-                *(OptionalArray_t*)spec[s].dest = items;
-            } else {
-                *(OptionalTable_t*)spec[s].dest = Table$from_entries(items, non_opt_type);
+            *(OptionalArray_t*)spec[s].dest = parse_array(non_opt_type->ArrayInfo.item, num_args, &argv[i]);
+        } else if (non_opt_type->tag == TableInfo) {
+            int num_args = 0;
+            while (i + num_args < argc) {
+                if (argv[i+num_args][0] == '-' || !strchr(argv[i+num_args], '='))
+                    break;
+                used_args[i+num_args] = true;
+                num_args += 1;
             }
+            populated_args[s] = true;
+            *(OptionalTable_t*)spec[s].dest = parse_table(non_opt_type, num_args, &argv[i]);
         } else {
             populated_args[s] = parse_single_arg(spec[s].type, argv[i], spec[s].dest);
         }
