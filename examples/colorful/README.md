@@ -47,7 +47,7 @@ You can run `colorful` as a standalone executable to render colorful text with
 ANSI escape sequences so it looks nice on a terminal.
 
 ```
-colorful [--inplace] [file] [--by-line]
+colorful [--help] [texts...] [--by-line] [--files ...]
 ```
 
 ## Library Usage

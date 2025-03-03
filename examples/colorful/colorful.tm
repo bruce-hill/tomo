@@ -1,7 +1,7 @@
 # Colorful language
 HELP := "
     colorful: A domain-specific language for writing colored text to the terminal
-    Usage: colorful [--by-line] [files...]
+    Usage: colorful [args...] [--by-line] [--files files...]
 "
 
 CSI := "$\033["
@@ -189,12 +189,21 @@ lang Colorful:
     func print(c:Colorful, newline=yes):
         say(c:for_terminal(), newline=newline)
 
-func main(files=[(/dev/stdin)], by_line=no):
+func main(texts:[Text], files=[:Path], by_line=no):
+    for i,text in texts:
+        colorful := Colorful.without_escaping(text)
+        colorful:print(newline=no)
+        if i == texts.length: say("")
+        else: say(" ", newline=no)
+
+    if texts.length == 0 and files.length == 0:
+        files = [(/dev/stdin)]
+
     for file in files:
         if by_line:
-            for line in file:by_line() or exit("Couldn't read file: $file"):
+            for line in file:by_line() or exit("Could not read file: $(file.text)"):
                 colorful := Colorful.without_escaping(line)
                 colorful:print()
         else:
-            colorful := Colorful.without_escaping(file:read() or exit("Couldn't read file: $file"))
+            colorful := Colorful.without_escaping(file:read() or exit("Could not read file: $(file.text)"))
             colorful:print(newline=no)
