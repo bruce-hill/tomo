@@ -58,10 +58,10 @@ CORD type_to_cord(type_t *t) {
             auto fn = Match(t, FunctionType);
             for (arg_t *arg = fn->args; arg; arg = arg->next) {
                 c = CORD_cat(c, type_to_cord(arg->type));
-                if (arg->next) c = CORD_cat(c, ", ");
+                if (arg->next) c = CORD_cat(c, ",");
             }
             if (fn->ret && fn->ret->tag != VoidType)
-                c = CORD_all(c, "->", type_to_cord(fn->ret));
+                c = CORD_all(c, fn->args ? " -> " : "-> ", type_to_cord(fn->ret));
             c = CORD_all(c, ")");
             return c;
         }
