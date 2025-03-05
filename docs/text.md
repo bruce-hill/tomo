@@ -262,15 +262,15 @@ created that has text with the codepoint `U+E9` as a key, then a lookup with
 the same text but with `U+65 U+301` instead of `U+E9` will still succeed in
 finding the value because the two texts are equivalent under normalization.
 
-# Patterns
+## Patterns
 
 Texts use a custom pattern matching syntax for text matching and replacement as
 a lightweight, but powerful alternative to regular expressions. See [the
 pattern documentation](patterns.md) for more details.
 
-# Text Functions
+## Text Functions
 
-## `as_c_string`
+### `as_c_string`
 
 **Description:**  
 Converts a `Text` value to a C-style string.
@@ -295,7 +295,7 @@ A C-style string (`CString`) representing the text.
 
 ---
 
-## `at`
+### `at`
 
 **Description:**  
 Get the graphical cluster at a given index. This is similar to `str[i]` with
@@ -324,7 +324,7 @@ indices are counted from the back of the text, so `-1` means the last cluster,
 
 ---
 
-## `by_line`
+### `by_line`
 
 **Description:**  
 Returns an iterator function that can be used to iterate over the lines in a
@@ -357,7 +357,7 @@ for line in text:by_line():
 
 ---
 
-## `by_match`
+### `by_match`
 
 **Description:**  
 Returns an iterator function that can be used to iterate over the occurrences
@@ -388,7 +388,7 @@ for match in text:by_match($/{alpha}/):
 
 ---
 
-## `by_split`
+### `by_split`
 
 **Description:**  
 Returns an iterator function that can be used to iterate over text separated by
@@ -419,7 +419,7 @@ for chunk in text:by_split($/,/):
 
 ---
 
-## `bytes`
+### `bytes`
 
 **Description:**  
 Converts a `Text` value to an array of bytes representing a UTF8 encoding of
@@ -445,7 +445,7 @@ An array of bytes (`[Byte]`) representing the text in UTF8 encoding.
 
 ---
 
-## `codepoint_names`
+### `codepoint_names`
 
 **Description:**  
 Returns an array of the names of each codepoint in the text.
@@ -470,7 +470,7 @@ An array of codepoint names (`[Text]`).
 
 ---
 
-## `utf32_codepoints`
+### `utf32_codepoints`
 
 **Description:**  
 Returns an array of Unicode code points for UTF32 encoding of the text.
@@ -495,7 +495,7 @@ An array of 32-bit integer Unicode code points (`[Int32]`).
 
 ---
 
-## `each`
+### `each`
 
 **Description:**  
 Iterates over each match of a [pattern](patterns.md) and passes the match to
@@ -526,7 +526,7 @@ None.
 
 ---
 
-## `ends_with`
+### `ends_with`
 
 **Description:**  
 Checks if the `Text` ends with a literal suffix text.
@@ -552,7 +552,7 @@ func ends_with(text: Text, suffix: Text -> Bool)
 
 ---
 
-## `from_c_string`
+### `from_c_string`
 
 **Description:**  
 Converts a C-style string to a `Text` value.
@@ -577,7 +577,7 @@ A `Text` value representing the C-style string.
 
 ---
 
-## `from_codepoint_names`
+### `from_codepoint_names`
 
 **Description:**  
 Returns text that has the given codepoint names (according to the Unicode
@@ -610,7 +610,7 @@ Any invalid names are ignored.
 
 ---
 
-## `from_codepoints`
+### `from_codepoints`
 
 **Description:**  
 Returns text that has been constructed from the given UTF32 codepoints. Note:
@@ -637,7 +637,7 @@ A new text with the specified codepoints after normalization has been applied.
 
 ---
 
-## `from_bytes`
+### `from_bytes`
 
 **Description:**  
 Returns text that has been constructed from the given UTF8 bytes. Note: the
@@ -664,7 +664,7 @@ A new text based on the input UTF8 bytes after normalization has been applied.
 
 ---
 
-## `find`
+### `find`
 
 **Description:**  
 Finds the first occurrence of a [pattern](patterns.md) in the given text (if
@@ -699,7 +699,7 @@ struct containing information about the match.
 
 ---
 
-## `find_all`
+### `find_all`
 
 **Description:**  
 Finds all occurrences of a [pattern](patterns.md) in the given text.
@@ -738,7 +738,7 @@ Note: if `text` or `pattern` is empty, an empty array will be returned.
 
 ---
 
-## `from`
+### `from`
 
 **Description:**  
 Get a slice of the text, starting at the given position.
@@ -770,7 +770,7 @@ the length of the string.
 
 ---
 
-## `has`
+### `has`
 
 **Description:**  
 Checks if the `Text` contains a target [pattern](patterns.md).
@@ -802,7 +802,7 @@ func has(text: Text, pattern: Pattern -> Bool)
 
 ---
 
-## `join`
+### `join`
 
 **Description:**  
 Joins an array of text pieces with a specified glue.
@@ -828,7 +828,7 @@ A single `Text` value with the pieces joined by the glue.
 
 ---
 
-## `lines`
+### `lines`
 
 **Description:**  
 Splits the text into an array of lines of text, preserving blank lines,
@@ -862,7 +862,7 @@ An array of substrings resulting from the split.
 
 ---
 
-## `lower`
+### `lower`
 
 **Description:**  
 Converts all characters in the text to lowercase.
@@ -887,7 +887,7 @@ The lowercase version of the text.
 
 ---
 
-## `matches`
+### `matches`
 
 **Description:**  
 Checks if the `Text` matches target [pattern](patterns.md) and returns an array
@@ -919,7 +919,7 @@ or a null value otherwise.
 
 ---
 
-## `map`
+### `map`
 
 **Description:**  
 For each occurrence of the given [pattern](patterns.md), replace the text with
@@ -952,7 +952,7 @@ function to each.
 
 ---
 
-## `quoted`
+### `quoted`
 
 **Description:**  
 Formats the text as a quoted string.
@@ -978,7 +978,7 @@ The text formatted as a quoted string.
 
 ---
 
-## `repeat`
+### `repeat`
 
 **Description:**  
 Repeat some text multiple times.
@@ -1004,7 +1004,7 @@ The text repeated the given number of times.
 
 ---
 
-## `replace`
+### `replace`
 
 **Description:**  
 Replaces occurrences of a [pattern](patterns.md) in the text with a replacement
@@ -1070,7 +1070,7 @@ The text with occurrences of the pattern replaced.
 
 ---
 
-## `replace_all`
+### `replace_all`
 
 **Description:**  
 Takes a table mapping [patterns](patterns.md) to replacement texts and performs
@@ -1119,7 +1119,7 @@ replacement text.
 
 ---
 
-## `reversed`
+### `reversed`
 
 **Description:**  
 Return a text that has the grapheme clusters in reverse order.
@@ -1144,7 +1144,7 @@ A reversed version of the text.
 
 ---
 
-## `slice`
+### `slice`
 
 **Description:**  
 Get a slice of the text.
@@ -1180,7 +1180,7 @@ the string.
 
 ---
 
-## `split`
+### `split`
 
 **Description:**  
 Splits the text into an array of substrings based on a [pattern](patterns.md).
@@ -1216,7 +1216,7 @@ An array of substrings resulting from the split.
 
 ---
 
-## `starts_with`
+### `starts_with`
 
 **Description:**  
 Checks if the `Text` starts with a literal prefix text.
@@ -1242,7 +1242,7 @@ func starts_with(text: Text, prefix: Text -> Bool)
 
 ---
 
-## `title`
+### `title`
 
 **Description:**  
 Converts the text to title case (capitalizing the first letter of each word).
@@ -1267,7 +1267,7 @@ The text in title case.
 
 ---
 
-## `to`
+### `to`
 
 **Description:**  
 Get a slice of the text, ending at the given position.
@@ -1299,7 +1299,7 @@ the string.
 
 ---
 
-## `trim`
+### `trim`
 
 **Description:**  
 Trims the matching [pattern](patterns.md) from the left and/or right side of the text.
@@ -1333,7 +1333,7 @@ The text without the trim pattern at either end.
 
 ---
 
-## `upper`
+### `upper`
 
 **Description:**  
 Converts all characters in the text to uppercase.

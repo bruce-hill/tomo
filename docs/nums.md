@@ -1356,7 +1356,7 @@ The Bessel function of the second kind of order 1 of `x`.
 
 ---
 
-## `clamped`
+### `clamped`
 
 **Description:**  
 Returns the given number clamped between two values so that it is within

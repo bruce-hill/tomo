@@ -13,13 +13,13 @@ seeded levels). The default random number generator for Tomo is called `random`
 and is, by default, initialized with random data from the operating system when
 a Tomo program launches.
 
-# RNG Functions
+## RNG Functions
 
 This documentation provides details on RNG functions available in the API.
 [Arrays](arrays.md) also have some methods which use RNG values:
 `array:shuffle()`, `array:shuffled()`, `array:random()`, and `array:sample()`.
 
-## `bool`
+### `bool`
 
 **Description:**  
 Generate a random boolean value with a given probability.
@@ -49,7 +49,7 @@ func bool(rng: RNG, p: Num = 0.5 -> Bool)
 
 ---
 
-## `byte`
+### `byte`
 
 **Description:**  
 Generate a random byte with uniform probability.
@@ -74,7 +74,7 @@ A random byte (0-255).
 
 ---
 
-## `bytes`
+### `bytes`
 
 **Description:**  
 Generate an array of uniformly random bytes with the given length.
@@ -100,7 +100,7 @@ An array of length `count` random bytes with uniform random distribution (0-255)
 
 ---
 
-## `copy`
+### `copy`
 
 **Description:**  
 Return a copy of a random number generator. This copy will be a parallel version of
@@ -133,7 +133,7 @@ A copy of the given RNG.
 
 ---
 
-## `int`, `int64`, `int32`, `int16`, `int8`
+### `int`, `int64`, `int32`, `int16`, `int8`
 
 **Description:**  
 Generate a random integer value with the given range.
@@ -165,7 +165,7 @@ is greater than `max`, an error will be raised.
 
 ---
 
-## `new`
+### `new`
 
 **Description:**  
 Return a new random number generator.
@@ -193,7 +193,7 @@ A new random number generator.
 
 ---
 
-## `num`, `num32`
+### `num`, `num32`
 
 **Description:**  
 Generate a random floating point value with the given range.
@@ -222,7 +222,7 @@ A floating point number uniformly chosen from the range `[min, max]`
 
 ---
 
-## `set_seed`
+### `set_seed`
 
 **Description:**  
 Set the seed for an RNG.

@@ -3,11 +3,11 @@
 Boolean values have the type `Bool` and can be either `yes` ("true") or `no`
 ("false").
 
-# Boolean Functions
+## Boolean Functions
 
 This documentation provides details on boolean functions available in the API.
 
-## `parse`
+### `parse`
 
 **Description:**  
 Converts a string representation of a boolean value into a boolean. Acceptable
