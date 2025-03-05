@@ -90,6 +90,27 @@ exit(status=1, "Goodbye forever!")
 
 ---
 
+### `print`
+Prints a message to the console (alias for [`say`](#say)).
+
+```tomo
+func print(text:Text, newline:Bool = yes -> Void)
+```
+
+- `text`: The text to print.
+- `newline`: Whether or not to print a newline after the text.
+
+**Returns:**  
+Nothing.
+
+**Example:**  
+```tomo
+print("Hello ", newline=no)
+print("world!")
+```
+
+---
+
 ### `say`
 Prints a message to the console.
 

@@ -36,6 +36,10 @@ env_t *new_compilation_unit(CORD libname)
                     FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE,
                                             .next=new(arg_t, .name="newline", .type=Type(BoolType), .default_val=FakeAST(Bool, true))),
                     .ret=Type(VoidType))}},
+        {"print", {.code="say", .type=Type(
+                    FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE,
+                                            .next=new(arg_t, .name="newline", .type=Type(BoolType), .default_val=FakeAST(Bool, true))),
+                    .ret=Type(VoidType))}},
         {"ask", {.code="ask", .type=Type(
                     FunctionType, .args=new(arg_t, .name="prompt", .type=TEXT_TYPE,
                                             .next=new(arg_t, .name="bold", .type=Type(BoolType),
