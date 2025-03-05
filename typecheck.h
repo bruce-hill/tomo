@@ -9,6 +9,7 @@
 
 #include "ast.h"
 #include "environment.h"
+#include "stdlib/datatypes.h"
 #include "types.h"
 
 type_t *parse_type_ast(env_t *env, type_ast_t *ast);
@@ -25,6 +26,7 @@ PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast);
 type_t *parse_type_string(env_t *env, const char *str);
 type_t *get_method_type(env_t *env, ast_t *self, const char *name);
 PUREFUNC bool is_constant(env_t *env, ast_t *ast);
+Table_t *get_arg_bindings(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bool promotion_allowed);
 bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bool promotion_allowed);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

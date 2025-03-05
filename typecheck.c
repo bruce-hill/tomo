@@ -13,6 +13,7 @@
 #include "environment.h"
 #include "parse.h"
 #include "stdlib/patterns.h"
+#include "stdlib/tables.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"
 #include "typecheck.h"
@@ -233,7 +234,7 @@ void prebind_statement(env_t *env, ast_t *statement)
         type_t *type = Type(StructType, .name=def->name, .opaque=true, .env=ns_env); // placeholder
         Table$str_set(env->types, def->name, type);
         set_binding(env, def->name, Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
-                    CORD_all(namespace_prefix(env, env->namespace), def->name));
+                    CORD_all(namespace_prefix(env, env->namespace), def->name, "$$info"));
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
         break;
@@ -247,7 +248,7 @@ void prebind_statement(env_t *env, ast_t *statement)
         type_t *type = Type(EnumType, .name=def->name, .opaque=true, .env=ns_env); // placeholder
         Table$str_set(env->types, def->name, type);
         set_binding(env, def->name, Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
-                    CORD_all(namespace_prefix(env, env->namespace), def->name));
+                    CORD_all(namespace_prefix(env, env->namespace), def->name, "$$info"));
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
         break;
@@ -261,7 +262,7 @@ void prebind_statement(env_t *env, ast_t *statement)
         type_t *type = Type(TextType, .lang=def->name, .env=ns_env);
         Table$str_set(env->types, def->name, type);
         set_binding(env, def->name, Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
-                    CORD_all(namespace_prefix(env, env->namespace), def->name));
+                    CORD_all(namespace_prefix(env, env->namespace), def->name, "$$info"));
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
         break;
@@ -338,6 +339,12 @@ void bind_statement(env_t *env, ast_t *statement)
         REVERSE_LIST(fields);
         type->__data.StructType.fields = fields; // populate placeholder
         type->__data.StructType.opaque = false;
+
+        // Default constructor:
+        type_t *constructor_t = Type(FunctionType, .args=fields, .ret=type);
+        Array$insert(&ns_env->namespace->constructors,
+                     new(binding_t, .code=CORD_all(namespace_prefix(env, env->namespace), def->name), .type=constructor_t),
+                     I(0), sizeof(binding_t));
         
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
             bind_statement(ns_env, stmt->ast);
@@ -381,7 +388,7 @@ void bind_statement(env_t *env, ast_t *statement)
                 type_t *constructor_t = Type(FunctionType, .args=Match(tag->type, StructType)->fields, .ret=type);
                 set_binding(ns_env, tag->name, constructor_t, CORD_all(namespace_prefix(env, env->namespace), def->name, "$tagged$", tag->name));
             } else { // Empty singleton value:
-                CORD code = CORD_all("(", namespace_prefix(env, env->namespace), def->name, "_t){", namespace_prefix(env, env->namespace), def->name, "$tag$", tag->name, "}");
+                CORD code = CORD_all("((", namespace_prefix(env, env->namespace), def->name, "$$type){", namespace_prefix(env, env->namespace), def->name, "$tag$", tag->name, "})");
                 set_binding(ns_env, tag->name, type, code);
             }
             Table$str_set(env->types, heap_strf("%s$%s", def->name, tag->name), tag->type);
@@ -400,7 +407,7 @@ void bind_statement(env_t *env, ast_t *statement)
 
         set_binding(ns_env, "without_escaping",
                     Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE), .ret=type),
-                    CORD_all("(", namespace_prefix(env, env->namespace), def->name, "_t)"));
+                    CORD_all("(", namespace_prefix(env, env->namespace), def->name, "$$type)"));
 
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             bind_statement(ns_env, stmt->ast);
@@ -1369,56 +1376,69 @@ type_t *get_arg_type(env_t *env, arg_t *arg)
     return get_type(env, arg->default_val);
 }
 
-bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bool promotion_allowed)
+Table_t *get_arg_bindings(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bool promotion_allowed)
 {
     Table_t used_args = {};
-    for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
-        type_t *spec_type = get_arg_type(env, spec_arg);
-        int64_t i = 1;
-        // Find keyword:
-        if (spec_arg->name) {
-            for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
-                if (call_arg->name && streq(call_arg->name, spec_arg->name)) {
-                    type_t *call_type = get_arg_ast_type(env, call_arg);
-                    if (!(type_eq(call_type, spec_type) || (promotion_allowed && can_promote(call_type, spec_type))))
-                        return false;
-                    Table$str_set(&used_args, call_arg->name, call_arg);
-                    goto found_it;
-                }
-            }
+
+    // Populate keyword args:
+    for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
+        if (!call_arg->name) continue;
+
+        type_t *call_type = get_arg_ast_type(env, call_arg);
+        for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
+            if (!streq(call_arg->name, spec_arg->name)) continue;
+            type_t *spec_type = get_arg_type(env, spec_arg);
+            if (!(type_eq(call_type, spec_type) || (promotion_allowed && can_promote(call_type, spec_type))
+                  || (!promotion_allowed && call_arg->value->tag == Int && is_numeric_type(spec_type))
+                  || (!promotion_allowed && call_arg->value->tag == Num && spec_type->tag == NumType)))
+                return NULL;
+            Table$str_set(&used_args, call_arg->name, call_arg);
+            goto next_call_arg;
         }
-        // Find positional:
-        for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
-            if (call_arg->name) continue;
-            const char *pseudoname = heap_strf("%ld", i++);
-            if (!Table$str_get(used_args, pseudoname)) {
-                type_t *call_type = get_arg_ast_type(env, call_arg);
-                if (!(type_eq(call_type, spec_type) || (promotion_allowed && can_promote(call_type, spec_type))))
-                    return false;
-                Table$str_set(&used_args, pseudoname, call_arg);
-                goto found_it;
-            }
+        return NULL;
+      next_call_arg:;
+    }
+
+    arg_ast_t *unused_args = call_args;
+    for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
+        arg_ast_t *keyworded = Table$str_get(used_args, spec_arg->name);
+        if (keyworded) continue;
+
+        type_t *spec_type = get_arg_type(env, spec_arg);
+        for (; unused_args; unused_args = unused_args->next) {
+            if (unused_args->name) continue; // Already handled the keyword args
+            type_t *call_type = get_arg_ast_type(env, unused_args);
+            if (!(type_eq(call_type, spec_type) || (promotion_allowed && can_promote(call_type, spec_type))
+                  || (!promotion_allowed && unused_args->value->tag == Int && is_numeric_type(spec_type))
+                  || (!promotion_allowed && unused_args->value->tag == Num && spec_type->tag == NumType)))
+                return NULL; // Positional arg trying to fill in 
+            Table$str_set(&used_args, spec_arg->name, unused_args);
+            unused_args = unused_args->next;
+            goto found_it;
         }
 
         if (spec_arg->default_val)
             goto found_it;
 
-        return false;
+        return NULL;
       found_it: continue;
     }
 
-    int64_t i = 1;
-    for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
-        if (call_arg->name) {
-            if (!Table$str_get(used_args, call_arg->name))
-                return false;
-        } else {
-            const char *pseudoname = heap_strf("%ld", i++);
-            if (!Table$str_get(used_args, pseudoname))
-                return false;
-        }
-    }
-    return true;
+    while (unused_args && unused_args->name)
+        unused_args = unused_args->next;
+
+    if (unused_args != NULL)
+        return NULL;
+
+    Table_t *ret = new(Table_t);
+    *ret = used_args;
+    return ret;
+}
+
+bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bool promotion_allowed)
+{
+    Table_t *arg_bindings = get_arg_bindings(env, spec_args, call_args, promotion_allowed);
+    return (arg_bindings != NULL);
 }
 
 PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast)

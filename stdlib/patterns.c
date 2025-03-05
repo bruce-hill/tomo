@@ -807,7 +807,7 @@ static int64_t _find(Text_t text, Pattern_t pattern, int64_t first, int64_t last
 
 public OptionalMatch_t Text$find(Text_t text, Pattern_t pattern, Int_t from_index)
 {
-    int64_t first = Int_to_Int64(from_index, false);
+    int64_t first = Int64$from_int(from_index, false);
     if (first == 0) fail("Invalid index: 0");
     if (first < 0) first = text.length + first + 1;
     if (first > text.length || first < 1)
@@ -874,7 +874,7 @@ public Array_t Text$find_all(Text_t text, Pattern_t pattern)
         OptionalMatch_t m = Text$find(text, pattern, I(i));
         if (!m.index.small)
             break;
-        i = Int_to_Int64(m.index, false) + m.text.length;
+        i = Int64$from_int(m.index, false) + m.text.length;
         Array$insert(&matches, &m, I_small(0), sizeof(Match_t));
     }
     return matches;
@@ -888,7 +888,7 @@ typedef struct {
 
 static OptionalMatch_t next_match(match_iter_state_t *state)
 {
-    if (Int_to_Int64(state->i, false) > state->state.stack[0].text.length)
+    if (Int64$from_int(state->i, false) > state->state.stack[0].text.length)
         return NONE_MATCH;
 
     OptionalMatch_t m = Text$find(state->state.stack[0].text, state->pattern, state->i);

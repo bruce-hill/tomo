@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include "datatypes.h"
+#include "math.h"
 #include "moments.h"
 #include "optionals.h"
 #include "patterns.h"
@@ -60,11 +61,11 @@ public Moment_t Moment$now(void)
 public Moment_t Moment$new(Int_t year, Int_t month, Int_t day, Int_t hour, Int_t minute, double second, OptionalText_t timezone)
 {
     struct tm info = {
-        .tm_min=Int_to_Int32(minute, false),
-        .tm_hour=Int_to_Int32(hour, false),
-        .tm_mday=Int_to_Int32(day, false),
-        .tm_mon=Int_to_Int32(month, false) - 1,
-        .tm_year=Int_to_Int32(year, false) - 1900,
+        .tm_min=Int32$from_int(minute, false),
+        .tm_hour=Int32$from_int(hour, false),
+        .tm_mday=Int32$from_int(day, false),
+        .tm_mon=Int32$from_int(month, false) - 1,
+        .tm_year=Int32$from_int(year, false) - 1900,
         .tm_isdst=-1,
     };
 
@@ -81,9 +82,9 @@ public Moment_t Moment$after(Moment_t moment, double seconds, double minutes, do
     struct tm info = {};
     WITH_TIMEZONE(timezone, localtime_r(&moment.tv_sec, &info));
 
-    info.tm_mday += Int_to_Int32(days, false) + 7*Int_to_Int32(weeks, false);
-    info.tm_mon += Int_to_Int32(months, false);
-    info.tm_year += Int_to_Int32(years, false);
+    info.tm_mday += Int32$from_int(days, false) + 7*Int32$from_int(weeks, false);
+    info.tm_mon += Int32$from_int(months, false);
+    info.tm_year += Int32$from_int(years, false);
 
     time_t t = mktime(&info);
     return (Moment_t){

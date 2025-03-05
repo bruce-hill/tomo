@@ -13,6 +13,7 @@
 #include "enums.h"
 #include "environment.h"
 #include "stdlib/integers.h"
+#include "stdlib/nums.h"
 #include "stdlib/patterns.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"
@@ -102,21 +103,19 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
         return true;
     }
 
-    if (actual->tag == IntType && needed->tag == BigIntType) {
-        *code = CORD_all("I(", *code, ")");
-        return true;
+    // Numeric promotions/demotions
+    if ((is_numeric_type(actual) || actual->tag == BoolType) && (is_numeric_type(needed) || needed->tag == BoolType)) {
+        arg_ast_t *args = new(arg_ast_t, .value=FakeAST(InlineCCode, .code=*code, .type=actual));
+        binding_t *constructor = NULL;
+        if ((constructor=get_constructor(env, needed, args, needed))
+            || (constructor=get_constructor(env, actual, args, needed))) {
+            auto fn = Match(constructor->type, FunctionType);
+            if (fn->args->next == NULL) {
+                *code = CORD_all(constructor->code, "(", compile_arguments(env, ast, fn->args, args), ")");
+                return true;
+            }
+        }
     }
-
-    if ((actual->tag == IntType || actual->tag == BigIntType) && needed->tag == NumType) {
-        *code = CORD_all(type_to_cord(actual), "_to_", type_to_cord(needed), "(", *code, ")");
-        return true;
-    }
-
-    if (actual->tag == NumType && needed->tag == IntType)
-        return false;
-
-    if (actual->tag == IntType || actual->tag == NumType)
-        return true;
 
     if (needed->tag == EnumType) {
         const char *tag = enum_single_value_tag(needed, actual);
@@ -527,7 +526,7 @@ CORD compile_type(type_t *t)
         else if (streq(text->lang, "Shell"))
             return "Shell_t";
         else
-            return CORD_all(namespace_prefix(text->env, text->env->namespace->parent), text->lang, "_t");
+            return CORD_all(namespace_prefix(text->env, text->env->namespace->parent), text->lang, "$$type");
     }
     case ArrayType: return "Array_t";
     case SetType: return "Table_t";
@@ -547,11 +546,11 @@ CORD compile_type(type_t *t)
     case PointerType: return CORD_cat(compile_type(Match(t, PointerType)->pointed), "*");
     case StructType: {
         auto s = Match(t, StructType);
-        return CORD_all("struct ", namespace_prefix(s->env, s->env->namespace->parent), s->name, "_s");
+        return CORD_all("struct ", namespace_prefix(s->env, s->env->namespace->parent), s->name, "$$struct");
     }
     case EnumType: {
         auto e = Match(t, EnumType);
-        return CORD_all(namespace_prefix(e->env, e->env->namespace->parent), e->name, "_t");
+        return CORD_all(namespace_prefix(e->env, e->env->namespace->parent), e->name, "$$type");
     }
     case OptionalType: {
         type_t *nonnull = Match(t, OptionalType)->type;
@@ -570,7 +569,7 @@ CORD compile_type(type_t *t)
             if (nonnull == MATCH_TYPE)
                 return "OptionalMatch_t";
             auto s = Match(nonnull, StructType);
-            return CORD_all(namespace_prefix(s->env, s->env->namespace->parent), "$Optional", s->name, "_t");
+            return CORD_all(namespace_prefix(s->env, s->env->namespace->parent), "$Optional", s->name, "$$type");
         }
         default:
             compiler_err(NULL, NULL, NULL, "Optional types are not supported for: %T", t);
@@ -1848,10 +1847,18 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
 
 CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
 {
-    if (ast->tag == Int && is_numeric_type(t))
+    if (ast->tag == Int && is_numeric_type(t)) {
         return compile_int_to_type(env, ast, t);
-    if (ast->tag == None && Match(ast, None)->type == NULL)
+    } else if (ast->tag == Num && t->tag == NumType) {
+        double n = Match(ast, Num)->n;
+        switch (Match(t, NumType)->bits) {
+        case TYPE_NBITS64: return CORD_asprintf("N64(%.20g)", n);
+        case TYPE_NBITS32: return CORD_asprintf("N32(%.10g)", n);
+        default: code_err(ast, "This is not a valid number bit width");
+        }
+    } else if (ast->tag == None && Match(ast, None)->type == NULL) {
         return compile_none(t);
+    }
 
     type_t *actual = get_type(env, ast);
 
@@ -1886,7 +1893,7 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
         CORD code = compile(env, ast);
         type_t *actual_type = get_type(env, ast);
         if (!promote(env, ast, &code, actual_type, target))
-            code = CORD_all(type_to_cord(actual_type), "_to_", type_to_cord(target), "(", code, ", no)");
+            code_err(ast, "I couldn't promote this %T to a %T", actual_type, target);
         return code;
     }
 
@@ -1968,9 +1975,10 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                         OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Int)->str);
                         if (int_val.small == 0)
                             code_err(call_arg->value, "Failed to parse this integer");
-                        double n = Int_to_Num(int_val);
-                        value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == TYPE_NBITS64
-                                              ? "N64(%.20g)" : "N32(%.10g)", n);
+                        if (Match(spec_arg->type, NumType)->bits == TYPE_NBITS64)
+                            value = CORD_asprintf("N64(%.20g)", Num$from_int(int_val, false));
+                        else
+                            value = CORD_asprintf("N32(%.10g)", (double)Num32$from_int(int_val, false));
                     } else {
                         env_t *arg_env = with_enum_scope(env, spec_arg->type);
                         value = compile_maybe_incref(arg_env, call_arg->value, spec_arg->type);
@@ -1994,9 +2002,10 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                     OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Int)->str);
                     if (int_val.small == 0)
                         code_err(call_arg->value, "Failed to parse this integer");
-                    double n = Int_to_Num(int_val);
-                    value = CORD_asprintf(Match(spec_arg->type, NumType)->bits == TYPE_NBITS64
-                                          ? "N64(%.20g)" : "N32(%.10g)", n);
+                    if (Match(spec_arg->type, NumType)->bits == TYPE_NBITS64)
+                        value = CORD_asprintf("N64(%.20g)", Num$from_int(int_val, false));
+                    else
+                        value = CORD_asprintf("N32(%.10g)", (double)Num32$from_int(int_val, false));
                 } else {
                     env_t *arg_env = with_enum_scope(env, spec_arg->type);
                     value = compile_maybe_incref(arg_env, call_arg->value, spec_arg->type);
@@ -2226,22 +2235,6 @@ static ast_t *add_to_set_comprehension(ast_t *item, ast_t *subject)
     return WrapAST(item, MethodCall, .name="add", .self=subject, .args=new(arg_ast_t, .value=item));
 }
 
-static CORD compile_num_to_type(ast_t *ast, type_t *type)
-{
-    double n = Match(ast, Num)->n;
-
-    if (type->tag != NumType)
-        code_err(ast, "I can't compile a number literal to a %T", type);
-
-    switch (Match(type, NumType)->bits) {
-    case TYPE_NBITS64:
-        return CORD_asprintf("N64(%.20g)", n);
-    case TYPE_NBITS32:
-        return CORD_asprintf("N32(%.10g)", n);
-    default: code_err(ast, "This is not a valid number bit width");
-    }
-}
-
 CORD compile(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
@@ -2273,7 +2266,7 @@ CORD compile(env_t *env, ast_t *ast)
         if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0) {
             return CORD_asprintf("I_small(%s)", str);
         } else if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0) {
-            return CORD_asprintf("Int64_to_Int(%s)", str);
+            return CORD_asprintf("Int$from_int64(%s)", str);
         } else {
             return CORD_asprintf("Int$from_str(\"%s\")", str);
         }
@@ -3012,7 +3005,6 @@ CORD compile(env_t *env, ast_t *ast)
                 if (entry->b->type->tag == ModuleType)
                     continue;
                 binding_t *b = get_binding(env, entry->name);
-                if (!b) printf("Couldn't find: %s\n", entry->name);
                 assert(b);
                 CORD binding_code = b->code;
                 if (entry->b->type->tag == ArrayType)
@@ -3371,6 +3363,12 @@ CORD compile(env_t *env, ast_t *ast)
         } else if (fn_t->tag == TypeInfoType) {
             type_t *t = Match(fn_t, TypeInfoType)->type;
 
+            // Literal constructors for numeric types like `Byte(123)` should not go through any conversion, just a cast:
+            if (is_numeric_type(t) && call->args && !call->args->next && call->args->value->tag == Int)
+                return compile_to_type(env, call->args->value, t);
+            else if (t->tag == NumType && call->args && !call->args->next && call->args->value->tag == Num)
+                return compile_to_type(env, call->args->value, t);
+
             binding_t *constructor = get_constructor(env, t, call->args, t);
             if (constructor) {
                 arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
@@ -3378,65 +3376,7 @@ CORD compile(env_t *env, ast_t *ast)
             }
 
             type_t *actual = call->args ? get_type(env, call->args->value) : NULL;
-            if (t->tag == StructType) {
-                // Struct constructor:
-                fn_t = Type(FunctionType, .args=Match(t, StructType)->fields, .ret=t);
-                return CORD_all("((", compile_type(t), "){", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), "})");
-            } else if (is_numeric_type(t) && call->args && call->args->value->tag == Int) {
-                if (call->args->next)
-                    code_err(call->args->next->value, "This is too many arguments to an integer literal constructor");
-                return compile_int_to_type(env, call->args->value, t);
-            } else if (t->tag == NumType && call->args && call->args->value->tag == Num) {
-                if (call->args->next)
-                    code_err(call->args->next->value, "This is too many arguments to a number literal constructor");
-                return compile_num_to_type(call->args->value, t);
-            } else if (t->tag == NumType || t->tag == BigIntType) {
-                if (!call->args) code_err(ast, "This constructor needs a value");
-                if (!call->args)
-                    code_err(ast, "This constructor requires an argument!");
-
-                if (type_eq(actual, t)) {
-                    if (call->args->next)
-                        code_err(ast, "This is too many arguments!");
-                    return compile(env, call->args->value);
-                }
-
-                arg_t *args = new(arg_t, .name="i", .type=actual); // No truncation argument
-                CORD arg_code = compile_arguments(env, ast, args, call->args);
-                if (is_numeric_type(actual)) {
-                    return CORD_all(type_to_cord(actual), "_to_", type_to_cord(t), "(", arg_code, ")");
-                } else if (actual->tag == BoolType) {
-                    if (t->tag == NumType) {
-                        return CORD_all("((", compile_type(t), ")(", arg_code, "))");
-                    } else {
-                        return CORD_all("I((int)(", arg_code, "))");
-                    }
-                } else {
-                    code_err(ast, "You cannot convert a %T to a %T this way.", actual, t);
-                }
-            } else if (t->tag == IntType || t->tag == ByteType) {
-                if (!call->args)
-                    code_err(ast, "This constructor requires an argument!");
-
-                if (type_eq(actual, t)) {
-                    if (call->args->next)
-                        code_err(ast, "This is too many arguments!");
-                    return compile(env, call->args->value);
-                }
-
-                if (is_numeric_type(actual)) {
-                    arg_t *args = new(arg_t, .name="i", .type=actual, .next=new(arg_t, .name="truncate", .type=Type(BoolType),
-                                                                                .default_val=FakeAST(Bool, false)));
-                    CORD arg_code = compile_arguments(env, ast, args, call->args);
-                    return CORD_all(type_to_cord(actual), "_to_", type_to_cord(t), "(", arg_code, ")");
-                } else if (actual->tag == BoolType) {
-                    arg_t *args = new(arg_t, .name="i", .type=actual);
-                    CORD arg_code = compile_arguments(env, ast, args, call->args);
-                    return CORD_all("((", compile_type(t),")(", arg_code, "))");
-                } else {
-                    code_err(ast, "You cannot convert a %T to a %T this way.", actual, t);
-                }
-            } else if (t->tag == TextType) {
+            if (t->tag == TextType) {
                 if (!call->args) code_err(ast, "This constructor needs a value");
                 const char *lang = Match(t, TextType)->lang;
                 if (lang)
@@ -3458,11 +3398,6 @@ CORD compile(env_t *env, ast_t *ast)
                 else if (call->args->value->tag == TextJoin && Match(call->args->value, TextJoin)->children->next == NULL)
                     return compile_string_literal(Match(Match(call->args->value, TextJoin)->children->ast, TextLiteral)->cord);
                 return CORD_all("Text$as_c_string(", expr_as_text(env, compile(env, call->args->value), actual, "no"), ")");
-            } else if (t->tag == MomentType) {
-                // Moment constructor:
-                binding_t *new_binding = get_binding(Match(fn_t, TypeInfoType)->env, "new");
-                CORD arg_code = compile_arguments(env, ast, Match(new_binding->type, FunctionType)->args, call->args);
-                return CORD_all(new_binding->code, "(", arg_code, ")");
             } else {
                 code_err(call->fn, "This is not a type that has a constructor");
             }
@@ -3726,7 +3661,7 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD text = compile_to_pointer_depth(env, f->fielded, 0, false);
                 return CORD_all("((Text_t)", text, ")");
             } else if (streq(f->field, "length")) {
-                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
+                return CORD_all("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
             }
             code_err(ast, "There is no '%s' field on %T values", f->field, value_t);
         }
@@ -3763,19 +3698,19 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case ArrayType: {
             if (streq(f->field, "length"))
-                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
+                return CORD_all("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
             code_err(ast, "There is no %s field on arrays", f->field);
         }
         case SetType: {
             if (streq(f->field, "items"))
                 return CORD_all("ARRAY_COPY((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries)");
             else if (streq(f->field, "length"))
-                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
+                return CORD_all("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
             code_err(ast, "There is no '%s' field on sets", f->field);
         }
         case TableType: {
             if (streq(f->field, "length")) {
-                return CORD_all("Int64_to_Int((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
+                return CORD_all("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
             } else if (streq(f->field, "keys")) {
                 return CORD_all("ARRAY_COPY((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries)");
             } else if (streq(f->field, "values")) {
@@ -3835,12 +3770,14 @@ CORD compile(env_t *env, ast_t *ast)
             type_t *item_type = Match(container_t, ArrayType)->item_type;
             CORD arr = compile_to_pointer_depth(env, indexing->indexed, 0, false);
             file_t *f = indexing->index->file;
+            CORD index_code = indexing->index->tag == Int
+                ? compile_int_to_type(env, indexing->index, Type(IntType, .bits=TYPE_IBITS64))
+                : (index_t->tag == BigIntType ? CORD_all("Int64$from_int(", compile(env, indexing->index), ", no)")
+                   : CORD_all("(Int64_t)(", compile(env, indexing->index), ")"));
             if (indexing->unchecked)
-                return CORD_all("Array_get_unchecked(", compile_type(item_type), ", ", arr, ", ",
-                                compile_int_to_type(env, indexing->index, Type(IntType, .bits=TYPE_IBITS64)), ")");
+                return CORD_all("Array_get_unchecked(", compile_type(item_type), ", ", arr, ", ", index_code, ")");
             else
-                return CORD_all("Array_get(", compile_type(item_type), ", ", arr, ", ",
-                                compile_int_to_type(env, indexing->index, Type(IntType, .bits=TYPE_IBITS64)), ", ",
+                return CORD_all("Array_get(", compile_type(item_type), ", ", arr, ", ", index_code, ", ",
                                 CORD_asprintf("%ld", (int64_t)(indexing->index->start - f->text)), ", ",
                                 CORD_asprintf("%ld", (int64_t)(indexing->index->end - f->text)),
                                 ")");
@@ -3912,15 +3849,15 @@ CORD compile_type_info(env_t *env, type_t *t)
             return "&Shell$info";
         else if (streq(text->lang, "Path"))
             return "&Path$info";
-        return CORD_all("(&", namespace_prefix(text->env, text->env->namespace->parent), text->lang, ")");
+        return CORD_all("(&", namespace_prefix(text->env, text->env->namespace->parent), text->lang, "$$info)");
     }
     case StructType: {
         auto s = Match(t, StructType);
-        return CORD_all("(&", namespace_prefix(s->env, s->env->namespace->parent), s->name, ")");
+        return CORD_all("(&", namespace_prefix(s->env, s->env->namespace->parent), s->name, "$$info)");
     }
     case EnumType: {
         auto e = Match(t, EnumType);
-        return CORD_all("(&", namespace_prefix(e->env, e->env->namespace->parent), e->name, ")");
+        return CORD_all("(&", namespace_prefix(e->env, e->env->namespace->parent), e->name, "$$info)");
     }
     case ArrayType: {
         type_t *item_t = Match(t, ArrayType)->item_type;
@@ -4295,7 +4232,7 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
     }
     case LangDef: {
         auto def = Match(ast, LangDef);
-        CORD code = CORD_asprintf("public const TypeInfo_t %r%s = {%zu, %zu, .metamethods=Text$metamethods, .tag=TextInfo, .TextInfo={%r}};\n",
+        CORD code = CORD_asprintf("public const TypeInfo_t %r%s$$info = {%zu, %zu, .metamethods=Text$metamethods, .tag=TextInfo, .TextInfo={%r}};\n",
                                   namespace_prefix(env, env->namespace), def->name, sizeof(Text_t), __alignof__(Text_t),
                                   CORD_quoted(def->name));
         env_t *ns_env = namespace_env(env, def->name);
@@ -4429,9 +4366,9 @@ CORD compile_statement_type_header(env_t *env, ast_t *ast)
         return CORD_all(
             // Constructor macro:
             "#define ", namespace_prefix(env, env->namespace), def->name,
-                "(text) ((", namespace_prefix(env, env->namespace), def->name, "_t){.length=sizeof(text)-1, .tag=TEXT_ASCII, .ascii=\"\" text})\n"
+                "(text) ((", namespace_prefix(env, env->namespace), def->name, "$$type){.length=sizeof(text)-1, .tag=TEXT_ASCII, .ascii=\"\" text})\n"
             "#define ", namespace_prefix(env, env->namespace), def->name,
-                "s(...) ((", namespace_prefix(env, env->namespace), def->name, "_t)Texts(__VA_ARGS__))\n"
+                "s(...) ((", namespace_prefix(env, env->namespace), def->name, "$$type)Texts(__VA_ARGS__))\n"
             "extern const TypeInfo_t ", full_name, ";\n"
         );
     }
@@ -4539,19 +4476,19 @@ static void _make_typedefs(compile_typedef_info_t *info, ast_t *ast)
     if (ast->tag == StructDef) {
         auto def = Match(ast, StructDef);
         CORD full_name = CORD_cat(namespace_prefix(info->env, info->env->namespace), def->name);
-        *info->header = CORD_all(*info->header, "typedef struct ", full_name, "_s ", full_name, "_t;\n");
+        *info->header = CORD_all(*info->header, "typedef struct ", full_name, "$$struct ", full_name, "$$type;\n");
     } else if (ast->tag == EnumDef) {
         auto def = Match(ast, EnumDef);
         CORD full_name = CORD_cat(namespace_prefix(info->env, info->env->namespace), def->name);
-        *info->header = CORD_all(*info->header, "typedef struct ", full_name, "_s ", full_name, "_t;\n");
+        *info->header = CORD_all(*info->header, "typedef struct ", full_name, "$$struct ", full_name, "$$type;\n");
 
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
             if (!tag->fields) continue;
-            *info->header = CORD_all(*info->header, "typedef struct ", full_name, "$", tag->name, "_s ", full_name, "$", tag->name, "_t;\n");
+            *info->header = CORD_all(*info->header, "typedef struct ", full_name, "$", tag->name, "$$struct ", full_name, "$", tag->name, "$$type;\n");
         }
     } else if (ast->tag == LangDef) {
         auto def = Match(ast, LangDef);
-        *info->header = CORD_all(*info->header, "typedef Text_t ", namespace_prefix(info->env, info->env->namespace), def->name, "_t;\n");
+        *info->header = CORD_all(*info->header, "typedef Text_t ", namespace_prefix(info->env, info->env->namespace), def->name, "$$type;\n");
     }
 }
 

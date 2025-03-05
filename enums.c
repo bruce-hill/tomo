@@ -34,7 +34,7 @@ CORD compile_enum_typeinfo(env_t *env, ast_t *ast)
 
     type_t *t = Table$str_get(*env->types, def->name);
     const char *metamethods = is_packed_data(t) ? "PackedDataEnum$metamethods" : "Enum$metamethods";
-    CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r = {%zu, %zu, .metamethods=%s, {.tag=EnumInfo, .EnumInfo={.name=\"%s\", "
+    CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r$$info = {%zu, %zu, .metamethods=%s, {.tag=EnumInfo, .EnumInfo={.name=\"%s\", "
                                   ".num_tags=%d, .tags=(NamedType_t[]){",
                                   full_name, type_size(t), type_align(t), metamethods, def->name, num_tags);
 
@@ -66,8 +66,8 @@ CORD compile_enum_constructors(env_t *env, ast_t *ast)
             if (field->next) arg_sig = CORD_cat(arg_sig, ", ");
         }
         if (arg_sig == CORD_EMPTY) arg_sig = "void";
-        CORD constructor_impl = CORD_all("public inline ", full_name, "_t ", full_name, "$tagged$", tag->name, "(", arg_sig, ") { return (",
-                                         full_name, "_t){.tag=", full_name, "$tag$", tag->name, ", .$", tag->name, "={");
+        CORD constructor_impl = CORD_all("public inline ", full_name, "$$type ", full_name, "$tagged$", tag->name, "(", arg_sig, ") { return (",
+                                         full_name, "$$type){.tag=", full_name, "$tag$", tag->name, ", .$", tag->name, "={");
         for (arg_ast_t *field = tag->fields; field; field = field->next) {
             constructor_impl = CORD_all(constructor_impl, "$", field->name);
             if (field->next) constructor_impl = CORD_cat(constructor_impl, ", ");
@@ -83,7 +83,7 @@ CORD compile_enum_header(env_t *env, ast_t *ast)
     auto def = Match(ast, EnumDef);
     CORD full_name = CORD_all(namespace_prefix(env, env->namespace), def->name);
     CORD all_defs = CORD_EMPTY;
-    CORD enum_def = CORD_all("struct ", full_name, "_s {\n"
+    CORD enum_def = CORD_all("struct ", full_name, "$$struct {\n"
                              "\tenum { ", full_name, "$null=0, ");
 
     bool has_any_tags_with_fields = false;
@@ -100,14 +100,14 @@ CORD compile_enum_header(env_t *env, ast_t *ast)
             if (!tag->fields) continue;
             CORD field_def = compile_struct_header(env, WrapAST(ast, StructDef, .name=CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)), .fields=tag->fields));
             all_defs = CORD_all(all_defs, field_def);
-            enum_def = CORD_all(enum_def, full_name, "$", tag->name, "_t $", tag->name, ";\n");
+            enum_def = CORD_all(enum_def, full_name, "$", tag->name, "$$type $", tag->name, ";\n");
         }
         enum_def = CORD_all(enum_def, "};\n");
     }
     enum_def = CORD_all(enum_def, "};\n");
     all_defs = CORD_all(all_defs, enum_def);
 
-    all_defs = CORD_all(all_defs, "extern const TypeInfo_t ", full_name, ";\n");
+    all_defs = CORD_all(all_defs, "extern const TypeInfo_t ", full_name, "$$info;\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         if (!tag->fields) continue;
 
@@ -118,7 +118,7 @@ CORD compile_enum_header(env_t *env, ast_t *ast)
             if (field->next) arg_sig = CORD_all(arg_sig, ", ");
         }
         if (arg_sig == CORD_EMPTY) arg_sig = "void";
-        CORD constructor_def = CORD_all(full_name, "_t ", full_name, "$tagged$", tag->name, "(", arg_sig, ");\n");
+        CORD constructor_def = CORD_all(full_name, "$$type ", full_name, "$tagged$", tag->name, "(", arg_sig, ");\n");
         all_defs = CORD_all(all_defs, constructor_def);
     }
     return all_defs;

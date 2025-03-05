@@ -277,7 +277,7 @@ public OptionalArray_t Path$read_bytes(Path_t path, OptionalInt_t count)
     if (fstat(fd, &sb) != 0)
         return NONE_ARRAY;
 
-    int64_t const target_count = count.small ? Int_to_Int64(count, false) : INT64_MAX;
+    int64_t const target_count = count.small ? Int64$from_int(count, false) : INT64_MAX;
     if (target_count < 0)
         fail("Cannot read a negative number of bytes!");
 

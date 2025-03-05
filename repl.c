@@ -177,10 +177,10 @@ static Int_t ast_to_int(env_t *env, ast_t *ast)
         number_t num;
         eval(env, ast, &num);
         switch (Match(t, IntType)->bits) {
-        case TYPE_IBITS64: return Int64_to_Int((int64_t)num.i64);
-        case TYPE_IBITS32: return Int32_to_Int(num.i32);
-        case TYPE_IBITS16: return Int16_to_Int(num.i16);
-        case TYPE_IBITS8: return Int8_to_Int(num.i8);
+        case TYPE_IBITS64: return Int$from_int64((int64_t)num.i64);
+        case TYPE_IBITS32: return Int$from_int32(num.i32);
+        case TYPE_IBITS16: return Int$from_int16(num.i16);
+        case TYPE_IBITS8: return Int$from_int8(num.i8);
         default: errx(1, "Invalid int bits");
         }
     }
@@ -196,12 +196,12 @@ static double ast_to_num(env_t *env, ast_t *ast)
         number_t num;
         eval(env, ast, &num);
         if (t->tag == BigIntType)
-            return Int_to_Num(num.integer);
+            return Num$from_int(num.integer, false);
         switch (Match(t, IntType)->bits) {
-        case TYPE_IBITS64: return (double)num.i64;
-        case TYPE_IBITS32: return (double)num.i32;
-        case TYPE_IBITS16: return (double)num.i16;
-        case TYPE_IBITS8: return (double)num.i8;
+        case TYPE_IBITS64: return Num$from_int64(num.i64, false);
+        case TYPE_IBITS32: return Num$from_int32(num.i32);
+        case TYPE_IBITS16: return Num$from_int16(num.i16);
+        case TYPE_IBITS8: return Num$from_int8(num.i8);
         default: errx(1, "Invalid int bits");
         }
     }
@@ -401,10 +401,10 @@ void eval(env_t *env, ast_t *ast, void *dest)
             return; \
         } \
         switch (Match(t, IntType)->bits) { \
-        case 64: *(int64_t*)dest = Int_to_Int64(result, false); return; \
-        case 32: *(int32_t*)dest = Int_to_Int32(result, false); return; \
-        case 16: *(int16_t*)dest = Int_to_Int16(result, false); return; \
-        case 8: *(int8_t*)dest = Int_to_Int8(result, false); return; \
+        case 64: *(int64_t*)dest = Int64$from_int(result, false); return; \
+        case 32: *(int32_t*)dest = Int32$from_int(result, false); return; \
+        case 16: *(int16_t*)dest = Int16$from_int(result, false); return; \
+        case 8: *(int8_t*)dest = Int8$from_int(result, false); return; \
         default: errx(1, "Invalid int bits"); \
         } \
         break; \
@@ -467,7 +467,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         case ArrayType: {
             Array_t arr;
             eval(env, index->indexed, &arr);
-            int64_t raw_index = Int_to_Int64(ast_to_int(env, index->index), false);
+            int64_t raw_index = Int64$from_int(ast_to_int(env, index->index), false);
             int64_t index_int = raw_index;
             if (index_int < 1) index_int = arr.length + index_int + 1;
             if (index_int < 1 || index_int > arr.length)

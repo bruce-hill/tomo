@@ -83,11 +83,13 @@ struct IVec2(x,y:Int):
     func divided_by(v:IVec2, divisor:Int->IVec2; inline):
         return IVec2(v.x/divisor, v.y/divisor)
     func length(v:IVec2->Num; inline):
-        return Num.sqrt(v.x*v.x + v.y*v.y)
+        x := Num(v.x)
+        y := Num(v.y)
+        return Num.sqrt(x*x + y*y)
     func dist(a,b:IVec2->Num; inline):
         return a:minus(b):length()
     func angle(v:IVec2->Num; inline):
-        return Num.atan2(v.y, v.x)
+        return Num.atan2(Num(v.y), Num(v.x))
 
 struct IVec3(x,y,z:Int):
     ZERO := IVec3(0, 0, 0)
@@ -106,7 +108,10 @@ struct IVec3(x,y,z:Int):
     func divided_by(v:IVec3, divisor:Int->IVec3; inline):
         return IVec3(v.x/divisor, v.y/divisor, v.z/divisor)
     func length(v:IVec3->Num; inline):
-        return Num.sqrt(v.x*v.x + v.y*v.y + v.z*v.z)
+        x := Num(v.x)
+        y := Num(v.y)
+        z := Num(v.z)
+        return Num.sqrt(x*x + y*y + z*z)
     func dist(a,b:IVec3->Num; inline):
         return a:minus(b):length()
 

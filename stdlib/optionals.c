@@ -8,6 +8,7 @@
 #include "integers.h"
 #include "metamethods.h"
 #include "moments.h"
+#include "nums.h"
 #include "patterns.h"
 #include "text.h"
 #include "threads.h"

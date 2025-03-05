@@ -505,7 +505,7 @@ public Text_t Text$repeat(Text_t text, Int_t count)
     if (Int$compare_value(result_len, I(1l<<40)) > 0)
         fail("Text repeating would produce too big of an result!");
 
-    int64_t count64 = Int_to_Int64(count, false);
+    int64_t count64 = Int64$from_int(count, false);
     Text_t ret = text;
     for (int64_t c = 1; c < count64; c++)
         ret = concat2(ret, text);
@@ -514,8 +514,8 @@ public Text_t Text$repeat(Text_t text, Int_t count)
 
 public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
 {
-    int64_t first = Int_to_Int64(first_int, false);
-    int64_t last = Int_to_Int64(last_int, false);
+    int64_t first = Int64$from_int(first_int, false);
+    int64_t last = Int64$from_int(last_int, false);
     if (first == 0) fail("Invalid index: 0");
     if (last == 0) return EMPTY_TEXT;
 
@@ -604,14 +604,14 @@ public Text_t Text$reversed(Text_t text)
 
 public PUREFUNC Text_t Text$cluster(Text_t text, Int_t index_int)
 {
-    int64_t index = Int_to_Int64(index_int, false);
+    int64_t index = Int64$from_int(index_int, false);
     if (index == 0) fail("Invalid index: 0");
 
     if (index < 0) index = text.length + index + 1;
 
     if (index > text.length || index < 1)
         fail("Invalid index: %ld is beyond the length of the text (length = %ld)",
-             Int_to_Int64(index_int, false), text.length);
+             Int64$from_int(index_int, false), text.length);
 
     while (text.tag == TEXT_CONCAT) {
         if (index <= text.left->length)

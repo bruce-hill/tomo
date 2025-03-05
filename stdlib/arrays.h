@@ -69,7 +69,7 @@ void Array$remove_item(Array_t *arr, void *item, Int_t max_removals, const TypeI
 #define Array$pop(arr_expr, index_expr, item_type, nonnone_var, nonnone_expr, none_expr, padded_item_size) ({ \
     Array_t *arr = arr_expr; \
     Int_t index = index_expr; \
-    int64_t index64 = Int_to_Int64(index, false); \
+    int64_t index64 = Int64$from_int(index, false); \
     int64_t off = index64 + (index64 < 0) * (arr->length + 1) - 1; \
     (off >= 0 && off < arr->length) ? ({ \
         item_type nonnone_var = *(item_type*)(arr->data + off*arr->stride); \

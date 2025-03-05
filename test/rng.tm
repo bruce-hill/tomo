@@ -36,5 +36,5 @@ func main():
         = [30, 50, 100, 20, 90, 10, 80, 40, 70, 60]
         >> nums:random(rng=rng)
         = 70
-        >> nums:sample(10, weights=[1.0/i for i in nums.length], rng=rng)
+        >> nums:sample(10, weights=[1.0/Num(i) for i in nums.length], rng=rng)
         = [10, 20, 10, 10, 30, 70, 10, 40, 60, 80]

@@ -17,6 +17,7 @@
 #include "integers.h"
 #include "optionals.h"
 #include "metamethods.h"
+#include "nums.h"
 #include "patterns.h"
 #include "paths.h"
 #include "rng.h"

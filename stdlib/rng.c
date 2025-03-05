@@ -251,7 +251,7 @@ public Byte_t RNG$byte(RNG_t rng)
 
 public Array_t RNG$bytes(RNG_t rng, Int_t count)
 {
-    int64_t n = Int_to_Int64(count, false);
+    int64_t n = Int64$from_int(count, false);
     Byte_t *r = GC_MALLOC_ATOMIC(sizeof(Byte_t[n]));
     random_bytes(rng, r, sizeof(Byte_t[n]));
     return (Array_t){.data=r, .length=n, .stride=1, .atomic=1};

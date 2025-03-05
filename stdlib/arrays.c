@@ -7,6 +7,7 @@
 
 #include "arrays.h"
 #include "integers.h"
+#include "math.h"
 #include "metamethods.h"
 #include "optionals.h"
 #include "rng.h"
@@ -51,7 +52,7 @@ public void Array$compact(Array_t *arr, int64_t padded_item_size)
 
 public void Array$insert(Array_t *arr, const void *item, Int_t int_index, int64_t padded_item_size)
 {
-    int64_t index = Int_to_Int64(int_index, false);
+    int64_t index = Int64$from_int(int_index, false);
     if (index <= 0) index = arr->length + index + 1;
 
     if (index < 1) index = 1;
@@ -90,7 +91,7 @@ public void Array$insert(Array_t *arr, const void *item, Int_t int_index, int64_
 
 public void Array$insert_all(Array_t *arr, Array_t to_insert, Int_t int_index, int64_t padded_item_size)
 {
-    int64_t index = Int_to_Int64(int_index, false);
+    int64_t index = Int64$from_int(int_index, false);
     if (to_insert.length == 0)
         return;
 
@@ -163,10 +164,10 @@ public void Array$insert_all(Array_t *arr, Array_t to_insert, Int_t int_index, i
 
 public void Array$remove_at(Array_t *arr, Int_t int_index, Int_t int_count, int64_t padded_item_size)
 {
-    int64_t index = Int_to_Int64(int_index, false);
+    int64_t index = Int64$from_int(int_index, false);
     if (index < 1) index = arr->length + index + 1;
 
-    int64_t count = Int_to_Int64(int_count, false);
+    int64_t count = Int64$from_int(int_count, false);
     if (index < 1 || index > (int64_t)arr->length || count < 1) return;
 
     if (count > arr->length - index + 1)
@@ -297,7 +298,7 @@ public Table_t Array$counts(Array_t arr, const TypeInfo_t *type)
 
 public Array_t Array$sample(Array_t arr, Int_t int_n, Array_t weights, RNG_t rng, int64_t padded_item_size)
 {
-    int64_t n = Int_to_Int64(int_n, false);
+    int64_t n = Int64$from_int(int_n, false);
     if (n < 0)
         fail("Cannot select a negative number of values");
 
@@ -399,7 +400,7 @@ public Array_t Array$to(Array_t array, Int_t last)
 
 public Array_t Array$by(Array_t array, Int_t int_stride, int64_t padded_item_size)
 {
-    int64_t stride = Int_to_Int64(int_stride, false);
+    int64_t stride = Int64$from_int(int_stride, false);
     // In the unlikely event that the stride value would be too large to fit in
     // a 15-bit integer, fall back to creating a copy of the array:
     if (unlikely(array.stride*stride < ARRAY_MIN_STRIDE || array.stride*stride > ARRAY_MAX_STRIDE)) {
@@ -434,11 +435,11 @@ public Array_t Array$by(Array_t array, Int_t int_stride, int64_t padded_item_siz
 public Array_t Array$slice(Array_t array, Int_t int_first, Int_t int_last)
 
 {
-    int64_t first = Int_to_Int64(int_first, false);
+    int64_t first = Int64$from_int(int_first, false);
     if (first < 0)
         first = array.length + first + 1;
 
-    int64_t last = Int_to_Int64(int_last, false);
+    int64_t last = Int64$from_int(int_last, false);
     if (last < 0)
         last = array.length + last + 1;
 

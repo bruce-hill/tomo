@@ -66,14 +66,14 @@ test: $(TESTS)
 	@echo -e '\x1b[32;7m ALL TESTS PASSED! \x1b[m'
 
 clean:
-	rm -f tomo *.o stdlib/*.o libtomo.so test/*.tm.{c,h,o,testresult} examples/**/*.tm.{c,h,o}
+	rm -f tomo *.o stdlib/*.o libtomo.so test/*.tm.{c,h,o,testresult} examples/**/*.tm.{c,h,o} examples/*.tm.{c,h,o}
 
 %: %.md
 	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@
 
 examples:
-	./tomo examples/learnxiny.tm
 	./tomo -IL examples/vectors examples/base64 examples/log examples/ini examples/game examples/http examples/threads examples/tomodeps examples/tomo-install examples/wrap
+	./tomo examples/learnxiny.tm
 
 install: tomo libtomo.so tomo.1
 	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"

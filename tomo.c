@@ -230,19 +230,19 @@ static void _make_typedefs_for_library(libheader_info_t *info, ast_t *ast)
     if (ast->tag == StructDef) {
         auto def = Match(ast, StructDef);
         CORD full_name = CORD_cat(namespace_prefix(info->env, info->env->namespace), def->name);
-        CORD_put(CORD_all("typedef struct ", full_name, "_s ", full_name, "_t;\n"), info->output);
+        CORD_put(CORD_all("typedef struct ", full_name, "$$struct ", full_name, "$$type;\n"), info->output);
     } else if (ast->tag == EnumDef) {
         auto def = Match(ast, EnumDef);
         CORD full_name = CORD_cat(namespace_prefix(info->env, info->env->namespace), def->name);
-        CORD_put(CORD_all("typedef struct ", full_name, "_s ", full_name, "_t;\n"), info->output);
+        CORD_put(CORD_all("typedef struct ", full_name, "$$struct ", full_name, "$$type;\n"), info->output);
 
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
             if (!tag->fields) continue;
-            CORD_put(CORD_all("typedef struct ", full_name, "$", tag->name, "_s ", full_name, "$", tag->name, "_t;\n"), info->output);
+            CORD_put(CORD_all("typedef struct ", full_name, "$", tag->name, "$$struct ", full_name, "$", tag->name, "$$type;\n"), info->output);
         }
     } else if (ast->tag == LangDef) {
         auto def = Match(ast, LangDef);
-        CORD_put(CORD_all("typedef Text_t ", namespace_prefix(info->env, info->env->namespace), def->name, "_t;\n"), info->output);
+        CORD_put(CORD_all("typedef Text_t ", namespace_prefix(info->env, info->env->namespace), def->name, "$$type;\n"), info->output);
     }
 }
 

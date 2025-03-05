@@ -469,27 +469,114 @@ env_t *new_compilation_unit(CORD libname)
     }
 
     // Conversion constructors:
-#define ADD_CONSTRUCTOR(ns_env, identifier, typestr) Array$insert(&ns_env->namespace->constructors, ((binding_t[1]){{.code=identifier, .type=Match(parse_type_string(ns_env, typestr), ClosureType)->fn}}), I(0), sizeof(binding_t))
-    {
-        env_t *ns_env = namespace_env(env, "Pattern");
-        ADD_CONSTRUCTOR(ns_env, "Pattern$escape_text", "func(text:Text -> Pattern)");
-        ADD_CONSTRUCTOR(ns_env, "Int$value_as_text", "func(i:Int -> Pattern)");
-    }
-    {
-        env_t *ns_env = namespace_env(env, "Path");
-        ADD_CONSTRUCTOR(ns_env, "Path$escape_text", "func(text:Text -> Path)");
-        ADD_CONSTRUCTOR(ns_env, "Path$escape_path", "func(path:Path -> Path)");
-        ADD_CONSTRUCTOR(ns_env, "Int$value_as_text", "func(i:Int -> Path)");
-    }
-    {
-        env_t *ns_env = namespace_env(env, "Shell");
-        ADD_CONSTRUCTOR(ns_env, "Shell$escape_text", "func(text:Text -> Shell)");
-        ADD_CONSTRUCTOR(ns_env, "Shell$escape_text", "func(path:Path -> Shell)");
-        ADD_CONSTRUCTOR(ns_env, "Shell$escape_text_array", "func(texts:[Text] -> Shell)");
-        ADD_CONSTRUCTOR(ns_env, "Shell$escape_text_array", "func(paths:[Path] -> Shell)");
-        ADD_CONSTRUCTOR(ns_env, "Int$value_as_text", "func(i:Int -> Shell)");
-    }
-#undef ADD_CONSTRUCTOR
+#define ADD_CONSTRUCTORS(type_name, ...) do {\
+    env_t *ns_env = namespace_env(env, type_name); \
+    struct { const char *c_name, *type_str; } constructor_infos[] = {__VA_ARGS__}; \
+    for (size_t i = 0; i < sizeof(constructor_infos)/sizeof(constructor_infos[0]); i++) { \
+        type_t *t = parse_type_string(ns_env, constructor_infos[i].type_str); \
+        Array$insert(&ns_env->namespace->constructors, \
+                     ((binding_t[1]){{.code=constructor_infos[i].c_name, \
+                      .type=Match(t, ClosureType)->fn}}), I(0), sizeof(binding_t)); \
+    } \
+} while (0)
+
+    ADD_CONSTRUCTORS("Bool",
+                     {"Bool$from_byte", "func(b:Byte -> Bool)"},
+                     {"Bool$from_int8", "func(i:Int8 -> Bool)"},
+                     {"Bool$from_int16", "func(i:Int16 -> Bool)"},
+                     {"Bool$from_int32", "func(i:Int32 -> Bool)"},
+                     {"Bool$from_int64", "func(i:Int64 -> Bool)"},
+                     {"Bool$from_int", "func(i:Int -> Bool)"});
+    ADD_CONSTRUCTORS("Byte",
+                     {"Byte$from_bool", "func(b:Bool -> Byte)"},
+                     {"Byte$from_int8", "func(i:Int8 -> Byte)"},
+                     {"Byte$from_int16", "func(i:Int16, truncate=no -> Byte)"},
+                     {"Byte$from_int32", "func(i:Int32, truncate=no -> Byte)"},
+                     {"Byte$from_int64", "func(i:Int64, truncate=no -> Byte)"},
+                     {"Byte$from_int", "func(i:Int, truncate=no -> Byte)"});
+    ADD_CONSTRUCTORS("Int",
+                     {"Int$from_bool", "func(b:Bool -> Int)"},
+                     {"Int$from_byte", "func(b:Byte -> Int)"},
+                     {"Int$from_int8", "func(i:Int8 -> Int)"},
+                     {"Int$from_int16", "func(i:Int16 -> Int)"},
+                     {"Int$from_int32", "func(i:Int32 -> Int)"},
+                     {"Int$from_int64", "func(i:Int64 -> Int)"},
+                     {"Int$from_num", "func(n:Num, truncate=no -> Int)"},
+                     {"Int$from_num32", "func(n:Num32, truncate=no -> Int)"});
+    ADD_CONSTRUCTORS("Int64",
+                     {"Int64$from_bool", "func(b:Bool -> Int64)"},
+                     {"Int64$from_byte", "func(b:Byte -> Int64)"},
+                     {"Int64$from_int8", "func(i:Int8 -> Int64)"},
+                     {"Int64$from_int16", "func(i:Int16 -> Int64)"},
+                     {"Int64$from_int32", "func(i:Int32 -> Int64)"},
+                     {"Int64$from_int", "func(i:Int, truncate=no -> Int64)"},
+                     {"Int64$from_num", "func(n:Num, truncate=no -> Int64)"},
+                     {"Int64$from_num32", "func(n:Num32, truncate=no -> Int64)"});
+    ADD_CONSTRUCTORS("Int32",
+                     {"Int32$from_bool", "func(b:Bool -> Int32)"},
+                     {"Int32$from_byte", "func(b:Byte -> Int32)"},
+                     {"Int32$from_int8", "func(i:Int8 -> Int32)"},
+                     {"Int32$from_int16", "func(i:Int16 -> Int32)"},
+                     {"Int32$from_int64", "func(i:Int64, truncate=no -> Int32)"},
+                     {"Int32$from_int", "func(i:Int, truncate=no -> Int32)"},
+                     {"Int32$from_num", "func(n:Num, truncate=no -> Int32)"},
+                     {"Int32$from_num32", "func(n:Num32, truncate=no -> Int32)"});
+    ADD_CONSTRUCTORS("Int16",
+                     {"Int16$from_bool", "func(b:Bool -> Int16)"},
+                     {"Int16$from_byte", "func(b:Byte -> Int16)"},
+                     {"Int16$from_int8", "func(i:Int8 -> Int16)"},
+                     {"Int16$from_int32", "func(i:Int32, truncate=no -> Int16)"},
+                     {"Int16$from_int64", "func(i:Int64, truncate=no -> Int16)"},
+                     {"Int16$from_int", "func(i:Int, truncate=no -> Int16)"},
+                     {"Int16$from_num", "func(n:Num, truncate=no -> Int16)"},
+                     {"Int16$from_num32", "func(n:Num32, truncate=no -> Int16)"});
+    ADD_CONSTRUCTORS("Int8",
+                     {"Int8$from_bool", "func(b:Bool -> Int8)"},
+                     {"Int8$from_byte", "func(b:Byte -> Int8)"},
+                     {"Int8$from_int16", "func(i:Int16, truncate=no -> Int8)"},
+                     {"Int8$from_int32", "func(i:Int32, truncate=no -> Int8)"},
+                     {"Int8$from_int64", "func(i:Int64, truncate=no -> Int8)"},
+                     {"Int8$from_int", "func(i:Int, truncate=no -> Int8)"},
+                     {"Int8$from_num", "func(n:Num, truncate=no -> Int8)"},
+                     {"Int8$from_num32", "func(n:Num32, truncate=no -> Int8)"});
+    ADD_CONSTRUCTORS("Num",
+                     {"Num$from_bool", "func(b:Bool -> Num)"},
+                     {"Num$from_byte", "func(b:Byte -> Num)"},
+                     {"Num$from_int8", "func(i:Int8 -> Num)"},
+                     {"Num$from_int16", "func(i:Int16 -> Num)"},
+                     {"Num$from_int32", "func(i:Int32 -> Num)"},
+                     {"Num$from_int64", "func(i:Int64, truncate=no -> Num)"},
+                     {"Num$from_int", "func(i:Int, truncate=no -> Num)"},
+                     {"Num$from_num32", "func(n:Num32 -> Num)"});
+    ADD_CONSTRUCTORS("Num32",
+                     {"Num32$from_bool", "func(b:Bool -> Num32)"},
+                     {"Num32$from_byte", "func(b:Byte -> Num32)"},
+                     {"Num32$from_int8", "func(i:Int8 -> Num32)"},
+                     {"Num32$from_int16", "func(i:Int16 -> Num32)"},
+                     {"Num32$from_int32", "func(i:Int32, truncate=no -> Num32)"},
+                     {"Num32$from_int64", "func(i:Int64, truncate=no -> Num32)"},
+                     {"Num32$from_int", "func(i:Int, truncate=no -> Num32)"},
+                     {"Num32$from_num", "func(n:Num -> Num32)"});
+    ADD_CONSTRUCTORS("Pattern",
+                     {"Pattern$escape_text", "func(text:Text -> Pattern)"},
+                     {"Int$value_as_text", "func(i:Int -> Pattern)"});
+    ADD_CONSTRUCTORS("Path",
+                     {"Path$escape_text", "func(text:Text -> Path)"},
+                     {"Path$escape_path", "func(path:Path -> Path)"},
+                     {"Int$value_as_text", "func(i:Int -> Path)"});
+    ADD_CONSTRUCTORS("Shell",
+                     {"Shell$escape_text", "func(text:Text -> Shell)"},
+                     {"Shell$escape_text", "func(path:Path -> Shell)"},
+                     {"Shell$escape_text_array", "func(texts:[Text] -> Shell)"},
+                     {"Shell$escape_text_array", "func(paths:[Path] -> Shell)"},
+                     {"Int$value_as_text", "func(i:Int -> Shell)"});
+    ADD_CONSTRUCTORS("Moment",
+                     {"Moment$now", "func(-> Moment)"},
+                     {"Moment$new", "func(year,month,day:Int,hour,minute=0,second=0.0,timezone=none:Text -> Moment)"},
+                     {"Moment$from_unix_timestamp", "func(timestamp:Int64 -> Moment)"});
+    ADD_CONSTRUCTORS("RNG", {"RNG$new", "func(-> RNG)"});
+    ADD_CONSTRUCTORS("Thread", {"Thread$new", "func(fn:func() -> Thread)"});
+#undef ADD_CONSTRUCTORS
 
     set_binding(namespace_env(env, "Shell"), "without_escaping",
                 Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),

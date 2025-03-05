@@ -63,7 +63,7 @@ func main():
 	>> Int8(123):hex()
 	= "0x7B"
 
-	>> Int(2.1)
+	>> Int(2.1, truncate=yes)
 	= 2 : Int
 
 	do:

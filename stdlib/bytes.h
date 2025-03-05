@@ -5,23 +5,21 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "datatypes.h"
+#include "stdlib.h"
 #include "types.h"
 #include "util.h"
 
-#define Byte_t uint8_t
 #define Byte(b) ((Byte_t)(b))
 
 PUREFUNC Text_t Byte$as_text(const void *b, bool colorize, const TypeInfo_t *type);
 
-#define Byte_to_Int64(b, _) ((Int64_t)(b))
-#define Byte_to_Int32(b, _) ((Int32_t)(b))
-#define Byte_to_Int16(b, _) ((Int16_t)(b))
-#define Byte_to_Int8(b, _) ((Int8_t)(b))
-
-#define Int64_to_Byte(b, _) ((Byte_t)(b))
-#define Int32_to_Byte(b, _) ((Byte_t)(b))
-#define Int16_to_Byte(b, _) ((Byte_t)(b))
-#define Int8_to_Byte(b, _) ((Byte_t)(b))
+Byte_t Byte$from_int(Int_t i, bool truncate);
+Byte_t Byte$from_int64(int64_t i, bool truncate);
+Byte_t Byte$from_int32(int32_t i, bool truncate);
+Byte_t Byte$from_int16(int16_t i, bool truncate);
+MACROLIKE Byte_t Byte$from_int8(int8_t i) { return (Byte_t)i; }
+MACROLIKE Byte_t Byte$from_bool(bool b) { return (Byte_t)b; }
 
 extern const Byte_t Byte$min;
 extern const Byte_t Byte$max;

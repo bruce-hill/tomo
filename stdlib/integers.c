@@ -74,7 +74,7 @@ public PUREFUNC uint64_t Int$hash(const void *vx, const TypeInfo_t*) {
 }
 
 public Text_t Int$format(Int_t i, Int_t digits_int) {
-    int64_t digits = Int_to_Int64(digits_int, false);
+    int64_t digits = Int64$from_int(digits_int, false);
     if (likely(i.small & 1)) {
         return Text$format("%0.*ld", digits, (i.small)>>2);
     } else {
@@ -97,7 +97,7 @@ public Text_t Int$hex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
     if (Int$is_negative(i))
         return Text$concat(Text("-"), Int$hex(Int$negative(i), digits_int, uppercase, prefix));
 
-    int64_t digits = Int_to_Int64(digits_int, false);
+    int64_t digits = Int64$from_int(digits_int, false);
     if (likely(i.small & 1)) {
         const char *hex_fmt = uppercase ? (prefix ? "0x%0.*lX" : "%0.*lX") : (prefix ? "0x%0.*lx" : "%0.*lx");
         return Text$format(hex_fmt, digits, (i.small)>>2);
@@ -124,7 +124,7 @@ public Text_t Int$octal(Int_t i, Int_t digits_int, bool prefix) {
     if (Int$is_negative(i))
         return Text$concat(Text("-"), Int$octal(Int$negative(i), digits_int, prefix));
 
-    int64_t digits = Int_to_Int64(digits_int, false);
+    int64_t digits = Int64$from_int(digits_int, false);
     if (likely(i.small & 1)) {
         const char *octal_fmt = prefix ? "0o%0.*lo" : "%0.*lo";
         return Text$format(octal_fmt, digits, (i.small)>>2);
@@ -221,7 +221,7 @@ public Int_t Int$slow_modulo1(Int_t x, Int_t modulus)
 
 public Int_t Int$slow_left_shifted(Int_t x, Int_t y)
 {
-    mp_bitcnt_t bits = (mp_bitcnt_t)Int_to_Int64(y, false);
+    mp_bitcnt_t bits = (mp_bitcnt_t)Int64$from_int(y, false);
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_mul_2exp(result, result, bits);
@@ -230,7 +230,7 @@ public Int_t Int$slow_left_shifted(Int_t x, Int_t y)
 
 public Int_t Int$slow_right_shifted(Int_t x, Int_t y)
 {
-    mp_bitcnt_t bits = (mp_bitcnt_t)Int_to_Int64(y, false);
+    mp_bitcnt_t bits = (mp_bitcnt_t)Int64$from_int(y, false);
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_tdiv_q_2exp(result, result, bits);
@@ -300,7 +300,7 @@ public Int_t Int$abs(Int_t x)
 
 public Int_t Int$power(Int_t base, Int_t exponent)
 {
-    int64_t exp = Int_to_Int64(exponent, false);
+    int64_t exp = Int64$from_int(exponent, false);
     if (unlikely(exp < 0))
         fail("Cannot take a negative power of an integer!");
     mpz_t result;
@@ -397,7 +397,7 @@ public bool Int$is_prime(Int_t x, Int_t reps)
     mpz_init_set_int(p, x);
     if (unlikely(Int$compare_value(reps, I(9999)) > 0))
         fail("Number of prime-test repetitions should not be above 9999");
-    int reps_int = Int_to_Int32(reps, false);
+    int reps_int = Int32$from_int(reps, false);
     return (mpz_probab_prime_p(p, reps_int) != 0);
 }
 
@@ -426,7 +426,7 @@ public Int_t Int$choose(Int_t n, Int_t k)
     mpz_t ret;
     mpz_init(ret);
 
-    int64_t k_i64 = Int_to_Int64(k, false);
+    int64_t k_i64 = Int64$from_int(k, false);
     if unlikely (k_i64 < 0)
         fail("Negative inputs are not supported for choose()");
 
@@ -444,7 +444,7 @@ public Int_t Int$factorial(Int_t n)
 {
     mpz_t ret;
     mpz_init(ret);
-    int64_t n_i64 = Int_to_Int64(n, false);
+    int64_t n_i64 = Int64$from_int(n, false);
     if unlikely (n_i64 < 0)
         fail("Factorials are not defined for negative numbers");
     mpz_fac_ui(ret, (unsigned long)n_i64);
@@ -556,15 +556,14 @@ public void Int32$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t
         return *(c_type*)x == *(c_type*)y; \
     } \
     public Text_t KindOfInt ## $format(c_type i, Int_t digits_int) { \
-        Int_t as_int = KindOfInt##_to_Int(i); \
-        return Int$format(as_int, digits_int); \
+        return Text$format("%0*ld", Int32$from_int(digits_int, false), i); \
     } \
     public Text_t KindOfInt ## $hex(c_type i, Int_t digits_int, bool uppercase, bool prefix) { \
-        Int_t as_int = KindOfInt##_to_Int(i); \
+        Int_t as_int = Int$from_int64((int64_t)i); \
         return Int$hex(as_int, digits_int, uppercase, prefix); \
     } \
     public Text_t KindOfInt ## $octal(c_type i, Int_t digits_int, bool prefix) { \
-        Int_t as_int = KindOfInt##_to_Int(i); \
+        Int_t as_int = Int$from_int64((int64_t)i); \
         return Int$octal(as_int, digits_int, prefix); \
     } \
     public Array_t KindOfInt ## $bits(c_type x) { \
@@ -615,7 +614,7 @@ public void Int32$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t
         if (Int$compare_value(full_int, I(max_val)) > 0) { \
             return (Optional ## KindOfInt ## _t){.is_none=true}; \
         } \
-        return (Optional ## KindOfInt ## _t){.i=Int_to_ ## KindOfInt(full_int, true)}; \
+        return (Optional ## KindOfInt ## _t){.i=KindOfInt##$from_int(full_int, true)}; \
     } \
     public CONSTFUNC c_type KindOfInt ## $gcd(c_type x, c_type y) { \
         if (x == 0 || y == 0) return 0; \

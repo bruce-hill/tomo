@@ -8,15 +8,10 @@
 #include <gmp.h>
 
 #include "datatypes.h"
-#include "nums.h"
 #include "stdlib.h"
 #include "types.h"
 #include "util.h"
 
-#define Int64_t int64_t
-#define Int32_t int32_t
-#define Int16_t int16_t
-#define Int8_t int8_t
 #define I64(x) ((int64_t)x)
 #define I32(x) ((int32_t)x)
 #define I16(x) ((int16_t)x)
@@ -40,6 +35,8 @@
     MACROLIKE PUREFUNC c_type type_name ## $clamped(c_type x, c_type min, c_type max) { \
         return x < min ? min : (x > max ? max : x); \
     } \
+    MACROLIKE CONSTFUNC c_type type_name ## $from_byte(Byte_t b) { return (c_type)b; } \
+    MACROLIKE CONSTFUNC c_type type_name ## $from_bool(Bool_t b) { return (c_type)b; } \
     CONSTFUNC c_type type_name ## $gcd(c_type x, c_type y); \
     extern const c_type type_name ## $min, type_name##$max; \
     extern const TypeInfo_t type_name ## $info; \
@@ -126,8 +123,8 @@ OptionalInt_t Int$sqrt(Int_t i);
     else mpz_init_set(mpz, *(i).big); \
 } while (0)
 
-#define I(i) ((i) >= SMALLEST_SMALL_INT && (i) <= BIGGEST_SMALL_INT ? ((Int_t){.small=(int64_t)((uint64_t)(i)<<2)|1}) : Int64_to_Int(i))
 #define I_small(i) ((Int_t){.small=(int64_t)((uint64_t)(i)<<2)|1})
+#define I(i) _Generic(i, int8_t: I_small(i), int16_t: I_small(i), default: Int$from_int64(i))
 #define I_is_zero(i) ((i).small == 1)
 
 Int_t Int$slow_plus(Int_t x, Int_t y);
@@ -273,113 +270,104 @@ MACROLIKE PUREFUNC bool Int$is_negative(Int_t x) {
     return Int$compare_value(x, I_small(0)) < 0;
 }
 
-// Conversion functions:
+// Constructors/conversion functions:
 
-MACROLIKE Int_t Int64_to_Int(int64_t i)
-{
+// Int constructors:
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+MACROLIKE PUREFUNC Int_t Int$from_num(double n, bool truncate) {
+    mpz_t result;
+    mpz_init_set_d(result, n);
+    if unlikely (!truncate && mpz_get_d(result) != n)
+        fail("Could not convert to an integer without truncation: %g", n);
+    return Int$from_mpz(result);
+}
+#pragma GCC diagnostic pop
+MACROLIKE PUREFUNC Int_t Int$from_num32(float n, bool truncate) { return Int$from_num((double)n, truncate); }
+MACROLIKE Int_t Int$from_int64(int64_t i) {
     if likely (i >= SMALLEST_SMALL_INT && i <= BIGGEST_SMALL_INT)
         return (Int_t){.small=(i<<2)|1};
     mpz_t result;
     mpz_init_set_si(result, i);
     return Int$from_mpz(result);
 }
+MACROLIKE CONSTFUNC Int_t Int$from_int32(Int32_t i) { return Int$from_int64((Int32_t)i); }
+MACROLIKE CONSTFUNC Int_t Int$from_int16(Int16_t i) { return I_small(i); }
+MACROLIKE CONSTFUNC Int_t Int$from_int8(Int8_t i)   { return I_small(i); }
+MACROLIKE CONSTFUNC Int_t Int$from_byte(Byte_t b) { return I_small(b); }
+MACROLIKE CONSTFUNC Int_t Int$from_bool(Bool_t b) { return I_small(b); }
 
-#define Int32_to_Int(i, ...) Int64_to_Int(i)
-#define Int16_to_Int(i, ...) Int64_to_Int(i)
-#define Int8_to_Int(i, ...) Int64_to_Int(i)
-#define Int32_to_Int64(i, ...) (Int64_t)(i)
-#define Int16_to_Int64(i, ...) (Int64_t)(i)
-#define Int8_to_Int64(i, ...) (Int64_t)(i)
-#define Int16_to_Int32(i, ...) (Int32_t)(i)
-#define Int8_to_Int32(i, ...) (Int32_t)(i)
-#define Int8_to_Int16(i, ...) (Int16_t)(i)
-
-MACROLIKE PUREFUNC Int64_t Int_to_Int64(Int_t i, bool truncate) {
+// Int64 constructors
+MACROLIKE PUREFUNC Int64_t Int64$from_int(Int_t i, bool truncate) {
     if likely (i.small & 1)
         return (int64_t)(i.small >> 2);
     if (!truncate && unlikely(!mpz_fits_slong_p(*i.big)))
-        fail("Integer is too big to fit in a 64-bit integer!");
+        fail("Integer is too big to fit in a 64-bit integer: %k", (Text_t[1]){Int$value_as_text(i)});
     return mpz_get_si(*i.big);
 }
+MACROLIKE CONSTFUNC Int64_t Int64$from_int32(Int32_t i) { return (Int64_t)i; }
+MACROLIKE CONSTFUNC Int64_t Int64$from_int16(Int16_t i) { return (Int64_t)i; }
+MACROLIKE CONSTFUNC Int64_t Int64$from_int8(Int8_t i) { return (Int64_t)i; }
 
-MACROLIKE PUREFUNC Int32_t Int_to_Int32(Int_t i, bool truncate) {
-    int64_t i64 = Int_to_Int64(i, truncate);
+// Int32 constructors
+MACROLIKE PUREFUNC Int32_t Int32$from_int(Int_t i, bool truncate) {
+    int64_t i64 = Int64$from_int(i, truncate);
     int32_t i32 = (int32_t)i64;
     if (!truncate && unlikely(i64 != i32))
-        fail("Integer is too big to fit in a 32-bit integer!");
+        fail("Integer is too big to fit in a 32-bit integer: %k", (Text_t[1]){Int$value_as_text(i)});
     return i32;
 }
+MACROLIKE PUREFUNC Int32_t Int32$from_int64(Int64_t i, bool truncate) {
+    if (!truncate && unlikely(i != (Int64_t)(Int32_t)i))
+        fail("Integer is too big to fit in a 32-bit integer: %ld", i);
+    return (Int32_t)i;
+}
+MACROLIKE CONSTFUNC Int32_t Int32$from_int16(Int16_t i) { return (Int32_t)i; }
+MACROLIKE CONSTFUNC Int32_t Int32$from_int8(Int8_t i) { return (Int32_t)i; }
 
-MACROLIKE PUREFUNC Int16_t Int_to_Int16(Int_t i, bool truncate) {
-    int64_t i64 = Int_to_Int64(i, truncate);
+// Int16 constructors
+MACROLIKE PUREFUNC Int16_t Int16$from_int(Int_t i, bool truncate) {
+    int64_t i64 = Int64$from_int(i, truncate);
     int16_t i16 = (int16_t)i64;
     if (!truncate && unlikely(i64 != i16))
         fail("Integer is too big to fit in a 16-bit integer!");
     return i16;
 }
 
-MACROLIKE PUREFUNC Int8_t Int_to_Int8(Int_t i, bool truncate) {
-    int64_t i64 = Int_to_Int64(i, truncate);
+MACROLIKE PUREFUNC Int16_t Int16$from_int64(Int64_t i, bool truncate) {
+    if (!truncate && unlikely(i != (Int64_t)(Int16_t)i))
+        fail("Integer is too big to fit in a 16-bit integer: %ld", i);
+    return (Int16_t)i;
+}
+MACROLIKE PUREFUNC Int16_t Int16$from_int32(Int32_t i, bool truncate) {
+    if (!truncate && unlikely(i != (Int32_t)(Int16_t)i))
+        fail("Integer is too big to fit in a 16-bit integer: %ld", i);
+    return (Int16_t)i;
+}
+MACROLIKE CONSTFUNC Int16_t Int16$from_int8(Int8_t i) { return (Int16_t)i; }
+
+// Int8 constructors
+MACROLIKE PUREFUNC Int8_t Int8$from_int(Int_t i, bool truncate) {
+    int64_t i64 = Int64$from_int(i, truncate);
     int8_t i8 = (int8_t)i64;
     if (!truncate && unlikely(i64 != i8))
         fail("Integer is too big to fit in an 8-bit integer!");
     return i8;
 }
-
-MACROLIKE PUREFUNC Int_t Num_to_Int(double n)
-{
-    mpz_t result;
-    mpz_init_set_d(result, n);
-    return Int$from_mpz(result);
+MACROLIKE PUREFUNC Int8_t Int8$from_int64(Int64_t i, bool truncate) {
+    if (!truncate && unlikely(i != (Int64_t)(Int8_t)i))
+        fail("Integer is too big to fit in a 8-bit integer: %ld", i);
+    return (Int8_t)i;
 }
-
-MACROLIKE PUREFUNC double Int_to_Num(Int_t i)
-{
-    if likely (i.small & 1)
-        return (double)(i.small >> 2);
-
-    return mpz_get_d(*i.big);
+MACROLIKE PUREFUNC Int8_t Int8$from_int32(Int32_t i, bool truncate) {
+    if (!truncate && unlikely(i != (Int32_t)(Int8_t)i))
+        fail("Integer is too big to fit in a 8-bit integer: %ld", i);
+    return (Int8_t)i;
 }
-
-#define Int_to_Num32(i) (Num32_t)Int_to_Num(i)
-
-#define CONVERSION_FUNC(hi, lo) \
-    MACROLIKE PUREFUNC int##lo##_t Int##hi##_to_Int##lo(int##hi##_t i, bool truncate) { \
-        if (!truncate && unlikely(i != (int##lo##_t)i)) \
-            fail("Cannot truncate the Int" #hi " %ld to an Int" #lo, (int64_t)i); \
-        return (int##lo##_t)i; \
-    }
-
-CONVERSION_FUNC(64, 32)
-CONVERSION_FUNC(64, 16)
-CONVERSION_FUNC(64, 8)
-CONVERSION_FUNC(32, 16)
-CONVERSION_FUNC(32, 8)
-CONVERSION_FUNC(16, 8)
-#undef CONVERSION_FUNC
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-#define CONVERSION_FUNC(num, int_type) \
-    MACROLIKE PUREFUNC int_type##_t num##_to_##int_type(num##_t n, bool truncate) { \
-        num##_t rounded = (num##_t)round((double)n); \
-        if (!truncate && unlikely((num##_t)(int_type##_t)rounded != rounded)) \
-            fail("Cannot truncate the " #num " %g to an " #int_type, (double)rounded); \
-        return (int_type##_t)rounded; \
-    } \
-    MACROLIKE PUREFUNC num##_t int_type##_to_##num(int_type##_t n) { \
-        return (num##_t)n; \
-    }
-
-CONVERSION_FUNC(Num, Int64)
-CONVERSION_FUNC(Num, Int32)
-CONVERSION_FUNC(Num, Int16)
-CONVERSION_FUNC(Num, Int8)
-CONVERSION_FUNC(Num32, Int64)
-CONVERSION_FUNC(Num32, Int32)
-CONVERSION_FUNC(Num32, Int16)
-CONVERSION_FUNC(Num32, Int8)
-#pragma GCC diagnostic pop
-#undef CONVERSION_FUNC
+MACROLIKE PUREFUNC Int8_t Int8$from_int16(Int16_t i, bool truncate) {
+    if (!truncate && unlikely(i != (Int16_t)(Int8_t)i))
+        fail("Integer is too big to fit in a 8-bit integer: %ld", i);
+    return (Int8_t)i;
+}
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

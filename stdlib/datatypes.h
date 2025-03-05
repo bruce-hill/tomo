@@ -19,6 +19,16 @@
 #define ARRAY_MAX_DATA_REFCOUNT MAX_FOR_N_BITS(ARRAY_REFCOUNT_BITS)
 #define ARRAY_MAX_FREE_ENTRIES MAX_FOR_N_BITS(ARRAY_FREE_BITS)
 
+#define Num_t double
+#define Num32_t float
+
+#define Int64_t int64_t
+#define Int32_t int32_t
+#define Int16_t int16_t
+#define Int8_t int8_t
+#define Byte_t uint8_t
+#define Bool_t bool
+
 typedef union {
     int64_t small;
     mpz_t *big;
