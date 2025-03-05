@@ -260,16 +260,12 @@ variable or dereference a heap pointer, it may trigger copy-on-write behavior.
 - [`unique(arr: [T] -> {T})`](#unique)
 
 ### `binary_search`
-
-**Description:**  
 Performs a binary search on a sorted array.
 
 **Signature:**  
 ```tomo
 func binary_search(arr: [T], by: func(x,y:&T->Int32) = T.compare -> Int)
 ```
-
-**Parameters:**
 
 - `arr`: The sorted array to search.
 - `by`: The comparison function used to determine order. If not specified, the
@@ -296,16 +292,12 @@ place where it would be found if it were inserted and the array were sorted.
 ---
 
 ### `by`
-
-**Description:**  
 Creates a new array with elements spaced by the specified step value.
 
 **Signature:**  
 ```tomo
 func by(arr: [T], step: Int -> [T])
 ```
-
-**Parameters:**
 
 - `arr`: The original array.
 - `step`: The step value for selecting elements.
@@ -322,16 +314,12 @@ A new array with every `step`-th element from the original array.
 ---
 
 ### `clear`
-
-**Description:**  
 Clears all elements from the array.
 
 **Signature:**  
 ```tomo
 func clear(arr: @[T] -> Void)
 ```
-
-**Parameters:**
 
 - `arr`: The mutable reference to the array to be cleared.
 
@@ -346,16 +334,12 @@ Nothing.
 ---
 
 ### `counts`
-
-**Description:**  
 Counts the occurrences of each element in the array.
 
 **Signature:**  
 ```tomo
 func counts(arr: [T] -> {T,Int})
 ```
-
-**Parameters:**
 
 - `arr`: The array to count elements in.
 
@@ -371,16 +355,12 @@ A table mapping each element to its count.
 ---
 
 ### `find`
-
-**Description:**  
 Finds the index of the first occurrence of an element (if any).
 
 **Signature:**  
 ```tomo
 func find(arr: [T], target: T -> Int?)
 ```
-
-**Parameters:**
 
 - `arr`: The array to search through.
 - `item`: The item to find in the array.
@@ -400,16 +380,12 @@ The index of the first occurrence or `!Int` if not found.
 ---
 
 ### `first`
-
-**Description:**  
 Find the index of the first item that matches a predicate function (if any).
 
 **Signature:**  
 ```tomo
 func first(arr: [T], predicate: func(item:&T -> Bool) -> Int)
 ```
-
-**Parameters:**
 
 - `arr`: The array to search through.
 - `predicate`: A function that returns `yes` if the item should be returned or
@@ -430,16 +406,12 @@ item matches.
 ---
 
 ### `from`
-
-**Description:**  
 Returns a slice of the array starting from a specified index.
 
 **Signature:**  
 ```tomo
 func from(arr: [T], first: Int -> [T])
 ```
-
-**Parameters:**
 
 - `arr`: The original array.
 - `first`: The index to start from.
@@ -456,16 +428,12 @@ A new array starting from the specified index.
 ---
 
 ### `has`
-
-**Description:**  
 Checks if the array has any elements.
 
 **Signature:**  
 ```tomo
 func has(arr: [T] -> Bool)
 ```
-
-**Parameters:**
 
 - `arr`: The array to check.
 
@@ -481,8 +449,6 @@ func has(arr: [T] -> Bool)
 ---
 
 ### `heap_pop`
-
-**Description:**  
 Removes and returns the top element of a heap or `none` if the array is empty.
 By default, this is the *minimum* value in the heap.
 
@@ -490,8 +456,6 @@ By default, this is the *minimum* value in the heap.
 ```tomo
 func heap_pop(arr: @[T], by: func(x,y:&T->Int32) = T.compare -> T?)
 ```
-
-**Parameters:**
 
 - `arr`: The mutable reference to the heap.
 - `by`: The comparison function used to determine order. If not specified, the
@@ -511,8 +475,6 @@ The removed top element of the heap or `none` if the array is empty.
 ---
 
 ### `heap_push`
-
-**Description:**  
 Adds an element to the heap and maintains the heap property. By default, this
 is a *minimum* heap.
 
@@ -520,8 +482,6 @@ is a *minimum* heap.
 ```tomo
 func heap_push(arr: @[T], item: T, by=T.compare -> Void)
 ```
-
-**Parameters:**
 
 - `arr`: The mutable reference to the heap.
 - `item`: The item to be added.
@@ -539,16 +499,12 @@ Nothing.
 ---
 
 ### `heapify`
-
-**Description:**  
 Converts an array into a heap.
 
 **Signature:**  
 ```tomo
 func heapify(arr: @[T], by: func(x,y:&T->Int32) = T.compare -> Void)
 ```
-
-**Parameters:**
 
 - `arr`: The mutable reference to the array to be heapified.
 - `by`: The comparison function used to determine order. If not specified, the
@@ -566,16 +522,12 @@ Nothing.
 ---
 
 ### `insert`
-
-**Description:**  
 Inserts an element at a specified position in the array.
 
 **Signature:**  
 ```tomo
 func insert(arr: @[T], item: T, at: Int = 0 -> Void)
 ```
-
-**Parameters:**
 
 - `arr`: The mutable reference to the array.
 - `item`: The item to be inserted.
@@ -601,16 +553,12 @@ Nothing.
 ---
 
 ### `insert_all`
-
-**Description:**  
 Inserts an array of items at a specified position in the array.
 
 **Signature:**  
 ```tomo
 func insert_all(arr: @[T], items: [T], at: Int = 0 -> Void)
 ```
-
-**Parameters:**
 
 - `arr`: The mutable reference to the array.
 - `items`: The items to be inserted.
@@ -636,8 +584,6 @@ arr:insert_all([99, 100], at=2)
 ---
 
 ### `pop`
-
-**Description:**  
 Removes and returns an item from the array. If the given index is present in
 the array, the item at that index will be removed and the array will become one
 element shorter.
@@ -646,8 +592,6 @@ element shorter.
 ```tomo
 func pop(arr: &[T], index: Int = -1 -> T?)
 ```
-
-**Parameters:**
 
 - `arr`: The array to remove an item from.
 - `index`: The index from which to remove the item (default: the last item).
@@ -674,16 +618,12 @@ otherwise the item at the given index.
 ---
 
 ### `random`
-
-**Description:**  
 Selects a random element from the array.
 
 **Signature:**  
 ```tomo
 func random(arr: [T], rng: RNG = random -> T)
 ```
-
-**Parameters:**
 
 - `arr`: The array from which to select a random element.
 - `rng`: The [random number generator](rng.md) to use.
@@ -700,16 +640,12 @@ A random element from the array.
 ---
 
 ### `remove_at`
-
-**Description:**  
 Removes elements from the array starting at a specified index.
 
 **Signature:**  
 ```tomo
 func remove_at(arr: @[T], at: Int = -1, count: Int = 1 -> Void)
 ```
-
-**Parameters:**
 
 - `arr`: The mutable reference to the array.
 - `at`: The index at which to start removing elements (default is `-1`, which means the end of the array).
@@ -733,16 +669,12 @@ arr:remove_at(2, count=2)
 ---
 
 ### `remove_item`
-
-**Description:**  
 Removes all occurrences of a specified item from the array.
 
 **Signature:**  
 ```tomo
 func remove_item(arr: @[T], item: T, max_count: Int = -1 -> Void)
 ```
-
-**Parameters:**
 
 - `arr`: The mutable reference to the array.
 - `item`: The item to be removed.
@@ -766,16 +698,12 @@ arr:remove_item(20, max_count=1)
 ---
 
 ### `reversed`
-
-**Description:**  
 Returns a reversed slice of the array.
 
 **Signature:**  
 ```tomo
 func reversed(arr: [T] -> [T])
 ```
-
-**Parameters:**
 
 - `arr`: The array to be reversed.
 
@@ -791,8 +719,6 @@ A slice of the array with elements in reverse order.
 ---
 
 ### `sample`
-
-**Description:**  
 Selects a sample of elements from the array, optionally with weighted
 probabilities.
 
@@ -800,8 +726,6 @@ probabilities.
 ```tomo
 func sample(arr: [T], count: Int, weights: [Num]? = ![Num], rng: RNG = random -> [T])
 ```
-
-**Parameters:**
 
 - `arr`: The array to sample from.
 - `count`: The number of elements to sample.
@@ -831,16 +755,12 @@ A list of sampled elements from the array.
 ---
 
 ### `shuffle`
-
-**Description:**  
 Shuffles the elements of the array in place.
 
 **Signature:**  
 ```tomo
 func shuffle(arr: @[T], rng: RNG = random -> Void)
 ```
-
-**Parameters:**
 
 - `arr`: The mutable reference to the array to be shuffled.
 - `rng`: The [random number generator](rng.md) to use.
@@ -856,16 +776,12 @@ Nothing.
 ---
 
 ### `shuffled`
-
-**Description:**  
 Creates a new array with elements shuffled.
 
 **Signature:**  
 ```tomo
 func shuffled(arr: [T], rng: RNG = random -> [T])
 ```
-
-**Parameters:**
 
 - `arr`: The array to be shuffled.
 - `rng`: The [random number generator](rng.md) to use.
@@ -882,16 +798,12 @@ A new array with shuffled elements.
 ---
 
 ### `slice`
-
-**Description:**  
 Returns a slice of the array spanning the given indices (inclusive).
 
 **Signature:**  
 ```tomo
 func slice(arr: [T], from: Int, to: Int -> [T])
 ```
-
-**Parameters:**
 
 - `arr`: The original array.
 - `from`: The first index to include.
@@ -914,16 +826,12 @@ second-to-last, and so on.
 ---
 
 ### `sort`
-
-**Description:**  
 Sorts the elements of the array in place in ascending order (small to large).
 
 **Signature:**  
 ```tomo
 func sort(arr: @[T], by=T.compare -> Void)
 ```
-
-**Parameters:**
 
 - `arr`: The mutable reference to the array to be sorted.
 - `by`: The comparison function used to determine order. If not specified, the
@@ -947,16 +855,12 @@ arr:sort(func(a,b:&Int): a:abs() <> b:abs())
 ---
 
 ### `sorted`
-
-**Description:**  
 Creates a new array with elements sorted.
 
 **Signature:**  
 ```tomo
 sorted(arr: [T], by=T.compare -> [T])
 ```
-
-**Parameters:**
 
 - `arr`: The array to be sorted.
 - `by`: The comparison function used to determine order. If not specified, the
@@ -977,16 +881,12 @@ A new array with sorted elements.
 ---
 
 ### `to`
-
-**Description:**  
 Returns a slice of the array from the start of the original array up to a specified index (inclusive).
 
 **Signature:**  
 ```tomo
 to(arr: [T], last: Int -> [T])
 ```
-
-**Parameters:**
 
 - `arr`: The original array.
 - `last`: The index up to which elements should be included.
@@ -1006,16 +906,12 @@ A new array containing elements from the start up to the specified index.
 ---
 
 ### `unique`
-
-**Description:**  
 Returns a Set that contains the unique elements of the array.
 
 **Signature:**  
 ```tomo
 unique(arr: [T] -> {T})
 ```
-
-**Parameters:**
 
 - `arr`: The array to process.
 

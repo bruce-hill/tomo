@@ -29,16 +29,12 @@ This documentation provides details on RNG functions available in the API.
 - [`func set_seed(rng: RNG, seed: [Byte])`](#set_seed)
 
 ### `bool`
-
-**Description:**  
 Generate a random boolean value with a given probability.
 
 **Signature:**  
 ```tomo
 func bool(rng: RNG, p: Num = 0.5 -> Bool)
 ```
-
-**Parameters:**
 
 - `rng`: The random number generator to use.
 - `p`: The probability of returning a `yes` value. Values less than zero and
@@ -59,16 +55,12 @@ func bool(rng: RNG, p: Num = 0.5 -> Bool)
 ---
 
 ### `byte`
-
-**Description:**  
 Generate a random byte with uniform probability.
 
 **Signature:**  
 ```tomo
 func byte(rng: RNG -> Byte)
 ```
-
-**Parameters:**
 
 - `rng`: The random number generator to use.
 
@@ -84,16 +76,12 @@ A random byte (0-255).
 ---
 
 ### `bytes`
-
-**Description:**  
 Generate an array of uniformly random bytes with the given length.
 
 **Signature:**  
 ```tomo
 func bytes(rng: RNG, count: Int -> [Byte])
 ```
-
-**Parameters:**
 
 - `rng`: The random number generator to use.
 - `count`: The number of random bytes to return.
@@ -110,8 +98,6 @@ An array of length `count` random bytes with uniform random distribution (0-255)
 ---
 
 ### `copy`
-
-**Description:**  
 Return a copy of a random number generator. This copy will be a parallel version of
 the given RNG with its own internal state.
 
@@ -119,8 +105,6 @@ the given RNG with its own internal state.
 ```tomo
 func copy(rng: RNG -> RNG)
 ```
-
-**Parameters:**
 
 - `rng`: The random number generator to copy.
 
@@ -143,8 +127,6 @@ A copy of the given RNG.
 ---
 
 ### `int`, `int64`, `int32`, `int16`, `int8`
-
-**Description:**  
 Generate a random integer value with the given range.
 
 **Signature:**  
@@ -155,8 +137,6 @@ func int32(rng: RNG, min: Int32 = Int32.min, max: Int32 = Int32.max -> Int)
 func int16(rng: RNG, min: Int16 = Int16.min, max: Int16 = Int16.max -> Int)
 func int8(rng: RNG, min: Int8 = Int8.min, max: Int8 = Int8.max -> Int)
 ```
-
-**Parameters:**
 
 - `rng`: The random number generator to use.
 - `min`: The minimum value to be returned.
@@ -175,16 +155,12 @@ is greater than `max`, an error will be raised.
 ---
 
 ### `new`
-
-**Description:**  
 Return a new random number generator.
 
 **Signature:**  
 ```tomo
 func new(seed: [Byte] = (/dev/urandom):read_bytes(40)! -> RNG)
 ```
-
-**Parameters:**
 
 - `seed`: The seed use for the random number generator. A seed length of 40
   bytes is recommended. Seed lengths of less than 40 bytes are padded with
@@ -203,8 +179,6 @@ A new random number generator.
 ---
 
 ### `num`, `num32`
-
-**Description:**  
 Generate a random floating point value with the given range.
 
 **Signature:**  
@@ -212,8 +186,6 @@ Generate a random floating point value with the given range.
 func num(rng: RNG, min: Num = 0.0, max: Num = 1.0 -> Int)
 func num32(rng: RNG, min: Num = 0.0_f32, max: Num = 1.0_f32 -> Int)
 ```
-
-**Parameters:**
 
 - `rng`: The random number generator to use.
 - `min`: The minimum value to be returned.
@@ -232,16 +204,12 @@ A floating point number uniformly chosen from the range `[min, max]`
 ---
 
 ### `set_seed`
-
-**Description:**  
 Set the seed for an RNG.
 
 **Signature:**  
 ```tomo
 func set_seed(rng: RNG, seed: [Byte])
 ```
-
-**Parameters:**
 
 - `rng`: The random number generator to modify.
 - `seed`: A new seed to re-seed the random number generator with. A seed length

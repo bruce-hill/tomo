@@ -88,16 +88,12 @@ iterating over any of the new values.
 - [`func without(set:{T}, other: {T} -> {T})`](#without)
 
 ### `add`
-
-**Description:**  
 Adds an item to the set.
 
 **Signature:**  
 ```tomo
 func add(set:{T}, item: T -> Void)
 ```
-
-**Parameters:**
 
 - `set`: The mutable reference to the set.
 - `item`: The item to add to the set.
@@ -113,16 +109,12 @@ Nothing.
 ---
 
 ### `add_all`
-
-**Description:**  
 Adds multiple items to the set.
 
 **Signature:**  
 ```tomo
 func add_all(set:@{T}, items: [T] -> Void)
 ```
-
-**Parameters:**
 
 - `set`: The mutable reference to the set.
 - `items`: The array of items to add to the set.
@@ -138,16 +130,12 @@ Nothing.
 ---
 
 ### `clear`
-
-**Description:**  
 Removes all items from the set.
 
 **Signature:**  
 ```tomo
 func clear(set:@{T} -> Void)
 ```
-
-**Parameters:**
 
 - `set`: The mutable reference to the set.
 
@@ -162,16 +150,12 @@ Nothing.
 ---
 
 ### `has`
-
-**Description:**  
 Checks if the set contains a specified item.
 
 **Signature:**  
 ```tomo
 func has(set:{T}, item:T -> Bool)
 ```
-
-**Parameters:**
 
 - `set`: The set to check.
 - `item`: The item to check for presence.
@@ -188,16 +172,12 @@ func has(set:{T}, item:T -> Bool)
 ---
 
 ### `is_subset_of`
-
-**Description:**  
 Checks if the set is a subset of another set.
 
 **Signature:**  
 ```tomo
 func (set: {T}, other: {T}, strict: Bool = no -> Bool)
 ```
-
-**Parameters:**
 
 - `set`: The set to check.
 - `other`: The set to compare against.
@@ -215,16 +195,12 @@ func (set: {T}, other: {T}, strict: Bool = no -> Bool)
 ---
 
 ### `is_superset_of`
-
-**Description:**  
 Checks if the set is a superset of another set.
 
 **Signature:**  
 ```tomo
 func is_superset_of(set:{T}, other: {T}, strict: Bool = no -> Bool)
 ```
-
-**Parameters:**
 
 - `set`: The set to check.
 - `other`: The set to compare against.
@@ -239,16 +215,12 @@ func is_superset_of(set:{T}, other: {T}, strict: Bool = no -> Bool)
 = yes
 ```
 ### `overlap`
-
-**Description:**  
 Creates a new set with items that are in both the original set and another set.
 
 **Signature:**  
 ```tomo
 func overlap(set:{T}, other: {T} -> {T})
 ```
-
-**Parameters:**
 
 - `set`: The original set.
 - `other`: The set to intersect with.
@@ -265,16 +237,12 @@ A new set containing only items present in both sets.
 ---
 
 ### `remove`
-
-**Description:**  
 Removes an item from the set.
 
 **Signature:**  
 ```tomo
 func remove(set:@{T}, item: T -> Void)
 ```
-
-**Parameters:**
 
 - `set`: The mutable reference to the set.
 - `item`: The item to remove from the set.
@@ -290,16 +258,12 @@ Nothing.
 ---
 
 ### `remove_all`
-
-**Description:**  
 Removes multiple items from the set.
 
 **Signature:**  
 ```tomo
 func remove_all(set:@{T}, items: [T] -> Void)
 ```
-
-**Parameters:**
 
 - `set`: The mutable reference to the set.
 - `items`: The array of items to remove from the set.
@@ -315,16 +279,12 @@ Nothing.
 ---
 
 ### `with`
-
-**Description:**  
 Creates a new set that is the union of the original set and another set.
 
 **Signature:**  
 ```tomo
 func with(set:{T}, other: {T} -> {T})
 ```
-
-**Parameters:**
 
 - `set`: The original set.
 - `other`: The set to union with.
@@ -341,16 +301,12 @@ A new set containing all items from both sets.
 ---
 
 ### `without`
-
-**Description:**  
 Creates a new set with items from the original set but without items from another set.
 
 **Signature:**  
 ```tomo
 func without(set:{T}, other: {T} -> {T})
 ```
-
-**Parameters:**
 
 - `set`: The original set.
 - `other`: The set of items to remove from the original set.

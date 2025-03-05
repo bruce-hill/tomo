@@ -10,8 +10,6 @@ This documentation provides details on boolean functions available in the API.
 - [`func parse(text: Text -> Bool?)`](#parse)
 
 ### `parse`
-
-**Description:**  
 Converts a string representation of a boolean value into a boolean. Acceptable
 boolean values are case-insensitive variations of `yes`/`no`, `y`/`n`,
 `true`/`false`, `on`/`off`.
@@ -20,8 +18,6 @@ boolean values are case-insensitive variations of `yes`/`no`, `y`/`n`,
 ```tomo
 func parse(text: Text -> Bool?)
 ```
-
-**Parameters:**
 
 - `text`: The string containing the boolean value.
 

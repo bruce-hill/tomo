@@ -88,8 +88,6 @@ Time zones are specified by name, such as `America/New_York` or `UTC`.
 - [`func unix_timestamp(moment:Moment->Int64)`](#unix_timestamp)
 
 ### `after`
-
-**Description:**  
 Returns a Moment that occurs after the specified time differences. Time
 differences may be either positive or negative.
 
@@ -106,8 +104,6 @@ calculated.
 ```tomo
 func after(moment: Moment, seconds : Num = 0.0, minutes : Num = 0.0, hours : Num = 0.0, days : Int = 0, weeks : Int = 0, months : Int = 0, years : Int = 0, timezone : Text? = !Text -> Moment)
 ```
-
-**Parameters:**
 
 - `moment`: The moment used as a starting point.
 - `seconds` (optional): An amount of seconds to offset the moment (default: 0).
@@ -132,8 +128,6 @@ A new `Moment` offset by the given amount.
 ---
 
 ### `date`
-
-**Description:**  
 Return a text representation of the moment using the `"%F"` format
 specifier, which gives the date in `YYYY-MM-DD` form.
 
@@ -141,8 +135,6 @@ specifier, which gives the date in `YYYY-MM-DD` form.
 ```tomo
 func date(moment: Moment, timezone : Text? = !Text -> Text)
 ```
-
-**Parameters:**
 
 - `moment`: The moment to get the date from.
 - `timezone` (optional): If specified, give the date in the given timezone (otherwise, use the current local timezone).
@@ -159,16 +151,12 @@ The date in `YYYY-MM-DD` format.
 ---
 
 ### `day_of_month`
-
-**Description:**  
 Return the integer day of the month (1-31).
 
 **Signature:**  
 ```tomo
 func day_of_month(moment: Moment, timezone : Text? = !Text -> Int)
 ```
-
-**Parameters:**
 
 - `moment`: The moment to get the day of the month from.
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
@@ -185,8 +173,6 @@ The day of the month as an integer (1-31).
 ---
 
 ### `day_of_week`
-
-**Description:**  
 Return the integer day of the week (1-7), where 1 = Sunday, 2 = Monday,
 3 = Tuesday, 4 = Wednesday, 5 = Thursday, 6 = Friday, 7 = Saturday.
 
@@ -194,8 +180,6 @@ Return the integer day of the week (1-7), where 1 = Sunday, 2 = Monday,
 ```tomo
 func day_of_week(moment: Moment, timezone : Text? = !Text -> Int)
 ```
-
-**Parameters:**
 
 - `moment`: The moment to get the day of the week from.
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
@@ -212,16 +196,12 @@ The day of the week as an integer (1-7).
 ---
 
 ### `day_of_year`
-
-**Description:**  
 Return the integer day of the year (1-366, including leap years).
 
 **Signature:**  
 ```tomo
 func day_of_year(moment: Moment, timezone : Text? = !Text -> Int)
 ```
-
-**Parameters:**
 
 - `moment`: The moment to get the day of the year from.
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
@@ -238,8 +218,6 @@ The day of the year as an integer (1-366).
 ---
 
 ### `format`
-
-**Description:**  
 Using the C-style [`strftime`](https://linux.die.net/man/3/strftime) format
 options, return a text representation of the given date in the given format. If
 `timezone` is specified, use that timezone instead of the current local
@@ -249,8 +227,6 @@ timezone.
 ```tomo
 func format(moment: Moment, format: Text = "%Y-%m-%dT%H:%M:%S%z", timezone : Text? = !Text -> Text)
 ```
-
-**Parameters:**
 
 - `moment`: The moment to format.
 - `format`: The `strftime` format to use (default: `"%Y-%m-%dT%H:%M:%S%z"`).
@@ -268,8 +244,6 @@ Nothing.
 ---
 
 ### `from_unix_timestamp`
-
-**Description:**  
 Return a moment object that represents the same moment in time as
 the given UNIX epoch timestamp (seconds since January 1, 1970 UTC).
 
@@ -277,8 +251,6 @@ the given UNIX epoch timestamp (seconds since January 1, 1970 UTC).
 ```tomo
 func from_unix_timestamp(timestamp: Int64 -> Moment)
 ```
-
-**Parameters:**
 
 - `timestamp`: The UNIX timestamp.
 
@@ -293,8 +265,6 @@ A `Moment` object representing the same moment as the given UNIX timestamp.
 ```
 
 ### `get_local_timezone`
-
-**Description:**
 Get the local timezone's name (e.g. `America/New_York` or `UTC`. By default,
 this value is read from `/etc/localtime`, however, this can be overridden by
 calling `Moment.set_local_timezone(...)`.
@@ -303,8 +273,6 @@ calling `Moment.set_local_timezone(...)`.
 ```tomo
 func get_local_timezone(->Text)
 ```
-
-**Parameters:**
 
 None.
 
@@ -320,16 +288,12 @@ The name of the current local timezone.
 ---
 
 ### `hour`
-
-**Description:**  
 Return the hour of the day as an integer (1-24).
 
 **Signature:**  
 ```tomo
 func hour(moment: Moment, timezone : Text? = !Text -> Int)
 ```
-
-**Parameters:**
 
 - `moment`: The moment to get the hour from.
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
@@ -346,16 +310,12 @@ The hour of the day as an integer (1-24).
 ---
 
 ### `hours_till`
-
-**Description:**  
 Return the number of hours until a given moment.
 
 **Signature:**  
 ```tomo
 func hours_till(moment: Moment, then:Moment -> Num)
 ```
-
-**Parameters:**
 
 - `moment`: The starting point moment.
 - `then`: Another moment that we want to calculate the time offset from (in hours).
@@ -373,16 +333,12 @@ the_future := now():after(hours=1, minutes=30)
 ---
 
 ### `minute`
-
-**Description:**  
 Return the minute of the day as an integer (0-59).
 
 **Signature:**  
 ```tomo
 func minute(moment: Moment, timezone : Text? = !Text -> Int)
 ```
-
-**Parameters:**
 
 - `moment`: The moment to get the minute from.
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
@@ -399,16 +355,12 @@ The minute of the hour as an integer (0-59).
 ---
 
 ### `minutes_till`
-
-**Description:**  
 Return the number of minutes until a given moment.
 
 **Signature:**  
 ```tomo
 func minutes_till(moment: Moment, then:Moment -> Num)
 ```
-
-**Parameters:**
 
 - `moment`: The starting point moment.
 - `then`: Another moment that we want to calculate the time offset from (in minutes).
@@ -426,16 +378,12 @@ the_future := now():after(minutes=1, seconds=30)
 ---
 
 ### `month`
-
-**Description:**  
 Return the month of the year as an integer (1-12).
 
 **Signature:**  
 ```tomo
 func month(moment: Moment, timezone : Text? = !Text -> Int)
 ```
-
-**Parameters:**
 
 - `moment`: The moment to get the month from.
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
@@ -452,16 +400,12 @@ The month of the year as an integer (1-12).
 ---
 
 ### `nanosecond`
-
-**Description:**  
 Return the nanosecond of the second as an integer (0-999,999,999).
 
 **Signature:**  
 ```tomo
 func nanosecond(moment: Moment, timezone : Text? = !Text -> Int)
 ```
-
-**Parameters:**
 
 - `moment`: The moment to get the nanosecond from.
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
@@ -478,8 +422,6 @@ The nanosecond of the second as an integer (0-999,999,999).
 ---
 
 ### `new`
-
-**Description:**  
 Return a new `Moment` object representing the given time parameters expressed
 in local time. This function is the same as calling `Moment` directly as a
 constructor.
@@ -488,8 +430,6 @@ constructor.
 ```tomo
 func new(year : Int, month : Int, day : Int, hour : Int = 0, minute : Int = 0, second : Num = 0.0 -> Moment)
 ```
-
-**Parameters:**
 
 - `year`: The year.
 - `month`: The month of the year (1-12).
@@ -518,8 +458,6 @@ integer, an error will be raised.
 ---
 
 ### `now`
-
-**Description:**
 Get a `Moment` object representing the current date and time. This function
 is the same as the global function `now()`.
 
@@ -527,8 +465,6 @@ is the same as the global function `now()`.
 ```tomo
 func now(->Moment)
 ```
-
-**Parameters:**
 
 None.
 
@@ -544,8 +480,6 @@ Returns a `Moment` object representing the current date and time.
 ---
 
 ### `parse`
-
-**Description:**  
 Return a new `Moment` object parsed from the given string in the given format,
 or `none` if the value could not be successfully parsed.
 
@@ -553,8 +487,6 @@ or `none` if the value could not be successfully parsed.
 ```tomo
 func parse(text: Text, format: Text = "%Y-%m-%dT%H:%M:%S%z" -> Moment?)
 ```
-
-**Parameters:**
 
 - `text`: The text to parse.
 - `format`: The date format of the text being parsed (see:
@@ -577,8 +509,6 @@ If the text was successfully parsed according to the given format, return a
 ---
 
 ### `relative`
-
-**Description:**  
 Return a plain English textual representation of the approximate time difference
 between two `Moment`s. For example: `5 minutes ago` or `1 day later`
 
@@ -586,8 +516,6 @@ between two `Moment`s. For example: `5 minutes ago` or `1 day later`
 ```tomo
 func relative(moment: Moment, relative_to : Moment = Moment.now(), timezone : Text? = !Text -> Text)
 ```
-
-**Parameters:**
 
 - `moment`: The moment whose relative time you're getting.
 - `relative_to` (optional): The time against which the relative time is calculated (default: `Moment.now()`).
@@ -614,16 +542,12 @@ ago"`, while moments in the future will have the suffix `" later"`.
 ---
 
 ### `second`
-
-**Description:**  
 Return the second of the minute as an integer (0-59).
 
 **Signature:**  
 ```tomo
 func second(moment: Moment, timezone : Text? = !Text -> Int)
 ```
-
-**Parameters:**
 
 - `moment`: The moment to get the second from.
 - `timezone` (optional): If specified, use the given timezone (otherwise, use the current local timezone).
@@ -640,16 +564,12 @@ The second of the hour as an integer (0-59).
 ---
 
 ### `seconds_till`
-
-**Description:**  
 Return the number of seconds until a given moment.
 
 **Signature:**  
 ```tomo
 func seconds_till(moment: Moment, then:Moment -> Num)
 ```
-
-**Parameters:**
 
 - `moment`: The starting point moment.
 - `then`: Another moment that we want to calculate the time offset from (in seconds).
@@ -667,8 +587,6 @@ the_future := now():after(seconds=1)
 ---
 
 ### `set_local_timezone`
-
-**Description:**
 Set the current local timezone to a given value by name (e.g.
 `America/New_York` or `UTC`). The local timezone is used as the default
 timezone for performing calculations and constructing `Moment` objects from
@@ -679,8 +597,6 @@ converted to text.
 ```tomo
 func set_local_timezone(timezone : Text? = !Text -> Void)
 ```
-
-**Parameters:**
 
 - `timezone` (optional): if specified, set the current local timezone to the
   timezone with the given name. If null, reset the current local timezone to
@@ -697,16 +613,12 @@ Moment.set_local_timezone("America/Los_Angeles")
 ---
 
 ### `time`
-
-**Description:**  
 Return a text representation of the time component of the given moment.
 
 **Signature:**  
 ```tomo
 func time(moment: Moment, seconds : Bool = no, am_pm : Bool = yes, timezone : Text? = !Text -> Text)
 ```
-
-**Parameters:**
 
 - `moment`: The moment whose time value you want to get.
 - `seconds`: Whether to include seconds in the time (default: `no`).
@@ -733,8 +645,6 @@ moment := Moment(2024, 9, 29, hours=13, minutes=59, seconds=30)
 ---
 
 ### `unix_timestamp`
-
-**Description:**
 Get the UNIX timestamp of the given moment (seconds since the UNIX epoch:
 January 1, 1970 UTC).
 
@@ -742,8 +652,6 @@ January 1, 1970 UTC).
 ```tomo
 func unix_timestamp(moment:Moment->Int64)
 ```
-
-**Parameters:**
 
 `moment`: The moment whose UNIX timestamp you want to get.
 

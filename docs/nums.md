@@ -170,16 +170,12 @@ called either on the type itself: `Num.sqrt(x)` or as a method call:
 - [`func y1(x: Num -> Num)`](#y1)
 
 ### `abs`
-
-**Description:**
 Calculates the absolute value of a number.
 
 **Signature:**
 ```tomo
 func abs(n: Num -> Num)
 ```
-
-**Parameters:**
 
 - `n`: The number whose absolute value is to be computed.
 
@@ -195,16 +191,12 @@ The absolute value of `n`.
 ---
 
 ### `acos`
-
-**Description:**
 Computes the arc cosine of a number.
 
 **Signature:**
 ```tomo
 func acos(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the arc cosine is to be calculated.
 
@@ -220,16 +212,12 @@ The arc cosine of `x` in radians.
 ---
 
 ### `acosh`
-
-**Description:**
 Computes the inverse hyperbolic cosine of a number.
 
 **Signature:**
 ```tomo
 func acosh(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the inverse hyperbolic cosine is to be calculated.
 
@@ -245,16 +233,12 @@ The inverse hyperbolic cosine of `x`.
 ---
 
 ### `asin`
-
-**Description:**
 Computes the arc sine of a number.
 
 **Signature:**
 ```tomo
 func asin(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the arc sine is to be calculated.
 
@@ -270,16 +254,12 @@ The arc sine of `x` in radians.
 ---
 
 ### `asinh`
-
-**Description:**
 Computes the inverse hyperbolic sine of a number.
 
 **Signature:**
 ```tomo
 func asinh(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the inverse hyperbolic sine is to be calculated.
 
@@ -295,16 +275,12 @@ The inverse hyperbolic sine of `x`.
 ---
 
 ### `atan`
-
-**Description:**
 Computes the arc tangent of a number.
 
 **Signature:**
 ```tomo
 func atan(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the arc tangent is to be calculated.
 
@@ -320,16 +296,12 @@ The arc tangent of `x` in radians.
 ---
 
 ### `atan2`
-
-**Description:**
 Computes the arc tangent of the quotient of two numbers.
 
 **Signature:**
 ```tomo
 func atan2(x: Num, y: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The numerator.
 - `y`: The denominator.
@@ -346,16 +318,12 @@ The arc tangent of `x/y` in radians.
 ---
 
 ### `atanh`
-
-**Description:**
 Computes the inverse hyperbolic tangent of a number.
 
 **Signature:**
 ```tomo
 func atanh(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the inverse hyperbolic tangent is to be calculated.
 
@@ -371,16 +339,12 @@ The inverse hyperbolic tangent of `x`.
 ---
 
 ### `cbrt`
-
-**Description:**
 Computes the cube root of a number.
 
 **Signature:**
 ```tomo
 func cbrt(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the cube root is to be calculated.
 
@@ -396,16 +360,12 @@ The cube root of `x`.
 ---
 
 ### `ceil`
-
-**Description:**
 Rounds a number up to the nearest integer.
 
 **Signature:**
 ```tomo
 func ceil(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number to be rounded up.
 
@@ -421,8 +381,6 @@ The smallest integer greater than or equal to `x`.
 ---
 
 ### `clamped`
-
-**Description:**  
 Returns the given number clamped between two values so that it is within
 that range.
 
@@ -430,8 +388,6 @@ that range.
 ```tomo
 clamped(x, low, high: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number to clamp.
 - `low`: The lowest value the result can take.
@@ -449,16 +405,12 @@ The first argument clamped between the other two arguments.
 ---
 
 ### `copysign`
-
-**Description:**
 Copies the sign of one number to another.
 
 **Signature:**
 ```tomo
 func copysign(x: Num, y: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number whose magnitude will be copied.
 - `y`: The number whose sign will be copied.
@@ -475,16 +427,12 @@ A number with the magnitude of `x` and the sign of `y`.
 ---
 
 ### `cos`
-
-**Description:**
 Computes the cosine of a number (angle in radians).
 
 **Signature:**
 ```tomo
 func cos(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The angle in radians.
 
@@ -500,16 +448,12 @@ The cosine of `x`.
 ---
 
 ### `cosh`
-
-**Description:**
 Computes the hyperbolic cosine of a number.
 
 **Signature:**
 ```tomo
 func cosh(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the hyperbolic cosine is to be calculated.
 
@@ -525,16 +469,12 @@ The hyperbolic cosine of `x`.
 ---
 
 ### `erf`
-
-**Description:**
 Computes the error function of a number.
 
 **Signature:**
 ```tomo
 func erf(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the error function is to be calculated.
 
@@ -550,16 +490,12 @@ The error function of `x`.
 ---
 
 ### `erfc`
-
-**Description:**
 Computes the complementary error function of a number.
 
 **Signature:**
 ```tomo
 func erfc(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the complementary error function is to be calculated.
 
@@ -575,16 +511,12 @@ The complementary error function of `x`.
 ---
 
 ### `exp`
-
-**Description:**
 Computes the exponential function \( e^x \) for a number.
 
 **Signature:**
 ```tomo
 func exp(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The exponent.
 
@@ -600,16 +532,12 @@ The value of \( e^x \).
 ---
 
 ### `exp2`
-
-**Description:**
 Computes \( 2^x \) for a number.
 
 **Signature:**
 ```tomo
 func exp2(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The exponent.
 
@@ -625,16 +553,12 @@ The value of \( 2^x \).
 ---
 
 ### `expm1`
-
-**Description:**
 Computes \( e^x - 1 \) for a number.
 
 **Signature:**
 ```tomo
 func expm1(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The exponent.
 
@@ -650,16 +574,12 @@ The value of \( e^x - 1 \).
 ---
 
 ### `fdim`
-
-**Description:**
 Computes the positive difference between two numbers.
 
 **Signature:**
 ```tomo
 func fdim(x: Num, y: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The first number.
 - `y`: The second number.
@@ -678,16 +598,12 @@ fd
 ---
 
 ### `floor`
-
-**Description:**
 Rounds a number down to the nearest integer.
 
 **Signature:**
 ```tomo
 func floor(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number to be rounded down.
 
@@ -703,16 +619,12 @@ The largest integer less than or equal to `x`.
 ---
 
 ### `format`
-
-**Description:**
 Formats a number as a text with a specified precision.
 
 **Signature:**
 ```tomo
 func format(n: Num, precision: Int = 0 -> Text)
 ```
-
-**Parameters:**
 
 - `n`: The number to be formatted.
 - `precision`: The number of decimal places. Default is `0`.
@@ -729,16 +641,12 @@ A text representation of the number with the specified precision.
 ---
 
 ### `hypot`
-
-**Description:**
 Computes the Euclidean norm, \( \sqrt{x^2 + y^2} \), of two numbers.
 
 **Signature:**
 ```tomo
 func hypot(x: Num, y: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The first number.
 - `y`: The second number.
@@ -755,16 +663,12 @@ The Euclidean norm of `x` and `y`.
 ---
 
 ### `isfinite`
-
-**Description:**
 Checks if a number is finite.
 
 **Signature:**
 ```tomo
 func isfinite(n: Num -> Bool)
 ```
-
-**Parameters:**
 
 - `n`: The number to be checked.
 
@@ -782,16 +686,12 @@ func isfinite(n: Num -> Bool)
 ---
 
 ### `isinf`
-
-**Description:**
 Checks if a number is infinite.
 
 **Signature:**
 ```tomo
 func isinf(n: Num -> Bool)
 ```
-
-**Parameters:**
 
 - `n`: The number to be checked.
 
@@ -809,16 +709,12 @@ func isinf(n: Num -> Bool)
 ---
 
 ### `j0`
-
-**Description:**
 Computes the Bessel function of the first kind of order 0.
 
 **Signature:**
 ```tomo
 func j0(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the Bessel function is to be calculated.
 
@@ -834,16 +730,12 @@ The Bessel function of the first kind of order 0 of `x`.
 ---
 
 ### `j1`
-
-**Description:**
 Computes the Bessel function of the first kind of order 1.
 
 **Signature:**
 ```tomo
 func j1(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the Bessel function is to be calculated.
 
@@ -859,16 +751,12 @@ The Bessel function of the first kind of order 1 of `x`.
 ---
 
 ### `log`
-
-**Description:**
 Computes the natural logarithm (base \( e \)) of a number.
 
 **Signature:**
 ```tomo
 func log(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the natural logarithm is to be calculated.
 
@@ -884,16 +772,12 @@ The natural logarithm of `x`.
 ---
 
 ### `log10`
-
-**Description:**
 Computes the base-10 logarithm of a number.
 
 **Signature:**
 ```tomo
 func log10(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the base-10 logarithm is to be calculated.
 
@@ -909,16 +793,12 @@ The base-10 logarithm of `x`.
 ---
 
 ### `log1p`
-
-**Description:**
 Computes \( \log(1 + x) \) for a number.
 
 **Signature:**
 ```tomo
 func log1p(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which \( \log(1 + x) \) is to be calculated.
 
@@ -934,16 +814,12 @@ The value of \( \log(1 + x) \).
 ---
 
 ### `log2`
-
-**Description:**
 Computes the base-2 logarithm of a number.
 
 **Signature:**
 ```tomo
 func log2(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the base-2 logarithm is to be calculated.
 
@@ -959,16 +835,12 @@ The base-2 logarithm of `x`.
 ---
 
 ### `logb`
-
-**Description:**
 Computes the binary exponent (base-2 logarithm) of a number.
 
 **Signature:**
 ```tomo
 func logb(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the binary exponent is to be calculated.
 
@@ -984,16 +856,12 @@ The binary exponent of `x`.
 ---
 
 ### `mix`
-
-**Description:**
 Interpolates between two numbers based on a given amount.
 
 **Signature:**
 ```tomo
 func mix(amount: Num, x: Num, y: Num -> Num)
 ```
-
-**Parameters:**
 
 - `amount`: The interpolation factor (between `0` and `1`).
 - `x`: The starting number.
@@ -1013,8 +881,6 @@ The interpolated number between `x` and `y` based on `amount`.
 ---
 
 ### `near`
-
-**Description:**
 Checks if two numbers are approximately equal within specified tolerances. If
 two numbers are within an absolute difference or the ratio between the two is
 small enough, they are considered near each other.
@@ -1023,8 +889,6 @@ small enough, they are considered near each other.
 ```tomo
 func near(x: Num, y: Num, ratio: Num = 1e-9, min_epsilon: Num = 1e-9 -> Bool)
 ```
-
-**Parameters:**
 
 - `x`: The first number.
 - `y`: The second number.
@@ -1049,16 +913,12 @@ func near(x: Num, y: Num, ratio: Num = 1e-9, min_epsilon: Num = 1e-9 -> Bool)
 ---
 
 ### `nextafter`
-
-**Description:**
 Computes the next representable value after a given number towards a specified direction.
 
 **Signature:**
 ```tomo
 func nextafter(x: Num, y: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The starting number.
 - `y`: The direction towards which to find the next representable value.
@@ -1075,16 +935,12 @@ The next representable value after `x` in the direction of `y`.
 ---
 
 ### `parse`
-
-**Description:**
 Converts a text representation of a number into a floating-point number.
 
 **Signature:**
 ```tomo
 func parse(text: Text -> Num?)
 ```
-
-**Parameters:**
 
 - `text`: The text containing the number.
 
@@ -1103,16 +959,12 @@ as a number.
 ---
 
 ### `rint`
-
-**Description:**
 Rounds a number to the nearest integer, with ties rounded to the nearest even integer.
 
 **Signature:**
 ```tomo
 func rint(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number to be rounded.
 
@@ -1130,16 +982,12 @@ The nearest integer value of `x`.
 ---
 
 ### `round`
-
-**Description:**
 Rounds a number to the nearest whole number integer.
 
 **Signature:**
 ```tomo
 func round(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number to be rounded.
 
@@ -1157,16 +1005,12 @@ The nearest integer value of `x`.
 ---
 
 ### `scientific`
-
-**Description:**
 Formats a number in scientific notation with a specified precision.
 
 **Signature:**
 ```tomo
 func scientific(n: Num, precision: Int = 0 -> Text)
 ```
-
-**Parameters:**
 
 - `n`: The number to be formatted.
 - `precision`: The number of decimal places. Default is `0`.
@@ -1183,16 +1027,12 @@ A text representation of the number in scientific notation with the specified pr
 ---
 
 ### `significand`
-
-**Description:**
 Extracts the significand (or mantissa) of a number.
 
 **Signature:**
 ```tomo
 func significand(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number from which to extract the significand.
 
@@ -1208,16 +1048,12 @@ The significand of `x`.
 ---
 
 ### `sin`
-
-**Description:**
 Computes the sine of a number (angle in radians).
 
 **Signature:**
 ```tomo
 func sin(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The angle in radians.
 
@@ -1233,16 +1069,12 @@ The sine of `x`.
 ---
 
 ### `sinh`
-
-**Description:**
 Computes the hyperbolic sine of a number.
 
 **Signature:**
 ```tomo
 func sinh(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the hyperbolic sine is to be calculated.
 
@@ -1258,16 +1090,12 @@ The hyperbolic sine of `x`.
 ---
 
 ### `sqrt`
-
-**Description:**
 Computes the square root of a number.
 
 **Signature:**
 ```tomo
 func sqrt(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the square root is to be calculated.
 
@@ -1283,16 +1111,12 @@ The square root of `x`.
 ---
 
 ### `tan`
-
-**Description:**
 Computes the tangent of a number (angle in radians).
 
 **Signature:**
 ```tomo
 func tan(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The angle in radians.
 
@@ -1308,16 +1132,12 @@ The tangent of `x`.
 ---
 
 ### `tanh`
-
-**Description:**
 Computes the hyperbolic tangent of a number.
 
 **Signature:**
 ```tomo
 func tanh(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the hyperbolic tangent is to be calculated.
 
@@ -1333,16 +1153,12 @@ The hyperbolic tangent of `x`.
 ---
 
 ### `tgamma`
-
-**Description:**
 Computes the gamma function of a number.
 
 **Signature:**
 ```tomo
 func tgamma(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the gamma function is to be calculated.
 
@@ -1358,16 +1174,12 @@ The gamma function of `x`.
 ---
 
 ### `trunc`
-
-**Description:**
 Truncates a number to the nearest integer towards zero.
 
 **Signature:**
 ```tomo
 func trunc(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number to be truncated.
 
@@ -1385,16 +1197,12 @@ The integer part of `x` towards zero.
 ---
 
 ### `y0`
-
-**Description:**
 Computes the Bessel function of the second kind of order 0.
 
 **Signature:**
 ```tomo
 func y0(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the Bessel function is to be calculated.
 
@@ -1410,16 +1218,12 @@ The Bessel function of the second kind of order 0 of `x`.
 ---
 
 ### `y1`
-
-**Description:**
 Computes the Bessel function of the second kind of order 1.
 
 **Signature:**
 ```tomo
 func y1(x: Num -> Num)
 ```
-
-**Parameters:**
 
 - `x`: The number for which the Bessel function is to be calculated.
 

@@ -65,8 +65,6 @@ intended. Paths can be created from text with slashes using
 - [`func write_unique_bytes(path: Path, bytes: [Byte] -> Path)`](#write_unique_bytes)
 
 ### `append`
-
-**Description:**  
 Appends the given text to the file at the specified path, creating the file if
 it doesn't already exist. Failure to write will result in a runtime error.
 
@@ -74,8 +72,6 @@ it doesn't already exist. Failure to write will result in a runtime error.
 ```tomo
 func append(path: Path, text: Text, permissions: Int32 = 0o644[32] -> Void)
 ```
-
-**Parameters:**
 
 - `path`: The path of the file to append to.
 - `text`: The text to append to the file.
@@ -92,8 +88,6 @@ Nothing.
 ---
 
 ### `append_bytes`
-
-**Description:**  
 Appends the given bytes to the file at the specified path, creating the file if
 it doesn't already exist. Failure to write will result in a runtime error.
 
@@ -101,8 +95,6 @@ it doesn't already exist. Failure to write will result in a runtime error.
 ```tomo
 func append_bytes(path: Path, bytes: [Byte], permissions: Int32 = 0o644[32] -> Void)
 ```
-
-**Parameters:**
 
 - `path`: The path of the file to append to.
 - `bytes`: The bytes to append to the file.
@@ -119,16 +111,12 @@ Nothing.
 ---
 
 ### `base_name`
-
-**Description:**  
 Returns the base name of the file or directory at the specified path.
 
 **Signature:**  
 ```tomo
 func base_name(path: Path -> Text)
 ```
-
-**Parameters:**
 
 - `path`: The path of the file or directory.
 
@@ -144,8 +132,6 @@ The base name of the file or directory.
 ---
 
 ### `by_line`
-
-**Description:**  
 Returns an iterator that can be used to iterate over a file one line at a time,
 or returns a null value if the file could not be opened.
 
@@ -153,8 +139,6 @@ or returns a null value if the file could not be opened.
 ```tomo
 func by_line(path: Path -> func(->Text?)?)
 ```
-
-**Parameters:**
 
 - `path`: The path of the file.
 
@@ -179,16 +163,12 @@ for line in (/dev/stdin):by_line()!:
 ---
 
 ### `children`
-
-**Description:**  
 Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files.
 
 **Signature:**  
 ```tomo
 func children(path: Path, include_hidden=no -> [Path])
 ```
-
-**Parameters:**
 
 - `path`: The path of the directory.
 - `include_hidden` (optional): Whether to include hidden files, which start with a `.` (default is `no`).
@@ -205,8 +185,6 @@ A list of paths for the children.
 ---
 
 ### `create_directory`
-
-**Description:**  
 Creates a new directory at the specified path with the given permissions. If
 any of the parent directories do not exist, they will be created as needed.
 
@@ -214,8 +192,6 @@ any of the parent directories do not exist, they will be created as needed.
 ```tomo
 func create_directory(path: Path, permissions=0o755[32] -> Void)
 ```
-
-**Parameters:**
 
 - `path`: The path of the directory to create.
 - `permissions` (optional): The permissions to set on the new directory (default is `0o644`).
@@ -231,16 +207,12 @@ Nothing.
 ---
 
 ### `exists`
-
-**Description:**  
 Checks if a file or directory exists at the specified path.
 
 **Signature:**  
 ```tomo
 func exists(path: Path -> Bool)
 ```
-
-**Parameters:**
 
 - `path`: The path to check.
 
@@ -256,16 +228,12 @@ func exists(path: Path -> Bool)
 ---
 
 ### `extension`
-
-**Description:**  
 Returns the file extension of the file at the specified path. Optionally returns the full extension.
 
 **Signature:**  
 ```tomo
 func extension(path: Path, full=yes -> Text)
 ```
-
-**Parameters:**
 
 - `path`: The path of the file.
 - `full` (optional): Whether to return everything after the first `.` in the
@@ -290,16 +258,12 @@ no file extension.
 ---
 
 ### `files`
-
-**Description:**  
 Returns a list of files within the directory at the specified path. Optionally includes hidden files.
 
 **Signature:**  
 ```tomo
 func files(path: Path, include_hidden=no -> [Path])
 ```
-
-**Parameters:**
 
 - `path`: The path of the directory.
 - `include_hidden` (optional): Whether to include hidden files (default is `no`).
@@ -316,8 +280,6 @@ A list of file paths.
 ---
 
 ### `glob`
-
-**Description:**  
 Perform a globbing operation and return an array of matching paths. Some glob
 specific details:
 
@@ -331,8 +293,6 @@ specific details:
 ```tomo
 func glob(path: Path -> [Path])
 ```
-
-**Parameters:**
 
 - `path`: The path of the directory which may contain special globbing characters
   like `*`, `?`, or `{...}`
@@ -363,16 +323,12 @@ A list of file paths that match the glob.
 ---
 
 ### `is_directory`
-
-**Description:**  
 Checks if the path represents a directory. Optionally follows symbolic links.
 
 **Signature:**  
 ```tomo
 func is_directory(path: Path, follow_symlinks=yes -> Bool)
 ```
-
-**Parameters:**
 
 - `path`: The path to check.
 - `follow_symlinks` (optional): Whether to follow symbolic links (default is `yes`).
@@ -392,16 +348,12 @@ func is_directory(path: Path, follow_symlinks=yes -> Bool)
 ---
 
 ### `is_file`
-
-**Description:**  
 Checks if the path represents a file. Optionally follows symbolic links.
 
 **Signature:**  
 ```tomo
 func is_file(path: Path, follow_symlinks=yes -> Bool)
 ```
-
-**Parameters:**
 
 - `path`: The path to check.
 - `follow_symlinks` (optional): Whether to follow symbolic links (default is `yes`).
@@ -421,16 +373,12 @@ func is_file(path: Path, follow_symlinks=yes -> Bool)
 ---
 
 ### `is_socket`
-
-**Description:**  
 Checks if the path represents a socket. Optionally follows symbolic links.
 
 **Signature:**  
 ```tomo
 func is_socket(path: Path, follow_symlinks=yes -> Bool)
 ```
-
-**Parameters:**
 
 - `path`: The path to check.
 - `follow_symlinks` (optional): Whether to follow symbolic links (default is `yes`).
@@ -447,16 +395,12 @@ func is_socket(path: Path, follow_symlinks=yes -> Bool)
 ---
 
 ### `is_symlink`
-
-**Description:**  
 Checks if the path represents a symbolic link.
 
 **Signature:**  
 ```tomo
 func is_symlink(path: Path -> Bool)
 ```
-
-**Parameters:**
 
 - `path`: The path to check.
 
@@ -472,16 +416,12 @@ func is_symlink(path: Path -> Bool)
 ---
 
 ### `parent`
-
-**Description:**  
 Returns the parent directory of the file or directory at the specified path.
 
 **Signature:**  
 ```tomo
 func parent(path: Path -> Path)
 ```
-
-**Parameters:**
 
 - `path`: The path of the file or directory.
 
@@ -497,8 +437,6 @@ The path of the parent directory.
 ---
 
 ### `read`
-
-**Description:**  
 Reads the contents of the file at the specified path or a null value if the
 file could not be read.
 
@@ -506,8 +444,6 @@ file could not be read.
 ```tomo
 func read(path: Path -> Text?)
 ```
-
-**Parameters:**
 
 - `path`: The path of the file to read.
 
@@ -527,8 +463,6 @@ raised.
 ---
 
 ### `read_bytes`
-
-**Description:**  
 Reads the contents of the file at the specified path or a null value if the
 file could not be read.
 
@@ -536,8 +470,6 @@ file could not be read.
 ```tomo
 func read_bytes(path: Path -> [Byte]?)
 ```
-
-**Parameters:**
 
 - `path`: The path of the file to read.
 
@@ -557,16 +489,12 @@ returned.
 ---
 
 ### `relative`
-
-**Description:**  
 Returns the path relative to a given base path. By default, the base path is the current directory.
 
 **Signature:**  
 ```tomo
 func relative(path: Path, relative_to=(./) -> Path)
 ```
-
-**Parameters:**
 
 - `path`: The path to convert.
 - `relative_to` (optional): The base path for the relative path (default is `./`).
@@ -583,16 +511,12 @@ The relative path.
 ---
 
 ### `remove`
-
-**Description:**  
 Removes the file or directory at the specified path. A runtime error is raised if something goes wrong.
 
 **Signature:**  
 ```tomo
 func remove(path: Path, ignore_missing=no -> Void)
 ```
-
-**Parameters:**
 
 - `path`: The path to remove.
 - `ignore_missing` (optional): Whether to ignore errors if the file or directory does not exist (default is `no`).
@@ -608,16 +532,12 @@ Nothing.
 ---
 
 ### `resolved`
-
-**Description:**  
 Resolves the absolute path of the given path relative to a base path. By default, the base path is the current directory.
 
 **Signature:**  
 ```tomo
 func resolved(path: Path, relative_to=(./) -> Path)
 ```
-
-**Parameters:**
 
 - `path`: The path to resolve.
 - `relative_to` (optional): The base path for resolution (default is `./`).
@@ -637,16 +557,12 @@ The resolved absolute path.
 ---
 
 ### `subdirectories`
-
-**Description:**  
 Returns a list of subdirectories within the directory at the specified path. Optionally includes hidden subdirectories.
 
 **Signature:**  
 ```tomo
 func subdirectories(path: Path, include_hidden=no -> [Path])
 ```
-
-**Parameters:**
 
 - `path`: The path of the directory.
 - `include_hidden` (optional): Whether to include hidden subdirectories (default is `no`).
@@ -666,16 +582,12 @@ A list of subdirectory paths.
 ---
 
 ### `unique_directory`
-
-**Description:**  
 Generates a unique directory path based on the given path. Useful for creating temporary directories.
 
 **Signature:**  
 ```tomo
 func unique_directory(path: Path -> Path)
 ```
-
-**Parameters:**
 
 - `path`: The base path for generating the unique directory. The last six letters of this path must be `XXXXXX`.
 
@@ -695,8 +607,6 @@ created:remove()
 ---
 
 ### `write`
-
-**Description:**  
 Writes the given text to the file at the specified path, creating the file if
 it doesn't already exist. Sets the file permissions as specified. If the file
 writing cannot be successfully completed, a runtime error is raised.
@@ -705,8 +615,6 @@ writing cannot be successfully completed, a runtime error is raised.
 ```tomo
 func write(path: Path, text: Text, permissions=0o644[32] -> Void)
 ```
-
-**Parameters:**
 
 - `path`: The path of the file to write to.
 - `text`: The text to write to the file.
@@ -723,8 +631,6 @@ Nothing.
 ---
 
 ### `write_bytes`
-
-**Description:**  
 Writes the given bytes to the file at the specified path, creating the file if
 it doesn't already exist. Sets the file permissions as specified. If the file
 writing cannot be successfully completed, a runtime error is raised.
@@ -733,8 +639,6 @@ writing cannot be successfully completed, a runtime error is raised.
 ```tomo
 func write(path: Path, bytes: [Byte], permissions=0o644[32] -> Void)
 ```
-
-**Parameters:**
 
 - `path`: The path of the file to write to.
 - `bytes`: An array of bytes to write to the file.
@@ -751,8 +655,6 @@ Nothing.
 ---
 
 ### `write_unique`
-
-**Description:**  
 Writes the given text to a unique file path based on the specified path. The
 file is created if it doesn't exist. This is useful for creating temporary
 files.
@@ -761,8 +663,6 @@ files.
 ```tomo
 func write_unique(path: Path, text: Text -> Path)
 ```
-
-**Parameters:**
 
 - `path`: The base path for generating the unique file. This path must include
   the string `XXXXXX` in the file base name.
@@ -783,8 +683,6 @@ created:remove()
 ---
 
 ### `write_unique_bytes`
-
-**Description:**  
 Writes the given bytes to a unique file path based on the specified path. The
 file is created if it doesn't exist. This is useful for creating temporary
 files.
@@ -793,8 +691,6 @@ files.
 ```tomo
 func write_unique_bytes(path: Path, bytes: [Byte] -> Path)
 ```
-
-**Parameters:**
 
 - `path`: The base path for generating the unique file. This path must include
   the string `XXXXXX` in the file base name.

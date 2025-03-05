@@ -138,16 +138,12 @@ can be called either on the type itself: `Int.sqrt(x)` or as a method call:
 - [`func to(first: Int, last: Int, step : Int? = none:Int -> func(->Int?))`](#to)
 
 ### `abs`
-
-**Description:**  
 Calculates the absolute value of an integer.
 
 **Signature:**  
 ```tomo
 func abs(x: Int -> Int)
 ```
-
-**Parameters:**
 
 - `x`: The integer whose absolute value is to be calculated.
 
@@ -163,8 +159,6 @@ The absolute value of `x`.
 ---
 
 ### `choose`
-
-**Description:**  
 Computes the binomial coefficient of the given numbers (the equivalent of `n`
 choose `k` in combinatorics). This is equal to `n:factorial()/(k:factorial() *
 (n-k):factorial())`.
@@ -173,8 +167,6 @@ choose `k` in combinatorics). This is equal to `n:factorial()/(k:factorial() *
 ```tomo
 func choose(n: Int, k: Int -> Int)
 ```
-
-**Parameters:**
 
 - `n`: The number of things to choose from.
 - `k`: The number of things to be chosen.
@@ -192,8 +184,6 @@ The binomial coefficient, equivalent to the number of ways to uniquely choose
 ---
 
 ### `clamped`
-
-**Description:**  
 Returns the given number clamped between two values so that it is within
 that range.
 
@@ -201,8 +191,6 @@ that range.
 ```tomo
 func clamped(x, low, high: Int -> Int)
 ```
-
-**Parameters:**
 
 - `x`: The integer to clamp.
 - `low`: The lowest value the result can take.
@@ -220,16 +208,12 @@ The first argument clamped between the other two arguments.
 ---
 
 ### `factorial`
-
-**Description:**  
 Computes the factorial of an integer.
 
 **Signature:**  
 ```tomo
 func factorial(n: Int -> Text)
 ```
-
-**Parameters:**
 
 - `n`: The integer to compute the factorial of.
 
@@ -245,16 +229,12 @@ The factorial of the given integer.
 ---
 
 ### `format`
-
-**Description:**  
 Formats an integer as a string with a specified number of digits.
 
 **Signature:**  
 ```tomo
 func format(i: Int, digits: Int = 0 -> Text)
 ```
-
-**Parameters:**
 
 - `i`: The integer to be formatted.
 - `digits`: The minimum number of digits to which the integer should be padded. Default is `0`.
@@ -271,16 +251,12 @@ A string representation of the integer, padded to the specified number of digits
 ---
 
 ### `hex`
-
-**Description:**  
 Converts an integer to its hexadecimal representation.
 
 **Signature:**  
 ```tomo
 func hex(i: Int, digits: Int = 0, uppercase: Bool = yes, prefix: Bool = yes -> Text)
 ```
-
-**Parameters:**
 
 - `i`: The integer to be converted.
 - `digits`: The minimum number of digits in the output string. Default is `0`.
@@ -299,8 +275,6 @@ The hexadecimal string representation of the integer.
 ---
 
 ### `is_prime`
-
-**Description:**  
 Determines if an integer is a prime number.
 
 **Note:**
@@ -313,8 +287,6 @@ for more details.
 ```tomo
 func is_prime(x: Int, reps: Int = 50 -> Bool)
 ```
-
-**Parameters:**
 
 - `x`: The integer to be checked.
 - `reps`: The number of repetitions for primality tests. Default is `50`.
@@ -333,8 +305,6 @@ func is_prime(x: Int, reps: Int = 50 -> Bool)
 ---
 
 ### `next_prime`
-
-**Description:**  
 Finds the next prime number greater than the given integer.
 
 **Note:**
@@ -347,8 +317,6 @@ for more details.
 ```tomo
 func next_prime(x: Int -> Int)
 ```
-
-**Parameters:**
 
 - `x`: The integer after which to find the next prime.
 
@@ -364,16 +332,12 @@ The next prime number greater than `x`.
 ---
 
 ### `octal`
-
-**Description:**  
 Converts an integer to its octal representation.
 
 **Signature:**  
 ```tomo
 func octal(i: Int, digits: Int = 0, prefix: Bool = yes -> Text)
 ```
-
-**Parameters:**
 
 - `i`: The integer to be converted.
 - `digits`: The minimum number of digits in the output string. Default is `0`.
@@ -391,8 +355,6 @@ The octal string representation of the integer.
 ---
 
 ### `onward`
-
-**Description:**  
 Return an iterator that counts infinitely from the starting integer (with an
 optional step size).
 
@@ -400,8 +362,6 @@ optional step size).
 ```tomo
 func onward(first: Int, step: Int = 1 -> Text)
 ```
-
-**Parameters:**
 
 - `first`: The starting integer.
 - `step`: The increment step size (default: 1).
@@ -422,16 +382,12 @@ for i in 5:onward():
 ---
 
 ### `parse`
-
-**Description:**  
 Converts a text representation of an integer into an integer.
 
 **Signature:**  
 ```tomo
 func parse(text: Text -> Int?)
 ```
-
-**Parameters:**
 
 - `text`: The text containing the integer.
 
@@ -459,8 +415,6 @@ of the representable range or if the entire text can't be parsed as an integer,
 ---
 
 ### `prev_prime`
-
-**Description:**  
 Finds the previous prime number less than the given integer.
 If there is no previous prime number (i.e. if a number less than `2` is
 provided), then the function will create a runtime error.
@@ -476,8 +430,6 @@ for more details.
 func prev_prime(x: Int -> Int)
 ```
 
-**Parameters:**
-
 - `x`: The integer before which to find the previous prime.
 
 **Returns:**  
@@ -492,16 +444,12 @@ The previous prime number less than `x`.
 ---
 
 ### `sqrt`
-
-**Description:**  
 Calculates the square root of an integer. 
 
 **Signature:**  
 ```tomo
 func sqrt(x: Int -> Int)
 ```
-
-**Parameters:**
 
 - `x`: The integer whose square root is to be calculated.
 
@@ -519,8 +467,6 @@ The integer part of the square root of `x`.
 ---
 
 ### `to`
-
-**Description:**  
 Returns an iterator function that iterates over the range of numbers specified.
 Iteration is assumed to be nonempty and 
 
@@ -528,8 +474,6 @@ Iteration is assumed to be nonempty and
 ```tomo
 func to(first: Int, last: Int, step : Int? = none:Int -> func(->Int?))
 ```
-
-**Parameters:**
 
 - `first`: The starting value of the range.
 - `last`: The ending value of the range.

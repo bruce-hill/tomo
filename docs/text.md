@@ -307,16 +307,12 @@ pattern documentation](patterns.md) for more details.
 - [`func utf32_codepoints(text: Text -> [Int32])`](#utf32_codepoints)
 
 ### `as_c_string`
-
-**Description:**  
 Converts a `Text` value to a C-style string.
 
 **Signature:**  
 ```tomo
 func as_c_string(text: Text -> CString)
 ```
-
-**Parameters:**
 
 - `text`: The text to be converted to a C-style string.
 
@@ -332,8 +328,6 @@ A C-style string (`CString`) representing the text.
 ---
 
 ### `at`
-
-**Description:**  
 Get the graphical cluster at a given index. This is similar to `str[i]` with
 ASCII text, but has more correct behavior for unicode text.
 
@@ -341,8 +335,6 @@ ASCII text, but has more correct behavior for unicode text.
 ```tomo
 func at(text: Text, index: Int -> Text)
 ```
-
-**Parameters:**
 
 - `text`: The text from which to get a cluster.
 - `index`: The index of the graphical cluster (1-indexed).
@@ -361,8 +353,6 @@ indices are counted from the back of the text, so `-1` means the last cluster,
 ---
 
 ### `by_line`
-
-**Description:**  
 Returns an iterator function that can be used to iterate over the lines in a
 text.
 
@@ -370,8 +360,6 @@ text.
 ```tomo
 func by_line(text: Text -> func(->Text?))
 ```
-
-**Parameters:**
 
 - `text`: The text to be iterated over, line by line.
 
@@ -394,8 +382,6 @@ for line in text:by_line():
 ---
 
 ### `by_match`
-
-**Description:**  
 Returns an iterator function that can be used to iterate over the occurrences
 of a pattern in a text.
 
@@ -403,8 +389,6 @@ of a pattern in a text.
 ```tomo
 func by_match(text: Text, pattern: Pattern -> func(->Match?))
 ```
-
-**Parameters:**
 
 - `text`: The text to be iterated over looking for matches.
 - `pattern`: The [pattern](patterns.md) to look for.
@@ -425,8 +409,6 @@ for match in text:by_match($/{alpha}/):
 ---
 
 ### `by_split`
-
-**Description:**  
 Returns an iterator function that can be used to iterate over text separated by
 a pattern.
 
@@ -434,8 +416,6 @@ a pattern.
 ```tomo
 func by_split(text: Text, pattern: Pattern = $// -> func(->Text?))
 ```
-
-**Parameters:**
 
 - `text`: The text to be iterated over in pattern-delimited chunks.
 - `pattern`: The [pattern](patterns.md) to split the text on.
@@ -456,8 +436,6 @@ for chunk in text:by_split($/,/):
 ---
 
 ### `bytes`
-
-**Description:**  
 Converts a `Text` value to an array of bytes representing a UTF8 encoding of
 the text.
 
@@ -465,8 +443,6 @@ the text.
 ```tomo
 func bytes(text: Text -> [Byte])
 ```
-
-**Parameters:**
 
 - `text`: The text to be converted to UTF8 bytes.
 
@@ -482,16 +458,12 @@ An array of bytes (`[Byte]`) representing the text in UTF8 encoding.
 ---
 
 ### `codepoint_names`
-
-**Description:**  
 Returns an array of the names of each codepoint in the text.
 
 **Signature:**  
 ```tomo
 func codepoint_names(text: Text -> [Text])
 ```
-
-**Parameters:**
 
 - `text`: The text from which to extract codepoint names.
 
@@ -507,8 +479,6 @@ An array of codepoint names (`[Text]`).
 ---
 
 ### `each`
-
-**Description:**  
 Iterates over each match of a [pattern](patterns.md) and passes the match to
 the given function.
 
@@ -516,8 +486,6 @@ the given function.
 ```tomo
 func each(text: Text, pattern: Pattern, fn: func(m: Match), recursive: Bool = yes -> Int?)
 ```
-
-**Parameters:**
 
 - `text`: The text to be searched.
 - `pattern`: The [pattern](patterns.md) to search for.
@@ -538,16 +506,12 @@ None.
 ---
 
 ### `ends_with`
-
-**Description:**  
 Checks if the `Text` ends with a literal suffix text.
 
 **Signature:**  
 ```tomo
 func ends_with(text: Text, suffix: Text -> Bool)
 ```
-
-**Parameters:**
 
 - `text`: The text to be searched.
 - `suffix`: The literal suffix text to check for.
@@ -564,8 +528,6 @@ func ends_with(text: Text, suffix: Text -> Bool)
 ---
 
 ### `find`
-
-**Description:**  
 Finds the first occurrence of a [pattern](patterns.md) in the given text (if
 any).
 
@@ -573,8 +535,6 @@ any).
 ```tomo
 func find(text: Text, pattern: Pattern, start: Int = 1 -> Int?)
 ```
-
-**Parameters:**
 
 - `text`: The text to be searched.
 - `pattern`: The [pattern](patterns.md) to search for.
@@ -599,16 +559,12 @@ struct containing information about the match.
 ---
 
 ### `find_all`
-
-**Description:**  
 Finds all occurrences of a [pattern](patterns.md) in the given text.
 
 **Signature:**  
 ```tomo
 func find_all(text: Text, pattern: Pattern -> [Match])
 ```
-
-**Parameters:**
 
 - `text`: The text to be searched.
 - `pattern`: The [pattern](patterns.md) to search for.
@@ -638,16 +594,12 @@ Note: if `text` or `pattern` is empty, an empty array will be returned.
 ---
 
 ### `from`
-
-**Description:**  
 Get a slice of the text, starting at the given position.
 
 **Signature:**  
 ```tomo
 func from(text: Text, first: Int -> Text)
 ```
-
-**Parameters:**
 
 - `text`: The text to be sliced.
 - `frist`: The index of the first grapheme cluster to include (1-indexed).
@@ -670,8 +622,6 @@ the length of the string.
 ---
 
 ### `from_bytes`
-
-**Description:**  
 Returns text that has been constructed from the given UTF8 bytes. Note: the
 text will be normalized, so the resulting text's UTF8 bytes may not exactly
 match the input.
@@ -680,8 +630,6 @@ match the input.
 ```tomo
 func from_codepoint_names(codepoints: [Int32] -> [Text])
 ```
-
-**Parameters:**
 
 - `codepoints`: The UTF32 codepoints in the desired text.
 
@@ -697,16 +645,12 @@ A new text based on the input UTF8 bytes after normalization has been applied.
 ---
 
 ### `from_c_string`
-
-**Description:**  
 Converts a C-style string to a `Text` value.
 
 **Signature:**  
 ```tomo
 func from_c_string(str: CString -> Text)
 ```
-
-**Parameters:**
 
 - `str`: The C-style string to be converted.
 
@@ -722,8 +666,6 @@ A `Text` value representing the C-style string.
 ---
 
 ### `from_codepoint_names`
-
-**Description:**  
 Returns text that has the given codepoint names (according to the Unicode
 specification) as its codepoints. Note: the text will be normalized, so the
 resulting text's codepoints may not exactly match the input codepoints.
@@ -732,8 +674,6 @@ resulting text's codepoints may not exactly match the input codepoints.
 ```tomo
 func from_codepoint_names(codepoint_names: [Text] -> [Text])
 ```
-
-**Parameters:**
 
 - `codepoint_names`: The names of each codepoint in the desired text. Names
   are case-insentive.
@@ -755,8 +695,6 @@ Any invalid names are ignored.
 ---
 
 ### `from_codepoints`
-
-**Description:**  
 Returns text that has been constructed from the given UTF32 codepoints. Note:
 the text will be normalized, so the resulting text's codepoints may not exactly
 match the input codepoints.
@@ -765,8 +703,6 @@ match the input codepoints.
 ```tomo
 func from_codepoint_names(codepoints: [Int32] -> [Text])
 ```
-
-**Parameters:**
 
 - `codepoints`: The UTF32 codepoints in the desired text.
 
@@ -782,16 +718,12 @@ A new text with the specified codepoints after normalization has been applied.
 ---
 
 ### `has`
-
-**Description:**  
 Checks if the `Text` contains a target [pattern](patterns.md).
 
 **Signature:**  
 ```tomo
 func has(text: Text, pattern: Pattern -> Bool)
 ```
-
-**Parameters:**
 
 - `text`: The text to be searched.
 - `pattern`: The [pattern](patterns.md) to search for.
@@ -814,16 +746,12 @@ func has(text: Text, pattern: Pattern -> Bool)
 ---
 
 ### `join`
-
-**Description:**  
 Joins an array of text pieces with a specified glue.
 
 **Signature:**  
 ```tomo
 func join(glue: Text, pieces: [Text] -> Text)
 ```
-
-**Parameters:**
 
 - `glue`: The text used to join the pieces.
 - `pieces`: The array of text pieces to be joined.
@@ -840,8 +768,6 @@ A single `Text` value with the pieces joined by the glue.
 ---
 
 ### `lines`
-
-**Description:**  
 Splits the text into an array of lines of text, preserving blank lines,
 ignoring trailing newlines, and handling `\r\n` the same as `\n`.
 
@@ -849,8 +775,6 @@ ignoring trailing newlines, and handling `\r\n` the same as `\n`.
 ```tomo
 func split(text: Text -> [Text])
 ```
-
-**Parameters:**
 
 - `text`: The text to be split into lines.
 
@@ -874,16 +798,12 @@ An array of substrings resulting from the split.
 ---
 
 ### `lower`
-
-**Description:**  
 Converts all characters in the text to lowercase.
 
 **Signature:**  
 ```tomo
 func lower(text: Text -> Text)
 ```
-
-**Parameters:**
 
 - `text`: The text to be converted to lowercase.
 
@@ -899,8 +819,6 @@ The lowercase version of the text.
 ---
 
 ### `map`
-
-**Description:**  
 For each occurrence of the given [pattern](patterns.md), replace the text with
 the result of calling the given function on that match.
 
@@ -908,8 +826,6 @@ the result of calling the given function on that match.
 ```tomo
 func map(text: Text, pattern: Pattern, fn: func(text:Match)->Text -> Text, recursive: Bool = yes)
 ```
-
-**Parameters:**
 
 - `text`: The text to be searched.
 - `pattern`: The [pattern](patterns.md) to search for.
@@ -932,8 +848,6 @@ function to each.
 ---
 
 ### `matches`
-
-**Description:**  
 Checks if the `Text` matches target [pattern](patterns.md) and returns an array
 of the matching text captures or a null value if the entire text doesn't match
 the pattern.
@@ -942,8 +856,6 @@ the pattern.
 ```tomo
 func matches(text: Text, pattern: Pattern -> [Text])
 ```
-
-**Parameters:**
 
 - `text`: The text to be searched.
 - `pattern`: The [pattern](patterns.md) to search for.
@@ -964,16 +876,12 @@ or a null value otherwise.
 ---
 
 ### `quoted`
-
-**Description:**  
 Formats the text as a quoted string.
 
 **Signature:**  
 ```tomo
 func quoted(text: Text, color: Bool = no -> Text)
 ```
-
-**Parameters:**
 
 - `text`: The text to be quoted.
 - `color`: Whether to add color formatting (default is `no`).
@@ -990,16 +898,12 @@ The text formatted as a quoted string.
 ---
 
 ### `repeat`
-
-**Description:**  
 Repeat some text multiple times.
 
 **Signature:**  
 ```tomo
 func repeat(text: Text, count:Int -> Text)
 ```
-
-**Parameters:**
 
 - `text`: The text to repeat.
 - `count`: The number of times to repeat it. (Negative numbers are equivalent to zero).
@@ -1016,8 +920,6 @@ The text repeated the given number of times.
 ---
 
 ### `replace`
-
-**Description:**  
 Replaces occurrences of a [pattern](patterns.md) in the text with a replacement
 string.
 
@@ -1025,8 +927,6 @@ string.
 ```tomo
 func replace(text: Text, pattern: Pattern, replacement: Text, backref: Pattern = $/\/, recursive: Bool = yes -> Text)
 ```
-
-**Parameters:**
 
 - `text`: The text in which to perform replacements.
 - `pattern`: The [pattern](patterns.md) to be replaced.
@@ -1082,8 +982,6 @@ The text with occurrences of the pattern replaced.
 ---
 
 ### `replace_all`
-
-**Description:**  
 Takes a table mapping [patterns](patterns.md) to replacement texts and performs
 all the replacements in the table on the whole text. At each position, the
 first matching pattern's replacement is applied and the pattern matching moves
@@ -1095,8 +993,6 @@ behavior.
 ```tomo
 func replace_all(replacements:{Pattern,Text}, backref: Pattern = $/\/, recursive: Bool = yes -> Text)
 ```
-
-**Parameters:**
 
 - `text`: The text in which to perform replacements.
 - `replacements`: A table mapping from [pattern](patterns.md) to the
@@ -1131,16 +1027,12 @@ replacement text.
 ---
 
 ### `reversed`
-
-**Description:**  
 Return a text that has the grapheme clusters in reverse order.
 
 **Signature:**  
 ```tomo
 func reversed(text: Text -> Text)
 ```
-
-**Parameters:**
 
 - `text`: The text to reverse.
 
@@ -1156,16 +1048,12 @@ A reversed version of the text.
 ---
 
 ### `slice`
-
-**Description:**  
 Get a slice of the text.
 
 **Signature:**  
 ```tomo
 func slice(text: Text, from: Int = 1, to: Int = -1 -> Text)
 ```
-
-**Parameters:**
 
 - `text`: The text to be sliced.
 - `from`: The index of the first grapheme cluster to include (1-indexed).
@@ -1192,16 +1080,12 @@ the string.
 ---
 
 ### `split`
-
-**Description:**  
 Splits the text into an array of substrings based on a [pattern](patterns.md).
 
 **Signature:**  
 ```tomo
 func split(text: Text, pattern: Pattern = "" -> [Text])
 ```
-
-**Parameters:**
 
 - `text`: The text to be split.
 - `pattern`: The [pattern](patterns.md) used to split the text. If the pattern
@@ -1228,16 +1112,12 @@ An array of substrings resulting from the split.
 ---
 
 ### `starts_with`
-
-**Description:**  
 Checks if the `Text` starts with a literal prefix text.
 
 **Signature:**  
 ```tomo
 func starts_with(text: Text, prefix: Text -> Bool)
 ```
-
-**Parameters:**
 
 - `text`: The text to be searched.
 - `prefix`: The literal prefix text to check for.
@@ -1254,16 +1134,12 @@ func starts_with(text: Text, prefix: Text -> Bool)
 ---
 
 ### `title`
-
-**Description:**  
 Converts the text to title case (capitalizing the first letter of each word).
 
 **Signature:**  
 ```tomo
 func title(text: Text -> Text)
 ```
-
-**Parameters:**
 
 - `text`: The text to be converted to title case.
 
@@ -1279,16 +1155,12 @@ The text in title case.
 ---
 
 ### `to`
-
-**Description:**  
 Get a slice of the text, ending at the given position.
 
 **Signature:**  
 ```tomo
 func to(text: Text, last: Int -> Text)
 ```
-
-**Parameters:**
 
 - `text`: The text to be sliced.
 - `last`: The index of the last grapheme cluster to include (1-indexed).
@@ -1311,16 +1183,12 @@ the string.
 ---
 
 ### `trim`
-
-**Description:**  
 Trims the matching [pattern](patterns.md) from the left and/or right side of the text.
 
 **Signature:**  
 ```tomo
 func trim(text: Text, pattern: Pattern = $/{whitespace/, trim_left: Bool = yes, trim_right: Bool = yes -> Text)
 ```
-
-**Parameters:**
 
 - `text`: The text to be trimmed.
 - `pattern`: The [pattern](patterns.md) that will be trimmed away.
@@ -1345,16 +1213,12 @@ The text without the trim pattern at either end.
 ---
 
 ### `upper`
-
-**Description:**  
 Converts all characters in the text to uppercase.
 
 **Signature:**  
 ```tomo
 func upper(text: Text -> Text)
 ```
-
-**Parameters:**
 
 - `text`: The text to be converted to uppercase.
 
@@ -1370,16 +1234,12 @@ The uppercase version of the text.
 ---
 
 ### `utf32_codepoints`
-
-**Description:**  
 Returns an array of Unicode code points for UTF32 encoding of the text.
 
 **Signature:**  
 ```tomo
 func utf32_codepoints(text: Text -> [Int32])
 ```
-
-**Parameters:**
 
 - `text`: The text from which to extract Unicode code points.
 

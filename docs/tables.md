@@ -141,8 +141,6 @@ iterating over any of the new values.
 - [`func set(t:{K,V}, key: K, value: V -> Void)`](#set)
 
 ### `bump`
-
-**Description:**  
 Increments the value associated with a key by a specified amount. If the key is
 not already in the table, its value will be assumed to be zero.
 
@@ -150,8 +148,6 @@ not already in the table, its value will be assumed to be zero.
 ```tomo
 func bump(t:@{K,V}, key: K, amount: Int = 1 -> Void)
 ```
-
-**Parameters:**
 
 - `t`: The reference to the table.
 - `key`: The key whose value is to be incremented.
@@ -172,16 +168,12 @@ t:bump("B", 10)
 ---
 
 ### `clear`
-
-**Description:**  
 Removes all key-value pairs from the table.
 
 **Signature:**  
 ```tomo
 func clear(t:@{K,V})
 ```
-
-**Parameters:**
 
 - `t`: The reference to the table.
 
@@ -196,16 +188,12 @@ Nothing.
 ---
 
 ### `get`
-
-**Description:**  
 Retrieves the value associated with a key, or returns null if the key is not present.
 
 **Signature:**  
 ```tomo
 func get(t:{K,V}, key: K -> V?)
 ```
-
-**Parameters:**
 
 - `t`: The table.
 - `key`: The key whose associated value is to be retrieved.
@@ -232,16 +220,12 @@ The value associated with the key or null if the key is not found.
 ---
 
 ### `has`
-
-**Description:**  
 Checks if the table contains a specified key.
 
 **Signature:**  
 ```tomo
 func has(t:{K,V}, key: K -> Bool)
 ```
-
-**Parameters:**
 
 - `t`: The table.
 - `key`: The key to check for presence.
@@ -260,16 +244,12 @@ func has(t:{K,V}, key: K -> Bool)
 ---
 
 ### `remove`
-
-**Description:**  
 Removes the key-value pair associated with a specified key.
 
 **Signature:**  
 ```tomo
 func remove(t:{K,V}, key: K -> Void)
 ```
-
-**Parameters:**
 
 - `t`: The reference to the table.
 - `key`: The key of the key-value pair to remove.
@@ -288,16 +268,12 @@ t:remove("A")
 ---
 
 ### `set`
-
-**Description:**  
 Sets or updates the value associated with a specified key.
 
 **Signature:**  
 ```tomo
 func set(t:{K,V}, key: K, value: V -> Void)
 ```
-
-**Parameters:**
 
 - `t`: The reference to the table.
 - `key`: The key to set or update.
