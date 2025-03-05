@@ -90,7 +90,6 @@ iterating over any of the new values.
 ### `add`
 Adds an item to the set.
 
-**Signature:**  
 ```tomo
 func add(set:{T}, item: T -> Void)
 ```
@@ -111,7 +110,6 @@ Nothing.
 ### `add_all`
 Adds multiple items to the set.
 
-**Signature:**  
 ```tomo
 func add_all(set:@{T}, items: [T] -> Void)
 ```
@@ -132,7 +130,6 @@ Nothing.
 ### `clear`
 Removes all items from the set.
 
-**Signature:**  
 ```tomo
 func clear(set:@{T} -> Void)
 ```
@@ -152,7 +149,6 @@ Nothing.
 ### `has`
 Checks if the set contains a specified item.
 
-**Signature:**  
 ```tomo
 func has(set:{T}, item:T -> Bool)
 ```
@@ -174,7 +170,6 @@ func has(set:{T}, item:T -> Bool)
 ### `is_subset_of`
 Checks if the set is a subset of another set.
 
-**Signature:**  
 ```tomo
 func (set: {T}, other: {T}, strict: Bool = no -> Bool)
 ```
@@ -197,7 +192,6 @@ func (set: {T}, other: {T}, strict: Bool = no -> Bool)
 ### `is_superset_of`
 Checks if the set is a superset of another set.
 
-**Signature:**  
 ```tomo
 func is_superset_of(set:{T}, other: {T}, strict: Bool = no -> Bool)
 ```
@@ -217,7 +211,6 @@ func is_superset_of(set:{T}, other: {T}, strict: Bool = no -> Bool)
 ### `overlap`
 Creates a new set with items that are in both the original set and another set.
 
-**Signature:**  
 ```tomo
 func overlap(set:{T}, other: {T} -> {T})
 ```
@@ -239,7 +232,6 @@ A new set containing only items present in both sets.
 ### `remove`
 Removes an item from the set.
 
-**Signature:**  
 ```tomo
 func remove(set:@{T}, item: T -> Void)
 ```
@@ -260,7 +252,6 @@ Nothing.
 ### `remove_all`
 Removes multiple items from the set.
 
-**Signature:**  
 ```tomo
 func remove_all(set:@{T}, items: [T] -> Void)
 ```
@@ -281,7 +272,6 @@ Nothing.
 ### `with`
 Creates a new set that is the union of the original set and another set.
 
-**Signature:**  
 ```tomo
 func with(set:{T}, other: {T} -> {T})
 ```
@@ -303,7 +293,6 @@ A new set containing all items from both sets.
 ### `without`
 Creates a new set with items from the original set but without items from another set.
 
-**Signature:**  
 ```tomo
 func without(set:{T}, other: {T} -> {T})
 ```

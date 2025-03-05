@@ -144,7 +144,6 @@ iterating over any of the new values.
 Increments the value associated with a key by a specified amount. If the key is
 not already in the table, its value will be assumed to be zero.
 
-**Signature:**  
 ```tomo
 func bump(t:@{K,V}, key: K, amount: Int = 1 -> Void)
 ```
@@ -170,7 +169,6 @@ t:bump("B", 10)
 ### `clear`
 Removes all key-value pairs from the table.
 
-**Signature:**  
 ```tomo
 func clear(t:@{K,V})
 ```
@@ -190,7 +188,6 @@ Nothing.
 ### `get`
 Retrieves the value associated with a key, or returns null if the key is not present.
 
-**Signature:**  
 ```tomo
 func get(t:{K,V}, key: K -> V?)
 ```
@@ -222,7 +219,6 @@ The value associated with the key or null if the key is not found.
 ### `has`
 Checks if the table contains a specified key.
 
-**Signature:**  
 ```tomo
 func has(t:{K,V}, key: K -> Bool)
 ```
@@ -246,7 +242,6 @@ func has(t:{K,V}, key: K -> Bool)
 ### `remove`
 Removes the key-value pair associated with a specified key.
 
-**Signature:**  
 ```tomo
 func remove(t:{K,V}, key: K -> Void)
 ```
@@ -270,7 +265,6 @@ t:remove("A")
 ### `set`
 Sets or updates the value associated with a specified key.
 
-**Signature:**  
 ```tomo
 func set(t:{K,V}, key: K, value: V -> Void)
 ```

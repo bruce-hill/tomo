@@ -14,7 +14,6 @@ through [mutex-guarded datastructures](mutexed.md).
 ### `cancel`
 Requests the cancellation of a specified thread.
 
-**Signature:**  
 ```tomo
 func cancel(thread: Thread)
 ```
@@ -34,7 +33,6 @@ Nothing.
 ### `detach`
 Detaches a specified thread, allowing it to run independently.
 
-**Signature:**  
 ```tomo
 func detach(thread: Thread)
 ```
@@ -51,7 +49,6 @@ Nothing.
 ### `join`
 Waits for a specified thread to terminate.
 
-**Signature:**  
 ```tomo
 func join(thread: Thread)
 ```
@@ -71,7 +68,6 @@ Nothing.
 ### `new`
 Creates a new thread to execute a specified function.
 
-**Signature:**  
 ```tomo
 func new(fn: func(->Void) -> Thread)
 ```

@@ -41,7 +41,6 @@ Information about Tomo's built-in types can be found here:
 ### `ask`
 Gets a line of user input text with a prompt.
 
-**Signature:**  
 ```tomo
 func ask(prompt:Text, bold:Bool = yes, force_tty:Bool = yes -> Void)
 ```
@@ -72,7 +71,6 @@ something went wrong (e.g. the user hit `Ctrl-D`).
 ### `exit`
 Exits the program with a given status and optionally prints a message.
 
-**Signature:**  
 ```tomo
 func ask(message:Text? = !Text, status:Int32 = 1[32] -> Void)
 ```
@@ -95,7 +93,6 @@ exit(status=1, "Goodbye forever!")
 ### `say`
 Prints a message to the console.
 
-**Signature:**  
 ```tomo
 func say(text:Text, newline:Bool = yes -> Void)
 ```
@@ -117,7 +114,6 @@ say("world!")
 ### `sleep`
 Pause execution for a given number of seconds.
 
-**Signature:**  
 ```tomo
 func sleep(seconds: Num -> Void)
 ```
@@ -137,7 +133,6 @@ sleep(1.5)
 ### `fail`
 Prints a message to the console, aborts the program, and prints a stack trace.
 
-**Signature:**  
 ```tomo
 func fail(message:Text -> Abort)
 ```
@@ -157,7 +152,6 @@ fail("Oh no!")
 ### `now`
 Gets the current time. This is an alias for `Moment.now()`.
 
-**Signature:**  
 ```tomo
 func now(->Moment)
 ```

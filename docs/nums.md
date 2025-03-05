@@ -172,7 +172,6 @@ called either on the type itself: `Num.sqrt(x)` or as a method call:
 ### `abs`
 Calculates the absolute value of a number.
 
-**Signature:**
 ```tomo
 func abs(n: Num -> Num)
 ```
@@ -193,7 +192,6 @@ The absolute value of `n`.
 ### `acos`
 Computes the arc cosine of a number.
 
-**Signature:**
 ```tomo
 func acos(x: Num -> Num)
 ```
@@ -214,7 +212,6 @@ The arc cosine of `x` in radians.
 ### `acosh`
 Computes the inverse hyperbolic cosine of a number.
 
-**Signature:**
 ```tomo
 func acosh(x: Num -> Num)
 ```
@@ -235,7 +232,6 @@ The inverse hyperbolic cosine of `x`.
 ### `asin`
 Computes the arc sine of a number.
 
-**Signature:**
 ```tomo
 func asin(x: Num -> Num)
 ```
@@ -256,7 +252,6 @@ The arc sine of `x` in radians.
 ### `asinh`
 Computes the inverse hyperbolic sine of a number.
 
-**Signature:**
 ```tomo
 func asinh(x: Num -> Num)
 ```
@@ -277,7 +272,6 @@ The inverse hyperbolic sine of `x`.
 ### `atan`
 Computes the arc tangent of a number.
 
-**Signature:**
 ```tomo
 func atan(x: Num -> Num)
 ```
@@ -298,7 +292,6 @@ The arc tangent of `x` in radians.
 ### `atan2`
 Computes the arc tangent of the quotient of two numbers.
 
-**Signature:**
 ```tomo
 func atan2(x: Num, y: Num -> Num)
 ```
@@ -320,7 +313,6 @@ The arc tangent of `x/y` in radians.
 ### `atanh`
 Computes the inverse hyperbolic tangent of a number.
 
-**Signature:**
 ```tomo
 func atanh(x: Num -> Num)
 ```
@@ -341,7 +333,6 @@ The inverse hyperbolic tangent of `x`.
 ### `cbrt`
 Computes the cube root of a number.
 
-**Signature:**
 ```tomo
 func cbrt(x: Num -> Num)
 ```
@@ -362,7 +353,6 @@ The cube root of `x`.
 ### `ceil`
 Rounds a number up to the nearest integer.
 
-**Signature:**
 ```tomo
 func ceil(x: Num -> Num)
 ```
@@ -384,7 +374,6 @@ The smallest integer greater than or equal to `x`.
 Returns the given number clamped between two values so that it is within
 that range.
 
-**Signature:**  
 ```tomo
 clamped(x, low, high: Num -> Num)
 ```
@@ -407,7 +396,6 @@ The first argument clamped between the other two arguments.
 ### `copysign`
 Copies the sign of one number to another.
 
-**Signature:**
 ```tomo
 func copysign(x: Num, y: Num -> Num)
 ```
@@ -429,7 +417,6 @@ A number with the magnitude of `x` and the sign of `y`.
 ### `cos`
 Computes the cosine of a number (angle in radians).
 
-**Signature:**
 ```tomo
 func cos(x: Num -> Num)
 ```
@@ -450,7 +437,6 @@ The cosine of `x`.
 ### `cosh`
 Computes the hyperbolic cosine of a number.
 
-**Signature:**
 ```tomo
 func cosh(x: Num -> Num)
 ```
@@ -471,7 +457,6 @@ The hyperbolic cosine of `x`.
 ### `erf`
 Computes the error function of a number.
 
-**Signature:**
 ```tomo
 func erf(x: Num -> Num)
 ```
@@ -492,7 +477,6 @@ The error function of `x`.
 ### `erfc`
 Computes the complementary error function of a number.
 
-**Signature:**
 ```tomo
 func erfc(x: Num -> Num)
 ```
@@ -513,7 +497,6 @@ The complementary error function of `x`.
 ### `exp`
 Computes the exponential function \( e^x \) for a number.
 
-**Signature:**
 ```tomo
 func exp(x: Num -> Num)
 ```
@@ -534,7 +517,6 @@ The value of \( e^x \).
 ### `exp2`
 Computes \( 2^x \) for a number.
 
-**Signature:**
 ```tomo
 func exp2(x: Num -> Num)
 ```
@@ -555,7 +537,6 @@ The value of \( 2^x \).
 ### `expm1`
 Computes \( e^x - 1 \) for a number.
 
-**Signature:**
 ```tomo
 func expm1(x: Num -> Num)
 ```
@@ -576,7 +557,6 @@ The value of \( e^x - 1 \).
 ### `fdim`
 Computes the positive difference between two numbers.
 
-**Signature:**
 ```tomo
 func fdim(x: Num, y: Num -> Num)
 ```
@@ -600,7 +580,6 @@ fd
 ### `floor`
 Rounds a number down to the nearest integer.
 
-**Signature:**
 ```tomo
 func floor(x: Num -> Num)
 ```
@@ -621,7 +600,6 @@ The largest integer less than or equal to `x`.
 ### `format`
 Formats a number as a text with a specified precision.
 
-**Signature:**
 ```tomo
 func format(n: Num, precision: Int = 0 -> Text)
 ```
@@ -643,7 +621,6 @@ A text representation of the number with the specified precision.
 ### `hypot`
 Computes the Euclidean norm, \( \sqrt{x^2 + y^2} \), of two numbers.
 
-**Signature:**
 ```tomo
 func hypot(x: Num, y: Num -> Num)
 ```
@@ -665,7 +642,6 @@ The Euclidean norm of `x` and `y`.
 ### `isfinite`
 Checks if a number is finite.
 
-**Signature:**
 ```tomo
 func isfinite(n: Num -> Bool)
 ```
@@ -688,7 +664,6 @@ func isfinite(n: Num -> Bool)
 ### `isinf`
 Checks if a number is infinite.
 
-**Signature:**
 ```tomo
 func isinf(n: Num -> Bool)
 ```
@@ -711,7 +686,6 @@ func isinf(n: Num -> Bool)
 ### `j0`
 Computes the Bessel function of the first kind of order 0.
 
-**Signature:**
 ```tomo
 func j0(x: Num -> Num)
 ```
@@ -732,7 +706,6 @@ The Bessel function of the first kind of order 0 of `x`.
 ### `j1`
 Computes the Bessel function of the first kind of order 1.
 
-**Signature:**
 ```tomo
 func j1(x: Num -> Num)
 ```
@@ -753,7 +726,6 @@ The Bessel function of the first kind of order 1 of `x`.
 ### `log`
 Computes the natural logarithm (base \( e \)) of a number.
 
-**Signature:**
 ```tomo
 func log(x: Num -> Num)
 ```
@@ -774,7 +746,6 @@ The natural logarithm of `x`.
 ### `log10`
 Computes the base-10 logarithm of a number.
 
-**Signature:**
 ```tomo
 func log10(x: Num -> Num)
 ```
@@ -795,7 +766,6 @@ The base-10 logarithm of `x`.
 ### `log1p`
 Computes \( \log(1 + x) \) for a number.
 
-**Signature:**
 ```tomo
 func log1p(x: Num -> Num)
 ```
@@ -816,7 +786,6 @@ The value of \( \log(1 + x) \).
 ### `log2`
 Computes the base-2 logarithm of a number.
 
-**Signature:**
 ```tomo
 func log2(x: Num -> Num)
 ```
@@ -837,7 +806,6 @@ The base-2 logarithm of `x`.
 ### `logb`
 Computes the binary exponent (base-2 logarithm) of a number.
 
-**Signature:**
 ```tomo
 func logb(x: Num -> Num)
 ```
@@ -858,7 +826,6 @@ The binary exponent of `x`.
 ### `mix`
 Interpolates between two numbers based on a given amount.
 
-**Signature:**
 ```tomo
 func mix(amount: Num, x: Num, y: Num -> Num)
 ```
@@ -885,7 +852,6 @@ Checks if two numbers are approximately equal within specified tolerances. If
 two numbers are within an absolute difference or the ratio between the two is
 small enough, they are considered near each other.
 
-**Signature:**
 ```tomo
 func near(x: Num, y: Num, ratio: Num = 1e-9, min_epsilon: Num = 1e-9 -> Bool)
 ```
@@ -915,7 +881,6 @@ func near(x: Num, y: Num, ratio: Num = 1e-9, min_epsilon: Num = 1e-9 -> Bool)
 ### `nextafter`
 Computes the next representable value after a given number towards a specified direction.
 
-**Signature:**
 ```tomo
 func nextafter(x: Num, y: Num -> Num)
 ```
@@ -937,7 +902,6 @@ The next representable value after `x` in the direction of `y`.
 ### `parse`
 Converts a text representation of a number into a floating-point number.
 
-**Signature:**
 ```tomo
 func parse(text: Text -> Num?)
 ```
@@ -961,7 +925,6 @@ as a number.
 ### `rint`
 Rounds a number to the nearest integer, with ties rounded to the nearest even integer.
 
-**Signature:**
 ```tomo
 func rint(x: Num -> Num)
 ```
@@ -984,7 +947,6 @@ The nearest integer value of `x`.
 ### `round`
 Rounds a number to the nearest whole number integer.
 
-**Signature:**
 ```tomo
 func round(x: Num -> Num)
 ```
@@ -1007,7 +969,6 @@ The nearest integer value of `x`.
 ### `scientific`
 Formats a number in scientific notation with a specified precision.
 
-**Signature:**
 ```tomo
 func scientific(n: Num, precision: Int = 0 -> Text)
 ```
@@ -1029,7 +990,6 @@ A text representation of the number in scientific notation with the specified pr
 ### `significand`
 Extracts the significand (or mantissa) of a number.
 
-**Signature:**
 ```tomo
 func significand(x: Num -> Num)
 ```
@@ -1050,7 +1010,6 @@ The significand of `x`.
 ### `sin`
 Computes the sine of a number (angle in radians).
 
-**Signature:**
 ```tomo
 func sin(x: Num -> Num)
 ```
@@ -1071,7 +1030,6 @@ The sine of `x`.
 ### `sinh`
 Computes the hyperbolic sine of a number.
 
-**Signature:**
 ```tomo
 func sinh(x: Num -> Num)
 ```
@@ -1092,7 +1050,6 @@ The hyperbolic sine of `x`.
 ### `sqrt`
 Computes the square root of a number.
 
-**Signature:**
 ```tomo
 func sqrt(x: Num -> Num)
 ```
@@ -1113,7 +1070,6 @@ The square root of `x`.
 ### `tan`
 Computes the tangent of a number (angle in radians).
 
-**Signature:**
 ```tomo
 func tan(x: Num -> Num)
 ```
@@ -1134,7 +1090,6 @@ The tangent of `x`.
 ### `tanh`
 Computes the hyperbolic tangent of a number.
 
-**Signature:**
 ```tomo
 func tanh(x: Num -> Num)
 ```
@@ -1155,7 +1110,6 @@ The hyperbolic tangent of `x`.
 ### `tgamma`
 Computes the gamma function of a number.
 
-**Signature:**
 ```tomo
 func tgamma(x: Num -> Num)
 ```
@@ -1176,7 +1130,6 @@ The gamma function of `x`.
 ### `trunc`
 Truncates a number to the nearest integer towards zero.
 
-**Signature:**
 ```tomo
 func trunc(x: Num -> Num)
 ```
@@ -1199,7 +1152,6 @@ The integer part of `x` towards zero.
 ### `y0`
 Computes the Bessel function of the second kind of order 0.
 
-**Signature:**
 ```tomo
 func y0(x: Num -> Num)
 ```
@@ -1220,7 +1172,6 @@ The Bessel function of the second kind of order 0 of `x`.
 ### `y1`
 Computes the Bessel function of the second kind of order 1.
 
-**Signature:**
 ```tomo
 func y1(x: Num -> Num)
 ```

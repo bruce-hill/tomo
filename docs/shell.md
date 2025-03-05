@@ -21,7 +21,6 @@ user-controlled string is automatically escaped when performing interpolation.
 ### `by_line`
 Run a shell command and return an iterator over its output, line-by-line.
 
-**Signature:**  
 ```tomo
 func by_line(command: Shell -> Void)
 ```
@@ -43,7 +42,6 @@ for line in $Shell"ping www.example.com":by_line()!:
 ### `execute`
 Execute a shell command without capturing its output and return its exit status.
 
-**Signature:**  
 ```tomo
 func execute(command: Shell -> Int32?)
 ```
@@ -64,7 +62,6 @@ If the command exits normally, return its exit status. Otherwise return `none`.
 ### `run`
 Run a shell command and return the output text from `stdout`.
 
-**Signature:**  
 ```tomo
 func run(command: Shell -> Text?)
 ```
@@ -87,7 +84,6 @@ if there is a trailing newline, it will be stripped.
 ### `run_bytes`
 Run a shell command and return the output in raw bytes from `stdout`.
 
-**Signature:**  
 ```tomo
 func run(command: Shell -> [Byte]?)
 ```

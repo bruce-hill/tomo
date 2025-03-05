@@ -140,7 +140,6 @@ can be called either on the type itself: `Int.sqrt(x)` or as a method call:
 ### `abs`
 Calculates the absolute value of an integer.
 
-**Signature:**  
 ```tomo
 func abs(x: Int -> Int)
 ```
@@ -163,7 +162,6 @@ Computes the binomial coefficient of the given numbers (the equivalent of `n`
 choose `k` in combinatorics). This is equal to `n:factorial()/(k:factorial() *
 (n-k):factorial())`.
 
-**Signature:**  
 ```tomo
 func choose(n: Int, k: Int -> Int)
 ```
@@ -187,7 +185,6 @@ The binomial coefficient, equivalent to the number of ways to uniquely choose
 Returns the given number clamped between two values so that it is within
 that range.
 
-**Signature:**  
 ```tomo
 func clamped(x, low, high: Int -> Int)
 ```
@@ -210,7 +207,6 @@ The first argument clamped between the other two arguments.
 ### `factorial`
 Computes the factorial of an integer.
 
-**Signature:**  
 ```tomo
 func factorial(n: Int -> Text)
 ```
@@ -231,7 +227,6 @@ The factorial of the given integer.
 ### `format`
 Formats an integer as a string with a specified number of digits.
 
-**Signature:**  
 ```tomo
 func format(i: Int, digits: Int = 0 -> Text)
 ```
@@ -253,7 +248,6 @@ A string representation of the integer, padded to the specified number of digits
 ### `hex`
 Converts an integer to its hexadecimal representation.
 
-**Signature:**  
 ```tomo
 func hex(i: Int, digits: Int = 0, uppercase: Bool = yes, prefix: Bool = yes -> Text)
 ```
@@ -283,7 +277,6 @@ getting an incorrect answer are astronomically small (on the order of 10^(-30)).
 See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp)
 for more details.
 
-**Signature:**  
 ```tomo
 func is_prime(x: Int, reps: Int = 50 -> Bool)
 ```
@@ -313,7 +306,6 @@ answer are astronomically small (on the order of 10^(-30)).
 See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp)
 for more details.
 
-**Signature:**  
 ```tomo
 func next_prime(x: Int -> Int)
 ```
@@ -334,7 +326,6 @@ The next prime number greater than `x`.
 ### `octal`
 Converts an integer to its octal representation.
 
-**Signature:**  
 ```tomo
 func octal(i: Int, digits: Int = 0, prefix: Bool = yes -> Text)
 ```
@@ -358,7 +349,6 @@ The octal string representation of the integer.
 Return an iterator that counts infinitely from the starting integer (with an
 optional step size).
 
-**Signature:**  
 ```tomo
 func onward(first: Int, step: Int = 1 -> Text)
 ```
@@ -384,7 +374,6 @@ for i in 5:onward():
 ### `parse`
 Converts a text representation of an integer into an integer.
 
-**Signature:**  
 ```tomo
 func parse(text: Text -> Int?)
 ```
@@ -425,7 +414,6 @@ answer are astronomically small (on the order of 10^(-30)).
 See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp)
 for more details.
 
-**Signature:**  
 ```tomo
 func prev_prime(x: Int -> Int)
 ```
@@ -444,9 +432,8 @@ The previous prime number less than `x`.
 ---
 
 ### `sqrt`
-Calculates the square root of an integer. 
+Calculates the square root of an integer.
 
-**Signature:**  
 ```tomo
 func sqrt(x: Int -> Int)
 ```
@@ -468,9 +455,8 @@ The integer part of the square root of `x`.
 
 ### `to`
 Returns an iterator function that iterates over the range of numbers specified.
-Iteration is assumed to be nonempty and 
+Iteration is assumed to be nonempty and
 
-**Signature:**  
 ```tomo
 func to(first: Int, last: Int, step : Int? = none:Int -> func(->Int?))
 ```

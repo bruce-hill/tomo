@@ -309,7 +309,6 @@ pattern documentation](patterns.md) for more details.
 ### `as_c_string`
 Converts a `Text` value to a C-style string.
 
-**Signature:**  
 ```tomo
 func as_c_string(text: Text -> CString)
 ```
@@ -331,7 +330,6 @@ A C-style string (`CString`) representing the text.
 Get the graphical cluster at a given index. This is similar to `str[i]` with
 ASCII text, but has more correct behavior for unicode text.
 
-**Signature:**  
 ```tomo
 func at(text: Text, index: Int -> Text)
 ```
@@ -356,7 +354,6 @@ indices are counted from the back of the text, so `-1` means the last cluster,
 Returns an iterator function that can be used to iterate over the lines in a
 text.
 
-**Signature:**  
 ```tomo
 func by_line(text: Text -> func(->Text?))
 ```
@@ -385,7 +382,6 @@ for line in text:by_line():
 Returns an iterator function that can be used to iterate over the occurrences
 of a pattern in a text.
 
-**Signature:**  
 ```tomo
 func by_match(text: Text, pattern: Pattern -> func(->Match?))
 ```
@@ -412,7 +408,6 @@ for match in text:by_match($/{alpha}/):
 Returns an iterator function that can be used to iterate over text separated by
 a pattern.
 
-**Signature:**  
 ```tomo
 func by_split(text: Text, pattern: Pattern = $// -> func(->Text?))
 ```
@@ -439,7 +434,6 @@ for chunk in text:by_split($/,/):
 Converts a `Text` value to an array of bytes representing a UTF8 encoding of
 the text.
 
-**Signature:**  
 ```tomo
 func bytes(text: Text -> [Byte])
 ```
@@ -460,7 +454,6 @@ An array of bytes (`[Byte]`) representing the text in UTF8 encoding.
 ### `codepoint_names`
 Returns an array of the names of each codepoint in the text.
 
-**Signature:**  
 ```tomo
 func codepoint_names(text: Text -> [Text])
 ```
@@ -482,7 +475,6 @@ An array of codepoint names (`[Text]`).
 Iterates over each match of a [pattern](patterns.md) and passes the match to
 the given function.
 
-**Signature:**  
 ```tomo
 func each(text: Text, pattern: Pattern, fn: func(m: Match), recursive: Bool = yes -> Int?)
 ```
@@ -508,7 +500,6 @@ None.
 ### `ends_with`
 Checks if the `Text` ends with a literal suffix text.
 
-**Signature:**  
 ```tomo
 func ends_with(text: Text, suffix: Text -> Bool)
 ```
@@ -531,7 +522,6 @@ func ends_with(text: Text, suffix: Text -> Bool)
 Finds the first occurrence of a [pattern](patterns.md) in the given text (if
 any).
 
-**Signature:**  
 ```tomo
 func find(text: Text, pattern: Pattern, start: Int = 1 -> Int?)
 ```
@@ -561,7 +551,6 @@ struct containing information about the match.
 ### `find_all`
 Finds all occurrences of a [pattern](patterns.md) in the given text.
 
-**Signature:**  
 ```tomo
 func find_all(text: Text, pattern: Pattern -> [Match])
 ```
@@ -596,7 +585,6 @@ Note: if `text` or `pattern` is empty, an empty array will be returned.
 ### `from`
 Get a slice of the text, starting at the given position.
 
-**Signature:**  
 ```tomo
 func from(text: Text, first: Int -> Text)
 ```
@@ -626,7 +614,6 @@ Returns text that has been constructed from the given UTF8 bytes. Note: the
 text will be normalized, so the resulting text's UTF8 bytes may not exactly
 match the input.
 
-**Signature:**  
 ```tomo
 func from_codepoint_names(codepoints: [Int32] -> [Text])
 ```
@@ -647,7 +634,6 @@ A new text based on the input UTF8 bytes after normalization has been applied.
 ### `from_c_string`
 Converts a C-style string to a `Text` value.
 
-**Signature:**  
 ```tomo
 func from_c_string(str: CString -> Text)
 ```
@@ -670,7 +656,6 @@ Returns text that has the given codepoint names (according to the Unicode
 specification) as its codepoints. Note: the text will be normalized, so the
 resulting text's codepoints may not exactly match the input codepoints.
 
-**Signature:**  
 ```tomo
 func from_codepoint_names(codepoint_names: [Text] -> [Text])
 ```
@@ -699,7 +684,6 @@ Returns text that has been constructed from the given UTF32 codepoints. Note:
 the text will be normalized, so the resulting text's codepoints may not exactly
 match the input codepoints.
 
-**Signature:**  
 ```tomo
 func from_codepoint_names(codepoints: [Int32] -> [Text])
 ```
@@ -720,7 +704,6 @@ A new text with the specified codepoints after normalization has been applied.
 ### `has`
 Checks if the `Text` contains a target [pattern](patterns.md).
 
-**Signature:**  
 ```tomo
 func has(text: Text, pattern: Pattern -> Bool)
 ```
@@ -748,7 +731,6 @@ func has(text: Text, pattern: Pattern -> Bool)
 ### `join`
 Joins an array of text pieces with a specified glue.
 
-**Signature:**  
 ```tomo
 func join(glue: Text, pieces: [Text] -> Text)
 ```
@@ -771,7 +753,6 @@ A single `Text` value with the pieces joined by the glue.
 Splits the text into an array of lines of text, preserving blank lines,
 ignoring trailing newlines, and handling `\r\n` the same as `\n`.
 
-**Signature:**  
 ```tomo
 func split(text: Text -> [Text])
 ```
@@ -800,7 +781,6 @@ An array of substrings resulting from the split.
 ### `lower`
 Converts all characters in the text to lowercase.
 
-**Signature:**  
 ```tomo
 func lower(text: Text -> Text)
 ```
@@ -822,7 +802,6 @@ The lowercase version of the text.
 For each occurrence of the given [pattern](patterns.md), replace the text with
 the result of calling the given function on that match.
 
-**Signature:**  
 ```tomo
 func map(text: Text, pattern: Pattern, fn: func(text:Match)->Text -> Text, recursive: Bool = yes)
 ```
@@ -852,7 +831,6 @@ Checks if the `Text` matches target [pattern](patterns.md) and returns an array
 of the matching text captures or a null value if the entire text doesn't match
 the pattern.
 
-**Signature:**  
 ```tomo
 func matches(text: Text, pattern: Pattern -> [Text])
 ```
@@ -878,7 +856,6 @@ or a null value otherwise.
 ### `quoted`
 Formats the text as a quoted string.
 
-**Signature:**  
 ```tomo
 func quoted(text: Text, color: Bool = no -> Text)
 ```
@@ -900,7 +877,6 @@ The text formatted as a quoted string.
 ### `repeat`
 Repeat some text multiple times.
 
-**Signature:**  
 ```tomo
 func repeat(text: Text, count:Int -> Text)
 ```
@@ -923,7 +899,6 @@ The text repeated the given number of times.
 Replaces occurrences of a [pattern](patterns.md) in the text with a replacement
 string.
 
-**Signature:**  
 ```tomo
 func replace(text: Text, pattern: Pattern, replacement: Text, backref: Pattern = $/\/, recursive: Bool = yes -> Text)
 ```
@@ -989,7 +964,6 @@ on to *after* the replacement text, so replacement text is not recursively
 modified. See [`replace()`](#replace) for more information about replacement
 behavior.
 
-**Signature:**  
 ```tomo
 func replace_all(replacements:{Pattern,Text}, backref: Pattern = $/\/, recursive: Bool = yes -> Text)
 ```
@@ -1029,7 +1003,6 @@ replacement text.
 ### `reversed`
 Return a text that has the grapheme clusters in reverse order.
 
-**Signature:**  
 ```tomo
 func reversed(text: Text -> Text)
 ```
@@ -1050,7 +1023,6 @@ A reversed version of the text.
 ### `slice`
 Get a slice of the text.
 
-**Signature:**  
 ```tomo
 func slice(text: Text, from: Int = 1, to: Int = -1 -> Text)
 ```
@@ -1082,7 +1054,6 @@ the string.
 ### `split`
 Splits the text into an array of substrings based on a [pattern](patterns.md).
 
-**Signature:**  
 ```tomo
 func split(text: Text, pattern: Pattern = "" -> [Text])
 ```
@@ -1114,7 +1085,6 @@ An array of substrings resulting from the split.
 ### `starts_with`
 Checks if the `Text` starts with a literal prefix text.
 
-**Signature:**  
 ```tomo
 func starts_with(text: Text, prefix: Text -> Bool)
 ```
@@ -1136,7 +1106,6 @@ func starts_with(text: Text, prefix: Text -> Bool)
 ### `title`
 Converts the text to title case (capitalizing the first letter of each word).
 
-**Signature:**  
 ```tomo
 func title(text: Text -> Text)
 ```
@@ -1157,7 +1126,6 @@ The text in title case.
 ### `to`
 Get a slice of the text, ending at the given position.
 
-**Signature:**  
 ```tomo
 func to(text: Text, last: Int -> Text)
 ```
@@ -1185,7 +1153,6 @@ the string.
 ### `trim`
 Trims the matching [pattern](patterns.md) from the left and/or right side of the text.
 
-**Signature:**  
 ```tomo
 func trim(text: Text, pattern: Pattern = $/{whitespace/, trim_left: Bool = yes, trim_right: Bool = yes -> Text)
 ```
@@ -1215,7 +1182,6 @@ The text without the trim pattern at either end.
 ### `upper`
 Converts all characters in the text to uppercase.
 
-**Signature:**  
 ```tomo
 func upper(text: Text -> Text)
 ```
@@ -1236,7 +1202,6 @@ The uppercase version of the text.
 ### `utf32_codepoints`
 Returns an array of Unicode code points for UTF32 encoding of the text.
 
-**Signature:**  
 ```tomo
 func utf32_codepoints(text: Text -> [Int32])
 ```
