@@ -6,10 +6,10 @@ through [mutex-guarded datastructures](mutexed.md).
 
 ## Thread Methods
 
-- [`func cancel(thread: Thread)`](#`cancel)
-- [`func detach(thread: Thread)`](#`detach)
-- [`func join(thread: Thread)`](#`join)
-- [`func new(fn: func(->Void) -> Thread)`](#`new)
+- [`func cancel(thread: Thread)`](#cancel)
+- [`func detach(thread: Thread)`](#detach)
+- [`func join(thread: Thread)`](#join)
+- [`func new(fn: func(->Void) -> Thread)`](#new)
 
 ### `cancel`
 

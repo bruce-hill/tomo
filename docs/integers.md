@@ -122,20 +122,20 @@ Each integer type has its own version of the following functions. Functions
 can be called either on the type itself: `Int.sqrt(x)` or as a method call:
 `x:sqrt()`. Method call syntax is preferred.
 
-- [`func abs(x: Int -> Int)`](#`abs)
-- [`func choose(n: Int, k: Int -> Int)`](#`choose)
-- [`func clamped(x, low, high: Int -> Int)`](#`clamped)
-- [`func factorial(n: Int -> Text)`](#`factorial)
-- [`func format(i: Int, digits: Int = 0 -> Text)`](#`format)
-- [`func hex(i: Int, digits: Int = 0, uppercase: Bool = yes, prefix: Bool = yes -> Text)`](#`hex)
-- [`func is_prime(x: Int, reps: Int = 50 -> Bool)`](#`is_prime)
-- [`func next_prime(x: Int -> Int)`](#`next_prime)
-- [`func octal(i: Int, digits: Int = 0, prefix: Bool = yes -> Text)`](#`octal)
-- [`func onward(first: Int, step: Int = 1 -> Text)`](#`onward)
-- [`func parse(text: Text -> Int?)`](#`parse)
-- [`func prev_prime(x: Int -> Int)`](#`prev_prime)
-- [`func sqrt(x: Int -> Int)`](#`sqrt)
-- [`func to(first: Int, last: Int, step : Int? = none:Int -> func(->Int?))`](#`to)
+- [`func abs(x: Int -> Int)`](#abs)
+- [`func choose(n: Int, k: Int -> Int)`](#choose)
+- [`func clamped(x, low, high: Int -> Int)`](#clamped)
+- [`func factorial(n: Int -> Text)`](#factorial)
+- [`func format(i: Int, digits: Int = 0 -> Text)`](#format)
+- [`func hex(i: Int, digits: Int = 0, uppercase: Bool = yes, prefix: Bool = yes -> Text)`](#hex)
+- [`func is_prime(x: Int, reps: Int = 50 -> Bool)`](#is_prime)
+- [`func next_prime(x: Int -> Int)`](#next_prime)
+- [`func octal(i: Int, digits: Int = 0, prefix: Bool = yes -> Text)`](#octal)
+- [`func onward(first: Int, step: Int = 1 -> Text)`](#onward)
+- [`func parse(text: Text -> Int?)`](#parse)
+- [`func prev_prime(x: Int -> Int)`](#prev_prime)
+- [`func sqrt(x: Int -> Int)`](#sqrt)
+- [`func to(first: Int, last: Int, step : Int? = none:Int -> func(->Int?))`](#to)
 
 ### `abs`
 

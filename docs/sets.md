@@ -75,17 +75,17 @@ iterating over any of the new values.
 
 ## Set Methods
 
-- [`func add(set:{T}, item: T -> Void)`](#`add)
-- [`func add_all(set:@{T}, items: [T] -> Void)`](#`add_all)
-- [`func clear(set:@{T} -> Void)`](#`clear)
-- [`func has(set:{T}, item:T -> Bool)`](#`has)
-- [`func (set: {T}, other: {T}, strict: Bool = no -> Bool)`](#`is_subset_of)
-- [`func is_superset_of(set:{T}, other: {T}, strict: Bool = no -> Bool)`](#`is_superset_of)
-- [`func overlap(set:{T}, other: {T} -> {T})`](#`overlap)
-- [`func remove(set:@{T}, item: T -> Void)`](#`remove)
-- [`func remove_all(set:@{T}, items: [T] -> Void)`](#`remove_all)
-- [`func with(set:{T}, other: {T} -> {T})`](#`with)
-- [`func without(set:{T}, other: {T} -> {T})`](#`without)
+- [`func add(set:{T}, item: T -> Void)`](#add)
+- [`func add_all(set:@{T}, items: [T] -> Void)`](#add_all)
+- [`func clear(set:@{T} -> Void)`](#clear)
+- [`func has(set:{T}, item:T -> Bool)`](#has)
+- [`func (set: {T}, other: {T}, strict: Bool = no -> Bool)`](#is_subset_of)
+- [`func is_superset_of(set:{T}, other: {T}, strict: Bool = no -> Bool)`](#is_superset_of)
+- [`func overlap(set:{T}, other: {T} -> {T})`](#overlap)
+- [`func remove(set:@{T}, item: T -> Void)`](#remove)
+- [`func remove_all(set:@{T}, items: [T] -> Void)`](#remove_all)
+- [`func with(set:{T}, other: {T} -> {T})`](#with)
+- [`func without(set:{T}, other: {T} -> {T})`](#without)
 
 ### `add`
 

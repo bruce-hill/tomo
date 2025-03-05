@@ -19,14 +19,14 @@ This documentation provides details on RNG functions available in the API.
 [Arrays](arrays.md) also have some methods which use RNG values:
 `array:shuffle()`, `array:shuffled()`, `array:random()`, and `array:sample()`.
 
-- [`func bool(rng: RNG, p: Num = 0.5 -> Bool)`](#`bool)
-- [`func byte(rng: RNG -> Byte)`](#`byte)
-- [`func bytes(rng: RNG, count: Int -> [Byte])`](#`bytes)
-- [`func copy(rng: RNG -> RNG)`](#`copy)
-- [`func int(rng: RNG, min: Int, max: Int -> Int)`](#`int`, `int64`, `int32`, `int16`, `int8)
-- [`func new(seed: [Byte] = (/dev/urandom):read_bytes(40)! -> RNG)`](#`new)
-- [`func num(rng: RNG, min: Num = 0.0, max: Num = 1.0 -> Int)`](#`num`, `num32)
-- [`func set_seed(rng: RNG, seed: [Byte])`](#`set_seed)
+- [`func bool(rng: RNG, p: Num = 0.5 -> Bool)`](#bool)
+- [`func byte(rng: RNG -> Byte)`](#byte)
+- [`func bytes(rng: RNG, count: Int -> [Byte])`](#bytes)
+- [`func copy(rng: RNG -> RNG)`](#copy)
+- [`func int(rng: RNG, min: Int, max: Int -> Int)`](#int`, `int64`, `int32`, `int16`, `int8)
+- [`func new(seed: [Byte] = (/dev/urandom):read_bytes(40)! -> RNG)`](#new)
+- [`func num(rng: RNG, min: Num = 0.0, max: Num = 1.0 -> Int)`](#num`, `num32)
+- [`func set_seed(rng: RNG, seed: [Byte])`](#set_seed)
 
 ### `bool`
 

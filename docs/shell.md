@@ -13,10 +13,10 @@ user-controlled string is automatically escaped when performing interpolation.
 
 ## Shell Methods
 
-- [`func by_line(command: Shell -> Void)`](#`by_line)
-- [`func execute(command: Shell -> Int32?)`](#`execute)
-- [`func run(command: Shell -> Text?)`](#`run)
-- [`func run(command: Shell -> [Byte]?)`](#`run_bytes)
+- [`func by_line(command: Shell -> Void)`](#by_line)
+- [`func execute(command: Shell -> Int32?)`](#execute)
+- [`func run(command: Shell -> Text?)`](#run)
+- [`func run(command: Shell -> [Byte]?)`](#run_bytes)
 
 ### `by_line`
 
