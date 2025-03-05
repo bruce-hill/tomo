@@ -7,6 +7,8 @@ Boolean values have the type `Bool` and can be either `yes` ("true") or `no`
 
 This documentation provides details on boolean functions available in the API.
 
+- [`func parse(text: Text -> Bool?)`](#`parse)
+
 ### `parse`
 
 **Description:**  

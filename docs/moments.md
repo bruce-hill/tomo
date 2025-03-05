@@ -63,6 +63,30 @@ Time zones are specified by name, such as `America/New_York` or `UTC`.
 
 ## Moment Methods
 
+- [`func after(moment: Moment, seconds : Num = 0.0, minutes : Num = 0.0, hours : Num = 0.0, days : Int = 0, weeks : Int = 0, months : Int = 0, years : Int = 0, timezone : Text? = !Text -> Moment)`](#`after)
+- [`func date(moment: Moment, timezone : Text? = !Text -> Text)`](#`date)
+- [`func day_of_month(moment: Moment, timezone : Text? = !Text -> Int)`](#`day_of_month)
+- [`func day_of_week(moment: Moment, timezone : Text? = !Text -> Int)`](#`day_of_week)
+- [`func day_of_year(moment: Moment, timezone : Text? = !Text -> Int)`](#`day_of_year)
+- [`func format(moment: Moment, format: Text = "%Y-%m-%dT%H:%M:%S%z", timezone : Text? = !Text -> Text)`](#`format)
+- [`func from_unix_timestamp(timestamp: Int64 -> Moment)`](#`from_unix_timestamp)
+- [`func get_local_timezone(->Text)`](#`get_local_timezone)
+- [`func hour(moment: Moment, timezone : Text? = !Text -> Int)`](#`hour)
+- [`func hours_till(moment: Moment, then:Moment -> Num)`](#`hours_till)
+- [`func minute(moment: Moment, timezone : Text? = !Text -> Int)`](#`minute)
+- [`func minutes_till(moment: Moment, then:Moment -> Num)`](#`minutes_till)
+- [`func month(moment: Moment, timezone : Text? = !Text -> Int)`](#`month)
+- [`func nanosecond(moment: Moment, timezone : Text? = !Text -> Int)`](#`nanosecond)
+- [`func new(year : Int, month : Int, day : Int, hour : Int = 0, minute : Int = 0, second : Num = 0.0 -> Moment)`](#`new)
+- [`func now(->Moment)`](#`now)
+- [`func parse(text: Text, format: Text = "%Y-%m-%dT%H:%M:%S%z" -> Moment?)`](#`parse)
+- [`func relative(moment: Moment, relative_to : Moment = Moment.now(), timezone : Text? = !Text -> Text)`](#`relative)
+- [`func second(moment: Moment, timezone : Text? = !Text -> Int)`](#`second)
+- [`func seconds_till(moment: Moment, then:Moment -> Num)`](#`seconds_till)
+- [`func set_local_timezone(timezone : Text? = !Text -> Void)`](#`set_local_timezone)
+- [`func time(moment: Moment, seconds : Bool = no, am_pm : Bool = yes, timezone : Text? = !Text -> Text)`](#`time)
+- [`func unix_timestamp(moment:Moment->Int64)`](#`unix_timestamp)
+
 ### `after`
 
 **Description:**  

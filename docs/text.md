@@ -270,6 +270,42 @@ pattern documentation](patterns.md) for more details.
 
 ## Text Functions
 
+- [`func as_c_string(text: Text -> CString)`](#`as_c_string)
+- [`func at(text: Text, index: Int -> Text)`](#`at)
+- [`func by_line(text: Text -> func(->Text?))`](#`by_line)
+- [`func by_match(text: Text, pattern: Pattern -> func(->Match?))`](#`by_match)
+- [`func by_split(text: Text, pattern: Pattern = $// -> func(->Text?))`](#`by_split)
+- [`func bytes(text: Text -> [Byte])`](#`bytes)
+- [`func codepoint_names(text: Text -> [Text])`](#`codepoint_names)
+- [`func each(text: Text, pattern: Pattern, fn: func(m: Match), recursive: Bool = yes -> Int?)`](#`each)
+- [`func ends_with(text: Text, suffix: Text -> Bool)`](#`ends_with)
+- [`func find(text: Text, pattern: Pattern, start: Int = 1 -> Int?)`](#`find)
+- [`func find_all(text: Text, pattern: Pattern -> [Match])`](#`find_all)
+- [`func from(text: Text, first: Int -> Text)`](#`from)
+- [`func from_codepoint_names(codepoints: [Int32] -> [Text])`](#`from_bytes)
+- [`func from_c_string(str: CString -> Text)`](#`from_c_string)
+- [`func from_codepoint_names(codepoint_names: [Text] -> [Text])`](#`from_codepoint_names)
+- [`func from_codepoint_names(codepoints: [Int32] -> [Text])`](#`from_codepoints)
+- [`func has(text: Text, pattern: Pattern -> Bool)`](#`has)
+- [`func join(glue: Text, pieces: [Text] -> Text)`](#`join)
+- [`func split(text: Text -> [Text])`](#`lines)
+- [`func lower(text: Text -> Text)`](#`lower)
+- [`func map(text: Text, pattern: Pattern, fn: func(text:Match)->Text -> Text, recursive: Bool = yes)`](#`map)
+- [`func matches(text: Text, pattern: Pattern -> [Text])`](#`matches)
+- [`func quoted(text: Text, color: Bool = no -> Text)`](#`quoted)
+- [`func repeat(text: Text, count:Int -> Text)`](#`repeat)
+- [`func replace(text: Text, pattern: Pattern, replacement: Text, backref: Pattern = $/\/, recursive: Bool = yes -> Text)`](#`replace)
+- [`func replace_all(replacements:{Pattern,Text}, backref: Pattern = $/\/, recursive: Bool = yes -> Text)`](#`replace_all)
+- [`func reversed(text: Text -> Text)`](#`reversed)
+- [`func slice(text: Text, from: Int = 1, to: Int = -1 -> Text)`](#`slice)
+- [`func split(text: Text, pattern: Pattern = "" -> [Text])`](#`split)
+- [`func starts_with(text: Text, prefix: Text -> Bool)`](#`starts_with)
+- [`func title(text: Text -> Text)`](#`title)
+- [`func to(text: Text, last: Int -> Text)`](#`to)
+- [`func trim(text: Text, pattern: Pattern = $/{whitespace/, trim_left: Bool = yes, trim_right: Bool = yes -> Text)`](#`trim)
+- [`func upper(text: Text -> Text)`](#`upper)
+- [`func utf32_codepoints(text: Text -> [Int32])`](#`utf32_codepoints)
+
 ### `as_c_string`
 
 **Description:**  
@@ -470,31 +506,6 @@ An array of codepoint names (`[Text]`).
 
 ---
 
-### `utf32_codepoints`
-
-**Description:**  
-Returns an array of Unicode code points for UTF32 encoding of the text.
-
-**Signature:**  
-```tomo
-func utf32_codepoints(text: Text -> [Int32])
-```
-
-**Parameters:**
-
-- `text`: The text from which to extract Unicode code points.
-
-**Returns:**  
-An array of 32-bit integer Unicode code points (`[Int32]`).
-
-**Example:**  
-```tomo
->> "Amélie":utf32_codepoints()
-= [65[32], 109[32], 233[32], 108[32], 105[32], 101[32]] : [Int32]
-```
-
----
-
 ### `each`
 
 **Description:**  
@@ -548,118 +559,6 @@ func ends_with(text: Text, suffix: Text -> Bool)
 ```tomo
 >> "hello world":ends_with("world")
 = yes
-```
-
----
-
-### `from_c_string`
-
-**Description:**  
-Converts a C-style string to a `Text` value.
-
-**Signature:**  
-```tomo
-func from_c_string(str: CString -> Text)
-```
-
-**Parameters:**
-
-- `str`: The C-style string to be converted.
-
-**Returns:**  
-A `Text` value representing the C-style string.
-
-**Example:**  
-```tomo
->> Text.from_c_string(CString("Hello"))
-= "Hello"
-```
-
----
-
-### `from_codepoint_names`
-
-**Description:**  
-Returns text that has the given codepoint names (according to the Unicode
-specification) as its codepoints. Note: the text will be normalized, so the
-resulting text's codepoints may not exactly match the input codepoints.
-
-**Signature:**  
-```tomo
-func from_codepoint_names(codepoint_names: [Text] -> [Text])
-```
-
-**Parameters:**
-
-- `codepoint_names`: The names of each codepoint in the desired text. Names
-  are case-insentive.
-
-**Returns:**  
-A new text with the specified codepoints after normalization has been applied.
-Any invalid names are ignored.
-
-**Example:**  
-```tomo
->> Text.from_codepoint_names([
-  "LATIN CAPITAL LETTER A WITH RING ABOVE",
-  "LATIN SMALL LETTER K",
-  "LATIN SMALL LETTER E",
-]
-= "Åke"
-```
-
----
-
-### `from_codepoints`
-
-**Description:**  
-Returns text that has been constructed from the given UTF32 codepoints. Note:
-the text will be normalized, so the resulting text's codepoints may not exactly
-match the input codepoints.
-
-**Signature:**  
-```tomo
-func from_codepoint_names(codepoints: [Int32] -> [Text])
-```
-
-**Parameters:**
-
-- `codepoints`: The UTF32 codepoints in the desired text.
-
-**Returns:**  
-A new text with the specified codepoints after normalization has been applied.
-
-**Example:**  
-```tomo
->> Text.from_codepoints([197[32], 107[32], 101[32]])
-= "Åke"
-```
-
----
-
-### `from_bytes`
-
-**Description:**  
-Returns text that has been constructed from the given UTF8 bytes. Note: the
-text will be normalized, so the resulting text's UTF8 bytes may not exactly
-match the input.
-
-**Signature:**  
-```tomo
-func from_codepoint_names(codepoints: [Int32] -> [Text])
-```
-
-**Parameters:**
-
-- `codepoints`: The UTF32 codepoints in the desired text.
-
-**Returns:**  
-A new text based on the input UTF8 bytes after normalization has been applied.
-
-**Example:**  
-```tomo
->> Text.from_bytes([195[B], 133[B], 107[B], 101[B]])
-= "Åke"
 ```
 
 ---
@@ -766,6 +665,118 @@ the length of the string.
 
 >> "hello":from(-2)
 = "lo"
+```
+
+---
+
+### `from_bytes`
+
+**Description:**  
+Returns text that has been constructed from the given UTF8 bytes. Note: the
+text will be normalized, so the resulting text's UTF8 bytes may not exactly
+match the input.
+
+**Signature:**  
+```tomo
+func from_codepoint_names(codepoints: [Int32] -> [Text])
+```
+
+**Parameters:**
+
+- `codepoints`: The UTF32 codepoints in the desired text.
+
+**Returns:**  
+A new text based on the input UTF8 bytes after normalization has been applied.
+
+**Example:**  
+```tomo
+>> Text.from_bytes([195[B], 133[B], 107[B], 101[B]])
+= "Åke"
+```
+
+---
+
+### `from_c_string`
+
+**Description:**  
+Converts a C-style string to a `Text` value.
+
+**Signature:**  
+```tomo
+func from_c_string(str: CString -> Text)
+```
+
+**Parameters:**
+
+- `str`: The C-style string to be converted.
+
+**Returns:**  
+A `Text` value representing the C-style string.
+
+**Example:**  
+```tomo
+>> Text.from_c_string(CString("Hello"))
+= "Hello"
+```
+
+---
+
+### `from_codepoint_names`
+
+**Description:**  
+Returns text that has the given codepoint names (according to the Unicode
+specification) as its codepoints. Note: the text will be normalized, so the
+resulting text's codepoints may not exactly match the input codepoints.
+
+**Signature:**  
+```tomo
+func from_codepoint_names(codepoint_names: [Text] -> [Text])
+```
+
+**Parameters:**
+
+- `codepoint_names`: The names of each codepoint in the desired text. Names
+  are case-insentive.
+
+**Returns:**  
+A new text with the specified codepoints after normalization has been applied.
+Any invalid names are ignored.
+
+**Example:**  
+```tomo
+>> Text.from_codepoint_names([
+  "LATIN CAPITAL LETTER A WITH RING ABOVE",
+  "LATIN SMALL LETTER K",
+  "LATIN SMALL LETTER E",
+]
+= "Åke"
+```
+
+---
+
+### `from_codepoints`
+
+**Description:**  
+Returns text that has been constructed from the given UTF32 codepoints. Note:
+the text will be normalized, so the resulting text's codepoints may not exactly
+match the input codepoints.
+
+**Signature:**  
+```tomo
+func from_codepoint_names(codepoints: [Int32] -> [Text])
+```
+
+**Parameters:**
+
+- `codepoints`: The UTF32 codepoints in the desired text.
+
+**Returns:**  
+A new text with the specified codepoints after normalization has been applied.
+
+**Example:**  
+```tomo
+>> Text.from_codepoints([197[32], 107[32], 101[32]])
+= "Åke"
 ```
 
 ---
@@ -887,38 +898,6 @@ The lowercase version of the text.
 
 ---
 
-### `matches`
-
-**Description:**  
-Checks if the `Text` matches target [pattern](patterns.md) and returns an array
-of the matching text captures or a null value if the entire text doesn't match
-the pattern.
-
-**Signature:**  
-```tomo
-func matches(text: Text, pattern: Pattern -> [Text])
-```
-
-**Parameters:**
-
-- `text`: The text to be searched.
-- `pattern`: The [pattern](patterns.md) to search for.
-
-**Returns:**  
-An array of the matching text captures if the entire text matches the pattern,
-or a null value otherwise.
-
-**Example:**  
-```tomo
->> "hello world":matches($/{id}/)
-= none : [Text]?
-
->> "hello world":matches($/{id} {id}/)
-= ["hello", "world"] : [Text]?
-```
-
----
-
 ### `map`
 
 **Description:**  
@@ -948,6 +927,38 @@ function to each.
 = "hello WORLD"
 >> "Some nums: 1 2 3 4":map($/{int}/, func(m:Match): "$(Int.parse(m.text)! + 10)")
 = "Some nums: 11 12 13 14"
+```
+
+---
+
+### `matches`
+
+**Description:**  
+Checks if the `Text` matches target [pattern](patterns.md) and returns an array
+of the matching text captures or a null value if the entire text doesn't match
+the pattern.
+
+**Signature:**  
+```tomo
+func matches(text: Text, pattern: Pattern -> [Text])
+```
+
+**Parameters:**
+
+- `text`: The text to be searched.
+- `pattern`: The [pattern](patterns.md) to search for.
+
+**Returns:**  
+An array of the matching text captures if the entire text matches the pattern,
+or a null value otherwise.
+
+**Example:**  
+```tomo
+>> "hello world":matches($/{id}/)
+= none : [Text]?
+
+>> "hello world":matches($/{id} {id}/)
+= ["hello", "world"] : [Text]?
 ```
 
 ---
@@ -1354,4 +1365,29 @@ The uppercase version of the text.
 ```tomo
 >> "amélie":upper()
 = "AMÉLIE"
+```
+
+---
+
+### `utf32_codepoints`
+
+**Description:**  
+Returns an array of Unicode code points for UTF32 encoding of the text.
+
+**Signature:**  
+```tomo
+func utf32_codepoints(text: Text -> [Int32])
+```
+
+**Parameters:**
+
+- `text`: The text from which to extract Unicode code points.
+
+**Returns:**  
+An array of 32-bit integer Unicode code points (`[Int32]`).
+
+**Example:**  
+```tomo
+>> "Amélie":utf32_codepoints()
+= [65[32], 109[32], 233[32], 108[32], 105[32], 101[32]] : [Int32]
 ```

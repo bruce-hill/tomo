@@ -119,6 +119,56 @@ called either on the type itself: `Num.sqrt(x)` or as a method call:
 
 ---
 
+- [`func abs(n: Num -> Num)`](#`abs)
+- [`func acos(x: Num -> Num)`](#`acos)
+- [`func acosh(x: Num -> Num)`](#`acosh)
+- [`func asin(x: Num -> Num)`](#`asin)
+- [`func asinh(x: Num -> Num)`](#`asinh)
+- [`func atan(x: Num -> Num)`](#`atan)
+- [`func atan2(x: Num, y: Num -> Num)`](#`atan2)
+- [`func atanh(x: Num -> Num)`](#`atanh)
+- [`func cbrt(x: Num -> Num)`](#`cbrt)
+- [`func ceil(x: Num -> Num)`](#`ceil)
+- [`clamped(x, low, high: Num -> Num)`](#`clamped)
+- [`func copysign(x: Num, y: Num -> Num)`](#`copysign)
+- [`func cos(x: Num -> Num)`](#`cos)
+- [`func cosh(x: Num -> Num)`](#`cosh)
+- [`func erf(x: Num -> Num)`](#`erf)
+- [`func erfc(x: Num -> Num)`](#`erfc)
+- [`func exp(x: Num -> Num)`](#`exp)
+- [`func exp2(x: Num -> Num)`](#`exp2)
+- [`func expm1(x: Num -> Num)`](#`expm1)
+- [`func fdim(x: Num, y: Num -> Num)`](#`fdim)
+- [`func floor(x: Num -> Num)`](#`floor)
+- [`func format(n: Num, precision: Int = 0 -> Text)`](#`format)
+- [`func hypot(x: Num, y: Num -> Num)`](#`hypot)
+- [`func isfinite(n: Num -> Bool)`](#`isfinite)
+- [`func isinf(n: Num -> Bool)`](#`isinf)
+- [`func j0(x: Num -> Num)`](#`j0)
+- [`func j1(x: Num -> Num)`](#`j1)
+- [`func log(x: Num -> Num)`](#`log)
+- [`func log10(x: Num -> Num)`](#`log10)
+- [`func log1p(x: Num -> Num)`](#`log1p)
+- [`func log2(x: Num -> Num)`](#`log2)
+- [`func logb(x: Num -> Num)`](#`logb)
+- [`func mix(amount: Num, x: Num, y: Num -> Num)`](#`mix)
+- [`func near(x: Num, y: Num, ratio: Num = 1e-9, min_epsilon: Num = 1e-9 -> Bool)`](#`near)
+- [`func nextafter(x: Num, y: Num -> Num)`](#`nextafter)
+- [`func parse(text: Text -> Num?)`](#`parse)
+- [`func rint(x: Num -> Num)`](#`rint)
+- [`func round(x: Num -> Num)`](#`round)
+- [`func scientific(n: Num, precision: Int = 0 -> Text)`](#`scientific)
+- [`func significand(x: Num -> Num)`](#`significand)
+- [`func sin(x: Num -> Num)`](#`sin)
+- [`func sinh(x: Num -> Num)`](#`sinh)
+- [`func sqrt(x: Num -> Num)`](#`sqrt)
+- [`func tan(x: Num -> Num)`](#`tan)
+- [`func tanh(x: Num -> Num)`](#`tanh)
+- [`func tgamma(x: Num -> Num)`](#`tgamma)
+- [`func trunc(x: Num -> Num)`](#`trunc)
+- [`func y0(x: Num -> Num)`](#`y0)
+- [`func y1(x: Num -> Num)`](#`y1)
+
 ### `abs`
 
 **Description:**
@@ -244,6 +294,31 @@ The inverse hyperbolic sine of `x`.
 
 ---
 
+### `atan`
+
+**Description:**
+Computes the arc tangent of a number.
+
+**Signature:**
+```tomo
+func atan(x: Num -> Num)
+```
+
+**Parameters:**
+
+- `x`: The number for which the arc tangent is to be calculated.
+
+**Returns:**
+The arc tangent of `x` in radians.
+
+**Example:**
+```tomo
+>> 1.0:atan() // -> (π/4)
+= 0.7854
+```
+
+---
+
 ### `atan2`
 
 **Description:**
@@ -265,31 +340,6 @@ The arc tangent of `x/y` in radians.
 **Example:**
 ```tomo
 >> Num.atan2(1, 1) // -> (π/4)
-= 0.7854
-```
-
----
-
-### `atan`
-
-**Description:**
-Computes the arc tangent of a number.
-
-**Signature:**
-```tomo
-func atan(x: Num -> Num)
-```
-
-**Parameters:**
-
-- `x`: The number for which the arc tangent is to be calculated.
-
-**Returns:**
-The arc tangent of `x` in radians.
-
-**Example:**
-```tomo
->> 1.0:atan() // -> (π/4)
 = 0.7854
 ```
 
@@ -366,6 +416,34 @@ The smallest integer greater than or equal to `x`.
 ```tomo
 >> 3.2:ceil()
 = 4
+```
+
+---
+
+### `clamped`
+
+**Description:**  
+Returns the given number clamped between two values so that it is within
+that range.
+
+**Signature:**  
+```tomo
+clamped(x, low, high: Num -> Num)
+```
+
+**Parameters:**
+
+- `x`: The number to clamp.
+- `low`: The lowest value the result can take.
+- `high`: The highest value the result can take.
+
+**Returns:**  
+The first argument clamped between the other two arguments.
+
+**Example:**  
+```tomo
+>> 2.5:clamped(5.5, 10.5)
+= 5.5
 ```
 
 ---
@@ -496,31 +574,6 @@ The complementary error function of `x`.
 
 ---
 
-### `exp2`
-
-**Description:**
-Computes \( 2^x \) for a number.
-
-**Signature:**
-```tomo
-func exp2(x: Num -> Num)
-```
-
-**Parameters:**
-
-- `x`: The exponent.
-
-**Returns:**
-The value of \( 2^x \).
-
-**Example:**
-```tomo
->> 3.0:exp2()
-= 8
-```
-
----
-
 ### `exp`
 
 **Description:**
@@ -542,6 +595,31 @@ The value of \( e^x \).
 ```tomo
 >> 1.0:exp()
 = 2.7183
+```
+
+---
+
+### `exp2`
+
+**Description:**
+Computes \( 2^x \) for a number.
+
+**Signature:**
+```tomo
+func exp2(x: Num -> Num)
+```
+
+**Parameters:**
+
+- `x`: The exponent.
+
+**Returns:**
+The value of \( 2^x \).
+
+**Example:**
+```tomo
+>> 3.0:exp2()
+= 8
 ```
 
 ---
@@ -646,34 +724,6 @@ A text representation of the number with the specified precision.
 ```tomo
 >> 3.14159:format(precision=2)
 = "3.14"
-```
-
----
-
-### `parse`
-
-**Description:**
-Converts a text representation of a number into a floating-point number.
-
-**Signature:**
-```tomo
-func parse(text: Text -> Num?)
-```
-
-**Parameters:**
-
-- `text`: The text containing the number.
-
-**Returns:**
-The number represented by the text or `none` if the entire text can't be parsed
-as a number.
-
-**Example:**
-```tomo
->> Num.parse("3.14")
-= 3.14
->> Num.parse("1e3")
-= 1000
 ```
 
 ---
@@ -808,6 +858,31 @@ The Bessel function of the first kind of order 1 of `x`.
 
 ---
 
+### `log`
+
+**Description:**
+Computes the natural logarithm (base \( e \)) of a number.
+
+**Signature:**
+```tomo
+func log(x: Num -> Num)
+```
+
+**Parameters:**
+
+- `x`: The number for which the natural logarithm is to be calculated.
+
+**Returns:**
+The natural logarithm of `x`.
+
+**Example:**
+```tomo
+>> Num.E:log()
+= 1
+```
+
+---
+
 ### `log10`
 
 **Description:**
@@ -879,31 +954,6 @@ The base-2 logarithm of `x`.
 ```tomo
 >> 8.0:log2()
 = 3
-```
-
----
-
-### `log`
-
-**Description:**
-Computes the natural logarithm (base \( e \)) of a number.
-
-**Signature:**
-```tomo
-func log(x: Num -> Num)
-```
-
-**Parameters:**
-
-- `x`: The number for which the natural logarithm is to be calculated.
-
-**Returns:**
-The natural logarithm of `x`.
-
-**Example:**
-```tomo
->> Num.E:log()
-= 1
 ```
 
 ---
@@ -1020,6 +1070,34 @@ The next representable value after `x` in the direction of `y`.
 ```tomo
 >> 1.0:nextafter(1.1)
 = 1.0000000000000002
+```
+
+---
+
+### `parse`
+
+**Description:**
+Converts a text representation of a number into a floating-point number.
+
+**Signature:**
+```tomo
+func parse(text: Text -> Num?)
+```
+
+**Parameters:**
+
+- `text`: The text containing the number.
+
+**Returns:**
+The number represented by the text or `none` if the entire text can't be parsed
+as a number.
+
+**Example:**
+```tomo
+>> Num.parse("3.14")
+= 3.14
+>> Num.parse("1e3")
+= 1000
 ```
 
 ---
@@ -1352,32 +1430,4 @@ The Bessel function of the second kind of order 1 of `x`.
 ```tomo
 >> 1.0:y1()
 = 0.4401
-```
-
----
-
-### `clamped`
-
-**Description:**  
-Returns the given number clamped between two values so that it is within
-that range.
-
-**Signature:**  
-```tomo
-clamped(x, low, high: Num -> Num)
-```
-
-**Parameters:**
-
-- `x`: The number to clamp.
-- `low`: The lowest value the result can take.
-- `high`: The highest value the result can take.
-
-**Returns:**  
-The first argument clamped between the other two arguments.
-
-**Example:**  
-```tomo
->> 2.5:clamped(5.5, 10.5)
-= 5.5
 ```

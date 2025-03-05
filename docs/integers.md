@@ -122,6 +122,46 @@ Each integer type has its own version of the following functions. Functions
 can be called either on the type itself: `Int.sqrt(x)` or as a method call:
 `x:sqrt()`. Method call syntax is preferred.
 
+- [`func abs(x: Int -> Int)`](#`abs)
+- [`func choose(n: Int, k: Int -> Int)`](#`choose)
+- [`func clamped(x, low, high: Int -> Int)`](#`clamped)
+- [`func factorial(n: Int -> Text)`](#`factorial)
+- [`func format(i: Int, digits: Int = 0 -> Text)`](#`format)
+- [`func hex(i: Int, digits: Int = 0, uppercase: Bool = yes, prefix: Bool = yes -> Text)`](#`hex)
+- [`func is_prime(x: Int, reps: Int = 50 -> Bool)`](#`is_prime)
+- [`func next_prime(x: Int -> Int)`](#`next_prime)
+- [`func octal(i: Int, digits: Int = 0, prefix: Bool = yes -> Text)`](#`octal)
+- [`func onward(first: Int, step: Int = 1 -> Text)`](#`onward)
+- [`func parse(text: Text -> Int?)`](#`parse)
+- [`func prev_prime(x: Int -> Int)`](#`prev_prime)
+- [`func sqrt(x: Int -> Int)`](#`sqrt)
+- [`func to(first: Int, last: Int, step : Int? = none:Int -> func(->Int?))`](#`to)
+
+### `abs`
+
+**Description:**  
+Calculates the absolute value of an integer.
+
+**Signature:**  
+```tomo
+func abs(x: Int -> Int)
+```
+
+**Parameters:**
+
+- `x`: The integer whose absolute value is to be calculated.
+
+**Returns:**  
+The absolute value of `x`.
+
+**Example:**  
+```tomo
+>> -10:abs()
+= 10
+```
+
+---
+
 ### `choose`
 
 **Description:**  
@@ -147,6 +187,34 @@ The binomial coefficient, equivalent to the number of ways to uniquely choose
 ```tomo
 >> 4:choose(2)
 = 6
+```
+
+---
+
+### `clamped`
+
+**Description:**  
+Returns the given number clamped between two values so that it is within
+that range.
+
+**Signature:**  
+```tomo
+func clamped(x, low, high: Int -> Int)
+```
+
+**Parameters:**
+
+- `x`: The integer to clamp.
+- `low`: The lowest value the result can take.
+- `high`: The highest value the result can take.
+
+**Returns:**  
+The first argument clamped between the other two arguments.
+
+**Example:**  
+```tomo
+>> 2:clamped(5, 10)
+= 5
 ```
 
 ---
@@ -226,6 +294,71 @@ The hexadecimal string representation of the integer.
 ```tomo
 >> 255:hex(digits=4, uppercase=yes, prefix=yes)
 = "0x00FF"
+```
+
+---
+
+### `is_prime`
+
+**Description:**  
+Determines if an integer is a prime number.
+
+**Note:**
+This function is _probabilistic_. With the default arguments, the chances of
+getting an incorrect answer are astronomically small (on the order of 10^(-30)).
+See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp)
+for more details.
+
+**Signature:**  
+```tomo
+func is_prime(x: Int, reps: Int = 50 -> Bool)
+```
+
+**Parameters:**
+
+- `x`: The integer to be checked.
+- `reps`: The number of repetitions for primality tests. Default is `50`.
+
+**Returns:**  
+`yes` if `x` is a prime number, `no` otherwise.
+
+**Example:**  
+```tomo
+>> 7:is_prime()
+= yes
+>> 6:is_prime()
+= no
+```
+
+---
+
+### `next_prime`
+
+**Description:**  
+Finds the next prime number greater than the given integer.
+
+**Note:**
+This function is _probabilistic_, but the chances of getting an incorrect
+answer are astronomically small (on the order of 10^(-30)).
+See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp)
+for more details.
+
+**Signature:**  
+```tomo
+func next_prime(x: Int -> Int)
+```
+
+**Parameters:**
+
+- `x`: The integer after which to find the next prime.
+
+**Returns:**  
+The next prime number greater than `x`.
+
+**Example:**  
+```tomo
+>> 11:next_prime()
+= 13
 ```
 
 ---
@@ -325,158 +458,6 @@ of the representable range or if the entire text can't be parsed as an integer,
 
 ---
 
-### `to`
-
-**Description:**  
-Returns an iterator function that iterates over the range of numbers specified.
-Iteration is assumed to be nonempty and 
-
-**Signature:**  
-```tomo
-func to(first: Int, last: Int, step : Int? = none:Int -> func(->Int?))
-```
-
-**Parameters:**
-
-- `first`: The starting value of the range.
-- `last`: The ending value of the range.
-- `step`: An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.
-
-**Returns:**  
-An iterator function that returns each integer in the given range (inclusive).
-
-**Example:**  
-```tomo
->> 2:to(5)
-= func(->Int?)
->> [x for x in 2:to(5)]
-= [2, 3, 4, 5]
->> [x for x in 5:to(2)]
-= [5, 4, 3, 2]
-
->> [x for x in 2:to(5, step=2)]
-= [2, 4]
-```
-
----
-
-### `abs`
-
-**Description:**  
-Calculates the absolute value of an integer.
-
-**Signature:**  
-```tomo
-func abs(x: Int -> Int)
-```
-
-**Parameters:**
-
-- `x`: The integer whose absolute value is to be calculated.
-
-**Returns:**  
-The absolute value of `x`.
-
-**Example:**  
-```tomo
->> -10:abs()
-= 10
-```
-
----
-
-### `sqrt`
-
-**Description:**  
-Calculates the square root of an integer. 
-
-**Signature:**  
-```tomo
-func sqrt(x: Int -> Int)
-```
-
-**Parameters:**
-
-- `x`: The integer whose square root is to be calculated.
-
-**Returns:**  
-The integer part of the square root of `x`.
-
-**Example:**  
-```tomo
->> 16:sqrt()
-= 4
->> 17:sqrt()
-= 4
-```
-
----
-
-### `is_prime`
-
-**Description:**  
-Determines if an integer is a prime number.
-
-**Note:**
-This function is _probabilistic_. With the default arguments, the chances of
-getting an incorrect answer are astronomically small (on the order of 10^(-30)).
-See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp)
-for more details.
-
-**Signature:**  
-```tomo
-func is_prime(x: Int, reps: Int = 50 -> Bool)
-```
-
-**Parameters:**
-
-- `x`: The integer to be checked.
-- `reps`: The number of repetitions for primality tests. Default is `50`.
-
-**Returns:**  
-`yes` if `x` is a prime number, `no` otherwise.
-
-**Example:**  
-```tomo
->> 7:is_prime()
-= yes
->> 6:is_prime()
-= no
-```
-
----
-
-### `next_prime`
-
-**Description:**  
-Finds the next prime number greater than the given integer.
-
-**Note:**
-This function is _probabilistic_, but the chances of getting an incorrect
-answer are astronomically small (on the order of 10^(-30)).
-See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp)
-for more details.
-
-**Signature:**  
-```tomo
-func next_prime(x: Int -> Int)
-```
-
-**Parameters:**
-
-- `x`: The integer after which to find the next prime.
-
-**Returns:**  
-The next prime number greater than `x`.
-
-**Example:**  
-```tomo
->> 11:next_prime()
-= 13
-```
-
----
-
 ### `prev_prime`
 
 **Description:**  
@@ -510,28 +491,62 @@ The previous prime number less than `x`.
 
 ---
 
-### `clamped`
+### `sqrt`
 
 **Description:**  
-Returns the given number clamped between two values so that it is within
-that range.
+Calculates the square root of an integer. 
 
 **Signature:**  
 ```tomo
-func clamped(x, low, high: Int -> Int)
+func sqrt(x: Int -> Int)
 ```
 
 **Parameters:**
 
-- `x`: The integer to clamp.
-- `low`: The lowest value the result can take.
-- `high`: The highest value the result can take.
+- `x`: The integer whose square root is to be calculated.
 
 **Returns:**  
-The first argument clamped between the other two arguments.
+The integer part of the square root of `x`.
 
 **Example:**  
 ```tomo
->> 2:clamped(5, 10)
-= 5
+>> 16:sqrt()
+= 4
+>> 17:sqrt()
+= 4
+```
+
+---
+
+### `to`
+
+**Description:**  
+Returns an iterator function that iterates over the range of numbers specified.
+Iteration is assumed to be nonempty and 
+
+**Signature:**  
+```tomo
+func to(first: Int, last: Int, step : Int? = none:Int -> func(->Int?))
+```
+
+**Parameters:**
+
+- `first`: The starting value of the range.
+- `last`: The ending value of the range.
+- `step`: An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.
+
+**Returns:**  
+An iterator function that returns each integer in the given range (inclusive).
+
+**Example:**  
+```tomo
+>> 2:to(5)
+= func(->Int?)
+>> [x for x in 2:to(5)]
+= [2, 3, 4, 5]
+>> [x for x in 5:to(2)]
+= [5, 4, 3, 2]
+
+>> [x for x in 2:to(5, step=2)]
+= [2, 4]
 ```

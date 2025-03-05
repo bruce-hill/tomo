@@ -37,6 +37,33 @@ intended. Paths can be created from text with slashes using
 
 ## Path Methods
 
+- [`func append(path: Path, text: Text, permissions: Int32 = 0o644[32] -> Void)`](#`append)
+- [`func append_bytes(path: Path, bytes: [Byte], permissions: Int32 = 0o644[32] -> Void)`](#`append_bytes)
+- [`func base_name(path: Path -> Text)`](#`base_name)
+- [`func by_line(path: Path -> func(->Text?)?)`](#`by_line)
+- [`func children(path: Path, include_hidden=no -> [Path])`](#`children)
+- [`func create_directory(path: Path, permissions=0o755[32] -> Void)`](#`create_directory)
+- [`func exists(path: Path -> Bool)`](#`exists)
+- [`func extension(path: Path, full=yes -> Text)`](#`extension)
+- [`func files(path: Path, include_hidden=no -> [Path])`](#`files)
+- [`func glob(path: Path -> [Path])`](#`glob)
+- [`func is_directory(path: Path, follow_symlinks=yes -> Bool)`](#`is_directory)
+- [`func is_file(path: Path, follow_symlinks=yes -> Bool)`](#`is_file)
+- [`func is_socket(path: Path, follow_symlinks=yes -> Bool)`](#`is_socket)
+- [`func is_symlink(path: Path -> Bool)`](#`is_symlink)
+- [`func parent(path: Path -> Path)`](#`parent)
+- [`func read(path: Path -> Text?)`](#`read)
+- [`func read_bytes(path: Path -> [Byte]?)`](#`read_bytes)
+- [`func relative(path: Path, relative_to=(./) -> Path)`](#`relative)
+- [`func remove(path: Path, ignore_missing=no -> Void)`](#`remove)
+- [`func resolved(path: Path, relative_to=(./) -> Path)`](#`resolved)
+- [`func subdirectories(path: Path, include_hidden=no -> [Path])`](#`subdirectories)
+- [`func unique_directory(path: Path -> Path)`](#`unique_directory)
+- [`func write(path: Path, text: Text, permissions=0o644[32] -> Void)`](#`write)
+- [`func write(path: Path, bytes: [Byte], permissions=0o644[32] -> Void)`](#`write_bytes)
+- [`func write_unique(path: Path, text: Text -> Path)`](#`write_unique)
+- [`func write_unique_bytes(path: Path, bytes: [Byte] -> Path)`](#`write_unique_bytes)
+
 ### `append`
 
 **Description:**  
