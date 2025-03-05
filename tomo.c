@@ -124,6 +124,9 @@ int main(int argc, char *argv[])
         {"quiet", false, &Bool$info, &quiet},
         {"q", false, &Bool$info, &quiet},
     );
+    
+    if (show_codegen.length > 0 && Text$equal_values(show_codegen, Text("pretty")))
+        show_codegen = Text("sed '/^#line/d;/^$/d' | indent -o /dev/stdout | bat -l c -P");
 
     if (uninstall) {
         for (int64_t i = 0; i < files.length; i++) {
@@ -150,6 +153,8 @@ int main(int argc, char *argv[])
         free(cwd);
         return 0;
     } else if (files.length == 0) {
+        if (show_codegen.length >= 0)
+            errx(1, "You specified to show codegen with the tool `%k` but didn't give any files", &show_codegen);
         repl();
         return 0;
     }
@@ -532,7 +537,7 @@ void transpile_header(env_t *base_env, Text_t filename, bool force_retranspile)
         printf("\x1b[2mTranspiled to %k\x1b[m\n", &h_filename);
 
     if (show_codegen.length > 0)
-        system(heap_strf("%k %k", &show_codegen, &h_filename));
+        system(heap_strf("<%k %k", &h_filename, &show_codegen));
 }
 
 void transpile_code(env_t *base_env, Text_t filename, bool force_retranspile)
@@ -575,7 +580,7 @@ void transpile_code(env_t *base_env, Text_t filename, bool force_retranspile)
         printf("\x1b[2mTranspiled to %k\x1b[m\n", &c_filename);
 
     if (show_codegen.length > 0)
-        system(heap_strf("%k %k", &show_codegen, &c_filename));
+        system(heap_strf("<%k %k", &c_filename, &show_codegen));
 }
 
 void compile_object_file(Text_t filename, bool force_recompile)
