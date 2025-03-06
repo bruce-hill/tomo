@@ -52,9 +52,7 @@ typedef struct arg_ast_s {
 } arg_ast_t;
 
 typedef struct when_clause_s {
-    ast_t *tag_name;
-    ast_list_t *args;
-    ast_t *body;
+    ast_t *pattern, *body;
     struct when_clause_s *next;
 } when_clause_t;
 

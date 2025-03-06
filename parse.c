@@ -1115,37 +1115,13 @@ PARSER(parse_when) {
     while (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "is")) {
         pos = tmp;
         spaces(&pos);
-        ast_t *tag_name;
-        ast_list_t *args;
-        if (match(&pos, "@")) {
-            tag_name = NewAST(ctx->file, pos-1, pos, Var, .name="@");
-            spaces(&pos);
-            ast_t *arg = optional(ctx, &pos, parse_var);
-            args = arg ? new(ast_list_t, .ast=arg) : NULL;
-        } else {
-            tag_name = expect(ctx, start, &pos, parse_var, "I expected a tag name here");
-            spaces(&pos);
-            args = NULL;
-            if (match(&pos, "(")) {
-                for (;;) {
-                    whitespace(&pos);
-                    ast_t *arg = optional(ctx, &pos, parse_var);
-                    if (!arg) break;
-                    args = new(ast_list_t, .ast=arg, .next=args);
-                    whitespace(&pos);
-                    if (!match(&pos, ",")) break;
-                }
-                whitespace(&pos);
-                expect_closing(ctx, &pos, ")", "I was expecting a ')' to finish this pattern's arguments");
-                REVERSE_LIST(args);
-            }
-        }
-
+        ast_t *pattern = expect(ctx, start, &pos, parse_expr, "I expected a pattern to match here");
+        spaces(&pos);
         tmp = pos;
         if (!match(&tmp, ":"))
             parser_err(ctx, tmp, tmp, "I expected a colon ':' after this clause");
         ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'when' clause"); 
-        clauses = new(when_clause_t, .tag_name=tag_name, .args=args, .body=body, .next=clauses);
+        clauses = new(when_clause_t, .pattern=pattern, .body=body, .next=clauses);
         tmp = pos;
         whitespace(&tmp);
     }

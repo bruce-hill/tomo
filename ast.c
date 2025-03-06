@@ -71,7 +71,7 @@ CORD arg_list_to_xml(arg_ast_t *args) {
 CORD when_clauses_to_xml(when_clause_t *clauses) {
     CORD c = CORD_EMPTY;
     for (; clauses; clauses = clauses->next) {
-        c = CORD_all(c, "<case tag=\"", ast_to_xml(clauses->tag_name), "\">", ast_list_to_xml(clauses->args), ast_to_xml(clauses->body), "</case>");
+        c = CORD_all(c, "<case>", ast_to_xml(clauses->pattern), ast_to_xml(clauses->body), "</case>");
     }
     return c;
 }
