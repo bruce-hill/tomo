@@ -4,6 +4,7 @@
 #include <execinfo.h>
 #include <fcntl.h>
 #include <gc.h>
+#include <locale.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -47,6 +48,8 @@ public void tomo_init(void)
    USE_COLOR = getenv("COLOR") ? strcmp(getenv("COLOR"), "1") == 0 : isatty(STDOUT_FILENO);
    if (getenv("NO_COLOR") && getenv("NO_COLOR")[0] != '\0')
        USE_COLOR = false;
+
+   setlocale(LC_ALL, "");
    getrandom(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0);
 
    int rng_fd = open("/dev/urandom", O_RDONLY);
