@@ -50,7 +50,7 @@ public CONSTFUNC bool Num$near(double a, double b, double ratio, double absolute
 }
 
 public Text_t Num$format(double f, Int_t precision) { 
-    return Text$format("%.*f", (int)Int64$from_int(precision, false), f); 
+    return Text$format("%.*g", (int)Int64$from_int(precision, false), f); 
 }
 
 public Text_t Num$scientific(double f, Int_t precision) { 
@@ -125,7 +125,7 @@ public CONSTFUNC bool Num32$near(float a, float b, float ratio, float absolute) 
 }
 
 public Text_t Num32$format(float f, Int_t precision) { 
-    return Text$format("%.*f", (int)Int64$from_int(precision, false), (double)f); 
+    return Text$format("%.*g", (int)Int64$from_int(precision, false), (double)f); 
 }
 
 public Text_t Num32$scientific(float f, Int_t precision) { 
