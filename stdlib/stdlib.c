@@ -72,6 +72,9 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)
 {
     if (!arg) return false;
 
+    if (info->tag == OptionalInfo && streq(arg, "none"))
+        return true;
+
     while (info->tag == OptionalInfo)
         info = info->OptionalInfo.type;
 
