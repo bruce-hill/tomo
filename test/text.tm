@@ -361,3 +361,16 @@ func main():
 		= 1
 		>> concat4 == final
 		= yes
+
+	>> "x":left_pad(5)
+	= "    x"
+	>> "x":right_pad(5)
+	= "x    "
+	>> "x":middle_pad(5)
+	= "  x  "
+	>> "1234":left_pad(8, "XYZ")
+	= "XYZX1234" : Text
+	>> "1234":right_pad(8, "XYZ")
+	= "1234XYZX" : Text
+	>> "1234":middle_pad(9, "XYZ")
+	= "XY1234XYZ" : Text

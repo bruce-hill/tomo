@@ -290,6 +290,9 @@ pattern documentation](patterns.md) for more details.
 - [`func has(text: Text, pattern: Pattern -> Bool)`](#has)
 - [`func join(glue: Text, pieces: [Text] -> Text)`](#join)
 - [`func split(text: Text -> [Text])`](#lines)
+- [`func middle_pad(text: Text, width: Int, pad: Text = " " -> Text)`](#middle_pad)
+- [`func left_pad(text: Text, width: Int, pad: Text = " " -> Text)`](#left_pad)
+- [`func lines(text: Text, pattern: Pattern = "" -> [Text])`](#lines)
 - [`func lower(text: Text, language: Text = "C" -> Text)`](#lower)
 - [`func map(text: Text, pattern: Pattern, fn: func(text:Match)->Text -> Text, recursive: Bool = yes)`](#map)
 - [`func matches(text: Text, pattern: Pattern -> [Text])`](#matches)
@@ -298,8 +301,8 @@ pattern documentation](patterns.md) for more details.
 - [`func replace(text: Text, pattern: Pattern, replacement: Text, backref: Pattern = $/\/, recursive: Bool = yes -> Text)`](#replace)
 - [`func replace_all(replacements:{Pattern,Text}, backref: Pattern = $/\/, recursive: Bool = yes -> Text)`](#replace_all)
 - [`func reversed(text: Text -> Text)`](#reversed)
+- [`func right_pad(text: Text, width: Int, pad: Text = " " -> Text)`](#right_pad)
 - [`func slice(text: Text, from: Int = 1, to: Int = -1 -> Text)`](#slice)
-- [`func split(text: Text, pattern: Pattern = "" -> [Text])`](#split)
 - [`func starts_with(text: Text, prefix: Text -> Bool)`](#starts_with)
 - [`func title(text: Text, language: Text = "C" -> Text)`](#title)
 - [`func to(text: Text, last: Int -> Text)`](#to)
@@ -777,12 +780,64 @@ A single `Text` value with the pieces joined by the glue.
 
 ---
 
+### `middle_pad`
+Pad some text on the left and right side so it reaches a target width.
+
+```tomo
+func middle_pad(text: Text, width: Int, pad: Text = " " -> Text)
+```
+
+- `text`: The text to pad.
+- `width`: The target width.
+- `pad`: The padding text (default: `" "`).
+
+**Returns:**  
+Text with length at least `width`, with extra padding on the left and right as
+needed. If `pad` has length greater than 1, it may be partially repeated to
+reach the exact desired length.
+
+**Example:**  
+```tomo
+>> "x":middle_pad(6)
+= "  x   "
+>> "x":middle_pad(10, "ABC")
+= "ABCAxABCAB"
+```
+
+---
+
+### `left_pad`
+Pad some text on the left side so it reaches a target width.
+
+```tomo
+func left_pad(text: Text, width: Int, pad: Text = " " -> Text)
+```
+
+- `text`: The text to pad.
+- `width`: The target width.
+- `pad`: The padding text (default: `" "`).
+
+**Returns:**  
+Text with length at least `width`, with extra padding on the left as needed. If
+`pad` has length greater than 1, it may be partially repeated to reach the
+exact desired length.
+
+**Example:**  
+```tomo
+>> "x":left_pad(5)
+= "    x"
+>> "x":left_pad(5, "ABC")
+= "ABCAx"
+```
+
+---
+
 ### `lines`
 Splits the text into an array of lines of text, preserving blank lines,
 ignoring trailing newlines, and handling `\r\n` the same as `\n`.
 
 ```tomo
-func split(text: Text -> [Text])
+func lines(text: Text -> [Text])
 ```
 
 - `text`: The text to be split into lines.
@@ -1048,6 +1103,32 @@ A reversed version of the text.
 ```tomo
 >> "Abc":reversed()
 = "cbA"
+```
+
+---
+
+### `right_pad`
+Pad some text on the right side so it reaches a target width.
+
+```tomo
+func right_pad(text: Text, width: Int, pad: Text = " " -> Text)
+```
+
+- `text`: The text to pad.
+- `width`: The target width.
+- `pad`: The padding text (default: `" "`).
+
+**Returns:**  
+Text with length at least `width`, with extra padding on the right as needed. If
+`pad` has length greater than 1, it may be partially repeated to reach the
+exact desired length.
+
+**Example:**  
+```tomo
+>> "x":right_pad(5)
+= "x    "
+>> "x":right_pad(5, "ABC")
+= "xABCA"
 ```
 
 ---

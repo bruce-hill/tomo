@@ -512,6 +512,47 @@ public Text_t Text$repeat(Text_t text, Int_t count)
     return ret;
 }
 
+static Text_t Text$repeat_to_length(Text_t to_repeat, int64_t length)
+{
+    if (length <= 0)
+        return EMPTY_TEXT;
+
+    Text_t repeated = EMPTY_TEXT;
+    while (repeated.length + to_repeat.length <= length)
+        repeated = concat2(repeated, to_repeat);
+
+    if (repeated.length < length)
+        repeated = concat2(repeated, Text$slice(to_repeat, I_small(1), I(length - repeated.length)));
+
+    assert(repeated.length == length);
+    return repeated;
+}
+
+public Text_t Text$left_pad(Text_t text, Int_t count, Text_t padding)
+{
+    if (padding.length == 0)
+        fail("Cannot pad with an empty text!");
+
+    return concat2(Text$repeat_to_length(padding, Int64$from_int(count, false) - text.length), text);
+}
+
+public Text_t Text$right_pad(Text_t text, Int_t count, Text_t padding)
+{
+    if (padding.length == 0)
+        fail("Cannot pad with an empty text!");
+
+    return concat2(text, Text$repeat_to_length(padding, Int64$from_int(count, false) - text.length));
+}
+
+public Text_t Text$middle_pad(Text_t text, Int_t count, Text_t padding)
+{
+    if (padding.length == 0)
+        fail("Cannot pad with an empty text!");
+
+    int64_t needed = Int64$from_int(count, false) - text.length;
+    return Texts(Text$repeat_to_length(padding, needed/2), text, Text$repeat_to_length(padding, (needed+1)/2));
+}
+
 public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
 {
     int64_t first = Int64$from_int(first_int, false);
