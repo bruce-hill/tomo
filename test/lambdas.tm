@@ -23,7 +23,7 @@ func main():
 	>> add_100(5)
 	= 105
 
-	>> shout2 := suffix_fn(Text.upper, "!")
+	>> shout2 := suffix_fn(func(t:Text): t:upper(), "!")
 	>> shout2("hello")
 	= "HELLO!"
 
