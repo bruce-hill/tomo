@@ -11,6 +11,26 @@ func main():
 	>> str[1]
 	= "H"
 
+	>> "I":lower()
+	= "i"
+	>> "I":lower(language="tr_TR")
+	= "ı"
+
+	>> "i":upper()
+	= "I"
+	>> "i":upper(language="tr_TR")
+	= "İ"
+
+	>> "ian":title()
+	= "Ian"
+	>> "ian":title(language="tr_TR")
+	= "İan"
+
+	>> "I":caseless_equals("ı")
+	= no
+	>> "I":caseless_equals("ı", language="tr_TR")
+	= yes
+
 	>> str[9]
 	= "é"
 

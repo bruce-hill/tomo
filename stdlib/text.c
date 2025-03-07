@@ -968,13 +968,13 @@ PUREFUNC public bool Text$equal(const void *a, const void *b, const TypeInfo_t*)
     return Text$equal_values(*(Text_t*)a, *(Text_t*)b);
 }
 
-PUREFUNC public bool Text$equal_ignoring_case(Text_t a, Text_t b)
+PUREFUNC public bool Text$equal_ignoring_case(Text_t a, Text_t b, Text_t language)
 {
     if (a.length != b.length)
         return false;
     int64_t len = a.length;
     TextIter_t a_state = NEW_TEXT_ITER_STATE(a), b_state = NEW_TEXT_ITER_STATE(b);
-    const char *language = uc_locale_language();
+    const char *uc_language = Text$as_c_string(language);
     for (int64_t i = 0; i < len; i++) {
         int32_t ai = Text$get_grapheme_fast(&a_state, i);
         int32_t bi = Text$get_grapheme_fast(&b_state, i);
@@ -986,7 +986,7 @@ PUREFUNC public bool Text$equal_ignoring_case(Text_t a, Text_t b)
             int64_t b_len = bi >= 0 ? 1 : NUM_GRAPHEME_CODEPOINTS(bi);
 
             int cmp = 0;
-            (void)u32_casecmp(a_codepoints, (size_t)a_len, b_codepoints, (size_t)b_len, language, UNINORM_NFC, &cmp);
+            (void)u32_casecmp(a_codepoints, (size_t)a_len, b_codepoints, (size_t)b_len, uc_language, UNINORM_NFC, &cmp);
             if (cmp != 0)
                 return false;
         }
@@ -994,40 +994,40 @@ PUREFUNC public bool Text$equal_ignoring_case(Text_t a, Text_t b)
     return true;
 }
 
-public Text_t Text$upper(Text_t text)
+public Text_t Text$upper(Text_t text, Text_t language)
 {
     if (text.length == 0) return text;
     Array_t codepoints = Text$utf32_codepoints(text);
-    const char *language = uc_locale_language();
+    const char *uc_language = Text$as_c_string(language);
     ucs4_t buf[128]; 
     size_t out_len = sizeof(buf)/sizeof(buf[0]);
-    ucs4_t *upper = u32_toupper(codepoints.data, (size_t)codepoints.length, language, UNINORM_NFC, buf, &out_len);
+    ucs4_t *upper = u32_toupper(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, buf, &out_len);
     Text_t ret = text_from_u32(upper, (int64_t)out_len, false);
     if (upper != buf) free(upper);
     return ret;
 }
 
-public Text_t Text$lower(Text_t text)
+public Text_t Text$lower(Text_t text, Text_t language)
 {
     if (text.length == 0) return text;
     Array_t codepoints = Text$utf32_codepoints(text);
-    const char *language = uc_locale_language();
+    const char *uc_language = Text$as_c_string(language);
     ucs4_t buf[128]; 
     size_t out_len = sizeof(buf)/sizeof(buf[0]);
-    ucs4_t *lower = u32_tolower(codepoints.data, (size_t)codepoints.length, language, UNINORM_NFC, buf, &out_len);
+    ucs4_t *lower = u32_tolower(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, buf, &out_len);
     Text_t ret = text_from_u32(lower, (int64_t)out_len, false);
     if (lower != buf) free(lower);
     return ret;
 }
 
-public Text_t Text$title(Text_t text)
+public Text_t Text$title(Text_t text, Text_t language)
 {
     if (text.length == 0) return text;
     Array_t codepoints = Text$utf32_codepoints(text);
-    const char *language = uc_locale_language();
+    const char *uc_language = Text$as_c_string(language);
     ucs4_t buf[128]; 
     size_t out_len = sizeof(buf)/sizeof(buf[0]);
-    ucs4_t *title = u32_totitle(codepoints.data, (size_t)codepoints.length, language, UNINORM_NFC, buf, &out_len);
+    ucs4_t *title = u32_totitle(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, buf, &out_len);
     Text_t ret = text_from_u32(title, (int64_t)out_len, false);
     if (title != buf) free(title);
     return ret;

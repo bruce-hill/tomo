@@ -276,6 +276,7 @@ pattern documentation](patterns.md) for more details.
 - [`func by_match(text: Text, pattern: Pattern -> func(->Match?))`](#by_match)
 - [`func by_split(text: Text, pattern: Pattern = $// -> func(->Text?))`](#by_split)
 - [`func bytes(text: Text -> [Byte])`](#bytes)
+- [`func caseless_equals(a: Text, b:Text, language:Text = "C" -> Bool)`](#caseless_equals)
 - [`func codepoint_names(text: Text -> [Text])`](#codepoint_names)
 - [`func each(text: Text, pattern: Pattern, fn: func(m: Match), recursive: Bool = yes -> Int?)`](#each)
 - [`func ends_with(text: Text, suffix: Text -> Bool)`](#ends_with)
@@ -289,7 +290,7 @@ pattern documentation](patterns.md) for more details.
 - [`func has(text: Text, pattern: Pattern -> Bool)`](#has)
 - [`func join(glue: Text, pieces: [Text] -> Text)`](#join)
 - [`func split(text: Text -> [Text])`](#lines)
-- [`func lower(text: Text -> Text)`](#lower)
+- [`func lower(text: Text, language: Text = "C" -> Text)`](#lower)
 - [`func map(text: Text, pattern: Pattern, fn: func(text:Match)->Text -> Text, recursive: Bool = yes)`](#map)
 - [`func matches(text: Text, pattern: Pattern -> [Text])`](#matches)
 - [`func quoted(text: Text, color: Bool = no -> Text)`](#quoted)
@@ -300,10 +301,10 @@ pattern documentation](patterns.md) for more details.
 - [`func slice(text: Text, from: Int = 1, to: Int = -1 -> Text)`](#slice)
 - [`func split(text: Text, pattern: Pattern = "" -> [Text])`](#split)
 - [`func starts_with(text: Text, prefix: Text -> Bool)`](#starts_with)
-- [`func title(text: Text -> Text)`](#title)
+- [`func title(text: Text, language: Text = "C" -> Text)`](#title)
 - [`func to(text: Text, last: Int -> Text)`](#to)
 - [`func trim(text: Text, pattern: Pattern = $/{whitespace/, trim_left: Bool = yes, trim_right: Bool = yes -> Text)`](#trim)
-- [`func upper(text: Text -> Text)`](#upper)
+- [`func upper(text: Text, language: Text "C" -> Text)`](#upper)
 - [`func utf32_codepoints(text: Text -> [Int32])`](#utf32_codepoints)
 
 ### `as_c_string`
@@ -447,6 +448,33 @@ An array of bytes (`[Byte]`) representing the text in UTF8 encoding.
 ```tomo
 >> "Amélie":bytes()
 = [65[B], 109[B], 195[B], 169[B], 108[B], 105[B], 101[B]] : [Byte]
+```
+
+---
+
+### `caseless_equals`
+Checks whether two texts are equal, ignoring the casing of the letters (i.e.
+case-insensitive comparison).
+
+```tomo
+func caseless_equals(a: Text, b:Text, language:Text = "C" -> Bool)
+```
+
+- `a`: The first text to compare case-insensitively.
+- `b`: The second text to compare case-insensitively.
+- `language`: The ISO 639 language code for which casing rules to use.
+
+**Returns:**  
+`yes` if `a` and `b` are equal to each other, ignoring casing, otherwise `no`.
+
+**Example:**  
+```tomo
+>> "A":caseless_equals("a")
+= yes
+
+# Turkish lowercase "I" is "ı" (dotless I), not "i"
+>> "I":caseless_equals("i", language="tr_TR")
+= no
 ```
 
 ---
@@ -782,10 +810,11 @@ An array of substrings resulting from the split.
 Converts all characters in the text to lowercase.
 
 ```tomo
-func lower(text: Text -> Text)
+func lower(text: Text, language: Text = "C" -> Text)
 ```
 
 - `text`: The text to be converted to lowercase.
+- `language`: The ISO 639 language code for which casing rules to use.
 
 **Returns:**  
 The lowercase version of the text.
@@ -794,6 +823,9 @@ The lowercase version of the text.
 ```tomo
 >> "AMÉLIE":lower()
 = "amélie"
+
+>> "I":lower(language="tr_TR")
+>> "ı"
 ```
 
 ---
@@ -1107,10 +1139,11 @@ func starts_with(text: Text, prefix: Text -> Bool)
 Converts the text to title case (capitalizing the first letter of each word).
 
 ```tomo
-func title(text: Text -> Text)
+func title(text: Text, language: Text = "C" -> Text)
 ```
 
 - `text`: The text to be converted to title case.
+- `language`: The ISO 639 language code for which casing rules to use.
 
 **Returns:**  
 The text in title case.
@@ -1119,6 +1152,10 @@ The text in title case.
 ```tomo
 >> "amélie":title()
 = "Amélie"
+
+# In Turkish, uppercase "i" is "İ"
+>> "i":title(language="tr_TR")
+= "İ"
 ```
 
 ---
@@ -1183,10 +1220,11 @@ The text without the trim pattern at either end.
 Converts all characters in the text to uppercase.
 
 ```tomo
-func upper(text: Text -> Text)
+func upper(text: Text, language: Text = "C" -> Text)
 ```
 
 - `text`: The text to be converted to uppercase.
+- `language`: The ISO 639 language code for which casing rules to use.
 
 **Returns:**  
 The uppercase version of the text.
@@ -1195,6 +1233,10 @@ The uppercase version of the text.
 ```tomo
 >> "amélie":upper()
 = "AMÉLIE"
+
+# In Turkish, uppercase "i" is "İ"
+>> "i":upper(language="tr_TR")
+= "İ"
 ```
 
 ---
