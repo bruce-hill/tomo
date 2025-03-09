@@ -113,19 +113,19 @@ OptionalInt_t Int$sqrt(Int_t i);
 
 #define Int$from_mpz(mpz) (\
     mpz_cmpabs_ui(mpz, BIGGEST_SMALL_INT) <= 0 ? ( \
-        (Int_t){.small=(mpz_get_si(mpz)<<2)|1} \
+        (Int_t){.small=(mpz_get_si(mpz)<<2L)|1L} \
     ) : ( \
         (Int_t){.big=memcpy(new(mpz_t), &mpz, sizeof(mpz_t))} \
     ))
 
 #define mpz_init_set_int(mpz, i) do { \
-    if likely ((i).small & 1) mpz_init_set_si(mpz, (i).small >> 2); \
+    if likely ((i).small & 1L) mpz_init_set_si(mpz, (i).small >> 2L); \
     else mpz_init_set(mpz, *(i).big); \
 } while (0)
 
-#define I_small(i) ((Int_t){.small=(int64_t)((uint64_t)(i)<<2)|1})
+#define I_small(i) ((Int_t){.small=(int64_t)((uint64_t)(i)<<2L)|1L})
 #define I(i) _Generic(i, int8_t: I_small(i), int16_t: I_small(i), default: Int$from_int64(i))
-#define I_is_zero(i) ((i).small == 1)
+#define I_is_zero(i) ((i).small == 1L)
 
 Int_t Int$slow_plus(Int_t x, Int_t y);
 Int_t Int$slow_minus(Int_t x, Int_t y);
@@ -157,117 +157,117 @@ MACROLIKE PUREFUNC Int_t Int$clamped(Int_t x, Int_t low, Int_t high) {
 
 MACROLIKE Int_t Int$plus(Int_t x, Int_t y) {
     const int64_t z = (int64_t)((uint64_t)x.small + (uint64_t)y.small);
-    if likely ((z|2) == (int32_t)z)
-        return (Int_t){.small=(z-1)};
+    if likely ((z|2L) == (int32_t)z)
+        return (Int_t){.small=(z-1L)};
     return Int$slow_plus(x, y);
 }
 
 MACROLIKE Int_t Int$minus(Int_t x, Int_t y) {
-    const int64_t z = (int64_t)(((uint64_t)x.small ^ 3) - (uint64_t)y.small);
-    if likely ((z & ~2) == (int32_t)z)
+    const int64_t z = (int64_t)(((uint64_t)x.small ^ 3L) - (uint64_t)y.small);
+    if likely ((z & ~2L) == (int32_t)z)
         return (Int_t){.small=z};
     return Int$slow_minus(x, y);
 }
 
 MACROLIKE Int_t Int$times(Int_t x, Int_t y) {
-    if likely ((x.small & y.small) & 1) {
-        const int64_t z = (x.small>>1) * (y.small>>1);
+    if likely ((x.small & y.small) & 1L) {
+        const int64_t z = (x.small>>1L) * (y.small>>1L);
         if likely (z == (int32_t)z)
-            return (Int_t){.small=z+1};
+            return (Int_t){.small=z+1L};
     }
     return Int$slow_times(x, y);
 }
 
 MACROLIKE Int_t Int$divided_by(Int_t x, Int_t y) {
-    if likely (x.small & y.small & 1) {
+    if likely (x.small & y.small & 1L) {
         // Euclidean division, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
-        const int64_t D = (x.small>>2);
-        const int64_t d = (y.small>>2);
+        const int64_t D = (x.small>>2L);
+        const int64_t d = (y.small>>2L);
         int64_t q = D/d, r = D%d;
-        q -= (r < 0) * (2*(d > 0) - 1);
+        q -= (r < 0L) * (2L*(d > 0L) - 1L);
         if likely (q == (int32_t)q)
-            return (Int_t){.small=(q<<2)|1};
+            return (Int_t){.small=(q<<2L)|1L};
     }
     return Int$slow_divided_by(x, y);
 }
 
 MACROLIKE Int_t Int$modulo(Int_t x, Int_t y) {
-    if likely (x.small & y.small & 1) {
+    if likely (x.small & y.small & 1L) {
         // Euclidean modulus, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
-        const int64_t D = (x.small>>2);
-        const int64_t d = (y.small>>2);
+        const int64_t D = (x.small>>2L);
+        const int64_t d = (y.small>>2L);
         int64_t r = D%d;
-        r -= (r < 0) * (2*(d < 0) - 1) * d;
-        return (Int_t){.small=(r<<2)|1};
+        r -= (r < 0L) * (2L*(d < 0L) - 1L) * d;
+        return (Int_t){.small=(r<<2L)|1L};
     }
     return Int$slow_modulo(x, y);
 }
 
 MACROLIKE Int_t Int$modulo1(Int_t x, Int_t y) {
-    if likely (x.small & y.small & 1) {
+    if likely (x.small & y.small & 1L) {
         // Euclidean modulus, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
-        const int64_t D = (x.small>>2)-1;
-        const int64_t d = (y.small>>2);
+        const int64_t D = (x.small>>2L)-1L;
+        const int64_t d = (y.small>>2L);
         int64_t r = D%d;
-        r -= (r < 0) * (2*(d < 0) - 1) * d;
-        return (Int_t){.small=((r+1)<<2)|1};
+        r -= (r < 0L) * (2L*(d < 0L) - 1L) * d;
+        return (Int_t){.small=((r+1L)<<2L)|1L};
     }
     return Int$slow_modulo1(x, y);
 }
 
 MACROLIKE Int_t Int$left_shifted(Int_t x, Int_t y) {
-    if likely (x.small & y.small & 1) {
-        const int64_t z = ((x.small>>2) << (y.small>>2))<<2;
+    if likely (x.small & y.small & 1L) {
+        const int64_t z = ((x.small>>2L) << (y.small>>2L))<<2L;
         if likely (z == (int32_t)z)
-            return (Int_t){.small=z+1};
+            return (Int_t){.small=z+1L};
     }
     return Int$slow_left_shifted(x, y);
 }
 
 MACROLIKE Int_t Int$right_shifted(Int_t x, Int_t y) {
-    if likely (x.small & y.small & 1) {
-        const int64_t z = ((x.small>>2) >> (y.small>>2))<<2;
+    if likely (x.small & y.small & 1L) {
+        const int64_t z = ((x.small>>2L) >> (y.small>>2L))<<2L;
         if likely (z == (int32_t)z)
-            return (Int_t){.small=z+1};
+            return (Int_t){.small=z+1L};
     }
     return Int$slow_right_shifted(x, y);
 }
 
 MACROLIKE Int_t Int$bit_and(Int_t x, Int_t y) {
     const int64_t z = x.small & y.small;
-    if likely (z & 1)
+    if likely (z & 1L)
         return (Int_t){.small=z};
     return Int$slow_bit_and(x, y);
 }
 
 MACROLIKE Int_t Int$bit_or(Int_t x, Int_t y) {
-    if likely (x.small & y.small & 1)
+    if likely (x.small & y.small & 1L)
         return (Int_t){.small=(x.small | y.small)};
     return Int$slow_bit_or(x, y);
 }
 
 MACROLIKE Int_t Int$bit_xor(Int_t x, Int_t y) {
-    if likely (x.small & y.small & 1)
-        return (Int_t){.small=(x.small ^ y.small) | 1};
+    if likely (x.small & y.small & 1L)
+        return (Int_t){.small=(x.small ^ y.small) | 1L};
     return Int$slow_bit_xor(x, y);
 }
 
 MACROLIKE Int_t Int$negated(Int_t x) {
-    if likely (x.small & 1)
-        return (Int_t){.small=(~x.small) ^ 3};
+    if likely (x.small & 1L)
+        return (Int_t){.small=(~x.small) ^ 3L};
     return Int$slow_negated(x);
 }
 
 MACROLIKE Int_t Int$negative(Int_t x) {
-    if likely (x.small & 1)
-        return (Int_t){.small=((-((x.small)>>2))<<2) | 1};
+    if likely (x.small & 1L)
+        return (Int_t){.small=((-((x.small)>>2L))<<2L) | 1L};
     return Int$slow_negative(x);
 }
 
 MACROLIKE PUREFUNC bool Int$is_negative(Int_t x) {
-    if likely (x.small & 1)
-        return x.small < 0;
-    return Int$compare_value(x, I_small(0)) < 0;
+    if likely (x.small & 1L)
+        return x.small < 0L;
+    return Int$compare_value(x, I_small(0)) < 0L;
 }
 
 // Constructors/conversion functions:
@@ -285,7 +285,7 @@ MACROLIKE PUREFUNC Int_t Int$from_num(double n, bool truncate) {
 MACROLIKE PUREFUNC Int_t Int$from_num32(float n, bool truncate) { return Int$from_num((double)n, truncate); }
 MACROLIKE Int_t Int$from_int64(int64_t i) {
     if likely (i >= SMALLEST_SMALL_INT && i <= BIGGEST_SMALL_INT)
-        return (Int_t){.small=(i<<2)|1};
+        return (Int_t){.small=(i<<2L)|1L};
     mpz_t result;
     mpz_init_set_si(result, i);
     return Int$from_mpz(result);
@@ -310,8 +310,8 @@ MACROLIKE PUREFUNC Int64_t Int64$from_num32(Num32_t n, bool truncate) {
     return i64;
 }
 MACROLIKE PUREFUNC Int64_t Int64$from_int(Int_t i, bool truncate) {
-    if likely (i.small & 1)
-        return (int64_t)(i.small >> 2);
+    if likely (i.small & 1L)
+        return (int64_t)(i.small >> 2L);
     if (!truncate && unlikely(!mpz_fits_slong_p(*i.big)))
         fail("Integer is too big to fit in a 64-bit integer: %k", (Text_t[1]){Int$value_as_text(i)});
     return mpz_get_si(*i.big);

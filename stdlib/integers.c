@@ -17,8 +17,8 @@
 #include "types.h"
 
 public Text_t Int$value_as_text(Int_t i) {
-    if (likely(i.small & 1)) {
-        return Text$format("%ld", (i.small)>>2);
+    if (likely(i.small & 1L)) {
+        return Text$format("%ld", (i.small)>>2L);
     } else {
         char *str = mpz_get_str(NULL, 10, *i.big);
         return Text$from_str(str);
@@ -34,11 +34,11 @@ public Text_t Int$as_text(const void *i, bool colorize, const TypeInfo_t*) {
 
 static bool Int$is_none(const void *i, const TypeInfo_t*)
 {
-    return ((Int_t*)i)->small == 0;
+    return ((Int_t*)i)->small == 0L;
 }
 
 public PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y) {
-    if (likely(x.small & y.small & 1))
+    if (likely(x.small & y.small & 1L))
         return (x.small > y.small) - (x.small < y.small);
     else if (x.small & 1)
         return -mpz_cmp_si(*y.big, x.small);
@@ -53,7 +53,7 @@ public PUREFUNC int32_t Int$compare(const void *x, const void *y, const TypeInfo
 }
 
 public PUREFUNC bool Int$equal_value(const Int_t x, const Int_t y) {
-    if (likely((x.small | y.small) & 1))
+    if (likely((x.small | y.small) & 1L))
         return x.small == y.small;
     else
         return x.big == y.big ? 0 : (mpz_cmp(*x.big, *y.big) == 0);
@@ -65,7 +65,7 @@ public PUREFUNC bool Int$equal(const void *x, const void *y, const TypeInfo_t*) 
 
 public PUREFUNC uint64_t Int$hash(const void *vx, const TypeInfo_t*) {
     Int_t *x = (Int_t*)vx;
-    if (likely(x->small & 1)) {
+    if (likely(x->small & 1L)) {
         return siphash24((void*)x, sizeof(Int_t));
     } else {
         char *str = mpz_get_str(NULL, 16, *x->big);
@@ -75,8 +75,8 @@ public PUREFUNC uint64_t Int$hash(const void *vx, const TypeInfo_t*) {
 
 public Text_t Int$format(Int_t i, Int_t digits_int) {
     int64_t digits = Int64$from_int(digits_int, false);
-    if (likely(i.small & 1)) {
-        return Text$format("%0.*ld", digits, (i.small)>>2);
+    if (likely(i.small & 1L)) {
+        return Text$format("%0.*ld", digits, (int64_t)((i.small)>>2L));
     } else {
         char *str = mpz_get_str(NULL, 10, *i.big);
         bool negative = (str[0] == '-');
@@ -98,9 +98,9 @@ public Text_t Int$hex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
         return Text$concat(Text("-"), Int$hex(Int$negative(i), digits_int, uppercase, prefix));
 
     int64_t digits = Int64$from_int(digits_int, false);
-    if (likely(i.small & 1)) {
+    if (likely(i.small & 1L)) {
         const char *hex_fmt = uppercase ? (prefix ? "0x%0.*lX" : "%0.*lX") : (prefix ? "0x%0.*lx" : "%0.*lx");
-        return Text$format(hex_fmt, digits, (i.small)>>2);
+        return Text$format(hex_fmt, digits, (i.small)>>2L);
     } else {
         char *str = mpz_get_str(NULL, 16, *i.big);
         if (uppercase) {
@@ -125,9 +125,9 @@ public Text_t Int$octal(Int_t i, Int_t digits_int, bool prefix) {
         return Text$concat(Text("-"), Int$octal(Int$negative(i), digits_int, prefix));
 
     int64_t digits = Int64$from_int(digits_int, false);
-    if (likely(i.small & 1)) {
+    if (likely(i.small & 1L)) {
         const char *octal_fmt = prefix ? "0o%0.*lo" : "%0.*lo";
-        return Text$format(octal_fmt, digits, (i.small)>>2);
+        return Text$format(octal_fmt, digits, (i.small)>>2L);
     } else {
         char *str = mpz_get_str(NULL, 8, *i.big);
         int64_t needed_zeroes = digits - (int64_t)strlen(str);
@@ -146,11 +146,11 @@ public Text_t Int$octal(Int_t i, Int_t digits_int, bool prefix) {
 public Int_t Int$slow_plus(Int_t x, Int_t y) {
     mpz_t result;
     mpz_init_set_int(result, x);
-    if (y.small & 1) {
-        if (y.small < 0)
-            mpz_sub_ui(result, result, (uint64_t)(-(y.small >> 2)));
+    if (y.small & 1L) {
+        if (y.small < 0L)
+            mpz_sub_ui(result, result, (uint64_t)(-(y.small >> 2L)));
         else
-            mpz_add_ui(result, result, (uint64_t)(y.small >> 2));
+            mpz_add_ui(result, result, (uint64_t)(y.small >> 2L));
     } else {
         mpz_add(result, result, *y.big);
     }
@@ -160,11 +160,11 @@ public Int_t Int$slow_plus(Int_t x, Int_t y) {
 public Int_t Int$slow_minus(Int_t x, Int_t y) {
     mpz_t result;
     mpz_init_set_int(result, x);
-    if (y.small & 1) {
-        if (y.small < 0)
-            mpz_add_ui(result, result, (uint64_t)(-(y.small >> 2)));
+    if (y.small & 1L) {
+        if (y.small < 0L)
+            mpz_add_ui(result, result, (uint64_t)(-(y.small >> 2L)));
         else
-            mpz_sub_ui(result, result, (uint64_t)(y.small >> 2));
+            mpz_sub_ui(result, result, (uint64_t)(y.small >> 2L));
     } else {
         mpz_sub(result, result, *y.big);
     }
@@ -174,8 +174,8 @@ public Int_t Int$slow_minus(Int_t x, Int_t y) {
 public Int_t Int$slow_times(Int_t x, Int_t y) {
     mpz_t result;
     mpz_init_set_int(result, x);
-    if (y.small & 1)
-        mpz_mul_si(result, result, y.small >> 2);
+    if (y.small & 1L)
+        mpz_mul_si(result, result, y.small >> 2L);
     else
         mpz_mul(result, result, *y.big);
     return Int$from_mpz(result);
@@ -188,7 +188,7 @@ public Int_t Int$slow_divided_by(Int_t dividend, Int_t divisor) {
     mpz_init_set_int(remainder, divisor);
     mpz_tdiv_qr(quotient, remainder, quotient, remainder);
     if (mpz_sgn(remainder) < 0) {
-        bool d_positive = likely(divisor.small & 1) ? divisor.small > 0x1 : mpz_sgn(*divisor.big) > 0;
+        bool d_positive = likely(divisor.small & 1L) ? divisor.small > 0x1L : mpz_sgn(*divisor.big) > 0;
         if (d_positive)
             mpz_sub_ui(quotient, quotient, 1);
         else
@@ -278,8 +278,8 @@ public Int_t Int$slow_negated(Int_t x)
 
 public Int_t Int$slow_negative(Int_t x)
 {
-    if (likely(x.small & 1))
-        return (Int_t){.small=4*-((x.small)>>2) + 1};
+    if (likely(x.small & 1L))
+        return (Int_t){.small=4L*-((x.small)>>2L) + 1L};
 
     mpz_t result;
     mpz_init_set_int(result, x);
@@ -289,8 +289,8 @@ public Int_t Int$slow_negative(Int_t x)
 
 public Int_t Int$abs(Int_t x)
 {
-    if (likely(x.small & 1))
-        return (Int_t){.small=4*labs((x.small)>>2) + 1};
+    if (likely(x.small & 1L))
+        return (Int_t){.small=4L*labs((x.small)>>2L) + 1L};
 
     mpz_t result;
     mpz_init_set_int(result, x);
@@ -311,15 +311,15 @@ public Int_t Int$power(Int_t base, Int_t exponent)
 
 public Int_t Int$gcd(Int_t x, Int_t y)
 {
-    if (likely(x.small & y.small & 0x1))
-        return I_small(Int32$gcd(x.small >> 2, y.small >> 2));
+    if (likely(x.small & y.small & 0x1L))
+        return I_small(Int32$gcd(x.small >> 2L, y.small >> 2L));
 
     mpz_t result;
     mpz_init(result);
-    if (x.small & 0x1)
-        mpz_gcd_ui(result, *y.big, (uint64_t)labs(x.small>>2));
-    else if (y.small & 0x1)
-        mpz_gcd_ui(result, *x.big, (uint64_t)labs(y.small>>2));
+    if (x.small & 0x1L)
+        mpz_gcd_ui(result, *y.big, (uint64_t)labs(x.small>>2L));
+    else if (y.small & 0x1L)
+        mpz_gcd_ui(result, *x.big, (uint64_t)labs(y.small>>2L));
     else
         mpz_gcd(result, *x.big, *y.big);
     return Int$from_mpz(result);
@@ -357,7 +357,7 @@ public PUREFUNC Closure_t Int$to(Int_t first, Int_t last, OptionalInt_t step) {
     range->current = first;
     range->last = last;
     range->step = Int$is_none(&step, &Int$info) ?
-        Int$compare_value(last, first) >= 0 ? (Int_t){.small=(1<<2)|1} : (Int_t){.small=(-1>>2)|1}
+        Int$compare_value(last, first) >= 0 ? (Int_t){.small=(1L<<2L)|1L} : (Int_t){.small=(-1L>>2L)|1L}
         : step;
     return (Closure_t){.fn=_next_int, .userdata=range};
 }
@@ -430,8 +430,8 @@ public Int_t Int$choose(Int_t n, Int_t k)
     if unlikely (k_i64 < 0)
         fail("Negative inputs are not supported for choose()");
 
-    if likely (n.small & 1) {
-        mpz_bin_uiui(ret, (unsigned long)(n.small >> 2), (unsigned long)k_i64);
+    if likely (n.small & 1L) {
+        mpz_bin_uiui(ret, (unsigned long)(n.small >> 2L), (unsigned long)k_i64);
     } else {
         mpz_t n_mpz;
         mpz_init_set_int(n_mpz, n);
@@ -454,9 +454,9 @@ public Int_t Int$factorial(Int_t n)
 static void Int$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t*)
 {
     Int_t i = *(Int_t*)obj;
-    if (likely(i.small & 1)) {
+    if (likely(i.small & 1L)) {
         fputc(0, out);
-        int64_t i64 = i.small >> 2;
+        int64_t i64 = i.small >> 2L;
         Int64$serialize(&i64, out, pointers, &Int64$info);
     } else {
         fputc(1, out);
@@ -471,7 +471,7 @@ static void Int$deserialize(FILE *in, void *obj, Array_t *pointers, const TypeIn
     if (fgetc(in) == 0) {
         int64_t i = 0;
         Int64$deserialize(in, &i, pointers, &Int64$info);
-        *(Int_t*)obj = (Int_t){.small=(i<<2) | 1};
+        *(Int_t*)obj = (Int_t){.small=(i<<2L) | 1L};
     } else {
         mpz_t n;
         mpz_init(n);
@@ -497,10 +497,10 @@ public const TypeInfo_t Int$info = {
 public void Int64$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo_t*)
 {
     int64_t i = *(int64_t*)obj;
-    uint64_t z = (uint64_t)((i << 1) ^ (i >> 63)); // Zigzag encode
-    while (z >= 0x80) {
-        fputc((uint8_t)(z | 0x80), out);
-        z >>= 7;
+    uint64_t z = (uint64_t)((i << 1L) ^ (i >> 63L)); // Zigzag encode
+    while (z >= 0x80L) {
+        fputc((uint8_t)(z | 0x80L), out);
+        z >>= 7L;
     }
     fputc((uint8_t)z, out);
 }
@@ -513,7 +513,7 @@ public void Int64$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t
         z |= ((uint64_t)(byte & 0x7F)) << shift;
         if ((byte & 0x80) == 0) break;
     }
-    *(int64_t*)outval = (int64_t)((z >> 1) ^ -(z & 1)); // Zigzag decode
+    *(int64_t*)outval = (int64_t)((z >> 1L) ^ -(z & 1L)); // Zigzag decode
 }
 
 public void Int32$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo_t*) 
@@ -535,7 +535,7 @@ public void Int32$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t
         z |= ((uint32_t)(byte & 0x7F)) << shift;
         if ((byte & 0x80) == 0) break;
     }
-    *(int32_t*)outval = (int32_t)((z >> 1) ^ -(z & 1)); // Zigzag decode
+    *(int32_t*)outval = (int32_t)((z >> 1L) ^ -(z & 1L)); // Zigzag decode
 }
 
 // The space savings for smaller ints are not worth having:
@@ -556,7 +556,7 @@ public void Int32$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t
         return *(c_type*)x == *(c_type*)y; \
     } \
     public Text_t KindOfInt ## $format(c_type i, Int_t digits_int) { \
-        return Text$format("%0*ld", Int32$from_int(digits_int, false), i); \
+        return Text$format("%0*ld", Int32$from_int(digits_int, false), (int64_t)i); \
     } \
     public Text_t KindOfInt ## $hex(c_type i, Int_t digits_int, bool uppercase, bool prefix) { \
         Int_t as_int = Int$from_int64((int64_t)i); \
@@ -607,7 +607,7 @@ public void Int32$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t
     } \
     public PUREFUNC Optional ## KindOfInt ## _t KindOfInt ## $parse(Text_t text) { \
         OptionalInt_t full_int = Int$parse(text); \
-        if (full_int.small == 0) return (Optional ## KindOfInt ## _t){.is_none=true}; \
+        if (full_int.small == 0L) return (Optional ## KindOfInt ## _t){.is_none=true}; \
         if (Int$compare_value(full_int, I(min_val)) < 0) { \
             return (Optional ## KindOfInt ## _t){.is_none=true}; \
         } \
