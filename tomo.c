@@ -562,6 +562,10 @@ void transpile_code(env_t *base_env, Text_t filename, bool force_retranspile)
 
     binding_t *main_binding = get_binding(module_env, "main");
     if (main_binding && main_binding->type->tag == FunctionType) {
+        type_t *ret = Match(main_binding->type, FunctionType)->ret;
+        if (ret->tag != VoidType && ret->tag != AbortType)
+            compiler_err(ast->file, ast->start, ast->end, "The main() function in this file has a return type of %T, but it should not have any return value!", ret);
+
         CORD_put(CORD_all(
             "int ", main_binding->code, "$parse_and_run(int argc, char *argv[]) {\n"
             "#line 1\n"
