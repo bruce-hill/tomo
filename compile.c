@@ -4113,8 +4113,12 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
     if (ret_t->tag == AbortType) {
         if (body_type->tag != AbortType)
             code_err(ast, "This function can reach the end without aborting!");
-    } else if (ret_t->tag != VoidType && body_type->tag != ReturnType) {
-        code_err(ast, "This function can reach the end without returning a %T value!", ret_t);
+    } else if (ret_t->tag == VoidType) {
+        if (body_type->tag == AbortType)
+            code_err(ast, "This function will always abort before it reaches the end, but it's declared as having a Void return. It should be declared as an Abort return instead.");
+    } else {
+        if (body_type->tag != ReturnType)
+            code_err(ast, "This function can reach the end without returning a %T value!", ret_t);
     }
 
     CORD body = compile_statement(body_scope, fndef->body);
