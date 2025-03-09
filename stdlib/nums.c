@@ -58,8 +58,10 @@ public Text_t Num$scientific(double f, Int_t precision) {
 }
 
 public CONSTFUNC double Num$mod(double num, double modulus) { 
-    double result = fmod(num, modulus); 
-    return (result < 0) != (modulus < 0) ? result + modulus : result; 
+    // Euclidean division, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
+    double r = remainder(num, modulus);
+    r -= (r < 0) * (2*(modulus < 0) - 1) * modulus;
+    return r;
 }
 
 public CONSTFUNC double Num$mod1(double num, double modulus) { 
@@ -137,8 +139,10 @@ public Text_t Num32$scientific(float f, Int_t precision) {
 }
 
 public CONSTFUNC float Num32$mod(float num, float modulus) { 
-    float result = fmodf(num, modulus); 
-    return (result < 0) != (modulus < 0) ? result + modulus : result; 
+    // Euclidean division, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
+    float r = remainderf(num, modulus);
+    r -= (r < 0) * (2*(modulus < 0) - 1) * modulus;
+    return r;
 }
 
 public CONSTFUNC float Num32$mod1(float num, float modulus) { 
