@@ -54,7 +54,7 @@ env_t *new_compilation_unit(CORD libname)
                              .next=new(arg_t, .name="code", .type=Type(IntType, .bits=TYPE_IBITS32),
                                        .default_val=FakeAST(InlineCCode, .code="1", .type=Type(IntType, .bits=TYPE_IBITS32)))),
                          .ret=Type(AbortType))}},
-        {"fail", {.code="fail", .type=Type(FunctionType, .args=new(arg_t, .name="message", .type=Type(CStringType)), .ret=Type(AbortType))}},
+        {"fail", {.code="fail_text", .type=Type(FunctionType, .args=new(arg_t, .name="message", .type=TEXT_TYPE), .ret=Type(AbortType))}},
         {"sleep", {.code="sleep_num", .type=Type(FunctionType, .args=new(arg_t, .name="seconds", .type=Type(NumType, .bits=TYPE_NBITS64)), .ret=Type(VoidType))}},
         {"now", {.code="Moment$now", .type=Type(FunctionType, .args=NULL, .ret=Type(MomentType))}},
         {"USE_COLOR", {.code="USE_COLOR", .type=Type(BoolType)}},

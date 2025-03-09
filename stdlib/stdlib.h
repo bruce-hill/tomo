@@ -25,6 +25,7 @@ void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, int spe
     _tomo_parse_args(argc, argv, usage, help, sizeof((cli_arg_t[]){__VA_ARGS__})/sizeof(cli_arg_t), (cli_arg_t[]){__VA_ARGS__})
 __attribute__((format(printf, 1, 2)))
 _Noreturn void fail(const char *fmt, ...);
+_Noreturn void fail_text(Text_t message);
 __attribute__((format(printf, 4, 5)))
 _Noreturn void fail_source(const char *filename, int64_t start, int64_t end, const char *fmt, ...);
 Text_t builtin_last_err();

@@ -531,6 +531,11 @@ public _Noreturn void fail(const char *fmt, ...)
     _exit(1);
 }
 
+public _Noreturn void fail_text(Text_t message)
+{
+    fail("%k", &message);
+}
+
 __attribute__((format(printf, 4, 5)))
 public _Noreturn void fail_source(const char *filename, int64_t start, int64_t end, const char *fmt, ...)
 {
