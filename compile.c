@@ -4082,6 +4082,8 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
     arg_signature = CORD_cat(arg_signature, ")");
 
     CORD ret_type_code = compile_type(ret_t);
+    if (ret_t->tag == AbortType)
+        ret_type_code = CORD_all("_Noreturn ", ret_type_code);
 
     if (is_private)
         *staticdefs = CORD_all(*staticdefs, "static ", ret_type_code, " ", name_code, arg_signature, ";\n");
@@ -4497,6 +4499,8 @@ CORD compile_statement_namespace_header(env_t *env, ast_t *ast)
 
         type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
         CORD ret_type_code = compile_type(ret_t);
+        if (ret_t->tag == AbortType)
+            ret_type_code = CORD_all("_Noreturn ", ret_type_code);
         CORD name = CORD_all(namespace_prefix(env, env->namespace), decl_name);
         if (env->namespace && env->namespace->parent && env->namespace->name && streq(decl_name, env->namespace->name))
             name = CORD_asprintf("%r%ld", namespace_prefix(env, env->namespace), get_line_number(ast->file, ast->start));
