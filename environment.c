@@ -99,6 +99,7 @@ env_t *new_compilation_unit(CORD libname)
         Array_t namespace;
     } global_types[] = {
         {"Void", Type(VoidType), "Void_t", "Void$info", {}},
+        {"Abort", Type(AbortType), "void", "Abort$info", {}},
         {"Memory", Type(MemoryType), "Memory_t", "Memory$info", {}},
         {"Bool", Type(BoolType), "Bool_t", "Bool$info", TypedArray(ns_entry_t,
             {"parse", "Bool$parse", "func(text:Text -> Bool?)"},

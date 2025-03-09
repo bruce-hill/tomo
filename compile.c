@@ -4108,8 +4108,12 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
     body_scope->fn_ret = ret_t;
 
     type_t *body_type = get_type(body_scope, fndef->body);
-    if (ret_t->tag != VoidType && ret_t->tag != AbortType && body_type->tag != AbortType && body_type->tag != ReturnType)
+    if (ret_t->tag == AbortType) {
+        if (body_type->tag != AbortType)
+            code_err(ast, "This function can reach the end without aborting!");
+    } else if (ret_t->tag != VoidType && body_type->tag != ReturnType) {
         code_err(ast, "This function can reach the end without returning a %T value!", ret_t);
+    }
 
     CORD body = compile_statement(body_scope, fndef->body);
     if (streq(raw_name, "main"))

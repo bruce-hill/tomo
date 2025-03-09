@@ -921,7 +921,17 @@ type_t *get_type(env_t *env, ast_t *ast)
 
         env_t *block_env = fresh_scope(env);
         for (ast_list_t *stmt = block->statements; stmt; stmt = stmt->next) {
+            prebind_statement(block_env, stmt->ast);
+        }
+        for (ast_list_t *stmt = block->statements; stmt; stmt = stmt->next) {
             bind_statement(block_env, stmt->ast);
+            if (stmt->next) { // Check for unreachable code:
+                if (stmt->ast->tag == Return)
+                    code_err(stmt->ast, "This statement will always return, so the rest of the code in this block is unreachable!");
+                type_t *statement_type = get_type(block_env, stmt->ast);
+                if (statement_type && statement_type->tag == AbortType && stmt->next)
+                    code_err(stmt->ast, "This statement will always abort, so the rest of the code in this block is unreachable!");
+            }
         }
         return get_type(block_env, last->ast);
     }
