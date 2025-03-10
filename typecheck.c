@@ -1549,26 +1549,7 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast)
         }
     }
     case Use: return true;
-    case FunctionCall: {
-        // Constructors are allowed:
-        auto call = Match(ast, FunctionCall);
-        if (call->fn->tag != Var) return false;
-        binding_t *b = get_binding(env, Match(call->fn, Var)->name);
-        if (b == NULL || b->type->tag != TypeInfoType) return false;
-
-        type_t *t = Match(b->type, TypeInfoType)->type;
-        if (t->tag == IntType) {
-            return call->args->value->tag == Int;
-        } else if (t->tag == NumType) {
-            return call->args->value->tag == Num;
-        }
-
-        for (arg_ast_t *arg = call->args; arg; arg = arg->next) {
-            if (!is_constant(env, arg->value))
-                return false;
-        }
-        return true;
-    }
+    case FunctionCall: return false;
     case InlineCCode: return true;
     default: return false;
     }
