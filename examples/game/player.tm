@@ -19,11 +19,11 @@ struct Player(pos,prev_pos:Vec2):
         target_y := inline C:Num {
             (Num_t)((IsKeyDown(KEY_W) ? -1 : 0) + (IsKeyDown(KEY_S) ? 1 : 0))
         }
-        target_vel := Vec2(target_x, target_y):norm() * WALK_SPEED
+        target_vel := Vec2(target_x, target_y):norm() * Player.WALK_SPEED
 
         vel := (p.pos - p.prev_pos)/World.DT
-        vel *= FRICTION
-        vel = vel:mix(target_vel, ACCEL)
+        vel *= Player.FRICTION
+        vel = vel:mix(target_vel, Player.ACCEL)
 
         p.prev_pos, p.pos = p.pos, p.pos + World.DT*vel
 
