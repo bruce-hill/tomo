@@ -641,6 +641,14 @@ env_t *load_module_env(env_t *env, ast_t *ast)
     return module_env;
 }
 
+env_t *global_scope(env_t *env)
+{
+    env_t *scope = new(env_t);
+    *scope = *env;
+    scope->locals = new(Table_t, .fallback=env->globals);
+    return scope;
+}
+
 env_t *namespace_scope(env_t *env)
 {
     env_t *scope = new(env_t);
@@ -656,6 +664,25 @@ env_t *fresh_scope(env_t *env)
     scope->locals = new(Table_t, .fallback=env->locals);
     return scope;
 }
+
+env_t *with_enum_scope(env_t *env, type_t *t)
+{
+    while (t->tag == OptionalType)
+        t = Match(t, OptionalType)->type;
+
+    if (t->tag != EnumType) return env;
+    env = fresh_scope(env);
+    env_t *ns_env = Match(t, EnumType)->env;
+    for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
+        if (get_binding(env, tag->name))
+            continue;
+        binding_t *b = get_binding(ns_env, tag->name);
+        assert(b);
+        Table$str_set(env->locals, tag->name, b);
+    }
+    return env;
+}
+
 
 env_t *for_scope(env_t *env, ast_t *ast)
 {

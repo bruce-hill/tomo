@@ -300,9 +300,9 @@ void bind_statement(env_t *env, ast_t *statement)
         auto def = Match(statement, FunctionDef);
         const char *name = Match(def->name, Var)->name;
         type_t *type = get_function_def_type(env, statement);
-        binding_t *clobber = get_binding(env, name);
-        if (clobber)
-            code_err(def->name, "A %T called '%s' has already been defined", clobber->type, name);
+        // binding_t *clobber = get_binding(env, name);
+        // if (clobber)
+        //     code_err(def->name, "A %T called '%s' has already been defined", clobber->type, name);
         CORD code = CORD_all(namespace_prefix(env, env->namespace), name);
         set_binding(env, name, type, code);
         break;
@@ -958,19 +958,8 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
     case Return: {
         ast_t *val = Match(ast, Return)->value;
-        // Support unqualified enum return values:
-        if (env->fn_ret && env->fn_ret->tag == EnumType) {
-            env = fresh_scope(env);
-            auto enum_ = Match(env->fn_ret, EnumType);
-            env_t *ns_env = enum_->env;
-            for (tag_t *tag = enum_->tags; tag; tag = tag->next) {
-                if (get_binding(env, tag->name))
-                    continue;
-                binding_t *b = get_binding(ns_env, tag->name);
-                assert(b);
-                Table$str_set(env->locals, tag->name, b);
-            }
-        }
+        if (env->fn_ret)
+            env = with_enum_scope(env, env->fn_ret);
         return Type(ReturnType, .ret=(val ? get_type(env, val) : Type(VoidType)));
     }
     case Stop: case Skip: {

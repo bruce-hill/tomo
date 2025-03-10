@@ -23,7 +23,6 @@
 typedef ast_t* (*comprehension_body_t)(ast_t*, ast_t*);
 
 static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool needs_incref);
-static env_t *with_enum_scope(env_t *env, type_t *t);
 static CORD compile_math_method(env_t *env, binop_e op, ast_t *lhs, ast_t *rhs, type_t *required_type);
 static CORD compile_string(env_t *env, ast_t *ast, CORD color);
 static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args);
@@ -1906,21 +1905,6 @@ CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
     if (!promote(env, ast, &code, actual, t))
         code_err(ast, "I expected a %T here, but this is a %T", t, actual);
     return code;
-}
-
-env_t *with_enum_scope(env_t *env, type_t *t)
-{
-    if (t->tag != EnumType) return env;
-    env = fresh_scope(env);
-    env_t *ns_env = Match(t, EnumType)->env;
-    for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
-        if (get_binding(env, tag->name))
-            continue;
-        binding_t *b = get_binding(ns_env, tag->name);
-        assert(b);
-        Table$str_set(env->locals, tag->name, b);
-    }
-    return env;
 }
 
 CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
@@ -4104,6 +4088,11 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
     }
 
     env_t *body_scope = fresh_scope(env);
+    while (body_scope->namespace && body_scope->namespace->parent) {
+        body_scope->locals->fallback = body_scope->locals->fallback->fallback;
+        body_scope->namespace = body_scope->namespace->parent;
+    }
+
     body_scope->deferred = NULL;
     body_scope->namespace = NULL;
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
@@ -4121,7 +4110,7 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
         if (body_type->tag == AbortType)
             code_err(ast, "This function will always abort before it reaches the end, but it's declared as having a Void return. It should be declared as an Abort return instead.");
     } else {
-        if (body_type->tag != ReturnType)
+        if (body_type->tag != ReturnType && body_type->tag != AbortType)
             code_err(ast, "This function can reach the end without returning a %T value!", ret_t);
     }
 
