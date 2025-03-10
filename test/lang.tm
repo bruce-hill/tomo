@@ -1,6 +1,6 @@
 lang HTML:
 	HEADER := $HTML"<!DOCTYPE HTML>"
-	func HTML(t:Text->HTML):
+	convert(t:Text->HTML):
 		t = t:replace_all({
 			$/&/="&amp;",
 			$/</="&lt;",
@@ -11,14 +11,14 @@ lang HTML:
 
 		return HTML.without_escaping(t)
 
-	func HTML(i:Int->HTML):
+	convert(i:Int->HTML):
 		return HTML.without_escaping("$i")
 	
 	func paragraph(content:HTML->HTML):
 		return $HTML"<p>$content</p>"
 
 struct Bold(text:Text):
-	func HTML(b:Bold -> HTML):
+	convert(b:Bold -> HTML):
 		return $HTML"<b>$(b.text)</b>"
 
 func main():

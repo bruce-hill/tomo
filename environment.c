@@ -26,7 +26,7 @@ env_t *new_compilation_unit(CORD libname)
     env->imports = new(Table_t);
 
     if (!TEXT_TYPE)
-        TEXT_TYPE = Type(TextType, .env=namespace_env(env, "Text"));
+        TEXT_TYPE = Type(TextType, .lang="Text", .env=namespace_env(env, "Text"));
 
     struct {
         const char *name;
@@ -579,6 +579,7 @@ env_t *new_compilation_unit(CORD libname)
                      {"Shell$escape_text_array", "func(texts:[Text] -> Shell)"},
                      {"Shell$escape_text_array", "func(paths:[Path] -> Shell)"},
                      {"Int$value_as_text", "func(i:Int -> Shell)"});
+    ADD_CONSTRUCTORS("CString", {"Text$as_c_string", "func(text:Text -> CString)"});
     ADD_CONSTRUCTORS("Moment",
                      {"Moment$now", "func(-> Moment)"},
                      {"Moment$new", "func(year,month,day:Int,hour,minute=0,second=0.0,timezone=none:Text -> Moment)"},
@@ -736,7 +737,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
     }
 }
 
-static env_t *get_namespace_by_type(env_t *env, type_t *t)
+env_t *get_namespace_by_type(env_t *env, type_t *t)
 {
     t = value_type(t);
     switch (t->tag) {
@@ -794,23 +795,23 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
     return ns_env ? get_binding(ns_env, name) : NULL;
 }
 
-PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args, type_t *constructed_type)
+PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args)
 {
     env_t *type_env = get_namespace_by_type(env, t);
     if (!type_env) return NULL;
     Array_t constructors = type_env->namespace->constructors;
     // Prioritize exact matches:
-    for (int64_t i = 0; i < constructors.length; i++) {
+    for (int64_t i = constructors.length-1; i >= 0; i--) {
         binding_t *b = constructors.data + i*constructors.stride;
         auto fn = Match(b->type, FunctionType);
-        if (type_eq(fn->ret, constructed_type) && is_valid_call(env, fn->args, args, false))
+        if (type_eq(fn->ret, t) && is_valid_call(env, fn->args, args, false))
             return b;
     }
     // Fall back to promotion:
-    for (int64_t i = 0; i < constructors.length; i++) {
+    for (int64_t i = constructors.length-1; i >= 0; i--) {
         binding_t *b = constructors.data + i*constructors.stride;
         auto fn = Match(b->type, FunctionType);
-        if (type_eq(fn->ret, constructed_type) && is_valid_call(env, fn->args, args, true))
+        if (type_eq(fn->ret, t) && is_valid_call(env, fn->args, args, true))
             return b;
     }
     return NULL;

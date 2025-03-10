@@ -94,6 +94,7 @@ static PARSER(parse_array);
 static PARSER(parse_assignment);
 static PARSER(parse_block);
 static PARSER(parse_bool);
+static PARSER(parse_convert_def);
 static PARSER(parse_declaration);
 static PARSER(parse_defer);
 static PARSER(parse_do);
@@ -2035,6 +2036,7 @@ PARSER(parse_namespace) {
             ||(stmt=optional(ctx, &pos, parse_enum_def))
             ||(stmt=optional(ctx, &pos, parse_lang_def))
             ||(stmt=optional(ctx, &pos, parse_func_def))
+            ||(stmt=optional(ctx, &pos, parse_convert_def))
             ||(stmt=optional(ctx, &pos, parse_use))
             ||(stmt=optional(ctx, &pos, parse_extern))
             ||(stmt=optional(ctx, &pos, parse_inline_c))
@@ -2070,6 +2072,7 @@ PARSER(parse_file_body) {
             ||(stmt=optional(ctx, &pos, parse_enum_def))
             ||(stmt=optional(ctx, &pos, parse_lang_def))
             ||(stmt=optional(ctx, &pos, parse_func_def))
+            ||(stmt=optional(ctx, &pos, parse_convert_def))
             ||(stmt=optional(ctx, &pos, parse_use))
             ||(stmt=optional(ctx, &pos, parse_extern))
             ||(stmt=optional(ctx, &pos, parse_inline_c))
@@ -2319,6 +2322,42 @@ PARSER(parse_func_def) {
     return NewAST(ctx->file, start, pos, FunctionDef,
                   .name=name, .args=args, .ret_type=ret_type, .body=body, .cache=cache_ast,
                   .is_inline=is_inline);
+}
+
+PARSER(parse_convert_def) {
+    const char *start = pos;
+    if (!match_word(&pos, "convert")) return NULL;
+
+    spaces(&pos);
+
+    if (!match(&pos, "(")) return NULL;
+
+    arg_ast_t *args = parse_args(ctx, &pos);
+    spaces(&pos);
+    type_ast_t *ret_type = match(&pos, "->") ? optional(ctx, &pos, parse_type) : NULL;
+    whitespace(&pos);
+    bool is_inline = false;
+    ast_t *cache_ast = NULL;
+    for (bool specials = match(&pos, ";"); specials; specials = match_separator(&pos)) {
+        const char *flag_start = pos;
+        if (match_word(&pos, "inline")) {
+            is_inline = true;
+        } else if (match_word(&pos, "cached")) {
+            if (!cache_ast) cache_ast = NewAST(ctx->file, pos, pos, Int, .str="-1");
+        } else if (match_word(&pos, "cache_size")) {
+            whitespace(&pos);
+            if (!match(&pos, "="))
+                parser_err(ctx, flag_start, pos, "I expected a value for 'cache_size'");
+            whitespace(&pos);
+            cache_ast = expect(ctx, start, &pos, parse_expr, "I expected a maximum size for the cache");
+        }
+    }
+    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this function definition");
+
+    ast_t *body = expect(ctx, start, &pos, parse_block,
+                             "This function needs a body block");
+    return NewAST(ctx->file, start, pos, ConvertDef,
+                  .args=args, .ret_type=ret_type, .body=body, .cache=cache_ast, .is_inline=is_inline);
 }
 
 PARSER(parse_extern) {

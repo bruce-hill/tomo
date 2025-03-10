@@ -106,9 +106,8 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
     // Numeric promotions/demotions
     if ((is_numeric_type(actual) || actual->tag == BoolType) && (is_numeric_type(needed) || needed->tag == BoolType)) {
         arg_ast_t *args = new(arg_ast_t, .value=FakeAST(InlineCCode, .code=*code, .type=actual));
-        binding_t *constructor = NULL;
-        if ((constructor=get_constructor(env, needed, args, needed))
-            || (constructor=get_constructor(env, actual, args, needed))) {
+        binding_t *constructor = get_constructor(env, needed, args);
+        if (constructor) {
             auto fn = Match(constructor->type, FunctionType);
             if (fn->args->next == NULL) {
                 *code = CORD_all(constructor->code, "(", compile_arguments(env, ast, fn->args, args), ")");
@@ -129,7 +128,7 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
     }
 
     // Text to C String
-    if (actual->tag == TextType && !Match(actual, TextType)->lang && needed->tag == CStringType) {
+    if (actual->tag == TextType && type_eq(actual, TEXT_TYPE) && needed->tag == CStringType) {
         *code = CORD_all("Text$as_c_string(", *code, ")");
         return true;
     }
@@ -443,7 +442,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Deserialize)->value);
         break;
     }
-    case Use: case FunctionDef: case StructDef: case EnumDef: case LangDef: {
+    case Use: case FunctionDef: case ConvertDef: case StructDef: case EnumDef: case LangDef: {
         errx(1, "Definitions should not be reachable in a closure.");
     }
     default:
@@ -1186,16 +1185,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         default: code_err(ast, "Update assignments are not implemented for this operation");
         }
     }
-    case StructDef: {
-        return CORD_EMPTY;
-    }
-    case EnumDef: {
-        return CORD_EMPTY;
-    }
-    case LangDef: {
-        return CORD_EMPTY;
-    }
-    case FunctionDef: {
+    case StructDef: case EnumDef: case LangDef: case FunctionDef: case ConvertDef: {
         return CORD_EMPTY;
     }
     case Skip: {
@@ -2713,29 +2703,19 @@ CORD compile(env_t *env, ast_t *ast)
             for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
                 CORD chunk_code;
                 type_t *chunk_t = get_type(env, chunk->ast);
-                if (chunk->ast->tag == TextLiteral) {
+                if (chunk->ast->tag == TextLiteral || type_eq(chunk_t, text_t)) {
                     chunk_code = compile(env, chunk->ast);
-                } else if (chunk_t->tag == TextType && streq(Match(chunk_t, TextType)->lang, lang)) { // Interp is same type as text literal
-                    binding_t *constructor = get_constructor(env, text_t, new(arg_ast_t, .value=chunk->ast), text_t);
+                } else {
+                    binding_t *constructor = get_constructor(env, text_t, new(arg_ast_t, .value=chunk->ast));
                     if (constructor) {
                         arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
                         arg_ast_t *args = new(arg_ast_t, .value=chunk->ast);
                         chunk_code = CORD_all(constructor->code, "(", compile_arguments(env, ast, arg_spec, args), ")");
+                    } else if (type_eq(text_t, TEXT_TYPE)) {
+                        chunk_code = compile_string(env, chunk->ast, "no");
                     } else {
-                        chunk_code = compile(env, chunk->ast);
-                    }
-                } else if (lang) { // Interp is different type from text literal (which is a DSL)
-                    binding_t *constructor = get_constructor(env, text_t, new(arg_ast_t, .value=chunk->ast), text_t);
-                    if (!constructor)
-                        constructor = get_constructor(env, chunk_t, new(arg_ast_t, .value=chunk->ast), text_t);
-                    if (!constructor)
                         code_err(chunk->ast, "I don't know how to convert %T to %T", chunk_t, text_t);
-
-                    arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
-                    arg_ast_t *args = new(arg_ast_t, .value=chunk->ast);
-                    chunk_code = CORD_all(constructor->code, "(", compile_arguments(env, ast, arg_spec, args), ")");
-                } else {
-                    chunk_code = compile_string(env, chunk->ast, "no");
+                    }
                 }
                 code = CORD_cat(code, chunk_code);
                 if (chunk->next) code = CORD_cat(code, ", ");
@@ -3411,7 +3391,7 @@ CORD compile(env_t *env, ast_t *ast)
             else if (t->tag == NumType && call->args && !call->args->next && call->args->value->tag == Num)
                 return compile_to_type(env, call->args->value, t);
 
-            binding_t *constructor = get_constructor(env, t, call->args, t);
+            binding_t *constructor = get_constructor(env, t, call->args);
             if (constructor) {
                 arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
                 return CORD_all(constructor->code, "(", compile_arguments(env, ast, arg_spec, call->args), ")");
@@ -3420,8 +3400,7 @@ CORD compile(env_t *env, ast_t *ast)
             type_t *actual = call->args ? get_type(env, call->args->value) : NULL;
             if (t->tag == TextType) {
                 if (!call->args) code_err(ast, "This constructor needs a value");
-                const char *lang = Match(t, TextType)->lang;
-                if (lang)
+                if (!type_eq(t, TEXT_TYPE))
                     code_err(call->fn, "I don't have a constructor defined for these arguments");
                 // Text constructor:
                 if (!call->args || call->args->next)
@@ -3441,7 +3420,7 @@ CORD compile(env_t *env, ast_t *ast)
                     return compile_string_literal(Match(Match(call->args->value, TextJoin)->children->ast, TextLiteral)->cord);
                 return CORD_all("Text$as_c_string(", expr_as_text(env, compile(env, call->args->value), actual, "no"), ")");
             } else {
-                code_err(call->fn, "This is not a type that has a constructor");
+                code_err(ast, "I could not find a constructor matching these arguments for %T", t);
             }
         } else if (fn_t->tag == ClosureType) {
             fn_t = Match(fn_t, ClosureType)->fn;
@@ -3866,7 +3845,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Extern: code_err(ast, "Externs are not supported as expressions");
     case TableEntry: code_err(ast, "Table entries should not be compiled directly");
     case Declare: case Assign: case UpdateAssign: case For: case While: case Repeat: case StructDef: case LangDef:
-    case EnumDef: case FunctionDef: case Skip: case Stop: case Pass: case Return: case DocTest: case PrintStatement:
+    case EnumDef: case FunctionDef: case ConvertDef: case Skip: case Stop: case Pass: case Return: case DocTest: case PrintStatement:
         code_err(ast, "This is not a valid expression");
     default: case Unknown: code_err(ast, "Unknown AST");
     }
@@ -3883,7 +3862,7 @@ CORD compile_type_info(env_t *env, type_t *t)
         return CORD_all("&", type_to_cord(t), "$info");
     case TextType: {
         auto text = Match(t, TextType);
-        if (!text->lang)
+        if (!text->lang || streq(text->lang, "Text"))
             return "&Text$info";
         else if (streq(text->lang, "Pattern"))
             return "&Pattern$info";
@@ -4056,22 +4035,40 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
     return code;
 }
 
-CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
+CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
 {
-    auto fndef = Match(ast, FunctionDef);
-    const char *raw_name = Match(fndef->name, Var)->name;
-    bool is_private = raw_name[0] == '_';
-    CORD name_code = CORD_all(namespace_prefix(env, env->namespace), raw_name);
-    binding_t *clobbered = get_binding(env, raw_name);
-    type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
-    // Check for a constructor:
-    if (clobbered && clobbered->type->tag == TypeInfoType && type_eq(ret_t, Match(clobbered->type, TypeInfoType)->type)) {
-        name_code = CORD_asprintf("%r$%ld", name_code, get_line_number(ast->file, ast->start));
+    bool is_private = false, is_main = false;
+    const char *function_name;
+    arg_ast_t *args;
+    type_t *ret_t;
+    ast_t *body;
+    ast_t *cache;
+    bool is_inline;
+    if (ast->tag == FunctionDef) {
+        auto fndef = Match(ast, FunctionDef);
+        function_name = Match(fndef->name, Var)->name;
+        is_private = function_name[0] == '_';
+        is_main = streq(function_name, "main");
+        args = fndef->args;
+        ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
+        body = fndef->body;
+        cache = fndef->cache;
+        is_inline = fndef->is_inline;
+    } else {
+        auto convertdef = Match(ast, ConvertDef);
+        args = convertdef->args;
+        ret_t = convertdef->ret_type ? parse_type_ast(env, convertdef->ret_type) : Type(VoidType);
+        function_name = get_type_name(ret_t);
+        if (!function_name)
+            code_err(ast, "Conversions are only supported for text, struct, and enum types, not %T", ret_t);
+        body = convertdef->body;
+        cache = convertdef->cache;
+        is_inline = convertdef->is_inline;
     }
 
     CORD arg_signature = "(";
     Table_t used_names = {};
-    for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
+    for (arg_ast_t *arg = args; arg; arg = arg->next) {
         type_t *arg_type = get_arg_ast_type(env, arg);
         arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, CORD_cat("_$", arg->name)));
         if (arg->next) arg_signature = CORD_cat(arg_signature, ", ");
@@ -4089,11 +4086,11 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
         *staticdefs = CORD_all(*staticdefs, "static ", ret_type_code, " ", name_code, arg_signature, ";\n");
 
     CORD code;
-    if (fndef->cache) {
+    if (cache) {
         code = CORD_all("static ", ret_type_code, " ", name_code, "$uncached", arg_signature);
     } else {
         code = CORD_all(ret_type_code, " ", name_code, arg_signature);
-        if (fndef->is_inline)
+        if (is_inline)
             code = CORD_cat("INLINE ", code);
         if (!is_private)
             code = CORD_cat("public ", code);
@@ -4102,14 +4099,14 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
     env_t *body_scope = fresh_scope(env);
     body_scope->deferred = NULL;
     body_scope->namespace = NULL;
-    for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
+    for (arg_ast_t *arg = args; arg; arg = arg->next) {
         type_t *arg_type = get_arg_ast_type(env, arg);
         set_binding(body_scope, arg->name, arg_type, CORD_cat("_$", arg->name));
     }
 
     body_scope->fn_ret = ret_t;
 
-    type_t *body_type = get_type(body_scope, fndef->body);
+    type_t *body_type = get_type(body_scope, body);
     if (ret_t->tag == AbortType) {
         if (body_type->tag != AbortType)
             code_err(ast, "This function can reach the end without aborting!");
@@ -4121,15 +4118,15 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
             code_err(ast, "This function can reach the end without returning a %T value!", ret_t);
     }
 
-    CORD body = compile_statement(body_scope, fndef->body);
-    if (streq(raw_name, "main"))
-        body = CORD_all("_$", env->namespace->name, "$$initialize();\n", body);
-    if (CORD_fetch(body, 0) != '{')
-        body = CORD_asprintf("{\n%r\n}", body);
+    CORD body_code = compile_statement(body_scope, body);
+    if (is_main)
+        body_code = CORD_all("_$", env->namespace->name, "$$initialize();\n", body_code);
+    if (CORD_fetch(body_code, 0) != '{')
+        body_code = CORD_asprintf("{\n%r\n}", body_code);
 
-    CORD definition = with_source_info(ast, CORD_all(code, " ", body, "\n"));
+    CORD definition = with_source_info(ast, CORD_all(code, " ", body_code, "\n"));
 
-    if (fndef->cache && fndef->args == NULL) { // no-args cache just uses a static var
+    if (cache && args == NULL) { // no-args cache just uses a static var
         CORD wrapper = CORD_all(
             is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name_code, "(void) {\n"
             "static ", compile_declaration(ret_t, "cached_result"), ";\n",
@@ -4141,45 +4138,44 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
             "return cached_result;\n"
             "}\n");
         definition = CORD_cat(definition, wrapper);
-    } else if (fndef->cache && fndef->cache->tag == Int) {
-        assert(fndef->args);
-        OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(fndef->cache, Int)->str));
+    } else if (cache && cache->tag == Int) {
+        assert(args);
+        OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Int)->str));
         CORD pop_code = CORD_EMPTY;
-        if (fndef->cache->tag == Int && !cache_size.is_none && cache_size.i > 0) {
+        if (cache->tag == Int && !cache_size.is_none && cache_size.i > 0) {
             pop_code = CORD_all("if (cache.entries.length > ", CORD_asprintf("%ld", cache_size.i),
                                 ") Table$remove(&cache, cache.entries.data + cache.entries.stride*RNG$int64(default_rng, 0, cache.entries.length-1), table_type);\n");
         }
 
-        if (!fndef->args->next) {
+        if (!args->next) {
             // Single-argument functions have simplified caching logic
-            type_t *arg_type = get_arg_ast_type(env, fndef->args);
+            type_t *arg_type = get_arg_ast_type(env, args);
             CORD wrapper = CORD_all(
                 is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name_code, arg_signature, "{\n"
                 "static Table_t cache = {};\n",
                 "const TypeInfo_t *table_type = Table$info(", compile_type_info(env, arg_type), ", ", compile_type_info(env, ret_t), ");\n",
-                compile_declaration(Type(PointerType, .pointed=ret_t), "cached"), " = Table$get_raw(cache, &_$", fndef->args->name, ", table_type);\n"
+                compile_declaration(Type(PointerType, .pointed=ret_t), "cached"), " = Table$get_raw(cache, &_$", args->name, ", table_type);\n"
                 "if (cached) return *cached;\n",
-                compile_declaration(ret_t, "ret"), " = ", name_code, "$uncached(_$", fndef->args->name, ");\n",
+                compile_declaration(ret_t, "ret"), " = ", name_code, "$uncached(_$", args->name, ");\n",
                 pop_code,
-                "Table$set(&cache, &_$", fndef->args->name, ", &ret, table_type);\n"
+                "Table$set(&cache, &_$", args->name, ", &ret, table_type);\n"
                 "return ret;\n"
                 "}\n");
             definition = CORD_cat(definition, wrapper);
         } else {
             // Multi-argument functions use a custom struct type (only defined internally) as a cache key:
             arg_t *fields = NULL;
-            for (arg_ast_t *arg = fndef->args; arg; arg = arg->next)
+            for (arg_ast_t *arg = args; arg; arg = arg->next)
                 fields = new(arg_t, .name=arg->name, .type=get_arg_ast_type(env, arg), .next=fields);
             REVERSE_LIST(fields);
-            type_t *t = Type(StructType, .name=heap_strf("%s$args", fndef->name), .fields=fields, .env=env);
+            type_t *t = Type(StructType, .name=heap_strf("func$%ld$args", get_line_number(ast->file, ast->start)), .fields=fields, .env=env);
 
             int64_t num_fields = used_names.entries.length;
-            const char *short_name = raw_name;
             const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
             CORD args_typeinfo = CORD_asprintf("((TypeInfo_t[1]){{.size=%zu, .align=%zu, .metamethods=%s, "
-                                               ".tag=StructInfo, .StructInfo.name=\"%s\", "
+                                               ".tag=StructInfo, .StructInfo.name=\"FunctionArguments\", "
                                                ".StructInfo.num_fields=%ld, .StructInfo.fields=(NamedType_t[%ld]){",
-                                               type_size(t), type_align(t), metamethods, short_name,
+                                               type_size(t), type_align(t), metamethods,
                                                num_fields, num_fields);
             CORD args_type = "struct { ";
             for (arg_t *f = fields; f; f = f->next) {
@@ -4191,7 +4187,7 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
             args_typeinfo = CORD_all(args_typeinfo, "}}})");
 
             CORD all_args = CORD_EMPTY;
-            for (arg_ast_t *arg = fndef->args; arg; arg = arg->next)
+            for (arg_ast_t *arg = args; arg; arg = arg->next)
                 all_args = CORD_all(all_args, "_$", arg->name, arg->next ? ", " : CORD_EMPTY);
 
             CORD wrapper = CORD_all(
@@ -4210,11 +4206,11 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
         }
     }
 
-    CORD qualified_name = raw_name;
+    CORD qualified_name = function_name;
     if (env->namespace && env->namespace->parent && env->namespace->name)
         qualified_name = CORD_all(env->namespace->name, ".", qualified_name);
     CORD text = CORD_all("func ", qualified_name, "(");
-    for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
+    for (arg_ast_t *arg = args; arg; arg = arg->next) {
         text = CORD_cat(text, type_to_cord(get_arg_ast_type(env, arg)));
         if (arg->next) text = CORD_cat(text, ", ");
     }
@@ -4222,7 +4218,7 @@ CORD compile_function(env_t *env, ast_t *ast, CORD *staticdefs)
         text = CORD_all(text, "->", type_to_cord(ret_t));
     text = CORD_all(text, ")");
 
-    if (!fndef->is_inline) {
+    if (!is_inline) {
         env->code->function_naming = CORD_all(
             env->code->function_naming,
             CORD_asprintf("register_function(%r, Text(\"%s.tm\"), %ld, Text(%r));\n",
@@ -4267,7 +4263,16 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
         }
     }
     case FunctionDef: {
-        return compile_function(env, ast, &env->code->staticdefs);
+        CORD name_code = CORD_all(namespace_prefix(env, env->namespace), Match(Match(ast, FunctionDef)->name, Var)->name);
+        return compile_function(env, name_code, ast, &env->code->staticdefs);
+    }
+    case ConvertDef: {
+        type_t *type = get_function_def_type(env, ast);
+        const char *name = get_type_name(Match(type, FunctionType)->ret);
+        if (!name)
+            code_err(ast, "Conversions are only supported for text, struct, and enum types, not %T", Match(type, FunctionType)->ret);
+        CORD name_code = CORD_asprintf("%r%s$%ld", namespace_prefix(env, env->namespace), name, get_line_number(ast->file, ast->start));
+        return compile_function(env, name_code, ast, &env->code->staticdefs);
     }
     case StructDef: {
         auto def = Match(ast, StructDef);
@@ -4509,6 +4514,25 @@ CORD compile_statement_namespace_header(env_t *env, ast_t *ast)
         if (env->namespace && env->namespace->parent && env->namespace->name && streq(decl_name, env->namespace->name))
             name = CORD_asprintf("%r%ld", namespace_prefix(env, env->namespace), get_line_number(ast->file, ast->start));
         return CORD_all(ret_type_code, " ", name, arg_signature, ";\n");
+    }
+    case ConvertDef: {
+        auto def = Match(ast, ConvertDef);
+
+        CORD arg_signature = "(";
+        for (arg_ast_t *arg = def->args; arg; arg = arg->next) {
+            type_t *arg_type = get_arg_ast_type(env, arg);
+            arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, CORD_cat("_$", arg->name)));
+            if (arg->next) arg_signature = CORD_cat(arg_signature, ", ");
+        }
+        arg_signature = CORD_cat(arg_signature, ")");
+
+        type_t *ret_t = def->ret_type ? parse_type_ast(env, def->ret_type) : Type(VoidType);
+        CORD ret_type_code = compile_type(ret_t);
+        const char *name = get_type_name(ret_t);
+        if (!name)
+            code_err(ast, "Conversions are only supported for text, struct, and enum types, not %T", ret_t);
+        CORD name_code = CORD_asprintf("%s$%ld", name, get_line_number(ast->file, ast->start));
+        return CORD_all(ret_type_code, " ", name_code, arg_signature, ";\n");
     }
     default: return CORD_EMPTY;
     }

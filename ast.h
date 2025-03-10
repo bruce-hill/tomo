@@ -129,7 +129,7 @@ typedef enum {
     Not, Negative, HeapAllocate, StackReference, Mutexed, Holding,
     Min, Max,
     Array, Set, Table, TableEntry, Comprehension,
-    FunctionDef, Lambda,
+    FunctionDef, Lambda, ConvertDef,
     FunctionCall, MethodCall,
     Block,
     For, While, If, When, Repeat,
@@ -228,6 +228,13 @@ struct ast_s {
             ast_t *cache;
             bool is_inline;
         } FunctionDef;
+        struct {
+            arg_ast_t *args;
+            type_ast_t *ret_type;
+            ast_t *body;
+            ast_t *cache;
+            bool is_inline;
+        } ConvertDef;
         struct {
             arg_ast_t *args;
             type_ast_t *ret_type;

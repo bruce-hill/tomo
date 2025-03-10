@@ -10,7 +10,7 @@ where a different type of string is needed.
 
 ```tomo
 lang HTML:
-    func HTML(t:Text -> HTML):
+    convert(t:Text -> HTML):
         t = t:replace_all({
             $/&/ = "&amp;",
             $/</ = "&lt;",
@@ -74,7 +74,7 @@ instead of building a global function called `execute()` that takes a
 
 ```tomo
 lang Sh:
-    func Sh(text:Text -> Sh):
+    convert(text:Text -> Sh):
         return Sh.without_escaping("'" ++ text:replace($/'/, "''") ++ "'")
 
     func execute(sh:Sh -> Text):
@@ -83,4 +83,23 @@ lang Sh:
 dir := ask("List which dir? ")
 cmd := $Sh@(ls -l @dir)
 result := cmd:execute()
+```
+
+## Conversions
+
+You can define your own rules for converting between types using the `convert`
+keyword. Conversions can be defined either inside of the language's block,
+another type's block or at the top level.
+
+```tomo
+lang Sh:
+    convert(text:Text -> Sh):
+        return Sh.without_escaping("'" ++ text:replace($/'/, "''") ++ "'")
+
+struct Foo(x,y:Int):
+    convert(f:Foo -> Sh):
+        return Sh.without_escaping("$(f.x),$(f.y)")
+
+convert(texts:[Text] -> Sh):
+    return $Sh" ":join([Sh(t) for t in texts])
 ```

@@ -315,6 +315,20 @@ void bind_statement(env_t *env, ast_t *statement)
         set_binding(env, name, type, code);
         break;
     }
+    case ConvertDef: {
+        type_t *type = get_function_def_type(env, statement);
+        type_t *ret_t = Match(type, FunctionType)->ret;
+        const char *name = get_type_name(ret_t);
+        if (!name)
+            code_err(statement, "Conversions are only supported for text, struct, and enum types, not %T", ret_t);
+
+        CORD code = CORD_asprintf("%r%r$%ld", namespace_prefix(env, env->namespace), name,
+                                  get_line_number(statement->file, statement->start));
+        binding_t binding = {.type=type, .code=code};
+        env_t *type_ns = get_namespace_by_type(env, ret_t);
+        Array$insert(&type_ns->namespace->constructors, &binding, I(0), sizeof(binding));
+        break;
+    }
     case StructDef: {
         auto def = Match(statement, StructDef);
         env_t *ns_env = namespace_env(env, def->name);
@@ -460,17 +474,18 @@ void bind_statement(env_t *env, ast_t *statement)
 
 type_t *get_function_def_type(env_t *env, ast_t *ast)
 {
-    auto fn = Match(ast, FunctionDef);
+    arg_ast_t *arg_asts = ast->tag == FunctionDef ? Match(ast, FunctionDef)->args : Match(ast, ConvertDef)->args;
+    type_ast_t *ret_type = ast->tag == FunctionDef ? Match(ast, FunctionDef)->ret_type : Match(ast, ConvertDef)->ret_type;
     arg_t *args = NULL;
     env_t *scope = fresh_scope(env);
-    for (arg_ast_t *arg = fn->args; arg; arg = arg->next) {
+    for (arg_ast_t *arg = arg_asts; arg; arg = arg->next) {
         type_t *t = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->value);
         args = new(arg_t, .name=arg->name, .type=t, .default_val=arg->value, .next=args);
         set_binding(scope, arg->name, t, CORD_EMPTY);
     }
     REVERSE_LIST(args);
 
-    type_t *ret = fn->ret_type ? parse_type_ast(scope, fn->ret_type) : Type(VoidType);
+    type_t *ret = ret_type ? parse_type_ast(scope, ret_type) : Type(VoidType);
     if (has_stack_memory(ret))
         code_err(ast, "Functions can't return stack references because the reference may outlive its stack frame.");
     return Type(FunctionType, .args=args, .ret=ret);
@@ -815,7 +830,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (fn_type_t->tag == TypeInfoType) {
             type_t *t = Match(fn_type_t, TypeInfoType)->type;
 
-            binding_t *constructor = get_constructor(env, t, call->args, t);
+            binding_t *constructor = get_constructor(env, t, call->args);
             if (constructor)
                 return t;
             else if (t->tag == StructType || t->tag == IntType || t->tag == BigIntType || t->tag == NumType
@@ -914,7 +929,7 @@ type_t *get_type(env_t *env, ast_t *ast)
 
         // Early out if the type is knowable without any context from the block:
         switch (last->ast->tag) {
-        case UpdateAssign: case Assign: case Declare: case FunctionDef: case StructDef: case EnumDef: case LangDef:
+        case UpdateAssign: case Assign: case Declare: case FunctionDef: case ConvertDef: case StructDef: case EnumDef: case LangDef:
             return Type(VoidType);
         default: break;
         }
@@ -1236,7 +1251,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         return Type(ClosureType, Type(FunctionType, .args=args, .ret=ret));
     }
 
-    case FunctionDef: case StructDef: case EnumDef: case LangDef: {
+    case FunctionDef: case ConvertDef: case StructDef: case EnumDef: case LangDef: {
         return Type(VoidType);
     }
 
@@ -1393,7 +1408,7 @@ type_t *get_type(env_t *env, ast_t *ast)
 PUREFUNC bool is_discardable(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
-    case UpdateAssign: case Assign: case Declare: case FunctionDef: case StructDef: case EnumDef:
+    case UpdateAssign: case Assign: case Declare: case FunctionDef: case ConvertDef: case StructDef: case EnumDef:
     case LangDef: case Use:
         return true;
     default: break;

@@ -137,6 +137,7 @@ struct type_s {
 int printf_pointer_size(const struct printf_info *info, size_t n, int argtypes[n], int size[n]);
 int printf_type(FILE *stream, const struct printf_info *info, const void *const args[]);
 CORD type_to_cord(type_t *t);
+const char *get_type_name(type_t *t);
 PUREFUNC bool type_eq(type_t *a, type_t *b);
 PUREFUNC bool type_is_a(type_t *t, type_t *req);
 type_t *type_or_type(type_t *a, type_t *b);

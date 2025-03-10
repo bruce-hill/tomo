@@ -105,6 +105,16 @@ CORD type_to_cord(type_t *t) {
     }
 }
 
+PUREFUNC const char *get_type_name(type_t *t)
+{
+    switch (t->tag) {
+    case TextType: return Match(t, TextType)->lang;
+    case StructType: return Match(t, StructType)->name;
+    case EnumType: return Match(t, EnumType)->name;
+    default: return NULL;
+    }
+}
+
 int printf_pointer_size(const struct printf_info *info, size_t n, int argtypes[n], int sizes[n])
 {
     if (n < 1) return -1;
