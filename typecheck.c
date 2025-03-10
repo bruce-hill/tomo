@@ -333,12 +333,20 @@ void bind_statement(env_t *env, ast_t *statement)
             type_t *non_opt_field_t = field_t->tag == OptionalType ? Match(field_t, OptionalType)->type : field_t;
             if ((non_opt_field_t->tag == StructType && Match(non_opt_field_t, StructType)->opaque)
                 || (non_opt_field_t->tag == EnumType && Match(non_opt_field_t, EnumType)->opaque)) {
+
+                file_t *file = NULL;
+                const char *start = NULL, *end = NULL;
+                if (field_ast->type) {
+                    file = field_ast->type->file, start = field_ast->type->start, end = field_ast->type->end;
+                } else if (field_ast->value) {
+                    file = field_ast->value->file, start = field_ast->value->start, end = field_ast->value->end;
+                }
                 if (non_opt_field_t == type)
-                    code_err(field_ast->type, "This is a recursive struct that would be infinitely large. Maybe you meant to use an optional '@%T?' pointer instead?", type);
+                    compiler_err(file, start, end, "This is a recursive struct that would be infinitely large. Maybe you meant to use an optional '@%T?' pointer instead?", type);
                 else
-                    code_err(field_ast->type, "I'm still in the process of defining the fields of %T, so I don't know how to use it as a member."
-                             "\nTry using a @%T pointer for this field.",
-                             field_t, field_t);
+                    compiler_err(file, start, end, "I'm still in the process of defining the fields of %T, so I don't know how to use it as a member."
+                                 "\nTry using a @%T pointer for this field.",
+                                 field_t, field_t);
             }
             fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
         }
@@ -371,12 +379,19 @@ void bind_statement(env_t *env, ast_t *statement)
                 type_t *non_opt_field_t = field_t->tag == OptionalType ? Match(field_t, OptionalType)->type : field_t;
                 if ((non_opt_field_t->tag == StructType && Match(non_opt_field_t, StructType)->opaque)
                     || (non_opt_field_t->tag == EnumType && Match(non_opt_field_t, EnumType)->opaque)) {
+                    file_t *file = NULL;
+                    const char *start = NULL, *end = NULL;
+                    if (field_ast->type) {
+                        file = field_ast->type->file, start = field_ast->type->start, end = field_ast->type->end;
+                    } else if (field_ast->value) {
+                        file = field_ast->value->file, start = field_ast->value->start, end = field_ast->value->end;
+                    }
                     if (non_opt_field_t == type)
-                        code_err(field_ast->type, "This is a recursive enum that would be infinitely large. Maybe you meant to use an optional '@%T?' pointer instead?", type);
+                        compiler_err(file, start, end, "This is a recursive enum that would be infinitely large. Maybe you meant to use an optional '@%T?' pointer instead?", type);
                     else
-                        code_err(field_ast->type, "I'm still in the process of defining the fields of %T, so I don't know how to use it as a member."
-                                 "\nTry using a @%T pointer for this field.",
-                                 field_t, field_t);
+                        compiler_err(file, start, end, "I'm still in the process of defining the fields of %T, so I don't know how to use it as a member."
+                                     "\nTry using a @%T pointer for this field.",
+                                     field_t, field_t);
                 }
                 fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
             }
