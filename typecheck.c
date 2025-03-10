@@ -301,14 +301,6 @@ void bind_statement(env_t *env, ast_t *statement)
         const char *name = Match(def->name, Var)->name;
         type_t *type = get_function_def_type(env, statement);
         binding_t *clobber = get_binding(env, name);
-        if (clobber && clobber->type->tag == TypeInfoType && type_eq(Match(clobber->type, TypeInfoType)->type, Match(type, FunctionType)->ret)) {
-            CORD code = CORD_asprintf("%r%r$%ld", namespace_prefix(env, env->namespace), name,
-                                      get_line_number(statement->file, statement->start));
-            binding_t binding = {.type=type, .code=code};
-            Array$insert(&env->namespace->constructors, &binding, I(0), sizeof(binding));
-            break;
-        }
-
         if (clobber)
             code_err(def->name, "A %T called '%s' has already been defined", clobber->type, name);
         CORD code = CORD_all(namespace_prefix(env, env->namespace), name);
