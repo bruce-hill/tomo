@@ -8,6 +8,8 @@ struct Vec2(x,y:Num):
         return Vec2(a.x-b.x, a.y-b.y)
     func times(a,b:Vec2->Vec2; inline):
         return Vec2(a.x*b.x, a.y*b.y)
+    func negative(v:Vec2->Vec2; inline):
+        return Vec2(-v.x, -v.y)
     func dot(a,b:Vec2->Num; inline):
         return (a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y)
     func cross(a,b:Vec2->Num; inline):
@@ -27,6 +29,10 @@ struct Vec2(x,y:Num):
             return v
         len := v:length()
         return Vec2(v.x/len, v.y/len)
+    func rotated(v:Vec2, radians:Num -> Vec2):
+        cos := radians:cos() or return v
+        sin := radians:sin() or return v
+        return Vec2(cos*v.x - sin*v.y, sin*v.x + cos*v.y)
     func mix(a,b:Vec2, amount:Num -> Vec2):
         return Vec2(
             amount:mix(a.x, b.x),
@@ -41,6 +47,8 @@ struct Vec3(x,y,z:Num):
         return Vec3(a.x-b.x, a.y-b.y, a.z-b.z)
     func times(a,b:Vec3->Vec3; inline):
         return Vec3(a.x*b.x, a.y*b.y, a.z*b.z)
+    func negative(v:Vec3->Vec3; inline):
+        return Vec3(-v.x, -v.y, -v.z)
     func dot(a,b:Vec3->Num; inline):
         return (a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y) + (a.z-b.z)*(a.z-b.z)
     func cross(a,b:Vec3->Vec3; inline):
@@ -74,6 +82,8 @@ struct IVec2(x,y:Int):
         return IVec2(a.x-b.x, a.y-b.y)
     func times(a,b:IVec2->IVec2; inline):
         return IVec2(a.x*b.x, a.y*b.y)
+    func negative(v:IVec2->IVec2; inline):
+        return IVec2(-v.x, -v.y)
     func dot(a,b:IVec2->Int; inline):
         return (a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y)
     func cross(a,b:IVec2->Int; inline):
@@ -99,6 +109,8 @@ struct IVec3(x,y,z:Int):
         return IVec3(a.x-b.x, a.y-b.y, a.z-b.z)
     func times(a,b:IVec3->IVec3; inline):
         return IVec3(a.x*b.x, a.y*b.y, a.z*b.z)
+    func negative(v:IVec3->IVec3; inline):
+        return IVec3(-v.x, -v.y, -v.z)
     func dot(a,b:IVec3->Int; inline):
         return (a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y) + (a.z-b.z)*(a.z-b.z)
     func cross(a,b:IVec3->IVec3; inline):
