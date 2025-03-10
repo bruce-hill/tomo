@@ -338,6 +338,10 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
     if (needed->tag == EnumType)
         return (enum_single_value_tag(needed, actual) != NULL);
 
+    // Lang to Text:
+    if (actual->tag == TextType && needed->tag == TextType && streq(Match(needed, TextType)->lang, "Text"))
+        return true;
+
     // Text to C String
     if (actual->tag == TextType && !Match(actual, TextType)->lang && needed->tag == CStringType)
         return true;

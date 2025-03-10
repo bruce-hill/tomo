@@ -91,6 +91,10 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
         return true;
     }
 
+    // Lang to Text:
+    if (actual->tag == TextType && needed->tag == TextType && streq(Match(needed, TextType)->lang, "Text"))
+        return true;
+
     // Automatic optional checking for nums:
     if (needed->tag == NumType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == NumType) {
         *code = CORD_all("({ ", compile_declaration(actual, "opt"), " = ", *code, "; ",
@@ -2668,7 +2672,7 @@ CORD compile(env_t *env, ast_t *ast)
     case TextLiteral: {
         CORD literal = Match(ast, TextLiteral)->cord; 
         if (literal == CORD_EMPTY)
-            return "Text(\"\")";
+            return "EMPTY_TEXT";
 
         if (string_literal_is_all_ascii(literal))
             return CORD_all("Text(", compile_string_literal(literal), ")");
@@ -2712,7 +2716,10 @@ CORD compile(env_t *env, ast_t *ast)
                         arg_ast_t *args = new(arg_ast_t, .value=chunk->ast);
                         chunk_code = CORD_all(constructor->code, "(", compile_arguments(env, ast, arg_spec, args), ")");
                     } else if (type_eq(text_t, TEXT_TYPE)) {
-                        chunk_code = compile_string(env, chunk->ast, "no");
+                        if (chunk_t->tag == TextType)
+                            chunk_code = compile(env, chunk->ast);
+                        else
+                            chunk_code = compile_string(env, chunk->ast, "no");
                     } else {
                         code_err(chunk->ast, "I don't know how to convert %T to %T", chunk_t, text_t);
                     }
