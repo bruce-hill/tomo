@@ -1,4 +1,5 @@
-
+# This file defines a World object for keeping track of everything, as well
+# as the collision logic.
 use ./player.tm
 use ./raylib.tm
 use ./box.tm

@@ -1,4 +1,4 @@
-# This game demo uses Raylib to present a simple 
+# This game demo uses Raylib to present a simple maze-type game
 use ./raylib.tm
 use ./world.tm
 
