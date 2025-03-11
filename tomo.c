@@ -60,6 +60,7 @@ static void build_file_dependency_graph(Text_t filename, Table_t *to_compile, Ta
 static Text_t escape_lib_name(Text_t lib_name);
 static void build_library(Text_t lib_dir_name);
 static void compile_files(env_t *env, Array_t files, bool only_compile_arguments, Array_t *object_files, Array_t *ldlibs);
+static bool is_stale(Path_t filename, Path_t relative_to);
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
@@ -216,7 +217,7 @@ static void _compile_statement_header_for_library(libheader_info_t *info, ast_t 
 
         Text_t path = Text$from_str(use->path);
         if (!Table$get(*info->used_imports, &path, Table$info(&Path$info, &Path$info))) {
-            Table$set(info->used_imports, &path, &path, Table$info(&Text$info, &Text$info));
+            Table$set(info->used_imports, &path, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
             CORD_put(compile_statement_type_header(info->env, ast), info->output);
             CORD_put(compile_statement_namespace_header(info->env, ast), info->output);
         }
@@ -249,10 +250,10 @@ static void _make_typedefs_for_library(libheader_info_t *info, ast_t *ast)
 
 static void _compile_file_header_for_library(env_t *env, Text_t filename, Table_t *visited_files, Table_t *used_imports, FILE *output)
 {
-    if (Table$get(*visited_files, &filename, Table$info(&Text$info, &Text$info)))
+    if (Table$get(*visited_files, &filename, Table$info(&Text$info, &Bool$info)))
         return;
 
-    Table$set(visited_files, &filename, &filename, Table$info(&Text$info, &Text$info));
+    Table$set(visited_files, &filename, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
 
     ast_t *file_ast = parse_file(Text$as_c_string(filename), NULL);
     if (!file_ast) errx(1, "Could not parse file %k", &filename);
@@ -398,8 +399,7 @@ void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, 
     // for downstream dependencies:
     for (int64_t i = 0; i < dependency_files.entries.length; i++) {
         Path_t filename = *(Path_t*)(dependency_files.entries.data + i*dependency_files.entries.stride);
-        bool is_argument_file = (Table$get(argument_files, &filename, path_table_info) != NULL);
-        transpile_header(env, filename, is_argument_file);
+        transpile_header(env, filename, true);
     }
 
     env->imports = new(Table_t);
@@ -412,16 +412,19 @@ void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, 
     // (Re)transpile and compile object files, eagerly for files explicitly
     // specified and lazily for downstream dependencies:
     for (int64_t i = 0; i < dependency_files.entries.length; i++) {
-        Path_t filename = *(Path_t*)(dependency_files.entries.data + i*dependency_files.entries.stride);
-        bool is_argument_file = (Table$get(argument_files, &filename, path_table_info) != NULL);
-        if (!is_argument_file && only_compile_arguments)
+        struct {
+            Path_t filename;
+            bool stale;
+        } *entry = (dependency_files.entries.data + i*dependency_files.entries.stride);
+        bool is_argument_file = (Table$get(argument_files, &entry->filename, path_table_info) != NULL);
+        if (!is_argument_file && (!entry->stale || only_compile_arguments))
             continue;
 
         pid_t pid = fork();
         if (pid == 0) {
-            transpile_code(env, filename, is_argument_file);
+            transpile_code(env, entry->filename, true);
             if (!stop_at_transpile)
-                compile_object_file(filename, is_argument_file);
+                compile_object_file(entry->filename, true);
             _exit(EXIT_SUCCESS);
         }
         child_processes = new(struct child_s, .next=child_processes, .pid=pid);
@@ -451,10 +454,11 @@ void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, 
 
 void build_file_dependency_graph(Text_t filename, Table_t *to_compile, Table_t *to_link)
 {
-    if (Table$get(*to_compile, &filename, Table$info(&Text$info, &Text$info)))
+    if (Table$get(*to_compile, &filename, Table$info(&Text$info, &Bool$info)))
         return;
 
-    Table$set(to_compile, &filename, &filename, Table$info(&Text$info, &Text$info));
+    bool stale = is_stale(Paths(filename, Path(".o")), filename);
+    Table$set(to_compile, &filename, &stale, Table$info(&Text$info, &Bool$info));
 
     assert(Text$ends_with(filename, Text(".tm")));
 
@@ -473,25 +477,28 @@ void build_file_dependency_graph(Text_t filename, Table_t *to_compile, Table_t *
         switch (use->what) {
         case USE_LOCAL: {
             Text_t resolved = Path$resolved(Text$from_str(use->path), filename);
+            if (!stale && is_stale(Texts(filename, Text(".o")), resolved)) {
+                stale = true;
+                Table$set(to_compile, &filename, &stale, Table$info(&Text$info, &Bool$info));
+            }
             if (Table$get(*to_compile, &resolved, Table$info(&Path$info, &Path$info)))
                 continue;
             build_file_dependency_graph(resolved, to_compile, to_link);
-            Table$set(to_compile, &resolved, &resolved, Table$info(&Text$info, &Text$info));
             break;
         }
         case USE_MODULE: {
             Text_t lib = Text$format("'%s/.local/share/tomo/installed/%s/lib%s.so'", getenv("HOME"), use->path, use->path);
-            Table$set(to_link, &lib, &lib, Table$info(&Text$info, &Text$info));
+            Table$set(to_link, &lib, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
             break;
         }
         case USE_SHARED_OBJECT: {
             Text_t lib = Text$format("-l:%s", use->path);
-            Table$set(to_link, &lib, &lib, Table$info(&Text$info, &Text$info));
+            Table$set(to_link, &lib, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
             break;
         }
         case USE_ASM: {
             Text_t lib = Text$from_str(use->path);
-            Table$set(to_link, &lib, &lib, Table$info(&Text$info, &Text$info));
+            Table$set(to_link, &lib, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
             break;
         }
         default: case USE_HEADER: break;
@@ -499,7 +506,7 @@ void build_file_dependency_graph(Text_t filename, Table_t *to_compile, Table_t *
     }
 }
 
-static bool is_stale(Path_t filename, Path_t relative_to)
+bool is_stale(Path_t filename, Path_t relative_to)
 {
     struct stat target_stat;
     if (stat(Text$as_c_string(filename), &target_stat) != 0)
