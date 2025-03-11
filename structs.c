@@ -52,8 +52,7 @@ CORD compile_struct_header(env_t *env, ast_t *ast)
     CORD fields = CORD_EMPTY;
     for (arg_ast_t *field = def->fields; field; field = field->next) {
         type_t *field_t = get_arg_ast_type(env, field);
-        CORD type_code = compile_type(field_t);
-        fields = CORD_all(fields, type_code, " $", field->name, field_t->tag == BoolType ? ":1" : CORD_EMPTY, ";\n");
+        fields = CORD_all(fields, compile_declaration(field_t, field->name), field_t->tag == BoolType ? ":1" : CORD_EMPTY, ";\n");
     }
     CORD struct_code = CORD_all("struct ", full_name, "$$struct {\n");
     struct_code = CORD_all(struct_code, "};\n");

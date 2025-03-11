@@ -54,7 +54,7 @@ static Text_t foo$Baz$as_text(foo$Baz_t *obj, bool use_color)
 
 public Int_t foo$Baz$frob(struct foo$Baz_s $b)
 {
-    return ($b).$x;
+    return ($b).x;
 }
 ...
 ```

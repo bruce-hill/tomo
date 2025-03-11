@@ -826,7 +826,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
                     const char *var_name = Match(arg->value, Var)->name;
                     if (!streq(var_name, "_")) {
-                        code = CORD_all(code, compile_declaration(field->type, compile(env, arg->value)), " = subject.$", clause_tag_name, ".$", field->name, ";\n");
+                        code = CORD_all(code, compile_declaration(field->type, compile(env, arg->value)), " = subject.$", clause_tag_name, ".", field->name, ";\n");
                         set_binding(scope, Match(arg->value, Var)->name, field->type, CORD_EMPTY);
                     }
                     field = field->next;
@@ -3680,13 +3680,12 @@ CORD compile(env_t *env, ast_t *ast)
         case StructType: {
             for (arg_t *field = Match(value_t, StructType)->fields; field; field = field->next) {
                 if (streq(field->name, f->field)) {
-                    const char *prefix = (value_t == MATCH_TYPE) ? "" : "$";
                     if (fielded_t->tag == PointerType) {
                         CORD fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
-                        return CORD_asprintf("(%r)->%s%s", fielded, prefix, f->field);
+                        return CORD_asprintf("(%r)->%s", fielded, f->field);
                     } else {
                         CORD fielded = compile(env, f->fielded);
-                        return CORD_asprintf("(%r).%s%s", fielded, prefix, f->field);
+                        return CORD_asprintf("(%r).%s", fielded, f->field);
                     }
                 }
             }
