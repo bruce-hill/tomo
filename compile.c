@@ -4027,7 +4027,7 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
 
 CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
 {
-    bool is_private = false, is_main = false;
+    bool is_private = false;
     const char *function_name;
     arg_ast_t *args;
     type_t *ret_t;
@@ -4038,7 +4038,6 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
         auto fndef = Match(ast, FunctionDef);
         function_name = Match(fndef->name, Var)->name;
         is_private = function_name[0] == '_';
-        is_main = streq(function_name, "main");
         args = fndef->args;
         ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
         body = fndef->body;
@@ -4114,8 +4113,6 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
     }
 
     CORD body_code = compile_statement(body_scope, body);
-    if (is_main)
-        body_code = CORD_all("_$", env->namespace->name, "$$initialize();\n", body_code);
     if (CORD_fetch(body_code, 0) != '{')
         body_code = CORD_asprintf("{\n%r\n}", body_code);
 
