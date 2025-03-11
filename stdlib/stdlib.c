@@ -601,7 +601,7 @@ public void start_test(const char *filename, int64_t start, int64_t end)
     ++TEST_DEPTH;
 }
 
-public void end_test(const void *expr, const TypeInfo_t *type, const char *expected)
+public void end_test(const void *expr, const TypeInfo_t *type)
 {
     --TEST_DEPTH;
     if (!expr || !type) return;
@@ -611,29 +611,36 @@ public void end_test(const void *expr, const TypeInfo_t *type, const char *expec
 
     for (int i = 0; i < 3*TEST_DEPTH; i++) fputc(' ', stderr);
     fprintf(stderr, USE_COLOR ? "\x1b[2m=\x1b[0m %k \x1b[2m: \x1b[36m%k\x1b[m\n" : "= %k : %k\n", &expr_text, &type_name);
-    if (expected && expected[0]) {
-        Text_t expected_text = Text$from_str(expected);
-        Text_t expr_plain = USE_COLOR ? generic_as_text(expr, false, type) : expr_text;
-        bool success = Text$equal_values(expr_plain, expected_text);
-        if (!success) {
-            OptionalMatch_t colon = Text$find(expected_text, Text(":"), I_small(1));
-            if (colon.index.small) {
-                Text_t with_type = Text$concat(expr_plain, Text(" : "), type_name);
-                success = Text$equal_values(with_type, expected_text);
-            }
-        }
+}
 
-        if (!success) {
-            fprintf(stderr, 
-                    USE_COLOR
-                    ? "\n\x1b[31;7m ==================== TEST FAILED ==================== \x1b[0;1m\n\nExpected: \x1b[1;32m%s\x1b[0m\n\x1b[1m But got:\x1b[m %k\n\n"
-                    : "\n==================== TEST FAILED ====================\n\nExpected: %s\n But got: %k\n\n",
-                    expected, &expr_text);
+public void test_value(const void *expr, const TypeInfo_t *type, const char *expected)
+{
+    if (!expr || !type || !expected) return;
 
-            print_stack_trace(stderr, 2, 4);
-            fflush(stderr);
-            raise(SIGABRT);
+    Text_t expr_text = generic_as_text(expr, USE_COLOR, type);
+    Text_t type_name = generic_as_text(NULL, false, type);
+
+    Text_t expected_text = Text$from_str(expected);
+    Text_t expr_plain = USE_COLOR ? generic_as_text(expr, false, type) : expr_text;
+    bool success = Text$equal_values(expr_plain, expected_text);
+    if (!success) {
+        OptionalMatch_t colon = Text$find(expected_text, Text(":"), I_small(1));
+        if (colon.index.small) {
+            Text_t with_type = Text$concat(expr_plain, Text(" : "), type_name);
+            success = Text$equal_values(with_type, expected_text);
         }
+    }
+
+    if (!success) {
+        print_stack_trace(stderr, 2, 4);
+        fprintf(stderr, 
+                USE_COLOR
+                ? "\n\x1b[31;7m ==================== TEST FAILED ==================== \x1b[0;1m\n\nExpected: \x1b[1;32m%s\x1b[0m\n\x1b[1m But got:\x1b[m %k\n\n"
+                : "\n==================== TEST FAILED ====================\n\nExpected: %s\n But got: %k\n\n",
+                expected, &expr_text);
+
+        fflush(stderr);
+        raise(SIGABRT);
     }
 }
 
