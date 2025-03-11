@@ -33,7 +33,6 @@
 static OptionalArray_t files = NONE_ARRAY,
                        args = NONE_ARRAY;
 static OptionalBool_t verbose = false,
-                      quiet = false,
                       stop_at_transpile = false,
                       stop_at_obj_compilation = false,
                       stop_at_exe_compilation = false,
@@ -94,7 +93,6 @@ int main(int argc, char *argv[])
                         "  --install|-I: install the executable or library\n"
                         "  --c-compiler <compiler>: the C compiler to use (default: cc)\n"
                         "  --optimization|-O <level>: set optimization level\n"
-                        "  --quiet|-q: quiet output\n"
                         "  --run|-r: run a program from ~/.local/share/tomo/installed\n"
                         );
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
@@ -121,8 +119,6 @@ int main(int argc, char *argv[])
         {"c-compiler", false, &Text$info, &cc},
         {"optimization", false, &Text$info, &optimization},
         {"O", false, &Text$info, &optimization},
-        {"quiet", false, &Bool$info, &quiet},
-        {"q", false, &Bool$info, &quiet},
     );
     
     if (show_codegen.length > 0 && Text$equal_values(show_codegen, Text("pretty")))
@@ -347,7 +343,7 @@ void build_library(Text_t lib_dir_name)
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);
 
-    if (!quiet || verbose)
+    if (verbose)
         printf("\x1b[2mCompiled to lib%k.so\x1b[m\n", &lib_dir_name);
 
     prog = run_cmd("objcopy --redefine-syms=symbol_renames.txt 'lib%k.so'", &lib_dir_name);
@@ -533,7 +529,7 @@ void transpile_header(env_t *base_env, Text_t filename, bool force_retranspile)
     if (fclose(header) == -1)
         errx(1, "Failed to write header file: %k", &h_filename);
 
-    if (!quiet || verbose)
+    if (verbose)
         printf("\x1b[2mTranspiled to %k\x1b[m\n", &h_filename);
 
     if (show_codegen.length > 0)
@@ -580,7 +576,7 @@ void transpile_code(env_t *base_env, Text_t filename, bool force_retranspile)
     if (fclose(c_file) == -1)
         errx(1, "Failed to output C code to %k", &c_filename);
 
-    if (!quiet || verbose)
+    if (verbose)
         printf("\x1b[2mTranspiled to %k\x1b[m\n", &c_filename);
 
     if (show_codegen.length > 0)
@@ -606,7 +602,7 @@ void compile_object_file(Text_t filename, bool force_recompile)
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);
 
-    if (!quiet || verbose)
+    if (verbose)
         printf("\x1b[2mCompiled to %k\x1b[m\n", &obj_file);
 }
 
@@ -642,7 +638,7 @@ Text_t compile_executable(env_t *base_env, Text_t filename, Array_t object_files
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);
 
-    if (!quiet || verbose)
+    if (verbose)
         printf("\x1b[2mCompiled executable: %k\x1b[m\n", &bin_name);
     return bin_name;
 }
