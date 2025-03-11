@@ -1,5 +1,5 @@
 func main():
-	>> str := "Hello Amélie!"
+	str := "Hello Amélie!"
 	!! Testing strings like $str
 
 	>> str:upper()
@@ -49,7 +49,7 @@ func main():
 	>> \UE9 == \U65\U301
 	= yes
 
-	>> amelie := "Am$(\UE9)lie"
+	amelie := "Am$(\UE9)lie"
 	>> amelie:split()
 	= ["A", "m", "é", "l", "i", "e"] : [Text]
 	>> amelie:utf32_codepoints()
@@ -61,7 +61,7 @@ func main():
 	>> Text.from_bytes([Byte(0xFF)])
 	= none : Text?
 
-	>> amelie2 := "Am$(\U65\U301)lie"
+	amelie2 := "Am$(\U65\U301)lie"
 	>> amelie2:split()
 	= ["A", "m", "é", "l", "i", "e"] : [Text]
 	>> amelie2:utf32_codepoints()
@@ -113,7 +113,7 @@ func main():
 	= " one"
 
 	>> amelie:has($/$amelie2/)
-
+	= yes
 
 	>> multiline := "
 		line one
@@ -143,7 +143,7 @@ func main():
 	>> "one two three":replace($/{alpha}/, "word")
 	= "word word word"
 
-	>> c := "É̩"
+	c := "É̩"
 	>> c:codepoint_names()
 	= ["LATIN CAPITAL LETTER E WITH ACUTE", "COMBINING VERTICAL LINE BELOW"]
 	>> c == Text.from_codepoint_names(c:codepoint_names())!
@@ -251,7 +251,7 @@ func main():
 	>> "one two; three four":find_all($/; {..}/)
 	= [Match(text="; three four", index=8, captures=["three four"])]
 
-	>> malicious := "{xxx}"
+	malicious := "{xxx}"
 	>> $/$malicious/
 	= $/{1{}xxx}/
 
@@ -321,14 +321,14 @@ func main():
 
 	do:
 		!! Testing concatenation-stability:
-		>> ab := Text.from_codepoint_names(["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"])!
+		ab := Text.from_codepoint_names(["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"])!
 		>> ab:codepoint_names()
 		= ["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"]
 		>> ab.length
 		= 1
 
-		>> a := Text.from_codepoint_names(["LATIN SMALL LETTER E"])!
-		>> b := Text.from_codepoint_names(["COMBINING VERTICAL LINE BELOW"])!
+		a := Text.from_codepoint_names(["LATIN SMALL LETTER E"])!
+		b := Text.from_codepoint_names(["COMBINING VERTICAL LINE BELOW"])!
 		>> (a++b):codepoint_names()
 		= ["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"]
 		>> (a++b) == ab
@@ -338,25 +338,25 @@ func main():
 
 
 	do:
-		>> concat := "e" ++ Text.from_codepoints([Int32(0x300)])
+		concat := "e" ++ Text.from_codepoints([Int32(0x300)])
 		>> concat.length
 		= 1
 
-		>> concat2 := concat ++ Text.from_codepoints([Int32(0x302)])
+		concat2 := concat ++ Text.from_codepoints([Int32(0x302)])
 		>> concat2.length
 		= 1
 
-		>> concat3 := concat2 ++ Text.from_codepoints([Int32(0x303)])
+		concat3 := concat2 ++ Text.from_codepoints([Int32(0x303)])
 		>> concat3.length
 		= 1
 
-		>> final := Text.from_codepoints([Int32(0x65), Int32(0x300), Int32(0x302), Int32(0x303)])
+		final := Text.from_codepoints([Int32(0x65), Int32(0x300), Int32(0x302), Int32(0x303)])
 		>> final.length
 		= 1
 		>> concat3 == final
 		= yes
 
-		>> concat4 := Text.from_codepoints([Int32(0x65), Int32(0x300)]) ++ Text.from_codepoints([Int32(0x302), Int32(0x303)])
+		concat4 := Text.from_codepoints([Int32(0x65), Int32(0x300)]) ++ Text.from_codepoints([Int32(0x302), Int32(0x303)])
 		>> concat4.length
 		= 1
 		>> concat4 == final
