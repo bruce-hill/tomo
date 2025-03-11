@@ -11,6 +11,9 @@ lang Colorful:
         text = text:replace_all({$/@/="@(at)", $/(/="@(lparen)", $/)/="@(rparen)"})
         return Colorful.without_escaping(text)
 
+    convert(i:Int -> Colorful): return Colorful.without_escaping("$i")
+    convert(n:Num -> Colorful): return Colorful.without_escaping("$n")
+
     func for_terminal(c:Colorful -> Text):
         return CSI ++ "m" ++ _for_terminal(c, _TermState())
 
