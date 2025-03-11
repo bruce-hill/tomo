@@ -4524,9 +4524,10 @@ CORD compile_statement_namespace_header(env_t *env, ast_t *ast)
 
         type_t *ret_t = def->ret_type ? parse_type_ast(env, def->ret_type) : Type(VoidType);
         CORD ret_type_code = compile_type(ret_t);
-        const char *name = get_type_name(ret_t);
+        CORD name = get_type_name(ret_t);
         if (!name)
             code_err(ast, "Conversions are only supported for text, struct, and enum types, not %T", ret_t);
+        name = CORD_all(namespace_prefix(env, env->namespace), name);
         CORD name_code = CORD_asprintf("%s$%ld", name, get_line_number(ast->file, ast->start));
         return CORD_all(ret_type_code, " ", name_code, arg_signature, ";\n");
     }
@@ -4566,7 +4567,7 @@ static void _make_typedefs(compile_typedef_info_t *info, ast_t *ast)
     }
 }
 
-static void _define_types(compile_typedef_info_t *info, ast_t *ast)
+static void _define_types_and_funcs(compile_typedef_info_t *info, ast_t *ast)
 {
     *info->header = CORD_all(*info->header,
                              compile_statement_type_header(info->env, ast),
@@ -4582,7 +4583,7 @@ CORD compile_file_header(env_t *env, ast_t *ast)
 
     compile_typedef_info_t info = {.env=env, .header=&header};
     visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn=(void*)_make_typedefs, &info});
-    visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn=(void*)_define_types, &info});
+    visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn=(void*)_define_types_and_funcs, &info});
 
     header = CORD_all(header, "void _$", env->namespace->name, "$$initialize(void);\n");
     return header;
