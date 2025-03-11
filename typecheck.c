@@ -86,10 +86,11 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
                 code_err(table_type->value, "Tables can't have stack references because the array may outlive the stack frame.");
             else if (val_type->tag == OptionalType)
                 code_err(ast, "Tables with optional-typed values are not currently supported");
-            return Type(TableType, .key_type=key_type, .value_type=val_type);
+            return Type(TableType, .key_type=key_type, .value_type=val_type, .env=env);
         } else if (table_type->default_value) {
             type_t *t = Type(TableType, .key_type=key_type,
-                             .value_type=get_type(env, table_type->default_value), .default_value=table_type->default_value);
+                             .value_type=get_type(env, table_type->default_value), .default_value=table_type->default_value,
+                             .env=env);
             if (has_stack_memory(t))
                 code_err(ast, "Tables can't have stack references because the array may outlive the stack frame.");
             return t;
@@ -761,7 +762,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         }
         if (has_stack_memory(key_type) || has_stack_memory(value_type))
             code_err(ast, "Tables cannot hold stack references because the table may outlive the reference's stack frame.");
-        return Type(TableType, .key_type=key_type, .value_type=value_type, .default_value=table->default_value);
+        return Type(TableType, .key_type=key_type, .value_type=value_type, .default_value=table->default_value, .env=env);
     }
     case TableEntry: {
         code_err(ast, "Table entries should not be typechecked directly");
@@ -773,7 +774,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             return get_type(scope, comp->expr);
         } else if (comp->expr->tag == TableEntry) {
             auto e = Match(comp->expr, TableEntry);
-            return Type(TableType, .key_type=get_type(scope, e->key), .value_type=get_type(scope, e->value));
+            return Type(TableType, .key_type=get_type(scope, e->key), .value_type=get_type(scope, e->value), .env=env);
         } else {
             return Type(ArrayType, .item_type=get_type(scope, comp->expr));
         }

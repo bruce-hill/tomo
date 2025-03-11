@@ -36,7 +36,7 @@ CORD compile_struct_typeinfo(env_t *env, ast_t *ast)
         typeinfo = CORD_asprintf("%r, .StructInfo.fields=(NamedType_t[%d]){", typeinfo, num_fields);
         for (arg_ast_t *f = def->fields; f; f = f->next) {
             type_t *field_type = get_arg_ast_type(env, f);
-            typeinfo = CORD_all(typeinfo, "{\"", f->name, "\", ", compile_type_info(env, field_type), "}");
+            typeinfo = CORD_all(typeinfo, "{\"", f->name, "\", ", compile_type_info(field_type), "}");
             if (f->next) typeinfo = CORD_all(typeinfo, ", ");
         }
         typeinfo = CORD_all(typeinfo, "}");

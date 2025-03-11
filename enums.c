@@ -42,7 +42,7 @@ CORD compile_enum_typeinfo(env_t *env, ast_t *ast)
         const char *tag_type_name = heap_strf("%s$%s", def->name, tag->name);
         type_t *tag_type = Table$str_get(*env->types, tag_type_name);
         if (tag_type && Match(tag_type, StructType)->fields)
-            typeinfo = CORD_all(typeinfo, "{\"", tag->name, "\", ", compile_type_info(env, tag_type), "}, ");
+            typeinfo = CORD_all(typeinfo, "{\"", tag->name, "\", ", compile_type_info(tag_type), "}, ");
         else
             typeinfo = CORD_all(typeinfo, "{\"", tag->name, "\"}, ");
     }
