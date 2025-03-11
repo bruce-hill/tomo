@@ -51,15 +51,12 @@ CORD compile_struct_header(env_t *env, ast_t *ast)
         type_t *field_t = get_arg_ast_type(env, field);
         fields = CORD_all(fields, compile_declaration(field_t, field->name), field_t->tag == BoolType ? ":1" : CORD_EMPTY, ";\n");
     }
-    CORD struct_code = CORD_all("struct ", full_name, "$$struct {\n");
-    struct_code = CORD_all(struct_code, "};\n");
+    CORD struct_code = def->external ? CORD_EMPTY : CORD_all("struct ", full_name, "$$struct {\n", fields, "};\n");
     type_t *t = Table$str_get(*env->types, def->name);
     return CORD_all(
-        "struct ", full_name, "$$struct {\n",
-        fields,
-        "};\n",
+        struct_code,
         "DEFINE_OPTIONAL_TYPE(", compile_type(t), ", ", heap_strf("%zu", unpadded_struct_size(t)),
-        ", ", namespace_prefix(env, env->namespace), "$Optional", def->name, "$$type);\n"
+            ", ", namespace_prefix(env, env->namespace), "$Optional", def->name, "$$type);\n"
         "extern const TypeInfo_t ", full_name, "$$info;\n");
 }
 

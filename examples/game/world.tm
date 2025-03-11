@@ -1,12 +1,10 @@
 
-use vectors
-
 use ./player.tm
-use ./color.tm
+use ./raylib.tm
 use ./box.tm
 
 # Return a displacement relative to `a` that will push it out of `b`
-func solve_overlap(a_pos:Vec2, a_size:Vec2, b_pos:Vec2, b_size:Vec2 -> Vec2):
+func solve_overlap(a_pos:Vector2, a_size:Vector2, b_pos:Vector2, b_size:Vector2 -> Vector2):
     a_left := a_pos.x
     a_right := a_pos.x + a_size.x
     a_top := a_pos.y
@@ -23,27 +21,26 @@ func solve_overlap(a_pos:Vec2, a_size:Vec2, b_pos:Vec2, b_size:Vec2 -> Vec2):
 
     # If either axis is not overlapping, then there is no collision:
     if overlap_x <= 0 or overlap_y <= 0:
-        return Vec2(0, 0)
+        return Vector2(0, 0)
 
     if overlap_x < overlap_y:
         if a_right > b_left and a_right < b_right:
-            return Vec2(-(overlap_x), 0)
+            return Vector2(-(overlap_x), 0)
         else if a_left < b_right and a_left > b_left:
-            return Vec2(overlap_x, 0)
+            return Vector2(overlap_x, 0)
     else:
         if a_top < b_bottom and a_top > b_top:
-            return Vec2(0, overlap_y)
+            return Vector2(0, overlap_y)
         else if a_bottom > b_top and a_bottom < b_bottom:
-            return Vec2(0, -overlap_y)
+            return Vector2(0, -overlap_y)
 
-    return Vec2(0, 0)
+    return Vector2(0, 0)
 
-struct World(player:@Player, goal:@Box, boxes:@[@Box], dt_accum=0.0, won=no):
-    DT := 1./60.
-    CURRENT := @World(@Player(Vec2(0,0), Vec2(0,0)), @Box(Vec2(0,0), Vec2(0,0), Color.GOAL), @[:@Box])
-    STIFFNESS := 0.3
+struct World(player:@Player, goal:@Box, boxes:@[@Box], dt_accum=Num32(0.0), won=no):
+    DT := (Num32(1.)/Num32(60.))!
+    STIFFNESS := Num32(0.3)
 
-    func update(w:@World, dt:Num):
+    func update(w:@World, dt:Num32):
         w.dt_accum += dt
         while w.dt_accum > 0:
             w:update_once()
@@ -52,7 +49,7 @@ struct World(player:@Player, goal:@Box, boxes:@[@Box], dt_accum=0.0, won=no):
     func update_once(w:@World):
         w.player:update()
 
-        if solve_overlap(w.player.pos, Player.SIZE, w.goal.pos, w.goal.size) != Vec2(0,0):
+        if solve_overlap(w.player.pos, Player.SIZE, w.goal.pos, w.goal.size) != Vector2(0,0):
             w.won = yes
 
         # Resolve player overlapping with any boxes:
@@ -67,26 +64,24 @@ struct World(player:@Player, goal:@Box, boxes:@[@Box], dt_accum=0.0, won=no):
         w.player:draw()
 
         if w.won:
-            inline C {
-                DrawText("WINNER", GetScreenWidth()/2-48*3, GetScreenHeight()/2-24, 48, (Color){0,0,0,0xFF});
-            }
+            DrawText(CString("WINNER"), GetScreenWidth()/Int32(2)-Int32(48*3), GetScreenHeight()/Int32(2)-Int32(24), 48, Color(0,0,0))
 
     func load_map(w:@World, map:Text):
         if map:has($/[]/):
             map = map:replace_all({$/[]/="#", $/@{1..}/="@", $/  /=" "})
         w.boxes = @[:@Box]
-        box_size := Vec2(50., 50.)
+        box_size := Vector2(50., 50.)
         for y,line in map:lines():
             for x,cell in line:split():
                 if cell == "#":
-                    pos := Vec2((Num(x)-1) * box_size.x, (Num(y)-1) * box_size.y)
-                    box := @Box(pos, size=box_size, color=Color.GRAY)
+                    pos := Vector2((Num32(x)-1) * box_size.x, (Num32(y)-1) * box_size.y)
+                    box := @Box(pos, size=box_size, color=Color(0x80,0x80,0x80))
                     w.boxes:insert(box)
                 else if cell == "@":
-                    pos := Vec2((Num(x)-1) * box_size.x, (Num(y)-1) * box_size.y)
-                    pos += box_size/2. - Player.SIZE/2.
+                    pos := Vector2((Num32(x)-1) * box_size.x, (Num32(y)-1) * box_size.y)
+                    pos += box_size/Num32(2) - Player.SIZE/Num32(2)
                     w.player = @Player(pos,pos)
                 else if cell == "?":
-                    pos := Vec2((Num(x)-1) * box_size.x, (Num(y)-1) * box_size.y)
-                    w.goal = @Box(pos, size=box_size, color=Color.GOAL)
+                    pos := Vector2((Num32(x)-1) * box_size.x, (Num32(y)-1) * box_size.y)
+                    w.goal.pos = pos
 

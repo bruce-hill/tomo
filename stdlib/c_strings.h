@@ -7,7 +7,7 @@
 
 #include "types.h"
 
-Text_t CString$as_text(char **str, bool colorize, const TypeInfo_t *info);
+Text_t CString$as_text(const char **str, bool colorize, const TypeInfo_t *info);
 Text_t CString$as_text_simple(const char *str);
 PUREFUNC int CString$compare(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC bool CString$equal(const void *x, const void *y, const TypeInfo_t *type);

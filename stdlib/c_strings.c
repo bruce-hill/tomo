@@ -15,7 +15,7 @@ public Text_t CString$as_text(const void *c_string, bool colorize, const TypeInf
 {
     (void)info;
     if (!c_string) return Text("CString");
-    Text_t text = Text$from_str(*(char**)c_string);
+    Text_t text = Text$from_str(*(const char**)c_string);
     return Text$concat(colorize ? Text("\x1b[34mCString\x1b[m(") : Text("CString("), Text$quoted(text, colorize), Text(")"));
 }
 
@@ -29,10 +29,10 @@ PUREFUNC public int32_t CString$compare(const void *x, const void *y, const Type
     if (x == y)
         return 0;
 
-    if (!*(char**)x != !*(char**)y)
-        return (!*(char**)y) - (!*(char**)x);
+    if (!*(const char**)x != !*(const char**)y)
+        return (!*(const char**)y) - (!*(const char**)x);
 
-    return strcmp(*(char**)x, *(char**)y);
+    return strcmp(*(const char**)x, *(const char**)y);
 }
 
 PUREFUNC public bool CString$equal(const void *x, const void *y, const TypeInfo_t *type)
@@ -42,13 +42,13 @@ PUREFUNC public bool CString$equal(const void *x, const void *y, const TypeInfo_
 
 PUREFUNC public uint64_t CString$hash(const void *c_str, const TypeInfo_t*)
 {
-    if (!*(char**)c_str) return 0;
-    return siphash24(*(void**)c_str, strlen(*(char**)c_str));
+    if (!*(const char**)c_str) return 0;
+    return siphash24(*(void**)c_str, strlen(*(const char**)c_str));
 }
 
 PUREFUNC public bool CString$is_none(const void *c_str, const TypeInfo_t*)
 {
-    return *(char**)c_str == NULL;
+    return *(const char**)c_str == NULL;
 }
 
 static void CString$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t*)
@@ -66,12 +66,12 @@ static void CString$deserialize(FILE *in, void *out, Array_t *pointers, const Ty
     char *str = GC_MALLOC_ATOMIC((size_t)len+1);
     fread(str, sizeof(char), (size_t)len, in);
     str[len+1] = '\0';
-    *(char**)out = str;
+    *(const char**)out = str;
 }
 
 public const TypeInfo_t CString$info = {
-    .size=sizeof(char*),
-    .align=__alignof__(char*),
+    .size=sizeof(const char*),
+    .align=__alignof__(const char*),
     .metamethods={
         .hash=CString$hash,
         .compare=CString$compare,

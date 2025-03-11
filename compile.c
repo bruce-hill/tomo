@@ -511,7 +511,7 @@ CORD compile_type(type_t *t)
     case MutexedType: return "MutexedData_t";
     case BoolType: return "Bool_t";
     case ByteType: return "Byte_t";
-    case CStringType: return "char*";
+    case CStringType: return "const char*";
     case MomentType: return "Moment_t";
     case BigIntType: return "Int_t";
     case IntType: return CORD_asprintf("Int%ld_t", Match(t, IntType)->bits);
@@ -547,7 +547,7 @@ CORD compile_type(type_t *t)
     case PointerType: return CORD_cat(compile_type(Match(t, PointerType)->pointed), "*");
     case StructType: {
         auto s = Match(t, StructType);
-        if (s->external) return CORD_all("struct ", s->name);
+        if (s->external) return s->name;
         return CORD_all("struct ", namespace_prefix(s->env, s->env->namespace->parent), s->name, "$$struct");
     }
     case EnumType: {
