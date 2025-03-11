@@ -25,4 +25,4 @@ struct Player(pos,prev_pos:Vector2):
         p.prev_pos, p.pos = p.pos, p.pos + World.DT*vel
 
     func draw(p:Player):
-        DrawRectangleRec(Rectangle(p.pos.x, p.pos.y, Player.SIZE.x, Player.SIZE.y), Player.COLOR)
+        DrawRectangleV(p.pos, Player.SIZE, Player.COLOR)
