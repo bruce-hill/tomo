@@ -107,14 +107,14 @@ struct type_s {
         struct {
             const char *name;
             arg_t *fields;
-            bool opaque;
             struct env_s *env;
+            bool opaque;
         } StructType;
         struct {
             const char *name;
             tag_t *tags;
-            bool opaque;
             struct env_s *env;
+            bool opaque;
         } EnumType;
         struct {
             type_t *type;
