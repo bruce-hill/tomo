@@ -232,7 +232,7 @@ void prebind_statement(env_t *env, ast_t *statement)
             code_err(statement, "A %T called '%s' has already been defined", get_binding(env, def->name)->type, def->name);
 
         env_t *ns_env = namespace_env(env, def->name);
-        type_t *type = Type(StructType, .name=def->name, .opaque=true, .env=ns_env); // placeholder
+        type_t *type = Type(StructType, .name=def->name, .opaque=true, .external=def->external, .env=ns_env); // placeholder
         Table$str_set(env->types, def->name, type);
         set_binding(env, def->name, Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
                     CORD_all(namespace_prefix(env, env->namespace), def->name, "$$info"));
@@ -355,15 +355,8 @@ void bind_statement(env_t *env, ast_t *statement)
         type->__data.StructType.fields = fields; // populate placeholder
         type->__data.StructType.opaque = false;
 
-        // Default constructor:
-        type_t *constructor_t = Type(FunctionType, .args=fields, .ret=type);
-        Array$insert(&ns_env->namespace->constructors,
-                     new(binding_t, .code=CORD_all(namespace_prefix(env, env->namespace), def->name), .type=constructor_t),
-                     I(0), sizeof(binding_t));
-        
-        for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
+        for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             bind_statement(ns_env, stmt->ast);
-        }
         break;
     }
     case EnumDef: {

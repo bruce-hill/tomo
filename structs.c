@@ -12,17 +12,14 @@
 #include "typecheck.h"
 #include "stdlib/util.h"
 
-CORD compile_struct_typeinfo(env_t *env, ast_t *ast)
+CORD compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t *fields, bool is_secret)
 {
-    auto def = Match(ast, StructDef);
-    CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
+    CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), name);
 
-    type_t *t = Table$str_get(*env->types, def->name);
-    assert(t && t->tag == StructType);
     int num_fields = 0;
-    for (arg_ast_t *f = def->fields; f; f = f->next)
+    for (arg_ast_t *f = fields; f; f = f->next)
         num_fields += 1;
-    const char *short_name = def->name;
+    const char *short_name = name;
     if (strchr(short_name, '$'))
         short_name = strrchr(short_name, '$') + 1;
 
@@ -30,11 +27,11 @@ CORD compile_struct_typeinfo(env_t *env, ast_t *ast)
     CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r$$info = {.size=%zu, .align=%zu, .metamethods=%s, "
                                   ".tag=StructInfo, .StructInfo.name=\"%s\"%s, "
                                   ".StructInfo.num_fields=%ld",
-                                  full_name, type_size(t), type_align(t), metamethods, short_name, def->secret ? ", .StructInfo.is_secret=true" : "",
+                                  full_name, type_size(t), type_align(t), metamethods, short_name, is_secret ? ", .StructInfo.is_secret=true" : "",
                                   num_fields);
-    if (def->fields) {
+    if (fields) {
         typeinfo = CORD_asprintf("%r, .StructInfo.fields=(NamedType_t[%d]){", typeinfo, num_fields);
-        for (arg_ast_t *f = def->fields; f; f = f->next) {
+        for (arg_ast_t *f = fields; f; f = f->next) {
             type_t *field_type = get_arg_ast_type(env, f);
             typeinfo = CORD_all(typeinfo, "{\"", f->name, "\", ", compile_type_info(field_type), "}");
             if (f->next) typeinfo = CORD_all(typeinfo, ", ");
@@ -61,11 +58,8 @@ CORD compile_struct_header(env_t *env, ast_t *ast)
         "struct ", full_name, "$$struct {\n",
         fields,
         "};\n",
-        "DEFINE_OPTIONAL_TYPE(", full_name, "$$type, ", heap_strf("%zu", unpadded_struct_size(t)),
+        "DEFINE_OPTIONAL_TYPE(", compile_type(t), ", ", heap_strf("%zu", unpadded_struct_size(t)),
         ", ", namespace_prefix(env, env->namespace), "$Optional", def->name, "$$type);\n"
-        // Constructor macro:
-        "#define ", namespace_prefix(env, env->namespace), def->name,
-            "(...) ((", namespace_prefix(env, env->namespace), def->name, "$$type){__VA_ARGS__})\n"
         "extern const TypeInfo_t ", full_name, "$$info;\n");
 }
 

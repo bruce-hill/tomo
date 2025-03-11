@@ -547,6 +547,7 @@ CORD compile_type(type_t *t)
     case PointerType: return CORD_cat(compile_type(Match(t, PointerType)->pointed), "*");
     case StructType: {
         auto s = Match(t, StructType);
+        if (s->external) return CORD_all("struct ", s->name);
         return CORD_all("struct ", namespace_prefix(s->env, s->env->namespace->parent), s->name, "$$struct");
     }
     case EnumType: {
@@ -3395,10 +3396,15 @@ CORD compile(env_t *env, ast_t *ast)
                     return "\"\"";
                 else if (call->args->value->tag == TextJoin && Match(call->args->value, TextJoin)->children->next == NULL)
                     return compile_string_literal(Match(Match(call->args->value, TextJoin)->children->ast, TextLiteral)->cord);
-                return CORD_all("Text$as_c_string(", expr_as_text(env, compile(env, call->args->value), actual, "no"), ")");
-            } else {
-                code_err(ast, "I could not find a constructor matching these arguments for %T", t);
+                return CORD_all("Text$as_c_string(", expr_as_text(compile(env, call->args->value), actual, "no"), ")");
+            } else if (t->tag == StructType) {
+                auto struct_ = Match(t, StructType);
+                if (!struct_->opaque && is_valid_call(env, struct_->fields, call->args, true)) {
+                    return CORD_all("((", compile_type(t), "){",
+                                    compile_arguments(env, ast, struct_->fields, call->args), "})");
+                }
             }
+            code_err(ast, "I could not find a constructor matching these arguments for %T", t);
         } else if (fn_t->tag == ClosureType) {
             fn_t = Match(fn_t, ClosureType)->fn;
             arg_t *type_args = Match(fn_t, FunctionType)->args;
@@ -4258,7 +4264,9 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
     }
     case StructDef: {
         auto def = Match(ast, StructDef);
-        CORD code = compile_struct_typeinfo(env, ast);
+        type_t *t = Table$str_get(*env->types, def->name);
+        assert(t && t->tag == StructType);
+        CORD code = compile_struct_typeinfo(env, t, def->name, def->fields, def->secret);
         env_t *ns_env = namespace_env(env, def->name);
         return CORD_all(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : CORD_EMPTY);
     }
@@ -4277,6 +4285,7 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
         env_t *ns_env = namespace_env(env, def->name);
         return CORD_all(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : CORD_EMPTY);
     }
+    case Extern: return CORD_EMPTY;
     case Block: {
         CORD code = CORD_EMPTY;
         for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
@@ -4536,6 +4545,7 @@ static void _make_typedefs(compile_typedef_info_t *info, ast_t *ast)
 {
     if (ast->tag == StructDef) {
         auto def = Match(ast, StructDef);
+        if (def->external) return;
         CORD full_name = CORD_cat(namespace_prefix(info->env, info->env->namespace), def->name);
         *info->header = CORD_all(*info->header, "typedef struct ", full_name, "$$struct ", full_name, "$$type;\n");
     } else if (ast->tag == EnumDef) {

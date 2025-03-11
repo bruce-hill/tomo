@@ -293,7 +293,7 @@ struct ast_s {
             const char *name;
             arg_ast_t *fields;
             ast_t *namespace;
-            bool secret:1;
+            bool secret:1, external:1;
         } StructDef;
         struct {
             const char *name;

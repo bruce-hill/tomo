@@ -2111,12 +2111,14 @@ PARSER(parse_struct_def) {
     arg_ast_t *fields = parse_args(ctx, &pos);
 
     whitespace(&pos);
-    bool secret = false;
+    bool secret = false, external = false;
     if (match(&pos, ";")) { // Extra flags
         whitespace(&pos);
         for (;;) {
             if (match_word(&pos, "secret"))
                 secret = true;
+            else if (match_word(&pos, "extern"))
+                external = true;
             else
                 break;
 
@@ -2139,7 +2141,8 @@ PARSER(parse_struct_def) {
     }
     if (!namespace)
         namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
-    return NewAST(ctx->file, start, pos, StructDef, .name=name, .fields=fields, .namespace=namespace, .secret=secret);
+    return NewAST(ctx->file, start, pos, StructDef, .name=name, .fields=fields, .namespace=namespace,
+                  .secret=secret, .external=external);
 }
 
 PARSER(parse_enum_def) {

@@ -91,6 +91,7 @@ struct type_s {
         } SetType;
         struct {
             type_t *key_type, *value_type;
+            struct env_s *env;
             ast_t *default_value;
         } TableType;
         struct {
@@ -108,7 +109,7 @@ struct type_s {
             const char *name;
             arg_t *fields;
             struct env_s *env;
-            bool opaque;
+            bool opaque:1, external:1;
         } StructType;
         struct {
             const char *name;
