@@ -714,7 +714,7 @@ CORD check_none(type_t *t, CORD value)
     else if (t->tag == IntType || t->tag == ByteType || t->tag == StructType)
         return CORD_all("(", value, ").is_none");
     else if (t->tag == EnumType)
-        return CORD_all("((", value, ").tag == 0)");
+        return CORD_all("((", value, ").$tag == 0)");
     else if (t->tag == MomentType)
         return CORD_all("((", value, ").tv_usec < 0)");
     else if (t->tag == MutexedType)
@@ -777,7 +777,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
         auto enum_t = Match(subject_t, EnumType);
         CORD code = CORD_all("{ ", compile_type(subject_t), " subject = ", compile(env, when->subject), ";\n"
-                             "switch (subject.tag) {");
+                             "switch (subject.$tag) {");
         for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
             if (clause->pattern->tag == Var) {
                 const char *clause_tag_name = Match(clause->pattern, Var)->name;
@@ -809,7 +809,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                     code_err(args->value, "This is not a valid variable to bind to");
                 const char *var_name = Match(args->value, Var)->name;
                 if (!streq(var_name, "_")) {
-                    code = CORD_all(code, compile_declaration(tag_type, compile(env, args->value)), " = subject.$", clause_tag_name, ";\n");
+                    code = CORD_all(code, compile_declaration(tag_type, compile(env, args->value)), " = subject.", clause_tag_name, ";\n");
                     scope = fresh_scope(scope);
                     set_binding(scope, Match(args->value, Var)->name, tag_type, CORD_EMPTY);
                 }
@@ -826,7 +826,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
                     const char *var_name = Match(arg->value, Var)->name;
                     if (!streq(var_name, "_")) {
-                        code = CORD_all(code, compile_declaration(field->type, compile(env, arg->value)), " = subject.$", clause_tag_name, ".", field->name, ";\n");
+                        code = CORD_all(code, compile_declaration(field->type, compile(env, arg->value)), " = subject.", clause_tag_name, ".", field->name, ";\n");
                         set_binding(scope, Match(arg->value, Var)->name, field->type, CORD_EMPTY);
                     }
                     field = field->next;
@@ -3698,10 +3698,10 @@ CORD compile(env_t *env, ast_t *ast)
                     CORD prefix = namespace_prefix(e->env, e->env->namespace);
                     if (fielded_t->tag == PointerType) {
                         CORD fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
-                        return CORD_all("((", fielded, ")->tag == ", prefix, "tag$", tag->name, ")");
+                        return CORD_all("((", fielded, ")->$tag == ", prefix, "tag$", tag->name, ")");
                     } else {
                         CORD fielded = compile(env, f->fielded);
-                        return CORD_all("((", fielded, ").tag == ", prefix, "tag$", tag->name, ")");
+                        return CORD_all("((", fielded, ").$tag == ", prefix, "tag$", tag->name, ")");
                     }
                 }
             }

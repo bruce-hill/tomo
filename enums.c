@@ -67,7 +67,7 @@ CORD compile_enum_constructors(env_t *env, ast_t *ast)
         }
         if (arg_sig == CORD_EMPTY) arg_sig = "void";
         CORD constructor_impl = CORD_all("public inline ", full_name, "$$type ", full_name, "$tagged$", tag->name, "(", arg_sig, ") { return (",
-                                         full_name, "$$type){.tag=", full_name, "$tag$", tag->name, ", .$", tag->name, "={");
+                                         full_name, "$$type){.$tag=", full_name, "$tag$", tag->name, ", .", tag->name, "={");
         for (arg_ast_t *field = tag->fields; field; field = field->next) {
             constructor_impl = CORD_all(constructor_impl, "$", field->name);
             if (field->next) constructor_impl = CORD_cat(constructor_impl, ", ");
@@ -92,7 +92,7 @@ CORD compile_enum_header(env_t *env, ast_t *ast)
         if (tag->next) enum_def = CORD_all(enum_def, ", ");
         has_any_tags_with_fields = has_any_tags_with_fields || (tag->fields != NULL);
     }
-    enum_def = CORD_all(enum_def, "} tag;\n");
+    enum_def = CORD_all(enum_def, "} $tag;\n");
 
     if (has_any_tags_with_fields) {
         enum_def = CORD_all(enum_def, "union {\n");
@@ -100,7 +100,7 @@ CORD compile_enum_header(env_t *env, ast_t *ast)
             if (!tag->fields) continue;
             CORD field_def = compile_struct_header(env, WrapAST(ast, StructDef, .name=CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)), .fields=tag->fields));
             all_defs = CORD_all(all_defs, field_def);
-            enum_def = CORD_all(enum_def, full_name, "$", tag->name, "$$type $", tag->name, ";\n");
+            enum_def = CORD_all(enum_def, full_name, "$", tag->name, "$$type ", tag->name, ";\n");
         }
         enum_def = CORD_all(enum_def, "};\n");
     }
