@@ -61,15 +61,8 @@ CORD compile_struct_header(env_t *env, ast_t *ast)
         "struct ", full_name, "$$struct {\n",
         fields,
         "};\n",
-        "typedef struct {\n",
-        "union {\n",
-        full_name, "$$type value;\n"
-        "struct {\n"
-        "char _padding[", heap_strf("%zu", unpadded_struct_size(t)), "];\n",
-        "Bool_t is_none:1;\n"
-        "};\n"
-        "};\n"
-        "} ", namespace_prefix(env, env->namespace), "$Optional", def->name, "$$type;\n"
+        "DEFINE_OPTIONAL_TYPE(", full_name, "$$type, ", heap_strf("%zu", unpadded_struct_size(t)),
+        ", ", namespace_prefix(env, env->namespace), "$Optional", def->name, "$$type);\n"
         // Constructor macro:
         "#define ", namespace_prefix(env, env->namespace), def->name,
             "(...) ((", namespace_prefix(env, env->namespace), def->name, "$$type){__VA_ARGS__})\n"

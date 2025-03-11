@@ -80,4 +80,14 @@ Text_t Type$as_text(const void *typeinfo, bool colorize, const TypeInfo_t *type)
                              .tag=TypeInfoInfo, .TypeInfoInfo.type_str=typestr, \
                              .metamethods={.serialize=cannot_serialize, .deserialize=cannot_deserialize, .as_text=Type$as_text}})
 
+#define DEFINE_OPTIONAL_TYPE(t, unpadded_size, name) \
+    typedef struct { \
+        union { \
+            t value; \
+            struct { \
+                char _padding[unpadded_size]; \
+                Bool_t is_none:1; \
+            }; \
+        }; \
+    } name
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
