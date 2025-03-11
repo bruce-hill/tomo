@@ -4528,7 +4528,7 @@ CORD compile_statement_namespace_header(env_t *env, ast_t *ast)
         if (!name)
             code_err(ast, "Conversions are only supported for text, struct, and enum types, not %T", ret_t);
         name = CORD_all(namespace_prefix(env, env->namespace), name);
-        CORD name_code = CORD_asprintf("%s$%ld", name, get_line_number(ast->file, ast->start));
+        CORD name_code = CORD_asprintf("%r$%ld", name, get_line_number(ast->file, ast->start));
         return CORD_all(ret_type_code, " ", name_code, arg_signature, ";\n");
     }
     default: return CORD_EMPTY;
