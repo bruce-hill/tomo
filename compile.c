@@ -875,6 +875,8 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             if (norm && norm != buf) free(norm);
         }
 
+        CORD setup = CORD_EMPTY;
+        CORD test_code;
         if (test->expr->tag == Declare) {
             auto decl = Match(test->expr, Declare);
             const char *varname = Match(decl->var, Var)->name;
@@ -887,15 +889,9 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
                 t = Type(ClosureType, t);
             }
-            return CORD_asprintf(
-                "%r;\n"
-                "test((%r = %r), %r, %r, %ld, %ld);\n",
-                compile_declaration(t, var),
-                var, val_code,
-                compile_type_info(env, get_type(env, decl->value)),
-                compile_string_literal(output),
-                (int64_t)(test->expr->start - test->expr->file->text),
-                (int64_t)(test->expr->end - test->expr->file->text));
+            setup = CORD_all(compile_declaration(t, var), ";\n");
+            test_code = CORD_all("(", var, " = ", val_code, ")");
+            expr_t = t;
         } else if (test->expr->tag == Assign) {
             auto assign = Match(test->expr, Assign);
             if (!assign->targets->next && assign->targets->ast->tag == Var && is_idempotent(assign->targets->ast)) {
@@ -908,22 +904,16 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                     code_err(test->expr, "Stack references cannot be assigned to variables because the variable's scope may outlive the scope of the stack memory.");
                 env_t *val_scope = with_enum_scope(env, lhs_t);
                 CORD value = compile_to_type(val_scope, assign->values->ast, lhs_t);
-                return CORD_asprintf(
-                    "test((%r), %r, %r, %ld, %ld);",
-                    compile_assignment(env, assign->targets->ast, value),
-                    compile_type_info(env, lhs_t),
-                    compile_string_literal(output),
-                    (int64_t)(test->expr->start - test->expr->file->text),
-                    (int64_t)(test->expr->end - test->expr->file->text));
+                test_code = CORD_all("(", compile_assignment(env, assign->targets->ast, value), ")");
+                expr_t = lhs_t;
             } else {
                 // Multi-assign or assignment to potentially non-idempotent targets
                 if (output && assign->targets->next)
                     code_err(ast, "Sorry, but doctesting with '=' is not supported for multi-assignments");
 
-                CORD code = "test(({ // Assignment\n";
+                test_code = "({ // Assignment\n";
 
                 int64_t i = 1;
-                type_t *first_type = NULL;
                 for (ast_list_t *target = assign->targets, *value = assign->values; target && value; target = target->next, value = value->next) {
                     type_t *lhs_t = get_type(env, target->ast);
                     if (target->ast->tag == Index && lhs_t->tag == OptionalType
@@ -932,21 +922,16 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                     if (has_stack_memory(lhs_t))
                         code_err(ast, "Stack references cannot be assigned to variables because the variable's scope may outlive the scope of the stack memory.");
                     if (target == assign->targets)
-                        first_type = lhs_t;
+                        expr_t = lhs_t;
                     env_t *val_scope = with_enum_scope(env, lhs_t);
                     CORD val_code = compile_to_type(val_scope, value->ast, lhs_t);
-                    CORD_appendf(&code, "%r $%ld = %r;\n", compile_type(lhs_t), i++, val_code);
+                    CORD_appendf(&test_code, "%r $%ld = %r;\n", compile_type(lhs_t), i++, val_code);
                 }
                 i = 1;
                 for (ast_list_t *target = assign->targets; target; target = target->next)
-                    code = CORD_all(code, compile_assignment(env, target->ast, CORD_asprintf("$%ld", i++)), ";\n");
+                    test_code = CORD_all(test_code, compile_assignment(env, target->ast, CORD_asprintf("$%ld", i++)), ";\n");
 
-                CORD_appendf(&code, "$1; }), %r, %r, %ld, %ld);",
-                    compile_type_info(env, first_type),
-                    compile_string_literal(output),
-                    (int64_t)(test->expr->start - test->expr->file->text),
-                    (int64_t)(test->expr->end - test->expr->file->text));
-                return code;
+                test_code = CORD_all(test_code, "$1; })");
             }
         } else if (test->expr->tag == UpdateAssign) {
             type_t *lhs_t = get_type(env, Match(test->expr, UpdateAssign)->lhs);
@@ -961,27 +946,28 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             ast_t *update_var = WrapAST(ast, UpdateAssign,
                 .lhs=WrapAST(update->lhs, InlineCCode, .code="(*expr)", .type=lhs_t),
                 .op=update->op, .rhs=update->rhs);
-            return CORD_asprintf(
-                "test(({%r = &(%r); %r; *expr;}), %r, %r, %ld, %ld);",
-                compile_declaration(Type(PointerType, lhs_t), "expr"),
-                compile_lvalue(env, update->lhs),
-                compile_statement(env, update_var),
-                compile_type_info(env, lhs_t),
-                compile_string_literal(output),
-                (int64_t)(test->expr->start - test->expr->file->text),
-                (int64_t)(test->expr->end - test->expr->file->text));
+            test_code = CORD_all("({", 
+                compile_declaration(Type(PointerType, lhs_t), "expr"), " = &(", compile_lvalue(env, update->lhs), "); ",
+                compile_statement(env, update_var), "; *expr; })");
+            expr_t = lhs_t;
         } else if (expr_t->tag == VoidType || expr_t->tag == AbortType || expr_t->tag == ReturnType) {
+            test_code = CORD_all("({", compile_statement(env, test->expr), " NULL;})");
+        } else {
+            test_code = compile(env, test->expr);
+        }
+        if (test->output) {
             return CORD_asprintf(
-                "test(({%r NULL;}), NULL, NULL, %ld, %ld);",
-                compile_statement(env, test->expr),
+                "%rtest(%r, %r, %r, %ld, %ld);",
+                setup, test_code,
+                compile_type_info(env, expr_t),
+                compile_string_literal(output),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else {
             return CORD_asprintf(
-                "test(%r, %r, %r, %ld, %ld);",
-                compile(env, test->expr),
+                "%rinspect(%r, %r, %ld, %ld);",
+                setup, test_code,
                 compile_type_info(env, expr_t),
-                compile_string_literal(output),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         }

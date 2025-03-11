@@ -566,15 +566,16 @@ public Text_t builtin_last_err()
     return Text$from_str(strerror(errno));
 }
 
-static int TEST_DEPTH = 0;
+static int _inspect_depth = 0;
 static file_t *file = NULL;
 
-public void start_test(const char *filename, int64_t start, int64_t end)
+__attribute__((nonnull))
+public void start_inspect(const char *filename, int64_t start, int64_t end)
 {
-    if (filename && (file == NULL || strcmp(file->filename, filename) != 0))
+    if (file == NULL || strcmp(file->filename, filename) != 0)
         file = load_file(filename);
 
-    if (filename && file) {
+    if (file) {
         const char *spaces = "                                                  ";
         int64_t first_line_len = (int64_t)strcspn(file->text + start, "\r\n");
         const char *slash = strrchr(filename, '/');
@@ -582,8 +583,8 @@ public void start_test(const char *filename, int64_t start, int64_t end)
 
         int64_t line_num = get_line_number(file, file->text + start);
         fprintf(stderr, USE_COLOR ? "%.*s\x1b[33;1m>> \x1b[m%.*s   %.*s\x1b[32;2m[%s:%ld]\x1b[m\n" : "%.*s>> %.*s   %.*s[%s:%ld]\n",
-                3*TEST_DEPTH, spaces, first_line_len, file->text + start,
-                MAX(0, 35-first_line_len-3*TEST_DEPTH), spaces, file_base, line_num);
+                3*_inspect_depth, spaces, first_line_len, file->text + start,
+                MAX(0, 35-first_line_len-3*_inspect_depth), spaces, file_base, line_num);
 
         // For multi-line expressions, dedent each and print it on a new line with ".. " in front:
         if (end > start + first_line_len) {
@@ -594,29 +595,30 @@ public void start_test(const char *filename, int64_t start, int64_t end)
                 if ((int64_t)strspn(line, " \t") >= indent_len)
                     line += indent_len;
                 fprintf(stderr, USE_COLOR ? "%.*s\x1b[33m.. \x1b[m%.*s\n" : "%.*s.. %.*s\n",
-                        3*TEST_DEPTH, spaces, strcspn(line, "\r\n"), line);
+                        3*_inspect_depth, spaces, strcspn(line, "\r\n"), line);
             }
         }
     }
-    ++TEST_DEPTH;
+    _inspect_depth += 1;
 }
 
-public void end_test(const void *expr, const TypeInfo_t *type)
+__attribute__((nonnull))
+public void end_inspect(const void *expr, const TypeInfo_t *type)
 {
-    --TEST_DEPTH;
-    if (!expr || !type) return;
+    _inspect_depth -= 1;
 
-    Text_t expr_text = generic_as_text(expr, USE_COLOR, type);
-    Text_t type_name = generic_as_text(NULL, false, type);
+    if (type->metamethods.as_text) {
+        Text_t expr_text = generic_as_text(expr, USE_COLOR, type);
+        Text_t type_name = generic_as_text(NULL, false, type);
 
-    for (int i = 0; i < 3*TEST_DEPTH; i++) fputc(' ', stderr);
-    fprintf(stderr, USE_COLOR ? "\x1b[2m=\x1b[0m %k \x1b[2m: \x1b[36m%k\x1b[m\n" : "= %k : %k\n", &expr_text, &type_name);
+        for (int i = 0; i < 3*_inspect_depth; i++) fputc(' ', stderr);
+        fprintf(stderr, USE_COLOR ? "\x1b[2m=\x1b[0m %k \x1b[2m: \x1b[36m%k\x1b[m\n" : "= %k : %k\n", &expr_text, &type_name);
+    }
 }
 
+__attribute__((nonnull))
 public void test_value(const void *expr, const TypeInfo_t *type, const char *expected)
 {
-    if (!expr || !type || !expected) return;
-
     Text_t expr_text = generic_as_text(expr, USE_COLOR, type);
     Text_t type_name = generic_as_text(NULL, false, type);
 
