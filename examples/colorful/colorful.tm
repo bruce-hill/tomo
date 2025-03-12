@@ -9,10 +9,10 @@ CSI := "$\033["
 lang Colorful:
     convert(text:Text -> Colorful):
         text = text:replace_all({$/@/="@(at)", $/(/="@(lparen)", $/)/="@(rparen)"})
-        return Colorful.without_escaping(text)
+        return Colorful.from_text(text)
 
-    convert(i:Int -> Colorful): return Colorful.without_escaping("$i")
-    convert(n:Num -> Colorful): return Colorful.without_escaping("$n")
+    convert(i:Int -> Colorful): return Colorful.from_text("$i")
+    convert(n:Num -> Colorful): return Colorful.from_text("$n")
 
     func for_terminal(c:Colorful -> Text):
         return CSI ++ "m" ++ _for_terminal(c, _TermState())
@@ -23,7 +23,7 @@ lang Colorful:
 
 func main(texts:[Text], files=[:Path], by_line=no):
     for i,text in texts:
-        colorful := Colorful.without_escaping(text)
+        colorful := Colorful.from_text(text)
         colorful:print(newline=no)
         if i == texts.length: say("")
         else: say(" ", newline=no)
@@ -34,10 +34,10 @@ func main(texts:[Text], files=[:Path], by_line=no):
     for file in files:
         if by_line:
             for line in file:by_line() or exit("Could not read file: $(file.text)"):
-                colorful := Colorful.without_escaping(line)
+                colorful := Colorful.from_text(line)
                 colorful:print()
         else:
-            colorful := Colorful.without_escaping(file:read() or exit("Could not read file: $(file.text)"))
+            colorful := Colorful.from_text(file:read() or exit("Could not read file: $(file.text)"))
             colorful:print(newline=no)
 
 
@@ -169,7 +169,7 @@ func _add_ansi_sequences(text:Text, prev_state:_TermState -> Text):
     else if text == "@" or text == "at": return "@"
     parts := (
         text:matches($/{0+..}:{0+..}/) or
-        return "@("++_for_terminal(Colorful.without_escaping(text), prev_state)++")"
+        return "@("++_for_terminal(Colorful.from_text(text), prev_state)++")"
     )
     attributes := parts[1]:split($/{0+space},{0+space}/)
     new_state := prev_state

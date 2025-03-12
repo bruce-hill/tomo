@@ -18,7 +18,7 @@ lang HTML:
             $/"/ = "&quot",
             $/'/ = "&#39;",
         })
-        return HTML.without_escaping(t)
+        return HTML.from_text(t)
 
     func paragraph(content:HTML -> HTML):
         return $HTML"<p>$content</p>"
@@ -75,7 +75,7 @@ instead of building a global function called `execute()` that takes a
 ```tomo
 lang Sh:
     convert(text:Text -> Sh):
-        return Sh.without_escaping("'" ++ text:replace($/'/, "''") ++ "'")
+        return Sh.from_text("'" ++ text:replace($/'/, "''") ++ "'")
 
     func execute(sh:Sh -> Text):
         ...
@@ -94,11 +94,11 @@ another type's block or at the top level.
 ```tomo
 lang Sh:
     convert(text:Text -> Sh):
-        return Sh.without_escaping("'" ++ text:replace($/'/, "''") ++ "'")
+        return Sh.from_text("'" ++ text:replace($/'/, "''") ++ "'")
 
 struct Foo(x,y:Int):
     convert(f:Foo -> Sh):
-        return Sh.without_escaping("$(f.x),$(f.y)")
+        return Sh.from_text("$(f.x),$(f.y)")
 
 convert(texts:[Text] -> Sh):
     return $Sh" ":join([Sh(t) for t in texts])

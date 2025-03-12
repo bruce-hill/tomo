@@ -76,7 +76,7 @@ lang Markdown:
             $/*{..}*/="@(i:\1)",
             $/[?](?)/="@(blue,underline:\1)",
         })
-        return Colorful.without_escaping(text)
+        return Colorful.from_text(text)
 
     func colorful(md:Markdown -> Colorful):
         return $Colorful"$md"

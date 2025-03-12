@@ -411,7 +411,7 @@ env_t *new_compilation_unit(CORD libname)
             {"from_c_string", "Text$from_str", "func(str:CString -> Text?)"},
             {"from_codepoint_names", "Text$from_codepoint_names", "func(codepoint_names:[Text] -> Text?)"},
             {"from_codepoints", "Text$from_codepoints", "func(codepoints:[Int32] -> Text)"},
-            {"without_escaping", "Path$cleanup", "func(text:Text -> Path)"},
+            {"from_text", "Path$cleanup", "func(text:Text -> Path)"},
             {"has", "Text$has", "func(text:Text, pattern:Pattern -> Bool)"},
             {"join", "Text$join", "func(glue:Text, pieces:[Text] -> Text)"},
             {"left_pad", "Text$left_pad", "func(text:Text, count:Int, pad=\" \" -> Text)"},
@@ -588,18 +588,18 @@ env_t *new_compilation_unit(CORD libname)
     ADD_CONSTRUCTORS("Thread", {"Thread$new", "func(fn:func() -> Thread)"});
 #undef ADD_CONSTRUCTORS
 
-    set_binding(namespace_env(env, "Shell"), "without_escaping",
+    set_binding(namespace_env(env, "Shell"), "from_text",
                 Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
                      .ret=Type(TextType, .lang="Shell", .env=namespace_env(env, "Shell"))),
                 "(Shell_t)");
 
-    set_binding(namespace_env(env, "Path"), "without_escaping",
+    set_binding(namespace_env(env, "Path"), "from_text",
                 Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
                      .ret=Type(TextType, .lang="Path", .env=namespace_env(env, "Path"))),
                 "Path$cleanup");
 
 
-    set_binding(namespace_env(env, "Pattern"), "without_escaping",
+    set_binding(namespace_env(env, "Pattern"), "from_text",
                 Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
                      .ret=Type(TextType, .lang="Pattern", .env=namespace_env(env, "Pattern"))),
                 "(Pattern_t)");

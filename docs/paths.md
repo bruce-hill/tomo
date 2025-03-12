@@ -33,7 +33,7 @@ not be trustworthy and interpret that value as a single path component name,
 i.e. the name of a directory or file. If a user were to supply a value like
 `..` or `foo/baz`, it would risk navigating into a directory other than
 intended. Paths can be created from text with slashes using
-`Path.without_escaping(text)` if you need to use arbitrary text as a file path.
+`Path.from_text(text)` if you need to use arbitrary text as a file path.
 
 ## Path Methods
 

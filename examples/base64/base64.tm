@@ -59,7 +59,7 @@ lang Base64:
             output[dest+2] = _EQUAL_BYTE
             output[dest+3] = _EQUAL_BYTE
 
-        return Base64.without_escaping(Text.from_bytes(output[]) or return none)
+        return Base64.from_text(Text.from_bytes(output[]) or return none)
 
     func decode_text(b64:Base64 -> Text?):
         return Text.from_bytes(b64:decode_bytes() or return none)
@@ -90,7 +90,7 @@ lang Base64:
 
 func main(input=(/dev/stdin), decode=no):
     if decode:
-        b := Base64.without_escaping(input:read()!)
+        b := Base64.from_text(input:read()!)
         say(b:decode_text()!)
     else:
         text := input:read()!

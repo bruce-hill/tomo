@@ -18,7 +18,7 @@ func _get_file_dependencies(file:Path -> {Dependency}):
     if lines := file:by_line():
         for line in lines:
             if line:matches($/use {..}.tm/):
-                file_import := Path.without_escaping(line:replace($/use {..}/, "\1")):resolved(relative_to=file)
+                file_import := Path.from_text(line:replace($/use {..}/, "\1")):resolved(relative_to=file)
                 deps:add(Dependency.File(file_import))
             else if line:matches($/use {id}/):
                 module_name := line:replace($/use {..}/, "\1")
@@ -103,7 +103,7 @@ func main(files:[Text]):
 
     for arg in files:
         if arg:matches($/{..}.tm/):
-            path := Path.without_escaping(arg):resolved()
+            path := Path.from_text(arg):resolved()
             dependencies := get_dependency_graph(File(path))
             draw_tree(File(path), dependencies)
         else if arg:matches($/{id}/):
