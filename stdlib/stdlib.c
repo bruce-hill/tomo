@@ -52,13 +52,9 @@ public void tomo_init(void)
    setlocale(LC_ALL, "");
    getrandom(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0);
 
-   int rng_fd = open("/dev/urandom", O_RDONLY);
-   if (rng_fd < 0)
-       fail("Couldn't read from /dev/urandom");
-   uint8_t *random_bytes = GC_MALLOC_ATOMIC(40);
-   if (read(rng_fd, (void*)random_bytes, 40) < 40)
-       fail("Couldn't read from /dev/urandom");
-   Array_t rng_seed = {.length=40, .data=random_bytes, .stride=1, .atomic=1};
+   uint8_t *random_bytes[40] = {};
+   getrandom(random_bytes, sizeof(random_bytes), 0);
+   Array_t rng_seed = {.length=sizeof(random_bytes), .data=random_bytes, .stride=1, .atomic=1};
    RNG$set_seed(default_rng, rng_seed);
 
    if (register_printf_specifier('k', printf_text, printf_text_size))
