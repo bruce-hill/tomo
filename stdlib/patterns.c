@@ -677,7 +677,6 @@ static pat_t parse_next_pat(TextIter_t *state, int64_t *index)
         return PAT(PAT_GRAPHEME, .grapheme=(int32_t)grapheme);
 #undef PAT
     } else {
-
         return (pat_t){.tag=PAT_GRAPHEME, .non_capturing=true, .min=1, .max=1, .grapheme=Text$get_grapheme_fast(state, (*index)++)};
     }
 }
