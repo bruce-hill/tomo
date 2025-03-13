@@ -604,6 +604,10 @@ static pat_t parse_next_pat(TextIter_t *state, int64_t *index)
                 return PAT(PAT_FUNCTION, .fn=match_alphanumeric);
             }
             break;
+        case 'c': 
+            if (strcasecmp(prop_name, "crlf") == 0)
+                return PAT(PAT_FUNCTION, .fn=match_newline);
+            break;
         case 'd':
             if (strcasecmp(prop_name, "digit") == 0) {
                 return PAT(PAT_PROPERTY, .property=UC_PROPERTY_DECIMAL_DIGIT);
@@ -637,8 +641,7 @@ static pat_t parse_next_pat(TextIter_t *state, int64_t *index)
             }
             break;
         case 'n':
-            if (strcasecmp(prop_name, "nl") == 0 || strcasecmp(prop_name, "newline") == 0
-                || strcasecmp(prop_name, "crlf")) {
+            if (strcasecmp(prop_name, "nl") == 0 || strcasecmp(prop_name, "newline") == 0) {
                 return PAT(PAT_FUNCTION, .fn=match_newline);
             } else if (strcasecmp(prop_name, "num") == 0) {
                 return PAT(PAT_FUNCTION, .fn=match_num);
@@ -674,6 +677,7 @@ static pat_t parse_next_pat(TextIter_t *state, int64_t *index)
         return PAT(PAT_GRAPHEME, .grapheme=(int32_t)grapheme);
 #undef PAT
     } else {
+
         return (pat_t){.tag=PAT_GRAPHEME, .non_capturing=true, .min=1, .max=1, .grapheme=Text$get_grapheme_fast(state, (*index)++)};
     }
 }
