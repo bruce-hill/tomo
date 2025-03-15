@@ -50,6 +50,11 @@ PUREFUNC public int32_t Moment$compare(const void *va, const void *vb, const Typ
     return (a->tv_usec > b->tv_usec) - (a->tv_usec < b->tv_usec);
 }
 
+CONSTFUNC public bool Moment$is_none(const void *m, const TypeInfo_t*)
+{
+    return ((Moment_t*)m)->tv_usec < 0;
+}
+
 public Moment_t Moment$now(void)
 {
     struct timespec ts;
@@ -311,6 +316,7 @@ public const TypeInfo_t Moment$info = {
     .metamethods={
         .as_text=Moment$as_text,
         .compare=Moment$compare,
+        .is_none=Moment$is_none,
     },
 };
 
