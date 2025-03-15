@@ -23,6 +23,7 @@
 #define NONE_CLOSURE ((OptionalClosure_t){.fn=NULL})
 #define NONE_TEXT ((OptionalText_t){.length=-1})
 #define NONE_MOMENT ((OptionalMoment_t){.tv_usec=-1})
+#define NONE_PATH ((Path_t){.root=PATH_NONE})
 
 PUREFUNC bool is_null(const void *obj, const TypeInfo_t *non_optional_type);
 PUREFUNC uint64_t Optional$hash(const void *obj, const TypeInfo_t *type);

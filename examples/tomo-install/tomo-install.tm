@@ -13,7 +13,7 @@ func find_urls(path:Path -> [Text]):
     if path:is_directory():
         for f in path:children():
             urls:insert_all(find_urls(f))
-    else if path:is_file() and path:ends_with(".tm"):
+    else if path:is_file() and path:extension() == ".tm":
         for line in path:by_line()!:
             if m := line:matches($/use{space}{url}/) or line:matches($/{id}{space}:={space}use{space}{url}/):
                 urls:insert(m[-1])

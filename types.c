@@ -494,6 +494,7 @@ PUREFUNC size_t unpadded_struct_size(type_t *t)
 PUREFUNC size_t type_size(type_t *t)
 {
     if (t == THREAD_TYPE) return sizeof(pthread_t*);
+    if (t == PATH_TYPE) return sizeof(Path_t);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-default"
     switch (t->tag) {
@@ -579,6 +580,7 @@ PUREFUNC size_t type_size(type_t *t)
 PUREFUNC size_t type_align(type_t *t)
 {
     if (t == THREAD_TYPE) return __alignof__(pthread_t*);
+    if (t == PATH_TYPE) return __alignof__(Path_t);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-default"
     switch (t->tag) {

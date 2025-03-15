@@ -9,18 +9,15 @@
 #include "datatypes.h"
 #include "optionals.h"
 
-#define Path_t Text_t
-#define OptionalPath_t Text_t
-#define Path(text) ((Path_t)Text(text))
-#define Paths(...) Path$_concat(sizeof((Path_t[]){__VA_ARGS__})/sizeof(Path_t), (Path_t[]){__VA_ARGS__})
-
-Path_t Path$cleanup(Path_t path);
+Path_t Path$from_str(const char *str);
+Path_t Path$from_text(Text_t text);
+const char *Path$as_c_string(Path_t path);
+#define Path(str) Path$from_str(str)
 Path_t Path$_concat(int n, Path_t items[n]);
-#define Path$concat(a, b) Paths(a, Path("/"), b)
-PUREFUNC Path_t Path$escape_text(Text_t text);
-PUREFUNC Path_t Path$escape_path(Text_t path);
+#define Path$concat(...) Path$_concat((int)sizeof((Path_t[]){__VA_ARGS__})/sizeof(Path_t), ((Path_t[]){__VA_ARGS__}))
 Path_t Path$resolved(Path_t path, Path_t relative_to);
 Path_t Path$relative(Path_t path, Path_t relative_to);
+Path_t Path$relative_to(Path_t path, Path_t relative_to);
 bool Path$exists(Path_t path);
 bool Path$is_file(Path_t path, bool follow_symlinks);
 bool Path$is_directory(Path_t path, bool follow_symlinks);
@@ -42,17 +39,24 @@ Array_t Path$children(Path_t path, bool include_hidden);
 Array_t Path$files(Path_t path, bool include_hidden);
 Array_t Path$subdirectories(Path_t path, bool include_hidden);
 Path_t Path$unique_directory(Path_t path);
-Text_t Path$write_unique(Path_t path, Text_t text);
-Text_t Path$write_unique_bytes(Path_t path, Array_t bytes);
+Path_t Path$write_unique(Path_t path, Text_t text);
+Path_t Path$write_unique_bytes(Path_t path, Array_t bytes);
 Path_t Path$parent(Path_t path);
 Text_t Path$base_name(Path_t path);
 Text_t Path$extension(Path_t path, bool full);
+Path_t Path$with_component(Path_t path, Text_t component);
+Path_t Path$with_extension(Path_t path, Text_t extension, bool replace);
 Closure_t Path$by_line(Path_t path);
 Array_t Path$glob(Path_t path);
 
-#define Path$hash Text$hash
-#define Path$compare Text$compare
-#define Path$equal Text$equal
+uint64_t Path$hash(const void *obj, const TypeInfo_t*);
+int32_t Path$compare(const void *a, const void *b, const TypeInfo_t *type);
+bool Path$equal(const void *a, const void *b, const TypeInfo_t *type);
+bool Path$equal_values(Path_t a, Path_t b);
+Text_t Path$as_text(const void *obj, bool color, const TypeInfo_t *type);
+bool Path$is_none(const void *obj, const TypeInfo_t *type);
+void Path$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type);
+void Path$deserialize(FILE *in, void *obj, Array_t *pointers, const TypeInfo_t *type);
 
 extern const TypeInfo_t Path$info;
 

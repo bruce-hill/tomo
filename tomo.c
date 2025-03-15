@@ -2,7 +2,6 @@
 #include <ctype.h>
 #include <gc.h>
 #include <gc/cord.h>
-#include <glob.h>
 #include <libgen.h>
 #include <printf.h>
 #include <stdio.h>
@@ -30,15 +29,25 @@
 #define run_cmd(...) ({ const char *_cmd = heap_strf(__VA_ARGS__); if (verbose) puts(_cmd); popen(_cmd, "w"); })
 #define array_str(arr) Text$as_c_string(Text$join(Text(" "), arr))
 
+static const char *paths_str(Array_t paths) {
+    Text_t result = EMPTY_TEXT;
+    for (int64_t i = 0; i < paths.length; i++) {
+        if (i > 0) result = Texts(result, Text(" "));
+        result = Texts(result, Path$as_text((Path_t*)(paths.data + i*paths.stride), false, &Path$info));
+    }
+    return Text$as_c_string(result);
+}
+
 static OptionalArray_t files = NONE_ARRAY,
-                       args = NONE_ARRAY;
+                       args = NONE_ARRAY,
+                       uninstall = NONE_ARRAY,
+                       libraries = NONE_ARRAY;
 static OptionalBool_t verbose = false,
                       stop_at_transpile = false,
                       stop_at_obj_compilation = false,
                       stop_at_exe_compilation = false,
                       should_install = false,
-                      library_mode = false,
-                      uninstall = false;
+                      run_repl = false;
 
 static OptionalText_t 
             show_codegen = NONE_TEXT,
@@ -50,17 +59,17 @@ static OptionalText_t
             ldlibs = Text("-lgc -lgmp -lm -ltomo"),
             ldflags = Text("-Wl,-rpath='$ORIGIN',-rpath=$HOME/.local/share/tomo/lib -L. -L$HOME/.local/share/tomo/lib"),
             optimization = Text("2"),
-            cc = Text("cc");
+            cc = Text("gcc");
 
-static void transpile_header(env_t *base_env, Text_t filename, bool force_retranspile);
-static void transpile_code(env_t *base_env, Text_t filename, bool force_retranspile);
-static void compile_object_file(Text_t filename, bool force_recompile);
-static Text_t compile_executable(env_t *base_env, Text_t filename, Array_t object_files, Array_t extra_ldlibs);
-static void build_file_dependency_graph(Text_t filename, Table_t *to_compile, Table_t *to_link);
+static void transpile_header(env_t *base_env, Path_t path, bool force_retranspile);
+static void transpile_code(env_t *base_env, Path_t path, bool force_retranspile);
+static void compile_object_file(Path_t path, bool force_recompile);
+static Path_t compile_executable(env_t *base_env, Path_t path, Array_t object_files, Array_t extra_ldlibs);
+static void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_link);
 static Text_t escape_lib_name(Text_t lib_name);
 static void build_library(Text_t lib_dir_name);
 static void compile_files(env_t *env, Array_t files, bool only_compile_arguments, Array_t *object_files, Array_t *ldlibs);
-static bool is_stale(Path_t filename, Path_t relative_to);
+static bool is_stale(Path_t path, Path_t relative_to);
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
@@ -99,7 +108,7 @@ int main(int argc, char *argv[])
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     tomo_parse_args(
         argc, argv, usage, help,
-        {"files", true, Array$info(&Text$info), &files},
+        {"files", true, Array$info(&Path$info), &files},
         {"args", true, Array$info(&Text$info), &args},
         {"verbose", false, &Bool$info, &verbose},
         {"v", false, &Bool$info, &verbose},
@@ -109,50 +118,52 @@ int main(int argc, char *argv[])
         {"c", false, &Bool$info, &stop_at_obj_compilation},
         {"compile-exe", false, &Bool$info, &stop_at_exe_compilation},
         {"e", false, &Bool$info, &stop_at_exe_compilation},
-        {"uninstall", false, &Bool$info, &uninstall},
-        {"u", false, &Bool$info, &uninstall},
-        {"library", false, &Bool$info, &library_mode},
-        {"L", false, &Bool$info, &library_mode},
+        {"uninstall", false, Array$info(&Text$info), &uninstall},
+        {"u", false, Array$info(&Text$info), &uninstall},
+        {"library", false, Array$info(&Path$info), &libraries},
+        {"L", false, Array$info(&Path$info), &libraries},
         {"show-codegen", false, &Text$info, &show_codegen},
         {"C", false, &Text$info, &show_codegen},
+        {"repl", false, &Bool$info, &run_repl},
+        {"R", false, &Bool$info, &run_repl},
         {"install", false, &Bool$info, &should_install},
         {"I", false, &Bool$info, &should_install},
         {"c-compiler", false, &Text$info, &cc},
         {"optimization", false, &Text$info, &optimization},
         {"O", false, &Text$info, &optimization},
     );
-    
+
     if (show_codegen.length > 0 && Text$equal_values(show_codegen, Text("pretty")))
         show_codegen = Text("sed '/^#line/d;/^$/d' | indent -o /dev/stdout | bat -l c -P");
 
-    if (uninstall) {
-        for (int64_t i = 0; i < files.length; i++) {
-            Text_t arg = *(Text_t*)(files.data + i*files.stride);
-            system(heap_strf("rm -rvf ~/.local/share/tomo/installed/%k ~/.local/share/tomo/lib/lib%k.so",
-                             &arg, &arg));
-        }
-        return 0;
-    } else if (library_mode) {
-        char *cwd = get_current_dir_name();
-        if (files.length == 0)
-            files = (Array_t){.length=1, .stride=sizeof(Text_t), .data=(Text_t[]){Text(".")}};
+    for (int64_t i = 0; i < uninstall.length; i++) {
+        Text_t *u = (Text_t*)(uninstall.data + i*uninstall.stride);
+        system(heap_strf("rm -rvf ~/.local/share/tomo/installed/%k ~/.local/share/tomo/lib/lib%k.so", u, u));
+        printf("Uninstalled %k\n", u);
+    }
 
-        for (int64_t i = 0; i < files.length; i++) {
-            Text_t arg = *(Text_t*)(files.data + i*files.stride);
-            if (chdir(Text$as_c_string(arg)) != 0)
-                errx(1, "Could not enter directory: %k", &arg);
-            char *libdir = get_current_dir_name();
-            char *libdirname = basename(libdir);
-            build_library(Text$from_str(libdirname));
-            free(libdir);
-            chdir(cwd);
-        }
+    for (int64_t i = 0; i < libraries.length; i++) {
+        Path_t *lib = (Path_t*)(libraries.data + i*libraries.stride);
+        const char *lib_str = Path$as_c_string(*lib);
+        char *cwd = get_current_dir_name();
+        if (chdir(lib_str) != 0)
+            errx(1, "Could not enter directory: %s", lib_str);
+
+        char *libdir = get_current_dir_name();
+        char *libdirname = basename(libdir);
+        build_library(Text$from_str(libdirname));
+        free(libdir);
+        chdir(cwd);
         free(cwd);
-        return 0;
-    } else if (files.length == 0) {
-        if (show_codegen.length >= 0)
-            errx(1, "You specified to show codegen with the tool `%k` but didn't give any files", &show_codegen);
+    }
+
+    // TODO: REPL
+    if (run_repl) {
         repl();
+        return 0;
+    }
+
+    if (files.length <= 0 && (uninstall.length > 0 || libraries.length > 0)) {
         return 0;
     }
 
@@ -162,14 +173,14 @@ int main(int argc, char *argv[])
             errx(1, "No file specified!");
         else if (files.length != 1)
             errx(1, "Too many files specified!");
-        Text_t filename = *(Text_t*)files.data;
+        Path_t path = *(Path_t*)files.data;
         env_t *env = new_compilation_unit(NULL);
         Array_t object_files = {},
                 extra_ldlibs = {};
         compile_files(env, files, false, &object_files, &extra_ldlibs);
-        Text_t exe_name = compile_executable(env, filename, object_files, extra_ldlibs);
+        Path_t exe_name = compile_executable(env, path, object_files, extra_ldlibs);
         char *prog_args[1 + args.length + 1];
-        prog_args[0] = Text$as_c_string(exe_name);
+        prog_args[0] = (char*)Path$as_c_string(exe_name);
         for (int64_t i = 0; i < args.length; i++)
             prog_args[i + 1] = Text$as_c_string(*(Text_t*)(args.data + i*args.stride));
         prog_args[1 + args.length] = NULL;
@@ -184,10 +195,10 @@ int main(int argc, char *argv[])
             return 0;
 
         for (int64_t i = 0; i < files.length; i++) {
-            Text_t filename = *(Text_t*)(files.data + i*files.stride);
-            Text_t bin_name = compile_executable(env, filename, object_files, extra_ldlibs);
+            Path_t path = *(Path_t*)(files.data + i*files.stride);
+            Path_t bin_name = compile_executable(env, path, object_files, extra_ldlibs);
             if (should_install)
-                system(heap_strf("cp -v '%k' ~/.local/bin/", &bin_name));
+                system(heap_strf("cp -v '%s' ~/.local/bin/", Path$as_c_string(bin_name)));
         }
         return 0;
     }
@@ -248,15 +259,15 @@ static void _make_typedefs_for_library(libheader_info_t *info, ast_t *ast)
     }
 }
 
-static void _compile_file_header_for_library(env_t *env, Text_t filename, Table_t *visited_files, Table_t *used_imports, FILE *output)
+static void _compile_file_header_for_library(env_t *env, Path_t path, Table_t *visited_files, Table_t *used_imports, FILE *output)
 {
-    if (Table$get(*visited_files, &filename, Table$info(&Text$info, &Bool$info)))
+    if (Table$get(*visited_files, &path, Table$info(&Path$info, &Bool$info)))
         return;
 
-    Table$set(visited_files, &filename, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
+    Table$set(visited_files, &path, ((Bool_t[1]){1}), Table$info(&Path$info, &Bool$info));
 
-    ast_t *file_ast = parse_file(Text$as_c_string(filename), NULL);
-    if (!file_ast) errx(1, "Could not parse file %k", &filename);
+    ast_t *file_ast = parse_file(Path$as_c_string(path), NULL);
+    if (!file_ast) errx(1, "Could not parse file %s", Path$as_c_string(path));
     env_t *module_env = load_module_env(env, file_ast);
 
     libheader_info_t info = {
@@ -274,7 +285,7 @@ static void _compile_file_header_for_library(env_t *env, Text_t filename, Table_
 
         auto use = Match(ast, Use);
         if (use->what == USE_LOCAL) {
-            Path_t resolved = Path$resolved(Text$from_str(use->path), Path("./"));
+            Path_t resolved = Path$resolved(Path$from_str(use->path), Path("./"));
             _compile_file_header_for_library(env, resolved, visited_files, used_imports, output);
         }
     }
@@ -289,19 +300,11 @@ static void _compile_file_header_for_library(env_t *env, Text_t filename, Table_
 
 void build_library(Text_t lib_dir_name)
 {
-    glob_t tm_files;
-    char *library_directory = get_current_dir_name();
-    if (glob("[!._0-9]*.tm", 0, NULL, &tm_files) != 0)
-        errx(1, "Couldn't get .tm files in directory: %s", library_directory);
-
-    Array_t glob_files = {};
-    for (size_t i = 0; i < tm_files.gl_pathc; i++)
-        Array$insert(&glob_files, (Text_t[1]){Text$from_str(tm_files.gl_pathv[i])}, I(0), sizeof(Text_t));
-
+    Array_t tm_files = Path$glob(Path("./[!._0-9]*.tm"));
     env_t *env = new_compilation_unit(NULL);
     Array_t object_files = {},
             extra_ldlibs = {};
-    compile_files(env, glob_files, false, &object_files, &extra_ldlibs);
+    compile_files(env, tm_files, false, &object_files, &extra_ldlibs);
 
     // Library name replaces all stretchs of non-alphanumeric chars with an underscore
     // So e.g. https://github.com/foo/baz --> https_github_com_foo_baz
@@ -313,9 +316,9 @@ void build_library(Text_t lib_dir_name)
     fputs("#include <tomo/tomo.h>\n", header);
     Table_t visited_files = {};
     Table_t used_imports = {};
-    for (size_t i = 0; i < tm_files.gl_pathc; i++) {
-        const char *filename = tm_files.gl_pathv[i];
-        Path_t resolved = Path$resolved(Text$from_str(filename), Path("."));
+    for (int64_t i = 0; i < tm_files.length; i++) {
+        Path_t f = *(Path_t*)(tm_files.data + i*tm_files.stride);
+        Path_t resolved = Path$resolved(f, Path("."));
         _compile_file_header_for_library(env, resolved, &visited_files, &used_imports, header);
     }
     if (fclose(header) == -1)
@@ -324,20 +327,18 @@ void build_library(Text_t lib_dir_name)
     // Build up a list of symbol renamings:
     unlink("symbol_renames.txt");
     FILE *prog;
-    for (size_t i = 0; i < tm_files.gl_pathc; i++) {
-        const char *filename = tm_files.gl_pathv[i];
+    for (int64_t i = 0; i < tm_files.length; i++) {
+        Path_t f = *(Path_t*)(tm_files.data + i*tm_files.stride);
         prog = run_cmd("nm -Ug -fjust-symbols '%s.o' | sed 's/_\\$\\(.*\\)/\\0 _$%s$\\1/' >>symbol_renames.txt",
-                       filename, CORD_to_const_char_star(env->libname));
+                       Path$as_c_string(f), CORD_to_const_char_star(env->libname));
         int status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
             errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `sed`");
     }
 
-    globfree(&tm_files);
-
     prog = run_cmd("%k -O%k %k %k %k %s -Wl,-soname='lib%k.so' -shared %s -o 'lib%k.so'",
                    &cc, &optimization, &cflags, &ldflags, &ldlibs, array_str(extra_ldlibs), &lib_dir_name,
-                   array_str(object_files), &lib_dir_name);
+                   paths_str(object_files), &lib_dir_name);
     if (!prog)
         errx(1, "Failed to run C compiler: %k", &cc);
     int status = pclose(prog);
@@ -363,6 +364,7 @@ void build_library(Text_t lib_dir_name)
     unlink("symbol_renames.txt");
 
     if (should_install) {
+        char *library_directory = get_current_dir_name();
         const char *dest = heap_strf("%s/.local/share/tomo/installed/%k", getenv("HOME"), &lib_dir_name);
         if (!streq(library_directory, dest)) {
             system(heap_strf("rm -rvf '%s'", dest));
@@ -372,9 +374,8 @@ void build_library(Text_t lib_dir_name)
         system("mkdir -p ~/.local/share/tomo/lib/");
         system(heap_strf("ln -fv -s ../installed/'%k'/lib'%k'.so  ~/.local/share/tomo/lib/lib'%k'.so",
                          &lib_dir_name, &lib_dir_name, &lib_dir_name));
+        free(library_directory);
     }
-
-    free(library_directory);
 }
 
 void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, Array_t *object_files, Array_t *extra_ldlibs)
@@ -385,11 +386,12 @@ void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, 
     Table_t dependency_files = {};
     for (int64_t i = 0; i < to_compile.length; i++) {
         Path_t filename = *(Path_t*)(to_compile.data + i*to_compile.stride);
-        if (!Text$ends_with(filename, Text(".tm")))
-            errx(1, "Not a valid .tm file: \x1b[31;1m%k\x1b[m", &filename);
+        Text_t extension = Path$extension(filename, true);
+        if (!Text$equal_values(extension, Text("tm")))
+            errx(1, "Not a valid .tm file: \x1b[31;1m%s\x1b[m", Path$as_c_string(filename));
         Path_t resolved = Path$resolved(filename, Path("./"));
         if (!Path$is_file(resolved, true))
-            errx(1, "Couldn't find file: %k", &resolved);
+            errx(1, "Couldn't find file: %s", Path$as_c_string(resolved));
         Table$set(&argument_files, &resolved, &filename, path_table_info);
         build_file_dependency_graph(resolved, &dependency_files, &to_link);
     }
@@ -438,10 +440,9 @@ void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, 
 
     if (object_files) {
         for (int64_t i = 0; i < dependency_files.entries.length; i++) {
-            Path_t filename = Text$concat(
-                *(Path_t*)(dependency_files.entries.data + i*dependency_files.entries.stride),
-                Text(".o"));
-            Array$insert(object_files, &filename, I(0), sizeof(Path_t));
+            Path_t path = *(Path_t*)(dependency_files.entries.data + i*dependency_files.entries.stride);
+            path = Path$with_extension(path, Text(".o"), false);
+            Array$insert(object_files, &path, I(0), sizeof(Path_t));
         }
     }
     if (extra_ldlibs) {
@@ -452,19 +453,19 @@ void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, 
     }
 }
 
-void build_file_dependency_graph(Text_t filename, Table_t *to_compile, Table_t *to_link)
+void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_link)
 {
-    if (Table$get(*to_compile, &filename, Table$info(&Text$info, &Bool$info)))
+    if (Table$get(*to_compile, &path, Table$info(&Path$info, &Bool$info)))
         return;
 
-    bool stale = is_stale(Paths(filename, Path(".o")), filename);
-    Table$set(to_compile, &filename, &stale, Table$info(&Text$info, &Bool$info));
+    bool stale = is_stale(Path$with_extension(path, Text(".o"), false), path);
+    Table$set(to_compile, &path, &stale, Table$info(&Path$info, &Bool$info));
 
-    assert(Text$ends_with(filename, Text(".tm")));
+    assert(Text$equal_values(Path$extension(path, true), Text("tm")));
 
-    ast_t *ast = parse_file(Text$as_c_string(filename), NULL);
+    ast_t *ast = parse_file(Path$as_c_string(path), NULL);
     if (!ast)
-        errx(1, "Could not parse file %k", &filename);
+        errx(1, "Could not parse file %s", Path$as_c_string(path));
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         ast_t *stmt_ast = stmt->ast;
@@ -476,10 +477,10 @@ void build_file_dependency_graph(Text_t filename, Table_t *to_compile, Table_t *
 
         switch (use->what) {
         case USE_LOCAL: {
-            Text_t resolved = Path$resolved(Text$from_str(use->path), filename);
-            if (!stale && is_stale(Texts(filename, Text(".o")), resolved)) {
+            Path_t resolved = Path$resolved(Path$from_str(use->path), Path$parent(path));
+            if (!stale && is_stale(Path$with_extension(path, Text(".o"), false), resolved)) {
                 stale = true;
-                Table$set(to_compile, &filename, &stale, Table$info(&Text$info, &Bool$info));
+                Table$set(to_compile, &path, &stale, Table$info(&Path$info, &Bool$info));
             }
             if (Table$get(*to_compile, &resolved, Table$info(&Path$info, &Path$info)))
                 continue;
@@ -506,60 +507,60 @@ void build_file_dependency_graph(Text_t filename, Table_t *to_compile, Table_t *
     }
 }
 
-bool is_stale(Path_t filename, Path_t relative_to)
+bool is_stale(Path_t path, Path_t relative_to)
 {
     struct stat target_stat;
-    if (stat(Text$as_c_string(filename), &target_stat) != 0)
+    if (stat(Path$as_c_string(path), &target_stat) != 0)
         return true;
     struct stat relative_to_stat;
-    if (stat(Text$as_c_string(relative_to), &relative_to_stat) != 0)
-        errx(1, "File doesn't exist: %k", &relative_to);
+    if (stat(Path$as_c_string(relative_to), &relative_to_stat) != 0)
+        errx(1, "File doesn't exist: %s", Path$as_c_string(relative_to));
     return target_stat.st_mtime < relative_to_stat.st_mtime;
 }
 
-void transpile_header(env_t *base_env, Text_t filename, bool force_retranspile)
+void transpile_header(env_t *base_env, Path_t path, bool force_retranspile)
 {
-    Text_t h_filename = Text$concat(filename, Text(".h"));
-    if (!force_retranspile && !is_stale(h_filename, filename))
+    Path_t h_filename = Path$with_extension(path, Text(".h"), false);
+    if (!force_retranspile && !is_stale(h_filename, path))
         return;
 
-    ast_t *ast = parse_file(Text$as_c_string(filename), NULL);
+    ast_t *ast = parse_file(Path$as_c_string(path), NULL);
     if (!ast)
-        errx(1, "Could not parse file %k", &filename);
+        errx(1, "Could not parse file %s", Path$as_c_string(path));
 
     env_t *module_env = load_module_env(base_env, ast);
 
     CORD h_code = compile_file_header(module_env, ast);
 
-    FILE *header = fopen(Text$as_c_string(h_filename), "w");
+    FILE *header = fopen(Path$as_c_string(h_filename), "w");
     CORD_put(h_code, header);
     if (fclose(header) == -1)
-        errx(1, "Failed to write header file: %k", &h_filename);
+        errx(1, "Failed to write header file: %s", Path$as_c_string(h_filename));
 
     if (verbose)
-        printf("\x1b[2mTranspiled to %k\x1b[m\n", &h_filename);
+        printf("\x1b[2mTranspiled to %s\x1b[m\n", Path$as_c_string(h_filename));
 
     if (show_codegen.length > 0)
-        system(heap_strf("<%k %k", &h_filename, &show_codegen));
+        system(heap_strf("<%s %k", Path$as_c_string(h_filename), &show_codegen));
 }
 
-void transpile_code(env_t *base_env, Text_t filename, bool force_retranspile)
+void transpile_code(env_t *base_env, Path_t path, bool force_retranspile)
 {
-    Text_t c_filename = Text$concat(filename, Text(".c"));
-    if (!force_retranspile && !is_stale(c_filename, filename))
+    Path_t c_filename = Path$with_extension(path, Text(".c"), false);
+    if (!force_retranspile && !is_stale(c_filename, path))
         return;
 
-    ast_t *ast = parse_file(Text$as_c_string(filename), NULL);
+    ast_t *ast = parse_file(Path$as_c_string(path), NULL);
     if (!ast)
-        errx(1, "Could not parse file %k", &filename);
+        errx(1, "Could not parse file %s", Path$as_c_string(path));
 
     env_t *module_env = load_module_env(base_env, ast);
 
     CORD c_code = compile_file(module_env, ast);
 
-    FILE *c_file = fopen(Text$as_c_string(c_filename), "w");
+    FILE *c_file = fopen(Path$as_c_string(c_filename), "w");
     if (!c_file)
-        errx(1, "Failed to write C file: %k", &c_filename);
+        errx(1, "Failed to write C file: %s", Path$as_c_string(c_filename));
 
     CORD_put(c_code, c_file);
 
@@ -581,28 +582,28 @@ void transpile_code(env_t *base_env, Text_t filename, bool force_retranspile)
     }
 
     if (fclose(c_file) == -1)
-        errx(1, "Failed to output C code to %k", &c_filename);
+        errx(1, "Failed to output C code to %s", Path$as_c_string(c_filename));
 
     if (verbose)
-        printf("\x1b[2mTranspiled to %k\x1b[m\n", &c_filename);
+        printf("\x1b[2mTranspiled to %s\x1b[m\n", Path$as_c_string(c_filename));
 
     if (show_codegen.length > 0)
-        system(heap_strf("<%k %k", &c_filename, &show_codegen));
+        system(heap_strf("<%s %k", Path$as_c_string(c_filename), &show_codegen));
 }
 
-void compile_object_file(Text_t filename, bool force_recompile)
+void compile_object_file(Path_t path, bool force_recompile)
 {
-    Text_t obj_file = Text$concat(filename, Text(".o"));
-    Text_t c_file = Text$concat(filename, Text(".c"));
-    Text_t h_file = Text$concat(filename, Text(".h"));
-    if (!force_recompile && !is_stale(obj_file, filename)
+    Path_t obj_file = Path$with_extension(path, Text(".o"), false);
+    Path_t c_file = Path$with_extension(path, Text(".c"), false);
+    Path_t h_file = Path$with_extension(path, Text(".h"), false);
+    if (!force_recompile && !is_stale(obj_file, path)
         && !is_stale(obj_file, c_file)
         && !is_stale(obj_file, h_file)) {
         return;
     }
 
-    FILE *prog = run_cmd("%k %k -O%k -c %k -o %k",
-                         &cc, &cflags, &optimization, &c_file, &obj_file);
+    FILE *prog = run_cmd("%k %k -O%k -c %s -o %s",
+                         &cc, &cflags, &optimization, Path$as_c_string(c_file), Path$as_c_string(obj_file));
     if (!prog)
         errx(1, "Failed to run C compiler: %k", &cc);
     int status = pclose(prog);
@@ -610,29 +611,33 @@ void compile_object_file(Text_t filename, bool force_recompile)
         exit(EXIT_FAILURE);
 
     if (verbose)
-        printf("\x1b[2mCompiled to %k\x1b[m\n", &obj_file);
+        printf("\x1b[2mCompiled to %s\x1b[m\n", Path$as_c_string(obj_file));
 }
 
-Text_t compile_executable(env_t *base_env, Text_t filename, Array_t object_files, Array_t extra_ldlibs)
+Path_t compile_executable(env_t *base_env, Path_t path, Array_t object_files, Array_t extra_ldlibs)
 {
-    ast_t *ast = parse_file(Text$as_c_string(filename), NULL);
+    ast_t *ast = parse_file(Path$as_c_string(path), NULL);
     if (!ast)
-        errx(1, "Could not parse file %k", &filename);
+        errx(1, "Could not parse file %s", Path$as_c_string(path));
     env_t *env = load_module_env(base_env, ast);
     binding_t *main_binding = get_binding(env, "main");
     if (!main_binding || main_binding->type->tag != FunctionType)
-        errx(1, "No main() function has been defined for %k, so it can't be run!", &filename);
+        errx(1, "No main() function has been defined for %s, so it can't be run!", Path$as_c_string(path));
 
-    Text_t bin_name = Text$trim(filename, Text(".tm"), false, true);
-    FILE *runner = run_cmd("%k %k -O%k %k %k %s %s -x c - -o %k",
+    Path_t bin_name = Path$with_extension(path, Text(""), true);
+    FILE *runner = run_cmd("%k %k -O%k %k %k %s %s -x c - -o %s",
                            &cc, &cflags, &optimization, &ldflags, &ldlibs,
-                           array_str(extra_ldlibs), array_str(object_files), &bin_name);
+                           array_str(extra_ldlibs), paths_str(object_files), Path$as_c_string(bin_name));
     CORD program = CORD_all(
         "extern int ", main_binding->code, "$parse_and_run(int argc, char *argv[]);\n"
         "int main(int argc, char *argv[]) {\n"
         "\treturn ", main_binding->code, "$parse_and_run(argc, argv);\n"
         "}\n"
     );
+
+    FILE *xxx = fopen("runner.c", "w");
+    CORD_put(program, xxx);
+    fclose(xxx);
 
     if (show_codegen.length > 0) {
         FILE *out = run_cmd("%k", &show_codegen);
@@ -646,7 +651,7 @@ Text_t compile_executable(env_t *base_env, Text_t filename, Array_t object_files
         exit(EXIT_FAILURE);
 
     if (verbose)
-        printf("\x1b[2mCompiled executable: %k\x1b[m\n", &bin_name);
+        printf("\x1b[2mCompiled executable: %s\x1b[m\n", Path$as_c_string(bin_name));
     return bin_name;
 }
 

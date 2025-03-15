@@ -36,7 +36,7 @@ func _build_dependency_graph(dep:Dependency, dependencies:@{Dependency,{Dependen
         dir := (~/.local/share/tomo/installed/$module)
         module_deps := @{:Dependency}
         visited := @{:Path}
-        unvisited := @{f:resolved() for f in dir:files() if f:ends_with(".tm")}
+        unvisited := @{f:resolved() for f in dir:files() if f:extension() == ".tm"}
         while unvisited.length > 0:
             file := unvisited.items[-1]
             unvisited:remove(file)
@@ -66,9 +66,9 @@ func _printable_name(dep:Dependency -> Text):
     is File(f):
         f = f:relative()
         if f:exists():
-            return "$(f.text)"
+            return Text(f)
         else:
-            return "$(\x1b)[31;1m$(f.text) (not found)$(\x1b)[m"
+            return "$(\x1b)[31;1m$(f) (not found)$(\x1b)[m"
 
 func _draw_tree(dep:Dependency, dependencies:{Dependency,{Dependency}}, already_printed:@{Dependency}, prefix="", is_last=yes):
     if already_printed:has(dep):

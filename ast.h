@@ -124,6 +124,7 @@ typedef enum {
     None, Bool, Var,
     Int, Num,
     TextLiteral, TextJoin, PrintStatement,
+    Path,
     Declare, Assign,
     BinaryOp, UpdateAssign,
     Not, Negative, HeapAllocate, StackReference, Mutexed, Holding,
@@ -175,6 +176,9 @@ struct ast_s {
             const char *lang;
             ast_list_t *children;
         } TextJoin;
+        struct {
+            const char *path;
+        } Path;
         struct {
             ast_list_t *to_print;
         } PrintStatement;

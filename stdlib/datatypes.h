@@ -96,6 +96,12 @@ typedef struct Text_s {
 #define Pattern_t Text_t
 #define OptionalPattern_t Text_t
 
+typedef struct {
+    enum { PATH_NONE, PATH_RELATIVE, PATH_ROOT, PATH_HOME } root;
+    Array_t components;
+} Path_t;
+#define OptionalPath_t Path_t
+
 typedef struct timeval Moment_t;
 #define OptionalMoment_t Moment_t
 

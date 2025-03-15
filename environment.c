@@ -14,6 +14,7 @@
 type_t *TEXT_TYPE = NULL;
 type_t *MATCH_TYPE = NULL;
 type_t *RNG_TYPE = NULL;
+public type_t *PATH_TYPE = NULL;
 public type_t *THREAD_TYPE = NULL;
 
 env_t *new_compilation_unit(CORD libname)
@@ -77,6 +78,14 @@ env_t *new_compilation_unit(CORD libname)
             .fields=new(arg_t, .name="text", .type=TEXT_TYPE,
               .next=new(arg_t, .name="index", .type=INT_TYPE,
               .next=new(arg_t, .name="captures", .type=Type(ArrayType, .item_type=TEXT_TYPE)))));
+    }
+
+    {
+        env_t *path_env = namespace_env(env, "Path");
+        PATH_TYPE = Type(
+            StructType, .name="Path", .env=path_env,
+            .fields=new(arg_t, .name="root", .type=Type(IntType, .bits=TYPE_IBITS32),
+              .next=new(arg_t, .name="components", .type=Type(ArrayType, .item_type=TEXT_TYPE))));
     }
 
     {
@@ -324,12 +333,15 @@ env_t *new_compilation_unit(CORD libname)
             {"unix_timestamp", "Moment$unix_timestamp", "func(moment:Moment -> Int64)"},
             {"year", "Moment$year", "func(moment:Moment,timezone=none:Text -> Int)"},
         )},
-        {"Path", Type(TextType, .lang="Path", .env=namespace_env(env, "Path")), "Text_t", "Text$info", TypedArray(ns_entry_t,
+        {"Path", PATH_TYPE, "Path_t", "Path$info", TypedArray(ns_entry_t,
             {"append", "Path$append", "func(path:Path, text:Text, permissions=Int32(0o644))"},
             {"append_bytes", "Path$append_bytes", "func(path:Path, bytes:[Byte], permissions=Int32(0o644))"},
             {"base_name", "Path$base_name", "func(path:Path -> Text)"},
             {"by_line", "Path$by_line", "func(path:Path -> func(->Text?)?)"},
+            {"child", "Path$with_component", "func(path:Path, child:Text -> Path)"},
             {"children", "Path$children", "func(path:Path, include_hidden=no -> [Path])"},
+            {"components", "Path$components", "func(path:Path -> [Text])"},
+            {"concatenated_with", "Path$concat", "func(a,b:Path -> Path)"},
             {"create_directory", "Path$create_directory", "func(path:Path, permissions=Int32(0o755))"},
             {"escape_int", "Int$value_as_text", "func(i:Int -> Path)"},
             {"escape_path", "Path$escape_path", "func(path:Path -> Path)"},
@@ -337,6 +349,7 @@ env_t *new_compilation_unit(CORD libname)
             {"exists", "Path$exists", "func(path:Path -> Bool)"},
             {"extension", "Path$extension", "func(path:Path, full=yes -> Text)"},
             {"files", "Path$children", "func(path:Path, include_hidden=no -> [Path])"},
+            {"from_components", "Path$from_components", "func(components:[Text] -> Path)"},
             {"glob", "Path$glob", "func(path:Path -> [Path])"},
             {"is_directory", "Path$is_directory", "func(path:Path, follow_symlinks=yes -> Bool)"},
             {"is_file", "Path$is_file", "func(path:Path, follow_symlinks=yes -> Bool)"},
@@ -347,6 +360,7 @@ env_t *new_compilation_unit(CORD libname)
             {"read", "Path$read", "func(path:Path -> Text?)"},
             {"read_bytes", "Path$read_bytes", "func(path:Path, limit=none:Int -> [Byte]?)"},
             {"relative", "Path$relative", "func(path:Path, relative_to=(./) -> Path)"},
+            {"relative_to", "Path$relative_to", "func(path:Path, relative_to:Path -> Path)"},
             {"remove", "Path$remove", "func(path:Path, ignore_missing=no)"},
             {"resolved", "Path$resolved", "func(path:Path, relative_to=(./) -> Path)"},
             {"subdirectories", "Path$children", "func(path:Path, include_hidden=no -> [Path])"},
@@ -359,14 +373,6 @@ env_t *new_compilation_unit(CORD libname)
             {"modified", "Path$modified", "func(path:Path, follow_symlinks=yes -> Moment?)"},
             {"accessed", "Path$accessed", "func(path:Path, follow_symlinks=yes -> Moment?)"},
             {"changed", "Path$changed", "func(path:Path, follow_symlinks=yes -> Moment?)"},
-
-            // Text methods:
-            {"ends_with", "Text$ends_with", "func(path:Path, suffix:Text -> Bool)"},
-            {"has", "Text$has", "func(path:Path, pattern:Pattern -> Bool)"},
-            {"matches", "Text$matches", "func(path:Path, pattern:Pattern -> [Text]?)"},
-            {"replace", "Text$replace", "func(path:Path, pattern:Pattern, replacement:Text, backref=$/\\/, recursive=yes -> Path)"},
-            {"replace_all", "Text$replace_all", "func(path:Path, replacements:{Pattern,Text}, backref=$/\\/, recursive=yes -> Path)"},
-            {"starts_with", "Text$starts_with", "func(path:Path, prefix:Text -> Bool)"},
         )},
         // RNG must come after Path so we can read bytes from /dev/urandom
         {"RNG", RNG_TYPE, "RNG_t", "RNG", TypedArray(ns_entry_t,
@@ -411,7 +417,7 @@ env_t *new_compilation_unit(CORD libname)
             {"from_c_string", "Text$from_str", "func(str:CString -> Text?)"},
             {"from_codepoint_names", "Text$from_codepoint_names", "func(codepoint_names:[Text] -> Text?)"},
             {"from_codepoints", "Text$from_codepoints", "func(codepoints:[Int32] -> Text)"},
-            {"from_text", "Path$cleanup", "func(text:Text -> Path)"},
+            {"from_text", "Path$from_text", "func(text:Text -> Path)"},
             {"has", "Text$has", "func(text:Text, pattern:Pattern -> Bool)"},
             {"join", "Text$join", "func(glue:Text, pieces:[Text] -> Text)"},
             {"left_pad", "Text$left_pad", "func(text:Text, count:Int, pad=\" \" -> Text)"},
@@ -595,9 +601,8 @@ env_t *new_compilation_unit(CORD libname)
 
     set_binding(namespace_env(env, "Path"), "from_text",
                 Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
-                     .ret=Type(TextType, .lang="Path", .env=namespace_env(env, "Path"))),
-                "Path$cleanup");
-
+                     .ret=PATH_TYPE),
+                "Path$from_text");
 
     set_binding(namespace_env(env, "Pattern"), "from_text",
                 Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),

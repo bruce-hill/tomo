@@ -1423,73 +1423,43 @@ PARSER(parse_path) {
     // "(" ("~/" / "./" / "../" / "/") ... ")"
     const char *start = pos;
 
-    if (!(match(&pos, "(~/")
-          || match(&pos, "(./")
-          || match(&pos, "(../")
-          || match(&pos, "(/")))
+    if (!match(&pos, "("))
         return NULL;
 
-    const char *chunk_start = start + 1;
-    ast_list_t *chunks = NULL;
-    CORD chunk_text = CORD_EMPTY;
+    if (!(*pos == '~' || *pos == '.' || *pos == '/'))
+        return NULL;
+
+    const char *path_start = pos;
+    size_t len = 1;
     int paren_depth = 1;
-    while (pos < ctx->file->text + ctx->file->len) {
-        switch (*pos) {
-        case '\\': {
-            ++pos;
-            chunk_text = CORD_asprintf("%r%.*s%c", chunk_text, (size_t)(pos - chunk_start), chunk_start, *pos);
-            ++pos;
-            chunk_start = pos;
+    while (pos + len < ctx->file->text + ctx->file->len - 1) {
+        if (pos[len] == '\\') {
+            len += 2;
             continue;
-        }
-        case '$': {
-            const char *interp_start = pos;
-
-            if (pos > chunk_start)
-                chunk_text = CORD_asprintf("%r%.*s", chunk_text, (size_t)(pos - chunk_start), chunk_start);
-
-            if (chunk_text) {
-                ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk_text);
-                chunks = new(ast_list_t, .ast=literal, .next=chunks);
-                chunk_text = CORD_EMPTY;
-            }
-            ++pos;
-            if (*pos == ' ' || *pos == '\t')
-                parser_err(ctx, pos, pos+1, "Whitespace is not allowed before an interpolation here");
-            ast_t *interp = expect(ctx, interp_start, &pos, parse_term_no_suffix, "I expected an interpolation term here");
-            chunks = new(ast_list_t, .ast=interp, .next=chunks);
-            chunk_start = pos;
-            continue;
-        }
-        case '(': {
+        } else if (pos[len] == '(') {
             paren_depth += 1;
-            ++pos;
-            continue;
-        }
-        case ')': {
+        } else if (pos[len] == ')') {
             paren_depth -= 1;
-            if (paren_depth == 0)
-                goto end_of_path;
-            ++pos;
-            continue;
+            if (paren_depth <= 0) break;
+        } else if (pos[len] == '\r' || pos[len] == '\n') {
+            parser_err(ctx, path_start, &pos[len-1], "This path was not closed");
         }
-        default: ++pos; continue;
+        len += 1;
+    }
+    pos += len + 1;
+    char *path = heap_strf("%.*s", (int)len, path_start);
+    for (char *src = path, *dest = path; ; ) {
+        if (src[0] == '\\') {
+            *(dest++) = src[1];
+            src += 2;
+        } else if (*src) {
+            *(dest++) = *(src++);
+        } else {
+            *(dest++) = '\0';
+            break;
         }
     }
-  end_of_path:;
-
-    if (pos > chunk_start)
-        chunk_text = CORD_asprintf("%r%.*s", chunk_text, (size_t)(pos - chunk_start), chunk_start);
-
-    if (chunk_text != CORD_EMPTY) {
-        ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk_text);
-        chunks = new(ast_list_t, .ast=literal, .next=chunks);
-    }
-
-    expect_closing(ctx, &pos, ")", "I was expecting a ')' to finish this path");
-
-    REVERSE_LIST(chunks);
-    return NewAST(ctx->file, start, pos, TextJoin, .lang="Path", .children=chunks);
+    return NewAST(ctx->file, start, pos, Path, .path=path);
 }
 
 PARSER(parse_pass) {

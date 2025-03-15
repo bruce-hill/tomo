@@ -38,7 +38,7 @@ static CORD compile_string_literal(CORD literal);
 
 CORD promote_to_optional(type_t *t, CORD code)
 {
-    if (t == THREAD_TYPE) {
+    if (t == THREAD_TYPE || t == PATH_TYPE || t->tag == MomentType) {
         return code;
     } else if (t->tag == IntType) {
         switch (Match(t, IntType)->bits) {
@@ -502,6 +502,7 @@ CORD compile_type(type_t *t)
     if (t == THREAD_TYPE) return "Thread_t";
     else if (t == RNG_TYPE) return "RNG_t";
     else if (t == MATCH_TYPE) return "Match_t";
+    else if (t == PATH_TYPE) return "Path_t";
 
     switch (t->tag) {
     case ReturnType: errx(1, "Shouldn't be compiling ReturnType to a type");
@@ -522,8 +523,6 @@ CORD compile_type(type_t *t)
             return "Text_t";
         else if (streq(text->lang, "Pattern"))
             return "Pattern_t";
-        else if (streq(text->lang, "Path"))
-            return "Path_t";
         else if (streq(text->lang, "Shell"))
             return "Shell_t";
         else
@@ -570,6 +569,8 @@ CORD compile_type(type_t *t)
                 return "Thread_t";
             if (nonnull == MATCH_TYPE)
                 return "OptionalMatch_t";
+            if (nonnull == PATH_TYPE)
+                return "OptionalPath_t";
             auto s = Match(nonnull, StructType);
             return CORD_all(namespace_prefix(s->env, s->env->namespace->parent), "$Optional", s->name, "$$type");
         }
@@ -682,7 +683,7 @@ CORD optional_into_nonnone(type_t *t, CORD value)
     case IntType:
         return CORD_all(value, ".i");
     case StructType:
-        if (t == THREAD_TYPE || t == MATCH_TYPE)
+        if (t == THREAD_TYPE || t == MATCH_TYPE || t == PATH_TYPE)
             return value;
         return CORD_all(value, ".value");
     default:
@@ -698,6 +699,8 @@ CORD check_none(type_t *t, CORD value)
         return CORD_all("(", value, " == NULL)");
     else if (t == MATCH_TYPE)
         return CORD_all("((", value, ").index.small == 0)");
+    else if (t == PATH_TYPE)
+        return CORD_all("((", value, ").root == PATH_NONE)");
     else if (t->tag == BigIntType)
         return CORD_all("((", value, ").small == 0)");
     else if (t->tag == ClosureType)
@@ -2191,6 +2194,7 @@ CORD compile_none(type_t *t)
         t = Match(t, OptionalType)->type;
 
     if (t == THREAD_TYPE) return "NULL";
+    else if (t == PATH_TYPE) return "NONE_PATH";
 
     switch (t->tag) {
     case BigIntType: return "NONE_INT";
@@ -2621,11 +2625,10 @@ CORD compile(env_t *env, ast_t *ast)
                 code_err(ast, "The 'xor' operator isn't supported between %T and %T values", lhs_t, rhs_t);
         }
         case BINOP_CONCAT: {
+            if (operand_t == PATH_TYPE)
+                return CORD_all("Path$concat(", lhs, ", ", rhs, ")");
             switch (operand_t->tag) {
             case TextType: {
-                const char *lang = Match(operand_t, TextType)->lang; 
-                if (streq(lang, "Path"))
-                    return CORD_all("Path$concat(", lhs, ", ", rhs, ")");
                 return CORD_all("Text$concat(", lhs, ", ", rhs, ")");
             }
             case ArrayType: {
@@ -2660,7 +2663,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD lang_constructor;
         if (!lang || streq(lang, "Text"))
             lang_constructor = "Text";
-        else if (streq(lang, "Pattern") || streq(lang, "Path") || streq(lang, "Shell"))
+        else if (streq(lang, "Pattern") || streq(lang, "Shell"))
             lang_constructor = lang;
         else
             lang_constructor = CORD_all(namespace_prefix(Match(text_t, TextType)->env, Match(text_t, TextType)->env->namespace->parent), lang);
@@ -2703,6 +2706,9 @@ CORD compile(env_t *env, ast_t *ast)
             else
                 return code;
         }
+    }
+    case Path: {
+        return CORD_all("Path(", compile_string_literal(Match(ast, Path)->path), ")");
     }
     case Block: {
         ast_list_t *stmts = Match(ast, Block)->statements;
@@ -3836,8 +3842,9 @@ CORD compile(env_t *env, ast_t *ast)
 CORD compile_type_info(type_t *t)
 {
     if (t == THREAD_TYPE) return "&Thread$info";
-    else if (t == MATCH_TYPE) return "&Match$info";
     else if (t == RNG_TYPE) return "&RNG$info";
+    else if (t == MATCH_TYPE) return "&Match$info";
+    else if (t == PATH_TYPE) return "&Path$info";
 
     switch (t->tag) {
     case BoolType: case ByteType: case IntType: case BigIntType: case NumType: case CStringType: case MomentType:
@@ -3850,8 +3857,6 @@ CORD compile_type_info(type_t *t)
             return "&Pattern$info";
         else if (streq(text->lang, "Shell"))
             return "&Shell$info";
-        else if (streq(text->lang, "Path"))
-            return "&Path$info";
         return CORD_all("(&", namespace_prefix(text->env, text->env->namespace->parent), text->lang, "$$info)");
     }
     case StructType: {

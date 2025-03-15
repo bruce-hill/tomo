@@ -638,6 +638,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         return Match(t, OptionalType)->type;
     }
     case TextLiteral: return TEXT_TYPE;
+    case Path: return PATH_TYPE;
     case TextJoin: {
         const char *lang = Match(ast, TextJoin)->lang;
         if (lang) {
@@ -1050,7 +1051,7 @@ type_t *get_type(env_t *env, ast_t *ast)
                 return lhs_t;
             break;
         }
-        case BINOP_PLUS: case BINOP_MINUS: case BINOP_AND: case BINOP_OR: case BINOP_XOR: {
+        case BINOP_PLUS: case BINOP_MINUS: case BINOP_AND: case BINOP_OR: case BINOP_XOR: case BINOP_CONCAT: {
             if (type_eq(lhs_t, rhs_t) && binding_works(binop_method_names[binop->op], binop->lhs, lhs_t, rhs_t, lhs_t))
                 return lhs_t;
             break;

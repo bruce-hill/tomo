@@ -118,20 +118,7 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)
             *(OptionalNum32_t*)dest = parsed;
         return !isnan(parsed);
     } else if (info == &Path$info) {
-        Path_t path = Text$from_str(arg);
-        if (Text$equal_values(path, Path("~"))) {
-            path = Path("~/");
-        } else if (Text$equal_values(path, Path("."))) {
-            path = Path("./");
-        } else if (Text$equal_values(path, Path(".."))) {
-            path = Path("../");
-        } else if (!Text$starts_with(path, Text("./"))
-            && !Text$starts_with(path, Text("../"))
-            && !Text$starts_with(path, Text("/"))
-            && !Text$starts_with(path, Text("~/"))) {
-            path = Text$concat(Text("./"), path);
-        }
-        *(OptionalText_t*)dest = path;
+        *(OptionalPath_t*)dest = Path$from_str(arg);
         return true;
     } else if (info->tag == TextInfo) {
         *(OptionalText_t*)dest = Text$from_str(arg);

@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -23,145 +24,154 @@
 #include "types.h"
 #include "util.h"
 
-PUREFUNC public Path_t Path$escape_text(Text_t text)
+// Use inline version of the siphash code for performance:
+#include "siphash.h"
+#include "siphash-internals.h"
+
+static const Path_t HOME_PATH = {.root=PATH_HOME}, ROOT_PATH = {.root=PATH_ROOT}, CURDIR_PATH = {.root=PATH_RELATIVE};
+
+static void clean_components(Array_t *components)
 {
-    if (Text$has(text, Pattern("/")))
-        fail("Path interpolations cannot contain slashes: %k", &text);
-    else if (Text$has(text, Pattern(";")))
-        fail("Path interpolations cannot contain semicolons: %k", &text);
-    else if (Text$equal_values(text, Path(".")) || Text$equal_values(text, Path("..")))
-        fail("Path interpolation is \"%k\" which is disallowed to prevent security vulnerabilities", &text);
-    return (Path_t)text;
-}
-
-PUREFUNC public Path_t Path$escape_path(Path_t path)
-{
-    if (Text$starts_with(path, Path("~/")) || Text$starts_with(path, Path("/")))
-        fail("Invalid path component: %k", &path);
-    return path;
-}
-
-public Path_t Path$cleanup(Path_t path)
-{
-    if (!Text$starts_with(path, Path("/")) && !Text$starts_with(path, Path("./"))
-        && !Text$starts_with(path, Path("../")) && !Text$starts_with(path, Path("~/")))
-        path = Text$concat(Text("./"), path);
-
-    // Not fully resolved, but at least get rid of some of the cruft like "/./"
-    // and "/foo/../" and "//"
-    bool trailing_slash = Text$ends_with(path, Path("/"));
-    Array_t components = Text$split(path, Pattern("/"));
-    if (components.length == 0) return Path("/");
-    Path_t root = *(Path_t*)components.data;
-    Array$remove_at(&components, I(1), I(1), sizeof(Path_t));
-
-    for (int64_t i = 0; i < components.length; ) {
-        Path_t component = *(Path_t*)(components.data + i*components.stride);
-        if (component.length == 0 || Text$equal_values(component, Path("."))) { // Skip (//) and (/./)
-            Array$remove_at(&components, I(i+1), I(1), sizeof(Path_t));
-        } else if (Text$equal_values(component, Path(".."))) {
-            if (i == 0) {
-                if (root.length == 0) { // (/..) -> (/)
-                    Array$remove_at(&components, I(i+1), I(1), sizeof(Path_t));
-                    i += 1;
-                } else if (Text$equal_values(root, Path("."))) { // (./..) -> (..)
-                    root = Path("..");
-                    Array$remove_at(&components, I(i+1), I(1), sizeof(Path_t));
-                    i += 1;
-                } else if (Text$equal_values(root, Path("~"))) {
-                    root = Path(""); // Convert $HOME to absolute path:
-
-                    Array$remove_at(&components, I(i+1), I(1), sizeof(Path_t));
-                    // `i` is pointing to where the `..` lived
-
-                    const char *home = getenv("HOME");
-                    if (!home) fail("Could not get $HOME directory!");
-
-                    // Insert all but the last component:
-                    for (const char *p = home + 1; *p; ) {
-                        const char *next_slash = strchr(p, '/');
-                        if (!next_slash) break; // Skip last component
-                        Path_t home_component = Text$format("%.*s", (int)(next_slash - p), p);
-                        Array$insert(&components, &home_component, I(i+1), sizeof(Path_t));
-                        i += 1;
-                        p = next_slash + 1;
-                    }
-                } else { // (../..) -> (../..)
-                    i += 1;
-                }
-            } else if (Text$equal(&component, (Path_t*)(components.data + (i-1)*components.stride), &Text$info)) { // (___/../..) -> (____/../..)
-                i += 1;
-            } else { // (___/foo/..) -> (___)
-                Array$remove_at(&components, I(i), I(2), sizeof(Path_t));
+    for (int64_t i = 0; i < components->length; ) {
+        Text_t *component = (Text_t*)(components->data + i*components->stride);
+        if (component->length == 0 || Text$equal_values(*component, Text("."))) {
+            Array$remove_at(components, I(i+1), I(1), sizeof(Text_t));
+        } else if (i > 0 && Text$equal_values(*component, Text(".."))) {
+            Text_t *prev = (Text_t*)(components->data + (i-1)*components->stride);
+            if (!Text$equal_values(*prev, Text(".."))) {
+                Array$remove_at(components, I(i), I(2), sizeof(Text_t));
                 i -= 1;
+            } else {
+                i += 1;
             }
-        } else { // (___/foo/baz) -> (___/foo/baz)
-            i++;
+        } else {
+            i += 1;
         }
     }
+}
 
-    Text_t cleaned_up = Text$concat(root, Text("/"), Text$join(Text("/"), components));
-    if (trailing_slash && !Text$ends_with(cleaned_up, Text("/")))
-        cleaned_up = Text$concat(cleaned_up, Text("/"));
-    return cleaned_up;
+public Path_t Path$from_str(const char *str)
+{
+    if (!str || str[0] == '\0' || streq(str, "/")) return ROOT_PATH;
+    else if (streq(str, "~")) return HOME_PATH;
+    else if (streq(str, ".")) return CURDIR_PATH;
+
+    Path_t result = {.components={}};
+    if (str[0] == '/') {
+        result.root = PATH_ROOT;
+        str += 1;
+    } else if (str[0] == '~' && str[1] == '/') {
+        result.root = PATH_HOME;
+        str += 2;
+    } else if (str[0] == '.' && str[1] == '/') {
+        result.root = PATH_RELATIVE;
+        str += 2;
+    } else {
+        result.root = PATH_RELATIVE;
+    }
+
+    while (str && *str) {
+        size_t component_len = strcspn(str, "/");
+        if (component_len > 0) {
+            if (component_len == 1 && str[0] == '.') {
+                // ignore /./
+            } else if (component_len == 2 && strncmp(str, "..", 2) == 0
+                       && result.components.length > 1
+                       && !Text$equal_values(Text(".."), *(Text_t*)(result.components.data + result.components.stride*(result.components.length-1)))) {
+                // Pop off /foo/baz/.. -> /foo
+                Array$remove_at(&result.components, I(result.components.length), I(1), sizeof(Text_t));
+            } else { 
+                Text_t component = Text$from_strn(str, component_len);
+                Array$insert_value(&result.components, component, I(0), sizeof(Text_t));
+            }
+            str += component_len;
+        }
+        str += strspn(str, "/");
+    }
+    return result;
+}
+
+public Path_t Path$from_text(Text_t text)
+{
+    return Path$from_str(Text$as_c_string(text));
 }
 
 static INLINE Path_t Path$_expand_home(Path_t path)
 {
-    if (Text$starts_with(path, Path("~/"))) {
-        Path_t after_tilde = Text$slice(path, I(2), I(-1));
-        return Text$format("%s%k", getenv("HOME"), &after_tilde);
-    } else {
-        return path;
+    if (path.root == PATH_HOME) {
+        Path_t pwd = Path$from_str(getenv("HOME"));
+        Array_t components = Array$concat(path.components, pwd.components, sizeof(Text_t));
+        clean_components(&components);
+        path = (Path_t){.root=PATH_ROOT, .components=components};
     }
+    return path;
 }
 
 public Path_t Path$_concat(int n, Path_t items[n])
 {
-    Path_t cleaned_up = Path$cleanup(Text$_concat(n, items));
-    if (cleaned_up.length > PATH_MAX)
-        fail("Path exceeds the maximum path length: %k", &cleaned_up);
-    return cleaned_up;
-}
-
-public Text_t Path$resolved(Path_t path, Path_t relative_to)
-{
-    path = Path$cleanup(path);
-
-    const char *path_str = Text$as_c_string(path);
-    const char *relative_to_str = Text$as_c_string(relative_to);
-    const char *resolved_path = resolve_path(path_str, relative_to_str, relative_to_str);
-    if (resolved_path) {
-        return (Path_t)(Text$from_str(resolved_path));
-    } else if (path_str[0] == '/') {
-        return path;
-    } else if (path_str[0] == '~' && path_str[1] == '/') {
-        return (Path_t)Text$format("%s%s", getenv("HOME"), path_str + 1);
-    } else {
-        return Text$concat(Path$resolved(relative_to, Path(".")), Path("/"), path);
+    assert(n > 0);
+    Path_t result = items[0];
+    ARRAY_INCREF(result.components);
+    for (int i = 1; i < n; i++) {
+        if (items[i].root != PATH_RELATIVE)
+            fail("Cannot concatenate an absolute or home-based path onto another path: (%s)\n",
+                 Path$as_c_string(items[i]));
+        Array$insert_all(&result.components, items[i].components, I(0), sizeof(Text_t));
     }
+    clean_components(&result.components);
+    return result;
 }
 
-public Text_t Path$relative(Path_t path, Path_t relative_to)
+public Path_t Path$resolved(Path_t path, Path_t relative_to)
 {
-    path = Path$resolved(path, relative_to);
-    relative_to = Path$resolved(relative_to, Path("."));
-    if (Text$starts_with(path, Text$concat(relative_to, Text("/"))))
-        return Text$slice(path, I(relative_to.length + 2), I(-1));
+    if (path.root == PATH_RELATIVE && !(relative_to.root == PATH_RELATIVE && relative_to.components.length == 0)) {
+        Path_t result = {.root=relative_to.root};
+        result.components = relative_to.components;
+        ARRAY_INCREF(result.components);
+        Array$insert_all(&result.components, path.components, I(0), sizeof(Text_t));
+        clean_components(&result.components);
+        return result;
+    }
     return path;
+}
+
+public Path_t Path$relative_to(Path_t path, Path_t relative_to)
+{
+    if (path.root != relative_to.root)
+        fail("Cannot create a path relative to a different path with a mismatching root: (%k) relative to (%k)",
+             (Text_t[1]){Path$as_text(&path, false, &Path$info)}, (Text_t[1]){Path$as_text(&relative_to, false, &Path$info)});
+
+    Path_t result = {.root=PATH_RELATIVE};
+    int64_t shared = 0;
+    for (; shared < path.components.length && shared < relative_to.components.length; shared++) {
+        Text_t *p = (Text_t*)(path.components.data + shared*path.components.stride);
+        Text_t *r = (Text_t*)(relative_to.components.data + shared*relative_to.components.stride);
+        if (!Text$equal_values(*p, *r))
+            break;
+    }
+
+    for (int64_t i = shared; i < relative_to.components.length; shared++)
+        Array$insert_value(&result.components, Text(".."), I(1), sizeof(Text_t));
+
+    for (int64_t i = shared; i < path.components.length; shared++) {
+        Text_t *p = (Text_t*)(path.components.data + i*path.components.stride);
+        Array$insert(&result.components, p, I(0), sizeof(Text_t));
+    }
+    //clean_components(&result.components);
+    return result;
 }
 
 public bool Path$exists(Path_t path)
 {
     path = Path$_expand_home(path);
     struct stat sb;
-    return (stat(Text$as_c_string(path), &sb) == 0);
+    return (stat(Path$as_c_string(path), &sb) == 0);
 }
 
 static INLINE int path_stat(Path_t path, bool follow_symlinks, struct stat *sb)
 {
     path = Path$_expand_home(path);
-    const char *path_str = Text$as_c_string(path);
+    const char *path_str = Path$as_c_string(path);
     return follow_symlinks ? stat(path_str, sb) : lstat(path_str, sb);
 }
 
@@ -232,7 +242,7 @@ public OptionalMoment_t Path$changed(Path_t path, bool follow_symlinks)
 static void _write(Path_t path, Array_t bytes, int mode, int permissions)
 {
     path = Path$_expand_home(path);
-    const char *path_str = Text$as_c_string(path);
+    const char *path_str = Path$as_c_string(path);
     int fd = open(path_str, mode, permissions);
     if (fd == -1)
         fail("Could not write to file: %s\n%s", path_str, strerror(errno));
@@ -269,7 +279,7 @@ public void Path$append_bytes(Path_t path, Array_t bytes, int permissions)
 public OptionalArray_t Path$read_bytes(Path_t path, OptionalInt_t count)
 {
     path = Path$_expand_home(path);
-    int fd = open(Text$as_c_string(path), O_RDONLY);
+    int fd = open(Path$as_c_string(path), O_RDONLY);
     if (fd == -1)
         return NONE_ARRAY;
 
@@ -333,7 +343,7 @@ public OptionalText_t Path$read(Path_t path)
 public void Path$remove(Path_t path, bool ignore_missing)
 {
     path = Path$_expand_home(path);
-    const char *path_str = Text$as_c_string(path);
+    const char *path_str = Path$as_c_string(path);
     struct stat sb;
     if (lstat(path_str, &sb) != 0) {
         if (!ignore_missing)
@@ -354,27 +364,10 @@ public void Path$remove(Path_t path, bool ignore_missing)
 public void Path$create_directory(Path_t path, int permissions)
 {
     path = Path$_expand_home(path);
-    char *c_path = Text$as_c_string(path);
-    char *end = c_path + strlen(c_path);
-    if (*end == '/' && end > c_path) {
-        *end = '\0';
-        --end;
-    }
-    char *end_of_component = strchrnul(c_path + 1, '/');
-    for (;;) {
-        if (end_of_component < end)
-            *end_of_component = '\0';
-
-        int status = mkdir(c_path, (mode_t)permissions);
-        if (status != 0 && errno != EEXIST)
-            fail("Could not create directory: %s (%s)", c_path, strerror(errno));
-
-        if (end_of_component >= end)
-            break;
-
-        *end_of_component = '/';
-        end_of_component = strchrnul(end_of_component + 1, '/');
-    }
+    const char *c_path = Path$as_c_string(path);
+    int status = mkdir(c_path, (mode_t)permissions);
+    if (status != 0 && errno != EEXIST)
+        fail("Could not create directory: %s (%s)", c_path, strerror(errno));
 }
 
 static Array_t _filtered_children(Path_t path, bool include_hidden, mode_t filter)
@@ -382,7 +375,7 @@ static Array_t _filtered_children(Path_t path, bool include_hidden, mode_t filte
     path = Path$_expand_home(path);
     struct dirent *dir;
     Array_t children = {};
-    const char *path_str = Text$as_c_string(path);
+    const char *path_str = Path$as_c_string(path);
     size_t path_len = strlen(path_str);
     DIR *d = opendir(path_str);
     if (!d)
@@ -404,7 +397,7 @@ static Array_t _filtered_children(Path_t path, bool include_hidden, mode_t filte
         if (!((sb.st_mode & S_IFMT) & filter))
             continue;
 
-        Path_t child = Text$format("%s%s", child_str, ((sb.st_mode & S_IFMT) == S_IFDIR) ? "/" : ""); // Trailing slash for dirs
+        Path_t child = Path$from_str(child_str);
         Array$insert(&children, &child, I(0), sizeof(Path_t));
     }
     closedir(d);
@@ -429,7 +422,7 @@ public Array_t Path$subdirectories(Path_t path, bool include_hidden)
 public Path_t Path$unique_directory(Path_t path)
 {
     path = Path$_expand_home(path);
-    const char *path_str = Text$as_c_string(path);
+    const char *path_str = Path$as_c_string(path);
     size_t len = strlen(path_str);
     if (len >= PATH_MAX) fail("Path is too long: %s", path_str);
     char buf[PATH_MAX] = {};
@@ -438,13 +431,13 @@ public Path_t Path$unique_directory(Path_t path)
         buf[--len] = '\0';
     char *created = mkdtemp(buf);
     if (!created) fail("Failed to create temporary directory: %s (%s)", path_str, strerror(errno));
-    return Text$format("%s/", created);
+    return Path$from_str(created);
 }
 
-public Text_t Path$write_unique_bytes(Path_t path, Array_t bytes)
+public Path_t Path$write_unique_bytes(Path_t path, Array_t bytes)
 {
     path = Path$_expand_home(path);
-    const char *path_str = Text$as_c_string(path);
+    const char *path_str = Path$as_c_string(path);
     size_t len = strlen(path_str);
     if (len >= PATH_MAX) fail("Path is too long: %s", path_str);
     char buf[PATH_MAX] = {};
@@ -466,26 +459,39 @@ public Text_t Path$write_unique_bytes(Path_t path, Array_t bytes)
     ssize_t written = write(fd, bytes.data, (size_t)bytes.length);
     if (written != (ssize_t)bytes.length)
         fail("Could not write to file: %s\n%s", buf, strerror(errno));
-    return Text$format("%s", buf);
+    return Path$from_str(buf);
 }
 
-public Text_t Path$write_unique(Path_t path, Text_t text)
+public Path_t Path$write_unique(Path_t path, Text_t text)
 {
     return Path$write_unique_bytes(path, Text$utf8_bytes(text));
 }
 
 public Path_t Path$parent(Path_t path)
 {
-    return Path$cleanup(Text$concat(path, Path("/../")));
+    if (path.root == PATH_ROOT && path.components.length == 0) {
+        return path;
+    } else if (path.components.length > 0 && !Text$equal_values(*(Text_t*)(path.components.data + path.components.stride*(path.components.length-1)),
+                                                         Text(".."))) {
+        return (Path_t){.root=path.root, .components=Array$slice(path.components, I(1), I(-2))};
+    } else {
+        Path_t result = {.root=path.root, .components=path.components};
+        ARRAY_INCREF(result.components);
+        Array$insert_value(&result.components, Text(".."), I(0), sizeof(Text_t));
+        return result;
+    }
 }
 
-public Text_t Path$base_name(Path_t path)
+public PUREFUNC Text_t Path$base_name(Path_t path)
 {
-    path = Path$cleanup(path);
-    if (Text$ends_with(path, Path("/")))
-        return Text$replace(path, Pattern("{0+..}/{!/}/{end}"), Text("@2"), Text("@"), false);
+    if (path.components.length >= 1)
+        return *(Text_t*)(path.components.data + path.components.stride*(path.components.length-1));
+    else if (path.root == PATH_HOME)
+        return Text("~");
+    else if (path.root == PATH_RELATIVE)
+        return Text(".");
     else
-        return Text$replace(path, Pattern("{0+..}/{!/}{end}"), Text("@2"), Text("@"), false);
+        return EMPTY_TEXT;
 }
 
 public Text_t Path$extension(Path_t path, bool full)
@@ -499,6 +505,41 @@ public Text_t Path$extension(Path_t path, bool full)
         return *((Text_t*)(results.data + results.stride*1));
     else
         return Text("");
+}
+
+public Path_t Path$with_component(Path_t path, Text_t component)
+{
+    Path_t result = {
+        .root=path.root,
+        .components=path.components,
+    };
+    ARRAY_INCREF(result.components);
+    Array$insert(&result.components, &component, I(0), sizeof(Text_t));
+    return result;
+}
+
+public Path_t Path$with_extension(Path_t path, Text_t extension, bool replace)
+{
+    if (path.components.length == 0)
+        fail("A path with no components can't have an extension!");
+
+    Path_t result = {
+        .root=path.root,
+        .components=path.components,
+    };
+    ARRAY_INCREF(result.components);
+    Text_t last = *(Text_t*)(path.components.data + path.components.stride*(path.components.length-1));
+    Array$remove_at(&result.components, I(-1), I(1), sizeof(Text_t));
+    if (replace) {
+        if (Text$starts_with(last, Text(".")))
+            last = Text$replace(last, Pattern(".{!.}.{..}"), Text(".@1"), Pattern("@"), false);
+        else
+            last = Text$replace(last, Pattern("{!.}.{..}"), Text("@1"), Pattern("@"), false);
+    }
+
+    last = Text$concat(last, extension);
+    Array$insert(&result.components, &last, I(0), sizeof(Text_t));
+    return result;
 }
 
 static void _line_reader_cleanup(FILE **f)
@@ -536,7 +577,7 @@ public OptionalClosure_t Path$by_line(Path_t path)
 {
     path = Path$_expand_home(path);
 
-    FILE *f = fopen(Text$as_c_string(path), "r");
+    FILE *f = fopen(Path$as_c_string(path), "r");
     if (f == NULL)
         return NONE_CLOSURE;
 
@@ -549,7 +590,7 @@ public OptionalClosure_t Path$by_line(Path_t path)
 public Array_t Path$glob(Path_t path)
 {
     glob_t glob_result;
-    int status = glob(Text$as_c_string(path), GLOB_BRACE | GLOB_TILDE | GLOB_TILDE_CHECK, NULL, &glob_result);
+    int status = glob(Path$as_c_string(path), GLOB_BRACE | GLOB_TILDE | GLOB_TILDE_CHECK, NULL, &glob_result);
     if (status != 0 && status != GLOB_NOMATCH)
         fail("Failed to perform globbing");
 
@@ -559,17 +600,141 @@ public Array_t Path$glob(Path_t path)
         if ((len >= 2 && glob_result.gl_pathv[i][len-1] == '.' && glob_result.gl_pathv[i][len-2] == '/')
             || (len >= 2 && glob_result.gl_pathv[i][len-1] == '.' && glob_result.gl_pathv[i][len-2] == '.' && glob_result.gl_pathv[i][len-3] == '/'))
             continue;
-        Array$insert(&glob_files, (Text_t[1]){Text$from_str(glob_result.gl_pathv[i])}, I(0), sizeof(Text_t));
+        Path_t p = Path$from_str(glob_result.gl_pathv[i]);
+        Array$insert(&glob_files, &p, I(0), sizeof(Path_t));
     }
     return glob_files;
+}
+
+public PUREFUNC uint64_t Path$hash(const void *obj, const TypeInfo_t *type)
+{
+    (void)type;
+    Path_t *path = (Path_t*)obj;
+    siphash sh;
+    siphashinit(&sh, (uint64_t)path->root);
+    for (int64_t i = 0; i < path->components.length; i++) {
+        uint64_t item_hash = Text$hash(path->components.data + i*path->components.stride, &Text$info);
+        siphashadd64bits(&sh, item_hash);
+    }
+    return siphashfinish_last_part(&sh, (uint64_t)path->components.length);
+}
+
+public PUREFUNC int32_t Path$compare(const void *va, const void *vb, const TypeInfo_t *type)
+{
+    (void)type;
+    Path_t *a = (Path_t*)va, *b = (Path_t*)vb;
+    int diff = ((int)a->root - (int)b->root);
+    if (diff != 0) return diff;
+    return Array$compare(&a->components, &b->components, Array$info(&Text$info));
+}
+
+public PUREFUNC bool Path$equal(const void *va, const void *vb, const TypeInfo_t *type)
+{
+    (void)type;
+    Path_t *a = (Path_t*)va, *b = (Path_t*)vb;
+    if (a->root != b->root) return false;
+    return Array$equal(&a->components, &b->components, Array$info(&Text$info));
+}
+
+public PUREFUNC bool Path$equal_values(Path_t a, Path_t b)
+{
+    if (a.root != b.root) return false;
+    return Array$equal(&a.components, &b.components, Array$info(&Text$info));
+}
+
+public const char *Path$as_c_string(Path_t path)
+{
+    if (path.components.length == 0) {
+        if (path.root == PATH_ROOT) return "/";
+        else if (path.root == PATH_RELATIVE) return ".";
+        else if (path.root == PATH_HOME) return "~";
+    }
+
+    size_t len = 0, capacity = 16;
+    char *buf = GC_MALLOC_ATOMIC(capacity);
+    if (path.root == PATH_ROOT) {
+        buf[len++] = '/';
+    } else if (path.root == PATH_HOME) {
+        buf[len++] = '~';
+        buf[len++] = '/';
+    } else if (path.root == PATH_RELATIVE) {
+        if (!Text$equal_values(*(Text_t*)path.components.data, Text(".."))) {
+            buf[len++] = '.';
+            buf[len++] = '/';
+        }
+    }
+
+    for (int64_t i = 0; i < path.components.length; i++) {
+        Text_t *comp = (Text_t*)(path.components.data + i*path.components.stride);
+        const char *comp_str = Text$as_c_string(*comp);
+        size_t comp_len = strlen(comp_str);
+        if (len + comp_len + 1 > capacity) {
+            buf = GC_REALLOC(buf, (capacity += MIN(comp_len + 2, 16)));
+        }
+        memcpy(&buf[len], comp_str, comp_len);
+        len += comp_len;
+        if (i + 1 < path.components.length)
+            buf[len++] = '/';
+    }
+    buf[len++] = '\0';
+    return buf;
+}
+
+public Text_t Path$as_text(const void *obj, bool color, const TypeInfo_t *type)
+{
+    (void)type;
+    if (!obj) return Text("Path");
+    Path_t *path = (Path_t*)obj;
+    Text_t text = Text$join(Text("/"), path->components);
+    if (path->root == PATH_HOME)
+        text = Text$concat(path->components.length > 0 ? Text("~/") : Text("~"), text);
+    else if (path->root == PATH_ROOT)
+        text = Text$concat(Text("/"), text);
+    else if (path->root == PATH_RELATIVE && path->components.length > 0 && !Text$equal_values(*(Text_t*)(path->components.data), Text("..")))
+        text = Text$concat(path->components.length > 0 ? Text("./") : Text("."), text);
+
+    if (color)
+        text = Texts(Text("\033[32;1m"), text, Text("\033[m"));
+
+    return text;
+}
+
+public CONSTFUNC bool Path$is_none(const void *obj, const TypeInfo_t *type)
+{
+    (void)type;
+    return ((Path_t*)obj)->root == PATH_NONE;
+}
+
+public void Path$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
+{
+    (void)type;
+    Path_t *path = (Path_t*)obj;
+    fputc((int)path->root, out);
+    Array$serialize(&path->components, out, pointers, Array$info(&Text$info));
+}
+
+public void Path$deserialize(FILE *in, void *obj, Array_t *pointers, const TypeInfo_t *type)
+{
+    (void)type;
+    Path_t path = {};
+    path.root = fgetc(in);
+    Array$deserialize(in, &path.components, pointers, Array$info(&Text$info));
+    *(Path_t*)obj = path;
 }
 
 public const TypeInfo_t Path$info = {
     .size=sizeof(Path_t),
     .align=__alignof__(Path_t),
-    .tag=TextInfo,
-    .TextInfo={.lang="Path"},
-    .metamethods=Text$metamethods,
+    .tag=OpaqueInfo,
+    .metamethods={
+        .as_text=Path$as_text,
+        .hash=Path$hash,
+        .compare=Path$compare,
+        .equal=Path$equal,
+        .is_none=Path$is_none,
+        .serialize=Path$serialize,
+        .deserialize=Path$deserialize,
+    }
 };
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
