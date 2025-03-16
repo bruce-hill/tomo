@@ -37,32 +37,67 @@ intended. Paths can be created from text with slashes using
 
 ## Path Methods
 
+- [`func accessed(path:Path, follow_symlinks=yes -> Moment?)`](#accessed)
 - [`func append(path: Path, text: Text, permissions: Int32 = 0o644[32] -> Void)`](#append)
 - [`func append_bytes(path: Path, bytes: [Byte], permissions: Int32 = 0o644[32] -> Void)`](#append_bytes)
 - [`func base_name(path: Path -> Text)`](#base_name)
 - [`func by_line(path: Path -> func(->Text?)?)`](#by_line)
+- [`func can_execute(path:Path -> Bool)`](#can_execute)
+- [`func can_read(path:Path -> Bool)`](#can_read)
+- [`func can_write(path:Path -> Bool)`](#can_write)
+- [`func changed(path:Path, follow_symlinks=yes -> Moment?)`](#changed)
+- [`func child(path: Path, child:Text -> Path)`](#child)
 - [`func children(path: Path, include_hidden=no -> [Path])`](#children)
 - [`func create_directory(path: Path, permissions=0o755[32] -> Void)`](#create_directory)
 - [`func exists(path: Path -> Bool)`](#exists)
 - [`func extension(path: Path, full=yes -> Text)`](#extension)
 - [`func files(path: Path, include_hidden=no -> [Path])`](#files)
+- [`func from_components(components:[Text] -> Path)`](#from_components)
 - [`func glob(path: Path -> [Path])`](#glob)
+- [`func group(path: Path, follow_symlinks=yes -> Text?)`](#group)
 - [`func is_directory(path: Path, follow_symlinks=yes -> Bool)`](#is_directory)
 - [`func is_file(path: Path, follow_symlinks=yes -> Bool)`](#is_file)
 - [`func is_socket(path: Path, follow_symlinks=yes -> Bool)`](#is_socket)
 - [`func is_symlink(path: Path -> Bool)`](#is_symlink)
+- [`func modified(path:Path, follow_symlinks=yes -> Moment?)`](#modified)
+- [`func owner(path: Path, follow_symlinks=yes -> Text?)`](#owner)
 - [`func parent(path: Path -> Path)`](#parent)
 - [`func read(path: Path -> Text?)`](#read)
 - [`func read_bytes(path: Path -> [Byte]?)`](#read_bytes)
-- [`func relative(path: Path, relative_to=(./) -> Path)`](#relative)
+- [`func relative_to(path: Path, relative_to=(./) -> Path)`](#relative_to)
 - [`func remove(path: Path, ignore_missing=no -> Void)`](#remove)
 - [`func resolved(path: Path, relative_to=(./) -> Path)`](#resolved)
+- [`func set_owner(path:Path, owner=none:Text, group=none:Text, follow_symlinks=yes)`](#set_owner)
 - [`func subdirectories(path: Path, include_hidden=no -> [Path])`](#subdirectories)
 - [`func unique_directory(path: Path -> Path)`](#unique_directory)
 - [`func write(path: Path, text: Text, permissions=0o644[32] -> Void)`](#write)
-- [`func write(path: Path, bytes: [Byte], permissions=0o644[32] -> Void)`](#write_bytes)
+- [`func write_bytes(path: Path, bytes: [Byte], permissions=0o644[32] -> Void)`](#write_bytes)
 - [`func write_unique(path: Path, text: Text -> Path)`](#write_unique)
 - [`func write_unique_bytes(path: Path, bytes: [Byte] -> Path)`](#write_unique_bytes)
+
+### `accessed`
+Gets the file access time of a file.
+
+```tomo
+func accessed(path:Path, follow_symlinks: Bool = yes -> Moment?)
+```
+
+- `path`: The path of the file whose access time you want.
+- `follow_symlinks`: Whether to follow symbolic links (default is `yes`).
+
+**Returns:**  
+A [Moment](moments.md) representing when the file or directory was last
+accessed, or `none` if no such file or directory exists.
+
+**Example:**  
+```tomo
+>> (./file.txt):accessed()
+= Sun 16 Mar 2025 03:43:53 PM EDT EDT : Moment?
+>> (./not-a-file):accessed()
+= none : Moment?
+```
+
+---
 
 ### `append`
 Appends the given text to the file at the specified path, creating the file if
@@ -74,7 +109,7 @@ func append(path: Path, text: Text, permissions: Int32 = 0o644[32] -> Void)
 
 - `path`: The path of the file to append to.
 - `text`: The text to append to the file.
-- `permissions` (optional): The permissions to set on the file if it is being created (default is `0o644`).
+- `permissions`: The permissions to set on the file if it is being created (default is `0o644`).
 
 **Returns:**  
 Nothing.
@@ -96,7 +131,7 @@ func append_bytes(path: Path, bytes: [Byte], permissions: Int32 = 0o644[32] -> V
 
 - `path`: The path of the file to append to.
 - `bytes`: The bytes to append to the file.
-- `permissions` (optional): The permissions to set on the file if it is being created (default is `0o644`).
+- `permissions`: The permissions to set on the file if it is being created (default is `0o644`).
 
 **Returns:**  
 Nothing.
@@ -158,6 +193,127 @@ for line in (/dev/stdin):by_line()!:
 
 ---
 
+### `can_execute`
+Returns whether or not a file can be executed by the current user/group.
+
+```tomo
+func can_execute(path: Path -> Bool)
+```
+
+- `path`: The path of the file to check.
+
+**Returns:**
+`yes` if the file or directory exists and the current user has execute permissions, otherwise `no`.
+
+**Example:**  
+```tomo
+>> (/bin/sh):can_execute()
+= yes
+>> (/usr/include/stdlib.h):can_execute()
+= no
+>> (/non/existant/file):can_execute()
+= no
+```
+
+---
+
+### `can_read`
+Returns whether or not a file can be read by the current user/group.
+
+```tomo
+func can_read(path: Path -> Bool)
+```
+
+- `path`: The path of the file to check.
+
+**Returns:**
+`yes` if the file or directory exists and the current user has read permissions, otherwise `no`.
+
+**Example:**  
+```tomo
+>> (/usr/include/stdlib.h):can_read()
+= yes
+>> (/etc/shadow):can_read()
+= no
+>> (/non/existant/file):can_read()
+= no
+```
+
+---
+
+### `can_write`
+Returns whether or not a file can be written by the current user/group.
+
+```tomo
+func can_write(path: Path -> Bool)
+```
+
+- `path`: The path of the file to check.
+
+**Returns:**
+`yes` if the file or directory exists and the current user has write permissions, otherwise `no`.
+
+**Example:**  
+```tomo
+>> (/tmp):can_write()
+= yes
+>> (/etc/passwd):can_write()
+= no
+>> (/non/existant/file):can_write()
+= no
+```
+
+---
+
+### `changed`
+Gets the file change time of a file.
+
+**Note:** this is the
+["ctime"](https://en.wikipedia.org/wiki/Stat_(system_call)#ctime) of a file,
+which is _not_ the file creation time.
+
+```tomo
+func changed(path:Path, follow_symlinks: Bool = yes -> Moment?)
+```
+
+- `path`: The path of the file whose change time you want.
+- `follow_symlinks`: Whether to follow symbolic links (default is `yes`).
+
+**Returns:**  
+A [Moment](moments.md) representing when the file or directory was last
+changed, or `none` if no such file or directory exists.
+
+**Example:**  
+```tomo
+>> (./file.txt):changed()
+= Sun 16 Mar 2025 03:43:53 PM EDT EDT : Moment?
+>> (./not-a-file):changed()
+= none : Moment?
+```
+
+---
+
+### `child`
+Return a path that is a child of another path.
+
+```tomo
+func child(path: Path, child: Text -> [Path])
+```
+
+- `path`: The path of a directory.
+- `child`: The name of a child file or directory.
+
+**Returns:**  
+A new path representing the child.
+
+**Example:**  
+```tomo
+>> (./directory):child("file.txt")
+= (./directory/file.txt)
+```
+
+---
+
 ### `children`
 Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files.
 
@@ -166,7 +322,7 @@ func children(path: Path, include_hidden=no -> [Path])
 ```
 
 - `path`: The path of the directory.
-- `include_hidden` (optional): Whether to include hidden files, which start with a `.` (default is `no`).
+- `include_hidden`: Whether to include hidden files, which start with a `.` (default is `no`).
 
 **Returns:**  
 A list of paths for the children.
@@ -188,7 +344,7 @@ func create_directory(path: Path, permissions=0o755[32] -> Void)
 ```
 
 - `path`: The path of the directory to create.
-- `permissions` (optional): The permissions to set on the new directory (default is `0o644`).
+- `permissions`: The permissions to set on the new directory (default is `0o644`).
 
 **Returns:**  
 Nothing.
@@ -224,11 +380,11 @@ func exists(path: Path -> Bool)
 Returns the file extension of the file at the specified path. Optionally returns the full extension.
 
 ```tomo
-func extension(path: Path, full=yes -> Text)
+func extension(path: Path, full:Bool = yes -> Text)
 ```
 
 - `path`: The path of the file.
-- `full` (optional): Whether to return everything after the first `.` in the
+- `full`: Whether to return everything after the first `.` in the
   base name, or only the last part of the extension (default is `yes`).
 
 **Returns:**  
@@ -253,11 +409,11 @@ no file extension.
 Returns a list of files within the directory at the specified path. Optionally includes hidden files.
 
 ```tomo
-func files(path: Path, include_hidden=no -> [Path])
+func files(path: Path, include_hidden: Bool = no -> [Path])
 ```
 
 - `path`: The path of the directory.
-- `include_hidden` (optional): Whether to include hidden files (default is `no`).
+- `include_hidden`: Whether to include hidden files (default is `no`).
 
 **Returns:**  
 A list of file paths.
@@ -266,6 +422,30 @@ A list of file paths.
 ```tomo
 >> (./directory):files(include_hidden=yes)
 = [(./directory/file1.txt), (./directory/file2.txt)]
+```
+
+---
+
+### `from_components`
+Returns a path built from an array of path components.
+
+```tomo
+func from_components(components: [Text] -> Path)
+```
+
+- `components`: An array of path components.
+
+**Returns:**  
+A path representing the given components.
+
+**Example:**  
+```tomo
+>> Path.from_components(["/", "usr", "include"])
+= /usr/include
+>> Path.from_components(["foo.txt"])
+= ./foo.txt
+>> Path.from_components(["~", ".local"])
+= ~/.local
 ```
 
 ---
@@ -312,6 +492,29 @@ A list of file paths that match the glob.
 
 ---
 
+### `group`
+Get the owning group of a file or directory.
+
+```tomo
+func group(path: Path, follow_symlinks: Bool = yes -> Text?)
+```
+
+- `path`: The path whose owning group to get.
+- `follow_symlinks`: Whether to follow symbolic links (default is `yes`).
+
+**Returns:**  
+The name of the group which owns the file or directory, or `none` if the path does not exist.
+
+**Example:**  
+```tomo
+>> (/bin):group()
+= "root"
+>> (/non/existent/file):group()
+= none:Text
+```
+
+---
+
 ### `is_directory`
 Checks if the path represents a directory. Optionally follows symbolic links.
 
@@ -320,7 +523,7 @@ func is_directory(path: Path, follow_symlinks=yes -> Bool)
 ```
 
 - `path`: The path to check.
-- `follow_symlinks` (optional): Whether to follow symbolic links (default is `yes`).
+- `follow_symlinks`: Whether to follow symbolic links (default is `yes`).
 
 **Returns:**  
 `True` if the path is a directory, `False` otherwise.
@@ -344,7 +547,7 @@ func is_file(path: Path, follow_symlinks=yes -> Bool)
 ```
 
 - `path`: The path to check.
-- `follow_symlinks` (optional): Whether to follow symbolic links (default is `yes`).
+- `follow_symlinks`: Whether to follow symbolic links (default is `yes`).
 
 **Returns:**  
 `True` if the path is a file, `False` otherwise.
@@ -368,7 +571,7 @@ func is_socket(path: Path, follow_symlinks=yes -> Bool)
 ```
 
 - `path`: The path to check.
-- `follow_symlinks` (optional): Whether to follow symbolic links (default is `yes`).
+- `follow_symlinks`: Whether to follow symbolic links (default is `yes`).
 
 **Returns:**  
 `True` if the path is a socket, `False` otherwise.
@@ -397,6 +600,53 @@ func is_symlink(path: Path -> Bool)
 ```tomo
 >> (./link):is_symlink()
 = yes
+```
+
+---
+
+### `modified`
+Gets the file modification time of a file.
+
+```tomo
+func modified(path:Path, follow_symlinks: Bool = yes -> Moment?)
+```
+
+- `path`: The path of the file whose modification time you want.
+- `follow_symlinks`: Whether to follow symbolic links (default is `yes`).
+
+**Returns:**  
+A [Moment](moments.md) representing when the file or directory was last
+modified, or `none` if no such file or directory exists.
+
+**Example:**  
+```tomo
+>> (./file.txt):modified()
+= Sun 16 Mar 2025 03:43:53 PM EDT EDT : Moment?
+>> (./not-a-file):modified()
+= none : Moment?
+```
+
+---
+
+### `owner`
+Get the owning user of a file or directory.
+
+```tomo
+func owner(path: Path, follow_symlinks: Bool = yes -> Text?)
+```
+
+- `path`: The path whose owner to get.
+- `follow_symlinks`: Whether to follow symbolic links (default is `yes`).
+
+**Returns:**  
+The name of the user who owns the file or directory, or `none` if the path does not exist.
+
+**Example:**  
+```tomo
+>> (/bin):owner()
+= "root"
+>> (/non/existent/file):owner()
+= none:Text
 ```
 
 ---
@@ -471,15 +721,15 @@ returned.
 
 ---
 
-### `relative`
+### `relative_to`
 Returns the path relative to a given base path. By default, the base path is the current directory.
 
 ```tomo
-func relative(path: Path, relative_to=(./) -> Path)
+func relative_to(path: Path, relative_to=(./) -> Path)
 ```
 
 - `path`: The path to convert.
-- `relative_to` (optional): The base path for the relative path (default is `./`).
+- `relative_to`: The base path for the relative path (default is `./`).
 
 **Returns:**  
 The relative path.
@@ -500,7 +750,7 @@ func remove(path: Path, ignore_missing=no -> Void)
 ```
 
 - `path`: The path to remove.
-- `ignore_missing` (optional): Whether to ignore errors if the file or directory does not exist (default is `no`).
+- `ignore_missing`: Whether to ignore errors if the file or directory does not exist (default is `no`).
 
 **Returns:**  
 Nothing.
@@ -520,7 +770,7 @@ func resolved(path: Path, relative_to=(./) -> Path)
 ```
 
 - `path`: The path to resolve.
-- `relative_to` (optional): The base path for resolution (default is `./`).
+- `relative_to`: The base path for resolution (default is `./`).
 
 **Returns:**  
 The resolved absolute path.
@@ -536,6 +786,28 @@ The resolved absolute path.
 
 ---
 
+### `set_owner`
+Set the owning user and/or group for a path.
+
+```tomo
+func set_owner(path:Path, owner: Text? = none:Text, group: Text? = none:Text, follow_symlinks: Bool = yes)
+```
+
+- `path`: The path to change the permissions for.
+- `owner`: If non-none, the new user to assign to be the owner of the file (default: `none`).
+- `group`: If non-none, the new group to assign to be the owner of the file (default: `none`).
+- `follow_symlinks`: Whether to follow symbolic links (default is `yes`).
+
+**Returns:**  
+Nothing. If a path does not exist, a failure will be raised.
+
+**Example:**  
+```tomo
+(./file.txt):set_owner(owner="root", group="wheel")
+```
+
+---
+
 ### `subdirectories`
 Returns a list of subdirectories within the directory at the specified path. Optionally includes hidden subdirectories.
 
@@ -544,7 +816,7 @@ func subdirectories(path: Path, include_hidden=no -> [Path])
 ```
 
 - `path`: The path of the directory.
-- `include_hidden` (optional): Whether to include hidden subdirectories (default is `no`).
+- `include_hidden`: Whether to include hidden subdirectories (default is `no`).
 
 **Returns:**  
 A list of subdirectory paths.
@@ -595,7 +867,7 @@ func write(path: Path, text: Text, permissions=0o644[32] -> Void)
 
 - `path`: The path of the file to write to.
 - `text`: The text to write to the file.
-- `permissions` (optional): The permissions to set on the file if it is created (default is `0o644`).
+- `permissions`: The permissions to set on the file if it is created (default is `0o644`).
 
 **Returns:**  
 Nothing.
@@ -618,7 +890,7 @@ func write(path: Path, bytes: [Byte], permissions=0o644[32] -> Void)
 
 - `path`: The path of the file to write to.
 - `bytes`: An array of bytes to write to the file.
-- `permissions` (optional): The permissions to set on the file if it is created (default is `0o644`).
+- `permissions`: The permissions to set on the file if it is created (default is `0o644`).
 
 **Returns:**  
 Nothing.

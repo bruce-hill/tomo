@@ -4,6 +4,8 @@
 #include <fcntl.h>
 #include <gc.h>
 #include <glob.h>
+#include <grp.h>
+#include <pwd.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -215,6 +217,27 @@ public bool Path$is_symlink(Path_t path)
     return (sb.st_mode & S_IFMT) == S_IFLNK;
 }
 
+public bool Path$can_read(Path_t path)
+{
+    path = Path$_expand_home(path);
+    const char *path_str = Path$as_c_string(path);
+    return (euidaccess(path_str, R_OK) == 0);
+}
+
+public bool Path$can_write(Path_t path)
+{
+    path = Path$_expand_home(path);
+    const char *path_str = Path$as_c_string(path);
+    return (euidaccess(path_str, W_OK) == 0);
+}
+
+public bool Path$can_execute(Path_t path)
+{
+    path = Path$_expand_home(path);
+    const char *path_str = Path$as_c_string(path);
+    return (euidaccess(path_str, X_OK) == 0);
+}
+
 public OptionalMoment_t Path$modified(Path_t path, bool follow_symlinks)
 {
     struct stat sb;
@@ -338,6 +361,45 @@ public OptionalText_t Path$read(Path_t path)
     Array_t bytes = Path$read_bytes(path, NONE_INT);
     if (bytes.length < 0) return NONE_TEXT;
     return Text$from_bytes(bytes);
+}
+
+public OptionalText_t Path$owner(Path_t path, bool follow_symlinks)
+{
+    struct stat sb;
+    int status = path_stat(path, follow_symlinks, &sb);
+    if (status != 0) return NONE_TEXT;
+    struct passwd *pw = getpwuid(sb.st_uid);
+    return pw ? Text$from_str(pw->pw_name) : NONE_TEXT;
+}
+
+public OptionalText_t Path$group(Path_t path, bool follow_symlinks)
+{
+    struct stat sb;
+    int status = path_stat(path, follow_symlinks, &sb);
+    if (status != 0) return NONE_TEXT;
+    struct group *gr = getgrgid(sb.st_uid);
+    return gr ? Text$from_str(gr->gr_name) : NONE_TEXT;
+}
+
+public void Path$set_owner(Path_t path, OptionalText_t owner, OptionalText_t group, bool follow_symlinks)
+{
+    uid_t owner_id = (uid_t)-1;
+    if (owner.length >= 0) {
+        struct passwd *pwd = getpwnam(Text$as_c_string(owner));
+        if (pwd == NULL) fail("Not a valid user: %k", &owner);
+        owner_id = pwd->pw_uid;
+    }
+
+    gid_t group_id = (gid_t)-1;
+    if (group.length >= 0) {
+        struct group *grp = getgrnam(Text$as_c_string(group));
+        if (grp == NULL) fail("Not a valid group: %k", &group);
+        group_id = grp->gr_gid;
+    }
+    const char *path_str = Path$as_c_string(path);
+    int result = follow_symlinks ? chown(path_str, owner_id, group_id) : lchown(path_str, owner_id, group_id);
+    if (result < 0)
+        fail("Could not set owner!");
 }
 
 public void Path$remove(Path_t path, bool ignore_missing)
@@ -515,6 +577,7 @@ public Path_t Path$with_component(Path_t path, Text_t component)
     };
     ARRAY_INCREF(result.components);
     Array$insert(&result.components, &component, I(0), sizeof(Text_t));
+    clean_components(&result.components);
     return result;
 }
 
@@ -690,7 +753,7 @@ public Text_t Path$as_text(const void *obj, bool color, const TypeInfo_t *type)
         text = Text$concat(path->components.length > 0 ? Text("~/") : Text("~"), text);
     else if (path->type == PATH_ABSOLUTE)
         text = Text$concat(Text("/"), text);
-    else if (path->type == PATH_RELATIVE && path->components.length > 0 && !Text$equal_values(*(Text_t*)(path->components.data), Text("..")))
+    else if (path->type == PATH_RELATIVE && (path->components.length == 0 || !Text$equal_values(*(Text_t*)(path->components.data), Text(".."))))
         text = Text$concat(path->components.length > 0 ? Text("./") : Text("."), text);
 
     if (color)
