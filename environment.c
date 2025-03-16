@@ -583,7 +583,7 @@ env_t *new_compilation_unit(CORD libname)
                      {"Shell$escape_text", "func(text:Text -> Shell)"},
                      {"Shell$escape_path", "func(path:Path -> Shell)"},
                      {"Shell$escape_text_array", "func(texts:[Text] -> Shell)"},
-                     {"Shell$escape_text_array", "func(paths:[Path] -> Shell)"},
+                     {"Shell$escape_path_array", "func(paths:[Path] -> Shell)"},
                      {"Int$value_as_text", "func(i:Int -> Shell)"});
     ADD_CONSTRUCTORS("CString", {"Text$as_c_string", "func(text:Text -> CString)"});
     ADD_CONSTRUCTORS("Moment",

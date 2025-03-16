@@ -20,6 +20,7 @@ OptionalClosure_t Shell$by_line(Shell_t command);
 Shell_t Shell$escape_text(Text_t text);
 Shell_t Shell$escape_path(Path_t path);
 Shell_t Shell$escape_text_array(Array_t texts);
+Shell_t Shell$escape_path_array(Array_t paths);
 OptionalArray_t Shell$run_bytes(Shell_t command);
 OptionalText_t Shell$run(Shell_t command);
 OptionalInt32_t Shell$execute(Shell_t command);

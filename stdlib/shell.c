@@ -34,6 +34,17 @@ public Shell_t Shell$escape_text_array(Array_t texts)
     return Text$join(Text(" "), all_escaped);
 }
 
+public Shell_t Shell$escape_path_array(Array_t paths)
+{
+    Array_t all_escaped = {};
+    for (int64_t i = 0; i < paths.length; i++) {
+        Path_t path = *(Path_t*)(paths.data + i*paths.stride);
+        Text_t escaped = Shell$escape_path(path);
+        Array$insert(&all_escaped, &escaped, I(0), sizeof(Text_t));
+    }
+    return Text$join(Text(" "), all_escaped);
+}
+
 public OptionalArray_t Shell$run_bytes(Shell_t command)
 {
     const char *cmd_str = Text$as_c_string(command);
