@@ -6,6 +6,7 @@
 
 #include "arrays.h"
 #include "integers.h"
+#include "paths.h"
 #include "patterns.h"
 #include "shell.h"
 #include "text.h"
@@ -15,6 +16,11 @@
 public Shell_t Shell$escape_text(Text_t text)
 {
     return Texts(Text("'"), Text$replace(text, Text("'"), Text("'\"'\"'"), Text(""), false), Text("'"));
+}
+
+public Shell_t Shell$escape_path(Path_t path)
+{
+    return Shell$escape_text(Path$as_text(&path, false, &Path$info));
 }
 
 public Shell_t Shell$escape_text_array(Array_t texts)
