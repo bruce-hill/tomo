@@ -146,15 +146,15 @@ public Path_t Path$relative_to(Path_t path, Path_t relative_to)
     for (; shared < path.components.length && shared < relative_to.components.length; shared++) {
         Text_t *p = (Text_t*)(path.components.data + shared*path.components.stride);
         Text_t *r = (Text_t*)(relative_to.components.data + shared*relative_to.components.stride);
-        printf("%ld shared: %k vs %r\n", p, r);
         if (!Text$equal_values(*p, *r))
             break;
     }
 
-    for (int64_t i = shared; i < relative_to.components.length; shared++)
+    printf("%ld shared!\n", shared);
+    for (int64_t i = shared; i < relative_to.components.length; i++)
         Array$insert_value(&result.components, Text(".."), I(1), sizeof(Text_t));
 
-    for (int64_t i = shared; i < path.components.length; shared++) {
+    for (int64_t i = shared; i < path.components.length; i++) {
         Text_t *p = (Text_t*)(path.components.data + i*path.components.stride);
         Array$insert(&result.components, p, I(0), sizeof(Text_t));
     }
