@@ -28,7 +28,7 @@
 #include "siphash.h"
 #include "siphash-internals.h"
 
-static const Path_t HOME_PATH = {.root=PATH_HOME}, ROOT_PATH = {.root=PATH_ROOT}, CURDIR_PATH = {.root=PATH_RELATIVE};
+static const Path_t HOME_PATH = {.type=PATH_HOME}, ROOT_PATH = {.type=PATH_ABSOLUTE}, CURDIR_PATH = {.type=PATH_RELATIVE};
 
 static void clean_components(Array_t *components)
 {
@@ -58,16 +58,16 @@ public Path_t Path$from_str(const char *str)
 
     Path_t result = {.components={}};
     if (str[0] == '/') {
-        result.root = PATH_ROOT;
+        result.type = PATH_ABSOLUTE;
         str += 1;
     } else if (str[0] == '~' && str[1] == '/') {
-        result.root = PATH_HOME;
+        result.type = PATH_HOME;
         str += 2;
     } else if (str[0] == '.' && str[1] == '/') {
-        result.root = PATH_RELATIVE;
+        result.type = PATH_RELATIVE;
         str += 2;
     } else {
-        result.root = PATH_RELATIVE;
+        result.type = PATH_RELATIVE;
     }
 
     while (str && *str) {
@@ -98,11 +98,11 @@ public Path_t Path$from_text(Text_t text)
 
 static INLINE Path_t Path$_expand_home(Path_t path)
 {
-    if (path.root == PATH_HOME) {
+    if (path.type == PATH_HOME) {
         Path_t pwd = Path$from_str(getenv("HOME"));
         Array_t components = Array$concat(path.components, pwd.components, sizeof(Text_t));
         clean_components(&components);
-        path = (Path_t){.root=PATH_ROOT, .components=components};
+        path = (Path_t){.type=PATH_ABSOLUTE, .components=components};
     }
     return path;
 }
@@ -113,7 +113,7 @@ public Path_t Path$_concat(int n, Path_t items[n])
     Path_t result = items[0];
     ARRAY_INCREF(result.components);
     for (int i = 1; i < n; i++) {
-        if (items[i].root != PATH_RELATIVE)
+        if (items[i].type != PATH_RELATIVE)
             fail("Cannot concatenate an absolute or home-based path onto another path: (%s)\n",
                  Path$as_c_string(items[i]));
         Array$insert_all(&result.components, items[i].components, I(0), sizeof(Text_t));
@@ -124,8 +124,8 @@ public Path_t Path$_concat(int n, Path_t items[n])
 
 public Path_t Path$resolved(Path_t path, Path_t relative_to)
 {
-    if (path.root == PATH_RELATIVE && !(relative_to.root == PATH_RELATIVE && relative_to.components.length == 0)) {
-        Path_t result = {.root=relative_to.root};
+    if (path.type == PATH_RELATIVE && !(relative_to.type == PATH_RELATIVE && relative_to.components.length == 0)) {
+        Path_t result = {.type=relative_to.type};
         result.components = relative_to.components;
         ARRAY_INCREF(result.components);
         Array$insert_all(&result.components, path.components, I(0), sizeof(Text_t));
@@ -137,11 +137,11 @@ public Path_t Path$resolved(Path_t path, Path_t relative_to)
 
 public Path_t Path$relative_to(Path_t path, Path_t relative_to)
 {
-    if (path.root != relative_to.root)
-        fail("Cannot create a path relative to a different path with a mismatching root: (%k) relative to (%k)",
+    if (path.type != relative_to.type)
+        fail("Cannot create a path relative to a different path with a mismatching type: (%k) relative to (%k)",
              (Text_t[1]){Path$as_text(&path, false, &Path$info)}, (Text_t[1]){Path$as_text(&relative_to, false, &Path$info)});
 
-    Path_t result = {.root=PATH_RELATIVE};
+    Path_t result = {.type=PATH_RELATIVE};
     int64_t shared = 0;
     for (; shared < path.components.length && shared < relative_to.components.length; shared++) {
         Text_t *p = (Text_t*)(path.components.data + shared*path.components.stride);
@@ -469,13 +469,13 @@ public Path_t Path$write_unique(Path_t path, Text_t text)
 
 public Path_t Path$parent(Path_t path)
 {
-    if (path.root == PATH_ROOT && path.components.length == 0) {
+    if (path.type == PATH_ABSOLUTE && path.components.length == 0) {
         return path;
     } else if (path.components.length > 0 && !Text$equal_values(*(Text_t*)(path.components.data + path.components.stride*(path.components.length-1)),
                                                          Text(".."))) {
-        return (Path_t){.root=path.root, .components=Array$slice(path.components, I(1), I(-2))};
+        return (Path_t){.type=path.type, .components=Array$slice(path.components, I(1), I(-2))};
     } else {
-        Path_t result = {.root=path.root, .components=path.components};
+        Path_t result = {.type=path.type, .components=path.components};
         ARRAY_INCREF(result.components);
         Array$insert_value(&result.components, Text(".."), I(0), sizeof(Text_t));
         return result;
@@ -486,9 +486,9 @@ public PUREFUNC Text_t Path$base_name(Path_t path)
 {
     if (path.components.length >= 1)
         return *(Text_t*)(path.components.data + path.components.stride*(path.components.length-1));
-    else if (path.root == PATH_HOME)
+    else if (path.type == PATH_HOME)
         return Text("~");
-    else if (path.root == PATH_RELATIVE)
+    else if (path.type == PATH_RELATIVE)
         return Text(".");
     else
         return EMPTY_TEXT;
@@ -510,7 +510,7 @@ public Text_t Path$extension(Path_t path, bool full)
 public Path_t Path$with_component(Path_t path, Text_t component)
 {
     Path_t result = {
-        .root=path.root,
+        .type=path.type,
         .components=path.components,
     };
     ARRAY_INCREF(result.components);
@@ -524,7 +524,7 @@ public Path_t Path$with_extension(Path_t path, Text_t extension, bool replace)
         fail("A path with no components can't have an extension!");
 
     Path_t result = {
-        .root=path.root,
+        .type=path.type,
         .components=path.components,
     };
     ARRAY_INCREF(result.components);
@@ -611,7 +611,7 @@ public PUREFUNC uint64_t Path$hash(const void *obj, const TypeInfo_t *type)
     (void)type;
     Path_t *path = (Path_t*)obj;
     siphash sh;
-    siphashinit(&sh, (uint64_t)path->root);
+    siphashinit(&sh, (uint64_t)path->type);
     for (int64_t i = 0; i < path->components.length; i++) {
         uint64_t item_hash = Text$hash(path->components.data + i*path->components.stride, &Text$info);
         siphashadd64bits(&sh, item_hash);
@@ -623,7 +623,7 @@ public PUREFUNC int32_t Path$compare(const void *va, const void *vb, const TypeI
 {
     (void)type;
     Path_t *a = (Path_t*)va, *b = (Path_t*)vb;
-    int diff = ((int)a->root - (int)b->root);
+    int diff = ((int)a->type - (int)b->type);
     if (diff != 0) return diff;
     return Array$compare(&a->components, &b->components, Array$info(&Text$info));
 }
@@ -632,32 +632,32 @@ public PUREFUNC bool Path$equal(const void *va, const void *vb, const TypeInfo_t
 {
     (void)type;
     Path_t *a = (Path_t*)va, *b = (Path_t*)vb;
-    if (a->root != b->root) return false;
+    if (a->type != b->type) return false;
     return Array$equal(&a->components, &b->components, Array$info(&Text$info));
 }
 
 public PUREFUNC bool Path$equal_values(Path_t a, Path_t b)
 {
-    if (a.root != b.root) return false;
+    if (a.type != b.type) return false;
     return Array$equal(&a.components, &b.components, Array$info(&Text$info));
 }
 
 public const char *Path$as_c_string(Path_t path)
 {
     if (path.components.length == 0) {
-        if (path.root == PATH_ROOT) return "/";
-        else if (path.root == PATH_RELATIVE) return ".";
-        else if (path.root == PATH_HOME) return "~";
+        if (path.type == PATH_ABSOLUTE) return "/";
+        else if (path.type == PATH_RELATIVE) return ".";
+        else if (path.type == PATH_HOME) return "~";
     }
 
     size_t len = 0, capacity = 16;
     char *buf = GC_MALLOC_ATOMIC(capacity);
-    if (path.root == PATH_ROOT) {
+    if (path.type == PATH_ABSOLUTE) {
         buf[len++] = '/';
-    } else if (path.root == PATH_HOME) {
+    } else if (path.type == PATH_HOME) {
         buf[len++] = '~';
         buf[len++] = '/';
-    } else if (path.root == PATH_RELATIVE) {
+    } else if (path.type == PATH_RELATIVE) {
         if (!Text$equal_values(*(Text_t*)path.components.data, Text(".."))) {
             buf[len++] = '.';
             buf[len++] = '/';
@@ -686,11 +686,11 @@ public Text_t Path$as_text(const void *obj, bool color, const TypeInfo_t *type)
     if (!obj) return Text("Path");
     Path_t *path = (Path_t*)obj;
     Text_t text = Text$join(Text("/"), path->components);
-    if (path->root == PATH_HOME)
+    if (path->type == PATH_HOME)
         text = Text$concat(path->components.length > 0 ? Text("~/") : Text("~"), text);
-    else if (path->root == PATH_ROOT)
+    else if (path->type == PATH_ABSOLUTE)
         text = Text$concat(Text("/"), text);
-    else if (path->root == PATH_RELATIVE && path->components.length > 0 && !Text$equal_values(*(Text_t*)(path->components.data), Text("..")))
+    else if (path->type == PATH_RELATIVE && path->components.length > 0 && !Text$equal_values(*(Text_t*)(path->components.data), Text("..")))
         text = Text$concat(path->components.length > 0 ? Text("./") : Text("."), text);
 
     if (color)
@@ -702,14 +702,14 @@ public Text_t Path$as_text(const void *obj, bool color, const TypeInfo_t *type)
 public CONSTFUNC bool Path$is_none(const void *obj, const TypeInfo_t *type)
 {
     (void)type;
-    return ((Path_t*)obj)->root == PATH_NONE;
+    return ((Path_t*)obj)->type == PATH_NONE;
 }
 
 public void Path$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
 {
     (void)type;
     Path_t *path = (Path_t*)obj;
-    fputc((int)path->root, out);
+    fputc((int)path->type, out);
     Array$serialize(&path->components, out, pointers, Array$info(&Text$info));
 }
 
@@ -717,7 +717,7 @@ public void Path$deserialize(FILE *in, void *obj, Array_t *pointers, const TypeI
 {
     (void)type;
     Path_t path = {};
-    path.root = fgetc(in);
+    path.type = fgetc(in);
     Array$deserialize(in, &path.components, pointers, Array$info(&Text$info));
     *(Path_t*)obj = path;
 }

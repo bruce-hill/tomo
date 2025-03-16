@@ -84,7 +84,7 @@ env_t *new_compilation_unit(CORD libname)
         env_t *path_env = namespace_env(env, "Path");
         PATH_TYPE = Type(
             StructType, .name="Path", .env=path_env,
-            .fields=new(arg_t, .name="root", .type=Type(IntType, .bits=TYPE_IBITS32),
+            .fields=new(arg_t, .name="type", .type=Type(IntType, .bits=TYPE_IBITS32),
               .next=new(arg_t, .name="components", .type=Type(ArrayType, .item_type=TEXT_TYPE))));
     }
 

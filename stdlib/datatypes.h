@@ -97,7 +97,7 @@ typedef struct Text_s {
 #define OptionalPattern_t Text_t
 
 typedef struct {
-    enum { PATH_NONE, PATH_RELATIVE, PATH_ROOT, PATH_HOME } root;
+    enum { PATH_NONE, PATH_RELATIVE, PATH_ABSOLUTE, PATH_HOME } type;
     Array_t components;
 } Path_t;
 #define OptionalPath_t Path_t

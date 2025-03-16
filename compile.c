@@ -699,7 +699,7 @@ CORD check_none(type_t *t, CORD value)
     else if (t == MATCH_TYPE)
         return CORD_all("((", value, ").index.small == 0)");
     else if (t == PATH_TYPE)
-        return CORD_all("((", value, ").root == PATH_NONE)");
+        return CORD_all("((", value, ").type == PATH_NONE)");
     else if (t->tag == BigIntType)
         return CORD_all("((", value, ").small == 0)");
     else if (t->tag == ClosureType)
