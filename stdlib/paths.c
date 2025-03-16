@@ -146,6 +146,7 @@ public Path_t Path$relative_to(Path_t path, Path_t relative_to)
     for (; shared < path.components.length && shared < relative_to.components.length; shared++) {
         Text_t *p = (Text_t*)(path.components.data + shared*path.components.stride);
         Text_t *r = (Text_t*)(relative_to.components.data + shared*relative_to.components.stride);
+        printf("%ld shared: %k vs %r\n", p, r);
         if (!Text$equal_values(*p, *r))
             break;
     }
