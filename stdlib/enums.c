@@ -75,13 +75,12 @@ public Text_t Enum$as_text(const void *obj, bool colorize, const TypeInfo_t *typ
     int32_t tag = *(int32_t*)obj;
     NamedType_t value = type->EnumInfo.tags[tag-1];
     if (!value.type || value.type->size == 0)
-        return Text$format(colorize ? "\x1b[36;1m%s\x1b[m.\x1b[1m%s\x1b[m" : "%s.%s", type->EnumInfo.name, value.name);
+        return Text$format(colorize ? "\x1b[1m%s\x1b[m" : "%s", value.name);
 
     ptrdiff_t byte_offset = sizeof(int32_t);
     if (value.type->align && byte_offset % value.type->align > 0)
         byte_offset += value.type->align - (byte_offset % value.type->align);
-    return Text$concat(Text$format(colorize ? "\x1b[36;1m%s\x1b[m." : "%s.", type->EnumInfo.name),
-                       generic_as_text(obj + byte_offset, colorize, value.type));
+    return generic_as_text(obj + byte_offset, colorize, value.type);
 }
 
 PUREFUNC public bool Enum$is_none(const void *x, const TypeInfo_t*)

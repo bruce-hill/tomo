@@ -218,12 +218,12 @@ func main():
         !! ...
         !! Enums:
         >> yep := Enum.maybe(yes)
-        = Enum.Y(123) : Enum?
+        = Y(123) : Enum?
         >> nope := Enum.maybe(no)
         = none : Enum?
         >> if yep:
             >> yep
-            = Enum.Y(123)
+            = Y(123)
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")

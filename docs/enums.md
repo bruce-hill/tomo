@@ -63,9 +63,9 @@ func increment(arg:ArgumentType -> ReturnType):
 ...
 
 >> increment(AnInt(5))
-= ReturnType.AnInt(6)
+= AnInt(6)
 >> increment(SomeText("HI"))
-= ReturnType.Nothiing
+= Nothiing
 ```
 
 This lets us have overlapping tag names for different types, but smartly infer
