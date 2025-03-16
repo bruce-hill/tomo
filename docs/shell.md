@@ -16,7 +16,7 @@ user-controlled string is automatically escaped when performing interpolation.
 - [`func by_line(command: Shell -> Void)`](#by_line)
 - [`func execute(command: Shell -> Int32?)`](#execute)
 - [`func run(command: Shell -> Text?)`](#run)
-- [`func run(command: Shell -> [Byte]?)`](#run_bytes)
+- [`func run_bytes(command: Shell -> [Byte]?)`](#run_bytes)
 
 ### `by_line`
 Run a shell command and return an iterator over its output, line-by-line.
@@ -85,7 +85,7 @@ if there is a trailing newline, it will be stripped.
 Run a shell command and return the output in raw bytes from `stdout`.
 
 ```tomo
-func run(command: Shell -> [Byte]?)
+func run_bytes(command: Shell -> [Byte]?)
 ```
 
 - `command`: The command to run.
