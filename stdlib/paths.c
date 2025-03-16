@@ -150,7 +150,6 @@ public Path_t Path$relative_to(Path_t path, Path_t relative_to)
             break;
     }
 
-    printf("%ld shared!\n", shared);
     for (int64_t i = shared; i < relative_to.components.length; i++)
         Array$insert_value(&result.components, Text(".."), I(1), sizeof(Text_t));
 
