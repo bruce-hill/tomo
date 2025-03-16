@@ -52,8 +52,8 @@ int op_tightness[] = {
 
 static const char *keywords[] = {
     "yes", "xor", "while", "when", "use", "unless", "struct", "stop", "skip", "return",
-    "or", "not", "no", "mutexed", "mod1", "mod", "pass", "lang", "inline", "in", "if", "holding",
-    "func", "for", "extern", "enum", "else", "do", "deserialize", "defer", "and", "none",
+    "or", "not", "none", "no", "mutexed", "mod1", "mod", "pass", "lang", "inline", "in", "if", "holding",
+    "func", "for", "extern", "enum", "end", "else", "do", "deserialize", "defer", "begin", "and",
     "_min_", "_max_", NULL,
 };
 
@@ -1172,11 +1172,44 @@ PARSER(parse_for) {
 }
 
 PARSER(parse_do) {
-    // do: [<indent>] body
+    // [begin: [<indent>] block] [end: [<indent>] block] do: [<indent>] body
     const char *start = pos;
-    if (!match_word(&pos, "do")) return NULL;
-    ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'do'"); 
-    return NewAST(ctx->file, start, pos, Block, .statements=Match(body, Block)->statements);
+    int64_t starting_indent = get_indent(ctx, pos);
+    ast_t *begin = NULL, *end = NULL;
+    if (match_word(&pos, "begin"))
+        begin = optional(ctx, &pos, parse_block);
+
+    const char *tmp = pos;
+    whitespace(&tmp);
+    if (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "end")) {
+        pos = tmp;
+        end = optional(ctx, &pos, parse_block);
+    }
+
+    tmp = pos;
+    whitespace(&tmp);
+    if (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "do")) {
+        pos = tmp;
+        ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'do'"); 
+        if (begin && end) {
+            return NewAST(ctx->file, start, pos, Block,
+                          .statements=new(ast_list_t, .ast=begin,
+                                          .next=new(ast_list_t, .ast=WrapAST(end, Defer, .body=end),
+                                                    .next=new(ast_list_t, .ast=body))));
+        } else if (begin) {
+            return NewAST(ctx->file, start, pos, Block,
+                          .statements=new(ast_list_t, .ast=begin,
+                                          .next=new(ast_list_t, .ast=body)));
+        } else if (end) {
+            return NewAST(ctx->file, start, pos, Block,
+                          .statements=new(ast_list_t, .ast=WrapAST(end, Defer, .body=end),
+                                          .next=new(ast_list_t, .ast=body)));
+        } else {
+            return NewAST(ctx->file, start, pos, Block, .statements=Match(body, Block)->statements);
+        }
+    } else {
+        return NULL;
+    }
 }
 
 PARSER(parse_while) {
@@ -1931,6 +1964,7 @@ PARSER(parse_extended_expr) {
 
 PARSER(parse_block) {
     const char *start = pos;
+    spaces(&pos);
     if (!match(&pos, ":")) return NULL;
 
     ast_list_t *statements = NULL;
