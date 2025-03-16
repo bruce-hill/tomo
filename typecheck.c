@@ -328,32 +328,38 @@ void bind_statement(env_t *env, ast_t *statement)
         type_t *type = Table$str_get(*env->types, def->name);
         if (!type) code_err(statement, "Couldn't find type!");
         assert(type);
-        arg_t *fields = NULL;
-        for (arg_ast_t *field_ast = def->fields; field_ast; field_ast = field_ast->next) {
-            type_t *field_t = get_arg_ast_type(env, field_ast);
-            type_t *non_opt_field_t = field_t->tag == OptionalType ? Match(field_t, OptionalType)->type : field_t;
-            if ((non_opt_field_t->tag == StructType && Match(non_opt_field_t, StructType)->opaque)
-                || (non_opt_field_t->tag == EnumType && Match(non_opt_field_t, EnumType)->opaque)) {
+        if (!def->opaque) {
+            arg_t *fields = NULL;
+            for (arg_ast_t *field_ast = def->fields; field_ast; field_ast = field_ast->next) {
+                type_t *field_t = get_arg_ast_type(env, field_ast);
+                type_t *non_opt_field_t = field_t->tag == OptionalType ? Match(field_t, OptionalType)->type : field_t;
+                if ((non_opt_field_t->tag == StructType && Match(non_opt_field_t, StructType)->opaque)
+                    || (non_opt_field_t->tag == EnumType && Match(non_opt_field_t, EnumType)->opaque)) {
 
-                file_t *file = NULL;
-                const char *start = NULL, *end = NULL;
-                if (field_ast->type) {
-                    file = field_ast->type->file, start = field_ast->type->start, end = field_ast->type->end;
-                } else if (field_ast->value) {
-                    file = field_ast->value->file, start = field_ast->value->start, end = field_ast->value->end;
+                    file_t *file = NULL;
+                    const char *start = NULL, *end = NULL;
+                    if (field_ast->type) {
+                        file = field_ast->type->file, start = field_ast->type->start, end = field_ast->type->end;
+                    } else if (field_ast->value) {
+                        file = field_ast->value->file, start = field_ast->value->start, end = field_ast->value->end;
+                    }
+                    if (non_opt_field_t == type)
+                        compiler_err(file, start, end, "This is a recursive struct that would be infinitely large. Maybe you meant to use an optional '@%T?' pointer instead?", type);
+                    else if (non_opt_field_t->tag == StructType && Match(non_opt_field_t, StructType)->external)
+                        compiler_err(file, start, end, "This is an opaque externally defined struct.\n"
+                                     "I can't use it as a member without knowing what its fields are.\n"
+                                     "Either specify its fields and remove the `opaque` qualifier, or use something like a @%T pointer.", non_opt_field_t);
+                    else
+                        compiler_err(file, start, end, "I'm still in the process of defining the fields of %T, so I don't know how to use it as a member."
+                                     "\nTry using a @%T pointer for this field.",
+                                     field_t, field_t);
                 }
-                if (non_opt_field_t == type)
-                    compiler_err(file, start, end, "This is a recursive struct that would be infinitely large. Maybe you meant to use an optional '@%T?' pointer instead?", type);
-                else
-                    compiler_err(file, start, end, "I'm still in the process of defining the fields of %T, so I don't know how to use it as a member."
-                                 "\nTry using a @%T pointer for this field.",
-                                 field_t, field_t);
+                fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
             }
-            fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
+            REVERSE_LIST(fields);
+            type->__data.StructType.fields = fields; // populate placeholder
+            type->__data.StructType.opaque = false;
         }
-        REVERSE_LIST(fields);
-        type->__data.StructType.fields = fields; // populate placeholder
-        type->__data.StructType.opaque = false;
 
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             bind_statement(ns_env, stmt->ast);
@@ -382,6 +388,10 @@ void bind_statement(env_t *env, ast_t *statement)
                     }
                     if (non_opt_field_t == type)
                         compiler_err(file, start, end, "This is a recursive enum that would be infinitely large. Maybe you meant to use an optional '@%T?' pointer instead?", type);
+                    else if (non_opt_field_t->tag == StructType && Match(non_opt_field_t, StructType)->external)
+                        compiler_err(file, start, end, "This is an opaque externally defined struct.\n"
+                                     "I can't use it as a member without knowing what its fields are.\n"
+                                     "Either specify its fields and remove the `opaque` qualifier, or use something like a @%T pointer.", non_opt_field_t);
                     else
                         compiler_err(file, start, end, "I'm still in the process of defining the fields of %T, so I don't know how to use it as a member."
                                      "\nTry using a @%T pointer for this field.",

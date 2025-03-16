@@ -139,7 +139,7 @@ PUREFUNC public Text_t Struct$as_text(const void *obj, bool colorize, const Type
 {
     if (!obj) return Text$from_str(type->StructInfo.name);
 
-    if (type->StructInfo.is_secret)
+    if (type->StructInfo.is_secret || type->StructInfo.is_opaque)
         return Text$format(colorize ? "\x1b[0;1m%s\x1b[m(...)" : "%s(...)", type->StructInfo.name);
 
     Text_t text = Text$format(colorize ? "\x1b[0;1m%s\x1b[m(" : "%s(", type->StructInfo.name);

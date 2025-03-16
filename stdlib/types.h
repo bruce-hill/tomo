@@ -63,7 +63,7 @@ struct TypeInfo_s {
             struct {
                 const char *name;
                 int num_fields;
-                bool is_secret:1;
+                bool is_secret:1, is_opaque:1;
                 NamedType_t *fields;
             } StructInfo;
         };

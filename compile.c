@@ -614,11 +614,10 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
             if (index->unchecked) {
                 return CORD_all("Array_lvalue_unchecked(", compile_type(item_type), ", ", target_code, ", ", 
                                 compile_int_to_type(env, index->index, Type(IntType, .bits=TYPE_IBITS64)),
-                                ", ", CORD_asprintf("%ld", type_size(item_type)), ")");
+                                ", sizeof(", compile_type(item_type), "))");
             } else {
                 return CORD_all("Array_lvalue(", compile_type(item_type), ", ", target_code, ", ", 
                                 compile_int_to_type(env, index->index, Type(IntType, .bits=TYPE_IBITS64)),
-                                ", ", CORD_asprintf("%ld", type_size(item_type)),
                                 ", ", heap_strf("%ld", ast->start - ast->file->text),
                                 ", ", heap_strf("%ld", ast->end - ast->file->text), ")");
             }
@@ -1165,7 +1164,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             if (lhs_t->tag == TextType) {
                 return CORD_all(lhs, " = Texts(", lhs, ", ", rhs, ");");
             } else if (lhs_t->tag == ArrayType) {
-                CORD padded_item_size = CORD_asprintf("%ld", type_size(Match(lhs_t, ArrayType)->item_type));
+                CORD padded_item_size = CORD_all("sizeof(", compile_type(Match(lhs_t, ArrayType)->item_type), ")");
                 // arr ++= [...]
                 if (update->lhs->tag == Var)
                     return CORD_all("Array$insert_all(&", lhs, ", ", rhs, ", I(0), ", padded_item_size, ");");
@@ -1548,11 +1547,9 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
                         type_t *value_t = Match(iter_value_t, TableType)->value_type;
                         CORD value = compile(body_scope, for_->vars->next->ast);
-                        size_t value_offset = type_size(key_t);
-                        if (type_align(value_t) > 1 && value_offset % type_align(value_t))
-                            value_offset += type_align(value_t) - (value_offset % type_align(value_t)); // padding
+                        CORD value_offset = CORD_all("offsetof(struct { ", compile_declaration(key_t, "k"), "; ", compile_declaration(value_t, "v"), "; }, v)");
                         loop = CORD_all(loop, compile_declaration(value_t, value), " = *(", compile_type(value_t), "*)(",
-                                        "iterating.data + i*iterating.stride + ", heap_strf("%zu", value_offset), ");\n");
+                                        "iterating.data + i*iterating.stride + ", value_offset, ");\n");
                     }
                 }
             }
@@ -2632,8 +2629,7 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Text$concat(", lhs, ", ", rhs, ")");
             }
             case ArrayType: {
-                CORD padded_item_size = CORD_asprintf("%ld", type_size(Match(operand_t, ArrayType)->item_type));
-                return CORD_all("Array$concat(", lhs, ", ", rhs, ", ", padded_item_size, ")");
+                return CORD_all("Array$concat(", lhs, ", ", rhs, ", sizeof(", compile_type(Match(operand_t, ArrayType)->item_type), "))");
             }
             default:
                 code_err(ast, "Concatenation isn't supported between %T and %T values", lhs_t, rhs_t);
@@ -2769,9 +2765,9 @@ CORD compile(env_t *env, ast_t *ast)
     case Array: {
         type_t *array_type = get_type(env, ast);
         type_t *item_type = Match(array_type, ArrayType)->item_type;
-        if (type_size(Match(array_type, ArrayType)->item_type) > ARRAY_MAX_STRIDE)
-            code_err(ast, "This array holds items that take up %ld bytes, but the maximum supported size is %ld bytes. Consider using an array of pointers instead.",
-                     type_size(item_type), ARRAY_MAX_STRIDE);
+        // if (type_size(Match(array_type, ArrayType)->item_type) > ARRAY_MAX_STRIDE)
+        //     code_err(ast, "This array holds items that take up %ld bytes, but the maximum supported size is %ld bytes. Consider using an array of pointers instead.",
+        //              type_size(item_type), ARRAY_MAX_STRIDE);
 
         auto array = Match(ast, Array);
         if (!array->items)
@@ -3063,7 +3059,7 @@ CORD compile(env_t *env, ast_t *ast)
         switch (self_value_t->tag) {
         case ArrayType: {
             type_t *item_t = Match(self_value_t, ArrayType)->item_type;
-            CORD padded_item_size = CORD_asprintf("%ld", type_size(item_t));
+            CORD padded_item_size = CORD_all("sizeof(", compile_type(item_t), ")");
 
             ast_t *default_rng = FakeAST(InlineCCode, .code="default_rng", .type=RNG_TYPE);
             if (streq(call->name, "insert")) {
@@ -3174,7 +3170,7 @@ CORD compile(env_t *env, ast_t *ast)
                 arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp);
                 CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
                 return CORD_all("Array$heap_pop_value(", self, ", ", arg_code, ", ", compile_type(item_t), ", _, ",
-                                promote_to_optional(item_t, "_"), ", ", compile_none(item_t), ", ", padded_item_size, ")");
+                                promote_to_optional(item_t, "_"), ", ", compile_none(item_t), ")");
             } else if (streq(call->name, "binary_search")) {
                 self = compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
@@ -3229,7 +3225,7 @@ CORD compile(env_t *env, ast_t *ast)
                 arg_t *arg_spec = new(arg_t, .name="index", .type=INT_TYPE, .default_val=FakeAST(Int, "-1"));
                 CORD index = compile_arguments(env, ast, arg_spec, call->args);
                 return CORD_all("Array$pop(", self, ", ", index, ", ", compile_type(item_t), ", _, ",
-                                promote_to_optional(item_t, "_"), ", ", compile_none(item_t), ", ", padded_item_size, ")");
+                                promote_to_optional(item_t, "_"), ", ", compile_none(item_t), ")");
             } else if (streq(call->name, "counts")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
@@ -3724,14 +3720,11 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("ARRAY_COPY((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries)");
             } else if (streq(f->field, "values")) {
                 auto table = Match(value_t, TableType);
-                size_t offset = type_size(table->key_type);
-                size_t align = type_align(table->value_type);
-                if (align > 1 && offset % align > 0)
-                    offset += align - (offset % align);
+                CORD offset = CORD_all("offsetof(struct { ", compile_declaration(table->key_type, "k"), "; ", compile_declaration(table->value_type, "v"), "; }, v)");
                 return CORD_all("({ Array_t *entries = &(", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries;\n"
                                 "ARRAY_INCREF(*entries);\n"
                                 "Array_t values = *entries;\n"
-                                "values.data += ", CORD_asprintf("%zu", offset), ";\n"
+                                "values.data += ", offset, ";\n"
                                 "values; })");
             } else if (streq(f->field, "fallback")) {
                 return CORD_all("({ Table_t *_fallback = (", compile_to_pointer_depth(env, f->fielded, 0, false), ").fallback; _fallback ? *_fallback : NONE_TABLE; })");
@@ -3901,7 +3894,7 @@ CORD compile_type_info(type_t *t)
     }
     case OptionalType: {
         type_t *non_optional = Match(t, OptionalType)->type;
-        return CORD_asprintf("Optional$info(%zu, %zu, %r)", type_size(t), type_align(t), compile_type_info(non_optional));
+        return CORD_asprintf("Optional$info(sizeof(%r), __alignof__(%r), %r)", compile_type(non_optional), compile_type(non_optional), compile_type_info(non_optional));
     }
     case MutexedType: {
         type_t *mutexed = Match(t, MutexedType)->type;
@@ -4165,10 +4158,10 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
 
             int64_t num_fields = used_names.entries.length;
             const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
-            CORD args_typeinfo = CORD_asprintf("((TypeInfo_t[1]){{.size=%zu, .align=%zu, .metamethods=%s, "
+            CORD args_typeinfo = CORD_asprintf("((TypeInfo_t[1]){{.size=sizeof(%r), .align=__alignof__(%r), .metamethods=%s, "
                                                ".tag=StructInfo, .StructInfo.name=\"FunctionArguments\", "
                                                ".StructInfo.num_fields=%ld, .StructInfo.fields=(NamedType_t[%ld]){",
-                                               type_size(t), type_align(t), metamethods,
+                                               compile_type(t), compile_type(t), metamethods,
                                                num_fields, num_fields);
             CORD args_type = "struct { ";
             for (arg_t *f = fields; f; f = f->next) {
@@ -4271,7 +4264,7 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
         auto def = Match(ast, StructDef);
         type_t *t = Table$str_get(*env->types, def->name);
         assert(t && t->tag == StructType);
-        CORD code = compile_struct_typeinfo(env, t, def->name, def->fields, def->secret);
+        CORD code = compile_struct_typeinfo(env, t, def->name, def->fields, def->secret, def->opaque);
         env_t *ns_env = namespace_env(env, def->name);
         return CORD_all(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : CORD_EMPTY);
     }

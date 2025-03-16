@@ -19,22 +19,22 @@
 #define Array_get_unchecked(type, x, i) *({ const Array_t arr = x; int64_t index = i; \
                                           int64_t off = index + (index < 0) * (arr.length + 1) - 1; \
                                           (type*)(arr.data + arr.stride * off);})
-#define Array_lvalue(item_type, arr_expr, index_expr, padded_item_size, start, end) *({ \
+#define Array_lvalue(item_type, arr_expr, index_expr, start, end) *({ \
     Array_t *arr = arr_expr; int64_t index = index_expr; \
     int64_t off = index + (index < 0) * (arr->length + 1) - 1; \
     if (unlikely(off < 0 || off >= arr->length)) \
         fail_source(__SOURCE_FILE__, start, end, "Invalid array index: %s (array has length %ld)\n", Text$as_c_string(Int64$as_text(&index, no, NULL)), arr->length); \
     if (arr->data_refcount > 0) \
-        Array$compact(arr, padded_item_size); \
+        Array$compact(arr, sizeof(item_type)); \
     (item_type*)(arr->data + arr->stride * off); })
-#define Array_lvalue_unchecked(item_type, arr_expr, index_expr, padded_item_size) *({ \
+#define Array_lvalue_unchecked(item_type, arr_expr, index_expr) *({ \
     Array_t *arr = arr_expr; int64_t index = index_expr; \
     int64_t off = index + (index < 0) * (arr->length + 1) - 1; \
     if (arr->data_refcount > 0) \
-        Array$compact(arr, padded_item_size); \
+        Array$compact(arr, sizeof(item_type)); \
     (item_type*)(arr->data + arr->stride * off); })
-#define Array_set(item_type, arr, index, value, padded_item_size, start, end) \
-    Array_lvalue(item_type, arr_expr, index, padded_item_size, start, end) = value
+#define Array_set(item_type, arr, index, value, start, end) \
+    Array_lvalue(item_type, arr_expr, index, start, end) = value
 #define is_atomic(x) _Generic(x, bool: true, int8_t: true, int16_t: true, int32_t: true, int64_t: true, float: true, double: true, default: false)
 #define TypedArray(t, ...) ({ t items[] = {__VA_ARGS__}; \
                          (Array_t){.length=sizeof(items)/sizeof(items[0]), \
@@ -66,14 +66,14 @@ void Array$remove_at(Array_t *arr, Int_t index, Int_t count, int64_t padded_item
 void Array$remove_item(Array_t *arr, void *item, Int_t max_removals, const TypeInfo_t *type);
 #define Array$remove_item_value(arr, item_expr, max, type) Array$remove_item(arr, (__typeof(item_expr)[1]){item_expr}, max, type)
 
-#define Array$pop(arr_expr, index_expr, item_type, nonnone_var, nonnone_expr, none_expr, padded_item_size) ({ \
+#define Array$pop(arr_expr, index_expr, item_type, nonnone_var, nonnone_expr, none_expr) ({ \
     Array_t *arr = arr_expr; \
     Int_t index = index_expr; \
     int64_t index64 = Int64$from_int(index, false); \
     int64_t off = index64 + (index64 < 0) * (arr->length + 1) - 1; \
     (off >= 0 && off < arr->length) ? ({ \
         item_type nonnone_var = *(item_type*)(arr->data + off*arr->stride); \
-        Array$remove_at(arr, index, I_small(1), padded_item_size); \
+        Array$remove_at(arr, index, I_small(1), sizeof(item_type)); \
         nonnone_expr; \
     }) : none_expr; })
 
@@ -107,11 +107,11 @@ void Array$heapify(Array_t *heap, Closure_t comparison, int64_t padded_item_size
 void Array$heap_push(Array_t *heap, const void *item, Closure_t comparison, int64_t padded_item_size);
 #define Array$heap_push_value(heap, _value, comparison, padded_item_size) ({ __typeof(_value) value = _value; Array$heap_push(heap, &value, comparison, padded_item_size); })
 void Array$heap_pop(Array_t *heap, Closure_t comparison, int64_t padded_item_size);
-#define Array$heap_pop_value(heap, comparison, type, nonnone_var, nonnone_expr, none_expr, padded_item_size) \
+#define Array$heap_pop_value(heap, comparison, type, nonnone_var, nonnone_expr, none_expr) \
     ({ Array_t *_heap = heap; \
      (_heap->length > 0) ? ({ \
          type nonnone_var = *(type*)_heap->data; \
-         Array$heap_pop(_heap, comparison, padded_item_size); \
+         Array$heap_pop(_heap, comparison, sizeof(type)); \
          nonnone_expr; \
      }) : none_expr; })
 Int_t Array$binary_search(Array_t array, void *target, Closure_t comparison);

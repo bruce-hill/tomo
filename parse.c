@@ -2081,21 +2081,27 @@ PARSER(parse_struct_def) {
     arg_ast_t *fields = parse_args(ctx, &pos);
 
     whitespace(&pos);
-    bool secret = false, external = false;
+    bool secret = false, external = false, opaque = false;
     if (match(&pos, ";")) { // Extra flags
         whitespace(&pos);
         for (;;) {
-            if (match_word(&pos, "secret"))
+            if (match_word(&pos, "secret")) {
                 secret = true;
-            else if (match_word(&pos, "extern"))
+            } else if (match_word(&pos, "extern")) {
                 external = true;
-            else
+            } else if (match_word(&pos, "opaque")) {
+                if (fields)
+                    parser_err(ctx, pos-strlen("opaque"), pos, "A struct can't be opaque if it has fields defined");
+                opaque = true;
+            } else {
                 break;
+            }
 
             if (!match_separator(&pos))
                 break;
         }
     }
+
 
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this struct");
 
@@ -2112,7 +2118,7 @@ PARSER(parse_struct_def) {
     if (!namespace)
         namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
     return NewAST(ctx->file, start, pos, StructDef, .name=name, .fields=fields, .namespace=namespace,
-                  .secret=secret, .external=external);
+                  .secret=secret, .external=external, .opaque=opaque);
 }
 
 PARSER(parse_enum_def) {

@@ -27,7 +27,7 @@ CORD compile_enum_typeinfo(env_t *env, ast_t *ast)
         type_t *tag_type = Table$str_get(*env->types, tag_name);
         assert(tag_type && tag_type->tag == StructType);
         member_typeinfos = CORD_all(
-            member_typeinfos, compile_struct_typeinfo(env, tag_type, tag_name, tag->fields, tag->secret));
+            member_typeinfos, compile_struct_typeinfo(env, tag_type, tag_name, tag->fields, tag->secret, false));
     }
 
     int num_tags = 0;

@@ -462,6 +462,8 @@ PUREFUNC bool is_packed_data(type_t *t)
 
 PUREFUNC size_t unpadded_struct_size(type_t *t)
 {
+    if (Match(t, StructType)->opaque)
+        compiler_err(NULL, NULL, NULL, "The struct type %s is opaque, so I can't get the size of it", Match(t, StructType)->name);
     arg_t *fields = Match(t, StructType)->fields;
     size_t size = 0;
     size_t bit_offset = 0;
@@ -546,6 +548,8 @@ PUREFUNC size_t type_size(type_t *t)
         }
     }
     case StructType: {
+        if (Match(t, StructType)->opaque)
+            compiler_err(NULL, NULL, NULL, "The struct type %s is opaque, so I can't get the size of it", Match(t, StructType)->name);
         size_t size = unpadded_struct_size(t);
         size_t align = type_align(t);
         if (size > 0 && align > 0 && (size % align) > 0)
@@ -625,6 +629,9 @@ PUREFUNC size_t type_align(type_t *t)
         }
     }
     case StructType: {
+        if (Match(t, StructType)->opaque)
+            compiler_err(NULL, NULL, NULL, "The struct type %s is opaque, so I can't get the alignment of it",
+                         Match(t, StructType)->name);
         arg_t *fields = Match(t, StructType)->fields;
         size_t align = t->tag == StructType ? 0 : sizeof(void*);
         for (arg_t *field = fields; field; field = field->next) {
