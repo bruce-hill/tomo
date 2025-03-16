@@ -332,10 +332,10 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
     case If: {
         auto if_ = Match(ast, If);
         ast_t *condition = if_->condition;
-        add_closed_vars(closed_vars, enclosing_scope, env, condition);
         if (condition->tag == Declare) {
             env_t *truthy_scope = fresh_scope(env);
             bind_statement(truthy_scope, condition);
+            add_closed_vars(closed_vars, enclosing_scope, env, Match(condition, Declare)->value);
             ast_t *var = Match(condition, Declare)->var;
             type_t *cond_t = get_type(truthy_scope, var);
             if (cond_t->tag == OptionalType) {
@@ -345,6 +345,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
             add_closed_vars(closed_vars, enclosing_scope, truthy_scope, if_->body);
             add_closed_vars(closed_vars, enclosing_scope, env, if_->else_body);
         } else {
+            add_closed_vars(closed_vars, enclosing_scope, env, condition);
             env_t *truthy_scope = env;
             type_t *cond_t = get_type(env, condition);
             if (condition->tag == Var && cond_t->tag == OptionalType) {
