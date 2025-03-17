@@ -29,44 +29,6 @@ env_t *new_compilation_unit(CORD libname)
     if (!TEXT_TYPE)
         TEXT_TYPE = Type(TextType, .lang="Text", .env=namespace_env(env, "Text"));
 
-    struct {
-        const char *name;
-        binding_t binding;
-    } global_vars[] = {
-        {"say", {.code="say", .type=Type(
-                    FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE,
-                                            .next=new(arg_t, .name="newline", .type=Type(BoolType), .default_val=FakeAST(Bool, true))),
-                    .ret=Type(VoidType))}},
-        {"print", {.code="say", .type=Type(
-                    FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE,
-                                            .next=new(arg_t, .name="newline", .type=Type(BoolType), .default_val=FakeAST(Bool, true))),
-                    .ret=Type(VoidType))}},
-        {"ask", {.code="ask", .type=Type(
-                    FunctionType, .args=new(arg_t, .name="prompt", .type=TEXT_TYPE,
-                                            .next=new(arg_t, .name="bold", .type=Type(BoolType),
-                                                      .default_val=FakeAST(Bool, true),
-                                                      .next=new(arg_t, .name="force_tty", .type=Type(BoolType),
-                                                                .default_val=FakeAST(Bool, true)))),
-                    .ret=Type(OptionalType, TEXT_TYPE))}},
-        {"exit", {.code="tomo_exit",
-                     .type=Type(FunctionType, .args=new(
-                             arg_t, .name="message", .type=Type(OptionalType, .type=Type(TextType)),
-                             .default_val=FakeAST(None, .type=new(type_ast_t, .tag=VarTypeAST, .__data.VarTypeAST.name="Text")),
-                             .next=new(arg_t, .name="code", .type=Type(IntType, .bits=TYPE_IBITS32),
-                                       .default_val=FakeAST(InlineCCode, .code="1", .type=Type(IntType, .bits=TYPE_IBITS32)))),
-                         .ret=Type(AbortType))}},
-        {"fail", {.code="fail_text", .type=Type(FunctionType, .args=new(arg_t, .name="message", .type=TEXT_TYPE), .ret=Type(AbortType))}},
-        {"sleep", {.code="sleep_num", .type=Type(FunctionType, .args=new(arg_t, .name="seconds", .type=Type(NumType, .bits=TYPE_NBITS64)), .ret=Type(VoidType))}},
-        {"now", {.code="Moment$now", .type=Type(FunctionType, .args=NULL, .ret=Type(MomentType))}},
-        {"USE_COLOR", {.code="USE_COLOR", .type=Type(BoolType)}},
-    };
-
-    for (size_t i = 0; i < sizeof(global_vars)/sizeof(global_vars[0]); i++) {
-        binding_t *b = new(binding_t);
-        *b = global_vars[i].binding;
-        Table$str_set(env->globals, global_vars[i].name, b);
-    }
-
     typedef struct {
         const char *name, *code, *type_str;
     } ns_entry_t;
@@ -483,6 +445,7 @@ env_t *new_compilation_unit(CORD libname)
         }
     }
 
+
     // Conversion constructors:
 #define ADD_CONSTRUCTORS(type_name, ...) do {\
     env_t *ns_env = namespace_env(env, type_name); \
@@ -609,7 +572,26 @@ env_t *new_compilation_unit(CORD libname)
                      .ret=Type(TextType, .lang="Pattern", .env=namespace_env(env, "Pattern"))),
                 "(Pattern_t)");
 
-    Table$str_set(env->globals, "random", new(binding_t, .type=RNG_TYPE, .code="default_rng"));
+    struct {
+        const char *name, *code, *type_str;
+    } global_vars[] = {
+        {"say", "say", "func(text:Text, newline=yes)"},
+        {"print", "say", "func(text:Text, newline=yes)"},
+        {"ask", "ask", "func(prompt:Text, bold=yes, force_tty=yes -> Text)"},
+        {"exit", "tomo_exit", "func(message=none:Text, code=Int32(1) -> Abort)"},
+        {"fail", "fail_text", "func(message:Text -> Abort)"},
+        {"sleep", "sleep_num", "func(seconds:Num)"},
+        {"now", "Moment$now", "func(->Moment)"},
+        {"random", "default_rng", "RNG"},
+        {"USE_COLOR", "USE_COLOR", "Bool"},
+    };
+
+    for (size_t i = 0; i < sizeof(global_vars)/sizeof(global_vars[0]); i++) {
+        type_t *type = parse_type_string(env, global_vars[i].type_str);
+        if (!type) compiler_err(NULL, NULL, NULL, "Couldn't parse type string for %s: %s", global_vars[i].name, global_vars[i].type_str);
+        if (type->tag == ClosureType) type = Match(type, ClosureType)->fn;
+        Table$str_set(env->globals, global_vars[i].name, new(binding_t, .type=type, .code=global_vars[i].code));
+    }
 
     env_t *lib_env = fresh_scope(env);
     lib_env->libname = libname;
