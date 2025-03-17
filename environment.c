@@ -5,6 +5,7 @@
 
 #include "cordhelpers.h"
 #include "environment.h"
+#include "parse.h"
 #include "stdlib/datatypes.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
@@ -17,50 +18,59 @@ type_t *RNG_TYPE = NULL;
 public type_t *PATH_TYPE = NULL;
 public type_t *THREAD_TYPE = NULL;
 
+static type_t *declare_type(env_t *env, const char *def_str)
+{
+    ast_t *ast = parse(def_str);
+    if (!ast) errx(1, "Couldn't not parse struct def: %s", def_str); 
+    if (ast->tag != Block) errx(1, "Couldn't not parse struct def: %s", def_str); 
+    ast_list_t *statements = Match(ast, Block)->statements;
+    if (statements == NULL || statements->next) errx(1, "Couldn't not parse struct def: %s", def_str); 
+    switch (statements->ast->tag) {
+    case StructDef: {
+        auto def = Match(statements->ast, StructDef);
+        prebind_statement(env, statements->ast);
+        bind_statement(env, statements->ast);
+        return Table$str_get(*env->types, def->name);
+    }
+    case EnumDef: {
+        auto def = Match(statements->ast, EnumDef);
+        prebind_statement(env, statements->ast);
+        bind_statement(env, statements->ast);
+        return Table$str_get(*env->types, def->name);
+    }
+    default: errx(1, "Not a type definition: %s", def_str);
+    }
+}
+
+static type_t *bind_type(env_t *env, const char *name, type_t *type)
+{
+    if (Table$str_get(*env->types, name))
+        errx(1, "Duplicate binding for type: %s", name);
+    Table$str_set(env->types, name, type);
+    return type;
+}
+
 env_t *new_compilation_unit(CORD libname)
 {
     env_t *env = new(env_t);
     env->code = new(compilation_unit_t);
     env->types = new(Table_t);
     env->globals = new(Table_t);
-    env->locals = new(Table_t, .fallback=env->globals);
+    env->locals = env->globals;
     env->imports = new(Table_t);
 
-    if (!TEXT_TYPE)
-        TEXT_TYPE = Type(TextType, .lang="Text", .env=namespace_env(env, "Text"));
+    TEXT_TYPE = bind_type(env, "Text", Type(TextType, .lang="Text", .env=namespace_env(env, "Text")));
+    (void)bind_type(env, "Int", Type(BigIntType));
+    (void)bind_type(env, "Int32", Type(IntType, .bits=TYPE_IBITS32));
+    (void)bind_type(env, "Memory", Type(MemoryType));
+    MATCH_TYPE = declare_type(env, "struct Match(text:Text, index:Int, captures:[Text])");
+    PATH_TYPE = declare_type(env, "struct Path(type:Int32, components:[Text])");
+    THREAD_TYPE = declare_type(env, "struct Thread(; opaque)");
+    RNG_TYPE = declare_type(env, "struct RNG(state:@Memory)");
 
     typedef struct {
         const char *name, *code, *type_str;
     } ns_entry_t;
-
-    {
-        env_t *match_env = namespace_env(env, "Match");
-        MATCH_TYPE = Type(
-            StructType, .name="Match", .env=match_env,
-            .fields=new(arg_t, .name="text", .type=TEXT_TYPE,
-              .next=new(arg_t, .name="index", .type=INT_TYPE,
-              .next=new(arg_t, .name="captures", .type=Type(ArrayType, .item_type=TEXT_TYPE)))));
-    }
-
-    {
-        env_t *path_env = namespace_env(env, "Path");
-        PATH_TYPE = Type(
-            StructType, .name="Path", .env=path_env,
-            .fields=new(arg_t, .name="type", .type=Type(IntType, .bits=TYPE_IBITS32),
-              .next=new(arg_t, .name="components", .type=Type(ArrayType, .item_type=TEXT_TYPE))));
-    }
-
-    {
-        env_t *thread_env = namespace_env(env, "Thread");
-        THREAD_TYPE = Type(StructType, .name="Thread", .env=thread_env, .opaque=true);
-    }
-
-    {
-        env_t *rng_env = namespace_env(env, "RNG");
-        RNG_TYPE = Type(
-            StructType, .name="RNG", .env=rng_env,
-            .fields=new(arg_t, .name="state", .type=Type(PointerType, .pointed=Type(MemoryType))));
-    }
 
     struct {
         const char *name;
@@ -353,15 +363,6 @@ env_t *new_compilation_unit(CORD libname)
             {"num32", "RNG$num32", "func(rng:RNG, min=Num32(0.0), max=Num32(1.0) -> Num32)"},
             {"set_seed", "RNG$set_seed", "func(rng:RNG, seed:[Byte])"},
         )},
-        {"Shell", Type(TextType, .lang="Shell", .env=namespace_env(env, "Shell")), "Shell_t", "Shell$info", TypedArray(ns_entry_t,
-            {"by_line", "Shell$by_line", "func(command:Shell -> func(->Text?)?)"},
-            {"escape_int", "Int$value_as_text", "func(i:Int -> Shell)"},
-            {"escape_text", "Shell$escape_text", "func(text:Text -> Shell)"},
-            {"escape_text_array", "Shell$escape_text_array", "func(texts:[Text] -> Shell)"},
-            {"execute", "Shell$execute", "func(command:Shell -> Int32?)"},
-            {"run_bytes", "Shell$run_bytes", "func(command:Shell -> [Byte]?)"},
-            {"run", "Shell$run", "func(command:Shell -> Text?)"},
-        )},
         {"Text", TEXT_TYPE, "Text_t", "Text$info", TypedArray(ns_entry_t,
             {"as_c_string", "Text$as_c_string", "func(text:Text -> CString)"},
             {"at", "Text$cluster", "func(text:Text, index:Int -> Text)"},
@@ -543,12 +544,6 @@ env_t *new_compilation_unit(CORD libname)
                      {"Path$escape_text", "func(text:Text -> Path)"},
                      {"Path$escape_path", "func(path:Path -> Path)"},
                      {"Int$value_as_text", "func(i:Int -> Path)"});
-    ADD_CONSTRUCTORS("Shell",
-                     {"Shell$escape_text", "func(text:Text -> Shell)"},
-                     {"Shell$escape_path", "func(path:Path -> Shell)"},
-                     {"Shell$escape_text_array", "func(texts:[Text] -> Shell)"},
-                     {"Shell$escape_path_array", "func(paths:[Path] -> Shell)"},
-                     {"Int$value_as_text", "func(i:Int -> Shell)"});
     ADD_CONSTRUCTORS("CString", {"Text$as_c_string", "func(text:Text -> CString)"});
     ADD_CONSTRUCTORS("Moment",
                      {"Moment$now", "func(-> Moment)"},
@@ -557,11 +552,6 @@ env_t *new_compilation_unit(CORD libname)
     ADD_CONSTRUCTORS("RNG", {"RNG$new", "func(-> RNG)"});
     ADD_CONSTRUCTORS("Thread", {"Thread$new", "func(fn:func() -> Thread)"});
 #undef ADD_CONSTRUCTORS
-
-    set_binding(namespace_env(env, "Shell"), "from_text",
-                Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
-                     .ret=Type(TextType, .lang="Shell", .env=namespace_env(env, "Shell"))),
-                "(Shell_t)");
 
     set_binding(namespace_env(env, "Path"), "from_text",
                 Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
@@ -576,6 +566,8 @@ env_t *new_compilation_unit(CORD libname)
     struct {
         const char *name, *code, *type_str;
     } global_vars[] = {
+        {"USE_COLOR", "USE_COLOR", "Bool"},
+        {"random", "default_rng", "RNG"},
         {"say", "say", "func(text:Text, newline=yes)"},
         {"print", "say", "func(text:Text, newline=yes)"},
         {"ask", "ask", "func(prompt:Text, bold=yes, force_tty=yes -> Text)"},
@@ -583,8 +575,6 @@ env_t *new_compilation_unit(CORD libname)
         {"fail", "fail_text", "func(message:Text -> Abort)"},
         {"sleep", "sleep_num", "func(seconds:Num)"},
         {"now", "Moment$now", "func(->Moment)"},
-        {"random", "default_rng", "RNG"},
-        {"USE_COLOR", "USE_COLOR", "Bool"},
     };
 
     for (size_t i = 0; i < sizeof(global_vars)/sizeof(global_vars[0]); i++) {
@@ -604,10 +594,12 @@ CORD namespace_prefix(env_t *env, namespace_t *ns)
     CORD prefix = CORD_EMPTY;
     for (; ns; ns = ns->parent)
         prefix = CORD_all(ns->name, "$", prefix);
-    if (env->libname)
-        prefix = CORD_all("_$", env->libname, "$", prefix);
-    else
-        prefix = CORD_all("_$", prefix);
+    if (env->locals != env->globals) {
+        if (env->libname)
+            prefix = CORD_all("_$", env->libname, "$", prefix);
+        else
+            prefix = CORD_all("_$", prefix);
+    }
     return prefix;
 }
 

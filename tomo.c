@@ -21,7 +21,6 @@
 #include "stdlib/optionals.h"
 #include "stdlib/patterns.h"
 #include "stdlib/paths.h"
-#include "stdlib/shell.h"
 #include "stdlib/text.h"
 #include "typecheck.h"
 #include "types.h"
@@ -490,6 +489,12 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
         case USE_MODULE: {
             Text_t lib = Text$format("'%s/.local/share/tomo/installed/%s/lib%s.so'", getenv("HOME"), use->path, use->path);
             Table$set(to_link, &lib, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
+
+            Array_t children = Path$glob(Path$from_str(heap_strf("%s/.local/share/tomo/installed/%s/*.tm", getenv("HOME"), use->path)));
+            for (int64_t i = 0; i < children.length; i++) {
+                Path_t *child = (Path_t*)(children.data + i*children.stride);
+                build_file_dependency_graph(*child, to_compile, to_link);
+            }
             break;
         }
         case USE_SHARED_OBJECT: {

@@ -1,3 +1,4 @@
+use shell
 
 _USAGE := "
     tomo-install file.tm...
@@ -33,7 +34,7 @@ func main(paths:[Path]):
     for url in urls:
         original_url := url
         url_without_protocol := url:trim($|http{0-1 s}://|, trim_right=no)
-        hash := $(echo -n @url_without_protocol | sha256sum):run()!:slice(to=32)
+        hash := $Shell@(echo -n @url_without_protocol | sha256sum):get_output()!:slice(to=32)
         if (~/.local/share/tomo/installed/$hash):is_directory():
             say("Already installed: $url")
             skip
@@ -61,14 +62,14 @@ func main(paths:[Path]):
             echo @original_url > ~/.local/share/tomo/installed/@hash/source.url
             tomo -L ~/.local/share/tomo/installed/@hash
             ln -f -s ../installed/@hash/lib@hash.so ~/.local/share/tomo/lib/lib@hash.so
-        `:run()!)
+        `:get_output()!)
 
         if alias:
-            say($(
+            say($Shell(
                 set -exuo pipefail
                 ln -f -s @hash ~/.local/share/tomo/installed/@alias
                 ln -f -s lib@hash.so ~/.local/share/tomo/lib/lib@alias.so
-            ):run()!)
+            ):get_output()!)
         
         say("$\[1]Installed $url!$\[]")
                 

@@ -25,7 +25,6 @@
 #include "patterns.h"
 #include "pointers.h"
 #include "rng.h"
-#include "shell.h"
 #include "siphash.h"
 #include "structs.h"
 #include "tables.h"

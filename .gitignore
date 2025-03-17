@@ -7,6 +7,9 @@
 /tags
 /test/*
 !/test/*.tm
-/examples/*
+/examples
 !/examples/*.tm
-!/examples/*.ini
+!/examples/*/*.tm
+!/examples/*/*.ini
+!/examples/*/*.md
+/junk

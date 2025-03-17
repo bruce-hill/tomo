@@ -1377,8 +1377,6 @@ PARSER(parse_text) {
 
         if (!lang && (open_quote == '/' || open_quote == '|'))
             lang = "Pattern";
-        else if (!lang && open_quote == '(')
-            lang = "Shell";
     } else {
         return NULL;
     }
@@ -2601,6 +2599,23 @@ type_ast_t *parse_type_str(const char *str) {
     if (strlen(pos) > 0) {
         parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the type");
     }
+    return ast;
+}
+
+ast_t *parse(const char *str) {
+    file_t *file = spoof_file("<string>", str);
+    parse_ctx_t ctx = {
+        .file=file,
+        .on_err=NULL,
+    };
+
+    const char *pos = file->text;
+    whitespace(&pos);
+    ast_t *ast = parse_file_body(&ctx, pos);
+    pos = ast->end;
+    whitespace(&pos);
+    if (pos < file->text + file->len && *pos != '\0')
+        parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the file");
     return ast;
 }
 

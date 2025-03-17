@@ -524,8 +524,6 @@ CORD compile_type(type_t *t)
             return "Text_t";
         else if (streq(text->lang, "Pattern"))
             return "Pattern_t";
-        else if (streq(text->lang, "Shell"))
-            return "Shell_t";
         else
             return CORD_all(namespace_prefix(text->env, text->env->namespace->parent), text->lang, "$$type");
     }
@@ -2660,7 +2658,7 @@ CORD compile(env_t *env, ast_t *ast)
         CORD lang_constructor;
         if (!lang || streq(lang, "Text"))
             lang_constructor = "Text";
-        else if (streq(lang, "Pattern") || streq(lang, "Shell"))
+        else if (streq(lang, "Pattern"))
             lang_constructor = lang;
         else
             lang_constructor = CORD_all(namespace_prefix(Match(text_t, TextType)->env, Match(text_t, TextType)->env->namespace->parent), lang);
@@ -3849,8 +3847,6 @@ CORD compile_type_info(type_t *t)
             return "&Text$info";
         else if (streq(text->lang, "Pattern"))
             return "&Pattern$info";
-        else if (streq(text->lang, "Shell"))
-            return "&Shell$info";
         return CORD_all("(&", namespace_prefix(text->env, text->env->namespace->parent), text->lang, "$$info)");
     }
     case StructType: {
