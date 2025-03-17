@@ -335,11 +335,11 @@ func demo_enums():
     >> my_shape == other_shape
     = no
 
-    >> "$my_shape" == "Shape.Circle(1)"
+    >> "$my_shape" == "Circle(1)"
     = yes
 
     >> {my_shape="nice"}
-    = {Shape.Circle(1)="nice"}
+    = {Circle(1)="nice"}
 
 func demo_lambdas():
     # Lambdas, or anonymous functions, can be used like this:
