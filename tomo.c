@@ -640,10 +640,6 @@ Path_t compile_executable(env_t *base_env, Path_t path, Array_t object_files, Ar
         "}\n"
     );
 
-    FILE *xxx = fopen("runner.c", "w");
-    CORD_put(program, xxx);
-    fclose(xxx);
-
     if (show_codegen.length > 0) {
         FILE *out = run_cmd("%k", &show_codegen);
         CORD_put(program, out);
