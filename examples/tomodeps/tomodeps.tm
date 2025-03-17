@@ -64,7 +64,7 @@ func _printable_name(dep:Dependency -> Text):
     when dep is Module(module):
         return "$(\x1b)[34;1m$module$(\x1b)[m"
     is File(f):
-        f = f:relative()
+        f = f:relative_to((.))
         if f:exists():
             return Text(f)
         else:
