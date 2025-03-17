@@ -329,7 +329,7 @@ void build_library(Text_t lib_dir_name)
     FILE *prog;
     for (int64_t i = 0; i < tm_files.length; i++) {
         Path_t f = *(Path_t*)(tm_files.data + i*tm_files.stride);
-        prog = run_cmd("nm -Ug -fjust-symbols '%s.o' | sed 's/_\\$\\(.*\\)/\\0 _$%s$\\1/' >>symbol_renames.txt",
+        prog = run_cmd("nm -Ug -fjust-symbols '%s.o' | sed -n 's/_\\$\\(.*\\)/\\0 _$%s$\\1/p' >>symbol_renames.txt",
                        Path$as_c_string(f), CORD_to_const_char_star(env->libname));
         int status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
