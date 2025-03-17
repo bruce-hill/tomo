@@ -769,6 +769,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             CORD code = CORD_EMPTY;
             for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
                 ast_t *comparison = WrapAST(clause->pattern, BinaryOp, .lhs=subject, .op=BINOP_EQ, .rhs=clause->pattern);
+                (void)get_type(env, comparison);
                 if (code != CORD_EMPTY)
                     code = CORD_all(code, "else ");
                 code = CORD_all(code, "if (", compile(env, comparison), ")", compile_statement(env, clause->body));
@@ -780,8 +781,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         }
 
         auto enum_t = Match(subject_t, EnumType);
-        CORD code = CORD_all("{ ", compile_type(subject_t), " subject = ", compile(env, when->subject), ";\n"
-                             "switch (subject.$tag) {");
+        CORD code = CORD_all("WHEN(", compile(env, when->subject), ", when, {\n");
         for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
             if (clause->pattern->tag == Var) {
                 const char *clause_tag_name = Match(clause->pattern, Var)->name;
@@ -813,7 +813,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                     code_err(args->value, "This is not a valid variable to bind to");
                 const char *var_name = Match(args->value, Var)->name;
                 if (!streq(var_name, "_")) {
-                    code = CORD_all(code, compile_declaration(tag_type, compile(env, args->value)), " = subject.", clause_tag_name, ";\n");
+                    code = CORD_all(code, compile_declaration(tag_type, compile(env, args->value)), " = when.", clause_tag_name, ";\n");
                     scope = fresh_scope(scope);
                     set_binding(scope, Match(args->value, Var)->name, tag_type, CORD_EMPTY);
                 }
@@ -830,7 +830,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
                     const char *var_name = Match(arg->value, Var)->name;
                     if (!streq(var_name, "_")) {
-                        code = CORD_all(code, compile_declaration(field->type, compile(env, arg->value)), " = subject.", clause_tag_name, ".", field->name, ";\n");
+                        code = CORD_all(code, compile_declaration(field->type, compile(env, arg->value)), " = when.", clause_tag_name, ".", field->name, ";\n");
                         set_binding(scope, Match(arg->value, Var)->name, field->type, CORD_EMPTY);
                     }
                     field = field->next;
@@ -859,7 +859,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         } else {
             code = CORD_all(code, "default: errx(1, \"Invalid tag!\");\n");
         }
-        code = CORD_all(code, "\n}\n}");
+        code = CORD_all(code, "\n})\n");
         return code;
     }
     case DocTest: {
@@ -4107,10 +4107,7 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
             code_err(ast, "This function can reach the end without returning a %T value!", ret_t);
     }
 
-    CORD body_code = compile_statement(body_scope, body);
-    if (CORD_fetch(body_code, 0) != '{')
-        body_code = CORD_asprintf("{\n%r\n}", body_code);
-
+    CORD body_code = CORD_all("{\n", compile_inline_block(body_scope, body), "}\n");
     CORD definition = with_source_info(ast, CORD_all(code, " ", body_code, "\n"));
 
     if (cache && args == NULL) { // no-args cache just uses a static var
@@ -4219,6 +4216,12 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
     if (!ast) return CORD_EMPTY;
 
     switch (ast->tag) {
+    case Use: {
+        auto use = Match(ast, Use);
+        if (use->what == USE_C_CODE)
+            return CORD_all("#include \"", use->path, "\"\n");
+        return CORD_EMPTY;
+    }
     case Declare: {
         auto decl = Match(ast, Declare);
         const char *decl_name = Match(decl->var, Var)->name;
@@ -4395,8 +4398,6 @@ CORD compile_statement_type_header(env_t *env, ast_t *ast)
                 return CORD_all("#include ", use->path, "\n");
             else
                 return CORD_all("#include \"", use->path, "\"\n");
-        case USE_C_CODE:
-            return CORD_all("#include \"", use->path, "\"\n");
         default:
             return CORD_EMPTY;
         }
