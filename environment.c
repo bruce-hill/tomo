@@ -310,6 +310,7 @@ env_t *new_compilation_unit(CORD libname)
             {"concatenated_with", "Path$concat", "func(a,b:Path -> Path)"},
             {"create_directory", "Path$create_directory", "func(path:Path, permissions=Int32(0o755))"},
             {"exists", "Path$exists", "func(path:Path -> Bool)"},
+            {"expand_home", "Path$expand_home", "func(path:Path -> Path)"},
             {"extension", "Path$extension", "func(path:Path, full=yes -> Text)"},
             {"files", "Path$children", "func(path:Path, include_hidden=no -> [Path])"},
             {"from_components", "Path$from_components", "func(components:[Text] -> Path)"},

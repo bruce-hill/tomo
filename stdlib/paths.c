@@ -98,11 +98,12 @@ public Path_t Path$from_text(Text_t text)
     return Path$from_str(Text$as_c_string(text));
 }
 
-static INLINE Path_t Path$_expand_home(Path_t path)
+public Path_t Path$expand_home(Path_t path)
 {
     if (path.type == PATH_HOME) {
         Path_t pwd = Path$from_str(getenv("HOME"));
-        Array_t components = Array$concat(path.components, pwd.components, sizeof(Text_t));
+        Array_t components = Array$concat(pwd.components, path.components, sizeof(Text_t));
+        assert(components.length == path.components.length + pwd.components.length);
         clean_components(&components);
         path = (Path_t){.type=PATH_ABSOLUTE, .components=components};
     }
@@ -165,14 +166,14 @@ public Path_t Path$relative_to(Path_t path, Path_t relative_to)
 
 public bool Path$exists(Path_t path)
 {
-    path = Path$_expand_home(path);
+    path = Path$expand_home(path);
     struct stat sb;
     return (stat(Path$as_c_string(path), &sb) == 0);
 }
 
 static INLINE int path_stat(Path_t path, bool follow_symlinks, struct stat *sb)
 {
-    path = Path$_expand_home(path);
+    path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
     return follow_symlinks ? stat(path_str, sb) : lstat(path_str, sb);
 }
@@ -219,21 +220,21 @@ public bool Path$is_symlink(Path_t path)
 
 public bool Path$can_read(Path_t path)
 {
-    path = Path$_expand_home(path);
+    path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
     return (euidaccess(path_str, R_OK) == 0);
 }
 
 public bool Path$can_write(Path_t path)
 {
-    path = Path$_expand_home(path);
+    path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
     return (euidaccess(path_str, W_OK) == 0);
 }
 
 public bool Path$can_execute(Path_t path)
 {
-    path = Path$_expand_home(path);
+    path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
     return (euidaccess(path_str, X_OK) == 0);
 }
@@ -264,7 +265,7 @@ public OptionalMoment_t Path$changed(Path_t path, bool follow_symlinks)
 
 static void _write(Path_t path, Array_t bytes, int mode, int permissions)
 {
-    path = Path$_expand_home(path);
+    path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
     int fd = open(path_str, mode, permissions);
     if (fd == -1)
@@ -301,7 +302,7 @@ public void Path$append_bytes(Path_t path, Array_t bytes, int permissions)
 
 public OptionalArray_t Path$read_bytes(Path_t path, OptionalInt_t count)
 {
-    path = Path$_expand_home(path);
+    path = Path$expand_home(path);
     int fd = open(Path$as_c_string(path), O_RDONLY);
     if (fd == -1)
         return NONE_ARRAY;
@@ -404,7 +405,7 @@ public void Path$set_owner(Path_t path, OptionalText_t owner, OptionalText_t gro
 
 public void Path$remove(Path_t path, bool ignore_missing)
 {
-    path = Path$_expand_home(path);
+    path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
     struct stat sb;
     if (lstat(path_str, &sb) != 0) {
@@ -425,7 +426,7 @@ public void Path$remove(Path_t path, bool ignore_missing)
 
 public void Path$create_directory(Path_t path, int permissions)
 {
-    path = Path$_expand_home(path);
+    path = Path$expand_home(path);
     const char *c_path = Path$as_c_string(path);
     int status = mkdir(c_path, (mode_t)permissions);
     if (status != 0 && errno != EEXIST)
@@ -434,7 +435,7 @@ public void Path$create_directory(Path_t path, int permissions)
 
 static Array_t _filtered_children(Path_t path, bool include_hidden, mode_t filter)
 {
-    path = Path$_expand_home(path);
+    path = Path$expand_home(path);
     struct dirent *dir;
     Array_t children = {};
     const char *path_str = Path$as_c_string(path);
@@ -483,7 +484,7 @@ public Array_t Path$subdirectories(Path_t path, bool include_hidden)
 
 public Path_t Path$unique_directory(Path_t path)
 {
-    path = Path$_expand_home(path);
+    path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
     size_t len = strlen(path_str);
     if (len >= PATH_MAX) fail("Path is too long: %s", path_str);
@@ -498,7 +499,7 @@ public Path_t Path$unique_directory(Path_t path)
 
 public Path_t Path$write_unique_bytes(Path_t path, Array_t bytes)
 {
-    path = Path$_expand_home(path);
+    path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
     size_t len = strlen(path_str);
     if (len >= PATH_MAX) fail("Path is too long: %s", path_str);
@@ -638,7 +639,7 @@ static Text_t _next_line(FILE **f)
 
 public OptionalClosure_t Path$by_line(Path_t path)
 {
-    path = Path$_expand_home(path);
+    path = Path$expand_home(path);
 
     FILE *f = fopen(Path$as_c_string(path), "r");
     if (f == NULL)

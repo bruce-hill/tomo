@@ -50,6 +50,7 @@ intended. Paths can be created from text with slashes using
 - [`func children(path: Path, include_hidden=no -> [Path])`](#children)
 - [`func create_directory(path: Path, permissions=0o755[32] -> Void)`](#create_directory)
 - [`func exists(path: Path -> Bool)`](#exists)
+- [`func expand_home(path: Path -> Path)`](#expand_home)
 - [`func extension(path: Path, full=yes -> Text)`](#extension)
 - [`func files(path: Path, include_hidden=no -> [Path])`](#files)
 - [`func from_components(components:[Text] -> Path)`](#from_components)
@@ -372,6 +373,30 @@ func exists(path: Path -> Bool)
 ```tomo
 >> (/):exists()
 = yes
+```
+
+---
+
+### `expand_home`
+For home-based paths (those starting with `~`), expand the path to replace the
+tilde with and absolute path to the user's `$HOME` directory.
+
+```tomo
+func expand_home(path: Path -> Path)
+```
+
+- `path`: The path to expand.
+
+**Returns:**  
+If the path does not start with a `~`, then return it unmodified. Otherwise,
+replace the `~` with an absolute path to the user's home directory.
+
+**Example:**  
+```tomo
+>> (~/foo):expand_home() # Assume current user is 'user'
+= /home/user/foo
+>> (/foo):expand_home() # No change
+= /foo
 ```
 
 ---

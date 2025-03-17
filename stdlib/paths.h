@@ -16,8 +16,8 @@ const char *Path$as_c_string(Path_t path);
 Path_t Path$_concat(int n, Path_t items[n]);
 #define Path$concat(...) Path$_concat((int)sizeof((Path_t[]){__VA_ARGS__})/sizeof(Path_t), ((Path_t[]){__VA_ARGS__}))
 Path_t Path$resolved(Path_t path, Path_t relative_to);
-Path_t Path$relative(Path_t path, Path_t relative_to);
 Path_t Path$relative_to(Path_t path, Path_t relative_to);
+Path_t Path$expand_home(Path_t path);
 bool Path$exists(Path_t path);
 bool Path$is_file(Path_t path, bool follow_symlinks);
 bool Path$is_directory(Path_t path, bool follow_symlinks);
