@@ -55,11 +55,10 @@ typedef struct {
     CORD code;
 } binding_t;
 
-env_t *new_compilation_unit(CORD libname);
+env_t *global_env(void);
 env_t *load_module_env(env_t *env, ast_t *ast);
 CORD namespace_prefix(env_t *env, namespace_t *ns);
 env_t *get_namespace_by_type(env_t *env, type_t *t);
-env_t *global_scope(env_t *env);
 env_t *namespace_scope(env_t *env);
 env_t *fresh_scope(env_t *env);
 env_t *for_scope(env_t *env, ast_t *ast);

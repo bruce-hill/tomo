@@ -50,8 +50,11 @@ static type_t *bind_type(env_t *env, const char *name, type_t *type)
     return type;
 }
 
-env_t *new_compilation_unit(CORD libname)
+env_t *global_env(void)
 {
+    static env_t *_global_env = NULL;
+    if (_global_env != NULL) return _global_env;
+
     env_t *env = new(env_t);
     env->code = new(compilation_unit_t);
     env->types = new(Table_t);
@@ -585,9 +588,8 @@ env_t *new_compilation_unit(CORD libname)
         Table$str_set(env->globals, global_vars[i].name, new(binding_t, .type=type, .code=global_vars[i].code));
     }
 
-    env_t *lib_env = fresh_scope(env);
-    lib_env->libname = libname;
-    return lib_env;
+    _global_env = env;
+    return env;
 }
 
 CORD namespace_prefix(env_t *env, namespace_t *ns)
@@ -620,14 +622,6 @@ env_t *load_module_env(env_t *env, ast_t *ast)
     visit_topologically(statements, (Closure_t){.fn=(void*)bind_statement, .userdata=module_env});
 
     return module_env;
-}
-
-env_t *global_scope(env_t *env)
-{
-    env_t *scope = new(env_t);
-    *scope = *env;
-    scope->locals = new(Table_t, .fallback=env->globals);
-    return scope;
 }
 
 env_t *namespace_scope(env_t *env)

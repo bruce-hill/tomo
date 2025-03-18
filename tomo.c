@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
         else if (files.length != 1)
             errx(1, "Too many files specified!");
         Path_t path = *(Path_t*)files.data;
-        env_t *env = new_compilation_unit(NULL);
+        env_t *env = global_env();
         Array_t object_files = {},
                 extra_ldlibs = {};
         compile_files(env, files, false, &object_files, &extra_ldlibs);
@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
         execv(prog_args[0], prog_args);
         errx(1, "Failed to run compiled program");
     } else {
-        env_t *env = new_compilation_unit(NULL);
+        env_t *env = global_env();
         Array_t object_files = {},
                 extra_ldlibs = {};
         compile_files(env, files, stop_at_obj_compilation, &object_files, &extra_ldlibs);
@@ -318,7 +318,7 @@ static void _compile_file_header_for_library(env_t *env, Path_t path, Table_t *v
 void build_library(Text_t lib_dir_name)
 {
     Array_t tm_files = Path$glob(Path("./[!._0-9]*.tm"));
-    env_t *env = new_compilation_unit(NULL);
+    env_t *env = fresh_scope(global_env());
     Array_t object_files = {},
             extra_ldlibs = {};
     compile_files(env, tm_files, false, &object_files, &extra_ldlibs);
