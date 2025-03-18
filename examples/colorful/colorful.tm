@@ -33,11 +33,11 @@ func main(texts:[Text], files=[:Path], by_line=no):
 
     for file in files:
         if by_line:
-            for line in file:by_line() or exit("Could not read file: $(file.text)"):
+            for line in file:by_line() or exit("Could not read file: $file"):
                 colorful := Colorful.from_text(line)
                 colorful:print()
         else:
-            colorful := Colorful.from_text(file:read() or exit("Could not read file: $(file.text)"))
+            colorful := Colorful.from_text(file:read() or exit("Could not read file: $file"))
             colorful:print(newline=no)
 
 
