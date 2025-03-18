@@ -26,7 +26,7 @@
 #include "typecheck.h"
 #include "types.h"
 
-#define run_cmd(...) ({ const char *_cmd = heap_strf(__VA_ARGS__); if (verbose) printf("\033[33m%s\033[m", _cmd); popen(_cmd, "w"); })
+#define run_cmd(...) ({ const char *_cmd = heap_strf(__VA_ARGS__); if (verbose) printf("\033[34;1m%s\033[m\n", _cmd); popen(_cmd, "w"); })
 #define array_str(arr) Text$as_c_string(Text$join(Text(" "), arr))
 
 static const char *paths_str(Array_t paths) {
@@ -185,7 +185,7 @@ int main(int argc, char *argv[])
         else if (files.length != 1)
             errx(1, "Too many files specified!");
 
-        quiet = true;
+        quiet = !verbose;
 
         Path_t path = *(Path_t*)files.data;
         env_t *env = global_env();
