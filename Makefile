@@ -66,7 +66,7 @@ test: $(TESTS)
 	@echo -e '\x1b[32;7m ALL TESTS PASSED! \x1b[m'
 
 clean:
-	rm -f tomo *.o stdlib/*.o libtomo.so test/*.tm.{c,h,o,testresult} examples/**/*.tm.{c,h,o} examples/*.tm.{c,h,o}
+	rm -rf tomo *.o stdlib/*.o libtomo.so test/*.tm.testresult test/.build examples/.build examples/*/.build
 
 %: %.md
 	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@

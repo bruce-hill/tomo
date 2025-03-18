@@ -121,13 +121,13 @@ Compile a Tomo file into an object file:
 
 ```bash
 tomo -c foo.tm
-# Output: foo.tm.o
+# Output: .build/foo.tm.o
 ```
 
 Transpile a Tomo file into a C header and source file:
 ```bash
 tomo -t foo.tm
-# Outputs: foo.tm.h foo.tm.c
+# Outputs: .build/foo.tm.h .build/foo.tm.c
 ```
 
 ## Installing

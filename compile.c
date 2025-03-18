@@ -14,6 +14,7 @@
 #include "environment.h"
 #include "stdlib/integers.h"
 #include "stdlib/nums.h"
+#include "stdlib/paths.h"
 #include "stdlib/patterns.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"
@@ -4214,8 +4215,10 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
     switch (ast->tag) {
     case Use: {
         auto use = Match(ast, Use);
-        if (use->what == USE_C_CODE)
-            return CORD_all("#include \"", use->path, "\"\n");
+        if (use->what == USE_C_CODE) {
+            Path_t path = Path$relative_to(Path$from_str(use->path), Path(".build"));
+            return CORD_all("#include \"", Path$as_c_string(path), "\"\n");
+        }
         return CORD_EMPTY;
     }
     case Declare: {
@@ -4387,8 +4390,12 @@ CORD compile_statement_type_header(env_t *env, ast_t *ast)
         case USE_MODULE: {
             return CORD_all("#include <", use->path, "/", use->path, ".h>\n");
         }
-        case USE_LOCAL: 
-            return CORD_all("#include \"", use->path, ".h\"\n");
+        case USE_LOCAL: {
+            Path_t path = Path$relative_to(Path$from_str(use->path), Path(".build"));
+            Path_t build_dir = Path$with_component(Path$parent(path), Text(".build"));
+            path = Path$with_component(build_dir, Texts(Path$base_name(path), Text(".h")));
+            return CORD_all("#include \"", Path$as_c_string(path), "\"\n");
+        }
         case USE_HEADER:
             if (use->path[0] == '<')
                 return CORD_all("#include ", use->path, "\n");

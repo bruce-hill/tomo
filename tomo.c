@@ -1,5 +1,6 @@
 // The main program that runs compilation
 #include <ctype.h>
+#include <errno.h>
 #include <gc.h>
 #include <gc/cord.h>
 #include <libgen.h>
@@ -209,6 +210,16 @@ Text_t escape_lib_name(Text_t lib_name)
     return Text$replace(lib_name, Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false);
 }
 
+static Path_t build_file(Path_t path, const char *extension)
+{
+    Path_t build_dir = Path$with_component(Path$parent(path), Text(".build"));
+    if (mkdir(Path$as_c_string(build_dir), 0777) != 0) {
+        if (errno != EEXIST)
+            err(1, "Could not make .build directory");
+    }
+    return Path$with_component(build_dir, Texts(Path$base_name(path), Text$from_str(extension)));
+}
+
 typedef struct {
     env_t *env;
     Table_t *used_imports;
@@ -225,7 +236,7 @@ static void _compile_statement_header_for_library(libheader_info_t *info, ast_t 
         if (use->what == USE_LOCAL)
             return;
 
-        Text_t path = Text$from_str(use->path);
+        Path_t path = Path$from_str(use->path);
         if (!Table$get(*info->used_imports, &path, Table$info(&Path$info, &Path$info))) {
             Table$set(info->used_imports, &path, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
             CORD_put(compile_statement_type_header(info->env, ast), info->output);
@@ -324,12 +335,12 @@ void build_library(Text_t lib_dir_name)
         errx(1, "Failed to write header file: %k.h", &lib_dir_name);
 
     // Build up a list of symbol renamings:
-    unlink("symbol_renames.txt");
+    unlink(".build/symbol_renames.txt");
     FILE *prog;
     for (int64_t i = 0; i < tm_files.length; i++) {
         Path_t f = *(Path_t*)(tm_files.data + i*tm_files.stride);
-        prog = run_cmd("nm -Ug -fjust-symbols '%s.o' | sed -n 's/_\\$\\(.*\\)/\\0 _$%s$\\1/p' >>symbol_renames.txt",
-                       Path$as_c_string(f), CORD_to_const_char_star(env->libname));
+        prog = run_cmd("nm -Ug -fjust-symbols '%s' | sed -n 's/_\\$\\(.*\\)/\\0 _$%s$\\1/p' >>.build/symbol_renames.txt",
+                       Path$as_c_string(build_file(f, ".o")), CORD_to_const_char_star(env->libname));
         int status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
             errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `sed`");
@@ -347,12 +358,12 @@ void build_library(Text_t lib_dir_name)
     if (verbose)
         printf("\x1b[2mCompiled to lib%k.so\x1b[m\n", &lib_dir_name);
 
-    prog = run_cmd("objcopy --redefine-syms=symbol_renames.txt 'lib%k.so'", &lib_dir_name);
+    prog = run_cmd("objcopy --redefine-syms=.build/symbol_renames.txt 'lib%k.so'", &lib_dir_name);
     status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         errx(WEXITSTATUS(status), "Failed to run `objcopy` to add library prefix to symbols");
 
-    prog = run_cmd("patchelf --rename-dynamic-symbols symbol_renames.txt 'lib%k.so'", &lib_dir_name);
+    prog = run_cmd("patchelf --rename-dynamic-symbols .build/symbol_renames.txt 'lib%k.so'", &lib_dir_name);
     status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         errx(WEXITSTATUS(status), "Failed to run `patchelf` to rename dynamic symbols with library prefix");
@@ -360,7 +371,7 @@ void build_library(Text_t lib_dir_name)
     if (verbose)
         CORD_printf("Successfully renamed symbols with library prefix!\n");
 
-    unlink("symbol_renames.txt");
+    // unlink(".build/symbol_renames.txt");
 
     if (should_install) {
         char *library_directory = get_current_dir_name();
@@ -440,7 +451,7 @@ void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, 
     if (object_files) {
         for (int64_t i = 0; i < dependency_files.entries.length; i++) {
             Path_t path = *(Path_t*)(dependency_files.entries.data + i*dependency_files.entries.stride);
-            path = Path$with_extension(path, Text(".o"), false);
+            path = build_file(path, ".o");
             Array$insert(object_files, &path, I(0), sizeof(Path_t));
         }
     }
@@ -457,7 +468,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
     if (Table$get(*to_compile, &path, Table$info(&Path$info, &Bool$info)))
         return;
 
-    bool stale = is_stale(Path$with_extension(path, Text(".o"), false), path);
+    bool stale = is_stale(build_file(path, ".o"), path);
     Table$set(to_compile, &path, &stale, Table$info(&Path$info, &Bool$info));
 
     assert(Text$equal_values(Path$extension(path, true), Text("tm")));
@@ -477,7 +488,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
         switch (use->what) {
         case USE_LOCAL: {
             Path_t resolved = Path$resolved(Path$from_str(use->path), Path$parent(path));
-            if (!stale && is_stale(Path$with_extension(path, Text(".o"), false), resolved)) {
+            if (!stale && is_stale(build_file(path, ".o"), resolved)) {
                 stale = true;
                 Table$set(to_compile, &path, &stale, Table$info(&Path$info, &Bool$info));
             }
@@ -493,7 +504,8 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             Array_t children = Path$glob(Path$from_str(heap_strf("%s/.local/share/tomo/installed/%s/*.tm", getenv("HOME"), use->path)));
             for (int64_t i = 0; i < children.length; i++) {
                 Path_t *child = (Path_t*)(children.data + i*children.stride);
-                build_file_dependency_graph(*child, to_compile, to_link);
+                Table_t discarded = {.fallback=to_compile};
+                build_file_dependency_graph(*child, &discarded, to_link);
             }
             break;
         }
@@ -503,8 +515,8 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             break;
         }
         case USE_ASM: {
-            Text_t lib = Text$from_str(use->path);
-            Table$set(to_link, &lib, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
+            Text_t linker_text = Path$as_text(&use->path, false, &Path$info);
+            Table$set(to_link, &linker_text, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
             break;
         }
         default: case USE_HEADER: break;
@@ -525,7 +537,7 @@ bool is_stale(Path_t path, Path_t relative_to)
 
 void transpile_header(env_t *base_env, Path_t path, bool force_retranspile)
 {
-    Path_t h_filename = Path$with_extension(path, Text(".h"), false);
+    Path_t h_filename = build_file(path, ".h");
     if (!force_retranspile && !is_stale(h_filename, path))
         return;
 
@@ -538,6 +550,8 @@ void transpile_header(env_t *base_env, Path_t path, bool force_retranspile)
     CORD h_code = compile_file_header(module_env, ast);
 
     FILE *header = fopen(Path$as_c_string(h_filename), "w");
+    if (!header)
+        errx(1, "Failed to open header file: %s", Path$as_c_string(h_filename));
     CORD_put(h_code, header);
     if (fclose(header) == -1)
         errx(1, "Failed to write header file: %s", Path$as_c_string(h_filename));
@@ -551,7 +565,7 @@ void transpile_header(env_t *base_env, Path_t path, bool force_retranspile)
 
 void transpile_code(env_t *base_env, Path_t path, bool force_retranspile)
 {
-    Path_t c_filename = Path$with_extension(path, Text(".c"), false);
+    Path_t c_filename = build_file(path, ".c");
     if (!force_retranspile && !is_stale(c_filename, path))
         return;
 
@@ -598,9 +612,9 @@ void transpile_code(env_t *base_env, Path_t path, bool force_retranspile)
 
 void compile_object_file(Path_t path, bool force_recompile)
 {
-    Path_t obj_file = Path$with_extension(path, Text(".o"), false);
-    Path_t c_file = Path$with_extension(path, Text(".c"), false);
-    Path_t h_file = Path$with_extension(path, Text(".h"), false);
+    Path_t obj_file = build_file(path, ".o");
+    Path_t c_file = build_file(path, ".c");
+    Path_t h_file = build_file(path, ".h");
     if (!force_recompile && !is_stale(obj_file, path)
         && !is_stale(obj_file, c_file)
         && !is_stale(obj_file, h_file)) {
