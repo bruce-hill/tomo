@@ -39,7 +39,7 @@ intended. Paths can be created from text with slashes using
 
 - [`func accessed(path:Path, follow_symlinks=yes -> Moment?)`](#accessed)
 - [`func append(path: Path, text: Text, permissions: Int32 = 0o644[32] -> Void)`](#append)
-- [`func append_bytes(path: Path, bytes: [Byte], permissions: Int32 = 0o644[32] -> Void)`](#append_bytes)
+- [`func append_bytes(path: Path, bytes:List(Byte), permissions: Int32 = 0o644[32] -> Void)`](#append_bytes)
 - [`func base_name(path: Path -> Text)`](#base_name)
 - [`func by_line(path: Path -> func(->Text?)?)`](#by_line)
 - [`func can_execute(path:Path -> Bool)`](#can_execute)
@@ -47,14 +47,14 @@ intended. Paths can be created from text with slashes using
 - [`func can_write(path:Path -> Bool)`](#can_write)
 - [`func changed(path:Path, follow_symlinks=yes -> Moment?)`](#changed)
 - [`func child(path: Path, child:Text -> Path)`](#child)
-- [`func children(path: Path, include_hidden=no -> [Path])`](#children)
+- [`func children(path: Path, include_hidden=no -> List(Path))`](#children)
 - [`func create_directory(path: Path, permissions=0o755[32] -> Void)`](#create_directory)
 - [`func exists(path: Path -> Bool)`](#exists)
 - [`func expand_home(path: Path -> Path)`](#expand_home)
 - [`func extension(path: Path, full=yes -> Text)`](#extension)
-- [`func files(path: Path, include_hidden=no -> [Path])`](#files)
-- [`func from_components(components:[Text] -> Path)`](#from_components)
-- [`func glob(path: Path -> [Path])`](#glob)
+- [`func files(path: Path, include_hidden=no -> List(Path))`](#files)
+- [`func from_components(components:List(Text) -> Path)`](#from_components)
+- [`func glob(path: Path -> List(Path))`](#glob)
 - [`func group(path: Path, follow_symlinks=yes -> Text?)`](#group)
 - [`func is_directory(path: Path, follow_symlinks=yes -> Bool)`](#is_directory)
 - [`func is_file(path: Path, follow_symlinks=yes -> Bool)`](#is_file)
@@ -64,17 +64,17 @@ intended. Paths can be created from text with slashes using
 - [`func owner(path: Path, follow_symlinks=yes -> Text?)`](#owner)
 - [`func parent(path: Path -> Path)`](#parent)
 - [`func read(path: Path -> Text?)`](#read)
-- [`func read_bytes(path: Path -> [Byte]?)`](#read_bytes)
+- [`func read_bytes(path: Path -> List(Byte)?)`](#read_bytes)
 - [`func relative_to(path: Path, relative_to=(./) -> Path)`](#relative_to)
 - [`func remove(path: Path, ignore_missing=no -> Void)`](#remove)
 - [`func resolved(path: Path, relative_to=(./) -> Path)`](#resolved)
 - [`func set_owner(path:Path, owner=none:Text, group=none:Text, follow_symlinks=yes)`](#set_owner)
-- [`func subdirectories(path: Path, include_hidden=no -> [Path])`](#subdirectories)
+- [`func subdirectories(path: Path, include_hidden=no -> List(Path))`](#subdirectories)
 - [`func unique_directory(path: Path -> Path)`](#unique_directory)
 - [`func write(path: Path, text: Text, permissions=0o644[32] -> Void)`](#write)
-- [`func write_bytes(path: Path, bytes: [Byte], permissions=0o644[32] -> Void)`](#write_bytes)
+- [`func write_bytes(path: Path, bytes:List(Byte), permissions=0o644[32] -> Void)`](#write_bytes)
 - [`func write_unique(path: Path, text: Text -> Path)`](#write_unique)
-- [`func write_unique_bytes(path: Path, bytes: [Byte] -> Path)`](#write_unique_bytes)
+- [`func write_unique_bytes(path: Path, bytes:List(Byte) -> Path)`](#write_unique_bytes)
 
 ### `accessed`
 Gets the file access time of a file.
@@ -127,7 +127,7 @@ Appends the given bytes to the file at the specified path, creating the file if
 it doesn't already exist. Failure to write will result in a runtime error.
 
 ```tomo
-func append_bytes(path: Path, bytes: [Byte], permissions: Int32 = 0o644[32] -> Void)
+func append_bytes(path: Path, bytes:List(Byte), permissions: Int32 = 0o644[32] -> Void)
 ```
 
 - `path`: The path of the file to append to.
@@ -298,7 +298,7 @@ changed, or `none` if no such file or directory exists.
 Return a path that is a child of another path.
 
 ```tomo
-func child(path: Path, child: Text -> [Path])
+func child(path: Path, child: Text -> List(Path))
 ```
 
 - `path`: The path of a directory.
@@ -319,7 +319,7 @@ A new path representing the child.
 Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files.
 
 ```tomo
-func children(path: Path, include_hidden=no -> [Path])
+func children(path: Path, include_hidden=no -> List(Path))
 ```
 
 - `path`: The path of the directory.
@@ -434,7 +434,7 @@ no file extension.
 Returns a list of files within the directory at the specified path. Optionally includes hidden files.
 
 ```tomo
-func files(path: Path, include_hidden: Bool = no -> [Path])
+func files(path: Path, include_hidden: Bool = no -> List(Path))
 ```
 
 - `path`: The path of the directory.
@@ -455,7 +455,7 @@ A list of file paths.
 Returns a path built from an array of path components.
 
 ```tomo
-func from_components(components: [Text] -> Path)
+func from_components(components:List(Text) -> Path)
 ```
 
 - `components`: An array of path components.
@@ -486,7 +486,7 @@ specific details:
 - The shell-style syntax `**` for matching subdirectories is not supported.
 
 ```tomo
-func glob(path: Path -> [Path])
+func glob(path: Path -> List(Path))
 ```
 
 - `path`: The path of the directory which may contain special globbing characters
@@ -726,7 +726,7 @@ Reads the contents of the file at the specified path or a null value if the
 file could not be read.
 
 ```tomo
-func read_bytes(path: Path -> [Byte]?)
+func read_bytes(path: Path -> List(Byte)?)
 ```
 
 - `path`: The path of the file to read.
@@ -738,10 +738,10 @@ returned.
 **Example:**  
 ```tomo
 >> (./hello.txt):read()
-= [72[B], 101[B], 108[B], 108[B], 111[B]] : [Byte]?
+= [72[B], 101[B], 108[B], 108[B], 111[B]] :List(Byte)?
 
 >> (./nosuchfile.xxx):read()
-= none : [Byte]?
+= none :List(Byte)?
 ```
 
 ---
@@ -837,7 +837,7 @@ Nothing. If a path does not exist, a failure will be raised.
 Returns a list of subdirectories within the directory at the specified path. Optionally includes hidden subdirectories.
 
 ```tomo
-func subdirectories(path: Path, include_hidden=no -> [Path])
+func subdirectories(path: Path, include_hidden=no -> List(Path))
 ```
 
 - `path`: The path of the directory.
@@ -910,7 +910,7 @@ it doesn't already exist. Sets the file permissions as specified. If the file
 writing cannot be successfully completed, a runtime error is raised.
 
 ```tomo
-func write(path: Path, bytes: [Byte], permissions=0o644[32] -> Void)
+func write(path: Path, bytes:List(Byte), permissions=0o644[32] -> Void)
 ```
 
 - `path`: The path of the file to write to.
@@ -960,7 +960,7 @@ file is created if it doesn't exist. This is useful for creating temporary
 files.
 
 ```tomo
-func write_unique_bytes(path: Path, bytes: [Byte] -> Path)
+func write_unique_bytes(path: Path, bytes:List(Byte) -> Path)
 ```
 
 - `path`: The base path for generating the unique file. This path must include

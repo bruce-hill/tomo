@@ -4,13 +4,13 @@ lang Shell:
     convert(text:Text -> Shell):
         return Shell.from_text("'" ++ text:replace($/'/, `'"'"'`) ++ "'")
 
-    convert(texts:[Text] -> Shell):
+    convert(texts:List(Text) -> Shell):
         return Shell.from_text(" ":join([Shell(t).text for t in texts]))
 
     convert(path:Path -> Shell):
         return Shell(Text(path:expand_home()))
 
-    convert(paths:[Path] -> Shell):
+    convert(paths:List(Path) -> Shell):
         return Shell.from_text(" ":join([Shell(Text(p)).text for p in paths]))
 
     convert(n:Int -> Shell): return Shell.from_text(Text(n))
@@ -30,6 +30,6 @@ lang Shell:
     func get_output(shell:Shell, input="", trim_newline=yes -> Text?):
         return shell:command():get_output(input=input, trim_newline=trim_newline)
 
-    func get_output_bytes(shell:Shell, input="", input_bytes=[:Byte] -> [Byte]?):
+    func get_output_bytes(shell:Shell, input="", input_bytes=[:Byte] -> List(Byte)?):
         return shell:command():get_output_bytes(input=input, input_bytes=input_bytes)
 

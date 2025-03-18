@@ -71,13 +71,13 @@ func wrap(text:Text, width:Int, min_split=3, hyphen="-" -> Text):
 
     return \n:join(lines)
 
-func _can_fit_word(line:Text, letters:[Text], width:Int -> Bool; inline):
+func _can_fit_word(line:Text, letters:List(Text), width:Int -> Bool; inline):
     if line == "":
         return letters.length <= width
     else:
         return line.length + 1 + letters.length <= width
 
-func main(files:[Path], width=80, inplace=no, min_split=3, rewrap=yes, hyphen=UNICODE_HYPHEN):
+func main(files:List(Path), width=80, inplace=no, min_split=3, rewrap=yes, hyphen=UNICODE_HYPHEN):
     if files.length == 0:
         files = [(/dev/stdin)]
 

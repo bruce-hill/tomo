@@ -22,7 +22,7 @@ func main():
 	>> t.length
 	= 2
 	>> t.fallback
-	= none : {Text,Int}?
+	= none : Table(Text, Int)?
 
 	>> t.keys
 	= ["one", "two"]
@@ -42,7 +42,7 @@ func main():
 	>> t2.length
 	= 1
 	>> t2.fallback
-	= {"one"=1, "two"=2} : {Text,Int}?
+	= {"one"=1, "two"=2} : Table(Text, Int)?
 
 	t2_str := ""
 	for k,v in t2:

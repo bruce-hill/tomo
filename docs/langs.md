@@ -100,6 +100,6 @@ struct Foo(x,y:Int):
     convert(f:Foo -> Sh):
         return Sh.from_text("$(f.x),$(f.y)")
 
-convert(texts:[Text] -> Sh):
+convert(texts:List(Text) -> Sh):
     return $Sh" ":join([Sh(t) for t in texts])
 ```

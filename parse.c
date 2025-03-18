@@ -54,7 +54,7 @@ static const char *keywords[] = {
     "yes", "xor", "while", "when", "use", "unless", "struct", "stop", "skip", "return",
     "or", "not", "none", "no", "mutexed", "mod1", "mod", "pass", "lang", "inline", "in", "if", "holding",
     "func", "for", "extern", "enum", "end", "else", "do", "deserialize", "defer", "begin", "and",
-    "_min_", "_max_", NULL,
+    "_min_", "_max_", "Table", "List", "Set", NULL,
 };
 
 enum {NORMAL_FUNCTION=0, EXTERN_FUNCTION=1};
@@ -564,7 +564,7 @@ PARSER(parse_moment) {
 
 type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    if (!match(&pos, "{")) return NULL;
+    if (!match(&pos, "Table(")) return NULL;
     whitespace(&pos);
     type_ast_t *key_type = parse_type(ctx, pos);
     if (!key_type) return NULL;
@@ -580,20 +580,20 @@ type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
         return NULL;
     }
     whitespace(&pos);
-    expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this table type");
+    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this table type");
     return NewTypeAST(ctx->file, start, pos, TableTypeAST, .key=key_type, .value=value_type, .default_value=default_value);
 }
 
 type_ast_t *parse_set_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    if (!match(&pos, "{")) return NULL;
+    if (!match(&pos, "Set(")) return NULL;
     whitespace(&pos);
     type_ast_t *item_type = parse_type(ctx, pos);
     if (!item_type) return NULL;
     pos = item_type->end;
     whitespace(&pos);
     if (match(&pos, ",")) return NULL;
-    expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this set type");
+    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this set type");
     return NewTypeAST(ctx->file, start, pos, SetTypeAST, .item=item_type);
 }
 
@@ -611,10 +611,10 @@ type_ast_t *parse_func_type(parse_ctx_t *ctx, const char *pos) {
 
 type_ast_t *parse_array_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    if (!match(&pos, "[")) return NULL;
+    if (!match(&pos, "List(")) return NULL;
     type_ast_t *type = expect(ctx, start, &pos, parse_type,
                              "I couldn't parse an array item type after this point");
-    expect_closing(ctx, &pos, "]", "I wasn't able to parse the rest of this array type");
+    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this array type");
     return NewTypeAST(ctx->file, start, pos, ArrayTypeAST, .item=type);
 }
 
@@ -759,6 +759,15 @@ static INLINE bool match_separator(const char **pos) { // Either comma or newlin
 
 PARSER(parse_array) {
     const char *start = pos;
+
+    if (match(&pos, "List(")) {
+        whitespace(&pos);
+        type_ast_t *item_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a type for this array");
+        whitespace(&pos);
+        expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this array");
+        return NewAST(ctx->file, start, pos, Array, .item_type=item_type);
+    }
+
     if (!match(&pos, "[")) return NULL;
 
     whitespace(&pos);
@@ -798,6 +807,46 @@ PARSER(parse_array) {
 
 PARSER(parse_table) {
     const char *start = pos;
+
+    if (match(&pos, "Table(")) {
+        whitespace(&pos);
+        type_ast_t *key_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a key type for this table");
+        whitespace(&pos);
+        type_ast_t *value_type = NULL;
+        ast_t *default_value = NULL;
+        if (match(&pos, ",")) {
+            value_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse the value type for this table");
+        } else if (match(&pos, "=")) {
+            default_value = expect(ctx, pos-1, &pos, parse_extended_expr, "I couldn't parse the default value for this table");
+        } else {
+            return NULL;
+        }
+        whitespace(&pos);
+
+        ast_t *fallback = NULL;
+        if (match(&pos, ";")) {
+            for (;;) {
+                whitespace(&pos);
+                const char *attr_start = pos;
+                if (match_word(&pos, "fallback")) {
+                    whitespace(&pos);
+                    if (!match(&pos, "=")) parser_err(ctx, attr_start, pos, "I expected an '=' after 'fallback'");
+                    if (fallback)
+                        parser_err(ctx, attr_start, pos, "This table already has a fallback");
+                    fallback = expect(ctx, attr_start, &pos, parse_expr, "I expected a fallback table");
+                } else {
+                    break;
+                }
+                whitespace(&pos);
+                if (!match(&pos, ";")) break;
+            }
+        }
+
+        expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this table");
+        return NewAST(ctx->file, start, pos, Table, .key_type=key_type, .value_type=value_type,
+                      .default_value=default_value, .fallback=fallback);
+    }
+
     if (!match(&pos, "{")) return NULL;
 
     whitespace(&pos);
@@ -874,6 +923,15 @@ PARSER(parse_table) {
 
 PARSER(parse_set) {
     const char *start = pos;
+
+    if (match(&pos, "Set(")) {
+        whitespace(&pos);
+        type_ast_t *item_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a key type for this set");
+        whitespace(&pos);
+        expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this set");
+        return NewAST(ctx->file, start, pos, Set, .item_type=item_type);
+    }
+
     if (!match(&pos, "{")) return NULL;
 
     whitespace(&pos);

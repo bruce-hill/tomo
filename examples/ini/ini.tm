@@ -6,9 +6,9 @@ _HELP := "
     $_USAGE
 "
 
-func parse_ini(path:Path -> {Text,{Text,Text}}):
+func parse_ini(path:Path -> Table(Text, Table(Text, Text))):
     text := path:read() or exit("Could not read INI file: $\[31;1]$(path)$\[]")
-    sections := @{:Text,@{Text,Text}}
+    sections := @{:Text,@Table(Text, Text)}
     current_section := @{:Text,Text}
 
     # Line wraps:

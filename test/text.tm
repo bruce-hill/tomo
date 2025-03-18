@@ -51,7 +51,7 @@ func main():
 
 	amelie := "Am$(\UE9)lie"
 	>> amelie:split()
-	= ["A", "m", "é", "l", "i", "e"] : [Text]
+	= ["A", "m", "é", "l", "i", "e"] : List(Text)
 	>> amelie:utf32_codepoints()
 	= [65, 109, 233, 108, 105, 101]
 	>> amelie:bytes()
@@ -63,7 +63,7 @@ func main():
 
 	amelie2 := "Am$(\U65\U301)lie"
 	>> amelie2:split()
-	= ["A", "m", "é", "l", "i", "e"] : [Text]
+	= ["A", "m", "é", "l", "i", "e"] : List(Text)
 	>> amelie2:utf32_codepoints()
 	= [65, 109, 233, 108, 105, 101]
 	>> amelie2:bytes()
@@ -271,13 +271,13 @@ func main():
 	= " good(x, fn(y), BAD(z), w) "
 
 	>> "Hello":matches($/{id}/)
-	= ["Hello"] : [Text]?
+	= ["Hello"] : List(Text)?
 	>> "Hello":matches($/{lower}/)
-	= none : [Text]?
+	= none : List(Text)?
 	>> "Hello":matches($/{upper}/)
-	= none : [Text]?
+	= none : List(Text)?
 	>> "Hello...":matches($/{id}/)
-	= none : [Text]?
+	= none : List(Text)?
 
 	if matches := "hello world":matches($/{id} {id}/):
 		>> matches

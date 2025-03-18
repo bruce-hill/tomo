@@ -16,7 +16,7 @@ will return an array of bytes that encode the value's data:
 ```tomo
 value := Int64(5)
 >> serialized := value:serialized()
-= [0x0A] : [Byte]
+= [0x0A] : List(Byte)
 ```
 
 Serialization produces a fairly compact representation of data as a flat array
@@ -59,7 +59,7 @@ c.next = @Cycle("B", next=c)
 >> c
 = @Cycle(name="A", next=@Cycle(name="B", next=@~1))
 >> serialized := c:serialized()
-= [0x02, 0x02, 0x41, 0x01, 0x04, 0x02, 0x42, 0x01, 0x02] : [Byte]
+= [0x02, 0x02, 0x41, 0x01, 0x04, 0x02, 0x42, 0x01, 0x02] : List(Byte)
 >> roundtrip := DESERIALIZE(serialized):@Cycle
 = @Cycle(name="A", next=@Cycle(name="B", next=@~1)) : @Cycle
 ```

@@ -555,7 +555,7 @@ public Text_t Array$as_text(const void *obj, bool colorize, const TypeInfo_t *ty
 {
     Array_t *arr = (Array_t*)obj;
     if (!arr)
-        return Text$concat(Text("["), generic_as_text(NULL, false, type->ArrayInfo.item), Text("]"));
+        return Text$concat(Text("List("), generic_as_text(NULL, false, type->ArrayInfo.item), Text(")"));
 
     const TypeInfo_t *item_type = type->ArrayInfo.item;
     Text_t text = Text("[");

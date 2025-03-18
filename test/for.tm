@@ -1,5 +1,5 @@
 
-func all_nums(nums:[Int] -> Text):
+func all_nums(nums:List(Int) -> Text):
 	result := ""
 	for num in nums:
 		result ++= "$num,"
@@ -7,7 +7,7 @@ func all_nums(nums:[Int] -> Text):
 		return "EMPTY"
 	return result
 
-func labeled_nums(nums:[Int] -> Text):
+func labeled_nums(nums:List(Int) -> Text):
 	result := ""
 	for i,num in nums:
 		result ++= "$i:$num,"
@@ -15,14 +15,14 @@ func labeled_nums(nums:[Int] -> Text):
 		return "EMPTY"
 	return result
 
-func table_str(t:{Text,Text} -> Text):
+func table_str(t:Table(Text,Text) -> Text):
 	str := ""
 	for k,v in t:
 		str ++= "$k:$v,"
 	else: return "EMPTY"
 	return str
 
-func table_key_str(t:{Text,Text} -> Text):
+func table_key_str(t:Table(Text,Text) -> Text):
 	str := ""
 	for k in t:
 		str ++= "$k,"

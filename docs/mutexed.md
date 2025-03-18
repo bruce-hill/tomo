@@ -17,7 +17,7 @@ nums := mutexed [10, 20, 30]
 holding nums:
     # Inside this block, the type of `nums` is `&[Int]`
     >> nums
-    = &[10, 20, 30] : &[Int]
+    = &[10, 20, 30] :&List(Int)
 
 thread := Thread.new(func():
     holding nums:

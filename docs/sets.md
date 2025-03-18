@@ -75,23 +75,23 @@ iterating over any of the new values.
 
 ## Set Methods
 
-- [`func add(set:{T}, item: T -> Void)`](#add)
-- [`func add_all(set:@{T}, items: [T] -> Void)`](#add_all)
-- [`func clear(set:@{T} -> Void)`](#clear)
-- [`func has(set:{T}, item:T -> Bool)`](#has)
-- [`func (set: {T}, other: {T}, strict: Bool = no -> Bool)`](#is_subset_of)
-- [`func is_superset_of(set:{T}, other: {T}, strict: Bool = no -> Bool)`](#is_superset_of)
-- [`func overlap(set:{T}, other: {T} -> {T})`](#overlap)
-- [`func remove(set:@{T}, item: T -> Void)`](#remove)
-- [`func remove_all(set:@{T}, items: [T] -> Void)`](#remove_all)
-- [`func with(set:{T}, other: {T} -> {T})`](#with)
-- [`func without(set:{T}, other: {T} -> {T})`](#without)
+- [`func add(set:Set(T), item: T -> Void)`](#add)
+- [`func add_all(set:@Set(T), items:List(T) -> Void)`](#add_all)
+- [`func clear(set:@Set(T) -> Void)`](#clear)
+- [`func has(set:Set(T), item:T -> Bool)`](#has)
+- [`func (set:Set(T), other:Set(T), strict: Bool = no -> Bool)`](#is_subset_of)
+- [`func is_superset_of(set:Set(T), other:Set(T), strict: Bool = no -> Bool)`](#is_superset_of)
+- [`func overlap(set:Set(T), other:Set(T) -> Set(T))`](#overlap)
+- [`func remove(set:@Set(T), item: T -> Void)`](#remove)
+- [`func remove_all(set:@Set(T), items:List(T) -> Void)`](#remove_all)
+- [`func with(set:Set(T), other:Set(T) -> Set(T))`](#with)
+- [`func without(set:Set(T), other:Set(T) -> Set(T))`](#without)
 
 ### `add`
 Adds an item to the set.
 
 ```tomo
-func add(set:{T}, item: T -> Void)
+func add(set:Set(T), item: T -> Void)
 ```
 
 - `set`: The mutable reference to the set.
@@ -111,7 +111,7 @@ Nothing.
 Adds multiple items to the set.
 
 ```tomo
-func add_all(set:@{T}, items: [T] -> Void)
+func add_all(set:@Set(T), items:List(T) -> Void)
 ```
 
 - `set`: The mutable reference to the set.
@@ -131,7 +131,7 @@ Nothing.
 Removes all items from the set.
 
 ```tomo
-func clear(set:@{T} -> Void)
+func clear(set:@Set(T) -> Void)
 ```
 
 - `set`: The mutable reference to the set.
@@ -150,7 +150,7 @@ Nothing.
 Checks if the set contains a specified item.
 
 ```tomo
-func has(set:{T}, item:T -> Bool)
+func has(set:Set(T), item:T -> Bool)
 ```
 
 - `set`: The set to check.
@@ -171,7 +171,7 @@ func has(set:{T}, item:T -> Bool)
 Checks if the set is a subset of another set.
 
 ```tomo
-func (set: {T}, other: {T}, strict: Bool = no -> Bool)
+func (set:Set(T), other:Set(T), strict: Bool = no -> Bool)
 ```
 
 - `set`: The set to check.
@@ -193,7 +193,7 @@ func (set: {T}, other: {T}, strict: Bool = no -> Bool)
 Checks if the set is a superset of another set.
 
 ```tomo
-func is_superset_of(set:{T}, other: {T}, strict: Bool = no -> Bool)
+func is_superset_of(set:Set(T), other:Set(T), strict: Bool = no -> Bool)
 ```
 
 - `set`: The set to check.
@@ -212,7 +212,7 @@ func is_superset_of(set:{T}, other: {T}, strict: Bool = no -> Bool)
 Creates a new set with items that are in both the original set and another set.
 
 ```tomo
-func overlap(set:{T}, other: {T} -> {T})
+func overlap(set:Set(T), other:Set(T) -> Set(T))
 ```
 
 - `set`: The original set.
@@ -233,7 +233,7 @@ A new set containing only items present in both sets.
 Removes an item from the set.
 
 ```tomo
-func remove(set:@{T}, item: T -> Void)
+func remove(set:@Set(T), item: T -> Void)
 ```
 
 - `set`: The mutable reference to the set.
@@ -253,7 +253,7 @@ Nothing.
 Removes multiple items from the set.
 
 ```tomo
-func remove_all(set:@{T}, items: [T] -> Void)
+func remove_all(set:@Set(T), items:List(T) -> Void)
 ```
 
 - `set`: The mutable reference to the set.
@@ -273,7 +273,7 @@ Nothing.
 Creates a new set that is the union of the original set and another set.
 
 ```tomo
-func with(set:{T}, other: {T} -> {T})
+func with(set:Set(T), other:Set(T) -> Set(T))
 ```
 
 - `set`: The original set.
@@ -294,7 +294,7 @@ A new set containing all items from both sets.
 Creates a new set with items from the original set but without items from another set.
 
 ```tomo
-func without(set:{T}, other: {T} -> {T})
+func without(set:Set(T), other:Set(T) -> Set(T))
 ```
 
 - `set`: The original set.

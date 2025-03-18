@@ -25,7 +25,7 @@ func main():
     >> tmpfile:read()
     = "Hello world!" : Text?
     >> tmpfile:read_bytes()
-    = [0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x77, 0x6F, 0x72, 0x6C, 0x64, 0x21] : [Byte]?
+    = [0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x77, 0x6F, 0x72, 0x6C, 0x64, 0x21] : List(Byte)?
     >> tmpdir:files():has(tmpfile)
     = yes
 
@@ -38,7 +38,7 @@ func main():
     >> (./does-not-exist.xxx):read()
     = none : Text?
     >> (./does-not-exist.xxx):read_bytes()
-    = none : [Byte]?
+    = none : List(Byte)?
     if lines := (./does-not-exist.xxx):by_line():
         fail("I could read lines in a nonexistent file")
     else:

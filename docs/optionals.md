@@ -115,7 +115,7 @@ maybe_x = !Int
 >> maybe_x or fail("No value!")
 # Failure!
 
-func do_stuff(matches:[Text]):
+func do_stuff(matches:List(Text)):
     pass
 
 for line in lines:

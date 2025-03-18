@@ -232,38 +232,38 @@ variable or dereference a heap pointer, it may trigger copy-on-write behavior.
 
 ## Array Methods
 
-- [`func binary_search(arr: [T], by: func(x,y:&T->Int32) = T.compare -> Int)`](#binary_search)
-- [`func by(arr: [T], step: Int -> [T])`](#by)
-- [`func clear(arr: @[T] -> Void)`](#clear)
-- [`func counts(arr: [T] -> {T,Int})`](#counts)
-- [`func find(arr: [T], target: T -> Int?)`](#find)
-- [`func first(arr: [T], predicate: func(item:&T -> Bool) -> Int)`](#first)
-- [`func from(arr: [T], first: Int -> [T])`](#from)
-- [`func has(arr: [T] -> Bool)`](#has)
-- [`func heap_pop(arr: @[T], by: func(x,y:&T->Int32) = T.compare -> T?)`](#heap_pop)
-- [`func heap_push(arr: @[T], item: T, by=T.compare -> Void)`](#heap_push)
-- [`func heapify(arr: @[T], by: func(x,y:&T->Int32) = T.compare -> Void)`](#heapify)
-- [`func insert(arr: @[T], item: T, at: Int = 0 -> Void)`](#insert)
-- [`func insert_all(arr: @[T], items: [T], at: Int = 0 -> Void)`](#insert_all)
-- [`func pop(arr: &[T], index: Int = -1 -> T?)`](#pop)
-- [`func random(arr: [T], rng: RNG = random -> T)`](#random)
-- [`func remove_at(arr: @[T], at: Int = -1, count: Int = 1 -> Void)`](#remove_at)
-- [`func remove_item(arr: @[T], item: T, max_count: Int = -1 -> Void)`](#remove_item)
-- [`func reversed(arr: [T] -> [T])`](#reversed)
-- [`func sample(arr: [T], count: Int, weights: [Num]? = ![Num], rng: RNG = random -> [T])`](#sample)
-- [`func shuffle(arr: @[T], rng: RNG = random -> Void)`](#shuffle)
-- [`func shuffled(arr: [T], rng: RNG = random -> [T])`](#shuffled)
-- [`func slice(arr: [T], from: Int, to: Int -> [T])`](#slice)
-- [`func sort(arr: @[T], by=T.compare -> Void)`](#sort)
-- [`sorted(arr: [T], by=T.compare -> [T])`](#sorted)
-- [`to(arr: [T], last: Int -> [T])`](#to)
-- [`unique(arr: [T] -> {T})`](#unique)
+- [`func binary_search(arr:List(T), by: func(x,y:&T->Int32) = T.compare -> Int)`](#binary_search)
+- [`func by(arr:List(T), step: Int -> List(T))`](#by)
+- [`func clear(arr:@List(T) -> Void)`](#clear)
+- [`func counts(arr:List(T) -> Table(T, Int))`](#counts)
+- [`func find(arr:List(T), target: T -> Int?)`](#find)
+- [`func first(arr:List(T), predicate: func(item:&T -> Bool) -> Int)`](#first)
+- [`func from(arr:List(T), first: Int -> List(T))`](#from)
+- [`func has(arr:List(T) -> Bool)`](#has)
+- [`func heap_pop(arr:@List(T), by: func(x,y:&T->Int32) = T.compare -> T?)`](#heap_pop)
+- [`func heap_push(arr:@List(T), item: T, by=T.compare -> Void)`](#heap_push)
+- [`func heapify(arr:@List(T), by: func(x,y:&T->Int32) = T.compare -> Void)`](#heapify)
+- [`func insert(arr:@List(T), item: T, at: Int = 0 -> Void)`](#insert)
+- [`func insert_all(arr:@List(T), items:List(T), at: Int = 0 -> Void)`](#insert_all)
+- [`func pop(arr:&List(T), index: Int = -1 -> T?)`](#pop)
+- [`func random(arr:List(T), rng: RNG = random -> T)`](#random)
+- [`func remove_at(arr:@List(T), at: Int = -1, count: Int = 1 -> Void)`](#remove_at)
+- [`func remove_item(arr:@List(T), item: T, max_count: Int = -1 -> Void)`](#remove_item)
+- [`func reversed(arr:List(T) -> List(T))`](#reversed)
+- [`func sample(arr:List(T), count: Int, weights:List(Num)? = ![Num], rng: RNG = random -> List(T))`](#sample)
+- [`func shuffle(arr:@List(T), rng: RNG = random -> Void)`](#shuffle)
+- [`func shuffled(arr:List(T), rng: RNG = random -> List(T))`](#shuffled)
+- [`func slice(arr:List(T), from: Int, to: Int -> List(T))`](#slice)
+- [`func sort(arr:@List(T), by=T.compare -> Void)`](#sort)
+- [`sorted(arr:List(T), by=T.compare -> List(T))`](#sorted)
+- [`to(arr:List(T), last: Int -> List(T))`](#to)
+- [`unique(arr:List(T) -> Set(T))`](#unique)
 
 ### `binary_search`
 Performs a binary search on a sorted array.
 
 ```tomo
-func binary_search(arr: [T], by: func(x,y:&T->Int32) = T.compare -> Int)
+func binary_search(arr:List(T), by: func(x,y:&T->Int32) = T.compare -> Int)
 ```
 
 - `arr`: The sorted array to search.
@@ -294,7 +294,7 @@ place where it would be found if it were inserted and the array were sorted.
 Creates a new array with elements spaced by the specified step value.
 
 ```tomo
-func by(arr: [T], step: Int -> [T])
+func by(arr:List(T), step: Int -> List(T))
 ```
 
 - `arr`: The original array.
@@ -315,7 +315,7 @@ A new array with every `step`-th element from the original array.
 Clears all elements from the array.
 
 ```tomo
-func clear(arr: @[T] -> Void)
+func clear(arr:@List(T) -> Void)
 ```
 
 - `arr`: The mutable reference to the array to be cleared.
@@ -334,7 +334,7 @@ Nothing.
 Counts the occurrences of each element in the array.
 
 ```tomo
-func counts(arr: [T] -> {T,Int})
+func counts(arr:List(T) -> Table(T, Int))
 ```
 
 - `arr`: The array to count elements in.
@@ -354,7 +354,7 @@ A table mapping each element to its count.
 Finds the index of the first occurrence of an element (if any).
 
 ```tomo
-func find(arr: [T], target: T -> Int?)
+func find(arr:List(T), target: T -> Int?)
 ```
 
 - `arr`: The array to search through.
@@ -378,7 +378,7 @@ The index of the first occurrence or `!Int` if not found.
 Find the index of the first item that matches a predicate function (if any).
 
 ```tomo
-func first(arr: [T], predicate: func(item:&T -> Bool) -> Int)
+func first(arr:List(T), predicate: func(item:&T -> Bool) -> Int)
 ```
 
 - `arr`: The array to search through.
@@ -403,7 +403,7 @@ item matches.
 Returns a slice of the array starting from a specified index.
 
 ```tomo
-func from(arr: [T], first: Int -> [T])
+func from(arr:List(T), first: Int -> List(T))
 ```
 
 - `arr`: The original array.
@@ -424,7 +424,7 @@ A new array starting from the specified index.
 Checks if the array has any elements.
 
 ```tomo
-func has(arr: [T] -> Bool)
+func has(arr:List(T) -> Bool)
 ```
 
 - `arr`: The array to check.
@@ -445,7 +445,7 @@ Removes and returns the top element of a heap or `none` if the array is empty.
 By default, this is the *minimum* value in the heap.
 
 ```tomo
-func heap_pop(arr: @[T], by: func(x,y:&T->Int32) = T.compare -> T?)
+func heap_pop(arr:@List(T), by: func(x,y:&T->Int32) = T.compare -> T?)
 ```
 
 - `arr`: The mutable reference to the heap.
@@ -470,7 +470,7 @@ Adds an element to the heap and maintains the heap property. By default, this
 is a *minimum* heap.
 
 ```tomo
-func heap_push(arr: @[T], item: T, by=T.compare -> Void)
+func heap_push(arr:@List(T), item: T, by=T.compare -> Void)
 ```
 
 - `arr`: The mutable reference to the heap.
@@ -492,7 +492,7 @@ Nothing.
 Converts an array into a heap.
 
 ```tomo
-func heapify(arr: @[T], by: func(x,y:&T->Int32) = T.compare -> Void)
+func heapify(arr:@List(T), by: func(x,y:&T->Int32) = T.compare -> Void)
 ```
 
 - `arr`: The mutable reference to the array to be heapified.
@@ -514,7 +514,7 @@ Nothing.
 Inserts an element at a specified position in the array.
 
 ```tomo
-func insert(arr: @[T], item: T, at: Int = 0 -> Void)
+func insert(arr:@List(T), item: T, at: Int = 0 -> Void)
 ```
 
 - `arr`: The mutable reference to the array.
@@ -544,7 +544,7 @@ Nothing.
 Inserts an array of items at a specified position in the array.
 
 ```tomo
-func insert_all(arr: @[T], items: [T], at: Int = 0 -> Void)
+func insert_all(arr:@List(T), items:List(T), at: Int = 0 -> Void)
 ```
 
 - `arr`: The mutable reference to the array.
@@ -576,7 +576,7 @@ the array, the item at that index will be removed and the array will become one
 element shorter.
 
 ```tomo
-func pop(arr: &[T], index: Int = -1 -> T?)
+func pop(arr:&List(T), index: Int = -1 -> T?)
 ```
 
 - `arr`: The array to remove an item from.
@@ -607,7 +607,7 @@ otherwise the item at the given index.
 Selects a random element from the array.
 
 ```tomo
-func random(arr: [T], rng: RNG = random -> T)
+func random(arr:List(T), rng: RNG = random -> T)
 ```
 
 - `arr`: The array from which to select a random element.
@@ -628,7 +628,7 @@ A random element from the array.
 Removes elements from the array starting at a specified index.
 
 ```tomo
-func remove_at(arr: @[T], at: Int = -1, count: Int = 1 -> Void)
+func remove_at(arr:@List(T), at: Int = -1, count: Int = 1 -> Void)
 ```
 
 - `arr`: The mutable reference to the array.
@@ -656,7 +656,7 @@ arr:remove_at(2, count=2)
 Removes all occurrences of a specified item from the array.
 
 ```tomo
-func remove_item(arr: @[T], item: T, max_count: Int = -1 -> Void)
+func remove_item(arr:@List(T), item: T, max_count: Int = -1 -> Void)
 ```
 
 - `arr`: The mutable reference to the array.
@@ -684,7 +684,7 @@ arr:remove_item(20, max_count=1)
 Returns a reversed slice of the array.
 
 ```tomo
-func reversed(arr: [T] -> [T])
+func reversed(arr:List(T) -> List(T))
 ```
 
 - `arr`: The array to be reversed.
@@ -705,7 +705,7 @@ Selects a sample of elements from the array, optionally with weighted
 probabilities.
 
 ```tomo
-func sample(arr: [T], count: Int, weights: [Num]? = ![Num], rng: RNG = random -> [T])
+func sample(arr:List(T), count: Int, weights:List(Num)? = ![Num], rng: RNG = random -> List(T))
 ```
 
 - `arr`: The array to sample from.
@@ -739,7 +739,7 @@ A list of sampled elements from the array.
 Shuffles the elements of the array in place.
 
 ```tomo
-func shuffle(arr: @[T], rng: RNG = random -> Void)
+func shuffle(arr:@List(T), rng: RNG = random -> Void)
 ```
 
 - `arr`: The mutable reference to the array to be shuffled.
@@ -759,7 +759,7 @@ Nothing.
 Creates a new array with elements shuffled.
 
 ```tomo
-func shuffled(arr: [T], rng: RNG = random -> [T])
+func shuffled(arr:List(T), rng: RNG = random -> List(T))
 ```
 
 - `arr`: The array to be shuffled.
@@ -780,7 +780,7 @@ A new array with shuffled elements.
 Returns a slice of the array spanning the given indices (inclusive).
 
 ```tomo
-func slice(arr: [T], from: Int, to: Int -> [T])
+func slice(arr:List(T), from: Int, to: Int -> List(T))
 ```
 
 - `arr`: The original array.
@@ -807,7 +807,7 @@ second-to-last, and so on.
 Sorts the elements of the array in place in ascending order (small to large).
 
 ```tomo
-func sort(arr: @[T], by=T.compare -> Void)
+func sort(arr:@List(T), by=T.compare -> Void)
 ```
 
 - `arr`: The mutable reference to the array to be sorted.
@@ -835,7 +835,7 @@ arr:sort(func(a,b:&Int): a:abs() <> b:abs())
 Creates a new array with elements sorted.
 
 ```tomo
-sorted(arr: [T], by=T.compare -> [T])
+sorted(arr:List(T), by=T.compare -> List(T))
 ```
 
 - `arr`: The array to be sorted.
@@ -860,7 +860,7 @@ A new array with sorted elements.
 Returns a slice of the array from the start of the original array up to a specified index (inclusive).
 
 ```tomo
-to(arr: [T], last: Int -> [T])
+to(arr:List(T), last: Int -> List(T))
 ```
 
 - `arr`: The original array.
@@ -884,7 +884,7 @@ A new array containing elements from the start up to the specified index.
 Returns a Set that contains the unique elements of the array.
 
 ```tomo
-unique(arr: [T] -> {T})
+unique(arr:List(T) -> Set(T))
 ```
 
 - `arr`: The array to process.

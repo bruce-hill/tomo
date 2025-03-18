@@ -28,7 +28,7 @@ lang Base64:
     func parse(text:Text -> Base64?):
         return Base64.from_bytes(text:bytes())
 
-    func from_bytes(bytes:[Byte] -> Base64?):
+    func from_bytes(bytes:List(Byte) -> Base64?):
         output := &[Byte(0) for _ in bytes.length * 4 / 3 + 4]
         src := Int64(1)
         dest := Int64(1)
@@ -64,7 +64,7 @@ lang Base64:
     func decode_text(b64:Base64 -> Text?):
         return Text.from_bytes(b64:decode_bytes() or return none)
 
-    func decode_bytes(b64:Base64 -> [Byte]?):
+    func decode_bytes(b64:Base64 -> List(Byte)?):
         bytes := b64.text:bytes()
         output := &[Byte(0) for _ in bytes.length/4 * 3]
         src := Int64(1)

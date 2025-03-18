@@ -12,7 +12,7 @@ a new, different value and assigning it to a pointer's memory location to
 replace the value that previously resided there.
 
 ```tomo
-func no_mutation_possible(nums:[Int]):
+func no_mutation_possible(nums:List(Int)):
     nums[1] = 10 // This performs a copy-on-write and creates a new array
     // The new array is only accessible as a local variable here
 ...
@@ -21,7 +21,7 @@ no_mutation_possible(my_nums)
 >> my_nums
 = [0, 1, 2]
 
-func do_mutation(nums:@[Int]):
+func do_mutation(nums:@List(Int)):
     nums[1] = 10 // The mutates the value at the given pointer's location
 ...
 my_nums := @[0, 1, 2]

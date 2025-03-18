@@ -36,19 +36,19 @@ CORD type_to_cord(type_t *t) {
         case NumType: return Match(t, NumType)->bits == TYPE_NBITS32 ? "Num32" : "Num";
         case ArrayType: {
             auto array = Match(t, ArrayType);
-            return CORD_asprintf("[%r]", type_to_cord(array->item_type));
+            return CORD_asprintf("List(%r)", type_to_cord(array->item_type));
         }
         case TableType: {
             auto table = Match(t, TableType);
             if (table->default_value)
-                return CORD_asprintf("{%r=%.*s}", type_to_cord(table->key_type),
+                return CORD_asprintf("Table(%r=%.*s)", type_to_cord(table->key_type),
                                      table->default_value->end - table->default_value->start, table->default_value->start);
             else
-                return CORD_asprintf("{%r:%r}", type_to_cord(table->key_type), type_to_cord(table->value_type));
+                return CORD_asprintf("Table(%r, %r)", type_to_cord(table->key_type), type_to_cord(table->value_type));
         }
         case SetType: {
             auto set = Match(t, SetType);
-            return CORD_asprintf("{%r}", type_to_cord(set->item_type));
+            return CORD_asprintf("Set(%r)", type_to_cord(set->item_type));
         }
         case ClosureType: {
             return type_to_cord(Match(t, ClosureType)->fn);

@@ -104,20 +104,20 @@ Array-of-text arguments can be passed like this:
 
 ```tomo
 # many-texts.tm
-func main(args:[Text]):
+func main(args:List(Text)):
     >> args
 ```
 
 ```bash
 $ tomo many-texts.tm
->> [] : [Text]
+>> [] :List(Text)
 
 $ tomo many-texts.tm one two three
->> ["one", "two", "three"] : [Text]
+>> ["one", "two", "three"] :List(Text)
 
 $ tomo many-texts.tm --args=one,two,three
->> ["one", "two", "three"] : [Text]
+>> ["one", "two", "three"] :List(Text)
 
 $ tomo many-texts.tm -- one --not-a-flag 'a space'
->> ["one", "--not-a-flag", "a space"] : [Text]
+>> ["one", "--not-a-flag", "a space"] :List(Text)
 ```

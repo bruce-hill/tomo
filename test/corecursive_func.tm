@@ -1,10 +1,10 @@
-func ping(x:Int->[Text]):
+func ping(x:Int-> List(Text)):
 	if x > 0:
 		return ["ping: $x"] ++ pong(x-1)
 	else:
 		return ["ping: $x"]
 
-func pong(x:Int->[Text]):
+func pong(x:Int-> List(Text)):
 	if x > 0:
 		return ["pong: $x"] ++ ping(x-1)
 	else:

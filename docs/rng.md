@@ -21,12 +21,12 @@ This documentation provides details on RNG functions available in the API.
 
 - [`func bool(rng: RNG, p: Num = 0.5 -> Bool)`](#bool)
 - [`func byte(rng: RNG -> Byte)`](#byte)
-- [`func bytes(rng: RNG, count: Int -> [Byte])`](#bytes)
+- [`func bytes(rng: RNG, count: Int -> List(Byte))`](#bytes)
 - [`func copy(rng: RNG -> RNG)`](#copy)
 - [`func int(rng: RNG, min: Int, max: Int -> Int)`](#int`, `int64`, `int32`, `int16`, `int8)
-- [`func new(seed: [Byte] = (/dev/urandom):read_bytes(40)! -> RNG)`](#new)
+- [`func new(seed:List(Byte) = (/dev/urandom):read_bytes(40)! -> RNG)`](#new)
 - [`func num(rng: RNG, min: Num = 0.0, max: Num = 1.0 -> Int)`](#num`, `num32)
-- [`func set_seed(rng: RNG, seed: [Byte])`](#set_seed)
+- [`func set_seed(rng: RNG, seed:List(Byte))`](#set_seed)
 
 ### `bool`
 Generate a random boolean value with a given probability.
@@ -77,7 +77,7 @@ A random byte (0-255).
 Generate an array of uniformly random bytes with the given length.
 
 ```tomo
-func bytes(rng: RNG, count: Int -> [Byte])
+func bytes(rng: RNG, count: Int -> List(Byte))
 ```
 
 - `rng`: The random number generator to use.
@@ -153,7 +153,7 @@ is greater than `max`, an error will be raised.
 Return a new random number generator.
 
 ```tomo
-func new(seed: [Byte] = (/dev/urandom):read_bytes(40)! -> RNG)
+func new(seed:List(Byte) = (/dev/urandom):read_bytes(40)! -> RNG)
 ```
 
 - `seed`: The seed use for the random number generator. A seed length of 40
@@ -200,7 +200,7 @@ A floating point number uniformly chosen from the range `[min, max]`
 Set the seed for an RNG.
 
 ```tomo
-func set_seed(rng: RNG, seed: [Byte])
+func set_seed(rng: RNG, seed:List(Byte))
 ```
 
 - `rng`: The random number generator to modify.

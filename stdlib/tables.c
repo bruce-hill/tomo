@@ -582,16 +582,16 @@ public Text_t Table$as_text(const void *obj, bool colorize, const TypeInfo_t *ty
     if (!t) {
         if (table.value != &Void$info) 
             return Text$concat(
-                Text("{"),
+                Text("Table("),
                 generic_as_text(NULL, false, table.key),
-                Text(","),
+                Text(", "),
                 generic_as_text(NULL, false, table.value),
-                Text("}"));
+                Text(")"));
         else
             return Text$concat(
-                Text("{"),
+                Text("Set("),
                 generic_as_text(NULL, false, table.key),
-                Text("}"));
+                Text(")"));
     }
 
     int64_t val_off = (int64_t)value_offset(type);
@@ -606,7 +606,7 @@ public Text_t Table$as_text(const void *obj, bool colorize, const TypeInfo_t *ty
     }
 
     if (t->fallback) {
-        text = Text$concat(text, Text("; fallback="), Table$as_text(t->fallback, colorize, type));
+        text = Text$concat(text, colorize ? Text("; \033[33mfallback\033[m=") : Text("; fallback="), Table$as_text(t->fallback, colorize, type));
     }
 
     text = Text$concat(text, Text("}"));

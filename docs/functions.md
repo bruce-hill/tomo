@@ -98,7 +98,7 @@ evicted if the cache has reached the maximum size and needs to insert a new
 entry:
 
 ```tomo
-func doop(x:Int, y:Text, z:[Int]; cache_size=100 -> Text):
+func doop(x:Int, y:Text, z:List(Int); cache_size=100 -> Text):
     return "x=$x y=$y z=$z"
 ```
 

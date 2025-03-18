@@ -9,7 +9,7 @@ _HELP := "
     Usage: $_USAGE
 "
 
-func find_urls(path:Path -> [Text]):
+func find_urls(path:Path -> List(Text)):
     urls := @[:Text]
     if path:is_directory():
         for f in path:children():
@@ -20,7 +20,7 @@ func find_urls(path:Path -> [Text]):
                 urls:insert(m[-1])
     return urls
 
-func main(paths:[Path]):
+func main(paths:List(Path)):
     if paths.length == 0:
         paths = [(./)]
 

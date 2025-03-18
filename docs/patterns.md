@@ -22,13 +22,13 @@ functions that would normally be handled by a more extensive API:
 Text.has(pattern:Pattern -> Bool)
 Text.each(pattern:Pattern, fn:func(m:Match), recursive=yes -> Text)
 Text.find(pattern:Pattern, start=1 -> Match?)
-Text.find_all(pattern:Pattern -> [Match])
-Text.matches(pattern:Pattern -> [Text]?)
+Text.find_all(pattern:Pattern -> List(Match))
+Text.matches(pattern:Pattern -> List(Text)?)
 Text.map(pattern:Pattern, fn:func(m:Match -> Text), recursive=yes -> Text)
-Text.replace(pattern:Pattern, replacement:Text, placeholder:Pattern=$//, recursive=yes -> [Text])
-Text.replace_all(replacements:{Pattern,Text}, placeholder:Pattern=$//, recursive=yes -> [Text])
-Text.split(pattern:Pattern -> [Text])
-Text.trim(pattern=$/{whitespace}/, trim_left=yes, trim_right=yes -> [Text])
+Text.replace(pattern:Pattern, replacement:Text, placeholder:Pattern=$//, recursive=yes -> List(Text))
+Text.replace_all(replacements:Table(Pattern, Text), placeholder:Pattern=$//, recursive=yes -> List(Text))
+Text.split(pattern:Pattern -> List(Text))
+Text.trim(pattern=$/{whitespace}/, trim_left=yes, trim_right=yes -> List(Text))
 ```
 
 ## Matches

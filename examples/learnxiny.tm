@@ -242,9 +242,9 @@ func takes_many_types(
     integer:Int,
     floating_point_number:Num,
     text_aka_string:Text,
-    array_of_ints:[Int],
-    table_of_text_to_bools:{Text,Bool},
-    pointer_to_mutable_array_of_ints:@[Int],
+    array_of_ints:List(Int),
+    table_of_text_to_bools:Table(Text,Bool),
+    pointer_to_mutable_array_of_ints:@List(Int),
     optional_int:Int?,
     function_from_int_to_text:func(x:Int -> Text),
 ):

@@ -75,9 +75,9 @@ table value:
 
 ```tomo
 >> t2.fallback
-= {"A"=10} : {Text,Int}?
+= {"A"=10} : Table(Text, Int)?
 >> t.fallback
-= none : {Text,Int}?
+= none : Table(Text, Int)?
 ```
 
 ## Setting Values
@@ -133,19 +133,19 @@ iterating over any of the new values.
 
 ## Table Methods
 
-- [`func bump(t:@{K,V}, key: K, amount: Int = 1 -> Void)`](#bump)
-- [`func clear(t:@{K,V})`](#clear)
-- [`func get(t:{K,V}, key: K -> V?)`](#get)
-- [`func has(t:{K,V}, key: K -> Bool)`](#has)
-- [`func remove(t:{K,V}, key: K -> Void)`](#remove)
-- [`func set(t:{K,V}, key: K, value: V -> Void)`](#set)
+- [`func bump(t:@Table(K,V), key: K, amount: Int = 1 -> Void)`](#bump)
+- [`func clear(t:@Table(K,V))`](#clear)
+- [`func get(t:Table(K, V), key: K -> V?)`](#get)
+- [`func has(t:Table(K, V), key: K -> Bool)`](#has)
+- [`func remove(t:Table(K, V), key: K -> Void)`](#remove)
+- [`func set(t:Table(K, V), key: K, value: V -> Void)`](#set)
 
 ### `bump`
 Increments the value associated with a key by a specified amount. If the key is
 not already in the table, its value will be assumed to be zero.
 
 ```tomo
-func bump(t:@{K,V}, key: K, amount: Int = 1 -> Void)
+func bump(t:@Table(K,V), key: K, amount: Int = 1 -> Void)
 ```
 
 - `t`: The reference to the table.
@@ -170,7 +170,7 @@ t:bump("B", 10)
 Removes all key-value pairs from the table.
 
 ```tomo
-func clear(t:@{K,V})
+func clear(t:@Table(K,V))
 ```
 
 - `t`: The reference to the table.
@@ -189,7 +189,7 @@ Nothing.
 Retrieves the value associated with a key, or returns null if the key is not present.
 
 ```tomo
-func get(t:{K,V}, key: K -> V?)
+func get(t:Table(K, V), key: K -> V?)
 ```
 
 - `t`: The table.
@@ -220,7 +220,7 @@ The value associated with the key or null if the key is not found.
 Checks if the table contains a specified key.
 
 ```tomo
-func has(t:{K,V}, key: K -> Bool)
+func has(t:Table(K, V), key: K -> Bool)
 ```
 
 - `t`: The table.
@@ -243,7 +243,7 @@ func has(t:{K,V}, key: K -> Bool)
 Removes the key-value pair associated with a specified key.
 
 ```tomo
-func remove(t:{K,V}, key: K -> Void)
+func remove(t:Table(K, V), key: K -> Void)
 ```
 
 - `t`: The reference to the table.
@@ -266,7 +266,7 @@ t:remove("A")
 Sets or updates the value associated with a specified key.
 
 ```tomo
-func set(t:{K,V}, key: K, value: V -> Void)
+func set(t:Table(K, V), key: K, value: V -> Void)
 ```
 
 - `t`: The reference to the table.

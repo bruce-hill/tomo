@@ -275,31 +275,31 @@ pattern documentation](patterns.md) for more details.
 - [`func by_line(text: Text -> func(->Text?))`](#by_line)
 - [`func by_match(text: Text, pattern: Pattern -> func(->Match?))`](#by_match)
 - [`func by_split(text: Text, pattern: Pattern = $// -> func(->Text?))`](#by_split)
-- [`func bytes(text: Text -> [Byte])`](#bytes)
+- [`func bytes(text: Text -> List(Byte))`](#bytes)
 - [`func caseless_equals(a: Text, b:Text, language:Text = "C" -> Bool)`](#caseless_equals)
-- [`func codepoint_names(text: Text -> [Text])`](#codepoint_names)
+- [`func codepoint_names(text: Text -> List(Text))`](#codepoint_names)
 - [`func each(text: Text, pattern: Pattern, fn: func(m: Match), recursive: Bool = yes -> Int?)`](#each)
 - [`func ends_with(text: Text, suffix: Text -> Bool)`](#ends_with)
 - [`func find(text: Text, pattern: Pattern, start: Int = 1 -> Int?)`](#find)
-- [`func find_all(text: Text, pattern: Pattern -> [Match])`](#find_all)
+- [`func find_all(text: Text, pattern: Pattern -> List(Match))`](#find_all)
 - [`func from(text: Text, first: Int -> Text)`](#from)
-- [`func from_codepoint_names(codepoints: [Int32] -> [Text])`](#from_bytes)
+- [`func from_codepoint_names(codepoints:List(Int32) -> List(Text))`](#from_bytes)
 - [`func from_c_string(str: CString -> Text)`](#from_c_string)
-- [`func from_codepoint_names(codepoint_names: [Text] -> [Text])`](#from_codepoint_names)
-- [`func from_codepoint_names(codepoints: [Int32] -> [Text])`](#from_codepoints)
+- [`func from_codepoint_names(codepoint_names:List(Text) -> List(Text))`](#from_codepoint_names)
+- [`func from_codepoint_names(codepoints:List(Int32) -> List(Text))`](#from_codepoints)
 - [`func has(text: Text, pattern: Pattern -> Bool)`](#has)
-- [`func join(glue: Text, pieces: [Text] -> Text)`](#join)
-- [`func split(text: Text -> [Text])`](#lines)
+- [`func join(glue: Text, pieces:List(Text) -> Text)`](#join)
+- [`func split(text: Text -> List(Text))`](#lines)
 - [`func middle_pad(text: Text, width: Int, pad: Text = " " -> Text)`](#middle_pad)
 - [`func left_pad(text: Text, width: Int, pad: Text = " " -> Text)`](#left_pad)
-- [`func lines(text: Text, pattern: Pattern = "" -> [Text])`](#lines)
+- [`func lines(text: Text, pattern: Pattern = "" -> List(Text))`](#lines)
 - [`func lower(text: Text, language: Text = "C" -> Text)`](#lower)
 - [`func map(text: Text, pattern: Pattern, fn: func(text:Match)->Text -> Text, recursive: Bool = yes)`](#map)
-- [`func matches(text: Text, pattern: Pattern -> [Text])`](#matches)
+- [`func matches(text: Text, pattern: Pattern -> List(Text))`](#matches)
 - [`func quoted(text: Text, color: Bool = no -> Text)`](#quoted)
 - [`func repeat(text: Text, count:Int -> Text)`](#repeat)
 - [`func replace(text: Text, pattern: Pattern, replacement: Text, backref: Pattern = $/\/, recursive: Bool = yes -> Text)`](#replace)
-- [`func replace_all(replacements:{Pattern,Text}, backref: Pattern = $/\/, recursive: Bool = yes -> Text)`](#replace_all)
+- [`func replace_all(replacements:Table(Pattern, Text), backref: Pattern = $/\/, recursive: Bool = yes -> Text)`](#replace_all)
 - [`func reversed(text: Text -> Text)`](#reversed)
 - [`func right_pad(text: Text, width: Int, pad: Text = " " -> Text)`](#right_pad)
 - [`func slice(text: Text, from: Int = 1, to: Int = -1 -> Text)`](#slice)
@@ -308,7 +308,7 @@ pattern documentation](patterns.md) for more details.
 - [`func to(text: Text, last: Int -> Text)`](#to)
 - [`func trim(text: Text, pattern: Pattern = $/{whitespace/, trim_left: Bool = yes, trim_right: Bool = yes -> Text)`](#trim)
 - [`func upper(text: Text, language: Text "C" -> Text)`](#upper)
-- [`func utf32_codepoints(text: Text -> [Int32])`](#utf32_codepoints)
+- [`func utf32_codepoints(text: Text -> List(Int32))`](#utf32_codepoints)
 
 ### `as_c_string`
 Converts a `Text` value to a C-style string.
@@ -439,7 +439,7 @@ Converts a `Text` value to an array of bytes representing a UTF8 encoding of
 the text.
 
 ```tomo
-func bytes(text: Text -> [Byte])
+func bytes(text: Text -> List(Byte))
 ```
 
 - `text`: The text to be converted to UTF8 bytes.
@@ -450,7 +450,7 @@ An array of bytes (`[Byte]`) representing the text in UTF8 encoding.
 **Example:**  
 ```tomo
 >> "Amélie":bytes()
-= [65[B], 109[B], 195[B], 169[B], 108[B], 105[B], 101[B]] : [Byte]
+= [65[B], 109[B], 195[B], 169[B], 108[B], 105[B], 101[B]] :List(Byte)
 ```
 
 ---
@@ -486,7 +486,7 @@ func caseless_equals(a: Text, b:Text, language:Text = "C" -> Bool)
 Returns an array of the names of each codepoint in the text.
 
 ```tomo
-func codepoint_names(text: Text -> [Text])
+func codepoint_names(text: Text -> List(Text))
 ```
 
 - `text`: The text from which to extract codepoint names.
@@ -583,7 +583,7 @@ struct containing information about the match.
 Finds all occurrences of a [pattern](patterns.md) in the given text.
 
 ```tomo
-func find_all(text: Text, pattern: Pattern -> [Match])
+func find_all(text: Text, pattern: Pattern -> List(Match))
 ```
 
 - `text`: The text to be searched.
@@ -646,7 +646,7 @@ text will be normalized, so the resulting text's UTF8 bytes may not exactly
 match the input.
 
 ```tomo
-func from_codepoint_names(codepoints: [Int32] -> [Text])
+func from_codepoint_names(codepoints:List(Int32) -> List(Text))
 ```
 
 - `codepoints`: The UTF32 codepoints in the desired text.
@@ -688,7 +688,7 @@ specification) as its codepoints. Note: the text will be normalized, so the
 resulting text's codepoints may not exactly match the input codepoints.
 
 ```tomo
-func from_codepoint_names(codepoint_names: [Text] -> [Text])
+func from_codepoint_names(codepoint_names:List(Text) -> List(Text))
 ```
 
 - `codepoint_names`: The names of each codepoint in the desired text. Names
@@ -716,7 +716,7 @@ the text will be normalized, so the resulting text's codepoints may not exactly
 match the input codepoints.
 
 ```tomo
-func from_codepoint_names(codepoints: [Int32] -> [Text])
+func from_codepoint_names(codepoints:List(Int32) -> List(Text))
 ```
 
 - `codepoints`: The UTF32 codepoints in the desired text.
@@ -763,7 +763,7 @@ func has(text: Text, pattern: Pattern -> Bool)
 Joins an array of text pieces with a specified glue.
 
 ```tomo
-func join(glue: Text, pieces: [Text] -> Text)
+func join(glue: Text, pieces:List(Text) -> Text)
 ```
 
 - `glue`: The text used to join the pieces.
@@ -837,7 +837,7 @@ Splits the text into an array of lines of text, preserving blank lines,
 ignoring trailing newlines, and handling `\r\n` the same as `\n`.
 
 ```tomo
-func lines(text: Text -> [Text])
+func lines(text: Text -> List(Text))
 ```
 
 - `text`: The text to be split into lines.
@@ -919,7 +919,7 @@ of the matching text captures or a null value if the entire text doesn't match
 the pattern.
 
 ```tomo
-func matches(text: Text, pattern: Pattern -> [Text])
+func matches(text: Text, pattern: Pattern -> List(Text))
 ```
 
 - `text`: The text to be searched.
@@ -932,10 +932,10 @@ or a null value otherwise.
 **Example:**  
 ```tomo
 >> "hello world":matches($/{id}/)
-= none : [Text]?
+= none :List(Text)?
 
 >> "hello world":matches($/{id} {id}/)
-= ["hello", "world"] : [Text]?
+= ["hello", "world"] :List(Text)?
 ```
 
 ---
@@ -1052,7 +1052,7 @@ modified. See [`replace()`](#replace) for more information about replacement
 behavior.
 
 ```tomo
-func replace_all(replacements:{Pattern,Text}, backref: Pattern = $/\/, recursive: Bool = yes -> Text)
+func replace_all(replacements:Table(Pattern, Text), backref: Pattern = $/\/, recursive: Bool = yes -> Text)
 ```
 
 - `text`: The text in which to perform replacements.
@@ -1168,7 +1168,7 @@ the string.
 Splits the text into an array of substrings based on a [pattern](patterns.md).
 
 ```tomo
-func split(text: Text, pattern: Pattern = "" -> [Text])
+func split(text: Text, pattern: Pattern = "" -> List(Text))
 ```
 
 - `text`: The text to be split.
@@ -1326,7 +1326,7 @@ The uppercase version of the text.
 Returns an array of Unicode code points for UTF32 encoding of the text.
 
 ```tomo
-func utf32_codepoints(text: Text -> [Int32])
+func utf32_codepoints(text: Text -> List(Int32))
 ```
 
 - `text`: The text from which to extract Unicode code points.
@@ -1337,5 +1337,5 @@ An array of 32-bit integer Unicode code points (`[Int32]`).
 **Example:**  
 ```tomo
 >> "Amélie":utf32_codepoints()
-= [65[32], 109[32], 233[32], 108[32], 105[32], 101[32]] : [Int32]
+= [65[32], 109[32], 233[32], 108[32], 105[32], 101[32]] :List(Int32)
 ```

@@ -21,7 +21,7 @@ lang Colorful:
         say(c:for_terminal(), newline=newline)
 
 
-func main(texts:[Text], files=[:Path], by_line=no):
+func main(texts:List(Text), files=[:Path], by_line=no):
     for i,text in texts:
         colorful := Colorful.from_text(text)
         colorful:print(newline=no)
@@ -113,13 +113,13 @@ enum _Color(Default, Bright(color:Int16), Color8Bit(color:Int16), Color24Bit(col
             pass
         fail("Invalid underline color: '$c'")
 
-func _toggle(sequences:&[Text], cur,new:Bool, apply,unapply:Text; inline):
+func _toggle(sequences:&List(Text), cur,new:Bool, apply,unapply:Text; inline):
     if new and not cur:
         sequences:insert(apply)
     else if cur and not new:
         sequences:insert(unapply)
 
-func _toggle2(sequences:&[Text], cur1,cur2,new1,new2:Bool, apply1,apply2,unapply:Text; inline):
+func _toggle2(sequences:&List(Text), cur1,cur2,new1,new2:Bool, apply1,apply2,unapply:Text; inline):
     return if new1 == cur1 and new2 == cur2
     if (cur1 and not new1) or (cur2 and not new2): # Gotta wipe at least one
         sequences:insert(unapply)

@@ -38,7 +38,7 @@ func main():
     do:
         >> obj := [Int64(10), Int64(20), Int64(30)]:reversed()
         >> bytes := obj:serialized()
-        >> deserialize(bytes -> [Int64]) == obj
+        >> deserialize(bytes -> List(Int64)) == obj
         = yes
 
     do:
@@ -50,7 +50,7 @@ func main():
     do:
         >> obj := @[10, 20]
         >> bytes := obj:serialized()
-        >> roundtrip := deserialize(bytes -> @[Int])
+        >> roundtrip := deserialize(bytes -> @List(Int))
         >> roundtrip == obj
         = no
         >> roundtrip[] == obj[]
@@ -59,7 +59,7 @@ func main():
     do:
         >> obj := {"A"=10, "B"=20; fallback={"C"=30}}
         >> bytes := obj:serialized()
-        >> deserialize(bytes -> {Text,Int}) == obj
+        >> deserialize(bytes -> Table(Text, Int)) == obj
         = yes
 
     do:
@@ -84,7 +84,7 @@ func main():
     do:
         >> obj := {10, 20, 30}
         >> bytes := obj:serialized()
-        >> deserialize(bytes -> {Int}) == obj
+        >> deserialize(bytes -> Set(Int)) == obj
         = yes
 
     do:

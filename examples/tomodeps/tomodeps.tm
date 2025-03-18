@@ -9,7 +9,7 @@ _HELP := "
 
 enum Dependency(File(path:Path), Module(name:Text))
 
-func _get_file_dependencies(file:Path -> {Dependency}):
+func _get_file_dependencies(file:Path -> Set(Dependency)):
     if not file:is_file():
         !! Could not read file: $file
         return {:Dependency}
@@ -25,7 +25,7 @@ func _get_file_dependencies(file:Path -> {Dependency}):
                 deps:add(Dependency.Module(module_name))
     return deps[]
 
-func _build_dependency_graph(dep:Dependency, dependencies:@{Dependency,{Dependency}}):
+func _build_dependency_graph(dep:Dependency, dependencies:@Table(Dependency,Set(Dependency))):
     return if dependencies:has(dep)
 
     dependencies[dep] = {:Dependency} # Placeholder
@@ -55,8 +55,8 @@ func _build_dependency_graph(dep:Dependency, dependencies:@{Dependency,{Dependen
     for dep2 in dep_deps:
         _build_dependency_graph(dep2, dependencies)
 
-func get_dependency_graph(dep:Dependency -> {Dependency,{Dependency}}):
-    graph := @{:Dependency,{Dependency}}
+func get_dependency_graph(dep:Dependency -> Table(Dependency, Set(Dependency))):
+    graph := @{:Dependency,Set(Dependency)}
     _build_dependency_graph(dep, graph)
     return graph
 
@@ -70,7 +70,7 @@ func _printable_name(dep:Dependency -> Text):
         else:
             return "$(\x1b)[31;1m$(f) (not found)$(\x1b)[m"
 
-func _draw_tree(dep:Dependency, dependencies:{Dependency,{Dependency}}, already_printed:@{Dependency}, prefix="", is_last=yes):
+func _draw_tree(dep:Dependency, dependencies:Table(Dependency,Set(Dependency)), already_printed:@Set(Dependency), prefix="", is_last=yes):
     if already_printed:has(dep):
         say(prefix ++ (if is_last: "└── " else: "├── ") ++ _printable_name(dep) ++ " $\x1b[2m(recursive)$\x1b[m")
         return
@@ -85,7 +85,7 @@ func _draw_tree(dep:Dependency, dependencies:{Dependency,{Dependency}}, already_
         is_child_last := (i == children.length)
         _draw_tree(child, dependencies, already_printed, child_prefix, is_child_last)
 
-func draw_tree(dep:Dependency, dependencies:{Dependency,{Dependency}}):
+func draw_tree(dep:Dependency, dependencies:Table(Dependency,Set(Dependency))):
     printed := @{:Dependency}
     say(_printable_name(dep))
     printed:add(dep)
@@ -94,7 +94,7 @@ func draw_tree(dep:Dependency, dependencies:{Dependency,{Dependency}}):
         is_child_last := (i == deps.length)
         _draw_tree(child, dependencies, already_printed=printed, is_last=is_child_last)
 
-func main(files:[Text]):
+func main(files:List(Text)):
     if files.length == 0:
         exit("
             Please provide at least one file!

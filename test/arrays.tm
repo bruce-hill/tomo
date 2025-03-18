@@ -1,7 +1,7 @@
 func main():
 	do:
 		>> [:Num32]
-		= [] : [Num32]
+		= [] : List(Num32)
 
 	do:
 		>> arr := [10, 20, 30]

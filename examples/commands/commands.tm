@@ -2,11 +2,11 @@
 
 use ./commands.c
 
-extern run_command:func(exe:Text, args:[Text], env:{Text,Text}, input:[Byte], output:&[Byte], error:&[Byte] -> Int32)
+extern run_command:func(exe:Text, args:List(Text), env:Table(Text,Text), input:List(Byte), output:&List(Byte), error:&List(Byte) -> Int32)
 
 enum ExitType(Exited(status:Int32), Signaled(signal:Int32), Failed)
 
-struct ProgramResult(stdout:[Byte], stderr:[Byte], exit_type:ExitType):
+struct ProgramResult(stdout:List(Byte), stderr:List(Byte), exit_type:ExitType):
     func or_fail(r:ProgramResult -> ProgramResult):
         when r.exit_type is Exited(status):
             if status == 0:
@@ -54,13 +54,13 @@ struct Command(command:Text, args=[:Text], env={:Text,Text}):
     func get_output(command:Command, input="", trim_newline=yes -> Text?):
         return command:run(input=input):output_text(trim_newline=trim_newline)
 
-    func get_output_bytes(command:Command, input="", input_bytes=[:Byte] -> [Byte]?):
+    func get_output_bytes(command:Command, input="", input_bytes=[:Byte] -> List(Byte)?):
         result := command:run(input=input, input_bytes=input_bytes)
         when result.exit_type is Exited(status):
             if status == 0: return result.stdout
             return none
         else: return none
 
-func main(command:Text, args:[Text], input=""):
+func main(command:Text, args:List(Text), input=""):
     cmd := Command(command, args)
     say(cmd:get_output(input=input)!)
