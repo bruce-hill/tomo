@@ -2,7 +2,7 @@
 
 Tables are Tomo's associative mapping structure, also known as a Dictionary or
 Map. Tables are efficiently implemented as a hash table that preserves
-insertion order and has fast access to keys and values as array slices. Tables
+insertion order and has fast access to keys and values as list slices. Tables
 support *all* types as both keys and values.
 
 ## Syntax
@@ -25,7 +25,7 @@ For type annotations, a table that maps keys with type `K` to values of type
 
 ### Comprehensions
 
-Similar to arrays, tables can use comprehensions to dynamically construct tables:
+Similar to lists, tables can use comprehensions to dynamically construct tables:
 
 ```tomo
 t := {i=10*i for i in 10}
@@ -104,7 +104,7 @@ Table length can be accessed by the `.length` field:
 
 ## Accessing Keys and Values
 
-The keys and values of a table can be efficiently accessed as arrays using a
+The keys and values of a table can be efficiently accessed as lists using a
 constant-time immutable slice of the internal data from the table:
 
 ```tomo

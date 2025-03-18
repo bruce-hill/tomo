@@ -27,7 +27,7 @@
 // is basically what Zalgo text is).
 //
 // There are a lot of benefits to storing unicode text with one grapheme
-// cluster per index in a densely packed array instead of storing the text as
+// cluster per index in a densely packed list instead of storing the text as
 // variable-width UTF8-encoded bytes. It lets us have one canonical length for
 // the text that can be precomputed and is meaningful to users. It lets us
 // quickly get the Nth "letter" in the text. Substring slicing is fast.
@@ -38,7 +38,7 @@
 // Graphemes, aka NFG). A synthetic grapheme is a negative 32-bit signed
 // integer that represents a multi-codepoint grapheme cluster that has been
 // encountered during the program's runtime. These clusters are stored in a
-// lookup array and hash map so that we can rapidly convert between the
+// lookup list and hash map so that we can rapidly convert between the
 // synthetic grapheme integer ID and the unicode codepoints associated with it.
 // Essentially, it's like we create a supplement to the unicode standard with
 // things that would be nice if they had their own codepoint so things worked
@@ -49,7 +49,7 @@
 // WITH ACUTE This would be stored as: (int32_t[]){0x48, 0xE9} Example 2:
 // U+0048, U+0065, U+0309 AKA: LATIN CAPITAL LETTER H, LATIN SMALL LETTER E,
 // COMBINING VERTICAL LINE BELOW This would be stored as: (int32_t[]){0x48, -2}
-// Where -2 is used as a lookup in an array that holds the actual unicode
+// Where -2 is used as a lookup in an list that holds the actual unicode
 // codepoints: (ucs4_t[]){0x65, 0x0309}
 
 #include <assert.h>
@@ -67,7 +67,7 @@
 #include <unigbrk.h>
 #include <uniname.h>
 
-#include "arrays.h"
+#include "lists.h"
 #include "integers.h"
 #include "patterns.h"
 #include "tables.h"
@@ -86,7 +86,7 @@ typedef struct {
 // Synthetic grapheme clusters (clusters of more than one codepoint):
 static Table_t grapheme_ids_by_codepoints = {}; // ucs4_t* length-prefixed codepoints -> int32_t ID
 
-// This will hold a dynamically growing array of synthetic graphemes:
+// This will hold a dynamically growing list of synthetic graphemes:
 static synthetic_grapheme_t *synthetic_graphemes = NULL;
 static int32_t synthetic_grapheme_capacity = 0;
 static int32_t num_synthetic_graphemes = 0;
@@ -697,7 +697,7 @@ Text_t text_from_u32(ucs4_t *codepoints, int64_t num_codepoints, bool normalize)
 
     // Intentionally overallocate here: allocate assuming each codepoint is a
     // grapheme cluster. If that's not true, we'll have extra space at the end
-    // of the array, but the length will still be calculated correctly.
+    // of the list, but the length will still be calculated correctly.
     int32_t *graphemes = GC_MALLOC_ATOMIC(sizeof(int32_t[num_codepoints]));
     struct Text_s ret = {
         .tag=TEXT_GRAPHEMES,
@@ -1038,7 +1038,7 @@ PUREFUNC public bool Text$equal_ignoring_case(Text_t a, Text_t b, Text_t languag
 public Text_t Text$upper(Text_t text, Text_t language)
 {
     if (text.length == 0) return text;
-    Array_t codepoints = Text$utf32_codepoints(text);
+    List_t codepoints = Text$utf32_codepoints(text);
     const char *uc_language = Text$as_c_string(language);
     ucs4_t buf[128]; 
     size_t out_len = sizeof(buf)/sizeof(buf[0]);
@@ -1051,7 +1051,7 @@ public Text_t Text$upper(Text_t text, Text_t language)
 public Text_t Text$lower(Text_t text, Text_t language)
 {
     if (text.length == 0) return text;
-    Array_t codepoints = Text$utf32_codepoints(text);
+    List_t codepoints = Text$utf32_codepoints(text);
     const char *uc_language = Text$as_c_string(language);
     ucs4_t buf[128]; 
     size_t out_len = sizeof(buf)/sizeof(buf[0]);
@@ -1064,7 +1064,7 @@ public Text_t Text$lower(Text_t text, Text_t language)
 public Text_t Text$title(Text_t text, Text_t language)
 {
     if (text.length == 0) return text;
-    Array_t codepoints = Text$utf32_codepoints(text);
+    List_t codepoints = Text$utf32_codepoints(text);
     const char *uc_language = Text$as_c_string(language);
     ucs4_t buf[128]; 
     size_t out_len = sizeof(buf)/sizeof(buf[0]);
@@ -1233,7 +1233,7 @@ public Text_t Text$quoted(Text_t text, bool colorize)
     return _quoted(text, colorize, '"');
 }
 
-public Text_t Text$join(Text_t glue, Array_t pieces)
+public Text_t Text$join(Text_t glue, List_t pieces)
 {
     if (pieces.length == 0) return EMPTY_TEXT;
 
@@ -1259,38 +1259,38 @@ public Text_t Text$format(const char *fmt, ...)
     return ret;
 }
 
-public Array_t Text$clusters(Text_t text)
+public List_t Text$clusters(Text_t text)
 {
-    Array_t clusters = {};
+    List_t clusters = {};
     for (int64_t i = 1; i <= text.length; i++) {
         Text_t cluster = Text$slice(text, I(i), I(i));
-        Array$insert(&clusters, &cluster, I_small(0), sizeof(Text_t));
+        List$insert(&clusters, &cluster, I_small(0), sizeof(Text_t));
     }
     return clusters;
 }
 
-public Array_t Text$utf32_codepoints(Text_t text)
+public List_t Text$utf32_codepoints(Text_t text)
 {
-    Array_t codepoints = {.atomic=1};
+    List_t codepoints = {.atomic=1};
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
     for (int64_t i = 0; i < text.length; i++) {
         int32_t grapheme = Text$get_grapheme_fast(&state, i);
         if (grapheme < 0) {
             for (int64_t c = 0; c < NUM_GRAPHEME_CODEPOINTS(grapheme); c++) {
                 ucs4_t subg = GRAPHEME_CODEPOINTS(grapheme)[c];
-                Array$insert(&codepoints, &subg, I_small(0), sizeof(ucs4_t));
+                List$insert(&codepoints, &subg, I_small(0), sizeof(ucs4_t));
             }
         } else {
-            Array$insert(&codepoints, &grapheme, I_small(0), sizeof(ucs4_t));
+            List$insert(&codepoints, &grapheme, I_small(0), sizeof(ucs4_t));
         }
     }
     return codepoints;
 }
 
-public Array_t Text$utf8_bytes(Text_t text)
+public List_t Text$utf8_bytes(Text_t text)
 {
     const char *str = Text$as_c_string(text);
-    return (Array_t){.length=strlen(str), .stride=1, .atomic=1, .data=(void*)str};
+    return (List_t){.length=strlen(str), .stride=1, .atomic=1, .data=(void*)str};
 }
 
 static INLINE const char *codepoint_name(ucs4_t c)
@@ -1304,9 +1304,9 @@ static INLINE const char *codepoint_name(ucs4_t c)
     return name;
 }
 
-public Array_t Text$codepoint_names(Text_t text)
+public List_t Text$codepoint_names(Text_t text)
 {
-    Array_t names = {};
+    List_t names = {};
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
     for (int64_t i = 0; i < text.length; i++) {
         int32_t grapheme = Text$get_grapheme_fast(&state, i);
@@ -1314,65 +1314,65 @@ public Array_t Text$codepoint_names(Text_t text)
             for (int64_t c = 0; c < NUM_GRAPHEME_CODEPOINTS(grapheme); c++) {
                 const char *name = codepoint_name(GRAPHEME_CODEPOINTS(grapheme)[c]);
                 Text_t name_text = Text$from_str(name);
-                Array$insert(&names, &name_text, I_small(0), sizeof(Text_t));
+                List$insert(&names, &name_text, I_small(0), sizeof(Text_t));
             }
         } else {
             const char *name = codepoint_name((ucs4_t)grapheme);
             Text_t name_text = Text$from_str(name);
-            Array$insert(&names, &name_text, I_small(0), sizeof(Text_t));
+            List$insert(&names, &name_text, I_small(0), sizeof(Text_t));
         }
     }
     return names;
 }
 
-public Text_t Text$from_codepoints(Array_t codepoints)
+public Text_t Text$from_codepoints(List_t codepoints)
 {
     if (codepoints.stride != sizeof(int32_t))
-        Array$compact(&codepoints, sizeof(int32_t));
+        List$compact(&codepoints, sizeof(int32_t));
 
     return text_from_u32(codepoints.data, codepoints.length, true);
 }
 
-public OptionalText_t Text$from_codepoint_names(Array_t codepoint_names)
+public OptionalText_t Text$from_codepoint_names(List_t codepoint_names)
 {
-    Array_t codepoints = {};
+    List_t codepoints = {};
     for (int64_t i = 0; i < codepoint_names.length; i++) {
         Text_t *name = ((Text_t*)(codepoint_names.data + i*codepoint_names.stride));
         const char *name_str = Text$as_c_string(*name);
         ucs4_t codepoint = unicode_name_character(name_str);
         if (codepoint == UNINAME_INVALID)
             return NONE_TEXT;
-        Array$insert(&codepoints, &codepoint, I_small(0), sizeof(ucs4_t));
+        List$insert(&codepoints, &codepoint, I_small(0), sizeof(ucs4_t));
     }
     return Text$from_codepoints(codepoints);
 }
 
-public OptionalText_t Text$from_bytes(Array_t bytes)
+public OptionalText_t Text$from_bytes(List_t bytes)
 {
     if (bytes.stride != sizeof(int8_t))
-        Array$compact(&bytes, sizeof(int8_t));
+        List$compact(&bytes, sizeof(int8_t));
 
     return Text$from_strn(bytes.data, (size_t)bytes.length);
 }
 
-public Array_t Text$lines(Text_t text)
+public List_t Text$lines(Text_t text)
 {
-    Array_t lines = {};
+    List_t lines = {};
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
     for (int64_t i = 0, line_start = 0; i < text.length; i++) {
         int32_t grapheme = Text$get_grapheme_fast(&state, i);
         if (grapheme == '\r' && Text$get_grapheme_fast(&state, i + 1) == '\n') { // CRLF
             Text_t line = Text$slice(text, I(line_start+1), I(i));
-            Array$insert(&lines, &line, I_small(0), sizeof(Text_t));
+            List$insert(&lines, &line, I_small(0), sizeof(Text_t));
             i += 1; // skip one extra for CR
             line_start = i + 1;
         } else if (grapheme == '\n') { // newline
             Text_t line = Text$slice(text, I(line_start+1), I(i));
-            Array$insert(&lines, &line, I_small(0), sizeof(Text_t));
+            List$insert(&lines, &line, I_small(0), sizeof(Text_t));
             line_start = i + 1;
         } else if (i == text.length-1 && line_start != i) { // last line
             Text_t line = Text$slice(text, I(line_start+1), I(i+1));
-            Array$insert(&lines, &line, I_small(0), sizeof(Text_t));
+            List$insert(&lines, &line, I_small(0), sizeof(Text_t));
         }
     }
     return lines;
@@ -1426,7 +1426,7 @@ public void Text$serialize(const void *obj, FILE *out, Table_t *pointers, const 
     fwrite(str, sizeof(char), (size_t)len, out);
 }
 
-public void Text$deserialize(FILE *in, void *out, Array_t *pointers, const TypeInfo_t *)
+public void Text$deserialize(FILE *in, void *out, List_t *pointers, const TypeInfo_t *)
 {
     int64_t len = -1;
     Int64$deserialize(in, &len, pointers, &Int64$info);

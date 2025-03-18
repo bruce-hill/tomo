@@ -30,7 +30,7 @@ func main():
         >> rng:num32(1, 1000)
         = 761.05908 : Num32
 
-        !! Random array methods:
+        !! Random list methods:
         >> nums := [10*i for i in 10]
         >> nums:shuffled(rng=rng)
         = [30, 50, 100, 20, 90, 10, 80, 40, 70, 60]

@@ -37,7 +37,7 @@ Pattern matching functions work with a type called `Match` that has three fields
 
 - `text`: The full text of the match.
 - `index`: The index in the text where the match was found.
-- `captures`: An array containing the matching text of each non-literal pattern group.
+- `captures`: An list containing the matching text of each non-literal pattern group.
 
 See [Text Functions](text.md#Text-Functions) for the full API documentation.
 

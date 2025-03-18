@@ -130,10 +130,10 @@ const TypeInfo_t *type_to_type_info(type_t *t)
         default: errx(1, "Invalid bits");
         }
     case TextType: return &Text$info;
-    case ArrayType: {
-        const TypeInfo_t *item_info = type_to_type_info(Match(t, ArrayType)->item_type);
-        TypeInfo_t array_info = *Array$info(item_info);
-        return memcpy(GC_MALLOC(sizeof(TypeInfo_t)), &array_info, sizeof(TypeInfo_t));
+    case ListType: {
+        const TypeInfo_t *item_info = type_to_type_info(Match(t, ListType)->item_type);
+        TypeInfo_t list_info = *List$info(item_info);
+        return memcpy(GC_MALLOC(sizeof(TypeInfo_t)), &list_info, sizeof(TypeInfo_t));
     }
     case TableType: {
         const TypeInfo_t *key_info = type_to_type_info(Match(t, TableType)->key_type);
@@ -464,16 +464,16 @@ void eval(env_t *env, ast_t *ast, void *dest)
         type_t *indexed_t = get_type(env, index->indexed);
         // type_t *index_t = get_type(env, index->index);
         switch (indexed_t->tag) {
-        case ArrayType: {
-            Array_t arr;
+        case ListType: {
+            List_t arr;
             eval(env, index->indexed, &arr);
             int64_t raw_index = Int64$from_int(ast_to_int(env, index->index), false);
             int64_t index_int = raw_index;
             if (index_int < 1) index_int = arr.length + index_int + 1;
             if (index_int < 1 || index_int > arr.length)
-                repl_err(index->index, "%ld is an invalid index for an array with length %ld",
+                repl_err(index->index, "%ld is an invalid index for an list with length %ld",
                          raw_index, arr.length);
-            size_t item_size = type_size(Match(indexed_t, ArrayType)->item_type);
+            size_t item_size = type_size(Match(indexed_t, ListType)->item_type);
             memcpy(dest, arr.data + arr.stride*(index_int-1), item_size);
             break;
         }
@@ -500,16 +500,16 @@ void eval(env_t *env, ast_t *ast, void *dest)
         }
         break;
     }
-    case Array: {
-        assert(t->tag == ArrayType);
-        Array_t arr = {};
-        size_t item_size = type_size(Match(t, ArrayType)->item_type);
+    case List: {
+        assert(t->tag == ListType);
+        List_t arr = {};
+        size_t item_size = type_size(Match(t, ListType)->item_type);
         char item_buf[item_size] = {};
-        for (ast_list_t *item = Match(ast, Array)->items; item; item = item->next) {
+        for (ast_list_t *item = Match(ast, List)->items; item; item = item->next) {
             eval(env, item->ast, item_buf);
-            Array$insert(&arr, item_buf, I(0), (int64_t)type_size(Match(t, ArrayType)->item_type));
+            List$insert(&arr, item_buf, I(0), (int64_t)type_size(Match(t, ListType)->item_type));
         }
-        memcpy(dest, &arr, sizeof(Array_t));
+        memcpy(dest, &arr, sizeof(List_t));
         break;
     }
     case Table: {

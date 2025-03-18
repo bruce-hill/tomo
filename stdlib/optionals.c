@@ -66,7 +66,7 @@ public void Optional$serialize(const void *obj, FILE *out, Table_t *pointers, co
         _serialize(obj, out, pointers, type->OptionalInfo.type);
 }
 
-public void Optional$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type)
+public void Optional$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type)
 {
     bool has_value = (bool)fgetc(in);
     const TypeInfo_t *nonnull = type->OptionalInfo.type;
@@ -76,8 +76,8 @@ public void Optional$deserialize(FILE *in, void *outval, Array_t *pointers, cons
     } else {
         if (nonnull->tag == TextInfo)
             *(Text_t*)outval = NONE_TEXT;
-        else if (nonnull->tag == ArrayInfo)
-            *(Array_t*)outval = (Array_t){.length=-1};
+        else if (nonnull->tag == ListInfo)
+            *(List_t*)outval = (List_t){.length=-1};
         else if (nonnull->tag == TableInfo)
             *(Table_t*)outval = (Table_t){.entries={.length=-1}};
         else if (nonnull == &Num$info)

@@ -31,17 +31,17 @@ enums. At this time, metamethods may not be overridden.
 
 ## Generic Metamethods
 
-Due to the presence of pointers, arrays, tables, and functions, there are
+Due to the presence of pointers, lists, tables, and functions, there are
 potentially a very large number of metamethods that would be required if
 _every_ type had its own set of metamethods. To reduce the amount of generated
 code, Tomo uses generic metamethods, which are general-purpose functions that
 take an object pointer and a type info struct pointer that has metadata about
 the object's type. That metadata is added automatically at compile time and
-used to perform the appropriate operations. As an example, every array follows
+used to perform the appropriate operations. As an example, every list follows
 the same logic when performing comparisons, except that each item is compared
-using the item's comparison function. Therefore, we can compile a single array
-comparison function and reuse it for each type of array if we pass in some
-metadata about how to compare the array's items.
+using the item's comparison function. Therefore, we can compile a single list
+comparison function and reuse it for each type of list if we pass in some
+metadata about how to compare the list's items.
 
 When possible, we avoid calling metamethods (for example, doing fixed-sized
 integer comparisons does not require calling a function), but metamethods are

@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "arrays.h"
+#include "lists.h"
 #include "datatypes.h"
 #include "integers.h"
 #include "optionals.h"
@@ -466,7 +466,7 @@ static void Int$serialize(const void *obj, FILE *out, Table_t *pointers, const T
     }
 }
 
-static void Int$deserialize(FILE *in, void *obj, Array_t *pointers, const TypeInfo_t*)
+static void Int$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t*)
 {
     if (fgetc(in) == 0) {
         int64_t i = 0;
@@ -505,7 +505,7 @@ public void Int64$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo
     fputc((uint8_t)z, out);
 }
 
-public void Int64$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t*)
+public void Int64$deserialize(FILE *in, void *outval, List_t*, const TypeInfo_t*)
 {
     uint64_t z = 0;
     for(size_t shift = 0; ; shift += 7) {
@@ -527,7 +527,7 @@ public void Int32$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo
     fputc((uint8_t)z, out);
 }
 
-public void Int32$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t*)
+public void Int32$deserialize(FILE *in, void *outval, List_t*, const TypeInfo_t*)
 {
     uint32_t z = 0;
     for(size_t shift = 0; ; shift += 7) {
@@ -566,14 +566,14 @@ public void Int32$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t
         Int_t as_int = Int$from_int64((int64_t)i); \
         return Int$octal(as_int, digits_int, prefix); \
     } \
-    public Array_t KindOfInt ## $bits(c_type x) { \
-        Array_t bit_array = (Array_t){.data=GC_MALLOC_ATOMIC(sizeof(bool[8*sizeof(c_type)])), .atomic=1, .stride=sizeof(bool), .length=8*sizeof(c_type)}; \
-        bool *bits = bit_array.data + sizeof(c_type)*8; \
+    public List_t KindOfInt ## $bits(c_type x) { \
+        List_t bit_list = (List_t){.data=GC_MALLOC_ATOMIC(sizeof(bool[8*sizeof(c_type)])), .atomic=1, .stride=sizeof(bool), .length=8*sizeof(c_type)}; \
+        bool *bits = bit_list.data + sizeof(c_type)*8; \
         for (size_t i = 0; i < 8*sizeof(c_type); i++) { \
             *(bits--) = x & 1; \
             x >>= 1; \
         } \
-        return bit_array; \
+        return bit_list; \
     } \
     typedef struct { \
         Optional##KindOfInt##_t current, last; \

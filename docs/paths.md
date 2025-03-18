@@ -452,13 +452,13 @@ A list of file paths.
 ---
 
 ### `from_components`
-Returns a path built from an array of path components.
+Returns a path built from an list of path components.
 
 ```tomo
 func from_components(components:List(Text) -> Path)
 ```
 
-- `components`: An array of path components.
+- `components`: An list of path components.
 
 **Returns:**  
 A path representing the given components.
@@ -476,7 +476,7 @@ A path representing the given components.
 ---
 
 ### `glob`
-Perform a globbing operation and return an array of matching paths. Some glob
+Perform a globbing operation and return an list of matching paths. Some glob
 specific details:
 
 - The paths "." and ".." are *not* included in any globbing results.
@@ -510,7 +510,7 @@ A list of file paths that match the glob.
 >> (./.*):glob()
 = [(./.hidden)]
 
-# Globs with no matches return an empty array:
+# Globs with no matches return an empty list:
 >> (./*.xxx):glob()
 = []
 ```
@@ -914,7 +914,7 @@ func write(path: Path, bytes:List(Byte), permissions=0o644[32] -> Void)
 ```
 
 - `path`: The path of the file to write to.
-- `bytes`: An array of bytes to write to the file.
+- `bytes`: An list of bytes to write to the file.
 - `permissions`: The permissions to set on the file if it is created (default is `0o644`).
 
 **Returns:**  

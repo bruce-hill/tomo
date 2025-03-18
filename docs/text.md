@@ -3,7 +3,7 @@
 `Text` is Tomo's datatype to represent text. The name `Text` is used instead of
 "string" because Tomo text represents immutable, normalized unicode data with
 fast indexing that has an implementation that is efficient for concatenation.
-These are _not_ C-style NUL-terminated character arrays. GNU libunistring is
+These are _not_ C-style NUL-terminated character lists. GNU libunistring is
 used for full Unicode functionality (grapheme cluster counts, capitalization,
 etc.).
 
@@ -12,8 +12,8 @@ etc.).
 Internally, Tomo text's implementation is based on [Raku/MoarVM's
 strings](https://docs.raku.org/language/unicode) and [Boehm et al's
 Cords](https://www.cs.tufts.edu/comp/150FP/archive/hans-boehm/ropes.pdf).
-Strings store their grapheme cluster count and either a compact array of 8-bit
-ASCII characters (for ASCII text), an array of 32-bit normal-form grapheme
+Strings store their grapheme cluster count and either a compact list of 8-bit
+ASCII characters (for ASCII text), an list of 32-bit normal-form grapheme
 cluster values (see below), or a (roughly) balanced binary tree concatenation
 of two texts. The upside is that repeated concatenations are typically a
 constant-time operation, which will occasionally require a small rebalancing
@@ -33,7 +33,7 @@ non-ASCII text is stored as 32-bit normal-form graphemes. A normal-form
 grapheme is either a positive value representing a Unicode codepoint that
 corresponds to a grapheme cluster (most Unicode letters used in natural
 language fall into this category after normalization) or a negative value
-representing an index into an internal array of "synthetic grapheme cluster
+representing an index into an internal list of "synthetic grapheme cluster
 codepoints." Here are some examples:
 
 - `A` is a normal codepoint that is also a grapheme cluster, so it would
@@ -223,7 +223,7 @@ shorthand for `${}"foo"`. Singly quoted text with no dollar sign (e.g.
 Concatenation in the typical case is a fast operation: `"{x}{y}"` or `x ++ y`.
 
 Because text concatenation is typically fast, there is no need for a separate
-"string builder" class in the language and no need to use an array of text
+"string builder" class in the language and no need to use an list of text
 fragments.
 
 ### Text Length
@@ -435,7 +435,7 @@ for chunk in text:by_split($/,/):
 ---
 
 ### `bytes`
-Converts a `Text` value to an array of bytes representing a UTF8 encoding of
+Converts a `Text` value to an list of bytes representing a UTF8 encoding of
 the text.
 
 ```tomo
@@ -445,7 +445,7 @@ func bytes(text: Text -> List(Byte))
 - `text`: The text to be converted to UTF8 bytes.
 
 **Returns:**  
-An array of bytes (`[Byte]`) representing the text in UTF8 encoding.
+An list of bytes (`[Byte]`) representing the text in UTF8 encoding.
 
 **Example:**  
 ```tomo
@@ -483,7 +483,7 @@ func caseless_equals(a: Text, b:Text, language:Text = "C" -> Bool)
 ---
 
 ### `codepoint_names`
-Returns an array of the names of each codepoint in the text.
+Returns an list of the names of each codepoint in the text.
 
 ```tomo
 func codepoint_names(text: Text -> List(Text))
@@ -492,7 +492,7 @@ func codepoint_names(text: Text -> List(Text))
 - `text`: The text from which to extract codepoint names.
 
 **Returns:**  
-An array of codepoint names (`[Text]`).
+An list of codepoint names (`[Text]`).
 
 **Example:**  
 ```tomo
@@ -590,8 +590,8 @@ func find_all(text: Text, pattern: Pattern -> List(Match))
 - `pattern`: The [pattern](patterns.md) to search for.
 
 **Returns:**  
-An array of every match of the [pattern](patterns.md) in the given text.
-Note: if `text` or `pattern` is empty, an empty array will be returned.
+An list of every match of the [pattern](patterns.md) in the given text.
+Note: if `text` or `pattern` is empty, an empty list will be returned.
 
 **Example:**  
 ```tomo
@@ -760,14 +760,14 @@ func has(text: Text, pattern: Pattern -> Bool)
 ---
 
 ### `join`
-Joins an array of text pieces with a specified glue.
+Joins an list of text pieces with a specified glue.
 
 ```tomo
 func join(glue: Text, pieces:List(Text) -> Text)
 ```
 
 - `glue`: The text used to join the pieces.
-- `pieces`: The array of text pieces to be joined.
+- `pieces`: The list of text pieces to be joined.
 
 **Returns:**  
 A single `Text` value with the pieces joined by the glue.
@@ -833,7 +833,7 @@ exact desired length.
 ---
 
 ### `lines`
-Splits the text into an array of lines of text, preserving blank lines,
+Splits the text into an list of lines of text, preserving blank lines,
 ignoring trailing newlines, and handling `\r\n` the same as `\n`.
 
 ```tomo
@@ -843,7 +843,7 @@ func lines(text: Text -> List(Text))
 - `text`: The text to be split into lines.
 
 **Returns:**  
-An array of substrings resulting from the split.
+An list of substrings resulting from the split.
 
 **Example:**  
 ```tomo
@@ -914,7 +914,7 @@ function to each.
 ---
 
 ### `matches`
-Checks if the `Text` matches target [pattern](patterns.md) and returns an array
+Checks if the `Text` matches target [pattern](patterns.md) and returns an list
 of the matching text captures or a null value if the entire text doesn't match
 the pattern.
 
@@ -926,7 +926,7 @@ func matches(text: Text, pattern: Pattern -> List(Text))
 - `pattern`: The [pattern](patterns.md) to search for.
 
 **Returns:**  
-An array of the matching text captures if the entire text matches the pattern,
+An list of the matching text captures if the entire text matches the pattern,
 or a null value otherwise.
 
 **Example:**  
@@ -1165,7 +1165,7 @@ the string.
 ---
 
 ### `split`
-Splits the text into an array of substrings based on a [pattern](patterns.md).
+Splits the text into an list of substrings based on a [pattern](patterns.md).
 
 ```tomo
 func split(text: Text, pattern: Pattern = "" -> List(Text))
@@ -1176,7 +1176,7 @@ func split(text: Text, pattern: Pattern = "" -> List(Text))
   is the empty string, the text will be split into individual grapheme clusters.
 
 **Returns:**  
-An array of substrings resulting from the split.
+An list of substrings resulting from the split.
 
 **Example:**  
 ```tomo
@@ -1323,7 +1323,7 @@ The uppercase version of the text.
 ---
 
 ### `utf32_codepoints`
-Returns an array of Unicode code points for UTF32 encoding of the text.
+Returns an list of Unicode code points for UTF32 encoding of the text.
 
 ```tomo
 func utf32_codepoints(text: Text -> List(Int32))
@@ -1332,7 +1332,7 @@ func utf32_codepoints(text: Text -> List(Int32))
 - `text`: The text from which to extract Unicode code points.
 
 **Returns:**  
-An array of 32-bit integer Unicode code points (`[Int32]`).
+An list of 32-bit integer Unicode code points (`[Int32]`).
 
 **Example:**  
 ```tomo

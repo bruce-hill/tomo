@@ -16,7 +16,7 @@
 #include <unistd.h>
 #include <unistr.h>
 
-#include "arrays.h"
+#include "lists.h"
 #include "files.h"
 #include "integers.h"
 #include "optionals.h"
@@ -32,16 +32,16 @@
 
 static const Path_t HOME_PATH = {.type=PATH_HOME}, ROOT_PATH = {.type=PATH_ABSOLUTE}, CURDIR_PATH = {.type=PATH_RELATIVE};
 
-static void clean_components(Array_t *components)
+static void clean_components(List_t *components)
 {
     for (int64_t i = 0; i < components->length; ) {
         Text_t *component = (Text_t*)(components->data + i*components->stride);
         if (component->length == 0 || Text$equal_values(*component, Text("."))) {
-            Array$remove_at(components, I(i+1), I(1), sizeof(Text_t));
+            List$remove_at(components, I(i+1), I(1), sizeof(Text_t));
         } else if (i > 0 && Text$equal_values(*component, Text(".."))) {
             Text_t *prev = (Text_t*)(components->data + (i-1)*components->stride);
             if (!Text$equal_values(*prev, Text(".."))) {
-                Array$remove_at(components, I(i), I(2), sizeof(Text_t));
+                List$remove_at(components, I(i), I(2), sizeof(Text_t));
                 i -= 1;
             } else {
                 i += 1;
@@ -81,10 +81,10 @@ public Path_t Path$from_str(const char *str)
                        && result.components.length > 1
                        && !Text$equal_values(Text(".."), *(Text_t*)(result.components.data + result.components.stride*(result.components.length-1)))) {
                 // Pop off /foo/baz/.. -> /foo
-                Array$remove_at(&result.components, I(result.components.length), I(1), sizeof(Text_t));
+                List$remove_at(&result.components, I(result.components.length), I(1), sizeof(Text_t));
             } else { 
                 Text_t component = Text$from_strn(str, component_len);
-                Array$insert_value(&result.components, component, I(0), sizeof(Text_t));
+                List$insert_value(&result.components, component, I(0), sizeof(Text_t));
             }
             str += component_len;
         }
@@ -102,7 +102,7 @@ public Path_t Path$expand_home(Path_t path)
 {
     if (path.type == PATH_HOME) {
         Path_t pwd = Path$from_str(getenv("HOME"));
-        Array_t components = Array$concat(pwd.components, path.components, sizeof(Text_t));
+        List_t components = List$concat(pwd.components, path.components, sizeof(Text_t));
         assert(components.length == path.components.length + pwd.components.length);
         clean_components(&components);
         path = (Path_t){.type=PATH_ABSOLUTE, .components=components};
@@ -114,12 +114,12 @@ public Path_t Path$_concat(int n, Path_t items[n])
 {
     assert(n > 0);
     Path_t result = items[0];
-    ARRAY_INCREF(result.components);
+    LIST_INCREF(result.components);
     for (int i = 1; i < n; i++) {
         if (items[i].type != PATH_RELATIVE)
             fail("Cannot concatenate an absolute or home-based path onto another path: (%s)\n",
                  Path$as_c_string(items[i]));
-        Array$insert_all(&result.components, items[i].components, I(0), sizeof(Text_t));
+        List$insert_all(&result.components, items[i].components, I(0), sizeof(Text_t));
     }
     clean_components(&result.components);
     return result;
@@ -130,8 +130,8 @@ public Path_t Path$resolved(Path_t path, Path_t relative_to)
     if (path.type == PATH_RELATIVE && !(relative_to.type == PATH_RELATIVE && relative_to.components.length == 0)) {
         Path_t result = {.type=relative_to.type};
         result.components = relative_to.components;
-        ARRAY_INCREF(result.components);
-        Array$insert_all(&result.components, path.components, I(0), sizeof(Text_t));
+        LIST_INCREF(result.components);
+        List$insert_all(&result.components, path.components, I(0), sizeof(Text_t));
         clean_components(&result.components);
         return result;
     }
@@ -154,11 +154,11 @@ public Path_t Path$relative_to(Path_t path, Path_t relative_to)
     }
 
     for (int64_t i = shared; i < relative_to.components.length; i++)
-        Array$insert_value(&result.components, Text(".."), I(1), sizeof(Text_t));
+        List$insert_value(&result.components, Text(".."), I(1), sizeof(Text_t));
 
     for (int64_t i = shared; i < path.components.length; i++) {
         Text_t *p = (Text_t*)(path.components.data + i*path.components.stride);
-        Array$insert(&result.components, p, I(0), sizeof(Text_t));
+        List$insert(&result.components, p, I(0), sizeof(Text_t));
     }
     //clean_components(&result.components);
     return result;
@@ -263,7 +263,7 @@ public OptionalMoment_t Path$changed(Path_t path, bool follow_symlinks)
     return (Moment_t){.tv_sec=sb.st_ctime};
 }
 
-static void _write(Path_t path, Array_t bytes, int mode, int permissions)
+static void _write(Path_t path, List_t bytes, int mode, int permissions)
 {
     path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
@@ -272,7 +272,7 @@ static void _write(Path_t path, Array_t bytes, int mode, int permissions)
         fail("Could not write to file: %s\n%s", path_str, strerror(errno));
 
     if (bytes.stride != 1)
-        Array$compact(&bytes, 1);
+        List$compact(&bytes, 1);
     ssize_t written = write(fd, bytes.data, (size_t)bytes.length);
     if (written != (ssize_t)bytes.length)
         fail("Could not write to file: %s\n%s", path_str, strerror(errno));
@@ -280,36 +280,36 @@ static void _write(Path_t path, Array_t bytes, int mode, int permissions)
 
 public void Path$write(Path_t path, Text_t text, int permissions)
 {
-    Array_t bytes = Text$utf8_bytes(text);
+    List_t bytes = Text$utf8_bytes(text);
     _write(path, bytes, O_WRONLY | O_CREAT, permissions);
 }
 
-public void Path$write_bytes(Path_t path, Array_t bytes, int permissions)
+public void Path$write_bytes(Path_t path, List_t bytes, int permissions)
 {
     _write(path, bytes, O_WRONLY | O_CREAT, permissions);
 }
 
 public void Path$append(Path_t path, Text_t text, int permissions)
 {
-    Array_t bytes = Text$utf8_bytes(text);
+    List_t bytes = Text$utf8_bytes(text);
     _write(path, bytes, O_WRONLY | O_APPEND | O_CREAT, permissions);
 }
 
-public void Path$append_bytes(Path_t path, Array_t bytes, int permissions)
+public void Path$append_bytes(Path_t path, List_t bytes, int permissions)
 {
     _write(path, bytes, O_WRONLY | O_APPEND | O_CREAT, permissions);
 }
 
-public OptionalArray_t Path$read_bytes(Path_t path, OptionalInt_t count)
+public OptionalList_t Path$read_bytes(Path_t path, OptionalInt_t count)
 {
     path = Path$expand_home(path);
     int fd = open(Path$as_c_string(path), O_RDONLY);
     if (fd == -1)
-        return NONE_ARRAY;
+        return NONE_LIST;
 
     struct stat sb;
     if (fstat(fd, &sb) != 0)
-        return NONE_ARRAY;
+        return NONE_LIST;
 
     int64_t const target_count = count.small ? Int64$from_int(count, false) : INT64_MAX;
     if (target_count < 0)
@@ -324,7 +324,7 @@ public OptionalArray_t Path$read_bytes(Path_t path, OptionalInt_t count)
         if (count.small && (int64_t)sb.st_size < target_count)
             fail("Could not read %ld bytes from %k (only got %zu)", target_count, &path, sb.st_size);
         int64_t len = count.small ? target_count : (int64_t)sb.st_size;
-        return (Array_t){.data=content, .atomic=1, .stride=1, .length=len};
+        return (List_t){.data=content, .atomic=1, .stride=1, .length=len};
     } else {
         size_t capacity = 256, len = 0;
         char *content = GC_MALLOC_ATOMIC(capacity);
@@ -335,7 +335,7 @@ public OptionalArray_t Path$read_bytes(Path_t path, OptionalInt_t count)
             ssize_t just_read = read(fd, chunk, to_read);
             if (just_read < 0) {
                 close(fd);
-                return NONE_ARRAY;
+                return NONE_LIST;
             } else if (just_read == 0) {
                 if (errno == EAGAIN || errno == EINTR)
                     continue;
@@ -353,13 +353,13 @@ public OptionalArray_t Path$read_bytes(Path_t path, OptionalInt_t count)
         close(fd);
         if (count.small != 0 && (int64_t)len < target_count)
             fail("Could not read %ld bytes from %k (only got %zu)", target_count, &path, len);
-        return (Array_t){.data=content, .atomic=1, .stride=1, .length=len};
+        return (List_t){.data=content, .atomic=1, .stride=1, .length=len};
     }
 }
 
 public OptionalText_t Path$read(Path_t path)
 {
-    Array_t bytes = Path$read_bytes(path, NONE_INT);
+    List_t bytes = Path$read_bytes(path, NONE_INT);
     if (bytes.length < 0) return NONE_TEXT;
     return Text$from_bytes(bytes);
 }
@@ -433,11 +433,11 @@ public void Path$create_directory(Path_t path, int permissions)
         fail("Could not create directory: %s (%s)", c_path, strerror(errno));
 }
 
-static Array_t _filtered_children(Path_t path, bool include_hidden, mode_t filter)
+static List_t _filtered_children(Path_t path, bool include_hidden, mode_t filter)
 {
     path = Path$expand_home(path);
     struct dirent *dir;
-    Array_t children = {};
+    List_t children = {};
     const char *path_str = Path$as_c_string(path);
     size_t path_len = strlen(path_str);
     DIR *d = opendir(path_str);
@@ -461,23 +461,23 @@ static Array_t _filtered_children(Path_t path, bool include_hidden, mode_t filte
             continue;
 
         Path_t child = Path$from_str(child_str);
-        Array$insert(&children, &child, I(0), sizeof(Path_t));
+        List$insert(&children, &child, I(0), sizeof(Path_t));
     }
     closedir(d);
     return children;
 }
 
-public Array_t Path$children(Path_t path, bool include_hidden)
+public List_t Path$children(Path_t path, bool include_hidden)
 {
     return _filtered_children(path, include_hidden, (mode_t)-1);
 }
 
-public Array_t Path$files(Path_t path, bool include_hidden)
+public List_t Path$files(Path_t path, bool include_hidden)
 {
     return _filtered_children(path, include_hidden, S_IFREG);
 }
 
-public Array_t Path$subdirectories(Path_t path, bool include_hidden)
+public List_t Path$subdirectories(Path_t path, bool include_hidden)
 {
     return _filtered_children(path, include_hidden, S_IFDIR);
 }
@@ -497,7 +497,7 @@ public Path_t Path$unique_directory(Path_t path)
     return Path$from_str(created);
 }
 
-public Path_t Path$write_unique_bytes(Path_t path, Array_t bytes)
+public Path_t Path$write_unique_bytes(Path_t path, List_t bytes)
 {
     path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
@@ -517,7 +517,7 @@ public Path_t Path$write_unique_bytes(Path_t path, Array_t bytes)
         fail("Could not write to unique file: %s\n%s", buf, strerror(errno));
 
     if (bytes.stride != 1)
-        Array$compact(&bytes, 1);
+        List$compact(&bytes, 1);
 
     ssize_t written = write(fd, bytes.data, (size_t)bytes.length);
     if (written != (ssize_t)bytes.length)
@@ -536,11 +536,11 @@ public Path_t Path$parent(Path_t path)
         return path;
     } else if (path.components.length > 0 && !Text$equal_values(*(Text_t*)(path.components.data + path.components.stride*(path.components.length-1)),
                                                          Text(".."))) {
-        return (Path_t){.type=path.type, .components=Array$slice(path.components, I(1), I(-2))};
+        return (Path_t){.type=path.type, .components=List$slice(path.components, I(1), I(-2))};
     } else {
         Path_t result = {.type=path.type, .components=path.components};
-        ARRAY_INCREF(result.components);
-        Array$insert_value(&result.components, Text(".."), I(0), sizeof(Text_t));
+        LIST_INCREF(result.components);
+        List$insert_value(&result.components, Text(".."), I(0), sizeof(Text_t));
         return result;
     }
 }
@@ -560,7 +560,7 @@ public PUREFUNC Text_t Path$base_name(Path_t path)
 public Text_t Path$extension(Path_t path, bool full)
 {
     Text_t base = Path$base_name(path);
-    Array_t results = Text$matches(base, full ? Pattern(".{!.}.{..}") : Pattern(".{..}.{!.}{end}"));
+    List_t results = Text$matches(base, full ? Pattern(".{!.}.{..}") : Pattern(".{..}.{!.}{end}"));
     if (results.length > 0)
         return *((Text_t*)(results.data + results.stride*1));
     results = Text$matches(base, full ? Pattern("{!.}.{..}") : Pattern("{..}.{!.}{end}"));
@@ -576,8 +576,8 @@ public Path_t Path$with_component(Path_t path, Text_t component)
         .type=path.type,
         .components=path.components,
     };
-    ARRAY_INCREF(result.components);
-    Array$insert(&result.components, &component, I(0), sizeof(Text_t));
+    LIST_INCREF(result.components);
+    List$insert(&result.components, &component, I(0), sizeof(Text_t));
     clean_components(&result.components);
     return result;
 }
@@ -591,9 +591,9 @@ public Path_t Path$with_extension(Path_t path, Text_t extension, bool replace)
         .type=path.type,
         .components=path.components,
     };
-    ARRAY_INCREF(result.components);
+    LIST_INCREF(result.components);
     Text_t last = *(Text_t*)(path.components.data + path.components.stride*(path.components.length-1));
-    Array$remove_at(&result.components, I(-1), I(1), sizeof(Text_t));
+    List$remove_at(&result.components, I(-1), I(1), sizeof(Text_t));
     if (replace) {
         if (Text$starts_with(last, Text(".")))
             last = Text$replace(last, Pattern(".{!.}.{..}"), Text(".@1"), Pattern("@"), false);
@@ -602,7 +602,7 @@ public Path_t Path$with_extension(Path_t path, Text_t extension, bool replace)
     }
 
     last = Text$concat(last, extension);
-    Array$insert(&result.components, &last, I(0), sizeof(Text_t));
+    List$insert(&result.components, &last, I(0), sizeof(Text_t));
     return result;
 }
 
@@ -651,21 +651,21 @@ public OptionalClosure_t Path$by_line(Path_t path)
     return (Closure_t){.fn=(void*)_next_line, .userdata=wrapper};
 }
 
-public Array_t Path$glob(Path_t path)
+public List_t Path$glob(Path_t path)
 {
     glob_t glob_result;
     int status = glob(Path$as_c_string(path), GLOB_BRACE | GLOB_TILDE | GLOB_TILDE_CHECK, NULL, &glob_result);
     if (status != 0 && status != GLOB_NOMATCH)
         fail("Failed to perform globbing");
 
-    Array_t glob_files = {};
+    List_t glob_files = {};
     for (size_t i = 0; i < glob_result.gl_pathc; i++) {
         size_t len = strlen(glob_result.gl_pathv[i]);
         if ((len >= 2 && glob_result.gl_pathv[i][len-1] == '.' && glob_result.gl_pathv[i][len-2] == '/')
             || (len >= 2 && glob_result.gl_pathv[i][len-1] == '.' && glob_result.gl_pathv[i][len-2] == '.' && glob_result.gl_pathv[i][len-3] == '/'))
             continue;
         Path_t p = Path$from_str(glob_result.gl_pathv[i]);
-        Array$insert(&glob_files, &p, I(0), sizeof(Path_t));
+        List$insert(&glob_files, &p, I(0), sizeof(Path_t));
     }
     return glob_files;
 }
@@ -689,7 +689,7 @@ public PUREFUNC int32_t Path$compare(const void *va, const void *vb, const TypeI
     Path_t *a = (Path_t*)va, *b = (Path_t*)vb;
     int diff = ((int)a->type - (int)b->type);
     if (diff != 0) return diff;
-    return Array$compare(&a->components, &b->components, Array$info(&Text$info));
+    return List$compare(&a->components, &b->components, List$info(&Text$info));
 }
 
 public PUREFUNC bool Path$equal(const void *va, const void *vb, const TypeInfo_t *type)
@@ -697,13 +697,13 @@ public PUREFUNC bool Path$equal(const void *va, const void *vb, const TypeInfo_t
     (void)type;
     Path_t *a = (Path_t*)va, *b = (Path_t*)vb;
     if (a->type != b->type) return false;
-    return Array$equal(&a->components, &b->components, Array$info(&Text$info));
+    return List$equal(&a->components, &b->components, List$info(&Text$info));
 }
 
 public PUREFUNC bool Path$equal_values(Path_t a, Path_t b)
 {
     if (a.type != b.type) return false;
-    return Array$equal(&a.components, &b.components, Array$info(&Text$info));
+    return List$equal(&a.components, &b.components, List$info(&Text$info));
 }
 
 public const char *Path$as_c_string(Path_t path)
@@ -774,15 +774,15 @@ public void Path$serialize(const void *obj, FILE *out, Table_t *pointers, const 
     (void)type;
     Path_t *path = (Path_t*)obj;
     fputc((int)path->type, out);
-    Array$serialize(&path->components, out, pointers, Array$info(&Text$info));
+    List$serialize(&path->components, out, pointers, List$info(&Text$info));
 }
 
-public void Path$deserialize(FILE *in, void *obj, Array_t *pointers, const TypeInfo_t *type)
+public void Path$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *type)
 {
     (void)type;
     Path_t path = {};
     path.type = fgetc(in);
-    Array$deserialize(in, &path.components, pointers, Array$info(&Text$info));
+    List$deserialize(in, &path.components, pointers, List$info(&Text$info));
     *(Path_t*)obj = path;
 }
 

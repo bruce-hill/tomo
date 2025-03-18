@@ -86,7 +86,7 @@ maximum value _according to some feature_.
 
 ## Comprehensions
 
-Reductions work not only with iterable values (arrays, sets, integers, etc.),
+Reductions work not only with iterable values (lists, sets, integers, etc.),
 but also with comprehensions. You can use comprehensions to perform reductions
 while filtering out values or while applying a transformation:
 

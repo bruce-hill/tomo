@@ -5,7 +5,7 @@
 #include <unictype.h>
 #include <uniname.h>
 
-#include "arrays.h"
+#include "lists.h"
 #include "integers.h"
 #include "optionals.h"
 #include "patterns.h"
@@ -34,7 +34,7 @@ typedef struct {
     };
 } pat_t;
 
-static Text_t Text$replace_array(Text_t text, Array_t replacements, Text_t backref_pat, bool recursive);
+static Text_t Text$replace_list(Text_t text, List_t replacements, Text_t backref_pat, bool recursive);
 
 static INLINE void skip_whitespace(TextIter_t *state, int64_t *i)
 {
@@ -822,15 +822,15 @@ public OptionalMatch_t Text$find(Text_t text, Pattern_t pattern, Int_t from_inde
     if (found == -1)
         return NONE_MATCH;
 
-    Array_t capture_array = {};
+    List_t capture_list = {};
     for (int i = 0; captures[i].occupied; i++) {
         Text_t capture = Text$slice(text, I(captures[i].index+1), I(captures[i].index+captures[i].length));
-        Array$insert(&capture_array, &capture, I(0), sizeof(Text_t));
+        List$insert(&capture_list, &capture, I(0), sizeof(Text_t));
     }
     return (OptionalMatch_t){
         .text=Text$slice(text, I(found+1), I(found+len)),
         .index=I(found+1),
-        .captures=capture_array,
+        .captures=capture_list,
     };
 }
 
@@ -852,33 +852,33 @@ PUREFUNC public bool Text$has(Text_t text, Pattern_t pattern)
     }
 }
 
-public OptionalArray_t Text$matches(Text_t text, Pattern_t pattern)
+public OptionalList_t Text$matches(Text_t text, Pattern_t pattern)
 {
     capture_t captures[MAX_BACKREFS] = {};
     int64_t match_len = match(text, 0, pattern, 0, captures, 0);
     if (match_len != text.length)
-        return NONE_ARRAY;
+        return NONE_LIST;
 
-    Array_t capture_array = {};
+    List_t capture_list = {};
     for (int i = 0; captures[i].occupied; i++) {
         Text_t capture = Text$slice(text, I(captures[i].index+1), I(captures[i].index+captures[i].length));
-        Array$insert(&capture_array, &capture, I(0), sizeof(Text_t));
+        List$insert(&capture_list, &capture, I(0), sizeof(Text_t));
     }
-    return capture_array;
+    return capture_list;
 }
 
-public Array_t Text$find_all(Text_t text, Pattern_t pattern)
+public List_t Text$find_all(Text_t text, Pattern_t pattern)
 {
     if (pattern.length == 0) // special case
-        return (Array_t){.length=0};
+        return (List_t){.length=0};
 
-    Array_t matches = {};
+    List_t matches = {};
     for (int64_t i = 1; ; ) {
         OptionalMatch_t m = Text$find(text, pattern, I(i));
         if (!m.index.small)
             break;
         i = Int64$from_int(m.index, false) + m.text.length;
-        Array$insert(&matches, &m, I_small(0), sizeof(Match_t));
+        List$insert(&matches, &m, I_small(0), sizeof(Match_t));
     }
     return matches;
 }
@@ -910,7 +910,7 @@ public Closure_t Text$by_match(Text_t text, Pattern_t pattern)
     };
 }
 
-static Text_t apply_backrefs(Text_t text, Array_t recursive_replacements, Text_t replacement, Pattern_t backref_pat, capture_t *captures)
+static Text_t apply_backrefs(Text_t text, List_t recursive_replacements, Text_t replacement, Pattern_t backref_pat, capture_t *captures)
 {
     if (backref_pat.length == 0)
         return replacement;
@@ -954,7 +954,7 @@ static Text_t apply_backrefs(Text_t text, Array_t recursive_replacements, Text_t
         Text_t backref_text = Text$slice(text, I(captures[backref].index+1), I(captures[backref].index + captures[backref].length));
 
         if (captures[backref].recursive && recursive_replacements.length > 0)
-            backref_text = Text$replace_array(backref_text, recursive_replacements, backref_pat, true);
+            backref_text = Text$replace_list(backref_text, recursive_replacements, backref_pat, true);
 
         if (pos > nonmatching_pos) {
             Text_t before_slice = Text$slice(replacement, I(nonmatching_pos+1), I(pos));
@@ -983,7 +983,7 @@ public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement, P
                        && !uc_is_property((ucs4_t)first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
 
     Text_t entries[2] = {pattern, replacement};
-    Array_t replacements = {
+    List_t replacements = {
         .data=entries,
         .length=1,
         .stride=sizeof(entries),
@@ -1009,7 +1009,7 @@ public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement, P
             .occupied = true, .recursive = false,
         };
 
-        Text_t replacement_text = apply_backrefs(text, recursive ? replacements : (Array_t){}, replacement, backref_pat, captures);
+        Text_t replacement_text = apply_backrefs(text, recursive ? replacements : (List_t){}, replacement, backref_pat, captures);
         if (pos > nonmatching_pos) {
             Text_t before_slice = Text$slice(text, I(nonmatching_pos+1), I(pos));
             ret = Text$concat(ret, before_slice, replacement_text);
@@ -1078,7 +1078,7 @@ public Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn, bool recurs
             Text_t capture = Text$slice(text, I(captures[i].index+1), I(captures[i].index+captures[i].length));
             if (recursive)
                 capture = Text$map(capture, pattern, fn, recursive);
-            Array$insert(&m.captures, &capture, I(0), sizeof(Text_t));
+            List$insert(&m.captures, &capture, I(0), sizeof(Text_t));
         }
 
         Text_t replacement = text_mapper(m, fn.userdata);
@@ -1127,7 +1127,7 @@ public void Text$each(Text_t text, Pattern_t pattern, Closure_t fn, bool recursi
             Text_t capture = Text$slice(text, I(captures[i].index+1), I(captures[i].index+captures[i].length));
             if (recursive)
                 Text$each(capture, pattern, fn, recursive);
-            Array$insert(&m.captures, &capture, I(0), sizeof(Text_t));
+            List$insert(&m.captures, &capture, I(0), sizeof(Text_t));
         }
 
         action(m, fn.userdata);
@@ -1135,7 +1135,7 @@ public void Text$each(Text_t text, Pattern_t pattern, Closure_t fn, bool recursi
     }
 }
 
-Text_t Text$replace_array(Text_t text, Array_t replacements, Text_t backref_pat, bool recursive)
+Text_t Text$replace_list(Text_t text, List_t replacements, Text_t backref_pat, bool recursive)
 {
     if (replacements.length == 0) return text;
 
@@ -1160,7 +1160,7 @@ Text_t Text$replace_array(Text_t text, Array_t replacements, Text_t backref_pat,
 
             // Concatenate the replacement:
             Text_t replacement = *(Text_t*)(replacements.data + i*replacements.stride + sizeof(Text_t));
-            Text_t replacement_text = apply_backrefs(text, recursive ? replacements : (Array_t){}, replacement, backref_pat, captures);
+            Text_t replacement_text = apply_backrefs(text, recursive ? replacements : (List_t){}, replacement, backref_pat, captures);
             ret = Text$concat(ret, replacement_text);
             pos += MAX(len, 1);
             nonmatch_pos = pos;
@@ -1181,18 +1181,18 @@ Text_t Text$replace_array(Text_t text, Array_t replacements, Text_t backref_pat,
 
 public Text_t Text$replace_all(Text_t text, Table_t replacements, Text_t backref_pat, bool recursive)
 {
-    return Text$replace_array(text, replacements.entries, backref_pat, recursive);
+    return Text$replace_list(text, replacements.entries, backref_pat, recursive);
 }
 
-public Array_t Text$split(Text_t text, Pattern_t pattern)
+public List_t Text$split(Text_t text, Pattern_t pattern)
 {
     if (text.length == 0) // special case
-        return (Array_t){.length=0};
+        return (List_t){.length=0};
 
     if (pattern.length == 0) // special case
         return Text$clusters(text);
 
-    Array_t chunks = {};
+    List_t chunks = {};
 
     int64_t i = 0;
     for (;;) {
@@ -1202,12 +1202,12 @@ public Array_t Text$split(Text_t text, Pattern_t pattern)
             found = _find(text, pattern, i + 1, text.length-1, &len, NULL);
         if (found < 0) break;
         Text_t chunk = Text$slice(text, I(i+1), I(found));
-        Array$insert(&chunks, &chunk, I_small(0), sizeof(Text_t));
+        List$insert(&chunks, &chunk, I_small(0), sizeof(Text_t));
         i = MAX(found + len, i + 1);
     }
 
     Text_t last_chunk = Text$slice(text, I(i+1), I(text.length));
-    Array$insert(&chunks, &last_chunk, I_small(0), sizeof(Text_t));
+    List$insert(&chunks, &last_chunk, I_small(0), sizeof(Text_t));
 
     return chunks;
 }
@@ -1270,7 +1270,7 @@ public const TypeInfo_t Pattern$info = {
 static NamedType_t _match_fields[3] = {
     {"text", &Text$info},
     {"index", &Int$info},
-    {"captures", Array$info(&Text$info)},
+    {"captures", List$info(&Text$info)},
 };
 
 static bool Match$is_none(const void *m, const TypeInfo_t*)

@@ -81,7 +81,7 @@ static ast_t *parse_non_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt);
 static ast_t *parse_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos);
-static type_ast_t *parse_array_type(parse_ctx_t *ctx, const char *pos);
+static type_ast_t *parse_list_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_func_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_non_optional_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos);
@@ -90,7 +90,7 @@ static type_ast_t *parse_set_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_type_name(parse_ctx_t *ctx, const char *pos);
-static PARSER(parse_array);
+static PARSER(parse_list);
 static PARSER(parse_assignment);
 static PARSER(parse_block);
 static PARSER(parse_bool);
@@ -609,13 +609,13 @@ type_ast_t *parse_func_type(parse_ctx_t *ctx, const char *pos) {
     return NewTypeAST(ctx->file, start, pos, FunctionTypeAST, .args=args, .ret=ret);
 }
 
-type_ast_t *parse_array_type(parse_ctx_t *ctx, const char *pos) {
+type_ast_t *parse_list_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match(&pos, "List(")) return NULL;
     type_ast_t *type = expect(ctx, start, &pos, parse_type,
-                             "I couldn't parse an array item type after this point");
-    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this array type");
-    return NewTypeAST(ctx->file, start, pos, ArrayTypeAST, .item=type);
+                             "I couldn't parse an list item type after this point");
+    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this list type");
+    return NewTypeAST(ctx->file, start, pos, ListTypeAST, .item=type);
 }
 
 type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos) {
@@ -672,7 +672,7 @@ type_ast_t *parse_non_optional_type(parse_ctx_t *ctx, const char *pos) {
     type_ast_t *type = NULL;
     bool success = (false
         || (type=parse_pointer_type(ctx, pos))
-        || (type=parse_array_type(ctx, pos))
+        || (type=parse_list_type(ctx, pos))
         || (type=parse_table_type(ctx, pos))
         || (type=parse_set_type(ctx, pos))
         || (type=parse_type_name(ctx, pos))
@@ -757,15 +757,15 @@ static INLINE bool match_separator(const char **pos) { // Either comma or newlin
     }
 }
 
-PARSER(parse_array) {
+PARSER(parse_list) {
     const char *start = pos;
 
     if (match(&pos, "List(")) {
         whitespace(&pos);
-        type_ast_t *item_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a type for this array");
+        type_ast_t *item_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a type for this list");
         whitespace(&pos);
-        expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this array");
-        return NewAST(ctx->file, start, pos, Array, .item_type=item_type);
+        expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this list");
+        return NewAST(ctx->file, start, pos, List, .item_type=item_type);
     }
 
     if (!match(&pos, "[")) return NULL;
@@ -776,7 +776,7 @@ PARSER(parse_array) {
     type_ast_t *item_type = NULL;
     if (match(&pos, ":")) {
         whitespace(&pos);
-        item_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a type for this array");
+        item_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a type for this list");
         whitespace(&pos);
         match(&pos, ",");
         whitespace(&pos);
@@ -796,13 +796,13 @@ PARSER(parse_array) {
             break;
     }
     whitespace(&pos);
-    expect_closing(ctx, &pos, "]", "I wasn't able to parse the rest of this array");
+    expect_closing(ctx, &pos, "]", "I wasn't able to parse the rest of this list");
 
     if (!item_type && !items)
-        parser_err(ctx, start, pos, "Empty arrays must specify what type they would contain (e.g. [:Int])");
+        parser_err(ctx, start, pos, "Empty lists must specify what type they would contain (e.g. [:Int])");
 
     REVERSE_LIST(items);
-    return NewAST(ctx->file, start, pos, Array, .item_type=item_type, .items=items);
+    return NewAST(ctx->file, start, pos, List, .item_type=item_type, .items=items);
 }
 
 PARSER(parse_table) {
@@ -1675,7 +1675,7 @@ PARSER(parse_term_no_suffix) {
         || (term=parse_set(ctx, pos))
         || (term=parse_deserialize(ctx, pos))
         || (term=parse_var(ctx, pos))
-        || (term=parse_array(ctx, pos))
+        || (term=parse_list(ctx, pos))
         || (term=parse_reduction(ctx, pos))
         || (term=parse_pass(ctx, pos))
         || (term=parse_defer(ctx, pos))
@@ -2572,7 +2572,7 @@ PARSER(parse_use) {
 
         // When `use`ing a URL, convert it to a hash:
         Text_t text = Text$from_str(name);
-        Array_t m = Text$matches(text, Pattern("{url}"));
+        List_t m = Text$matches(text, Pattern("{url}"));
         if (m.length >= 0) {
             text = Text$trim(text, Pattern("http{0-1 s}://"), true, false);
             FILE *shasum = popen(heap_strf("echo -n '%s' | sha256sum", Text$as_c_string(text)), "r");

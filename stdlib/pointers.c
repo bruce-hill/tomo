@@ -104,7 +104,7 @@ public void Pointer$serialize(const void *obj, FILE *out, Table_t *pointers, con
         _serialize(ptr, out, pointers, type->PointerInfo.pointed);
 }
 
-public void Pointer$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type)
+public void Pointer$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type)
 {
     int64_t id = 0;
     Int64$deserialize(in, &id, pointers, &Int64$info);
@@ -112,7 +112,7 @@ public void Pointer$deserialize(FILE *in, void *outval, Array_t *pointers, const
 
     if (id > pointers->length) {
         void *obj = GC_MALLOC((size_t)type->PointerInfo.pointed->size);
-        Array$insert(pointers, &obj, I(0), sizeof(void*));
+        List$insert(pointers, &obj, I(0), sizeof(void*));
         _deserialize(in, obj, pointers, type->PointerInfo.pointed);
         *(void**)outval = obj;
     } else {

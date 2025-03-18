@@ -1,31 +1,31 @@
-# Arrays
+# Lists
 
-Tomo supports arrays as a container type that holds a list of elements of any
-type in a compact format. Arrays are immutable by default, but use
-copy-on-write semantics to efficiently mutate in place when possible. **Arrays
-are 1-indexed**, which means the first item in the array has index `1`.
+Tomo supports lists as a container type that holds a list of elements of any
+type in a compact format. Lists are immutable by default, but use
+copy-on-write semantics to efficiently mutate in place when possible. **Lists
+are 1-indexed**, which means the first item in the list has index `1`.
 
 ## Syntax
 
-Arrays are written using square brackets and a list of comma-separated elements:
+Lists are written using square brackets and a list of comma-separated elements:
 
 ```tomo
 nums := [10, 20, 30]
 ```
 
 Each element must have the same type (or be easily promoted to the same type). If
-you want to have an empty array, you must specify what type goes inside the array
+you want to have an empty list, you must specify what type goes inside the list
 like this:
 
 ```tomo
 empty := [:Int]
 ```
 
-For type annotations, an array that holds items with type `T` is written as `[T]`.
+For type annotations, an list that holds items with type `T` is written as `[T]`.
 
-### Array Comprehensions
+### List Comprehensions
 
-Arrays can also use comprehensions, where you specify how to dynamically create
+Lists can also use comprehensions, where you specify how to dynamically create
 all the elements by iteration instead of manually specifying each:
 
 ```tomo
@@ -44,7 +44,7 @@ Comprehensions can be combined with regular items or other comprehensions:
 
 ## Length
 
-Array length can be accessed by the `.length` field:
+List length can be accessed by the `.length` field:
 
 ```tomo
 >> [10, 20, 30].length
@@ -53,9 +53,9 @@ Array length can be accessed by the `.length` field:
 
 ## Indexing
 
-Array values are accessed using square bracket indexing. Since arrays are
-1-indexed, the index `1` corresponds to the first item in the array. Negative
-indices are used to refer to items from the back of the array, so `-1` is the
+List values are accessed using square bracket indexing. Since lists are
+1-indexed, the index `1` corresponds to the first item in the list. Negative
+indices are used to refer to items from the back of the list, so `-1` is the
 last item, `-2` is the second-to-last, and so on.
 
 ```tomo
@@ -73,34 +73,34 @@ arr := [10, 20, 30, 40]
 = 30
 ```
 
-If an array index of `0` or any value larger than the length of the array is
-used, it will trigger a runtime error that will print what the invalid array
-index was, the length of the array, and a stack trace. As a performance
-operation, if array bounds checking proves to be a performance hot spot, you
+If an list index of `0` or any value larger than the length of the list is
+used, it will trigger a runtime error that will print what the invalid list
+index was, the length of the list, and a stack trace. As a performance
+operation, if list bounds checking proves to be a performance hot spot, you
 can explicitly disable bounds checking by adding `arr[i; unchecked]` to the
-array access.
+list access.
 
 ## Iteration
 
-You can iterate over the items in an array like this:
+You can iterate over the items in an list like this:
 
 ```tomo
-for item in array:
+for item in list:
     ...
 
-for i, item in array:
+for i, item in list:
     ...
 ```
 
-Array iteration operates over the value of the array when the loop began, so
-modifying the array during iteration is safe and will not result in the loop
+List iteration operates over the value of the list when the loop began, so
+modifying the list during iteration is safe and will not result in the loop
 iterating over any of the new values.
 
 ## Concatenation
 
-Arrays can be concatenated with the `++` operator, which returns an array that
+Lists can be concatenated with the `++` operator, which returns an list that
 has the items from one appended to the other. This should not be confused with
-the addition operator `+`, which does not work with arrays.
+the addition operator `+`, which does not work with lists.
 
 ```tomo
 >> [1, 2] ++ [3, 4]
@@ -109,58 +109,58 @@ the addition operator `+`, which does not work with arrays.
 
 ## Implementation Details 
 
-Under the hood, arrays are implemented as a struct that contains a pointer to a
-contiguous chunk of memory storing the elements of the array and some other
+Under the hood, lists are implemented as a struct that contains a pointer to a
+contiguous chunk of memory storing the elements of the list and some other
 metadata. Since Tomo has datatypes with different sizes, like `Bool`s which
 take one byte and `struct`s which can take up many bytes, it's worth noting
-that arrays store the elements compactly and inline, without the need for each
-array cell to hold a pointer to where the data actually lives.
+that lists store the elements compactly and inline, without the need for each
+list cell to hold a pointer to where the data actually lives.
 
-The other metadata stored with an array includes its length as well as the
-_stride_ of the array. The stride is not exposed to the user, but it's the gap
-in bytes between each element in the array. The reason this is mentioned is
-that it is possible to create immutable slices of arrays in constant time by
+The other metadata stored with an list includes its length as well as the
+_stride_ of the list. The stride is not exposed to the user, but it's the gap
+in bytes between each element in the list. The reason this is mentioned is
+that it is possible to create immutable slices of lists in constant time by
 creating a new struct that points to the appropriate starting place for the
-array items and has the appropriate stride. The upshot is that a method like
-`array:reversed()` does not actually copy the array, it simply returns a struct
-that points to the back of the array with a negative stride. Arrays adhere to
+list items and has the appropriate stride. The upshot is that a method like
+`list:reversed()` does not actually copy the list, it simply returns a struct
+that points to the back of the list with a negative stride. Lists adhere to
 copy-on-write semantics, so we can cheaply create many read-only references to
 the same data, and only need to do copying if we plan to modify data. After
 doing a modification, future modifications can be done in-place as long as
 there is only one reference to that data.
 
 Internally, we also take advantage of this inside of tables, which compactly
-store all of the key/value pairs in a contiguous array and we can return an
-immutable slice of that array showing only the keys or only the values by
+store all of the key/value pairs in a contiguous list and we can return an
+immutable slice of that list showing only the keys or only the values by
 choosing the right starting point and stride.
 
 ## Copy on Write
 
-Arrays can be thought of as values that have copy-on-write semantics that use
+Lists can be thought of as values that have copy-on-write semantics that use
 reference counting to perform efficient in-place mutations instead of copying
 as a performance optimization when it wouldn't affect the program's semantics.
 Without getting too deep into the details, suffice it to say that when you
-create an array, that array can be thought of as a singular "value" in the same
+create an list, that list can be thought of as a singular "value" in the same
 way that `123` is a value. That variable's value will never change unless you
 explicitly perform an assignment operation on the variable or call a method on
 the variable.
 
-Because it would be tedious to require users to write all array operations as
-pure functions like `array = array:with_value_at_index(value=x, index=i)`, Tomo
-provides the familiar imperative syntax for modifying arrays, but keeps the
-semantics of the pure functional style. Writing `array[i] = x` is
-_semantically_ equivalent to `array = array:with_value_at_index(value=x,
+Because it would be tedious to require users to write all list operations as
+pure functions like `list = list:with_value_at_index(value=x, index=i)`, Tomo
+provides the familiar imperative syntax for modifying lists, but keeps the
+semantics of the pure functional style. Writing `list[i] = x` is
+_semantically_ equivalent to `list = list:with_value_at_index(value=x,
 index=i)`, but much more readable and easy to write. Similarly,
-`array:insert(x)` is semantically equivalent to `array =
-array:with_value_inserted(x)`. We implement these mutating methods as functions
-that take a pointer to an array variable, which then either mutate the array's
+`list:insert(x)` is semantically equivalent to `list =
+list:with_value_inserted(x)`. We implement these mutating methods as functions
+that take a pointer to an list variable, which then either mutate the list's
 data in-place (if this is the only thing referencing that data) or construct a
-new array and store its value in the memory where the array variable is stored.
+new list and store its value in the memory where the list variable is stored.
 
-When there is only a single reference to an array value, we can perform these
-modifications in-place (arrays typically have a little bit of spare capacity at
+When there is only a single reference to an list value, we can perform these
+modifications in-place (lists typically have a little bit of spare capacity at
 the end, so appending usually doesn't trigger a reallocation). When there are
-shared references, we must create a copy of the array's data before modifying
+shared references, we must create a copy of the list's data before modifying
 it so the other references don't see the effects of the mutation. Here are some
 simple examples:
 
@@ -192,18 +192,18 @@ nums[4] = -1
 = [10, 20, 30, -1]
 ```
 
-Array reference counting is _approximate_, but will only ever err on the side
+List reference counting is _approximate_, but will only ever err on the side
 of correctness at the expense of performance, not the other way around.
 Occasionally, unnecessary copying may occur, but you should never experience an
-array value changing because of some operation performed on a different array
+list value changing because of some operation performed on a different list
 value.
 
-## Array Pointers
+## List Pointers
 
-Since the normal case of arrays is to treat them like immutable values, what do
-we do if we actually want to have a shared reference to an array whose contents
+Since the normal case of lists is to treat them like immutable values, what do
+we do if we actually want to have a shared reference to an list whose contents
 change over time? In that case, we want to use the `@` operator to create a
-pointer to a heap-allocated array and pass that pointer around. This is the same
+pointer to a heap-allocated list and pass that pointer around. This is the same
 behavior that you get in Python when you create a `list`:
 
 ```tomo
@@ -215,8 +215,8 @@ nums:insert(40)
 = @[10, 20, 30, 40]
 ```
 
-Having multiple pointers to the same heap-allocated array does not cause the
-array's reference count to increase, because there is only one "value" in play:
+Having multiple pointers to the same heap-allocated list does not cause the
+list's reference count to increase, because there is only one "value" in play:
 the one stored on the heap. It's only when we store the "value" in multiple
 places that we need to increment the reference count:
 
@@ -227,10 +227,10 @@ value := nums[]
 ```
 
 The TL;DR is: you can cheaply modify local variables that aren't aliased or
-`@`-allocated arrays, but if you assign a local variable array to another
+`@`-allocated lists, but if you assign a local variable list to another
 variable or dereference a heap pointer, it may trigger copy-on-write behavior.
 
-## Array Methods
+## List Methods
 
 - [`func binary_search(arr:List(T), by: func(x,y:&T->Int32) = T.compare -> Int)`](#binary_search)
 - [`func by(arr:List(T), step: Int -> List(T))`](#by)
@@ -260,21 +260,21 @@ variable or dereference a heap pointer, it may trigger copy-on-write behavior.
 - [`unique(arr:List(T) -> Set(T))`](#unique)
 
 ### `binary_search`
-Performs a binary search on a sorted array.
+Performs a binary search on a sorted list.
 
 ```tomo
 func binary_search(arr:List(T), by: func(x,y:&T->Int32) = T.compare -> Int)
 ```
 
-- `arr`: The sorted array to search.
+- `arr`: The sorted list to search.
 - `by`: The comparison function used to determine order. If not specified, the
   default comparison function for the item type will be used.
 
 **Returns:**  
-Assuming the input array is sorted according to the given comparison function,
+Assuming the input list is sorted according to the given comparison function,
 return the index where the given item would be inserted to maintain the sorted
 order. That is, if the item is found, return its index, otherwise return the
-place where it would be found if it were inserted and the array were sorted.
+place where it would be found if it were inserted and the list were sorted.
 
 **Example:**  
 ```tomo
@@ -291,17 +291,17 @@ place where it would be found if it were inserted and the array were sorted.
 ---
 
 ### `by`
-Creates a new array with elements spaced by the specified step value.
+Creates a new list with elements spaced by the specified step value.
 
 ```tomo
 func by(arr:List(T), step: Int -> List(T))
 ```
 
-- `arr`: The original array.
+- `arr`: The original list.
 - `step`: The step value for selecting elements.
 
 **Returns:**  
-A new array with every `step`-th element from the original array.
+A new list with every `step`-th element from the original list.
 
 **Example:**  
 ```tomo
@@ -312,32 +312,32 @@ A new array with every `step`-th element from the original array.
 ---
 
 ### `clear`
-Clears all elements from the array.
+Clears all elements from the list.
 
 ```tomo
 func clear(arr:@List(T) -> Void)
 ```
 
-- `arr`: The mutable reference to the array to be cleared.
+- `arr`: The mutable reference to the list to be cleared.
 
 **Returns:**  
 Nothing.
 
 **Example:**  
 ```tomo
->> my_array:clear()
+>> my_list:clear()
 ```
 
 ---
 
 ### `counts`
-Counts the occurrences of each element in the array.
+Counts the occurrences of each element in the list.
 
 ```tomo
 func counts(arr:List(T) -> Table(T, Int))
 ```
 
-- `arr`: The array to count elements in.
+- `arr`: The list to count elements in.
 
 **Returns:**  
 A table mapping each element to its count.
@@ -357,8 +357,8 @@ Finds the index of the first occurrence of an element (if any).
 func find(arr:List(T), target: T -> Int?)
 ```
 
-- `arr`: The array to search through.
-- `item`: The item to find in the array.
+- `arr`: The list to search through.
+- `item`: The item to find in the list.
 
 **Returns:**  
 The index of the first occurrence or `!Int` if not found.
@@ -381,7 +381,7 @@ Find the index of the first item that matches a predicate function (if any).
 func first(arr:List(T), predicate: func(item:&T -> Bool) -> Int)
 ```
 
-- `arr`: The array to search through.
+- `arr`: The list to search through.
 - `predicate`: A function that returns `yes` if the item should be returned or
   `no` if it should not.
 
@@ -400,17 +400,17 @@ item matches.
 ---
 
 ### `from`
-Returns a slice of the array starting from a specified index.
+Returns a slice of the list starting from a specified index.
 
 ```tomo
 func from(arr:List(T), first: Int -> List(T))
 ```
 
-- `arr`: The original array.
+- `arr`: The original list.
 - `first`: The index to start from.
 
 **Returns:**  
-A new array starting from the specified index.
+A new list starting from the specified index.
 
 **Example:**  
 ```tomo
@@ -421,16 +421,16 @@ A new array starting from the specified index.
 ---
 
 ### `has`
-Checks if the array has any elements.
+Checks if the list has any elements.
 
 ```tomo
 func has(arr:List(T) -> Bool)
 ```
 
-- `arr`: The array to check.
+- `arr`: The list to check.
 
 **Returns:**  
-`yes` if the array has elements, `no` otherwise.
+`yes` if the list has elements, `no` otherwise.
 
 **Example:**  
 ```tomo
@@ -441,7 +441,7 @@ func has(arr:List(T) -> Bool)
 ---
 
 ### `heap_pop`
-Removes and returns the top element of a heap or `none` if the array is empty.
+Removes and returns the top element of a heap or `none` if the list is empty.
 By default, this is the *minimum* value in the heap.
 
 ```tomo
@@ -453,7 +453,7 @@ func heap_pop(arr:@List(T), by: func(x,y:&T->Int32) = T.compare -> T?)
   default comparison function for the item type will be used.
 
 **Returns:**  
-The removed top element of the heap or `none` if the array is empty.
+The removed top element of the heap or `none` if the list is empty.
 
 **Example:**  
 ```tomo
@@ -489,13 +489,13 @@ Nothing.
 ---
 
 ### `heapify`
-Converts an array into a heap.
+Converts an list into a heap.
 
 ```tomo
 func heapify(arr:@List(T), by: func(x,y:&T->Int32) = T.compare -> Void)
 ```
 
-- `arr`: The mutable reference to the array to be heapified.
+- `arr`: The mutable reference to the list to be heapified.
 - `by`: The comparison function used to determine order. If not specified, the
   default comparison function for the item type will be used.
 
@@ -511,13 +511,13 @@ Nothing.
 ---
 
 ### `insert`
-Inserts an element at a specified position in the array.
+Inserts an element at a specified position in the list.
 
 ```tomo
 func insert(arr:@List(T), item: T, at: Int = 0 -> Void)
 ```
 
-- `arr`: The mutable reference to the array.
+- `arr`: The mutable reference to the list.
 - `item`: The item to be inserted.
 - `at`: The index at which to insert the item (default is `0`). Since indices
   are 1-indexed and negative indices mean "starting from the back", an index of
@@ -541,13 +541,13 @@ Nothing.
 ---
 
 ### `insert_all`
-Inserts an array of items at a specified position in the array.
+Inserts an list of items at a specified position in the list.
 
 ```tomo
 func insert_all(arr:@List(T), items:List(T), at: Int = 0 -> Void)
 ```
 
-- `arr`: The mutable reference to the array.
+- `arr`: The mutable reference to the list.
 - `items`: The items to be inserted.
 - `at`: The index at which to insert the item (default is `0`). Since indices
   are 1-indexed and negative indices mean "starting from the back", an index of
@@ -571,19 +571,19 @@ arr:insert_all([99, 100], at=2)
 ---
 
 ### `pop`
-Removes and returns an item from the array. If the given index is present in
-the array, the item at that index will be removed and the array will become one
+Removes and returns an item from the list. If the given index is present in
+the list, the item at that index will be removed and the list will become one
 element shorter.
 
 ```tomo
 func pop(arr:&List(T), index: Int = -1 -> T?)
 ```
 
-- `arr`: The array to remove an item from.
+- `arr`: The list to remove an item from.
 - `index`: The index from which to remove the item (default: the last item).
 
 **Returns:**  
-`none` if the array is empty or the given index does not exist in the array,
+`none` if the list is empty or the given index does not exist in the list,
 otherwise the item at the given index.
 
 **Example:**  
@@ -604,17 +604,17 @@ otherwise the item at the given index.
 ---
 
 ### `random`
-Selects a random element from the array.
+Selects a random element from the list.
 
 ```tomo
 func random(arr:List(T), rng: RNG = random -> T)
 ```
 
-- `arr`: The array from which to select a random element.
+- `arr`: The list from which to select a random element.
 - `rng`: The [random number generator](rng.md) to use.
 
 **Returns:**  
-A random element from the array.
+A random element from the list.
 
 **Example:**  
 ```tomo
@@ -625,14 +625,14 @@ A random element from the array.
 ---
 
 ### `remove_at`
-Removes elements from the array starting at a specified index.
+Removes elements from the list starting at a specified index.
 
 ```tomo
 func remove_at(arr:@List(T), at: Int = -1, count: Int = 1 -> Void)
 ```
 
-- `arr`: The mutable reference to the array.
-- `at`: The index at which to start removing elements (default is `-1`, which means the end of the array).
+- `arr`: The mutable reference to the list.
+- `at`: The index at which to start removing elements (default is `-1`, which means the end of the list).
 - `count`: The number of elements to remove (default is `1`).
 
 **Returns:**  
@@ -653,13 +653,13 @@ arr:remove_at(2, count=2)
 ---
 
 ### `remove_item`
-Removes all occurrences of a specified item from the array.
+Removes all occurrences of a specified item from the list.
 
 ```tomo
 func remove_item(arr:@List(T), item: T, max_count: Int = -1 -> Void)
 ```
 
-- `arr`: The mutable reference to the array.
+- `arr`: The mutable reference to the list.
 - `item`: The item to be removed.
 - `max_count`: The maximum number of occurrences to remove (default is `-1`, meaning all occurrences).
 
@@ -681,16 +681,16 @@ arr:remove_item(20, max_count=1)
 ---
 
 ### `reversed`
-Returns a reversed slice of the array.
+Returns a reversed slice of the list.
 
 ```tomo
 func reversed(arr:List(T) -> List(T))
 ```
 
-- `arr`: The array to be reversed.
+- `arr`: The list to be reversed.
 
 **Returns:**  
-A slice of the array with elements in reverse order.
+A slice of the list with elements in reverse order.
 
 **Example:**  
 ```tomo
@@ -701,16 +701,16 @@ A slice of the array with elements in reverse order.
 ---
 
 ### `sample`
-Selects a sample of elements from the array, optionally with weighted
+Selects a sample of elements from the list, optionally with weighted
 probabilities.
 
 ```tomo
 func sample(arr:List(T), count: Int, weights:List(Num)? = ![Num], rng: RNG = random -> List(T))
 ```
 
-- `arr`: The array to sample from.
+- `arr`: The list to sample from.
 - `count`: The number of elements to sample.
-- `weights`: The probability weights for each element in the array. These
+- `weights`: The probability weights for each element in the list. These
   values do not need to add up to any particular number, they are relative
   weights. If no weights are given, elements will be sampled with uniform
   probability.
@@ -718,14 +718,14 @@ func sample(arr:List(T), count: Int, weights:List(Num)? = ![Num], rng: RNG = ran
 
 **Errors:**
 Errors will be raised if any of the following conditions occurs:
-- The given array has no elements and `count >= 1`
+- The given list has no elements and `count >= 1`
 - `count < 0` (negative count)
-- The number of weights provided doesn't match the length of the array. 
-- Any weight in the weights array is negative, infinite, or `NaN`
+- The number of weights provided doesn't match the length of the list. 
+- Any weight in the weights list is negative, infinite, or `NaN`
 - The sum of the given weights is zero (zero probability for every element).
 
 **Returns:**  
-A list of sampled elements from the array.
+A list of sampled elements from the list.
 
 **Example:**  
 ```tomo
@@ -736,13 +736,13 @@ A list of sampled elements from the array.
 ---
 
 ### `shuffle`
-Shuffles the elements of the array in place.
+Shuffles the elements of the list in place.
 
 ```tomo
 func shuffle(arr:@List(T), rng: RNG = random -> Void)
 ```
 
-- `arr`: The mutable reference to the array to be shuffled.
+- `arr`: The mutable reference to the list to be shuffled.
 - `rng`: The [random number generator](rng.md) to use.
 
 **Returns:**  
@@ -756,17 +756,17 @@ Nothing.
 ---
 
 ### `shuffled`
-Creates a new array with elements shuffled.
+Creates a new list with elements shuffled.
 
 ```tomo
 func shuffled(arr:List(T), rng: RNG = random -> List(T))
 ```
 
-- `arr`: The array to be shuffled.
+- `arr`: The list to be shuffled.
 - `rng`: The [random number generator](rng.md) to use.
 
 **Returns:**  
-A new array with shuffled elements.
+A new list with shuffled elements.
 
 **Example:**  
 ```tomo
@@ -777,19 +777,19 @@ A new array with shuffled elements.
 ---
 
 ### `slice`
-Returns a slice of the array spanning the given indices (inclusive).
+Returns a slice of the list spanning the given indices (inclusive).
 
 ```tomo
 func slice(arr:List(T), from: Int, to: Int -> List(T))
 ```
 
-- `arr`: The original array.
+- `arr`: The original list.
 - `from`: The first index to include.
 - `to`: The last index to include.
 
 **Returns:**  
-A new array spanning the given indices. Note: negative indices are counted from
-the back of the array, so `-1` refers to the last element, `-2` the
+A new list spanning the given indices. Note: negative indices are counted from
+the back of the list, so `-1` refers to the last element, `-2` the
 second-to-last, and so on.
 
 **Example:**  
@@ -804,13 +804,13 @@ second-to-last, and so on.
 ---
 
 ### `sort`
-Sorts the elements of the array in place in ascending order (small to large).
+Sorts the elements of the list in place in ascending order (small to large).
 
 ```tomo
 func sort(arr:@List(T), by=T.compare -> Void)
 ```
 
-- `arr`: The mutable reference to the array to be sorted.
+- `arr`: The mutable reference to the list to be sorted.
 - `by`: The comparison function used to determine order. If not specified, the
   default comparison function for the item type will be used.
 
@@ -832,18 +832,18 @@ arr:sort(func(a,b:&Int): a:abs() <> b:abs())
 ---
 
 ### `sorted`
-Creates a new array with elements sorted.
+Creates a new list with elements sorted.
 
 ```tomo
 sorted(arr:List(T), by=T.compare -> List(T))
 ```
 
-- `arr`: The array to be sorted.
+- `arr`: The list to be sorted.
 - `by`: The comparison function used to determine order. If not specified, the
   default comparison function for the item type will be used.
 
 **Returns:**  
-A new array with sorted elements.
+A new list with sorted elements.
 
 **Example:**  
 ```tomo
@@ -857,17 +857,17 @@ A new array with sorted elements.
 ---
 
 ### `to`
-Returns a slice of the array from the start of the original array up to a specified index (inclusive).
+Returns a slice of the list from the start of the original list up to a specified index (inclusive).
 
 ```tomo
 to(arr:List(T), last: Int -> List(T))
 ```
 
-- `arr`: The original array.
+- `arr`: The original list.
 - `last`: The index up to which elements should be included.
 
 **Returns:**  
-A new array containing elements from the start up to the specified index.
+A new list containing elements from the start up to the specified index.
 
 **Example:**  
 ```tomo
@@ -881,16 +881,16 @@ A new array containing elements from the start up to the specified index.
 ---
 
 ### `unique`
-Returns a Set that contains the unique elements of the array.
+Returns a Set that contains the unique elements of the list.
 
 ```tomo
 unique(arr:List(T) -> Set(T))
 ```
 
-- `arr`: The array to process.
+- `arr`: The list to process.
 
 **Returns:**  
-A set containing only unique elements from the array.
+A set containing only unique elements from the list.
 
 **Example:**  
 ```tomo

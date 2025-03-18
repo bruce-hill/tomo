@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 #include "ast.h"
-#include "stdlib/arrays.h"
+#include "stdlib/lists.h"
 
 typedef struct type_s type_t;
 
@@ -50,7 +50,7 @@ struct type_s {
         CStringType,
         MomentType,
         TextType,
-        ArrayType,
+        ListType,
         SetType,
         TableType,
         FunctionType,
@@ -85,7 +85,7 @@ struct type_s {
         } TextType;
         struct {
             type_t *item_type;
-        } ArrayType;
+        } ListType;
         struct {
             type_t *item_type;
         } SetType;

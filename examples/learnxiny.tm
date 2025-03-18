@@ -55,23 +55,23 @@ func main():
     else:
         say("else")
 
-    # Arrays:
+    # Lists:
     my_numbers := [10, 20, 30]
 
-    # Empty arrays require specifying the type:
-    empty_array := [:Int]
-    >> empty_array.length
+    # Empty lists require specifying the type:
+    empty_list := [:Int]
+    >> empty_list.length
     = 0
 
-    # Arrays are 1-indexed, so the first element is at index 1:
+    # Lists are 1-indexed, so the first element is at index 1:
     >> my_numbers[1]
     = 10
 
-    # Negative indices can be used to get items from the back of the array:
+    # Negative indices can be used to get items from the back of the list:
     >> my_numbers[-1]
     = 30
 
-    # If an invalid index outside the array's bounds is used (e.g.
+    # If an invalid index outside the list's bounds is used (e.g.
     # my_numbers[999]), an error message will be printed and the program will
     # exit.
 
@@ -83,7 +83,7 @@ func main():
     for index, num in my_numbers:
         pass # Pass means "do nothing"
 
-    # Arrays can be created with array comprehensions, which are loops:
+    # Lists can be created with list comprehensions, which are loops:
     >> [x*10 for x in my_numbers]
     = [100, 200, 300]
     >> [x*10 for x in my_numbers if x != 20]
@@ -133,7 +133,7 @@ func main():
         pass
 
     # Tables also have ".keys" and ".values" fields to explicitly access the
-    # array of keys or values in the table.
+    # list of keys or values in the table.
     >> table.keys
     = ["one", "two"]
     >> table.values
@@ -154,7 +154,7 @@ func main():
     # If no default is provided and a missing key is looked up, the program
     # will print an error message and halt.
 
-    # Any types can be used in tables, for example, a table mapping arrays to
+    # Any types can be used in tables, for example, a table mapping lists to
     # strings:
     table3 := {[10, 20]="one", [30, 40, 50]="two"}
     >> table3[[10, 20]]!
@@ -242,9 +242,9 @@ func takes_many_types(
     integer:Int,
     floating_point_number:Num,
     text_aka_string:Text,
-    array_of_ints:List(Int),
+    list_of_ints:List(Int),
     table_of_text_to_bools:Table(Text,Bool),
-    pointer_to_mutable_array_of_ints:@List(Int),
+    pointer_to_mutable_list_of_ints:@List(Int),
     optional_int:Int?,
     function_from_int_to_text:func(x:Int -> Text),
 ):

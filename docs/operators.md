@@ -7,8 +7,8 @@ Tomo supports a number of operators, both infix and prefix:
 - `^`: exponentiation for integers and floating point numbers
 - `mod`: modulus for integers and floating point numbers
 - `mod1`: clock-style modulus, which is equivalent to `1 + ((x-1) mod y)`. This
-  is particularly useful for doing wraparound behavior on 1-indexed arrays.
-- `++`: concatenation (for text and arrays)
+  is particularly useful for doing wraparound behavior on 1-indexed lists.
+- `++`: concatenation (for text and lists)
 - `<<`, `>>`: bitwise left shift and right shift for integers
 - `<<<`, `>>>`: unsigned bitwise left shift and right shift for integers
 - `_min_`/`_max_`: minimum and maximum (see below)
@@ -33,7 +33,7 @@ value to the user.
 = 1[32]
 ```
 
-It's particularly handy for using the array `sort()` method, which takes a
+It's particularly handy for using the list `sort()` method, which takes a
 function that returns a signed integer:
 
 ```tomo
@@ -153,16 +153,16 @@ struct Person(name:Text, age:Int)
 >> Person("Alice", 33) _max_.age Person("Bob", 20)
 = Person(name="Alice", age=33)
 
-// Get the longest of two arrays:
+// Get the longest of two lists:
 >> [10, 20, 30, 40] _max_.length [99, 1]
 = [10, 20, 30, 40]
 
-// Get the array with the highest value in the last position:
+// Get the list with the highest value in the last position:
 >> [10, 20, 999] _max_[-1] [99, 1]
 = [10, 20, 999]
 ```
 
-The keyed comparison can chain together multiple field accesses, array index
+The keyed comparison can chain together multiple field accesses, list index
 operations, method calls, etc. If you wanted to, for example, get the item
 whose `x` field has the highest absolute value, you could use `_max_.x:abs()`.
 

@@ -6,14 +6,14 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "arrays.h"
+#include "lists.h"
 #include "datatypes.h"
 #include "types.h"
 #include "util.h"
 
 #define Table(key_t, val_t, key_info, value_info, fb, N, ...)  ({ \
     struct { key_t k; val_t v; } ents[N] = {__VA_ARGS__}; \
-    Table_t table = Table$from_entries((Array_t){ \
+    Table_t table = Table$from_entries((List_t){ \
                        .data=memcpy(GC_MALLOC(sizeof(ents)), ents, sizeof(ents)), \
                        .length=sizeof(ents)/sizeof(ents[0]), \
                        .stride=(void*)&ents[1] - (void*)&ents[0], \
@@ -22,14 +22,14 @@
     table; })
 #define Set(item_t, item_info, N, ...)  ({ \
     item_t ents[N] = {__VA_ARGS__}; \
-    Table_t set = Table$from_entries((Array_t){ \
+    Table_t set = Table$from_entries((List_t){ \
                        .data=memcpy(GC_MALLOC(sizeof(ents)), ents, sizeof(ents)), \
                        .length=sizeof(ents)/sizeof(ents[0]), \
                        .stride=(void*)&ents[1] - (void*)&ents[0], \
                        }, Set$info(item_info)); \
     set; })
 
-Table_t Table$from_entries(Array_t entries, const TypeInfo_t *type);
+Table_t Table$from_entries(List_t entries, const TypeInfo_t *type);
 void *Table$get(Table_t t, const void *key, const TypeInfo_t *type);
 #define Table$get_optional(table_expr, key_t, val_t, key_expr, nonnull_var, nonnull_expr, null_expr, info_expr) ({ \
     const Table_t t = table_expr; const key_t k = key_expr; \
@@ -71,7 +71,7 @@ PUREFUNC bool Table$is_superset_of(Table_t a, Table_t b, bool strict, const Type
 void Table$clear(Table_t *t);
 Table_t Table$sorted(Table_t t, const TypeInfo_t *type);
 void Table$mark_copy_on_write(Table_t *t);
-#define TABLE_INCREF(t) ({ ARRAY_INCREF((t).entries); if ((t).bucket_info) (t).bucket_info->data_refcount += ((t).bucket_info->data_refcount < TABLE_MAX_DATA_REFCOUNT); })
+#define TABLE_INCREF(t) ({ LIST_INCREF((t).entries); if ((t).bucket_info) (t).bucket_info->data_refcount += ((t).bucket_info->data_refcount < TABLE_MAX_DATA_REFCOUNT); })
 #define TABLE_COPY(t) ({ TABLE_INCREF(t); t; })
 PUREFUNC int32_t Table$compare(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC bool Table$equal(const void *x, const void *y, const TypeInfo_t *type);
@@ -86,7 +86,7 @@ void Table$str_set(Table_t *t, const char *key, const void *value);
 void *Table$str_reserve(Table_t *t, const char *key, const void *value);
 void Table$str_remove(Table_t *t, const char *key);
 void Table$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type);
-void Table$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type);
+void Table$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type);
 
 #define Table$length(t) ((t).entries.length)
 

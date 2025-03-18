@@ -97,10 +97,10 @@ foo: Invalid value provided for --foo; valid values are: One Two
 Signature: foo [--help] <foo>
 ```
 
-### Arrays of Text
+### Lists of Text
 
-Currently, Tomo supports accepting arguments that take an array of text.
-Array-of-text arguments can be passed like this:
+Currently, Tomo supports accepting arguments that take an list of text.
+List-of-text arguments can be passed like this:
 
 ```tomo
 # many-texts.tm

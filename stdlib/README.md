@@ -16,7 +16,7 @@ some common functionality.
 ## Core Data Types
 
 - Datatypes (type definitions): [header](stdlib/datatypes.h), [implementation](stdlib/datatypes.c)
-- Arrays: [header](stdlib/arrays.h), [implementation](stdlib/arrays.c)
+- Lists: [header](stdlib/lists.h), [implementation](stdlib/lists.c)
 - Bools: [header](stdlib/bools.h), [implementation](stdlib/bools.c)
 - Bytes: [header](stdlib/bytes.h), [implementation](stdlib/bytes.c)
 - C Strings: [header](stdlib/c_strings.h), [implementation](stdlib/c_strings.c)

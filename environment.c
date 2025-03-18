@@ -77,7 +77,7 @@ env_t *new_compilation_unit(CORD libname)
         type_t *type;
         CORD typename;
         CORD typeinfo;
-        Array_t namespace;
+        List_t namespace;
     } global_types[] = {
         {"Void", Type(VoidType), "Void_t", "Void$info", {}},
         {"Abort", Type(AbortType), "void", "Abort$info", {}},
@@ -454,7 +454,7 @@ env_t *new_compilation_unit(CORD libname)
     struct { const char *c_name, *type_str; } constructor_infos[] = {__VA_ARGS__}; \
     for (size_t i = 0; i < sizeof(constructor_infos)/sizeof(constructor_infos[0]); i++) { \
         type_t *t = parse_type_string(ns_env, constructor_infos[i].type_str); \
-        Array$insert(&ns_env->namespace->constructors, \
+        List$insert(&ns_env->namespace->constructors, \
                      ((binding_t[1]){{.code=constructor_infos[i].c_name, \
                       .type=Match(t, ClosureType)->fn}}), I(0), sizeof(binding_t)); \
     } \
@@ -671,8 +671,8 @@ env_t *for_scope(env_t *env, ast_t *ast)
     env_t *scope = fresh_scope(env);
 
     switch (iter_t->tag) {
-    case ArrayType: {
-        type_t *item_t = Match(iter_t, ArrayType)->item_type;
+    case ListType: {
+        type_t *item_t = Match(iter_t, ListType)->item_type;
         const char *vars[2] = {};
         int64_t num_vars = 0;
         for (ast_list_t *var = for_->vars; var; var = var->next) {
@@ -748,7 +748,7 @@ env_t *get_namespace_by_type(env_t *env, type_t *t)
 {
     t = value_type(t);
     switch (t->tag) {
-    case ArrayType: return NULL;
+    case ListType: return NULL;
     case TableType: return NULL;
     case CStringType: case MomentType:
     case BoolType: case IntType: case BigIntType: case NumType: case ByteType: {
@@ -806,7 +806,7 @@ PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args)
 {
     env_t *type_env = get_namespace_by_type(env, t);
     if (!type_env) return NULL;
-    Array_t constructors = type_env->namespace->constructors;
+    List_t constructors = type_env->namespace->constructors;
     // Prioritize exact matches:
     for (int64_t i = constructors.length-1; i >= 0; i--) {
         binding_t *b = constructors.data + i*constructors.stride;

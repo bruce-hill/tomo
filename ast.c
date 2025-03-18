@@ -121,7 +121,7 @@ CORD ast_to_xml(ast_t *ast)
     T(Holding, "<Holding>%r%r</Holding>", ast_to_xml(data.mutexed), ast_to_xml(data.body))
     T(Min, "<Min>%r%r%r</Min>", ast_to_xml(data.lhs), ast_to_xml(data.rhs), optional_tagged("key", data.key))
     T(Max, "<Max>%r%r%r</Max>", ast_to_xml(data.lhs), ast_to_xml(data.rhs), optional_tagged("key", data.key))
-    T(Array, "<Array>%r%r</Array>", optional_tagged_type("item-type", data.item_type), ast_list_to_xml(data.items))
+    T(List, "<List>%r%r</List>", optional_tagged_type("item-type", data.item_type), ast_list_to_xml(data.items))
     T(Set, "<Set>%r%r</Set>",
       optional_tagged_type("item-type", data.item_type),
       ast_list_to_xml(data.items))
@@ -184,7 +184,7 @@ CORD type_ast_to_xml(type_ast_t *t)
     T(VarTypeAST, "%s", data.name)
     T(PointerTypeAST, "<PointerType is_stack=\"%s\">%r</PointerType>",
       data.is_stack ? "yes" : "no", type_ast_to_xml(data.pointed))
-    T(ArrayTypeAST, "<ArrayType>%r</ArrayType>", type_ast_to_xml(data.item))
+    T(ListTypeAST, "<ListType>%r</ListType>", type_ast_to_xml(data.item))
     T(SetTypeAST, "<TableType>%r</TableType>", type_ast_to_xml(data.item))
     T(TableTypeAST, "<TableType>%r %r</TableType>", type_ast_to_xml(data.key), type_ast_to_xml(data.value))
     T(FunctionTypeAST, "<FunctionType>%r %r</FunctionType>", arg_list_to_xml(data.args), type_ast_to_xml(data.ret))

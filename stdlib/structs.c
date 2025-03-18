@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "arrays.h"
+#include "lists.h"
 #include "bools.h"
 #include "functiontype.h"
 #include "metamethods.h"
@@ -207,7 +207,7 @@ public void Struct$serialize(const void *obj, FILE *out, Table_t *pointers, cons
     }
 }
 
-public void Struct$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type)
+public void Struct$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type)
 {
     ptrdiff_t byte_offset = 0;
     ptrdiff_t bit_offset = 0;

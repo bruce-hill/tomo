@@ -10,7 +10,7 @@
 #include <string.h>
 #include <sys/param.h>
 
-#include "arrays.h"
+#include "lists.h"
 #include "datatypes.h"
 #include "rng.h"
 #include "text.h"
@@ -35,7 +35,7 @@ PUREFUNC static Text_t RNG$as_text(const void *rng, bool colorize, const TypeInf
 #define KEYSZ 32
 #define IVSZ 8
 
-public void RNG$set_seed(RNG_t rng, Array_t seed)
+public void RNG$set_seed(RNG_t rng, List_t seed)
 {
     uint8_t seed_bytes[KEYSZ + IVSZ] = {};
     for (int64_t i = 0; i < (int64_t)sizeof(seed_bytes); i++)
@@ -53,7 +53,7 @@ public RNG_t RNG$copy(RNG_t rng)
     return copy;
 }
 
-public RNG_t RNG$new(Array_t seed)
+public RNG_t RNG$new(List_t seed)
 {
     RNG_t rng = GC_MALLOC_ATOMIC(sizeof(struct RNGState_t));
     RNG$set_seed(rng, seed);
@@ -249,12 +249,12 @@ public Byte_t RNG$byte(RNG_t rng)
     return b;
 }
 
-public Array_t RNG$bytes(RNG_t rng, Int_t count)
+public List_t RNG$bytes(RNG_t rng, Int_t count)
 {
     int64_t n = Int64$from_int(count, false);
     Byte_t *r = GC_MALLOC_ATOMIC(sizeof(Byte_t[n]));
     random_bytes(rng, r, sizeof(Byte_t[n]));
-    return (Array_t){.data=r, .length=n, .stride=1, .atomic=1};
+    return (List_t){.data=r, .length=n, .stride=1, .atomic=1};
 }
 
 public const TypeInfo_t RNG$info = {
