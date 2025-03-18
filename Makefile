@@ -73,7 +73,7 @@ clean:
 
 examples:
 	./tomo -IL examples/commands examples/shell examples/base64 examples/log examples/ini examples/vectors examples/game \
-		examples/http examples/threads examples/tomodeps examples/tomo-install examples/wrap examples/pthread
+		examples/http examples/threads examples/tomodeps examples/tomo-install examples/wrap examples/pthread examples/colorful
 	./tomo examples/learnxiny.tm
 
 install: tomo libtomo.so tomo.1
