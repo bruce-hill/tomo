@@ -290,8 +290,8 @@ pattern documentation](patterns.md) for more details.
 - [`func has(text: Text, pattern: Pattern -> Bool)`](#has)
 - [`func join(glue: Text, pieces: [Text] -> Text)`](#join)
 - [`func split(text: Text -> [Text])`](#lines)
-- [`func middle_pad(text: Text, width: Int, pad: Text = " " -> Text)`](#middle_pad)
-- [`func left_pad(text: Text, width: Int, pad: Text = " " -> Text)`](#left_pad)
+- [`func middle_pad(text: Text, width: Int, pad: Text = " ", language: Text = "C" -> Text)`](#middle_pad)
+- [`func left_pad(text: Text, width: Int, pad: Text = " ", language: Text = "C" -> Text)`](#left_pad)
 - [`func lines(text: Text, pattern: Pattern = "" -> [Text])`](#lines)
 - [`func lower(text: Text, language: Text = "C" -> Text)`](#lower)
 - [`func map(text: Text, pattern: Pattern, fn: func(text:Match)->Text -> Text, recursive: Bool = yes)`](#map)
@@ -301,7 +301,7 @@ pattern documentation](patterns.md) for more details.
 - [`func replace(text: Text, pattern: Pattern, replacement: Text, backref: Pattern = $/\/, recursive: Bool = yes -> Text)`](#replace)
 - [`func replace_all(replacements:{Pattern,Text}, backref: Pattern = $/\/, recursive: Bool = yes -> Text)`](#replace_all)
 - [`func reversed(text: Text -> Text)`](#reversed)
-- [`func right_pad(text: Text, width: Int, pad: Text = " " -> Text)`](#right_pad)
+- [`func right_pad(text: Text, width: Int, pad: Text = " ", language: Text = "C" -> Text)`](#right_pad)
 - [`func slice(text: Text, from: Int = 1, to: Int = -1 -> Text)`](#slice)
 - [`func starts_with(text: Text, prefix: Text -> Bool)`](#starts_with)
 - [`func title(text: Text, language: Text = "C" -> Text)`](#title)
@@ -309,6 +309,7 @@ pattern documentation](patterns.md) for more details.
 - [`func trim(text: Text, pattern: Pattern = $/{whitespace/, trim_left: Bool = yes, trim_right: Bool = yes -> Text)`](#trim)
 - [`func upper(text: Text, language: Text "C" -> Text)`](#upper)
 - [`func utf32_codepoints(text: Text -> [Int32])`](#utf32_codepoints)
+- [`func width(text: Text -> Int)`](#width)
 
 ### `as_c_string`
 Converts a `Text` value to a C-style string.
@@ -784,12 +785,13 @@ A single `Text` value with the pieces joined by the glue.
 Pad some text on the left and right side so it reaches a target width.
 
 ```tomo
-func middle_pad(text: Text, width: Int, pad: Text = " " -> Text)
+func middle_pad(text: Text, width: Int, pad: Text = " ", language: Text = "C" -> Text)
 ```
 
 - `text`: The text to pad.
 - `width`: The target width.
 - `pad`: The padding text (default: `" "`).
+- `language`: The ISO 639 language code for which character width to use.
 
 **Returns:**  
 Text with length at least `width`, with extra padding on the left and right as
@@ -810,12 +812,13 @@ reach the exact desired length.
 Pad some text on the left side so it reaches a target width.
 
 ```tomo
-func left_pad(text: Text, width: Int, pad: Text = " " -> Text)
+func left_pad(text: Text, width: Int, pad: Text = " ", language: Text = "C" -> Text)
 ```
 
 - `text`: The text to pad.
 - `width`: The target width.
 - `pad`: The padding text (default: `" "`).
+- `language`: The ISO 639 language code for which character width to use.
 
 **Returns:**  
 Text with length at least `width`, with extra padding on the left as needed. If
@@ -1111,12 +1114,13 @@ A reversed version of the text.
 Pad some text on the right side so it reaches a target width.
 
 ```tomo
-func right_pad(text: Text, width: Int, pad: Text = " " -> Text)
+func right_pad(text: Text, width: Int, pad: Text = " ", language: Text = "C" -> Text)
 ```
 
 - `text`: The text to pad.
 - `width`: The target width.
 - `pad`: The padding text (default: `" "`).
+- `language`: The ISO 639 language code for which character width to use.
 
 **Returns:**  
 Text with length at least `width`, with extra padding on the right as needed. If
@@ -1338,4 +1342,31 @@ An array of 32-bit integer Unicode code points (`[Int32]`).
 ```tomo
 >> "Amélie":utf32_codepoints()
 = [65[32], 109[32], 233[32], 108[32], 105[32], 101[32]] : [Int32]
+```
+
+---
+
+### `width`
+Returns the display width of the text as seen in a terminal with appropriate
+font rendering. This is usually the same as the text's `.length`, but there are
+some characters like emojis that render wider than 1 cell.
+
+**Warning:** This will not always be exactly accurate when your terminal's font
+rendering can't handle some unicode displaying correctly.
+
+```tomo
+func width(text: Text -> Int)
+```
+
+- `text`: The text whose length you want.
+
+**Returns:**  
+An integer representing the display width of the text.
+
+**Example:**  
+```tomo
+>> "Amélie":width()
+= 6
+>> "🤠":width()
+= 2
 ```
