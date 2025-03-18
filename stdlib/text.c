@@ -66,6 +66,7 @@
 #include <unictype.h>
 #include <unigbrk.h>
 #include <uniname.h>
+#include <uniwidth.h>
 
 #include "arrays.h"
 #include "integers.h"
@@ -512,45 +513,68 @@ public Text_t Text$repeat(Text_t text, Int_t count)
     return ret;
 }
 
-static Text_t Text$repeat_to_length(Text_t to_repeat, int64_t length)
+public Int_t Text$width(Text_t text, Text_t language)
 {
-    if (length <= 0)
+    int width = u8_strwidth((const uint8_t*)Text$as_c_string(text), Text$as_c_string(language));
+    return Int$from_int32(width);
+}
+
+static Text_t Text$repeat_to_width(Text_t to_repeat, int64_t target_width, Text_t language)
+{
+    if (target_width <= 0)
         return EMPTY_TEXT;
 
+    const char *lang_str = Text$as_c_string(language);
+    int64_t width = (int64_t)u8_strwidth((const uint8_t*)Text$as_c_string(to_repeat), lang_str);
     Text_t repeated = EMPTY_TEXT;
-    while (repeated.length + to_repeat.length <= length)
+    int64_t repeated_width = 0;
+    while (repeated_width + width <= target_width) {
         repeated = concat2(repeated, to_repeat);
+        repeated_width += width;
+    }
 
-    if (repeated.length < length)
-        repeated = concat2(repeated, Text$slice(to_repeat, I_small(1), I(length - repeated.length)));
+    if (repeated_width < target_width) {
+        for (int64_t i = 0; repeated_width < target_width && i < to_repeat.length; i++) {
+            Text_t c = Text$slice(to_repeat, I_small(i+1), I_small(i+1));
+            int64_t w = (int64_t)u8_strwidth((const uint8_t*)Text$as_c_string(c), lang_str);
+            if (repeated_width + w > target_width) {
+                repeated = concat2(repeated, Text$repeat(Text(" "), I(target_width - repeated_width)));
+                repeated_width = target_width;
+                break;
+            }
+            repeated = concat2(repeated, c);
+            repeated_width += w;
+        }
+    }
 
-    assert(repeated.length == length);
     return repeated;
 }
 
-public Text_t Text$left_pad(Text_t text, Int_t count, Text_t padding)
+public Text_t Text$left_pad(Text_t text, Int_t width, Text_t padding, Text_t language)
 {
     if (padding.length == 0)
         fail("Cannot pad with an empty text!");
 
-    return concat2(Text$repeat_to_length(padding, Int64$from_int(count, false) - text.length), text);
+    int64_t needed = Int64$from_int(width, false) - Int64$from_int(Text$width(text, language), false);
+    return concat2(Text$repeat_to_width(padding, needed, language), text);
 }
 
-public Text_t Text$right_pad(Text_t text, Int_t count, Text_t padding)
+public Text_t Text$right_pad(Text_t text, Int_t width, Text_t padding, Text_t language)
 {
     if (padding.length == 0)
         fail("Cannot pad with an empty text!");
 
-    return concat2(text, Text$repeat_to_length(padding, Int64$from_int(count, false) - text.length));
+    int64_t needed = Int64$from_int(width, false) - Int64$from_int(Text$width(text, language), false);
+    return concat2(text, Text$repeat_to_width(padding, needed, language));
 }
 
-public Text_t Text$middle_pad(Text_t text, Int_t count, Text_t padding)
+public Text_t Text$middle_pad(Text_t text, Int_t width, Text_t padding, Text_t language)
 {
     if (padding.length == 0)
         fail("Cannot pad with an empty text!");
 
-    int64_t needed = Int64$from_int(count, false) - text.length;
-    return Texts(Text$repeat_to_length(padding, needed/2), text, Text$repeat_to_length(padding, (needed+1)/2));
+    int64_t needed = Int64$from_int(width, false) - Int64$from_int(Text$width(text, language), false);
+    return Texts(Text$repeat_to_width(padding, needed/2, language), text, Text$repeat_to_width(padding, (needed+1)/2, language));
 }
 
 public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)

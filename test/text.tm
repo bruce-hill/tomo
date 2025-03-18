@@ -374,3 +374,16 @@ func main():
 	= "1234XYZX" : Text
 	>> "1234":middle_pad(9, "XYZ")
 	= "XY1234XYZ" : Text
+
+	>> amelie:width()
+	= 6
+	cowboy := "🤠"
+	>> cowboy:width()
+	= 2
+	>> cowboy:left_pad(4)
+	= "  🤠"
+	>> cowboy:right_pad(4)
+	= "🤠  "
+	>> cowboy:middle_pad(4)
+	= " 🤠 "
+
