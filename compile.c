@@ -39,7 +39,7 @@ static CORD compile_string_literal(CORD literal);
 
 CORD promote_to_optional(type_t *t, CORD code)
 {
-    if (t == THREAD_TYPE || t == PATH_TYPE || t->tag == MomentType) {
+    if (t == THREAD_TYPE || t == PATH_TYPE || t == PATH_TYPE_TYPE || t->tag == MomentType) {
         return code;
     } else if (t->tag == IntType) {
         switch (Match(t, IntType)->bits) {
@@ -505,6 +505,7 @@ CORD compile_type(type_t *t)
     else if (t == RNG_TYPE) return "RNG_t";
     else if (t == MATCH_TYPE) return "Match_t";
     else if (t == PATH_TYPE) return "Path_t";
+    else if (t == PATH_TYPE_TYPE) return "PathType_t";
 
     switch (t->tag) {
     case ReturnType: errx(1, "Shouldn't be compiling ReturnType to a type");
@@ -571,6 +572,8 @@ CORD compile_type(type_t *t)
                 return "OptionalMatch_t";
             if (nonnull == PATH_TYPE)
                 return "OptionalPath_t";
+            if (nonnull == PATH_TYPE_TYPE)
+                return "OptionalPathType_t";
             auto s = Match(nonnull, StructType);
             return CORD_all(namespace_prefix(s->env, s->env->namespace->parent), "$Optional", s->name, "$$type");
         }
@@ -682,7 +685,7 @@ CORD optional_into_nonnone(type_t *t, CORD value)
     case IntType:
         return CORD_all(value, ".i");
     case StructType:
-        if (t == THREAD_TYPE || t == MATCH_TYPE || t == PATH_TYPE)
+        if (t == THREAD_TYPE || t == MATCH_TYPE || t == PATH_TYPE || t == PATH_TYPE_TYPE)
             return value;
         return CORD_all(value, ".value");
     default:
@@ -699,7 +702,9 @@ CORD check_none(type_t *t, CORD value)
     else if (t == MATCH_TYPE)
         return CORD_all("((", value, ").index.small == 0)");
     else if (t == PATH_TYPE)
-        return CORD_all("((", value, ").type == PATH_NONE)");
+        return CORD_all("((", value, ").type.$tag == PATH_NONE)");
+    else if (t == PATH_TYPE_TYPE)
+        return CORD_all("((", value, ").$tag == PATH_NONE)");
     else if (t->tag == BigIntType)
         return CORD_all("((", value, ").small == 0)");
     else if (t->tag == ClosureType)
@@ -2192,6 +2197,7 @@ CORD compile_none(type_t *t)
 
     if (t == THREAD_TYPE) return "NULL";
     else if (t == PATH_TYPE) return "NONE_PATH";
+    else if (t == PATH_TYPE_TYPE) return "((OptionalPathType_t){})";
 
     switch (t->tag) {
     case BigIntType: return "NONE_INT";
@@ -3838,6 +3844,7 @@ CORD compile_type_info(type_t *t)
     else if (t == RNG_TYPE) return "&RNG$info";
     else if (t == MATCH_TYPE) return "&Match$info";
     else if (t == PATH_TYPE) return "&Path$info";
+    else if (t == PATH_TYPE_TYPE) return "&PathType$info";
 
     switch (t->tag) {
     case BoolType: case ByteType: case IntType: case BigIntType: case NumType: case CStringType: case MomentType:

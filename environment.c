@@ -17,6 +17,7 @@ type_t *MATCH_TYPE = NULL;
 type_t *RNG_TYPE = NULL;
 public type_t *PATH_TYPE = NULL;
 public type_t *THREAD_TYPE = NULL;
+public type_t *PATH_TYPE_TYPE = NULL;
 
 static type_t *declare_type(env_t *env, const char *def_str)
 {
@@ -66,8 +67,9 @@ env_t *global_env(void)
     (void)bind_type(env, "Int", Type(BigIntType));
     (void)bind_type(env, "Int32", Type(IntType, .bits=TYPE_IBITS32));
     (void)bind_type(env, "Memory", Type(MemoryType));
+    PATH_TYPE_TYPE = declare_type(env, "enum PathType(Relative, Absolute, Home)");
     MATCH_TYPE = declare_type(env, "struct Match(text:Text, index:Int, captures:[Text])");
-    PATH_TYPE = declare_type(env, "struct Path(type:Int32, components:[Text])");
+    PATH_TYPE = declare_type(env, "struct Path(type:PathType, components:[Text])");
     THREAD_TYPE = declare_type(env, "struct Thread(; opaque)");
     RNG_TYPE = declare_type(env, "struct RNG(state:@Memory)");
 
@@ -307,6 +309,11 @@ env_t *global_env(void)
             {"time", "Moment$time", "func(moment:Moment,seconds=no,am_pm=yes,timezone=none:Text -> Text)"},
             {"unix_timestamp", "Moment$unix_timestamp", "func(moment:Moment -> Int64)"},
             {"year", "Moment$year", "func(moment:Moment,timezone=none:Text -> Int)"},
+        )},
+        {"PathType", PATH_TYPE_TYPE, "PathType_t", "PathType$info", TypedArray(ns_entry_t,
+            {"Relative", "((PathType_t){.$tag=PATH_RELATIVE})", "PathType"},
+            {"Absolute", "((PathType_t){.$tag=PATH_ABSOLUTE})", "PathType"},
+            {"Home", "((PathType_t){.$tag=PATH_HOME})", "PathType"},
         )},
         {"Path", PATH_TYPE, "Path_t", "Path$info", TypedArray(ns_entry_t,
             {"accessed", "Path$accessed", "func(path:Path, follow_symlinks=yes -> Moment?)"},
