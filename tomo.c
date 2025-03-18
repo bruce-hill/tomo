@@ -385,13 +385,14 @@ void build_library(Text_t lib_dir_name)
         char *library_directory = get_current_dir_name();
         const char *dest = heap_strf("%s/.local/share/tomo/installed/%k", getenv("HOME"), &lib_dir_name);
         if (!streq(library_directory, dest)) {
-            system(heap_strf("rm -rvf '%s'", dest));
+            system(heap_strf("rm -rf '%s'", dest));
             system(heap_strf("mkdir -p '%s'", dest));
-            system(heap_strf("cp -rv * '%s/'", dest));
+            system(heap_strf("cp -r * '%s/'", dest));
         }
         system("mkdir -p ~/.local/share/tomo/lib/");
-        system(heap_strf("ln -fv -s ../installed/'%k'/lib'%k'.so  ~/.local/share/tomo/lib/lib'%k'.so",
+        system(heap_strf("ln -f -s ../installed/'%k'/lib'%k'.so  ~/.local/share/tomo/lib/lib'%k'.so",
                          &lib_dir_name, &lib_dir_name, &lib_dir_name));
+        printf("Installed \033[1m%k\033[m to ~/.local/share/tomo/installed\n", &lib_dir_name);
         free(library_directory);
     }
 }
