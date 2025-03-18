@@ -72,7 +72,8 @@ clean:
 	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@
 
 examples:
-	./tomo -IL examples/vectors examples/commands examples/shell examples/base64 examples/log examples/ini examples/game examples/http examples/threads examples/tomodeps examples/tomo-install examples/wrap
+	./tomo -IL examples/commands examples/shell examples/base64 examples/log examples/ini examples/vectors examples/game \
+		examples/http examples/threads examples/tomodeps examples/tomo-install examples/wrap examples/pthread
 	./tomo examples/learnxiny.tm
 
 install: tomo libtomo.so tomo.1
