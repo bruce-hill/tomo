@@ -167,6 +167,13 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    // Convert `foo` to `foo/foo.tm`
+    for (int64_t i = 0; i < files.length; i++) {
+        Path_t *path = (Path_t*)(files.data + i*files.stride);
+        if (Path$is_directory(*path, true))
+            *path = Path$with_component(*path, Texts(Path$base_name(*path), Text(".tm")));
+    }
+
     // Run file directly:
     if (!stop_at_transpile && !stop_at_obj_compilation && !stop_at_exe_compilation) {
         if (files.length < 1)
