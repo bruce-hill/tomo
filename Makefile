@@ -54,6 +54,9 @@ tags:
 	@echo $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
 	@$(CC) $(CFLAGS) -c $< -o $@
 
+%: %.tm
+	tomo -e $<
+
 %.tm.testresult: %.tm tomo
 	@printf '\x1b[33;1;4m%s\x1b[m\n' $<
 	@set -o pipefail; \
@@ -71,7 +74,8 @@ clean:
 %: %.md
 	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@
 
-examples:
+examples: examples/commands/commands examples/base64/base64 examples/ini/ini examples/game/game \
+		examples/tomodeps/tomodeps examples/tomo-install/tomo-install examples/wrap/wrap examples/colorful/colorful
 	./tomo -IL examples/commands examples/shell examples/base64 examples/log examples/ini examples/vectors examples/game \
 		examples/http examples/threads examples/tomodeps examples/tomo-install examples/wrap examples/pthread examples/colorful
 	./tomo examples/learnxiny.tm
