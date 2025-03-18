@@ -411,7 +411,8 @@ void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, 
     // for downstream dependencies:
     for (int64_t i = 0; i < dependency_files.entries.length; i++) {
         Path_t filename = *(Path_t*)(dependency_files.entries.data + i*dependency_files.entries.stride);
-        transpile_header(env, filename, true);
+        bool is_argument_file = (Table$get(argument_files, &filename, path_table_info) != NULL);
+        transpile_header(env, filename, is_argument_file);
     }
 
     env->imports = new(Table_t);
