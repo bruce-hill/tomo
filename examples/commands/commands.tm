@@ -32,6 +32,9 @@ struct ProgramResult(stdout:[Byte], stderr:[Byte], exit_type:ExitType):
         return none
 
 struct Command(command:Text, args=[:Text], env={:Text,Text}):
+    func from_path(path:Path, args=[:Text], env={:Text,Text} -> Command):
+        return Command(Text(path), args, env)
+
     func run(command:Command, input="", input_bytes=[:Byte] -> ProgramResult):
         if input.length > 0:
             (&input_bytes):insert_all(input:bytes())
