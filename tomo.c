@@ -341,6 +341,7 @@ void build_library(Text_t lib_dir_name)
         Path_t f = *(Path_t*)(tm_files.data + i*tm_files.stride);
         prog = run_cmd("nm -Ug -fjust-symbols '%s' | sed -n 's/_\\$\\(.*\\)/\\0 _$%s$\\1/p' >>.build/symbol_renames.txt",
                        Path$as_c_string(build_file(f, ".o")), CORD_to_const_char_star(env->libname));
+        if (!prog) errx(1, "Could not find symbols!");
         int status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
             errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `sed`");
