@@ -26,7 +26,7 @@
 #include "typecheck.h"
 #include "types.h"
 
-#define run_cmd(...) ({ const char *_cmd = heap_strf(__VA_ARGS__); if (verbose) puts(_cmd); popen(_cmd, "w"); })
+#define run_cmd(...) ({ const char *_cmd = heap_strf(__VA_ARGS__); if (verbose) printf("\033[33m%s\033[m", _cmd); popen(_cmd, "w"); })
 #define array_str(arr) Text$as_c_string(Text$join(Text(" "), arr))
 
 static const char *paths_str(Array_t paths) {
@@ -43,6 +43,7 @@ static OptionalArray_t files = NONE_ARRAY,
                        uninstall = NONE_ARRAY,
                        libraries = NONE_ARRAY;
 static OptionalBool_t verbose = false,
+                      quiet = false,
                       stop_at_transpile = false,
                       stop_at_obj_compilation = false,
                       stop_at_exe_compilation = false,
@@ -100,6 +101,7 @@ int main(int argc, char *argv[])
                         "\x1b[1mUninstall libraries:\x1b[m   tomo -u lib...\n"
                         "\x1b[1mOther flags:\x1b[m\n"
                         "  --verbose|-v: verbose output\n"
+                        "  --quiet|-q: quiet output\n"
                         "  --install|-I: install the executable or library\n"
                         "  --c-compiler <compiler>: the C compiler to use (default: cc)\n"
                         "  --optimization|-O <level>: set optimization level\n"
@@ -112,6 +114,8 @@ int main(int argc, char *argv[])
         {"args", true, Array$info(&Text$info), &args},
         {"verbose", false, &Bool$info, &verbose},
         {"v", false, &Bool$info, &verbose},
+        {"quiet", false, &Bool$info, &quiet},
+        {"q", false, &Bool$info, &quiet},
         {"transpile", false, &Bool$info, &stop_at_transpile},
         {"t", false, &Bool$info, &stop_at_transpile},
         {"compile-obj", false, &Bool$info, &stop_at_obj_compilation},
@@ -180,6 +184,9 @@ int main(int argc, char *argv[])
             errx(1, "No file specified!");
         else if (files.length != 1)
             errx(1, "Too many files specified!");
+
+        quiet = true;
+
         Path_t path = *(Path_t*)files.data;
         env_t *env = global_env();
         Array_t object_files = {},
@@ -198,7 +205,7 @@ int main(int argc, char *argv[])
         Array_t object_files = {},
                 extra_ldlibs = {};
         compile_files(env, files, stop_at_obj_compilation, &object_files, &extra_ldlibs);
-        if (stop_at_obj_compilation)
+        if (stop_at_obj_compilation || stop_at_transpile)
             return 0;
 
         for (int64_t i = 0; i < files.length; i++) {
@@ -363,8 +370,8 @@ void build_library(Text_t lib_dir_name)
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);
 
-    if (verbose)
-        printf("\x1b[2mCompiled to lib%k.so\x1b[m\n", &lib_dir_name);
+    if (!quiet)
+        printf("Compiled library:\tlib%k.so\n", &lib_dir_name);
 
     prog = run_cmd("objcopy --redefine-syms=.build/symbol_renames.txt 'lib%k.so'", &lib_dir_name);
     status = pclose(prog);
@@ -566,8 +573,8 @@ void transpile_header(env_t *base_env, Path_t path, bool force_retranspile)
     if (fclose(header) == -1)
         errx(1, "Failed to write header file: %s", Path$as_c_string(h_filename));
 
-    if (verbose)
-        printf("\x1b[2mTranspiled to %s\x1b[m\n", Path$as_c_string(h_filename));
+    if (!quiet)
+        printf("Transpiled header:\t%s\n", Path$as_c_string(h_filename));
 
     if (show_codegen.length > 0)
         system(heap_strf("<%s %k", Path$as_c_string(h_filename), &show_codegen));
@@ -613,8 +620,8 @@ void transpile_code(env_t *base_env, Path_t path, bool force_retranspile)
     if (fclose(c_file) == -1)
         errx(1, "Failed to output C code to %s", Path$as_c_string(c_filename));
 
-    if (verbose)
-        printf("\x1b[2mTranspiled to %s\x1b[m\n", Path$as_c_string(c_filename));
+    if (!quiet)
+        printf("Transpiled code:\t%s\n", Path$as_c_string(c_filename));
 
     if (show_codegen.length > 0)
         system(heap_strf("<%s %k", Path$as_c_string(c_filename), &show_codegen));
@@ -639,8 +646,8 @@ void compile_object_file(Path_t path, bool force_recompile)
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);
 
-    if (verbose)
-        printf("\x1b[2mCompiled to %s\x1b[m\n", Path$as_c_string(obj_file));
+    if (!quiet)
+        printf("Compiled object:\t%s\n", Path$as_c_string(obj_file));
 }
 
 Path_t compile_executable(env_t *base_env, Path_t path, Array_t object_files, Array_t extra_ldlibs)
@@ -675,8 +682,8 @@ Path_t compile_executable(env_t *base_env, Path_t path, Array_t object_files, Ar
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);
 
-    if (verbose)
-        printf("\x1b[2mCompiled executable: %s\x1b[m\n", Path$as_c_string(bin_name));
+    if (!quiet)
+        printf("Compiled executable:\t%s\n", Path$as_c_string(bin_name));
     return bin_name;
 }
 
