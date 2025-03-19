@@ -280,6 +280,7 @@ static void _write(Path_t path, Array_t bytes, int mode, int permissions)
     ssize_t written = write(fd, bytes.data, (size_t)bytes.length);
     if (written != (ssize_t)bytes.length)
         fail("Could not write to file: %s\n%s", path_str, strerror(errno));
+    close(fd);
 }
 
 public void Path$write(Path_t path, Text_t text, int permissions)
