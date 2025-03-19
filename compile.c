@@ -4160,11 +4160,10 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
 
             int64_t num_fields = used_names.entries.length;
             const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
-            CORD args_typeinfo = CORD_asprintf("((TypeInfo_t[1]){{.size=sizeof(%r), .align=__alignof__(%r), .metamethods=%s, "
+            CORD args_typeinfo = CORD_asprintf("((TypeInfo_t[1]){{.size=sizeof(args), .align=__alignof__(args), .metamethods=%s, "
                                                ".tag=StructInfo, .StructInfo.name=\"FunctionArguments\", "
                                                ".StructInfo.num_fields=%ld, .StructInfo.fields=(NamedType_t[%ld]){",
-                                               compile_type(t), compile_type(t), metamethods,
-                                               num_fields, num_fields);
+                                               metamethods, num_fields, num_fields);
             CORD args_type = "struct { ";
             for (arg_t *f = fields; f; f = f->next) {
                 args_typeinfo = CORD_all(args_typeinfo, "{\"", f->name, "\", ", compile_type_info(f->type), "}");
