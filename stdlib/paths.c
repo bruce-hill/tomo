@@ -636,7 +636,7 @@ static Text_t _next_line(FILE **f)
     if (u8_check((uint8_t*)line, (size_t)len) != NULL)
         fail("Invalid UTF8!");
 
-    Text_t line_text = Text$format("%.*s", len, line);
+    Text_t line_text = Text$from_strn(line, (size_t)len);
     free(line);
     return line_text;
 }
