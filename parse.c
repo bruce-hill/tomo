@@ -53,7 +53,7 @@ int op_tightness[] = {
 static const char *keywords[] = {
     "yes", "xor", "while", "when", "use", "unless", "struct", "stop", "skip", "return",
     "or", "not", "none", "no", "mutexed", "mod1", "mod", "pass", "lang", "inline", "in", "if", "holding",
-    "func", "for", "extern", "enum", "end", "else", "do", "deserialize", "defer", "begin", "and",
+    "func", "for", "extern", "enum", "do_end", "else", "do", "deserialize", "defer", "do_begin", "and",
     "_min_", "_max_", NULL,
 };
 
@@ -1172,16 +1172,16 @@ PARSER(parse_for) {
 }
 
 PARSER(parse_do) {
-    // [begin: [<indent>] block] [end: [<indent>] block] do: [<indent>] body
+    // [do_begin: [<indent>] block] [do_end: [<indent>] block] do: [<indent>] body
     const char *start = pos;
     int64_t starting_indent = get_indent(ctx, pos);
     ast_t *begin = NULL, *end = NULL;
-    if (match_word(&pos, "begin"))
+    if (match_word(&pos, "do_begin"))
         begin = optional(ctx, &pos, parse_block);
 
     const char *tmp = pos;
     whitespace(&tmp);
-    if (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "end")) {
+    if (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "do_end")) {
         pos = tmp;
         end = optional(ctx, &pos, parse_block);
     }

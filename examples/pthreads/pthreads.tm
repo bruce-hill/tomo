@@ -58,14 +58,14 @@ struct IntQueue(_queue:@[Int], _mutex:@pthread_mutex_t, _cond:@pthread_cond_t):
         return IntQueue(@initial, pthread_mutex_t.new(), pthread_cond_t.new())
 
     func give(q:IntQueue, n:Int):
-        begin: q._mutex:lock()
-        end: q._mutex:unlock()
+        do_begin: q._mutex:lock()
+        do_end: q._mutex:unlock()
         do: q._queue:insert(n)
         q._cond:signal()
 
     func take(q:IntQueue -> Int):
-        begin: q._mutex:lock()
-        end: q._mutex:unlock()
+        do_begin: q._mutex:lock()
+        do_end: q._mutex:unlock()
         do:
             repeat:
                 if n := q._queue:pop(1):
@@ -79,8 +79,8 @@ func main():
 
     say_mutex := pthread_mutex_t.new()
     announce := func(speaker:Text, text:Text):
-        begin: say_mutex:lock()
-        end: say_mutex:unlock()
+        do_begin: say_mutex:lock()
+        do_end: say_mutex:unlock()
         do: say("$\033[2m[$speaker]$\033[m $text")
 
     worker := pthread_t.new(func():
