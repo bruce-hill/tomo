@@ -1,8 +1,10 @@
 # Functions for running system commands
 
 use ./commands.c
+use libunistring.so
 
 extern run_command:func(exe:Text, args:[Text], env:{Text,Text}, input:[Byte], output:&[Byte], error:&[Byte] -> Int32)
+extern command_by_line:func(exe:Text, args:[Text], env:{Text,Text} -> func(->Text?)?)
 
 enum ExitType(Exited(status:Int32), Signaled(signal:Int32), Failed)
 
@@ -60,6 +62,9 @@ struct Command(command:Text, args=[:Text], env={:Text,Text}):
             if status == 0: return result.stdout
             return none
         else: return none
+
+    func by_line(command:Command -> func(->Text?)?):
+        return command_by_line(command.command, command.args, command.env)
 
 func main(command:Text, args:[Text], input=""):
     cmd := Command(command, args)

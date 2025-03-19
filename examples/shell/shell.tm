@@ -33,3 +33,9 @@ lang Shell:
     func get_output_bytes(shell:Shell, input="", input_bytes=[:Byte] -> [Byte]?):
         return shell:command():get_output_bytes(input=input, input_bytes=input_bytes)
 
+    func by_line(shell:Shell -> func(->Text?)?):
+        return shell:command():by_line()
+
+func main(command:Shell):
+    for line in command:by_line()!:
+        >> line

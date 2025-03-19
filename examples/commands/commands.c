@@ -11,10 +11,11 @@
 #include <sys/param.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <unistr.h>
 
 #define READ_END 0
 #define WRITE_END 1
-public int run_command(Text_t exe, Array_t arg_array, Table_t env_table,
+int run_command(Text_t exe, Array_t arg_array, Table_t env_table,
                        Array_t input_bytes, Array_t *output_bytes, Array_t *error_bytes)
 {
     pthread_testcancel();
@@ -171,6 +172,104 @@ public int run_command(Text_t exe, Array_t arg_array, Table_t env_table,
 
     if (ret) errno = ret;
     return status;
+}
+
+typedef struct {
+    pid_t pid;
+    FILE *out;
+} child_info_t;
+
+static void _line_reader_cleanup(child_info_t *child)
+{
+    if (child && child->out) {
+        fclose(child->out);
+        child->out = NULL;
+    }
+    if (child->pid) {
+        kill(child->pid, SIGTERM);
+        child->pid = 0;
+    }
+}
+
+static Text_t _next_line(child_info_t *child)
+{
+    if (!child || !child->out) return NONE_TEXT;
+
+    char *line = NULL;
+    size_t size = 0;
+    ssize_t len = getline(&line, &size, child->out);
+    if (len <= 0) {
+        _line_reader_cleanup(child);
+        return NONE_TEXT;
+    }
+
+    while (len > 0 && (line[len-1] == '\r' || line[len-1] == '\n'))
+        --len;
+
+    if (u8_check((uint8_t*)line, (size_t)len) != NULL)
+        fail("Invalid UTF8!");
+
+    Text_t line_text = Text$from_strn(line, len);
+    free(line);
+    return line_text;
+}
+
+OptionalClosure_t command_by_line(Text_t exe, Array_t arg_array, Table_t env_table)
+{
+    posix_spawnattr_t attr;
+    posix_spawnattr_init(&attr);
+
+    int child_outpipe[2];
+    pipe(child_outpipe);
+
+    posix_spawn_file_actions_t actions;
+    posix_spawn_file_actions_init(&actions);
+    posix_spawn_file_actions_adddup2(&actions, child_outpipe[WRITE_END], STDOUT_FILENO);
+    posix_spawn_file_actions_addclose(&actions, child_outpipe[READ_END]);
+
+    const char *exe_str = Text$as_c_string(exe);
+
+    Array_t arg_strs = {};
+    Array$insert_value(&arg_strs, exe_str, I(0), sizeof(char*));
+    for (int64_t i = 0; i < arg_array.length; i++)
+        Array$insert_value(&arg_strs, Text$as_c_string(*(Text_t*)(arg_array.data + i*arg_array.stride)), I(0), sizeof(char*));
+    Array$insert_value(&arg_strs, NULL, I(0), sizeof(char*));
+    char **args = arg_strs.data;
+
+    extern char **environ;
+    char **env = environ;
+    if (env_table.entries.length > 0) {
+        Array_t env_array = {}; // Array of const char*
+        for (char **e = environ; *e; e++)
+            Array$insert(&env_array, e, I(0), sizeof(char*));
+
+        for (int64_t i = 0; i < env_table.entries.length; i++) {
+            struct { Text_t key, value; } *entry = env_table.entries.data + env_table.entries.stride*i;
+            const char *env_entry = heap_strf("%k=%k", &entry->key, &entry->value);
+            Array$insert(&env_array, &env_entry, I(0), sizeof(char*));
+        }
+        Array$insert_value(&env_array, NULL, I(0), sizeof(char*));
+        assert(env_array.stride == sizeof(char*));
+        env = env_array.data;
+    }
+
+    pid_t pid;
+    int ret = exe_str[0] == '/' ?
+        posix_spawn(&pid, exe_str, &actions, &attr, args, env)
+        : posix_spawnp(&pid, exe_str, &actions, &attr, args, env);
+    if (ret != 0)
+        return NONE_CLOSURE;
+
+    posix_spawnattr_destroy(&attr);
+    posix_spawn_file_actions_destroy(&actions);
+
+    close(child_outpipe[WRITE_END]);
+
+    child_info_t *child_info = GC_MALLOC(sizeof(child_info_t));
+    child_info->out = fdopen(child_outpipe[READ_END], "r");
+    child_info->pid = pid;
+    GC_register_finalizer(child_info, (void*)_line_reader_cleanup, NULL, NULL, NULL);
+    return (Closure_t){.fn=(void*)_next_line, .userdata=child_info};
 }
 
 #undef READ_END
