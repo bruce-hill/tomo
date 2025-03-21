@@ -4,7 +4,7 @@ struct Mutex(_mutex:@Memory):
     func new(->Mutex):
         return Mutex(
             inline C : @Memory {
-                pthread_mutex_t *mutex = new(pthread_mutex_t);
+                pthread_mutex_t *mutex = GC_MALLOC(sizeof(pthread_mutex_t));
                 pthread_mutex_init(mutex, NULL);
                 GC_register_finalizer(mutex, (void*)pthread_mutex_destroy, NULL, NULL, NULL);
                 mutex
@@ -24,7 +24,7 @@ struct ThreadCondition(_cond:@Memory):
     func new(->ThreadCondition):
         return ThreadCondition(
             inline C : @Memory {
-                pthread_cond_t *cond = new(pthread_cond_t);
+                pthread_cond_t *cond = GC_MALLOC(sizeof(pthread_cond_t));
                 pthread_cond_init(cond, NULL);
                 GC_register_finalizer(cond, (void*)pthread_cond_destroy, NULL, NULL, NULL);
                 cond
@@ -58,7 +58,7 @@ struct PThread(_thread:@Memory):
     func new(fn:func() -> PThread):
         return PThread(
             inline C : @Memory {
-                pthread_t *thread = new(pthread_t);
+                pthread_t *thread = GC_MALLOC(sizeof(pthread_t));
                 pthread_create(thread, NULL, _$fn.fn, _$fn.userdata);
                 thread
             }
