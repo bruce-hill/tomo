@@ -1267,10 +1267,18 @@ public const TypeInfo_t Pattern$info = {
     .metamethods=Text$metamethods,
 };
 
+static const TypeInfo_t _text_array = {
+    .size=sizeof(Array_t),
+    .align=__alignof__(Array_t),
+    .tag=ArrayInfo,
+    .ArrayInfo.item=&Text$info,
+    .metamethods=Array$metamethods,
+};
+
 static NamedType_t _match_fields[3] = {
     {"text", &Text$info},
     {"index", &Int$info},
-    {"captures", Array$info(&Text$info)},
+    {"captures", &_text_array},
 };
 
 static bool Match$is_none(const void *m, const TypeInfo_t*)

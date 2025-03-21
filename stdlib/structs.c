@@ -24,7 +24,7 @@ PUREFUNC public uint64_t Struct$hash(const void *obj, const TypeInfo_t *type)
     if (type->StructInfo.num_fields == 1)
         return generic_hash(obj, type->StructInfo.fields[0].type);
 
-    uint64_t field_hashes[type->StructInfo.num_fields] = {};
+    uint64_t field_hashes[type->StructInfo.num_fields];
     ptrdiff_t byte_offset = 0;
     ptrdiff_t bit_offset = 0;
     for (int i = 0; i < type->StructInfo.num_fields; i++) {

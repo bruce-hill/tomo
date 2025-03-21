@@ -224,8 +224,10 @@ static Table_t parse_table(const TypeInfo_t *table, int n, char *args[])
 #pragma GCC diagnostic ignored "-Wstack-protector"
 public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, int spec_len, cli_arg_t spec[spec_len])
 {
-    bool populated_args[spec_len] = {};
-    bool used_args[argc] = {};
+    bool populated_args[spec_len];
+    bool used_args[argc];
+    memset(populated_args, 0, sizeof(populated_args));
+    memset(used_args, 0, sizeof(used_args));
     for (int i = 1; i < argc; ) {
         if (argv[i][0] == '-' && argv[i][1] == '-') {
             if (argv[i][2] == '\0') { // "--" signals the rest of the arguments are literal

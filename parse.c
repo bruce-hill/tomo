@@ -207,7 +207,7 @@ static const char *unescape(parse_ctx_t *ctx, const char **out) {
         size_t len = strcspn(&escape[2], "\r\n}");
         if (escape[2+len] != '}')
             parser_err(ctx, escape, escape + 2 + len, "Missing closing '}'");
-        char name[len+1] = {};
+        char name[len+1];
         memcpy(name, &escape[2], len);
         name[len] = '\0';
         uint32_t codepoint = unicode_name_character(name);

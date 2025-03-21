@@ -348,7 +348,7 @@ public Array_t Array$sample(Array_t arr, Int_t int_n, Array_t weights, RNG_t rng
     struct {
         int64_t alias;
         double odds;
-    } aliases[arr.length] = {};
+    } aliases[arr.length];
 
     for (int64_t i = 0; i < arr.length; i++) {
         double weight = i >= weights.length ? 0.0 : *(double*)(weights.data + weights.stride*i);

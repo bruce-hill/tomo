@@ -504,7 +504,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         assert(t->tag == ArrayType);
         Array_t arr = {};
         size_t item_size = type_size(Match(t, ArrayType)->item_type);
-        char item_buf[item_size] = {};
+        char item_buf[item_size];
         for (ast_list_t *item = Match(ast, Array)->items; item; item = item->next) {
             eval(env, item->ast, item_buf);
             Array$insert(&arr, item_buf, I(0), (int64_t)type_size(Match(t, ArrayType)->item_type));
@@ -518,8 +518,8 @@ void eval(env_t *env, ast_t *ast, void *dest)
         Table_t table = {};
         size_t key_size = type_size(Match(t, TableType)->key_type);
         size_t value_size = type_size(Match(t, TableType)->value_type);
-        char key_buf[key_size] = {};
-        char value_buf[value_size] = {};
+        char key_buf[key_size];
+        char value_buf[value_size];
         const TypeInfo_t *table_info = type_to_type_info(t);
         assert(table_info->tag == TableInfo);
         for (ast_list_t *entry = table_ast->entries; entry; entry = entry->next) {

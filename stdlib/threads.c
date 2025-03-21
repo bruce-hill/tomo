@@ -33,7 +33,7 @@ static void *run_thread(Closure_t *closure)
 
 public Thread_t Thread$new(Closure_t fn)
 {
-    Thread_t thread = new(pthread_t);
+    Thread_t thread = GC_MALLOC(sizeof(pthread_t));
     Closure_t *closure = new(Closure_t, .fn=fn.fn, .userdata=fn.userdata);
     pthread_create(thread, NULL, (void*)run_thread, closure);
     return thread;

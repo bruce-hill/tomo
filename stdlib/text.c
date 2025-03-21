@@ -138,7 +138,7 @@ static const TypeInfo_t GraphemeClusterInfo = {
 #pragma GCC diagnostic ignored "-Wstack-protector"
 public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_len)
 {
-    ucs4_t length_prefixed[1+utf32_len] = {};
+    ucs4_t length_prefixed[1+utf32_len];
     length_prefixed[0] = (ucs4_t)utf32_len;
     for (int i = 0; i < utf32_len; i++)
         length_prefixed[i+1] = codepoints[i];
@@ -330,7 +330,8 @@ static void insert_balanced_recursive(Text_t balanced_texts[MAX_TEXT_DEPTH], Tex
 
 static Text_t rebalanced(Text_t a, Text_t b)
 {
-    Text_t balanced_texts[MAX_TEXT_DEPTH] = {};
+    Text_t balanced_texts[MAX_TEXT_DEPTH];
+    memset(balanced_texts, 0, sizeof(balanced_texts));
     insert_balanced_recursive(balanced_texts, a);
     insert_balanced_recursive(balanced_texts, b);
 
@@ -436,7 +437,7 @@ static Text_t concat2(Text_t a, Text_t b)
     size_t len = (last_a >= 0) ? 1 : NUM_GRAPHEME_CODEPOINTS(last_a);
     len += (first_b >= 0) ? 1 : NUM_GRAPHEME_CODEPOINTS(first_b);
 
-    ucs4_t codepoints[len] = {};
+    ucs4_t codepoints[len];
     ucs4_t *dest = codepoints;
     if (last_a < 0)
         dest = mempcpy(dest, GRAPHEME_CODEPOINTS(last_a), sizeof(ucs4_t[NUM_GRAPHEME_CODEPOINTS(last_a)]));
@@ -451,7 +452,7 @@ static Text_t concat2(Text_t a, Text_t b)
     // Do a normalization run for these two codepoints and see if it looks different.
     // Normalization should not exceed 3x in the input length (but if it does, it will be
     // handled gracefully)
-    ucs4_t norm_buf[3*len] = {};
+    ucs4_t norm_buf[3*len];
     size_t norm_length = sizeof(norm_buf)/sizeof(norm_buf[0]);
     ucs4_t *normalized = u32_normalize(UNINORM_NFC, codepoints, len, norm_buf, &norm_length);
     bool stable = (norm_length == len && memcmp(codepoints, normalized, sizeof(codepoints)) == 0);
