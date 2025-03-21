@@ -84,14 +84,15 @@ of many language features or the other example programs/modules in
 
 Tomo has a very small set of dependencies:
 
+- GCC version 12 or higher (might work on lower versions, but has not been tested)
 - The [Boehm garbage collector](https://www.hboehm.info/gc/) for runtime
   garbage collection.
 - [libunistring](https://www.gnu.org/software/libunistring/) for unicode
-  string support.
+  string support (version 1.0 or higher)
 - [GNU multiple precision arithmetic library](https://gmplib.org/manual/index)
-  for arbitrary precision integer math.
+  for arbitrary precision integer math (version 6.2.1 or higher)
+- [Patchelf](https://github.com/NixOS/patchelf) for building tomo libraries
 - [Binutils](https://www.gnu.org/software/binutils/) for stack traces.
-- a C compiler
 - and libc/libm, which should definitely already be installed.
 
 The Boehm GC, libunistring, and binutils should be available on your package
