@@ -61,11 +61,12 @@
 #include <stdlib.h>
 #include <sys/param.h>
 
-#include <unistr.h>
 #include <unicase.h>
 #include <unictype.h>
 #include <unigbrk.h>
 #include <uniname.h>
+#include <unistr.h>
+#include <unistring/version.h>
 #include <uniwidth.h>
 
 #include "arrays.h"
@@ -206,8 +207,12 @@ public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_le
     // that begin with *prefix* modifiers, so we gotta check for that case:
     synthetic_graphemes[-grapheme_id-1].main_codepoint = length_prefixed[1];
     for (ucs4_t i = 0; i < utf32_len; i++) {
+#if _LIBUNISTRING_VERSION >= 0x010200
+// libuinstring version 1.2.0 introduced uc_is_property_prepended_concatenation_mark()
+// It's not critical, but it's technically more correct to have this check:
         if (unlikely(uc_is_property_prepended_concatenation_mark(length_prefixed[1+i])))
             continue;
+#endif
         synthetic_graphemes[-grapheme_id-1].main_codepoint = length_prefixed[1+i];
         break;
     }
