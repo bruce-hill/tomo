@@ -1,7 +1,7 @@
 PREFIX=/usr
 VERSION=0.0.1
 CC=gcc
-CCONFIG=-std=c23 -Werror -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -I. \
+CCONFIG=-std=c2x -Werror -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -I. \
 		-fno-signed-zeros -fno-finite-math-only -fno-signaling-nans -fno-trapping-math \
 		-fsanitize=signed-integer-overflow -fno-sanitize-recover -fvisibility=hidden -fdollars-in-identifiers \
 		-DGC_THREADS
@@ -12,7 +12,7 @@ CWARN=-Wall -Wextra -Wno-format -Wshadow \
 	  -Wno-pedantic \
 	  -Wno-pointer-arith \
 	  -Wsign-conversion -Wtype-limits -Wunused-result -Wnull-dereference \
-	  -Walloc-zero -Walloca -Warith-conversion -Wcast-align -Wcast-align=strict \
+	  -Walloc-zero -Walloca -Wcast-align -Wcast-align=strict \
 	  -Wdangling-else -Wdate-time -Wdisabled-optimization -Wdouble-promotion -Wduplicated-branches \
 	  -Wduplicated-cond -Wexpansion-to-defined -Wno-float-equal \
 	  -Wframe-address -Winline -Winvalid-pch -Wjump-misses-init \
@@ -37,7 +37,7 @@ BUILTIN_OBJS=stdlib/siphash.o stdlib/arrays.o stdlib/bools.o stdlib/bytes.o stdl
 						 stdlib/structs.o stdlib/enums.o stdlib/moments.o stdlib/mutexeddata.o
 TESTS=$(patsubst %.tm,%.tm.testresult,$(wildcard test/*.tm))
 
-all: libtomo.so tomo tomo.1
+all: libtomo.so tomo
 
 tomo: tomo.o $(BUILTIN_OBJS) ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o repl.o cordhelpers.o
 	@echo $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $^ $(LDLIBS) -o $@
@@ -80,7 +80,7 @@ examples: examples/commands/commands examples/base64/base64 examples/ini/ini exa
 		examples/http examples/threads examples/tomodeps examples/tomo-install examples/wrap examples/pthreads examples/colorful
 	./tomo examples/learnxiny.tm
 
-install: tomo libtomo.so tomo.1
+install: tomo libtomo.so
 	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
 	cp -v stdlib/*.h "$(PREFIX)/include/tomo/"
 	cp -v libtomo.so "$(PREFIX)/lib/"
