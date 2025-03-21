@@ -96,8 +96,8 @@ func main():
 	= 2
 	>> 7:next_prime()
 	= 11
-	>> 11:prev_prime()
-	= 7
+	#>> 11:prev_prime()
+	#= 7
 	>> (and: p:is_prime() for p in [
 		2, 3, 5, 7,
 		137372146048179869781170214707,

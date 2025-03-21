@@ -142,7 +142,11 @@ Int_t Int$slow_negative(Int_t x);
 Int_t Int$slow_negated(Int_t x);
 bool Int$is_prime(Int_t x, Int_t reps);
 Int_t Int$next_prime(Int_t x);
+#if __GNU_MP_VERSION >= 6
+#if __GNU_MP_VERSION_MINOR >= 3
 Int_t Int$prev_prime(Int_t x);
+#endif
+#endif
 Int_t Int$choose(Int_t n, Int_t k);
 Int_t Int$factorial(Int_t n);
 

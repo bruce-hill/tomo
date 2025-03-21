@@ -120,7 +120,11 @@ env_t *global_env(void)
             {"parse", "Int$parse", "func(text:Text -> Int?)"},
             {"plus", "Int$plus", "func(x,y:Int -> Int)"},
             {"power", "Int$power", "func(base:Int,exponent:Int -> Int)"},
+#if __GNU_MP_VERSION >= 6
+#if __GNU_MP_VERSION_MINOR >= 3
             {"prev_prime", "Int$prev_prime", "func(x:Int -> Int)"},
+#endif
+#endif
             {"right_shifted", "Int$right_shifted", "func(x,y:Int -> Int)"},
             {"sqrt", "Int$sqrt", "func(x:Int -> Int?)"},
             {"times", "Int$times", "func(x,y:Int -> Int)"},

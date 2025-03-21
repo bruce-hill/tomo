@@ -409,6 +409,8 @@ public Int_t Int$next_prime(Int_t x)
     return Int$from_mpz(p);
 }
 
+#if __GNU_MP_VERSION >= 6
+#if __GNU_MP_VERSION_MINOR >= 3
 public Int_t Int$prev_prime(Int_t x)
 {
     mpz_t p;
@@ -417,6 +419,8 @@ public Int_t Int$prev_prime(Int_t x)
         fail("There is no prime number before %k", (Text_t[1]){Int$as_text(&x, false, &Int$info)});
     return Int$from_mpz(p);
 }
+#endif
+#endif
 
 public Int_t Int$choose(Int_t n, Int_t k)
 {
