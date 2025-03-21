@@ -585,7 +585,7 @@ env_t *global_env(void)
         {"random", "default_rng", "RNG"},
         {"say", "say", "func(text:Text, newline=yes)"},
         {"print", "say", "func(text:Text, newline=yes)"},
-        {"ask", "ask", "func(prompt:Text, bold=yes, force_tty=yes -> Text)"},
+        {"ask", "ask", "func(prompt:Text, bold=yes, force_tty=yes -> Text?)"},
         {"exit", "tomo_exit", "func(message=none:Text, code=Int32(1) -> Abort)"},
         {"fail", "fail_text", "func(message:Text -> Abort)"},
         {"sleep", "sleep_num", "func(seconds:Num)"},

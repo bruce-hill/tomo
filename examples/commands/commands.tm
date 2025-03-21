@@ -33,6 +33,12 @@ struct ProgramResult(stdout:[Byte], stderr:[Byte], exit_type:ExitType):
         else: return none
         return none
 
+    func succeeded(r:ProgramResult -> Bool):
+        when r.exit_type is Exited(status):
+            return (status == 0)
+        else:
+            return no
+
 struct Command(command:Text, args=[:Text], env={:Text,Text}):
     func from_path(path:Path, args=[:Text], env={:Text,Text} -> Command):
         return Command(Text(path), args, env)
