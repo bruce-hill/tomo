@@ -86,7 +86,7 @@ MACROLIKE int32_t Text$get_grapheme(Text_t text, int64_t index)
 extern const TypeInfo_t Text$info;
 extern Text_t EMPTY_TEXT;
 
-#define Text$metamethods ((metamethods_t){ \
+#define Text$metamethods { \
     .as_text=Text$as_text, \
     .hash=Text$hash, \
     .compare=Text$compare, \
@@ -94,6 +94,6 @@ extern Text_t EMPTY_TEXT;
     .is_none=Text$is_none, \
     .serialize=Text$serialize, \
     .deserialize=Text$deserialize, \
-})
+}
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

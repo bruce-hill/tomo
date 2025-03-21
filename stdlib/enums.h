@@ -15,7 +15,7 @@ PUREFUNC bool Enum$is_none(const void *obj, const TypeInfo_t *type);
 void Enum$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type);
 void Enum$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type);
 
-#define Enum$metamethods ((metamethods_t){ \
+#define Enum$metamethods { \
     .as_text=Enum$as_text, \
     .compare=Enum$compare, \
     .equal=Enum$equal, \
@@ -23,9 +23,9 @@ void Enum$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_
     .is_none=Enum$is_none, \
     .serialize=Enum$serialize, \
     .deserialize=Enum$deserialize, \
-})
+}
 
-#define PackedDataEnum$metamethods ((metamethods_t){ \
+#define PackedDataEnum$metamethods { \
     .hash=PackedData$hash, \
     .compare=Enum$compare, \
     .equal=PackedData$equal, \
@@ -33,6 +33,6 @@ void Enum$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_
     .is_none=Enum$is_none, \
     .serialize=Enum$serialize, \
     .deserialize=Enum$deserialize, \
-})
+}
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -20,14 +20,14 @@ void Pointer$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeIn
 #define POINTER_TYPE(_sigil, _pointed) (&(TypeInfo_t){\
     .size=sizeof(void*), .align=alignof(void*), .tag=PointerInfo, .PointerInfo.sigil=_sigil, .PointerInfo.pointed=_pointed})
 
-#define Pointer$metamethods ((metamethods_t){ \
+#define Pointer$metamethods { \
     .as_text=Pointer$as_text, \
     .compare=Pointer$compare, \
     .equal=Pointer$equal, \
     .is_none=Pointer$is_none, \
     .serialize=Pointer$serialize, \
     .deserialize=Pointer$deserialize, \
-})
+}
 
 #define Pointer$info(sigil_expr, pointed_info) &((TypeInfo_t){.size=sizeof(void*), .align=__alignof__(void*), \
                                                  .tag=PointerInfo, .PointerInfo={.sigil=sigil_expr, .pointed=pointed_info}, \

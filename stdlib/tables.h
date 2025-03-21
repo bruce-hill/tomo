@@ -92,7 +92,7 @@ void Table$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo
 
 extern const TypeInfo_t CStrToVoidStarTable;
 
-#define Table$metamethods ((metamethods_t){ \
+#define Table$metamethods { \
     .as_text=Table$as_text, \
     .compare=Table$compare, \
     .equal=Table$equal, \
@@ -100,7 +100,7 @@ extern const TypeInfo_t CStrToVoidStarTable;
     .is_none=Table$is_none, \
     .serialize=Table$serialize, \
     .deserialize=Table$deserialize, \
-})
+}
 
 #define Table$info(key_expr, value_expr) &((TypeInfo_t){.size=sizeof(Table_t), .align=__alignof__(Table_t), \
                                            .tag=TableInfo, .TableInfo.key=key_expr, .TableInfo.value=value_expr, .metamethods=Table$metamethods})

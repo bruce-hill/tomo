@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 PREFIX=/usr
 VERSION=0.0.1
 CC=gcc

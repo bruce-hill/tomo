@@ -120,7 +120,7 @@ Int_t Array$binary_search(Array_t array, void *target, Closure_t comparison);
 void Array$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type);
 void Array$deserialize(FILE *in, void *obj, Array_t *pointers, const TypeInfo_t *type);
 
-#define Array$metamethods ((metamethods_t){ \
+#define Array$metamethods { \
     .as_text=Array$as_text, \
     .compare=Array$compare, \
     .equal=Array$equal, \
@@ -128,7 +128,7 @@ void Array$deserialize(FILE *in, void *obj, Array_t *pointers, const TypeInfo_t 
     .is_none=Array$is_none, \
     .serialize=Array$serialize, \
     .deserialize=Array$deserialize, \
-})
+}
 
 #define Array$info(item_info) &((TypeInfo_t){.size=sizeof(Array_t), .align=__alignof__(Array_t), \
                                 .tag=ArrayInfo, .ArrayInfo.item=item_info, \

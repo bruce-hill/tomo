@@ -17,7 +17,7 @@ PUREFUNC bool Struct$is_none(const void *obj, const TypeInfo_t *type);
 void Struct$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type);
 void Struct$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type);
 
-#define Struct$metamethods ((metamethods_t){ \
+#define Struct$metamethods { \
     .hash=Struct$hash, \
     .compare=Struct$compare, \
     .equal=Struct$equal, \
@@ -25,9 +25,9 @@ void Struct$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInf
     .is_none=Struct$is_none, \
     .serialize=Struct$serialize, \
     .deserialize=Struct$deserialize, \
-})
+}
 
-#define PackedData$metamethods ((metamethods_t){ \
+#define PackedData$metamethods { \
     .hash=PackedData$hash, \
     .compare=Struct$compare, \
     .equal=PackedData$equal, \
@@ -35,6 +35,6 @@ void Struct$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInf
     .is_none=Struct$is_none, \
     .serialize=Struct$serialize, \
     .deserialize=Struct$deserialize, \
-})
+}
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
