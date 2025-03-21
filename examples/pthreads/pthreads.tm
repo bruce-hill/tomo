@@ -7,7 +7,7 @@ extern pthread_mutex_unlock:func(mutex:&pthread_mutex_t -> Int32)
 struct pthread_mutex_t(; extern, opaque):
     func new(->@pthread_mutex_t):
         return inline C : @pthread_mutex_t {
-            pthread_mutex_t *mutex = new(pthread_mutex_t);
+            pthread_mutex_t *mutex = GC_MALLOC(sizeof(pthread_mutex_t));
             pthread_mutex_init(mutex, NULL);
             GC_register_finalizer(mutex, (void*)pthread_mutex_destroy, NULL, NULL, NULL);
             mutex
@@ -26,7 +26,7 @@ extern pthread_cond_broadcast:func(cond:&pthread_cond_t -> Int32)
 struct pthread_cond_t(; extern, opaque):
     func new(->@pthread_cond_t):
         return inline C : @pthread_cond_t {
-            pthread_cond_t *cond = new(pthread_cond_t);
+            pthread_cond_t *cond = GC_MALLOC(sizeof(pthread_cond_t));
             pthread_cond_init(cond, NULL);
             GC_register_finalizer(cond, (void*)pthread_cond_destroy, NULL, NULL, NULL);
             cond
@@ -44,7 +44,7 @@ struct pthread_cond_t(; extern, opaque):
 struct pthread_t(; extern, opaque):
     func new(fn:func() -> @pthread_t):
         return inline C : @pthread_t {
-            pthread_t *thread = new(pthread_t);
+            pthread_t *thread = GC_MALLOC(sizeof(pthread_t));
             pthread_create(thread, NULL, _$fn.fn, _$fn.userdata);
             thread
         }
