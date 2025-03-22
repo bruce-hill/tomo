@@ -87,7 +87,12 @@ int main(int argc, char *argv[])
 {
     // Get the file modification time of the compiler, so we
     // can recompile files after changing the compiler:
-    if (stat(argv[0], &compiler_stat) != 0)
+    char compiler_path[PATH_MAX];
+    ssize_t count = readlink("/proc/self/exe", compiler_path, PATH_MAX);
+    if (count == -1)
+        err(1, "Could not find age of compiler");
+    compiler_path[count] = '\0';
+    if (stat(compiler_path, &compiler_stat) != 0)
         err(1, "Could not find age of compiler");
 
     if (register_printf_specifier('T', printf_type, printf_pointer_size))
