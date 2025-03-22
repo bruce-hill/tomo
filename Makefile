@@ -38,30 +38,32 @@ BUILTIN_OBJS=stdlib/siphash.o stdlib/arrays.o stdlib/bools.o stdlib/bytes.o stdl
 						 stdlib/structs.o stdlib/enums.o stdlib/moments.o stdlib/mutexeddata.o
 TESTS=$(patsubst %.tm,%.tm.testresult,$(wildcard test/*.tm))
 
-all: libtomo.so tomo
+all: build/libtomo.so build/tomo
 
-tomo: tomo.o $(BUILTIN_OBJS) ast.o parse.o environment.o types.o typecheck.o structs.o enums.o compile.o repl.o cordhelpers.o
+build/tomo: src/tomo.o $(BUILTIN_OBJS) src/ast.o src/parse.o src/environment.o src/types.o src/typecheck.o src/structs.o src/enums.o src/compile.o src/repl.o src/cordhelpers.o
+	@mkdir -p build
 	@echo $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $^ $(LDLIBS) -o $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-libtomo.so: $(BUILTIN_OBJS)
+build/libtomo.so: $(BUILTIN_OBJS)
+	@mkdir -p build
 	@echo $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -ldl -Wl,-soname,libtomo.so -shared -o $@
 	@$(CC) $^ $(CFLAGS) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -ldl -Wl,-soname,libtomo.so -shared -o $@
 
 tags:
 	ctags *.[ch] **/*.[ch]
 
-%.o: %.c ast.h environment.h types.h
+%.o: %.c src/ast.h src/environment.h src/types.h
 	@echo $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 %: %.tm
 	tomo -e $<
 
-%.tm.testresult: %.tm tomo
+%.tm.testresult: %.tm build/tomo
 	@printf '\x1b[33;1;4m%s\x1b[m\n' $<
 	@set -o pipefail; \
-	if ! VERBOSE=0 COLOR=1 LC_ALL=C CC=gcc ./tomo -O 1 $< 2>&1 | tee $@; then \
+	if ! VERBOSE=0 COLOR=1 LC_ALL=C CC=gcc ./build/tomo -O 1 $< 2>&1 | tee $@; then \
 		rm -f $@; \
 		false; \
 	fi
@@ -70,23 +72,23 @@ test: $(TESTS)
 	@echo -e '\x1b[32;7m ALL TESTS PASSED! \x1b[m'
 
 clean:
-	rm -rf tomo *.o stdlib/*.o libtomo.so test/*.tm.testresult test/.build examples/.build examples/*/.build
+	rm -rf build/* *.o stdlib/*.o test/*.tm.testresult test/.build examples/.build examples/*/.build
 
 %: %.md
 	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@
 
 examples: examples/commands/commands examples/base64/base64 examples/ini/ini examples/game/game \
 		examples/tomodeps/tomodeps examples/tomo-install/tomo-install examples/wrap/wrap examples/colorful/colorful
-	./tomo -IL examples/commands examples/shell examples/base64 examples/log examples/ini examples/vectors examples/game \
+	./build/tomo -IL examples/commands examples/shell examples/base64 examples/log examples/ini examples/vectors examples/game \
 		examples/http examples/threads examples/tomodeps examples/tomo-install examples/wrap examples/pthreads examples/colorful
-	./tomo examples/learnxiny.tm
+	./build/tomo examples/learnxiny.tm
 
-install: tomo libtomo.so
+install: build/tomo build/libtomo.so
 	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
 	cp -v stdlib/*.h "$(PREFIX)/include/tomo/"
-	cp -v libtomo.so "$(PREFIX)/lib/"
+	cp -v build/libtomo.so "$(PREFIX)/lib/"
 	rm -f "$(PREFIX)/bin/tomo"
-	cp -v tomo "$(PREFIX)/bin/"
+	cp -v build/tomo "$(PREFIX)/bin/"
 	cp -v tomo.1 "$(PREFIX)/man/man1/"
 
 uninstall:
