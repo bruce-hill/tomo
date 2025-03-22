@@ -76,6 +76,7 @@ static Text_t escape_lib_name(Text_t lib_name);
 static void build_library(Text_t lib_dir_name);
 static void compile_files(env_t *env, Array_t files, Array_t *object_files, Array_t *ldlibs);
 static bool is_stale(Path_t path, Path_t relative_to);
+static Path_t build_file(Path_t path, const char *extension);
 
 typedef struct {
     bool h:1, c:1, o:1;
@@ -209,7 +210,7 @@ int main(int argc, char *argv[])
     for (int64_t i = 0; i < files.length; i++) {
         Path_t path = *(Path_t*)(files.data + i*files.stride);
         Path_t exe_path = compile_exe ? Path$with_extension(path, Text(""), true)
-            : Path$write_unique_bytes(Path("/tmp/tomo-exe-XXXXXX"), (Array_t){});
+            : build_file(Path$with_extension(path, Text(""), true), "");
 
         pid_t child = fork();
         if (child == 0) {
@@ -239,9 +240,6 @@ int main(int argc, char *argv[])
                 kill(child, SIGCONT);
         }
 
-        if (!compile_exe)
-            Path$remove(exe_path, true);
-
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
             _exit(WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE);
         }
@@ -263,7 +261,7 @@ Text_t escape_lib_name(Text_t lib_name)
     return Text$replace(lib_name, Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false);
 }
 
-static Path_t build_file(Path_t path, const char *extension)
+Path_t build_file(Path_t path, const char *extension)
 {
     Path_t build_dir = Path$with_component(Path$parent(path), Text(".build"));
     if (mkdir(Path$as_c_string(build_dir), 0777) != 0) {
