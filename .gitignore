@@ -5,10 +5,9 @@
 *.tm.c
 *.tm.h
 *.tm.o
+*.testresult
 /tomo
 /tags
-/test/*
-!/test/*.tm
 /examples
 !/examples/*.tm
 !/examples/*/*.tm
