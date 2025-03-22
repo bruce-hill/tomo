@@ -63,7 +63,7 @@ static OptionalText_t
                           " -DGC_THREADS"
                           " -I$HOME/.local/include -I$HOME/.local/share/tomo/installed"),
             ldlibs = Text("-lgc -lgmp -lm -ltomo"),
-            ldflags = Text("-Wl,-rpath='$ORIGIN',-rpath=$HOME/.local/share/tomo/lib,-rpath=$HOME/.local/lib  -L. -L$HOME/.local/lib -L$HOME/.local/share/tomo/lib"),
+            ldflags = Text("-Wl,-rpath='$ORIGIN',-rpath=$HOME/.local/share/tomo/lib,-rpath=$HOME/.local/lib -L$HOME/.local/lib -L$HOME/.local/share/tomo/lib"),
             optimization = Text("2"),
             cc = Text("gcc");
 
