@@ -527,6 +527,7 @@ public Path_t Path$write_unique_bytes(Path_t path, Array_t bytes)
     ssize_t written = write(fd, bytes.data, (size_t)bytes.length);
     if (written != (ssize_t)bytes.length)
         fail("Could not write to file: %s\n%s", buf, strerror(errno));
+    close(fd);
     return Path$from_str(buf);
 }
 
