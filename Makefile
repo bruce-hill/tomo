@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-PREFIX=/usr
+PREFIX=$(HOME)/.local
 VERSION=0.0.1
 CC=gcc
 CCONFIG=-std=c2x -Werror -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -I. \
@@ -85,6 +85,13 @@ deps:
 	./install_dependencies.sh
 
 install: build/tomo build/libtomo.so
+	@if ! echo "$$PATH" | tr ':' '\n' | grep -qx "$(PREFIX)/bin"; then \
+		printf "\033[31;1mError: '$(PREFIX)' is not in your \$$PATH variable!\033[m\n" >&2; \
+		printf "\033[31;1mSpecify a different prefix with 'make PREFIX=... install'\033[m\n" >&2; \
+		printf "\033[31;1mor add the following line to your .profile:\033[m\n" >&2; \
+		printf "\n\033[1mexport PATH=\"$(PREFIX):\$$PATH\"\033[m\n\n" >&2; \
+		exit 1; \
+	fi
 	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
 	cp -v src/stdlib/*.h "$(PREFIX)/include/tomo/"
 	cp -v build/libtomo.so "$(PREFIX)/lib/"
