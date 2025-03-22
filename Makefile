@@ -77,7 +77,7 @@ clean:
 
 examples: examples/commands/commands examples/base64/base64 examples/ini/ini examples/game/game \
 		examples/tomodeps/tomodeps examples/tomo-install/tomo-install examples/wrap/wrap examples/colorful/colorful
-	./build/tomo -IL examples/commands examples/shell examples/base64 examples/log examples/ini examples/vectors examples/game \
+	./build/tomo -qIL examples/commands examples/shell examples/base64 examples/log examples/ini examples/vectors examples/game \
 		examples/http examples/threads examples/tomodeps examples/tomo-install examples/wrap examples/pthreads examples/colorful
 	./build/tomo examples/learnxiny.tm
 
