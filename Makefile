@@ -31,21 +31,18 @@ O=-Og
 CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO)
 CFLAGS_PLACEHOLDER="$$(echo -e '\033[2m<flags...>\033[m')" 
 LDLIBS=-lgc -lcord -lm -lunistring -lgmp -ldl
-BUILTIN_OBJS=stdlib/siphash.o stdlib/arrays.o stdlib/bools.o stdlib/bytes.o stdlib/nums.o stdlib/integers.o \
-						 stdlib/pointers.o stdlib/memory.o stdlib/text.o stdlib/threads.o stdlib/c_strings.o stdlib/tables.o \
-						 stdlib/types.o stdlib/util.o stdlib/files.o stdlib/paths.o stdlib/rng.o \
-						 stdlib/optionals.o stdlib/patterns.o stdlib/metamethods.o stdlib/functiontype.o stdlib/stdlib.o \
-						 stdlib/structs.o stdlib/enums.o stdlib/moments.o stdlib/mutexeddata.o
+COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c))
+STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c))
 TESTS=$(patsubst %.tm,%.tm.testresult,$(wildcard test/*.tm))
 
 all: build/libtomo.so build/tomo
 
-build/tomo: src/tomo.o $(BUILTIN_OBJS) src/ast.o src/parse.o src/environment.o src/types.o src/typecheck.o src/structs.o src/enums.o src/compile.o src/repl.o src/cordhelpers.o
+build/tomo: $(STDLIB_OBJS) $(COMPILER_OBJS)
 	@mkdir -p build
 	@echo $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $^ $(LDLIBS) -o $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-build/libtomo.so: $(BUILTIN_OBJS)
+build/libtomo.so: $(STDLIB_OBJS)
 	@mkdir -p build
 	@echo $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -ldl -Wl,-soname,libtomo.so -shared -o $@
 	@$(CC) $^ $(CFLAGS) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -ldl -Wl,-soname,libtomo.so -shared -o $@
@@ -72,7 +69,7 @@ test: $(TESTS)
 	@echo -e '\x1b[32;7m ALL TESTS PASSED! \x1b[m'
 
 clean:
-	rm -rf build/* *.o stdlib/*.o test/*.tm.testresult test/.build examples/.build examples/*/.build
+	rm -rf build/* $(COMPILER_OBJS) $(STDLIB_OBJS) test/*.tm.testresult test/.build examples/.build examples/*/.build
 
 %: %.md
 	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@
@@ -85,7 +82,7 @@ examples: examples/commands/commands examples/base64/base64 examples/ini/ini exa
 
 install: build/tomo build/libtomo.so
 	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
-	cp -v stdlib/*.h "$(PREFIX)/include/tomo/"
+	cp -v src/stdlib/*.h "$(PREFIX)/include/tomo/"
 	cp -v build/libtomo.so "$(PREFIX)/lib/"
 	rm -f "$(PREFIX)/bin/tomo"
 	cp -v build/tomo "$(PREFIX)/bin/"
