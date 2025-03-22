@@ -101,6 +101,7 @@ manager of choice (for example, `pacman -S gc libunistring binutils`).
 ## Building
 
 The Tomo compiler can be compiled with either GCC or Clang by running `make`.
+The resulting compiler and shared library will be put into `./build/`.
 
 ## Usage
 
