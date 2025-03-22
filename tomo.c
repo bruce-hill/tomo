@@ -5,6 +5,7 @@
 #include <gc/cord.h>
 #include <libgen.h>
 #include <printf.h>
+#include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -198,8 +199,19 @@ int main(int argc, char *argv[])
         for (int64_t i = 0; i < args.length; i++)
             prog_args[i + 1] = Text$as_c_string(*(Text_t*)(args.data + i*args.stride));
         prog_args[1 + args.length] = NULL;
-        execv(prog_args[0], prog_args);
-        errx(1, "Failed to run compiled program");
+        pid_t child;
+        if (posix_spawn(&child, prog_args[0], NULL, NULL, prog_args, NULL) != 0)
+            err(1, "Failed to run compiled program: %s", prog_args[0]);
+        assert(child);
+        int status;
+        while (waitpid(child, &status, 0) < 0 && errno == EINTR) {
+            if (WIFEXITED(status) || WIFSIGNALED(status))
+                break;
+            else if (WIFSTOPPED(status))
+                kill(child, SIGCONT);
+        }
+        unlink(prog_args[0]);
+        return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
     } else {
         env_t *env = global_env();
         Array_t object_files = {},
