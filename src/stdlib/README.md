@@ -11,7 +11,7 @@ some common functionality.
 - Metamethods: [metamethods.h](metamethods.h), [metamethods.c](metamethods.c)
 - Siphash: [siphash.h](siphash.h), [siphash.c](siphash.c)
 - Siphash-internals: [siphash-internals.h](siphash-internals.h), [siphash-internals.c](siphash-internals.c)
-- Util: [util.h](util.h), [util.c](util.c)
+- Utilities: [util.h](util.h), [util.c](util.c)
 
 ## Core Data Types
 
