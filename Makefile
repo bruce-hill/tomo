@@ -33,7 +33,7 @@ CFLAGS_PLACEHOLDER="$$(echo -e '\033[2m<flags...>\033[m')"
 LDLIBS=-lgc -lcord -lm -lunistring -lgmp -ldl
 COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c))
 STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c))
-TESTS=$(patsubst %.tm,%.tm.testresult,$(wildcard test/*.tm))
+TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/*.tm))
 
 all: build/libtomo.so build/tomo
 
@@ -57,7 +57,8 @@ tags:
 %: %.tm
 	tomo -e $<
 
-%.tm.testresult: %.tm build/tomo
+test/results/%.tm.testresult: test/%.tm build/tomo
+	@mkdir -p test/results
 	@printf '\x1b[33;1;4m%s\x1b[m\n' $<
 	@set -o pipefail; \
 	if ! VERBOSE=0 COLOR=1 LC_ALL=C CC=gcc ./build/tomo -O 1 $< 2>&1 | tee $@; then \
