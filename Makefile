@@ -72,7 +72,7 @@ clean:
 	rm -rf build/* $(COMPILER_OBJS) $(STDLIB_OBJS) test/*.tm.testresult test/.build examples/.build examples/*/.build
 
 %: %.md
-	pandoc --lua-filter=.pandoc/bold-code.lua -s $< -t man -o $@
+	pandoc --lua-filter=docs/.pandoc/bold-code.lua -s $< -t man -o $@
 
 examples: examples/commands/commands examples/base64/base64 examples/ini/ini examples/game/game \
 		examples/tomodeps/tomodeps examples/tomo-install/tomo-install examples/wrap/wrap examples/colorful/colorful
