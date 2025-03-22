@@ -81,8 +81,18 @@ examples: examples/commands/commands examples/base64/base64 examples/ini/ini exa
 		examples/http examples/threads examples/tomodeps examples/tomo-install examples/wrap examples/pthreads examples/colorful
 	./build/tomo examples/learnxiny.tm
 
-deps:
+deps: check-gcc
 	./install_dependencies.sh
+
+check-gcc:
+	@GCC_VERSION=$$(gcc --version | awk '{print $$3;exit}'); \
+	if [ "$$(printf '%s\n' "$$GCC_VERSION" "12.0.0" | sort -V | head -n 1)" = "12.0.0" ]; then \
+		printf "\033[32;1mGCC version is good!\033[m\n"; \
+		exit 0; \
+	else \
+		printf "\033[31;1mGCC version is lower than the required 12.0.0!\033[m\n" >&2; \
+		exit 1; \
+	fi
 
 install: build/tomo build/libtomo.so
 	@if ! echo "$$PATH" | tr ':' '\n' | grep -qx "$(PREFIX)/bin"; then \
@@ -103,4 +113,4 @@ uninstall:
 	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/include/tomo" "$(PREFIX)/lib/libtomo.so" "$(PREFIX)/share/tomo"; \
 
 .SUFFIXES:
-.PHONY: all clean install uninstall test tags examples deps
+.PHONY: all clean install uninstall test tags examples deps check-gcc
