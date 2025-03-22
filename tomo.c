@@ -31,6 +31,8 @@
 #define run_cmd(...) ({ const char *_cmd = heap_strf(__VA_ARGS__); if (verbose) printf("\033[34;1m%s\033[m\n", _cmd); popen(_cmd, "w"); })
 #define array_str(arr) Text$as_c_string(Text$join(Text(" "), arr))
 
+static struct stat compiler_stat;
+
 static const char *paths_str(Array_t paths) {
     Text_t result = EMPTY_TEXT;
     for (int64_t i = 0; i < paths.length; i++) {
@@ -83,6 +85,11 @@ typedef struct {
 #pragma GCC diagnostic ignored "-Wstack-protector"
 int main(int argc, char *argv[])
 {
+    // Get the file modification time of the compiler, so we
+    // can recompile files after changing the compiler:
+    if (stat(argv[0], &compiler_stat) != 0)
+        err(1, "Could not find age of compiler");
+
     if (register_printf_specifier('T', printf_type, printf_pointer_size))
         errx(1, "Couldn't set printf specifier");
     if (register_printf_specifier('W', printf_ast, printf_pointer_size))
@@ -583,6 +590,11 @@ bool is_stale(Path_t path, Path_t relative_to)
     struct stat target_stat;
     if (stat(Path$as_c_string(path), &target_stat) != 0)
         return true;
+
+    // Any file older than the compiler is stale:
+    if (target_stat.st_mtime < compiler_stat.st_mtime)
+        return true;
+
     struct stat relative_to_stat;
     if (stat(Path$as_c_string(relative_to), &relative_to_stat) != 0)
         errx(1, "File doesn't exist: %s", Path$as_c_string(relative_to));
