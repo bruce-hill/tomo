@@ -18,6 +18,7 @@
 #include "repl.h"
 #include "stdlib/arrays.h"
 #include "stdlib/bools.h"
+#include "stdlib/bytes.h"
 #include "stdlib/datatypes.h"
 #include "stdlib/integers.h"
 #include "stdlib/optionals.h"
@@ -47,9 +48,10 @@ static OptionalBool_t verbose = false,
                       quiet = false,
                       stop_at_transpile = false,
                       stop_at_obj_compilation = false,
-                      stop_at_exe_compilation = false,
+                      compile_exe = false,
                       should_install = false,
-                      run_repl = false;
+                      run_repl = false,
+                      clean_build = false;
 
 static OptionalText_t 
             show_codegen = NONE_TEXT,
@@ -63,15 +65,19 @@ static OptionalText_t
             optimization = Text("2"),
             cc = Text("gcc");
 
-static void transpile_header(env_t *base_env, Path_t path, bool force_retranspile);
-static void transpile_code(env_t *base_env, Path_t path, bool force_retranspile);
-static void compile_object_file(Path_t path, bool force_recompile);
-static Path_t compile_executable(env_t *base_env, Path_t path, Array_t object_files, Array_t extra_ldlibs);
+static void transpile_header(env_t *base_env, Path_t path);
+static void transpile_code(env_t *base_env, Path_t path);
+static void compile_object_file(Path_t path);
+static Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, Array_t object_files, Array_t extra_ldlibs);
 static void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_link);
 static Text_t escape_lib_name(Text_t lib_name);
 static void build_library(Text_t lib_dir_name);
-static void compile_files(env_t *env, Array_t files, bool only_compile_arguments, Array_t *object_files, Array_t *ldlibs);
+static void compile_files(env_t *env, Array_t files, Array_t *object_files, Array_t *ldlibs);
 static bool is_stale(Path_t path, Path_t relative_to);
+
+typedef struct {
+    bool h:1, c:1, o:1;
+} staleness_t;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
@@ -121,8 +127,8 @@ int main(int argc, char *argv[])
         {"t", false, &Bool$info, &stop_at_transpile},
         {"compile-obj", false, &Bool$info, &stop_at_obj_compilation},
         {"c", false, &Bool$info, &stop_at_obj_compilation},
-        {"compile-exe", false, &Bool$info, &stop_at_exe_compilation},
-        {"e", false, &Bool$info, &stop_at_exe_compilation},
+        {"compile-exe", false, &Bool$info, &compile_exe},
+        {"e", false, &Bool$info, &compile_exe},
         {"uninstall", false, Array$info(&Text$info), &uninstall},
         {"u", false, Array$info(&Text$info), &uninstall},
         {"library", false, Array$info(&Path$info), &libraries},
@@ -136,6 +142,8 @@ int main(int argc, char *argv[])
         {"c-compiler", false, &Text$info, &cc},
         {"optimization", false, &Text$info, &optimization},
         {"O", false, &Text$info, &optimization},
+        {"force-rebuild", false, &Bool$info, &clean_build},
+        {"f", false, &Bool$info, &clean_build},
     );
 
     if (show_codegen.length > 0 && Text$equal_values(show_codegen, Text("pretty")))
@@ -179,30 +187,38 @@ int main(int argc, char *argv[])
             *path = Path$with_component(*path, Texts(Path$base_name(*path), Text(".tm")));
     }
 
-    // Run file directly:
-    if (!stop_at_transpile && !stop_at_obj_compilation && !stop_at_exe_compilation) {
-        if (files.length < 1)
-            errx(1, "No file specified!");
-        else if (files.length != 1)
-            errx(1, "Too many files specified!");
+    if (files.length < 1)
+        errx(1, "No file specified!");
+    else if (files.length != 1)
+        errx(1, "Too many files specified!");
 
-        quiet = !verbose;
+    quiet = !verbose;
 
-        Path_t path = *(Path_t*)files.data;
-        env_t *env = global_env();
-        Array_t object_files = {},
-                extra_ldlibs = {};
-        compile_files(env, files, false, &object_files, &extra_ldlibs);
-        Path_t exe_name = compile_executable(env, path, object_files, extra_ldlibs);
-        char *prog_args[1 + args.length + 1];
-        prog_args[0] = (char*)Path$as_c_string(exe_name);
-        for (int64_t i = 0; i < args.length; i++)
-            prog_args[i + 1] = Text$as_c_string(*(Text_t*)(args.data + i*args.stride));
-        prog_args[1 + args.length] = NULL;
-        pid_t child;
-        if (posix_spawn(&child, prog_args[0], NULL, NULL, prog_args, NULL) != 0)
-            err(1, "Failed to run compiled program: %s", prog_args[0]);
-        assert(child);
+    for (int64_t i = 0; i < files.length; i++) {
+        Path_t path = *(Path_t*)(files.data + i*files.stride);
+        Path_t exe_path = compile_exe ? Path$with_extension(path, Text(""), true)
+            : Path$write_unique_bytes(Path("/tmp/tomo-exe-XXXXXX"), (Array_t){});
+
+        pid_t child = fork();
+        if (child == 0) {
+            env_t *env = global_env();
+            Array_t object_files = {},
+                    extra_ldlibs = {};
+            compile_files(env, files, &object_files, &extra_ldlibs);
+            compile_executable(env, path, exe_path, object_files, extra_ldlibs);
+
+            if (compile_exe)
+                _exit(0);
+
+            char *prog_args[1 + args.length + 1];
+            prog_args[0] = (char*)Path$as_c_string(exe_path);
+            for (int64_t j = 0; j < args.length; j++)
+                prog_args[j + 1] = Text$as_c_string(*(Text_t*)(args.data + j*args.stride));
+            prog_args[1 + args.length] = NULL;
+            execv(prog_args[0], prog_args);
+            err(1, "Could not execute program: %s", prog_args[0]);
+        }
+
         int status;
         while (waitpid(child, &status, 0) < 0 && errno == EINTR) {
             if (WIFEXITED(status) || WIFSIGNALED(status))
@@ -210,24 +226,23 @@ int main(int argc, char *argv[])
             else if (WIFSTOPPED(status))
                 kill(child, SIGCONT);
         }
-        unlink(prog_args[0]);
-        return WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE;
-    } else {
-        env_t *env = global_env();
-        Array_t object_files = {},
-                extra_ldlibs = {};
-        compile_files(env, files, stop_at_obj_compilation, &object_files, &extra_ldlibs);
-        if (stop_at_obj_compilation || stop_at_transpile)
-            return 0;
 
+        if (!compile_exe)
+            Path$remove(exe_path, true);
+
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+            _exit(WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE);
+        }
+    }
+
+    if (compile_exe && should_install) {
         for (int64_t i = 0; i < files.length; i++) {
             Path_t path = *(Path_t*)(files.data + i*files.stride);
-            Path_t bin_name = compile_executable(env, path, object_files, extra_ldlibs);
-            if (should_install)
-                system(heap_strf("cp -v '%s' ~/.local/bin/", Path$as_c_string(bin_name)));
+            Path_t exe = Path$with_extension(path, Text(""), true);
+            system(heap_strf("cp -v '%s' ~/.local/bin/", Path$as_c_string(exe)));
         }
-        return 0;
     }
+    return 0;
 }
 #pragma GCC diagnostic pop
 
@@ -340,7 +355,7 @@ void build_library(Text_t lib_dir_name)
     env_t *env = fresh_scope(global_env());
     Array_t object_files = {},
             extra_ldlibs = {};
-    compile_files(env, tm_files, false, &object_files, &extra_ldlibs);
+    compile_files(env, tm_files, &object_files, &extra_ldlibs);
 
     // Library name replaces all stretchs of non-alphanumeric chars with an underscore
     // So e.g. https://github.com/foo/baz --> https_github_com_foo_baz
@@ -416,11 +431,9 @@ void build_library(Text_t lib_dir_name)
     }
 }
 
-void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, Array_t *object_files, Array_t *extra_ldlibs)
+void compile_files(env_t *env, Array_t to_compile, Array_t *object_files, Array_t *extra_ldlibs)
 {
-    TypeInfo_t *path_table_info = Table$info(&Path$info, &Path$info);
     Table_t to_link = {};
-    Table_t argument_files = {};
     Table_t dependency_files = {};
     for (int64_t i = 0; i < to_compile.length; i++) {
         Path_t filename = *(Path_t*)(to_compile.data + i*to_compile.stride);
@@ -430,7 +443,6 @@ void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, 
         Path_t resolved = Path$resolved(filename, Path("./"));
         if (!Path$is_file(resolved, true))
             errx(1, "Couldn't find file: %s", Path$as_c_string(resolved));
-        Table$set(&argument_files, &resolved, &filename, path_table_info);
         build_file_dependency_graph(resolved, &dependency_files, &to_link);
     }
 
@@ -438,9 +450,14 @@ void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, 
     // (Re)compile header files, eagerly for explicitly passed in files, lazily
     // for downstream dependencies:
     for (int64_t i = 0; i < dependency_files.entries.length; i++) {
-        Path_t filename = *(Path_t*)(dependency_files.entries.data + i*dependency_files.entries.stride);
-        bool is_argument_file = (Table$get(argument_files, &filename, path_table_info) != NULL);
-        transpile_header(env, filename, is_argument_file);
+        struct {
+            Path_t filename;
+            staleness_t staleness;
+        } *entry = (dependency_files.entries.data + i*dependency_files.entries.stride);
+        if (entry->staleness.h) {
+            transpile_header(env, entry->filename);
+            entry->staleness.o = true;
+        }
     }
 
     env->imports = new(Table_t);
@@ -455,17 +472,16 @@ void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, 
     for (int64_t i = 0; i < dependency_files.entries.length; i++) {
         struct {
             Path_t filename;
-            bool stale;
+            staleness_t staleness;
         } *entry = (dependency_files.entries.data + i*dependency_files.entries.stride);
-        bool is_argument_file = (Table$get(argument_files, &entry->filename, path_table_info) != NULL);
-        if (!is_argument_file && (!entry->stale || only_compile_arguments))
+        if (!clean_build && !entry->staleness.c && !entry->staleness.h)
             continue;
 
         pid_t pid = fork();
         if (pid == 0) {
-            transpile_code(env, entry->filename, true);
+            transpile_code(env, entry->filename);
             if (!stop_at_transpile)
-                compile_object_file(entry->filename, true);
+                compile_object_file(entry->filename);
             _exit(EXIT_SUCCESS);
         }
         child_processes = new(struct child_s, .next=child_processes, .pid=pid);
@@ -475,6 +491,8 @@ void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, 
         waitpid(child_processes->pid, &status, 0);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
             exit(EXIT_FAILURE);
+        else if (WIFSTOPPED(status))
+            kill(child_processes->pid, SIGCONT);
     }
 
     if (object_files) {
@@ -494,11 +512,17 @@ void compile_files(env_t *env, Array_t to_compile, bool only_compile_arguments, 
 
 void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_link)
 {
-    if (Table$get(*to_compile, &path, Table$info(&Path$info, &Bool$info)))
+    if (Table$get(*to_compile, &path, Table$info(&Path$info, &Byte$info)))
         return;
 
-    bool stale = is_stale(build_file(path, ".o"), path);
-    Table$set(to_compile, &path, &stale, Table$info(&Path$info, &Bool$info));
+    staleness_t staleness = {
+        .h=is_stale(build_file(path, ".h"), path),
+        .c=is_stale(build_file(path, ".c"), path),
+    };
+    staleness.o = staleness.c || staleness.h
+        || is_stale(build_file(path, ".o"), build_file(path, ".c"))
+        || is_stale(build_file(path, ".o"), build_file(path, ".h"));
+    Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
 
     assert(Text$equal_values(Path$extension(path, true), Text("tm")));
 
@@ -516,14 +540,15 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
 
         switch (use->what) {
         case USE_LOCAL: {
-            Path_t resolved = Path$resolved(Path$from_str(use->path), Path$parent(path));
-            if (!stale && is_stale(build_file(path, ".o"), resolved)) {
-                stale = true;
-                Table$set(to_compile, &path, &stale, Table$info(&Path$info, &Bool$info));
-            }
-            if (Table$get(*to_compile, &resolved, Table$info(&Path$info, &Path$info)))
-                continue;
-            build_file_dependency_graph(resolved, to_compile, to_link);
+            Path_t dep_tm = Path$resolved(Path$from_str(use->path), Path$parent(path));
+            if (is_stale(build_file(path, ".h"), dep_tm))
+                staleness.h = true;
+            if (is_stale(build_file(path, ".c"), dep_tm))
+                staleness.c = true;
+            if (staleness.c || staleness.h)
+                staleness.o = true;
+            Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
+            build_file_dependency_graph(dep_tm, to_compile, to_link);
             break;
         }
         case USE_MODULE: {
@@ -564,12 +589,9 @@ bool is_stale(Path_t path, Path_t relative_to)
     return target_stat.st_mtime < relative_to_stat.st_mtime;
 }
 
-void transpile_header(env_t *base_env, Path_t path, bool force_retranspile)
+void transpile_header(env_t *base_env, Path_t path)
 {
     Path_t h_filename = build_file(path, ".h");
-    if (!force_retranspile && !is_stale(h_filename, path))
-        return;
-
     ast_t *ast = parse_file(Path$as_c_string(path), NULL);
     if (!ast)
         errx(1, "Could not parse file %s", Path$as_c_string(path));
@@ -592,12 +614,9 @@ void transpile_header(env_t *base_env, Path_t path, bool force_retranspile)
         system(heap_strf("<%s %k", Path$as_c_string(h_filename), &show_codegen));
 }
 
-void transpile_code(env_t *base_env, Path_t path, bool force_retranspile)
+void transpile_code(env_t *base_env, Path_t path)
 {
     Path_t c_filename = build_file(path, ".c");
-    if (!force_retranspile && !is_stale(c_filename, path))
-        return;
-
     ast_t *ast = parse_file(Path$as_c_string(path), NULL);
     if (!ast)
         errx(1, "Could not parse file %s", Path$as_c_string(path));
@@ -639,16 +658,10 @@ void transpile_code(env_t *base_env, Path_t path, bool force_retranspile)
         system(heap_strf("<%s %k", Path$as_c_string(c_filename), &show_codegen));
 }
 
-void compile_object_file(Path_t path, bool force_recompile)
+void compile_object_file(Path_t path)
 {
     Path_t obj_file = build_file(path, ".o");
     Path_t c_file = build_file(path, ".c");
-    Path_t h_file = build_file(path, ".h");
-    if (!force_recompile && !is_stale(obj_file, path)
-        && !is_stale(obj_file, c_file)
-        && !is_stale(obj_file, h_file)) {
-        return;
-    }
 
     FILE *prog = run_cmd("%k %k -O%k -c %s -o %s",
                          &cc, &cflags, &optimization, Path$as_c_string(c_file), Path$as_c_string(obj_file));
@@ -662,7 +675,7 @@ void compile_object_file(Path_t path, bool force_recompile)
         printf("Compiled object:\t%s\n", Path$as_c_string(obj_file));
 }
 
-Path_t compile_executable(env_t *base_env, Path_t path, Array_t object_files, Array_t extra_ldlibs)
+Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, Array_t object_files, Array_t extra_ldlibs)
 {
     ast_t *ast = parse_file(Path$as_c_string(path), NULL);
     if (!ast)
@@ -672,10 +685,9 @@ Path_t compile_executable(env_t *base_env, Path_t path, Array_t object_files, Ar
     if (!main_binding || main_binding->type->tag != FunctionType)
         errx(1, "No main() function has been defined for %s, so it can't be run!", Path$as_c_string(path));
 
-    Path_t bin_name = Path$with_extension(path, Text(""), true);
     FILE *runner = run_cmd("%k %k -O%k %k %k %s %s -x c - -o %s",
                            &cc, &cflags, &optimization, &ldflags, &ldlibs,
-                           array_str(extra_ldlibs), paths_str(object_files), Path$as_c_string(bin_name));
+                           array_str(extra_ldlibs), paths_str(object_files), Path$as_c_string(exe_path));
     CORD program = CORD_all(
         "extern int ", main_binding->code, "$parse_and_run(int argc, char *argv[]);\n"
         "int main(int argc, char *argv[]) {\n"
@@ -695,8 +707,8 @@ Path_t compile_executable(env_t *base_env, Path_t path, Array_t object_files, Ar
         exit(EXIT_FAILURE);
 
     if (!quiet)
-        printf("Compiled executable:\t%s\n", Path$as_c_string(bin_name));
-    return bin_name;
+        printf("Compiled executable:\t%s\n", Path$as_c_string(exe_path));
+    return exe_path;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
