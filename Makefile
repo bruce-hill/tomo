@@ -81,6 +81,9 @@ examples: examples/commands/commands examples/base64/base64 examples/ini/ini exa
 		examples/http examples/threads examples/tomodeps examples/tomo-install examples/wrap examples/pthreads examples/colorful
 	./build/tomo examples/learnxiny.tm
 
+deps:
+	./install_dependencies.sh
+
 install: build/tomo build/libtomo.so
 	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
 	cp -v src/stdlib/*.h "$(PREFIX)/include/tomo/"
@@ -93,4 +96,4 @@ uninstall:
 	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/include/tomo" "$(PREFIX)/lib/libtomo.so" "$(PREFIX)/share/tomo"; \
 
 .SUFFIXES:
-.PHONY: all clean install uninstall test tags examples
+.PHONY: all clean install uninstall test tags examples deps

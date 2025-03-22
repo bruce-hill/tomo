@@ -95,8 +95,10 @@ Tomo has a very small set of dependencies:
 - [Binutils](https://www.gnu.org/software/binutils/) for stack traces.
 - and libc/libm, which should definitely already be installed.
 
-The Boehm GC, libunistring, and binutils should be available on your package
-manager of choice (for example, `pacman -S gc libunistring binutils`).
+If you're feeling incautious, you can run `make deps` or
+`./install_dependencies.sh` to install all the necessary dependencies. I can't
+guarantee this works on all platforms, but has a reasonably high chance of
+success.
 
 ## Building
 
