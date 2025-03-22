@@ -48,7 +48,7 @@ build/libtomo.so: $(STDLIB_OBJS)
 	@$(CC) $^ $(CFLAGS) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -ldl -Wl,-soname,libtomo.so -shared -o $@
 
 tags:
-	ctags *.[ch] **/*.[ch]
+	ctags src/*.[ch] src/stdlib/*.[ch]
 
 %.o: %.c src/ast.h src/environment.h src/types.h
 	@echo $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
