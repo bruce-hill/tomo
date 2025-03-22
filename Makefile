@@ -86,7 +86,7 @@ install: build/tomo build/libtomo.so
 	cp -v build/libtomo.so "$(PREFIX)/lib/"
 	rm -f "$(PREFIX)/bin/tomo"
 	cp -v build/tomo "$(PREFIX)/bin/"
-	cp -v tomo.1 "$(PREFIX)/man/man1/"
+	cp -v docs/tomo.1 "$(PREFIX)/man/man1/"
 
 uninstall:
 	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/include/tomo" "$(PREFIX)/lib/libtomo.so" "$(PREFIX)/share/tomo"; \
