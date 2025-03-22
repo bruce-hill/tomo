@@ -42,7 +42,7 @@ func main(texts:[Text], files=[:Path], by_line=no):
 
 
 func _for_terminal(c:Colorful, state:_TermState -> Text):
-    return c.text:map($/@(?)/, func(m:Match): _add_ansi_sequences(m.captures[1], state))
+    return c.text:map(recursive=no, $/@(?)/, func(m:Match): _add_ansi_sequences(m.captures[1], state))
 
 enum _Color(Default, Bright(color:Int16), Color8Bit(color:Int16), Color24Bit(color:Int32)):
     func from_text(text:Text -> _Color?):
@@ -210,6 +210,6 @@ func _add_ansi_sequences(text:Text, prev_state:_TermState -> Text):
             fail("Invalid attribute: '$attr'")
 
     result := prev_state:apply(new_state)
-    result ++= parts[2]:map($/@(?)/, func(m:Match): _add_ansi_sequences(m.captures[1], new_state))
+    result ++= parts[2]:map(recursive=no, $/@(?)/, func(m:Match): _add_ansi_sequences(m.captures[1], new_state))
     result ++= new_state:apply(prev_state)
     return result
