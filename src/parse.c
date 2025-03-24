@@ -231,14 +231,14 @@ static const char *unescape(parse_ctx_t *ctx, const char **out) {
         *endpos = endptr;
         return GC_strndup((char*)buf, bufsize);
     } else if (escape[1] == 'x' && escape[2] && escape[3]) {
-        // ASCII 2-digit hex 
-        char *endptr = NULL;
-        char c = (char)strtol(escape+2, &endptr, 16);
+        // ASCII 2-digit hex
+        char buf[] = {escape[2], escape[3], 0};
+        char c = (char)strtol(buf, NULL, 16);
         *endpos = escape + 4;
         return GC_strndup(&c, 1);
     } else if ('0' <= escape[1] && escape[1] <= '7' && '0' <= escape[2] && escape[2] <= '7' && '0' <= escape[3] && escape[3] <= '7') {
-        char *endptr = NULL;
-        char c = (char)strtol(escape+1, &endptr, 8);
+        char buf[] = {escape[1], escape[2], escape[3], 0};
+        char c = (char)strtol(buf, NULL, 8);
         *endpos = escape + 4;
         return GC_strndup(&c, 1);
     } else {
