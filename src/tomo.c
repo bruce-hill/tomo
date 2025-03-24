@@ -265,7 +265,7 @@ Path_t build_file(Path_t path, const char *extension)
 {
     Path_t build_dir = Path$with_component(Path$parent(path), Text(".build"));
     if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
-        if (errno != EEXIST)
+        if (!Path$is_directory(build_dir, true))
             err(1, "Could not make .build directory");
     }
     return Path$with_component(build_dir, Texts(Path$base_name(path), Text$from_str(extension)));
