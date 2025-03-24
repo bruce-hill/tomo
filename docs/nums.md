@@ -129,7 +129,7 @@ called either on the type itself: `Num.sqrt(x)` or as a method call:
 - [`func atanh(x: Num -> Num)`](#atanh)
 - [`func cbrt(x: Num -> Num)`](#cbrt)
 - [`func ceil(x: Num -> Num)`](#ceil)
-- [`clamped(x, low, high: Num -> Num)`](#clamped)
+- [`func clamped(x, low, high: Num -> Num)`](#clamped)
 - [`func copysign(x: Num, y: Num -> Num)`](#copysign)
 - [`func cos(x: Num -> Num)`](#cos)
 - [`func cosh(x: Num -> Num)`](#cosh)
@@ -155,6 +155,7 @@ called either on the type itself: `Num.sqrt(x)` or as a method call:
 - [`func near(x: Num, y: Num, ratio: Num = 1e-9, min_epsilon: Num = 1e-9 -> Bool)`](#near)
 - [`func nextafter(x: Num, y: Num -> Num)`](#nextafter)
 - [`func parse(text: Text -> Num?)`](#parse)
+- [`func percent(n: Num -> Text)`](#percent)
 - [`func rint(x: Num -> Num)`](#rint)
 - [`func round(x: Num -> Num)`](#round)
 - [`func scientific(n: Num, precision: Int = 0 -> Text)`](#scientific)
@@ -918,6 +919,29 @@ as a number.
 = 3.14
 >> Num.parse("1e3")
 = 1000
+```
+
+---
+
+### `percent`
+Convert a number into a percentage text with a percent sign.
+
+```tomo
+func percent(n: Num, precision: Int = 0 -> Text)
+```
+
+- `n`: The number to be converted to a percent.
+- `precision`: The number of decimal places. Default is `0`.
+
+**Returns:**
+A text representation of the number as a percentage with a percent sign.
+
+**Example:**
+```tomo
+>> 0.5:percent()
+= "50%"
+>> (1./3.):percent(2)
+= "33.33%"
 ```
 
 ---

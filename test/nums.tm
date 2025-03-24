@@ -69,3 +69,6 @@ func main():
 
 	>> Num(5)
 	= 5 : Num
+
+	>> 0.5:percent()
+	= "50%"

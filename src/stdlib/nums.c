@@ -57,6 +57,10 @@ public Text_t Num$scientific(double f, Int_t precision) {
     return Text$format("%.*e", (int)Int64$from_int(precision, false), f); 
 }
 
+public Text_t Num$percent(double f, Int_t precision) { 
+    return Text$format("%.*f%%", (int)Int64$from_int(precision, false), 100.*f); 
+}
+
 public CONSTFUNC double Num$mod(double num, double modulus) { 
     // Euclidean division, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
     double r = remainder(num, modulus);
@@ -136,6 +140,10 @@ public Text_t Num32$format(float f, Int_t precision) {
 
 public Text_t Num32$scientific(float f, Int_t precision) { 
     return Text$format("%.*e", (int)Int64$from_int(precision, false), (double)f); 
+}
+
+public Text_t Num32$percent(float f, Int_t precision) { 
+    return Text$format("%.*f%%", (int)Int64$from_int(precision, false), 100.*(double)f); 
 }
 
 public CONSTFUNC float Num32$mod(float num, float modulus) { 
