@@ -264,7 +264,7 @@ Text_t escape_lib_name(Text_t lib_name)
 Path_t build_file(Path_t path, const char *extension)
 {
     Path_t build_dir = Path$with_component(Path$parent(path), Text(".build"));
-    if (mkdir(Path$as_c_string(build_dir), 0777) != 0) {
+    if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
         if (errno != EEXIST)
             err(1, "Could not make .build directory");
     }
