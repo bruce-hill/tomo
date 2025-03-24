@@ -2,6 +2,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <ftw.h>
 #include <gc.h>
 #include <glob.h>
 #include <grp.h>
@@ -408,6 +409,27 @@ public void Path$set_owner(Path_t path, OptionalText_t owner, OptionalText_t gro
         fail("Could not set owner!");
 }
 
+static int _remove_files(const char *path, const struct stat *sbuf, int type, struct FTW *ftwb)
+{
+    (void)sbuf, (void)ftwb;
+    switch (type) {
+    case FTW_F: case FTW_SL: case FTW_SLN:
+        if (remove(path) < 0) {
+            fail("Could not remove file: %s (%s)", path, strerror(errno));
+            return -1;
+        }
+        return 0;
+    case FTW_DP:
+        if (rmdir(path) != 0)
+            fail("Could not remove directory: %s (%s)", path, strerror(errno));
+        return 0;
+    default:
+        printf("Type: %d\n", type);
+        fail("Could not remove path: %s (not a file or directory)", path, strerror(errno));
+        return -1;
+    }
+}
+
 public void Path$remove(Path_t path, bool ignore_missing)
 {
     path = Path$expand_home(path);
@@ -422,10 +444,10 @@ public void Path$remove(Path_t path, bool ignore_missing)
         if (unlink(path_str) != 0 && !ignore_missing)
             fail("Could not remove file: %s (%s)", path_str, strerror(errno));
     } else if ((sb.st_mode & S_IFMT) == S_IFDIR) {
-        if (rmdir(path_str) != 0 && !ignore_missing)
+        const int num_open_fd = 10;
+        if (nftw(path_str, _remove_files, num_open_fd, FTW_DEPTH|FTW_MOUNT|FTW_PHYS) < 0)
             fail("Could not remove directory: %s (%s)", path_str, strerror(errno));
-    } else {
-        fail("Could not remove path: %s (not a file or directory)", path_str, strerror(errno));
+    } else { fail("Could not remove path: %s (not a file or directory)", path_str, strerror(errno));
     }
 }
 
