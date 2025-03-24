@@ -438,6 +438,7 @@ public void Path$remove(Path_t path, bool ignore_missing)
     if (lstat(path_str, &sb) != 0) {
         if (!ignore_missing)
             fail("Could not remove file: %s (%s)", path_str, strerror(errno));
+        return;
     }
 
     if ((sb.st_mode & S_IFMT) == S_IFREG || (sb.st_mode & S_IFMT) == S_IFLNK) {
@@ -447,7 +448,8 @@ public void Path$remove(Path_t path, bool ignore_missing)
         const int num_open_fd = 10;
         if (nftw(path_str, _remove_files, num_open_fd, FTW_DEPTH|FTW_MOUNT|FTW_PHYS) < 0)
             fail("Could not remove directory: %s (%s)", path_str, strerror(errno));
-    } else { fail("Could not remove path: %s (not a file or directory)", path_str, strerror(errno));
+    } else {
+        fail("Could not remove path: %s (not a file or directory)", path_str, strerror(errno));
     }
 }
 
