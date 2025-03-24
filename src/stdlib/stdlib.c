@@ -567,7 +567,7 @@ public void start_inspect(const char *filename, int64_t start, int64_t end)
         const char *file_base = slash ? slash + 1 : filename;
 
         int64_t line_num = get_line_number(file, file->text + start);
-        fprintf(stderr, USE_COLOR ? "%.*s\x1b[33;1m>> \x1b[m%.*s   %.*s\x1b[32;2m[%s:%ld]\x1b[m\n" : "%.*s>> %.*s   %.*s[%s:%ld]\n",
+        fprintf(stdout, USE_COLOR ? "%.*s\x1b[33;1m>> \x1b[m%.*s   %.*s\x1b[32;2m[%s:%ld]\x1b[m\n" : "%.*s>> %.*s   %.*s[%s:%ld]\n",
                 3*_inspect_depth, spaces, first_line_len, file->text + start,
                 MAX(0, 35-first_line_len-3*_inspect_depth), spaces, file_base, line_num);
 
@@ -579,7 +579,7 @@ public void start_inspect(const char *filename, int64_t start, int64_t end)
                 line += strspn(line, "\r\n");
                 if ((int64_t)strspn(line, " \t") >= indent_len)
                     line += indent_len;
-                fprintf(stderr, USE_COLOR ? "%.*s\x1b[33m.. \x1b[m%.*s\n" : "%.*s.. %.*s\n",
+                fprintf(stdout, USE_COLOR ? "%.*s\x1b[33m.. \x1b[m%.*s\n" : "%.*s.. %.*s\n",
                         3*_inspect_depth, spaces, strcspn(line, "\r\n"), line);
             }
         }
@@ -596,8 +596,8 @@ public void end_inspect(const void *expr, const TypeInfo_t *type)
         Text_t expr_text = generic_as_text(expr, USE_COLOR, type);
         Text_t type_name = generic_as_text(NULL, false, type);
 
-        for (int i = 0; i < 3*_inspect_depth; i++) fputc(' ', stderr);
-        fprintf(stderr, USE_COLOR ? "\x1b[33;1m=\x1b[0m %k \x1b[2m: \x1b[36m%k\x1b[m\n" : "= %k : %k\n", &expr_text, &type_name);
+        for (int i = 0; i < 3*_inspect_depth; i++) fputc(' ', stdout);
+        fprintf(stdout, USE_COLOR ? "\x1b[33;1m=\x1b[0m %k \x1b[2m: \x1b[36m%k\x1b[m\n" : "= %k : %k\n", &expr_text, &type_name);
     }
 }
 
