@@ -11,17 +11,17 @@ enum ExitType(Exited(status:Int32), Signaled(signal:Int32), Failed):
         when e is Exited(status): return (status == 0)
         else: return no
 
-    func or_fail(e:ExitType -> ExitType):
-        if e:succeeded(): return e
-        fail("Program failed: $e")
+    func or_fail(e:ExitType, message=none:Text):
+        if not e:succeeded():
+            fail(message or "Program failed: $e")
 
 struct ProgramResult(stdout:[Byte], stderr:[Byte], exit_type:ExitType):
-    func or_fail(r:ProgramResult -> ProgramResult):
+    func or_fail(r:ProgramResult, message=none:Text -> ProgramResult):
         when r.exit_type is Exited(status):
             if status == 0:
                 return r
-        else: fail("Program failed: $r")
-        fail("Program failed: $r")
+        else: fail(message or "Program failed: $r")
+        fail(message or "Program failed: $r")
 
     func output_text(r:ProgramResult, trim_newline=yes -> Text?):
         when r.exit_type is Exited(status):
