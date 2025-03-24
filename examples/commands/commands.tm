@@ -6,7 +6,14 @@ use libunistring.so
 extern run_command:func(exe:Text, args:[Text], env:{Text,Text}, input:[Byte]?, output:&[Byte]?, error:&[Byte]? -> Int32)
 extern command_by_line:func(exe:Text, args:[Text], env:{Text,Text} -> func(->Text?)?)
 
-enum ExitType(Exited(status:Int32), Signaled(signal:Int32), Failed)
+enum ExitType(Exited(status:Int32), Signaled(signal:Int32), Failed):
+    func succeeded(e:ExitType -> Bool):
+        when e is Exited(status): return (status == 0)
+        else: return no
+
+    func or_fail(e:ExitType -> ExitType):
+        if e:succeeded(): return e
+        fail("Program failed: $e")
 
 struct ProgramResult(stdout:[Byte], stderr:[Byte], exit_type:ExitType):
     func or_fail(r:ProgramResult -> ProgramResult):
