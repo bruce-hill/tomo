@@ -24,8 +24,11 @@ lang Shell:
     func command(shell:Shell -> Command):
         return Command("sh", ["-c", shell.text])
 
-    func run(shell:Shell, input="", input_bytes=[:Byte] -> ProgramResult):
-        return shell:command():run(input=input, input_bytes=input_bytes)
+    func result(shell:Shell, input="", input_bytes=[:Byte] -> ProgramResult):
+        return shell:command():result(input=input, input_bytes=input_bytes)
+
+    func run(shell:Shell -> ExitType):
+        return shell:command():run()
 
     func get_output(shell:Shell, input="", trim_newline=yes -> Text?):
         return shell:command():get_output(input=input, trim_newline=trim_newline)

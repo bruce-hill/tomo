@@ -16,7 +16,7 @@
 #define READ_END 0
 #define WRITE_END 1
 int run_command(Text_t exe, Array_t arg_array, Table_t env_table,
-                       Array_t input_bytes, Array_t *output_bytes, Array_t *error_bytes)
+                       OptionalArray_t input_bytes, Array_t *output_bytes, Array_t *error_bytes)
 {
     pthread_testcancel();
 
@@ -36,18 +36,24 @@ int run_command(Text_t exe, Array_t arg_array, Table_t env_table,
     posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETSIGDEF|POSIX_SPAWN_SETSIGMASK);
 
     int child_inpipe[2], child_outpipe[2], child_errpipe[2];
-    pipe(child_inpipe);
-    pipe(child_outpipe);
-    pipe(child_errpipe);
+    if (input_bytes.length >= 0) pipe(child_inpipe);
+    if (output_bytes) pipe(child_outpipe);
+    if (error_bytes) pipe(child_errpipe);
 
     posix_spawn_file_actions_t actions;
     posix_spawn_file_actions_init(&actions);
-    posix_spawn_file_actions_adddup2(&actions, child_inpipe[READ_END], STDIN_FILENO);
-    posix_spawn_file_actions_addclose(&actions, child_inpipe[WRITE_END]);
-    posix_spawn_file_actions_adddup2(&actions, child_outpipe[WRITE_END], STDOUT_FILENO);
-    posix_spawn_file_actions_addclose(&actions, child_outpipe[READ_END]);
-    posix_spawn_file_actions_adddup2(&actions, child_errpipe[WRITE_END], STDERR_FILENO);
-    posix_spawn_file_actions_addclose(&actions, child_errpipe[READ_END]);
+    if (input_bytes.length >= 0) {
+        posix_spawn_file_actions_adddup2(&actions, child_inpipe[READ_END], STDIN_FILENO);
+        posix_spawn_file_actions_addclose(&actions, child_inpipe[WRITE_END]);
+    }
+    if (output_bytes) {
+        posix_spawn_file_actions_adddup2(&actions, child_outpipe[WRITE_END], STDOUT_FILENO);
+        posix_spawn_file_actions_addclose(&actions, child_outpipe[READ_END]);
+    }
+    if (error_bytes) {
+        posix_spawn_file_actions_adddup2(&actions, child_errpipe[WRITE_END], STDERR_FILENO);
+        posix_spawn_file_actions_addclose(&actions, child_errpipe[READ_END]);
+    }
 
     const char *exe_str = Text$as_c_string(exe);
 
@@ -85,15 +91,14 @@ int run_command(Text_t exe, Array_t arg_array, Table_t env_table,
     posix_spawnattr_destroy(&attr);
     posix_spawn_file_actions_destroy(&actions);
 
-    close(child_inpipe[READ_END]);
-    close(child_outpipe[WRITE_END]);
-    close(child_errpipe[WRITE_END]);
+    if (input_bytes.length >= 0) close(child_inpipe[READ_END]);
+    if (output_bytes) close(child_outpipe[WRITE_END]);
+    if (error_bytes) close(child_errpipe[WRITE_END]);
 
-    struct pollfd pollfds[3] = {
-        {.fd=child_inpipe[WRITE_END], .events=POLLOUT},
-        {.fd=child_outpipe[WRITE_END], .events=POLLIN},
-        {.fd=child_errpipe[WRITE_END], .events=POLLIN},
-    };
+    struct pollfd pollfds[3] = {};
+    if (input_bytes.length >= 0) pollfds[0] = (struct pollfd){.fd=child_inpipe[WRITE_END], .events=POLLOUT};
+    if (output_bytes) pollfds[1] = (struct pollfd){.fd=child_outpipe[WRITE_END], .events=POLLIN};
+    if (error_bytes) pollfds[2] = (struct pollfd){.fd=child_errpipe[WRITE_END], .events=POLLIN};
 
     if (input_bytes.length > 0 && input_bytes.stride != 1)
         Array$compact(&input_bytes, sizeof(char));
@@ -102,10 +107,10 @@ int run_command(Text_t exe, Array_t arg_array, Table_t env_table,
     if (error_bytes)
         *error_bytes = (Array_t){.atomic=1, .stride=1, .length=0};
 
-    for (;;) {
+    while (input_bytes.length > 0 || output_bytes || error_bytes) {
         (void)poll(pollfds, sizeof(pollfds)/sizeof(pollfds[0]), -1);  // Wait for data or readiness
         bool did_something = false;
-        if (pollfds[0].revents) {
+        if (input_bytes.length >= 0 && pollfds[0].revents) {
             if (input_bytes.length > 0) {
                 ssize_t written = write(child_inpipe[WRITE_END], input_bytes.data, (size_t)input_bytes.length);
                 if (written > 0) {
@@ -123,13 +128,13 @@ int run_command(Text_t exe, Array_t arg_array, Table_t env_table,
             }
         }
         char buf[256];
-        if (pollfds[1].revents) {
+        if (output_bytes && pollfds[1].revents) {
             ssize_t n = read(child_outpipe[READ_END], buf, sizeof(buf));
             did_something = did_something || (n > 0);
             if (n <= 0) {
                 close(child_outpipe[READ_END]);
                 pollfds[1].events = 0;
-            } else if (n > 0 && output_bytes) {
+            } else if (n > 0) {
                 if (output_bytes->free < n) {
                     output_bytes->data = GC_REALLOC(output_bytes->data, (size_t)(output_bytes->length + n));
                     output_bytes->free = 0;
@@ -138,13 +143,13 @@ int run_command(Text_t exe, Array_t arg_array, Table_t env_table,
                 output_bytes->length += n;
             }
         }
-        if (pollfds[2].revents) {
+        if (error_bytes && pollfds[2].revents) {
             ssize_t n = read(child_errpipe[READ_END], buf, sizeof(buf));
             did_something = did_something || (n > 0);
             if (n <= 0) {
                 close(child_errpipe[READ_END]);
                 pollfds[2].events = 0;
-            } else if (n > 0 && error_bytes) {
+            } else if (n > 0) {
                 if (error_bytes->free < n) {
                     error_bytes->data = GC_REALLOC(error_bytes->data, (size_t)(error_bytes->length + n));
                     error_bytes->free = 0;
@@ -165,6 +170,10 @@ int run_command(Text_t exe, Array_t arg_array, Table_t env_table,
                 kill(pid, SIGCONT);
         }
     }
+
+    if (input_bytes.length >= 0) close(child_inpipe[WRITE_END]);
+    if (output_bytes) close(child_outpipe[READ_END]);
+    if (error_bytes) close(child_errpipe[READ_END]);
 
     sigaction(SIGINT, &oldint, NULL);
     sigaction(SIGQUIT, &oldquit, NULL);
