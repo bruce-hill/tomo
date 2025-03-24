@@ -611,16 +611,21 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
             return compile(env, ast);
 
         container_t = value_type(container_t);
+        type_t *index_t = get_type(env, index->index);
         if (container_t->tag == ArrayType) {
             CORD target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
             type_t *item_type = Match(container_t, ArrayType)->item_type;
+            CORD index_code = index->index->tag == Int
+                ? compile_int_to_type(env, index->index, Type(IntType, .bits=TYPE_IBITS64))
+                : (index_t->tag == BigIntType ? CORD_all("Int64$from_int(", compile(env, index->index), ", no)")
+                   : CORD_all("(Int64_t)(", compile(env, index->index), ")"));
             if (index->unchecked) {
                 return CORD_all("Array_lvalue_unchecked(", compile_type(item_type), ", ", target_code, ", ", 
-                                compile_int_to_type(env, index->index, Type(IntType, .bits=TYPE_IBITS64)),
+                                index_code,
                                 ", sizeof(", compile_type(item_type), "))");
             } else {
                 return CORD_all("Array_lvalue(", compile_type(item_type), ", ", target_code, ", ", 
-                                compile_int_to_type(env, index->index, Type(IntType, .bits=TYPE_IBITS64)),
+                                index_code,
                                 ", ", heap_strf("%ld", ast->start - ast->file->text),
                                 ", ", heap_strf("%ld", ast->end - ast->file->text), ")");
             }
