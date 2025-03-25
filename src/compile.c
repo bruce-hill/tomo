@@ -796,6 +796,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 const char *clause_tag_name = Match(clause->pattern, Var)->name;
                 code = CORD_all(code, "case ", namespace_prefix(enum_t->env, enum_t->env->namespace), "tag$", clause_tag_name, ": {\n",
                                 compile_statement(env, clause->body),
+                                "break;\n"
                                 "}\n");
                 continue;
             }
