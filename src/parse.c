@@ -1632,6 +1632,10 @@ PARSER(parse_term_no_suffix) {
 }
 
 PARSER(parse_term) {
+    const char *start = pos;
+    if (match(&pos, "???"))
+        parser_err(ctx, start, pos, "This value needs to be filled in!");
+
     ast_t *term = parse_term_no_suffix(ctx, pos);
     if (!term) return NULL;
 
