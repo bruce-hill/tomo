@@ -622,7 +622,7 @@ public void test_value(const void *expr, const TypeInfo_t *type, const char *exp
         print_stack_trace(stderr, 2, 4);
         fprintf(stderr, 
                 USE_COLOR
-                ? "\n\x1b[31;7m ==================== TEST FAILED ==================== \x1b[0;1m\n\nYou Expected: \x1b[1;32m%s\x1b[0m\n\x1b[1m   But I Got:\x1b[m %k\n\n"
+                ? "\n\x1b[31;7m ==================== TEST FAILED ==================== \x1b[0;1m\n\nYou Expected: \x1b[36;1m%s\x1b[0m\n\x1b[1m   But I Got:\x1b[m %k\n\n"
                 : "\n==================== TEST FAILED ====================\n\nYou Expected: %s\n   But I Got: %k\n\n",
                 expected, &expr_text);
 
