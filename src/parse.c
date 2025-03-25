@@ -149,16 +149,16 @@ static PARSER(parse_deserialize);
 //
 __attribute__((noreturn, format(printf, 4, 0)))
 static _Noreturn void vparser_err(parse_ctx_t *ctx, const char *start, const char *end, const char *fmt, va_list args) {
-    if (isatty(STDERR_FILENO) && !getenv("NO_COLOR"))
+    if (USE_COLOR)
         fputs("\x1b[31;1;7m", stderr);
     fprintf(stderr, "%s:%ld.%ld: ", ctx->file->relative_filename, get_line_number(ctx->file, start),
             get_line_column(ctx->file, start));
     vfprintf(stderr, fmt, args);
-    if (isatty(STDERR_FILENO) && !getenv("NO_COLOR"))
+    if (USE_COLOR)
         fputs(" \x1b[m", stderr);
     fputs("\n\n", stderr);
 
-    highlight_error(ctx->file, start, end, "\x1b[31;1;7m", 2, isatty(STDERR_FILENO) && !getenv("NO_COLOR"));
+    highlight_error(ctx->file, start, end, "\x1b[31;1;7m", 2, USE_COLOR);
     fputs("\n", stderr);
 
     if (getenv("TOMO_STACKTRACE"))
@@ -321,7 +321,7 @@ static void expect_str(
             return;
     }
 
-    if (isatty(STDERR_FILENO) && !getenv("NO_COLOR"))
+    if (USE_COLOR)
         fputs("\x1b[31;1;7m", stderr);
     va_list args;
     va_start(args, fmt);
@@ -345,7 +345,7 @@ static void expect_closing(
 
     const char *end = eol < next ? eol : next;
 
-    if (isatty(STDERR_FILENO) && !getenv("NO_COLOR"))
+    if (USE_COLOR)
         fputs("\x1b[31;1;7m", stderr);
     va_list args;
     va_start(args, fmt);
@@ -358,7 +358,7 @@ static void expect_closing(
     spaces(_pos); \
     auto _result = parser(ctx, *_pos); \
     if (!_result) { \
-        if (isatty(STDERR_FILENO) && !getenv("NO_COLOR")) \
+        if (USE_COLOR) \
             fputs("\x1b[31;1;7m", stderr); \
         parser_err(ctx, start, *_pos, __VA_ARGS__); \
     } \
