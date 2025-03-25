@@ -174,10 +174,10 @@ object using them:
 
 ```tomo
 >> nums := [10, -20, 30, -40]
->> (_max_) nums
+>> (_max_: nums)
 = 30
 
->> (_max_:abs()) nums
+>> (_max_:abs(): nums)
 = -40
 ```
 
