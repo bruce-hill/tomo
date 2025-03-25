@@ -51,23 +51,23 @@ func main():
 
 	amelie := "Am$(\UE9)lie"
 	>> amelie:split()
-	= ["A", "m", "é", "l", "i", "e"] : [Text]
+	= ["A", "m", "é", "l", "i", "e"]
 	>> amelie:utf32_codepoints()
-	= [65, 109, 233, 108, 105, 101]
+	= [:Int32, 65, 109, 233, 108, 105, 101]
 	>> amelie:bytes()
-	= [0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65]
+	= [:Byte, 0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65]
 	>> Text.from_bytes([:Byte 0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65])!
 	= "Amélie"
 	>> Text.from_bytes([Byte(0xFF)])
-	= none : Text?
+	= none:Text
 
 	amelie2 := "Am$(\U65\U301)lie"
 	>> amelie2:split()
-	= ["A", "m", "é", "l", "i", "e"] : [Text]
+	= ["A", "m", "é", "l", "i", "e"]
 	>> amelie2:utf32_codepoints()
-	= [65, 109, 233, 108, 105, 101]
+	= [:Int32, 65, 109, 233, 108, 105, 101]
 	>> amelie2:bytes()
-	= [0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65]
+	= [:Byte, 0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65]
 
 	>> amelie:codepoint_names()
 	= ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E WITH ACUTE", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
@@ -162,7 +162,7 @@ func main():
 	>> "one$(\r\n)two$(\r\n)three$(\r\n)":lines()
 	= ["one", "two", "three"]
 	>> "":lines()
-	= []
+	= [:Text]
 
 	!! Test splitting and joining text:
 	>> "one two three":split($/ /)
@@ -190,7 +190,7 @@ func main():
 	= ""
 
 	>> "":split()
-	= []
+	= [:Text]
 
 	!! Test text:find_all()
 	>> " #one  #two #three   ":find_all($/#{alpha}/)
@@ -200,26 +200,26 @@ func main():
 	= [Match(text="#one", index=2, captures=["one"]), Match(text="#two", index=8, captures=["two"]), Match(text="#three", index=13, captures=["three"])]
 
 	>> "    ":find_all($/{alpha}/)
-	= []
+	= [:Match]
 
 	>> " foo(baz(), 1)  doop() ":find_all($/{id}(?)/)
 	= [Match(text="foo(baz(), 1)", index=2, captures=["foo", "baz(), 1"]), Match(text="doop()", index=17, captures=["doop", ""])]
 
 	>> "":find_all($Pattern'')
-	= []
+	= [:Match]
 
 	>> "Hello":find_all($Pattern'')
-	= []
+	= [:Match]
 
 	!! Test text:find()
 	>> " one   two  three   ":find($/{id}/, start=-999)
-	= none : Match?
+	= none : Match
 	>> " one   two  three   ":find($/{id}/, start=999)
-	= none : Match?
+	= none : Match
 	>> " one   two  three   ":find($/{id}/)
-	= Match(text="one", index=2, captures=["one"]) : Match?
+	= Match(text="one", index=2, captures=["one"])?
 	>> " one   two  three   ":find($/{id}/, start=5)
-	= Match(text="two", index=8, captures=["two"]) : Match?
+	= Match(text="two", index=8, captures=["two"])?
 
 	!! Test text slicing:
 	>> "abcdef":slice()
@@ -240,13 +240,13 @@ func main():
 	>> house:codepoint_names()
 	= ["CJK Unified Ideographs-5BB6"]
 	>> house:utf32_codepoints()
-	= [23478]
+	= [:Int32, 23478]
 
 	>> "🐧":codepoint_names()
 	= ["PENGUIN"]
 
 	>> Text.from_codepoint_names(["not a valid name here buddy"])
-	= none : Text?
+	= none : Text
 
 	>> "one two; three four":find_all($/; {..}/)
 	= [Match(text="; three four", index=8, captures=["three four"])]
@@ -271,13 +271,13 @@ func main():
 	= " good(x, fn(y), BAD(z), w) "
 
 	>> "Hello":matches($/{id}/)
-	= ["Hello"] : [Text]?
+	= ["Hello"]?
 	>> "Hello":matches($/{lower}/)
-	= none : [Text]?
+	= none : [Text]
 	>> "Hello":matches($/{upper}/)
-	= none : [Text]?
+	= none : [Text]
 	>> "Hello...":matches($/{id}/)
-	= none : [Text]?
+	= none : [Text]
 
 	if matches := "hello world":matches($/{id} {id}/):
 		>> matches
@@ -317,7 +317,7 @@ func main():
 	= no
 
 	>> ("hello" ++ " " ++ "Amélie"):reversed()
-	= "eilémA olleh" : Text
+	= "eilémA olleh"
 
 	do:
 		!! Testing concatenation-stability:
@@ -369,11 +369,11 @@ func main():
 	>> "x":middle_pad(5)
 	= "  x  "
 	>> "1234":left_pad(8, "XYZ")
-	= "XYZX1234" : Text
+	= "XYZX1234"
 	>> "1234":right_pad(8, "XYZ")
-	= "1234XYZX" : Text
+	= "1234XYZX"
 	>> "1234":middle_pad(9, "XYZ")
-	= "XY1234XYZ" : Text
+	= "XY1234XYZ"
 
 	>> amelie:width()
 	= 6

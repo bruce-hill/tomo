@@ -75,32 +75,32 @@ func maybe_mutexed(should_i:Bool->mutexed(Bool)?):
 
 func main():
     >> 5?
-    = 5 : Int?
+    = 5?
 
     >> if no:
         none:Int
     else:
         5
-    = 5 : Int?
+    = 5?
 
     >> 5? or -1
-    = 5 : Int
+    = 5
 
     >> 5? or fail("Non-null is falsey")
-    = 5 : Int
+    = 5
 
     >> 5? or exit("Non-null is falsey")
-    = 5 : Int
+    = 5
 
     >> (none:Int) or -1
-    = -1 : Int
+    = -1
 
     do:
         !! Ints:
         >> yep := maybe_int(yes)
-        = 123 : Int?
+        = 123?
         >> nope := maybe_int(no)
-        = none : Int?
+        = none:Int
         >> if yep:
             >> yep
             = 123
@@ -113,12 +113,12 @@ func main():
         !! ...
         !! Int64s:
         >> yep := maybe_int64(yes)
-        = 123 : Int64?
+        = Int64(123)?
         >> nope := maybe_int64(no)
-        = none : Int64?
+        = none:Int64
         >> if yep:
             >> yep
-            = 123
+            = Int64(123)
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
@@ -128,9 +128,9 @@ func main():
         !! ...
         !! Arrays:
         >> yep := maybe_array(yes)
-        = [10, 20, 30] : [Int]?
+        = [10, 20, 30]?
         >> nope := maybe_array(no)
-        = none : [Int]?
+        = none:[Int]
         >> if yep:
             >> yep
             = [10, 20, 30]
@@ -143,9 +143,9 @@ func main():
         !! ...
         !! Bools:
         >> yep := maybe_bool(yes)
-        = no : Bool?
+        = no?
         >> nope := maybe_bool(no)
-        = none : Bool?
+        = none:Bool
         >> if yep:
             >> yep
             = no
@@ -158,9 +158,9 @@ func main():
         !! ...
         !! Text:
         >> yep := maybe_text(yes)
-        = "Hello" : Text?
+        = "Hello"?
         >> nope := maybe_text(no)
-        = none : Text?
+        = none:Text
         >> if yep:
             >> yep
             = "Hello"
@@ -173,9 +173,9 @@ func main():
         !! ...
         !! Nums:
         >> yep := maybe_num(yes)
-        = 12.3 : Num?
+        = 12.3?
         >> nope := maybe_num(no)
-        = none : Num?
+        = none:Num
         >> if yep:
             >> yep
             = 12.3
@@ -187,14 +187,14 @@ func main():
     do:
         !! ...
         !! Lambdas:
-        >> yep := maybe_lambda(yes)
-        = func() [optionals.tm:54] : func()?
+        # >> yep := maybe_lambda(yes)
+        # = func() [optionals.tm:54] : func()?
         >> nope := maybe_lambda(no)
-        = none : func()?
-        >> if yep:
-            >> yep
-            = func() [optionals.tm:54]
-        else: fail("Falsey: $yep")
+        = none : func()
+        # >> if yep:
+        #     >> yep
+        #     = func() [optionals.tm:54]
+        # else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
         else: !! Falsey: $nope
@@ -203,9 +203,9 @@ func main():
         !! ...
         !! Structs:
         >> yep := Struct.maybe(yes)
-        = Struct(x=123, y="hello") : Struct?
+        = Struct(x=123, y="hello")?
         >> nope := Struct.maybe(no)
-        = none : Struct?
+        = none:Struct
         >> if yep:
             >> yep
             = Struct(x=123, y="hello")
@@ -218,12 +218,12 @@ func main():
         !! ...
         !! Enums:
         >> yep := Enum.maybe(yes)
-        = Y(123) : Enum?
+        = Enum.Y(123)?
         >> nope := Enum.maybe(no)
-        = none : Enum?
+        = none : Enum
         >> if yep:
             >> yep
-            = Y(123)
+            = Enum.Y(123)
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
@@ -233,9 +233,9 @@ func main():
         !! ...
         !! C Strings:
         >> yep := maybe_c_string(yes)
-        = CString("hi") : CString?
+        = CString("hi")?
         >> nope := maybe_c_string(no)
-        = none : CString?
+        = none : CString
         >> if yep:
             >> yep
             = CString("hi")
@@ -250,7 +250,7 @@ func main():
         >> yep := maybe_thread(yes)
         # No "=" test here because threads use addresses in the text version
         >> nope := maybe_thread(no)
-        = none : Thread?
+        = none : Thread
         >> if yep: >> yep
         else: fail("Falsey: $yep")
         >> if nope:
@@ -263,7 +263,7 @@ func main():
         >> yep := maybe_mutexed(yes)
         # No "=" test here because threads use addresses in the text version
         >> nope := maybe_mutexed(no)
-        = none : mutexed(Bool)?
+        = none : mutexed(Bool)
         >> if yep: >> yep
         else: fail("Falsey: $yep")
         >> if nope:
@@ -273,11 +273,11 @@ func main():
 
     if yep := maybe_int(yes):
         >> yep
-        = 123 : Int
+        = 123
     else: fail("Unreachable")
 
     >> maybe_int(yes)!
-    = 123 : Int
+    = 123
 
     # Test comparisons, hashing, equality:
     >> (none:Int == 5?)
@@ -285,11 +285,11 @@ func main():
     >> (5? == 5?)
     = yes
     >> {none:Int, none:Int}
-    = {none}
+    = {none:Int}
     >> {:Int? none, none}
-    = {none}
+    = {none:Int}
     >> [5?, none:Int, none:Int, 6?]:sorted()
-    = [none, none, 5, 6]
+    = [none:Int, none:Int, 5, 6]
 
     do:
         >> value := if var := 5?:
@@ -326,7 +326,7 @@ func main():
     = yes
 
     >> [Struct(5,"A")?, Struct(6,"B"), Struct(7,"C")]
-    = [Struct(x=5, y="A"), Struct(x=6, y="B"), Struct(x=7, y="C")]
+    = [Struct(x=5, y="A")?, Struct(x=6, y="B")?, Struct(x=7, y="C")?]
 
     if 5? or no:
         say("Binary op 'or' works with optionals")

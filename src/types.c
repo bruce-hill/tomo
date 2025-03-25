@@ -285,6 +285,7 @@ PUREFUNC bool has_heap_memory(type_t *t)
 
 PUREFUNC bool has_stack_memory(type_t *t)
 {
+    if (!t) return false;
     switch (t->tag) {
     case PointerType: return Match(t, PointerType)->is_stack;
     case OptionalType: return has_stack_memory(Match(t, OptionalType)->type);

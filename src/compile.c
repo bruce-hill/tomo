@@ -39,7 +39,7 @@ static CORD compile_string_literal(CORD literal);
 
 CORD promote_to_optional(type_t *t, CORD code)
 {
-    if (t == THREAD_TYPE || t == PATH_TYPE || t == PATH_TYPE_TYPE || t->tag == MomentType) {
+    if (t == THREAD_TYPE || t == PATH_TYPE || t == PATH_TYPE_TYPE || t == MATCH_TYPE || t->tag == MomentType) {
         return code;
     } else if (t->tag == IntType) {
         switch (Match(t, IntType)->bits) {
@@ -878,24 +878,13 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         if (!expr_t)
             code_err(test->expr, "I couldn't figure out the type of this expression");
 
-        CORD output = CORD_EMPTY;
-        if (test->output) {
-            const uint8_t *raw = (const uint8_t*)CORD_to_const_char_star(test->output);
-            uint8_t buf[128] = {0};
-            size_t norm_len = sizeof(buf);
-            uint8_t *norm = u8_normalize(UNINORM_NFC, (uint8_t*)raw, strlen((char*)raw)+1, buf, &norm_len);
-            assert(norm[norm_len-1] == 0);
-            output = CORD_from_char_star((char*)norm);
-            if (norm && norm != buf) free(norm);
-        }
-
         CORD setup = CORD_EMPTY;
         CORD test_code;
         if (test->expr->tag == Declare) {
             auto decl = Match(test->expr, Declare);
             const char *varname = Match(decl->var, Var)->name;
             if (streq(varname, "_"))
-                return compile_statement(env, WrapAST(ast, DocTest, .expr=decl->value, .output=output, .skip_source=test->skip_source));
+                return compile_statement(env, WrapAST(ast, DocTest, .expr=decl->value, .expected=test->expected, .skip_source=test->skip_source));
             CORD var = CORD_all("_$", Match(decl->var, Var)->name);
             type_t *t = get_type(env, decl->value);
             CORD val_code = compile_maybe_incref(env, decl->value, t);
@@ -922,7 +911,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 expr_t = lhs_t;
             } else {
                 // Multi-assign or assignment to potentially non-idempotent targets
-                if (output && assign->targets->next)
+                if (test->expected && assign->targets->next)
                     code_err(ast, "Sorry, but doctesting with '=' is not supported for multi-assignments");
 
                 test_code = "({ // Assignment\n";
@@ -969,12 +958,16 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         } else {
             test_code = compile(env, test->expr);
         }
-        if (test->output) {
+        if (test->expected) {
+            type_t *expected_type = get_type(env, test->expected);
+            if (!type_eq(expr_t, expected_type))
+                code_err(ast, "The type on the top of this test (%T) is different from the type on the bottom (%T)",
+                         expr_t, expected_type);
             return CORD_asprintf(
                 "%rtest(%r, %r, %r, %ld, %ld);",
                 setup, test_code,
+                compile(env, test->expected),
                 compile_type_info(expr_t),
-                compile_string_literal(output),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else {
@@ -1952,8 +1945,10 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
         int64_t target_bits = (int64_t)Match(target, IntType)->bits;
         switch (target_bits) {
         case TYPE_IBITS64:
+            if (mpz_cmp_si(i, INT64_MIN) == 0)
+                return "I64(INT64_MIN)";
             if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0)
-                return CORD_asprintf("I64(%s)", c_literal);
+                return CORD_asprintf("I64(%sL)", c_literal);
             break;
         case TYPE_IBITS32:
             if (mpz_cmp_si(i, INT32_MAX) <= 0 && mpz_cmp_si(i, INT32_MIN) >= 0)
@@ -2204,6 +2199,7 @@ CORD compile_none(type_t *t)
     if (t == THREAD_TYPE) return "NULL";
     else if (t == PATH_TYPE) return "NONE_PATH";
     else if (t == PATH_TYPE_TYPE) return "((OptionalPathType_t){})";
+    else if (t == MATCH_TYPE) return "NONE_MATCH";
 
     switch (t->tag) {
     case BigIntType: return "NONE_INT";

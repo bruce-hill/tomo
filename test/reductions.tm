@@ -2,10 +2,10 @@ struct Foo(x,y:Int)
 
 func main():
 	>> (+: [10, 20, 30])
-	= 60 : Int?
+	= 60?
 
 	>> (+: [:Int])
-	= none : Int?
+	= none : Int
 
 	>> (+: [10, 20, 30]) or 0
 	= 60
@@ -14,10 +14,10 @@ func main():
 	= 0
 
 	>> (_max_: [3, 5, 2, 1, 4])
-	= 5 : Int?
+	= 5?
 
 	>> (_max_:abs(): [1, -10, 5])
-	= -10 : Int?
+	= -10?
 
 	>> (_max_: [Foo(0, 0), Foo(1, 0), Foo(0, 10)])!
 	= Foo(x=1, y=0)
@@ -37,7 +37,7 @@ func main():
 	= yes
 
 	>> (<=: [:Int])
-	= none : Bool?
+	= none : Bool
 
 	>> (<=: [5, 4, 3, 2, 1])!
 	= no

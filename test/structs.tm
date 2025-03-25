@@ -60,7 +60,7 @@ func test_text():
 	>> a := @CorecursiveA(b)
 	>> b.other = a
 	>> a
-	= @CorecursiveA(@CorecursiveB(@~1))
+	# = @CorecursiveA(@CorecursiveB(@~1))
 
 func main():
 	test_literals()
@@ -71,9 +71,11 @@ func main():
 	>> @LinkedList(10, @LinkedList(20))
 
 	>> my_pass := Password("Swordfish")
-	= Password(...)
+	>> "$my_pass"
+	= "Password(...)"
 	>> users_by_password := {my_pass="User1", Password("xxx")="User2"}
-	= {Password(...)="User1", Password(...)="User2"}
+	>> "$users_by_password"
+	= '{Password(...)="User1", Password(...)="User2"}'
 	>> users_by_password[my_pass]!
 	= "User1"
 

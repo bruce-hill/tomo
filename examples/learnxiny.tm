@@ -106,21 +106,21 @@ func main():
     # Tables are efficient hash maps
     table := {"one"=1, "two"=2}
     >> table["two"]
-    = 2 : Int?
+    = 2?
 
     # The value returned is optional because none will be returned if the key
     # is not in the table:
     >> table["xxx"]
-    = none : Int?
+    = none : Int
 
     # Optional values can be converted to regular values using `!` (which will
     # create a runtime error if the value is null):
     >> table["two"]!
-    = 2 : Int
+    = 2
 
     # You can also use `or` to provide a fallback value to replace none:
     >> table["xxx"] or 0
-    = 0 : Int
+    = 0
 
     # Empty tables require specifying the key and value types:
     empty_table := {:Text,Int}
@@ -339,7 +339,7 @@ func demo_enums():
     = yes
 
     >> {my_shape="nice"}
-    = {Circle(1)="nice"}
+    = {Shape.Circle(1)="nice"}
 
 func demo_lambdas():
     # Lambdas, or anonymous functions, can be used like this:

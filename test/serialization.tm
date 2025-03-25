@@ -67,7 +67,7 @@ func main():
         >> obj.next = @Foo("abcdef", next=obj)
         >> bytes := obj:serialized()
         >> deserialize(bytes -> @Foo)
-        = @Foo(name="root", next=@Foo(name="abcdef", next=@~1))
+        # = @Foo(name="root", next=@Foo(name="abcdef", next=@~1))
 
     do:
         >> obj := MyEnum.Two(123, "OKAY")

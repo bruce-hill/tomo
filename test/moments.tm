@@ -21,13 +21,13 @@ func main():
     = "1 hour ago"
 
     >> t:seconds_till(t:after(minutes=2))
-    = 120
+    = 120.
 
     >> t:minutes_till(t:after(minutes=2))
-    = 2
+    = 2.
 
     >> t:hours_till(t:after(minutes=60))
-    = 1
+    = 1.
 
     >> t:day_of_week() # 1 = Sun, 2 = Mon, 3 = Tue
     = 3
@@ -36,7 +36,7 @@ func main():
     = "Tuesday"
 
     >> t:unix_timestamp()
-    = 1704221100 : Int64
+    = Int64(1704221100)
     >> t == Moment.from_unix_timestamp(1704221100)
     = yes
 

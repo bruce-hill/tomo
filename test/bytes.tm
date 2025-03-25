@@ -2,10 +2,10 @@
 func main():
     !! Test bytes:
     >> Byte(100)
-    = 0x64
+    = Byte(0x64)
 
     >> Byte(0xFF)
-    = 0xFF
+    = Byte(0xFF)
 
     >> b := Byte(0x0F)
     >> b:hex()

@@ -323,8 +323,7 @@ struct ast_s {
             Moment_t moment;
         } Moment;
         struct {
-            ast_t *expr;
-            const char *output;
+            ast_t *expr, *expected;
             bool skip_source:1;
         } DocTest;
         struct {

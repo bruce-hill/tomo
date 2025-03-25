@@ -17,11 +17,11 @@ func choose_text(f:Foo->Text):
 
 func main():
 	>> Foo.Zero
-	= Zero
+	= Foo.Zero
 	>> Foo.One(123)
-	= One(123)
+	= Foo.One(123)
 	>> Foo.Two(123, 456)
-	= Two(x=123, y=456)
+	= Foo.Two(x=123, y=456)
 
 	>> one := Foo.One(123)
 	>> one.One

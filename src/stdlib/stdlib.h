@@ -39,10 +39,11 @@ void end_inspect(const void *expr, const TypeInfo_t *type);
     end_inspect(&_expr, typeinfo); \
 }
 __attribute__((nonnull))
-void test_value(const void *expr, const TypeInfo_t *type, const char *expected);
-#define test(expr, typeinfo, expected, start, end) {\
+void test_value(const void *expr, const void *expected, const TypeInfo_t *type);
+#define test(expr, expected, typeinfo, start, end) {\
     auto _expr = expr; \
-    test_value(&_expr, typeinfo, expected); \
+    auto _expected = expected; \
+    test_value(&_expr, &_expected, typeinfo); \
 }
 
 void say(Text_t text, bool newline);

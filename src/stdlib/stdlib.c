@@ -602,29 +602,19 @@ public void end_inspect(const void *expr, const TypeInfo_t *type)
 }
 
 __attribute__((nonnull))
-public void test_value(const void *expr, const TypeInfo_t *type, const char *expected)
+public void test_value(const void *expr, const void *expected, const TypeInfo_t *type)
 {
     Text_t expr_text = generic_as_text(expr, USE_COLOR, type);
-    Text_t type_name = generic_as_text(NULL, false, type);
+    Text_t expected_text = generic_as_text(expected, USE_COLOR, type);
 
-    Text_t expected_text = Text$from_str(expected);
-    Text_t expr_plain = USE_COLOR ? generic_as_text(expr, false, type) : expr_text;
-    bool success = Text$equal_values(expr_plain, expected_text);
-    if (!success) {
-        OptionalMatch_t colon = Text$find(expected_text, Text(":"), I_small(1));
-        if (colon.index.small) {
-            Text_t with_type = Text$concat(expr_plain, Text(" : "), type_name);
-            success = Text$equal_values(with_type, expected_text);
-        }
-    }
-
+    bool success = Text$equal_values(expr_text, expected_text);
     if (!success) {
         print_stack_trace(stderr, 2, 4);
         fprintf(stderr, 
                 USE_COLOR
-                ? "\n\x1b[31;7m ==================== TEST FAILED ==================== \x1b[0;1m\n\nYou expected: \x1b[36;1m%s\x1b[0m\n\x1b[1m   But I got:\x1b[m %k\n\n"
-                : "\n==================== TEST FAILED ====================\n\nYou expected: %s\n   But I got: %k\n\n",
-                expected, &expr_text);
+                ? "\n\x1b[31;7m ==================== TEST FAILED ==================== \x1b[0;1m\n\nYou expected: \x1b[m%k\x1b[0m\n\x1b[1m   But I got:\x1b[m %k\n\n"
+                : "\n==================== TEST FAILED ====================\n\nYou expected: %k\n   But I got: %k\n\n",
+                &expected_text, &expr_text);
 
         fflush(stderr);
         raise(SIGABRT);

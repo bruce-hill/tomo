@@ -2418,22 +2418,14 @@ PARSER(parse_doctest) {
     spaces(&pos);
     ast_t *expr = expect(ctx, start, &pos, parse_statement, "I couldn't parse the expression for this doctest");
     whitespace(&pos);
-    const char* output = NULL;
+    ast_t *expected = NULL;
     if (match(&pos, "=")) {
         spaces(&pos);
-        const char *output_start = pos,
-                   *output_end = pos + strcspn(pos, "\r\n");
-        if (output_end <= output_start)
-            parser_err(ctx, output_start, output_end, "You're missing expected output here");
-        int64_t trailing_spaces = 0;
-        while (output_end - trailing_spaces - 1 > output_start && (output_end[-trailing_spaces-1] == ' ' || output_end[-trailing_spaces-1] == '\t'))
-            ++trailing_spaces;
-        output = GC_strndup(output_start, (size_t)((output_end - output_start) - trailing_spaces));
-        pos = output_end;
+        expected = expect(ctx, start, &pos, parse_extended_expr, "I couldn't parse the expected expression here");
     } else {
         pos = expr->end;
     }
-    return NewAST(ctx->file, start, pos, DocTest, .expr=expr, .output=output);
+    return NewAST(ctx->file, start, pos, DocTest, .expr=expr, .expected=expected);
 }
 
 PARSER(parse_say) {
