@@ -841,7 +841,7 @@ void set_binding(env_t *env, const char *name, type_t *type, CORD code)
 __attribute__((format(printf, 4, 5)))
 _Noreturn void compiler_err(file_t *f, const char *start, const char *end, const char *fmt, ...)
 {
-    if (isatty(STDERR_FILENO) && !getenv("NO_COLOR"))
+    if (USE_COLOR)
         fputs("\x1b[31;7;1m", stderr);
     if (f && start && end)
         fprintf(stderr, "%s:%ld.%ld: ", f->relative_filename, get_line_number(f, start),
@@ -850,11 +850,11 @@ _Noreturn void compiler_err(file_t *f, const char *start, const char *end, const
     va_start(args, fmt);
     vfprintf(stderr, fmt, args);
     va_end(args);
-    if (isatty(STDERR_FILENO) && !getenv("NO_COLOR"))
+    if (USE_COLOR)
         fputs(" \x1b[m", stderr);
     fputs("\n\n", stderr);
     if (f && start && end)
-        highlight_error(f, start, end, "\x1b[31;1m", 2, isatty(STDERR_FILENO) && !getenv("NO_COLOR"));
+        highlight_error(f, start, end, "\x1b[31;1m", 2, USE_COLOR);
 
     if (getenv("TOMO_STACKTRACE"))
         print_stack_trace(stderr, 1, 3);

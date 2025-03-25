@@ -96,6 +96,10 @@ int main(int argc, char *argv[])
     if (stat(compiler_path, &compiler_stat) != 0)
         err(1, "Could not find age of compiler");
 
+    USE_COLOR = getenv("COLOR") ? strcmp(getenv("COLOR"), "1") == 0 : isatty(STDOUT_FILENO);
+    if (getenv("NO_COLOR") && getenv("NO_COLOR")[0] != '\0')
+        USE_COLOR = false;
+
     if (register_printf_specifier('T', printf_type, printf_pointer_size))
         errx(1, "Couldn't set printf specifier");
     if (register_printf_specifier('W', printf_ast, printf_pointer_size))
