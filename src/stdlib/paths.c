@@ -287,12 +287,12 @@ static void _write(Path_t path, Array_t bytes, int mode, int permissions)
 public void Path$write(Path_t path, Text_t text, int permissions)
 {
     Array_t bytes = Text$utf8_bytes(text);
-    _write(path, bytes, O_WRONLY | O_CREAT, permissions);
+    _write(path, bytes, O_WRONLY | O_CREAT | O_TRUNC, permissions);
 }
 
 public void Path$write_bytes(Path_t path, Array_t bytes, int permissions)
 {
-    _write(path, bytes, O_WRONLY | O_CREAT, permissions);
+    _write(path, bytes, O_WRONLY | O_CREAT | O_TRUNC, permissions);
 }
 
 public void Path$append(Path_t path, Text_t text, int permissions)
