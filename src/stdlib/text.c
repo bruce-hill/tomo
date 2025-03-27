@@ -1203,12 +1203,6 @@ static INLINE Text_t _quoted(Text_t text, bool colorize, char quote_char)
 public Text_t Text$as_text(const void *vtext, bool colorize, const TypeInfo_t *info)
 {
     (void)info;
-    if (info->TextInfo.lang && streq(info->TextInfo.lang, "Path")) {
-        if (!vtext) return Text("Path");
-        Text_t text = *(Text_t*)vtext;
-        return Text$format("(%s%k%s)", colorize ? "\x1b[35m" : "", &text, colorize ? "\x1b[m" : "");
-    }
-
     if (!vtext) return info && info->TextInfo.lang ? Text$from_str(info->TextInfo.lang) : Text("Text");
 
     Text_t text = *(Text_t*)vtext;
