@@ -247,18 +247,28 @@ public OptionalInt_t Array$first(Array_t arr, Closure_t predicate)
     return NONE_INT;
 }
 
+static Closure_t _sort_comparison = {.fn=NULL};
+
+int _compare_closure(const void *a, const void *b)
+{
+    typedef int (*comparison_t)(const void*, const void*, void*);
+    return ((comparison_t)_sort_comparison.fn)(a, b, _sort_comparison.userdata);
+}
+
 public void Array$sort(Array_t *arr, Closure_t comparison, int64_t padded_item_size)
 {
     if (arr->data_refcount != 0 || (int64_t)arr->stride != padded_item_size)
         Array$compact(arr, padded_item_size);
 
-    qsort_r(arr->data, (size_t)arr->length, (size_t)padded_item_size, comparison.fn, comparison.userdata);
+    _sort_comparison = comparison;
+    qsort(arr->data, (size_t)arr->length, (size_t)padded_item_size, _compare_closure);
 }
 
 public Array_t Array$sorted(Array_t arr, Closure_t comparison, int64_t padded_item_size)
 {
     Array$compact(&arr, padded_item_size);
-    qsort_r(arr.data, (size_t)arr.length, (size_t)padded_item_size, comparison.fn, comparison.userdata);
+    _sort_comparison = comparison;
+    qsort(arr.data, (size_t)arr.length, (size_t)padded_item_size, _compare_closure);
     return arr;
 }
 
