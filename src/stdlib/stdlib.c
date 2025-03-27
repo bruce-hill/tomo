@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <gc.h>
 #include <locale.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
