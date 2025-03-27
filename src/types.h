@@ -2,11 +2,9 @@
 
 // Logic for defining and working with types
 
-#include <printf.h>
 #include <stdlib.h>
 
 #include "ast.h"
-#include "stdlib/arrays.h"
 
 typedef struct type_s type_t;
 
@@ -135,9 +133,8 @@ struct type_s {
 #define INT_TYPE Type(BigIntType)
 #define NUM_TYPE Type(NumType, .bits=TYPE_NBITS64)
 
-int printf_pointer_size(const struct printf_info *info, size_t n, int argtypes[n], int size[n]);
-int printf_type(FILE *stream, const struct printf_info *info, const void *const args[]);
 CORD type_to_cord(type_t *t);
+const char *type_to_str(type_t *t);
 const char *get_type_name(type_t *t);
 PUREFUNC bool type_eq(type_t *a, type_t *b);
 PUREFUNC bool type_is_a(type_t *t, type_t *req);

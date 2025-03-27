@@ -458,7 +458,7 @@ env_t *global_env(void)
         for (int64_t j = 0; j < global_types[i].namespace.length; j++) {
             ns_entry_t *entry = global_types[i].namespace.data + j*global_types[i].namespace.stride;
             type_t *type = parse_type_string(ns_env, entry->type_str);
-            if (!type) compiler_err(NULL, NULL, NULL, "Couldn't parse type string: %s", entry->type_str);
+            if (!type) compiler_err(NULL, NULL, NULL, "Couldn't parse type string: ", entry->type_str);
             if (type->tag == ClosureType) type = Match(type, ClosureType)->fn;
             set_binding(ns_env, entry->name, type, entry->code);
         }
@@ -596,7 +596,7 @@ env_t *global_env(void)
 
     for (size_t i = 0; i < sizeof(global_vars)/sizeof(global_vars[0]); i++) {
         type_t *type = parse_type_string(env, global_vars[i].type_str);
-        if (!type) compiler_err(NULL, NULL, NULL, "Couldn't parse type string for %s: %s", global_vars[i].name, global_vars[i].type_str);
+        if (!type) compiler_err(NULL, NULL, NULL, "Couldn't parse type string for ", global_vars[i].name, ": ", global_vars[i].type_str);
         if (type->tag == ClosureType) type = Match(type, ClosureType)->fn;
         Table$str_set(env->globals, global_vars[i].name, new(binding_t, .type=type, .code=global_vars[i].code));
     }
@@ -736,8 +736,6 @@ env_t *for_scope(env_t *env, ast_t *ast)
     }
     case FunctionType: case ClosureType: {
         auto fn = iter_t->tag == ClosureType ? Match(Match(iter_t, ClosureType)->fn, FunctionType) : Match(iter_t, FunctionType);
-        // if (fn->ret->tag != OptionalType)
-        //     code_err(for_->iter, "Iterator functions must return an optional type, not %T", fn->ret);
 
         if (for_->vars) {
             if (for_->vars->next)
@@ -748,7 +746,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
         }
         return scope;
     }
-    default: code_err(for_->iter, "Iteration is not implemented for type: %T", iter_t);
+    default: code_err(for_->iter, "Iteration is not implemented for type: ", type_to_str(iter_t));
     }
 }
 
@@ -836,31 +834,6 @@ void set_binding(env_t *env, const char *name, type_t *type, CORD code)
 {
     assert(name);
     Table$str_set(env->locals, name, new(binding_t, .type=type, .code=code));
-}
-
-__attribute__((format(printf, 4, 5)))
-_Noreturn void compiler_err(file_t *f, const char *start, const char *end, const char *fmt, ...)
-{
-    if (USE_COLOR)
-        fputs("\x1b[31;7;1m", stderr);
-    if (f && start && end)
-        fprintf(stderr, "%s:%ld.%ld: ", f->relative_filename, get_line_number(f, start),
-                get_line_column(f, start));
-    va_list args;
-    va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
-    va_end(args);
-    if (USE_COLOR)
-        fputs(" \x1b[m", stderr);
-    fputs("\n\n", stderr);
-    if (f && start && end)
-        highlight_error(f, start, end, "\x1b[31;1m", 2, USE_COLOR);
-
-    if (getenv("TOMO_STACKTRACE"))
-        print_stack_trace(stderr, 1, 3);
-
-    raise(SIGABRT);
-    exit(1);
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

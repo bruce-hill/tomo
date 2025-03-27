@@ -5,6 +5,8 @@
 #include <gc/cord.h>
 
 #include "types.h"
+#include "stdlib/print.h"
+#include "stdlib/stdlib.h"
 #include "stdlib/tables.h"
 
 typedef struct {
@@ -64,8 +66,23 @@ env_t *fresh_scope(env_t *env);
 env_t *for_scope(env_t *env, ast_t *ast);
 env_t *with_enum_scope(env_t *env, type_t *t);
 env_t *namespace_env(env_t *env, const char *namespace_name);
-__attribute__((format(printf, 4, 5)))
-_Noreturn void compiler_err(file_t *f, const char *start, const char *end, const char *fmt, ...);
+#define compiler_err(f, start, end, ...) ({ \
+    file_t *_f = f; \
+    if (USE_COLOR) \
+        fputs("\x1b[31;7;1m", stderr); \
+    if (_f && start && end) \
+        fprint_inline(stderr, _f->relative_filename, ":", get_line_number(_f, start), ".", get_line_column(_f, start), ": "); \
+    fprint(stderr, __VA_ARGS__); \
+    if (USE_COLOR) \
+        fputs(" \x1b[m", stderr); \
+    fputs("\n\n", stderr); \
+    if (_f && start && end) \
+        highlight_error(_f, start, end, "\x1b[31;1m", 2, USE_COLOR); \
+    if (getenv("TOMO_STACKTRACE")) \
+        print_stack_trace(stderr, 1, 3); \
+    raise(SIGABRT); \
+    exit(1); \
+})
 binding_t *get_binding(env_t *env, const char *name);
 binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args);
 void set_binding(env_t *env, const char *name, type_t *type, CORD code);

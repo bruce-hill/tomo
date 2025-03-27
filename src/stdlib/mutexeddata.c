@@ -20,7 +20,8 @@ static Text_t MutexedData$as_text(const void *m, bool colorize, const TypeInfo_t
     if (!m) {
         return Texts(colorize ? Text("\x1b[34;1mmutexed\x1b[m(") : Text("mutexed("), typename, Text(")"));
     }
-    return Text$format(colorize ? "\x1b[34;1mmutexed %k<%p>\x1b[m" : "mutexed %k<%p>", &typename, *((MutexedData_t*)m));
+    return Texts(colorize ? Text("\x1b[34;1mmutexed ") : Text("mutexed "), typename,
+                 Text$format(colorize ? "<%p>\x1b[m" : "<%p>", *((MutexedData_t*)m)));
 }
 
 static bool MutexedData$is_none(const void *m, const TypeInfo_t *)

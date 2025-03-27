@@ -10,6 +10,7 @@
 
 #include "stdlib/tomo.h"
 #include "stdlib/util.h"
+#include "stdlib/print.h"
 #include "typecheck.h"
 #include "parse.h"
 
@@ -43,7 +44,7 @@ void repl(void)
 {
     env_t *env = global_env();
     void *dl = dlopen("libtomo.so", RTLD_LAZY);
-    if (!dl) errx(1, "I couldn't find libtomo.so in your library paths");
+    if (!dl) print_err("I couldn't find libtomo.so in your library paths");
 
     size_t buf_size = 0;
     char *line = NULL;
@@ -84,33 +85,33 @@ void repl(void)
     printf("\n");
 }
 
-__attribute__((noreturn, format(printf, 2, 3)))
-static void repl_err(ast_t *node, const char *fmt, ...)
-{
-    bool color = isatty(STDERR_FILENO) && !getenv("NO_COLOR");
-    if (color)
-        fputs("\x1b[31;7;1m", stderr);
-    if (node)
-        fprintf(stderr, "%s:%ld.%ld: ", node->file->relative_filename, get_line_number(node->file, node->start),
-                get_line_column(node->file, node->start));
-    va_list args;
-    va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
-    va_end(args);
-    if (color)
-        fputs(" \x1b[m", stderr);
-    fputs("\n\n", stderr);
-    if (node)
-        highlight_error(node->file, node->start, node->end, "\x1b[31;1m", 2, color);
+// __attribute__((noreturn, format(printf, 2, 3)))
+// static void repl_err(ast_t *node, const char *fmt, ...)
+// {
+//     bool color = isatty(STDERR_FILENO) && !getenv("NO_COLOR");
+//     if (color)
+//         fputs("\x1b[31;7;1m", stderr);
+//     if (node)
+//         fprintf(stderr, "%s:%ld.%ld: ", node->file->relative_filename, get_line_number(node->file, node->start),
+//                 get_line_column(node->file, node->start));
+//     va_list args;
+//     va_start(args, fmt);
+//     vfprintf(stderr, fmt, args);
+//     va_end(args);
+//     if (color)
+//         fputs(" \x1b[m", stderr);
+//     fputs("\n\n", stderr);
+//     if (node)
+//         highlight_error(node->file, node->start, node->end, "\x1b[31;1m", 2, color);
 
-    longjmp(on_err, 1);
-}
+    // longjmp(on_err, 1);
+// }
 
 const TypeInfo_t *type_to_type_info(type_t *t)
 {
     switch (t->tag) {
     case AbortType: return &Abort$info;
-    case ReturnType: errx(1, "Shouldn't be getting a typeinfo for ReturnType");
+    case ReturnType: print_err("Shouldn't be getting a typeinfo for ReturnType");
     case VoidType: return &Void$info;
     case MemoryType: return &Memory$info;
     case BoolType: return &Bool$info;
@@ -121,13 +122,13 @@ const TypeInfo_t *type_to_type_info(type_t *t)
         case TYPE_IBITS32: return &Int32$info;
         case TYPE_IBITS16: return &Int16$info;
         case TYPE_IBITS8: return &Int8$info;
-        default: errx(1, "Invalid bits");
+        default: print_err("Invalid bits");
         }
     case NumType:
         switch (Match(t, NumType)->bits) {
         case TYPE_NBITS64: return &Num$info;
         case TYPE_NBITS32: return &Num32$info;
-        default: errx(1, "Invalid bits");
+        default: print_err("Invalid bits");
         }
     case TextType: return &Text$info;
     case ArrayType: {
@@ -148,7 +149,7 @@ const TypeInfo_t *type_to_type_info(type_t *t)
         const TypeInfo_t pointer_info = *Pointer$info(sigil, pointed_info);
         return memcpy(GC_MALLOC(sizeof(TypeInfo_t)), &pointer_info, sizeof(TypeInfo_t));
     }
-    default: errx(1, "Unsupported type: %T", t);
+    default: print_err("Unsupported type: ", type_to_str(t));
     }
 }
 
@@ -157,10 +158,10 @@ static PUREFUNC void *get_address(env_t *env, ast_t *ast)
     switch (ast->tag) {
     case Var: {
         repl_binding_t *b = get_repl_binding(env, Match(ast, Var)->name);
-        if (!b) repl_err(ast, "No such variable");
+        if (!b) print_err("No such variable");
         return b->value;
     }
-    default: errx(1, "Address not implemented for %W", ast);
+    default: print_err("Address not implemented for ", ast_to_str(ast));
     }
 }
 
@@ -181,10 +182,10 @@ static Int_t ast_to_int(env_t *env, ast_t *ast)
         case TYPE_IBITS32: return Int$from_int32(num.i32);
         case TYPE_IBITS16: return Int$from_int16(num.i16);
         case TYPE_IBITS8: return Int$from_int8(num.i8);
-        default: errx(1, "Invalid int bits");
+        default: print_err("Invalid int bits");
         }
     }
-    default: repl_err(NULL, "Cannot convert to integer");
+    default: print_err("Cannot convert to integer");
     }
 }
 
@@ -202,7 +203,7 @@ static double ast_to_num(env_t *env, ast_t *ast)
         case TYPE_IBITS32: return Num$from_int32(num.i32);
         case TYPE_IBITS16: return Num$from_int16(num.i16);
         case TYPE_IBITS8: return Num$from_int8(num.i8);
-        default: errx(1, "Invalid int bits");
+        default: print_err("Invalid int bits");
         }
     }
     case NumType: {
@@ -210,7 +211,7 @@ static double ast_to_num(env_t *env, ast_t *ast)
         eval(env, ast, &num);
         return Match(t, NumType)->bits == TYPE_NBITS32 ? (double)num.n32 : (double)num.n64;
     }
-    default: repl_err(NULL, "Cannot convert to number");
+    default: print_err("Cannot convert to number");
     }
 }
 
@@ -241,14 +242,14 @@ void run(env_t *env, ast_t *ast)
             type_t *t_target = get_type(env, target->ast);
             type_t *t_val = get_type(env, val->ast);
             if (!type_eq(t_val, t_target))
-                repl_err(target->ast, "This value has type %T but I expected a %T", t_val, t_target);
+                print_err("This value has type ", type_to_str(t_val), " but I expected a ", type_to_str(t_target));
 
             if (!can_be_mutated(env, target->ast)) {
                 if (target->ast->tag == Index || target->ast->tag == FieldAccess) {
-                    ast_t *subject = target->ast->tag == Index ? Match(target->ast, Index)->indexed : Match(target->ast, FieldAccess)->fielded;
-                    repl_err(subject, "This is an immutable value, you can't assign to it");
+                    // ast_t *subject = target->ast->tag == Index ? Match(target->ast, Index)->indexed : Match(target->ast, FieldAccess)->fielded;
+                    print_err("This is an immutable value, you can't assign to it");
                 } else {
-                    repl_err(target->ast, "This is a value of type %T and can't be assigned to", get_type(env, target->ast));
+                    print_err("This is a value of type ", type_to_str(get_type(env, target->ast)), " and can't be assigned to");
                 }
             }
         }
@@ -264,7 +265,7 @@ void run(env_t *env, ast_t *ast)
             //     type_t *obj_t = get_type(env, index->indexed);
             //     TypeInfo_t *table_info = type_to_type_info(t);
             // }
-            default: errx(1, "Assignment not implemented: %W", target->ast);
+            default: print_err("Assignment not implemented: ", ast_to_str(target->ast));
             }
         }
         break;
@@ -279,7 +280,7 @@ void run(env_t *env, ast_t *ast)
             void *value = GC_MALLOC(size);
             eval(env, doctest->expr, value);
             Text_t text = obj_to_text(t, value, true);
-            printf("= %k \x1b[2m: %T\x1b[m\n", &text, t);
+            print("= ", text, " \x1b[2m: ", type_to_str(t), "\x1b[m");
             fflush(stdout);
         }
         break;
@@ -354,7 +355,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         if (!dest) return;
         repl_binding_t *b = get_repl_binding(env, Match(ast, Var)->name);
         if (!b)
-            repl_err(ast, "No such variable: %s", Match(ast, Var)->name);
+            print_err("No such variable: ", Match(ast, Var)->name);
         memcpy(dest, b->value, size);
         break;
     }
@@ -405,7 +406,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         case 32: *(int32_t*)dest = Int32$from_int(result, false); return; \
         case 16: *(int16_t*)dest = Int16$from_int(result, false); return; \
         case 8: *(int8_t*)dest = Int8$from_int(result, false); return; \
-        default: errx(1, "Invalid int bits"); \
+        default: print_err("Invalid int bits"); \
         } \
         break; \
     }
@@ -437,7 +438,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         case BINOP_EQ: case BINOP_NE: case BINOP_LT: case BINOP_LE: case BINOP_GT: case BINOP_GE: {
             type_t *t_lhs = get_type(env, binop->lhs);
             if (!type_eq(t_lhs, get_type(env, binop->rhs)))
-                repl_err(ast, "Comparisons between different types aren't supported");
+                print_err("Comparisons between different types aren't supported");
             const TypeInfo_t *info = type_to_type_info(t_lhs);
             size_t value_size = type_size(t_lhs);
             char lhs[value_size], rhs[value_size];
@@ -455,7 +456,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
             }
             break;
         }
-        default: errx(1, "Binary op not implemented for %T: %W", t, ast);
+        default: print_err(1, "Binary op not implemented for ", type_to_str(t), ": ", ast_to_str(ast));
         }
         break;
     }
@@ -471,8 +472,8 @@ void eval(env_t *env, ast_t *ast, void *dest)
             int64_t index_int = raw_index;
             if (index_int < 1) index_int = arr.length + index_int + 1;
             if (index_int < 1 || index_int > arr.length)
-                repl_err(index->index, "%ld is an invalid index for an array with length %ld",
-                         raw_index, arr.length);
+                print_err(raw_index,
+                         " is an invalid index for an array with length ", (int64_t)arr.length);
             size_t item_size = type_size(Match(indexed_t, ArrayType)->item_type);
             memcpy(dest, arr.data + arr.stride*(index_int-1), item_size);
             break;
@@ -496,7 +497,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
             memcpy(dest, pointer, pointed_size);
             break;
         }
-        default: errx(1, "Indexing is not supported for %T", indexed_t);
+        default: print_err("Indexing is not supported for ", type_to_str(indexed_t));
         }
         break;
     }
@@ -544,7 +545,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         break;
     }
     default:
-        errx(1, "Eval not implemented for %W", ast);
+        print_err("Eval not implemented for ", ast_to_str(ast));
     }
 }
 #pragma GCC diagnostic pop

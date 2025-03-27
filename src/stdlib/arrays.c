@@ -57,7 +57,7 @@ public void Array$insert(Array_t *arr, const void *item, Int_t int_index, int64_
 
     if (index < 1) index = 1;
     else if (index > (int64_t)arr->length + 1)
-        fail("Invalid insertion index %ld for an array with length %ld", index, arr->length);
+        fail("Invalid insertion index ", index, " for an array with length ", (int64_t)arr->length);
 
     if (!arr->data) {
         arr->free = 4;
@@ -105,7 +105,7 @@ public void Array$insert_all(Array_t *arr, Array_t to_insert, Int_t int_index, i
 
     if (index < 1) index = 1;
     else if (index > (int64_t)arr->length + 1)
-        fail("Invalid insertion index %ld for an array with length %ld", index, arr->length);
+        fail("Invalid insertion index ", index, " for an array with length ", (int64_t)arr->length);
 
     if ((int64_t)arr->free >= (int64_t)to_insert.length // Adequate free space
         && arr->data_refcount == 0 // Not aliased memory
@@ -322,7 +322,7 @@ public Array_t Array$sample(Array_t arr, Int_t int_n, Array_t weights, RNG_t rng
     }
 
     if (weights.length != arr.length)
-        fail("Array has %ld elements, but there are %ld weights given", arr.length, weights.length);
+        fail("Array has ", (int64_t)arr.length, " elements, but there are ", (int64_t)weights.length, " weights given");
 
     double total = 0.0;
     for (int64_t i = 0; i < weights.length && i < arr.length; i++) {

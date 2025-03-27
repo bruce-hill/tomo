@@ -518,7 +518,7 @@ static pat_t parse_next_pat(TextIter_t *state, int64_t *index)
         int32_t close = open;
         uc_mirror_char((ucs4_t)open, (ucs4_t*)&close);
         if (!match_grapheme(state, index, close))
-            fail("Pattern's closing quote is missing: %k", &state->stack[0].text);
+            fail("Pattern's closing quote is missing: ", state->stack[0].text);
 
         return (pat_t){
             .tag=PAT_QUOTE,
@@ -533,7 +533,7 @@ static pat_t parse_next_pat(TextIter_t *state, int64_t *index)
         int32_t close = open;
         uc_mirror_char((ucs4_t)open, (ucs4_t*)&close);
         if (!match_grapheme(state, index, close))
-            fail("Pattern's closing brace is missing: %k", &state->stack[0].text);
+            fail("Pattern's closing brace is missing: ", state->stack[0].text);
         
         return (pat_t){
             .tag=PAT_PAIR,
@@ -553,7 +553,7 @@ static pat_t parse_next_pat(TextIter_t *state, int64_t *index)
             } else {
                 max = min;
             }
-            if (min > max) fail("Minimum repetitions (%ld) is less than the maximum (%ld)", min, max);
+            if (min > max) fail("Minimum repetitions (", min, ") is less than the maximum (", max, ")");
         } else {
             min = -1, max = -1;
         }
@@ -573,19 +573,19 @@ static pat_t parse_next_pat(TextIter_t *state, int64_t *index)
             skip_whitespace(state, index);
             int32_t grapheme = Text$get_grapheme_fast(state, (*index)++);
             if (!match_grapheme(state, index, '}'))
-                fail("Missing closing '}' in pattern: %k", &state->stack[0].text);
+                fail("Missing closing '}' in pattern: ", state->stack[0].text);
             return PAT(PAT_GRAPHEME, .grapheme=grapheme);
         } else if (strlen(prop_name) == 1) {
             // Single letter names: {1+ A}
             skip_whitespace(state, index);
             if (!match_grapheme(state, index, '}'))
-                fail("Missing closing '}' in pattern: %k", &state->stack[0].text);
+                fail("Missing closing '}' in pattern: ", state->stack[0].text);
             return PAT(PAT_GRAPHEME, .grapheme=prop_name[0]);
         }
 
         skip_whitespace(state, index);
         if (!match_grapheme(state, index, '}'))
-            fail("Missing closing '}' in pattern: %k", &state->stack[0].text);
+            fail("Missing closing '}' in pattern: ", state->stack[0].text);
 
         switch (tolower(prop_name[0])) {
         case '.':
@@ -673,7 +673,7 @@ static pat_t parse_next_pat(TextIter_t *state, int64_t *index)
 
         ucs4_t grapheme = unicode_name_character(prop_name);
         if (grapheme == UNINAME_INVALID)
-            fail("Not a valid property or character name: %s", prop_name);
+            fail("Not a valid property or character name: ", prop_name);
         return PAT(PAT_GRAPHEME, .grapheme=(int32_t)grapheme);
 #undef PAT
     } else {
@@ -942,14 +942,14 @@ static Text_t apply_backrefs(Text_t text, Array_t recursive_replacements, Text_t
             pos += 1;
             continue;
         }
-        if (backref < 0 || backref > 9) fail("Invalid backref index: %ld (only 0-%d are allowed)", backref, MAX_BACKREFS-1);
+        if (backref < 0 || backref > 9) fail("Invalid backref index: ", backref, " (only 0-", MAX_BACKREFS-1, " are allowed)");
         backref_len = (after_backref - pos);
 
         if (Text$get_grapheme_fast(&replacement_state, pos + backref_len) == ';')
             backref_len += 1; // skip optional semicolon
 
         if (!captures[backref].occupied)
-            fail("There is no capture number %ld!", backref);
+            fail("There is no capture number ", backref, "!");
 
         Text_t backref_text = Text$slice(text, I(captures[backref].index+1), I(captures[backref].index + captures[backref].length));
 

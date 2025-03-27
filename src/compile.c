@@ -47,7 +47,7 @@ CORD promote_to_optional(type_t *t, CORD code)
         case TYPE_IBITS16: return CORD_all("((OptionalInt16_t){", code, "})");
         case TYPE_IBITS32: return CORD_all("((OptionalInt32_t){", code, "})");
         case TYPE_IBITS64: return CORD_all("((OptionalInt64_t){", code, "})");
-        default: errx(1, "Unsupported in type: %T", t);
+        default: errx(1, "Unsupported in type: ", type_to_str(t));
         }
     } else if (t->tag == ByteType) {
         return CORD_all("((OptionalByte_t){", code, "})");
@@ -383,7 +383,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
             else if (clause->pattern->tag == FunctionCall && Match(clause->pattern, FunctionCall)->fn->tag == Var)
                 clause_tag_name = Match(Match(clause->pattern, FunctionCall)->fn, Var)->name;
             else
-                code_err(clause->pattern, "This is not a valid pattern for a %T enum", subject_t);
+                code_err(clause->pattern, "This is not a valid pattern for a ", type_to_str(subject_t), " enum");
 
             type_t *tag_type = NULL;
             for (tag_t *tag = enum_t->tags; tag; tag = tag->next) {
@@ -407,7 +407,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
     case Reduction: {
         auto reduction = Match(ast, Reduction);
         static int64_t next_id = 1;
-        ast_t *item = FakeAST(Var, heap_strf("$it%ld", next_id++));
+        ast_t *item = FakeAST(Var, String("$it", next_id++));
         ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=item), .iter=reduction->iter, .body=FakeAST(Pass));
         env_t *scope = for_scope(env, loop);
         add_closed_vars(closed_vars, enclosing_scope, scope, reduction->key ? reduction->key : item);
@@ -578,11 +578,11 @@ CORD compile_type(type_t *t)
             return CORD_all(namespace_prefix(s->env, s->env->namespace->parent), "$Optional", s->name, "$$type");
         }
         default:
-            compiler_err(NULL, NULL, NULL, "Optional types are not supported for: %T", t);
+            compiler_err(NULL, NULL, NULL, "Optional types are not supported for: ", type_to_str(t));
         }
     }
     case TypeInfoType: return "TypeInfo_t";
-    default: compiler_err(NULL, NULL, NULL, "Compiling type is not implemented for type with tag %d", t->tag);
+    default: compiler_err(NULL, NULL, NULL, "Compiling type is not implemented for type with tag ", t->tag);
     }
 }
 
@@ -595,9 +595,9 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
         } else if (ast->tag == FieldAccess) {
             ast_t *subject = Match(ast, FieldAccess)->fielded;
             type_t *t = get_type(env, subject);
-            code_err(subject, "This is an immutable %T value, you can't assign to its fields", t);
+            code_err(subject, "This is an immutable ", type_to_str(t), " value, you can't assign to its fields");
         } else {
-            code_err(ast, "This is a value of type %T and can't be used as an assignment target", get_type(env, ast));
+            code_err(ast, "This is a value of type ", type_to_str(get_type(env, ast)), " and can't be used as an assignment target");
         }
     }
 
@@ -626,8 +626,8 @@ static CORD compile_lvalue(env_t *env, ast_t *ast)
             } else {
                 return CORD_all("Array_lvalue(", compile_type(item_type), ", ", target_code, ", ", 
                                 index_code,
-                                ", ", heap_strf("%ld", ast->start - ast->file->text),
-                                ", ", heap_strf("%ld", ast->end - ast->file->text), ")");
+                                ", ", String((int)(ast->start - ast->file->text)),
+                                ", ", String((int)(ast->end - ast->file->text)), ")");
             }
         } else if (container_t->tag == TableType) {
             auto table_type = Match(container_t, TableType);
@@ -732,7 +732,7 @@ CORD check_none(type_t *t, CORD value)
         return CORD_all("((", value, ").tv_usec < 0)");
     else if (t->tag == MutexedType)
         return CORD_all("(", value, " == NULL)");
-    errx(1, "Optional check not implemented for: %T", t);
+    print_err("Optional check not implemented for: ", type_to_str(t));
 }
 
 static CORD compile_condition(env_t *env, ast_t *ast)
@@ -751,7 +751,7 @@ static CORD compile_condition(env_t *env, ast_t *ast)
     } else if (t->tag == PointerType) {
         code_err(ast, "This pointer will always be non-none, so it should not be used in a conditional.");
     } else {
-        code_err(ast, "%T values cannot be used for conditionals", t);
+        code_err(ast, type_to_str(t), " values cannot be used for conditionals");
     }
 }
 
@@ -802,7 +802,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             }
 
             if (clause->pattern->tag != FunctionCall || Match(clause->pattern, FunctionCall)->fn->tag != Var)
-                code_err(clause->pattern, "This is not a valid pattern for a %T enum type", subject_t);
+                code_err(clause->pattern, "This is not a valid pattern for a ", type_to_str(subject_t), " enum type");
 
             const char *clause_tag_name = Match(Match(clause->pattern, FunctionCall)->fn, Var)->name;
             code = CORD_all(code, "case ", namespace_prefix(enum_t->env, enum_t->env->namespace), "tag$", clause_tag_name, ": {\n");
@@ -832,9 +832,9 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 arg_t *field = tag_struct->fields;
                 for (arg_ast_t *arg = args; arg || field; arg = arg->next) {
                     if (!arg)
-                        code_err(ast, "The field %T.%s.%s wasn't accounted for", subject_t, clause_tag_name, field->name);
+                        code_err(ast, "The field ", type_to_str(subject_t), ".", clause_tag_name, ".", field->name, " wasn't accounted for");
                     if (!field)
-                        code_err(arg->value, "This is one more field than %T has", subject_t);
+                        code_err(arg->value, "This is one more field than ", type_to_str(subject_t), " has");
                     if (arg->name)
                         code_err(arg->value, "Named arguments are not currently supported");
 
@@ -961,8 +961,8 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         if (test->expected) {
             type_t *expected_type = get_type(env, test->expected);
             if (!type_eq(expr_t, expected_type))
-                code_err(ast, "The type on the top of this test (%T) is different from the type on the bottom (%T)",
-                         expr_t, expected_type);
+                code_err(ast, "The type on the top of this test (", type_to_str(expr_t),
+                         ") is different from the type on the bottom (", type_to_str(expected_type), ")");
             return CORD_asprintf(
                 "%rtest(%r, %r, %r, %ld, %ld);",
                 setup, test_code,
@@ -987,7 +987,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         } else {
             type_t *t = get_type(env, decl->value);
             if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
-                code_err(ast, "You can't declare a variable with a %T value", t);
+                code_err(ast, "You can't declare a variable with a ", type_to_str(t), " value");
 
             CORD val_code = compile_maybe_incref(env, decl->value, t);
             if (t->tag == FunctionType) {
@@ -1069,14 +1069,14 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         if (update->rhs->tag == Int && is_numeric_type(non_optional(lhs_t))) {
             rhs = compile_int_to_type(env, update->rhs, lhs_t);
         } else if (!promote(env, update->rhs, &rhs, rhs_t, lhs_t)) {
-            code_err(ast, "I can't do operations between %T and %T", lhs_t, rhs_t);
+            code_err(ast, "I can't do operations between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
         }
 
         bool lhs_is_optional_num = (lhs_t->tag == OptionalType && Match(lhs_t, OptionalType)->type && Match(lhs_t, OptionalType)->type->tag == NumType);
         switch (update->op) {
         case BINOP_MULT:
             if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType && !lhs_is_optional_num)
-                code_err(ast, "I can't do a multiply assignment with this operator between %T and %T", lhs_t, rhs_t);
+                code_err(ast, "I can't do a multiply assignment with this operator between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             if (lhs_t->tag == NumType) { // 0*INF -> NaN, needs checking
                 return CORD_asprintf("%r *= %r;\n"
                                      "if (isnan(%r))\n"
@@ -1089,7 +1089,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             return CORD_all(lhs, " *= ", rhs, ";");
         case BINOP_DIVIDE:
             if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType && !lhs_is_optional_num)
-                code_err(ast, "I can't do a divide assignment with this operator between %T and %T", lhs_t, rhs_t);
+                code_err(ast, "I can't do a divide assignment with this operator between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             if (lhs_t->tag == NumType) { // 0/0 or INF/INF -> NaN, needs checking
                 return CORD_asprintf("%r /= %r;\n"
                                      "if (isnan(%r))\n"
@@ -1102,19 +1102,19 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             return CORD_all(lhs, " /= ", rhs, ";");
         case BINOP_MOD:
             if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType && !lhs_is_optional_num)
-                code_err(ast, "I can't do a mod assignment with this operator between %T and %T", lhs_t, rhs_t);
+                code_err(ast, "I can't do a mod assignment with this operator between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all(lhs, " = ", lhs, " % ", rhs);
         case BINOP_MOD1:
             if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType && !lhs_is_optional_num)
-                code_err(ast, "I can't do a mod assignment with this operator between %T and %T", lhs_t, rhs_t);
+                code_err(ast, "I can't do a mod assignment with this operator between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all(lhs, " = (((", lhs, ") - 1) % ", rhs, ") + 1;");
         case BINOP_PLUS:
             if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType && !lhs_is_optional_num)
-                code_err(ast, "I can't do an addition assignment with this operator between %T and %T", lhs_t, rhs_t);
+                code_err(ast, "I can't do an addition assignment with this operator between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all(lhs, " += ", rhs, ";");
         case BINOP_MINUS:
             if (lhs_t->tag != IntType && lhs_t->tag != NumType && lhs_t->tag != ByteType && !lhs_is_optional_num)
-                code_err(ast, "I can't do a subtraction assignment with this operator between %T and %T", lhs_t, rhs_t);
+                code_err(ast, "I can't do a subtraction assignment with this operator between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all(lhs, " -= ", rhs, ";");
         case BINOP_POWER: {
             if (lhs_t->tag != NumType && !lhs_is_optional_num)
@@ -1126,19 +1126,19 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         }
         case BINOP_LSHIFT:
             if (lhs_t->tag != IntType && lhs_t->tag != ByteType)
-                code_err(ast, "I can't do a shift assignment with this operator between %T and %T", lhs_t, rhs_t);
+                code_err(ast, "I can't do a shift assignment with this operator between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all(lhs, " <<= ", rhs, ";");
         case BINOP_RSHIFT:
             if (lhs_t->tag != IntType && lhs_t->tag != ByteType)
-                code_err(ast, "I can't do a shift assignment with this operator between %T and %T", lhs_t, rhs_t);
+                code_err(ast, "I can't do a shift assignment with this operator between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all(lhs, " >>= ", rhs, ";");
         case BINOP_ULSHIFT:
             if (lhs_t->tag != IntType && lhs_t->tag != ByteType)
-                code_err(ast, "I can't do a shift assignment with this operator between %T and %T", lhs_t, rhs_t);
+                code_err(ast, "I can't do a shift assignment with this operator between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all("{ ", compile_unsigned_type(lhs_t), " *dest = (void*)&(", lhs, "); *dest <<= ", rhs, "; }");
         case BINOP_URSHIFT:
             if (lhs_t->tag != IntType && lhs_t->tag != ByteType)
-                code_err(ast, "I can't do a shift assignment with this operator between %T and %T", lhs_t, rhs_t);
+                code_err(ast, "I can't do a shift assignment with this operator between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all("{ ", compile_unsigned_type(lhs_t), " *dest = (void*)&(", lhs, "); *dest >>= ", rhs, "; }");
         case BINOP_AND: {
             if (lhs_t->tag == BoolType)
@@ -1148,7 +1148,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             else if (lhs_t->tag == OptionalType)
                 return CORD_all("if (!(", check_none(lhs_t, lhs), ")) ", lhs, " = ", promote_to_optional(rhs_t, rhs), ";");
             else
-                code_err(ast, "'or=' is not implemented for %T types", lhs_t);
+                code_err(ast, "'or=' is not implemented for ", type_to_str(lhs_t), " types");
         }
         case BINOP_OR: {
             if (lhs_t->tag == BoolType)
@@ -1158,11 +1158,11 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             else if (lhs_t->tag == OptionalType)
                 return CORD_all("if (", check_none(lhs_t, lhs), ") ", lhs, " = ", promote_to_optional(rhs_t, rhs), ";");
             else
-                code_err(ast, "'or=' is not implemented for %T types", lhs_t);
+                code_err(ast, "'or=' is not implemented for ", type_to_str(lhs_t), " types");
         }
         case BINOP_XOR:
             if (lhs_t->tag != IntType && lhs_t->tag != BoolType && lhs_t->tag != ByteType)
-                code_err(ast, "I can't do an xor assignment with this operator between %T and %T", lhs_t, rhs_t);
+                code_err(ast, "I can't do an xor assignment with this operator between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all(lhs, " ^= ", rhs, ";");
         case BINOP_CONCAT: {
             if (lhs_t->tag == TextType) {
@@ -1175,7 +1175,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 else
                     return CORD_all(lhs, " = Array$concat(", lhs, ", ", rhs, ", ", padded_item_size, ");");
             } else {
-                code_err(ast, "'++=' is not implemented for %T types", lhs_t);
+                code_err(ast, "'++=' is not implemented for ", type_to_str(lhs_t), " types");
             }
         }
         default: code_err(ast, "Update assignments are not implemented for this operation");
@@ -1209,7 +1209,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         if (env->loop_ctx)
             code_err(ast, "This 'skip' is not inside any loop");
         else if (target)
-            code_err(ast, "No loop target named '%s' was found", target);
+            code_err(ast, "No loop target named '", target, "' was found");
         else
             return "continue;";
     }
@@ -1238,7 +1238,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         if (env->loop_ctx)
             code_err(ast, "This 'stop' is not inside any loop");
         else if (target)
-            code_err(ast, "No loop target named '%s' was found", target);
+            code_err(ast, "No loop target named '", target, "' was found");
         else
             return "break;";
     }
@@ -1307,7 +1307,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             return CORD_all(code, "return ", value, ";");
         } else {
             if (env->fn_ret->tag != VoidType)
-                code_err(ast, "This function expects you to return a %T value", env->fn_ret);
+                code_err(ast, "This function expects you to return a ", type_to_str(env->fn_ret), " value");
             return CORD_all(code, "return;");
         }
     }
@@ -1349,7 +1349,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         ast_t *held = Match(ast, Holding)->mutexed;
         type_t *held_type = get_type(env, held);
         if (held_type->tag != MutexedType)
-            code_err(held, "This is a %t, not a mutexed value", held_type);
+            code_err(held, "This is a ", type_to_str(held_type), ", not a mutexed value");
         CORD code = CORD_all(
             "{ // Holding\n",
             "MutexedData_t mutexed = ", compile(env, held), ";\n",
@@ -1421,7 +1421,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 last = compile_to_type(env, args->value, INT_TYPE);
                 if (args->next) {
                     if (args->next->name && !streq(args->next->name, "step"))
-                        code_err(args->next->value, "Invalid argument name: %s", args->next->name);
+                        code_err(args->next->value, "Invalid argument name: ", args->next->name);
                     if (get_type(env, args->next->value)->tag == OptionalType)
                         optional_step = compile_to_type(env, args->next->value, Type(OptionalType, .type=INT_TYPE));
                     else
@@ -1434,7 +1434,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                     step = compile_to_type(env, args->value, INT_TYPE);
                 if (args->next) {
                     if (args->next->name && !streq(args->next->name, "last"))
-                        code_err(args->next->value, "Invalid argument name: %s", args->next->name);
+                        code_err(args->next->value, "Invalid argument name: ", args->next->name);
                     last = compile_to_type(env, args->next->value, INT_TYPE);
                 }
             }
@@ -1692,7 +1692,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
             return code;
         }
-        default: code_err(for_->iter, "Iteration is not implemented for type: %T", iter_t);
+        default: code_err(for_->iter, "Iteration is not implemented for type: ", type_to_str(iter_t));
         }
     }
     case If: {
@@ -1766,7 +1766,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             return with_source_info(ast, CORD_all("_$", name, "$$initialize();\n"));
         } else if (use->what == USE_MODULE) {
             glob_t tm_files;
-            if (glob(heap_strf("~/.local/share/tomo/installed/%s/[!._0-9]*.tm", use->path), GLOB_TILDE, NULL, &tm_files) != 0)
+            if (glob(String("~/.local/share/tomo/installed/", use->path, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
                 code_err(ast, "Could not find library");
 
             CORD initialization = CORD_EMPTY;
@@ -1786,7 +1786,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
     }
     default:
         if (!is_discardable(env, ast))
-            code_err(ast, "The %T result of this statement cannot be discarded", get_type(env, ast));
+            code_err(ast, "The ", type_to_str(get_type(env, ast)), " result of this statement cannot be discarded");
         return CORD_asprintf("(void)%r;", compile(env, ast));
     }
 }
@@ -1818,7 +1818,7 @@ CORD expr_as_text(CORD expr, type_t *t, CORD color)
     case OptionalType: return CORD_asprintf("Optional$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(t));
     case StructType: case EnumType: case MutexedType:
         return CORD_asprintf("generic_as_text(stack(%r), %r, %r)", expr, color, compile_type_info(t));
-    default: compiler_err(NULL, NULL, NULL, "Stringifying is not supported for %T", t);
+    default: compiler_err(NULL, NULL, NULL, "Stringifying is not supported for ", type_to_str(t));
     }
 }
 
@@ -1847,7 +1847,7 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
             if (ast->tag == Var && target_depth == 1)
                 val = CORD_all("(&", val, ")");
             else
-                code_err(ast, "This should be a pointer, not %T", get_type(env, ast));
+                code_err(ast, "This should be a pointer, not ", type_to_str(get_type(env, ast)));
             t = Type(PointerType, .pointed=t, .is_stack=true);
             ++depth;
         } else {
@@ -1894,7 +1894,7 @@ CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
 
     CORD code = compile(env, ast);
     if (!promote(env, ast, &code, actual, t))
-        code_err(ast, "I expected a %T here, but this is a %T", t, actual);
+        code_err(ast, "I expected a ", type_to_str(t), " here, but this is a ", type_to_str(actual));
     return code;
 }
 
@@ -1904,7 +1904,7 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
         CORD code = compile(env, ast);
         type_t *actual_type = get_type(env, ast);
         if (!promote(env, ast, &code, actual_type, target))
-            code_err(ast, "I couldn't promote this %T to a %T", actual_type, target);
+            code_err(ast, "I couldn't promote this ", type_to_str(actual_type), " to a ", type_to_str(target));
         return code;
     }
 
@@ -1964,9 +1964,9 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
             break;
         default: break;
         }
-        code_err(ast, "This integer cannot fit in a %d-bit value", target_bits);
+        code_err(ast, "This integer cannot fit in a ", target_bits, "-bit value");
     } else {
-        code_err(ast, "I don't know how to compile this to a %T", target);
+        code_err(ast, "I don't know how to compile this to a ", type_to_str(target));
     }
 }
 
@@ -2006,7 +2006,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
         // Find positional:
         for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
             if (call_arg->name) continue;
-            const char *pseudoname = heap_strf("%ld", i++);
+            const char *pseudoname = String(i++);
             if (!Table$str_get(used_args, pseudoname)) {
                 CORD value;
                 if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
@@ -2038,7 +2038,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
         }
 
         assert(spec_arg->name);
-        code_err(call_ast, "The required argument '%s' was not provided", spec_arg->name);
+        code_err(call_ast, "The required argument '", spec_arg->name, "' was not provided");
       found_it: continue;
     }
 
@@ -2046,9 +2046,9 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
     for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
         if (call_arg->name) {
             if (!Table$str_get(used_args, call_arg->name))
-                code_err(call_arg->value, "There is no argument with the name '%s'", call_arg->name);
+                code_err(call_arg->value, "There is no argument with the name '", call_arg->name, "'");
         } else {
-            const char *pseudoname = heap_strf("%ld", i++);
+            const char *pseudoname = String(i++);
             if (!Table$str_get(used_args, pseudoname))
                 code_err(call_arg->value, "This is one argument too many!");
         }
@@ -2230,7 +2230,7 @@ CORD compile_none(type_t *t)
         return CORD_all("((", compile_type(t), "){", namespace_prefix(enum_env, enum_env->namespace), "null})");
     }
     case MutexedType: return "NONE_MUTEXED_DATA";
-    default: compiler_err(NULL, NULL, NULL, "none isn't implemented for this type: %T", t);
+    default: compiler_err(NULL, NULL, NULL, "none isn't implemented for this type: ", type_to_str(t));
     }
 }
 
@@ -2314,7 +2314,7 @@ CORD compile(env_t *env, ast_t *ast)
         else if (t->tag == OptionalType)
             return check_none(t, compile(env, value));
 
-        code_err(ast, "I don't know how to negate values of type %T", t);
+        code_err(ast, "I don't know how to negate values of type ", type_to_str(t));
     }
     case Negative: {
         ast_t *value = Match(ast, Negative)->value;
@@ -2329,7 +2329,7 @@ CORD compile(env_t *env, ast_t *ast)
         if (t->tag == IntType || t->tag == NumType)
             return CORD_all("-(", compile(env, value), ")");
 
-        code_err(ast, "I don't know how to get the negative value of type %T", t);
+        code_err(ast, "I don't know how to get the negative value of type ", type_to_str(t));
 
     }
     // TODO: for constructors, do new(T, ...) instead of heap((T){...})
@@ -2349,7 +2349,7 @@ CORD compile(env_t *env, ast_t *ast)
         ast_t *held = Match(ast, Holding)->mutexed;
         type_t *held_type = get_type(env, held);
         if (held_type->tag != MutexedType)
-            code_err(held, "This is a %t, not a mutexed value", held_type);
+            code_err(held, "This is a ", type_to_str(held_type), ", not a mutexed value");
         CORD code = CORD_all(
             "({ // Holding\n",
             "MutexedData_t mutexed = ", compile(env, held), ";\n",
@@ -2412,7 +2412,7 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (rhs_t->tag == BoolType) {
                 return CORD_all("((!", check_none(lhs_t, compile(env, binop->lhs)), ") || ", compile(env, binop->rhs), ")");
             } else {
-                code_err(ast, "I don't know how to do an 'or' operation between %T and %T", lhs_t, rhs_t);
+                code_err(ast, "I don't know how to do an 'or' operation between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             }
         } else if (binop->op == BINOP_AND && lhs_t->tag == OptionalType) {
             if (rhs_t->tag == AbortType || rhs_t->tag == ReturnType) {
@@ -2425,7 +2425,7 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (rhs_t->tag == BoolType) {
                 return CORD_all("((!", check_none(lhs_t, compile(env, binop->lhs)), ") && ", compile(env, binop->rhs), ")");
             } else {
-                code_err(ast, "I don't know how to do an 'or' operation between %T and %T", lhs_t, rhs_t);
+                code_err(ast, "I don't know how to do an 'or' operation between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             }
         }
 
@@ -2468,12 +2468,12 @@ CORD compile(env_t *env, ast_t *ast)
         else if (promote(env, binop->lhs, &lhs, lhs_t, rhs_t))
             operand_t = rhs_t;
         else
-            code_err(ast, "I can't do operations between %T and %T", lhs_t, rhs_t);
+            code_err(ast, "I can't do operations between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
 
         switch (binop->op) {
         case BINOP_POWER: {
             if (operand_t->tag != NumType)
-                code_err(ast, "Exponentiation is only supported for Num types, not %T", operand_t);
+                code_err(ast, "Exponentiation is only supported for Num types, not ", type_to_str(operand_t));
             if (operand_t->tag == NumType && Match(operand_t, NumType)->bits == TYPE_NBITS32)
                 return CORD_all("powf(", lhs, ", ", rhs, ")");
             else
@@ -2481,52 +2481,52 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case BINOP_MULT: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all("(", lhs, " * ", rhs, ")");
         }
         case BINOP_DIVIDE: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all("(", lhs, " / ", rhs, ")");
         }
         case BINOP_MOD: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all("(", lhs, " % ", rhs, ")");
         }
         case BINOP_MOD1: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all("((((", lhs, ")-1) % (", rhs, ")) + 1)");
         }
         case BINOP_PLUS: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all("(", lhs, " + ", rhs, ")");
         }
         case BINOP_MINUS: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all("(", lhs, " - ", rhs, ")");
         }
         case BINOP_LSHIFT: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all("(", lhs, " << ", rhs, ")");
         }
         case BINOP_RSHIFT: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all("(", lhs, " >> ", rhs, ")");
         }
         case BINOP_ULSHIFT: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all("(", compile_type(operand_t), ")((", compile_unsigned_type(lhs_t), ")", lhs, " << ", rhs, ")");
         }
         case BINOP_URSHIFT: {
             if (operand_t->tag != IntType && operand_t->tag != NumType && operand_t->tag != ByteType)
-                code_err(ast, "Math operations are only supported for values of the same numeric type, not %T and %T", lhs_t, rhs_t);
+                code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             return CORD_all("(", compile_type(operand_t), ")((", compile_unsigned_type(lhs_t), ")", lhs, " >> ", rhs, ")");
         }
         case BINOP_EQ: {
@@ -2607,7 +2607,7 @@ CORD compile(env_t *env, ast_t *ast)
             else if (operand_t->tag == IntType || operand_t->tag == ByteType)
                 return CORD_all("(", lhs, " & ", rhs, ")");
             else
-                code_err(ast, "The 'and' operator isn't supported between %T and %T values", lhs_t, rhs_t);
+                code_err(ast, "The 'and' operator isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " values");
         }
         case BINOP_CMP: {
             if (lhs_is_optional_num || rhs_is_optional_num)
@@ -2620,14 +2620,14 @@ CORD compile(env_t *env, ast_t *ast)
             else if (operand_t->tag == IntType || operand_t->tag == ByteType)
                 return CORD_all("(", lhs, " | ", rhs, ")");
             else
-                code_err(ast, "The 'or' operator isn't supported between %T and %T values", lhs_t, rhs_t);
+                code_err(ast, "The 'or' operator isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " values");
         }
         case BINOP_XOR: {
             // TODO: support optional values in `xor` expressions
             if (operand_t->tag == BoolType || operand_t->tag == IntType || operand_t->tag == ByteType)
                 return CORD_all("(", lhs, " ^ ", rhs, ")");
             else
-                code_err(ast, "The 'xor' operator isn't supported between %T and %T values", lhs_t, rhs_t);
+                code_err(ast, "The 'xor' operator isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " values");
         }
         case BINOP_CONCAT: {
             if (operand_t == PATH_TYPE)
@@ -2640,7 +2640,7 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all("Array$concat(", lhs, ", ", rhs, ", sizeof(", compile_type(Match(operand_t, ArrayType)->item_type), "))");
             }
             default:
-                code_err(ast, "Concatenation isn't supported between %T and %T values", lhs_t, rhs_t);
+                code_err(ast, "Concatenation isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " values");
             }
         }
         default: break;
@@ -2662,7 +2662,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         type_t *text_t = lang ? Table$str_get(*env->types, lang) : TEXT_TYPE;
         if (!text_t || text_t->tag != TextType)
-            code_err(ast, "%s is not a valid text language name", lang);
+            code_err(ast, quoted(lang), " is not a valid text language name");
 
         CORD lang_constructor;
         if (!lang || streq(lang, "Text"))
@@ -2699,7 +2699,7 @@ CORD compile(env_t *env, ast_t *ast)
                         else
                             chunk_code = compile_string(env, chunk->ast, "no");
                     } else {
-                        code_err(chunk->ast, "I don't know how to convert %T to %T", chunk_t, text_t);
+                        code_err(chunk->ast, "I don't know how to convert ", type_to_str(chunk_t), " to ", type_to_str(text_t));
                     }
                 }
                 code = CORD_cat(code, chunk_code);
@@ -2773,9 +2773,6 @@ CORD compile(env_t *env, ast_t *ast)
     case Array: {
         type_t *array_type = get_type(env, ast);
         type_t *item_type = Match(array_type, ArrayType)->item_type;
-        // if (type_size(Match(array_type, ArrayType)->item_type) > ARRAY_MAX_STRIDE)
-        //     code_err(ast, "This array holds items that take up %ld bytes, but the maximum supported size is %ld bytes. Consider using an array of pointers instead.",
-        //              type_size(item_type), ARRAY_MAX_STRIDE);
 
         auto array = Match(ast, Array);
         if (!array->items)
@@ -2801,7 +2798,7 @@ CORD compile(env_t *env, ast_t *ast)
         {
             env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : fresh_scope(env);
             static int64_t comp_num = 1;
-            const char *comprehension_name = heap_strf("arr$%ld", comp_num++);
+            const char *comprehension_name = String("arr$", comp_num++);
             ast_t *comprehension_var = FakeAST(InlineCCode, .code=CORD_all("&", comprehension_name),
                                                .type=Type(PointerType, .pointed=array_type, .is_stack=true));
             Closure_t comp_action = {.fn=add_to_array_comprehension, .userdata=comprehension_var};
@@ -2832,7 +2829,7 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *value_t = Match(table_type, TableType)->value_type;
 
         if (value_t->tag == OptionalType)
-            code_err(ast, "Tables whose values are optional (%T) are not currently supported.", value_t);
+            code_err(ast, "Tables whose values are optional (", type_to_str(value_t), ") are not currently supported.");
 
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
             if (entry->ast->tag == Comprehension)
@@ -2869,7 +2866,7 @@ CORD compile(env_t *env, ast_t *ast)
         {
             static int64_t comp_num = 1;
             env_t *scope = fresh_scope(env);
-            const char *comprehension_name = heap_strf("table$%ld", comp_num++);
+            const char *comprehension_name = String("table$", comp_num++);
             ast_t *comprehension_var = FakeAST(InlineCCode, .code=CORD_all("&", comprehension_name),
                                                .type=Type(PointerType, .pointed=table_type, .is_stack=true));
 
@@ -2923,7 +2920,7 @@ CORD compile(env_t *env, ast_t *ast)
         {
             static int64_t comp_num = 1;
             env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : fresh_scope(env);
-            const char *comprehension_name = heap_strf("set$%ld", comp_num++);
+            const char *comprehension_name = String("set$", comp_num++);
             ast_t *comprehension_var = FakeAST(InlineCCode, .code=CORD_all("&", comprehension_name),
                                                .type=Type(PointerType, .pointed=set_type, .is_stack=true));
             CORD code = CORD_all("({ Table_t ", comprehension_name, " = {};");
@@ -2975,8 +2972,8 @@ CORD compile(env_t *env, ast_t *ast)
             if (can_promote(ret_t, declared))
                 ret_t = declared;
             else
-                code_err(ast, "This function was declared to return a value of type %T, but actually returns a value of type %T",
-                         declared, ret_t);
+                code_err(ast, "This function was declared to return a value of type ", type_to_str(declared),
+                         ", but actually returns a value of type ", type_to_str(ret_t));
         }
 
         body_scope->fn_ret = ret_t;
@@ -2987,8 +2984,8 @@ CORD compile(env_t *env, ast_t *ast)
             for (int64_t i = 1; i <= Table$length(closed_vars); i++) {
                 struct { const char *name; binding_t *b; } *entry = Table$entry(closed_vars, i);
                 if (has_stack_memory(entry->b->type))
-                    code_err(ast, "This function is holding onto a reference to %T stack memory in the variable `%s`, but the function may outlive the stack memory",
-                             entry->b->type, entry->name);
+                    code_err(ast, "This function is holding onto a reference to ", type_to_str(entry->b->type),
+                             " stack memory in the variable `", entry->name, "`, but the function may outlive the stack memory");
                 if (entry->b->type->tag == ModuleType)
                     continue;
                 set_binding(body_scope, entry->name, entry->b->type, CORD_cat("userdata->", entry->name));
@@ -3238,7 +3235,7 @@ CORD compile(env_t *env, ast_t *ast)
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Array$counts(", self, ", ", compile_type_info(self_value_t), ")");
-            } else code_err(ast, "There is no '%s' method for arrays", call->name);
+            } else code_err(ast, "There is no '", call->name, "' method for arrays");
         }
         case SetType: {
             auto set = Match(self_value_t, SetType);
@@ -3304,7 +3301,7 @@ CORD compile(env_t *env, ast_t *ast)
                                       .next=new(arg_t, .name="strict", .type=Type(BoolType), .default_val=FakeAST(Bool, false)));
                 return CORD_all("Table$is_superset_of(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(self_value_t), ")");
-            } else code_err(ast, "There is no '%s' method for tables", call->name);
+            } else code_err(ast, "There is no '", call->name, "' method for tables");
         }
         case TableType: {
             auto table = Match(self_value_t, TableType);
@@ -3330,7 +3327,7 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(call->name, "bump")) {
                 EXPECT_POINTER("a", "table");
                 if (!(table->value_type->tag == IntType || table->value_type->tag == NumType))
-                    code_err(ast, "bump() is only supported for tables with numeric value types, not %T", self_value_t);
+                    code_err(ast, "bump() is only supported for tables with numeric value types, not ", type_to_str(self_value_t));
                 ast_t *one = table->value_type->tag == IntType
                     ? FakeAST(Int, .str="1")
                     : FakeAST(Num, .n=1);
@@ -3351,7 +3348,7 @@ CORD compile(env_t *env, ast_t *ast)
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Table$sorted(", self, ", ", compile_type_info(self_value_t), ")");
-            } else code_err(ast, "There is no '%s' method for tables", call->name);
+            } else code_err(ast, "There is no '", call->name, "' method for tables");
         }
         default: {
             auto methodcall = Match(ast, MethodCall);
@@ -3414,7 +3411,7 @@ CORD compile(env_t *env, ast_t *ast)
                                     compile_arguments(env, ast, struct_->fields, call->args), "})");
                 }
             }
-            code_err(ast, "I could not find a constructor matching these arguments for %T", t);
+            code_err(ast, "I could not find a constructor matching these arguments for ", type_to_str(t));
         } else if (fn_t->tag == ClosureType) {
             fn_t = Match(fn_t, ClosureType)->fn;
             arg_t *type_args = Match(fn_t, FunctionType)->args;
@@ -3436,14 +3433,14 @@ CORD compile(env_t *env, ast_t *ast)
                                 arg_code, "closure.userdata); })");
             }
         } else {
-            code_err(call->fn, "This is not a function, it's a %T", fn_t);
+            code_err(call->fn, "This is not a function, it's a ", type_to_str(fn_t));
         }
     }
     case Deserialize: {
         ast_t *value = Match(ast, Deserialize)->value;
         type_t *value_type = get_type(env, value);
         if (!type_eq(value_type, Type(ArrayType, Type(ByteType))))
-            code_err(value, "This value should be an array of bytes, not a %T", value_type);
+            code_err(value, "This value should be an array of bytes, not a ", type_to_str(value_type));
         type_t *t = parse_type_ast(env, Match(ast, Deserialize)->type);
         return CORD_all("({ ", compile_declaration(t, "deserialized"), ";\n"
                         "generic_deserialize(", compile(env, value), ", &deserialized, ", compile_type_info(t), ");\n"
@@ -3494,7 +3491,7 @@ CORD compile(env_t *env, ast_t *ast)
         if (condition->tag == Declare) {
             type_t *condition_type = get_type(env, Match(condition, Declare)->value);
             if (condition_type->tag != OptionalType)
-                code_err(condition, "This `if var := ...:` declaration should be an optional type, not %T", condition_type);
+                code_err(condition, "This `if var := ...:` declaration should be an optional type, not ", type_to_str(condition_type));
 
             decl_code = compile_statement(env, condition);
             ast_t *var = Match(condition, Declare)->var;
@@ -3538,10 +3535,10 @@ CORD compile(env_t *env, ast_t *ast)
 
         type_t *iter_t = get_type(env, reduction->iter);
         type_t *item_t = get_iterated_type(iter_t);
-        if (!item_t) code_err(reduction->iter, "I couldn't figure out how to iterate over this type: %T", iter_t);
+        if (!item_t) code_err(reduction->iter, "I couldn't figure out how to iterate over this type: ", type_to_str(iter_t));
 
         static int64_t next_id = 1;
-        ast_t *item = FakeAST(Var, heap_strf("$it%ld", next_id++));
+        ast_t *item = FakeAST(Var, String("$it", next_id++));
         ast_t *body = FakeAST(InlineCCode, .code="{}"); // placeholder
         ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=item), .iter=reduction->iter, .body=body);
         env_t *body_scope = for_scope(env, loop);
@@ -3661,11 +3658,11 @@ CORD compile(env_t *env, ast_t *ast)
                     if (locals == info->env->locals)
                         goto is_inside_type;
                 }
-                code_err(ast, "Fields that start with underscores are not accessible on types outside of the type definition.", f->field);
+                code_err(ast, "Fields that start with underscores are not accessible on types outside of the type definition.");
               is_inside_type:;
             }
             binding_t *b = get_binding(info->env, f->field);
-            if (!b) code_err(ast, "I couldn't find the field '%s' on this type", f->field);
+            if (!b) code_err(ast, "I couldn't find the field '", f->field, "' on this type");
             if (!b->code) code_err(ast, "I couldn't figure out how to compile this field");
             return b->code;
         }
@@ -3677,7 +3674,7 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(f->field, "length")) {
                 return CORD_all("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
             }
-            code_err(ast, "There is no '%s' field on %T values", f->field, value_t);
+            code_err(ast, "There is no '", f->field, "' field on ", type_to_str(value_t), " values");
         }
         case StructType: {
             for (arg_t *field = Match(value_t, StructType)->fields; field; field = field->next) {
@@ -3691,7 +3688,7 @@ CORD compile(env_t *env, ast_t *ast)
                     }
                 }
             }
-            code_err(ast, "The field '%s' is not a valid field name of %T", f->field, value_t);
+            code_err(ast, "The field '", f->field, "' is not a valid field name of ", type_to_str(value_t));
         }
         case EnumType: {
             auto e = Match(value_t, EnumType);
@@ -3707,19 +3704,19 @@ CORD compile(env_t *env, ast_t *ast)
                     }
                 }
             }
-            code_err(ast, "The field '%s' is not a valid tag name of %T", f->field, value_t);
+            code_err(ast, "The field '", f->field, "' is not a valid tag name of ", type_to_str(value_t));
         }
         case ArrayType: {
             if (streq(f->field, "length"))
                 return CORD_all("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
-            code_err(ast, "There is no %s field on arrays", f->field);
+            code_err(ast, "There is no ", f->field, " field on arrays");
         }
         case SetType: {
             if (streq(f->field, "items"))
                 return CORD_all("ARRAY_COPY((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries)");
             else if (streq(f->field, "length"))
                 return CORD_all("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
-            code_err(ast, "There is no '%s' field on sets", f->field);
+            code_err(ast, "There is no '", f->field, "' field on sets");
         }
         case TableType: {
             if (streq(f->field, "length")) {
@@ -3737,7 +3734,7 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(f->field, "fallback")) {
                 return CORD_all("({ Table_t *_fallback = (", compile_to_pointer_depth(env, f->fielded, 0, false), ").fallback; _fallback ? *_fallback : NONE_TABLE; })");
             }
-            code_err(ast, "There is no '%s' field on tables", f->field);
+            code_err(ast, "There is no '", f->field, "' field on tables");
         }
         case ModuleType: {
             const char *name = Match(value_t, ModuleType)->name;
@@ -3750,10 +3747,10 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(f->field, "microseconds")) {
                 return CORD_all("I64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").tv_usec)");
             }
-            code_err(ast, "There is no '%s' field on Moments", f->field);
+            code_err(ast, "There is no '", f->field, "' field on Moments");
         }
         default:
-            code_err(ast, "Field accesses are not supported on %T values", fielded_t);
+            code_err(ast, "Field accesses are not supported on ", type_to_str(fielded_t), " values");
         }
     }
     case Index: {
@@ -3776,7 +3773,7 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *index_t = get_type(env, indexing->index);
         if (container_t->tag == ArrayType) {
             if (index_t->tag != IntType && index_t->tag != BigIntType && index_t->tag != ByteType)
-                code_err(indexing->index, "Arrays can only be indexed by integers, not %T", index_t);
+                code_err(indexing->index, "Arrays can only be indexed by integers, not ", type_to_str(index_t));
             type_t *item_type = Match(container_t, ArrayType)->item_type;
             CORD arr = compile_to_pointer_depth(env, indexing->indexed, 0, false);
             file_t *f = indexing->index->file;
@@ -3819,7 +3816,7 @@ CORD compile(env_t *env, ast_t *ast)
         } else if (container_t->tag == TextType) {
             return CORD_all("Text$cluster(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ", compile_to_type(env, indexing->index, Type(BigIntType)), ")");
         } else {
-            code_err(ast, "Indexing is not supported for type: %T", container_t);
+            code_err(ast, "Indexing is not supported for type: ", type_to_str(container_t));
         }
     }
     case InlineCCode: {
@@ -3911,7 +3908,7 @@ CORD compile_type_info(type_t *t)
     case MemoryType: return "&Memory$info";
     case VoidType: return "&Void$info";
     default:
-        compiler_err(NULL, 0, 0, "I couldn't convert to a type info: %T", t);
+        compiler_err(NULL, 0, 0, "I couldn't convert to a type info: ", type_to_str(t));
     }
 }
 
@@ -4050,7 +4047,7 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
         ret_t = convertdef->ret_type ? parse_type_ast(env, convertdef->ret_type) : Type(VoidType);
         function_name = get_type_name(ret_t);
         if (!function_name)
-            code_err(ast, "Conversions are only supported for text, struct, and enum types, not %T", ret_t);
+            code_err(ast, "Conversions are only supported for text, struct, and enum types, not ", type_to_str(ret_t));
         body = convertdef->body;
         cache = convertdef->cache;
         is_inline = convertdef->is_inline;
@@ -4063,7 +4060,7 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
         arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, CORD_cat("_$", arg->name)));
         if (arg->next) arg_signature = CORD_cat(arg_signature, ", ");
         if (Table$str_get(used_names, arg->name))
-            code_err(ast, "The argument name '%s' is used more than once", arg->name);
+            code_err(ast, "The argument name '", arg->name, "' is used more than once");
         Table$str_set(&used_names, arg->name, arg->name);
     }
     arg_signature = CORD_cat(arg_signature, ")");
@@ -4110,7 +4107,7 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
             code_err(ast, "This function will always abort before it reaches the end, but it's declared as having a Void return. It should be declared as an Abort return instead.");
     } else {
         if (body_type->tag != ReturnType && body_type->tag != AbortType)
-            code_err(ast, "This function can reach the end without returning a %T value!", ret_t);
+            code_err(ast, "This function can reach the end without returning a ", type_to_str(ret_t), " value!");
     }
 
     CORD body_code = CORD_all("{\n", compile_inline_block(body_scope, body), "}\n");
@@ -4158,7 +4155,7 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
             for (arg_ast_t *arg = args; arg; arg = arg->next)
                 fields = new(arg_t, .name=arg->name, .type=get_arg_ast_type(env, arg), .next=fields);
             REVERSE_LIST(fields);
-            type_t *t = Type(StructType, .name=heap_strf("func$%ld$args", get_line_number(ast->file, ast->start)), .fields=fields, .env=env);
+            type_t *t = Type(StructType, .name=String("func$", get_line_number(ast->file, ast->start), "$args"), .fields=fields, .env=env);
 
             int64_t num_fields = used_names.entries.length;
             const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
@@ -4235,7 +4232,7 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
         CORD full_name = CORD_all(namespace_prefix(env, env->namespace), decl_name);
         type_t *t = get_type(env, decl->value);
         if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
-            code_err(ast, "You can't declare a variable with a %T value", t);
+            code_err(ast, "You can't declare a variable with a ", type_to_str(t), " value");
 
         CORD val_code = compile_maybe_incref(env, decl->value, t);
         if (t->tag == FunctionType) {
@@ -4267,7 +4264,7 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
         type_t *type = get_function_def_type(env, ast);
         const char *name = get_type_name(Match(type, FunctionType)->ret);
         if (!name)
-            code_err(ast, "Conversions are only supported for text, struct, and enum types, not %T", Match(type, FunctionType)->ret);
+            code_err(ast, "Conversions are only supported for text, struct, and enum types, not ", type_to_str(Match(type, FunctionType)->ret));
         CORD name_code = CORD_asprintf("%r%s$%ld", namespace_prefix(env, env->namespace), name, get_line_number(ast->file, ast->start));
         return compile_function(env, name_code, ast, &env->code->staticdefs);
     }
@@ -4320,7 +4317,7 @@ static void initialize_vars_and_statics(env_t *env, ast_t *ast)
             CORD full_name = CORD_all(namespace_prefix(env, env->namespace), decl_name);
             type_t *t = get_type(env, decl->value);
             if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
-                code_err(stmt->ast, "You can't declare a variable with a %T value", t);
+                code_err(stmt->ast, "You can't declare a variable with a ", type_to_str(t), " value");
 
             CORD val_code = compile_maybe_incref(env, decl->value, t);
             if (t->tag == FunctionType) {
@@ -4489,7 +4486,7 @@ CORD compile_statement_namespace_header(env_t *env, ast_t *ast)
             t = Type(ClosureType, t);
         assert(t->tag != ModuleType);
         if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
-            code_err(ast, "You can't declare a variable with a %T value", t);
+            code_err(ast, "You can't declare a variable with a ", type_to_str(t), " value");
 
         return CORD_all(
             compile_statement_type_header(env, decl->value),
@@ -4532,7 +4529,7 @@ CORD compile_statement_namespace_header(env_t *env, ast_t *ast)
         CORD ret_type_code = compile_type(ret_t);
         CORD name = get_type_name(ret_t);
         if (!name)
-            code_err(ast, "Conversions are only supported for text, struct, and enum types, not %T", ret_t);
+            code_err(ast, "Conversions are only supported for text, struct, and enum types, not ", type_to_str(ret_t));
         name = CORD_all(namespace_prefix(env, env->namespace), name);
         CORD name_code = CORD_asprintf("%r$%ld", name, get_line_number(ast->file, ast->start));
         return CORD_all(ret_type_code, " ", name_code, arg_signature, ";\n");

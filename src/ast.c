@@ -1,7 +1,6 @@
 // Some basic operations defined on AST nodes, mainly converting to
 // strings for debugging.
 #include <gc/cord.h>
-#include <printf.h>
 #include <stdarg.h>
 
 #include "ast.h"
@@ -174,6 +173,11 @@ CORD ast_to_xml(ast_t *ast)
     }
 }
 
+const char *ast_to_str(ast_t *ast)
+{
+    return CORD_to_const_char_star(ast_to_xml(ast));
+}
+
 CORD type_ast_to_xml(type_ast_t *t)
 {
     if (!t) return "NULL";
@@ -192,19 +196,6 @@ CORD type_ast_to_xml(type_ast_t *t)
     T(MutexedTypeAST, "<MutexedType>%r</MutexedType>", data.type)
 #undef T
     default: return CORD_EMPTY;
-    }
-}
-
-int printf_ast(FILE *stream, const struct printf_info *info, const void *const args[])
-{
-    ast_t *ast = *(ast_t**)(args[0]);
-    if (ast) {
-        if (info->alt)
-            return fprintf(stream, "%.*s", (int)(ast->end - ast->start), ast->start);
-        else
-            return CORD_put(ast_to_xml(ast), stream);
-    } else {
-        return fputs("(null)", stream);
     }
 }
 

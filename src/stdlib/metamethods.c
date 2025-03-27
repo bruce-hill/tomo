@@ -111,14 +111,14 @@ __attribute__((noreturn))
 public void cannot_serialize(const void*, FILE*, Table_t*, const TypeInfo_t *type)
 {
     Text_t typestr = generic_as_text(NULL, false, type);
-    fail("Values of type %k cannot be serialized or deserialized!", &typestr);
+    fail("Values of type ", typestr, " cannot be serialized or deserialized!");
 }
 
 __attribute__((noreturn))
 public void cannot_deserialize(FILE*, void*, Array_t*, const TypeInfo_t *type)
 {
     Text_t typestr = generic_as_text(NULL, false, type);
-    fail("Values of type %k cannot be serialized or deserialized!", &typestr);
+    fail("Values of type ", typestr, " cannot be serialized or deserialized!");
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

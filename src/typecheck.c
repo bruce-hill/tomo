@@ -32,7 +32,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
             char *module_name = GC_strndup(name, strcspn(name, "."));
             binding_t *b = get_binding(env, module_name);
             if (!b || b->type->tag != ModuleType)
-                code_err(ast, "I don't know a module with the name '%s'", module_name);
+                code_err(ast, "I don't know a module with the name '", module_name, "'");
 
             env_t *imported = Table$str_get(*env->imports, Match(b->type, ModuleType)->name);
             assert(imported);
@@ -41,7 +41,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
             t = Table$str_get(*env->types, name);
             if (t) return t;
         }
-        code_err(ast, "I don't know a type with the name '%s'", name);
+        code_err(ast, "I don't know a type with the name '", name, "'");
     }
     case PointerTypeAST: {
         auto ptr = Match(ast, PointerTypeAST);
@@ -57,8 +57,8 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         if (has_stack_memory(item_t))
             code_err(item_type, "Arrays can't have stack references because the array may outlive the stack frame.");
         if (type_size(item_t) > ARRAY_MAX_STRIDE)
-            code_err(ast, "This array holds items that take up %ld bytes, but the maximum supported size is %ld bytes. Consider using an array of pointers instead.",
-                     type_size(item_t), ARRAY_MAX_STRIDE);
+            code_err(ast, "This array holds items that take up ", type_size(item_t),
+                     " bytes, but the maximum supported size is ", ARRAY_MAX_STRIDE, " bytes. Consider using an array of pointers instead.");
         return Type(ArrayType, .item_type=item_t);
     }
     case SetTypeAST: {
@@ -68,8 +68,8 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         if (has_stack_memory(item_t))
             code_err(item_type, "Sets can't have stack references because the array may outlive the stack frame.");
         if (type_size(item_t) > ARRAY_MAX_STRIDE)
-            code_err(ast, "This set holds items that take up %ld bytes, but the maximum supported size is %ld bytes. Consider using an set of pointers instead.",
-                     type_size(item_t), ARRAY_MAX_STRIDE);
+            code_err(ast, "This set holds items that take up ", type_size(item_t),
+                     " bytes, but the maximum supported size is ", ARRAY_MAX_STRIDE, " bytes. Consider using an set of pointers instead.");
         return Type(SetType, .item_type=item_t);
     }
     case TableTypeAST: {
@@ -120,7 +120,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         auto opt = Match(ast, OptionalTypeAST);
         type_t *t = parse_type_ast(env, opt->type);
         if (t->tag == VoidType || t->tag == AbortType || t->tag == ReturnType)
-            code_err(ast, "Optional %T types are not supported.", t);
+            code_err(ast, "Optional ", type_to_str(t), " types are not supported.");
         else if (t->tag == OptionalType)
             code_err(ast, "Nested optional types are not currently supported");
         return Type(OptionalType, .type=t);
@@ -129,7 +129,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         type_ast_t *mutexed = Match(ast, MutexedTypeAST)->type;
         type_t *t = parse_type_ast(env, mutexed);
         if (t->tag == VoidType || t->tag == AbortType || t->tag == ReturnType)
-            code_err(ast, "Mutexed %T types are not supported.", t);
+            code_err(ast, "Mutexed ", type_to_str(t), " types are not supported.");
         return Type(MutexedType, .type=t);
     }
     case UnknownTypeAST: code_err(ast, "I don't know how to get this type");
@@ -166,7 +166,7 @@ PUREFUNC type_t *get_math_type(env_t *env, ast_t *ast, type_t *lhs_t, type_t *rh
     switch (compare_precision(lhs_t, rhs_t)) {
     case NUM_PRECISION_EQUAL: case NUM_PRECISION_MORE: return lhs_t;
     case NUM_PRECISION_LESS: return rhs_t;
-    default: code_err(ast, "Math operations between %T and %T are not supported", lhs_t, rhs_t);
+    default: code_err(ast, "Math operations between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " are not supported");
     }
 }
 
@@ -181,15 +181,15 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
             return module_env;
 
         if (!resolved_path)
-            code_err(module_ast, "No such file exists: \"%s\"", use->path);
+            code_err(module_ast, "No such file exists: ", quoted(use->path));
 
         ast_t *ast = parse_file(resolved_path, NULL);
-        if (!ast) errx(1, "Could not compile file %s", resolved_path);
+        if (!ast) print_err("Could not compile file ", resolved_path);
         return load_module_env(env, ast);
     }
     case USE_MODULE: {
         glob_t tm_files;
-        if (glob(heap_strf("~/.local/share/tomo/installed/%s/[!._0-9]*.tm", use->path), GLOB_TILDE, NULL, &tm_files) != 0)
+        if (glob(String("~/.local/share/tomo/installed/", use->path, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
             code_err(module_ast, "Could not find library");
 
         env_t *module_env = fresh_scope(env);
@@ -200,7 +200,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
         for (size_t i = 0; i < tm_files.gl_pathc; i++) {
             const char *filename = tm_files.gl_pathv[i];
             ast_t *ast = parse_file(filename, NULL);
-            if (!ast) errx(1, "Could not compile file %s", filename);
+            if (!ast) print_err("Could not compile file ", filename);
             env_t *module_file_env = fresh_scope(module_env);
             char *file_prefix = file_base_id(filename);
             module_file_env->namespace = new(namespace_t, .name=file_prefix);
@@ -229,7 +229,7 @@ void prebind_statement(env_t *env, ast_t *statement)
     case StructDef: {
         auto def = Match(statement, StructDef);
         if (get_binding(env, def->name))
-            code_err(statement, "A %T called '%s' has already been defined", get_binding(env, def->name)->type, def->name);
+            code_err(statement, "A ", type_to_str(get_binding(env, def->name)->type), " called ", quoted(def->name), " has already been defined");
 
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(StructType, .name=def->name, .opaque=true, .external=def->external, .env=ns_env); // placeholder
@@ -243,7 +243,7 @@ void prebind_statement(env_t *env, ast_t *statement)
     case EnumDef: {
         auto def = Match(statement, EnumDef);
         if (get_binding(env, def->name))
-            code_err(statement, "A %T called '%s' has already been defined", get_binding(env, def->name)->type, def->name);
+            code_err(statement, "A ", type_to_str(get_binding(env, def->name)->type), " called ", quoted(def->name), " has already been defined");
 
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(EnumType, .name=def->name, .opaque=true, .env=ns_env); // placeholder
@@ -257,7 +257,7 @@ void prebind_statement(env_t *env, ast_t *statement)
     case LangDef: {
         auto def = Match(statement, LangDef);
         if (get_binding(env, def->name))
-            code_err(statement, "A %T called '%s' has already been defined", get_binding(env, def->name)->type, def->name);
+            code_err(statement, "A ", type_to_str(get_binding(env, def->name)->type), " called ", quoted(def->name), " has already been defined");
 
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(TextType, .lang=def->name, .env=ns_env);
@@ -285,7 +285,7 @@ void bind_statement(env_t *env, ast_t *statement)
         if (streq(name, "_")) // Explicit discard
             return;
         if (get_binding(env, name))
-            code_err(decl->var, "A %T called '%s' has already been defined", get_binding(env, name)->type, name);
+            code_err(decl->var, "A ", type_to_str(get_binding(env, name)->type), " called ", quoted(name), " has already been defined");
         bind_statement(env, decl->value);
         type_t *type = get_type(env, decl->value);
         if (!type)
@@ -301,9 +301,6 @@ void bind_statement(env_t *env, ast_t *statement)
         auto def = Match(statement, FunctionDef);
         const char *name = Match(def->name, Var)->name;
         type_t *type = get_function_def_type(env, statement);
-        // binding_t *clobber = get_binding(env, name);
-        // if (clobber)
-        //     code_err(def->name, "A %T called '%s' has already been defined", clobber->type, name);
         CORD code = CORD_all(namespace_prefix(env, env->namespace), name);
         set_binding(env, name, type, code);
         break;
@@ -313,7 +310,7 @@ void bind_statement(env_t *env, ast_t *statement)
         type_t *ret_t = Match(type, FunctionType)->ret;
         const char *name = get_type_name(ret_t);
         if (!name)
-            code_err(statement, "Conversions are only supported for text, struct, and enum types, not %T", ret_t);
+            code_err(statement, "Conversions are only supported for text, struct, and enum types, not ", type_to_str(ret_t));
 
         CORD code = CORD_asprintf("%r%r$%ld", namespace_prefix(env, env->namespace), name,
                                   get_line_number(statement->file, statement->start));
@@ -344,15 +341,14 @@ void bind_statement(env_t *env, ast_t *statement)
                         file = field_ast->value->file, start = field_ast->value->start, end = field_ast->value->end;
                     }
                     if (non_opt_field_t == type)
-                        compiler_err(file, start, end, "This is a recursive struct that would be infinitely large. Maybe you meant to use an optional '@%T?' pointer instead?", type);
+                        compiler_err(file, start, end, "This is a recursive struct that would be infinitely large. Maybe you meant to use an optional '@", type_to_str(type), "?' pointer instead?");
                     else if (non_opt_field_t->tag == StructType && Match(non_opt_field_t, StructType)->external)
                         compiler_err(file, start, end, "This is an opaque externally defined struct.\n"
                                      "I can't use it as a member without knowing what its fields are.\n"
-                                     "Either specify its fields and remove the `opaque` qualifier, or use something like a @%T pointer.", non_opt_field_t);
+                                     "Either specify its fields and remove the `opaque` qualifier, or use something like a @", type_to_str(non_opt_field_t), " pointer.");
                     else
-                        compiler_err(file, start, end, "I'm still in the process of defining the fields of %T, so I don't know how to use it as a member."
-                                     "\nTry using a @%T pointer for this field.",
-                                     field_t, field_t);
+                        compiler_err(file, start, end, "I'm still in the process of defining the fields of ", type_to_str(field_t), ", so I don't know how to use it as a member."
+                                     "\nTry using a @", type_to_str(field_t), " pointer for this field.");
                 }
                 fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
             }
@@ -387,21 +383,21 @@ void bind_statement(env_t *env, ast_t *statement)
                         file = field_ast->value->file, start = field_ast->value->start, end = field_ast->value->end;
                     }
                     if (non_opt_field_t == type)
-                        compiler_err(file, start, end, "This is a recursive enum that would be infinitely large. Maybe you meant to use an optional '@%T?' pointer instead?", type);
+                        compiler_err(file, start, end, "This is a recursive enum that would be infinitely large. Maybe you meant to use an optional '@", type_to_str(type), "?' pointer instead?");
                     else if (non_opt_field_t->tag == StructType && Match(non_opt_field_t, StructType)->external)
                         compiler_err(file, start, end, "This is an opaque externally defined struct.\n"
                                      "I can't use it as a member without knowing what its fields are.\n"
-                                     "Either specify its fields and remove the `opaque` qualifier, or use something like a @%T pointer.", non_opt_field_t);
+                                     "Either specify its fields and remove the `opaque` qualifier, or use something like a @", type_to_str(non_opt_field_t), " pointer.");
                     else
-                        compiler_err(file, start, end, "I'm still in the process of defining the fields of %T, so I don't know how to use it as a member."
-                                     "\nTry using a @%T pointer for this field.",
-                                     field_t, field_t);
+                        compiler_err(file, start, end, "I'm still in the process of defining the fields of ", type_to_str(field_t),
+                                     ", so I don't know how to use it as a member."
+                                     "\nTry using a @", type_to_str(field_t), " pointer for this field.");
                 }
                 fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
             }
             REVERSE_LIST(fields);
-            env_t *member_ns = namespace_env(env, heap_strf("%s$%s", def->name, tag_ast->name));
-            type_t *tag_type = Type(StructType, .name=heap_strf("%s$%s", def->name, tag_ast->name), .fields=fields, .env=member_ns);
+            env_t *member_ns = namespace_env(env, String(def->name, "$", tag_ast->name));
+            type_t *tag_type = Type(StructType, .name=String(def->name, "$", tag_ast->name), .fields=fields, .env=member_ns);
             tags = new(tag_t, .name=tag_ast->name, .tag_value=(next_tag++), .type=tag_type, .next=tags);
         }
         REVERSE_LIST(tags);
@@ -416,7 +412,7 @@ void bind_statement(env_t *env, ast_t *statement)
                 CORD code = CORD_all("((", namespace_prefix(env, env->namespace), def->name, "$$type){", namespace_prefix(env, env->namespace), def->name, "$tag$", tag->name, "})");
                 set_binding(ns_env, tag->name, type, code);
             }
-            Table$str_set(env->types, heap_strf("%s$%s", def->name, tag->name), tag->type);
+            Table$str_set(env->types, String(def->name, "$", tag->name), tag->type);
         }
         
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
@@ -450,7 +446,7 @@ void bind_statement(env_t *env, ast_t *statement)
                 if (!b)
                     Table$str_set(env->locals, entry->name, entry->binding);
                 else if (b != entry->binding)
-                    code_err(statement, "This module imports a symbol called '%s', which would clobber another variable", entry->name);
+                    code_err(statement, "This module imports a symbol called '", entry->name, "', which would clobber another variable");
             }
         }
         for (int64_t i = 1; i <= Table$length(*module_env->types); i++) {
@@ -506,7 +502,7 @@ type_t *get_method_type(env_t *env, ast_t *self, const char *name)
 {
     binding_t *b = get_namespace_binding(env, self, name);
     if (!b || !b->type)
-        code_err(self, "No such method: %T:%s(...)", get_type(env, self), name);
+        code_err(self, "No such method: ", type_to_str(get_type(env, self)), ":", name, "(...)");
     return b->type;
 }
 
@@ -516,7 +512,7 @@ env_t *when_clause_scope(env_t *env, type_t *subject_t, when_clause_t *clause)
         return env;
 
     if (clause->pattern->tag != FunctionCall || Match(clause->pattern, FunctionCall)->fn->tag != Var)
-        code_err(clause->pattern, "I only support variables and constructors for pattern matching %T types in a 'when' block", subject_t); 
+        code_err(clause->pattern, "I only support variables and constructors for pattern matching ", type_to_str(subject_t), " types in a 'when' block"); 
 
     auto fn = Match(clause->pattern, FunctionCall);
     const char *tag_name = Match(fn->fn, Var)->name;
@@ -530,7 +526,7 @@ env_t *when_clause_scope(env_t *env, type_t *subject_t, when_clause_t *clause)
     }
 
     if (!tag_type)
-        code_err(clause->pattern, "There is no tag '%s' for the type %T", tag_name, subject_t);
+        code_err(clause->pattern, "There is no tag ", quoted(tag_name), " for the type ", type_to_str(subject_t));
 
     if (!fn->args)
         return env;
@@ -547,9 +543,9 @@ env_t *when_clause_scope(env_t *env, type_t *subject_t, when_clause_t *clause)
     arg_t *field = tag_struct->fields;
     for (arg_ast_t *var = fn->args; var || field; var = var ? var->next : var) {
         if (!var)
-            code_err(clause->pattern, "The field %T.%s.%s wasn't accounted for", subject_t, tag_name, field->name);
+            code_err(clause->pattern, "The field ", type_to_str(subject_t), ".", tag_name, ".", field->name, " wasn't accounted for");
         if (!field)
-            code_err(var->value, "This is one more field than %T has", subject_t);
+            code_err(var->value, "This is one more field than ", type_to_str(subject_t), " has");
         if (var->value->tag != Var)
             code_err(var->value, "I expected this to be a plain variable so I could bind it to a value");
         if (!streq(Match(var->value, Var)->name, "_"))
@@ -576,7 +572,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             return Type(OptionalType, .type=NULL);
         type_t *t = parse_type_ast(env, Match(ast, None)->type);
         if (t->tag == OptionalType)
-            code_err(ast, "Nested optional types are not supported. This should be: `none:%T`", Match(t, OptionalType)->type);
+            code_err(ast, "Nested optional types are not supported. This should be: `none:", type_to_str(Match(t, OptionalType)->type), "`");
         return Type(OptionalType, .type=t);
     }
     case Bool: {
@@ -654,7 +650,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (lang) {
             binding_t *b = get_binding(env, lang);
             if (!b || b->type->tag != TypeInfoType || Match(b->type, TypeInfoType)->type->tag != TextType)
-                code_err(ast, "There is no text language called '%s'", lang);
+                code_err(ast, "There is no text language called '", lang, "'");
             return Match(get_binding(env, lang)->type, TypeInfoType)->type;
         } else {
             return TEXT_TYPE;
@@ -664,7 +660,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         auto var = Match(ast, Var);
         binding_t *b = get_binding(env, var->name);
         if (b) return b->type;
-        code_err(ast, "I don't know what \"%s\" refers to", var->name);
+        code_err(ast, "I don't know what ", quoted(var->name), " refers to");
     }
     case Array: {
         auto array = Match(ast, Array);
@@ -685,8 +681,8 @@ type_t *get_type(env_t *env, ast_t *ast)
                 type_t *merged = item_type ? type_or_type(item_type, t2) : t2;
                 if (!merged)
                     code_err(item->ast,
-                             "This array item has type %T, which is different from earlier array items which have type %T",
-                             t2,  item_type);
+                             "This array item has type ", type_to_str(t2),
+                             ", which is different from earlier array items which have type ", type_to_str(item_type));
                 item_type = merged;
             }
         } else {
@@ -716,8 +712,8 @@ type_t *get_type(env_t *env, ast_t *ast)
                 type_t *item_merged = type_or_type(item_type, this_item_type);
                 if (!item_merged)
                     code_err(item_ast,
-                             "This set item has type %T, which is different from earlier set items which have type %T",
-                             this_item_type, item_type);
+                             "This set item has type ", type_to_str(this_item_type),
+                             ", which is different from earlier set items which have type ", type_to_str(item_type));
                 item_type = item_merged;
             }
         }
@@ -752,15 +748,15 @@ type_t *get_type(env_t *env, ast_t *ast)
                 type_t *key_merged = key_type ? type_or_type(key_type, key_t) : key_t;
                 if (!key_merged)
                     code_err(entry->ast,
-                             "This table entry has type %T, which is different from earlier table entries which have type %T",
-                             key_t, key_type);
+                             "This table entry has type ", type_to_str(key_t),
+                             ", which is different from earlier table entries which have type ", type_to_str(key_type));
                 key_type = key_merged;
 
                 type_t *val_merged = value_type ? type_or_type(value_type, value_t) : value_t;
                 if (!val_merged)
                     code_err(entry->ast,
-                             "This table entry has type %T, which is different from earlier table entries which have type %T",
-                             value_t, value_type);
+                             "This table entry has type ", type_to_str(value_t),
+                             ", which is different from earlier table entries which have type ", type_to_str(value_type));
                 value_type = val_merged;
             }
         }
@@ -789,18 +785,18 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (fielded_t->tag == ModuleType) {
             const char *name = Match(fielded_t, ModuleType)->name;
             env_t *module_env = Table$str_get(*env->imports, name);
-            if (!module_env) code_err(access->fielded, "I couldn't find the environment for the module %s", name);
+            if (!module_env) code_err(access->fielded, "I couldn't find the environment for the module ", name);
             return get_type(module_env, WrapAST(ast, Var, access->field));
         } else if (fielded_t->tag == TypeInfoType) {
             auto info = Match(fielded_t, TypeInfoType);
             assert(info->env);
             binding_t *b = get_binding(info->env, access->field);
-            if (!b) code_err(ast, "I couldn't find the field '%s' on this type", access->field);
+            if (!b) code_err(ast, "I couldn't find the field '", access->field, "' on this type");
             return b->type;
         }
         type_t *field_t = get_field_type(fielded_t, access->field);
         if (!field_t)
-            code_err(ast, "%T objects don't have a field called '%s'", fielded_t, access->field);
+            code_err(ast, type_to_str(fielded_t), " objects don't have a field called '", access->field, "'");
         return field_t;
     }
     case Index: {
@@ -818,7 +814,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             type_t *index_t = get_type(env, indexing->index);
             if (index_t->tag == IntType || index_t->tag == BigIntType || index_t->tag == ByteType)
                 return Match(value_t, ArrayType)->item_type;
-            code_err(indexing->index, "I only know how to index lists using integers, not %T", index_t);
+            code_err(indexing->index, "I only know how to index lists using integers, not ", type_to_str(index_t));
         } else if (value_t->tag == TableType) {
             auto table_type = Match(value_t, TableType);
             if (table_type->default_value)
@@ -830,7 +826,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         } else if (value_t->tag == TextType) {
             return value_t;
         } else {
-            code_err(ast, "I don't know how to index %T values", indexed_t);
+            code_err(ast, "I don't know how to index ", type_to_str(indexed_t), " values");
         }
     }
     case FunctionCall: {
@@ -853,7 +849,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (fn_type_t->tag == ClosureType)
             fn_type_t = Match(fn_type_t, ClosureType)->fn;
         if (fn_type_t->tag != FunctionType)
-            code_err(call->fn, "This isn't a function, it's a %T", fn_type_t);
+            code_err(call->fn, "This isn't a function, it's a ", type_to_str(fn_type_t));
         auto fn_type = Match(fn_type_t, FunctionType);
         return fn_type->ret;
     }
@@ -893,7 +889,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "sorted")) return self_value_t;
             else if (streq(call->name, "to")) return self_value_t;
             else if (streq(call->name, "unique")) return Type(SetType, .item_type=item_type);
-            else code_err(ast, "There is no '%s' method for arrays", call->name);
+            else code_err(ast, "There is no '", call->name, "' method for arrays");
         }
         case SetType: {
             if (streq(call->name, "add")) return Type(VoidType);
@@ -907,7 +903,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "remove_all")) return Type(VoidType);
             else if (streq(call->name, "with")) return self_value_t;
             else if (streq(call->name, "without")) return self_value_t;
-            else code_err(ast, "There is no '%s' method for sets", call->name);
+            else code_err(ast, "There is no '", call->name, "' method for sets");
         }
         case TableType: {
             auto table = Match(self_value_t, TableType);
@@ -918,14 +914,14 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "remove")) return Type(VoidType);
             else if (streq(call->name, "set")) return Type(VoidType);
             else if (streq(call->name, "sorted")) return self_value_t;
-            code_err(ast, "There is no '%s' method for %T tables", call->name, self_value_t);
+            code_err(ast, "There is no '", call->name, "' method for ", type_to_str(self_value_t), " tables");
         }
         default: {
             type_t *fn_type_t = get_method_type(env, call->self, call->name);
             if (!fn_type_t)
                 code_err(ast, "No such method!");
             if (fn_type_t->tag != FunctionType)
-                code_err(ast, "This isn't a method, it's a %T", fn_type_t);
+                code_err(ast, "This isn't a method, it's a ", type_to_str(fn_type_t));
             auto fn_type = Match(fn_type_t, FunctionType);
             return fn_type->ret;
         }
@@ -999,7 +995,7 @@ type_t *get_type(env_t *env, ast_t *ast)
                 return t;
         }
 
-        code_err(ast, "I don't know how to get the negative value of type %T", t);
+        code_err(ast, "I don't know how to get the negative value of type ", type_to_str(t));
     }
     case Not: {
         type_t *t = get_type(env, Match(ast, Not)->value);
@@ -1015,7 +1011,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             if (fn->args && type_eq(t, get_arg_type(env, fn->args)) && type_eq(t, fn->ret))
                 return t;
         }
-        code_err(ast, "I only know how to get 'not' of boolean, numeric, and optional pointer types, not %T", t);
+        code_err(ast, "I only know how to get 'not' of boolean, numeric, and optional pointer types, not ", type_to_str(t));
     }
     case Mutexed: {
         type_t *item_type = get_type(env, Match(ast, Mutexed)->value);
@@ -1025,7 +1021,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         ast_t *held = Match(ast, Holding)->mutexed;
         type_t *held_type = get_type(env, held);
         if (held_type->tag != MutexedType)
-            code_err(held, "This is a %t, not a mutexed value", held_type);
+            code_err(held, "This is a ", type_to_str(held_type), ", not a mutexed value");
         if (held->tag == Var) {
             env = fresh_scope(env);
             set_binding(env, Match(held, Var)->name, Type(PointerType, .pointed=Match(held_type, MutexedType)->type, .is_stack=true), CORD_EMPTY);
@@ -1106,7 +1102,7 @@ type_t *get_type(env_t *env, ast_t *ast)
                        || (lhs_t->tag == ByteType && rhs_t->tag == ByteType)) {
                 return get_math_type(env, ast, lhs_t, rhs_t);
             }
-            code_err(ast, "I can't figure out the type of this `and` expression between a %T and a %T", lhs_t, rhs_t);
+            code_err(ast, "I can't figure out the type of this `and` expression between a ", type_to_str(lhs_t), " and a ", type_to_str(rhs_t));
         }
         case BINOP_OR: {
             if (lhs_t->tag == BoolType && rhs_t->tag == BoolType) {
@@ -1136,7 +1132,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             } else if (rhs_t->tag == OptionalType) {
                 return type_or_type(lhs_t, rhs_t);
             }
-            code_err(ast, "I can't figure out the type of this `or` expression between a %T and a %T", lhs_t, rhs_t);
+            code_err(ast, "I can't figure out the type of this `or` expression between a ", type_to_str(lhs_t), " and a ", type_to_str(rhs_t));
         }
         case BINOP_XOR: {
             if (lhs_t->tag == BoolType && rhs_t->tag == BoolType) {
@@ -1149,20 +1145,20 @@ type_t *get_type(env_t *env, ast_t *ast)
                 return get_math_type(env, ast, lhs_t, rhs_t);
             }
 
-            code_err(ast, "I can't figure out the type of this `xor` expression between a %T and a %T", lhs_t, rhs_t);
+            code_err(ast, "I can't figure out the type of this `xor` expression between a ", type_to_str(lhs_t), " and a ", type_to_str(rhs_t));
         }
         case BINOP_CONCAT: {
             if (!type_eq(lhs_t, rhs_t))
-                code_err(ast, "The type on the left side of this concatenation doesn't match the right side: %T vs. %T",
-                             lhs_t, rhs_t);
+                code_err(ast, "The type on the left side of this concatenation doesn't match the right side: ", type_to_str(lhs_t),
+                             " vs. ", type_to_str(rhs_t));
             if (lhs_t->tag == ArrayType || lhs_t->tag == TextType || lhs_t->tag == SetType)
                 return lhs_t;
 
-            code_err(ast, "Only array/set/text value types support concatenation, not %T", lhs_t);
+            code_err(ast, "Only array/set/text value types support concatenation, not ", type_to_str(lhs_t));
         }
         case BINOP_EQ: case BINOP_NE: case BINOP_LT: case BINOP_LE: case BINOP_GT: case BINOP_GE: {
             if (!can_promote(lhs_t, rhs_t) && !can_promote(rhs_t, lhs_t))
-                code_err(ast, "I can't compare these two different types: %T vs %T", lhs_t, rhs_t);
+                code_err(ast, "I can't compare these two different types: ", type_to_str(lhs_t), " vs ", type_to_str(rhs_t));
             return Type(BoolType);
         }
         case BINOP_CMP:
@@ -1199,7 +1195,7 @@ type_t *get_type(env_t *env, ast_t *ast)
 
         type_t *iterated = get_iterated_type(iter_t);
         if (!iterated)
-            code_err(reduction->iter, "I don't know how to do a reduction over %T values", iter_t);
+            code_err(reduction->iter, "I don't know how to do a reduction over ", type_to_str(iter_t), " values");
         return iterated->tag == OptionalType ? iterated : Type(OptionalType, .type=iterated);
     }
 
@@ -1214,7 +1210,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *lhs_t = get_type(env, lhs), *rhs_t = get_type(env, rhs);
         type_t *t = type_or_type(lhs_t, rhs_t);
         if (!t)
-            code_err(ast, "The two sides of this operation are not compatible: %T vs %T", lhs_t, rhs_t);
+            code_err(ast, "The two sides of this operation are not compatible: ", type_to_str(lhs_t), " vs ", type_to_str(rhs_t));
         return t;
     }
 
@@ -1243,8 +1239,8 @@ type_t *get_type(env_t *env, ast_t *ast)
             if (can_promote(ret, declared))
                 ret = declared;
             else
-                code_err(ast, "This function was declared to return a value of type %T, but actually returns a value of type %T",
-                         declared, ret);
+                code_err(ast, "This function was declared to return a value of type ", type_to_str(declared),
+                         ", but actually returns a value of type ", type_to_str(ret));
         }
 
         if (has_stack_memory(ret))
@@ -1290,8 +1286,8 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *t_either = type_or_type(true_t, false_t);
         if (!t_either)
             code_err(if_->else_body,
-                     "I was expecting this block to have a %T value (based on earlier clauses), but it actually has a %T value.",
-                     true_t, false_t);
+                     "I was expecting this block to have a ", type_to_str(true_t),
+                     " value (based on earlier clauses), but it actually has a ", type_to_str(false_t), " value.");
         return t_either;
     }
 
@@ -1329,7 +1325,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (clause->pattern->tag == FunctionCall && Match(clause->pattern, FunctionCall)->fn->tag == Var)
                 tag_name = Match(Match(clause->pattern, FunctionCall)->fn, Var)->name;
             else
-                code_err(clause->pattern, "This is not a valid pattern for a %T enum", subject_t);
+                code_err(clause->pattern, "This is not a valid pattern for a ", type_to_str(subject_t), " enum");
 
             CORD valid_tags = CORD_EMPTY;
             for (match_t *m = matches; m; m = m->next) {
@@ -1343,8 +1339,8 @@ type_t *get_type(env_t *env, ast_t *ast)
                 valid_tags = CORD_cat(valid_tags, m->tag->name);
             }
 
-            code_err(clause->pattern, "There is no tag '%s' for the type %T (valid tags: %s)",
-                     tag_name, subject_t, CORD_to_char_star(valid_tags));
+            code_err(clause->pattern, "There is no tag '", tag_name,
+                     "' for the type ", type_to_str(subject_t), " (valid tags: ", CORD_to_char_star(valid_tags), ")");
           found_matching_tag:;
         }
 
@@ -1353,8 +1349,8 @@ type_t *get_type(env_t *env, ast_t *ast)
             type_t *clause_type = get_type(clause_scope, clause->body);
             type_t *merged = type_or_type(overall_t, clause_type);
             if (!merged)
-                code_err(clause->body, "The type of this branch is %T, which conflicts with the earlier branch type of %T",
-                         clause_type, overall_t);
+                code_err(clause->body, "The type of this branch is ", type_to_str(clause_type),
+                         ", which conflicts with the earlier branch type of ", type_to_str(overall_t));
             overall_t = merged;
         }
 
@@ -1375,8 +1371,8 @@ type_t *get_type(env_t *env, ast_t *ast)
             type_t *merged = type_or_type(overall_t, else_t);
             if (!merged)
                 code_err(when->else_body,
-                         "I was expecting this block to have a %T value (based on earlier clauses), but it actually has a %T value.",
-                         overall_t, else_t);
+                         "I was expecting this block to have a ", type_to_str(overall_t),
+                         " value (based on earlier clauses), but it actually has a ", type_to_str(else_t), " value.");
             return merged;
         } else {
             CORD unhandled = CORD_EMPTY;
@@ -1385,7 +1381,7 @@ type_t *get_type(env_t *env, ast_t *ast)
                     unhandled = unhandled ? CORD_all(unhandled, ", ", m->tag->name) : m->tag->name;
             }
             if (unhandled)
-                code_err(ast, "This 'when' statement doesn't handle the tags: %s", CORD_to_const_char_star(unhandled));
+                code_err(ast, "This 'when' statement doesn't handle the tags: ", CORD_to_const_char_star(unhandled));
             return overall_t;
         }
     }
@@ -1399,11 +1395,11 @@ type_t *get_type(env_t *env, ast_t *ast)
         return type_ast ? parse_type_ast(env, type_ast) : Type(VoidType);
     }
     case Moment: return Type(MomentType);
-    case Unknown: code_err(ast, "I can't figure out the type of: %W", ast);
+    case Unknown: code_err(ast, "I can't figure out the type of: ", ast_to_str(ast));
     case Deserialize: return parse_type_ast(env, Match(ast, Deserialize)->type);
     }
 #pragma GCC diagnostic pop
-    code_err(ast, "I can't figure out the type of: %W", ast);
+    code_err(ast, "I can't figure out the type of: ", ast_to_str(ast));
 }
 
 PUREFUNC bool is_discardable(env_t *env, ast_t *ast)

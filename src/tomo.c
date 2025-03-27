@@ -4,7 +4,6 @@
 #include <gc.h>
 #include <gc/cord.h>
 #include <libgen.h>
-#include <printf.h>
 #include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,12 +23,13 @@
 #include "stdlib/optionals.h"
 #include "stdlib/patterns.h"
 #include "stdlib/paths.h"
+#include "stdlib/print.h"
 #include "stdlib/text.h"
 #include "typecheck.h"
 #include "types.h"
 
-#define run_cmd(...) ({ const char *_cmd = heap_strf(__VA_ARGS__); if (verbose) printf("\033[34;1m%s\033[m\n", _cmd); popen(_cmd, "w"); })
-#define array_str(arr) Text$as_c_string(Text$join(Text(" "), arr))
+#define run_cmd(...) ({ const char *_cmd = String(__VA_ARGS__); if (verbose) print("\033[34;1m", _cmd, "\033[m"); popen(_cmd, "w"); })
+#define array_text(arr) Text$join(Text(" "), arr)
 
 static struct stat compiler_stat;
 
@@ -100,20 +100,13 @@ int main(int argc, char *argv[])
     if (getenv("NO_COLOR") && getenv("NO_COLOR")[0] != '\0')
         USE_COLOR = false;
 
-    if (register_printf_specifier('T', printf_type, printf_pointer_size))
-        errx(1, "Couldn't set printf specifier");
-    if (register_printf_specifier('W', printf_ast, printf_pointer_size))
-        errx(1, "Couldn't set printf specifier");
-    if (register_printf_specifier('k', printf_text, printf_text_size))
-        errx(1, "Couldn't set printf specifier");
-    
     // Run a tool:
     if ((streq(argv[1], "-r") || streq(argv[1], "--run")) && argc >= 3) {
         if (strcspn(argv[2], "/;$") == strlen(argv[2])) {
-            const char *program = heap_strf("%s/.local/share/tomo/installed/%s/%s", getenv("HOME"), argv[2], argv[2]);
+            const char *program = String(getenv("HOME"), "/.local/share/tomo/installed/", argv[2], "/", argv[2]);
             execv(program, &argv[2]);
         }
-        errx(1, "This is not an installed tomo program: \033[31;1m%s\033[m", argv[2]);
+        print_err("This is not an installed tomo program: \033[31;1m", argv[2], "\033[m");
     }
 
     Text_t usage = Text("\x1b[33;4;1mUsage:\x1b[m\n"
@@ -168,8 +161,8 @@ int main(int argc, char *argv[])
 
     for (int64_t i = 0; i < uninstall.length; i++) {
         Text_t *u = (Text_t*)(uninstall.data + i*uninstall.stride);
-        system(heap_strf("rm -rvf ~/.local/share/tomo/installed/%k ~/.local/share/tomo/lib/lib%k.so", u, u));
-        printf("Uninstalled %k\n", u);
+        system(String("rm -rvf ~/.local/share/tomo/installed/", *u, " ~/.local/share/tomo/lib/lib", *u, ".so"));
+        print("Uninstalled ", *u);
     }
 
     for (int64_t i = 0; i < libraries.length; i++) {
@@ -177,7 +170,7 @@ int main(int argc, char *argv[])
         const char *lib_str = Path$as_c_string(*lib);
         char *cwd = get_current_dir_name();
         if (chdir(lib_str) != 0)
-            errx(1, "Could not enter directory: %s", lib_str);
+            print_err("Could not enter directory: ", lib_str);
 
         char *libdir = get_current_dir_name();
         char *libdirname = basename(libdir);
@@ -205,9 +198,9 @@ int main(int argc, char *argv[])
     }
 
     if (files.length < 1)
-        errx(1, "No file specified!");
+        print_err("No file specified!");
     else if (files.length != 1)
-        errx(1, "Too many files specified!");
+        print_err("Too many files specified!");
 
     quiet = !verbose;
 
@@ -233,7 +226,7 @@ int main(int argc, char *argv[])
                 prog_args[j + 1] = Text$as_c_string(*(Text_t*)(args.data + j*args.stride));
             prog_args[1 + args.length] = NULL;
             execv(prog_args[0], prog_args);
-            err(1, "Could not execute program: %s", prog_args[0]);
+            print_err("Could not execute program: ", prog_args[0]);
         }
 
         int status;
@@ -253,7 +246,7 @@ int main(int argc, char *argv[])
         for (int64_t i = 0; i < files.length; i++) {
             Path_t path = *(Path_t*)(files.data + i*files.stride);
             Path_t exe = Path$with_extension(path, Text(""), true);
-            system(heap_strf("cp -v '%s' ~/.local/bin/", Path$as_c_string(exe)));
+            system(String("cp -v '", exe, "' ~/.local/bin/"));
         }
     }
     return 0;
@@ -332,7 +325,7 @@ static void _compile_file_header_for_library(env_t *env, Path_t path, Table_t *v
     Table$set(visited_files, &path, ((Bool_t[1]){1}), Table$info(&Path$info, &Bool$info));
 
     ast_t *file_ast = parse_file(Path$as_c_string(path), NULL);
-    if (!file_ast) errx(1, "Could not parse file %s", Path$as_c_string(path));
+    if (!file_ast) print_err("Could not parse file ", path);
     env_t *module_env = load_module_env(env, file_ast);
 
     libheader_info_t info = {
@@ -376,7 +369,7 @@ void build_library(Text_t lib_dir_name)
     env->libname = Text$as_c_string(escape_lib_name(lib_dir_name));
 
     // Build a "whatever.h" header that loads all the headers:
-    FILE *header = fopen(heap_strf("%k.h", &lib_dir_name), "w");
+    FILE *header = fopen(String(lib_dir_name, ".h"), "w");
     fputs("#pragma once\n", header);
     fputs("#include <tomo/tomo.h>\n", header);
     Table_t visited_files = {};
@@ -387,39 +380,39 @@ void build_library(Text_t lib_dir_name)
         _compile_file_header_for_library(env, resolved, &visited_files, &used_imports, header);
     }
     if (fclose(header) == -1)
-        errx(1, "Failed to write header file: %k.h", &lib_dir_name);
+        print_err("Failed to write header file: ", lib_dir_name, ".h");
 
     // Build up a list of symbol renamings:
     unlink(".build/symbol_renames.txt");
     FILE *prog;
     for (int64_t i = 0; i < tm_files.length; i++) {
         Path_t f = *(Path_t*)(tm_files.data + i*tm_files.stride);
-        prog = run_cmd("nm -Ug -fjust-symbols '%s' | sed -n 's/_\\$\\(.*\\)/\\0 _$%s$\\1/p' >>.build/symbol_renames.txt",
-                       Path$as_c_string(build_file(f, ".o")), CORD_to_const_char_star(env->libname));
-        if (!prog) errx(1, "Could not find symbols!");
+        prog = run_cmd("nm -Ug -fjust-symbols '", build_file(f, ".o"), "' "
+                       "| sed -n 's/_\\$\\(.*\\)/\\0 _$", CORD_to_const_char_star(env->libname),
+                       "$\\1/p' >>.build/symbol_renames.txt");
+        if (!prog) print_err("Could not find symbols!");
         int status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
             errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `sed`");
     }
 
-    prog = run_cmd("%k -O%k %k %k %k %s -Wl,-soname='lib%k.so' -shared %s -o 'lib%k.so'",
-                   &cc, &optimization, &cflags, &ldflags, &ldlibs, array_str(extra_ldlibs), &lib_dir_name,
-                   paths_str(object_files), &lib_dir_name);
+    prog = run_cmd(cc, " -O", optimization, " ", cflags, " ", ldflags, " ", ldlibs, " ", array_text(extra_ldlibs),
+                   " -Wl,-soname='lib", lib_dir_name, ".so' -shared ", paths_str(object_files), " -o 'lib", lib_dir_name, ".so'");
     if (!prog)
-        errx(1, "Failed to run C compiler: %k", &cc);
+        print_err("Failed to run C compiler: ", cc);
     int status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);
 
     if (!quiet)
-        printf("Compiled library:\tlib%k.so\n", &lib_dir_name);
+        print("Compiled library:\tlib", lib_dir_name, ".so");
 
-    prog = run_cmd("objcopy --redefine-syms=.build/symbol_renames.txt 'lib%k.so'", &lib_dir_name);
+    prog = run_cmd("objcopy --redefine-syms=.build/symbol_renames.txt 'lib", lib_dir_name, ".so'");
     status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         errx(WEXITSTATUS(status), "Failed to run `objcopy` to add library prefix to symbols");
 
-    prog = run_cmd("patchelf --rename-dynamic-symbols .build/symbol_renames.txt 'lib%k.so'", &lib_dir_name);
+    prog = run_cmd("patchelf --rename-dynamic-symbols .build/symbol_renames.txt 'lib", lib_dir_name, ".so'");
     status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         errx(WEXITSTATUS(status), "Failed to run `patchelf` to rename dynamic symbols with library prefix");
@@ -431,16 +424,16 @@ void build_library(Text_t lib_dir_name)
 
     if (should_install) {
         char *library_directory = get_current_dir_name();
-        const char *dest = heap_strf("%s/.local/share/tomo/installed/%k", getenv("HOME"), &lib_dir_name);
+        const char *dest = String(getenv("HOME"), "/.local/share/tomo/installed/", lib_dir_name);
         if (!streq(library_directory, dest)) {
-            system(heap_strf("rm -rf '%s'", dest));
-            system(heap_strf("mkdir -p '%s'", dest));
-            system(heap_strf("cp -r * '%s/'", dest));
+            system(String("rm -rf '", dest, "'"));
+            system(String("mkdir -p '", dest, "'"));
+            system(String("cp -r * '", dest, "/'"));
         }
         system("mkdir -p ~/.local/share/tomo/lib/");
-        system(heap_strf("ln -f -s ../installed/'%k'/lib'%k'.so  ~/.local/share/tomo/lib/lib'%k'.so",
-                         &lib_dir_name, &lib_dir_name, &lib_dir_name));
-        printf("Installed \033[1m%k\033[m to ~/.local/share/tomo/installed\n", &lib_dir_name);
+        system(String("ln -f -s ../installed/'", lib_dir_name, "'/lib'", lib_dir_name,
+                      "'.so  ~/.local/share/tomo/lib/lib'", lib_dir_name, "'.so"));
+        print("Installed \033[1m", lib_dir_name, "\033[m to ~/.local/share/tomo/installed");
         free(library_directory);
     }
 }
@@ -453,10 +446,10 @@ void compile_files(env_t *env, Array_t to_compile, Array_t *object_files, Array_
         Path_t filename = *(Path_t*)(to_compile.data + i*to_compile.stride);
         Text_t extension = Path$extension(filename, true);
         if (!Text$equal_values(extension, Text("tm")))
-            errx(1, "Not a valid .tm file: \x1b[31;1m%s\x1b[m", Path$as_c_string(filename));
+            print_err("Not a valid .tm file: \x1b[31;1m", filename, "\x1b[m");
         Path_t resolved = Path$resolved(filename, Path("./"));
         if (!Path$is_file(resolved, true))
-            errx(1, "Couldn't find file: %s", Path$as_c_string(resolved));
+            print_err("Couldn't find file: ", resolved);
         build_file_dependency_graph(resolved, &dependency_files, &to_link);
     }
 
@@ -542,7 +535,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
 
     ast_t *ast = parse_file(Path$as_c_string(path), NULL);
     if (!ast)
-        errx(1, "Could not parse file %s", Path$as_c_string(path));
+        print_err("Could not parse file: ", path);
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         ast_t *stmt_ast = stmt->ast;
@@ -569,7 +562,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             Text_t lib = Text$format("'%s/.local/share/tomo/installed/%s/lib%s.so'", getenv("HOME"), use->path, use->path);
             Table$set(to_link, &lib, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
 
-            Array_t children = Path$glob(Path$from_str(heap_strf("%s/.local/share/tomo/installed/%s/*.tm", getenv("HOME"), use->path)));
+            Array_t children = Path$glob(Path$from_str(String(getenv("HOME"), "/.local/share/tomo/installed/", use->path, "/*.tm")));
             for (int64_t i = 0; i < children.length; i++) {
                 Path_t *child = (Path_t*)(children.data + i*children.stride);
                 Table_t discarded = {.fallback=to_compile};
@@ -604,7 +597,7 @@ bool is_stale(Path_t path, Path_t relative_to)
 
     struct stat relative_to_stat;
     if (stat(Path$as_c_string(relative_to), &relative_to_stat) != 0)
-        errx(1, "File doesn't exist: %s", Path$as_c_string(relative_to));
+        print_err("File doesn't exist: ", relative_to);
     return target_stat.st_mtime < relative_to_stat.st_mtime;
 }
 
@@ -613,7 +606,7 @@ void transpile_header(env_t *base_env, Path_t path)
     Path_t h_filename = build_file(path, ".h");
     ast_t *ast = parse_file(Path$as_c_string(path), NULL);
     if (!ast)
-        errx(1, "Could not parse file %s", Path$as_c_string(path));
+        print_err("Could not parse file: ", path);
 
     env_t *module_env = load_module_env(base_env, ast);
 
@@ -621,16 +614,16 @@ void transpile_header(env_t *base_env, Path_t path)
 
     FILE *header = fopen(Path$as_c_string(h_filename), "w");
     if (!header)
-        errx(1, "Failed to open header file: %s", Path$as_c_string(h_filename));
+        print_err("Failed to open header file: ", h_filename);
     CORD_put(h_code, header);
     if (fclose(header) == -1)
-        errx(1, "Failed to write header file: %s", Path$as_c_string(h_filename));
+        print_err("Failed to write header file: ", h_filename);
 
     if (!quiet)
-        printf("Transpiled header:\t%s\n", Path$as_c_string(h_filename));
+        print("Transpiled header:\t", h_filename);
 
     if (show_codegen.length > 0)
-        system(heap_strf("<%s %k", Path$as_c_string(h_filename), &show_codegen));
+        system(String(show_codegen, " <", h_filename));
 }
 
 void transpile_code(env_t *base_env, Path_t path)
@@ -638,7 +631,7 @@ void transpile_code(env_t *base_env, Path_t path)
     Path_t c_filename = build_file(path, ".c");
     ast_t *ast = parse_file(Path$as_c_string(path), NULL);
     if (!ast)
-        errx(1, "Could not parse file %s", Path$as_c_string(path));
+        print_err("Could not parse file: ", path);
 
     env_t *module_env = load_module_env(base_env, ast);
 
@@ -646,7 +639,7 @@ void transpile_code(env_t *base_env, Path_t path)
 
     FILE *c_file = fopen(Path$as_c_string(c_filename), "w");
     if (!c_file)
-        errx(1, "Failed to write C file: %s", Path$as_c_string(c_filename));
+        print_err("Failed to write C file: ", c_filename);
 
     CORD_put(c_code, c_file);
 
@@ -654,7 +647,9 @@ void transpile_code(env_t *base_env, Path_t path)
     if (main_binding && main_binding->type->tag == FunctionType) {
         type_t *ret = Match(main_binding->type, FunctionType)->ret;
         if (ret->tag != VoidType && ret->tag != AbortType)
-            compiler_err(ast->file, ast->start, ast->end, "The main() function in this file has a return type of %T, but it should not have any return value!", ret);
+            compiler_err(ast->file, ast->start, ast->end,
+                         "The main() function in this file has a return type of ", type_to_str(ret),
+                         ", but it should not have any return value!");
 
         CORD_put(CORD_all(
             "int ", main_binding->code, "$parse_and_run(int argc, char *argv[]) {\n"
@@ -668,13 +663,13 @@ void transpile_code(env_t *base_env, Path_t path)
     }
 
     if (fclose(c_file) == -1)
-        errx(1, "Failed to output C code to %s", Path$as_c_string(c_filename));
+        print_err("Failed to output C code to ", c_filename);
 
     if (!quiet)
-        printf("Transpiled code:\t%s\n", Path$as_c_string(c_filename));
+        print("Transpiled code:\t", c_filename);
 
     if (show_codegen.length > 0)
-        system(heap_strf("<%s %k", Path$as_c_string(c_filename), &show_codegen));
+        system(String(show_codegen, " <", c_filename));
 }
 
 void compile_object_file(Path_t path)
@@ -682,31 +677,29 @@ void compile_object_file(Path_t path)
     Path_t obj_file = build_file(path, ".o");
     Path_t c_file = build_file(path, ".c");
 
-    FILE *prog = run_cmd("%k %k -O%k -c %s -o %s",
-                         &cc, &cflags, &optimization, Path$as_c_string(c_file), Path$as_c_string(obj_file));
+    FILE *prog = run_cmd(cc, " ", cflags, " -O", optimization, " -c ", c_file, " -o ", obj_file);
     if (!prog)
-        errx(1, "Failed to run C compiler: %k", &cc);
+        print_err("Failed to run C compiler: ", cc);
     int status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);
 
     if (!quiet)
-        printf("Compiled object:\t%s\n", Path$as_c_string(obj_file));
+        print("Compiled object:\t", obj_file);
 }
 
 Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, Array_t object_files, Array_t extra_ldlibs)
 {
     ast_t *ast = parse_file(Path$as_c_string(path), NULL);
     if (!ast)
-        errx(1, "Could not parse file %s", Path$as_c_string(path));
+        print_err("Could not parse file ", path);
     env_t *env = load_module_env(base_env, ast);
     binding_t *main_binding = get_binding(env, "main");
     if (!main_binding || main_binding->type->tag != FunctionType)
-        errx(1, "No main() function has been defined for %s, so it can't be run!", Path$as_c_string(path));
+        print_err("No main() function has been defined for ", path, ", so it can't be run!");
 
-    FILE *runner = run_cmd("%k %k -O%k %k %k %s %s -x c - -o %s",
-                           &cc, &cflags, &optimization, &ldflags, &ldlibs,
-                           array_str(extra_ldlibs), paths_str(object_files), Path$as_c_string(exe_path));
+    FILE *runner = run_cmd(cc, " ", cflags, " -O", optimization, " ", ldflags, " ", ldlibs, " ", array_text(extra_ldlibs), " ",
+                           paths_str(object_files), " -x c - -o ", exe_path);
     CORD program = CORD_all(
         "extern int ", main_binding->code, "$parse_and_run(int argc, char *argv[]);\n"
         "int main(int argc, char *argv[]) {\n"
@@ -715,7 +708,7 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, Array_t
     );
 
     if (show_codegen.length > 0) {
-        FILE *out = run_cmd("%k", &show_codegen);
+        FILE *out = run_cmd(show_codegen);
         CORD_put(program, out);
         pclose(out);
     }
@@ -726,7 +719,7 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, Array_t
         exit(EXIT_FAILURE);
 
     if (!quiet)
-        printf("Compiled executable:\t%s\n", Path$as_c_string(exe_path));
+        print("Compiled executable:\t", exe_path);
     return exe_path;
 }
 

@@ -12,6 +12,7 @@
 #include <sys/random.h>
 #include <time.h>
 
+#include "print.h"
 #include "bools.h"
 #include "files.h"
 #include "functiontype.h"
@@ -56,9 +57,6 @@ public void tomo_init(void)
    getrandom(random_bytes, sizeof(random_bytes), 0);
    Array_t rng_seed = {.length=sizeof(random_bytes), .data=random_bytes, .stride=1, .atomic=1};
    RNG$set_seed(default_rng, rng_seed);
-
-   if (register_printf_specifier('k', printf_text, printf_text_size))
-       errx(1, "Couldn't set printf specifier");
 
    struct sigaction sigact;
    sigact.sa_sigaction = signal_handler;
@@ -136,7 +134,7 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)
 
                 // Single-argument tag:
                 if (arg[len] != ':')
-                    errx(1, "Invalid value for %k.%s: %s", &t, named.name, arg);
+                    print_err("Invalid value for ", t, ".", named.name, ": ", arg);
                 size_t offset = sizeof(int32_t);
                 if (named.type->align > 0 && offset % (size_t)named.type->align > 0)
                     offset += (size_t)named.type->align - (offset % (size_t)named.type->align);
@@ -145,7 +143,7 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)
                 return true;
             }
         }
-        errx(1, "Invalid value for %s: %s", info->EnumInfo.name, arg);
+        print_err("Invalid value for ", info->EnumInfo.name, ": ", arg);
     } else if (info->tag == StructInfo) {
         if (info->StructInfo.num_fields == 0)
             return true;
@@ -153,14 +151,14 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)
             return parse_single_arg(info->StructInfo.fields[0].type, arg, dest);
 
         Text_t t = generic_as_text(NULL, false, info);
-        errx(1, "Unsupported multi-argument struct type for argument parsing: %k", &t);
+        print_err("Unsupported multi-argument struct type for argument parsing: ", t);
     } else if (info->tag == ArrayInfo) {
-        errx(1, "Array arguments must be specified as `--flag ...` not `--flag=...`");
+        print_err("Array arguments must be specified as `--flag ...` not `--flag=...`");
     } else if (info->tag == TableInfo) {
-        errx(1, "Table arguments must be specified as `--flag ...` not `--flag=...`");
+        print_err("Table arguments must be specified as `--flag ...` not `--flag=...`");
     } else {
         Text_t t = generic_as_text(NULL, false, info);
-        errx(1, "Unsupported type for argument parsing: %k", &t);
+        print_err("Unsupported type for argument parsing: ", t);
     }
 }
 
@@ -178,7 +176,7 @@ static Array_t parse_array(const TypeInfo_t *item_info, int n, char *args[])
     for (int i = 0; i < n; i++) {
         bool success = parse_single_arg(item_info, args[i], items.data + items.stride*i);
         if (!success)
-            errx(1, "Couldn't parse argument: %s", args[i]);
+            print_err("Couldn't parse argument: ", args[i]);
     }
     return items;
 }
@@ -209,11 +207,11 @@ static Table_t parse_table(const TypeInfo_t *table, int n, char *args[])
 
         bool success = parse_single_arg(key, key_arg, entries.data + entries.stride*i);
         if (!success)
-            errx(1, "Couldn't parse table key: %s", key_arg);
+            print_err("Couldn't parse table key: ", key_arg);
 
         success = parse_single_arg(value, value_arg, entries.data + entries.stride*i + value_offset);
         if (!success)
-            errx(1, "Couldn't parse table value: %s", value_arg);
+            print_err("Couldn't parse table value: ", value_arg);
 
         *equals = '=';
     }
@@ -281,18 +279,18 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                         *(OptionalBool_t*)spec[s].dest = true;
                     } else {
                         if (i + 1 >= argc)
-                            errx(1, "Missing argument: %s\n%k", argv[i], &usage);
+                            print_err("Missing argument: ", argv[i], "\n", usage);
                         used_args[i+1] = true;
                         populated_args[s] = parse_single_arg(spec[s].type, argv[i+1], spec[s].dest);
                         if (!populated_args[s])
-                            errx(1, "Couldn't parse argument: %s %s\n%k", argv[i], argv[i+1], &usage);
+                            print_err("Couldn't parse argument: ", argv[i], " ", argv[i+1], "\n", usage);
                     }
                     goto next_arg;
                 } else if (after_name == '=') { // --foo=val
                     used_args[i] = true;
                     populated_args[s] = parse_single_arg(spec[s].type, 2 + argv[i] + strlen(spec[s].name) + 1, spec[s].dest);
                     if (!populated_args[s])
-                        errx(1, "Couldn't parse argument: %s\n%k", argv[i], &usage);
+                        print_err("Couldn't parse argument: ", argv[i], "\n", usage);
                     goto next_arg;
                 } else {
                     continue;
@@ -303,10 +301,11 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                 say(help, true);
                 exit(0);
             }
-            errx(1, "Unrecognized argument: %s\n%k", argv[i], &usage);
+            print_err("Unrecognized argument: ", argv[i], "\n", usage);
         } else if (argv[i][0] == '-' && argv[i][1] && argv[i][1] != '-') { // Single flag args
             used_args[i] = true;
             for (char *f = argv[i] + 1; *f; f++) {
+                char flag[] = {'-', *f, 0};
                 for (int s = 0; s < spec_len; s++) {
                     if (spec[s].name[0] != *f || strlen(spec[s].name) > 1)
                         continue;
@@ -316,7 +315,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                         non_opt_type = non_opt_type->OptionalInfo.type;
 
                     if (non_opt_type->tag == ArrayInfo) {
-                        if (f[1]) errx(1, "No value provided for -%c\n%k", *f, &usage);
+                        if (f[1]) print_err("No value provided for ", flag, "\n", usage);
                         int num_args = 0;
                         while (i + 1 + num_args < argc) {
                             if (argv[i+1+num_args][0] == '-')
@@ -340,11 +339,11 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                         populated_args[s] = true;
                         *(OptionalBool_t*)spec[s].dest = true;
                     } else {
-                        if (f[1] || i+1 >= argc) errx(1, "No value provided for -%c\n%k", *f, &usage);
+                        if (f[1] || i+1 >= argc) print_err("No value provided for ", flag, "\n", usage);
                         used_args[i+1] = true;
                         populated_args[s] = parse_single_arg(spec[s].type, argv[i+1], spec[s].dest);
                         if (!populated_args[s])
-                            errx(1, "Couldn't parse argument: %s %s\n%k", argv[i], argv[i+1], &usage);
+                            print_err("Couldn't parse argument: ", argv[i], " ", argv[i+1], "\n", usage);
                     }
                     goto next_flag;
                 }
@@ -353,7 +352,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                     say(help, true);
                     exit(0);
                 }
-                errx(1, "Unrecognized flag: -%c\n%k", *f, &usage);
+                print_err("Unrecognized flag: ", flag, "\n", usage);
               next_flag:;
             }
         } else {
@@ -380,7 +379,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
           next_non_bool_flag:
             ++s;
             if (s >= spec_len)
-                errx(1, "Extra argument: %s\n%k", argv[i], &usage);
+                print_err("Extra argument: ", argv[i], "\n", usage);
         }
 
         const TypeInfo_t *non_opt_type = spec[s].type;
@@ -416,7 +415,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
         }
 
         if (!populated_args[s])
-            errx(1, "Invalid value for %s: %s\n%k", spec[s].name, argv[i], &usage);
+            print_err("Invalid value for ", spec[s].name, ": ", argv[i], "\n", usage);
     }
 
     for (int s = 0; s < spec_len; s++) {
@@ -426,7 +425,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
             else if (spec[s].type->tag == TableInfo)
                 *(OptionalTable_t*)spec[s].dest = (Table_t){};
             else
-                errx(1, "The required argument '%s' was not provided\n%k", spec[s].name, &usage);
+                print_err("The required argument '", spec[s].name, "' was not provided\n", usage);
         }
     }
 }
@@ -438,14 +437,17 @@ static void print_stack_line(FILE *out, OptionalText_t fn_name, const char *file
     // do a linear scan through the whole file. However, performance shouldn't
     // really matter if we only print stack lines when there's a crash.
     if (filename) {
-        fprintf(out, "\033[34mFile\033[m \033[35;1m%s\033[m", filename);
+        fprint_inline(out, "\033[34mFile\033[m \033[35;1m", filename, "\033[m");
         if (line_num >= 1)
-            fprintf(out, "\033[34m line\033[m \033[35;1m%ld\033[m", line_num);
+            fprint_inline(out, "\033[34m line\033[m \033[35;1m", line_num, "\033[m");
     }
     if (fn_name.length > 0) {
-        fprintf(out, filename ? "\033[34m, in \033[m \033[36;1m%k\033[m" : "\033[36;1m%k\033[m", &fn_name);
+        if (filename)
+            fprint_inline(out, "\033[34m, in \033[m \033[36;1m", fn_name, "\033[m");
+        else
+            fprint_inline(out, "\033[36;1m", fn_name, "\033[m");
     }
-    fprintf(out, "\n");
+    fprint_inline(out, "\n");
 
     FILE *f = fopen(filename, "r");
     if (!f) return;
@@ -458,7 +460,7 @@ static void print_stack_line(FILE *out, OptionalText_t fn_name, const char *file
             line[strlen(line)-1] = '\0';
 
         if (cur_line >= line_num)
-            fprintf(out, "\033[33;1m%s\033[m\n", line);
+            fprint(out, "\033[33;1m", line, "\033[m");
 
         cur_line += 1;
         if (cur_line > line_num)
@@ -468,7 +470,7 @@ static void print_stack_line(FILE *out, OptionalText_t fn_name, const char *file
     fclose(f);
 }
 
-void print_stack_trace(FILE *out, int start, int stop)
+public void print_stack_trace(FILE *out, int start, int stop)
 {
     // Print stack trace:
     void *stack[1024];
@@ -498,52 +500,9 @@ void print_stack_trace(FILE *out, int start, int stop)
     }
 }
 
-__attribute__((format(printf, 1, 2)))
-public _Noreturn void fail(const char *fmt, ...)
-{
-    fflush(stdout);
-    if (USE_COLOR) fputs("\x1b[31;7m ==================== ERROR ==================== \n\n\x1b[0;1m", stderr);
-    else fputs("==================== ERROR ====================\n\n", stderr);
-    va_list args;
-    va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
-    if (USE_COLOR) fputs("\x1b[m", stderr);
-    fputs("\n\n", stderr);
-    va_end(args);
-    print_stack_trace(stderr, 2, 4);
-    fflush(stderr);
-    raise(SIGABRT);
-    _exit(1);
-}
-
 public _Noreturn void fail_text(Text_t message)
 {
-    fail("%k", &message);
-}
-
-__attribute__((format(printf, 4, 5)))
-public _Noreturn void fail_source(const char *filename, int64_t start, int64_t end, const char *fmt, ...)
-{
-    if (USE_COLOR) fputs("\n\x1b[31;7m ==================== ERROR ==================== \n\n\x1b[0;1m", stderr);
-    else fputs("\n==================== ERROR ====================\n\n", stderr);
-
-    va_list args;
-    va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
-    va_end(args);
-
-    file_t *file = filename ? load_file(filename) : NULL;
-    if (filename && file) {
-        fputs("\n", stderr);
-        highlight_error(file, file->text+start, file->text+end, "\x1b[31;1m", 2, USE_COLOR);
-        fputs("\n", stderr);
-    }
-    if (USE_COLOR) fputs("\x1b[m", stderr);
-
-    print_stack_trace(stderr, 2, 4);
-    fflush(stderr);
-    raise(SIGABRT);
-    _exit(1);
+    fail(message);
 }
 
 public Text_t builtin_last_err()
@@ -595,9 +554,8 @@ public void end_inspect(const void *expr, const TypeInfo_t *type)
     if (type->metamethods.as_text) {
         Text_t expr_text = generic_as_text(expr, USE_COLOR, type);
         Text_t type_name = generic_as_text(NULL, false, type);
-
         for (int i = 0; i < 3*_inspect_depth; i++) fputc(' ', stdout);
-        fprintf(stdout, USE_COLOR ? "\x1b[33;1m=\x1b[0m %k \x1b[2m: \x1b[36m%k\x1b[m\n" : "= %k : %k\n", &expr_text, &type_name);
+        fprint(stdout, USE_COLOR ? "\x1b[33;1m=\x1b[0m " : " =", expr_text, USE_COLOR ? " \x1b[2m: \x1b[36m" : " : ", type_name);
     }
 }
 
@@ -610,11 +568,17 @@ public void test_value(const void *expr, const void *expected, const TypeInfo_t 
     bool success = Text$equal_values(expr_text, expected_text);
     if (!success) {
         print_stack_trace(stderr, 2, 4);
-        fprintf(stderr, 
-                USE_COLOR
-                ? "\n\x1b[31;7m ==================== TEST FAILED ==================== \x1b[0;1m\n\nYou expected: \x1b[m%k\x1b[0m\n\x1b[1m   But I got:\x1b[m %k\n\n"
-                : "\n==================== TEST FAILED ====================\n\nYou expected: %k\n   But I got: %k\n\n",
-                &expected_text, &expr_text);
+        if (USE_COLOR) {
+            fprint(stderr, 
+                    "\n\x1b[31;7m ==================== TEST FAILED ==================== \x1b[0;1m\n\n"
+                    "You expected: \x1b[m", expected_text, "\x1b[0m\n"
+                    "\x1b[1m   But I got:\x1b[m ", expr_text, "\n");
+        } else {
+            fprint(stderr, 
+                    "\n==================== TEST FAILED ====================\n\n"
+                    "You expected: ", expected_text, "\n"
+                    "   But I got: ", expr_text, "\n");
+        }
 
         fflush(stderr);
         raise(SIGABRT);

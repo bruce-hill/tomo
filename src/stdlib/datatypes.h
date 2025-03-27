@@ -34,6 +34,8 @@ typedef union {
     mpz_t *big;
 } Int_t;
 
+#define OptionalInt_t Int_t
+
 typedef struct {
     void *data;
     // All of the following fields add up to 64 bits, which means that array
@@ -116,5 +118,11 @@ typedef struct MutexedData_s {
     pthread_mutex_t mutex;
     void *data;
 } *MutexedData_t;
+
+#define OptionalBool_t uint8_t
+#define OptionalArray_t Array_t
+#define OptionalTable_t Table_t
+#define OptionalText_t Text_t
+#define OptionalClosure_t Closure_t
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

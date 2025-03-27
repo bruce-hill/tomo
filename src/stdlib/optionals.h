@@ -10,12 +10,6 @@
 #include "types.h"
 #include "util.h"
 
-#define OptionalBool_t uint8_t
-#define OptionalArray_t Array_t
-#define OptionalTable_t Table_t
-#define OptionalText_t Text_t
-#define OptionalClosure_t Closure_t
-
 #define NONE_ARRAY ((Array_t){.length=-1})
 #define NONE_BOOL ((OptionalBool_t)2)
 #define NONE_INT ((OptionalInt_t){.small=0})

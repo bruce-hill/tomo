@@ -73,7 +73,7 @@ int run_command(Text_t exe, Array_t arg_array, Table_t env_table,
 
         for (int64_t i = 0; i < env_table.entries.length; i++) {
             struct { Text_t key, value; } *entry = env_table.entries.data + env_table.entries.stride*i;
-            const char *env_entry = heap_strf("%k=%k", &entry->key, &entry->value);
+            const char *env_entry = String(entry->key, "=", entry->value);
             Array$insert(&env_array, &env_entry, I(0), sizeof(char*));
         }
         Array$insert_value(&env_array, NULL, I(0), sizeof(char*));
@@ -254,7 +254,7 @@ OptionalClosure_t command_by_line(Text_t exe, Array_t arg_array, Table_t env_tab
 
         for (int64_t i = 0; i < env_table.entries.length; i++) {
             struct { Text_t key, value; } *entry = env_table.entries.data + env_table.entries.stride*i;
-            const char *env_entry = heap_strf("%k=%k", &entry->key, &entry->value);
+            const char *env_entry = String(entry->key, "=", entry->value);
             Array$insert(&env_array, &env_entry, I(0), sizeof(char*));
         }
         Array$insert_value(&env_array, NULL, I(0), sizeof(char*));

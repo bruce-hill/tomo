@@ -109,11 +109,8 @@ public Int_t RNG$int(RNG_t rng, Int_t min, Int_t max)
     }
 
     int32_t cmp = Int$compare_value(min, max);
-    if (cmp > 0) {
-        Text_t min_text = Int$as_text(&min, false, &Int$info), max_text = Int$as_text(&max, false, &Int$info);
-        fail("Random minimum value (%k) is larger than the maximum value (%k)",
-             &min_text, &max_text);
-    }
+    if (cmp > 0)
+        fail("Random minimum value (", min, ") is larger than the maximum value (", max, ")");
     if (cmp == 0) return min;
 
     mpz_t range_size;
@@ -140,7 +137,7 @@ public Int_t RNG$int(RNG_t rng, Int_t min, Int_t max)
 
 public Int64_t RNG$int64(RNG_t rng, Int64_t min, Int64_t max)
 {
-    if (min > max) fail("Random minimum value (%ld) is larger than the maximum value (%ld)", min, max);
+    if (min > max) fail("Random minimum value (", min, ") is larger than the maximum value (", max, ")");
     if (min == max) return min;
     if (min == INT64_MIN && max == INT64_MAX) {
         int64_t r;
@@ -159,7 +156,7 @@ public Int64_t RNG$int64(RNG_t rng, Int64_t min, Int64_t max)
 
 public Int32_t RNG$int32(RNG_t rng, Int32_t min, Int32_t max)
 {
-    if (min > max) fail("Random minimum value (%d) is larger than the maximum value (%d)", min, max);
+    if (min > max) fail("Random minimum value (", min, ") is larger than the maximum value (", max, ")");
     if (min == max) return min;
     if (min == INT32_MIN && max == INT32_MAX) {
         int32_t r;
@@ -178,7 +175,7 @@ public Int32_t RNG$int32(RNG_t rng, Int32_t min, Int32_t max)
 
 public Int16_t RNG$int16(RNG_t rng, Int16_t min, Int16_t max)
 {
-    if (min > max) fail("Random minimum value (%d) is larger than the maximum value (%d)", min, max);
+    if (min > max) fail("Random minimum value (", min, ") is larger than the maximum value (", max, ")");
     if (min == max) return min;
     if (min == INT16_MIN && max == INT16_MAX) {
         int16_t r;
@@ -197,7 +194,7 @@ public Int16_t RNG$int16(RNG_t rng, Int16_t min, Int16_t max)
 
 public Int8_t RNG$int8(RNG_t rng, Int8_t min, Int8_t max)
 {
-    if (min > max) fail("Random minimum value (%d) is larger than the maximum value (%d)", min, max);
+    if (min > max) fail("Random minimum value (", min, ") is larger than the maximum value (", max, ")");
     if (min == max) return min;
     if (min == INT8_MIN && max == INT8_MAX) {
         int8_t r;
@@ -216,7 +213,7 @@ public Int8_t RNG$int8(RNG_t rng, Int8_t min, Int8_t max)
 
 public Num_t RNG$num(RNG_t rng, Num_t min, Num_t max)
 {
-    if (min > max) fail("Random minimum value (%g) is larger than the maximum value (%g)", min, max);
+    if (min > max) fail("Random minimum value (", min, ") is larger than the maximum value (", max, ")");
     if (min == max) return min;
 
     union {

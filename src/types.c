@@ -105,6 +105,11 @@ CORD type_to_cord(type_t *t) {
     }
 }
 
+const char *type_to_str(type_t *t)
+{
+    return CORD_to_const_char_star(type_to_cord(t));
+}
+
 PUREFUNC const char *get_type_name(type_t *t)
 {
     switch (t->tag) {
@@ -113,23 +118,6 @@ PUREFUNC const char *get_type_name(type_t *t)
     case EnumType: return Match(t, EnumType)->name;
     default: return NULL;
     }
-}
-
-int printf_pointer_size(const struct printf_info *info, size_t n, int argtypes[n], int sizes[n])
-{
-    if (n < 1) return -1;
-    (void)info;
-    argtypes[0] = PA_POINTER;
-    sizes[0] = sizeof(void*);
-    return 1;
-}
-
-int printf_type(FILE *stream, const struct printf_info *info, const void *const args[])
-{
-    (void)info;
-    type_t *t = *(type_t**)args[0];
-    if (!t) return fputs("(null)", stream);
-    return CORD_put(type_to_cord(t), stream);
 }
 
 bool type_eq(type_t *a, type_t *b)

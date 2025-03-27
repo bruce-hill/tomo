@@ -222,7 +222,7 @@ public OptionalMoment_t Moment$parse(Text_t text, Text_t format)
     const char *str = Text$as_c_string(text);
     const char *fmt = Text$as_c_string(format);
     if (strstr(fmt, "%Z"))
-        fail("The %%Z specifier is not supported for time parsing!");
+        fail("The %Z specifier is not supported for time parsing!");
 
     char *invalid = strptime(str, fmt, &info);
     if (!invalid || invalid[0] != '\0')

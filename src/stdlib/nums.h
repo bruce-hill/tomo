@@ -42,7 +42,7 @@ MACROLIKE CONSTFUNC double Num$from_int(Int_t i, bool truncate) {
     if likely (i.small & 0x1) {
         double ret = (double)(i.small >> 2);
         if unlikely (!truncate && (int64_t)ret != (i.small >> 2))
-            fail("Could not convert integer to 64-bit floating point without losing precision: %ld", i.small >> 2);
+            fail("Could not convert integer to 64-bit floating point without losing precision: ", i.small >> 2);
         return ret;
     } else {
         double ret = mpz_get_d(*i.big);
@@ -50,7 +50,7 @@ MACROLIKE CONSTFUNC double Num$from_int(Int_t i, bool truncate) {
             mpz_t roundtrip;
             mpz_init_set_d(roundtrip, ret);
             if unlikely (mpz_cmp(*i.big, roundtrip) != 0)
-                fail("Could not convert integer to 64-bit floating point without losing precision: %k", (Text_t[1]){Int$value_as_text(i)});
+                fail("Could not convert integer to 64-bit floating point without losing precision: ", i);
         }
         return ret;
     }
@@ -59,7 +59,7 @@ MACROLIKE CONSTFUNC double Num$from_int(Int_t i, bool truncate) {
 MACROLIKE CONSTFUNC double Num$from_int64(Int64_t i, bool truncate) {
     double n = (double)i;
     if unlikely (!truncate && (Int64_t)n != i)
-        fail("Could not convert integer to 64-bit floating point without losing precision: %ld", i);
+        fail("Could not convert integer to 64-bit floating point without losing precision: ", i);
     return n;
 }
 MACROLIKE CONSTFUNC double Num$from_int32(Int32_t i) { return (double)i; }
@@ -94,7 +94,7 @@ MACROLIKE CONSTFUNC float Num32$from_int(Int_t i, bool truncate) {
     if likely (i.small & 0x1) {
         float ret = (float)(i.small >> 2);
         if unlikely (!truncate && (int64_t)ret != (i.small >> 2))
-            fail("Could not convert integer to 32-bit floating point without losing precision: %ld", i.small >> 2);
+            fail("Could not convert integer to 32-bit floating point without losing precision: ", i.small >> 2);
         return ret;
     } else {
         float ret = (float)mpz_get_d(*i.big);
@@ -102,7 +102,7 @@ MACROLIKE CONSTFUNC float Num32$from_int(Int_t i, bool truncate) {
             mpz_t roundtrip;
             mpz_init_set_d(roundtrip, ret);
             if unlikely (mpz_cmp(*i.big, roundtrip) != 0)
-                fail("Could not convert integer to 32-bit floating point without losing precision: %k", (Text_t[1]){Int$value_as_text(i)});
+                fail("Could not convert integer to 32-bit floating point without losing precision: ", i);
         }
         return ret;
     }
@@ -111,13 +111,13 @@ MACROLIKE CONSTFUNC float Num32$from_int(Int_t i, bool truncate) {
 MACROLIKE CONSTFUNC float Num32$from_int64(Int64_t i, bool truncate) {
     float n = (float)i;
     if unlikely (!truncate && (Int64_t)n != i)
-        fail("Could not convert integer to 32-bit floating point without losing precision: %ld", i);
+        fail("Could not convert integer to 32-bit floating point without losing precision: ", i);
     return n;
 }
 MACROLIKE CONSTFUNC float Num32$from_int32(Int32_t i, bool truncate) {
     float n = (float)i;
     if unlikely (!truncate && (Int32_t)n != i)
-        fail("Could not convert integer to 32-bit floating point without losing precision: %d", i);
+        fail("Could not convert integer to 32-bit floating point without losing precision: ", i);
     return n;
 }
 MACROLIKE CONSTFUNC float Num32$from_int16(Int16_t i) { return (float)i; }

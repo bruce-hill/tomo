@@ -15,6 +15,8 @@
 #include "cordhelpers.h"
 #include "stdlib/integers.h"
 #include "stdlib/patterns.h"
+#include "stdlib/print.h"
+#include "stdlib/stdlib.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"
@@ -64,8 +66,6 @@ static INLINE size_t some_not(const char **pos, const char *forbid);
 static INLINE size_t spaces(const char **pos);
 static INLINE void whitespace(const char **pos);
 static INLINE size_t match(const char **pos, const char *target);
-static void expect_str(parse_ctx_t *ctx, const char *start, const char **pos, const char *target, const char *fmt, ...);
-static void expect_closing(parse_ctx_t *ctx, const char **pos, const char *target, const char *fmt, ...);
 static INLINE size_t match_word(const char **pos, const char *word);
 static INLINE const char* get_word(const char **pos);
 static INLINE const char* get_id(const char **pos);
@@ -147,40 +147,78 @@ static PARSER(parse_deserialize);
 //
 // Print a parse error and exit (or use the on_err longjmp)
 //
-__attribute__((noreturn, format(printf, 4, 0)))
-static _Noreturn void vparser_err(parse_ctx_t *ctx, const char *start, const char *end, const char *fmt, va_list args) {
-    if (USE_COLOR)
-        fputs("\x1b[31;1;7m", stderr);
-    fprintf(stderr, "%s:%ld.%ld: ", ctx->file->relative_filename, get_line_number(ctx->file, start),
-            get_line_column(ctx->file, start));
-    vfprintf(stderr, fmt, args);
-    if (USE_COLOR)
-        fputs(" \x1b[m", stderr);
-    fputs("\n\n", stderr);
-
-    highlight_error(ctx->file, start, end, "\x1b[31;1;7m", 2, USE_COLOR);
-    fputs("\n", stderr);
-
-    if (getenv("TOMO_STACKTRACE"))
-        print_stack_trace(stderr, 1, 3);
-
-    if (ctx->on_err)
-        longjmp(*ctx->on_err, 1);
-
-    raise(SIGABRT);
-    exit(1);
-}
+#define parser_err(ctx, start, end, ...) ({ \
+    if (USE_COLOR) \
+        fputs("\x1b[31;1;7m", stderr); \
+    fprint_inline(stderr, (ctx)->file->relative_filename, ":", get_line_number((ctx)->file, (start)), \
+                  ".", get_line_column((ctx)->file, (start)), ": ", __VA_ARGS__); \
+    if (USE_COLOR) \
+        fputs(" \x1b[m", stderr); \
+    fputs("\n\n", stderr); \
+    highlight_error((ctx)->file, (start), (end), "\x1b[31;1;7m", 2, USE_COLOR); \
+    fputs("\n", stderr); \
+    if (getenv("TOMO_STACKTRACE")) \
+        print_stack_trace(stderr, 1, 3); \
+    if ((ctx)->on_err) \
+        longjmp(*((ctx)->on_err), 1); \
+    raise(SIGABRT); \
+    exit(1); \
+})
 
 //
-// Wrapper for vparser_err
+// Expect a string (potentially after whitespace) and emit a parser error if it's not there
 //
-__attribute__((noreturn, format(printf, 4, 5)))
-static _Noreturn void parser_err(parse_ctx_t *ctx, const char *start, const char *end, const char *fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    vparser_err(ctx, start, end, fmt, args);
-    va_end(args);
-}
+#define expect_str(ctx, start, pos, target, ...) ({ \
+    spaces(pos); \
+    if (!match(pos, target)) { \
+        if (USE_COLOR) \
+            fputs("\x1b[31;1;7m", stderr); \
+        parser_err(ctx, start, *pos, __VA_ARGS__); \
+    } \
+    char _lastchar = target[strlen(target)-1]; \
+    if (isalpha(_lastchar) || isdigit(_lastchar) || _lastchar == '_') { \
+        if (is_xid_continue_next(*pos)) { \
+            if (USE_COLOR) \
+                fputs("\x1b[31;1;7m", stderr); \
+            parser_err(ctx, start, *pos, __VA_ARGS__); \
+        } \
+    } \
+})
+
+//
+// Helper for matching closing parens with good error messages
+//
+#define expect_closing(ctx, pos, close_str, ...) ({ \
+    const char *_start = *pos; \
+    spaces(pos); \
+    if (!match(pos, (close_str))) { \
+        const char *_eol = strchr(*pos, '\n'); \
+        const char *_next = strstr(*pos, (close_str)); \
+        const char *_end = _eol < _next ? _eol : _next; \
+        if (USE_COLOR) \
+            fputs("\x1b[31;1;7m", stderr); \
+        parser_err(ctx, _start, _end, __VA_ARGS__); \
+    } \
+})
+
+#define expect(ctx, start, pos, parser, ...) ({ \
+    const char **_pos = pos; \
+    spaces(_pos); \
+    auto _result = parser(ctx, *_pos); \
+    if (!_result) { \
+        if (USE_COLOR) \
+            fputs("\x1b[31;1;7m", stderr); \
+        parser_err(ctx, start, *_pos, __VA_ARGS__); \
+    } \
+    *_pos = _result->end; \
+    _result; })
+
+#define optional(ctx, pos, parser) ({ \
+    const char **_pos = pos; \
+    spaces(_pos); \
+    auto _result = parser(ctx, *_pos); \
+    if (_result) *_pos = _result->end; \
+    _result; })
 
 //
 // Convert an escape sequence like \n to a string
@@ -213,7 +251,7 @@ static const char *unescape(parse_ctx_t *ctx, const char **out) {
         uint32_t codepoint = unicode_name_character(name);
         if (codepoint == UNINAME_INVALID)
             parser_err(ctx, escape, escape + 3 + len,
-                       "Invalid unicode codepoint name: \"%s\"", name);
+                       "Invalid unicode codepoint name: ", quoted(name));
         *endpos = escape + 3 + len;
         char *str = GC_MALLOC_ATOMIC(16);
         size_t u8_len = 16;
@@ -305,72 +343,6 @@ static INLINE bool is_xid_continue_next(const char *pos) {
     u8_next(&point, (const uint8_t*)pos);
     return uc_is_property_xid_continue(point);
 }
-
-//
-// Expect a string (potentially after whitespace) and emit a parser error if it's not there
-//
-__attribute__((format(printf, 5, 6)))
-static void expect_str(
-    parse_ctx_t *ctx, const char *start, const char **pos, const char *target, const char *fmt, ...) {
-    spaces(pos);
-    if (match(pos, target)) {
-        char lastchar = target[strlen(target)-1];
-        if (!(isalpha(lastchar) || isdigit(lastchar) || lastchar == '_'))
-            return;
-        if (!is_xid_continue_next(*pos))
-            return;
-    }
-
-    if (USE_COLOR)
-        fputs("\x1b[31;1;7m", stderr);
-    va_list args;
-    va_start(args, fmt);
-    vparser_err(ctx, start, *pos, fmt, args);
-    va_end(args);
-}
-
-//
-// Helper for matching closing parens with good error messages
-//
-__attribute__((format(printf, 4, 5)))
-static void expect_closing(
-    parse_ctx_t *ctx, const char **pos, const char *close_str, const char *fmt, ...) {
-    const char *start = *pos;
-    spaces(pos);
-    if (match(pos, close_str))
-        return;
-
-    const char *eol = strchr(*pos, '\n');
-    const char *next = strstr(*pos, close_str);
-
-    const char *end = eol < next ? eol : next;
-
-    if (USE_COLOR)
-        fputs("\x1b[31;1;7m", stderr);
-    va_list args;
-    va_start(args, fmt);
-    vparser_err(ctx, start, end, fmt, args);
-    va_end(args);
-}
-
-#define expect(ctx, start, pos, parser, ...) ({ \
-    const char **_pos = pos; \
-    spaces(_pos); \
-    auto _result = parser(ctx, *_pos); \
-    if (!_result) { \
-        if (USE_COLOR) \
-            fputs("\x1b[31;1;7m", stderr); \
-        parser_err(ctx, start, *_pos, __VA_ARGS__); \
-    } \
-    *_pos = _result->end; \
-    _result; })
-
-#define optional(ctx, pos, parser) ({ \
-    const char **_pos = pos; \
-    spaces(_pos); \
-    auto _result = parser(ctx, *_pos); \
-    if (_result) *_pos = _result->end; \
-    _result; })
 
 size_t match_word(const char **out, const char *word) {
     const char *pos = *out;
@@ -1445,7 +1417,8 @@ PARSER(parse_text) {
     }
 
     REVERSE_LIST(chunks);
-    expect_closing(ctx, &pos, (char[]){close_quote, 0}, "I was expecting a '%c' to finish this string", close_quote);
+    char close_str[2] = {close_quote, 0};
+    expect_closing(ctx, &pos, close_str, "I was expecting a ", close_quote, " to finish this string");
     return NewAST(ctx->file, start, pos, TextJoin, .lang=lang, .children=chunks);
 }
 
@@ -2283,8 +2256,7 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos)
         }
         if (!names) break;
         if (!default_val && !type)
-            parser_err(ctx, batch_start, *pos, "I expected a ':' and type, or '=' and a default value after this parameter (%s)",
-                       names->name);
+            parser_err(ctx, batch_start, *pos, "I expected a ':' and type, or '=' and a default value after this parameter (", names->name, ")");
 
         REVERSE_LIST(names);
         for (; names; names = names->next)
@@ -2512,12 +2484,12 @@ PARSER(parse_use) {
         Array_t m = Text$matches(text, Pattern("{url}"));
         if (m.length >= 0) {
             text = Text$trim(text, Pattern("http{0-1 s}://"), true, false);
-            FILE *shasum = popen(heap_strf("echo -n '%s' | sha256sum", Text$as_c_string(text)), "r");
+            FILE *shasum = popen(String("echo -n '", text, "' | sha256sum"), "r");
             const size_t HASH_LEN = 32;
             char *hash = GC_MALLOC_ATOMIC(HASH_LEN + 1);
             size_t just_read = fread(hash, sizeof(char), HASH_LEN, shasum);
             if (just_read < HASH_LEN)
-                errx(1, "Failed to get SHA sum for 'use': %s", name);
+                print_err("Failed to get SHA sum for 'use': ", name);
             name = hash;
         }
     }
@@ -2528,7 +2500,7 @@ ast_t *parse_file(const char *path, jmp_buf *on_err) {
     if (path[0] != '<') {
         const char *resolved = resolve_path(path, ".", ".");
         if (!resolved)
-            errx(1, "Could not resolve path: %s", path);
+            print_err("Could not resolve path: ", path);
         path = resolved;
     }
     // NOTE: this cache leaks a bounded amount of memory. The cache will never

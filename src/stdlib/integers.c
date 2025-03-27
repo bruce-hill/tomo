@@ -6,6 +6,7 @@
 #include <gmp.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "arrays.h"
@@ -16,9 +17,18 @@
 #include "text.h"
 #include "types.h"
 
+public int Int$print(FILE *f, Int_t i) {
+    if (likely(i.small & 1L)) {
+        return fprintf(f, "%ld", (i.small)>>2L);
+    } else {
+        char *str = mpz_get_str(NULL, 10, *i.big);
+        return fputs(str, f);
+    }
+}
+
 public Text_t Int$value_as_text(Int_t i) {
     if (likely(i.small & 1L)) {
-        return Text$format("%ld", (i.small)>>2L);
+        return Text$format("%ld", i.small>>2L);
     } else {
         char *str = mpz_get_str(NULL, 10, *i.big);
         return Text$from_str(str);
@@ -416,7 +426,7 @@ public Int_t Int$prev_prime(Int_t x)
     mpz_t p;
     mpz_init_set_int(p, x);
     if (unlikely(mpz_prevprime(p, p) == 0))
-        fail("There is no prime number before %k", (Text_t[1]){Int$as_text(&x, false, &Int$info)});
+        fail("There is no prime number before ", x);
     return Int$from_mpz(p);
 }
 #endif

@@ -4,7 +4,6 @@
 // Raku's string representation and libunistr
 
 #include <stdbool.h>
-#include <printf.h>
 #include <stdint.h>
 
 #include "datatypes.h"
@@ -25,12 +24,9 @@ typedef struct {
 
 #define NEW_TEXT_ITER_STATE(t) (TextIter_t){.stack={{t, 0}}, .stack_index=0}
 
-int printf_text(FILE *stream, const struct printf_info *info, const void *const args[]);
-int printf_text_size(const struct printf_info *info, size_t n, int argtypes[n], int sizes[n]);
-
 #define Text(str) ((Text_t){.length=sizeof(str)-1, .tag=TEXT_ASCII, .ascii="" str})
 
-int Text$print(FILE *stream, Text_t t);
+//int Text$print(FILE *stream, Text_t t);
 Text_t Text$_concat(int n, Text_t items[n]);
 #define Text$concat(...) Text$_concat(sizeof((Text_t[]){__VA_ARGS__})/sizeof(Text_t), (Text_t[]){__VA_ARGS__})
 #define Texts(...) Text$concat(__VA_ARGS__)

@@ -4,7 +4,6 @@
 
 #include <err.h>
 #include <gc/cord.h>
-#include <printf.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -344,8 +343,8 @@ struct ast_s {
 };
 
 CORD ast_to_xml(ast_t *ast);
+const char *ast_to_str(ast_t *ast);
 CORD type_ast_to_xml(type_ast_t *ast);
-int printf_ast(FILE *stream, const struct printf_info *info, const void *const args[]);
 PUREFUNC bool is_idempotent(ast_t *ast);
 void visit_topologically(ast_list_t *ast, Closure_t fn);
 

@@ -32,24 +32,24 @@ public Text_t Byte$hex(Byte_t byte, bool uppercase, bool prefix) {
 
 public PUREFUNC Byte_t Byte$from_int(Int_t i, bool truncate) {
     if unlikely (truncate && Int$compare_value(i, I_small(0xFF)) > 0)
-        fail("This value is too large to convert to a byte without truncation: %k", (Text_t[1]){Int$value_as_text(i)});
+        fail("This value is too large to convert to a byte without truncation: ", i);
      else if unlikely (truncate && Int$compare_value(i, I_small(0)) < 0)
-        fail("Negative values can't be converted to bytes: %k", (Text_t[1]){Int$value_as_text(i)});
+        fail("Negative values can't be converted to bytes: ", i);
     return (i.small != 0);
 }
 public PUREFUNC Byte_t Byte$from_int64(Int64_t i, bool truncate) {
     if unlikely (truncate && i != (Int64_t)(Byte_t)i)
-        fail("This value can't be converted to a byte without truncation: %ld", i);
+        fail("This value can't be converted to a byte without truncation: ", i);
     return (Byte_t)i;
 }
 public PUREFUNC Byte_t Byte$from_int32(Int32_t i, bool truncate) {
     if unlikely (truncate && i != (Int32_t)(Byte_t)i)
-        fail("This value can't be converted to a byte without truncation: %d", i);
+        fail("This value can't be converted to a byte without truncation: ", i);
     return (Byte_t)i;
 }
 public PUREFUNC Byte_t Byte$from_int16(Int16_t i, bool truncate) {
     if unlikely (truncate && i != (Int16_t)(Byte_t)i)
-        fail("This value can't be converted to a byte without truncation: %d", i);
+        fail("This value can't be converted to a byte without truncation: ", i);
     return (Byte_t)i;
 }
 

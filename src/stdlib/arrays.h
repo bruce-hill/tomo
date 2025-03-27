@@ -14,7 +14,7 @@
     const Array_t arr = arr_expr; int64_t index = index_expr; \
     int64_t off = index + (index < 0) * (arr.length + 1) - 1; \
     if (unlikely(off < 0 || off >= arr.length)) \
-        fail_source(__SOURCE_FILE__, start, end, "Invalid array index: %s (array has length %ld)\n", Text$as_c_string(Int64$as_text(&index, no, NULL)), arr.length); \
+        fail_source(__SOURCE_FILE__, start, end, "Invalid array index: ", index, " (array has length ", (int64_t)arr.length, ")\n"); \
     (item_type*)(arr.data + arr.stride * off);})
 #define Array_get_unchecked(type, x, i) *({ const Array_t arr = x; int64_t index = i; \
                                           int64_t off = index + (index < 0) * (arr.length + 1) - 1; \
@@ -23,7 +23,7 @@
     Array_t *arr = arr_expr; int64_t index = index_expr; \
     int64_t off = index + (index < 0) * (arr->length + 1) - 1; \
     if (unlikely(off < 0 || off >= arr->length)) \
-        fail_source(__SOURCE_FILE__, start, end, "Invalid array index: %s (array has length %ld)\n", Text$as_c_string(Int64$as_text(&index, no, NULL)), arr->length); \
+        fail_source(__SOURCE_FILE__, start, end, "Invalid array index: ", index, " (array has length ", (int64_t)arr->length, ")\n"); \
     if (arr->data_refcount > 0) \
         Array$compact(arr, sizeof(item_type)); \
     (item_type*)(arr->data + arr->stride * off); })

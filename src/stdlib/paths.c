@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <unistr.h>
 
+#include "print.h"
 #include "arrays.h"
 #include "enums.h"
 #include "files.h"
@@ -122,8 +123,7 @@ public Path_t Path$_concat(int n, Path_t items[n])
     ARRAY_INCREF(result.components);
     for (int i = 1; i < n; i++) {
         if (items[i].type.$tag != PATH_RELATIVE)
-            fail("Cannot concatenate an absolute or home-based path onto another path: (%s)\n",
-                 Path$as_c_string(items[i]));
+            fail("Cannot concatenate an absolute or home-based path onto another path: (", items[i], ")");
         Array$insert_all(&result.components, items[i].components, I(0), sizeof(Text_t));
     }
     clean_components(&result.components);
@@ -146,8 +146,7 @@ public Path_t Path$resolved(Path_t path, Path_t relative_to)
 public Path_t Path$relative_to(Path_t path, Path_t relative_to)
 {
     if (path.type.$tag != relative_to.type.$tag)
-        fail("Cannot create a path relative to a different path with a mismatching type: (%k) relative to (%k)",
-             (Text_t[1]){Path$as_text(&path, false, &Path$info)}, (Text_t[1]){Path$as_text(&relative_to, false, &Path$info)});
+        fail("Cannot create a path relative to a different path with a mismatching type: (", path, ") relative to (", relative_to, ")");
 
     Path_t result = {.type.$tag=PATH_RELATIVE};
     int64_t shared = 0;
@@ -274,13 +273,13 @@ static void _write(Path_t path, Array_t bytes, int mode, int permissions)
     const char *path_str = Path$as_c_string(path);
     int fd = open(path_str, mode, permissions);
     if (fd == -1)
-        fail("Could not write to file: %s\n%s", path_str, strerror(errno));
+        fail("Could not write to file: ", path_str, "\n", strerror(errno));
 
     if (bytes.stride != 1)
         Array$compact(&bytes, 1);
     ssize_t written = write(fd, bytes.data, (size_t)bytes.length);
     if (written != (ssize_t)bytes.length)
-        fail("Could not write to file: %s\n%s", path_str, strerror(errno));
+        fail("Could not write to file: ", path_str, "\n", strerror(errno));
     close(fd);
 }
 
@@ -328,7 +327,7 @@ public OptionalArray_t Path$read_bytes(Path_t path, OptionalInt_t count)
         content[sb.st_size] = '\0';
         close(fd);
         if (count.small && (int64_t)sb.st_size < target_count)
-            fail("Could not read %ld bytes from %k (only got %zu)", target_count, &path, sb.st_size);
+            fail("Could not read ", target_count, " bytes from ", path, " (only got ", sb.st_size, ")");
         int64_t len = count.small ? target_count : (int64_t)sb.st_size;
         return (Array_t){.data=content, .atomic=1, .stride=1, .length=len};
     } else {
@@ -358,7 +357,7 @@ public OptionalArray_t Path$read_bytes(Path_t path, OptionalInt_t count)
         }
         close(fd);
         if (count.small != 0 && (int64_t)len < target_count)
-            fail("Could not read %ld bytes from %k (only got %zu)", target_count, &path, len);
+            fail("Could not read ", target_count, " bytes from ", path, " (only got ", len, ")");
         return (Array_t){.data=content, .atomic=1, .stride=1, .length=len};
     }
 }
@@ -393,14 +392,14 @@ public void Path$set_owner(Path_t path, OptionalText_t owner, OptionalText_t gro
     uid_t owner_id = (uid_t)-1;
     if (owner.length >= 0) {
         struct passwd *pwd = getpwnam(Text$as_c_string(owner));
-        if (pwd == NULL) fail("Not a valid user: %k", &owner);
+        if (pwd == NULL) fail("Not a valid user: ", owner);
         owner_id = pwd->pw_uid;
     }
 
     gid_t group_id = (gid_t)-1;
     if (group.length >= 0) {
         struct group *grp = getgrnam(Text$as_c_string(group));
-        if (grp == NULL) fail("Not a valid group: %k", &group);
+        if (grp == NULL) fail("Not a valid group: ", group);
         group_id = grp->gr_gid;
     }
     const char *path_str = Path$as_c_string(path);
@@ -415,17 +414,16 @@ static int _remove_files(const char *path, const struct stat *sbuf, int type, st
     switch (type) {
     case FTW_F: case FTW_SL: case FTW_SLN:
         if (remove(path) < 0) {
-            fail("Could not remove file: %s (%s)", path, strerror(errno));
+            fail("Could not remove file: ", path, " (", strerror(errno), ")");
             return -1;
         }
         return 0;
     case FTW_DP:
         if (rmdir(path) != 0)
-            fail("Could not remove directory: %s (%s)", path, strerror(errno));
+            fail("Could not remove directory: ", path, " (", strerror(errno), ")");
         return 0;
     default:
-        printf("Type: %d\n", type);
-        fail("Could not remove path: %s (not a file or directory)", path, strerror(errno));
+        fail("Could not remove path: ", path, " (not a file or directory)");
         return -1;
     }
 }
@@ -437,19 +435,19 @@ public void Path$remove(Path_t path, bool ignore_missing)
     struct stat sb;
     if (lstat(path_str, &sb) != 0) {
         if (!ignore_missing)
-            fail("Could not remove file: %s (%s)", path_str, strerror(errno));
+            fail("Could not remove file: ", path_str, " (", strerror(errno), ")");
         return;
     }
 
     if ((sb.st_mode & S_IFMT) == S_IFREG || (sb.st_mode & S_IFMT) == S_IFLNK) {
         if (unlink(path_str) != 0 && !ignore_missing)
-            fail("Could not remove file: %s (%s)", path_str, strerror(errno));
+            fail("Could not remove file: ", path_str, " (", strerror(errno), ")");
     } else if ((sb.st_mode & S_IFMT) == S_IFDIR) {
         const int num_open_fd = 10;
         if (nftw(path_str, _remove_files, num_open_fd, FTW_DEPTH|FTW_MOUNT|FTW_PHYS) < 0)
             fail("Could not remove directory: %s (%s)", path_str, strerror(errno));
     } else {
-        fail("Could not remove path: %s (not a file or directory)", path_str, strerror(errno));
+        fail("Could not remove path: ", path_str, " (not a file or directory)");
     }
 }
 
@@ -459,7 +457,7 @@ public void Path$create_directory(Path_t path, int permissions)
     const char *c_path = Path$as_c_string(path);
     int status = mkdir(c_path, (mode_t)permissions);
     if (status != 0 && errno != EEXIST)
-        fail("Could not create directory: %s (%s)", c_path, strerror(errno));
+        fail("Could not create directory: ", c_path, " (", strerror(errno), ")");
 }
 
 static Array_t _filtered_children(Path_t path, bool include_hidden, mode_t filter)
@@ -471,7 +469,7 @@ static Array_t _filtered_children(Path_t path, bool include_hidden, mode_t filte
     size_t path_len = strlen(path_str);
     DIR *d = opendir(path_str);
     if (!d)
-        fail("Could not open directory: %k (%s)", &path, strerror(errno));
+        fail("Could not open directory: ", path, " (", strerror(errno), ")");
 
     if (path_str[path_len-1] == '/')
         --path_len;
@@ -516,13 +514,13 @@ public Path_t Path$unique_directory(Path_t path)
     path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
     size_t len = strlen(path_str);
-    if (len >= PATH_MAX) fail("Path is too long: %s", path_str);
+    if (len >= PATH_MAX) fail("Path is too long: ", path_str);
     char buf[PATH_MAX] = {};
     strcpy(buf, path_str);
     if (buf[len-1] == '/')
         buf[--len] = '\0';
     char *created = mkdtemp(buf);
-    if (!created) fail("Failed to create temporary directory: %s (%s)", path_str, strerror(errno));
+    if (!created) fail("Failed to create temporary directory: ", path_str, " (", strerror(errno), ")");
     return Path$from_str(created);
 }
 
@@ -531,7 +529,7 @@ public Path_t Path$write_unique_bytes(Path_t path, Array_t bytes)
     path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
     size_t len = strlen(path_str);
-    if (len >= PATH_MAX) fail("Path is too long: %s", path_str);
+    if (len >= PATH_MAX) fail("Path is too long: ", path_str);
     char buf[PATH_MAX] = {};
     strcpy(buf, path_str);
 
@@ -543,14 +541,14 @@ public Path_t Path$write_unique_bytes(Path_t path, Array_t bytes)
 
     int fd = mkstemps(buf, suffixlen);
     if (fd == -1)
-        fail("Could not write to unique file: %s\n%s", buf, strerror(errno));
+        fail("Could not write to unique file: ", buf, "\n", strerror(errno));
 
     if (bytes.stride != 1)
         Array$compact(&bytes, 1);
 
     ssize_t written = write(fd, bytes.data, (size_t)bytes.length);
     if (written != (ssize_t)bytes.length)
-        fail("Could not write to file: %s\n%s", buf, strerror(errno));
+        fail("Could not write to file: ", buf, "\n", strerror(errno));
     close(fd);
     return Path$from_str(buf);
 }
@@ -736,42 +734,36 @@ public PUREFUNC bool Path$equal_values(Path_t a, Path_t b)
     return Array$equal(&a.components, &b.components, Array$info(&Text$info));
 }
 
-public const char *Path$as_c_string(Path_t path)
+public int Path$print(FILE *f, Path_t path)
 {
     if (path.components.length == 0) {
-        if (path.type.$tag == PATH_ABSOLUTE) return "/";
-        else if (path.type.$tag == PATH_RELATIVE) return ".";
-        else if (path.type.$tag == PATH_HOME) return "~";
+        if (path.type.$tag == PATH_ABSOLUTE) return fputs("/", f);
+        else if (path.type.$tag == PATH_RELATIVE) return fputs(".", f);
+        else if (path.type.$tag == PATH_HOME) return fputs("~", f);
     }
 
-    size_t len = 0, capacity = 16;
-    char *buf = GC_MALLOC_ATOMIC(capacity);
+    int n = 0;
     if (path.type.$tag == PATH_ABSOLUTE) {
-        buf[len++] = '/';
+        n += fputc('/', f);
     } else if (path.type.$tag == PATH_HOME) {
-        buf[len++] = '~';
-        buf[len++] = '/';
+        n += fputs("~/", f);
     } else if (path.type.$tag == PATH_RELATIVE) {
-        if (!Text$equal_values(*(Text_t*)path.components.data, Text(".."))) {
-            buf[len++] = '.';
-            buf[len++] = '/';
-        }
+        if (!Text$equal_values(*(Text_t*)path.components.data, Text("..")))
+            n += fputs("./", f);
     }
 
     for (int64_t i = 0; i < path.components.length; i++) {
         Text_t *comp = (Text_t*)(path.components.data + i*path.components.stride);
-        const char *comp_str = Text$as_c_string(*comp);
-        size_t comp_len = strlen(comp_str);
-        if (len + comp_len + 1 > capacity) {
-            buf = GC_REALLOC(buf, (capacity += MIN(comp_len + 2, 16)));
-        }
-        memcpy(&buf[len], comp_str, comp_len);
-        len += comp_len;
+        n += Text$print(f, *comp);
         if (i + 1 < path.components.length)
-            buf[len++] = '/';
+            n += fputc('/', f);
     }
-    buf[len++] = '\0';
-    return buf;
+    return n;
+}
+
+public const char *Path$as_c_string(Path_t path)
+{
+    return String(path);
 }
 
 public Text_t Path$as_text(const void *obj, bool color, const TypeInfo_t *type)

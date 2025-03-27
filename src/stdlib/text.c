@@ -55,7 +55,6 @@
 #include <assert.h>
 #include <ctype.h>
 #include <gc.h>
-#include <printf.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -681,8 +680,7 @@ public PUREFUNC Text_t Text$cluster(Text_t text, Int_t index_int)
     if (index < 0) index = text.length + index + 1;
 
     if (index > text.length || index < 1)
-        fail("Invalid index: %ld is beyond the length of the text (length = %ld)",
-             Int64$from_int(index_int, false), text.length);
+        fail("Invalid index: ", index_int, " is beyond the length of the text (length = ", (int64_t)text.length, ")");
 
     while (text.tag == TEXT_CONCAT) {
         if (index <= text.left->length)
@@ -1104,24 +1102,6 @@ public Text_t Text$title(Text_t text, Text_t language)
     return ret;
 }
 
-public int printf_text_size(const struct printf_info *info, size_t n, int argtypes[n], int sizes[n])
-{
-    if (n < 1) return -1;
-    (void)info;
-    argtypes[0] = PA_POINTER;
-    sizes[0] = sizeof(Text_t);
-    return 1;
-}
-
-public int printf_text(FILE *stream, const struct printf_info *info, const void *const args[])
-{
-    Text_t *t = *(Text_t**)args[0];
-    if (info->alt)
-        return text_visualize(stream, *t, 0);
-    else
-        return Text$print(stream, *t);
-}
-
 static INLINE Text_t _quoted(Text_t text, bool colorize, char quote_char)
 {
     Text_t ret = colorize ? Text("\x1b[35m") : EMPTY_TEXT;
@@ -1273,13 +1253,14 @@ public Text_t Text$format(const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-
-    char buf[9];
-    int len = vsnprintf(buf, sizeof(buf), fmt, args);
-    char *str = GC_MALLOC_ATOMIC((size_t)(len+1));
-    vsnprintf(str, (size_t)(len+1), fmt, args);
-    Text_t ret = Text$from_str(str);
+    int len = vsnprintf(NULL, 0, fmt, args);
     va_end(args);
+
+    char *str = GC_MALLOC_ATOMIC((size_t)(len+1));
+    va_start(args, fmt);
+    vsnprintf(str, (size_t)(len+1), fmt, args);
+    va_end(args);
+    Text_t ret = Text$from_strn(str, (size_t)len);
     return ret;
 }
 

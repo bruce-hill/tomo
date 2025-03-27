@@ -3,7 +3,6 @@
 // The type representing text patterns for pattern matching.
 
 #include <stdbool.h>
-#include <printf.h>
 #include <stdint.h>
 
 #include "datatypes.h"
