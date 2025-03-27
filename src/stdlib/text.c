@@ -191,7 +191,7 @@ public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_le
 
     // Copy length-prefixed UTF32 codepoints into the arena and store where they live:
     ucs4_t *codepoint_copy = arena;
-    mempcpy(codepoint_copy, length_prefixed, sizeof(ucs4_t[1+utf32_len]));
+    memcpy(codepoint_copy, length_prefixed, sizeof(ucs4_t[1+utf32_len]));
     synthetic_graphemes[-grapheme_id-1].utf32_cluster = codepoint_copy;
     arena += sizeof(ucs4_t[1+utf32_len]);
 
@@ -405,7 +405,8 @@ static Text_t concat2_assuming_safe(Text_t a, Text_t b)
         ret.graphemes = GC_MALLOC_ATOMIC(sizeof(int32_t[ret.length]));
         int32_t *dest = (int32_t*)ret.graphemes;
         if (a.tag == TEXT_GRAPHEMES) {
-            dest = mempcpy(dest, a.graphemes, sizeof(int32_t[a.length]));
+            memcpy(dest, a.graphemes, sizeof(int32_t[a.length]));
+            dest += a.length;
         } else {
             for (int64_t i = 0; i < a.length; i++)
                 *(dest++) = (int32_t)a.ascii[i];
@@ -443,15 +444,19 @@ static Text_t concat2(Text_t a, Text_t b)
 
     ucs4_t codepoints[len];
     ucs4_t *dest = codepoints;
-    if (last_a < 0)
-        dest = mempcpy(dest, GRAPHEME_CODEPOINTS(last_a), sizeof(ucs4_t[NUM_GRAPHEME_CODEPOINTS(last_a)]));
-    else
+    if (last_a < 0) {
+        memcpy(dest, GRAPHEME_CODEPOINTS(last_a), sizeof(ucs4_t[NUM_GRAPHEME_CODEPOINTS(last_a)]));
+        dest += NUM_GRAPHEME_CODEPOINTS(last_a);
+    } else {
         *(dest++) = (ucs4_t)last_a;
+    }
 
-    if (first_b < 0)
-        dest = mempcpy(dest, GRAPHEME_CODEPOINTS(first_b), sizeof(ucs4_t[NUM_GRAPHEME_CODEPOINTS(first_b)]));
-    else
+    if (first_b < 0) {
+        memcpy(dest, GRAPHEME_CODEPOINTS(first_b), sizeof(ucs4_t[NUM_GRAPHEME_CODEPOINTS(first_b)]));
+        dest += NUM_GRAPHEME_CODEPOINTS(first_b);
+    } else {
         *(dest++) = (ucs4_t)first_b;
+    }
 
     // Do a normalization run for these two codepoints and see if it looks different.
     // Normalization should not exceed 3x in the input length (but if it does, it will be

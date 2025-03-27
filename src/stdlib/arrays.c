@@ -131,28 +131,37 @@ public void Array$insert_all(Array_t *arr, Array_t to_insert, Int_t int_index, i
         // Copy first chunk of `arr` if needed:
         if (index > 1) {
             if (arr->stride == padded_item_size) {
-                p = mempcpy(p, arr->data, (size_t)((index-1)*padded_item_size));
+                memcpy(p, arr->data, (size_t)((index-1)*padded_item_size));
+                p += (index-1)*padded_item_size;
             } else {
-                for (int64_t i = 0; i < index-1; i++)
-                    p = mempcpy(p, arr->data + arr->stride*i, (size_t)padded_item_size);
+                for (int64_t i = 0; i < index-1; i++) {
+                    memcpy(p, arr->data + arr->stride*i, (size_t)padded_item_size);
+                    p += padded_item_size;
+                }
             }
         }
 
         // Copy `to_insert`
         if (to_insert.stride == padded_item_size) {
-            p = mempcpy(p, to_insert.data, (size_t)(to_insert.length*padded_item_size));
+            memcpy(p, to_insert.data, (size_t)(to_insert.length*padded_item_size));
+            p += to_insert.length*padded_item_size;
         } else {
-            for (int64_t i = 0; i < index-1; i++)
-                p = mempcpy(p, to_insert.data + to_insert.stride*i, (size_t)padded_item_size);
+            for (int64_t i = 0; i < index-1; i++) {
+                memcpy(p, to_insert.data + to_insert.stride*i, (size_t)padded_item_size);
+                p += padded_item_size;
+            }
         }
 
         // Copy last chunk of `arr` if needed:
         if (index < arr->length + 1) {
             if (arr->stride == padded_item_size) {
-                p = mempcpy(p, arr->data + padded_item_size*(index-1), (size_t)((arr->length - index + 1)*padded_item_size));
+                memcpy(p, arr->data + padded_item_size*(index-1), (size_t)((arr->length - index + 1)*padded_item_size));
+                p += (arr->length - index + 1)*padded_item_size;
             } else {
-                for (int64_t i = index-1; i < arr->length-1; i++)
-                    p = mempcpy(p, arr->data + arr->stride*i, (size_t)padded_item_size);
+                for (int64_t i = index-1; i < arr->length-1; i++) {
+                    memcpy(p, arr->data + arr->stride*i, (size_t)padded_item_size);
+                    p += padded_item_size;
+                }
             }
         }
         arr->length = new_len;
