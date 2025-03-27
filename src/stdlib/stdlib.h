@@ -2,6 +2,7 @@
 
 // Built-in functions
 
+#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
