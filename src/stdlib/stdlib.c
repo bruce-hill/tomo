@@ -479,7 +479,7 @@ public void print_stack_trace(FILE *out, int start, int stop)
     char **strings = strings = backtrace_symbols(stack, size);
     for (int64_t i = start; i < size - stop; i++) {
         char *filename = strings[i];
-        char *paren = strchrnul(strings[i], '(');
+        char *paren = strings[i] + strcspn(strings[i], "(");
         char *addr_end = paren + 1 + strcspn(paren + 1, ")");
         ptrdiff_t offset = strtol(paren + 1, &addr_end, 16) - 1;
         const char *cmd = heap_strf("addr2line -e %.*s -is +0x%x", strcspn(filename, "("), filename, offset);

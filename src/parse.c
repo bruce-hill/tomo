@@ -382,6 +382,10 @@ const char *get_id(const char **inout) {
     return word;
 }
 
+static const char *eol(const char *str) {
+    return str + strcspn(str, "\r\n");
+}
+
 bool comment(const char **pos) {
     if ((*pos)[0] == '#') {
         *pos += strcspn(*pos, "\r\n");
@@ -1402,7 +1406,7 @@ PARSER(parse_text) {
                 // Multi-line split
                 continue;
             } else {
-                parser_err(ctx, pos, strchrnul(pos, '\n'), "This multi-line string should be either indented or have '..' at the front");
+                parser_err(ctx, pos, eol(pos), "This multi-line string should be either indented or have '..' at the front");
             }
         } else { // Plain character
             chunk = CORD_cat_char(chunk, *pos);
@@ -1790,7 +1794,7 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
 
         whitespace(&pos);
         if (get_line_number(ctx->file, pos) != starting_line && get_indent(ctx, pos) < starting_indent)
-            parser_err(ctx, pos, strchrnul(pos, '\n'), "I expected this line to be at least as indented than the line above it");
+            parser_err(ctx, pos, eol(pos), "I expected this line to be at least as indented than the line above it");
 
         ast_t *rhs = parse_infix_expr(ctx, pos, op_tightness[op] + 1);
         if (!rhs) break;
@@ -1824,7 +1828,7 @@ PARSER(parse_declaration) {
         if (optional(ctx, &pos, parse_use))
             parser_err(ctx, start, pos, "'use' statements are only allowed at the top level of a file");
         else
-            parser_err(ctx, pos, strchrnul(pos, '\n'), "This is not a valid expression");
+            parser_err(ctx, pos, eol(pos), "This is not a valid expression");
     }
     return NewAST(ctx->file, start, pos, Declare, .var=var, .value=val);
 }
@@ -1966,17 +1970,17 @@ PARSER(parse_block) {
             if (!stmt) {
                 const char *line_start = pos;
                 if (match_word(&pos, "struct"))
-                    parser_err(ctx, line_start, strchrnul(pos, '\n'), "Struct definitions are only allowed at the top level");
+                    parser_err(ctx, line_start, eol(pos), "Struct definitions are only allowed at the top level");
                 else if (match_word(&pos, "enum"))
-                    parser_err(ctx, line_start, strchrnul(pos, '\n'), "Enum definitions are only allowed at the top level");
+                    parser_err(ctx, line_start, eol(pos), "Enum definitions are only allowed at the top level");
                 else if (match_word(&pos, "func"))
-                    parser_err(ctx, line_start, strchrnul(pos, '\n'), "Function definitions are only allowed at the top level");
+                    parser_err(ctx, line_start, eol(pos), "Function definitions are only allowed at the top level");
                 else if (match_word(&pos, "use"))
-                    parser_err(ctx, line_start, strchrnul(pos, '\n'), "'use' statements are only allowed at the top level");
+                    parser_err(ctx, line_start, eol(pos), "'use' statements are only allowed at the top level");
 
                 spaces(&pos);
                 if (*pos && *pos != '\r' && *pos != '\n')
-                    parser_err(ctx, pos, strchrnul(pos, '\n'), "I couldn't parse this line");
+                    parser_err(ctx, pos, eol(pos), "I couldn't parse this line");
                 break;
             }
             statements = new(ast_list_t, .ast=stmt, .next=statements);
@@ -1985,7 +1989,7 @@ PARSER(parse_block) {
             // Guard against having two valid statements on the same line, separated by spaces (but no newlines):
             if (!memchr(stmt->end, '\n', (size_t)(pos - stmt->end))) {
                 if (*pos)
-                    parser_err(ctx, pos, strchrnul(pos, '\n'), "I don't know how to parse the rest of this line");
+                    parser_err(ctx, pos, eol(pos), "I don't know how to parse the rest of this line");
                 pos = stmt->end;
                 break;
             }
@@ -2028,8 +2032,8 @@ PARSER(parse_namespace) {
             //     break;
             // }
         } else {
-            if (get_indent(ctx, next) > indent && next < strchrnul(next, '\n'))
-                parser_err(ctx, next, strchrnul(next, '\n'), "I couldn't parse this namespace declaration");
+            if (get_indent(ctx, next) > indent && next < eol(next))
+                parser_err(ctx, next, eol(next), "I couldn't parse this namespace declaration");
             break;
         }
     }
@@ -2065,7 +2069,7 @@ PARSER(parse_file_body) {
     }
     whitespace(&pos);
     if (pos < ctx->file->text + ctx->file->len && *pos != '\0') {
-        parser_err(ctx, pos, strchrnul(pos, '\n'), "I expect all top-level statements to be declarations of some kind");
+        parser_err(ctx, pos, eol(pos), "I expect all top-level statements to be declarations of some kind");
     }
     REVERSE_LIST(statements);
     return NewAST(ctx->file, start, pos, Block, .statements=statements);

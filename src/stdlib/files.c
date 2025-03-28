@@ -70,7 +70,7 @@ public char *file_base_name(const char *path)
     const char *slash = strrchr(path, '/');
     if (slash) path = slash + 1;
     assert(!isdigit(*path));
-    const char *end = strchrnul(path, '.');
+    const char *end = path + strcspn(path, ".");
     size_t len = (size_t)(end - path);
     char *buf = GC_MALLOC_ATOMIC(len+1);
     strncpy(buf, path, len);
@@ -83,7 +83,7 @@ public char *file_base_id(const char *path)
     const char *slash = strrchr(path, '/');
     if (slash) path = slash + 1;
     assert(!isdigit(*path));
-    const char *end = strchrnul(path, '.');
+    const char *end = path + strcspn(path, ".");
     size_t len = (size_t)(end - path);
     char *buf = GC_MALLOC_ATOMIC(len+1);
     strncpy(buf, path, len);
@@ -307,7 +307,7 @@ public int highlight_error(file_t *file, const char *start, const char *end, con
 
         printed += fprintf(stderr, "\n");
 
-        const char *eol = strchrnul(line, '\n');
+        const char *eol = line + strcspn(line, "\r\n");
         if (print_carets && start >= line && start < eol && line <= start) {
             for (int num = 0; num < digits; num++)
                 printed += fputc(' ', stderr);
