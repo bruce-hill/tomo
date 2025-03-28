@@ -3985,7 +3985,6 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
     }
 
 
-    int num_args = 0;
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         type_t *opt_type = arg->type->tag == OptionalType ? arg->type : Type(OptionalType, .type=arg->type);
         code = CORD_all(code, compile_declaration(opt_type, CORD_all("_$", arg->name)));
@@ -3998,7 +3997,6 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
             code = CORD_all(code, " = ", compile_none(arg->type));
         }
         code = CORD_all(code, ";\n");
-        num_args += 1;
     }
 
     code = CORD_all(code, "tomo_parse_args(argc, argv, ", usage_code, ", ", help_code);
