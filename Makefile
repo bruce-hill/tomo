@@ -43,8 +43,8 @@ build/tomo: $(STDLIB_OBJS) $(COMPILER_OBJS)
 
 build/libtomo.so: $(STDLIB_OBJS)
 	@mkdir -p build
-	@echo $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) $(LDLIBS) -Wl,-soname,libtomo.so -shared -o $@
-	@$(CC) $^ $(CFLAGS) $(OSFLAGS) $(LDLIBS) -Wl,-soname,libtomo.so -shared -o $@
+	@echo $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) -Wl,-soname,libtomo.so -shared -o $@
+	@$(CC) $^ $(CFLAGS) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) -Wl,-soname,libtomo.so -shared -o $@
 
 tags:
 	ctags src/*.[ch] src/stdlib/*.[ch]
