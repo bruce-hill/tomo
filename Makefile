@@ -30,7 +30,7 @@ G=-ggdb
 O=-Og
 CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO)
 CFLAGS_PLACEHOLDER="$$(echo -e '\033[2m<flags...>\033[m')" 
-LDLIBS=-lgc -lcord -lm -lunistring -lgmp -ldl
+LDLIBS=-lgc -lcord -lm -lunistring -lgmp
 COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c))
 STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c))
 TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/*.tm))
@@ -44,8 +44,8 @@ build/tomo: $(STDLIB_OBJS) $(COMPILER_OBJS)
 
 build/libtomo.so: $(STDLIB_OBJS)
 	@mkdir -p build
-	@echo $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -ldl -Wl,-soname,libtomo.so -shared -o $@
-	@$(CC) $^ $(CFLAGS) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -ldl -Wl,-soname,libtomo.so -shared -o $@
+	@echo $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -Wl,-soname,libtomo.so -shared -o $@
+	@$(CC) $^ $(CFLAGS) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -Wl,-soname,libtomo.so -shared -o $@
 
 tags:
 	ctags src/*.[ch] src/stdlib/*.[ch]

@@ -43,9 +43,6 @@ static PUREFUNC repl_binding_t *get_repl_binding(env_t *env, const char *name)
 void repl(void)
 {
     env_t *env = global_env();
-    void *dl = dlopen("libtomo.so", RTLD_LAZY);
-    if (!dl) print_err("I couldn't find libtomo.so in your library paths");
-
     size_t buf_size = 0;
     char *line = NULL;
     ssize_t len = 0;
