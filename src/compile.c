@@ -1754,10 +1754,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
     case Extern: return CORD_EMPTY;
     case InlineCCode: {
         auto inline_code = Match(ast, InlineCCode);
-        if (inline_code->type)
-            return CORD_all("({ ", inline_code->code, "; })");
-        else
-            return inline_code->code;
+        return inline_code->code;
     }
     case Use: {
         auto use = Match(ast, Use);
@@ -3832,7 +3829,7 @@ CORD compile(env_t *env, ast_t *ast)
         if (t->tag == VoidType)
             return CORD_all("{\n", Match(ast, InlineCCode)->code, "\n}");
         else
-            return CORD_all("({ ", Match(ast, InlineCCode)->code, "; })");
+            return Match(ast, InlineCCode)->code;
     }
     case Use: code_err(ast, "Compiling 'use' as expression!");
     case Defer: code_err(ast, "Compiling 'defer' as expression!");

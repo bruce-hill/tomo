@@ -2401,6 +2401,8 @@ PARSER(parse_inline_c) {
         parser_err(ctx, start, start+1, "I couldn't find the closing '}' for this inline C code");
 
     CORD c_code = GC_strndup(c_code_start, (size_t)((pos-1) - c_code_start));
+    if (type)
+        c_code = CORD_all("({ ", c_code, "; })");
     return NewAST(ctx->file, start, pos, InlineCCode, .code=c_code, .type_ast=type);
 }
 
