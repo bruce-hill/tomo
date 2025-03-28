@@ -88,7 +88,7 @@ tags:
 
 test/results/%.tm.testresult: test/%.tm build/tomo
 	@mkdir -p test/results
-	@printf '\x1b[33;1;4m%s\x1b[m\n' $<
+	@printf '\033[33;1;4m%s\033[m\n' $<
 	@set -o pipefail; \
 	if ! VERBOSE=0 COLOR=1 LC_ALL=C CC=gcc ./build/tomo -O 1 $< 2>&1 | tee $@; then \
 		rm -f $@; \
@@ -96,7 +96,7 @@ test/results/%.tm.testresult: test/%.tm build/tomo
 	fi
 
 test: $(TESTS)
-	@printf '\x1b[32;7m ALL TESTS PASSED! \x1b[m\n'
+	@printf '\033[32;7m ALL TESTS PASSED! \033[m\n'
 
 clean:
 	rm -rf build/* $(COMPILER_OBJS) $(STDLIB_OBJS) test/*.tm.testresult test/.build examples/.build examples/*/.build
