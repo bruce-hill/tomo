@@ -1,6 +1,6 @@
 PREFIX=$(HOME)/.local
 VERSION=0.0.1
-CC=gcc
+CC=cc
 CCONFIG=-std=c2x -Werror -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -I. \
 		-fno-signed-zeros -fno-finite-math-only -fno-signaling-nans -fno-trapping-math \
 		-fsanitize=signed-integer-overflow -fno-sanitize-recover -fvisibility=hidden -fdollars-in-identifiers \
