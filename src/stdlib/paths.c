@@ -226,21 +226,33 @@ public bool Path$can_read(Path_t path)
 {
     path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
+#ifdef _GNU_SOURCE
     return (euidaccess(path_str, R_OK) == 0);
+#else
+    return (access(path_str, R_OK) == 0);
+#endif
 }
 
 public bool Path$can_write(Path_t path)
 {
     path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
+#ifdef _GNU_SOURCE
     return (euidaccess(path_str, W_OK) == 0);
+#else
+    return (access(path_str, W_OK) == 0);
+#endif
 }
 
 public bool Path$can_execute(Path_t path)
 {
     path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
+#ifdef _GNU_SOURCE
     return (euidaccess(path_str, X_OK) == 0);
+#else
+    return (access(path_str, X_OK) == 0);
+#endif
 }
 
 public OptionalMoment_t Path$modified(Path_t path, bool follow_symlinks)
