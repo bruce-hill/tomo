@@ -43,15 +43,13 @@ static bool Bool$is_none(const void *b, const TypeInfo_t*)
     return *(OptionalBool_t*)b == NONE_BOOL;
 }
 
-static const metamethods_t Bool$metamethods = {
-    .as_text=Bool$as_text,
-    .is_none=Bool$is_none,
-};
-
 public const TypeInfo_t Bool$info = {
     .size=sizeof(bool),
     .align=__alignof__(bool),
-    .metamethods=Bool$metamethods,
+    .metamethods={
+        .as_text=Bool$as_text,
+        .is_none=Bool$is_none,
+    },
 };
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
