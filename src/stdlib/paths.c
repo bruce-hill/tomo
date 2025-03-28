@@ -528,7 +528,7 @@ public Path_t Path$unique_directory(Path_t path)
     size_t len = strlen(path_str);
     if (len >= PATH_MAX) fail("Path is too long: ", path_str);
     char buf[PATH_MAX] = {};
-    strcpy(buf, path_str);
+    strlcpy(buf, path_str, sizeof(buf));
     if (buf[len-1] == '/')
         buf[--len] = '\0';
     char *created = mkdtemp(buf);
@@ -543,7 +543,7 @@ public Path_t Path$write_unique_bytes(Path_t path, Array_t bytes)
     size_t len = strlen(path_str);
     if (len >= PATH_MAX) fail("Path is too long: ", path_str);
     char buf[PATH_MAX] = {};
-    strcpy(buf, path_str);
+    strlcpy(buf, path_str, sizeof(buf));
 
     // Count the number of trailing characters leading up to the last "X"
     // (e.g. "foo_XXXXXX.tmp" would yield suffixlen = 4)
