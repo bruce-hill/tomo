@@ -701,37 +701,39 @@ CORD optional_into_nonnone(type_t *t, CORD value)
 CORD check_none(type_t *t, CORD value)
 {
     t = Match(t, OptionalType)->type;
+    // NOTE: these use statement expressions ({...;}) because some compilers
+    // complain about excessive parens around equality comparisons
     if (t->tag == PointerType || t->tag == FunctionType || t->tag == CStringType
         || t == THREAD_TYPE)
-        return CORD_all("(", value, " == NULL)");
+        return CORD_all("({", value, " == NULL;})");
     else if (t == MATCH_TYPE)
-        return CORD_all("((", value, ").index.small == 0)");
+        return CORD_all("({(", value, ").index.small == 0;})");
     else if (t == PATH_TYPE)
-        return CORD_all("((", value, ").type.$tag == PATH_NONE)");
+        return CORD_all("({(", value, ").type.$tag == PATH_NONE;})");
     else if (t == PATH_TYPE_TYPE)
-        return CORD_all("((", value, ").$tag == PATH_NONE)");
+        return CORD_all("({(", value, ").$tag == PATH_NONE;})");
     else if (t->tag == BigIntType)
-        return CORD_all("((", value, ").small == 0)");
+        return CORD_all("({(", value, ").small == 0;})");
     else if (t->tag == ClosureType)
-        return CORD_all("((", value, ").fn == NULL)");
+        return CORD_all("({(", value, ").fn == NULL;})");
     else if (t->tag == NumType)
         return CORD_all("isnan(", value, ")");
     else if (t->tag == ArrayType)
-        return CORD_all("((", value, ").length < 0)");
+        return CORD_all("({(", value, ").length < 0;})");
     else if (t->tag == TableType || t->tag == SetType)
-        return CORD_all("((", value, ").entries.length < 0)");
+        return CORD_all("({(", value, ").entries.length < 0;})");
     else if (t->tag == BoolType)
-        return CORD_all("((", value, ") == NONE_BOOL)");
+        return CORD_all("({(", value, ") == NONE_BOOL;})");
     else if (t->tag == TextType)
-        return CORD_all("((", value, ").length < 0)");
+        return CORD_all("({(", value, ").length < 0;})");
     else if (t->tag == IntType || t->tag == ByteType || t->tag == StructType)
         return CORD_all("(", value, ").is_none");
     else if (t->tag == EnumType)
-        return CORD_all("((", value, ").$tag == 0)");
+        return CORD_all("({(", value, ").$tag == 0;})");
     else if (t->tag == MomentType)
-        return CORD_all("((", value, ").tv_usec < 0)");
+        return CORD_all("({(", value, ").tv_usec < 0;})");
     else if (t->tag == MutexedType)
-        return CORD_all("(", value, " == NULL)");
+        return CORD_all("({", value, " == NULL;})");
     print_err("Optional check not implemented for: ", type_to_str(t));
 }
 
