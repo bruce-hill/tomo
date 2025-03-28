@@ -1,12 +1,12 @@
 PREFIX=$(HOME)/.local
 VERSION=0.0.1
 CC=cc
-CCONFIG=-std=c2x -Werror -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -I. \
+CCONFIG=-std=c2x -Werror -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -I/usr/local/include \
 		-fno-signed-zeros -fno-finite-math-only -fno-signaling-nans -fno-trapping-math \
 		-fsanitize=signed-integer-overflow -fno-sanitize-recover -fvisibility=hidden -fdollars-in-identifiers \
 		-DGC_THREADS
 LTO=-flto=auto -fno-fat-lto-objects -Wl,-flto 
-LDFLAGS=
+LDFLAGS=-L/usr/local/lib
 # MAKEFLAGS := --jobs=$(shell nproc) --output-sync=target
 CWARN=-Wall -Wextra -Wno-format -Wshadow \
 	  -Wno-pedantic \
@@ -43,8 +43,8 @@ build/tomo: $(STDLIB_OBJS) $(COMPILER_OBJS)
 
 build/libtomo.so: $(STDLIB_OBJS)
 	@mkdir -p build
-	@echo $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -Wl,-soname,libtomo.so -shared -o $@
-	@$(CC) $^ $(CFLAGS) $(OSFLAGS) -lgc -lcord -lm -lunistring -lgmp -Wl,-soname,libtomo.so -shared -o $@
+	@echo $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) $(LDLIBS) -Wl,-soname,libtomo.so -shared -o $@
+	@$(CC) $^ $(CFLAGS) $(OSFLAGS) $(LDLIBS) -Wl,-soname,libtomo.so -shared -o $@
 
 tags:
 	ctags src/*.[ch] src/stdlib/*.[ch]
