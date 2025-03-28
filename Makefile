@@ -11,7 +11,7 @@ CWARN=-Wall -Wextra -Wno-format -Wshadow \
 	  -Wno-pedantic \
 	  -Wno-pointer-arith \
 	  -Wtype-limits -Wunused-result -Wnull-dereference \
-	  -Walloca -Wcast-align -Wcast-align=strict \
+	  -Walloca -Wcast-align \
 	  -Wdangling-else -Wdate-time -Wdisabled-optimization -Wdouble-promotion \
 	  -Wexpansion-to-defined -Wno-float-equal \
 	  -Wframe-address -Winline -Winvalid-pch \
@@ -28,7 +28,7 @@ ifeq ($(shell $(CC) -v 2>&1 | grep -c "gcc version"), 1)
 	CWARN += -Werror -Wsign-conversion -Walloc-zero -Wduplicated-branches -Wduplicated-cond -Wjump-misses-init \
 			 -Wlogical-op -Wpacked-not-aligned -Wshadow=compatible-local -Wshadow=global -Wshadow=local \
 			 -Wsuggest-attribute=const -Wsuggest-attribute=noreturn -Wsuggest-attribute=pure \
-			 -Wsync-nand -Wtrampolines -Wvector-operation-performance
+			 -Wsync-nand -Wtrampolines -Wvector-operation-performance -Wcast-align=strict
 	CCONFIG += -fsanitize=signed-integer-overflow -fno-sanitize-recover -fno-signaling-nans
 else
 	CWARN += -Wno-missing-field-initializers
