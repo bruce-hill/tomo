@@ -106,9 +106,6 @@ int main(int argc, char *argv[])
 
 #ifdef __OpenBSD__
     ldlibs = Texts(ldlibs, Text(" -lexecinfo -lpthread"));
-#else
-    cflags = Texts(cflags, Text(" -fsanitize=signed-integer-overflow -fno-sanitize-recover"
-                                " -fno-signaling-nans -fno-trapping-math"));
 #endif
 
     USE_COLOR = getenv("COLOR") ? strcmp(getenv("COLOR"), "1") == 0 : isatty(STDOUT_FILENO);
@@ -170,6 +167,12 @@ int main(int argc, char *argv[])
         {"force-rebuild", false, &Bool$info, &clean_build},
         {"f", false, &Bool$info, &clean_build},
     );
+
+    bool is_gcc = (system(String(cc, " -v 2>&1 | grep 'gcc version' >/dev/null")) == 0);
+    if (is_gcc) {
+        cflags = Texts(cflags, Text(" -fsanitize=signed-integer-overflow -fno-sanitize-recover"
+                                    " -fno-signaling-nans -fno-trapping-math"));
+    }
 
     if (show_codegen.length > 0 && Text$equal_values(show_codegen, Text("pretty")))
         show_codegen = Text("sed '/^#line/d;/^$/d' | indent -o /dev/stdout | bat -l c -P");
