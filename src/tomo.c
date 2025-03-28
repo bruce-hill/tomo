@@ -68,7 +68,7 @@ static OptionalText_t
             ldlibs = Text("-lgc -lgmp -lm -ltomo"),
             ldflags = Text("-Wl,-rpath='$ORIGIN',-rpath=$HOME/.local/share/tomo/lib,-rpath=$HOME/.local/lib -L$HOME/.local/lib -L$HOME/.local/share/tomo/lib"),
             optimization = Text("2"),
-            cc = Text("gcc");
+            cc = Text("cc");
 
 static void transpile_header(env_t *base_env, Path_t path);
 static void transpile_code(env_t *base_env, Path_t path);
