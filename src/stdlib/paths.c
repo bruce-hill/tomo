@@ -339,7 +339,7 @@ public OptionalArray_t Path$read_bytes(Path_t path, OptionalInt_t count)
         content[sb.st_size] = '\0';
         close(fd);
         if (count.small && (int64_t)sb.st_size < target_count)
-            fail("Could not read ", target_count, " bytes from ", path, " (only got ", sb.st_size, ")");
+            fail("Could not read ", target_count, " bytes from ", path, " (only got ", (uint64_t)sb.st_size, ")");
         int64_t len = count.small ? target_count : (int64_t)sb.st_size;
         return (Array_t){.data=content, .atomic=1, .stride=1, .length=len};
     } else {
@@ -369,7 +369,7 @@ public OptionalArray_t Path$read_bytes(Path_t path, OptionalInt_t count)
         }
         close(fd);
         if (count.small != 0 && (int64_t)len < target_count)
-            fail("Could not read ", target_count, " bytes from ", path, " (only got ", len, ")");
+            fail("Could not read ", target_count, " bytes from ", path, " (only got ", (uint64_t)len, ")");
         return (Array_t){.data=content, .atomic=1, .stride=1, .length=len};
     }
 }
