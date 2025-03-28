@@ -36,8 +36,10 @@ MACROLIKE CONSTFUNC double Num$clamped(double x, double low, double high) {
     return (x <= low) ? low : (x >= high ? high : x);
 }
 MACROLIKE CONSTFUNC double Num$from_num32(Num32_t n) { return (double)n; }
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
 MACROLIKE CONSTFUNC double Num$from_int(Int_t i, bool truncate) {
     if likely (i.small & 0x1) {
         double ret = (double)(i.small >> 2);
@@ -55,7 +57,9 @@ MACROLIKE CONSTFUNC double Num$from_int(Int_t i, bool truncate) {
         return ret;
     }
 }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 MACROLIKE CONSTFUNC double Num$from_int64(Int64_t i, bool truncate) {
     double n = (double)i;
     if unlikely (!truncate && (Int64_t)n != i)
@@ -88,8 +92,10 @@ MACROLIKE CONSTFUNC float Num32$clamped(float x, float low, float high) {
     return (x <= low) ? low : (x >= high ? high : x);
 }
 MACROLIKE CONSTFUNC float Num32$from_num(Num_t n) { return (float)n; }
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
 MACROLIKE CONSTFUNC float Num32$from_int(Int_t i, bool truncate) {
     if likely (i.small & 0x1) {
         float ret = (float)(i.small >> 2);
@@ -107,7 +113,9 @@ MACROLIKE CONSTFUNC float Num32$from_int(Int_t i, bool truncate) {
         return ret;
     }
 }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 MACROLIKE CONSTFUNC float Num32$from_int64(Int64_t i, bool truncate) {
     float n = (float)i;
     if unlikely (!truncate && (Int64_t)n != i)

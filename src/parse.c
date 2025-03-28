@@ -231,8 +231,10 @@ static PARSER(parse_deserialize);
 //
 // Convert an escape sequence like \n to a string
 //
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
+#endif
 static const char *unescape(parse_ctx_t *ctx, const char **out) {
     const char **endpos = out;
     const char *escape = *out;
@@ -292,7 +294,9 @@ static const char *unescape(parse_ctx_t *ctx, const char **out) {
         return GC_strndup(escape+1, 1);
     }
 }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 // Indent is in number of spaces (assuming that \t is 4 spaces)
 PUREFUNC static INLINE int64_t get_indent(parse_ctx_t *ctx, const char *pos)

@@ -49,13 +49,17 @@ public uint64_t TOMO_HASH_KEY[2] = {23, 42}; // Randomized in tomo_init()
 PUREFUNC public uint64_t siphash24(const uint8_t *src, size_t src_sz) {
     siphash sh;
     if ((uint64_t)src % __alignof__(uint64_t) == 0) {
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
+#endif
         const uint64_t *in = (uint64_t*)src;
         /* Find largest src_sz evenly divisible by 8 bytes. */
         const ptrdiff_t src_sz_nearest_8bits = ((ptrdiff_t)src_sz >> 3) << 3;
         const uint64_t *goal  = (uint64_t*)(src + src_sz_nearest_8bits);
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
         siphashinit(&sh, src_sz);
         src_sz -= (size_t)src_sz_nearest_8bits;
         while (in < goal) {

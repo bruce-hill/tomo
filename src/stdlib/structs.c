@@ -14,8 +14,10 @@
 #include "text.h"
 #include "util.h"
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
+#endif
 PUREFUNC public uint64_t Struct$hash(const void *obj, const TypeInfo_t *type)
 {
     if (type->StructInfo.num_fields == 0)
@@ -50,7 +52,9 @@ PUREFUNC public uint64_t Struct$hash(const void *obj, const TypeInfo_t *type)
     }
     return siphash24((void*)field_hashes, sizeof(field_hashes));
 }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 PUREFUNC public uint64_t PackedData$hash(const void *obj, const TypeInfo_t *type)
 {

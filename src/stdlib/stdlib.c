@@ -231,8 +231,10 @@ static Table_t parse_table(const TypeInfo_t *table, int n, char *args[])
     return Table$from_entries(entries, table);
 }
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
+#endif
 public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, int spec_len, cli_arg_t spec[spec_len])
 {
     bool populated_args[spec_len];
@@ -442,7 +444,9 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
         }
     }
 }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 static void print_stack_line(FILE *out, OptionalText_t fn_name, const char *filename, int64_t line_num)
 {

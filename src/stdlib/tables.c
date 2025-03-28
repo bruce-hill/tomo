@@ -215,8 +215,10 @@ static void hashmap_resize_buckets(Table_t *t, uint32_t new_capacity, const Type
 }
 
 // Return address of value
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
+#endif
 public void *Table$reserve(Table_t *t, const void *key, const void *value, const TypeInfo_t *type)
 {
     assert(type->tag == TableInfo);
@@ -278,7 +280,9 @@ public void *Table$reserve(Table_t *t, const void *key, const void *value, const
     Table$set_bucket(t, entry, entry_index, type);
     return entry + value_offset(type);
 }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 public void Table$set(Table_t *t, const void *key, const void *value, const TypeInfo_t *type)
 {
@@ -768,8 +772,10 @@ public void Table$serialize(const void *obj, FILE *out, Table_t *pointers, const
     Optional$serialize(&t->fallback, out, pointers, Optional$info(sizeof(void*), __alignof__(void*), Pointer$info("&", type)));
 }
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
+#endif
 public void Table$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type)
 {
     int64_t len;
@@ -788,6 +794,8 @@ public void Table$deserialize(FILE *in, void *outval, Array_t *pointers, const T
 
     *(Table_t*)outval = t;
 }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1

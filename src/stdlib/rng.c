@@ -24,7 +24,12 @@ struct RNGState_t {
     uint8_t random_bytes[1024];
 };
 
+#ifdef __TINYC__
+// TinyCC doesn't implement _Thread_local
 public _Thread_local RNG_t default_rng = (struct RNGState_t[1]){};
+#else
+public RNG_t default_rng = (struct RNGState_t[1]){};
+#endif
 
 PUREFUNC static Text_t RNG$as_text(const void *rng, bool colorize, const TypeInfo_t*)
 {

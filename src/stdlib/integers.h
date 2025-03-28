@@ -277,8 +277,10 @@ MACROLIKE PUREFUNC bool Int$is_negative(Int_t x) {
 // Constructors/conversion functions:
 
 // Int constructors:
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
 MACROLIKE PUREFUNC Int_t Int$from_num(double n, bool truncate) {
     mpz_t result;
     mpz_init_set_d(result, n);
@@ -425,6 +427,8 @@ MACROLIKE PUREFUNC Int8_t Int8$from_int16(Int16_t i16, bool truncate) {
         fail("Integer is too big to fit in a 8-bit integer: ", i16);
     return i8;
 }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

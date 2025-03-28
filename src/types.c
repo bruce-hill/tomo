@@ -487,8 +487,10 @@ PUREFUNC size_t type_size(type_t *t)
     if (t == THREAD_TYPE) return sizeof(pthread_t*);
     if (t == PATH_TYPE) return sizeof(Path_t);
     if (t == PATH_TYPE_TYPE) return sizeof(PathType_t);
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-default"
+#endif
     switch (t->tag) {
     case UnknownType: case AbortType: case ReturnType: case VoidType: return 0;
     case MemoryType: errx(1, "Memory has undefined type size");
@@ -567,7 +569,9 @@ PUREFUNC size_t type_size(type_t *t)
     case TypeInfoType: return sizeof(TypeInfo_t);
     case ModuleType: return 0;
     }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
     errx(1, "This should not be reachable");
 }
 
@@ -576,8 +580,10 @@ PUREFUNC size_t type_align(type_t *t)
     if (t == THREAD_TYPE) return __alignof__(pthread_t*);
     if (t == PATH_TYPE) return __alignof__(Path_t);
     if (t == PATH_TYPE_TYPE) return __alignof__(PathType_t);
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-default"
+#endif
     switch (t->tag) {
     case UnknownType: case AbortType: case ReturnType: case VoidType: return 0;
     case MemoryType: errx(1, "Memory has undefined type alignment");
@@ -642,7 +648,9 @@ PUREFUNC size_t type_align(type_t *t)
     case TypeInfoType: return __alignof__(TypeInfo_t);
     case ModuleType: return 0;
     }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
     errx(1, "This should not be reachable");
 }
 

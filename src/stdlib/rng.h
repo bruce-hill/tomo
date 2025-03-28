@@ -26,6 +26,11 @@ Num_t RNG$num(RNG_t rng, Num_t min, Num_t max);
 Num32_t RNG$num32(RNG_t rng, Num32_t min, Num32_t max);
 
 extern const TypeInfo_t RNG$info;
+// TinyCC doesn't implement _Thread_local
+#ifdef __TINYC__
+extern RNG_t default_rng;
+#else
 extern _Thread_local RNG_t default_rng;
+#endif
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

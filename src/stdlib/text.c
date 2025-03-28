@@ -134,8 +134,10 @@ static const TypeInfo_t GraphemeClusterInfo = {
     },
 };
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
+#endif
 public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_len)
 {
     ucs4_t length_prefixed[1+utf32_len];
@@ -224,7 +226,9 @@ public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_le
     last_grapheme = grapheme_id;
     return grapheme_id;
 }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 int text_visualize(FILE *stream, Text_t t, int depth)
 {

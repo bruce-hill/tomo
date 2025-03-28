@@ -82,8 +82,10 @@ typedef struct {
     bool h:1, c:1, o:1;
 } staleness_t;
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
+#endif
 int main(int argc, char *argv[])
 {
     // Get the file modification time of the compiler, so we
@@ -251,7 +253,9 @@ int main(int argc, char *argv[])
     }
     return 0;
 }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 Text_t escape_lib_name(Text_t lib_name)
 {

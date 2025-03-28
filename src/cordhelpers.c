@@ -20,10 +20,14 @@ public CORD CORD_quoted(CORD str)
 {
     CORD quoted = "\"";
     CORD_pos i;
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
     CORD_FOR(i, str) {
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
         char c = CORD_pos_fetch(i);
         switch (c) {
         case '\a': quoted = CORD_cat(quoted, "\\a"); break;

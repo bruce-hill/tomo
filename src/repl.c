@@ -332,8 +332,10 @@ void run(env_t *env, ast_t *ast)
     }
 }
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
+#endif
 void eval(env_t *env, ast_t *ast, void *dest)
 {
     type_t *t = get_type(env, ast);
@@ -542,6 +544,8 @@ void eval(env_t *env, ast_t *ast, void *dest)
         print_err("Eval not implemented for ", ast_to_str(ast));
     }
 }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
