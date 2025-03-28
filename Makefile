@@ -28,7 +28,7 @@ EXTRA=
 G=-ggdb
 O=-Og
 CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO)
-CFLAGS_PLACEHOLDER="$$(echo -e '\033[2m<flags...>\033[m')" 
+CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
 LDLIBS=-lgc -lcord -lm -lunistring -lgmp
 COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c))
 STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c))
@@ -66,7 +66,7 @@ test/results/%.tm.testresult: test/%.tm build/tomo
 	fi
 
 test: $(TESTS)
-	@echo -e '\x1b[32;7m ALL TESTS PASSED! \x1b[m'
+	@printf '\x1b[32;7m ALL TESTS PASSED! \x1b[m\n'
 
 clean:
 	rm -rf build/* $(COMPILER_OBJS) $(STDLIB_OBJS) test/*.tm.testresult test/.build examples/.build examples/*/.build
