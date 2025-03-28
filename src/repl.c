@@ -232,9 +232,6 @@ void run(env_t *env, ast_t *ast)
     }
     case Assign: {
         auto assign = Match(ast, Assign);
-        int64_t n = 0;
-        for (ast_list_t *t = assign->targets; t; t = t->next)
-            ++n;
         for (ast_list_t *val = assign->values, *target = assign->targets; val && target; val = val->next, target = target->next) {
             type_t *t_target = get_type(env, target->ast);
             type_t *t_val = get_type(env, val->ast);
