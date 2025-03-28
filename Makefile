@@ -50,8 +50,10 @@ ifeq ($(OS),OpenBSD)
 endif
 
 ifeq ($(OS),Darwin)
-    LIBTOMO_FLAGS += -Wl,-install_name,libtomo.so
+    LIB_FILE=libtomo.dylib
+    LIBTOMO_FLAGS += -Wl,-install_name,@rpath/libtomo.dylib
 else
+    LIB_FILE=libtomo.so
     LIBTOMO_FLAGS += -Wl,-soname,libtomo.so
 endif
 
@@ -59,14 +61,14 @@ COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c))
 STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c))
 TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/*.tm))
 
-all: build/libtomo.so build/tomo
+all: build/$(LIB_FILE) build/tomo
 
 build/tomo: $(STDLIB_OBJS) $(COMPILER_OBJS)
 	@mkdir -p build
 	@echo $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $^ $(LDLIBS) -o $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-build/libtomo.so: $(STDLIB_OBJS)
+build/$(LIB_FILE): $(STDLIB_OBJS)
 	@mkdir -p build
 	@echo $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
 	@$(CC) $^ $(CFLAGS) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
@@ -118,7 +120,7 @@ check-gcc:
 		exit 1; \
 	fi
 
-install: build/tomo build/libtomo.so
+install: build/tomo build/$(LIB_FILE)
 	@if ! echo "$$PATH" | tr ':' '\n' | grep -qx "$(PREFIX)/bin"; then \
 		printf "\033[31;1mError: '$(PREFIX)' is not in your \$$PATH variable!\033[m\n" >&2; \
 		printf "\033[31;1mSpecify a different prefix with 'make PREFIX=... install'\033[m\n" >&2; \
@@ -128,13 +130,13 @@ install: build/tomo build/libtomo.so
 	fi
 	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
 	cp -v src/stdlib/*.h "$(PREFIX)/include/tomo/"
-	cp -v build/libtomo.so "$(PREFIX)/lib/"
+	cp -v build/$(LIB_FILE) "$(PREFIX)/lib/"
 	rm -f "$(PREFIX)/bin/tomo"
 	cp -v build/tomo "$(PREFIX)/bin/"
 	cp -v docs/tomo.1 "$(PREFIX)/man/man1/"
 
 uninstall:
-	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/include/tomo" "$(PREFIX)/lib/libtomo.so" "$(PREFIX)/share/tomo"; \
+	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/include/tomo" "$(PREFIX)/lib/$(LIB_FILE) "$(PREFIX)/share/tomo"; \
 
 .SUFFIXES:
 .PHONY: all clean install uninstall test tags examples deps check-gcc
