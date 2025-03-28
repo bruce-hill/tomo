@@ -1,12 +1,13 @@
 PREFIX=$(HOME)/.local
 VERSION=0.0.1
 CC=cc
-CCONFIG=-std=c2x -fPIC -I/usr/local/include \
+CCONFIG=-std=c2x -fPIC \
 		-fno-signed-zeros -fno-finite-math-only -fno-trapping-math \
 		-fvisibility=hidden -fdollars-in-identifiers \
 		-DGC_THREADS
 LTO=
 LDFLAGS=-L/usr/local/lib
+INCLUDE_DIRS=-I/usr/local/include
 CWARN=-Wall -Wextra -Wno-format -Wshadow \
 	  -Wno-pedantic \
 	  -Wno-pointer-arith \
@@ -40,21 +41,23 @@ OSFLAGS != case $(OS) in *BSD|Darwin) echo '-D_BSD_SOURCE';; Linux) echo '-D_GNU
 EXTRA=
 G=-ggdb
 O=-Og
-CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO)
+CFLAGS=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO)
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
 LDLIBS=-lgc -lcord -lm -lunistring -lgmp
 LIBTOMO_FLAGS=-shared
 
 ifeq ($(OS),OpenBSD)
-    LDLIBS += -lpthread -lexecinfo
+	LDLIBS += -lpthread -lexecinfo
 endif
 
 ifeq ($(OS),Darwin)
-    LIB_FILE=libtomo.dylib
-    LIBTOMO_FLAGS += -Wl,-install_name,@rpath/libtomo.dylib
+	INCLUDE_DIRS += -I/opt/homebrew/include
+	LDFLAGS += -L/opt/homebrew/lib
+	LIB_FILE=libtomo.dylib
+	LIBTOMO_FLAGS += -Wl,-install_name,@rpath/libtomo.dylib
 else
-    LIB_FILE=libtomo.so
-    LIBTOMO_FLAGS += -Wl,-soname,libtomo.so
+	LIB_FILE=libtomo.so
+	LIBTOMO_FLAGS += -Wl,-soname,libtomo.so
 endif
 
 COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c))
