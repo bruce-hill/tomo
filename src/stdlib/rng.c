@@ -72,7 +72,11 @@ static void rekey(RNG_t rng)
     // Immediately reinitialize for backtracking resistance
     chacha_keysetup(&rng->chacha, rng->random_bytes, KEYSZ/8);
     chacha_ivsetup(&rng->chacha, rng->random_bytes + KEYSZ);
+#ifdef __APPLE__
+    bzero(rng->random_bytes, KEYSZ + IVSZ);
+#else
     explicit_bzero(rng->random_bytes, KEYSZ + IVSZ);
+#endif
     rng->unused_bytes = sizeof(rng->random_bytes) - KEYSZ - IVSZ;
     assert(rng->unused_bytes <= sizeof(rng->random_bytes));
 }
