@@ -44,7 +44,7 @@ static ssize_t getrandom(void *buf, size_t buflen, unsigned int flags) {
 
 public bool USE_COLOR;
 
-static void signal_handler(int sig, siginfo_t *, void *)
+static _Noreturn void signal_handler(int sig, siginfo_t *, void *)
 {
     assert(sig == SIGILL);
     fflush(stdout);
