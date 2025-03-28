@@ -51,6 +51,12 @@ int _print_quoted(FILE *f, quoted_t quoted)
     return printed;
 }
 
+#if defined(__GLIBC__) && defined(_GNU_SOURCE)
+    #define HAS_FOPENCOOKIE 1
+#elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+    #define HAS_FUNOPEN 1
+#endif
+
 static ssize_t _gc_stream_write(void *cookie, const char *buf, size_t size) {
     gc_stream_t *stream = (gc_stream_t *)cookie;
     if (stream->position + size + 1 > *stream->size)
@@ -69,8 +75,17 @@ FILE *gc_memory_stream(char **buf, size_t *size) {
     *stream->buffer = GC_MALLOC_ATOMIC(*stream->size);
     (*stream->buffer)[0] = '\0';
     stream->position = 0;
+#ifdef HAS_FOPENCOOKIE
+
     cookie_io_functions_t functions = {.write = _gc_stream_write};
     return fopencookie(stream, "w", functions);
+#else
+#ifdef HAS_FUNOPEN
+    return fwopen(stream, _gc_stream_write);
+#else
+#error "This platform does not support fopencookie() or funopen()!"
+#endif
+#endif
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
