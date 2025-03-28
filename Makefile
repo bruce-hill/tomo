@@ -43,9 +43,16 @@ O=-Og
 CFLAGS=$(CCONFIG) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO)
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
 LDLIBS=-lgc -lcord -lm -lunistring -lgmp
+LIBTOMO_FLAGS=-shared
 
 ifeq ($(OS),OpenBSD)
     LDLIBS += -lpthread -lexecinfo
+endif
+
+ifeq ($(OS),Darwin)
+    LIBTOMO_FLAGS += -Wl,-install_name,libtomo.so
+else
+    LIBTOMO_FLAGS += -Wl,-soname,libtomo.so
 endif
 
 COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c))
@@ -61,8 +68,8 @@ build/tomo: $(STDLIB_OBJS) $(COMPILER_OBJS)
 
 build/libtomo.so: $(STDLIB_OBJS)
 	@mkdir -p build
-	@echo $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) -Wl,-soname,libtomo.so -shared -o $@
-	@$(CC) $^ $(CFLAGS) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) -Wl,-soname,libtomo.so -shared -o $@
+	@echo $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
+	@$(CC) $^ $(CFLAGS) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
 
 tags:
 	ctags src/*.[ch] src/stdlib/*.[ch]
