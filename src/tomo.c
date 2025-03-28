@@ -168,16 +168,16 @@ int main(int argc, char *argv[])
     for (int64_t i = 0; i < libraries.length; i++) {
         Path_t *lib = (Path_t*)(libraries.data + i*libraries.stride);
         const char *lib_str = Path$as_c_string(*lib);
-        char *cwd = get_current_dir_name();
+        char cwd[PATH_MAX];
+        getcwd(cwd, sizeof(cwd));
         if (chdir(lib_str) != 0)
             print_err("Could not enter directory: ", lib_str);
 
-        char *libdir = get_current_dir_name();
+        char libdir[PATH_MAX];
+        getcwd(libdir, sizeof(libdir));
         char *libdirname = basename(libdir);
         build_library(Text$from_str(libdirname));
-        free(libdir);
         chdir(cwd);
-        free(cwd);
     }
 
     // TODO: REPL
@@ -423,7 +423,8 @@ void build_library(Text_t lib_dir_name)
     // unlink(".build/symbol_renames.txt");
 
     if (should_install) {
-        char *library_directory = get_current_dir_name();
+        char library_directory[PATH_MAX];
+        getcwd(library_directory, sizeof(library_directory));
         const char *dest = String(getenv("HOME"), "/.local/share/tomo/installed/", lib_dir_name);
         if (!streq(library_directory, dest)) {
             system(String("rm -rf '", dest, "'"));
@@ -434,7 +435,6 @@ void build_library(Text_t lib_dir_name)
         system(String("ln -f -s ../installed/'", lib_dir_name, "'/lib'", lib_dir_name,
                       "'.so  ~/.local/share/tomo/lib/lib'", lib_dir_name, "'.so"));
         print("Installed \033[1m", lib_dir_name, "\033[m to ~/.local/share/tomo/installed");
-        free(library_directory);
     }
 }
 
