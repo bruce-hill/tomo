@@ -174,6 +174,11 @@ int main(int argc, char *argv[])
                                     " -fno-signaling-nans -fno-trapping-math"));
     }
 
+#ifdef __APPLE__
+    cflags = Texts(cflags, " -I/opt/homebrew/include");
+    ldflags = Texts(cflags, " -L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib");
+#endif
+
     if (show_codegen.length > 0 && Text$equal_values(show_codegen, Text("pretty")))
         show_codegen = Text("sed '/^#line/d;/^$/d' | indent -o /dev/stdout | bat -l c -P");
 
