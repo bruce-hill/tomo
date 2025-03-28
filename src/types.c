@@ -194,7 +194,7 @@ static PUREFUNC INLINE double type_min_magnitude(type_t *t)
         }
     }
     case NumType: return -1./0.;
-    default: return NAN;
+    default: return (double)NAN;
     }
 }
 
@@ -214,7 +214,7 @@ static PUREFUNC INLINE double type_max_magnitude(type_t *t)
         }
     }
     case NumType: return 1./0.;
-    default: return NAN;
+    default: return (double)NAN;
     }
 }
 
