@@ -60,12 +60,12 @@ static OptionalBool_t verbose = false,
 
 static OptionalText_t 
             show_codegen = NONE_TEXT,
-            cflags = Text("-Werror -fdollars-in-identifiers -std=gnu11 -Wno-trigraphs -fsanitize=signed-integer-overflow -fno-sanitize-recover"
-                          " -fno-signed-zeros -fno-finite-math-only -fno-signaling-nans -fno-trapping-math"
+            cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs "
+                          " -fno-signed-zeros -fno-finite-math-only "
                           " -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -fPIC -ggdb"
                           " -DGC_THREADS"
                           " -I$HOME/.local/include -I$HOME/.local/share/tomo/installed -I/usr/local/include"),
-            ldlibs = Text("-lgc -lgmp -lm -ltomo"),
+            ldlibs = Text("-lgc -lgmp -lm -lgmp -lunistring -ltomo"),
             ldflags = Text("-Wl,-rpath='$ORIGIN',-rpath=$HOME/.local/share/tomo/lib,-rpath=$HOME/.local/lib,-rpath=/usr/local/lib "
                            "-L$HOME/.local/lib -L$HOME/.local/share/tomo/lib -L/usr/local/lib"),
             optimization = Text("2"),
@@ -102,6 +102,13 @@ int main(int argc, char *argv[])
     compiler_path[count] = '\0';
     if (stat(compiler_path, &compiler_stat) != 0)
         err(1, "Could not find age of compiler");
+#endif
+
+#ifdef __OpenBSD__
+    ldlibs = Texts(ldlibs, Text(" -lexecinfo -lpthread"));
+#else
+    cflags = Texts(cflags, Text(" -fsanitize=signed-integer-overflow -fno-sanitize-recover"
+                                " -fno-signaling-nans -fno-trapping-math"));
 #endif
 
     USE_COLOR = getenv("COLOR") ? strcmp(getenv("COLOR"), "1") == 0 : isatty(STDOUT_FILENO);
