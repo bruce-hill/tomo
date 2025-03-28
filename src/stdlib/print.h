@@ -70,7 +70,6 @@ typedef struct {
 typedef struct {
     uint64_t n;
     bool no_prefix;
-    bool uppercase;
     int digits;
 } oct_format_t;
 #define oct(x, ...) ((oct_format_t){.n=x, __VA_ARGS__})
@@ -104,7 +103,7 @@ PRINT_FN _print_hex(FILE *f, hex_format_t hex) {
     return fprintf(f, hex.no_prefix ? (hex.uppercase ? hl("%0*lX") : hl("%0*lx")) : (hex.uppercase ? hl("0x%0*lX") : hl("%#0*lx")), hex.digits, hex.n);
 }
 PRINT_FN _print_oct(FILE *f, oct_format_t oct) {
-    return fprintf(f, oct.no_prefix ? (oct.uppercase ? hl("%0*lO") : hl("%0*lo")) : (oct.uppercase ? hl("%#0*lO") : hl("%#0*lo")), oct.digits, oct.n);
+    return fprintf(f, oct.no_prefix ? hl("%0*lo") : hl("%#0*lo"), oct.digits, oct.n);
 }
 PRINT_FN _print_num_format(FILE *f, num_format_t num) {
     return fprintf(f, hl("%.*lf"), num.precision, num.n);

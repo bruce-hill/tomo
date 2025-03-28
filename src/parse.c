@@ -6,7 +6,15 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
+
+#ifndef __GLIBC__
+#define __GLIBC__ 2
 #include <unistr.h>
+#undef __GLIBC__
+#else
+#include <unistr.h>
+#endif
+
 #include <unictype.h>
 #include <uniname.h>
 #include <signal.h>
