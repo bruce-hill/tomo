@@ -85,13 +85,19 @@ typedef struct {
 } quoted_t;
 #define quoted(s) ((quoted_t){s})
 
+#ifdef __OpenBSD__
+#define FMT64 "ll"
+#else
+#define FMT64 "l"
+#endif
+
 #if PRINT_COLOR
 #define hl(s) "\033[35m" s "\033[m"
 #else
 #define hl(s) s
 #endif
-PRINT_FN _print_int(FILE *f, int64_t x) { return fprintf(f, hl("%lld"), x); }
-PRINT_FN _print_uint(FILE *f, uint64_t x) { return fprintf(f, hl("%llu"), x); }
+PRINT_FN _print_int(FILE *f, int64_t x) { return fprintf(f, hl("%"FMT64"d"), x); }
+PRINT_FN _print_uint(FILE *f, uint64_t x) { return fprintf(f, hl("%"FMT64"u"), x); }
 PRINT_FN _print_float(FILE *f, float x) { return fprintf(f, hl("%g"), (double)x); }
 PRINT_FN _print_double(FILE *f, double x) { return fprintf(f, hl("%g"), x); }
 PRINT_FN _print_pointer(FILE *f, void *p) { return fprintf(f, hl("%p"), p); }
@@ -100,10 +106,10 @@ PRINT_FN _print_str(FILE *f, const char *s) { return fputs(s, f); }
 int _print_char(FILE *f, char c);
 int _print_quoted(FILE *f, quoted_t quoted);
 PRINT_FN _print_hex(FILE *f, hex_format_t hex) {
-    return fprintf(f, hex.no_prefix ? (hex.uppercase ? hl("%0*llX") : hl("%0*llx")) : (hex.uppercase ? hl("0x%0*llX") : hl("%#0*llx")), hex.digits, hex.n);
+    return fprintf(f, hex.no_prefix ? (hex.uppercase ? hl("%0*"FMT64"X") : hl("%0*"FMT64"x")) : (hex.uppercase ? hl("0x%0*"FMT64"X") : hl("%#0*"FMT64"x")), hex.digits, hex.n);
 }
 PRINT_FN _print_oct(FILE *f, oct_format_t oct) {
-    return fprintf(f, oct.no_prefix ? hl("%0*llo") : hl("%#0*llo"), oct.digits, oct.n);
+    return fprintf(f, oct.no_prefix ? hl("%0*"FMT64"o") : hl("%#0*"FMT64"o"), oct.digits, oct.n);
 }
 PRINT_FN _print_num_format(FILE *f, num_format_t num) {
     return fprintf(f, hl("%.*lf"), num.precision, num.n);
