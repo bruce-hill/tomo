@@ -56,7 +56,7 @@ int _print_quoted(FILE *f, quoted_t quoted)
     static ssize_t _gc_stream_write(void *cookie, const char *buf, size_t size) {
         gc_stream_t *stream = (gc_stream_t *)cookie;
         if (stream->position + size + 1 > *stream->size)
-            *stream->buffer = GC_REALLOC(*stream->buffer, (*stream->size += MAX(MAX(16, *stream->size/2), size + 1)));
+            *stream->buffer = GC_REALLOC(*stream->buffer, (*stream->size += MAX(MAX(16UL, *stream->size/2UL), size + 1UL)));
         memcpy(&(*stream->buffer)[stream->position], buf, size);
         stream->position += size;
         (*stream->buffer)[stream->position] = '\0';
@@ -79,7 +79,7 @@ int _print_quoted(FILE *f, quoted_t quoted)
     static int _gc_stream_write(void *cookie, const char *buf, int size) {
         gc_stream_t *stream = (gc_stream_t *)cookie;
         if (stream->position + size + 1 > *stream->size)
-            *stream->buffer = GC_REALLOC(*stream->buffer, (*stream->size += MAX(MAX(16, *stream->size/2), size + 1)));
+            *stream->buffer = GC_REALLOC(*stream->buffer, (*stream->size += MAX(MAX(16UL, *stream->size/2UL), size + 1UL)));
         memcpy(&(*stream->buffer)[stream->position], buf, size);
         stream->position += size;
         (*stream->buffer)[stream->position] = '\0';
