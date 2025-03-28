@@ -1,7 +1,7 @@
 PREFIX=$(HOME)/.local
 VERSION=0.0.1
 CC=cc
-CCONFIG=-std=c2x -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -I/usr/local/include \
+CCONFIG=-std=c2x -fPIC -I/usr/local/include \
 		-fno-signed-zeros -fno-finite-math-only -fno-trapping-math \
 		-fvisibility=hidden -fdollars-in-identifiers \
 		-DGC_THREADS
