@@ -43,7 +43,7 @@ public char *resolve_path(const char *path, const char *relative_to, const char 
         char *relative_dir = dirname(GC_strdup(relative_to));
         if (!system_path) system_path = ".";
         char *copy = GC_strdup(system_path);
-        for (char *dir, *pos = copy; (dir = strsep(&pos, ":")); ) {
+        for (char *dir, *pos = copy; (dir = strtok(pos, ":")); pos = NULL) {
             if (dir[0] == '/') {
                 char *resolved = realpath(heap_strf("%s/%s", dir, path), buf);
                 if (resolved) return GC_strdup(resolved);
