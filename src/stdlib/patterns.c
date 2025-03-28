@@ -4,6 +4,7 @@
 #include <sys/param.h>
 #include <unictype.h>
 #include <uniname.h>
+#include <unistring/version.h>
 
 #include "arrays.h"
 #include "integers.h"
@@ -65,18 +66,6 @@ static INLINE bool match_str(TextIter_t *state, int64_t *i, const char *str)
     }
     *i += matched;
     return true;
-}
-
-static INLINE bool match_property(TextIter_t *state, int64_t *i, uc_property_t prop)
-{
-    if (*i >= state->stack[0].text.length) return false;
-    uint32_t grapheme = Text$get_main_grapheme_fast(state, *i);
-    // TODO: check every codepoint in the cluster?
-    if (uc_is_property(grapheme, prop)) {
-        *i += 1;
-        return true;
-    }
-    return false;
 }
 
 static int64_t parse_int(TextIter_t *state, int64_t *i)
@@ -618,9 +607,12 @@ static pat_t parse_next_pat(TextIter_t *state, int64_t *index)
                 return PAT(PAT_END, .non_capturing=!negated);
             } else if (strcasecmp(prop_name, "email") == 0) {
                 return PAT(PAT_FUNCTION, .fn=match_email);
-            } else if (strcasecmp(prop_name, "emoji") == 0) {
+            }
+#if _LIBUNISTRING_VERSION >= 0x0100000
+            else if (strcasecmp(prop_name, "emoji") == 0) {
                 return PAT(PAT_PROPERTY, .property=UC_PROPERTY_EMOJI);
             }
+#endif
             break;
         case 'h':
             if (strcasecmp(prop_name, "host") == 0) {
