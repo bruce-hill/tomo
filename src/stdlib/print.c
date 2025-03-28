@@ -52,40 +52,52 @@ int _print_quoted(FILE *f, quoted_t quoted)
 }
 
 #if defined(__GLIBC__) && defined(_GNU_SOURCE)
-    #define HAS_FOPENCOOKIE 1
+    // GLIBC has fopencookie()
+    static ssize_t _gc_stream_write(void *cookie, const char *buf, size_t size) {
+        gc_stream_t *stream = (gc_stream_t *)cookie;
+        if (stream->position + size + 1 > *stream->size)
+            *stream->buffer = GC_REALLOC(*stream->buffer, (*stream->size += MAX(MAX(16, *stream->size/2), size + 1)));
+        memcpy(&(*stream->buffer)[stream->position], buf, size);
+        stream->position += size;
+        (*stream->buffer)[stream->position] = '\0';
+        return (ssize_t)size;
+    }
+
+    FILE *gc_memory_stream(char **buf, size_t *size) {
+        gc_stream_t *stream = GC_MALLOC(sizeof(gc_stream_t));
+        stream->size = size;
+        stream->buffer = buf;
+        *stream->size = 16;
+        *stream->buffer = GC_MALLOC_ATOMIC(*stream->size);
+        (*stream->buffer)[0] = '\0';
+        stream->position = 0;
+        cookie_io_functions_t functions = {.write = _gc_stream_write};
+        return fopencookie(stream, "w", functions);
+    }
 #elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
-    #define HAS_FUNOPEN 1
-#endif
+    // BSDs have funopen() and fwopen()
+    static int _gc_stream_write(void *cookie, const char *buf, int size) {
+        gc_stream_t *stream = (gc_stream_t *)cookie;
+        if (stream->position + size + 1 > *stream->size)
+            *stream->buffer = GC_REALLOC(*stream->buffer, (*stream->size += MAX(MAX(16, *stream->size/2), size + 1)));
+        memcpy(&(*stream->buffer)[stream->position], buf, size);
+        stream->position += size;
+        (*stream->buffer)[stream->position] = '\0';
+        return size;
+    }
 
-static ssize_t _gc_stream_write(void *cookie, const char *buf, size_t size) {
-    gc_stream_t *stream = (gc_stream_t *)cookie;
-    if (stream->position + size + 1 > *stream->size)
-        *stream->buffer = GC_REALLOC(*stream->buffer, (*stream->size += MAX(MAX(16, *stream->size/2), size + 1)));
-    memcpy(&(*stream->buffer)[stream->position], buf, size);
-    stream->position += size;
-    (*stream->buffer)[stream->position] = '\0';
-    return (ssize_t)size;
-}
-
-FILE *gc_memory_stream(char **buf, size_t *size) {
-    gc_stream_t *stream = GC_MALLOC(sizeof(gc_stream_t));
-    stream->size = size;
-    stream->buffer = buf;
-    *stream->size = 16;
-    *stream->buffer = GC_MALLOC_ATOMIC(*stream->size);
-    (*stream->buffer)[0] = '\0';
-    stream->position = 0;
-#ifdef HAS_FOPENCOOKIE
-
-    cookie_io_functions_t functions = {.write = _gc_stream_write};
-    return fopencookie(stream, "w", functions);
+    FILE *gc_memory_stream(char **buf, size_t *size) {
+        gc_stream_t *stream = GC_MALLOC(sizeof(gc_stream_t));
+        stream->size = size;
+        stream->buffer = buf;
+        *stream->size = 16;
+        *stream->buffer = GC_MALLOC_ATOMIC(*stream->size);
+        (*stream->buffer)[0] = '\0';
+        stream->position = 0;
+        return fwopen(stream, _gc_stream_write);
+    }
 #else
-#ifdef HAS_FUNOPEN
-    return fwopen(stream, _gc_stream_write);
-#else
-#error "This platform does not support fopencookie() or funopen()!"
+#    error "This platform doesn't support fopencookie() or funopen()!"
 #endif
-#endif
-}
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
