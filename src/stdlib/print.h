@@ -85,7 +85,7 @@ typedef struct {
 } quoted_t;
 #define quoted(s) ((quoted_t){s})
 
-#ifdef __OpenBSD__
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #define FMT64 "ll"
 #else
 #define FMT64 "l"
