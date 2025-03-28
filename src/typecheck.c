@@ -57,7 +57,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         if (has_stack_memory(item_t))
             code_err(item_type, "Arrays can't have stack references because the array may outlive the stack frame.");
         if (type_size(item_t) > ARRAY_MAX_STRIDE)
-            code_err(ast, "This array holds items that take up ", type_size(item_t),
+            code_err(ast, "This array holds items that take up ", (uint64_t)type_size(item_t),
                      " bytes, but the maximum supported size is ", ARRAY_MAX_STRIDE, " bytes. Consider using an array of pointers instead.");
         return Type(ArrayType, .item_type=item_t);
     }
@@ -68,7 +68,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         if (has_stack_memory(item_t))
             code_err(item_type, "Sets can't have stack references because the array may outlive the stack frame.");
         if (type_size(item_t) > ARRAY_MAX_STRIDE)
-            code_err(ast, "This set holds items that take up ", type_size(item_t),
+            code_err(ast, "This set holds items that take up ", (uint64_t)type_size(item_t),
                      " bytes, but the maximum supported size is ", ARRAY_MAX_STRIDE, " bytes. Consider using an set of pointers instead.");
         return Type(SetType, .item_type=item_t);
     }
