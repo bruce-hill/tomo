@@ -1,28 +1,39 @@
 PREFIX=$(HOME)/.local
 VERSION=0.0.1
 CC=cc
-CCONFIG=-std=c2x -Werror -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -I/usr/local/include \
-		-fno-signed-zeros -fno-finite-math-only -fno-signaling-nans -fno-trapping-math \
-		-fsanitize=signed-integer-overflow -fno-sanitize-recover -fvisibility=hidden -fdollars-in-identifiers \
+CCONFIG=-std=c2x -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -fPIC -I/usr/local/include \
+		-fno-signed-zeros -fno-finite-math-only -fno-trapping-math \
+		-fvisibility=hidden -fdollars-in-identifiers \
 		-DGC_THREADS
-LTO=-flto=auto -fno-fat-lto-objects -Wl,-flto 
+LTO=
 LDFLAGS=-L/usr/local/lib
-# MAKEFLAGS := --jobs=$(shell nproc) --output-sync=target
 CWARN=-Wall -Wextra -Wno-format -Wshadow \
 	  -Wno-pedantic \
 	  -Wno-pointer-arith \
-	  -Wsign-conversion -Wtype-limits -Wunused-result -Wnull-dereference \
-	  -Walloc-zero -Walloca -Wcast-align -Wcast-align=strict \
-	  -Wdangling-else -Wdate-time -Wdisabled-optimization -Wdouble-promotion -Wduplicated-branches \
-	  -Wduplicated-cond -Wexpansion-to-defined -Wno-float-equal \
-	  -Wframe-address -Winline -Winvalid-pch -Wjump-misses-init \
-	  -Wlogical-op -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn \
-	  -Wnull-dereference -Woverlength-strings -Wpacked -Wpacked-not-aligned \
-	  -Wredundant-decls -Wshadow -Wshadow=compatible-local -Wshadow=global -Wshadow=local \
-	  -Wsign-conversion -Wno-stack-protector -Wsuggest-attribute=const -Wsuggest-attribute=noreturn -Wsuggest-attribute=pure -Wswitch-default \
-	  -Wsync-nand -Wtrampolines -Wundef -Wunused -Wunused-but-set-variable \
-	  -Wunused-const-variable -Wunused-local-typedefs -Wunused-macros -Wvariadic-macros -Wvector-operation-performance \
+	  -Wtype-limits -Wunused-result -Wnull-dereference \
+	  -Walloca -Wcast-align -Wcast-align=strict \
+	  -Wdangling-else -Wdate-time -Wdisabled-optimization -Wdouble-promotion \
+	  -Wexpansion-to-defined -Wno-float-equal \
+	  -Wframe-address -Winline -Winvalid-pch \
+	  -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn \
+	  -Wnull-dereference -Woverlength-strings -Wpacked \
+	  -Wredundant-decls -Wshadow \
+	  -Wno-stack-protector -Wswitch-default \
+	  -Wundef -Wunused -Wunused-but-set-variable \
+	  -Wunused-const-variable -Wunused-local-typedefs -Wunused-macros -Wvariadic-macros \
 	  -Wwrite-strings
+
+ifeq ($(shell $(CC) -v 2>&1 | grep -c "gcc version"), 1)
+	LTO += -flto=auto -fno-fat-lto-objects -Wl,-flto
+	CWARN += -Werror -Wsign-conversion -Walloc-zero -Wduplicated-branches -Wduplicated-cond -Wjump-misses-init \
+			 -Wlogical-op -Wpacked-not-aligned -Wshadow=compatible-local -Wshadow=global -Wshadow=local \
+			 -Wsuggest-attribute=const -Wsuggest-attribute=noreturn -Wsuggest-attribute=pure \
+			 -Wsync-nand -Wtrampolines -Wvector-operation-performance
+	CCONFIG += -fsanitize=signed-integer-overflow -fno-sanitize-recover -fno-signaling-nans
+else
+	CWARN += -Wno-missing-field-initializers
+endif
+
 OSFLAGS != case $$(uname -s) in *BSD|Darwin) echo '-D_BSD_SOURCE';; Linux) echo '-D_GNU_SOURCE';; *) echo '-D_DEFAULT_SOURCE';; esac
 EXTRA=
 G=-ggdb
