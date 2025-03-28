@@ -1157,7 +1157,7 @@ static INLINE Text_t _quoted(Text_t text, bool colorize, char quote_char)
         case '\x1C' ... '\x1F': case '\x7F' ... '\x7F': {
             if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[34;1m"));
             ret = concat2_assuming_safe(ret, Text("\\x"));
-            char tmp[2];
+            char tmp[3];
             sprintf(tmp, "%02X", g);
             ret = concat2_assuming_safe(ret, Text$from_strn(tmp, 2));
             if (colorize)
