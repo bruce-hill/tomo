@@ -175,8 +175,8 @@ int main(int argc, char *argv[])
     }
 
 #ifdef __APPLE__
-    cflags = Texts(cflags, " -I/opt/homebrew/include");
-    ldflags = Texts(cflags, " -L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib");
+    cflags = Texts(cflags, Text(" -I/opt/homebrew/include"));
+    ldflags = Texts(cflags, Text(" -L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib"));
 #endif
 
     if (show_codegen.length > 0 && Text$equal_values(show_codegen, Text("pretty")))
