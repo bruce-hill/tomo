@@ -490,7 +490,7 @@ void compile_files(env_t *env, Array_t to_compile, Array_t *object_files, Array_
             Path_t filename;
             staleness_t staleness;
         } *entry = (dependency_files.entries.data + i*dependency_files.entries.stride);
-        if (!clean_build && !entry->staleness.c && !entry->staleness.h)
+        if (!clean_build && !entry->staleness.c && !entry->staleness.h && !entry->staleness.o)
             continue;
 
         pid_t pid = fork();
