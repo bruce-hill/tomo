@@ -694,7 +694,7 @@ public OptionalClosure_t Path$by_line(Path_t path)
 public Array_t Path$glob(Path_t path)
 {
     glob_t glob_result;
-    int status = glob(Path$as_c_string(path), GLOB_BRACE | GLOB_TILDE | GLOB_TILDE_CHECK, NULL, &glob_result);
+    int status = glob(Path$as_c_string(path), GLOB_BRACE | GLOB_TILDE, NULL, &glob_result);
     if (status != 0 && status != GLOB_NOMATCH)
         fail("Failed to perform globbing");
 
