@@ -31,7 +31,10 @@
 #define run_cmd(...) ({ const char *_cmd = String(__VA_ARGS__); if (verbose) print("\033[34;1m", _cmd, "\033[m"); popen(_cmd, "w"); })
 #define array_text(arr) Text$join(Text(" "), arr)
 
+#ifdef __linux__
+// Only on Linux is /proc/self/exe available
 static struct stat compiler_stat;
+#endif
 
 static const char *paths_str(Array_t paths) {
     Text_t result = EMPTY_TEXT;
@@ -88,6 +91,7 @@ typedef struct {
 #endif
 int main(int argc, char *argv[])
 {
+#ifdef __linux__
     // Get the file modification time of the compiler, so we
     // can recompile files after changing the compiler:
     char compiler_path[PATH_MAX];
@@ -97,6 +101,7 @@ int main(int argc, char *argv[])
     compiler_path[count] = '\0';
     if (stat(compiler_path, &compiler_stat) != 0)
         err(1, "Could not find age of compiler");
+#endif
 
     USE_COLOR = getenv("COLOR") ? strcmp(getenv("COLOR"), "1") == 0 : isatty(STDOUT_FILENO);
     if (getenv("NO_COLOR") && getenv("NO_COLOR")[0] != '\0')
@@ -595,9 +600,11 @@ bool is_stale(Path_t path, Path_t relative_to)
     if (stat(Path$as_c_string(path), &target_stat) != 0)
         return true;
 
+#ifdef __linux__
     // Any file older than the compiler is stale:
     if (target_stat.st_mtime < compiler_stat.st_mtime)
         return true;
+#endif
 
     struct stat relative_to_stat;
     if (stat(Path$as_c_string(relative_to), &relative_to_stat) != 0)
