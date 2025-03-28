@@ -65,7 +65,7 @@ static OptionalText_t
                           " -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -fPIC -ggdb"
                           " -DGC_THREADS"
                           " -I$HOME/.local/include -I$HOME/.local/share/tomo/installed -I/usr/local/include"),
-            ldlibs = Text("-lgc -lgmp -lm -lgmp -lunistring -ltomo"),
+            ldlibs = Text("-lgc -lm -lgmp -lunistring -ltomo"),
             ldflags = Text("-Wl,-rpath='$ORIGIN',-rpath=$HOME/.local/share/tomo/lib,-rpath=$HOME/.local/lib,-rpath=/usr/local/lib "
                            "-L$HOME/.local/lib -L$HOME/.local/share/tomo/lib -L/usr/local/lib"),
             optimization = Text("2"),
