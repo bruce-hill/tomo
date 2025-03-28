@@ -185,8 +185,7 @@ public void Array$remove_at(Array_t *arr, Int_t int_index, Int_t int_count, int6
     if (index == 1) {
         arr->data += arr->stride * count;
     } else if (index + count > arr->length) {
-        if (arr->free >= 0)
-            arr->free += count;
+        arr->free += count;
     } else if (arr->data_refcount != 0 || (int64_t)arr->stride != padded_item_size) {
         void *copy = arr->atomic ? GC_MALLOC_ATOMIC((size_t)((arr->length-1) * padded_item_size))
             : GC_MALLOC((size_t)((arr->length-1) * padded_item_size));
