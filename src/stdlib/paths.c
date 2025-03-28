@@ -521,18 +521,6 @@ public Array_t Path$subdirectories(Path_t path, bool include_hidden)
     return _filtered_children(path, include_hidden, S_IFDIR);
 }
 
-#ifdef __APPLE__
-static size_t strlcpy(char *dst, const char *src, size_t size) {
-    size_t srclen = strlen(src);
-    if (size > 0) {
-        size_t copylen = (srclen >= size) ? size - 1 : srclen;
-        memcpy(dst, src, copylen);
-        dst[copylen] = '\0';
-    }
-    return srclen;
-}
-#endif
-
 public Path_t Path$unique_directory(Path_t path)
 {
     path = Path$expand_home(path);
