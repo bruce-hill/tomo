@@ -73,11 +73,6 @@ PUREFUNC static INLINE size_t entry_size(const TypeInfo_t *info)
     return size;
 }
 
-PUREFUNC static INLINE size_t entry_align(const TypeInfo_t *info)
-{
-    return (size_t)MAX(info->TableInfo.key->align, info->TableInfo.value->align);
-}
-
 PUREFUNC static INLINE size_t value_offset(const TypeInfo_t *info)
 {
     size_t offset = (size_t)info->TableInfo.key->size;
