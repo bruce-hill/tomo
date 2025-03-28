@@ -1,4 +1,3 @@
-SHELL := /bin/bash
 PREFIX=$(HOME)/.local
 VERSION=0.0.1
 CC=gcc
