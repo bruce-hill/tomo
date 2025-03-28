@@ -125,11 +125,11 @@ public CONSTFUNC bool Num32$near(float a, float b, float ratio, float absolute) 
 
     if (a == b) return true;
 
-    float diff = fabs(a - b);
+    float diff = fabsf(a - b);
     if (diff < absolute) return true;
     else if (isnan(diff)) return false;
 
-    float epsilon = fabs(a * ratio) + fabs(b * ratio);
+    float epsilon = fabsf(a * ratio) + fabsf(b * ratio);
     if (isinf(epsilon)) epsilon = FLT_MAX;
     return (diff < epsilon);
 }

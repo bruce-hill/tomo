@@ -81,9 +81,9 @@ public void Optional$deserialize(FILE *in, void *outval, Array_t *pointers, cons
         else if (nonnull->tag == TableInfo)
             *(Table_t*)outval = (Table_t){.entries={.length=-1}};
         else if (nonnull == &Num$info)
-            *(double*)outval = NAN;
+            *(double*)outval = (double)NAN;
         else if (nonnull == &Num32$info)
-            *(float*)outval = NAN;
+            *(float*)outval = (float)NAN;
         else if (nonnull->tag == StructInfo || (nonnull->tag == OpaqueInfo && type->size > nonnull->size))
             memset(outval + type->size, -1, (size_t)(type->size - nonnull->size));
         else
