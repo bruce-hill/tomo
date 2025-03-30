@@ -71,6 +71,15 @@ static OptionalText_t
             optimization = Text("2"),
             cc = Text("cc");
 
+static const char *SHARED_SUFFIX =
+#ifdef __APPLE__
+        ".dylib"
+#else
+        ".so"
+#endif
+    ;
+
+
 static void transpile_header(env_t *base_env, Path_t path);
 static void transpile_code(env_t *base_env, Path_t path);
 static void compile_object_file(Path_t path);
@@ -184,7 +193,7 @@ int main(int argc, char *argv[])
 
     for (int64_t i = 0; i < uninstall.length; i++) {
         Text_t *u = (Text_t*)(uninstall.data + i*uninstall.stride);
-        system(String("rm -rvf ~/.local/share/tomo/installed/", *u, " ~/.local/share/tomo/lib/lib", *u, ".so"));
+        system(String("rm -rvf ~/.local/share/tomo/installed/", *u, " ~/.local/share/tomo/lib/lib", *u, SHARED_SUFFIX));
         print("Uninstalled ", *u);
     }
 
@@ -438,13 +447,13 @@ void build_library(Text_t lib_dir_name)
             errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `sed`");
     }
 
+    prog = run_cmd(cc, " -O", optimization, " ", cflags, " ", ldflags, " ", ldlibs, " ", array_text(extra_ldlibs),
 #ifdef __APPLE__
-    prog = run_cmd(cc, " -O", optimization, " ", cflags, " ", ldflags, " ", ldlibs, " ", array_text(extra_ldlibs),
-                   " -Wl,-install_name,@rpath/'lib", lib_dir_name, ".dylib' -shared ", paths_str(object_files), " -o 'lib", lib_dir_name, ".dylib'");
+                   " -Wl,-install_name,@rpath/'lib", lib_dir_name, SHARED_SUFFIX, "'"
 #else
-    prog = run_cmd(cc, " -O", optimization, " ", cflags, " ", ldflags, " ", ldlibs, " ", array_text(extra_ldlibs),
-                   " -Wl,-soname,'lib", lib_dir_name, ".so' -shared ", paths_str(object_files), " -o 'lib", lib_dir_name, ".so'");
+                   " -Wl,-soname,'lib", lib_dir_name, SHARED_SUFFIX, "'"
 #endif
+                   " -shared ", paths_str(object_files), " -o 'lib", lib_dir_name, SHARED_SUFFIX, "'");
 
     if (!prog)
         print_err("Failed to run C compiler: ", cc);
@@ -453,14 +462,14 @@ void build_library(Text_t lib_dir_name)
         exit(EXIT_FAILURE);
 
     if (!quiet)
-        print("Compiled library:\tlib", lib_dir_name, ".so");
+        print("Compiled library:\tlib", lib_dir_name, SHARED_SUFFIX);
 
-    prog = run_cmd("objcopy --redefine-syms=.build/symbol_renames.txt 'lib", lib_dir_name, ".so'");
+    prog = run_cmd("objcopy --redefine-syms=.build/symbol_renames.txt 'lib", lib_dir_name, SHARED_SUFFIX, "'");
     status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         errx(WEXITSTATUS(status), "Failed to run `objcopy` to add library prefix to symbols");
 
-    prog = run_cmd("patchelf --rename-dynamic-symbols .build/symbol_renames.txt 'lib", lib_dir_name, ".so'");
+    prog = run_cmd("patchelf --rename-dynamic-symbols .build/symbol_renames.txt 'lib", lib_dir_name, SHARED_SUFFIX, "'");
     status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         errx(WEXITSTATUS(status), "Failed to run `patchelf` to rename dynamic symbols with library prefix");
@@ -478,8 +487,8 @@ void build_library(Text_t lib_dir_name)
             system(String("cp -r * '", dest, "/'"));
         }
         system("mkdir -p ~/.local/share/tomo/lib/");
-        system(String("ln -f -s ../installed/'", lib_dir_name, "'/lib'", lib_dir_name,
-                      "'.so  ~/.local/share/tomo/lib/lib'", lib_dir_name, "'.so"));
+        system(String("ln -f -s ../installed/'", lib_dir_name, "'/lib'", lib_dir_name, SHARED_SUFFIX,
+                      "'  ~/.local/share/tomo/lib/lib'", lib_dir_name, SHARED_SUFFIX, "'"));
         print("Installed \033[1m", lib_dir_name, "\033[m to ~/.local/share/tomo/installed");
     }
 }
@@ -604,7 +613,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             break;
         }
         case USE_MODULE: {
-            Text_t lib = Text$format("'%s/.local/share/tomo/installed/%s/lib%s.so'", getenv("HOME"), use->path, use->path);
+            Text_t lib = Text$format("'%s/.local/share/tomo/installed/%s/lib%s%s'", getenv("HOME"), use->path, use->path, SHARED_SUFFIX);
             Table$set(to_link, &lib, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
 
             Array_t children = Path$glob(Path$from_str(String(getenv("HOME"), "/.local/share/tomo/installed/", use->path, "/*.tm")));
