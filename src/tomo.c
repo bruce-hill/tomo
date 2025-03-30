@@ -486,7 +486,7 @@ void compile_files(env_t *env, Array_t to_compile, Array_t *object_files, Array_
             Path_t filename;
             staleness_t staleness;
         } *entry = (dependency_files.entries.data + i*dependency_files.entries.stride);
-        if (entry->staleness.h) {
+        if (entry->staleness.h || clean_build) {
             transpile_header(env, entry->filename);
             entry->staleness.o = true;
         }
@@ -601,7 +601,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             break;
         }
         case USE_ASM: {
-            Text_t linker_text = Path$as_text(&use->path, false, &Path$info);
+            Text_t linker_text = Text$from_str(use->path);
             Table$set(to_link, &linker_text, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
             break;
         }
