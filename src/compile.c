@@ -4407,10 +4407,12 @@ CORD compile_statement_type_header(env_t *env, ast_t *ast)
             return CORD_all("#include \"", Path$as_c_string(path), "\"\n");
         }
         case USE_HEADER:
-            if (use->path[0] == '<')
+            if (use->path[0] == '<') {
                 return CORD_all("#include ", use->path, "\n");
-            else
-                return CORD_all("#include \"", use->path, "\"\n");
+            } else {
+                Path_t path = Path$relative_to(Path$from_str(use->path), Path(".build"));
+                return CORD_all("#include \"", Path$as_c_string(path), "\"\n");
+            }
         default:
             return CORD_EMPTY;
         }
