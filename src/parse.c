@@ -2487,14 +2487,14 @@ PARSER(parse_use) {
     int what; 
     if (name[0] == '<' || ends_with(name, ".h")) {
         what = USE_HEADER;
+    } else if (starts_with(name, "-l")) {
+        what = USE_SHARED_OBJECT;
     } else if (ends_with(name, ".c")) {
         what = USE_C_CODE;
     } else if (ends_with(name, ".S") || ends_with(name, ".s")) {
         what = USE_ASM;
     } else if (starts_with(name, "./") || starts_with(name, "/") || starts_with(name, "../") || starts_with(name, "~/")) {
         what = USE_LOCAL;
-    } else if (ends_with(name, ".so")) {
-        what = USE_SHARED_OBJECT;
     } else {
         what = USE_MODULE;
 

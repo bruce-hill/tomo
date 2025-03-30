@@ -61,14 +61,22 @@ func main(paths:[Path]):
             curl @curl_flags @url | tar xz -C ~/.local/share/tomo/installed --strip-components=1 --one-top-level=@hash
             echo @original_url > ~/.local/share/tomo/installed/@hash/source.url
             tomo -L ~/.local/share/tomo/installed/@hash
-            ln -f -s ../installed/@hash/lib@hash.so ~/.local/share/tomo/lib/lib@hash.so
+            if [ "`uname -s`" = "Darwin" ]; then
+                ln -f -s ../installed/@hash/lib@hash.dylib ~/.local/share/tomo/lib/lib@hash.dylib
+            else
+                ln -f -s ../installed/@hash/lib@hash.so ~/.local/share/tomo/lib/lib@hash.so
+            fi
         `:get_output()!)
 
         if alias:
             say($Shell(
                 set -exuo pipefail
                 ln -f -s @hash ~/.local/share/tomo/installed/@alias
-                ln -f -s lib@hash.so ~/.local/share/tomo/lib/lib@alias.so
+                if [ "`uname -s`" = "Darwin" ]; then
+                    ln -f -s lib@hash.dylib ~/.local/share/tomo/lib/lib@alias.dylib
+                else
+                    ln -f -s lib@hash.so ~/.local/share/tomo/lib/lib@alias.so
+                fi
             ):get_output()!)
         
         say("$\[1]Installed $url!$\[]")

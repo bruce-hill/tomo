@@ -2,6 +2,7 @@
 .build
 *.o
 *.so
+*.dylib
 *.tm.c
 *.tm.h
 *.tm.o

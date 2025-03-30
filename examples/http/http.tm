@@ -1,6 +1,6 @@
 # A simple HTTP library built using CURL
 
-use libcurl.so
+use -lcurl
 use <curl/curl.h>
 
 struct HTTPResponse(code:Int, body:Text)

@@ -625,7 +625,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             break;
         }
         case USE_SHARED_OBJECT: {
-            Text_t lib = Text$format("-l:%s", use->path);
+            Text_t lib = Text$from_str(use->path);
             Table$set(to_link, &lib, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
             break;
         }

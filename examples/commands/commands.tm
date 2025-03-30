@@ -1,7 +1,7 @@
 # Functions for running system commands
 
 use ./commands.c
-use libunistring.so
+use -lunistring
 
 extern run_command:func(exe:Text, args:[Text], env:{Text,Text}, input:[Byte]?, output:&[Byte]?, error:&[Byte]? -> Int32)
 extern command_by_line:func(exe:Text, args:[Text], env:{Text,Text} -> func(->Text?)?)

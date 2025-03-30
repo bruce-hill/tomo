@@ -6,10 +6,10 @@ make this possible, there are a few tools available.
 
 ## Using C Libraries 
 
-In order to link against a compiled shared library, you can use `use libfoo.so`
-to cause Tomo to add `-l:libfoo.so` to the linker flags when compiling your
-final executable. You can also use `use <foo.h>` or `use ./foo.h` to cause Tomo
-to insert a corresponding `#include` when compiling your code.
+In order to link against a compiled shared library, you can use `use -lfoo` to
+cause Tomo to add `-lfoo` to the linker flags when compiling your final
+executable. You can also use `use <foo.h>` or `use ./foo.h` to cause Tomo to
+insert a corresponding `#include` when compiling your code.
 
 You can also `use ./foo.c` or `use ./foo.S` to use C or assembly source files
 from inside a Tomo source file.

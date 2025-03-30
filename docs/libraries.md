@@ -119,16 +119,16 @@ Finally, the resulting binary can be executed to actually run the program!
 In Tomo, a shared library is built out of a *directory* that contains multiple
 `.tm` files. Each `.tm` file in the directory (excluding those that start with
 an underscore) will be compiled and linked together to produce a single
-`libwhatever.so` file and `whatever.h` file that can be used by other Tomo
-projects. You can build a library by running `tomo -L dirname/` or `tomo -L` in
-the current directory.
+`libwhatever.so` file (or `libwhatever.dylib` on Mac) and `whatever.h` file
+that can be used by other Tomo projects. You can build a library by running
+`tomo -L dirname/` or `tomo -L` in the current directory.
 
 ### Installing
 
 If you additionally add the `-I` flag, Tomo will copy the entire directory
 (excluding files and directories that begin with `.` such as `.git`) into
 `~/.local/share/tomo/installed/` and create a symbolic link for the library's
-`.so` file in `~/.local/share/tomo/lib/`.
+`.so` file (or `.dylib` file on Mac) in `~/.local/share/tomo/lib/`.
 
 ### Using Shared Libraries
 

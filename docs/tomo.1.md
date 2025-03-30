@@ -48,7 +48,7 @@ C code, which is then compiled using a C compiler of your choice.
 : Compile the input file to an executable.
 
 `-L`, `--library`
-: Compile the input files to a library `.so` file and header.
+: Compile the input files to a shared library file and header.
 
 `-I`, `--install`
 : Install the compiled executable or library.

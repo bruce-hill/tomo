@@ -24,7 +24,7 @@ graph that looks like this:
 ```
 
 For a more complicated example, imagine `foo.tm` imports `baz.tm` and both are
-being compiled into a shared library, `libfoo.so`:
+being compiled into a shared library, `libfoo.so` (or `libfoo.dylib` on Mac):
 
 ```
         +---------------------------------------+
