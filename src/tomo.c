@@ -297,6 +297,7 @@ typedef struct {
     env_t *env;
     Table_t *used_imports;
     FILE *output;
+    Path_t header_path;
 } libheader_info_t;
 
 static void _compile_statement_header_for_library(libheader_info_t *info, ast_t *ast)
@@ -312,12 +313,12 @@ static void _compile_statement_header_for_library(libheader_info_t *info, ast_t 
         Path_t path = Path$from_str(use->path);
         if (!Table$get(*info->used_imports, &path, Table$info(&Path$info, &Path$info))) {
             Table$set(info->used_imports, &path, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
-            CORD_put(compile_statement_type_header(info->env, ast), info->output);
-            CORD_put(compile_statement_namespace_header(info->env, ast), info->output);
+            CORD_put(compile_statement_type_header(info->env, info->header_path, ast), info->output);
+            CORD_put(compile_statement_namespace_header(info->env, info->header_path, ast), info->output);
         }
     } else {
-        CORD_put(compile_statement_type_header(info->env, ast), info->output);
-        CORD_put(compile_statement_namespace_header(info->env, ast), info->output);
+        CORD_put(compile_statement_type_header(info->env, info->header_path, ast), info->output);
+        CORD_put(compile_statement_namespace_header(info->env, info->header_path, ast), info->output);
     }
 }
 
@@ -342,7 +343,7 @@ static void _make_typedefs_for_library(libheader_info_t *info, ast_t *ast)
     }
 }
 
-static void _compile_file_header_for_library(env_t *env, Path_t path, Table_t *visited_files, Table_t *used_imports, FILE *output)
+static void _compile_file_header_for_library(env_t *env, Path_t header_path, Path_t path, Table_t *visited_files, Table_t *used_imports, FILE *output)
 {
     if (Table$get(*visited_files, &path, Table$info(&Path$info, &Bool$info)))
         return;
@@ -357,6 +358,7 @@ static void _compile_file_header_for_library(env_t *env, Path_t path, Table_t *v
         .env=module_env,
         .used_imports=used_imports,
         .output=output,
+        .header_path=header_path,
     };
 
     // Visit files in topological order:
@@ -369,7 +371,7 @@ static void _compile_file_header_for_library(env_t *env, Path_t path, Table_t *v
         auto use = Match(ast, Use);
         if (use->what == USE_LOCAL) {
             Path_t resolved = Path$resolved(Path$from_str(use->path), Path("./"));
-            _compile_file_header_for_library(env, resolved, visited_files, used_imports, output);
+            _compile_file_header_for_library(env, header_path, resolved, visited_files, used_imports, output);
         }
     }
 
@@ -394,6 +396,7 @@ void build_library(Text_t lib_dir_name)
     env->libname = Text$as_c_string(escape_lib_name(lib_dir_name));
 
     // Build a "whatever.h" header that loads all the headers:
+    Path_t header_path = Path$resolved(Path$from_str(String(lib_dir_name, ".h")), Path$from_str("."));
     FILE *header = fopen(String(lib_dir_name, ".h"), "w");
     fputs("#pragma once\n", header);
     fputs("#include <tomo/tomo.h>\n", header);
@@ -402,7 +405,7 @@ void build_library(Text_t lib_dir_name)
     for (int64_t i = 0; i < tm_files.length; i++) {
         Path_t f = *(Path_t*)(tm_files.data + i*tm_files.stride);
         Path_t resolved = Path$resolved(f, Path("."));
-        _compile_file_header_for_library(env, resolved, &visited_files, &used_imports, header);
+        _compile_file_header_for_library(env, header_path, resolved, &visited_files, &used_imports, header);
     }
     if (fclose(header) == -1)
         print_err("Failed to write header file: ", lib_dir_name, ".h");
@@ -444,8 +447,6 @@ void build_library(Text_t lib_dir_name)
 
     if (verbose)
         CORD_printf("Successfully renamed symbols with library prefix!\n");
-
-    // unlink(".build/symbol_renames.txt");
 
     if (should_install) {
         char library_directory[PATH_MAX];
@@ -601,7 +602,9 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             break;
         }
         case USE_ASM: {
-            Text_t linker_text = Text$from_str(use->path);
+            Path_t asm_path = Path$from_str(use->path);
+            asm_path = Path$concat(Path$parent(path), asm_path);
+            Text_t linker_text = Path$as_text(&asm_path, NULL, &Path$info);
             Table$set(to_link, &linker_text, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
             break;
         }
@@ -637,7 +640,7 @@ void transpile_header(env_t *base_env, Path_t path)
 
     env_t *module_env = load_module_env(base_env, ast);
 
-    CORD h_code = compile_file_header(module_env, ast);
+    CORD h_code = compile_file_header(module_env, Path$resolved(h_filename, Path$from_str(".")), ast);
 
     FILE *header = fopen(Path$as_c_string(h_filename), "w");
     if (!header)
