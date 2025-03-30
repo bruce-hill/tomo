@@ -53,6 +53,7 @@ Text_t Path$base_name(Path_t path);
 Text_t Path$extension(Path_t path, bool full);
 Path_t Path$with_component(Path_t path, Text_t component);
 Path_t Path$with_extension(Path_t path, Text_t extension, bool replace);
+Path_t Path$current_dir(void);
 Closure_t Path$by_line(Path_t path);
 Array_t Path$glob(Path_t path);
 

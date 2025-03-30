@@ -213,11 +213,16 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    // Convert `foo` to `foo/foo.tm`
+    // Convert `foo` to `foo/foo.tm` and resolve all paths to absolute paths:
+    Path_t cur_dir = Path$current_dir();
     for (int64_t i = 0; i < files.length; i++) {
         Path_t *path = (Path_t*)(files.data + i*files.stride);
         if (Path$is_directory(*path, true))
             *path = Path$with_component(*path, Texts(Path$base_name(*path), Text(".tm")));
+
+        *path = Path$resolved(*path, cur_dir);
+        if (!Path$exists(*path))
+            fail("File not found: ", *path);
     }
 
     if (files.length < 1)
@@ -370,7 +375,7 @@ static void _compile_file_header_for_library(env_t *env, Path_t header_path, Pat
 
         auto use = Match(ast, Use);
         if (use->what == USE_LOCAL) {
-            Path_t resolved = Path$resolved(Path$from_str(use->path), Path("./"));
+            Path_t resolved = Path$resolved(Path$from_str(use->path), Path$parent(path));
             _compile_file_header_for_library(env, header_path, resolved, visited_files, used_imports, output);
         }
     }
@@ -389,6 +394,16 @@ void build_library(Text_t lib_dir_name)
     env_t *env = fresh_scope(global_env());
     Array_t object_files = {},
             extra_ldlibs = {};
+
+    // Resolve all files to absolute paths:
+    Path_t cur_dir = Path$current_dir();
+    for (int64_t i = 0; i < tm_files.length; i++) {
+        Path_t *path = (Path_t*)(tm_files.data + i*tm_files.stride);
+        *path = Path$resolved(*path, cur_dir);
+        if (!Path$exists(*path))
+            fail("File not found: ", *path);
+    }
+
     compile_files(env, tm_files, &object_files, &extra_ldlibs);
 
     // Library name replaces all stretchs of non-alphanumeric chars with an underscore
@@ -404,8 +419,7 @@ void build_library(Text_t lib_dir_name)
     Table_t used_imports = {};
     for (int64_t i = 0; i < tm_files.length; i++) {
         Path_t f = *(Path_t*)(tm_files.data + i*tm_files.stride);
-        Path_t resolved = Path$resolved(f, Path("."));
-        _compile_file_header_for_library(env, header_path, resolved, &visited_files, &used_imports, header);
+        _compile_file_header_for_library(env, header_path, f, &visited_files, &used_imports, header);
     }
     if (fclose(header) == -1)
         print_err("Failed to write header file: ", lib_dir_name, ".h");
@@ -446,7 +460,7 @@ void build_library(Text_t lib_dir_name)
         errx(WEXITSTATUS(status), "Failed to run `patchelf` to rename dynamic symbols with library prefix");
 
     if (verbose)
-        CORD_printf("Successfully renamed symbols with library prefix!\n");
+        print("Successfully renamed symbols with library prefix!");
 
     if (should_install) {
         char library_directory[PATH_MAX];
@@ -473,10 +487,9 @@ void compile_files(env_t *env, Array_t to_compile, Array_t *object_files, Array_
         Text_t extension = Path$extension(filename, true);
         if (!Text$equal_values(extension, Text("tm")))
             print_err("Not a valid .tm file: \x1b[31;1m", filename, "\x1b[m");
-        Path_t resolved = Path$resolved(filename, Path("./"));
-        if (!Path$is_file(resolved, true))
-            print_err("Couldn't find file: ", resolved);
-        build_file_dependency_graph(resolved, &dependency_files, &to_link);
+        if (!Path$is_file(filename, true))
+            print_err("Couldn't find file: ", filename);
+        build_file_dependency_graph(filename, &dependency_files, &to_link);
     }
 
     int status;

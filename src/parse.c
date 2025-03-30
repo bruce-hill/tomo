@@ -23,6 +23,7 @@
 #include "cordhelpers.h"
 #include "stdlib/integers.h"
 #include "stdlib/patterns.h"
+#include "stdlib/paths.h"
 #include "stdlib/print.h"
 #include "stdlib/stdlib.h"
 #include "stdlib/tables.h"
@@ -2515,12 +2516,8 @@ PARSER(parse_use) {
 }
 
 ast_t *parse_file(const char *path, jmp_buf *on_err) {
-    if (path[0] != '<') {
-        const char *resolved = resolve_path(path, ".", ".");
-        if (!resolved)
-            print_err("Could not resolve path: ", path);
-        path = resolved;
-    }
+    if (path[0] != '<' && path[0] != '/')
+        fail("Path is not fully resolved: ", path);
     // NOTE: this cache leaks a bounded amount of memory. The cache will never
     // hold more than PARSE_CACHE_SIZE entries (see below), but each entry's
     // AST holds onto a reference to the file it came from, so they could

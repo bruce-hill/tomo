@@ -4398,17 +4398,13 @@ CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
         auto use = Match(ast, Use);
         Path_t source_path = Path$from_str(ast->file->filename);
         Path_t source_dir = Path$parent(source_path);
-        char cwd[PATH_MAX];
-        getcwd(cwd, sizeof(cwd));
-        Path_t build_dir = Path$resolved(Path$parent(header_path), Path(cwd));
+        Path_t build_dir = Path$resolved(Path$parent(header_path), Path$current_dir());
         switch (use->what) {
         case USE_MODULE: {
             return CORD_all("#include <", use->path, "/", use->path, ".h>\n");
         }
         case USE_LOCAL: {
-            Path_t used_path = Path$from_str(use->path);
-            if (used_path.type.$tag == PATH_RELATIVE)
-                used_path = Path$concat(source_dir, used_path);
+            Path_t used_path = Path$resolved(Path$from_str(use->path), source_dir);
             Path_t used_build_dir = Path$with_component(Path$parent(used_path), Text(".build"));
             Path_t used_header_path = Path$with_component(used_build_dir, Texts(Path$base_name(used_path), Text(".h")));
             return CORD_all("#include \"", Path$as_c_string(Path$relative_to(used_header_path, build_dir)), "\"\n");
@@ -4417,9 +4413,7 @@ CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
             if (use->path[0] == '<') {
                 return CORD_all("#include ", use->path, "\n");
             } else {
-                Path_t used_path = Path$from_str(use->path);
-                if (used_path.type.$tag == PATH_RELATIVE)
-                    used_path = Path$concat(source_dir, used_path);
+                Path_t used_path = Path$resolved(Path$from_str(use->path), source_dir);
                 return CORD_all("#include \"", Path$as_c_string(Path$relative_to(used_path, build_dir)), "\"\n");
             }
         default:

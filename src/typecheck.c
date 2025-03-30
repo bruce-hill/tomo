@@ -13,6 +13,7 @@
 #include "environment.h"
 #include "parse.h"
 #include "stdlib/patterns.h"
+#include "stdlib/paths.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"
@@ -179,16 +180,19 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
     auto use = Match(module_ast, Use);
     switch (use->what) {
     case USE_LOCAL: {
-        const char *resolved_path = resolve_path(use->path, module_ast->file->filename, module_ast->file->filename);
-        env_t *module_env = Table$str_get(*env->imports, resolved_path);
+        Path_t source_path = Path$from_str(module_ast->file->filename);
+        Path_t source_dir = Path$parent(source_path);
+        Path_t used_path = Path$resolved(Path$from_str(use->path), source_dir);
+
+        if (!Path$exists(used_path))
+            code_err(module_ast, "No such file exists: ", quoted(use->path));
+
+        env_t *module_env = Table$str_get(*env->imports, String(used_path));
         if (module_env)
             return module_env;
 
-        if (!resolved_path)
-            code_err(module_ast, "No such file exists: ", quoted(use->path));
-
-        ast_t *ast = parse_file(resolved_path, NULL);
-        if (!ast) print_err("Could not compile file ", resolved_path);
+        ast_t *ast = parse_file(String(used_path), NULL);
+        if (!ast) print_err("Could not compile file ", used_path);
         return load_module_env(env, ast);
     }
     case USE_MODULE: {
@@ -972,8 +976,12 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
     case Use: {
         switch (Match(ast, Use)->what) {
-        case USE_LOCAL:
-            return Type(ModuleType, resolve_path(Match(ast, Use)->path, ast->file->filename, ast->file->filename));
+        case USE_LOCAL: {
+            Path_t source_path = Path$from_str(ast->file->filename);
+            Path_t source_dir = Path$parent(source_path);
+            Path_t used_path = Path$resolved(Path$from_str(Match(ast, Use)->path), source_dir);
+            return Type(ModuleType, Path$as_c_string(used_path));
+        }
         default:
             return Type(ModuleType, Match(ast, Use)->path);
         }

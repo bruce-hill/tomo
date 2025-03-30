@@ -710,6 +710,13 @@ public Array_t Path$glob(Path_t path)
     return glob_files;
 }
 
+public Path_t Path$current_dir(void)
+{
+    char cwd[PATH_MAX];
+    getcwd(cwd, sizeof(cwd));
+    return Path$from_str(cwd);
+}
+
 public PUREFUNC uint64_t Path$hash(const void *obj, const TypeInfo_t *type)
 {
     (void)type;
