@@ -39,18 +39,18 @@ static CORD compile_string_literal(CORD literal);
 
 CORD promote_to_optional(type_t *t, CORD code)
 {
-    if (t == THREAD_TYPE || t == PATH_TYPE || t == PATH_TYPE_TYPE || t == MATCH_TYPE || t->tag == MomentType) {
+    if (t == THREAD_TYPE || t == PATH_TYPE || t == PATH_TYPE_TYPE || t == MATCH_TYPE) {
         return code;
     } else if (t->tag == IntType) {
         switch (Match(t, IntType)->bits) {
-        case TYPE_IBITS8: return CORD_all("((OptionalInt8_t){", code, "})");
-        case TYPE_IBITS16: return CORD_all("((OptionalInt16_t){", code, "})");
-        case TYPE_IBITS32: return CORD_all("((OptionalInt32_t){", code, "})");
-        case TYPE_IBITS64: return CORD_all("((OptionalInt64_t){", code, "})");
+        case TYPE_IBITS8: return CORD_all("((OptionalInt8_t){.value=", code, "})");
+        case TYPE_IBITS16: return CORD_all("((OptionalInt16_t){.value=", code, "})");
+        case TYPE_IBITS32: return CORD_all("((OptionalInt32_t){.value=", code, "})");
+        case TYPE_IBITS64: return CORD_all("((OptionalInt64_t){.value=", code, "})");
         default: errx(1, "Unsupported in type: ", type_to_str(t));
         }
     } else if (t->tag == ByteType) {
-        return CORD_all("((OptionalByte_t){", code, "})");
+        return CORD_all("((OptionalByte_t){.value=", code, "})");
     } else if (t->tag == StructType) {
         return CORD_all("({ ", compile_type(Type(OptionalType, .type=t)), " nonnull = {.value=", code, "}; nonnull.is_none = false; nonnull; })");
     } else {
@@ -516,7 +516,6 @@ CORD compile_type(type_t *t)
     case BoolType: return "Bool_t";
     case ByteType: return "Byte_t";
     case CStringType: return "const char*";
-    case MomentType: return "Moment_t";
     case BigIntType: return "Int_t";
     case IntType: return CORD_asprintf("Int%ld_t", Match(t, IntType)->bits);
     case NumType: return Match(t, NumType)->bits == TYPE_NBITS64 ? "Num_t" : CORD_asprintf("Num%ld_t", Match(t, NumType)->bits);
@@ -563,7 +562,7 @@ CORD compile_type(type_t *t)
         case TextType:
             return Match(nonnull, TextType)->lang ? compile_type(nonnull) : "OptionalText_t";
         case IntType: case BigIntType: case NumType: case BoolType: case ByteType:
-        case ArrayType: case TableType: case SetType: case MomentType:
+        case ArrayType: case TableType: case SetType:
             return CORD_all("Optional", compile_type(nonnull));
         case StructType: {
             if (nonnull == THREAD_TYPE)
@@ -688,7 +687,7 @@ CORD optional_into_nonnone(type_t *t, CORD value)
     if (t->tag == OptionalType) t = Match(t, OptionalType)->type;
     switch (t->tag) {
     case IntType:
-        return CORD_all(value, ".i");
+        return CORD_all(value, ".value");
     case StructType:
         if (t == THREAD_TYPE || t == MATCH_TYPE || t == PATH_TYPE || t == PATH_TYPE_TYPE)
             return value;
@@ -730,8 +729,6 @@ CORD check_none(type_t *t, CORD value)
         return CORD_all("(", value, ").is_none");
     else if (t->tag == EnumType)
         return CORD_all("({(", value, ").$tag == 0;})");
-    else if (t->tag == MomentType)
-        return CORD_all("({(", value, ").tv_usec < 0;})");
     else if (t->tag == MutexedType)
         return CORD_all("({", value, " == NULL;})");
     print_err("Optional check not implemented for: ", type_to_str(t));
@@ -1803,7 +1800,6 @@ CORD expr_as_text(CORD expr, type_t *t, CORD color)
          // NOTE: this cannot use stack(), since bools may actually be bit fields:
          return CORD_asprintf("Bool$as_text((Bool_t[1]){%r}, %r, &Bool$info)", expr, color);
     case CStringType: return CORD_asprintf("CString$as_text(stack(%r), %r, &CString$info)", expr, color);
-    case MomentType: return CORD_asprintf("Moment$as_text(stack(%r), %r, &Moment$info)", expr, color);
     case BigIntType: case IntType: case ByteType: case NumType: {
         CORD name = type_to_cord(t);
         return CORD_asprintf("%r$as_text(stack(%r), %r, &%r$info)", name, expr, color, name);
@@ -2227,7 +2223,6 @@ CORD compile_none(type_t *t)
     case SetType: return "NONE_TABLE";
     case TextType: return "NONE_TEXT";
     case CStringType: return "NULL";
-    case MomentType: return "NONE_MOMENT";
     case PointerType: return CORD_all("((", compile_type(t), ")NULL)");
     case ClosureType: return "NONE_CLOSURE";
     case NumType: return "nan(\"null\")";
@@ -2268,10 +2263,6 @@ CORD compile(env_t *env, ast_t *ast)
         return compile_none(t);
     }
     case Bool: return Match(ast, Bool)->b ? "yes" : "no";
-    case Moment: {
-        auto moment = Match(ast, Moment)->moment;
-        return CORD_asprintf("((Moment_t){.tv_sec=%ld, .tv_usec=%ld})", moment.tv_sec, moment.tv_usec);
-    }
     case Var: {
         binding_t *b = get_binding(env, Match(ast, Var)->name);
         if (b)
@@ -3748,14 +3739,6 @@ CORD compile(env_t *env, ast_t *ast)
             env_t *module_env = Table$str_get(*env->imports, name);
             return compile(module_env, WrapAST(ast, Var, f->field));
         }
-        case MomentType: {
-            if (streq(f->field, "seconds")) {
-                return CORD_all("I64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").tv_sec)");
-            } else if (streq(f->field, "microseconds")) {
-                return CORD_all("I64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").tv_usec)");
-            }
-            code_err(ast, "There is no '", f->field, "' field on Moments");
-        }
         default:
             code_err(ast, "Field accesses are not supported on ", type_to_str(fielded_t), " values");
         }
@@ -3853,7 +3836,7 @@ CORD compile_type_info(type_t *t)
     else if (t == PATH_TYPE_TYPE) return "&PathType$info";
 
     switch (t->tag) {
-    case BoolType: case ByteType: case IntType: case BigIntType: case NumType: case CStringType: case MomentType:
+    case BoolType: case ByteType: case IntType: case BigIntType: case NumType: case CStringType:
         return CORD_all("&", type_to_cord(t), "$info");
     case TextType: {
         auto text = Match(t, TextType);
@@ -4134,8 +4117,8 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
         assert(args);
         OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Int)->str));
         CORD pop_code = CORD_EMPTY;
-        if (cache->tag == Int && !cache_size.is_none && cache_size.i > 0) {
-            pop_code = CORD_all("if (cache.entries.length > ", CORD_asprintf("%ld", cache_size.i),
+        if (cache->tag == Int && !cache_size.is_none && cache_size.value > 0) {
+            pop_code = CORD_all("if (cache.entries.length > ", CORD_asprintf("%ld", cache_size.value),
                                 ") Table$remove(&cache, cache.entries.data + cache.entries.stride*RNG$int64(default_rng, 0, cache.entries.length-1), table_type);\n");
         }
 

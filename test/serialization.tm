@@ -5,12 +5,6 @@ enum MyEnum(Zero, One(x:Int), Two(x:Num, y:Text))
 
 func main():
     do:
-        >> obj := now()
-        >> bytes := obj:serialized()
-        >> deserialize(bytes -> Moment) == obj
-        = yes
-
-    do:
         >> obj := Int64(123)
         >> bytes := obj:serialized()
         >> deserialize(bytes -> Int64) == obj

@@ -17,7 +17,6 @@
 #include "integers.h"
 #include "memory.h"
 #include "metamethods.h"
-#include "moments.h"
 #include "mutexeddata.h"
 #include "nums.h"
 #include "optionals.h"

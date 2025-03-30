@@ -21,7 +21,6 @@ Information about Tomo's built-in types can be found here:
 - [Arrays](arrays.md)
 - [Booleans](booleans.md)
 - [Bytes](bytes.md)
-- [Moment](moments.md)
 - [Enums](enums.md)
 - [Floating point numbers](nums.md)
 - [Integers](integers.md)
@@ -166,24 +165,4 @@ Nothing, aborts the program.
 **Example:**  
 ```tomo
 fail("Oh no!")
-```
-
----
-
-### `now`
-Gets the current time. This is an alias for `Moment.now()`.
-
-```tomo
-func now(->Moment)
-```
-
-None.
-
-**Returns:**  
-The current moment as a Moment.
-
-**Example:**  
-```tomo
->> now()
-= Sun Sep 29 20:12:33 2024
 ```

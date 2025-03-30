@@ -255,28 +255,28 @@ public bool Path$can_execute(Path_t path)
 #endif
 }
 
-public OptionalMoment_t Path$modified(Path_t path, bool follow_symlinks)
+public OptionalInt64_t Path$modified(Path_t path, bool follow_symlinks)
 {
     struct stat sb;
     int status = path_stat(path, follow_symlinks, &sb);
-    if (status != 0) return NONE_MOMENT;
-    return (Moment_t){.tv_sec=sb.st_mtime};
+    if (status != 0) return NONE_INT64;
+    return (OptionalInt64_t){.value=(int64_t)sb.st_mtime};
 }
 
-public OptionalMoment_t Path$accessed(Path_t path, bool follow_symlinks)
+public OptionalInt64_t Path$accessed(Path_t path, bool follow_symlinks)
 {
     struct stat sb;
     int status = path_stat(path, follow_symlinks, &sb);
-    if (status != 0) return NONE_MOMENT;
-    return (Moment_t){.tv_sec=sb.st_atime};
+    if (status != 0) return NONE_INT64;
+    return (OptionalInt64_t){.value=(int64_t)sb.st_atime};
 }
 
-public OptionalMoment_t Path$changed(Path_t path, bool follow_symlinks)
+public OptionalInt64_t Path$changed(Path_t path, bool follow_symlinks)
 {
     struct stat sb;
     int status = path_stat(path, follow_symlinks, &sb);
-    if (status != 0) return NONE_MOMENT;
-    return (Moment_t){.tv_sec=sb.st_ctime};
+    if (status != 0) return NONE_INT64;
+    return (OptionalInt64_t){.value=(int64_t)sb.st_ctime};
 }
 
 static void _write(Path_t path, Array_t bytes, int mode, int permissions)

@@ -597,24 +597,24 @@ public void Int32$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t
     { \
         Optional##KindOfInt##_t i = info->current; \
         if (!i.is_none) { \
-            KindOfInt##_t next; bool overflow = __builtin_add_overflow(i.i, info->step, &next); \
-            if (overflow || (!info->last.is_none && (info->step >= 0 ? next > info->last.i : next < info->last.i))) \
+            KindOfInt##_t next; bool overflow = __builtin_add_overflow(i.value, info->step, &next); \
+            if (overflow || (!info->last.is_none && (info->step >= 0 ? next > info->last.value : next < info->last.value))) \
                 info->current = (Optional##KindOfInt##_t){.is_none=true}; \
             else \
-                info->current = (Optional##KindOfInt##_t){.i=next}; \
+                info->current = (Optional##KindOfInt##_t){.value=next}; \
         } \
         return i; \
     } \
     public to_attr Closure_t KindOfInt ## $to(c_type first, c_type last, Optional ## KindOfInt ## _t step) { \
         KindOfInt##Range_t *range = GC_MALLOC(sizeof(KindOfInt##Range_t)); \
-        range->current = (Optional##KindOfInt##_t){.i=first}; \
-        range->last = (Optional##KindOfInt##_t){.i=last}; \
-        range->step = step.is_none ? (last >= first ? 1 : -1) : step.i; \
+        range->current = (Optional##KindOfInt##_t){.value=first}; \
+        range->last = (Optional##KindOfInt##_t){.value=last}; \
+        range->step = step.is_none ? (last >= first ? 1 : -1) : step.value; \
         return (Closure_t){.fn=_next_##KindOfInt, .userdata=range}; \
     } \
     public to_attr Closure_t KindOfInt ## $onward(c_type first, c_type step) { \
         KindOfInt##Range_t *range = GC_MALLOC(sizeof(KindOfInt##Range_t)); \
-        range->current = (Optional##KindOfInt##_t){.i=first}; \
+        range->current = (Optional##KindOfInt##_t){.value=first}; \
         range->last = (Optional##KindOfInt##_t){.is_none=true}; \
         range->step = step; \
         return (Closure_t){.fn=_next_##KindOfInt, .userdata=range}; \
@@ -628,7 +628,7 @@ public void Int32$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t
         if (Int$compare_value(full_int, I(max_val)) > 0) { \
             return (Optional ## KindOfInt ## _t){.is_none=true}; \
         } \
-        return (Optional ## KindOfInt ## _t){.i=KindOfInt##$from_int(full_int, true)}; \
+        return (Optional ## KindOfInt ## _t){.value=KindOfInt##$from_int(full_int, true)}; \
     } \
     public CONSTFUNC c_type KindOfInt ## $gcd(c_type x, c_type y) { \
         if (x == 0 || y == 0) return 0; \

@@ -288,41 +288,13 @@ env_t *global_env(void)
             {"escape_int", "Int$value_as_text", "func(i:Int -> Pattern)"},
             {"escape_text", "Pattern$escape_text", "func(text:Text -> Pattern)"},
         )},
-        {"Moment", Type(MomentType), "Moment_t", "Moment", TypedArray(ns_entry_t,
-            // Used as a default for functions below:
-            {"now", "Moment$now", "func(->Moment)"},
-
-            {"after", "Moment$after", "func(moment:Moment,seconds,minutes,hours=0.0,days,weeks,months,years=0,timezone=none:Text -> Moment)"},
-            {"date", "Moment$date", "func(moment:Moment,timezone=none:Text -> Text)"},
-            {"day_of_month", "Moment$day_of_month", "func(moment:Moment,timezone=none:Text -> Int)"},
-            {"day_of_week", "Moment$day_of_week", "func(moment:Moment,timezone=none:Text -> Int)"},
-            {"day_of_year", "Moment$day_of_year", "func(moment:Moment,timezone=none:Text -> Int)"},
-            {"format", "Moment$format", "func(moment:Moment,format=\"%Y-%m-%dT%H:%M:%S%z\",timezone=none:Text -> Text)"},
-            {"from_unix_timestamp", "Moment$from_unix_timestamp", "func(timestamp:Int64 -> Moment)"},
-            {"get_local_timezone", "Moment$get_local_timezone", "func(->Text)"},
-            {"hour", "Moment$hour", "func(moment:Moment,timezone=none:Text -> Int)"},
-            {"hours_till", "Moment$hours_till", "func(now,then:Moment -> Num)"},
-            {"minute", "Moment$minute", "func(moment:Moment,timezone=none:Text -> Int)"},
-            {"minutes_till", "Moment$minutes_till", "func(now,then:Moment -> Num)"},
-            {"month", "Moment$month", "func(moment:Moment,timezone=none:Text -> Int)"},
-            {"microsecond", "Moment$microsecond", "func(moment:Moment,timezone=none:Text -> Int)"},
-            {"new", "Moment$new", "func(year,month,day:Int,hour,minute=0,second=0.0,timezone=none:Text -> Moment)"},
-            {"parse", "Moment$parse", "func(text:Text, format=\"%Y-%m-%dT%H:%M:%S%z\" -> Moment?)"},
-            {"relative", "Moment$relative", "func(moment:Moment,relative_to=Moment.now(),timezone=none:Text -> Text)"},
-            {"second", "Moment$second", "func(moment:Moment,timezone=none:Text -> Int)"},
-            {"seconds_till", "Moment$seconds_till", "func(now:Moment,then:Moment -> Num)"},
-            {"set_local_timezone", "Moment$set_local_timezone", "func(timezone=none:Text)"},
-            {"time", "Moment$time", "func(moment:Moment,seconds=no,am_pm=yes,timezone=none:Text -> Text)"},
-            {"unix_timestamp", "Moment$unix_timestamp", "func(moment:Moment -> Int64)"},
-            {"year", "Moment$year", "func(moment:Moment,timezone=none:Text -> Int)"},
-        )},
         {"PathType", PATH_TYPE_TYPE, "PathType_t", "PathType$info", TypedArray(ns_entry_t,
             {"Relative", "((PathType_t){.$tag=PATH_RELATIVE})", "PathType"},
             {"Absolute", "((PathType_t){.$tag=PATH_ABSOLUTE})", "PathType"},
             {"Home", "((PathType_t){.$tag=PATH_HOME})", "PathType"},
         )},
         {"Path", PATH_TYPE, "Path_t", "Path$info", TypedArray(ns_entry_t,
-            {"accessed", "Path$accessed", "func(path:Path, follow_symlinks=yes -> Moment?)"},
+            {"accessed", "Path$accessed", "func(path:Path, follow_symlinks=yes -> Int64?)"},
             {"append", "Path$append", "func(path:Path, text:Text, permissions=Int32(0o644))"},
             {"append_bytes", "Path$append_bytes", "func(path:Path, bytes:[Byte], permissions=Int32(0o644))"},
             {"base_name", "Path$base_name", "func(path:Path -> Text)"},
@@ -330,7 +302,7 @@ env_t *global_env(void)
             {"can_execute", "Path$can_execute", "func(path:Path -> Bool)"},
             {"can_read", "Path$can_read", "func(path:Path -> Bool)"},
             {"can_write", "Path$can_write", "func(path:Path -> Bool)"},
-            {"changed", "Path$changed", "func(path:Path, follow_symlinks=yes -> Moment?)"},
+            {"changed", "Path$changed", "func(path:Path, follow_symlinks=yes -> Int64?)"},
             {"child", "Path$with_component", "func(path:Path, child:Text -> Path)"},
             {"children", "Path$children", "func(path:Path, include_hidden=no -> [Path])"},
             {"concatenated_with", "Path$concat", "func(a,b:Path -> Path)"},
@@ -347,7 +319,7 @@ env_t *global_env(void)
             {"is_pipe", "Path$is_pipe", "func(path:Path, follow_symlinks=yes -> Bool)"},
             {"is_socket", "Path$is_socket", "func(path:Path, follow_symlinks=yes -> Bool)"},
             {"is_symlink", "Path$is_symlink", "func(path:Path -> Bool)"},
-            {"modified", "Path$modified", "func(path:Path, follow_symlinks=yes -> Moment?)"},
+            {"modified", "Path$modified", "func(path:Path, follow_symlinks=yes -> Int64?)"},
             {"owner", "Path$owner", "func(path:Path, follow_symlinks=yes -> Text?)"},
             {"parent", "Path$parent", "func(path:Path -> Path)"},
             {"read", "Path$read", "func(path:Path -> Text?)"},
@@ -562,10 +534,6 @@ env_t *global_env(void)
                      {"Path$escape_path", "func(path:Path -> Path)"},
                      {"Int$value_as_text", "func(i:Int -> Path)"});
     ADD_CONSTRUCTORS("CString", {"Text$as_c_string", "func(text:Text -> CString)"});
-    ADD_CONSTRUCTORS("Moment",
-                     {"Moment$now", "func(-> Moment)"},
-                     {"Moment$new", "func(year,month,day:Int,hour,minute=0,second=0.0,timezone=none:Text -> Moment)"},
-                     {"Moment$from_unix_timestamp", "func(timestamp:Int64 -> Moment)"});
     ADD_CONSTRUCTORS("RNG", {"RNG$new", "func(-> RNG)"});
     ADD_CONSTRUCTORS("Thread", {"Thread$new", "func(fn:func() -> Thread)"});
 #undef ADD_CONSTRUCTORS
@@ -591,7 +559,6 @@ env_t *global_env(void)
         {"exit", "tomo_exit", "func(message=none:Text, code=Int32(1) -> Abort)"},
         {"fail", "fail_text", "func(message:Text -> Abort)"},
         {"sleep", "sleep_num", "func(seconds:Num)"},
-        {"now", "Moment$now", "func(->Moment)"},
     };
 
     for (size_t i = 0; i < sizeof(global_vars)/sizeof(global_vars[0]); i++) {
@@ -756,7 +723,7 @@ env_t *get_namespace_by_type(env_t *env, type_t *t)
     switch (t->tag) {
     case ArrayType: return NULL;
     case TableType: return NULL;
-    case CStringType: case MomentType:
+    case CStringType:
     case BoolType: case IntType: case BigIntType: case NumType: case ByteType: {
         binding_t *b = get_binding(env, CORD_to_const_char_star(type_to_cord(t)));
         assert(b);

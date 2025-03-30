@@ -109,9 +109,6 @@ typedef struct {
 } Path_t;
 #define OptionalPath_t Path_t
 
-typedef struct timeval Moment_t;
-#define OptionalMoment_t Moment_t
-
 typedef struct RNGState_t* RNG_t;
 
 typedef struct MutexedData_s {

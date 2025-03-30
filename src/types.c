@@ -29,7 +29,6 @@ CORD type_to_cord(type_t *t) {
         case BoolType: return "Bool";
         case ByteType: return "Byte";
         case CStringType: return "CString";
-        case MomentType: return "Moment";
         case TextType: return Match(t, TextType)->lang ? Match(t, TextType)->lang : "Text";
         case BigIntType: return "Int";
         case IntType: return CORD_asprintf("Int%d", Match(t, IntType)->bits);
@@ -497,7 +496,6 @@ PUREFUNC size_t type_size(type_t *t)
     case BoolType: return sizeof(bool);
     case ByteType: return sizeof(uint8_t);
     case CStringType: return sizeof(char*);
-    case MomentType: return sizeof(Moment_t);
     case BigIntType: return sizeof(Int_t);
     case IntType: {
         switch (Match(t, IntType)->bits) {
@@ -590,7 +588,6 @@ PUREFUNC size_t type_align(type_t *t)
     case BoolType: return __alignof__(bool);
     case ByteType: return __alignof__(uint8_t);
     case CStringType: return __alignof__(char*);
-    case MomentType: return __alignof__(Moment_t);
     case BigIntType: return __alignof__(Int_t);
     case IntType: {
         switch (Match(t, IntType)->bits) {
@@ -702,11 +699,6 @@ type_t *get_field_type(type_t *t, const char *field_name)
     }
     case ArrayType: {
         if (streq(field_name, "length")) return INT_TYPE;
-        return NULL;
-    }
-    case MomentType: {
-        if (streq(field_name, "seconds")) return Type(IntType, .bits=TYPE_IBITS64);
-        else if (streq(field_name, "microseconds")) return Type(IntType, .bits=TYPE_IBITS64);
         return NULL;
     }
     default: return NULL;

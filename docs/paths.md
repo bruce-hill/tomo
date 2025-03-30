@@ -37,7 +37,7 @@ intended. Paths can be created from text with slashes using
 
 ## Path Methods
 
-- [`func accessed(path:Path, follow_symlinks=yes -> Moment?)`](#accessed)
+- [`func accessed(path:Path, follow_symlinks=yes -> Int64?)`](#accessed)
 - [`func append(path: Path, text: Text, permissions: Int32 = 0o644[32] -> Void)`](#append)
 - [`func append_bytes(path: Path, bytes: [Byte], permissions: Int32 = 0o644[32] -> Void)`](#append_bytes)
 - [`func base_name(path: Path -> Text)`](#base_name)
@@ -45,7 +45,7 @@ intended. Paths can be created from text with slashes using
 - [`func can_execute(path:Path -> Bool)`](#can_execute)
 - [`func can_read(path:Path -> Bool)`](#can_read)
 - [`func can_write(path:Path -> Bool)`](#can_write)
-- [`func changed(path:Path, follow_symlinks=yes -> Moment?)`](#changed)
+- [`func changed(path:Path, follow_symlinks=yes -> Int64?)`](#changed)
 - [`func child(path: Path, child:Text -> Path)`](#child)
 - [`func children(path: Path, include_hidden=no -> [Path])`](#children)
 - [`func create_directory(path: Path, permissions=0o755[32] -> Void)`](#create_directory)
@@ -60,7 +60,7 @@ intended. Paths can be created from text with slashes using
 - [`func is_file(path: Path, follow_symlinks=yes -> Bool)`](#is_file)
 - [`func is_socket(path: Path, follow_symlinks=yes -> Bool)`](#is_socket)
 - [`func is_symlink(path: Path -> Bool)`](#is_symlink)
-- [`func modified(path:Path, follow_symlinks=yes -> Moment?)`](#modified)
+- [`func modified(path:Path, follow_symlinks=yes -> Int64?)`](#modified)
 - [`func owner(path: Path, follow_symlinks=yes -> Text?)`](#owner)
 - [`func parent(path: Path -> Path)`](#parent)
 - [`func read(path: Path -> Text?)`](#read)
@@ -80,22 +80,22 @@ intended. Paths can be created from text with slashes using
 Gets the file access time of a file.
 
 ```tomo
-func accessed(path:Path, follow_symlinks: Bool = yes -> Moment?)
+func accessed(path:Path, follow_symlinks: Bool = yes -> Int64?)
 ```
 
 - `path`: The path of the file whose access time you want.
 - `follow_symlinks`: Whether to follow symbolic links (default is `yes`).
 
 **Returns:**  
-A [Moment](moments.md) representing when the file or directory was last
+A 64-bit unix epoch timestamp representing when the file or directory was last
 accessed, or `none` if no such file or directory exists.
 
 **Example:**  
 ```tomo
 >> (./file.txt):accessed()
-= Sun 16 Mar 2025 03:43:53 PM EDT EDT : Moment?
+= 1704221100?
 >> (./not-a-file):accessed()
-= none : Moment?
+= none:Int64?
 ```
 
 ---
@@ -274,22 +274,22 @@ Gets the file change time of a file.
 which is _not_ the file creation time.
 
 ```tomo
-func changed(path:Path, follow_symlinks: Bool = yes -> Moment?)
+func changed(path:Path, follow_symlinks: Bool = yes -> Int64?)
 ```
 
 - `path`: The path of the file whose change time you want.
 - `follow_symlinks`: Whether to follow symbolic links (default is `yes`).
 
 **Returns:**  
-A [Moment](moments.md) representing when the file or directory was last
+A 64-bit unix epoch timestamp representing when the file or directory was last
 changed, or `none` if no such file or directory exists.
 
 **Example:**  
 ```tomo
 >> (./file.txt):changed()
-= Sun 16 Mar 2025 03:43:53 PM EDT EDT : Moment?
+= 1704221100?
 >> (./not-a-file):changed()
-= none : Moment?
+= none:Int64
 ```
 
 ---
@@ -633,22 +633,22 @@ func is_symlink(path: Path -> Bool)
 Gets the file modification time of a file.
 
 ```tomo
-func modified(path:Path, follow_symlinks: Bool = yes -> Moment?)
+func modified(path:Path, follow_symlinks: Bool = yes -> Int64?)
 ```
 
 - `path`: The path of the file whose modification time you want.
 - `follow_symlinks`: Whether to follow symbolic links (default is `yes`).
 
 **Returns:**  
-A [Moment](moments.md) representing when the file or directory was last
+A 64-bit unix epoch timestamp representing when the file or directory was last
 modified, or `none` if no such file or directory exists.
 
 **Example:**  
 ```tomo
 >> (./file.txt):modified()
-= Sun 16 Mar 2025 03:43:53 PM EDT EDT : Moment?
+= 1704221100?
 >> (./not-a-file):modified()
-= none : Moment?
+= none:Int64
 ```
 
 ---
@@ -714,10 +714,10 @@ raised.
 **Example:**  
 ```tomo
 >> (./hello.txt):read()
-= "Hello" : Text?
+= "Hello"?
 
 >> (./nosuchfile.xxx):read()
-= none : Text?
+= none:Text
 ```
 ---
 
@@ -738,10 +738,10 @@ returned.
 **Example:**  
 ```tomo
 >> (./hello.txt):read()
-= [72[B], 101[B], 108[B], 108[B], 111[B]] : [Byte]?
+= [72[B], 101[B], 108[B], 108[B], 111[B]]?
 
 >> (./nosuchfile.xxx):read()
-= none : [Byte]?
+= none:[Byte]
 ```
 
 ---

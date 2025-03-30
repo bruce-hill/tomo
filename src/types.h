@@ -46,7 +46,6 @@ struct type_s {
         IntType,
         NumType,
         CStringType,
-        MomentType,
         TextType,
         ArrayType,
         SetType,
@@ -76,7 +75,7 @@ struct type_s {
         struct {
             enum { TYPE_NBITS32=32, TYPE_NBITS64=64 } bits;
         } NumType;
-        struct {} CStringType, MomentType;
+        struct {} CStringType;
         struct {
             const char *lang;
             struct env_s *env;

@@ -20,7 +20,7 @@
 
 #define DEFINE_INT_TYPE(c_type, type_name) \
     typedef struct { \
-        c_type i; \
+        c_type value; \
         bool is_none:1; \
     } Optional ## type_name ## _t; \
     Text_t type_name ## $as_text(const void *i, bool colorize, const TypeInfo_t *type); \

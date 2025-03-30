@@ -140,7 +140,6 @@ typedef enum {
     Extern,
     StructDef, EnumDef, LangDef,
     Index, FieldAccess, Optional, NonOptional,
-    Moment,
     DocTest,
     Use,
     InlineCCode,
@@ -318,9 +317,6 @@ struct ast_s {
         struct {
             ast_t *value;
         } Optional, NonOptional;
-        struct {
-            Moment_t moment;
-        } Moment;
         struct {
             ast_t *expr, *expected;
             bool skip_source:1;

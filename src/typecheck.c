@@ -852,7 +852,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             if (constructor)
                 return t;
             else if (t->tag == StructType || t->tag == IntType || t->tag == BigIntType || t->tag == NumType
-                || t->tag == ByteType || t->tag == TextType || t->tag == CStringType || t->tag == MomentType)
+                || t->tag == ByteType || t->tag == TextType || t->tag == CStringType)
                 return t; // Constructor
             code_err(call->fn, "This is not a type that has a constructor");
         }
@@ -1408,7 +1408,6 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_ast_t *type_ast = inline_code->type_ast;
         return type_ast ? parse_type_ast(env, type_ast) : Type(VoidType);
     }
-    case Moment: return Type(MomentType);
     case Unknown: code_err(ast, "I can't figure out the type of: ", ast_to_str(ast));
     case Deserialize: return parse_type_ast(env, Match(ast, Deserialize)->type);
     }
