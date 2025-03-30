@@ -438,8 +438,14 @@ void build_library(Text_t lib_dir_name)
             errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `sed`");
     }
 
+#ifdef __APPLE__
     prog = run_cmd(cc, " -O", optimization, " ", cflags, " ", ldflags, " ", ldlibs, " ", array_text(extra_ldlibs),
-                   " -Wl,-soname='lib", lib_dir_name, ".so' -shared ", paths_str(object_files), " -o 'lib", lib_dir_name, ".so'");
+                   " -Wl,-install_name,@rpath/'lib", lib_dir_name, ".dylib' -shared ", paths_str(object_files), " -o 'lib", lib_dir_name, ".dylib'");
+#else
+    prog = run_cmd(cc, " -O", optimization, " ", cflags, " ", ldflags, " ", ldlibs, " ", array_text(extra_ldlibs),
+                   " -Wl,-soname,'lib", lib_dir_name, ".so' -shared ", paths_str(object_files), " -o 'lib", lib_dir_name, ".so'");
+#endif
+
     if (!prog)
         print_err("Failed to run C compiler: ", cc);
     int status = pclose(prog);
