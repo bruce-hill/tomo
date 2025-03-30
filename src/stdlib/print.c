@@ -1,5 +1,6 @@
 // This file defines some of the helper functions used for printing values
 #include "print.h"
+#include "util.h"
 
 #include <stdio.h>
 
@@ -63,7 +64,7 @@ int _print_quoted(FILE *f, quoted_t quoted)
         return (ssize_t)size;
     }
 
-    FILE *gc_memory_stream(char **buf, size_t *size) {
+    public FILE *gc_memory_stream(char **buf, size_t *size) {
         gc_stream_t *stream = GC_MALLOC(sizeof(gc_stream_t));
         stream->size = size;
         stream->buffer = buf;
@@ -86,7 +87,7 @@ int _print_quoted(FILE *f, quoted_t quoted)
         return size;
     }
 
-    FILE *gc_memory_stream(char **buf, size_t *size) {
+    public FILE *gc_memory_stream(char **buf, size_t *size) {
         gc_stream_t *stream = GC_MALLOC(sizeof(gc_stream_t));
         stream->size = size;
         stream->buffer = buf;

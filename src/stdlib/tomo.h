@@ -24,6 +24,7 @@
 #include "paths.h"
 #include "patterns.h"
 #include "pointers.h"
+#include "print.h"
 #include "rng.h"
 #include "siphash.h"
 #include "structs.h"
