@@ -11,6 +11,7 @@
 - [log](log/): A logging utility.
 - [pthreads](pthreads/): A POSIX threads library.
 - [threads](threads/): A POSIX threads library, but with a higher level abstraction.
+- [time](time/): A module for working with dates and times.
 - [shell](shell/): A DSL for running shell commands.
 - [tomodeps](tomodeps/): A library for finding Tomo dependencies.
 - [tomo-install](tomo-install/): A library for installing Tomo dependencies.
