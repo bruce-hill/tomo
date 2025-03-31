@@ -1,9 +1,6 @@
 # A Posix Threads (pthreads) wrapper
 use <pthread.h>
 
-extern pthread_mutex_lock:func(mutex:&pthread_mutex_t -> Int32)
-extern pthread_mutex_unlock:func(mutex:&pthread_mutex_t -> Int32)
-
 struct pthread_mutex_t(; extern, opaque):
     func new(->@pthread_mutex_t):
         return inline C : @pthread_mutex_t {
@@ -14,14 +11,10 @@ struct pthread_mutex_t(; extern, opaque):
         }
 
     func lock(m:&pthread_mutex_t):
-        fail("Failed to lock mutex") unless pthread_mutex_lock(m) == 0
+        fail("Failed to lock mutex") unless inline C : Int32 { pthread_mutex_lock(_$m); } == 0
 
     func unlock(m:&pthread_mutex_t):
-        fail("Failed to unlock mutex") unless pthread_mutex_unlock(m) == 0
-
-extern pthread_cond_wait:func(cond:&pthread_cond_t, mutex:&pthread_mutex_t -> Int32)
-extern pthread_cond_signal:func(cond:&pthread_cond_t -> Int32)
-extern pthread_cond_broadcast:func(cond:&pthread_cond_t -> Int32)
+        fail("Failed to unlock mutex") unless inline C : Int32 { pthread_mutex_unlock(_$m); } == 0
 
 struct pthread_cond_t(; extern, opaque):
     func new(->@pthread_cond_t):
@@ -33,13 +26,31 @@ struct pthread_cond_t(; extern, opaque):
         }
 
     func wait(cond:&pthread_cond_t, mutex:&pthread_mutex_t):
-        fail("Failed to wait on condition") unless pthread_cond_wait(cond, mutex) == 0
+        fail("Failed to wait on condition") unless inline C : Int32 { pthread_cond_wait(_$cond, _$mutex); } == 0
 
     func signal(cond:&pthread_cond_t):
-        fail("Failed to signal pthread_cond_t") unless pthread_cond_signal(cond) == 0
+        fail("Failed to signal pthread_cond_t") unless inline C : Int32 { pthread_cond_signal(_$cond); } == 0
 
     func broadcast(cond:&pthread_cond_t):
-        fail("Failed to broadcast pthread_cond_t") unless pthread_cond_broadcast(cond) == 0
+        fail("Failed to broadcast pthread_cond_t") unless inline C : Int32 { pthread_cond_broadcast(_$cond); } == 0
+
+struct pthread_rwlock_t(; extern, opaque):
+    func new(->@pthread_rwlock_t):
+        return inline C : @pthread_rwlock_t {
+            pthread_rwlock_t *lock = GC_MALLOC(sizeof(pthread_rwlock_t));
+            pthread_rwlock_init(lock, NULL);
+            GC_register_finalizer(lock, (void*)pthread_rwlock_destroy, NULL, NULL, NULL);
+            lock
+        }
+
+    func read_lock(lock:&pthread_rwlock_t):
+        inline C { pthread_rwlock_rdlock(_$lock); }
+
+    func write_lock(lock:&pthread_rwlock_t):
+        inline C { pthread_rwlock_wrlock(_$lock); }
+
+    func unlock(lock:&pthread_rwlock_t):
+        inline C { pthread_rwlock_unlock(_$lock); }
 
 struct pthread_t(; extern, opaque):
     func new(fn:func() -> @pthread_t):
