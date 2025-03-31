@@ -93,6 +93,5 @@ extern type_t *MATCH_TYPE;
 extern type_t *RNG_TYPE;
 extern type_t *PATH_TYPE;
 extern type_t *PATH_TYPE_TYPE;
-extern type_t *THREAD_TYPE;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

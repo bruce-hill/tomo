@@ -30,7 +30,7 @@ struct TypeInfo_s {
     metamethods_t metamethods;
     struct { // Anonymous tagged union for convenience 
         enum { OpaqueInfo, StructInfo, EnumInfo, PointerInfo, TextInfo, ArrayInfo, TableInfo, FunctionInfo,
-            OptionalInfo, MutexedDataInfo, TypeInfoInfo } tag;
+            OptionalInfo, TypeInfoInfo } tag;
         union {
             struct {} OpaqueInfo;
             struct {
@@ -54,7 +54,7 @@ struct TypeInfo_s {
             } TypeInfoInfo;
             struct {
                 const TypeInfo_t *type;
-            } OptionalInfo, MutexedDataInfo;
+            } OptionalInfo;
             struct {
                 const char *name;
                 int num_tags;

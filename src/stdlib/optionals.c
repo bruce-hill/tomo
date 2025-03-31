@@ -1,7 +1,5 @@
 // Optional types
 
-#include <pthread.h>
-
 #include "bools.h"
 #include "bytes.h"
 #include "datatypes.h"
@@ -10,7 +8,6 @@
 #include "nums.h"
 #include "patterns.h"
 #include "text.h"
-#include "threads.h"
 #include "util.h"
 
 public PUREFUNC bool is_none(const void *obj, const TypeInfo_t *non_optional_type)

@@ -39,7 +39,7 @@ static CORD compile_string_literal(CORD literal);
 
 CORD promote_to_optional(type_t *t, CORD code)
 {
-    if (t == THREAD_TYPE || t == PATH_TYPE || t == PATH_TYPE_TYPE || t == MATCH_TYPE) {
+    if (t == PATH_TYPE || t == PATH_TYPE_TYPE || t == MATCH_TYPE) {
         return code;
     } else if (t->tag == IntType) {
         switch (Match(t, IntType)->bits) {
@@ -228,16 +228,11 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, UpdateAssign)->rhs);
         break;
     }
-    case Not: case Negative: case HeapAllocate: case StackReference: case Mutexed: {
+    case Not: case Negative: case HeapAllocate: case StackReference: {
         // UNSAFE:
         ast_t *value = ast->__data.Not.value;
         // END UNSAFE
         add_closed_vars(closed_vars, enclosing_scope, env, value);
-        break;
-    }
-    case Holding: {
-        add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Holding)->mutexed);
-        add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Holding)->body);
         break;
     }
     case Min: {
@@ -501,8 +496,7 @@ PUREFUNC CORD compile_unsigned_type(type_t *t)
 
 CORD compile_type(type_t *t)
 {
-    if (t == THREAD_TYPE) return "Thread_t";
-    else if (t == RNG_TYPE) return "RNG_t";
+    if (t == RNG_TYPE) return "RNG_t";
     else if (t == MATCH_TYPE) return "Match_t";
     else if (t == PATH_TYPE) return "Path_t";
     else if (t == PATH_TYPE_TYPE) return "PathType_t";
@@ -512,7 +506,6 @@ CORD compile_type(type_t *t)
     case AbortType: return "void";
     case VoidType: return "void";
     case MemoryType: return "void";
-    case MutexedType: return "MutexedData_t";
     case BoolType: return "Bool_t";
     case ByteType: return "Byte_t";
     case CStringType: return "const char*";
@@ -556,7 +549,7 @@ CORD compile_type(type_t *t)
     case OptionalType: {
         type_t *nonnull = Match(t, OptionalType)->type;
         switch (nonnull->tag) {
-        case CStringType: case FunctionType: case ClosureType: case MutexedType:
+        case CStringType: case FunctionType: case ClosureType:
         case PointerType: case EnumType:
             return compile_type(nonnull);
         case TextType:
@@ -565,8 +558,6 @@ CORD compile_type(type_t *t)
         case ArrayType: case TableType: case SetType:
             return CORD_all("Optional", compile_type(nonnull));
         case StructType: {
-            if (nonnull == THREAD_TYPE)
-                return "Thread_t";
             if (nonnull == MATCH_TYPE)
                 return "OptionalMatch_t";
             if (nonnull == PATH_TYPE)
@@ -689,7 +680,7 @@ CORD optional_into_nonnone(type_t *t, CORD value)
     case IntType:
         return CORD_all(value, ".value");
     case StructType:
-        if (t == THREAD_TYPE || t == MATCH_TYPE || t == PATH_TYPE || t == PATH_TYPE_TYPE)
+        if (t == MATCH_TYPE || t == PATH_TYPE || t == PATH_TYPE_TYPE)
             return value;
         return CORD_all(value, ".value");
     default:
@@ -702,8 +693,7 @@ CORD check_none(type_t *t, CORD value)
     t = Match(t, OptionalType)->type;
     // NOTE: these use statement expressions ({...;}) because some compilers
     // complain about excessive parens around equality comparisons
-    if (t->tag == PointerType || t->tag == FunctionType || t->tag == CStringType
-        || t == THREAD_TYPE)
+    if (t->tag == PointerType || t->tag == FunctionType || t->tag == CStringType)
         return CORD_all("({", value, " == NULL;})");
     else if (t == MATCH_TYPE)
         return CORD_all("({(", value, ").index.small == 0;})");
@@ -729,8 +719,6 @@ CORD check_none(type_t *t, CORD value)
         return CORD_all("(", value, ").is_none");
     else if (t->tag == EnumType)
         return CORD_all("({(", value, ").$tag == 0;})");
-    else if (t->tag == MutexedType)
-        return CORD_all("({", value, " == NULL;})");
     print_err("Optional check not implemented for: ", type_to_str(t));
 }
 
@@ -1344,30 +1332,6 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             loop = CORD_all(loop, "\n", loop_ctx.stop_label, ":;");
         return loop;
     }
-    case Holding: {
-        ast_t *held = Match(ast, Holding)->mutexed;
-        type_t *held_type = get_type(env, held);
-        if (held_type->tag != MutexedType)
-            code_err(held, "This is a ", type_to_str(held_type), ", not a mutexed value");
-        CORD code = CORD_all(
-            "{ // Holding\n",
-            "MutexedData_t mutexed = ", compile(env, held), ";\n",
-            "pthread_mutex_lock(&mutexed->mutex);\n");
-
-        env_t *body_scope = fresh_scope(env);
-        body_scope->deferred = new(deferral_t, .defer_env=env,
-                                   .block=FakeAST(InlineCCode, .code="pthread_mutex_unlock(&mutexed->mutex);"),
-                                   .next=body_scope->deferred);
-        if (held->tag == Var) {
-            CORD held_var = CORD_all(Match(held, Var)->name, "$held");
-            set_binding(body_scope, Match(held, Var)->name,
-                        Type(PointerType, .pointed=Match(held_type, MutexedType)->type, .is_stack=true), held_var);
-            code = CORD_all(code, compile_declaration(Type(PointerType, .pointed=Match(held_type, MutexedType)->type), held_var),
-                            " = (", compile_type(Type(PointerType, .pointed=Match(held_type, MutexedType)->type)), ")mutexed->data;\n");
-        }
-        return CORD_all(code, compile_statement(body_scope, Match(ast, Holding)->body),
-                        "pthread_mutex_unlock(&mutexed->mutex);\n}");
-    }
     case For: {
         auto for_ = Match(ast, For);
 
@@ -1811,7 +1775,7 @@ CORD expr_as_text(CORD expr, type_t *t, CORD color)
     case FunctionType: case ClosureType: return CORD_asprintf("Func$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(t));
     case PointerType: return CORD_asprintf("Pointer$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(t));
     case OptionalType: return CORD_asprintf("Optional$as_text(stack(%r), %r, %r)", expr, color, compile_type_info(t));
-    case StructType: case EnumType: case MutexedType:
+    case StructType: case EnumType:
         return CORD_asprintf("generic_as_text(stack(%r), %r, %r)", expr, color, compile_type_info(t));
     default: compiler_err(NULL, NULL, NULL, "Stringifying is not supported for ", type_to_str(t));
     }
@@ -2199,8 +2163,7 @@ CORD compile_none(type_t *t)
     if (t->tag == OptionalType)
         t = Match(t, OptionalType)->type;
 
-    if (t == THREAD_TYPE) return "NULL";
-    else if (t == PATH_TYPE) return "NONE_PATH";
+    if (t == PATH_TYPE) return "NONE_PATH";
     else if (t == PATH_TYPE_TYPE) return "((OptionalPathType_t){})";
     else if (t == MATCH_TYPE) return "NONE_MATCH";
 
@@ -2231,7 +2194,6 @@ CORD compile_none(type_t *t)
         env_t *enum_env = Match(t, EnumType)->env;
         return CORD_all("((", compile_type(t), "){", namespace_prefix(enum_env, enum_env->namespace), "null})");
     }
-    case MutexedType: return "NONE_MUTEXED_DATA";
     default: compiler_err(NULL, NULL, NULL, "none isn't implemented for this type: ", type_to_str(t));
     }
 }
@@ -2338,36 +2300,6 @@ CORD compile(env_t *env, ast_t *ast)
             return CORD_all("(&", compile_lvalue(env, subject), ")");
         else
             return CORD_all("stack(", compile(env, subject), ")");
-    }
-    case Mutexed: {
-        ast_t *mutexed = Match(ast, Mutexed)->value;
-        return CORD_all("new(struct MutexedData_s, .mutex=PTHREAD_MUTEX_INITIALIZER, .data=", compile(env, WrapAST(mutexed, HeapAllocate, mutexed)), ")");
-    }
-    case Holding: {
-        ast_t *held = Match(ast, Holding)->mutexed;
-        type_t *held_type = get_type(env, held);
-        if (held_type->tag != MutexedType)
-            code_err(held, "This is a ", type_to_str(held_type), ", not a mutexed value");
-        CORD code = CORD_all(
-            "({ // Holding\n",
-            "MutexedData_t mutexed = ", compile(env, held), ";\n",
-            "pthread_mutex_lock(&mutexed->mutex);\n");
-
-        env_t *body_scope = fresh_scope(env);
-        body_scope->deferred = new(deferral_t, .defer_env=env,
-                                   .block=FakeAST(InlineCCode, .code="pthread_mutex_unlock(&mutexed->mutex);"),
-                                   .next=body_scope->deferred);
-        if (held->tag == Var) {
-            CORD held_var = CORD_all(Match(held, Var)->name, "$held");
-            set_binding(body_scope, Match(held, Var)->name,
-                        Type(PointerType, .pointed=Match(held_type, MutexedType)->type, .is_stack=true), held_var);
-            code = CORD_all(code, compile_declaration(Type(PointerType, .pointed=Match(held_type, MutexedType)->type), held_var),
-                            " = (", compile_type(Type(PointerType, .pointed=Match(held_type, MutexedType)->type)), ")mutexed->data;\n");
-        }
-        type_t *body_type = get_type(env, ast);
-        return CORD_all(code, compile_declaration(body_type, "result"), " = ", compile(body_scope, Match(ast, Holding)->body), ";\n"
-                        "pthread_mutex_unlock(&mutexed->mutex);\n"
-                        "result;\n})");
     }
     case Optional: {
         ast_t *value = Match(ast, Optional)->value;
@@ -3829,8 +3761,7 @@ CORD compile(env_t *env, ast_t *ast)
 
 CORD compile_type_info(type_t *t)
 {
-    if (t == THREAD_TYPE) return "&Thread$info";
-    else if (t == RNG_TYPE) return "&RNG$info";
+    if (t == RNG_TYPE) return "&RNG$info";
     else if (t == MATCH_TYPE) return "&Match$info";
     else if (t == PATH_TYPE) return "&Path$info";
     else if (t == PATH_TYPE_TYPE) return "&PathType$info";
@@ -3889,10 +3820,6 @@ CORD compile_type_info(type_t *t)
     case OptionalType: {
         type_t *non_optional = Match(t, OptionalType)->type;
         return CORD_asprintf("Optional$info(sizeof(%r), __alignof__(%r), %r)", compile_type(non_optional), compile_type(non_optional), compile_type_info(non_optional));
-    }
-    case MutexedType: {
-        type_t *mutexed = Match(t, MutexedType)->type;
-        return CORD_all("MutexedData$info(", compile_type_info(mutexed), ")");
     }
     case TypeInfoType: return CORD_all("Type$info(", CORD_quoted(type_to_cord(Match(t, TypeInfoType)->type)), ")");
     case MemoryType: return "&Memory$info";

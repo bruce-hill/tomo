@@ -57,7 +57,6 @@ struct type_s {
         EnumType,
         OptionalType,
         TypeInfoType,
-        MutexedType,
         ModuleType,
     } tag;
 
@@ -116,7 +115,7 @@ struct type_s {
         } EnumType;
         struct {
             type_t *type;
-        } OptionalType, MutexedType;
+        } OptionalType;
         struct {
             const char *name;
             type_t *type;

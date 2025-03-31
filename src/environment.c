@@ -16,7 +16,6 @@ type_t *TEXT_TYPE = NULL;
 type_t *MATCH_TYPE = NULL;
 type_t *RNG_TYPE = NULL;
 public type_t *PATH_TYPE = NULL;
-public type_t *THREAD_TYPE = NULL;
 public type_t *PATH_TYPE_TYPE = NULL;
 
 static type_t *declare_type(env_t *env, const char *def_str)
@@ -70,7 +69,6 @@ env_t *global_env(void)
     PATH_TYPE_TYPE = declare_type(env, "enum PathType(Relative, Absolute, Home)");
     MATCH_TYPE = declare_type(env, "struct Match(text:Text, index:Int, captures:[Text])");
     PATH_TYPE = declare_type(env, "struct Path(type:PathType, components:[Text])");
-    THREAD_TYPE = declare_type(env, "struct Thread(; opaque)");
     RNG_TYPE = declare_type(env, "struct RNG(state:@Memory)");
 
     typedef struct {
@@ -394,12 +392,6 @@ env_t *global_env(void)
             {"utf32_codepoints", "Text$utf32_codepoints", "func(text:Text -> [Int32])"},
             {"width", "Text$width", "func(text:Text, language='C' -> Int)"},
         )},
-        {"Thread", THREAD_TYPE, "Thread_t", "Thread", TypedArray(ns_entry_t,
-            {"new", "Thread$new", "func(fn:func() -> Thread)"},
-            {"cancel", "Thread$cancel", "func(thread:Thread)"},
-            {"join", "Thread$join", "func(thread:Thread)"},
-            {"detach", "Thread$detach", "func(thread:Thread)"},
-        )},
     };
 
     for (size_t i = 0; i < sizeof(global_types)/sizeof(global_types[0]); i++) {
@@ -535,7 +527,6 @@ env_t *global_env(void)
                      {"Int$value_as_text", "func(i:Int -> Path)"});
     ADD_CONSTRUCTORS("CString", {"Text$as_c_string", "func(text:Text -> CString)"});
     ADD_CONSTRUCTORS("RNG", {"RNG$new", "func(-> RNG)"});
-    ADD_CONSTRUCTORS("Thread", {"Thread$new", "func(fn:func() -> Thread)"});
 #undef ADD_CONSTRUCTORS
 
     set_binding(namespace_env(env, "Path"), "from_text",

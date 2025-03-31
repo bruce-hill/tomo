@@ -25,7 +25,6 @@ Information about Tomo's built-in types can be found here:
 - [Floating point numbers](nums.md)
 - [Integers](integers.md)
 - [Languages](langs.md)
-- [Mutexed Data](mutexed.md)
 - [Paths](paths.md)
 - [Random Number Generators](rng.md)
 - [Sets](sets.md)
@@ -33,7 +32,6 @@ Information about Tomo's built-in types can be found here:
 - [Tables](tables.md)
 - [Text](text.md)
   - [Text Pattern Matching](patterns.md)
-- [Threads](threads.md)
 
 ## Built-in Functions
 

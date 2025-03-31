@@ -70,7 +70,6 @@ only 9 bytes for the whole thing!
 
 ## Unserializable Types
 
-Unfortunately, not all types can be easily serialized. In particular,
-`Thread`s, types, and functions cannot be serialized because their data
-contents cannot be easily converted to portable byte arrays. All other
-datatypes _can_ be serialized.
+Unfortunately, not all types can be easily serialized. In particular, types and
+functions cannot be serialized because their data contents cannot be easily
+converted to portable byte arrays. All other datatypes _can_ be serialized.

@@ -3,7 +3,6 @@
 // Common datastructures (arrays, tables, closures)
 
 #include <gmp.h>
-#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
@@ -110,11 +109,6 @@ typedef struct {
 #define OptionalPath_t Path_t
 
 typedef struct RNGState_t* RNG_t;
-
-typedef struct MutexedData_s {
-    pthread_mutex_t mutex;
-    void *data;
-} *MutexedData_t;
 
 #define OptionalBool_t uint8_t
 #define OptionalArray_t Array_t

@@ -47,7 +47,7 @@ LDLIBS=-lgc -lcord -lm -lunistring -lgmp
 LIBTOMO_FLAGS=-shared
 
 ifeq ($(OS),OpenBSD)
-	LDLIBS += -lpthread -lexecinfo
+	LDLIBS += -lexecinfo
 endif
 
 ifeq ($(OS),Darwin)
@@ -107,7 +107,7 @@ clean:
 examples: examples/base64/base64 examples/ini/ini examples/game/game \
 		examples/tomodeps/tomodeps examples/tomo-install/tomo-install examples/wrap/wrap examples/colorful/colorful
 	./build/tomo -qIL examples/time examples/commands examples/shell examples/base64 examples/log examples/ini examples/vectors examples/game \
-		examples/http examples/threads examples/tomodeps examples/tomo-install examples/wrap examples/pthreads examples/colorful
+		examples/http examples/tomodeps examples/tomo-install examples/wrap examples/pthreads examples/colorful
 	./build/tomo examples/learnxiny.tm
 
 deps: check-gcc

@@ -17,7 +17,6 @@
 #include "integers.h"
 #include "memory.h"
 #include "metamethods.h"
-#include "mutexeddata.h"
 #include "nums.h"
 #include "optionals.h"
 #include "paths.h"
@@ -29,7 +28,6 @@
 #include "structs.h"
 #include "tables.h"
 #include "text.h"
-#include "threads.h"
 #include "types.h"
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

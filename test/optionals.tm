@@ -61,18 +61,6 @@ func maybe_c_string(should_i:Bool->CString?):
     else:
         return none
 
-func maybe_thread(should_i:Bool->Thread?):
-    if should_i:
-        return Thread.new(func(): pass)
-    else:
-        return none
-
-func maybe_mutexed(should_i:Bool->mutexed(Bool)?):
-    if should_i:
-        return mutexed no
-    else:
-        return none
-
 func main():
     >> 5?
     = 5?
@@ -243,33 +231,6 @@ func main():
         >> if nope:
             fail("Truthy: $nope")
         else: !! Falsey: $nope
-
-    do:
-        !! ...
-        !! Threads:
-        >> yep := maybe_thread(yes)
-        # No "=" test here because threads use addresses in the text version
-        >> nope := maybe_thread(no)
-        = none : Thread
-        >> if yep: >> yep
-        else: fail("Falsey: $yep")
-        >> if nope:
-            fail("Truthy: $nope")
-        else: !! Falsey: $nope
-
-    do:
-        !! ...
-        !! Mutexed:
-        >> yep := maybe_mutexed(yes)
-        # No "=" test here because threads use addresses in the text version
-        >> nope := maybe_mutexed(no)
-        = none : mutexed(Bool)
-        >> if yep: >> yep
-        else: fail("Falsey: $yep")
-        >> if nope:
-            fail("Truthy: $nope")
-        else: !! Falsey: $nope
-
 
     if yep := maybe_int(yes):
         >> yep

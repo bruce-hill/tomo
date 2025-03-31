@@ -31,5 +31,4 @@ some common functionality.
 - Pointers: [pointers.h](pointers.h), [pointers.c](pointers.c)
 - Tables: [tables.h](tables.h), [tables.c](tables.c)
 - Text: [text.h](text.h), [text.c](text.c)
-- Threads: [threads.h](threads.h), [threads.c](threads.c)
 - Type Infos (for representing types as values): [types.h](types.h), [types.c](types.c)

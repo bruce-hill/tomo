@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef __OpenBSD__
-    ldlibs = Texts(ldlibs, Text(" -lexecinfo -lpthread"));
+    ldlibs = Texts(ldlibs, Text(" -lexecinfo"));
 #endif
 
     USE_COLOR = getenv("COLOR") ? strcmp(getenv("COLOR"), "1") == 0 : isatty(STDOUT_FILENO);

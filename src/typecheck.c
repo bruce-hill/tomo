@@ -128,13 +128,6 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
             code_err(ast, "Nested optional types are not currently supported");
         return Type(OptionalType, .type=t);
     }
-    case MutexedTypeAST: {
-        type_ast_t *mutexed = Match(ast, MutexedTypeAST)->type;
-        type_t *t = parse_type_ast(env, mutexed);
-        if (t->tag == VoidType || t->tag == AbortType || t->tag == ReturnType)
-            code_err(ast, "Mutexed ", type_to_str(t), " types are not supported.");
-        return Type(MutexedType, .type=t);
-    }
     case UnknownTypeAST: code_err(ast, "I don't know how to get this type");
     }
 #ifdef __GNUC__
@@ -1026,21 +1019,6 @@ type_t *get_type(env_t *env, ast_t *ast)
                 return t;
         }
         code_err(ast, "I only know how to get 'not' of boolean, numeric, and optional pointer types, not ", type_to_str(t));
-    }
-    case Mutexed: {
-        type_t *item_type = get_type(env, Match(ast, Mutexed)->value);
-        return Type(MutexedType, .type=item_type);
-    }
-    case Holding: {
-        ast_t *held = Match(ast, Holding)->mutexed;
-        type_t *held_type = get_type(env, held);
-        if (held_type->tag != MutexedType)
-            code_err(held, "This is a ", type_to_str(held_type), ", not a mutexed value");
-        if (held->tag == Var) {
-            env = fresh_scope(env);
-            set_binding(env, Match(held, Var)->name, Type(PointerType, .pointed=Match(held_type, MutexedType)->type, .is_stack=true), CORD_EMPTY);
-        }
-        return get_type(env, Match(ast, Holding)->body);
     }
     case BinaryOp: {
         auto binop = Match(ast, BinaryOp);
