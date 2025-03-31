@@ -1251,6 +1251,26 @@ public Closure_t Text$by_split(Text_t text, Pattern_t pattern)
     };
 }
 
+public Pattern_t Pattern$escape_text(Text_t text)
+{
+    // TODO: optimize for spans of non-escaped text
+    Text_t ret = EMPTY_TEXT;
+    TextIter_t state = NEW_TEXT_ITER_STATE(text);
+    for (int64_t i = 0; i < text.length; i++) {
+        uint32_t g = Text$get_main_grapheme_fast(&state, i);
+        if (g == '{') {
+            ret = Text$concat(ret, Text("{1{}"));
+        } else if (g == '?'
+                   || uc_is_property_quotation_mark(g)
+                   || (uc_is_property_paired_punctuation(g) && uc_is_property_left_of_pair(g))) {
+            ret = Text$concat(ret, Text("{1"), Text$slice(text, I(i+1), I(i+1)), Text("}"));
+        } else {
+            ret = Text$concat(ret, Text$slice(text, I(i+1), I(i+1)));
+        }
+    }
+    return ret;
+}
+
 public const TypeInfo_t Pattern$info = {
     .size=sizeof(Pattern_t),
     .align=__alignof__(Pattern_t),

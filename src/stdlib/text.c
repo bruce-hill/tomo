@@ -1458,26 +1458,4 @@ public const TypeInfo_t Text$info = {
     .metamethods=Text$metamethods,
 };
 
-public Pattern_t Pattern$escape_text(Text_t text)
-{
-    // TODO: optimize for spans of non-escaped text
-    Text_t ret = EMPTY_TEXT;
-    TextIter_t state = NEW_TEXT_ITER_STATE(text);
-    for (int64_t i = 0; i < text.length; i++) {
-        int32_t g = Text$get_grapheme_fast(&state, i);
-        ucs4_t g0 = g < 0 ? GRAPHEME_CODEPOINTS(g)[0] : (ucs4_t)g;
-
-        if (g == '{') {
-            ret = concat2_assuming_safe(ret, Text("{1{}"));
-        } else if (g0 == '?'
-                   || uc_is_property_quotation_mark(g0)
-                   || (uc_is_property_paired_punctuation(g0) && uc_is_property_left_of_pair(g0))) {
-            ret = Text$concat(ret, Text("{1"), Text$slice(text, I(i+1), I(i+1)), Text("}"));
-        } else {
-            ret = concat2_assuming_safe(ret, Text$slice(text, I(i+1), I(i+1)));
-        }
-    }
-    return ret;
-}
-
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
