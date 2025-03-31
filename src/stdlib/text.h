@@ -47,7 +47,7 @@ Text_t Text$upper(Text_t text, Text_t language);
 Text_t Text$lower(Text_t text, Text_t language);
 Text_t Text$title(Text_t text, Text_t language);
 Text_t Text$as_text(const void *text, bool colorize, const TypeInfo_t *info);
-Text_t Text$quoted(Text_t str, bool colorize);
+Text_t Text$quoted(Text_t str, bool colorize, Text_t quotation_mark);
 PUREFUNC bool Text$starts_with(Text_t text, Text_t prefix);
 PUREFUNC bool Text$ends_with(Text_t text, Text_t suffix);
 char *Text$as_c_string(Text_t text);

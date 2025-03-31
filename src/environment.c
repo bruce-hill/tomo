@@ -376,7 +376,7 @@ env_t *global_env(void)
             {"map", "Text$map", "func(text:Text, pattern:Pattern, fn:func(match:Match -> Text), recursive=yes -> Text)"},
             {"matches", "Text$matches", "func(text:Text, pattern:Pattern -> [Text]?)"},
             {"middle_pad", "Text$middle_pad", "func(text:Text, count:Int, pad=' ', language='C' -> Text)"},
-            {"quoted", "Text$quoted", "func(text:Text, color=no -> Text)"},
+            {"quoted", "Text$quoted", "func(text:Text, color=no, quotation_mark='\"' -> Text)"},
             {"repeat", "Text$repeat", "func(text:Text, count:Int -> Text)"},
             {"replace", "Text$replace", "func(text:Text, pattern:Pattern, replacement:Text, backref=$/\\/, recursive=yes -> Text)"},
             {"replace_all", "Text$replace_all", "func(text:Text, replacements:{Pattern,Text}, backref=$/\\/, recursive=yes -> Text)"},

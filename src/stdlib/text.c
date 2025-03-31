@@ -70,7 +70,6 @@
 
 #include "arrays.h"
 #include "integers.h"
-#include "patterns.h"
 #include "tables.h"
 #include "text.h"
 
@@ -1111,14 +1110,17 @@ public Text_t Text$title(Text_t text, Text_t language)
     return ret;
 }
 
-static INLINE Text_t _quoted(Text_t text, bool colorize, char quote_char)
+public Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark)
 {
+    if (quotation_mark.length != 1)
+        fail("Invalid quote text: ", quotation_mark, " (must have length == 1)");
+
     Text_t ret = colorize ? Text("\x1b[35m") : EMPTY_TEXT;
-    if (quote_char != '"' && quote_char != '\'' && quote_char != '`')
+    if (!Text$equal_values(quotation_mark, Text("\"")) && !Text$equal_values(quotation_mark, Text("'")) && !Text$equal_values(quotation_mark, Text("`")))
         ret = concat2_assuming_safe(ret, Text("$"));
 
-    Text_t quote_text = Text$from_strn(&quote_char, 1);
-    ret = concat2_assuming_safe(ret, quote_text);
+    ret = concat2_assuming_safe(ret, quotation_mark);
+    int32_t quote_char = Text$get_grapheme(quotation_mark, 0);
 
 #define add_escaped(str) ({ if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[34;1m")); \
                           if (!just_escaped) ret = concat2_assuming_safe(ret, Text("$")); \
@@ -1171,7 +1173,7 @@ static INLINE Text_t _quoted(Text_t text, bool colorize, char quote_char)
         }
         default: {
             if (g == quote_char) {
-                ret = concat2_assuming_safe(ret, quote_text);
+                ret = concat2_assuming_safe(ret, quotation_mark);
             } else {
                 ret = concat2_assuming_safe(ret, Text$slice(text, I(i+1), I(i+1)));
                 just_escaped = false;
@@ -1182,7 +1184,7 @@ static INLINE Text_t _quoted(Text_t text, bool colorize, char quote_char)
     }
 #undef add_escaped
 
-    ret = concat2_assuming_safe(ret, quote_text);
+    ret = concat2_assuming_safe(ret, quotation_mark);
     if (colorize)
         ret = concat2_assuming_safe(ret, Text("\x1b[m"));
 
@@ -1195,55 +1197,46 @@ public Text_t Text$as_text(const void *vtext, bool colorize, const TypeInfo_t *i
     if (!vtext) return info && info->TextInfo.lang ? Text$from_str(info->TextInfo.lang) : Text("Text");
 
     Text_t text = *(Text_t*)vtext;
-    char quote_char;
-    if (info == &Pattern$info) {
-        quote_char = Text$has(text, Pattern("/")) && !Text$has(text, Pattern("|")) ? '|' : '/';
-    } else {
-        // Figure out the best quotation mark to use:
-        bool has_dollar = false, has_double_quote = false, has_backtick = false,
-             has_single_quote = false, needs_escapes = false;
-        TextIter_t state = NEW_TEXT_ITER_STATE(text);
-        for (int64_t i = 0; i < text.length; i++) {
-            int32_t g = Text$get_grapheme_fast(&state, i);
-            if (g == '$') {
-                has_dollar = true;
-            } else if (g == '"') {
-                has_double_quote = true;
-            } else if (g == '`') {
-                has_backtick = true;
-            } else if (g == (g & 0x7F) && (g == '\'' || g == '\n' || g == '\r' || g == '\t' || !isprint((char)g))) {
-                needs_escapes = true;
-            }
+    // Figure out the best quotation mark to use:
+    bool has_dollar = false, has_double_quote = false, has_backtick = false,
+         has_single_quote = false, needs_escapes = false;
+    TextIter_t state = NEW_TEXT_ITER_STATE(text);
+    for (int64_t i = 0; i < text.length; i++) {
+        int32_t g = Text$get_grapheme_fast(&state, i);
+        if (g == '$') {
+            has_dollar = true;
+        } else if (g == '"') {
+            has_double_quote = true;
+        } else if (g == '`') {
+            has_backtick = true;
+        } else if (g == (g & 0x7F) && (g == '\'' || g == '\n' || g == '\r' || g == '\t' || !isprint((char)g))) {
+            needs_escapes = true;
         }
-
-        // If there's dollar signs and/or double quotes in the string, it would
-        // be nice to avoid needing to escape them by using single quotes, but
-        // only if we don't have single quotes or need to escape anything else
-        // (because single quotes don't have interpolation):
-        if ((has_dollar || has_double_quote) && !has_single_quote && !needs_escapes)
-            quote_char = '\'';
-        // If there is a double quote, but no backtick, we can save a bit of
-        // escaping by using backtick instead of double quote:
-        else if (has_double_quote && !has_backtick)
-            quote_char = '`';
-        // Otherwise fall back to double quotes as the default quoting style:
-        else
-            quote_char = '"';
     }
 
-    Text_t as_text = _quoted(text, colorize, quote_char);
-    if (info && info->TextInfo.lang && info != &Text$info && info != &Pattern$info)
+    Text_t quote;
+    // If there's dollar signs and/or double quotes in the string, it would
+    // be nice to avoid needing to escape them by using single quotes, but
+    // only if we don't have single quotes or need to escape anything else
+    // (because single quotes don't have interpolation):
+    if ((has_dollar || has_double_quote) && !has_single_quote && !needs_escapes)
+        quote = Text("'");
+    // If there is a double quote, but no backtick, we can save a bit of
+    // escaping by using backtick instead of double quote:
+    else if (has_double_quote && !has_backtick)
+        quote = Text("`");
+    // Otherwise fall back to double quotes as the default quoting style:
+    else
+        quote = Text("\"");
+
+    Text_t as_text = Text$quoted(text, colorize, quote);
+    if (info && info->TextInfo.lang && info != &Text$info)
         as_text = Text$concat(
             colorize ? Text("\x1b[1m$") : Text("$"),
             Text$from_str(info->TextInfo.lang),
             colorize ? Text("\x1b[0m") : Text(""),
             as_text);
     return as_text;
-}
-
-public Text_t Text$quoted(Text_t text, bool colorize)
-{
-    return _quoted(text, colorize, '"');
 }
 
 public Text_t Text$join(Text_t glue, Array_t pieces)

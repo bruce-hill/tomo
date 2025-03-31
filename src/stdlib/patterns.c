@@ -1271,12 +1271,30 @@ public Pattern_t Pattern$escape_text(Text_t text)
     return ret;
 }
 
+static Text_t Pattern$as_text(const void *obj, bool colorize, const TypeInfo_t *info)
+{
+    (void)info;
+    if (!obj) return Text("Pattern");
+
+    Pattern_t pat = *(Pattern_t*)obj;
+    Text_t quote = Text$has(pat, Pattern("/")) && !Text$has(pat, Pattern("|")) ? Text("|") : Text("/");
+    return Text$concat( colorize ? Text("\x1b[1m$\033[m") : Text("$"), Text$quoted(pat, colorize, quote));
+}
+
 public const TypeInfo_t Pattern$info = {
     .size=sizeof(Pattern_t),
     .align=__alignof__(Pattern_t),
     .tag=TextInfo,
     .TextInfo={.lang="Pattern"},
-    .metamethods=Text$metamethods,
+    .metamethods={
+        .as_text=Pattern$as_text,
+        .hash=Text$hash,
+        .compare=Text$compare,
+        .equal=Text$equal,
+        .is_none=Text$is_none,
+        .serialize=Text$serialize,
+        .deserialize=Text$deserialize,
+    },
 };
 
 static const TypeInfo_t _text_array = {
