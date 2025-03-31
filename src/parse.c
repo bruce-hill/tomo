@@ -63,8 +63,8 @@ int op_tightness[] = {
 
 static const char *keywords[] = {
     "yes", "xor", "while", "when", "use", "unless", "struct", "stop", "skip", "return",
-    "or", "not", "none", "no", "mutexed", "mod1", "mod", "pass", "lang", "inline", "in", "if", "holding",
-    "func", "for", "extern", "enum", "do_end", "else", "do", "deserialize", "defer", "do_begin", "and",
+    "or", "not", "none", "no", "mutexed", "mod1", "mod", "pass", "lang", "inline", "in", "if",
+    "holding", "func", "for", "extern", "enum", "else", "do", "deserialize", "defer", "and",
     "_min_", "_max_", NULL,
 };
 
@@ -1106,48 +1106,11 @@ PARSER(parse_for) {
 }
 
 PARSER(parse_do) {
-    // [do_begin: [<indent>] block] [do_end: [<indent>] block] do: [<indent>] body
+    // do: [<indent>] body
     const char *start = pos;
-    int64_t starting_indent = get_indent(ctx, pos);
-    ast_t *begin = NULL, *end = NULL;
-    if (match_word(&pos, "do_begin"))
-        begin = optional(ctx, &pos, parse_block);
-
-    const char *tmp = pos;
-    whitespace(&tmp);
-    if (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "do_end")) {
-        pos = tmp;
-        end = optional(ctx, &pos, parse_block);
-    }
-
-    tmp = pos;
-    whitespace(&tmp);
-    if (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "do")) {
-        pos = tmp;
-        ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'do'"); 
-        if (begin && end) {
-            ast_list_t *statements = Match(begin, Block)->statements;
-            REVERSE_LIST(statements);
-            statements = new(ast_list_t, .ast=WrapAST(end, Defer, .body=end), .next=statements);
-            statements = new(ast_list_t, .ast=body, .next=statements);
-            REVERSE_LIST(statements);
-            return NewAST(ctx->file, start, pos, Block, .statements=statements);
-        } else if (begin) {
-            ast_list_t *statements = Match(begin, Block)->statements;
-            REVERSE_LIST(statements);
-            statements = new(ast_list_t, .ast=body, .next=statements);
-            REVERSE_LIST(statements);
-            return NewAST(ctx->file, start, pos, Block, .statements=statements);
-        } else if (end) {
-            return NewAST(ctx->file, start, pos, Block,
-                          .statements=new(ast_list_t, .ast=WrapAST(end, Defer, .body=end),
-                                          .next=new(ast_list_t, .ast=body)));
-        } else {
-            return NewAST(ctx->file, start, pos, Block, .statements=Match(body, Block)->statements);
-        }
-    } else {
-        return NULL;
-    }
+    if (!match_word(&pos, "do")) return NULL;
+    ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'do'"); 
+    return NewAST(ctx->file, start, pos, Block, .statements=Match(body, Block)->statements);
 }
 
 PARSER(parse_while) {
