@@ -296,7 +296,7 @@ pattern documentation](patterns.md) for more details.
 - [`func lower(text: Text, language: Text = "C" -> Text)`](#lower)
 - [`func map(text: Text, pattern: Pattern, fn: func(text:Match)->Text -> Text, recursive: Bool = yes)`](#map)
 - [`func matches(text: Text, pattern: Pattern -> [Text])`](#matches)
-- [`func quoted(text: Text, color: Bool = no -> Text)`](#quoted)
+- [`func quoted(text: Text, color: Bool = no, quotation_mark: Text = '"' -> Text)`](#quoted)
 - [`func repeat(text: Text, count:Int -> Text)`](#repeat)
 - [`func replace(text: Text, pattern: Pattern, replacement: Text, backref: Pattern = $/\/, recursive: Bool = yes -> Text)`](#replace)
 - [`func replace_all(replacements:{Pattern,Text}, backref: Pattern = $/\/, recursive: Bool = yes -> Text)`](#replace_all)
@@ -947,11 +947,12 @@ or a null value otherwise.
 Formats the text as a quoted string.
 
 ```tomo
-func quoted(text: Text, color: Bool = no -> Text)
+func quoted(text: Text, color: Bool = no, quotation_mark: Text = '"' -> Text)
 ```
 
 - `text`: The text to be quoted.
 - `color`: Whether to add color formatting (default is `no`).
+- `quotation_mark`: The quotation mark to use (default is `"`).
 
 **Returns:**  
 The text formatted as a quoted string.
