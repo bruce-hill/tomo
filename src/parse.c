@@ -1126,14 +1126,18 @@ PARSER(parse_do) {
         pos = tmp;
         ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'do'"); 
         if (begin && end) {
-            return NewAST(ctx->file, start, pos, Block,
-                          .statements=new(ast_list_t, .ast=begin,
-                                          .next=new(ast_list_t, .ast=WrapAST(end, Defer, .body=end),
-                                                    .next=new(ast_list_t, .ast=body))));
+            ast_list_t *statements = Match(begin, Block)->statements;
+            REVERSE_LIST(statements);
+            statements = new(ast_list_t, .ast=WrapAST(end, Defer, .body=end), .next=statements);
+            statements = new(ast_list_t, .ast=body, .next=statements);
+            REVERSE_LIST(statements);
+            return NewAST(ctx->file, start, pos, Block, .statements=statements);
         } else if (begin) {
-            return NewAST(ctx->file, start, pos, Block,
-                          .statements=new(ast_list_t, .ast=begin,
-                                          .next=new(ast_list_t, .ast=body)));
+            ast_list_t *statements = Match(begin, Block)->statements;
+            REVERSE_LIST(statements);
+            statements = new(ast_list_t, .ast=body, .next=statements);
+            REVERSE_LIST(statements);
+            return NewAST(ctx->file, start, pos, Block, .statements=statements);
         } else if (end) {
             return NewAST(ctx->file, start, pos, Block,
                           .statements=new(ast_list_t, .ast=WrapAST(end, Defer, .body=end),
