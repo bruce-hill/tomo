@@ -36,7 +36,12 @@ int _print_quoted(FILE *f, quoted_t quoted)
 #endif
     const char *named[256] = {['\n']=ESC("n"), ['\t']=ESC("t"), ['\r']=ESC("r"),
         ['\033']=ESC("e"), ['\v']=ESC("v"), ['\a']=ESC("a"), ['\b']=ESC("b")};
-    int printed = fputs("\033[35m\"", f);
+    int printed =
+#if PRINT_COLOR
+        fputs("\033[35m\"", f);
+#else
+        fputc('"', f);
+#endif
     for (const char *p = quoted.str; *p; p++) {
         const char *name = named[(uint8_t)*p];
         if (name != NULL) {
@@ -47,7 +52,11 @@ int _print_quoted(FILE *f, quoted_t quoted)
             printed += fprintf(f, ESC("x%02X"), (uint8_t)*p);
         }
     }
+#if PRINT_COLOR
     printed += fputs("\"\033[m", f);
+#else
+    printed += fputc('"', f);
+#endif
 #undef ESC
     return printed;
 }
