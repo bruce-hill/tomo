@@ -85,12 +85,12 @@ func main():
 		= 10000000000000000000000
 
 	do:
-		for in 20:
-			>> n := random:int(-999999, 999999)
-			>> d := random:int(-999, 999)
-			!! n=$n, d=$d:
-			>> (n/d)*d + (n mod d) == n
-			= yes
+		interesting_numerators := [-999999, -100, -23, -1, 0, 1, 23, 100, 999999]
+		interesting_denominators := [-99, -20, -17, -1, 1, 17, 20, 99]
+		for n in interesting_numerators:
+			for d in interesting_denominators:
+				>> (n/d)*d + (n mod d) == n
+				= yes
 
 	>> 0:next_prime()
 	= 2

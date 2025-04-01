@@ -1,9 +1,9 @@
 # Random Number Generators (RNG)
 
-Tomo comes with an `RNG` type (Random Number Generator). This type represents a
-self-contained piece of data that encapsulates the state of a relatively fast
-and relatively secure pseudo-random number generator. The current
-implementation is based on the [ChaCha20 stream
+This library provides an `RNG` type (Random Number Generator). This type
+represents a self-contained piece of data that encapsulates the state of a
+relatively fast and relatively secure pseudo-random number generator. The
+current implementation is based on the [ChaCha20 stream
 cipher,](https://en.wikipedia.org/wiki/Salsa20#ChaCha_variant) inspired by
 [`arc4random` in OpenBSD.](https://man.openbsd.org/arc4random.3)
 
@@ -16,7 +16,7 @@ a Tomo program launches.
 ## RNG Functions
 
 This documentation provides details on RNG functions available in the API.
-[Arrays](arrays.md) also have some methods which use RNG values:
+Arrays also have some methods which use RNG values:
 `array:shuffle()`, `array:shuffled()`, `array:random()`, and `array:sample()`.
 
 - [`func bool(rng: RNG, p: Num = 0.5 -> Bool)`](#bool)
@@ -25,8 +25,9 @@ This documentation provides details on RNG functions available in the API.
 - [`func copy(rng: RNG -> RNG)`](#copy)
 - [`func int(rng: RNG, min: Int, max: Int -> Int)`](#int`, `int64`, `int32`, `int16`, `int8)
 - [`func new(seed: [Byte] = (/dev/urandom):read_bytes(40)! -> RNG)`](#new)
-- [`func num(rng: RNG, min: Num = 0.0, max: Num = 1.0 -> Int)`](#num`, `num32)
-- [`func set_seed(rng: RNG, seed: [Byte])`](#set_seed)
+- [`func num(rng: RNG, min: Num = 0.0, max: Num = 1.0 -> Num)`](#num`, `num32)
+
+-------------
 
 ### `bool`
 Generate a random boolean value with a given probability.
@@ -192,26 +193,4 @@ A floating point number uniformly chosen from the range `[min, max]`
 ```tomo
 >> random:num(1, 10)
 = 9.512830439975572
-```
-
----
-
-### `set_seed`
-Set the seed for an RNG.
-
-```tomo
-func set_seed(rng: RNG, seed: [Byte])
-```
-
-- `rng`: The random number generator to modify.
-- `seed`: A new seed to re-seed the random number generator with. A seed length
-  of 40 bytes is recommended. Seed lengths of less than 40 bytes are padded
-  with zeroes.
-
-**Returns:**  
-Nothing.
-
-**Example:**  
-```tomo
-random:set_seed((/dev/urandom):read_bytes(40))
 ```

@@ -82,11 +82,11 @@ OptionalInt_t Array$find(Array_t arr, void *item, const TypeInfo_t *type);
 OptionalInt_t Array$first(Array_t arr, Closure_t predicate);
 void Array$sort(Array_t *arr, Closure_t comparison, int64_t padded_item_size);
 Array_t Array$sorted(Array_t arr, Closure_t comparison, int64_t padded_item_size);
-void Array$shuffle(Array_t *arr, RNG_t rng, int64_t padded_item_size);
-Array_t Array$shuffled(Array_t arr, RNG_t rng, int64_t padded_item_size);
-void *Array$random(Array_t arr, RNG_t rng);
-#define Array$random_value(arr, rng, t) ({ Array_t _arr = arr; if (_arr.length == 0) fail("Cannot get a random value from an empty array!"); *(t*)Array$random(_arr, rng); })
-Array_t Array$sample(Array_t arr, Int_t n, Array_t weights, RNG_t rng, int64_t padded_item_size);
+void Array$shuffle(Array_t *arr, OptionalClosure_t random_int64, int64_t padded_item_size);
+Array_t Array$shuffled(Array_t arr, OptionalClosure_t random_int64, int64_t padded_item_size);
+void *Array$random(Array_t arr, OptionalClosure_t random_int64);
+#define Array$random_value(arr, random_int64, t) ({ Array_t _arr = arr; if (_arr.length == 0) fail("Cannot get a random value from an empty array!"); *(t*)Array$random(_arr, random_int64); })
+Array_t Array$sample(Array_t arr, Int_t n, Array_t weights, Closure_t random_num, int64_t padded_item_size);
 Table_t Array$counts(Array_t arr, const TypeInfo_t *type);
 void Array$clear(Array_t *array);
 void Array$compact(Array_t *arr, int64_t padded_item_size);

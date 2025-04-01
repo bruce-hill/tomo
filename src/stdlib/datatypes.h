@@ -105,8 +105,6 @@ typedef struct {
 } Path_t;
 #define OptionalPath_t Path_t
 
-typedef struct RNGState_t* RNG_t;
-
 #define OptionalBool_t uint8_t
 #define OptionalArray_t Array_t
 #define OptionalTable_t Table_t

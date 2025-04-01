@@ -89,7 +89,6 @@ void set_binding(env_t *env, const char *name, type_t *type, CORD code);
 binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name);
 #define code_err(ast, ...) compiler_err((ast)->file, (ast)->start, (ast)->end, __VA_ARGS__)
 extern type_t *TEXT_TYPE;
-extern type_t *RNG_TYPE;
 extern type_t *PATH_TYPE;
 extern type_t *PATH_TYPE_TYPE;
 

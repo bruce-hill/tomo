@@ -1,3 +1,4 @@
+#pragma once
 /*
 chacha-merged.c version 20080118
 D. J. Bernstein
@@ -14,6 +15,9 @@ typedef struct
 {
   u32 input[16]; /* could be compressed */
 } chacha_ctx;
+
+#define KEYSZ 32
+#define IVSZ 8
 
 #define U8C(v) (v##U)
 #define U32C(v) (v##U)
@@ -50,31 +54,22 @@ typedef struct
   c = PLUS(c, d); b = ROTATE(XOR(b, c), 7);
 
 static const char sigma[16] = "expand 32-byte k";
-static const char tau[16] = "expand 16-byte k";
 
 static void
-chacha_keysetup(chacha_ctx *chacha, const u8 *k, u32 kbits)
+chacha_keysetup(chacha_ctx *chacha, const u8 *k)
 {
-  const char *constants;
-
+  chacha->input[0] = U8TO32_LITTLE(sigma + 0);
+  chacha->input[1] = U8TO32_LITTLE(sigma + 4);
+  chacha->input[2] = U8TO32_LITTLE(sigma + 8);
+  chacha->input[3] = U8TO32_LITTLE(sigma + 12);
   chacha->input[4] = U8TO32_LITTLE(k + 0);
   chacha->input[5] = U8TO32_LITTLE(k + 4);
   chacha->input[6] = U8TO32_LITTLE(k + 8);
   chacha->input[7] = U8TO32_LITTLE(k + 12);
-  if (kbits == 256) { /* recommended */
-    k += 16;
-    constants = sigma;
-  } else { /* kbits == 128 */
-    constants = tau;
-  }
-  chacha->input[8] = U8TO32_LITTLE(k + 0);
-  chacha->input[9] = U8TO32_LITTLE(k + 4);
-  chacha->input[10] = U8TO32_LITTLE(k + 8);
-  chacha->input[11] = U8TO32_LITTLE(k + 12);
-  chacha->input[0] = U8TO32_LITTLE(constants + 0);
-  chacha->input[1] = U8TO32_LITTLE(constants + 4);
-  chacha->input[2] = U8TO32_LITTLE(constants + 8);
-  chacha->input[3] = U8TO32_LITTLE(constants + 12);
+  chacha->input[8] = U8TO32_LITTLE(k + 16);
+  chacha->input[9] = U8TO32_LITTLE(k + 20);
+  chacha->input[10] = U8TO32_LITTLE(k + 24);
+  chacha->input[11] = U8TO32_LITTLE(k + 28);
 }
 
 static void

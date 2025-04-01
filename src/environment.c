@@ -13,7 +13,6 @@
 #include "typecheck.h"
 
 type_t *TEXT_TYPE = NULL;
-type_t *RNG_TYPE = NULL;
 public type_t *PATH_TYPE = NULL;
 public type_t *PATH_TYPE_TYPE = NULL;
 
@@ -67,7 +66,6 @@ env_t *global_env(void)
     (void)bind_type(env, "Memory", Type(MemoryType));
     PATH_TYPE_TYPE = declare_type(env, "enum PathType(Relative, Absolute, Home)");
     PATH_TYPE = declare_type(env, "struct Path(type:PathType, components:[Text])");
-    RNG_TYPE = declare_type(env, "struct RNG(state:@Memory)");
 
     typedef struct {
         const char *name, *code, *type_str;
@@ -324,22 +322,6 @@ env_t *global_env(void)
             {"write_unique", "Path$write_unique", "func(path:Path, text:Text -> Path)"},
             {"write_unique_bytes", "Path$write_unique_bytes", "func(path:Path, bytes:[Byte] -> Path)"},
         )},
-        // RNG must come after Path so we can read bytes from /dev/urandom
-        {"RNG", RNG_TYPE, "RNG_t", "RNG", TypedArray(ns_entry_t,
-            {"bool", "RNG$bool", "func(rng:RNG, p=0.5 -> Bool)"},
-            {"byte", "RNG$byte", "func(rng:RNG -> Byte)"},
-            {"bytes", "RNG$bytes", "func(rng:RNG, count:Int -> [Byte])"},
-            {"copy", "RNG$copy", "func(rng:RNG -> RNG)"},
-            {"int", "RNG$int", "func(rng:RNG, min,max:Int -> Int)"},
-            {"int16", "RNG$int16", "func(rng:RNG, min=Int16.min, max=Int16.max -> Int16)"},
-            {"int32", "RNG$int32", "func(rng:RNG, min=Int32.min, max=Int32.max -> Int32)"},
-            {"int64", "RNG$int64", "func(rng:RNG, min=Int64.min, max=Int64.max -> Int64)"},
-            {"int8", "RNG$int8", "func(rng:RNG, min=Int8.min, max=Int8.max -> Int8)"},
-            {"new", "RNG$new", "func(seed=(/dev/urandom):read_bytes(40)! -> RNG)"},
-            {"num", "RNG$num", "func(rng:RNG, min=0.0, max=1.0 -> Num)"},
-            {"num32", "RNG$num32", "func(rng:RNG, min=Num32(0.0), max=Num32(1.0) -> Num32)"},
-            {"set_seed", "RNG$set_seed", "func(rng:RNG, seed:[Byte])"},
-        )},
         {"Text", TEXT_TYPE, "Text_t", "Text$info", TypedArray(ns_entry_t,
             {"as_c_string", "Text$as_c_string", "func(text:Text -> CString)"},
             {"at", "Text$cluster", "func(text:Text, index:Int -> Text)"},
@@ -512,7 +494,6 @@ env_t *global_env(void)
                      {"Path$escape_path", "func(path:Path -> Path)"},
                      {"Int$value_as_text", "func(i:Int -> Path)"});
     ADD_CONSTRUCTORS("CString", {"Text$as_c_string", "func(text:Text -> CString)"});
-    ADD_CONSTRUCTORS("RNG", {"RNG$new", "func(-> RNG)"});
 #undef ADD_CONSTRUCTORS
 
     set_binding(namespace_env(env, "Path"), "from_text",
@@ -524,7 +505,6 @@ env_t *global_env(void)
         const char *name, *code, *type_str;
     } global_vars[] = {
         {"USE_COLOR", "USE_COLOR", "Bool"},
-        {"random", "default_rng", "RNG"},
         {"say", "say", "func(text:Text, newline=yes)"},
         {"print", "say", "func(text:Text, newline=yes)"},
         {"ask", "ask", "func(prompt:Text, bold=yes, force_tty=yes -> Text?)"},

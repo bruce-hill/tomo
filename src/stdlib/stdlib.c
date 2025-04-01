@@ -21,7 +21,6 @@
 #include "metamethods.h"
 #include "nums.h"
 #include "paths.h"
-#include "rng.h"
 #include "siphash.h"
 #include "stdlib.h"
 #include "tables.h"
@@ -64,11 +63,6 @@ public void tomo_init(void)
 
    setlocale(LC_ALL, "");
    getrandom(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0);
-
-   uint8_t *random_bytes[40] = {};
-   getrandom(random_bytes, sizeof(random_bytes), 0);
-   Array_t rng_seed = {.length=sizeof(random_bytes), .data=random_bytes, .stride=1, .atomic=1};
-   RNG$set_seed(default_rng, rng_seed);
 
    struct sigaction sigact;
    sigact.sa_sigaction = signal_handler;

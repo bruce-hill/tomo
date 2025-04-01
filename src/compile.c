@@ -12,6 +12,7 @@
 #include "cordhelpers.h"
 #include "enums.h"
 #include "environment.h"
+#include "parse.h"
 #include "stdlib/integers.h"
 #include "stdlib/nums.h"
 #include "stdlib/paths.h"
@@ -495,8 +496,7 @@ PUREFUNC CORD compile_unsigned_type(type_t *t)
 
 CORD compile_type(type_t *t)
 {
-    if (t == RNG_TYPE) return "RNG_t";
-    else if (t == PATH_TYPE) return "Path_t";
+    if (t == PATH_TYPE) return "Path_t";
     else if (t == PATH_TYPE_TYPE) return "PathType_t";
 
     switch (t->tag) {
@@ -2990,7 +2990,6 @@ CORD compile(env_t *env, ast_t *ast)
             type_t *item_t = Match(self_value_t, ArrayType)->item_type;
             CORD padded_item_size = CORD_all("sizeof(", compile_type(item_t), ")");
 
-            ast_t *default_rng = FakeAST(InlineCCode, .code="default_rng", .type=RNG_TYPE);
             if (streq(call->name, "insert")) {
                 EXPECT_POINTER("an", "array");
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
@@ -3015,36 +3014,40 @@ CORD compile(env_t *env, ast_t *ast)
                                       .next=new(arg_t, .name="max_count", .type=INT_TYPE, .default_val=FakeAST(Int, .str="-1")));
                 return CORD_all("Array$remove_item_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(self_value_t), ")");
-            } else if (streq(call->name, "random")) {
-                self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="rng", .type=RNG_TYPE, .default_val=default_rng);
-                return CORD_all("Array$random_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type(item_t), ")");
             } else if (streq(call->name, "has")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t);
                 return CORD_all("Array$has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "sample")) {
+                type_t *random_num_type = parse_type_string(env, "func(->Num)?");
+                ast_t *none_rng = parse_expression("none:func(->Num)");
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="count", .type=INT_TYPE,
                     .next=new(arg_t, .name="weights", .type=Type(ArrayType, .item_type=Type(NumType)),
                               .default_val=FakeAST(None, .type=new(type_ast_t, .tag=ArrayTypeAST,
                                    .__data.ArrayTypeAST.item=new(type_ast_t, .tag=VarTypeAST, .__data.VarTypeAST.name="Num"))),
-                              .next=new(arg_t, .name="rng", .type=RNG_TYPE, .default_val=default_rng)));
+                              .next=new(arg_t, .name="random", .type=random_num_type, .default_val=none_rng)));
                 return CORD_all("Array$sample(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "shuffle")) {
+                type_t *random_int64_type = parse_type_string(env, "func(min,max:Int64->Int64)?");
+                ast_t *none_rng = parse_expression("none:func(min,max:Int64->Int64)");
                 EXPECT_POINTER("an", "array");
-                arg_t *arg_spec = new(arg_t, .name="rng", .type=RNG_TYPE, .default_val=default_rng);
+                arg_t *arg_spec = new(arg_t, .name="random", .type=random_int64_type, .default_val=none_rng);
                 return CORD_all("Array$shuffle(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
             } else if (streq(call->name, "shuffled")) {
+                type_t *random_int64_type = parse_type_string(env, "func(min,max:Int64->Int64)?");
+                ast_t *none_rng = parse_expression("none:func(min,max:Int64->Int64)");
                 self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="rng", .type=RNG_TYPE, .default_val=default_rng);
+                arg_t *arg_spec = new(arg_t, .name="random", .type=random_int64_type, .default_val=none_rng);
                 return CORD_all("Array$shuffled(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
-            } else if (streq(call->name, "slice")) {
-                self = compile_to_pointer_depth(env, call->self, 0, true);
-                arg_t *arg_spec = new(arg_t, .name="first", .type=INT_TYPE, .next=new(arg_t, .name="last", .type=INT_TYPE));
-                return CORD_all("Array$slice(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
+            } else if (streq(call->name, "random")) {
+                type_t *random_int64_type = parse_type_string(env, "func(min,max:Int64->Int64)?");
+                ast_t *none_rng = parse_expression("none:func(min,max:Int64->Int64)");
+                self = compile_to_pointer_depth(env, call->self, 0, false);
+                arg_t *arg_spec = new(arg_t, .name="random", .type=random_int64_type, .default_val=none_rng);
+                return CORD_all("Array$random_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type(item_t), ")");
             } else if (streq(call->name, "sort") || streq(call->name, "sorted")) {
                 if (streq(call->name, "sort"))
                     EXPECT_POINTER("an", "array");
@@ -3755,8 +3758,7 @@ CORD compile(env_t *env, ast_t *ast)
 
 CORD compile_type_info(type_t *t)
 {
-    if (t == RNG_TYPE) return "&RNG$info";
-    else if (t == PATH_TYPE) return "&Path$info";
+    if (t == PATH_TYPE) return "&Path$info";
     else if (t == PATH_TYPE_TYPE) return "&PathType$info";
 
     switch (t->tag) {
@@ -4036,8 +4038,10 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
         OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Int)->str));
         CORD pop_code = CORD_EMPTY;
         if (cache->tag == Int && !cache_size.is_none && cache_size.value > 0) {
+            // FIXME: this currently just deletes the first entry, but this should be more like a
+            // least-recently-used cache eviction policy or least-frequently-used
             pop_code = CORD_all("if (cache.entries.length > ", CORD_asprintf("%ld", cache_size.value),
-                                ") Table$remove(&cache, cache.entries.data + cache.entries.stride*RNG$int64(default_rng, 0, cache.entries.length-1), table_type);\n");
+                                ") Table$remove(&cache, cache.entries.data + cache.entries.stride*0, table_type);\n");
         }
 
         if (!args->next) {

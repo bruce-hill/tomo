@@ -2442,8 +2442,9 @@ ast_t *parse_file(const char *path, jmp_buf *on_err) {
 
     // If cache is getting too big, evict a random entry:
     if (cached.entries.length > PARSE_CACHE_SIZE) {
-        uint32_t i = arc4random_uniform(cached.entries.length);
-        struct {const char *path; ast_t *ast; } *to_remove = Table$entry(cached, i+1);
+        // FIXME: this currently evicts the first entry, but it should be more like
+        // an LRU cache
+        struct {const char *path; ast_t *ast; } *to_remove = Table$entry(cached, 1);
         Table$str_remove(&cached, to_remove->path);
     }
 
@@ -2484,7 +2485,24 @@ ast_t *parse(const char *str) {
     pos = ast->end;
     whitespace(&pos);
     if (pos < file->text + file->len && *pos != '\0')
-        parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the file");
+        parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the string");
+    return ast;
+}
+
+ast_t *parse_expression(const char *str) {
+    file_t *file = spoof_file("<string>", str);
+    parse_ctx_t ctx = {
+        .file=file,
+        .on_err=NULL,
+    };
+
+    const char *pos = file->text;
+    whitespace(&pos);
+    ast_t *ast = parse_extended_expr(&ctx, pos);
+    pos = ast->end;
+    whitespace(&pos);
+    if (pos < file->text + file->len && *pos != '\0')
+        parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the string");
     return ast;
 }
 

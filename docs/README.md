@@ -26,7 +26,6 @@ Information about Tomo's built-in types can be found here:
 - [Integers](integers.md)
 - [Languages](langs.md)
 - [Paths](paths.md)
-- [Random Number Generators](rng.md)
 - [Sets](sets.md)
 - [Structs](structs.md)
 - [Tables](tables.md)
