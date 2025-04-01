@@ -38,7 +38,7 @@ Information about Tomo's built-in types can be found here:
 Gets a line of user input text with a prompt.
 
 ```tomo
-func ask(prompt:Text, bold:Bool = yes, force_tty:Bool = yes -> Void)
+func ask(prompt:Text, bold:Bool = yes, force_tty:Bool = yes -> Text?)
 ```
 
 - `prompt`: The text to print as a prompt before getting the input.
