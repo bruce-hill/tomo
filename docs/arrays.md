@@ -246,13 +246,13 @@ variable or dereference a heap pointer, it may trigger copy-on-write behavior.
 - [`func insert(arr: @[T], item: T, at: Int = 0 -> Void)`](#insert)
 - [`func insert_all(arr: @[T], items: [T], at: Int = 0 -> Void)`](#insert_all)
 - [`func pop(arr: &[T], index: Int = -1 -> T?)`](#pop)
-- [`func random(arr: [T], rng: RNG = random -> T)`](#random)
+- [`func random(arr: [T], random: func(min,max:Int64->Int64)? = none:func(min,max:Int64->Int64) -> T)`](#random)
 - [`func remove_at(arr: @[T], at: Int = -1, count: Int = 1 -> Void)`](#remove_at)
 - [`func remove_item(arr: @[T], item: T, max_count: Int = -1 -> Void)`](#remove_item)
 - [`func reversed(arr: [T] -> [T])`](#reversed)
-- [`func sample(arr: [T], count: Int, weights: [Num]? = ![Num], rng: RNG = random -> [T])`](#sample)
-- [`func shuffle(arr: @[T], rng: RNG = random -> Void)`](#shuffle)
-- [`func shuffled(arr: [T], rng: RNG = random -> [T])`](#shuffled)
+- [`func sample(arr: [T], count: Int, weights: [Num]? = ![Num], random: func(->Num)? = none:func(->Num) -> [T])`](#sample)
+- [`func shuffle(arr: @[T], random: func(min,max:Int64->Int64)? = none:func(min,max:Int64->Int64) -> Void)`](#shuffle)
+- [`func shuffled(arr: [T], random: func(min,max:Int64->Int64)? = none:func(min,max:Int64->Int64) -> [T])`](#shuffled)
 - [`func slice(arr: [T], from: Int, to: Int -> [T])`](#slice)
 - [`func sort(arr: @[T], by=T.compare -> Void)`](#sort)
 - [`sorted(arr: [T], by=T.compare -> [T])`](#sorted)
@@ -607,11 +607,13 @@ otherwise the item at the given index.
 Selects a random element from the array.
 
 ```tomo
-func random(arr: [T], rng: RNG = random -> T)
+func random(arr: [T], random: func(min,max:Int64->Int64)? = none:func(min,max:Int64->Int64) -> T)
 ```
 
 - `arr`: The array from which to select a random element.
-- `rng`: The [random number generator](rng.md) to use.
+- `random`: If provided, this function will be used to get a random index in the array. Returned
+  values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number
+  generation)
 
 **Returns:**  
 A random element from the array.
@@ -705,7 +707,7 @@ Selects a sample of elements from the array, optionally with weighted
 probabilities.
 
 ```tomo
-func sample(arr: [T], count: Int, weights: [Num]? = ![Num], rng: RNG = random -> [T])
+func sample(arr: [T], count: Int, weights: [Num]? = ![Num], random: func(->Num)? = none:func(->Num) -> [T])
 ```
 
 - `arr`: The array to sample from.
@@ -714,7 +716,10 @@ func sample(arr: [T], count: Int, weights: [Num]? = ![Num], rng: RNG = random ->
   values do not need to add up to any particular number, they are relative
   weights. If no weights are given, elements will be sampled with uniform
   probability.
-- `rng`: The [random number generator](rng.md) to use.
+- `random`: If provided, this function will be used to get random values for
+  sampling the array. The provided function should return random numbers
+  between `0.0` (inclusive) and `1.0` (exclusive). (Used for deterministic
+  pseudorandom number generation)
 
 **Errors:**
 Errors will be raised if any of the following conditions occurs:
@@ -739,11 +744,13 @@ A list of sampled elements from the array.
 Shuffles the elements of the array in place.
 
 ```tomo
-func shuffle(arr: @[T], rng: RNG = random -> Void)
+func shuffle(arr: @[T], random: func(min,max:Int64->Int64)? = none:func(min,max:Int64->Int64) -> Void)
 ```
 
 - `arr`: The mutable reference to the array to be shuffled.
-- `rng`: The [random number generator](rng.md) to use.
+- `random`: If provided, this function will be used to get a random index in the array. Returned
+  values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number
+  generation)
 
 **Returns:**  
 Nothing.
@@ -759,11 +766,13 @@ Nothing.
 Creates a new array with elements shuffled.
 
 ```tomo
-func shuffled(arr: [T], rng: RNG = random -> [T])
+func shuffled(arr: [T], random: func(min,max:Int64->Int64)? = none:func(min,max:Int64->Int64) -> [T])
 ```
 
 - `arr`: The array to be shuffled.
-- `rng`: The [random number generator](rng.md) to use.
+- `random`: If provided, this function will be used to get a random index in the array. Returned
+  values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number
+  generation)
 
 **Returns:**  
 A new array with shuffled elements.

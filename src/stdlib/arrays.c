@@ -307,6 +307,8 @@ public void Array$shuffle(Array_t *arr, OptionalClosure_t random_int64, int64_t 
     char tmp[padded_item_size];
     for (int64_t i = arr->length-1; i > 1; i--) {
         int64_t j = rng_fn(0, i, random_int64.userdata);
+        if unlikely (j < 0 || j > arr->length-1)
+            fail("The provided random number function returned an invalid value: ", j, " (not between 0 and ", i, ")");
         memcpy(tmp, arr->data + i*padded_item_size, (size_t)padded_item_size);
         memcpy((void*)arr->data + i*padded_item_size, arr->data + j*padded_item_size, (size_t)padded_item_size);
         memcpy((void*)arr->data + j*padded_item_size, tmp, (size_t)padded_item_size);
@@ -327,6 +329,8 @@ public void *Array$random(Array_t arr, OptionalClosure_t random_int64)
 
     int64_t (*rng_fn)(int64_t, int64_t, void*) = random_int64.fn;
     int64_t index = rng_fn(0, arr.length-1, random_int64.userdata);
+    if unlikely (index < 0 || index > arr.length-1)
+        fail("The provided random number function returned an invalid value: ", index, " (not between 0 and ", (int64_t)arr.length, ")");
     return arr.data + arr.stride*index;
 }
 
@@ -369,11 +373,6 @@ public Array_t Array$sample(Array_t arr, Int_t int_n, Array_t weights, OptionalC
 
     if (arr.length == 0)
         fail("There are no elements in this array!");
-
-    Array_t selected = {
-        .data=arr.atomic ? GC_MALLOC_ATOMIC((size_t)(n * padded_item_size)) : GC_MALLOC((size_t)(n * padded_item_size)),
-        .length=n,
-        .stride=padded_item_size, .atomic=arr.atomic};
 
     if (weights.length != arr.length)
         fail("Array has ", (int64_t)arr.length, " elements, but there are ", (int64_t)weights.length, " weights given");
@@ -433,9 +432,18 @@ public Array_t Array$sample(Array_t arr, Int_t int_n, Array_t weights, OptionalC
             aliases[i].alias = i;
 
     double (*rng_fn)(void*) = random_num.fn ? random_num.fn : _default_random_num;
+
+    Array_t selected = {
+        .data=arr.atomic ? GC_MALLOC_ATOMIC((size_t)(n * padded_item_size)) : GC_MALLOC((size_t)(n * padded_item_size)),
+        .length=n,
+        .stride=padded_item_size, .atomic=arr.atomic};
     for (int64_t i = 0; i < n; i++) {
-        double r = (double)arr.length * rng_fn(random_num.userdata);
+        double r = rng_fn(random_num.userdata);
+        if unlikely (r < 0.0 || r >= 1.0)
+            fail("The random number function returned a value not between 0.0 (inclusive) and 1.0 (exclusive): ", r);
+        r *= (double)arr.length;
         int64_t index = (int64_t)r;
+        assert(index >= 0 && index < arr.length);
         if ((r - (double)index) > aliases[index].odds)
             index = aliases[index].alias;
         memcpy(selected.data + i*selected.stride, arr.data + index*arr.stride, (size_t)padded_item_size);
