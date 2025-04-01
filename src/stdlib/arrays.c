@@ -303,7 +303,8 @@ public void Array$shuffle(Array_t *arr, OptionalClosure_t random_int64, int64_t 
     if (arr->data_refcount != 0 || (int64_t)arr->stride != padded_item_size)
         Array$compact(arr, padded_item_size);
 
-    int64_t (*rng_fn)(int64_t, int64_t, void*) = random_int64.fn ? random_int64.fn : _default_random_int64;
+    typedef int64_t (*rng_fn_t)(int64_t, int64_t, void*);
+    rng_fn_t rng_fn = random_int64.fn ? (rng_fn_t)random_int64.fn : _default_random_int64;
     char tmp[padded_item_size];
     for (int64_t i = arr->length-1; i > 1; i--) {
         int64_t j = rng_fn(0, i, random_int64.userdata);
@@ -327,7 +328,8 @@ public void *Array$random(Array_t arr, OptionalClosure_t random_int64)
     if (arr.length == 0)
         return NULL; // fail("Cannot get a random item from an empty array!");
 
-    int64_t (*rng_fn)(int64_t, int64_t, void*) = random_int64.fn;
+    typedef int64_t (*rng_fn_t)(int64_t, int64_t, void*);
+    rng_fn_t rng_fn = random_int64.fn ? (rng_fn_t)random_int64.fn : _default_random_int64;
     int64_t index = rng_fn(0, arr.length-1, random_int64.userdata);
     if unlikely (index < 0 || index > arr.length-1)
         fail("The provided random number function returned an invalid value: ", index, " (not between 0 and ", (int64_t)arr.length, ")");
@@ -431,7 +433,8 @@ public Array_t Array$sample(Array_t arr, Int_t int_n, Array_t weights, OptionalC
         if (aliases[i].alias == -1)
             aliases[i].alias = i;
 
-    double (*rng_fn)(void*) = random_num.fn ? random_num.fn : _default_random_num;
+    typedef double (*rng_fn_t)(void*);
+    rng_fn_t rng_fn = random_num.fn ? (rng_fn_t)random_num.fn : _default_random_num;
 
     Array_t selected = {
         .data=arr.atomic ? GC_MALLOC_ATOMIC((size_t)(n * padded_item_size)) : GC_MALLOC((size_t)(n * padded_item_size)),
