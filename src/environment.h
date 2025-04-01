@@ -72,7 +72,7 @@ env_t *namespace_env(env_t *env, const char *namespace_name);
         fputs("\x1b[31;7;1m", stderr); \
     if (_f && start && end) \
         fprint_inline(stderr, _f->relative_filename, ":", get_line_number(_f, start), ".", get_line_column(_f, start), ": "); \
-    fprint(stderr, __VA_ARGS__); \
+    fprint_inline(stderr, __VA_ARGS__); \
     if (USE_COLOR) \
         fputs(" \x1b[m", stderr); \
     fputs("\n\n", stderr); \
