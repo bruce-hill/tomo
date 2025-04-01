@@ -73,11 +73,11 @@ void end_inspect(const void *expr, const TypeInfo_t *type);
     end_inspect(&_expr, typeinfo); \
 }
 __attribute__((nonnull))
-void test_value(const void *expr, const void *expected, const TypeInfo_t *type);
+void test_value(const char *filename, int64_t start, int64_t end, const void *expr, const void *expected, const TypeInfo_t *type);
 #define test(expr, expected, typeinfo, start, end) {\
     auto _expr = expr; \
     auto _expected = expected; \
-    test_value(&_expr, &_expected, typeinfo); \
+    test_value(__SOURCE_FILE__, start, end, &_expr, &_expected, typeinfo); \
 }
 
 void say(Text_t text, bool newline);

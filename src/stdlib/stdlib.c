@@ -576,7 +576,7 @@ public void end_inspect(const void *expr, const TypeInfo_t *type)
 }
 
 __attribute__((nonnull))
-public void test_value(const void *expr, const void *expected, const TypeInfo_t *type)
+public void test_value(const char *filename, int64_t start, int64_t end, const void *expr, const void *expected, const TypeInfo_t *type)
 {
     Text_t expr_text = generic_as_text(expr, USE_COLOR, type);
     Text_t expected_text = generic_as_text(expected, USE_COLOR, type);
@@ -584,6 +584,13 @@ public void test_value(const void *expr, const void *expected, const TypeInfo_t 
     bool success = Text$equal_values(expr_text, expected_text);
     if (!success) {
         print_stack_trace(stderr, 2, 4);
+        fprint(stderr, "");
+        fflush(stderr);
+
+        start_inspect(filename, start, end);
+        end_inspect(expr, type);
+        fflush(stdout);
+
         if (USE_COLOR) {
             fprint(stderr, 
                     "\n\x1b[31;7m ==================== TEST FAILED ==================== \x1b[0;1m\n\n"
