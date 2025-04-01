@@ -69,7 +69,7 @@ env_t *namespace_env(env_t *env, const char *namespace_name);
 #define compiler_err(f, start, end, ...) ({ \
     file_t *_f = f; \
     if (USE_COLOR) \
-        fputs("\x1b[31;7;1m", stderr); \
+        fputs("\x1b[31;7;1m ", stderr); \
     if (_f && start && end) \
         fprint_inline(stderr, _f->relative_filename, ":", get_line_number(_f, start), ".", get_line_column(_f, start), ": "); \
     fprint_inline(stderr, __VA_ARGS__); \
