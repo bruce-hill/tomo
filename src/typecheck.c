@@ -274,9 +274,23 @@ void prebind_statement(env_t *env, ast_t *statement)
     case Extend: {
         auto extend = Match(statement, Extend);
         env_t *ns_env = namespace_env(env, extend->name);
-        ns_env->libname = env->libname;
+        env_t *extended = new(env_t);
+        *extended = *ns_env;
+        extended->locals = new(Table_t, .fallback=env->locals);
+        extended->namespace_bindings = new(Table_t, .fallback=env->namespace_bindings);
+        extended->libname = env->libname;
         for (ast_list_t *stmt = extend->body ? Match(extend->body, Block)->statements : NULL; stmt; stmt = stmt->next)
-            prebind_statement(ns_env, stmt->ast);
+            prebind_statement(extended, stmt->ast);
+        Array_t new_bindings = extended->locals->entries;
+        for (int64_t i = 0; i < new_bindings.length; i++) {
+            struct { const char *name; binding_t *binding; } *entry = new_bindings.data + i*new_bindings.stride;
+            binding_t *clobbered = Table$str_get(*ns_env->locals, entry->name);
+            if (clobbered && !type_eq(clobbered->type, entry->binding->type))
+                code_err(statement, "This `extend` block overwrites the binding for ", quoted(entry->name),
+                         " in the original namespace (with type ", type_to_str(clobbered->type), ") with a new binding with type ",
+                         type_to_str(entry->binding->type));
+            Table$str_set(ns_env->locals, entry->name, entry->binding);
+        }
         break;
     }
     default: break;
@@ -448,9 +462,23 @@ void bind_statement(env_t *env, ast_t *statement)
     case Extend: {
         auto extend = Match(statement, Extend);
         env_t *ns_env = namespace_env(env, extend->name);
-        ns_env->libname = env->libname;
+        env_t *extended = new(env_t);
+        *extended = *ns_env;
+        extended->locals = new(Table_t, .fallback=env->locals);
+        extended->namespace_bindings = new(Table_t, .fallback=env->namespace_bindings);
+        extended->libname = env->libname;
         for (ast_list_t *stmt = extend->body ? Match(extend->body, Block)->statements : NULL; stmt; stmt = stmt->next)
-            bind_statement(ns_env, stmt->ast);
+            bind_statement(extended, stmt->ast);
+        Array_t new_bindings = extended->locals->entries;
+        for (int64_t i = 0; i < new_bindings.length; i++) {
+            struct { const char *name; binding_t *binding; } *entry = new_bindings.data + i*new_bindings.stride;
+            binding_t *clobbered = Table$str_get(*ns_env->locals, entry->name);
+            if (clobbered && !type_eq(clobbered->type, entry->binding->type))
+                code_err(statement, "This `extend` block overwrites the binding for ", quoted(entry->name),
+                         " in the original namespace (with type ", type_to_str(clobbered->type), ") with a new binding with type ",
+                         type_to_str(entry->binding->type));
+            Table$str_set(ns_env->locals, entry->name, entry->binding);
+        }
         break;
     }
     case Use: {

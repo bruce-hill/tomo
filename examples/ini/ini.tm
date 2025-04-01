@@ -1,3 +1,6 @@
+
+use patterns
+
 _USAGE := "
     Usage: ini <filename> "[section[/key]]"
 "
@@ -12,18 +15,18 @@ func parse_ini(path:Path -> {Text,{Text,Text}}):
     current_section := @{:Text,Text}
 
     # Line wraps:
-    text = text:replace($/\{1 nl}{0+space}/, " ")
+    text = text:replace_pattern($Pat/\{1 nl}{0+space}/, " ")
 
     for line in text:lines():
         line = line:trim()
         skip if line:starts_with(";") or line:starts_with("#")
-        if line:matches($/[?]/):
-            section_name := line:replace($/[?]/, "\1"):trim():lower()
+        if line:matches_pattern($Pat/[?]/):
+            section_name := line:replace($Pat/[?]/, "\1"):trim():lower()
             current_section = @{:Text,Text}
             sections[section_name] = current_section
-        else if line:matches($/{..}={..}/):
-            key := line:replace($/{..}={..}/, "\1"):trim():lower()
-            value := line:replace($/{..}={..}/, "\2"):trim()
+        else if line:matches_pattern($Pat/{..}={..}/):
+            key := line:replace_pattern($Pat/{..}={..}/, "\1"):trim():lower()
+            value := line:replace_pattern($Pat/{..}={..}/, "\2"):trim()
             current_section[key] = value
 
     return {k=v[] for k,v in sections[]}

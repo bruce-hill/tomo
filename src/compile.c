@@ -4200,8 +4200,12 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
     case Extend: {
         auto extend = Match(ast, Extend);
         env_t *ns_env = namespace_env(env, extend->name);
-        ns_env->libname = env->libname;
-        return compile_top_level_code(ns_env, extend->body);
+        env_t *extended = new(env_t);
+        *extended = *ns_env;
+        extended->locals = new(Table_t, .fallback=env->locals);
+        extended->namespace_bindings = new(Table_t, .fallback=env->namespace_bindings);
+        extended->libname = env->libname;
+        return compile_top_level_code(extended, extend->body);
     }
     case Extern: return CORD_EMPTY;
     case Block: {
@@ -4358,30 +4362,38 @@ CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
 
 CORD compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t *ast)
 {
-    const char *ns_name = NULL;
+    env_t *ns_env = NULL;
     ast_t *block = NULL;
     switch (ast->tag) {
     case LangDef: {
         auto def = Match(ast, LangDef);
-        ns_name = def->name;
+        ns_env = namespace_env(env, def->name);
         block = def->namespace;
         break;
     }
     case Extend: {
         auto extend = Match(ast, Extend);
-        ns_name = extend->name;
+        ns_env = namespace_env(env, extend->name);
+
+        env_t *extended = new(env_t);
+        *extended = *ns_env;
+        extended->locals = new(Table_t, .fallback=env->locals);
+        extended->namespace_bindings = new(Table_t, .fallback=env->namespace_bindings);
+        extended->libname = env->libname;
+        ns_env = extended;
+
         block = extend->body;
         break;
     }
     case StructDef: {
         auto def = Match(ast, StructDef);
-        ns_name = def->name;
+        ns_env = namespace_env(env, def->name);
         block = def->namespace;
         break;
     }
     case EnumDef: {
         auto def = Match(ast, EnumDef);
-        ns_name = def->name;
+        ns_env = namespace_env(env, def->name);
         block = def->namespace;
         break;
     }
@@ -4465,7 +4477,7 @@ CORD compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t *a
     }
     default: return CORD_EMPTY;
     }
-    env_t *ns_env = namespace_env(env, ns_name);
+    assert(ns_env);
     CORD header = CORD_EMPTY;
     for (ast_list_t *stmt = block ? Match(block, Block)->statements : NULL; stmt; stmt = stmt->next) {
         header = CORD_all(header, compile_statement_namespace_header(ns_env, header_path, stmt->ast));

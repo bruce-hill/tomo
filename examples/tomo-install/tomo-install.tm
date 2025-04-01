@@ -1,4 +1,5 @@
 use shell
+use patterns
 
 _USAGE := "
     tomo-install file.tm...
@@ -16,7 +17,7 @@ func find_urls(path:Path -> [Text]):
             urls:insert_all(find_urls(f))
     else if path:is_file() and path:extension() == ".tm":
         for line in path:by_line()!:
-            if m := line:matches($/use{space}{url}/) or line:matches($/{id}{space}:={space}use{space}{url}/):
+            if m := line:matches_pattern($Pat/use{space}{url}/) or line:matches_pattern($Pat/{id}{space}:={space}use{space}{url}/):
                 urls:insert(m[-1])
     return urls
 
@@ -33,7 +34,7 @@ func main(paths:[Path]):
 
     for url in urls:
         original_url := url
-        url_without_protocol := url:trim($|http{0-1 s}://|, trim_right=no)
+        url_without_protocol := url:trim_pattern($Pat"http{0-1 s}://", right=no)
         hash := $Shell@(echo -n @url_without_protocol | sha256sum):get_output()!:slice(to=32)
         if (~/.local/share/tomo/installed/$hash):is_directory():
             say("Already installed: $url")
@@ -41,12 +42,12 @@ func main(paths:[Path]):
 
         alias := none:Text
         curl_flags := ["-L"]
-        if github := url_without_protocol:matches($|github.com/{!/}/{!/}#{..}|):
+        if github := url_without_protocol:matches_pattern($Pat"github.com/{!/}/{!/}#{..}"):
             user := github[1]
             repo := github[2]
             tag := github[3]
             url = "https://api.github.com/repos/$user/$repo/tarball/$tag"
-            alias = "$(repo:trim($/tomo-/, trim_right=no)).$(tag).$(user)"
+            alias = "$(repo:without_prefix("tomo-")).$(tag).$(user)"
             if github_token:
                 curl_flags ++= ["-H", "Authorization: Bearer $github_token"]
             curl_flags ++= [

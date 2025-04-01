@@ -123,7 +123,7 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern):
             t:format("%l:%M%P")
         else:
             t:format("%H:%M")
-        return time:trim($/ /, trim_left=yes, trim_right=yes)
+        return time:trim()
 
     func date(t:Time, timezone=Time.local_timezone() -> Text):
         return t:format("%F")

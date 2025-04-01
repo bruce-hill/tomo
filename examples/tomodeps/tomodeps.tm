@@ -1,5 +1,7 @@
 # Show a Tomo dependency graph
 
+use patterns
+
 _USAGE := "Usage: tomodeps <files...>"
 
 _HELP := "
@@ -17,11 +19,11 @@ func _get_file_dependencies(file:Path -> {Dependency}):
     deps := @{:Dependency}
     if lines := file:by_line():
         for line in lines:
-            if line:matches($/use {..}.tm/):
-                file_import := Path.from_text(line:replace($/use {..}/, "\1")):resolved(relative_to=file)
+            if line:matches_pattern($Pat/use {..}.tm/):
+                file_import := Path.from_text(line:replace_pattern($Pat/use {..}/, "\1")):resolved(relative_to=file)
                 deps:add(Dependency.File(file_import))
-            else if line:matches($/use {id}/):
-                module_name := line:replace($/use {..}/, "\1")
+            else if line:matches_pattern($Pat/use {id}/):
+                module_name := line:replace_pattern($Pat/use {..}/, "\1")
                 deps:add(Dependency.Module(module_name))
     return deps[]
 
@@ -102,11 +104,11 @@ func main(files:[Text]):
         ")
 
     for arg in files:
-        if arg:matches($/{..}.tm/):
+        if arg:matches_pattern($Pat/{..}.tm/):
             path := Path.from_text(arg):resolved()
             dependencies := get_dependency_graph(File(path))
             draw_tree(File(path), dependencies)
-        else if arg:matches($/{id}/):
+        else if arg:matches_pattern($Pat/{id}/):
             dependencies := get_dependency_graph(Module(arg))
             draw_tree(Module(arg), dependencies)
         else:
