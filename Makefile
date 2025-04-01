@@ -107,8 +107,8 @@ clean:
 examples: examples/base64/base64 examples/ini/ini examples/game/game \
 		examples/tomodeps/tomodeps examples/tomo-install/tomo-install examples/wrap/wrap examples/colorful/colorful
 	./build/tomo -qIL examples/patterns examples/time examples/commands examples/shell examples/base64 examples/log \
-		examples/ini examples/vectors examples/game \
-		examples/http examples/tomodeps examples/tomo-install examples/wrap examples/pthreads examples/colorful
+		examples/ini examples/vectors examples/game examples/http examples/tomodeps examples/tomo-install \
+		examples/wrap examples/pthreads examples/colorful examples/core
 	./build/tomo examples/learnxiny.tm
 
 deps: check-gcc
