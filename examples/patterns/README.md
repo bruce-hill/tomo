@@ -10,30 +10,27 @@ getting [leaning toothpick syndrome](https://en.wikipedia.org/wiki/Leaning_tooth
 For more advanced use cases, consider linking against a C library for regular
 expressions or pattern matching.
 
-`Pattern` is a [domain-specific language](docs/langs.md), in other words, it's
-like a `Text`, but it has a distinct type. As a convenience, you can use
-`$/.../` to write pattern literals instead of using the general-purpose DSL
-syntax of `$Pattern"..."`.
+`Pat` is a [domain-specific language](docs/langs.md), in other words, it's
+like a `Text`, but it has a distinct type.
 
 Patterns are used in a small, but very powerful API that handles many text
 functions that would normally be handled by a more extensive API:
 
-```
-Text.has(pattern:Pattern -> Bool)
-Text.each(pattern:Pattern, fn:func(m:Match), recursive=yes -> Text)
-Text.find(pattern:Pattern, start=1 -> Match?)
-Text.find_all(pattern:Pattern -> [Match])
-Text.matches(pattern:Pattern -> [Text]?)
-Text.map(pattern:Pattern, fn:func(m:Match -> Text), recursive=yes -> Text)
-Text.replace(pattern:Pattern, replacement:Text, placeholder:Pattern=$//, recursive=yes -> [Text])
-Text.replace_all(replacements:{Pattern,Text}, placeholder:Pattern=$//, recursive=yes -> [Text])
-Text.split(pattern:Pattern -> [Text])
-Text.trim(pattern=$/{whitespace}/, trim_left=yes, trim_right=yes -> [Text])
-```
+- [`matches_pattern(text:Text, pattern:Pat -> [Text]?)`](#matches_pattern)
+- [`replace_pattern(text:Text, pattern:Pat, replacement:Text, backref="@", recursive=yes -> Text)`](#replace_pattern)
+- [`translate_patterns(text:Text, replacements:{Pat,Text}, backref="@", recursive=yes -> Text)`](#translate_patterns)
+- [`has_pattern(text:Text, pattern:Pat -> Bool)`](#has_pattern)
+- [`find_patterns(text:Text, pattern:Pat -> [PatternMatch])`](#find_patterns)
+- [`by_pattern(text:Text, pattern:Pat -> func(->PatternMatch?))`](#by_pattern)
+- [`each_pattern(text:Text, pattern:Pat, fn:func(m:PatternMatch), recursive=yes)`](#each_pattern)
+- [`map_pattern(text:Text, pattern:Pat, fn:func(m:PatternMatch -> Text), recursive=yes -> Text)`](#map_pattern)
+- [`split_pattern(text:Text, pattern:Pat -> [Text])`](#split_pattern)
+- [`by_pattern_split(text:Text, pattern:Pat -> func(->Text?))`](#by_pattern_split)
+- [`trim_pattern(text:Text, pattern=$Pat"{space}", left=yes, right=yes -> Text)`](#trim_pattern)
 
 ## Matches
 
-Pattern matching functions work with a type called `Match` that has three fields:
+Pattern matching functions work with a type called `PatternMatch` that has three fields:
 
 - `text`: The full text of the match.
 - `index`: The index in the text where the match was found.
@@ -150,3 +147,177 @@ many repetitions you want by putting a number or range of numbers first using
 {2+ space}
 {0-1 question mark}
 ```
+
+
+# Methods
+
+### `matches_pattern`
+Returns an array of text segments that match the given pattern.
+
+```tomo
+func matches_pattern(text:Text, pattern:Pat -> [Text]?)
+```
+
+- `text`: The text to search within.
+- `pattern`: The pattern to match.
+
+**Returns:**  
+An optional array of matched text segments. Returns `none` if no matches are found.
+
+---
+
+### `replace_pattern`
+Replaces occurrences of a pattern with a replacement string, supporting backreferences.
+
+```tomo
+func replace_pattern(text:Text, pattern:Pat, replacement:Text, backref="@", recursive=yes -> Text)
+```
+
+- `text`: The text to modify.
+- `pattern`: The pattern to match.
+- `replacement`: The text to replace matches with.
+- `backref`: The symbol for backreferences in the replacement.
+- `recursive`: If `yes`, applies replacements recursively.
+
+**Returns:**  
+A new text with replacements applied.
+
+---
+
+### `translate_patterns`
+Replaces multiple patterns using a mapping of patterns to replacement texts.
+
+```tomo
+func translate_patterns(text:Text, replacements:{Pat,Text}, backref="@", recursive=yes -> Text)
+```
+
+- `text`: The text to modify.
+- `replacements`: A table mapping patterns to their replacements.
+- `backref`: The symbol for backreferences in replacements.
+- `recursive`: If `yes`, applies replacements recursively.
+
+**Returns:**  
+A new text with all specified replacements applied.
+
+---
+
+### `has_pattern`
+Checks whether a given pattern appears in the text.
+
+```tomo
+func has_pattern(text:Text, pattern:Pat -> Bool)
+```
+
+- `text`: The text to search.
+- `pattern`: The pattern to check for.
+
+**Returns:**  
+`yes` if a match is found, otherwise `no`.
+
+---
+
+### `find_patterns`
+Finds all occurrences of a pattern in a text and returns them as `PatternMatch` objects.
+
+```tomo
+func find_patterns(text:Text, pattern:Pat -> [PatternMatch])
+```
+
+- `text`: The text to search.
+- `pattern`: The pattern to match.
+
+**Returns:**  
+An array of `PatternMatch` objects.
+
+---
+
+### `by_pattern`
+Returns an iterator function that yields `PatternMatch` objects for each occurrence.
+
+```tomo
+func by_pattern(text:Text, pattern:Pat -> func(->PatternMatch?))
+```
+
+- `text`: The text to search.
+- `pattern`: The pattern to match.
+
+**Returns:**  
+An iterator function that yields `PatternMatch` objects one at a time.
+
+---
+
+### `each_pattern`
+Applies a function to each occurrence of a pattern in the text.
+
+```tomo
+func each_pattern(text:Text, pattern:Pat, fn:func(m:PatternMatch), recursive=yes)
+```
+
+- `text`: The text to search.
+- `pattern`: The pattern to match.
+- `fn`: The function to apply to each match.
+- `recursive`: If `yes`, applies the function recursively on modified text.
+
+---
+
+### `map_pattern`
+Transforms matches of a pattern using a mapping function.
+
+```tomo
+func map_pattern(text:Text, pattern:Pat, fn:func(m:PatternMatch -> Text), recursive=yes -> Text)
+```
+
+- `text`: The text to modify.
+- `pattern`: The pattern to match.
+- `fn`: A function that transforms matches.
+- `recursive`: If `yes`, applies transformations recursively.
+
+**Returns:**  
+A new text with the transformed matches.
+
+---
+
+### `split_pattern`
+Splits a text into segments using a pattern as the delimiter.
+
+```tomo
+func split_pattern(text:Text, pattern:Pat -> [Text])
+```
+
+- `text`: The text to split.
+- `pattern`: The pattern to use as a separator.
+
+**Returns:**  
+An array of text segments.
+
+---
+
+### `by_pattern_split`
+Returns an iterator function that yields text segments split by a pattern.
+
+```tomo
+func by_pattern_split(text:Text, pattern:Pat -> func(->Text?))
+```
+
+- `text`: The text to split.
+- `pattern`: The pattern to use as a separator.
+
+**Returns:**  
+An iterator function that yields text segments.
+
+---
+
+### `trim_pattern`
+Removes matching patterns from the beginning and/or end of a text.
+
+```tomo
+func trim_pattern(text:Text, pattern=$Pat"{space}", left=yes, right=yes -> Text)
+```
+
+- `text`: The text to trim.
+- `pattern`: The pattern to trim (defaults to whitespace).
+- `left`: If `yes`, trims from the beginning.
+- `right`: If `yes`, trims from the end.
+
+**Returns:**  
+The trimmed text.
