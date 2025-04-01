@@ -1,12 +1,12 @@
 lang HTML:
 	HEADER := $HTML"<!DOCTYPE HTML>"
 	convert(t:Text->HTML):
-		t = t:replace_all({
-			$/&/="&amp;",
-			$/</="&lt;",
-			$/>/="&gt;",
-			$/"/="&quot",
-			$/'/="&#39;",
+		t = t:translate({
+			"&"="&amp;",
+			"<"="&lt;",
+			">"="&gt;",
+			'"'="&quot",
+			"'"="&#39;",
 		})
 
 		return HTML.from_text(t)

@@ -2,20 +2,27 @@
 
 #include <ctype.h>
 #include <sys/param.h>
+#include <tomo/tomo.h>
 #include <unictype.h>
 #include <uniname.h>
 #include <unistring/version.h>
 
-#include "arrays.h"
-#include "integers.h"
-#include "optionals.h"
-#include "patterns.h"
-#include "structs.h"
-#include "tables.h"
-#include "text.h"
-#include "types.h"
-
 #define MAX_BACKREFS 100
+
+typedef struct {
+    Text_t text;
+    Int_t index;
+    Array_t captures;
+} PatternMatch;
+
+typedef struct {
+    Text_t text;
+    Int_t index;
+    Array_t captures;
+    bool is_none:1;
+} OptionalPatternMatch;
+
+#define NONE_MATCH ((OptionalPatternMatch){.is_none=true})
 
 typedef struct {
     int64_t index, length;
@@ -35,7 +42,7 @@ typedef struct {
     };
 } pat_t;
 
-static Text_t Text$replace_array(Text_t text, Array_t replacements, Text_t backref_pat, bool recursive);
+static Text_t replace_array(Text_t text, Array_t replacements, Text_t backref_pat, bool recursive);
 
 static INLINE void skip_whitespace(TextIter_t *state, int64_t *i)
 {
@@ -673,7 +680,7 @@ static pat_t parse_next_pat(TextIter_t *state, int64_t *index)
     }
 }
 
-static int64_t match(Text_t text, int64_t text_index, Pattern_t pattern, int64_t pattern_index, capture_t *captures, int64_t capture_index)
+static int64_t match(Text_t text, int64_t text_index, Text_t pattern, int64_t pattern_index, capture_t *captures, int64_t capture_index)
 {
     if (pattern_index >= pattern.length) // End of the pattern
         return 0;
@@ -773,7 +780,7 @@ static int64_t match(Text_t text, int64_t text_index, Pattern_t pattern, int64_t
 #undef EAT2
 #undef EAT_MANY
 
-static int64_t _find(Text_t text, Pattern_t pattern, int64_t first, int64_t last, int64_t *match_length, capture_t *captures)
+static int64_t _find(Text_t text, Text_t pattern, int64_t first, int64_t last, int64_t *match_length, capture_t *captures)
 {
     int32_t first_grapheme = Text$get_grapheme(pattern, 0);
     bool find_first = (first_grapheme != '{'
@@ -800,7 +807,7 @@ static int64_t _find(Text_t text, Pattern_t pattern, int64_t first, int64_t last
     return -1;
 }
 
-public OptionalMatch_t Text$find(Text_t text, Pattern_t pattern, Int_t from_index)
+static OptionalPatternMatch find(Text_t text, Text_t pattern, Int_t from_index)
 {
     int64_t first = Int64$from_int(from_index, false);
     if (first == 0) fail("Invalid index: 0");
@@ -819,14 +826,14 @@ public OptionalMatch_t Text$find(Text_t text, Pattern_t pattern, Int_t from_inde
         Text_t capture = Text$slice(text, I(captures[i].index+1), I(captures[i].index+captures[i].length));
         Array$insert(&capture_array, &capture, I(0), sizeof(Text_t));
     }
-    return (OptionalMatch_t){
+    return (OptionalPatternMatch){
         .text=Text$slice(text, I(found+1), I(found+len)),
         .index=I(found+1),
         .captures=capture_array,
     };
 }
 
-PUREFUNC public bool Text$has(Text_t text, Pattern_t pattern)
+PUREFUNC static bool Pattern$has(Text_t text, Text_t pattern)
 {
     if (Text$starts_with(pattern, Text("{start}"))) {
         int64_t m = match(text, 0, pattern, 0, NULL, 0);
@@ -844,7 +851,7 @@ PUREFUNC public bool Text$has(Text_t text, Pattern_t pattern)
     }
 }
 
-public OptionalArray_t Text$matches(Text_t text, Pattern_t pattern)
+static OptionalArray_t Pattern$matches(Text_t text, Text_t pattern)
 {
     capture_t captures[MAX_BACKREFS] = {};
     int64_t match_len = match(text, 0, pattern, 0, captures, 0);
@@ -859,18 +866,18 @@ public OptionalArray_t Text$matches(Text_t text, Pattern_t pattern)
     return capture_array;
 }
 
-public Array_t Text$find_all(Text_t text, Pattern_t pattern)
+static Array_t Pattern$find_all(Text_t text, Text_t pattern)
 {
     if (pattern.length == 0) // special case
         return (Array_t){.length=0};
 
     Array_t matches = {};
     for (int64_t i = 1; ; ) {
-        OptionalMatch_t m = Text$find(text, pattern, I(i));
-        if (!m.index.small)
+        OptionalPatternMatch m = find(text, pattern, I(i));
+        if (m.is_none)
             break;
         i = Int64$from_int(m.index, false) + m.text.length;
-        Array$insert(&matches, &m, I_small(0), sizeof(Match_t));
+        Array$insert(&matches, &m, I_small(0), sizeof(PatternMatch));
     }
     return matches;
 }
@@ -878,23 +885,23 @@ public Array_t Text$find_all(Text_t text, Pattern_t pattern)
 typedef struct {
     TextIter_t state;
     Int_t i;
-    Pattern_t pattern;
+    Text_t pattern;
 } match_iter_state_t;
 
-static OptionalMatch_t next_match(match_iter_state_t *state)
+static OptionalPatternMatch next_match(match_iter_state_t *state)
 {
     if (Int64$from_int(state->i, false) > state->state.stack[0].text.length)
         return NONE_MATCH;
 
-    OptionalMatch_t m = Text$find(state->state.stack[0].text, state->pattern, state->i);
-    if (m.index.small == 0) // No match
+    OptionalPatternMatch m = find(state->state.stack[0].text, state->pattern, state->i);
+    if (m.is_none) // No match
         state->i = I(state->state.stack[0].text.length + 1);
     else
         state->i = Int$plus(m.index, I(MAX(1, m.text.length)));
     return m;
 }
 
-public Closure_t Text$by_match(Text_t text, Pattern_t pattern)
+static Closure_t Pattern$by_match(Text_t text, Text_t pattern)
 {
     return (Closure_t){
         .fn=(void*)next_match,
@@ -902,7 +909,7 @@ public Closure_t Text$by_match(Text_t text, Pattern_t pattern)
     };
 }
 
-static Text_t apply_backrefs(Text_t text, Array_t recursive_replacements, Text_t replacement, Pattern_t backref_pat, capture_t *captures)
+static Text_t apply_backrefs(Text_t text, Array_t recursive_replacements, Text_t replacement, Text_t backref_pat, capture_t *captures)
 {
     if (backref_pat.length == 0)
         return replacement;
@@ -946,7 +953,7 @@ static Text_t apply_backrefs(Text_t text, Array_t recursive_replacements, Text_t
         Text_t backref_text = Text$slice(text, I(captures[backref].index+1), I(captures[backref].index + captures[backref].length));
 
         if (captures[backref].recursive && recursive_replacements.length > 0)
-            backref_text = Text$replace_array(backref_text, recursive_replacements, backref_pat, true);
+            backref_text = replace_array(backref_text, recursive_replacements, backref_pat, true);
 
         if (pos > nonmatching_pos) {
             Text_t before_slice = Text$slice(replacement, I(nonmatching_pos+1), I(pos));
@@ -965,7 +972,7 @@ static Text_t apply_backrefs(Text_t text, Array_t recursive_replacements, Text_t
     return ret;
 }
 
-public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement, Pattern_t backref_pat, bool recursive)
+static Text_t Pattern$replace(Text_t text, Text_t pattern, Text_t replacement, Text_t backref_pat, bool recursive)
 {
     Text_t ret = EMPTY_TEXT;
 
@@ -1018,7 +1025,7 @@ public Text_t Text$replace(Text_t text, Pattern_t pattern, Text_t replacement, P
     return ret;
 }
 
-public Text_t Text$trim(Text_t text, Pattern_t pattern, bool trim_left, bool trim_right)
+static Text_t Pattern$trim(Text_t text, Text_t pattern, bool trim_left, bool trim_right)
 {
     int64_t first = 0, last = text.length-1;
     if (trim_left) {
@@ -1037,7 +1044,7 @@ public Text_t Text$trim(Text_t text, Pattern_t pattern, bool trim_left, bool tri
     return Text$slice(text, I(first+1), I(last+1));
 }
 
-public Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn, bool recursive)
+static Text_t Pattern$map(Text_t text, Text_t pattern, Closure_t fn, bool recursive)
 {
     Text_t ret = EMPTY_TEXT;
 
@@ -1049,7 +1056,7 @@ public Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn, bool recurs
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text);
     int64_t nonmatching_pos = 0;
 
-    Text_t (*text_mapper)(Match_t, void*) = fn.fn;
+    Text_t (*text_mapper)(PatternMatch, void*) = fn.fn;
     for (int64_t pos = 0; pos < text.length; pos++) {
         // Optimization: quickly skip ahead to first char in pattern:
         if (find_first) {
@@ -1061,7 +1068,7 @@ public Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn, bool recurs
         int64_t match_len = match(text, pos, pattern, 0, captures, 0);
         if (match_len < 0) continue;
 
-        Match_t m = {
+        PatternMatch m = {
             .text=Text$slice(text, I(pos+1), I(pos+match_len)),
             .index=I(pos+1),
             .captures={},
@@ -1069,7 +1076,7 @@ public Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn, bool recurs
         for (int i = 0; captures[i].occupied; i++) {
             Text_t capture = Text$slice(text, I(captures[i].index+1), I(captures[i].index+captures[i].length));
             if (recursive)
-                capture = Text$map(capture, pattern, fn, recursive);
+                capture = Pattern$map(capture, pattern, fn, recursive);
             Array$insert(&m.captures, &capture, I(0), sizeof(Text_t));
         }
 
@@ -1090,7 +1097,7 @@ public Text_t Text$map(Text_t text, Pattern_t pattern, Closure_t fn, bool recurs
     return ret;
 }
 
-public void Text$each(Text_t text, Pattern_t pattern, Closure_t fn, bool recursive)
+static void Pattern$each(Text_t text, Text_t pattern, Closure_t fn, bool recursive)
 {
     int32_t first_grapheme = Text$get_grapheme(pattern, 0);
     bool find_first = (first_grapheme != '{'
@@ -1098,7 +1105,7 @@ public void Text$each(Text_t text, Pattern_t pattern, Closure_t fn, bool recursi
                        && !uc_is_property((ucs4_t)first_grapheme, UC_PROPERTY_PAIRED_PUNCTUATION));
 
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text);
-    void (*action)(Match_t, void*) = fn.fn;
+    void (*action)(PatternMatch, void*) = fn.fn;
     for (int64_t pos = 0; pos < text.length; pos++) {
         // Optimization: quickly skip ahead to first char in pattern:
         if (find_first) {
@@ -1110,7 +1117,7 @@ public void Text$each(Text_t text, Pattern_t pattern, Closure_t fn, bool recursi
         int64_t match_len = match(text, pos, pattern, 0, captures, 0);
         if (match_len < 0) continue;
 
-        Match_t m = {
+        PatternMatch m = {
             .text=Text$slice(text, I(pos+1), I(pos+match_len)),
             .index=I(pos+1),
             .captures={},
@@ -1118,7 +1125,7 @@ public void Text$each(Text_t text, Pattern_t pattern, Closure_t fn, bool recursi
         for (int i = 0; captures[i].occupied; i++) {
             Text_t capture = Text$slice(text, I(captures[i].index+1), I(captures[i].index+captures[i].length));
             if (recursive)
-                Text$each(capture, pattern, fn, recursive);
+                Pattern$each(capture, pattern, fn, recursive);
             Array$insert(&m.captures, &capture, I(0), sizeof(Text_t));
         }
 
@@ -1127,7 +1134,7 @@ public void Text$each(Text_t text, Pattern_t pattern, Closure_t fn, bool recursi
     }
 }
 
-Text_t Text$replace_array(Text_t text, Array_t replacements, Text_t backref_pat, bool recursive)
+Text_t replace_array(Text_t text, Array_t replacements, Text_t backref_pat, bool recursive)
 {
     if (replacements.length == 0) return text;
 
@@ -1137,7 +1144,7 @@ Text_t Text$replace_array(Text_t text, Array_t replacements, Text_t backref_pat,
     for (int64_t pos = 0; pos < text.length; ) {
         // Find the first matching pattern at this position:
         for (int64_t i = 0; i < replacements.length; i++) {
-            Pattern_t pattern = *(Pattern_t*)(replacements.data + i*replacements.stride);
+            Text_t pattern = *(Text_t*)(replacements.data + i*replacements.stride);
             capture_t captures[MAX_BACKREFS] = {};
             int64_t len = match(text, pos, pattern, 0, captures, 1);
             if (len < 0) continue;
@@ -1171,12 +1178,12 @@ Text_t Text$replace_array(Text_t text, Array_t replacements, Text_t backref_pat,
     return ret;
 }
 
-public Text_t Text$replace_all(Text_t text, Table_t replacements, Text_t backref_pat, bool recursive)
+static Text_t Pattern$replace_all(Text_t text, Table_t replacements, Text_t backref_pat, bool recursive)
 {
-    return Text$replace_array(text, replacements.entries, backref_pat, recursive);
+    return replace_array(text, replacements.entries, backref_pat, recursive);
 }
 
-public Array_t Text$split(Text_t text, Pattern_t pattern)
+static Array_t Pattern$split(Text_t text, Text_t pattern)
 {
     if (text.length == 0) // special case
         return (Array_t){.length=0};
@@ -1207,7 +1214,7 @@ public Array_t Text$split(Text_t text, Pattern_t pattern)
 typedef struct {
     TextIter_t state;
     int64_t i;
-    Pattern_t pattern;
+    Text_t pattern;
 } split_iter_state_t;
 
 static OptionalText_t next_split(split_iter_state_t *state)
@@ -1243,7 +1250,7 @@ static OptionalText_t next_split(split_iter_state_t *state)
     }
 }
 
-public Closure_t Text$by_split(Text_t text, Pattern_t pattern)
+static Closure_t Pattern$by_split(Text_t text, Text_t pattern)
 {
     return (Closure_t){
         .fn=(void*)next_split,
@@ -1251,7 +1258,7 @@ public Closure_t Text$by_split(Text_t text, Pattern_t pattern)
     };
 }
 
-public Pattern_t Pattern$escape_text(Text_t text)
+static Text_t Pattern$escape_text(Text_t text)
 {
     // TODO: optimize for spans of non-escaped text
     Text_t ret = EMPTY_TEXT;
@@ -1276,62 +1283,9 @@ static Text_t Pattern$as_text(const void *obj, bool colorize, const TypeInfo_t *
     (void)info;
     if (!obj) return Text("Pattern");
 
-    Pattern_t pat = *(Pattern_t*)obj;
-    Text_t quote = Text$has(pat, Pattern("/")) && !Text$has(pat, Pattern("|")) ? Text("|") : Text("/");
-    return Text$concat( colorize ? Text("\x1b[1m$\033[m") : Text("$"), Text$quoted(pat, colorize, quote));
+    Text_t pat = *(Text_t*)obj;
+    Text_t quote = Pattern$has(pat, Text("/")) && !Pattern$has(pat, Text("|")) ? Text("|") : Text("/");
+    return Text$concat(colorize ? Text("\x1b[1m$\033[m") : Text("$"), Text$quoted(pat, colorize, quote));
 }
-
-public const TypeInfo_t Pattern$info = {
-    .size=sizeof(Pattern_t),
-    .align=__alignof__(Pattern_t),
-    .tag=TextInfo,
-    .TextInfo={.lang="Pattern"},
-    .metamethods={
-        .as_text=Pattern$as_text,
-        .hash=Text$hash,
-        .compare=Text$compare,
-        .equal=Text$equal,
-        .is_none=Text$is_none,
-        .serialize=Text$serialize,
-        .deserialize=Text$deserialize,
-    },
-};
-
-static const TypeInfo_t _text_array = {
-    .size=sizeof(Array_t),
-    .align=__alignof__(Array_t),
-    .tag=ArrayInfo,
-    .ArrayInfo.item=&Text$info,
-    .metamethods=Array$metamethods,
-};
-
-static NamedType_t _match_fields[3] = {
-    {"text", &Text$info},
-    {"index", &Int$info},
-    {"captures", &_text_array},
-};
-
-static bool Match$is_none(const void *m, const TypeInfo_t*)
-{
-    return ((OptionalMatch_t*)m)->index.small == 0;
-}
-
-public const TypeInfo_t Match$info = {
-    .size=sizeof(Match_t),
-    .align=__alignof__(Match_t),
-    .tag=StructInfo,
-    .StructInfo={
-        .name="Match",
-        .num_fields=3,
-        .fields=_match_fields,
-    },
-    .metamethods={
-        .as_text=Struct$as_text,
-        .hash=Struct$hash,
-        .compare=Struct$compare,
-        .equal=Struct$equal,
-        .is_none=Match$is_none,
-    },
-};
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

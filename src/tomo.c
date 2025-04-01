@@ -21,7 +21,6 @@
 #include "stdlib/datatypes.h"
 #include "stdlib/integers.h"
 #include "stdlib/optionals.h"
-#include "stdlib/patterns.h"
 #include "stdlib/paths.h"
 #include "stdlib/print.h"
 #include "stdlib/text.h"
@@ -294,7 +293,12 @@ int main(int argc, char *argv[])
 
 Text_t escape_lib_name(Text_t lib_name)
 {
-    return Text$replace(lib_name, Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false);
+    char *libname_id = String(lib_name);
+    for (char *p = libname_id; *p; p++) {
+        if (!isalnum(*p) && *p != '_')
+            *p = '_';
+    }
+    return Text$from_str(libname_id);
 }
 
 Path_t build_file(Path_t path, const char *extension)

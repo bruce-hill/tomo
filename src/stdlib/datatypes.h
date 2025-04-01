@@ -94,9 +94,6 @@ typedef struct Text_s {
     };
 } Text_t;
 
-#define Pattern_t Text_t
-#define OptionalPattern_t Text_t
-
 typedef struct {
     enum { PATH_NONE, PATH_RELATIVE, PATH_ABSOLUTE, PATH_HOME } $tag;
 } PathType_t;

@@ -24,7 +24,6 @@
 #include "integers.h"
 #include "optionals.h"
 #include "paths.h"
-#include "patterns.h"
 #include "structs.h"
 #include "text.h"
 #include "types.h"
@@ -599,15 +598,10 @@ public PUREFUNC Text_t Path$base_name(Path_t path)
 
 public Text_t Path$extension(Path_t path, bool full)
 {
-    Text_t base = Path$base_name(path);
-    Array_t results = Text$matches(base, full ? Pattern(".{!.}.{..}") : Pattern(".{..}.{!.}{end}"));
-    if (results.length > 0)
-        return *((Text_t*)(results.data + results.stride*1));
-    results = Text$matches(base, full ? Pattern("{!.}.{..}") : Pattern("{..}.{!.}{end}"));
-    if (results.length > 0)
-        return *((Text_t*)(results.data + results.stride*1));
-    else
-        return Text("");
+    const char *base = Text$as_c_string(Path$base_name(path));
+    const char *dot = full ? strchr(base + 1, '.') : strrchr(base + 1, '.');
+    const char *extension = dot ? dot + 1 : "";
+    return Text$from_str(extension);
 }
 
 public Path_t Path$with_component(Path_t path, Text_t component)
@@ -635,10 +629,10 @@ public Path_t Path$with_extension(Path_t path, Text_t extension, bool replace)
     Text_t last = *(Text_t*)(path.components.data + path.components.stride*(path.components.length-1));
     Array$remove_at(&result.components, I(-1), I(1), sizeof(Text_t));
     if (replace) {
-        if (Text$starts_with(last, Text(".")))
-            last = Text$replace(last, Pattern(".{!.}.{..}"), Text(".@1"), Pattern("@"), false);
-        else
-            last = Text$replace(last, Pattern("{!.}.{..}"), Text("@1"), Pattern("@"), false);
+        const char *base = Text$as_c_string(last);
+        const char *dot = strchr(base + 1, '.');
+        if (dot)
+            last = Text$from_strn(base, (size_t)(dot - base));
     }
 
     last = Text$concat(last, extension);

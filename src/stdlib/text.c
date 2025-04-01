@@ -998,17 +998,22 @@ PUREFUNC public int32_t Text$compare(const void *va, const void *vb, const TypeI
     return 0;
 }
 
+bool _matches(TextIter_t *text_state, TextIter_t *target_state, int64_t pos)
+{
+    for (int64_t i = 0; i < target_state->stack[0].text.length; i++) {
+        int32_t text_i = Text$get_grapheme_fast(text_state, pos + i);
+        int32_t prefix_i = Text$get_grapheme_fast(target_state, i);
+        if (text_i != prefix_i) return false;
+    }
+    return true;
+}
+
 PUREFUNC public bool Text$starts_with(Text_t text, Text_t prefix)
 {
     if (text.length < prefix.length)
         return false;
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), prefix_state = NEW_TEXT_ITER_STATE(prefix);
-    for (int64_t i = 0; i < prefix.length; i++) {
-        int32_t text_i = Text$get_grapheme_fast(&text_state, i);
-        int32_t prefix_i = Text$get_grapheme_fast(&prefix_state, i);
-        if (text_i != prefix_i) return false;
-    }
-    return true;
+    return _matches(&text_state, &prefix_state, 0);
 }
 
 PUREFUNC public bool Text$ends_with(Text_t text, Text_t suffix)
@@ -1016,12 +1021,236 @@ PUREFUNC public bool Text$ends_with(Text_t text, Text_t suffix)
     if (text.length < suffix.length)
         return false;
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), suffix_state = NEW_TEXT_ITER_STATE(suffix);
-    for (int64_t i = 0; i < suffix.length; i++) {
-        int32_t text_i = Text$get_grapheme_fast(&text_state, text.length - suffix.length + i);
-        int32_t suffix_i = Text$get_grapheme_fast(&suffix_state, i);
-        if (text_i != suffix_i) return false;
+    return _matches(&text_state, &suffix_state, text.length - suffix.length);
+}
+
+public Text_t Text$without_prefix(Text_t text, Text_t prefix)
+{
+    return Text$starts_with(text, prefix) ? Text$slice(text, I(prefix.length + 1), I(text.length)) : text;
+}
+
+public Text_t Text$without_suffix(Text_t text, Text_t suffix)
+{
+    return Text$ends_with(text, suffix) ? Text$slice(text, I(1), I(text.length - suffix.length)) : text;
+}
+
+static bool _has_grapheme(TextIter_t *text, int32_t g)
+{
+    for (int64_t t = 0; t < text->stack[0].text.length; t++) {
+        if (g == Text$get_grapheme_fast(text, t)) {
+            return true;
+        }
     }
-    return true;
+    return false;
+}
+
+public Text_t Text$trim(Text_t text, Text_t to_trim, bool left, bool right)
+{
+    int64_t first = 0;
+    TextIter_t text_state = NEW_TEXT_ITER_STATE(text), trim_state = NEW_TEXT_ITER_STATE(to_trim);
+    if (left) {
+        while (first < text.length && _has_grapheme(&trim_state, Text$get_grapheme_fast(&text_state, first))) {
+            first += 1;
+        }
+    }
+    int64_t last = text.length-1;
+    if (right) {
+        while (last >= first && _has_grapheme(&trim_state, Text$get_grapheme_fast(&text_state, last))) {
+            last -= 1;
+        }
+    }
+    return (first != 0 || last != text.length-1) ? Text$slice(text, I(first+1), I(last+1)) : text;
+}
+
+public Text_t Text$translate(Text_t text, Table_t translations)
+{
+    TextIter_t text_state = NEW_TEXT_ITER_STATE(text);
+    Text_t result = EMPTY_TEXT;
+    int64_t span_start = 0;
+    Array_t replacement_array = translations.entries;
+    for (int64_t i = 0; i < text.length; ) {
+        for (int64_t r = 0; r < replacement_array.length; r++) {
+            struct { Text_t target, replacement; } *entry = replacement_array.data + r*replacement_array.stride;
+            TextIter_t target_state = NEW_TEXT_ITER_STATE(entry->target);
+            if (_matches(&text_state, &target_state, i)) {
+                if (i > span_start)
+                    result = concat2(result, Text$slice(text, I(span_start+1), I(i)));
+
+                result = concat2(result, entry->replacement);
+                i += entry->target.length;
+                span_start = i;
+                goto found_match;
+            }
+        }
+        i += 1;
+      found_match: continue;
+    }
+    if (span_start < text.length)
+        result = concat2(result, Text$slice(text, I(span_start+1), I(text.length)));
+    return result;
+}
+
+public Text_t Text$replace(Text_t text, Text_t target, Text_t replacement)
+{
+    TextIter_t text_state = NEW_TEXT_ITER_STATE(text), target_state = NEW_TEXT_ITER_STATE(target);
+    Text_t result = EMPTY_TEXT;
+    int64_t span_start = 0;
+    for (int64_t i = 0; i < text.length; ) {
+        if (_matches(&text_state, &target_state, i)) {
+            if (i > span_start)
+                result = concat2(result, Text$slice(text, I(span_start+1), I(i)));
+
+            result = concat2(result, replacement);
+            i += target.length;
+            span_start = i;
+        } else {
+            i += 1;
+        }
+    }
+    if (span_start < text.length)
+        result = concat2(result, Text$slice(text, I(span_start+1), I(text.length)));
+    return result;
+}
+
+public bool Text$has(Text_t text, Text_t target)
+{
+    TextIter_t text_state = NEW_TEXT_ITER_STATE(text), target_state = NEW_TEXT_ITER_STATE(target);
+    for (int64_t i = 0; i < text.length; i++) {
+        if (_matches(&text_state, &target_state, i))
+            return true;
+    }
+    return false;
+}
+
+public Array_t Text$split(Text_t text, Text_t delimiters)
+{
+    if (delimiters.length == 0)
+        return Text$clusters(text);
+
+    TextIter_t text_state = NEW_TEXT_ITER_STATE(text), delim_state = NEW_TEXT_ITER_STATE(delimiters);
+    Array_t splits = {};
+    for (int64_t i = 0; i < text.length; ) {
+        int64_t span_len = 0;
+        while (i + span_len < text.length && !_matches(&text_state, &delim_state, i + span_len)) {
+            span_len += 1;
+        }
+        Text_t slice = Text$slice(text, I(i+1), I(i+span_len));
+        Array$insert(&splits, &slice, I(0), sizeof(slice));
+        i += span_len + delimiters.length;
+        if (i == text.length) {
+            Text_t empty = Text("");
+            Array$insert(&splits, &empty, I(0), sizeof(empty));
+        }
+    }
+    return splits;
+}
+
+public Array_t Text$split_any(Text_t text, Text_t delimiters)
+{
+    if (delimiters.length == 0)
+        return Array(text);
+
+    TextIter_t text_state = NEW_TEXT_ITER_STATE(text), delim_state = NEW_TEXT_ITER_STATE(delimiters);
+    Array_t splits = {};
+    for (int64_t i = 0; i < text.length; ) {
+        int64_t span_len = 0;
+        while (i + span_len < text.length && !_has_grapheme(&delim_state, Text$get_grapheme_fast(&text_state, i + span_len))) {
+            span_len += 1;
+        }
+        bool trailing_delim = i + span_len < text.length;
+        Text_t slice = Text$slice(text, I(i+1), I(i+span_len));
+        Array$insert(&splits, &slice, I(0), sizeof(slice));
+        i += span_len + 1;
+        while (i < text.length && _has_grapheme(&delim_state, Text$get_grapheme_fast(&text_state, i))) {
+            i += 1;
+        }
+        if (i >= text.length && trailing_delim) {
+            Text_t empty = Text("");
+            Array$insert(&splits, &empty, I(0), sizeof(empty));
+        }
+    }
+    return splits;
+}
+
+typedef struct {
+    TextIter_t state;
+    int64_t i;
+    Text_t delimiter;
+} split_iter_state_t;
+
+static OptionalText_t next_split(split_iter_state_t *state)
+{
+    Text_t text = state->state.stack[0].text;
+    if (state->i >= text.length) {
+        if (state->delimiter.length > 0 && state->i == text.length) { // special case
+            state->i = text.length + 1;
+            return EMPTY_TEXT;
+        }
+        return NONE_TEXT;
+    }
+
+    if (state->delimiter.length == 0) { // special case
+        state->i = text.length + 1;
+        return text;
+    }
+
+    TextIter_t delim_state = NEW_TEXT_ITER_STATE(state->delimiter);
+    int64_t i = state->i;
+    int64_t span_len = 0;
+    while (i + span_len < text.length && !_matches(&state->state, &delim_state, i + span_len)) {
+        span_len += 1;
+    }
+    Text_t slice = Text$slice(text, I(i+1), I(i+span_len));
+    state->i = i + span_len + state->delimiter.length;
+    return slice;
+}
+
+public Closure_t Text$by_split(Text_t text, Text_t delimiter)
+{
+    return (Closure_t){
+        .fn=(void*)next_split,
+        .userdata=new(split_iter_state_t, .state=NEW_TEXT_ITER_STATE(text), .i=0, .delimiter=delimiter),
+    };
+}
+
+static OptionalText_t next_split_any(split_iter_state_t *state)
+{
+    Text_t text = state->state.stack[0].text;
+    if (state->i >= text.length) {
+        if (state->delimiter.length > 0 && state->i == text.length) { // special case
+            state->i = text.length + 1;
+            return EMPTY_TEXT;
+        }
+        return NONE_TEXT;
+    }
+
+    if (state->delimiter.length == 0) { // special case
+        Text_t ret = Text$cluster(text, I(state->i+1));
+        state->i += 1;
+        return ret;
+    }
+
+    TextIter_t delim_state = NEW_TEXT_ITER_STATE(state->delimiter);
+    int64_t i = state->i;
+    int64_t span_len = 0;
+    while (i + span_len < text.length && !_has_grapheme(&delim_state, Text$get_grapheme_fast(&state->state, i + span_len))) {
+        span_len += 1;
+    }
+    Text_t slice = Text$slice(text, I(i+1), I(i+span_len));
+    i += span_len + 1;
+    while (i < text.length && _has_grapheme(&delim_state, Text$get_grapheme_fast(&state->state, i))) {
+        i += 1;
+    }
+    state->i = i;
+    return slice;
+}
+
+public Closure_t Text$by_split_any(Text_t text, Text_t delimiters)
+{
+    return (Closure_t){
+        .fn=(void*)next_split_any,
+        .userdata=new(split_iter_state_t, .state=NEW_TEXT_ITER_STATE(text), .i=0, .delimiter=delimiters),
+    };
 }
 
 PUREFUNC public bool Text$equal_values(Text_t a, Text_t b)

@@ -11,12 +11,12 @@ where a different type of string is needed.
 ```tomo
 lang HTML:
     convert(t:Text -> HTML):
-        t = t:replace_all({
-            $/&/ = "&amp;",
-            $/</ = "&lt;",
-            $/>/ = "&gt;",
-            $/"/ = "&quot",
-            $/'/ = "&#39;",
+        t = t:translate({
+            "&" = "&amp;",
+            "<" = "&lt;",
+            ">" = "&gt;",
+            '"' = "&quot",
+            "'" = "&#39;",
         })
         return HTML.from_text(t)
 
@@ -75,7 +75,7 @@ instead of building a global function called `execute()` that takes a
 ```tomo
 lang Sh:
     convert(text:Text -> Sh):
-        return Sh.from_text("'" ++ text:replace($/'/, "''") ++ "'")
+        return Sh.from_text("'" ++ text:replace("'", "''") ++ "'")
 
     func execute(sh:Sh -> Text):
         ...
@@ -94,7 +94,7 @@ another type's block or at the top level.
 ```tomo
 lang Sh:
     convert(text:Text -> Sh):
-        return Sh.from_text("'" ++ text:replace($/'/, "''") ++ "'")
+        return Sh.from_text("'" ++ text:replace("'", "''") ++ "'")
 
 struct Foo(x,y:Int):
     convert(f:Foo -> Sh):

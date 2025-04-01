@@ -143,6 +143,7 @@ typedef enum {
     Use,
     InlineCCode,
     Deserialize,
+    Extend,
 } ast_e;
 
 struct ast_s {
@@ -331,6 +332,10 @@ struct ast_s {
             ast_t *value;
             type_ast_t *type;
         } Deserialize;
+        struct {
+            const char *name;
+            ast_t *body;
+        } Extend;
     } __data;
 };
 

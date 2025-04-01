@@ -22,7 +22,6 @@
 #include "ast.h"
 #include "cordhelpers.h"
 #include "stdlib/integers.h"
-#include "stdlib/patterns.h"
 #include "stdlib/paths.h"
 #include "stdlib/print.h"
 #include "stdlib/stdlib.h"
@@ -64,7 +63,7 @@ int op_tightness[] = {
 static const char *keywords[] = {
     "yes", "xor", "while", "when", "use", "unless", "struct", "stop", "skip", "return",
     "or", "not", "none", "no", "mod1", "mod", "pass", "lang", "inline", "in", "if",
-    "func", "for", "extern", "enum", "else", "do", "deserialize", "defer", "and",
+    "func", "for", "extern", "extend", "enum", "else", "do", "deserialize", "defer", "and",
     "_min_", "_max_", NULL,
 };
 
@@ -120,6 +119,7 @@ static PARSER(parse_inline_c);
 static PARSER(parse_int);
 static PARSER(parse_lambda);
 static PARSER(parse_lang_def);
+static PARSER(parse_extend);
 static PARSER(parse_namespace);
 static PARSER(parse_negative);
 static PARSER(parse_not);
@@ -1241,9 +1241,6 @@ PARSER(parse_text) {
         open_quote = *pos;
         ++pos;
         close_quote = closing[(int)open_quote] ? closing[(int)open_quote] : open_quote;
-
-        if (!lang && (open_quote == '/' || open_quote == '|'))
-            lang = "Pattern";
     } else {
         return NULL;
     }
@@ -1904,9 +1901,10 @@ PARSER(parse_namespace) {
         if (get_indent(ctx, next) != indent) break;
         ast_t *stmt;
         if ((stmt=optional(ctx, &pos, parse_struct_def))
+            ||(stmt=optional(ctx, &pos, parse_func_def))
             ||(stmt=optional(ctx, &pos, parse_enum_def))
             ||(stmt=optional(ctx, &pos, parse_lang_def))
-            ||(stmt=optional(ctx, &pos, parse_func_def))
+            ||(stmt=optional(ctx, &pos, parse_extend))
             ||(stmt=optional(ctx, &pos, parse_convert_def))
             ||(stmt=optional(ctx, &pos, parse_use))
             ||(stmt=optional(ctx, &pos, parse_extern))
@@ -1940,9 +1938,10 @@ PARSER(parse_file_body) {
         if (get_indent(ctx, next) != 0) break;
         ast_t *stmt;
         if ((stmt=optional(ctx, &pos, parse_struct_def))
+            ||(stmt=optional(ctx, &pos, parse_func_def))
             ||(stmt=optional(ctx, &pos, parse_enum_def))
             ||(stmt=optional(ctx, &pos, parse_lang_def))
-            ||(stmt=optional(ctx, &pos, parse_func_def))
+            ||(stmt=optional(ctx, &pos, parse_extend))
             ||(stmt=optional(ctx, &pos, parse_convert_def))
             ||(stmt=optional(ctx, &pos, parse_use))
             ||(stmt=optional(ctx, &pos, parse_extern))
@@ -2110,6 +2109,32 @@ PARSER(parse_lang_def) {
         namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
 
     return NewAST(ctx->file, start, pos, LangDef, .name=name, .namespace=namespace);
+}
+
+PARSER(parse_extend) {
+    const char *start = pos;
+    // extend Name: body...
+    if (!match_word(&pos, "extend")) return NULL;
+    int64_t starting_indent = get_indent(ctx, pos);
+    spaces(&pos);
+    const char *name = get_id(&pos);
+    if (!name)
+        parser_err(ctx, start, pos, "I expected a name for this lang");
+
+    ast_t *body = NULL;
+    if (match(&pos, ":")) {
+        const char *ns_pos = pos;
+        whitespace(&ns_pos);
+        int64_t ns_indent = get_indent(ctx, ns_pos);
+        if (ns_indent > starting_indent) {
+            pos = ns_pos;
+            body = optional(ctx, &pos, parse_namespace);
+        }
+    }
+    if (!body)
+        body = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
+
+    return NewAST(ctx->file, start, pos, Extend, .name=name, .body=body);
 }
 
 arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos)
@@ -2373,20 +2398,6 @@ PARSER(parse_use) {
         what = USE_LOCAL;
     } else {
         what = USE_MODULE;
-
-        // When `use`ing a URL, convert it to a hash:
-        Text_t text = Text$from_str(name);
-        Array_t m = Text$matches(text, Pattern("{url}"));
-        if (m.length >= 0) {
-            text = Text$trim(text, Pattern("http{0-1 s}://"), true, false);
-            FILE *shasum = popen(String("echo -n '", text, "' | sha256sum"), "r");
-            const size_t HASH_LEN = 32;
-            char *hash = GC_MALLOC_ATOMIC(HASH_LEN + 1);
-            size_t just_read = fread(hash, sizeof(char), HASH_LEN, shasum);
-            if (just_read < HASH_LEN)
-                print_err("Failed to get SHA sum for 'use': ", name);
-            name = hash;
-        }
     }
     return NewAST(ctx->file, start, pos, Use, .var=var, .path=name, .what=what);
 }

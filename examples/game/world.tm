@@ -68,8 +68,8 @@ struct World(player:@Player, goal:@Box, boxes:@[@Box], dt_accum=Num32(0.0), won=
             DrawText(CString("WINNER"), GetScreenWidth()/Int32(2)-Int32(48*3), GetScreenHeight()/Int32(2)-Int32(24), 48, Color(0,0,0))
 
     func load_map(w:@World, map:Text):
-        if map:has($/[]/):
-            map = map:replace_all({$/[]/="#", $/@{1..}/="@", $/  /=" "})
+        if map:has("[]"):
+            map = map:translate({"[]"="#", "@ "="@", "  "=" "})
         w.boxes = @[:@Box]
         box_size := Vector2(50., 50.)
         for y,line in map:lines():

@@ -13,7 +13,6 @@
 #include "typecheck.h"
 
 type_t *TEXT_TYPE = NULL;
-type_t *MATCH_TYPE = NULL;
 type_t *RNG_TYPE = NULL;
 public type_t *PATH_TYPE = NULL;
 public type_t *PATH_TYPE_TYPE = NULL;
@@ -67,7 +66,6 @@ env_t *global_env(void)
     (void)bind_type(env, "Int32", Type(IntType, .bits=TYPE_IBITS32));
     (void)bind_type(env, "Memory", Type(MemoryType));
     PATH_TYPE_TYPE = declare_type(env, "enum PathType(Relative, Absolute, Home)");
-    MATCH_TYPE = declare_type(env, "struct Match(text:Text, index:Int, captures:[Text])");
     PATH_TYPE = declare_type(env, "struct Path(type:PathType, components:[Text])");
     RNG_TYPE = declare_type(env, "struct RNG(state:@Memory)");
 
@@ -279,13 +277,6 @@ env_t *global_env(void)
 #undef F_opt
 #undef F
 #undef C
-        {"Match", MATCH_TYPE, "Match_t", "Match", TypedArray(ns_entry_t,
-             // No methods
-        )},
-        {"Pattern", Type(TextType, .lang="Pattern", .env=namespace_env(env, "Pattern")), "Pattern_t", "Pattern$info", TypedArray(ns_entry_t,
-            {"escape_int", "Int$value_as_text", "func(i:Int -> Pattern)"},
-            {"escape_text", "Pattern$escape_text", "func(text:Text -> Pattern)"},
-        )},
         {"PathType", PATH_TYPE_TYPE, "PathType_t", "PathType$info", TypedArray(ns_entry_t,
             {"Relative", "((PathType_t){.$tag=PATH_RELATIVE})", "PathType"},
             {"Absolute", "((PathType_t){.$tag=PATH_ABSOLUTE})", "PathType"},
@@ -353,44 +344,42 @@ env_t *global_env(void)
             {"as_c_string", "Text$as_c_string", "func(text:Text -> CString)"},
             {"at", "Text$cluster", "func(text:Text, index:Int -> Text)"},
             {"by_line", "Text$by_line", "func(text:Text -> func(->Text?))"},
-            {"by_match", "Text$by_match", "func(text:Text, pattern:Pattern -> func(->Match?))"},
-            {"by_split", "Text$by_split", "func(text:Text, pattern=$Pattern'' -> func(->Text?))"},
+            {"by_split", "Text$by_split", "func(text:Text, delimiter='' -> func(->Text?))"},
+            {"by_split_any", "Text$by_split_any", "func(text:Text, delimiters=\" $\\t\\r\\n\" -> func(->Text?))"},
             {"bytes", "Text$utf8_bytes", "func(text:Text -> [Byte])"},
             {"caseless_equals", "Text$equal_ignoring_case", "func(a,b:Text, language='C' -> Bool)"},
             {"codepoint_names", "Text$codepoint_names", "func(text:Text -> [Text])"},
             {"ends_with", "Text$ends_with", "func(text,suffix:Text -> Bool)"},
-            {"each", "Text$each", "func(text:Text, pattern:Pattern, fn:func(match:Match), recursive=yes)"},
-            {"find", "Text$find", "func(text:Text, pattern:Pattern, start=1 -> Match?)"},
-            {"find_all", "Text$find_all", "func(text:Text, pattern:Pattern -> [Match])"},
             {"from", "Text$from", "func(text:Text, first:Int -> Text)"},
             {"from_bytes", "Text$from_bytes", "func(bytes:[Byte] -> Text?)"},
             {"from_c_string", "Text$from_str", "func(str:CString -> Text?)"},
             {"from_codepoint_names", "Text$from_codepoint_names", "func(codepoint_names:[Text] -> Text?)"},
             {"from_codepoints", "Text$from_codepoints", "func(codepoints:[Int32] -> Text)"},
             {"from_text", "Path$from_text", "func(text:Text -> Path)"},
-            {"has", "Text$has", "func(text:Text, pattern:Pattern -> Bool)"},
+            {"has", "Text$has", "func(text:Text, target:Text -> Bool)"},
             {"join", "Text$join", "func(glue:Text, pieces:[Text] -> Text)"},
             {"left_pad", "Text$left_pad", "func(text:Text, count:Int, pad=' ', language='C' -> Text)"},
             {"lines", "Text$lines", "func(text:Text -> [Text])"},
             {"lower", "Text$lower", "func(text:Text, language='C' -> Text)"},
-            {"map", "Text$map", "func(text:Text, pattern:Pattern, fn:func(match:Match -> Text), recursive=yes -> Text)"},
-            {"matches", "Text$matches", "func(text:Text, pattern:Pattern -> [Text]?)"},
             {"middle_pad", "Text$middle_pad", "func(text:Text, count:Int, pad=' ', language='C' -> Text)"},
             {"quoted", "Text$quoted", "func(text:Text, color=no, quotation_mark='\"' -> Text)"},
             {"repeat", "Text$repeat", "func(text:Text, count:Int -> Text)"},
-            {"replace", "Text$replace", "func(text:Text, pattern:Pattern, replacement:Text, backref=$/\\/, recursive=yes -> Text)"},
-            {"replace_all", "Text$replace_all", "func(text:Text, replacements:{Pattern,Text}, backref=$/\\/, recursive=yes -> Text)"},
+            {"replace", "Text$replace", "func(text:Text, target:Text, replacement:Text -> Text)"},
             {"reversed", "Text$reversed", "func(text:Text -> Text)"},
             {"right_pad", "Text$right_pad", "func(text:Text, count:Int, pad=' ', language='C' -> Text)"},
             {"slice", "Text$slice", "func(text:Text, from=1, to=-1 -> Text)"},
-            {"split", "Text$split", "func(text:Text, pattern=$Pattern'' -> [Text])"},
+            {"split", "Text$split", "func(text:Text, delimiter='' -> [Text])"},
+            {"split_any", "Text$split_any", "func(text:Text, delimiters=\" $\\t\\r\\n\" -> [Text])"},
             {"starts_with", "Text$starts_with", "func(text,prefix:Text -> Bool)"},
             {"title", "Text$title", "func(text:Text, language='C' -> Text)"},
             {"to", "Text$to", "func(text:Text, last:Int -> Text)"},
-            {"trim", "Text$trim", "func(text:Text, pattern=$/{whitespace}/, trim_left=yes, trim_right=yes -> Text)"},
+            {"translate", "Text$translate", "func(text:Text, translations:{Text,Text} -> Text)"},
+            {"trim", "Text$trim", "func(text:Text, to_trim=\" \t\r\n\", left=yes, right=yes -> Text)"},
             {"upper", "Text$upper", "func(text:Text, language='C' -> Text)"},
             {"utf32_codepoints", "Text$utf32_codepoints", "func(text:Text -> [Int32])"},
             {"width", "Text$width", "func(text:Text, language='C' -> Int)"},
+            {"without_prefix", "Text$without_prefix", "func(text,prefix:Text -> Text)"},
+            {"without_suffix", "Text$without_suffix", "func(text,suffix:Text -> Text)"},
         )},
     };
 
@@ -518,9 +507,6 @@ env_t *global_env(void)
                      {"Num32$from_int64", "func(i:Int64, truncate=no -> Num32)"},
                      {"Num32$from_int", "func(i:Int, truncate=no -> Num32)"},
                      {"Num32$from_num", "func(n:Num -> Num32)"});
-    ADD_CONSTRUCTORS("Pattern",
-                     {"Pattern$escape_text", "func(text:Text -> Pattern)"},
-                     {"Int$value_as_text", "func(i:Int -> Pattern)"});
     ADD_CONSTRUCTORS("Path",
                      {"Path$escape_text", "func(text:Text -> Path)"},
                      {"Path$escape_path", "func(path:Path -> Path)"},
@@ -533,11 +519,6 @@ env_t *global_env(void)
                 Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
                      .ret=PATH_TYPE),
                 "Path$from_text");
-
-    set_binding(namespace_env(env, "Pattern"), "from_text",
-                Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
-                     .ret=Type(TextType, .lang="Pattern", .env=namespace_env(env, "Pattern"))),
-                "(Pattern_t)");
 
     struct {
         const char *name, *code, *type_str;

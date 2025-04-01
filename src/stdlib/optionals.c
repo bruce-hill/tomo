@@ -6,7 +6,6 @@
 #include "integers.h"
 #include "metamethods.h"
 #include "nums.h"
-#include "patterns.h"
 #include "text.h"
 #include "util.h"
 

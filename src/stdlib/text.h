@@ -50,6 +50,16 @@ Text_t Text$as_text(const void *text, bool colorize, const TypeInfo_t *info);
 Text_t Text$quoted(Text_t str, bool colorize, Text_t quotation_mark);
 PUREFUNC bool Text$starts_with(Text_t text, Text_t prefix);
 PUREFUNC bool Text$ends_with(Text_t text, Text_t suffix);
+Text_t Text$without_prefix(Text_t text, Text_t prefix);
+Text_t Text$without_suffix(Text_t text, Text_t suffix);
+Text_t Text$replace(Text_t text, Text_t target, Text_t replacement);
+Text_t Text$translate(Text_t text, Table_t translations);
+bool Text$has(Text_t text, Text_t target);
+Array_t Text$split(Text_t text, Text_t delimiter);
+Array_t Text$split_any(Text_t text, Text_t delimiters);
+Closure_t Text$by_split(Text_t text, Text_t delimiter);
+Closure_t Text$by_split_any(Text_t text, Text_t delimiters);
+Text_t Text$trim(Text_t text, Text_t to_trim, bool left, bool right);
 char *Text$as_c_string(Text_t text);
 __attribute__((format(printf, 1, 2)))
 public Text_t Text$format(const char *fmt, ...);

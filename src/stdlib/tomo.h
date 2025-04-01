@@ -20,7 +20,6 @@
 #include "nums.h"
 #include "optionals.h"
 #include "paths.h"
-#include "patterns.h"
 #include "pointers.h"
 #include "print.h"
 #include "rng.h"

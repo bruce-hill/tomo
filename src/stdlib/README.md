@@ -27,7 +27,6 @@ some common functionality.
 - Nums: [nums.h](nums.h), [nums.c](nums.c)
 - Optionals: [optionals.h](optionals.h), [optionals.c](optionals.c)
 - Paths: [paths.h](paths.h), [paths.c](paths.c)
-- Patterns: [patterns.h](patterns.h), [patterns.c](patterns.c)
 - Pointers: [pointers.h](pointers.h), [pointers.c](pointers.c)
 - Tables: [tables.h](tables.h), [tables.c](tables.c)
 - Text: [text.h](text.h), [text.c](text.c)

@@ -74,45 +74,24 @@ func main():
 	>> amelie2:codepoint_names()
 	= ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E WITH ACUTE", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
 
-	>> "Hello":replace($/e/, "X")
+	>> "Hello":replace("e", "X")
 	= "HXllo"
 
-	>> "Hello":has($/l/)
+	>> "Hello":has("l")
 	= yes
-	>> "Hello":has($/l{end}/)
-	= no
-	>> "Hello":has($/{start}l/)
+	>> "Hello":has("x")
 	= no
 
-	>> "Hello":has($/o/)
-	= yes
-	>> "Hello":has($/o{end}/)
-	= yes
-	>> "Hello":has($/{start}o/)
-	= no
-
-	>> "Hello":has($/H/)
-	= yes
-	>> "Hello":has($/H{end}/)
-	= no
-	>> "Hello":has($/{start}H/)
-	= yes
-
-	>> "Hello":replace($/l/, "")
+	>> "Hello":replace("l", "")
 	= "Heo"
-	>> "xxxx":replace($/x/, "")
+	>> "xxxx":replace("x", "")
 	= ""
-	>> "xxxx":replace($/y/, "")
+	>> "xxxx":replace("y", "")
 	= "xxxx"
-	>> "One two three four five six":replace($/e /, "")
+	>> "One two three four five six":replace("e ", "")
 	= "Ontwo threfour fivsix"
 
-	>> " one ":replace($/{start}{space}/, "")
-	= "one "
-	>> " one ":replace($/{space}{end}/, "")
-	= " one"
-
-	>> amelie:has($/$amelie2/)
+	>> amelie:has(amelie2)
 	= yes
 
 	>> multiline := "
@@ -138,11 +117,6 @@ func main():
 	>> ${one {nested} two $(1+2)}
 	= "one {nested} two 3"
 
-	>> "one two three":replace($/{alpha}/, "")
-	= "  "
-	>> "one two three":replace($/{alpha}/, "word")
-	= "word word word"
-
 	c := "É̩"
 	>> c:codepoint_names()
 	= ["LATIN CAPITAL LETTER E WITH ACUTE", "COMBINING VERTICAL LINE BELOW"]
@@ -165,17 +139,28 @@ func main():
 	= [:Text]
 
 	!! Test splitting and joining text:
-	>> "one two three":split($/ /)
+	>> "one,, two,three":split(",")
+	= ["one", "", " two", "three"]
+	>> [t for t in "one,, two,three":by_split(",")]
+	= ["one", "", " two", "three"]
+	>> "one,, two,three":split_any(", ")
 	= ["one", "two", "three"]
-
-	>> "one,two,three,":split($/,/)
-	= ["one", "two", "three", ""]
-
-	>> "one    two three":split($/{space}/)
+	>> [t for t in "one,, two,three":by_split_any(", ")]
 	= ["one", "two", "three"]
+	>> ",one,, two,three,":split(",")
+	= ["", "one", "", " two", "three", ""]
+	>> [t for t in ",one,, two,three,":by_split(",")]
+	= ["", "one", "", " two", "three", ""]
+	>> ",one,, two,three,":split_any(", ")
+	= ["", "one", "two", "three", ""]
+	>> [t for t in ",one,, two,three,":by_split_any(", ")]
+	= ["", "one", "two", "three", ""]
 
-	>> "abc":split($//)
+	>> "abc":split()
 	= ["a", "b", "c"]
+
+	>> "one two three":split_any()
+	= ["one", "two", "three"]
 
 	>> ", ":join(["one", "two", "three"])
 	= "one, two, three"
@@ -191,35 +176,6 @@ func main():
 
 	>> "":split()
 	= [:Text]
-
-	!! Test text:find_all()
-	>> " #one  #two #three   ":find_all($/#{alpha}/)
-	= [Match(text="#one", index=2, captures=["one"]), Match(text="#two", index=8, captures=["two"]), Match(text="#three", index=13, captures=["three"])]
-
-	>> " #one  #two #three   ":find_all($/#{!space}/)
-	= [Match(text="#one", index=2, captures=["one"]), Match(text="#two", index=8, captures=["two"]), Match(text="#three", index=13, captures=["three"])]
-
-	>> "    ":find_all($/{alpha}/)
-	= [:Match]
-
-	>> " foo(baz(), 1)  doop() ":find_all($/{id}(?)/)
-	= [Match(text="foo(baz(), 1)", index=2, captures=["foo", "baz(), 1"]), Match(text="doop()", index=17, captures=["doop", ""])]
-
-	>> "":find_all($Pattern'')
-	= [:Match]
-
-	>> "Hello":find_all($Pattern'')
-	= [:Match]
-
-	!! Test text:find()
-	>> " one   two  three   ":find($/{id}/, start=-999)
-	= none : Match
-	>> " one   two  three   ":find($/{id}/, start=999)
-	= none : Match
-	>> " one   two  three   ":find($/{id}/)
-	= Match(text="one", index=2, captures=["one"])?
-	>> " one   two  three   ":find($/{id}/, start=5)
-	= Match(text="two", index=8, captures=["two"])?
 
 	!! Test text slicing:
 	>> "abcdef":slice()
@@ -248,63 +204,14 @@ func main():
 	>> Text.from_codepoint_names(["not a valid name here buddy"])
 	= none : Text
 
-	>> "one two; three four":find_all($/; {..}/)
-	= [Match(text="; three four", index=8, captures=["three four"])]
+	>> "Hello":replace("ello", "i")
+	= "Hi"
 
-	malicious := "{xxx}"
-	>> $/$malicious/
-	= $/{1{}xxx}/
-
-	>> "Hello":replace($/{lower}/, "(\0)")
-	= "H(ello)"
-
-	>> " foo(xyz) foo(yyy) foo(z()) ":replace($/foo(?)/, "baz(\1)")
-	= " baz(xyz) baz(yyy) baz(z()) "
-
-	>> "<tag>":replace_all({$/</="&lt;", $/>/="&gt;"})
+	>> "<tag>":translate({"<"="&lt;", ">"="&gt;"})
 	= "&lt;tag&gt;"
-
-	>> " BAD(x, fn(y), BAD(z), w) ":replace($/BAD(?)/, "good(\1)", recursive=yes)
-	= " good(x, fn(y), good(z), w) "
-
-	>> " BAD(x, fn(y), BAD(z), w) ":replace($/BAD(?)/, "good(\1)", recursive=no)
-	= " good(x, fn(y), BAD(z), w) "
-
-	>> "Hello":matches($/{id}/)
-	= ["Hello"]?
-	>> "Hello":matches($/{lower}/)
-	= none : [Text]
-	>> "Hello":matches($/{upper}/)
-	= none : [Text]
-	>> "Hello...":matches($/{id}/)
-	= none : [Text]
-
-	if matches := "hello world":matches($/{id} {id}/):
-		>> matches
-		= ["hello", "world"]
-	else:
-		fail("Failed to match")
-
-	>> "hello world":map($/world/, func(m:Match): m.text:upper())
-	= "hello WORLD"
 
 	>> "Abc":repeat(3)
 	= "AbcAbcAbc"
-
-	>> "   abc def    ":trim()
-	= "abc def"
-	>> " abc123def ":trim($/{!digit}/)
-	= "123"
-	>> " abc123def ":trim($/{!digit}/, trim_left=no)
-	= " abc123"
-	>> " abc123def ":trim($/{!digit}/, trim_right=no)
-	= "123def "
-	# Only trim single whole matches that bookend the text:
-	>> "AbcAbcxxxxxxxxAbcAbc":trim($/Abc/)
-	= "AbcxxxxxxxxAbc"
-
-	>> "A=B=C=D":replace($/{..}={..}/, "1:(\1) 2:(\2)")
-	= "1:(A) 2:(B=C=D)"
 
 	>> "abcde":starts_with("ab")
 	= yes
@@ -315,6 +222,16 @@ func main():
 	= yes
 	>> "abcde":starts_with("cd")
 	= no
+
+	>> "abcde":without_prefix("ab")
+	= "cde"
+	>> "abcde":without_suffix("ab")
+	= "abcde"
+
+	>> "abcde":without_prefix("de")
+	= "abcde"
+	>> "abcde":without_suffix("de")
+	= "abc"
 
 	>> ("hello" ++ " " ++ "Amélie"):reversed()
 	= "eilémA olleh"
@@ -387,3 +304,13 @@ func main():
 	>> cowboy:middle_pad(4)
 	= " 🤠 "
 
+	>> "   one,  ":trim(" ,")
+	= "one"
+	>> "   one,  ":trim(" ,", left=no)
+	= "   one"
+	>> "   one,  ":trim(" ,", right=no)
+	= "one,  "
+	>> "  ":trim(" ,")
+	= ""
+	>> "  ":trim(" ,", left=no)
+	= ""

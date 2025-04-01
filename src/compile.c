@@ -15,7 +15,6 @@
 #include "stdlib/integers.h"
 #include "stdlib/nums.h"
 #include "stdlib/paths.h"
-#include "stdlib/patterns.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"
 #include "structs.h"
@@ -39,7 +38,7 @@ static CORD compile_string_literal(CORD literal);
 
 CORD promote_to_optional(type_t *t, CORD code)
 {
-    if (t == PATH_TYPE || t == PATH_TYPE_TYPE || t == MATCH_TYPE) {
+    if (t == PATH_TYPE || t == PATH_TYPE_TYPE) {
         return code;
     } else if (t->tag == IntType) {
         switch (Match(t, IntType)->bits) {
@@ -442,7 +441,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Deserialize)->value);
         break;
     }
-    case Use: case FunctionDef: case ConvertDef: case StructDef: case EnumDef: case LangDef: {
+    case Use: case FunctionDef: case ConvertDef: case StructDef: case EnumDef: case LangDef: case Extend: {
         errx(1, "Definitions should not be reachable in a closure.");
     }
     default:
@@ -497,7 +496,6 @@ PUREFUNC CORD compile_unsigned_type(type_t *t)
 CORD compile_type(type_t *t)
 {
     if (t == RNG_TYPE) return "RNG_t";
-    else if (t == MATCH_TYPE) return "Match_t";
     else if (t == PATH_TYPE) return "Path_t";
     else if (t == PATH_TYPE_TYPE) return "PathType_t";
 
@@ -516,8 +514,6 @@ CORD compile_type(type_t *t)
         auto text = Match(t, TextType);
         if (!text->lang || streq(text->lang, "Text"))
             return "Text_t";
-        else if (streq(text->lang, "Pattern"))
-            return "Pattern_t";
         else
             return CORD_all(namespace_prefix(text->env, text->env->namespace->parent), text->lang, "$$type");
     }
@@ -558,8 +554,6 @@ CORD compile_type(type_t *t)
         case ArrayType: case TableType: case SetType:
             return CORD_all("Optional", compile_type(nonnull));
         case StructType: {
-            if (nonnull == MATCH_TYPE)
-                return "OptionalMatch_t";
             if (nonnull == PATH_TYPE)
                 return "OptionalPath_t";
             if (nonnull == PATH_TYPE_TYPE)
@@ -680,7 +674,7 @@ CORD optional_into_nonnone(type_t *t, CORD value)
     case IntType:
         return CORD_all(value, ".value");
     case StructType:
-        if (t == MATCH_TYPE || t == PATH_TYPE || t == PATH_TYPE_TYPE)
+        if (t == PATH_TYPE || t == PATH_TYPE_TYPE)
             return value;
         return CORD_all(value, ".value");
     default:
@@ -695,8 +689,6 @@ CORD check_none(type_t *t, CORD value)
     // complain about excessive parens around equality comparisons
     if (t->tag == PointerType || t->tag == FunctionType || t->tag == CStringType)
         return CORD_all("({", value, " == NULL;})");
-    else if (t == MATCH_TYPE)
-        return CORD_all("({(", value, ").index.small == 0;})");
     else if (t == PATH_TYPE)
         return CORD_all("({(", value, ").type.$tag == PATH_NONE;})");
     else if (t == PATH_TYPE_TYPE)
@@ -1168,7 +1160,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         default: code_err(ast, "Update assignments are not implemented for this operation");
         }
     }
-    case StructDef: case EnumDef: case LangDef: case FunctionDef: case ConvertDef: {
+    case StructDef: case EnumDef: case LangDef: case Extend: case FunctionDef: case ConvertDef: {
         return CORD_EMPTY;
     }
     case Skip: {
@@ -1730,8 +1722,13 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 code_err(ast, "Could not find library");
 
             CORD initialization = CORD_EMPTY;
-            const char *lib_id = Text$as_c_string(
-                Text$replace(Text$from_str(use->path), Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false));
+
+            char *lib_id = String(use->path);
+            for (char *p = lib_id; *p; p++) {
+                if (!isalnum(*p) && *p != '_')
+                    *p = '_';
+            }
+
             for (size_t i = 0; i < tm_files.gl_pathc; i++) {
                 const char *filename = tm_files.gl_pathv[i];
                 initialization = CORD_all(
@@ -2165,7 +2162,6 @@ CORD compile_none(type_t *t)
 
     if (t == PATH_TYPE) return "NONE_PATH";
     else if (t == PATH_TYPE_TYPE) return "((OptionalPathType_t){})";
-    else if (t == MATCH_TYPE) return "NONE_MATCH";
 
     switch (t->tag) {
     case BigIntType: return "NONE_INT";
@@ -2597,8 +2593,6 @@ CORD compile(env_t *env, ast_t *ast)
         CORD lang_constructor;
         if (!lang || streq(lang, "Text"))
             lang_constructor = "Text";
-        else if (streq(lang, "Pattern"))
-            lang_constructor = lang;
         else
             lang_constructor = CORD_all(namespace_prefix(Match(text_t, TextType)->env, Match(text_t, TextType)->env->namespace->parent), lang);
 
@@ -3752,7 +3746,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Defer: code_err(ast, "Compiling 'defer' as expression!");
     case Extern: code_err(ast, "Externs are not supported as expressions");
     case TableEntry: code_err(ast, "Table entries should not be compiled directly");
-    case Declare: case Assign: case UpdateAssign: case For: case While: case Repeat: case StructDef: case LangDef:
+    case Declare: case Assign: case UpdateAssign: case For: case While: case Repeat: case StructDef: case LangDef: case Extend:
     case EnumDef: case FunctionDef: case ConvertDef: case Skip: case Stop: case Pass: case Return: case DocTest: case PrintStatement:
         code_err(ast, "This is not a valid expression");
     default: case Unknown: code_err(ast, "Unknown AST");
@@ -3762,7 +3756,6 @@ CORD compile(env_t *env, ast_t *ast)
 CORD compile_type_info(type_t *t)
 {
     if (t == RNG_TYPE) return "&RNG$info";
-    else if (t == MATCH_TYPE) return "&Match$info";
     else if (t == PATH_TYPE) return "&Path$info";
     else if (t == PATH_TYPE_TYPE) return "&PathType$info";
 
@@ -3773,8 +3766,6 @@ CORD compile_type_info(type_t *t)
         auto text = Match(t, TextType);
         if (!text->lang || streq(text->lang, "Text"))
             return "&Text$info";
-        else if (streq(text->lang, "Pattern"))
-            return "&Pattern$info";
         return CORD_all("(&", namespace_prefix(text->env, text->env->namespace->parent), text->lang, "$$info)");
     }
     case StructType: {
@@ -4206,6 +4197,12 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
         env_t *ns_env = namespace_env(env, def->name);
         return CORD_all(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : CORD_EMPTY);
     }
+    case Extend: {
+        auto extend = Match(ast, Extend);
+        env_t *ns_env = namespace_env(env, extend->name);
+        ns_env->libname = env->libname;
+        return compile_top_level_code(ns_env, extend->body);
+    }
     case Extern: return CORD_EMPTY;
     case Block: {
         CORD code = CORD_EMPTY;
@@ -4258,6 +4255,9 @@ static void initialize_vars_and_statics(env_t *env, ast_t *ast)
         } else if (stmt->ast->tag == LangDef) {
             initialize_vars_and_statics(namespace_env(env, Match(stmt->ast, LangDef)->name),
                                         Match(stmt->ast, LangDef)->namespace);
+        } else if (stmt->ast->tag == Extend) {
+            initialize_vars_and_statics(namespace_env(env, Match(stmt->ast, Extend)->name),
+                                        Match(stmt->ast, Extend)->body);
         } else if (stmt->ast->tag == Use) {
             continue;
         } else {
@@ -4348,6 +4348,9 @@ CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
             "extern const TypeInfo_t ", full_name, ";\n"
         );
     }
+    case Extend: {
+        return CORD_EMPTY;
+    }
     default:
         return CORD_EMPTY;
     }
@@ -4362,6 +4365,12 @@ CORD compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t *a
         auto def = Match(ast, LangDef);
         ns_name = def->name;
         block = def->namespace;
+        break;
+    }
+    case Extend: {
+        auto extend = Match(ast, Extend);
+        ns_name = extend->name;
+        block = extend->body;
         break;
     }
     case StructDef: {

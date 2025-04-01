@@ -8,7 +8,7 @@ CSI := "$\033["
 
 lang Colorful:
     convert(text:Text -> Colorful):
-        text = text:replace_all({$/@/="@(at)", $/(/="@(lparen)", $/)/="@(rparen)"})
+        text = text:translate({"@"="@(at)", "("="@(lparen)", ")"="@(rparen)"})
         return Colorful.from_text(text)
 
     convert(i:Int -> Colorful): return Colorful.from_text("$i")

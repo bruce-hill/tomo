@@ -273,43 +273,43 @@ pattern documentation](patterns.md) for more details.
 - [`func as_c_string(text: Text -> CString)`](#as_c_string)
 - [`func at(text: Text, index: Int -> Text)`](#at)
 - [`func by_line(text: Text -> func(->Text?))`](#by_line)
-- [`func by_match(text: Text, pattern: Pattern -> func(->Match?))`](#by_match)
-- [`func by_split(text: Text, pattern: Pattern = $// -> func(->Text?))`](#by_split)
+- [`func by_split(text: Text, delimiter: Text = "" -> func(->Text?))`](#by_split)
+- [`func by_split_any(text: Text, delimiters: Text = " $\t\r\n" -> func(->Text?))`](#by_split_any)
 - [`func bytes(text: Text -> [Byte])`](#bytes)
 - [`func caseless_equals(a: Text, b:Text, language:Text = "C" -> Bool)`](#caseless_equals)
 - [`func codepoint_names(text: Text -> [Text])`](#codepoint_names)
-- [`func each(text: Text, pattern: Pattern, fn: func(m: Match), recursive: Bool = yes -> Int?)`](#each)
 - [`func ends_with(text: Text, suffix: Text -> Bool)`](#ends_with)
-- [`func find(text: Text, pattern: Pattern, start: Int = 1 -> Int?)`](#find)
-- [`func find_all(text: Text, pattern: Pattern -> [Match])`](#find_all)
 - [`func from(text: Text, first: Int -> Text)`](#from)
-- [`func from_codepoint_names(codepoints: [Int32] -> [Text])`](#from_bytes)
+- [`func from_bytes(codepoints: [Int32] -> [Text])`](#from_bytes)
 - [`func from_c_string(str: CString -> Text)`](#from_c_string)
 - [`func from_codepoint_names(codepoint_names: [Text] -> [Text])`](#from_codepoint_names)
-- [`func from_codepoint_names(codepoints: [Int32] -> [Text])`](#from_codepoints)
-- [`func has(text: Text, pattern: Pattern -> Bool)`](#has)
+- [`func from_codepoints(codepoints: [Int32] -> [Text])`](#from_codepoints)
+- [`func has(text: Text, target: Text -> Bool)`](#has)
 - [`func join(glue: Text, pieces: [Text] -> Text)`](#join)
-- [`func split(text: Text -> [Text])`](#lines)
+- [`func split(text: Text, delimiter: Text = "" -> [Text])`](#split)
+- [`func split_any(text: Text, delimiters: Text = " $\t\r\n" -> [Text])`](#split_any)
 - [`func middle_pad(text: Text, width: Int, pad: Text = " ", language: Text = "C" -> Text)`](#middle_pad)
 - [`func left_pad(text: Text, width: Int, pad: Text = " ", language: Text = "C" -> Text)`](#left_pad)
-- [`func lines(text: Text, pattern: Pattern = "" -> [Text])`](#lines)
+- [`func lines(text: Text -> [Text])`](#lines)
 - [`func lower(text: Text, language: Text = "C" -> Text)`](#lower)
-- [`func map(text: Text, pattern: Pattern, fn: func(text:Match)->Text -> Text, recursive: Bool = yes)`](#map)
-- [`func matches(text: Text, pattern: Pattern -> [Text])`](#matches)
 - [`func quoted(text: Text, color: Bool = no, quotation_mark: Text = '"' -> Text)`](#quoted)
 - [`func repeat(text: Text, count:Int -> Text)`](#repeat)
-- [`func replace(text: Text, pattern: Pattern, replacement: Text, backref: Pattern = $/\/, recursive: Bool = yes -> Text)`](#replace)
-- [`func replace_all(replacements:{Pattern,Text}, backref: Pattern = $/\/, recursive: Bool = yes -> Text)`](#replace_all)
+- [`func replace(text: Text, target: Text, replacement: Text -> Text)`](#replace)
 - [`func reversed(text: Text -> Text)`](#reversed)
 - [`func right_pad(text: Text, width: Int, pad: Text = " ", language: Text = "C" -> Text)`](#right_pad)
 - [`func slice(text: Text, from: Int = 1, to: Int = -1 -> Text)`](#slice)
 - [`func starts_with(text: Text, prefix: Text -> Bool)`](#starts_with)
 - [`func title(text: Text, language: Text = "C" -> Text)`](#title)
 - [`func to(text: Text, last: Int -> Text)`](#to)
-- [`func trim(text: Text, pattern: Pattern = $/{whitespace/, trim_left: Bool = yes, trim_right: Bool = yes -> Text)`](#trim)
+- [`func translate(translations:{Text,Text} -> Text)`](#translate)
+- [`func trim(text: Text, to_trim: Text = " $\t\r\n", left: Bool = yes, right: Bool = yes -> Text)`](#trim)
 - [`func upper(text: Text, language: Text "C" -> Text)`](#upper)
 - [`func utf32_codepoints(text: Text -> [Int32])`](#utf32_codepoints)
 - [`func width(text: Text -> Int)`](#width)
+- [`func without_prefix(text: Text, prefix: Text -> Text)`](#without_prefix)
+- [`func without_suffix(text: Text, suffix: Text -> Text)`](#without_suffix)
+
+----------------
 
 ### `as_c_string`
 Converts a `Text` value to a C-style string.
@@ -411,24 +411,53 @@ for match in text:by_match($/{alpha}/):
 
 ### `by_split`
 Returns an iterator function that can be used to iterate over text separated by
-a pattern.
+a delimiter.
+**Note:** to split based on a set of delimiters, use [`by_split_any()`](#by_split_any).
 
 ```tomo
-func by_split(text: Text, pattern: Pattern = $// -> func(->Text?))
+func by_split(text: Text, delimiter: Text = "" -> func(->Text?))
 ```
 
 - `text`: The text to be iterated over in pattern-delimited chunks.
-- `pattern`: The [pattern](patterns.md) to split the text on.
+- `delimiter`: An exact delimiter to use for splitting the text. If an empty text
+  is given, then each split will be the graphical clusters of the text.
 
 **Returns:**  
 An iterator function that returns one chunk of text at a time, separated by the
-given pattern, until it runs out and returns `none`. **Note:** using an empty
-pattern (the default) will iterate over single grapheme clusters in the text.
+given delimiter, until it runs out and returns `none`. **Note:** using an empty
+delimiter (the default) will iterate over single grapheme clusters in the text.
 
 **Example:**  
 ```tomo
 text := "one,two,three"
-for chunk in text:by_split($/,/):
+for chunk in text:by_split(","):
+    # Prints: "one" then "two" then "three":
+    say(chunk)
+```
+
+---
+
+### `by_split_any`
+Returns an iterator function that can be used to iterate over text separated by
+one or more characters (grapheme clusters) from a given text of delimiters.
+**Note:** to split based on an exact delimiter, use [`by_split()`](#by_split).
+
+```tomo
+func by_split_any(text: Text, delimiters: Text = " $\t\r\n" -> func(->Text?))
+```
+
+- `text`: The text to be iterated over in pattern-delimited chunks.
+- `delimiters`: An text containing multiple delimiter characters (grapheme clusters)
+  to use for splitting the text.
+
+**Returns:**  
+An iterator function that returns one chunk of text at a time, separated by the
+given delimiter characters, until it runs out and returns `none`.
+
+**Example:**  
+```tomo
+text := "one,two,;,three"
+for chunk in text:by_split_any(",;"):
     # Prints: "one" then "two" then "three":
     say(chunk)
 ```
@@ -628,7 +657,7 @@ func from(text: Text, first: Int -> Text)
 The text from the given grapheme cluster to the end of the text. Note: a
 negative index counts backwards from the end of the text, so `-1` refers to the
 last cluster, `-2` the second-to-last, etc. Slice ranges will be truncated to
-the length of the string.
+the length of the text.
 
 **Example:**  
 ```tomo
@@ -647,10 +676,10 @@ text will be normalized, so the resulting text's UTF8 bytes may not exactly
 match the input.
 
 ```tomo
-func from_codepoint_names(codepoints: [Int32] -> [Text])
+func from_bytes(bytes: [Byte] -> [Text])
 ```
 
-- `codepoints`: The UTF32 codepoints in the desired text.
+- `bytes`: The UTF-8 bytes of the desired text.
 
 **Returns:**  
 A new text based on the input UTF8 bytes after normalization has been applied.
@@ -717,7 +746,7 @@ the text will be normalized, so the resulting text's codepoints may not exactly
 match the input codepoints.
 
 ```tomo
-func from_codepoint_names(codepoints: [Int32] -> [Text])
+func from_codepoints(codepoints: [Int32] -> [Text])
 ```
 
 - `codepoints`: The UTF32 codepoints in the desired text.
@@ -734,28 +763,24 @@ A new text with the specified codepoints after normalization has been applied.
 ---
 
 ### `has`
-Checks if the `Text` contains a target [pattern](patterns.md).
+Checks if the `Text` contains some target text.
 
 ```tomo
-func has(text: Text, pattern: Pattern -> Bool)
+func has(text: Text, target: Text -> Bool)
 ```
 
 - `text`: The text to be searched.
-- `pattern`: The [pattern](patterns.md) to search for.
+- `target`: The text to search for.
 
 **Returns:**  
-`yes` if the target pattern is found, `no` otherwise.
+`yes` if the target text is found, `no` otherwise.
 
 **Example:**  
 ```tomo
->> "hello world":has($/wo/)
+>> "hello world":has("wo")
 = yes
->> "hello world":has($/{alpha}/)
-= yes
->> "hello world":has($/{digit}/)
+>> "hello world":has("xxx")
 = no
->> "hello world":has($/{start}he/)
-= yes
 ```
 
 ---
@@ -888,63 +913,8 @@ The lowercase version of the text.
 
 ---
 
-### `map`
-For each occurrence of the given [pattern](patterns.md), replace the text with
-the result of calling the given function on that match.
-
-```tomo
-func map(text: Text, pattern: Pattern, fn: func(text:Match)->Text -> Text, recursive: Bool = yes)
-```
-
-- `text`: The text to be searched.
-- `pattern`: The [pattern](patterns.md) to search for.
-- `fn`: The function to apply to each match.
-- `recursive`: Whether to recursively map `fn` to each of the captures of the
-  pattern before handing them to `fn`.
-
-**Returns:**  
-The text with the matching parts replaced with the result of applying the given
-function to each.
-
-**Example:**  
-```tomo
->> "hello world":map($/world/, func(m:Match): m.text:upper())
-= "hello WORLD"
->> "Some nums: 1 2 3 4":map($/{int}/, func(m:Match): "$(Int.parse(m.text)! + 10)")
-= "Some nums: 11 12 13 14"
-```
-
----
-
-### `matches`
-Checks if the `Text` matches target [pattern](patterns.md) and returns an array
-of the matching text captures or a null value if the entire text doesn't match
-the pattern.
-
-```tomo
-func matches(text: Text, pattern: Pattern -> [Text])
-```
-
-- `text`: The text to be searched.
-- `pattern`: The [pattern](patterns.md) to search for.
-
-**Returns:**  
-An array of the matching text captures if the entire text matches the pattern,
-or a null value otherwise.
-
-**Example:**  
-```tomo
->> "hello world":matches($/{id}/)
-= none : [Text]?
-
->> "hello world":matches($/{id} {id}/)
-= ["hello", "world"] : [Text]?
-```
-
----
-
 ### `quoted`
-Formats the text as a quoted string.
+Formats the text with quotation marks and escapes.
 
 ```tomo
 func quoted(text: Text, color: Bool = no, quotation_mark: Text = '"' -> Text)
@@ -955,7 +925,7 @@ func quoted(text: Text, color: Bool = no, quotation_mark: Text = '"' -> Text)
 - `quotation_mark`: The quotation mark to use (default is `"`).
 
 **Returns:**  
-The text formatted as a quoted string.
+The text formatted as a quoted text.
 
 **Example:**  
 ```tomo
@@ -987,106 +957,23 @@ The text repeated the given number of times.
 ---
 
 ### `replace`
-Replaces occurrences of a [pattern](patterns.md) in the text with a replacement
-string.
+Replaces occurrences of a target text with a replacement text.
 
 ```tomo
-func replace(text: Text, pattern: Pattern, replacement: Text, backref: Pattern = $/\/, recursive: Bool = yes -> Text)
+func replace(text: Text, target: Text, replacement: Text -> Text)
 ```
 
 - `text`: The text in which to perform replacements.
-- `pattern`: The [pattern](patterns.md) to be replaced.
-- `replacement`: The text to replace the pattern with.
-- `backref`: If non-empty, the replacement text will have occurrences of this
-  pattern followed by a number replaced with the corresponding backreference.
-  By default, the backreference pattern is a single backslash, so
-  backreferences look like `\0`, `\1`, etc.
-- `recursive`: For backreferences of a nested capture, if recursive is set to
-  `yes`, then the whole replacement will be reapplied recursively to the
-  backreferenced text if it's used in the replacement.
-
-**Backreferences**
-If a backreference pattern is in the replacement, then that backreference is
-replaced with the corresponding group from the matching text. Backreference
-`0` is the entire matching text, backreference `1` is the first matched group,
-and so on. Literal text is not captured for backreferences, only named group
-captures (`{foo}`), quoted captures (`"?"`), and nested group captures (`(?)`).
-For quoted and nested group captures, the backreference refers to the *inside*
-of the capture without the enclosing punctuation.
-
-If you need to insert a digit immediately after a backreference, you can use an
-optional semicolon: `\1;2` (backref 1, followed by the replacement text`"2"`).
+- `target`: The target text to be replaced.
+- `replacement`: The text to replace the target with.
 
 **Returns:**  
-The text with occurrences of the pattern replaced.
+The text with occurrences of the target replaced.
 
 **Example:**  
 ```tomo
->> "Hello world":replace($/world/, "there")
+>> "Hello world":replace("world", "there")
 = "Hello there"
-
->> "Hello world":replace($/{id}/, "xxx")
-= "xxx xxx"
-
->> "Hello world":replace($/{id}/, "\0")
-= "(Hello) (world)"
-
->> "Hello world":replace($/{id}/, "(@0)", backref=$/@/)
-= "(Hello) (world)"
-
->> "Hello world":replace($/{id} {id}/, "just \2")
-= "just world"
-
-# Recursive is the default behavior:
->> " BAD(x, BAD(y), z) ":replace($/BAD(?)/, "good(\1)", recursive=yes)
-= " good(x, good(y), z) "
-
->> " BAD(x, BAD(y), z) ":replace($/BAD(?)/, "good(\1)", recursive=no)
-= " good(x, BAD(y), z) "
-```
-
----
-
-### `replace_all`
-Takes a table mapping [patterns](patterns.md) to replacement texts and performs
-all the replacements in the table on the whole text. At each position, the
-first matching pattern's replacement is applied and the pattern matching moves
-on to *after* the replacement text, so replacement text is not recursively
-modified. See [`replace()`](#replace) for more information about replacement
-behavior.
-
-```tomo
-func replace_all(replacements:{Pattern,Text}, backref: Pattern = $/\/, recursive: Bool = yes -> Text)
-```
-
-- `text`: The text in which to perform replacements.
-- `replacements`: A table mapping from [pattern](patterns.md) to the
-  replacement text associated with that pattern.
-- `backref`: If non-empty, the replacement text will have occurrences of this
-  pattern followed by a number replaced with the corresponding backreference.
-  By default, the backreference pattern is a single backslash, so
-  backreferences look like `\0`, `\1`, etc.
-- `recursive`: For backreferences of a nested capture, if recursive is set to
-  `yes`, then the matching replacement will be reapplied recursively to the
-  backreferenced text if it's used in the replacement.
-
-**Returns:**  
-The text with all occurrences of the patterns replaced with their corresponding
-replacement text.
-
-**Example:**  
-```tomo
->> "A <tag> & an amperand":replace_all({
-    $/&/ = "&amp;",
-    $/</ = "&lt;",
-    $/>/ = "&gt;",
-    $/"/ = "&quot",
-    $/'/ = "&#39;",
-}
-= "A &lt;tag&gt; &amp; an ampersand"
-
->> "Hello":replace_all({$/{lower}/="[\0]", $/{upper}/="{\0}"})
-= "{H}[ello]"
 ```
 
 ---
@@ -1153,7 +1040,7 @@ func slice(text: Text, from: Int = 1, to: Int = -1 -> Text)
 The text that spans the given grapheme cluster indices. Note: a negative index
 counts backwards from the end of the text, so `-1` refers to the last cluster,
 `-2` the second-to-last, etc. Slice ranges will be truncated to the length of
-the string.
+the text.
 
 **Example:**  
 ```tomo
@@ -1170,32 +1057,51 @@ the string.
 ---
 
 ### `split`
-Splits the text into an array of substrings based on a [pattern](patterns.md).
+Splits the text into an array of substrings based on exact matches of a delimiter.
+**Note:** to split based on a set of delimiter characters, use [`split_any()`](#split_any).
 
 ```tomo
-func split(text: Text, pattern: Pattern = "" -> [Text])
+func split(text: Text, delimiter: Text = "" -> [Text])
 ```
 
 - `text`: The text to be split.
-- `pattern`: The [pattern](patterns.md) used to split the text. If the pattern
-  is the empty string, the text will be split into individual grapheme clusters.
+- `delimiter`: The delimiter used to split the text. If the delimiter is the
+  empty text, the text will be split into individual grapheme clusters.
 
 **Returns:**  
-An array of substrings resulting from the split.
+An array of subtexts resulting from the split.
 
 **Example:**  
 ```tomo
->> "one,two,three":split($/,/)
-= ["one", "two", "three"]
+>> "one,two,,three":split(",")
+= ["one", "two", "", "three"]
 
 >> "abc":split()
 = ["a", "b", "c"]
+```
 
->> "a    b  c":split($/{space}/)
-= ["a", "b", "c"]
+---
 
->> "a,b,c,":split($/,/)
-= ["a", "b", "c", ""]
+### `split_any`
+Splits the text into an array of substrings at one or more occurrences of a set
+of delimiter characters (grapheme clusters).
+**Note:** to split based on an exact delimiter, use [`split()`](#split).
+
+```tomo
+func split_any(text: Text, delimiters: Text = " $\t\r\n" -> [Text])
+```
+
+- `text`: The text to be split.
+- `delimiters`: A text containing multiple delimiters to be used for 
+  splitting the text into chunks.
+
+**Returns:**  
+An array of subtexts resulting from the split.
+
+**Example:**  
+```tomo
+>> "one, two,,three":split_any(", ")
+= ["one", "two", "three"]
 ```
 
 ---
@@ -1260,7 +1166,7 @@ func to(text: Text, last: Int -> Text)
 The text up to and including the given grapheme cluster. Note: a negative index
 counts backwards from the end of the text, so `-1` refers to the last cluster,
 `-2` the second-to-last, etc. Slice ranges will be truncated to the length of
-the string.
+the text.
 
 **Example:**  
 ```tomo
@@ -1273,30 +1179,62 @@ the string.
 
 ---
 
-### `trim`
-Trims the matching [pattern](patterns.md) from the left and/or right side of the text.
+### `translate`
+Takes a table mapping target texts to their replacements and performs all the
+replacements in the table on the whole text. At each position, the first
+matching replacement is applied and the matching moves on to *after* the
+replacement text, so replacement text is not recursively modified. See
+[`replace()`](#replace) for more information about replacement behavior.
 
 ```tomo
-func trim(text: Text, pattern: Pattern = $/{whitespace/, trim_left: Bool = yes, trim_right: Bool = yes -> Text)
+func translate(translations:{Pattern,Text} -> Text)
+```
+
+- `text`: The text in which to perform replacements.
+- `translations`: A table mapping from target text to its replacement.
+
+**Returns:**  
+The text with all occurrences of the patterns replaced with their corresponding
+replacement text.
+
+**Example:**  
+```tomo
+>> "A <tag> & an amperand":translate({
+    "&" = "&amp;",
+    "<" = "&lt;",
+    ">" = "&gt;",
+    '"" = "&quot",
+    "'" = "&#39;",
+}
+= "A &lt;tag&gt; &amp; an ampersand"
+```
+
+---
+
+### `trim`
+Trims the given characters (grapheme clusters) from the left and/or right side of the text.
+
+```tomo
+func trim(text: Text, to_trim: Text = " $\t\r\n", left: Bool = yes, right: Bool = yes -> Text)
 ```
 
 - `text`: The text to be trimmed.
-- `pattern`: The [pattern](patterns.md) that will be trimmed away.
-- `trim_left`: Whether or not to trim from the front of the text.
-- `trim_right`: Whether or not to trim from the back of the text.
+- `to_trim`: The characters to remove from the left/right of the text.
+- `left`: Whether or not to trim from the front of the text.
+- `right`: Whether or not to trim from the back of the text.
 
 **Returns:**  
-The text without the trim pattern at either end.
+The text without the trim characters at either end.
 
 **Example:**  
 ```tomo
 >> "   x y z    $(\n)":trim()
 = "x y z"
 
->> "abc123def":trim($/{!digit}/)
-= "123"
+>> "one,":trim(",")
+= "one"
 
->> "   xyz   ":trim(trim_right=no)
+>> "   xyz   ":trim(right=no)
 = "xyz   "
 ```
 
@@ -1370,4 +1308,52 @@ An integer representing the display width of the text.
 = 6
 >> "🤠":width()
 = 2
+```
+
+---
+
+### `without_prefix`
+Returns the text with a given prefix removed (if present).
+
+```tomo
+func without_prefix(text: Text, prefix: Text -> Text)
+```
+
+- `text`: The text to remove the prefix from.
+- `prefix`: The prefix to remove.
+
+**Returns:**  
+A text without the given prefix (if present) or the unmodified text if the
+prefix is not present.
+
+**Example:**  
+```tomo
+>> "foo:baz":without_prefix("foo:")
+= "baz"
+>> "qux":without_prefix("foo:")
+= "qux"
+```
+
+---
+
+### `without_suffix`
+Returns the text with a given suffix removed (if present).
+
+```tomo
+func without_suffix(text: Text, suffix: Text -> Text)
+```
+
+- `text`: The text to remove the suffix from.
+- `suffix`: The suffix to remove.
+
+**Returns:**  
+A text without the given suffix (if present) or the unmodified text if the
+suffix is not present.
+
+**Example:**  
+```tomo
+>> "baz.foo":without_suffix(".foo")
+= "baz"
+>> "qux":without_suffix(".foo")
+= "qux"
 ```

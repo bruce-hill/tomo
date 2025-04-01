@@ -62,32 +62,3 @@ $Colorful"
     We have @(green,bold:colors)!
 ":print()
 ```
-
-You can very easily introduce your own syntax highlighting for a custom DSL:
-
-```tomo
-lang Markdown:
-    func Colorful(md:Markdown -> Colorful):
-        text := md.text:replace_all({
-            $/@/="@(at)",
-            $/(/="@(lparen)",
-            $/)/="@(rparen)",
-            $/**{..}**/="@(b:\1)",
-            $/*{..}*/="@(i:\1)",
-            $/[?](?)/="@(blue,underline:\1)",
-        })
-        return Colorful.from_text(text)
-
-    func colorful(md:Markdown -> Colorful):
-        return $Colorful"$md"
-...
-
-md := $Markdown"
-    This is [a link with **bold** inside](example.com)!
-"
->> colorful := md:colorful()
-= $Colorful"This is @(blue,underline:a link with @(b:bold) inside)!"
->> colorful:for_terminal()
-= "$\e[mThis is $\e[4;34ma link with $\e[1mbold$\e[22m inside$\e[24;39m!"
-colorful:print()
-```

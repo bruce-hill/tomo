@@ -12,7 +12,6 @@
 #include "cordhelpers.h"
 #include "environment.h"
 #include "parse.h"
-#include "stdlib/patterns.h"
 #include "stdlib/paths.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
@@ -195,8 +194,11 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
 
         env_t *module_env = fresh_scope(env);
         Table$str_set(env->imports, use->path, module_env);
-        char *libname_id = Text$as_c_string(
-            Text$replace(Text$from_str(use->path), Pattern("{1+ !alphanumeric}"), Text("_"), Pattern(""), false));
+        char *libname_id = String(use->path);
+        for (char *p = libname_id; *p; p++) {
+            if (!isalnum(*p) && *p != '_')
+                *p = '_';
+        }
         module_env->libname = libname_id;
         for (size_t i = 0; i < tm_files.gl_pathc; i++) {
             const char *filename = tm_files.gl_pathv[i];
@@ -266,6 +268,14 @@ void prebind_statement(env_t *env, ast_t *statement)
         set_binding(env, def->name, Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
                     CORD_all(namespace_prefix(env, env->namespace), def->name, "$$info"));
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
+            prebind_statement(ns_env, stmt->ast);
+        break;
+    }
+    case Extend: {
+        auto extend = Match(statement, Extend);
+        env_t *ns_env = namespace_env(env, extend->name);
+        ns_env->libname = env->libname;
+        for (ast_list_t *stmt = extend->body ? Match(extend->body, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
         break;
     }
@@ -432,6 +442,14 @@ void bind_statement(env_t *env, ast_t *statement)
                     CORD_all("(", namespace_prefix(env, env->namespace), def->name, "$$type)"));
 
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
+            bind_statement(ns_env, stmt->ast);
+        break;
+    }
+    case Extend: {
+        auto extend = Match(statement, Extend);
+        env_t *ns_env = namespace_env(env, extend->name);
+        ns_env->libname = env->libname;
+        for (ast_list_t *stmt = extend->body ? Match(extend->body, Block)->statements : NULL; stmt; stmt = stmt->next)
             bind_statement(ns_env, stmt->ast);
         break;
     }
@@ -940,7 +958,7 @@ type_t *get_type(env_t *env, ast_t *ast)
 
         // Early out if the type is knowable without any context from the block:
         switch (last->ast->tag) {
-        case UpdateAssign: case Assign: case Declare: case FunctionDef: case ConvertDef: case StructDef: case EnumDef: case LangDef:
+        case UpdateAssign: case Assign: case Declare: case FunctionDef: case ConvertDef: case StructDef: case EnumDef: case LangDef: case Extend:
             return Type(VoidType);
         default: break;
         }
@@ -1240,7 +1258,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         return Type(ClosureType, Type(FunctionType, .args=args, .ret=ret));
     }
 
-    case FunctionDef: case ConvertDef: case StructDef: case EnumDef: case LangDef: {
+    case FunctionDef: case ConvertDef: case StructDef: case EnumDef: case LangDef: case Extend: {
         return Type(VoidType);
     }
 
@@ -1399,7 +1417,7 @@ PUREFUNC bool is_discardable(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
     case UpdateAssign: case Assign: case Declare: case FunctionDef: case ConvertDef: case StructDef: case EnumDef:
-    case LangDef: case Use:
+    case LangDef: case Use: case Extend:
         return true;
     default: break;
     }
