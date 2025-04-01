@@ -89,6 +89,7 @@ static void build_library(Text_t lib_dir_name);
 static void compile_files(env_t *env, Array_t files, Array_t *object_files, Array_t *ldlibs);
 static bool is_stale(Path_t path, Path_t relative_to);
 static Path_t build_file(Path_t path, const char *extension);
+static void wait_for_child_success(pid_t child);
 
 typedef struct {
     bool h:1, c:1, o:1;
@@ -197,18 +198,23 @@ int main(int argc, char *argv[])
     }
 
     for (int64_t i = 0; i < libraries.length; i++) {
-        Path_t *lib = (Path_t*)(libraries.data + i*libraries.stride);
-        const char *lib_str = Path$as_c_string(*lib);
-        char cwd[PATH_MAX];
-        getcwd(cwd, sizeof(cwd));
-        if (chdir(lib_str) != 0)
-            print_err("Could not enter directory: ", lib_str);
+        // Fork a child process to build the library to prevent cross-contamination
+        // of side effects when building one library from affecting another library.
+        // This *could* be done in parallel, but there may be some dependency issues.
+        pid_t child = fork();
+        if (child == 0) {
+            Path_t *lib = (Path_t*)(libraries.data + i*libraries.stride);
+            const char *lib_str = Path$as_c_string(*lib);
+            if (chdir(lib_str) != 0)
+                print_err("Could not enter directory: ", lib_str);
 
-        char libdir[PATH_MAX];
-        getcwd(libdir, sizeof(libdir));
-        char *libdirname = basename(libdir);
-        build_library(Text$from_str(libdirname));
-        chdir(cwd);
+            char libdir[PATH_MAX];
+            getcwd(libdir, sizeof(libdir));
+            char *libdirname = basename(libdir);
+            build_library(Text$from_str(libdirname));
+            _exit(0);
+        }
+        wait_for_child_success(child);
     }
 
     // TODO: REPL
@@ -265,17 +271,7 @@ int main(int argc, char *argv[])
             print_err("Could not execute program: ", prog_args[0]);
         }
 
-        int status;
-        while (waitpid(child, &status, 0) < 0 && errno == EINTR) {
-            if (WIFEXITED(status) || WIFSIGNALED(status))
-                break;
-            else if (WIFSTOPPED(status))
-                kill(child, SIGCONT);
-        }
-
-        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-            _exit(WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE);
-        }
+        wait_for_child_success(child);
     }
 
     if (compile_exe && should_install) {
@@ -290,6 +286,21 @@ int main(int argc, char *argv[])
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
+
+void wait_for_child_success(pid_t child)
+{
+    int status;
+    while (waitpid(child, &status, 0) < 0 && errno == EINTR) {
+        if (WIFEXITED(status) || WIFSIGNALED(status))
+            break;
+        else if (WIFSTOPPED(status))
+            kill(child, SIGCONT);
+    }
+
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+        _exit(WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE);
+    }
+}
 
 Text_t escape_lib_name(Text_t lib_name)
 {
@@ -511,7 +522,6 @@ void compile_files(env_t *env, Array_t to_compile, Array_t *object_files, Array_
         build_file_dependency_graph(filename, &dependency_files, &to_link);
     }
 
-    int status;
     // (Re)compile header files, eagerly for explicitly passed in files, lazily
     // for downstream dependencies:
     for (int64_t i = 0; i < dependency_files.entries.length; i++) {
@@ -552,13 +562,8 @@ void compile_files(env_t *env, Array_t to_compile, Array_t *object_files, Array_
         child_processes = new(struct child_s, .next=child_processes, .pid=pid);
     }
 
-    for (; child_processes; child_processes = child_processes->next) {
-        waitpid(child_processes->pid, &status, 0);
-        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-            exit(EXIT_FAILURE);
-        else if (WIFSTOPPED(status))
-            kill(child_processes->pid, SIGCONT);
-    }
+    for (; child_processes; child_processes = child_processes->next)
+        wait_for_child_success(child_processes->pid);
 
     if (object_files) {
         for (int64_t i = 0; i < dependency_files.entries.length; i++) {
