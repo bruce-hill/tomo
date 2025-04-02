@@ -10,8 +10,11 @@ lang Pat:
         return Pat.from_text("$n")
 
 extend Text:
-    func matches_pattern(text:Text, pattern:Pat -> [Text]?):
-        return inline C : [Text]? { Pattern$matches(_$text, _$pattern); }
+    func matches_pattern(text:Text, pattern:Pat -> Bool):
+        return inline C : Bool { Pattern$matches(_$text, _$pattern); }
+
+    func pattern_captures(text:Text, pattern:Pat -> [Text]?):
+        return inline C : [Text]? { Pattern$captures(_$text, _$pattern); }
 
     func replace_pattern(text:Text, pattern:Pat, replacement:Text, backref="@", recursive=yes -> Text):
         return inline C : Text { Pattern$replace(_$text, _$pattern, _$replacement, _$backref, _$recursive); }
@@ -42,11 +45,3 @@ extend Text:
 
     func trim_pattern(text:Text, pattern=$Pat"{space}", left=yes, right=yes -> Text):
         return inline C : Text { Pattern$trim(_$text, _$pattern, _$left, _$right); }
-
-func main():
-    >> "hello world":replace_pattern($Pat/{id}/, "XXX")
-    >> "hello world":find_patterns($Pat/l/)
-
-    for m in "hello one two three":by_pattern($Pat/{id}/):
-        >> m
-

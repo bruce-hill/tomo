@@ -851,7 +851,14 @@ PUREFUNC static bool Pattern$has(Text_t text, Text_t pattern)
     }
 }
 
-static OptionalArray_t Pattern$matches(Text_t text, Text_t pattern)
+static bool Pattern$matches(Text_t text, Text_t pattern)
+{
+    capture_t captures[MAX_BACKREFS] = {};
+    int64_t match_len = match(text, 0, pattern, 0, NULL, 0);
+    return (match_len == text.length);
+}
+
+static OptionalArray_t Pattern$captures(Text_t text, Text_t pattern)
 {
     capture_t captures[MAX_BACKREFS] = {};
     int64_t match_len = match(text, 0, pattern, 0, captures, 0);
