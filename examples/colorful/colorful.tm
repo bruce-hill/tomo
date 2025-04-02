@@ -171,7 +171,7 @@ func _add_ansi_sequences(text:Text, prev_state:_TermState -> Text):
     else if text == "rparen": return ")"
     else if text == "@" or text == "at": return "@"
     parts := (
-        text:matches_pattern($Pat/{0+..}:{0+..}/) or
+        text:pattern_captures($Pat/{0+..}:{0+..}/) or
         return "@("++_for_terminal(Colorful.from_text(text), prev_state)++")"
     )
     attributes := parts[1]:split_pattern($Pat/{0+space},{0+space}/)

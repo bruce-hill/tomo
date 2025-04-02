@@ -17,8 +17,8 @@ func find_urls(path:Path -> [Text]):
             urls:insert_all(find_urls(f))
     else if path:is_file() and path:extension() == ".tm":
         for line in path:by_line()!:
-            if m := line:matches_pattern($Pat/use{space}{url}/) or line:matches_pattern($Pat/{id}{space}:={space}use{space}{url}/):
-                urls:insert(m[-1])
+            if captures := line:pattern_captures($Pat/use{space}{url}/) or line:pattern_captures($Pat/{id}{space}:={space}use{space}{url}/):
+                urls:insert(captures[-1])
     return urls
 
 func main(paths:[Path]):
@@ -42,7 +42,7 @@ func main(paths:[Path]):
 
         alias := none:Text
         curl_flags := ["-L"]
-        if github := url_without_protocol:matches_pattern($Pat"github.com/{!/}/{!/}#{..}"):
+        if github := url_without_protocol:pattern_captures($Pat"github.com/{!/}/{!/}#{..}"):
             user := github[1]
             repo := github[2]
             tag := github[3]
