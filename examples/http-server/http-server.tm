@@ -82,7 +82,7 @@ struct HTTPRequest(method:Text, path:Text, version:Text, headers:[Text], body:Te
         body := rest[-1]
         return HTTPRequest(method, path, version, headers, body)
 
-struct HTTPResponse(body:Text, status=200, content_type="text/plain", headers={:Text,Text}):
+struct HTTPResponse(body:Text, status=200, content_type="text/plain", headers={:Text=Text}):
     func bytes(r:HTTPResponse -> [Byte]):
         body_bytes := r.body:bytes()
         extra_headers := (++: "$k: $v$(\r\n)" for k,v in r.headers) or ""
@@ -123,8 +123,8 @@ enum RouteEntry(ServeFile(file:Path), Redirect(destination:Text)):
         is Redirect(destination):
             return HTTPResponse("Found", 302, headers={"Location"=destination})
 
-func load_routes(directory:Path -> {Text,RouteEntry}):
-    routes := &{:Text,RouteEntry}
+func load_routes(directory:Path -> {Text=RouteEntry}):
+    routes := &{:Text=RouteEntry}
     for file in (directory ++ (./*)):glob():
         skip unless file:is_file()
         contents := file:read() or skip
