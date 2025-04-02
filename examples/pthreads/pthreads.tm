@@ -60,25 +60,28 @@ struct pthread_t(; extern, opaque):
             thread
         }
 
-    func join(p:@pthread_t): inline C { pthread_join(*_$p, NULL); }
-    func cancel(p:@pthread_t): inline C { pthread_cancel(*_$p); }
-    func detatch(p:@pthread_t): inline C { pthread_detach(*_$p); }
+    func join(p:pthread_t): inline C { pthread_join(_$p, NULL); }
+    func cancel(p:pthread_t): inline C { pthread_cancel(_$p); }
+    func detatch(p:pthread_t): inline C { pthread_detach(_$p); }
 
 struct IntQueue(_queue:@[Int], _mutex:@pthread_mutex_t, _cond:@pthread_cond_t):
     func new(initial=[:Int] -> IntQueue):
         return IntQueue(@initial, pthread_mutex_t.new(), pthread_cond_t.new())
 
     func give(q:IntQueue, n:Int):
-        do: q._mutex:lock(); defer: q._mutex:unlock()
+        do: q._mutex:lock()
             q._queue:insert(n)
+            q._mutex:unlock()
         q._cond:signal()
 
     func take(q:IntQueue -> Int):
-        do: q._mutex:lock(); defer: q._mutex:unlock()
-            repeat:
-                if n := q._queue:pop(1):
-                    return n
+        do: q._mutex:lock()
+            n := q._queue:pop(1)
+            while not n:
                 q._cond:wait(q._mutex)
+                n = q._queue:pop(1)
+            q._mutex:unlock()
+            return n!
         fail("Unreachable")
 
 func main():
@@ -87,8 +90,9 @@ func main():
 
     say_mutex := pthread_mutex_t.new()
     announce := func(speaker:Text, text:Text):
-        do: say_mutex:lock(); defer: say_mutex:unlock()
+        do: say_mutex:lock()
             say("$\033[2m[$speaker]$\033[m $text")
+            say_mutex:unlock()
 
     worker := pthread_t.new(func():
         say("I'm in the thread!")
