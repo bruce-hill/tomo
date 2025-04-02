@@ -15,7 +15,7 @@ struct chacha_ctx(j0,j1,j2,j3,j4,j5,j6,j7,j8,j9,j10,j11,j12,j13,j14,j15:Int32; e
             ctx;
         }
 
-default_random := RandomNumberGenerator.new()
+random := RandomNumberGenerator.new()
 
 func _os_random_bytes(count:Int64 -> [Byte]):
     return inline C : [Byte] {
