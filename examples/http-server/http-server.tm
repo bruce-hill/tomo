@@ -106,17 +106,7 @@ enum RouteEntry(ServeFile(file:Path), Redirect(destination:Text)):
     func respond(entry:RouteEntry, request:HTTPRequest -> HTTPResponse):
         when entry is ServeFile(file):
             body := if file:can_execute():
-                output := Command(Text(file)):get_output()!
-                "
-                    <!DOCTYPE HTML>
-                    <html>
-                    <head><title>$file</title></head>
-                    <body>
-                    <h1>$file program output</h1>
-                    <pre>$output</pre>
-                    </body>
-                    </html>
-                "
+                Command(Text(file)):get_output()!
             else:
                 file:read()!
             return HTTPResponse(body, content_type=_content_type(file))
