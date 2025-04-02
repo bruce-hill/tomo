@@ -104,7 +104,7 @@ clean:
 %: %.md
 	pandoc --lua-filter=docs/.pandoc/bold-code.lua -s $< -t man -o $@
 
-examples: examples/base64/base64 examples/ini/ini examples/game/game \
+examples: examples/base64/base64 examples/ini/ini examples/game/game examples/http-server/http-server \
 		examples/tomodeps/tomodeps examples/tomo-install/tomo-install examples/wrap/wrap examples/colorful/colorful
 	./build/tomo -qIL examples/patterns examples/time examples/commands examples/shell examples/base64 examples/log \
 		examples/ini examples/vectors examples/http \
