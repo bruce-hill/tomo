@@ -7,7 +7,7 @@ the language design decisions of the future.
 ```
 func greeting(name:Text, add_exclamation:Bool -> Text):
     message := "hello $name"
-    message = " ":join([w:title() for w in message:split($/{space}/)])
+    message = " ":join([w:title() for w in message:split_any(" ")])
     if add_exclamation:
         message ++= "!!!"
     return message
