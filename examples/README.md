@@ -6,6 +6,7 @@ This folder contains some example programs and libraries.
 
 - [learnxiny.tm](learnxiny.tm): A quick overview of language features in the
 - [game](game/): An example game using raylib.
+- [http-server](http-server/): A multithreaded HTTP server.
 - [tomodeps](tomodeps/): A library for finding Tomo dependencies.
 - [tomo-install](tomo-install/): A library for installing Tomo dependencies.
 
