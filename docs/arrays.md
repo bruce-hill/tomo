@@ -235,7 +235,7 @@ variable or dereference a heap pointer, it may trigger copy-on-write behavior.
 - [`func binary_search(arr: [T], by: func(x,y:&T->Int32) = T.compare -> Int)`](#binary_search)
 - [`func by(arr: [T], step: Int -> [T])`](#by)
 - [`func clear(arr: @[T] -> Void)`](#clear)
-- [`func counts(arr: [T] -> {T,Int})`](#counts)
+- [`func counts(arr: [T] -> {T=Int})`](#counts)
 - [`func find(arr: [T], target: T -> Int?)`](#find)
 - [`func first(arr: [T], predicate: func(item:&T -> Bool) -> Int)`](#first)
 - [`func from(arr: [T], first: Int -> [T])`](#from)
@@ -334,7 +334,7 @@ Nothing.
 Counts the occurrences of each element in the array.
 
 ```tomo
-func counts(arr: [T] -> {T,Int})
+func counts(arr: [T] -> {T=Int})
 ```
 
 - `arr`: The array to count elements in.

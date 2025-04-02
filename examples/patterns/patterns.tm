@@ -19,7 +19,7 @@ extend Text:
     func replace_pattern(text:Text, pattern:Pat, replacement:Text, backref="@", recursive=yes -> Text):
         return inline C : Text { Pattern$replace(_$text, _$pattern, _$replacement, _$backref, _$recursive); }
 
-    func translate_patterns(text:Text, replacements:{Pat,Text}, backref="@", recursive=yes -> Text):
+    func translate_patterns(text:Text, replacements:{Pat=Text}, backref="@", recursive=yes -> Text):
         return inline C : Text { Pattern$replace_all(_$text, _$replacements, _$backref, _$recursive); }
 
     func has_pattern(text:Text, pattern:Pat -> Bool):

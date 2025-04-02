@@ -3,8 +3,8 @@
 use ./commands.c
 use -lunistring
 
-extern run_command:func(exe:Text, args:[Text], env:{Text,Text}, input:[Byte]?, output:&[Byte]?, error:&[Byte]? -> Int32)
-extern command_by_line:func(exe:Text, args:[Text], env:{Text,Text} -> func(->Text?)?)
+extern run_command:func(exe:Text, args:[Text], env:{Text=Text}, input:[Byte]?, output:&[Byte]?, error:&[Byte]? -> Int32)
+extern command_by_line:func(exe:Text, args:[Text], env:{Text=Text} -> func(->Text?)?)
 
 enum ExitType(Exited(status:Int32), Signaled(signal:Int32), Failed):
     func succeeded(e:ExitType -> Bool):
@@ -46,8 +46,8 @@ struct ProgramResult(stdout:[Byte], stderr:[Byte], exit_type:ExitType):
         else:
             return no
 
-struct Command(command:Text, args=[:Text], env={:Text,Text}):
-    func from_path(path:Path, args=[:Text], env={:Text,Text} -> Command):
+struct Command(command:Text, args=[:Text], env={:Text=Text}):
+    func from_path(path:Path, args=[:Text], env={:Text=Text} -> Command):
         return Command(Text(path), args, env)
 
     func result(command:Command, input="", input_bytes=[:Byte] -> ProgramResult):

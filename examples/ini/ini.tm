@@ -9,10 +9,10 @@ _HELP := "
     $_USAGE
 "
 
-func parse_ini(path:Path -> {Text,{Text,Text}}):
+func parse_ini(path:Path -> {Text={Text=Text}}):
     text := path:read() or exit("Could not read INI file: $\[31;1]$(path)$\[]")
-    sections := @{:Text,@{Text,Text}}
-    current_section := @{:Text,Text}
+    sections := @{:Text=@{Text=Text}}
+    current_section := @{:Text=Text}
 
     # Line wraps:
     text = text:replace_pattern($Pat/\{1 nl}{0+space}/, " ")
@@ -22,7 +22,7 @@ func parse_ini(path:Path -> {Text,{Text,Text}}):
         skip if line:starts_with(";") or line:starts_with("#")
         if line:matches_pattern($Pat/[?]/):
             section_name := line:replace($Pat/[?]/, "\1"):trim():lower()
-            current_section = @{:Text,Text}
+            current_section = @{:Text=Text}
             sections[section_name] = current_section
         else if line:matches_pattern($Pat/{..}={..}/):
             key := line:replace_pattern($Pat/{..}={..}/, "\1"):trim():lower()

@@ -503,13 +503,16 @@ type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
     pos = key_type->end;
     whitespace(&pos);
     type_ast_t *value_type = NULL;
-    ast_t *default_value = NULL;
-    if (match(&pos, ",")) {
+    if (match(&pos, "=")) {
         value_type = expect(ctx, start, &pos, parse_type, "I couldn't parse the rest of this table type");
-    } else if (match(&pos, "=")) {
-        default_value = expect(ctx, start, &pos, parse_extended_expr, "I couldn't parse the rest of this table type");
     } else {
         return NULL;
+    }
+    spaces(&pos);
+    ast_t *default_value = NULL;
+    if (match(&pos, ";") && match_word(&pos, "default")) {
+        expect_str(ctx, pos, &pos, "=", "I expected an '=' here");
+        default_value = expect(ctx, start, &pos, parse_extended_expr, "I couldn't parse the default value for this table");
     }
     whitespace(&pos);
     expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this table type");
@@ -722,15 +725,12 @@ PARSER(parse_table) {
 
     ast_list_t *entries = NULL;
     type_ast_t *key_type = NULL, *value_type = NULL;
-    ast_t *default_value = NULL;
     if (match(&pos, ":")) {
         whitespace(&pos);
         key_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a key type for this table");
         whitespace(&pos);
-        if (match(&pos, ",")) {
+        if (match(&pos, "=")) {
             value_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse the value type for this table");
-        } else if (match(&pos, "=")) {
-            default_value = expect(ctx, pos-1, &pos, parse_extended_expr, "I couldn't parse the default value for this table");
         } else {
             return NULL;
         }
@@ -764,7 +764,7 @@ PARSER(parse_table) {
 
     whitespace(&pos);
 
-    ast_t *fallback = NULL;
+    ast_t *fallback = NULL, *default_value = NULL;
     if (match(&pos, ";")) {
         for (;;) {
             whitespace(&pos);
@@ -775,11 +775,17 @@ PARSER(parse_table) {
                 if (fallback)
                     parser_err(ctx, attr_start, pos, "This table already has a fallback");
                 fallback = expect(ctx, attr_start, &pos, parse_expr, "I expected a fallback table");
+            } else if (match_word(&pos, "default")) {
+                whitespace(&pos);
+                if (!match(&pos, "=")) parser_err(ctx, attr_start, pos, "I expected an '=' after 'default'");
+                if (default_value)
+                    parser_err(ctx, attr_start, pos, "This table already has a default");
+                default_value = expect(ctx, attr_start, &pos, parse_expr, "I expected a default value");
             } else {
                 break;
             }
             whitespace(&pos);
-            if (!match(&pos, ";")) break;
+            if (!match(&pos, ",")) break;
         }
     }
 

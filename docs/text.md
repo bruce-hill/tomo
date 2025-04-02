@@ -295,7 +295,7 @@ finding the value because the two texts are equivalent under normalization.
 - [`func starts_with(text: Text, prefix: Text -> Bool)`](#starts_with)
 - [`func title(text: Text, language: Text = "C" -> Text)`](#title)
 - [`func to(text: Text, last: Int -> Text)`](#to)
-- [`func translate(translations:{Text,Text} -> Text)`](#translate)
+- [`func translate(translations:{Text=Text} -> Text)`](#translate)
 - [`func trim(text: Text, to_trim: Text = " $\t\r\n", left: Bool = yes, right: Bool = yes -> Text)`](#trim)
 - [`func upper(text: Text, language: Text "C" -> Text)`](#upper)
 - [`func utf32_codepoints(text: Text -> [Int32])`](#utf32_codepoints)
@@ -1065,7 +1065,7 @@ replacement text, so replacement text is not recursively modified. See
 [`replace()`](#replace) for more information about replacement behavior.
 
 ```tomo
-func translate(translations:{Text,Text} -> Text)
+func translate(translations:{Text=Text} -> Text)
 ```
 
 - `text`: The text in which to perform replacements.

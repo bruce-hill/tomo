@@ -355,7 +355,7 @@ env_t *global_env(void)
             {"starts_with", "Text$starts_with", "func(text,prefix:Text -> Bool)"},
             {"title", "Text$title", "func(text:Text, language='C' -> Text)"},
             {"to", "Text$to", "func(text:Text, last:Int -> Text)"},
-            {"translate", "Text$translate", "func(text:Text, translations:{Text,Text} -> Text)"},
+            {"translate", "Text$translate", "func(text:Text, translations:{Text=Text} -> Text)"},
             {"trim", "Text$trim", "func(text:Text, to_trim=\" \t\r\n\", left=yes, right=yes -> Text)"},
             {"upper", "Text$upper", "func(text:Text, language='C' -> Text)"},
             {"utf32_codepoints", "Text$utf32_codepoints", "func(text:Text -> [Int32])"},

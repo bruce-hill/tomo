@@ -7,21 +7,21 @@ support *all* types as both keys and values.
 
 ## Syntax
 
-Tables are written using `{}` curly braces with `:` colons associating key
+Tables are written using `{}` curly braces with `=` equals signs associating key
 expressions with value expressions and commas between entries:
 
 ```tomo
-table := {"A": 10, "B": 20}
+table := {"A"=10, "B"=20}
 ```
 
 Empty tables must specify the key and value types explicitly:
 
 ```tomo
-empty := {:Text,Int}
+empty := {:Text=Int}
 ```
 
 For type annotations, a table that maps keys with type `K` to values of type
-`V` is written as `{K,V}`.
+`V` is written as `{K=V}`.
 
 ### Comprehensions
 
@@ -41,9 +41,9 @@ optional value:
 ```tomo
 table := {"A"=1, "B"=2}
 >> table["A"]
-= 1 : Int?
+= 1?
 >> table["missing"]
-= none : Int?
+= none:Int
 ```
 
 As with all optional values, you can use the `!` postfix operator to assert
@@ -52,10 +52,10 @@ use the `or` operator to provide a fallback value in the case that it's none:
 
 ```tomo
 >> table["A"]!
-= 1 : Int
+= 1
 
 >> table["missing"] or -1
-= -1 : Int
+= -1
 ```
 
 ### Fallback Tables
@@ -67,7 +67,7 @@ is not found in the table itself:
 t := {"A"=10}
 t2 := {"B"=20; fallback=t}
 >> t2["A"]
-= 10 : Int?
+= 10?
 ```
 
 The fallback is available by the `.fallback` field, which returns an optional
@@ -75,10 +75,29 @@ table value:
 
 ```tomo
 >> t2.fallback
-= {"A"=10} : {Text,Int}?
+= {"A"=10}?
 >> t.fallback
-= none : {Text,Int}?
+= none:{Text=Int}
 ```
+
+### Default Values
+
+Tables can specify a default value which will be returned if a value is not
+present in the table or its fallback (if any).
+
+```tomo
+counts := &{"foo"=12; default=0}
+>> counts["foo"]
+= 12
+>> counts["baz"]
+= 0
+counts["baz"] += 1
+>> counts["baz"]
+= 1
+```
+
+When values are accessed from a table with a default value, the return type
+is non-optional (because a value will always be present).
 
 ## Setting Values
 
@@ -133,19 +152,19 @@ iterating over any of the new values.
 
 ## Table Methods
 
-- [`func bump(t:@{K,V}, key: K, amount: Int = 1 -> Void)`](#bump)
-- [`func clear(t:@{K,V})`](#clear)
-- [`func get(t:{K,V}, key: K -> V?)`](#get)
-- [`func has(t:{K,V}, key: K -> Bool)`](#has)
-- [`func remove(t:{K,V}, key: K -> Void)`](#remove)
-- [`func set(t:{K,V}, key: K, value: V -> Void)`](#set)
+- [`func bump(t:&{K=V}, key: K, amount: Int = 1 -> Void)`](#bump)
+- [`func clear(t:&{K=V})`](#clear)
+- [`func get(t:{K=V}, key: K -> V?)`](#get)
+- [`func has(t:{K=V}, key: K -> Bool)`](#has)
+- [`func remove(t:{K=V}, key: K -> Void)`](#remove)
+- [`func set(t:{K=V}, key: K, value: V -> Void)`](#set)
 
 ### `bump`
 Increments the value associated with a key by a specified amount. If the key is
 not already in the table, its value will be assumed to be zero.
 
 ```tomo
-func bump(t:@{K,V}, key: K, amount: Int = 1 -> Void)
+func bump(t:&{K=V}, key: K, amount: Int = 1 -> Void)
 ```
 
 - `t`: The reference to the table.
@@ -170,7 +189,7 @@ t:bump("B", 10)
 Removes all key-value pairs from the table.
 
 ```tomo
-func clear(t:@{K,V})
+func clear(t:&{K=V})
 ```
 
 - `t`: The reference to the table.
@@ -186,32 +205,33 @@ Nothing.
 ---
 
 ### `get`
-Retrieves the value associated with a key, or returns null if the key is not present.
+Retrieves the value associated with a key, or returns `none` if the key is not present.
+**Note:** default values for the table are ignored.
 
 ```tomo
-func get(t:{K,V}, key: K -> V?)
+func get(t:{K=V}, key: K -> V?)
 ```
 
 - `t`: The table.
 - `key`: The key whose associated value is to be retrieved.
 
 **Returns:**  
-The value associated with the key or null if the key is not found.
+The value associated with the key or `none` if the key is not found.
 
 **Example:**  
 ```tomo
 >> t := {"A"=1, "B"=2}
 >> t:get("A")
-= 1 : Int?
+= 1?
 
 >> t:get("????")
-= none : Int?
+= none:Int
 
 >> t:get("A")!
-= 1 : Int
+= 1
 
 >> t:get("????") or 0
-= 0 : Int
+= 0
 ```
 
 ---
@@ -220,7 +240,7 @@ The value associated with the key or null if the key is not found.
 Checks if the table contains a specified key.
 
 ```tomo
-func has(t:{K,V}, key: K -> Bool)
+func has(t:{K=V}, key: K -> Bool)
 ```
 
 - `t`: The table.
@@ -243,7 +263,7 @@ func has(t:{K,V}, key: K -> Bool)
 Removes the key-value pair associated with a specified key.
 
 ```tomo
-func remove(t:{K,V}, key: K -> Void)
+func remove(t:{K=V}, key: K -> Void)
 ```
 
 - `t`: The reference to the table.
@@ -266,7 +286,7 @@ t:remove("A")
 Sets or updates the value associated with a specified key.
 
 ```tomo
-func set(t:{K,V}, key: K, value: V -> Void)
+func set(t:{K=V}, key: K, value: V -> Void)
 ```
 
 - `t`: The reference to the table.

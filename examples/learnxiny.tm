@@ -123,7 +123,7 @@ func main():
     = 0
 
     # Empty tables require specifying the key and value types:
-    empty_table := {:Text,Int}
+    empty_table := {:Text=Int}
 
     # Tables can be iterated over either by key or key,value:
     for key in table:
@@ -243,7 +243,7 @@ func takes_many_types(
     floating_point_number:Num,
     text_aka_string:Text,
     array_of_ints:[Int],
-    table_of_text_to_bools:{Text,Bool},
+    table_of_text_to_bools:{Text=Bool},
     pointer_to_mutable_array_of_ints:@[Int],
     optional_int:Int?,
     function_from_int_to_text:func(x:Int -> Text),
