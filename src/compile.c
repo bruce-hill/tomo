@@ -3713,8 +3713,8 @@ CORD compile(env_t *env, ast_t *ast)
                 code_err(ast, "Table indexes cannot be unchecked");
             if (table_type->default_value) {
                 type_t *value_type = get_type(env, table_type->default_value);
-                return CORD_all("*Table$get_or_setdefault(",
-                                compile_to_pointer_depth(env, indexing->indexed, 1, false), ", ",
+                return CORD_all("Table$get_or_default(",
+                                compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
                                 compile_type(table_type->key_type), ", ",
                                 compile_type(value_type), ", ",
                                 compile(env, indexing->index), ", ",
