@@ -4353,7 +4353,7 @@ CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
                 "(text) ((", namespace_prefix(env, env->namespace), def->name, "$$type){.length=sizeof(text)-1, .tag=TEXT_ASCII, .ascii=\"\" text})\n"
             "#define ", namespace_prefix(env, env->namespace), def->name,
                 "s(...) ((", namespace_prefix(env, env->namespace), def->name, "$$type)Texts(__VA_ARGS__))\n"
-            "extern const TypeInfo_t ", full_name, ";\n"
+            "extern const TypeInfo_t ", full_name, "$$info;\n"
         );
     }
     case Extend: {
