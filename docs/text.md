@@ -262,12 +262,6 @@ created that has text with the codepoint `U+E9` as a key, then a lookup with
 the same text but with `U+65 U+301` instead of `U+E9` will still succeed in
 finding the value because the two texts are equivalent under normalization.
 
-## Patterns
-
-Texts use a custom pattern matching syntax for text matching and replacement as
-a lightweight, but powerful alternative to regular expressions. See [the
-pattern documentation](patterns.md) for more details.
-
 ## Text Functions
 
 - [`func as_c_string(text: Text -> CString)`](#as_c_string)
@@ -383,32 +377,6 @@ for line in text:by_line():
 
 ---
 
-### `by_match`
-Returns an iterator function that can be used to iterate over the occurrences
-of a pattern in a text.
-
-```tomo
-func by_match(text: Text, pattern: Pattern -> func(->Match?))
-```
-
-- `text`: The text to be iterated over looking for matches.
-- `pattern`: The [pattern](patterns.md) to look for.
-
-**Returns:**  
-An iterator function that returns one match result at a time, until it runs out
-and returns `none`. **Note:** if a zero-length match is found, the iterator
-will return it exactly once. Matches are always non-overlapping.
-
-**Example:**  
-```tomo
-text := "one two three"
-for match in text:by_match($/{alpha}/):
-    # Prints: "one" then "two" then "three":
-    say(match.text)
-```
-
----
-
 ### `by_split`
 Returns an iterator function that can be used to iterate over text separated by
 a delimiter.
@@ -418,7 +386,7 @@ a delimiter.
 func by_split(text: Text, delimiter: Text = "" -> func(->Text?))
 ```
 
-- `text`: The text to be iterated over in pattern-delimited chunks.
+- `text`: The text to be iterated over in delimited chunks.
 - `delimiter`: An exact delimiter to use for splitting the text. If an empty text
   is given, then each split will be the graphical clusters of the text.
 
@@ -446,7 +414,7 @@ one or more characters (grapheme clusters) from a given text of delimiters.
 func by_split_any(text: Text, delimiters: Text = " $\t\r\n" -> func(->Text?))
 ```
 
-- `text`: The text to be iterated over in pattern-delimited chunks.
+- `text`: The text to be iterated over in delimited chunks.
 - `delimiters`: An text containing multiple delimiter characters (grapheme clusters)
   to use for splitting the text.
 
@@ -532,32 +500,6 @@ An array of codepoint names (`[Text]`).
 
 ---
 
-### `each`
-Iterates over each match of a [pattern](patterns.md) and passes the match to
-the given function.
-
-```tomo
-func each(text: Text, pattern: Pattern, fn: func(m: Match), recursive: Bool = yes -> Int?)
-```
-
-- `text`: The text to be searched.
-- `pattern`: The [pattern](patterns.md) to search for.
-- `fn`: A function to be called on each match that was found.
-- `recursive`: For each match, if recursive is set to `yes`, then call `each()`
-  recursively on its captures before calling `fn` on the match.
-
-**Returns:**  
-None.
-
-**Example:**  
-```tomo
->> " #one   #two  #three   ":each($/#{word}/, func(m:Match):
-    say("Found word $(m.captures[1])")
-)
-```
-
----
-
 ### `ends_with`
 Checks if the `Text` ends with a literal suffix text.
 
@@ -575,70 +517,6 @@ func ends_with(text: Text, suffix: Text -> Bool)
 ```tomo
 >> "hello world":ends_with("world")
 = yes
-```
-
----
-
-### `find`
-Finds the first occurrence of a [pattern](patterns.md) in the given text (if
-any).
-
-```tomo
-func find(text: Text, pattern: Pattern, start: Int = 1 -> Int?)
-```
-
-- `text`: The text to be searched.
-- `pattern`: The [pattern](patterns.md) to search for.
-- `start`: The index to start the search.
-
-**Returns:**  
-`!Match` if the target [pattern](patterns.md) is not found, otherwise a `Match`
-struct containing information about the match.
-
-**Example:**  
-```tomo
->> " #one   #two  #three   ":find($/#{id}/, start=-999)
-= none : Match?
->> " #one   #two  #three   ":find($/#{id}/, start=999)
-= none : Match?
->> " #one   #two  #three   ":find($/#{id}/)
-= Match(text="#one", index=2, captures=["one"]) : Match?
->> " #one   #two  #three   ":find("{id}", start=6)
-= Match(text="#two", index=9, captures=["two"]) : Match?
-```
-
----
-
-### `find_all`
-Finds all occurrences of a [pattern](patterns.md) in the given text.
-
-```tomo
-func find_all(text: Text, pattern: Pattern -> [Match])
-```
-
-- `text`: The text to be searched.
-- `pattern`: The [pattern](patterns.md) to search for.
-
-**Returns:**  
-An array of every match of the [pattern](patterns.md) in the given text.
-Note: if `text` or `pattern` is empty, an empty array will be returned.
-
-**Example:**  
-```tomo
->> " #one  #two #three   ":find_all($/#{alpha}/)
-= [Match(text="#one", index=2, captures=["one"]), Match(text="#two", index=8, captures=["two"]), Match(text="#three", index=13, captures=["three"])]
-
->> "    ":find_all("{alpha}")
-= []
-
->> " foo(baz(), 1)  doop() ":find_all("{id}(?)")
-= [Match(text="foo(baz(), 1)", index=2, captures=["foo", "baz(), 1"]), Match(text="doop()", index=17, captures=["doop", ""])]
-
->> "":find_all($//)
-= []
-
->> "Hello":find_all($//)
-= []
 ```
 
 ---
@@ -1187,14 +1065,14 @@ replacement text, so replacement text is not recursively modified. See
 [`replace()`](#replace) for more information about replacement behavior.
 
 ```tomo
-func translate(translations:{Pattern,Text} -> Text)
+func translate(translations:{Text,Text} -> Text)
 ```
 
 - `text`: The text in which to perform replacements.
 - `translations`: A table mapping from target text to its replacement.
 
 **Returns:**  
-The text with all occurrences of the patterns replaced with their corresponding
+The text with all occurrences of the targets replaced with their corresponding
 replacement text.
 
 **Example:**  
