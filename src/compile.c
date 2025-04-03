@@ -866,6 +866,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 return compile_statement(env, WrapAST(ast, DocTest, .expr=decl->value, .expected=test->expected, .skip_source=test->skip_source));
             CORD var = CORD_all("_$", Match(decl->var, Var)->name);
             type_t *t = get_type(env, decl->value);
+            if (!t) code_err(decl->value, "I couldn't figure out the type of this value!");
             CORD val_code = compile_maybe_incref(env, decl->value, t);
             if (t->tag == FunctionType) {
                 assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
@@ -1840,6 +1841,16 @@ CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
         }
     } else if (ast->tag == None && Match(ast, None)->type == NULL) {
         return compile_none(t);
+    } else if (t->tag == ArrayType && ast->tag == Array && !Match(ast, Array)->item_type && !Match(ast, Array)->items) {
+        return compile(env, ast);
+    } else if (t->tag == TableType && ast->tag == Table) {
+        auto table = Match(ast, Table);
+        if (!table->key_type && !table->value_type && !table->default_value && !table->fallback && !table->entries)
+            return compile(env, ast);
+    } else if (t->tag == SetType && ast->tag == Set) {
+        auto set = Match(ast, Set);
+        if (!set->item_type && !set->items)
+            return compile(env, ast);
     }
 
     type_t *actual = get_type(env, ast);
@@ -2695,12 +2706,12 @@ CORD compile(env_t *env, ast_t *ast)
             "})");
     }
     case Array: {
-        type_t *array_type = get_type(env, ast);
-        type_t *item_type = Match(array_type, ArrayType)->item_type;
-
         auto array = Match(ast, Array);
         if (!array->items)
             return "(Array_t){.length=0}";
+
+        type_t *array_type = get_type(env, ast);
+        type_t *item_type = Match(array_type, ArrayType)->item_type;
 
         int64_t n = 0;
         for (ast_list_t *item = array->items; item; item = item->next) {
@@ -3758,6 +3769,7 @@ CORD compile(env_t *env, ast_t *ast)
 
 CORD compile_type_info(type_t *t)
 {
+    if (t == NULL) compiler_err(NULL, NULL, NULL, "Attempt to compile a NULL type");
     if (t == PATH_TYPE) return "&Path$info";
     else if (t == PATH_TYPE_TYPE) return "&PathType$info";
 

@@ -739,6 +739,10 @@ type_t *get_type(env_t *env, ast_t *ast)
         }
         if (has_stack_memory(item_type))
             code_err(ast, "Arrays cannot hold stack references, because the array may outlive the stack frame the reference was created in.");
+
+        if (!item_type)
+            code_err(ast, "I couldn't figure out the item type for this array!");
+
         return Type(ArrayType, .item_type=item_type);
     }
     case Set: {
@@ -766,6 +770,10 @@ type_t *get_type(env_t *env, ast_t *ast)
                 item_type = item_merged;
             }
         }
+
+        if (!item_type)
+            code_err(ast, "I couldn't figure out the item type for this set!");
+
         if (has_stack_memory(item_type))
             code_err(ast, "Sets cannot hold stack references because the set may outlive the reference's stack frame.");
         return Type(SetType, .item_type=item_type);
@@ -809,6 +817,10 @@ type_t *get_type(env_t *env, ast_t *ast)
                 value_type = val_merged;
             }
         }
+
+        if (!key_type || !value_type)
+            code_err(ast, "I couldn't figure out the key and value types for this table!");
+
         if (has_stack_memory(key_type) || has_stack_memory(value_type))
             code_err(ast, "Tables cannot hold stack references because the table may outlive the reference's stack frame.");
         return Type(TableType, .key_type=key_type, .value_type=value_type, .default_value=table->default_value, .env=env);

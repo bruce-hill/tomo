@@ -710,15 +710,13 @@ PARSER(parse_array) {
     whitespace(&pos);
     expect_closing(ctx, &pos, "]", "I wasn't able to parse the rest of this array");
 
-    if (!item_type && !items)
-        parser_err(ctx, start, pos, "Empty arrays must specify what type they would contain (e.g. [:Int])");
-
     REVERSE_LIST(items);
     return NewAST(ctx->file, start, pos, Array, .item_type=item_type, .items=items);
 }
 
 PARSER(parse_table) {
     const char *start = pos;
+    if (match(&pos, "{/}")) return NULL;
     if (!match(&pos, "{")) return NULL;
 
     whitespace(&pos);
@@ -759,9 +757,6 @@ PARSER(parse_table) {
 
     REVERSE_LIST(entries);
 
-    if (!key_type && !value_type && !entries)
-        return NULL;
-
     whitespace(&pos);
 
     ast_t *fallback = NULL, *default_value = NULL;
@@ -798,6 +793,9 @@ PARSER(parse_table) {
 
 PARSER(parse_set) {
     const char *start = pos;
+    if (match(&pos, "{/}"))
+        return NewAST(ctx->file, start, pos, Set);
+
     if (!match(&pos, "{")) return NULL;
 
     whitespace(&pos);
@@ -832,9 +830,6 @@ PARSER(parse_set) {
     }
 
     REVERSE_LIST(items);
-
-    if (!item_type && !items)
-        return NULL;
 
     whitespace(&pos);
     expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this set");
