@@ -2004,7 +2004,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
 
         if (spec_arg->default_val) {
             if (code) code = CORD_cat(code, ", ");
-            code = CORD_cat(code, compile_maybe_incref(default_scope, spec_arg->default_val, get_type(env, spec_arg->default_val)));
+            code = CORD_cat(code, compile_maybe_incref(default_scope, spec_arg->default_val, get_arg_type(env, spec_arg)));
             goto found_it;
         }
 

@@ -2157,12 +2157,16 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos)
             const char *name = get_id(pos);
             if (!name) break;
             whitespace(pos);
-            if (strncmp(*pos, "==", 2) != 0 && match(pos, "=")) {
-                default_val = expect(ctx, *pos-1, pos, parse_term, "I expected a value after this '='");
-                names = new(name_list_t, .name=name, .next=names);
-                break;
-            } else if (match(pos, ":")) {
+
+            if (match(pos, ":")) {
                 type = expect(ctx, *pos-1, pos, parse_type, "I expected a type here");
+                names = new(name_list_t, .name=name, .next=names);
+                whitespace(pos);
+                if (match(pos, "="))
+                    default_val = expect(ctx, *pos-1, pos, parse_term, "I expected a value after this '='");
+                break;
+            } else if (strncmp(*pos, "==", 2) != 0 && match(pos, "=")) {
+                default_val = expect(ctx, *pos-1, pos, parse_term, "I expected a value after this '='");
                 names = new(name_list_t, .name=name, .next=names);
                 break;
             } else if (name) {
