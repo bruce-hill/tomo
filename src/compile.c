@@ -1851,6 +1851,10 @@ CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
         auto set = Match(ast, Set);
         if (!set->item_type && !set->items)
             return compile(env, ast);
+    } else if (t->tag == SetType && ast->tag == Table) {
+        auto table = Match(ast, Table);
+        if (!table->key_type && !table->value_type && !table->default_value && !table->fallback && !table->entries)
+            return compile(env, ast);
     }
 
     type_t *actual = get_type(env, ast);
