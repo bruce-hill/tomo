@@ -171,9 +171,19 @@ CORD ast_to_xml(ast_t *ast)
     }
 }
 
-const char *ast_to_str(ast_t *ast)
+const char *ast_to_xml_str(ast_t *ast)
 {
     return CORD_to_const_char_star(ast_to_xml(ast));
+}
+
+const char *ast_source(ast_t *ast)
+{
+    if (!ast) return NULL;
+    size_t len = (size_t)(ast->end - ast->start);
+    char *source = GC_MALLOC_ATOMIC(len + 1);
+    memcpy(source, ast->start, len);
+    source[len] = '\0';
+    return source;
 }
 
 CORD type_ast_to_xml(type_ast_t *t)

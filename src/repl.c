@@ -158,7 +158,7 @@ static PUREFUNC void *get_address(env_t *env, ast_t *ast)
         if (!b) print_err("No such variable");
         return b->value;
     }
-    default: print_err("Address not implemented for ", ast_to_str(ast));
+    default: print_err("Address not implemented for ", ast_to_xml_str(ast));
     }
 }
 
@@ -259,7 +259,7 @@ void run(env_t *env, ast_t *ast)
             //     type_t *obj_t = get_type(env, index->indexed);
             //     TypeInfo_t *table_info = type_to_type_info(t);
             // }
-            default: print_err("Assignment not implemented: ", ast_to_str(target->ast));
+            default: print_err("Assignment not implemented: ", ast_to_xml_str(target->ast));
             }
         }
         break;
@@ -452,7 +452,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
             }
             break;
         }
-        default: print_err(1, "Binary op not implemented for ", type_to_str(t), ": ", ast_to_str(ast));
+        default: print_err(1, "Binary op not implemented for ", type_to_str(t), ": ", ast_to_xml_str(ast));
         }
         break;
     }
@@ -541,7 +541,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         break;
     }
     default:
-        print_err("Eval not implemented for ", ast_to_str(ast));
+        print_err("Eval not implemented for ", ast_to_xml_str(ast));
     }
 }
 #ifdef __GNUC__

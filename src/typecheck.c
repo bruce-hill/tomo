@@ -1432,13 +1432,13 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_ast_t *type_ast = inline_code->type_ast;
         return type_ast ? parse_type_ast(env, type_ast) : Type(VoidType);
     }
-    case Unknown: code_err(ast, "I can't figure out the type of: ", ast_to_str(ast));
+    case Unknown: code_err(ast, "I can't figure out the type of: ", ast_to_xml_str(ast));
     case Deserialize: return parse_type_ast(env, Match(ast, Deserialize)->type);
     }
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
-    code_err(ast, "I can't figure out the type of: ", ast_to_str(ast));
+    code_err(ast, "I can't figure out the type of: ", ast_to_xml_str(ast));
 }
 
 PUREFUNC bool is_discardable(env_t *env, ast_t *ast)
