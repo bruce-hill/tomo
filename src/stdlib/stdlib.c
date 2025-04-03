@@ -491,7 +491,7 @@ public void print_stack_trace(FILE *out, int start, int stop)
         char *paren = strings[i] + strcspn(strings[i], "(");
         char *addr_end = paren + 1 + strcspn(paren + 1, ")");
         ptrdiff_t offset = strtol(paren + 1, &addr_end, 16) - 1;
-        const char *cmd = heap_strf("addr2line -e %.*s -is +0x%x", strcspn(filename, "("), filename, offset);
+        const char *cmd = String("addr2line -e ", string_slice(filename, strcspn(filename, "(")), " -is +", hex((uint64_t)offset));
         FILE *fp = popen(cmd, "r");
         OptionalText_t fn_name = get_function_name(stack[i]);
         const char *src_filename = NULL;

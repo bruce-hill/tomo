@@ -246,7 +246,7 @@ static const char *unescape(parse_ctx_t *ctx, const char **out) {
         if (escape[2+len] != ']')
             parser_err(ctx, escape, escape + 2 + len, "Missing closing ']'");
         *endpos = escape + 3 + len;
-        return heap_strf("\033[%.*sm", len, &escape[2]);
+        return String("\033[", string_slice(&escape[2], len), "m");
     } else if (escape[1] == '{') {
         // Unicode codepoints by name
         size_t len = strcspn(&escape[2], "\r\n}");
@@ -583,7 +583,7 @@ type_ast_t *parse_type_name(parse_ctx_t *ctx, const char *pos) {
         if (!match(&next, ".")) break;
         const char *next_id = get_id(&next);
         if (!next_id) break;
-        id = heap_strf("%s.%s", id, next_id);
+        id = String(id, ".", next_id);
         pos = next;
     }
     return NewTypeAST(ctx->file, start, pos, VarTypeAST, .name=id);
@@ -852,7 +852,7 @@ ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     bool dollar = match(&pos, "$");
     const char* field = get_id(&pos);
     if (!field) return NULL;
-    if (dollar) field = heap_strf("$%s", field);
+    if (dollar) field = String("$", field);
     return NewAST(ctx->file, lhs->start, pos, FieldAccess, .fielded=lhs, .field=field);
 }
 
@@ -1349,7 +1349,7 @@ PARSER(parse_path) {
         len += 1;
     }
     pos += len + 1;
-    char *path = heap_strf("%.*s", (int)len, path_start);
+    char *path = String(string_slice(path_start, .length=len));
     for (char *src = path, *dest = path; ; ) {
         if (src[0] == '\\') {
             *(dest++) = src[1];

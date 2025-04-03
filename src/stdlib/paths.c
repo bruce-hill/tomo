@@ -17,7 +17,6 @@
 #include <unistd.h>
 #include <unistr.h>
 
-#include "print.h"
 #include "arrays.h"
 #include "enums.h"
 #include "files.h"
@@ -28,6 +27,7 @@
 #include "text.h"
 #include "types.h"
 #include "util.h"
+#include "print.h"
 
 // Use inline version of the siphash code for performance:
 #include "siphash.h"
@@ -491,7 +491,7 @@ static Array_t _filtered_children(Path_t path, bool include_hidden, mode_t filte
         if (streq(dir->d_name, ".") || streq(dir->d_name, ".."))
             continue;
 
-        const char *child_str = heap_strf("%.*s/%s", path_len, path_str, dir->d_name);
+        const char *child_str = String(string_slice(path_str, path_len), "/", dir->d_name);
         struct stat sb;
         if (stat(child_str, &sb) != 0)
             continue;

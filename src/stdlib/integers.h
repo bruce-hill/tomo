@@ -88,7 +88,6 @@ void Int64$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t*);
 void Int32$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo_t*);
 void Int32$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t*);
 
-int Int$print(FILE *f, Int_t i);
 Text_t Int$as_text(const void *i, bool colorize, const TypeInfo_t *type);
 Text_t Int$value_as_text(Int_t i);
 PUREFUNC uint64_t Int$hash(const void *x, const TypeInfo_t *type);

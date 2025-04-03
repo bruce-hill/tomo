@@ -15,6 +15,7 @@
 #include <sys/param.h>
 
 #include "files.h"
+#include "print.h"
 #include "util.h"
 
 static const int tabstop = 4;
@@ -28,11 +29,11 @@ public char *resolve_path(const char *path, const char *relative_to, const char 
     // it was found in:
     char buf[PATH_MAX] = {0};
     if (streq(path, "~") || starts_with(path, "~/")) {
-        char *resolved = realpath(heap_strf("%s%s", getenv("HOME"), path+1), buf);
+        char *resolved = realpath(String(getenv("HOME"), path+1), buf);
         if (resolved) return GC_strdup(resolved);
     } else if (streq(path, ".") || starts_with(path, "./") || starts_with(path, "../")) {
         char *relative_dir = dirname(GC_strdup(relative_to));
-        char *resolved = realpath(heap_strf("%s/%s", relative_dir, path), buf);
+        char *resolved = realpath(String(relative_dir, "/", relative_dir, path), buf);
         if (resolved) return GC_strdup(resolved);
     } else if (path[0] == '/') {
         // Absolute path:
@@ -45,19 +46,19 @@ public char *resolve_path(const char *path, const char *relative_to, const char 
         char *copy = GC_strdup(system_path);
         for (char *dir, *pos = copy; (dir = strtok(pos, ":")); pos = NULL) {
             if (dir[0] == '/') {
-                char *resolved = realpath(heap_strf("%s/%s", dir, path), buf);
+                char *resolved = realpath(String(dir, "/", path), buf);
                 if (resolved) return GC_strdup(resolved);
             } else if (dir[0] == '~' && (dir[1] == '\0' || dir[1] == '/')) {
-                char *resolved = realpath(heap_strf("%s%s/%s", getenv("HOME"), dir+1, path), buf);
+                char *resolved = realpath(String(getenv("HOME"), dir+1, "/", path), buf);
                 if (resolved) return GC_strdup(resolved);
             } else if (streq(dir, ".") || strncmp(dir, "./", 2) == 0) {
-                char *resolved = realpath(heap_strf("%s/%s", relative_dir, path), buf);
+                char *resolved = realpath(String(relative_dir, "/", path), buf);
                 if (resolved) return GC_strdup(resolved);
             } else if (streq(dir, ".") || streq(dir, "..") || strncmp(dir, "./", 2) == 0 || strncmp(dir, "../", 3) == 0) {
-                char *resolved = realpath(heap_strf("%s/%s/%s", relative_dir, dir, path), buf);
+                char *resolved = realpath(String(relative_dir, "/", dir, "/", path), buf);
                 if (resolved) return GC_strdup(resolved);
             } else {
-                char *resolved = realpath(heap_strf("%s/%s", dir, path), buf);
+                char *resolved = realpath(String(dir, "/", path), buf);
                 if (resolved) return GC_strdup(resolved);
             }
         }
@@ -196,11 +197,11 @@ public const char *get_line(file_t *f, int64_t line_number)
 }
 
 //
-// Return a value like /foo:line:col
+// Return a value like /foo:line.col
 //
 public const char *get_file_pos(file_t *f, const char *p)
 {
-    return heap_strf("%s:%ld:%ld", f->filename, get_line_number(f, p), get_line_column(f, p));
+    return String(f->filename, ":", get_line_number(f, p), ".", get_line_column(f, p));
 }
 
 static int fputc_column(FILE *out, char c, char print_char, int *column)

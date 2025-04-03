@@ -23,7 +23,7 @@ CORD compile_enum_typeinfo(env_t *env, ast_t *ast)
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         if (!tag->fields) continue;
 
-        const char *tag_name = heap_strf("%s$%s", def->name, tag->name);
+        const char *tag_name = String(def->name, "$", tag->name);
         type_t *tag_type = Table$str_get(*env->types, tag_name);
         assert(tag_type && tag_type->tag == StructType);
         member_typeinfos = CORD_all(
@@ -41,7 +41,7 @@ CORD compile_enum_typeinfo(env_t *env, ast_t *ast)
                                   full_name, type_size(t), type_align(t), metamethods, def->name, num_tags);
 
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-        const char *tag_type_name = heap_strf("%s$%s", def->name, tag->name);
+        const char *tag_type_name = String(def->name, "$", tag->name);
         type_t *tag_type = Table$str_get(*env->types, tag_type_name);
         if (tag_type && Match(tag_type, StructType)->fields)
             typeinfo = CORD_all(typeinfo, "{\"", tag->name, "\", ", compile_type_info(tag_type), "}, ");

@@ -85,6 +85,12 @@ typedef struct {
 } quoted_t;
 #define quoted(s) ((quoted_t){s})
 
+typedef struct {
+    const char *str;
+    size_t length;
+} string_slice_t;
+#define string_slice(...) ((string_slice_t){__VA_ARGS__})
+
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #define FMT64 "ll"
 #else
@@ -105,6 +111,7 @@ PRINT_FN _print_bool(FILE *f, bool b) { return fputs(b ? hl("yes") : hl("no"), f
 PRINT_FN _print_str(FILE *f, const char *s) { return fputs(s, f); }
 int _print_char(FILE *f, char c);
 int _print_quoted(FILE *f, quoted_t quoted);
+PRINT_FN _print_string_slice(FILE *f, string_slice_t slice) { return fwrite(slice.str, 1, slice.length, f); }
 PRINT_FN _print_hex(FILE *f, hex_format_t hex) {
     return fprintf(f, hex.no_prefix ? (hex.uppercase ? hl("%0*"FMT64"X") : hl("%0*"FMT64"x")) : (hex.uppercase ? hl("0x%0*"FMT64"X") : hl("%#0*"FMT64"x")), hex.digits, hex.n);
 }
@@ -118,6 +125,7 @@ PRINT_FN _print_num_format(FILE *f, num_format_t num) {
 
 extern int Text$print(FILE *stream, Text_t text);
 extern int Path$print(FILE *stream, Path_t path);
+extern int Int$print(FILE *f, Int_t i);
 #ifndef _fprint1
 #define _fprint1(f, x) _Generic((x), \
     char*: _print_str, \
@@ -138,6 +146,7 @@ extern int Path$print(FILE *stream, Path_t path);
     oct_format_t: _print_oct, \
     num_format_t: _print_num_format, \
     quoted_t: _print_quoted, \
+    string_slice_t: _print_string_slice, \
     Text_t: Text$print, \
     Path_t: Path$print, \
     Int_t: Int$print, \

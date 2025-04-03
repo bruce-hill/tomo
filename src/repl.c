@@ -63,14 +63,14 @@ void repl(void)
                 code = GC_strdup(line);
                 while ((len=getline(&line, &buf_size, stdin)) >= 0) {
                     if (len == 1) break;
-                    code = heap_strf("%s%s", code, line);
+                    code = String(code, line);
                     printf("\x1b[33;1m..\x1b[m ");
                     fflush(stdout);
                 }
             } else {
-                code = heap_strf("func main(): >> %s", code);
+                code = String("func main(): >> ", code);
             }
-            ast_t *ast = parse_file(heap_strf("<code>%s", code), &on_err);
+            ast_t *ast = parse_file(String("<code>", code), &on_err);
             ast_t *doctest = Match(Match(Match(ast, Block)->statements->ast, FunctionDef)->body, Block)->statements->ast;
             if (doctest->tag == DocTest) doctest->__data.DocTest.skip_source = 1;
             run(env, doctest);
