@@ -4,7 +4,7 @@ use ./sysrandom.h
 use ./chacha.h
 
 struct chacha_ctx(j0,j1,j2,j3,j4,j5,j6,j7,j8,j9,j10,j11,j12,j13,j14,j15:Int32; extern, secret):
-    func from_seed(seed=[:Byte] -> chacha_ctx):
+    func from_seed(seed:[Byte]=[] -> chacha_ctx):
         return inline C : chacha_ctx {
             chacha_ctx ctx;
             uint8_t seed_bytes[KEYSZ + IVSZ] = {};
@@ -24,10 +24,10 @@ func _os_random_bytes(count:Int64 -> [Byte]):
         (Array_t){.length=_$count, .data=random_bytes, .stride=1, .atomic=1};
     }
 
-struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes=[:Byte]; secret):
+struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret):
     func new(seed=none:[Byte], -> @RandomNumberGenerator):
         ctx := chacha_ctx.from_seed(seed or _os_random_bytes(40))
-        return @RandomNumberGenerator(ctx, [:Byte])
+        return @RandomNumberGenerator(ctx, [])
 
     func _rekey(rng:&RandomNumberGenerator):
         rng._random_bytes = inline C : [Byte] {

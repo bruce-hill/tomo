@@ -11,7 +11,7 @@ _HELP := "
 "
 
 func find_urls(path:Path -> [Text]):
-    urls := @[:Text]
+    urls : @[Text] = @[]
     if path:is_directory():
         for f in path:children():
             urls:insert_all(find_urls(f))
@@ -25,7 +25,7 @@ func main(paths:[Path]):
     if paths.length == 0:
         paths = [(./)]
 
-    urls := (++: find_urls(p) for p in paths) or [:Text]
+    urls := (++: find_urls(p) for p in paths) or []
 
     github_token := (~/.config/tomo/github-token):read()
 

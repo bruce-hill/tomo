@@ -110,7 +110,7 @@ A copy of the given RNG.
 
 **Example:**  
 ```tomo
->> rng := RNG.new([:Byte])
+>> rng := RNG.new([])
 >> copy := rng:copy()
 
 >> rng:bytes(10)

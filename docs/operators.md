@@ -75,7 +75,7 @@ first option is to not account for it, in which case you'll get a runtime error
 if you use a reducer on something that has no values:
 
 ```tomo
->> nums := [:Int]
+>> nums : [Int] = []
 >> (+: nums)!
 
 Error: this collection was empty!

@@ -4,13 +4,14 @@ func main():
 	>> (+: [10, 20, 30])
 	= 60?
 
-	>> (+: [:Int])
+	>> empty_ints : [Int] = []
+	>> (+: empty_ints)
 	= none : Int
 
 	>> (+: [10, 20, 30]) or 0
 	= 60
 
-	>> (+: [:Int]) or 0
+	>> (+: empty_ints) or 0
 	= 0
 
 	>> (_max_: [3, 5, 2, 1, 4])
@@ -36,7 +37,7 @@ func main():
 	>> (<=: [1, 2, 2, 3, 4])!
 	= yes
 
-	>> (<=: [:Int])
+	>> (<=: empty_ints)
 	= none : Bool
 
 	>> (<=: [5, 4, 3, 2, 1])!

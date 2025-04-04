@@ -1,7 +1,7 @@
 func main():
 	do:
-		>> [:Num32]
-		= [:Num32]
+		>> nums : [Num32] = []
+		= []
 
 	do:
 		>> arr := [10, 20, 30]
@@ -104,7 +104,7 @@ func main():
 		>> heap := @[(i * 1337) mod 37 for i in 10]
 		>> heap:heapify()
 		>> heap
-		sorted := @[:Int]
+		sorted : @[Int] = @[]
 		repeat:
 			sorted:insert(heap:heap_pop() or stop)
 		>> sorted == sorted:sorted()
@@ -112,7 +112,7 @@ func main():
 		for i in 10:
 			heap:heap_push((i*13337) mod 37)
 		>> heap
-		sorted = @[:Int]
+		sorted = @[]
 		repeat:
 			sorted:insert(heap:heap_pop() or stop)
 		>> sorted == sorted:sorted()
@@ -181,6 +181,6 @@ func main():
 		= &[10, 30, 40]
 		>> nums:clear()
 		>> nums
-		= &[:Int]
+		= &[]
 		>> nums:pop()
 		= none:Int

@@ -18,7 +18,7 @@ a runtime check and error if there's a null value, or you can use `or` to
 provide a fallback value:
 
 ```tomo
-nums := [:Int]
+nums : [Int] = []
 sum := (+: nums)
 
 >> sum

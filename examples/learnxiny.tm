@@ -59,7 +59,7 @@ func main():
     my_numbers := [10, 20, 30]
 
     # Empty arrays require specifying the type:
-    empty_array := [:Int]
+    empty_array : [Int] = []
     >> empty_array.length
     = 0
 
@@ -123,7 +123,7 @@ func main():
     = 0
 
     # Empty tables require specifying the key and value types:
-    empty_table := {:Text=Int}
+    empty_table : {Text=Int} = {}
 
     # Tables can be iterated over either by key or key,value:
     for key in table:

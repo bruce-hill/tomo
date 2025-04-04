@@ -8,11 +8,11 @@ func returns_imported_type(->ImportedType):
 	return get_value() # Imported from ./use_import.tm
 
 func main():
-	>> [:vectors.Vec2]
+	>> empty : [vectors.Vec2] = []
 	>> returns_vec()
 	= Vec2(x=1, y=2)
 
-	>> [:ImportedType]
+	>> imported : [ImportedType] = []
 	>> returns_imported_type()
 	= ImportedType("Hello")
 

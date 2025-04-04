@@ -53,10 +53,10 @@ func main():
 	>> amelie:split()
 	= ["A", "m", "é", "l", "i", "e"]
 	>> amelie:utf32_codepoints()
-	= [:Int32, 65, 109, 233, 108, 105, 101]
+	= [65, 109, 233, 108, 105, 101]
 	>> amelie:bytes()
-	= [:Byte, 0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65]
-	>> Text.from_bytes([:Byte 0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65])!
+	= [0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65]
+	>> Text.from_bytes([0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65])!
 	= "Amélie"
 	>> Text.from_bytes([Byte(0xFF)])
 	= none:Text
@@ -65,9 +65,9 @@ func main():
 	>> amelie2:split()
 	= ["A", "m", "é", "l", "i", "e"]
 	>> amelie2:utf32_codepoints()
-	= [:Int32, 65, 109, 233, 108, 105, 101]
+	= [65, 109, 233, 108, 105, 101]
 	>> amelie2:bytes()
-	= [:Byte, 0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65]
+	= [0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65]
 
 	>> amelie:codepoint_names()
 	= ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E WITH ACUTE", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
@@ -136,7 +136,7 @@ func main():
 	>> "one$(\r\n)two$(\r\n)three$(\r\n)":lines()
 	= ["one", "two", "three"]
 	>> "":lines()
-	= [:Text]
+	= []
 
 	!! Test splitting and joining text:
 	>> "one,, two,three":split(",")
@@ -171,11 +171,11 @@ func main():
 	>> "+":join(["one"])
 	= "one"
 
-	>> "+":join([:Text])
+	>> "+":join([])
 	= ""
 
 	>> "":split()
-	= [:Text]
+	= []
 
 	!! Test text slicing:
 	>> "abcdef":slice()
@@ -196,7 +196,7 @@ func main():
 	>> house:codepoint_names()
 	= ["CJK Unified Ideographs-5BB6"]
 	>> house:utf32_codepoints()
-	= [:Int32, 23478]
+	= [23478]
 
 	>> "🐧":codepoint_names()
 	= ["PENGUIN"]

@@ -10,7 +10,7 @@ func main(map=(./map.txt)):
     world := @World(
         player=@Player(Vector2(0,0), Vector2(0,0)),
         goal=@Box(Vector2(0,0), Vector2(50,50), color=Color(0x10,0xa0,0x10)),
-        boxes=@[:@Box],
+        boxes=@[],
     )
     world:load_map(map_contents)
 

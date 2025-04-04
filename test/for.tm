@@ -32,18 +32,18 @@ func table_key_str(t:{Text=Text} -> Text):
 func main():
 	>> all_nums([10,20,30])
 	= "10,20,30,"
-	>> all_nums([:Int])
+	>> all_nums([])
 	= "EMPTY"
 
 	>> labeled_nums([10,20,30])
 	= "1:10,2:20,3:30,"
-	>> labeled_nums([:Int])
+	>> labeled_nums([])
 	= "EMPTY"
 
 	>> t := {"key1"="value1", "key2"="value2"}
 	>> table_str(t)
 	= "key1:value1,key2:value2,"
-	>> table_str({:Text=Text})
+	>> table_str({})
 	= "EMPTY"
 
 	>> table_key_str(t)

@@ -360,6 +360,16 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
             return true;
     }
 
+    // Empty literals:
+    if (actual->tag == ArrayType && needed->tag == ArrayType && Match(actual, ArrayType)->item_type == NULL)
+        return true; // [] -> [T]
+    if (actual->tag == SetType && needed->tag == SetType && Match(actual, SetType)->item_type == NULL)
+        return true; // {/} -> {T}
+    if (actual->tag == TableType && needed->tag == SetType && Match(actual, TableType)->key_type == NULL && Match(actual, TableType)->value_type == NULL)
+        return true; // {} -> {T}
+    if (actual->tag == TableType && needed->tag == TableType && Match(actual, TableType)->key_type == NULL && Match(actual, TableType)->value_type == NULL)
+        return true; // {} -> {K=V}
+
     // Cross-promotion between tables with default values and without
     if (needed->tag == TableType && actual->tag == TableType) {
         auto actual_table = Match(actual, TableType);
@@ -705,6 +715,105 @@ PUREFUNC type_t *get_iterated_type(type_t *t)
         return Match(fn->ret, OptionalType)->type;
     }
     default: return NULL;
+    }
+}
+
+CONSTFUNC bool is_incomplete_type(type_t *t)
+{
+    if (t == NULL) return true;
+    switch (t->tag) {
+    case ReturnType: return is_incomplete_type(Match(t, ReturnType)->ret);
+    case OptionalType: return is_incomplete_type(Match(t, OptionalType)->type);
+    case ArrayType: return is_incomplete_type(Match(t, ArrayType)->item_type);
+    case SetType: return is_incomplete_type(Match(t, SetType)->item_type);
+    case TableType: {
+        auto table = Match(t, TableType);
+        return is_incomplete_type(table->key_type) || is_incomplete_type(table->value_type);
+    }
+    case FunctionType: {
+        auto fn = Match(t, FunctionType);
+        for (arg_t *arg = fn->args; arg; arg = arg->next) {
+            if (arg->type == NULL || is_incomplete_type(arg->type))
+                return true;
+        }
+        return fn->ret ? is_incomplete_type(fn->ret) : false;
+    }
+    case ClosureType: return is_incomplete_type(Match(t, ClosureType)->fn);
+    case PointerType: return is_incomplete_type(Match(t, PointerType)->pointed);
+    default: return false;
+    }
+}
+
+CONSTFUNC type_t *most_complete_type(type_t *t1, type_t *t2)
+{
+    if (!t1) return t2;
+    if (!t2) return t1;
+
+    if (is_incomplete_type(t1) && is_incomplete_type(t2))
+        return NULL;
+    else if (!is_incomplete_type(t1) && !is_incomplete_type(t2) && type_eq(t1, t2))
+        return t1;
+
+    if (t1->tag != t2->tag)
+        return NULL;
+
+    switch (t1->tag) {
+    case ReturnType: {
+        type_t *ret = most_complete_type(Match(t1, ReturnType)->ret, Match(t1, ReturnType)->ret);
+        return ret ? Type(ReturnType, ret) : NULL;
+    }
+    case OptionalType: {
+        type_t *opt = most_complete_type(Match(t1, OptionalType)->type, Match(t2, OptionalType)->type);
+        return opt ? Type(OptionalType, opt) : NULL;
+    }
+    case ArrayType: {
+        type_t *item = most_complete_type(Match(t1, ArrayType)->item_type, Match(t2, ArrayType)->item_type);
+        return item ? Type(ArrayType, item) : NULL;
+    }
+    case SetType: {
+        type_t *item = most_complete_type(Match(t1, SetType)->item_type, Match(t2, SetType)->item_type);
+        return item ? Type(SetType, item) : NULL;
+    }
+    case TableType: {
+        auto table1 = Match(t1, TableType);
+        auto table2 = Match(t2, TableType);
+        type_t *key = most_complete_type(table1->key_type, table2->key_type);
+        type_t *value = most_complete_type(table1->value_type, table2->value_type);
+        return (key && value) ? Type(TableType, key, value) : NULL;
+    }
+    case FunctionType: {
+        auto fn1 = Match(t1, FunctionType);
+        auto fn2 = Match(t2, FunctionType);
+        arg_t *args = NULL;
+        for (arg_t *arg1 = fn1->args, *arg2 = fn2->args; arg1 || arg2; arg1 = arg1->next, arg2 = arg2->next) {
+            if (!arg1 || !arg2)
+                return NULL;
+
+            type_t *arg_type = most_complete_type(arg1->type, arg2->type);
+            if (!arg_type) return NULL;
+            args = new(arg_t, .type=arg_type, .next=args);
+        }
+        REVERSE_LIST(args);
+        type_t *ret = most_complete_type(fn1->ret, fn2->ret);
+        return ret ? Type(FunctionType, .args=args, .ret=ret) : NULL;
+    }
+    case ClosureType: {
+        type_t *fn = most_complete_type(Match(t1, ClosureType)->fn, Match(t1, ClosureType)->fn);
+        return fn ? Type(ClosureType, fn) : NULL;
+    }
+    case PointerType: {
+        auto ptr1 = Match(t1, PointerType);
+        auto ptr2 = Match(t2, PointerType);
+        if (ptr1->is_stack != ptr2->is_stack)
+            return NULL;
+        type_t *pointed = most_complete_type(ptr1->pointed, ptr2->pointed);
+        return pointed ? Type(PointerType, .is_stack=ptr1->is_stack, .pointed=pointed) : NULL;
+    }
+    default: {
+        if (is_incomplete_type(t1) || is_incomplete_type(t2))
+            return NULL;
+        return type_eq(t1, t2) ? t1 : NULL;
+    }
     }
 }
 

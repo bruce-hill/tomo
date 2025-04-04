@@ -46,16 +46,16 @@ struct ProgramResult(stdout:[Byte], stderr:[Byte], exit_type:ExitType):
         else:
             return no
 
-struct Command(command:Text, args=[:Text], env={:Text=Text}):
-    func from_path(path:Path, args=[:Text], env={:Text=Text} -> Command):
+struct Command(command:Text, args:[Text]=[], env:{Text=Text}={}):
+    func from_path(path:Path, args:[Text]=[], env:{Text=Text}={} -> Command):
         return Command(Text(path), args, env)
 
-    func result(command:Command, input="", input_bytes=[:Byte] -> ProgramResult):
+    func result(command:Command, input="", input_bytes:[Byte]=[] -> ProgramResult):
         if input.length > 0:
             (&input_bytes):insert_all(input:bytes())
 
-        stdout := [:Byte]
-        stderr := [:Byte]
+        stdout : [Byte] = []
+        stderr : [Byte] = []
         status := run_command(command.command, command.args, command.env, input_bytes, &stdout, &stderr)
 
         if inline C : Bool { WIFEXITED(_$status) }:
@@ -80,7 +80,7 @@ struct Command(command:Text, args=[:Text], env={:Text=Text}):
     func get_output(command:Command, input="", trim_newline=yes -> Text?):
         return command:result(input=input):output_text(trim_newline=trim_newline)
 
-    func get_output_bytes(command:Command, input="", input_bytes=[:Byte] -> [Byte]?):
+    func get_output_bytes(command:Command, input="", input_bytes:[Byte]=[] -> [Byte]?):
         result := command:result(input=input, input_bytes=input_bytes)
         when result.exit_type is Exited(status):
             if status == 0: return result.stdout

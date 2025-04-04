@@ -3,7 +3,7 @@ use pthreads
 func _assert_success(name:Text, val:Int32; inline):
     fail("$name() failed!") if val < 0
 
-struct ConnectionQueue(_connections=@[:Int32], _mutex=pthread_mutex_t.new(), _cond=pthread_cond_t.new()):
+struct ConnectionQueue(_connections:@[Int32]=@[], _mutex=pthread_mutex_t.new(), _cond=pthread_cond_t.new()):
     func enqueue(queue:ConnectionQueue, connection:Int32):
         queue._mutex:lock()
         queue._connections:insert(connection)

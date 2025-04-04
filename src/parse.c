@@ -48,16 +48,16 @@ typedef struct {
 #define PARSER(name) ast_t *name(parse_ctx_t *ctx, const char *pos)
 
 int op_tightness[] = {
-    [BINOP_POWER]=9,
-    [BINOP_MULT]=8, [BINOP_DIVIDE]=8, [BINOP_MOD]=8, [BINOP_MOD1]=8,
-    [BINOP_PLUS]=7, [BINOP_MINUS]=7,
-    [BINOP_CONCAT]=6,
-    [BINOP_LSHIFT]=5, [BINOP_RSHIFT]=5,
-    [BINOP_MIN]=4, [BINOP_MAX]=4,
-    [BINOP_EQ]=3, [BINOP_NE]=3,
-    [BINOP_LT]=2, [BINOP_LE]=2, [BINOP_GT]=2, [BINOP_GE]=2,
-    [BINOP_CMP]=2,
-    [BINOP_AND]=1, [BINOP_OR]=1, [BINOP_XOR]=1,
+    [Power]=9,
+    [Multiply]=8, [Divide]=8, [Mod]=8, [Mod1]=8,
+    [Plus]=7, [Minus]=7,
+    [Concat]=6,
+    [LeftShift]=5, [RightShift]=5, [UnsignedLeftShift]=5, [UnsignedRightShift]=5,
+    [Min]=4, [Max]=4,
+    [Equals]=3, [NotEquals]=3,
+    [LessThan]=2, [LessThanOrEquals]=2, [GreaterThan]=2, [GreaterThanOrEquals]=2,
+    [Compare]=2,
+    [And]=1, [Or]=1, [Xor]=1,
 };
 
 static const char *keywords[] = {
@@ -79,7 +79,7 @@ static INLINE const char* get_word(const char **pos);
 static INLINE const char* get_id(const char **pos);
 static INLINE bool comment(const char **pos);
 static INLINE bool indent(parse_ctx_t *ctx, const char **pos);
-static INLINE binop_e match_binary_operator(const char **pos);
+static INLINE ast_e match_binary_operator(const char **pos);
 static ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr);
 static ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs);
 static ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn);
@@ -685,15 +685,6 @@ PARSER(parse_array) {
     whitespace(&pos);
 
     ast_list_t *items = NULL;
-    type_ast_t *item_type = NULL;
-    if (match(&pos, ":")) {
-        whitespace(&pos);
-        item_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a type for this array");
-        whitespace(&pos);
-        match(&pos, ",");
-        whitespace(&pos);
-    }
-
     for (;;) {
         ast_t *item = optional(ctx, &pos, parse_extended_expr);
         if (!item) break;
@@ -711,7 +702,7 @@ PARSER(parse_array) {
     expect_closing(ctx, &pos, "]", "I wasn't able to parse the rest of this array");
 
     REVERSE_LIST(items);
-    return NewAST(ctx->file, start, pos, Array, .item_type=item_type, .items=items);
+    return NewAST(ctx->file, start, pos, Array, .items=items);
 }
 
 PARSER(parse_table) {
@@ -722,20 +713,6 @@ PARSER(parse_table) {
     whitespace(&pos);
 
     ast_list_t *entries = NULL;
-    type_ast_t *key_type = NULL, *value_type = NULL;
-    if (match(&pos, ":")) {
-        whitespace(&pos);
-        key_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a key type for this table");
-        whitespace(&pos);
-        if (match(&pos, "=")) {
-            value_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse the value type for this table");
-        } else {
-            return NULL;
-        }
-        whitespace(&pos);
-        match(&pos, ",");
-    }
-
     for (;;) {
         const char *entry_start = pos;
         ast_t *key = optional(ctx, &pos, parse_extended_expr);
@@ -787,8 +764,7 @@ PARSER(parse_table) {
     whitespace(&pos);
     expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this table");
 
-    return NewAST(ctx->file, start, pos, Table, .key_type=key_type, .value_type=value_type,
-                  .default_value=default_value, .entries=entries, .fallback=fallback);
+    return NewAST(ctx->file, start, pos, Table, .default_value=default_value, .entries=entries, .fallback=fallback);
 }
 
 PARSER(parse_set) {
@@ -801,18 +777,6 @@ PARSER(parse_set) {
     whitespace(&pos);
 
     ast_list_t *items = NULL;
-    type_ast_t *item_type = NULL;
-    if (match(&pos, ":")) {
-        whitespace(&pos);
-        item_type = expect(ctx, pos-1, &pos, parse_type, "I couldn't parse a key type for this set");
-        whitespace(&pos);
-        if (match(&pos, ","))
-            return NULL;
-        whitespace(&pos);
-        match(&pos, ",");
-        whitespace(&pos);
-    }
-
     for (;;) {
         ast_t *item = optional(ctx, &pos, parse_extended_expr);
         if (!item) break;
@@ -834,7 +798,7 @@ PARSER(parse_set) {
     whitespace(&pos);
     expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this set");
 
-    return NewAST(ctx->file, start, pos, Set, .item_type=item_type, .items=items);
+    return NewAST(ctx->file, start, pos, Set, .items=items);
 }
 
 ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs) {
@@ -874,11 +838,11 @@ PARSER(parse_reduction) {
     if (!match(&pos, "(")) return NULL;
     
     whitespace(&pos);
-    binop_e op = match_binary_operator(&pos);
-    if (op == BINOP_UNKNOWN) return NULL;
+    ast_e op = match_binary_operator(&pos);
+    if (op == Unknown) return NULL;
 
     ast_t *key = NULL;
-    if (op == BINOP_MIN || op == BINOP_MAX) {
+    if (op == Min || op == Max) {
         key = NewAST(ctx->file, pos, pos, Var, .name="$");
         for (bool progress = true; progress; ) {
             ast_t *new_term;
@@ -1425,16 +1389,7 @@ PARSER(parse_none) {
     const char *start = pos;
     if (!match_word(&pos, "none"))
         return NULL;
-
-    const char *none_end = pos;
-    spaces(&pos);
-    if (!match(&pos, ":"))
-        return NewAST(ctx->file, start, none_end, None, .type=NULL);
-
-    spaces(&pos);
-    type_ast_t *type = parse_type(ctx, pos);
-    if (!type) return NULL;
-    return NewAST(ctx->file, start, type->end, None, .type=type);
+    return NewAST(ctx->file, start, pos, None);
 }
 
 PARSER(parse_deserialize) {
@@ -1602,53 +1557,53 @@ ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn) {
     return NewAST(ctx->file, start, pos, FunctionCall, .fn=fn, .args=args);
 }
 
-binop_e match_binary_operator(const char **pos)
+ast_e match_binary_operator(const char **pos)
 {
     switch (**pos) {
     case '+': {
         *pos += 1;
-        return match(pos, "+") ? BINOP_CONCAT : BINOP_PLUS;
+        return match(pos, "+") ? Concat : Plus;
     }
     case '-': {
         *pos += 1;
         if ((*pos)[0] != ' ' && (*pos)[-2] == ' ') // looks like `fn -5`
-            return BINOP_UNKNOWN;
-        return BINOP_MINUS;
+            return Unknown;
+        return Minus;
     }
-    case '*': *pos += 1; return BINOP_MULT;
-    case '/': *pos += 1; return BINOP_DIVIDE;
-    case '^': *pos += 1; return BINOP_POWER;
+    case '*': *pos += 1; return Multiply;
+    case '/': *pos += 1; return Divide;
+    case '^': *pos += 1; return Power;
     case '<': {
         *pos += 1;
-        if (match(pos, "=")) return BINOP_LE; // "<="
-        else if (match(pos, ">")) return BINOP_CMP; // "<>"
+        if (match(pos, "=")) return LessThanOrEquals; // "<="
+        else if (match(pos, ">")) return Compare; // "<>"
         else if (match(pos, "<")) {
             if (match(pos, "<"))
-                return BINOP_ULSHIFT; // "<<<"
-            return BINOP_LSHIFT; // "<<"
-        } else return BINOP_LT;
+                return UnsignedLeftShift; // "<<<"
+            return LeftShift; // "<<"
+        } else return LessThan;
     }
     case '>': {
         *pos += 1;
-        if (match(pos, "=")) return BINOP_GE; // ">="
+        if (match(pos, "=")) return GreaterThanOrEquals; // ">="
         if (match(pos, ">")) {
             if (match(pos, ">"))
-                return BINOP_URSHIFT; // ">>>"
-            return BINOP_RSHIFT; // ">>"
+                return UnsignedRightShift; // ">>>"
+            return RightShift; // ">>"
         }
-        return BINOP_GT;
+        return GreaterThan;
     }
     default: {
-        if (match(pos, "!=")) return BINOP_NE;
-        else if (match(pos, "==") && **pos != '=') return BINOP_EQ;
-        else if (match_word(pos, "and")) return BINOP_AND;
-        else if (match_word(pos, "or")) return BINOP_OR;
-        else if (match_word(pos, "xor")) return BINOP_XOR;
-        else if (match_word(pos, "mod1")) return BINOP_MOD1;
-        else if (match_word(pos, "mod")) return BINOP_MOD;
-        else if (match_word(pos, "_min_")) return BINOP_MIN;
-        else if (match_word(pos, "_max_")) return BINOP_MAX;
-        else return BINOP_UNKNOWN;
+        if (match(pos, "!=")) return NotEquals;
+        else if (match(pos, "==") && **pos != '=') return Equals;
+        else if (match_word(pos, "and")) return And;
+        else if (match_word(pos, "or")) return Or;
+        else if (match_word(pos, "xor")) return Xor;
+        else if (match_word(pos, "mod1")) return Mod1;
+        else if (match_word(pos, "mod")) return Mod;
+        else if (match_word(pos, "_min_")) return Min;
+        else if (match_word(pos, "_max_")) return Max;
+        else return Unknown;
     }
     }
 }
@@ -1660,9 +1615,9 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
     int64_t starting_line = get_line_number(ctx->file, pos);
     int64_t starting_indent = get_indent(ctx, pos);
     spaces(&pos);
-    for (binop_e op; (op=match_binary_operator(&pos)) != BINOP_UNKNOWN && op_tightness[op] >= min_tightness; spaces(&pos)) {
+    for (ast_e op; (op=match_binary_operator(&pos)) != Unknown && op_tightness[op] >= min_tightness; spaces(&pos)) {
         ast_t *key = NULL;
-        if (op == BINOP_MIN || op == BINOP_MAX) {
+        if (op == Min || op == Max) {
             key = NewAST(ctx->file, pos, pos, Var, .name="$");
             for (bool progress = true; progress; ) {
                 ast_t *new_term;
@@ -1688,12 +1643,12 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
         if (!rhs) break;
         pos = rhs->end;
         
-        if (op == BINOP_MIN) {
+        if (op == Min) {
             return NewAST(ctx->file, lhs->start, rhs->end, Min, .lhs=lhs, .rhs=rhs, .key=key);
-        } else if (op == BINOP_MAX) {
+        } else if (op == Max) {
             return NewAST(ctx->file, lhs->start, rhs->end, Max, .lhs=lhs, .rhs=rhs, .key=key);
         } else {
-            lhs = NewAST(ctx->file, lhs->start, rhs->end, BinaryOp, .lhs=lhs, .op=op, .rhs=rhs);
+            lhs = new(ast_t, .file=ctx->file, .start=lhs->start, .end=rhs->end, .tag=op, .__data.Plus.lhs=lhs, .__data.Plus.rhs=rhs);
         }
     }
     return lhs;
@@ -1709,8 +1664,11 @@ PARSER(parse_declaration) {
     if (!var) return NULL;
     pos = var->end;
     spaces(&pos);
-    if (!match(&pos, ":=")) return NULL;
+    if (!match(&pos, ":")) return NULL;
     spaces(&pos);
+    type_ast_t *type = optional(ctx, &pos, parse_type);
+    spaces(&pos);
+    if (!match(&pos, "=")) return NULL;
     ast_t *val = optional(ctx, &pos, parse_extended_expr);
     if (!val) {
         if (optional(ctx, &pos, parse_use))
@@ -1718,7 +1676,7 @@ PARSER(parse_declaration) {
         else
             parser_err(ctx, pos, eol(pos), "This is not a valid expression");
     }
-    return NewAST(ctx->file, start, pos, Declare, .var=var, .value=val);
+    return NewAST(ctx->file, start, pos, Declare, .var=var, .type=type, .value=val);
 }
 
 PARSER(parse_update) {
@@ -1726,23 +1684,23 @@ PARSER(parse_update) {
     ast_t *lhs = optional(ctx, &pos, parse_expr);
     if (!lhs) return NULL;
     spaces(&pos);
-    binop_e op;
-    if (match(&pos, "+=")) op = BINOP_PLUS;
-    else if (match(&pos, "++=")) op = BINOP_CONCAT;
-    else if (match(&pos, "-=")) op = BINOP_MINUS;
-    else if (match(&pos, "*=")) op = BINOP_MULT;
-    else if (match(&pos, "/=")) op = BINOP_DIVIDE;
-    else if (match(&pos, "^=")) op = BINOP_POWER;
-    else if (match(&pos, "<<=")) op = BINOP_LSHIFT;
-    else if (match(&pos, "<<<=")) op = BINOP_ULSHIFT;
-    else if (match(&pos, ">>=")) op = BINOP_RSHIFT;
-    else if (match(&pos, ">>>=")) op = BINOP_URSHIFT;
-    else if (match(&pos, "and=")) op = BINOP_AND;
-    else if (match(&pos, "or=")) op = BINOP_OR;
-    else if (match(&pos, "xor=")) op = BINOP_XOR;
+    ast_e op;
+    if (match(&pos, "+=")) op = Plus;
+    else if (match(&pos, "++=")) op = Concat;
+    else if (match(&pos, "-=")) op = Minus;
+    else if (match(&pos, "*=")) op = Multiply;
+    else if (match(&pos, "/=")) op = Divide;
+    else if (match(&pos, "^=")) op = Power;
+    else if (match(&pos, "<<=")) op = LeftShift;
+    else if (match(&pos, "<<<=")) op = UnsignedLeftShift;
+    else if (match(&pos, ">>=")) op = RightShift;
+    else if (match(&pos, ">>>=")) op = UnsignedRightShift;
+    else if (match(&pos, "and=")) op = And;
+    else if (match(&pos, "or=")) op = Or;
+    else if (match(&pos, "xor=")) op = Xor;
     else return NULL;
     ast_t *rhs = expect(ctx, start, &pos, parse_extended_expr, "I expected an expression here");
-    return NewAST(ctx->file, start, pos, UpdateAssign, .lhs=lhs, .rhs=rhs, .op=op);
+    return new(ast_t, .file=ctx->file, .start=start, .end=pos, .tag=op, .__data.PlusUpdate.lhs=lhs, .__data.PlusUpdate.rhs=rhs);
 }
 
 PARSER(parse_assignment) {

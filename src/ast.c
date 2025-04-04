@@ -10,23 +10,47 @@
 #include "stdlib/text.h"
 #include "cordhelpers.h"
 
-static const char *OP_NAMES[] = {
-    [BINOP_UNKNOWN]="unknown",
-    [BINOP_POWER]="^", [BINOP_MULT]="*", [BINOP_DIVIDE]="/",
-    [BINOP_MOD]="mod", [BINOP_MOD1]="mod1", [BINOP_PLUS]="+", [BINOP_MINUS]="minus",
-    [BINOP_CONCAT]="++", [BINOP_LSHIFT]="<<", [BINOP_ULSHIFT]="<<<",
-    [BINOP_RSHIFT]=">>", [BINOP_URSHIFT]=">>>", [BINOP_MIN]="min",
-    [BINOP_MAX]="max", [BINOP_EQ]="==", [BINOP_NE]="!=", [BINOP_LT]="<",
-    [BINOP_LE]="<=", [BINOP_GT]=">", [BINOP_GE]=">=", [BINOP_CMP]="<>",
-    [BINOP_AND]="and", [BINOP_OR]="or", [BINOP_XOR]="xor",
+CONSTFUNC const char *binop_method_name(ast_e tag) {
+    switch (tag) {
+    case Power: case PowerUpdate: return "power";
+    case Multiply: case MultiplyUpdate: return "times";
+    case Divide: case DivideUpdate: return "divided_by";
+    case Mod: case ModUpdate: return "modulo";
+    case Mod1: case Mod1Update: return "modulo1";
+    case Plus: case PlusUpdate: return "plus";
+    case Minus: case MinusUpdate: return "minus";
+    case Concat: case ConcatUpdate: return "concatenated_with";
+    case LeftShift: case LeftShiftUpdate: return "left_shifted";
+    case RightShift: case RightShiftUpdate: return "right_shifted";
+    case UnsignedLeftShift: case UnsignedLeftShiftUpdate: return "unsigned_left_shifted";
+    case UnsignedRightShift: case UnsignedRightShiftUpdate: return "unsigned_right_shifted";
+    case And: case AndUpdate: return "bit_and";
+    case Or: case OrUpdate: return "bit_or";
+    case Xor: case XorUpdate: return "bit_xor";
+    default: return NULL;
+    }
 };
 
-const char *binop_method_names[BINOP_XOR+1] = {
-    [BINOP_POWER]="power", [BINOP_MULT]="times", [BINOP_DIVIDE]="divided_by",
-    [BINOP_MOD]="modulo", [BINOP_MOD1]="modulo1", [BINOP_PLUS]="plus", [BINOP_MINUS]="minus",
-    [BINOP_CONCAT]="concatenated_with", [BINOP_LSHIFT]="left_shifted", [BINOP_RSHIFT]="right_shifted",
-    [BINOP_ULSHIFT]="unsigned_left_shifted", [BINOP_URSHIFT]="unsigned_right_shifted",
-    [BINOP_AND]="bit_and", [BINOP_OR]="bit_or", [BINOP_XOR]="bit_xor",
+CONSTFUNC const char *binop_operator(ast_e tag) {
+    switch (tag) {
+    case Multiply: case MultiplyUpdate: return "*";
+    case Divide: case DivideUpdate: return "/";
+    case Mod: case ModUpdate: return "%";
+    case Plus: case PlusUpdate: return "+";
+    case Minus: case MinusUpdate: return "-";
+    case LeftShift: case LeftShiftUpdate: return "<<";
+    case RightShift: case RightShiftUpdate: return ">>";
+    case And: case AndUpdate: return "&";
+    case Or: case OrUpdate: return "|";
+    case Xor: case XorUpdate: return "^";
+    case Equals: return "==";
+    case NotEquals: return "!=";
+    case LessThan: return "<";
+    case LessThanOrEquals: return "<=";
+    case GreaterThan: return ">";
+    case GreaterThanOrEquals: return ">=";
+    default: return NULL;
+    }
 };
 
 static CORD ast_list_to_xml(ast_list_t *asts);
@@ -100,7 +124,7 @@ CORD ast_to_xml(ast_t *ast)
     switch (ast->tag) {
 #define T(type, ...) case type: { auto data = ast->__data.type; (void)data; return CORD_asprintf(__VA_ARGS__); }
     T(Unknown,  "<Unknown>")
-    T(None, "<None>%r</None>", type_ast_to_xml(data.type))
+    T(None, "<None/>")
     T(Bool, "<Bool value=\"%s\" />", data.b ? "yes" : "no")
     T(Var, "<Var>%s</Var>", data.name)
     T(Int, "<Int>%s</Int>", data.str)
@@ -108,22 +132,24 @@ CORD ast_to_xml(ast_t *ast)
     T(TextLiteral, "%r", xml_escape(data.cord))
     T(TextJoin, "<Text%r>%r</Text>", data.lang ? CORD_all(" lang=\"", data.lang, "\"") : CORD_EMPTY, ast_list_to_xml(data.children))
     T(Path, "<Path>%s</Path>", data.path)
-    T(Declare, "<Declare var=\"%r\">%r</Declare>", ast_to_xml(data.var), ast_to_xml(data.value))
+    T(Declare, "<Declare var=\"%r\">%r%r</Declare>", ast_to_xml(data.var), type_ast_to_xml(data.type), ast_to_xml(data.value))
     T(Assign, "<Assign><targets>%r</targets><values>%r</values></Assign>", ast_list_to_xml(data.targets), ast_list_to_xml(data.values))
-    T(BinaryOp, "<BinaryOp op=\"%r\">%r %r</BinaryOp>", xml_escape(OP_NAMES[data.op]), ast_to_xml(data.lhs), ast_to_xml(data.rhs))
-    T(UpdateAssign, "<UpdateAssign op=\"%r\">%r %r</UpdateAssign>", xml_escape(OP_NAMES[data.op]), ast_to_xml(data.lhs), ast_to_xml(data.rhs))
+#define BINOP(name) T(name, "<" #name ">%r %r</" #name ">", data.lhs, data.rhs)
+    BINOP(Power) BINOP(PowerUpdate) BINOP(Multiply) BINOP(MultiplyUpdate) BINOP(Divide) BINOP(DivideUpdate) BINOP(Mod) BINOP(ModUpdate)
+    BINOP(Mod1) BINOP(Mod1Update) BINOP(Plus) BINOP(PlusUpdate) BINOP(Minus) BINOP(MinusUpdate) BINOP(Concat) BINOP(ConcatUpdate)
+    BINOP(LeftShift) BINOP(LeftShiftUpdate) BINOP(RightShift) BINOP(RightShiftUpdate) BINOP(UnsignedLeftShift) BINOP(UnsignedLeftShiftUpdate)
+    BINOP(UnsignedRightShift) BINOP(UnsignedRightShiftUpdate) BINOP(And) BINOP(AndUpdate) BINOP(Or) BINOP(OrUpdate)
+    BINOP(Xor) BINOP(XorUpdate)
+#undef BINOP
     T(Negative, "<Negative>%r</Negative>", ast_to_xml(data.value))
     T(Not, "<Not>%r</Not>", ast_to_xml(data.value))
     T(HeapAllocate, "<HeapAllocate>%r</HeapAllocate>", ast_to_xml(data.value))
     T(StackReference, "<StackReference>%r</StackReference>", ast_to_xml(data.value))
     T(Min, "<Min>%r%r%r</Min>", ast_to_xml(data.lhs), ast_to_xml(data.rhs), optional_tagged("key", data.key))
     T(Max, "<Max>%r%r%r</Max>", ast_to_xml(data.lhs), ast_to_xml(data.rhs), optional_tagged("key", data.key))
-    T(Array, "<Array>%r%r</Array>", optional_tagged_type("item-type", data.item_type), ast_list_to_xml(data.items))
-    T(Set, "<Set>%r%r</Set>",
-      optional_tagged_type("item-type", data.item_type),
-      ast_list_to_xml(data.items))
-    T(Table, "<Table>%r%r%r%r</Table>",
-      optional_tagged_type("key-type", data.key_type), optional_tagged_type("value-type", data.value_type),
+    T(Array, "<Array>%r</Array>", ast_list_to_xml(data.items))
+    T(Set, "<Set>%r</Set>", ast_list_to_xml(data.items))
+    T(Table, "<Table>%r%r</Table>",
       optional_tagged("default-value", data.default_value),
       ast_list_to_xml(data.entries), optional_tagged("fallback", data.fallback))
     T(TableEntry, "<TableEntry>%r%r</TableEntry>", ast_to_xml(data.key), ast_to_xml(data.value))
@@ -145,7 +171,7 @@ CORD ast_to_xml(ast_t *ast)
     T(Repeat, "<Repeat>%r</Repeat>", optional_tagged("body", data.body))
     T(If, "<If>%r%r%r</If>", optional_tagged("condition", data.condition), optional_tagged("body", data.body), optional_tagged("else", data.else_body))
     T(When, "<When><subject>%r</subject>%r%r</When>", ast_to_xml(data.subject), when_clauses_to_xml(data.clauses), optional_tagged("else", data.else_body))
-    T(Reduction, "<Reduction op=%r%r>%r</Reduction>", xml_escape(OP_NAMES[data.op]), optional_tagged("key", data.key),
+    T(Reduction, "<Reduction op=%r%r>%r</Reduction>", xml_escape(binop_method_name(data.op)), optional_tagged("key", data.key),
       optional_tagged("iterable", data.iter))
     T(Skip, "<Skip>%r</Skip>", data.target)
     T(Stop, "<Stop>%r</Stop>", data.target)
@@ -310,6 +336,47 @@ void visit_topologically(ast_list_t *asts, Closure_t fn)
               || stmt->ast->tag == Use || (stmt->ast->tag == Declare && Match(stmt->ast, Declare)->value->tag == Use))) {
             visit(fn.userdata, stmt->ast);
         }
+    }
+}
+
+CONSTFUNC bool is_binary_operation(ast_t *ast)
+{
+    switch (ast->tag) {
+    case BINOP_CASES: return true;
+    default: return false;
+    }
+}
+
+CONSTFUNC bool is_update_assignment(ast_t *ast)
+{
+    switch (ast->tag) {
+    case PowerUpdate: case MultiplyUpdate: case DivideUpdate: case ModUpdate: case Mod1Update:
+    case PlusUpdate: case MinusUpdate: case ConcatUpdate: case LeftShiftUpdate: case UnsignedLeftShiftUpdate:
+    case RightShiftUpdate: case UnsignedRightShiftUpdate: case AndUpdate: case OrUpdate: case XorUpdate:
+        return true;
+    default: return false;
+    }
+}
+
+CONSTFUNC ast_e binop_tag(ast_e tag)
+{
+    switch (tag) {
+    case PowerUpdate: return Power;
+    case MultiplyUpdate: return Multiply;
+    case DivideUpdate: return Divide;
+    case ModUpdate: return Mod;
+    case Mod1Update: return Mod1;
+    case PlusUpdate: return Plus;
+    case MinusUpdate: return Minus;
+    case ConcatUpdate: return Concat;
+    case LeftShiftUpdate: return LeftShift;
+    case UnsignedLeftShiftUpdate: return UnsignedLeftShift;
+    case RightShiftUpdate: return RightShift;
+    case UnsignedRightShiftUpdate: return UnsignedRightShift;
+    case AndUpdate: return And;
+    case OrUpdate: return Or;
+    case XorUpdate: return Xor;
+    default: return Unknown;
     }
 }
 

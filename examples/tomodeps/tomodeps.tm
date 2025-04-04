@@ -14,9 +14,9 @@ enum Dependency(File(path:Path), Module(name:Text))
 func _get_file_dependencies(file:Path -> {Dependency}):
     if not file:is_file():
         !! Could not read file: $file
-        return {:Dependency}
+        return {}
 
-    deps := @{:Dependency}
+    deps : @{Dependency} = @{}
     if lines := file:by_line():
         for line in lines:
             if line:matches_pattern($Pat/use {..}.tm/):
@@ -30,14 +30,14 @@ func _get_file_dependencies(file:Path -> {Dependency}):
 func _build_dependency_graph(dep:Dependency, dependencies:@{Dependency,{Dependency}}):
     return if dependencies:has(dep)
 
-    dependencies[dep] = {:Dependency} # Placeholder
+    dependencies[dep] = {} # Placeholder
 
     dep_deps := when dep is File(path):
         _get_file_dependencies(path)
     is Module(module):
         dir := (~/.local/share/tomo/installed/$module)
-        module_deps := @{:Dependency}
-        visited := @{:Path}
+        module_deps : @{Dependency} = @{}
+        visited : @{Path} = @{}
         unvisited := @{f:resolved() for f in dir:files() if f:extension() == ".tm"}
         while unvisited.length > 0:
             file := unvisited.items[-1]
@@ -58,7 +58,7 @@ func _build_dependency_graph(dep:Dependency, dependencies:@{Dependency,{Dependen
         _build_dependency_graph(dep2, dependencies)
 
 func get_dependency_graph(dep:Dependency -> {Dependency,{Dependency}}):
-    graph := @{:Dependency,{Dependency}}
+    graph : @{Dependency={Dependency}} = @{}
     _build_dependency_graph(dep, graph)
     return graph
 
@@ -82,16 +82,16 @@ func _draw_tree(dep:Dependency, dependencies:{Dependency,{Dependency}}, already_
     
     child_prefix := prefix ++ (if is_last: "    " else: "│   ")
     
-    children := dependencies[dep] or {:Dependency}
+    children := dependencies[dep] or {}
     for i,child in children.items:
         is_child_last := (i == children.length)
         _draw_tree(child, dependencies, already_printed, child_prefix, is_child_last)
 
 func draw_tree(dep:Dependency, dependencies:{Dependency,{Dependency}}):
-    printed := @{:Dependency}
+    printed : @{Dependency} = @{}
     say(_printable_name(dep))
     printed:add(dep)
-    deps := dependencies[dep] or {:Dependency}
+    deps := dependencies[dep] or {}
     for i,child in deps.items:
         is_child_last := (i == deps.length)
         _draw_tree(child, dependencies, already_printed=printed, is_last=is_child_last)

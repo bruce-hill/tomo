@@ -7,8 +7,8 @@ struct HTTPResponse(code:Int, body:Text)
 
 enum _Method(GET, POST, PUT, PATCH, DELETE)
 
-func _send(method:_Method, url:Text, data:Text?, headers=[:Text] -> HTTPResponse):
-    chunks := @[:Text]
+func _send(method:_Method, url:Text, data:Text?, headers:[Text]=[] -> HTTPResponse):
+    chunks : @[Text] = @[]
     save_chunk := func(chunk:CString, size:Int64, n:Int64):
         chunks:insert(inline C:Text {
             Text$format("%.*s", _$size*_$n, _$chunk)
@@ -81,7 +81,7 @@ func _send(method:_Method, url:Text, data:Text?, headers=[:Text] -> HTTPResponse
     }
     return HTTPResponse(Int(code), "":join(chunks))
 
-func get(url:Text, headers=[:Text] -> HTTPResponse):
+func get(url:Text, headers:[Text]=[] -> HTTPResponse):
     return _send(GET, url, none, headers)
 
 func post(url:Text, data="", headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):

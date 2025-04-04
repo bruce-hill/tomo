@@ -21,7 +21,7 @@ nums := {10, 20, 30}
 Empty sets must specify the item type explicitly:
 
 ```tomo
-empty := {:Int}
+empty : {Int} = {}
 ```
 
 For type annotations, a set that holds items with type `T` is written as `{T}`.

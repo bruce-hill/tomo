@@ -247,8 +247,8 @@ func main():
     = yes
     >> {none:Int, none:Int}
     = {none:Int}
-    >> {:Int? none, none}
-    = {none:Int}
+    >> nones : {Int?} = {none, none}
+    = {none}
     >> [5?, none:Int, none:Int, 6?]:sorted()
     = [none:Int, none:Int, 5, 6]
 

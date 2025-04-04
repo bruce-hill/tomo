@@ -17,7 +17,7 @@ table := {"A"=10, "B"=20}
 Empty tables must specify the key and value types explicitly:
 
 ```tomo
-empty := {:Text=Int}
+empty : {Text=Int} = {}
 ```
 
 For type annotations, a table that maps keys with type `K` to values of type

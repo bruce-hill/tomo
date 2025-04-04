@@ -186,31 +186,31 @@ static Int_t ast_to_int(env_t *env, ast_t *ast)
     }
 }
 
-static double ast_to_num(env_t *env, ast_t *ast)
-{
-    type_t *t = get_type(env, ast);
-    switch (t->tag) {
-    case BigIntType: case IntType: {
-        number_t num;
-        eval(env, ast, &num);
-        if (t->tag == BigIntType)
-            return Num$from_int(num.integer, false);
-        switch (Match(t, IntType)->bits) {
-        case TYPE_IBITS64: return Num$from_int64(num.i64, false);
-        case TYPE_IBITS32: return Num$from_int32(num.i32);
-        case TYPE_IBITS16: return Num$from_int16(num.i16);
-        case TYPE_IBITS8: return Num$from_int8(num.i8);
-        default: print_err("Invalid int bits");
-        }
-    }
-    case NumType: {
-        number_t num;
-        eval(env, ast, &num);
-        return Match(t, NumType)->bits == TYPE_NBITS32 ? (double)num.n32 : (double)num.n64;
-    }
-    default: print_err("Cannot convert to number");
-    }
-}
+// static double ast_to_num(env_t *env, ast_t *ast)
+// {
+//     type_t *t = get_type(env, ast);
+//     switch (t->tag) {
+//     case BigIntType: case IntType: {
+//         number_t num;
+//         eval(env, ast, &num);
+//         if (t->tag == BigIntType)
+//             return Num$from_int(num.integer, false);
+//         switch (Match(t, IntType)->bits) {
+//         case TYPE_IBITS64: return Num$from_int64(num.i64, false);
+//         case TYPE_IBITS32: return Num$from_int32(num.i32);
+//         case TYPE_IBITS16: return Num$from_int16(num.i16);
+//         case TYPE_IBITS8: return Num$from_int8(num.i8);
+//         default: print_err("Invalid int bits");
+//         }
+//     }
+//     case NumType: {
+//         number_t num;
+//         eval(env, ast, &num);
+//         return Match(t, NumType)->bits == TYPE_NBITS32 ? (double)num.n32 : (double)num.n64;
+//     }
+//     default: print_err("Cannot convert to number");
+//     }
+// }
 
 static Text_t obj_to_text(type_t *t, const void *obj, bool use_color)
 {
@@ -384,76 +384,6 @@ void eval(env_t *env, ast_t *ast, void *dest)
             }
         }
         if (dest) *(CORD*)dest = ret;
-        break;
-    }
-    case BinaryOp: {
-        auto binop = Match(ast, BinaryOp);
-        if (t->tag == IntType || t->tag == BigIntType) {
-#define CASE_OP(OP_NAME, method_name) case BINOP_##OP_NAME: {\
-        Int_t lhs = ast_to_int(env, binop->lhs); \
-        Int_t rhs = ast_to_int(env, binop->rhs); \
-        Int_t result = Int$ ## method_name (lhs, rhs); \
-        if (t->tag == BigIntType) {\
-            *(Int_t*)dest = result; \
-            return; \
-        } \
-        switch (Match(t, IntType)->bits) { \
-        case 64: *(int64_t*)dest = Int64$from_int(result, false); return; \
-        case 32: *(int32_t*)dest = Int32$from_int(result, false); return; \
-        case 16: *(int16_t*)dest = Int16$from_int(result, false); return; \
-        case 8: *(int8_t*)dest = Int8$from_int(result, false); return; \
-        default: print_err("Invalid int bits"); \
-        } \
-        break; \
-    }
-            switch (binop->op) {
-            CASE_OP(MULT, times) CASE_OP(DIVIDE, divided_by) CASE_OP(PLUS, plus) CASE_OP(MINUS, minus)
-            CASE_OP(RSHIFT, right_shifted) CASE_OP(LSHIFT, left_shifted)
-            CASE_OP(MOD, modulo) CASE_OP(MOD1, modulo1)
-            CASE_OP(AND, bit_and) CASE_OP(OR, bit_or) CASE_OP(XOR, bit_xor)
-            default: break;
-            }
-#undef CASE_OP
-        } else if (t->tag == NumType) {
-#define CASE_OP(OP_NAME, C_OP) case BINOP_##OP_NAME: {\
-        double lhs = ast_to_num(env, binop->lhs); \
-        double rhs = ast_to_num(env, binop->rhs); \
-        if (Match(t, NumType)->bits == 64) \
-            *(double*)dest = (double)(lhs C_OP rhs); \
-        else \
-            *(float*)dest = (float)(lhs C_OP rhs); \
-        return; \
-    }
-            switch (binop->op) {
-            CASE_OP(MULT, *) CASE_OP(DIVIDE, /) CASE_OP(PLUS, +) CASE_OP(MINUS, -)
-            default: break;
-            }
-#undef CASE_OP
-        }
-        switch (binop->op) {
-        case BINOP_EQ: case BINOP_NE: case BINOP_LT: case BINOP_LE: case BINOP_GT: case BINOP_GE: {
-            type_t *t_lhs = get_type(env, binop->lhs);
-            if (!type_eq(t_lhs, get_type(env, binop->rhs)))
-                print_err("Comparisons between different types aren't supported");
-            const TypeInfo_t *info = type_to_type_info(t_lhs);
-            size_t value_size = type_size(t_lhs);
-            char lhs[value_size], rhs[value_size];
-            eval(env, binop->lhs, lhs);
-            eval(env, binop->rhs, rhs);
-            int cmp = generic_compare(lhs, rhs, info);
-            switch (binop->op) {
-            case BINOP_EQ: *(bool*)dest = (cmp == 0); break;
-            case BINOP_NE: *(bool*)dest = (cmp != 0); break;
-            case BINOP_GT: *(bool*)dest = (cmp > 0); break;
-            case BINOP_GE: *(bool*)dest = (cmp >= 0); break;
-            case BINOP_LT: *(bool*)dest = (cmp < 0); break;
-            case BINOP_LE: *(bool*)dest = (cmp <= 0); break;
-            default: break;
-            }
-            break;
-        }
-        default: print_err(1, "Binary op not implemented for ", type_to_str(t), ": ", ast_to_xml_str(ast));
-        }
         break;
     }
     case Index: {

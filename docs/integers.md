@@ -361,7 +361,7 @@ An iterator function that counts onward from the starting integer.
 
 **Example:**  
 ```tomo
-nums := &[:Int]
+nums : &[Int] = &[]
 for i in 5:onward():
     nums:insert(i)
     stop if i == 10

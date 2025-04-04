@@ -18,7 +18,7 @@ you want to have an empty array, you must specify what type goes inside the arra
 like this:
 
 ```tomo
-empty := [:Int]
+empty : [Int] = []
 ```
 
 For type annotations, an array that holds items with type `T` is written as `[T]`.

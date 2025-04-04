@@ -20,6 +20,7 @@
 #define WrapAST(ast, ast_tag, ...) (new(ast_t, .file=(ast)->file, .start=(ast)->start, .end=(ast)->end, .tag=ast_tag, .__data.ast_tag={__VA_ARGS__}))
 #define TextAST(ast, _str) WrapAST(ast, TextLiteral, .str=GC_strdup(_str))
 #define Match(x, _tag) ((x)->tag == _tag ? &(x)->__data._tag : (errx(1, __FILE__ ":%d This was supposed to be a " # _tag "\n", __LINE__), &(x)->__data._tag))
+#define BINARY_OPERANDS(ast) ({ if (!is_binary_operation(ast)) errx(1, __FILE__ ":%d This is not a binary operation!", __LINE__); (ast)->__data.Plus; })
 
 #define REVERSE_LIST(list) do { \
     __typeof(list) _prev = NULL; \
@@ -37,6 +38,9 @@
 struct binding_s;
 typedef struct type_ast_s type_ast_t;
 typedef struct ast_s ast_t;
+typedef struct {
+    ast_t *lhs, *rhs;
+} binary_operands_t;
 
 typedef struct ast_list_s {
     ast_t *ast;
@@ -54,17 +58,6 @@ typedef struct when_clause_s {
     ast_t *pattern, *body;
     struct when_clause_s *next;
 } when_clause_t;
-
-typedef enum {
-    BINOP_UNKNOWN,
-    BINOP_POWER=100, BINOP_MULT, BINOP_DIVIDE, BINOP_MOD, BINOP_MOD1, BINOP_PLUS,
-    BINOP_MINUS, BINOP_CONCAT, BINOP_LSHIFT, BINOP_ULSHIFT, BINOP_RSHIFT, BINOP_URSHIFT, BINOP_MIN,
-    BINOP_MAX, BINOP_EQ, BINOP_NE, BINOP_LT, BINOP_LE, BINOP_GT, BINOP_GE,
-    BINOP_CMP,
-    BINOP_AND, BINOP_OR, BINOP_XOR,
-} binop_e;
-
-extern const char *binop_method_names[BINOP_XOR+1];
 
 typedef enum {
     UnknownTypeAST,
@@ -117,6 +110,15 @@ struct type_ast_s {
     } __data;
 };
 
+#define BINOP_CASES Power: case Multiply: case Divide: case Mod: case Mod1: case Plus: case Minus: case Concat: case LeftShift: case UnsignedLeftShift: \
+    case RightShift: case UnsignedRightShift: case Equals: case NotEquals: case LessThan: case LessThanOrEquals: case GreaterThan: \
+    case GreaterThanOrEquals: case Compare: case And: case Or: case Xor: \
+    case PowerUpdate: case MultiplyUpdate: case DivideUpdate: case ModUpdate: case Mod1Update: case PlusUpdate: case MinusUpdate: case ConcatUpdate: \
+    case LeftShiftUpdate: case UnsignedLeftShiftUpdate
+#define UPDATE_CASES PowerUpdate: case MultiplyUpdate: case DivideUpdate: case ModUpdate: case Mod1Update: case PlusUpdate: case MinusUpdate: \
+    case ConcatUpdate: case LeftShiftUpdate: case UnsignedLeftShiftUpdate: case RightShiftUpdate: case UnsignedRightShiftUpdate: \
+    case AndUpdate: case OrUpdate: case XorUpdate
+
 typedef enum {
     Unknown = 0,
     None, Bool, Var,
@@ -124,7 +126,11 @@ typedef enum {
     TextLiteral, TextJoin, PrintStatement,
     Path,
     Declare, Assign,
-    BinaryOp, UpdateAssign,
+    Power, Multiply, Divide, Mod, Mod1, Plus, Minus, Concat, LeftShift, UnsignedLeftShift,
+    RightShift, UnsignedRightShift, Equals, NotEquals, LessThan, LessThanOrEquals, GreaterThan,
+    GreaterThanOrEquals, Compare, And, Or, Xor,
+    PowerUpdate, MultiplyUpdate, DivideUpdate, ModUpdate, Mod1Update, PlusUpdate, MinusUpdate, ConcatUpdate, LeftShiftUpdate, UnsignedLeftShiftUpdate,
+    RightShiftUpdate, UnsignedRightShiftUpdate, AndUpdate, OrUpdate, XorUpdate,
     Not, Negative, HeapAllocate, StackReference,
     Min, Max,
     Array, Set, Table, TableEntry, Comprehension,
@@ -152,9 +158,7 @@ struct ast_s {
     const char *start, *end;
     union {
         struct {} Unknown;
-        struct {
-            type_ast_t *type;
-        } None;
+        struct {} None;
         struct {
             bool b;
         } Bool;
@@ -182,16 +186,17 @@ struct ast_s {
         } PrintStatement;
         struct {
             ast_t *var;
+            type_ast_t *type;
             ast_t *value;
         } Declare;
         struct {
             ast_list_t *targets, *values;
         } Assign;
-        struct {
-            ast_t *lhs;
-            binop_e op;
-            ast_t *rhs;
-        } BinaryOp, UpdateAssign;
+        binary_operands_t Power, Multiply, Divide, Mod, Mod1, Plus, Minus, Concat, LeftShift, UnsignedLeftShift,
+                          RightShift, UnsignedRightShift, Equals, NotEquals, LessThan, LessThanOrEquals, GreaterThan,
+                          GreaterThanOrEquals, Compare, And, Or, Xor,
+                          PowerUpdate, MultiplyUpdate, DivideUpdate, ModUpdate, Mod1Update, PlusUpdate, MinusUpdate, ConcatUpdate, LeftShiftUpdate, UnsignedLeftShiftUpdate,
+                          RightShiftUpdate, UnsignedRightShiftUpdate, AndUpdate, OrUpdate, XorUpdate;
         struct {
             ast_t *value;
         } Not, Negative, HeapAllocate, StackReference;
@@ -199,15 +204,12 @@ struct ast_s {
             ast_t *lhs, *rhs, *key;
         } Min, Max;
         struct {
-            type_ast_t *item_type;
             ast_list_t *items;
         } Array;
         struct {
-            type_ast_t *item_type;
             ast_list_t *items;
         } Set;
         struct {
-            type_ast_t *key_type, *value_type;
             ast_t *default_value;
             ast_t *fallback;
             ast_list_t *entries;
@@ -272,7 +274,7 @@ struct ast_s {
         } When;
         struct {
             ast_t *iter, *key;
-            binop_e op;
+            ast_e op;
         } Reduction;
         struct {
             const char *target;
@@ -345,5 +347,10 @@ const char *ast_source(ast_t *ast);
 CORD type_ast_to_xml(type_ast_t *ast);
 PUREFUNC bool is_idempotent(ast_t *ast);
 void visit_topologically(ast_list_t *ast, Closure_t fn);
+CONSTFUNC bool is_update_assignment(ast_t *ast);
+CONSTFUNC const char *binop_method_name(ast_e tag);
+CONSTFUNC const char *binop_operator(ast_e tag);
+CONSTFUNC ast_e binop_tag(ast_e tag);
+CONSTFUNC bool is_binary_operation(ast_t *ast);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -122,7 +122,7 @@ env_t *global_env(void)
             {"right_shifted", "Int$right_shifted", "func(x,y:Int -> Int)"},
             {"sqrt", "Int$sqrt", "func(x:Int -> Int?)"},
             {"times", "Int$times", "func(x,y:Int -> Int)"},
-            {"to", "Int$to", "func(first:Int,last:Int,step=none:Int -> func(->Int?))"},
+            {"to", "Int$to", "func(first:Int,last:Int,step:Int?=none -> func(->Int?))"},
         )},
         {"Int64", Type(IntType, .bits=TYPE_IBITS64), "Int64_t", "Int64$info", TypedArray(ns_entry_t,
             {"abs", "labs", "func(i:Int64 -> Int64)"},
@@ -139,7 +139,7 @@ env_t *global_env(void)
             {"modulo1", "Int64$modulo1", "func(x,y:Int64 -> Int64)"},
             {"octal", "Int64$octal", "func(i:Int64, digits=0, prefix=yes -> Text)"},
             {"onward", "Int64$onward", "func(first:Int64,step=Int64(1) -> func(->Int64?))"},
-            {"to", "Int64$to", "func(first:Int64,last:Int64,step=none:Int64 -> func(->Int64?))"},
+            {"to", "Int64$to", "func(first:Int64,last:Int64,step:Int64?=none -> func(->Int64?))"},
             {"unsigned_left_shifted", "Int64$unsigned_left_shifted", "func(x:Int64,y:Int64 -> Int64)"},
             {"unsigned_right_shifted", "Int64$unsigned_right_shifted", "func(x:Int64,y:Int64 -> Int64)"},
             {"wrapping_minus", "Int64$wrapping_minus", "func(x:Int64,y:Int64 -> Int64)"},
@@ -160,7 +160,7 @@ env_t *global_env(void)
             {"modulo1", "Int32$modulo1", "func(x,y:Int32 -> Int32)"},
             {"octal", "Int32$octal", "func(i:Int32, digits=0, prefix=yes -> Text)"},
             {"onward", "Int32$onward", "func(first:Int32,step=Int32(1) -> func(->Int32?))"},
-            {"to", "Int32$to", "func(first:Int32,last:Int32,step=none:Int32 -> func(->Int32?))"},
+            {"to", "Int32$to", "func(first:Int32,last:Int32,step:Int32?=none -> func(->Int32?))"},
             {"unsigned_left_shifted", "Int32$unsigned_left_shifted", "func(x:Int32,y:Int32 -> Int32)"},
             {"unsigned_right_shifted", "Int32$unsigned_right_shifted", "func(x:Int32,y:Int32 -> Int32)"},
             {"wrapping_minus", "Int32$wrapping_minus", "func(x:Int32,y:Int32 -> Int32)"},
@@ -181,7 +181,7 @@ env_t *global_env(void)
             {"modulo1", "Int16$modulo1", "func(x,y:Int16 -> Int16)"},
             {"octal", "Int16$octal", "func(i:Int16, digits=0, prefix=yes -> Text)"},
             {"onward", "Int16$onward", "func(first:Int16,step=Int16(1) -> func(->Int16?))"},
-            {"to", "Int16$to", "func(first:Int16,last:Int16,step=none:Int16 -> func(->Int16?))"},
+            {"to", "Int16$to", "func(first:Int16,last:Int16,step:Int16?=none -> func(->Int16?))"},
             {"unsigned_left_shifted", "Int16$unsigned_left_shifted", "func(x:Int16,y:Int16 -> Int16)"},
             {"unsigned_right_shifted", "Int16$unsigned_right_shifted", "func(x:Int16,y:Int16 -> Int16)"},
             {"wrapping_minus", "Int16$wrapping_minus", "func(x:Int16,y:Int16 -> Int16)"},
@@ -202,7 +202,7 @@ env_t *global_env(void)
             {"modulo1", "Int8$modulo1", "func(x,y:Int8 -> Int8)"},
             {"octal", "Int8$octal", "func(i:Int8, digits=0, prefix=yes -> Text)"},
             {"onward", "Int8$onward", "func(first:Int8,step=Int8(1) -> func(->Int8?))"},
-            {"to", "Int8$to", "func(first:Int8,last:Int8,step=none:Int8 -> func(->Int8?))"},
+            {"to", "Int8$to", "func(first:Int8,last:Int8,step:Int8?=none -> func(->Int8?))"},
             {"unsigned_left_shifted", "Int8$unsigned_left_shifted", "func(x:Int8,y:Int8 -> Int8)"},
             {"unsigned_right_shifted", "Int8$unsigned_right_shifted", "func(x:Int8,y:Int8 -> Int8)"},
             {"wrapping_minus", "Int8$wrapping_minus", "func(x:Int8,y:Int8 -> Int8)"},
@@ -310,11 +310,11 @@ env_t *global_env(void)
             {"owner", "Path$owner", "func(path:Path, follow_symlinks=yes -> Text?)"},
             {"parent", "Path$parent", "func(path:Path -> Path)"},
             {"read", "Path$read", "func(path:Path -> Text?)"},
-            {"read_bytes", "Path$read_bytes", "func(path:Path, limit=none:Int -> [Byte]?)"},
+            {"read_bytes", "Path$read_bytes", "func(path:Path, limit:Int?=none -> [Byte]?)"},
             {"relative_to", "Path$relative_to", "func(path:Path, relative_to:Path -> Path)"},
             {"remove", "Path$remove", "func(path:Path, ignore_missing=no)"},
             {"resolved", "Path$resolved", "func(path:Path, relative_to=(./) -> Path)"},
-            {"set_owner", "Path$set_owner", "func(path:Path, owner=none:Text, group=none:Text, follow_symlinks=yes)"},
+            {"set_owner", "Path$set_owner", "func(path:Path, owner:Text?=none, group:Text?=none, follow_symlinks=yes)"},
             {"subdirectories", "Path$children", "func(path:Path, include_hidden=no -> [Path])"},
             {"unique_directory", "Path$unique_directory", "func(path:Path -> Path)"},
             {"write", "Path$write", "func(path:Path, text:Text, permissions=Int32(0o644))"},
@@ -508,7 +508,7 @@ env_t *global_env(void)
         {"say", "say", "func(text:Text, newline=yes)"},
         {"print", "say", "func(text:Text, newline=yes)"},
         {"ask", "ask", "func(prompt:Text, bold=yes, force_tty=yes -> Text?)"},
-        {"exit", "tomo_exit", "func(message=none:Text, code=Int32(1) -> Abort)"},
+        {"exit", "tomo_exit", "func(message:Text?=none, code=Int32(1) -> Abort)"},
         {"fail", "fail_text", "func(message:Text -> Abort)"},
         {"sleep", "sleep_num", "func(seconds:Num)"},
     };
@@ -747,6 +747,18 @@ PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args)
             return b;
     }
     return NULL;
+}
+
+PUREFUNC binding_t *get_metamethod_binding(env_t *env, ast_e tag, ast_t *lhs, ast_t *rhs, type_t *ret)
+{
+    const char *method_name = binop_method_name(tag);
+    if (!method_name) return NULL;
+    binding_t *b = get_namespace_binding(env, lhs, method_name);
+    if (!b || b->type->tag != FunctionType) return NULL;
+    auto fn = Match(b->type, FunctionType);
+    if (!type_eq(fn->ret, ret)) return NULL;
+    arg_ast_t *args = new(arg_ast_t, .value=lhs, .next=new(arg_ast_t, .value=rhs));
+    return is_valid_call(env, fn->args, args, true) ? b : NULL;
 }
 
 void set_binding(env_t *env, const char *name, type_t *type, CORD code)

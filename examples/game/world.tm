@@ -70,7 +70,7 @@ struct World(player:@Player, goal:@Box, boxes:@[@Box], dt_accum=Num32(0.0), won=
     func load_map(w:@World, map:Text):
         if map:has("[]"):
             map = map:translate({"[]"="#", "@ "="@", "  "=" "})
-        w.boxes = @[:@Box]
+        w.boxes = @[]
         box_size := Vector2(50., 50.)
         for y,line in map:lines():
             for x,cell in line:split():

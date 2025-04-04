@@ -65,7 +65,7 @@ struct pthread_t(; extern, opaque):
     func detatch(p:pthread_t): inline C { pthread_detach(_$p); }
 
 struct IntQueue(_queue:@[Int], _mutex:@pthread_mutex_t, _cond:@pthread_cond_t):
-    func new(initial=[:Int] -> IntQueue):
+    func new(initial:[Int]=[] -> IntQueue):
         return IntQueue(@initial, pthread_mutex_t.new(), pthread_cond_t.new())
 
     func give(q:IntQueue, n:Int):
