@@ -40,7 +40,7 @@ example, if you wanted to declare a variable that could be either an integer
 value or `none` and initialize it as none, you would write it as:
 
 ```tomo
-x := none:Int
+x : Int = none
 ```
 
 Similarly, if you wanted to declare a variable that could be an array of texts
@@ -57,7 +57,7 @@ keep open the possibility of assigning `none` later, you can use the postfix
 ```tomo
 x := 5?
 # Later on, assign none:
-x = !Int
+x = none
 ```
 
 ## Type Inference
@@ -86,7 +86,7 @@ Non-none values can also be automatically promoted to optional values without
 the need for an explicit `?` operator in the cases listed above:
 
 ```tomo
-x := !Int
+x : Int? = none
 x = 5
 
 func doop(arg:Int?)->Text?:
@@ -109,7 +109,7 @@ maybe_x := 5?
 >> maybe_x or fail("No value!")
 = 5 : Int
 
-maybe_x = !Int
+maybe_x = none
 >> maybe_x or -1
 = -1 : Int
 >> maybe_x or fail("No value!")

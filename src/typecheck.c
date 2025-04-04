@@ -1163,6 +1163,26 @@ type_t *get_type(env_t *env, ast_t *ast)
                 code_err(binop.rhs, "I only know how to do bit shifting by integer amounts, not ", type_to_str(rhs_t));
         }
 
+        if (is_numeric_type(lhs_t) && binop.rhs->tag == Int) {
+            return lhs_t;
+        } else if (is_numeric_type(rhs_t) && binop.lhs->tag == Int) {
+            return rhs_t;
+        } else {
+            switch (compare_precision(lhs_t, rhs_t)) {
+            case NUM_PRECISION_LESS: return rhs_t;
+            case NUM_PRECISION_MORE: return lhs_t;
+            case NUM_PRECISION_EQUAL: return lhs_t;
+            default: {
+                if (can_compile_to_type(env, binop.rhs, lhs_t)) {
+                    return lhs_t;
+                } else if (can_compile_to_type(env, binop.lhs, rhs_t)) {
+                    return rhs_t;
+                }
+                break;
+            }
+            }
+        }
+
         type_t *overall_t = (can_promote(rhs_t, lhs_t) ? lhs_t : (can_promote(lhs_t, rhs_t) ? rhs_t : NULL));
         if (ast->tag == Multiply || ast->tag == Divide) {
             binding_t *b = is_numeric_type(lhs_t) ? get_metamethod_binding(env, ast->tag, binop.lhs, binop.rhs, lhs_t)
@@ -1588,9 +1608,11 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast)
 
 PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed)
 {
-    if (needed->tag == OptionalType && ast->tag == None) {
+    if (is_incomplete_type(needed))
+        return false;
+
+    if (needed->tag == OptionalType && ast->tag == None)
         return true;
-    }
 
     needed = non_optional(needed);
     if (needed->tag == ArrayType && ast->tag == Array) {

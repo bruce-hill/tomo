@@ -135,7 +135,7 @@ can be called either on the type itself: `Int.sqrt(x)` or as a method call:
 - [`func parse(text: Text -> Int?)`](#parse)
 - [`func prev_prime(x: Int -> Int)`](#prev_prime)
 - [`func sqrt(x: Int -> Int)`](#sqrt)
-- [`func to(first: Int, last: Int, step : Int? = none:Int -> func(->Int?))`](#to)
+- [`func to(first: Int, last: Int, step : Int? = none -> func(->Int?))`](#to)
 
 ### `abs`
 Calculates the absolute value of an integer.
@@ -458,7 +458,7 @@ Returns an iterator function that iterates over the range of numbers specified.
 Iteration is assumed to be nonempty and
 
 ```tomo
-func to(first: Int, last: Int, step : Int? = none:Int -> func(->Int?))
+func to(first: Int, last: Int, step : Int? = none -> func(->Int?))
 ```
 
 - `first`: The starting value of the range.

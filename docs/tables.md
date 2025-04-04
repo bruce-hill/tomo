@@ -43,7 +43,7 @@ table := {"A"=1, "B"=2}
 >> table["A"]
 = 1?
 >> table["missing"]
-= none:Int
+= none
 ```
 
 As with all optional values, you can use the `!` postfix operator to assert
@@ -77,7 +77,7 @@ table value:
 >> t2.fallback
 = {"A"=10}?
 >> t.fallback
-= none:{Text=Int}
+= none
 ```
 
 ### Default Values
@@ -225,7 +225,7 @@ The value associated with the key or `none` if the key is not found.
 = 1?
 
 >> t:get("????")
-= none:Int
+= none
 
 >> t:get("A")!
 = 1

@@ -68,7 +68,7 @@ intended. Paths can be created from text with slashes using
 - [`func relative_to(path: Path, relative_to=(./) -> Path)`](#relative_to)
 - [`func remove(path: Path, ignore_missing=no -> Void)`](#remove)
 - [`func resolved(path: Path, relative_to=(./) -> Path)`](#resolved)
-- [`func set_owner(path:Path, owner=none:Text, group=none:Text, follow_symlinks=yes)`](#set_owner)
+- [`func set_owner(path:Path, owner:Text?=none, group:Text?=none, follow_symlinks=yes)`](#set_owner)
 - [`func subdirectories(path: Path, include_hidden=no -> [Path])`](#subdirectories)
 - [`func unique_directory(path: Path -> Path)`](#unique_directory)
 - [`func write(path: Path, text: Text, permissions=0o644[32] -> Void)`](#write)
@@ -95,7 +95,7 @@ accessed, or `none` if no such file or directory exists.
 >> (./file.txt):accessed()
 = 1704221100?
 >> (./not-a-file):accessed()
-= none:Int64?
+= none
 ```
 
 ---
@@ -289,7 +289,7 @@ changed, or `none` if no such file or directory exists.
 >> (./file.txt):changed()
 = 1704221100?
 >> (./not-a-file):changed()
-= none:Int64
+= none
 ```
 
 ---
@@ -535,7 +535,7 @@ The name of the group which owns the file or directory, or `none` if the path do
 >> (/bin):group()
 = "root"
 >> (/non/existent/file):group()
-= none:Text
+= none
 ```
 
 ---
@@ -648,7 +648,7 @@ modified, or `none` if no such file or directory exists.
 >> (./file.txt):modified()
 = 1704221100?
 >> (./not-a-file):modified()
-= none:Int64
+= none
 ```
 
 ---
@@ -671,7 +671,7 @@ The name of the user who owns the file or directory, or `none` if the path does 
 >> (/bin):owner()
 = "root"
 >> (/non/existent/file):owner()
-= none:Text
+= none
 ```
 
 ---
@@ -717,7 +717,7 @@ raised.
 = "Hello"?
 
 >> (./nosuchfile.xxx):read()
-= none:Text
+= none
 ```
 ---
 
@@ -741,7 +741,7 @@ returned.
 = [72[B], 101[B], 108[B], 108[B], 111[B]]?
 
 >> (./nosuchfile.xxx):read()
-= none:[Byte]
+= none
 ```
 
 ---
@@ -815,7 +815,7 @@ The resolved absolute path.
 Set the owning user and/or group for a path.
 
 ```tomo
-func set_owner(path:Path, owner: Text? = none:Text, group: Text? = none:Text, follow_symlinks: Bool = yes)
+func set_owner(path:Path, owner: Text? = none, group: Text? = none, follow_symlinks: Bool = yes)
 ```
 
 - `path`: The path to change the permissions for.

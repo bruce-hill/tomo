@@ -7,7 +7,7 @@ func main():
 	>> t["two"]
 	= 2?
 	>> t["???"]
-	= none:Int
+	= none
 	>> t["one"]!
 	= 1
 	>> t["???"] or -1
@@ -37,7 +37,7 @@ func main():
 	>> t2["three"]
 	= 3?
 	>> t2["???"]
-	= none:Int
+	= none
 
 	>> t2.length
 	= 1

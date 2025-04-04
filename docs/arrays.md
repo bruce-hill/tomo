@@ -246,13 +246,13 @@ variable or dereference a heap pointer, it may trigger copy-on-write behavior.
 - [`func insert(arr: @[T], item: T, at: Int = 0 -> Void)`](#insert)
 - [`func insert_all(arr: @[T], items: [T], at: Int = 0 -> Void)`](#insert_all)
 - [`func pop(arr: &[T], index: Int = -1 -> T?)`](#pop)
-- [`func random(arr: [T], random: func(min,max:Int64->Int64)? = none:func(min,max:Int64->Int64) -> T)`](#random)
+- [`func random(arr: [T], random: func(min,max:Int64->Int64)? = none -> T)`](#random)
 - [`func remove_at(arr: @[T], at: Int = -1, count: Int = 1 -> Void)`](#remove_at)
 - [`func remove_item(arr: @[T], item: T, max_count: Int = -1 -> Void)`](#remove_item)
 - [`func reversed(arr: [T] -> [T])`](#reversed)
-- [`func sample(arr: [T], count: Int, weights: [Num]? = ![Num], random: func(->Num)? = none:func(->Num) -> [T])`](#sample)
-- [`func shuffle(arr: @[T], random: func(min,max:Int64->Int64)? = none:func(min,max:Int64->Int64) -> Void)`](#shuffle)
-- [`func shuffled(arr: [T], random: func(min,max:Int64->Int64)? = none:func(min,max:Int64->Int64) -> [T])`](#shuffled)
+- [`func sample(arr: [T], count: Int, weights: [Num]? = ![Num], random: func(->Num)? = none -> [T])`](#sample)
+- [`func shuffle(arr: @[T], random: func(min,max:Int64->Int64)? = none -> Void)`](#shuffle)
+- [`func shuffled(arr: [T], random: func(min,max:Int64->Int64)? = none -> [T])`](#shuffled)
 - [`func slice(arr: [T], from: Int, to: Int -> [T])`](#slice)
 - [`func sort(arr: @[T], by=T.compare -> Void)`](#sort)
 - [`sorted(arr: [T], by=T.compare -> [T])`](#sorted)
@@ -607,7 +607,7 @@ otherwise the item at the given index.
 Selects a random element from the array.
 
 ```tomo
-func random(arr: [T], random: func(min,max:Int64->Int64)? = none:func(min,max:Int64->Int64) -> T)
+func random(arr: [T], random: func(min,max:Int64->Int64)? = none -> T)
 ```
 
 - `arr`: The array from which to select a random element.
@@ -707,7 +707,7 @@ Selects a sample of elements from the array, optionally with weighted
 probabilities.
 
 ```tomo
-func sample(arr: [T], count: Int, weights: [Num]? = ![Num], random: func(->Num)? = none:func(->Num) -> [T])
+func sample(arr: [T], count: Int, weights: [Num]? = ![Num], random: func(->Num)? = none -> [T])
 ```
 
 - `arr`: The array to sample from.
@@ -744,7 +744,7 @@ A list of sampled elements from the array.
 Shuffles the elements of the array in place.
 
 ```tomo
-func shuffle(arr: @[T], random: func(min,max:Int64->Int64)? = none:func(min,max:Int64->Int64) -> Void)
+func shuffle(arr: @[T], random: func(min,max:Int64->Int64)? = none -> Void)
 ```
 
 - `arr`: The mutable reference to the array to be shuffled.
@@ -766,7 +766,7 @@ Nothing.
 Creates a new array with elements shuffled.
 
 ```tomo
-func shuffled(arr: [T], random: func(min,max:Int64->Int64)? = none:func(min,max:Int64->Int64) -> [T])
+func shuffled(arr: [T], random: func(min,max:Int64->Int64)? = none -> [T])
 ```
 
 - `arr`: The array to be shuffled.

@@ -2,11 +2,11 @@
 struct Single(x:Int)
 struct Pair(x,y:Int)
 struct Mixed(x:Int, text:Text)
-struct LinkedList(x:Int, next=none:@LinkedList)
+struct LinkedList(x:Int, next:@LinkedList?=none)
 struct Password(text:Text; secret)
 
 struct CorecursiveA(other:@CorecursiveB?)
-struct CorecursiveB(other=none:@CorecursiveA)
+struct CorecursiveB(other:@CorecursiveA?=none)
 
 func test_literals():
 	>> Single(123)

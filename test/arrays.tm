@@ -107,7 +107,7 @@ func main():
 		sorted : @[Int] = @[]
 		repeat:
 			sorted:insert(heap:heap_pop() or stop)
-		>> sorted == sorted:sorted()
+		>> sorted[] == sorted:sorted()
 		= yes
 		for i in 10:
 			heap:heap_push((i*13337) mod 37)
@@ -115,7 +115,7 @@ func main():
 		sorted = @[]
 		repeat:
 			sorted:insert(heap:heap_pop() or stop)
-		>> sorted == sorted:sorted()
+		>> sorted[] == sorted:sorted()
 		= yes
 
 	do:
@@ -162,10 +162,10 @@ func main():
 	>> ["a", "b", "c"]:find("b")
 	= 2?
 	>> ["a", "b", "c"]:find("XXX")
-	= none:Int
+	= none
 
 	>> [10, 20]:first(func(i:&Int): i:is_prime())
-	= none:Int
+	= none
 	>> [4, 5, 6]:first(func(i:&Int): i:is_prime())
 	= 2?
 
@@ -183,4 +183,4 @@ func main():
 		>> nums
 		= &[]
 		>> nums:pop()
-		= none:Int
+		= none

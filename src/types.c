@@ -111,6 +111,8 @@ PUREFUNC const char *get_type_name(type_t *t)
 bool type_eq(type_t *a, type_t *b)
 {
     if (a == b) return true;
+    if (!a && !b) return true;
+    if (!a || !b) return false;
     if (a->tag != b->tag) return false;
     return (CORD_cmp(type_to_cord(a), type_to_cord(b)) == 0);
 }
@@ -208,10 +210,8 @@ static PUREFUNC INLINE double type_max_magnitude(type_t *t)
 
 PUREFUNC precision_cmp_e compare_precision(type_t *a, type_t *b)
 {
-    if (a->tag == OptionalType && Match(a, OptionalType)->type->tag == NumType)
-        a = Match(a, OptionalType)->type;
-    if (b->tag == OptionalType && Match(b, OptionalType)->type->tag == NumType)
-        b = Match(b, OptionalType)->type;
+    if (a == NULL || b == NULL)
+        return NUM_PRECISION_INCOMPARABLE;
 
     if (is_int_type(a) && b->tag == NumType)
         return NUM_PRECISION_LESS;

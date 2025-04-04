@@ -552,7 +552,7 @@ static CORD compile_update_assignment(env_t *env, ast_t *ast)
         binop->tag = binop_tag(binop->tag);
         if (needs_idemotency_fix)
             binop->__data.Plus.lhs = WrapAST(update.lhs, InlineCCode, .code="*lhs", .type=lhs_t);
-        update_assignment = CORD_all(lhs, " = ", compile_to_type(env, binop, lhs_t));
+        update_assignment = CORD_all(lhs, " = ", compile_to_type(env, binop, lhs_t), ";");
     }
     
     if (needs_idemotency_fix)
@@ -1154,7 +1154,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             }
 
             ast_t *update_var = new(ast_t);
-            *update_var = *ast;
+            *update_var = *test->expr;
             update_var->__data.PlusUpdate.lhs = WrapAST(update.lhs, InlineCCode, .code="(*expr)", .type=lhs_t); // UNSAFE
             test_code = CORD_all("({", 
                 compile_declaration(Type(PointerType, lhs_t), "expr"), " = &(", compile_lvalue(env, update.lhs), "); ",
@@ -1855,6 +1855,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         }
     }
     default:
+        // print("Is discardable: ", ast_to_xml_str(ast), " ==> ", is_discardable(env, ast));
         if (!is_discardable(env, ast))
             code_err(ast, "The ", type_to_str(get_type(env, ast)), " result of this statement cannot be discarded");
         return CORD_asprintf("(void)%r;", compile(env, ast));
@@ -1952,6 +1953,10 @@ CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
         default: code_err(ast, "This is not a valid number bit width");
         }
     } else if (ast->tag == None) {
+        if (t->tag != OptionalType)
+            code_err(ast, "This is not supposed to be an optional type");
+        else if (Match(t, OptionalType)->type == NULL)
+            code_err(ast, "I don't know what kind of `none` this is supposed to be!\nPlease tell me by declaring a variable like `foo : Type = none`");
         return compile_none(t);
     } else if (t->tag == PointerType && (ast->tag == HeapAllocate || ast->tag == StackReference)) {
         return compile_typed_allocation(env, ast, t);
@@ -2377,8 +2382,14 @@ static bool string_literal_is_all_ascii(CORD literal)
 
 CORD compile_none(type_t *t)
 {
+    if (t == NULL)
+        compiler_err(NULL, NULL, NULL, "I can't compile a `none` value with no type");
+
     if (t->tag == OptionalType)
         t = Match(t, OptionalType)->type;
+
+    if (t == NULL)
+        compiler_err(NULL, NULL, NULL, "I can't compile a `none` value with no type");
 
     if (t == PATH_TYPE) return "NONE_PATH";
     else if (t == PATH_TYPE_TYPE) return "((OptionalPathType_t){})";
@@ -2435,7 +2446,7 @@ CORD compile(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
     case None: {
-        code_err(ast, "This 'none' needs to specify what type it is using `none:Type` syntax");
+        code_err(ast, "I can't figure out what this `none`'s type is!");
     }
     case Bool: return Match(ast, Bool)->b ? "yes" : "no";
     case Var: {
@@ -2535,18 +2546,31 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
         type_t *operand_t;
-        CORD lhs, rhs;
-        if (can_compile_to_type(env, binop.rhs, lhs_t)) {
-            lhs = compile(env, binop.lhs);
-            rhs = compile_to_type(env, binop.rhs, lhs_t);
+        if (is_numeric_type(lhs_t) && binop.rhs->tag == Int) {
             operand_t = lhs_t;
-        } else if (can_compile_to_type(env, binop.lhs, rhs_t)) {
-            rhs = compile(env, binop.rhs);
-            lhs = compile_to_type(env, binop.lhs, rhs_t);
+        } else if (is_numeric_type(rhs_t) && binop.lhs->tag == Int) {
             operand_t = rhs_t;
         } else {
-            code_err(ast, "I can't do comparisons between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
+            switch (compare_precision(lhs_t, rhs_t)) {
+            case NUM_PRECISION_LESS: operand_t = rhs_t; break;
+            case NUM_PRECISION_MORE: operand_t = lhs_t; break;
+            case NUM_PRECISION_EQUAL: operand_t = lhs_t; break;
+            default: {
+                if (can_compile_to_type(env, binop.rhs, lhs_t)) {
+                    operand_t = lhs_t;
+                } else if (can_compile_to_type(env, binop.lhs, rhs_t)) {
+                    operand_t = rhs_t;
+                } else {
+                    code_err(ast, "I can't do comparisons between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
+                }
+                break;
+            }
+            }
         }
+
+        CORD lhs, rhs;
+        lhs = compile_to_type(env, binop.lhs, operand_t);
+        rhs = compile_to_type(env, binop.rhs, operand_t);
 
         switch (operand_t->tag) {
         case BigIntType:
@@ -2554,11 +2578,11 @@ CORD compile(env_t *env, ast_t *ast)
         case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
             return CORD_all("(", lhs, ast->tag == Equals ? " == " : " != ", rhs, ")");
         default:
-            return CORD_asprintf(ast->tag == Equals ? CORD_EMPTY : "!",
-                                 "generic_equal(stack(%r), stack(%r), %r)", lhs, rhs, compile_type_info(operand_t));
+            return CORD_all(ast->tag == Equals ? CORD_EMPTY : "!",
+                            "generic_equal(stack(", lhs, "), stack(", rhs, "), ", compile_type_info(operand_t), ")");
         }
     }
-    case LessThan: case LessThanOrEquals: case GreaterThan: case GreaterThanOrEquals: {
+    case LessThan: case LessThanOrEquals: case GreaterThan: case GreaterThanOrEquals: case Compare: {
         binary_operands_t cmp = BINARY_OPERANDS(ast);
 
         type_t *lhs_t = get_type(env, cmp.lhs);
@@ -2577,6 +2601,10 @@ CORD compile(env_t *env, ast_t *ast)
             code_err(ast, "I can't do comparisons between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
         }
 
+        if (ast->tag == Compare)
+            return CORD_all("generic_compare(stack(", lhs, "), stack(", rhs, "), ",
+                            compile_type_info(operand_t), ")");
+
         const char *op = binop_operator(ast->tag);
         switch (operand_t->tag) {
         case BigIntType:
@@ -2584,7 +2612,8 @@ CORD compile(env_t *env, ast_t *ast)
         case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
             return CORD_all("(", lhs, " ", op, " ", rhs, ")");
         default:
-            return CORD_all("(generic_compare(stack(", lhs, "), stack(", rhs, "), ", compile_type_info(Type(OptionalType, operand_t)), ") ", op, " 0)");
+            return CORD_all("(generic_compare(stack(", lhs, "), stack(", rhs, "), ",
+                            compile_type_info(operand_t), ") ", op, " 0)");
         }
     }
     case TextLiteral: {
@@ -2896,31 +2925,27 @@ CORD compile(env_t *env, ast_t *ast)
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "sample")) {
                 type_t *random_num_type = parse_type_string(env, "func(->Num)?");
-                ast_t *none_rng = parse_expression("none:func(->Num)");
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="count", .type=INT_TYPE,
-                    .next=new(arg_t, .name="weights", .type=Type(ArrayType, .item_type=Type(NumType)),
+                    .next=new(arg_t, .name="weights", .type=Type(ArrayType, .item_type=Type(NumType, .bits=TYPE_NBITS64)),
                               .default_val=FakeAST(None),
-                              .next=new(arg_t, .name="random", .type=random_num_type, .default_val=none_rng)));
+                              .next=new(arg_t, .name="random", .type=random_num_type, .default_val=FakeAST(None))));
                 return CORD_all("Array$sample(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "shuffle")) {
                 type_t *random_int64_type = parse_type_string(env, "func(min,max:Int64->Int64)?");
-                ast_t *none_rng = parse_expression("none:func(min,max:Int64->Int64)");
                 EXPECT_POINTER("an", "array");
-                arg_t *arg_spec = new(arg_t, .name="random", .type=random_int64_type, .default_val=none_rng);
+                arg_t *arg_spec = new(arg_t, .name="random", .type=random_int64_type, .default_val=FakeAST(None));
                 return CORD_all("Array$shuffle(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
             } else if (streq(call->name, "shuffled")) {
                 type_t *random_int64_type = parse_type_string(env, "func(min,max:Int64->Int64)?");
-                ast_t *none_rng = parse_expression("none:func(min,max:Int64->Int64)");
                 self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="random", .type=random_int64_type, .default_val=none_rng);
+                arg_t *arg_spec = new(arg_t, .name="random", .type=random_int64_type, .default_val=FakeAST(None));
                 return CORD_all("Array$shuffled(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
             } else if (streq(call->name, "random")) {
                 type_t *random_int64_type = parse_type_string(env, "func(min,max:Int64->Int64)?");
-                ast_t *none_rng = parse_expression("none:func(min,max:Int64->Int64)");
                 self = compile_to_pointer_depth(env, call->self, 0, false);
-                arg_t *arg_spec = new(arg_t, .name="random", .type=random_int64_type, .default_val=none_rng);
+                arg_t *arg_spec = new(arg_t, .name="random", .type=random_int64_type, .default_val=FakeAST(None));
                 return CORD_all("Array$random_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type(item_t), ")");
             } else if (streq(call->name, "sort") || streq(call->name, "sorted")) {
                 if (streq(call->name, "sort"))
@@ -3290,9 +3315,15 @@ CORD compile(env_t *env, ast_t *ast)
 
         CORD condition_code;
         if (condition->tag == Declare) {
-            type_t *condition_type = get_type(env, Match(condition, Declare)->value);
+            auto decl = Match(condition, Declare);
+            type_t *condition_type = 
+                decl->type ? parse_type_ast(env, decl->type)
+                : get_type(env, Match(condition, Declare)->value);
             if (condition_type->tag != OptionalType)
                 code_err(condition, "This `if var := ...:` declaration should be an optional type, not ", type_to_str(condition_type));
+
+            if (is_incomplete_type(condition_type))
+                code_err(condition, "This type is incomplete!");
 
             decl_code = compile_statement(env, condition);
             ast_t *var = Match(condition, Declare)->var;
@@ -3632,7 +3663,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Declare: case Assign: case UPDATE_CASES: case For: case While: case Repeat: case StructDef: case LangDef: case Extend:
     case EnumDef: case FunctionDef: case ConvertDef: case Skip: case Stop: case Pass: case Return: case DocTest: case PrintStatement:
         code_err(ast, "This is not a valid expression");
-    default: case Unknown: code_err(ast, "Unknown AST");
+    default: case Unknown: code_err(ast, "Unknown AST: ", ast_to_xml_str(ast));
     }
 }
 

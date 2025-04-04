@@ -93,7 +93,7 @@ func put(url:Text, data="", headers=["Content-Type: application/json", "Accept: 
 func patch(url:Text, data="", headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):
     return _send(PATCH, url, data, headers)
 
-func delete(url:Text, data=none:Text, headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):
+func delete(url:Text, data:Text?=none, headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):
     return _send(DELETE, url, data, headers)
 
 func main():

@@ -59,7 +59,7 @@ func main():
 	>> Text.from_bytes([0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65])!
 	= "Amélie"
 	>> Text.from_bytes([Byte(0xFF)])
-	= none:Text
+	= none
 
 	amelie2 := "Am$(\U65\U301)lie"
 	>> amelie2:split()

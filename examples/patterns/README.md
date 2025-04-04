@@ -332,7 +332,7 @@ not match the pattern.
 >> "123 boxes":pattern_captures($Pat"{int} {id}")
 = ["123", "boxes"]?
 >> "xxx":pattern_captures($Pat"{int} {id}")
-= none:[Text]
+= none
 ```
 
 ---

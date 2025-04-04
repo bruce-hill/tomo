@@ -52,7 +52,7 @@ cyclic datastructures correctly, enabling you to serialize cyclic structures
 like circularly linked lists or graphs:
 
 ```tomo
-struct Cycle(name:Text, next=none:@Cycle)
+struct Cycle(name:Text, next:@Cycle?=none)
 
 c := @Cycle("A")
 c.next = @Cycle("B", next=c)

@@ -66,7 +66,8 @@ func main():
     = 5?
 
     >> if no:
-        none:Int
+        x : Int? = none
+        x
     else:
         5
     = 5?
@@ -80,7 +81,8 @@ func main():
     >> 5? or exit("Non-null is falsey")
     = 5
 
-    >> (none:Int) or -1
+    >> none_int : Int? = none
+    >> none_int or -1
     = -1
 
     do:
@@ -88,7 +90,7 @@ func main():
         >> yep := maybe_int(yes)
         = 123?
         >> nope := maybe_int(no)
-        = none:Int
+        = none
         >> if yep:
             >> yep
             = 123
@@ -103,7 +105,7 @@ func main():
         >> yep := maybe_int64(yes)
         = Int64(123)?
         >> nope := maybe_int64(no)
-        = none:Int64
+        = none
         >> if yep:
             >> yep
             = Int64(123)
@@ -118,7 +120,7 @@ func main():
         >> yep := maybe_array(yes)
         = [10, 20, 30]?
         >> nope := maybe_array(no)
-        = none:[Int]
+        = none
         >> if yep:
             >> yep
             = [10, 20, 30]
@@ -133,7 +135,7 @@ func main():
         >> yep := maybe_bool(yes)
         = no?
         >> nope := maybe_bool(no)
-        = none:Bool
+        = none
         >> if yep:
             >> yep
             = no
@@ -148,7 +150,7 @@ func main():
         >> yep := maybe_text(yes)
         = "Hello"?
         >> nope := maybe_text(no)
-        = none:Text
+        = none
         >> if yep:
             >> yep
             = "Hello"
@@ -163,7 +165,7 @@ func main():
         >> yep := maybe_num(yes)
         = 12.3?
         >> nope := maybe_num(no)
-        = none:Num
+        = none
         >> if yep:
             >> yep
             = 12.3
@@ -178,7 +180,7 @@ func main():
         # >> yep := maybe_lambda(yes)
         # = func() [optionals.tm:54] : func()?
         >> nope := maybe_lambda(no)
-        = none : func()
+        = none
         # >> if yep:
         #     >> yep
         #     = func() [optionals.tm:54]
@@ -193,7 +195,7 @@ func main():
         >> yep := Struct.maybe(yes)
         = Struct(x=123, y="hello")?
         >> nope := Struct.maybe(no)
-        = none:Struct
+        = none
         >> if yep:
             >> yep
             = Struct(x=123, y="hello")
@@ -208,7 +210,7 @@ func main():
         >> yep := Enum.maybe(yes)
         = Enum.Y(123)?
         >> nope := Enum.maybe(no)
-        = none : Enum
+        = none
         >> if yep:
             >> yep
             = Enum.Y(123)
@@ -223,7 +225,7 @@ func main():
         >> yep := maybe_c_string(yes)
         = CString("hi")?
         >> nope := maybe_c_string(no)
-        = none : CString
+        = none
         >> if yep:
             >> yep
             = CString("hi")
@@ -241,16 +243,15 @@ func main():
     = 123
 
     # Test comparisons, hashing, equality:
-    >> (none:Int == 5?)
+    >> (none == 5?)
     = no
     >> (5? == 5?)
     = yes
-    >> {none:Int, none:Int}
-    = {none:Int}
     >> nones : {Int?} = {none, none}
-    = {none}
-    >> [5?, none:Int, none:Int, 6?]:sorted()
-    = [none:Int, none:Int, 5, 6]
+    >> also_nones : {Int?} = {none}
+    >> nones == also_nones
+    >> [5?, none, none, 6?]:sorted()
+    = [none, none, 5, 6]
 
     do:
         >> value := if var := 5?:
@@ -260,7 +261,7 @@ func main():
         = 5
 
     do:
-        >> value := if var := none:Int:
+        >> value := if var : Int? = none:
             var
         else:
             0
@@ -274,7 +275,7 @@ func main():
             >> opt
 
     do:
-        >> opt := none:Int
+        >> opt : Int? = none
         >> if opt:
             >> opt
         else:
@@ -283,7 +284,8 @@ func main():
     >> not 5?
     = no
 
-    >> not none:Int
+    >> nah : Int? = none
+    >> not nah
     = yes
 
     >> [Struct(5,"A")?, Struct(6,"B"), Struct(7,"C")]

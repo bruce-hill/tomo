@@ -40,7 +40,7 @@ func main(paths:[Path]):
             say("Already installed: $url")
             skip
 
-        alias := none:Text
+        alias : Text? = none
         curl_flags := ["-L"]
         if github := url_without_protocol:pattern_captures($Pat"github.com/{!/}/{!/}#{..}"):
             user := github[1]
