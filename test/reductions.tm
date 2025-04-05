@@ -6,7 +6,7 @@ func main():
 
 	>> empty_ints : [Int] = []
 	>> (+: empty_ints)
-	= none : Int
+	= none
 
 	>> (+: [10, 20, 30]) or 0
 	= 60
@@ -38,7 +38,7 @@ func main():
 	= yes
 
 	>> (<=: empty_ints)
-	= none : Bool
+	= none
 
 	>> (<=: [5, 4, 3, 2, 1])!
 	= no

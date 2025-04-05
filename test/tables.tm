@@ -22,7 +22,7 @@ func main():
 	>> t.length
 	= 2
 	>> t.fallback
-	= none : {Text=Int}
+	= none
 
 	>> t.keys
 	= ["one", "two"]
