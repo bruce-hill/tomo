@@ -619,6 +619,12 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
     }
 
     if (ast->tag == Or && lhs_t->tag == OptionalType) {
+        if (rhs_t->tag == AbortType || rhs_t->tag == ReturnType) {
+            return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop.lhs), "; ",
+                            "if (", check_none(lhs_t, "lhs"), ") ", compile_statement(env, binop.rhs), " ",
+                            optional_into_nonnone(lhs_t, "lhs"), "; })");
+        }
+
         if (is_incomplete_type(rhs_t)) {
             type_t *complete = most_complete_type(rhs_t, Match(lhs_t, OptionalType)->type);
             if (complete == NULL)
@@ -626,11 +632,7 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
             rhs_t = complete;
         }
 
-        if (rhs_t->tag == AbortType || rhs_t->tag == ReturnType) {
-            return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop.lhs), "; ",
-                            "if (", check_none(lhs_t, "lhs"), ") ", compile_statement(env, binop.rhs), " ",
-                            optional_into_nonnone(lhs_t, "lhs"), "; })");
-        } else if (rhs_t->tag == OptionalType && type_eq(lhs_t, rhs_t)) {
+        if (rhs_t->tag == OptionalType && type_eq(lhs_t, rhs_t)) {
             return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop.lhs), "; ",
                             check_none(lhs_t, "lhs"), " ? ", compile(env, binop.rhs), " : lhs; })");
         } else if (rhs_t->tag != OptionalType && type_eq(Match(lhs_t, OptionalType)->type, rhs_t)) {
