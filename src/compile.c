@@ -2010,10 +2010,6 @@ CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
         return compile_typed_table(env, ast, t);
     } else if (t->tag == SetType && ast->tag == Set) {
         return compile_typed_set(env, ast, t);
-    } else if (t->tag == SetType && ast->tag == Table) {
-        auto table = Match(ast, Table);
-        if (!table->default_value && !table->fallback && !table->entries)
-            return compile_to_type(env, WrapAST(ast, Set), t);
     }
 
     type_t *actual = get_type(env, ast);

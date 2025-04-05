@@ -12,16 +12,17 @@ b := {20, 30}
 
 ## Syntax
 
-Sets are written using `{}` curly braces with comma-separated items:
+Sets are written using `{...}` curly braces with comma-separated items:
 
 ```tomo
 nums := {10, 20, 30}
 ```
 
-Empty sets must specify the item type explicitly:
+Empty sets must specify the set type explicitly and use `{/}` for an empty set
+(because `{}` is an empty table).
 
 ```tomo
-empty : {Int} = {}
+empty : {Int} = {/}
 ```
 
 For type annotations, a set that holds items with type `T` is written as `{T}`.
