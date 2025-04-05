@@ -56,7 +56,7 @@ func main():
 	= [65, 109, 233, 108, 105, 101]
 	>> amelie:bytes()
 	= [0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65]
-	>> Text.from_bytes([0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65])!
+	>> Text.from_bytes([0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65])!
 	= "Amélie"
 	>> Text.from_bytes([Byte(0xFF)])
 	= none
@@ -202,7 +202,7 @@ func main():
 	= ["PENGUIN"]
 
 	>> Text.from_codepoint_names(["not a valid name here buddy"])
-	= none : Text
+	= none
 
 	>> "Hello":replace("ello", "i")
 	= "Hi"

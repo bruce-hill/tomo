@@ -153,6 +153,12 @@ type_t *type_or_type(type_t *a, type_t *b)
         return a->tag == OptionalType ? a : Type(OptionalType, a);
     if (a->tag == ReturnType && b->tag == ReturnType)
         return Type(ReturnType, .ret=type_or_type(Match(a, ReturnType)->ret, Match(b, ReturnType)->ret));
+
+    if (is_incomplete_type(a) && type_eq(b, most_complete_type(a, b)))
+        return b;
+    if (is_incomplete_type(b) && type_eq(a, most_complete_type(a, b)))
+        return a;
+
     if (type_is_a(b, a)) return a;
     if (type_is_a(a, b)) return b;
     if (a->tag == AbortType || a->tag == ReturnType) return non_optional(b);
