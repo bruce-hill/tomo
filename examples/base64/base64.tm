@@ -4,8 +4,7 @@ _enc := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/":bytes
 
 _EQUAL_BYTE := Byte(0x3D)
 
-_dec := [
-    :Byte
+_dec : [Byte] = [
     255, 255, 255, 255, 255, 255, 255, 255,
     255, 255, 255, 255, 255, 255, 255, 255,
     255, 255, 255, 255, 255, 255, 255, 255,
@@ -32,7 +31,7 @@ lang Base64:
         output := &[Byte(0) for _ in bytes.length * 4 / 3 + 4]
         src := Int64(1)
         dest := Int64(1)
-        while src + 2 <= bytes.length:
+        while src + 2 <= Int64(bytes.length):
             chunk24 := (
                 (Int32(bytes[src]) <<< 16) or (Int32(bytes[src+1]) <<< 8) or Int32(bytes[src+2])
             )
@@ -69,7 +68,7 @@ lang Base64:
         output := &[Byte(0) for _ in bytes.length/4 * 3]
         src := Int64(1)
         dest := Int64(1)
-        while src + 3 <= bytes.length:
+        while src + 3 <= Int64(bytes.length):
             chunk24 := (
                 (Int32(_dec[1+bytes[src]]) <<< 18) or
                 (Int32(_dec[1+bytes[src+1]]) <<< 12) or

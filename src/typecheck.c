@@ -892,7 +892,9 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (streq(call->name, "serialized")) // Data serialization
             return Type(ArrayType, Type(ByteType));
 
-        type_t *self_value_t = value_type(get_type(env, call->self));
+        type_t *self_value_t = get_type(env, call->self);
+        if (!self_value_t) code_err(call->self, "Couldn't get the type of this value");
+        self_value_t = value_type(self_value_t);
         switch (self_value_t->tag) {
         case ArrayType: {
             type_t *item_type = Match(self_value_t, ArrayType)->item_type;

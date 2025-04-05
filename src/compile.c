@@ -4098,7 +4098,7 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
         auto decl = Match(ast, Declare);
         const char *decl_name = Match(decl->var, Var)->name;
         CORD full_name = CORD_all(namespace_prefix(env, env->namespace), decl_name);
-        type_t *t = get_type(env, decl->value);
+        type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
         if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
             code_err(ast, "You can't declare a variable with a ", type_to_str(t), " value");
 
