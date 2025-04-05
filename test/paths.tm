@@ -36,9 +36,9 @@ func main():
         fail("Couldn't read lines in $tmpfile")
 
     >> (./does-not-exist.xxx):read()
-    = none : Text
+    = none
     >> (./does-not-exist.xxx):read_bytes()
-    = none : [Byte]
+    = none
     if lines := (./does-not-exist.xxx):by_line():
         fail("I could read lines in a nonexistent file")
     else:

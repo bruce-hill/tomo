@@ -64,7 +64,7 @@ intended. Paths can be created from text with slashes using
 - [`func owner(path: Path, follow_symlinks=yes -> Text?)`](#owner)
 - [`func parent(path: Path -> Path)`](#parent)
 - [`func read(path: Path -> Text?)`](#read)
-- [`func read_bytes(path: Path -> [Byte]?)`](#read_bytes)
+- [`func read_bytes(path: Path, limit: Int? = none -> [Byte]?)`](#read_bytes)
 - [`func relative_to(path: Path, relative_to=(./) -> Path)`](#relative_to)
 - [`func remove(path: Path, ignore_missing=no -> Void)`](#remove)
 - [`func resolved(path: Path, relative_to=(./) -> Path)`](#resolved)
@@ -726,10 +726,11 @@ Reads the contents of the file at the specified path or a null value if the
 file could not be read.
 
 ```tomo
-func read_bytes(path: Path -> [Byte]?)
+func read_bytes(path: Path, limit: Int? = none -> [Byte]?)
 ```
 
 - `path`: The path of the file to read.
+- `limit`: A limit to how many bytes should be read.
 
 **Returns:**  
 The byte contents of the file. If the file cannot be read, a null value will be

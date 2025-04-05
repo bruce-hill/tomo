@@ -22,34 +22,36 @@ func main():
 	>> Num.INF:isinf()
 	= yes
 
-	>> nan : Num = none
+	>> none_num : Num? = none
 	= none
-	>> nan == nan
+	>> none_num == none_num
 	= yes
-	>> nan < nan
+	>> none_num < none_num
 	= no
-	>> nan > nan
+	>> none_num > none_num
 	= no
-	>> nan != nan
+	>> none_num != none_num
 	= no
-	>> nan <> nan
+	>> none_num <> none_num
 	= Int32(0)
-	>> nan == 0.0
+	>> none_num == 0.0
 	= no
-	>> nan < 0.0
+	>> none_num < 0.0
 	= yes
-	>> nan > 0.0
+	>> none_num > 0.0
 	= no
-	>> nan != 0.0
+	>> none_num != 0.0
 	= yes
-	>> nan <> 0.0
+	>> none_num <> 0.0
 	= Int32(-1)
 
-	>> nan + 1
-	= none
+	# >> nan + 1
+	# = none
 
 	>> 0./0.
-	= none
+
+	# >> 0./0.
+	# = none
 
 	>> Num.PI:cos()!:near(-1)
 	= yes

@@ -108,12 +108,13 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         arg_t *type_args = NULL;
         for (arg_ast_t *arg = fn->args; arg; arg = arg->next) {
             type_args = new(arg_t, .name=arg->name, .next=type_args);
-            if (arg->type) {
+            if (arg->type)
                 type_args->type = parse_type_ast(env, arg->type);
-            } else {
-                type_args->default_val = arg->value;
+            else if (arg->value)
                 type_args->type = get_type(env, arg->value);
-            }
+
+            if (arg->value)
+                type_args->default_val = arg->value;
         }
         REVERSE_LIST(type_args);
         return Type(ClosureType, Type(FunctionType, .args=type_args, .ret=ret_t));
