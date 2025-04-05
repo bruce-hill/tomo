@@ -1149,22 +1149,14 @@ type_t *get_type(env_t *env, ast_t *ast)
         }
         code_err(ast, "I couldn't figure out how to do `xor` between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
     }
-    case Compare: {
-        binary_operands_t binop = BINARY_OPERANDS(ast);
-        type_t *lhs_t = get_type(env, binop.lhs);
-        type_t *rhs_t = get_type(env, binop.rhs);
-
-        if (can_promote(rhs_t, lhs_t) || can_promote(lhs_t, rhs_t))
-            return Type(IntType, .bits=TYPE_IBITS32);
-
-        code_err(ast, "I don't know how to compare ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
-    }
+    case Compare:
     case Equals: case NotEquals: case LessThan: case LessThanOrEquals: case GreaterThan: case GreaterThanOrEquals: {
         binary_operands_t binop = BINARY_OPERANDS(ast);
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
+
         if (can_promote(rhs_t, lhs_t) || can_promote(lhs_t, rhs_t))
-            return Type(BoolType);
+            return ast->tag == Compare ? Type(IntType, .bits=TYPE_IBITS32) : Type(BoolType);
 
         code_err(ast, "I don't know how to compare ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
     }

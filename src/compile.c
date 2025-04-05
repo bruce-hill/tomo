@@ -2630,18 +2630,20 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *lhs_t = get_type(env, cmp.lhs);
         type_t *rhs_t = get_type(env, cmp.rhs);
         type_t *operand_t;
-        CORD lhs, rhs;
-        if (can_compile_to_type(env, cmp.rhs, lhs_t)) {
-            lhs = compile(env, cmp.lhs);
-            rhs = compile_to_type(env, cmp.rhs, lhs_t);
+        if (cmp.lhs->tag == Int && is_numeric_type(rhs_t)) {
+            operand_t = rhs_t;
+        } else if (cmp.rhs->tag == Int && is_numeric_type(lhs_t)) {
+            operand_t = lhs_t;
+        } else if (can_compile_to_type(env, cmp.rhs, lhs_t)) {
             operand_t = lhs_t;
         } else if (can_compile_to_type(env, cmp.lhs, rhs_t)) {
-            rhs = compile(env, cmp.rhs);
-            lhs = compile_to_type(env, cmp.lhs, rhs_t);
             operand_t = rhs_t;
         } else {
             code_err(ast, "I can't do comparisons between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
         }
+
+        CORD lhs = compile_to_type(env, cmp.lhs, operand_t);
+        CORD rhs = compile_to_type(env, cmp.rhs, operand_t);
 
         if (ast->tag == Compare)
             return CORD_all("generic_compare(stack(", lhs, "), stack(", rhs, "), ",
