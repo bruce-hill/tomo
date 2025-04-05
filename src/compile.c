@@ -576,6 +576,38 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
         return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
     }
 
+    if (ast->tag == Multiply && is_numeric_type(lhs_t)) {
+        b = get_namespace_binding(env, binop.rhs, "scaled_by");
+        if (b && b->type->tag == FunctionType) {
+            auto fn = Match(b->type, FunctionType);
+            if (type_eq(fn->ret, rhs_t)) {
+                arg_ast_t *args = new(arg_ast_t, .value=binop.rhs, .next=new(arg_ast_t, .value=binop.lhs));
+                if (is_valid_call(env, fn->args, args, true))
+                    return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
+            }
+        }
+    } else if (ast->tag == Multiply && is_numeric_type(rhs_t)) {
+        b = get_namespace_binding(env, binop.lhs, "scaled_by");
+        if (b && b->type->tag == FunctionType) {
+            auto fn = Match(b->type, FunctionType);
+            if (type_eq(fn->ret, lhs_t)) {
+                arg_ast_t *args = new(arg_ast_t, .value=binop.lhs, .next=new(arg_ast_t, .value=binop.rhs));
+                if (is_valid_call(env, fn->args, args, true))
+                    return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
+            }
+        }
+    } else if (ast->tag == Divide && is_numeric_type(rhs_t)) {
+        b = get_namespace_binding(env, binop.lhs, "divided_by");
+        if (b && b->type->tag == FunctionType) {
+            auto fn = Match(b->type, FunctionType);
+            if (type_eq(fn->ret, lhs_t)) {
+                arg_ast_t *args = new(arg_ast_t, .value=binop.lhs, .next=new(arg_ast_t, .value=binop.rhs));
+                if (is_valid_call(env, fn->args, args, true))
+                    return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
+            }
+        }
+    }
+
     if (ast->tag == Or && lhs_t->tag == OptionalType) {
         if (is_incomplete_type(rhs_t)) {
             type_t *complete = most_complete_type(rhs_t, Match(lhs_t, OptionalType)->type);
