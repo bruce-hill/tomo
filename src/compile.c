@@ -606,6 +606,16 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
                     return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
             }
         }
+    } else if ((ast->tag == Divide || ast->tag == Mod || ast->tag == Mod1) && is_numeric_type(rhs_t)) {
+        b = get_namespace_binding(env, binop.lhs, binop_method_name(ast->tag));
+        if (b && b->type->tag == FunctionType) {
+            auto fn = Match(b->type, FunctionType);
+            if (type_eq(fn->ret, lhs_t)) {
+                arg_ast_t *args = new(arg_ast_t, .value=binop.lhs, .next=new(arg_ast_t, .value=binop.rhs));
+                if (is_valid_call(env, fn->args, args, true))
+                    return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
+            }
+        }
     }
 
     if (ast->tag == Or && lhs_t->tag == OptionalType) {

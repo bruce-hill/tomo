@@ -1060,6 +1060,11 @@ type_t *get_type(env_t *env, ast_t *ast)
             return Type(BoolType);
         }
 
+        if (type_eq(lhs_t, rhs_t)) {
+            binding_t *b = get_metamethod_binding(env, ast->tag, binop.lhs, binop.rhs, lhs_t);
+            if (b) return lhs_t;
+        }
+
         if (lhs_t->tag == OptionalType) {
             if (rhs_t->tag == OptionalType) {
                 type_t *result = most_complete_type(lhs_t, rhs_t);
@@ -1096,6 +1101,11 @@ type_t *get_type(env_t *env, ast_t *ast)
             return Type(BoolType);
         }
 
+        if (type_eq(lhs_t, rhs_t)) {
+            binding_t *b = get_metamethod_binding(env, ast->tag, binop.lhs, binop.rhs, lhs_t);
+            if (b) return lhs_t;
+        }
+
         // Bitwise AND:
         if ((is_numeric_type(lhs_t) || lhs_t->tag == BoolType)
             && (is_numeric_type(rhs_t) || rhs_t->tag == BoolType)
@@ -1118,6 +1128,11 @@ type_t *get_type(env_t *env, ast_t *ast)
         if ((lhs_t->tag == OptionalType || lhs_t->tag == BoolType)
             && (rhs_t->tag == OptionalType || rhs_t->tag == BoolType)) {
             return Type(BoolType);
+        }
+
+        if (type_eq(lhs_t, rhs_t)) {
+            binding_t *b = get_metamethod_binding(env, ast->tag, binop.lhs, binop.rhs, lhs_t);
+            if (b) return lhs_t;
         }
 
         // Bitwise XOR:
@@ -1203,8 +1218,8 @@ type_t *get_type(env_t *env, ast_t *ast)
                         return lhs_t;
                 }
             }
-        } else if (ast->tag == Divide && is_numeric_type(rhs_t)) {
-            binding_t *b = get_namespace_binding(env, binop.lhs, "divided_by");
+        } else if ((ast->tag == Divide || ast->tag == Mod || ast->tag == Mod1) && is_numeric_type(rhs_t)) {
+            binding_t *b = get_namespace_binding(env, binop.lhs, binop_method_name(ast->tag));
             if (b && b->type->tag == FunctionType) {
                 auto fn = Match(b->type, FunctionType);
                 if (type_eq(fn->ret, lhs_t)) {
