@@ -1172,7 +1172,10 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
 
-        if (can_promote(rhs_t, lhs_t) || can_promote(lhs_t, rhs_t))
+        if ((binop.lhs->tag == Int && is_numeric_type(rhs_t))
+            || (binop.rhs->tag == Int && is_numeric_type(lhs_t))
+            || can_promote(rhs_t, lhs_t)
+            || can_promote(lhs_t, rhs_t))
             return ast->tag == Compare ? Type(IntType, .bits=TYPE_IBITS32) : Type(BoolType);
 
         code_err(ast, "I don't know how to compare ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));

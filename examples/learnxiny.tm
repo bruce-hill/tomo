@@ -111,7 +111,7 @@ func main():
     # The value returned is optional because none will be returned if the key
     # is not in the table:
     >> table["xxx"]
-    = none : Int
+    = none
 
     # Optional values can be converted to regular values using `!` (which will
     # create a runtime error if the value is null):
