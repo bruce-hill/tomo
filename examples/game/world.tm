@@ -38,7 +38,7 @@ func solve_overlap(a_pos:Vector2, a_size:Vector2, b_pos:Vector2, b_size:Vector2 
     return Vector2(0, 0)
 
 struct World(player:@Player, goal:@Box, boxes:@[@Box], dt_accum=Num32(0.0), won=no):
-    DT := (Num32(1.)/Num32(60.))!
+    DT := (Num32(1.)/Num32(60.))
     STIFFNESS := Num32(0.3)
 
     func update(w:@World, dt:Num32):

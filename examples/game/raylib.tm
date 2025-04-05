@@ -19,7 +19,7 @@ struct Vector2(x,y:Num32; extern):
     func negative(v:Vector2->Vector2; inline):
         return Vector2(-v.x, -v.y)
     func dot(a,b:Vector2->Num32; inline):
-        return ((a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y))!
+        return ((a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y))
     func cross(a,b:Vector2->Num32; inline):
         return a.x*b.y - a.y*b.x
     func scaled_by(v:Vector2, k:Num32->Vector2; inline):
@@ -27,7 +27,7 @@ struct Vector2(x,y:Num32; extern):
     func divided_by(v:Vector2, divisor:Num32->Vector2; inline):
         return Vector2(v.x/divisor, v.y/divisor)
     func length(v:Vector2->Num32; inline):
-        return (v.x*v.x + v.y*v.y)!:sqrt()
+        return (v.x*v.x + v.y*v.y):sqrt()
     func dist(a,b:Vector2->Num32; inline):
         return a:minus(b):length()
     func angle(v:Vector2->Num32; inline):

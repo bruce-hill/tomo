@@ -1516,7 +1516,9 @@ Table_t *get_arg_bindings(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bo
         for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
             if (!streq(call_arg->name, spec_arg->name)) continue;
             type_t *spec_type = get_arg_type(env, spec_arg);
-            if (!(type_eq(call_type, spec_type) || (promotion_allowed && can_promote(call_type, spec_type))
+            type_t *complete_call_type = is_incomplete_type(call_type) ? most_complete_type(call_type, spec_type) : call_type;
+            if (!complete_call_type) return NULL;
+            if (!(type_eq(complete_call_type, spec_type) || (promotion_allowed && can_promote(complete_call_type, spec_type))
                   || (promotion_allowed && call_arg->value->tag == Int && is_numeric_type(spec_type))
                   || (promotion_allowed && call_arg->value->tag == Num && spec_type->tag == NumType)))
                 return NULL;
@@ -1536,7 +1538,9 @@ Table_t *get_arg_bindings(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bo
         for (; unused_args; unused_args = unused_args->next) {
             if (unused_args->name) continue; // Already handled the keyword args
             type_t *call_type = get_arg_ast_type(env, unused_args);
-            if (!(type_eq(call_type, spec_type) || (promotion_allowed && can_promote(call_type, spec_type))
+            type_t *complete_call_type = is_incomplete_type(call_type) ? most_complete_type(call_type, spec_type) : call_type;
+            if (!complete_call_type) return NULL;
+            if (!(type_eq(complete_call_type, spec_type) || (promotion_allowed && can_promote(complete_call_type, spec_type))
                   || (promotion_allowed && unused_args->value->tag == Int && is_numeric_type(spec_type))
                   || (promotion_allowed && unused_args->value->tag == Num && spec_type->tag == NumType)))
                 return NULL; // Positional arg trying to fill in 
