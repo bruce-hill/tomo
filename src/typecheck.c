@@ -1482,6 +1482,7 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
     case Unknown: code_err(ast, "I can't figure out the type of: ", ast_to_xml_str(ast));
     case Deserialize: return parse_type_ast(env, Match(ast, Deserialize)->type);
+    case ExplicitlyTyped: return Match(ast, ExplicitlyTyped)->type;
     }
 #ifdef __GNUC__
 #pragma GCC diagnostic pop

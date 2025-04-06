@@ -4,6 +4,7 @@
 #include <stdarg.h>
 
 #include "ast.h"
+#include "types.h"
 #include "stdlib/datatypes.h"
 #include "stdlib/integers.h"
 #include "stdlib/tables.h"
@@ -193,6 +194,7 @@ CORD ast_to_xml(ast_t *ast)
     T(InlineCCode, "<InlineCode>%r</InlineCode>", xml_escape(data.code))
     T(Deserialize, "<Deserialize><type>%r</type>%r</Deserialize>", type_ast_to_xml(data.type), ast_to_xml(data.value))
     T(Extend, "<Extend name=\"%s\">%r</Extend>", data.name, ast_to_xml(data.body))
+    T(ExplicitlyTyped, "<ExplicitlyTyped type=\"%r\">%r</ExplicitlyTyped>", type_to_cord(data.type), ast_to_xml(data.ast))
     default: return "???";
 #undef T
     }

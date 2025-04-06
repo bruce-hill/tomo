@@ -450,6 +450,10 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Deserialize)->value);
         break;
     }
+    case ExplicitlyTyped: {
+        add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, ExplicitlyTyped)->ast);
+        break;
+    }
     case Use: case FunctionDef: case ConvertDef: case StructDef: case EnumDef: case LangDef: case Extend: {
         errx(1, "Definitions should not be reachable in a closure.");
     }
@@ -2014,6 +2018,32 @@ CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
 
     type_t *actual = get_type(env, ast);
 
+    // Edge case: there are some situations where a method call needs to have
+    // the `self` value get compiled to a specific type that can't be fully
+    // inferred from the expression itself. We can infer what the specific type
+    // should be from what we know the specific type of the return value is,
+    // but it requires a bit of special logic.
+    // For example:
+    //    x : [Int?] = [none]:sorted()
+    // Here, we know that `[none]` is `[Int?]`, but we need to thread that
+    // information through the compiler using an `ExplicitlyTyped` node.
+    if (ast->tag == MethodCall) {
+        auto methodcall = Match(ast, MethodCall);
+        type_t *self_type = get_type(env, methodcall->self);
+        // Currently, this is only implemented for cases where you have the return type
+        // and the self type equal to each other, because that's the main case I care
+        // about with array and set methods (e.g. `Array.sorted()`)
+        if (is_incomplete_type(self_type) && type_eq(self_type, actual)) {
+            type_t *completed_self = most_complete_type(self_type, t);
+            if (completed_self) {
+                ast_t *explicit_self = WrapAST(methodcall->self, ExplicitlyTyped, .ast=methodcall->self, .type=completed_self);
+                ast_t *new_methodcall = WrapAST(ast, MethodCall, .self=explicit_self,
+                                                .name=methodcall->name, .args=methodcall->args);
+                return compile_to_type(env, new_methodcall, t);
+            }
+        }
+    }
+
     // Promote values to views-of-values if needed:
     if (t->tag == PointerType && Match(t, PointerType)->is_stack && actual->tag != PointerType)
         return CORD_all("stack(", compile_to_type(env, ast, Match(t, PointerType)->pointed), ")");
@@ -3315,6 +3345,9 @@ CORD compile(env_t *env, ast_t *ast)
         return CORD_all("({ ", compile_declaration(t, "deserialized"), ";\n"
                         "generic_deserialize(", compile(env, value), ", &deserialized, ", compile_type_info(t), ");\n"
                         "deserialized; })");
+    }
+    case ExplicitlyTyped: {
+        return compile_to_type(env, Match(ast, ExplicitlyTyped)->ast, get_type(env, ast));
     }
     case When: {
         auto original = Match(ast, When);

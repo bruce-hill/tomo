@@ -150,6 +150,7 @@ typedef enum {
     InlineCCode,
     Deserialize,
     Extend,
+    ExplicitlyTyped,
 } ast_e;
 
 struct ast_s {
@@ -338,6 +339,10 @@ struct ast_s {
             const char *name;
             ast_t *body;
         } Extend;
+        struct {
+            ast_t *ast;
+            struct type_s *type;
+        } ExplicitlyTyped;
     } __data;
 };
 
