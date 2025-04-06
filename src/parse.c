@@ -2032,6 +2032,9 @@ PARSER(parse_enum_def) {
 
     REVERSE_LIST(tags);
 
+    if (tags == NULL)
+        parser_err(ctx, start, pos, "This enum does not have any tags!");
+
     ast_t *namespace = NULL;
     const char *ns_pos = pos;
     whitespace(&ns_pos);
