@@ -1,5 +1,5 @@
 
-func main():
+func main()
     >> inline C:Int32 { int x = 1 + 2; x }
     = Int32(3)
 

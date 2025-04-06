@@ -8,7 +8,7 @@ struct Password(text:Text; secret)
 struct CorecursiveA(other:@CorecursiveB?)
 struct CorecursiveB(other:@CorecursiveA?=none)
 
-func test_literals():
+func test_literals()
 	>> Single(123)
 	= Single(123)
 	>> x := Pair(10, 20)
@@ -20,7 +20,7 @@ func test_literals():
 	>> x == Pair(-1, -2)
 	= no
 
-func test_metamethods():
+func test_metamethods()
 	>> x := Pair(10, 20)
 	>> y := Pair(100, 200)
 	>> x == y
@@ -38,7 +38,7 @@ func test_metamethods():
 	>> set.has(y)
 	= no
 
-func test_mixed():
+func test_mixed()
 	>> x := Mixed(10, "Hello")
 	>> y := Mixed(99, "Hello")
 	>> x == y
@@ -55,14 +55,14 @@ func test_mixed():
 	>> set.has(y)
 	= no
 
-func test_text():
+func test_text()
 	>> b := @CorecursiveB()
 	>> a := @CorecursiveA(b)
 	>> b.other = a
 	>> a
 	# = @CorecursiveA(@CorecursiveB(@~1))
 
-func main():
+func main()
 	test_literals()
 	test_metamethods()
 	test_mixed()

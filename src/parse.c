@@ -1791,7 +1791,6 @@ PARSER(parse_extended_expr) {
 PARSER(parse_block) {
     const char *start = pos;
     spaces(&pos);
-    if (!match(&pos, ":")) return NULL;
 
     ast_list_t *statements = NULL;
     if (!indent(ctx, &pos)) {
@@ -1968,14 +1967,12 @@ PARSER(parse_struct_def) {
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this struct");
 
     ast_t *namespace = NULL;
-    if (match(&pos, ":")) {
-        const char *ns_pos = pos;
-        whitespace(&ns_pos);
-        int64_t ns_indent = get_indent(ctx, ns_pos);
-        if (ns_indent > starting_indent) {
-            pos = ns_pos;
-            namespace = optional(ctx, &pos, parse_namespace);
-        }
+    const char *ns_pos = pos;
+    whitespace(&ns_pos);
+    int64_t ns_indent = get_indent(ctx, ns_pos);
+    if (ns_indent > starting_indent) {
+        pos = ns_pos;
+        namespace = optional(ctx, &pos, parse_namespace);
     }
     if (!namespace)
         namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
@@ -2031,14 +2028,12 @@ PARSER(parse_enum_def) {
     REVERSE_LIST(tags);
 
     ast_t *namespace = NULL;
-    if (match(&pos, ":")) {
-        const char *ns_pos = pos;
-        whitespace(&ns_pos);
-        int64_t ns_indent = get_indent(ctx, ns_pos);
-        if (ns_indent > starting_indent) {
-            pos = ns_pos;
-            namespace = optional(ctx, &pos, parse_namespace);
-        }
+    const char *ns_pos = pos;
+    whitespace(&ns_pos);
+    int64_t ns_indent = get_indent(ctx, ns_pos);
+    if (ns_indent > starting_indent) {
+        pos = ns_pos;
+        namespace = optional(ctx, &pos, parse_namespace);
     }
     if (!namespace)
         namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
@@ -2058,14 +2053,12 @@ PARSER(parse_lang_def) {
     spaces(&pos);
 
     ast_t *namespace = NULL;
-    if (match(&pos, ":")) {
-        const char *ns_pos = pos;
-        whitespace(&ns_pos);
-        int64_t ns_indent = get_indent(ctx, ns_pos);
-        if (ns_indent > starting_indent) {
-            pos = ns_pos;
-            namespace = optional(ctx, &pos, parse_namespace);
-        }
+    const char *ns_pos = pos;
+    whitespace(&ns_pos);
+    int64_t ns_indent = get_indent(ctx, ns_pos);
+    if (ns_indent > starting_indent) {
+        pos = ns_pos;
+        namespace = optional(ctx, &pos, parse_namespace);
     }
     if (!namespace)
         namespace = NewAST(ctx->file, pos, pos, Block, .statements=NULL);
@@ -2084,14 +2077,12 @@ PARSER(parse_extend) {
         parser_err(ctx, start, pos, "I expected a name for this lang");
 
     ast_t *body = NULL;
-    if (match(&pos, ":")) {
-        const char *ns_pos = pos;
-        whitespace(&ns_pos);
-        int64_t ns_indent = get_indent(ctx, ns_pos);
-        if (ns_indent > starting_indent) {
-            pos = ns_pos;
-            body = optional(ctx, &pos, parse_namespace);
-        }
+    const char *ns_pos = pos;
+    whitespace(&ns_pos);
+    int64_t ns_indent = get_indent(ctx, ns_pos);
+    if (ns_indent > starting_indent) {
+        pos = ns_pos;
+        body = optional(ctx, &pos, parse_namespace);
     }
     if (!body)
         body = NewAST(ctx->file, pos, pos, Block, .statements=NULL);

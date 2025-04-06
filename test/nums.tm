@@ -1,4 +1,4 @@
-func main():
+func main()
 	>> n := 1.5
 	= 1.5
 

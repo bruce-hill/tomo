@@ -1,9 +1,9 @@
-func main():
-	do:
+func main()
+	do
 		>> nums : [Num32] = []
 		= []
 
-	do:
+	do
 		>> arr := [10, 20, 30]
 		= [10, 20, 30]
 
@@ -16,18 +16,18 @@ func main():
 		= 3
 
 		sum := 0
-		for x in arr:
+		for x in arr
 			sum += x
 		>> sum
 		= 60
 
 		str := ""
-		for i,x in arr:
+		for i,x in arr
 			str ++= "($i,$x)"
 		>> str
 		= "(1,10)(2,20)(3,30)"
 
-	do:
+	do
 		>> arr := [10, 20] ++ [30, 40]
 		= [10, 20, 30, 40]
 
@@ -35,7 +35,7 @@ func main():
 		>> arr
 		= [10, 20, 30, 40, 50, 60]
 
-	do:
+	do
 		>> arr := [10, 20]
 		>> copy := arr
 		>> arr ++= [30]
@@ -44,7 +44,7 @@ func main():
 		>> copy
 		= [10, 20]
 
-	do:
+	do
 		>> [10*i for i in 5]
 		= [10, 20, 30, 40, 50]
 
@@ -57,7 +57,7 @@ func main():
 	>> [x for x in y if x > 1 for y in [3, 4, 5] if y < 5]
 	= [2, 3, 2, 3, 4]
 
-	do:
+	do
 		>> arr := @[10, 20]
 		>> copy := arr[]
 		>> arr.insert(30)
@@ -70,7 +70,7 @@ func main():
 		>> arr
 		= @[999, 20, 30]
 
-	do:
+	do
 		>> arr := &[10, 20, 30]
 		>> reversed := arr.reversed()
 		= [30, 20, 10]
@@ -79,7 +79,7 @@ func main():
 		>> reversed
 		= [30, 20, 10]
 
-	do:
+	do
 		>> nums := @[10, -20, 30]
 		# Sorted function doesn't mutate original:
 		>> nums.sorted()
@@ -91,34 +91,34 @@ func main():
 		>> nums
 		= @[-20, 10, 30]
 		# Custom sort functions:
-		>> nums.sort(func(x,y:&Int): x.abs() <> y.abs())
+		>> nums.sort(func(x,y:&Int) x.abs() <> y.abs())
 		>> nums
 		= @[10, -20, 30]
-		>> nums.sort(func(x,y:&Int): y[] <> x[])
+		>> nums.sort(func(x,y:&Int) y[] <> x[])
 		>> nums
 		= @[30, 10, -20]
 
 	>> ["A", "B", "C"].sample(10, [1.0, 0.5, 0.0])
 
-	do:
+	do
 		>> heap := @[(i * 1337) mod 37 for i in 10]
 		>> heap.heapify()
 		>> heap
 		heap_order : @[Int] = @[]
-		repeat:
+		repeat
 			heap_order.insert(heap.heap_pop() or stop)
 		>> heap_order[] == heap_order.sorted()
 		= yes
 		heap_order[] = []
-		for i in 10:
+		for i in 10
 			heap.heap_push((i*13337) mod 37)
 		>> heap
-		repeat:
+		repeat
 			heap_order.insert(heap.heap_pop() or stop)
 		>> heap_order[] == heap_order.sorted()
 		= yes
 
-	do:
+	do
 		>> [i*10 for i in 5].from(3)
 		= [30, 40, 50]
 		>> [i*10 for i in 5].to(3)
@@ -146,17 +146,17 @@ func main():
 
 		# Test iterating over array.from() and array.to()
 		xs := ["A", "B", "C", "D"]
-		for i,x in xs.to(-2):
-			for y in xs.from(i+1):
+		for i,x in xs.to(-2)
+			for y in xs.from(i+1)
 				say("$(x)$(y)")
 
-	do:
+	do
 		>> nums := @[-7, -4, -1, 2, 5]
 		>> nums.sort()
 		>> [nums.binary_search(i) for i in nums[]]
 		= [1, 2, 3, 4, 5]
-		>> nums.sort(func(a,b:&Int): a.abs() <> b.abs())
-		>> [nums.binary_search(i, func(a,b:&Int): a.abs() <> b.abs()) for i in nums[]]
+		>> nums.sort(func(a,b:&Int) a.abs() <> b.abs())
+		>> [nums.binary_search(i, func(a,b:&Int) a.abs() <> b.abs()) for i in nums[]]
 		= [1, 2, 3, 4, 5]
 
 	>> ["a", "b", "c"].find("b")
@@ -164,12 +164,12 @@ func main():
 	>> ["a", "b", "c"].find("XXX")
 	= none
 
-	>> [10, 20].first(func(i:&Int): i.is_prime())
+	>> [10, 20].first(func(i:&Int) i.is_prime())
 	= none
-	>> [4, 5, 6].first(func(i:&Int): i.is_prime())
+	>> [4, 5, 6].first(func(i:&Int) i.is_prime())
 	= 2?
 
-	do:
+	do
 		>> nums := &[10, 20, 30, 40, 50]
 		>> nums.pop()
 		= 50?

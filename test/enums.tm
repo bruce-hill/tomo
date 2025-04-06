@@ -1,21 +1,21 @@
 enum Foo(Zero, One(x:Int), Two(x:Int, y:Int), Three(x:Int, y:Text, z:Bool), Four(x,y,z,w:Int), Last(t:Text))
 
-func choose_text(f:Foo->Text):
+func choose_text(f:Foo->Text)
 	>> f
-	when f is Zero:
+	when f is Zero
 		return "Zero"
-	is One(one):
+	is One(one)
 		return "One: $one"
-	is Two(x, y):
+	is Two(x, y)
 		return "Two: x=$x, y=$y"
-	is Three(three):
+	is Three(three)
 		return "Three: $three"
-	is Four:
+	is Four
 		return "Four"
-	else:
+	else
 		return "else: $f"
 
-func main():
+func main()
 	>> Foo.Zero
 	= Foo.Zero
 	>> Foo.One(123)
@@ -63,24 +63,24 @@ func main():
 
 	i := 1
 	cases := [Foo.One(1), Foo.One(2), Foo.Zero]
-	while when cases[i] is One(x):
+	while when cases[i] is One(x)
 		>> x
 		i += 1
 
 	>> [
 		(
-			when x is One(y), Two(y,_):
+			when x is One(y), Two(y,_)
 				"Small $y"
-			is Zero:
+			is Zero
 				"Zero"
-			else:
+			else
 				"Other"
 		) for x in [Foo.Zero, Foo.One(1), Foo.Two(2,2), Foo.Three(3,"",no)]
 	]
 	= ["Zero", "Small 1", "Small 2", "Other"]
 	
-	>> expr := when cases[1] is One(y):
+	>> expr := when cases[1] is One(y)
 		y + 1
-	else:
+	else
 		-1
 	= 2

@@ -1,4 +1,4 @@
-func main():
+func main()
 	>> 2 + 3
 	= 5
 
@@ -37,7 +37,7 @@ func main():
 	= 1
 
 	nums := ""
-	for x in 5:
+	for x in 5
 		nums ++= "$x,"
 	>> nums
 	= "1,2,3,4,5,"
@@ -66,7 +66,7 @@ func main():
 	>> Int(2.1, truncate=yes)
 	= 2
 
-	do:
+	do
 		>> small_int := 1
 		= 1
 		>> max_small_int := 536870911
@@ -84,11 +84,11 @@ func main():
 		>> super_big + 1
 		= 10000000000000000000000
 
-	do:
+	do
 		interesting_numerators := [-999999, -100, -23, -1, 0, 1, 23, 100, 999999]
 		interesting_denominators := [-99, -20, -17, -1, 1, 17, 20, 99]
-		for n in interesting_numerators:
-			for d in interesting_denominators:
+		for n in interesting_numerators
+			for d in interesting_denominators
 				>> (n/d)*d + (n mod d) == n
 				= yes
 

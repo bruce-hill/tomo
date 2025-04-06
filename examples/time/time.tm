@@ -5,8 +5,8 @@ enum Weekday(Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday)
 
 struct TimeInfo(year,month,day,hour,minute,second,nanosecond:Int, weekday:Weekday, day_of_year:Int, timezone:Text)
 
-struct Time(tv_sec:Int64, tv_usec:Int64; extern):
-    func now(->Time):
+struct Time(tv_sec:Int64, tv_usec:Int64; extern)
+    func now(->Time)
         return inline C : Time {
             struct timespec ts;
             if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
@@ -14,7 +14,7 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern):
             (Time){.tv_sec=ts.tv_sec, .tv_usec=ts.tv_nsec/1000};
         }
 
-    func local_timezone(->Text):
+    func local_timezone(->Text)
         inline C {
             if (_local_timezone.length < 0) {
                 static char buf[PATH_MAX];
@@ -31,14 +31,14 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern):
         }
         return inline C : Text { _local_timezone; }
 
-    func set_local_timezone(timezone:Text):
+    func set_local_timezone(timezone:Text)
         inline C {
             setenv("TZ", Text$as_c_string(_$timezone), 1);
             _local_timezone = _$timezone;
             tzset();
         }
 
-    func format(t:Time, format="%c", timezone=Time.local_timezone() -> Text):
+    func format(t:Time, format="%c", timezone=Time.local_timezone() -> Text)
         return inline C : Text {
             struct tm result;
             time_t time = _$t.tv_sec;
@@ -49,7 +49,7 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern):
             Text$from_strn(buf, len);
         }
 
-    func new(year,month,day:Int, hour=0, minute=0, second=0.0, timezone=Time.local_timezone() -> Time):
+    func new(year,month,day:Int, hour=0, minute=0, second=0.0, timezone=Time.local_timezone() -> Time)
         return inline C : Time{
             struct tm info = {
                 .tm_min=Int32$from_int(_$minute, false),
@@ -65,24 +65,24 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern):
             (Time){.tv_sec=t + (time_t)_$second, .tv_usec=(suseconds_t)(fmod(_$second, 1.0) * 1e9)};
         }
 
-    func unix_timestamp(t:Time -> Int64):
+    func unix_timestamp(t:Time -> Int64)
         return inline C : Int64 { (int64_t)_$t.tv_sec }
 
-    func from_unix_timestamp(timestamp:Int64 -> Time):
+    func from_unix_timestamp(timestamp:Int64 -> Time)
         return inline C : Time { (Time){.tv_sec=_$timestamp}; }
 
-    func seconds_till(t:Time, target:Time -> Num):
+    func seconds_till(t:Time, target:Time -> Num)
         seconds := Num(target.tv_sec - t.tv_sec)
         seconds += 1e-9*Num(target.tv_usec - t.tv_usec)
         return seconds
 
-    func minutes_till(t:Time, target:Time -> Num):
+    func minutes_till(t:Time, target:Time -> Num)
         return t.seconds_till(target)/60.
 
-    func hours_till(t:Time, target:Time -> Num):
+    func hours_till(t:Time, target:Time -> Num)
         return t.seconds_till(target)/3600.
 
-    func relative(t:Time, relative_to=Time.now(), timezone=Time.local_timezone() -> Text):
+    func relative(t:Time, relative_to=Time.now(), timezone=Time.local_timezone() -> Text)
         inline C {
             struct tm info = {};
             struct tm relative_info = {};
@@ -114,21 +114,21 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern):
         }
         fail("Unreachable")
 
-    func time(t:Time, seconds=no, am_pm=yes, timezone=Time.local_timezone() -> Text):
-        time := if seconds and am_pm:
+    func time(t:Time, seconds=no, am_pm=yes, timezone=Time.local_timezone() -> Text)
+        time := if seconds and am_pm
             t.format("%l:%M:%S%P")
-        else if seconds and not am_pm:
+        else if seconds and not am_pm
             t.format("%T")
-        else if not seconds and am_pm:
+        else if not seconds and am_pm
             t.format("%l:%M%P")
-        else:
+        else
             t.format("%H:%M")
         return time.trim()
 
-    func date(t:Time, timezone=Time.local_timezone() -> Text):
+    func date(t:Time, timezone=Time.local_timezone() -> Text)
         return t.format("%F")
 
-    func info(t:Time, timezone=Time.local_timezone() -> TimeInfo):
+    func info(t:Time, timezone=Time.local_timezone() -> TimeInfo)
         return inline C : TimeInfo {
             struct tm info = {};
             WITH_TIMEZONE(_$timezone, localtime_r(&_$t.tv_sec, &info));
@@ -146,7 +146,7 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern):
             };
         }
 
-    func after(t:Time, seconds=0.0, minutes=0.0, hours=0.0, days=0, weeks=0, months=0, years=0, timezone=Time.local_timezone() -> Time):
+    func after(t:Time, seconds=0.0, minutes=0.0, hours=0.0, days=0, weeks=0, months=0, years=0, timezone=Time.local_timezone() -> Time)
         return inline C : Time {
             double offset = _$seconds + 60.*_$minutes + 3600.*_$hours ;
             _$t.tv_sec += (time_t)offset;
@@ -165,7 +165,7 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern):
             };
         }
 
-    func parse(text:Text, format="%Y-%m-%dT%H:%M:%S%z", timezone=Time.local_timezone() -> Time?):
+    func parse(text:Text, format="%Y-%m-%dT%H:%M:%S%z", timezone=Time.local_timezone() -> Time?)
         return inline C : Time? {
             struct tm info = {.tm_isdst=-1};
             const char *str = Text$as_c_string(_$text);
@@ -184,7 +184,7 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern):
             (_$time$$OptionalTime$$type){.value={.tv_sec=t + offset - info.tm_gmtoff}};
         }
 
-func _run_tests():
+func _run_tests()
     >> Time.now().format()
     >> Time.set_local_timezone("Europe/Paris")
     >> Time.now().format()
@@ -206,5 +206,5 @@ func _run_tests():
     # >> Time.parse("2023-11-05 01:01", "%Y-%m-%d %H:%M")
     # >> Time.parse("2023-11-05 01:01", "%Y-%m-%d %H:%M", timezone="Europe/Paris")
 
-func main():
+func main()
     _run_tests()

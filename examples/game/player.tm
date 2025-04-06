@@ -2,14 +2,14 @@
 use ./world.tm
 use ./raylib.tm
 
-struct Player(pos,prev_pos:Vector2):
+struct Player(pos,prev_pos:Vector2)
     WALK_SPEED := Num32(500.)
     ACCEL := Num32(0.3)
     FRICTION := Num32(0.99)
     SIZE := Vector2(30, 30)
     COLOR := Color(0x60, 0x60, 0xbF)
 
-    func update(p:@Player):
+    func update(p:@Player)
         target_x := inline C:Num32 {
             (Num32_t)((IsKeyDown(KEY_A) ? -1 : 0) + (IsKeyDown(KEY_D) ? 1 : 0))
         }
@@ -24,5 +24,5 @@ struct Player(pos,prev_pos:Vector2):
 
         p.prev_pos, p.pos = p.pos, p.pos + World.DT*vel
 
-    func draw(p:Player):
+    func draw(p:Player)
         DrawRectangleV(p.pos, Player.SIZE, Player.COLOR)

@@ -9,7 +9,7 @@ _HELP := "
     $_USAGE
 "
 
-func parse_ini(path:Path -> {Text={Text=Text}}):
+func parse_ini(path:Path -> {Text={Text=Text}})
     text := path.read() or exit("Could not read INI file: $\[31;1]$(path)$\[]")
     sections : @{Text=@{Text=Text}} = @{}
     current_section : @{Text=Text} = @{}
@@ -17,30 +17,30 @@ func parse_ini(path:Path -> {Text={Text=Text}}):
     # Line wraps:
     text = text.replace_pattern($Pat/\{1 nl}{0+space}/, " ")
 
-    for line in text.lines():
+    for line in text.lines()
         line = line.trim()
         skip if line.starts_with(";") or line.starts_with("#")
-        if line.matches_pattern($Pat/[?]/):
+        if line.matches_pattern($Pat/[?]/)
             section_name := line.replace($Pat/[?]/, "\1").trim().lower()
             current_section = @{}
             sections[section_name] = current_section
-        else if line.matches_pattern($Pat/{..}={..}/):
+        else if line.matches_pattern($Pat/{..}={..}/)
             key := line.replace_pattern($Pat/{..}={..}/, "\1").trim().lower()
             value := line.replace_pattern($Pat/{..}={..}/, "\2").trim()
             current_section[key] = value
 
     return {k=v[] for k,v in sections[]}
 
-func main(path:Path, key:Text?):
+func main(path:Path, key:Text?)
     keys := (key or "").split($|/|)
-    if keys.length > 2:
+    if keys.length > 2
         exit("
             Too many arguments! 
             $_USAGE
         ")
 
     data := parse_ini(path)
-    if keys.length < 1 or keys[1] == '*':
+    if keys.length < 1 or keys[1] == '*'
         say("$data")
         return
 
@@ -49,7 +49,7 @@ func main(path:Path, key:Text?):
         Invalid section name: $\[31;1]$section$\[]
         Valid names: $\[1]$(", ".join([k.quoted() for k in data.keys]))$\[]
     ")
-    if keys.length < 2 or keys[2] == '*':
+    if keys.length < 2 or keys[2] == '*'
         say("$section_data")
         return
 

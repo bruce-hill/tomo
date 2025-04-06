@@ -1,9 +1,9 @@
 
-struct Foo(x:Int, y:Int):
-	func len(f:Foo->Num):
+struct Foo(x:Int, y:Int)
+	func len(f:Foo->Num)
 		return Num.sqrt(Num(f.x*f.x + f.y*f.y))!
 
-func main():
+func main()
 	>> 3 _min_ 5
 	= 3
 	>> 5 _min_ 3

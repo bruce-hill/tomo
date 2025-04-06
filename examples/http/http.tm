@@ -7,9 +7,9 @@ struct HTTPResponse(code:Int, body:Text)
 
 enum _Method(GET, POST, PUT, PATCH, DELETE)
 
-func _send(method:_Method, url:Text, data:Text?, headers:[Text]=[] -> HTTPResponse):
+func _send(method:_Method, url:Text, data:Text?, headers:[Text]=[] -> HTTPResponse)
     chunks : @[Text] = @[]
-    save_chunk := func(chunk:CString, size:Int64, n:Int64):
+    save_chunk := func(chunk:CString, size:Int64, n:Int64)
         chunks.insert(inline C:Text {
             Text$format("%.*s", _$size*_$n, _$chunk)
         })
@@ -23,45 +23,45 @@ func _send(method:_Method, url:Text, data:Text?, headers:[Text]=[] -> HTTPRespon
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, _$save_chunk.userdata);
     }
 
-    defer:
+    defer
         inline C {
             if (chunk)
                 curl_slist_free_all(chunk);
             curl_easy_cleanup(curl);
         }
 
-    when method is POST:
+    when method is POST
         inline C {
             curl_easy_setopt(curl, CURLOPT_POST, 1L);
         }
-        if posting := data:
+        if posting := data
             inline C {
                 curl_easy_setopt(curl, CURLOPT_POSTFIELDS, Text$as_c_string(_$posting));
             }
-    is PUT:
+    is PUT
         inline C {
             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
         }
-        if putting := data:
+        if putting := data
             inline C {
                 curl_easy_setopt(curl, CURLOPT_POSTFIELDS, Text$as_c_string(_$putting));
             }
-    is PATCH:
+    is PATCH
         inline C {
             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
         }
-        if patching := data:
+        if patching := data
             inline C {
                 curl_easy_setopt(curl, CURLOPT_POSTFIELDS, Text$as_c_string(_$patching));
             }
-    is DELETE:
+    is DELETE
         inline C {
             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
         }
-    else:
+    else
         pass
 
-    for header in headers:
+    for header in headers
         inline C {
             chunk = curl_slist_append(chunk, Text$as_c_string(_$header));
         }
@@ -81,22 +81,22 @@ func _send(method:_Method, url:Text, data:Text?, headers:[Text]=[] -> HTTPRespon
     }
     return HTTPResponse(Int(code), "".join(chunks))
 
-func get(url:Text, headers:[Text]=[] -> HTTPResponse):
+func get(url:Text, headers:[Text]=[] -> HTTPResponse)
     return _send(GET, url, none, headers)
 
-func post(url:Text, data="", headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):
+func post(url:Text, data="", headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse)
     return _send(POST, url, data, headers)
 
-func put(url:Text, data="", headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):
+func put(url:Text, data="", headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse)
     return _send(PUT, url, data, headers)
 
-func patch(url:Text, data="", headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):
+func patch(url:Text, data="", headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse)
     return _send(PATCH, url, data, headers)
 
-func delete(url:Text, data:Text?=none, headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse):
+func delete(url:Text, data:Text?=none, headers=["Content-Type: application/json", "Accept: application/json"] -> HTTPResponse)
     return _send(DELETE, url, data, headers)
 
-func main():
+func main()
     say("GET:")
     say(get("https://httpbin.org/get").body)
     say("Waiting 1sec...")

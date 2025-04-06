@@ -1,7 +1,7 @@
 #!/bin/env tomo
 use random
 
-func main():
+func main()
     say("
         <!DOCTYPE HTML>
         <html>

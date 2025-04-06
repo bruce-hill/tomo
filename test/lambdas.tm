@@ -1,18 +1,18 @@
-func make_adder(x:Int -> func(y:Int->Int)):
-	return func(y:Int): x + y
+func make_adder(x:Int -> func(y:Int->Int))
+	return func(y:Int) x + y
 
-func suffix_fn(fn:func(t:Text->Text), suffix:Text -> func(t:Text->Text)):
-	return func(t:Text): fn(t)++suffix
+func suffix_fn(fn:func(t:Text->Text), suffix:Text -> func(t:Text->Text))
+	return func(t:Text) fn(t)++suffix
 
-func mul_func(n:Int, fn:func(x:Int->Int) -> func(x:Int->Int)):
-	return func(x:Int): n*fn(x)
+func mul_func(n:Int, fn:func(x:Int->Int) -> func(x:Int->Int))
+	return func(x:Int) n*fn(x)
 
-func main():
-	>> add_one := func(x:Int): x + 1
+func main()
+	>> add_one := func(x:Int) x + 1
 	>> add_one(10)
 	= 11
 
-	>> shout := func(msg:Text): say("$(msg.upper())!")
+	>> shout := func(msg:Text) say("$(msg.upper())!")
 	>> shout("hello")
 
 	>> asdf := add_one
@@ -23,7 +23,7 @@ func main():
 	>> add_100(5)
 	= 105
 
-	>> shout2 := suffix_fn(func(t:Text): t.upper(), "!")
+	>> shout2 := suffix_fn(func(t:Text) t.upper(), "!")
 	>> shout2("hello")
 	= "HELLO!"
 
@@ -33,10 +33,10 @@ func main():
 
 	# Test nested lambdas:
     outer := "Hello"
-    fn := func():
-        return func():
-            return func():
-                defer: say("$outer")
+    fn := func()
+        return func()
+            return func()
+                defer say("$outer")
                 return outer
     >> fn()()()
 	= "Hello"

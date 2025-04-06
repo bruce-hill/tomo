@@ -2,7 +2,7 @@
 use ./raylib.tm
 use ./world.tm
 
-func main(map=(./map.txt)):
+func main(map=(./map.txt))
     InitWindow(1600, 900, CString("raylib [core] example - 2d camera"))
 
     map_contents := map.read() or exit("Could not find the game map: $map")
@@ -16,7 +16,7 @@ func main(map=(./map.txt)):
 
     SetTargetFPS(60)
 
-    while not WindowShouldClose():
+    while not WindowShouldClose()
         dt := GetFrameTime()
         world.update(dt)
 

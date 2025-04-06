@@ -1,4 +1,4 @@
-func main():
+func main()
 	str := "Hello Amélie!"
 	say("Testing strings like $str")
 
@@ -236,7 +236,7 @@ func main():
 	>> ("hello" ++ " " ++ "Amélie").reversed()
 	= "eilémA olleh"
 
-	do:
+	do
 		say("Testing concatenation-stability:")
 		ab := Text.from_codepoint_names(["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"])!
 		>> ab.codepoint_names()
@@ -254,7 +254,7 @@ func main():
 		= 1
 
 
-	do:
+	do
 		concat := "e" ++ Text.from_codepoints([Int32(0x300)])
 		>> concat.length
 		= 1

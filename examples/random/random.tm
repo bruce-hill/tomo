@@ -3,8 +3,8 @@
 use ./sysrandom.h
 use ./chacha.h
 
-struct chacha_ctx(j0,j1,j2,j3,j4,j5,j6,j7,j8,j9,j10,j11,j12,j13,j14,j15:Int32; extern, secret):
-    func from_seed(seed:[Byte]=[] -> chacha_ctx):
+struct chacha_ctx(j0,j1,j2,j3,j4,j5,j6,j7,j8,j9,j10,j11,j12,j13,j14,j15:Int32; extern, secret)
+    func from_seed(seed:[Byte]=[] -> chacha_ctx)
         return inline C : chacha_ctx {
             chacha_ctx ctx;
             uint8_t seed_bytes[KEYSZ + IVSZ] = {};
@@ -17,19 +17,19 @@ struct chacha_ctx(j0,j1,j2,j3,j4,j5,j6,j7,j8,j9,j10,j11,j12,j13,j14,j15:Int32; e
 
 random := RandomNumberGenerator.new()
 
-func _os_random_bytes(count:Int64 -> [Byte]):
+func _os_random_bytes(count:Int64 -> [Byte])
     return inline C : [Byte] {
         uint8_t *random_bytes = GC_MALLOC_ATOMIC(_$count);
         getrandom(random_bytes, _$count, 0);
         (Array_t){.length=_$count, .data=random_bytes, .stride=1, .atomic=1};
     }
 
-struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret):
-    func new(seed:[Byte]?=none, -> @RandomNumberGenerator):
+struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret)
+    func new(seed:[Byte]?=none, -> @RandomNumberGenerator)
         ctx := chacha_ctx.from_seed(seed or _os_random_bytes(40))
         return @RandomNumberGenerator(ctx, [])
 
-    func _rekey(rng:&RandomNumberGenerator):
+    func _rekey(rng:&RandomNumberGenerator)
         rng._random_bytes = inline C : [Byte] {
             Byte_t new_keystream[KEYSZ + IVSZ] = {};
             // Fill the buffer with the keystream
@@ -43,7 +43,7 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
             new_bytes;
         }
 
-    func _fill_bytes(rng:&RandomNumberGenerator, dest:&Memory, needed:Int64):
+    func _fill_bytes(rng:&RandomNumberGenerator, dest:&Memory, needed:Int64)
         inline C {
             while (_$needed > 0) {
                 if (_$rng->_random_bytes.length == 0)
@@ -62,7 +62,7 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
             }
         }
 
-    func bytes(rng:&RandomNumberGenerator, count:Int -> [Byte]):
+    func bytes(rng:&RandomNumberGenerator, count:Int -> [Byte])
         return inline C : [Byte] {
             int64_t count64 = Int64$from_int(_$count, false);
             Array_t ret = {.data=GC_MALLOC_ATOMIC(count64), .stride=1, .atomic=1, .length=count64};
@@ -70,23 +70,23 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
             ret;
         }
 
-    func byte(rng:&RandomNumberGenerator -> Byte):
+    func byte(rng:&RandomNumberGenerator -> Byte)
         return inline C : Byte {
             Byte_t b;
             _$random$RandomNumberGenerator$_fill_bytes(_$rng, &b, sizeof(b));
             b;
         }
 
-    func bool(rng:&RandomNumberGenerator, probability=0.5 -> Bool):
-        if probability == 0.5:
+    func bool(rng:&RandomNumberGenerator, probability=0.5 -> Bool)
+        if probability == 0.5
             return rng.byte() < 0x80
-        else:
+        else
             return rng.num(0., 1.) < 0.5
 
-    func int64(rng:&RandomNumberGenerator, min=Int64.min, max=Int64.max -> Int64):
+    func int64(rng:&RandomNumberGenerator, min=Int64.min, max=Int64.max -> Int64)
         fail("Random minimum value $min is larger than the maximum value $max") if min > max
         return min if min == max
-        if min == Int64.min and max == Int64.max:
+        if min == Int64.min and max == Int64.max
             return inline C : Int64 {
                 int64_t i;
                 _$random$RandomNumberGenerator$_fill_bytes(_$rng, &i, sizeof(i));
@@ -104,10 +104,10 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
             (int64_t)((uint64_t)_$min + (r % range));
         }
 
-    func int32(rng:&RandomNumberGenerator, min=Int32.min, max=Int32.max -> Int32):
+    func int32(rng:&RandomNumberGenerator, min=Int32.min, max=Int32.max -> Int32)
         fail("Random minimum value $min is larger than the maximum value $max") if min > max
         return min if min == max
-        if min == Int32.min and max == Int32.max:
+        if min == Int32.min and max == Int32.max
             return inline C : Int32 {
                 int32_t i;
                 _$random$RandomNumberGenerator$_fill_bytes(_$rng, &i, sizeof(i));
@@ -125,10 +125,10 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
             (int32_t)((uint32_t)_$min + (r % range));
         }
 
-    func int16(rng:&RandomNumberGenerator, min=Int16.min, max=Int16.max -> Int16):
+    func int16(rng:&RandomNumberGenerator, min=Int16.min, max=Int16.max -> Int16)
         fail("Random minimum value $min is larger than the maximum value $max") if min > max
         return min if min == max
-        if min == Int16.min and max == Int16.max:
+        if min == Int16.min and max == Int16.max
             return inline C : Int16 {
                 int16_t i;
                 _$random$RandomNumberGenerator$_fill_bytes(_$rng, &i, sizeof(i));
@@ -146,10 +146,10 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
             (int16_t)((uint16_t)_$min + (r % range));
         }
 
-    func int8(rng:&RandomNumberGenerator, min=Int8.min, max=Int8.max -> Int8):
+    func int8(rng:&RandomNumberGenerator, min=Int8.min, max=Int8.max -> Int8)
         fail("Random minimum value $min is larger than the maximum value $max") if min > max
         return min if min == max
-        if min == Int8.min and max == Int8.max:
+        if min == Int8.min and max == Int8.max
             return inline C : Int8 {
                 int8_t i;
                 _$random$RandomNumberGenerator$_fill_bytes(_$rng, &i, sizeof(i));
@@ -167,7 +167,7 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
             (int8_t)((uint8_t)_$min + (r % range));
         }
 
-    func num(rng:&RandomNumberGenerator, min=0., max=1. -> Num):
+    func num(rng:&RandomNumberGenerator, min=0., max=1. -> Num)
         return inline C : Num {
             if (_$min > _$max) fail("Random minimum value (", _$min, ") is larger than the maximum value (", _$max, ")");
             if (_$min == _$max) return _$min;
@@ -187,10 +187,10 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
             (_$min == 0.0 && _$max == 1.0) ? r.num : ((1.0-r.num)*_$min + r.num*_$max);
         }
 
-    func num32(rng:&RandomNumberGenerator, min=Num32(0.), max=Num32(1.) -> Num32):
+    func num32(rng:&RandomNumberGenerator, min=Num32(0.), max=Num32(1.) -> Num32)
         return Num32(rng.num(Num(min), Num(max)))
 
-    func int(rng:&RandomNumberGenerator, min:Int, max:Int -> Int):
+    func int(rng:&RandomNumberGenerator, min:Int, max:Int -> Int)
         return inline C : Int {
             if (likely(((_$min.small & _$max.small) & 1) != 0)) {
                 int32_t r = _$random$RandomNumberGenerator$int32(_$rng, (int32_t)(_$min.small >> 2), (int32_t)(_$max.small >> 2));
@@ -226,7 +226,7 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
         }
 
 
-func main():
+func main()
     >> rng := RandomNumberGenerator.new()
     >> rng.num()
     >> rng.num()

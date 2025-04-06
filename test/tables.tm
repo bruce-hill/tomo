@@ -1,4 +1,4 @@
-func main():
+func main()
 	>> t := {"one"=1, "two"=2}
 	= {"one"=1, "two"=2}
 
@@ -14,7 +14,7 @@ func main():
 	= -1
 
 	t_str := ""
-	for k,v in t:
+	for k,v in t
 		t_str ++= "($k=$v)"
 	>> t_str
 	= "(one=1)(two=2)"
@@ -45,7 +45,7 @@ func main():
 	= {"one"=1, "two"=2}?
 
 	t2_str := ""
-	for k,v in t2:
+	for k,v in t2
 		t2_str ++= "($k=$v)"
 	>> t2_str
 	= "(three=3)"
@@ -62,7 +62,7 @@ func main():
 	>> t3
 	= @{1=10, 2=20}
 
-	do:
+	do
 		>> plain := {1=10, 2=20, 3=30}
 		>> plain[2]!
 		= 20
@@ -81,14 +81,14 @@ func main():
 		>> fallback[1] or -999
 		= 10
 
-	do:
+	do
 		>> t4 := &{"one"= 1}
 		>> t4["one"] = 999
 		>> t4["two"] = 222
 		>> t4
 		= &{"one"=999, "two"=222}
 
-	do:
+	do
 		>> {1=1, 2=2} == {2=2, 1=1}
 		= yes
 		>> {1=1, 2=2} == {1=1, 2=999}
@@ -102,7 +102,7 @@ func main():
 		>> other_ints : [{Int}] = [{/}, {1}, {2}, {99}, {0, 3}, {1, 2}, {99}].sorted()
 		= [{/}, {0, 3}, {1}, {1, 2}, {2}, {99}, {99}]
 
-	do:
+	do
 		# Default values:
 		counter := &{"x"=10; default=0}
 		>> counter["x"]

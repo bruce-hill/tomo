@@ -1,8 +1,8 @@
-func main():
+func main()
     x := 123
     nums : @[Int] = @[]
-    do:
-        defer:
+    do
+        defer
             nums.insert(x)
         x = 999
 
@@ -11,28 +11,28 @@ func main():
     >> x
     = 999
 
-    defer:
+    defer
         say("All done!")
 
-    for word in ["first", "second", "third"]:
-        defer:
+    for word in ["first", "second", "third"]
+        defer
             say("Got $word deferred")
 
-        if word == "second":
+        if word == "second"
             say("<skipped>")
             skip
-        else if word == "third":
+        else if word == "third"
             say("<stopped>")
             stop
 
-        for i in 3:
-            defer:
+        for i in 3
+            defer
                 say("Inner loop deferred $i")
 
-            if i == 2:
+            if i == 2
                 say("<skipped inner>")
                 skip
-            else if i == 3:
+            else if i == 3
                 say("<stopped inner>")
                 stop
 
@@ -40,12 +40,12 @@ func main():
 
         say("Made it through the loop")
     
-    >> thunk := func(return_early=no):
+    >> thunk := func(return_early=no)
         say("Entering thunk")
-        defer:
+        defer
             say("Deferred thunk cleanup")
 
-        if return_early:
+        if return_early
             say("Returning early...")
             return
 
@@ -65,20 +65,20 @@ func main():
     >> counter()
     = 3
 
-func defer_func(return_early=no):
+func defer_func(return_early=no)
     say("Entering defer_func")
-    defer:
+    defer
         say("Deferred defer_func cleanup")
 
-    if return_early:
+    if return_early
         say("Returning early...")
         return
 
     say("Finished defer_func")
 
-func make_counter(->func(->Int)):
+func make_counter(->func(->Int))
     i := 1
-    return func():
-        defer: i += 1
+    return func()
+        defer i += 1
         return i
 

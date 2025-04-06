@@ -1,5 +1,5 @@
 # Tests for file paths
-func main():
+func main()
     >> (/).exists()
     = yes
     >> (~/).exists()
@@ -29,19 +29,19 @@ func main():
     >> tmpdir.files().has(tmpfile)
     = yes
 
-    if tmp_lines := tmpfile.by_line():
+    if tmp_lines := tmpfile.by_line()
         >> [line for line in tmp_lines]
         = ["Hello world!"]
-    else:
+    else
         fail("Couldn't read lines in $tmpfile")
 
     >> (./does-not-exist.xxx).read()
     = none
     >> (./does-not-exist.xxx).read_bytes()
     = none
-    if lines := (./does-not-exist.xxx).by_line():
+    if lines := (./does-not-exist.xxx).by_line()
         fail("I could read lines in a nonexistent file")
-    else:
+    else
         pass
 
     >> tmpfile.remove()

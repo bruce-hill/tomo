@@ -1,6 +1,6 @@
-lang HTML:
+lang HTML
 	HEADER := $HTML"<!DOCTYPE HTML>"
-	convert(t:Text->HTML):
+	convert(t:Text->HTML)
 		t = t.translate({
 			"&"="&amp;",
 			"<"="&lt;",
@@ -11,17 +11,17 @@ lang HTML:
 
 		return HTML.from_text(t)
 
-	convert(i:Int->HTML):
+	convert(i:Int->HTML)
 		return HTML.from_text("$i")
 	
-	func paragraph(content:HTML->HTML):
+	func paragraph(content:HTML->HTML)
 		return $HTML"<p>$content</p>"
 
-struct Bold(text:Text):
-	convert(b:Bold -> HTML):
+struct Bold(text:Text)
+	convert(b:Bold -> HTML)
 		return $HTML"<b>$(b.text)</b>"
 
-func main():
+func main()
 	>> HTML.HEADER
 	= $HTML"<!DOCTYPE HTML>"
 

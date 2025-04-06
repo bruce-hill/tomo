@@ -3,7 +3,7 @@
 # which is compiled to a binary using your C compiler of choice.
 
 # To begin with, let's define a main function:
-func main():
+func main()
     # This function's code will run if you run this file.
 
     # Print to the console
@@ -45,11 +45,11 @@ func main():
     my_bool := yes
 
     # Conditionals:
-    if my_bool:
+    if my_bool
         say("It worked!")
-    else if my_variable == 99:
+    else if my_variable == 99
         say("else if")
-    else:
+    else
         say("else")
 
     # Arrays:
@@ -73,11 +73,11 @@ func main():
     # exit.
 
     # Iteration:
-    for num in my_numbers:
+    for num in my_numbers
         >> num
 
     # Optionally, you can use an iteration index as well:
-    for index, num in my_numbers:
+    for index, num in my_numbers
         pass # Pass means "do nothing"
 
     # Arrays can be created with array comprehensions, which are loops:
@@ -87,15 +87,15 @@ func main():
     = [100, 300]
 
     # Loop control flow uses "skip" and "stop"
-    for x in my_numbers:
-        for y in my_numbers:
-            if x == y:
+    for x in my_numbers
+        for y in my_numbers
+            if x == y
                 skip
 
             # For readability, you can also use postfix conditionals:
             skip if x == y
 
-            if x + y == 60:
+            if x + y == 60
                 # Skip or stop can specify a loop variable if you want to
                 # affect an enclosing loop:
                 stop x
@@ -123,10 +123,10 @@ func main():
     empty_table : {Text=Int} = {}
 
     # Tables can be iterated over either by key or key,value:
-    for key in table:
+    for key in table
         pass
 
-    for key, value in table:
+    for key, value in table
         pass
 
     # Tables also have ".keys" and ".values" fields to explicitly access the
@@ -213,15 +213,15 @@ func main():
 
 # Functions must be declared at the top level of a file and must specify the
 # types of all of their arguments and return value (if any):
-func add(x:Int, y:Int -> Int):
+func add(x:Int, y:Int -> Int)
     return x + y
 
 # Default values for arguments can be provided in place of a type (the type is
 # inferred from the default value):
-func show_both(first:Int, second=0 -> Text):
+func show_both(first:Int, second=0 -> Text)
     return "first=$first second=$second"
 
-func demo_keyword_args():
+func demo_keyword_args()
     >> show_both(1, 2)
     = "first=1 second=2"
 
@@ -244,27 +244,27 @@ func takes_many_types(
     pointer_to_mutable_array_of_ints:@[Int],
     optional_int:Int?,
     function_from_int_to_text:func(x:Int -> Text),
-):
+)
     pass
 
 # Now let's define our own datastructure, a humble struct:
-struct Person(name:Text, age:Int):
+struct Person(name:Text, age:Int)
     # We can define constants here if we want to:
     max_age := 122
 
     # Methods are defined here as well:
-    func say_age(self:Person):
+    func say_age(self:Person)
         say("My age is $self.age")
 
     # If you want to mutate a value, you must have a mutable pointer:
-    func increase_age(self:@Person, amount=1):
+    func increase_age(self:@Person, amount=1)
         self.age += amount
 
     # Methods don't have to take a Person as their first argument:
-    func get_cool_name(->Text):
+    func get_cool_name(->Text)
         return "Blade"
 
-func demo_structs():
+func demo_structs()
     # Creating a struct:
     alice := Person("Alice", 30)
     >> alice
@@ -303,23 +303,23 @@ enum Shape(
     Point,
     Circle(radius:Num),
     Rectangle(width:Num, height:Num),
-):
+)
     # Just like with structs, you define methods and constants inside a level
     # of indentation:
-    func get_area(self:Shape->Num):
+    func get_area(self:Shape->Num)
         # In order to work with an enum, it's most often handy to use a 'when'
         # statement to get the internal values:
-        when self is Point:
+        when self is Point
             return 0
-        is Circle(r):
+        is Circle(r)
             return Num.PI * r^2
-        is Rectangle(w, h):
+        is Rectangle(w, h)
             return w * h
         # 'when' statements are checked for exhaustiveness, so the compiler
         # will give an error if you forgot any cases. You can also use 'else:'
         # if you want a fallback to handle other cases.
 
-func demo_enums():
+func demo_enums()
     # Enums are constructed like this:
     my_shape := Shape.Circle(1.0)
 
@@ -338,16 +338,16 @@ func demo_enums():
     >> {my_shape="nice"}
     = {Shape.Circle(1)="nice"}
 
-func demo_lambdas():
+func demo_lambdas()
     # Lambdas, or anonymous functions, can be used like this:
-    add_one := func(x:Int): x + 1
+    add_one := func(x:Int) x + 1
     >> add_one(5)
     = 6
 
     # Lambdas can capture closure values, but only as a snapshot from when the
     # lambda was created:
     n := 10
-    add_n := func(x:Int): x + n
+    add_n := func(x:Int) x + n
     >> add_n(5)
     = 15
 
