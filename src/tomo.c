@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
 #endif
 
     if (show_codegen.length > 0 && Text$equal_values(show_codegen, Text("pretty")))
-        show_codegen = Text("sed '/^#line/d;/^$/d' | indent -o /dev/stdout | bat -l c -P");
+        show_codegen = Text("{ sed '/^#line/d;/^$/d' | indent -o /dev/stdout | bat -l c -P; }");
 
     for (int64_t i = 0; i < uninstall.length; i++) {
         Text_t *u = (Text_t*)(uninstall.data + i*uninstall.stride);
