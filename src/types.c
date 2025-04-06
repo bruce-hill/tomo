@@ -783,9 +783,10 @@ CONSTFUNC type_t *most_complete_type(type_t *t1, type_t *t2)
     case TableType: {
         auto table1 = Match(t1, TableType);
         auto table2 = Match(t2, TableType);
+        ast_t *default_value = table1->default_value ? table1->default_value : table2->default_value;
         type_t *key = most_complete_type(table1->key_type, table2->key_type);
         type_t *value = most_complete_type(table1->value_type, table2->value_type);
-        return (key && value) ? Type(TableType, key, value) : NULL;
+        return (key && value) ? Type(TableType, key, value, table1->env, default_value) : NULL;
     }
     case FunctionType: {
         auto fn1 = Match(t1, FunctionType);
