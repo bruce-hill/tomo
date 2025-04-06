@@ -76,9 +76,9 @@ func main():
         = yes
 
     do:
-        >> obj := {10, 20, 30}
+        >> obj := |10, 20, 30|
         >> bytes := obj.serialized()
-        >> deserialize(bytes -> {Int}) == obj
+        >> deserialize(bytes -> |Int|) == obj
         = yes
 
     do:

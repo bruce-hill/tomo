@@ -588,13 +588,13 @@ public Text_t Table$as_text(const void *obj, bool colorize, const TypeInfo_t *ty
                 Text("}"));
         else
             return Text$concat(
-                Text("{"),
+                Text("|"),
                 generic_as_text(NULL, false, table.key),
-                Text("}"));
+                Text("|"));
     }
 
     int64_t val_off = (int64_t)value_offset(type);
-    Text_t text = Text("{");
+    Text_t text = table.value == &Void$info ? Text("|") : Text("{");
     for (int64_t i = 0, length = Table$length(*t); i < length; i++) {
         if (i > 0)
             text = Text$concat(text, Text(", "));
@@ -604,14 +604,11 @@ public Text_t Table$as_text(const void *obj, bool colorize, const TypeInfo_t *ty
             text = Text$concat(text, Text("="), generic_as_text(entry + val_off, colorize, table.value));
     }
 
-    if (table.value == &Void$info) 
-        text = Text$concat(text, Text("/"));
-
     if (t->fallback) {
         text = Text$concat(text, Text("; fallback="), Table$as_text(t->fallback, colorize, type));
     }
 
-    text = Text$concat(text, Text("}"));
+    text = Text$concat(text, table.value == &Void$info ? Text("|") : Text("}"));
     return text;
 }
 

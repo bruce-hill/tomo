@@ -42,7 +42,7 @@ func main():
 	= yes
 
 	>> x := Foo.One(123)
-	>> t := {x}
+	>> t := |x|
 	>> t.has(x)
 	= yes
 	>> t.has(Foo.Zero)
