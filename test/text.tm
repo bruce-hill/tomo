@@ -1,6 +1,6 @@
 func main():
 	str := "Hello Amélie!"
-	!! Testing strings like $str
+	say("Testing strings like $str")
 
 	>> str:upper()
 	= "HELLO AMÉLIE!"
@@ -100,7 +100,7 @@ func main():
 	"
 	= "line one$\nline two"
 
-	!! Interpolation tests:
+	say("Interpolation tests:")
 	>> "A $(1+2)"
 	= "A 3"
 	>> 'A $(1+2)'
@@ -138,7 +138,7 @@ func main():
 	>> "":lines()
 	= []
 
-	!! Test splitting and joining text:
+	say("Test splitting and joining text:")
 	>> "one,, two,three":split(",")
 	= ["one", "", " two", "three"]
 	>> [t for t in "one,, two,three":by_split(",")]
@@ -177,7 +177,7 @@ func main():
 	>> "":split()
 	= []
 
-	!! Test text slicing:
+	say("Test text slicing:")
 	>> "abcdef":slice()
 	= "abcdef"
 	>> "abcdef":slice(from=3)
@@ -237,7 +237,7 @@ func main():
 	= "eilémA olleh"
 
 	do:
-		!! Testing concatenation-stability:
+		say("Testing concatenation-stability:")
 		ab := Text.from_codepoint_names(["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"])!
 		>> ab:codepoint_names()
 		= ["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"]

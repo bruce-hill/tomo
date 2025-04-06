@@ -123,7 +123,7 @@ typedef enum {
     Unknown = 0,
     None, Bool, Var,
     Int, Num,
-    TextLiteral, TextJoin, PrintStatement,
+    TextLiteral, TextJoin,
     Path,
     Declare, Assign,
     Power, Multiply, Divide, Mod, Mod1, Plus, Minus, Concat, LeftShift, UnsignedLeftShift,
@@ -182,9 +182,6 @@ struct ast_s {
         struct {
             const char *path;
         } Path;
-        struct {
-            ast_list_t *to_print;
-        } PrintStatement;
         struct {
             ast_t *var;
             type_ast_t *type;

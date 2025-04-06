@@ -41,7 +41,7 @@ func main(path:Path, key:Text?):
 
     data := parse_ini(path)
     if keys.length < 1 or keys[1] == '*':
-        !! $data
+        say("$data")
         return
 
     section := keys[1]:lower()
@@ -50,7 +50,7 @@ func main(path:Path, key:Text?):
         Valid names: $\[1]$(", ":join([k:quoted() for k in data.keys]))$\[]
     ")
     if keys.length < 2 or keys[2] == '*':
-        !! $section_data
+        say("$section_data")
         return
 
     section_key := keys[2]:lower()

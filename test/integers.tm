@@ -17,7 +17,7 @@ func main():
 	>> 1 << 10
 	= 1024
 
-	!! Signed and unsigned bit shifting:
+	say("Signed and unsigned bit shifting:")
 	>> Int64(-2) << 1
 	= Int64(-4)
 	>> Int64(-2) <<< 1

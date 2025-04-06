@@ -213,11 +213,6 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
             add_closed_vars(closed_vars, enclosing_scope, env, child->ast);
         break;
     }
-    case PrintStatement: {
-        for (ast_list_t *child = Match(ast, PrintStatement)->to_print; child; child = child->next)
-            add_closed_vars(closed_vars, enclosing_scope, env, child->ast);
-        break;
-    }
     case Declare: {
         add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Declare)->value);
         bind_statement(env, ast);
@@ -1405,24 +1400,6 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         }
         env->deferred = new(deferral_t, .defer_env=defer_env, .block=body, .next=env->deferred);
         return code;
-    }
-    case PrintStatement: {
-        ast_list_t *to_print = Match(ast, PrintStatement)->to_print;
-        if (!to_print)
-            return CORD_EMPTY;
-
-        CORD code = "say(";
-        if (to_print->next) code = CORD_all(code, "Texts(");
-        for (ast_list_t *chunk = to_print; chunk; chunk = chunk->next) {
-            if (chunk->ast->tag == TextLiteral) {
-                code = CORD_cat(code, compile(env, chunk->ast));
-            } else {
-                code = CORD_cat(code, compile_string(env, chunk->ast, "USE_COLOR"));
-            }
-            if (chunk->next) code = CORD_cat(code, ", ");
-        }
-        if (to_print->next) code = CORD_all(code, ")");
-        return CORD_cat(code, ", yes);");
     }
     case Return: {
         if (!env->fn_ret) code_err(ast, "This return statement is not inside any function");
@@ -3738,7 +3715,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Extern: code_err(ast, "Externs are not supported as expressions");
     case TableEntry: code_err(ast, "Table entries should not be compiled directly");
     case Declare: case Assign: case UPDATE_CASES: case For: case While: case Repeat: case StructDef: case LangDef: case Extend:
-    case EnumDef: case FunctionDef: case ConvertDef: case Skip: case Stop: case Pass: case Return: case DocTest: case PrintStatement:
+    case EnumDef: case FunctionDef: case ConvertDef: case Skip: case Stop: case Pass: case Return: case DocTest:
         code_err(ast, "This is not a valid expression");
     default: case Unknown: code_err(ast, "Unknown AST: ", ast_to_xml_str(ast));
     }

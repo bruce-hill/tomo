@@ -97,17 +97,17 @@ func delete(url:Text, data:Text?=none, headers=["Content-Type: application/json"
     return _send(DELETE, url, data, headers)
 
 func main():
-    !! GET:
+    say("GET:")
     say(get("https://httpbin.org/get").body)
-    !! Waiting 1sec...
+    say("Waiting 1sec...
     sleep(1)
-    !! POST:
+    say("POST:")
     say(post("https://httpbin.org/post", `{"key": "value"}`).body)
-    !! Waiting 1sec...
+    say("Waiting 1sec...")
     sleep(1)
-    !! PUT:
+    say("PUT:")
     say(put("https://httpbin.org/put", `{"key": "value"}`).body)
-    !! Waiting 1sec...
+    say("Waiting 1sec...")
     sleep(1)
-    !! DELETE:
+    say("DELETE:")
     say(delete("https://httpbin.org/delete").body)

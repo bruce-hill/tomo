@@ -27,7 +27,7 @@ func main():
 	>> (_max_.y:abs(): [Foo(0, 0), Foo(1, 0), Foo(0, 10), Foo(0, -999)])!
 	= Foo(x=0, y=-999)
 
-	!! (or) and (and) have early out behavior:
+	say("(or) and (and) have early out behavior:")
 	>> (or: i == 3 for i in 9999999999999999999999999999)!
 	= yes
 

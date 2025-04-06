@@ -138,7 +138,7 @@ func load_routes(directory:Path -> {Text=RouteEntry}):
 func main(directory:Path, port=Int32(8080)):
     say("Serving on port $port")
     routes := load_routes(directory)
-    !! Hosting: $routes
+    say(" Hosting: $routes")
 
     serve(port, func(request:HTTPRequest):
         if handler := routes[request.path]:

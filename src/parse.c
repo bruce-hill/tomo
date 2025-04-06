@@ -131,7 +131,6 @@ static PARSER(parse_path);
 static PARSER(parse_reduction);
 static PARSER(parse_repeat);
 static PARSER(parse_return);
-static PARSER(parse_say);
 static PARSER(parse_set);
 static PARSER(parse_skip);
 static PARSER(parse_stack_reference);
@@ -1740,8 +1739,7 @@ PARSER(parse_assignment) {
 PARSER(parse_statement) {
     ast_t *stmt = NULL;
     if ((stmt=parse_declaration(ctx, pos))
-        || (stmt=parse_doctest(ctx, pos))
-        || (stmt=parse_say(ctx, pos)))
+        || (stmt=parse_doctest(ctx, pos)))
         return stmt;
 
     if (!(false 
@@ -2285,48 +2283,6 @@ PARSER(parse_doctest) {
         pos = expr->end;
     }
     return NewAST(ctx->file, start, pos, DocTest, .expr=expr, .expected=expected);
-}
-
-PARSER(parse_say) {
-    const char *start = pos;
-    if (!match(&pos, "!!")) return NULL;
-    spaces(&pos);
-
-    ast_list_t *chunks = NULL;
-    CORD chunk = CORD_EMPTY;
-    const char *chunk_start = pos;
-    const char open_interp = '$';
-    while (pos < ctx->file->text + ctx->file->len) {
-        if (*pos == open_interp) { // Interpolation
-            const char *interp_start = pos;
-            if (chunk) {
-                ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk);
-                chunks = new(ast_list_t, .ast=literal, .next=chunks);
-                chunk = NULL;
-            }
-            ++pos;
-            ast_t *interp;
-            if (*pos == ' ' || *pos == '\t')
-                parser_err(ctx, pos, pos+1, "Whitespace is not allowed before an interpolation here");
-            interp = expect(ctx, interp_start, &pos, parse_term, "I expected an interpolation term here");
-            chunks = new(ast_list_t, .ast=interp, .next=chunks);
-            chunk_start = pos;
-        } else if (*pos == '\r' || *pos == '\n') { // Newline
-            break;
-        } else { // Plain character
-            chunk = CORD_cat_char(chunk, *pos);
-            ++pos;
-        }
-    }
-
-    if (chunk) {
-        ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk);
-        chunks = new(ast_list_t, .ast=literal, .next=chunks);
-        chunk = NULL;
-    }
-
-    REVERSE_LIST(chunks);
-    return NewAST(ctx->file, start, pos, PrintStatement, .to_print=chunks);
 }
 
 PARSER(parse_use) {

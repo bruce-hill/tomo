@@ -86,7 +86,7 @@ func main():
     = -1
 
     do:
-        !! Ints:
+        say("Ints:")
         >> yep := maybe_int(yes)
         = 123?
         >> nope := maybe_int(no)
@@ -97,11 +97,10 @@ func main():
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
-        else: !! Falsey: $nope
+        else: say("Falsey: $nope")
 
     do:
-        !! ...
-        !! Int64s:
+        say("Int64s:")
         >> yep := maybe_int64(yes)
         = Int64(123)?
         >> nope := maybe_int64(no)
@@ -112,11 +111,10 @@ func main():
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
-        else: !! Falsey: $nope
+        else: say("Falsey: $nope")
 
     do:
-        !! ...
-        !! Arrays:
+        say("Arrays:")
         >> yep := maybe_array(yes)
         = [10, 20, 30]?
         >> nope := maybe_array(no)
@@ -127,11 +125,11 @@ func main():
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
-        else: !! Falsey: $nope
+        else: say("Falsey: $nope")
 
     do:
-        !! ...
-        !! Bools:
+        say("...")
+        say("Bools:")
         >> yep := maybe_bool(yes)
         = no?
         >> nope := maybe_bool(no)
@@ -142,11 +140,11 @@ func main():
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
-        else: !! Falsey: $nope
+        else: say("Falsey: $nope")
 
     do:
-        !! ...
-        !! Text:
+        say("...")
+        say("Text:")
         >> yep := maybe_text(yes)
         = "Hello"?
         >> nope := maybe_text(no)
@@ -157,11 +155,11 @@ func main():
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
-        else: !! Falsey: $nope
+        else: say("Falsey: $nope")
 
     do:
-        !! ...
-        !! Nums:
+        say("...")
+        say("Nums:")
         >> yep := maybe_num(yes)
         = 12.3?
         >> nope := maybe_num(no)
@@ -172,11 +170,11 @@ func main():
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
-        else: !! Falsey: $nope
+        else: say("Falsey: $nope")
 
     do:
-        !! ...
-        !! Lambdas:
+        say("...")
+        say("Lambdas:")
         # >> yep := maybe_lambda(yes)
         # = func() [optionals.tm:54] : func()?
         >> nope := maybe_lambda(no)
@@ -187,11 +185,11 @@ func main():
         # else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
-        else: !! Falsey: $nope
+        else: say("Falsey: $nope")
 
     do:
-        !! ...
-        !! Structs:
+        say("...")
+        say("Structs:")
         >> yep := Struct.maybe(yes)
         = Struct(x=123, y="hello")?
         >> nope := Struct.maybe(no)
@@ -202,11 +200,11 @@ func main():
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
-        else: !! Falsey: $nope
+        else: say("Falsey: $nope")
 
     do:
-        !! ...
-        !! Enums:
+        say("...")
+        say("Enums:")
         >> yep := Enum.maybe(yes)
         = Enum.Y(123)?
         >> nope := Enum.maybe(no)
@@ -217,11 +215,11 @@ func main():
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
-        else: !! Falsey: $nope
+        else: say("Falsey: $nope")
 
     do:
-        !! ...
-        !! C Strings:
+        say("...")
+        say("C Strings:")
         >> yep := maybe_c_string(yes)
         = CString("hi")?
         >> nope := maybe_c_string(no)
@@ -232,7 +230,7 @@ func main():
         else: fail("Falsey: $yep")
         >> if nope:
             fail("Truthy: $nope")
-        else: !! Falsey: $nope
+        else: say("Falsey: $nope")
 
     if yep := maybe_int(yes):
         >> yep

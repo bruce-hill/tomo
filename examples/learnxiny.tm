@@ -9,9 +9,6 @@ func main():
     # Print to the console
     say("Hello world!")
 
-    # You can also use !! as a shorthand:
-    !! This is the same as using say(), but a bit easier to type
-
     # Declare a variable with ':=' (the type is inferred to be integer)
     my_variable := 123
 

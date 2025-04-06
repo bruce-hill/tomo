@@ -1,6 +1,6 @@
 
 func main():
-    !! Test bytes:
+    say("Test bytes:")
     >> Byte(100)
     = Byte(0x64)
 

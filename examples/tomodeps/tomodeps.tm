@@ -13,7 +13,7 @@ enum Dependency(File(path:Path), Module(name:Text))
 
 func _get_file_dependencies(file:Path -> {Dependency}):
     if not file:is_file():
-        !! Could not read file: $file
+        say("Could not read file: $file")
         return {}
 
     deps : @{Dependency} = @{}
