@@ -159,20 +159,20 @@ func main()
 
     # Sets are similar to tables, but they represent an unordered collection of
     # unique values:
-    set := {10, 20, 30}
+    set := |10, 20, 30|
     >> set.has(20)
     = yes
     >> set.has(999)
     = no
 
     # You can do some operations on sets:
-    other_set := {30, 40, 50}
+    other_set := |30, 40, 50|
     >> set.with(other_set)
-    = {10, 20, 30, 40, 50}
+    = |10, 20, 30, 40, 50|
     >> set.without(other_set)
-    = {10, 20}
+    = |10, 20|
     >> set.overlap(other_set)
-    = {30}
+    = |30|
 
     # So far, the datastructures that have been discussed are all *immutable*,
     # meaning you can't add, remove, or change their contents. If you want to
@@ -241,6 +241,7 @@ func takes_many_types(
     text_aka_string:Text,
     array_of_ints:[Int],
     table_of_text_to_bools:{Text=Bool},
+    set_of_ints:|Int|,
     pointer_to_mutable_array_of_ints:@[Int],
     optional_int:Int?,
     function_from_int_to_text:func(x:Int -> Text),

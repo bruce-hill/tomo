@@ -245,8 +245,8 @@ func main()
     = no
     >> (5? == 5?)
     = yes
-    >> nones : {Int?} = {none, none}
-    >> also_nones : {Int?} = {none}
+    >> nones : |Int?| = |none, none|
+    >> also_nones : |Int?| = |none|
     >> nones == also_nones
     >> [5?, none, none, 6?].sorted()
     = [none, none, 5, 6]

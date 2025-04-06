@@ -370,9 +370,7 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
     if (actual->tag == ArrayType && needed->tag == ArrayType && Match(actual, ArrayType)->item_type == NULL)
         return true; // [] -> [T]
     if (actual->tag == SetType && needed->tag == SetType && Match(actual, SetType)->item_type == NULL)
-        return true; // {/} -> {T}
-    if (actual->tag == TableType && needed->tag == SetType && Match(actual, TableType)->key_type == NULL && Match(actual, TableType)->value_type == NULL)
-        return true; // {} -> {T}
+        return true; // || -> |T|
     if (actual->tag == TableType && needed->tag == TableType && Match(actual, TableType)->key_type == NULL && Match(actual, TableType)->value_type == NULL)
         return true; // {} -> {K=V}
 

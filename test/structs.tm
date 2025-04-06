@@ -32,7 +32,7 @@ func test_metamethods()
 
 	>> x < Pair(11, 20)
 	= yes
-	>> set := {x}
+	>> set := |x|
 	>> set.has(x)
 	= yes
 	>> set.has(y)
@@ -49,7 +49,7 @@ func test_mixed()
 	= no
 	>> x < Mixed(11, "Hello")
 	= yes
-	>> set := {x}
+	>> set := |x|
 	>> set.has(x)
 	= yes
 	>> set.has(y)

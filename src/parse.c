@@ -520,14 +520,13 @@ type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
 
 type_ast_t *parse_set_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    if (!match(&pos, "{")) return NULL;
+    if (!match(&pos, "|")) return NULL;
     whitespace(&pos);
     type_ast_t *item_type = parse_type(ctx, pos);
     if (!item_type) return NULL;
     pos = item_type->end;
     whitespace(&pos);
-    if (match(&pos, ",")) return NULL;
-    expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this set type");
+    expect_closing(ctx, &pos, "|", "I wasn't able to parse the rest of this set type");
     return NewTypeAST(ctx->file, start, pos, SetTypeAST, .item=item_type);
 }
 
@@ -706,7 +705,6 @@ PARSER(parse_array) {
 
 PARSER(parse_table) {
     const char *start = pos;
-    if (match(&pos, "{/}")) return NULL;
     if (!match(&pos, "{")) return NULL;
 
     whitespace(&pos);
@@ -768,10 +766,10 @@ PARSER(parse_table) {
 
 PARSER(parse_set) {
     const char *start = pos;
-    if (match(&pos, "{/}"))
+    if (match(&pos, "||"))
         return NewAST(ctx->file, start, pos, Set);
 
-    if (!match(&pos, "{")) return NULL;
+    if (!match(&pos, "|")) return NULL;
 
     whitespace(&pos);
 
@@ -780,7 +778,6 @@ PARSER(parse_set) {
         ast_t *item = optional(ctx, &pos, parse_extended_expr);
         if (!item) break;
         whitespace(&pos);
-        if (match(&pos, "=")) return NULL;
         ast_t *suffixed = parse_comprehension_suffix(ctx, item);
         while (suffixed) {
             item = suffixed;
@@ -795,7 +792,7 @@ PARSER(parse_set) {
     REVERSE_LIST(items);
 
     whitespace(&pos);
-    expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this set");
+    expect_closing(ctx, &pos, "|", "I wasn't able to parse the rest of this set");
 
     return NewAST(ctx->file, start, pos, Set, .items=items);
 }
