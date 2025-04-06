@@ -1,13 +1,18 @@
 # Tests for the 'when' block
 
 func main():
-    str := "B"
-    when str is "A":
-        fail("First")
-    is "B":
-        say("Success")
-    is "C":
-        fail("Third")
+    answers := [
+        (
+            when x is "A","B":
+                "A or B"
+            is "C":
+                "C"
+            else:
+                "Other"
+        ) for x in ["A", "B", "C", "D"]
+    ]
+    >> answers
+    = ["A or B", "A or B", "C", "Other"]
 
     n := 23
     >> when n is 1: Int64(1)

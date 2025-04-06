@@ -66,6 +66,18 @@ func main():
 	while when cases[i] is One(x):
 		>> x
 		i += 1
+
+	>> [
+		(
+			when x is One(y), Two(y,_):
+				"Small $y"
+			is Zero:
+				"Zero"
+			else:
+				"Other"
+		) for x in [Foo.Zero, Foo.One(1), Foo.Two(2,2), Foo.Three(3,"",no)]
+	]
+	= ["Zero", "Small 1", "Small 2", "Other"]
 	
 	>> expr := when cases[1] is One(y):
 		y + 1

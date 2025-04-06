@@ -996,11 +996,17 @@ PARSER(parse_when) {
         spaces(&pos);
         ast_t *pattern = expect(ctx, start, &pos, parse_expr, "I expected a pattern to match here");
         spaces(&pos);
-        tmp = pos;
-        if (!match(&tmp, ":"))
-            parser_err(ctx, tmp, tmp, "I expected a colon ':' after this clause");
+        when_clause_t *new_clauses = new(when_clause_t, .pattern=pattern, .next=clauses);
+        while (match(&pos, ",")) {
+            pattern = expect(ctx, start, &pos, parse_expr, "I expected a pattern to match here");
+            new_clauses = new(when_clause_t, .pattern=pattern, .next=new_clauses);
+            spaces(&pos);
+        }
         ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'when' clause"); 
-        clauses = new(when_clause_t, .pattern=pattern, .body=body, .next=clauses);
+        for (when_clause_t *c = new_clauses; c && c != clauses; c = c->next) {
+            c->body = body;
+        }
+        clauses = new_clauses;
         tmp = pos;
         whitespace(&tmp);
     }
