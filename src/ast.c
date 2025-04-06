@@ -324,7 +324,7 @@ void visit_topologically(ast_list_t *asts, Closure_t fn)
     Table_t visited = {};
     // First: 'use' statements in order:
     for (ast_list_t *stmt = asts; stmt; stmt = stmt->next) {
-        if (stmt->ast->tag == Use || (stmt->ast->tag == Declare && Match(stmt->ast, Declare)->value->tag == Use))
+        if (stmt->ast->tag == Use)
             visit(fn.userdata, stmt->ast);
     }
     // Then typedefs in topological order:
@@ -335,7 +335,7 @@ void visit_topologically(ast_list_t *asts, Closure_t fn)
     // Then everything else in order:
     for (ast_list_t *stmt = asts; stmt; stmt = stmt->next) {
         if (!(stmt->ast->tag == StructDef || stmt->ast->tag == EnumDef || stmt->ast->tag == LangDef
-              || stmt->ast->tag == Use || (stmt->ast->tag == Declare && Match(stmt->ast, Declare)->value->tag == Use))) {
+              || stmt->ast->tag == Use)) {
             visit(fn.userdata, stmt->ast);
         }
     }

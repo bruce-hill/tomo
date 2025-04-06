@@ -329,9 +329,6 @@ typedef struct {
 
 static void _compile_statement_header_for_library(libheader_info_t *info, ast_t *ast)
 {
-    if (ast->tag == Declare && Match(ast, Declare)->value->tag == Use)
-        ast = Match(ast, Declare)->value;
-
     if (ast->tag == Use) {
         auto use = Match(ast, Use);
         if (use->what == USE_LOCAL)
@@ -391,8 +388,6 @@ static void _compile_file_header_for_library(env_t *env, Path_t header_path, Pat
     // Visit files in topological order:
     for (ast_list_t *stmt = Match(file_ast, Block)->statements; stmt; stmt = stmt->next) {
         ast_t *ast = stmt->ast;
-        if (ast->tag == Declare)
-            ast = Match(ast, Declare)->value;
         if (ast->tag != Use) continue;
 
         auto use = Match(ast, Use);
@@ -600,9 +595,6 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         ast_t *stmt_ast = stmt->ast;
-        if (stmt_ast->tag == Declare)
-            stmt_ast = Match(stmt_ast, Declare)->value;
-
         if (stmt_ast->tag != Use) continue;
         auto use = Match(stmt_ast, Use);
 
