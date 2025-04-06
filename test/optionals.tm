@@ -259,7 +259,7 @@ func main()
         = 5
 
     do
-        >> value := if var : Int? = none
+        >> value := if var : Int? = none then
             var
         else
             0

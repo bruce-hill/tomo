@@ -28,7 +28,7 @@ func main(texts:[Text], files:[Path]=[], by_line=no)
     for i,text in texts
         colorful := Colorful.from_text(text)
         colorful.print(newline=no)
-        if i == texts.length say("")
+        if i == texts.length then say("")
         else say(" ", newline=no)
 
     if texts.length == 0 and files.length == 0

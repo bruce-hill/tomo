@@ -74,13 +74,13 @@ func _printable_name(dep:Dependency -> Text)
 
 func _draw_tree(dep:Dependency, dependencies:{Dependency=|Dependency|}, already_printed:@|Dependency|, prefix="", is_last=yes)
     if already_printed.has(dep)
-        say(prefix ++ (if is_last "└── " else "├── ") ++ _printable_name(dep) ++ " $\x1b[2m(recursive)$\x1b[m")
+        say(prefix ++ (if is_last then "└── " else "├── ") ++ _printable_name(dep) ++ " $\x1b[2m(recursive)$\x1b[m")
         return
 
-    say(prefix ++ (if is_last "└── " else "├── ") ++ _printable_name(dep))
+    say(prefix ++ (if is_last then "└── " else "├── ") ++ _printable_name(dep))
     already_printed.add(dep)
     
-    child_prefix := prefix ++ (if is_last "    " else "│   ")
+    child_prefix := prefix ++ (if is_last then "    " else "│   ")
     
     children := dependencies[dep] or ||
     for i,child in children.items

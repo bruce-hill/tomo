@@ -29,7 +29,7 @@ func main()
     >> tmpdir.files().has(tmpfile)
     = yes
 
-    if tmp_lines := tmpfile.by_line()
+    if tmp_lines := tmpfile.by_line() then
         >> [line for line in tmp_lines]
         = ["Hello world!"]
     else
@@ -39,7 +39,7 @@ func main()
     = none
     >> (./does-not-exist.xxx).read_bytes()
     = none
-    if lines := (./does-not-exist.xxx).by_line()
+    if lines := (./does-not-exist.xxx).by_line() then
         fail("I could read lines in a nonexistent file")
     else
         pass

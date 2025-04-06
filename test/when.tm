@@ -3,12 +3,9 @@
 func main()
     answers := [
         (
-            when x is "A","B"
-                "A or B"
-            is "C"
-                "C"
-            else
-                "Other"
+            when x is "A","B" then "A or B"
+            is "C" then "C"
+            else "Other"
         ) for x in ["A", "B", "C", "D"]
     ]
     >> answers

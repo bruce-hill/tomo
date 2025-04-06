@@ -41,19 +41,19 @@ func wrap(text:Text, width:Int, min_split=3, hyphen="-" -> Text)
 
         while not _can_fit_word(line, letters, width)
             line_space := width - line.length
-            if line != "" line_space -= 1
+            if line != "" then line_space -= 1
 
             if min_split > 0 and line_space >= min_split + hyphen.length and letters.length >= 2*min_split
                 # Split word with a hyphen:
                 split := line_space - hyphen.length
                 split = split _max_ min_split
                 split = split _min_ (letters.length - min_split)
-                if line != "" line ++= " "
+                if line != "" then line ++= " "
                 line ++= ((++: letters.to(split)) or "") ++ hyphen
                 letters = letters.from(split + 1)
             else if line == ""
                 # Force split word without hyphenation:
-                if line != "" line ++= " "
+                if line != "" then line ++= " "
                 line ++= (++: letters.to(line_space)) or ""
                 letters = letters.from(line_space + 1)
             else
@@ -63,7 +63,7 @@ func wrap(text:Text, width:Int, min_split=3, hyphen="-" -> Text)
             line = ""
 
         if letters.length > 0
-            if line != "" line ++= " "
+            if line != "" then line ++= " "
             line ++= (++: letters) or ""
 
     if line != ""
