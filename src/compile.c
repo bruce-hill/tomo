@@ -2041,6 +2041,8 @@ CORD compile_typed_array(env_t *env, ast_t *ast, type_t *array_type)
 
     {
         env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : env;
+        if (is_incomplete_type(item_type))
+            code_err(ast, "This array's type can't be inferred!");
         CORD code = CORD_all("TypedArrayN(", compile_type(item_type), CORD_asprintf(", %ld", n));
         for (ast_list_t *item = array->items; item; item = item->next) {
             code = CORD_all(code, ", ", compile_to_type(scope, item->ast, item_type));
