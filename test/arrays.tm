@@ -104,18 +104,18 @@ func main():
 		>> heap := @[(i * 1337) mod 37 for i in 10]
 		>> heap:heapify()
 		>> heap
-		sorted : @[Int] = @[]
+		heap_order : @[Int] = @[]
 		repeat:
-			sorted:insert(heap:heap_pop() or stop)
-		>> sorted[] == sorted:sorted()
+			heap_order:insert(heap:heap_pop() or stop)
+		>> heap_order[] == heap_order:sorted()
 		= yes
+		heap_order[] = []
 		for i in 10:
 			heap:heap_push((i*13337) mod 37)
 		>> heap
-		sorted = @[]
 		repeat:
-			sorted:insert(heap:heap_pop() or stop)
-		>> sorted[] == sorted:sorted()
+			heap_order:insert(heap:heap_pop() or stop)
+		>> heap_order[] == heap_order:sorted()
 		= yes
 
 	do:
