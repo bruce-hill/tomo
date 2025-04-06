@@ -893,7 +893,7 @@ CORD compile_lvalue(env_t *env, ast_t *ast)
                                 compile_type(table_type->key_type), ", ",
                                 compile_type(value_type), ", ",
                                 compile_to_type(env, index->index, table_type->key_type), ", ",
-                                compile(env, table_type->default_value), ", ",
+                                compile_to_type(env, table_type->default_value, table_type->value_type), ", ",
                                 compile_type_info(container_t), ")");
             }
             if (index->unchecked)
@@ -3704,15 +3704,14 @@ CORD compile(env_t *env, ast_t *ast)
             if (indexing->unchecked)
                 code_err(ast, "Table indexes cannot be unchecked");
             if (table_type->default_value) {
-                type_t *value_type = get_type(env, table_type->default_value);
                 return CORD_all("Table$get_or_default(",
                                 compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
                                 compile_type(table_type->key_type), ", ",
-                                compile_type(value_type), ", ",
+                                compile_type(table_type->value_type), ", ",
                                 compile(env, indexing->index), ", ",
-                                compile(env, table_type->default_value), ", ",
+                                compile_to_type(env, table_type->default_value, table_type->value_type), ", ",
                                 compile_type_info(container_t), ")");
-            } else if (table_type->value_type) {
+            } else {
                 return CORD_all("Table$get_optional(",
                                 compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
                                 compile_type(table_type->key_type), ", ",
@@ -3721,8 +3720,6 @@ CORD compile(env_t *env, ast_t *ast)
                                 "_, ", promote_to_optional(table_type->value_type, "(*_)"), ", ",
                                 compile_none(table_type->value_type), ", ",
                                 compile_type_info(container_t), ")");
-            } else {
-                code_err(indexing->index, "This table doesn't have a value type or a default value");
             }
         } else if (container_t->tag == TextType) {
             return CORD_all("Text$cluster(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ", compile_to_type(env, indexing->index, Type(BigIntType)), ")");
@@ -3783,11 +3780,6 @@ CORD compile_type_info(type_t *t)
         auto table = Match(t, TableType);
         type_t *key_type = table->key_type;
         type_t *value_type = table->value_type;
-        if (!value_type) {
-            if (!table->env)
-                compiler_err(NULL, NULL, NULL, "I got a table with a default value, but no environment to get its type!");
-            value_type = get_type(table->env, table->default_value);
-        }
         return CORD_all("Table$info(", compile_type_info(key_type), ", ", compile_type_info(value_type), ")");
     }
     case PointerType: {

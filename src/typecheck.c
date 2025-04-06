@@ -81,24 +81,15 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         if (!key_type) code_err(key_type_ast, "I can't figure out what type this is.");
         if (has_stack_memory(key_type))
             code_err(key_type_ast, "Tables can't have stack references because the array may outlive the stack frame.");
-        if (table_type->value) {
-            type_t *val_type = parse_type_ast(env, table_type->value);
-            if (!val_type) code_err(table_type->value, "I can't figure out what type this is.");
-            if (has_stack_memory(val_type))
-                code_err(table_type->value, "Tables can't have stack references because the array may outlive the stack frame.");
-            else if (val_type->tag == OptionalType)
-                code_err(ast, "Tables with optional-typed values are not currently supported");
-            return Type(TableType, .key_type=key_type, .value_type=val_type, .env=env);
-        } else if (table_type->default_value) {
-            type_t *t = Type(TableType, .key_type=key_type,
-                             .value_type=get_type(env, table_type->default_value), .default_value=table_type->default_value,
-                             .env=env);
-            if (has_stack_memory(t))
-                code_err(ast, "Tables can't have stack references because the array may outlive the stack frame.");
-            return t;
-        } else {
-            code_err(ast, "No value type or default value!");
-        }
+
+        type_t *val_type = parse_type_ast(env, table_type->value);
+        if (!val_type) code_err(table_type->value, "I can't figure out what type this is.");
+        if (has_stack_memory(val_type))
+            code_err(table_type->value, "Tables can't have stack references because the array may outlive the stack frame.");
+        else if (val_type->tag == OptionalType)
+            code_err(ast, "Tables with optional-typed values are not currently supported");
+
+        return Type(TableType, .key_type=key_type, .value_type=val_type, .env=env, .default_value=table_type->default_value);
     }
     case FunctionTypeAST: {
         auto fn = Match(ast, FunctionTypeAST);
@@ -851,11 +842,8 @@ type_t *get_type(env_t *env, ast_t *ast)
         } else if (value_t->tag == TableType) {
             auto table_type = Match(value_t, TableType);
             if (table_type->default_value)
-                return get_type(env, table_type->default_value);
-            else if (table_type->value_type)
-                return Type(OptionalType, table_type->value_type);
-            else
-                code_err(indexing->indexed, "This type doesn't have a value type or a default value");
+                return table_type->value_type;
+            return Type(OptionalType, table_type->value_type);
         } else if (value_t->tag == TextType) {
             return value_t;
         } else {
