@@ -61,7 +61,7 @@ int op_tightness[] = {
 };
 
 static const char *keywords[] = {
-    "yes", "xor", "while", "when", "use", "unless", "struct", "stop", "skip", "return",
+    "yes", "xor", "while", "when", "use", "unless", "then", "struct", "stop", "skip", "return",
     "or", "not", "none", "no", "mod1", "mod", "pass", "lang", "inline", "in", "if",
     "func", "for", "extern", "extend", "enum", "else", "do", "deserialize", "defer", "and",
     "_min_", "_max_", NULL,
@@ -938,7 +938,7 @@ ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt) {
 }
 
 PARSER(parse_if) {
-    // "if" <condition> <body> ["else" <body>] | "unless" <condition> <body> ["else" <body>]
+    // "if" <condition> ["then"] <body> ["else" <body>] | "unless" <condition> <body> ["else" <body>]
     const char *start = pos;
     int64_t starting_indent = get_indent(ctx, pos);
 
@@ -957,6 +957,7 @@ PARSER(parse_if) {
     if (unless)
         condition = WrapAST(condition, Not, condition);
 
+    (void)match_word(&pos, "then"); // Optional 'then'
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'if' statement"); 
 
     const char *tmp = pos;
@@ -999,6 +1000,7 @@ PARSER(parse_when) {
             new_clauses = new(when_clause_t, .pattern=pattern, .next=new_clauses);
             spaces(&pos);
         }
+        (void)match_word(&pos, "then"); // Optional 'then'
         ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'when' clause"); 
         for (when_clause_t *c = new_clauses; c && c != clauses; c = c->next) {
             c->body = body;
