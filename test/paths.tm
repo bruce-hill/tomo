@@ -1,8 +1,8 @@
 # Tests for file paths
 func main():
-    >> (/):exists()
+    >> (/).exists()
     = yes
-    >> (~/):exists()
+    >> (~/).exists()
     = yes
 
     >> (~/Downloads/file(1).txt)
@@ -12,73 +12,73 @@ func main():
     = (/half\)paren)
 
     >> filename := "example.txt"
-    >> (~):child(filename)
+    >> (~).child(filename)
     = (~/example.txt)
 
-    >> tmpdir := (/tmp/tomo-test-path-XXXXXX):unique_directory()
-    >> (/tmp):subdirectories():has(tmpdir)
+    >> tmpdir := (/tmp/tomo-test-path-XXXXXX).unique_directory()
+    >> (/tmp).subdirectories().has(tmpdir)
     = yes
 
     >> tmpfile := (tmpdir++(./one.txt))
-    >> tmpfile:write("Hello world")
-    >> tmpfile:append("!")
-    >> tmpfile:read()
+    >> tmpfile.write("Hello world")
+    >> tmpfile.append("!")
+    >> tmpfile.read()
     = "Hello world!"?
-    >> tmpfile:read_bytes()!
+    >> tmpfile.read_bytes()!
     = [0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x77, 0x6F, 0x72, 0x6C, 0x64, 0x21]
-    >> tmpdir:files():has(tmpfile)
+    >> tmpdir.files().has(tmpfile)
     = yes
 
-    if tmp_lines := tmpfile:by_line():
+    if tmp_lines := tmpfile.by_line():
         >> [line for line in tmp_lines]
         = ["Hello world!"]
     else:
         fail("Couldn't read lines in $tmpfile")
 
-    >> (./does-not-exist.xxx):read()
+    >> (./does-not-exist.xxx).read()
     = none
-    >> (./does-not-exist.xxx):read_bytes()
+    >> (./does-not-exist.xxx).read_bytes()
     = none
-    if lines := (./does-not-exist.xxx):by_line():
+    if lines := (./does-not-exist.xxx).by_line():
         fail("I could read lines in a nonexistent file")
     else:
         pass
 
-    >> tmpfile:remove()
+    >> tmpfile.remove()
 
-    >> tmpdir:files():has(tmpfile)
+    >> tmpdir.files().has(tmpfile)
     = no
 
-    >> tmpdir:remove()
+    >> tmpdir.remove()
 
     >> p := (/foo/baz.x/qux.tar.gz)
-    >> p:base_name()
+    >> p.base_name()
     = "qux.tar.gz"
-    >> p:parent()
+    >> p.parent()
     = (/foo/baz.x)
-    >> p:extension()
+    >> p.extension()
     = "tar.gz"
-    >> p:extension(full=no)
+    >> p.extension(full=no)
     = "gz"
-    >> (~/.foo):extension()
+    >> (~/.foo).extension()
     = ""
-    >> (~/foo):extension()
+    >> (~/foo).extension()
     = ""
 
-    >> (~/.foo.baz.qux):extension()
+    >> (~/.foo.baz.qux).extension()
     = "baz.qux"
 
-    >> (/):parent()
+    >> (/).parent()
     = (/)
-    >> (~/x/.):parent()
+    >> (~/x/.).parent()
     = (~)
-    >> (~/x):parent()
+    >> (~/x).parent()
     = (~)
-    >> (.):parent()
+    >> (.).parent()
     = (..)
-    >> (..):parent()
+    >> (..).parent()
     = (../..)
-    >> (../foo):parent()
+    >> (../foo).parent()
     = (..)
 
     # Concatenation tests:
@@ -127,4 +127,4 @@ func main():
     = (/foo/bar/quux)
 
     say("Globbing:")
-    >> (./*.tm):glob()
+    >> (./*.tm).glob()

@@ -241,8 +241,6 @@ int main(int argc, char *argv[])
 
     if (files.length < 1)
         print_err("No file specified!");
-    else if (files.length != 1)
-        print_err("Too many files specified!");
 
     quiet = !verbose;
 

@@ -15,11 +15,11 @@ UNICODE_HYPHEN := \{hyphen}
 
 func unwrap(text:Text, preserve_paragraphs=yes, hyphen=UNICODE_HYPHEN -> Text):
     if preserve_paragraphs:
-        paragraphs := text:split($/{2+ nl}/)
+        paragraphs := text.split($/{2+ nl}/)
         if paragraphs.length > 1:
-            return \n\n:join([unwrap(p, hyphen=hyphen, preserve_paragraphs=no) for p in paragraphs])
+            return \n\n.join([unwrap(p, hyphen=hyphen, preserve_paragraphs=no) for p in paragraphs])
 
-    return text:replace($/$(hyphen)$(\n)/, "")
+    return text.replace($/$(hyphen)$(\n)/, "")
 
 func wrap(text:Text, width:Int, min_split=3, hyphen="-" -> Text):
     if width <= 0:
@@ -35,8 +35,8 @@ func wrap(text:Text, width:Int, min_split=3, hyphen="-" -> Text):
 
     lines : @[Text] = @[]
     line := ""
-    for word in text:split($/{whitespace}/):
-        letters := word:split()
+    for word in text.split($/{whitespace}/):
+        letters := word.split()
         skip if letters.length == 0
 
         while not _can_fit_word(line, letters, width):
@@ -49,17 +49,17 @@ func wrap(text:Text, width:Int, min_split=3, hyphen="-" -> Text):
                 split = split _max_ min_split
                 split = split _min_ (letters.length - min_split)
                 if line != "": line ++= " "
-                line ++= ((++: letters:to(split)) or "") ++ hyphen
-                letters = letters:from(split + 1)
+                line ++= ((++: letters.to(split)) or "") ++ hyphen
+                letters = letters.from(split + 1)
             else if line == "":
                 # Force split word without hyphenation:
                 if line != "": line ++= " "
-                line ++= (++: letters:to(line_space)) or ""
-                letters = letters:from(line_space + 1)
+                line ++= (++: letters.to(line_space)) or ""
+                letters = letters.from(line_space + 1)
             else:
                 pass # Move to next line
 
-            lines:insert(line)
+            lines.insert(line)
             line = ""
 
         if letters.length > 0:
@@ -67,9 +67,9 @@ func wrap(text:Text, width:Int, min_split=3, hyphen="-" -> Text):
             line ++= (++: letters) or ""
 
     if line != "":
-        lines:insert(line)
+        lines.insert(line)
 
-    return \n:join(lines)
+    return \n.join(lines)
 
 func _can_fit_word(line:Text, letters:[Text], width:Int -> Bool; inline):
     if line == "":
@@ -82,21 +82,21 @@ func main(files:[Path], width=80, inplace=no, min_split=3, rewrap=yes, hyphen=UN
         files = [(/dev/stdin)]
 
     for file in files:
-        text := file:read() or exit("Could not read file: $file")
+        text := file.read() or exit("Could not read file: $file")
 
         if rewrap:
             text = unwrap(text)
 
-        out := if file:is_file() and inplace:
+        out := if file.is_file() and inplace:
             file
         else:
             (/dev/stdout)
 
         first := yes
         wrapped_paragraphs : @[Text] = @[]
-        for paragraph in text:split($/{2+ nl}/):
-            wrapped_paragraphs:insert(
+        for paragraph in text.split($/{2+ nl}/):
+            wrapped_paragraphs.insert(
                 wrap(paragraph, width=width, min_split=min_split, hyphen=hyphen)
             )
 
-        out:write(\n\n:join(wrapped_paragraphs[]) ++ \n)
+        out.write(\n\n.join(wrapped_paragraphs[]) ++ \n)

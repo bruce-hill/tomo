@@ -94,12 +94,12 @@ For convenience, most operations that work on values can work with pointers to
 values implicitly. For example, if you have a struct type with a `.foo` field,
 you can use `ptr.foo` on a pointer to that struct type as well, without needing
 to use `ptr[].foo`. The same is true for array accesses like `ptr[i]` and method
-calls like `ptr:reversed()`.
+calls like `ptr.reversed()`.
 
 # Read-Only Views
 
-In a small number of API methods (`array:first()`, `array:binary_search()`,
-`array:sort()`, `array:sorted()`, and `array:heapify()`), the methods allow you
+In a small number of API methods (`array.first()`, `array.binary_search()`,
+`array.sort()`, `array.sorted()`, and `array.heapify()`), the methods allow you
 to provide custom comparison functions. However, for safety, we don't actually
 want the comparison methods to be able mutate the values inside of immutable
 array values. For implementation reasons, we can't pass the values themselves
@@ -112,7 +112,7 @@ inside of any datastructures as elements or members.
 
 ```tomo
 nums := @[10, 20, 30]
->> nums:first(func(x:&Int): x / 2 == 10)
+>> nums.first(func(x:&Int): x / 2 == 10)
 = 2 : Int?
 ```
 

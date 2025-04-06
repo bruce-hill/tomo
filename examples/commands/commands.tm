@@ -3,8 +3,8 @@
 use ./commands.c
 use -lunistring
 
-extern run_command:func(exe:Text, args:[Text], env:{Text=Text}, input:[Byte]?, output:&[Byte]?, error:&[Byte]? -> Int32)
-extern command_by_line:func(exe:Text, args:[Text], env:{Text=Text} -> func(->Text?)?)
+extern run_command : func(exe:Text, args:[Text], env:{Text=Text}, input:[Byte]?, output:&[Byte]?, error:&[Byte]? -> Int32)
+extern command_by_line : func(exe:Text, args:[Text], env:{Text=Text} -> func(->Text?)?)
 
 enum ExitType(Exited(status:Int32), Signaled(signal:Int32), Failed):
     func succeeded(e:ExitType -> Bool):
@@ -12,7 +12,7 @@ enum ExitType(Exited(status:Int32), Signaled(signal:Int32), Failed):
         else: return no
 
     func or_fail(e:ExitType, message:Text?=none):
-        if not e:succeeded():
+        if not e.succeeded():
             fail(message or "Program failed: $e")
 
 struct ProgramResult(stdout:[Byte], stderr:[Byte], exit_type:ExitType):
@@ -28,7 +28,7 @@ struct ProgramResult(stdout:[Byte], stderr:[Byte], exit_type:ExitType):
             if status == 0:
                 if text := Text.from_bytes(r.stdout):
                     if trim_newline:
-                        text = text:without_suffix(\n)
+                        text = text.without_suffix(\n)
                     return text
         else: return none
         return none
@@ -52,7 +52,7 @@ struct Command(command:Text, args:[Text]=[], env:{Text=Text}={}):
 
     func result(command:Command, input="", input_bytes:[Byte]=[] -> ProgramResult):
         if input.length > 0:
-            (&input_bytes):insert_all(input:bytes())
+            (&input_bytes).insert_all(input.bytes())
 
         stdout : [Byte] = []
         stderr : [Byte] = []
@@ -78,10 +78,10 @@ struct Command(command:Text, args:[Text]=[], env:{Text=Text}={}):
         return ExitType.Failed
 
     func get_output(command:Command, input="", trim_newline=yes -> Text?):
-        return command:result(input=input):output_text(trim_newline=trim_newline)
+        return command.result(input=input).output_text(trim_newline=trim_newline)
 
     func get_output_bytes(command:Command, input="", input_bytes:[Byte]=[] -> [Byte]?):
-        result := command:result(input=input, input_bytes=input_bytes)
+        result := command.result(input=input, input_bytes=input_bytes)
         when result.exit_type is Exited(status):
             if status == 0: return result.stdout
             return none

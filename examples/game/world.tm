@@ -44,11 +44,11 @@ struct World(player:@Player, goal:@Box, boxes:@[@Box], dt_accum=Num32(0.0), won=
     func update(w:@World, dt:Num32):
         w.dt_accum += dt
         while w.dt_accum > 0:
-            w:update_once()
+            w.update_once()
             w.dt_accum -= World.DT
 
     func update_once(w:@World):
-        w.player:update()
+        w.player.update()
 
         if solve_overlap(w.player.pos, Player.SIZE, w.goal.pos, w.goal.size) != Vector2(0,0):
             w.won = yes
@@ -60,24 +60,24 @@ struct World(player:@Player, goal:@Box, boxes:@[@Box], dt_accum=Num32(0.0), won=
 
     func draw(w:@World):
         for b in w.boxes:
-            b:draw()
-        w.goal:draw()
-        w.player:draw()
+            b.draw()
+        w.goal.draw()
+        w.player.draw()
 
         if w.won:
             DrawText(CString("WINNER"), GetScreenWidth()/Int32(2)-Int32(48*3), GetScreenHeight()/Int32(2)-Int32(24), 48, Color(0,0,0))
 
     func load_map(w:@World, map:Text):
-        if map:has("[]"):
-            map = map:translate({"[]"="#", "@ "="@", "  "=" "})
+        if map.has("[]"):
+            map = map.translate({"[]"="#", "@ "="@", "  "=" "})
         w.boxes = @[]
         box_size := Vector2(50., 50.)
-        for y,line in map:lines():
-            for x,cell in line:split():
+        for y,line in map.lines():
+            for x,cell in line.split():
                 if cell == "#":
                     pos := Vector2((Num32(x)-1) * box_size.x, (Num32(y)-1) * box_size.y)
                     box := @Box(pos, size=box_size, color=Color(0x80,0x80,0x80))
-                    w.boxes:insert(box)
+                    w.boxes.insert(box)
                 else if cell == "@":
                     pos := Vector2((Num32(x)-1) * box_size.x, (Num32(y)-1) * box_size.y)
                     pos += box_size/Num32(2) - Player.SIZE/Num32(2)

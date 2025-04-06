@@ -1468,7 +1468,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         // If we're iterating over a comprehension, that's actually just doing
         // one loop, we don't need to compile the comprehension as an array
         // comprehension. This is a common case for reducers like `(+: i*2 for i in 5)`
-        // or `(and) x:is_good() for x in xs`
+        // or `(and) x.is_good() for x in xs`
         if (for_->iter->tag == Comprehension) {
             auto comp = Match(for_->iter, Comprehension);
             ast_t *body = for_->body;
@@ -1552,7 +1552,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 stop);
         } else if (for_->iter->tag == MethodCall && streq(Match(for_->iter, MethodCall)->name, "onward") &&
             get_type(env, Match(for_->iter, MethodCall)->self)->tag == BigIntType) {
-            // Special case for Int:onward()
+            // Special case for Int.onward()
             arg_ast_t *args = Match(for_->iter, MethodCall)->args;
             arg_t *arg_spec = new(arg_t, .name="step", .type=INT_TYPE, .default_val=FakeAST(Int, .str="1"), .next=NULL);
             CORD step = compile_arguments(env, for_->iter, arg_spec, args);
@@ -1933,7 +1933,7 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
         ++depth;
 
     // Passing a literal value won't trigger an incref, because it's ephemeral,
-    // e.g. [10, 20]:reversed()
+    // e.g. [10, 20].reversed()
     if (t->tag != PointerType && needs_incref && !can_be_mutated(env, ast))
         needs_incref = false;
 
@@ -2001,7 +2001,7 @@ CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
     // should be from what we know the specific type of the return value is,
     // but it requires a bit of special logic.
     // For example:
-    //    x : [Int?] = [none]:sorted()
+    //    x : [Int?] = [none].sorted()
     // Here, we know that `[none]` is `[Int?]`, but we need to thread that
     // information through the compiler using an `ExplicitlyTyped` node.
     if (ast->tag == MethodCall) {
@@ -2924,7 +2924,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         if (streq(call->name, "serialized")) {
             if (call->args)
-                code_err(ast, ":serialized() doesn't take any arguments"); 
+                code_err(ast, ".serialized() doesn't take any arguments"); 
             return CORD_all("generic_serialize((", compile_declaration(self_t, "[1]"), "){",
                             compile(env, call->self), "}, ", compile_type_info(self_t), ")");
         }
@@ -2933,6 +2933,18 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *self_value_t = self_t;
         for (; self_value_t->tag == PointerType; self_value_t = Match(self_value_t, PointerType)->pointed)
             pointer_depth += 1;
+
+        if (self_value_t->tag == TypeInfoType || self_value_t->tag == ModuleType) {
+            return compile(env, WrapAST(ast, FunctionCall, .fn=WrapAST(call->self, FieldAccess, .fielded=call->self, .field=call->name),
+                                        .args=call->args));
+        }
+
+        type_t *field_type = get_field_type(self_value_t, call->name);
+        if (field_type && field_type->tag == ClosureType)
+            field_type = Match(field_type, ClosureType)->fn;
+        if (field_type && field_type->tag == FunctionType)
+            return compile(env, WrapAST(ast, FunctionCall, .fn=WrapAST(call->self, FieldAccess, .fielded=call->self, .field=call->name),
+                                        .args=call->args));
 
         CORD self = compile(env, call->self);
 

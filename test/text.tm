@@ -2,33 +2,33 @@ func main():
 	str := "Hello Amélie!"
 	say("Testing strings like $str")
 
-	>> str:upper()
+	>> str.upper()
 	= "HELLO AMÉLIE!"
-	>> str:lower()
+	>> str.lower()
 	= "hello amélie!"
-	>> str:lower():title()
+	>> str.lower().title()
 	= "Hello Amélie!"
 	>> str[1]
 	= "H"
 
-	>> "I":lower()
+	>> "I".lower()
 	= "i"
-	>> "I":lower(language="tr_TR")
+	>> "I".lower(language="tr_TR")
 	= "ı"
 
-	>> "i":upper()
+	>> "i".upper()
 	= "I"
-	>> "i":upper(language="tr_TR")
+	>> "i".upper(language="tr_TR")
 	= "İ"
 
-	>> "ian":title()
+	>> "ian".title()
 	= "Ian"
-	>> "ian":title(language="tr_TR")
+	>> "ian".title(language="tr_TR")
 	= "İan"
 
-	>> "I":caseless_equals("ı")
+	>> "I".caseless_equals("ı")
 	= no
-	>> "I":caseless_equals("ı", language="tr_TR")
+	>> "I".caseless_equals("ı", language="tr_TR")
 	= yes
 
 	>> str[9]
@@ -40,7 +40,7 @@ func main():
 	>> \U65\U301
 	= "é"
 
-	>> \{Penguin}:codepoint_names()
+	>> \{Penguin}.codepoint_names()
 	= ["PENGUIN"]
 
 	>> \[31;1]
@@ -50,11 +50,11 @@ func main():
 	= yes
 
 	amelie := "Am$(\UE9)lie"
-	>> amelie:split()
+	>> amelie.split()
 	= ["A", "m", "é", "l", "i", "e"]
-	>> amelie:utf32_codepoints()
+	>> amelie.utf32_codepoints()
 	= [65, 109, 233, 108, 105, 101]
-	>> amelie:bytes()
+	>> amelie.bytes()
 	= [0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65]
 	>> Text.from_bytes([0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65])!
 	= "Amélie"
@@ -62,36 +62,36 @@ func main():
 	= none
 
 	amelie2 := "Am$(\U65\U301)lie"
-	>> amelie2:split()
+	>> amelie2.split()
 	= ["A", "m", "é", "l", "i", "e"]
-	>> amelie2:utf32_codepoints()
+	>> amelie2.utf32_codepoints()
 	= [65, 109, 233, 108, 105, 101]
-	>> amelie2:bytes()
+	>> amelie2.bytes()
 	= [0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65]
 
-	>> amelie:codepoint_names()
+	>> amelie.codepoint_names()
 	= ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E WITH ACUTE", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
-	>> amelie2:codepoint_names()
+	>> amelie2.codepoint_names()
 	= ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E WITH ACUTE", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
 
-	>> "Hello":replace("e", "X")
+	>> "Hello".replace("e", "X")
 	= "HXllo"
 
-	>> "Hello":has("l")
+	>> "Hello".has("l")
 	= yes
-	>> "Hello":has("x")
+	>> "Hello".has("x")
 	= no
 
-	>> "Hello":replace("l", "")
+	>> "Hello".replace("l", "")
 	= "Heo"
-	>> "xxxx":replace("x", "")
+	>> "xxxx".replace("x", "")
 	= ""
-	>> "xxxx":replace("y", "")
+	>> "xxxx".replace("y", "")
 	= "xxxx"
-	>> "One two three four five six":replace("e ", "")
+	>> "One two three four five six".replace("e ", "")
 	= "Ontwo threfour fivsix"
 
-	>> amelie:has(amelie2)
+	>> amelie.has(amelie2)
 	= yes
 
 	>> multiline := "
@@ -118,135 +118,135 @@ func main():
 	= "one {nested} two 3"
 
 	c := "É̩"
-	>> c:codepoint_names()
+	>> c.codepoint_names()
 	= ["LATIN CAPITAL LETTER E WITH ACUTE", "COMBINING VERTICAL LINE BELOW"]
-	>> c == Text.from_codepoint_names(c:codepoint_names())!
+	>> c == Text.from_codepoint_names(c.codepoint_names())!
 	= yes
-	>> c == Text.from_codepoints(c:utf32_codepoints())
+	>> c == Text.from_codepoints(c.utf32_codepoints())
 	= yes
-	>> c == Text.from_bytes(c:bytes())!
+	>> c == Text.from_bytes(c.bytes())!
 	= yes
 
-	>> "one$(\n)two$(\n)three":lines()
+	>> "one$(\n)two$(\n)three".lines()
 	= ["one", "two", "three"]
-	>> "one$(\n)two$(\n)three$(\n)":lines()
+	>> "one$(\n)two$(\n)three$(\n)".lines()
 	= ["one", "two", "three"]
-	>> "one$(\n)two$(\n)three$(\n\n)":lines()
+	>> "one$(\n)two$(\n)three$(\n\n)".lines()
 	= ["one", "two", "three", ""]
-	>> "one$(\r\n)two$(\r\n)three$(\r\n)":lines()
+	>> "one$(\r\n)two$(\r\n)three$(\r\n)".lines()
 	= ["one", "two", "three"]
-	>> "":lines()
+	>> "".lines()
 	= []
 
 	say("Test splitting and joining text:")
-	>> "one,, two,three":split(",")
+	>> "one,, two,three".split(",")
 	= ["one", "", " two", "three"]
-	>> [t for t in "one,, two,three":by_split(",")]
+	>> [t for t in "one,, two,three".by_split(",")]
 	= ["one", "", " two", "three"]
-	>> "one,, two,three":split_any(", ")
+	>> "one,, two,three".split_any(", ")
 	= ["one", "two", "three"]
-	>> [t for t in "one,, two,three":by_split_any(", ")]
+	>> [t for t in "one,, two,three".by_split_any(", ")]
 	= ["one", "two", "three"]
-	>> ",one,, two,three,":split(",")
+	>> ",one,, two,three,".split(",")
 	= ["", "one", "", " two", "three", ""]
-	>> [t for t in ",one,, two,three,":by_split(",")]
+	>> [t for t in ",one,, two,three,".by_split(",")]
 	= ["", "one", "", " two", "three", ""]
-	>> ",one,, two,three,":split_any(", ")
+	>> ",one,, two,three,".split_any(", ")
 	= ["", "one", "two", "three", ""]
-	>> [t for t in ",one,, two,three,":by_split_any(", ")]
+	>> [t for t in ",one,, two,three,".by_split_any(", ")]
 	= ["", "one", "two", "three", ""]
 
-	>> "abc":split()
+	>> "abc".split()
 	= ["a", "b", "c"]
 
-	>> "one two three":split_any()
+	>> "one two three".split_any()
 	= ["one", "two", "three"]
 
-	>> ", ":join(["one", "two", "three"])
+	>> ", ".join(["one", "two", "three"])
 	= "one, two, three"
 
-	>> "":join(["one", "two", "three"])
+	>> "".join(["one", "two", "three"])
 	= "onetwothree"
 
-	>> "+":join(["one"])
+	>> "+".join(["one"])
 	= "one"
 
-	>> "+":join([])
+	>> "+".join([])
 	= ""
 
-	>> "":split()
+	>> "".split()
 	= []
 
 	say("Test text slicing:")
-	>> "abcdef":slice()
+	>> "abcdef".slice()
 	= "abcdef"
-	>> "abcdef":slice(from=3)
+	>> "abcdef".slice(from=3)
 	= "cdef"
-	>> "abcdef":slice(to=-2)
+	>> "abcdef".slice(to=-2)
 	= "abcde"
-	>> "abcdef":slice(from=2, to=4)
+	>> "abcdef".slice(from=2, to=4)
 	= "bcd"
-	>> "abcdef":slice(from=5, to=1)
+	>> "abcdef".slice(from=5, to=1)
 	= ""
 
 	>> house := "家"
 	= "家"
 	>> house.length
 	= 1
-	>> house:codepoint_names()
+	>> house.codepoint_names()
 	= ["CJK Unified Ideographs-5BB6"]
-	>> house:utf32_codepoints()
+	>> house.utf32_codepoints()
 	= [23478]
 
-	>> "🐧":codepoint_names()
+	>> "🐧".codepoint_names()
 	= ["PENGUIN"]
 
 	>> Text.from_codepoint_names(["not a valid name here buddy"])
 	= none
 
-	>> "Hello":replace("ello", "i")
+	>> "Hello".replace("ello", "i")
 	= "Hi"
 
-	>> "<tag>":translate({"<"="&lt;", ">"="&gt;"})
+	>> "<tag>".translate({"<"="&lt;", ">"="&gt;"})
 	= "&lt;tag&gt;"
 
-	>> "Abc":repeat(3)
+	>> "Abc".repeat(3)
 	= "AbcAbcAbc"
 
-	>> "abcde":starts_with("ab")
+	>> "abcde".starts_with("ab")
 	= yes
-	>> "abcde":starts_with("bc")
+	>> "abcde".starts_with("bc")
 	= no
 
-	>> "abcde":ends_with("de")
+	>> "abcde".ends_with("de")
 	= yes
-	>> "abcde":starts_with("cd")
+	>> "abcde".starts_with("cd")
 	= no
 
-	>> "abcde":without_prefix("ab")
+	>> "abcde".without_prefix("ab")
 	= "cde"
-	>> "abcde":without_suffix("ab")
+	>> "abcde".without_suffix("ab")
 	= "abcde"
 
-	>> "abcde":without_prefix("de")
+	>> "abcde".without_prefix("de")
 	= "abcde"
-	>> "abcde":without_suffix("de")
+	>> "abcde".without_suffix("de")
 	= "abc"
 
-	>> ("hello" ++ " " ++ "Amélie"):reversed()
+	>> ("hello" ++ " " ++ "Amélie").reversed()
 	= "eilémA olleh"
 
 	do:
 		say("Testing concatenation-stability:")
 		ab := Text.from_codepoint_names(["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"])!
-		>> ab:codepoint_names()
+		>> ab.codepoint_names()
 		= ["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"]
 		>> ab.length
 		= 1
 
 		a := Text.from_codepoint_names(["LATIN SMALL LETTER E"])!
 		b := Text.from_codepoint_names(["COMBINING VERTICAL LINE BELOW"])!
-		>> (a++b):codepoint_names()
+		>> (a++b).codepoint_names()
 		= ["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"]
 		>> (a++b) == ab
 		= yes
@@ -279,38 +279,38 @@ func main():
 		>> concat4 == final
 		= yes
 
-	>> "x":left_pad(5)
+	>> "x".left_pad(5)
 	= "    x"
-	>> "x":right_pad(5)
+	>> "x".right_pad(5)
 	= "x    "
-	>> "x":middle_pad(5)
+	>> "x".middle_pad(5)
 	= "  x  "
-	>> "1234":left_pad(8, "XYZ")
+	>> "1234".left_pad(8, "XYZ")
 	= "XYZX1234"
-	>> "1234":right_pad(8, "XYZ")
+	>> "1234".right_pad(8, "XYZ")
 	= "1234XYZX"
-	>> "1234":middle_pad(9, "XYZ")
+	>> "1234".middle_pad(9, "XYZ")
 	= "XY1234XYZ"
 
-	>> amelie:width()
+	>> amelie.width()
 	= 6
 	cowboy := "🤠"
-	>> cowboy:width()
+	>> cowboy.width()
 	= 2
-	>> cowboy:left_pad(4)
+	>> cowboy.left_pad(4)
 	= "  🤠"
-	>> cowboy:right_pad(4)
+	>> cowboy.right_pad(4)
 	= "🤠  "
-	>> cowboy:middle_pad(4)
+	>> cowboy.middle_pad(4)
 	= " 🤠 "
 
-	>> "   one,  ":trim(" ,")
+	>> "   one,  ".trim(" ,")
 	= "one"
-	>> "   one,  ":trim(" ,", left=no)
+	>> "   one,  ".trim(" ,", left=no)
 	= "   one"
-	>> "   one,  ":trim(" ,", right=no)
+	>> "   one,  ".trim(" ,", right=no)
 	= "one,  "
-	>> "  ":trim(" ,")
+	>> "  ".trim(" ,")
 	= ""
-	>> "  ":trim(" ,", left=no)
+	>> "  ".trim(" ,", left=no)
 	= ""

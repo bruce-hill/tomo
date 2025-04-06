@@ -10,7 +10,7 @@ enum _Method(GET, POST, PUT, PATCH, DELETE)
 func _send(method:_Method, url:Text, data:Text?, headers:[Text]=[] -> HTTPResponse):
     chunks : @[Text] = @[]
     save_chunk := func(chunk:CString, size:Int64, n:Int64):
-        chunks:insert(inline C:Text {
+        chunks.insert(inline C:Text {
             Text$format("%.*s", _$size*_$n, _$chunk)
         })
         return n*size
@@ -79,7 +79,7 @@ func _send(method:_Method, url:Text, data:Text?, headers:[Text]=[] -> HTTPRespon
 
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &_$code);
     }
-    return HTTPResponse(Int(code), "":join(chunks))
+    return HTTPResponse(Int(code), "".join(chunks))
 
 func get(url:Text, headers:[Text]=[] -> HTTPResponse):
     return _send(GET, url, none, headers)
@@ -99,7 +99,7 @@ func delete(url:Text, data:Text?=none, headers=["Content-Type: application/json"
 func main():
     say("GET:")
     say(get("https://httpbin.org/get").body)
-    say("Waiting 1sec...
+    say("Waiting 1sec...")
     sleep(1)
     say("POST:")
     say(post("https://httpbin.org/post", `{"key": "value"}`).body)

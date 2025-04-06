@@ -12,7 +12,7 @@ func main():
 	>> add_one(10)
 	= 11
 
-	>> shout := func(msg:Text): say("$(msg:upper())!")
+	>> shout := func(msg:Text): say("$(msg.upper())!")
 	>> shout("hello")
 
 	>> asdf := add_one
@@ -23,7 +23,7 @@ func main():
 	>> add_100(5)
 	= 105
 
-	>> shout2 := suffix_fn(func(t:Text): t:upper(), "!")
+	>> shout2 := suffix_fn(func(t:Text): t.upper(), "!")
 	>> shout2("hello")
 	= "HELLO!"
 

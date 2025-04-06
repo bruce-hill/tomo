@@ -69,18 +69,18 @@ struct IntQueue(_queue:@[Int], _mutex:@pthread_mutex_t, _cond:@pthread_cond_t):
         return IntQueue(@initial, pthread_mutex_t.new(), pthread_cond_t.new())
 
     func give(q:IntQueue, n:Int):
-        do: q._mutex:lock()
-            q._queue:insert(n)
-            q._mutex:unlock()
-        q._cond:signal()
+        do: q._mutex.lock()
+            q._queue.insert(n)
+            q._mutex.unlock()
+        q._cond.signal()
 
     func take(q:IntQueue -> Int):
-        do: q._mutex:lock()
-            n := q._queue:pop(1)
+        do: q._mutex.lock()
+            n := q._queue.pop(1)
             while not n:
-                q._cond:wait(q._mutex)
-                n = q._queue:pop(1)
-            q._mutex:unlock()
+                q._cond.wait(q._mutex)
+                n = q._queue.pop(1)
+            q._mutex.unlock()
             return n!
         fail("Unreachable")
 
@@ -90,29 +90,29 @@ func main():
 
     say_mutex := pthread_mutex_t.new()
     announce := func(speaker:Text, text:Text):
-        do: say_mutex:lock()
+        do: say_mutex.lock()
             say("$\033[2m[$speaker]$\033[m $text")
-            say_mutex:unlock()
+            say_mutex.unlock()
 
     worker := pthread_t.new(func():
         say("I'm in the thread!")
         repeat:
             announce("worker", "waiting for job")
-            job := jobs:take()
+            job := jobs.take()
             result := job * 10
             announce("worker", "Jobbing $job into $result")
-            results:give(result)
+            results.give(result)
             announce("worker", "Signaled $result")
     )
 
     for i in 10:
         announce("boss", "Pushing job $i")
-        jobs:give(i)
+        jobs.give(i)
         announce("boss", "Gave job $i")
 
     for i in 10:
         announce("boss", "Getting result...")
-        result := results:take()
+        result := results.take()
         announce("boss", "Got result $result")
 
-    >> worker:cancel()
+    >> worker.cancel()

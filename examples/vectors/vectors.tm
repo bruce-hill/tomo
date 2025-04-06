@@ -19,24 +19,24 @@ struct Vec2(x,y:Num):
     func divided_by(v:Vec2, divisor:Num->Vec2; inline):
         return Vec2(v.x/divisor, v.y/divisor)
     func length(v:Vec2->Num; inline):
-        return (v.x*v.x + v.y*v.y):sqrt()
+        return (v.x*v.x + v.y*v.y).sqrt()
     func dist(a,b:Vec2->Num; inline):
-        return a:minus(b):length()
+        return a.minus(b).length()
     func angle(v:Vec2->Num; inline):
         return Num.atan2(v.y, v.x)
     func norm(v:Vec2->Vec2; inline):
         if v.x == 0 and v.y == 0:
             return v
-        len := v:length()
+        len := v.length()
         return Vec2(v.x/len, v.y/len)
     func rotated(v:Vec2, radians:Num -> Vec2):
-        cos := radians:cos() or return v
-        sin := radians:sin() or return v
+        cos := radians.cos() or return v
+        sin := radians.sin() or return v
         return Vec2(cos*v.x - sin*v.y, sin*v.x + cos*v.y)
     func mix(a,b:Vec2, amount:Num -> Vec2):
         return Vec2(
-            amount:mix(a.x, b.x),
-            amount:mix(a.y, b.y),
+            amount.mix(a.x, b.x),
+            amount.mix(a.y, b.y),
         )
 
 struct Vec3(x,y,z:Num):
@@ -58,19 +58,19 @@ struct Vec3(x,y,z:Num):
     func divided_by(v:Vec3, divisor:Num->Vec3; inline):
         return Vec3(v.x/divisor, v.y/divisor, v.z/divisor)
     func length(v:Vec3->Num; inline):
-        return (v.x*v.x + v.y*v.y + v.z*v.z):sqrt()
+        return (v.x*v.x + v.y*v.y + v.z*v.z).sqrt()
     func dist(a,b:Vec3->Num; inline):
-        return a:minus(b):length()
+        return a.minus(b).length()
     func norm(v:Vec3->Vec3; inline):
         if v.x == 0 and v.y == 0 and v.z == 0:
             return v
-        len := v:length()
+        len := v.length()
         return Vec3(v.x/len, v.y/len, v.z/len)
     func mix(a,b:Vec3, amount:Num -> Vec3):
         return Vec3(
-            amount:mix(a.x, b.x),
-            amount:mix(a.y, b.y),
-            amount:mix(a.z, b.z),
+            amount.mix(a.x, b.x),
+            amount.mix(a.y, b.y),
+            amount.mix(a.z, b.z),
         )
 
 
@@ -97,7 +97,7 @@ struct IVec2(x,y:Int):
         y := Num(v.y)
         return Num.sqrt(x*x + y*y)
     func dist(a,b:IVec2->Num; inline):
-        return a:minus(b):length()
+        return a.minus(b).length()
     func angle(v:IVec2->Num; inline):
         return Num.atan2(Num(v.y), Num(v.x))
 
@@ -125,7 +125,7 @@ struct IVec3(x,y,z:Int):
         z := Num(v.z)
         return Num.sqrt(x*x + y*y + z*z)
     func dist(a,b:IVec3->Num; inline):
-        return a:minus(b):length()
+        return a.minus(b).length()
 
 func main():
     >> Vec2(10, 20)

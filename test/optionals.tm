@@ -57,7 +57,7 @@ func maybe_lambda(should_i:Bool-> func()?):
 
 func maybe_c_string(should_i:Bool->CString?):
     if should_i:
-        return ("hi":as_c_string())?
+        return ("hi".as_c_string())?
     else:
         return none
 
@@ -248,7 +248,7 @@ func main():
     >> nones : {Int?} = {none, none}
     >> also_nones : {Int?} = {none}
     >> nones == also_nones
-    >> [5?, none, none, 6?]:sorted()
+    >> [5?, none, none, 6?].sorted()
     = [none, none, 5, 6]
 
     do:

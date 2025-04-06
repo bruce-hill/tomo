@@ -14,12 +14,12 @@ func main():
 	>> Num.PI
 	= 3.141592653589793
 
-	>> Num.PI:format(precision=10)
+	>> Num.PI.format(precision=10)
 	= "3.1415926536"
 
 	>> Num.INF
 	= Num.INF
-	>> Num.INF:isinf()
+	>> Num.INF.isinf()
 	= yes
 
 	>> none_num : Num? = none
@@ -53,24 +53,24 @@ func main():
 	# >> 0./0.
 	# = none
 
-	>> Num.PI:cos()!:near(-1)
+	>> Num.PI.cos()!.near(-1)
 	= yes
-	>> Num.PI:sin()!:near(0)
+	>> Num.PI.sin()!.near(0)
 	= yes
 
-	>> Num.INF:near(-Num.INF)
+	>> Num.INF.near(-Num.INF)
 	= no
 
 	>> Num32.sqrt(16)
 	= Num32(4)?
 
-	>> 0.25:mix(10, 20)
+	>> (0.25).mix(10, 20)
 	= 12.5
-	>> 2.0:mix(10, 20)
+	>> (2.0).mix(10, 20)
 	= 30.
 
 	>> Num(5)
 	= 5.
 
-	>> 0.5:percent()
+	>> (0.5).percent()
 	= "50%"

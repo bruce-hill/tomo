@@ -1,7 +1,7 @@
 lang HTML:
 	HEADER := $HTML"<!DOCTYPE HTML>"
 	convert(t:Text->HTML):
-		t = t:translate({
+		t = t.translate({
 			"&"="&amp;",
 			"<"="&lt;",
 			">"="&gt;",
@@ -43,7 +43,7 @@ func main():
 	>> $HTML"$(Int8(3))"
 	= $HTML"3"
 
-	>> html:paragraph()
+	>> html.paragraph()
 	= $HTML"<p>Hello I &lt;3 hax!</p>"
 
 	>> Text(html)

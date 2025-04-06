@@ -11,7 +11,7 @@ use patterns
 
 lang Colorful:
     convert(text:Text -> Colorful):
-        text = text:translate({"@"="@(at)", "("="@(lparen)", ")"="@(rparen)"})
+        text = text.translate({"@"="@(at)", "("="@(lparen)", ")"="@(rparen)"})
         return Colorful.from_text(text)
 
     convert(i:Int -> Colorful): return Colorful.from_text("$i")
@@ -21,13 +21,13 @@ lang Colorful:
         return CSI ++ "m" ++ _for_terminal(c, _TermState())
 
     func print(c:Colorful, newline=yes):
-        say(c:for_terminal(), newline=newline)
+        say(c.for_terminal(), newline=newline)
 
 
 func main(texts:[Text], files:[Path]=[], by_line=no):
     for i,text in texts:
         colorful := Colorful.from_text(text)
-        colorful:print(newline=no)
+        colorful.print(newline=no)
         if i == texts.length: say("")
         else: say(" ", newline=no)
 
@@ -36,27 +36,27 @@ func main(texts:[Text], files:[Path]=[], by_line=no):
 
     for file in files:
         if by_line:
-            for line in file:by_line() or exit("Could not read file: $file"):
+            for line in file.by_line() or exit("Could not read file: $file"):
                 colorful := Colorful.from_text(line)
-                colorful:print()
+                colorful.print()
         else:
-            colorful := Colorful.from_text(file:read() or exit("Could not read file: $file"))
-            colorful:print(newline=no)
+            colorful := Colorful.from_text(file.read() or exit("Could not read file: $file"))
+            colorful.print(newline=no)
 
 
 func _for_terminal(c:Colorful, state:_TermState -> Text):
-    return c.text:map_pattern(recursive=no, $Pat/@(?)/, func(m:PatternMatch): _add_ansi_sequences(m.captures[1], state))
+    return c.text.map_pattern(recursive=no, $Pat/@(?)/, func(m:PatternMatch): _add_ansi_sequences(m.captures[1], state))
 
 enum _Color(Default, Bright(color:Int16), Color8Bit(color:Int16), Color24Bit(color:Int32)):
     func from_text(text:Text -> _Color?):
-        if text:matches_pattern($Pat/#{3-6 hex}/):
-            hex := text:from(2)
+        if text.matches_pattern($Pat/#{3-6 hex}/):
+            hex := text.from(2)
             return none unless hex.length == 3 or hex.length == 6
             if hex.length == 3:
                 hex = hex[1]++hex[1]++hex[2]++hex[2]++hex[3]++hex[3]
             n := Int32.parse("0x" ++ hex) or return none
             return Color24Bit(n)
-        else if text:matches_pattern($Pat/{1-3 digit}/):
+        else if text.matches_pattern($Pat/{1-3 digit}/):
             n := Int16.parse(text) or return none
             if n >= 0 and n <= 255: return Color8Bit(n)
         else if text == "black": return _Color.Color8Bit(0)
@@ -118,20 +118,20 @@ enum _Color(Default, Bright(color:Int16), Color8Bit(color:Int16), Color24Bit(col
 
 func _toggle(sequences:&[Text], cur,new:Bool, apply,unapply:Text; inline):
     if new and not cur:
-        sequences:insert(apply)
+        sequences.insert(apply)
     else if cur and not new:
-        sequences:insert(unapply)
+        sequences.insert(unapply)
 
 func _toggle2(sequences:&[Text], cur1,cur2,new1,new2:Bool, apply1,apply2,unapply:Text; inline):
     return if new1 == cur1 and new2 == cur2
     if (cur1 and not new1) or (cur2 and not new2): # Gotta wipe at least one
-        sequences:insert(unapply)
+        sequences.insert(unapply)
         cur1, cur2 = no, no # Wiped out
 
     if new1 and not cur1:
-        sequences:insert(apply1)
+        sequences.insert(apply1)
     if new2 and not cur2:
-        sequences:insert(apply2)
+        sequences.insert(apply2)
 
 struct _TermState(
     bold=no, dim=no, italic=no, underline=no, blink=no,
@@ -154,35 +154,35 @@ struct _TermState(
         _toggle2(sequences, old.subscript, old.subscript, new.superscript, new.superscript, "73", "74", "75")
 
         if new.bg != old.bg:
-            sequences:insert(new.bg:bg())
+            sequences.insert(new.bg.bg())
 
         if new.fg != old.fg:
-            sequences:insert(new.fg:fg())
+            sequences.insert(new.fg.fg())
 
         if new.underline_color != old.underline_color:
-            sequences:insert(new.underline_color:underline())
+            sequences.insert(new.underline_color.underline())
 
         if sequences.length == 0:
             return ""
-        return CSI ++ ";":join(sequences) ++ "m"
+        return CSI ++ ";".join(sequences) ++ "m"
 
 func _add_ansi_sequences(text:Text, prev_state:_TermState -> Text):
     if text == "lparen": return "("
     else if text == "rparen": return ")"
     else if text == "@" or text == "at": return "@"
     parts := (
-        text:pattern_captures($Pat/{0+..}:{0+..}/) or
+        text.pattern_captures($Pat/{0+..}:{0+..}/) or
         return "@("++_for_terminal(Colorful.from_text(text), prev_state)++")"
     )
-    attributes := parts[1]:split_pattern($Pat/{0+space},{0+space}/)
+    attributes := parts[1].split_pattern($Pat/{0+space},{0+space}/)
     new_state := prev_state
     for attr in attributes:
-        if attr:starts_with("fg="):
-            new_state.fg = _Color.from_text(attr:from(4))!
-        else if attr:starts_with("bg="):
-            new_state.bg = _Color.from_text(attr:from(4))!
-        else if attr:starts_with("ul="):
-            new_state.underline_color = _Color.from_text(attr:from(4))!
+        if attr.starts_with("fg="):
+            new_state.fg = _Color.from_text(attr.from(4))!
+        else if attr.starts_with("bg="):
+            new_state.bg = _Color.from_text(attr.from(4))!
+        else if attr.starts_with("ul="):
+            new_state.underline_color = _Color.from_text(attr.from(4))!
         else if color := _Color.from_text(attr):
             new_state.fg = color
         else if attr == "b" or attr == "bold":
@@ -212,7 +212,7 @@ func _add_ansi_sequences(text:Text, prev_state:_TermState -> Text):
         else:
             fail("Invalid attribute: '$attr'")
 
-    result := prev_state:apply(new_state)
-    result ++= parts[2]:map_pattern(recursive=no, $Pat/@(?)/, func(m:PatternMatch): _add_ansi_sequences(m.captures[1], new_state))
-    result ++= new_state:apply(prev_state)
+    result := prev_state.apply(new_state)
+    result ++= parts[2].map_pattern(recursive=no, $Pat/@(?)/, func(m:PatternMatch): _add_ansi_sequences(m.captures[1], new_state))
+    result ++= new_state.apply(prev_state)
     return result

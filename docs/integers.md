@@ -120,7 +120,7 @@ rounding _towards zero_, and modulus never gives negative results:
 
 Each integer type has its own version of the following functions. Functions
 can be called either on the type itself: `Int.sqrt(x)` or as a method call:
-`x:sqrt()`. Method call syntax is preferred.
+`x.sqrt()`. Method call syntax is preferred.
 
 - [`func abs(x: Int -> Int)`](#abs)
 - [`func choose(n: Int, k: Int -> Int)`](#choose)
@@ -151,7 +151,7 @@ The absolute value of `x`.
 
 **Example:**  
 ```tomo
->> -10:abs()
+>> (-10).abs()
 = 10
 ```
 
@@ -159,8 +159,8 @@ The absolute value of `x`.
 
 ### `choose`
 Computes the binomial coefficient of the given numbers (the equivalent of `n`
-choose `k` in combinatorics). This is equal to `n:factorial()/(k:factorial() *
-(n-k):factorial())`.
+choose `k` in combinatorics). This is equal to `n.factorial()/(k.factorial() *
+(n-k).factorial())`.
 
 ```tomo
 func choose(n: Int, k: Int -> Int)
@@ -175,7 +175,7 @@ The binomial coefficient, equivalent to the number of ways to uniquely choose
 
 **Example:**  
 ```tomo
->> 4:choose(2)
+>> (4).choose(2)
 = 6
 ```
 
@@ -198,7 +198,7 @@ The first argument clamped between the other two arguments.
 
 **Example:**  
 ```tomo
->> 2:clamped(5, 10)
+>> (2).clamped(5, 10)
 = 5
 ```
 
@@ -218,7 +218,7 @@ The factorial of the given integer.
 
 **Example:**  
 ```tomo
->> 10:factorial()
+>> (10).factorial()
 = 3628800
 ```
 
@@ -239,7 +239,7 @@ A string representation of the integer, padded to the specified number of digits
 
 **Example:**  
 ```tomo
->> 42:format(digits=5)
+>> (42).format(digits=5)
 = "00042"
 ```
 
@@ -262,7 +262,7 @@ The hexadecimal string representation of the integer.
 
 **Example:**  
 ```tomo
->> 255:hex(digits=4, uppercase=yes, prefix=yes)
+>> (255).hex(digits=4, uppercase=yes, prefix=yes)
 = "0x00FF"
 ```
 
@@ -289,9 +289,9 @@ func is_prime(x: Int, reps: Int = 50 -> Bool)
 
 **Example:**  
 ```tomo
->> 7:is_prime()
+>> (7).is_prime()
 = yes
->> 6:is_prime()
+>> (6).is_prime()
 = no
 ```
 
@@ -317,7 +317,7 @@ The next prime number greater than `x`.
 
 **Example:**  
 ```tomo
->> 11:next_prime()
+>> (11).next_prime()
 = 13
 ```
 
@@ -339,7 +339,7 @@ The octal string representation of the integer.
 
 **Example:**  
 ```tomo
->> 64:octal(digits=4, prefix=yes)
+>> (64).octal(digits=4, prefix=yes)
 = "0o0100"
 ```
 
@@ -362,8 +362,8 @@ An iterator function that counts onward from the starting integer.
 **Example:**  
 ```tomo
 nums : &[Int] = &[]
-for i in 5:onward():
-    nums:insert(i)
+for i in (5).onward():
+    nums.insert(i)
     stop if i == 10
 >> nums[]
 = [5, 6, 7, 8, 9, 10]
@@ -425,7 +425,7 @@ The previous prime number less than `x`.
 
 **Example:**  
 ```tomo
->> 11:prev_prime()
+>> (11).prev_prime()
 = 7
 ```
 
@@ -445,9 +445,9 @@ The integer part of the square root of `x`.
 
 **Example:**  
 ```tomo
->> 16:sqrt()
+>> (16).sqrt()
 = 4
->> 17:sqrt()
+>> (17).sqrt()
 = 4
 ```
 
@@ -470,13 +470,13 @@ An iterator function that returns each integer in the given range (inclusive).
 
 **Example:**  
 ```tomo
->> 2:to(5)
+>> (2).to(5)
 = func(->Int?)
->> [x for x in 2:to(5)]
+>> [x for x in (2).to(5)]
 = [2, 3, 4, 5]
->> [x for x in 5:to(2)]
+>> [x for x in (5).to(2)]
 = [5, 4, 3, 2]
 
->> [x for x in 2:to(5, step=2)]
+>> [x for x in (2).to(5, step=2)]
 = [2, 4]
 ```

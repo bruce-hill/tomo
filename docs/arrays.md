@@ -29,16 +29,16 @@ Arrays can also use comprehensions, where you specify how to dynamically create
 all the elements by iteration instead of manually specifying each:
 
 ```tomo
->> [i*10 for i in 3:to(8)]
+>> [i*10 for i in (3).to(8)]
 = [30, 40, 50, 60, 70, 80]
->> [i*10 for i in 3:to(8) if i != 4]
+>> [i*10 for i in (3).to(8) if i != 4]
 = [30, 50, 60, 70, 80]
 ```
 
 Comprehensions can be combined with regular items or other comprehensions:
 
 ```tomo
->> [-1, i*10 for i in 3:to(8), i for i in 3]
+>> [-1, i*10 for i in (3).to(8), i for i in 3]
 = [-1, 30, 40, 50, 60, 70, 80, 1, 2, 3]
 ```
 
@@ -122,7 +122,7 @@ in bytes between each element in the array. The reason this is mentioned is
 that it is possible to create immutable slices of arrays in constant time by
 creating a new struct that points to the appropriate starting place for the
 array items and has the appropriate stride. The upshot is that a method like
-`array:reversed()` does not actually copy the array, it simply returns a struct
+`array.reversed()` does not actually copy the array, it simply returns a struct
 that points to the back of the array with a negative stride. Arrays adhere to
 copy-on-write semantics, so we can cheaply create many read-only references to
 the same data, and only need to do copying if we plan to modify data. After
@@ -146,13 +146,13 @@ explicitly perform an assignment operation on the variable or call a method on
 the variable.
 
 Because it would be tedious to require users to write all array operations as
-pure functions like `array = array:with_value_at_index(value=x, index=i)`, Tomo
+pure functions like `array = array.with_value_at_index(value=x, index=i)`, Tomo
 provides the familiar imperative syntax for modifying arrays, but keeps the
 semantics of the pure functional style. Writing `array[i] = x` is
-_semantically_ equivalent to `array = array:with_value_at_index(value=x,
+_semantically_ equivalent to `array = array.with_value_at_index(value=x,
 index=i)`, but much more readable and easy to write. Similarly,
-`array:insert(x)` is semantically equivalent to `array =
-array:with_value_inserted(x)`. We implement these mutating methods as functions
+`array.insert(x)` is semantically equivalent to `array =
+array.with_value_inserted(x)`. We implement these mutating methods as functions
 that take a pointer to an array variable, which then either mutate the array's
 data in-place (if this is the only thing referencing that data) or construct a
 new array and store its value in the memory where the array variable is stored.
@@ -210,7 +210,7 @@ behavior that you get in Python when you create a `list`:
 nums := @[10, 20, 30]
 tmp := nums
 
-nums:insert(40)
+nums.insert(40)
 >> tmp
 = @[10, 20, 30, 40]
 ```
@@ -278,13 +278,13 @@ place where it would be found if it were inserted and the array were sorted.
 
 **Example:**  
 ```tomo
->> [1, 3, 5, 7, 9]:binary_search(5)
+>> [1, 3, 5, 7, 9].binary_search(5)
 = 3
 
->> [1, 3, 5, 7, 9]:binary_search(-999)
+>> [1, 3, 5, 7, 9].binary_search(-999)
 = 1
 
->> [1, 3, 5, 7, 9]:binary_search(999)
+>> [1, 3, 5, 7, 9].binary_search(999)
 = 6
 ```
 
@@ -305,7 +305,7 @@ A new array with every `step`-th element from the original array.
 
 **Example:**  
 ```tomo
->> [1, 2, 3, 4, 5, 6]:by(2)
+>> [1, 2, 3, 4, 5, 6].by(2)
 = [1, 3, 5]
 ```
 
@@ -325,7 +325,7 @@ Nothing.
 
 **Example:**  
 ```tomo
->> my_array:clear()
+>> my_array.clear()
 ```
 
 ---
@@ -344,7 +344,7 @@ A table mapping each element to its count.
 
 **Example:**  
 ```tomo
->> [10, 20, 30, 30, 30]:counts()
+>> [10, 20, 30, 30, 30].counts()
 = {10=1, 20=1, 30=3}
 ```
 
@@ -365,10 +365,10 @@ The index of the first occurrence or `!Int` if not found.
 
 **Example:**  
 ```tomo
->> [10, 20, 30, 40, 50]:find(20)
+>> [10, 20, 30, 40, 50].find(20)
 = 2 : Int?
 
->> [10, 20, 30, 40, 50]:find(9999)
+>> [10, 20, 30, 40, 50].find(9999)
 = none : Int?
 ```
 
@@ -391,9 +391,9 @@ item matches.
 
 **Example:**  
 ```tomo
->> [4, 5, 6]:find(func(i:&Int): i:is_prime())
+>> [4, 5, 6].find(func(i:&Int): i.is_prime())
 = 5 : Int?
->> [4, 6, 8]:find(func(i:&Int): i:is_prime())
+>> [4, 6, 8].find(func(i:&Int): i.is_prime())
 = none : Int?
 ```
 
@@ -414,7 +414,7 @@ A new array starting from the specified index.
 
 **Example:**  
 ```tomo
->> [10, 20, 30, 40, 50]:from(3)
+>> [10, 20, 30, 40, 50].from(3)
 = [30, 40, 50]
 ```
 
@@ -434,7 +434,7 @@ func has(arr: [T] -> Bool)
 
 **Example:**  
 ```tomo
->> [10, 20, 30]:has(20)
+>> [10, 20, 30].has(20)
 = yes
 ```
 
@@ -458,8 +458,8 @@ The removed top element of the heap or `none` if the array is empty.
 **Example:**  
 ```tomo
 >> my_heap := [30, 10, 20]
->> my_heap:heapify()
->> my_heap:heap_pop()
+>> my_heap.heapify()
+>> my_heap.heap_pop()
 = 10
 ```
 
@@ -483,7 +483,7 @@ Nothing.
 
 **Example:**  
 ```tomo
->> my_heap:heap_push(10)
+>> my_heap.heap_push(10)
 ```
 
 ---
@@ -505,7 +505,7 @@ Nothing.
 **Example:**  
 ```tomo
 >> my_heap := [30, 10, 20]
->> my_heap:heapify()
+>> my_heap.heapify()
 ```
 
 ---
@@ -529,11 +529,11 @@ Nothing.
 **Example:**  
 ```tomo
 >> arr := [10, 20]
->> arr:insert(30)
+>> arr.insert(30)
 >> arr
 = [10, 20, 30]
 
->> arr:insert(999, at=2)
+>> arr.insert(999, at=2)
 >> arr
 = [10, 999, 20, 30]
 ```
@@ -559,11 +559,11 @@ Nothing.
 **Example:**  
 ```tomo
 arr := [10, 20]
-arr:insert_all([30, 40])
+arr.insert_all([30, 40])
 >> arr
 = [10, 20, 30, 40]
 
-arr:insert_all([99, 100], at=2)
+arr.insert_all([99, 100], at=2)
 >> arr
 = [10, 99, 100, 20, 30, 40]
 ```
@@ -590,12 +590,12 @@ otherwise the item at the given index.
 ```tomo
 >> arr := [10, 20, 30, 40]
 
->> arr:pop()
+>> arr.pop()
 = 40
 >> arr
 = &[10, 20, 30]
 
->> arr:pop(index=2)
+>> arr.pop(index=2)
 = 20
 >> arr
 = &[10, 30]
@@ -620,7 +620,7 @@ A random element from the array.
 
 **Example:**  
 ```tomo
->> [10, 20, 30]:random()
+>> [10, 20, 30].random()
 = 20
 ```
 
@@ -643,11 +643,11 @@ Nothing.
 **Example:**  
 ```tomo
 arr := [10, 20, 30, 40, 50]
-arr:remove_at(2)
+arr.remove_at(2)
 >> arr
 = [10, 30, 40, 50]
 
-arr:remove_at(2, count=2)
+arr.remove_at(2, count=2)
 >> arr
 = [10, 50]
 ```
@@ -671,11 +671,11 @@ Nothing.
 **Example:**  
 ```tomo
 arr := [10, 20, 10, 20, 30]
-arr:remove_item(10)
+arr.remove_item(10)
 >> arr
 = [20, 20, 30]
 
-arr:remove_item(20, max_count=1)
+arr.remove_item(20, max_count=1)
 >> arr
 = [20, 30]
 ```
@@ -696,7 +696,7 @@ A slice of the array with elements in reverse order.
 
 **Example:**  
 ```tomo
->> [10, 20, 30]:reversed()
+>> [10, 20, 30].reversed()
 = [30, 20, 10]
 ```
 
@@ -734,7 +734,7 @@ A list of sampled elements from the array.
 
 **Example:**  
 ```tomo
->> [10, 20, 30]:sample(2, weights=[90%, 5%, 5%])
+>> [10, 20, 30].sample(2, weights=[90%, 5%, 5%])
 = [10, 10]
 ```
 
@@ -757,7 +757,7 @@ Nothing.
 
 **Example:**  
 ```tomo
->> arr:shuffle()
+>> arr.shuffle()
 ```
 
 ---
@@ -779,7 +779,7 @@ A new array with shuffled elements.
 
 **Example:**  
 ```tomo
->> [10, 20, 30, 40]:shuffled()
+>> [10, 20, 30, 40].shuffled()
 = [40, 10, 30, 20]
 ```
 
@@ -803,10 +803,10 @@ second-to-last, and so on.
 
 **Example:**  
 ```tomo
->> [10, 20, 30, 40, 50]:slice(2, 4)
+>> [10, 20, 30, 40, 50].slice(2, 4)
 = [20, 30, 40]
 
->> [10, 20, 30, 40, 50]:slice(-3, -2)
+>> [10, 20, 30, 40, 50].slice(-3, -2)
 = [30, 40]
 ```
 
@@ -829,11 +829,11 @@ Nothing.
 **Example:**  
 ```tomo
 arr := [40, 10, -30, 20]
-arr:sort()
+arr.sort()
 >> arr
 = [-30, 10, 20, 40]
 
-arr:sort(func(a,b:&Int): a:abs() <> b:abs())
+arr.sort(func(a,b:&Int): a.abs() <> b.abs())
 >> arr
 = [10, 20, -30, 40]
 ```
@@ -856,10 +856,10 @@ A new array with sorted elements.
 
 **Example:**  
 ```tomo
->> [40, 10, -30, 20]:sorted()
+>> [40, 10, -30, 20].sorted()
 = [-30, 10, 20, 40]
 
->> [40, 10, -30, 20]:sorted(func(a,b:&Int): a:abs() <> b:abs())
+>> [40, 10, -30, 20].sorted(func(a,b:&Int): a.abs() <> b.abs())
 = [10, 20, -30, 40]
 ```
 
@@ -880,10 +880,10 @@ A new array containing elements from the start up to the specified index.
 
 **Example:**  
 ```tomo
->> [10, 20, 30, 40, 50]:to(3)
+>> [10, 20, 30, 40, 50].to(3)
 = [10, 20, 30]
 
->> [10, 20, 30, 40, 50]:to(-2)
+>> [10, 20, 30, 40, 50].to(-2)
 = [10, 20, 30, 40]
 ```
 
@@ -903,6 +903,6 @@ A set containing only unique elements from the array.
 
 **Example:**  
 ```tomo
->> [10, 20, 10, 10, 30]:unique()
+>> [10, 20, 10, 10, 30].unique()
 = {10, 20, 30}
 ```

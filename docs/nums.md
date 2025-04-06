@@ -115,7 +115,7 @@ provided are not NaN.
 
 Each Num type has its own version of the following functions. Functions can be
 called either on the type itself: `Num.sqrt(x)` or as a method call:
-`x:sqrt()`. Method call syntax is preferred.
+`x.sqrt()`. Method call syntax is preferred.
 
 ---
 
@@ -184,7 +184,7 @@ The absolute value of `n`.
 
 **Example:**
 ```tomo
->> -3.5:abs()
+>> (-3.5).abs()
 = 3.5
 ```
 
@@ -204,7 +204,7 @@ The arc cosine of `x` in radians.
 
 **Example:**
 ```tomo
->> 0.0:acos() // -> (π/2)
+>> (0.0).acos() // -> (π/2)
 = 1.5708
 ```
 
@@ -224,7 +224,7 @@ The inverse hyperbolic cosine of `x`.
 
 **Example:**
 ```tomo
->> 1.0:acosh()
+>> (1.0).acosh()
 = 0
 ```
 
@@ -244,7 +244,7 @@ The arc sine of `x` in radians.
 
 **Example:**
 ```tomo
->> 0.5:asin()  // -> (π/6)
+>> (0.5).asin()  // -> (π/6)
 = 0.5236
 ```
 
@@ -264,7 +264,7 @@ The inverse hyperbolic sine of `x`.
 
 **Example:**
 ```tomo
->> 0.0:asinh()
+>> (0.0).asinh()
 = 0
 ```
 
@@ -284,7 +284,7 @@ The arc tangent of `x` in radians.
 
 **Example:**
 ```tomo
->> 1.0:atan() // -> (π/4)
+>> (1.0).atan() // -> (π/4)
 = 0.7854
 ```
 
@@ -325,7 +325,7 @@ The inverse hyperbolic tangent of `x`.
 
 **Example:**
 ```tomo
->> 0.5:atanh()
+>> (0.5).atanh()
 = 0.5493
 ```
 
@@ -345,7 +345,7 @@ The cube root of `x`.
 
 **Example:**
 ```tomo
->> 27.0:cbrt()
+>> (27.0).cbrt()
 = 3
 ```
 
@@ -365,7 +365,7 @@ The smallest integer greater than or equal to `x`.
 
 **Example:**
 ```tomo
->> 3.2:ceil()
+>> (3.2).ceil()
 = 4
 ```
 
@@ -388,7 +388,7 @@ The first argument clamped between the other two arguments.
 
 **Example:**  
 ```tomo
->> 2.5:clamped(5.5, 10.5)
+>> (2.5).clamped(5.5, 10.5)
 = 5.5
 ```
 
@@ -409,7 +409,7 @@ A number with the magnitude of `x` and the sign of `y`.
 
 **Example:**
 ```tomo
->> 3.0:copysign(-1)
+>> (3.0).copysign(-1)
 = -3
 ```
 
@@ -429,7 +429,7 @@ The cosine of `x`.
 
 **Example:**
 ```tomo
->> 0.0:cos()
+>> (0.0).cos()
 = 1
 ```
 
@@ -449,7 +449,7 @@ The hyperbolic cosine of `x`.
 
 **Example:**
 ```tomo
->> 0.0:cosh()
+>> (0.0).cosh()
 = 1
 ```
 
@@ -469,7 +469,7 @@ The error function of `x`.
 
 **Example:**
 ```tomo
->> 0.0:erf()
+>> (0.0).erf()
 = 0
 ```
 
@@ -489,7 +489,7 @@ The complementary error function of `x`.
 
 **Example:**
 ```tomo
->> 0.0:erfc()
+>> (0.0).erfc()
 = 1
 ```
 
@@ -509,7 +509,7 @@ The value of \( e^x \).
 
 **Example:**
 ```tomo
->> 1.0:exp()
+>> (1.0).exp()
 = 2.7183
 ```
 
@@ -529,7 +529,7 @@ The value of \( 2^x \).
 
 **Example:**
 ```tomo
->> 3.0:exp2()
+>> (3.0).exp2()
 = 8
 ```
 
@@ -549,7 +549,7 @@ The value of \( e^x - 1 \).
 
 **Example:**
 ```tomo
->> 1.0:expm1()
+>> (1.0).expm1()
 = 1.7183
 ```
 
@@ -572,7 +572,7 @@ The positive difference \( \max(0, x - y) \).
 ```tomo
 fd
 
->> 5.0:fdim(3)
+>> (5.0).fdim(3)
 = 2
 ```
 
@@ -592,7 +592,7 @@ The largest integer less than or equal to `x`.
 
 **Example:**
 ```tomo
->> 3.7:floor()
+>> (3.7).floor()
 = 3
 ```
 
@@ -613,7 +613,7 @@ A text representation of the number with the specified precision.
 
 **Example:**
 ```tomo
->> 3.14159:format(precision=2)
+>> (3.14159).format(precision=2)
 = "3.14"
 ```
 
@@ -654,9 +654,9 @@ func isfinite(n: Num -> Bool)
 
 **Example:**
 ```tomo
->> 1.0:isfinite()
+>> (1.0).isfinite()
 = yes
->> Num.INF:isfinite()
+>> Num.INF.isfinite()
 = no
 ```
 
@@ -676,9 +676,9 @@ func isinf(n: Num -> Bool)
 
 **Example:**
 ```tomo
->> Num.INF:isinf()
+>> Num.INF.isinf()
 = yes
->> 1.0:isinf()
+>> (1.0).isinf()
 = no
 ```
 
@@ -698,7 +698,7 @@ The Bessel function of the first kind of order 0 of `x`.
 
 **Example:**
 ```tomo
->> 0.0:j0()
+>> (0.0).j0()
 = 1
 ```
 
@@ -718,7 +718,7 @@ The Bessel function of the first kind of order 1 of `x`.
 
 **Example:**
 ```tomo
->> 0.0:j1()
+>> (0.0).j1()
 = 0
 ```
 
@@ -738,7 +738,7 @@ The natural logarithm of `x`.
 
 **Example:**
 ```tomo
->> Num.E:log()
+>> Num.E.log()
 = 1
 ```
 
@@ -758,7 +758,7 @@ The base-10 logarithm of `x`.
 
 **Example:**
 ```tomo
->> 100.0:log10()
+>> (100.0).log10()
 = 2
 ```
 
@@ -778,7 +778,7 @@ The value of \( \log(1 + x) \).
 
 **Example:**
 ```tomo
->> 1.0:log1p()
+>> (1.0).log1p()
 = 0.6931
 ```
 
@@ -798,7 +798,7 @@ The base-2 logarithm of `x`.
 
 **Example:**
 ```tomo
->> 8.0:log2()
+>> (8.0).log2()
 = 3
 ```
 
@@ -818,7 +818,7 @@ The binary exponent of `x`.
 
 **Example:**
 ```tomo
->> 8.0:logb()
+>> (8.0).logb()
 = 3
 ```
 
@@ -840,9 +840,9 @@ The interpolated number between `x` and `y` based on `amount`.
 
 **Example:**
 ```tomo
->> 0.5:mix(10, 20)
+>> (0.5).mix(10, 20)
 = 15
->> 0.25:mix(10, 20)
+>> (0.25).mix(10, 20)
 = 12.5
 ```
 
@@ -867,13 +867,13 @@ func near(x: Num, y: Num, ratio: Num = 1e-9, min_epsilon: Num = 1e-9 -> Bool)
 
 **Example:**
 ```tomo
->> 1.0:near(1.000000001)
+>> (1.0).near(1.000000001)
 = yes
 
->> 100.0:near(110, ratio=0.1)
+>> (100.0).near(110, ratio=0.1)
 = yes
 
->> 5.0:near(5.1, min_epsilon=0.1)
+>> (5.0).near(5.1, min_epsilon=0.1)
 = yes
 ```
 
@@ -894,7 +894,7 @@ The next representable value after `x` in the direction of `y`.
 
 **Example:**
 ```tomo
->> 1.0:nextafter(1.1)
+>> (1.0).nextafter(1.1)
 = 1.0000000000000002
 ```
 
@@ -938,9 +938,9 @@ A text representation of the number as a percentage with a percent sign.
 
 **Example:**
 ```tomo
->> 0.5:percent()
+>> (0.5).percent()
 = "50%"
->> (1./3.):percent(2)
+>> (1./3.).percent(2)
 = "33.33%"
 ```
 
@@ -960,9 +960,9 @@ The nearest integer value of `x`.
 
 **Example:**
 ```tomo
->> 3.5:rint()
+>> (3.5).rint()
 = 4
->> 2.5:rint()
+>> (2.5).rint()
 = 2
 ```
 
@@ -982,9 +982,9 @@ The nearest integer value of `x`.
 
 **Example:**
 ```tomo
->> 2.3:round()
+>> (2.3).round()
 = 2
->> 2.7:round()
+>> (2.7).round()
 = 3
 ```
 
@@ -1005,7 +1005,7 @@ A text representation of the number in scientific notation with the specified pr
 
 **Example:**
 ```tomo
->> 12345.6789:scientific(precision=2)
+>> (12345.6789).scientific(precision=2)
 = "1.23e+04"
 ```
 
@@ -1025,7 +1025,7 @@ The significand of `x`.
 
 **Example:**
 ```tomo
->> 1234.567:significand()
+>> (1234.567).significand()
 = 0.1234567
 ```
 
@@ -1045,7 +1045,7 @@ The sine of `x`.
 
 **Example:**
 ```tomo
->> 0.0:sin()
+>> (0.0).sin()
 = 0
 ```
 
@@ -1065,7 +1065,7 @@ The hyperbolic sine of `x`.
 
 **Example:**
 ```tomo
->> 0.0:sinh()
+>> (0.0).sinh()
 = 0
 ```
 
@@ -1085,7 +1085,7 @@ The square root of `x`.
 
 **Example:**
 ```tomo
->> 16.0:sqrt()
+>> (16.0).sqrt()
 = 4
 ```
 
@@ -1105,7 +1105,7 @@ The tangent of `x`.
 
 **Example:**
 ```tomo
->> 0.0:tan()
+>> (0.0).tan()
 = 0
 ```
 
@@ -1125,7 +1125,7 @@ The hyperbolic tangent of `x`.
 
 **Example:**
 ```tomo
->> 0.0:tanh()
+>> (0.0).tanh()
 = 0
 ```
 
@@ -1145,7 +1145,7 @@ The gamma function of `x`.
 
 **Example:**
 ```tomo
->> 1.0:tgamma()
+>> (1.0).tgamma()
 = 1
 ```
 
@@ -1165,9 +1165,9 @@ The integer part of `x` towards zero.
 
 **Example:**
 ```tomo
->> 3.7:trunc()
+>> (3.7).trunc()
 = 3
->> (-3.7):trunc()
+>> (-3.7).trunc()
 = -3
 ```
 
@@ -1187,7 +1187,7 @@ The Bessel function of the second kind of order 0 of `x`.
 
 **Example:**
 ```tomo
->> 1.0:y0()
+>> (1.0).y0()
 = -0.7652
 ```
 
@@ -1207,6 +1207,6 @@ The Bessel function of the second kind of order 1 of `x`.
 
 **Example:**
 ```tomo
->> 1.0:y1()
+>> (1.0).y1()
 = 0.4401
 ```

@@ -245,7 +245,7 @@ several joining modifiers attached to it, that text has a length of 1.
 Iteration is *not* supported for text. It is rarely ever the case that you will
 need to iterate over text, but if you do, you can iterate over the length of
 the text and retrieve 1-wide slices. Alternatively, you can split the text into
-its constituent grapheme clusters with `text:split()` and iterate over those.
+its constituent grapheme clusters with `text.split()` and iterate over those.
 
 ### Equality, Comparison, and Hashing
 
@@ -319,7 +319,7 @@ A C-style string (`CString`) representing the text.
 
 **Example:**  
 ```tomo
->> "Hello":as_c_string()
+>> "Hello".as_c_string()
 = CString("Hello")
 ```
 
@@ -343,7 +343,7 @@ indices are counted from the back of the text, so `-1` means the last cluster,
 
 **Example:**  
 ```tomo
->> "Amélie":at(3)
+>> "Amélie".at(3)
 = "é"
 ```
 
@@ -362,7 +362,7 @@ func by_line(text: Text -> func(->Text?))
 **Returns:**  
 An iterator function that returns one line at a time, until it runs out and
 returns `none`. **Note:** this function ignores a trailing newline if there is
-one. If you don't want this behavior, use `text:by_split($/{1 nl}/)` instead.
+one. If you don't want this behavior, use `text.by_split($/{1 nl}/)` instead.
 
 **Example:**  
 ```tomo
@@ -370,7 +370,7 @@ text := "
     line one
     line two
 "
-for line in text:by_line():
+for line in text.by_line():
     # Prints: "line one" then "line two":
     say(line)
 ```
@@ -398,7 +398,7 @@ delimiter (the default) will iterate over single grapheme clusters in the text.
 **Example:**  
 ```tomo
 text := "one,two,three"
-for chunk in text:by_split(","):
+for chunk in text.by_split(","):
     # Prints: "one" then "two" then "three":
     say(chunk)
 ```
@@ -425,7 +425,7 @@ given delimiter characters, until it runs out and returns `none`.
 **Example:**  
 ```tomo
 text := "one,two,;,three"
-for chunk in text:by_split_any(",;"):
+for chunk in text.by_split_any(",;"):
     # Prints: "one" then "two" then "three":
     say(chunk)
 ```
@@ -447,7 +447,7 @@ An array of bytes (`[Byte]`) representing the text in UTF8 encoding.
 
 **Example:**  
 ```tomo
->> "Amélie":bytes()
+>> "Amélie".bytes()
 = [65[B], 109[B], 195[B], 169[B], 108[B], 105[B], 101[B]] : [Byte]
 ```
 
@@ -470,11 +470,11 @@ func caseless_equals(a: Text, b:Text, language:Text = "C" -> Bool)
 
 **Example:**  
 ```tomo
->> "A":caseless_equals("a")
+>> "A".caseless_equals("a")
 = yes
 
 # Turkish lowercase "I" is "ı" (dotless I), not "i"
->> "I":caseless_equals("i", language="tr_TR")
+>> "I".caseless_equals("i", language="tr_TR")
 = no
 ```
 
@@ -494,7 +494,7 @@ An array of codepoint names (`[Text]`).
 
 **Example:**  
 ```tomo
->> "Amélie":codepoint_names()
+>> "Amélie".codepoint_names()
 = ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E WITH ACUTE", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
 ```
 
@@ -515,7 +515,7 @@ func ends_with(text: Text, suffix: Text -> Bool)
 
 **Example:**  
 ```tomo
->> "hello world":ends_with("world")
+>> "hello world".ends_with("world")
 = yes
 ```
 
@@ -539,10 +539,10 @@ the length of the text.
 
 **Example:**  
 ```tomo
->> "hello":from(2)
+>> "hello".from(2)
 = "ello"
 
->> "hello":from(-2)
+>> "hello".from(-2)
 = "lo"
 ```
 
@@ -655,9 +655,9 @@ func has(text: Text, target: Text -> Bool)
 
 **Example:**  
 ```tomo
->> "hello world":has("wo")
+>> "hello world".has("wo")
 = yes
->> "hello world":has("xxx")
+>> "hello world".has("xxx")
 = no
 ```
 
@@ -678,7 +678,7 @@ A single `Text` value with the pieces joined by the glue.
 
 **Example:**  
 ```tomo
->> ", ":join(["one", "two", "three"])
+>> ", ".join(["one", "two", "three"])
 = "one, two, three"
 ```
 
@@ -703,9 +703,9 @@ reach the exact desired length.
 
 **Example:**  
 ```tomo
->> "x":middle_pad(6)
+>> "x".middle_pad(6)
 = "  x   "
->> "x":middle_pad(10, "ABC")
+>> "x".middle_pad(10, "ABC")
 = "ABCAxABCAB"
 ```
 
@@ -730,9 +730,9 @@ exact desired length.
 
 **Example:**  
 ```tomo
->> "x":left_pad(5)
+>> "x".left_pad(5)
 = "    x"
->> "x":left_pad(5, "ABC")
+>> "x".left_pad(5, "ABC")
 = "ABCAx"
 ```
 
@@ -753,15 +753,15 @@ An array of substrings resulting from the split.
 
 **Example:**  
 ```tomo
->> "one$(\n)two$(\n)three":lines()
+>> "one$(\n)two$(\n)three".lines()
 = ["one", "two", "three"]
->> "one$(\n)two$(\n)three$(\n)":lines()
+>> "one$(\n)two$(\n)three$(\n)".lines()
 = ["one", "two", "three"]
->> "one$(\n)two$(\n)three$(\n\n)":lines()
+>> "one$(\n)two$(\n)three$(\n\n)".lines()
 = ["one", "two", "three", ""]
->> "one$(\r\n)two$(\r\n)three$(\r\n)":lines()
+>> "one$(\r\n)two$(\r\n)three$(\r\n)".lines()
 = ["one", "two", "three"]
->> "":lines()
+>> "".lines()
 = []
 ```
 
@@ -782,10 +782,10 @@ The lowercase version of the text.
 
 **Example:**  
 ```tomo
->> "AMÉLIE":lower()
+>> "AMÉLIE".lower()
 = "amélie"
 
->> "I":lower(language="tr_TR")
+>> "I".lower(language="tr_TR")
 >> "ı"
 ```
 
@@ -807,7 +807,7 @@ The text formatted as a quoted text.
 
 **Example:**  
 ```tomo
->> "one$(\n)two":quoted()
+>> "one$(\n)two".quoted()
 = "\"one\\ntwo\""
 ```
 
@@ -828,7 +828,7 @@ The text repeated the given number of times.
 
 **Example:**  
 ```tomo
->> "Abc":repeat(3)
+>> "Abc".repeat(3)
 = "AbcAbcAbc"
 ```
 
@@ -850,7 +850,7 @@ The text with occurrences of the target replaced.
 
 **Example:**  
 ```tomo
->> "Hello world":replace("world", "there")
+>> "Hello world".replace("world", "there")
 = "Hello there"
 ```
 
@@ -870,7 +870,7 @@ A reversed version of the text.
 
 **Example:**  
 ```tomo
->> "Abc":reversed()
+>> "Abc".reversed()
 = "cbA"
 ```
 
@@ -895,9 +895,9 @@ exact desired length.
 
 **Example:**  
 ```tomo
->> "x":right_pad(5)
+>> "x".right_pad(5)
 = "x    "
->> "x":right_pad(5, "ABC")
+>> "x".right_pad(5, "ABC")
 = "xABCA"
 ```
 
@@ -922,13 +922,13 @@ the text.
 
 **Example:**  
 ```tomo
->> "hello":slice(2, 3)
+>> "hello".slice(2, 3)
 = "el"
 
->> "hello":slice(to=-2)
+>> "hello".slice(to=-2)
 = "hell"
 
->> "hello":slice(from=2)
+>> "hello".slice(from=2)
 = "ello"
 ```
 
@@ -951,10 +951,10 @@ An array of subtexts resulting from the split.
 
 **Example:**  
 ```tomo
->> "one,two,,three":split(",")
+>> "one,two,,three".split(",")
 = ["one", "two", "", "three"]
 
->> "abc":split()
+>> "abc".split()
 = ["a", "b", "c"]
 ```
 
@@ -978,7 +978,7 @@ An array of subtexts resulting from the split.
 
 **Example:**  
 ```tomo
->> "one, two,,three":split_any(", ")
+>> "one, two,,three".split_any(", ")
 = ["one", "two", "three"]
 ```
 
@@ -999,7 +999,7 @@ func starts_with(text: Text, prefix: Text -> Bool)
 
 **Example:**  
 ```tomo
->> "hello world":starts_with("hello")
+>> "hello world".starts_with("hello")
 = yes
 ```
 
@@ -1020,11 +1020,11 @@ The text in title case.
 
 **Example:**  
 ```tomo
->> "amélie":title()
+>> "amélie".title()
 = "Amélie"
 
 # In Turkish, uppercase "i" is "İ"
->> "i":title(language="tr_TR")
+>> "i".title(language="tr_TR")
 = "İ"
 ```
 
@@ -1048,10 +1048,10 @@ the text.
 
 **Example:**  
 ```tomo
->> "goodbye":to(3)
+>> "goodbye".to(3)
 = "goo"
 
->> "goodbye":to(-2)
+>> "goodbye".to(-2)
 = "goodby"
 ```
 
@@ -1077,7 +1077,7 @@ replacement text.
 
 **Example:**  
 ```tomo
->> "A <tag> & an amperand":translate({
+>> "A <tag> & an amperand".translate({
     "&" = "&amp;",
     "<" = "&lt;",
     ">" = "&gt;",
@@ -1106,13 +1106,13 @@ The text without the trim characters at either end.
 
 **Example:**  
 ```tomo
->> "   x y z    $(\n)":trim()
+>> "   x y z    $(\n)".trim()
 = "x y z"
 
->> "one,":trim(",")
+>> "one,".trim(",")
 = "one"
 
->> "   xyz   ":trim(right=no)
+>> "   xyz   ".trim(right=no)
 = "xyz   "
 ```
 
@@ -1133,11 +1133,11 @@ The uppercase version of the text.
 
 **Example:**  
 ```tomo
->> "amélie":upper()
+>> "amélie".upper()
 = "AMÉLIE"
 
 # In Turkish, uppercase "i" is "İ"
->> "i":upper(language="tr_TR")
+>> "i".upper(language="tr_TR")
 = "İ"
 ```
 
@@ -1157,7 +1157,7 @@ An array of 32-bit integer Unicode code points (`[Int32]`).
 
 **Example:**  
 ```tomo
->> "Amélie":utf32_codepoints()
+>> "Amélie".utf32_codepoints()
 = [65[32], 109[32], 233[32], 108[32], 105[32], 101[32]] : [Int32]
 ```
 
@@ -1182,9 +1182,9 @@ An integer representing the display width of the text.
 
 **Example:**  
 ```tomo
->> "Amélie":width()
+>> "Amélie".width()
 = 6
->> "🤠":width()
+>> "🤠".width()
 = 2
 ```
 
@@ -1206,9 +1206,9 @@ prefix is not present.
 
 **Example:**  
 ```tomo
->> "foo:baz":without_prefix("foo:")
+>> "foo:baz".without_prefix("foo:")
 = "baz"
->> "qux":without_prefix("foo:")
+>> "qux".without_prefix("foo:")
 = "qux"
 ```
 
@@ -1230,8 +1230,8 @@ suffix is not present.
 
 **Example:**  
 ```tomo
->> "baz.foo":without_suffix(".foo")
+>> "baz.foo".without_suffix(".foo")
 = "baz"
->> "qux":without_suffix(".foo")
+>> "qux".without_suffix(".foo")
 = "qux"
 ```

@@ -80,7 +80,7 @@ maximum value _according to some feature_.
 = "aaaaa"
 
 # Get the number with the biggest absolute value:
->> (_max_:abs(): [1, -2, 3, -4])!
+>> (_max_.abs(): [1, -2, 3, -4])!
 = -4
 ```
 
@@ -96,6 +96,6 @@ while filtering out values or while applying a transformation:
 = 6
 
 # Sum the primes between 1-100:
->> (+: i for i in 100 if i:is_prime())!
+>> (+: i for i in 100 if i.is_prime())!
 = 1060
 ```

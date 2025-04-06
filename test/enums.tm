@@ -43,9 +43,9 @@ func main():
 
 	>> x := Foo.One(123)
 	>> t := {x}
-	>> t:has(x)
+	>> t.has(x)
 	= yes
-	>> t:has(Foo.Zero)
+	>> t.has(Foo.Zero)
 	= no
 
 	>> choose_text(Foo.Zero)

@@ -31,8 +31,8 @@ struct Foo(name:Text, age:Int):
         f.age += 1
 ...
 my_foo := @Foo("Alice", 28)
-my_foo:greet()
-my_foo:get_older()
+my_foo.greet()
+my_foo.get_older()
 ```
 
 Method calls work when the first argument is the struct type or a pointer to

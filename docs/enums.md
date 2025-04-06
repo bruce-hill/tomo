@@ -85,4 +85,4 @@ enum VariousThings(AnInteger(i:Int), TwoWords(word1, word2:Text), Nothing):
 ```
 
 Functions defined in an enum's namespace can be invoked as methods with `:` if
-the first argument is the enum's type or a pointer to one (`vt:doop()`).
+the first argument is the enum's type or a pointer to one (`vt.doop()`).

@@ -102,7 +102,7 @@ is non-optional (because a value will always be present).
 ## Setting Values
 
 You can assign a new key/value mapping or overwrite an existing one using
-`:set(key, value)` or an `=` assignment statement:
+`.set(key, value)` or an `=` assignment statement:
 
 ```tomo
 t := {"A"=1, "B"=2}
@@ -177,8 +177,8 @@ Nothing.
 **Example:**  
 ```tomo
 >> t := {"A"=1}
-t:bump("A")
-t:bump("B", 10)
+t.bump("A")
+t.bump("B", 10)
 >> t
 = {"A"=2, "B"=10}
 ```
@@ -199,7 +199,7 @@ Nothing.
 
 **Example:**  
 ```tomo
->> t:clear()
+>> t.clear()
 ```
 
 ---
@@ -221,16 +221,16 @@ The value associated with the key or `none` if the key is not found.
 **Example:**  
 ```tomo
 >> t := {"A"=1, "B"=2}
->> t:get("A")
+>> t.get("A")
 = 1?
 
->> t:get("????")
+>> t.get("????")
 = none
 
->> t:get("A")!
+>> t.get("A")!
 = 1
 
->> t:get("????") or 0
+>> t.get("????") or 0
 = 0
 ```
 
@@ -251,9 +251,9 @@ func has(t:{K=V}, key: K -> Bool)
 
 **Example:**  
 ```tomo
->> {"A"=1, "B"=2}:has("A")
+>> {"A"=1, "B"=2}.has("A")
 = yes
->> {"A"=1, "B"=2}:has("xxx")
+>> {"A"=1, "B"=2}.has("xxx")
 = no
 ```
 
@@ -275,7 +275,7 @@ Nothing.
 **Example:**  
 ```tomo
 t := {"A"=1, "B"=2}
-t:remove("A")
+t.remove("A")
 >> t
 = {"B"=2}
 ```
@@ -299,7 +299,7 @@ Nothing.
 **Example:**  
 ```tomo
 t := {"A"=1, "B"=2}
-t:set("C", 3)
+t.set("C", 3)
 >> t
 = {"A"=1, "B"=2, "C"=3}
 ```

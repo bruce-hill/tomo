@@ -6,7 +6,7 @@ implemented using hash tables.
 ```tomo
 a := {10, 20, 30}
 b := {20, 30}
->> a:overlap(b)
+>> a.overlap(b)
 = {20}
 ```
 
@@ -103,7 +103,7 @@ Nothing.
 
 **Example:**  
 ```tomo
->> nums:add(42)
+>> nums.add(42)
 ```
 
 ---
@@ -123,7 +123,7 @@ Nothing.
 
 **Example:**  
 ```tomo
->> nums:add_all([1, 2, 3])
+>> nums.add_all([1, 2, 3])
 ```
 
 ---
@@ -142,7 +142,7 @@ Nothing.
 
 **Example:**  
 ```tomo
->> nums:clear()
+>> nums.clear()
 ```
 
 ---
@@ -162,7 +162,7 @@ func has(set:{T}, item:T -> Bool)
 
 **Example:**  
 ```tomo
->> {10, 20}:has(20)
+>> {10, 20}.has(20)
 = yes
 ```
 
@@ -184,7 +184,7 @@ func (set: {T}, other: {T}, strict: Bool = no -> Bool)
 
 **Example:**  
 ```tomo
->> {1, 2}:is_subset_of({1, 2, 3})
+>> {1, 2}.is_subset_of({1, 2, 3})
 = yes
 ```
 
@@ -206,7 +206,7 @@ func is_superset_of(set:{T}, other: {T}, strict: Bool = no -> Bool)
 
 **Example:**  
 ```tomo
->> {1, 2, 3}:is_superset_of({1, 2})
+>> {1, 2, 3}.is_superset_of({1, 2})
 = yes
 ```
 ### `overlap`
@@ -224,7 +224,7 @@ A new set containing only items present in both sets.
 
 **Example:**  
 ```tomo
->> {1, 2}:overlap({2, 3})
+>> {1, 2}.overlap({2, 3})
 = {2}
 ```
 
@@ -245,7 +245,7 @@ Nothing.
 
 **Example:**  
 ```tomo
->> nums:remove(42)
+>> nums.remove(42)
 ```
 
 ---
@@ -265,7 +265,7 @@ Nothing.
 
 **Example:**  
 ```tomo
->> nums:remove_all([1, 2, 3])
+>> nums.remove_all([1, 2, 3])
 ```
 
 ---
@@ -285,7 +285,7 @@ A new set containing all items from both sets.
 
 **Example:**  
 ```tomo
->> {1, 2}:with({2, 3})
+>> {1, 2}.with({2, 3})
 = {1, 2, 3}
 ```
 
@@ -306,6 +306,6 @@ A new set containing items from the original set excluding those in the other se
 
 **Example:**  
 ```tomo
->> {1, 2}:without({2, 3})
+>> {1, 2}.without({2, 3})
 = {1}
 ```

@@ -550,7 +550,7 @@ type_t *get_method_type(env_t *env, ast_t *self, const char *name)
 {
     binding_t *b = get_namespace_binding(env, self, name);
     if (!b || !b->type)
-        code_err(self, "No such method: ", type_to_str(get_type(env, self)), ":", name, "(...)");
+        code_err(self, "No such method: ", type_to_str(get_type(env, self)), ".", name, "(...)");
     return b->type;
 }
 
@@ -895,6 +895,12 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *self_value_t = get_type(env, call->self);
         if (!self_value_t) code_err(call->self, "Couldn't get the type of this value");
         self_value_t = value_type(self_value_t);
+
+        if (self_value_t->tag == TypeInfoType || self_value_t->tag == ModuleType) {
+            return get_type(env, WrapAST(ast, FunctionCall, .fn=WrapAST(call->self, FieldAccess, .fielded=call->self, .field=call->name),
+                                        .args=call->args));
+        }
+
         switch (self_value_t->tag) {
         case ArrayType: {
             type_t *item_type = Match(self_value_t, ArrayType)->item_type;
@@ -952,6 +958,11 @@ type_t *get_type(env_t *env, ast_t *ast)
             code_err(ast, "There is no '", call->name, "' method for ", type_to_str(self_value_t), " tables");
         }
         default: {
+            type_t *field_type = get_field_type(self_value_t, call->name);
+            if (field_type && field_type->tag == ClosureType)
+                field_type = Match(field_type, ClosureType)->fn;
+            if (field_type && field_type->tag == FunctionType)
+                return Match(field_type, FunctionType)->ret;
             type_t *fn_type_t = get_method_type(env, call->self, call->name);
             if (!fn_type_t)
                 code_err(ast, "No such method!");

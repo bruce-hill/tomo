@@ -18,7 +18,7 @@ func main():
 	>> Foo(999, 1) _min_.y Foo(1, 10)
 	= Foo(x=999, y=1)
 
-	>> Foo(-999, -999) _max_:len() Foo(10, 10)
+	>> Foo(-999, -999) _max_.len() Foo(10, 10)
 	= Foo(x=-999, y=-999)
 
 

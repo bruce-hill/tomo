@@ -37,7 +37,7 @@ It's particularly handy for using the array `sort()` method, which takes a
 function that returns a signed integer:
 
 ```tomo
->> foos:sort(func(a,b:&Foo): a.length <> b.length)
+>> foos.sort(func(a,b:&Foo): a.length <> b.length)
 ```
 
 ## Reducers
@@ -110,12 +110,12 @@ struct Foo(x,y:Int):
 >> (+: f.x for f in foos)
 = -9
 
->> (or):is_even() foos
+>> (or).is_even() foos
 = yes
 // Shorthand for:
->> (or) f:is_even() for f in foos
+>> (or) f.is_even() for f in foos
 
->> (+.x:abs(): foos)
+>> (+.x.abs(): foos)
 = 11
 ```
 
@@ -144,7 +144,7 @@ Here's some examples:
 
 ```tomo
 // Get the largest absolute value number:
->> 3 _max_:abs() -15
+>> 3 _max_.abs() -15
 = -15
 
 struct Person(name:Text, age:Int)
@@ -164,7 +164,7 @@ struct Person(name:Text, age:Int)
 
 The keyed comparison can chain together multiple field accesses, array index
 operations, method calls, etc. If you wanted to, for example, get the item
-whose `x` field has the highest absolute value, you could use `_max_.x:abs()`.
+whose `x` field has the highest absolute value, you could use `_max_.x.abs()`.
 
 ### Working with Reducers
 
@@ -177,7 +177,7 @@ object using them:
 >> (_max_: nums)
 = 30
 
->> (_max_:abs(): nums)
+>> (_max_.abs(): nums)
 = -40
 ```
 
@@ -221,7 +221,7 @@ func plus(T, T)->T
 ```
 
 In an addition expression `a + b` between two objects of the same type, the
-method `a:plus(b)` will be invoked, which returns a new value of the same type.
+method `a.plus(b)` will be invoked, which returns a new value of the same type.
 
 #### Subtraction
 
@@ -230,7 +230,7 @@ func minus(T, T)->T
 ```
 
 In a subtraction expression `a - b` between two objects of the same type, the
-method `a:minus(b)` will be invoked, which returns a new value of the same type.
+method `a.minus(b)` will be invoked, which returns a new value of the same type.
 
 #### Multiplication
 
@@ -239,9 +239,9 @@ func times(T, T)->T
 func scaled_by(T, N)->T
 ```
 
-The multiplication expression `a * b` invokes either the `a:times(b)` method,
-if `a` and `b` are the same non-numeric type, or `a:scaled_by(b)` if `a` is
-non-numeric and `b` is numeric, or `b:scaled_by(a)` if `b` is non-numeric and
+The multiplication expression `a * b` invokes either the `a.times(b)` method,
+if `a` and `b` are the same non-numeric type, or `a.scaled_by(b)` if `a` is
+non-numeric and `b` is numeric, or `b.scaled_by(a)` if `b` is non-numeric and
 `a` is numeric. In all cases, a new value of the non-numeric type is returned.
 
 #### Division
@@ -250,7 +250,7 @@ non-numeric and `b` is numeric, or `b:scaled_by(a)` if `b` is non-numeric and
 func divided_by(T, N)->T
 ```
 
-In a division expression `a / b` the method `a:divided_by(b)` will be invoked
+In a division expression `a / b` the method `a.divided_by(b)` will be invoked
 if `a` has type `T` and `b` has a numeric type `N`.
 
 #### Exponentiation
@@ -260,7 +260,7 @@ func power(T, N)->T
 ```
 
 In an exponentiation expression, `a ^ b`, if `a` has type `T` and `b` has a
-numeric type `N`, then the method `a:power(b)` will be invoked.
+numeric type `N`, then the method `a.power(b)` will be invoked.
 
 #### Modulus
 

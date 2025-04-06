@@ -1,6 +1,6 @@
 # Base 64 encoding and decoding
 
-_enc := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/":bytes()
+_enc := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".bytes()
 
 _EQUAL_BYTE := Byte(0x3D)
 
@@ -25,7 +25,7 @@ _dec : [Byte] = [
 
 lang Base64:
     func parse(text:Text -> Base64?):
-        return Base64.from_bytes(text:bytes())
+        return Base64.from_bytes(text.bytes())
 
     func from_bytes(bytes:[Byte] -> Base64?):
         output := &[Byte(0) for _ in bytes.length * 4 / 3 + 4]
@@ -61,10 +61,10 @@ lang Base64:
         return Base64.from_text(Text.from_bytes(output[]) or return none)
 
     func decode_text(b64:Base64 -> Text?):
-        return Text.from_bytes(b64:decode_bytes() or return none)
+        return Text.from_bytes(b64.decode_bytes() or return none)
 
     func decode_bytes(b64:Base64 -> [Byte]?):
-        bytes := b64.text:bytes()
+        bytes := b64.text.bytes()
         output := &[Byte(0) for _ in bytes.length/4 * 3]
         src := Int64(1)
         dest := Int64(1)
@@ -83,14 +83,14 @@ lang Base64:
             dest += 3
 
         while output[-1] == 0xFF:
-            output[] = output:to(-2)
+            output[] = output.to(-2)
 
         return output[]
 
 func main(input=(/dev/stdin), decode=no):
     if decode:
-        b := Base64.from_text(input:read()!)
-        say(b:decode_text()!)
+        b := Base64.from_text(input.read()!)
+        say(b.decode_text()!)
     else:
-        text := input:read()!
+        text := input.read()!
         say(Base64.parse(text)!.text)

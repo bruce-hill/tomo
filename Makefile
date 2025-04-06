@@ -104,11 +104,12 @@ clean:
 %: %.md
 	pandoc --lua-filter=docs/.pandoc/bold-code.lua -s $< -t man -o $@
 
-examples: examples/base64/base64 examples/ini/ini examples/game/game examples/http-server/http-server \
-		examples/tomodeps/tomodeps examples/tomo-install/tomo-install examples/wrap/wrap examples/colorful/colorful
-	./build/tomo -qIL examples/patterns examples/time examples/commands examples/shell examples/base64 examples/log \
-		examples/ini examples/vectors examples/http \
+examples:
+	./build/tomo -qIL examples/patterns examples/time examples/commands examples/shell examples/random \
+		examples/base64 examples/log examples/ini examples/vectors examples/http \
 		examples/wrap examples/pthreads examples/colorful examples/core
+	./build/tomo -e examples/base64/base64.tm examples/ini/ini.tm examples/game/game.tm examples/http-server/http-server.tm \
+		examples/tomodeps/tomodeps.tm examples/tomo-install/tomo-install.tm examples/wrap/wrap.tm examples/colorful/colorful.tm
 	./build/tomo examples/learnxiny.tm
 
 deps: check-gcc

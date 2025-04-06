@@ -8,13 +8,13 @@ For example, the `Path.each_line()` API method returns a function that
 successively gets one line from a file at a time until the file is exhausted:
 
 ```tomo
-(./test.txt):write("
+(./test.txt).write("
     line one
     line two
     line three
 ")
 
->> iter := (./test.txt):each_line()
+>> iter := (./test.txt).each_line()
 >> iter()
 = "line one" : Text?
 >> iter()
@@ -24,7 +24,7 @@ successively gets one line from a file at a time until the file is exhausted:
 >> iter()
 = none : Text?
 
-for line in (./test.txt):each_line():
+for line in (./test.txt).each_line():
     pass
 ```
 
@@ -38,7 +38,7 @@ func primes_up_to(limit:Int):
         if n > limit:
             return !Int
 
-        while not n:is_prime():
+        while not n.is_prime():
             n += 1
 
         n += 1

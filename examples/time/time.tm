@@ -77,10 +77,10 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern):
         return seconds
 
     func minutes_till(t:Time, target:Time -> Num):
-        return t:seconds_till(target)/60.
+        return t.seconds_till(target)/60.
 
     func hours_till(t:Time, target:Time -> Num):
-        return t:seconds_till(target)/3600.
+        return t.seconds_till(target)/3600.
 
     func relative(t:Time, relative_to=Time.now(), timezone=Time.local_timezone() -> Text):
         inline C {
@@ -116,17 +116,17 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern):
 
     func time(t:Time, seconds=no, am_pm=yes, timezone=Time.local_timezone() -> Text):
         time := if seconds and am_pm:
-            t:format("%l:%M:%S%P")
+            t.format("%l:%M:%S%P")
         else if seconds and not am_pm:
-            t:format("%T")
+            t.format("%T")
         else if not seconds and am_pm:
-            t:format("%l:%M%P")
+            t.format("%l:%M%P")
         else:
-            t:format("%H:%M")
-        return time:trim()
+            t.format("%H:%M")
+        return time.trim()
 
     func date(t:Time, timezone=Time.local_timezone() -> Text):
-        return t:format("%F")
+        return t.format("%F")
 
     func info(t:Time, timezone=Time.local_timezone() -> TimeInfo):
         return inline C : TimeInfo {
@@ -185,23 +185,23 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern):
         }
 
 func _run_tests():
-    >> Time.now():format()
+    >> Time.now().format()
     >> Time.set_local_timezone("Europe/Paris")
-    >> Time.now():format()
+    >> Time.now().format()
     >> Time.set_local_timezone("America/New_York")
-    >> Time.now():format()
-    # >> Time.now():format(timezone="Europe/Paris")
-    # >> Time.now():format()
-    # >> Time.now():format("%Y-%m-%d")
-    # >> Time.new(2023, 11, 5):format()
+    >> Time.now().format()
+    # >> Time.now().format(timezone="Europe/Paris")
+    # >> Time.now().format()
+    # >> Time.now().format("%Y-%m-%d")
+    # >> Time.new(2023, 11, 5).format()
     # >> Time.local_timezone()
 
-    # >> Time.new(2023, 11, 5):seconds_till(Time.now())
-    # >> Time.new(2023, 11, 5):relative()
+    # >> Time.new(2023, 11, 5).seconds_till(Time.now())
+    # >> Time.new(2023, 11, 5).relative()
 
-    # >> Time.now():info()
-    # >> Time.now():time()
-    # >> Time.now():date()
+    # >> Time.now().info()
+    # >> Time.now().time()
+    # >> Time.now().date()
 
     # >> Time.parse("2023-11-05 01:01", "%Y-%m-%d %H:%M")
     # >> Time.parse("2023-11-05 01:01", "%Y-%m-%d %H:%M", timezone="Europe/Paris")

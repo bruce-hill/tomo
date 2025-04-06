@@ -33,9 +33,9 @@ func test_metamethods():
 	>> x < Pair(11, 20)
 	= yes
 	>> set := {x}
-	>> set:has(x)
+	>> set.has(x)
 	= yes
-	>> set:has(y)
+	>> set.has(y)
 	= no
 
 func test_mixed():
@@ -50,9 +50,9 @@ func test_mixed():
 	>> x < Mixed(11, "Hello")
 	= yes
 	>> set := {x}
-	>> set:has(x)
+	>> set.has(x)
 	= yes
-	>> set:has(y)
+	>> set.has(y)
 	= no
 
 func test_text():

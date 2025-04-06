@@ -8,9 +8,9 @@ func main():
     = Byte(0xFF)
 
     >> b := Byte(0x0F)
-    >> b:hex()
+    >> b.hex()
     = "0F"
-    >> b:hex(prefix=yes)
+    >> b.hex(prefix=yes)
     = "0x0F"
-    >> b:hex(uppercase=no)
+    >> b.hex(uppercase=no)
     = "0f"

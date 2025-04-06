@@ -847,8 +847,8 @@ PARSER(parse_reduction) {
             ast_t *new_term;
             progress = (false
                 || (new_term=parse_index_suffix(ctx, key))
-                || (new_term=parse_field_suffix(ctx, key))
                 || (new_term=parse_method_call_suffix(ctx, key))
+                || (new_term=parse_field_suffix(ctx, key))
                 || (new_term=parse_fncall_suffix(ctx, key))
                 || (new_term=parse_optional_suffix(ctx, key))
                 || (new_term=parse_non_optional_suffix(ctx, key))
@@ -1095,6 +1095,7 @@ PARSER(parse_heap_alloc) {
         ast_t *new_term;
         if ((new_term=parse_index_suffix(ctx, val))
             || (new_term=parse_fncall_suffix(ctx, val))
+            || (new_term=parse_method_call_suffix(ctx, val))
             || (new_term=parse_field_suffix(ctx, val))) {
             val = new_term;
         } else break;
@@ -1121,6 +1122,7 @@ PARSER(parse_stack_reference) {
         ast_t *new_term;
         if ((new_term=parse_index_suffix(ctx, val))
             || (new_term=parse_fncall_suffix(ctx, val))
+            || (new_term=parse_method_call_suffix(ctx, val))
             || (new_term=parse_field_suffix(ctx, val))) {
             val = new_term;
         } else break;
@@ -1462,8 +1464,8 @@ PARSER(parse_term) {
         ast_t *new_term;
         progress = (false
             || (new_term=parse_index_suffix(ctx, term))
-            || (new_term=parse_field_suffix(ctx, term))
             || (new_term=parse_method_call_suffix(ctx, term))
+            || (new_term=parse_field_suffix(ctx, term))
             || (new_term=parse_fncall_suffix(ctx, term))
             || (new_term=parse_optional_suffix(ctx, term))
             || (new_term=parse_non_optional_suffix(ctx, term))
@@ -1479,7 +1481,7 @@ ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self) {
     const char *start = self->start;
     const char *pos = self->end;
 
-    if (!match(&pos, ":")) return NULL;
+    if (!match(&pos, ".")) return NULL;
     if (*pos == ' ') return NULL;
     const char *fn = get_id(&pos);
     if (!fn) return NULL;
@@ -1622,8 +1624,8 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
                 ast_t *new_term;
                 progress = (false
                     || (new_term=parse_index_suffix(ctx, key))
-                    || (new_term=parse_field_suffix(ctx, key))
                     || (new_term=parse_method_call_suffix(ctx, key))
+                    || (new_term=parse_field_suffix(ctx, key))
                     || (new_term=parse_fncall_suffix(ctx, key))
                     || (new_term=parse_optional_suffix(ctx, key))
                     || (new_term=parse_non_optional_suffix(ctx, key))

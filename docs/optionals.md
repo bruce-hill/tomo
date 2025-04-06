@@ -119,7 +119,7 @@ func do_stuff(matches:[Text]):
     pass
 
 for line in lines:
-    matches := line:matches($/{..},{..}/) or skip
+    matches := line.matches($/{..},{..}/) or skip
     # The `or skip` above means that if we're here, `matches` is non-none:
     do_stuff(matches)
 ```

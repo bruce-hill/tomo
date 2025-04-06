@@ -27,7 +27,7 @@ func main():
     do:
         result : @[Text] = @[]
         for foo in pairwise(values):
-            result:insert("$(foo.x)$(foo.y)")
+            result.insert("$(foo.x)$(foo.y)")
         >> result[]
         = ["AB", "BC", "CD"]
 

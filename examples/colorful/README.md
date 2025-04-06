@@ -60,5 +60,5 @@ use colorful
 $Colorful"
     @(blue:Welcome to the @(bold:party)!)
     We have @(green,bold:colors)!
-":print()
+".print()
 ```

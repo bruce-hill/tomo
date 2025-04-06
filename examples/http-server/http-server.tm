@@ -19,9 +19,9 @@ func serve(port:Int32, handler:func(request:HTTPRequest -> HTTPResponse), num_th
     connections := ConnectionQueue()
     workers : &[@pthread_t] = &[] 
     for i in num_threads:
-        workers:insert(pthread_t.new(func():
+        workers.insert(pthread_t.new(func():
             repeat:
-                connection := connections:dequeue()
+                connection := connections.dequeue()
                 request_text := inline C : Text {
                     Text_t request = EMPTY_TEXT;
                     char buf[1024] = {};
@@ -35,7 +35,7 @@ func serve(port:Int32, handler:func(request:HTTPRequest -> HTTPResponse), num_th
                 }
 
                 request := HTTPRequest.from_text(request_text) or skip
-                response := handler(request):bytes()
+                response := handler(request).bytes()
                 inline C {
                     if (_$response.stride != 1)
                         Array$compact(&_$response, 1);
@@ -65,26 +65,26 @@ func serve(port:Int32, handler:func(request:HTTPRequest -> HTTPResponse), num_th
     repeat:
         conn := inline C : Int32 { accept(_$sock, NULL, NULL) }
         stop if conn < 0 
-        connections:enqueue(conn)
+        connections.enqueue(conn)
 
     say("Shutting down...")
     for w in workers:
-        w:cancel()
+        w.cancel()
 
 struct HTTPRequest(method:Text, path:Text, version:Text, headers:[Text], body:Text):
     func from_text(text:Text -> HTTPRequest?):
-        m := text:pattern_captures($Pat'{word} {..} HTTP/{..}{crlf}{..}') or return none
+        m := text.pattern_captures($Pat'{word} {..} HTTP/{..}{crlf}{..}') or return none
         method := m[1]
-        path := m[2]:replace_pattern($Pat'{2+ /}', '/')
+        path := m[2].replace_pattern($Pat'{2+ /}', '/')
         version := m[3]
-        rest := m[-1]:pattern_captures($Pat/{..}{2 crlf}{0+ ..}/) or return none
-        headers := rest[1]:split_pattern($Pat/{crlf}/)
+        rest := m[-1].pattern_captures($Pat/{..}{2 crlf}{0+ ..}/) or return none
+        headers := rest[1].split_pattern($Pat/{crlf}/)
         body := rest[-1]
         return HTTPRequest(method, path, version, headers, body)
 
 struct HTTPResponse(body:Text, status=200, content_type="text/plain", headers:{Text=Text}={}):
     func bytes(r:HTTPResponse -> [Byte]):
-        body_bytes := r.body:bytes()
+        body_bytes := r.body.bytes()
         extra_headers := (++: "$k: $v$(\r\n)" for k,v in r.headers) or ""
         return "
             HTTP/1.1 $(r.status) OK$\r
@@ -93,10 +93,10 @@ struct HTTPResponse(body:Text, status=200, content_type="text/plain", headers:{T
             Connection: close$\r
             $extra_headers
             $\r$\n
-        ":bytes() ++ body_bytes
+        ".bytes() ++ body_bytes
 
 func _content_type(file:Path -> Text):
-    when file:extension() is "html": return "text/html"
+    when file.extension() is "html": return "text/html"
     is "tm": return "text/html"
     is "js": return "text/javascript"
     is "css": return "text/css"
@@ -105,30 +105,30 @@ func _content_type(file:Path -> Text):
 enum RouteEntry(ServeFile(file:Path), Redirect(destination:Text)):
     func respond(entry:RouteEntry, request:HTTPRequest -> HTTPResponse):
         when entry is ServeFile(file):
-            body := if file:can_execute():
-                Command(Text(file)):get_output()!
+            body := if file.can_execute():
+                Command(Text(file)).get_output()!
             else:
-                file:read()!
+                file.read()!
             return HTTPResponse(body, content_type=_content_type(file))
         is Redirect(destination):
             return HTTPResponse("Found", 302, headers={"Location"=destination})
 
 func load_routes(directory:Path -> {Text=RouteEntry}):
     routes : &{Text=RouteEntry} = &{}
-    for file in (directory ++ (./*)):glob():
-        skip unless file:is_file()
-        contents := file:read() or skip
-        server_path := "/" ++ "/":join(file:relative_to(directory).components)
-        if file:base_name() == "index.html":
-            canonical := server_path:without_suffix("index.html")
+    for file in (directory ++ (./*)).glob():
+        skip unless file.is_file()
+        contents := file.read() or skip
+        server_path := "/" ++ "/".join(file.relative_to(directory).components)
+        if file.base_name() == "index.html":
+            canonical := server_path.without_suffix("index.html")
             routes[server_path] = Redirect(canonical)
             routes[canonical] = ServeFile(file)
-        else if file:extension() == "html":
-            canonical := server_path:without_suffix(".html")
+        else if file.extension() == "html":
+            canonical := server_path.without_suffix(".html")
             routes[server_path] = Redirect(canonical)
             routes[canonical] = ServeFile(file)
-        else if file:extension() == "tm":
-            canonical := server_path:without_suffix(".tm")
+        else if file.extension() == "tm":
+            canonical := server_path.without_suffix(".tm")
             routes[server_path] = Redirect(canonical)
             routes[canonical] = ServeFile(file)
         else:
@@ -142,7 +142,7 @@ func main(directory:Path, port=Int32(8080)):
 
     serve(port, func(request:HTTPRequest):
         if handler := routes[request.path]:
-            return handler:respond(request)
+            return handler.respond(request)
         else:
             return HTTPResponse("Not found!", 404)
     )

@@ -92,9 +92,9 @@ accessed, or `none` if no such file or directory exists.
 
 **Example:**  
 ```tomo
->> (./file.txt):accessed()
+>> (./file.txt).accessed()
 = 1704221100?
->> (./not-a-file):accessed()
+>> (./not-a-file).accessed()
 = none
 ```
 
@@ -117,7 +117,7 @@ Nothing.
 
 **Example:**  
 ```tomo
-(./log.txt):append("extra line$(\n)")
+(./log.txt).append("extra line$(\n)")
 ```
 
 ---
@@ -139,7 +139,7 @@ Nothing.
 
 **Example:**  
 ```tomo
-(./log.txt):append_bytes([104[B], 105[B]])
+(./log.txt).append_bytes([104[B], 105[B]])
 ```
 
 ---
@@ -158,7 +158,7 @@ The base name of the file or directory.
 
 **Example:**  
 ```tomo
->> (./path/to/file.txt):base_name()
+>> (./path/to/file.txt).base_name()
 = "file.txt"
 ```
 
@@ -181,15 +181,15 @@ value if the file couldn't be read.
 **Example:**  
 ```tomo
 # Safely handle file not being readable:
-if lines := (./file.txt):by_line():
+if lines := (./file.txt).by_line():
     for line in lines:
-        say(line:upper())
+        say(line.upper())
 else:
     say("Couldn't read file!")
 
 # Assume the file is readable and error if that's not the case:
-for line in (/dev/stdin):by_line()!:
-    say(line:upper())
+for line in (/dev/stdin).by_line()!:
+    say(line.upper())
 ```
 
 ---
@@ -208,11 +208,11 @@ func can_execute(path: Path -> Bool)
 
 **Example:**  
 ```tomo
->> (/bin/sh):can_execute()
+>> (/bin/sh).can_execute()
 = yes
->> (/usr/include/stdlib.h):can_execute()
+>> (/usr/include/stdlib.h).can_execute()
 = no
->> (/non/existant/file):can_execute()
+>> (/non/existant/file).can_execute()
 = no
 ```
 
@@ -232,11 +232,11 @@ func can_read(path: Path -> Bool)
 
 **Example:**  
 ```tomo
->> (/usr/include/stdlib.h):can_read()
+>> (/usr/include/stdlib.h).can_read()
 = yes
->> (/etc/shadow):can_read()
+>> (/etc/shadow).can_read()
 = no
->> (/non/existant/file):can_read()
+>> (/non/existant/file).can_read()
 = no
 ```
 
@@ -256,11 +256,11 @@ func can_write(path: Path -> Bool)
 
 **Example:**  
 ```tomo
->> (/tmp):can_write()
+>> (/tmp).can_write()
 = yes
->> (/etc/passwd):can_write()
+>> (/etc/passwd).can_write()
 = no
->> (/non/existant/file):can_write()
+>> (/non/existant/file).can_write()
 = no
 ```
 
@@ -286,9 +286,9 @@ changed, or `none` if no such file or directory exists.
 
 **Example:**  
 ```tomo
->> (./file.txt):changed()
+>> (./file.txt).changed()
 = 1704221100?
->> (./not-a-file):changed()
+>> (./not-a-file).changed()
 = none
 ```
 
@@ -309,7 +309,7 @@ A new path representing the child.
 
 **Example:**  
 ```tomo
->> (./directory):child("file.txt")
+>> (./directory).child("file.txt")
 = (./directory/file.txt)
 ```
 
@@ -330,7 +330,7 @@ A list of paths for the children.
 
 **Example:**  
 ```tomo
->> (./directory):children(include_hidden=yes)
+>> (./directory).children(include_hidden=yes)
 = [".git", "foo.txt"]
 ```
 
@@ -352,7 +352,7 @@ Nothing.
 
 **Example:**  
 ```tomo
-(./new_directory):create_directory()
+(./new_directory).create_directory()
 ```
 
 ---
@@ -371,7 +371,7 @@ func exists(path: Path -> Bool)
 
 **Example:**  
 ```tomo
->> (/):exists()
+>> (/).exists()
 = yes
 ```
 
@@ -393,9 +393,9 @@ replace the `~` with an absolute path to the user's home directory.
 
 **Example:**  
 ```tomo
->> (~/foo):expand_home() # Assume current user is 'user'
+>> (~/foo).expand_home() # Assume current user is 'user'
 = /home/user/foo
->> (/foo):expand_home() # No change
+>> (/foo).expand_home() # No change
 = /foo
 ```
 
@@ -418,13 +418,13 @@ no file extension.
 
 **Example:**  
 ```tomo
->> (./file.tar.gz):extension()
+>> (./file.tar.gz).extension()
 = "tar.gz"
->> (./file.tar.gz):extension(full=no)
+>> (./file.tar.gz).extension(full=no)
 = "gz"
->> (/foo):extension()
+>> (/foo).extension()
 = ""
->> (./.git):extension()
+>> (./.git).extension()
 = ""
 ```
 
@@ -445,7 +445,7 @@ A list of file paths.
 
 **Example:**  
 ```tomo
->> (./directory):files(include_hidden=yes)
+>> (./directory).files(include_hidden=yes)
 = [(./directory/file1.txt), (./directory/file2.txt)]
 ```
 
@@ -498,20 +498,20 @@ A list of file paths that match the glob.
 **Example:**  
 ```tomo
 # Current directory includes: foo.txt, baz.txt, qux.jpg, .hidden
->> (./*):glob()
+>> (./*).glob()
 = [(./foo.txt), (./baz.txt), (./qux.jpg)]
 
->> (./*.txt):glob()
+>> (./*.txt).glob()
 = [(./foo.txt), (./baz.txt)]
 
->> (./*.{txt,jpg}):glob()
+>> (./*.{txt,jpg}).glob()
 = [(./foo.txt), (./baz.txt), (./qux.jpg)]
 
->> (./.*):glob()
+>> (./.*).glob()
 = [(./.hidden)]
 
 # Globs with no matches return an empty array:
->> (./*.xxx):glob()
+>> (./*.xxx).glob()
 = []
 ```
 
@@ -532,9 +532,9 @@ The name of the group which owns the file or directory, or `none` if the path do
 
 **Example:**  
 ```tomo
->> (/bin):group()
+>> (/bin).group()
 = "root"
->> (/non/existent/file):group()
+>> (/non/existent/file).group()
 = none
 ```
 
@@ -555,10 +555,10 @@ func is_directory(path: Path, follow_symlinks=yes -> Bool)
 
 **Example:**  
 ```tomo
->> (./directory/):is_directory()
+>> (./directory/).is_directory()
 = yes
 
->> (./file.txt):is_directory()
+>> (./file.txt).is_directory()
 = no
 ```
 
@@ -579,10 +579,10 @@ func is_file(path: Path, follow_symlinks=yes -> Bool)
 
 **Example:**  
 ```tomo
->> (./file.txt):is_file()
+>> (./file.txt).is_file()
 = yes
 
->> (./directory/):is_file()
+>> (./directory/).is_file()
 = no
 ```
 
@@ -603,7 +603,7 @@ func is_socket(path: Path, follow_symlinks=yes -> Bool)
 
 **Example:**  
 ```tomo
->> (./socket):is_socket()
+>> (./socket).is_socket()
 = yes
 ```
 
@@ -623,7 +623,7 @@ func is_symlink(path: Path -> Bool)
 
 **Example:**  
 ```tomo
->> (./link):is_symlink()
+>> (./link).is_symlink()
 = yes
 ```
 
@@ -645,9 +645,9 @@ modified, or `none` if no such file or directory exists.
 
 **Example:**  
 ```tomo
->> (./file.txt):modified()
+>> (./file.txt).modified()
 = 1704221100?
->> (./not-a-file):modified()
+>> (./not-a-file).modified()
 = none
 ```
 
@@ -668,9 +668,9 @@ The name of the user who owns the file or directory, or `none` if the path does 
 
 **Example:**  
 ```tomo
->> (/bin):owner()
+>> (/bin).owner()
 = "root"
->> (/non/existent/file):owner()
+>> (/non/existent/file).owner()
 = none
 ```
 
@@ -690,7 +690,7 @@ The path of the parent directory.
 
 **Example:**  
 ```tomo
->> (./path/to/file.txt):parent()
+>> (./path/to/file.txt).parent()
 = (./path/to/)
 ```
 
@@ -713,10 +713,10 @@ raised.
 
 **Example:**  
 ```tomo
->> (./hello.txt):read()
+>> (./hello.txt).read()
 = "Hello"?
 
->> (./nosuchfile.xxx):read()
+>> (./nosuchfile.xxx).read()
 = none
 ```
 ---
@@ -738,10 +738,10 @@ returned.
 
 **Example:**  
 ```tomo
->> (./hello.txt):read()
+>> (./hello.txt).read()
 = [72[B], 101[B], 108[B], 108[B], 111[B]]?
 
->> (./nosuchfile.xxx):read()
+>> (./nosuchfile.xxx).read()
 = none
 ```
 
@@ -762,7 +762,7 @@ The relative path.
 
 **Example:**  
 ```tomo
->> (./path/to/file.txt):relative(relative_to=(./path))
+>> (./path/to/file.txt).relative(relative_to=(./path))
 = (./to/file.txt)
 ```
 
@@ -783,7 +783,7 @@ Nothing.
 
 **Example:**  
 ```tomo
-(./file.txt):remove()
+(./file.txt).remove()
 ```
 
 ---
@@ -803,10 +803,10 @@ The resolved absolute path.
 
 **Example:**  
 ```tomo
->> (~/foo):resolved()
+>> (~/foo).resolved()
 = (/home/user/foo)
 
->> (./path/to/file.txt):resolved(relative_to=(/foo))
+>> (./path/to/file.txt).resolved(relative_to=(/foo))
 = (/foo/path/to/file.txt)
 ```
 
@@ -829,7 +829,7 @@ Nothing. If a path does not exist, a failure will be raised.
 
 **Example:**  
 ```tomo
-(./file.txt):set_owner(owner="root", group="wheel")
+(./file.txt).set_owner(owner="root", group="wheel")
 ```
 
 ---
@@ -849,10 +849,10 @@ A list of subdirectory paths.
 
 **Example:**  
 ```tomo
->> (./directory):subdirectories()
+>> (./directory).subdirectories()
 = [(./directory/subdir1), (./directory/subdir2)]
 
->> (./directory):subdirectories(include_hidden=yes)
+>> (./directory).subdirectories(include_hidden=yes)
 = [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
 ```
 
@@ -873,11 +873,11 @@ A unique directory path after creating the directory.
 **Example:**  
 
 ```
->> created := (/tmp/my-dir.XXXXXX):unique_directory()
+>> created := (/tmp/my-dir.XXXXXX).unique_directory()
 = (/tmp/my-dir-AwoxbM/)
->> created:is_directory()
+>> created.is_directory()
 = yes
-created:remove()
+created.remove()
 ```
 
 ---
@@ -900,7 +900,7 @@ Nothing.
 
 **Example:**  
 ```tomo
-(./file.txt):write("Hello, world!")
+(./file.txt).write("Hello, world!")
 ```
 
 ---
@@ -923,7 +923,7 @@ Nothing.
 
 **Example:**  
 ```tomo
-(./file.txt):write_bytes([104[B], 105[B]])
+(./file.txt).write_bytes([104[B], 105[B]])
 ```
 
 ---
@@ -946,11 +946,11 @@ The path of the newly created unique file.
 
 **Example:**  
 ```tomo
->> created := (./file-XXXXXX.txt):write_unique("Hello, world!")
+>> created := (./file-XXXXXX.txt).write_unique("Hello, world!")
 = (./file-27QHtq.txt)
->> created:read()
+>> created.read()
 = "Hello, world!"
-created:remove()
+created.remove()
 ```
 
 ---
@@ -973,9 +973,9 @@ The path of the newly created unique file.
 
 **Example:**  
 ```tomo
->> created := (./file-XXXXXX.txt):write_unique_bytes([1[B], 2[B], 3[B]])
+>> created := (./file-XXXXXX.txt).write_unique_bytes([1[B], 2[B], 3[B]])
 = (./file-27QHtq.txt)
->> created:read()
+>> created.read()
 = [1[B], 2[B], 3[B]]
-created:remove()
+created.remove()
 ```

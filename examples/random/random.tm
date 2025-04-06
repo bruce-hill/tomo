@@ -79,9 +79,9 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
 
     func bool(rng:&RandomNumberGenerator, probability=0.5 -> Bool):
         if probability == 0.5:
-            return rng:byte() < 0x80
+            return rng.byte() < 0x80
         else:
-            return rng:num(0., 1.) < 0.5
+            return rng.num(0., 1.) < 0.5
 
     func int64(rng:&RandomNumberGenerator, min=Int64.min, max=Int64.max -> Int64):
         fail("Random minimum value $min is larger than the maximum value $max") if min > max
@@ -188,7 +188,7 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
         }
 
     func num32(rng:&RandomNumberGenerator, min=Num32(0.), max=Num32(1.) -> Num32):
-        return Num32(rng:num(Num(min), Num(max)))
+        return Num32(rng.num(Num(min), Num(max)))
 
     func int(rng:&RandomNumberGenerator, min:Int, max:Int -> Int):
         return inline C : Int {
@@ -228,13 +228,13 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
 
 func main():
     >> rng := RandomNumberGenerator.new()
-    >> rng:num()
-    >> rng:num()
-    >> rng:num()
-    >> rng:num(0, 100)
-    >> rng:byte()
-    >> rng:bytes(20)
-    # >> rng:int(1, 100)
-    # >> rng:int(1, 100)
-    # >> rng:int(1, 100)
-    # >> rng:int(1, 100)
+    >> rng.num()
+    >> rng.num()
+    >> rng.num()
+    >> rng.num(0, 100)
+    >> rng.byte()
+    >> rng.bytes(20)
+    # >> rng.int(1, 100)
+    # >> rng.int(1, 100)
+    # >> rng.int(1, 100)
+    # >> rng.int(1, 100)

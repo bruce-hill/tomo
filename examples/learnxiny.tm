@@ -160,18 +160,18 @@ func main():
     # Sets are similar to tables, but they represent an unordered collection of
     # unique values:
     set := {10, 20, 30}
-    >> set:has(20)
+    >> set.has(20)
     = yes
-    >> set:has(999)
+    >> set.has(999)
     = no
 
     # You can do some operations on sets:
     other_set := {30, 40, 50}
-    >> set:with(other_set)
+    >> set.with(other_set)
     = {10, 20, 30, 40, 50}
-    >> set:without(other_set)
+    >> set.without(other_set)
     = {10, 20}
-    >> set:overlap(other_set)
+    >> set.overlap(other_set)
     = {30}
 
     # So far, the datastructures that have been discussed are all *immutable*,
@@ -184,7 +184,7 @@ func main():
     = @[999, 20, 30]
 
     # To call a method, you must use ":" and the name of the method:
-    my_arr:sort()
+    my_arr.sort()
     >> my_arr
     = @[20, 30, 999]
 
@@ -197,7 +197,7 @@ func main():
     # location. Later, a new value might end up there, but the photograph will
     # remain unchanged.
     snapshot := my_arr[]
-    my_arr:insert(1000)
+    my_arr.insert(1000)
     >> my_arr
     = @[20, 30, 999, 1000]
     >> snapshot
@@ -275,7 +275,7 @@ func demo_structs():
     = 30
 
     # Calling methods:
-    alice:say_age()
+    alice.say_age()
 
     # You can call static methods by using the class name and ".":
     >> Person.get_cool_name()

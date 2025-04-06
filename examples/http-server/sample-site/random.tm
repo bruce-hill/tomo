@@ -11,7 +11,7 @@ func main():
         </head>
         <body>
         <h1>Random Number</h1>
-        Your random number is: $(random:int(1,100))
+        Your random number is: $(random.int(1,100))
         </body>
         </html>
     ")

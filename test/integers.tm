@@ -43,11 +43,11 @@ func main():
 	= "1,2,3,4,5,"
 
 	>> x := Int64(123)
-	>> x:format(digits=5)
+	>> x.format(digits=5)
 	= "00123"
-	>> x:hex()
+	>> x.hex()
 	= "0x7B"
-	>> x:octal()
+	>> x.octal()
 	= "0o173"
 
 	>> Int64.min
@@ -56,11 +56,11 @@ func main():
 	= Int64(9223372036854775807)
 
 
-	>> Int32(123):hex()
+	>> Int32(123).hex()
 	= "0x7B"
-	>> Int16(123):hex()
+	>> Int16(123).hex()
 	= "0x7B"
-	>> Int8(123):hex()
+	>> Int8(123).hex()
 	= "0x7B"
 
 	>> Int(2.1, truncate=yes)
@@ -92,13 +92,13 @@ func main():
 				>> (n/d)*d + (n mod d) == n
 				= yes
 
-	>> 0:next_prime()
+	>> (0).next_prime()
 	= 2
-	>> 7:next_prime()
+	>> (7).next_prime()
 	= 11
-	#>> 11:prev_prime()
+	#>> (11).prev_prime()
 	#= 7
-	>> (and: p:is_prime() for p in [
+	>> (and: p.is_prime() for p in [
 		2, 3, 5, 7,
 		137372146048179869781170214707,
 		811418847921670560768224995279,
@@ -113,7 +113,7 @@ func main():
 	])!
 	= yes
 
-	>> (or: p:is_prime() for p in [
+	>> (or: p.is_prime() for p in [
 		-1, 0, 1, 4, 6,
 		137372146048179869781170214707*2,
 		811418847921670560768224995279*3,
@@ -131,8 +131,8 @@ func main():
 	>> Int64(no)
 	= Int64(0)
 
-	>> 4:choose(2)
+	>> (4).choose(2)
 	= 6
 
-	>> 4:factorial()
+	>> (4).factorial()
 	= 24

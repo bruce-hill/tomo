@@ -17,14 +17,14 @@ a Tomo program launches.
 
 This documentation provides details on RNG functions available in the API.
 Arrays also have some methods which use RNG values:
-`array:shuffle()`, `array:shuffled()`, `array:random()`, and `array:sample()`.
+`array.shuffle()`, `array.shuffled()`, `array.random()`, and `array.sample()`.
 
 - [`func bool(rng: RNG, p: Num = 0.5 -> Bool)`](#bool)
 - [`func byte(rng: RNG -> Byte)`](#byte)
 - [`func bytes(rng: RNG, count: Int -> [Byte])`](#bytes)
 - [`func copy(rng: RNG -> RNG)`](#copy)
 - [`func int(rng: RNG, min: Int, max: Int -> Int)`](#int`, `int64`, `int32`, `int16`, `int8)
-- [`func new(seed: [Byte] = (/dev/urandom):read_bytes(40)! -> RNG)`](#new)
+- [`func new(seed: [Byte] = (/dev/urandom).read_bytes(40)! -> RNG)`](#new)
 - [`func num(rng: RNG, min: Num = 0.0, max: Num = 1.0 -> Num)`](#num`, `num32)
 
 -------------
@@ -46,9 +46,9 @@ func bool(rng: RNG, p: Num = 0.5 -> Bool)
 
 **Example:**  
 ```tomo
->> random:bool()
+>> random.bool()
 = no
->> random:bool(1.0)
+>> random.bool(1.0)
 = yes
 ```
 
@@ -68,7 +68,7 @@ A random byte (0-255).
 
 **Example:**  
 ```tomo
->> random:byte()
+>> random.byte()
 = 103[B]
 ```
 
@@ -89,7 +89,7 @@ An array of length `count` random bytes with uniform random distribution (0-255)
 
 **Example:**  
 ```tomo
->> random:bytes(4)
+>> random.bytes(4)
 = [135[B], 169[B], 103[B], 212[B]]
 ```
 
@@ -111,13 +111,13 @@ A copy of the given RNG.
 **Example:**  
 ```tomo
 >> rng := RNG.new([])
->> copy := rng:copy()
+>> copy := rng.copy()
 
->> rng:bytes(10)
+>> rng.bytes(10)
 = [224[B], 102[B], 190[B], 59[B], 251[B], 50[B], 217[B], 170[B], 15[B], 221[B]]
 
 # The copy runs in parallel to the original RNG:
->> copy:bytes(10)
+>> copy.bytes(10)
 = [224[B], 102[B], 190[B], 59[B], 251[B], 50[B], 217[B], 170[B], 15[B], 221[B]]
 ```
 
@@ -144,7 +144,7 @@ is greater than `max`, an error will be raised.
 
 **Example:**  
 ```tomo
->> random:int(1, 10)
+>> random.int(1, 10)
 = 8
 ```
 
@@ -154,7 +154,7 @@ is greater than `max`, an error will be raised.
 Return a new random number generator.
 
 ```tomo
-func new(seed: [Byte] = (/dev/urandom):read_bytes(40)! -> RNG)
+func new(seed: [Byte] = (/dev/urandom).read_bytes(40)! -> RNG)
 ```
 
 - `seed`: The seed use for the random number generator. A seed length of 40
@@ -167,7 +167,7 @@ A new random number generator.
 **Example:**  
 ```tomo
 >> my_rng := RNG.new([1[B], 2[B], 3[B], 4[B]])
->> my_rng:bool()
+>> my_rng.bool()
 = yes
 ```
 
@@ -191,6 +191,6 @@ A floating point number uniformly chosen from the range `[min, max]`
 
 **Example:**  
 ```tomo
->> random:num(1, 10)
+>> random.num(1, 10)
 = 9.512830439975572
 ```

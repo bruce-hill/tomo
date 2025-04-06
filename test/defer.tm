@@ -3,7 +3,7 @@ func main():
     nums : @[Int] = @[]
     do:
         defer:
-            nums:insert(x)
+            nums.insert(x)
         x = 999
 
     >> nums

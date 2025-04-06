@@ -35,7 +35,7 @@ callsite:
 ```
 
 **Note:** Default arguments are re-evaluated at the callsite for each function
-call, so if your default argument is `func foo(x=random:int(1,10) -> Int)`, then
+call, so if your default argument is `func foo(x=random.int(1,10) -> Int)`, then
 each time you call the function without an `x` argument, it will give you a new
 random number.
 

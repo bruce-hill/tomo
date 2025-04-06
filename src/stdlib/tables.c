@@ -446,10 +446,10 @@ PUREFUNC public int32_t Table$compare(const void *vx, const void *vy, const Type
     // Table comparison rules:
     // - If two tables have different keys, then compare as if comparing a
     // sorted array of the keys of the two tables:
-    //    `x.keys:sorted() <> y.keys:sorted()`
+    //    `x.keys.sorted() <> y.keys.sorted()`
     // - Otherwise, compare as if comparing arrays of values for the sorted key
     // arrays:
-    //    `[x[k] for k in x.keys:sorted()] <> [y[k] for k in y.keys:sorted()]`
+    //    `[x[k] for k in x.keys.sorted()] <> [y[k] for k in y.keys.sorted()]`
     // 
     // We can do this in _linear_ time if we find the smallest `k` such that
     // `x[k] != y[k]`, as well as the largest key in `x` and `y`.
@@ -637,7 +637,7 @@ public Table_t Table$from_entries(Array_t entries, const TypeInfo_t *type)
 // Overlap is "set intersection" in formal terms
 public Table_t Table$overlap(Table_t a, Table_t b, const TypeInfo_t *type)
 {
-    // Return a table such that t[k]==a[k] for all k such that a:has(k), b:has(k), and a[k]==b[k]
+    // Return a table such that t[k]==a[k] for all k such that a.has(k), b.has(k), and a[k]==b[k]
     Table_t result = {};
     const size_t offset = value_offset(type);
     for (int64_t i = 0; i < Table$length(a); i++) {
@@ -659,7 +659,7 @@ public Table_t Table$overlap(Table_t a, Table_t b, const TypeInfo_t *type)
 // With is "set union" in formal terms
 public Table_t Table$with(Table_t a, Table_t b, const TypeInfo_t *type)
 {
-    // return a table such that t[k]==b[k] for all k such that b:has(k), and t[k]==a[k] for all k such that a:has(k) and not b:has(k)
+    // return a table such that t[k]==b[k] for all k such that b.has(k), and t[k]==a[k] for all k such that a.has(k) and not b.has(k)
     Table_t result = {};
     const size_t offset = value_offset(type);
     for (int64_t i = 0; i < Table$length(a); i++) {
@@ -684,7 +684,7 @@ public Table_t Table$with(Table_t a, Table_t b, const TypeInfo_t *type)
 // Without is "set difference" in formal terms
 public Table_t Table$without(Table_t a, Table_t b, const TypeInfo_t *type)
 {
-    // Return a table such that t[k]==a[k] for all k such that not b:has(k) or b[k] != a[k]
+    // Return a table such that t[k]==a[k] for all k such that not b.has(k) or b[k] != a[k]
     Table_t result = {};
     const size_t offset = value_offset(type);
     for (int64_t i = 0; i < Table$length(a); i++) {

@@ -123,7 +123,7 @@ be automatically escaped using the `{1 ?}` rule described above:
 # This is: `{ 1{ }` (one open brace) followed by the literal text "..xxx}"
 
 # No error:
->> some_text:find($/$user_input/)
+>> some_text.find($/$user_input/)
 = 0
 ```
 
@@ -168,7 +168,7 @@ An iterator function that yields `PatternMatch` objects one at a time.
 **Example:**
 ```tomo
 text := "one, two, three"
-for word in text:by_pattern($Pat"{id}"):
+for word in text.by_pattern($Pat"{id}"):
     say(word.text)
 ```
 
@@ -190,7 +190,7 @@ An iterator function that yields text segments.
 **Example:**
 ```tomo
 text := "one two three"
-for word in text:by_pattern_split($Pat"{whitespace}"):
+for word in text.by_pattern_split($Pat"{whitespace}"):
     say(word.text)
 ```
 
@@ -211,7 +211,7 @@ func each_pattern(text:Text, pattern:Pat, fn:func(m:PatternMatch), recursive=yes
 **Example:**
 ```tomo
 text := "one two three"
-text:each_pattern($Pat"{id}", func(m:PatternMatch):
+text.each_pattern($Pat"{id}", func(m:PatternMatch):
     say(m.txt)
 )
 ```
@@ -234,7 +234,7 @@ An array of `PatternMatch` objects.
 **Example:**
 ```tomo
 text := "one! two three!"
->> text:find_patterns($Pat"{id}!")
+>> text.find_patterns($Pat"{id}!")
 = [PatternMatch(text="one!", index=1, captures=["one"]), PatternMatch(text="three!", index=10, captures=["three"])]
 ```
 
@@ -256,7 +256,7 @@ func has_pattern(text:Text, pattern:Pat -> Bool)
 **Example:**
 ```tomo
 text := "...okay..."
->> text:has_pattern($Pat"{id}")
+>> text.has_pattern($Pat"{id}")
 = yes
 ```
 
@@ -281,7 +281,7 @@ A new text with the transformed matches.
 ```tomo
 text := "I have #apples and #oranges and #plums"
 fruits := {"apples"=4, "oranges"=5}
->> text:map_pattern($Pat'#{id}', func(match:PatternMatch):
+>> text.map_pattern($Pat'#{id}', func(match:PatternMatch):
     fruit := match.captures[1]
     "$(fruits[fruit] or 0) $fruit"
 )
@@ -305,9 +305,9 @@ func matches_pattern(text:Text, pattern:Pat -> Bool)
 
 **Example:**
 ```tomo
->> "Hello!!!":matches_pattern($Pat"{id}")
+>> "Hello!!!".matches_pattern($Pat"{id}")
 = no
->> "Hello":matches_pattern($Pat"{id}")
+>> "Hello".matches_pattern($Pat"{id}")
 = yes
 ```
 
@@ -329,9 +329,9 @@ not match the pattern.
 
 **Example:**
 ```tomo
->> "123 boxes":pattern_captures($Pat"{int} {id}")
+>> "123 boxes".pattern_captures($Pat"{int} {id}")
 = ["123", "boxes"]?
->> "xxx":pattern_captures($Pat"{int} {id}")
+>> "xxx".pattern_captures($Pat"{int} {id}")
 = none
 ```
 
@@ -355,19 +355,19 @@ A new text with replacements applied.
 
 **Example:**
 ```tomo
->> "I have 123 apples and 456 oranges":replace_pattern($Pat"{int}", "some")
+>> "I have 123 apples and 456 oranges".replace_pattern($Pat"{int}", "some")
 = "I have some apples and some oranges"
 
->> "I have 123 apples and 456 oranges":replace_pattern($Pat"{int}", "(@1)")
+>> "I have 123 apples and 456 oranges".replace_pattern($Pat"{int}", "(@1)")
 = "I have (123) apples and (456) oranges"
 
->> "I have 123 apples and 456 oranges":replace_pattern($Pat"{int}", "(?1)", backref="?")
+>> "I have 123 apples and 456 oranges".replace_pattern($Pat"{int}", "(?1)", backref="?")
 = "I have (123) apples and (456) oranges"
 
->> "bad(fn(), bad(notbad))":replace_pattern($Pat"bad(?)", "good(@1)")
+>> "bad(fn(), bad(notbad))".replace_pattern($Pat"bad(?)", "good(@1)")
 = "good(fn(), good(notbad))"
 
->> "bad(fn(), bad(notbad))":replace_pattern($Pat"bad(?)", "good(@1)", recursive=no)
+>> "bad(fn(), bad(notbad))".replace_pattern($Pat"bad(?)", "good(@1)", recursive=no)
 = "good(fn(), bad(notbad))"
 ```
 
@@ -388,7 +388,7 @@ An array of text segments.
 
 **Example:**
 ```tomo
->> "one two three":split_pattern($Pat"{whitespace}")
+>> "one two three".split_pattern($Pat"{whitespace}")
 = ["one", "two", "three"]
 ```
 
@@ -412,7 +412,7 @@ A new text with all specified replacements applied.
 **Example:**
 ```tomo
 >> text := "foo(x, baz(1))"
->> text:translate_patterns({
+>> text.translate_patterns({
     $Pat"{id}(?)"="call(fn('@1'), @2)",
     $Pat"{id}"="var('@1')",
     $Pat"{int}"="int(@1)",
@@ -439,6 +439,6 @@ The trimmed text.
 
 **Example:**
 ```tomo
->> "123abc456":trim_pattern($Pat"{digit}")
+>> "123abc456".trim_pattern($Pat"{digit}")
 = "abc"
 ```
