@@ -1041,6 +1041,9 @@ PARSER(parse_for) {
     expect_str(ctx, start, &pos, "in", "I expected an 'in' for this 'for'");
 
     ast_t *iter = expect(ctx, start, &pos, parse_expr, "I expected an iterable value for this 'for'");
+
+    (void)match_word(&pos, "do"); // Optional 'do'
+
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'for'"); 
 
     const char *else_start = pos;
@@ -1055,7 +1058,7 @@ PARSER(parse_for) {
 }
 
 PARSER(parse_do) {
-    // do: [<indent>] body
+    // do [<indent>] body
     const char *start = pos;
     if (!match_word(&pos, "do")) return NULL;
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'do'"); 
@@ -1063,7 +1066,7 @@ PARSER(parse_do) {
 }
 
 PARSER(parse_while) {
-    // while condition: [<indent>] body
+    // while condition ["do"] [<indent>] body
     const char *start = pos;
     if (!match_word(&pos, "while")) return NULL;
 
@@ -1074,13 +1077,16 @@ PARSER(parse_while) {
         if (!when->__data.When.else_body) when->__data.When.else_body = NewAST(ctx->file, pos, pos, Stop);
         return NewAST(ctx->file, start, pos, While, .body=when);
     }
+
+    (void)match_word(&pos, "do"); // Optional 'do'
+
     ast_t *condition = expect(ctx, start, &pos, parse_expr, "I don't see a viable condition for this 'while'");
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'while'"); 
     return NewAST(ctx->file, start, pos, While, .condition=condition, .body=body);
 }
 
 PARSER(parse_repeat) {
-    // repeat: [<indent>] body
+    // repeat [<indent>] body
     const char *start = pos;
     if (!match_word(&pos, "repeat")) return NULL;
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'repeat'"); 
