@@ -4,7 +4,7 @@ func main()
 	>> (+: [10, 20, 30])
 	= 60?
 
-	>> empty_ints : [Int] = []
+	>> empty_ints : [Int]
 	>> (+: empty_ints)
 	= none
 

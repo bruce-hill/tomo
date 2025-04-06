@@ -54,8 +54,8 @@ struct Command(command:Text, args:[Text]=[], env:{Text=Text}={})
         if input.length > 0
             (&input_bytes).insert_all(input.bytes())
 
-        stdout : [Byte] = []
-        stderr : [Byte] = []
+        stdout : [Byte]
+        stderr : [Byte]
         status := run_command(command.command, command.args, command.env, input_bytes, &stdout, &stderr)
 
         if inline C : Bool { WIFEXITED(_$status) }

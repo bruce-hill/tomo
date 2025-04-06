@@ -141,7 +141,7 @@ struct _TermState(
 )
 
     func apply(old,new:_TermState -> Text)
-        sequences : &[Text] = &[]
+        sequences : &[Text]
         _toggle2(sequences, old.bold, old.dim, new.bold, new.dim, "1", "2", "22")
         _toggle2(sequences, old.italic, old.fraktur, new.italic, new.fraktur, "3", "20", "23")
         _toggle(sequences, old.underline, new.underline, "4", "24")

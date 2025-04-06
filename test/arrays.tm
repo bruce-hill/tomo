@@ -4,6 +4,10 @@ func main()
 		= []
 
 	do
+		>> nums : [Num32]
+		= []
+
+	do
 		>> arr := [10, 20, 30]
 		= [10, 20, 30]
 
@@ -104,7 +108,7 @@ func main()
 		>> heap := @[(i * 1337) mod 37 for i in 10]
 		>> heap.heapify()
 		>> heap
-		heap_order : @[Int] = @[]
+		heap_order : @[Int]
 		repeat
 			heap_order.insert(heap.heap_pop() or stop)
 		>> heap_order[] == heap_order.sorted()

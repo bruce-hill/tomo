@@ -31,6 +31,8 @@ static CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target);
 static CORD compile_unsigned_type(type_t *t);
 static CORD promote_to_optional(type_t *t, CORD code);
 static CORD compile_none(type_t *t);
+static CORD compile_empty(type_t *t);
+static CORD compile_declared_value(env_t *env, ast_t *declaration_ast);
 static CORD compile_to_type(env_t *env, ast_t *ast, type_t *t);
 static CORD compile_typed_array(env_t *env, ast_t *ast, type_t *array_type);
 static CORD compile_typed_set(env_t *env, ast_t *ast, type_t *set_type);
@@ -214,7 +216,8 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         break;
     }
     case Declare: {
-        add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Declare)->value);
+        ast_t *value = Match(ast, Declare)->value;
+        add_closed_vars(closed_vars, enclosing_scope, env, value);
         bind_statement(env, ast);
         break;
     }
@@ -334,6 +337,8 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         if (condition->tag == Declare) {
             env_t *truthy_scope = fresh_scope(env);
             bind_statement(truthy_scope, condition);
+            if (!Match(condition, Declare)->value)
+                code_err(condition, "This declared variable must have an initial value");
             add_closed_vars(closed_vars, enclosing_scope, env, Match(condition, Declare)->value);
             ast_t *var = Match(condition, Declare)->var;
             type_t *cond_t = get_type(truthy_scope, var);
@@ -1132,17 +1137,9 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         CORD test_code;
         if (test->expr->tag == Declare) {
             auto decl = Match(test->expr, Declare);
-            const char *varname = Match(decl->var, Var)->name;
-            if (streq(varname, "_"))
-                return compile_statement(env, WrapAST(ast, DocTest, .expr=decl->value, .expected=test->expected, .skip_source=test->skip_source));
-            CORD var = CORD_all("_$", Match(decl->var, Var)->name);
             type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
-            if (!t) code_err(decl->value, "I couldn't figure out the type of this value!");
-            CORD val_code = compile_maybe_incref(env, decl->value, t);
-            if (t->tag == FunctionType) {
-                assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
-                t = Type(ClosureType, t);
-            }
+            CORD var = CORD_all("_$", Match(decl->var, Var)->name);
+            CORD val_code = compile_declared_value(env, test->expr);
             setup = CORD_all(compile_declaration(t, var), ";\n");
             test_code = CORD_all("(", var, " = ", val_code, ")");
             expr_t = t;
@@ -1229,17 +1226,16 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         auto decl = Match(ast, Declare);
         const char *name = Match(decl->var, Var)->name;
         if (streq(name, "_")) { // Explicit discard
-            return CORD_all("(void)", compile(env, decl->value), ";");
+            if (decl->value)
+                return CORD_all("(void)", compile(env, decl->value), ";");
+            else
+                return CORD_EMPTY;
         } else {
             type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
             if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
                 code_err(ast, "You can't declare a variable with a ", type_to_str(t), " value");
 
-            CORD val_code = compile_maybe_incref(env, decl->value, t);
-            if (t->tag == FunctionType) {
-                assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
-                t = Type(ClosureType, t);
-            }
+            CORD val_code = compile_declared_value(env, ast);
             return CORD_all(compile_declaration(t, CORD_cat("_$", name)), " = ", val_code, ";");
         }
     }
@@ -1792,6 +1788,8 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         auto if_ = Match(ast, If);
         ast_t *condition = if_->condition;
         if (condition->tag == Declare) {
+            if (Match(condition, Declare)->value == NULL)
+                code_err(condition, "This declaration must have a value");
             env_t *truthy_scope = fresh_scope(env);
             CORD code = CORD_all("IF_DECLARE(", compile_statement(truthy_scope, condition), ", ");
             bind_statement(truthy_scope, condition);
@@ -2471,6 +2469,96 @@ CORD compile_none(type_t *t)
         return CORD_all("((", compile_type(t), "){", namespace_prefix(enum_env, enum_env->namespace), "null})");
     }
     default: compiler_err(NULL, NULL, NULL, "none isn't implemented for this type: ", type_to_str(t));
+    }
+}
+
+CORD compile_empty(type_t *t)
+{
+    if (t == NULL)
+        compiler_err(NULL, NULL, NULL, "I can't compile a value with no type");
+
+    if (t->tag == OptionalType)
+        return compile_none(t);
+
+    if (t == PATH_TYPE) return "NONE_PATH";
+    else if (t == PATH_TYPE_TYPE) return "((OptionalPathType_t){})";
+
+    switch (t->tag) {
+    case BigIntType: return "I(0)";
+    case IntType: {
+        switch (Match(t, IntType)->bits) {
+        case TYPE_IBITS8: return "Int8(0)";
+        case TYPE_IBITS16: return "Int16(0)";
+        case TYPE_IBITS32: return "Int32(0)";
+        case TYPE_IBITS64: return "Int64(0)";
+        default: errx(1, "Invalid integer bit size");
+        }
+        break;
+    }
+    case ByteType: return "((Byte_t)0)";
+    case BoolType: return "((Bool_t)no)";
+    case ArrayType: return "((Array_t){})";
+    case TableType: case SetType: return "((Table_t){})";
+    case TextType: return "Text(\"\")";
+    case CStringType: return "\"\"";
+    case PointerType: {
+        auto ptr = Match(t, PointerType);
+        CORD empty_pointed = compile_empty(ptr->pointed);
+        return empty_pointed == CORD_EMPTY ? CORD_EMPTY : CORD_all(ptr->is_stack ? "stack(" : "heap(", empty_pointed, ")");
+    }
+    case NumType: {
+        return Match(t, NumType)->bits == TYPE_NBITS32 ? "Num32(0.0f)" : "Num64(0.0)" ;
+    }
+    case StructType: {
+        auto struct_ = Match(t, StructType);
+        CORD code = CORD_all("((", compile_type(t), "){");
+        for (arg_t *field = struct_->fields; field; field = field->next) {
+            CORD empty_field = field->default_val
+                ? compile(struct_->env, field->default_val)
+                : compile_empty(field->type);
+            if (empty_field == CORD_EMPTY)
+                return CORD_EMPTY;
+
+            code = CORD_all(code, empty_field);
+            if (field->next)
+                code = CORD_all(code, ", ");
+        }
+        return CORD_all(code, "})");
+    }
+    case EnumType: {
+        auto enum_ = Match(t, EnumType);
+        tag_t *tag = enum_->tags;
+        assert(tag);
+        assert(tag->type);
+        if (Match(tag->type, StructType)->fields)
+            return CORD_all("((", compile_type(t), "){.$tag=", String(tag->tag_value), ", .", tag->name, "=", compile_empty(tag->type), "})");
+        else
+            return CORD_all("((", compile_type(t), "){.$tag=", String(tag->tag_value), "})");
+    }
+    default: return CORD_EMPTY;
+    }
+}
+
+static CORD compile_declared_value(env_t *env, ast_t *declare_ast)
+{
+    auto decl = Match(declare_ast, Declare);
+    type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
+
+    if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
+        code_err(declare_ast, "You can't declare a variable with a ", type_to_str(t), " value");
+
+    if (decl->value) {
+        CORD val_code = compile_maybe_incref(env, decl->value, t);
+        if (t->tag == FunctionType) {
+            assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
+            t = Type(ClosureType, t);
+        }
+        return val_code;
+    } else {
+        CORD val_code = compile_empty(t);
+        if (val_code == CORD_EMPTY)
+            code_err(declare_ast, "This type (", type_to_str(t), ") cannot be uninitialized. You must provide a value.");
+        return val_code;
     }
 }
 
@@ -3377,6 +3465,8 @@ CORD compile(env_t *env, ast_t *ast)
         CORD condition_code;
         if (condition->tag == Declare) {
             auto decl = Match(condition, Declare);
+            if (decl->value == NULL)
+                code_err(condition, "This declaration must have a value");
             type_t *condition_type = 
                 decl->type ? parse_type_ast(env, decl->type)
                 : get_type(env, Match(condition, Declare)->value);
@@ -4121,17 +4211,9 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
         const char *decl_name = Match(decl->var, Var)->name;
         CORD full_name = CORD_all(namespace_prefix(env, env->namespace), decl_name);
         type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
-        if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
-            code_err(ast, "You can't declare a variable with a ", type_to_str(t), " value");
-
-        CORD val_code = compile_maybe_incref(env, decl->value, t);
-        if (t->tag == FunctionType) {
-            assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
-            t = Type(ClosureType, t);
-        }
-
+        CORD val_code = compile_declared_value(env, ast);
         bool is_private = decl_name[0] == '_';
-        if (is_constant(env, decl->value)) {
+        if ((decl->value && is_constant(env, decl->value)) || (!decl->value && !has_heap_memory(t))) {
             set_binding(env, decl_name, t, full_name);
             return CORD_all(
                 is_private ? "static " : CORD_EMPTY,
@@ -4215,17 +4297,9 @@ static void initialize_vars_and_statics(env_t *env, ast_t *ast)
             auto decl = Match(stmt->ast, Declare);
             const char *decl_name = Match(decl->var, Var)->name;
             CORD full_name = CORD_all(namespace_prefix(env, env->namespace), decl_name);
-            type_t *t = get_type(env, decl->value);
-            if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
-                code_err(stmt->ast, "You can't declare a variable with a ", type_to_str(t), " value");
-
-            CORD val_code = compile_maybe_incref(env, decl->value, t);
-            if (t->tag == FunctionType) {
-                assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
-                t = Type(ClosureType, t);
-            }
-
-            if (!is_constant(env, decl->value)) {
+            type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
+            CORD val_code = compile_declared_value(env, stmt->ast);
+            if ((decl->value && !is_constant(env, decl->value)) || (!decl->value && has_heap_memory(t))) {
                 env->code->variable_initializers = CORD_all(
                     env->code->variable_initializers,
                     with_source_info(
@@ -4406,7 +4480,7 @@ CORD compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t *a
         if (is_private)
             return CORD_EMPTY;
 
-        type_t *t = get_type(env, decl->value);
+        type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
         if (t->tag == FunctionType)
             t = Type(ClosureType, t);
         assert(t->tag != ModuleType);
@@ -4414,7 +4488,7 @@ CORD compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t *a
             code_err(ast, "You can't declare a variable with a ", type_to_str(t), " value");
 
         return CORD_all(
-            compile_statement_type_header(env, header_path, decl->value),
+            decl->value ? compile_statement_type_header(env, header_path, decl->value) : CORD_EMPTY,
             "extern ", compile_declaration(t, CORD_cat(namespace_prefix(env, env->namespace), decl_name)), ";\n");
     }
     case FunctionDef: {

@@ -33,7 +33,7 @@ func wrap(text:Text, width:Int, min_split=3, hyphen="-" -> Text)
         ... and I can't split it without splitting into chunks smaller than $min_split.
         ")
 
-    lines : @[Text] = @[]
+    lines : @[Text]
     line := ""
     for word in text.split($/{whitespace}/)
         letters := word.split()
@@ -93,7 +93,7 @@ func main(files:[Path], width=80, inplace=no, min_split=3, rewrap=yes, hyphen=UN
             (/dev/stdout)
 
         first := yes
-        wrapped_paragraphs : @[Text] = @[]
+        wrapped_paragraphs : @[Text]
         for paragraph in text.split($/{2+ nl}/)
             wrapped_paragraphs.insert(
                 wrap(paragraph, width=width, min_split=min_split, hyphen=hyphen)

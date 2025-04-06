@@ -3,7 +3,7 @@ use <stdio.h>
 
 timestamp_format := CString("%F %T")
 
-logfiles : @|Path| = @||
+logfiles : @|Path|
 
 func _timestamp(->Text)
     c_str := inline C:CString {

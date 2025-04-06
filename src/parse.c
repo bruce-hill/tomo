@@ -1677,13 +1677,15 @@ PARSER(parse_declaration) {
     spaces(&pos);
     type_ast_t *type = optional(ctx, &pos, parse_type);
     spaces(&pos);
-    if (!match(&pos, "=")) return NULL;
-    ast_t *val = optional(ctx, &pos, parse_extended_expr);
-    if (!val) {
-        if (optional(ctx, &pos, parse_use))
-            parser_err(ctx, start, pos, "'use' statements are only allowed at the top level of a file");
-        else
-            parser_err(ctx, pos, eol(pos), "This is not a valid expression");
+    ast_t *val = NULL;
+    if (match(&pos, "=")) {
+        val = optional(ctx, &pos, parse_extended_expr);
+        if (!val) {
+            if (optional(ctx, &pos, parse_use))
+                parser_err(ctx, start, pos, "'use' statements are only allowed at the top level of a file");
+            else
+                parser_err(ctx, pos, eol(pos), "This is not a valid expression");
+        }
     }
     return NewAST(ctx->file, start, pos, Declare, .var=var, .type=type, .value=val);
 }

@@ -12,7 +12,7 @@ struct ConnectionQueue(_connections:@[Int32]=@[], _mutex=pthread_mutex_t.new(), 
 
 
     func dequeue(queue:ConnectionQueue -> Int32)
-        conn : Int32? = none
+        conn : Int32?
 
         queue._mutex.lock()
 

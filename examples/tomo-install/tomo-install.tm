@@ -11,7 +11,7 @@ _HELP := "
 "
 
 func find_urls(path:Path -> [Text])
-    urls : @[Text] = @[]
+    urls : @[Text]
     if path.is_directory()
         for f in path.children()
             urls.insert_all(find_urls(f))
@@ -40,7 +40,7 @@ func main(paths:[Path])
             say("Already installed: $url")
             skip
 
-        alias : Text? = none
+        alias : Text?
         curl_flags := ["-L"]
         if github := url_without_protocol.pattern_captures($Pat"github.com/{!/}/{!/}#{..}")
             user := github[1]

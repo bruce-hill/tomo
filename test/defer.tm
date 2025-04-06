@@ -1,6 +1,6 @@
 func main()
     x := 123
-    nums : @[Int] = @[]
+    nums : @[Int]
     do
         defer
             nums.insert(x)

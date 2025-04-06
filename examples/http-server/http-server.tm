@@ -17,7 +17,7 @@ use ./connection-queue.tm
 
 func serve(port:Int32, handler:func(request:HTTPRequest -> HTTPResponse), num_threads=16)
     connections := ConnectionQueue()
-    workers : &[@pthread_t] = &[] 
+    workers : &[@pthread_t]
     for i in num_threads
         workers.insert(pthread_t.new(func()
             repeat
@@ -114,7 +114,7 @@ enum RouteEntry(ServeFile(file:Path), Redirect(destination:Text))
             return HTTPResponse("Found", 302, headers={"Location"=destination})
 
 func load_routes(directory:Path -> {Text=RouteEntry})
-    routes : &{Text=RouteEntry} = &{}
+    routes : &{Text=RouteEntry}
     for file in (directory ++ (./*)).glob()
         skip unless file.is_file()
         contents := file.read() or skip

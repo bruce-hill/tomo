@@ -11,8 +11,8 @@ _HELP := "
 
 func parse_ini(path:Path -> {Text={Text=Text}})
     text := path.read() or exit("Could not read INI file: $\[31;1]$(path)$\[]")
-    sections : @{Text=@{Text=Text}} = @{}
-    current_section : @{Text=Text} = @{}
+    sections : @{Text=@{Text=Text}}
+    current_section : @{Text=Text}
 
     # Line wraps:
     text = text.replace_pattern($Pat/\{1 nl}{0+space}/, " ")

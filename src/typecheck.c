@@ -303,10 +303,11 @@ void bind_statement(env_t *env, ast_t *statement)
             return;
         if (get_binding(env, name))
             code_err(decl->var, "A ", type_to_str(get_binding(env, name)->type), " called ", quoted(name), " has already been defined");
-        bind_statement(env, decl->value);
+        if (decl->value)
+            bind_statement(env, decl->value);
         type_t *type = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
         if (!type)
-            code_err(decl->value, "I couldn't figure out the type of this value");
+            code_err(statement, "I couldn't figure out the type of this value");
         if (type->tag == FunctionType)
             type = Type(ClosureType, type);
         CORD prefix = namespace_prefix(env, env->namespace);

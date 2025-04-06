@@ -8,7 +8,7 @@ struct HTTPResponse(code:Int, body:Text)
 enum _Method(GET, POST, PUT, PATCH, DELETE)
 
 func _send(method:_Method, url:Text, data:Text?, headers:[Text]=[] -> HTTPResponse)
-    chunks : @[Text] = @[]
+    chunks : @[Text]
     save_chunk := func(chunk:CString, size:Int64, n:Int64)
         chunks.insert(inline C:Text {
             Text$format("%.*s", _$size*_$n, _$chunk)
