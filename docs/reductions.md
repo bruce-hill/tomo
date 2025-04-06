@@ -69,10 +69,10 @@ a collection using the `_min_` and `_max_` infix operators.
 = 10
 ```
 
-The `_min_` and `_max_` operators also support field and method call suffixes,
-which makes it very easy to compute the argmin/argmax (or keyed
-minimum/maximum) of a collection. This is when you want to get the minimum or
-maximum value _according to some feature_.
+Reducers also support field and method call suffixes, which makes it very easy
+to compute the argmin/argmax (or keyed minimum/maximum) of a collection. This
+is when you want to get the minimum or maximum value _according to some
+feature_.
 
 ```tomo
 # Get the longest text:
@@ -82,6 +82,22 @@ maximum value _according to some feature_.
 # Get the number with the biggest absolute value:
 >> (_max_.abs(): [1, -2, 3, -4])!
 = -4
+```
+
+You can also use suffixes on other operators:
+
+```tomo
+texts := ["x", "y", "z"]
+>> (==: texts)
+= no
+>> (==.length: texts)
+= yes
+>> (+.length: texts)
+= 3
+
+nums := [1, 2, -3]
+>> (+.abs(): nums)
+= 6
 ```
 
 ## Comprehensions

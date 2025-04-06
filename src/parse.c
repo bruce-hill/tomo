@@ -840,24 +840,21 @@ PARSER(parse_reduction) {
     ast_e op = match_binary_operator(&pos);
     if (op == Unknown) return NULL;
 
-    ast_t *key = NULL;
-    if (op == Min || op == Max) {
-        key = NewAST(ctx->file, pos, pos, Var, .name="$");
-        for (bool progress = true; progress; ) {
-            ast_t *new_term;
-            progress = (false
-                || (new_term=parse_index_suffix(ctx, key))
-                || (new_term=parse_method_call_suffix(ctx, key))
-                || (new_term=parse_field_suffix(ctx, key))
-                || (new_term=parse_fncall_suffix(ctx, key))
-                || (new_term=parse_optional_suffix(ctx, key))
-                || (new_term=parse_non_optional_suffix(ctx, key))
-                );
-            if (progress) key = new_term;
-        }
-        if (key->tag == Var) key = NULL;
-        else pos = key->end;
+    ast_t *key = NewAST(ctx->file, pos, pos, Var, .name="$");
+    for (bool progress = true; progress; ) {
+        ast_t *new_term;
+        progress = (false
+            || (new_term=parse_index_suffix(ctx, key))
+            || (new_term=parse_method_call_suffix(ctx, key))
+            || (new_term=parse_field_suffix(ctx, key))
+            || (new_term=parse_fncall_suffix(ctx, key))
+            || (new_term=parse_optional_suffix(ctx, key))
+            || (new_term=parse_non_optional_suffix(ctx, key))
+            );
+        if (progress) key = new_term;
     }
+    if (key->tag == Var) key = NULL;
+    else pos = key->end;
 
     whitespace(&pos);
     if (!match(&pos, ":")) return NULL;

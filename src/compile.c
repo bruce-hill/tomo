@@ -3442,21 +3442,29 @@ CORD compile(env_t *env, ast_t *ast)
         env_t *body_scope = for_scope(env, loop);
         if (op == Equals || op == NotEquals || op == LessThan || op == LessThanOrEquals || op == GreaterThan || op == GreaterThanOrEquals) {
             // Chained comparisons like ==, <, etc.
+            type_t *item_value_type = item_t;
+            ast_t *item_value = item;
+            if (reduction->key) {
+                set_binding(body_scope, "$", item_t, compile(body_scope, item));
+                item_value = reduction->key;
+                item_value_type = get_type(body_scope, reduction->key);
+            }
+
             CORD code = CORD_all(
                 "({ // Reduction:\n",
-                compile_declaration(item_t, "prev"), ";\n"
+                compile_declaration(item_value_type, "prev"), ";\n"
                 "OptionalBool_t result = NONE_BOOL;\n"
                 );
 
             ast_t *comparison = new(ast_t, .file=ast->file, .start=ast->start, .end=ast->end,
-                                    .tag=op, .__data.Plus.lhs=FakeAST(InlineCCode, .code="prev", .type=item_t), .__data.Plus.rhs=item);
+                                    .tag=op, .__data.Plus.lhs=FakeAST(InlineCCode, .code="prev", .type=item_value_type), .__data.Plus.rhs=item_value);
             body->__data.InlineCCode.code = CORD_all(
                 "if (result == NONE_BOOL) {\n"
-                "    prev = ", compile(body_scope, item), ";\n"
+                "    prev = ", compile(body_scope, item_value), ";\n"
                 "    result = yes;\n"
                 "} else {\n"
                 "    if (", compile(body_scope, comparison), ") {\n",
-                "        prev = ", compile(body_scope, item), ";\n",
+                "        prev = ", compile(body_scope, item_value), ";\n",
                 "    } else {\n"
                 "        result = no;\n",
                 "        break;\n",
@@ -3510,43 +3518,50 @@ CORD compile(env_t *env, ast_t *ast)
             return code;
         } else {
             // Accumulator-style reductions like +, ++, *, etc.
+            type_t *reduction_type = Match(get_type(env, ast), OptionalType)->type;
+            ast_t *item_value = item;
+            if (reduction->key) {
+                set_binding(body_scope, "$", item_t, compile(body_scope, item));
+                item_value = reduction->key;
+            }
+
             CORD code = CORD_all(
                 "({ // Reduction:\n",
-                compile_declaration(item_t, "reduction"), ";\n"
+                compile_declaration(reduction_type, "reduction"), ";\n"
                 "Bool_t has_value = no;\n"
                 );
 
             // For the special case of (or)/(and), we need to early out if we can:
             CORD early_out = CORD_EMPTY;
             if (op == Compare) {
-                if (item_t->tag != IntType || Match(item_t, IntType)->bits != TYPE_IBITS32)
+                if (reduction_type->tag != IntType || Match(reduction_type, IntType)->bits != TYPE_IBITS32)
                     code_err(ast, "<> reductions are only supported for Int32 values");
             } else if (op == And) {
-                if (item_t->tag == BoolType)
+                if (reduction_type->tag == BoolType)
                     early_out = "if (!reduction) break;";
-                else if (item_t->tag == OptionalType)
-                    early_out = CORD_all("if (", check_none(item_t, "reduction"), ") break;");
+                else if (reduction_type->tag == OptionalType)
+                    early_out = CORD_all("if (", check_none(reduction_type, "reduction"), ") break;");
             } else if (op == Or) {
-                if (item_t->tag == BoolType)
+                if (reduction_type->tag == BoolType)
                     early_out = "if (reduction) break;";
-                else if (item_t->tag == OptionalType)
-                    early_out = CORD_all("if (!", check_none(item_t, "reduction"), ") break;");
+                else if (reduction_type->tag == OptionalType)
+                    early_out = CORD_all("if (!", check_none(reduction_type, "reduction"), ") break;");
             }
 
             ast_t *combination = new(ast_t, .file=ast->file, .start=ast->start, .end=ast->end,
-                                     .tag=op, .__data.Plus.lhs=FakeAST(InlineCCode, .code="reduction", .type=item_t),
-                                     .__data.Plus.rhs=item);
+                                     .tag=op, .__data.Plus.lhs=FakeAST(InlineCCode, .code="reduction", .type=reduction_type),
+                                     .__data.Plus.rhs=item_value);
             body->__data.InlineCCode.code = CORD_all(
                 "if (!has_value) {\n"
-                "    reduction = ", compile(body_scope, item), ";\n"
+                "    reduction = ", compile(body_scope, item_value), ";\n"
                 "    has_value = yes;\n"
                 "} else {\n"
                 "    reduction = ", compile(body_scope, combination), ";\n",
                 early_out,
                 "}\n");
 
-            code = CORD_all(code, compile_statement(env, loop), "\nhas_value ? ", promote_to_optional(item_t, "reduction"),
-                            " : ", compile_none(item_t), ";})");
+            code = CORD_all(code, compile_statement(env, loop), "\nhas_value ? ", promote_to_optional(reduction_type, "reduction"),
+                            " : ", compile_none(reduction_type), ";})");
             return code;
         }
     }

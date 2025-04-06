@@ -1295,6 +1295,11 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *iterated = get_iterated_type(iter_t);
         if (!iterated)
             code_err(reduction->iter, "I don't know how to do a reduction over ", type_to_str(iter_t), " values");
+        if (reduction->key && !(reduction->op == Min || reduction->op == Max)) {
+            env_t *item_scope = fresh_scope(env);
+            set_binding(item_scope, "$", iterated, CORD_EMPTY);
+            iterated = get_type(item_scope, reduction->key);
+        }
         return iterated->tag == OptionalType ? iterated : Type(OptionalType, .type=iterated);
     }
 
