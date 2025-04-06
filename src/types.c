@@ -822,4 +822,15 @@ CONSTFUNC type_t *most_complete_type(type_t *t1, type_t *t2)
     }
 }
 
+type_t *_make_function_type(type_t *ret, int n, arg_t args[n])
+{
+    arg_t *arg_pointers = GC_MALLOC(sizeof(arg_t[n]));
+    for (int i = 0; i < n; i++) {
+        arg_pointers[i] = args[i];
+        if (i + 1 < n)
+            arg_pointers[i].next = &arg_pointers[i+1];
+    }
+    return Type(FunctionType, .ret=ret, .args=&arg_pointers[0]);
+}
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

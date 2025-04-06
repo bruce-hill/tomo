@@ -130,6 +130,7 @@ struct type_s {
 #define Type(typetag, ...) new(type_t, .tag=typetag, .__data.typetag={__VA_ARGS__})
 #define INT_TYPE Type(BigIntType)
 #define NUM_TYPE Type(NumType, .bits=TYPE_NBITS64)
+#define NewFunctionType(ret, ...) _make_function_type(ret, sizeof((arg_t[]){__VA_ARGS__})/sizeof(arg_t), (arg_t[]){__VA_ARGS__})
 
 CORD type_to_cord(type_t *t);
 const char *type_to_str(type_t *t);
@@ -155,5 +156,6 @@ PUREFUNC size_t unpadded_struct_size(type_t *t);
 PUREFUNC type_t *non_optional(type_t *t);
 type_t *get_field_type(type_t *t, const char *field_name);
 PUREFUNC type_t *get_iterated_type(type_t *t);
+type_t *_make_function_type(type_t *ret, int n, arg_t args[n]);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

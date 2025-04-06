@@ -497,8 +497,7 @@ env_t *global_env(void)
 #undef ADD_CONSTRUCTORS
 
     set_binding(namespace_env(env, "Path"), "from_text",
-                Type(FunctionType, .args=new(arg_t, .name="text", .type=TEXT_TYPE),
-                     .ret=PATH_TYPE),
+                NewFunctionType(PATH_TYPE, {.name="text", .type=TEXT_TYPE}),
                 "Path$from_text");
 
     struct {

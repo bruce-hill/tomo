@@ -3018,8 +3018,7 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD comparison;
                 if (call->args) {
                     type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
-                    type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
-                                        .ret=Type(IntType, .bits=TYPE_IBITS32));
+                    type_t *fn_t = NewFunctionType(Type(IntType, .bits=TYPE_IBITS32), {.name="x", .type=item_ptr}, {.name="y", .type=item_ptr});
                     arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t));
                     comparison = compile_arguments(env, ast, arg_spec, call->args);
                 } else {
@@ -3031,8 +3030,7 @@ CORD compile(env_t *env, ast_t *ast)
                 CORD comparison;
                 if (call->args) {
                     type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
-                    type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
-                                        .ret=Type(IntType, .bits=TYPE_IBITS32));
+                    type_t *fn_t = NewFunctionType(Type(IntType, .bits=TYPE_IBITS32), {.name="x", .type=item_ptr}, {.name="y", .type=item_ptr});
                     arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t));
                     comparison = compile_arguments(env, ast, arg_spec, call->args);
                 } else {
@@ -3042,8 +3040,7 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(call->name, "heap_push")) {
                 EXPECT_POINTER("an", "array");
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
-                type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
-                                    .ret=Type(IntType, .bits=TYPE_IBITS32));
+                type_t *fn_t = NewFunctionType(Type(IntType, .bits=TYPE_IBITS32), {.name="x", .type=item_ptr}, {.name="y", .type=item_ptr});
                 ast_t *default_cmp = FakeAST(InlineCCode,
                                              .code=CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
                                                             compile_type_info(item_t), "})"),
@@ -3055,8 +3052,7 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(call->name, "heap_pop")) {
                 EXPECT_POINTER("an", "array");
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
-                type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
-                                    .ret=Type(IntType, .bits=TYPE_IBITS32));
+                type_t *fn_t = NewFunctionType(Type(IntType, .bits=TYPE_IBITS32), {.name="x", .type=item_ptr}, {.name="y", .type=item_ptr});
                 ast_t *default_cmp = FakeAST(InlineCCode,
                                              .code=CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
                                                             compile_type_info(item_t), "})"),
@@ -3068,8 +3064,7 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(call->name, "binary_search")) {
                 self = compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
-                type_t *fn_t = Type(FunctionType, .args=new(arg_t, .name="x", .type=item_ptr, .next=new(arg_t, .name="y", .type=item_ptr)),
-                                    .ret=Type(IntType, .bits=TYPE_IBITS32));
+                type_t *fn_t = NewFunctionType(Type(IntType, .bits=TYPE_IBITS32), {.name="x", .type=item_ptr}, {.name="y", .type=item_ptr});
                 ast_t *default_cmp = FakeAST(InlineCCode,
                                              .code=CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
                                                             compile_type_info(item_t), "})"),
@@ -3091,7 +3086,7 @@ CORD compile(env_t *env, ast_t *ast)
                 self = compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *predicate_type = Type(
-                    ClosureType, .fn=Type(FunctionType, .args=new(arg_t, .name="item", .type=item_ptr), .ret=Type(BoolType)));
+                    ClosureType, .fn=NewFunctionType(Type(BoolType), {.name="item", .type=item_ptr}));
                 arg_t *arg_spec = new(arg_t, .name="predicate", .type=predicate_type);
                 return CORD_all("Array$first(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "from")) {
