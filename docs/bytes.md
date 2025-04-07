@@ -9,4 +9,24 @@ the `Byte()` constructor: `Byte(5)`.
 
 # Byte Methods
 
-None.
+- [`func hex(byte: Byte, uppercase=no, prefix=yes -> Text)`](#hex)
+- [`func parse(text: Text -> Byte?)`](#parse)
+- [`func to(first: Byte, last: Byte, step: Int8? = none -> Text)`](#to)
+
+---------
+
+## `hex`
+
+TODO: write docs
+
+---------
+
+## `parse`
+
+TODO: write docs
+
+---------
+
+## `to`
+
+TODO: write docs
