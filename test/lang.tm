@@ -47,7 +47,7 @@ func main()
 	= $HTML"<p>Hello I &lt;3 hax!</p>"
 
 	>> Text(html)
-	= '$HTML"Hello I &lt;3 hax!"'
+	= '\$HTML"Hello I &lt;3 hax!"'
 
 	>> b := Bold("Some <text> with junk")
 	>> $HTML"Your text: $b"

@@ -16,24 +16,24 @@ func _timestamp(->Text)
     return c_str.as_text()
 
 func info(text:Text, newline=yes)
-    say("$\[2]⚫ $text$\[]", newline)
+    say("\[2]⚫ $text\[]", newline)
     for file in logfiles
-        file.append("$(_timestamp()) [info]  $text$\n")
+        file.append("$(_timestamp()) [info]  $text\n")
 
 func debug(text:Text, newline=yes)
-    say("$\[32]🟢 $text$\[]", newline)
+    say("\[32]🟢 $text\[]", newline)
     for file in logfiles
-        file.append("$(_timestamp()) [debug] $text$\n")
+        file.append("$(_timestamp()) [debug] $text\n")
 
 func warn(text:Text, newline=yes)
-    say("$\[33;1]🟡 $text$\[]", newline)
+    say("\[33;1]🟡 $text\[]", newline)
     for file in logfiles
-        file.append("$(_timestamp()) [warn]  $text$\n")
+        file.append("$(_timestamp()) [warn]  $text\n")
 
 func error(text:Text, newline=yes)
-    say("$\[31;1]🔴 $text$\[]", newline)
+    say("\[31;1]🔴 $text\[]", newline)
     for file in logfiles
-        file.append("$(_timestamp()) [error] $text$\n")
+        file.append("$(_timestamp()) [error] $text\n")
 
 func add_logfile(file:Path)
     logfiles.add(file)

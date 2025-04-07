@@ -28,7 +28,7 @@ struct ProgramResult(stdout:[Byte], stderr:[Byte], exit_type:ExitType)
             if status == 0
                 if text := Text.from_bytes(r.stdout)
                     if trim_newline
-                        text = text.without_suffix(\n)
+                        text = text.without_suffix("\n")
                     return text
         else return none
         return none

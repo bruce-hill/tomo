@@ -85,14 +85,14 @@ struct HTTPRequest(method:Text, path:Text, version:Text, headers:[Text], body:Te
 struct HTTPResponse(body:Text, status=200, content_type="text/plain", headers:{Text=Text}={})
     func bytes(r:HTTPResponse -> [Byte])
         body_bytes := r.body.bytes()
-        extra_headers := (++: "$k: $v$(\r\n)" for k,v in r.headers) or ""
+        extra_headers := (++: "$k: $v\r\n" for k,v in r.headers) or ""
         return "
-            HTTP/1.1 $(r.status) OK$\r
-            Content-Length: $(body_bytes.length + 2)$\r
-            Content-Type: $(r.content_type)$\r
-            Connection: close$\r
+            HTTP/1.1 $(r.status) OK\r
+            Content-Length: $(body_bytes.length + 2)\r
+            Content-Type: $(r.content_type)\r
+            Connection: close\r
             $extra_headers
-            $\r$\n
+            \r\n
         ".bytes() ++ body_bytes
 
 func _content_type(file:Path -> Text)

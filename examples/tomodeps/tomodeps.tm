@@ -20,10 +20,10 @@ func _get_file_dependencies(file:Path -> |Dependency|)
     if lines := file.by_line()
         for line in lines
             if line.matches_pattern($Pat/use {..}.tm/)
-                file_import := Path.from_text(line.replace_pattern($Pat/use {..}/, "\1")).resolved(relative_to=file)
+                file_import := Path.from_text(line.replace_pattern($Pat/use {..}/, "@1")).resolved(relative_to=file)
                 deps.add(Dependency.File(file_import))
             else if line.matches_pattern($Pat/use {id}/)
-                module_name := line.replace_pattern($Pat/use {..}/, "\1")
+                module_name := line.replace_pattern($Pat/use {..}/, "@1")
                 deps.add(Dependency.Module(module_name))
     return deps[]
 
@@ -64,17 +64,17 @@ func get_dependency_graph(dep:Dependency -> {Dependency=|Dependency|})
 
 func _printable_name(dep:Dependency -> Text)
     when dep is Module(module)
-        return "$(\x1b)[34;1m$module$(\x1b)[m"
+        return "\[34;1]$module\[]"
     is File(f)
         f = f.relative_to((.))
         if f.exists()
             return Text(f)
         else
-            return "$(\x1b)[31;1m$(f) (not found)$(\x1b)[m"
+            return "\[31;1]$f (not found)\[]"
 
 func _draw_tree(dep:Dependency, dependencies:{Dependency=|Dependency|}, already_printed:@|Dependency|, prefix="", is_last=yes)
     if already_printed.has(dep)
-        say(prefix ++ (if is_last then "└── " else "├── ") ++ _printable_name(dep) ++ " $\x1b[2m(recursive)$\x1b[m")
+        say(prefix ++ (if is_last then "└── " else "├── ") ++ _printable_name(dep) ++ " \[2](recursive)\[]")
         return
 
     say(prefix ++ (if is_last then "└── " else "├── ") ++ _printable_name(dep))
@@ -112,6 +112,6 @@ func main(files:[Text])
             dependencies := get_dependency_graph(Module(arg))
             draw_tree(Module(arg), dependencies)
         else
-            say("$\x1b[2mSkipping $arg$\x1b[m")
+            say("\[2]Skipping $arg\[]")
             skip
 

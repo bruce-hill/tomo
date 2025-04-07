@@ -34,22 +34,22 @@ func main()
 	>> str[9]
 	= "é"
 
-	>> \UE9
+	>> "\{UE9}"
 	= "é"
 
-	>> \U65\U301
+	>> "\{U65}\{U301}"
 	= "é"
 
-	>> \{Penguin}.codepoint_names()
+	>> "\{Penguin}".codepoint_names()
 	= ["PENGUIN"]
 
-	>> \[31;1]
-	= "$\e[31;1m"
+	>> "\[31;1]"
+	= "\e[31;1m"
 
-	>> \UE9 == \U65\U301
+	>> "\{UE9}" == "\{U65}\{U301}"
 	= yes
 
-	amelie := "Am$(\UE9)lie"
+	amelie := "Am\{UE9}lie"
 	>> amelie.split()
 	= ["A", "m", "é", "l", "i", "e"]
 	>> amelie.utf32_codepoints()
@@ -61,7 +61,7 @@ func main()
 	>> Text.from_bytes([Byte(0xFF)])
 	= none
 
-	amelie2 := "Am$(\U65\U301)lie"
+	amelie2 := "Am\{U65}\{U301}lie"
 	>> amelie2.split()
 	= ["A", "m", "é", "l", "i", "e"]
 	>> amelie2.utf32_codepoints()
@@ -98,20 +98,20 @@ func main()
 		line one
 		line two
 	"
-	= "line one$\nline two"
+	= "line one\nline two"
 
 	say("Interpolation tests:")
 	>> "A $(1+2)"
 	= "A 3"
-	>> 'A $(1+2)'
-	= 'A $(1+2)'
+	>> "A \$(1+2)"
+	= "A \$(1+2)"
 	>> `A $(1+2)`
 	= "A 3"
 
 	>> $"A $(1+2)"
 	= "A 3"
 	>> $$"A $(1+2)"
-	= 'A $(1+2)'
+	= "A \$(1+2)"
 	>> $="A =(1+2)"
 	= "A 3"
 	>> ${one {nested} two $(1+2)}
@@ -127,13 +127,13 @@ func main()
 	>> c == Text.from_bytes(c.bytes())!
 	= yes
 
-	>> "one$(\n)two$(\n)three".lines()
+	>> "one\ntwo\nthree".lines()
 	= ["one", "two", "three"]
-	>> "one$(\n)two$(\n)three$(\n)".lines()
+	>> "one\ntwo\nthree\n".lines()
 	= ["one", "two", "three"]
-	>> "one$(\n)two$(\n)three$(\n\n)".lines()
+	>> "one\ntwo\nthree\n\n".lines()
 	= ["one", "two", "three", ""]
-	>> "one$(\r\n)two$(\r\n)three$(\r\n)".lines()
+	>> "one\r\ntwo\r\nthree\r\n".lines()
 	= ["one", "two", "three"]
 	>> "".lines()
 	= []

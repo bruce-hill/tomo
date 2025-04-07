@@ -5,7 +5,7 @@ HELP := "
     Usage: colorful [args...] [--by-line] [--files files...]
 "
 
-CSI := "$\033["
+CSI := "\033["
 
 use patterns
 

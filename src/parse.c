@@ -147,7 +147,7 @@ static PARSER(parse_var);
 static PARSER(parse_when);
 static PARSER(parse_while);
 static PARSER(parse_deserialize);
-static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open_quote, char close_quote, char open_interp);
+static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open_quote, char close_quote, char open_interp, bool allow_escapes);
 
 //
 // Print a parse error and exit (or use the on_err longjmp)
@@ -255,6 +255,24 @@ static const char *unescape(parse_ctx_t *ctx, const char **out) {
         char name[len+1];
         memcpy(name, &escape[2], len);
         name[len] = '\0';
+
+        if (name[0] == 'U') {
+            for (char *p = &name[1]; *p; p++) {
+                if (!isxdigit(*p)) goto look_up_unicode_name;
+            }
+            // Unicode codepoints by hex
+            char *endptr = NULL;
+            long codepoint = strtol(name+1, &endptr, 16);
+            uint32_t ustr[2] = {codepoint, 0};
+            size_t bufsize = 8;
+            uint8_t buf[bufsize];
+            (void)u32_to_u8(ustr, bufsize, buf, &bufsize);
+            *endpos = escape + 3 + len;
+            return GC_strndup((char*)buf, bufsize);
+        }
+
+      look_up_unicode_name:;
+
         uint32_t codepoint = unicode_name_character(name);
         if (codepoint == UNINAME_INVALID)
             parser_err(ctx, escape, escape + 3 + len,
@@ -265,16 +283,6 @@ static const char *unescape(parse_ctx_t *ctx, const char **out) {
         (void)u32_to_u8(&codepoint, 1, (uint8_t*)str, &u8_len);
         str[u8_len] = '\0';
         return str;
-    } else if (escape[1] == 'U' && escape[2]) {
-        // Unicode codepoints by hex
-        char *endptr = NULL;
-        long codepoint = strtol(escape+2, &endptr, 16);
-        uint32_t ustr[2] = {codepoint, 0};
-        size_t bufsize = 8;
-        uint8_t buf[bufsize];
-        (void)u32_to_u8(ustr, bufsize, buf, &bufsize);
-        *endpos = endptr;
-        return GC_strndup((char*)buf, bufsize);
     } else if (escape[1] == 'x' && escape[2] && escape[3]) {
         // ASCII 2-digit hex
         char buf[] = {escape[2], escape[3], 0};
@@ -1187,7 +1195,7 @@ PARSER(parse_bool) {
         return NULL;
 }
 
-ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open_quote, char close_quote, char open_interp)
+ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open_quote, char close_quote, char open_interp, bool allow_escapes)
 {
     const char *pos = *out_pos;
     int64_t starting_indent = get_indent(ctx, pos);
@@ -1203,7 +1211,7 @@ ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open
             if (chunk) {
                 ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk);
                 chunks = new(ast_list_t, .ast=literal, .next=chunks);
-                chunk = NULL;
+                chunk = CORD_EMPTY;
             }
             ++pos;
             ast_t *interp;
@@ -1212,6 +1220,9 @@ ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open
             interp = expect(ctx, interp_start, &pos, parse_term_no_suffix, "I expected an interpolation term here");
             chunks = new(ast_list_t, .ast=interp, .next=chunks);
             chunk_start = pos;
+        } else if (allow_escapes && *pos == '\\') {
+            const char *c = unescape(ctx, &pos);
+            chunk = CORD_cat(chunk, c);
         } else if (!leading_newline && *pos == open_quote && closing[(int)open_quote]) { // Nested pair begin
             if (get_indent(ctx, pos) == starting_indent) {
                 ++depth;
@@ -1266,35 +1277,22 @@ PARSER(parse_text) {
     const char *start = pos;
     const char *lang = NULL;
 
-    // Escape sequence, e.g. \r\n
-    if (*pos == '\\') {
-        CORD cord = CORD_EMPTY;
-        do {
-            const char *c = unescape(ctx, &pos);
-            cord = CORD_cat(cord, c);
-            // cord = CORD_cat_char(cord, c);
-        } while (*pos == '\\');
-        return NewAST(ctx->file, start, pos, TextLiteral, .cord=cord);
-    }
-
     char open_quote, close_quote, open_interp = '$';
     if (match(&pos, "\"")) { // Double quote
         open_quote = '"', close_quote = '"', open_interp = '$';
     } else if (match(&pos, "`")) { // Backtick
         open_quote = '`', close_quote = '`', open_interp = '$';
     } else if (match(&pos, "'")) { // Single quote
-        open_quote = '\'', close_quote = '\'', open_interp = '\x03';
+        open_quote = '\'', close_quote = '\'', open_interp = '$';
     } else if (match(&pos, "$")) { // Customized strings
         lang = get_id(&pos);
         // $"..." or $@"...."
         static const char *interp_chars = "~!@#$%^&*+=\\?";
-        if (match(&pos, "$")) { // Disable interpolation with $
+        if (match(&pos, "$")) { // Disable interpolation with $$
             open_interp = '\x03';
         } else if (strchr(interp_chars, *pos)) {
             open_interp = *pos;
             ++pos;
-        } else if (*pos == '(') {
-            open_interp = '@'; // For shell commands
         }
         static const char *quote_chars = "\"'`|/;([{<";
         if (!strchr(quote_chars, *pos))
@@ -1306,7 +1304,8 @@ PARSER(parse_text) {
         return NULL;
     }
 
-    ast_list_t *chunks = _parse_text_helper(ctx, &pos, open_quote, close_quote, open_interp);
+    bool allow_escapes = (open_quote != '`');
+    ast_list_t *chunks = _parse_text_helper(ctx, &pos, open_quote, close_quote, open_interp, allow_escapes);
     return NewAST(ctx->file, start, pos, TextJoin, .lang=lang, .children=chunks);
 }
 
@@ -2277,7 +2276,7 @@ PARSER(parse_inline_c) {
         if (!match(&pos, "("))
             parser_err(ctx, start, pos, "I expected a '(' here");
         chunks = new(ast_list_t, .ast=NewAST(ctx->file, pos, pos, TextLiteral, "({"),
-                     .next=_parse_text_helper(ctx, &pos, '(', ')', '@'));
+                     .next=_parse_text_helper(ctx, &pos, '(', ')', '@', false));
         if (type) {
             REVERSE_LIST(chunks);
             chunks = new(ast_list_t, .ast=NewAST(ctx->file, pos, pos, TextLiteral, "; })"), .next=chunks);
@@ -2286,7 +2285,7 @@ PARSER(parse_inline_c) {
     } else {
         if (!match(&pos, "{"))
             parser_err(ctx, start, pos, "I expected a '{' here");
-        chunks = _parse_text_helper(ctx, &pos, '{', '}', '@');
+        chunks = _parse_text_helper(ctx, &pos, '{', '}', '@', false);
     }
 
     return NewAST(ctx->file, start, pos, InlineCCode, .chunks=chunks, .type_ast=type);

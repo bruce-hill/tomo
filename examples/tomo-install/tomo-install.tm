@@ -80,5 +80,5 @@ func main(paths:[Path])
                 fi
             ).get_output()!)
         
-        say("$\[1]Installed $url!$\[]")
+        say("\[1]Installed $url!\[]")
                 

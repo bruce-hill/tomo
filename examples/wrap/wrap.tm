@@ -11,15 +11,15 @@ HELP := "
         --hyphen='-': The text to use for hyphenation
 "
 
-UNICODE_HYPHEN := \{hyphen}
+UNICODE_HYPHEN := "\{hyphen}"
 
 func unwrap(text:Text, preserve_paragraphs=yes, hyphen=UNICODE_HYPHEN -> Text)
     if preserve_paragraphs
         paragraphs := text.split($/{2+ nl}/)
         if paragraphs.length > 1
-            return \n\n.join([unwrap(p, hyphen=hyphen, preserve_paragraphs=no) for p in paragraphs])
+            return "\n\n".join([unwrap(p, hyphen=hyphen, preserve_paragraphs=no) for p in paragraphs])
 
-    return text.replace($/$(hyphen)$(\n)/, "")
+    return text.replace("$(hyphen)\n", "")
 
 func wrap(text:Text, width:Int, min_split=3, hyphen="-" -> Text)
     if width <= 0
@@ -69,7 +69,7 @@ func wrap(text:Text, width:Int, min_split=3, hyphen="-" -> Text)
     if line != ""
         lines.insert(line)
 
-    return \n.join(lines)
+    return "\n".join(lines)
 
 func _can_fit_word(line:Text, letters:[Text], width:Int -> Bool; inline)
     if line == ""
@@ -99,4 +99,4 @@ func main(files:[Path], width=80, inplace=no, min_split=3, rewrap=yes, hyphen=UN
                 wrap(paragraph, width=width, min_split=min_split, hyphen=hyphen)
             )
 
-        out.write(\n\n.join(wrapped_paragraphs[]) ++ \n)
+        out.write("\n\n".join(wrapped_paragraphs[]) ++ "\n")

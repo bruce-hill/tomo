@@ -91,7 +91,7 @@ func main()
     say_mutex := pthread_mutex_t.new()
     announce := func(speaker:Text, text:Text)
         do say_mutex.lock()
-            say("$\033[2m[$speaker]$\033[m $text")
+            say("\[2][$speaker]\[] $text")
             say_mutex.unlock()
 
     worker := pthread_t.new(func()

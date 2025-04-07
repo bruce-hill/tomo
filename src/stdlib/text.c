@@ -1352,12 +1352,9 @@ public Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark)
     int32_t quote_char = Text$get_grapheme(quotation_mark, 0);
 
 #define add_escaped(str) ({ if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[34;1m")); \
-                          if (!just_escaped) ret = concat2_assuming_safe(ret, Text("$")); \
                           ret = concat2_assuming_safe(ret, Text("\\" str)); \
-                          just_escaped = true; \
                           if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[0;35m")); })
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
-    bool just_escaped = false;
     // TODO: optimize for spans of non-escaped text
     for (int64_t i = 0; i < text.length; i++) {
         int32_t g = Text$get_grapheme_fast(&state, i);
@@ -1371,21 +1368,11 @@ public Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark)
         case '\t': add_escaped("t"); break;
         case '\v': add_escaped("v"); break;
         case '\\': {
-            if (just_escaped) {
-                add_escaped("\\");
-            } else {
-                ret = concat2_assuming_safe(ret, Text("\\"));
-                just_escaped = false;
-            }
+            add_escaped("\\");
             break;
         }
         case '$': {
-            if (quote_char == '\'') {
-                ret = concat2_assuming_safe(ret, Text("$"));
-                just_escaped = false;
-            } else {
-                add_escaped("$");
-            }
+            add_escaped("$");
             break;
         }
         case '\x00' ... '\x06': case '\x0E' ... '\x1A':
@@ -1397,7 +1384,6 @@ public Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark)
             ret = concat2_assuming_safe(ret, Text$from_strn(tmp, 2));
             if (colorize)
                 ret = concat2_assuming_safe(ret, Text("\x1b[0;35m"));
-            just_escaped = true;
             break;
         }
         default: {
@@ -1405,7 +1391,6 @@ public Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark)
                 ret = concat2_assuming_safe(ret, quotation_mark);
             } else {
                 ret = concat2_assuming_safe(ret, Text$slice(text, I(i+1), I(i+1)));
-                just_escaped = false;
             }
             break;
         }
@@ -1427,14 +1412,12 @@ public Text_t Text$as_text(const void *vtext, bool colorize, const TypeInfo_t *i
 
     Text_t text = *(Text_t*)vtext;
     // Figure out the best quotation mark to use:
-    bool has_dollar = false, has_double_quote = false, has_backtick = false,
+    bool has_double_quote = false, has_backtick = false,
          has_single_quote = false, needs_escapes = false;
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
     for (int64_t i = 0; i < text.length; i++) {
         int32_t g = Text$get_grapheme_fast(&state, i);
-        if (g == '$') {
-            has_dollar = true;
-        } else if (g == '"') {
+        if (g == '"') {
             has_double_quote = true;
         } else if (g == '`') {
             has_backtick = true;
@@ -1444,15 +1427,15 @@ public Text_t Text$as_text(const void *vtext, bool colorize, const TypeInfo_t *i
     }
 
     Text_t quote;
-    // If there's dollar signs and/or double quotes in the string, it would
-    // be nice to avoid needing to escape them by using single quotes, but
-    // only if we don't have single quotes or need to escape anything else
-    // (because single quotes don't have interpolation):
-    if ((has_dollar || has_double_quote) && !has_single_quote && !needs_escapes)
+    // If there's double quotes in the string, it would be nice to avoid
+    // needing to escape them by using single quotes, but only if we don't have
+    // single quotes or need to escape anything else (because single quotes
+    // don't have interpolation):
+    if (has_double_quote && !has_single_quote)
         quote = Text("'");
     // If there is a double quote, but no backtick, we can save a bit of
     // escaping by using backtick instead of double quote:
-    else if (has_double_quote && !has_backtick)
+    else if (has_double_quote && has_single_quote && !has_backtick && !needs_escapes)
         quote = Text("`");
     // Otherwise fall back to double quotes as the default quoting style:
     else
