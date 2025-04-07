@@ -1338,7 +1338,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             }
         }
         if (env->loop_ctx)
-            code_err(ast, "This 'skip' is not inside any loop");
+            code_err(ast, "This is not inside any loop");
         else if (target)
             code_err(ast, "No loop target named '", target, "' was found");
         else
@@ -1367,7 +1367,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             }
         }
         if (env->loop_ctx)
-            code_err(ast, "This 'stop' is not inside any loop");
+            code_err(ast, "This is not inside any loop");
         else if (target)
             code_err(ast, "No loop target named '", target, "' was found");
         else

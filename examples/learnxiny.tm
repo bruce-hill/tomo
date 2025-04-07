@@ -86,11 +86,12 @@ func main()
     >> [x*10 for x in my_numbers if x != 20]
     = [100, 300]
 
-    # Loop control flow uses "skip" and "stop"
+    # Loop control flow uses "skip"/"continue" and "stop"/"break"
     for x in my_numbers
         for y in my_numbers
             if x == y
                 skip
+                continue # This is the same as `skip`
 
             # For readability, you can also use postfix conditionals:
             skip if x == y
@@ -99,6 +100,7 @@ func main()
                 # Skip or stop can specify a loop variable if you want to
                 # affect an enclosing loop:
                 stop x
+                break x # This is the same as `stop x`
 
     # Tables are efficient hash maps
     table := {"one"=1, "two"=2}

@@ -61,10 +61,10 @@ int op_tightness[] = {
 };
 
 static const char *keywords[] = {
-    "yes", "xor", "while", "when", "use", "unless", "then", "struct", "stop", "skip", "return",
-    "or", "not", "none", "no", "mod1", "mod", "pass", "lang", "inline", "in", "if",
-    "func", "for", "extern", "extend", "enum", "else", "do", "deserialize", "defer", "and",
-    "_min_", "_max_", NULL,
+    "_max_", "_min_", "and", "break", "continue", "defer", "deserialize", "do", "else", "enum",
+    "extend", "extern", "for", "func", "if", "in", "inline", "lang", "mod", "mod1", "no", "none",
+    "not", "or", "pass", "return", "skip", "skip", "stop", "struct", "then", "unless", "use", "when",
+    "while", "xor", "yes",
 };
 
 enum {NORMAL_FUNCTION=0, EXTERN_FUNCTION=1};
@@ -379,13 +379,26 @@ const char *get_word(const char **inout) {
     return GC_strndup(word, (size_t)((const char*)pos - word));
 }
 
+static CONSTFUNC bool is_keyword(const char *word) {
+    int64_t lo = 0, hi = sizeof(keywords)/sizeof(keywords[0])-1;
+    while (lo <= hi) {
+        int64_t mid = (lo + hi) / 2;
+        int32_t cmp = strcmp(word, keywords[mid]);
+        if (cmp == 0)
+            return true;
+        else if (cmp > 0)
+            lo = mid + 1;
+        else if (cmp < 0)
+            hi = mid - 1;
+    }
+    return false;
+}
+
 const char *get_id(const char **inout) {
     const char *pos = *inout;
     const char *word = get_word(&pos);
-    if (!word) return word;
-    for (int i = 0; keywords[i]; i++)
-        if (strcmp(word, keywords[i]) == 0)
-            return NULL;
+    if (!word || is_keyword(word))
+        return NULL;
     *inout = pos;
     return word;
 }
@@ -1346,7 +1359,7 @@ PARSER(parse_defer) {
 
 PARSER(parse_skip) {
     const char *start = pos;
-    if (!match_word(&pos, "skip")) return NULL;
+    if (!match_word(&pos, "continue") && !match_word(&pos, "skip")) return NULL;
     const char *target;
     if (match_word(&pos, "for")) target = "for";
     else if (match_word(&pos, "while")) target = "while";
@@ -1358,7 +1371,7 @@ PARSER(parse_skip) {
 
 PARSER(parse_stop) {
     const char *start = pos;
-    if (!match_word(&pos, "stop")) return NULL;
+    if (!match_word(&pos, "stop") && !match_word(&pos, "break")) return NULL;
     const char *target;
     if (match_word(&pos, "for")) target = "for";
     else if (match_word(&pos, "while")) target = "while";
