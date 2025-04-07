@@ -136,3 +136,10 @@ func main()
 
 	>> (4).factorial()
 	= 24
+
+	>> (3).is_between(1, 5)
+	= yes
+	>> (3).is_between(1, 3)
+	= yes
+	>> (3).is_between(100, 200)
+	= no

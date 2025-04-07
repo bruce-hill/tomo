@@ -33,6 +33,9 @@
     Closure_t type_name ## $to(c_type first, c_type last, Optional ## type_name ## _t step); \
     Closure_t type_name ## $onward(c_type first, c_type step); \
     PUREFUNC Optional ## type_name ## _t type_name ## $parse(Text_t text); \
+    MACROLIKE CONSTFUNC bool type_name ## $is_between(const c_type x, const c_type low, const c_type high) { \
+        return low <= x && x <= high; \
+    } \
     MACROLIKE PUREFUNC c_type type_name ## $clamped(c_type x, c_type min, c_type max) { \
         return x < min ? min : (x > max ? max : x); \
     } \
@@ -93,6 +96,9 @@ Text_t Int$value_as_text(Int_t i);
 PUREFUNC uint64_t Int$hash(const void *x, const TypeInfo_t *type);
 PUREFUNC int32_t Int$compare(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y);
+MACROLIKE CONSTFUNC bool Int$is_between(const Int_t x, const Int_t low, const Int_t high) {
+    return Int$compare_value(low, x) <= 0 && Int$compare_value(x, high) <= 0;
+}
 PUREFUNC bool Int$equal(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC bool Int$equal_value(const Int_t x, const Int_t y);
 Text_t Int$format(Int_t i, Int_t digits);

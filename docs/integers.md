@@ -128,6 +128,7 @@ can be called either on the type itself: `Int.sqrt(x)` or as a method call:
 - [`func factorial(n: Int -> Text)`](#factorial)
 - [`func format(i: Int, digits: Int = 0 -> Text)`](#format)
 - [`func hex(i: Int, digits: Int = 0, uppercase: Bool = yes, prefix: Bool = yes -> Text)`](#hex)
+- [`func is_between(x: Int, low: Int, high: Int -> Bool)`](#is_between)
 - [`func is_prime(x: Int, reps: Int = 50 -> Bool)`](#is_prime)
 - [`func next_prime(x: Int -> Int)`](#next_prime)
 - [`func octal(i: Int, digits: Int = 0, prefix: Bool = yes -> Text)`](#octal)
@@ -264,6 +265,32 @@ The hexadecimal string representation of the integer.
 ```tomo
 >> (255).hex(digits=4, uppercase=yes, prefix=yes)
 = "0x00FF"
+```
+
+---
+
+### `is_between`
+Determines if an integer is between two numbers (inclusive).
+
+```tomo
+func is_between(x: Int, low: Int, high: Int -> Bool)
+```
+
+- `x`: The integer to be checked.
+- `low`: The lower bound to check (inclusive).
+- `high`: The upper bound to check (inclusive).
+
+**Returns:**  
+`yes` if `low <= x and x <= high`, otherwise `no`
+
+**Example:**  
+```tomo
+>> (7).is_between(1, 10)
+= yes
+>> (7).is_between(100, 200)
+= no
+>> (7).is_between(1, 7)
+= yes
 ```
 
 ---

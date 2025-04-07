@@ -143,6 +143,7 @@ called either on the type itself: `Num.sqrt(x)` or as a method call:
 - [`func format(n: Num, precision: Int = 0 -> Text)`](#format)
 - [`func hypot(x: Num, y: Num -> Num)`](#hypot)
 - [`func isfinite(n: Num -> Bool)`](#isfinite)
+- [`func is_between(n: Num, low: Num, high: Num -> Bool)`](#is_between)
 - [`func isinf(n: Num -> Bool)`](#isinf)
 - [`func j0(x: Num -> Num)`](#j0)
 - [`func j1(x: Num -> Num)`](#j1)
@@ -658,6 +659,32 @@ func isfinite(n: Num -> Bool)
 = yes
 >> Num.INF.isfinite()
 = no
+```
+
+---
+
+### `is_between`
+Determines if a number is between two numbers (inclusive).
+
+```tomo
+func is_between(x: Num, low: Num, high: Num -> Bool)
+```
+
+- `x`: The integer to be checked.
+- `low`: The lower bound to check (inclusive).
+- `high`: The upper bound to check (inclusive).
+
+**Returns:**  
+`yes` if `low <= x and x <= high`, otherwise `no`
+
+**Example:**  
+```tomo
+>> (7.5).is_between(1, 10)
+= yes
+>> (7.5).is_between(100, 200)
+= no
+>> (7.5).is_between(1, 7.5)
+= yes
 ```
 
 ---
