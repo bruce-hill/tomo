@@ -1599,7 +1599,8 @@ PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast)
         auto access = Match(ast, FieldAccess);
         type_t *fielded_type = get_type(env, access->fielded);
         if (fielded_type->tag == PointerType) {
-            return true;
+            type_t *val = value_type(fielded_type);
+            return val->tag == StructType;
         } else if (fielded_type->tag == StructType) {
             return can_be_mutated(env, access->fielded);
         } else {
