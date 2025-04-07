@@ -10,12 +10,12 @@ struct Player(pos,prev_pos:Vector2)
     COLOR := Color(0x60, 0x60, 0xbF)
 
     func update(p:@Player)
-        target_x := inline C:Num32 {
+        target_x := C_code:Num32(
             (Num32_t)((IsKeyDown(KEY_A) ? -1 : 0) + (IsKeyDown(KEY_D) ? 1 : 0))
-        }
-        target_y := inline C:Num32 {
+        )
+        target_y := C_code:Num32(
             (Num32_t)((IsKeyDown(KEY_W) ? -1 : 0) + (IsKeyDown(KEY_S) ? 1 : 0))
-        }
+        )
         target_vel := Vector2(target_x, target_y).norm() * Player.WALK_SPEED
 
         vel := (p.pos - p.prev_pos)/World.DT

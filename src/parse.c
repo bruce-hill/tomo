@@ -61,8 +61,8 @@ int op_tightness[] = {
 };
 
 static const char *keywords[] = {
-    "_max_", "_min_", "and", "break", "continue", "defer", "deserialize", "do", "else", "enum",
-    "extend", "extern", "for", "func", "if", "in", "inline", "lang", "mod", "mod1", "no", "none",
+    "C_code", "_max_", "_min_", "and", "break", "continue", "defer", "deserialize", "do", "else", "enum",
+    "extend", "extern", "for", "func", "if", "in", "lang", "mod", "mod1", "no", "none",
     "not", "or", "pass", "return", "skip", "skip", "stop", "struct", "then", "unless", "use", "when",
     "while", "xor", "yes",
 };
@@ -147,6 +147,7 @@ static PARSER(parse_var);
 static PARSER(parse_when);
 static PARSER(parse_while);
 static PARSER(parse_deserialize);
+static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open_quote, char close_quote, char open_interp);
 
 //
 // Print a parse error and exit (or use the on_err longjmp)
@@ -1186,55 +1187,11 @@ PARSER(parse_bool) {
         return NULL;
 }
 
-PARSER(parse_text) {
-    // ('"' ... '"' / "'" ... "'" / "`" ... "`")
-    // "$" [name] [interp-char] quote-char ... close-quote
-    const char *start = pos;
-    const char *lang = NULL;
-
-    // Escape sequence, e.g. \r\n
-    if (*pos == '\\') {
-        CORD cord = CORD_EMPTY;
-        do {
-            const char *c = unescape(ctx, &pos);
-            cord = CORD_cat(cord, c);
-            // cord = CORD_cat_char(cord, c);
-        } while (*pos == '\\');
-        return NewAST(ctx->file, start, pos, TextLiteral, .cord=cord);
-    }
-
-    char open_quote, close_quote, open_interp = '$';
-    if (match(&pos, "\"")) { // Double quote
-        open_quote = '"', close_quote = '"', open_interp = '$';
-    } else if (match(&pos, "`")) { // Backtick
-        open_quote = '`', close_quote = '`', open_interp = '$';
-    } else if (match(&pos, "'")) { // Single quote
-        open_quote = '\'', close_quote = '\'', open_interp = '\x03';
-    } else if (match(&pos, "$")) { // Customized strings
-        lang = get_id(&pos);
-        // $"..." or $@"...."
-        static const char *interp_chars = "~!@#$%^&*+=\\?";
-        if (match(&pos, "$")) { // Disable interpolation with $
-            open_interp = '\x03';
-        } else if (strchr(interp_chars, *pos)) {
-            open_interp = *pos;
-            ++pos;
-        } else if (*pos == '(') {
-            open_interp = '@'; // For shell commands
-        }
-        static const char *quote_chars = "\"'`|/;([{<";
-        if (!strchr(quote_chars, *pos))
-            parser_err(ctx, pos, pos+1, "This is not a valid string quotation character. Valid characters are: \"'`|/;([{<");
-        open_quote = *pos;
-        ++pos;
-        close_quote = closing[(int)open_quote] ? closing[(int)open_quote] : open_quote;
-    } else {
-        return NULL;
-    }
-
+ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open_quote, char close_quote, char open_interp)
+{
+    const char *pos = *out_pos;
     int64_t starting_indent = get_indent(ctx, pos);
     int64_t string_indent = starting_indent + SPACES_PER_INDENT;
-
     ast_list_t *chunks = NULL;
     CORD chunk = CORD_EMPTY;
     const char *chunk_start = pos;
@@ -1299,6 +1256,57 @@ PARSER(parse_text) {
     REVERSE_LIST(chunks);
     char close_str[2] = {close_quote, 0};
     expect_closing(ctx, &pos, close_str, "I was expecting a ", close_quote, " to finish this string");
+    *out_pos = pos;
+    return chunks;
+}
+
+PARSER(parse_text) {
+    // ('"' ... '"' / "'" ... "'" / "`" ... "`")
+    // "$" [name] [interp-char] quote-char ... close-quote
+    const char *start = pos;
+    const char *lang = NULL;
+
+    // Escape sequence, e.g. \r\n
+    if (*pos == '\\') {
+        CORD cord = CORD_EMPTY;
+        do {
+            const char *c = unescape(ctx, &pos);
+            cord = CORD_cat(cord, c);
+            // cord = CORD_cat_char(cord, c);
+        } while (*pos == '\\');
+        return NewAST(ctx->file, start, pos, TextLiteral, .cord=cord);
+    }
+
+    char open_quote, close_quote, open_interp = '$';
+    if (match(&pos, "\"")) { // Double quote
+        open_quote = '"', close_quote = '"', open_interp = '$';
+    } else if (match(&pos, "`")) { // Backtick
+        open_quote = '`', close_quote = '`', open_interp = '$';
+    } else if (match(&pos, "'")) { // Single quote
+        open_quote = '\'', close_quote = '\'', open_interp = '\x03';
+    } else if (match(&pos, "$")) { // Customized strings
+        lang = get_id(&pos);
+        // $"..." or $@"...."
+        static const char *interp_chars = "~!@#$%^&*+=\\?";
+        if (match(&pos, "$")) { // Disable interpolation with $
+            open_interp = '\x03';
+        } else if (strchr(interp_chars, *pos)) {
+            open_interp = *pos;
+            ++pos;
+        } else if (*pos == '(') {
+            open_interp = '@'; // For shell commands
+        }
+        static const char *quote_chars = "\"'`|/;([{<";
+        if (!strchr(quote_chars, *pos))
+            parser_err(ctx, pos, pos+1, "This is not a valid string quotation character. Valid characters are: \"'`|/;([{<");
+        open_quote = *pos;
+        ++pos;
+        close_quote = closing[(int)open_quote] ? closing[(int)open_quote] : open_quote;
+    } else {
+        return NULL;
+    }
+
+    ast_list_t *chunks = _parse_text_helper(ctx, &pos, open_quote, close_quote, open_interp);
     return NewAST(ctx->file, start, pos, TextJoin, .lang=lang, .children=chunks);
 }
 
@@ -2258,34 +2266,30 @@ PARSER(parse_extern) {
 
 PARSER(parse_inline_c) {
     const char *start = pos;
-    if (!match_word(&pos, "inline")) return NULL;
-
-    spaces(&pos);
-    if (!match_word(&pos, "C")) return NULL;
+    if (!match_word(&pos, "C_code")) return NULL;
 
     spaces(&pos);
     type_ast_t *type = NULL;
-    if (match(&pos, ":"))
-        type = expect(ctx, start, &pos, parse_type, "I couldn't parse the type for this inline C code");
-
-    spaces(&pos);
-    if (!match(&pos, "{"))
-        parser_err(ctx, start, pos, "I expected a '{' here");
-
-    int depth = 1;
-    const char *c_code_start = pos;
-    for (; *pos && depth > 0; ++pos) {
-        if (*pos == '}') --depth;
-        else if (*pos == '{') ++depth;
+    ast_list_t *chunks;
+    if (match(&pos, ":")) {
+        type = expect(ctx, start, &pos, parse_type, "I couldn't parse the type for this C_code code");
+        spaces(&pos);
+        if (!match(&pos, "("))
+            parser_err(ctx, start, pos, "I expected a '(' here");
+        chunks = new(ast_list_t, .ast=NewAST(ctx->file, pos, pos, TextLiteral, "({"),
+                     .next=_parse_text_helper(ctx, &pos, '(', ')', '@'));
+        if (type) {
+            REVERSE_LIST(chunks);
+            chunks = new(ast_list_t, .ast=NewAST(ctx->file, pos, pos, TextLiteral, "; })"), .next=chunks);
+            REVERSE_LIST(chunks);
+        }
+    } else {
+        if (!match(&pos, "{"))
+            parser_err(ctx, start, pos, "I expected a '{' here");
+        chunks = _parse_text_helper(ctx, &pos, '{', '}', '@');
     }
 
-    if (depth != 0)
-        parser_err(ctx, start, start+1, "I couldn't find the closing '}' for this inline C code");
-
-    CORD c_code = GC_strndup(c_code_start, (size_t)((pos-1) - c_code_start));
-    if (type)
-        c_code = CORD_all("({ ", c_code, "; })");
-    return NewAST(ctx->file, start, pos, InlineCCode, .code=c_code, .type_ast=type);
+    return NewAST(ctx->file, start, pos, InlineCCode, .chunks=chunks, .type_ast=type);
 }
 
 PARSER(parse_doctest) {

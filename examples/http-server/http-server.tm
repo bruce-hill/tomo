@@ -22,30 +22,30 @@ func serve(port:Int32, handler:func(request:HTTPRequest -> HTTPResponse), num_th
         workers.insert(pthread_t.new(func()
             repeat
                 connection := connections.dequeue()
-                request_text := inline C : Text {
+                request_text := C_code:Text(
                     Text_t request = EMPTY_TEXT;
                     char buf[1024] = {};
-                    for (ssize_t n; (n = read(_$connection, buf, sizeof(buf) - 1)) > 0; ) {
+                    for (ssize_t n; (n = read(@connection, buf, sizeof(buf) - 1)) > 0; ) {
                         buf[n] = 0;
                         request = Text$concat(request, Text$from_strn(buf, n));
                         if (request.length > 1000000 || strstr(buf, "\r\n\r\n"))
                             break;
                     }
                     request
-                }
+                )
 
                 request := HTTPRequest.from_text(request_text) or skip
                 response := handler(request).bytes()
-                inline C {
-                    if (_$response.stride != 1)
-                        Array$compact(&_$response, 1);
-                    write(_$connection, _$response.data, _$response.length);
-                    close(_$connection);
+                C_code {
+                    if (@response.stride != 1)
+                        Array$compact(&@response, 1);
+                    write(@connection, @response.data, @response.length);
+                    close(@connection);
                 }
         ))
 
 
-    sock := inline C : Int32 {
+    sock := C_code:Int32(
         int s = socket(AF_INET, SOCK_STREAM, 0);
         if (s < 0) err(1, "Couldn't connect to socket!");
 
@@ -53,17 +53,17 @@ func serve(port:Int32, handler:func(request:HTTPRequest -> HTTPResponse), num_th
         if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
             err(1, "Couldn't set socket option");
             
-        struct sockaddr_in addr = {AF_INET, htons(_$port), INADDR_ANY};
+        struct sockaddr_in addr = {AF_INET, htons(@port), INADDR_ANY};
         if (bind(s, (struct sockaddr*)&addr, sizeof(addr)) < 0)
             err(1, "Couldn't bind to socket");
         if (listen(s, 8) < 0)
             err(1, "Couldn't listen on socket");
 
         s
-    }
+    )
 
     repeat
-        conn := inline C : Int32 { accept(_$sock, NULL, NULL) }
+        conn := C_code:Int32(accept(@sock, NULL, NULL))
         stop if conn < 0 
         connections.enqueue(conn)
 

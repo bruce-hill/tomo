@@ -7,15 +7,15 @@ struct TimeInfo(year,month,day,hour,minute,second,nanosecond:Int, weekday:Weekda
 
 struct Time(tv_sec:Int64, tv_usec:Int64; extern)
     func now(->Time)
-        return inline C : Time {
+        return C_code : Time (
             struct timespec ts;
             if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
                 fail("Couldn't get the time!");
-            (Time){.tv_sec=ts.tv_sec, .tv_usec=ts.tv_nsec/1000};
-        }
+            (Time){.tv_sec=ts.tv_sec, .tv_usec=ts.tv_nsec/1000}
+        )
 
     func local_timezone(->Text)
-        inline C {
+        C_code {
             if (_local_timezone.length < 0) {
                 static char buf[PATH_MAX];
                 ssize_t len = readlink("/etc/localtime", buf, sizeof(buf));
@@ -29,47 +29,47 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern)
                     fail("Could not resolve local tz!");
             }
         }
-        return inline C : Text { _local_timezone; }
+        return C_code:Text(_local_timezone)
 
     func set_local_timezone(timezone:Text)
-        inline C {
-            setenv("TZ", Text$as_c_string(_$timezone), 1);
-            _local_timezone = _$timezone;
+        C_code {
+            setenv("TZ", @(CString(timezone)), 1);
+            _local_timezone = @timezone;
             tzset();
         }
 
     func format(t:Time, format="%c", timezone=Time.local_timezone() -> Text)
-        return inline C : Text {
+        return C_code : Text (
             struct tm result;
-            time_t time = _$t.tv_sec;
+            time_t time = @t.tv_sec;
             struct tm *final_info;
-            WITH_TIMEZONE(_$timezone, final_info = localtime_r(&time, &result));
+            WITH_TIMEZONE(@timezone, final_info = localtime_r(&time, &result));
             static char buf[256];
-            size_t len = strftime(buf, sizeof(buf), String(_$format), final_info);
-            Text$from_strn(buf, len);
-        }
+            size_t len = strftime(buf, sizeof(buf), String(@format), final_info);
+            Text$from_strn(buf, len)
+        )
 
     func new(year,month,day:Int, hour=0, minute=0, second=0.0, timezone=Time.local_timezone() -> Time)
-        return inline C : Time{
+        return C_code : Time(
             struct tm info = {
-                .tm_min=Int32$from_int(_$minute, false),
-                .tm_hour=Int32$from_int(_$hour, false),
-                .tm_mday=Int32$from_int(_$day, false),
-                .tm_mon=Int32$from_int(_$month, false) - 1,
-                .tm_year=Int32$from_int(_$year, false) - 1900,
+                .tm_min=Int32$from_int(@minute, false),
+                .tm_hour=Int32$from_int(@hour, false),
+                .tm_mday=Int32$from_int(@day, false),
+                .tm_mon=Int32$from_int(@month, false) - 1,
+                .tm_year=Int32$from_int(@year, false) - 1900,
                 .tm_isdst=-1,
             };
 
             time_t t;
-            WITH_TIMEZONE(_$timezone, t = mktime(&info));
-            (Time){.tv_sec=t + (time_t)_$second, .tv_usec=(suseconds_t)(fmod(_$second, 1.0) * 1e9)};
-        }
+            WITH_TIMEZONE(@timezone, t = mktime(&info));
+            (Time){.tv_sec=t + (time_t)@second, .tv_usec=(suseconds_t)(fmod(@second, 1.0) * 1e9)}
+        )
 
     func unix_timestamp(t:Time -> Int64)
-        return inline C : Int64 { (int64_t)_$t.tv_sec }
+        return C_code:Int64((int64_t)@t.tv_sec)
 
     func from_unix_timestamp(timestamp:Int64 -> Time)
-        return inline C : Time { (Time){.tv_sec=_$timestamp}; }
+        return C_code:Time((Time){.tv_sec=@timestamp};)
 
     func seconds_till(t:Time, target:Time -> Num)
         seconds := Num(target.tv_sec - t.tv_sec)
@@ -83,14 +83,14 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern)
         return t.seconds_till(target)/3600.
 
     func relative(t:Time, relative_to=Time.now(), timezone=Time.local_timezone() -> Text)
-        inline C {
+        C_code {
             struct tm info = {};
             struct tm relative_info = {};
-            WITH_TIMEZONE(_$timezone, {
-                localtime_r(&_$t.tv_sec, &info);
-                localtime_r(&_$relative_to.tv_sec, &relative_info);
+            WITH_TIMEZONE(@timezone, {
+                localtime_r(&@t.tv_sec, &info);
+                localtime_r(&@relative_to.tv_sec, &relative_info);
             });
-            double second_diff = _$time$Time$seconds_till(_$relative_to, _$t);
+            double second_diff = @(relative_to.seconds_till(t));
             if (info.tm_year != relative_info.tm_year && fabs(second_diff) > 365.*24.*60.*60.)
                 return num_format((long)info.tm_year - (long)relative_info.tm_year, "year");
             else if (info.tm_mon != relative_info.tm_mon && fabs(second_diff) > 31.*24.*60.*60.)
@@ -129,9 +129,9 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern)
         return t.format("%F")
 
     func info(t:Time, timezone=Time.local_timezone() -> TimeInfo)
-        return inline C : TimeInfo {
+        return C_code : TimeInfo (
             struct tm info = {};
-            WITH_TIMEZONE(_$timezone, localtime_r(&_$t.tv_sec, &info));
+            WITH_TIMEZONE(@timezone, localtime_r(&@t.tv_sec, &info));
             (_$time$TimeInfo$$type){
                 .year = I(info.tm_year + 1900),
                 .month = I(info.tm_mon + 1),
@@ -139,50 +139,50 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern)
                 .hour = I(info.tm_hour),
                 .minute = I(info.tm_min),
                 .second = I(info.tm_sec),
-                .nanosecond = I(_$t.tv_usec),
+                .nanosecond = I(@t.tv_usec),
                 .weekday = (_$time$Weekday$$type){.$tag=info.tm_wday + 1},
                 .day_of_year = I(info.tm_yday),
-                .timezone = _$timezone,
-            };
-        }
+                .timezone = @timezone,
+            }
+        )
 
     func after(t:Time, seconds=0.0, minutes=0.0, hours=0.0, days=0, weeks=0, months=0, years=0, timezone=Time.local_timezone() -> Time)
-        return inline C : Time {
-            double offset = _$seconds + 60.*_$minutes + 3600.*_$hours ;
-            _$t.tv_sec += (time_t)offset;
+        return C_code : Time (
+            double offset = @seconds + 60.*@minutes + 3600.*@hours ;
+            @t.tv_sec += (time_t)offset;
 
             struct tm info = {};
-            WITH_TIMEZONE(_$timezone, localtime_r(&_$t.tv_sec, &info));
+            WITH_TIMEZONE(@timezone, localtime_r(&@t.tv_sec, &info));
 
-            info.tm_mday += Int32$from_int(_$days, false) + 7*Int32$from_int(_$weeks, false);
-            info.tm_mon += Int32$from_int(_$months, false);
-            info.tm_year += Int32$from_int(_$years, false);
+            info.tm_mday += Int32$from_int(@days, false) + 7*Int32$from_int(@weeks, false);
+            info.tm_mon += Int32$from_int(@months, false);
+            info.tm_year += Int32$from_int(@years, false);
 
             time_t t = mktime(&info);
             (Time){
                 .tv_sec=t,
-                .tv_usec=_$t.tv_usec + (suseconds_t)(fmod(offset, 1.0) * 1e9),
-            };
-        }
+                .tv_usec=@t.tv_usec + (suseconds_t)(fmod(offset, 1.0) * 1e9),
+            }
+        )
 
     func parse(text:Text, format="%Y-%m-%dT%H:%M:%S%z", timezone=Time.local_timezone() -> Time?)
-        return inline C : Time? {
+        return C_code : Time? (
             struct tm info = {.tm_isdst=-1};
-            const char *str = Text$as_c_string(_$text);
-            const char *fmt = Text$as_c_string(_$format);
+            const char *str = Text$as_c_string(@text);
+            const char *fmt = Text$as_c_string(@format);
             if (strstr(fmt, "%Z"))
                 fail("The %Z specifier is not supported for time parsing!");
 
             char *invalid;
-            WITH_TIMEZONE(_$timezone, invalid = strptime(str, fmt, &info));
+            WITH_TIMEZONE(@timezone, invalid = strptime(str, fmt, &info));
             if (!invalid || invalid[0] != '\0')
                 return (_$time$$OptionalTime$$type){.is_none=true};
 
             long offset = info.tm_gmtoff; // Need to cache this because mktime() mutates it to local tz >:(
             time_t t;
-            WITH_TIMEZONE(_$timezone, t = mktime(&info));
+            WITH_TIMEZONE(@timezone, t = mktime(&info));
             (_$time$$OptionalTime$$type){.value={.tv_sec=t + offset - info.tm_gmtoff}};
-        }
+        )
 
 func _run_tests()
     >> Time.now().format()

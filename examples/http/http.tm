@@ -10,74 +10,72 @@ enum _Method(GET, POST, PUT, PATCH, DELETE)
 func _send(method:_Method, url:Text, data:Text?, headers:[Text]=[] -> HTTPResponse)
     chunks : @[Text]
     save_chunk := func(chunk:CString, size:Int64, n:Int64)
-        chunks.insert(inline C:Text {
-            Text$format("%.*s", _$size*_$n, _$chunk)
-        })
+        chunks.insert(C_code:Text(Text$from_strn(@chunk, @size*@n)))
         return n*size
 
-    inline C {
+    C_code {
         CURL *curl = curl_easy_init();
         struct curl_slist *chunk = NULL;
-        curl_easy_setopt(curl, CURLOPT_URL, Text$as_c_string(_$url));
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, _$save_chunk.fn);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, _$save_chunk.userdata);
+        curl_easy_setopt(curl, CURLOPT_URL, @(CString(url)));
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, @save_chunk.fn);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, @save_chunk.userdata);
     }
 
     defer
-        inline C {
+        C_code {
             if (chunk)
                 curl_slist_free_all(chunk);
             curl_easy_cleanup(curl);
         }
 
     when method is POST
-        inline C {
+        C_code {
             curl_easy_setopt(curl, CURLOPT_POST, 1L);
         }
         if posting := data
-            inline C {
-                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, Text$as_c_string(_$posting));
+            C_code {
+                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, @(CString(posting)));
             }
     is PUT
-        inline C {
+        C_code {
             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
         }
         if putting := data
-            inline C {
-                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, Text$as_c_string(_$putting));
+            C_code {
+                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, @(CString(putting)));
             }
     is PATCH
-        inline C {
+        C_code {
             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
         }
         if patching := data
-            inline C {
-                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, Text$as_c_string(_$patching));
+            C_code {
+                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, @(CString(patching)));
             }
     is DELETE
-        inline C {
+        C_code {
             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
         }
     else
         pass
 
     for header in headers
-        inline C {
-            chunk = curl_slist_append(chunk, Text$as_c_string(_$header));
+        C_code {
+            chunk = curl_slist_append(chunk, @(CString(header)));
         }
 
-    inline C {
+    C_code {
         if (chunk)
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
     }
 
     code := Int64(0)
-    inline C {
+    C_code {
         CURLcode res = curl_easy_perform(curl);
         if (res != CURLE_OK)
             fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
 
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &_$code);
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &@code);
     }
     return HTTPResponse(Int(code), "".join(chunks))
 

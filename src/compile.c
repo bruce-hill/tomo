@@ -123,7 +123,7 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
 
     // Numeric promotions/demotions
     if ((is_numeric_type(actual) || actual->tag == BoolType) && (is_numeric_type(needed) || needed->tag == BoolType)) {
-        arg_ast_t *args = new(arg_ast_t, .value=FakeAST(InlineCCode, .code=*code, .type=actual));
+        arg_ast_t *args = new(arg_ast_t, .value=LiteralCode(*code, .type=actual));
         binding_t *constructor = get_constructor(env, needed, args);
         if (constructor) {
             auto fn = Match(constructor->type, FunctionType);
@@ -555,7 +555,7 @@ static CORD compile_update_assignment(env_t *env, ast_t *ast)
         *binop = *ast;
         binop->tag = binop_tag(binop->tag);
         if (needs_idemotency_fix)
-            binop->__data.Plus.lhs = WrapAST(update.lhs, InlineCCode, .code="*lhs", .type=lhs_t);
+            binop->__data.Plus.lhs = LiteralCode("*lhs", .type=lhs_t);
         update_assignment = CORD_all(lhs, " = ", compile_to_type(env, binop, lhs_t), ";");
     }
     
@@ -1027,7 +1027,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             if (!is_idempotent(when->subject)) {
                 prefix = CORD_all("{\n", compile_declaration(subject_t, "_when_subject"), " = ", compile(env, subject), ";\n");
                 suffix = "}\n";
-                subject = WrapAST(subject, InlineCCode, .type=subject_t, .code="_when_subject");
+                subject = LiteralCode("_when_subject", .type=subject_t);
             }
 
             CORD code = CORD_EMPTY;
@@ -1195,7 +1195,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
             ast_t *update_var = new(ast_t);
             *update_var = *test->expr;
-            update_var->__data.PlusUpdate.lhs = WrapAST(update.lhs, InlineCCode, .code="(*expr)", .type=lhs_t); // UNSAFE
+            update_var->__data.PlusUpdate.lhs = LiteralCode("(*expr)", .type=lhs_t); // UNSAFE
             test_code = CORD_all("({", 
                 compile_declaration(Type(PointerType, lhs_t), "expr"), " = &(", compile_lvalue(env, update.lhs), "); ",
                 compile_statement(env, update_var), "; *expr; })");
@@ -1845,7 +1845,15 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
     case Extern: return CORD_EMPTY;
     case InlineCCode: {
         auto inline_code = Match(ast, InlineCCode);
-        return inline_code->code;
+        CORD code = CORD_EMPTY;
+        for (ast_list_t *chunk = inline_code->chunks; chunk; chunk = chunk->next) {
+            if (chunk->ast->tag == TextLiteral) {
+                code = CORD_all(code, Match(chunk->ast, TextLiteral)->cord);
+            } else {
+                code = CORD_all(code, compile(env, chunk->ast));
+            }
+        }
+        return code;
     }
     case Use: {
         auto use = Match(ast, Use);
@@ -2060,8 +2068,8 @@ CORD compile_typed_array(env_t *env, ast_t *ast, type_t *array_type)
         env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : fresh_scope(env);
         static int64_t comp_num = 1;
         const char *comprehension_name = String("arr$", comp_num++);
-        ast_t *comprehension_var = FakeAST(InlineCCode, .code=CORD_all("&", comprehension_name),
-                                           .type=Type(PointerType, .pointed=array_type, .is_stack=true));
+        ast_t *comprehension_var = LiteralCode(CORD_all("&", comprehension_name),
+                                               .type=Type(PointerType, .pointed=array_type, .is_stack=true));
         Closure_t comp_action = {.fn=add_to_array_comprehension, .userdata=comprehension_var};
         scope->comprehension_action = &comp_action;
         CORD code = CORD_all("({ Array_t ", comprehension_name, " = {};");
@@ -2109,8 +2117,8 @@ CORD compile_typed_set(env_t *env, ast_t *ast, type_t *set_type)
         static int64_t comp_num = 1;
         env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : fresh_scope(env);
         const char *comprehension_name = String("set$", comp_num++);
-        ast_t *comprehension_var = FakeAST(InlineCCode, .code=CORD_all("&", comprehension_name),
-                                           .type=Type(PointerType, .pointed=set_type, .is_stack=true));
+        ast_t *comprehension_var = LiteralCode(CORD_all("&", comprehension_name),
+                                               .type=Type(PointerType, .pointed=set_type, .is_stack=true));
         CORD code = CORD_all("({ Table_t ", comprehension_name, " = {};");
         Closure_t comp_action = {.fn=add_to_set_comprehension, .userdata=comprehension_var};
         scope->comprehension_action = &comp_action;
@@ -2177,7 +2185,7 @@ CORD compile_typed_table(env_t *env, ast_t *ast, type_t *table_type)
         static int64_t comp_num = 1;
         env_t *scope = fresh_scope(env);
         const char *comprehension_name = String("table$", comp_num++);
-        ast_t *comprehension_var = FakeAST(InlineCCode, .code=CORD_all("&", comprehension_name),
+        ast_t *comprehension_var = LiteralCode(CORD_all("&", comprehension_name),
                                            .type=Type(PointerType, .pointed=table_type, .is_stack=true));
 
         CORD code = CORD_all("({ Table_t ", comprehension_name, " = {");
@@ -3129,10 +3137,9 @@ CORD compile(env_t *env, ast_t *ast)
                 EXPECT_POINTER("an", "array");
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *fn_t = NewFunctionType(Type(IntType, .bits=TYPE_IBITS32), {.name="x", .type=item_ptr}, {.name="y", .type=item_ptr});
-                ast_t *default_cmp = FakeAST(InlineCCode,
-                                             .code=CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
-                                                            compile_type_info(item_t), "})"),
-                                             .type=Type(ClosureType, .fn=fn_t));
+                ast_t *default_cmp = LiteralCode(CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
+                                                          compile_type_info(item_t), "})"),
+                                                 .type=Type(ClosureType, .fn=fn_t));
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
                                       .next=new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp));
                 CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
@@ -3141,10 +3148,9 @@ CORD compile(env_t *env, ast_t *ast)
                 EXPECT_POINTER("an", "array");
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *fn_t = NewFunctionType(Type(IntType, .bits=TYPE_IBITS32), {.name="x", .type=item_ptr}, {.name="y", .type=item_ptr});
-                ast_t *default_cmp = FakeAST(InlineCCode,
-                                             .code=CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
-                                                            compile_type_info(item_t), "})"),
-                                             .type=Type(ClosureType, .fn=fn_t));
+                ast_t *default_cmp = LiteralCode(CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
+                                                          compile_type_info(item_t), "})"),
+                                                 .type=Type(ClosureType, .fn=fn_t));
                 arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp);
                 CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
                 return CORD_all("Array$heap_pop_value(", self, ", ", arg_code, ", ", compile_type(item_t), ", _, ",
@@ -3153,10 +3159,10 @@ CORD compile(env_t *env, ast_t *ast)
                 self = compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *fn_t = NewFunctionType(Type(IntType, .bits=TYPE_IBITS32), {.name="x", .type=item_ptr}, {.name="y", .type=item_ptr});
-                ast_t *default_cmp = FakeAST(InlineCCode,
-                                             .code=CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
-                                                            compile_type_info(item_t), "})"),
-                                             .type=Type(ClosureType, .fn=fn_t));
+                ast_t *default_cmp = LiteralCode(
+                    CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
+                             compile_type_info(item_t), "})"),
+                    .type=Type(ClosureType, .fn=fn_t));
                 arg_t *arg_spec = new(arg_t, .name="target", .type=item_t,
                                       .next=new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp));
                 CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
@@ -3522,7 +3528,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         static int64_t next_id = 1;
         ast_t *item = FakeAST(Var, String("$it", next_id++));
-        ast_t *body = FakeAST(InlineCCode, .code="{}"); // placeholder
+        ast_t *body = LiteralCode("{}"); // placeholder
         ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=item), .iter=reduction->iter, .body=body);
         env_t *body_scope = for_scope(env, loop);
         if (op == Equals || op == NotEquals || op == LessThan || op == LessThanOrEquals || op == GreaterThan || op == GreaterThanOrEquals) {
@@ -3542,8 +3548,8 @@ CORD compile(env_t *env, ast_t *ast)
                 );
 
             ast_t *comparison = new(ast_t, .file=ast->file, .start=ast->start, .end=ast->end,
-                                    .tag=op, .__data.Plus.lhs=FakeAST(InlineCCode, .code="prev", .type=item_value_type), .__data.Plus.rhs=item_value);
-            body->__data.InlineCCode.code = CORD_all(
+                                    .tag=op, .__data.Plus.lhs=LiteralCode("prev", .type=item_value_type), .__data.Plus.rhs=item_value);
+            body->__data.InlineCCode.chunks = new(ast_list_t, .ast=FakeAST(TextLiteral, CORD_all(
                 "if (result == NONE_BOOL) {\n"
                 "    prev = ", compile(body_scope, item_value), ";\n"
                 "    result = yes;\n"
@@ -3554,7 +3560,7 @@ CORD compile(env_t *env, ast_t *ast)
                 "        result = no;\n",
                 "        break;\n",
                 "    }\n",
-                "}\n");
+                "}\n")));
             code = CORD_all(code, compile_statement(env, loop), "\nresult;})");
             return code;
         } else if (op == Min || op == Max) {
@@ -3576,25 +3582,25 @@ CORD compile(env_t *env, ast_t *ast)
                 code = CORD_all(code, compile_declaration(key_type, superlative_key), ";\n");
 
                 ast_t *comparison = new(ast_t, .file=ast->file, .start=ast->start, .end=ast->end,
-                                        .tag=cmp_op, .__data.Plus.lhs=FakeAST(InlineCCode, .code="key", .type=key_type),
-                                        .__data.Plus.rhs=FakeAST(InlineCCode, .code=superlative_key, .type=key_type));
+                                        .tag=cmp_op, .__data.Plus.lhs=LiteralCode("key", .type=key_type),
+                                        .__data.Plus.rhs=LiteralCode(superlative_key, .type=key_type));
 
-                body->__data.InlineCCode.code = CORD_all(
+                body->__data.InlineCCode.chunks = new(ast_list_t, .ast=FakeAST(TextLiteral, CORD_all(
                     compile_declaration(key_type, "key"), " = ", compile(key_scope, reduction->key), ";\n",
                     "if (!has_value || ", compile(body_scope, comparison), ") {\n"
                     "    ", superlative, " = ", compile(body_scope, item), ";\n"
                     "    ", superlative_key, " = key;\n"
                     "    has_value = yes;\n"
-                    "}\n");
+                    "}\n")));
             } else {
                 ast_t *comparison = new(ast_t, .file=ast->file, .start=ast->start, .end=ast->end,
                                         .tag=cmp_op, .__data.Plus.lhs=item,
-                                        .__data.Plus.rhs=FakeAST(InlineCCode, .code=superlative, .type=item_t));
-                body->__data.InlineCCode.code = CORD_all(
+                                        .__data.Plus.rhs=LiteralCode(superlative, .type=item_t));
+                body->__data.InlineCCode.chunks = new(ast_list_t, .ast=FakeAST(TextLiteral, CORD_all(
                     "if (!has_value || ", compile(body_scope, comparison), ") {\n"
                     "    ", superlative, " = ", compile(body_scope, item), ";\n"
                     "    has_value = yes;\n"
-                    "}\n");
+                    "}\n")));
             }
 
 
@@ -3634,16 +3640,16 @@ CORD compile(env_t *env, ast_t *ast)
             }
 
             ast_t *combination = new(ast_t, .file=ast->file, .start=ast->start, .end=ast->end,
-                                     .tag=op, .__data.Plus.lhs=FakeAST(InlineCCode, .code="reduction", .type=reduction_type),
+                                     .tag=op, .__data.Plus.lhs=LiteralCode("reduction", .type=reduction_type),
                                      .__data.Plus.rhs=item_value);
-            body->__data.InlineCCode.code = CORD_all(
+            body->__data.InlineCCode.chunks = new(ast_list_t, .ast=FakeAST(TextLiteral, CORD_all(
                 "if (!has_value) {\n"
                 "    reduction = ", compile(body_scope, item_value), ";\n"
                 "    has_value = yes;\n"
                 "} else {\n"
                 "    reduction = ", compile(body_scope, combination), ";\n",
                 early_out,
-                "}\n");
+                "}\n")));
 
             code = CORD_all(code, compile_statement(env, loop), "\nhas_value ? ", promote_to_optional(reduction_type, "reduction"),
                             " : ", compile_none(reduction_type), ";})");
@@ -3815,9 +3821,9 @@ CORD compile(env_t *env, ast_t *ast)
     case InlineCCode: {
         type_t *t = get_type(env, ast);
         if (t->tag == VoidType)
-            return CORD_all("{\n", Match(ast, InlineCCode)->code, "\n}");
+            return CORD_all("{\n", compile_statement(env, ast), "\n}");
         else
-            return Match(ast, InlineCCode)->code;
+            return compile_statement(env, ast);
     }
     case Use: code_err(ast, "Compiling 'use' as expression!");
     case Defer: code_err(ast, "Compiling 'defer' as expression!");

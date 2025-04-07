@@ -19,6 +19,7 @@
 #define FakeAST(ast_tag, ...) (new(ast_t, .tag=ast_tag, .__data.ast_tag={__VA_ARGS__}))
 #define WrapAST(ast, ast_tag, ...) (new(ast_t, .file=(ast)->file, .start=(ast)->start, .end=(ast)->end, .tag=ast_tag, .__data.ast_tag={__VA_ARGS__}))
 #define TextAST(ast, _str) WrapAST(ast, TextLiteral, .str=GC_strdup(_str))
+#define LiteralCode(code, ...) new(ast_t, .tag=InlineCCode, .__data.InlineCCode={.chunks=new(ast_list_t, .ast=FakeAST(TextLiteral, code)), __VA_ARGS__})
 #define Match(x, _tag) ((x)->tag == _tag ? &(x)->__data._tag : (errx(1, __FILE__ ":%d This was supposed to be a " # _tag "\n", __LINE__), &(x)->__data._tag))
 #define BINARY_OPERANDS(ast) ({ if (!is_binary_operation(ast)) errx(1, __FILE__ ":%d This is not a binary operation!", __LINE__); (ast)->__data.Plus; })
 
@@ -324,7 +325,7 @@ struct ast_s {
             enum { USE_LOCAL, USE_MODULE, USE_SHARED_OBJECT, USE_HEADER, USE_C_CODE, USE_ASM } what;
         } Use;
         struct {
-            CORD code;
+            ast_list_t *chunks;
             struct type_s *type;
             type_ast_t *type_ast;
         } InlineCCode;
