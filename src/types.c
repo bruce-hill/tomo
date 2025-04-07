@@ -420,7 +420,7 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
 
 PUREFUNC bool is_int_type(type_t *t)
 {
-    return t->tag == IntType || t->tag == BigIntType;
+    return t->tag == IntType || t->tag == BigIntType || t->tag == ByteType;
 }
 
 PUREFUNC bool is_numeric_type(type_t *t)

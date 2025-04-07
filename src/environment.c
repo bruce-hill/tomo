@@ -88,6 +88,7 @@ env_t *global_env(void)
             {"max", "Byte$max", "Byte"},
             {"hex", "Byte$hex", "func(byte:Byte, uppercase=yes, prefix=no -> Text)"},
             {"min", "Byte$min", "Byte"},
+            {"to", "Byte$to", "func(first:Byte,last:Byte,step:Int8?=none -> func(->Byte?))"},
         )},
         {"Int", Type(BigIntType), "Int_t", "Int$info", TypedList(ns_entry_t,
             {"abs", "Int$abs", "func(x:Int -> Int)"},

@@ -1056,9 +1056,9 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
 
-        if (binop.lhs->tag == Int && (is_int_type(rhs_t) || rhs_t->tag == ByteType))
+        if (binop.lhs->tag == Int && is_int_type(rhs_t))
             return rhs_t;
-        else if (binop.rhs->tag == Int && (is_int_type(lhs_t) || lhs_t->tag == ByteType))
+        else if (binop.rhs->tag == Int && is_int_type(lhs_t))
             return lhs_t;
 
         // `opt? or (x == y)` / `(x == y) or opt?` is a boolean conditional:
@@ -1102,9 +1102,9 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
 
-        if (binop.lhs->tag == Int && (is_int_type(rhs_t) || rhs_t->tag == ByteType))
+        if (binop.lhs->tag == Int && is_int_type(rhs_t))
             return rhs_t;
-        else if (binop.rhs->tag == Int && (is_int_type(lhs_t) || lhs_t->tag == ByteType))
+        else if (binop.rhs->tag == Int && is_int_type(lhs_t))
             return lhs_t;
 
         // `and` between optionals/bools is a boolean expression like `if opt? and opt?:` or `if x > 0 and opt?:`
@@ -1136,9 +1136,9 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
 
-        if (binop.lhs->tag == Int && (is_int_type(rhs_t) || rhs_t->tag == ByteType))
+        if (binop.lhs->tag == Int && is_int_type(rhs_t))
             return rhs_t;
-        else if (binop.rhs->tag == Int && (is_int_type(lhs_t) || lhs_t->tag == ByteType))
+        else if (binop.rhs->tag == Int && is_int_type(lhs_t))
             return lhs_t;
 
         // `xor` between optionals/bools is a boolean expression like `if opt? xor opt?:` or `if x > 0 xor opt?:`

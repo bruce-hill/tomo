@@ -30,6 +30,31 @@ public Text_t Byte$hex(Byte_t byte, bool uppercase, bool prefix) {
     return text;
 }
 
+typedef struct {
+    OptionalByte_t current, last;
+    Int8_t step;
+} ByteRange_t;
+
+static OptionalByte_t _next_Byte(ByteRange_t *info) {
+    OptionalByte_t i = info->current;
+    if (!i.is_none) {
+        Byte_t next; bool overflow = __builtin_add_overflow(i.value, info->step, &next);
+        if (overflow || (!info->last.is_none && (info->step >= 0 ? next > info->last.value : next < info->last.value)))
+            info->current = (OptionalByte_t){.is_none=true};
+        else
+            info->current = (OptionalByte_t){.value=next};
+    }
+    return i;
+}
+
+public CONSTFUNC Closure_t Byte$to(Byte_t first, Byte_t last, OptionalInt8_t step) {
+    ByteRange_t *range = GC_MALLOC(sizeof(ByteRange_t));
+    range->current = (OptionalByte_t){.value=first};
+    range->last = (OptionalByte_t){.value=last};
+    range->step = step.is_none ? (last >= first ? 1 : -1) : step.value;
+    return (Closure_t){.fn=_next_Byte, .userdata=range};
+}
+
 public PUREFUNC Byte_t Byte$from_int(Int_t i, bool truncate) {
     if unlikely (truncate && Int$compare_value(i, I_small(0xFF)) > 0)
         fail("This value is too large to convert to a byte without truncation: ", i);

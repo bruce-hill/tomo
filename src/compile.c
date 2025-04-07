@@ -947,7 +947,7 @@ CORD optional_into_nonnone(type_t *t, CORD value)
 {
     if (t->tag == OptionalType) t = Match(t, OptionalType)->type;
     switch (t->tag) {
-    case IntType:
+    case IntType: case ByteType:
         return CORD_all(value, ".value");
     case StructType:
         if (t == PATH_TYPE || t == PATH_TYPE_TYPE)
@@ -1500,52 +1500,70 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
         // Special case for improving performance for numeric iteration:
         if (for_->iter->tag == MethodCall && streq(Match(for_->iter, MethodCall)->name, "to") &&
-            get_type(env, Match(for_->iter, MethodCall)->self)->tag == BigIntType) {
+            is_int_type(get_type(env, Match(for_->iter, MethodCall)->self))) {
             // TODO: support other integer types
             arg_ast_t *args = Match(for_->iter, MethodCall)->args;
             if (!args) code_err(for_->iter, "to() needs at least one argument");
 
+            type_t *int_type = get_type(env, Match(for_->iter, MethodCall)->self);
+            type_t *step_type = int_type->tag == ByteType ? Type(IntType, .bits=TYPE_IBITS8) : int_type;
+
             CORD last = CORD_EMPTY, step = CORD_EMPTY, optional_step = CORD_EMPTY;
             if (!args->name || streq(args->name, "last")) {
-                last = compile_to_type(env, args->value, INT_TYPE);
+                last = compile_to_type(env, args->value, int_type);
                 if (args->next) {
                     if (args->next->name && !streq(args->next->name, "step"))
                         code_err(args->next->value, "Invalid argument name: ", args->next->name);
                     if (get_type(env, args->next->value)->tag == OptionalType)
-                        optional_step = compile_to_type(env, args->next->value, Type(OptionalType, .type=INT_TYPE));
+                        optional_step = compile_to_type(env, args->next->value, Type(OptionalType, step_type));
                     else
-                        step = compile_to_type(env, args->next->value, INT_TYPE);
+                        step = compile_to_type(env, args->next->value, step_type);
                 }
             } else if (streq(args->name, "step")) {
                 if (get_type(env, args->value)->tag == OptionalType)
-                    optional_step = compile_to_type(env, args->value, Type(OptionalType, .type=INT_TYPE));
+                    optional_step = compile_to_type(env, args->value, Type(OptionalType, step_type));
                 else
-                    step = compile_to_type(env, args->value, INT_TYPE);
+                    step = compile_to_type(env, args->value, step_type);
                 if (args->next) {
                     if (args->next->name && !streq(args->next->name, "last"))
                         code_err(args->next->value, "Invalid argument name: ", args->next->name);
-                    last = compile_to_type(env, args->next->value, INT_TYPE);
+                    last = compile_to_type(env, args->next->value, int_type);
                 }
             }
 
             if (!last)
                 code_err(for_->iter, "No `last` argument was given");
             
-            if (step && optional_step)
-                step = CORD_all("({ OptionalInt_t maybe_step = ", optional_step, "; maybe_step->small == 0 ? (Int$compare_value(last, first) >= 0 ? I_small(1) : I_small(-1)) : (Int_t)maybe_step; })");
-            else if (!step)
-                step = "Int$compare_value(last, first) >= 0 ? I_small(1) : I_small(-1)";
-
+            CORD type_code = compile_type(int_type);
             CORD value = for_->vars ? compile(body_scope, for_->vars->ast) : "i";
-            return CORD_all(
-                "for (Int_t first = ", compile(env, Match(for_->iter, MethodCall)->self), ", ",
-                value, " = first, "
-                "last = ", last, ", "
-                "step = ", step, "; "
-                "Int$compare_value(", value, ", last) != Int$compare_value(step, I_small(0)); ", value, " = Int$plus(", value, ", step)) {\n"
-                "\t", naked_body,
-                "}",
-                stop);
+            if (int_type->tag == BigIntType) {
+                if (optional_step)
+                    step = CORD_all("({ OptionalInt_t maybe_step = ", optional_step, "; maybe_step->small == 0 ? (Int$compare_value(last, first) >= 0 ? I_small(1) : I_small(-1)) : (Int_t)maybe_step; })");
+                else if (!step)
+                    step = "Int$compare_value(last, first) >= 0 ? I_small(1) : I_small(-1)";
+                return CORD_all(
+                    "for (", type_code, " first = ", compile(env, Match(for_->iter, MethodCall)->self), ", ",
+                    value, " = first, last = ", last, ", step = ", step, "; "
+                    "Int$compare_value(", value, ", last) != Int$compare_value(step, I_small(0)); ",
+                    value, " = Int$plus(", value, ", step)) {\n"
+                    "\t", naked_body,
+                    "}",
+                    stop);
+            } else {
+                if (optional_step)
+                    step = CORD_all("({ ", compile_type(Type(OptionalType, step_type)), " maybe_step = ", optional_step, "; "
+                                    "maybe_step.is_none ? (", type_code, ")(last >= first ? 1 : -1) : maybe_step.value; })");
+                else if (!step)
+                    step = CORD_all("(", type_code, ")(last >= first ? 1 : -1)");
+                return CORD_all(
+                    "for (", type_code, " first = ", compile(env, Match(for_->iter, MethodCall)->self), ", ",
+                    value, " = first, last = ", last, ", step = ", step, "; "
+                    "step > 0 ? ", value, " <= last : ", value, " >= last; ",
+                    value, " += step) {\n"
+                    "\t", naked_body,
+                    "}",
+                    stop);
+            }
         } else if (for_->iter->tag == MethodCall && streq(Match(for_->iter, MethodCall)->name, "onward") &&
             get_type(env, Match(for_->iter, MethodCall)->self)->tag == BigIntType) {
             // Special case for Int.onward()
@@ -1974,7 +1992,7 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
 
 CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
 {
-    if (ast->tag == Int && is_numeric_type(t)) {
+    if (ast->tag == Int && is_numeric_type(non_optional(t))) {
         return compile_int_to_type(env, ast, t);
     } else if (ast->tag == Num && t->tag == NumType) {
         double n = Match(ast, Num)->n;
