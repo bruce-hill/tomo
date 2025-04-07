@@ -4,7 +4,6 @@
 use patterns
 use commands
 use shell
-use colorful
-use log
 use pthreads
 use random
+use time

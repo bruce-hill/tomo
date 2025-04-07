@@ -99,17 +99,15 @@ test: $(TESTS)
 	@printf '\033[32;7m ALL TESTS PASSED! \033[m\n'
 
 clean:
-	rm -rf build/* $(COMPILER_OBJS) $(STDLIB_OBJS) test/*.tm.testresult test/.build examples/.build examples/*/.build
+	rm -rf build/* $(COMPILER_OBJS) $(STDLIB_OBJS) test/*.tm.testresult test/.build lib/*/.build examples/.build examples/*/.build
 
 %: %.md
 	pandoc --lua-filter=docs/.pandoc/bold-code.lua -s $< -t man -o $@
 
 examples:
-	./build/tomo -qIL examples/patterns examples/time examples/commands examples/shell examples/random \
-		examples/base64 examples/log examples/ini examples/vectors examples/http \
-		examples/wrap examples/pthreads examples/colorful examples/core
-	./build/tomo -e examples/base64/base64.tm examples/ini/ini.tm examples/game/game.tm examples/http-server/http-server.tm \
-		examples/tomodeps/tomodeps.tm examples/tomo-install/tomo-install.tm examples/wrap/wrap.tm examples/colorful/colorful.tm
+	./build/tomo -qIL examples/log examples/ini examples/vectors examples/http examples/wrap examples/colorful
+	./build/tomo -e examples/game/game.tm examples/http-server/http-server.tm \
+		examples/tomodeps/tomodeps.tm examples/tomo-install/tomo-install.tm
 	./build/tomo examples/learnxiny.tm
 
 deps: check-gcc
@@ -139,6 +137,7 @@ install: build/tomo build/$(LIB_FILE)
 	rm -f "$(PREFIX)/bin/tomo"
 	cp -v build/tomo "$(PREFIX)/bin/"
 	cp -v docs/tomo.1 "$(PREFIX)/man/man1/"
+	./build/tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/core
 
 uninstall:
 	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/include/tomo" "$(PREFIX)/lib/$(LIB_FILE) "$(PREFIX)/share/tomo"; \

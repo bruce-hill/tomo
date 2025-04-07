@@ -29,7 +29,8 @@ Hello John Doe!!!
 
 For more examples, see [learnXinY](/examples/learnxiny.tm) which as an overview
 of many language features or the other example programs/modules in
-[examples/](examples/).
+[examples/](examples/). You can also look at the [core libraries](lib/) which
+are implemented in Tomo.
 
 ## Features
 
