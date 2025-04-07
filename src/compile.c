@@ -2775,6 +2775,7 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case TextJoin: {
         const char *lang = Match(ast, TextJoin)->lang;
+        const char *colorize = Match(ast, TextJoin)->colorize ? "yes" : "no";
 
         type_t *text_t = lang ? Table$str_get(*env->types, lang) : TEXT_TYPE;
         if (!text_t || text_t->tag != TextType)
@@ -2811,7 +2812,7 @@ CORD compile(env_t *env, ast_t *ast)
                         if (chunk_t->tag == TextType)
                             chunk_code = compile(env, chunk->ast);
                         else
-                            chunk_code = compile_string(env, chunk->ast, "no");
+                            chunk_code = compile_string(env, chunk->ast, colorize);
                     } else {
                         code_err(chunk->ast, "I don't know how to convert ", type_to_str(chunk_t), " to ", type_to_str(text_t));
                     }

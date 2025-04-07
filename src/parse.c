@@ -1306,7 +1306,8 @@ PARSER(parse_text) {
 
     bool allow_escapes = (open_quote != '`');
     ast_list_t *chunks = _parse_text_helper(ctx, &pos, open_quote, close_quote, open_interp, allow_escapes);
-    return NewAST(ctx->file, start, pos, TextJoin, .lang=lang, .children=chunks);
+    bool colorize = match(&pos, "~") && match_word(&pos, "colorized");
+    return NewAST(ctx->file, start, pos, TextJoin, .lang=lang, .children=chunks, .colorize=colorize);
 }
 
 PARSER(parse_path) {
