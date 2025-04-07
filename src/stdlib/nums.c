@@ -76,6 +76,13 @@ public CONSTFUNC double Num$mix(double amount, double x, double y) {
     return (1.0-amount)*x + amount*y;
 }
 
+public CONSTFUNC bool Num$is_between(const double x, const double low, const double high) {
+    return low <= x && x <= high;
+}
+public CONSTFUNC double Num$clamped(double x, double low, double high) {
+    return (x <= low) ? low : (x >= high ? high : x);
+}
+
 public OptionalNum_t Num$parse(Text_t text) {
     const char *str = Text$as_c_string(text);
     char *end = NULL;
@@ -159,6 +166,14 @@ public CONSTFUNC float Num32$mod1(float num, float modulus) {
 
 public CONSTFUNC float Num32$mix(float amount, float x, float y) { 
     return (1.0f-amount)*x + amount*y;
+}
+
+public CONSTFUNC bool Num32$is_between(const float x, const float low, const float high) {
+    return low <= x && x <= high;
+}
+
+public CONSTFUNC float Num32$clamped(float x, float low, float high) {
+    return (x <= low) ? low : (x >= high ? high : x);
 }
 
 public OptionalNum32_t Num32$parse(Text_t text) {

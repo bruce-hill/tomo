@@ -16,6 +16,10 @@ PUREFUNC public Text_t Byte$as_text(const void *b, bool colorize, const TypeInfo
     return Text$format(colorize ? "\x1b[35m0x%02X\x1b[m" : "0x%02X", *(Byte_t*)b);
 }
 
+public CONSTFUNC bool Byte$is_between(const Byte_t x, const Byte_t low, const Byte_t high) {
+    return low <= x && x <= high;
+}
+
 public Text_t Byte$hex(Byte_t byte, bool uppercase, bool prefix) {
     struct Text_s text = {.tag=TEXT_ASCII};
     text.ascii = GC_MALLOC_ATOMIC(8);

@@ -73,6 +73,14 @@ public PUREFUNC bool Int$equal(const void *x, const void *y, const TypeInfo_t*) 
     return Int$equal_value(*(Int_t*)x, *(Int_t*)y);
 }
 
+public CONSTFUNC Int_t Int$clamped(Int_t x, Int_t low, Int_t high) {
+    return (Int$compare(&x, &low, &Int$info) <= 0) ? low : (Int$compare(&x, &high, &Int$info) >= 0 ? high : x);
+}
+
+public CONSTFUNC bool Int$is_between(const Int_t x, const Int_t low, const Int_t high) {
+    return Int$compare_value(low, x) <= 0 && Int$compare_value(x, high) <= 0;
+}
+
 public PUREFUNC uint64_t Int$hash(const void *vx, const TypeInfo_t*) {
     Int_t *x = (Int_t*)vx;
     if (likely(x->small & 1L)) {
@@ -568,6 +576,12 @@ public void Int32$deserialize(FILE *in, void *outval, List_t*, const TypeInfo_t*
     } \
     public PUREFUNC bool KindOfInt ## $equal(const void *x, const void *y, const TypeInfo_t*) { \
         return *(c_type*)x == *(c_type*)y; \
+    } \
+    public CONSTFUNC bool KindOfInt ## $is_between(const c_type x, const c_type low, const c_type high) { \
+        return low <= x && x <= high; \
+    } \
+    public CONSTFUNC c_type KindOfInt ## $clamped(c_type x, c_type min, c_type max) { \
+        return x < min ? min : (x > max ? max : x); \
     } \
     public Text_t KindOfInt ## $format(c_type i, Int_t digits_int) { \
         return Text$format("%0*ld", Int32$from_int(digits_int, false), (int64_t)i); \
