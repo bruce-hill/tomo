@@ -2487,10 +2487,10 @@ CORD compile_empty(type_t *t)
     case BigIntType: return "I(0)";
     case IntType: {
         switch (Match(t, IntType)->bits) {
-        case TYPE_IBITS8: return "Int8(0)";
-        case TYPE_IBITS16: return "Int16(0)";
-        case TYPE_IBITS32: return "Int32(0)";
-        case TYPE_IBITS64: return "Int64(0)";
+        case TYPE_IBITS8: return "I8(0)";
+        case TYPE_IBITS16: return "I16(0)";
+        case TYPE_IBITS32: return "I32(0)";
+        case TYPE_IBITS64: return "I64(0)";
         default: errx(1, "Invalid integer bit size");
         }
         break;
