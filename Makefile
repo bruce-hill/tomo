@@ -137,7 +137,7 @@ install: build/tomo build/$(LIB_FILE)
 	rm -f "$(PREFIX)/bin/tomo"
 	cp -v build/tomo "$(PREFIX)/bin/"
 	cp -v docs/tomo.1 "$(PREFIX)/man/man1/"
-	./build/tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/core
+	./build/tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/uuid lib/core
 
 uninstall:
 	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/include/tomo" "$(PREFIX)/lib/$(LIB_FILE) "$(PREFIX)/share/tomo"; \

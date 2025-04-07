@@ -1,3 +1,6 @@
+use random
+use time
+
 lang UUID
     func v4(-> UUID) # Random UUID
         bytes := &random.bytes(16)
@@ -8,8 +11,8 @@ lang UUID
         return UUID.from_text(uuid)
 
     func v7(-> UUID) # Timestamp + random UUID
-        n := now()
-        timestamp := n.seconds*1000 + n.microseconds/1_000
+        n := Time.now()
+        timestamp := n.tv_sec*1000 + n.tv_usec/1_000
 
         bytes := [
             Byte((timestamp >> 40)),
@@ -31,6 +34,6 @@ lang UUID
 enum UUIDVersion(v4, v7)
 func main(version=UUIDVersion.v7)
     when version is v4
-        say(UUID.v4().text_content)
+        say(UUID.v4().text)
     is v7
-        say(UUID.v7().text_content)
+        say(UUID.v7().text)
