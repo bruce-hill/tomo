@@ -938,6 +938,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             auto table = Match(self_value_t, TableType);
             if (streq(call->name, "clear")) return Type(VoidType);
             else if (streq(call->name, "get")) return Type(OptionalType, .type=table->value_type);
+            else if (streq(call->name, "get_or_set")) return table->value_type;
             else if (streq(call->name, "has")) return Type(BoolType);
             else if (streq(call->name, "remove")) return Type(VoidType);
             else if (streq(call->name, "set")) return Type(VoidType);

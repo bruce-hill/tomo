@@ -154,6 +154,7 @@ iterating over any of the new values.
 
 - [`func clear(t:&{K=V})`](#clear)
 - [`func get(t:{K=V}, key: K -> V?)`](#get)
+- [`func get_or_set(t:&{K=V}, key: K, default: V -> V)`](#get_or_set)
 - [`func has(t:{K=V}, key: K -> Bool)`](#has)
 - [`func remove(t:{K=V}, key: K -> Void)`](#remove)
 - [`func set(t:{K=V}, key: K, value: V -> Void)`](#set)
@@ -207,6 +208,43 @@ The value associated with the key or `none` if the key is not found.
 
 >> t.get("????") or 0
 = 0
+```
+
+---
+
+### `get_or_set`
+If the given key is in the table, return the associated value. Otherwise,
+insert the given default value into the table and return it.
+
+**Note:** If no default value is provided explicitly, but the table has a
+default value associated with it, the table's default value will be used.
+
+**Note:** The default value is only evaluated if the key is missing.
+
+```tomo
+func get_or_set(t: &{K=V}, key: K, default: V -> V?)
+```
+
+- `t`: The table.
+- `key`: The key whose associated value is to be retrieved.
+- `default`: The default value to insert and return if the key is not present in the table.
+
+**Returns:**  
+Either the value associated with the key (if present) or the default value. The
+table will be mutated if the key is not already present.
+
+**Example:**  
+```tomo
+>> t := &{"A"=@[1, 2, 3]; default=@[]}
+>> t.get_or_set("A").insert(4)
+>> t.get_or_set("B").insert(99)
+>> t
+= &{"A"=@[1, 2, 3, 4], "B"=@[99]}
+
+>> t.get_or_set("C", @[0, 0, 0])
+= @[0, 0, 0]
+>> t
+= &{"A"=@[1, 2, 3, 4], "B"=@[99], "C"=@[0, 0, 0]}
 ```
 
 ---

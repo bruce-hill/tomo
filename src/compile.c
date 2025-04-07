@@ -3312,6 +3312,15 @@ CORD compile(env_t *env, ast_t *ast)
                     compile_type(table->value_type), ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                     "_, ", optional_into_nonnone(table->value_type, "(*_)"), ", ", compile_none(table->value_type), ", ",
                     compile_type_info(self_value_t), ")");
+            } else if (streq(call->name, "get_or_set")) {
+                self = compile_to_pointer_depth(env, call->self, 1, false);
+                arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type,
+                                      .next=new(arg_t, .name="default", .type=table->value_type, .default_val=table->default_value));
+                return CORD_all("*Table$get_or_setdefault(",
+                                self, ", ", compile_type(table->key_type), ", ",
+                                compile_type(table->value_type), ", ",
+                                compile_arguments(env, ast, arg_spec, call->args), ", ",
+                                compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "has")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);
