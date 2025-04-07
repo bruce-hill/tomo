@@ -24,7 +24,7 @@ successively gets one line from a file at a time until the file is exhausted:
 >> iter()
 = none : Text?
 
-for line in (./test.txt).each_line():
+for line in (./test.txt).each_line()
     pass
 ```
 
@@ -32,13 +32,13 @@ You can write your own iterator methods this way. For example, this iterator
 iterates over prime numbers up to a given limit:
 
 ```tomo
-func primes_up_to(limit:Int):
+func primes_up_to(limit:Int)
     n := 2
-    return func():
-        if n > limit:
+    return func()
+        if n > limit
             return !Int
 
-        while not n.is_prime():
+        while not n.is_prime()
             n += 1
 
         n += 1

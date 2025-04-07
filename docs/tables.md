@@ -139,10 +139,10 @@ t := {"A"=10, "B"=20}
 You can iterate over the key/value pairs in a table like this:
 
 ```tomo
-for key, value in table:
+for key, value in table
     ...
 
-for key in table:
+for key in table
     ...
 ```
 

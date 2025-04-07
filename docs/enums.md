@@ -15,14 +15,14 @@ c := VariousThings.Nothing
 
 ## Pattern Matching
 
-The values inside an enum can be accessed with pattern matching:
+The values inside an enum can be accessed with pattern matching
 
 ```tomo
-when x is AnInteger(i):
+when x is AnInteger(i)
     say("It was $i")
-is TwoWords(x, y):
+is TwoWords(x, y)
     say("It was $x and $y")
-is Nothing:
+is Nothing
     say("It was nothing")
 ```
 
@@ -54,10 +54,10 @@ from a function with an explicit return type:
 enum ArgumentType(AnInt(x:Int), SomeText(text:Text))
 enum ReturnType(Nothing, AnInt(x:Int))
 
-func increment(arg:ArgumentType -> ReturnType):
-    when arg is AnInt(x):
+func increment(arg:ArgumentType -> ReturnType)
+    when arg is AnInt(x)
         return AnInt(x + 1)
-    is SomeText:
+    is SomeText
         return Nothing
 
 ...
@@ -78,9 +78,9 @@ known.
 Enums can also define their own methods and variables inside their namespace:
 
 ```tomo
-enum VariousThings(AnInteger(i:Int), TwoWords(word1, word2:Text), Nothing):
+enum VariousThings(AnInteger(i:Int), TwoWords(word1, word2:Text), Nothing)
     meaningful_thing := AnInteger(42)
-    func doop(v:VariousThings):
+    func doop(v:VariousThings)
         say("$v")
 ```
 

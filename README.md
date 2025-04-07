@@ -5,14 +5,14 @@ language that cross-compiles to C. Tomo is designed to anticipate and influence
 the language design decisions of the future.
 
 ```
-func greeting(name:Text, add_exclamation:Bool -> Text):
+func greeting(name:Text, add_exclamation:Bool -> Text)
     message := "hello $name"
     message = " ".join([w.title() for w in message.split_any(" ")])
-    if add_exclamation:
+    if add_exclamation
         message ++= "!!!"
     return message
 
-func main(name:Text, shout=no):
+func main(name:Text, shout=no)
     to_say := greeting(name, add_exclamation=shout)
     say(to_say)
 ```

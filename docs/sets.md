@@ -62,10 +62,10 @@ Set length can be accessed by the `.length` field:
 You can iterate over the items in a table like this:
 
 ```tomo
-for item in set:
+for item in set
     ...
 
-for i, item in set:
+for i, item in set
     ...
 ```
 

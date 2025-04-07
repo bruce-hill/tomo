@@ -181,14 +181,14 @@ value if the file couldn't be read.
 **Example:**  
 ```tomo
 # Safely handle file not being readable:
-if lines := (./file.txt).by_line():
-    for line in lines:
+if lines := (./file.txt).by_line()
+    for line in lines
         say(line.upper())
-else:
+else
     say("Couldn't read file!")
 
 # Assume the file is readable and error if that's not the case:
-for line in (/dev/stdin).by_line()!:
+for line in (/dev/stdin).by_line()!
     say(line.upper())
 ```
 

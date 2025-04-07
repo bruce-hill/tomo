@@ -370,7 +370,7 @@ text := "
     line one
     line two
 "
-for line in text.by_line():
+for line in text.by_line()
     # Prints: "line one" then "line two":
     say(line)
 ```
@@ -398,7 +398,7 @@ delimiter (the default) will iterate over single grapheme clusters in the text.
 **Example:**  
 ```tomo
 text := "one,two,three"
-for chunk in text.by_split(","):
+for chunk in text.by_split(",")
     # Prints: "one" then "two" then "three":
     say(chunk)
 ```
@@ -425,7 +425,7 @@ given delimiter characters, until it runs out and returns `none`.
 **Example:**  
 ```tomo
 text := "one,two,;,three"
-for chunk in text.by_split_any(",;"):
+for chunk in text.by_split_any(",;")
     # Prints: "one" then "two" then "three":
     say(chunk)
 ```

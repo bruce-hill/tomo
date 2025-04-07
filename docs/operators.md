@@ -98,8 +98,8 @@ This simplifies things if you want to do a reduction without writing a full
 comprehension:
 
 ```tomo
-struct Foo(x,y:Int):
-    func is_even(f:Foo)->Bool:
+struct Foo(x,y:Int)
+    func is_even(f:Foo -> Bool)
         return (f.x + f.y) mod 2 == 0
 
 >> foos := [Foo(1, 2), Foo(-10, 20)]
@@ -217,7 +217,7 @@ will be raised.
 #### Addition
 
 ```
-func plus(T, T)->T
+func plus(T, T -> T)
 ```
 
 In an addition expression `a + b` between two objects of the same type, the
@@ -226,7 +226,7 @@ method `a.plus(b)` will be invoked, which returns a new value of the same type.
 #### Subtraction
 
 ```
-func minus(T, T)->T
+func minus(T, T -> T)
 ```
 
 In a subtraction expression `a - b` between two objects of the same type, the
@@ -235,8 +235,8 @@ method `a.minus(b)` will be invoked, which returns a new value of the same type.
 #### Multiplication
 
 ```
-func times(T, T)->T
-func scaled_by(T, N)->T
+func times(T, T -> T)
+func scaled_by(T, N -> T)
 ```
 
 The multiplication expression `a * b` invokes either the `a.times(b)` method,
@@ -247,7 +247,7 @@ non-numeric and `b` is numeric, or `b.scaled_by(a)` if `b` is non-numeric and
 #### Division
 
 ```
-func divided_by(T, N)->T
+func divided_by(T, N -> T)
 ```
 
 In a division expression `a / b` the method `a.divided_by(b)` will be invoked
@@ -256,7 +256,7 @@ if `a` has type `T` and `b` has a numeric type `N`.
 #### Exponentiation
 
 ```
-func power(T, N)->T
+func power(T, N -> T)
 ```
 
 In an exponentiation expression, `a ^ b`, if `a` has type `T` and `b` has a
@@ -265,8 +265,8 @@ numeric type `N`, then the method `a.power(b)` will be invoked.
 #### Modulus
 
 ```
-func mod(T, N)->T
-func mod1(T, N)->T
+func mod(T, N -> T)
+func mod1(T, N -> T)
 ```
 
 In a modulus expression, `a mod b` or `a mod1 b`, if `a` has type `T` and `b`
@@ -275,7 +275,7 @@ has a numeric type `N`, then the method `mod()` or `mod1()` will be invoked.
 #### Negative
 
 ```
-func negative(T)->T
+func negative(T -> T)
 ```
 
 In a unary negative expression `-x`, the method `negative()` will be invoked
@@ -284,13 +284,13 @@ and will return a value of the same type.
 #### Bit Operations
 
 ```
-func left_shifted(T, Int)->T
-func right_shifted(T, Int)->T
-func unsigned_left_shifted(T, Int)->T
-func unsigned_right_shifted(T, Int)->T
-func bit_and(T, T)->T
-func bit_or(T, T)->T
-func bit_xor(T, T)->T
+func left_shifted(T, Int -> T)
+func right_shifted(T, Int -> T)
+func unsigned_left_shifted(T, Int -> T)
+func unsigned_right_shifted(T, Int -> T)
+func bit_and(T, T -> T)
+func bit_or(T, T -> T)
+func bit_xor(T, T -> T)
 ```
 
 In a bit shifting expression, `a >> b` or `a << b`, if `a` has type `T` and `b`
@@ -305,7 +305,7 @@ method `bit_and()`, `bit_or()`, or `bit_xor()` will be invoked, assuming that
 #### Bitwise Negation
 
 ```
-func negated(T)->T
+func negated(T -> T)
 ```
 
 In a unary bitwise negation expression `not x`, the method `negated()` will be

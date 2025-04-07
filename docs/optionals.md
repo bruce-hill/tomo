@@ -6,10 +6,10 @@ represent this case using enums like so:
 ```tomo
 enum MaybeInt(AnInt(x:Int), NoInt)
 
-func maybe_takes_int(maybe_x:MaybeInt):
-    when maybe_x is AnInt(x):
+func maybe_takes_int(maybe_x:MaybeInt)
+    when maybe_x is AnInt(x)
         say("Got an int: $x")
-    else:
+    else
         say("Got nothing")
 ```
 
@@ -18,10 +18,10 @@ situation where you might want to not have a value. Instead, Tomo has
 built-in support for optional types:
 
 ```
-func maybe_takes_int(x:Int?):
-    if x:
+func maybe_takes_int(x:Int?)
+    if x
         say("Got an int: $x")
-    else:
+    else
         say("Got nothing")
 ```
 
@@ -76,7 +76,7 @@ Here are some examples:
 x := 5?
 x = none
 
-func doop(arg:Int?)->Text?:
+func doop(arg:Int? -> Text?)
     return none
 
 doop(none)
@@ -89,7 +89,7 @@ the need for an explicit `?` operator in the cases listed above:
 x : Int? = none
 x = 5
 
-func doop(arg:Int?)->Text?:
+func doop(arg:Int? -> Text?)
     return "okay"
 
 doop(123)
@@ -115,10 +115,10 @@ maybe_x = none
 >> maybe_x or fail("No value!")
 # Failure!
 
-func do_stuff(matches:[Text]):
+func do_stuff(matches:[Text])
     pass
 
-for line in lines:
+for line in lines
     matches := line.matches($/{..},{..}/) or skip
     # The `or skip` above means that if we're here, `matches` is non-none:
     do_stuff(matches)

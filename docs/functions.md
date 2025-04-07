@@ -3,7 +3,7 @@
 In Tomo, you can define functions with the `func` keyword:
 
 ```tomo
-func add(x:Int, y:Int -> Int):
+func add(x:Int, y:Int -> Int)
     return x + y
 ```
 
@@ -19,7 +19,7 @@ Instead of giving a type, you can provide a default argument and the type
 checker will infer the type of the argument from that value:
 
 ```tomo
-func increment(x:Int, amount=1 -> Int):
+func increment(x:Int, amount=1 -> Int)
     return x + amount
 ```
 
@@ -47,7 +47,7 @@ and are bound to arguments first, followed by binding positional arguments to
 any unbound arguments, in order:
 
 ```tomo
-func foo(x:Int, y:Text, z:Num):
+func foo(x:Int, y:Text, z:Num)
     return "x=$x y=$y z=$z"
 
 >> foo(x=1, y="hi", z=2.5)
@@ -68,7 +68,7 @@ Tomo supports automatic function caching using the `cached` or `cache_size=N`
 attributes on a function definition:
 
 ```tomo
-func add(x, y:Int -> Int; cached):
+func add(x, y:Int -> Int; cached)
     return x + y
 ```
 
@@ -78,15 +78,15 @@ return value for those arguments. The above example is functionally similar to
 the following code:
 
 ```tomo
-func _add(x, y:Int -> Int):
+func _add(x, y:Int -> Int)
     return x + y
 
 struct add_args(x,y:Int)
 add_cache : @{add_args=Int} = @{}
 
-func add(x, y:Int -> Int):
+func add(x, y:Int -> Int)
     args := add_args(x, y)
-    if cached := add_cache[args]:
+    if cached := add_cache[args]
         return cached
     ret := _add(x, y)
     add_cache[args] = ret
@@ -98,7 +98,7 @@ evicted if the cache has reached the maximum size and needs to insert a new
 entry:
 
 ```tomo
-func doop(x:Int, y:Text, z:[Int]; cache_size=100 -> Text):
+func doop(x:Int, y:Text, z:[Int]; cache_size=100 -> Text)
     return "x=$x y=$y z=$z"
 ```
 
@@ -108,7 +108,7 @@ Functions can also be given an `inline` attribute, which encourages the
 compiler to inline the function when possible:
 
 ```tomo
-func add(x, y:Int -> Int; inline):
+func add(x, y:Int -> Int; inline)
     return x + y
 ```
 
@@ -128,8 +128,8 @@ The normal form of a lambda is to give a return expression after the colon,
 but you can also use a block that includes statements:
 
 ```tomo
-fn := func(x,y:Int):
-    if x == 0:
+fn := func(x,y:Int)
+    if x == 0
         return y
     return x + y
 ```
@@ -151,8 +151,8 @@ values. **Captured values are copied to a new location at the moment the lambda
 is created and will not reflect changes to local variables.**
 
 ```tomo
-func create_adder(n:Int -> func(i:Int -> Int)):
-    adder := func(i:Int):
+func create_adder(n:Int -> func(i:Int -> Int))
+    adder := func(i:Int)
         return n + i
 
     n = -1 // This does not affect the adder

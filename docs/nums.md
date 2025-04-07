@@ -71,7 +71,7 @@ y := 1.0
 # implicit `!`:
 x = x/y
 
-func doop(x:Num -> Num):
+func doop(x:Num -> Num)
     # If a function's return type is non-optional and an optional value is
     # used in a return statement, an implicit none check will be inserted and
     # will error if the value is none:

@@ -9,8 +9,8 @@ values and give type checking errors if you attempt to use one type of string
 where a different type of string is needed.
 
 ```tomo
-lang HTML:
-    convert(t:Text -> HTML):
+lang HTML
+    convert(t:Text -> HTML)
         t = t.translate({
             "&" = "&amp;",
             "<" = "&lt;",
@@ -20,7 +20,7 @@ lang HTML:
         })
         return HTML.from_text(t)
 
-    func paragraph(content:HTML -> HTML):
+    func paragraph(content:HTML -> HTML)
         return $HTML"<p>$content</p>"
 ```
 
@@ -73,11 +73,11 @@ instead of building a global function called `execute()` that takes a
 `ShellScript` argument, you could instead build something like this:
 
 ```tomo
-lang Sh:
-    convert(text:Text -> Sh):
+lang Sh
+    convert(text:Text -> Sh)
         return Sh.from_text("'" ++ text.replace("'", "''") ++ "'")
 
-    func execute(sh:Sh -> Text):
+    func execute(sh:Sh -> Text)
         ...
 
 dir := ask("List which dir? ")
@@ -92,14 +92,14 @@ keyword. Conversions can be defined either inside of the language's block,
 another type's block or at the top level.
 
 ```tomo
-lang Sh:
-    convert(text:Text -> Sh):
+lang Sh
+    convert(text:Text -> Sh)
         return Sh.from_text("'" ++ text.replace("'", "''") ++ "'")
 
-struct Foo(x,y:Int):
-    convert(f:Foo -> Sh):
+struct Foo(x,y:Int)
+    convert(f:Foo -> Sh)
         return Sh.from_text("$(f.x),$(f.y)")
 
-convert(texts:[Text] -> Sh):
+convert(texts:[Text] -> Sh)
     return $Sh" ".join([Sh(t) for t in texts])
 ```

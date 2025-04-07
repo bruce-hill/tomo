@@ -86,10 +86,10 @@ list access.
 You can iterate over the items in a list like this:
 
 ```tomo
-for item in list:
+for item in list
     ...
 
-for i, item in list:
+for i, item in list
     ...
 ```
 

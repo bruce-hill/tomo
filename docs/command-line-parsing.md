@@ -5,10 +5,10 @@ Here's a simple example:
 
 ```tomo
 # greet.tm
-func main(name:Text, be_excited=no):
+func main(name:Text, be_excited=no)
     if be_excited
         say("Hello $name!!!")
-    else:
+    else
         say("Hi $name.")
 ```
 
@@ -85,7 +85,7 @@ Parsing is case-insensitive:
 ```
 # foo.tm
 enum Foo(One, Two, Three)
-func main(foo:Foo):
+func main(foo:Foo)
     >> foo
 
 # Signature:
@@ -104,7 +104,7 @@ List-of-text arguments can be passed like this:
 
 ```tomo
 # many-texts.tm
-func main(args:[Text]):
+func main(args:[Text])
     >> args
 ```
 

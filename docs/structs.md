@@ -21,13 +21,13 @@ Structs can define their own methods that can be called with a `:` or different
 values that are stored on the type itself.
 
 ```tomo
-struct Foo(name:Text, age:Int):
+struct Foo(name:Text, age:Int)
     oldest := Foo("Methuselah", 969)
 
-    func greet(f:Foo):
+    func greet(f:Foo)
         say("Hi my name is $f.name and I am $f.age years old!")
 
-    func get_older(f:@Foo):
+    func get_older(f:@Foo)
         f.age += 1
 ...
 my_foo := @Foo("Alice", 28)
