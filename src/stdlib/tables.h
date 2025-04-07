@@ -37,6 +37,7 @@ void *Table$get(Table_t t, const void *key, const TypeInfo_t *type);
     nonnull_var ? nonnull_expr : null_expr; })
 #define Table$get_or_setdefault(table_expr, key_t, val_t, key_expr, default_expr, info_expr) ({ \
     Table_t *t = table_expr; const key_t k = key_expr; \
+    if (t->entries.data_refcount > 0) List$compact(&t->entries, sizeof(struct {key_t k; val_t v;})); \
     val_t *v = Table$get(*t, &k, info_expr); \
     v ? v : (val_t*)Table$reserve(t, &k, (val_t[1]){default_expr}, info_expr); })
 #define Table$get_or_default(table_expr, key_t, val_t, key_expr, default_expr, info_expr) ({ \
