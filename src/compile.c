@@ -1138,6 +1138,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         if (test->expr->tag == Declare) {
             auto decl = Match(test->expr, Declare);
             type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
+            if (t->tag == FunctionType) t = Type(ClosureType, t);
             CORD var = CORD_all("_$", Match(decl->var, Var)->name);
             CORD val_code = compile_declared_value(env, test->expr);
             setup = CORD_all(compile_declaration(t, var), ";\n");
@@ -1232,6 +1233,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 return CORD_EMPTY;
         } else {
             type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
+            if (t->tag == FunctionType) t = Type(ClosureType, t);
             if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
                 code_err(ast, "You can't declare a variable with a ", type_to_str(t), " value");
 
@@ -4236,6 +4238,7 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
         const char *decl_name = Match(decl->var, Var)->name;
         CORD full_name = CORD_all(namespace_prefix(env, env->namespace), decl_name);
         type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
+        if (t->tag == FunctionType) t = Type(ClosureType, t);
         CORD val_code = compile_declared_value(env, ast);
         bool is_private = decl_name[0] == '_';
         if ((decl->value && is_constant(env, decl->value)) || (!decl->value && !has_heap_memory(t))) {
@@ -4323,6 +4326,7 @@ static void initialize_vars_and_statics(env_t *env, ast_t *ast)
             const char *decl_name = Match(decl->var, Var)->name;
             CORD full_name = CORD_all(namespace_prefix(env, env->namespace), decl_name);
             type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
+            if (t->tag == FunctionType) t = Type(ClosureType, t);
             CORD val_code = compile_declared_value(env, stmt->ast);
             if ((decl->value && !is_constant(env, decl->value)) || (!decl->value && has_heap_memory(t))) {
                 env->code->variable_initializers = CORD_all(
