@@ -881,8 +881,7 @@ CORD compile_lvalue(env_t *env, ast_t *ast)
                    : CORD_all("(Int64_t)(", compile(env, index->index), ")"));
             if (index->unchecked) {
                 return CORD_all("List_lvalue_unchecked(", compile_type(item_type), ", ", target_code, ", ", 
-                                index_code,
-                                ", sizeof(", compile_type(item_type), "))");
+                                index_code, ")");
             } else {
                 return CORD_all("List_lvalue(", compile_type(item_type), ", ", target_code, ", ", 
                                 index_code,
