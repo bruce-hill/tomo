@@ -53,13 +53,6 @@ void *Table$reserve(Table_t *t, const void *key, const void *value, const TypeIn
 void Table$set(Table_t *t, const void *key, const void *value, const TypeInfo_t *type);
 #define Table$set_value(t, key_expr, value_expr, type) ({ __typeof(key_expr) k = key_expr; __typeof(value_expr) v = value_expr; \
                                                         Table$set(t, &k, &v, type); })
-#define Table$reserve_value(t, key_expr, type) ({ __typeof(key_expr) k = key_expr; Table$reserve(t, &k, NULL, type); })
-#define Table$bump(t_expr, key_expr, amount_expr, type) ({ __typeof(key_expr) key = key_expr; \
-                                                         Table_t *t = t_expr; \
-                                                         __typeof(amount_expr) *val = Table$get_raw(*t, &key, type); \
-                                                         if (val) *val += amount_expr; \
-                                                         else { __typeof(amount_expr) init = amount_expr; Table$set(t, &key, &init, type); } (void)0; })
-                                                    
 void Table$remove(Table_t *t, const void *key, const TypeInfo_t *type);
 #define Table$remove_value(t, key_expr, type) ({ __typeof(key_expr) k = key_expr; Table$remove(t, &k, type); })
 

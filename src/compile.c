@@ -3323,17 +3323,6 @@ CORD compile(env_t *env, ast_t *ast)
                                       .next=new(arg_t, .name="value", .type=table->value_type));
                 return CORD_all("Table$set_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(self_value_t), ")");
-            } else if (streq(call->name, "bump")) {
-                EXPECT_POINTER("a", "table");
-                if (!(table->value_type->tag == IntType || table->value_type->tag == NumType))
-                    code_err(ast, "bump() is only supported for tables with numeric value types, not ", type_to_str(self_value_t));
-                ast_t *one = table->value_type->tag == IntType
-                    ? FakeAST(Int, .str="1")
-                    : FakeAST(Num, .n=1);
-                arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type,
-                                      .next=new(arg_t, .name="amount", .type=table->value_type, .default_val=one));
-                return CORD_all("Table$bump(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
-                                compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "remove")) {
                 EXPECT_POINTER("a", "table");
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);

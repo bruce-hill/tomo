@@ -152,36 +152,11 @@ iterating over any of the new values.
 
 ## Table Methods
 
-- [`func bump(t:&{K=V}, key: K, amount: Int = 1 -> Void)`](#bump)
 - [`func clear(t:&{K=V})`](#clear)
 - [`func get(t:{K=V}, key: K -> V?)`](#get)
 - [`func has(t:{K=V}, key: K -> Bool)`](#has)
 - [`func remove(t:{K=V}, key: K -> Void)`](#remove)
 - [`func set(t:{K=V}, key: K, value: V -> Void)`](#set)
-
-### `bump`
-Increments the value associated with a key by a specified amount. If the key is
-not already in the table, its value will be assumed to be zero.
-
-```tomo
-func bump(t:&{K=V}, key: K, amount: Int = 1 -> Void)
-```
-
-- `t`: The reference to the table.
-- `key`: The key whose value is to be incremented.
-- `amount`: The amount to increment the value by (default: 1).
-
-**Returns:**  
-Nothing.
-
-**Example:**  
-```tomo
->> t := {"A"=1}
-t.bump("A")
-t.bump("B", 10)
->> t
-= {"A"=2, "B"=10}
-```
 
 ---
 
