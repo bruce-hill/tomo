@@ -2507,7 +2507,7 @@ CORD compile_empty(type_t *t)
         return empty_pointed == CORD_EMPTY ? CORD_EMPTY : CORD_all(ptr->is_stack ? "stack(" : "heap(", empty_pointed, ")");
     }
     case NumType: {
-        return Match(t, NumType)->bits == TYPE_NBITS32 ? "Num32(0.0f)" : "Num64(0.0)" ;
+        return Match(t, NumType)->bits == TYPE_NBITS32 ? "N32(0.0f)" : "N64(0.0)" ;
     }
     case StructType: {
         auto struct_ = Match(t, StructType);
