@@ -15,7 +15,7 @@ PUREFUNC bool PackedData$equal(const void *x, const void *y, const TypeInfo_t *t
 PUREFUNC Text_t Struct$as_text(const void *obj, bool colorize, const TypeInfo_t *type);
 PUREFUNC bool Struct$is_none(const void *obj, const TypeInfo_t *type);
 void Struct$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type);
-void Struct$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type);
+void Struct$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type);
 
 #define Struct$metamethods { \
     .hash=Struct$hash, \

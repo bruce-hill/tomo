@@ -33,7 +33,7 @@ typedef struct loop_ctx_s {
 
 typedef struct namespace_s {
     const char *name;
-    Array_t constructors;
+    List_t constructors;
     struct namespace_s *parent;
 } namespace_t;
 

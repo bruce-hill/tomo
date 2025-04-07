@@ -13,8 +13,8 @@ replace the value that previously resided there.
 
 ```tomo
 func no_mutation_possible(nums:[Int]):
-    nums[1] = 10 // This performs a copy-on-write and creates a new array
-    // The new array is only accessible as a local variable here
+    nums[1] = 10 // This performs a copy-on-write and creates a new list
+    // The new list is only accessible as a local variable here
 ...
 my_nums := [0, 1, 2]
 no_mutation_possible(my_nums)
@@ -93,17 +93,17 @@ else:
 For convenience, most operations that work on values can work with pointers to
 values implicitly. For example, if you have a struct type with a `.foo` field,
 you can use `ptr.foo` on a pointer to that struct type as well, without needing
-to use `ptr[].foo`. The same is true for array accesses like `ptr[i]` and method
+to use `ptr[].foo`. The same is true for list accesses like `ptr[i]` and method
 calls like `ptr.reversed()`.
 
 # Read-Only Views
 
-In a small number of API methods (`array.first()`, `array.binary_search()`,
-`array.sort()`, `array.sorted()`, and `array.heapify()`), the methods allow you
+In a small number of API methods (`list.first()`, `list.binary_search()`,
+`list.sort()`, `list.sorted()`, and `list.heapify()`), the methods allow you
 to provide custom comparison functions. However, for safety, we don't actually
 want the comparison methods to be able mutate the values inside of immutable
-array values. For implementation reasons, we can't pass the values themselves
-to the comparison functions, but need to pass pointers to the array members.
+list values. For implementation reasons, we can't pass the values themselves
+to the comparison functions, but need to pass pointers to the list members.
 So, to work around this, Tomo allows you to define functions that take
 immutable view pointers as arguments. These behave similarly to `@` pointers,
 but their type signature uses `&` instead of `@` and read-only view pointers

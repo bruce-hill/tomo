@@ -8,42 +8,42 @@ func main()
 		= []
 
 	do
-		>> arr := [10, 20, 30]
+		>> list := [10, 20, 30]
 		= [10, 20, 30]
 
-		>> arr[1]
+		>> list[1]
 		= 10
-		>> arr[-1]
+		>> list[-1]
 		= 30
 
-		>> arr.length
+		>> list.length
 		= 3
 
 		sum := 0
-		for x in arr
+		for x in list
 			sum += x
 		>> sum
 		= 60
 
 		str := ""
-		for i,x in arr
+		for i,x in list
 			str ++= "($i,$x)"
 		>> str
 		= "(1,10)(2,20)(3,30)"
 
 	do
-		>> arr := [10, 20] ++ [30, 40]
+		>> list := [10, 20] ++ [30, 40]
 		= [10, 20, 30, 40]
 
-		>> arr ++= [50, 60]
-		>> arr
+		>> list ++= [50, 60]
+		>> list
 		= [10, 20, 30, 40, 50, 60]
 
 	do
-		>> arr := [10, 20]
-		>> copy := arr
-		>> arr ++= [30]
-		>> arr
+		>> list := [10, 20]
+		>> copy := list
+		>> list ++= [30]
+		>> list
 		= [10, 20, 30]
 		>> copy
 		= [10, 20]
@@ -62,24 +62,24 @@ func main()
 	= [2, 3, 2, 3, 4]
 
 	do
-		>> arr := @[10, 20]
-		>> copy := arr[]
-		>> arr.insert(30)
-		>> arr
+		>> list := @[10, 20]
+		>> copy := list[]
+		>> list.insert(30)
+		>> list
 		= @[10, 20, 30]
 		>> copy
 		= [10, 20]
 
-		>> arr[1] = 999
-		>> arr
+		>> list[1] = 999
+		>> list
 		= @[999, 20, 30]
 
 	do
-		>> arr := &[10, 20, 30]
-		>> reversed := arr.reversed()
+		>> list := &[10, 20, 30]
+		>> reversed := list.reversed()
 		= [30, 20, 10]
 		# Ensure the copy-on-write behavior triggers:
-		>> arr[1] = 999
+		>> list[1] = 999
 		>> reversed
 		= [30, 20, 10]
 
@@ -148,7 +148,7 @@ func main()
 		>> [i*10 for i in 10].by(2).by(-1)
 		= [90, 70, 50, 30, 10]
 
-		# Test iterating over array.from() and array.to()
+		# Test iterating over list.from() and list.to()
 		xs := ["A", "B", "C", "D"]
 		for i,x in xs.to(-2)
 			for y in xs.from(i+1)

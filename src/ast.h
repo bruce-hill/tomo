@@ -64,7 +64,7 @@ typedef enum {
     UnknownTypeAST,
     VarTypeAST,
     PointerTypeAST,
-    ArrayTypeAST,
+    ListTypeAST,
     SetTypeAST,
     TableTypeAST,
     FunctionTypeAST,
@@ -93,7 +93,7 @@ struct type_ast_s {
         } PointerTypeAST;
         struct {
             type_ast_t *item;
-        } ArrayTypeAST;
+        } ListTypeAST;
         struct {
             type_ast_t *key, *value;
             ast_t *default_value;
@@ -134,7 +134,7 @@ typedef enum {
     RightShiftUpdate, UnsignedRightShiftUpdate, AndUpdate, OrUpdate, XorUpdate,
     Not, Negative, HeapAllocate, StackReference,
     Min, Max,
-    Array, Set, Table, TableEntry, Comprehension,
+    List, Set, Table, TableEntry, Comprehension,
     FunctionDef, Lambda, ConvertDef,
     FunctionCall, MethodCall,
     Block,
@@ -204,7 +204,7 @@ struct ast_s {
         } Min, Max;
         struct {
             ast_list_t *items;
-        } Array;
+        } List;
         struct {
             ast_list_t *items;
         } Set;

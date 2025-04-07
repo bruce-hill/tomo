@@ -47,7 +47,7 @@ struct type_s {
         NumType,
         CStringType,
         TextType,
-        ArrayType,
+        ListType,
         SetType,
         TableType,
         FunctionType,
@@ -81,7 +81,7 @@ struct type_s {
         } TextType;
         struct {
             type_t *item_type;
-        } ArrayType;
+        } ListType;
         struct {
             type_t *item_type;
         } SetType;

@@ -29,7 +29,7 @@
     Text_t type_name ## $format(c_type i, Int_t digits); \
     Text_t type_name ## $hex(c_type i, Int_t digits, bool uppercase, bool prefix); \
     Text_t type_name ## $octal(c_type i, Int_t digits, bool prefix); \
-    Array_t type_name ## $bits(c_type x); \
+    List_t type_name ## $bits(c_type x); \
     Closure_t type_name ## $to(c_type first, c_type last, Optional ## type_name ## _t step); \
     Closure_t type_name ## $onward(c_type first, c_type step); \
     PUREFUNC Optional ## type_name ## _t type_name ## $parse(Text_t text); \
@@ -84,9 +84,9 @@ DEFINE_INT_TYPE(int8_t,  Int8)
 #define Int8$abs(...) I8(abs(__VA_ARGS__))
 
 void Int64$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo_t*);
-void Int64$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t*);
+void Int64$deserialize(FILE *in, void *outval, List_t*, const TypeInfo_t*);
 void Int32$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo_t*);
-void Int32$deserialize(FILE *in, void *outval, Array_t*, const TypeInfo_t*);
+void Int32$deserialize(FILE *in, void *outval, List_t*, const TypeInfo_t*);
 
 Text_t Int$as_text(const void *i, bool colorize, const TypeInfo_t *type);
 Text_t Int$value_as_text(Int_t i);

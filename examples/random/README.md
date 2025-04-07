@@ -16,8 +16,8 @@ a Tomo program launches.
 ## RNG Functions
 
 This documentation provides details on RNG functions available in the API.
-Arrays also have some methods which use RNG values:
-`array.shuffle()`, `array.shuffled()`, `array.random()`, and `array.sample()`.
+Lists also have some methods which use RNG values:
+`list.shuffle()`, `list.shuffled()`, `list.random()`, and `list.sample()`.
 
 - [`func bool(rng: RNG, p: Num = 0.5 -> Bool)`](#bool)
 - [`func byte(rng: RNG -> Byte)`](#byte)
@@ -75,7 +75,7 @@ A random byte (0-255).
 ---
 
 ### `bytes`
-Generate an array of uniformly random bytes with the given length.
+Generate a list of uniformly random bytes with the given length.
 
 ```tomo
 func bytes(rng: RNG, count: Int -> [Byte])
@@ -85,7 +85,7 @@ func bytes(rng: RNG, count: Int -> [Byte])
 - `count`: The number of random bytes to return.
 
 **Returns:**  
-An array of length `count` random bytes with uniform random distribution (0-255).
+A list of length `count` random bytes with uniform random distribution (0-255).
 
 **Example:**  
 ```tomo

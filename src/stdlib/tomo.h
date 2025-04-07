@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <sys/param.h>
 
-#include "arrays.h"
+#include "lists.h"
 #include "bools.h"
 #include "bytes.h"
 #include "c_strings.h"

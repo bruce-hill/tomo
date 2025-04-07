@@ -52,26 +52,26 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
             code_err(ast, "Void pointers are not supported. You probably meant 'Memory' instead of 'Void'");
         return Type(PointerType, .pointed=pointed_t, .is_stack=ptr->is_stack);
     }
-    case ArrayTypeAST: {
-        type_ast_t *item_type = Match(ast, ArrayTypeAST)->item;
+    case ListTypeAST: {
+        type_ast_t *item_type = Match(ast, ListTypeAST)->item;
         type_t *item_t = parse_type_ast(env, item_type);
         if (!item_t) code_err(item_type, "I can't figure out what this type is.");
         if (has_stack_memory(item_t))
-            code_err(item_type, "Arrays can't have stack references because the array may outlive the stack frame.");
-        if (type_size(item_t) > ARRAY_MAX_STRIDE)
-            code_err(ast, "This array holds items that take up ", (uint64_t)type_size(item_t),
-                     " bytes, but the maximum supported size is ", ARRAY_MAX_STRIDE, " bytes. Consider using an array of pointers instead.");
-        return Type(ArrayType, .item_type=item_t);
+            code_err(item_type, "Lists can't have stack references because the list may outlive the stack frame.");
+        if (type_size(item_t) > LIST_MAX_STRIDE)
+            code_err(ast, "This list holds items that take up ", (uint64_t)type_size(item_t),
+                     " bytes, but the maximum supported size is ", LIST_MAX_STRIDE, " bytes. Consider using a list of pointers instead.");
+        return Type(ListType, .item_type=item_t);
     }
     case SetTypeAST: {
         type_ast_t *item_type = Match(ast, SetTypeAST)->item;
         type_t *item_t = parse_type_ast(env, item_type);
         if (!item_t) code_err(item_type, "I can't figure out what this type is.");
         if (has_stack_memory(item_t))
-            code_err(item_type, "Sets can't have stack references because the array may outlive the stack frame.");
-        if (type_size(item_t) > ARRAY_MAX_STRIDE)
+            code_err(item_type, "Sets can't have stack references because the list may outlive the stack frame.");
+        if (type_size(item_t) > LIST_MAX_STRIDE)
             code_err(ast, "This set holds items that take up ", (uint64_t)type_size(item_t),
-                     " bytes, but the maximum supported size is ", ARRAY_MAX_STRIDE, " bytes. Consider using an set of pointers instead.");
+                     " bytes, but the maximum supported size is ", LIST_MAX_STRIDE, " bytes. Consider using an set of pointers instead.");
         return Type(SetType, .item_type=item_t);
     }
     case TableTypeAST: {
@@ -80,12 +80,12 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         type_t *key_type = parse_type_ast(env, key_type_ast);
         if (!key_type) code_err(key_type_ast, "I can't figure out what type this is.");
         if (has_stack_memory(key_type))
-            code_err(key_type_ast, "Tables can't have stack references because the array may outlive the stack frame.");
+            code_err(key_type_ast, "Tables can't have stack references because the list may outlive the stack frame.");
 
         type_t *val_type = parse_type_ast(env, table_type->value);
         if (!val_type) code_err(table_type->value, "I can't figure out what type this is.");
         if (has_stack_memory(val_type))
-            code_err(table_type->value, "Tables can't have stack references because the array may outlive the stack frame.");
+            code_err(table_type->value, "Tables can't have stack references because the list may outlive the stack frame.");
         else if (val_type->tag == OptionalType)
             code_err(ast, "Tables with optional-typed values are not currently supported");
 
@@ -273,7 +273,7 @@ void prebind_statement(env_t *env, ast_t *statement)
         extended->libname = env->libname;
         for (ast_list_t *stmt = extend->body ? Match(extend->body, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(extended, stmt->ast);
-        Array_t new_bindings = extended->locals->entries;
+        List_t new_bindings = extended->locals->entries;
         for (int64_t i = 0; i < new_bindings.length; i++) {
             struct { const char *name; binding_t *binding; } *entry = new_bindings.data + i*new_bindings.stride;
             binding_t *clobbered = Table$str_get(*ns_env->locals, entry->name);
@@ -334,7 +334,7 @@ void bind_statement(env_t *env, ast_t *statement)
                                   get_line_number(statement->file, statement->start));
         binding_t binding = {.type=type, .code=code};
         env_t *type_ns = get_namespace_by_type(env, ret_t);
-        Array$insert(&type_ns->namespace->constructors, &binding, I(0), sizeof(binding));
+        List$insert(&type_ns->namespace->constructors, &binding, I(0), sizeof(binding));
         break;
     }
     case StructDef: {
@@ -461,7 +461,7 @@ void bind_statement(env_t *env, ast_t *statement)
         extended->libname = env->libname;
         for (ast_list_t *stmt = extend->body ? Match(extend->body, Block)->statements : NULL; stmt; stmt = stmt->next)
             bind_statement(extended, stmt->ast);
-        Array_t new_bindings = extended->locals->entries;
+        List_t new_bindings = extended->locals->entries;
         for (int64_t i = 0; i < new_bindings.length; i++) {
             struct { const char *name; binding_t *binding; } *entry = new_bindings.data + i*new_bindings.stride;
             binding_t *clobbered = Table$str_get(*ns_env->locals, entry->name);
@@ -660,7 +660,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             code_err(ast, "'&' stack references can only be used on the fields of pointers and local variables");
         }
         case Index:
-            code_err(ast, "'&' stack references are not supported for array or table indexing");
+            code_err(ast, "'&' stack references are not supported for list or table indexing");
         default:
             return Type(PointerType, .pointed=get_type(env, value), .is_stack=true);
         }
@@ -698,10 +698,10 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (b) return b->type;
         code_err(ast, "I don't know what ", quoted(var->name), " refers to");
     }
-    case Array: {
-        auto array = Match(ast, Array);
+    case List: {
+        auto list = Match(ast, List);
         type_t *item_type = NULL;
-        for (ast_list_t *item = array->items; item; item = item->next) {
+        for (ast_list_t *item = list->items; item; item = item->next) {
             ast_t *item_ast = item->ast;
             env_t *scope = env;
             while (item_ast->tag == Comprehension) {
@@ -714,15 +714,15 @@ type_t *get_type(env_t *env, ast_t *ast)
             type_t *merged = item_type ? type_or_type(item_type, t2) : t2;
             if (!merged)
                 code_err(item->ast,
-                         "This array item has type ", type_to_str(t2),
-                         ", which is different from earlier array items which have type ", type_to_str(item_type));
+                         "This list item has type ", type_to_str(t2),
+                         ", which is different from earlier list items which have type ", type_to_str(item_type));
             item_type = merged;
         }
 
         if (item_type && has_stack_memory(item_type))
-            code_err(ast, "Arrays cannot hold stack references, because the array may outlive the stack frame the reference was created in.");
+            code_err(ast, "Lists cannot hold stack references, because the list may outlive the stack frame the reference was created in.");
 
-        return Type(ArrayType, .item_type=item_type);
+        return Type(ListType, .item_type=item_type);
     }
     case Set: {
         auto set = Match(ast, Set);
@@ -800,7 +800,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             auto e = Match(comp->expr, TableEntry);
             return Type(TableType, .key_type=get_type(scope, e->key), .value_type=get_type(scope, e->value), .env=env);
         } else {
-            return Type(ArrayType, .item_type=get_type(scope, comp->expr));
+            return Type(ListType, .item_type=get_type(scope, comp->expr));
         }
     }
     case FieldAccess: {
@@ -833,11 +833,11 @@ type_t *get_type(env_t *env, ast_t *ast)
             return Match(indexed_t, PointerType)->pointed;
 
         type_t *value_t = value_type(indexed_t);
-        if (value_t->tag == ArrayType) {
+        if (value_t->tag == ListType) {
             if (!indexing->index) return indexed_t;
             type_t *index_t = get_type(env, indexing->index);
             if (index_t->tag == IntType || index_t->tag == BigIntType || index_t->tag == ByteType)
-                return Match(value_t, ArrayType)->item_type;
+                return Match(value_t, ListType)->item_type;
             code_err(indexing->index, "I only know how to index lists using integers, not ", type_to_str(index_t));
         } else if (value_t->tag == TableType) {
             auto table_type = Match(value_t, TableType);
@@ -878,7 +878,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         auto call = Match(ast, MethodCall);
 
         if (streq(call->name, "serialized")) // Data serialization
-            return Type(ArrayType, Type(ByteType));
+            return Type(ListType, Type(ByteType));
 
         type_t *self_value_t = get_type(env, call->self);
         if (!self_value_t) code_err(call->self, "Couldn't get the type of this value");
@@ -890,8 +890,8 @@ type_t *get_type(env_t *env, ast_t *ast)
         }
 
         switch (self_value_t->tag) {
-        case ArrayType: {
-            type_t *item_type = Match(self_value_t, ArrayType)->item_type;
+        case ListType: {
+            type_t *item_type = Match(self_value_t, ListType)->item_type;
             if (streq(call->name, "binary_search")) return INT_TYPE;
             else if (streq(call->name, "by")) return self_value_t;
             else if (streq(call->name, "clear")) return Type(VoidType);
@@ -918,7 +918,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "sorted")) return self_value_t;
             else if (streq(call->name, "to")) return self_value_t;
             else if (streq(call->name, "unique")) return Type(SetType, .item_type=item_type);
-            else code_err(ast, "There is no '", call->name, "' method for arrays");
+            else code_err(ast, "There is no '", call->name, "' method for lists");
         }
         case SetType: {
             if (streq(call->name, "add")) return Type(VoidType);
@@ -1266,7 +1266,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         binding_t *b = get_metamethod_binding(env, ast->tag, binop.lhs, binop.rhs, overall_t);
         if (b) return overall_t;
 
-        if (overall_t->tag == ArrayType || overall_t->tag == SetType || overall_t->tag == TextType)
+        if (overall_t->tag == ListType || overall_t->tag == SetType || overall_t->tag == TextType)
             return overall_t;
 
         code_err(ast, "I don't know how to do concatenation between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
@@ -1680,9 +1680,9 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed)
         return true;
 
     needed = non_optional(needed);
-    if (needed->tag == ArrayType && ast->tag == Array) {
-        type_t *item_type = Match(needed, ArrayType)->item_type;
-        for (ast_list_t *item = Match(ast, Array)->items; item; item = item->next) {
+    if (needed->tag == ListType && ast->tag == List) {
+        type_t *item_type = Match(needed, ListType)->item_type;
+        for (ast_list_t *item = Match(ast, List)->items; item; item = item->next) {
             if (!can_compile_to_type(env, item->ast, item_type))
                 return false;
         }

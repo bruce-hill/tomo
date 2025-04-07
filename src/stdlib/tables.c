@@ -16,7 +16,7 @@
 #include <string.h>
 #include <sys/param.h>
 
-#include "arrays.h"
+#include "lists.h"
 #include "c_strings.h"
 #include "datatypes.h"
 #include "memory.h"
@@ -97,7 +97,7 @@ static INLINE void hshow(const Table_t *t)
 static void maybe_copy_on_write(Table_t *t, const TypeInfo_t *type)
 {
     if (t->entries.data_refcount != 0)
-        Array$compact(&t->entries, (int64_t)entry_size(type));
+        List$compact(&t->entries, (int64_t)entry_size(type));
 
     if (t->bucket_info && t->bucket_info->data_refcount != 0) {
         size_t size = sizeof(bucket_info_t) + sizeof(bucket_t[t->bucket_info->count]);
@@ -273,7 +273,7 @@ public void *Table$reserve(Table_t *t, const void *key, const void *value, const
         memcpy(buf + value_offset(type), value, (size_t)value_size);
     else
         memset(buf + value_offset(type), 0, (size_t)value_size);
-    Array$insert(&t->entries, buf, I(0), (int64_t)entry_size(type));
+    List$insert(&t->entries, buf, I(0), (int64_t)entry_size(type));
 
     int64_t entry_index = t->entries.length-1;
     void *entry = GET_ENTRY(*t, entry_index);
@@ -343,7 +343,7 @@ public void Table$remove(Table_t *t, const void *key, const TypeInfo_t *type)
     // instead of O(N)
     int64_t last_entry = t->entries.length-1;
     if (bucket->index != last_entry) {
-        hdebug("Removing key/value from the middle of the entries array\n");
+        hdebug("Removing key/value from the middle of the entries list\n");
 
         // Find the bucket that points to the last entry's index:
         uint64_t i = HASH_KEY(*t, GET_ENTRY(*t, last_entry));
@@ -353,7 +353,7 @@ public void Table$remove(Table_t *t, const void *key, const TypeInfo_t *type)
         // where the removed entry currently sits):
         t->bucket_info->buckets[i].index = bucket->index;
 
-        // Clobber the entry being removed (in the middle of the array) with
+        // Clobber the entry being removed (in the middle of the list) with
         // the last entry:
         memcpy(GET_ENTRY(*t, bucket->index), GET_ENTRY(*t, last_entry), entry_size(type));
     }
@@ -361,7 +361,7 @@ public void Table$remove(Table_t *t, const void *key, const TypeInfo_t *type)
     // Last entry is being removed, so clear it out to be safe:
     memset(GET_ENTRY(*t, last_entry), 0, entry_size(type));
 
-    Array$remove_at(&t->entries, I(t->entries.length), I(1), (int64_t)entry_size(type));
+    List$remove_at(&t->entries, I(t->entries.length), I(1), (int64_t)entry_size(type));
 
     int64_t bucket_to_clear;
     if (prev) { // Middle (or end) of a chain
@@ -399,7 +399,7 @@ public void Table$clear(Table_t *t)
 public Table_t Table$sorted(Table_t t, const TypeInfo_t *type)
 {
     Closure_t cmp = (Closure_t){.fn=generic_compare, .userdata=(void*)type->TableInfo.key};
-    Array_t entries = Array$sorted(t.entries, cmp, (int64_t)entry_size(type));
+    List_t entries = List$sorted(t.entries, cmp, (int64_t)entry_size(type));
     return Table$from_entries(entries, type);
 }
 
@@ -445,10 +445,10 @@ PUREFUNC public int32_t Table$compare(const void *vx, const void *vy, const Type
 
     // Table comparison rules:
     // - If two tables have different keys, then compare as if comparing a
-    // sorted array of the keys of the two tables:
+    // sorted list of the keys of the two tables:
     //    `x.keys.sorted() <> y.keys.sorted()`
-    // - Otherwise, compare as if comparing arrays of values for the sorted key
-    // arrays:
+    // - Otherwise, compare as if comparing lists of values for the sorted key
+    // lists:
     //    `[x[k] for k in x.keys.sorted()] <> [y[k] for k in y.keys.sorted()]`
     // 
     // We can do this in _linear_ time if we find the smallest `k` such that
@@ -612,7 +612,7 @@ public Text_t Table$as_text(const void *obj, bool colorize, const TypeInfo_t *ty
     return text;
 }
 
-public Table_t Table$from_entries(Array_t entries, const TypeInfo_t *type)
+public Table_t Table$from_entries(List_t entries, const TypeInfo_t *type)
 {
     assert(type->tag == TableInfo);
     if (entries.length == 0)
@@ -776,7 +776,7 @@ public void Table$serialize(const void *obj, FILE *out, Table_t *pointers, const
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
 #endif
-public void Table$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type)
+public void Table$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type)
 {
     int64_t len;
     Int64$deserialize(in, &len, pointers, &Int$info);

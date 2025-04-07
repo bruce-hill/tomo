@@ -10,7 +10,7 @@
 #include "types.h"
 #include "util.h"
 
-#define NONE_ARRAY ((Array_t){.length=-1})
+#define NONE_LIST ((List_t){.length=-1})
 #define NONE_BOOL ((OptionalBool_t)2)
 #define NONE_INT ((OptionalInt_t){.small=0})
 #define NONE_TABLE ((OptionalTable_t){.entries.length=-1})
@@ -24,7 +24,7 @@ PUREFUNC int32_t Optional$compare(const void *x, const void *y, const TypeInfo_t
 PUREFUNC bool Optional$equal(const void *x, const void *y, const TypeInfo_t *type);
 Text_t Optional$as_text(const void *obj, bool colorize, const TypeInfo_t *type);
 void Optional$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type);
-void Optional$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type);
+void Optional$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type);
 
 #define Optional$metamethods { \
     .hash=Optional$hash, \

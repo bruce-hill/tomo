@@ -59,7 +59,7 @@ static void CString$serialize(const void *obj, FILE *out, Table_t *pointers, con
     fwrite(str, sizeof(char), (size_t)len, out);
 }
 
-static void CString$deserialize(FILE *in, void *out, Array_t *pointers, const TypeInfo_t *)
+static void CString$deserialize(FILE *in, void *out, List_t *pointers, const TypeInfo_t *)
 {
     int64_t len = -1;
     Int64$deserialize(in, &len, pointers, &Int64$info);

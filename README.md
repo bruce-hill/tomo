@@ -46,7 +46,7 @@ of many language features or the other example programs/modules in
 
 - Memory safety (garbage collection, [compiler-enforced null
   safety](docs/pointers.md), [automatic array bounds
-  checking](docs/arrays.md), and no uninitialized variables)
+  checking](docs/lists.md), and no uninitialized variables)
 - High-performance [arbitrary-precision integers](docs/integers.md) by default
   with opt-in fixed-size integers with arithmetic overflow checking
 - [Type-safe strings representing different languages](docs/langs.md) with
@@ -55,7 +55,7 @@ of many language features or the other example programs/modules in
   unions/enums)](docs/enums.md)
 - Type-safe [optional values](docs/optionals.tm) with low syntax overhead
 - Efficient datastructures with immutable value semantics:
-  [arrays](docs/arrays.md), [tables](docs/tables.md), [sets](docs/sets.md),
+  [lists](docs/lists.md), [tables](docs/tables.md), [sets](docs/sets.md),
   [text](docs/text.md).
 - [Privacy-protecting types](docs/structs.md#Secret-Values) that help prevent
   accidentally logging sensitive information
@@ -70,7 +70,7 @@ of many language features or the other example programs/modules in
 
 - [String interpolation](docs/text.md) and debug printing builtins
 - Built-in datastructures with a rich library of commonly used methods:
-  [arrays](docs/arrays.md), [tables](docs/tables.md), [sets](docs/sets.md),
+  [lists](docs/lists.md), [tables](docs/tables.md), [sets](docs/sets.md),
   [text](docs/text.md).  
 - Full-featured [libraries/modules](docs/libraries.md)
 - [Full UTF8 support](docs/text.md) for all text operations

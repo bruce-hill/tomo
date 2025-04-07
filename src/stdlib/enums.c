@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "arrays.h"
+#include "lists.h"
 #include "bools.h"
 #include "functiontype.h"
 #include "integers.h"
@@ -102,7 +102,7 @@ public void Enum$serialize(const void *obj, FILE *out, Table_t *pointers, const 
     }
 }
 
-public void Enum$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type)
+public void Enum$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type)
 {
     int32_t tag = 0;
     Int32$deserialize(in, &tag, pointers, &Int32$info);

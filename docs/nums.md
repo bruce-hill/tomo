@@ -27,7 +27,7 @@ differentiate between possibly-NaN values and definitely-not-NaN values.
 Tomo has a separate concept for expressing the lack of a defined value:
 optional types. Consequently, Tomo has merged these two concepts, so `NaN` is
 called `none` and has the type `Num?` or `Num32?`. In this way, it's no
-different from optional integers or optional arrays. This means that if a
+different from optional integers or optional lists. This means that if a
 variable has type `Num`, it is guaranteed to not hold a NaN value. This also
 means that operations which may produce NaN values have a result type of
 `Num?`. For example, division can take two non-NaN values and return a result

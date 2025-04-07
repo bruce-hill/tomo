@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "arrays.h"
+#include "lists.h"
 #include "bools.h"
 #include "bytes.h"
 #include "functiontype.h"
@@ -61,7 +61,7 @@ public void _serialize(const void *obj, FILE *out, Table_t *pointers, const Type
     fwrite(obj, (size_t)type->size, 1, out);
 }
 
-public Array_t generic_serialize(const void *x, const TypeInfo_t *type)
+public List_t generic_serialize(const void *x, const TypeInfo_t *type)
 {
     char *buf = NULL;
     size_t size = 0;
@@ -69,7 +69,7 @@ public Array_t generic_serialize(const void *x, const TypeInfo_t *type)
     Table_t pointers = {};
     _serialize(x, stream, &pointers, type);
     fclose(stream);
-    Array_t bytes = {
+    List_t bytes = {
         .data=GC_MALLOC_ATOMIC(size),
         .length=(int64_t)size,
         .stride=1,
@@ -80,7 +80,7 @@ public Array_t generic_serialize(const void *x, const TypeInfo_t *type)
     return bytes;
 }
 
-public void _deserialize(FILE *input, void *outval, Array_t *pointers, const TypeInfo_t *type)
+public void _deserialize(FILE *input, void *outval, List_t *pointers, const TypeInfo_t *type)
 {
     if (type->metamethods.deserialize) {
         type->metamethods.deserialize(input, outval, pointers, type);
@@ -90,13 +90,13 @@ public void _deserialize(FILE *input, void *outval, Array_t *pointers, const Typ
     fread(outval, (size_t)type->size, 1, input);
 }
 
-public void generic_deserialize(Array_t bytes, void *outval, const TypeInfo_t *type)
+public void generic_deserialize(List_t bytes, void *outval, const TypeInfo_t *type)
 {
     if (bytes.stride != 1)
-        Array$compact(&bytes, 1);
+        List$compact(&bytes, 1);
 
     FILE *input = fmemopen(bytes.data, (size_t)bytes.length, "r");
-    Array_t pointers = {};
+    List_t pointers = {};
     _deserialize(input, outval, &pointers, type);
     fclose(input);
 }
@@ -115,7 +115,7 @@ public void cannot_serialize(const void*, FILE*, Table_t*, const TypeInfo_t *typ
 }
 
 __attribute__((noreturn))
-public void cannot_deserialize(FILE*, void*, Array_t*, const TypeInfo_t *type)
+public void cannot_deserialize(FILE*, void*, List_t*, const TypeInfo_t *type)
 {
     Text_t typestr = generic_as_text(NULL, false, type);
     fail("Values of type ", typestr, " cannot be serialized or deserialized!");

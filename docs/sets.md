@@ -28,7 +28,7 @@ For type annotations, a set that holds items with type `T` is written as `|T|`.
 
 ### Comprehensions
 
-Similar to arrays, sets can use comprehensions:
+Similar to lists, sets can use comprehensions:
 
 ```tomo
 set := |10*i for i in 10|
@@ -38,7 +38,7 @@ set3 := |-10, 10*i for i in 10|
 
 ## Accessing Items
 
-Sets internally store their items in an array, which you can access with the
+Sets internally store their items in a list, which you can access with the
 `.items` field. This is a constant-time operation that produces an immutable
 view:
 
@@ -115,7 +115,7 @@ func add_all(set:@|T|, items: [T] -> Void)
 ```
 
 - `set`: The mutable reference to the set.
-- `items`: The array of items to add to the set.
+- `items`: The list of items to add to the set.
 
 **Returns:**  
 Nothing.
@@ -257,7 +257,7 @@ func remove_all(set:@|T|, items: [T] -> Void)
 ```
 
 - `set`: The mutable reference to the set.
-- `items`: The array of items to remove from the set.
+- `items`: The list of items to remove from the set.
 
 **Returns:**  
 Nothing.

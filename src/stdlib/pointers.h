@@ -14,7 +14,7 @@ PUREFUNC int32_t Pointer$compare(const void *x, const void *y, const TypeInfo_t 
 PUREFUNC bool Pointer$equal(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC bool Pointer$is_none(const void *x, const TypeInfo_t*);
 void Pointer$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type);
-void Pointer$deserialize(FILE *in, void *outval, Array_t *pointers, const TypeInfo_t *type);
+void Pointer$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type);
 
 #define Null(t) (t*)NULL
 #define POINTER_TYPE(_sigil, _pointed) (&(TypeInfo_t){\

@@ -21,7 +21,7 @@ func _os_random_bytes(count:Int64 -> [Byte])
     return C_code:[Byte](
         uint8_t *random_bytes = GC_MALLOC_ATOMIC(@count);
         getrandom(random_bytes, @count, 0);
-        (Array_t){.length=@count, .data=random_bytes, .stride=1, .atomic=1}
+        (List_t){.length=@count, .data=random_bytes, .stride=1, .atomic=1}
     )
 struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret)
     func new(seed:[Byte]?=none, -> @RandomNumberGenerator)
@@ -36,7 +36,7 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
             // Immediately reinitialize for backtracking resistance
             chacha_keysetup(&@rng->_chacha, new_keystream);
             chacha_ivsetup(&@rng->_chacha, new_keystream + KEYSZ);
-            Array_t new_bytes = (Array_t){.data=GC_MALLOC_ATOMIC(1024), .length=1024, .stride=1, .atomic=1};
+            List_t new_bytes = (List_t){.data=GC_MALLOC_ATOMIC(1024), .length=1024, .stride=1, .atomic=1};
             memset(new_bytes.data, 0, new_bytes.length);
             chacha_encrypt_bytes(&@rng->_chacha, new_bytes.data, new_bytes.data, new_bytes.length);
             new_bytes
@@ -65,7 +65,7 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
         count64 := Int64(count)
         buf := C_code:@Memory(GC_MALLOC_ATOMIC(@count64))
         rng._fill_bytes(buf, count64)
-        return C_code:[Byte]((Array_t){.data=@buf, .stride=1, .atomic=1, .length=@count64})
+        return C_code:[Byte]((List_t){.data=@buf, .stride=1, .atomic=1, .length=@count64})
 
     func byte(rng:&RandomNumberGenerator -> Byte)
         byte : &Byte

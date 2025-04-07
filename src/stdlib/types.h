@@ -17,7 +17,7 @@ typedef struct {
     Text_t (*as_text)(const void*, bool, const TypeInfo_t*);
     bool (*is_none)(const void*, const TypeInfo_t*);
     void (*serialize)(const void*, FILE*, Table_t*, const TypeInfo_t*);
-    void (*deserialize)(FILE*, void*, Array_t*, const TypeInfo_t*);
+    void (*deserialize)(FILE*, void*, List_t*, const TypeInfo_t*);
 } metamethods_t;
 
 typedef struct {
@@ -29,7 +29,7 @@ struct TypeInfo_s {
     int64_t size, align;
     metamethods_t metamethods;
     struct { // Anonymous tagged union for convenience 
-        enum { OpaqueInfo, StructInfo, EnumInfo, PointerInfo, TextInfo, ArrayInfo, TableInfo, FunctionInfo,
+        enum { OpaqueInfo, StructInfo, EnumInfo, PointerInfo, TextInfo, ListInfo, TableInfo, FunctionInfo,
             OptionalInfo, TypeInfoInfo } tag;
         union {
             struct {} OpaqueInfo;
@@ -42,7 +42,7 @@ struct TypeInfo_s {
             } TextInfo;
             struct {
                 const TypeInfo_t *item;
-            } ArrayInfo;
+            } ListInfo;
             struct {
                 const TypeInfo_t *key, *value;
             } TableInfo;

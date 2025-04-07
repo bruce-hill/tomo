@@ -55,24 +55,24 @@ Text_t Text$without_suffix(Text_t text, Text_t suffix);
 Text_t Text$replace(Text_t text, Text_t target, Text_t replacement);
 Text_t Text$translate(Text_t text, Table_t translations);
 bool Text$has(Text_t text, Text_t target);
-Array_t Text$split(Text_t text, Text_t delimiter);
-Array_t Text$split_any(Text_t text, Text_t delimiters);
+List_t Text$split(Text_t text, Text_t delimiter);
+List_t Text$split_any(Text_t text, Text_t delimiters);
 Closure_t Text$by_split(Text_t text, Text_t delimiter);
 Closure_t Text$by_split_any(Text_t text, Text_t delimiters);
 Text_t Text$trim(Text_t text, Text_t to_trim, bool left, bool right);
 char *Text$as_c_string(Text_t text);
 __attribute__((format(printf, 1, 2)))
 public Text_t Text$format(const char *fmt, ...);
-Array_t Text$clusters(Text_t text);
-Array_t Text$utf32_codepoints(Text_t text);
-Array_t Text$utf8_bytes(Text_t text);
-Array_t Text$codepoint_names(Text_t text);
-Text_t Text$from_codepoints(Array_t codepoints);
-OptionalText_t Text$from_codepoint_names(Array_t codepoint_names);
-OptionalText_t Text$from_bytes(Array_t bytes);
-Array_t Text$lines(Text_t text);
+List_t Text$clusters(Text_t text);
+List_t Text$utf32_codepoints(Text_t text);
+List_t Text$utf8_bytes(Text_t text);
+List_t Text$codepoint_names(Text_t text);
+Text_t Text$from_codepoints(List_t codepoints);
+OptionalText_t Text$from_codepoint_names(List_t codepoint_names);
+OptionalText_t Text$from_bytes(List_t bytes);
+List_t Text$lines(Text_t text);
 Closure_t Text$by_line(Text_t text);
-Text_t Text$join(Text_t glue, Array_t pieces);
+Text_t Text$join(Text_t glue, List_t pieces);
 Text_t Text$repeat(Text_t text, Int_t count);
 Int_t Text$width(Text_t text, Text_t language);
 Text_t Text$left_pad(Text_t text, Int_t width, Text_t padding, Text_t language);
@@ -81,7 +81,7 @@ Text_t Text$middle_pad(Text_t text, Int_t width, Text_t padding, Text_t language
 int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index);
 uint32_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index);
 void Text$serialize(const void *obj, FILE *out, Table_t *, const TypeInfo_t *);
-void Text$deserialize(FILE *in, void *out, Array_t *, const TypeInfo_t *);
+void Text$deserialize(FILE *in, void *out, List_t *, const TypeInfo_t *);
 
 MACROLIKE int32_t Text$get_grapheme(Text_t text, int64_t index)
 {

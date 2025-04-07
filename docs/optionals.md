@@ -32,7 +32,7 @@ conventions and which would generate a lot of unnecessary code.
 ## Syntax
 
 Optional types are written using a `?` after the type name. So, an optional
-integer would be written as `Int?` and an optional array of texts would be
+integer would be written as `Int?` and an optional list of texts would be
 written as `[Text]?`.
 
 None can be written explicitly using `none` with a type annotation. For
@@ -43,7 +43,7 @@ value or `none` and initialize it as none, you would write it as:
 x : Int = none
 ```
 
-Similarly, if you wanted to declare a variable that could be an array of texts
+Similarly, if you wanted to declare a variable that could be a list of texts
 or none and initialize it as none, you would write:
 
 ```tomo
@@ -127,10 +127,10 @@ for line in lines:
 ## Implementation Notes
 
 The implementation of optional types is highly efficient and has no memory
-overhead for pointers, collection types (arrays, sets, tables), booleans,
+overhead for pointers, collection types (lists, sets, tables), booleans,
 texts, enums, nums, or integers (`Int` type only). This is done by using
 carefully chosen values, such as `0` for pointers, `2` for booleans, or a
-negative length for arrays. However, for fixed-size integers (`Int64`, `Int32`,
+negative length for lists. However, for fixed-size integers (`Int64`, `Int32`,
 `Int16`, and `Int8`), bytes, and structs, an additional byte is required for
 out-of-band information about whether the value is none or not.
 

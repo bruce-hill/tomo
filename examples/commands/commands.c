@@ -15,8 +15,8 @@
 
 #define READ_END 0
 #define WRITE_END 1
-int run_command(Text_t exe, Array_t arg_array, Table_t env_table,
-                       OptionalArray_t input_bytes, Array_t *output_bytes, Array_t *error_bytes)
+int run_command(Text_t exe, List_t arg_list, Table_t env_table,
+                       OptionalList_t input_bytes, List_t *output_bytes, List_t *error_bytes)
 {
     pthread_testcancel();
 
@@ -57,28 +57,28 @@ int run_command(Text_t exe, Array_t arg_array, Table_t env_table,
 
     const char *exe_str = Text$as_c_string(exe);
 
-    Array_t arg_strs = {};
-    Array$insert_value(&arg_strs, exe_str, I(0), sizeof(char*));
-    for (int64_t i = 0; i < arg_array.length; i++)
-        Array$insert_value(&arg_strs, Text$as_c_string(*(Text_t*)(arg_array.data + i*arg_array.stride)), I(0), sizeof(char*));
-    Array$insert_value(&arg_strs, NULL, I(0), sizeof(char*));
+    List_t arg_strs = {};
+    List$insert_value(&arg_strs, exe_str, I(0), sizeof(char*));
+    for (int64_t i = 0; i < arg_list.length; i++)
+        List$insert_value(&arg_strs, Text$as_c_string(*(Text_t*)(arg_list.data + i*arg_list.stride)), I(0), sizeof(char*));
+    List$insert_value(&arg_strs, NULL, I(0), sizeof(char*));
     char **args = arg_strs.data;
 
     extern char **environ;
     char **env = environ;
     if (env_table.entries.length > 0) {
-        Array_t env_array = {}; // Array of const char*
+        List_t env_list = {}; // List of const char*
         for (char **e = environ; *e; e++)
-            Array$insert(&env_array, e, I(0), sizeof(char*));
+            List$insert(&env_list, e, I(0), sizeof(char*));
 
         for (int64_t i = 0; i < env_table.entries.length; i++) {
             struct { Text_t key, value; } *entry = env_table.entries.data + env_table.entries.stride*i;
             const char *env_entry = String(entry->key, "=", entry->value);
-            Array$insert(&env_array, &env_entry, I(0), sizeof(char*));
+            List$insert(&env_list, &env_entry, I(0), sizeof(char*));
         }
-        Array$insert_value(&env_array, NULL, I(0), sizeof(char*));
-        assert(env_array.stride == sizeof(char*));
-        env = env_array.data;
+        List$insert_value(&env_list, NULL, I(0), sizeof(char*));
+        assert(env_list.stride == sizeof(char*));
+        env = env_list.data;
     }
 
     pid_t pid;
@@ -101,11 +101,11 @@ int run_command(Text_t exe, Array_t arg_array, Table_t env_table,
     if (error_bytes) pollfds[2] = (struct pollfd){.fd=child_errpipe[WRITE_END], .events=POLLIN};
 
     if (input_bytes.length > 0 && input_bytes.stride != 1)
-        Array$compact(&input_bytes, sizeof(char));
+        List$compact(&input_bytes, sizeof(char));
     if (output_bytes)
-        *output_bytes = (Array_t){.atomic=1, .stride=1, .length=0};
+        *output_bytes = (List_t){.atomic=1, .stride=1, .length=0};
     if (error_bytes)
-        *error_bytes = (Array_t){.atomic=1, .stride=1, .length=0};
+        *error_bytes = (List_t){.atomic=1, .stride=1, .length=0};
 
     while (input_bytes.length > 0 || output_bytes || error_bytes) {
         (void)poll(pollfds, sizeof(pollfds)/sizeof(pollfds[0]), -1);  // Wait for data or readiness
@@ -223,7 +223,7 @@ static Text_t _next_line(child_info_t *child)
     return line_text;
 }
 
-OptionalClosure_t command_by_line(Text_t exe, Array_t arg_array, Table_t env_table)
+OptionalClosure_t command_by_line(Text_t exe, List_t arg_list, Table_t env_table)
 {
     posix_spawnattr_t attr;
     posix_spawnattr_init(&attr);
@@ -238,28 +238,28 @@ OptionalClosure_t command_by_line(Text_t exe, Array_t arg_array, Table_t env_tab
 
     const char *exe_str = Text$as_c_string(exe);
 
-    Array_t arg_strs = {};
-    Array$insert_value(&arg_strs, exe_str, I(0), sizeof(char*));
-    for (int64_t i = 0; i < arg_array.length; i++)
-        Array$insert_value(&arg_strs, Text$as_c_string(*(Text_t*)(arg_array.data + i*arg_array.stride)), I(0), sizeof(char*));
-    Array$insert_value(&arg_strs, NULL, I(0), sizeof(char*));
+    List_t arg_strs = {};
+    List$insert_value(&arg_strs, exe_str, I(0), sizeof(char*));
+    for (int64_t i = 0; i < arg_list.length; i++)
+        List$insert_value(&arg_strs, Text$as_c_string(*(Text_t*)(arg_list.data + i*arg_list.stride)), I(0), sizeof(char*));
+    List$insert_value(&arg_strs, NULL, I(0), sizeof(char*));
     char **args = arg_strs.data;
 
     extern char **environ;
     char **env = environ;
     if (env_table.entries.length > 0) {
-        Array_t env_array = {}; // Array of const char*
+        List_t env_list = {}; // List of const char*
         for (char **e = environ; *e; e++)
-            Array$insert(&env_array, e, I(0), sizeof(char*));
+            List$insert(&env_list, e, I(0), sizeof(char*));
 
         for (int64_t i = 0; i < env_table.entries.length; i++) {
             struct { Text_t key, value; } *entry = env_table.entries.data + env_table.entries.stride*i;
             const char *env_entry = String(entry->key, "=", entry->value);
-            Array$insert(&env_array, &env_entry, I(0), sizeof(char*));
+            List$insert(&env_list, &env_entry, I(0), sizeof(char*));
         }
-        Array$insert_value(&env_array, NULL, I(0), sizeof(char*));
-        assert(env_array.stride == sizeof(char*));
-        env = env_array.data;
+        List$insert_value(&env_list, NULL, I(0), sizeof(char*));
+        assert(env_list.stride == sizeof(char*));
+        env = env_list.data;
     }
 
     pid_t pid;

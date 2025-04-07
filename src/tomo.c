@@ -15,7 +15,7 @@
 #include "cordhelpers.h"
 #include "parse.h"
 #include "repl.h"
-#include "stdlib/arrays.h"
+#include "stdlib/lists.h"
 #include "stdlib/bools.h"
 #include "stdlib/bytes.h"
 #include "stdlib/datatypes.h"
@@ -28,14 +28,14 @@
 #include "types.h"
 
 #define run_cmd(...) ({ const char *_cmd = String(__VA_ARGS__); if (verbose) print("\033[34;1m", _cmd, "\033[m"); popen(_cmd, "w"); })
-#define array_text(arr) Text$join(Text(" "), arr)
+#define list_text(list) Text$join(Text(" "), list)
 
 #ifdef __linux__
 // Only on Linux is /proc/self/exe available
 static struct stat compiler_stat;
 #endif
 
-static const char *paths_str(Array_t paths) {
+static const char *paths_str(List_t paths) {
     Text_t result = EMPTY_TEXT;
     for (int64_t i = 0; i < paths.length; i++) {
         if (i > 0) result = Texts(result, Text(" "));
@@ -44,10 +44,10 @@ static const char *paths_str(Array_t paths) {
     return Text$as_c_string(result);
 }
 
-static OptionalArray_t files = NONE_ARRAY,
-                       args = NONE_ARRAY,
-                       uninstall = NONE_ARRAY,
-                       libraries = NONE_ARRAY;
+static OptionalList_t files = NONE_LIST,
+                       args = NONE_LIST,
+                       uninstall = NONE_LIST,
+                       libraries = NONE_LIST;
 static OptionalBool_t verbose = false,
                       quiet = false,
                       stop_at_transpile = false,
@@ -82,11 +82,11 @@ static const char *SHARED_SUFFIX =
 static void transpile_header(env_t *base_env, Path_t path);
 static void transpile_code(env_t *base_env, Path_t path);
 static void compile_object_file(Path_t path);
-static Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, Array_t object_files, Array_t extra_ldlibs);
+static Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t object_files, List_t extra_ldlibs);
 static void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_link);
 static Text_t escape_lib_name(Text_t lib_name);
 static void build_library(Text_t lib_dir_name);
-static void compile_files(env_t *env, Array_t files, Array_t *object_files, Array_t *ldlibs);
+static void compile_files(env_t *env, List_t files, List_t *object_files, List_t *ldlibs);
 static bool is_stale(Path_t path, Path_t relative_to);
 static Path_t build_file(Path_t path, const char *extension);
 static void wait_for_child_success(pid_t child);
@@ -148,8 +148,8 @@ int main(int argc, char *argv[])
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     tomo_parse_args(
         argc, argv, usage, help,
-        {"files", true, Array$info(&Path$info), &files},
-        {"args", true, Array$info(&Text$info), &args},
+        {"files", true, List$info(&Path$info), &files},
+        {"args", true, List$info(&Text$info), &args},
         {"verbose", false, &Bool$info, &verbose},
         {"v", false, &Bool$info, &verbose},
         {"quiet", false, &Bool$info, &quiet},
@@ -160,10 +160,10 @@ int main(int argc, char *argv[])
         {"c", false, &Bool$info, &stop_at_obj_compilation},
         {"compile-exe", false, &Bool$info, &compile_exe},
         {"e", false, &Bool$info, &compile_exe},
-        {"uninstall", false, Array$info(&Text$info), &uninstall},
-        {"u", false, Array$info(&Text$info), &uninstall},
-        {"library", false, Array$info(&Path$info), &libraries},
-        {"L", false, Array$info(&Path$info), &libraries},
+        {"uninstall", false, List$info(&Text$info), &uninstall},
+        {"u", false, List$info(&Text$info), &uninstall},
+        {"library", false, List$info(&Path$info), &libraries},
+        {"L", false, List$info(&Path$info), &libraries},
         {"show-codegen", false, &Text$info, &show_codegen},
         {"C", false, &Text$info, &show_codegen},
         {"repl", false, &Bool$info, &run_repl},
@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
         pid_t child = fork();
         if (child == 0) {
             env_t *env = global_env();
-            Array_t object_files = {},
+            List_t object_files = {},
                     extra_ldlibs = {};
             compile_files(env, files, &object_files, &extra_ldlibs);
             compile_executable(env, path, exe_path, object_files, extra_ldlibs);
@@ -407,9 +407,9 @@ static void _compile_file_header_for_library(env_t *env, Path_t header_path, Pat
 
 void build_library(Text_t lib_dir_name)
 {
-    Array_t tm_files = Path$glob(Path("./[!._0-9]*.tm"));
+    List_t tm_files = Path$glob(Path("./[!._0-9]*.tm"));
     env_t *env = fresh_scope(global_env());
-    Array_t object_files = {},
+    List_t object_files = {},
             extra_ldlibs = {};
 
     // Resolve all files to absolute paths:
@@ -455,7 +455,7 @@ void build_library(Text_t lib_dir_name)
             errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `sed`");
     }
 
-    prog = run_cmd(cc, " -O", optimization, " ", cflags, " ", ldflags, " ", ldlibs, " ", array_text(extra_ldlibs),
+    prog = run_cmd(cc, " -O", optimization, " ", cflags, " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs),
 #ifdef __APPLE__
                    " -Wl,-install_name,@rpath/'lib", lib_dir_name, SHARED_SUFFIX, "'"
 #else
@@ -501,7 +501,7 @@ void build_library(Text_t lib_dir_name)
     }
 }
 
-void compile_files(env_t *env, Array_t to_compile, Array_t *object_files, Array_t *extra_ldlibs)
+void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs)
 {
     Table_t to_link = {};
     Table_t dependency_files = {};
@@ -562,13 +562,13 @@ void compile_files(env_t *env, Array_t to_compile, Array_t *object_files, Array_
         for (int64_t i = 0; i < dependency_files.entries.length; i++) {
             Path_t path = *(Path_t*)(dependency_files.entries.data + i*dependency_files.entries.stride);
             path = build_file(path, ".o");
-            Array$insert(object_files, &path, I(0), sizeof(Path_t));
+            List$insert(object_files, &path, I(0), sizeof(Path_t));
         }
     }
     if (extra_ldlibs) {
         for (int64_t i = 0; i < to_link.entries.length; i++) {
             Text_t lib = *(Text_t*)(to_link.entries.data + i*to_link.entries.stride);
-            Array$insert(extra_ldlibs, &lib, I(0), sizeof(Text_t));
+            List$insert(extra_ldlibs, &lib, I(0), sizeof(Text_t));
         }
     }
 }
@@ -615,7 +615,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             Text_t lib = Text$format("'%s/.local/share/tomo/installed/%s/lib%s%s'", getenv("HOME"), use->path, use->path, SHARED_SUFFIX);
             Table$set(to_link, &lib, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
 
-            Array_t children = Path$glob(Path$from_str(String(getenv("HOME"), "/.local/share/tomo/installed/", use->path, "/*.tm")));
+            List_t children = Path$glob(Path$from_str(String(getenv("HOME"), "/.local/share/tomo/installed/", use->path, "/*.tm")));
             for (int64_t i = 0; i < children.length; i++) {
                 Path_t *child = (Path_t*)(children.data + i*children.stride);
                 Table_t discarded = {.fallback=to_compile};
@@ -745,7 +745,7 @@ void compile_object_file(Path_t path)
         print("Compiled object:\t", obj_file);
 }
 
-Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, Array_t object_files, Array_t extra_ldlibs)
+Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t object_files, List_t extra_ldlibs)
 {
     ast_t *ast = parse_file(Path$as_c_string(path), NULL);
     if (!ast)
@@ -755,7 +755,7 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, Array_t
     if (!main_binding || main_binding->type->tag != FunctionType)
         print_err("No main() function has been defined for ", path, ", so it can't be run!");
 
-    FILE *runner = run_cmd(cc, " ", cflags, " -O", optimization, " ", ldflags, " ", ldlibs, " ", array_text(extra_ldlibs), " ",
+    FILE *runner = run_cmd(cc, " ", cflags, " -O", optimization, " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs), " ",
                            paths_str(object_files), " -x c - -o ", exe_path);
     CORD program = CORD_all(
         "extern int ", main_binding->code, "$parse_and_run(int argc, char *argv[]);\n"

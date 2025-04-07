@@ -76,20 +76,20 @@ env_t *global_env(void)
         type_t *type;
         CORD typename;
         CORD typeinfo;
-        Array_t namespace;
+        List_t namespace;
     } global_types[] = {
         {"Void", Type(VoidType), "Void_t", "Void$info", {}},
         {"Abort", Type(AbortType), "void", "Abort$info", {}},
         {"Memory", Type(MemoryType), "Memory_t", "Memory$info", {}},
-        {"Bool", Type(BoolType), "Bool_t", "Bool$info", TypedArray(ns_entry_t,
+        {"Bool", Type(BoolType), "Bool_t", "Bool$info", TypedList(ns_entry_t,
             {"parse", "Bool$parse", "func(text:Text -> Bool?)"},
         )},
-        {"Byte", Type(ByteType), "Byte_t", "Byte$info", TypedArray(ns_entry_t,
+        {"Byte", Type(ByteType), "Byte_t", "Byte$info", TypedList(ns_entry_t,
             {"max", "Byte$max", "Byte"},
             {"hex", "Byte$hex", "func(byte:Byte, uppercase=yes, prefix=no -> Text)"},
             {"min", "Byte$min", "Byte"},
         )},
-        {"Int", Type(BigIntType), "Int_t", "Int$info", TypedArray(ns_entry_t,
+        {"Int", Type(BigIntType), "Int_t", "Int$info", TypedList(ns_entry_t,
             {"abs", "Int$abs", "func(x:Int -> Int)"},
             {"bit_and", "Int$bit_and", "func(x,y:Int -> Int)"},
             {"bit_or", "Int$bit_or", "func(x,y:Int -> Int)"},
@@ -124,7 +124,7 @@ env_t *global_env(void)
             {"times", "Int$times", "func(x,y:Int -> Int)"},
             {"to", "Int$to", "func(first:Int,last:Int,step:Int?=none -> func(->Int?))"},
         )},
-        {"Int64", Type(IntType, .bits=TYPE_IBITS64), "Int64_t", "Int64$info", TypedArray(ns_entry_t,
+        {"Int64", Type(IntType, .bits=TYPE_IBITS64), "Int64_t", "Int64$info", TypedList(ns_entry_t,
             {"abs", "labs", "func(i:Int64 -> Int64)"},
             {"bits", "Int64$bits", "func(x:Int64 -> [Bool])"},
             {"clamped", "Int64$clamped", "func(x,low,high:Int64 -> Int64)"},
@@ -145,7 +145,7 @@ env_t *global_env(void)
             {"wrapping_minus", "Int64$wrapping_minus", "func(x:Int64,y:Int64 -> Int64)"},
             {"wrapping_plus", "Int64$wrapping_plus", "func(x:Int64,y:Int64 -> Int64)"},
         )},
-        {"Int32", Type(IntType, .bits=TYPE_IBITS32), "Int32_t", "Int32$info", TypedArray(ns_entry_t,
+        {"Int32", Type(IntType, .bits=TYPE_IBITS32), "Int32_t", "Int32$info", TypedList(ns_entry_t,
             {"abs", "abs", "func(i:Int32 -> Int32)"},
             {"bits", "Int32$bits", "func(x:Int32 -> [Bool])"},
             {"clamped", "Int32$clamped", "func(x,low,high:Int32 -> Int32)"},
@@ -166,7 +166,7 @@ env_t *global_env(void)
             {"wrapping_minus", "Int32$wrapping_minus", "func(x:Int32,y:Int32 -> Int32)"},
             {"wrapping_plus", "Int32$wrapping_plus", "func(x:Int32,y:Int32 -> Int32)"},
         )},
-        {"Int16", Type(IntType, .bits=TYPE_IBITS16), "Int16_t", "Int16$info", TypedArray(ns_entry_t,
+        {"Int16", Type(IntType, .bits=TYPE_IBITS16), "Int16_t", "Int16$info", TypedList(ns_entry_t,
             {"abs", "abs", "func(i:Int16 -> Int16)"},
             {"bits", "Int16$bits", "func(x:Int16 -> [Bool])"},
             {"clamped", "Int16$clamped", "func(x,low,high:Int16 -> Int16)"},
@@ -187,7 +187,7 @@ env_t *global_env(void)
             {"wrapping_minus", "Int16$wrapping_minus", "func(x:Int16,y:Int16 -> Int16)"},
             {"wrapping_plus", "Int16$wrapping_plus", "func(x:Int16,y:Int16 -> Int16)"},
         )},
-        {"Int8", Type(IntType, .bits=TYPE_IBITS8), "Int8_t", "Int8$info", TypedArray(ns_entry_t,
+        {"Int8", Type(IntType, .bits=TYPE_IBITS8), "Int8_t", "Int8$info", TypedList(ns_entry_t,
             {"abs", "abs", "func(i:Int8 -> Int8)"},
             {"bits", "Int8$bits", "func(x:Int8 -> [Bool])"},
             {"clamped", "Int8$clamped", "func(x,low,high:Int8 -> Int8)"},
@@ -212,7 +212,7 @@ env_t *global_env(void)
 #define F(name) {#name, #name, "func(n:Num -> Num)"}
 #define F_opt(name) {#name, #name, "func(n:Num -> Num?)"}
 #define F2(name) {#name, #name, "func(x,y:Num -> Num)"}
-        {"Num", Type(NumType, .bits=TYPE_NBITS64), "Num_t", "Num$info", TypedArray(ns_entry_t,
+        {"Num", Type(NumType, .bits=TYPE_NBITS64), "Num_t", "Num$info", TypedList(ns_entry_t,
             {"near", "Num$near", "func(x,y:Num, ratio=1e-9, min_epsilon=1e-9 -> Bool)"},
             {"clamped", "Num$clamped", "func(x,low,high:Num -> Num)"},
             {"format", "Num$format", "func(n:Num, precision=16 -> Text)"},
@@ -244,7 +244,7 @@ env_t *global_env(void)
 #define F(name) {#name, #name"f", "func(n:Num32 -> Num32)"}
 #define F_opt(name) {#name, #name"f", "func(n:Num32 -> Num32?)"}
 #define F2(name) {#name, #name"f", "func(x,y:Num32 -> Num32)"}
-        {"Num32", Type(NumType, .bits=TYPE_NBITS32), "Num32_t", "Num32$info", TypedArray(ns_entry_t,
+        {"Num32", Type(NumType, .bits=TYPE_NBITS32), "Num32_t", "Num32$info", TypedList(ns_entry_t,
             {"near", "Num32$near", "func(x,y:Num32, ratio=Num32(1e-9), min_epsilon=Num32(1e-9) -> Bool)"},
             {"clamped", "Num32$clamped", "func(x,low,high:Num32 -> Num32)"},
             {"format", "Num32$format", "func(n:Num32, precision=8 -> Text)"},
@@ -268,19 +268,19 @@ env_t *global_env(void)
             F_opt(tan), F(tanh), F_opt(tgamma), F(trunc), F_opt(y0), F_opt(y1),
             F2(atan2), F2(copysign), F2(fdim), F2(hypot), F2(nextafter),
         )},
-        {"CString", Type(CStringType), "char*", "CString$info", TypedArray(ns_entry_t,
+        {"CString", Type(CStringType), "char*", "CString$info", TypedList(ns_entry_t,
             {"as_text", "CString$as_text_simple", "func(str:CString -> Text)"},
         )},
 #undef F2
 #undef F_opt
 #undef F
 #undef C
-        {"PathType", PATH_TYPE_TYPE, "PathType_t", "PathType$info", TypedArray(ns_entry_t,
+        {"PathType", PATH_TYPE_TYPE, "PathType_t", "PathType$info", TypedList(ns_entry_t,
             {"Relative", "((PathType_t){.$tag=PATH_RELATIVE})", "PathType"},
             {"Absolute", "((PathType_t){.$tag=PATH_ABSOLUTE})", "PathType"},
             {"Home", "((PathType_t){.$tag=PATH_HOME})", "PathType"},
         )},
-        {"Path", PATH_TYPE, "Path_t", "Path$info", TypedArray(ns_entry_t,
+        {"Path", PATH_TYPE, "Path_t", "Path$info", TypedList(ns_entry_t,
             {"accessed", "Path$accessed", "func(path:Path, follow_symlinks=yes -> Int64?)"},
             {"append", "Path$append", "func(path:Path, text:Text, permissions=Int32(0o644))"},
             {"append_bytes", "Path$append_bytes", "func(path:Path, bytes:[Byte], permissions=Int32(0o644))"},
@@ -322,7 +322,7 @@ env_t *global_env(void)
             {"write_unique", "Path$write_unique", "func(path:Path, text:Text -> Path)"},
             {"write_unique_bytes", "Path$write_unique_bytes", "func(path:Path, bytes:[Byte] -> Path)"},
         )},
-        {"Text", TEXT_TYPE, "Text_t", "Text$info", TypedArray(ns_entry_t,
+        {"Text", TEXT_TYPE, "Text_t", "Text$info", TypedList(ns_entry_t,
             {"as_c_string", "Text$as_c_string", "func(text:Text -> CString)"},
             {"at", "Text$cluster", "func(text:Text, index:Int -> Text)"},
             {"by_line", "Text$by_line", "func(text:Text -> func(->Text?))"},
@@ -406,7 +406,7 @@ env_t *global_env(void)
     struct { const char *c_name, *type_str; } constructor_infos[] = {__VA_ARGS__}; \
     for (size_t i = 0; i < sizeof(constructor_infos)/sizeof(constructor_infos[0]); i++) { \
         type_t *t = parse_type_string(ns_env, constructor_infos[i].type_str); \
-        Array$insert(&ns_env->namespace->constructors, \
+        List$insert(&ns_env->namespace->constructors, \
                      ((binding_t[1]){{.code=constructor_infos[i].c_name, \
                       .type=Match(t, ClosureType)->fn}}), I(0), sizeof(binding_t)); \
     } \
@@ -597,8 +597,8 @@ env_t *for_scope(env_t *env, ast_t *ast)
     env_t *scope = fresh_scope(env);
 
     switch (iter_t->tag) {
-    case ArrayType: {
-        type_t *item_t = Match(iter_t, ArrayType)->item_type;
+    case ListType: {
+        type_t *item_t = Match(iter_t, ListType)->item_type;
         const char *vars[2] = {};
         int64_t num_vars = 0;
         for (ast_list_t *var = for_->vars; var; var = var->next) {
@@ -672,7 +672,7 @@ env_t *get_namespace_by_type(env_t *env, type_t *t)
 {
     t = value_type(t);
     switch (t->tag) {
-    case ArrayType: return NULL;
+    case ListType: return NULL;
     case TableType: return NULL;
     case CStringType:
     case BoolType: case IntType: case BigIntType: case NumType: case ByteType: {
@@ -730,7 +730,7 @@ PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args)
 {
     env_t *type_env = get_namespace_by_type(env, t);
     if (!type_env) return NULL;
-    Array_t constructors = type_env->namespace->constructors;
+    List_t constructors = type_env->namespace->constructors;
     // Prioritize exact matches:
     for (int64_t i = constructors.length-1; i >= 0; i--) {
         binding_t *b = constructors.data + i*constructors.stride;

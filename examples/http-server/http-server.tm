@@ -38,7 +38,7 @@ func serve(port:Int32, handler:func(request:HTTPRequest -> HTTPResponse), num_th
                 response := handler(request).bytes()
                 C_code {
                     if (@response.stride != 1)
-                        Array$compact(&@response, 1);
+                        List$compact(&@response, 1);
                     write(@connection, @response.data, @response.length);
                     close(@connection);
                 }

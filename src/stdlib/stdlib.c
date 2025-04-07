@@ -158,8 +158,8 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)
 
         Text_t t = generic_as_text(NULL, false, info);
         print_err("Unsupported multi-argument struct type for argument parsing: ", t);
-    } else if (info->tag == ArrayInfo) {
-        print_err("Array arguments must be specified as `--flag ...` not `--flag=...`");
+    } else if (info->tag == ListInfo) {
+        print_err("List arguments must be specified as `--flag ...` not `--flag=...`");
     } else if (info->tag == TableInfo) {
         print_err("Table arguments must be specified as `--flag ...` not `--flag=...`");
     } else {
@@ -168,13 +168,13 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)
     }
 }
 
-static Array_t parse_array(const TypeInfo_t *item_info, int n, char *args[])
+static List_t parse_list(const TypeInfo_t *item_info, int n, char *args[])
 {
     int64_t padded_size = item_info->size;
     if ((padded_size % item_info->align) > 0)
         padded_size = padded_size + item_info->align - (padded_size % item_info->align);
 
-    Array_t items = {
+    List_t items = {
         .stride=padded_size,
         .length=n,
         .data=GC_MALLOC((size_t)(padded_size*n)),
@@ -199,7 +199,7 @@ static Table_t parse_table(const TypeInfo_t *table, int n, char *args[])
     if ((padded_size % key->align) > 0)
         padded_size = padded_size + key->align - (padded_size % key->align);
 
-    Array_t entries = {
+    List_t entries = {
         .stride=padded_size,
         .length=n,
         .data=GC_MALLOC((size_t)(padded_size*n)),
@@ -262,7 +262,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                 char after_name = argv[i][2+strlen(spec[s].name)];
                 if (after_name == '\0') { // --foo val
                     used_args[i] = true;
-                    if (non_opt_type->tag == ArrayInfo) {
+                    if (non_opt_type->tag == ListInfo) {
                         int num_args = 0;
                         while (i + 1 + num_args < argc) {
                             if (argv[i+1+num_args][0] == '-')
@@ -271,7 +271,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                             num_args += 1;
                         }
                         populated_args[s] = true;
-                        *(OptionalArray_t*)spec[s].dest = parse_array(non_opt_type->ArrayInfo.item, num_args, &argv[i+1]);
+                        *(OptionalList_t*)spec[s].dest = parse_list(non_opt_type->ListInfo.item, num_args, &argv[i+1]);
                     } else if (non_opt_type->tag == TableInfo) {
                         int num_args = 0;
                         while (i + 1 + num_args < argc) {
@@ -322,7 +322,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                     while (non_opt_type->tag == OptionalInfo)
                         non_opt_type = non_opt_type->OptionalInfo.type;
 
-                    if (non_opt_type->tag == ArrayInfo) {
+                    if (non_opt_type->tag == ListInfo) {
                         if (f[1]) print_err("No value provided for ", flag, "\n", usage);
                         int num_args = 0;
                         while (i + 1 + num_args < argc) {
@@ -332,7 +332,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                             num_args += 1;
                         }
                         populated_args[s] = true;
-                        *(OptionalArray_t*)spec[s].dest = parse_array(non_opt_type->ArrayInfo.item, num_args, &argv[i+1]);
+                        *(OptionalList_t*)spec[s].dest = parse_list(non_opt_type->ListInfo.item, num_args, &argv[i+1]);
                     } else if (non_opt_type->tag == TableInfo) {
                         int num_args = 0;
                         while (i + 1 + num_args < argc) {
@@ -398,7 +398,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
         if (non_opt_type == &Bool$info)
             goto next_non_bool_flag;
 
-        if (non_opt_type->tag == ArrayInfo) {
+        if (non_opt_type->tag == ListInfo) {
             int num_args = 0;
             while (i + num_args < argc) {
                 if (!ignore_dashes && argv[i+num_args][0] == '-')
@@ -407,7 +407,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                 num_args += 1;
             }
             populated_args[s] = true;
-            *(OptionalArray_t*)spec[s].dest = parse_array(non_opt_type->ArrayInfo.item, num_args, &argv[i]);
+            *(OptionalList_t*)spec[s].dest = parse_list(non_opt_type->ListInfo.item, num_args, &argv[i]);
         } else if (non_opt_type->tag == TableInfo) {
             int num_args = 0;
             while (i + num_args < argc) {
@@ -428,8 +428,8 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
 
     for (int s = 0; s < spec_len; s++) {
         if (!populated_args[s] && spec[s].required) {
-            if (spec[s].type->tag == ArrayInfo)
-                *(OptionalArray_t*)spec[s].dest = (Array_t){};
+            if (spec[s].type->tag == ListInfo)
+                *(OptionalList_t*)spec[s].dest = (List_t){};
             else if (spec[s].type->tag == TableInfo)
                 *(OptionalTable_t*)spec[s].dest = (Table_t){};
             else

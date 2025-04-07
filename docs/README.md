@@ -18,7 +18,7 @@ A few topics that are documented:
 
 Information about Tomo's built-in types can be found here:
 
-- [Arrays](arrays.md)
+- [Lists](lists.md)
 - [Booleans](booleans.md)
 - [Bytes](bytes.md)
 - [Enums](enums.md)

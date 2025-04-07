@@ -25,7 +25,7 @@ func maybe_int64(should_i:Bool->Int64?)
     else
         return none
 
-func maybe_array(should_i:Bool->[Int]?)
+func maybe_list(should_i:Bool->[Int]?)
     if should_i
         return [10, 20, 30]
     else
@@ -114,10 +114,10 @@ func main()
         else say("Falsey: $nope")
 
     do
-        say("Arrays:")
-        >> yep := maybe_array(yes)
+        say("Lists:")
+        >> yep := maybe_list(yes)
         = [10, 20, 30]?
-        >> nope := maybe_array(no)
+        >> nope := maybe_list(no)
         = none
         >> if yep
             >> yep

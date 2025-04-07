@@ -11,7 +11,7 @@ original value.
 ## Serializing
 
 To serialize data, simply call the method `.serialized()` on any value and it
-will return an array of bytes that encode the value's data:
+will return a list of bytes that encode the value's data:
 
 ```tomo
 value := Int64(5)
@@ -19,7 +19,7 @@ value := Int64(5)
 = [0x0A] : [Byte]
 ```
 
-Serialization produces a fairly compact representation of data as a flat array
+Serialization produces a fairly compact representation of data as a flat list
 of bytes. In this case, a 64-bit integer can be represented in a single byte
 because it's a small number.
 
@@ -72,4 +72,4 @@ only 9 bytes for the whole thing!
 
 Unfortunately, not all types can be easily serialized. In particular, types and
 functions cannot be serialized because their data contents cannot be easily
-converted to portable byte arrays. All other datatypes _can_ be serialized.
+converted to portable byte lists. All other datatypes _can_ be serialized.

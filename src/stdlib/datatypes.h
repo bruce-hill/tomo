@@ -1,22 +1,22 @@
 #pragma once
 
-// Common datastructures (arrays, tables, closures)
+// Common datastructures (lists, tables, closures)
 
 #include <gmp.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
 
-#define ARRAY_LENGTH_BITS 42
-#define ARRAY_FREE_BITS 6
-#define ARRAY_REFCOUNT_BITS 3
-#define ARRAY_STRIDE_BITS 12
+#define LIST_LENGTH_BITS 42
+#define LIST_FREE_BITS 6
+#define LIST_REFCOUNT_BITS 3
+#define LIST_STRIDE_BITS 12
 
 #define MAX_FOR_N_BITS(N) ((1<<(N))-1)
-#define ARRAY_MAX_STRIDE MAX_FOR_N_BITS(ARRAY_STRIDE_BITS-1)
-#define ARRAY_MIN_STRIDE (~MAX_FOR_N_BITS(ARRAY_STRIDE_BITS-1))
-#define ARRAY_MAX_DATA_REFCOUNT MAX_FOR_N_BITS(ARRAY_REFCOUNT_BITS)
-#define ARRAY_MAX_FREE_ENTRIES MAX_FOR_N_BITS(ARRAY_FREE_BITS)
+#define LIST_MAX_STRIDE MAX_FOR_N_BITS(LIST_STRIDE_BITS-1)
+#define LIST_MIN_STRIDE (~MAX_FOR_N_BITS(LIST_STRIDE_BITS-1))
+#define LIST_MAX_DATA_REFCOUNT MAX_FOR_N_BITS(LIST_REFCOUNT_BITS)
+#define LIST_MAX_FREE_ENTRIES MAX_FOR_N_BITS(LIST_FREE_BITS)
 
 #define Num_t double
 #define Num32_t float
@@ -37,16 +37,16 @@ typedef union {
 
 typedef struct {
     void *data;
-    // All of the following fields add up to 64 bits, which means that array
+    // All of the following fields add up to 64 bits, which means that list
     // structs can be passed in two 64-bit registers. C will handle doing the
     // bit arithmetic to extract the necessary values, which is cheaper than
     // spilling onto the stack and needing to retrieve data from the stack.
-    int64_t length:ARRAY_LENGTH_BITS;
-    uint8_t free:ARRAY_FREE_BITS;
+    int64_t length:LIST_LENGTH_BITS;
+    uint8_t free:LIST_FREE_BITS;
     bool atomic:1;
-    uint8_t data_refcount:ARRAY_REFCOUNT_BITS;
-    int16_t stride:ARRAY_STRIDE_BITS;
-} Array_t;
+    uint8_t data_refcount:LIST_REFCOUNT_BITS;
+    int16_t stride:LIST_STRIDE_BITS;
+} List_t;
 
 typedef struct {
     uint32_t occupied:1, index:31;
@@ -63,7 +63,7 @@ typedef struct {
 } bucket_info_t;
 
 typedef struct table_s {
-    Array_t entries;
+    List_t entries;
     uint64_t hash;
     bucket_info_t *bucket_info;
     struct table_s *fallback;
@@ -101,12 +101,12 @@ typedef struct {
 
 typedef struct {
     PathType_t type;
-    Array_t components;
+    List_t components;
 } Path_t;
 #define OptionalPath_t Path_t
 
 #define OptionalBool_t uint8_t
-#define OptionalArray_t Array_t
+#define OptionalList_t List_t
 #define OptionalTable_t Table_t
 #define OptionalText_t Text_t
 #define OptionalClosure_t Closure_t

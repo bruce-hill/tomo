@@ -35,7 +35,7 @@ Pattern matching functions work with a type called `PatternMatch` that has three
 
 - `text`: The full text of the match.
 - `index`: The index in the text where the match was found.
-- `captures`: An array containing the matching text of each non-literal pattern group.
+- `captures`: A list containing the matching text of each non-literal pattern group.
 
 See [Text Functions](text.md#Text-Functions) for the full API documentation.
 
@@ -229,7 +229,7 @@ func find_patterns(text:Text, pattern:Pat -> [PatternMatch])
 - `pattern`: The pattern to match.
 
 **Returns:**
-An array of `PatternMatch` objects.
+A list of `PatternMatch` objects.
 
 **Example:**
 ```tomo
@@ -314,7 +314,7 @@ func matches_pattern(text:Text, pattern:Pat -> Bool)
 ---
 
 ### `pattern_captures`
-Returns an array of pattern captures for the given pattern.
+Returns a list of pattern captures for the given pattern.
 
 ```tomo
 func pattern_captures(text:Text, pattern:Pat -> [Text]?)
@@ -324,7 +324,7 @@ func pattern_captures(text:Text, pattern:Pat -> [Text]?)
 - `pattern`: The pattern to match.
 
 **Returns:**
-An optional array of matched pattern captures. Returns `none` if the text does
+An optional list of matched pattern captures. Returns `none` if the text does
 not match the pattern.
 
 **Example:**
@@ -384,7 +384,7 @@ func split_pattern(text:Text, pattern:Pat -> [Text])
 - `pattern`: The pattern to use as a separator.
 
 **Returns:**
-An array of text segments.
+A list of text segments.
 
 **Example:**
 ```tomo

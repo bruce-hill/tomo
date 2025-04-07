@@ -3,7 +3,7 @@
 `Text` is Tomo's datatype to represent text. The name `Text` is used instead of
 "string" because Tomo text represents immutable, normalized unicode data with
 fast indexing that has an implementation that is efficient for concatenation.
-These are _not_ C-style NUL-terminated character arrays. GNU libunistring is
+These are _not_ C-style NUL-terminated character lists. GNU libunistring is
 used for full Unicode functionality (grapheme cluster counts, capitalization,
 etc.).
 
@@ -12,8 +12,8 @@ etc.).
 Internally, Tomo text's implementation is based on [Raku/MoarVM's
 strings](https://docs.raku.org/language/unicode) and [Boehm et al's
 Cords](https://www.cs.tufts.edu/comp/150FP/archive/hans-boehm/ropes.pdf).
-Strings store their grapheme cluster count and either a compact array of 8-bit
-ASCII characters (for ASCII text), an array of 32-bit normal-form grapheme
+Strings store their grapheme cluster count and either a compact list of 8-bit
+ASCII characters (for ASCII text), a list of 32-bit normal-form grapheme
 cluster values (see below), or a (roughly) balanced binary tree concatenation
 of two texts. The upside is that repeated concatenations are typically a
 constant-time operation, which will occasionally require a small rebalancing
@@ -33,7 +33,7 @@ non-ASCII text is stored as 32-bit normal-form graphemes. A normal-form
 grapheme is either a positive value representing a Unicode codepoint that
 corresponds to a grapheme cluster (most Unicode letters used in natural
 language fall into this category after normalization) or a negative value
-representing an index into an internal array of "synthetic grapheme cluster
+representing an index into an internal list of "synthetic grapheme cluster
 codepoints." Here are some examples:
 
 - `A` is a normal codepoint that is also a grapheme cluster, so it would
@@ -223,7 +223,7 @@ shorthand for `${}"foo"`. Singly quoted text with no dollar sign (e.g.
 Concatenation in the typical case is a fast operation: `"{x}{y}"` or `x ++ y`.
 
 Because text concatenation is typically fast, there is no need for a separate
-"string builder" class in the language and no need to use an array of text
+"string builder" class in the language and no need to use a list of text
 fragments.
 
 ### Text Length
@@ -433,7 +433,7 @@ for chunk in text.by_split_any(",;"):
 ---
 
 ### `bytes`
-Converts a `Text` value to an array of bytes representing a UTF8 encoding of
+Converts a `Text` value to a list of bytes representing a UTF8 encoding of
 the text.
 
 ```tomo
@@ -443,7 +443,7 @@ func bytes(text: Text -> [Byte])
 - `text`: The text to be converted to UTF8 bytes.
 
 **Returns:**  
-An array of bytes (`[Byte]`) representing the text in UTF8 encoding.
+A list of bytes (`[Byte]`) representing the text in UTF8 encoding.
 
 **Example:**  
 ```tomo
@@ -481,7 +481,7 @@ func caseless_equals(a: Text, b:Text, language:Text = "C" -> Bool)
 ---
 
 ### `codepoint_names`
-Returns an array of the names of each codepoint in the text.
+Returns a list of the names of each codepoint in the text.
 
 ```tomo
 func codepoint_names(text: Text -> [Text])
@@ -490,7 +490,7 @@ func codepoint_names(text: Text -> [Text])
 - `text`: The text from which to extract codepoint names.
 
 **Returns:**  
-An array of codepoint names (`[Text]`).
+A list of codepoint names (`[Text]`).
 
 **Example:**  
 ```tomo
@@ -664,14 +664,14 @@ func has(text: Text, target: Text -> Bool)
 ---
 
 ### `join`
-Joins an array of text pieces with a specified glue.
+Joins a list of text pieces with a specified glue.
 
 ```tomo
 func join(glue: Text, pieces: [Text] -> Text)
 ```
 
 - `glue`: The text used to join the pieces.
-- `pieces`: The array of text pieces to be joined.
+- `pieces`: The list of text pieces to be joined.
 
 **Returns:**  
 A single `Text` value with the pieces joined by the glue.
@@ -739,7 +739,7 @@ exact desired length.
 ---
 
 ### `lines`
-Splits the text into an array of lines of text, preserving blank lines,
+Splits the text into a list of lines of text, preserving blank lines,
 ignoring trailing newlines, and handling `\r\n` the same as `\n`.
 
 ```tomo
@@ -749,7 +749,7 @@ func lines(text: Text -> [Text])
 - `text`: The text to be split into lines.
 
 **Returns:**  
-An array of substrings resulting from the split.
+A list of substrings resulting from the split.
 
 **Example:**  
 ```tomo
@@ -935,7 +935,7 @@ the text.
 ---
 
 ### `split`
-Splits the text into an array of substrings based on exact matches of a delimiter.
+Splits the text into a list of substrings based on exact matches of a delimiter.
 **Note:** to split based on a set of delimiter characters, use [`split_any()`](#split_any).
 
 ```tomo
@@ -947,7 +947,7 @@ func split(text: Text, delimiter: Text = "" -> [Text])
   empty text, the text will be split into individual grapheme clusters.
 
 **Returns:**  
-An array of subtexts resulting from the split.
+A list of subtexts resulting from the split.
 
 **Example:**  
 ```tomo
@@ -961,7 +961,7 @@ An array of subtexts resulting from the split.
 ---
 
 ### `split_any`
-Splits the text into an array of substrings at one or more occurrences of a set
+Splits the text into a list of substrings at one or more occurrences of a set
 of delimiter characters (grapheme clusters).
 **Note:** to split based on an exact delimiter, use [`split()`](#split).
 
@@ -974,7 +974,7 @@ func split_any(text: Text, delimiters: Text = " $\t\r\n" -> [Text])
   splitting the text into chunks.
 
 **Returns:**  
-An array of subtexts resulting from the split.
+A list of subtexts resulting from the split.
 
 **Example:**  
 ```tomo
@@ -1144,7 +1144,7 @@ The uppercase version of the text.
 ---
 
 ### `utf32_codepoints`
-Returns an array of Unicode code points for UTF32 encoding of the text.
+Returns a list of Unicode code points for UTF32 encoding of the text.
 
 ```tomo
 func utf32_codepoints(text: Text -> [Int32])
@@ -1153,7 +1153,7 @@ func utf32_codepoints(text: Text -> [Int32])
 - `text`: The text from which to extract Unicode code points.
 
 **Returns:**  
-An array of 32-bit integer Unicode code points (`[Int32]`).
+A list of 32-bit integer Unicode code points (`[Int32]`).
 
 **Example:**  
 ```tomo

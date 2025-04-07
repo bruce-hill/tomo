@@ -3,6 +3,6 @@
 typedef struct {
     Text_t text;
     Int_t index;
-    Array_t captures;
+    List_t captures;
 } XMatch;
 
