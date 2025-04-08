@@ -2,11 +2,15 @@
 !/examples/*.*
 !/examples/*/*.*
 /examples/*/*.so
+/examples/*/*.h
+!/examples/!(*)/*.h
 
 /lib/*/*
 !/lib/*.*
 !/lib/*/*.*
 /lib/*/*.so
+/lib/*/*.h
+!/lib/!(*)/*.h
 
 .build
 build
