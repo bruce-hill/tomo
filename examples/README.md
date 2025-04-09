@@ -10,6 +10,7 @@ This folder contains some example programs and libraries.
 - [http-server](http-server/): A multithreaded HTTP server.
 - [tomodeps](tomodeps/): A library for finding Tomo dependencies.
 - [tomo-install](tomo-install/): A library for installing Tomo dependencies.
+- [wrap](wrap/): A command-line program to wrap text.
 
 ## Example Libraries
 
@@ -20,4 +21,3 @@ Libraries can be installed with `tomo -IL ./library-folder`
 - [ini](ini/): An INI configuration file reader tool.
 - [log](log/): A logging utility.
 - [vectors](vectors/): A math vector library.
-- [wrap](wrap/): A command-line program to wrap text.
