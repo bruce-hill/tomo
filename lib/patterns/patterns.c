@@ -1,6 +1,8 @@
 // Logic for text pattern matching
 
 #include <ctype.h>
+#include <string.h>
+#include <strings.h>
 #include <sys/param.h>
 #include <tomo/tomo.h>
 #include <unictype.h>
