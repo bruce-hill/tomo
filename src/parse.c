@@ -24,6 +24,7 @@
 #include "stdlib/integers.h"
 #include "stdlib/paths.h"
 #include "stdlib/print.h"
+#include "stdlib/stacktrace.h"
 #include "stdlib/stdlib.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
@@ -163,7 +164,7 @@ static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, ch
     highlight_error((ctx)->file, (start), (end), "\x1b[31;1;7m", 2, USE_COLOR); \
     fputs("\n", stderr); \
     if (getenv("TOMO_STACKTRACE")) \
-        print_stack_trace(stderr, 1, 3); \
+        print_stacktrace(stderr, 1); \
     if ((ctx)->on_err) \
         longjmp(*((ctx)->on_err), 1); \
     raise(SIGABRT); \

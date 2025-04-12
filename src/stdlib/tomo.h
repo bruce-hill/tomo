@@ -7,7 +7,6 @@
 #include <stdint.h>
 #include <sys/param.h>
 
-#include "lists.h"
 #include "bools.h"
 #include "bytes.h"
 #include "c_strings.h"
@@ -15,6 +14,7 @@
 #include "enums.h"
 #include "functiontype.h"
 #include "integers.h"
+#include "lists.h"
 #include "memory.h"
 #include "metamethods.h"
 #include "nums.h"
@@ -23,6 +23,7 @@
 #include "pointers.h"
 #include "print.h"
 #include "siphash.h"
+#include "stacktrace.h"
 #include "structs.h"
 #include "tables.h"
 #include "text.h"

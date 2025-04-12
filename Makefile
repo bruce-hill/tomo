@@ -43,7 +43,7 @@ G=-ggdb
 O=-Og
 CFLAGS=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO)
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
-LDLIBS=-lgc -lcord -lm -lunistring -lgmp
+LDLIBS=-lgc -lcord -lm -lunistring -lgmp -lbacktrace
 LIBTOMO_FLAGS=-shared
 
 ifeq ($(OS),OpenBSD)
@@ -123,7 +123,7 @@ check-gcc:
 		exit 1; \
 	fi
 
-install: build/tomo build/$(LIB_FILE)
+install-files: build/tomo build/$(LIB_FILE)
 	@if ! echo "$$PATH" | tr ':' '\n' | grep -qx "$(PREFIX)/bin"; then \
 		printf "\033[31;1mError: '$(PREFIX)' is not in your \$$PATH variable!\033[m\n" >&2; \
 		printf "\033[31;1mSpecify a different prefix with 'make PREFIX=... install'\033[m\n" >&2; \
@@ -137,10 +137,14 @@ install: build/tomo build/$(LIB_FILE)
 	rm -f "$(PREFIX)/bin/tomo"
 	cp -v build/tomo "$(PREFIX)/bin/"
 	cp -v docs/tomo.1 "$(PREFIX)/man/man1/"
+
+install-libs: build/tomo
 	./build/tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/uuid lib/core
+
+install: install-files install-libs
 
 uninstall:
 	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/include/tomo" "$(PREFIX)/lib/$(LIB_FILE) "$(PREFIX)/share/tomo"; \
 
 .SUFFIXES:
-.PHONY: all clean install uninstall test tags examples deps check-gcc
+.PHONY: all clean install install-files install-libs uninstall test tags examples deps check-gcc

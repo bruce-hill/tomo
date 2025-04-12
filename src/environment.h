@@ -4,10 +4,11 @@
 
 #include <gc/cord.h>
 
-#include "types.h"
 #include "stdlib/print.h"
+#include "stdlib/stacktrace.h"
 #include "stdlib/stdlib.h"
 #include "stdlib/tables.h"
+#include "types.h"
 
 typedef struct {
     CORD local_typedefs;
@@ -79,7 +80,7 @@ env_t *namespace_env(env_t *env, const char *namespace_name);
     if (_f && start && end) \
         highlight_error(_f, start, end, "\x1b[31;1m", 2, USE_COLOR); \
     if (getenv("TOMO_STACKTRACE")) \
-        print_stack_trace(stderr, 1, 3); \
+        print_stacktrace(stderr, 1); \
     raise(SIGABRT); \
     exit(1); \
 })

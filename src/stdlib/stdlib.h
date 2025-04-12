@@ -10,6 +10,7 @@
 #include "datatypes.h"
 #include "files.h"
 #include "print.h"
+#include "stacktrace.h"
 #include "types.h"
 #include "util.h"
 
@@ -29,12 +30,14 @@ void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, int spe
 
 #define fail(...) ({ \
     fflush(stdout); \
-    if (USE_COLOR) fputs("\x1b[31;7m ==================== ERROR ==================== \n\n\x1b[0;1m", stderr); \
+    if (USE_COLOR) fputs("\x1b[31;7m ==================== ERROR ==================== \033[m\n\n", stderr); \
     else fputs("==================== ERROR ====================\n\n", stderr); \
-    fprint_inline(stderr, __VA_ARGS__); \
-    if (USE_COLOR) fputs("\x1b[m", stderr); \
-    fputs("\n\n", stderr); \
-    print_stack_trace(stderr, 2, 4); \
+    print_stacktrace(stderr, 2); \
+    if (USE_COLOR) fputs("\n\x1b[31;1m", stderr); \
+    else fputs("\n", stderr); \
+    fprint_inline(stderr, "Error: ", __VA_ARGS__); \
+    if (USE_COLOR) fputs("\x1b[m\n", stderr); \
+    else fputs("\n", stderr); \
     fflush(stderr); \
     raise(SIGABRT); \
     _exit(1); \
@@ -53,9 +56,7 @@ void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, int spe
         fputs("\n", stderr); \
     } \
     if (USE_COLOR) fputs("\x1b[m", stderr); \
-    print_stack_trace(stderr, 2, 4); \
-    fputs("\n\n", stderr); \
-    print_stack_trace(stderr, 2, 4); \
+    print_stacktrace(stderr, 2); \
     fflush(stderr); \
     raise(SIGABRT); \
     _exit(1); \
@@ -86,7 +87,6 @@ _Noreturn void tomo_exit(Text_t text, int32_t status);
 
 Closure_t spawn(Closure_t fn);
 bool pop_flag(char **argv, int *i, const char *flag, Text_t *result);
-void print_stack_trace(FILE *out, int start, int stop);
 void sleep_num(double seconds);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

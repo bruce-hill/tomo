@@ -92,7 +92,7 @@ Tomo has a very small set of dependencies:
 - [GNU multiple precision arithmetic library](https://gmplib.org/manual/index)
   for arbitrary precision integer math (version 6.2.1 or higher)
 - [Patchelf](https://github.com/NixOS/patchelf) for building tomo libraries
-- [Binutils](https://www.gnu.org/software/binutils/) for stack traces.
+- [libbacktrace](https://github.com/ianlancetaylor/libbacktrace) for stack traces.
 - and libc/libm, which should definitely already be installed.
 
 If you're feeling incautious, you can run `make deps` or

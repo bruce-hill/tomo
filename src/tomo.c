@@ -64,7 +64,7 @@ static OptionalText_t
                           " -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -fPIC -ggdb"
                           " -DGC_THREADS"
                           " -I$HOME/.local/include -I$HOME/.local/share/tomo/installed -I/usr/local/include"),
-            ldlibs = Text("-lgc -lm -lgmp -lunistring -ltomo"),
+            ldlibs = Text("-lgc -lm -lgmp -lunistring -lbacktrace -ltomo"),
             ldflags = Text("-Wl,-rpath,'$ORIGIN',-rpath,$HOME/.local/share/tomo/lib,-rpath,$HOME/.local/lib,-rpath,/usr/local/lib "
                            "-L$HOME/.local/lib -L$HOME/.local/share/tomo/lib -L/usr/local/lib"),
             optimization = Text("2"),
@@ -759,7 +759,9 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
                            paths_str(object_files), " -x c - -o ", exe_path);
     CORD program = CORD_all(
         "extern int ", main_binding->code, "$parse_and_run(int argc, char *argv[]);\n"
+        "extern void initialize_stacktrace(const char *program);\n"
         "int main(int argc, char *argv[]) {\n"
+        "\tinitialize_stacktrace(argv[0]);\n"
         "\treturn ", main_binding->code, "$parse_and_run(argc, argv);\n"
         "}\n"
     );

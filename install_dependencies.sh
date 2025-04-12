@@ -48,19 +48,19 @@ fi
 
 # Install packages
 case "$PKG_MGR" in
-    apt) $SUDO apt install libgc-dev libunistring-dev binutils patchelf libgmp-dev ;;
-    dnf) $SUDO dnf install gc-devel libunistring-devel binutils patchelf gmp-devel ;;
-    pacman) $SUDO pacman -S gc libunistring binutils patchelf gmp ;;
-    yay|paru) $PKG_MGR -S gc libunistring binutils patchelf gmp ;;
-    xbps) $SUDO xbps-install -S gc libunistring binutils patchelf gmp ;;
-    pkg_add) $SUDO pkg_add boehm-gc libunistring binutils patchelf gmp ;;
-    freebsd-pkg) $SUDO pkg install boehm-gc libunistring binutils patchelf gmp ;;
-    brew) brew install bdw-gc libunistring binutils patchelf gmp ;;
-    macports) $SUDO port install boehm-gc libunistring binutils patchelf gmp ;;
-    zypper) $SUDO zypper install gc-devel libunistring-devel binutils patchelf gmp-devel ;;
-    nix) nix-env -iA nixpkgs.boehm-gc nixpkgs.libunistring nixpkgs.binutils nixpkgs.patchelf nixpkgs.gmp ;;
-    spack) spack install boehm-gc libunistring binutils patchelf gmp ;;
-    conda) conda install boehm-gc libunistring binutils patchelf gmp ;;
+    apt) $SUDO apt install libgc-dev libunistring-dev libbacktrace patchelf libgmp-dev ;;
+    dnf) $SUDO dnf install gc-devel libunistring-devel libbacktrace patchelf gmp-devel ;;
+    pacman) $SUDO pacman -S gc libunistring libbacktrace patchelf gmp ;;
+    yay|paru) $PKG_MGR -S gc libunistring libbacktrace patchelf gmp ;;
+    xbps) $SUDO xbps-install -S gc libunistring libbacktrace patchelf gmp ;;
+    pkg_add) $SUDO pkg_add boehm-gc libunistring libbacktrace patchelf gmp ;;
+    freebsd-pkg) $SUDO pkg install boehm-gc libunistring libbacktrace patchelf gmp ;;
+    brew) brew install bdw-gc libunistring libbacktrace patchelf gmp ;;
+    macports) $SUDO port install boehm-gc libunistring libbacktrace patchelf gmp ;;
+    zypper) $SUDO zypper install gc-devel libunistring-devel libbacktrace patchelf gmp-devel ;;
+    nix) nix-env -iA nixpkgs.boehm-gc nixpkgs.libunistring nixpkgs.libbacktrace nixpkgs.patchelf nixpkgs.gmp ;;
+    spack) spack install boehm-gc libunistring libbacktrace patchelf gmp ;;
+    conda) conda install boehm-gc libunistring libbacktrace patchelf gmp ;;
     *)
         echo "Unknown package manager: $PKG_MGR" >&2
         exit 1

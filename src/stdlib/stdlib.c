@@ -12,16 +12,17 @@
 #include <sys/param.h>
 #include <time.h>
 
-#include "print.h"
 #include "bools.h"
 #include "files.h"
 #include "functiontype.h"
 #include "integers.h"
-#include "optionals.h"
 #include "metamethods.h"
 #include "nums.h"
+#include "optionals.h"
 #include "paths.h"
+#include "print.h"
 #include "siphash.h"
+#include "stacktrace.h"
 #include "stdlib.h"
 #include "tables.h"
 #include "text.h"
@@ -48,7 +49,7 @@ static _Noreturn void signal_handler(int sig, siginfo_t *, void *)
     fflush(stdout);
     if (USE_COLOR) fputs("\x1b[31;7m ===== ILLEGAL INSTRUCTION ===== \n\n\x1b[m", stderr);
     else fputs("===== ILLEGAL INSTRUCTION =====\n\n", stderr);
-    print_stack_trace(stderr, 3, 4);
+    print_stacktrace(stderr, 3);
     fflush(stderr);
     raise(SIGABRT);
     _exit(1);
@@ -441,75 +442,6 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
 #pragma GCC diagnostic pop
 #endif
 
-static void print_stack_line(FILE *out, OptionalText_t fn_name, const char *filename, int64_t line_num)
-{
-    // NOTE: this function is a bit inefficient. Each time we print a line, we
-    // do a linear scan through the whole file. However, performance shouldn't
-    // really matter if we only print stack lines when there's a crash.
-    if (filename) {
-        fprint_inline(out, "\033[34mFile\033[m \033[35;1m", filename, "\033[m");
-        if (line_num >= 1)
-            fprint_inline(out, "\033[34m line\033[m \033[35;1m", line_num, "\033[m");
-    }
-    if (fn_name.length > 0) {
-        if (filename)
-            fprint_inline(out, "\033[34m, in \033[m \033[36;1m", fn_name, "\033[m");
-        else
-            fprint_inline(out, "\033[36;1m", fn_name, "\033[m");
-    }
-    fprint_inline(out, "\n");
-
-    FILE *f = fopen(filename, "r");
-    if (!f) return;
-    char *line = NULL;
-    size_t size = 0;
-    ssize_t nread;
-    int64_t cur_line = 1;
-    while ((nread = getline(&line, &size, f)) != -1) {
-        if (line[strlen(line)-1] == '\n')
-            line[strlen(line)-1] = '\0';
-
-        if (cur_line >= line_num)
-            fprint(out, "\033[33;1m", line, "\033[m");
-
-        cur_line += 1;
-        if (cur_line > line_num)
-            break;
-    }
-    if (line) free(line);
-    fclose(f);
-}
-
-public void print_stack_trace(FILE *out, int start, int stop)
-{
-    // Print stack trace:
-    void *stack[1024];
-    int64_t size = (int64_t)backtrace(stack, sizeof(stack)/sizeof(stack[0]));
-    char **strings = strings = backtrace_symbols(stack, size);
-    for (int64_t i = start; i < size - stop; i++) {
-        char *filename = strings[i];
-        char *paren = strings[i] + strcspn(strings[i], "(");
-        char *addr_end = paren + 1 + strcspn(paren + 1, ")");
-        ptrdiff_t offset = strtol(paren + 1, &addr_end, 16) - 1;
-        const char *cmd = String("addr2line -e ", string_slice(filename, strcspn(filename, "(")), " -is +", hex((uint64_t)offset));
-        FILE *fp = popen(cmd, "r");
-        OptionalText_t fn_name = get_function_name(stack[i]);
-        const char *src_filename = NULL;
-        int64_t line_number = 0;
-        if (fp) {
-            char buf[PATH_MAX + 10] = {};
-            if (fgets(buf, sizeof(buf), fp)) {
-                char *saveptr, *line_num_str;
-                if ((src_filename=strtok_r(buf, ":", &saveptr))
-                    && (line_num_str=strtok_r(NULL, ":", &saveptr)))
-                    line_number = atoi(line_num_str);
-            }
-            pclose(fp);
-        }
-        print_stack_line(out, fn_name, src_filename, line_number);
-    }
-}
-
 public _Noreturn void fail_text(Text_t message)
 {
     fail(message);
@@ -577,7 +509,7 @@ public void test_value(const char *filename, int64_t start, int64_t end, const v
 
     bool success = Text$equal_values(expr_text, expected_text);
     if (!success) {
-        print_stack_trace(stderr, 2, 4);
+        print_stacktrace(stderr, 2);
         fprint(stderr, "");
         fflush(stderr);
 
