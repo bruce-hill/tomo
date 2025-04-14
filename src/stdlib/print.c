@@ -11,7 +11,8 @@ public int _print_char(FILE *f, char c)
 #else
 #define ESC(e) "'\\" e "'"
 #endif
-    const char *named[256] = {['\n']=ESC("n"), ['\t']=ESC("t"), ['\r']=ESC("r"),
+    const char *named[256] = {['\'']=ESC("'"), ['\\']=ESC("\\"),
+        ['\n']=ESC("n"), ['\t']=ESC("t"), ['\r']=ESC("r"),
         ['\033']=ESC("e"), ['\v']=ESC("v"), ['\a']=ESC("a"), ['\b']=ESC("b")};
     const char *name = named[(uint8_t)c];
     if (name != NULL)
@@ -34,7 +35,8 @@ public int _print_quoted(FILE *f, quoted_t quoted)
 #else
 #define ESC(e) "\\" e
 #endif
-    const char *named[256] = {['"']=ESC("\""), ['\n']=ESC("n"), ['\t']=ESC("t"), ['\r']=ESC("r"),
+    const char *named[256] = {['"']=ESC("\""), ['\\']=ESC("\\"),
+        ['\n']=ESC("n"), ['\t']=ESC("t"), ['\r']=ESC("r"),
         ['\033']=ESC("e"), ['\v']=ESC("v"), ['\a']=ESC("a"), ['\b']=ESC("b")};
     int printed =
 #if PRINT_COLOR
