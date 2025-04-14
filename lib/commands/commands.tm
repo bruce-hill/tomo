@@ -15,7 +15,7 @@ enum ExitType(Exited(status:Int32), Signaled(signal:Int32), Failed)
         if not e.succeeded()
             fail(message or "Program failed: $e")
 
-struct ProgramResult(stdout:[Byte], stderr:[Byte], exit_type:ExitType)
+struct ProgramResult(output:[Byte], errors:[Byte], exit_type:ExitType)
     func or_fail(r:ProgramResult, message:Text?=none -> ProgramResult)
         when r.exit_type is Exited(status)
             if status == 0
@@ -26,7 +26,7 @@ struct ProgramResult(stdout:[Byte], stderr:[Byte], exit_type:ExitType)
     func output_text(r:ProgramResult, trim_newline=yes -> Text?)
         when r.exit_type is Exited(status)
             if status == 0
-                if text := Text.from_bytes(r.stdout)
+                if text := Text.from_bytes(r.output)
                     if trim_newline
                         text = text.without_suffix("\n")
                     return text
@@ -36,7 +36,7 @@ struct ProgramResult(stdout:[Byte], stderr:[Byte], exit_type:ExitType)
     func error_text(r:ProgramResult -> Text?)
         when r.exit_type is Exited(status)
             if status == 0
-                return Text.from_bytes(r.stderr)
+                return Text.from_bytes(r.errors)
         else return none
         return none
 
@@ -54,17 +54,17 @@ struct Command(command:Text, args:[Text]=[], env:{Text=Text}={})
         if input.length > 0
             (&input_bytes).insert_all(input.bytes())
 
-        stdout : [Byte]
-        stderr : [Byte]
-        status := run_command(command.command, command.args, command.env, input_bytes, &stdout, &stderr)
+        output : [Byte]
+        errors : [Byte]
+        status := run_command(command.command, command.args, command.env, input_bytes, &output, &errors)
 
         if C_code:Bool(WIFEXITED(_$status))
-            return ProgramResult(stdout, stderr, ExitType.Exited(C_code:Int32(WEXITSTATUS(_$status))))
+            return ProgramResult(output, errors, ExitType.Exited(C_code:Int32(WEXITSTATUS(_$status))))
 
         if C_code:Bool(WIFSIGNALED(_$status))
-            return ProgramResult(stdout, stderr, ExitType.Signaled(C_code:Int32(WTERMSIG(_$status))))
+            return ProgramResult(output, errors, ExitType.Signaled(C_code:Int32(WTERMSIG(_$status))))
 
-        return ProgramResult(stdout, stderr, ExitType.Failed)
+        return ProgramResult(output, errors, ExitType.Failed)
 
     func run(command:Command, -> ExitType)
         status := run_command(command.command, command.args, command.env, none, none, none)
@@ -83,7 +83,7 @@ struct Command(command:Text, args:[Text]=[], env:{Text=Text}={})
     func get_output_bytes(command:Command, input="", input_bytes:[Byte]=[] -> [Byte]?)
         result := command.result(input=input, input_bytes=input_bytes)
         when result.exit_type is Exited(status)
-            if status == 0 return result.stdout
+            if status == 0 return result.output
             return none
         else return none
 
