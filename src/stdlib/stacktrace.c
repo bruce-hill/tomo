@@ -102,7 +102,7 @@ public void print_stacktrace(FILE *out, int offset)
     static void *stack[1024];
     int64_t size = (int64_t)backtrace(stack, sizeof(stack)/sizeof(stack[0]));
     char **strings = backtrace_symbols(stack, size);
-    bool start_printing = false;
+    bool main_func_onwards = false;
     for (int64_t i = size-1; i > offset; i--) {
         Dl_info info;
         void *call_address = stack[i]-1;
@@ -114,23 +114,21 @@ public void print_stacktrace(FILE *out, int offset)
                 const char *function = NULL, *filename = NULL;
                 long line_num = 0;
                 if (fparse(fp, &function, "\n", &filename, ":", &line_num) == NULL) {
-                    if (strstr(function, "$main$parse_and_run")) {
-                        start_printing = true;
-                        continue;
-                    }
-                    if (start_printing)
+                    if (ends_with(function, "$main"))
+                        main_func_onwards = true;
+                    if (main_func_onwards)
                         _print_stack_frame(out, cwd, install_dir, function, filename, line_num);
                 } else {
-                    if (start_printing)
+                    if (main_func_onwards)
                         _print_stack_frame(out, cwd, install_dir, NULL, NULL, line_num);
                 }
                 pclose(fp);
             }
         } else {
-            if (start_printing)
+            if (main_func_onwards)
                 _print_stack_frame(out, cwd, install_dir, NULL, NULL, 0);
         }
-        if (start_printing && i - 1 > offset) fputs("\n", out);
+        if (main_func_onwards && i - 1 > offset) fputs("\n", out);
     }
     free(strings);
 }
