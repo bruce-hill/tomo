@@ -59,7 +59,7 @@ static OptionalBool_t verbose = false,
 
 static OptionalText_t 
             show_codegen = NONE_TEXT,
-            cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs "
+            cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs -Wno-parentheses-equality "
                           " -fno-signed-zeros -fno-finite-math-only "
                           " -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -fPIC -ggdb"
                           " -DGC_THREADS"
