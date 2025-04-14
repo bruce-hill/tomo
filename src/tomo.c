@@ -500,6 +500,12 @@ void build_library(Text_t lib_dir_name)
         system("mkdir -p ~/.local/share/tomo/lib/");
         system(String("ln -f -s ../installed/'", lib_dir_name, "'/lib'", lib_dir_name, SHARED_SUFFIX,
                       "'  ~/.local/share/tomo/lib/lib'", lib_dir_name, SHARED_SUFFIX, "'"));
+        // If we have `debugedit` on this system, use it to remap the debugging source information
+        // to point to the installed version of the source file. Otherwise, fail silently.
+        system(String("debugedit -b ", library_directory,
+                      " -d ~/.local/share/tomo/installed/", lib_dir_name,
+                      " ~/.local/share/tomo/installed/", lib_dir_name, "/lib", lib_dir_name, ".so"
+                      " 2>/dev/null >/dev/null"));
         print("Installed \033[1m", lib_dir_name, "\033[m to ~/.local/share/tomo/installed");
     }
 }
