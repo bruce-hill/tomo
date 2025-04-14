@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 
-int _print_char(FILE *f, char c)
+public int _print_char(FILE *f, char c)
 {
 #if PRINT_COLOR
 #define ESC(e) "\033[35m'\033[34;1m\\" e "\033[0;35m'\033[m"
@@ -27,14 +27,14 @@ int _print_char(FILE *f, char c)
 #undef ESC
 }
 
-int _print_quoted(FILE *f, quoted_t quoted)
+public int _print_quoted(FILE *f, quoted_t quoted)
 {
 #if PRINT_COLOR
 #define ESC(e) "\033[34;1m\\" e "\033[0;35m"
 #else
 #define ESC(e) "\\" e
 #endif
-    const char *named[256] = {['\n']=ESC("n"), ['\t']=ESC("t"), ['\r']=ESC("r"),
+    const char *named[256] = {['"']=ESC("\""), ['\n']=ESC("n"), ['\t']=ESC("t"), ['\r']=ESC("r"),
         ['\033']=ESC("e"), ['\v']=ESC("v"), ['\a']=ESC("a"), ['\b']=ESC("b")};
     int printed =
 #if PRINT_COLOR
