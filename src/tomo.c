@@ -62,6 +62,9 @@ static OptionalText_t
             cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs -Wno-parentheses-equality "
                           " -fno-signed-zeros -fno-finite-math-only "
                           " -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -fPIC -ggdb"
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
+                          " -D_BSD_SOURCE"
+#endif
                           " -DGC_THREADS"
                           " -I$HOME/.local/include -I$HOME/.local/share/tomo/installed -I/usr/local/include"),
             ldlibs = Text("-lgc -lm -lgmp -lunistring -lbacktrace -ltomo"),
