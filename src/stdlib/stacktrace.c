@@ -1,18 +1,19 @@
-#include <backtrace.h>
+#include <dlfcn.h>
 #include <err.h>
+#include <execinfo.h>
 #include <gc.h>
-#include <signal.h>
 #include <limits.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+#include "print.h"
+#include "simpleparse.h"
 #include "util.h"
 
 extern bool USE_COLOR;
-
-static struct backtrace_state *bt_state = NULL;
 
 static void fprint_context(FILE *out, const char *filename, int lineno, int context_before, int context_after)
 {
@@ -44,31 +45,49 @@ static void fprint_context(FILE *out, const char *filename, int lineno, int cont
     fclose(f);
 }
 
-typedef struct stack_info_s {
-    const char *function, *filename;
-    int lineno;
-    struct stack_info_s *next;
-} stack_info_t;
-
-// Simple callback to print each frame
-static int print_callback(void *data, uintptr_t pc, const char *filename, int lineno, const char *function)
+static void _print_stack_frame(FILE *out, const char *cwd, const char *install_dir, const char *function, const char *filename, int lineno)
 {
-    (void)pc;
-    stack_info_t *info = GC_MALLOC(sizeof(stack_info_t));
-    info->next = *(stack_info_t**)data;
-    info->function = function;
-    info->filename = filename;
-    info->lineno = lineno;
-    *(stack_info_t**)data = info;
-    return 0;
+    if (function == NULL) {
+        fprint(out, USE_COLOR ? "\033[2m...unknown function...\033[m" : "...unknown function...");
+        return;
+    }
+
+    function = String(string_slice(function, strcspn(function, "+")));
+    if (function[0] == '\0') function = "???";
+
+    char *function_display = GC_MALLOC_ATOMIC(strlen(function));
+    memcpy(function_display, function, strlen(function)+1);
+    function_display += strcspn(function_display, "$");
+    function_display += strspn(function_display, "$");
+    function_display += strcspn(function_display, "$");
+    function_display += strspn(function_display, "$");
+    for (char *p = function_display; *p; p++) {
+        if (*p == '$') *p = '.';
+    }
+
+    if (filename) {
+        if (strncmp(filename, cwd, strlen(cwd)) == 0)
+            filename += strlen(cwd);
+
+        fprintf(out, USE_COLOR ? "\033[1mIn \033[33m%s()\033[37m" : "In %s()", function_display);
+        if (filename) {
+            if (install_dir[0] && strncmp(filename, install_dir, strlen(install_dir)) == 0)
+                fprintf(out, USE_COLOR ? " in library \033[35m%s:%d" : " in library %s:%d",
+                        filename + strlen(install_dir), lineno);
+            else
+                fprintf(out, USE_COLOR ? " in \033[35m%s:%d" : " in %s:%d", filename, lineno);
+        }
+        fprintf(out, USE_COLOR ? "\033[m\n" : "\n");
+        if (filename)
+            fprint_context(out, filename, lineno, 3, 1);
+    } else {
+        fprint(out, "LINE: ", function);
+    }
 }
 
+__attribute__ ((noinline))
 public void print_stacktrace(FILE *out, int offset)
 {
-    stack_info_t *backwards = NULL;
-
-    backtrace_full(bt_state, offset, print_callback, NULL, &backwards);
-
     char cwd[PATH_MAX];
     if (getcwd(cwd, sizeof(cwd)) == NULL)
         errx(1, "Path too large!");
@@ -78,49 +97,42 @@ public void print_stacktrace(FILE *out, int offset)
     cwd[cwd_len++] = '/';
     cwd[cwd_len] = '\0';
 
-    // Skip C entrypoint stuff:
-    while (backwards && backwards->function == NULL)
-        backwards = backwards->next;
+    const char *install_dir = String(getenv("HOME"), "/.local/share/tomo/installed/");
 
-    if (backwards && strstr(backwards->function, "$parse_and_run"))
-        backwards = backwards->next;
-
-    for (stack_info_t *frame = backwards; frame; frame = frame->next) {
-        while (frame && frame->function == NULL) {
-            fprintf(out, USE_COLOR ? "\033[2m... unknown function ...\033[m\n" : "... unknown function ...\n");
-            if (frame->next)
-                fprintf(out, "\n");
-            frame = frame->next;
+    static void *stack[1024];
+    int64_t size = (int64_t)backtrace(stack, sizeof(stack)/sizeof(stack[0]));
+    char **strings = backtrace_symbols(stack, size);
+    bool start_printing = false;
+    for (int64_t i = size-1; i > offset; i--) {
+        Dl_info info;
+        void *call_address = stack[i]-1;
+        if (dladdr(call_address, &info) && info.dli_fname) {
+            const char *file = info.dli_fname;
+            uintptr_t frame_offset = (uintptr_t)call_address - (uintptr_t)info.dli_fbase;
+            FILE *fp = popen(String("addr2line -f -e '", file, "' ", (void*)frame_offset, " 2>/dev/null"), "r");
+            if (fp) {
+                const char *function = NULL, *filename = NULL;
+                long line_num = 0;
+                if (fparse(fp, &function, "\n", &filename, ":", &line_num) == NULL) {
+                    if (strstr(function, "$main$parse_and_run")) {
+                        start_printing = true;
+                        continue;
+                    }
+                    if (start_printing)
+                        _print_stack_frame(out, cwd, install_dir, function, filename, line_num);
+                } else {
+                    if (start_printing)
+                        _print_stack_frame(out, cwd, install_dir, NULL, NULL, line_num);
+                }
+                pclose(fp);
+            }
+        } else {
+            if (start_printing)
+                _print_stack_frame(out, cwd, install_dir, NULL, NULL, 0);
         }
-        if (frame == NULL) break;
-
-        char *function_display = GC_MALLOC_ATOMIC(strlen(frame->function));
-        memcpy(function_display, frame->function, strlen(frame->function)+1);
-        function_display += strcspn(function_display, "$");
-        function_display += strspn(function_display, "$");
-        function_display += strcspn(function_display, "$");
-        function_display += strspn(function_display, "$");
-        for (char *p = function_display; *p; p++) {
-            if (*p == '$') *p = '.';
-        }
-
-        if (strncmp(frame->filename, cwd, cwd_len) == 0)
-            frame->filename += cwd_len;
-
-        fprintf(out, USE_COLOR ? "\033[1mIn \033[33m%s()\033[37m" : "In %s()", function_display);
-        if (frame->filename)
-            fprintf(out, USE_COLOR ? " in \033[35m%s:%d" : " in %s:%d", frame->filename, frame->lineno);
-        fprintf(out, USE_COLOR ? "\033[m\n" : "\n");
-        if (frame->filename)
-            fprint_context(out, frame->filename, frame->lineno, 3, 1);
-        if (frame->next)
-            fprintf(out, "\n");
+        if (start_printing && i - 1 > offset) fputs("\n", out);
     }
+    free(strings);
 }
 
-public void initialize_stacktrace(const char *program)
-{
-    bt_state = backtrace_create_state(program, 1, NULL, NULL);
-    if (!bt_state)
-        errx(1, "Failed to create stacktrace state");
-}
+// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

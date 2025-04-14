@@ -68,6 +68,7 @@
 #include <unistring/version.h>
 #include <uniwidth.h>
 
+#include "datatypes.h"
 #include "lists.h"
 #include "integers.h"
 #include "tables.h"

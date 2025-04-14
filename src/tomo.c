@@ -759,9 +759,7 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
                            paths_str(object_files), " -x c - -o ", exe_path);
     CORD program = CORD_all(
         "extern int ", main_binding->code, "$parse_and_run(int argc, char *argv[]);\n"
-        "extern void initialize_stacktrace(const char *program);\n"
         "int main(int argc, char *argv[]) {\n"
-        "\tinitialize_stacktrace(argv[0]);\n"
         "\treturn ", main_binding->code, "$parse_and_run(argc, argv);\n"
         "}\n"
     );

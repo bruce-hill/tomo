@@ -1,5 +1,5 @@
 #pragma once
 #include <stdio.h>
 
-void initialize_stacktrace(const char *program);
+__attribute__ ((noinline))
 void print_stacktrace(FILE *out, int offset);

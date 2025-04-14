@@ -32,7 +32,7 @@ void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, int spe
     fflush(stdout); \
     if (USE_COLOR) fputs("\x1b[31;7m ==================== ERROR ==================== \033[m\n\n", stderr); \
     else fputs("==================== ERROR ====================\n\n", stderr); \
-    print_stacktrace(stderr, 2); \
+    print_stacktrace(stderr, 1); \
     if (USE_COLOR) fputs("\n\x1b[31;1m", stderr); \
     else fputs("\n", stderr); \
     fprint_inline(stderr, "Error: ", __VA_ARGS__); \
@@ -56,7 +56,7 @@ void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, int spe
         fputs("\n", stderr); \
     } \
     if (USE_COLOR) fputs("\x1b[m", stderr); \
-    print_stacktrace(stderr, 2); \
+    print_stacktrace(stderr, 1); \
     fflush(stderr); \
     raise(SIGABRT); \
     _exit(1); \
