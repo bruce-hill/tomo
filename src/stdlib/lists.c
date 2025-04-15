@@ -773,7 +773,7 @@ public void List$serialize(const void *obj, FILE *out, Table_t *pointers, const 
     List_t list = *(List_t*)obj;
     int64_t len = list.length;
     Int64$serialize(&len, out, pointers, &Int64$info);
-    auto item_serialize = type->ListInfo.item->metamethods.serialize;
+    serialize_fn_t item_serialize = type->ListInfo.item->metamethods.serialize;
     if (item_serialize) {
         for (int64_t i = 0; i < len; i++)
             item_serialize(list.data + i*list.stride, out, pointers, type->ListInfo.item);
@@ -797,7 +797,7 @@ public void List$deserialize(FILE *in, void *obj, List_t *pointers, const TypeIn
         .data=GC_MALLOC((size_t)(len*padded_size)),
         .stride=padded_size,
     };
-    auto item_deserialize = type->ListInfo.item->metamethods.deserialize;
+    deserialize_fn_t item_deserialize = type->ListInfo.item->metamethods.deserialize;
     if (item_deserialize) {
         for (int64_t i = 0; i < len; i++)
             item_deserialize(in, list.data + i*list.stride, pointers, type->ListInfo.item);

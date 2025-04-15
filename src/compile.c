@@ -126,7 +126,7 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
         arg_ast_t *args = new(arg_ast_t, .value=LiteralCode(*code, .type=actual));
         binding_t *constructor = get_constructor(env, needed, args);
         if (constructor) {
-            auto fn = Match(constructor->type, FunctionType);
+            DeclareMatch(fn, constructor->type, FunctionType);
             if (fn->args->next == NULL) {
                 *code = CORD_all(constructor->code, "(", compile_arguments(env, ast, fn->args, args), ")");
                 return true;
@@ -276,7 +276,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         break;
     }
     case Comprehension: {
-        auto comp = Match(ast, Comprehension);
+        DeclareMatch(comp, ast, Comprehension);
         if (comp->expr->tag == Comprehension) { // Nested comprehension
             ast_t *body = comp->filter ? WrapAST(ast, If, .condition=comp->filter, .body=comp->expr) : comp->expr;
             ast_t *loop = WrapAST(ast, For, .vars=comp->vars, .iter=comp->iter, .body=body);
@@ -292,7 +292,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         break;
     }
     case Lambda: {
-        auto lambda = Match(ast, Lambda);
+        DeclareMatch(lambda, ast, Lambda);
         env_t *lambda_scope = fresh_scope(env);
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next)
             set_binding(lambda_scope, arg->name, get_arg_ast_type(env, arg), CORD_all("_$", arg->name));
@@ -325,14 +325,14 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         break;
     }
     case While: {
-        auto while_ = Match(ast, While);
+        DeclareMatch(while_, ast, While);
         add_closed_vars(closed_vars, enclosing_scope, env, while_->condition);
         env_t *scope = fresh_scope(env);
         add_closed_vars(closed_vars, enclosing_scope, scope, while_->body);
         break;
     }
     case If: {
-        auto if_ = Match(ast, If);
+        DeclareMatch(if_, ast, If);
         ast_t *condition = if_->condition;
         if (condition->tag == Declare) {
             env_t *truthy_scope = fresh_scope(env);
@@ -363,7 +363,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         break;
     }
     case When: {
-        auto when = Match(ast, When);
+        DeclareMatch(when, ast, When);
         add_closed_vars(closed_vars, enclosing_scope, env, when->subject);
         type_t *subject_t = get_type(env, when->subject);
 
@@ -378,7 +378,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
             return;
         }
 
-        auto enum_t = Match(subject_t, EnumType);
+        DeclareMatch(enum_t, subject_t, EnumType);
         for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
             const char *clause_tag_name;
             if (clause->pattern->tag == Var)
@@ -408,7 +408,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         break;
     }
     case Reduction: {
-        auto reduction = Match(ast, Reduction);
+        DeclareMatch(reduction, ast, Reduction);
         static int64_t next_id = 1;
         ast_t *item = FakeAST(Var, String("$it", next_id++));
         ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=item), .iter=reduction->iter, .body=FakeAST(Pass));
@@ -478,7 +478,7 @@ static Table_t get_closed_vars(env_t *env, arg_ast_t *args, ast_t *block)
 CORD compile_declaration(type_t *t, CORD name)
 {
     if (t->tag == FunctionType) {
-        auto fn = Match(t, FunctionType);
+        DeclareMatch(fn, t, FunctionType);
         CORD code = CORD_all(compile_type(fn->ret), " (*", name, ")(");
         for (arg_t *arg = fn->args; arg; arg = arg->next) {
             code = CORD_all(code, compile_type(arg->type));
@@ -576,14 +576,14 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
     binding_t *b = get_metamethod_binding(env, ast->tag, binop.lhs, binop.rhs, overall_t);
     if (b) {
         arg_ast_t *args = new(arg_ast_t, .value=binop.lhs, .next=new(arg_ast_t, .value=binop.rhs));
-        auto fn = Match(b->type, FunctionType);
+        DeclareMatch(fn, b->type, FunctionType);
         return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
     }
 
     if (ast->tag == Multiply && is_numeric_type(lhs_t)) {
         b = get_namespace_binding(env, binop.rhs, "scaled_by");
         if (b && b->type->tag == FunctionType) {
-            auto fn = Match(b->type, FunctionType);
+            DeclareMatch(fn, b->type, FunctionType);
             if (type_eq(fn->ret, rhs_t)) {
                 arg_ast_t *args = new(arg_ast_t, .value=binop.rhs, .next=new(arg_ast_t, .value=binop.lhs));
                 if (is_valid_call(env, fn->args, args, true))
@@ -593,7 +593,7 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
     } else if (ast->tag == Multiply && is_numeric_type(rhs_t)) {
         b = get_namespace_binding(env, binop.lhs, "scaled_by");
         if (b && b->type->tag == FunctionType) {
-            auto fn = Match(b->type, FunctionType);
+            DeclareMatch(fn, b->type, FunctionType);
             if (type_eq(fn->ret, lhs_t)) {
                 arg_ast_t *args = new(arg_ast_t, .value=binop.lhs, .next=new(arg_ast_t, .value=binop.rhs));
                 if (is_valid_call(env, fn->args, args, true))
@@ -603,7 +603,7 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
     } else if (ast->tag == Divide && is_numeric_type(rhs_t)) {
         b = get_namespace_binding(env, binop.lhs, "divided_by");
         if (b && b->type->tag == FunctionType) {
-            auto fn = Match(b->type, FunctionType);
+            DeclareMatch(fn, b->type, FunctionType);
             if (type_eq(fn->ret, lhs_t)) {
                 arg_ast_t *args = new(arg_ast_t, .value=binop.lhs, .next=new(arg_ast_t, .value=binop.rhs));
                 if (is_valid_call(env, fn->args, args, true))
@@ -613,7 +613,7 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
     } else if ((ast->tag == Divide || ast->tag == Mod || ast->tag == Mod1) && is_numeric_type(rhs_t)) {
         b = get_namespace_binding(env, binop.lhs, binop_method_name(ast->tag));
         if (b && b->type->tag == FunctionType) {
-            auto fn = Match(b->type, FunctionType);
+            DeclareMatch(fn, b->type, FunctionType);
             if (type_eq(fn->ret, lhs_t)) {
                 arg_ast_t *args = new(arg_ast_t, .value=binop.lhs, .next=new(arg_ast_t, .value=binop.rhs));
                 if (is_valid_call(env, fn->args, args, true))
@@ -787,7 +787,7 @@ CORD compile_type(type_t *t)
     case IntType: return CORD_asprintf("Int%ld_t", Match(t, IntType)->bits);
     case NumType: return Match(t, NumType)->bits == TYPE_NBITS64 ? "Num_t" : CORD_asprintf("Num%ld_t", Match(t, NumType)->bits);
     case TextType: {
-        auto text = Match(t, TextType);
+        DeclareMatch(text, t, TextType);
         if (!text->lang || streq(text->lang, "Text"))
             return "Text_t";
         else
@@ -797,7 +797,7 @@ CORD compile_type(type_t *t)
     case SetType: return "Table_t";
     case TableType: return "Table_t";
     case FunctionType: {
-        auto fn = Match(t, FunctionType);
+        DeclareMatch(fn, t, FunctionType);
         CORD code = CORD_all(compile_type(fn->ret), " (*)(");
         for (arg_t *arg = fn->args; arg; arg = arg->next) {
             code = CORD_all(code, compile_type(arg->type));
@@ -810,12 +810,12 @@ CORD compile_type(type_t *t)
     case ClosureType: return "Closure_t";
     case PointerType: return CORD_cat(compile_type(Match(t, PointerType)->pointed), "*");
     case StructType: {
-        auto s = Match(t, StructType);
+        DeclareMatch(s, t, StructType);
         if (s->external) return s->name;
         return CORD_all("struct ", namespace_prefix(s->env, s->env->namespace->parent), s->name, "$$struct");
     }
     case EnumType: {
-        auto e = Match(t, EnumType);
+        DeclareMatch(e, t, EnumType);
         return CORD_all(namespace_prefix(e->env, e->env->namespace->parent), e->name, "$$type");
     }
     case OptionalType: {
@@ -834,7 +834,7 @@ CORD compile_type(type_t *t)
                 return "OptionalPath_t";
             if (nonnull == PATH_TYPE_TYPE)
                 return "OptionalPathType_t";
-            auto s = Match(nonnull, StructType);
+            DeclareMatch(s, nonnull, StructType);
             return CORD_all(namespace_prefix(s->env, s->env->namespace->parent), "$Optional", s->name, "$$type");
         }
         default:
@@ -862,7 +862,7 @@ CORD compile_lvalue(env_t *env, ast_t *ast)
     }
 
     if (ast->tag == Index) {
-        auto index = Match(ast, Index);
+        DeclareMatch(index, ast, Index);
         type_t *container_t = get_type(env, index->indexed);
         if (container_t->tag == OptionalType)
             code_err(index->indexed, "This value might be null, so it can't be safely used as an assignment target");
@@ -889,7 +889,7 @@ CORD compile_lvalue(env_t *env, ast_t *ast)
                                 ", ", String((int)(ast->end - ast->file->text)), ")");
             }
         } else if (container_t->tag == TableType) {
-            auto table_type = Match(container_t, TableType);
+            DeclareMatch(table_type, container_t, TableType);
             if (table_type->default_value) {
                 type_t *value_type = get_type(env, table_type->default_value);
                 return CORD_all("*Table$get_or_setdefault(",
@@ -1017,7 +1017,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         type_t *result_t = get_type(env, ast);
         (void)result_t;
 
-        auto when = Match(ast, When);
+        DeclareMatch(when, ast, When);
         type_t *subject_t = get_type(env, when->subject);
 
         if (subject_t->tag != EnumType) {
@@ -1043,7 +1043,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             return code;
         }
 
-        auto enum_t = Match(subject_t, EnumType);
+        DeclareMatch(enum_t, subject_t, EnumType);
         CORD code = CORD_all("WHEN(", compile_type(subject_t), ", ", compile(env, when->subject), ", _when_subject, {\n");
         for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
             if (clause->pattern->tag == Var) {
@@ -1070,7 +1070,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             assert(tag_type);
             env_t *scope = env;
 
-            auto tag_struct = Match(tag_type, StructType);
+            DeclareMatch(tag_struct, tag_type, StructType);
             arg_ast_t *args = Match(clause->pattern, FunctionCall)->args;
             if (args && !args->next && tag_struct->fields && tag_struct->fields->next) {
                 if (args->value->tag != Var)
@@ -1127,7 +1127,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         return code;
     }
     case DocTest: {
-        auto test = Match(ast, DocTest);
+        DeclareMatch(test, ast, DocTest);
         type_t *expr_t = get_type(env, test->expr);
         if (!expr_t)
             code_err(test->expr, "I couldn't figure out the type of this expression");
@@ -1135,7 +1135,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         CORD setup = CORD_EMPTY;
         CORD test_code;
         if (test->expr->tag == Declare) {
-            auto decl = Match(test->expr, Declare);
+            DeclareMatch(decl, test->expr, Declare);
             type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
             if (t->tag == FunctionType) t = Type(ClosureType, t);
             CORD var = CORD_all("_$", Match(decl->var, Var)->name);
@@ -1144,7 +1144,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             test_code = CORD_all("(", var, " = ", val_code, ")");
             expr_t = t;
         } else if (test->expr->tag == Assign) {
-            auto assign = Match(test->expr, Assign);
+            DeclareMatch(assign, test->expr, Assign);
             if (!assign->targets->next && assign->targets->ast->tag == Var && is_idempotent(assign->targets->ast)) {
                 // Common case: assigning to one variable:
                 type_t *lhs_t = get_type(env, assign->targets->ast);
@@ -1230,7 +1230,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         }
     }
     case Declare: {
-        auto decl = Match(ast, Declare);
+        DeclareMatch(decl, ast, Declare);
         const char *name = Match(decl->var, Var)->name;
         if (streq(name, "_")) { // Explicit discard
             if (decl->value)
@@ -1248,7 +1248,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         }
     }
     case Assign: {
-        auto assign = Match(ast, Assign);
+        DeclareMatch(assign, ast, Assign);
         // Single assignment, no temp vars needed:
         if (assign->targets && !assign->targets->next) {
             type_t *lhs_t = get_type(env, assign->targets->ast);
@@ -1282,35 +1282,35 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         return CORD_cat(code, "\n}");
     }
     case PlusUpdate: {
-        auto update = Match(ast, PlusUpdate);
+        DeclareMatch(update, ast, PlusUpdate);
         type_t *lhs_t = get_type(env, update->lhs);
         if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
             return CORD_all(compile_lvalue(env, update->lhs), " += ", compile_to_type(env, update->rhs, lhs_t), ";");
         return compile_update_assignment(env, ast);
     }
     case MinusUpdate: {
-        auto update = Match(ast, MinusUpdate);
+        DeclareMatch(update, ast, MinusUpdate);
         type_t *lhs_t = get_type(env, update->lhs);
         if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
             return CORD_all(compile_lvalue(env, update->lhs), " -= ", compile_to_type(env, update->rhs, lhs_t), ";");
         return compile_update_assignment(env, ast);
     }
     case MultiplyUpdate: {
-        auto update = Match(ast, MultiplyUpdate);
+        DeclareMatch(update, ast, MultiplyUpdate);
         type_t *lhs_t = get_type(env, update->lhs);
         if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
             return CORD_all(compile_lvalue(env, update->lhs), " *= ", compile_to_type(env, update->rhs, lhs_t), ";");
         return compile_update_assignment(env, ast);
     }
     case DivideUpdate: {
-        auto update = Match(ast, DivideUpdate);
+        DeclareMatch(update, ast, DivideUpdate);
         type_t *lhs_t = get_type(env, update->lhs);
         if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
             return CORD_all(compile_lvalue(env, update->lhs), " /= ", compile_to_type(env, update->rhs, lhs_t), ";");
         return compile_update_assignment(env, ast);
     }
     case ModUpdate: {
-        auto update = Match(ast, ModUpdate);
+        DeclareMatch(update, ast, ModUpdate);
         type_t *lhs_t = get_type(env, update->lhs);
         if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
             return CORD_all(compile_lvalue(env, update->lhs), " %= ", compile_to_type(env, update->rhs, lhs_t), ";");
@@ -1407,7 +1407,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
     }
     case Return: {
         if (!env->fn_ret) code_err(ast, "This return statement is not inside any function");
-        auto ret = Match(ast, Return)->value;
+        ast_t *ret = Match(ast, Return)->value;
 
         CORD code = CORD_EMPTY;
         for (deferral_t *deferred = env->deferred; deferred; deferred = deferred->next) {
@@ -1433,7 +1433,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         }
     }
     case While: {
-        auto while_ = Match(ast, While);
+        DeclareMatch(while_, ast, While);
         env_t *scope = fresh_scope(env);
         loop_ctx_t loop_ctx = (loop_ctx_t){
             .loop_name="while",
@@ -1467,14 +1467,14 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         return loop;
     }
     case For: {
-        auto for_ = Match(ast, For);
+        DeclareMatch(for_, ast, For);
 
         // If we're iterating over a comprehension, that's actually just doing
         // one loop, we don't need to compile the comprehension as a list
         // comprehension. This is a common case for reducers like `(+: i*2 for i in 5)`
         // or `(and) x.is_good() for x in xs`
         if (for_->iter->tag == Comprehension) {
-            auto comp = Match(for_->iter, Comprehension);
+            DeclareMatch(comp, for_->iter, Comprehension);
             ast_t *body = for_->body;
             if (for_->vars) {
                 if (for_->vars->next)
@@ -1759,7 +1759,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 next_fn = "next";
             }
 
-            auto fn = iter_value_t->tag == ClosureType ? Match(Match(iter_value_t, ClosureType)->fn, FunctionType) : Match(iter_value_t, FunctionType);
+            __typeof(iter_value_t->__data.FunctionType) *fn = iter_value_t->tag == ClosureType ? Match(Match(iter_value_t, ClosureType)->fn, FunctionType) : Match(iter_value_t, FunctionType);
 
             CORD get_next;
             if (iter_value_t->tag == ClosureType) {
@@ -1811,7 +1811,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         }
     }
     case If: {
-        auto if_ = Match(ast, If);
+        DeclareMatch(if_, ast, If);
         ast_t *condition = if_->condition;
         if (condition->tag == Declare) {
             if (Match(condition, Declare)->value == NULL)
@@ -1853,7 +1853,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
     case Comprehension: {
         if (!env->comprehension_action)
             code_err(ast, "I don't know what to do with this comprehension!");
-        auto comp = Match(ast, Comprehension);
+        DeclareMatch(comp, ast, Comprehension);
         if (comp->expr->tag == Comprehension) { // Nested comprehension
             ast_t *body = comp->filter ? WrapAST(ast, If, .condition=comp->filter, .body=comp->expr) : comp->expr;
             ast_t *loop = WrapAST(ast, For, .vars=comp->vars, .iter=comp->iter, .body=body);
@@ -1870,7 +1870,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
     }
     case Extern: return CORD_EMPTY;
     case InlineCCode: {
-        auto inline_code = Match(ast, InlineCCode);
+        DeclareMatch(inline_code, ast, InlineCCode);
         CORD code = CORD_EMPTY;
         for (ast_list_t *chunk = inline_code->chunks; chunk; chunk = chunk->next) {
             if (chunk->ast->tag == TextLiteral) {
@@ -1882,7 +1882,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         return code;
     }
     case Use: {
-        auto use = Match(ast, Use);
+        DeclareMatch(use, ast, Use);
         if (use->what == USE_LOCAL) {
             CORD name = file_base_id(Match(ast, Use)->path);
             return with_source_info(env, ast, CORD_all("_$", name, "$$initialize();\n"));
@@ -1978,7 +1978,7 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
             t = Type(PointerType, .pointed=t, .is_stack=true);
             ++depth;
         } else {
-            auto ptr = Match(t, PointerType);
+            DeclareMatch(ptr, t, PointerType);
             val = CORD_all("*(", val, ")");
             t = ptr->pointed;
             --depth;
@@ -1986,7 +1986,7 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
     }
 
     while (t->tag == PointerType) {
-        auto ptr = Match(t, PointerType);
+        DeclareMatch(ptr, t, PointerType);
         t = ptr->pointed;
     }
 
@@ -2037,7 +2037,7 @@ CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
     // Here, we know that `[none]` is `[Int?]`, but we need to thread that
     // information through the compiler using an `ExplicitlyTyped` node.
     if (ast->tag == MethodCall) {
-        auto methodcall = Match(ast, MethodCall);
+        DeclareMatch(methodcall, ast, MethodCall);
         type_t *self_type = get_type(env, methodcall->self);
         // Currently, this is only implemented for cases where you have the return type
         // and the self type equal to each other, because that's the main case I care
@@ -2065,7 +2065,7 @@ CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
 
 CORD compile_typed_list(env_t *env, ast_t *ast, type_t *list_type)
 {
-    auto list = Match(ast, List);
+    DeclareMatch(list, ast, List);
     if (!list->items)
         return "(List_t){.length=0}";
 
@@ -2113,7 +2113,7 @@ CORD compile_typed_list(env_t *env, ast_t *ast, type_t *list_type)
 
 CORD compile_typed_set(env_t *env, ast_t *ast, type_t *set_type)
 {
-    auto set = Match(ast, Set);
+    DeclareMatch(set, ast, Set);
     if (!set->items)
         return "((Table_t){})";
 
@@ -2161,7 +2161,7 @@ CORD compile_typed_set(env_t *env, ast_t *ast, type_t *set_type)
 
 CORD compile_typed_table(env_t *env, ast_t *ast, type_t *table_type)
 {
-    auto table = Match(ast, Table);
+    DeclareMatch(table, ast, Table);
     if (!table->entries) {
         CORD code = "((Table_t){";
         if (table->fallback)
@@ -2199,7 +2199,7 @@ CORD compile_typed_table(env_t *env, ast_t *ast, type_t *table_type)
         CORD_appendf(&code, ", %zu", n);
 
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
-            auto e = Match(entry->ast, TableEntry);
+            DeclareMatch(e, entry->ast, TableEntry);
             code = CORD_all(code, ",\n\t{", compile_to_type(key_scope, e->key, key_t), ", ",
                             compile_to_type(value_scope, e->value, value_t), "}");
         }
@@ -2536,7 +2536,7 @@ CORD compile_empty(type_t *t)
     case TextType: return "Text(\"\")";
     case CStringType: return "\"\"";
     case PointerType: {
-        auto ptr = Match(t, PointerType);
+        DeclareMatch(ptr, t, PointerType);
         CORD empty_pointed = compile_empty(ptr->pointed);
         return empty_pointed == CORD_EMPTY ? CORD_EMPTY : CORD_all(ptr->is_stack ? "stack(" : "heap(", empty_pointed, ")");
     }
@@ -2544,7 +2544,7 @@ CORD compile_empty(type_t *t)
         return Match(t, NumType)->bits == TYPE_NBITS32 ? "N32(0.0f)" : "N64(0.0)" ;
     }
     case StructType: {
-        auto struct_ = Match(t, StructType);
+        DeclareMatch(struct_, t, StructType);
         CORD code = CORD_all("((", compile_type(t), "){");
         for (arg_t *field = struct_->fields; field; field = field->next) {
             CORD empty_field = field->default_val
@@ -2560,7 +2560,7 @@ CORD compile_empty(type_t *t)
         return CORD_all(code, "})");
     }
     case EnumType: {
-        auto enum_ = Match(t, EnumType);
+        DeclareMatch(enum_, t, EnumType);
         tag_t *tag = enum_->tags;
         assert(tag);
         assert(tag->type);
@@ -2575,7 +2575,7 @@ CORD compile_empty(type_t *t)
 
 static CORD compile_declared_value(env_t *env, ast_t *declare_ast)
 {
-    auto decl = Match(declare_ast, Declare);
+    DeclareMatch(decl, declare_ast, Declare);
     type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
 
     if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
@@ -2598,7 +2598,7 @@ static CORD compile_declared_value(env_t *env, ast_t *declare_ast)
 
 ast_t *add_to_table_comprehension(ast_t *entry, ast_t *subject)
 {
-    auto e = Match(entry, TableEntry);
+    DeclareMatch(e, entry, TableEntry);
     return WrapAST(entry, MethodCall, .name="set", .self=subject,
                    .args=new(arg_ast_t, .value=e->key, .next=new(arg_ast_t, .value=e->value)));
 }
@@ -2651,7 +2651,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         binding_t *b = get_namespace_binding(env, value, "negated");
         if (b && b->type->tag == FunctionType) {
-            auto fn = Match(b->type, FunctionType);
+            DeclareMatch(fn, b->type, FunctionType);
             if (fn->args && can_promote(t, get_arg_type(env, fn->args)))
                 return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=value)), ")");
         }
@@ -2676,7 +2676,7 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *t = get_type(env, value);
         binding_t *b = get_namespace_binding(env, value, "negative");
         if (b && b->type->tag == FunctionType) {
-            auto fn = Match(b->type, FunctionType);
+            DeclareMatch(fn, b->type, FunctionType);
             if (fn->args && can_promote(t, get_arg_type(env, fn->args)))
                 return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=value)), ")");
         }
@@ -2912,7 +2912,7 @@ CORD compile(env_t *env, ast_t *ast)
             "})");
     }
     case List: {
-        auto list = Match(ast, List);
+        DeclareMatch(list, ast, List);
         if (!list->items)
             return "(List_t){.length=0}";
 
@@ -2920,7 +2920,7 @@ CORD compile(env_t *env, ast_t *ast)
         return compile_typed_list(env, ast, list_type);
     }
     case Table: {
-        auto table = Match(ast, Table);
+        DeclareMatch(table, ast, Table);
         if (!table->entries) {
             CORD code = "((Table_t){";
             if (table->fallback)
@@ -2932,7 +2932,7 @@ CORD compile(env_t *env, ast_t *ast)
         return compile_typed_table(env, ast, table_type);
     }
     case Set: {
-        auto set = Match(ast, Set);
+        DeclareMatch(set, ast, Set);
         if (!set->items)
             return "((Table_t){})";
 
@@ -2949,7 +2949,7 @@ CORD compile(env_t *env, ast_t *ast)
             return compile(env, WrapAST(ast, List, .items=new(ast_list_t, .ast=ast)));
     }
     case Lambda: {
-        auto lambda = Match(ast, Lambda);
+        DeclareMatch(lambda, ast, Lambda);
         CORD name = CORD_asprintf("%rlambda$%ld", namespace_prefix(env, env->namespace), lambda->id);
 
         env->code->function_naming = CORD_all(
@@ -3042,7 +3042,7 @@ CORD compile(env_t *env, ast_t *ast)
         return CORD_all("((Closure_t){", name, ", ", userdata, "})");
     }
     case MethodCall: {
-        auto call = Match(ast, MethodCall);
+        DeclareMatch(call, ast, MethodCall);
         type_t *self_t = get_type(env, call->self);
 
         if (streq(call->name, "serialized")) {
@@ -3243,7 +3243,7 @@ CORD compile(env_t *env, ast_t *ast)
             } else code_err(ast, "There is no '", call->name, "' method for lists");
         }
         case SetType: {
-            auto set = Match(self_value_t, SetType);
+            DeclareMatch(set, self_value_t, SetType);
             if (streq(call->name, "has")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=set->item_type);
@@ -3309,7 +3309,7 @@ CORD compile(env_t *env, ast_t *ast)
             } else code_err(ast, "There is no '", call->name, "' method for tables");
         }
         case TableType: {
-            auto table = Match(self_value_t, TableType);
+            DeclareMatch(table, self_value_t, TableType);
             if (streq(call->name, "get")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);
@@ -3354,7 +3354,7 @@ CORD compile(env_t *env, ast_t *ast)
             } else code_err(ast, "There is no '", call->name, "' method for tables");
         }
         default: {
-            auto methodcall = Match(ast, MethodCall);
+            DeclareMatch(methodcall, ast, MethodCall);
             type_t *fn_t = get_method_type(env, methodcall->self, methodcall->name);
             arg_ast_t *args = new(arg_ast_t, .value=methodcall->self, .next=methodcall->args);
             binding_t *b = get_namespace_binding(env, methodcall->self, methodcall->name);
@@ -3365,7 +3365,7 @@ CORD compile(env_t *env, ast_t *ast)
 #undef EXPECT_POINTER
     }
     case FunctionCall: {
-        auto call = Match(ast, FunctionCall);
+        DeclareMatch(call, ast, FunctionCall);
         type_t *fn_t = get_type(env, call->fn);
         if (fn_t->tag == FunctionType) {
             CORD fn = compile(env, call->fn);
@@ -3408,7 +3408,7 @@ CORD compile(env_t *env, ast_t *ast)
                     return compile_string_literal(Match(Match(call->args->value, TextJoin)->children->ast, TextLiteral)->cord);
                 return CORD_all("Text$as_c_string(", expr_as_text(compile(env, call->args->value), actual, "no"), ")");
             } else if (t->tag == StructType) {
-                auto struct_ = Match(t, StructType);
+                DeclareMatch(struct_, t, StructType);
                 if (!struct_->opaque && is_valid_call(env, struct_->fields, call->args, true)) {
                     return CORD_all("((", compile_type(t), "){",
                                     compile_arguments(env, ast, struct_->fields, call->args), "})");
@@ -3453,7 +3453,7 @@ CORD compile(env_t *env, ast_t *ast)
         return compile_to_type(env, Match(ast, ExplicitlyTyped)->ast, get_type(env, ast));
     }
     case When: {
-        auto original = Match(ast, When);
+        DeclareMatch(original, ast, When);
         ast_t *when_var = WrapAST(ast, Var, .name="when"); 
         when_clause_t *new_clauses = NULL;
         type_t *subject_t = get_type(env, original->subject);
@@ -3488,14 +3488,14 @@ CORD compile(env_t *env, ast_t *ast)
             "when; })");
     }
     case If: {
-        auto if_ = Match(ast, If);
+        DeclareMatch(if_, ast, If);
         ast_t *condition = if_->condition;
         CORD decl_code = CORD_EMPTY;
         env_t *truthy_scope = env, *falsey_scope = env;
 
         CORD condition_code;
         if (condition->tag == Declare) {
-            auto decl = Match(condition, Declare);
+            DeclareMatch(decl, condition, Declare);
             if (decl->value == NULL)
                 code_err(condition, "This declaration must have a value");
             type_t *condition_type = 
@@ -3544,7 +3544,7 @@ CORD compile(env_t *env, ast_t *ast)
                             compile(truthy_scope, if_->body), " : ", compile(falsey_scope, if_->else_body), ")");
     }
     case Reduction: {
-        auto reduction = Match(ast, Reduction);
+        DeclareMatch(reduction, ast, Reduction);
         ast_e op = reduction->op;
 
         type_t *iter_t = get_type(env, reduction->iter);
@@ -3682,12 +3682,12 @@ CORD compile(env_t *env, ast_t *ast)
         }
     }
     case FieldAccess: {
-        auto f = Match(ast, FieldAccess);
+        DeclareMatch(f, ast, FieldAccess);
         type_t *fielded_t = get_type(env, f->fielded);
         type_t *value_t = value_type(fielded_t);
         switch (value_t->tag) {
         case TypeInfoType: {
-            auto info = Match(value_t, TypeInfoType);
+            DeclareMatch(info, value_t, TypeInfoType);
             if (f->field[0] == '_') {
                 for (Table_t *locals = env->locals; locals; locals = locals->fallback) {
                     if (locals == info->env->locals)
@@ -3726,7 +3726,7 @@ CORD compile(env_t *env, ast_t *ast)
             code_err(ast, "The field '", f->field, "' is not a valid field name of ", type_to_str(value_t));
         }
         case EnumType: {
-            auto e = Match(value_t, EnumType);
+            DeclareMatch(e, value_t, EnumType);
             for (tag_t *tag = e->tags; tag; tag = tag->next) {
                 if (streq(f->field, tag->name)) {
                     CORD prefix = namespace_prefix(e->env, e->env->namespace);
@@ -3759,7 +3759,7 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(f->field, "keys")) {
                 return CORD_all("LIST_COPY((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries)");
             } else if (streq(f->field, "values")) {
-                auto table = Match(value_t, TableType);
+                DeclareMatch(table, value_t, TableType);
                 CORD offset = CORD_all("offsetof(struct { ", compile_declaration(table->key_type, "k"), "; ", compile_declaration(table->value_type, "v"), "; }, v)");
                 return CORD_all("({ List_t *entries = &(", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries;\n"
                                 "LIST_INCREF(*entries);\n"
@@ -3781,12 +3781,12 @@ CORD compile(env_t *env, ast_t *ast)
         }
     }
     case Index: {
-        auto indexing = Match(ast, Index);
+        DeclareMatch(indexing, ast, Index);
         type_t *indexed_type = get_type(env, indexing->indexed);
         if (!indexing->index) {
             if (indexed_type->tag != PointerType)
                 code_err(ast, "Only pointers can use the '[]' operator to dereference the entire value.");
-            auto ptr = Match(indexed_type, PointerType);
+            DeclareMatch(ptr, indexed_type, PointerType);
             if (ptr->pointed->tag == ListType) {
                 return CORD_all("*({ List_t *list = ", compile(env, indexing->indexed), "; LIST_INCREF(*list); list; })");
             } else if (ptr->pointed->tag == TableType || ptr->pointed->tag == SetType) {
@@ -3816,7 +3816,7 @@ CORD compile(env_t *env, ast_t *ast)
                                 CORD_asprintf("%ld", (int64_t)(indexing->index->end - f->text)),
                                 ")");
         } else if (container_t->tag == TableType) {
-            auto table_type = Match(container_t, TableType);
+            DeclareMatch(table_type, container_t, TableType);
             if (indexing->unchecked)
                 code_err(ast, "Table indexes cannot be unchecked");
             if (table_type->default_value) {
@@ -3871,17 +3871,17 @@ CORD compile_type_info(type_t *t)
     case BoolType: case ByteType: case IntType: case BigIntType: case NumType: case CStringType:
         return CORD_all("&", type_to_cord(t), "$info");
     case TextType: {
-        auto text = Match(t, TextType);
+        DeclareMatch(text, t, TextType);
         if (!text->lang || streq(text->lang, "Text"))
             return "&Text$info";
         return CORD_all("(&", namespace_prefix(text->env, text->env->namespace->parent), text->lang, "$$info)");
     }
     case StructType: {
-        auto s = Match(t, StructType);
+        DeclareMatch(s, t, StructType);
         return CORD_all("(&", namespace_prefix(s->env, s->env->namespace->parent), s->name, "$$info)");
     }
     case EnumType: {
-        auto e = Match(t, EnumType);
+        DeclareMatch(e, t, EnumType);
         return CORD_all("(&", namespace_prefix(e->env, e->env->namespace->parent), e->name, "$$info)");
     }
     case ListType: {
@@ -3893,13 +3893,13 @@ CORD compile_type_info(type_t *t)
         return CORD_all("Set$info(", compile_type_info(item_type), ")");
     }
     case TableType: {
-        auto table = Match(t, TableType);
+        DeclareMatch(table, t, TableType);
         type_t *key_type = table->key_type;
         type_t *value_type = table->value_type;
         return CORD_all("Table$info(", compile_type_info(key_type), ", ", compile_type_info(value_type), ")");
     }
     case PointerType: {
-        auto ptr = Match(t, PointerType);
+        DeclareMatch(ptr, t, PointerType);
         CORD sigil = ptr->is_stack ? "&" : "@";
         return CORD_asprintf("Pointer$info(%r, %r)",
                              CORD_quoted(sigil),
@@ -3943,7 +3943,7 @@ static CORD get_flag_options(type_t *t, CORD separator)
 
 CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
 {
-    auto fn_info = Match(fn_type, FunctionType);
+    DeclareMatch(fn_info, fn_type, FunctionType);
 
     env_t *main_env = fresh_scope(env);
 
@@ -4042,7 +4042,7 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
     ast_t *cache;
     bool is_inline;
     if (ast->tag == FunctionDef) {
-        auto fndef = Match(ast, FunctionDef);
+        DeclareMatch(fndef, ast, FunctionDef);
         function_name = Match(fndef->name, Var)->name;
         is_private = function_name[0] == '_';
         args = fndef->args;
@@ -4051,7 +4051,7 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
         cache = fndef->cache;
         is_inline = fndef->is_inline;
     } else {
-        auto convertdef = Match(ast, ConvertDef);
+        DeclareMatch(convertdef, ast, ConvertDef);
         args = convertdef->args;
         ret_t = convertdef->ret_type ? parse_type_ast(env, convertdef->ret_type) : Type(VoidType);
         function_name = get_type_name(ret_t);
@@ -4230,7 +4230,7 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
 
     switch (ast->tag) {
     case Use: {
-        auto use = Match(ast, Use);
+        DeclareMatch(use, ast, Use);
         if (use->what == USE_C_CODE) {
             Path_t path = Path$relative_to(Path$from_str(use->path), Path(".build"));
             return CORD_all("#include \"", Path$as_c_string(path), "\"\n");
@@ -4238,7 +4238,7 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
         return CORD_EMPTY;
     }
     case Declare: {
-        auto decl = Match(ast, Declare);
+        DeclareMatch(decl, ast, Declare);
         const char *decl_name = Match(decl->var, Var)->name;
         CORD full_name = CORD_all(namespace_prefix(env, env->namespace), decl_name);
         type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
@@ -4273,7 +4273,7 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
         return compile_function(env, name_code, ast, &env->code->staticdefs);
     }
     case StructDef: {
-        auto def = Match(ast, StructDef);
+        DeclareMatch(def, ast, StructDef);
         type_t *t = Table$str_get(*env->types, def->name);
         assert(t && t->tag == StructType);
         CORD code = compile_struct_typeinfo(env, t, def->name, def->fields, def->secret, def->opaque);
@@ -4281,14 +4281,14 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
         return CORD_all(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : CORD_EMPTY);
     }
     case EnumDef: {
-        auto def = Match(ast, EnumDef);
+        DeclareMatch(def, ast, EnumDef);
         CORD code = compile_enum_typeinfo(env, ast);
         code = CORD_all(code, compile_enum_constructors(env, ast));
         env_t *ns_env = namespace_env(env, def->name);
         return CORD_all(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : CORD_EMPTY);
     }
     case LangDef: {
-        auto def = Match(ast, LangDef);
+        DeclareMatch(def, ast, LangDef);
         CORD code = CORD_asprintf("public const TypeInfo_t %r%s$$info = {%zu, %zu, .metamethods=Text$metamethods, .tag=TextInfo, .TextInfo={%r}};\n",
                                   namespace_prefix(env, env->namespace), def->name, sizeof(Text_t), __alignof__(Text_t),
                                   CORD_quoted(def->name));
@@ -4296,7 +4296,7 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
         return CORD_all(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : CORD_EMPTY);
     }
     case Extend: {
-        auto extend = Match(ast, Extend);
+        DeclareMatch(extend, ast, Extend);
         env_t *ns_env = namespace_env(env, extend->name);
         env_t *extended = new(env_t);
         *extended = *ns_env;
@@ -4326,7 +4326,7 @@ static void initialize_vars_and_statics(env_t *env, ast_t *ast)
             CORD code = compile_statement(env, stmt->ast);
             env->code->staticdefs = CORD_all(env->code->staticdefs, code, "\n");
         } else if (stmt->ast->tag == Declare) {
-            auto decl = Match(stmt->ast, Declare);
+            DeclareMatch(decl, stmt->ast, Declare);
             const char *decl_name = Match(decl->var, Var)->name;
             CORD full_name = CORD_all(namespace_prefix(env, env->namespace), decl_name);
             type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
@@ -4400,7 +4400,7 @@ CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
 {
     switch (ast->tag) {
     case Use: {
-        auto use = Match(ast, Use);
+        DeclareMatch(use, ast, Use);
         Path_t source_path = Path$from_str(ast->file->filename);
         Path_t source_dir = Path$parent(source_path);
         Path_t build_dir = Path$resolved(Path$parent(header_path), Path$current_dir());
@@ -4432,7 +4432,7 @@ CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
         return compile_enum_header(env, ast);
     }
     case LangDef: {
-        auto def = Match(ast, LangDef);
+        DeclareMatch(def, ast, LangDef);
         CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
         return CORD_all(
             // Constructor macro:
@@ -4457,13 +4457,13 @@ CORD compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t *a
     ast_t *block = NULL;
     switch (ast->tag) {
     case LangDef: {
-        auto def = Match(ast, LangDef);
+        DeclareMatch(def, ast, LangDef);
         ns_env = namespace_env(env, def->name);
         block = def->namespace;
         break;
     }
     case Extend: {
-        auto extend = Match(ast, Extend);
+        DeclareMatch(extend, ast, Extend);
         ns_env = namespace_env(env, extend->name);
 
         env_t *extended = new(env_t);
@@ -4477,24 +4477,24 @@ CORD compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t *a
         break;
     }
     case StructDef: {
-        auto def = Match(ast, StructDef);
+        DeclareMatch(def, ast, StructDef);
         ns_env = namespace_env(env, def->name);
         block = def->namespace;
         break;
     }
     case EnumDef: {
-        auto def = Match(ast, EnumDef);
+        DeclareMatch(def, ast, EnumDef);
         ns_env = namespace_env(env, def->name);
         block = def->namespace;
         break;
     }
     case Extern: {
-        auto ext = Match(ast, Extern);
+        DeclareMatch(ext, ast, Extern);
         type_t *t = parse_type_ast(env, ext->type);
         CORD decl;
         if (t->tag == ClosureType) {
             t = Match(t, ClosureType)->fn;
-            auto fn = Match(t, FunctionType);
+            DeclareMatch(fn, t, FunctionType);
             decl = CORD_all(compile_type(fn->ret), " ", ext->name, "(");
             for (arg_t *arg = fn->args; arg; arg = arg->next) {
                 decl = CORD_all(decl, compile_type(arg->type));
@@ -4507,7 +4507,7 @@ CORD compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t *a
         return CORD_all("extern ", decl, ";\n");
     }
     case Declare: {
-        auto decl = Match(ast, Declare);
+        DeclareMatch(decl, ast, Declare);
         const char *decl_name = Match(decl->var, Var)->name;
         bool is_private = (decl_name[0] == '_');
         if (is_private)
@@ -4525,7 +4525,7 @@ CORD compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t *a
             "extern ", compile_declaration(t, CORD_cat(namespace_prefix(env, env->namespace), decl_name)), ";\n");
     }
     case FunctionDef: {
-        auto fndef = Match(ast, FunctionDef);
+        DeclareMatch(fndef, ast, FunctionDef);
         const char *decl_name = Match(fndef->name, Var)->name;
         bool is_private = decl_name[0] == '_';
         if (is_private) return CORD_EMPTY;
@@ -4547,7 +4547,7 @@ CORD compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t *a
         return CORD_all(ret_type_code, " ", name, arg_signature, ";\n");
     }
     case ConvertDef: {
-        auto def = Match(ast, ConvertDef);
+        DeclareMatch(def, ast, ConvertDef);
 
         CORD arg_signature = "(";
         for (arg_ast_t *arg = def->args; arg; arg = arg->next) {
@@ -4585,12 +4585,12 @@ typedef struct {
 static void _make_typedefs(compile_typedef_info_t *info, ast_t *ast)
 {
     if (ast->tag == StructDef) {
-        auto def = Match(ast, StructDef);
+        DeclareMatch(def, ast, StructDef);
         if (def->external) return;
         CORD full_name = CORD_cat(namespace_prefix(info->env, info->env->namespace), def->name);
         *info->header = CORD_all(*info->header, "typedef struct ", full_name, "$$struct ", full_name, "$$type;\n");
     } else if (ast->tag == EnumDef) {
-        auto def = Match(ast, EnumDef);
+        DeclareMatch(def, ast, EnumDef);
         CORD full_name = CORD_cat(namespace_prefix(info->env, info->env->namespace), def->name);
         *info->header = CORD_all(*info->header, "typedef struct ", full_name, "$$struct ", full_name, "$$type;\n");
 
@@ -4599,7 +4599,7 @@ static void _make_typedefs(compile_typedef_info_t *info, ast_t *ast)
             *info->header = CORD_all(*info->header, "typedef struct ", full_name, "$", tag->name, "$$struct ", full_name, "$", tag->name, "$$type;\n");
         }
     } else if (ast->tag == LangDef) {
-        auto def = Match(ast, LangDef);
+        DeclareMatch(def, ast, LangDef);
         *info->header = CORD_all(*info->header, "typedef Text_t ", namespace_prefix(info->env, info->env->namespace), def->name, "$$type;\n");
     }
 }

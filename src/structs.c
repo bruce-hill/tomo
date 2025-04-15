@@ -45,7 +45,7 @@ CORD compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t 
 
 CORD compile_struct_header(env_t *env, ast_t *ast)
 {
-    auto def = Match(ast, StructDef);
+    DeclareMatch(def, ast, StructDef);
     CORD typeinfo_name = CORD_all(namespace_prefix(env, env->namespace), def->name, "$$info");
     CORD type_code = def->external ? def->name : CORD_all("struct ", namespace_prefix(env, env->namespace), def->name, "$$struct");
 

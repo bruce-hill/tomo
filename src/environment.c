@@ -25,13 +25,13 @@ static type_t *declare_type(env_t *env, const char *def_str)
     if (statements == NULL || statements->next) errx(1, "Couldn't not parse struct def: %s", def_str); 
     switch (statements->ast->tag) {
     case StructDef: {
-        auto def = Match(statements->ast, StructDef);
+        DeclareMatch(def, statements->ast, StructDef);
         prebind_statement(env, statements->ast);
         bind_statement(env, statements->ast);
         return Table$str_get(*env->types, def->name);
     }
     case EnumDef: {
-        auto def = Match(statements->ast, EnumDef);
+        DeclareMatch(def, statements->ast, EnumDef);
         prebind_statement(env, statements->ast);
         bind_statement(env, statements->ast);
         return Table$str_get(*env->types, def->name);
@@ -602,7 +602,7 @@ env_t *with_enum_scope(env_t *env, type_t *t)
 
 env_t *for_scope(env_t *env, ast_t *ast)
 {
-    auto for_ = Match(ast, For);
+    DeclareMatch(for_, ast, For);
     type_t *iter_t = value_type(get_type(env, for_->iter));
     env_t *scope = fresh_scope(env);
 
@@ -663,7 +663,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
         return scope;
     }
     case FunctionType: case ClosureType: {
-        auto fn = iter_t->tag == ClosureType ? Match(Match(iter_t, ClosureType)->fn, FunctionType) : Match(iter_t, FunctionType);
+        __typeof(iter_t->__data.FunctionType) *fn = iter_t->tag == ClosureType ? Match(Match(iter_t, ClosureType)->fn, FunctionType) : Match(iter_t, FunctionType);
 
         if (for_->vars) {
             if (for_->vars->next)
@@ -692,15 +692,15 @@ env_t *get_namespace_by_type(env_t *env, type_t *t)
     }
     case TextType: return Match(t, TextType)->env;
     case StructType: {
-        auto struct_ = Match(t, StructType);
+        DeclareMatch(struct_, t, StructType);
         return struct_->env;
     }
     case EnumType: {
-        auto enum_ = Match(t, EnumType);
+        DeclareMatch(enum_, t, EnumType);
         return enum_->env;
     }
     case TypeInfoType: {
-        auto info = Match(t, TypeInfoType);
+        DeclareMatch(info, t, TypeInfoType);
         return info->env;
     }
     default: break;
@@ -744,14 +744,14 @@ PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args)
     // Prioritize exact matches:
     for (int64_t i = constructors.length-1; i >= 0; i--) {
         binding_t *b = constructors.data + i*constructors.stride;
-        auto fn = Match(b->type, FunctionType);
+        DeclareMatch(fn, b->type, FunctionType);
         if (type_eq(fn->ret, t) && is_valid_call(env, fn->args, args, false))
             return b;
     }
     // Fall back to promotion:
     for (int64_t i = constructors.length-1; i >= 0; i--) {
         binding_t *b = constructors.data + i*constructors.stride;
-        auto fn = Match(b->type, FunctionType);
+        DeclareMatch(fn, b->type, FunctionType);
         if (type_eq(fn->ret, t) && is_valid_call(env, fn->args, args, true))
             return b;
     }
@@ -764,7 +764,7 @@ PUREFUNC binding_t *get_metamethod_binding(env_t *env, ast_e tag, ast_t *lhs, as
     if (!method_name) return NULL;
     binding_t *b = get_namespace_binding(env, lhs, method_name);
     if (!b || b->type->tag != FunctionType) return NULL;
-    auto fn = Match(b->type, FunctionType);
+    DeclareMatch(fn, b->type, FunctionType);
     if (!type_eq(fn->ret, ret)) return NULL;
     arg_ast_t *args = new(arg_ast_t, .value=lhs, .next=new(arg_ast_t, .value=rhs));
     return is_valid_call(env, fn->args, args, true) ? b : NULL;

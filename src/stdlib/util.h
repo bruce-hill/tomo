@@ -19,10 +19,6 @@
 
 #define IF_DECLARE(decl, expr, block) if (({ decl; expr ? ({ block; 1; }) : 0; })) {}
 
-#ifndef auto
-#define auto __auto_type
-#endif
-
 #define WHEN(type, subj, var, body) { type var = subj; switch (var.$tag) body }
 
 #ifndef public

@@ -15,7 +15,7 @@
 #include "util.h"
 
 public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *type) {
-    auto ptr_info = type->PointerInfo;
+    __typeof(type->PointerInfo) ptr_info = type->PointerInfo;
     if (!x) {
         Text_t typename = generic_as_text(NULL, false, ptr_info.pointed);
         if (colorize)

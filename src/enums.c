@@ -15,7 +15,7 @@
 
 CORD compile_enum_typeinfo(env_t *env, ast_t *ast)
 {
-    auto def = Match(ast, EnumDef);
+    DeclareMatch(def, ast, EnumDef);
     CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
 
     // Compile member types and constructors:
@@ -54,7 +54,7 @@ CORD compile_enum_typeinfo(env_t *env, ast_t *ast)
 
 CORD compile_enum_constructors(env_t *env, ast_t *ast)
 {
-    auto def = Match(ast, EnumDef);
+    DeclareMatch(def, ast, EnumDef);
     CORD full_name = CORD_cat(namespace_prefix(env, env->namespace), def->name);
 
     CORD constructors = CORD_EMPTY;
@@ -82,7 +82,7 @@ CORD compile_enum_constructors(env_t *env, ast_t *ast)
 
 CORD compile_enum_header(env_t *env, ast_t *ast)
 {
-    auto def = Match(ast, EnumDef);
+    DeclareMatch(def, ast, EnumDef);
     CORD full_name = CORD_all(namespace_prefix(env, env->namespace), def->name);
     CORD all_defs = CORD_EMPTY;
     CORD enum_def = CORD_all("struct ", full_name, "$$struct {\n"

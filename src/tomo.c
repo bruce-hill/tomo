@@ -343,7 +343,7 @@ typedef struct {
 static void _compile_statement_header_for_library(libheader_info_t *info, ast_t *ast)
 {
     if (ast->tag == Use) {
-        auto use = Match(ast, Use);
+        DeclareMatch(use, ast, Use);
         if (use->what == USE_LOCAL)
             return;
 
@@ -362,11 +362,11 @@ static void _compile_statement_header_for_library(libheader_info_t *info, ast_t 
 static void _make_typedefs_for_library(libheader_info_t *info, ast_t *ast)
 {
     if (ast->tag == StructDef) {
-        auto def = Match(ast, StructDef);
+        DeclareMatch(def, ast, StructDef);
         CORD full_name = CORD_cat(namespace_prefix(info->env, info->env->namespace), def->name);
         CORD_put(CORD_all("typedef struct ", full_name, "$$struct ", full_name, "$$type;\n"), info->output);
     } else if (ast->tag == EnumDef) {
-        auto def = Match(ast, EnumDef);
+        DeclareMatch(def, ast, EnumDef);
         CORD full_name = CORD_cat(namespace_prefix(info->env, info->env->namespace), def->name);
         CORD_put(CORD_all("typedef struct ", full_name, "$$struct ", full_name, "$$type;\n"), info->output);
 
@@ -375,7 +375,7 @@ static void _make_typedefs_for_library(libheader_info_t *info, ast_t *ast)
             CORD_put(CORD_all("typedef struct ", full_name, "$", tag->name, "$$struct ", full_name, "$", tag->name, "$$type;\n"), info->output);
         }
     } else if (ast->tag == LangDef) {
-        auto def = Match(ast, LangDef);
+        DeclareMatch(def, ast, LangDef);
         CORD_put(CORD_all("typedef Text_t ", namespace_prefix(info->env, info->env->namespace), def->name, "$$type;\n"), info->output);
     }
 }
@@ -403,7 +403,7 @@ static void _compile_file_header_for_library(env_t *env, Path_t header_path, Pat
         ast_t *ast = stmt->ast;
         if (ast->tag != Use) continue;
 
-        auto use = Match(ast, Use);
+        DeclareMatch(use, ast, Use);
         if (use->what == USE_LOCAL) {
             Path_t resolved = Path$resolved(Path$from_str(use->path), Path$parent(path));
             _compile_file_header_for_library(env, header_path, resolved, visited_files, used_imports, output);
@@ -615,7 +615,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         ast_t *stmt_ast = stmt->ast;
         if (stmt_ast->tag != Use) continue;
-        auto use = Match(stmt_ast, Use);
+        DeclareMatch(use, stmt_ast, Use);
 
         switch (use->what) {
         case USE_LOCAL: {

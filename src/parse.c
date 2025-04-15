@@ -210,7 +210,7 @@ static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, ch
 #define expect(ctx, start, pos, parser, ...) ({ \
     const char **_pos = pos; \
     spaces(_pos); \
-    auto _result = parser(ctx, *_pos); \
+    __typeof(parser(ctx, *_pos)) _result = parser(ctx, *_pos); \
     if (!_result) { \
         if (USE_COLOR) \
             fputs("\x1b[31;1;7m", stderr); \
@@ -222,7 +222,7 @@ static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, ch
 #define optional(ctx, pos, parser) ({ \
     const char **_pos = pos; \
     spaces(_pos); \
-    auto _result = parser(ctx, *_pos); \
+    __typeof(parser(ctx, *_pos)) _result = parser(ctx, *_pos); \
     if (_result) *_pos = _result->end; \
     _result; })
 

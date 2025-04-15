@@ -123,7 +123,7 @@ CORD ast_to_xml(ast_t *ast)
     if (!ast) return CORD_EMPTY;
 
     switch (ast->tag) {
-#define T(type, ...) case type: { auto data = ast->__data.type; (void)data; return CORD_asprintf(__VA_ARGS__); }
+#define T(type, ...) case type: { __typeof(ast->__data.type) data = ast->__data.type; (void)data; return CORD_asprintf(__VA_ARGS__); }
     T(Unknown,  "<Unknown>")
     T(None, "<None/>")
     T(Bool, "<Bool value=\"%s\" />", data.b ? "yes" : "no")
@@ -219,7 +219,7 @@ CORD type_ast_to_xml(type_ast_t *t)
     if (!t) return "NULL";
 
     switch (t->tag) {
-#define T(type, ...) case type: { auto data = t->__data.type; (void)data; return CORD_asprintf(__VA_ARGS__); }
+#define T(type, ...) case type: { __typeof(t->__data.type) data = t->__data.type; (void)data; return CORD_asprintf(__VA_ARGS__); }
     T(UnknownTypeAST, "<UnknownType/>")
     T(VarTypeAST, "%s", data.name)
     T(PointerTypeAST, "<PointerType is_stack=\"%s\">%r</PointerType>",
@@ -239,11 +239,11 @@ PUREFUNC bool is_idempotent(ast_t *ast)
     switch (ast->tag) {
     case Int: case Bool: case Num: case Var: case None: case TextLiteral: return true;
     case Index: {
-        auto index = Match(ast, Index);
+        DeclareMatch(index, ast, Index);
         return is_idempotent(index->indexed) && index->index != NULL && is_idempotent(index->index);
     }
     case FieldAccess: {
-        auto access = Match(ast, FieldAccess);
+        DeclareMatch(access, ast, FieldAccess);
         return is_idempotent(access->fielded);
     }
     default: return false;
@@ -254,7 +254,7 @@ void _visit_topologically(ast_t *ast, Table_t definitions, Table_t *visited, Clo
 {
     void (*visit)(void*, ast_t*) = (void*)fn.fn;
     if (ast->tag == StructDef) {
-        auto def = Match(ast, StructDef);
+        DeclareMatch(def, ast, StructDef);
         if (Table$str_get(*visited, def->name))
             return;
 
@@ -271,7 +271,7 @@ void _visit_topologically(ast_t *ast, Table_t definitions, Table_t *visited, Clo
         }
         visit(fn.userdata, ast);
     } else if (ast->tag == EnumDef) {
-        auto def = Match(ast, EnumDef);
+        DeclareMatch(def, ast, EnumDef);
         if (Table$str_get(*visited, def->name))
             return;
 
@@ -289,7 +289,7 @@ void _visit_topologically(ast_t *ast, Table_t definitions, Table_t *visited, Clo
         }
         visit(fn.userdata, ast);
     } else if (ast->tag == LangDef) {
-        auto def = Match(ast, LangDef);
+        DeclareMatch(def, ast, LangDef);
         if (Table$str_get(*visited, def->name))
             return;
         visit(fn.userdata, ast);
@@ -309,13 +309,13 @@ void visit_topologically(ast_list_t *asts, Closure_t fn)
     Table_t definitions = {};
     for (ast_list_t *stmt = asts; stmt; stmt = stmt->next) {
         if (stmt->ast->tag == StructDef) {
-            auto def = Match(stmt->ast, StructDef);
+            DeclareMatch(def, stmt->ast, StructDef);
             Table$str_set(&definitions, def->name, stmt->ast);
         } else if (stmt->ast->tag == EnumDef) {
-            auto def = Match(stmt->ast, EnumDef);
+            DeclareMatch(def, stmt->ast, EnumDef);
             Table$str_set(&definitions, def->name, stmt->ast);
         } else if (stmt->ast->tag == LangDef) {
-            auto def = Match(stmt->ast, LangDef);
+            DeclareMatch(def, stmt->ast, LangDef);
             Table$str_set(&definitions, def->name, stmt->ast);
         }
     }

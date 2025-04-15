@@ -46,7 +46,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         code_err(ast, "I don't know a type with the name '", name, "'");
     }
     case PointerTypeAST: {
-        auto ptr = Match(ast, PointerTypeAST);
+        DeclareMatch(ptr, ast, PointerTypeAST);
         type_t *pointed_t = parse_type_ast(env, ptr->pointed);
         if (pointed_t->tag == VoidType)
             code_err(ast, "Void pointers are not supported. You probably meant 'Memory' instead of 'Void'");
@@ -75,7 +75,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         return Type(SetType, .item_type=item_t);
     }
     case TableTypeAST: {
-        auto table_type = Match(ast, TableTypeAST);
+        DeclareMatch(table_type, ast, TableTypeAST);
         type_ast_t *key_type_ast = table_type->key;
         type_t *key_type = parse_type_ast(env, key_type_ast);
         if (!key_type) code_err(key_type_ast, "I can't figure out what type this is.");
@@ -92,7 +92,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         return Type(TableType, .key_type=key_type, .value_type=val_type, .env=env, .default_value=table_type->default_value);
     }
     case FunctionTypeAST: {
-        auto fn = Match(ast, FunctionTypeAST);
+        DeclareMatch(fn, ast, FunctionTypeAST);
         type_t *ret_t = fn->ret ? parse_type_ast(env, fn->ret) : Type(VoidType);
         if (has_stack_memory(ret_t))
             code_err(fn->ret, "Functions are not allowed to return stack references, because the reference may no longer exist on the stack.");
@@ -111,7 +111,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
         return Type(ClosureType, Type(FunctionType, .args=type_args, .ret=ret_t));
     }
     case OptionalTypeAST: {
-        auto opt = Match(ast, OptionalTypeAST);
+        DeclareMatch(opt, ast, OptionalTypeAST);
         type_t *t = parse_type_ast(env, opt->type);
         if (t->tag == VoidType || t->tag == AbortType || t->tag == ReturnType)
             code_err(ast, "Optional ", type_to_str(t), " types are not supported.");
@@ -161,7 +161,7 @@ PUREFUNC type_t *get_math_type(env_t *env, ast_t *ast, type_t *lhs_t, type_t *rh
 
 static env_t *load_module(env_t *env, ast_t *module_ast)
 {
-    auto use = Match(module_ast, Use);
+    DeclareMatch(use, module_ast, Use);
     switch (use->what) {
     case USE_LOCAL: {
         Path_t source_path = Path$from_str(module_ast->file->filename);
@@ -222,7 +222,7 @@ void prebind_statement(env_t *env, ast_t *statement)
         break;
     }
     case StructDef: {
-        auto def = Match(statement, StructDef);
+        DeclareMatch(def, statement, StructDef);
         if (get_binding(env, def->name))
             code_err(statement, "A ", type_to_str(get_binding(env, def->name)->type), " called ", quoted(def->name), " has already been defined");
 
@@ -236,7 +236,7 @@ void prebind_statement(env_t *env, ast_t *statement)
         break;
     }
     case EnumDef: {
-        auto def = Match(statement, EnumDef);
+        DeclareMatch(def, statement, EnumDef);
         if (get_binding(env, def->name))
             code_err(statement, "A ", type_to_str(get_binding(env, def->name)->type), " called ", quoted(def->name), " has already been defined");
 
@@ -250,7 +250,7 @@ void prebind_statement(env_t *env, ast_t *statement)
         break;
     }
     case LangDef: {
-        auto def = Match(statement, LangDef);
+        DeclareMatch(def, statement, LangDef);
         if (get_binding(env, def->name))
             code_err(statement, "A ", type_to_str(get_binding(env, def->name)->type), " called ", quoted(def->name), " has already been defined");
 
@@ -264,7 +264,7 @@ void prebind_statement(env_t *env, ast_t *statement)
         break;
     }
     case Extend: {
-        auto extend = Match(statement, Extend);
+        DeclareMatch(extend, statement, Extend);
         env_t *ns_env = namespace_env(env, extend->name);
         env_t *extended = new(env_t);
         *extended = *ns_env;
@@ -297,7 +297,7 @@ void bind_statement(env_t *env, ast_t *statement)
         break;
     }
     case Declare: {
-        auto decl = Match(statement, Declare);
+        DeclareMatch(decl, statement, Declare);
         const char *name = Match(decl->var, Var)->name;
         if (streq(name, "_")) // Explicit discard
             return;
@@ -316,7 +316,7 @@ void bind_statement(env_t *env, ast_t *statement)
         break;
     }
     case FunctionDef: {
-        auto def = Match(statement, FunctionDef);
+        DeclareMatch(def, statement, FunctionDef);
         const char *name = Match(def->name, Var)->name;
         type_t *type = get_function_def_type(env, statement);
         CORD code = CORD_all(namespace_prefix(env, env->namespace), name);
@@ -338,7 +338,7 @@ void bind_statement(env_t *env, ast_t *statement)
         break;
     }
     case StructDef: {
-        auto def = Match(statement, StructDef);
+        DeclareMatch(def, statement, StructDef);
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Table$str_get(*env->types, def->name);
         if (!type) code_err(statement, "Couldn't find type!");
@@ -380,7 +380,7 @@ void bind_statement(env_t *env, ast_t *statement)
         break;
     }
     case EnumDef: {
-        auto def = Match(statement, EnumDef);
+        DeclareMatch(def, statement, EnumDef);
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Table$str_get(*env->types, def->name);
         assert(type);
@@ -439,7 +439,7 @@ void bind_statement(env_t *env, ast_t *statement)
         break;
     }
     case LangDef: {
-        auto def = Match(statement, LangDef);
+        DeclareMatch(def, statement, LangDef);
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(TextType, .lang=def->name, .env=ns_env);
         Table$str_set(env->types, def->name, type);
@@ -452,7 +452,7 @@ void bind_statement(env_t *env, ast_t *statement)
         break;
     }
     case Extend: {
-        auto extend = Match(statement, Extend);
+        DeclareMatch(extend, statement, Extend);
         env_t *ns_env = namespace_env(env, extend->name);
         env_t *extended = new(env_t);
         *extended = *ns_env;
@@ -507,7 +507,7 @@ void bind_statement(env_t *env, ast_t *statement)
         break;
     }
     case Extern: {
-        auto ext = Match(statement, Extern);
+        DeclareMatch(ext, statement, Extern);
         type_t *t = parse_type_ast(env, ext->type);
         if (t->tag == ClosureType)
             t = Match(t, ClosureType)->fn;
@@ -553,7 +553,7 @@ env_t *when_clause_scope(env_t *env, type_t *subject_t, when_clause_t *clause)
     if (clause->pattern->tag != FunctionCall || Match(clause->pattern, FunctionCall)->fn->tag != Var)
         code_err(clause->pattern, "I only support variables and constructors for pattern matching ", type_to_str(subject_t), " types in a 'when' block"); 
 
-    auto fn = Match(clause->pattern, FunctionCall);
+    DeclareMatch(fn, clause->pattern, FunctionCall);
     const char *tag_name = Match(fn->fn, Var)->name;
     type_t *tag_type = NULL;
     tag_t * const tags = Match(subject_t, EnumType)->tags;
@@ -571,7 +571,7 @@ env_t *when_clause_scope(env_t *env, type_t *subject_t, when_clause_t *clause)
         return env;
 
     env_t *scope = fresh_scope(env);
-    auto tag_struct = Match(tag_type, StructType);
+    DeclareMatch(tag_struct, tag_type, StructType);
     if (fn->args && !fn->args->next && tag_struct->fields && tag_struct->fields->next) {
         if (fn->args->value->tag != Var)
             code_err(fn->args->value, "I expected a variable here");
@@ -652,7 +652,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             if (base_type->tag == OptionalType) {
                 code_err(base, "This value might be null, so it can't be safely dereferenced");
             } else if (base_type->tag == PointerType) {
-                auto ptr = Match(base_type, PointerType);
+                DeclareMatch(ptr, base_type, PointerType);
                 return Type(PointerType, .pointed=ref_type, .is_stack=ptr->is_stack);
             } else if (base->tag == Var) {
                 return Type(PointerType, .pointed=ref_type, .is_stack=true);
@@ -693,19 +693,19 @@ type_t *get_type(env_t *env, ast_t *ast)
         }
     }
     case Var: {
-        auto var = Match(ast, Var);
+        DeclareMatch(var, ast, Var);
         binding_t *b = get_binding(env, var->name);
         if (b) return b->type;
         code_err(ast, "I don't know what ", quoted(var->name), " refers to");
     }
     case List: {
-        auto list = Match(ast, List);
+        DeclareMatch(list, ast, List);
         type_t *item_type = NULL;
         for (ast_list_t *item = list->items; item; item = item->next) {
             ast_t *item_ast = item->ast;
             env_t *scope = env;
             while (item_ast->tag == Comprehension) {
-                auto comp = Match(item_ast, Comprehension);
+                DeclareMatch(comp, item_ast, Comprehension);
                 scope = for_scope(
                     scope, FakeAST(For, .iter=comp->iter, .vars=comp->vars));
                 item_ast = comp->expr;
@@ -725,13 +725,13 @@ type_t *get_type(env_t *env, ast_t *ast)
         return Type(ListType, .item_type=item_type);
     }
     case Set: {
-        auto set = Match(ast, Set);
+        DeclareMatch(set, ast, Set);
         type_t *item_type = NULL;
         for (ast_list_t *item = set->items; item; item = item->next) {
             ast_t *item_ast = item->ast;
             env_t *scope = env;
             while (item_ast->tag == Comprehension) {
-                auto comp = Match(item_ast, Comprehension);
+                DeclareMatch(comp, item_ast, Comprehension);
                 scope = for_scope(
                     scope, FakeAST(For, .iter=comp->iter, .vars=comp->vars));
                 item_ast = comp->expr;
@@ -752,19 +752,19 @@ type_t *get_type(env_t *env, ast_t *ast)
         return Type(SetType, .item_type=item_type);
     }
     case Table: {
-        auto table = Match(ast, Table);
+        DeclareMatch(table, ast, Table);
         type_t *key_type = NULL, *value_type = NULL;
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
             ast_t *entry_ast = entry->ast;
             env_t *scope = env;
             while (entry_ast->tag == Comprehension) {
-                auto comp = Match(entry_ast, Comprehension);
+                DeclareMatch(comp, entry_ast, Comprehension);
                 scope = for_scope(
                     scope, FakeAST(For, .iter=comp->iter, .vars=comp->vars));
                 entry_ast = comp->expr;
             }
 
-            auto e = Match(entry_ast, TableEntry);
+            DeclareMatch(e, entry_ast, TableEntry);
             type_t *key_t = get_type(scope, e->key);
             type_t *value_t = get_type(scope, e->value);
 
@@ -792,19 +792,19 @@ type_t *get_type(env_t *env, ast_t *ast)
         code_err(ast, "Table entries should not be typechecked directly");
     }
     case Comprehension: {
-        auto comp = Match(ast, Comprehension);
+        DeclareMatch(comp, ast, Comprehension);
         env_t *scope = for_scope(env, FakeAST(For, .iter=comp->iter, .vars=comp->vars));
         if (comp->expr->tag == Comprehension) {
             return get_type(scope, comp->expr);
         } else if (comp->expr->tag == TableEntry) {
-            auto e = Match(comp->expr, TableEntry);
+            DeclareMatch(e, comp->expr, TableEntry);
             return Type(TableType, .key_type=get_type(scope, e->key), .value_type=get_type(scope, e->value), .env=env);
         } else {
             return Type(ListType, .item_type=get_type(scope, comp->expr));
         }
     }
     case FieldAccess: {
-        auto access = Match(ast, FieldAccess);
+        DeclareMatch(access, ast, FieldAccess);
         type_t *fielded_t = get_type(env, access->fielded);
         if (fielded_t->tag == ModuleType) {
             const char *name = Match(fielded_t, ModuleType)->name;
@@ -812,7 +812,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             if (!module_env) code_err(access->fielded, "I couldn't find the environment for the module ", name);
             return get_type(module_env, WrapAST(ast, Var, access->field));
         } else if (fielded_t->tag == TypeInfoType) {
-            auto info = Match(fielded_t, TypeInfoType);
+            DeclareMatch(info, fielded_t, TypeInfoType);
             assert(info->env);
             binding_t *b = get_binding(info->env, access->field);
             if (!b) code_err(ast, "I couldn't find the field '", access->field, "' on this type");
@@ -824,7 +824,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         return field_t;
     }
     case Index: {
-        auto indexing = Match(ast, Index);
+        DeclareMatch(indexing, ast, Index);
         type_t *indexed_t = get_type(env, indexing->indexed);
         if (indexed_t->tag == OptionalType && !indexing->index)
             code_err(ast, "You're attempting to dereference a value whose type indicates it could be null");
@@ -840,7 +840,7 @@ type_t *get_type(env_t *env, ast_t *ast)
                 return Match(value_t, ListType)->item_type;
             code_err(indexing->index, "I only know how to index lists using integers, not ", type_to_str(index_t));
         } else if (value_t->tag == TableType) {
-            auto table_type = Match(value_t, TableType);
+            DeclareMatch(table_type, value_t, TableType);
             if (table_type->default_value)
                 return table_type->value_type;
             return Type(OptionalType, table_type->value_type);
@@ -851,7 +851,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         }
     }
     case FunctionCall: {
-        auto call = Match(ast, FunctionCall);
+        DeclareMatch(call, ast, FunctionCall);
         type_t *fn_type_t = get_type(env, call->fn);
         if (!fn_type_t)
             code_err(call->fn, "I couldn't find this function");
@@ -871,11 +871,11 @@ type_t *get_type(env_t *env, ast_t *ast)
             fn_type_t = Match(fn_type_t, ClosureType)->fn;
         if (fn_type_t->tag != FunctionType)
             code_err(call->fn, "This isn't a function, it's a ", type_to_str(fn_type_t));
-        auto fn_type = Match(fn_type_t, FunctionType);
+        DeclareMatch(fn_type, fn_type_t, FunctionType);
         return fn_type->ret;
     }
     case MethodCall: {
-        auto call = Match(ast, MethodCall);
+        DeclareMatch(call, ast, MethodCall);
 
         if (streq(call->name, "serialized")) // Data serialization
             return Type(ListType, Type(ByteType));
@@ -935,7 +935,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             else code_err(ast, "There is no '", call->name, "' method for sets");
         }
         case TableType: {
-            auto table = Match(self_value_t, TableType);
+            DeclareMatch(table, self_value_t, TableType);
             if (streq(call->name, "clear")) return Type(VoidType);
             else if (streq(call->name, "get")) return Type(OptionalType, .type=table->value_type);
             else if (streq(call->name, "get_or_set")) return table->value_type;
@@ -956,13 +956,13 @@ type_t *get_type(env_t *env, ast_t *ast)
                 code_err(ast, "No such method!");
             if (fn_type_t->tag != FunctionType)
                 code_err(ast, "This isn't a method, it's a ", type_to_str(fn_type_t));
-            auto fn_type = Match(fn_type_t, FunctionType);
+            DeclareMatch(fn_type, fn_type_t, FunctionType);
             return fn_type->ret;
         }
         }
     }
     case Block: {
-        auto block = Match(ast, Block);
+        DeclareMatch(block, ast, Block);
         ast_list_t *last = block->statements;
         if (!last)
             return Type(VoidType);
@@ -1028,7 +1028,7 @@ type_t *get_type(env_t *env, ast_t *ast)
 
         binding_t *b = get_namespace_binding(env, value, "negative");
         if (b && b->type->tag == FunctionType) {
-            auto fn = Match(b->type, FunctionType);
+            DeclareMatch(fn, b->type, FunctionType);
             if (fn->args && type_eq(t, get_arg_type(env, fn->args)) && type_eq(t, fn->ret))
                 return t;
         }
@@ -1045,7 +1045,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         ast_t *value = Match(ast, Not)->value;
         binding_t *b = get_namespace_binding(env, value, "negated");
         if (b && b->type->tag == FunctionType) {
-            auto fn = Match(b->type, FunctionType);
+            DeclareMatch(fn, b->type, FunctionType);
             if (fn->args && type_eq(t, get_arg_type(env, fn->args)) && type_eq(t, fn->ret))
                 return t;
         }
@@ -1213,7 +1213,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (ast->tag == Multiply && is_numeric_type(lhs_t)) {
             binding_t *b = get_namespace_binding(env, binop.rhs, "scaled_by");
             if (b && b->type->tag == FunctionType) {
-                auto fn = Match(b->type, FunctionType);
+                DeclareMatch(fn, b->type, FunctionType);
                 if (type_eq(fn->ret, rhs_t)) {
                     arg_ast_t *args = new(arg_ast_t, .value=binop.rhs, .next=new(arg_ast_t, .value=binop.lhs));
                     if (is_valid_call(env, fn->args, args, true))
@@ -1223,7 +1223,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         } else if (ast->tag == Multiply && is_numeric_type(rhs_t)) {
             binding_t *b = get_namespace_binding(env, binop.lhs, "scaled_by");
             if (b && b->type->tag == FunctionType) {
-                auto fn = Match(b->type, FunctionType);
+                DeclareMatch(fn, b->type, FunctionType);
                 if (type_eq(fn->ret, lhs_t)) {
                     arg_ast_t *args = new(arg_ast_t, .value=binop.lhs, .next=new(arg_ast_t, .value=binop.rhs));
                     if (is_valid_call(env, fn->args, args, true))
@@ -1233,7 +1233,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         } else if ((ast->tag == Divide || ast->tag == Mod || ast->tag == Mod1) && is_numeric_type(rhs_t)) {
             binding_t *b = get_namespace_binding(env, binop.lhs, binop_method_name(ast->tag));
             if (b && b->type->tag == FunctionType) {
-                auto fn = Match(b->type, FunctionType);
+                DeclareMatch(fn, b->type, FunctionType);
                 if (type_eq(fn->ret, lhs_t)) {
                     arg_ast_t *args = new(arg_ast_t, .value=binop.lhs, .next=new(arg_ast_t, .value=binop.rhs));
                     if (is_valid_call(env, fn->args, args, true))
@@ -1273,7 +1273,7 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
 
     case Reduction: {
-        auto reduction = Match(ast, Reduction);
+        DeclareMatch(reduction, ast, Reduction);
         type_t *iter_t = get_type(env, reduction->iter);
 
         if (reduction->op == Equals || reduction->op == NotEquals || reduction->op == LessThan
@@ -1304,7 +1304,7 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
 
     case Lambda: {
-        auto lambda = Match(ast, Lambda);
+        DeclareMatch(lambda, ast, Lambda);
         arg_t *args = NULL;
         env_t *scope = fresh_scope(env); // For now, just use closed variables in scope normally
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
@@ -1342,14 +1342,14 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
 
     case If: {
-        auto if_ = Match(ast, If);
+        DeclareMatch(if_, ast, If);
         if (!if_->else_body)
             return Type(VoidType);
 
         env_t *truthy_scope = env;
         env_t *falsey_scope = env;
         if (if_->condition->tag == Declare) {
-            auto decl = Match(if_->condition, Declare);
+            DeclareMatch(decl, if_->condition, Declare);
             type_t *condition_type = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
             const char *varname = Match(decl->var, Var)->name;
             if (streq(varname, "_"))
@@ -1382,7 +1382,7 @@ type_t *get_type(env_t *env, ast_t *ast)
     }
 
     case When: {
-        auto when = Match(ast, When);
+        DeclareMatch(when, ast, When);
         type_t *subject_t = get_type(env, when->subject);
         if (subject_t->tag != EnumType) {
             type_t *t = NULL;
@@ -1478,7 +1478,7 @@ type_t *get_type(env_t *env, ast_t *ast)
 
     case While: case Repeat: case For: return Type(VoidType);
     case InlineCCode: {
-        auto inline_code = Match(ast, InlineCCode);
+        DeclareMatch(inline_code, ast, InlineCCode);
         if (inline_code->type)
             return inline_code->type;
         type_ast_t *type_ast = inline_code->type_ast;
@@ -1596,7 +1596,7 @@ PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast)
     case Var: return true;
     case InlineCCode: return true;
     case FieldAccess: {
-        auto access = Match(ast, FieldAccess);
+        DeclareMatch(access, ast, FieldAccess);
         type_t *fielded_type = get_type(env, access->fielded);
         if (fielded_type->tag == PointerType) {
             type_t *val = value_type(fielded_type);
@@ -1608,7 +1608,7 @@ PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast)
         }
     }
     case Index: {
-        auto index = Match(ast, Index);
+        DeclareMatch(index, ast, Index);
         type_t *indexed_type = get_type(env, index->indexed);
         return (indexed_type->tag == PointerType);
     }
@@ -1627,13 +1627,13 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast)
     switch (ast->tag) {
     case Bool: case Num: case None: return true;
     case Int: {
-        auto info = Match(ast, Int);
+        DeclareMatch(info, ast, Int);
         Int_t int_val = Int$parse(Text$from_str(info->str));
         if (int_val.small == 0) return false; // Failed to parse
         return (Int$compare_value(int_val, I(BIGGEST_SMALL_INT)) <= 0);
     }
     case TextJoin: {
-        auto text = Match(ast, TextJoin);
+        DeclareMatch(text, ast, TextJoin);
         if (!text->children) return true; // Empty string, OK
         if (text->children->next) return false; // Concatenation, not constant
         return is_constant(env, text->children->ast);
@@ -1701,13 +1701,13 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed)
         for (ast_list_t *entry = Match(ast, Table)->entries; entry; entry = entry->next) {
             if (entry->ast->tag != TableEntry)
                 continue; // TODO: fix this
-            auto e = Match(entry->ast, TableEntry);
+            DeclareMatch(e, entry->ast, TableEntry);
             if (!can_compile_to_type(env, e->key, key_type) || !can_compile_to_type(env, e->value, value_type))
                 return false;
         }
         return true;
     } else if (needed->tag == PointerType) {
-        auto ptr = Match(needed, PointerType);
+        DeclareMatch(ptr, needed, PointerType);
         if (ast->tag == HeapAllocate)
             return !ptr->is_stack && can_compile_to_type(env, Match(ast, HeapAllocate)->value, ptr->pointed);
         else if (ast->tag == StackReference)

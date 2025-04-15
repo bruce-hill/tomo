@@ -140,7 +140,7 @@ const TypeInfo_t *type_to_type_info(type_t *t)
         return memcpy(GC_MALLOC(sizeof(TypeInfo_t)), &table_info, sizeof(TypeInfo_t));
     }
     case PointerType: {
-        auto ptr = Match(t, PointerType);
+        DeclareMatch(ptr, t, PointerType);
         CORD sigil = ptr->is_stack ? "&" : "@";
         const TypeInfo_t *pointed_info = type_to_type_info(ptr->pointed);
         const TypeInfo_t pointer_info = *Pointer$info(sigil, pointed_info);
@@ -222,7 +222,7 @@ void run(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
     case Declare: {
-        auto decl = Match(ast, Declare);
+        DeclareMatch(decl, ast, Declare);
         const char *name = Match(decl->var, Var)->name;
         type_t *type = get_type(env, decl->value);
         repl_binding_t *binding = new(repl_binding_t, .type=type, .value=GC_MALLOC(type_size(type)));
@@ -231,7 +231,7 @@ void run(env_t *env, ast_t *ast)
         break;
     }
     case Assign: {
-        auto assign = Match(ast, Assign);
+        DeclareMatch(assign, ast, Assign);
         for (ast_list_t *val = assign->values, *target = assign->targets; val && target; val = val->next, target = target->next) {
             type_t *t_target = get_type(env, target->ast);
             type_t *t_val = get_type(env, val->ast);
@@ -255,7 +255,7 @@ void run(env_t *env, ast_t *ast)
                 break;
             }
             // case Index: {
-            //     auto index = Match(target->ast, Index);
+            //     DeclareMatch(index, target->ast, Index);
             //     type_t *obj_t = get_type(env, index->indexed);
             //     TypeInfo_t *table_info = type_to_type_info(t);
             // }
@@ -265,7 +265,7 @@ void run(env_t *env, ast_t *ast)
         break;
     }
     case DocTest: {
-        auto doctest = Match(ast, DocTest);
+        DeclareMatch(doctest, ast, DocTest);
         type_t *t = get_type(env, doctest->expr);
         size_t size = t ? type_size(t) : 0;
         if (size == 0) {
@@ -280,7 +280,7 @@ void run(env_t *env, ast_t *ast)
         break;
     }
     case Block: {
-        auto block = Match(ast, Block);
+        DeclareMatch(block, ast, Block);
         for (ast_list_t *stmt = block->statements; stmt; stmt = stmt->next) {
             run(env, stmt->ast);
         }
@@ -298,7 +298,7 @@ void run(env_t *env, ast_t *ast)
     // LinkerDirective,
     // InlineCCode,
     case If: {
-        auto if_ = Match(ast, If);
+        DeclareMatch(if_, ast, If);
         bool condition;
         type_t *cond_t = get_type(env, if_->condition);
         assert(cond_t->tag == BoolType);
@@ -311,7 +311,7 @@ void run(env_t *env, ast_t *ast)
         break;
     }
     case While: {
-        auto while_ = Match(ast, While);
+        DeclareMatch(while_, ast, While);
         bool condition;
         type_t *cond_t = get_type(env, while_->condition);
         assert(cond_t->tag == BoolType);
@@ -323,7 +323,7 @@ void run(env_t *env, ast_t *ast)
         break;
     }
     // case For: {
-    //     auto for_ = Match(ast, For);
+    //     DeclareMatch(for_, ast, For);
     // }
     default: {
         eval(env, ast, NULL);
@@ -387,7 +387,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         break;
     }
     case Index: {
-        auto index = Match(ast, Index);
+        DeclareMatch(index, ast, Index);
         type_t *indexed_t = get_type(env, index->indexed);
         // type_t *index_t = get_type(env, index->index);
         switch (indexed_t->tag) {
@@ -416,7 +416,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
             break;
         }
         case PointerType: {
-            auto ptr = Match(indexed_t, PointerType);
+            DeclareMatch(ptr, indexed_t, PointerType);
             size_t pointed_size = type_size(ptr->pointed);
             void *pointer;
             eval(env, index->indexed, &pointer);
@@ -441,7 +441,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
     }
     case Table: {
         assert(t->tag == TableType);
-        auto table_ast = Match(ast, Table);
+        DeclareMatch(table_ast, ast, Table);
         Table_t table = {};
         size_t key_size = type_size(Match(t, TableType)->key_type);
         size_t value_size = type_size(Match(t, TableType)->value_type);
@@ -450,7 +450,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         const TypeInfo_t *table_info = type_to_type_info(t);
         assert(table_info->tag == TableInfo);
         for (ast_list_t *entry = table_ast->entries; entry; entry = entry->next) {
-            auto e = Match(entry->ast, TableEntry);
+            DeclareMatch(e, entry->ast, TableEntry);
             eval(env, e->key, key_buf);
             eval(env, e->value, value_buf);
             Table$set(&table, key_buf, value_buf, table_info);
@@ -461,7 +461,7 @@ void eval(env_t *env, ast_t *ast, void *dest)
         break;
     }
     case Block: {
-        auto block = Match(ast, Block);
+        DeclareMatch(block, ast, Block);
         for (ast_list_t *stmt = block->statements; stmt; stmt = stmt->next) {
             if (stmt->next)
                 run(env, stmt->ast);

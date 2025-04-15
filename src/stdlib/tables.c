@@ -437,7 +437,7 @@ PUREFUNC public int32_t Table$compare(const void *vx, const void *vy, const Type
 
     Table_t *x = (Table_t*)vx, *y = (Table_t*)vy;
     assert(type->tag == TableInfo);
-    auto table = type->TableInfo;
+    __typeof(type->TableInfo) table = type->TableInfo;
 
     // Sort empty tables before non-empty tables:
     if (x->entries.length == 0 || y->entries.length == 0)
@@ -543,7 +543,7 @@ PUREFUNC public uint64_t Table$hash(const void *obj, const TypeInfo_t *type)
     // Table hashes are computed as:
     // hash(t.length, (xor: t.keys), (xor: t.values), t.fallback)
     // Where fallback and default hash to zero if absent
-    auto table = type->TableInfo;
+    __typeof(type->TableInfo) table = type->TableInfo;
     uint64_t keys_hash = 0, values_hash = 0;
     size_t offset = value_offset(type);
     if (table.value->size > 0) {
@@ -576,7 +576,7 @@ public Text_t Table$as_text(const void *obj, bool colorize, const TypeInfo_t *ty
 {
     Table_t *t = (Table_t*)obj;
     assert(type->tag == TableInfo);
-    auto table = type->TableInfo;
+    __typeof(type->TableInfo) table = type->TableInfo;
 
     if (!t) {
         if (table.value != &Void$info) 

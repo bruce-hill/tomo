@@ -10,14 +10,22 @@
 
 typedef struct TypeInfo_s TypeInfo_t;
 
+typedef void (*serialize_fn_t)(const void*, FILE*, Table_t*, const TypeInfo_t*);
+typedef void (*deserialize_fn_t)(FILE*, void*, List_t*, const TypeInfo_t*);
+typedef bool (*is_none_fn_t)(const void*, const TypeInfo_t*);
+typedef uint64_t (*hash_fn_t)(const void*, const TypeInfo_t*);
+typedef int32_t (*compare_fn_t)(const void*, const void*, const TypeInfo_t*);
+typedef bool (*equal_fn_t)(const void*, const void*, const TypeInfo_t*);
+typedef Text_t (*as_text_fn_t)(const void*, bool, const TypeInfo_t*);
+
 typedef struct {
-    uint64_t (*hash)(const void*, const TypeInfo_t*);
-    int32_t (*compare)(const void*, const void*, const TypeInfo_t*);
-    bool (*equal)(const void*, const void*, const TypeInfo_t*);
-    Text_t (*as_text)(const void*, bool, const TypeInfo_t*);
-    bool (*is_none)(const void*, const TypeInfo_t*);
-    void (*serialize)(const void*, FILE*, Table_t*, const TypeInfo_t*);
-    void (*deserialize)(FILE*, void*, List_t*, const TypeInfo_t*);
+    hash_fn_t hash;
+    compare_fn_t compare;
+    equal_fn_t equal;
+    as_text_fn_t as_text;
+    is_none_fn_t is_none;
+    serialize_fn_t serialize;
+    deserialize_fn_t deserialize;
 } metamethods_t;
 
 typedef struct {

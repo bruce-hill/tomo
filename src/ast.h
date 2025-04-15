@@ -21,12 +21,13 @@
 #define TextAST(ast, _str) WrapAST(ast, TextLiteral, .str=GC_strdup(_str))
 #define LiteralCode(code, ...) new(ast_t, .tag=InlineCCode, .__data.InlineCCode={.chunks=new(ast_list_t, .ast=FakeAST(TextLiteral, code)), __VA_ARGS__})
 #define Match(x, _tag) ((x)->tag == _tag ? &(x)->__data._tag : (errx(1, __FILE__ ":%d This was supposed to be a " # _tag "\n", __LINE__), &(x)->__data._tag))
+#define DeclareMatch(var, x, _tag) __typeof((x)->__data._tag) *var = Match(x, _tag)
 #define BINARY_OPERANDS(ast) ({ if (!is_binary_operation(ast)) errx(1, __FILE__ ":%d This is not a binary operation!", __LINE__); (ast)->__data.Plus; })
 
 #define REVERSE_LIST(list) do { \
     __typeof(list) _prev = NULL; \
     __typeof(list) _next = NULL; \
-    auto _current = list; \
+    __typeof(list) _current = list; \
     while (_current != NULL) { \
         _next = _current->next; \
         _current->next = _prev; \

@@ -34,15 +34,15 @@ CORD type_to_cord(type_t *t) {
         case IntType: return CORD_asprintf("Int%d", Match(t, IntType)->bits);
         case NumType: return Match(t, NumType)->bits == TYPE_NBITS32 ? "Num32" : "Num";
         case ListType: {
-            auto list = Match(t, ListType);
+            DeclareMatch(list, t, ListType);
             return CORD_asprintf("[%r]", type_to_cord(list->item_type));
         }
         case TableType: {
-            auto table = Match(t, TableType);
+            DeclareMatch(table, t, TableType);
             return CORD_all("{", type_to_cord(table->key_type), "=", type_to_cord(table->value_type), "}");
         }
         case SetType: {
-            auto set = Match(t, SetType);
+            DeclareMatch(set, t, SetType);
             return CORD_asprintf("{%r}", type_to_cord(set->item_type));
         }
         case ClosureType: {
@@ -50,7 +50,7 @@ CORD type_to_cord(type_t *t) {
         }
         case FunctionType: {
             CORD c = "func(";
-            auto fn = Match(t, FunctionType);
+            DeclareMatch(fn, t, FunctionType);
             for (arg_t *arg = fn->args; arg; arg = arg->next) {
                 c = CORD_cat(c, type_to_cord(arg->type));
                 if (arg->next) c = CORD_cat(c, ",");
@@ -61,16 +61,16 @@ CORD type_to_cord(type_t *t) {
             return c;
         }
         case StructType: {
-            auto struct_ = Match(t, StructType);
+            DeclareMatch(struct_, t, StructType);
             return struct_->name;
         }
         case PointerType: {
-            auto ptr = Match(t, PointerType);
+            DeclareMatch(ptr, t, PointerType);
             CORD sigil = ptr->is_stack ? "&" : "@";
             return CORD_all(sigil, type_to_cord(ptr->pointed));
         }
         case EnumType: {
-            auto tagged = Match(t, EnumType);
+            DeclareMatch(tagged, t, EnumType);
             return tagged->name;
         }
         case OptionalType: {
@@ -123,8 +123,8 @@ bool type_is_a(type_t *t, type_t *req)
     if (req->tag == OptionalType && Match(req, OptionalType)->type)
         return type_is_a(t, Match(req, OptionalType)->type);
     if (t->tag == PointerType && req->tag == PointerType) {
-        auto t_ptr = Match(t, PointerType);
-        auto req_ptr = Match(req, PointerType);
+        DeclareMatch(t_ptr, t, PointerType);
+        DeclareMatch(req_ptr, req, PointerType);
         if (type_eq(t_ptr->pointed, req_ptr->pointed))
             return (!t_ptr->is_stack && req_ptr->is_stack) || (!t_ptr->is_stack);
     }
@@ -279,7 +279,7 @@ PUREFUNC const char *enum_single_value_tag(type_t *enum_type, type_t *t)
     const char *found = NULL;
     for (tag_t *tag = Match(enum_type, EnumType)->tags; tag; tag = tag->next) {
         if (tag->type->tag != StructType) continue;
-        auto s = Match(tag->type, StructType);
+        DeclareMatch(s, tag->type, StructType);
         if (!s->fields || s->fields->next || !s->fields->type)
             continue;
 
@@ -312,7 +312,7 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
         return true;
 
     if (actual->tag == IntType && needed->tag == IntType) {
-        auto cmp = compare_precision(actual, needed);
+        precision_cmp_e cmp = compare_precision(actual, needed);
         return cmp == NUM_PRECISION_EQUAL || cmp == NUM_PRECISION_LESS;
     }
 
@@ -349,8 +349,8 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
         return true;
 
     if (needed->tag == PointerType && actual->tag == PointerType) {
-        auto needed_ptr = Match(needed, PointerType);
-        auto actual_ptr = Match(actual, PointerType);
+        DeclareMatch(needed_ptr, needed, PointerType);
+        DeclareMatch(actual_ptr, actual, PointerType);
 
         if (actual_ptr->is_stack && !needed_ptr->is_stack)
             // Can't use &x for a function that wants a @Foo or ?Foo
@@ -376,8 +376,8 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
 
     // Cross-promotion between tables with default values and without
     if (needed->tag == TableType && actual->tag == TableType) {
-        auto actual_table = Match(actual, TableType);
-        auto needed_table = Match(needed, TableType);
+        DeclareMatch(actual_table, actual, TableType);
+        DeclareMatch(needed_table, needed, TableType);
         if (type_eq(needed_table->key_type, actual_table->key_type)
             && type_eq(needed_table->value_type, actual_table->value_type))
             return true;
@@ -661,7 +661,7 @@ type_t *get_field_type(type_t *t, const char *field_name)
         return NULL;
     }
     case StructType: {
-        auto struct_t = Match(t, StructType);
+        DeclareMatch(struct_t, t, StructType);
         for (arg_t *field = struct_t->fields; field; field = field->next) {
             if (streq(field->name, field_name))
                 return field->type;
@@ -669,7 +669,7 @@ type_t *get_field_type(type_t *t, const char *field_name)
         return NULL;
     }
     case EnumType: {
-        auto e = Match(t, EnumType);
+        DeclareMatch(e, t, EnumType);
         for (tag_t *tag = e->tags; tag; tag = tag->next) {
             if (streq(field_name, tag->name))
                 return Type(BoolType);
@@ -712,7 +712,7 @@ PUREFUNC type_t *get_iterated_type(type_t *t)
     case TableType: return NULL;
     case FunctionType: case ClosureType: {
         // Iterator function
-        auto fn = iter_value_t->tag == ClosureType ?
+        __typeof(iter_value_t->__data.FunctionType) *fn = iter_value_t->tag == ClosureType ?
             Match(Match(iter_value_t, ClosureType)->fn, FunctionType) : Match(iter_value_t, FunctionType);
         if (fn->args || fn->ret->tag != OptionalType)
             return NULL;
@@ -731,11 +731,11 @@ CONSTFUNC bool is_incomplete_type(type_t *t)
     case ListType: return is_incomplete_type(Match(t, ListType)->item_type);
     case SetType: return is_incomplete_type(Match(t, SetType)->item_type);
     case TableType: {
-        auto table = Match(t, TableType);
+        DeclareMatch(table, t, TableType);
         return is_incomplete_type(table->key_type) || is_incomplete_type(table->value_type);
     }
     case FunctionType: {
-        auto fn = Match(t, FunctionType);
+        DeclareMatch(fn, t, FunctionType);
         for (arg_t *arg = fn->args; arg; arg = arg->next) {
             if (arg->type == NULL || is_incomplete_type(arg->type))
                 return true;
@@ -779,16 +779,16 @@ CONSTFUNC type_t *most_complete_type(type_t *t1, type_t *t2)
         return item ? Type(SetType, item) : NULL;
     }
     case TableType: {
-        auto table1 = Match(t1, TableType);
-        auto table2 = Match(t2, TableType);
+        DeclareMatch(table1, t1, TableType);
+        DeclareMatch(table2, t2, TableType);
         ast_t *default_value = table1->default_value ? table1->default_value : table2->default_value;
         type_t *key = most_complete_type(table1->key_type, table2->key_type);
         type_t *value = most_complete_type(table1->value_type, table2->value_type);
         return (key && value) ? Type(TableType, key, value, table1->env, default_value) : NULL;
     }
     case FunctionType: {
-        auto fn1 = Match(t1, FunctionType);
-        auto fn2 = Match(t2, FunctionType);
+        DeclareMatch(fn1, t1, FunctionType);
+        DeclareMatch(fn2, t2, FunctionType);
         arg_t *args = NULL;
         for (arg_t *arg1 = fn1->args, *arg2 = fn2->args; arg1 || arg2; arg1 = arg1->next, arg2 = arg2->next) {
             if (!arg1 || !arg2)
@@ -807,8 +807,8 @@ CONSTFUNC type_t *most_complete_type(type_t *t1, type_t *t2)
         return fn ? Type(ClosureType, fn) : NULL;
     }
     case PointerType: {
-        auto ptr1 = Match(t1, PointerType);
-        auto ptr2 = Match(t2, PointerType);
+        DeclareMatch(ptr1, t1, PointerType);
+        DeclareMatch(ptr2, t2, PointerType);
         if (ptr1->is_stack != ptr2->is_stack)
             return NULL;
         type_t *pointed = most_complete_type(ptr1->pointed, ptr2->pointed);
