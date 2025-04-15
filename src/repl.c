@@ -42,7 +42,7 @@ static PUREFUNC repl_binding_t *get_repl_binding(env_t *env, const char *name)
 
 void repl(void)
 {
-    env_t *env = global_env();
+    env_t *env = global_env(true);
     size_t buf_size = 0;
     char *line = NULL;
     ssize_t len = 0;

@@ -55,7 +55,8 @@ static OptionalBool_t verbose = false,
                       compile_exe = false,
                       should_install = false,
                       run_repl = false,
-                      clean_build = false;
+                      clean_build = false,
+                      source_mapping = true;
 
 static OptionalText_t 
             show_codegen = NONE_TEXT,
@@ -178,6 +179,8 @@ int main(int argc, char *argv[])
         {"O", false, &Text$info, &optimization},
         {"force-rebuild", false, &Bool$info, &clean_build},
         {"f", false, &Bool$info, &clean_build},
+        {"source-mapping", false, &Bool$info, &source_mapping},
+        {"m", false, &Bool$info, &source_mapping},
     );
 
     bool is_gcc = (system(String(cc, " -v 2>&1 | grep 'gcc version' >/dev/null")) == 0);
@@ -254,7 +257,7 @@ int main(int argc, char *argv[])
 
         pid_t child = fork();
         if (child == 0) {
-            env_t *env = global_env();
+            env_t *env = global_env(source_mapping);
             List_t object_files = {},
                     extra_ldlibs = {};
             compile_files(env, files, &object_files, &extra_ldlibs);
@@ -411,7 +414,7 @@ static void _compile_file_header_for_library(env_t *env, Path_t header_path, Pat
 void build_library(Text_t lib_dir_name)
 {
     List_t tm_files = Path$glob(Path("./[!._0-9]*.tm"));
-    env_t *env = fresh_scope(global_env());
+    env_t *env = fresh_scope(global_env(source_mapping));
     List_t object_files = {},
             extra_ldlibs = {};
 
@@ -718,8 +721,8 @@ void transpile_code(env_t *base_env, Path_t path)
                          ", but it should not have any return value!");
 
         CORD_put(CORD_all(
-            "int ", main_binding->code, "$parse_and_run(int argc, char *argv[]) {\n"
-            "#line 1\n"
+            "int ", main_binding->code, "$parse_and_run(int argc, char *argv[]) {\n",
+            module_env->do_source_mapping ? "#line 1\n" : CORD_EMPTY,
             "tomo_init();\n",
             "_$", module_env->namespace->name, "$$initialize();\n"
             "\n",

@@ -67,9 +67,9 @@ CORD promote_to_optional(type_t *t, CORD code)
     }
 }
 
-static CORD with_source_info(ast_t *ast, CORD code)
+static CORD with_source_info(env_t *env, ast_t *ast, CORD code)
 {
-    if (code == CORD_EMPTY || !ast || !ast->file)
+    if (code == CORD_EMPTY || !ast || !ast->file || !env->do_source_mapping)
         return code;
     int64_t line = get_line_number(ast->file, ast->start);
     return CORD_asprintf("\n#line %ld\n%r", line, code);
@@ -1878,7 +1878,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         auto use = Match(ast, Use);
         if (use->what == USE_LOCAL) {
             CORD name = file_base_id(Match(ast, Use)->path);
-            return with_source_info(ast, CORD_all("_$", name, "$$initialize();\n"));
+            return with_source_info(env, ast, CORD_all("_$", name, "$$initialize();\n"));
         } else if (use->what == USE_MODULE) {
             glob_t tm_files;
             if (glob(String("~/.local/share/tomo/installed/", use->path, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
@@ -1896,7 +1896,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 const char *filename = tm_files.gl_pathv[i];
                 initialization = CORD_all(
                     initialization,
-                    with_source_info(ast, CORD_all("_$", lib_id, "$", file_base_id(filename), "$$initialize();\n")));
+                    with_source_info(env, ast, CORD_all("_$", lib_id, "$", file_base_id(filename), "$$initialize();\n")));
             }
             globfree(&tm_files);
             return initialization;
@@ -1914,7 +1914,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
 CORD compile_statement(env_t *env, ast_t *ast) {
     CORD stmt = _compile_statement(env, ast);
-    return with_source_info(ast, stmt);
+    return with_source_info(env, ast, stmt);
 }
 
 CORD expr_as_text(CORD expr, type_t *t, CORD color)
@@ -4113,7 +4113,7 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
     }
 
     CORD body_code = CORD_all("{\n", compile_inline_block(body_scope, body), "}\n");
-    CORD definition = with_source_info(ast, CORD_all(code, " ", body_code, "\n"));
+    CORD definition = with_source_info(env, ast, CORD_all(code, " ", body_code, "\n"));
 
     if (cache && args == NULL) { // no-args cache just uses a static var
         CORD wrapper = CORD_all(
@@ -4329,7 +4329,7 @@ static void initialize_vars_and_statics(env_t *env, ast_t *ast)
                 env->code->variable_initializers = CORD_all(
                     env->code->variable_initializers,
                     with_source_info(
-                        stmt->ast,
+                        env, stmt->ast,
                         CORD_all(
                             full_name, " = ", val_code, ",\n",
                             full_name, "$initialized = true;\n")));
@@ -4371,7 +4371,7 @@ CORD compile_file(env_t *env, ast_t *ast)
 
     const char *name = file_base_name(ast->file->filename);
     return CORD_all(
-        "#line 1 ", CORD_quoted(ast->file->filename), "\n",
+        env->do_source_mapping ? CORD_all("#line 1 ", CORD_quoted(ast->file->filename), "\n") : CORD_EMPTY,
         "#define __SOURCE_FILE__ ", CORD_quoted(ast->file->filename), "\n",
         "#include <tomo/tomo.h>\n"
         "#include \"", name, ".tm.h\"\n\n",
@@ -4607,8 +4607,8 @@ static void _define_types_and_funcs(compile_typedef_info_t *info, ast_t *ast)
 CORD compile_file_header(env_t *env, Path_t header_path, ast_t *ast)
 {
     CORD header = CORD_all(
-        "#pragma once\n"
-        "#line 1 ", CORD_quoted(ast->file->filename), "\n",
+        "#pragma once\n",
+        env->do_source_mapping ? CORD_all("#line 1 ", CORD_quoted(ast->file->filename), "\n") : CORD_EMPTY,
         "#include <tomo/tomo.h>\n");
 
     compile_typedef_info_t info = {.env=env, .header=&header, .header_path=header_path};
