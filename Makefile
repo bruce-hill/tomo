@@ -43,7 +43,7 @@ G=-ggdb
 O=-Og
 CFLAGS=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO)
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
-LDLIBS=-lgc -lcord -lm -lunistring -lgmp -lbacktrace
+LDLIBS=-lgc -lcord -lm -lunistring -lgmp
 LIBTOMO_FLAGS=-shared
 
 ifeq ($(OS),OpenBSD)

@@ -68,7 +68,7 @@ static OptionalText_t
 #endif
                           " -DGC_THREADS"
                           " -I$HOME/.local/include -I$HOME/.local/share/tomo/installed -I/usr/local/include"),
-            ldlibs = Text("-lgc -lm -lgmp -lunistring -lbacktrace -ltomo"),
+            ldlibs = Text("-lgc -lm -lgmp -lunistring -ltomo"),
             ldflags = Text("-Wl,-rpath,'$ORIGIN',-rpath,$HOME/.local/share/tomo/lib,-rpath,$HOME/.local/lib,-rpath,/usr/local/lib "
                            "-L$HOME/.local/lib -L$HOME/.local/share/tomo/lib -L/usr/local/lib"),
             optimization = Text("2"),
