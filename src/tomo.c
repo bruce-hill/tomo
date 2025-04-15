@@ -68,7 +68,7 @@ static OptionalText_t
 #endif
                           " -DGC_THREADS"
                           " -I'" TOMO_PREFIX "/include' -I'" TOMO_HOME "/installed' -I/usr/local/include"),
-            ldlibs = Text("-lgc -lm -lgmp -lunistring '"TOMO_PREFIX"'/lib/libtomo.so"),
+            ldlibs = Text("-lgc -lm -lgmp -lunistring -ltomo"),
             ldflags = Text("-Wl,-rpath,'"TOMO_PREFIX"/lib',-rpath,'" TOMO_HOME "/lib',-rpath,/usr/local/lib "
                            "-L'" TOMO_HOME "/lib' -L/usr/local/lib"),
             optimization = Text("2"),
@@ -124,6 +124,16 @@ int main(int argc, char *argv[])
     USE_COLOR = getenv("COLOR") ? strcmp(getenv("COLOR"), "1") == 0 : isatty(STDOUT_FILENO);
     if (getenv("NO_COLOR") && getenv("NO_COLOR")[0] != '\0')
         USE_COLOR = false;
+
+    // Set up environment variables:
+    const char *PATH = getenv("PATH");
+    setenv("PATH", PATH ? String(TOMO_PREFIX"/bin:", PATH) : TOMO_PREFIX"/bin", 1);
+    const char *LD_LIBRARY_PATH = getenv("LD_LIBRARY_PATH");
+    setenv("LD_LIBRARY_PATH", LD_LIBRARY_PATH ? String(TOMO_PREFIX"/lib:", LD_LIBRARY_PATH) : TOMO_PREFIX"/lib", 1);
+    const char *LIBRARY_PATH = getenv("LIBRARY_PATH");
+    setenv("LIBRARY_PATH", LIBRARY_PATH ? String(TOMO_PREFIX"/lib:", LIBRARY_PATH) : TOMO_PREFIX"/lib", 1);
+    const char *C_INCLUDE_PATH = getenv("C_INCLUDE_PATH");
+    setenv("C_INCLUDE_PATH", C_INCLUDE_PATH ? String(TOMO_PREFIX"/include:", C_INCLUDE_PATH) : TOMO_PREFIX"/include", 1);
 
     // Run a tool:
     if ((streq(argv[1], "-r") || streq(argv[1], "--run")) && argc >= 3) {

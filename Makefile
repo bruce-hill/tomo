@@ -75,20 +75,20 @@ COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c))
 STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c))
 TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/*.tm))
 
-all: config.mk build/$(LIB_FILE) build/$(AR_FILE) build/tomo
+all: config.mk build/lib/$(LIB_FILE) build/lib/$(AR_FILE) build/bin/tomo
 
-build/tomo: $(STDLIB_OBJS) $(COMPILER_OBJS)
-	@mkdir -p build
+build/bin/tomo: $(STDLIB_OBJS) $(COMPILER_OBJS)
+	@mkdir -p build/bin
 	@echo $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $^ $(LDLIBS) -o $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-build/$(LIB_FILE): $(STDLIB_OBJS)
-	@mkdir -p build
+build/lib/$(LIB_FILE): $(STDLIB_OBJS)
+	@mkdir -p build/lib
 	@echo $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
 	@$(CC) $^ $(CFLAGS) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
 
-build/$(AR_FILE): $(STDLIB_OBJS)
-	@mkdir -p build
+build/lib/$(AR_FILE): $(STDLIB_OBJS)
+	@mkdir -p build/lib
 	@echo ar -rcs $@ $^
 	@ar -rcs $@ $^
 
@@ -103,13 +103,13 @@ config.mk: configure.sh
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 %: %.tm
-	tomo -e $<
+	./local-tomo -e $<
 
-test/results/%.tm.testresult: test/%.tm build/tomo
+test/results/%.tm.testresult: test/%.tm build/bin/tomo
 	@mkdir -p test/results
 	@printf '\033[33;1;4m%s\033[m\n' $<
 	@set -o pipefail; \
-	if ! VERBOSE=0 COLOR=1 LC_ALL=C ./build/tomo --c-compiler=$(CC) -O 1 $< 2>&1 | tee $@; then \
+	if ! COLOR=1 LC_ALL=C ./local-tomo -O 1 $< 2>&1 | tee $@; then \
 		rm -f $@; \
 		false; \
 	fi
@@ -118,16 +118,16 @@ test: $(TESTS)
 	@printf '\033[32;7m ALL TESTS PASSED! \033[m\n'
 
 clean:
-	rm -rf build/* $(COMPILER_OBJS) $(STDLIB_OBJS) test/*.tm.testresult test/.build lib/*/.build examples/.build examples/*/.build
+	rm -rf build/{lib,bin}/* $(COMPILER_OBJS) $(STDLIB_OBJS) test/*.tm.testresult test/.build lib/*/.build examples/.build examples/*/.build
 
 %: %.md
 	pandoc --lua-filter=docs/.pandoc/bold-code.lua -s $< -t man -o $@
 
 examples:
-	./build/tomo -qIL examples/log examples/ini examples/vectors examples/http examples/wrap examples/colorful
-	./build/tomo -e examples/game/game.tm examples/http-server/http-server.tm \
+	./build/bin/tomo -qIL examples/log examples/ini examples/vectors examples/http examples/wrap examples/colorful
+	./build/bin/tomo -e examples/game/game.tm examples/http-server/http-server.tm \
 		examples/tomodeps/tomodeps.tm examples/tomo-install/tomo-install.tm
-	./build/tomo examples/learnxiny.tm
+	./build/bin/tomo examples/learnxiny.tm
 
 deps: check-gcc
 	./install_dependencies.sh
@@ -142,7 +142,7 @@ check-gcc:
 		exit 1; \
 	fi
 
-install-files: build/tomo build/$(LIB_FILE) build/$(AR_FILE)
+install-files: build/bin/tomo build/lib/$(LIB_FILE) build/lib/$(AR_FILE)
 	@if ! echo "$$PATH" | tr ':' '\n' | grep -qx "$(PREFIX)/bin"; then \
 		echo $$PATH; \
 		printf "\033[31;1mError: '$(PREFIX)/bin' is not in your \$$PATH variable!\033[m\n" >&2; \
@@ -153,13 +153,13 @@ install-files: build/tomo build/$(LIB_FILE) build/$(AR_FILE)
 	fi
 	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
 	cp -v src/stdlib/*.h "$(PREFIX)/include/tomo/"
-	cp -v build/$(LIB_FILE) build/$(AR_FILE) "$(PREFIX)/lib/"
+	cp -v build/lib/$(LIB_FILE) build/lib/$(AR_FILE) "$(PREFIX)/lib/"
 	rm -f "$(PREFIX)/bin/tomo"
-	cp -v build/tomo "$(PREFIX)/bin/"
+	cp -v build/bin/tomo "$(PREFIX)/bin/"
 	cp -v docs/tomo.1 "$(PREFIX)/man/man1/"
 
-install-libs: build/tomo
-	./build/tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/uuid lib/core
+install-libs: build/bin/tomo
+	./local-tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/uuid lib/core
 
 install: install-files install-libs
 

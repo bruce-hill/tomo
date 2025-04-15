@@ -103,42 +103,68 @@ success.
 ## Building
 
 The Tomo compiler can be compiled with either GCC or Clang by running `make`.
-The resulting compiler and shared library will be put into `./build/`.
+The first time you build, you will need to specify the Tomo installation
+location (the place where the installer will put the `tomo` binary, the shared
+library, and the header files), the Tomo home directory (where Tomo libraries
+will be installed), and the default C compiler for Tomo to use when compiling
+and running your programs. The answers you give will be saved in `config.mk`,
+which you can edit at any time.
+
+Once the configuration options have been set, `make` will continue along with
+building `tomo`. The resulting compiler and shared library will be put into
+`./build/`.
+
+You can run `make test` to verify that everything works correctly.
+
+## Running Locally
+
+To run Tomo locally (without installing), you can use the script
+`./local-tomo`, which sets some environment variables and runs the version
+of Tomo that you have built in this directory.
+
+You can run a program like this:
+
+```
+./local-tomo my-program.tm
+```
+
+## Installing
+
+To install Tomo, run:
+
+```
+make install
+```
+
+This will install it to the location you gave during initial configuration.
+After this point, you can now run `tomo` to invoke the compiler and run your
+Tomo programs.
 
 ## Usage
 
-Run Tomo interactively as a REPL (limited functionality):
-
-```bash
-tomo
-# Starts a REPL session
-```
-
-Run a Tomo file directly:
+To run a Tomo file directly:
 
 ```bash
 tomo foo.tm
-# Runs the program
 ```
 
-Compile a Tomo file into an object file:
+To compile a Tomo file into an object file:
 
 ```bash
 tomo -c foo.tm
 # Output: .build/foo.tm.o
 ```
 
-Transpile a Tomo file into a C header and source file:
+To transpile a Tomo file into a C header and source file:
+
 ```bash
 tomo -t foo.tm
 # Outputs: .build/foo.tm.h .build/foo.tm.c
 ```
 
-## Installing
+You can see the full list of compiler options by running `man tomo` or `tomo
+--help`.
 
-```
-make && sudo make install
-```
 
 ## License
 

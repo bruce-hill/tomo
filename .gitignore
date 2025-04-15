@@ -14,7 +14,8 @@
 !/lib/!(*)/*.h
 
 .build
-build
+/build/bin
+/build/lib
 *.o
 *.so
 *.dylib
