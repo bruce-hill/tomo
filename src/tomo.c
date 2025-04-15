@@ -44,6 +44,12 @@ static const char *paths_str(List_t paths) {
     return Text$as_c_string(result);
 }
 
+#ifdef __APPLE__
+#define SHARED_SUFFIX ".dylib"
+#else
+#define SHARED_SUFFIX ".so"
+#endif
+
 static OptionalList_t files = NONE_LIST,
                        args = NONE_LIST,
                        uninstall = NONE_LIST,
@@ -73,15 +79,6 @@ static OptionalText_t
                            "-L'" TOMO_HOME "/lib' -L/usr/local/lib"),
             optimization = Text("2"),
             cc = Text(DEFAULT_C_COMPILER);
-
-static const char *SHARED_SUFFIX =
-#ifdef __APPLE__
-        ".dylib"
-#else
-        ".so"
-#endif
-    ;
-
 
 static void transpile_header(env_t *base_env, Path_t path);
 static void transpile_code(env_t *base_env, Path_t path);
@@ -517,7 +514,7 @@ void build_library(Text_t lib_dir_name)
         // to point to the installed version of the source file. Otherwise, fail silently.
         system(String("debugedit -b ", library_directory,
                       " -d '"TOMO_HOME"'/installed/", lib_dir_name,
-                      " '"TOMO_HOME"'/installed/", lib_dir_name, "/lib", lib_dir_name, ".so"
+                      " '"TOMO_HOME"'/installed/", lib_dir_name, "/lib", lib_dir_name, SHARED_SUFFIX,
                       " 2>/dev/null >/dev/null"));
         print("Installed \033[1m", lib_dir_name, "\033[m to "TOMO_HOME"/installed");
     }
