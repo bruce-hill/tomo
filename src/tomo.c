@@ -69,7 +69,7 @@ static OptionalText_t
                           " -DGC_THREADS"
                           " -I'" TOMO_PREFIX "/include' -I'" TOMO_HOME "/installed' -I/usr/local/include"),
             ldlibs = Text("-lgc -lm -lgmp -lunistring '"TOMO_PREFIX"'/lib/libtomo.so"),
-            ldflags = Text("-Wl,-rpath,'$ORIGIN',-rpath,'" TOMO_HOME "/lib',-rpath,/usr/local/lib "
+            ldflags = Text("-Wl,-rpath,'$ORIGIN',-rpath,'"TOMO_PREFIX"/lib',-rpath,'" TOMO_HOME "/lib',-rpath,/usr/local/lib "
                            "-L'" TOMO_HOME "/lib' -L/usr/local/lib"),
             optimization = Text("2"),
             cc = Text(DEFAULT_C_COMPILER);
