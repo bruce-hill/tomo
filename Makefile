@@ -3,7 +3,7 @@ ifeq ($(wildcard config.mk),)
 all: config.mk
 	$(MAKE) all
 config.mk: configure.sh
-	./configure.sh
+	bash ./configure.sh
 else
 
 include config.mk
@@ -96,7 +96,7 @@ tags:
 	ctags src/*.[ch] src/stdlib/*.[ch]
 
 config.mk: configure.sh
-	./configure.sh
+	bash ./configure.sh
 
 %.o: %.c src/ast.h src/environment.h src/types.h config.mk
 	@echo $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
