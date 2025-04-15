@@ -19,11 +19,11 @@
 
 #define IF_DECLARE(decl, expr, block) if (({ decl; expr ? ({ block; 1; }) : 0; })) {}
 
-#define WHEN(subj, var, body) { auto var = subj; switch (var.$tag) body }
-
 #ifndef auto
 #define auto __auto_type
 #endif
+
+#define WHEN(type, subj, var, body) { type var = subj; switch (var.$tag) body }
 
 #ifndef public
 #define public __attribute__ ((visibility ("default")))
@@ -52,7 +52,11 @@
 // GCC lets you define macro-like functions which are always inlined and never
 // compiled using this combination of flags. See: https://gcc.gnu.org/onlinedocs/gcc/Inline.html
 #ifndef MACROLIKE
+#ifdef __TINYC__
+#define MACROLIKE static inline __attribute__((gnu_inline, always_inline))
+#else
 #define MACROLIKE extern inline __attribute__((gnu_inline, always_inline))
+#endif
 #endif
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

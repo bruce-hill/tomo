@@ -1044,7 +1044,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         }
 
         auto enum_t = Match(subject_t, EnumType);
-        CORD code = CORD_all("WHEN(", compile(env, when->subject), ", _when_subject, {\n");
+        CORD code = CORD_all("WHEN(", compile_type(subject_t), ", ", compile(env, when->subject), ", _when_subject, {\n");
         for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
             if (clause->pattern->tag == Var) {
                 const char *clause_tag_name = Match(clause->pattern, Var)->name;
@@ -1207,16 +1207,23 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         }
         if (test->expected) {
             return CORD_asprintf(
-                "%rtest(%r, %r, %r, %ld, %ld);",
-                setup, test_code,
+                "%rtest(%r, %r, %r, %r, %ld, %ld);",
+                setup, compile_type(expr_t), test_code,
                 compile_to_type(env, test->expected, expr_t),
                 compile_type_info(expr_t),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
         } else {
-            return CORD_asprintf(
-                "%rinspect(%r, %r, %ld, %ld);",
+            if (expr_t->tag == VoidType || expr_t->tag == AbortType) {
+                return CORD_asprintf("%rinspect_void(%r, %r, %ld, %ld);",
                 setup, test_code,
+                compile_type_info(expr_t),
+                (int64_t)(test->expr->start - test->expr->file->text),
+                (int64_t)(test->expr->end - test->expr->file->text));
+            }
+            return CORD_asprintf(
+                "%rinspect(%r, %r, %r, %ld, %ld);",
+                setup, compile_type(expr_t), test_code,
                 compile_type_info(expr_t),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
@@ -2998,7 +3005,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         CORD userdata;
         if (Table$length(closed_vars) == 0) {
-            code = CORD_cat(code, "void *)");
+            code = CORD_cat(code, "void *_)");
             userdata = "NULL";
         } else {
             userdata = CORD_all("new(", name, "$userdata_t");

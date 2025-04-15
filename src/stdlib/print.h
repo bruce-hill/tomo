@@ -33,7 +33,11 @@
 // GCC lets you define macro-like functions which are always inlined and never
 // compiled using this combination of flags. See: https://gcc.gnu.org/onlinedocs/gcc/Inline.html
 #ifndef PRINT_FN
+#ifdef __TINYC__
+#define PRINT_FN static inline __attribute__((gnu_inline, always_inline)) int
+#else
 #define PRINT_FN extern inline __attribute__((gnu_inline, always_inline)) int
+#endif
 #endif
 
 typedef struct {

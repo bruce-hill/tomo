@@ -90,7 +90,7 @@ test/results/%.tm.testresult: test/%.tm build/tomo
 	@mkdir -p test/results
 	@printf '\033[33;1;4m%s\033[m\n' $<
 	@set -o pipefail; \
-	if ! VERBOSE=0 COLOR=1 LC_ALL=C CC=gcc ./build/tomo -O 1 $< 2>&1 | tee $@; then \
+	if ! VERBOSE=0 COLOR=1 LC_ALL=C ./build/tomo --c-compiler=$(CC) -O 1 $< 2>&1 | tee $@; then \
 		rm -f $@; \
 		false; \
 	fi

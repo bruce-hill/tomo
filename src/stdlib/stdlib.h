@@ -68,16 +68,21 @@ __attribute__((nonnull))
 void start_inspect(const char *filename, int64_t start, int64_t end);
 __attribute__((nonnull))
 void end_inspect(const void *expr, const TypeInfo_t *type);
-#define inspect(expr, typeinfo, start, end) {\
+#define inspect(type, expr, typeinfo, start, end) {\
     start_inspect(__SOURCE_FILE__, start, end); \
-    auto _expr = expr; \
+    type _expr = expr; \
     end_inspect(&_expr, typeinfo); \
+}
+#define inspect_void(expr, typeinfo, start, end) {\
+    start_inspect(__SOURCE_FILE__, start, end); \
+    expr; \
+    end_inspect(NULL, typeinfo); \
 }
 __attribute__((nonnull))
 void test_value(const char *filename, int64_t start, int64_t end, const void *expr, const void *expected, const TypeInfo_t *type);
-#define test(expr, expected, typeinfo, start, end) {\
-    auto _expr = expr; \
-    auto _expected = expected; \
+#define test(type, expr, expected, typeinfo, start, end) {\
+    type _expr = expr; \
+    type _expected = expected; \
     test_value(__SOURCE_FILE__, start, end, &_expr, &_expected, typeinfo); \
 }
 
