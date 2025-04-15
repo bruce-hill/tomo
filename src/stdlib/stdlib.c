@@ -43,8 +43,9 @@ static ssize_t getrandom(void *buf, size_t buflen, unsigned int flags) {
 
 public bool USE_COLOR;
 
-static _Noreturn void signal_handler(int sig, siginfo_t *, void *)
+static _Noreturn void signal_handler(int sig, siginfo_t *info, void *userdata)
 {
+    (void)info, (void)userdata;
     assert(sig == SIGILL);
     fflush(stdout);
     if (USE_COLOR) fputs("\x1b[31;7m ===== ILLEGAL INSTRUCTION ===== \n\n\x1b[m", stderr);
@@ -167,6 +168,7 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)
         Text_t t = generic_as_text(NULL, false, info);
         print_err("Unsupported type for argument parsing: ", t);
     }
+    return false;
 }
 
 static List_t parse_list(const TypeInfo_t *item_info, int n, char *args[])

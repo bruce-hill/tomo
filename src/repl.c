@@ -148,6 +148,7 @@ const TypeInfo_t *type_to_type_info(type_t *t)
     }
     default: print_err("Unsupported type: ", type_to_str(t));
     }
+    return NULL;
 }
 
 static PUREFUNC void *get_address(env_t *env, ast_t *ast)
@@ -160,6 +161,7 @@ static PUREFUNC void *get_address(env_t *env, ast_t *ast)
     }
     default: print_err("Address not implemented for ", ast_to_xml_str(ast));
     }
+    return NULL;
 }
 
 static Int_t ast_to_int(env_t *env, ast_t *ast)
@@ -184,6 +186,7 @@ static Int_t ast_to_int(env_t *env, ast_t *ast)
     }
     default: print_err("Cannot convert to integer");
     }
+    return I(0);
 }
 
 // static double ast_to_num(env_t *env, ast_t *ast)

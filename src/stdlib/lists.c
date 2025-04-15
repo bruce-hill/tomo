@@ -763,8 +763,9 @@ public Int_t List$binary_search(List_t list, void *target, Closure_t comparison)
     return I(lo+1); // Return the index where the target would be inserted
 }
 
-public PUREFUNC bool List$is_none(const void *obj, const TypeInfo_t*)
+public PUREFUNC bool List$is_none(const void *obj, const TypeInfo_t *info)
 {
+    (void)info;
     return ((List_t*)obj)->length < 0;
 }
 

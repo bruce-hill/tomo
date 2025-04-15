@@ -125,6 +125,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
 #pragma GCC diagnostic pop
 #endif
     errx(1, "Unreachable");
+    return NULL;
 }
 
 // static PUREFUNC bool risks_zero_or_inf(ast_t *ast)
@@ -157,6 +158,7 @@ PUREFUNC type_t *get_math_type(env_t *env, ast_t *ast, type_t *lhs_t, type_t *rh
     case NUM_PRECISION_LESS: return rhs_t;
     default: code_err(ast, "Math operations between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " are not supported");
     }
+    return NULL;
 }
 
 static env_t *load_module(env_t *env, ast_t *module_ast)
@@ -1492,6 +1494,7 @@ type_t *get_type(env_t *env, ast_t *ast)
 #pragma GCC diagnostic pop
 #endif
     code_err(ast, "I can't figure out the type of: ", ast_to_xml_str(ast));
+    return NULL;
 }
 
 PUREFUNC bool is_discardable(env_t *env, ast_t *ast)

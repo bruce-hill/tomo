@@ -89,8 +89,9 @@ public Text_t Func$as_text(const void *fn, bool colorize, const TypeInfo_t *type
     return text;
 }
 
-public PUREFUNC bool Func$is_none(const void *obj, const TypeInfo_t*)
+public PUREFUNC bool Func$is_none(const void *obj, const TypeInfo_t *info)
 {
+    (void)info;
     return *(void**)obj == NULL;
 }
 

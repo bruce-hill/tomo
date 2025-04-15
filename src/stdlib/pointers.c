@@ -66,18 +66,21 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *ty
     return text;
 }
 
-PUREFUNC public int32_t Pointer$compare(const void *x, const void *y, const TypeInfo_t*) {
+PUREFUNC public int32_t Pointer$compare(const void *x, const void *y, const TypeInfo_t *info) {
+    (void)info;
     const void *xp = *(const void**)x, *yp = *(const void**)y;
     return (xp > yp) - (xp < yp);
 }
 
-PUREFUNC public bool Pointer$equal(const void *x, const void *y, const TypeInfo_t*) {
+PUREFUNC public bool Pointer$equal(const void *x, const void *y, const TypeInfo_t *info) {
+    (void)info;
     const void *xp = *(const void**)x, *yp = *(const void**)y;
     return xp == yp;
 }
 
-PUREFUNC public bool Pointer$is_none(const void *x, const TypeInfo_t*)
+PUREFUNC public bool Pointer$is_none(const void *x, const TypeInfo_t *info)
 {
+    (void)info;
     return *(void**)x == NULL;
 }
 

@@ -83,8 +83,9 @@ public Text_t Enum$as_text(const void *obj, bool colorize, const TypeInfo_t *typ
     return generic_as_text(obj + byte_offset, colorize, value.type);
 }
 
-PUREFUNC public bool Enum$is_none(const void *x, const TypeInfo_t*)
+PUREFUNC public bool Enum$is_none(const void *x, const TypeInfo_t *info)
 {
+    (void)info;
     return *(int32_t*)x == 0;
 }
 

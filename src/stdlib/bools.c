@@ -12,8 +12,9 @@
 #include "text.h"
 #include "util.h"
 
-PUREFUNC public Text_t Bool$as_text(const void *b, bool colorize, const TypeInfo_t*)
+PUREFUNC public Text_t Bool$as_text(const void *b, bool colorize, const TypeInfo_t *info)
 {
+    (void)info;
     if (!b) return Text("Bool");
     if (colorize)
         return *(Bool_t*)b ? Text("\x1b[35myes\x1b[m") : Text("\x1b[35mno\x1b[m");
@@ -38,8 +39,9 @@ PUREFUNC public OptionalBool_t Bool$parse(Text_t text)
     }
 }
 
-static bool Bool$is_none(const void *b, const TypeInfo_t*)
+static bool Bool$is_none(const void *b, const TypeInfo_t *info)
 {
+    (void)info;
     return *(OptionalBool_t*)b == NONE_BOOL;
 }
 

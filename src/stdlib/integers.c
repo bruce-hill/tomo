@@ -35,15 +35,17 @@ public Text_t Int$value_as_text(Int_t i) {
     }
 }
 
-public Text_t Int$as_text(const void *i, bool colorize, const TypeInfo_t*) {
+public Text_t Int$as_text(const void *i, bool colorize, const TypeInfo_t *info) {
+    (void)info;
     if (!i) return Text("Int");
     Text_t text = Int$value_as_text(*(Int_t*)i);
     if (colorize) text = Text$concat(Text("\x1b[35m"), text, Text("\x1b[m"));
     return text;
 }
 
-static bool Int$is_none(const void *i, const TypeInfo_t*)
+static bool Int$is_none(const void *i, const TypeInfo_t *info)
 {
+    (void)info;
     return ((Int_t*)i)->small == 0L;
 }
 
@@ -58,7 +60,8 @@ public PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y) {
         return x.big == y.big ? 0 : mpz_cmp(*x.big, *y.big);
 }
 
-public PUREFUNC int32_t Int$compare(const void *x, const void *y, const TypeInfo_t*) {
+public PUREFUNC int32_t Int$compare(const void *x, const void *y, const TypeInfo_t *info) {
+    (void)info;
     return Int$compare_value(*(Int_t*)x, *(Int_t*)y);
 }
 
@@ -69,7 +72,8 @@ public PUREFUNC bool Int$equal_value(const Int_t x, const Int_t y) {
         return x.big == y.big ? 0 : (mpz_cmp(*x.big, *y.big) == 0);
 }
 
-public PUREFUNC bool Int$equal(const void *x, const void *y, const TypeInfo_t*) {
+public PUREFUNC bool Int$equal(const void *x, const void *y, const TypeInfo_t *info) {
+    (void)info;
     return Int$equal_value(*(Int_t*)x, *(Int_t*)y);
 }
 
@@ -81,7 +85,8 @@ public CONSTFUNC bool Int$is_between(const Int_t x, const Int_t low, const Int_t
     return Int$compare_value(low, x) <= 0 && Int$compare_value(x, high) <= 0;
 }
 
-public PUREFUNC uint64_t Int$hash(const void *vx, const TypeInfo_t*) {
+public PUREFUNC uint64_t Int$hash(const void *vx, const TypeInfo_t *info) {
+    (void)info;
     Int_t *x = (Int_t*)vx;
     if (likely(x->small & 1L)) {
         return siphash24((void*)x, sizeof(Int_t));
@@ -473,8 +478,9 @@ public Int_t Int$factorial(Int_t n)
     return Int$from_mpz(ret);
 }
 
-static void Int$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t*)
+static void Int$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info)
 {
+    (void)info;
     Int_t i = *(Int_t*)obj;
     if (likely(i.small & 1L)) {
         fputc(0, out);
@@ -488,8 +494,9 @@ static void Int$serialize(const void *obj, FILE *out, Table_t *pointers, const T
     }
 }
 
-static void Int$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t*)
+static void Int$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *info)
 {
+    (void)info;
     if (fgetc(in) == 0) {
         int64_t i = 0;
         Int64$deserialize(in, &i, pointers, &Int64$info);
@@ -516,8 +523,9 @@ public const TypeInfo_t Int$info = {
     },
 };
 
-public void Int64$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo_t*)
+public void Int64$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info)
 {
+    (void)info, (void)pointers;
     int64_t i = *(int64_t*)obj;
     uint64_t z = (uint64_t)((i << 1L) ^ (i >> 63L)); // Zigzag encode
     while (z >= 0x80L) {
@@ -527,8 +535,9 @@ public void Int64$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo
     fputc((uint8_t)z, out);
 }
 
-public void Int64$deserialize(FILE *in, void *outval, List_t*, const TypeInfo_t*)
+public void Int64$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *info)
 {
+    (void)info, (void)pointers;
     uint64_t z = 0;
     for(size_t shift = 0; ; shift += 7) {
         uint8_t byte = (uint8_t)fgetc(in);
@@ -538,8 +547,9 @@ public void Int64$deserialize(FILE *in, void *outval, List_t*, const TypeInfo_t*
     *(int64_t*)outval = (int64_t)((z >> 1L) ^ -(z & 1L)); // Zigzag decode
 }
 
-public void Int32$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo_t*) 
+public void Int32$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info) 
 {
+    (void)info, (void)pointers;
     int32_t i = *(int32_t*)obj;
     uint32_t z = (uint32_t)((i << 1) ^ (i >> 31)); // Zigzag encode
     while (z >= 0x80) {
@@ -549,8 +559,9 @@ public void Int32$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo
     fputc((uint8_t)z, out);
 }
 
-public void Int32$deserialize(FILE *in, void *outval, List_t*, const TypeInfo_t*)
+public void Int32$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *info)
 {
+    (void)info, (void)pointers;
     uint32_t z = 0;
     for(size_t shift = 0; ; shift += 7) {
         uint8_t byte = (uint8_t)fgetc(in);
@@ -566,15 +577,22 @@ public void Int32$deserialize(FILE *in, void *outval, List_t*, const TypeInfo_t*
 #define Int8$serialize NULL
 #define Int8$deserialize NULL
 
+#ifdef __TINYC__
+#define __builtin_add_overflow(x, y, result) ({ *(result) = (x) + (y); false; })
+#endif
+
 #define DEFINE_INT_TYPE(c_type, KindOfInt, fmt, min_val, max_val, to_attr)\
-    public Text_t KindOfInt ## $as_text(const void *i, bool colorize, const TypeInfo_t*) { \
+    public Text_t KindOfInt ## $as_text(const void *i, bool colorize, const TypeInfo_t *info) { \
+        (void)info; \
         if (!i) return Text(#KindOfInt); \
         return Text$format(colorize ? "\x1b[35m" fmt "\x1b[m" : fmt, *(c_type*)i); \
     } \
-    public PUREFUNC int32_t KindOfInt ## $compare(const void *x, const void *y, const TypeInfo_t*) { \
+    public PUREFUNC int32_t KindOfInt ## $compare(const void *x, const void *y, const TypeInfo_t *info) { \
+        (void)info; \
         return (*(c_type*)x > *(c_type*)y) - (*(c_type*)x < *(c_type*)y); \
     } \
-    public PUREFUNC bool KindOfInt ## $equal(const void *x, const void *y, const TypeInfo_t*) { \
+    public PUREFUNC bool KindOfInt ## $equal(const void *x, const void *y, const TypeInfo_t *info) { \
+        (void)info; \
         return *(c_type*)x == *(c_type*)y; \
     } \
     public CONSTFUNC bool KindOfInt ## $is_between(const c_type x, const c_type low, const c_type high) { \

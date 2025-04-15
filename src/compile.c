@@ -58,6 +58,7 @@ CORD promote_to_optional(type_t *t, CORD code)
         case TYPE_IBITS64: return CORD_all("((OptionalInt64_t){.value=", code, "})");
         default: errx(1, "Unsupported in type: ", type_to_str(t));
         }
+        return code;
     } else if (t->tag == ByteType) {
         return CORD_all("((OptionalByte_t){.value=", code, "})");
     } else if (t->tag == StructType) {
@@ -755,6 +756,7 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
     }
     default: errx(1, "Not a valid binary operation: ", ast_to_xml_str(ast));
     }
+    return CORD_EMPTY;
 }
 
 PUREFUNC CORD compile_unsigned_type(type_t *t)
@@ -768,6 +770,7 @@ PUREFUNC CORD compile_unsigned_type(type_t *t)
     case TYPE_IBITS64: return "uint64_t";
     default: errx(1, "Invalid integer bit size");
     }
+    return CORD_EMPTY;
 }
 
 CORD compile_type(type_t *t)
@@ -844,6 +847,7 @@ CORD compile_type(type_t *t)
     case TypeInfoType: return "TypeInfo_t";
     default: compiler_err(NULL, NULL, NULL, "Compiling type is not implemented for type with tag ", t->tag);
     }
+    return CORD_EMPTY;
 }
 
 CORD compile_lvalue(env_t *env, ast_t *ast)
@@ -914,6 +918,7 @@ CORD compile_lvalue(env_t *env, ast_t *ast)
     } else {
         code_err(ast, "I don't know how to assign to this");
     }
+    return CORD_EMPTY;
 }
 
 static CORD compile_assignment(env_t *env, ast_t *target, CORD value)
@@ -987,6 +992,7 @@ CORD check_none(type_t *t, CORD value)
     else if (t->tag == EnumType)
         return CORD_all("({(", value, ").$tag == 0;})");
     print_err("Optional check not implemented for: ", type_to_str(t));
+    return CORD_EMPTY;
 }
 
 static CORD compile_condition(env_t *env, ast_t *ast)
@@ -1007,6 +1013,7 @@ static CORD compile_condition(env_t *env, ast_t *ast)
     } else {
         code_err(ast, type_to_str(t), " values cannot be used for conditionals");
     }
+    return CORD_EMPTY;
 }
 
 static CORD _compile_statement(env_t *env, ast_t *ast)
@@ -1947,6 +1954,7 @@ CORD expr_as_text(CORD expr, type_t *t, CORD color)
         return CORD_asprintf("generic_as_text(stack(%r), %r, %r)", expr, color, compile_type_info(t));
     default: compiler_err(NULL, NULL, NULL, "Stringifying is not supported for ", type_to_str(t));
     }
+    return CORD_EMPTY;
 }
 
 CORD compile_string(env_t *env, ast_t *ast, CORD color)
@@ -2250,6 +2258,7 @@ CORD compile_typed_allocation(env_t *env, ast_t *ast, type_t *pointer_type)
     }
     default: code_err(ast, "Not an allocation!");
     }
+    return CORD_EMPTY;
 }
 
 CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
@@ -2322,6 +2331,7 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
     } else {
         code_err(ast, "I don't know how to compile this to a ", type_to_str(target));
     }
+    return CORD_EMPTY;
 }
 
 CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args)
@@ -2504,6 +2514,7 @@ CORD compile_none(type_t *t)
     }
     default: compiler_err(NULL, NULL, NULL, "none isn't implemented for this type: ", type_to_str(t));
     }
+    return CORD_EMPTY;
 }
 
 CORD compile_empty(type_t *t)
@@ -2571,6 +2582,7 @@ CORD compile_empty(type_t *t)
     }
     default: return CORD_EMPTY;
     }
+    return CORD_EMPTY;
 }
 
 static CORD compile_declared_value(env_t *env, ast_t *declare_ast)
@@ -3859,6 +3871,7 @@ CORD compile(env_t *env, ast_t *ast)
         code_err(ast, "This is not a valid expression");
     default: case Unknown: code_err(ast, "Unknown AST: ", ast_to_xml_str(ast));
     }
+    return CORD_EMPTY;
 }
 
 CORD compile_type_info(type_t *t)
@@ -3921,6 +3934,7 @@ CORD compile_type_info(type_t *t)
     default:
         compiler_err(NULL, 0, 0, "I couldn't convert to a type info: ", type_to_str(t));
     }
+    return CORD_EMPTY;
 }
 
 static CORD get_flag_options(type_t *t, CORD separator)

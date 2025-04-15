@@ -570,6 +570,7 @@ PUREFUNC size_t type_size(type_t *t)
 #pragma GCC diagnostic pop
 #endif
     errx(1, "This should not be reachable");
+    return 0;
 }
 
 PUREFUNC size_t type_align(type_t *t)
@@ -646,6 +647,7 @@ PUREFUNC size_t type_align(type_t *t)
 #pragma GCC diagnostic pop
 #endif
     errx(1, "This should not be reachable");
+    return 0;
 }
 
 type_t *get_field_type(type_t *t, const char *field_name)

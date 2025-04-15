@@ -111,7 +111,8 @@ public Text_t EMPTY_TEXT = {
     .ascii=0,
 };
 
-PUREFUNC static bool graphemes_equal(const void *va, const void *vb, const TypeInfo_t*) {
+PUREFUNC static bool graphemes_equal(const void *va, const void *vb, const TypeInfo_t *info) {
+    (void)info;
     ucs4_t *a = *(ucs4_t**)va;
     ucs4_t *b = *(ucs4_t**)vb;
     if (a[0] != b[0]) return false;
@@ -120,7 +121,8 @@ PUREFUNC static bool graphemes_equal(const void *va, const void *vb, const TypeI
     return true;
 }
 
-PUREFUNC static uint64_t grapheme_hash(const void *g, const TypeInfo_t*) {
+PUREFUNC static uint64_t grapheme_hash(const void *g, const TypeInfo_t *info) {
+    (void)info;
     ucs4_t *cluster = *(ucs4_t**)g;
     return siphash24((void*)&cluster[1], sizeof(ucs4_t[cluster[0]]));
 }
@@ -639,6 +641,7 @@ public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
     }
     default: errx(1, "Invalid tag");
     }
+    return EMPTY_TEXT;
 }
 
 public Text_t Text$from(Text_t text, Int_t first)
@@ -679,6 +682,7 @@ public Text_t Text$reversed(Text_t text)
     }
     default: errx(1, "Invalid tag");
     }
+    return EMPTY_TEXT;
 }
 
 public PUREFUNC Text_t Text$cluster(Text_t text, Int_t index_int)
@@ -719,6 +723,7 @@ public PUREFUNC Text_t Text$cluster(Text_t text, Int_t index_int)
     }
     default: errx(1, "Invalid tag");
     }
+    return EMPTY_TEXT;
 }
 
 Text_t text_from_u32(ucs4_t *codepoints, int64_t num_codepoints, bool normalize)
@@ -859,8 +864,9 @@ public char *Text$as_c_string(Text_t text)
     return buf;
 }
 
-PUREFUNC public uint64_t Text$hash(const void *obj, const TypeInfo_t*)
+PUREFUNC public uint64_t Text$hash(const void *obj, const TypeInfo_t *info)
 {
+    (void)info;
     Text_t text = *(Text_t*)obj;
     siphash sh;
     siphashinit(&sh, sizeof(int32_t[text.length]));
@@ -903,6 +909,7 @@ PUREFUNC public uint64_t Text$hash(const void *obj, const TypeInfo_t*)
     }
     default: errx(1, "Invalid text");
     }
+    return 0;
 }
 
 public int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index)
@@ -961,8 +968,9 @@ public uint32_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index)
     return (g) >= 0 ? (ucs4_t)(g) : synthetic_graphemes[-(g)-1].main_codepoint;
 }
 
-PUREFUNC public int32_t Text$compare(const void *va, const void *vb, const TypeInfo_t*)
+PUREFUNC public int32_t Text$compare(const void *va, const void *vb, const TypeInfo_t *info)
 {
+    (void)info;
     if (va == vb) return 0;
     const Text_t a = *(const Text_t*)va;
     const Text_t b = *(const Text_t*)vb;
@@ -1269,8 +1277,9 @@ PUREFUNC public bool Text$equal_values(Text_t a, Text_t b)
     return true;
 }
 
-PUREFUNC public bool Text$equal(const void *a, const void *b, const TypeInfo_t*)
+PUREFUNC public bool Text$equal(const void *a, const void *b, const TypeInfo_t *info)
 {
+    (void)info;
     if (a == b) return true;
     return Text$equal_values(*(Text_t*)a, *(Text_t*)b);
 }
@@ -1633,21 +1642,24 @@ public Closure_t Text$by_line(Text_t text)
     };
 }
 
-PUREFUNC public bool Text$is_none(const void *t, const TypeInfo_t*)
+PUREFUNC public bool Text$is_none(const void *t, const TypeInfo_t *info)
 {
+    (void)info;
     return ((Text_t*)t)->length < 0;
 }
 
-public void Text$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *)
+public void Text$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info)
 {
+    (void)info;
     const char *str = Text$as_c_string(*(Text_t*)obj);
     int64_t len = (int64_t)strlen(str);
     Int64$serialize(&len, out, pointers, &Int64$info);
     fwrite(str, sizeof(char), (size_t)len, out);
 }
 
-public void Text$deserialize(FILE *in, void *out, List_t *pointers, const TypeInfo_t *)
+public void Text$deserialize(FILE *in, void *out, List_t *pointers, const TypeInfo_t *info)
 {
+    (void)info;
     int64_t len = -1;
     Int64$deserialize(in, &len, pointers, &Int64$info);
     char *buf = GC_MALLOC_ATOMIC((size_t)len+1);

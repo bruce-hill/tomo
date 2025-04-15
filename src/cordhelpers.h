@@ -3,7 +3,7 @@
 
 #include <gc/cord.h>
 
-#define CORD_appendf(cord, fmt, ...) CORD_sprintf(cord, "%r" fmt, *(cord) __VA_OPT__(,) __VA_ARGS__)
+#define CORD_appendf(cord, fmt, ...) CORD_sprintf(cord, "%r" fmt, *(cord), __VA_ARGS__)
 #define CORD_all(...) CORD_catn(sizeof((CORD[]){__VA_ARGS__})/sizeof(CORD), __VA_ARGS__)
 
 __attribute__((format(printf, 1, 2)))

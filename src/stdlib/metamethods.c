@@ -108,15 +108,17 @@ public int generic_print(const void *obj, bool colorize, const TypeInfo_t *type)
 }
 
 __attribute__((noreturn))
-public void cannot_serialize(const void*, FILE*, Table_t*, const TypeInfo_t *type)
+public void cannot_serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
 {
+    (void)obj, (void)out, (void)pointers;
     Text_t typestr = generic_as_text(NULL, false, type);
     fail("Values of type ", typestr, " cannot be serialized or deserialized!");
 }
 
 __attribute__((noreturn))
-public void cannot_deserialize(FILE*, void*, List_t*, const TypeInfo_t *type)
+public void cannot_deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *type)
 {
+    (void)obj, (void)in, (void)pointers;
     Text_t typestr = generic_as_text(NULL, false, type);
     fail("Values of type ", typestr, " cannot be serialized or deserialized!");
 }

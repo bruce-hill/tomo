@@ -38,6 +38,7 @@ static type_t *declare_type(env_t *env, const char *def_str)
     }
     default: errx(1, "Not a type definition: %s", def_str);
     }
+    return NULL;
 }
 
 static type_t *bind_type(env_t *env, const char *name, type_t *type)
@@ -676,6 +677,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
     }
     default: code_err(for_->iter, "Iteration is not implemented for type: ", type_to_str(iter_t));
     }
+    return NULL;
 }
 
 env_t *get_namespace_by_type(env_t *env, type_t *t)

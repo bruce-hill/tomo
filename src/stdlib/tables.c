@@ -752,8 +752,9 @@ CONSTFUNC public void *Table$str_entry(Table_t t, int64_t n)
     return Table$entry(t, n);
 }
 
-PUREFUNC public bool Table$is_none(const void *obj, const TypeInfo_t*)
+PUREFUNC public bool Table$is_none(const void *obj, const TypeInfo_t *info)
 {
+    (void)info;
     return ((Table_t*)obj)->entries.length < 0;
 }
 

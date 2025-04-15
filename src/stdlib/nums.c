@@ -13,12 +13,14 @@
 #include "text.h"
 #include "types.h"
 
-public PUREFUNC Text_t Num$as_text(const void *f, bool colorize, const TypeInfo_t*) { 
+public PUREFUNC Text_t Num$as_text(const void *f, bool colorize, const TypeInfo_t *info) { 
+    (void)info;
     if (!f) return Text("Num");
     return Text$format(colorize ? "\x1b[35m%.16g\x1b[33;2m\x1b[m" : "%.16g", *(double*)f); 
 } 
 
-public PUREFUNC int32_t Num$compare(const void *x, const void *y, const TypeInfo_t*) { 
+public PUREFUNC int32_t Num$compare(const void *x, const void *y, const TypeInfo_t *info) { 
+    (void)info;
     int64_t rx = *(int64_t*)x,
             ry = *(int64_t*)y;
 
@@ -30,7 +32,8 @@ public PUREFUNC int32_t Num$compare(const void *x, const void *y, const TypeInfo
     return (rx > ry) - (rx < ry);
 } 
 
-public PUREFUNC bool Num$equal(const void *x, const void *y, const TypeInfo_t*) { 
+public PUREFUNC bool Num$equal(const void *x, const void *y, const TypeInfo_t *info) { 
+    (void)info;
     return *(double*)x == *(double*)y;
 } 
 
@@ -93,8 +96,9 @@ public OptionalNum_t Num$parse(Text_t text) {
         return nan("null");
 }
 
-static bool Num$is_none(const void *n, const TypeInfo_t*)
+static bool Num$is_none(const void *n, const TypeInfo_t *info)
 {
+    (void)info;
     return isnan(*(Num_t*)n);
 }
 
@@ -113,16 +117,19 @@ public const TypeInfo_t Num$info = {
     },
 };
 
-public PUREFUNC Text_t Num32$as_text(const void *f, bool colorize, const TypeInfo_t*) { 
+public PUREFUNC Text_t Num32$as_text(const void *f, bool colorize, const TypeInfo_t *info) { 
+    (void)info;
     if (!f) return Text("Num32");
     return Text$format(colorize ? "\x1b[35m%.8g\x1b[33;2m\x1b[m" : "%.8g", (double)*(float*)f); 
 }
 
-public PUREFUNC int32_t Num32$compare(const void *x, const void *y, const TypeInfo_t*) { 
+public PUREFUNC int32_t Num32$compare(const void *x, const void *y, const TypeInfo_t *info) { 
+    (void)info;
     return (*(float*)x > *(float*)y) - (*(float*)x < *(float*)y);
 } 
 
-public PUREFUNC bool Num32$equal(const void *x, const void *y, const TypeInfo_t*) { 
+public PUREFUNC bool Num32$equal(const void *x, const void *y, const TypeInfo_t *info) { 
+    (void)info;
     return *(float*)x == *(float*)y;
 }
 
@@ -186,8 +193,9 @@ public OptionalNum32_t Num32$parse(Text_t text) {
         return nan("null");
 }
 
-static bool Num32$is_none(const void *n, const TypeInfo_t*)
+static bool Num32$is_none(const void *n, const TypeInfo_t *info)
 {
+    (void)info;
     return isnan(*(Num32_t*)n);
 }
 
