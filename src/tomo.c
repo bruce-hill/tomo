@@ -67,12 +67,12 @@ static OptionalText_t
                           " -D_BSD_SOURCE"
 #endif
                           " -DGC_THREADS"
-                          " -I$HOME/.local/include -I$HOME/.local/share/tomo/installed -I/usr/local/include"),
-            ldlibs = Text("-lgc -lm -lgmp -lunistring -ltomo"),
-            ldflags = Text("-Wl,-rpath,'$ORIGIN',-rpath,$HOME/.local/share/tomo/lib,-rpath,$HOME/.local/lib,-rpath,/usr/local/lib "
-                           "-L$HOME/.local/lib -L$HOME/.local/share/tomo/lib -L/usr/local/lib"),
+                          " -I'" TOMO_PREFIX "/include' -I'" TOMO_HOME "/installed' -I/usr/local/include"),
+            ldlibs = Text("-lgc -lm -lgmp -lunistring '"TOMO_PREFIX"'/lib/libtomo.so"),
+            ldflags = Text("-Wl,-rpath,'$ORIGIN',-rpath,'" TOMO_HOME "/lib',-rpath,/usr/local/lib "
+                           "-L'" TOMO_HOME "/lib' -L/usr/local/lib"),
             optimization = Text("2"),
-            cc = Text("cc");
+            cc = Text(DEFAULT_C_COMPILER);
 
 static const char *SHARED_SUFFIX =
 #ifdef __APPLE__
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
     // Run a tool:
     if ((streq(argv[1], "-r") || streq(argv[1], "--run")) && argc >= 3) {
         if (strcspn(argv[2], "/;$") == strlen(argv[2])) {
-            const char *program = String(getenv("HOME"), "/.local/share/tomo/installed/", argv[2], "/", argv[2]);
+            const char *program = String("'"TOMO_HOME"'/installed/", argv[2], "/", argv[2]);
             execv(program, &argv[2]);
         }
         print_err("This is not an installed tomo program: \033[31;1m", argv[2], "\033[m");
@@ -145,9 +145,9 @@ int main(int argc, char *argv[])
                         "  --verbose|-v: verbose output\n"
                         "  --quiet|-q: quiet output\n"
                         "  --install|-I: install the executable or library\n"
-                        "  --c-compiler <compiler>: the C compiler to use (default: cc)\n"
+                        "  --c-compiler <compiler>: the C compiler to use (default: "DEFAULT_C_COMPILER")\n"
                         "  --optimization|-O <level>: set optimization level\n"
-                        "  --run|-r: run a program from ~/.local/share/tomo/installed\n"
+                        "  --run|-r: run a program from " TOMO_HOME "/installed\n"
                         );
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     tomo_parse_args(
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
 
     for (int64_t i = 0; i < uninstall.length; i++) {
         Text_t *u = (Text_t*)(uninstall.data + i*uninstall.stride);
-        system(String("rm -rvf ~/.local/share/tomo/installed/", *u, " ~/.local/share/tomo/lib/lib", *u, SHARED_SUFFIX));
+        system(String("rm -rvf '"TOMO_HOME"'/installed/", *u, " '"TOMO_HOME"'/lib/lib", *u, SHARED_SUFFIX));
         print("Uninstalled ", *u);
     }
 
@@ -282,7 +282,7 @@ int main(int argc, char *argv[])
         for (int64_t i = 0; i < files.length; i++) {
             Path_t path = *(Path_t*)(files.data + i*files.stride);
             Path_t exe = Path$with_extension(path, Text(""), true);
-            system(String("cp -v '", exe, "' ~/.local/bin/"));
+            system(String("cp -v '", exe, "' '"TOMO_PREFIX"'/bin/"));
         }
     }
     return 0;
@@ -494,22 +494,22 @@ void build_library(Text_t lib_dir_name)
     if (should_install) {
         char library_directory[PATH_MAX];
         getcwd(library_directory, sizeof(library_directory));
-        const char *dest = String(getenv("HOME"), "/.local/share/tomo/installed/", lib_dir_name);
+        const char *dest = String(TOMO_HOME"/installed/", lib_dir_name);
         if (!streq(library_directory, dest)) {
             system(String("rm -rf '", dest, "'"));
             system(String("mkdir -p '", dest, "'"));
             system(String("cp -r * '", dest, "/'"));
         }
-        system("mkdir -p ~/.local/share/tomo/lib/");
+        system("mkdir -p '"TOMO_HOME"'/lib/");
         system(String("ln -f -s ../installed/'", lib_dir_name, "'/lib'", lib_dir_name, SHARED_SUFFIX,
-                      "'  ~/.local/share/tomo/lib/lib'", lib_dir_name, SHARED_SUFFIX, "'"));
+                      "' '"TOMO_HOME"'/lib/lib'", lib_dir_name, SHARED_SUFFIX, "'"));
         // If we have `debugedit` on this system, use it to remap the debugging source information
         // to point to the installed version of the source file. Otherwise, fail silently.
         system(String("debugedit -b ", library_directory,
-                      " -d ~/.local/share/tomo/installed/", lib_dir_name,
-                      " ~/.local/share/tomo/installed/", lib_dir_name, "/lib", lib_dir_name, ".so"
+                      " -d '"TOMO_HOME"'/installed/", lib_dir_name,
+                      " '"TOMO_HOME"'/installed/", lib_dir_name, "/lib", lib_dir_name, ".so"
                       " 2>/dev/null >/dev/null"));
-        print("Installed \033[1m", lib_dir_name, "\033[m to ~/.local/share/tomo/installed");
+        print("Installed \033[1m", lib_dir_name, "\033[m to "TOMO_HOME"/installed");
     }
 }
 
@@ -624,10 +624,10 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             break;
         }
         case USE_MODULE: {
-            Text_t lib = Text$format("'%s/.local/share/tomo/installed/%s/lib%s%s'", getenv("HOME"), use->path, use->path, SHARED_SUFFIX);
+            Text_t lib = Text$format("'%s/installed/%s/lib%s%s'", TOMO_HOME, use->path, use->path, SHARED_SUFFIX);
             Table$set(to_link, &lib, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
 
-            List_t children = Path$glob(Path$from_str(String(getenv("HOME"), "/.local/share/tomo/installed/", use->path, "/*.tm")));
+            List_t children = Path$glob(Path$from_str(String(TOMO_HOME"/installed/", use->path, "/*.tm")));
             for (int64_t i = 0; i < children.length; i++) {
                 Path_t *child = (Path_t*)(children.data + i*children.stride);
                 Table_t discarded = {.fallback=to_compile};

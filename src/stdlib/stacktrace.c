@@ -72,8 +72,8 @@ static void _print_stack_frame(FILE *out, const char *cwd, const char *install_d
         fprintf(out, USE_COLOR ? "\033[1mIn \033[33m%s()\033[37m" : "In %s()", function_display);
         if (filename) {
             if (install_dir[0] && strncmp(filename, install_dir, strlen(install_dir)) == 0)
-                fprintf(out, USE_COLOR ? " in library \033[35m~/.local/share/tomo/installed/%s:%d" : " in library ~/.local/share/tomo/installed/%s:%d",
-                        filename + strlen(install_dir), lineno);
+                fprintf(out, USE_COLOR ? " in library \033[35m%s:%d" : " in library %s:%d",
+                        filename, lineno);
             else
                 fprintf(out, USE_COLOR ? " in \033[35m%s:%d" : " in %s:%d", filename, lineno);
         }
@@ -97,7 +97,7 @@ public void print_stacktrace(FILE *out, int offset)
     cwd[cwd_len++] = '/';
     cwd[cwd_len] = '\0';
 
-    const char *install_dir = String(getenv("HOME"), "/.local/share/tomo/installed/");
+    const char *install_dir = TOMO_HOME"/installed/";
 
     static void *stack[1024];
     int64_t size = (int64_t)backtrace(stack, sizeof(stack)/sizeof(stack[0]));

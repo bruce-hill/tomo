@@ -1,3 +1,4 @@
+/config.mk
 /examples/*/*
 !/examples/*.*
 !/examples/*/*.*

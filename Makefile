@@ -1,4 +1,13 @@
-PREFIX=$(HOME)/.local
+# Run ./configure.sh to choose installation locations:
+ifeq ($(wildcard config.mk),)
+all: config.mk
+	$(MAKE) all
+config.mk: configure.sh
+	./configure.sh
+else
+
+include config.mk
+
 VERSION=0.0.1
 CC=cc
 CCONFIG=-std=c2x -fPIC \
@@ -41,7 +50,8 @@ OSFLAGS != case $(OS) in *BSD|Darwin) echo '-D_BSD_SOURCE';; Linux) echo '-D_GNU
 EXTRA=
 G=-ggdb
 O=-Og
-CFLAGS=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO)
+CFLAGS=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO) \
+	   -DTOMO_HOME='"$(TOMO_HOME)"' -DTOMO_PREFIX='"$(PREFIX)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"'
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
 LDLIBS=-lgc -lcord -lm -lunistring -lgmp
 LIBTOMO_FLAGS=-shared
@@ -65,7 +75,7 @@ COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c))
 STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c))
 TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/*.tm))
 
-all: build/$(LIB_FILE) build/$(AR_FILE) build/tomo
+all: config.mk build/$(LIB_FILE) build/$(AR_FILE) build/tomo
 
 build/tomo: $(STDLIB_OBJS) $(COMPILER_OBJS)
 	@mkdir -p build
@@ -85,7 +95,10 @@ build/$(AR_FILE): $(STDLIB_OBJS)
 tags:
 	ctags src/*.[ch] src/stdlib/*.[ch]
 
-%.o: %.c src/ast.h src/environment.h src/types.h
+config.mk: configure.sh
+	./configure.sh
+
+%.o: %.c src/ast.h src/environment.h src/types.h config.mk
 	@echo $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
 	@$(CC) $(CFLAGS) -c $< -o $@
 
@@ -131,7 +144,8 @@ check-gcc:
 
 install-files: build/tomo build/$(LIB_FILE) build/$(AR_FILE)
 	@if ! echo "$$PATH" | tr ':' '\n' | grep -qx "$(PREFIX)/bin"; then \
-		printf "\033[31;1mError: '$(PREFIX)' is not in your \$$PATH variable!\033[m\n" >&2; \
+		echo $$PATH; \
+		printf "\033[31;1mError: '$(PREFIX)/bin' is not in your \$$PATH variable!\033[m\n" >&2; \
 		printf "\033[31;1mSpecify a different prefix with 'make PREFIX=... install'\033[m\n" >&2; \
 		printf "\033[31;1mor add the following line to your .profile:\033[m\n" >&2; \
 		printf "\n\033[1mexport PATH=\"$(PREFIX):\$$PATH\"\033[m\n\n" >&2; \
@@ -151,6 +165,8 @@ install: install-files install-libs
 
 uninstall:
 	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/include/tomo" "$(PREFIX)/lib/$(LIB_FILE)" "$(PREFIX)/lib/$(AR_FILE)" "$(PREFIX)/share/tomo";
+
+endif
 
 .SUFFIXES:
 .PHONY: all clean install install-files install-libs uninstall test tags examples deps check-gcc

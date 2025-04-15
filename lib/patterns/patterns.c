@@ -504,6 +504,7 @@ static int64_t match_pat(TextIter_t *state, int64_t index, pat_t pat)
     default: errx(1, "Invalid pattern");
     }
     errx(1, "Unreachable");
+    return 0;
 }
 
 static pat_t parse_next_pat(TextIter_t *state, int64_t *index)

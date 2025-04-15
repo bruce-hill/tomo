@@ -18,10 +18,10 @@ enum ExitType(Exited(status:Int32), Signaled(signal:Int32), Failed)
 struct ProgramResult(output:[Byte], errors:[Byte], exit_type:ExitType)
     func or_fail(r:ProgramResult, message:Text?=none -> ProgramResult)
         when r.exit_type is Exited(status)
-            if status == 0
-                return r
+            if status != 0
+                fail(message or "Program failed: $r")
         else fail(message or "Program failed: $r")
-        fail(message or "Program failed: $r")
+        return r
 
     func output_text(r:ProgramResult, trim_newline=yes -> Text?)
         when r.exit_type is Exited(status)
