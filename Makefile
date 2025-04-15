@@ -50,6 +50,7 @@ ifeq ($(OS),OpenBSD)
 	LDLIBS += -lexecinfo
 endif
 
+AR_FILE=libtomo.a
 ifeq ($(OS),Darwin)
 	INCLUDE_DIRS += -I/opt/homebrew/include
 	LDFLAGS += -L/opt/homebrew/lib
@@ -64,7 +65,7 @@ COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c))
 STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c))
 TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/*.tm))
 
-all: build/$(LIB_FILE) build/tomo
+all: build/$(LIB_FILE) build/$(AR_FILE) build/tomo
 
 build/tomo: $(STDLIB_OBJS) $(COMPILER_OBJS)
 	@mkdir -p build
@@ -75,6 +76,11 @@ build/$(LIB_FILE): $(STDLIB_OBJS)
 	@mkdir -p build
 	@echo $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
 	@$(CC) $^ $(CFLAGS) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
+
+build/$(AR_FILE): $(STDLIB_OBJS)
+	@mkdir -p build
+	@echo ar -rcs $@ $^
+	@ar -rcs $@ $^
 
 tags:
 	ctags src/*.[ch] src/stdlib/*.[ch]
@@ -123,7 +129,7 @@ check-gcc:
 		exit 1; \
 	fi
 
-install-files: build/tomo build/$(LIB_FILE)
+install-files: build/tomo build/$(LIB_FILE) build/$(AR_FILE)
 	@if ! echo "$$PATH" | tr ':' '\n' | grep -qx "$(PREFIX)/bin"; then \
 		printf "\033[31;1mError: '$(PREFIX)' is not in your \$$PATH variable!\033[m\n" >&2; \
 		printf "\033[31;1mSpecify a different prefix with 'make PREFIX=... install'\033[m\n" >&2; \
@@ -133,7 +139,7 @@ install-files: build/tomo build/$(LIB_FILE)
 	fi
 	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
 	cp -v src/stdlib/*.h "$(PREFIX)/include/tomo/"
-	cp -v build/$(LIB_FILE) "$(PREFIX)/lib/"
+	cp -v build/$(LIB_FILE) build/$(AR_FILE) "$(PREFIX)/lib/"
 	rm -f "$(PREFIX)/bin/tomo"
 	cp -v build/tomo "$(PREFIX)/bin/"
 	cp -v docs/tomo.1 "$(PREFIX)/man/man1/"
@@ -144,7 +150,7 @@ install-libs: build/tomo
 install: install-files install-libs
 
 uninstall:
-	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/include/tomo" "$(PREFIX)/lib/$(LIB_FILE) "$(PREFIX)/share/tomo"; \
+	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/include/tomo" "$(PREFIX)/lib/$(LIB_FILE)" "$(PREFIX)/lib/$(AR_FILE)" "$(PREFIX)/share/tomo";
 
 .SUFFIXES:
 .PHONY: all clean install install-files install-libs uninstall test tags examples deps check-gcc
