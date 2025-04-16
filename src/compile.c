@@ -4133,7 +4133,8 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
             code_err(ast, "This function will always abort before it reaches the end, but it's declared as having a Void return. It should be declared as an Abort return instead.");
     } else {
         if (body_type->tag != ReturnType && body_type->tag != AbortType)
-            code_err(ast, "This function can reach the end without returning a ", type_to_str(ret_t), " value!");
+            code_err(ast, "This function looks like it can reach the end without returning a ", type_to_str(ret_t), " value! \n "
+                     "If this is not the case, please add a call to `fail(\"Unreachable\")` at the end of the function to help the compiler out.");
     }
 
     CORD body_code = CORD_all("{\n", compile_inline_block(body_scope, body), "}\n");
