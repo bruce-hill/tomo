@@ -4262,7 +4262,7 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
         if ((decl->value && is_constant(env, decl->value)) || (!decl->value && !has_heap_memory(t))) {
             set_binding(env, decl_name, t, full_name);
             return CORD_all(
-                is_private ? "static " : CORD_EMPTY,
+                is_private ? "static " : "public ",
                 compile_declaration(t, full_name), " = ", val_code, ";\n");
         } else {
             CORD checked_access = CORD_all("check_initialized(", full_name, ", \"", decl_name, "\")");
@@ -4270,7 +4270,7 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
 
             return CORD_all(
                 "static bool ", full_name, "$initialized = false;\n",
-                is_private ? "static " : CORD_EMPTY,
+                is_private ? "static " : "public ",
                 compile_declaration(t, full_name), ";\n");
         }
     }
