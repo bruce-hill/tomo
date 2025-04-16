@@ -21,8 +21,6 @@
 
 #define WHEN(type, subj, var, body) { type var = subj; switch (var.$tag) body }
 
-#define UNREACHABLE_RETURN(t) { errx(1, "Unreachable"); t _unreachable; return _unreachable; }
-
 #ifndef public
 #define public __attribute__ ((visibility ("default")))
 #endif

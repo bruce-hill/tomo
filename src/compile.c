@@ -1928,9 +1928,6 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
 CORD compile_statement(env_t *env, ast_t *ast) {
     CORD stmt = _compile_statement(env, ast);
-    if (ast->tag != Block && get_type(env, ast)->tag == AbortType && env->fn_ret
-        && (env->fn_ret->tag != VoidType && env->fn_ret->tag != AbortType))
-        stmt = CORD_all(stmt, "\nUNREACHABLE_RETURN(", compile_type(env->fn_ret), ");");
     return with_source_info(env, ast, stmt);
 }
 
