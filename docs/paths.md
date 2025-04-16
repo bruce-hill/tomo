@@ -49,6 +49,7 @@ intended. Paths can be created from text with slashes using
 - [`func child(path: Path, child:Text -> Path)`](#child)
 - [`func children(path: Path, include_hidden=no -> [Path])`](#children)
 - [`func create_directory(path: Path, permissions=0o755[32] -> Void)`](#create_directory)
+- [`func current_dir(-> Path)`](#current_dir)
 - [`func exists(path: Path -> Bool)`](#exists)
 - [`func expand_home(path: Path -> Path)`](#expand_home)
 - [`func extension(path: Path, full=yes -> Text)`](#extension)
@@ -353,6 +354,25 @@ Nothing.
 **Example:**  
 ```tomo
 (./new_directory).create_directory()
+```
+
+---
+
+### `current_dir`
+Creates a new directory at the specified path with the given permissions. If
+any of the parent directories do not exist, they will be created as needed.
+
+```tomo
+func current_dir(-> Path)
+```
+
+**Returns:**  
+The absolute path of the current directory.
+
+**Example:**  
+```tomo
+>> Path.current_dir()
+= (/home/user/tomo)
 ```
 
 ---
