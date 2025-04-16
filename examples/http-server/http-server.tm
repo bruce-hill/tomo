@@ -112,6 +112,7 @@ enum RouteEntry(ServeFile(file:Path), Redirect(destination:Text))
             return HTTPResponse(body, content_type=_content_type(file))
         is Redirect(destination)
             return HTTPResponse("Found", 302, headers={"Location"=destination})
+        return HTTPResponse("Unreachable", 500)
 
 func load_routes(directory:Path -> {Text=RouteEntry})
     routes : &{Text=RouteEntry}
