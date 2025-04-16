@@ -556,7 +556,7 @@ PUREFUNC public uint64_t Table$hash(const void *obj, const TypeInfo_t *type)
             keys_hash ^= generic_hash(t->entries.data + i*t->entries.stride, table.key);
     }
 
-    struct {
+    volatile struct {
         int64_t length;
         uint64_t keys_hash, values_hash;
         Table_t *fallback;

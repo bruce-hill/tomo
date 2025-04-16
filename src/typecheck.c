@@ -479,8 +479,9 @@ void bind_statement(env_t *env, ast_t *statement)
         env_t *module_env = load_module(env, statement);
         if (!module_env) break;
         for (Table_t *bindings = module_env->locals; bindings != module_env->globals; bindings = bindings->fallback) {
-            for (int64_t i = 1; i <= Table$length(*bindings); i++) {
-                struct {const char *name; binding_t *binding; } *entry = Table$entry(*bindings, i);
+            List_t entries = bindings->entries;
+            for (int64_t i = 0; i < entries.length; i++) {
+                struct { const char *name; binding_t *binding; } *entry = entries.data + entries.stride*i;
                 if (entry->name[0] == '_' || streq(entry->name, "main"))
                     continue;
                 binding_t *b = Table$str_get(*env->locals, entry->name);
@@ -490,8 +491,8 @@ void bind_statement(env_t *env, ast_t *statement)
                     code_err(statement, "This module imports a symbol called '", entry->name, "', which would clobber another variable");
             }
         }
-        for (int64_t i = 1; i <= Table$length(*module_env->types); i++) {
-            struct {const char *name; type_t *type; } *entry = Table$entry(*module_env->types, i);
+        for (int64_t i = 0; i < module_env->types->entries.length; i++) {
+            struct { const char *name; type_t *type; } *entry = module_env->types->entries.data + module_env->types->entries.stride*i;
             if (entry->name[0] == '_')
                 continue;
             if (Table$str_get(*env->types, entry->name))
@@ -689,7 +690,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             binding_t *b = get_binding(env, lang);
             if (!b || b->type->tag != TypeInfoType || Match(b->type, TypeInfoType)->type->tag != TextType)
                 code_err(ast, "There is no text language called '", lang, "'");
-            return Match(get_binding(env, lang)->type, TypeInfoType)->type;
+            return Match(b->type, TypeInfoType)->type;
         } else {
             return TEXT_TYPE;
         }
@@ -1393,7 +1394,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             }
             if (when->else_body)
                 t = type_or_type(t, get_type(env, when->else_body));
-            else if (t->tag != OptionalType)
+            else if (t && t->tag != OptionalType)
                 t = Type(OptionalType, .type=t);
             return t;
         }

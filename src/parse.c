@@ -309,7 +309,9 @@ PUREFUNC static INLINE int64_t get_indent(parse_ctx_t *ctx, const char *pos)
 {
     int64_t line_num = get_line_number(ctx->file, pos);
     const char *line = get_line(ctx->file, line_num);
-    if (*line == ' ') {
+    if (line == NULL) {
+        return 0;
+    } else if (*line == ' ') {
         int64_t spaces = (int64_t)strspn(line, " ");
         if (line[spaces] == '\t')
             parser_err(ctx, line + spaces, line + spaces + 1, "This is a tab following spaces, and you can't mix tabs and spaces");
@@ -873,8 +875,8 @@ PARSER(parse_reduction) {
             );
         if (progress) key = new_term;
     }
-    if (key->tag == Var) key = NULL;
-    else pos = key->end;
+    if (key && key->tag == Var) key = NULL;
+    else if (key) pos = key->end;
 
     whitespace(&pos);
     if (!match(&pos, ":")) return NULL;
@@ -1662,8 +1664,8 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
                     );
                 if (progress) key = new_term;
             }
-            if (key->tag == Var) key = NULL;
-            else pos = key->end;
+            if (key && key->tag == Var) key = NULL;
+            else if (key) pos = key->end;
         }
 
         whitespace(&pos);

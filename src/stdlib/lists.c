@@ -76,11 +76,15 @@ public void List$insert(List_t *list, const void *item, Int_t int_index, int64_t
         list->data_refcount = 0;
         list->stride = padded_item_size;
     } else {
-        if (index != list->length+1)
+        if (index != list->length+1) {
+            assert(list->length >= index);
+            size_t size = (size_t)((list->length - index + 1)*padded_item_size);
+            assert(size < SIZE_MAX);
             memmove(
                 list->data + index*padded_item_size,
                 list->data + (index-1)*padded_item_size,
-                (size_t)((list->length - index + 1)*padded_item_size));
+                size);
+        }
     }
     assert(list->free > 0);
     --list->free;

@@ -1396,8 +1396,8 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         static int defer_id = 0;
         env_t *defer_env = fresh_scope(env);
         CORD code = CORD_EMPTY;
-        for (int64_t i = 1; i <= Table$length(closed_vars); i++) {
-            struct { const char *name; binding_t *b; } *entry = Table$entry(closed_vars, i);
+        for (int64_t i = 0; i < closed_vars.entries.length; i++) {
+            struct { const char *name; binding_t *b; } *entry = closed_vars.entries.data + closed_vars.entries.stride*i;
             if (entry->b->type->tag == ModuleType)
                 continue;
             if (CORD_ncmp(entry->b->code, 0, "userdata->", 0, strlen("userdata->")) == 0) {
@@ -2995,8 +2995,8 @@ CORD compile(env_t *env, ast_t *ast)
         Table_t closed_vars = get_closed_vars(env, lambda->args, ast);
         if (Table$length(closed_vars) > 0) { // Create a typedef for the lambda's closure userdata
             CORD def = "typedef struct {";
-            for (int64_t i = 1; i <= Table$length(closed_vars); i++) {
-                struct { const char *name; binding_t *b; } *entry = Table$entry(closed_vars, i);
+            for (int64_t i = 0; i < closed_vars.entries.length; i++) {
+                struct { const char *name; binding_t *b; } *entry = closed_vars.entries.data + closed_vars.entries.stride*i;
                 if (has_stack_memory(entry->b->type))
                     code_err(ast, "This function is holding onto a reference to ", type_to_str(entry->b->type),
                              " stack memory in the variable `", entry->name, "`, but the function may outlive the stack memory");
@@ -3021,8 +3021,8 @@ CORD compile(env_t *env, ast_t *ast)
             userdata = "NULL";
         } else {
             userdata = CORD_all("new(", name, "$userdata_t");
-            for (int64_t i = 1; i <= Table$length(closed_vars); i++) {
-                struct { const char *name; binding_t *b; } *entry = Table$entry(closed_vars, i);
+            for (int64_t i = 0; i < closed_vars.entries.length; i++) {
+                struct { const char *name; binding_t *b; } *entry = closed_vars.entries.data + closed_vars.entries.stride*i;
                 if (entry->b->type->tag == ModuleType)
                     continue;
                 binding_t *b = get_binding(env, entry->name);
