@@ -82,7 +82,6 @@ struct IntQueue(_queue:@[Int], _mutex:@pthread_mutex_t, _cond:@pthread_cond_t)
                 n = q._queue.pop(1)
             q._mutex.unlock()
             return n!
-        fail("Unreachable")
 
 func main()
     jobs := IntQueue.new()

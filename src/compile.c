@@ -1928,6 +1928,9 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
 CORD compile_statement(env_t *env, ast_t *ast) {
     CORD stmt = _compile_statement(env, ast);
+    if (ast->tag != Block && get_type(env, ast)->tag == AbortType && env->fn_ret
+        && (env->fn_ret->tag != VoidType && env->fn_ret->tag != AbortType))
+        stmt = CORD_all(stmt, "\nUNREACHABLE_RETURN(", compile_type(env->fn_ret), ");");
     return with_source_info(env, ast, stmt);
 }
 
@@ -4090,7 +4093,7 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
 
     CORD ret_type_code = compile_type(ret_t);
     if (ret_t->tag == AbortType)
-        ret_type_code = CORD_all("_Noreturn ", ret_type_code);
+        ret_type_code = CORD_all("__attribute__((noreturn)) _Noreturn ", ret_type_code);
 
     if (is_private)
         *staticdefs = CORD_all(*staticdefs, "static ", ret_type_code, " ", name_code, arg_signature, ";\n");
@@ -4554,7 +4557,7 @@ CORD compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t *a
         type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
         CORD ret_type_code = compile_type(ret_t);
         if (ret_t->tag == AbortType)
-            ret_type_code = CORD_all("_Noreturn ", ret_type_code);
+            ret_type_code = CORD_all("__attribute__((noreturn)) _Noreturn ", ret_type_code);
         CORD name = CORD_all(namespace_prefix(env, env->namespace), decl_name);
         if (env->namespace && env->namespace->parent && env->namespace->name && streq(decl_name, env->namespace->name))
             name = CORD_asprintf("%r%ld", namespace_prefix(env, env->namespace), get_line_number(ast->file, ast->start));
