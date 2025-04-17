@@ -6,7 +6,7 @@ if [ ! -e "$here/build/bin/tomo" ]; then
 fi
 
 PATH="$here/build/bin:$PATH" \
-LD_LIBRARY_PATH="$here/build/lib:$LD_LIBRARY_PATH" \
-LIBRARY_PATH="$here/build/lib:$LIBRARY_PATH" \
-C_INCLUDE_PATH="$here/build/include:$C_INCLUDE_PATH" \
+LD_LIBRARY_PATH="$here/build/lib" \
+LIBRARY_PATH="$here/build/lib" \
+C_INCLUDE_PATH="$here/build/include" \
 tomo "$@"
