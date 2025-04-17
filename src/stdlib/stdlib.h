@@ -93,5 +93,7 @@ _Noreturn void tomo_exit(Text_t text, int32_t status);
 Closure_t spawn(Closure_t fn);
 bool pop_flag(char **argv, int *i, const char *flag, Text_t *result);
 void sleep_num(double seconds);
+OptionalText_t getenv_text(Text_t name);
+void setenv_text(Text_t name, Text_t value);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

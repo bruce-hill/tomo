@@ -518,6 +518,8 @@ env_t *global_env(bool source_mapping)
         {"USE_COLOR", "USE_COLOR", "Bool"},
         {"say", "say", "func(text:Text, newline=yes)"},
         {"print", "say", "func(text:Text, newline=yes)"},
+        {"getenv", "getenv_text", "func(name:Text -> Text?)"},
+        {"setenv", "setenv_text", "func(name:Text, value:Text -> Text?)"},
         {"ask", "ask", "func(prompt:Text, bold=yes, force_tty=yes -> Text?)"},
         {"exit", "tomo_exit", "func(message:Text?=none, code=Int32(1) -> Abort)"},
         {"fail", "fail_text", "func(message:Text -> Abort)"},
