@@ -845,7 +845,7 @@ list.sort(func(a,b:&Int): a.abs() <> b.abs())
 Creates a new list with elements sorted.
 
 ```tomo
-sorted(list: [T], by=T.compare -> [T])
+func sorted(list: [T], by=T.compare -> [T])
 ```
 
 - `list`: The list to be sorted.
@@ -870,7 +870,7 @@ A new list with sorted elements.
 Returns a slice of the list from the start of the original list up to a specified index (inclusive).
 
 ```tomo
-to(list: [T], last: Int -> [T])
+func to(list: [T], last: Int -> [T])
 ```
 
 - `list`: The original list.
@@ -894,7 +894,7 @@ A new list containing elements from the start up to the specified index.
 Returns a Set that contains the unique elements of the list.
 
 ```tomo
-unique(list: [T] -> {T})
+func unique(list: [T] -> |T|)
 ```
 
 - `list`: The list to process.
