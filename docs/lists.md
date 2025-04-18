@@ -240,7 +240,7 @@ variable or dereference a heap pointer, it may trigger copy-on-write behavior.
 - [`func find(list: [T], target: T -> Int?)`](#find)
 - [`func first(list: [T], predicate: func(item:&T -> Bool) -> Int)`](#first)
 - [`func from(list: [T], first: Int -> [T])`](#from)
-- [`func has(list: [T] -> Bool)`](#has)
+- [`func has(list: [T], element: T -> Bool)`](#has)
 - [`func heap_pop(list: @[T], by: func(x,y:&T->Int32) = T.compare -> T?)`](#heap_pop)
 - [`func heap_push(list: @[T], item: T, by=T.compare -> Void)`](#heap_push)
 - [`func heapify(list: @[T], by: func(x,y:&T->Int32) = T.compare -> Void)`](#heapify)
@@ -422,16 +422,17 @@ A new list starting from the specified index.
 ---
 
 ### `has`
-Checks if the list has any elements.
+Checks if the list has an element.
 
 ```tomo
-func has(list: [T] -> Bool)
+func has(list: [T], element: T -> Bool)
 ```
 
 - `list`: The list to check.
+- `target`: The element to check for.
 
 **Returns:**  
-`yes` if the list has elements, `no` otherwise.
+`yes` if the list has the target, `no` otherwise.
 
 **Example:**  
 ```tomo

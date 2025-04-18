@@ -377,7 +377,7 @@ Returns the given number clamped between two values so that it is within
 that range.
 
 ```tomo
-clamped(x, low, high: Num -> Num)
+func clamped(x, low, high: Num -> Num)
 ```
 
 - `x`: The number to clamp.

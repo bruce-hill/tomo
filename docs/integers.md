@@ -134,7 +134,7 @@ can be called either on the type itself: `Int.sqrt(x)` or as a method call:
 - [`func octal(i: Int, digits: Int = 0, prefix: Bool = yes -> Text)`](#octal)
 - [`func onward(first: Int, step: Int = 1 -> Text)`](#onward)
 - [`func parse(text: Text -> Int?)`](#parse)
-- [`func prev_prime(x: Int -> Int)`](#prev_prime)
+- [`func prev_prime(x: Int -> Int?)`](#prev_prime)
 - [`func sqrt(x: Int -> Int)`](#sqrt)
 - [`func to(first: Int, last: Int, step : Int? = none -> func(->Int?))`](#to)
 
@@ -442,13 +442,13 @@ See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index
 for more details.
 
 ```tomo
-func prev_prime(x: Int -> Int)
+func prev_prime(x: Int -> Int?)
 ```
 
 - `x`: The integer before which to find the previous prime.
 
 **Returns:**  
-The previous prime number less than `x`.
+The previous prime number less than `x`, or `none` if `x` is less than 2.
 
 **Example:**  
 ```tomo
