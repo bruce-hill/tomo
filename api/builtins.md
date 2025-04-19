@@ -102,7 +102,7 @@ name | `Text` | The name of the environment variable to get.  |
 print : func(text: Text, newline: Bool = yes -> Void)
 ```
 
-Prints a message to the console (alias for [`say`](#say)).
+Prints a message to the console (alias for say()).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------

@@ -29,7 +29,9 @@ t | `&{K=V}` | The reference to the table.  |
 Table.get : func(t: {K=V}, key: K -> V?)
 ```
 
-Retrieves the value associated with a key, or returns `none` if the key is not present. **Note:** default values for the table are ignored.
+Retrieves the value associated with a key, or returns `none` if the key is not present.
+
+Default values for the table are ignored.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------

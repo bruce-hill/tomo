@@ -32,12 +32,14 @@ Text.at : func(text: Text, index: Int -> Text)
 
 Get the graphical cluster at a given index. This is similar to `str[i]` with ASCII text, but has more correct behavior for unicode text.
 
+Negative indices are counted from the back of the text, so `-1` means the last cluster, `-2` means the second-to-last, and so on.
+
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text from which to get a cluster.  | 
 index | `Int` | The index of the graphical cluster (1-indexed).  | 
 
-**Return:** A `Text` with the single graphical cluster at the given index. Note: negative indices are counted from the back of the text, so `-1` means the last cluster, `-2` means the second-to-last, and so on.
+**Return:** A `Text` with the single graphical cluster at the given index.
 
 
 **Example:**
@@ -54,11 +56,13 @@ Text.by_line : func(text: Text -> func(->Text?))
 
 Returns an iterator function that can be used to iterate over the lines in a text.
 
+This function ignores a trailing newline if there is one. If you don't want this behavior, use `text.by_split($/{1 nl}/)` instead.
+
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text to be iterated over, line by line.  | 
 
-**Return:** An iterator function that returns one line at a time, until it runs out and returns `none`. **Note:** this function ignores a trailing newline if there is one. If you don't want this behavior, use `text.by_split($/{1 nl}/)` instead.
+**Return:** An iterator function that returns one line at a time, until it runs out and returns `none`.
 
 
 **Example:**
@@ -78,8 +82,9 @@ say(line)
 Text.by_split : func(text: Text, delimiter: Text = "" -> func(->Text?))
 ```
 
-Returns an iterator function that can be used to iterate over text separated by a delimiter. **Note:** to split based on a set of delimiters, use [`by_split_any()`](#by_split_any).
+Returns an iterator function that can be used to iterate over text separated by a delimiter.
 
+To split based on a set of delimiters, use Text.by_split_any().
 If an empty text is given as the delimiter, then each split will be the graphical clusters of the text.
 
 Argument | Type | Description | Default
@@ -87,7 +92,7 @@ Argument | Type | Description | Default
 text | `Text` | The text to be iterated over in delimited chunks.  | 
 delimiter | `Text` | An exact delimiter to use for splitting the text.  | **Default:** `""`
 
-**Return:** An iterator function that returns one chunk of text at a time, separated by the given delimiter, until it runs out and returns `none`. **Note:** using an empty delimiter (the default) will iterate over single grapheme clusters in the text.
+**Return:** An iterator function that returns one chunk of text at a time, separated by the given delimiter, until it runs out and returns `none`.
 
 
 **Example:**
@@ -104,9 +109,10 @@ say(chunk)
 Text.by_split_any : func(text: Text, delimiters: Text = " $\t\r\n" -> func(->Text?))
 ```
 
-Returns an iterator function that can be used to iterate over text separated by one or more characters (grapheme clusters) from a given text of delimiters. **Note:** to split based on an exact delimiter, use [`by_split()`](#by_split).
+Returns an iterator function that can be used to iterate over text separated by one or more characters (grapheme clusters) from a given text of delimiters.
 
 Splitting will occur on every place where one or more of the grapheme clusters in `delimiters` occurs.
+To split based on an exact delimiter, use Text.by_split().
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
@@ -223,12 +229,14 @@ Text.from : func(text: Text, first: Int -> Text)
 
 Get a slice of the text, starting at the given position.
 
+A negative index counts backwards from the end of the text, so `-1` refers to the last cluster, `-2` the second-to-last, etc. Slice ranges will be truncated to the length of the text.
+
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text to be sliced.  | 
 first | `Int` | The index to begin the slice.  | 
 
-**Return:** The text from the given grapheme cluster to the end of the text. Note: a negative index counts backwards from the end of the text, so `-1` refers to the last cluster, `-2` the second-to-last, etc. Slice ranges will be truncated to the length of the text.
+**Return:** The text from the given grapheme cluster to the end of the text.
 
 
 **Example:**
@@ -246,7 +254,9 @@ first | `Int` | The index to begin the slice.  |
 Text.from_bytes : func(bytes: [Byte] -> [Text])
 ```
 
-Returns text that has been constructed from the given UTF8 bytes. Note: the text will be normalized, so the resulting text's UTF8 bytes may not exactly match the input.
+Returns text that has been constructed from the given UTF8 bytes.
+
+The text will be normalized, so the resulting text's UTF8 bytes may not exactly match the input.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
@@ -288,7 +298,9 @@ str | `CString` | The C-style string to be converted.  |
 Text.from_codepoint_names : func(codepoint_names: [Text] -> [Text])
 ```
 
-Returns text that has the given codepoint names (according to the Unicode specification) as its codepoints. Note: the text will be normalized, so the resulting text's codepoints may not exactly match the input codepoints.
+Returns text that has the given codepoint names (according to the Unicode specification) as its codepoints.
+
+The text will be normalized, so the resulting text's codepoints may not exactly match the input codepoints.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
@@ -313,7 +325,9 @@ codepoint_names | `[Text]` | The names of each codepoint in the desired text (ca
 Text.from_codepoints : func(codepoints: [Int32] -> [Text])
 ```
 
-Returns text that has been constructed from the given UTF32 codepoints. Note: the text will be normalized, so the resulting text's codepoints may not exactly match the input codepoints.
+Returns text that has been constructed from the given UTF32 codepoints.
+
+The text will be normalized, so the resulting text's codepoints may not exactly match the input codepoints.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
@@ -603,13 +617,15 @@ Text.slice : func(text: Text, from: Int = 1, to: Int = -1 -> Text)
 
 Get a slice of the text.
 
+A negative index counts backwards from the end of the text, so `-1` refers to the last cluster, `-2` the second-to-last, etc. Slice ranges will be truncated to the length of the text.
+
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text to be sliced.  | 
 from | `Int` | The index of the first grapheme cluster to include (1-indexed).  | **Default:** `1`
 to | `Int` | The index of the last grapheme cluster to include (1-indexed).  | **Default:** `-1`
 
-**Return:** The text that spans the given grapheme cluster indices. Note: a negative index counts backwards from the end of the text, so `-1` refers to the last cluster, `-2` the second-to-last, etc. Slice ranges will be truncated to the length of the text.
+**Return:** The text that spans the given grapheme cluster indices.
 
 
 **Example:**
@@ -630,12 +646,15 @@ to | `Int` | The index of the last grapheme cluster to include (1-indexed).  | *
 Text.split : func(text: Text, delimiter: Text = "" -> [Text])
 ```
 
-Splits the text into a list of substrings based on exact matches of a delimiter. **Note:** to split based on a set of delimiter characters, use [`split_any()`](#split_any).
+Splits the text into a list of substrings based on exact matches of a delimiter.
+
+To split based on a set of delimiters, use Text.split_any().
+If an empty text is given as the delimiter, then each split will be the graphical clusters of the text.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text to be split.  | 
-delimiter | `Text` | The delimiter used to split the text. If the delimiter is the empty text, the text will be split into individual grapheme clusters.  | **Default:** `""`
+delimiter | `Text` | The delimiter used to split the text.  | **Default:** `""`
 
 **Return:** A list of subtexts resulting from the split.
 
@@ -655,12 +674,15 @@ delimiter | `Text` | The delimiter used to split the text. If the delimiter is t
 Text.split_any : func(text: Text, delimiters: Text = " $\t\r\n" -> [Text])
 ```
 
-Splits the text into a list of substrings at one or more occurrences of a set of delimiter characters (grapheme clusters). **Note:** to split based on an exact delimiter, use [`split()`](#split).
+Splits the text into a list of substrings at one or more occurrences of a set of delimiter characters (grapheme clusters).
+
+Splitting will occur on every place where one or more of the grapheme clusters in `delimiters` occurs.
+To split based on an exact delimiter, use Text.split().
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text to be split.  | 
-delimiters | `Text` | A text containing multiple delimiters to be used for  splitting the text into chunks.  | **Default:** `" $\t\r\n"`
+delimiters | `Text` | A text containing delimiters to use for splitting the text.  | **Default:** `" $\t\r\n"`
 
 **Return:** A list of subtexts resulting from the split.
 
@@ -727,12 +749,14 @@ Text.to : func(text: Text, last: Int -> Text)
 
 Get a slice of the text, ending at the given position.
 
+A negative index counts backwards from the end of the text, so `-1` refers to the last cluster, `-2` the second-to-last, etc. Slice ranges will be truncated to the length of the text.
+
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text to be sliced.  | 
 last | `Int` | The index of the last grapheme cluster to include (1-indexed).  | 
 
-**Return:** The text up to and including the given grapheme cluster. Note: a negative index counts backwards from the end of the text, so `-1` refers to the last cluster, `-2` the second-to-last, etc. Slice ranges will be truncated to the length of the text.
+**Return:** The text up to and including the given grapheme cluster.
 
 
 **Example:**
@@ -750,7 +774,7 @@ last | `Int` | The index of the last grapheme cluster to include (1-indexed).  |
 Text.translate : func(translations: {Text=Text} -> Text)
 ```
 
-Takes a table mapping target texts to their replacements and performs all the replacements in the table on the whole text. At each position, the first matching replacement is applied and the matching moves on to *after* the replacement text, so replacement text is not recursively modified. See [`replace()`](#replace) for more information about replacement behavior.
+Takes a table mapping target texts to their replacements and performs all the replacements in the table on the whole text. At each position, the first matching replacement is applied and the matching moves on to *after* the replacement text, so replacement text is not recursively modified. See Text.replace() for more information about replacement behavior.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
