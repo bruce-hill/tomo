@@ -2,19 +2,19 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Table.get 3 2025-04-19T14:30:40.366804 "Tomo man-pages"
+.TH Table.get 3 2025-04-19T14:48:15.716525 "Tomo man-pages"
 .SH NAME
-Table.get \- Retrieves the value associated with a key, or returns `none` if the key is not present. **Note:** default values for the table are ignored.
+Table.get \- Retrieves the value associated with a key, or returns `none` if the key is not present.
 
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI "Table.get : func(t: {K=V}, key: K -> V?)"
+.BI Table.get\ :\ func(t:\ {K=V},\ key:\ K\ ->\ V?)
 .fi
 
 .SH DESCRIPTION
-Retrieves the value associated with a key, or returns `none` if the key is not present. **Note:** default values for the table are ignored.
+Retrieves the value associated with a key, or returns `none` if the key is not present.
 
 
 .TS
@@ -27,6 +27,9 @@ key	K	The key whose associated value is to be retrieved. 	-
 .TE
 .SH RETURN
 The value associated with the key or `none` if the key is not found.
+
+.SH NOTES
+Default values for the table are ignored.
 
 .SH EXAMPLES
 .EX

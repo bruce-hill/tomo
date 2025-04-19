@@ -21,9 +21,10 @@ Text.at:
   return:
     type: 'Text'
     description: >
-      A `Text` with the single graphical cluster at the given index. Note: negative
-      indices are counted from the back of the text, so `-1` means the last cluster,
-      `-2` means the second-to-last, and so on.
+      A `Text` with the single graphical cluster at the given index.
+  note: >
+    Negative indices are counted from the back of the text, so `-1` means the
+    last cluster, `-2` means the second-to-last, and so on.
   args:
     text:
       type: 'Text'
@@ -45,8 +46,10 @@ Text.by_line:
     type: 'func(->Text?)'
     description: >
       An iterator function that returns one line at a time, until it runs out and
-      returns `none`. **Note:** this function ignores a trailing newline if there is
-      one. If you don't want this behavior, use `text.by_split($/{1 nl}/)` instead.
+      returns `none`.
+  note: >
+    This function ignores a trailing newline if there is one. If you don't want
+    this behavior, use `text.by_split($/{1 nl}/)` instead.
   args:
     text:
       type: 'Text'
@@ -65,13 +68,11 @@ Text.by_split:
   description: >
     Returns an iterator function that can be used to iterate over text separated by
     a delimiter.
-    **Note:** to split based on a set of delimiters, use [`by_split_any()`](#by_split_any).
   return:
     type: 'func(->Text?)'
     description: >
       An iterator function that returns one chunk of text at a time, separated by the
-      given delimiter, until it runs out and returns `none`. **Note:** using an empty
-      delimiter (the default) will iterate over single grapheme clusters in the text.
+      given delimiter, until it runs out and returns `none`.
   args:
     text:
       type: 'Text'
@@ -83,6 +84,8 @@ Text.by_split:
       description: >
         An exact delimiter to use for splitting the text.
   note: >
+    To split based on a set of delimiters, use Text.by_split_any().
+
     If an empty text is given as the delimiter, then each split will be the
     graphical clusters of the text.
   example: |
@@ -95,7 +98,6 @@ Text.by_split_any:
   description: >
     Returns an iterator function that can be used to iterate over text separated by
     one or more characters (grapheme clusters) from a given text of delimiters.
-    **Note:** to split based on an exact delimiter, use [`by_split()`](#by_split).
   return:
     type: 'func(->Text?)'
     description: >
@@ -114,6 +116,8 @@ Text.by_split_any:
   note: >
     Splitting will occur on every place where one or more of the grapheme
     clusters in `delimiters` occurs.
+
+    To split based on an exact delimiter, use Text.by_split().
   example: |
     text := "one,two,;,three"
     for chunk in text.by_split_any(",;")
@@ -209,10 +213,11 @@ Text.from:
   return:
     type: 'Text'
     description: >
-      The text from the given grapheme cluster to the end of the text. Note: a
-      negative index counts backwards from the end of the text, so `-1` refers to the
-      last cluster, `-2` the second-to-last, etc. Slice ranges will be truncated to
-      the length of the text.
+      The text from the given grapheme cluster to the end of the text.
+  note: >
+    A negative index counts backwards from the end of the text, so `-1` refers
+    to the last cluster, `-2` the second-to-last, etc. Slice ranges will be
+    truncated to the length of the text.
   args:
     text:
       type: 'Text'
@@ -231,9 +236,10 @@ Text.from:
     
 Text.from_bytes:
   description: >
-    Returns text that has been constructed from the given UTF8 bytes. Note: the
-    text will be normalized, so the resulting text's UTF8 bytes may not exactly
-    match the input.
+    Returns text that has been constructed from the given UTF8 bytes.
+  note: >
+    The text will be normalized, so the resulting text's UTF8 bytes may not
+    exactly match the input.
   return:
     type: '[Text]'
     description: >
@@ -266,8 +272,10 @@ Text.from_c_string:
 Text.from_codepoint_names:
   description: >
     Returns text that has the given codepoint names (according to the Unicode
-    specification) as its codepoints. Note: the text will be normalized, so the
-    resulting text's codepoints may not exactly match the input codepoints.
+    specification) as its codepoints.
+  note: >
+    The text will be normalized, so the resulting text's codepoints may not
+    exactly match the input codepoints.
   return:
     type: '[Text]'
     description: >
@@ -288,9 +296,10 @@ Text.from_codepoint_names:
     
 Text.from_codepoints:
   description: >
-    Returns text that has been constructed from the given UTF32 codepoints. Note:
-    the text will be normalized, so the resulting text's codepoints may not exactly
-    match the input codepoints.
+    Returns text that has been constructed from the given UTF32 codepoints.
+  note: >
+    The text will be normalized, so the resulting text's codepoints may not
+    exactly match the input codepoints.
   return:
     type: '[Text]'
     description: >
@@ -589,10 +598,11 @@ Text.slice:
   return:
     type: 'Text'
     description: >
-      The text that spans the given grapheme cluster indices. Note: a negative index
-      counts backwards from the end of the text, so `-1` refers to the last cluster,
-      `-2` the second-to-last, etc. Slice ranges will be truncated to the length of
-      the text.
+      The text that spans the given grapheme cluster indices.
+  note: >
+    A negative index counts backwards from the end of the text, so `-1` refers
+    to the last cluster, `-2` the second-to-last, etc. Slice ranges will be
+    truncated to the length of the text.
   args:
     text:
       type: 'Text'
@@ -621,7 +631,6 @@ Text.slice:
 Text.split:
   description: >
     Splits the text into a list of substrings based on exact matches of a delimiter.
-    **Note:** to split based on a set of delimiter characters, use [`split_any()`](#split_any).
   return:
     type: '[Text]'
     description: >
@@ -635,8 +644,13 @@ Text.split:
       type: 'Text'
       default: '""'
       description: >
-        The delimiter used to split the text. If the delimiter is the
-        empty text, the text will be split into individual grapheme clusters.
+        The delimiter used to split the text.
+  note: >
+    To split based on a set of delimiters, use Text.split_any().
+
+    If an empty text is given as the delimiter, then each split will be the
+    graphical clusters of the text.
+
   example: |
     >> "one,two,,three".split(",")
     = ["one", "two", "", "three"]
@@ -648,7 +662,6 @@ Text.split_any:
   description: >
     Splits the text into a list of substrings at one or more occurrences of a set
     of delimiter characters (grapheme clusters).
-    **Note:** to split based on an exact delimiter, use [`split()`](#split).
   return:
     type: '[Text]'
     description: >
@@ -662,8 +675,12 @@ Text.split_any:
       type: 'Text'
       default: '" $\t\r\n"'
       description: >
-        A text containing multiple delimiters to be used for 
-        splitting the text into chunks.
+        A text containing delimiters to use for splitting the text.
+  note: >
+    Splitting will occur on every place where one or more of the grapheme
+    clusters in `delimiters` occurs.
+
+    To split based on an exact delimiter, use Text.split().
   example: |
     >> "one, two,,three".split_any(", ")
     = ["one", "two", "three"]
@@ -719,10 +736,11 @@ Text.to:
   return:
     type: 'Text'
     description: >
-      The text up to and including the given grapheme cluster. Note: a negative index
-      counts backwards from the end of the text, so `-1` refers to the last cluster,
-      `-2` the second-to-last, etc. Slice ranges will be truncated to the length of
-      the text.
+      The text up to and including the given grapheme cluster.
+  note: >
+    A negative index counts backwards from the end of the text, so `-1` refers
+    to the last cluster, `-2` the second-to-last, etc. Slice ranges will be
+    truncated to the length of the text.
   args:
     text:
       type: 'Text'
@@ -745,7 +763,7 @@ Text.translate:
     replacements in the table on the whole text. At each position, the first
     matching replacement is applied and the matching moves on to *after* the
     replacement text, so replacement text is not recursively modified. See
-    [`replace()`](#replace) for more information about replacement behavior.
+    Text.replace() for more information about replacement behavior.
   return:
     type: 'Text'
     description: >

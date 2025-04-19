@@ -2,19 +2,19 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.by_split_any 3 2025-04-19T14:30:40.367193 "Tomo man-pages"
+.TH Text.by_split_any 3 2025-04-19T14:48:15.716889 "Tomo man-pages"
 .SH NAME
-Text.by_split_any \- Returns an iterator function that can be used to iterate over text separated by one or more characters (grapheme clusters) from a given text of delimiters. **Note:** to split based on an exact delimiter, use [`by_split()`](#by_split).
+Text.by_split_any \- Returns an iterator function that can be used to iterate over text separated by one or more characters (grapheme clusters) from a given text of delimiters.
 
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI "Text.by_split_any : func(text: Text, delimiters: Text = " $\\t\\r\\n" -> func(->Text?))"
+.BI Text.by_split_any\ :\ func(text:\ Text,\ delimiters:\ Text\ =\ "\ $\\t\\r\\n"\ ->\ func(->Text?))
 .fi
 
 .SH DESCRIPTION
-Returns an iterator function that can be used to iterate over text separated by one or more characters (grapheme clusters) from a given text of delimiters. **Note:** to split based on an exact delimiter, use [`by_split()`](#by_split).
+Returns an iterator function that can be used to iterate over text separated by one or more characters (grapheme clusters) from a given text of delimiters.
 
 
 .TS
@@ -23,13 +23,14 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
 text	Text	The text to be iterated over in delimited chunks. 	-
-delimiters	Text	Grapheme clusters to use for splitting the text. 	" $\\t\\r\\n"
+delimiters	Text	Grapheme clusters to use for splitting the text. 	"\ $\\t\\r\\n"
 .TE
 .SH RETURN
 An iterator function that returns one chunk of text at a time, separated by the given delimiter characters, until it runs out and returns `none`.
 
 .SH NOTES
 Splitting will occur on every place where one or more of the grapheme clusters in `delimiters` occurs.
+To split based on an exact delimiter, use Text.by_split().
 
 .SH EXAMPLES
 .EX

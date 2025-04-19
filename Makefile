@@ -166,7 +166,7 @@ install-files: build/bin/tomo build/lib/$(LIB_FILE) build/lib/$(AR_FILE)
 		printf "\n\033[1mexport PATH=\"$(PREFIX):\$$PATH\"\033[m\n\n" >&2; \
 		exit 1; \
 	fi
-	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
+	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
 	cp -v src/stdlib/*.h "$(PREFIX)/include/tomo/"
 	cp -v build/lib/$(LIB_FILE) build/lib/$(AR_FILE) "$(PREFIX)/lib/"
 	rm -f "$(PREFIX)/bin/tomo"

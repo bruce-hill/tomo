@@ -2,19 +2,19 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.by_split 3 2025-04-19T14:30:40.367152 "Tomo man-pages"
+.TH Text.by_split 3 2025-04-19T14:48:15.716849 "Tomo man-pages"
 .SH NAME
-Text.by_split \- Returns an iterator function that can be used to iterate over text separated by a delimiter. **Note:** to split based on a set of delimiters, use [`by_split_any()`](#by_split_any).
+Text.by_split \- Returns an iterator function that can be used to iterate over text separated by a delimiter.
 
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI "Text.by_split : func(text: Text, delimiter: Text = "" -> func(->Text?))"
+.BI Text.by_split\ :\ func(text:\ Text,\ delimiter:\ Text\ =\ ""\ ->\ func(->Text?))
 .fi
 
 .SH DESCRIPTION
-Returns an iterator function that can be used to iterate over text separated by a delimiter. **Note:** to split based on a set of delimiters, use [`by_split_any()`](#by_split_any).
+Returns an iterator function that can be used to iterate over text separated by a delimiter.
 
 
 .TS
@@ -26,9 +26,10 @@ text	Text	The text to be iterated over in delimited chunks. 	-
 delimiter	Text	An exact delimiter to use for splitting the text. 	""
 .TE
 .SH RETURN
-An iterator function that returns one chunk of text at a time, separated by the given delimiter, until it runs out and returns `none`. **Note:** using an empty delimiter (the default) will iterate over single grapheme clusters in the text.
+An iterator function that returns one chunk of text at a time, separated by the given delimiter, until it runs out and returns `none`.
 
 .SH NOTES
+To split based on a set of delimiters, use Text.by_split_any().
 If an empty text is given as the delimiter, then each split will be the graphical clusters of the text.
 
 .SH EXAMPLES

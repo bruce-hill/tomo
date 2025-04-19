@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.by_line 3 2025-04-19T14:30:40.367111 "Tomo man-pages"
+.TH Text.by_line 3 2025-04-19T14:48:15.716808 "Tomo man-pages"
 .SH NAME
 Text.by_line \- Returns an iterator function that can be used to iterate over the lines in a text.
 
@@ -10,7 +10,7 @@ Text.by_line \- Returns an iterator function that can be used to iterate over th
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI "Text.by_line : func(text: Text -> func(->Text?))"
+.BI Text.by_line\ :\ func(text:\ Text\ ->\ func(->Text?))
 .fi
 
 .SH DESCRIPTION
@@ -25,7 +25,10 @@ Name	Type	Description	Default
 text	Text	The text to be iterated over, line by line. 	-
 .TE
 .SH RETURN
-An iterator function that returns one line at a time, until it runs out and returns `none`. **Note:** this function ignores a trailing newline if there is one. If you don't want this behavior, use `text.by_split($/{1 nl}/)` instead.
+An iterator function that returns one line at a time, until it runs out and returns `none`.
+
+.SH NOTES
+This function ignores a trailing newline if there is one. If you don't want this behavior, use `text.by_split($/{1 nl}/)` instead.
 
 .SH EXAMPLES
 .EX

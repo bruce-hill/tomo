@@ -16,7 +16,8 @@ Table.clear:
 Table.get:
   description: >
     Retrieves the value associated with a key, or returns `none` if the key is not present.
-    **Note:** default values for the table are ignored.
+  note: >
+    Default values for the table are ignored.
   return:
     type: 'V?'
     description: >

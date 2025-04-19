@@ -2,19 +2,19 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.from_bytes 3 2025-04-19T14:30:40.367429 "Tomo man-pages"
+.TH Text.from_bytes 3 2025-04-19T14:48:15.717116 "Tomo man-pages"
 .SH NAME
-Text.from_bytes \- Returns text that has been constructed from the given UTF8 bytes. Note: the text will be normalized, so the resulting text's UTF8 bytes may not exactly match the input.
+Text.from_bytes \- Returns text that has been constructed from the given UTF8 bytes.
 
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI "Text.from_bytes : func(bytes: [Byte] -> [Text])"
+.BI Text.from_bytes\ :\ func(bytes:\ [Byte]\ ->\ [Text])
 .fi
 
 .SH DESCRIPTION
-Returns text that has been constructed from the given UTF8 bytes. Note: the text will be normalized, so the resulting text's UTF8 bytes may not exactly match the input.
+Returns text that has been constructed from the given UTF8 bytes.
 
 
 .TS
@@ -26,6 +26,9 @@ bytes	[Byte]	The UTF-8 bytes of the desired text. 	-
 .TE
 .SH RETURN
 A new text based on the input UTF8 bytes after normalization has been applied.
+
+.SH NOTES
+The text will be normalized, so the resulting text's UTF8 bytes may not exactly match the input.
 
 .SH EXAMPLES
 .EX

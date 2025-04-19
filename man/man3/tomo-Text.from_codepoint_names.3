@@ -2,19 +2,19 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.from_codepoint_names 3 2025-04-19T14:30:40.367510 "Tomo man-pages"
+.TH Text.from_codepoint_names 3 2025-04-19T14:48:15.717188 "Tomo man-pages"
 .SH NAME
-Text.from_codepoint_names \- Returns text that has the given codepoint names (according to the Unicode specification) as its codepoints. Note: the text will be normalized, so the resulting text's codepoints may not exactly match the input codepoints.
+Text.from_codepoint_names \- Returns text that has the given codepoint names (according to the Unicode specification) as its codepoints.
 
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI "Text.from_codepoint_names : func(codepoint_names: [Text] -> [Text])"
+.BI Text.from_codepoint_names\ :\ func(codepoint_names:\ [Text]\ ->\ [Text])
 .fi
 
 .SH DESCRIPTION
-Returns text that has the given codepoint names (according to the Unicode specification) as its codepoints. Note: the text will be normalized, so the resulting text's codepoints may not exactly match the input codepoints.
+Returns text that has the given codepoint names (according to the Unicode specification) as its codepoints.
 
 
 .TS
@@ -26,6 +26,9 @@ codepoint_names	[Text]	The names of each codepoint in the desired text (case-ins
 .TE
 .SH RETURN
 A new text with the specified codepoints after normalization has been applied. Any invalid names are ignored.
+
+.SH NOTES
+The text will be normalized, so the resulting text's codepoints may not exactly match the input codepoints.
 
 .SH EXAMPLES
 .EX

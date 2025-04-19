@@ -2,19 +2,19 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.split_any 3 2025-04-19T14:30:40.368129 "Tomo man-pages"
+.TH Text.split_any 3 2025-04-19T14:48:15.717814 "Tomo man-pages"
 .SH NAME
-Text.split_any \- Splits the text into a list of substrings at one or more occurrences of a set of delimiter characters (grapheme clusters). **Note:** to split based on an exact delimiter, use [`split()`](#split).
+Text.split_any \- Splits the text into a list of substrings at one or more occurrences of a set of delimiter characters (grapheme clusters).
 
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI "Text.split_any : func(text: Text, delimiters: Text = " $\\t\\r\\n" -> [Text])"
+.BI Text.split_any\ :\ func(text:\ Text,\ delimiters:\ Text\ =\ "\ $\\t\\r\\n"\ ->\ [Text])
 .fi
 
 .SH DESCRIPTION
-Splits the text into a list of substrings at one or more occurrences of a set of delimiter characters (grapheme clusters). **Note:** to split based on an exact delimiter, use [`split()`](#split).
+Splits the text into a list of substrings at one or more occurrences of a set of delimiter characters (grapheme clusters).
 
 
 .TS
@@ -23,10 +23,14 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
 text	Text	The text to be split. 	-
-delimiters	Text	A text containing multiple delimiters to be used for  splitting the text into chunks. 	" $\\t\\r\\n"
+delimiters	Text	A text containing delimiters to use for splitting the text. 	"\ $\\t\\r\\n"
 .TE
 .SH RETURN
 A list of subtexts resulting from the split.
+
+.SH NOTES
+Splitting will occur on every place where one or more of the grapheme clusters in `delimiters` occurs.
+To split based on an exact delimiter, use Text.split().
 
 .SH EXAMPLES
 .EX

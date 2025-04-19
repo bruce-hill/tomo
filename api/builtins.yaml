@@ -73,7 +73,7 @@ getenv:
     
 print:
   description: >
-    Prints a message to the console (alias for [`say`](#say)).
+    Prints a message to the console (alias for say()).
   return:
     type: 'Void'
     description: >

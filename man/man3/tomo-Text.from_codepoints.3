@@ -2,19 +2,19 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.from_codepoints 3 2025-04-19T14:30:40.367551 "Tomo man-pages"
+.TH Text.from_codepoints 3 2025-04-19T14:48:15.717227 "Tomo man-pages"
 .SH NAME
-Text.from_codepoints \- Returns text that has been constructed from the given UTF32 codepoints. Note: the text will be normalized, so the resulting text's codepoints may not exactly match the input codepoints.
+Text.from_codepoints \- Returns text that has been constructed from the given UTF32 codepoints.
 
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI "Text.from_codepoints : func(codepoints: [Int32] -> [Text])"
+.BI Text.from_codepoints\ :\ func(codepoints:\ [Int32]\ ->\ [Text])
 .fi
 
 .SH DESCRIPTION
-Returns text that has been constructed from the given UTF32 codepoints. Note: the text will be normalized, so the resulting text's codepoints may not exactly match the input codepoints.
+Returns text that has been constructed from the given UTF32 codepoints.
 
 
 .TS
@@ -26,6 +26,9 @@ codepoints	[Int32]	The UTF32 codepoints in the desired text. 	-
 .TE
 .SH RETURN
 A new text with the specified codepoints after normalization has been applied.
+
+.SH NOTES
+The text will be normalized, so the resulting text's codepoints may not exactly match the input codepoints.
 
 .SH EXAMPLES
 .EX
