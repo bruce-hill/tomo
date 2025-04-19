@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.cos 3 2025-04-19T14:30:40.362505 "Tomo man-pages"
+.SH NAME
+Num.cos \- Computes the cosine of a number (angle in radians).
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.cos : func(x: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Computes the cosine of a number (angle in radians).
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Num	The angle in radians. 	-
+.TE
+.SH RETURN
+The cosine of `x`.
+
+.SH EXAMPLES
+.EX
+>> (0.0).cos()
+= 1
+.EE

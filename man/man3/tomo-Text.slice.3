@@ -1,0 +1,42 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.slice 3 2025-04-19T14:30:40.368043 "Tomo man-pages"
+.SH NAME
+Text.slice \- Get a slice of the text.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.slice : func(text: Text, from: Int = 1, to: Int = -1 -> Text)"
+.fi
+
+.SH DESCRIPTION
+Get a slice of the text.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to be sliced. 	-
+from	Int	The index of the first grapheme cluster to include (1-indexed). 	1
+to	Int	The index of the last grapheme cluster to include (1-indexed). 	-1
+.TE
+.SH RETURN
+The text that spans the given grapheme cluster indices. Note: a negative index counts backwards from the end of the text, so `-1` refers to the last cluster, `-2` the second-to-last, etc. Slice ranges will be truncated to the length of the text.
+
+.SH EXAMPLES
+.EX
+>> "hello".slice(2, 3)
+= "el"
+
+>> "hello".slice(to=-2)
+= "hell"
+
+>> "hello".slice(from=2)
+= "ello"
+.EE

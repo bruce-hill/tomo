@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Bool.parse 3 2025-04-19T14:30:40.359614 "Tomo man-pages"
+.SH NAME
+Bool.parse \- Converts a string representation of a boolean value into a boolean. Acceptable boolean values are case-insensitive variations of `yes`/`no`, `y`/`n`, `true`/`false`, `on`/`off`.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Bool.parse : func(text: Text -> Bool?)"
+.fi
+
+.SH DESCRIPTION
+Converts a string representation of a boolean value into a boolean. Acceptable boolean values are case-insensitive variations of `yes`/`no`, `y`/`n`, `true`/`false`, `on`/`off`.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The string containing the boolean value. 	-
+.TE
+.SH RETURN
+`yes` if the string matches a recognized truthy boolean value; otherwise return `no`.
+
+.SH EXAMPLES
+.EX
+>> Bool.parse("yes")
+= yes : Bool?
+>> Bool.parse("no")
+= no : Bool?
+>> Bool.parse("???")
+= none : Bool?
+.EE

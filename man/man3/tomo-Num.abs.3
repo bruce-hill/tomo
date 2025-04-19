@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.abs 3 2025-04-19T14:30:40.362029 "Tomo man-pages"
+.SH NAME
+Num.abs \- Calculates the absolute value of a number.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.abs : func(n: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Calculates the absolute value of a number.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+n	Num	The number whose absolute value is to be computed. 	-
+.TE
+.SH RETURN
+The absolute value of `n`.
+
+.SH EXAMPLES
+.EX
+>> (-3.5).abs()
+= 3.5
+.EE

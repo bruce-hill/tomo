@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Byte.hex 3 2025-04-19T14:30:40.360114 "Tomo man-pages"
+.SH NAME
+Byte.hex \- Convert a byte to a hexidecimal text representation.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Byte.hex : func(byte: Byte, uppercase: Bool = yes, prefix: Bool = no -> Text)"
+.fi
+
+.SH DESCRIPTION
+Convert a byte to a hexidecimal text representation.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+byte	Byte	The byte to convert to hex. 	-
+uppercase	Bool	Whether or not to use uppercase hexidecimal letters. 	yes
+prefix	Bool	Whether or not to prepend a `0x` prefix. 	no
+.TE
+.SH RETURN
+The byte as a hexidecimal text.
+
+.SH EXAMPLES
+.EX
+>> Byte(18).hex()
+= "0x12"
+.EE

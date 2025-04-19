@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.isfinite 3 2025-04-19T14:30:40.362901 "Tomo man-pages"
+.SH NAME
+Num.isfinite \- Checks if a number is finite.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.isfinite : func(n: Num -> Bool)"
+.fi
+
+.SH DESCRIPTION
+Checks if a number is finite.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+n	Num	The number to be checked. 	-
+.TE
+.SH RETURN
+`yes` if `n` is finite, `no` otherwise.
+
+.SH EXAMPLES
+.EX
+>> (1.0).isfinite()
+= yes
+>> Num.INF.isfinite()
+= no
+.EE

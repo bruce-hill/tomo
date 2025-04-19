@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.without_prefix 3 2025-04-19T14:30:40.368531 "Tomo man-pages"
+.SH NAME
+Text.without_prefix \- Returns the text with a given prefix removed (if present).
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.without_prefix : func(text: Text, prefix: Text -> Text)"
+.fi
+
+.SH DESCRIPTION
+Returns the text with a given prefix removed (if present).
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to remove the prefix from. 	-
+prefix	Text	The prefix to remove. 	-
+.TE
+.SH RETURN
+A text without the given prefix (if present) or the unmodified text if the prefix is not present.
+
+.SH EXAMPLES
+.EX
+>> "foo:baz".without_prefix("foo:")
+= "baz"
+>> "qux".without_prefix("foo:")
+= "qux"
+.EE

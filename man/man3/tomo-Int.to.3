@@ -1,0 +1,43 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Int.to 3 2025-04-19T14:30:40.360881 "Tomo man-pages"
+.SH NAME
+Int.to \- Returns an iterator function that iterates over the range of numbers specified.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Int.to : func(first: Int, last: Int, step: Int? = none -> func(->Int?))"
+.fi
+
+.SH DESCRIPTION
+Returns an iterator function that iterates over the range of numbers specified.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+first	Int	The starting value of the range. 	-
+last	Int	The ending value of the range. 	-
+step	Int?	An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`. 	none
+.TE
+.SH RETURN
+An iterator function that returns each integer in the given range (inclusive).
+
+.SH EXAMPLES
+.EX
+>> (2).to(5)
+= func(->Int?)
+>> [x for x in (2).to(5)]
+= [2, 3, 4, 5]
+>> [x for x in (5).to(2)]
+= [5, 4, 3, 2]
+
+>> [x for x in (2).to(5, step=2)]
+= [2, 4]
+.EE

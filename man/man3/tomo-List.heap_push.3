@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH List.heap_push 3 2025-04-19T14:30:40.361282 "Tomo man-pages"
+.SH NAME
+List.heap_push \- Adds an element to the heap and maintains the heap property. By default, this is a *minimum* heap.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "List.heap_push : func(list: @[T], item: T, by = T.compare -> Void)"
+.fi
+
+.SH DESCRIPTION
+Adds an element to the heap and maintains the heap property. By default, this is a *minimum* heap.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+list	@[T]	The mutable reference to the heap. 	-
+item	T	The item to be added. 	-
+by		The comparison function used to determine order. If not specified, the default comparison function for the item type will be used. 	T.compare
+.TE
+.SH RETURN
+Nothing.
+
+.SH EXAMPLES
+.EX
+>> my_heap.heap_push(10)
+.EE

@@ -1,0 +1,155 @@
+Table.clear:
+  description: >
+    Removes all key-value pairs from the table.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    t:
+      type: '&{K=V}'
+      description: >
+        The reference to the table.
+  example: |
+    >> t.clear()
+    
+Table.get:
+  description: >
+    Retrieves the value associated with a key, or returns `none` if the key is not present.
+    **Note:** default values for the table are ignored.
+  return:
+    type: 'V?'
+    description: >
+      The value associated with the key or `none` if the key is not found.
+  args:
+    t:
+      type: '{K=V}'
+      description: >
+        The table.
+    key:
+      type: 'K'
+      description: >
+        The key whose associated value is to be retrieved.
+  example: |
+    >> t := {"A"=1, "B"=2}
+    >> t.get("A")
+    = 1?
+    
+    >> t.get("????")
+    = none
+    
+    >> t.get("A")!
+    = 1
+    
+    >> t.get("????") or 0
+    = 0
+    
+Table.get_or_set:
+  description: >
+    If the given key is in the table, return the associated value. Otherwise,
+    insert the given default value into the table and return it.
+  note: >
+    If no default value is provided explicitly, but the table has a
+    default value associated with it, the table's default value will be used.
+
+    The default value is only evaluated if the key is missing.
+  return:
+    type: 'V?'
+    description: >
+      Either the value associated with the key (if present) or the default value. The
+      table will be mutated if the key is not already present.
+  args:
+    t:
+      type: "&{K=V}"
+      description: >
+        The table.
+    key:
+      type: "K"
+      description: >
+        The key whose associated value is to be retrieved.
+    default:
+      type: "V"
+      description: >
+        The default value to insert and return if the key is not present in the table.
+  example: |
+    >> t := &{"A"=@[1, 2, 3]; default=@[]}
+    >> t.get_or_set("A").insert(4)
+    >> t.get_or_set("B").insert(99)
+    >> t
+    = &{"A"=@[1, 2, 3, 4], "B"=@[99]}
+
+    >> t.get_or_set("C", @[0, 0, 0])
+    = @[0, 0, 0]
+    >> t
+    = &{"A"=@[1, 2, 3, 4], "B"=@[99], "C"=@[0, 0, 0]}
+    
+Table.has:
+  description: >
+    Checks if the table contains a specified key.
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if the key is present, `no` otherwise.
+  args:
+    t:
+      type: '{K=V}'
+      description: >
+        The table.
+    key:
+      type: 'K'
+      description: >
+        The key to check for presence.
+  example: |
+    >> {"A"=1, "B"=2}.has("A")
+    = yes
+    >> {"A"=1, "B"=2}.has("xxx")
+    = no
+    
+Table.remove:
+  description: >
+    Removes the key-value pair associated with a specified key.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    t:
+      type: '{K=V}'
+      description: >
+        The reference to the table.
+    key:
+      type: 'K'
+      description: >
+        The key of the key-value pair to remove.
+  example: |
+    t := {"A"=1, "B"=2}
+    t.remove("A")
+    >> t
+    = {"B"=2}
+    
+Table.set:
+  description: >
+    Sets or updates the value associated with a specified key.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    t:
+      type: '{K=V}'
+      description: >
+        The reference to the table.
+    key:
+      type: 'K'
+      description: >
+        The key to set or update.
+    value:
+      type: 'V'
+      description: >
+        The value to associate with the key.
+  example: |
+    t := {"A"=1, "B"=2}
+    t.set("C", 3)
+    >> t
+    = {"A"=1, "B"=2, "C"=3}
+    

@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH List.from 3 2025-04-19T14:30:40.361167 "Tomo man-pages"
+.SH NAME
+List.from \- Returns a slice of the list starting from a specified index.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "List.from : func(list: [T], first: Int -> [T])"
+.fi
+
+.SH DESCRIPTION
+Returns a slice of the list starting from a specified index.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+list	[T]	The original list. 	-
+first	Int	The index to start from. 	-
+.TE
+.SH RETURN
+A new list starting from the specified index.
+
+.SH EXAMPLES
+.EX
+>> [10, 20, 30, 40, 50].from(3)
+= [30, 40, 50]
+.EE

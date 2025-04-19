@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Int.prev_prime 3 2025-04-19T14:30:40.360801 "Tomo man-pages"
+.SH NAME
+Int.prev_prime \- Finds the previous prime number less than the given integer. If there is no previous prime number (i.e. if a number less than `2` is provided), then the function will create a runtime error.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Int.prev_prime : func(x: Int -> Int?)"
+.fi
+
+.SH DESCRIPTION
+Finds the previous prime number less than the given integer. If there is no previous prime number (i.e. if a number less than `2` is provided), then the function will create a runtime error.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Int	The integer before which to find the previous prime. 	-
+.TE
+.SH RETURN
+The previous prime number less than `x`, or `none` if `x` is less than 2.
+
+.SH NOTES
+This function is _probabilistic_, but the chances of getting an incorrect answer are astronomically small (on the order of 10^(-30)). See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp) for more details.
+
+.SH EXAMPLES
+.EX
+>> (11).prev_prime()
+= 7
+.EE

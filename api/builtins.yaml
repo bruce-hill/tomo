@@ -1,0 +1,168 @@
+ask:
+  description: >
+    Gets a line of user input text with a prompt.
+  note: >
+    When a program is receiving input from a pipe or writing its
+    output to a pipe, this flag (which is enabled by default) forces the program
+    to write the prompt to `/dev/tty` and read the input from `/dev/tty`, which
+    circumvents the pipe. This means that `foo | ./tomo your-program | baz` will
+    still show a visible prompt and read user input, despite the pipes. Setting
+    this flag to `no` will mean that the prompt is written to `stdout` and input
+    is read from `stdin`, even if those are pipes.
+  return:
+    type: 'Text?'
+    description: >
+      A line of user input text without a trailing newline, or empty text if
+      something went wrong (e.g. the user hit `Ctrl-D`).
+  args:
+    prompt:
+      type: 'Text'
+      description: >
+        The text to print as a prompt before getting the input.
+    bold:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether or not to print make the prompt appear bold on a console.
+    force_tty:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether or not to force the use of /dev/tty.
+  example: |
+    >> ask("What's your name? ")
+    = "Arthur Dent"
+    
+exit:
+  description: >
+    Exits the program with a given status and optionally prints a message.
+  return:
+    type: 'Void'
+    description: >
+      This function never returns.
+  args:
+    message:
+      type: 'Text?'
+      default: '!Text'
+      description: >
+        If nonempty, this message will be printed (with a newline) before
+        exiting.
+    status:
+      type: 'Int32'
+      default: 'Int32(1)'
+      description: >
+        The status code that the program with exit with.
+  example: |
+    exit(status=1, "Goodbye forever!")
+    
+getenv:
+  description: >
+    Gets an environment variable.
+  return:
+    type: 'Text?'
+    description: >
+      If set, the environment variable's value, otherwise, `none`.
+  args:
+    name:
+      type: 'Text'
+      description: >
+        The name of the environment variable to get.
+  example: |
+    >> getenv("TERM")
+    = "xterm-256color"?
+    
+print:
+  description: >
+    Prints a message to the console (alias for [`say`](#say)).
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to print.
+    newline:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether or not to print a newline after the text.
+  example: |
+    print("Hello ", newline=no)
+    print("world!")
+    
+say:
+  description: >
+    Prints a message to the console.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to print.
+    newline:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether or not to print a newline after the text.
+  example: |
+    say("Hello ", newline=no)
+    say("world!")
+    
+setenv:
+  description: >
+    Sets an environment variable.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    name:
+      type: 'Text'
+      description: >
+        The name of the environment variable to set.
+    value:
+      type: 'Text'
+      description: >
+        The new value of the environment variable.
+  example: |
+    setenv("FOOBAR", "xyz")
+    
+sleep:
+  description: >
+    Pause execution for a given number of seconds.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    seconds:
+      type: 'Num'
+      description: >
+        How many seconds to sleep for.
+  example: |
+    sleep(1.5)
+    
+fail:
+  description: >
+    Prints a message to the console, aborts the program, and prints a stack trace.
+  return:
+    type: 'Abort'
+    description: >
+      Nothing, aborts the program.
+  args:
+    message:
+      type: 'Text'
+      description: >
+        The error message to print.
+  example: |
+    fail("Oh no!")
+    
+USE_COLOR:
+  type: Bool
+  description: >
+    Whether or not the console prefers ANSI color escape sequences in the output.

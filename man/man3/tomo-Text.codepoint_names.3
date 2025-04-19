@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.codepoint_names 3 2025-04-19T14:30:40.367316 "Tomo man-pages"
+.SH NAME
+Text.codepoint_names \- Returns a list of the names of each codepoint in the text.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.codepoint_names : func(text: Text -> [Text])"
+.fi
+
+.SH DESCRIPTION
+Returns a list of the names of each codepoint in the text.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text from which to extract codepoint names. 	-
+.TE
+.SH RETURN
+A list of codepoint names (`[Text]`).
+
+.SH EXAMPLES
+.EX
+>> "Amélie".codepoint_names()
+= ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E WITH ACUTE", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
+.EE

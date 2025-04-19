@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.child 3 2025-04-19T14:30:40.365083 "Tomo man-pages"
+.SH NAME
+Path.child \- Return a path that is a child of another path.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.child : func(path: Path, child: Text -> [Path])"
+.fi
+
+.SH DESCRIPTION
+Return a path that is a child of another path.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path of a directory. 	-
+child	Text	The name of a child file or directory. 	-
+.TE
+.SH RETURN
+A new path representing the child.
+
+.SH EXAMPLES
+.EX
+>> (./directory).child("file.txt")
+= (./directory/file.txt)
+.EE

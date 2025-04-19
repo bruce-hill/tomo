@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.remove 3 2025-04-19T14:30:40.365933 "Tomo man-pages"
+.SH NAME
+Path.remove \- Removes the file or directory at the specified path. A runtime error is raised if something goes wrong.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.remove : func(path: Path, ignore_missing = no -> Void)"
+.fi
+
+.SH DESCRIPTION
+Removes the file or directory at the specified path. A runtime error is raised if something goes wrong.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path to remove. 	-
+ignore_missing		Whether to ignore errors if the file or directory does not exist. 	no
+.TE
+.SH RETURN
+Nothing.
+
+.SH EXAMPLES
+.EX
+(./file.txt).remove()
+.EE

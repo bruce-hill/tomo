@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH List.heap_pop 3 2025-04-19T14:30:40.361244 "Tomo man-pages"
+.SH NAME
+List.heap_pop \- Removes and returns the top element of a heap or `none` if the list is empty. By default, this is the *minimum* value in the heap.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "List.heap_pop : func(list: @[T], by: func(x,y:&T->Int32) = T.compare -> T?)"
+.fi
+
+.SH DESCRIPTION
+Removes and returns the top element of a heap or `none` if the list is empty. By default, this is the *minimum* value in the heap.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+list	@[T]	The mutable reference to the heap. 	-
+by	func(x,y:&T->Int32)	The comparison function used to determine order. If not specified, the default comparison function for the item type will be used. 	T.compare
+.TE
+.SH RETURN
+The removed top element of the heap or `none` if the list is empty.
+
+.SH EXAMPLES
+.EX
+>> my_heap := [30, 10, 20]
+>> my_heap.heapify()
+>> my_heap.heap_pop()
+= 10
+.EE

@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.from_components 3 2025-04-19T14:30:40.365399 "Tomo man-pages"
+.SH NAME
+Path.from_components \- Returns a path built from a list of path components.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.from_components : func(components: [Text] -> Path)"
+.fi
+
+.SH DESCRIPTION
+Returns a path built from a list of path components.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+components	[Text]	A list of path components. 	-
+.TE
+.SH RETURN
+A path representing the given components.
+
+.SH EXAMPLES
+.EX
+>> Path.from_components(["/", "usr", "include"])
+= /usr/include
+>> Path.from_components(["foo.txt"])
+= ./foo.txt
+>> Path.from_components(["~", ".local"])
+= ~/.local
+.EE

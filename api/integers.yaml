@@ -1,0 +1,362 @@
+Int.abs:
+  description: >
+    Calculates the absolute value of an integer.
+  return:
+    type: 'Int'
+    description: >
+      The absolute value of `x`.
+  args:
+    x:
+      type: 'Int'
+      description: >
+        The integer whose absolute value is to be calculated.
+  example: |
+    >> (-10).abs()
+    = 10
+    
+Int.choose:
+  description: >
+    Computes the binomial coefficient of the given numbers (the equivalent of `n`
+    choose `k` in combinatorics). This is equal to `n.factorial()/(k.factorial() *
+    (n-k).factorial())`.
+  return:
+    type: 'Int'
+    description: >
+      The binomial coefficient, equivalent to the number of ways to uniquely choose
+      `k` objects from among `n` objects, ignoring order.
+  args:
+    n:
+      type: 'Int'
+      description: >
+        The number of things to choose from.
+    k:
+      type: 'Int'
+      description: >
+        The number of things to be chosen.
+  example: |
+    >> (4).choose(2)
+    = 6
+    
+Int.clamped:
+  description: >
+    Returns the given number clamped between two values so that it is within
+    that range.
+  return:
+    type: 'Int'
+    description: >
+      The first argument clamped between the other two arguments.
+  args:
+    x:
+      type: 'Int'
+      description: >
+        The integer to clamp.
+    low:
+      type: 'Int'
+      description: >
+        The lowest value the result can take.
+    high:
+      type: 'Int'
+      description: >
+        The highest value the result can take.
+  example: |
+    >> (2).clamped(5, 10)
+    = 5
+    
+Int.factorial:
+  description: >
+    Computes the factorial of an integer.
+  return:
+    type: 'Text'
+    description: >
+      The factorial of the given integer.
+  args:
+    n:
+      type: 'Int'
+      description: >
+        The integer to compute the factorial of.
+  example: |
+    >> (10).factorial()
+    = 3628800
+    
+Int.format:
+  description: >
+    Formats an integer as a string with a specified number of digits.
+  return:
+    type: 'Text'
+    description: >
+      A string representation of the integer, padded to the specified number of digits.
+  args:
+    i:
+      type: 'Int'
+      description: >
+        The integer to be formatted.
+    digits:
+      type: 'Int'
+      default: '0'
+      description: >
+        The minimum number of digits to which the integer should be padded.
+  example: |
+    >> (42).format(digits=5)
+    = "00042"
+    
+Int.hex:
+  description: >
+    Converts an integer to its hexadecimal representation.
+  return:
+    type: 'Text'
+    description: >
+      The hexadecimal string representation of the integer.
+  args:
+    i:
+      type: 'Int'
+      description: >
+        The integer to be converted.
+    digits:
+      type: 'Int'
+      default: '0'
+      description: >
+        The minimum number of digits in the output string.
+    uppercase:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether to use uppercase letters for hexadecimal digits.
+    prefix:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether to include a "0x" prefix.
+  example: |
+    >> (255).hex(digits=4, uppercase=yes, prefix=yes)
+    = "0x00FF"
+    
+Int.is_between:
+  description: >
+    Determines if an integer is between two numbers (inclusive).
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if `low <= x and x <= high`, otherwise `no`
+  args:
+    x:
+      type: 'Int'
+      description: >
+        The integer to be checked.
+    low:
+      type: 'Int'
+      description: >
+        The lower bound to check (inclusive).
+    high:
+      type: 'Int'
+      description: >
+        The upper bound to check (inclusive).
+  example: |
+    >> (7).is_between(1, 10)
+    = yes
+    >> (7).is_between(100, 200)
+    = no
+    >> (7).is_between(1, 7)
+    = yes
+    
+Int.is_prime:
+  description: >
+    Determines if an integer is a prime number.
+  note: >
+    This function is _probabilistic_. With the default arguments, the chances of
+    getting an incorrect answer are astronomically small (on the order of 10^(-30)).
+    See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp)
+    for more details.
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if `x` is a prime number, `no` otherwise.
+  args:
+    x:
+      type: 'Int'
+      description: >
+        The integer to be checked.
+    reps:
+      type: 'Int'
+      default: '50'
+      description: >
+        The number of repetitions for primality tests.
+  example: |
+    >> (7).is_prime()
+    = yes
+    >> (6).is_prime()
+    = no
+    
+Int.next_prime:
+  description: >
+    Finds the next prime number greater than the given integer.
+  note: >
+    This function is _probabilistic_, but the chances of getting an incorrect
+    answer are astronomically small (on the order of 10^(-30)).
+    See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp)
+    for more details.
+  return:
+    type: 'Int'
+    description: >
+      The next prime number greater than `x`.
+  args:
+    x:
+      type: 'Int'
+      description: >
+        The integer after which to find the next prime.
+  example: |
+    >> (11).next_prime()
+    = 13
+    
+Int.octal:
+  description: >
+    Converts an integer to its octal representation.
+  return:
+    type: 'Text'
+    description: >
+      The octal string representation of the integer.
+  args:
+    i:
+      type: 'Int'
+      description: >
+        The integer to be converted.
+    digits:
+      type: 'Int'
+      default: '0'
+      description: >
+        The minimum number of digits in the output string.
+    prefix:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether to include a "0o" prefix.
+  example: |
+    >> (64).octal(digits=4, prefix=yes)
+    = "0o0100"
+    
+Int.onward:
+  description: >
+    Return an iterator that counts infinitely from the starting integer (with an
+    optional step size).
+  return:
+    type: 'Text'
+    description: >
+      An iterator function that counts onward from the starting integer.
+  args:
+    first:
+      type: 'Int'
+      description: >
+        The starting integer.
+    step:
+      type: 'Int'
+      default: '1'
+      description: >
+        The increment step size.
+  example: |
+    nums : &[Int] = &[]
+    for i in (5).onward()
+    nums.insert(i)
+    stop if i == 10
+    >> nums[]
+    = [5, 6, 7, 8, 9, 10]
+    
+Int.parse:
+  description: >
+    Converts a text representation of an integer into an integer.
+  return:
+    type: 'Int?'
+    description: >
+      The integer represented by the text. If the given text contains a value outside
+      of the representable range or if the entire text can't be parsed as an integer,
+      `none` will be returned.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text containing the integer.
+  example: |
+    >> Int.parse("123")
+    = 123 : Int?
+    >> Int.parse("0xFF")
+    = 255 : Int?
+    
+    # Can't parse:
+    >> Int.parse("asdf")
+    = none : Int?
+    
+    # Outside valid range:
+    >> Int8.parse("9999999")
+    = none : Int8?
+    
+Int.prev_prime:
+  description: >
+    Finds the previous prime number less than the given integer.
+    If there is no previous prime number (i.e. if a number less than `2` is
+    provided), then the function will create a runtime error.
+  note: >
+    This function is _probabilistic_, but the chances of getting an incorrect
+    answer are astronomically small (on the order of 10^(-30)).
+    See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp)
+    for more details.
+  return:
+    type: 'Int?'
+    description: >
+      The previous prime number less than `x`, or `none` if `x` is less than 2.
+  args:
+    x:
+      type: 'Int'
+      description: >
+        The integer before which to find the previous prime.
+  example: |
+    >> (11).prev_prime()
+    = 7
+    
+Int.sqrt:
+  description: >
+    Calculates the nearest square root of an integer.
+  return:
+    type: 'Int'
+    description: >
+      The integer part of the square root of `x`.
+  args:
+    x:
+      type: 'Int'
+      description: >
+        The integer whose square root is to be calculated.
+  example: |
+    >> (16).sqrt()
+    = 4
+    >> (17).sqrt()
+    = 4
+    
+Int.to:
+  description: >
+    Returns an iterator function that iterates over the range of numbers specified.
+  return:
+    type: 'func(->Int?)'
+    description: >
+      An iterator function that returns each integer in the given range (inclusive).
+  args:
+    first:
+      type: 'Int'
+      description: >
+        The starting value of the range.
+    last:
+      type: 'Int'
+      description: >
+        The ending value of the range.
+    step:
+      type: 'Int?'
+      default: 'none'
+      description: >
+        An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.
+  example: |
+    >> (2).to(5)
+    = func(->Int?)
+    >> [x for x in (2).to(5)]
+    = [2, 3, 4, 5]
+    >> [x for x in (5).to(2)]
+    = [5, 4, 3, 2]
+    
+    >> [x for x in (2).to(5, step=2)]
+    = [2, 4]
+    

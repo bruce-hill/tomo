@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.lower 3 2025-04-19T14:30:40.367810 "Tomo man-pages"
+.SH NAME
+Text.lower \- Converts all characters in the text to lowercase.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.lower : func(text: Text, language: Text = "C" -> Text)"
+.fi
+
+.SH DESCRIPTION
+Converts all characters in the text to lowercase.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to be converted to lowercase. 	-
+language	Text	The ISO 639 language code for which casing rules to use. 	"C"
+.TE
+.SH RETURN
+The lowercase version of the text.
+
+.SH EXAMPLES
+.EX
+>> "AMÉLIE".lower()
+= "amélie"
+
+>> "I".lower(language="tr_TR")
+>> "ı"
+.EE

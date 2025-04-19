@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.ends_with 3 2025-04-19T14:30:40.367353 "Tomo man-pages"
+.SH NAME
+Text.ends_with \- Checks if the `Text` ends with a literal suffix text.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.ends_with : func(text: Text, suffix: Text -> Bool)"
+.fi
+
+.SH DESCRIPTION
+Checks if the `Text` ends with a literal suffix text.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to be searched. 	-
+suffix	Text	The literal suffix text to check for. 	-
+.TE
+.SH RETURN
+`yes` if the text has the target, `no` otherwise.
+
+.SH EXAMPLES
+.EX
+>> "hello world".ends_with("world")
+= yes
+.EE

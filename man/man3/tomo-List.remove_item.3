@@ -1,0 +1,45 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH List.remove_item 3 2025-04-19T14:30:40.361566 "Tomo man-pages"
+.SH NAME
+List.remove_item \- Removes all occurrences of a specified item from the list.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "List.remove_item : func(list: @[T], item: T, max_count: Int = -1 -> Void)"
+.fi
+
+.SH DESCRIPTION
+Removes all occurrences of a specified item from the list.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+list	@[T]	The mutable reference to the list. 	-
+item	T	The item to be removed. 	-
+max_count	Int	The maximum number of occurrences to remove. 	-1
+.TE
+.SH RETURN
+Nothing.
+
+.SH NOTES
+A negative `max_count` means "remove all occurrences".
+
+.SH EXAMPLES
+.EX
+list := [10, 20, 10, 20, 30]
+list.remove_item(10)
+>> list
+= [20, 20, 30]
+
+list.remove_item(20, max_count=1)
+>> list
+= [20, 30]
+.EE

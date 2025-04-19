@@ -1,0 +1,44 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Int.parse 3 2025-04-19T14:30:40.360757 "Tomo man-pages"
+.SH NAME
+Int.parse \- Converts a text representation of an integer into an integer.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Int.parse : func(text: Text -> Int?)"
+.fi
+
+.SH DESCRIPTION
+Converts a text representation of an integer into an integer.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text containing the integer. 	-
+.TE
+.SH RETURN
+The integer represented by the text. If the given text contains a value outside of the representable range or if the entire text can't be parsed as an integer, `none` will be returned.
+
+.SH EXAMPLES
+.EX
+>> Int.parse("123")
+= 123 : Int?
+>> Int.parse("0xFF")
+= 255 : Int?
+
+# Can't parse:
+>> Int.parse("asdf")
+= none : Int?
+
+# Outside valid range:
+>> Int8.parse("9999999")
+= none : Int8?
+.EE

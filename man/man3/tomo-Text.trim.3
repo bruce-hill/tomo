@@ -1,0 +1,43 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.trim 3 2025-04-19T14:30:40.368347 "Tomo man-pages"
+.SH NAME
+Text.trim \- Trims the given characters (grapheme clusters) from the left and/or right side of the text.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.trim : func(text: Text, to_trim: Text = " $\\t\\r\\n", left: Bool = yes, right: Bool = yes -> Text)"
+.fi
+
+.SH DESCRIPTION
+Trims the given characters (grapheme clusters) from the left and/or right side of the text.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to be trimmed. 	-
+to_trim	Text	The characters to remove from the left/right of the text. 	" $\\t\\r\\n"
+left	Bool	Whether or not to trim from the front of the text. 	yes
+right	Bool	Whether or not to trim from the back of the text. 	yes
+.TE
+.SH RETURN
+The text without the trim characters at either end.
+
+.SH EXAMPLES
+.EX
+>> "   x y z    \\n".trim()
+= "x y z"
+
+>> "one,".trim(",")
+= "one"
+
+>> "   xyz   ".trim(right=no)
+= "xyz   "
+.EE

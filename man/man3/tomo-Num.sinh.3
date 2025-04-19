@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.sinh 3 2025-04-19T14:30:40.363864 "Tomo man-pages"
+.SH NAME
+Num.sinh \- Computes the hyperbolic sine of a number.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.sinh : func(x: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Computes the hyperbolic sine of a number.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Num	The number for which the hyperbolic sine is to be calculated. 	-
+.TE
+.SH RETURN
+The hyperbolic sine of `x`.
+
+.SH EXAMPLES
+.EX
+>> (0.0).sinh()
+= 0
+.EE

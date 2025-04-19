@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.expm1 3 2025-04-19T14:30:40.362725 "Tomo man-pages"
+.SH NAME
+Num.expm1 \- Computes $e^x - 1$ for a number.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.expm1 : func(x: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Computes $e^x - 1$ for a number.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Num	The exponent. 	-
+.TE
+.SH RETURN
+The value of $e^x - 1$.
+
+.SH EXAMPLES
+.EX
+>> (1.0).expm1()
+= 1.7183
+.EE

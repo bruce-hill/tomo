@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.at 3 2025-04-19T14:30:40.367051 "Tomo man-pages"
+.SH NAME
+Text.at \- Get the graphical cluster at a given index. This is similar to `str[i]` with ASCII text, but has more correct behavior for unicode text.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.at : func(text: Text, index: Int -> Text)"
+.fi
+
+.SH DESCRIPTION
+Get the graphical cluster at a given index. This is similar to `str[i]` with ASCII text, but has more correct behavior for unicode text.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text from which to get a cluster. 	-
+index	Int	The index of the graphical cluster (1-indexed). 	-
+.TE
+.SH RETURN
+A `Text` with the single graphical cluster at the given index. Note: negative indices are counted from the back of the text, so `-1` means the last cluster, `-2` means the second-to-last, and so on.
+
+.SH EXAMPLES
+.EX
+>> "Amélie".at(3)
+= "é"
+.EE

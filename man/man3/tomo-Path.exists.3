@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.exists 3 2025-04-19T14:30:40.365224 "Tomo man-pages"
+.SH NAME
+Path.exists \- Checks if a file or directory exists at the specified path.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.exists : func(path: Path -> Bool)"
+.fi
+
+.SH DESCRIPTION
+Checks if a file or directory exists at the specified path.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path to check. 	-
+.TE
+.SH RETURN
+`True` if the file or directory exists, `False` otherwise.
+
+.SH EXAMPLES
+.EX
+>> (/).exists()
+= yes
+.EE

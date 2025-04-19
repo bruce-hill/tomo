@@ -1,0 +1,33 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH fail 3 2025-04-19T14:30:40.360045 "Tomo man-pages"
+.SH NAME
+fail \- Prints a message to the console, aborts the program, and prints a stack trace.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "fail : func(message: Text -> Abort)"
+.fi
+
+.SH DESCRIPTION
+Prints a message to the console, aborts the program, and prints a stack trace.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+message	Text	The error message to print. 	-
+.TE
+.SH RETURN
+Nothing, aborts the program.
+
+.SH EXAMPLES
+.EX
+fail("Oh no!")
+.EE

@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.starts_with 3 2025-04-19T14:30:40.368184 "Tomo man-pages"
+.SH NAME
+Text.starts_with \- Checks if the `Text` starts with a literal prefix text.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.starts_with : func(text: Text, prefix: Text -> Bool)"
+.fi
+
+.SH DESCRIPTION
+Checks if the `Text` starts with a literal prefix text.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to be searched. 	-
+prefix	Text	The literal prefix text to check for. 	-
+.TE
+.SH RETURN
+`yes` if the text has the given prefix, `no` otherwise.
+
+.SH EXAMPLES
+.EX
+>> "hello world".starts_with("hello")
+= yes
+.EE

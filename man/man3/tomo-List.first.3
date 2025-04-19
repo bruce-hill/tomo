@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH List.first 3 2025-04-19T14:30:40.361125 "Tomo man-pages"
+.SH NAME
+List.first \- Find the index of the first item that matches a predicate function (if any).
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "List.first : func(list: [T], predicate: func(item:&T -> Bool) -> Int)"
+.fi
+
+.SH DESCRIPTION
+Find the index of the first item that matches a predicate function (if any).
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+list	[T]	The list to search through. 	-
+predicate	func(item:&T -> Bool)	A function that returns `yes` if the item should be returned or `no` if it should not. 	-
+.TE
+.SH RETURN
+Returns the index of the first item where the predicate is true or `!Int` if no item matches.
+
+.SH EXAMPLES
+.EX
+>> [4, 5, 6].find(func(i:&Int): i.is_prime())
+= 5 : Int?
+>> [4, 6, 8].find(func(i:&Int): i.is_prime())
+= none : Int?
+.EE

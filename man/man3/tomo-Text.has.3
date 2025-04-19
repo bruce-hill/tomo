@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.has 3 2025-04-19T14:30:40.367609 "Tomo man-pages"
+.SH NAME
+Text.has \- Checks if the `Text` contains some target text.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.has : func(text: Text, target: Text -> Bool)"
+.fi
+
+.SH DESCRIPTION
+Checks if the `Text` contains some target text.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to be searched. 	-
+target	Text	The text to search for. 	-
+.TE
+.SH RETURN
+`yes` if the target text is found, `no` otherwise.
+
+.SH EXAMPLES
+.EX
+>> "hello world".has("wo")
+= yes
+>> "hello world".has("xxx")
+= no
+.EE

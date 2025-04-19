@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.resolved 3 2025-04-19T14:30:40.365971 "Tomo man-pages"
+.SH NAME
+Path.resolved \- Resolves the absolute path of the given path relative to a base path. By default, the base path is the current directory.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.resolved : func(path: Path, relative_to = (./) -> Path)"
+.fi
+
+.SH DESCRIPTION
+Resolves the absolute path of the given path relative to a base path. By default, the base path is the current directory.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path to resolve. 	-
+relative_to		The base path for resolution. 	(./)
+.TE
+.SH RETURN
+The resolved absolute path.
+
+.SH EXAMPLES
+.EX
+>> (~/foo).resolved()
+= (/home/user/foo)
+
+>> (./path/to/file.txt).resolved(relative_to=(/foo))
+= (/foo/path/to/file.txt)
+.EE

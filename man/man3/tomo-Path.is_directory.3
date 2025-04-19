@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.is_directory 3 2025-04-19T14:30:40.365526 "Tomo man-pages"
+.SH NAME
+Path.is_directory \- Checks if the path represents a directory. Optionally follows symbolic links.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.is_directory : func(path: Path, follow_symlinks = yes -> Bool)"
+.fi
+
+.SH DESCRIPTION
+Checks if the path represents a directory. Optionally follows symbolic links.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path to check. 	-
+follow_symlinks		Whether to follow symbolic links. 	yes
+.TE
+.SH RETURN
+`True` if the path is a directory, `False` otherwise.
+
+.SH EXAMPLES
+.EX
+>> (./directory/).is_directory()
+= yes
+
+>> (./file.txt).is_directory()
+= no
+.EE

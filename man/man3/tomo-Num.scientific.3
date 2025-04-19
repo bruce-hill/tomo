@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.scientific 3 2025-04-19T14:30:40.363662 "Tomo man-pages"
+.SH NAME
+Num.scientific \- Formats a number in scientific notation with a specified precision.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.scientific : func(n: Num, precision: Int = 0 -> Text)"
+.fi
+
+.SH DESCRIPTION
+Formats a number in scientific notation with a specified precision.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+n	Num	The number to be formatted. 	-
+precision	Int	The number of decimal places. Default is `0`. 	0
+.TE
+.SH RETURN
+A text representation of the number in scientific notation with the specified precision.
+
+.SH EXAMPLES
+.EX
+>> (12345.6789).scientific(precision=2)
+= "1.23e+04"
+.EE

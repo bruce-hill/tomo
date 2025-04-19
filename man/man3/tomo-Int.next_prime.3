@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Int.next_prime 3 2025-04-19T14:30:40.360625 "Tomo man-pages"
+.SH NAME
+Int.next_prime \- Finds the next prime number greater than the given integer.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Int.next_prime : func(x: Int -> Int)"
+.fi
+
+.SH DESCRIPTION
+Finds the next prime number greater than the given integer.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Int	The integer after which to find the next prime. 	-
+.TE
+.SH RETURN
+The next prime number greater than `x`.
+
+.SH NOTES
+This function is _probabilistic_, but the chances of getting an incorrect answer are astronomically small (on the order of 10^(-30)). See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp) for more details.
+
+.SH EXAMPLES
+.EX
+>> (11).next_prime()
+= 13
+.EE

@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.parent 3 2025-04-19T14:30:40.365748 "Tomo man-pages"
+.SH NAME
+Path.parent \- Returns the parent directory of the file or directory at the specified path.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.parent : func(path: Path -> Path)"
+.fi
+
+.SH DESCRIPTION
+Returns the parent directory of the file or directory at the specified path.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path of the file or directory. 	-
+.TE
+.SH RETURN
+The path of the parent directory.
+
+.SH EXAMPLES
+.EX
+>> (./path/to/file.txt).parent()
+= (./path/to/)
+.EE

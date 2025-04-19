@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.tanh 3 2025-04-19T14:30:40.364021 "Tomo man-pages"
+.SH NAME
+Num.tanh \- Computes the hyperbolic tangent of a number.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.tanh : func(x: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Computes the hyperbolic tangent of a number.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Num	The number for which the hyperbolic tangent is to be calculated. 	-
+.TE
+.SH RETURN
+The hyperbolic tangent of `x`.
+
+.SH EXAMPLES
+.EX
+>> (0.0).tanh()
+= 0
+.EE

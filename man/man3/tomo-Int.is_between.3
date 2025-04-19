@@ -1,0 +1,40 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Int.is_between 3 2025-04-19T14:30:40.360548 "Tomo man-pages"
+.SH NAME
+Int.is_between \- Determines if an integer is between two numbers (inclusive).
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Int.is_between : func(x: Int, low: Int, high: Int -> Bool)"
+.fi
+
+.SH DESCRIPTION
+Determines if an integer is between two numbers (inclusive).
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Int	The integer to be checked. 	-
+low	Int	The lower bound to check (inclusive). 	-
+high	Int	The upper bound to check (inclusive). 	-
+.TE
+.SH RETURN
+`yes` if `low <= x and x <= high`, otherwise `no`
+
+.SH EXAMPLES
+.EX
+>> (7).is_between(1, 10)
+= yes
+>> (7).is_between(100, 200)
+= no
+>> (7).is_between(1, 7)
+= yes
+.EE

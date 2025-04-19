@@ -1,0 +1,33 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH List.clear 3 2025-04-19T14:30:40.361001 "Tomo man-pages"
+.SH NAME
+List.clear \- Clears all elements from the list.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "List.clear : func(list: @[T] -> Void)"
+.fi
+
+.SH DESCRIPTION
+Clears all elements from the list.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+list	@[T]	The mutable reference to the list to be cleared. 	-
+.TE
+.SH RETURN
+Nothing.
+
+.SH EXAMPLES
+.EX
+>> my_list.clear()
+.EE

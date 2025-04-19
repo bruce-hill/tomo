@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH List.heapify 3 2025-04-19T14:30:40.361322 "Tomo man-pages"
+.SH NAME
+List.heapify \- Converts a list into a heap.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "List.heapify : func(list: @[T], by: func(x,y:&T->Int32) = T.compare -> Void)"
+.fi
+
+.SH DESCRIPTION
+Converts a list into a heap.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+list	@[T]	The mutable reference to the list to be heapified. 	-
+by	func(x,y:&T->Int32)	The comparison function used to determine order. If not specified, the default comparison function for the item type will be used. 	T.compare
+.TE
+.SH RETURN
+Nothing.
+
+.SH EXAMPLES
+.EX
+>> my_heap := [30, 10, 20]
+>> my_heap.heapify()
+.EE

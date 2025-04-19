@@ -1,0 +1,39 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH List.slice 3 2025-04-19T14:30:40.361827 "Tomo man-pages"
+.SH NAME
+List.slice \- Returns a slice of the list spanning the given indices (inclusive).
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "List.slice : func(list: [T], from: Int, to: Int -> [T])"
+.fi
+
+.SH DESCRIPTION
+Returns a slice of the list spanning the given indices (inclusive).
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+list	[T]	The original list. 	-
+from	Int	The first index to include. 	-
+to	Int	The last index to include. 	-
+.TE
+.SH RETURN
+A new list spanning the given indices. Note: negative indices are counted from the back of the list, so `-1` refers to the last element, `-2` the second-to-last, and so on.
+
+.SH EXAMPLES
+.EX
+>> [10, 20, 30, 40, 50].slice(2, 4)
+= [20, 30, 40]
+
+>> [10, 20, 30, 40, 50].slice(-3, -2)
+= [30, 40]
+.EE

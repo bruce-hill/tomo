@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.owner 3 2025-04-19T14:30:40.365713 "Tomo man-pages"
+.SH NAME
+Path.owner \- Get the owning user of a file or directory.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.owner : func(path: Path, follow_symlinks: Bool = yes -> Text?)"
+.fi
+
+.SH DESCRIPTION
+Get the owning user of a file or directory.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path whose owner to get. 	-
+follow_symlinks	Bool	Whether to follow symbolic links. 	yes
+.TE
+.SH RETURN
+The name of the user who owns the file or directory, or `none` if the path does not exist.
+
+.SH EXAMPLES
+.EX
+>> (/bin).owner()
+= "root"
+>> (/non/existent/file).owner()
+= none
+.EE

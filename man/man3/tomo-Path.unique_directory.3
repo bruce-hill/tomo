@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.unique_directory 3 2025-04-19T14:30:40.366088 "Tomo man-pages"
+.SH NAME
+Path.unique_directory \- Generates a unique directory path based on the given path. Useful for creating temporary directories.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.unique_directory : func(path: Path -> Path)"
+.fi
+
+.SH DESCRIPTION
+Generates a unique directory path based on the given path. Useful for creating temporary directories.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The base path for generating the unique directory. The last six letters of this path must be `XXXXXX`. 	-
+.TE
+.SH RETURN
+A unique directory path after creating the directory.
+
+.SH EXAMPLES
+.EX
+>> created := (/tmp/my-dir.XXXXXX).unique_directory()
+= (/tmp/my-dir-AwoxbM/)
+>> created.is_directory()
+= yes
+created.remove()
+.EE

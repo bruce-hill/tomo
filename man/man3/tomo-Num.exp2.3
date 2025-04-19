@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.exp2 3 2025-04-19T14:30:40.362690 "Tomo man-pages"
+.SH NAME
+Num.exp2 \- Computes $2^x$ for a number.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.exp2 : func(x: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Computes $2^x$ for a number.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Num	The exponent. 	-
+.TE
+.SH RETURN
+The value of $2^x$.
+
+.SH EXAMPLES
+.EX
+>> (3.0).exp2()
+= 8
+.EE

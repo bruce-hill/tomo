@@ -1,0 +1,39 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.right_pad 3 2025-04-19T14:30:40.367999 "Tomo man-pages"
+.SH NAME
+Text.right_pad \- Pad some text on the right side so it reaches a target width.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.right_pad : func(text: Text, width: Int, pad: Text = " ", language: Text = "C" -> Text)"
+.fi
+
+.SH DESCRIPTION
+Pad some text on the right side so it reaches a target width.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to pad. 	-
+width	Int	The target width. 	-
+pad	Text	The padding text. 	" "
+language	Text	The ISO 639 language code for which character width to use. 	"C"
+.TE
+.SH RETURN
+Text with length at least `width`, with extra padding on the right as needed. If `pad` has length greater than 1, it may be partially repeated to reach the exact desired length.
+
+.SH EXAMPLES
+.EX
+>> "x".right_pad(5)
+= "x    "
+>> "x".right_pad(5, "ABC")
+= "xABCA"
+.EE

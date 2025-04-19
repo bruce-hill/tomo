@@ -1,0 +1,978 @@
+Num.abs:
+  description: >
+    Calculates the absolute value of a number.
+  return:
+    type: 'Num'
+    description: >
+      The absolute value of `n`.
+  args:
+    n:
+      type: 'Num'
+      description: >
+        The number whose absolute value is to be computed.
+  example: |
+    >> (-3.5).abs()
+    = 3.5
+    
+Num.acos:
+  description: >
+    Computes the arc cosine of a number.
+  return:
+    type: 'Num'
+    description: >
+      The arc cosine of `x` in radians.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the arc cosine is to be calculated.
+  example: |
+    >> (0.0).acos() // -> (π/2)
+    = 1.5708
+    
+Num.acosh:
+  description: >
+    Computes the inverse hyperbolic cosine of a number.
+  return:
+    type: 'Num'
+    description: >
+      The inverse hyperbolic cosine of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the inverse hyperbolic cosine is to be calculated.
+  example: |
+    >> (1.0).acosh()
+    = 0
+    
+Num.asin:
+  description: >
+    Computes the arc sine of a number.
+  return:
+    type: 'Num'
+    description: >
+      The arc sine of `x` in radians.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the arc sine is to be calculated.
+  example: |
+    >> (0.5).asin()  // -> (π/6)
+    = 0.5236
+    
+Num.asinh:
+  description: >
+    Computes the inverse hyperbolic sine of a number.
+  return:
+    type: 'Num'
+    description: >
+      The inverse hyperbolic sine of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the inverse hyperbolic sine is to be calculated.
+  example: |
+    >> (0.0).asinh()
+    = 0
+    
+Num.atan:
+  description: >
+    Computes the arc tangent of a number.
+  return:
+    type: 'Num'
+    description: >
+      The arc tangent of `x` in radians.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the arc tangent is to be calculated.
+  example: |
+    >> (1.0).atan() // -> (π/4)
+    = 0.7854
+    
+Num.atan2:
+  description: >
+    Computes the arc tangent of the quotient of two numbers.
+  return:
+    type: 'Num'
+    description: >
+      The arc tangent of `x/y` in radians.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The numerator.
+    y:
+      type: 'Num'
+      description: >
+        The denominator.
+  example: |
+    >> Num.atan2(1, 1) // -> (π/4)
+    = 0.7854
+    
+Num.atanh:
+  description: >
+    Computes the inverse hyperbolic tangent of a number.
+  return:
+    type: 'Num'
+    description: >
+      The inverse hyperbolic tangent of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the inverse hyperbolic tangent is to be calculated.
+  example: |
+    >> (0.5).atanh()
+    = 0.5493
+    
+Num.cbrt:
+  description: >
+    Computes the cube root of a number.
+  return:
+    type: 'Num'
+    description: >
+      The cube root of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the cube root is to be calculated.
+  example: |
+    >> (27.0).cbrt()
+    = 3
+    
+Num.ceil:
+  description: >
+    Rounds a number up to the nearest integer.
+  return:
+    type: 'Num'
+    description: >
+      The smallest integer greater than or equal to `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number to be rounded up.
+  example: |
+    >> (3.2).ceil()
+    = 4
+    
+Num.clamped:
+  description: >
+    Returns the given number clamped between two values so that it is within
+    that range.
+  return:
+    type: 'Num'
+    description: >
+      The first argument clamped between the other two arguments.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number to clamp.
+    low:
+      type: 'Num'
+      description: >
+        The lowest value the result can take.
+    high:
+      type: 'Num'
+      description: >
+        The highest value the result can take.
+  example: |
+    >> (2.5).clamped(5.5, 10.5)
+    = 5.5
+    
+Num.copysign:
+  description: >
+    Copies the sign of one number to another.
+  return:
+    type: 'Num'
+    description: >
+      A number with the magnitude of `x` and the sign of `y`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number whose magnitude will be copied.
+    y:
+      type: 'Num'
+      description: >
+        The number whose sign will be copied.
+  example: |
+    >> (3.0).copysign(-1)
+    = -3
+    
+Num.cos:
+  description: >
+    Computes the cosine of a number (angle in radians).
+  return:
+    type: 'Num'
+    description: >
+      The cosine of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The angle in radians.
+  example: |
+    >> (0.0).cos()
+    = 1
+    
+Num.cosh:
+  description: >
+    Computes the hyperbolic cosine of a number.
+  return:
+    type: 'Num'
+    description: >
+      The hyperbolic cosine of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the hyperbolic cosine is to be calculated.
+  example: |
+    >> (0.0).cosh()
+    = 1
+    
+Num.erf:
+  description: >
+    Computes the error function of a number.
+  return:
+    type: 'Num'
+    description: >
+      The error function of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the error function is to be calculated.
+  example: |
+    >> (0.0).erf()
+    = 0
+    
+Num.erfc:
+  description: >
+    Computes the complementary error function of a number.
+  return:
+    type: 'Num'
+    description: >
+      The complementary error function of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the complementary error function is to be calculated.
+  example: |
+    >> (0.0).erfc()
+    = 1
+    
+Num.exp:
+  description: >
+    Computes the exponential function $e^x$ for a number.
+  return:
+    type: 'Num'
+    description: >
+      The value of $e^x$.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The exponent.
+  example: |
+    >> (1.0).exp()
+    = 2.7183
+    
+Num.exp2:
+  description: >
+    Computes $2^x$ for a number.
+  return:
+    type: 'Num'
+    description: >
+      The value of $2^x$.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The exponent.
+  example: |
+    >> (3.0).exp2()
+    = 8
+    
+Num.expm1:
+  description: >
+    Computes $e^x - 1$ for a number.
+  return:
+    type: 'Num'
+    description: >
+      The value of $e^x - 1$.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The exponent.
+  example: |
+    >> (1.0).expm1()
+    = 1.7183
+    
+Num.fdim:
+  description: >
+    Computes the positive difference between two numbers.
+  return:
+    type: 'Num'
+    description: >
+      The positive difference $\max(0, x - y)$.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The first number.
+    y:
+      type: 'Num'
+      description: >
+        The second number.
+  example: |
+    fd
+    
+    >> (5.0).fdim(3)
+    = 2
+    
+Num.floor:
+  description: >
+    Rounds a number down to the nearest integer.
+  return:
+    type: 'Num'
+    description: >
+      The largest integer less than or equal to `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number to be rounded down.
+  example: |
+    >> (3.7).floor()
+    = 3
+    
+Num.format:
+  description: >
+    Formats a number as a text with a specified precision.
+  return:
+    type: 'Text'
+    description: >
+      A text representation of the number with the specified precision.
+  args:
+    n:
+      type: 'Num'
+      description: >
+        The number to be formatted.
+    precision:
+      type: 'Int'
+      default: '0'
+      description: >
+        The number of decimal places. Default is `0`.
+  example: |
+    >> (3.14159).format(precision=2)
+    = "3.14"
+    
+Num.hypot:
+  description: >
+    Computes the Euclidean norm, $\sqrt{x^2 + y^2}$, of two numbers.
+  return:
+    type: 'Num'
+    description: >
+      The Euclidean norm of `x` and `y`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The first number.
+    y:
+      type: 'Num'
+      description: >
+        The second number.
+  example: |
+    >> Num.hypot(3, 4)
+    = 5
+    
+Num.isfinite:
+  description: >
+    Checks if a number is finite.
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if `n` is finite, `no` otherwise.
+  args:
+    n:
+      type: 'Num'
+      description: >
+        The number to be checked.
+  example: |
+    >> (1.0).isfinite()
+    = yes
+    >> Num.INF.isfinite()
+    = no
+    
+Num.is_between:
+  description: >
+    Determines if a number is between two numbers (inclusive).
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if `low <= x and x <= high`, otherwise `no`
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The integer to be checked.
+    low:
+      type: 'Num'
+      description: >
+        The lower bound to check (inclusive).
+    high:
+      type: 'Num'
+      description: >
+        The upper bound to check (inclusive).
+  example: |
+    >> (7.5).is_between(1, 10)
+    = yes
+    >> (7.5).is_between(100, 200)
+    = no
+    >> (7.5).is_between(1, 7.5)
+    = yes
+    
+Num.isinf:
+  description: >
+    Checks if a number is infinite.
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if `n` is infinite, `no` otherwise.
+  args:
+    n:
+      type: 'Num'
+      description: >
+        The number to be checked.
+  example: |
+    >> Num.INF.isinf()
+    = yes
+    >> (1.0).isinf()
+    = no
+    
+Num.j0:
+  description: >
+    Computes the Bessel function of the first kind of order 0.
+  return:
+    type: 'Num'
+    description: >
+      The Bessel function of the first kind of order 0 of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the Bessel function is to be calculated.
+  example: |
+    >> (0.0).j0()
+    = 1
+    
+Num.j1:
+  description: >
+    Computes the Bessel function of the first kind of order 1.
+  return:
+    type: 'Num'
+    description: >
+      The Bessel function of the first kind of order 1 of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the Bessel function is to be calculated.
+  example: |
+    >> (0.0).j1()
+    = 0
+    
+Num.log:
+  description: >
+    Computes the natural logarithm (base $e$) of a number.
+  return:
+    type: 'Num'
+    description: >
+      The natural logarithm of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the natural logarithm is to be calculated.
+  example: |
+    >> Num.E.log()
+    = 1
+    
+Num.log10:
+  description: >
+    Computes the base-10 logarithm of a number.
+  return:
+    type: 'Num'
+    description: >
+      The base-10 logarithm of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the base-10 logarithm is to be calculated.
+  example: |
+    >> (100.0).log10()
+    = 2
+    
+Num.log1p:
+  description: >
+    Computes $\log(1 + x)$ for a number.
+  return:
+    type: 'Num'
+    description: >
+      The value of $\log(1 + x)$.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which $\log(1 + x)$ is to be calculated.
+  example: |
+    >> (1.0).log1p()
+    = 0.6931
+    
+Num.log2:
+  description: >
+    Computes the base-2 logarithm of a number.
+  return:
+    type: 'Num'
+    description: >
+      The base-2 logarithm of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the base-2 logarithm is to be calculated.
+  example: |
+    >> (8.0).log2()
+    = 3
+    
+Num.logb:
+  description: >
+    Computes the binary exponent (base-2 logarithm) of a number.
+  return:
+    type: 'Num'
+    description: >
+      The binary exponent of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the binary exponent is to be calculated.
+  example: |
+    >> (8.0).logb()
+    = 3
+    
+Num.mix:
+  description: >
+    Interpolates between two numbers based on a given amount.
+  return:
+    type: 'Num'
+    description: >
+      The interpolated number between `x` and `y` based on `amount`.
+  args:
+    amount:
+      type: 'Num'
+      description: >
+        The interpolation factor (between `0` and `1`).
+    x:
+      type: 'Num'
+      description: >
+        The starting number.
+    y:
+      type: 'Num'
+      description: >
+        The ending number.
+  example: |
+    >> (0.5).mix(10, 20)
+    = 15
+    >> (0.25).mix(10, 20)
+    = 12.5
+    
+Num.near:
+  description: >
+    Checks if two numbers are approximately equal within specified tolerances. If
+    two numbers are within an absolute difference or the ratio between the two is
+    small enough, they are considered near each other.
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if `x` and `y` are approximately equal within the specified tolerances, `no` otherwise.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The first number.
+    y:
+      type: 'Num'
+      description: >
+        The second number.
+    ratio:
+      type: 'Num'
+      default: '1e-9'
+      description: >
+        The relative tolerance. Default is `1e-9`.
+    min_epsilon:
+      type: 'Num'
+      default: '1e-9'
+      description: >
+        The absolute tolerance. Default is `1e-9`.
+  example: |
+    >> (1.0).near(1.000000001)
+    = yes
+    
+    >> (100.0).near(110, ratio=0.1)
+    = yes
+    
+    >> (5.0).near(5.1, min_epsilon=0.1)
+    = yes
+    
+Num.nextafter:
+  description: >
+    Computes the next representable value after a given number towards a specified direction.
+  return:
+    type: 'Num'
+    description: >
+      The next representable value after `x` in the direction of `y`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The starting number.
+    y:
+      type: 'Num'
+      description: >
+        The direction towards which to find the next representable value.
+  example: |
+    >> (1.0).nextafter(1.1)
+    = 1.0000000000000002
+    
+Num.parse:
+  description: >
+    Converts a text representation of a number into a floating-point number.
+  return:
+    type: 'Num?'
+    description: >
+      The number represented by the text or `none` if the entire text can't be parsed
+      as a number.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text containing the number.
+  example: |
+    >> Num.parse("3.14")
+    = 3.14
+    >> Num.parse("1e3")
+    = 1000
+    
+Num.percent:
+  description: >
+    Convert a number into a percentage text with a percent sign.
+  return:
+    type: 'Text'
+    description: >
+      A text representation of the number as a percentage with a percent sign.
+  args:
+    n:
+      type: 'Num'
+      description: >
+        The number to be converted to a percent.
+    precision:
+      type: 'Int'
+      default: '0'
+      description: >
+        The number of decimal places. Default is `0`.
+  example: |
+    >> (0.5).percent()
+    = "50%"
+    >> (1./3.).percent(2)
+    = "33.33%"
+    
+Num.rint:
+  description: >
+    Rounds a number to the nearest integer, with ties rounded to the nearest even integer.
+  return:
+    type: 'Num'
+    description: >
+      The nearest integer value of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number to be rounded.
+  example: |
+    >> (3.5).rint()
+    = 4
+    >> (2.5).rint()
+    = 2
+    
+Num.round:
+  description: >
+    Rounds a number to the nearest whole number integer.
+  return:
+    type: 'Num'
+    description: >
+      The nearest integer value of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number to be rounded.
+  example: |
+    >> (2.3).round()
+    = 2
+    >> (2.7).round()
+    = 3
+    
+Num.scientific:
+  description: >
+    Formats a number in scientific notation with a specified precision.
+  return:
+    type: 'Text'
+    description: >
+      A text representation of the number in scientific notation with the specified precision.
+  args:
+    n:
+      type: 'Num'
+      description: >
+        The number to be formatted.
+    precision:
+      type: 'Int'
+      default: '0'
+      description: >
+        The number of decimal places. Default is `0`.
+  example: |
+    >> (12345.6789).scientific(precision=2)
+    = "1.23e+04"
+    
+Num.significand:
+  description: >
+    Extracts the significand (or mantissa) of a number.
+  return:
+    type: 'Num'
+    description: >
+      The significand of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number from which to extract the significand.
+  example: |
+    >> (1234.567).significand()
+    = 0.1234567
+    
+Num.sin:
+  description: >
+    Computes the sine of a number (angle in radians).
+  return:
+    type: 'Num'
+    description: >
+      The sine of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The angle in radians.
+  example: |
+    >> (0.0).sin()
+    = 0
+    
+Num.sinh:
+  description: >
+    Computes the hyperbolic sine of a number.
+  return:
+    type: 'Num'
+    description: >
+      The hyperbolic sine of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the hyperbolic sine is to be calculated.
+  example: |
+    >> (0.0).sinh()
+    = 0
+    
+Num.sqrt:
+  description: >
+    Computes the square root of a number.
+  return:
+    type: 'Num'
+    description: >
+      The square root of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the square root is to be calculated.
+  example: |
+    >> (16.0).sqrt()
+    = 4
+    
+Num.tan:
+  description: >
+    Computes the tangent of a number (angle in radians).
+  return:
+    type: 'Num'
+    description: >
+      The tangent of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The angle in radians.
+  example: |
+    >> (0.0).tan()
+    = 0
+    
+Num.tanh:
+  description: >
+    Computes the hyperbolic tangent of a number.
+  return:
+    type: 'Num'
+    description: >
+      The hyperbolic tangent of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the hyperbolic tangent is to be calculated.
+  example: |
+    >> (0.0).tanh()
+    = 0
+    
+Num.tgamma:
+  description: >
+    Computes the gamma function of a number.
+  return:
+    type: 'Num'
+    description: >
+      The gamma function of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the gamma function is to be calculated.
+  example: |
+    >> (1.0).tgamma()
+    = 1
+    
+Num.trunc:
+  description: >
+    Truncates a number to the nearest integer towards zero.
+  return:
+    type: 'Num'
+    description: >
+      The integer part of `x` towards zero.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number to be truncated.
+  example: |
+    >> (3.7).trunc()
+    = 3
+    >> (-3.7).trunc()
+    = -3
+    
+Num.y0:
+  description: >
+    Computes the Bessel function of the second kind of order 0.
+  return:
+    type: 'Num'
+    description: >
+      The Bessel function of the second kind of order 0 of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the Bessel function is to be calculated.
+  example: |
+    >> (1.0).y0()
+    = -0.7652
+    
+Num.y1:
+  description: >
+    Computes the Bessel function of the second kind of order 1.
+  return:
+    type: 'Num'
+    description: >
+      The Bessel function of the second kind of order 1 of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number for which the Bessel function is to be calculated.
+  example: |
+    >> (1.0).y1()
+    = 0.4401
+    
+
+Num.1_PI:
+  type: Num
+  description: >
+    The constant $\frac{1}{\pi}$.
+Num.2_PI:
+  type: Num
+  description: >
+    The constant $2 \times \pi$.
+Num.2_SQRTPI:
+  type: Num
+  description: >
+    The constant $2 \times \sqrt{\pi}$.
+Num.E:
+  type: Num
+  description: >
+    The base of the natural logarithm ($e$).
+Num.INF:
+  type: Num
+  description: >
+    Positive infinity.
+Num.LN10:
+  type: Num
+  description: >
+    The natural logarithm of 10.
+Num.LN2:
+  type: Num
+  description: >
+    The natural logarithm of 2.
+Num.LOG2E:
+  type: Num
+  description: >
+    The base 2 logarithm of $e$
+Num.PI:
+  type: Num
+  description: >
+    Pi ($\pi$).
+Num.PI_2:
+  type: Num
+  description: >
+    $\frac{\pi}{2}$
+Num.PI_4:
+  type: Num
+  description: >
+    $\frac{\pi}{4}$
+Num.SQRT1_2:
+  type: Num
+  description: >
+    $\sqrt{\frac{1}{2}}$
+Num.SQRT2:
+  type: Num
+  description: >
+    $\sqrt{2}$
+Num.TAU:
+  type: Num
+  description: >
+    Tau ($2 \times \pi$)

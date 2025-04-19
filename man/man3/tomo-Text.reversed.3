@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.reversed 3 2025-04-19T14:30:40.367963 "Tomo man-pages"
+.SH NAME
+Text.reversed \- Return a text that has the grapheme clusters in reverse order.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.reversed : func(text: Text -> Text)"
+.fi
+
+.SH DESCRIPTION
+Return a text that has the grapheme clusters in reverse order.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to reverse. 	-
+.TE
+.SH RETURN
+A reversed version of the text.
+
+.SH EXAMPLES
+.EX
+>> "Abc".reversed()
+= "cbA"
+.EE

@@ -1,0 +1,39 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.width 3 2025-04-19T14:30:40.368465 "Tomo man-pages"
+.SH NAME
+Text.width \- Returns the display width of the text as seen in a terminal with appropriate font rendering. This is usually the same as the text's `.length`, but there are some characters like emojis that render wider than 1 cell.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.width : func(text: Text -> Int)"
+.fi
+
+.SH DESCRIPTION
+Returns the display width of the text as seen in a terminal with appropriate font rendering. This is usually the same as the text's `.length`, but there are some characters like emojis that render wider than 1 cell.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text whose length you want. 	-
+.TE
+.SH RETURN
+An integer representing the display width of the text.
+
+.SH NOTES
+This will not always be exactly accurate when your terminal's font rendering can't handle some unicode displaying correctly.
+
+.SH EXAMPLES
+.EX
+>> "Amélie".width()
+= 6
+>> "🤠".width()
+= 2
+.EE

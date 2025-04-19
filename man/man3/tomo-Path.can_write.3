@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.can_write 3 2025-04-19T14:30:40.365009 "Tomo man-pages"
+.SH NAME
+Path.can_write \- Returns whether or not a file can be written by the current user/group.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.can_write : func(path: Path -> Bool)"
+.fi
+
+.SH DESCRIPTION
+Returns whether or not a file can be written by the current user/group.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path of the file to check. 	-
+.TE
+.SH RETURN
+`yes` if the file or directory exists and the current user has write permissions, otherwise `no`.
+
+.SH EXAMPLES
+.EX
+>> (/tmp).can_write()
+= yes
+>> (/etc/passwd).can_write()
+= no
+>> (/non/existant/file).can_write()
+= no
+.EE

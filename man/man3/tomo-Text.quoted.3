@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.quoted 3 2025-04-19T14:30:40.367849 "Tomo man-pages"
+.SH NAME
+Text.quoted \- Formats the text with quotation marks and escapes.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.quoted : func(text: Text, color: Bool = no, quotation_mark: Text = `"` -> Text)"
+.fi
+
+.SH DESCRIPTION
+Formats the text with quotation marks and escapes.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to be quoted. 	-
+color	Bool	Whether to add color formatting. 	no
+quotation_mark	Text	The quotation mark to use. 	`"`
+.TE
+.SH RETURN
+The text formatted as a quoted text.
+
+.SH EXAMPLES
+.EX
+>> "one\\ntwo".quoted()
+= "\\"one\\\\ntwo\\""
+.EE

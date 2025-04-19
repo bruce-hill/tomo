@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.is_symlink 3 2025-04-19T14:30:40.365640 "Tomo man-pages"
+.SH NAME
+Path.is_symlink \- Checks if the path represents a symbolic link.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.is_symlink : func(path: Path -> Bool)"
+.fi
+
+.SH DESCRIPTION
+Checks if the path represents a symbolic link.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path to check. 	-
+.TE
+.SH RETURN
+`True` if the path is a symbolic link, `False` otherwise.
+
+.SH EXAMPLES
+.EX
+>> (./link).is_symlink()
+= yes
+.EE

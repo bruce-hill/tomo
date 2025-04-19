@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Int.factorial 3 2025-04-19T14:30:40.360421 "Tomo man-pages"
+.SH NAME
+Int.factorial \- Computes the factorial of an integer.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Int.factorial : func(n: Int -> Text)"
+.fi
+
+.SH DESCRIPTION
+Computes the factorial of an integer.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+n	Int	The integer to compute the factorial of. 	-
+.TE
+.SH RETURN
+The factorial of the given integer.
+
+.SH EXAMPLES
+.EX
+>> (10).factorial()
+= 3628800
+.EE

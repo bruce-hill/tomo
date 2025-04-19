@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.cbrt 3 2025-04-19T14:30:40.362342 "Tomo man-pages"
+.SH NAME
+Num.cbrt \- Computes the cube root of a number.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.cbrt : func(x: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Computes the cube root of a number.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Num	The number for which the cube root is to be calculated. 	-
+.TE
+.SH RETURN
+The cube root of `x`.
+
+.SH EXAMPLES
+.EX
+>> (27.0).cbrt()
+= 3
+.EE

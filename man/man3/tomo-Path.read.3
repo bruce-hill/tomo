@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.read 3 2025-04-19T14:30:40.365795 "Tomo man-pages"
+.SH NAME
+Path.read \- Reads the contents of the file at the specified path or a null value if the file could not be read.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.read : func(path: Path -> Text?)"
+.fi
+
+.SH DESCRIPTION
+Reads the contents of the file at the specified path or a null value if the file could not be read.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path of the file to read. 	-
+.TE
+.SH RETURN
+The contents of the file. If the file could not be read, a null value will be returned. If the file can be read, but is not valid UTF8 data, an error will be raised.
+
+.SH EXAMPLES
+.EX
+>> (./hello.txt).read()
+= "Hello"?
+
+>> (./nosuchfile.xxx).read()
+= none
+.EE

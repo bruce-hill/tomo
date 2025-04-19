@@ -1,0 +1,48 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Table.get_or_set 3 2025-04-19T14:30:40.366848 "Tomo man-pages"
+.SH NAME
+Table.get_or_set \- If the given key is in the table, return the associated value. Otherwise, insert the given default value into the table and return it.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Table.get_or_set : func(t: &{K=V}, key: K, default: V -> V?)"
+.fi
+
+.SH DESCRIPTION
+If the given key is in the table, return the associated value. Otherwise, insert the given default value into the table and return it.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+t	&{K=V}	The table. 	-
+key	K	The key whose associated value is to be retrieved. 	-
+default	V	The default value to insert and return if the key is not present in the table. 	-
+.TE
+.SH RETURN
+Either the value associated with the key (if present) or the default value. The table will be mutated if the key is not already present.
+
+.SH NOTES
+If no default value is provided explicitly, but the table has a default value associated with it, the table's default value will be used.
+The default value is only evaluated if the key is missing.
+
+.SH EXAMPLES
+.EX
+>> t := &{"A"=@[1, 2, 3]; default=@[]}
+>> t.get_or_set("A").insert(4)
+>> t.get_or_set("B").insert(99)
+>> t
+= &{"A"=@[1, 2, 3, 4], "B"=@[99]}
+
+>> t.get_or_set("C", @[0, 0, 0])
+= @[0, 0, 0]
+>> t
+= &{"A"=@[1, 2, 3, 4], "B"=@[99], "C"=@[0, 0, 0]}
+.EE

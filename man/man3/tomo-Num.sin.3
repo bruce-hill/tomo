@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.sin 3 2025-04-19T14:30:40.363772 "Tomo man-pages"
+.SH NAME
+Num.sin \- Computes the sine of a number (angle in radians).
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.sin : func(x: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Computes the sine of a number (angle in radians).
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Num	The angle in radians. 	-
+.TE
+.SH RETURN
+The sine of `x`.
+
+.SH EXAMPLES
+.EX
+>> (0.0).sin()
+= 0
+.EE

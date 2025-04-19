@@ -1,0 +1,41 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH List.sort 3 2025-04-19T14:30:40.361865 "Tomo man-pages"
+.SH NAME
+List.sort \- Sorts the elements of the list in place in ascending order (small to large).
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "List.sort : func(list: @[T], by = T.compare -> Void)"
+.fi
+
+.SH DESCRIPTION
+Sorts the elements of the list in place in ascending order (small to large).
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+list	@[T]	The mutable reference to the list to be sorted. 	-
+by		The comparison function used to determine order. If not specified, the default comparison function for the item type will be used. 	T.compare
+.TE
+.SH RETURN
+Nothing.
+
+.SH EXAMPLES
+.EX
+list := [40, 10, -30, 20]
+list.sort()
+>> list
+= [-30, 10, 20, 40]
+
+list.sort(func(a,b:&Int): a.abs() <> b.abs())
+>> list
+= [10, 20, -30, 40]
+.EE

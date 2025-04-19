@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Set.has 3 2025-04-19T14:30:40.366403 "Tomo man-pages"
+.SH NAME
+Set.has \- Checks if the set contains a specified item.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Set.has : func(set: |T|, item: T -> Bool)"
+.fi
+
+.SH DESCRIPTION
+Checks if the set contains a specified item.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+set	|T|	The set to check. 	-
+item	T	The item to check for presence. 	-
+.TE
+.SH RETURN
+`yes` if the item is present, `no` otherwise.
+
+.SH EXAMPLES
+.EX
+>> |10, 20|.has(20)
+= yes
+.EE

@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.group 3 2025-04-19T14:30:40.365486 "Tomo man-pages"
+.SH NAME
+Path.group \- Get the owning group of a file or directory.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.group : func(path: Path, follow_symlinks: Bool = yes -> Text?)"
+.fi
+
+.SH DESCRIPTION
+Get the owning group of a file or directory.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path whose owning group to get. 	-
+follow_symlinks	Bool	Whether to follow symbolic links. 	yes
+.TE
+.SH RETURN
+The name of the group which owns the file or directory, or `none` if the path does not exist.
+
+.SH EXAMPLES
+.EX
+>> (/bin).group()
+= "root"
+>> (/non/existent/file).group()
+= none
+.EE

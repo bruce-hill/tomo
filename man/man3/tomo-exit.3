@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH exit 3 2025-04-19T14:30:40.359796 "Tomo man-pages"
+.SH NAME
+exit \- Exits the program with a given status and optionally prints a message.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "exit : func(message: Text? = !Text, status: Int32 = Int32(1) -> Void)"
+.fi
+
+.SH DESCRIPTION
+Exits the program with a given status and optionally prints a message.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+message	Text?	If nonempty, this message will be printed (with a newline) before exiting. 	!Text
+status	Int32	The status code that the program with exit with. 	Int32(1)
+.TE
+.SH RETURN
+This function never returns.
+
+.SH EXAMPLES
+.EX
+exit(status=1, "Goodbye forever!")
+.EE

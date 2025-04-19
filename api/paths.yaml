@@ -1,0 +1,875 @@
+Path.accessed:
+  description: >
+    Gets the file access time of a file.
+  return:
+    type: 'Int64?'
+    description: >
+      A 64-bit unix epoch timestamp representing when the file or directory was last
+      accessed, or `none` if no such file or directory exists.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file whose access time you want.
+    follow_symlinks:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether to follow symbolic links.
+  example: |
+    >> (./file.txt).accessed()
+    = 1704221100?
+    >> (./not-a-file).accessed()
+    = none
+    
+Path.append:
+  description: >
+    Appends the given text to the file at the specified path, creating the file if
+    it doesn't already exist. Failure to write will result in a runtime error.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file to append to.
+    text:
+      type: 'Text'
+      description: >
+        The text to append to the file.
+    permissions:
+      type: 'Int32'
+      default: 'Int32(0o644)'
+      description: >
+        The permissions to set on the file if it is being created.
+  example: |
+    (./log.txt).append("extra line$(\n)")
+    
+Path.append_bytes:
+  description: >
+    Appends the given bytes to the file at the specified path, creating the file if
+    it doesn't already exist. Failure to write will result in a runtime error.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file to append to.
+    bytes:
+      type: '[Byte]'
+      description: >
+        The bytes to append to the file.
+    permissions:
+      type: 'Int32'
+      default: 'Int32(0o644)'
+      description: >
+        The permissions to set on the file if it is being created.
+  example: |
+    (./log.txt).append_bytes([104, 105])
+    
+Path.base_name:
+  description: >
+    Returns the base name of the file or directory at the specified path.
+  return:
+    type: 'Text'
+    description: >
+      The base name of the file or directory.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file or directory.
+  example: |
+    >> (./path/to/file.txt).base_name()
+    = "file.txt"
+    
+Path.by_line:
+  description: >
+    Returns an iterator that can be used to iterate over a file one line at a time,
+    or returns a null value if the file could not be opened.
+  return:
+    type: 'func(->Text?)?'
+    description: >
+      An iterator that can be used to get lines from a file one at a time or a null
+      value if the file couldn't be read.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file.
+  example: |
+    # Safely handle file not being readable:
+    if lines := (./file.txt).by_line()
+    for line in lines
+    say(line.upper())
+    else
+    say("Couldn't read file!")
+    
+    # Assume the file is readable and error if that's not the case:
+    for line in (/dev/stdin).by_line()!
+    say(line.upper())
+    
+Path.can_execute:
+  description: >
+    Returns whether or not a file can be executed by the current user/group.
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if the file or directory exists and the current user has execute permissions, otherwise `no`.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file to check.
+  example: |
+    >> (/bin/sh).can_execute()
+    = yes
+    >> (/usr/include/stdlib.h).can_execute()
+    = no
+    >> (/non/existant/file).can_execute()
+    = no
+    
+Path.can_read:
+  description: >
+    Returns whether or not a file can be read by the current user/group.
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if the file or directory exists and the current user has read permissions, otherwise `no`.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file to check.
+  example: |
+    >> (/usr/include/stdlib.h).can_read()
+    = yes
+    >> (/etc/shadow).can_read()
+    = no
+    >> (/non/existant/file).can_read()
+    = no
+    
+Path.can_write:
+  description: >
+    Returns whether or not a file can be written by the current user/group.
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if the file or directory exists and the current user has write permissions, otherwise `no`.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file to check.
+  example: |
+    >> (/tmp).can_write()
+    = yes
+    >> (/etc/passwd).can_write()
+    = no
+    >> (/non/existant/file).can_write()
+    = no
+    
+Path.changed:
+  description: >
+    Gets the file change time of a file.
+  note: >
+    This is the ["ctime"](https://en.wikipedia.org/wiki/Stat_(system_call)#ctime) of a file,
+    which is _not_ the file creation time.
+  return:
+    type: 'Int64?'
+    description: >
+      A 64-bit unix epoch timestamp representing when the file or directory was last
+      changed, or `none` if no such file or directory exists.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file whose change time you want.
+    follow_symlinks:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether to follow symbolic links.
+  example: |
+    >> (./file.txt).changed()
+    = 1704221100?
+    >> (./not-a-file).changed()
+    = none
+    
+Path.child:
+  description: >
+    Return a path that is a child of another path.
+  return:
+    type: '[Path]'
+    description: >
+      A new path representing the child.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of a directory.
+    child:
+      type: 'Text'
+      description: >
+        The name of a child file or directory.
+  example: |
+    >> (./directory).child("file.txt")
+    = (./directory/file.txt)
+    
+Path.children:
+  description: >
+    Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files.
+  return:
+    type: '[Path]'
+    description: >
+      A list of paths for the children.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the directory.
+    include_hidden:
+      default: 'no'
+      description: >
+        Whether to include hidden files, which start with a `.`.
+  example: |
+    >> (./directory).children(include_hidden=yes)
+    = [".git", "foo.txt"]
+    
+Path.create_directory:
+  description: >
+    Creates a new directory at the specified path with the given permissions. If
+    any of the parent directories do not exist, they will be created as needed.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the directory to create.
+    permissions:
+      default: 'Int32(0o755)'
+      description: >
+        The permissions to set on the new directory.
+  example: |
+    (./new_directory).create_directory()
+    
+Path.current_dir:
+  description: >
+    Creates a new directory at the specified path with the given permissions. If
+    any of the parent directories do not exist, they will be created as needed.
+  return:
+    type: 'Path'
+    description: >
+      The absolute path of the current directory.
+  args:
+  example: |
+    >> Path.current_dir()
+    = (/home/user/tomo)
+    
+Path.exists:
+  description: >
+    Checks if a file or directory exists at the specified path.
+  return:
+    type: 'Bool'
+    description: >
+      `True` if the file or directory exists, `False` otherwise.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path to check.
+  example: |
+    >> (/).exists()
+    = yes
+    
+Path.expand_home:
+  description: >
+    For home-based paths (those starting with `~`), expand the path to replace the
+    tilde with and absolute path to the user's `$HOME` directory.
+  return:
+    type: 'Path'
+    description: >
+      If the path does not start with a `~`, then return it unmodified. Otherwise,
+      replace the `~` with an absolute path to the user's home directory.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path to expand.
+  example: |
+    >> (~/foo).expand_home() # Assume current user is 'user'
+    = /home/user/foo
+    >> (/foo).expand_home() # No change
+    = /foo
+    
+Path.extension:
+  description: >
+    Returns the file extension of the file at the specified path. Optionally returns the full extension.
+  return:
+    type: 'Text'
+    description: >
+      The file extension (not including the leading `.`) or an empty text if there is
+      no file extension.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file.
+    full:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether to return everything after the first `.` in the base name, or
+        only the last part of the extension.
+  example: |
+    >> (./file.tar.gz).extension()
+    = "tar.gz"
+    >> (./file.tar.gz).extension(full=no)
+    = "gz"
+    >> (/foo).extension()
+    = ""
+    >> (./.git).extension()
+    = ""
+    
+Path.files:
+  description: >
+    Returns a list of files within the directory at the specified path. Optionally includes hidden files.
+  return:
+    type: '[Path]'
+    description: >
+      A list of file paths.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the directory.
+    include_hidden:
+      type: 'Bool'
+      default: 'no'
+      description: >
+        Whether to include hidden files.
+  example: |
+    >> (./directory).files(include_hidden=yes)
+    = [(./directory/file1.txt), (./directory/file2.txt)]
+    
+Path.from_components:
+  description: >
+    Returns a path built from a list of path components.
+  return:
+    type: 'Path'
+    description: >
+      A path representing the given components.
+  args:
+    components:
+      type: '[Text]'
+      description: >
+        A list of path components.
+  example: |
+    >> Path.from_components(["/", "usr", "include"])
+    = /usr/include
+    >> Path.from_components(["foo.txt"])
+    = ./foo.txt
+    >> Path.from_components(["~", ".local"])
+    = ~/.local
+    
+Path.glob:
+  description: >
+    Perform a globbing operation and return a list of matching paths. Some glob
+    specific details:
+
+    - The paths "." and ".." are *not* included in any globbing results.
+
+    - Files or directories that begin with "." will not match `*`, but will match `.*`.
+
+    - Globs do support `{a,b}` syntax for matching files that match any of several
+      choices of patterns.
+
+    - The shell-style syntax `**` for matching subdirectories is not supported.
+  return:
+    type: '[Path]'
+    description: >
+      A list of file paths that match the glob.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the directory which may contain special globbing characters
+        like `*`, `?`, or `{...}`
+  example: |
+    # Current directory includes: foo.txt, baz.txt, qux.jpg, .hidden
+    >> (./*).glob()
+    = [(./foo.txt), (./baz.txt), (./qux.jpg)]
+
+    >> (./*.txt).glob()
+    = [(./foo.txt), (./baz.txt)]
+
+    >> (./*.{txt,jpg}).glob()
+    = [(./foo.txt), (./baz.txt), (./qux.jpg)]
+
+    >> (./.*).glob()
+    = [(./.hidden)]
+
+    # Globs with no matches return an empty list:
+    >> (./*.xxx).glob()
+    = []
+    
+Path.group:
+  description: >
+    Get the owning group of a file or directory.
+  return:
+    type: 'Text?'
+    description: >
+      The name of the group which owns the file or directory, or `none` if the path does not exist.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path whose owning group to get.
+    follow_symlinks:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether to follow symbolic links.
+  example: |
+    >> (/bin).group()
+    = "root"
+    >> (/non/existent/file).group()
+    = none
+    
+Path.is_directory:
+  description: >
+    Checks if the path represents a directory. Optionally follows symbolic links.
+  return:
+    type: 'Bool'
+    description: >
+      `True` if the path is a directory, `False` otherwise.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path to check.
+    follow_symlinks:
+      default: 'yes'
+      description: >
+        Whether to follow symbolic links.
+  example: |
+    >> (./directory/).is_directory()
+    = yes
+    
+    >> (./file.txt).is_directory()
+    = no
+    
+Path.is_file:
+  description: >
+    Checks if the path represents a file. Optionally follows symbolic links.
+  return:
+    type: 'Bool'
+    description: >
+      `True` if the path is a file, `False` otherwise.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path to check.
+    follow_symlinks:
+      default: 'yes'
+      description: >
+        Whether to follow symbolic links.
+  example: |
+    >> (./file.txt).is_file()
+    = yes
+    
+    >> (./directory/).is_file()
+    = no
+    
+Path.is_socket:
+  description: >
+    Checks if the path represents a socket. Optionally follows symbolic links.
+  return:
+    type: 'Bool'
+    description: >
+      `True` if the path is a socket, `False` otherwise.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path to check.
+    follow_symlinks:
+      default: 'yes'
+      description: >
+        Whether to follow symbolic links.
+  example: |
+    >> (./socket).is_socket()
+    = yes
+    
+Path.is_symlink:
+  description: >
+    Checks if the path represents a symbolic link.
+  return:
+    type: 'Bool'
+    description: >
+      `True` if the path is a symbolic link, `False` otherwise.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path to check.
+  example: |
+    >> (./link).is_symlink()
+    = yes
+    
+Path.modified:
+  description: >
+    Gets the file modification time of a file.
+  return:
+    type: 'Int64?'
+    description: >
+      A 64-bit unix epoch timestamp representing when the file or directory was last
+      modified, or `none` if no such file or directory exists.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file whose modification time you want.
+    follow_symlinks:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether to follow symbolic links.
+  example: |
+    >> (./file.txt).modified()
+    = 1704221100?
+    >> (./not-a-file).modified()
+    = none
+    
+Path.owner:
+  description: >
+    Get the owning user of a file or directory.
+  return:
+    type: 'Text?'
+    description: >
+      The name of the user who owns the file or directory, or `none` if the path does not exist.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path whose owner to get.
+    follow_symlinks:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether to follow symbolic links.
+  example: |
+    >> (/bin).owner()
+    = "root"
+    >> (/non/existent/file).owner()
+    = none
+    
+Path.parent:
+  description: >
+    Returns the parent directory of the file or directory at the specified path.
+  return:
+    type: 'Path'
+    description: >
+      The path of the parent directory.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file or directory.
+  example: |
+    >> (./path/to/file.txt).parent()
+    = (./path/to/)
+    
+Path.read:
+  description: >
+    Reads the contents of the file at the specified path or a null value if the
+    file could not be read.
+  return:
+    type: 'Text?'
+    description: >
+      The contents of the file. If the file could not be read, a null value will be
+      returned. If the file can be read, but is not valid UTF8 data, an error will be
+      raised.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file to read.
+  example: |
+    >> (./hello.txt).read()
+    = "Hello"?
+    
+    >> (./nosuchfile.xxx).read()
+    = none
+    
+Path.read_bytes:
+  description: >
+    Reads the contents of the file at the specified path or a null value if the
+    file could not be read.
+  return:
+    type: '[Byte]?'
+    description: >
+      The byte contents of the file. If the file cannot be read, a null value will be
+      returned.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file to read.
+    limit:
+      type: 'Int?'
+      default: 'none'
+      description: >
+        A limit to how many bytes should be read.
+  example: |
+    >> (./hello.txt).read()
+    = [72, 101, 108, 108, 111]?
+    
+    >> (./nosuchfile.xxx).read()
+    = none
+    
+Path.relative_to:
+  description: >
+    Returns the path relative to a given base path. By default, the base path is the current directory.
+  return:
+    type: 'Path'
+    description: >
+      The relative path.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path to convert.
+    relative_to:
+      default: '(./)'
+      description: >
+        The base path for the relative path.
+  example: |
+    >> (./path/to/file.txt).relative(relative_to=(./path))
+    = (./to/file.txt)
+    
+Path.remove:
+  description: >
+    Removes the file or directory at the specified path. A runtime error is raised if something goes wrong.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path to remove.
+    ignore_missing:
+      default: 'no'
+      description: >
+        Whether to ignore errors if the file or directory does not exist.
+  example: |
+    (./file.txt).remove()
+    
+Path.resolved:
+  description: >
+    Resolves the absolute path of the given path relative to a base path. By default, the base path is the current directory.
+  return:
+    type: 'Path'
+    description: >
+      The resolved absolute path.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path to resolve.
+    relative_to:
+      default: '(./)'
+      description: >
+        The base path for resolution.
+  example: |
+    >> (~/foo).resolved()
+    = (/home/user/foo)
+    
+    >> (./path/to/file.txt).resolved(relative_to=(/foo))
+    = (/foo/path/to/file.txt)
+    
+Path.set_owner:
+  description: >
+    Set the owning user and/or group for a path.
+  return:
+    type: 'Void'
+    description: >
+      Nothing. If a path does not exist, a failure will be raised.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path to change the permissions for.
+    owner:
+      type: 'Text?'
+      default: 'none'
+      description: >
+        If non-none, the new user to assign to be the owner of the file.
+    group:
+      type: 'Text?'
+      default: 'none'
+      description: >
+        If non-none, the new group to assign to be the owner of the file.
+    follow_symlinks:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether to follow symbolic links.
+  example: |
+    (./file.txt).set_owner(owner="root", group="wheel")
+    
+Path.subdirectories:
+  description: >
+    Returns a list of subdirectories within the directory at the specified path. Optionally includes hidden subdirectories.
+  return:
+    type: '[Path]'
+    description: >
+      A list of subdirectory paths.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the directory.
+    include_hidden:
+      default: 'no'
+      description: >
+        Whether to include hidden subdirectories.
+  example: |
+    >> (./directory).subdirectories()
+    = [(./directory/subdir1), (./directory/subdir2)]
+    
+    >> (./directory).subdirectories(include_hidden=yes)
+    = [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
+    
+Path.unique_directory:
+  description: >
+    Generates a unique directory path based on the given path. Useful for creating temporary directories.
+  return:
+    type: 'Path'
+    description: >
+      A unique directory path after creating the directory.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The base path for generating the unique directory. The last six letters of this path must be `XXXXXX`.
+  example: |
+    >> created := (/tmp/my-dir.XXXXXX).unique_directory()
+    = (/tmp/my-dir-AwoxbM/)
+    >> created.is_directory()
+    = yes
+    created.remove()
+    
+Path.write:
+  description: >
+    Writes the given text to the file at the specified path, creating the file if
+    it doesn't already exist. Sets the file permissions as specified. If the file
+    writing cannot be successfully completed, a runtime error is raised.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file to write to.
+    text:
+      type: 'Text'
+      description: >
+        The text to write to the file.
+    permissions:
+      default: 'Int32(0o644)'
+      description: >
+        The permissions to set on the file if it is created.
+  example: |
+    (./file.txt).write("Hello, world!")
+    
+Path.write_bytes:
+  description: >
+    Writes the given bytes to the file at the specified path, creating the file if
+    it doesn't already exist. Sets the file permissions as specified. If the file
+    writing cannot be successfully completed, a runtime error is raised.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file to write to.
+    bytes:
+      type: '[Byte]'
+      description: >
+        A list of bytes to write to the file.
+    permissions:
+      default: 'Int32(0o644)'
+      description: >
+        The permissions to set on the file if it is created.
+  example: |
+    (./file.txt).write_bytes([104, 105])
+    
+Path.write_unique:
+  description: >
+    Writes the given text to a unique file path based on the specified path. The
+    file is created if it doesn't exist. This is useful for creating temporary
+    files.
+  return:
+    type: 'Path'
+    description: >
+      The path of the newly created unique file.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The base path for generating the unique file. This path must include
+        the string `XXXXXX` in the file base name.
+    text:
+      type: 'Text'
+      description: >
+        The text to write to the file.
+  example: |
+    >> created := (./file-XXXXXX.txt).write_unique("Hello, world!")
+    = (./file-27QHtq.txt)
+    >> created.read()
+    = "Hello, world!"
+    created.remove()
+    
+Path.write_unique_bytes:
+  description: >
+    Writes the given bytes to a unique file path based on the specified path. The
+    file is created if it doesn't exist. This is useful for creating temporary
+    files.
+  return:
+    type: 'Path'
+    description: >
+      The path of the newly created unique file.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The base path for generating the unique file. This path must include
+        the string `XXXXXX` in the file base name.
+    bytes:
+      type: '[Byte]'
+      description: >
+        The bytes to write to the file.
+  example: |
+    >> created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])
+    = (./file-27QHtq.txt)
+    >> created.read()
+    = [1, 2, 3]
+    created.remove()
+    

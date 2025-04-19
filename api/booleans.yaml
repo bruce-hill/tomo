@@ -1,0 +1,22 @@
+Bool.parse:
+  description: >
+    Converts a string representation of a boolean value into a boolean. Acceptable
+    boolean values are case-insensitive variations of `yes`/`no`, `y`/`n`,
+    `true`/`false`, `on`/`off`.
+  return:
+    type: 'Bool?'
+    description: >
+      `yes` if the string matches a recognized truthy boolean value; otherwise return `no`.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The string containing the boolean value.
+  example: |
+    >> Bool.parse("yes")
+    = yes : Bool?
+    >> Bool.parse("no")
+    = no : Bool?
+    >> Bool.parse("???")
+    = none : Bool?
+    

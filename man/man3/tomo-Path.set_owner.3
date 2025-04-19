@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.set_owner 3 2025-04-19T14:30:40.366011 "Tomo man-pages"
+.SH NAME
+Path.set_owner \- Set the owning user and/or group for a path.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.set_owner : func(path: Path, owner: Text? = none, group: Text? = none, follow_symlinks: Bool = yes -> Void)"
+.fi
+
+.SH DESCRIPTION
+Set the owning user and/or group for a path.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path to change the permissions for. 	-
+owner	Text?	If non-none, the new user to assign to be the owner of the file. 	none
+group	Text?	If non-none, the new group to assign to be the owner of the file. 	none
+follow_symlinks	Bool	Whether to follow symbolic links. 	yes
+.TE
+.SH RETURN
+Nothing. If a path does not exist, a failure will be raised.
+
+.SH EXAMPLES
+.EX
+(./file.txt).set_owner(owner="root", group="wheel")
+.EE

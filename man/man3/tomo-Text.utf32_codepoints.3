@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.utf32_codepoints 3 2025-04-19T14:30:40.368427 "Tomo man-pages"
+.SH NAME
+Text.utf32_codepoints \- Returns a list of Unicode code points for UTF32 encoding of the text.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.utf32_codepoints : func(text: Text -> [Int32])"
+.fi
+
+.SH DESCRIPTION
+Returns a list of Unicode code points for UTF32 encoding of the text.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text from which to extract Unicode code points. 	-
+.TE
+.SH RETURN
+A list of 32-bit integer Unicode code points (`[Int32]`).
+
+.SH EXAMPLES
+.EX
+>> "Amélie".utf32_codepoints()
+= [65, 109, 233, 108, 105, 101]
+.EE

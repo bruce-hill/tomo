@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.fdim 3 2025-04-19T14:30:40.362760 "Tomo man-pages"
+.SH NAME
+Num.fdim \- Computes the positive difference between two numbers.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.fdim : func(x: Num, y: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Computes the positive difference between two numbers.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Num	The first number. 	-
+y	Num	The second number. 	-
+.TE
+.SH RETURN
+The positive difference $\max(0, x - y)$.
+
+.SH EXAMPLES
+.EX
+fd
+
+>> (5.0).fdim(3)
+= 2
+.EE

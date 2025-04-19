@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Byte.parse 3 2025-04-19T14:30:40.360223 "Tomo man-pages"
+.SH NAME
+Byte.parse \- Parse a byte literal from text.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Byte.parse : func(text: Text -> Byte?)"
+.fi
+
+.SH DESCRIPTION
+Parse a byte literal from text.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to parse. 	-
+.TE
+.SH RETURN
+The byte parsed from the text, if successful, otherwise `none`.
+
+.SH EXAMPLES
+.EX
+>> Byte.parse("5")
+= Byte(5)?
+>> Byte.parse("asdf")
+= none
+.EE

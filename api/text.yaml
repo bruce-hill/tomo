@@ -1,0 +1,915 @@
+Text.as_c_string:
+  description: >
+    Converts a `Text` value to a C-style string.
+  return:
+    type: 'CString'
+    description: >
+      A C-style string (`CString`) representing the text.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be converted to a C-style string.
+  example: |
+    >> "Hello".as_c_string()
+    = CString("Hello")
+    
+Text.at:
+  description: >
+    Get the graphical cluster at a given index. This is similar to `str[i]` with
+    ASCII text, but has more correct behavior for unicode text.
+  return:
+    type: 'Text'
+    description: >
+      A `Text` with the single graphical cluster at the given index. Note: negative
+      indices are counted from the back of the text, so `-1` means the last cluster,
+      `-2` means the second-to-last, and so on.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text from which to get a cluster.
+    index:
+      type: 'Int'
+      description: >
+        The index of the graphical cluster (1-indexed).
+  example: |
+    >> "Amélie".at(3)
+    = "é"
+    
+Text.by_line:
+  description: >
+    Returns an iterator function that can be used to iterate over the lines in a
+    text.
+  return:
+    type: 'func(->Text?)'
+    description: >
+      An iterator function that returns one line at a time, until it runs out and
+      returns `none`. **Note:** this function ignores a trailing newline if there is
+      one. If you don't want this behavior, use `text.by_split($/{1 nl}/)` instead.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be iterated over, line by line.
+  example: |
+    text := "
+    line one
+    line two
+    "
+    for line in text.by_line()
+    # Prints: "line one" then "line two":
+    say(line)
+    
+Text.by_split:
+  description: >
+    Returns an iterator function that can be used to iterate over text separated by
+    a delimiter.
+    **Note:** to split based on a set of delimiters, use [`by_split_any()`](#by_split_any).
+  return:
+    type: 'func(->Text?)'
+    description: >
+      An iterator function that returns one chunk of text at a time, separated by the
+      given delimiter, until it runs out and returns `none`. **Note:** using an empty
+      delimiter (the default) will iterate over single grapheme clusters in the text.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be iterated over in delimited chunks.
+    delimiter:
+      type: 'Text'
+      default: '""'
+      description: >
+        An exact delimiter to use for splitting the text.
+  note: >
+    If an empty text is given as the delimiter, then each split will be the
+    graphical clusters of the text.
+  example: |
+    text := "one,two,three"
+    for chunk in text.by_split(",")
+    # Prints: "one" then "two" then "three":
+    say(chunk)
+    
+Text.by_split_any:
+  description: >
+    Returns an iterator function that can be used to iterate over text separated by
+    one or more characters (grapheme clusters) from a given text of delimiters.
+    **Note:** to split based on an exact delimiter, use [`by_split()`](#by_split).
+  return:
+    type: 'func(->Text?)'
+    description: >
+      An iterator function that returns one chunk of text at a time, separated by the
+      given delimiter characters, until it runs out and returns `none`.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be iterated over in delimited chunks.
+    delimiters:
+      type: 'Text'
+      default: '" $\t\r\n"'
+      description: >
+        Grapheme clusters to use for splitting the text.
+  note: >
+    Splitting will occur on every place where one or more of the grapheme
+    clusters in `delimiters` occurs.
+  example: |
+    text := "one,two,;,three"
+    for chunk in text.by_split_any(",;")
+    # Prints: "one" then "two" then "three":
+    say(chunk)
+    
+Text.bytes:
+  description: >
+    Converts a `Text` value to a list of bytes representing a UTF8 encoding of
+    the text.
+  return:
+    type: '[Byte]'
+    description: >
+      A list of bytes (`[Byte]`) representing the text in UTF8 encoding.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be converted to UTF8 bytes.
+  example: |
+    >> "Amélie".bytes()
+    = [65, 109, 195, 169, 108, 105, 101]
+    
+Text.caseless_equals:
+  description: >
+    Checks whether two texts are equal, ignoring the casing of the letters (i.e.
+    case-insensitive comparison).
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if `a` and `b` are equal to each other, ignoring casing, otherwise `no`.
+  args:
+    a:
+      type: 'Text'
+      description: >
+        The first text to compare case-insensitively.
+    b:
+      type: 'Text'
+      description: >
+        The second text to compare case-insensitively.
+    language:
+      type: 'Text'
+      default: '"C"'
+      description: >
+        The ISO 639 language code for which casing rules to use.
+  example: |
+    >> "A".caseless_equals("a")
+    = yes
+    
+    # Turkish lowercase "I" is "ı" (dotless I), not "i"
+    >> "I".caseless_equals("i", language="tr_TR")
+    = no
+    
+Text.codepoint_names:
+  description: >
+    Returns a list of the names of each codepoint in the text.
+  return:
+    type: '[Text]'
+    description: >
+      A list of codepoint names (`[Text]`).
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text from which to extract codepoint names.
+  example: |
+    >> "Amélie".codepoint_names()
+    = ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E WITH ACUTE", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
+    
+Text.ends_with:
+  description: >
+    Checks if the `Text` ends with a literal suffix text.
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if the text has the target, `no` otherwise.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be searched.
+    suffix:
+      type: 'Text'
+      description: >
+        The literal suffix text to check for.
+  example: |
+    >> "hello world".ends_with("world")
+    = yes
+    
+Text.from:
+  description: >
+    Get a slice of the text, starting at the given position.
+  return:
+    type: 'Text'
+    description: >
+      The text from the given grapheme cluster to the end of the text. Note: a
+      negative index counts backwards from the end of the text, so `-1` refers to the
+      last cluster, `-2` the second-to-last, etc. Slice ranges will be truncated to
+      the length of the text.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be sliced.
+    first:
+      type: 'Int'
+      description: >
+        The index to begin the slice.
+  example: |
+    >> "hello".from(2)
+    = "ello"
+    
+    >> "hello".from(-2)
+    = "lo"
+    
+Text.from_bytes:
+  description: >
+    Returns text that has been constructed from the given UTF8 bytes. Note: the
+    text will be normalized, so the resulting text's UTF8 bytes may not exactly
+    match the input.
+  return:
+    type: '[Text]'
+    description: >
+      A new text based on the input UTF8 bytes after normalization has been applied.
+  args:
+    bytes:
+      type: '[Byte]'
+      description: >
+        The UTF-8 bytes of the desired text.
+  example: |
+    >> Text.from_bytes([195, 133, 107, 101])
+    = "Åke"
+    
+Text.from_c_string:
+  description: >
+    Converts a C-style string to a `Text` value.
+  return:
+    type: 'Text'
+    description: >
+      A `Text` value representing the C-style string.
+  args:
+    str:
+      type: 'CString'
+      description: >
+        The C-style string to be converted.
+  example: |
+    >> Text.from_c_string(CString("Hello"))
+    = "Hello"
+    
+Text.from_codepoint_names:
+  description: >
+    Returns text that has the given codepoint names (according to the Unicode
+    specification) as its codepoints. Note: the text will be normalized, so the
+    resulting text's codepoints may not exactly match the input codepoints.
+  return:
+    type: '[Text]'
+    description: >
+      A new text with the specified codepoints after normalization has been applied.
+      Any invalid names are ignored.
+  args:
+    codepoint_names:
+      type: '[Text]'
+      description: >
+        The names of each codepoint in the desired text (case-insentive).
+  example: |
+    >> Text.from_codepoint_names([
+    "LATIN CAPITAL LETTER A WITH RING ABOVE",
+    "LATIN SMALL LETTER K",
+    "LATIN SMALL LETTER E",
+    ]
+    = "Åke"
+    
+Text.from_codepoints:
+  description: >
+    Returns text that has been constructed from the given UTF32 codepoints. Note:
+    the text will be normalized, so the resulting text's codepoints may not exactly
+    match the input codepoints.
+  return:
+    type: '[Text]'
+    description: >
+      A new text with the specified codepoints after normalization has been applied.
+  args:
+    codepoints:
+      type: '[Int32]'
+      description: >
+        The UTF32 codepoints in the desired text.
+  example: |
+    >> Text.from_codepoints([197, 107, 101])
+    = "Åke"
+    
+Text.has:
+  description: >
+    Checks if the `Text` contains some target text.
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if the target text is found, `no` otherwise.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be searched.
+    target:
+      type: 'Text'
+      description: >
+        The text to search for.
+  example: |
+    >> "hello world".has("wo")
+    = yes
+    >> "hello world".has("xxx")
+    = no
+    
+Text.join:
+  description: >
+    Joins a list of text pieces with a specified glue.
+  return:
+    type: 'Text'
+    description: >
+      A single `Text` value with the pieces joined by the glue.
+  args:
+    glue:
+      type: 'Text'
+      description: >
+        The text used to join the pieces.
+    pieces:
+      type: '[Text]'
+      description: >
+        The list of text pieces to be joined.
+  example: |
+    >> ", ".join(["one", "two", "three"])
+    = "one, two, three"
+    
+Text.middle_pad:
+  description: >
+    Pad some text on the left and right side so it reaches a target width.
+  return:
+    type: 'Text'
+    description: >
+      Text with length at least `width`, with extra padding on the left and right as
+      needed. If `pad` has length greater than 1, it may be partially repeated to
+      reach the exact desired length.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to pad.
+    width:
+      type: 'Int'
+      description: >
+        The target width.
+    pad:
+      type: 'Text'
+      default: '" "'
+      description: >
+        The padding text.
+    language:
+      type: 'Text'
+      default: '"C"'
+      description: >
+        The ISO 639 language code for which character width to use.
+  example: |
+    >> "x".middle_pad(6)
+    = "  x   "
+    >> "x".middle_pad(10, "ABC")
+    = "ABCAxABCAB"
+    
+Text.left_pad:
+  description: >
+    Pad some text on the left side so it reaches a target width.
+  return:
+    type: 'Text'
+    description: >
+      Text with length at least `width`, with extra padding on the left as needed. If
+      `pad` has length greater than 1, it may be partially repeated to reach the
+      exact desired length.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to pad.
+    width:
+      type: 'Int'
+      description: >
+        The target width.
+    pad:
+      type: 'Text'
+      default: '" "'
+      description: >
+        The padding text.
+    language:
+      type: 'Text'
+      default: '"C"'
+      description: >
+        The ISO 639 language code for which character width to use.
+  example: |
+    >> "x".left_pad(5)
+    = "    x"
+    >> "x".left_pad(5, "ABC")
+    = "ABCAx"
+    
+Text.lines:
+  description: >
+    Splits the text into a list of lines of text, preserving blank lines,
+    ignoring trailing newlines, and handling `\r\n` the same as `\n`.
+  return:
+    type: '[Text]'
+    description: >
+      A list of substrings resulting from the split.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be split into lines.
+  example: |
+    >> "one\ntwo\nthree".lines()
+    = ["one", "two", "three"]
+    >> "one\ntwo\nthree\n".lines()
+    = ["one", "two", "three"]
+    >> "one\ntwo\nthree\n\n".lines()
+    = ["one", "two", "three", ""]
+    >> "one\r\ntwo\r\nthree\r\n".lines()
+    = ["one", "two", "three"]
+    >> "".lines()
+    = []
+    
+Text.lower:
+  description: >
+    Converts all characters in the text to lowercase.
+  return:
+    type: 'Text'
+    description: >
+      The lowercase version of the text.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be converted to lowercase.
+    language:
+      type: 'Text'
+      default: '"C"'
+      description: >
+        The ISO 639 language code for which casing rules to use.
+  example: |
+    >> "AMÉLIE".lower()
+    = "amélie"
+    
+    >> "I".lower(language="tr_TR")
+    >> "ı"
+    
+Text.quoted:
+  description: >
+    Formats the text with quotation marks and escapes.
+  return:
+    type: 'Text'
+    description: >
+      The text formatted as a quoted text.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be quoted.
+    color:
+      type: 'Bool'
+      default: 'no'
+      description: >
+        Whether to add color formatting.
+    quotation_mark:
+      type: 'Text'
+      default: '`"`'
+      description: >
+        The quotation mark to use.
+  example: |
+    >> "one\ntwo".quoted()
+    = "\"one\\ntwo\""
+    
+Text.repeat:
+  description: >
+    Repeat some text multiple times.
+  return:
+    type: 'Text'
+    description: >
+      The text repeated the given number of times.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to repeat.
+    count:
+      type: 'Int'
+      description: >
+        The number of times to repeat it. (Negative numbers are equivalent to zero).
+  example: |
+    >> "Abc".repeat(3)
+    = "AbcAbcAbc"
+    
+Text.replace:
+  description: >
+    Replaces occurrences of a target text with a replacement text.
+  return:
+    type: 'Text'
+    description: >
+      The text with occurrences of the target replaced.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text in which to perform replacements.
+    target:
+      type: 'Text'
+      description: >
+        The target text to be replaced.
+    replacement:
+      type: 'Text'
+      description: >
+        The text to replace the target with.
+  example: |
+    >> "Hello world".replace("world", "there")
+    = "Hello there"
+    
+Text.reversed:
+  description: >
+    Return a text that has the grapheme clusters in reverse order.
+  return:
+    type: 'Text'
+    description: >
+      A reversed version of the text.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to reverse.
+  example: |
+    >> "Abc".reversed()
+    = "cbA"
+    
+Text.right_pad:
+  description: >
+    Pad some text on the right side so it reaches a target width.
+  return:
+    type: 'Text'
+    description: >
+      Text with length at least `width`, with extra padding on the right as needed. If
+      `pad` has length greater than 1, it may be partially repeated to reach the
+      exact desired length.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to pad.
+    width:
+      type: 'Int'
+      description: >
+        The target width.
+    pad:
+      type: 'Text'
+      default: '" "'
+      description: >
+        The padding text.
+    language:
+      type: 'Text'
+      default: '"C"'
+      description: >
+        The ISO 639 language code for which character width to use.
+  example: |
+    >> "x".right_pad(5)
+    = "x    "
+    >> "x".right_pad(5, "ABC")
+    = "xABCA"
+    
+Text.slice:
+  description: >
+    Get a slice of the text.
+  return:
+    type: 'Text'
+    description: >
+      The text that spans the given grapheme cluster indices. Note: a negative index
+      counts backwards from the end of the text, so `-1` refers to the last cluster,
+      `-2` the second-to-last, etc. Slice ranges will be truncated to the length of
+      the text.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be sliced.
+    from:
+      type: 'Int'
+      default: '1'
+      description: >
+        The index of the first grapheme cluster to include (1-indexed).
+    to:
+      type: 'Int'
+      default: '-1'
+      description: >
+        The index of the last grapheme cluster to include (1-indexed).
+  example: |
+    >> "hello".slice(2, 3)
+    = "el"
+    
+    >> "hello".slice(to=-2)
+    = "hell"
+    
+    >> "hello".slice(from=2)
+    = "ello"
+    
+Text.split:
+  description: >
+    Splits the text into a list of substrings based on exact matches of a delimiter.
+    **Note:** to split based on a set of delimiter characters, use [`split_any()`](#split_any).
+  return:
+    type: '[Text]'
+    description: >
+      A list of subtexts resulting from the split.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be split.
+    delimiter:
+      type: 'Text'
+      default: '""'
+      description: >
+        The delimiter used to split the text. If the delimiter is the
+        empty text, the text will be split into individual grapheme clusters.
+  example: |
+    >> "one,two,,three".split(",")
+    = ["one", "two", "", "three"]
+    
+    >> "abc".split()
+    = ["a", "b", "c"]
+    
+Text.split_any:
+  description: >
+    Splits the text into a list of substrings at one or more occurrences of a set
+    of delimiter characters (grapheme clusters).
+    **Note:** to split based on an exact delimiter, use [`split()`](#split).
+  return:
+    type: '[Text]'
+    description: >
+      A list of subtexts resulting from the split.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be split.
+    delimiters:
+      type: 'Text'
+      default: '" $\t\r\n"'
+      description: >
+        A text containing multiple delimiters to be used for 
+        splitting the text into chunks.
+  example: |
+    >> "one, two,,three".split_any(", ")
+    = ["one", "two", "three"]
+    
+Text.starts_with:
+  description: >
+    Checks if the `Text` starts with a literal prefix text.
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if the text has the given prefix, `no` otherwise.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be searched.
+    prefix:
+      type: 'Text'
+      description: >
+        The literal prefix text to check for.
+  example: |
+    >> "hello world".starts_with("hello")
+    = yes
+    
+Text.title:
+  description: >
+    Converts the text to title case (capitalizing the first letter of each word).
+  return:
+    type: 'Text'
+    description: >
+      The text in title case.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be converted to title case.
+    language:
+      type: 'Text'
+      default: '"C"'
+      description: >
+        The ISO 639 language code for which casing rules to use.
+  example: |
+    >> "amélie".title()
+    = "Amélie"
+    
+    # In Turkish, uppercase "i" is "İ"
+    >> "i".title(language="tr_TR")
+    = "İ"
+    
+Text.to:
+  description: >
+    Get a slice of the text, ending at the given position.
+  return:
+    type: 'Text'
+    description: >
+      The text up to and including the given grapheme cluster. Note: a negative index
+      counts backwards from the end of the text, so `-1` refers to the last cluster,
+      `-2` the second-to-last, etc. Slice ranges will be truncated to the length of
+      the text.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be sliced.
+    last:
+      type: 'Int'
+      description: >
+        The index of the last grapheme cluster to include (1-indexed).
+  example: |
+    >> "goodbye".to(3)
+    = "goo"
+    
+    >> "goodbye".to(-2)
+    = "goodby"
+    
+Text.translate:
+  description: >
+    Takes a table mapping target texts to their replacements and performs all the
+    replacements in the table on the whole text. At each position, the first
+    matching replacement is applied and the matching moves on to *after* the
+    replacement text, so replacement text is not recursively modified. See
+    [`replace()`](#replace) for more information about replacement behavior.
+  return:
+    type: 'Text'
+    description: >
+      The text with all occurrences of the targets replaced with their corresponding
+      replacement text.
+  args:
+    translations:
+      type: '{Text=Text}'
+      description: >
+        A table mapping from target text to its replacement.
+  example: |
+    >> "A <tag> & an amperand".translate({
+    "&" = "&amp;",
+    "<" = "&lt;",
+    ">" = "&gt;",
+    '"" = "&quot",
+    "'" = "&#39;",
+    }
+    = "A &lt;tag&gt; &amp; an ampersand"
+    
+Text.trim:
+  description: >
+    Trims the given characters (grapheme clusters) from the left and/or right side of the text.
+  return:
+    type: 'Text'
+    description: >
+      The text without the trim characters at either end.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be trimmed.
+    to_trim:
+      type: 'Text'
+      default: '" $\t\r\n"'
+      description: >
+        The characters to remove from the left/right of the text.
+    left:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether or not to trim from the front of the text.
+    right:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether or not to trim from the back of the text.
+  example: |
+    >> "   x y z    \n".trim()
+    = "x y z"
+    
+    >> "one,".trim(",")
+    = "one"
+    
+    >> "   xyz   ".trim(right=no)
+    = "xyz   "
+    
+Text.upper:
+  description: >
+    Converts all characters in the text to uppercase.
+  return:
+    type: 'Text'
+    description: >
+      The uppercase version of the text.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be converted to uppercase.
+    language:
+      type: 'Text'
+      default: '"C"'
+      description: >
+        The ISO 639 language code for which casing rules to use.
+  example: |
+    >> "amélie".upper()
+    = "AMÉLIE"
+    
+    # In Turkish, uppercase "i" is "İ"
+    >> "i".upper(language="tr_TR")
+    = "İ"
+    
+Text.utf32_codepoints:
+  description: >
+    Returns a list of Unicode code points for UTF32 encoding of the text.
+  return:
+    type: '[Int32]'
+    description: >
+      A list of 32-bit integer Unicode code points (`[Int32]`).
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text from which to extract Unicode code points.
+  example: |
+    >> "Amélie".utf32_codepoints()
+    = [65, 109, 233, 108, 105, 101]
+    
+Text.width:
+  description: >
+    Returns the display width of the text as seen in a terminal with appropriate
+    font rendering. This is usually the same as the text's `.length`, but there are
+    some characters like emojis that render wider than 1 cell.
+  note: >
+    This will not always be exactly accurate when your terminal's font
+    rendering can't handle some unicode displaying correctly.
+  return:
+    type: 'Int'
+    description: >
+      An integer representing the display width of the text.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text whose length you want.
+  example: |
+    >> "Amélie".width()
+    = 6
+    >> "🤠".width()
+    = 2
+    
+Text.without_prefix:
+  description: >
+    Returns the text with a given prefix removed (if present).
+  return:
+    type: 'Text'
+    description: >
+      A text without the given prefix (if present) or the unmodified text if the
+      prefix is not present.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to remove the prefix from.
+    prefix:
+      type: 'Text'
+      description: >
+        The prefix to remove.
+  example: |
+    >> "foo:baz".without_prefix("foo:")
+    = "baz"
+    >> "qux".without_prefix("foo:")
+    = "qux"
+    
+Text.without_suffix:
+  description: >
+    Returns the text with a given suffix removed (if present).
+  return:
+    type: 'Text'
+    description: >
+      A text without the given suffix (if present) or the unmodified text if the
+      suffix is not present.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to remove the suffix from.
+    suffix:
+      type: 'Text'
+      description: >
+        The suffix to remove.
+  example: |
+    >> "baz.foo".without_suffix(".foo")
+    = "baz"
+    >> "qux".without_suffix(".foo")
+    = "qux"
+    

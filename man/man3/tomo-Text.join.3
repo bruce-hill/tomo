@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.join 3 2025-04-19T14:30:40.367649 "Tomo man-pages"
+.SH NAME
+Text.join \- Joins a list of text pieces with a specified glue.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.join : func(glue: Text, pieces: [Text] -> Text)"
+.fi
+
+.SH DESCRIPTION
+Joins a list of text pieces with a specified glue.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+glue	Text	The text used to join the pieces. 	-
+pieces	[Text]	The list of text pieces to be joined. 	-
+.TE
+.SH RETURN
+A single `Text` value with the pieces joined by the glue.
+
+.SH EXAMPLES
+.EX
+>> ", ".join(["one", "two", "three"])
+= "one, two, three"
+.EE

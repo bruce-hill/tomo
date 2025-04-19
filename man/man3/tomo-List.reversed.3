@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH List.reversed 3 2025-04-19T14:30:40.361612 "Tomo man-pages"
+.SH NAME
+List.reversed \- Returns a reversed slice of the list.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "List.reversed : func(list: [T] -> [T])"
+.fi
+
+.SH DESCRIPTION
+Returns a reversed slice of the list.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+list	[T]	The list to be reversed. 	-
+.TE
+.SH RETURN
+A slice of the list with elements in reverse order.
+
+.SH EXAMPLES
+.EX
+>> [10, 20, 30].reversed()
+= [30, 20, 10]
+.EE

@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH getenv 3 2025-04-19T14:30:40.359840 "Tomo man-pages"
+.SH NAME
+getenv \- Gets an environment variable.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "getenv : func(name: Text -> Text?)"
+.fi
+
+.SH DESCRIPTION
+Gets an environment variable.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+name	Text	The name of the environment variable to get. 	-
+.TE
+.SH RETURN
+If set, the environment variable's value, otherwise, `none`.
+
+.SH EXAMPLES
+.EX
+>> getenv("TERM")
+= "xterm-256color"?
+.EE

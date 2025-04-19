@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Int.octal 3 2025-04-19T14:30:40.360662 "Tomo man-pages"
+.SH NAME
+Int.octal \- Converts an integer to its octal representation.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Int.octal : func(i: Int, digits: Int = 0, prefix: Bool = yes -> Text)"
+.fi
+
+.SH DESCRIPTION
+Converts an integer to its octal representation.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+i	Int	The integer to be converted. 	-
+digits	Int	The minimum number of digits in the output string. 	0
+prefix	Bool	Whether to include a "0o" prefix. 	yes
+.TE
+.SH RETURN
+The octal string representation of the integer.
+
+.SH EXAMPLES
+.EX
+>> (64).octal(digits=4, prefix=yes)
+= "0o0100"
+.EE

@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.subdirectories 3 2025-04-19T14:30:40.366051 "Tomo man-pages"
+.SH NAME
+Path.subdirectories \- Returns a list of subdirectories within the directory at the specified path. Optionally includes hidden subdirectories.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.subdirectories : func(path: Path, include_hidden = no -> [Path])"
+.fi
+
+.SH DESCRIPTION
+Returns a list of subdirectories within the directory at the specified path. Optionally includes hidden subdirectories.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path of the directory. 	-
+include_hidden		Whether to include hidden subdirectories. 	no
+.TE
+.SH RETURN
+A list of subdirectory paths.
+
+.SH EXAMPLES
+.EX
+>> (./directory).subdirectories()
+= [(./directory/subdir1), (./directory/subdir2)]
+
+>> (./directory).subdirectories(include_hidden=yes)
+= [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
+.EE

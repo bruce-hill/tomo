@@ -1,0 +1,39 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.title 3 2025-04-19T14:30:40.368227 "Tomo man-pages"
+.SH NAME
+Text.title \- Converts the text to title case (capitalizing the first letter of each word).
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.title : func(text: Text, language: Text = "C" -> Text)"
+.fi
+
+.SH DESCRIPTION
+Converts the text to title case (capitalizing the first letter of each word).
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to be converted to title case. 	-
+language	Text	The ISO 639 language code for which casing rules to use. 	"C"
+.TE
+.SH RETURN
+The text in title case.
+
+.SH EXAMPLES
+.EX
+>> "amélie".title()
+= "Amélie"
+
+# In Turkish, uppercase "i" is "İ"
+>> "i".title(language="tr_TR")
+= "İ"
+.EE

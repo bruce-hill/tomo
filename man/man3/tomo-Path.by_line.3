@@ -1,0 +1,42 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.by_line 3 2025-04-19T14:30:40.364894 "Tomo man-pages"
+.SH NAME
+Path.by_line \- Returns an iterator that can be used to iterate over a file one line at a time, or returns a null value if the file could not be opened.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.by_line : func(path: Path -> func(->Text?)?)"
+.fi
+
+.SH DESCRIPTION
+Returns an iterator that can be used to iterate over a file one line at a time, or returns a null value if the file could not be opened.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path of the file. 	-
+.TE
+.SH RETURN
+An iterator that can be used to get lines from a file one at a time or a null value if the file couldn't be read.
+
+.SH EXAMPLES
+.EX
+# Safely handle file not being readable:
+if lines := (./file.txt).by_line()
+for line in lines
+say(line.upper())
+else
+say("Couldn't read file!")
+
+# Assume the file is readable and error if that's not the case:
+for line in (/dev/stdin).by_line()!
+say(line.upper())
+.EE

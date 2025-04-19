@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.read_bytes 3 2025-04-19T14:30:40.365850 "Tomo man-pages"
+.SH NAME
+Path.read_bytes \- Reads the contents of the file at the specified path or a null value if the file could not be read.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.read_bytes : func(path: Path, limit: Int? = none -> [Byte]?)"
+.fi
+
+.SH DESCRIPTION
+Reads the contents of the file at the specified path or a null value if the file could not be read.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path of the file to read. 	-
+limit	Int?	A limit to how many bytes should be read. 	none
+.TE
+.SH RETURN
+The byte contents of the file. If the file cannot be read, a null value will be returned.
+
+.SH EXAMPLES
+.EX
+>> (./hello.txt).read()
+= [72, 101, 108, 108, 111]?
+
+>> (./nosuchfile.xxx).read()
+= none
+.EE

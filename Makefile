@@ -74,6 +74,8 @@ endif
 COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c))
 STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c))
 TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/*.tm))
+API_YAML=$(wildcard api/*.yaml)
+API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
 
 all: config.mk build/lib/$(LIB_FILE) build/lib/$(AR_FILE) build/bin/tomo
 
@@ -123,6 +125,19 @@ clean:
 %: %.md
 	pandoc --lua-filter=docs/.pandoc/bold-code.lua -s $< -t man -o $@
 
+%.md: %.yaml scripts/api_gen.py
+	./scripts/api_gen.py $< >$@
+
+api/api.md: $(API_YAML)
+	./scripts/api_gen.py $^ >$@
+
+.PHONY: api-docs
+api-docs: $(API_MD) api/api.md
+
+.PHONY: manpages
+manpages: $(API_YAML)
+	./scripts/mandoc_gen.py $^
+
 examples:
 	./build/bin/tomo -qIL examples/log examples/ini examples/vectors examples/http examples/wrap examples/colorful
 	./build/bin/tomo -e examples/game/game.tm examples/http-server/http-server.tm \
@@ -156,7 +171,8 @@ install-files: build/bin/tomo build/lib/$(LIB_FILE) build/lib/$(AR_FILE)
 	cp -v build/lib/$(LIB_FILE) build/lib/$(AR_FILE) "$(PREFIX)/lib/"
 	rm -f "$(PREFIX)/bin/tomo"
 	cp -v build/bin/tomo "$(PREFIX)/bin/"
-	cp -v docs/tomo.1 "$(PREFIX)/man/man1/"
+	cp -v man/man1/* "$(PREFIX)/man/man1/"
+	cp -v man/man3/* "$(PREFIX)/man/man3/"
 
 install-libs: build/bin/tomo
 	./local-tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/uuid lib/core

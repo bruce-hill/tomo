@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.write_unique 3 2025-04-19T14:30:40.366203 "Tomo man-pages"
+.SH NAME
+Path.write_unique \- Writes the given text to a unique file path based on the specified path. The file is created if it doesn't exist. This is useful for creating temporary files.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.write_unique : func(path: Path, text: Text -> Path)"
+.fi
+
+.SH DESCRIPTION
+Writes the given text to a unique file path based on the specified path. The file is created if it doesn't exist. This is useful for creating temporary files.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The base path for generating the unique file. This path must include the string `XXXXXX` in the file base name. 	-
+text	Text	The text to write to the file. 	-
+.TE
+.SH RETURN
+The path of the newly created unique file.
+
+.SH EXAMPLES
+.EX
+>> created := (./file-XXXXXX.txt).write_unique("Hello, world!")
+= (./file-27QHtq.txt)
+>> created.read()
+= "Hello, world!"
+created.remove()
+.EE

@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.nextafter 3 2025-04-19T14:30:40.363421 "Tomo man-pages"
+.SH NAME
+Num.nextafter \- Computes the next representable value after a given number towards a specified direction.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.nextafter : func(x: Num, y: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Computes the next representable value after a given number towards a specified direction.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Num	The starting number. 	-
+y	Num	The direction towards which to find the next representable value. 	-
+.TE
+.SH RETURN
+The next representable value after `x` in the direction of `y`.
+
+.SH EXAMPLES
+.EX
+>> (1.0).nextafter(1.1)
+= 1.0000000000000002
+.EE

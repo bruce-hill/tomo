@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.trunc 3 2025-04-19T14:30:40.364102 "Tomo man-pages"
+.SH NAME
+Num.trunc \- Truncates a number to the nearest integer towards zero.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.trunc : func(x: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Truncates a number to the nearest integer towards zero.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Num	The number to be truncated. 	-
+.TE
+.SH RETURN
+The integer part of `x` towards zero.
+
+.SH EXAMPLES
+.EX
+>> (3.7).trunc()
+= 3
+>> (-3.7).trunc()
+= -3
+.EE

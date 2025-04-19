@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH say 3 2025-04-19T14:30:40.359935 "Tomo man-pages"
+.SH NAME
+say \- Prints a message to the console.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "say : func(text: Text, newline: Bool = yes -> Void)"
+.fi
+
+.SH DESCRIPTION
+Prints a message to the console.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to print. 	-
+newline	Bool	Whether or not to print a newline after the text. 	yes
+.TE
+.SH RETURN
+Nothing.
+
+.SH EXAMPLES
+.EX
+say("Hello ", newline=no)
+say("world!")
+.EE

@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Table.has 3 2025-04-19T14:30:40.366893 "Tomo man-pages"
+.SH NAME
+Table.has \- Checks if the table contains a specified key.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Table.has : func(t: {K=V}, key: K -> Bool)"
+.fi
+
+.SH DESCRIPTION
+Checks if the table contains a specified key.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+t	{K=V}	The table. 	-
+key	K	The key to check for presence. 	-
+.TE
+.SH RETURN
+`yes` if the key is present, `no` otherwise.
+
+.SH EXAMPLES
+.EX
+>> {"A"=1, "B"=2}.has("A")
+= yes
+>> {"A"=1, "B"=2}.has("xxx")
+= no
+.EE

@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.acos 3 2025-04-19T14:30:40.362066 "Tomo man-pages"
+.SH NAME
+Num.acos \- Computes the arc cosine of a number.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.acos : func(x: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Computes the arc cosine of a number.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Num	The number for which the arc cosine is to be calculated. 	-
+.TE
+.SH RETURN
+The arc cosine of `x` in radians.
+
+.SH EXAMPLES
+.EX
+>> (0.0).acos() // -> (π/2)
+= 1.5708
+.EE

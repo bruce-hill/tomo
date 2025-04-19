@@ -1,0 +1,40 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.caseless_equals 3 2025-04-19T14:30:40.367273 "Tomo man-pages"
+.SH NAME
+Text.caseless_equals \- Checks whether two texts are equal, ignoring the casing of the letters (i.e. case-insensitive comparison).
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.caseless_equals : func(a: Text, b: Text, language: Text = "C" -> Bool)"
+.fi
+
+.SH DESCRIPTION
+Checks whether two texts are equal, ignoring the casing of the letters (i.e. case-insensitive comparison).
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+a	Text	The first text to compare case-insensitively. 	-
+b	Text	The second text to compare case-insensitively. 	-
+language	Text	The ISO 639 language code for which casing rules to use. 	"C"
+.TE
+.SH RETURN
+`yes` if `a` and `b` are equal to each other, ignoring casing, otherwise `no`.
+
+.SH EXAMPLES
+.EX
+>> "A".caseless_equals("a")
+= yes
+
+# Turkish lowercase "I" is "ı" (dotless I), not "i"
+>> "I".caseless_equals("i", language="tr_TR")
+= no
+.EE

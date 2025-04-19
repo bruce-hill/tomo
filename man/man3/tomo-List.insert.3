@@ -1,0 +1,45 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH List.insert 3 2025-04-19T14:30:40.361359 "Tomo man-pages"
+.SH NAME
+List.insert \- Inserts an element at a specified position in the list.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "List.insert : func(list: @[T], item: T, at: Int = 0 -> Void)"
+.fi
+
+.SH DESCRIPTION
+Inserts an element at a specified position in the list.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+list	@[T]	The mutable reference to the list. 	-
+item	T	The item to be inserted. 	-
+at	Int	The index at which to insert the item. 	0
+.TE
+.SH RETURN
+Nothing.
+
+.SH NOTES
+Since indices are 1-indexed and negative indices mean "starting from the back", an index of `0` means "after the last item".
+
+.SH EXAMPLES
+.EX
+>> list := [10, 20]
+>> list.insert(30)
+>> list
+= [10, 20, 30]
+
+>> list.insert(999, at=2)
+>> list
+= [10, 999, 20, 30]
+.EE

@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Int.sqrt 3 2025-04-19T14:30:40.360844 "Tomo man-pages"
+.SH NAME
+Int.sqrt \- Calculates the nearest square root of an integer.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Int.sqrt : func(x: Int -> Int)"
+.fi
+
+.SH DESCRIPTION
+Calculates the nearest square root of an integer.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Int	The integer whose square root is to be calculated. 	-
+.TE
+.SH RETURN
+The integer part of the square root of `x`.
+
+.SH EXAMPLES
+.EX
+>> (16).sqrt()
+= 4
+>> (17).sqrt()
+= 4
+.EE

@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.j0 3 2025-04-19T14:30:40.363075 "Tomo man-pages"
+.SH NAME
+Num.j0 \- Computes the Bessel function of the first kind of order 0.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.j0 : func(x: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Computes the Bessel function of the first kind of order 0.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Num	The number for which the Bessel function is to be calculated. 	-
+.TE
+.SH RETURN
+The Bessel function of the first kind of order 0 of `x`.
+
+.SH EXAMPLES
+.EX
+>> (0.0).j0()
+= 1
+.EE

@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.relative_to 3 2025-04-19T14:30:40.365893 "Tomo man-pages"
+.SH NAME
+Path.relative_to \- Returns the path relative to a given base path. By default, the base path is the current directory.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.relative_to : func(path: Path, relative_to = (./) -> Path)"
+.fi
+
+.SH DESCRIPTION
+Returns the path relative to a given base path. By default, the base path is the current directory.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path to convert. 	-
+relative_to		The base path for the relative path. 	(./)
+.TE
+.SH RETURN
+The relative path.
+
+.SH EXAMPLES
+.EX
+>> (./path/to/file.txt).relative(relative_to=(./path))
+= (./to/file.txt)
+.EE

@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.can_execute 3 2025-04-19T14:30:40.364935 "Tomo man-pages"
+.SH NAME
+Path.can_execute \- Returns whether or not a file can be executed by the current user/group.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.can_execute : func(path: Path -> Bool)"
+.fi
+
+.SH DESCRIPTION
+Returns whether or not a file can be executed by the current user/group.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path of the file to check. 	-
+.TE
+.SH RETURN
+`yes` if the file or directory exists and the current user has execute permissions, otherwise `no`.
+
+.SH EXAMPLES
+.EX
+>> (/bin/sh).can_execute()
+= yes
+>> (/usr/include/stdlib.h).can_execute()
+= no
+>> (/non/existant/file).can_execute()
+= no
+.EE

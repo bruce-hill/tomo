@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.can_read 3 2025-04-19T14:30:40.364972 "Tomo man-pages"
+.SH NAME
+Path.can_read \- Returns whether or not a file can be read by the current user/group.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.can_read : func(path: Path -> Bool)"
+.fi
+
+.SH DESCRIPTION
+Returns whether or not a file can be read by the current user/group.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path of the file to check. 	-
+.TE
+.SH RETURN
+`yes` if the file or directory exists and the current user has read permissions, otherwise `no`.
+
+.SH EXAMPLES
+.EX
+>> (/usr/include/stdlib.h).can_read()
+= yes
+>> (/etc/shadow).can_read()
+= no
+>> (/non/existant/file).can_read()
+= no
+.EE

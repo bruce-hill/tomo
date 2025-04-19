@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.from_c_string 3 2025-04-19T14:30:40.367465 "Tomo man-pages"
+.SH NAME
+Text.from_c_string \- Converts a C-style string to a `Text` value.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.from_c_string : func(str: CString -> Text)"
+.fi
+
+.SH DESCRIPTION
+Converts a C-style string to a `Text` value.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+str	CString	The C-style string to be converted. 	-
+.TE
+.SH RETURN
+A `Text` value representing the C-style string.
+
+.SH EXAMPLES
+.EX
+>> Text.from_c_string(CString("Hello"))
+= "Hello"
+.EE

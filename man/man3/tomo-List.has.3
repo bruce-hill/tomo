@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH List.has 3 2025-04-19T14:30:40.361206 "Tomo man-pages"
+.SH NAME
+List.has \- Checks if the list has an element.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "List.has : func(list: [T], target: T -> Bool)"
+.fi
+
+.SH DESCRIPTION
+Checks if the list has an element.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+list	[T]	The list to check. 	-
+target	T	The element to check for. 	-
+.TE
+.SH RETURN
+`yes` if the list has the element, `no` otherwise.
+
+.SH EXAMPLES
+.EX
+>> [10, 20, 30].has(20)
+= yes
+.EE

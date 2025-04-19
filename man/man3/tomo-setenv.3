@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH setenv 3 2025-04-19T14:30:40.359972 "Tomo man-pages"
+.SH NAME
+setenv \- Sets an environment variable.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "setenv : func(name: Text, value: Text -> Void)"
+.fi
+
+.SH DESCRIPTION
+Sets an environment variable.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+name	Text	The name of the environment variable to set. 	-
+value	Text	The new value of the environment variable. 	-
+.TE
+.SH RETURN
+Nothing.
+
+.SH EXAMPLES
+.EX
+setenv("FOOBAR", "xyz")
+.EE

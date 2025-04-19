@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.sqrt 3 2025-04-19T14:30:40.363914 "Tomo man-pages"
+.SH NAME
+Num.sqrt \- Computes the square root of a number.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.sqrt : func(x: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Computes the square root of a number.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Num	The number for which the square root is to be calculated. 	-
+.TE
+.SH RETURN
+The square root of `x`.
+
+.SH EXAMPLES
+.EX
+>> (16.0).sqrt()
+= 4
+.EE

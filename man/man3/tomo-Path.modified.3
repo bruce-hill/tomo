@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.modified 3 2025-04-19T14:30:40.365676 "Tomo man-pages"
+.SH NAME
+Path.modified \- Gets the file modification time of a file.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.modified : func(path: Path, follow_symlinks: Bool = yes -> Int64?)"
+.fi
+
+.SH DESCRIPTION
+Gets the file modification time of a file.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path of the file whose modification time you want. 	-
+follow_symlinks	Bool	Whether to follow symbolic links. 	yes
+.TE
+.SH RETURN
+A 64-bit unix epoch timestamp representing when the file or directory was last modified, or `none` if no such file or directory exists.
+
+.SH EXAMPLES
+.EX
+>> (./file.txt).modified()
+= 1704221100?
+>> (./not-a-file).modified()
+= none
+.EE

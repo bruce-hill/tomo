@@ -1,0 +1,45 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH List.remove_at 3 2025-04-19T14:30:40.361523 "Tomo man-pages"
+.SH NAME
+List.remove_at \- Removes elements from the list starting at a specified index.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "List.remove_at : func(list: @[T], at: Int = -1, count: Int = 1 -> Void)"
+.fi
+
+.SH DESCRIPTION
+Removes elements from the list starting at a specified index.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+list	@[T]	The mutable reference to the list. 	-
+at	Int	The index at which to start removing elements. 	-1
+count	Int	The number of elements to remove. 	1
+.TE
+.SH RETURN
+Nothing.
+
+.SH NOTES
+Since negative indices are counted from the back, the default behavior is to remove the last item.
+
+.SH EXAMPLES
+.EX
+list := [10, 20, 30, 40, 50]
+list.remove_at(2)
+>> list
+= [10, 30, 40, 50]
+
+list.remove_at(2, count=2)
+>> list
+= [10, 50]
+.EE

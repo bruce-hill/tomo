@@ -1,0 +1,39 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH ask 3 2025-04-19T14:30:40.359728 "Tomo man-pages"
+.SH NAME
+ask \- Gets a line of user input text with a prompt.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "ask : func(prompt: Text, bold: Bool = yes, force_tty: Bool = yes -> Text?)"
+.fi
+
+.SH DESCRIPTION
+Gets a line of user input text with a prompt.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+prompt	Text	The text to print as a prompt before getting the input. 	-
+bold	Bool	Whether or not to print make the prompt appear bold on a console. 	yes
+force_tty	Bool	Whether or not to force the use of /dev/tty. 	yes
+.TE
+.SH RETURN
+A line of user input text without a trailing newline, or empty text if something went wrong (e.g. the user hit `Ctrl-D`).
+
+.SH NOTES
+When a program is receiving input from a pipe or writing its output to a pipe, this flag (which is enabled by default) forces the program to write the prompt to `/dev/tty` and read the input from `/dev/tty`, which circumvents the pipe. This means that `foo | ./tomo your-program | baz` will still show a visible prompt and read user input, despite the pipes. Setting this flag to `no` will mean that the prompt is written to `stdout` and input is read from `stdin`, even if those are pipes.
+
+.SH EXAMPLES
+.EX
+>> ask("What's your name? ")
+= "Arthur Dent"
+.EE

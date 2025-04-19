@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.split 3 2025-04-19T14:30:40.368084 "Tomo man-pages"
+.SH NAME
+Text.split \- Splits the text into a list of substrings based on exact matches of a delimiter. **Note:** to split based on a set of delimiter characters, use [`split_any()`](#split_any).
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.split : func(text: Text, delimiter: Text = "" -> [Text])"
+.fi
+
+.SH DESCRIPTION
+Splits the text into a list of substrings based on exact matches of a delimiter. **Note:** to split based on a set of delimiter characters, use [`split_any()`](#split_any).
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to be split. 	-
+delimiter	Text	The delimiter used to split the text. If the delimiter is the empty text, the text will be split into individual grapheme clusters. 	""
+.TE
+.SH RETURN
+A list of subtexts resulting from the split.
+
+.SH EXAMPLES
+.EX
+>> "one,two,,three".split(",")
+= ["one", "two", "", "three"]
+
+>> "abc".split()
+= ["a", "b", "c"]
+.EE

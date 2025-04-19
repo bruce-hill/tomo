@@ -1,0 +1,41 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.extension 3 2025-04-19T14:30:40.365321 "Tomo man-pages"
+.SH NAME
+Path.extension \- Returns the file extension of the file at the specified path. Optionally returns the full extension.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.extension : func(path: Path, full: Bool = yes -> Text)"
+.fi
+
+.SH DESCRIPTION
+Returns the file extension of the file at the specified path. Optionally returns the full extension.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path of the file. 	-
+full	Bool	Whether to return everything after the first `.` in the base name, or only the last part of the extension. 	yes
+.TE
+.SH RETURN
+The file extension (not including the leading `.`) or an empty text if there is no file extension.
+
+.SH EXAMPLES
+.EX
+>> (./file.tar.gz).extension()
+= "tar.gz"
+>> (./file.tar.gz).extension(full=no)
+= "gz"
+>> (/foo).extension()
+= ""
+>> (./.git).extension()
+= ""
+.EE

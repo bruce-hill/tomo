@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.isinf 3 2025-04-19T14:30:40.363007 "Tomo man-pages"
+.SH NAME
+Num.isinf \- Checks if a number is infinite.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.isinf : func(n: Num -> Bool)"
+.fi
+
+.SH DESCRIPTION
+Checks if a number is infinite.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+n	Num	The number to be checked. 	-
+.TE
+.SH RETURN
+`yes` if `n` is infinite, `no` otherwise.
+
+.SH EXAMPLES
+.EX
+>> Num.INF.isinf()
+= yes
+>> (1.0).isinf()
+= no
+.EE

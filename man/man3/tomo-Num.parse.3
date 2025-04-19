@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.parse 3 2025-04-19T14:30:40.363458 "Tomo man-pages"
+.SH NAME
+Num.parse \- Converts a text representation of a number into a floating-point number.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.parse : func(text: Text -> Num?)"
+.fi
+
+.SH DESCRIPTION
+Converts a text representation of a number into a floating-point number.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text containing the number. 	-
+.TE
+.SH RETURN
+The number represented by the text or `none` if the entire text can't be parsed as a number.
+
+.SH EXAMPLES
+.EX
+>> Num.parse("3.14")
+= 3.14
+>> Num.parse("1e3")
+= 1000
+.EE

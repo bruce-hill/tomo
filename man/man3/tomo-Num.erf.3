@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.erf 3 2025-04-19T14:30:40.362584 "Tomo man-pages"
+.SH NAME
+Num.erf \- Computes the error function of a number.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.erf : func(x: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Computes the error function of a number.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Num	The number for which the error function is to be calculated. 	-
+.TE
+.SH RETURN
+The error function of `x`.
+
+.SH EXAMPLES
+.EX
+>> (0.0).erf()
+= 0
+.EE

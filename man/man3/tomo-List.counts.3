@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH List.counts 3 2025-04-19T14:30:40.361035 "Tomo man-pages"
+.SH NAME
+List.counts \- Counts the occurrences of each element in the list.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "List.counts : func(list: [T] -> {T=Int})"
+.fi
+
+.SH DESCRIPTION
+Counts the occurrences of each element in the list.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+list	[T]	The list to count elements in. 	-
+.TE
+.SH RETURN
+A table mapping each element to its count.
+
+.SH EXAMPLES
+.EX
+>> [10, 20, 30, 30, 30].counts()
+= {10=1, 20=1, 30=3}
+.EE

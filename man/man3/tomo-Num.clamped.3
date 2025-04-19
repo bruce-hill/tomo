@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.clamped 3 2025-04-19T14:30:40.362416 "Tomo man-pages"
+.SH NAME
+Num.clamped \- Returns the given number clamped between two values so that it is within that range.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.clamped : func(x: Num, low: Num, high: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Returns the given number clamped between two values so that it is within that range.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Num	The number to clamp. 	-
+low	Num	The lowest value the result can take. 	-
+high	Num	The highest value the result can take. 	-
+.TE
+.SH RETURN
+The first argument clamped between the other two arguments.
+
+.SH EXAMPLES
+.EX
+>> (2.5).clamped(5.5, 10.5)
+= 5.5
+.EE

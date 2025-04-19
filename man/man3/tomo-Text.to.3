@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.to 3 2025-04-19T14:30:40.368269 "Tomo man-pages"
+.SH NAME
+Text.to \- Get a slice of the text, ending at the given position.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.to : func(text: Text, last: Int -> Text)"
+.fi
+
+.SH DESCRIPTION
+Get a slice of the text, ending at the given position.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to be sliced. 	-
+last	Int	The index of the last grapheme cluster to include (1-indexed). 	-
+.TE
+.SH RETURN
+The text up to and including the given grapheme cluster. Note: a negative index counts backwards from the end of the text, so `-1` refers to the last cluster, `-2` the second-to-last, etc. Slice ranges will be truncated to the length of the text.
+
+.SH EXAMPLES
+.EX
+>> "goodbye".to(3)
+= "goo"
+
+>> "goodbye".to(-2)
+= "goodby"
+.EE

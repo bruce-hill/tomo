@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Int.abs 3 2025-04-19T14:30:40.360304 "Tomo man-pages"
+.SH NAME
+Int.abs \- Calculates the absolute value of an integer.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Int.abs : func(x: Int -> Int)"
+.fi
+
+.SH DESCRIPTION
+Calculates the absolute value of an integer.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Int	The integer whose absolute value is to be calculated. 	-
+.TE
+.SH RETURN
+The absolute value of `x`.
+
+.SH EXAMPLES
+.EX
+>> (-10).abs()
+= 10
+.EE

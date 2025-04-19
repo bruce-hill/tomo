@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.log 3 2025-04-19T14:30:40.363156 "Tomo man-pages"
+.SH NAME
+Num.log \- Computes the natural logarithm (base $e$) of a number.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.log : func(x: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Computes the natural logarithm (base $e$) of a number.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Num	The number for which the natural logarithm is to be calculated. 	-
+.TE
+.SH RETURN
+The natural logarithm of `x`.
+
+.SH EXAMPLES
+.EX
+>> Num.E.log()
+= 1
+.EE

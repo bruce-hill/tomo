@@ -1,0 +1,40 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Byte.is_between 3 2025-04-19T14:30:40.360176 "Tomo man-pages"
+.SH NAME
+Byte.is_between \- Determines if an integer is between two numbers (inclusive).
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Byte.is_between : func(x: Byte, low: Byte, high: Byte -> Bool)"
+.fi
+
+.SH DESCRIPTION
+Determines if an integer is between two numbers (inclusive).
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Byte	The integer to be checked. 	-
+low	Byte	The lower bound to check (inclusive). 	-
+high	Byte	The upper bound to check (inclusive). 	-
+.TE
+.SH RETURN
+`yes` if `low <= x and x <= high`, otherwise `no`
+
+.SH EXAMPLES
+.EX
+>> Byte(7).is_between(1, 10)
+= yes
+>> Byte(7).is_between(100, 200)
+= no
+>> Byte(7).is_between(1, 7)
+= yes
+.EE

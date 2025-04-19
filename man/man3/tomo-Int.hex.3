@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Int.hex 3 2025-04-19T14:30:40.360505 "Tomo man-pages"
+.SH NAME
+Int.hex \- Converts an integer to its hexadecimal representation.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Int.hex : func(i: Int, digits: Int = 0, uppercase: Bool = yes, prefix: Bool = yes -> Text)"
+.fi
+
+.SH DESCRIPTION
+Converts an integer to its hexadecimal representation.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+i	Int	The integer to be converted. 	-
+digits	Int	The minimum number of digits in the output string. 	0
+uppercase	Bool	Whether to use uppercase letters for hexadecimal digits. 	yes
+prefix	Bool	Whether to include a "0x" prefix. 	yes
+.TE
+.SH RETURN
+The hexadecimal string representation of the integer.
+
+.SH EXAMPLES
+.EX
+>> (255).hex(digits=4, uppercase=yes, prefix=yes)
+= "0x00FF"
+.EE

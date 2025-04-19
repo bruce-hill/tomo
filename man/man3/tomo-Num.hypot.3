@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.hypot 3 2025-04-19T14:30:40.362867 "Tomo man-pages"
+.SH NAME
+Num.hypot \- Computes the Euclidean norm, $\sqrt{x^2 + y^2}$, of two numbers.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Num.hypot : func(x: Num, y: Num -> Num)"
+.fi
+
+.SH DESCRIPTION
+Computes the Euclidean norm, $\sqrt{x^2 + y^2}$, of two numbers.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Num	The first number. 	-
+y	Num	The second number. 	-
+.TE
+.SH RETURN
+The Euclidean norm of `x` and `y`.
+
+.SH EXAMPLES
+.EX
+>> Num.hypot(3, 4)
+= 5
+.EE

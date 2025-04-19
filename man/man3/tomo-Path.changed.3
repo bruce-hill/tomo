@@ -1,0 +1,40 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.changed 3 2025-04-19T14:30:40.365046 "Tomo man-pages"
+.SH NAME
+Path.changed \- Gets the file change time of a file.
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Path.changed : func(path: Path, follow_symlinks: Bool = yes -> Int64?)"
+.fi
+
+.SH DESCRIPTION
+Gets the file change time of a file.
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path of the file whose change time you want. 	-
+follow_symlinks	Bool	Whether to follow symbolic links. 	yes
+.TE
+.SH RETURN
+A 64-bit unix epoch timestamp representing when the file or directory was last changed, or `none` if no such file or directory exists.
+
+.SH NOTES
+This is the ["ctime"](https://en.wikipedia.org/wiki/Stat_(system_call)#ctime) of a file, which is _not_ the file creation time.
+
+.SH EXAMPLES
+.EX
+>> (./file.txt).changed()
+= 1704221100?
+>> (./not-a-file).changed()
+= none
+.EE

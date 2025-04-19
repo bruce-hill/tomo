@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.without_suffix 3 2025-04-19T14:30:40.368570 "Tomo man-pages"
+.SH NAME
+Text.without_suffix \- Returns the text with a given suffix removed (if present).
+
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI "Text.without_suffix : func(text: Text, suffix: Text -> Text)"
+.fi
+
+.SH DESCRIPTION
+Returns the text with a given suffix removed (if present).
+
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to remove the suffix from. 	-
+suffix	Text	The suffix to remove. 	-
+.TE
+.SH RETURN
+A text without the given suffix (if present) or the unmodified text if the suffix is not present.
+
+.SH EXAMPLES
+.EX
+>> "baz.foo".without_suffix(".foo")
+= "baz"
+>> "qux".without_suffix(".foo")
+= "qux"
+.EE

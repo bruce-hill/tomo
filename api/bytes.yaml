@@ -1,0 +1,104 @@
+Byte.hex:
+  description: >
+    Convert a byte to a hexidecimal text representation.
+  return:
+    type: 'Text'
+    description: >
+      The byte as a hexidecimal text.
+  args:
+    byte:
+      type: 'Byte'
+      description: >
+        The byte to convert to hex.
+    uppercase:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether or not to use uppercase hexidecimal letters.
+    prefix:
+      type: 'Bool'
+      default: 'no'
+      description: >
+        Whether or not to prepend a `0x` prefix.
+  example: |
+    >> Byte(18).hex()
+    = "0x12"
+    
+Byte.is_between:
+  description: >
+    Determines if an integer is between two numbers (inclusive).
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if `low <= x and x <= high`, otherwise `no`
+  args:
+    x:
+      type: 'Byte'
+      description: >
+        The integer to be checked.
+    low:
+      type: 'Byte'
+      description: >
+        The lower bound to check (inclusive).
+    high:
+      type: 'Byte'
+      description: >
+        The upper bound to check (inclusive).
+  example: |
+    >> Byte(7).is_between(1, 10)
+    = yes
+    >> Byte(7).is_between(100, 200)
+    = no
+    >> Byte(7).is_between(1, 7)
+    = yes
+    
+Byte.parse:
+  description: >
+    Parse a byte literal from text.
+  return:
+    type: 'Byte?'
+    description: >
+      The byte parsed from the text, if successful, otherwise `none`.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to parse.
+  example: |
+    >> Byte.parse("5")
+    = Byte(5)?
+    >> Byte.parse("asdf")
+    = none
+    
+Byte.to:
+  description: >
+    Returns an iterator function that iterates over the range of bytes specified.
+  return:
+    type: 'func(->Byte?)'
+    description: >
+      An iterator function that returns each byte in the given range (inclusive).
+  args:
+    first:
+      type: 'Byte'
+      description: >
+        The starting value of the range.
+    last:
+      type: 'Byte'
+      description: >
+        The ending value of the range.
+    step:
+      type: 'Byte?'
+      default: 'none'
+      description: >
+        An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.
+  example: |
+    >> Byte(2).to(5)
+    = func(->Byte?)
+    >> [x for x in Byte(2).to(5)]
+    = [Byte(2), Byte(3), Byte(4), Byte(5)]
+    >> [x for x in Byte(5).to(2)]
+    = [Byte(5), Byte(4), Byte(3), Byte(2)]
+    
+    >> [x for x in Byte(2).to(5, step=2)]
+    = [Byte(2), Byte(4)]
+    

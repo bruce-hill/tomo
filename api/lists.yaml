@@ -1,0 +1,660 @@
+List.binary_search:
+  description: >
+    Performs a binary search on a sorted list.
+  return:
+    type: 'Int'
+    description: >
+      Assuming the input list is sorted according to the given comparison function,
+      return the index where the given item would be inserted to maintain the sorted
+      order. That is, if the item is found, return its index, otherwise return the
+      place where it would be found if it were inserted and the list were sorted.
+  args:
+    list:
+      type: '[T]'
+      description: >
+        The sorted list to search.
+    by:
+      type: 'func(x,y:&T->Int32)'
+      default: 'T.compare'
+      description: >
+        The comparison function used to determine order. If not specified, the
+        default comparison function for the item type will be used.
+  example: |
+    >> [1, 3, 5, 7, 9].binary_search(5)
+    = 3
+    
+    >> [1, 3, 5, 7, 9].binary_search(-999)
+    = 1
+    
+    >> [1, 3, 5, 7, 9].binary_search(999)
+    = 6
+    
+List.by:
+  description: >
+    Creates a new list with elements spaced by the specified step value.
+  return:
+    type: '[T]'
+    description: >
+      A new list with every `step`-th element from the original list.
+  args:
+    list:
+      type: '[T]'
+      description: >
+        The original list.
+    step:
+      type: 'Int'
+      description: >
+        The step value for selecting elements.
+  example: |
+    >> [1, 2, 3, 4, 5, 6].by(2)
+    = [1, 3, 5]
+    
+List.clear:
+  description: >
+    Clears all elements from the list.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    list:
+      type: '@[T]'
+      description: >
+        The mutable reference to the list to be cleared.
+  example: |
+    >> my_list.clear()
+    
+List.counts:
+  description: >
+    Counts the occurrences of each element in the list.
+  return:
+    type: '{T=Int}'
+    description: >
+      A table mapping each element to its count.
+  args:
+    list:
+      type: '[T]'
+      description: >
+        The list to count elements in.
+  example: |
+    >> [10, 20, 30, 30, 30].counts()
+    = {10=1, 20=1, 30=3}
+    
+List.find:
+  description: >
+    Finds the index of the first occurrence of an element (if any).
+  return:
+    type: 'Int?'
+    description: >
+      The index of the first occurrence or `!Int` if not found.
+  args:
+    list:
+      type: '[T]'
+      description: >
+        The list to search through.
+    target:
+      type: 'T'
+      description: >
+        The item to search for.
+  example: |
+    >> [10, 20, 30, 40, 50].find(20)
+    = 2 : Int?
+    
+    >> [10, 20, 30, 40, 50].find(9999)
+    = none : Int?
+    
+List.first:
+  description: >
+    Find the index of the first item that matches a predicate function (if any).
+  return:
+    type: 'Int'
+    description: >
+      Returns the index of the first item where the predicate is true or `!Int` if no
+      item matches.
+  args:
+    list:
+      type: '[T]'
+      description: >
+        The list to search through.
+    predicate:
+      type: 'func(item:&T -> Bool)'
+      description: >
+        A function that returns `yes` if the item should be returned or
+        `no` if it should not.
+  example: |
+    >> [4, 5, 6].find(func(i:&Int): i.is_prime())
+    = 5 : Int?
+    >> [4, 6, 8].find(func(i:&Int): i.is_prime())
+    = none : Int?
+    
+List.from:
+  description: >
+    Returns a slice of the list starting from a specified index.
+  return:
+    type: '[T]'
+    description: >
+      A new list starting from the specified index.
+  args:
+    list:
+      type: '[T]'
+      description: >
+        The original list.
+    first:
+      type: 'Int'
+      description: >
+        The index to start from.
+  example: |
+    >> [10, 20, 30, 40, 50].from(3)
+    = [30, 40, 50]
+    
+List.has:
+  description: >
+    Checks if the list has an element.
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if the list has the element, `no` otherwise.
+  args:
+    list:
+      type: '[T]'
+      description: >
+        The list to check.
+    target:
+      type: 'T'
+      description: >
+        The element to check for.
+  example: |
+    >> [10, 20, 30].has(20)
+    = yes
+    
+List.heap_pop:
+  description: >
+    Removes and returns the top element of a heap or `none` if the list is empty.
+    By default, this is the *minimum* value in the heap.
+  return:
+    type: 'T?'
+    description: >
+      The removed top element of the heap or `none` if the list is empty.
+  args:
+    list:
+      type: '@[T]'
+      description: >
+        The mutable reference to the heap.
+    by:
+      type: 'func(x,y:&T->Int32)'
+      default: 'T.compare'
+      description: >
+        The comparison function used to determine order. If not specified, the
+        default comparison function for the item type will be used.
+  example: |
+    >> my_heap := [30, 10, 20]
+    >> my_heap.heapify()
+    >> my_heap.heap_pop()
+    = 10
+    
+List.heap_push:
+  description: >
+    Adds an element to the heap and maintains the heap property. By default, this
+    is a *minimum* heap.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    list:
+      type: '@[T]'
+      description: >
+        The mutable reference to the heap.
+    item:
+      type: 'T'
+      description: >
+        The item to be added.
+    by:
+      default: 'T.compare'
+      description: >
+        The comparison function used to determine order. If not specified, the
+        default comparison function for the item type will be used.
+  example: |
+    >> my_heap.heap_push(10)
+    
+List.heapify:
+  description: >
+    Converts a list into a heap.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    list:
+      type: '@[T]'
+      description: >
+        The mutable reference to the list to be heapified.
+    by:
+      type: 'func(x,y:&T->Int32)'
+      default: 'T.compare'
+      description: >
+        The comparison function used to determine order. If not specified, the
+        default comparison function for the item type will be used.
+  example: |
+    >> my_heap := [30, 10, 20]
+    >> my_heap.heapify()
+    
+List.insert:
+  description: >
+    Inserts an element at a specified position in the list.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    list:
+      type: '@[T]'
+      description: >
+        The mutable reference to the list.
+    item:
+      type: 'T'
+      description: >
+        The item to be inserted.
+    at:
+      type: 'Int'
+      default: '0'
+      description: >
+        The index at which to insert the item.
+  note: >
+    Since indices are 1-indexed and negative indices mean "starting from the
+    back", an index of `0` means "after the last item".
+  example: |
+    >> list := [10, 20]
+    >> list.insert(30)
+    >> list
+    = [10, 20, 30]
+    
+    >> list.insert(999, at=2)
+    >> list
+    = [10, 999, 20, 30]
+    
+List.insert_all:
+  description: >
+    Inserts a list of items at a specified position in the list.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    list:
+      type: '@[T]'
+      description: >
+        The mutable reference to the list.
+    items:
+      type: '[T]'
+      description: >
+        The items to be inserted.
+    at:
+      type: 'Int'
+      default: '0'
+      description: >
+        The index at which to insert the item.
+  note: >
+    Since indices are 1-indexed and negative indices mean "starting from the
+    back", an index of `0` means "after the last item".
+  example: |
+    list := [10, 20]
+    list.insert_all([30, 40])
+    >> list
+    = [10, 20, 30, 40]
+    
+    list.insert_all([99, 100], at=2)
+    >> list
+    = [10, 99, 100, 20, 30, 40]
+    
+List.pop:
+  description: >
+    Removes and returns an item from the list. If the given index is present in
+    the list, the item at that index will be removed and the list will become one
+    element shorter.
+  return:
+    type: 'T?'
+    description: >
+      `none` if the list is empty or the given index does not exist in the list,
+      otherwise the item at the given index.
+  args:
+    list:
+      type: '&[T]'
+      description: >
+        The list to remove an item from.
+    index:
+      type: 'Int'
+      default: '-1'
+      description: >
+        The index from which to remove the item.
+  note: >
+    Since negative indices are counted from the back, the default behavior is
+    to pop the last value.
+  example: |
+    >> list := [10, 20, 30, 40]
+    
+    >> list.pop()
+    = 40
+    >> list
+    = &[10, 20, 30]
+    
+    >> list.pop(index=2)
+    = 20
+    >> list
+    = &[10, 30]
+    
+List.random:
+  description: >
+    Selects a random element from the list.
+  return:
+    type: 'T'
+    description: >
+      A random element from the list.
+  args:
+    list:
+      type: '[T]'
+      description: >
+        The list from which to select a random element.
+    random:
+      type: 'func(min,max:Int64->Int64)?'
+      default: 'none'
+      description: >
+        If provided, this function will be used to get a random index in the list. Returned
+        values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number
+        generation)
+  example: |
+    >> [10, 20, 30].random()
+    = 20
+    
+List.remove_at:
+  description: >
+    Removes elements from the list starting at a specified index.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    list:
+      type: '@[T]'
+      description: >
+        The mutable reference to the list.
+    at:
+      type: 'Int'
+      default: '-1'
+      description: >
+        The index at which to start removing elements.
+    count:
+      type: 'Int'
+      default: '1'
+      description: >
+        The number of elements to remove.
+  note: >
+    Since negative indices are counted from the back, the default behavior is
+    to remove the last item.
+  example: |
+    list := [10, 20, 30, 40, 50]
+    list.remove_at(2)
+    >> list
+    = [10, 30, 40, 50]
+    
+    list.remove_at(2, count=2)
+    >> list
+    = [10, 50]
+    
+List.remove_item:
+  description: >
+    Removes all occurrences of a specified item from the list.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    list:
+      type: '@[T]'
+      description: >
+        The mutable reference to the list.
+    item:
+      type: 'T'
+      description: >
+        The item to be removed.
+    max_count:
+      type: 'Int'
+      default: '-1'
+      description: >
+        The maximum number of occurrences to remove.
+  note: >
+    A negative `max_count` means "remove all occurrences".
+  example: |
+    list := [10, 20, 10, 20, 30]
+    list.remove_item(10)
+    >> list
+    = [20, 20, 30]
+    
+    list.remove_item(20, max_count=1)
+    >> list
+    = [20, 30]
+    
+List.reversed:
+  description: >
+    Returns a reversed slice of the list.
+  return:
+    type: '[T]'
+    description: >
+      A slice of the list with elements in reverse order.
+  args:
+    list:
+      type: '[T]'
+      description: >
+        The list to be reversed.
+  example: |
+    >> [10, 20, 30].reversed()
+    = [30, 20, 10]
+    
+List.sample:
+  description: >
+    Selects a sample of elements from the list, optionally with weighted
+    probabilities.
+  return:
+    type: '[T]'
+    description: >
+      A list of sampled elements from the list.
+  errors: >
+    Errors will be raised if any of the following conditions occurs:
+    - The given list has no elements and `count >= 1`
+    - `count < 0` (negative count)
+    - The number of weights provided doesn't match the length of the list. 
+    - Any weight in the weights list is negative, infinite, or `NaN`
+    - The sum of the given weights is zero (zero probability for every element).
+  args:
+    list:
+      type: '[T]'
+      description: >
+        The list to sample from.
+    count:
+      type: 'Int'
+      description: >
+        The number of elements to sample.
+    weights:
+      type: '[Num]?'
+      default: '![Num]'
+      description: >
+        The probability weights for each element in the list. These
+        values do not need to add up to any particular number, they are relative
+        weights. If no weights are given, elements will be sampled with uniform
+        probability.
+    random:
+      type: 'func(->Num)?'
+      default: 'none'
+      description: >
+        If provided, this function will be used to get random values for
+        sampling the list. The provided function should return random numbers
+        between `0.0` (inclusive) and `1.0` (exclusive). (Used for deterministic
+        pseudorandom number generation)
+  example: |
+    >> [10, 20, 30].sample(2, weights=[90%, 5%, 5%])
+    = [10, 10]
+    
+List.shuffle:
+  description: >
+    Shuffles the elements of the list in place.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    list:
+      type: '@[T]'
+      description: >
+        The mutable reference to the list to be shuffled.
+    random:
+      type: 'func(min,max:Int64->Int64)?'
+      default: 'none'
+      description: >
+        If provided, this function will be used to get a random index in the list. Returned
+        values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number
+        generation)
+  example: |
+    >> list.shuffle()
+    
+List.shuffled:
+  description: >
+    Creates a new list with elements shuffled.
+  return:
+    type: '[T]'
+    description: >
+      A new list with shuffled elements.
+  args:
+    list:
+      type: '[T]'
+      description: >
+        The list to be shuffled.
+    random:
+      type: 'func(min,max:Int64->Int64)?'
+      default: 'none'
+      description: >
+        If provided, this function will be used to get a random index in the list. Returned
+        values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number
+        generation)
+  example: |
+    >> [10, 20, 30, 40].shuffled()
+    = [40, 10, 30, 20]
+    
+List.slice:
+  description: >
+    Returns a slice of the list spanning the given indices (inclusive).
+  return:
+    type: '[T]'
+    description: >
+      A new list spanning the given indices. Note: negative indices are counted from
+      the back of the list, so `-1` refers to the last element, `-2` the
+      second-to-last, and so on.
+  args:
+    list:
+      type: '[T]'
+      description: >
+        The original list.
+    from:
+      type: 'Int'
+      description: >
+        The first index to include.
+    to:
+      type: 'Int'
+      description: >
+        The last index to include.
+  example: |
+    >> [10, 20, 30, 40, 50].slice(2, 4)
+    = [20, 30, 40]
+    
+    >> [10, 20, 30, 40, 50].slice(-3, -2)
+    = [30, 40]
+    
+List.sort:
+  description: >
+    Sorts the elements of the list in place in ascending order (small to large).
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    list:
+      type: '@[T]'
+      description: >
+        The mutable reference to the list to be sorted.
+    by:
+      default: 'T.compare'
+      description: >
+        The comparison function used to determine order. If not specified, the
+        default comparison function for the item type will be used.
+  example: |
+    list := [40, 10, -30, 20]
+    list.sort()
+    >> list
+    = [-30, 10, 20, 40]
+    
+    list.sort(func(a,b:&Int): a.abs() <> b.abs())
+    >> list
+    = [10, 20, -30, 40]
+    
+List.sorted:
+  description: >
+    Creates a new list with elements sorted.
+  return:
+    type: '[T]'
+    description: >
+      A new list with sorted elements.
+  args:
+    list:
+      type: '[T]'
+      description: >
+        The list to be sorted.
+    by:
+      default: 'T.compare'
+      description: >
+        The comparison function used to determine order. If not specified, the
+        default comparison function for the item type will be used.
+  example: |
+    >> [40, 10, -30, 20].sorted()
+    = [-30, 10, 20, 40]
+    
+    >> [40, 10, -30, 20].sorted(func(a,b:&Int): a.abs() <> b.abs())
+    = [10, 20, -30, 40]
+    
+List.to:
+  description: >
+    Returns a slice of the list from the start of the original list up to a specified index (inclusive).
+  return:
+    type: '[T]'
+    description: >
+      A new list containing elements from the start up to the specified index.
+  args:
+    list:
+      type: '[T]'
+      description: >
+        The original list.
+    last:
+      type: 'Int'
+      description: >
+        The index up to which elements should be included.
+  example: |
+    >> [10, 20, 30, 40, 50].to(3)
+    = [10, 20, 30]
+    
+    >> [10, 20, 30, 40, 50].to(-2)
+    = [10, 20, 30, 40]
+    
+List.unique:
+  description: >
+    Returns a Set that contains the unique elements of the list.
+  return:
+    type: '|T|'
+    description: >
+      A set containing only unique elements from the list.
+  args:
+    list:
+      type: '[T]'
+      description: >
+        The list to process.
+  example: |
+    >> [10, 20, 10, 10, 30].unique()
+    = {10, 20, 30}
+    
