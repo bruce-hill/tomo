@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.lines 3 2025-04-19T14:48:15.717444 "Tomo man-pages"
+.TH Text.lines 3 2025-04-19T14:52:07.140150 "Tomo man-pages"
 .SH NAME
 Text.lines \- Splits the text into a list of lines of text, preserving blank lines, ignoring trailing newlines, and handling `\r\n` the same as `\n`.
 
@@ -29,13 +29,13 @@ A list of substrings resulting from the split.
 
 .SH EXAMPLES
 .EX
->> "one\\ntwo\\nthree".lines()
+>> "one\[rs]ntwo\[rs]nthree".lines()
 = ["one", "two", "three"]
->> "one\\ntwo\\nthree\\n".lines()
+>> "one\[rs]ntwo\[rs]nthree\[rs]n".lines()
 = ["one", "two", "three"]
->> "one\\ntwo\\nthree\\n\\n".lines()
+>> "one\[rs]ntwo\[rs]nthree\[rs]n\[rs]n".lines()
 = ["one", "two", "three", ""]
->> "one\\r\\ntwo\\r\\nthree\\r\\n".lines()
+>> "one\[rs]r\[rs]ntwo\[rs]r\[rs]nthree\[rs]r\[rs]n".lines()
 = ["one", "two", "three"]
 >> "".lines()
 = []

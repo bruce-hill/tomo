@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.split_any 3 2025-04-19T14:48:15.717814 "Tomo man-pages"
+.TH Text.split_any 3 2025-04-19T14:52:07.140522 "Tomo man-pages"
 .SH NAME
 Text.split_any \- Splits the text into a list of substrings at one or more occurrences of a set of delimiter characters (grapheme clusters).
 
@@ -10,7 +10,7 @@ Text.split_any \- Splits the text into a list of substrings at one or more occur
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Text.split_any\ :\ func(text:\ Text,\ delimiters:\ Text\ =\ "\ $\\t\\r\\n"\ ->\ [Text])
+.BI Text.split_any\ :\ func(text:\ Text,\ delimiters:\ Text\ =\ "\ $\[rs]t\[rs]r\[rs]n"\ ->\ [Text])
 .fi
 
 .SH DESCRIPTION
@@ -23,7 +23,7 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
 text	Text	The text to be split. 	-
-delimiters	Text	A text containing delimiters to use for splitting the text. 	"\ $\\t\\r\\n"
+delimiters	Text	A text containing delimiters to use for splitting the text. 	"\ $\[rs]t\[rs]r\[rs]n"
 .TE
 .SH RETURN
 A list of subtexts resulting from the split.
