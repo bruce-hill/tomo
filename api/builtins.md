@@ -37,14 +37,14 @@ force_tty | `Bool` | Whether or not to force the use of /dev/tty.  | `yes`
 ## exit
 
 ```tomo
-exit : func(message: Text? = !Text, status: Int32 = Int32(1) -> Void)
+exit : func(message: Text? = none, status: Int32 = Int32(1) -> Void)
 ```
 
 Exits the program with a given status and optionally prints a message.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-message | `Text?` | If nonempty, this message will be printed (with a newline) before exiting.  | `!Text`
+message | `Text?` | If nonempty, this message will be printed (with a newline) before exiting.  | `none`
 status | `Int32` | The status code that the program with exit with.  | `Int32(1)`
 
 **Return:** This function never returns.

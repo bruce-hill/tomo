@@ -45,7 +45,7 @@ exit:
   args:
     message:
       type: 'Text?'
-      default: '!Text'
+      default: 'none'
       description: >
         If nonempty, this message will be printed (with a newline) before
         exiting.

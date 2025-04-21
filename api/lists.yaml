@@ -91,7 +91,7 @@ List.find:
   return:
     type: 'Int?'
     description: >
-      The index of the first occurrence or `!Int` if not found.
+      The index of the first occurrence or `none` if not found.
   args:
     list:
       type: '[T]'
@@ -470,7 +470,7 @@ List.sample:
         The number of elements to sample.
     weights:
       type: '[Num]?'
-      default: '![Num]'
+      default: 'none'
       description: >
         The probability weights for each element in the list. These
         values do not need to add up to any particular number, they are relative
@@ -666,7 +666,7 @@ List.where:
   return:
     type: 'Int'
     description: >
-      Returns the index of the first item where the predicate is true or `!Int` if no
+      Returns the index of the first item where the predicate is true or `none` if no
       item matches.
   args:
     list:

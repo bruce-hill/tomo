@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH exit 3 2025-04-21T14:54:02.043148 "Tomo man-pages"
+.TH exit 3 2025-04-21T14:58:16.945131 "Tomo man-pages"
 .SH NAME
 exit \- exit the program
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI exit\ :\ func(message:\ Text?\ =\ !Text,\ status:\ Int32\ =\ Int32(1)\ ->\ Void)
+.BI exit\ :\ func(message:\ Text?\ =\ none,\ status:\ Int32\ =\ Int32(1)\ ->\ Void)
 .fi
 .SH DESCRIPTION
 Exits the program with a given status and optionally prints a message.
@@ -22,7 +22,7 @@ allbox;
 lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
-message	Text?	If nonempty, this message will be printed (with a newline) before exiting. 	!Text
+message	Text?	If nonempty, this message will be printed (with a newline) before exiting. 	none
 status	Int32	The status code that the program with exit with. 	Int32(1)
 .TE
 .SH RETURN

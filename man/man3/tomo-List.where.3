@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.where 3 2025-04-21T14:54:02.045598 "Tomo man-pages"
+.TH List.where 3 2025-04-21T14:58:16.947311 "Tomo man-pages"
 .SH NAME
 List.where \- find an index where a predicate matches
 .SH LIBRARY
@@ -26,7 +26,7 @@ list	[T]	The list to search through. 	-
 predicate	func(item:&T -> Bool)	A function that returns `yes` if the item's index should be returned or `no` if it should not. 	-
 .TE
 .SH RETURN
-Returns the index of the first item where the predicate is true or `!Int` if no item matches.
+Returns the index of the first item where the predicate is true or `none` if no item matches.
 
 .SH EXAMPLES
 .EX
