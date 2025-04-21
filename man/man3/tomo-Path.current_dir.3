@@ -2,19 +2,18 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.current_dir 3 2025-04-19T14:52:07.137666 "Tomo man-pages"
+.TH Path.current_dir 3 2025-04-21T14:44:34.262325 "Tomo man-pages"
 .SH NAME
-Path.current_dir \- Creates a new directory at the specified path with the given permissions. If any of the parent directories do not exist, they will be created as needed.
-
+Path.current_dir \- get current directory
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
 .BI Path.current_dir\ :\ func(->\ Path)
 .fi
-
 .SH DESCRIPTION
 Creates a new directory at the specified path with the given permissions. If any of the parent directories do not exist, they will be created as needed.
+
 
 .SH RETURN
 The absolute path of the current directory.

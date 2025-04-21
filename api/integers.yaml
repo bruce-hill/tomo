@@ -1,4 +1,5 @@
 Int.abs:
+  short: absolute value
   description: >
     Calculates the absolute value of an integer.
   return:
@@ -15,6 +16,7 @@ Int.abs:
     = 10
     
 Int.choose:
+  short: binomial coefficient
   description: >
     Computes the binomial coefficient of the given numbers (the equivalent of `n`
     choose `k` in combinatorics). This is equal to `n.factorial()/(k.factorial() *
@@ -38,6 +40,7 @@ Int.choose:
     = 6
     
 Int.clamped:
+  short: clamp an integer
   description: >
     Returns the given number clamped between two values so that it is within
     that range.
@@ -63,6 +66,7 @@ Int.clamped:
     = 5
     
 Int.factorial:
+  short: factorial
   description: >
     Computes the factorial of an integer.
   return:
@@ -79,6 +83,7 @@ Int.factorial:
     = 3628800
     
 Int.format:
+  short: text formatting
   description: >
     Formats an integer as a string with a specified number of digits.
   return:
@@ -100,6 +105,7 @@ Int.format:
     = "00042"
     
 Int.hex:
+  short: convert to hexidecimal
   description: >
     Converts an integer to its hexadecimal representation.
   return:
@@ -131,6 +137,7 @@ Int.hex:
     = "0x00FF"
     
 Int.is_between:
+  short: test if an int is in a range
   description: >
     Determines if an integer is between two numbers (inclusive).
   return:
@@ -159,6 +166,7 @@ Int.is_between:
     = yes
     
 Int.is_prime:
+  short: check if an integer is prime
   description: >
     Determines if an integer is a prime number.
   note: >
@@ -187,6 +195,7 @@ Int.is_prime:
     = no
     
 Int.next_prime:
+  short: get the next prime
   description: >
     Finds the next prime number greater than the given integer.
   note: >
@@ -208,6 +217,7 @@ Int.next_prime:
     = 13
     
 Int.octal:
+  short: convert to octal
   description: >
     Converts an integer to its octal representation.
   return:
@@ -234,6 +244,7 @@ Int.octal:
     = "0o0100"
     
 Int.onward:
+  short: iterate from a number onward
   description: >
     Return an iterator that counts infinitely from the starting integer (with an
     optional step size).
@@ -260,6 +271,7 @@ Int.onward:
     = [5, 6, 7, 8, 9, 10]
     
 Int.parse:
+  short: convert text to integer
   description: >
     Converts a text representation of an integer into an integer.
   return:
@@ -288,6 +300,7 @@ Int.parse:
     = none : Int8?
     
 Int.prev_prime:
+  short: get the previous prime
   description: >
     Finds the previous prime number less than the given integer.
     If there is no previous prime number (i.e. if a number less than `2` is
@@ -311,6 +324,7 @@ Int.prev_prime:
     = 7
     
 Int.sqrt:
+  short: square root
   description: >
     Calculates the nearest square root of an integer.
   return:
@@ -329,6 +343,7 @@ Int.sqrt:
     = 4
     
 Int.to:
+  short: iterate a range of integers
   description: >
     Returns an iterator function that iterates over the range of numbers specified.
   return:

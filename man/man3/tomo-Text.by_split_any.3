@@ -2,20 +2,20 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.by_split_any 3 2025-04-19T14:52:07.139596 "Tomo man-pages"
+.TH Text.by_split_any 3 2025-04-21T14:44:34.264108 "Tomo man-pages"
 .SH NAME
-Text.by_split_any \- Returns an iterator function that can be used to iterate over text separated by one or more characters (grapheme clusters) from a given text of delimiters.
-
+Text.by_split_any \- iterate by one of many splitting characters
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
 .BI Text.by_split_any\ :\ func(text:\ Text,\ delimiters:\ Text\ =\ "\ $\[rs]t\[rs]r\[rs]n"\ ->\ func(->Text?))
 .fi
-
 .SH DESCRIPTION
 Returns an iterator function that can be used to iterate over text separated by one or more characters (grapheme clusters) from a given text of delimiters.
 
+
+.SH ARGUMENTS
 
 .TS
 allbox;

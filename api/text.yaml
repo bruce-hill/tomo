@@ -1,4 +1,5 @@
 Text.as_c_string:
+  short: convert to C-style string
   description: >
     Converts a `Text` value to a C-style string.
   return:
@@ -15,6 +16,7 @@ Text.as_c_string:
     = CString("Hello")
     
 Text.at:
+  short: get a letter
   description: >
     Get the graphical cluster at a given index. This is similar to `str[i]` with
     ASCII text, but has more correct behavior for unicode text.
@@ -39,6 +41,7 @@ Text.at:
     = "é"
     
 Text.by_line:
+  short: iterate by line
   description: >
     Returns an iterator function that can be used to iterate over the lines in a
     text.
@@ -65,6 +68,7 @@ Text.by_line:
     say(line)
     
 Text.by_split:
+  short: iterate by a spliting text
   description: >
     Returns an iterator function that can be used to iterate over text separated by
     a delimiter.
@@ -95,6 +99,7 @@ Text.by_split:
     say(chunk)
     
 Text.by_split_any:
+  short: iterate by one of many splitting characters
   description: >
     Returns an iterator function that can be used to iterate over text separated by
     one or more characters (grapheme clusters) from a given text of delimiters.
@@ -125,6 +130,7 @@ Text.by_split_any:
     say(chunk)
     
 Text.bytes:
+  short: get UTF8 bytes
   description: >
     Converts a `Text` value to a list of bytes representing a UTF8 encoding of
     the text.
@@ -142,6 +148,7 @@ Text.bytes:
     = [65, 109, 195, 169, 108, 105, 101]
     
 Text.caseless_equals:
+  short: case-insensitive comparison
   description: >
     Checks whether two texts are equal, ignoring the casing of the letters (i.e.
     case-insensitive comparison).
@@ -172,6 +179,7 @@ Text.caseless_equals:
     = no
     
 Text.codepoint_names:
+  short: get unicode codepoint names
   description: >
     Returns a list of the names of each codepoint in the text.
   return:
@@ -188,6 +196,7 @@ Text.codepoint_names:
     = ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E WITH ACUTE", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
     
 Text.ends_with:
+  short: check suffix
   description: >
     Checks if the `Text` ends with a literal suffix text.
   return:
@@ -208,6 +217,7 @@ Text.ends_with:
     = yes
     
 Text.from:
+  short: slice from a starting index
   description: >
     Get a slice of the text, starting at the given position.
   return:
@@ -235,6 +245,7 @@ Text.from:
     = "lo"
     
 Text.from_bytes:
+  short: convert UTF8 byte list to text
   description: >
     Returns text that has been constructed from the given UTF8 bytes.
   note: >
@@ -254,6 +265,7 @@ Text.from_bytes:
     = "Åke"
     
 Text.from_c_string:
+  short: convert C-style string to text
   description: >
     Converts a C-style string to a `Text` value.
   return:
@@ -270,6 +282,7 @@ Text.from_c_string:
     = "Hello"
     
 Text.from_codepoint_names:
+  short: convert list of unicode codepoint names to text
   description: >
     Returns text that has the given codepoint names (according to the Unicode
     specification) as its codepoints.
@@ -295,6 +308,7 @@ Text.from_codepoint_names:
     = "Åke"
     
 Text.from_codepoints:
+  short: convert UTF32 codepoints to text
   description: >
     Returns text that has been constructed from the given UTF32 codepoints.
   note: >
@@ -314,6 +328,7 @@ Text.from_codepoints:
     = "Åke"
     
 Text.has:
+  short: check for substring
   description: >
     Checks if the `Text` contains some target text.
   return:
@@ -336,6 +351,7 @@ Text.has:
     = no
     
 Text.join:
+  short: concatenate with separator
   description: >
     Joins a list of text pieces with a specified glue.
   return:
@@ -356,6 +372,7 @@ Text.join:
     = "one, two, three"
     
 Text.middle_pad:
+  short: pad text, centered
   description: >
     Pad some text on the left and right side so it reaches a target width.
   return:
@@ -390,6 +407,7 @@ Text.middle_pad:
     = "ABCAxABCAB"
     
 Text.left_pad:
+  short: left-pad text
   description: >
     Pad some text on the left side so it reaches a target width.
   return:
@@ -424,6 +442,7 @@ Text.left_pad:
     = "ABCAx"
     
 Text.lines:
+  short: get list of lines
   description: >
     Splits the text into a list of lines of text, preserving blank lines,
     ignoring trailing newlines, and handling `\r\n` the same as `\n`.
@@ -449,6 +468,7 @@ Text.lines:
     = []
     
 Text.lower:
+  short: convert to lowercase
   description: >
     Converts all characters in the text to lowercase.
   return:
@@ -473,6 +493,7 @@ Text.lower:
     >> "ı"
     
 Text.quoted:
+  short: add quotation marks and escapes
   description: >
     Formats the text with quotation marks and escapes.
   return:
@@ -499,6 +520,7 @@ Text.quoted:
     = "\"one\\ntwo\""
     
 Text.repeat:
+  short: repeat text
   description: >
     Repeat some text multiple times.
   return:
@@ -519,6 +541,7 @@ Text.repeat:
     = "AbcAbcAbc"
     
 Text.replace:
+  short: replace a substring
   description: >
     Replaces occurrences of a target text with a replacement text.
   return:
@@ -543,6 +566,7 @@ Text.replace:
     = "Hello there"
     
 Text.reversed:
+  short: get a reversed copy
   description: >
     Return a text that has the grapheme clusters in reverse order.
   return:
@@ -559,6 +583,7 @@ Text.reversed:
     = "cbA"
     
 Text.right_pad:
+  short: right-pad text
   description: >
     Pad some text on the right side so it reaches a target width.
   return:
@@ -593,6 +618,7 @@ Text.right_pad:
     = "xABCA"
     
 Text.slice:
+  short: get a slice of a text
   description: >
     Get a slice of the text.
   return:
@@ -629,6 +655,7 @@ Text.slice:
     = "ello"
     
 Text.split:
+  short: split a text by a delimiter
   description: >
     Splits the text into a list of substrings based on exact matches of a delimiter.
   return:
@@ -659,6 +686,7 @@ Text.split:
     = ["a", "b", "c"]
     
 Text.split_any:
+  short: split a text by multiple delimiters
   description: >
     Splits the text into a list of substrings at one or more occurrences of a set
     of delimiter characters (grapheme clusters).
@@ -686,6 +714,7 @@ Text.split_any:
     = ["one", "two", "three"]
     
 Text.starts_with:
+  short: check prefix
   description: >
     Checks if the `Text` starts with a literal prefix text.
   return:
@@ -706,6 +735,7 @@ Text.starts_with:
     = yes
     
 Text.title:
+  short: titlecase
   description: >
     Converts the text to title case (capitalizing the first letter of each word).
   return:
@@ -731,6 +761,7 @@ Text.title:
     = "İ"
     
 Text.to:
+  short: slice to an end index
   description: >
     Get a slice of the text, ending at the given position.
   return:
@@ -758,6 +789,7 @@ Text.to:
     = "goodby"
     
 Text.translate:
+  short: perform multiple replacements
   description: >
     Takes a table mapping target texts to their replacements and performs all the
     replacements in the table on the whole text. At each position, the first
@@ -770,21 +802,26 @@ Text.translate:
       The text with all occurrences of the targets replaced with their corresponding
       replacement text.
   args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be translated.
     translations:
       type: '{Text=Text}'
       description: >
         A table mapping from target text to its replacement.
   example: |
     >> "A <tag> & an amperand".translate({
-    "&" = "&amp;",
-    "<" = "&lt;",
-    ">" = "&gt;",
-    '"" = "&quot",
-    "'" = "&#39;",
-    }
+        "&" = "&amp;",
+        "<" = "&lt;",
+        ">" = "&gt;",
+        '"" = "&quot",
+        "'" = "&#39;",
+    })
     = "A &lt;tag&gt; &amp; an ampersand"
     
 Text.trim:
+  short: trim characters
   description: >
     Trims the given characters (grapheme clusters) from the left and/or right side of the text.
   return:
@@ -822,6 +859,7 @@ Text.trim:
     = "xyz   "
     
 Text.upper:
+  short: uppercase
   description: >
     Converts all characters in the text to uppercase.
   return:
@@ -847,6 +885,7 @@ Text.upper:
     = "İ"
     
 Text.utf32_codepoints:
+  short: get UTF32 codepoints
   description: >
     Returns a list of Unicode code points for UTF32 encoding of the text.
   return:
@@ -863,6 +902,7 @@ Text.utf32_codepoints:
     = [65, 109, 233, 108, 105, 101]
     
 Text.width:
+  short: get display width
   description: >
     Returns the display width of the text as seen in a terminal with appropriate
     font rendering. This is usually the same as the text's `.length`, but there are
@@ -886,6 +926,7 @@ Text.width:
     = 2
     
 Text.without_prefix:
+  short: remove prefix
   description: >
     Returns the text with a given prefix removed (if present).
   return:
@@ -909,6 +950,7 @@ Text.without_prefix:
     = "qux"
     
 Text.without_suffix:
+  short: remove suffix
   description: >
     Returns the text with a given suffix removed (if present).
   return:

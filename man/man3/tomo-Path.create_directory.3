@@ -2,20 +2,20 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.create_directory 3 2025-04-19T14:52:07.137631 "Tomo man-pages"
+.TH Path.create_directory 3 2025-04-21T14:44:34.262292 "Tomo man-pages"
 .SH NAME
-Path.create_directory \- Creates a new directory at the specified path with the given permissions. If any of the parent directories do not exist, they will be created as needed.
-
+Path.create_directory \- make a directory
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
 .BI Path.create_directory\ :\ func(path:\ Path,\ permissions\ =\ Int32(0o755)\ ->\ Void)
 .fi
-
 .SH DESCRIPTION
 Creates a new directory at the specified path with the given permissions. If any of the parent directories do not exist, they will be created as needed.
 
+
+.SH ARGUMENTS
 
 .TS
 allbox;

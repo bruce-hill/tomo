@@ -1,4 +1,5 @@
 Byte.hex:
+  short: convert to hexidecimal
   description: >
     Convert a byte to a hexidecimal text representation.
   return:
@@ -25,6 +26,7 @@ Byte.hex:
     = "0x12"
     
 Byte.is_between:
+  short: test if inside a range
   description: >
     Determines if an integer is between two numbers (inclusive).
   return:
@@ -53,6 +55,7 @@ Byte.is_between:
     = yes
     
 Byte.parse:
+  short: convert text to a byte
   description: >
     Parse a byte literal from text.
   return:
@@ -71,6 +74,7 @@ Byte.parse:
     = none
     
 Byte.to:
+  short: iterate over a range of bytes
   description: >
     Returns an iterator function that iterates over the range of bytes specified.
   return:

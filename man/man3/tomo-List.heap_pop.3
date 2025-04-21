@@ -2,20 +2,20 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.heap_pop 3 2025-04-19T14:52:07.133799 "Tomo man-pages"
+.TH List.heap_pop 3 2025-04-21T14:44:34.258860 "Tomo man-pages"
 .SH NAME
-List.heap_pop \- Removes and returns the top element of a heap or `none` if the list is empty. By default, this is the *minimum* value in the heap.
-
+List.heap_pop \- heap pop
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
 .BI List.heap_pop\ :\ func(list:\ @[T],\ by:\ func(x,y:&T->Int32)\ =\ T.compare\ ->\ T?)
 .fi
-
 .SH DESCRIPTION
 Removes and returns the top element of a heap or `none` if the list is empty. By default, this is the *minimum* value in the heap.
 
+
+.SH ARGUMENTS
 
 .TS
 allbox;

@@ -1,4 +1,5 @@
 Num.abs:
+  short: absolute value
   description: >
     Calculates the absolute value of a number.
   return:
@@ -15,6 +16,7 @@ Num.abs:
     = 3.5
     
 Num.acos:
+  short: arc cosine
   description: >
     Computes the arc cosine of a number.
   return:
@@ -31,6 +33,7 @@ Num.acos:
     = 1.5708
     
 Num.acosh:
+  short: arc hyperbolic cosine
   description: >
     Computes the inverse hyperbolic cosine of a number.
   return:
@@ -47,6 +50,7 @@ Num.acosh:
     = 0
     
 Num.asin:
+  short: arc sine
   description: >
     Computes the arc sine of a number.
   return:
@@ -63,6 +67,7 @@ Num.asin:
     = 0.5236
     
 Num.asinh:
+  short: arc hyperbolic sine
   description: >
     Computes the inverse hyperbolic sine of a number.
   return:
@@ -79,6 +84,7 @@ Num.asinh:
     = 0
     
 Num.atan:
+  short: arc tangent
   description: >
     Computes the arc tangent of a number.
   return:
@@ -95,6 +101,7 @@ Num.atan:
     = 0.7854
     
 Num.atan2:
+  short: arc tangent from 2 variables
   description: >
     Computes the arc tangent of the quotient of two numbers.
   return:
@@ -115,6 +122,7 @@ Num.atan2:
     = 0.7854
     
 Num.atanh:
+  short: arc hyperbolic tangent.
   description: >
     Computes the inverse hyperbolic tangent of a number.
   return:
@@ -131,6 +139,7 @@ Num.atanh:
     = 0.5493
     
 Num.cbrt:
+  short: cube root
   description: >
     Computes the cube root of a number.
   return:
@@ -147,6 +156,7 @@ Num.cbrt:
     = 3
     
 Num.ceil:
+  short: ceiling function
   description: >
     Rounds a number up to the nearest integer.
   return:
@@ -163,6 +173,7 @@ Num.ceil:
     = 4
     
 Num.clamped:
+  short: clamp a number
   description: >
     Returns the given number clamped between two values so that it is within
     that range.
@@ -188,6 +199,7 @@ Num.clamped:
     = 5.5
     
 Num.copysign:
+  short: copy a number's sign
   description: >
     Copies the sign of one number to another.
   return:
@@ -208,6 +220,7 @@ Num.copysign:
     = -3
     
 Num.cos:
+  short: cosine
   description: >
     Computes the cosine of a number (angle in radians).
   return:
@@ -224,6 +237,7 @@ Num.cos:
     = 1
     
 Num.cosh:
+  short: hyperbolic cosine
   description: >
     Computes the hyperbolic cosine of a number.
   return:
@@ -240,6 +254,7 @@ Num.cosh:
     = 1
     
 Num.erf:
+  short: error function
   description: >
     Computes the error function of a number.
   return:
@@ -256,6 +271,7 @@ Num.erf:
     = 0
     
 Num.erfc:
+  short: complimentary error function
   description: >
     Computes the complementary error function of a number.
   return:
@@ -272,6 +288,7 @@ Num.erfc:
     = 1
     
 Num.exp:
+  short: base-e exponentiation
   description: >
     Computes the exponential function $e^x$ for a number.
   return:
@@ -288,6 +305,7 @@ Num.exp:
     = 2.7183
     
 Num.exp2:
+  short: base-2 exponentiation
   description: >
     Computes $2^x$ for a number.
   return:
@@ -304,6 +322,7 @@ Num.exp2:
     = 8
     
 Num.expm1:
+  short: base-e exponential minus 1
   description: >
     Computes $e^x - 1$ for a number.
   return:
@@ -320,6 +339,7 @@ Num.expm1:
     = 1.7183
     
 Num.fdim:
+  short: positive difference
   description: >
     Computes the positive difference between two numbers.
   return:
@@ -342,6 +362,7 @@ Num.fdim:
     = 2
     
 Num.floor:
+  short: floor function
   description: >
     Rounds a number down to the nearest integer.
   return:
@@ -358,6 +379,7 @@ Num.floor:
     = 3
     
 Num.format:
+  short: convert a number to text
   description: >
     Formats a number as a text with a specified precision.
   return:
@@ -379,6 +401,7 @@ Num.format:
     = "3.14"
     
 Num.hypot:
+  short: Euclidean distance function
   description: >
     Computes the Euclidean norm, $\sqrt{x^2 + y^2}$, of two numbers.
   return:
@@ -399,6 +422,7 @@ Num.hypot:
     = 5
     
 Num.isfinite:
+  short: check for finite number
   description: >
     Checks if a number is finite.
   return:
@@ -417,6 +441,7 @@ Num.isfinite:
     = no
     
 Num.is_between:
+  short: check if a number is in a range
   description: >
     Determines if a number is between two numbers (inclusive).
   return:
@@ -445,6 +470,7 @@ Num.is_between:
     = yes
     
 Num.isinf:
+  short: check for infinite number
   description: >
     Checks if a number is infinite.
   return:
@@ -463,6 +489,7 @@ Num.isinf:
     = no
     
 Num.j0:
+  short: Bessel function
   description: >
     Computes the Bessel function of the first kind of order 0.
   return:
@@ -479,6 +506,7 @@ Num.j0:
     = 1
     
 Num.j1:
+  short: Bessel function
   description: >
     Computes the Bessel function of the first kind of order 1.
   return:
@@ -495,6 +523,7 @@ Num.j1:
     = 0
     
 Num.log:
+  short: natural logarithm
   description: >
     Computes the natural logarithm (base $e$) of a number.
   return:
@@ -511,6 +540,7 @@ Num.log:
     = 1
     
 Num.log10:
+  short: logarithm base-10
   description: >
     Computes the base-10 logarithm of a number.
   return:
@@ -527,6 +557,7 @@ Num.log10:
     = 2
     
 Num.log1p:
+  short: logarithm of 1 plus x
   description: >
     Computes $\log(1 + x)$ for a number.
   return:
@@ -543,6 +574,7 @@ Num.log1p:
     = 0.6931
     
 Num.log2:
+  short: logarithm base-2
   description: >
     Computes the base-2 logarithm of a number.
   return:
@@ -559,6 +591,7 @@ Num.log2:
     = 3
     
 Num.logb:
+  short: exponent of a floating point value
   description: >
     Computes the binary exponent (base-2 logarithm) of a number.
   return:
@@ -575,6 +608,7 @@ Num.logb:
     = 3
     
 Num.mix:
+  short: mix two numbers by an amount
   description: >
     Interpolates between two numbers based on a given amount.
   return:
@@ -601,6 +635,7 @@ Num.mix:
     = 12.5
     
 Num.near:
+  short: check if two numbers are near each other
   description: >
     Checks if two numbers are approximately equal within specified tolerances. If
     two numbers are within an absolute difference or the ratio between the two is
@@ -639,6 +674,7 @@ Num.near:
     = yes
     
 Num.nextafter:
+  short: next floating point number
   description: >
     Computes the next representable value after a given number towards a specified direction.
   return:
@@ -659,6 +695,7 @@ Num.nextafter:
     = 1.0000000000000002
     
 Num.parse:
+  short: convert text to number
   description: >
     Converts a text representation of a number into a floating-point number.
   return:
@@ -678,6 +715,7 @@ Num.parse:
     = 1000
     
 Num.percent:
+  short: format as a percentage
   description: >
     Convert a number into a percentage text with a percent sign.
   return:
@@ -701,6 +739,7 @@ Num.percent:
     = "33.33%"
     
 Num.rint:
+  short: round to nearest integer
   description: >
     Rounds a number to the nearest integer, with ties rounded to the nearest even integer.
   return:
@@ -719,6 +758,7 @@ Num.rint:
     = 2
     
 Num.round:
+  short: round to nearest integer
   description: >
     Rounds a number to the nearest whole number integer.
   return:
@@ -737,6 +777,7 @@ Num.round:
     = 3
     
 Num.scientific:
+  short: format in scientific notation
   description: >
     Formats a number in scientific notation with a specified precision.
   return:
@@ -758,6 +799,7 @@ Num.scientific:
     = "1.23e+04"
     
 Num.significand:
+  short: get mantissa
   description: >
     Extracts the significand (or mantissa) of a number.
   return:
@@ -774,6 +816,7 @@ Num.significand:
     = 0.1234567
     
 Num.sin:
+  short: sine
   description: >
     Computes the sine of a number (angle in radians).
   return:
@@ -790,6 +833,7 @@ Num.sin:
     = 0
     
 Num.sinh:
+  short: hyperbolic sine
   description: >
     Computes the hyperbolic sine of a number.
   return:
@@ -806,6 +850,7 @@ Num.sinh:
     = 0
     
 Num.sqrt:
+  short: square root
   description: >
     Computes the square root of a number.
   return:
@@ -822,6 +867,7 @@ Num.sqrt:
     = 4
     
 Num.tan:
+  short: tangent
   description: >
     Computes the tangent of a number (angle in radians).
   return:
@@ -838,6 +884,7 @@ Num.tan:
     = 0
     
 Num.tanh:
+  short: hyperbolic tangent
   description: >
     Computes the hyperbolic tangent of a number.
   return:
@@ -854,6 +901,7 @@ Num.tanh:
     = 0
     
 Num.tgamma:
+  short: "true gamma function"
   description: >
     Computes the gamma function of a number.
   return:
@@ -870,6 +918,7 @@ Num.tgamma:
     = 1
     
 Num.trunc:
+  short: truncate a number
   description: >
     Truncates a number to the nearest integer towards zero.
   return:
@@ -888,6 +937,7 @@ Num.trunc:
     = -3
     
 Num.y0:
+  short: Bessel function
   description: >
     Computes the Bessel function of the second kind of order 0.
   return:
@@ -904,6 +954,7 @@ Num.y0:
     = -0.7652
     
 Num.y1:
+  short: Bessel function
   description: >
     Computes the Bessel function of the second kind of order 1.
   return:
@@ -921,58 +972,72 @@ Num.y1:
     
 
 Num.1_PI:
+  short: 1/pi
   type: Num
   description: >
     The constant $\frac{1}{\pi}$.
 Num.2_PI:
+  short: 2*pi
   type: Num
   description: >
     The constant $2 \times \pi$.
 Num.2_SQRTPI:
+  short: 2*sqrt(pi)
   type: Num
   description: >
     The constant $2 \times \sqrt{\pi}$.
 Num.E:
+  short: Euler's constant
   type: Num
   description: >
     The base of the natural logarithm ($e$).
 Num.INF:
+  short: infinity
   type: Num
   description: >
     Positive infinity.
 Num.LN10:
+  short: log(10)
   type: Num
   description: >
     The natural logarithm of 10.
 Num.LN2:
+  short: log(2)
   type: Num
   description: >
     The natural logarithm of 2.
 Num.LOG2E:
+  short: log_2(e)
   type: Num
   description: >
     The base 2 logarithm of $e$
 Num.PI:
+  short: pi
   type: Num
   description: >
     Pi ($\pi$).
 Num.PI_2:
+  short: pi/2
   type: Num
   description: >
     $\frac{\pi}{2}$
 Num.PI_4:
+  short: pi/4
   type: Num
   description: >
     $\frac{\pi}{4}$
 Num.SQRT1_2:
+  short: sqrt(1/2)
   type: Num
   description: >
     $\sqrt{\frac{1}{2}}$
 Num.SQRT2:
+  short: sqrt(2)
   type: Num
   description: >
     $\sqrt{2}$
 Num.TAU:
+  short: 2*pi
   type: Num
   description: >
     Tau ($2 \times \pi$)

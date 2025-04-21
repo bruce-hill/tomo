@@ -2,26 +2,27 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.translate 3 2025-04-19T14:52:07.140684 "Tomo man-pages"
+.TH Text.translate 3 2025-04-21T14:44:34.265097 "Tomo man-pages"
 .SH NAME
-Text.translate \- Takes a table mapping target texts to their replacements and performs all the replacements in the table on the whole text. At each position, the first matching replacement is applied and the matching moves on to *after* the replacement text, so replacement text is not recursively modified. See Text.replace() for more information about replacement behavior.
-
+Text.translate \- perform multiple replacements
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Text.translate\ :\ func(translations:\ {Text=Text}\ ->\ Text)
+.BI Text.translate\ :\ func(text:\ Text,\ translations:\ {Text=Text}\ ->\ Text)
 .fi
-
 .SH DESCRIPTION
 Takes a table mapping target texts to their replacements and performs all the replacements in the table on the whole text. At each position, the first matching replacement is applied and the matching moves on to *after* the replacement text, so replacement text is not recursively modified. See Text.replace() for more information about replacement behavior.
 
+
+.SH ARGUMENTS
 
 .TS
 allbox;
 lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
+text	Text	The text to be translated. 	-
 translations	{Text=Text}	A table mapping from target text to its replacement. 	-
 .TE
 .SH RETURN
@@ -30,11 +31,11 @@ The text with all occurrences of the targets replaced with their corresponding r
 .SH EXAMPLES
 .EX
 >> "A <tag> & an amperand".translate({
-"&" = "&amp;",
-"<" = "&lt;",
-">" = "&gt;",
-\&'"" = "&quot",
-"'" = "&#39;",
-}
+    "&" = "&amp;",
+    "<" = "&lt;",
+    ">" = "&gt;",
+    '"" = "&quot",
+    "'" = "&#39;",
+})
 = "A &lt;tag&gt; &amp; an ampersand"
 .EE

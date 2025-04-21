@@ -1,4 +1,5 @@
 Set.add:
+  short: add item to a set
   description: >
     Adds an item to the set.
   return:
@@ -18,6 +19,7 @@ Set.add:
     >> nums.add(42)
     
 Set.add_all:
+  short: add items to a set
   description: >
     Adds multiple items to the set.
   return:
@@ -37,6 +39,7 @@ Set.add_all:
     >> nums.add_all([1, 2, 3])
     
 Set.clear:
+  short: clear a set
   description: >
     Removes all items from the set.
   return:
@@ -52,6 +55,7 @@ Set.clear:
     >> nums.clear()
     
 Set.has:
+  short: check if a set has an item
   description: >
     Checks if the set contains a specified item.
   return:
@@ -72,6 +76,7 @@ Set.has:
     = yes
     
 Set.is_subset_of:
+  short: check if a set is a subset
   description: >
     Checks if the set is a subset of another set.
   return:
@@ -97,6 +102,7 @@ Set.is_subset_of:
     = yes
     
 Set.is_superset_of:
+  short: check if a set is a superset
   description: >
     Checks if the set is a superset of another set.
   return:
@@ -122,6 +128,7 @@ Set.is_superset_of:
     = yes
     
 Set.overlap:
+  short: set intersection
   description: >
     Creates a new set with items that are in both the original set and another set.
   return:
@@ -142,6 +149,7 @@ Set.overlap:
     = |2|
     
 Set.remove:
+  short: remove an item from a set
   description: >
     Removes an item from the set.
   return:
@@ -161,6 +169,7 @@ Set.remove:
     >> nums.remove(42)
     
 Set.remove_all:
+  short: remove items from a set
   description: >
     Removes multiple items from the set.
   return:
@@ -180,6 +189,7 @@ Set.remove_all:
     >> nums.remove_all([1, 2, 3])
     
 Set.with:
+  short: set union
   description: >
     Creates a new set that is the union of the original set and another set.
   return:
@@ -200,6 +210,7 @@ Set.with:
     = |1, 2, 3|
     
 Set.without:
+  short: set difference
   description: >
     Creates a new set with items from the original set but without items from another set.
   return:

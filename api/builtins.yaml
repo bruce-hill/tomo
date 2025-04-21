@@ -1,4 +1,5 @@
 ask:
+  short: get user input
   description: >
     Gets a line of user input text with a prompt.
   note: >
@@ -34,6 +35,7 @@ ask:
     = "Arthur Dent"
     
 exit:
+  short: exit the program
   description: >
     Exits the program with a given status and optionally prints a message.
   return:
@@ -56,6 +58,7 @@ exit:
     exit(status=1, "Goodbye forever!")
     
 getenv:
+  short: get an environment variable
   description: >
     Gets an environment variable.
   return:
@@ -72,6 +75,7 @@ getenv:
     = "xterm-256color"?
     
 print:
+  short: print some text
   description: >
     Prints a message to the console (alias for say()).
   return:
@@ -93,6 +97,7 @@ print:
     print("world!")
     
 say:
+  short: print some text
   description: >
     Prints a message to the console.
   return:
@@ -114,6 +119,7 @@ say:
     say("world!")
     
 setenv:
+  short: set an environment variable
   description: >
     Sets an environment variable.
   return:
@@ -133,6 +139,7 @@ setenv:
     setenv("FOOBAR", "xyz")
     
 sleep:
+  short: wait for an interval
   description: >
     Pause execution for a given number of seconds.
   return:
@@ -148,6 +155,7 @@ sleep:
     sleep(1.5)
     
 fail:
+  short: abort the program
   description: >
     Prints a message to the console, aborts the program, and prints a stack trace.
   return:
@@ -163,6 +171,7 @@ fail:
     fail("Oh no!")
     
 USE_COLOR:
+  short: whether to use colors
   type: Bool
   description: >
     Whether or not the console prefers ANSI color escape sequences in the output.

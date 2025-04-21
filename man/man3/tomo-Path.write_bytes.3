@@ -2,20 +2,20 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.write_bytes 3 2025-04-19T14:52:07.138627 "Tomo man-pages"
+.TH Path.write_bytes 3 2025-04-21T14:44:34.263234 "Tomo man-pages"
 .SH NAME
-Path.write_bytes \- Writes the given bytes to the file at the specified path, creating the file if it doesn't already exist. Sets the file permissions as specified. If the file writing cannot be successfully completed, a runtime error is raised.
-
+Path.write_bytes \- write bytes to a file
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
 .BI Path.write_bytes\ :\ func(path:\ Path,\ bytes:\ [Byte],\ permissions\ =\ Int32(0o644)\ ->\ Void)
 .fi
-
 .SH DESCRIPTION
 Writes the given bytes to the file at the specified path, creating the file if it doesn't already exist. Sets the file permissions as specified. If the file writing cannot be successfully completed, a runtime error is raised.
 
+
+.SH ARGUMENTS
 
 .TS
 allbox;

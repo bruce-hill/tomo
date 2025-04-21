@@ -2,20 +2,20 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.width 3 2025-04-19T14:52:07.140841 "Tomo man-pages"
+.TH Text.width 3 2025-04-21T14:44:34.265245 "Tomo man-pages"
 .SH NAME
-Text.width \- Returns the display width of the text as seen in a terminal with appropriate font rendering. This is usually the same as the text's `.length`, but there are some characters like emojis that render wider than 1 cell.
-
+Text.width \- get display width
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
 .BI Text.width\ :\ func(text:\ Text\ ->\ Int)
 .fi
-
 .SH DESCRIPTION
 Returns the display width of the text as seen in a terminal with appropriate font rendering. This is usually the same as the text's `.length`, but there are some characters like emojis that render wider than 1 cell.
 
+
+.SH ARGUMENTS
 
 .TS
 allbox;

@@ -1,4 +1,5 @@
 List.binary_search:
+  short: binary search
   description: >
     Performs a binary search on a sorted list.
   return:
@@ -30,6 +31,7 @@ List.binary_search:
     = 6
     
 List.by:
+  short: slice by a step value
   description: >
     Creates a new list with elements spaced by the specified step value.
   return:
@@ -50,6 +52,7 @@ List.by:
     = [1, 3, 5]
     
 List.clear:
+  short: clear a list
   description: >
     Clears all elements from the list.
   return:
@@ -65,6 +68,7 @@ List.clear:
     >> my_list.clear()
     
 List.counts:
+  short: count occurrences
   description: >
     Counts the occurrences of each element in the list.
   return:
@@ -81,6 +85,7 @@ List.counts:
     = {10=1, 20=1, 30=3}
     
 List.find:
+  short: find an element's index
   description: >
     Finds the index of the first occurrence of an element (if any).
   return:
@@ -104,6 +109,7 @@ List.find:
     = none : Int?
     
 List.first:
+  short: find an index where a predicate matches
   description: >
     Find the index of the first item that matches a predicate function (if any).
   return:
@@ -128,6 +134,7 @@ List.first:
     = none : Int?
     
 List.from:
+  short: slice an array from a start index
   description: >
     Returns a slice of the list starting from a specified index.
   return:
@@ -148,6 +155,7 @@ List.from:
     = [30, 40, 50]
     
 List.has:
+  short: check for member
   description: >
     Checks if the list has an element.
   return:
@@ -168,6 +176,7 @@ List.has:
     = yes
     
 List.heap_pop:
+  short: heap pop
   description: >
     Removes and returns the top element of a heap or `none` if the list is empty.
     By default, this is the *minimum* value in the heap.
@@ -193,6 +202,7 @@ List.heap_pop:
     = 10
     
 List.heap_push:
+  short: heap push
   description: >
     Adds an element to the heap and maintains the heap property. By default, this
     is a *minimum* heap.
@@ -218,6 +228,7 @@ List.heap_push:
     >> my_heap.heap_push(10)
     
 List.heapify:
+  short: convert a list into a heap
   description: >
     Converts a list into a heap.
   return:
@@ -240,6 +251,7 @@ List.heapify:
     >> my_heap.heapify()
     
 List.insert:
+  short: add an item to a list
   description: >
     Inserts an element at a specified position in the list.
   return:
@@ -274,6 +286,7 @@ List.insert:
     = [10, 999, 20, 30]
     
 List.insert_all:
+  short: add multiple items to a list
   description: >
     Inserts a list of items at a specified position in the list.
   return:
@@ -308,6 +321,7 @@ List.insert_all:
     = [10, 99, 100, 20, 30, 40]
     
 List.pop:
+  short: pop an item from a list
   description: >
     Removes and returns an item from the list. If the given index is present in
     the list, the item at that index will be removed and the list will become one
@@ -344,6 +358,7 @@ List.pop:
     = &[10, 30]
     
 List.random:
+  short: pick a random element
   description: >
     Selects a random element from the list.
   return:
@@ -367,6 +382,7 @@ List.random:
     = 20
     
 List.remove_at:
+  short: remove an item by index
   description: >
     Removes elements from the list starting at a specified index.
   return:
@@ -402,6 +418,7 @@ List.remove_at:
     = [10, 50]
     
 List.remove_item:
+  short: remove an item by value
   description: >
     Removes all occurrences of a specified item from the list.
   return:
@@ -435,6 +452,7 @@ List.remove_item:
     = [20, 30]
     
 List.reversed:
+  short: get a reversed list
   description: >
     Returns a reversed slice of the list.
   return:
@@ -451,6 +469,7 @@ List.reversed:
     = [30, 20, 10]
     
 List.sample:
+  short: weighted random choices
   description: >
     Selects a sample of elements from the list, optionally with weighted
     probabilities.
@@ -495,6 +514,7 @@ List.sample:
     = [10, 10]
     
 List.shuffle:
+  short: shuffle a list in place
   description: >
     Shuffles the elements of the list in place.
   return:
@@ -517,6 +537,7 @@ List.shuffle:
     >> list.shuffle()
     
 List.shuffled:
+  short: return a shuffled list
   description: >
     Creates a new list with elements shuffled.
   return:
@@ -540,6 +561,7 @@ List.shuffled:
     = [40, 10, 30, 20]
     
 List.slice:
+  short: get a slice of a list
   description: >
     Returns a slice of the list spanning the given indices (inclusive).
   return:
@@ -569,6 +591,7 @@ List.slice:
     = [30, 40]
     
 List.sort:
+  short: sort a list
   description: >
     Sorts the elements of the list in place in ascending order (small to large).
   return:
@@ -596,6 +619,7 @@ List.sort:
     = [10, 20, -30, 40]
     
 List.sorted:
+  short: sorted copy of a list
   description: >
     Creates a new list with elements sorted.
   return:
@@ -620,6 +644,7 @@ List.sorted:
     = [10, 20, -30, 40]
     
 List.to:
+  short: slice a list to an end index
   description: >
     Returns a slice of the list from the start of the original list up to a specified index (inclusive).
   return:
@@ -643,6 +668,7 @@ List.to:
     = [10, 20, 30, 40]
     
 List.unique:
+  short: convert a list to a set
   description: >
     Returns a Set that contains the unique elements of the list.
   return:

@@ -1,4 +1,5 @@
 Table.clear:
+  short: clear a table
   description: >
     Removes all key-value pairs from the table.
   return:
@@ -14,6 +15,7 @@ Table.clear:
     >> t.clear()
     
 Table.get:
+  short: get an item from a table
   description: >
     Retrieves the value associated with a key, or returns `none` if the key is not present.
   note: >
@@ -46,6 +48,7 @@ Table.get:
     = 0
     
 Table.get_or_set:
+  short: get an item or set a default if absent
   description: >
     If the given key is in the table, return the associated value. Otherwise,
     insert the given default value into the table and return it.
@@ -85,6 +88,7 @@ Table.get_or_set:
     = &{"A"=@[1, 2, 3, 4], "B"=@[99], "C"=@[0, 0, 0]}
     
 Table.has:
+  short: check for a key
   description: >
     Checks if the table contains a specified key.
   return:
@@ -107,6 +111,7 @@ Table.has:
     = no
     
 Table.remove:
+  short: remove a table entry
   description: >
     Removes the key-value pair associated with a specified key.
   return:
@@ -129,6 +134,7 @@ Table.remove:
     = {"B"=2}
     
 Table.set:
+  short: set a table entry
   description: >
     Sets or updates the value associated with a specified key.
   return:

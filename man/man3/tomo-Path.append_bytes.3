@@ -2,20 +2,20 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.append_bytes 3 2025-04-19T14:52:07.137277 "Tomo man-pages"
+.TH Path.append_bytes 3 2025-04-21T14:44:34.261974 "Tomo man-pages"
 .SH NAME
-Path.append_bytes \- Appends the given bytes to the file at the specified path, creating the file if it doesn't already exist. Failure to write will result in a runtime error.
-
+Path.append_bytes \- append bytes to a file
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
 .BI Path.append_bytes\ :\ func(path:\ Path,\ bytes:\ [Byte],\ permissions:\ Int32\ =\ Int32(0o644)\ ->\ Void)
 .fi
-
 .SH DESCRIPTION
 Appends the given bytes to the file at the specified path, creating the file if it doesn't already exist. Failure to write will result in a runtime error.
 
+
+.SH ARGUMENTS
 
 .TS
 allbox;

@@ -9,7 +9,7 @@
 Bool.parse : func(text: Text -> Bool?)
 ```
 
-Converts a string representation of a boolean value into a boolean. Acceptable boolean values are case-insensitive variations of `yes`/`no`, `y`/`n`, `true`/`false`, `on`/`off`.
+Converts a text representation of a boolean value into a boolean. Acceptable boolean values are case-insensitive variations of `yes`/`no`, `y`/`n`, `true`/`false`, `on`/`off`.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------

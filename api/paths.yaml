@@ -1,4 +1,5 @@
 Path.accessed:
+  short: access time
   description: >
     Gets the file access time of a file.
   return:
@@ -23,6 +24,7 @@ Path.accessed:
     = none
     
 Path.append:
+  short: append to a file
   description: >
     Appends the given text to the file at the specified path, creating the file if
     it doesn't already exist. Failure to write will result in a runtime error.
@@ -48,6 +50,7 @@ Path.append:
     (./log.txt).append("extra line$(\n)")
     
 Path.append_bytes:
+  short: append bytes to a file
   description: >
     Appends the given bytes to the file at the specified path, creating the file if
     it doesn't already exist. Failure to write will result in a runtime error.
@@ -73,6 +76,7 @@ Path.append_bytes:
     (./log.txt).append_bytes([104, 105])
     
 Path.base_name:
+  short: base name of a file
   description: >
     Returns the base name of the file or directory at the specified path.
   return:
@@ -89,6 +93,7 @@ Path.base_name:
     = "file.txt"
     
 Path.by_line:
+  short: iterate by line
   description: >
     Returns an iterator that can be used to iterate over a file one line at a time,
     or returns a null value if the file could not be opened.
@@ -115,6 +120,7 @@ Path.by_line:
     say(line.upper())
     
 Path.can_execute:
+  short: check execute permissions
   description: >
     Returns whether or not a file can be executed by the current user/group.
   return:
@@ -135,6 +141,7 @@ Path.can_execute:
     = no
     
 Path.can_read:
+  short: check read permissions
   description: >
     Returns whether or not a file can be read by the current user/group.
   return:
@@ -155,6 +162,7 @@ Path.can_read:
     = no
     
 Path.can_write:
+  short: check write permissions
   description: >
     Returns whether or not a file can be written by the current user/group.
   return:
@@ -175,6 +183,7 @@ Path.can_write:
     = no
     
 Path.changed:
+  short: get the last changed time
   description: >
     Gets the file change time of a file.
   note: >
@@ -202,6 +211,7 @@ Path.changed:
     = none
     
 Path.child:
+  short: append a child to a path
   description: >
     Return a path that is a child of another path.
   return:
@@ -222,6 +232,7 @@ Path.child:
     = (./directory/file.txt)
     
 Path.children:
+  short: get children of a directory
   description: >
     Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files.
   return:
@@ -242,6 +253,7 @@ Path.children:
     = [".git", "foo.txt"]
     
 Path.create_directory:
+  short: make a directory
   description: >
     Creates a new directory at the specified path with the given permissions. If
     any of the parent directories do not exist, they will be created as needed.
@@ -262,6 +274,7 @@ Path.create_directory:
     (./new_directory).create_directory()
     
 Path.current_dir:
+  short: get current directory
   description: >
     Creates a new directory at the specified path with the given permissions. If
     any of the parent directories do not exist, they will be created as needed.
@@ -275,6 +288,7 @@ Path.current_dir:
     = (/home/user/tomo)
     
 Path.exists:
+  short: check if a path exists
   description: >
     Checks if a file or directory exists at the specified path.
   return:
@@ -291,6 +305,7 @@ Path.exists:
     = yes
     
 Path.expand_home:
+  short: 'expand ~ to $HOME'
   description: >
     For home-based paths (those starting with `~`), expand the path to replace the
     tilde with and absolute path to the user's `$HOME` directory.
@@ -311,6 +326,7 @@ Path.expand_home:
     = /foo
     
 Path.extension:
+  short: get file extension
   description: >
     Returns the file extension of the file at the specified path. Optionally returns the full extension.
   return:
@@ -340,6 +356,7 @@ Path.extension:
     = ""
     
 Path.files:
+  short: list files in a directory
   description: >
     Returns a list of files within the directory at the specified path. Optionally includes hidden files.
   return:
@@ -361,6 +378,7 @@ Path.files:
     = [(./directory/file1.txt), (./directory/file2.txt)]
     
 Path.from_components:
+  short: build a path from components
   description: >
     Returns a path built from a list of path components.
   return:
@@ -381,6 +399,7 @@ Path.from_components:
     = ~/.local
     
 Path.glob:
+  short: perform file globbing
   description: >
     Perform a globbing operation and return a list of matching paths. Some glob
     specific details:
@@ -422,6 +441,7 @@ Path.glob:
     = []
     
 Path.group:
+  short: get the owning group
   description: >
     Get the owning group of a file or directory.
   return:
@@ -445,6 +465,7 @@ Path.group:
     = none
     
 Path.is_directory:
+  short: check if a path is a directory
   description: >
     Checks if the path represents a directory. Optionally follows symbolic links.
   return:
@@ -468,6 +489,7 @@ Path.is_directory:
     = no
     
 Path.is_file:
+  short: check if a path is a file
   description: >
     Checks if the path represents a file. Optionally follows symbolic links.
   return:
@@ -491,6 +513,7 @@ Path.is_file:
     = no
     
 Path.is_socket:
+  short: check if a path is a socket
   description: >
     Checks if the path represents a socket. Optionally follows symbolic links.
   return:
@@ -511,6 +534,7 @@ Path.is_socket:
     = yes
     
 Path.is_symlink:
+  short: check if a path is a symbolic link
   description: >
     Checks if the path represents a symbolic link.
   return:
@@ -527,6 +551,7 @@ Path.is_symlink:
     = yes
     
 Path.modified:
+  short: get file modification time
   description: >
     Gets the file modification time of a file.
   return:
@@ -551,6 +576,7 @@ Path.modified:
     = none
     
 Path.owner:
+  short: get file owner
   description: >
     Get the owning user of a file or directory.
   return:
@@ -574,6 +600,7 @@ Path.owner:
     = none
     
 Path.parent:
+  short: get parent directory
   description: >
     Returns the parent directory of the file or directory at the specified path.
   return:
@@ -590,6 +617,7 @@ Path.parent:
     = (./path/to/)
     
 Path.read:
+  short: read file contents
   description: >
     Reads the contents of the file at the specified path or a null value if the
     file could not be read.
@@ -612,6 +640,7 @@ Path.read:
     = none
     
 Path.read_bytes:
+  short: read file contents as bytes
   description: >
     Reads the contents of the file at the specified path or a null value if the
     file could not be read.
@@ -638,6 +667,7 @@ Path.read_bytes:
     = none
     
 Path.relative_to:
+  short: apply a relative path to another
   description: >
     Returns the path relative to a given base path. By default, the base path is the current directory.
   return:
@@ -658,6 +688,7 @@ Path.relative_to:
     = (./to/file.txt)
     
 Path.remove:
+  short: remove a file or directory
   description: >
     Removes the file or directory at the specified path. A runtime error is raised if something goes wrong.
   return:
@@ -677,6 +708,7 @@ Path.remove:
     (./file.txt).remove()
     
 Path.resolved:
+  short: resolve a path
   description: >
     Resolves the absolute path of the given path relative to a base path. By default, the base path is the current directory.
   return:
@@ -700,6 +732,7 @@ Path.resolved:
     = (/foo/path/to/file.txt)
     
 Path.set_owner:
+  short: set the owner
   description: >
     Set the owning user and/or group for a path.
   return:
@@ -730,6 +763,7 @@ Path.set_owner:
     (./file.txt).set_owner(owner="root", group="wheel")
     
 Path.subdirectories:
+  short: get subdirectories
   description: >
     Returns a list of subdirectories within the directory at the specified path. Optionally includes hidden subdirectories.
   return:
@@ -753,6 +787,7 @@ Path.subdirectories:
     = [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
     
 Path.unique_directory:
+  short: create a directory with a unique name
   description: >
     Generates a unique directory path based on the given path. Useful for creating temporary directories.
   return:
@@ -772,6 +807,7 @@ Path.unique_directory:
     created.remove()
     
 Path.write:
+  short: write to a file
   description: >
     Writes the given text to the file at the specified path, creating the file if
     it doesn't already exist. Sets the file permissions as specified. If the file
@@ -797,6 +833,7 @@ Path.write:
     (./file.txt).write("Hello, world!")
     
 Path.write_bytes:
+  short: write bytes to a file
   description: >
     Writes the given bytes to the file at the specified path, creating the file if
     it doesn't already exist. Sets the file permissions as specified. If the file
@@ -822,6 +859,7 @@ Path.write_bytes:
     (./file.txt).write_bytes([104, 105])
     
 Path.write_unique:
+  short: write to a uniquely named file
   description: >
     Writes the given text to a unique file path based on the specified path. The
     file is created if it doesn't exist. This is useful for creating temporary
@@ -848,6 +886,7 @@ Path.write_unique:
     created.remove()
     
 Path.write_unique_bytes:
+  short: write bytes to a uniquely named file
   description: >
     Writes the given bytes to a unique file path based on the specified path. The
     file is created if it doesn't exist. This is useful for creating temporary

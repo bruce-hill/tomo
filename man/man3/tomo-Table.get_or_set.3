@@ -2,20 +2,20 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Table.get_or_set 3 2025-04-19T14:52:07.139265 "Tomo man-pages"
+.TH Table.get_or_set 3 2025-04-21T14:44:34.263808 "Tomo man-pages"
 .SH NAME
-Table.get_or_set \- If the given key is in the table, return the associated value. Otherwise, insert the given default value into the table and return it.
-
+Table.get_or_set \- get an item or set a default if absent
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
 .BI Table.get_or_set\ :\ func(t:\ &{K=V},\ key:\ K,\ default:\ V\ ->\ V?)
 .fi
-
 .SH DESCRIPTION
 If the given key is in the table, return the associated value. Otherwise, insert the given default value into the table and return it.
 
+
+.SH ARGUMENTS
 
 .TS
 allbox;
