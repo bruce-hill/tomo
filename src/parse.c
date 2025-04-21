@@ -62,8 +62,8 @@ int op_tightness[] = {
 };
 
 static const char *keywords[] = {
-    "C_code", "_max_", "_min_", "and", "break", "continue", "defer", "deserialize", "do", "else", "enum",
-    "extend", "extern", "for", "func", "if", "in", "lang", "mod", "mod1", "no", "none",
+    "C_code", "_max_", "_min_", "and", "assert", "break", "continue", "defer", "deserialize", "do", "else",
+    "enum", "extend", "extern", "for", "func", "if", "in", "lang", "mod", "mod1", "no", "none",
     "not", "or", "pass", "return", "skip", "skip", "stop", "struct", "then", "unless", "use", "when",
     "while", "xor", "yes",
 };
@@ -107,6 +107,7 @@ static PARSER(parse_declaration);
 static PARSER(parse_defer);
 static PARSER(parse_do);
 static PARSER(parse_doctest);
+static PARSER(parse_assert);
 static PARSER(parse_enum_def);
 static PARSER(parse_expr);
 static PARSER(parse_extended_expr);
@@ -1775,7 +1776,8 @@ PARSER(parse_assignment) {
 PARSER(parse_statement) {
     ast_t *stmt = NULL;
     if ((stmt=parse_declaration(ctx, pos))
-        || (stmt=parse_doctest(ctx, pos)))
+        || (stmt=parse_doctest(ctx, pos))
+        || (stmt=parse_assert(ctx, pos)))
         return stmt;
 
     if (!(false 
@@ -2309,6 +2311,22 @@ PARSER(parse_doctest) {
         pos = expr->end;
     }
     return NewAST(ctx->file, start, pos, DocTest, .expr=expr, .expected=expected);
+}
+
+PARSER(parse_assert) {
+    const char *start = pos;
+    if (!match_word(&pos, "assert")) return NULL;
+    spaces(&pos);
+    ast_t *expr = expect(ctx, start, &pos, parse_extended_expr, "I couldn't parse the expression for this assert");
+    spaces(&pos);
+    ast_t *message = NULL;
+    if (match(&pos, ",")) {
+        whitespace(&pos);
+        message = expect(ctx, start, &pos, parse_extended_expr, "I couldn't parse the error message for this assert");
+    } else {
+        pos = expr->end;
+    }
+    return NewAST(ctx->file, start, pos, Assert, .expr=expr, .message=message);
 }
 
 PARSER(parse_use) {

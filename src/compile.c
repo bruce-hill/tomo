@@ -447,6 +447,11 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, DocTest)->expr);
         break;
     }
+    case Assert: {
+        add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Assert)->expr);
+        add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Assert)->message);
+        break;
+    }
     case Deserialize: {
         add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Deserialize)->value);
         break;
@@ -1234,6 +1239,71 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 compile_type_info(expr_t),
                 (int64_t)(test->expr->start - test->expr->file->text),
                 (int64_t)(test->expr->end - test->expr->file->text));
+        }
+    }
+    case Assert: {
+        ast_t *expr = Match(ast, Assert)->expr;
+        ast_t *message = Match(ast, Assert)->message;
+        const char *failure = NULL;
+        switch (expr->tag) {
+        case And: {
+            auto and_ = Match(expr, And);
+            return CORD_all(
+                compile_statement(env, WrapAST(ast, Assert, .expr=and_->lhs, .message=message)),
+                compile_statement(env, WrapAST(ast, Assert, .expr=and_->rhs, .message=message)));
+        }
+        case Equals: failure = "!="; goto assert_comparison;
+        case NotEquals: failure = "=="; goto assert_comparison;
+        case LessThan: failure = ">="; goto assert_comparison;
+        case LessThanOrEquals: failure = ">"; goto assert_comparison;
+        case GreaterThan: failure = "<="; goto assert_comparison;
+        case GreaterThanOrEquals: failure = "<"; goto assert_comparison; {
+          assert_comparison:
+            binary_operands_t cmp = BINARY_OPERANDS(expr);
+            type_t *lhs_t = get_type(env, cmp.lhs);
+            type_t *rhs_t = get_type(env, cmp.rhs);
+            type_t *operand_t;
+            if (cmp.lhs->tag == Int && is_numeric_type(rhs_t)) {
+                operand_t = rhs_t;
+            } else if (cmp.rhs->tag == Int && is_numeric_type(lhs_t)) {
+                operand_t = lhs_t;
+            } else if (can_compile_to_type(env, cmp.rhs, lhs_t)) {
+                operand_t = lhs_t;
+            } else if (can_compile_to_type(env, cmp.lhs, rhs_t)) {
+                operand_t = rhs_t;
+            } else {
+                code_err(ast, "I can't do comparisons between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
+            }
+
+            ast_t *lhs_var = FakeAST(InlineCCode, .chunks=new(ast_list_t, .ast=FakeAST(TextLiteral, "_lhs")), .type=operand_t);
+            ast_t *rhs_var = FakeAST(InlineCCode, .chunks=new(ast_list_t, .ast=FakeAST(TextLiteral, "_rhs")), .type=operand_t);
+            ast_t *var_comparison = new(ast_t, .file=expr->file, .start=expr->start, .end=expr->end, .tag=expr->tag,
+                                        .__data.Equals={.lhs=lhs_var, .rhs=rhs_var});
+            return CORD_all("{ // assertion\n",
+                            compile_declaration(operand_t, "_lhs"), " = ", compile_to_type(env, cmp.lhs, operand_t), ";\n",
+                            compile_declaration(operand_t, "_rhs"), " = ", compile_to_type(env, cmp.rhs, operand_t), ";\n",
+                            "if (!(", compile_condition(env, var_comparison), "))\n",
+                                CORD_asprintf("fail_source(%r, %ld, %ld, %r, \" (\", %r, \" %s \", %r, \")\");\n",
+                                              CORD_quoted(ast->file->filename),
+                                              (long)(expr->start - expr->file->text),
+                                              (long)(expr->end - expr->file->text),
+                                              message ? CORD_all("Text$as_c_string(", compile_to_type(env, message, Type(TextType)), ")")
+                                              : "\"This assertion failed!\"",
+                                              expr_as_text("_lhs", operand_t, "no"),
+                                              failure,
+                                              expr_as_text("_rhs", operand_t, "no")),
+                            "}\n");
+
+        }
+        default: {
+            return CORD_all("if (!(", compile_condition(env, expr), "))\n",
+                            CORD_asprintf("fail_source(%r, %ld, %ld, %r);\n",
+                                          CORD_quoted(ast->file->filename),
+                                          (long)(expr->start - expr->file->text),
+                                          (long)(expr->end - expr->file->text),
+                                          message ? CORD_all("Text$as_c_string(", compile_to_type(env, message, Type(TextType)), ")")
+                                          : "\"This assertion failed!\""));
+        }
         }
     }
     case Declare: {
@@ -3867,7 +3937,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Extern: code_err(ast, "Externs are not supported as expressions");
     case TableEntry: code_err(ast, "Table entries should not be compiled directly");
     case Declare: case Assign: case UPDATE_CASES: case For: case While: case Repeat: case StructDef: case LangDef: case Extend:
-    case EnumDef: case FunctionDef: case ConvertDef: case Skip: case Stop: case Pass: case Return: case DocTest:
+    case EnumDef: case FunctionDef: case ConvertDef: case Skip: case Stop: case Pass: case Return: case DocTest: case Assert:
         code_err(ast, "This is not a valid expression");
     default: case Unknown: code_err(ast, "Unknown AST: ", ast_to_xml_str(ast));
     }

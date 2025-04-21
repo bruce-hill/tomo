@@ -147,7 +147,7 @@ typedef enum {
     Extern,
     StructDef, EnumDef, LangDef,
     Index, FieldAccess, Optional, NonOptional,
-    DocTest,
+    DocTest, Assert,
     Use,
     InlineCCode,
     Deserialize,
@@ -321,6 +321,9 @@ struct ast_s {
             ast_t *expr, *expected;
             bool skip_source:1;
         } DocTest;
+        struct {
+            ast_t *expr, *message;
+        } Assert;
         struct {
             ast_t *var;
             const char *path;

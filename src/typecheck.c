@@ -223,6 +223,10 @@ void prebind_statement(env_t *env, ast_t *statement)
         prebind_statement(env, Match(statement, DocTest)->expr);
         break;
     }
+    case Assert: {
+        prebind_statement(env, Match(statement, Assert)->expr);
+        break;
+    }
     case StructDef: {
         DeclareMatch(def, statement, StructDef);
         if (get_binding(env, def->name))
@@ -296,6 +300,10 @@ void bind_statement(env_t *env, ast_t *statement)
     switch (statement->tag) {
     case DocTest: {
         bind_statement(env, Match(statement, DocTest)->expr);
+        break;
+    }
+    case Assert: {
+        bind_statement(env, Match(statement, Assert)->expr);
         break;
     }
     case Declare: {
@@ -998,7 +1006,7 @@ type_t *get_type(env_t *env, ast_t *ast)
     case Extern: {
         return parse_type_ast(env, Match(ast, Extern)->type);
     }
-    case Declare: case Assign: case UPDATE_CASES: case DocTest: {
+    case Declare: case Assign: case UPDATE_CASES: case DocTest: case Assert: {
         return Type(VoidType);
     }
     case Use: {
