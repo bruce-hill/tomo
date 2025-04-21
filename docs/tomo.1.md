@@ -8,9 +8,6 @@ tomo - The programming language of tomorrow.
 
 # SYNOPSIS
 
-Run the REPL:
-: `tomo`
-
 Run a program:
 : `tomo` *program.tm* \[\[`--`\] *args...*\]
 

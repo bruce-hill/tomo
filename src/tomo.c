@@ -14,7 +14,6 @@
 #include "compile.h"
 #include "cordhelpers.h"
 #include "parse.h"
-#include "repl.h"
 #include "stdlib/lists.h"
 #include "stdlib/bools.h"
 #include "stdlib/bytes.h"
@@ -60,7 +59,6 @@ static OptionalBool_t verbose = false,
                       stop_at_obj_compilation = false,
                       compile_exe = false,
                       should_install = false,
-                      run_repl = false,
                       clean_build = false,
                       source_mapping = true;
 
@@ -177,8 +175,6 @@ int main(int argc, char *argv[])
         {"L", false, List$info(&Path$info), &libraries},
         {"show-codegen", false, &Text$info, &show_codegen},
         {"C", false, &Text$info, &show_codegen},
-        {"repl", false, &Bool$info, &run_repl},
-        {"R", false, &Bool$info, &run_repl},
         {"install", false, &Bool$info, &should_install},
         {"I", false, &Bool$info, &should_install},
         {"c-compiler", false, &Text$info, &cc},
@@ -230,10 +226,9 @@ int main(int argc, char *argv[])
         wait_for_child_success(child);
     }
 
-    // TODO: REPL
-    if (run_repl) {
-        repl();
-        return 0;
+    if (files.length == 0) {
+        fprint(stderr, "No files provided!\n\n", usage);
+        return 1;
     }
 
     if (files.length <= 0 && (uninstall.length > 0 || libraries.length > 0)) {

@@ -8,7 +8,6 @@ This directory contains the source files for the Tomo compiler:
 - Compilation logic for enums: [enums.c](enums.c)/[enums.h](enums.h)
 - Compilation environments: [environment.c](environment.c)/[environment.h](environment.h)
 - Parsing: [parse.c](parse.c)/[parse.h](parse.h)
-- A read-evaluate-print loop: [repl.c](repl.c)/[repl.h](repl.h)
 - Compilation logic for structs: [structs.c](structs.c)/[structs.h](structs.h)
 - The compiler executable: [tomo.c](tomo.c)/[tomo.h](tomo.h)
 - Typechecking logic: [typecheck.c](typecheck.c)/[typecheck.h](typecheck.h)
