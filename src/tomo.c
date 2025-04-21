@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
         wait_for_child_success(child);
     }
 
-    if (files.length == 0) {
+    if (files.length <= 0 && uninstall.length <= 0 && libraries.length <= 0) {
         fprint(stderr, "No files provided!\n\n", usage);
         return 1;
     }
