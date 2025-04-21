@@ -459,7 +459,8 @@ void build_library(Text_t lib_dir_name)
     FILE *prog;
     for (int64_t i = 0; i < tm_files.length; i++) {
         Path_t f = *(Path_t*)(tm_files.data + i*tm_files.stride);
-        prog = run_cmd("nm -g '", build_file(f, ".o"), "' | awk '$2~/^[DTB]$/{print $3 \" _$",
+        prog = run_cmd("nm -g '", build_file(f, ".o"), "' | awk '$2~/^[DTB]$/ && $3~/^_\\$",
+                       CORD_to_const_char_star(env->libname), "\\$/{print $3 \" _$",
                        CORD_to_const_char_star(env->libname), "\" substr($3,2)}' "
                        ">>.build/symbol_renames.txt");
         if (!prog) print_err("Could not find symbols!");
