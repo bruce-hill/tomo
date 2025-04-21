@@ -119,30 +119,6 @@ target | `T` | The item to search for.  | -
 = none : Int?
 
 ```
-## List.first
-
-```tomo
-List.first : func(list: [T], predicate: func(item:&T -> Bool) -> Int)
-```
-
-Find the index of the first item that matches a predicate function (if any).
-
-Argument | Type | Description | Default
----------|------|-------------|---------
-list | `[T]` | The list to search through.  | -
-predicate | `func(item:&T -> Bool)` | A function that returns `yes` if the item should be returned or `no` if it should not.  | -
-
-**Return:** Returns the index of the first item where the predicate is true or `!Int` if no item matches.
-
-
-**Example:**
-```tomo
->> [4, 5, 6].find(func(i:&Int): i.is_prime())
-= 5 : Int?
->> [4, 6, 8].find(func(i:&Int): i.is_prime())
-= none : Int?
-
-```
 ## List.from
 
 ```tomo
@@ -647,5 +623,29 @@ list | `[T]` | The list to process.  | -
 ```tomo
 >> [10, 20, 10, 10, 30].unique()
 = {10, 20, 30}
+
+```
+## List.where
+
+```tomo
+List.where : func(list: [T], predicate: func(item:&T -> Bool) -> Int)
+```
+
+Find the index of the first item that matches a predicate function (if any).
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+list | `[T]` | The list to search through.  | -
+predicate | `func(item:&T -> Bool)` | A function that returns `yes` if the item's index should be returned or `no` if it should not.  | -
+
+**Return:** Returns the index of the first item where the predicate is true or `!Int` if no item matches.
+
+
+**Example:**
+```tomo
+>> [4, 5, 6].where(func(i:&Int): i.is_prime())
+= 5 : Int?
+>> [4, 6, 8].find(func(i:&Int): i.is_prime())
+= none : Int?
 
 ```

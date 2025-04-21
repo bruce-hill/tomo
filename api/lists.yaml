@@ -108,31 +108,6 @@ List.find:
     >> [10, 20, 30, 40, 50].find(9999)
     = none : Int?
     
-List.first:
-  short: find an index where a predicate matches
-  description: >
-    Find the index of the first item that matches a predicate function (if any).
-  return:
-    type: 'Int'
-    description: >
-      Returns the index of the first item where the predicate is true or `!Int` if no
-      item matches.
-  args:
-    list:
-      type: '[T]'
-      description: >
-        The list to search through.
-    predicate:
-      type: 'func(item:&T -> Bool)'
-      description: >
-        A function that returns `yes` if the item should be returned or
-        `no` if it should not.
-  example: |
-    >> [4, 5, 6].find(func(i:&Int): i.is_prime())
-    = 5 : Int?
-    >> [4, 6, 8].find(func(i:&Int): i.is_prime())
-    = none : Int?
-    
 List.from:
   short: slice an array from a start index
   description: >
@@ -684,3 +659,27 @@ List.unique:
     >> [10, 20, 10, 10, 30].unique()
     = {10, 20, 30}
     
+List.where:
+  short: find an index where a predicate matches
+  description: >
+    Find the index of the first item that matches a predicate function (if any).
+  return:
+    type: 'Int'
+    description: >
+      Returns the index of the first item where the predicate is true or `!Int` if no
+      item matches.
+  args:
+    list:
+      type: '[T]'
+      description: >
+        The list to search through.
+    predicate:
+      type: 'func(item:&T -> Bool)'
+      description: >
+        A function that returns `yes` if the item's index should be returned or
+        `no` if it should not.
+  example: |
+    >> [4, 5, 6].where(func(i:&Int): i.is_prime())
+    = 5 : Int?
+    >> [4, 6, 8].find(func(i:&Int): i.is_prime())
+    = none : Int?

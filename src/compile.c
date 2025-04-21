@@ -3215,7 +3215,7 @@ CORD compile(env_t *env, ast_t *ast)
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t);
                 return CORD_all("List$find_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(self_value_t), ")");
-            } else if (streq(call->name, "first")) {
+            } else if (streq(call->name, "where")) {
                 self = compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *predicate_type = Type(
