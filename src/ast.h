@@ -349,10 +349,12 @@ struct ast_s {
     } __data;
 };
 
-CORD ast_to_xml(ast_t *ast);
-const char *ast_to_xml_str(ast_t *ast);
 const char *ast_source(ast_t *ast);
-CORD type_ast_to_xml(type_ast_t *ast);
+
+CORD ast_to_sexp(ast_t *ast);
+const char *ast_to_sexp_str(ast_t *ast);
+CORD type_ast_to_sexp(type_ast_t *ast);
+
 PUREFUNC bool is_idempotent(ast_t *ast);
 void visit_topologically(ast_list_t *ast, Closure_t fn);
 CONSTFUNC bool is_update_assignment(ast_t *ast);

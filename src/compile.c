@@ -759,7 +759,7 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
             code_err(ast, "Concatenation isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " values");
         }
     }
-    default: errx(1, "Not a valid binary operation: ", ast_to_xml_str(ast));
+    default: errx(1, "Not a valid binary operation: ", ast_to_sexp_str(ast));
     }
     return CORD_EMPTY;
 }
@@ -1989,7 +1989,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         }
     }
     default:
-        // print("Is discardable: ", ast_to_xml_str(ast), " ==> ", is_discardable(env, ast));
+        // print("Is discardable: ", ast_to_sexp_str(ast), " ==> ", is_discardable(env, ast));
         if (!is_discardable(env, ast))
             code_err(ast, "The ", type_to_str(get_type(env, ast)), " result of this statement cannot be discarded");
         return CORD_asprintf("(void)%r;", compile(env, ast));
@@ -3939,7 +3939,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Declare: case Assign: case UPDATE_CASES: case For: case While: case Repeat: case StructDef: case LangDef: case Extend:
     case EnumDef: case FunctionDef: case ConvertDef: case Skip: case Stop: case Pass: case Return: case DocTest: case Assert:
         code_err(ast, "This is not a valid expression");
-    default: case Unknown: code_err(ast, "Unknown AST: ", ast_to_xml_str(ast));
+    default: case Unknown: code_err(ast, "Unknown AST: ", ast_to_sexp_str(ast));
     }
     return CORD_EMPTY;
 }

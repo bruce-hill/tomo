@@ -55,6 +55,7 @@ static OptionalList_t files = NONE_LIST,
                        libraries = NONE_LIST;
 static OptionalBool_t verbose = false,
                       quiet = false,
+                      show_parse_tree = false,
                       stop_at_transpile = false,
                       stop_at_obj_compilation = false,
                       compile_exe = false,
@@ -149,6 +150,7 @@ int main(int argc, char *argv[])
                         "\x1b[1mOther flags:\x1b[m\n"
                         "  --verbose|-v: verbose output\n"
                         "  --quiet|-q: quiet output\n"
+                        "  --parse|-p: show parse tree\n"
                         "  --install|-I: install the executable or library\n"
                         "  --c-compiler <compiler>: the C compiler to use (default: "DEFAULT_C_COMPILER")\n"
                         "  --optimization|-O <level>: set optimization level\n"
@@ -161,6 +163,8 @@ int main(int argc, char *argv[])
         {"args", true, List$info(&Text$info), &args},
         {"verbose", false, &Bool$info, &verbose},
         {"v", false, &Bool$info, &verbose},
+        {"parse", false, &Bool$info, &show_parse_tree},
+        {"p", false, &Bool$info, &show_parse_tree},
         {"quiet", false, &Bool$info, &quiet},
         {"q", false, &Bool$info, &quiet},
         {"transpile", false, &Bool$info, &stop_at_transpile},
@@ -254,6 +258,12 @@ int main(int argc, char *argv[])
 
     for (int64_t i = 0; i < files.length; i++) {
         Path_t path = *(Path_t*)(files.data + i*files.stride);
+        if (show_parse_tree) {
+            ast_t *ast = parse_file(Path$as_c_string(path), NULL);
+            print(ast_to_sexp_str(ast));
+            continue;
+        }
+
         Path_t exe_path = compile_exe ? Path$with_extension(path, Text(""), true)
             : build_file(Path$with_extension(path, Text(""), true), "");
 
