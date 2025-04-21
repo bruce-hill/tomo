@@ -13,8 +13,8 @@ Performs a binary search on a sorted list.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The sorted list to search.  | 
-by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | **Default:** `T.compare`
+list | `[T]` | The sorted list to search.  | -
+by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | `T.compare`
 
 **Return:** Assuming the input list is sorted according to the given comparison function, return the index where the given item would be inserted to maintain the sorted order. That is, if the item is found, return its index, otherwise return the place where it would be found if it were inserted and the list were sorted.
 
@@ -41,8 +41,8 @@ Creates a new list with elements spaced by the specified step value.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The original list.  | 
-step | `Int` | The step value for selecting elements.  | 
+list | `[T]` | The original list.  | -
+step | `Int` | The step value for selecting elements.  | -
 
 **Return:** A new list with every `step`-th element from the original list.
 
@@ -63,7 +63,7 @@ Clears all elements from the list.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the list to be cleared.  | 
+list | `@[T]` | The mutable reference to the list to be cleared.  | -
 
 **Return:** Nothing.
 
@@ -83,7 +83,7 @@ Counts the occurrences of each element in the list.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to count elements in.  | 
+list | `[T]` | The list to count elements in.  | -
 
 **Return:** A table mapping each element to its count.
 
@@ -104,8 +104,8 @@ Finds the index of the first occurrence of an element (if any).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to search through.  | 
-target | `T` | The item to search for.  | 
+list | `[T]` | The list to search through.  | -
+target | `T` | The item to search for.  | -
 
 **Return:** The index of the first occurrence or `!Int` if not found.
 
@@ -129,8 +129,8 @@ Find the index of the first item that matches a predicate function (if any).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to search through.  | 
-predicate | `func(item:&T -> Bool)` | A function that returns `yes` if the item should be returned or `no` if it should not.  | 
+list | `[T]` | The list to search through.  | -
+predicate | `func(item:&T -> Bool)` | A function that returns `yes` if the item should be returned or `no` if it should not.  | -
 
 **Return:** Returns the index of the first item where the predicate is true or `!Int` if no item matches.
 
@@ -153,8 +153,8 @@ Returns a slice of the list starting from a specified index.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The original list.  | 
-first | `Int` | The index to start from.  | 
+list | `[T]` | The original list.  | -
+first | `Int` | The index to start from.  | -
 
 **Return:** A new list starting from the specified index.
 
@@ -175,8 +175,8 @@ Checks if the list has an element.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to check.  | 
-target | `T` | The element to check for.  | 
+list | `[T]` | The list to check.  | -
+target | `T` | The element to check for.  | -
 
 **Return:** `yes` if the list has the element, `no` otherwise.
 
@@ -197,8 +197,8 @@ Removes and returns the top element of a heap or `none` if the list is empty. By
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the heap.  | 
-by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | **Default:** `T.compare`
+list | `@[T]` | The mutable reference to the heap.  | -
+by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | `T.compare`
 
 **Return:** The removed top element of the heap or `none` if the list is empty.
 
@@ -221,9 +221,9 @@ Adds an element to the heap and maintains the heap property. By default, this is
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the heap.  | 
-item | `T` | The item to be added.  | 
-by | `` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | **Default:** `T.compare`
+list | `@[T]` | The mutable reference to the heap.  | -
+item | `T` | The item to be added.  | -
+by | `` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | `T.compare`
 
 **Return:** Nothing.
 
@@ -243,8 +243,8 @@ Converts a list into a heap.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the list to be heapified.  | 
-by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | **Default:** `T.compare`
+list | `@[T]` | The mutable reference to the list to be heapified.  | -
+by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | `T.compare`
 
 **Return:** Nothing.
 
@@ -267,9 +267,9 @@ Since indices are 1-indexed and negative indices mean "starting from the back", 
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the list.  | 
-item | `T` | The item to be inserted.  | 
-at | `Int` | The index at which to insert the item.  | **Default:** `0`
+list | `@[T]` | The mutable reference to the list.  | -
+item | `T` | The item to be inserted.  | -
+at | `Int` | The index at which to insert the item.  | `0`
 
 **Return:** Nothing.
 
@@ -298,9 +298,9 @@ Since indices are 1-indexed and negative indices mean "starting from the back", 
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the list.  | 
-items | `[T]` | The items to be inserted.  | 
-at | `Int` | The index at which to insert the item.  | **Default:** `0`
+list | `@[T]` | The mutable reference to the list.  | -
+items | `[T]` | The items to be inserted.  | -
+at | `Int` | The index at which to insert the item.  | `0`
 
 **Return:** Nothing.
 
@@ -329,8 +329,8 @@ Since negative indices are counted from the back, the default behavior is to pop
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `&[T]` | The list to remove an item from.  | 
-index | `Int` | The index from which to remove the item.  | **Default:** `-1`
+list | `&[T]` | The list to remove an item from.  | -
+index | `Int` | The index from which to remove the item.  | `-1`
 
 **Return:** `none` if the list is empty or the given index does not exist in the list, otherwise the item at the given index.
 
@@ -360,8 +360,8 @@ Selects a random element from the list.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list from which to select a random element.  | 
-random | `func(min,max:Int64->Int64)?` | If provided, this function will be used to get a random index in the list. Returned values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number generation)  | **Default:** `none`
+list | `[T]` | The list from which to select a random element.  | -
+random | `func(min,max:Int64->Int64)?` | If provided, this function will be used to get a random index in the list. Returned values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number generation)  | `none`
 
 **Return:** A random element from the list.
 
@@ -384,9 +384,9 @@ Since negative indices are counted from the back, the default behavior is to rem
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the list.  | 
-at | `Int` | The index at which to start removing elements.  | **Default:** `-1`
-count | `Int` | The number of elements to remove.  | **Default:** `1`
+list | `@[T]` | The mutable reference to the list.  | -
+at | `Int` | The index at which to start removing elements.  | `-1`
+count | `Int` | The number of elements to remove.  | `1`
 
 **Return:** Nothing.
 
@@ -415,9 +415,9 @@ A negative `max_count` means "remove all occurrences".
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the list.  | 
-item | `T` | The item to be removed.  | 
-max_count | `Int` | The maximum number of occurrences to remove.  | **Default:** `-1`
+list | `@[T]` | The mutable reference to the list.  | -
+item | `T` | The item to be removed.  | -
+max_count | `Int` | The maximum number of occurrences to remove.  | `-1`
 
 **Return:** Nothing.
 
@@ -444,7 +444,7 @@ Returns a reversed slice of the list.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to be reversed.  | 
+list | `[T]` | The list to be reversed.  | -
 
 **Return:** A slice of the list with elements in reverse order.
 
@@ -467,10 +467,10 @@ Errors will be raised if any of the following conditions occurs: - The given lis
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to sample from.  | 
-count | `Int` | The number of elements to sample.  | 
-weights | `[Num]?` | The probability weights for each element in the list. These values do not need to add up to any particular number, they are relative weights. If no weights are given, elements will be sampled with uniform probability.  | **Default:** `![Num]`
-random | `func(->Num)?` | If provided, this function will be used to get random values for sampling the list. The provided function should return random numbers between `0.0` (inclusive) and `1.0` (exclusive). (Used for deterministic pseudorandom number generation)  | **Default:** `none`
+list | `[T]` | The list to sample from.  | -
+count | `Int` | The number of elements to sample.  | -
+weights | `[Num]?` | The probability weights for each element in the list. These values do not need to add up to any particular number, they are relative weights. If no weights are given, elements will be sampled with uniform probability.  | `![Num]`
+random | `func(->Num)?` | If provided, this function will be used to get random values for sampling the list. The provided function should return random numbers between `0.0` (inclusive) and `1.0` (exclusive). (Used for deterministic pseudorandom number generation)  | `none`
 
 **Return:** A list of sampled elements from the list.
 
@@ -491,8 +491,8 @@ Shuffles the elements of the list in place.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the list to be shuffled.  | 
-random | `func(min,max:Int64->Int64)?` | If provided, this function will be used to get a random index in the list. Returned values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number generation)  | **Default:** `none`
+list | `@[T]` | The mutable reference to the list to be shuffled.  | -
+random | `func(min,max:Int64->Int64)?` | If provided, this function will be used to get a random index in the list. Returned values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number generation)  | `none`
 
 **Return:** Nothing.
 
@@ -512,8 +512,8 @@ Creates a new list with elements shuffled.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to be shuffled.  | 
-random | `func(min,max:Int64->Int64)?` | If provided, this function will be used to get a random index in the list. Returned values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number generation)  | **Default:** `none`
+list | `[T]` | The list to be shuffled.  | -
+random | `func(min,max:Int64->Int64)?` | If provided, this function will be used to get a random index in the list. Returned values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number generation)  | `none`
 
 **Return:** A new list with shuffled elements.
 
@@ -534,9 +534,9 @@ Returns a slice of the list spanning the given indices (inclusive).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The original list.  | 
-from | `Int` | The first index to include.  | 
-to | `Int` | The last index to include.  | 
+list | `[T]` | The original list.  | -
+from | `Int` | The first index to include.  | -
+to | `Int` | The last index to include.  | -
 
 **Return:** A new list spanning the given indices. Note: negative indices are counted from the back of the list, so `-1` refers to the last element, `-2` the second-to-last, and so on.
 
@@ -560,8 +560,8 @@ Sorts the elements of the list in place in ascending order (small to large).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the list to be sorted.  | 
-by | `` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | **Default:** `T.compare`
+list | `@[T]` | The mutable reference to the list to be sorted.  | -
+by | `` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | `T.compare`
 
 **Return:** Nothing.
 
@@ -588,8 +588,8 @@ Creates a new list with elements sorted.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to be sorted.  | 
-by | `` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | **Default:** `T.compare`
+list | `[T]` | The list to be sorted.  | -
+by | `` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | `T.compare`
 
 **Return:** A new list with sorted elements.
 
@@ -613,8 +613,8 @@ Returns a slice of the list from the start of the original list up to a specifie
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The original list.  | 
-last | `Int` | The index up to which elements should be included.  | 
+list | `[T]` | The original list.  | -
+last | `Int` | The index up to which elements should be included.  | -
 
 **Return:** A new list containing elements from the start up to the specified index.
 
@@ -638,7 +638,7 @@ Returns a Set that contains the unique elements of the list.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to process.  | 
+list | `[T]` | The list to process.  | -
 
 **Return:** A set containing only unique elements from the list.
 

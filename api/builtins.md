@@ -21,9 +21,9 @@ When a program is receiving input from a pipe or writing its output to a pipe, t
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-prompt | `Text` | The text to print as a prompt before getting the input.  | 
-bold | `Bool` | Whether or not to print make the prompt appear bold on a console.  | **Default:** `yes`
-force_tty | `Bool` | Whether or not to force the use of /dev/tty.  | **Default:** `yes`
+prompt | `Text` | The text to print as a prompt before getting the input.  | -
+bold | `Bool` | Whether or not to print make the prompt appear bold on a console.  | `yes`
+force_tty | `Bool` | Whether or not to force the use of /dev/tty.  | `yes`
 
 **Return:** A line of user input text without a trailing newline, or empty text if something went wrong (e.g. the user hit `Ctrl-D`).
 
@@ -44,8 +44,8 @@ Exits the program with a given status and optionally prints a message.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-message | `Text?` | If nonempty, this message will be printed (with a newline) before exiting.  | **Default:** `!Text`
-status | `Int32` | The status code that the program with exit with.  | **Default:** `Int32(1)`
+message | `Text?` | If nonempty, this message will be printed (with a newline) before exiting.  | `!Text`
+status | `Int32` | The status code that the program with exit with.  | `Int32(1)`
 
 **Return:** This function never returns.
 
@@ -65,7 +65,7 @@ Prints a message to the console, aborts the program, and prints a stack trace.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-message | `Text` | The error message to print.  | 
+message | `Text` | The error message to print.  | -
 
 **Return:** Nothing, aborts the program.
 
@@ -85,7 +85,7 @@ Gets an environment variable.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-name | `Text` | The name of the environment variable to get.  | 
+name | `Text` | The name of the environment variable to get.  | -
 
 **Return:** If set, the environment variable's value, otherwise, `none`.
 
@@ -106,8 +106,8 @@ Prints a message to the console (alias for say()).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to print.  | 
-newline | `Bool` | Whether or not to print a newline after the text.  | **Default:** `yes`
+text | `Text` | The text to print.  | -
+newline | `Bool` | Whether or not to print a newline after the text.  | `yes`
 
 **Return:** Nothing.
 
@@ -128,8 +128,8 @@ Prints a message to the console.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to print.  | 
-newline | `Bool` | Whether or not to print a newline after the text.  | **Default:** `yes`
+text | `Text` | The text to print.  | -
+newline | `Bool` | Whether or not to print a newline after the text.  | `yes`
 
 **Return:** Nothing.
 
@@ -150,8 +150,8 @@ Sets an environment variable.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-name | `Text` | The name of the environment variable to set.  | 
-value | `Text` | The new value of the environment variable.  | 
+name | `Text` | The name of the environment variable to set.  | -
+value | `Text` | The new value of the environment variable.  | -
 
 **Return:** Nothing.
 
@@ -171,7 +171,7 @@ Pause execution for a given number of seconds.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-seconds | `Num` | How many seconds to sleep for.  | 
+seconds | `Num` | How many seconds to sleep for.  | -
 
 **Return:** Nothing.
 

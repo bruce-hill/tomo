@@ -21,9 +21,9 @@ When a program is receiving input from a pipe or writing its output to a pipe, t
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-prompt | `Text` | The text to print as a prompt before getting the input.  | 
-bold | `Bool` | Whether or not to print make the prompt appear bold on a console.  | **Default:** `yes`
-force_tty | `Bool` | Whether or not to force the use of /dev/tty.  | **Default:** `yes`
+prompt | `Text` | The text to print as a prompt before getting the input.  | -
+bold | `Bool` | Whether or not to print make the prompt appear bold on a console.  | `yes`
+force_tty | `Bool` | Whether or not to force the use of /dev/tty.  | `yes`
 
 **Return:** A line of user input text without a trailing newline, or empty text if something went wrong (e.g. the user hit `Ctrl-D`).
 
@@ -44,8 +44,8 @@ Exits the program with a given status and optionally prints a message.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-message | `Text?` | If nonempty, this message will be printed (with a newline) before exiting.  | **Default:** `!Text`
-status | `Int32` | The status code that the program with exit with.  | **Default:** `Int32(1)`
+message | `Text?` | If nonempty, this message will be printed (with a newline) before exiting.  | `!Text`
+status | `Int32` | The status code that the program with exit with.  | `Int32(1)`
 
 **Return:** This function never returns.
 
@@ -65,7 +65,7 @@ Prints a message to the console, aborts the program, and prints a stack trace.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-message | `Text` | The error message to print.  | 
+message | `Text` | The error message to print.  | -
 
 **Return:** Nothing, aborts the program.
 
@@ -85,7 +85,7 @@ Gets an environment variable.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-name | `Text` | The name of the environment variable to get.  | 
+name | `Text` | The name of the environment variable to get.  | -
 
 **Return:** If set, the environment variable's value, otherwise, `none`.
 
@@ -106,8 +106,8 @@ Prints a message to the console (alias for say()).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to print.  | 
-newline | `Bool` | Whether or not to print a newline after the text.  | **Default:** `yes`
+text | `Text` | The text to print.  | -
+newline | `Bool` | Whether or not to print a newline after the text.  | `yes`
 
 **Return:** Nothing.
 
@@ -128,8 +128,8 @@ Prints a message to the console.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to print.  | 
-newline | `Bool` | Whether or not to print a newline after the text.  | **Default:** `yes`
+text | `Text` | The text to print.  | -
+newline | `Bool` | Whether or not to print a newline after the text.  | `yes`
 
 **Return:** Nothing.
 
@@ -150,8 +150,8 @@ Sets an environment variable.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-name | `Text` | The name of the environment variable to set.  | 
-value | `Text` | The new value of the environment variable.  | 
+name | `Text` | The name of the environment variable to set.  | -
+value | `Text` | The new value of the environment variable.  | -
 
 **Return:** Nothing.
 
@@ -171,7 +171,7 @@ Pause execution for a given number of seconds.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-seconds | `Num` | How many seconds to sleep for.  | 
+seconds | `Num` | How many seconds to sleep for.  | -
 
 **Return:** Nothing.
 
@@ -193,7 +193,7 @@ Converts a string representation of a boolean value into a boolean. Acceptable b
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The string containing the boolean value.  | 
+text | `Text` | The string containing the boolean value.  | -
 
 **Return:** `yes` if the string matches a recognized truthy boolean value; otherwise return `no`.
 
@@ -220,9 +220,9 @@ Convert a byte to a hexidecimal text representation.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-byte | `Byte` | The byte to convert to hex.  | 
-uppercase | `Bool` | Whether or not to use uppercase hexidecimal letters.  | **Default:** `yes`
-prefix | `Bool` | Whether or not to prepend a `0x` prefix.  | **Default:** `no`
+byte | `Byte` | The byte to convert to hex.  | -
+uppercase | `Bool` | Whether or not to use uppercase hexidecimal letters.  | `yes`
+prefix | `Bool` | Whether or not to prepend a `0x` prefix.  | `no`
 
 **Return:** The byte as a hexidecimal text.
 
@@ -243,9 +243,9 @@ Determines if an integer is between two numbers (inclusive).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Byte` | The integer to be checked.  | 
-low | `Byte` | The lower bound to check (inclusive).  | 
-high | `Byte` | The upper bound to check (inclusive).  | 
+x | `Byte` | The integer to be checked.  | -
+low | `Byte` | The lower bound to check (inclusive).  | -
+high | `Byte` | The upper bound to check (inclusive).  | -
 
 **Return:** `yes` if `low <= x and x <= high`, otherwise `no`
 
@@ -270,7 +270,7 @@ Parse a byte literal from text.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to parse.  | 
+text | `Text` | The text to parse.  | -
 
 **Return:** The byte parsed from the text, if successful, otherwise `none`.
 
@@ -293,9 +293,9 @@ Returns an iterator function that iterates over the range of bytes specified.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-first | `Byte` | The starting value of the range.  | 
-last | `Byte` | The ending value of the range.  | 
-step | `Byte?` | An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.  | **Default:** `none`
+first | `Byte` | The starting value of the range.  | -
+last | `Byte` | The ending value of the range.  | -
+step | `Byte?` | An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.  | `none`
 
 **Return:** An iterator function that returns each byte in the given range (inclusive).
 
@@ -325,7 +325,7 @@ Calculates the absolute value of an integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Int` | The integer whose absolute value is to be calculated.  | 
+x | `Int` | The integer whose absolute value is to be calculated.  | -
 
 **Return:** The absolute value of `x`.
 
@@ -346,8 +346,8 @@ Computes the binomial coefficient of the given numbers (the equivalent of `n` ch
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Int` | The number of things to choose from.  | 
-k | `Int` | The number of things to be chosen.  | 
+n | `Int` | The number of things to choose from.  | -
+k | `Int` | The number of things to be chosen.  | -
 
 **Return:** The binomial coefficient, equivalent to the number of ways to uniquely choose `k` objects from among `n` objects, ignoring order.
 
@@ -368,9 +368,9 @@ Returns the given number clamped between two values so that it is within that ra
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Int` | The integer to clamp.  | 
-low | `Int` | The lowest value the result can take.  | 
-high | `Int` | The highest value the result can take.  | 
+x | `Int` | The integer to clamp.  | -
+low | `Int` | The lowest value the result can take.  | -
+high | `Int` | The highest value the result can take.  | -
 
 **Return:** The first argument clamped between the other two arguments.
 
@@ -391,7 +391,7 @@ Computes the factorial of an integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Int` | The integer to compute the factorial of.  | 
+n | `Int` | The integer to compute the factorial of.  | -
 
 **Return:** The factorial of the given integer.
 
@@ -412,8 +412,8 @@ Formats an integer as a string with a specified number of digits.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-i | `Int` | The integer to be formatted.  | 
-digits | `Int` | The minimum number of digits to which the integer should be padded.  | **Default:** `0`
+i | `Int` | The integer to be formatted.  | -
+digits | `Int` | The minimum number of digits to which the integer should be padded.  | `0`
 
 **Return:** A string representation of the integer, padded to the specified number of digits.
 
@@ -434,10 +434,10 @@ Converts an integer to its hexadecimal representation.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-i | `Int` | The integer to be converted.  | 
-digits | `Int` | The minimum number of digits in the output string.  | **Default:** `0`
-uppercase | `Bool` | Whether to use uppercase letters for hexadecimal digits.  | **Default:** `yes`
-prefix | `Bool` | Whether to include a "0x" prefix.  | **Default:** `yes`
+i | `Int` | The integer to be converted.  | -
+digits | `Int` | The minimum number of digits in the output string.  | `0`
+uppercase | `Bool` | Whether to use uppercase letters for hexadecimal digits.  | `yes`
+prefix | `Bool` | Whether to include a "0x" prefix.  | `yes`
 
 **Return:** The hexadecimal string representation of the integer.
 
@@ -458,9 +458,9 @@ Determines if an integer is between two numbers (inclusive).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Int` | The integer to be checked.  | 
-low | `Int` | The lower bound to check (inclusive).  | 
-high | `Int` | The upper bound to check (inclusive).  | 
+x | `Int` | The integer to be checked.  | -
+low | `Int` | The lower bound to check (inclusive).  | -
+high | `Int` | The upper bound to check (inclusive).  | -
 
 **Return:** `yes` if `low <= x and x <= high`, otherwise `no`
 
@@ -487,8 +487,8 @@ This function is _probabilistic_. With the default arguments, the chances of get
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Int` | The integer to be checked.  | 
-reps | `Int` | The number of repetitions for primality tests.  | **Default:** `50`
+x | `Int` | The integer to be checked.  | -
+reps | `Int` | The number of repetitions for primality tests.  | `50`
 
 **Return:** `yes` if `x` is a prime number, `no` otherwise.
 
@@ -513,7 +513,7 @@ This function is _probabilistic_, but the chances of getting an incorrect answer
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Int` | The integer after which to find the next prime.  | 
+x | `Int` | The integer after which to find the next prime.  | -
 
 **Return:** The next prime number greater than `x`.
 
@@ -534,9 +534,9 @@ Converts an integer to its octal representation.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-i | `Int` | The integer to be converted.  | 
-digits | `Int` | The minimum number of digits in the output string.  | **Default:** `0`
-prefix | `Bool` | Whether to include a "0o" prefix.  | **Default:** `yes`
+i | `Int` | The integer to be converted.  | -
+digits | `Int` | The minimum number of digits in the output string.  | `0`
+prefix | `Bool` | Whether to include a "0o" prefix.  | `yes`
 
 **Return:** The octal string representation of the integer.
 
@@ -557,8 +557,8 @@ Return an iterator that counts infinitely from the starting integer (with an opt
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-first | `Int` | The starting integer.  | 
-step | `Int` | The increment step size.  | **Default:** `1`
+first | `Int` | The starting integer.  | -
+step | `Int` | The increment step size.  | `1`
 
 **Return:** An iterator function that counts onward from the starting integer.
 
@@ -583,7 +583,7 @@ Converts a text representation of an integer into an integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text containing the integer.  | 
+text | `Text` | The text containing the integer.  | -
 
 **Return:** The integer represented by the text. If the given text contains a value outside of the representable range or if the entire text can't be parsed as an integer, `none` will be returned.
 
@@ -616,7 +616,7 @@ This function is _probabilistic_, but the chances of getting an incorrect answer
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Int` | The integer before which to find the previous prime.  | 
+x | `Int` | The integer before which to find the previous prime.  | -
 
 **Return:** The previous prime number less than `x`, or `none` if `x` is less than 2.
 
@@ -637,7 +637,7 @@ Calculates the nearest square root of an integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Int` | The integer whose square root is to be calculated.  | 
+x | `Int` | The integer whose square root is to be calculated.  | -
 
 **Return:** The integer part of the square root of `x`.
 
@@ -660,9 +660,9 @@ Returns an iterator function that iterates over the range of numbers specified.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-first | `Int` | The starting value of the range.  | 
-last | `Int` | The ending value of the range.  | 
-step | `Int?` | An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.  | **Default:** `none`
+first | `Int` | The starting value of the range.  | -
+last | `Int` | The ending value of the range.  | -
+step | `Int?` | An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.  | `none`
 
 **Return:** An iterator function that returns each integer in the given range (inclusive).
 
@@ -692,8 +692,8 @@ Performs a binary search on a sorted list.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The sorted list to search.  | 
-by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | **Default:** `T.compare`
+list | `[T]` | The sorted list to search.  | -
+by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | `T.compare`
 
 **Return:** Assuming the input list is sorted according to the given comparison function, return the index where the given item would be inserted to maintain the sorted order. That is, if the item is found, return its index, otherwise return the place where it would be found if it were inserted and the list were sorted.
 
@@ -720,8 +720,8 @@ Creates a new list with elements spaced by the specified step value.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The original list.  | 
-step | `Int` | The step value for selecting elements.  | 
+list | `[T]` | The original list.  | -
+step | `Int` | The step value for selecting elements.  | -
 
 **Return:** A new list with every `step`-th element from the original list.
 
@@ -742,7 +742,7 @@ Clears all elements from the list.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the list to be cleared.  | 
+list | `@[T]` | The mutable reference to the list to be cleared.  | -
 
 **Return:** Nothing.
 
@@ -762,7 +762,7 @@ Counts the occurrences of each element in the list.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to count elements in.  | 
+list | `[T]` | The list to count elements in.  | -
 
 **Return:** A table mapping each element to its count.
 
@@ -783,8 +783,8 @@ Finds the index of the first occurrence of an element (if any).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to search through.  | 
-target | `T` | The item to search for.  | 
+list | `[T]` | The list to search through.  | -
+target | `T` | The item to search for.  | -
 
 **Return:** The index of the first occurrence or `!Int` if not found.
 
@@ -808,8 +808,8 @@ Find the index of the first item that matches a predicate function (if any).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to search through.  | 
-predicate | `func(item:&T -> Bool)` | A function that returns `yes` if the item should be returned or `no` if it should not.  | 
+list | `[T]` | The list to search through.  | -
+predicate | `func(item:&T -> Bool)` | A function that returns `yes` if the item should be returned or `no` if it should not.  | -
 
 **Return:** Returns the index of the first item where the predicate is true or `!Int` if no item matches.
 
@@ -832,8 +832,8 @@ Returns a slice of the list starting from a specified index.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The original list.  | 
-first | `Int` | The index to start from.  | 
+list | `[T]` | The original list.  | -
+first | `Int` | The index to start from.  | -
 
 **Return:** A new list starting from the specified index.
 
@@ -854,8 +854,8 @@ Checks if the list has an element.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to check.  | 
-target | `T` | The element to check for.  | 
+list | `[T]` | The list to check.  | -
+target | `T` | The element to check for.  | -
 
 **Return:** `yes` if the list has the element, `no` otherwise.
 
@@ -876,8 +876,8 @@ Removes and returns the top element of a heap or `none` if the list is empty. By
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the heap.  | 
-by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | **Default:** `T.compare`
+list | `@[T]` | The mutable reference to the heap.  | -
+by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | `T.compare`
 
 **Return:** The removed top element of the heap or `none` if the list is empty.
 
@@ -900,9 +900,9 @@ Adds an element to the heap and maintains the heap property. By default, this is
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the heap.  | 
-item | `T` | The item to be added.  | 
-by | `` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | **Default:** `T.compare`
+list | `@[T]` | The mutable reference to the heap.  | -
+item | `T` | The item to be added.  | -
+by | `` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | `T.compare`
 
 **Return:** Nothing.
 
@@ -922,8 +922,8 @@ Converts a list into a heap.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the list to be heapified.  | 
-by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | **Default:** `T.compare`
+list | `@[T]` | The mutable reference to the list to be heapified.  | -
+by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | `T.compare`
 
 **Return:** Nothing.
 
@@ -946,9 +946,9 @@ Since indices are 1-indexed and negative indices mean "starting from the back", 
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the list.  | 
-item | `T` | The item to be inserted.  | 
-at | `Int` | The index at which to insert the item.  | **Default:** `0`
+list | `@[T]` | The mutable reference to the list.  | -
+item | `T` | The item to be inserted.  | -
+at | `Int` | The index at which to insert the item.  | `0`
 
 **Return:** Nothing.
 
@@ -977,9 +977,9 @@ Since indices are 1-indexed and negative indices mean "starting from the back", 
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the list.  | 
-items | `[T]` | The items to be inserted.  | 
-at | `Int` | The index at which to insert the item.  | **Default:** `0`
+list | `@[T]` | The mutable reference to the list.  | -
+items | `[T]` | The items to be inserted.  | -
+at | `Int` | The index at which to insert the item.  | `0`
 
 **Return:** Nothing.
 
@@ -1008,8 +1008,8 @@ Since negative indices are counted from the back, the default behavior is to pop
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `&[T]` | The list to remove an item from.  | 
-index | `Int` | The index from which to remove the item.  | **Default:** `-1`
+list | `&[T]` | The list to remove an item from.  | -
+index | `Int` | The index from which to remove the item.  | `-1`
 
 **Return:** `none` if the list is empty or the given index does not exist in the list, otherwise the item at the given index.
 
@@ -1039,8 +1039,8 @@ Selects a random element from the list.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list from which to select a random element.  | 
-random | `func(min,max:Int64->Int64)?` | If provided, this function will be used to get a random index in the list. Returned values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number generation)  | **Default:** `none`
+list | `[T]` | The list from which to select a random element.  | -
+random | `func(min,max:Int64->Int64)?` | If provided, this function will be used to get a random index in the list. Returned values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number generation)  | `none`
 
 **Return:** A random element from the list.
 
@@ -1063,9 +1063,9 @@ Since negative indices are counted from the back, the default behavior is to rem
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the list.  | 
-at | `Int` | The index at which to start removing elements.  | **Default:** `-1`
-count | `Int` | The number of elements to remove.  | **Default:** `1`
+list | `@[T]` | The mutable reference to the list.  | -
+at | `Int` | The index at which to start removing elements.  | `-1`
+count | `Int` | The number of elements to remove.  | `1`
 
 **Return:** Nothing.
 
@@ -1094,9 +1094,9 @@ A negative `max_count` means "remove all occurrences".
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the list.  | 
-item | `T` | The item to be removed.  | 
-max_count | `Int` | The maximum number of occurrences to remove.  | **Default:** `-1`
+list | `@[T]` | The mutable reference to the list.  | -
+item | `T` | The item to be removed.  | -
+max_count | `Int` | The maximum number of occurrences to remove.  | `-1`
 
 **Return:** Nothing.
 
@@ -1123,7 +1123,7 @@ Returns a reversed slice of the list.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to be reversed.  | 
+list | `[T]` | The list to be reversed.  | -
 
 **Return:** A slice of the list with elements in reverse order.
 
@@ -1146,10 +1146,10 @@ Errors will be raised if any of the following conditions occurs: - The given lis
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to sample from.  | 
-count | `Int` | The number of elements to sample.  | 
-weights | `[Num]?` | The probability weights for each element in the list. These values do not need to add up to any particular number, they are relative weights. If no weights are given, elements will be sampled with uniform probability.  | **Default:** `![Num]`
-random | `func(->Num)?` | If provided, this function will be used to get random values for sampling the list. The provided function should return random numbers between `0.0` (inclusive) and `1.0` (exclusive). (Used for deterministic pseudorandom number generation)  | **Default:** `none`
+list | `[T]` | The list to sample from.  | -
+count | `Int` | The number of elements to sample.  | -
+weights | `[Num]?` | The probability weights for each element in the list. These values do not need to add up to any particular number, they are relative weights. If no weights are given, elements will be sampled with uniform probability.  | `![Num]`
+random | `func(->Num)?` | If provided, this function will be used to get random values for sampling the list. The provided function should return random numbers between `0.0` (inclusive) and `1.0` (exclusive). (Used for deterministic pseudorandom number generation)  | `none`
 
 **Return:** A list of sampled elements from the list.
 
@@ -1170,8 +1170,8 @@ Shuffles the elements of the list in place.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the list to be shuffled.  | 
-random | `func(min,max:Int64->Int64)?` | If provided, this function will be used to get a random index in the list. Returned values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number generation)  | **Default:** `none`
+list | `@[T]` | The mutable reference to the list to be shuffled.  | -
+random | `func(min,max:Int64->Int64)?` | If provided, this function will be used to get a random index in the list. Returned values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number generation)  | `none`
 
 **Return:** Nothing.
 
@@ -1191,8 +1191,8 @@ Creates a new list with elements shuffled.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to be shuffled.  | 
-random | `func(min,max:Int64->Int64)?` | If provided, this function will be used to get a random index in the list. Returned values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number generation)  | **Default:** `none`
+list | `[T]` | The list to be shuffled.  | -
+random | `func(min,max:Int64->Int64)?` | If provided, this function will be used to get a random index in the list. Returned values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number generation)  | `none`
 
 **Return:** A new list with shuffled elements.
 
@@ -1213,9 +1213,9 @@ Returns a slice of the list spanning the given indices (inclusive).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The original list.  | 
-from | `Int` | The first index to include.  | 
-to | `Int` | The last index to include.  | 
+list | `[T]` | The original list.  | -
+from | `Int` | The first index to include.  | -
+to | `Int` | The last index to include.  | -
 
 **Return:** A new list spanning the given indices. Note: negative indices are counted from the back of the list, so `-1` refers to the last element, `-2` the second-to-last, and so on.
 
@@ -1239,8 +1239,8 @@ Sorts the elements of the list in place in ascending order (small to large).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `@[T]` | The mutable reference to the list to be sorted.  | 
-by | `` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | **Default:** `T.compare`
+list | `@[T]` | The mutable reference to the list to be sorted.  | -
+by | `` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | `T.compare`
 
 **Return:** Nothing.
 
@@ -1267,8 +1267,8 @@ Creates a new list with elements sorted.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to be sorted.  | 
-by | `` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | **Default:** `T.compare`
+list | `[T]` | The list to be sorted.  | -
+by | `` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | `T.compare`
 
 **Return:** A new list with sorted elements.
 
@@ -1292,8 +1292,8 @@ Returns a slice of the list from the start of the original list up to a specifie
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The original list.  | 
-last | `Int` | The index up to which elements should be included.  | 
+list | `[T]` | The original list.  | -
+last | `Int` | The index up to which elements should be included.  | -
 
 **Return:** A new list containing elements from the start up to the specified index.
 
@@ -1317,7 +1317,7 @@ Returns a Set that contains the unique elements of the list.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-list | `[T]` | The list to process.  | 
+list | `[T]` | The list to process.  | -
 
 **Return:** A set containing only unique elements from the list.
 
@@ -1452,7 +1452,7 @@ Calculates the absolute value of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Num` | The number whose absolute value is to be computed.  | 
+n | `Num` | The number whose absolute value is to be computed.  | -
 
 **Return:** The absolute value of `n`.
 
@@ -1473,7 +1473,7 @@ Computes the arc cosine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the arc cosine is to be calculated.  | 
+x | `Num` | The number for which the arc cosine is to be calculated.  | -
 
 **Return:** The arc cosine of `x` in radians.
 
@@ -1494,7 +1494,7 @@ Computes the inverse hyperbolic cosine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the inverse hyperbolic cosine is to be calculated.  | 
+x | `Num` | The number for which the inverse hyperbolic cosine is to be calculated.  | -
 
 **Return:** The inverse hyperbolic cosine of `x`.
 
@@ -1515,7 +1515,7 @@ Computes the arc sine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the arc sine is to be calculated.  | 
+x | `Num` | The number for which the arc sine is to be calculated.  | -
 
 **Return:** The arc sine of `x` in radians.
 
@@ -1536,7 +1536,7 @@ Computes the inverse hyperbolic sine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the inverse hyperbolic sine is to be calculated.  | 
+x | `Num` | The number for which the inverse hyperbolic sine is to be calculated.  | -
 
 **Return:** The inverse hyperbolic sine of `x`.
 
@@ -1557,7 +1557,7 @@ Computes the arc tangent of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the arc tangent is to be calculated.  | 
+x | `Num` | The number for which the arc tangent is to be calculated.  | -
 
 **Return:** The arc tangent of `x` in radians.
 
@@ -1578,8 +1578,8 @@ Computes the arc tangent of the quotient of two numbers.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The numerator.  | 
-y | `Num` | The denominator.  | 
+x | `Num` | The numerator.  | -
+y | `Num` | The denominator.  | -
 
 **Return:** The arc tangent of `x/y` in radians.
 
@@ -1600,7 +1600,7 @@ Computes the inverse hyperbolic tangent of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the inverse hyperbolic tangent is to be calculated.  | 
+x | `Num` | The number for which the inverse hyperbolic tangent is to be calculated.  | -
 
 **Return:** The inverse hyperbolic tangent of `x`.
 
@@ -1621,7 +1621,7 @@ Computes the cube root of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the cube root is to be calculated.  | 
+x | `Num` | The number for which the cube root is to be calculated.  | -
 
 **Return:** The cube root of `x`.
 
@@ -1642,7 +1642,7 @@ Rounds a number up to the nearest integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to be rounded up.  | 
+x | `Num` | The number to be rounded up.  | -
 
 **Return:** The smallest integer greater than or equal to `x`.
 
@@ -1663,9 +1663,9 @@ Returns the given number clamped between two values so that it is within that ra
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to clamp.  | 
-low | `Num` | The lowest value the result can take.  | 
-high | `Num` | The highest value the result can take.  | 
+x | `Num` | The number to clamp.  | -
+low | `Num` | The lowest value the result can take.  | -
+high | `Num` | The highest value the result can take.  | -
 
 **Return:** The first argument clamped between the other two arguments.
 
@@ -1686,8 +1686,8 @@ Copies the sign of one number to another.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number whose magnitude will be copied.  | 
-y | `Num` | The number whose sign will be copied.  | 
+x | `Num` | The number whose magnitude will be copied.  | -
+y | `Num` | The number whose sign will be copied.  | -
 
 **Return:** A number with the magnitude of `x` and the sign of `y`.
 
@@ -1708,7 +1708,7 @@ Computes the cosine of a number (angle in radians).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The angle in radians.  | 
+x | `Num` | The angle in radians.  | -
 
 **Return:** The cosine of `x`.
 
@@ -1729,7 +1729,7 @@ Computes the hyperbolic cosine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the hyperbolic cosine is to be calculated.  | 
+x | `Num` | The number for which the hyperbolic cosine is to be calculated.  | -
 
 **Return:** The hyperbolic cosine of `x`.
 
@@ -1750,7 +1750,7 @@ Computes the error function of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the error function is to be calculated.  | 
+x | `Num` | The number for which the error function is to be calculated.  | -
 
 **Return:** The error function of `x`.
 
@@ -1771,7 +1771,7 @@ Computes the complementary error function of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the complementary error function is to be calculated.  | 
+x | `Num` | The number for which the complementary error function is to be calculated.  | -
 
 **Return:** The complementary error function of `x`.
 
@@ -1792,7 +1792,7 @@ Computes the exponential function $e^x$ for a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The exponent.  | 
+x | `Num` | The exponent.  | -
 
 **Return:** The value of $e^x$.
 
@@ -1813,7 +1813,7 @@ Computes $2^x$ for a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The exponent.  | 
+x | `Num` | The exponent.  | -
 
 **Return:** The value of $2^x$.
 
@@ -1834,7 +1834,7 @@ Computes $e^x - 1$ for a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The exponent.  | 
+x | `Num` | The exponent.  | -
 
 **Return:** The value of $e^x - 1$.
 
@@ -1855,8 +1855,8 @@ Computes the positive difference between two numbers.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The first number.  | 
-y | `Num` | The second number.  | 
+x | `Num` | The first number.  | -
+y | `Num` | The second number.  | -
 
 **Return:** The positive difference $\max(0, x - y)$.
 
@@ -1879,7 +1879,7 @@ Rounds a number down to the nearest integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to be rounded down.  | 
+x | `Num` | The number to be rounded down.  | -
 
 **Return:** The largest integer less than or equal to `x`.
 
@@ -1900,8 +1900,8 @@ Formats a number as a text with a specified precision.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Num` | The number to be formatted.  | 
-precision | `Int` | The number of decimal places. Default is `0`.  | **Default:** `0`
+n | `Num` | The number to be formatted.  | -
+precision | `Int` | The number of decimal places. Default is `0`.  | `0`
 
 **Return:** A text representation of the number with the specified precision.
 
@@ -1922,8 +1922,8 @@ Computes the Euclidean norm, $\sqrt{x^2 + y^2}$, of two numbers.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The first number.  | 
-y | `Num` | The second number.  | 
+x | `Num` | The first number.  | -
+y | `Num` | The second number.  | -
 
 **Return:** The Euclidean norm of `x` and `y`.
 
@@ -1944,9 +1944,9 @@ Determines if a number is between two numbers (inclusive).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The integer to be checked.  | 
-low | `Num` | The lower bound to check (inclusive).  | 
-high | `Num` | The upper bound to check (inclusive).  | 
+x | `Num` | The integer to be checked.  | -
+low | `Num` | The lower bound to check (inclusive).  | -
+high | `Num` | The upper bound to check (inclusive).  | -
 
 **Return:** `yes` if `low <= x and x <= high`, otherwise `no`
 
@@ -1971,7 +1971,7 @@ Checks if a number is finite.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Num` | The number to be checked.  | 
+n | `Num` | The number to be checked.  | -
 
 **Return:** `yes` if `n` is finite, `no` otherwise.
 
@@ -1994,7 +1994,7 @@ Checks if a number is infinite.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Num` | The number to be checked.  | 
+n | `Num` | The number to be checked.  | -
 
 **Return:** `yes` if `n` is infinite, `no` otherwise.
 
@@ -2017,7 +2017,7 @@ Computes the Bessel function of the first kind of order 0.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the Bessel function is to be calculated.  | 
+x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Return:** The Bessel function of the first kind of order 0 of `x`.
 
@@ -2038,7 +2038,7 @@ Computes the Bessel function of the first kind of order 1.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the Bessel function is to be calculated.  | 
+x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Return:** The Bessel function of the first kind of order 1 of `x`.
 
@@ -2059,7 +2059,7 @@ Computes the natural logarithm (base $e$) of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the natural logarithm is to be calculated.  | 
+x | `Num` | The number for which the natural logarithm is to be calculated.  | -
 
 **Return:** The natural logarithm of `x`.
 
@@ -2080,7 +2080,7 @@ Computes the base-10 logarithm of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the base-10 logarithm is to be calculated.  | 
+x | `Num` | The number for which the base-10 logarithm is to be calculated.  | -
 
 **Return:** The base-10 logarithm of `x`.
 
@@ -2101,7 +2101,7 @@ Computes $\log(1 + x)$ for a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which $\log(1 + x)$ is to be calculated.  | 
+x | `Num` | The number for which $\log(1 + x)$ is to be calculated.  | -
 
 **Return:** The value of $\log(1 + x)$.
 
@@ -2122,7 +2122,7 @@ Computes the base-2 logarithm of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the base-2 logarithm is to be calculated.  | 
+x | `Num` | The number for which the base-2 logarithm is to be calculated.  | -
 
 **Return:** The base-2 logarithm of `x`.
 
@@ -2143,7 +2143,7 @@ Computes the binary exponent (base-2 logarithm) of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the binary exponent is to be calculated.  | 
+x | `Num` | The number for which the binary exponent is to be calculated.  | -
 
 **Return:** The binary exponent of `x`.
 
@@ -2164,9 +2164,9 @@ Interpolates between two numbers based on a given amount.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-amount | `Num` | The interpolation factor (between `0` and `1`).  | 
-x | `Num` | The starting number.  | 
-y | `Num` | The ending number.  | 
+amount | `Num` | The interpolation factor (between `0` and `1`).  | -
+x | `Num` | The starting number.  | -
+y | `Num` | The ending number.  | -
 
 **Return:** The interpolated number between `x` and `y` based on `amount`.
 
@@ -2189,10 +2189,10 @@ Checks if two numbers are approximately equal within specified tolerances. If tw
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The first number.  | 
-y | `Num` | The second number.  | 
-ratio | `Num` | The relative tolerance. Default is `1e-9`.  | **Default:** `1e-9`
-min_epsilon | `Num` | The absolute tolerance. Default is `1e-9`.  | **Default:** `1e-9`
+x | `Num` | The first number.  | -
+y | `Num` | The second number.  | -
+ratio | `Num` | The relative tolerance. Default is `1e-9`.  | `1e-9`
+min_epsilon | `Num` | The absolute tolerance. Default is `1e-9`.  | `1e-9`
 
 **Return:** `yes` if `x` and `y` are approximately equal within the specified tolerances, `no` otherwise.
 
@@ -2219,8 +2219,8 @@ Computes the next representable value after a given number towards a specified d
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The starting number.  | 
-y | `Num` | The direction towards which to find the next representable value.  | 
+x | `Num` | The starting number.  | -
+y | `Num` | The direction towards which to find the next representable value.  | -
 
 **Return:** The next representable value after `x` in the direction of `y`.
 
@@ -2241,7 +2241,7 @@ Converts a text representation of a number into a floating-point number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text containing the number.  | 
+text | `Text` | The text containing the number.  | -
 
 **Return:** The number represented by the text or `none` if the entire text can't be parsed as a number.
 
@@ -2264,8 +2264,8 @@ Convert a number into a percentage text with a percent sign.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Num` | The number to be converted to a percent.  | 
-precision | `Int` | The number of decimal places. Default is `0`.  | **Default:** `0`
+n | `Num` | The number to be converted to a percent.  | -
+precision | `Int` | The number of decimal places. Default is `0`.  | `0`
 
 **Return:** A text representation of the number as a percentage with a percent sign.
 
@@ -2288,7 +2288,7 @@ Rounds a number to the nearest integer, with ties rounded to the nearest even in
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to be rounded.  | 
+x | `Num` | The number to be rounded.  | -
 
 **Return:** The nearest integer value of `x`.
 
@@ -2311,7 +2311,7 @@ Rounds a number to the nearest whole number integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to be rounded.  | 
+x | `Num` | The number to be rounded.  | -
 
 **Return:** The nearest integer value of `x`.
 
@@ -2334,8 +2334,8 @@ Formats a number in scientific notation with a specified precision.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Num` | The number to be formatted.  | 
-precision | `Int` | The number of decimal places. Default is `0`.  | **Default:** `0`
+n | `Num` | The number to be formatted.  | -
+precision | `Int` | The number of decimal places. Default is `0`.  | `0`
 
 **Return:** A text representation of the number in scientific notation with the specified precision.
 
@@ -2356,7 +2356,7 @@ Extracts the significand (or mantissa) of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number from which to extract the significand.  | 
+x | `Num` | The number from which to extract the significand.  | -
 
 **Return:** The significand of `x`.
 
@@ -2377,7 +2377,7 @@ Computes the sine of a number (angle in radians).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The angle in radians.  | 
+x | `Num` | The angle in radians.  | -
 
 **Return:** The sine of `x`.
 
@@ -2398,7 +2398,7 @@ Computes the hyperbolic sine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the hyperbolic sine is to be calculated.  | 
+x | `Num` | The number for which the hyperbolic sine is to be calculated.  | -
 
 **Return:** The hyperbolic sine of `x`.
 
@@ -2419,7 +2419,7 @@ Computes the square root of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the square root is to be calculated.  | 
+x | `Num` | The number for which the square root is to be calculated.  | -
 
 **Return:** The square root of `x`.
 
@@ -2440,7 +2440,7 @@ Computes the tangent of a number (angle in radians).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The angle in radians.  | 
+x | `Num` | The angle in radians.  | -
 
 **Return:** The tangent of `x`.
 
@@ -2461,7 +2461,7 @@ Computes the hyperbolic tangent of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the hyperbolic tangent is to be calculated.  | 
+x | `Num` | The number for which the hyperbolic tangent is to be calculated.  | -
 
 **Return:** The hyperbolic tangent of `x`.
 
@@ -2482,7 +2482,7 @@ Computes the gamma function of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the gamma function is to be calculated.  | 
+x | `Num` | The number for which the gamma function is to be calculated.  | -
 
 **Return:** The gamma function of `x`.
 
@@ -2503,7 +2503,7 @@ Truncates a number to the nearest integer towards zero.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to be truncated.  | 
+x | `Num` | The number to be truncated.  | -
 
 **Return:** The integer part of `x` towards zero.
 
@@ -2526,7 +2526,7 @@ Computes the Bessel function of the second kind of order 0.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the Bessel function is to be calculated.  | 
+x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Return:** The Bessel function of the second kind of order 0 of `x`.
 
@@ -2547,7 +2547,7 @@ Computes the Bessel function of the second kind of order 1.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the Bessel function is to be calculated.  | 
+x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Return:** The Bessel function of the second kind of order 1 of `x`.
 
@@ -2570,8 +2570,8 @@ Gets the file access time of a file.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file whose access time you want.  | 
-follow_symlinks | `Bool` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path of the file whose access time you want.  | -
+follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Return:** A 64-bit unix epoch timestamp representing when the file or directory was last accessed, or `none` if no such file or directory exists.
 
@@ -2594,9 +2594,9 @@ Appends the given text to the file at the specified path, creating the file if i
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to append to.  | 
-text | `Text` | The text to append to the file.  | 
-permissions | `Int32` | The permissions to set on the file if it is being created.  | **Default:** `Int32(0o644)`
+path | `Path` | The path of the file to append to.  | -
+text | `Text` | The text to append to the file.  | -
+permissions | `Int32` | The permissions to set on the file if it is being created.  | `Int32(0o644)`
 
 **Return:** Nothing.
 
@@ -2616,9 +2616,9 @@ Appends the given bytes to the file at the specified path, creating the file if 
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to append to.  | 
-bytes | `[Byte]` | The bytes to append to the file.  | 
-permissions | `Int32` | The permissions to set on the file if it is being created.  | **Default:** `Int32(0o644)`
+path | `Path` | The path of the file to append to.  | -
+bytes | `[Byte]` | The bytes to append to the file.  | -
+permissions | `Int32` | The permissions to set on the file if it is being created.  | `Int32(0o644)`
 
 **Return:** Nothing.
 
@@ -2638,7 +2638,7 @@ Returns the base name of the file or directory at the specified path.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file or directory.  | 
+path | `Path` | The path of the file or directory.  | -
 
 **Return:** The base name of the file or directory.
 
@@ -2659,7 +2659,7 @@ Returns an iterator that can be used to iterate over a file one line at a time, 
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file.  | 
+path | `Path` | The path of the file.  | -
 
 **Return:** An iterator that can be used to get lines from a file one at a time or a null value if the file couldn't be read.
 
@@ -2688,7 +2688,7 @@ Returns whether or not a file can be executed by the current user/group.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to check.  | 
+path | `Path` | The path of the file to check.  | -
 
 **Return:** `yes` if the file or directory exists and the current user has execute permissions, otherwise `no`.
 
@@ -2713,7 +2713,7 @@ Returns whether or not a file can be read by the current user/group.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to check.  | 
+path | `Path` | The path of the file to check.  | -
 
 **Return:** `yes` if the file or directory exists and the current user has read permissions, otherwise `no`.
 
@@ -2738,7 +2738,7 @@ Returns whether or not a file can be written by the current user/group.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to check.  | 
+path | `Path` | The path of the file to check.  | -
 
 **Return:** `yes` if the file or directory exists and the current user has write permissions, otherwise `no`.
 
@@ -2765,8 +2765,8 @@ This is the ["ctime"](https://en.wikipedia.org/wiki/Stat_(system_call)#ctime) of
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file whose change time you want.  | 
-follow_symlinks | `Bool` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path of the file whose change time you want.  | -
+follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Return:** A 64-bit unix epoch timestamp representing when the file or directory was last changed, or `none` if no such file or directory exists.
 
@@ -2789,8 +2789,8 @@ Return a path that is a child of another path.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of a directory.  | 
-child | `Text` | The name of a child file or directory.  | 
+path | `Path` | The path of a directory.  | -
+child | `Text` | The name of a child file or directory.  | -
 
 **Return:** A new path representing the child.
 
@@ -2811,8 +2811,8 @@ Returns a list of children (files and directories) within the directory at the s
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the directory.  | 
-include_hidden | `` | Whether to include hidden files, which start with a `.`.  | **Default:** `no`
+path | `Path` | The path of the directory.  | -
+include_hidden | `` | Whether to include hidden files, which start with a `.`.  | `no`
 
 **Return:** A list of paths for the children.
 
@@ -2833,8 +2833,8 @@ Creates a new directory at the specified path with the given permissions. If any
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the directory to create.  | 
-permissions | `` | The permissions to set on the new directory.  | **Default:** `Int32(0o755)`
+path | `Path` | The path of the directory to create.  | -
+permissions | `` | The permissions to set on the new directory.  | `Int32(0o755)`
 
 **Return:** Nothing.
 
@@ -2872,7 +2872,7 @@ Checks if a file or directory exists at the specified path.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to check.  | 
+path | `Path` | The path to check.  | -
 
 **Return:** `True` if the file or directory exists, `False` otherwise.
 
@@ -2893,7 +2893,7 @@ For home-based paths (those starting with `~`), expand the path to replace the t
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to expand.  | 
+path | `Path` | The path to expand.  | -
 
 **Return:** If the path does not start with a `~`, then return it unmodified. Otherwise, replace the `~` with an absolute path to the user's home directory.
 
@@ -2916,8 +2916,8 @@ Returns the file extension of the file at the specified path. Optionally returns
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file.  | 
-full | `Bool` | Whether to return everything after the first `.` in the base name, or only the last part of the extension.  | **Default:** `yes`
+path | `Path` | The path of the file.  | -
+full | `Bool` | Whether to return everything after the first `.` in the base name, or only the last part of the extension.  | `yes`
 
 **Return:** The file extension (not including the leading `.`) or an empty text if there is no file extension.
 
@@ -2944,8 +2944,8 @@ Returns a list of files within the directory at the specified path. Optionally i
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the directory.  | 
-include_hidden | `Bool` | Whether to include hidden files.  | **Default:** `no`
+path | `Path` | The path of the directory.  | -
+include_hidden | `Bool` | Whether to include hidden files.  | `no`
 
 **Return:** A list of file paths.
 
@@ -2966,7 +2966,7 @@ Returns a path built from a list of path components.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-components | `[Text]` | A list of path components.  | 
+components | `[Text]` | A list of path components.  | -
 
 **Return:** A path representing the given components.
 
@@ -2997,7 +2997,7 @@ Perform a globbing operation and return a list of matching paths. Some glob spec
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the directory which may contain special globbing characters like `*`, `?`, or `{...}`  | 
+path | `Path` | The path of the directory which may contain special globbing characters like `*`, `?`, or `{...}`  | -
 
 **Return:** A list of file paths that match the glob.
 
@@ -3032,8 +3032,8 @@ Get the owning group of a file or directory.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path whose owning group to get.  | 
-follow_symlinks | `Bool` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path whose owning group to get.  | -
+follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Return:** The name of the group which owns the file or directory, or `none` if the path does not exist.
 
@@ -3056,8 +3056,8 @@ Checks if the path represents a directory. Optionally follows symbolic links.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to check.  | 
-follow_symlinks | `` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path to check.  | -
+follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Return:** `True` if the path is a directory, `False` otherwise.
 
@@ -3081,8 +3081,8 @@ Checks if the path represents a file. Optionally follows symbolic links.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to check.  | 
-follow_symlinks | `` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path to check.  | -
+follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Return:** `True` if the path is a file, `False` otherwise.
 
@@ -3106,8 +3106,8 @@ Checks if the path represents a socket. Optionally follows symbolic links.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to check.  | 
-follow_symlinks | `` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path to check.  | -
+follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Return:** `True` if the path is a socket, `False` otherwise.
 
@@ -3128,7 +3128,7 @@ Checks if the path represents a symbolic link.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to check.  | 
+path | `Path` | The path to check.  | -
 
 **Return:** `True` if the path is a symbolic link, `False` otherwise.
 
@@ -3149,8 +3149,8 @@ Gets the file modification time of a file.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file whose modification time you want.  | 
-follow_symlinks | `Bool` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path of the file whose modification time you want.  | -
+follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Return:** A 64-bit unix epoch timestamp representing when the file or directory was last modified, or `none` if no such file or directory exists.
 
@@ -3173,8 +3173,8 @@ Get the owning user of a file or directory.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path whose owner to get.  | 
-follow_symlinks | `Bool` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path whose owner to get.  | -
+follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Return:** The name of the user who owns the file or directory, or `none` if the path does not exist.
 
@@ -3197,7 +3197,7 @@ Returns the parent directory of the file or directory at the specified path.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file or directory.  | 
+path | `Path` | The path of the file or directory.  | -
 
 **Return:** The path of the parent directory.
 
@@ -3218,7 +3218,7 @@ Reads the contents of the file at the specified path or a null value if the file
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to read.  | 
+path | `Path` | The path of the file to read.  | -
 
 **Return:** The contents of the file. If the file could not be read, a null value will be returned. If the file can be read, but is not valid UTF8 data, an error will be raised.
 
@@ -3242,8 +3242,8 @@ Reads the contents of the file at the specified path or a null value if the file
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to read.  | 
-limit | `Int?` | A limit to how many bytes should be read.  | **Default:** `none`
+path | `Path` | The path of the file to read.  | -
+limit | `Int?` | A limit to how many bytes should be read.  | `none`
 
 **Return:** The byte contents of the file. If the file cannot be read, a null value will be returned.
 
@@ -3267,8 +3267,8 @@ Returns the path relative to a given base path. By default, the base path is the
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to convert.  | 
-relative_to | `` | The base path for the relative path.  | **Default:** `(./)`
+path | `Path` | The path to convert.  | -
+relative_to | `` | The base path for the relative path.  | `(./)`
 
 **Return:** The relative path.
 
@@ -3289,8 +3289,8 @@ Removes the file or directory at the specified path. A runtime error is raised i
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to remove.  | 
-ignore_missing | `` | Whether to ignore errors if the file or directory does not exist.  | **Default:** `no`
+path | `Path` | The path to remove.  | -
+ignore_missing | `` | Whether to ignore errors if the file or directory does not exist.  | `no`
 
 **Return:** Nothing.
 
@@ -3310,8 +3310,8 @@ Resolves the absolute path of the given path relative to a base path. By default
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to resolve.  | 
-relative_to | `` | The base path for resolution.  | **Default:** `(./)`
+path | `Path` | The path to resolve.  | -
+relative_to | `` | The base path for resolution.  | `(./)`
 
 **Return:** The resolved absolute path.
 
@@ -3335,10 +3335,10 @@ Set the owning user and/or group for a path.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to change the permissions for.  | 
-owner | `Text?` | If non-none, the new user to assign to be the owner of the file.  | **Default:** `none`
-group | `Text?` | If non-none, the new group to assign to be the owner of the file.  | **Default:** `none`
-follow_symlinks | `Bool` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path to change the permissions for.  | -
+owner | `Text?` | If non-none, the new user to assign to be the owner of the file.  | `none`
+group | `Text?` | If non-none, the new group to assign to be the owner of the file.  | `none`
+follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Return:** Nothing. If a path does not exist, a failure will be raised.
 
@@ -3358,8 +3358,8 @@ Returns a list of subdirectories within the directory at the specified path. Opt
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the directory.  | 
-include_hidden | `` | Whether to include hidden subdirectories.  | **Default:** `no`
+path | `Path` | The path of the directory.  | -
+include_hidden | `` | Whether to include hidden subdirectories.  | `no`
 
 **Return:** A list of subdirectory paths.
 
@@ -3383,7 +3383,7 @@ Generates a unique directory path based on the given path. Useful for creating t
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The base path for generating the unique directory. The last six letters of this path must be `XXXXXX`.  | 
+path | `Path` | The base path for generating the unique directory. The last six letters of this path must be `XXXXXX`.  | -
 
 **Return:** A unique directory path after creating the directory.
 
@@ -3407,9 +3407,9 @@ Writes the given text to the file at the specified path, creating the file if it
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to write to.  | 
-text | `Text` | The text to write to the file.  | 
-permissions | `` | The permissions to set on the file if it is created.  | **Default:** `Int32(0o644)`
+path | `Path` | The path of the file to write to.  | -
+text | `Text` | The text to write to the file.  | -
+permissions | `` | The permissions to set on the file if it is created.  | `Int32(0o644)`
 
 **Return:** Nothing.
 
@@ -3429,9 +3429,9 @@ Writes the given bytes to the file at the specified path, creating the file if i
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to write to.  | 
-bytes | `[Byte]` | A list of bytes to write to the file.  | 
-permissions | `` | The permissions to set on the file if it is created.  | **Default:** `Int32(0o644)`
+path | `Path` | The path of the file to write to.  | -
+bytes | `[Byte]` | A list of bytes to write to the file.  | -
+permissions | `` | The permissions to set on the file if it is created.  | `Int32(0o644)`
 
 **Return:** Nothing.
 
@@ -3451,8 +3451,8 @@ Writes the given text to a unique file path based on the specified path. The fil
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The base path for generating the unique file. This path must include the string `XXXXXX` in the file base name.  | 
-text | `Text` | The text to write to the file.  | 
+path | `Path` | The base path for generating the unique file. This path must include the string `XXXXXX` in the file base name.  | -
+text | `Text` | The text to write to the file.  | -
 
 **Return:** The path of the newly created unique file.
 
@@ -3476,8 +3476,8 @@ Writes the given bytes to a unique file path based on the specified path. The fi
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The base path for generating the unique file. This path must include the string `XXXXXX` in the file base name.  | 
-bytes | `[Byte]` | The bytes to write to the file.  | 
+path | `Path` | The base path for generating the unique file. This path must include the string `XXXXXX` in the file base name.  | -
+bytes | `[Byte]` | The bytes to write to the file.  | -
 
 **Return:** The path of the newly created unique file.
 
@@ -3503,8 +3503,8 @@ Adds an item to the set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `|T|` | The mutable reference to the set.  | 
-item | `T` | The item to add to the set.  | 
+set | `|T|` | The mutable reference to the set.  | -
+item | `T` | The item to add to the set.  | -
 
 **Return:** Nothing.
 
@@ -3524,8 +3524,8 @@ Adds multiple items to the set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `@|T|` | The mutable reference to the set.  | 
-items | `[T]` | The list of items to add to the set.  | 
+set | `@|T|` | The mutable reference to the set.  | -
+items | `[T]` | The list of items to add to the set.  | -
 
 **Return:** Nothing.
 
@@ -3545,7 +3545,7 @@ Removes all items from the set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `@|T|` | The mutable reference to the set.  | 
+set | `@|T|` | The mutable reference to the set.  | -
 
 **Return:** Nothing.
 
@@ -3565,8 +3565,8 @@ Checks if the set contains a specified item.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `|T|` | The set to check.  | 
-item | `T` | The item to check for presence.  | 
+set | `|T|` | The set to check.  | -
+item | `T` | The item to check for presence.  | -
 
 **Return:** `yes` if the item is present, `no` otherwise.
 
@@ -3587,9 +3587,9 @@ Checks if the set is a subset of another set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `|T|` | The set to check.  | 
-other | `|T|` | The set to compare against.  | 
-strict | `Bool` | If `yes`, checks if the set is a strict subset (does not equal the other set).  | **Default:** `no`
+set | `|T|` | The set to check.  | -
+other | `|T|` | The set to compare against.  | -
+strict | `Bool` | If `yes`, checks if the set is a strict subset (does not equal the other set).  | `no`
 
 **Return:** `yes` if the set is a subset of the other set (strictly or not), `no` otherwise.
 
@@ -3610,9 +3610,9 @@ Checks if the set is a superset of another set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `|T|` | The set to check.  | 
-other | `|T|` | The set to compare against.  | 
-strict | `Bool` | If `yes`, checks if the set is a strict superset (does not equal the other set).  | **Default:** `no`
+set | `|T|` | The set to check.  | -
+other | `|T|` | The set to compare against.  | -
+strict | `Bool` | If `yes`, checks if the set is a strict superset (does not equal the other set).  | `no`
 
 **Return:** `yes` if the set is a superset of the other set (strictly or not), `no` otherwise.
 
@@ -3633,8 +3633,8 @@ Creates a new set with items that are in both the original set and another set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `|T|` | The original set.  | 
-other | `|T|` | The set to intersect with.  | 
+set | `|T|` | The original set.  | -
+other | `|T|` | The set to intersect with.  | -
 
 **Return:** A new set containing only items present in both sets.
 
@@ -3655,8 +3655,8 @@ Removes an item from the set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `@|T|` | The mutable reference to the set.  | 
-item | `T` | The item to remove from the set.  | 
+set | `@|T|` | The mutable reference to the set.  | -
+item | `T` | The item to remove from the set.  | -
 
 **Return:** Nothing.
 
@@ -3676,8 +3676,8 @@ Removes multiple items from the set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `@|T|` | The mutable reference to the set.  | 
-items | `[T]` | The list of items to remove from the set.  | 
+set | `@|T|` | The mutable reference to the set.  | -
+items | `[T]` | The list of items to remove from the set.  | -
 
 **Return:** Nothing.
 
@@ -3697,8 +3697,8 @@ Creates a new set that is the union of the original set and another set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `|T|` | The original set.  | 
-other | `|T|` | The set to union with.  | 
+set | `|T|` | The original set.  | -
+other | `|T|` | The set to union with.  | -
 
 **Return:** A new set containing all items from both sets.
 
@@ -3719,8 +3719,8 @@ Creates a new set with items from the original set but without items from anothe
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `|T|` | The original set.  | 
-other | `|T|` | The set of items to remove from the original set.  | 
+set | `|T|` | The original set.  | -
+other | `|T|` | The set of items to remove from the original set.  | -
 
 **Return:** A new set containing items from the original set excluding those in the other set.
 
@@ -3743,7 +3743,7 @@ Removes all key-value pairs from the table.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `&{K=V}` | The reference to the table.  | 
+t | `&{K=V}` | The reference to the table.  | -
 
 **Return:** Nothing.
 
@@ -3765,8 +3765,8 @@ Default values for the table are ignored.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `{K=V}` | The table.  | 
-key | `K` | The key whose associated value is to be retrieved.  | 
+t | `{K=V}` | The table.  | -
+key | `K` | The key whose associated value is to be retrieved.  | -
 
 **Return:** The value associated with the key or `none` if the key is not found.
 
@@ -3800,9 +3800,9 @@ The default value is only evaluated if the key is missing.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `&{K=V}` | The table.  | 
-key | `K` | The key whose associated value is to be retrieved.  | 
-default | `V` | The default value to insert and return if the key is not present in the table.  | 
+t | `&{K=V}` | The table.  | -
+key | `K` | The key whose associated value is to be retrieved.  | -
+default | `V` | The default value to insert and return if the key is not present in the table.  | -
 
 **Return:** Either the value associated with the key (if present) or the default value. The table will be mutated if the key is not already present.
 
@@ -3831,8 +3831,8 @@ Checks if the table contains a specified key.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `{K=V}` | The table.  | 
-key | `K` | The key to check for presence.  | 
+t | `{K=V}` | The table.  | -
+key | `K` | The key to check for presence.  | -
 
 **Return:** `yes` if the key is present, `no` otherwise.
 
@@ -3855,8 +3855,8 @@ Removes the key-value pair associated with a specified key.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `{K=V}` | The reference to the table.  | 
-key | `K` | The key of the key-value pair to remove.  | 
+t | `{K=V}` | The reference to the table.  | -
+key | `K` | The key of the key-value pair to remove.  | -
 
 **Return:** Nothing.
 
@@ -3879,9 +3879,9 @@ Sets or updates the value associated with a specified key.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `{K=V}` | The reference to the table.  | 
-key | `K` | The key to set or update.  | 
-value | `V` | The value to associate with the key.  | 
+t | `{K=V}` | The reference to the table.  | -
+key | `K` | The key to set or update.  | -
+value | `V` | The value to associate with the key.  | -
 
 **Return:** Nothing.
 
@@ -3906,7 +3906,7 @@ Converts a `Text` value to a C-style string.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be converted to a C-style string.  | 
+text | `Text` | The text to be converted to a C-style string.  | -
 
 **Return:** A C-style string (`CString`) representing the text.
 
@@ -3929,8 +3929,8 @@ Negative indices are counted from the back of the text, so `-1` means the last c
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text from which to get a cluster.  | 
-index | `Int` | The index of the graphical cluster (1-indexed).  | 
+text | `Text` | The text from which to get a cluster.  | -
+index | `Int` | The index of the graphical cluster (1-indexed).  | -
 
 **Return:** A `Text` with the single graphical cluster at the given index.
 
@@ -3953,7 +3953,7 @@ This function ignores a trailing newline if there is one. If you don't want this
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be iterated over, line by line.  | 
+text | `Text` | The text to be iterated over, line by line.  | -
 
 **Return:** An iterator function that returns one line at a time, until it runs out and returns `none`.
 
@@ -3982,8 +3982,8 @@ If an empty text is given as the delimiter, then each split will be the graphica
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be iterated over in delimited chunks.  | 
-delimiter | `Text` | An exact delimiter to use for splitting the text.  | **Default:** `""`
+text | `Text` | The text to be iterated over in delimited chunks.  | -
+delimiter | `Text` | An exact delimiter to use for splitting the text.  | `""`
 
 **Return:** An iterator function that returns one chunk of text at a time, separated by the given delimiter, until it runs out and returns `none`.
 
@@ -4009,8 +4009,8 @@ To split based on an exact delimiter, use Text.by_split().
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be iterated over in delimited chunks.  | 
-delimiters | `Text` | Grapheme clusters to use for splitting the text.  | **Default:** `" $\t\r\n"`
+text | `Text` | The text to be iterated over in delimited chunks.  | -
+delimiters | `Text` | Grapheme clusters to use for splitting the text.  | `" $\t\r\n"`
 
 **Return:** An iterator function that returns one chunk of text at a time, separated by the given delimiter characters, until it runs out and returns `none`.
 
@@ -4033,7 +4033,7 @@ Converts a `Text` value to a list of bytes representing a UTF8 encoding of the t
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be converted to UTF8 bytes.  | 
+text | `Text` | The text to be converted to UTF8 bytes.  | -
 
 **Return:** A list of bytes (`[Byte]`) representing the text in UTF8 encoding.
 
@@ -4054,9 +4054,9 @@ Checks whether two texts are equal, ignoring the casing of the letters (i.e. cas
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-a | `Text` | The first text to compare case-insensitively.  | 
-b | `Text` | The second text to compare case-insensitively.  | 
-language | `Text` | The ISO 639 language code for which casing rules to use.  | **Default:** `"C"`
+a | `Text` | The first text to compare case-insensitively.  | -
+b | `Text` | The second text to compare case-insensitively.  | -
+language | `Text` | The ISO 639 language code for which casing rules to use.  | `"C"`
 
 **Return:** `yes` if `a` and `b` are equal to each other, ignoring casing, otherwise `no`.
 
@@ -4081,7 +4081,7 @@ Returns a list of the names of each codepoint in the text.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text from which to extract codepoint names.  | 
+text | `Text` | The text from which to extract codepoint names.  | -
 
 **Return:** A list of codepoint names (`[Text]`).
 
@@ -4102,8 +4102,8 @@ Checks if the `Text` ends with a literal suffix text.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be searched.  | 
-suffix | `Text` | The literal suffix text to check for.  | 
+text | `Text` | The text to be searched.  | -
+suffix | `Text` | The literal suffix text to check for.  | -
 
 **Return:** `yes` if the text has the target, `no` otherwise.
 
@@ -4126,8 +4126,8 @@ A negative index counts backwards from the end of the text, so `-1` refers to th
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be sliced.  | 
-first | `Int` | The index to begin the slice.  | 
+text | `Text` | The text to be sliced.  | -
+first | `Int` | The index to begin the slice.  | -
 
 **Return:** The text from the given grapheme cluster to the end of the text.
 
@@ -4153,7 +4153,7 @@ The text will be normalized, so the resulting text's UTF8 bytes may not exactly 
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-bytes | `[Byte]` | The UTF-8 bytes of the desired text.  | 
+bytes | `[Byte]` | The UTF-8 bytes of the desired text.  | -
 
 **Return:** A new text based on the input UTF8 bytes after normalization has been applied.
 
@@ -4174,7 +4174,7 @@ Converts a C-style string to a `Text` value.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-str | `CString` | The C-style string to be converted.  | 
+str | `CString` | The C-style string to be converted.  | -
 
 **Return:** A `Text` value representing the C-style string.
 
@@ -4197,7 +4197,7 @@ The text will be normalized, so the resulting text's codepoints may not exactly 
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-codepoint_names | `[Text]` | The names of each codepoint in the desired text (case-insentive).  | 
+codepoint_names | `[Text]` | The names of each codepoint in the desired text (case-insentive).  | -
 
 **Return:** A new text with the specified codepoints after normalization has been applied. Any invalid names are ignored.
 
@@ -4224,7 +4224,7 @@ The text will be normalized, so the resulting text's codepoints may not exactly 
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-codepoints | `[Int32]` | The UTF32 codepoints in the desired text.  | 
+codepoints | `[Int32]` | The UTF32 codepoints in the desired text.  | -
 
 **Return:** A new text with the specified codepoints after normalization has been applied.
 
@@ -4245,8 +4245,8 @@ Checks if the `Text` contains some target text.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be searched.  | 
-target | `Text` | The text to search for.  | 
+text | `Text` | The text to be searched.  | -
+target | `Text` | The text to search for.  | -
 
 **Return:** `yes` if the target text is found, `no` otherwise.
 
@@ -4269,8 +4269,8 @@ Joins a list of text pieces with a specified glue.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-glue | `Text` | The text used to join the pieces.  | 
-pieces | `[Text]` | The list of text pieces to be joined.  | 
+glue | `Text` | The text used to join the pieces.  | -
+pieces | `[Text]` | The list of text pieces to be joined.  | -
 
 **Return:** A single `Text` value with the pieces joined by the glue.
 
@@ -4291,10 +4291,10 @@ Pad some text on the left side so it reaches a target width.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to pad.  | 
-width | `Int` | The target width.  | 
-pad | `Text` | The padding text.  | **Default:** `" "`
-language | `Text` | The ISO 639 language code for which character width to use.  | **Default:** `"C"`
+text | `Text` | The text to pad.  | -
+width | `Int` | The target width.  | -
+pad | `Text` | The padding text.  | `" "`
+language | `Text` | The ISO 639 language code for which character width to use.  | `"C"`
 
 **Return:** Text with length at least `width`, with extra padding on the left as needed. If `pad` has length greater than 1, it may be partially repeated to reach the exact desired length.
 
@@ -4317,7 +4317,7 @@ Splits the text into a list of lines of text, preserving blank lines, ignoring t
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be split into lines.  | 
+text | `Text` | The text to be split into lines.  | -
 
 **Return:** A list of substrings resulting from the split.
 
@@ -4346,8 +4346,8 @@ Converts all characters in the text to lowercase.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be converted to lowercase.  | 
-language | `Text` | The ISO 639 language code for which casing rules to use.  | **Default:** `"C"`
+text | `Text` | The text to be converted to lowercase.  | -
+language | `Text` | The ISO 639 language code for which casing rules to use.  | `"C"`
 
 **Return:** The lowercase version of the text.
 
@@ -4371,10 +4371,10 @@ Pad some text on the left and right side so it reaches a target width.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to pad.  | 
-width | `Int` | The target width.  | 
-pad | `Text` | The padding text.  | **Default:** `" "`
-language | `Text` | The ISO 639 language code for which character width to use.  | **Default:** `"C"`
+text | `Text` | The text to pad.  | -
+width | `Int` | The target width.  | -
+pad | `Text` | The padding text.  | `" "`
+language | `Text` | The ISO 639 language code for which character width to use.  | `"C"`
 
 **Return:** Text with length at least `width`, with extra padding on the left and right as needed. If `pad` has length greater than 1, it may be partially repeated to reach the exact desired length.
 
@@ -4397,9 +4397,9 @@ Formats the text with quotation marks and escapes.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be quoted.  | 
-color | `Bool` | Whether to add color formatting.  | **Default:** `no`
-quotation_mark | `Text` | The quotation mark to use.  | **Default:** ``"``
+text | `Text` | The text to be quoted.  | -
+color | `Bool` | Whether to add color formatting.  | `no`
+quotation_mark | `Text` | The quotation mark to use.  | ``"``
 
 **Return:** The text formatted as a quoted text.
 
@@ -4420,8 +4420,8 @@ Repeat some text multiple times.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to repeat.  | 
-count | `Int` | The number of times to repeat it. (Negative numbers are equivalent to zero).  | 
+text | `Text` | The text to repeat.  | -
+count | `Int` | The number of times to repeat it. (Negative numbers are equivalent to zero).  | -
 
 **Return:** The text repeated the given number of times.
 
@@ -4442,9 +4442,9 @@ Replaces occurrences of a target text with a replacement text.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text in which to perform replacements.  | 
-target | `Text` | The target text to be replaced.  | 
-replacement | `Text` | The text to replace the target with.  | 
+text | `Text` | The text in which to perform replacements.  | -
+target | `Text` | The target text to be replaced.  | -
+replacement | `Text` | The text to replace the target with.  | -
 
 **Return:** The text with occurrences of the target replaced.
 
@@ -4465,7 +4465,7 @@ Return a text that has the grapheme clusters in reverse order.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to reverse.  | 
+text | `Text` | The text to reverse.  | -
 
 **Return:** A reversed version of the text.
 
@@ -4486,10 +4486,10 @@ Pad some text on the right side so it reaches a target width.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to pad.  | 
-width | `Int` | The target width.  | 
-pad | `Text` | The padding text.  | **Default:** `" "`
-language | `Text` | The ISO 639 language code for which character width to use.  | **Default:** `"C"`
+text | `Text` | The text to pad.  | -
+width | `Int` | The target width.  | -
+pad | `Text` | The padding text.  | `" "`
+language | `Text` | The ISO 639 language code for which character width to use.  | `"C"`
 
 **Return:** Text with length at least `width`, with extra padding on the right as needed. If `pad` has length greater than 1, it may be partially repeated to reach the exact desired length.
 
@@ -4514,9 +4514,9 @@ A negative index counts backwards from the end of the text, so `-1` refers to th
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be sliced.  | 
-from | `Int` | The index of the first grapheme cluster to include (1-indexed).  | **Default:** `1`
-to | `Int` | The index of the last grapheme cluster to include (1-indexed).  | **Default:** `-1`
+text | `Text` | The text to be sliced.  | -
+from | `Int` | The index of the first grapheme cluster to include (1-indexed).  | `1`
+to | `Int` | The index of the last grapheme cluster to include (1-indexed).  | `-1`
 
 **Return:** The text that spans the given grapheme cluster indices.
 
@@ -4546,8 +4546,8 @@ If an empty text is given as the delimiter, then each split will be the graphica
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be split.  | 
-delimiter | `Text` | The delimiter used to split the text.  | **Default:** `""`
+text | `Text` | The text to be split.  | -
+delimiter | `Text` | The delimiter used to split the text.  | `""`
 
 **Return:** A list of subtexts resulting from the split.
 
@@ -4574,8 +4574,8 @@ To split based on an exact delimiter, use Text.split().
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be split.  | 
-delimiters | `Text` | A text containing delimiters to use for splitting the text.  | **Default:** `" $\t\r\n"`
+text | `Text` | The text to be split.  | -
+delimiters | `Text` | A text containing delimiters to use for splitting the text.  | `" $\t\r\n"`
 
 **Return:** A list of subtexts resulting from the split.
 
@@ -4596,8 +4596,8 @@ Checks if the `Text` starts with a literal prefix text.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be searched.  | 
-prefix | `Text` | The literal prefix text to check for.  | 
+text | `Text` | The text to be searched.  | -
+prefix | `Text` | The literal prefix text to check for.  | -
 
 **Return:** `yes` if the text has the given prefix, `no` otherwise.
 
@@ -4618,8 +4618,8 @@ Converts the text to title case (capitalizing the first letter of each word).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be converted to title case.  | 
-language | `Text` | The ISO 639 language code for which casing rules to use.  | **Default:** `"C"`
+text | `Text` | The text to be converted to title case.  | -
+language | `Text` | The ISO 639 language code for which casing rules to use.  | `"C"`
 
 **Return:** The text in title case.
 
@@ -4646,8 +4646,8 @@ A negative index counts backwards from the end of the text, so `-1` refers to th
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be sliced.  | 
-last | `Int` | The index of the last grapheme cluster to include (1-indexed).  | 
+text | `Text` | The text to be sliced.  | -
+last | `Int` | The index of the last grapheme cluster to include (1-indexed).  | -
 
 **Return:** The text up to and including the given grapheme cluster.
 
@@ -4671,7 +4671,7 @@ Takes a table mapping target texts to their replacements and performs all the re
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-translations | `{Text=Text}` | A table mapping from target text to its replacement.  | 
+translations | `{Text=Text}` | A table mapping from target text to its replacement.  | -
 
 **Return:** The text with all occurrences of the targets replaced with their corresponding replacement text.
 
@@ -4698,10 +4698,10 @@ Trims the given characters (grapheme clusters) from the left and/or right side o
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be trimmed.  | 
-to_trim | `Text` | The characters to remove from the left/right of the text.  | **Default:** `" $\t\r\n"`
-left | `Bool` | Whether or not to trim from the front of the text.  | **Default:** `yes`
-right | `Bool` | Whether or not to trim from the back of the text.  | **Default:** `yes`
+text | `Text` | The text to be trimmed.  | -
+to_trim | `Text` | The characters to remove from the left/right of the text.  | `" $\t\r\n"`
+left | `Bool` | Whether or not to trim from the front of the text.  | `yes`
+right | `Bool` | Whether or not to trim from the back of the text.  | `yes`
 
 **Return:** The text without the trim characters at either end.
 
@@ -4728,8 +4728,8 @@ Converts all characters in the text to uppercase.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be converted to uppercase.  | 
-language | `Text` | The ISO 639 language code for which casing rules to use.  | **Default:** `"C"`
+text | `Text` | The text to be converted to uppercase.  | -
+language | `Text` | The ISO 639 language code for which casing rules to use.  | `"C"`
 
 **Return:** The uppercase version of the text.
 
@@ -4754,7 +4754,7 @@ Returns a list of Unicode code points for UTF32 encoding of the text.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text from which to extract Unicode code points.  | 
+text | `Text` | The text from which to extract Unicode code points.  | -
 
 **Return:** A list of 32-bit integer Unicode code points (`[Int32]`).
 
@@ -4777,7 +4777,7 @@ This will not always be exactly accurate when your terminal's font rendering can
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text whose length you want.  | 
+text | `Text` | The text whose length you want.  | -
 
 **Return:** An integer representing the display width of the text.
 
@@ -4800,8 +4800,8 @@ Returns the text with a given prefix removed (if present).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to remove the prefix from.  | 
-prefix | `Text` | The prefix to remove.  | 
+text | `Text` | The text to remove the prefix from.  | -
+prefix | `Text` | The prefix to remove.  | -
 
 **Return:** A text without the given prefix (if present) or the unmodified text if the prefix is not present.
 
@@ -4824,8 +4824,8 @@ Returns the text with a given suffix removed (if present).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to remove the suffix from.  | 
-suffix | `Text` | The suffix to remove.  | 
+text | `Text` | The text to remove the suffix from.  | -
+suffix | `Text` | The suffix to remove.  | -
 
 **Return:** A text without the given suffix (if present) or the unmodified text if the suffix is not present.
 

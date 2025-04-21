@@ -13,7 +13,7 @@ Removes all key-value pairs from the table.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `&{K=V}` | The reference to the table.  | 
+t | `&{K=V}` | The reference to the table.  | -
 
 **Return:** Nothing.
 
@@ -35,8 +35,8 @@ Default values for the table are ignored.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `{K=V}` | The table.  | 
-key | `K` | The key whose associated value is to be retrieved.  | 
+t | `{K=V}` | The table.  | -
+key | `K` | The key whose associated value is to be retrieved.  | -
 
 **Return:** The value associated with the key or `none` if the key is not found.
 
@@ -70,9 +70,9 @@ The default value is only evaluated if the key is missing.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `&{K=V}` | The table.  | 
-key | `K` | The key whose associated value is to be retrieved.  | 
-default | `V` | The default value to insert and return if the key is not present in the table.  | 
+t | `&{K=V}` | The table.  | -
+key | `K` | The key whose associated value is to be retrieved.  | -
+default | `V` | The default value to insert and return if the key is not present in the table.  | -
 
 **Return:** Either the value associated with the key (if present) or the default value. The table will be mutated if the key is not already present.
 
@@ -101,8 +101,8 @@ Checks if the table contains a specified key.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `{K=V}` | The table.  | 
-key | `K` | The key to check for presence.  | 
+t | `{K=V}` | The table.  | -
+key | `K` | The key to check for presence.  | -
 
 **Return:** `yes` if the key is present, `no` otherwise.
 
@@ -125,8 +125,8 @@ Removes the key-value pair associated with a specified key.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `{K=V}` | The reference to the table.  | 
-key | `K` | The key of the key-value pair to remove.  | 
+t | `{K=V}` | The reference to the table.  | -
+key | `K` | The key of the key-value pair to remove.  | -
 
 **Return:** Nothing.
 
@@ -149,9 +149,9 @@ Sets or updates the value associated with a specified key.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `{K=V}` | The reference to the table.  | 
-key | `K` | The key to set or update.  | 
-value | `V` | The value to associate with the key.  | 
+t | `{K=V}` | The reference to the table.  | -
+key | `K` | The key to set or update.  | -
+value | `V` | The value to associate with the key.  | -
 
 **Return:** Nothing.
 

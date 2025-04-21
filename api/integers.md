@@ -13,7 +13,7 @@ Calculates the absolute value of an integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Int` | The integer whose absolute value is to be calculated.  | 
+x | `Int` | The integer whose absolute value is to be calculated.  | -
 
 **Return:** The absolute value of `x`.
 
@@ -34,8 +34,8 @@ Computes the binomial coefficient of the given numbers (the equivalent of `n` ch
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Int` | The number of things to choose from.  | 
-k | `Int` | The number of things to be chosen.  | 
+n | `Int` | The number of things to choose from.  | -
+k | `Int` | The number of things to be chosen.  | -
 
 **Return:** The binomial coefficient, equivalent to the number of ways to uniquely choose `k` objects from among `n` objects, ignoring order.
 
@@ -56,9 +56,9 @@ Returns the given number clamped between two values so that it is within that ra
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Int` | The integer to clamp.  | 
-low | `Int` | The lowest value the result can take.  | 
-high | `Int` | The highest value the result can take.  | 
+x | `Int` | The integer to clamp.  | -
+low | `Int` | The lowest value the result can take.  | -
+high | `Int` | The highest value the result can take.  | -
 
 **Return:** The first argument clamped between the other two arguments.
 
@@ -79,7 +79,7 @@ Computes the factorial of an integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Int` | The integer to compute the factorial of.  | 
+n | `Int` | The integer to compute the factorial of.  | -
 
 **Return:** The factorial of the given integer.
 
@@ -100,8 +100,8 @@ Formats an integer as a string with a specified number of digits.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-i | `Int` | The integer to be formatted.  | 
-digits | `Int` | The minimum number of digits to which the integer should be padded.  | **Default:** `0`
+i | `Int` | The integer to be formatted.  | -
+digits | `Int` | The minimum number of digits to which the integer should be padded.  | `0`
 
 **Return:** A string representation of the integer, padded to the specified number of digits.
 
@@ -122,10 +122,10 @@ Converts an integer to its hexadecimal representation.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-i | `Int` | The integer to be converted.  | 
-digits | `Int` | The minimum number of digits in the output string.  | **Default:** `0`
-uppercase | `Bool` | Whether to use uppercase letters for hexadecimal digits.  | **Default:** `yes`
-prefix | `Bool` | Whether to include a "0x" prefix.  | **Default:** `yes`
+i | `Int` | The integer to be converted.  | -
+digits | `Int` | The minimum number of digits in the output string.  | `0`
+uppercase | `Bool` | Whether to use uppercase letters for hexadecimal digits.  | `yes`
+prefix | `Bool` | Whether to include a "0x" prefix.  | `yes`
 
 **Return:** The hexadecimal string representation of the integer.
 
@@ -146,9 +146,9 @@ Determines if an integer is between two numbers (inclusive).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Int` | The integer to be checked.  | 
-low | `Int` | The lower bound to check (inclusive).  | 
-high | `Int` | The upper bound to check (inclusive).  | 
+x | `Int` | The integer to be checked.  | -
+low | `Int` | The lower bound to check (inclusive).  | -
+high | `Int` | The upper bound to check (inclusive).  | -
 
 **Return:** `yes` if `low <= x and x <= high`, otherwise `no`
 
@@ -175,8 +175,8 @@ This function is _probabilistic_. With the default arguments, the chances of get
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Int` | The integer to be checked.  | 
-reps | `Int` | The number of repetitions for primality tests.  | **Default:** `50`
+x | `Int` | The integer to be checked.  | -
+reps | `Int` | The number of repetitions for primality tests.  | `50`
 
 **Return:** `yes` if `x` is a prime number, `no` otherwise.
 
@@ -201,7 +201,7 @@ This function is _probabilistic_, but the chances of getting an incorrect answer
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Int` | The integer after which to find the next prime.  | 
+x | `Int` | The integer after which to find the next prime.  | -
 
 **Return:** The next prime number greater than `x`.
 
@@ -222,9 +222,9 @@ Converts an integer to its octal representation.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-i | `Int` | The integer to be converted.  | 
-digits | `Int` | The minimum number of digits in the output string.  | **Default:** `0`
-prefix | `Bool` | Whether to include a "0o" prefix.  | **Default:** `yes`
+i | `Int` | The integer to be converted.  | -
+digits | `Int` | The minimum number of digits in the output string.  | `0`
+prefix | `Bool` | Whether to include a "0o" prefix.  | `yes`
 
 **Return:** The octal string representation of the integer.
 
@@ -245,8 +245,8 @@ Return an iterator that counts infinitely from the starting integer (with an opt
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-first | `Int` | The starting integer.  | 
-step | `Int` | The increment step size.  | **Default:** `1`
+first | `Int` | The starting integer.  | -
+step | `Int` | The increment step size.  | `1`
 
 **Return:** An iterator function that counts onward from the starting integer.
 
@@ -271,7 +271,7 @@ Converts a text representation of an integer into an integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text containing the integer.  | 
+text | `Text` | The text containing the integer.  | -
 
 **Return:** The integer represented by the text. If the given text contains a value outside of the representable range or if the entire text can't be parsed as an integer, `none` will be returned.
 
@@ -304,7 +304,7 @@ This function is _probabilistic_, but the chances of getting an incorrect answer
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Int` | The integer before which to find the previous prime.  | 
+x | `Int` | The integer before which to find the previous prime.  | -
 
 **Return:** The previous prime number less than `x`, or `none` if `x` is less than 2.
 
@@ -325,7 +325,7 @@ Calculates the nearest square root of an integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Int` | The integer whose square root is to be calculated.  | 
+x | `Int` | The integer whose square root is to be calculated.  | -
 
 **Return:** The integer part of the square root of `x`.
 
@@ -348,9 +348,9 @@ Returns an iterator function that iterates over the range of numbers specified.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-first | `Int` | The starting value of the range.  | 
-last | `Int` | The ending value of the range.  | 
-step | `Int?` | An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.  | **Default:** `none`
+first | `Int` | The starting value of the range.  | -
+last | `Int` | The ending value of the range.  | -
+step | `Int?` | An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.  | `none`
 
 **Return:** An iterator function that returns each integer in the given range (inclusive).
 

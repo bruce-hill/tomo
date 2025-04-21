@@ -13,8 +13,8 @@ Gets the file access time of a file.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file whose access time you want.  | 
-follow_symlinks | `Bool` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path of the file whose access time you want.  | -
+follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Return:** A 64-bit unix epoch timestamp representing when the file or directory was last accessed, or `none` if no such file or directory exists.
 
@@ -37,9 +37,9 @@ Appends the given text to the file at the specified path, creating the file if i
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to append to.  | 
-text | `Text` | The text to append to the file.  | 
-permissions | `Int32` | The permissions to set on the file if it is being created.  | **Default:** `Int32(0o644)`
+path | `Path` | The path of the file to append to.  | -
+text | `Text` | The text to append to the file.  | -
+permissions | `Int32` | The permissions to set on the file if it is being created.  | `Int32(0o644)`
 
 **Return:** Nothing.
 
@@ -59,9 +59,9 @@ Appends the given bytes to the file at the specified path, creating the file if 
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to append to.  | 
-bytes | `[Byte]` | The bytes to append to the file.  | 
-permissions | `Int32` | The permissions to set on the file if it is being created.  | **Default:** `Int32(0o644)`
+path | `Path` | The path of the file to append to.  | -
+bytes | `[Byte]` | The bytes to append to the file.  | -
+permissions | `Int32` | The permissions to set on the file if it is being created.  | `Int32(0o644)`
 
 **Return:** Nothing.
 
@@ -81,7 +81,7 @@ Returns the base name of the file or directory at the specified path.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file or directory.  | 
+path | `Path` | The path of the file or directory.  | -
 
 **Return:** The base name of the file or directory.
 
@@ -102,7 +102,7 @@ Returns an iterator that can be used to iterate over a file one line at a time, 
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file.  | 
+path | `Path` | The path of the file.  | -
 
 **Return:** An iterator that can be used to get lines from a file one at a time or a null value if the file couldn't be read.
 
@@ -131,7 +131,7 @@ Returns whether or not a file can be executed by the current user/group.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to check.  | 
+path | `Path` | The path of the file to check.  | -
 
 **Return:** `yes` if the file or directory exists and the current user has execute permissions, otherwise `no`.
 
@@ -156,7 +156,7 @@ Returns whether or not a file can be read by the current user/group.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to check.  | 
+path | `Path` | The path of the file to check.  | -
 
 **Return:** `yes` if the file or directory exists and the current user has read permissions, otherwise `no`.
 
@@ -181,7 +181,7 @@ Returns whether or not a file can be written by the current user/group.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to check.  | 
+path | `Path` | The path of the file to check.  | -
 
 **Return:** `yes` if the file or directory exists and the current user has write permissions, otherwise `no`.
 
@@ -208,8 +208,8 @@ This is the ["ctime"](https://en.wikipedia.org/wiki/Stat_(system_call)#ctime) of
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file whose change time you want.  | 
-follow_symlinks | `Bool` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path of the file whose change time you want.  | -
+follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Return:** A 64-bit unix epoch timestamp representing when the file or directory was last changed, or `none` if no such file or directory exists.
 
@@ -232,8 +232,8 @@ Return a path that is a child of another path.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of a directory.  | 
-child | `Text` | The name of a child file or directory.  | 
+path | `Path` | The path of a directory.  | -
+child | `Text` | The name of a child file or directory.  | -
 
 **Return:** A new path representing the child.
 
@@ -254,8 +254,8 @@ Returns a list of children (files and directories) within the directory at the s
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the directory.  | 
-include_hidden | `` | Whether to include hidden files, which start with a `.`.  | **Default:** `no`
+path | `Path` | The path of the directory.  | -
+include_hidden | `` | Whether to include hidden files, which start with a `.`.  | `no`
 
 **Return:** A list of paths for the children.
 
@@ -276,8 +276,8 @@ Creates a new directory at the specified path with the given permissions. If any
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the directory to create.  | 
-permissions | `` | The permissions to set on the new directory.  | **Default:** `Int32(0o755)`
+path | `Path` | The path of the directory to create.  | -
+permissions | `` | The permissions to set on the new directory.  | `Int32(0o755)`
 
 **Return:** Nothing.
 
@@ -315,7 +315,7 @@ Checks if a file or directory exists at the specified path.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to check.  | 
+path | `Path` | The path to check.  | -
 
 **Return:** `True` if the file or directory exists, `False` otherwise.
 
@@ -336,7 +336,7 @@ For home-based paths (those starting with `~`), expand the path to replace the t
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to expand.  | 
+path | `Path` | The path to expand.  | -
 
 **Return:** If the path does not start with a `~`, then return it unmodified. Otherwise, replace the `~` with an absolute path to the user's home directory.
 
@@ -359,8 +359,8 @@ Returns the file extension of the file at the specified path. Optionally returns
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file.  | 
-full | `Bool` | Whether to return everything after the first `.` in the base name, or only the last part of the extension.  | **Default:** `yes`
+path | `Path` | The path of the file.  | -
+full | `Bool` | Whether to return everything after the first `.` in the base name, or only the last part of the extension.  | `yes`
 
 **Return:** The file extension (not including the leading `.`) or an empty text if there is no file extension.
 
@@ -387,8 +387,8 @@ Returns a list of files within the directory at the specified path. Optionally i
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the directory.  | 
-include_hidden | `Bool` | Whether to include hidden files.  | **Default:** `no`
+path | `Path` | The path of the directory.  | -
+include_hidden | `Bool` | Whether to include hidden files.  | `no`
 
 **Return:** A list of file paths.
 
@@ -409,7 +409,7 @@ Returns a path built from a list of path components.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-components | `[Text]` | A list of path components.  | 
+components | `[Text]` | A list of path components.  | -
 
 **Return:** A path representing the given components.
 
@@ -440,7 +440,7 @@ Perform a globbing operation and return a list of matching paths. Some glob spec
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the directory which may contain special globbing characters like `*`, `?`, or `{...}`  | 
+path | `Path` | The path of the directory which may contain special globbing characters like `*`, `?`, or `{...}`  | -
 
 **Return:** A list of file paths that match the glob.
 
@@ -475,8 +475,8 @@ Get the owning group of a file or directory.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path whose owning group to get.  | 
-follow_symlinks | `Bool` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path whose owning group to get.  | -
+follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Return:** The name of the group which owns the file or directory, or `none` if the path does not exist.
 
@@ -499,8 +499,8 @@ Checks if the path represents a directory. Optionally follows symbolic links.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to check.  | 
-follow_symlinks | `` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path to check.  | -
+follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Return:** `True` if the path is a directory, `False` otherwise.
 
@@ -524,8 +524,8 @@ Checks if the path represents a file. Optionally follows symbolic links.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to check.  | 
-follow_symlinks | `` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path to check.  | -
+follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Return:** `True` if the path is a file, `False` otherwise.
 
@@ -549,8 +549,8 @@ Checks if the path represents a socket. Optionally follows symbolic links.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to check.  | 
-follow_symlinks | `` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path to check.  | -
+follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Return:** `True` if the path is a socket, `False` otherwise.
 
@@ -571,7 +571,7 @@ Checks if the path represents a symbolic link.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to check.  | 
+path | `Path` | The path to check.  | -
 
 **Return:** `True` if the path is a symbolic link, `False` otherwise.
 
@@ -592,8 +592,8 @@ Gets the file modification time of a file.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file whose modification time you want.  | 
-follow_symlinks | `Bool` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path of the file whose modification time you want.  | -
+follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Return:** A 64-bit unix epoch timestamp representing when the file or directory was last modified, or `none` if no such file or directory exists.
 
@@ -616,8 +616,8 @@ Get the owning user of a file or directory.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path whose owner to get.  | 
-follow_symlinks | `Bool` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path whose owner to get.  | -
+follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Return:** The name of the user who owns the file or directory, or `none` if the path does not exist.
 
@@ -640,7 +640,7 @@ Returns the parent directory of the file or directory at the specified path.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file or directory.  | 
+path | `Path` | The path of the file or directory.  | -
 
 **Return:** The path of the parent directory.
 
@@ -661,7 +661,7 @@ Reads the contents of the file at the specified path or a null value if the file
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to read.  | 
+path | `Path` | The path of the file to read.  | -
 
 **Return:** The contents of the file. If the file could not be read, a null value will be returned. If the file can be read, but is not valid UTF8 data, an error will be raised.
 
@@ -685,8 +685,8 @@ Reads the contents of the file at the specified path or a null value if the file
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to read.  | 
-limit | `Int?` | A limit to how many bytes should be read.  | **Default:** `none`
+path | `Path` | The path of the file to read.  | -
+limit | `Int?` | A limit to how many bytes should be read.  | `none`
 
 **Return:** The byte contents of the file. If the file cannot be read, a null value will be returned.
 
@@ -710,8 +710,8 @@ Returns the path relative to a given base path. By default, the base path is the
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to convert.  | 
-relative_to | `` | The base path for the relative path.  | **Default:** `(./)`
+path | `Path` | The path to convert.  | -
+relative_to | `` | The base path for the relative path.  | `(./)`
 
 **Return:** The relative path.
 
@@ -732,8 +732,8 @@ Removes the file or directory at the specified path. A runtime error is raised i
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to remove.  | 
-ignore_missing | `` | Whether to ignore errors if the file or directory does not exist.  | **Default:** `no`
+path | `Path` | The path to remove.  | -
+ignore_missing | `` | Whether to ignore errors if the file or directory does not exist.  | `no`
 
 **Return:** Nothing.
 
@@ -753,8 +753,8 @@ Resolves the absolute path of the given path relative to a base path. By default
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to resolve.  | 
-relative_to | `` | The base path for resolution.  | **Default:** `(./)`
+path | `Path` | The path to resolve.  | -
+relative_to | `` | The base path for resolution.  | `(./)`
 
 **Return:** The resolved absolute path.
 
@@ -778,10 +778,10 @@ Set the owning user and/or group for a path.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path to change the permissions for.  | 
-owner | `Text?` | If non-none, the new user to assign to be the owner of the file.  | **Default:** `none`
-group | `Text?` | If non-none, the new group to assign to be the owner of the file.  | **Default:** `none`
-follow_symlinks | `Bool` | Whether to follow symbolic links.  | **Default:** `yes`
+path | `Path` | The path to change the permissions for.  | -
+owner | `Text?` | If non-none, the new user to assign to be the owner of the file.  | `none`
+group | `Text?` | If non-none, the new group to assign to be the owner of the file.  | `none`
+follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Return:** Nothing. If a path does not exist, a failure will be raised.
 
@@ -801,8 +801,8 @@ Returns a list of subdirectories within the directory at the specified path. Opt
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the directory.  | 
-include_hidden | `` | Whether to include hidden subdirectories.  | **Default:** `no`
+path | `Path` | The path of the directory.  | -
+include_hidden | `` | Whether to include hidden subdirectories.  | `no`
 
 **Return:** A list of subdirectory paths.
 
@@ -826,7 +826,7 @@ Generates a unique directory path based on the given path. Useful for creating t
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The base path for generating the unique directory. The last six letters of this path must be `XXXXXX`.  | 
+path | `Path` | The base path for generating the unique directory. The last six letters of this path must be `XXXXXX`.  | -
 
 **Return:** A unique directory path after creating the directory.
 
@@ -850,9 +850,9 @@ Writes the given text to the file at the specified path, creating the file if it
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to write to.  | 
-text | `Text` | The text to write to the file.  | 
-permissions | `` | The permissions to set on the file if it is created.  | **Default:** `Int32(0o644)`
+path | `Path` | The path of the file to write to.  | -
+text | `Text` | The text to write to the file.  | -
+permissions | `` | The permissions to set on the file if it is created.  | `Int32(0o644)`
 
 **Return:** Nothing.
 
@@ -872,9 +872,9 @@ Writes the given bytes to the file at the specified path, creating the file if i
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the file to write to.  | 
-bytes | `[Byte]` | A list of bytes to write to the file.  | 
-permissions | `` | The permissions to set on the file if it is created.  | **Default:** `Int32(0o644)`
+path | `Path` | The path of the file to write to.  | -
+bytes | `[Byte]` | A list of bytes to write to the file.  | -
+permissions | `` | The permissions to set on the file if it is created.  | `Int32(0o644)`
 
 **Return:** Nothing.
 
@@ -894,8 +894,8 @@ Writes the given text to a unique file path based on the specified path. The fil
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The base path for generating the unique file. This path must include the string `XXXXXX` in the file base name.  | 
-text | `Text` | The text to write to the file.  | 
+path | `Path` | The base path for generating the unique file. This path must include the string `XXXXXX` in the file base name.  | -
+text | `Text` | The text to write to the file.  | -
 
 **Return:** The path of the newly created unique file.
 
@@ -919,8 +919,8 @@ Writes the given bytes to a unique file path based on the specified path. The fi
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The base path for generating the unique file. This path must include the string `XXXXXX` in the file base name.  | 
-bytes | `[Byte]` | The bytes to write to the file.  | 
+path | `Path` | The base path for generating the unique file. This path must include the string `XXXXXX` in the file base name.  | -
+bytes | `[Byte]` | The bytes to write to the file.  | -
 
 **Return:** The path of the newly created unique file.
 

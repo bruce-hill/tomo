@@ -13,9 +13,9 @@ Convert a byte to a hexidecimal text representation.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-byte | `Byte` | The byte to convert to hex.  | 
-uppercase | `Bool` | Whether or not to use uppercase hexidecimal letters.  | **Default:** `yes`
-prefix | `Bool` | Whether or not to prepend a `0x` prefix.  | **Default:** `no`
+byte | `Byte` | The byte to convert to hex.  | -
+uppercase | `Bool` | Whether or not to use uppercase hexidecimal letters.  | `yes`
+prefix | `Bool` | Whether or not to prepend a `0x` prefix.  | `no`
 
 **Return:** The byte as a hexidecimal text.
 
@@ -36,9 +36,9 @@ Determines if an integer is between two numbers (inclusive).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Byte` | The integer to be checked.  | 
-low | `Byte` | The lower bound to check (inclusive).  | 
-high | `Byte` | The upper bound to check (inclusive).  | 
+x | `Byte` | The integer to be checked.  | -
+low | `Byte` | The lower bound to check (inclusive).  | -
+high | `Byte` | The upper bound to check (inclusive).  | -
 
 **Return:** `yes` if `low <= x and x <= high`, otherwise `no`
 
@@ -63,7 +63,7 @@ Parse a byte literal from text.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to parse.  | 
+text | `Text` | The text to parse.  | -
 
 **Return:** The byte parsed from the text, if successful, otherwise `none`.
 
@@ -86,9 +86,9 @@ Returns an iterator function that iterates over the range of bytes specified.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-first | `Byte` | The starting value of the range.  | 
-last | `Byte` | The ending value of the range.  | 
-step | `Byte?` | An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.  | **Default:** `none`
+first | `Byte` | The starting value of the range.  | -
+last | `Byte` | The ending value of the range.  | -
+step | `Byte?` | An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.  | `none`
 
 **Return:** An iterator function that returns each byte in the given range (inclusive).
 

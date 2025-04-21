@@ -125,7 +125,7 @@ Calculates the absolute value of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Num` | The number whose absolute value is to be computed.  | 
+n | `Num` | The number whose absolute value is to be computed.  | -
 
 **Return:** The absolute value of `n`.
 
@@ -146,7 +146,7 @@ Computes the arc cosine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the arc cosine is to be calculated.  | 
+x | `Num` | The number for which the arc cosine is to be calculated.  | -
 
 **Return:** The arc cosine of `x` in radians.
 
@@ -167,7 +167,7 @@ Computes the inverse hyperbolic cosine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the inverse hyperbolic cosine is to be calculated.  | 
+x | `Num` | The number for which the inverse hyperbolic cosine is to be calculated.  | -
 
 **Return:** The inverse hyperbolic cosine of `x`.
 
@@ -188,7 +188,7 @@ Computes the arc sine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the arc sine is to be calculated.  | 
+x | `Num` | The number for which the arc sine is to be calculated.  | -
 
 **Return:** The arc sine of `x` in radians.
 
@@ -209,7 +209,7 @@ Computes the inverse hyperbolic sine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the inverse hyperbolic sine is to be calculated.  | 
+x | `Num` | The number for which the inverse hyperbolic sine is to be calculated.  | -
 
 **Return:** The inverse hyperbolic sine of `x`.
 
@@ -230,7 +230,7 @@ Computes the arc tangent of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the arc tangent is to be calculated.  | 
+x | `Num` | The number for which the arc tangent is to be calculated.  | -
 
 **Return:** The arc tangent of `x` in radians.
 
@@ -251,8 +251,8 @@ Computes the arc tangent of the quotient of two numbers.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The numerator.  | 
-y | `Num` | The denominator.  | 
+x | `Num` | The numerator.  | -
+y | `Num` | The denominator.  | -
 
 **Return:** The arc tangent of `x/y` in radians.
 
@@ -273,7 +273,7 @@ Computes the inverse hyperbolic tangent of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the inverse hyperbolic tangent is to be calculated.  | 
+x | `Num` | The number for which the inverse hyperbolic tangent is to be calculated.  | -
 
 **Return:** The inverse hyperbolic tangent of `x`.
 
@@ -294,7 +294,7 @@ Computes the cube root of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the cube root is to be calculated.  | 
+x | `Num` | The number for which the cube root is to be calculated.  | -
 
 **Return:** The cube root of `x`.
 
@@ -315,7 +315,7 @@ Rounds a number up to the nearest integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to be rounded up.  | 
+x | `Num` | The number to be rounded up.  | -
 
 **Return:** The smallest integer greater than or equal to `x`.
 
@@ -336,9 +336,9 @@ Returns the given number clamped between two values so that it is within that ra
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to clamp.  | 
-low | `Num` | The lowest value the result can take.  | 
-high | `Num` | The highest value the result can take.  | 
+x | `Num` | The number to clamp.  | -
+low | `Num` | The lowest value the result can take.  | -
+high | `Num` | The highest value the result can take.  | -
 
 **Return:** The first argument clamped between the other two arguments.
 
@@ -359,8 +359,8 @@ Copies the sign of one number to another.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number whose magnitude will be copied.  | 
-y | `Num` | The number whose sign will be copied.  | 
+x | `Num` | The number whose magnitude will be copied.  | -
+y | `Num` | The number whose sign will be copied.  | -
 
 **Return:** A number with the magnitude of `x` and the sign of `y`.
 
@@ -381,7 +381,7 @@ Computes the cosine of a number (angle in radians).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The angle in radians.  | 
+x | `Num` | The angle in radians.  | -
 
 **Return:** The cosine of `x`.
 
@@ -402,7 +402,7 @@ Computes the hyperbolic cosine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the hyperbolic cosine is to be calculated.  | 
+x | `Num` | The number for which the hyperbolic cosine is to be calculated.  | -
 
 **Return:** The hyperbolic cosine of `x`.
 
@@ -423,7 +423,7 @@ Computes the error function of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the error function is to be calculated.  | 
+x | `Num` | The number for which the error function is to be calculated.  | -
 
 **Return:** The error function of `x`.
 
@@ -444,7 +444,7 @@ Computes the complementary error function of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the complementary error function is to be calculated.  | 
+x | `Num` | The number for which the complementary error function is to be calculated.  | -
 
 **Return:** The complementary error function of `x`.
 
@@ -465,7 +465,7 @@ Computes the exponential function $e^x$ for a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The exponent.  | 
+x | `Num` | The exponent.  | -
 
 **Return:** The value of $e^x$.
 
@@ -486,7 +486,7 @@ Computes $2^x$ for a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The exponent.  | 
+x | `Num` | The exponent.  | -
 
 **Return:** The value of $2^x$.
 
@@ -507,7 +507,7 @@ Computes $e^x - 1$ for a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The exponent.  | 
+x | `Num` | The exponent.  | -
 
 **Return:** The value of $e^x - 1$.
 
@@ -528,8 +528,8 @@ Computes the positive difference between two numbers.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The first number.  | 
-y | `Num` | The second number.  | 
+x | `Num` | The first number.  | -
+y | `Num` | The second number.  | -
 
 **Return:** The positive difference $\max(0, x - y)$.
 
@@ -552,7 +552,7 @@ Rounds a number down to the nearest integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to be rounded down.  | 
+x | `Num` | The number to be rounded down.  | -
 
 **Return:** The largest integer less than or equal to `x`.
 
@@ -573,8 +573,8 @@ Formats a number as a text with a specified precision.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Num` | The number to be formatted.  | 
-precision | `Int` | The number of decimal places. Default is `0`.  | **Default:** `0`
+n | `Num` | The number to be formatted.  | -
+precision | `Int` | The number of decimal places. Default is `0`.  | `0`
 
 **Return:** A text representation of the number with the specified precision.
 
@@ -595,8 +595,8 @@ Computes the Euclidean norm, $\sqrt{x^2 + y^2}$, of two numbers.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The first number.  | 
-y | `Num` | The second number.  | 
+x | `Num` | The first number.  | -
+y | `Num` | The second number.  | -
 
 **Return:** The Euclidean norm of `x` and `y`.
 
@@ -617,9 +617,9 @@ Determines if a number is between two numbers (inclusive).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The integer to be checked.  | 
-low | `Num` | The lower bound to check (inclusive).  | 
-high | `Num` | The upper bound to check (inclusive).  | 
+x | `Num` | The integer to be checked.  | -
+low | `Num` | The lower bound to check (inclusive).  | -
+high | `Num` | The upper bound to check (inclusive).  | -
 
 **Return:** `yes` if `low <= x and x <= high`, otherwise `no`
 
@@ -644,7 +644,7 @@ Checks if a number is finite.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Num` | The number to be checked.  | 
+n | `Num` | The number to be checked.  | -
 
 **Return:** `yes` if `n` is finite, `no` otherwise.
 
@@ -667,7 +667,7 @@ Checks if a number is infinite.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Num` | The number to be checked.  | 
+n | `Num` | The number to be checked.  | -
 
 **Return:** `yes` if `n` is infinite, `no` otherwise.
 
@@ -690,7 +690,7 @@ Computes the Bessel function of the first kind of order 0.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the Bessel function is to be calculated.  | 
+x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Return:** The Bessel function of the first kind of order 0 of `x`.
 
@@ -711,7 +711,7 @@ Computes the Bessel function of the first kind of order 1.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the Bessel function is to be calculated.  | 
+x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Return:** The Bessel function of the first kind of order 1 of `x`.
 
@@ -732,7 +732,7 @@ Computes the natural logarithm (base $e$) of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the natural logarithm is to be calculated.  | 
+x | `Num` | The number for which the natural logarithm is to be calculated.  | -
 
 **Return:** The natural logarithm of `x`.
 
@@ -753,7 +753,7 @@ Computes the base-10 logarithm of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the base-10 logarithm is to be calculated.  | 
+x | `Num` | The number for which the base-10 logarithm is to be calculated.  | -
 
 **Return:** The base-10 logarithm of `x`.
 
@@ -774,7 +774,7 @@ Computes $\log(1 + x)$ for a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which $\log(1 + x)$ is to be calculated.  | 
+x | `Num` | The number for which $\log(1 + x)$ is to be calculated.  | -
 
 **Return:** The value of $\log(1 + x)$.
 
@@ -795,7 +795,7 @@ Computes the base-2 logarithm of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the base-2 logarithm is to be calculated.  | 
+x | `Num` | The number for which the base-2 logarithm is to be calculated.  | -
 
 **Return:** The base-2 logarithm of `x`.
 
@@ -816,7 +816,7 @@ Computes the binary exponent (base-2 logarithm) of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the binary exponent is to be calculated.  | 
+x | `Num` | The number for which the binary exponent is to be calculated.  | -
 
 **Return:** The binary exponent of `x`.
 
@@ -837,9 +837,9 @@ Interpolates between two numbers based on a given amount.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-amount | `Num` | The interpolation factor (between `0` and `1`).  | 
-x | `Num` | The starting number.  | 
-y | `Num` | The ending number.  | 
+amount | `Num` | The interpolation factor (between `0` and `1`).  | -
+x | `Num` | The starting number.  | -
+y | `Num` | The ending number.  | -
 
 **Return:** The interpolated number between `x` and `y` based on `amount`.
 
@@ -862,10 +862,10 @@ Checks if two numbers are approximately equal within specified tolerances. If tw
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The first number.  | 
-y | `Num` | The second number.  | 
-ratio | `Num` | The relative tolerance. Default is `1e-9`.  | **Default:** `1e-9`
-min_epsilon | `Num` | The absolute tolerance. Default is `1e-9`.  | **Default:** `1e-9`
+x | `Num` | The first number.  | -
+y | `Num` | The second number.  | -
+ratio | `Num` | The relative tolerance. Default is `1e-9`.  | `1e-9`
+min_epsilon | `Num` | The absolute tolerance. Default is `1e-9`.  | `1e-9`
 
 **Return:** `yes` if `x` and `y` are approximately equal within the specified tolerances, `no` otherwise.
 
@@ -892,8 +892,8 @@ Computes the next representable value after a given number towards a specified d
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The starting number.  | 
-y | `Num` | The direction towards which to find the next representable value.  | 
+x | `Num` | The starting number.  | -
+y | `Num` | The direction towards which to find the next representable value.  | -
 
 **Return:** The next representable value after `x` in the direction of `y`.
 
@@ -914,7 +914,7 @@ Converts a text representation of a number into a floating-point number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text containing the number.  | 
+text | `Text` | The text containing the number.  | -
 
 **Return:** The number represented by the text or `none` if the entire text can't be parsed as a number.
 
@@ -937,8 +937,8 @@ Convert a number into a percentage text with a percent sign.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Num` | The number to be converted to a percent.  | 
-precision | `Int` | The number of decimal places. Default is `0`.  | **Default:** `0`
+n | `Num` | The number to be converted to a percent.  | -
+precision | `Int` | The number of decimal places. Default is `0`.  | `0`
 
 **Return:** A text representation of the number as a percentage with a percent sign.
 
@@ -961,7 +961,7 @@ Rounds a number to the nearest integer, with ties rounded to the nearest even in
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to be rounded.  | 
+x | `Num` | The number to be rounded.  | -
 
 **Return:** The nearest integer value of `x`.
 
@@ -984,7 +984,7 @@ Rounds a number to the nearest whole number integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to be rounded.  | 
+x | `Num` | The number to be rounded.  | -
 
 **Return:** The nearest integer value of `x`.
 
@@ -1007,8 +1007,8 @@ Formats a number in scientific notation with a specified precision.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Num` | The number to be formatted.  | 
-precision | `Int` | The number of decimal places. Default is `0`.  | **Default:** `0`
+n | `Num` | The number to be formatted.  | -
+precision | `Int` | The number of decimal places. Default is `0`.  | `0`
 
 **Return:** A text representation of the number in scientific notation with the specified precision.
 
@@ -1029,7 +1029,7 @@ Extracts the significand (or mantissa) of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number from which to extract the significand.  | 
+x | `Num` | The number from which to extract the significand.  | -
 
 **Return:** The significand of `x`.
 
@@ -1050,7 +1050,7 @@ Computes the sine of a number (angle in radians).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The angle in radians.  | 
+x | `Num` | The angle in radians.  | -
 
 **Return:** The sine of `x`.
 
@@ -1071,7 +1071,7 @@ Computes the hyperbolic sine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the hyperbolic sine is to be calculated.  | 
+x | `Num` | The number for which the hyperbolic sine is to be calculated.  | -
 
 **Return:** The hyperbolic sine of `x`.
 
@@ -1092,7 +1092,7 @@ Computes the square root of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the square root is to be calculated.  | 
+x | `Num` | The number for which the square root is to be calculated.  | -
 
 **Return:** The square root of `x`.
 
@@ -1113,7 +1113,7 @@ Computes the tangent of a number (angle in radians).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The angle in radians.  | 
+x | `Num` | The angle in radians.  | -
 
 **Return:** The tangent of `x`.
 
@@ -1134,7 +1134,7 @@ Computes the hyperbolic tangent of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the hyperbolic tangent is to be calculated.  | 
+x | `Num` | The number for which the hyperbolic tangent is to be calculated.  | -
 
 **Return:** The hyperbolic tangent of `x`.
 
@@ -1155,7 +1155,7 @@ Computes the gamma function of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the gamma function is to be calculated.  | 
+x | `Num` | The number for which the gamma function is to be calculated.  | -
 
 **Return:** The gamma function of `x`.
 
@@ -1176,7 +1176,7 @@ Truncates a number to the nearest integer towards zero.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to be truncated.  | 
+x | `Num` | The number to be truncated.  | -
 
 **Return:** The integer part of `x` towards zero.
 
@@ -1199,7 +1199,7 @@ Computes the Bessel function of the second kind of order 0.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the Bessel function is to be calculated.  | 
+x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Return:** The Bessel function of the second kind of order 0 of `x`.
 
@@ -1220,7 +1220,7 @@ Computes the Bessel function of the second kind of order 1.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the Bessel function is to be calculated.  | 
+x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Return:** The Bessel function of the second kind of order 1 of `x`.
 

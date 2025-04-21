@@ -13,8 +13,8 @@ Adds an item to the set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `|T|` | The mutable reference to the set.  | 
-item | `T` | The item to add to the set.  | 
+set | `|T|` | The mutable reference to the set.  | -
+item | `T` | The item to add to the set.  | -
 
 **Return:** Nothing.
 
@@ -34,8 +34,8 @@ Adds multiple items to the set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `@|T|` | The mutable reference to the set.  | 
-items | `[T]` | The list of items to add to the set.  | 
+set | `@|T|` | The mutable reference to the set.  | -
+items | `[T]` | The list of items to add to the set.  | -
 
 **Return:** Nothing.
 
@@ -55,7 +55,7 @@ Removes all items from the set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `@|T|` | The mutable reference to the set.  | 
+set | `@|T|` | The mutable reference to the set.  | -
 
 **Return:** Nothing.
 
@@ -75,8 +75,8 @@ Checks if the set contains a specified item.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `|T|` | The set to check.  | 
-item | `T` | The item to check for presence.  | 
+set | `|T|` | The set to check.  | -
+item | `T` | The item to check for presence.  | -
 
 **Return:** `yes` if the item is present, `no` otherwise.
 
@@ -97,9 +97,9 @@ Checks if the set is a subset of another set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `|T|` | The set to check.  | 
-other | `|T|` | The set to compare against.  | 
-strict | `Bool` | If `yes`, checks if the set is a strict subset (does not equal the other set).  | **Default:** `no`
+set | `|T|` | The set to check.  | -
+other | `|T|` | The set to compare against.  | -
+strict | `Bool` | If `yes`, checks if the set is a strict subset (does not equal the other set).  | `no`
 
 **Return:** `yes` if the set is a subset of the other set (strictly or not), `no` otherwise.
 
@@ -120,9 +120,9 @@ Checks if the set is a superset of another set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `|T|` | The set to check.  | 
-other | `|T|` | The set to compare against.  | 
-strict | `Bool` | If `yes`, checks if the set is a strict superset (does not equal the other set).  | **Default:** `no`
+set | `|T|` | The set to check.  | -
+other | `|T|` | The set to compare against.  | -
+strict | `Bool` | If `yes`, checks if the set is a strict superset (does not equal the other set).  | `no`
 
 **Return:** `yes` if the set is a superset of the other set (strictly or not), `no` otherwise.
 
@@ -143,8 +143,8 @@ Creates a new set with items that are in both the original set and another set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `|T|` | The original set.  | 
-other | `|T|` | The set to intersect with.  | 
+set | `|T|` | The original set.  | -
+other | `|T|` | The set to intersect with.  | -
 
 **Return:** A new set containing only items present in both sets.
 
@@ -165,8 +165,8 @@ Removes an item from the set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `@|T|` | The mutable reference to the set.  | 
-item | `T` | The item to remove from the set.  | 
+set | `@|T|` | The mutable reference to the set.  | -
+item | `T` | The item to remove from the set.  | -
 
 **Return:** Nothing.
 
@@ -186,8 +186,8 @@ Removes multiple items from the set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `@|T|` | The mutable reference to the set.  | 
-items | `[T]` | The list of items to remove from the set.  | 
+set | `@|T|` | The mutable reference to the set.  | -
+items | `[T]` | The list of items to remove from the set.  | -
 
 **Return:** Nothing.
 
@@ -207,8 +207,8 @@ Creates a new set that is the union of the original set and another set.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `|T|` | The original set.  | 
-other | `|T|` | The set to union with.  | 
+set | `|T|` | The original set.  | -
+other | `|T|` | The set to union with.  | -
 
 **Return:** A new set containing all items from both sets.
 
@@ -229,8 +229,8 @@ Creates a new set with items from the original set but without items from anothe
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-set | `|T|` | The original set.  | 
-other | `|T|` | The set of items to remove from the original set.  | 
+set | `|T|` | The original set.  | -
+other | `|T|` | The set of items to remove from the original set.  | -
 
 **Return:** A new set containing items from the original set excluding those in the other set.
 

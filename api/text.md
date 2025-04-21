@@ -13,7 +13,7 @@ Converts a `Text` value to a C-style string.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be converted to a C-style string.  | 
+text | `Text` | The text to be converted to a C-style string.  | -
 
 **Return:** A C-style string (`CString`) representing the text.
 
@@ -36,8 +36,8 @@ Negative indices are counted from the back of the text, so `-1` means the last c
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text from which to get a cluster.  | 
-index | `Int` | The index of the graphical cluster (1-indexed).  | 
+text | `Text` | The text from which to get a cluster.  | -
+index | `Int` | The index of the graphical cluster (1-indexed).  | -
 
 **Return:** A `Text` with the single graphical cluster at the given index.
 
@@ -60,7 +60,7 @@ This function ignores a trailing newline if there is one. If you don't want this
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be iterated over, line by line.  | 
+text | `Text` | The text to be iterated over, line by line.  | -
 
 **Return:** An iterator function that returns one line at a time, until it runs out and returns `none`.
 
@@ -89,8 +89,8 @@ If an empty text is given as the delimiter, then each split will be the graphica
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be iterated over in delimited chunks.  | 
-delimiter | `Text` | An exact delimiter to use for splitting the text.  | **Default:** `""`
+text | `Text` | The text to be iterated over in delimited chunks.  | -
+delimiter | `Text` | An exact delimiter to use for splitting the text.  | `""`
 
 **Return:** An iterator function that returns one chunk of text at a time, separated by the given delimiter, until it runs out and returns `none`.
 
@@ -116,8 +116,8 @@ To split based on an exact delimiter, use Text.by_split().
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be iterated over in delimited chunks.  | 
-delimiters | `Text` | Grapheme clusters to use for splitting the text.  | **Default:** `" $\t\r\n"`
+text | `Text` | The text to be iterated over in delimited chunks.  | -
+delimiters | `Text` | Grapheme clusters to use for splitting the text.  | `" $\t\r\n"`
 
 **Return:** An iterator function that returns one chunk of text at a time, separated by the given delimiter characters, until it runs out and returns `none`.
 
@@ -140,7 +140,7 @@ Converts a `Text` value to a list of bytes representing a UTF8 encoding of the t
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be converted to UTF8 bytes.  | 
+text | `Text` | The text to be converted to UTF8 bytes.  | -
 
 **Return:** A list of bytes (`[Byte]`) representing the text in UTF8 encoding.
 
@@ -161,9 +161,9 @@ Checks whether two texts are equal, ignoring the casing of the letters (i.e. cas
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-a | `Text` | The first text to compare case-insensitively.  | 
-b | `Text` | The second text to compare case-insensitively.  | 
-language | `Text` | The ISO 639 language code for which casing rules to use.  | **Default:** `"C"`
+a | `Text` | The first text to compare case-insensitively.  | -
+b | `Text` | The second text to compare case-insensitively.  | -
+language | `Text` | The ISO 639 language code for which casing rules to use.  | `"C"`
 
 **Return:** `yes` if `a` and `b` are equal to each other, ignoring casing, otherwise `no`.
 
@@ -188,7 +188,7 @@ Returns a list of the names of each codepoint in the text.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text from which to extract codepoint names.  | 
+text | `Text` | The text from which to extract codepoint names.  | -
 
 **Return:** A list of codepoint names (`[Text]`).
 
@@ -209,8 +209,8 @@ Checks if the `Text` ends with a literal suffix text.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be searched.  | 
-suffix | `Text` | The literal suffix text to check for.  | 
+text | `Text` | The text to be searched.  | -
+suffix | `Text` | The literal suffix text to check for.  | -
 
 **Return:** `yes` if the text has the target, `no` otherwise.
 
@@ -233,8 +233,8 @@ A negative index counts backwards from the end of the text, so `-1` refers to th
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be sliced.  | 
-first | `Int` | The index to begin the slice.  | 
+text | `Text` | The text to be sliced.  | -
+first | `Int` | The index to begin the slice.  | -
 
 **Return:** The text from the given grapheme cluster to the end of the text.
 
@@ -260,7 +260,7 @@ The text will be normalized, so the resulting text's UTF8 bytes may not exactly 
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-bytes | `[Byte]` | The UTF-8 bytes of the desired text.  | 
+bytes | `[Byte]` | The UTF-8 bytes of the desired text.  | -
 
 **Return:** A new text based on the input UTF8 bytes after normalization has been applied.
 
@@ -281,7 +281,7 @@ Converts a C-style string to a `Text` value.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-str | `CString` | The C-style string to be converted.  | 
+str | `CString` | The C-style string to be converted.  | -
 
 **Return:** A `Text` value representing the C-style string.
 
@@ -304,7 +304,7 @@ The text will be normalized, so the resulting text's codepoints may not exactly 
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-codepoint_names | `[Text]` | The names of each codepoint in the desired text (case-insentive).  | 
+codepoint_names | `[Text]` | The names of each codepoint in the desired text (case-insentive).  | -
 
 **Return:** A new text with the specified codepoints after normalization has been applied. Any invalid names are ignored.
 
@@ -331,7 +331,7 @@ The text will be normalized, so the resulting text's codepoints may not exactly 
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-codepoints | `[Int32]` | The UTF32 codepoints in the desired text.  | 
+codepoints | `[Int32]` | The UTF32 codepoints in the desired text.  | -
 
 **Return:** A new text with the specified codepoints after normalization has been applied.
 
@@ -352,8 +352,8 @@ Checks if the `Text` contains some target text.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be searched.  | 
-target | `Text` | The text to search for.  | 
+text | `Text` | The text to be searched.  | -
+target | `Text` | The text to search for.  | -
 
 **Return:** `yes` if the target text is found, `no` otherwise.
 
@@ -376,8 +376,8 @@ Joins a list of text pieces with a specified glue.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-glue | `Text` | The text used to join the pieces.  | 
-pieces | `[Text]` | The list of text pieces to be joined.  | 
+glue | `Text` | The text used to join the pieces.  | -
+pieces | `[Text]` | The list of text pieces to be joined.  | -
 
 **Return:** A single `Text` value with the pieces joined by the glue.
 
@@ -398,10 +398,10 @@ Pad some text on the left side so it reaches a target width.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to pad.  | 
-width | `Int` | The target width.  | 
-pad | `Text` | The padding text.  | **Default:** `" "`
-language | `Text` | The ISO 639 language code for which character width to use.  | **Default:** `"C"`
+text | `Text` | The text to pad.  | -
+width | `Int` | The target width.  | -
+pad | `Text` | The padding text.  | `" "`
+language | `Text` | The ISO 639 language code for which character width to use.  | `"C"`
 
 **Return:** Text with length at least `width`, with extra padding on the left as needed. If `pad` has length greater than 1, it may be partially repeated to reach the exact desired length.
 
@@ -424,7 +424,7 @@ Splits the text into a list of lines of text, preserving blank lines, ignoring t
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be split into lines.  | 
+text | `Text` | The text to be split into lines.  | -
 
 **Return:** A list of substrings resulting from the split.
 
@@ -453,8 +453,8 @@ Converts all characters in the text to lowercase.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be converted to lowercase.  | 
-language | `Text` | The ISO 639 language code for which casing rules to use.  | **Default:** `"C"`
+text | `Text` | The text to be converted to lowercase.  | -
+language | `Text` | The ISO 639 language code for which casing rules to use.  | `"C"`
 
 **Return:** The lowercase version of the text.
 
@@ -478,10 +478,10 @@ Pad some text on the left and right side so it reaches a target width.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to pad.  | 
-width | `Int` | The target width.  | 
-pad | `Text` | The padding text.  | **Default:** `" "`
-language | `Text` | The ISO 639 language code for which character width to use.  | **Default:** `"C"`
+text | `Text` | The text to pad.  | -
+width | `Int` | The target width.  | -
+pad | `Text` | The padding text.  | `" "`
+language | `Text` | The ISO 639 language code for which character width to use.  | `"C"`
 
 **Return:** Text with length at least `width`, with extra padding on the left and right as needed. If `pad` has length greater than 1, it may be partially repeated to reach the exact desired length.
 
@@ -504,9 +504,9 @@ Formats the text with quotation marks and escapes.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be quoted.  | 
-color | `Bool` | Whether to add color formatting.  | **Default:** `no`
-quotation_mark | `Text` | The quotation mark to use.  | **Default:** ``"``
+text | `Text` | The text to be quoted.  | -
+color | `Bool` | Whether to add color formatting.  | `no`
+quotation_mark | `Text` | The quotation mark to use.  | ``"``
 
 **Return:** The text formatted as a quoted text.
 
@@ -527,8 +527,8 @@ Repeat some text multiple times.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to repeat.  | 
-count | `Int` | The number of times to repeat it. (Negative numbers are equivalent to zero).  | 
+text | `Text` | The text to repeat.  | -
+count | `Int` | The number of times to repeat it. (Negative numbers are equivalent to zero).  | -
 
 **Return:** The text repeated the given number of times.
 
@@ -549,9 +549,9 @@ Replaces occurrences of a target text with a replacement text.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text in which to perform replacements.  | 
-target | `Text` | The target text to be replaced.  | 
-replacement | `Text` | The text to replace the target with.  | 
+text | `Text` | The text in which to perform replacements.  | -
+target | `Text` | The target text to be replaced.  | -
+replacement | `Text` | The text to replace the target with.  | -
 
 **Return:** The text with occurrences of the target replaced.
 
@@ -572,7 +572,7 @@ Return a text that has the grapheme clusters in reverse order.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to reverse.  | 
+text | `Text` | The text to reverse.  | -
 
 **Return:** A reversed version of the text.
 
@@ -593,10 +593,10 @@ Pad some text on the right side so it reaches a target width.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to pad.  | 
-width | `Int` | The target width.  | 
-pad | `Text` | The padding text.  | **Default:** `" "`
-language | `Text` | The ISO 639 language code for which character width to use.  | **Default:** `"C"`
+text | `Text` | The text to pad.  | -
+width | `Int` | The target width.  | -
+pad | `Text` | The padding text.  | `" "`
+language | `Text` | The ISO 639 language code for which character width to use.  | `"C"`
 
 **Return:** Text with length at least `width`, with extra padding on the right as needed. If `pad` has length greater than 1, it may be partially repeated to reach the exact desired length.
 
@@ -621,9 +621,9 @@ A negative index counts backwards from the end of the text, so `-1` refers to th
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be sliced.  | 
-from | `Int` | The index of the first grapheme cluster to include (1-indexed).  | **Default:** `1`
-to | `Int` | The index of the last grapheme cluster to include (1-indexed).  | **Default:** `-1`
+text | `Text` | The text to be sliced.  | -
+from | `Int` | The index of the first grapheme cluster to include (1-indexed).  | `1`
+to | `Int` | The index of the last grapheme cluster to include (1-indexed).  | `-1`
 
 **Return:** The text that spans the given grapheme cluster indices.
 
@@ -653,8 +653,8 @@ If an empty text is given as the delimiter, then each split will be the graphica
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be split.  | 
-delimiter | `Text` | The delimiter used to split the text.  | **Default:** `""`
+text | `Text` | The text to be split.  | -
+delimiter | `Text` | The delimiter used to split the text.  | `""`
 
 **Return:** A list of subtexts resulting from the split.
 
@@ -681,8 +681,8 @@ To split based on an exact delimiter, use Text.split().
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be split.  | 
-delimiters | `Text` | A text containing delimiters to use for splitting the text.  | **Default:** `" $\t\r\n"`
+text | `Text` | The text to be split.  | -
+delimiters | `Text` | A text containing delimiters to use for splitting the text.  | `" $\t\r\n"`
 
 **Return:** A list of subtexts resulting from the split.
 
@@ -703,8 +703,8 @@ Checks if the `Text` starts with a literal prefix text.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be searched.  | 
-prefix | `Text` | The literal prefix text to check for.  | 
+text | `Text` | The text to be searched.  | -
+prefix | `Text` | The literal prefix text to check for.  | -
 
 **Return:** `yes` if the text has the given prefix, `no` otherwise.
 
@@ -725,8 +725,8 @@ Converts the text to title case (capitalizing the first letter of each word).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be converted to title case.  | 
-language | `Text` | The ISO 639 language code for which casing rules to use.  | **Default:** `"C"`
+text | `Text` | The text to be converted to title case.  | -
+language | `Text` | The ISO 639 language code for which casing rules to use.  | `"C"`
 
 **Return:** The text in title case.
 
@@ -753,8 +753,8 @@ A negative index counts backwards from the end of the text, so `-1` refers to th
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be sliced.  | 
-last | `Int` | The index of the last grapheme cluster to include (1-indexed).  | 
+text | `Text` | The text to be sliced.  | -
+last | `Int` | The index of the last grapheme cluster to include (1-indexed).  | -
 
 **Return:** The text up to and including the given grapheme cluster.
 
@@ -778,7 +778,7 @@ Takes a table mapping target texts to their replacements and performs all the re
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-translations | `{Text=Text}` | A table mapping from target text to its replacement.  | 
+translations | `{Text=Text}` | A table mapping from target text to its replacement.  | -
 
 **Return:** The text with all occurrences of the targets replaced with their corresponding replacement text.
 
@@ -805,10 +805,10 @@ Trims the given characters (grapheme clusters) from the left and/or right side o
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be trimmed.  | 
-to_trim | `Text` | The characters to remove from the left/right of the text.  | **Default:** `" $\t\r\n"`
-left | `Bool` | Whether or not to trim from the front of the text.  | **Default:** `yes`
-right | `Bool` | Whether or not to trim from the back of the text.  | **Default:** `yes`
+text | `Text` | The text to be trimmed.  | -
+to_trim | `Text` | The characters to remove from the left/right of the text.  | `" $\t\r\n"`
+left | `Bool` | Whether or not to trim from the front of the text.  | `yes`
+right | `Bool` | Whether or not to trim from the back of the text.  | `yes`
 
 **Return:** The text without the trim characters at either end.
 
@@ -835,8 +835,8 @@ Converts all characters in the text to uppercase.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to be converted to uppercase.  | 
-language | `Text` | The ISO 639 language code for which casing rules to use.  | **Default:** `"C"`
+text | `Text` | The text to be converted to uppercase.  | -
+language | `Text` | The ISO 639 language code for which casing rules to use.  | `"C"`
 
 **Return:** The uppercase version of the text.
 
@@ -861,7 +861,7 @@ Returns a list of Unicode code points for UTF32 encoding of the text.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text from which to extract Unicode code points.  | 
+text | `Text` | The text from which to extract Unicode code points.  | -
 
 **Return:** A list of 32-bit integer Unicode code points (`[Int32]`).
 
@@ -884,7 +884,7 @@ This will not always be exactly accurate when your terminal's font rendering can
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text whose length you want.  | 
+text | `Text` | The text whose length you want.  | -
 
 **Return:** An integer representing the display width of the text.
 
@@ -907,8 +907,8 @@ Returns the text with a given prefix removed (if present).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to remove the prefix from.  | 
-prefix | `Text` | The prefix to remove.  | 
+text | `Text` | The text to remove the prefix from.  | -
+prefix | `Text` | The prefix to remove.  | -
 
 **Return:** A text without the given prefix (if present) or the unmodified text if the prefix is not present.
 
@@ -931,8 +931,8 @@ Returns the text with a given suffix removed (if present).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The text to remove the suffix from.  | 
-suffix | `Text` | The suffix to remove.  | 
+text | `Text` | The text to remove the suffix from.  | -
+suffix | `Text` | The suffix to remove.  | -
 
 **Return:** A text without the given suffix (if present) or the unmodified text if the suffix is not present.
 

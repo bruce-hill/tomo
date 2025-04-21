@@ -13,7 +13,7 @@ Converts a string representation of a boolean value into a boolean. Acceptable b
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-text | `Text` | The string containing the boolean value.  | 
+text | `Text` | The string containing the boolean value.  | -
 
 **Return:** `yes` if the string matches a recognized truthy boolean value; otherwise return `no`.
 

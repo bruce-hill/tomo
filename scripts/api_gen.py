@@ -40,7 +40,7 @@ def print_method(name, info):
         print("Argument | Type | Description | Default")
         print("---------|------|-------------|---------")
         for arg,arg_info in info["args"].items():
-            default = '**Default:** `'+arg_info['default']+'`' if 'default' in arg_info else ''
+            default = '`'+arg_info['default']+'`' if 'default' in arg_info else '-'
             description = arg_info['description'].replace('\n', ' ')
             print(f"{arg} | `{arg_info.get('type', '')}` | {description} | {default}")
             #print(f"- **{arg}:** {arg_info['description']}")
