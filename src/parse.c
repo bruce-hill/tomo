@@ -478,6 +478,14 @@ PARSER(parse_parens) {
     whitespace(&pos);
     ast_t *expr = optional(ctx, &pos, parse_extended_expr);
     if (!expr) return NULL;
+
+    ast_t *comprehension = parse_comprehension_suffix(ctx, expr);
+    while (comprehension) {
+        expr = comprehension;
+        pos = comprehension->end;
+        comprehension = parse_comprehension_suffix(ctx, expr);
+    }
+
     whitespace(&pos);
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this expression");
 
