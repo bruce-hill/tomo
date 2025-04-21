@@ -74,7 +74,7 @@ Name	Type	Description	Default'''
 def write_method(f, name, info):
     def add_line(line): f.write(line + "\n")
     year = datetime.now().strftime("%Y")
-    date = datetime.now().isoformat()
+    date = datetime.now().strftime("%Y-%m-%d")
     signature = get_signature(name, info)
     add_line(template.format(year=year, date=date, name=name, short=info["short"], description=info["description"], signature=signature))
 
