@@ -175,7 +175,7 @@ install-files: build/bin/tomo build/lib/$(LIB_FILE) build/lib/$(AR_FILE)
 	cp -v man/man3/* "$(PREFIX)/man/man3/"
 
 install-libs: build/bin/tomo
-	./local-tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/uuid lib/core
+	./local-tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/coroutines lib/pthreads lib/uuid lib/core
 
 install: install-files install-libs
 
