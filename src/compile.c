@@ -4315,11 +4315,11 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
 
     switch (ast->tag) {
     case Use: {
-        DeclareMatch(use, ast, Use);
-        if (use->what == USE_C_CODE) {
-            Path_t path = Path$relative_to(Path$from_str(use->path), Path(".build"));
-            return CORD_all("#include \"", Path$as_c_string(path), "\"\n");
-        }
+        // DeclareMatch(use, ast, Use);
+        // if (use->what == USE_C_CODE) {
+        //     Path_t path = Path$relative_to(Path$from_str(use->path), Path(".build"));
+        //     return CORD_all("#include \"", Path$as_c_string(path), "\"\n");
+        // }
         return CORD_EMPTY;
     }
     case Declare: {
@@ -4451,12 +4451,20 @@ static void initialize_vars_and_statics(env_t *env, ast_t *ast)
 CORD compile_file(env_t *env, ast_t *ast)
 {
     CORD top_level_code = compile_top_level_code(env, ast);
+    CORD includes = CORD_EMPTY;
     CORD use_imports = CORD_EMPTY;
 
     // First prepare variable initializers to prevent unitialized access:
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-        if (stmt->ast->tag == Use)
+        if (stmt->ast->tag == Use) {
             use_imports = CORD_all(use_imports, compile_statement(env, stmt->ast));
+
+            DeclareMatch(use, stmt->ast, Use);
+            if (use->what == USE_C_CODE) {
+                Path_t path = Path$relative_to(Path$from_str(use->path), Path(".build"));
+                includes = CORD_all(includes, "#include \"", Path$as_c_string(path), "\"\n");
+            }
+        }
     }
 
     initialize_vars_and_statics(env, ast);
@@ -4467,6 +4475,7 @@ CORD compile_file(env_t *env, ast_t *ast)
         "#define __SOURCE_FILE__ ", CORD_quoted(ast->file->filename), "\n",
         "#include <tomo/tomo.h>\n"
         "#include \"", name, ".tm.h\"\n\n",
+        includes,
         env->code->local_typedefs, "\n",
         env->code->lambdas, "\n",
         env->code->staticdefs, "\n",
