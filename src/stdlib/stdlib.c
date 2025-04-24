@@ -313,7 +313,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                 exit(0);
             }
             print_err("Unrecognized argument: ", argv[i], "\n", usage);
-        } else if (argv[i][0] == '-' && argv[i][1] && argv[i][1] != '-') { // Single flag args
+        } else if (argv[i][0] == '-' && argv[i][1] && argv[i][1] != '-' && !isdigit(argv[i][1])) { // Single flag args
             used_args[i] = true;
             for (char *f = argv[i] + 1; *f; f++) {
                 char flag[] = {'-', *f, 0};
@@ -404,7 +404,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
         if (non_opt_type->tag == ListInfo) {
             int num_args = 0;
             while (i + num_args < argc) {
-                if (!ignore_dashes && argv[i+num_args][0] == '-')
+                if (!ignore_dashes && (argv[i+num_args][0] == '-' && !isdigit(argv[i+num_args][1])))
                     break;
                 used_args[i+num_args] = true;
                 num_args += 1;
@@ -414,7 +414,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
         } else if (non_opt_type->tag == TableInfo) {
             int num_args = 0;
             while (i + num_args < argc) {
-                if (argv[i+num_args][0] == '-' || !strchr(argv[i+num_args], '='))
+                if ((argv[i+num_args][0] == '-' && !isdigit(argv[i+num_args][1])) || !strchr(argv[i+num_args], '='))
                     break;
                 used_args[i+num_args] = true;
                 num_args += 1;
