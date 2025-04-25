@@ -47,16 +47,16 @@ void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, int spe
     fflush(stdout); \
     if (USE_COLOR) fputs("\x1b[31;7m ==================== ERROR ==================== \n\n\x1b[0;1m", stderr); \
     else fputs("==================== ERROR ====================\n\n", stderr); \
+    print_stacktrace(stderr, 0); \
+    fputs("\n", stderr); \
+    if (USE_COLOR) fputs("\x1b[31;1m", stderr); \
     fprint_inline(stderr, __VA_ARGS__); \
-    if (USE_COLOR) fputs("\x1b[m", stderr); \
     file_t *_file = (filename) ? load_file(filename) : NULL; \
     if ((filename) && _file) { \
         fputs("\n", stderr); \
-        highlight_error(_file, _file->text+(start), _file->text+(end), "\x1b[31;1m", 2, USE_COLOR); \
-        fputs("\n", stderr); \
+        highlight_error(_file, _file->text+(start), _file->text+(end), "\x1b[31;1m", 1, USE_COLOR); \
     } \
     if (USE_COLOR) fputs("\x1b[m", stderr); \
-    print_stacktrace(stderr, 1); \
     fflush(stderr); \
     raise(SIGABRT); \
     _exit(1); \
