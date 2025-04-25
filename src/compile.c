@@ -1247,7 +1247,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         const char *failure = NULL;
         switch (expr->tag) {
         case And: {
-            auto and_ = Match(expr, And);
+            DeclareMatch(and_, ast, And);
             return CORD_all(
                 compile_statement(env, WrapAST(ast, Assert, .expr=and_->lhs, .message=message)),
                 compile_statement(env, WrapAST(ast, Assert, .expr=and_->rhs, .message=message)));
