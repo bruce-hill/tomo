@@ -1258,7 +1258,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         case LessThanOrEquals: failure = ">"; goto assert_comparison;
         case GreaterThan: failure = "<="; goto assert_comparison;
         case GreaterThanOrEquals: failure = "<"; goto assert_comparison; {
-          assert_comparison:
+          assert_comparison:;
             binary_operands_t cmp = BINARY_OPERANDS(expr);
             type_t *lhs_t = get_type(env, cmp.lhs);
             type_t *rhs_t = get_type(env, cmp.rhs);
