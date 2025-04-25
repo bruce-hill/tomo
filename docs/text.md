@@ -46,7 +46,7 @@ codepoints." Here are some examples:
 - `家` (Japanese for "house") is a single codepoint (`CJK Unified
   Ideograph-5BB6`) that is also a grapheme cluster, so it would be represented
   as the number `23478`
--`👩🏽‍🚀` is a single graphical cluster, but it's made up of several
+- `👩🏽‍🚀` is a single graphical cluster, but it's made up of several
   combining codepoints (`["WOMAN", "EMOJI MODIFIER FITZPATRICK TYPE-4", "ZERO
   WITDH JOINER", "ROCKET"]`). Since this can't be represented with a single
   codepoint, we must create a synthetic codepoint for it. If this was the `n`th
@@ -130,26 +130,9 @@ str := 'Sum: $(1 + 2)'
 
 ### Text Escapes
 
-Unlike other languages, backslash is *not* a special character inside of text.
-For example, `"x\ny"` has the characters `x`, `\`, `n`, `y`, not a newline.
-Instead, a series of character escapes act as complete text literals without
-quotation marks:
-
-```
-newline := \n
-crlf := \r\n
-quote := \"
-```
-
-These text literals can be used as interpolation values with or without
-parentheses, depending on which you find more readable:
-
-```
-two_lines := "one\ntwo"
-has_quotes := "some $\"quotes$\" here"
-```
-
-However, in general it is best practice to use multi-line text to avoid these problems:
+Like other languages, backslash is a special character inside of text for
+escape sequences like `\n`. However, in general it is best practice to use
+multi-line text if you need to add a newline.
 
 ```
 str := "
