@@ -144,20 +144,16 @@ examples:
 		examples/tomodeps/tomodeps.tm examples/tomo-install/tomo-install.tm
 	./build/bin/tomo examples/learnxiny.tm
 
-deps: check-gcc
-	./install_dependencies.sh
+deps:
+	bash ./install_dependencies.sh
 
-check-gcc:
-	@GCC_VERSION=$$(gcc --version | awk '{print $$3;exit}'); \
-	if [ "$$(printf '%s\n' "$$GCC_VERSION" "12.0.0" | sort -V | head -n 1)" = "12.0.0" ]; then \
-		printf "\033[32;1mGCC version is good!\033[m\n"; \
-		exit 0; \
-	else \
-		printf "\033[31;1mGCC version is lower than the required 12.0.0!\033[m\n" >&2; \
-		exit 1; \
-	fi
+check-utilities:
+	@which objcopy 2>/dev/null >/dev/null || { printf '\033[31;1m%s\033[m\n' "I couldn't find 'objcopy' on your system! Try installing the package 'binutils' with your package manager."; exit 1; }
+	@which patchelf 2>/dev/null >/dev/null || { printf '\033[31;1m%s\033[m\n' "I couldn't find 'patchelf' on your system! Try installing the package 'binutils' with your package manager."; exit 1; }
+	@which nm 2>/dev/null >/dev/null || { printf '\033[31;1m%s\033[m\n' "I couldn't find 'nm' on your system! Try installing the package 'binutils' with your package manager."; exit 1; }
+	@which awk 2>/dev/null >/dev/null || { printf '\033[31;1m%s\033[m\n' "I couldn't find 'awk' on your system! Try installing the package 'awk' with your package manager."; exit 1; }
 
-install-files: build/bin/tomo build/lib/$(LIB_FILE) build/lib/$(AR_FILE)
+install-files: build/bin/tomo build/lib/$(LIB_FILE) build/lib/$(AR_FILE) check-utilities
 	@if ! echo "$$PATH" | tr ':' '\n' | grep -qx "$(PREFIX)/bin"; then \
 		echo $$PATH; \
 		printf "\033[31;1mError: '$(PREFIX)/bin' is not in your \$$PATH variable!\033[m\n" >&2; \
@@ -167,14 +163,14 @@ install-files: build/bin/tomo build/lib/$(LIB_FILE) build/lib/$(AR_FILE)
 		exit 1; \
 	fi
 	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
-	cp -v src/stdlib/*.h "$(PREFIX)/include/tomo/"
-	cp -v build/lib/$(LIB_FILE) build/lib/$(AR_FILE) "$(PREFIX)/lib/"
+	cp src/stdlib/*.h "$(PREFIX)/include/tomo/"
+	cp build/lib/$(LIB_FILE) build/lib/$(AR_FILE) "$(PREFIX)/lib/"
 	rm -f "$(PREFIX)/bin/tomo"
-	cp -v build/bin/tomo "$(PREFIX)/bin/"
-	cp -v man/man1/* "$(PREFIX)/man/man1/"
-	cp -v man/man3/* "$(PREFIX)/man/man3/"
+	cp build/bin/tomo "$(PREFIX)/bin/"
+	cp man/man1/* "$(PREFIX)/man/man1/"
+	cp man/man3/* "$(PREFIX)/man/man3/"
 
-install-libs: build/bin/tomo
+install-libs: build/bin/tomo check-utilities
 	./local-tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/coroutines lib/pthreads lib/uuid lib/core
 
 install: install-files install-libs
@@ -185,4 +181,4 @@ uninstall:
 endif
 
 .SUFFIXES:
-.PHONY: all clean install install-files install-libs uninstall test tags examples deps check-gcc
+.PHONY: all clean install install-files install-libs uninstall test tags examples deps check-utilities
