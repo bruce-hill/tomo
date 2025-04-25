@@ -77,7 +77,15 @@ TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/*.tm))
 API_YAML=$(wildcard api/*.yaml)
 API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
 
-all: config.mk build/lib/$(LIB_FILE) build/lib/$(AR_FILE) build/bin/tomo
+all: config.mk check-c-compiler check-libs build/lib/$(LIB_FILE) build/lib/$(AR_FILE) build/bin/tomo
+
+check-c-compiler:
+	@$(DEFAULT_C_COMPILER) -v 2>/dev/null >/dev/null \
+		|| { printf '\033[31;1m%s\033[m\n' "You have set your DEFAULT_C_COMPILER to $(DEFAULT_C_COMPILER) in your config.mk, but I can't run it!"; exit 1; }
+
+check-libs: check-c-compiler
+	@echo 'int main() { return 0; }' | $(DEFAULT_C_COMPILER) $(LDLIBS) -x c - -o /dev/null 2>/dev/null >/dev/null \
+		|| { printf '\033[31;1m%s\033[m\n' "I expected to find the following libraries on your system, but I can't find them: $(LDLIBS)"; exit 1; }
 
 build/bin/tomo: $(STDLIB_OBJS) $(COMPILER_OBJS)
 	@mkdir -p build/bin
@@ -148,10 +156,14 @@ deps:
 	bash ./install_dependencies.sh
 
 check-utilities:
-	@which objcopy 2>/dev/null >/dev/null || { printf '\033[31;1m%s\033[m\n' "I couldn't find 'objcopy' on your system! Try installing the package 'binutils' with your package manager."; exit 1; }
-	@which patchelf 2>/dev/null >/dev/null || { printf '\033[31;1m%s\033[m\n' "I couldn't find 'patchelf' on your system! Try installing the package 'binutils' with your package manager."; exit 1; }
-	@which nm 2>/dev/null >/dev/null || { printf '\033[31;1m%s\033[m\n' "I couldn't find 'nm' on your system! Try installing the package 'binutils' with your package manager."; exit 1; }
-	@which awk 2>/dev/null >/dev/null || { printf '\033[31;1m%s\033[m\n' "I couldn't find 'awk' on your system! Try installing the package 'awk' with your package manager."; exit 1; }
+	@which objcopy 2>/dev/null >/dev/null \
+		|| { printf '\033[31;1m%s\033[m\n' "I couldn't find 'objcopy' on your system! Try installing the package 'binutils' with your package manager."; exit 1; }
+	@which patchelf 2>/dev/null >/dev/null \
+		|| { printf '\033[31;1m%s\033[m\n' "I couldn't find 'patchelf' on your system! Try installing the package 'binutils' with your package manager."; exit 1; }
+	@which nm 2>/dev/null >/dev/null \
+		|| { printf '\033[31;1m%s\033[m\n' "I couldn't find 'nm' on your system! Try installing the package 'binutils' with your package manager."; exit 1; }
+	@which awk 2>/dev/null >/dev/null \
+		|| { printf '\033[31;1m%s\033[m\n' "I couldn't find 'awk' on your system! Try installing the package 'awk' with your package manager."; exit 1; }
 
 install-files: build/bin/tomo build/lib/$(LIB_FILE) build/lib/$(AR_FILE) check-utilities
 	@if ! echo "$$PATH" | tr ':' '\n' | grep -qx "$(PREFIX)/bin"; then \
@@ -181,4 +193,4 @@ uninstall:
 endif
 
 .SUFFIXES:
-.PHONY: all clean install install-files install-libs uninstall test tags examples deps check-utilities
+.PHONY: all clean install install-files install-libs uninstall test tags examples deps check-utilities check-c-compiler check-libs
