@@ -495,10 +495,19 @@ void build_library(Text_t lib_dir_name)
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         errx(WEXITSTATUS(status), "Failed to run `objcopy` to add library prefix to symbols");
 
+#if defined(__ELF__)
     prog = run_cmd("patchelf --rename-dynamic-symbols .build/symbol_renames.txt 'lib", lib_dir_name, SHARED_SUFFIX, "'");
     status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         errx(WEXITSTATUS(status), "Failed to run `patchelf` to rename dynamic symbols with library prefix");
+#elif defined(__MACH__)
+    prog = run_cmd("llvm-objcopy --redefine-syms=.build/symbol_renames.txt 'lib", lib_dir_name, SHARED_SUFFIX, "'");
+    status = pclose(prog);
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+        errx(WEXITSTATUS(status), "Failed to run `llvm-objcopy` to rename dynamic symbols with library prefix");
+#else
+#error "Unknown platform (not ELF or MACH)"
+#endif
 
     if (verbose)
         print("Successfully renamed symbols with library prefix!");

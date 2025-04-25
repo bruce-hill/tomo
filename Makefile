@@ -155,11 +155,16 @@ examples:
 deps:
 	bash ./install_dependencies.sh
 
-check-utilities:
+check-utilities: check-c-compiler
 	@which objcopy 2>/dev/null >/dev/null \
 		|| { printf '\033[31;1m%s\033[m\n' "I couldn't find 'objcopy' on your system! Try installing the package 'binutils' with your package manager."; exit 1; }
-	@which patchelf 2>/dev/null >/dev/null \
-		|| { printf '\033[31;1m%s\033[m\n' "I couldn't find 'patchelf' on your system! Try installing the package 'binutils' with your package manager."; exit 1; }
+	@if echo | $(DEFAULT_C_COMPILER) -dM -E - | grep -q '__ELF__'; then \
+		which patchelf 2>/dev/null >/dev/null \
+			|| { printf '\033[31;1m%s\033[m\n' "I couldn't find 'patchelf' on your system! Try installing the package 'binutils' with your package manager."; exit 1; }; \
+	else \
+		which llvm-objcopy 2>/dev/null >/dev/null \
+			|| { printf '\033[31;1m%s\033[m\n' "I couldn't find 'llvm-objcopy' on your system! Try installing the package 'llvm' with your package manager."; exit 1; }; \
+	fi
 	@which nm 2>/dev/null >/dev/null \
 		|| { printf '\033[31;1m%s\033[m\n' "I couldn't find 'nm' on your system! Try installing the package 'binutils' with your package manager."; exit 1; }
 	@which awk 2>/dev/null >/dev/null \
