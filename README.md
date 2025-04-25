@@ -4,6 +4,9 @@ Tomo is a statically typed, safe, simple, lightweight, efficient programming
 language that cross-compiles to C. Tomo is designed to anticipate and influence
 the language design decisions of the future.
 
+Please visit [tomo.bruce-hill.com](https://tomo.bruce-hill.com) for full
+documentation.
+
 ```
 func greeting(name:Text, add_exclamation:Bool -> Text)
     message := "hello $name"
