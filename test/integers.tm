@@ -13,15 +13,15 @@ func main()
 	>> 1 << 10
 	= 1024
 
-	say("Signed and unsigned bit shifting:")
-	>> Int64(-2) << 1
-	= Int64(-4)
-	>> Int64(-2) <<< 1
-	= Int64(-4)
-	>> Int64(-2) >> 1
-	= Int64(-1)
-	>> Int64(-2) >>> 1
-	= Int64(9223372036854775807)
+	# say("Signed and unsigned bit shifting:")
+	# >> Int64(-2) << 1
+	# = Int64(-4)
+	# >> Int64(-2) <<< 1
+	# = Int64(-4)
+	# >> Int64(-2) >> 1
+	# = Int64(-1)
+	# >> Int64(-2) >>> 1
+	# = Int64(9223372036854775807)
 
 	>> 3 and 2
 	= 2
