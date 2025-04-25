@@ -90,7 +90,7 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
             uint64_t range = (uint64_t)@max - (uint64_t)@min + 1;
             uint64_t min_r = -range % range;
             uint64_t r;
-            @random_int64 = &r;
+            @random_int64 = (int64_t*)&r;
             for (;;) {
                 @(rng._fill_bytes(random_int64, 8));
                 if (r >= min_r) break;
@@ -110,7 +110,7 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
             uint32_t range = (uint32_t)@max - (uint32_t)@min + 1;
             uint32_t min_r = -range % range;
             uint32_t r;
-            @random_int32 = &r;
+            @random_int32 = (int32_t*)&r;
             for (;;) {
                 @(rng._fill_bytes(random_int32, 8));
                 if (r >= min_r) break;
@@ -130,7 +130,7 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
             uint16_t range = (uint16_t)@max - (uint16_t)@min + 1;
             uint16_t min_r = -range % range;
             uint16_t r;
-            @random_int16 = &r;
+            @random_int16 = (int16_t*)&r;
             for (;;) {
                 @(rng._fill_bytes(random_int16, 8));
                 if (r >= min_r) break;
@@ -150,7 +150,7 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
             uint8_t range = (uint8_t)@max - (uint8_t)@min + 1;
             uint8_t min_r = -range % range;
             uint8_t r;
-            @random_int8 = &r;
+            @random_int8 = (int8_t*)&r;
             for (;;) {
                 @(rng._fill_bytes(random_int8, 8));
                 if (r >= min_r) break;

@@ -66,7 +66,6 @@ _Noreturn void fail_text(Text_t message);
 Text_t builtin_last_err();
 __attribute__((nonnull))
 void start_inspect(const char *filename, int64_t start, int64_t end);
-__attribute__((nonnull))
 void end_inspect(const void *expr, const TypeInfo_t *type);
 #define inspect(type, expr, typeinfo, start, end) {\
     start_inspect(__SOURCE_FILE__, start, end); \

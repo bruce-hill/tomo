@@ -490,7 +490,6 @@ public void start_inspect(const char *filename, int64_t start, int64_t end)
     _inspect_depth += 1;
 }
 
-__attribute__((nonnull))
 public void end_inspect(const void *expr, const TypeInfo_t *type)
 {
     _inspect_depth -= 1;
