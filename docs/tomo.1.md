@@ -62,6 +62,9 @@ C code, which is then compiled using a C compiler of your choice.
 `-v`, `--verbose`
 : Print extra verbose output.
 
+`--version`
+: Print the compiler version and exit.
+
 `-r`, `--run`
 : Run an installed tomo program from `~/.local/share/tomo/installed`.
 

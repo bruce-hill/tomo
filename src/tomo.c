@@ -54,6 +54,7 @@ static OptionalList_t files = NONE_LIST,
                        uninstall = NONE_LIST,
                        libraries = NONE_LIST;
 static OptionalBool_t verbose = false,
+                      show_version = false,
                       quiet = false,
                       show_parse_tree = false,
                       stop_at_transpile = false,
@@ -163,6 +164,7 @@ int main(int argc, char *argv[])
         {"args", true, List$info(&Text$info), &args},
         {"verbose", false, &Bool$info, &verbose},
         {"v", false, &Bool$info, &verbose},
+        {"version", false, &Bool$info, &show_version},
         {"parse", false, &Bool$info, &show_parse_tree},
         {"p", false, &Bool$info, &show_parse_tree},
         {"quiet", false, &Bool$info, &quiet},
@@ -189,6 +191,11 @@ int main(int argc, char *argv[])
         {"source-mapping", false, &Bool$info, &source_mapping},
         {"m", false, &Bool$info, &source_mapping},
     );
+
+    if (show_version) {
+        print("Tomo version: ", TOMO_VERSION);
+        return 0;
+    }
 
     bool is_gcc = (system(String(cc, " -v 2>&1 | grep 'gcc version' >/dev/null")) == 0);
     if (is_gcc) {

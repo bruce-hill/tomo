@@ -8,7 +8,6 @@ else
 
 include config.mk
 
-VERSION=0.0.1
 CC=cc
 CCONFIG=-std=c2x -fPIC \
 		-fno-signed-zeros -fno-finite-math-only -fno-trapping-math \
@@ -50,8 +49,10 @@ OSFLAGS != case $(OS) in *BSD|Darwin) echo '-D_BSD_SOURCE';; Linux) echo '-D_GNU
 EXTRA=
 G=-ggdb
 O=-O3
+GIT_VERSION=$(shell git log -1 --pretty=format:'%as_%h')
 CFLAGS=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO) \
-	   -DTOMO_HOME='"$(TOMO_HOME)"' -DTOMO_PREFIX='"$(PREFIX)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"'
+	   -DTOMO_HOME='"$(TOMO_HOME)"' -DTOMO_PREFIX='"$(PREFIX)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
+	   -DTOMO_VERSION='"$(GIT_VERSION)"'
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
 LDLIBS=-lgc -lcord -lm -lunistring -lgmp
 LIBTOMO_FLAGS=-shared
@@ -143,8 +144,11 @@ api/api.md: $(API_YAML)
 api-docs: $(API_MD) api/api.md
 
 .PHONY: manpages
-manpages: $(API_YAML)
+manpages: $(API_YAML) man/man1/tomo.1
 	./scripts/mandoc_gen.py $^
+
+man/man1/tomo.1: docs/tomo.1.md
+	pandoc --lua-filter=docs/.pandoc/bold-code.lua -s $< -t man -o $@
 
 examples:
 	./build/bin/tomo -qIL examples/log examples/ini examples/vectors examples/http examples/wrap examples/colorful
