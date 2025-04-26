@@ -641,6 +641,8 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
         switch (use->what) {
         case USE_LOCAL: {
             Path_t dep_tm = Path$resolved(Path$from_str(use->path), Path$parent(path));
+            if (!Path$is_file(dep_tm, true))
+                code_err(stmt_ast, "Not a valid file: ", dep_tm);
             if (is_stale(build_file(path, ".h"), dep_tm))
                 staleness.h = true;
             if (is_stale(build_file(path, ".c"), dep_tm))
