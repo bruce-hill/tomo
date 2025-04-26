@@ -100,8 +100,7 @@ build/lib/$(LIB_FILE): $(STDLIB_OBJS)
 
 build/lib/$(AR_FILE): $(STDLIB_OBJS)
 	@mkdir -p build/lib
-	@echo ar -rcs $@ $^
-	@ar -rcs $@ $^
+	ar -rcs $@ $^
 
 tags:
 	ctags src/*.[ch] src/stdlib/*.[ch]
