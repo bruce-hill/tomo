@@ -516,6 +516,7 @@ env_t *global_env(bool source_mapping)
         const char *name, *code, *type_str;
     } global_vars[] = {
         {"USE_COLOR", "USE_COLOR", "Bool"},
+        {"TOMO_VERSION", "TOMO_VERSION_TEXT", "Text"},
         {"say", "say", "func(text:Text, newline=yes)"},
         {"print", "say", "func(text:Text, newline=yes)"},
         {"getenv", "getenv_text", "func(name:Text -> Text?)"},

@@ -15,6 +15,7 @@
 #include "util.h"
 
 extern bool USE_COLOR;
+extern Text_t TOMO_VERSION_TEXT;
 
 typedef struct {
     const char *name;
