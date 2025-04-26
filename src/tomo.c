@@ -80,6 +80,8 @@ static OptionalText_t
             optimization = Text("2"),
             cc = Text(DEFAULT_C_COMPILER);
 
+static Text_t config_summary;
+
 static void transpile_header(env_t *base_env, Path_t path);
 static void transpile_code(env_t *base_env, Path_t path);
 static void compile_object_file(Path_t path);
@@ -210,6 +212,8 @@ int main(int argc, char *argv[])
 
     if (show_codegen.length > 0 && Text$equal_values(show_codegen, Text("pretty")))
         show_codegen = Text("{ sed '/^#line/d;/^$/d' | indent -o /dev/stdout | bat -l c -P; }");
+
+    config_summary = Text$from_str(String(cc, " ", cflags, " -O", optimization));
 
     for (int64_t i = 0; i < uninstall.length; i++) {
         Text_t *u = (Text_t*)(uninstall.data + i*uninstall.stride);
@@ -613,6 +617,13 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
     }
 }
 
+static bool is_config_outdated(Path_t path)
+{
+    OptionalText_t config = Path$read(build_file(path, ".config"));
+    if (config.length < 0) return true;
+    return !Text$equal_values(config, config_summary);
+}
+
 void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_link)
 {
     if (Table$get(*to_compile, &path, Table$info(&Path$info, &Byte$info)))
@@ -624,7 +635,8 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
     };
     staleness.o = staleness.c || staleness.h
         || is_stale(build_file(path, ".o"), build_file(path, ".c"))
-        || is_stale(build_file(path, ".o"), build_file(path, ".h"));
+        || is_stale(build_file(path, ".o"), build_file(path, ".h"))
+        || is_config_outdated(path);
     Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
 
     assert(Text$equal_values(Path$extension(path, true), Text("tm")));
@@ -782,6 +794,8 @@ void compile_object_file(Path_t path)
     int status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);
+
+    Path$write(build_file(path, ".config"), config_summary, 0644);
 
     if (!quiet)
         print("Compiled object:\t", obj_file);
