@@ -90,9 +90,11 @@ static void compile_object_file(Path_t path);
 static Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t object_files, List_t extra_ldlibs);
 static void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_link);
 static Text_t escape_lib_name(Text_t lib_name);
-static void build_library(Text_t lib_dir_name);
+static void build_library(Path_t lib_dir);
+static void install_library(Path_t lib_dir);
 static void compile_files(env_t *env, List_t files, List_t *object_files, List_t *ldlibs);
 static bool is_stale(Path_t path, Path_t relative_to);
+static bool is_stale_for_any(Path_t path, List_t relative_to);
 static Path_t build_file(Path_t path, const char *extension);
 static void wait_for_child_success(pid_t child);
 static bool is_config_outdated(Path_t path);
@@ -231,17 +233,17 @@ int main(int argc, char *argv[])
         pid_t child = fork();
         if (child == 0) {
             Path_t *lib = (Path_t*)(libraries.data + i*libraries.stride);
-            const char *lib_str = Path$as_c_string(*lib);
-            if (chdir(lib_str) != 0)
-                print_err("Could not enter directory: ", lib_str);
-
-            char libdir[PATH_MAX];
-            getcwd(libdir, sizeof(libdir));
-            char *libdirname = basename(libdir);
-            build_library(Text$from_str(libdirname));
+            build_library(*lib);
             _exit(0);
         }
         wait_for_child_success(child);
+    }
+
+    if (should_install) {
+        for (int64_t i = 0; i < libraries.length; i++) {
+            Path_t *lib = (Path_t*)(libraries.data + i*libraries.stride);
+            install_library(*lib);
+        }
     }
 
     if (files.length <= 0 && uninstall.length <= 0 && libraries.length <= 0) {
@@ -437,21 +439,17 @@ static void _compile_file_header_for_library(env_t *env, Path_t header_path, Pat
     CORD_fprintf(output, "void %r$initialize(void);\n", namespace_prefix(module_env, module_env->namespace));
 }
 
-void build_library(Text_t lib_dir_name)
+void build_library(Path_t lib_dir)
 {
-    List_t tm_files = Path$glob(Path("./[!._0-9]*.tm"));
+    lib_dir = Path$resolved(lib_dir, Path$current_dir());
+    if (!Path$is_directory(lib_dir, true))
+        print_err("Not a valid directory: ", lib_dir);
+
+    Text_t lib_dir_name = Path$base_name(lib_dir);
+    List_t tm_files = Path$glob(Path$with_component(lib_dir, Text("[!._0-9]*.tm")));
     env_t *env = fresh_scope(global_env(source_mapping));
     List_t object_files = {},
             extra_ldlibs = {};
-
-    // Resolve all files to absolute paths:
-    Path_t cur_dir = Path$current_dir();
-    for (int64_t i = 0; i < tm_files.length; i++) {
-        Path_t *path = (Path_t*)(tm_files.data + i*tm_files.stride);
-        *path = Path$resolved(*path, cur_dir);
-        if (!Path$exists(*path))
-            fail("File not found: ", *path);
-    }
 
     compile_files(env, tm_files, &object_files, &extra_ldlibs);
 
@@ -460,8 +458,8 @@ void build_library(Text_t lib_dir_name)
     env->libname = Text$as_c_string(escape_lib_name(lib_dir_name));
 
     // Build a "whatever.h" header that loads all the headers:
-    Path_t header_path = Path$resolved(Path$from_str(String(lib_dir_name, ".h")), Path$from_str("."));
-    FILE *header = fopen(String(lib_dir_name, ".h"), "w");
+    Path_t header_path = Path$with_component(lib_dir, Texts(lib_dir_name, Text(".h")));
+    FILE *header = fopen(String(header_path), "w");
     fputs("#pragma once\n", header);
     fputs("#include <tomo/tomo.h>\n", header);
     Table_t visited_files = {};
@@ -471,29 +469,41 @@ void build_library(Text_t lib_dir_name)
         _compile_file_header_for_library(env, header_path, f, &visited_files, &used_imports, header);
     }
     if (fclose(header) == -1)
-        print_err("Failed to write header file: ", lib_dir_name, ".h");
+        print_err("Failed to write header file: ", header_path);
 
     // Build up a list of symbol renamings:
-    unlink(".build/symbol_renames.txt");
-    FILE *prog;
-    for (int64_t i = 0; i < tm_files.length; i++) {
-        Path_t f = *(Path_t*)(tm_files.data + i*tm_files.stride);
-        prog = run_cmd("nm -g '", build_file(f, ".o"), "' | awk '$2~/^[DTB]$/ && $3~/^_\\$/{print $3 \" _$",
-                       CORD_to_const_char_star(env->libname), "\" substr($3,2)}' "
-                       ">>.build/symbol_renames.txt");
-        if (!prog) print_err("Could not find symbols!");
-        int status = pclose(prog);
-        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-            errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `sed`");
+    Path_t build_dir = Path$with_component(lib_dir, Text(".build"));
+    Path_t symbol_renames = Path$with_component(build_dir, Text("symbol_renames.txt"));
+    if (is_stale_for_any(symbol_renames, object_files)) {
+        Path$remove(symbol_renames, true);
+        FILE *prog;
+        for (int64_t i = 0; i < object_files.length; i++) {
+            Path_t obj = *(Path_t*)(object_files.data + i*object_files.stride);
+            prog = run_cmd("nm -g '", obj, "' | awk '$2~/^[DTB]$/ && $3~/^_\\$/{print $3 \" _$",
+                           CORD_to_const_char_star(env->libname), "\" substr($3,2)}' "
+                           ">>", symbol_renames);
+            if (!prog) print_err("Could not find symbols!");
+            int status = pclose(prog);
+            if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+                errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `awk`");
+        }
+    } else {
+        if (verbose) whisper("Unchanged: ", symbol_renames);
     }
 
-    prog = run_cmd(cc, " -O", optimization, " ", cflags, " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs),
+    Path_t shared_lib = Path$with_component(lib_dir, Texts(Text("lib"), lib_dir_name, Text(SHARED_SUFFIX)));
+    if (!is_stale_for_any(shared_lib, object_files) && !is_stale(shared_lib, symbol_renames)) {
+        if (verbose) whisper("Unchanged: ", shared_lib);
+        return;
+    }
+
+    FILE *prog = run_cmd(cc, " -O", optimization, " ", cflags, " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs),
 #ifdef __APPLE__
                    " -Wl,-install_name,@rpath/'lib", lib_dir_name, SHARED_SUFFIX, "'"
 #else
                    " -Wl,-soname,'lib", lib_dir_name, SHARED_SUFFIX, "'"
 #endif
-                   " -shared ", paths_str(object_files), " -o 'lib", lib_dir_name, SHARED_SUFFIX, "'");
+                   " -shared ", paths_str(object_files), " -o '", shared_lib, "'");
 
     if (!prog)
         print_err("Failed to run C compiler: ", cc);
@@ -502,20 +512,20 @@ void build_library(Text_t lib_dir_name)
         exit(EXIT_FAILURE);
 
     if (!quiet)
-        print("Compiled library:\tlib", lib_dir_name, SHARED_SUFFIX);
+        print("Compiled library:\t", shared_lib);
 
-    prog = run_cmd("objcopy --redefine-syms=.build/symbol_renames.txt 'lib", lib_dir_name, SHARED_SUFFIX, "'");
+    prog = run_cmd("objcopy --redefine-syms='", symbol_renames, "' '", shared_lib, "'");
     status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         errx(WEXITSTATUS(status), "Failed to run `objcopy` to add library prefix to symbols");
 
 #if defined(__ELF__)
-    prog = run_cmd("patchelf --rename-dynamic-symbols .build/symbol_renames.txt 'lib", lib_dir_name, SHARED_SUFFIX, "'");
+    prog = run_cmd("patchelf --rename-dynamic-symbols '", symbol_renames, "' '", shared_lib, "'");
     status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         errx(WEXITSTATUS(status), "Failed to run `patchelf` to rename dynamic symbols with library prefix");
 #elif defined(__MACH__)
-    prog = run_cmd("llvm-objcopy --redefine-syms=.build/symbol_renames.txt 'lib", lib_dir_name, SHARED_SUFFIX, "'");
+    prog = run_cmd("llvm-objcopy --redefine-syms='", symbol_renames, "' '", shared_lib, "'");
     status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         errx(WEXITSTATUS(status), "Failed to run `llvm-objcopy` to rename dynamic symbols with library prefix");
@@ -525,27 +535,31 @@ void build_library(Text_t lib_dir_name)
 
     if (verbose)
         print("Successfully renamed symbols with library prefix!");
+}
 
-    if (should_install) {
-        char library_directory[PATH_MAX];
-        getcwd(library_directory, sizeof(library_directory));
-        const char *dest = String(TOMO_HOME"/installed/", lib_dir_name);
-        if (!streq(library_directory, dest)) {
-            system(String("rm -rf '", dest, "'"));
-            system(String("mkdir -p '", dest, "'"));
-            system(String("cp -r * '", dest, "/'"));
-        }
-        system("mkdir -p '"TOMO_HOME"'/lib/");
-        system(String("ln -f -s ../installed/'", lib_dir_name, "'/lib'", lib_dir_name, SHARED_SUFFIX,
-                      "' '"TOMO_HOME"'/lib/lib'", lib_dir_name, SHARED_SUFFIX, "'"));
-        // If we have `debugedit` on this system, use it to remap the debugging source information
-        // to point to the installed version of the source file. Otherwise, fail silently.
-        system(String("debugedit -b ", library_directory,
-                      " -d '"TOMO_HOME"'/installed/", lib_dir_name,
-                      " '"TOMO_HOME"'/installed/", lib_dir_name, "/lib", lib_dir_name, SHARED_SUFFIX,
-                      " 2>/dev/null >/dev/null"));
-        print("Installed \033[1m", lib_dir_name, "\033[m to "TOMO_HOME"/installed");
+void install_library(Path_t lib_dir)
+{
+    Text_t lib_dir_name = Path$base_name(lib_dir);
+    Path_t dest = Path$with_component(Path$from_str(TOMO_HOME"/installed"), lib_dir_name);
+    if (!Path$equal_values(lib_dir, dest)) {
+        if (verbose) whisper("Clearing out any pre-existing version of ", lib_dir_name);
+        Path$remove(dest, true);
+        if (verbose) whisper("Moving files to ", dest);
+        system(String("mkdir -p '", dest, "'"));
+        system(String("cp -r '", lib_dir, "'/* '", dest, "/'"));
     }
+    if (verbose) whisper("Linking "TOMO_HOME"/lib/lib", lib_dir_name, SHARED_SUFFIX);
+    system("mkdir -p '"TOMO_HOME"'/lib/");
+    system(String("ln -f -s ../installed/'", lib_dir_name, "'/lib'", lib_dir_name, SHARED_SUFFIX,
+                  "' '"TOMO_HOME"'/lib/lib'", lib_dir_name, SHARED_SUFFIX, "'"));
+    // If we have `debugedit` on this system, use it to remap the debugging source information
+    // to point to the installed version of the source file. Otherwise, fail silently.
+    if (verbose) whisper("Updating debug symbols for ", dest, "/lib", lib_dir_name, SHARED_SUFFIX);
+    system(String("debugedit -b ", lib_dir,
+                  " -d '", dest, "'"
+                  " '", dest, "/lib", lib_dir_name, SHARED_SUFFIX, "'"
+                  " 2>/dev/null >/dev/null"));
+    print("Installed \033[1m", lib_dir_name, "\033[m to "TOMO_HOME"/installed");
 }
 
 void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs)
@@ -722,6 +736,16 @@ bool is_stale(Path_t path, Path_t relative_to)
     return target_stat.st_mtime < relative_to_stat.st_mtime;
 }
 
+bool is_stale_for_any(Path_t path, List_t relative_to)
+{
+    for (int64_t i = 0; i < relative_to.length; i++) {
+        Path_t r = *(Path_t*)(relative_to.data + i*relative_to.stride);
+        if (is_stale(path, r))
+            return true;
+    }
+    return false;
+}
+
 void transpile_header(env_t *base_env, Path_t path)
 {
     Path_t h_filename = build_file(path, ".h");
@@ -821,19 +845,10 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     if (!main_binding || main_binding->type->tag != FunctionType)
         print_err("No main() function has been defined for ", path, ", so it can't be run!");
 
-    if (!clean_build && Path$is_file(exe_path, true) && !is_config_outdated(path)) {
-        bool any_newer = false;
-        for (int64_t i = 0; i < object_files.length; i++) {
-            Path_t obj = *(Path_t*)(object_files.data + i*object_files.stride);
-            if (is_stale(exe_path, obj)) {
-                any_newer = true;
-                break;
-            }
-        }
-        if (!any_newer) {
-            if (verbose) whisper("Unchanged: ", exe_path);
-            return exe_path;
-        }
+    if (!clean_build && Path$is_file(exe_path, true) && !is_config_outdated(path)
+        && !is_stale_for_any(exe_path, object_files)) {
+        if (verbose) whisper("Unchanged: ", exe_path);
+        return exe_path;
     }
 
     FILE *runner = run_cmd(cc, " ", cflags, " -O", optimization, " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs), " ",
