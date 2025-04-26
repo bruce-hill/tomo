@@ -49,7 +49,7 @@ OSFLAGS != case $(OS) in *BSD|Darwin) echo '-D_BSD_SOURCE';; Linux) echo '-D_GNU
 EXTRA=
 G=-ggdb
 O=-O3
-GIT_VERSION=$(shell git log -1 --pretty=format:'%as_%h')
+GIT_VERSION=$(shell git log -1 --pretty=format:"$$(git describe --tags --abbrev=0)_%as_%h")
 CFLAGS=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO) \
 	   -DTOMO_HOME='"$(TOMO_HOME)"' -DTOMO_PREFIX='"$(PREFIX)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
 	   -DTOMO_VERSION='"$(GIT_VERSION)"'
