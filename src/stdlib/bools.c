@@ -24,15 +24,16 @@ PUREFUNC public Text_t Bool$as_text(const void *b, bool colorize, const TypeInfo
 
 PUREFUNC public OptionalBool_t Bool$parse(Text_t text)
 {
-    if (Text$equal_ignoring_case(text, Text("yes"), NONE_TEXT)
-        || Text$equal_ignoring_case(text, Text("on"), NONE_TEXT)
-        || Text$equal_ignoring_case(text, Text("true"), NONE_TEXT)
-        || Text$equal_ignoring_case(text, Text("1"), NONE_TEXT)) {
+    Text_t lang = Text("C");
+    if (Text$equal_ignoring_case(text, Text("yes"), lang)
+        || Text$equal_ignoring_case(text, Text("on"), lang)
+        || Text$equal_ignoring_case(text, Text("true"), lang)
+        || Text$equal_ignoring_case(text, Text("1"), lang)) {
         return yes;
-    } else if (Text$equal_ignoring_case(text, Text("no"), NONE_TEXT)
-        || Text$equal_ignoring_case(text, Text("off"), NONE_TEXT)
-        || Text$equal_ignoring_case(text, Text("false"), NONE_TEXT)
-        || Text$equal_ignoring_case(text, Text("0"), NONE_TEXT)) {
+    } else if (Text$equal_ignoring_case(text, Text("no"), lang)
+        || Text$equal_ignoring_case(text, Text("off"), lang)
+        || Text$equal_ignoring_case(text, Text("false"), lang)
+        || Text$equal_ignoring_case(text, Text("0"), lang)) {
         return no;
     } else {
         return NONE_BOOL;
