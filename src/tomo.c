@@ -29,6 +29,8 @@
 #define run_cmd(...) ({ const char *_cmd = String(__VA_ARGS__); if (verbose) print("\033[34;1m", _cmd, "\033[m"); popen(_cmd, "w"); })
 #define list_text(list) Text$join(Text(" "), list)
 
+#define whisper(...) print("\033[2m", __VA_ARGS__, "\033[m")
+
 #ifdef __linux__
 // Only on Linux is /proc/self/exe available
 static struct stat compiler_stat;
@@ -93,6 +95,7 @@ static void compile_files(env_t *env, List_t files, List_t *object_files, List_t
 static bool is_stale(Path_t path, Path_t relative_to);
 static Path_t build_file(Path_t path, const char *extension);
 static void wait_for_child_success(pid_t child);
+static bool is_config_outdated(Path_t path);
 
 typedef struct {
     bool h:1, c:1, o:1;
@@ -569,6 +572,8 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         if (entry->staleness.h || clean_build) {
             transpile_header(env, entry->filename);
             entry->staleness.o = true;
+        } else {
+            if (verbose) whisper("Unchanged: ", build_file(entry->filename, ".h"));
         }
     }
 
@@ -586,12 +591,18 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
             Path_t filename;
             staleness_t staleness;
         } *entry = (dependency_files.entries.data + i*dependency_files.entries.stride);
-        if (!clean_build && !entry->staleness.c && !entry->staleness.h && !entry->staleness.o)
+        if (!clean_build && !entry->staleness.c && !entry->staleness.h && !entry->staleness.o
+            && !is_config_outdated(entry->filename)) {
+            if (verbose) whisper("Unchanged: ", build_file(entry->filename, ".c"));
+            if (verbose) whisper("Unchanged: ", build_file(entry->filename, ".o"));
             continue;
+        }
 
         pid_t pid = fork();
         if (pid == 0) {
-            transpile_code(env, entry->filename);
+            if (clean_build || entry->staleness.c)
+                transpile_code(env, entry->filename);
+            else if (verbose) whisper("Unchanged: ", build_file(entry->filename, ".c"));
             if (!stop_at_transpile)
                 compile_object_file(entry->filename);
             _exit(EXIT_SUCCESS);
@@ -617,7 +628,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
     }
 }
 
-static bool is_config_outdated(Path_t path)
+bool is_config_outdated(Path_t path)
 {
     OptionalText_t config = Path$read(build_file(path, ".config"));
     if (config.length < 0) return true;
@@ -635,8 +646,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
     };
     staleness.o = staleness.c || staleness.h
         || is_stale(build_file(path, ".o"), build_file(path, ".c"))
-        || is_stale(build_file(path, ".o"), build_file(path, ".h"))
-        || is_config_outdated(path);
+        || is_stale(build_file(path, ".o"), build_file(path, ".h"));
     Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
 
     assert(Text$equal_values(Path$extension(path, true), Text("tm")));
@@ -810,6 +820,21 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     binding_t *main_binding = get_binding(env, "main");
     if (!main_binding || main_binding->type->tag != FunctionType)
         print_err("No main() function has been defined for ", path, ", so it can't be run!");
+
+    if (!clean_build && Path$is_file(exe_path, true) && !is_config_outdated(path)) {
+        bool any_newer = false;
+        for (int64_t i = 0; i < object_files.length; i++) {
+            Path_t obj = *(Path_t*)(object_files.data + i*object_files.stride);
+            if (is_stale(exe_path, obj)) {
+                any_newer = true;
+                break;
+            }
+        }
+        if (!any_newer) {
+            if (verbose) whisper("Unchanged: ", exe_path);
+            return exe_path;
+        }
+    }
 
     FILE *runner = run_cmd(cc, " ", cflags, " -O", optimization, " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs), " ",
                            paths_str(object_files), " -x c - -o ", exe_path);
