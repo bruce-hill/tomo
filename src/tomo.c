@@ -227,23 +227,18 @@ int main(int argc, char *argv[])
     }
 
     for (int64_t i = 0; i < libraries.length; i++) {
+        Path_t *lib = (Path_t*)(libraries.data + i*libraries.stride);
         // Fork a child process to build the library to prevent cross-contamination
         // of side effects when building one library from affecting another library.
         // This *could* be done in parallel, but there may be some dependency issues.
         pid_t child = fork();
         if (child == 0) {
-            Path_t *lib = (Path_t*)(libraries.data + i*libraries.stride);
             build_library(*lib);
             _exit(0);
         }
         wait_for_child_success(child);
-    }
-
-    if (should_install) {
-        for (int64_t i = 0; i < libraries.length; i++) {
-            Path_t *lib = (Path_t*)(libraries.data + i*libraries.stride);
+        if (should_install)
             install_library(*lib);
-        }
     }
 
     if (files.length <= 0 && uninstall.length <= 0 && libraries.length <= 0) {
