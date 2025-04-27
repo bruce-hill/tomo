@@ -69,6 +69,7 @@ static OptionalBool_t verbose = false,
 static OptionalText_t 
             show_codegen = NONE_TEXT,
             cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs -Wno-parentheses-equality "
+                          " -ffunction-sections -fdata-sections"
                           " -fno-signed-zeros -fno-finite-math-only "
                           " -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -fPIC -ggdb"
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
@@ -204,7 +205,7 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    bool is_gcc = (system(String(cc, " -v 2>&1 | grep 'gcc version' >/dev/null")) == 0);
+    bool is_gcc = (system(String(cc, " -v 2>&1 | grep -q 'gcc version'")) == 0);
     if (is_gcc) {
         cflags = Texts(cflags, Text(" -fsanitize=signed-integer-overflow -fno-sanitize-recover"
                                     " -fno-signaling-nans -fno-trapping-math"));
