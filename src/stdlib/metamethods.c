@@ -104,7 +104,7 @@ public void generic_deserialize(List_t bytes, void *outval, const TypeInfo_t *ty
 public int generic_print(const void *obj, bool colorize, const TypeInfo_t *type)
 {
     Text_t text = generic_as_text(obj, colorize, type);
-    return Text$print(stdout, text) + printf("\n");
+    return Text$print(stdout, text) + fputc('\n', stdout);
 }
 
 __attribute__((noreturn))

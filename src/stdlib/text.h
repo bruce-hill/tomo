@@ -61,8 +61,6 @@ Closure_t Text$by_split(Text_t text, Text_t delimiter);
 Closure_t Text$by_split_any(Text_t text, Text_t delimiters);
 Text_t Text$trim(Text_t text, Text_t to_trim, bool left, bool right);
 char *Text$as_c_string(Text_t text);
-__attribute__((format(printf, 1, 2)))
-public Text_t Text$format(const char *fmt, ...);
 List_t Text$clusters(Text_t text);
 List_t Text$utf32_codepoints(Text_t text);
 List_t Text$utf8_bytes(Text_t text);

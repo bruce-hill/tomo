@@ -90,28 +90,6 @@ n | `Int` | The integer to compute the factorial of.  | -
 = 3628800
 
 ```
-## Int.format
-
-```tomo
-Int.format : func(i: Int, digits: Int = 0 -> Text)
-```
-
-Formats an integer as a string with a specified number of digits.
-
-Argument | Type | Description | Default
----------|------|-------------|---------
-i | `Int` | The integer to be formatted.  | -
-digits | `Int` | The minimum number of digits to which the integer should be padded.  | `0`
-
-**Return:** A string representation of the integer, padded to the specified number of digits.
-
-
-**Example:**
-```tomo
->> (42).format(digits=5)
-= "00042"
-
-```
 ## Int.hex
 
 ```tomo

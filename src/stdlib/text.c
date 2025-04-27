@@ -232,35 +232,6 @@ public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_le
 #pragma GCC diagnostic pop
 #endif
 
-int text_visualize(FILE *stream, Text_t t, int depth)
-{
-    switch (t.tag) {
-    case TEXT_ASCII: return fprintf(stream, "<ascii length=%ld>%.*s</ascii>", t.length, t.length, t.ascii);
-    case TEXT_GRAPHEMES: {
-        int printed = fprintf(stream, "<graphemes length=%ld>", t.length);
-        printed += Text$print(stream, t);
-        printed += fprintf(stream, "</graphemes>");
-        return printed;
-    }
-    case TEXT_CONCAT: {
-        int printed = fprintf(stream, "<concat depth=%ld length=%ld>\n", t.depth, t.length);
-        for (int i = 0; i < depth+1; i++)
-            printed += fputc(' ', stream);
-        printed += text_visualize(stream, *t.left, depth+1);
-        printed += fputc('\n', stream);
-        for (int i = 0; i < depth+1; i++)
-            printed += fputc(' ', stream);
-        printed += text_visualize(stream, *t.right, depth+1);
-        printed += fputc('\n', stream);
-        for (int i = 0; i < depth; i++)
-            printed += fputc(' ', stream);
-        printed += fprintf(stream, "</concat>");
-        return printed;
-    }
-    default: return 0;
-    }
-}
-
 public int Text$print(FILE *stream, Text_t t)
 {
     if (t.length == 0) return 0;
@@ -1389,8 +1360,11 @@ public Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark)
         case '\x1C' ... '\x1F': case '\x7F' ... '\x7F': {
             if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[34;1m"));
             ret = concat2_assuming_safe(ret, Text("\\x"));
-            char tmp[3];
-            snprintf(tmp, sizeof(tmp), "%02X", g);
+            char tmp[3] = {
+                (g / 16) > 9 ? 'a' + (g / 16) - 10 : '0' + (g / 16),
+                (g & 15) > 9 ? 'a' + (g & 15) - 10 : '0' + (g & 15),
+                '\0',
+            };
             ret = concat2_assuming_safe(ret, Text$from_strn(tmp, 2));
             if (colorize)
                 ret = concat2_assuming_safe(ret, Text("\x1b[0;35m"));
@@ -1472,22 +1446,6 @@ public Text_t Text$join(Text_t glue, List_t pieces)
     return result;
 }
 
-__attribute__((format(printf, 1, 2)))
-public Text_t Text$format(const char *fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    int len = vsnprintf(NULL, 0, fmt, args);
-    va_end(args);
-
-    char *str = GC_MALLOC_ATOMIC((size_t)(len+1));
-    va_start(args, fmt);
-    vsnprintf(str, (size_t)(len+1), fmt, args);
-    va_end(args);
-    Text_t ret = Text$from_strn(str, (size_t)len);
-    return ret;
-}
-
 public List_t Text$clusters(Text_t text)
 {
     List_t clusters = {};
@@ -1529,8 +1487,7 @@ static INLINE const char *codepoint_name(ucs4_t c)
     if (found_name) return found_name;
     const uc_block_t *block = uc_block(c);
     assert(block);
-    snprintf(name, UNINAME_MAX, "%s-%X", block->name, c);
-    return name;
+    return String(block->name, "-", hex(c, .no_prefix=true, .uppercase=true));
 }
 
 public List_t Text$codepoint_names(Text_t text)

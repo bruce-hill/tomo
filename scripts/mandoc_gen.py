@@ -118,6 +118,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         all_files = ""
         for filename in sys.argv[1:]:
+            print(f"Making mandoc for {filename}")
             with open(filename, "r") as f:
                 all_files += f.read()
         convert_to_markdown(all_files)

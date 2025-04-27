@@ -1,16 +1,103 @@
 // This file defines some of the helper functions used for printing values
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "fpconv.h"
 #include "print.h"
 #include "util.h"
 
-#include <stdio.h>
+public int _print_int(FILE *f, int64_t n)
+{
+    char buf[21] = {[20]=0}; // Big enough for INT64_MIN + '\0'
+    char *p = &buf[19];
+    bool negative = n < 0;
+
+    if (n == 0)
+        *(p--) = '0';
+
+    for (; n > 0; n /= 10)
+        *(p--) = '0' + (n % 10);
+
+    if (negative)
+        *(p--) = '-';
+
+    return fwrite(p + 1, sizeof(char), (size_t)(&buf[19] - p), f);
+}
+
+public int _print_uint(FILE *f, uint64_t n)
+{
+    char buf[21] = {[20]=0}; // Big enough for UINT64_MAX + '\0'
+    char *p = &buf[19];
+
+    if (n == 0)
+        *(p--) = '0';
+
+    for (; n > 0; n /= 10)
+        *(p--) = '0' + (n % 10);
+
+    return fwrite(p + 1, sizeof(char), (size_t)(&buf[19] - p), f);
+}
+
+public int _print_hex(FILE *f, hex_format_t hex)
+{
+    int printed = 0;
+    if (!hex.no_prefix) printed += fputs("0x", f);
+    if (hex.digits > 0) {
+        for (uint64_t n = hex.n; n > 0 && hex.digits > 0; n /= 16) {
+            hex.digits -= 1;
+        }
+        for (; hex.digits > 0; hex.digits -= 1) {
+            printed += fputc('0', f);
+        }
+    }
+    char buf[9] = {[8]='\0'}; // Enough space for FFFFFFFF + '\0'
+    char *p = &buf[7];
+    for (uint64_t n = hex.n; n > 0; n /= 16) {
+        uint8_t digit = n % 16;
+        if (digit <= 9)
+            *(p--) = '0' + digit;
+        else if (hex.uppercase)
+            *(p--) = 'A' + digit - 10;
+        else
+            *(p--) = 'a' + digit - 10;
+    }
+    printed += (int)fwrite(p + 1, sizeof(char), (size_t)(&buf[7] - p), f);
+    return printed;
+}
+
+public int _print_oct(FILE *f, oct_format_t oct)
+{
+    int printed = 0;
+    if (!oct.no_prefix) printed += fputs("0o", f);
+    if (oct.digits > 0) {
+        for (uint64_t n = oct.n; n > 0 && oct.digits > 0; n /= 8) {
+            oct.digits -= 1;
+        }
+        for (; oct.digits > 0; oct.digits -= 1) {
+            printed += fputc('0', f);
+        }
+    }
+    char buf[12] = {[11]='\0'}; // Enough space for octal UINT64_MAX + '\0'
+    char *p = &buf[10];
+    for (uint64_t n = oct.n; n > 0; n /= 8) {
+        *(p--) = '0' + (n % 8);
+    }
+    printed += (int)fwrite(p + 1, sizeof(char), (size_t)(&buf[10] - p), f);
+    return printed;
+}
+
+public int _print_double(FILE *f, double n)
+{
+    static char buf[24];
+    int len = fpconv_dtoa(n, buf);
+    return (int)fwrite(buf, sizeof(char), (size_t)len, f);
+}
 
 public int _print_char(FILE *f, char c)
 {
-#if PRINT_COLOR
-#define ESC(e) "\033[35m'\033[34;1m\\" e "\033[0;35m'\033[m"
-#else
 #define ESC(e) "'\\" e "'"
-#endif
     const char *named[256] = {['\'']=ESC("'"), ['\\']=ESC("\\"),
         ['\n']=ESC("n"), ['\t']=ESC("t"), ['\r']=ESC("r"),
         ['\033']=ESC("e"), ['\v']=ESC("v"), ['\a']=ESC("a"), ['\b']=ESC("b")};
@@ -18,32 +105,20 @@ public int _print_char(FILE *f, char c)
     if (name != NULL)
         return fputs(name, f);
     else if (isprint(c))
-#if PRINT_COLOR
-        return fprintf(f, "\033[35m'%c'\033[m"), c);
-#else
-        return fprintf(f, "'%c'", c);
-#endif
+        return fputc('\'', f) + fputc(c, f) + fputc('\'', f);
     else
-        return fprintf(f, ESC("x%02X"), (uint8_t)c);
+        return (fputs("'\\x", f) + _print_hex(f, hex((uint64_t)c, .digits=2, .no_prefix=true, .uppercase=true))
+                + fputs("'", f));
 #undef ESC
 }
 
 public int _print_quoted(FILE *f, quoted_t quoted)
 {
-#if PRINT_COLOR
-#define ESC(e) "\033[34;1m\\" e "\033[0;35m"
-#else
 #define ESC(e) "\\" e
-#endif
     const char *named[256] = {['"']=ESC("\""), ['\\']=ESC("\\"),
         ['\n']=ESC("n"), ['\t']=ESC("t"), ['\r']=ESC("r"),
         ['\033']=ESC("e"), ['\v']=ESC("v"), ['\a']=ESC("a"), ['\b']=ESC("b")};
-    int printed =
-#if PRINT_COLOR
-        fputs("\033[35m\"", f);
-#else
-        fputc('"', f);
-#endif
+    int printed = fputc('"', f);
     for (const char *p = quoted.str; *p; p++) {
         const char *name = named[(uint8_t)*p];
         if (name != NULL) {
@@ -51,14 +126,10 @@ public int _print_quoted(FILE *f, quoted_t quoted)
         } else if (isprint(*p) || (uint8_t)*p > 0x7F) {
             printed += fputc(*p, f);
         } else {
-            printed += fprintf(f, ESC("x%02X"), (uint8_t)*p);
+            printed += fputs("\\x", f) + _print_hex(f, hex((uint64_t)*p, .digits=2, .no_prefix=true, .uppercase=true));
         }
     }
-#if PRINT_COLOR
-    printed += fputs("\"\033[m", f);
-#else
     printed += fputc('"', f);
-#endif
 #undef ESC
     return printed;
 }

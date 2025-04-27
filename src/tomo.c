@@ -686,7 +686,8 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             break;
         }
         case USE_MODULE: {
-            Text_t lib = Text$format("'%s/installed/%s/lib%s%s'", TOMO_HOME, use->path, use->path, SHARED_SUFFIX);
+            Text_t lib = Texts(Text("'" TOMO_HOME "/installed/"),
+                               Text$from_str(use->path), Text("/lib"), Text$from_str(use->path), Text(SHARED_SUFFIX "'"));
             Table$set(to_link, &lib, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
 
             List_t children = Path$glob(Path$from_str(String(TOMO_HOME"/installed/", use->path, "/*.tm")));

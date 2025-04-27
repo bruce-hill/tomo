@@ -82,28 +82,6 @@ Int.factorial:
     >> (10).factorial()
     = 3628800
     
-Int.format:
-  short: text formatting
-  description: >
-    Formats an integer as a string with a specified number of digits.
-  return:
-    type: 'Text'
-    description: >
-      A string representation of the integer, padded to the specified number of digits.
-  args:
-    i:
-      type: 'Int'
-      description: >
-        The integer to be formatted.
-    digits:
-      type: 'Int'
-      default: '0'
-      description: >
-        The minimum number of digits to which the integer should be padded.
-  example: |
-    >> (42).format(digits=5)
-    = "00042"
-    
 Int.hex:
   short: convert to hexidecimal
   description: >

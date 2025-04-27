@@ -74,8 +74,10 @@ public Text_t Enum$as_text(const void *obj, bool colorize, const TypeInfo_t *typ
 
     int32_t tag = *(int32_t*)obj;
     NamedType_t value = type->EnumInfo.tags[tag-1];
-    if (!value.type || value.type->size == 0)
-        return Text$format(colorize ? "\x1b[1m%s\x1b[m" : "%s", value.name);
+    if (!value.type || value.type->size == 0) {
+        Text_t text = Text$from_str(value.name);
+        return colorize ? Texts(Text("\x1b[1m"), text, Text("\x1b[m")) : text;
+    }
 
     ptrdiff_t byte_offset = sizeof(int32_t);
     if (value.type->align && byte_offset % value.type->align > 0)

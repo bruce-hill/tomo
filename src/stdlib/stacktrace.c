@@ -32,10 +32,21 @@ static void fprint_context(FILE *out, const char *filename, int lineno, int cont
         if (line[strlen(line)-1] == '\n')
             line[strlen(line)-1] = '\0';
 
-        if (cur_line >= lineno - context_before)
-            fprintf(out, USE_COLOR ? "%s\033[2m%*d\033(0\x78\x1b(B%s%s\033[m\n" : "%s%*d| %s%s\n",
-                    cur_line == lineno ? (USE_COLOR ? "\033[31;1m>\033[m " : "> ") : "  ",
-                    num_width, cur_line, USE_COLOR ? (cur_line == lineno ? "\033[0;31;1m" : "\033[0m") : "", line);
+        if (cur_line >= lineno - context_before) {
+            int w = 1;
+            for (int n = cur_line; n >= 10; n /= 10) w += 1;
+
+            if (USE_COLOR) {
+                fprint(out, cur_line == lineno ? "\033[31;1m>\033[m " : "  ", "\033[2m",
+                       repeated_char(' ', num_width-w),
+                       cur_line, "\033(0\x78\033(B", cur_line == lineno ? "\033[0;31;1m" : "\033[0m", 
+                       line, "\033[m");
+            } else {
+                fprint(out, cur_line == lineno ? "> " : "  ",
+                       repeated_char(' ', num_width-w),
+                       cur_line, "| ", line);
+            }
+        }
 
         cur_line += 1;
         if (cur_line > lineno + context_after)
@@ -69,15 +80,14 @@ static void _print_stack_frame(FILE *out, const char *cwd, const char *install_d
         if (strncmp(filename, cwd, strlen(cwd)) == 0)
             filename += strlen(cwd);
 
-        fprintf(out, USE_COLOR ? "\033[1mIn \033[33m%s()\033[37m" : "In %s()", function_display);
+        fprint_inline(out, USE_COLOR ? "\033[1mIn \033[33m" : "In ", function_display, USE_COLOR ? "()\033[37m" : "()");
         if (filename) {
             if (install_dir[0] && strncmp(filename, install_dir, strlen(install_dir)) == 0)
-                fprintf(out, USE_COLOR ? " in library \033[35m%s:%d" : " in library %s:%d",
-                        filename, lineno);
+                fprint_inline(out, USE_COLOR ? " in library \033[35m" : " in library ", filename, ":", lineno);
             else
-                fprintf(out, USE_COLOR ? " in \033[35m%s:%d" : " in %s:%d", filename, lineno);
+                fprint(out, USE_COLOR ? " in \033[35m" : " in ", filename, ":", lineno);
         }
-        fprintf(out, USE_COLOR ? "\033[m\n" : "\n");
+        fprint(out, USE_COLOR ? "\033[m" : "");
         if (filename)
             fprint_context(out, filename, lineno, 3, 1);
     } else {

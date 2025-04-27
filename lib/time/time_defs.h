@@ -10,7 +10,7 @@ static INLINE Text_t num_format(long n, const char *unit)
 {
     if (n == 0)
         return Text("now");
-    return Text$format((n == 1 || n == -1) ? "%ld %s %s" : "%ld %ss %s", n < 0 ? -n : n, unit, n < 0 ? "ago" : "later");
+    return Text$from_str(String(labs(n), " ", unit, (n == -1 || n == 1) ? "" : "s", n <= 0 ? " ago" : " later"));
 }
 
 static void set_local_timezone(Text_t tz)

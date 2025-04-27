@@ -402,28 +402,6 @@ n | `Int` | The integer to compute the factorial of.  | -
 = 3628800
 
 ```
-## Int.format
-
-```tomo
-Int.format : func(i: Int, digits: Int = 0 -> Text)
-```
-
-Formats an integer as a string with a specified number of digits.
-
-Argument | Type | Description | Default
----------|------|-------------|---------
-i | `Int` | The integer to be formatted.  | -
-digits | `Int` | The minimum number of digits to which the integer should be padded.  | `0`
-
-**Return:** A string representation of the integer, padded to the specified number of digits.
-
-
-**Example:**
-```tomo
->> (42).format(digits=5)
-= "00042"
-
-```
 ## Int.hex
 
 ```tomo
@@ -1890,28 +1868,6 @@ x | `Num` | The number to be rounded down.  | -
 = 3
 
 ```
-## Num.format
-
-```tomo
-Num.format : func(n: Num, precision: Int = 0 -> Text)
-```
-
-Formats a number as a text with a specified precision.
-
-Argument | Type | Description | Default
----------|------|-------------|---------
-n | `Num` | The number to be formatted.  | -
-precision | `Int` | The number of decimal places. Default is `0`.  | `0`
-
-**Return:** A text representation of the number with the specified precision.
-
-
-**Example:**
-```tomo
->> (3.14159).format(precision=2)
-= "3.14"
-
-```
 ## Num.hypot
 
 ```tomo
@@ -2257,7 +2213,7 @@ text | `Text` | The text containing the number.  | -
 ## Num.percent
 
 ```tomo
-Num.percent : func(n: Num, precision: Int = 0 -> Text)
+Num.percent : func(n: Num, precision: Num = 0.01 -> Text)
 ```
 
 Convert a number into a percentage text with a percent sign.
@@ -2265,7 +2221,7 @@ Convert a number into a percentage text with a percent sign.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 n | `Num` | The number to be converted to a percent.  | -
-precision | `Int` | The number of decimal places. Default is `0`.  | `0`
+precision | `Num` | Round the percentage to this precision level.  | `0.01`
 
 **Return:** A text representation of the number as a percentage with a percent sign.
 
@@ -2276,6 +2232,10 @@ precision | `Int` | The number of decimal places. Default is `0`.  | `0`
 = "50%"
 >> (1./3.).percent(2)
 = "33.33%"
+>> (1./3.).percent(2, precision=0.0001)
+= "33.3333%"
+>> (1./3.).percent(2, precision=10.)
+= "30%"
 
 ```
 ## Num.rint
@@ -2322,28 +2282,6 @@ x | `Num` | The number to be rounded.  | -
 = 2
 >> (2.7).round()
 = 3
-
-```
-## Num.scientific
-
-```tomo
-Num.scientific : func(n: Num, precision: Int = 0 -> Text)
-```
-
-Formats a number in scientific notation with a specified precision.
-
-Argument | Type | Description | Default
----------|------|-------------|---------
-n | `Num` | The number to be formatted.  | -
-precision | `Int` | The number of decimal places. Default is `0`.  | `0`
-
-**Return:** A text representation of the number in scientific notation with the specified precision.
-
-
-**Example:**
-```tomo
->> (12345.6789).scientific(precision=2)
-= "1.23e+04"
 
 ```
 ## Num.significand
@@ -2514,6 +2452,32 @@ x | `Num` | The number to be truncated.  | -
 = 3
 >> (-3.7).trunc()
 = -3
+
+```
+## Num.with_precision
+
+```tomo
+Num.with_precision : func(n: Num, precision: Num -> Num)
+```
+
+Round a number to the given precision level (specified as `10`, `.1`, `.001` etc).
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+n | `Num` | The number to be rounded to a given precision.  | -
+precision | `Num` | The precision to which the number should be rounded.  | -
+
+**Return:** The number, rounded to the given precision level.
+
+
+**Example:**
+```tomo
+>> (0.1234567).with_precision(0.01)
+= 0.12
+>> (123456.).with_precision(100)
+= 123500
+>> (1234567.).with_precision(5)
+= 1234565
 
 ```
 ## Num.y0

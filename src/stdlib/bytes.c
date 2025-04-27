@@ -14,7 +14,15 @@ PUREFUNC public Text_t Byte$as_text(const void *b, bool colorize, const TypeInfo
 {
     (void)info;
     if (!b) return Text("Byte");
-    return Text$format(colorize ? "\x1b[35m0x%02X\x1b[m" : "0x%02X", *(Byte_t*)b);
+    Byte_t byte = *(Byte_t*)b;
+    char digits[] = {'0', 'x', 
+        (byte / 16) <= 9 ? '0' + (byte / 16) : 'a' + (byte / 16) - 10,
+        (byte & 15) <= 9 ? '0' + (byte & 15) : 'a' + (byte & 15) - 10,
+        '\0',
+    };
+    Text_t text = Text$from_str(digits);
+    if (colorize) text = Texts(Text("\x1b[35m"), text, Text("\x1b[m"));
+    return text;
 }
 
 public CONSTFUNC bool Byte$is_between(const Byte_t x, const Byte_t low, const Byte_t high) {
@@ -24,14 +32,20 @@ public CONSTFUNC bool Byte$is_between(const Byte_t x, const Byte_t low, const By
 public Text_t Byte$hex(Byte_t byte, bool uppercase, bool prefix) {
     struct Text_s text = {.tag=TEXT_ASCII};
     text.ascii = GC_MALLOC_ATOMIC(8);
-    if (prefix && uppercase)
-        text.length = (int64_t)snprintf((char*)text.ascii, 8, "0x%02X", byte);
-    else if (prefix && !uppercase)
-        text.length = (int64_t)snprintf((char*)text.ascii, 8, "0x%02x", byte);
-    else if (!prefix && uppercase)
-        text.length = (int64_t)snprintf((char*)text.ascii, 8, "%02X", byte);
-    else if (!prefix && !uppercase)
-        text.length = (int64_t)snprintf((char*)text.ascii, 8, "%02x", byte);
+    char *p = (char*)text.ascii;
+    if (prefix) {
+        *(p++) = '0';
+        *(p++) = 'x';
+    }
+
+    if (uppercase) {
+        *(p++) = (byte/16) > 9 ? 'A' + (byte/16) - 10 : '0' + (byte/16);
+        *(p++) = (byte & 15) > 9 ? 'A' + (byte & 15) - 10 : '0' + (byte & 15);
+    } else {
+        *(p++) = (byte/16) > 9 ? 'a' + (byte/16) - 10 : '0' + (byte/16);
+        *(p++) = (byte & 15) > 9 ? 'a' + (byte & 15) - 10 : '0' + (byte & 15);
+    }
+    text.length = (int64_t)(p - text.ascii);
     return text;
 }
 

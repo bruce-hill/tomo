@@ -9,26 +9,44 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "lists.h"
 #include "datatypes.h"
 #include "integers.h"
+#include "lists.h"
 #include "optionals.h"
+#include "print.h"
 #include "siphash.h"
 #include "text.h"
 #include "types.h"
 
 public int Int$print(FILE *f, Int_t i) {
     if (likely(i.small & 1L)) {
-        return fprintf(f, "%ld", (i.small)>>2L);
+        return _print_int(f, (int64_t)((i.small)>>2L));
     } else {
-        char *str = mpz_get_str(NULL, 10, *i.big);
-        return fputs(str, f);
+        return gmp_fprintf(f, "%Zd", *i.big);
     }
+}
+
+static inline Text_t _int64_to_text(int64_t n)
+{
+    char buf[21] = {[20]=0}; // Big enough for INT64_MIN + '\0'
+    char *p = &buf[19];
+    bool negative = n < 0;
+
+    if (n == 0)
+        *(p--) = '0';
+
+    for (; n > 0; n /= 10)
+        *(p--) = '0' + (n % 10);
+
+    if (negative)
+        *(p--) = '-';
+
+    return Text$from_strn(p + 1, (size_t)(&buf[19] - p));
 }
 
 public Text_t Int$value_as_text(Int_t i) {
     if (likely(i.small & 1L)) {
-        return Text$format("%ld", i.small>>2L);
+        return _int64_to_text(i.small >> 2L);
     } else {
         char *str = mpz_get_str(NULL, 10, *i.big);
         return Text$from_str(str);
@@ -96,40 +114,20 @@ public PUREFUNC uint64_t Int$hash(const void *vx, const TypeInfo_t *info) {
     }
 }
 
-public Text_t Int$format(Int_t i, Int_t digits_int) {
-    int64_t digits = Int64$from_int(digits_int, false);
-    if (likely(i.small & 1L)) {
-        return Text$format("%0.*ld", digits, (int64_t)((i.small)>>2L));
-    } else {
-        char *str = mpz_get_str(NULL, 10, *i.big);
-        bool negative = (str[0] == '-');
-        int64_t needed_zeroes = digits - (int64_t)strlen(str);
-        if (needed_zeroes <= 0)
-            return Text$from_str(str);
-
-        char *zeroes = GC_MALLOC_ATOMIC((size_t)(needed_zeroes));
-        memset(zeroes, '0', (size_t)(needed_zeroes));
-        if (negative)
-            return Text$concat(Text("-"), Text$from_str(zeroes), Text$from_str(str + 1));
-        else
-            return Text$concat(Text$from_str(zeroes), Text$from_str(str));
-    }
-}
-
 public Text_t Int$hex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
     if (Int$is_negative(i))
         return Text$concat(Text("-"), Int$hex(Int$negative(i), digits_int, uppercase, prefix));
 
-    int64_t digits = Int64$from_int(digits_int, false);
     if (likely(i.small & 1L)) {
-        const char *hex_fmt = uppercase ? (prefix ? "0x%0.*lX" : "%0.*lX") : (prefix ? "0x%0.*lx" : "%0.*lx");
-        return Text$format(hex_fmt, digits, (i.small)>>2L);
+        uint64_t u64 = (uint64_t)(i.small >> 2);
+        return Text$from_str(String(hex(u64, .no_prefix=!prefix, .digits=Int32$from_int(digits_int, false), .uppercase=uppercase)));
     } else {
         char *str = mpz_get_str(NULL, 16, *i.big);
         if (uppercase) {
             for (char *c = str; *c; c++)
                 *c = (char)toupper(*c);
         }
+        int64_t digits = Int64$from_int(digits_int, false);
         int64_t needed_zeroes = digits - (int64_t)strlen(str);
         if (needed_zeroes <= 0)
             return prefix ? Text$concat(Text("0x"), Text$from_str(str)) : Text$from_str(str);
@@ -147,11 +145,11 @@ public Text_t Int$octal(Int_t i, Int_t digits_int, bool prefix) {
     if (Int$is_negative(i))
         return Text$concat(Text("-"), Int$octal(Int$negative(i), digits_int, prefix));
 
-    int64_t digits = Int64$from_int(digits_int, false);
     if (likely(i.small & 1L)) {
-        const char *octal_fmt = prefix ? "0o%0.*lo" : "%0.*lo";
-        return Text$format(octal_fmt, digits, (i.small)>>2L);
+        uint64_t u64 = (uint64_t)(i.small >> 2);
+        return Text$from_str(String(oct(u64, .no_prefix=!prefix, .digits=Int32$from_int(digits_int, false))));
     } else {
+        int64_t digits = Int64$from_int(digits_int, false);
         char *str = mpz_get_str(NULL, 8, *i.big);
         int64_t needed_zeroes = digits - (int64_t)strlen(str);
         if (needed_zeroes <= 0)
@@ -581,11 +579,12 @@ public void Int32$deserialize(FILE *in, void *outval, List_t *pointers, const Ty
 #define __builtin_add_overflow(x, y, result) ({ *(result) = (x) + (y); false; })
 #endif
 
-#define DEFINE_INT_TYPE(c_type, KindOfInt, fmt, min_val, max_val, to_attr)\
+#define DEFINE_INT_TYPE(c_type, KindOfInt, min_val, max_val, to_attr)\
     public Text_t KindOfInt ## $as_text(const void *i, bool colorize, const TypeInfo_t *info) { \
         (void)info; \
         if (!i) return Text(#KindOfInt); \
-        return Text$format(colorize ? "\x1b[35m" fmt "\x1b[m" : fmt, *(c_type*)i); \
+        Text_t text = _int64_to_text((int64_t)(*(c_type*)i)); \
+        return colorize ? Texts(Text("\033[35m"), text, Text("\033[m")) : text; \
     } \
     public PUREFUNC int32_t KindOfInt ## $compare(const void *x, const void *y, const TypeInfo_t *info) { \
         (void)info; \
@@ -600,9 +599,6 @@ public void Int32$deserialize(FILE *in, void *outval, List_t *pointers, const Ty
     } \
     public CONSTFUNC c_type KindOfInt ## $clamped(c_type x, c_type min, c_type max) { \
         return x < min ? min : (x > max ? max : x); \
-    } \
-    public Text_t KindOfInt ## $format(c_type i, Int_t digits_int) { \
-        return Text$format("%0*ld", Int32$from_int(digits_int, false), (int64_t)i); \
     } \
     public Text_t KindOfInt ## $hex(c_type i, Int_t digits_int, bool uppercase, bool prefix) { \
         Int_t as_int = Int$from_int64((int64_t)i); \
@@ -685,10 +681,10 @@ public void Int32$deserialize(FILE *in, void *outval, List_t *pointers, const Ty
         }, \
     };
 
-DEFINE_INT_TYPE(int64_t,  Int64,  "%ld", INT64_MIN, INT64_MAX, __attribute__(()))
-DEFINE_INT_TYPE(int32_t,  Int32,  "%d",  INT32_MIN, INT32_MAX, CONSTFUNC)
-DEFINE_INT_TYPE(int16_t,  Int16,  "%d",  INT16_MIN, INT16_MAX, CONSTFUNC)
-DEFINE_INT_TYPE(int8_t,   Int8,   "%d",  INT8_MIN,  INT8_MAX, CONSTFUNC)
+DEFINE_INT_TYPE(int64_t,  Int64, INT64_MIN, INT64_MAX, __attribute__(()))
+DEFINE_INT_TYPE(int32_t,  Int32, INT32_MIN, INT32_MAX, CONSTFUNC)
+DEFINE_INT_TYPE(int16_t,  Int16, INT16_MIN, INT16_MAX, CONSTFUNC)
+DEFINE_INT_TYPE(int8_t,   Int8,  INT8_MIN,  INT8_MAX, CONSTFUNC)
 #undef DEFINE_INT_TYPE
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

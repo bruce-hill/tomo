@@ -236,25 +236,27 @@ public int highlight_error(file_t *file, const char *start, const char *end, con
     if (end < file->text || end > file->text + file->len)
         start = end = file->text;
 
-    const char *lineno_fmt, *normal_color, *empty_marker;
+    const char *lineno_prefix, *lineno_suffix, *normal_color, *empty_marker;
     bool print_carets = false;
     int printed = 0;
     if (use_color) {
-        lineno_fmt = "\x1b[0;2m%*lu\x1b(0\x78\x1b(B\x1b[m ";
+        lineno_prefix = "\x1b[0;2m";
+        lineno_suffix = "\x1b(0\x78\x1b(B\x1b[m ";
         normal_color = "\x1b[m";
         empty_marker = "\x1b(0\x61\x1b(B";
-        printed += fprintf(stderr, "\x1b[33;4;1m%s\x1b[m\n", file->relative_filename);
+        printed += fprint(stderr, "\x1b[33;4;1m", file->relative_filename, "\x1b[m");
     } else {
-        lineno_fmt = "%*lu| ";
+        lineno_prefix = "";
+        lineno_suffix = "| ";
         hl_color = "";
         normal_color = "";
         empty_marker = " ";
         print_carets = true;
-        printed += fprintf(stderr, "%s\n", file->relative_filename);
+        printed += fprint(stderr, file->relative_filename);
     }
 
     if (context_lines == 0)
-        return fprintf(stderr, "%s%.*s%s", hl_color, (int)(end - start), start, normal_color);
+        return fprint(stderr, hl_color, string_slice(start, (size_t)(end - start)), normal_color);
 
     int64_t start_line = get_line_number(file, start),
             end_line = get_line_number(file, end);
@@ -271,14 +273,18 @@ public int highlight_error(file_t *file, const char *start, const char *end, con
     for (int64_t line_no = first_line; line_no <= last_line; ++line_no) {
         if (line_no > first_line + 5 && line_no < last_line - 5) {
             if (use_color)
-                printed += fprintf(stderr, "\x1b[0;2;3;4m     ... %ld lines omitted ...     \x1b[m\n", (last_line - first_line) - 11);
+                printed += fprint(stderr, "\x1b[0;2;3;4m     ... ", (last_line - first_line) - 11, " lines omitted ...     \x1b[m");
             else
-                printed += fprintf(stderr, "     ... %ld lines omitted ...\n", (last_line - first_line) - 11);
+                printed += fprint(stderr, "     ... ", (last_line - first_line) - 11, " lines omitted ...");
             line_no = last_line - 6;
             continue;
         }
 
-        printed += fprintf(stderr, lineno_fmt, digits, line_no);
+        int needed_spaces = digits;
+        for (int64_t n = line_no; n > 0; n /= 10)
+            needed_spaces -= 1;
+
+        printed += fprint_inline(stderr, lineno_prefix, repeated_char(' ', needed_spaces), line_no, lineno_suffix);
         const char *line = get_line(file, line_no);
         if (!line) break;
 
@@ -290,7 +296,7 @@ public int highlight_error(file_t *file, const char *start, const char *end, con
 
         // Zero-width matches
         if (p == start && start == end) {
-            printed += fprintf(stderr, "%s%s%s", hl_color, empty_marker, normal_color);
+            printed += fprint_inline(stderr, hl_color, empty_marker, normal_color);
             column += 1;
         }
 
@@ -306,7 +312,7 @@ public int highlight_error(file_t *file, const char *start, const char *end, con
         for (; *p && *p != '\r' && *p != '\n'; ++p)
             printed += fputc_column(stderr, *p, *p, &column);
 
-        printed += fprintf(stderr, "\n");
+        printed += fprint_inline(stderr, "\n");
 
         const char *eol = line + strcspn(line, "\r\n");
         if (print_carets && start >= line && start < eol && line <= start) {

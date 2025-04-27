@@ -378,28 +378,6 @@ Num.floor:
     >> (3.7).floor()
     = 3
     
-Num.format:
-  short: convert a number to text
-  description: >
-    Formats a number as a text with a specified precision.
-  return:
-    type: 'Text'
-    description: >
-      A text representation of the number with the specified precision.
-  args:
-    n:
-      type: 'Num'
-      description: >
-        The number to be formatted.
-    precision:
-      type: 'Int'
-      default: '0'
-      description: >
-        The number of decimal places. Default is `0`.
-  example: |
-    >> (3.14159).format(precision=2)
-    = "3.14"
-    
 Num.hypot:
   short: Euclidean distance function
   description: >
@@ -728,15 +706,44 @@ Num.percent:
       description: >
         The number to be converted to a percent.
     precision:
-      type: 'Int'
-      default: '0'
+      type: 'Num'
+      default: '0.01'
       description: >
-        The number of decimal places. Default is `0`.
+        Round the percentage to this precision level.
   example: |
     >> (0.5).percent()
     = "50%"
     >> (1./3.).percent(2)
     = "33.33%"
+    >> (1./3.).percent(2, precision=0.0001)
+    = "33.3333%"
+    >> (1./3.).percent(2, precision=10.)
+    = "30%"
+
+Num.with_precision:
+  short: round to a given precision
+  description: >
+    Round a number to the given precision level (specified as `10`, `.1`, `.001` etc).
+  return:
+    type: 'Num'
+    description: >
+      The number, rounded to the given precision level.
+  args:
+    n:
+      type: 'Num'
+      description: >
+        The number to be rounded to a given precision.
+    precision:
+      type: 'Num'
+      description: >
+        The precision to which the number should be rounded.
+  example: |
+    >> (0.1234567).with_precision(0.01)
+    = 0.12
+    >> (123456.).with_precision(100)
+    = 123500
+    >> (1234567.).with_precision(5)
+    = 1234565
     
 Num.rint:
   short: round to nearest integer
@@ -775,28 +782,6 @@ Num.round:
     = 2
     >> (2.7).round()
     = 3
-    
-Num.scientific:
-  short: format in scientific notation
-  description: >
-    Formats a number in scientific notation with a specified precision.
-  return:
-    type: 'Text'
-    description: >
-      A text representation of the number in scientific notation with the specified precision.
-  args:
-    n:
-      type: 'Num'
-      description: >
-        The number to be formatted.
-    precision:
-      type: 'Int'
-      default: '0'
-      description: >
-        The number of decimal places. Default is `0`.
-  example: |
-    >> (12345.6789).scientific(precision=2)
-    = "1.23e+04"
     
 Num.significand:
   short: get mantissa

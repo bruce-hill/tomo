@@ -26,7 +26,6 @@
     Text_t type_name ## $as_text(const void *i, bool colorize, const TypeInfo_t *type); \
     PUREFUNC int32_t type_name ## $compare(const void *x, const void *y, const TypeInfo_t *type); \
     PUREFUNC bool type_name ## $equal(const void *x, const void *y, const TypeInfo_t *type); \
-    Text_t type_name ## $format(c_type i, Int_t digits); \
     Text_t type_name ## $hex(c_type i, Int_t digits, bool uppercase, bool prefix); \
     Text_t type_name ## $octal(c_type i, Int_t digits, bool prefix); \
     List_t type_name ## $bits(c_type x); \
@@ -96,7 +95,6 @@ CONSTFUNC bool Int$is_between(const Int_t x, const Int_t low, const Int_t high);
 CONSTFUNC Int_t Int$clamped(Int_t x, Int_t low, Int_t high);
 PUREFUNC bool Int$equal(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC bool Int$equal_value(const Int_t x, const Int_t y);
-Text_t Int$format(Int_t i, Int_t digits);
 Text_t Int$hex(Int_t i, Int_t digits, bool uppercase, bool prefix);
 Text_t Int$octal(Int_t i, Int_t digits, bool prefix);
 PUREFUNC Closure_t Int$to(Int_t first, Int_t last, OptionalInt_t step);

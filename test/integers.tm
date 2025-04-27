@@ -39,10 +39,10 @@ func main()
 	= "1,2,3,4,5,"
 
 	>> x := Int64(123)
-	>> x.format(digits=5)
-	= "00123"
 	>> x.hex()
 	= "0x7B"
+	>> x.hex(digits=4)
+	= "0x007B"
 	>> x.octal()
 	= "0o173"
 

@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "fpconv.h"
 #include "lists.h"
 #include "nums.h"
 #include "string.h"
@@ -16,7 +17,11 @@
 public PUREFUNC Text_t Num$as_text(const void *f, bool colorize, const TypeInfo_t *info) { 
     (void)info;
     if (!f) return Text("Num");
-    return Text$format(colorize ? "\x1b[35m%.16g\x1b[33;2m\x1b[m" : "%.16g", *(double*)f); 
+    char *str = GC_MALLOC_ATOMIC(24);
+    int len = fpconv_dtoa(*(double*)f, str);
+    static const Text_t color_prefix = Text("\x1b[35m"), color_suffix = Text("\x1b[m");
+    Text_t text = Text$from_strn(str, (size_t)len);
+    return colorize ? Texts(color_prefix, text, color_suffix) : text;
 } 
 
 public PUREFUNC int32_t Num$compare(const void *x, const void *y, const TypeInfo_t *info) { 
@@ -52,16 +57,23 @@ public CONSTFUNC bool Num$near(double a, double b, double ratio, double absolute
     return (diff < epsilon);
 }
 
-public Text_t Num$format(double f, Int_t precision) { 
-    return Text$format("%.*f", (int)Int64$from_int(precision, false), f); 
+public Text_t Num$percent(double f, double precision) { 
+    double d = 100. * f;
+    d = Num$with_precision(d, precision);
+    return Texts(Num$as_text(&d, false, &Num$info), Text("%"));
 }
 
-public Text_t Num$scientific(double f, Int_t precision) { 
-    return Text$format("%.*e", (int)Int64$from_int(precision, false), f); 
-}
-
-public Text_t Num$percent(double f, Int_t precision) { 
-    return Text$format("%.*f%%", (int)Int64$from_int(precision, false), 100.*f); 
+public CONSTFUNC double Num$with_precision(double num, double precision) {
+    if (precision == 0.0) return num;
+    // Precision will be, e.g. 0.01 or 100.
+    if (precision < 1.) {
+        double inv = round(1./precision); // Necessary to make the math work
+        double k = num * inv;
+        return round(k) / inv;
+    } else {
+        double k = num / precision;
+        return round(k) * precision;
+    }
 }
 
 public CONSTFUNC double Num$mod(double num, double modulus) { 
@@ -120,7 +132,8 @@ public const TypeInfo_t Num$info = {
 public PUREFUNC Text_t Num32$as_text(const void *f, bool colorize, const TypeInfo_t *info) { 
     (void)info;
     if (!f) return Text("Num32");
-    return Text$format(colorize ? "\x1b[35m%.8g\x1b[33;2m\x1b[m" : "%.8g", (double)*(float*)f); 
+    double d = (double)(*(float*)f);
+    return Num$as_text(&d, colorize, &Num$info);
 }
 
 public PUREFUNC int32_t Num32$compare(const void *x, const void *y, const TypeInfo_t *info) { 
@@ -148,16 +161,23 @@ public CONSTFUNC bool Num32$near(float a, float b, float ratio, float absolute) 
     return (diff < epsilon);
 }
 
-public Text_t Num32$format(float f, Int_t precision) { 
-    return Text$format("%.*f", (int)Int64$from_int(precision, false), (double)f); 
+public Text_t Num32$percent(float f, float precision) { 
+    double d = 100. * (double)f;
+    d = Num$with_precision(d, (double)precision);
+    return Texts(Num$as_text(&d, false, &Num$info), Text("%"));
 }
 
-public Text_t Num32$scientific(float f, Int_t precision) { 
-    return Text$format("%.*e", (int)Int64$from_int(precision, false), (double)f); 
-}
-
-public Text_t Num32$percent(float f, Int_t precision) { 
-    return Text$format("%.*f%%", (int)Int64$from_int(precision, false), 100.*(double)f); 
+public CONSTFUNC float Num32$with_precision(float num, float precision) {
+    if (precision == 0.0f) return num;
+    // Precision will be, e.g. 0.01 or 100.
+    if (precision < 1.f) {
+        float inv = roundf(1.f/precision); // Necessary to make the math work
+        float k = num * inv;
+        return roundf(k) / inv;
+    } else {
+        float k = num / precision;
+        return roundf(k) * precision;
+    }
 }
 
 public CONSTFUNC float Num32$mod(float num, float modulus) { 

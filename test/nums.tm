@@ -14,8 +14,8 @@ func main()
 	>> Num.PI
 	= 3.141592653589793
 
-	>> Num.PI.format(precision=10)
-	= "3.1415926536"
+	>> Num.PI.with_precision(0.01)
+	= 3.14
 
 	>> Num.INF
 	= Num.INF

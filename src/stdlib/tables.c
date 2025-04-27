@@ -16,12 +16,13 @@
 #include <string.h>
 #include <sys/param.h>
 
-#include "lists.h"
 #include "c_strings.h"
 #include "datatypes.h"
+#include "lists.h"
 #include "memory.h"
 #include "metamethods.h"
 #include "pointers.h"
+#include "print.h"
 #include "siphash.h"
 #include "tables.h"
 #include "text.h"
@@ -31,7 +32,7 @@
 // #define DEBUG_TABLES
 
 #ifdef DEBUG_TABLES
-#define hdebug(fmt, ...) printf("\x1b[2m" fmt "\x1b[m" __VA_OPT__(,) __VA_ARGS__)
+#define hdebug(fmt, ...) print_inline("\x1b[2m", __VA_ARGS__, "\x1b[m")
 #else
 #define hdebug(...) (void)0
 #endif
@@ -87,9 +88,9 @@ static INLINE void hshow(const Table_t *t)
     for (uint32_t i = 0; t->bucket_info && i < t->bucket_info->count; i++) {
         if (i > 0) hdebug(" ");
         if (t->bucket_info->buckets[i].occupied)
-            hdebug("[%d]=%d(%d)", i, t->bucket_info->buckets[i].index, t->bucket_info->buckets[i].next_bucket);
+            hdebug("[", i, "]=", t->bucket_info->buckets[i].index, "(", t->bucket_info->buckets[i].next_bucket, ")");
         else
-            hdebug("[%d]=_", i);
+            hdebug("[", i, "]=_");
     }
     hdebug("}\n");
 }
@@ -114,10 +115,10 @@ PUREFUNC public void *Table$get_raw(Table_t t, const void *key, const TypeInfo_t
 
     uint64_t hash = HASH_KEY(t, key);
     hshow(&t);
-    hdebug("Getting value with initial probe at %u\n", hash);
+    hdebug("Getting value with initial probe at ", hash, "\n");
     bucket_t *buckets = t.bucket_info->buckets;
     for (uint64_t i = hash; buckets[i].occupied; i = buckets[i].next_bucket) {
-        hdebug("Checking against key in bucket %u\n", i);
+        hdebug("Checking against key in bucket ", i, "\n");
         void *entry = GET_ENTRY(t, buckets[i].index);
         if (EQUAL_KEYS(entry, key)) {
             hdebug("Found key!\n");
@@ -146,7 +147,7 @@ static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const
     const void *key = entry;
     bucket_t *buckets = t->bucket_info->buckets;
     uint64_t hash = HASH_KEY(*t, key);
-    hdebug("Hash value (mod %u) = %u\n", t->bucket_info->count, hash);
+    hdebug("Hash value (mod ", t->bucket_info->count, ") = ", hash, "\n");
     bucket_t *bucket = &buckets[hash];
     if (!bucket->occupied) {
         hdebug("Got an empty space\n");
@@ -158,7 +159,7 @@ static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const
         return;
     }
 
-    hdebug("Collision detected in bucket %u (entry %u)\n", hash, bucket->index);
+    hdebug("Collision detected in bucket ", hash, " (entry ", bucket->index, ")\n");
 
     while (buckets[t->bucket_info->last_free].occupied) {
         assert(t->bucket_info->last_free > 0);
@@ -167,7 +168,7 @@ static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const
 
     uint64_t collided_hash = HASH_KEY(*t, GET_ENTRY(*t, bucket->index));
     if (collided_hash != hash) { // Collided with a mid-chain entry
-        hdebug("Hit a mid-chain entry at bucket %u (chain starting at %u)\n", hash, collided_hash);
+        hdebug("Hit a mid-chain entry at bucket ", hash, " (chain starting at ", collided_hash, ")\n");
         // Find chain predecessor
         uint64_t predecessor = collided_hash;
         while (buckets[predecessor].next_bucket != hash)
@@ -197,7 +198,7 @@ static void hashmap_resize_buckets(Table_t *t, uint32_t new_capacity, const Type
 {
     if (unlikely(new_capacity > TABLE_MAX_BUCKETS))
         fail("Table has exceeded the maximum table size (2^31) and cannot grow further!");
-    hdebug("About to resize from %u to %u\n", t->bucket_info ? t->bucket_info->count : 0, new_capacity);
+    hdebug("About to resize from ", t->bucket_info ? t->bucket_info->count : 0, " to ", new_capacity, "\n");
     hshow(t);
     size_t alloc_size = sizeof(bucket_info_t) + sizeof(bucket_t[new_capacity]);
     t->bucket_info = GC_MALLOC_ATOMIC(alloc_size);
@@ -206,7 +207,7 @@ static void hashmap_resize_buckets(Table_t *t, uint32_t new_capacity, const Type
     t->bucket_info->last_free = new_capacity-1;
     // Rehash:
     for (int64_t i = 0; i < Table$length(*t); i++) {
-        hdebug("Rehashing %u\n", i);
+        hdebug("Rehashing ", i, "\n");
         Table$set_bucket(t, GET_ENTRY(*t, i), i, type);
     }
 
@@ -318,12 +319,12 @@ public void Table$remove(Table_t *t, const void *key, const TypeInfo_t *type)
     //    maybe update lastfree_index1 to removed bucket's index
 
     uint64_t hash = HASH_KEY(*t, key);
-    hdebug("Removing key with hash %u\n", hash);
+    hdebug("Removing key with hash ", hash, "\n");
     bucket_t *bucket, *prev = NULL;
     for (uint64_t i = hash; t->bucket_info->buckets[i].occupied; i = t->bucket_info->buckets[i].next_bucket) {
         if (EQUAL_KEYS(GET_ENTRY(*t, t->bucket_info->buckets[i].index), key)) {
             bucket = &t->bucket_info->buckets[i];
-            hdebug("Found key to delete in bucket %u\n", i);
+            hdebug("Found key to delete in bucket ", i, "\n");
             goto found_it;
         }
         if (t->bucket_info->buckets[i].next_bucket == END_OF_CHAIN)

@@ -82,7 +82,7 @@ public Text_t Func$as_text(const void *fn, bool colorize, const TypeInfo_t *type
         OptionalText_t filename = get_function_filename(*(void**)fn);
         int64_t line_num = get_function_line_num(*(void**)fn);
         if (filename.length >= 0)
-            text = Texts(text, Text(" ["), filename, Text$format(":%ld]", line_num));
+            text = Texts(text, Text(" ["), filename, Text(":"), Int64$as_text(&line_num, false, &Int64$info), Text("]"));
     }
     if (fn && colorize)
         text = Text$concat(Text("\x1b[32;1m"), text, Text("\x1b[m"));

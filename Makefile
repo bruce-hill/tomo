@@ -144,7 +144,8 @@ api-docs: $(API_MD) api/api.md
 
 .PHONY: manpages
 manpages: $(API_YAML) man/man1/tomo.1
-	./scripts/mandoc_gen.py $^
+	rm -f man/man3/*
+	./scripts/mandoc_gen.py $(API_YAML)
 
 man/man1/tomo.1: docs/tomo.1.md
 	pandoc --lua-filter=docs/.pandoc/bold-code.lua -s $< -t man -o $@

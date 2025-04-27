@@ -41,12 +41,15 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *ty
     if (top_level) {
         root = ptr;
     } else if (ptr == root) {
-        return Text$format(colorize ? "\x1b[34;1m%s~1\x1b[m" : "%s~1", ptr_info.sigil);
+        Text_t text = Texts(Text$from_str(ptr_info.sigil), Text("~1"));
+        return colorize ? Texts(Text("\x1b[34;1m"), text, Text("\x1b[m")) : text;
     } else {
         TypeInfo_t rec_table = *Table$info(type, &Int64$info);
         int64_t *id = Table$get(pending, x, &rec_table);
-        if (id)
-            return Text$format(colorize ? "\x1b[34;1m%s~%ld\x1b[m" : "%s~%ld", ptr_info.sigil, *id);
+        if (id) {
+            Text_t text = Texts(Text$from_str(ptr_info.sigil), Int64$as_text(id, false, &Int64$info));
+            return colorize ? Texts(Text("\x1b[34;1m"), text, Text("\x1b[m")) : text;
+        }
         int64_t next_id = pending.entries.length + 2;
         Table$set(&pending, x, &next_id, &rec_table);
     }

@@ -19,11 +19,6 @@ public Text_t CString$as_text(const void *c_string, bool colorize, const TypeInf
     return Text$concat(colorize ? Text("\x1b[34mCString\x1b[m(") : Text("CString("), Text$quoted(text, colorize, Text("\"")), Text(")"));
 }
 
-public Text_t CString$as_text_simple(const char *str)
-{
-    return Text$format("%s", str);
-}
-
 PUREFUNC public int32_t CString$compare(const void *x, const void *y, const TypeInfo_t *info)
 {
     (void)info;
