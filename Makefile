@@ -193,7 +193,12 @@ install-files: build/bin/tomo build/lib/$(LIB_FILE) build/lib/$(AR_FILE) check-u
 	cp man/man3/* "$(PREFIX)/man/man3/"
 
 install-libs: build/bin/tomo check-utilities
-	./local-tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/coroutines lib/pthreads lib/uuid lib/core
+	# Coroutines don't work with TCC for now
+	if $(DEFAULT_C_COMPILER) --version | grep -q 'tcc version'; then \
+		./local-tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/uuid lib/core; \
+	else \
+		./local-tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/coroutines lib/pthreads lib/uuid lib/core; \
+	fi
 
 install: install-files install-libs
 
