@@ -22,7 +22,7 @@ PREFIX="${PREFIX/#\~/$HOME}"
 
 if ! echo "$PATH" | tr ':' '\n' | grep -qx "$PREFIX/bin"; then
     error "Your \$PATH does not include this prefix, so you won't be able to run tomo!" \
-        "Please put this in your .profile or .bashrc: export PATH=\"$PREFIX:\$PATH\""
+        "Please put this in your .profile or .bashrc: export PATH=\"$PREFIX/bin:\$PATH\""
 fi
 
 default_home="~/.local/share/tomo"
