@@ -2198,7 +2198,7 @@ PARSER(parse_func_def) {
 
     spaces(&pos);
 
-    if (!match(&pos, "(")) return NULL;
+    expect_str(ctx, start, &pos, "(", "I expected a parenthesis for this function's arguments");
 
     arg_ast_t *args = parse_args(ctx, &pos);
     spaces(&pos);
