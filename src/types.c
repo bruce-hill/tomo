@@ -9,6 +9,7 @@
 #include "cordhelpers.h"
 #include "environment.h"
 #include "stdlib/integers.h"
+#include "stdlib/print.h"
 #include "stdlib/tables.h"
 #include "stdlib/util.h"
 #include "types.h"
@@ -31,11 +32,11 @@ CORD type_to_cord(type_t *t) {
         case CStringType: return "CString";
         case TextType: return Match(t, TextType)->lang ? Match(t, TextType)->lang : "Text";
         case BigIntType: return "Int";
-        case IntType: return CORD_asprintf("Int%d", Match(t, IntType)->bits);
+        case IntType: return String("Int", Match(t, IntType)->bits);
         case NumType: return Match(t, NumType)->bits == TYPE_NBITS32 ? "Num32" : "Num";
         case ListType: {
             DeclareMatch(list, t, ListType);
-            return CORD_asprintf("[%r]", type_to_cord(list->item_type));
+            return CORD_all("[", type_to_cord(list->item_type), "]");
         }
         case TableType: {
             DeclareMatch(table, t, TableType);
@@ -43,7 +44,7 @@ CORD type_to_cord(type_t *t) {
         }
         case SetType: {
             DeclareMatch(set, t, SetType);
-            return CORD_asprintf("{%r}", type_to_cord(set->item_type));
+            return CORD_all("{", type_to_cord(set->item_type), "}");
         }
         case ClosureType: {
             return type_to_cord(Match(t, ClosureType)->fn);
@@ -88,7 +89,7 @@ CORD type_to_cord(type_t *t) {
         }
         default: {
             raise(SIGABRT);
-            return CORD_asprintf("Unknown type: %d", t->tag);
+            return String("Unknown type: ", t->tag);
         }
     }
 }

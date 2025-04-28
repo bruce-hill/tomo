@@ -43,6 +43,11 @@ typedef struct {
 #define hex(x, ...) ((hex_format_t){.n=x, __VA_ARGS__})
 
 typedef struct {
+    double d;
+} hex_double_t;
+#define hex_double(x, ...) ((hex_double_t){.d=x, __VA_ARGS__})
+
+typedef struct {
     uint64_t n;
     bool no_prefix;
     int digits;
@@ -76,6 +81,7 @@ int _print_int(FILE *f, int64_t x);
 int _print_uint(FILE *f, uint64_t x);
 int _print_double(FILE *f, double x);
 int _print_hex(FILE *f, hex_format_t hex);
+int _print_hex_double(FILE *f, hex_double_t hex);
 int _print_oct(FILE *f, oct_format_t oct);
 PRINT_FN _print_float(FILE *f, float x) { return _print_double(f, (double)x); }
 PRINT_FN _print_pointer(FILE *f, void *p) { return _print_hex(f, hex((uint64_t)p)); }
@@ -111,6 +117,7 @@ extern int Int$print(FILE *f, Int_t i);
     float: _print_float, \
     double: _print_double, \
     hex_format_t: _print_hex, \
+    hex_double_t: _print_hex_double, \
     oct_format_t: _print_oct, \
     quoted_t: _print_quoted, \
     string_slice_t: _print_string_slice, \

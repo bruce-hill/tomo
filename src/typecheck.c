@@ -340,8 +340,8 @@ void bind_statement(env_t *env, ast_t *statement)
         if (!name)
             code_err(statement, "Conversions are only supported for text, struct, and enum types, not ", type_to_str(ret_t));
 
-        CORD code = CORD_asprintf("%r%r$%ld", namespace_prefix(env, env->namespace), name,
-                                  get_line_number(statement->file, statement->start));
+        CORD code = CORD_all(namespace_prefix(env, env->namespace), name, "$",
+                             String(get_line_number(statement->file, statement->start)));
         binding_t binding = {.type=type, .code=code};
         env_t *type_ns = get_namespace_by_type(env, ret_t);
         List$insert(&type_ns->namespace->constructors, &binding, I(0), sizeof(binding));

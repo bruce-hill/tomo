@@ -112,16 +112,15 @@ CORD type_ast_to_sexp(type_ast_t *t)
     if (!t) return "nil";
 
     switch (t->tag) {
-#define T(type, ...) case type: { __typeof(t->__data.type) data = t->__data.type; (void)data; return CORD_asprintf(__VA_ARGS__); }
+#define T(type, ...) case type: { __typeof(t->__data.type) data = t->__data.type; (void)data; return CORD_all(__VA_ARGS__); }
     T(UnknownTypeAST, "(UnknownType)")
-    T(VarTypeAST, "(VarType \"%s\")", data.name)
-    T(PointerTypeAST, "(PointerType \"%s\" %r)",
-      data.is_stack ? "stack" : "heap", type_ast_to_sexp(data.pointed))
-    T(ListTypeAST, "(ListType %r)", type_ast_to_sexp(data.item))
-    T(SetTypeAST, "(SetType %r)", type_ast_to_sexp(data.item))
-    T(TableTypeAST, "(TableType %r %r)", type_ast_to_sexp(data.key), type_ast_to_sexp(data.value))
-    T(FunctionTypeAST, "(FunctionType %r %r)", arg_defs_to_sexp(data.args), type_ast_to_sexp(data.ret))
-    T(OptionalTypeAST, "(OptionalType %r)", type_ast_to_sexp(data.type))
+    T(VarTypeAST, "(VarType \"", data.name, "\")")
+    T(PointerTypeAST, "(PointerType \"", data.is_stack ? "stack" : "heap", "\" ", type_ast_to_sexp(data.pointed), ")")
+    T(ListTypeAST, "(ListType ", type_ast_to_sexp(data.item), ")")
+    T(SetTypeAST, "(SetType ", type_ast_to_sexp(data.item), ")")
+    T(TableTypeAST, "(TableType ", type_ast_to_sexp(data.key), " ", type_ast_to_sexp(data.value), ")")
+    T(FunctionTypeAST, "(FunctionType ", arg_defs_to_sexp(data.args), " ", type_ast_to_sexp(data.ret), ")")
+    T(OptionalTypeAST, "(OptionalType ", type_ast_to_sexp(data.type), ")")
 #undef T
     default: return CORD_EMPTY;
     }
@@ -142,19 +141,19 @@ CORD ast_to_sexp(ast_t *ast)
     if (!ast) return "nil";
 
     switch (ast->tag) {
-#define T(type, ...) case type: { __typeof(ast->__data.type) data = ast->__data.type; (void)data; return CORD_asprintf(__VA_ARGS__); }
+#define T(type, ...) case type: { __typeof(ast->__data.type) data = ast->__data.type; (void)data; return CORD_all(__VA_ARGS__); }
     T(Unknown,  "(Unknown)")
     T(None, "(None)")
-    T(Bool, "(Bool %s)", data.b ? "yes" : "no")
-    T(Var, "(Var %r)", CORD_quoted(data.name))
-    T(Int, "(Int %r)", CORD_quoted(ast_source(ast)))
-    T(Num, "(Num %r)", CORD_quoted(ast_source(ast)))
-    T(TextLiteral, "%r", CORD_quoted(data.cord))
-    T(TextJoin, "(Text%r%r)", data.lang ? CORD_all(" :lang ", CORD_quoted(data.lang)) : CORD_EMPTY, ast_list_to_sexp(data.children))
-    T(Path, "(Path %r)", CORD_quoted(data.path))
-    T(Declare, "(Declare %r %r %r)", ast_to_sexp(data.var), type_ast_to_sexp(data.type), ast_to_sexp(data.value))
-    T(Assign, "(Assign (targets %r) (values %r))", ast_list_to_sexp(data.targets), ast_list_to_sexp(data.values))
-#define BINOP(name) T(name, "(" #name " %r %r)", ast_to_sexp(data.lhs), ast_to_sexp(data.rhs))
+    T(Bool, "(Bool ", data.b ? "yes" : "no", ")")
+    T(Var, "(Var ", CORD_quoted(data.name), ")")
+    T(Int, "(Int ", CORD_quoted(ast_source(ast)), ")")
+    T(Num, "(Num ", CORD_quoted(ast_source(ast)), ")")
+    T(TextLiteral, CORD_quoted(data.cord))
+    T(TextJoin, "(Text", data.lang ? CORD_all(" :lang ", CORD_quoted(data.lang)) : CORD_EMPTY, ast_list_to_sexp(data.children), ")")
+    T(Path, "(Path ", CORD_quoted(data.path), ")")
+    T(Declare, "(Declare ", ast_to_sexp(data.var), " ", type_ast_to_sexp(data.type), " ", ast_to_sexp(data.value), ")")
+    T(Assign, "(Assign (targets ", ast_list_to_sexp(data.targets), ") (values ", ast_list_to_sexp(data.values), "))")
+#define BINOP(name) T(name, "(" #name " ", ast_to_sexp(data.lhs), " ", ast_to_sexp(data.rhs), ")")
     BINOP(Power) BINOP(PowerUpdate) BINOP(Multiply) BINOP(MultiplyUpdate) BINOP(Divide) BINOP(DivideUpdate) BINOP(Mod) BINOP(ModUpdate)
     BINOP(Mod1) BINOP(Mod1Update) BINOP(Plus) BINOP(PlusUpdate) BINOP(Minus) BINOP(MinusUpdate) BINOP(Concat) BINOP(ConcatUpdate)
     BINOP(LeftShift) BINOP(LeftShiftUpdate) BINOP(RightShift) BINOP(RightShiftUpdate) BINOP(UnsignedLeftShift) BINOP(UnsignedLeftShiftUpdate)
@@ -162,58 +161,52 @@ CORD ast_to_sexp(ast_t *ast)
     BINOP(Xor) BINOP(XorUpdate) BINOP(Compare)
     BINOP(Equals) BINOP(NotEquals) BINOP(LessThan) BINOP(LessThanOrEquals) BINOP(GreaterThan) BINOP(GreaterThanOrEquals)
 #undef BINOP
-    T(Negative, "(Negative %r)", ast_to_sexp(data.value))
-    T(Not, "(Not %r)", ast_to_sexp(data.value))
-    T(HeapAllocate, "(HeapAllocate %r)", ast_to_sexp(data.value))
-    T(StackReference, "(StackReference %r)", ast_to_sexp(data.value))
-    T(Min, "(Min %r %r%r)", ast_to_sexp(data.lhs), ast_to_sexp(data.rhs), optional_sexp("key", data.key))
-    T(Max, "(Max %r %r%r)", ast_to_sexp(data.lhs), ast_to_sexp(data.rhs), optional_sexp("key", data.key))
-    T(List, "(List%r)", ast_list_to_sexp(data.items))
-    T(Set, "(Set%r)", ast_list_to_sexp(data.items))
-    T(Table, "(Table%r%r%r)",
-      optional_sexp("default", data.default_value),
-      optional_sexp("fallback", data.fallback),
-      ast_list_to_sexp(data.entries))
-    T(TableEntry, "(TableEntry %r %r)", ast_to_sexp(data.key), ast_to_sexp(data.value))
-    T(Comprehension, "(Comprehension %r (vars%r) %r %r)", ast_to_sexp(data.expr),
-      ast_list_to_sexp(data.vars), ast_to_sexp(data.iter),
-      optional_sexp("filter", data.filter))
-    T(FunctionDef, "(FunctionDef %r %r%r %r)", ast_to_sexp(data.name),
-      arg_defs_to_sexp(data.args), optional_type_sexp("return", data.ret_type), ast_to_sexp(data.body))
-    T(ConvertDef, "(ConvertDef %r %r %r)",
-      arg_defs_to_sexp(data.args), type_ast_to_sexp(data.ret_type), ast_to_sexp(data.body))
-    T(Lambda, "(Lambda %r%r %r)", arg_defs_to_sexp(data.args),
-      optional_type_sexp("return", data.ret_type), ast_to_sexp(data.body))
-    T(FunctionCall, "(FunctionCall %r%r)", ast_to_sexp(data.fn), arg_list_to_sexp(data.args))
-    T(MethodCall, "(MethodCall %r %r%r)", ast_to_sexp(data.self), CORD_quoted(data.name), arg_list_to_sexp(data.args))
-    T(Block, "(Block%r)", ast_list_to_sexp(data.statements))
-    T(For, "(For (vars%r) %r %r %r)", ast_list_to_sexp(data.vars), ast_to_sexp(data.iter),
-      ast_to_sexp(data.body), ast_to_sexp(data.empty))
-    T(While, "(While %r %r)", ast_to_sexp(data.condition), ast_to_sexp(data.body))
-    T(Repeat, "(Repeat %r)", ast_to_sexp(data.body))
-    T(If, "(If %r %r%r)", ast_to_sexp(data.condition), ast_to_sexp(data.body), optional_sexp("else", data.else_body))
-    T(When, "(When %r%r%r)", ast_to_sexp(data.subject), when_clauses_to_sexp(data.clauses), optional_sexp("else", data.else_body))
-    T(Reduction, "(Reduction %r %r %r)", CORD_quoted(binop_method_name(data.op)), ast_to_sexp(data.key),
-      ast_to_sexp(data.iter))
-    T(Skip, "(Skip %r)", CORD_quoted(data.target))
-    T(Stop, "(Stop %r)", CORD_quoted(data.target))
+    T(Negative, "(Negative ", ast_to_sexp(data.value), ")")
+    T(Not, "(Not ", ast_to_sexp(data.value), ")")
+    T(HeapAllocate, "(HeapAllocate ", ast_to_sexp(data.value), ")")
+    T(StackReference, "(StackReference ", ast_to_sexp(data.value), ")")
+    T(Min, "(Min ", ast_to_sexp(data.lhs), " ", ast_to_sexp(data.rhs), optional_sexp("key", data.key), ")")
+    T(Max, "(Max ", ast_to_sexp(data.lhs), " ", ast_to_sexp(data.rhs), optional_sexp("key", data.key), ")")
+    T(List, "(List", ast_list_to_sexp(data.items), ")")
+    T(Set, "(Set", ast_list_to_sexp(data.items), ")")
+    T(Table, "(Table", optional_sexp("default", data.default_value), optional_sexp("fallback", data.fallback),
+      ast_list_to_sexp(data.entries), ")")
+    T(TableEntry, "(TableEntry ", ast_to_sexp(data.key), " ", ast_to_sexp(data.value), ")")
+    T(Comprehension, "(Comprehension ", ast_to_sexp(data.expr), " (vars", ast_list_to_sexp(data.vars), ") ",
+      ast_to_sexp(data.iter), " ", optional_sexp("filter", data.filter), ")")
+    T(FunctionDef, "(FunctionDef ", ast_to_sexp(data.name), " ", arg_defs_to_sexp(data.args),
+      optional_type_sexp("return", data.ret_type), " ", ast_to_sexp(data.body), ")")
+    T(ConvertDef, "(ConvertDef ", arg_defs_to_sexp(data.args), " ", type_ast_to_sexp(data.ret_type), " ", ast_to_sexp(data.body), ")")
+    T(Lambda, "(Lambda ", arg_defs_to_sexp(data.args), optional_type_sexp("return", data.ret_type), " ", ast_to_sexp(data.body), ")")
+    T(FunctionCall, "(FunctionCall ", ast_to_sexp(data.fn), arg_list_to_sexp(data.args), ")")
+    T(MethodCall, "(MethodCall ", ast_to_sexp(data.self), " ", CORD_quoted(data.name), arg_list_to_sexp(data.args), ")")
+    T(Block, "(Block", ast_list_to_sexp(data.statements), ")")
+    T(For, "(For (vars", ast_list_to_sexp(data.vars), ") ", ast_to_sexp(data.iter), " ", ast_to_sexp(data.body),
+      " ", ast_to_sexp(data.empty), ")")
+    T(While, "(While ", ast_to_sexp(data.condition), " ", ast_to_sexp(data.body), ")")
+    T(Repeat, "(Repeat ", ast_to_sexp(data.body), ")")
+    T(If, "(If ", ast_to_sexp(data.condition), " ", ast_to_sexp(data.body), optional_sexp("else", data.else_body), ")")
+    T(When, "(When ", ast_to_sexp(data.subject), when_clauses_to_sexp(data.clauses), optional_sexp("else", data.else_body), ")")
+    T(Reduction, "(Reduction ", CORD_quoted(binop_method_name(data.op)), " ", ast_to_sexp(data.key), " ", ast_to_sexp(data.iter), ")")
+    T(Skip, "(Skip ", CORD_quoted(data.target), ")")
+    T(Stop, "(Stop ", CORD_quoted(data.target), ")")
     T(Pass, "(Pass)")
-    T(Defer, "(Defer %r)", ast_to_sexp(data.body))
-    T(Return, "(Return %r)", ast_to_sexp(data.value))
-    T(Extern, "(Extern \"%s\" %r)", data.name, type_ast_to_sexp(data.type))
-    T(StructDef, "(StructDef \"%s\" %r %r)", data.name, arg_defs_to_sexp(data.fields), ast_to_sexp(data.namespace))
-    T(EnumDef, "(EnumDef \"%s\" (tags %r) %r)", data.name, tags_to_sexp(data.tags), ast_to_sexp(data.namespace))
-    T(LangDef, "(LangDef \"%s\" %r)", data.name, ast_to_sexp(data.namespace))
-    T(Index, "(Index %r %r)", ast_to_sexp(data.indexed), ast_to_sexp(data.index))
-    T(FieldAccess, "(FieldAccess %r \"%s\")", ast_to_sexp(data.fielded), data.field)
-    T(Optional, "(Optional %r)", ast_to_sexp(data.value))
-    T(NonOptional, "(NonOptional %r)", ast_to_sexp(data.value))
-    T(DocTest, "(DocTest %r%r)", ast_to_sexp(data.expr), optional_sexp("expected", data.expected))
-    T(Assert, "(Assert %r %r)", ast_to_sexp(data.expr), optional_sexp("message", data.message))
-    T(Use, "(Use %r %r)", optional_sexp("var", data.var), CORD_quoted(data.path))
-    T(InlineCCode, "(InlineCCode %r%r)", ast_list_to_sexp(data.chunks), optional_type_sexp("type", data.type_ast))
-    T(Deserialize, "(Deserialize %r %r)", type_ast_to_sexp(data.type), ast_to_sexp(data.value))
-    T(Extend, "(Extend \"%s\" %r)", data.name, ast_to_sexp(data.body))
+    T(Defer, "(Defer ", ast_to_sexp(data.body), ")")
+    T(Return, "(Return ", ast_to_sexp(data.value), ")")
+    T(Extern, "(Extern \"", data.name, "\" ", type_ast_to_sexp(data.type), ")")
+    T(StructDef, "(StructDef \"", data.name, "\" ", arg_defs_to_sexp(data.fields), " ", ast_to_sexp(data.namespace), ")")
+    T(EnumDef, "(EnumDef \"", data.name, "\" (tags ", tags_to_sexp(data.tags), ") ", ast_to_sexp(data.namespace), ")")
+    T(LangDef, "(LangDef \"", data.name, "\" ", ast_to_sexp(data.namespace), ")")
+    T(Index, "(Index ", ast_to_sexp(data.indexed), " ", ast_to_sexp(data.index), ")")
+    T(FieldAccess, "(FieldAccess ", ast_to_sexp(data.fielded), " \"", data.field, "\")")
+    T(Optional, "(Optional ", ast_to_sexp(data.value), ")")
+    T(NonOptional, "(NonOptional ", ast_to_sexp(data.value), ")")
+    T(DocTest, "(DocTest ", ast_to_sexp(data.expr), optional_sexp("expected", data.expected), ")")
+    T(Assert, "(Assert ", ast_to_sexp(data.expr), " ", optional_sexp("message", data.message), ")")
+    T(Use, "(Use ", optional_sexp("var", data.var), " ", CORD_quoted(data.path), ")")
+    T(InlineCCode, "(InlineCCode ", ast_list_to_sexp(data.chunks), optional_type_sexp("type", data.type_ast), ")")
+    T(Deserialize, "(Deserialize ", type_ast_to_sexp(data.type), " ", ast_to_sexp(data.value), ")")
+    T(Extend, "(Extend \"", data.name, "\" ", ast_to_sexp(data.body), ")")
     default: errx(1, "S-expressions are not implemented for this AST"); 
 #undef T
     }

@@ -1,20 +1,11 @@
 // Some helper functions for the GC Cord library
 
 #include <gc/cord.h>
-#include <stdarg.h>
+#include <stdint.h>
 
+#include "cordhelpers.h"
+#include "stdlib/print.h"
 #include "stdlib/util.h"
-
-__attribute__((format(printf, 1, 2)))
-public CORD CORD_asprintf(CORD fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    CORD c = NULL;
-    CORD_vsprintf(&c, fmt, args);
-    va_end(args);
-    return c;
-}
 
 public CORD CORD_quoted(CORD str)
 {
@@ -42,7 +33,7 @@ public CORD CORD_quoted(CORD str)
         case '\\': quoted = CORD_cat(quoted, "\\\\"); break;
         case '\x00' ... '\x06': case '\x0E' ... '\x1A':
         case '\x1C' ... '\x1F': case '\x7F' ... '\x7F':
-            CORD_sprintf(&quoted, "%r\\x%02X", quoted, c);
+            quoted = CORD_all(quoted, "\\x", String(hex((uint64_t)c, .no_prefix=true, .uppercase=true, .digits=2)));
             break;
         default: quoted = CORD_cat_char(quoted, c); break;
         }

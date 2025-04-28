@@ -32,11 +32,10 @@ static inline Text_t _int64_to_text(int64_t n)
     char *p = &buf[19];
     bool negative = n < 0;
 
-    if (n == 0)
-        *(p--) = '0';
-
-    for (; n > 0; n /= 10)
+    do {
         *(p--) = '0' + (n % 10);
+        n /= 10;
+    } while (n > 0);
 
     if (negative)
         *(p--) = '-';

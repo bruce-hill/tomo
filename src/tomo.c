@@ -68,7 +68,7 @@ static OptionalBool_t verbose = false,
 
 static OptionalText_t 
             show_codegen = NONE_TEXT,
-            cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs -Wno-parentheses-equality "
+            cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs "
                           " -ffunction-sections -fdata-sections"
                           " -fno-signed-zeros -fno-finite-math-only "
                           " -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -fPIC -ggdb"
@@ -209,6 +209,11 @@ int main(int argc, char *argv[])
     if (is_gcc) {
         cflags = Texts(cflags, Text(" -fsanitize=signed-integer-overflow -fno-sanitize-recover"
                                     " -fno-signaling-nans -fno-trapping-math"));
+    }
+
+    bool is_clang = (system(String(cc, " -v 2>&1 | grep -q 'clang version'")) == 0);
+    if (is_clang) {
+        cflags = Texts(cflags, Text(" -Wno-parentheses-equality"));
     }
 
 #ifdef __APPLE__
@@ -432,7 +437,7 @@ static void _compile_file_header_for_library(env_t *env, Path_t header_path, Pat
     visit_topologically(
         Match(file_ast, Block)->statements, (Closure_t){.fn=(void*)_compile_statement_header_for_library, &info});
 
-    CORD_fprintf(output, "void %r$initialize(void);\n", namespace_prefix(module_env, module_env->namespace));
+    CORD_put(CORD_all("void ", namespace_prefix(module_env, module_env->namespace), "$initialize(void);\n"), output);
 }
 
 void build_library(Path_t lib_dir)
@@ -445,7 +450,7 @@ void build_library(Path_t lib_dir)
     List_t tm_files = Path$glob(Path$with_component(lib_dir, Text("[!._0-9]*.tm")));
     env_t *env = fresh_scope(global_env(source_mapping));
     List_t object_files = {},
-            extra_ldlibs = {};
+           extra_ldlibs = {};
 
     compile_files(env, tm_files, &object_files, &extra_ldlibs);
 

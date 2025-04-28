@@ -25,14 +25,15 @@ CORD compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t 
         short_name = strrchr(short_name, '$') + 1;
 
     const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
-    CORD typeinfo = CORD_asprintf("public const TypeInfo_t %r = {.size=sizeof(%r), .align=__alignof__(%r), .metamethods=%s, "
-                                  ".tag=StructInfo, .StructInfo.name=\"%s\"%s%s, "
-                                  ".StructInfo.num_fields=%ld",
-                                  typeinfo_name, type_code, type_code, metamethods, short_name, is_secret ? ", .StructInfo.is_secret=true" : "",
-                                  is_opaque ? ", .StructInfo.is_opaque=true" : "",
-                                  num_fields);
+    CORD typeinfo = CORD_all("public const TypeInfo_t ", typeinfo_name,
+                                  " = {.size=sizeof(", type_code, "), .align=__alignof__(", type_code, "), "
+                                  ".metamethods=", metamethods, ", "
+                                  ".tag=StructInfo, .StructInfo.name=\"", short_name, "\"",
+                                  is_secret ? ", .StructInfo.is_secret=true" : CORD_EMPTY,
+                                  is_opaque ? ", .StructInfo.is_opaque=true" : CORD_EMPTY,
+                                  ", .StructInfo.num_fields=", String(num_fields));
     if (fields) {
-        typeinfo = CORD_asprintf("%r, .StructInfo.fields=(NamedType_t[%d]){", typeinfo, num_fields);
+        typeinfo = CORD_all(typeinfo, ", .StructInfo.fields=(NamedType_t[", String(num_fields), "]){");
         for (arg_ast_t *f = fields; f; f = f->next) {
             type_t *field_type = get_arg_ast_type(env, f);
             typeinfo = CORD_all(typeinfo, "{\"", f->name, "\", ", compile_type_info(field_type), "}");
@@ -64,7 +65,7 @@ CORD compile_struct_header(env_t *env, ast_t *ast)
     CORD struct_code = def->external ? CORD_EMPTY : CORD_all(type_code, " {\n", fields, "};\n");
     type_t *t = Table$str_get(*env->types, def->name);
 
-    CORD unpadded_size = def->opaque ? CORD_all("sizeof(", type_code, ")") : CORD_asprintf("%zu", unpadded_struct_size(t));
+    CORD unpadded_size = def->opaque ? CORD_all("sizeof(", type_code, ")") : String(unpadded_struct_size(t));
     CORD typeinfo_code = CORD_all("extern const TypeInfo_t ", typeinfo_name, ";\n");
     CORD optional_code = CORD_EMPTY;
     if (!def->opaque) {
