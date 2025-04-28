@@ -32,6 +32,14 @@ CWARN=-Wall -Wextra -Wno-format -Wshadow \
 	  -Wunused-const-variable -Wunused-local-typedefs -Wunused-macros -Wvariadic-macros \
 	  -Wwrite-strings
 
+ifeq ($(shell command -v doas 2>/dev/null),)
+	SUDO=sudo
+else
+	SUDO=doas
+endif
+
+OWNER=$(shell ls -ld '$(PREFIX)' | awk '{print $$3}')
+
 ifeq ($(shell $(CC) -v 2>&1 | grep -c "gcc version"), 1)
 	LTO += -flto=auto -fno-fat-lto-objects -Wl,-flto
 	CWARN += -Werror -Wsign-conversion -Walloc-zero -Wduplicated-branches -Wduplicated-cond -Wjump-misses-init \
@@ -185,13 +193,13 @@ install-files: build/bin/tomo build/lib/$(LIB_FILE) build/lib/$(AR_FILE) check-u
 		printf "\n\033[1mexport PATH=\"$(PREFIX):\$$PATH\"\033[m\n\n" >&2; \
 		exit 1; \
 	fi
-	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
-	cp src/stdlib/*.h "$(PREFIX)/include/tomo/"
-	cp build/lib/$(LIB_FILE) build/lib/$(AR_FILE) "$(PREFIX)/lib/"
-	rm -f "$(PREFIX)/bin/tomo"
-	cp build/bin/tomo "$(PREFIX)/bin/"
-	cp man/man1/* "$(PREFIX)/man/man1/"
-	cp man/man3/* "$(PREFIX)/man/man3/"
+	$(SUDO) -u "$(OWNER)" mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
+	$(SUDO) -u "$(OWNER)" cp src/stdlib/*.h "$(PREFIX)/include/tomo/"
+	$(SUDO) -u "$(OWNER)" cp build/lib/$(LIB_FILE) build/lib/$(AR_FILE) "$(PREFIX)/lib/"
+	$(SUDO) -u "$(OWNER)" rm -f "$(PREFIX)/bin/tomo"
+	$(SUDO) -u "$(OWNER)" cp build/bin/tomo "$(PREFIX)/bin/"
+	$(SUDO) -u "$(OWNER)" cp man/man1/* "$(PREFIX)/man/man1/"
+	$(SUDO) -u "$(OWNER)" cp man/man3/* "$(PREFIX)/man/man3/"
 
 install-libs: build/bin/tomo check-utilities
 	# Coroutines don't work with TCC for now
