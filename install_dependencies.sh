@@ -13,8 +13,6 @@ fi
 if [ -n "$1" ]; then
     PKG_MGR="$1"
 # Autodetect package manager:
-elif command -v apt >/dev/null 2>&1; then
-    PKG_MGR="apt"
 elif command -v dnf >/dev/null 2>&1; then
     PKG_MGR="dnf"
 elif command -v yay >/dev/null 2>&1; then
@@ -41,6 +39,8 @@ elif command -v spack >/dev/null 2>&1; then
     PKG_MGR="spack"
 elif command -v conda >/dev/null 2>&1; then
     PKG_MGR="conda"
+elif command -v apt >/dev/null 2>&1; then
+    PKG_MGR="apt"
 else
     echo "Unsupported package manager" >&2
     exit 1
