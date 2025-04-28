@@ -14,8 +14,8 @@ CCONFIG=-std=c2x -fPIC \
 		-fvisibility=hidden -fdollars-in-identifiers \
 		-DGC_THREADS
 LTO=
-LDFLAGS=-L/usr/local/lib
-INCLUDE_DIRS=-I/usr/local/include
+LDFLAGS=
+INCLUDE_DIRS=
 CWARN=-Wall -Wextra -Wno-format -Wshadow \
 	  -Wno-pedantic \
 	  -Wno-pointer-arith \
