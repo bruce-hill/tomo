@@ -34,7 +34,7 @@ TOMO_HOME="${TOMO_HOME/#\~/$HOME}"
 default_cc="cc"
 printf '\033[1mChoose which C compiler to use by default (default: %s):\033[m ' "$default_cc"
 read DEFAULT_C_COMPILER
-if [ -z "$DEFAULT_C_COMPILER" ]; then DEFAULT_C_COMPILER="$default_home"; fi
+if [ -z "$DEFAULT_C_COMPILER" ]; then DEFAULT_C_COMPILER="cc"; fi
 DEFAULT_C_COMPILER="${DEFAULT_C_COMPILER/#\~/$HOME}"
 
 cat <<END >config.mk
