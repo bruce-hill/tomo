@@ -371,7 +371,7 @@ static void _compile_statement_header_for_library(libheader_info_t *info, ast_t 
 
         Path_t path = Path$from_str(use->path);
         if (!Table$get(*info->used_imports, &path, Table$info(&Path$info, &Path$info))) {
-            Table$set(info->used_imports, &path, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
+            Table$set(info->used_imports, &path, NULL, Table$info(&Text$info, &Void$info));
             CORD_put(compile_statement_type_header(info->env, info->header_path, ast), info->output);
             CORD_put(compile_statement_namespace_header(info->env, info->header_path, ast), info->output);
         }
@@ -404,10 +404,10 @@ static void _make_typedefs_for_library(libheader_info_t *info, ast_t *ast)
 
 static void _compile_file_header_for_library(env_t *env, Path_t header_path, Path_t path, Table_t *visited_files, Table_t *used_imports, FILE *output)
 {
-    if (Table$get(*visited_files, &path, Table$info(&Path$info, &Bool$info)))
+    if (Table$has_value(*visited_files, path, Table$info(&Path$info, &Void$info)))
         return;
 
-    Table$set(visited_files, &path, ((Bool_t[1]){1}), Table$info(&Path$info, &Bool$info));
+    Table$set(visited_files, &path, NULL, Table$info(&Path$info, &Void$info));
 
     ast_t *file_ast = parse_file(Path$as_c_string(path), NULL);
     if (!file_ast) print_err("Could not parse file ", path);
@@ -652,7 +652,7 @@ bool is_config_outdated(Path_t path)
 
 void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_link)
 {
-    if (Table$get(*to_compile, &path, Table$info(&Path$info, &Byte$info)))
+    if (Table$has_value(*to_compile, path, Table$info(&Path$info, &Byte$info)))
         return;
 
     staleness_t staleness = {
@@ -693,8 +693,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
         case USE_MODULE: {
             Text_t lib = Texts(Text("'" TOMO_HOME "/installed/"),
                                Text$from_str(use->path), Text("/lib"), Text$from_str(use->path), Text(SHARED_SUFFIX "'"));
-            bool t = true;
-            Table$set(to_link, &lib, &t, Table$info(&Text$info, &Bool$info));
+            Table$set(to_link, &lib, NULL, Table$info(&Text$info, &Void$info));
 
             List_t children = Path$glob(Path$from_str(String(TOMO_HOME"/installed/", use->path, "/*.tm")));
             for (int64_t i = 0; i < children.length; i++) {
@@ -706,14 +705,14 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
         }
         case USE_SHARED_OBJECT: {
             Text_t lib = Text$from_str(use->path);
-            Table$set(to_link, &lib, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
+            Table$set(to_link, &lib, NULL, Table$info(&Text$info, &Void$info));
             break;
         }
         case USE_ASM: {
             Path_t asm_path = Path$from_str(use->path);
             asm_path = Path$concat(Path$parent(path), asm_path);
             Text_t linker_text = Path$as_text(&asm_path, NULL, &Path$info);
-            Table$set(to_link, &linker_text, ((Bool_t[1]){1}), Table$info(&Text$info, &Bool$info));
+            Table$set(to_link, &linker_text, NULL, Table$info(&Text$info, &Void$info));
             break;
         }
         default: case USE_HEADER: break;
