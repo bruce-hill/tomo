@@ -2,6 +2,14 @@
 ifeq ($(wildcard config.mk),)
 all: config.mk
 	$(MAKE) all
+install: config.mk
+	$(MAKE) install
+install-files: config.mk
+	$(MAKE) install-files
+install-lib: config.mk
+	$(MAKE) install-lib
+test: config.mk
+	$(MAKE) test
 config.mk: configure.sh
 	bash ./configure.sh
 else
