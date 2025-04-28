@@ -85,7 +85,7 @@ check-c-compiler:
 		|| { printf '\033[31;1m%s\033[m\n' "You have set your DEFAULT_C_COMPILER to $(DEFAULT_C_COMPILER) in your config.mk, but I can't run it!"; exit 1; }
 
 check-libs: check-c-compiler
-	@echo 'int main() { return 0; }' | $(DEFAULT_C_COMPILER) $(LDLIBS) -x c - -o /dev/null 2>/dev/null >/dev/null \
+	@echo 'int main() { return 0; }' | $(DEFAULT_C_COMPILER) $(LDFLAGS) $(LDLIBS) -x c - -o /dev/null 2>/dev/null >/dev/null \
 		|| { printf '\033[31;1m%s\033[m\n' "I expected to find the following libraries on your system, but I can't find them: $(LDLIBS)"; exit 1; }
 
 build/bin/tomo: $(STDLIB_OBJS) $(COMPILER_OBJS)
