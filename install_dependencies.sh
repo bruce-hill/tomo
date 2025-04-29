@@ -58,7 +58,7 @@ case "$PKG_MGR" in
     brew) brew install bdw-gc libunistring binutils llvm patchelf gmp ;;
     macports) $SUDO port install boehm-gc libunistring binutils patchelf gmp ;;
     zypper) $SUDO zypper install gc-devel libunistring-devel binutils patchelf gmp-devel ;;
-    nix) nix-env -iA nixpkgs.boehm-gc nixpkgs.libunistring nixpkgs.binutils nixpkgs.patchelf nixpkgs.gmp ;;
+    nix) nix-env -iA nixpkgs.boehmgc.dev nixpkgs.libunistring nixpkgs.binutils nixpkgs.patchelf nixpkgs.gmp ;;
     spack) spack install boehm-gc libunistring binutils patchelf gmp ;;
     conda) conda install boehm-gc libunistring binutils patchelf gmp ;;
     *)
