@@ -65,7 +65,7 @@ CORD compile_struct_header(env_t *env, ast_t *ast)
     CORD struct_code = def->external ? CORD_EMPTY : CORD_all(type_code, " {\n", fields, "};\n");
     type_t *t = Table$str_get(*env->types, def->name);
 
-    CORD unpadded_size = def->opaque ? CORD_all("sizeof(", type_code, ")") : String(unpadded_struct_size(t));
+    CORD unpadded_size = def->opaque ? CORD_all("sizeof(", type_code, ")") : String((int64_t)unpadded_struct_size(t));
     CORD typeinfo_code = CORD_all("extern const TypeInfo_t ", typeinfo_name, ";\n");
     CORD optional_code = CORD_EMPTY;
     if (!def->opaque) {
