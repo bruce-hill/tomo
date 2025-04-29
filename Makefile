@@ -24,7 +24,7 @@ CCONFIG=-std=c2x -fPIC \
 LTO=
 LDFLAGS=
 INCLUDE_DIRS=
-CWARN=-Wall -Wextra -Wno-format -Wshadow \
+CWARN=-Wall -Wextra -Wno-format -Wno-format-security -Wshadow \
 	  -Wno-pedantic \
 	  -Wno-pointer-arith \
 	  -Wtype-limits -Wunused-result -Wnull-dereference \
