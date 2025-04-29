@@ -27,6 +27,7 @@
 #include "types.h"
 
 #define run_cmd(...) ({ const char *_cmd = String(__VA_ARGS__); if (verbose) print("\033[34;1m", _cmd, "\033[m"); popen(_cmd, "w"); })
+#define xsystem(...) ({ int _status = system(String(__VA_ARGS__)); if (!WIFEXITED(_status) || WEXITSTATUS(_status) != 0) errx(1, "Failed to run command: ", String(__VA_ARGS__)); })
 #define list_text(list) Text$join(Text(" "), list)
 
 #define whisper(...) print("\033[2m", __VA_ARGS__, "\033[m")
@@ -228,7 +229,7 @@ int main(int argc, char *argv[])
 
     for (int64_t i = 0; i < uninstall.length; i++) {
         Text_t *u = (Text_t*)(uninstall.data + i*uninstall.stride);
-        system(String("rm -rvf '"TOMO_HOME"'/installed/", *u, " '"TOMO_HOME"'/lib/lib", *u, SHARED_SUFFIX));
+        xsystem("rm -rvf '"TOMO_HOME"'/installed/", *u, " '"TOMO_HOME"'/lib/lib", *u, SHARED_SUFFIX);
         print("Uninstalled ", *u);
     }
 
@@ -311,7 +312,7 @@ int main(int argc, char *argv[])
         for (int64_t i = 0; i < files.length; i++) {
             Path_t path = *(Path_t*)(files.data + i*files.stride);
             Path_t exe = Path$with_extension(path, Text(""), true);
-            system(String("cp -v '", exe, "' '"TOMO_PREFIX"'/bin/"));
+            xsystem("cp -v '", exe, "' '"TOMO_PREFIX"'/bin/");
         }
     }
     return 0;
@@ -546,20 +547,20 @@ void install_library(Path_t lib_dir)
         if (verbose) whisper("Clearing out any pre-existing version of ", lib_dir_name);
         Path$remove(dest, true);
         if (verbose) whisper("Moving files to ", dest);
-        system(String("mkdir -p '", dest, "'"));
-        system(String("cp -r '", lib_dir, "'/* '", dest, "/'"));
+        xsystem("mkdir -p '", dest, "'");
+        xsystem("cp -r '", lib_dir, "'/* '", dest, "/'");
     }
     if (verbose) whisper("Linking "TOMO_HOME"/lib/lib", lib_dir_name, SHARED_SUFFIX);
-    system("mkdir -p '"TOMO_HOME"'/lib/");
-    system(String("ln -f -s ../installed/'", lib_dir_name, "'/lib'", lib_dir_name, SHARED_SUFFIX,
-                  "' '"TOMO_HOME"'/lib/lib'", lib_dir_name, SHARED_SUFFIX, "'"));
+    xsystem("mkdir -p '"TOMO_HOME"'/lib/");
+    xsystem("ln -f -s ../installed/'", lib_dir_name, "'/lib'", lib_dir_name, SHARED_SUFFIX,
+            "' '"TOMO_HOME"'/lib/lib'", lib_dir_name, SHARED_SUFFIX, "'");
     // If we have `debugedit` on this system, use it to remap the debugging source information
     // to point to the installed version of the source file. Otherwise, fail silently.
     if (verbose) whisper("Updating debug symbols for ", dest, "/lib", lib_dir_name, SHARED_SUFFIX);
-    system(String("debugedit -b ", lib_dir,
-                  " -d '", dest, "'"
-                  " '", dest, "/lib", lib_dir_name, SHARED_SUFFIX, "'"
-                  " 2>/dev/null >/dev/null"));
+    xsystem("debugedit -b ", lib_dir,
+            " -d '", dest, "'"
+            " '", dest, "/lib", lib_dir_name, SHARED_SUFFIX, "'"
+            " 2>/dev/null >/dev/null");
     print("Installed \033[1m", lib_dir_name, "\033[m to "TOMO_HOME"/installed");
 }
 
@@ -630,7 +631,11 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
 
     if (object_files) {
         for (int64_t i = 0; i < dependency_files.entries.length; i++) {
-            Path_t path = *(Path_t*)(dependency_files.entries.data + i*dependency_files.entries.stride);
+            struct {
+                Path_t filename;
+                staleness_t staleness;
+            } *entry = (dependency_files.entries.data + i*dependency_files.entries.stride);
+            Path_t path = entry->filename;
             path = build_file(path, ".o");
             List$insert(object_files, &path, I(0), sizeof(Path_t));
         }
@@ -770,7 +775,7 @@ void transpile_header(env_t *base_env, Path_t path)
         print("Transpiled header:\t", h_filename);
 
     if (show_codegen.length > 0)
-        system(String(show_codegen, " <", h_filename));
+        xsystem(show_codegen, " <", h_filename);
 }
 
 void transpile_code(env_t *base_env, Path_t path)
@@ -816,7 +821,7 @@ void transpile_code(env_t *base_env, Path_t path)
         print("Transpiled code:\t", c_filename);
 
     if (show_codegen.length > 0)
-        system(String(show_codegen, " <", c_filename));
+        xsystem(show_codegen, " <", c_filename);
 }
 
 void compile_object_file(Path_t path)
