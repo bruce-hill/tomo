@@ -201,7 +201,7 @@ install-files: build/bin/tomo build/lib/$(LIB_FILE) build/lib/$(AR_FILE) check-u
 		printf "\n\033[1mexport PATH=\"$(PREFIX):\$$PATH\"\033[m\n\n" >&2; \
 		exit 1; \
 	fi
-	$(SUDO) -u "$(OWNER)" mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules"
+	$(SUDO) -u "$(OWNER)" mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules" "$(PREFIX)/share/tomo/lib"
 	$(SUDO) -u "$(OWNER)" cp src/stdlib/*.h "$(PREFIX)/include/tomo/"
 	$(SUDO) -u "$(OWNER)" cp build/lib/$(LIB_FILE) build/lib/$(AR_FILE) "$(PREFIX)/lib/"
 	$(SUDO) -u "$(OWNER)" rm -f "$(PREFIX)/bin/tomo"
