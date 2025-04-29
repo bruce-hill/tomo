@@ -37,9 +37,9 @@ CORD compile_enum_typeinfo(env_t *env, ast_t *ast)
     type_t *t = Table$str_get(*env->types, def->name);
     const char *metamethods = is_packed_data(t) ? "PackedDataEnum$metamethods" : "Enum$metamethods";
     CORD typeinfo = CORD_all("public const TypeInfo_t ", full_name, "$$info = {",
-                             String(type_size(t)), "u, ", String(type_align(t)), "u, .metamethods=", metamethods,
+                             String((int64_t)type_size(t)), "u, ", String((int64_t)type_align(t)), "u, .metamethods=", metamethods,
                              ", {.tag=EnumInfo, .EnumInfo={.name=\"", def->name, "\", "
-                             ".num_tags=", String(num_tags), ", .tags=(NamedType_t[]){");
+                             ".num_tags=", String((int64_t)num_tags), ", .tags=(NamedType_t[]){");
 
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         const char *tag_type_name = String(def->name, "$", tag->name);
