@@ -2203,7 +2203,7 @@ CORD compile_typed_set(env_t *env, ast_t *ast, type_t *set_type)
 
     type_t *item_type = Match(set_type, SetType)->item_type;
 
-    size_t n = 0;
+    int64_t n = 0;
     for (ast_list_t *item = set->items; item; item = item->next) {
         ++n;
         if (item->ast->tag == Comprehension)
@@ -2280,7 +2280,7 @@ CORD compile_typed_table(env_t *env, ast_t *ast, type_t *table_type)
         size_t n = 0;
         for (ast_list_t *entry = table->entries; entry; entry = entry->next)
             ++n;
-        code = CORD_all(code, ", ", String(n));
+        code = CORD_all(code, ", ", String((int64_t)n));
 
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
             DeclareMatch(e, entry->ast, TableEntry);
