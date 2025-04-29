@@ -1301,8 +1301,8 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             return CORD_all(
                 "if (!(", compile_condition(env, expr), "))\n",
                 "fail_source(", CORD_quoted(ast->file->filename), ", ",
-                String((long)(expr->start - expr->file->text)), ", ", 
-                String((long)(expr->end - expr->file->text)), ", ",
+                String((int64_t)(expr->start - expr->file->text)), ", ", 
+                String((int64_t)(expr->end - expr->file->text)), ", ",
                 message ? CORD_all("Text$as_c_string(", compile_to_type(env, message, Type(TextType)), ")")
                     : "\"This assertion failed!\"",
                 ");\n");
@@ -2790,8 +2790,8 @@ CORD compile(env_t *env, ast_t *ast)
         return CORD_all("({ ", compile_declaration(t, "opt"), " = ", value_code, "; ",
                         "if unlikely (", check_none(t, "opt"), ")\n",
                         "fail_source(", CORD_quoted(ast->file->filename), ", ",
-                        String((long)(value->start - value->file->text)), ", ", 
-                        String((long)(value->end - value->file->text)), ", ",
+                        String((int64_t)(value->start - value->file->text)), ", ", 
+                        String((int64_t)(value->end - value->file->text)), ", ",
                         "\"This was expected to be a value, but it's none\");\n",
                         optional_into_nonnone(t, "opt"), "; })");
     }
