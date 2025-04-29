@@ -190,7 +190,7 @@ check-utilities: check-c-compiler
 	@which awk 2>/dev/null >/dev/null \
 		|| { printf '\033[31;1m%s\033[m\n' "I couldn't find 'awk' on your system! Try installing the package 'awk' with your package manager."; exit 1; }
 	@which debugedit 2>/dev/null >/dev/null \
-		|| { printf '\033[33;1m%s\033[m\n' "I couldn't find 'debugedit' on your system! Try installing the package 'debugedit' with your package manager. (It's not required though)"; exit 1; }
+		|| printf '\033[33;1m%s\033[m\n' "I couldn't find 'debugedit' on your system! Try installing the package 'debugedit' with your package manager. (It's not required though)"
 
 install-files: build/bin/tomo build/lib/$(LIB_FILE) build/lib/$(AR_FILE) check-utilities
 	@if ! echo "$$PATH" | tr ':' '\n' | grep -qx "$(PREFIX)/bin"; then \
