@@ -4380,7 +4380,7 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
     case LangDef: {
         DeclareMatch(def, ast, LangDef);
         CORD code = CORD_all("public const TypeInfo_t ", namespace_prefix(env, env->namespace),
-                             def->name, "$$info = {", String(sizeof(Text_t)), ", ", String(__alignof__(Text_t)),
+                             def->name, "$$info = {", String((int64_t)sizeof(Text_t)), ", ", String((int64_t)__alignof__(Text_t)),
                              ", .metamethods=Text$metamethods, .tag=TextInfo, .TextInfo={", CORD_quoted(def->name), "}};\n");
         env_t *ns_env = namespace_env(env, def->name);
         return CORD_all(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : CORD_EMPTY);
