@@ -807,7 +807,7 @@ void transpile_code(env_t *base_env, Path_t path)
             "int ", main_binding->code, "$parse_and_run(int argc, char *argv[]) {\n",
             module_env->do_source_mapping ? "#line 1\n" : CORD_EMPTY,
             "tomo_init();\n",
-            "_$", module_env->namespace->name, "$$initialize();\n"
+            namespace_prefix(module_env, module_env->namespace), "$initialize();\n"
             "\n",
             compile_cli_arg_call(module_env, main_binding->code, main_binding->type),
             "return 0;\n"

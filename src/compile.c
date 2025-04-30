@@ -4485,7 +4485,7 @@ CORD compile_file(env_t *env, ast_t *ast)
         env->code->lambdas, "\n",
         env->code->staticdefs, "\n",
         top_level_code,
-        "public void _$", env->namespace->name, "$$initialize(void) {\n",
+        "public void ", namespace_prefix(env, env->namespace), "$initialize(void) {\n",
         "static bool initialized = false;\n",
         "if (initialized) return;\n",
         "initialized = true;\n",
@@ -4721,7 +4721,7 @@ CORD compile_file_header(env_t *env, Path_t header_path, ast_t *ast)
     visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn=(void*)_make_typedefs, &info});
     visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn=(void*)_define_types_and_funcs, &info});
 
-    header = CORD_all(header, "void _$", env->namespace->name, "$$initialize(void);\n");
+    header = CORD_all(header, "void ", namespace_prefix(env, env->namespace), "$initialize(void);\n");
     return header;
 }
 

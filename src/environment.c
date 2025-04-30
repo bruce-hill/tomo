@@ -531,7 +531,7 @@ env_t *global_env(bool source_mapping)
     return env;
 }
 
-CORD namespace_prefix(env_t *env, namespace_t *ns)
+CORD CONSTFUNC namespace_prefix(env_t *env, namespace_t *ns)
 {
     CORD prefix = CORD_EMPTY;
     for (; ns; ns = ns->parent)
