@@ -568,7 +568,7 @@ type_ast_t *parse_func_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "func")) return NULL;
     spaces(&pos);
-    expect_str(&pos, "(", "I expected a parenthesis here");
+    expect_str(ctx, start, &pos, "(", "I expected a parenthesis here");
     arg_ast_t *args = parse_args(ctx, &pos);
     spaces(&pos);
     type_ast_t *ret = match(&pos, "->") ? optional(ctx, &pos, parse_type) : NULL;
