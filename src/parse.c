@@ -799,8 +799,11 @@ PARSER(parse_table) {
 }
 
 PARSER(parse_set) {
-    if (!match(&pos, "|")) return NULL;
     const char *start = pos;
+    if (match(&pos, "||"))
+        return NewAST(ctx->file, start, pos, Set);
+
+    if (!match(&pos, "|")) return NULL;
     whitespace(&pos);
 
     ast_list_t *items = NULL;
