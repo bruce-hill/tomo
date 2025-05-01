@@ -32,7 +32,7 @@
 // #define DEBUG_TABLES
 
 #ifdef DEBUG_TABLES
-#define hdebug(fmt, ...) print_inline("\x1b[2m", __VA_ARGS__, "\x1b[m")
+#define hdebug(...) print_inline("\x1b[2m", __VA_ARGS__, "\x1b[m")
 #else
 #define hdebug(...) (void)0
 #endif
@@ -88,7 +88,7 @@ static INLINE void hshow(const Table_t *t)
     for (uint32_t i = 0; t->bucket_info && i < t->bucket_info->count; i++) {
         if (i > 0) hdebug(" ");
         if (t->bucket_info->buckets[i].occupied)
-            hdebug("[", i, "]=", t->bucket_info->buckets[i].index, "(", t->bucket_info->buckets[i].next_bucket, ")");
+            hdebug("[", i, "]=", (uint32_t)t->bucket_info->buckets[i].index, "(", t->bucket_info->buckets[i].next_bucket, ")");
         else
             hdebug("[", i, "]=_");
     }
@@ -147,7 +147,7 @@ static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const
     const void *key = entry;
     bucket_t *buckets = t->bucket_info->buckets;
     uint64_t hash = HASH_KEY(*t, key);
-    hdebug("Hash value (mod ", t->bucket_info->count, ") = ", hash, "\n");
+    hdebug("Hash value (mod ", (int32_t)t->bucket_info->count, ") = ", hash, "\n");
     bucket_t *bucket = &buckets[hash];
     if (!bucket->occupied) {
         hdebug("Got an empty space\n");
@@ -159,7 +159,7 @@ static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const
         return;
     }
 
-    hdebug("Collision detected in bucket ", hash, " (entry ", bucket->index, ")\n");
+    hdebug("Collision detected in bucket ", hash, " (entry ", (uint32_t)bucket->index, ")\n");
 
     while (buckets[t->bucket_info->last_free].occupied) {
         assert(t->bucket_info->last_free > 0);
@@ -198,7 +198,7 @@ static void hashmap_resize_buckets(Table_t *t, uint32_t new_capacity, const Type
 {
     if (unlikely(new_capacity > TABLE_MAX_BUCKETS))
         fail("Table has exceeded the maximum table size (2^31) and cannot grow further!");
-    hdebug("About to resize from ", t->bucket_info ? t->bucket_info->count : 0, " to ", new_capacity, "\n");
+    hdebug("About to resize from ", t->bucket_info ? (int32_t)t->bucket_info->count : 0, " to ", new_capacity, "\n");
     hshow(t);
     size_t alloc_size = sizeof(bucket_info_t) + sizeof(bucket_t[new_capacity]);
     t->bucket_info = GC_MALLOC_ATOMIC(alloc_size);
@@ -272,7 +272,7 @@ public void *Table$reserve(Table_t *t, const void *key, const void *value, const
     memcpy(buf, key, (size_t)key_size);
     if (value && value_size > 0)
         memcpy(buf + value_offset(type), value, (size_t)value_size);
-    else
+    else if (value_size > 0)
         memset(buf + value_offset(type), 0, (size_t)value_size);
     List$insert(&t->entries, buf, I(0), (int64_t)entry_size(type));
 
