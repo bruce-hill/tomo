@@ -14,14 +14,15 @@
 #include "compile.h"
 #include "cordhelpers.h"
 #include "parse.h"
-#include "stdlib/lists.h"
 #include "stdlib/bools.h"
 #include "stdlib/bytes.h"
 #include "stdlib/datatypes.h"
 #include "stdlib/integers.h"
+#include "stdlib/lists.h"
 #include "stdlib/optionals.h"
 #include "stdlib/paths.h"
 #include "stdlib/print.h"
+#include "stdlib/random.h"
 #include "stdlib/text.h"
 #include "typecheck.h"
 #include "types.h"
@@ -511,8 +512,6 @@ void install_library(Path_t lib_dir)
             " 2>/dev/null >/dev/null");
     print("Installed \033[1m", lib_dir_name, "\033[m to "TOMO_HOME"/installed");
 }
-
-#include "stdlib/random.h"
 
 void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs)
 {
