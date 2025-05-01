@@ -294,15 +294,17 @@ func main()
 
 	>> amelie.width()
 	= 6
-	cowboy := "🤠"
-	>> cowboy.width()
-	= 2
-	>> cowboy.left_pad(4)
-	= "  🤠"
-	>> cowboy.right_pad(4)
-	= "🤠  "
-	>> cowboy.middle_pad(4)
-	= " 🤠 "
+
+	# Unicode character width is somewhat platform dependent:
+	# cowboy := "🤠"
+	# >> cowboy.width()
+	# = 2
+	# >> cowboy.left_pad(4)
+	# = "  🤠"
+	# >> cowboy.right_pad(4)
+	# = "🤠  "
+	# >> cowboy.middle_pad(4)
+	# = " 🤠 "
 
 	>> "   one,  ".trim(" ,")
 	= "one"
