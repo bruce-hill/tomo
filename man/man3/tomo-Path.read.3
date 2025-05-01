@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.read 3 2025-04-27 "Tomo man-pages"
+.TH Path.read 3 2025-04-30 "Tomo man-pages"
 .SH NAME
 Path.read \- read file contents
 .SH LIBRARY
@@ -12,7 +12,7 @@ Tomo Standard Library
 .BI Path.read\ :\ func(path:\ Path\ ->\ Text?)
 .fi
 .SH DESCRIPTION
-Reads the contents of the file at the specified path or a null value if the file could not be read.
+Reads the contents of the file at the specified path or none if the file could not be read.
 
 
 .SH ARGUMENTS
@@ -25,7 +25,7 @@ Name	Type	Description	Default
 path	Path	The path of the file to read. 	-
 .TE
 .SH RETURN
-The contents of the file. If the file could not be read, a null value will be returned. If the file can be read, but is not valid UTF8 data, an error will be raised.
+The contents of the file. If the file could not be read, none will be returned. If the file can be read, but is not valid UTF8 data, an error will be raised.
 
 .SH EXAMPLES
 .EX

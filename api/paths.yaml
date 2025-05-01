@@ -96,12 +96,12 @@ Path.by_line:
   short: iterate by line
   description: >
     Returns an iterator that can be used to iterate over a file one line at a time,
-    or returns a null value if the file could not be opened.
+    or returns none if the file could not be opened.
   return:
     type: 'func(->Text?)?'
     description: >
-      An iterator that can be used to get lines from a file one at a time or a null
-      value if the file couldn't be read.
+      An iterator that can be used to get lines from a file one at a time or
+      none if the file couldn't be read.
   args:
     path:
       type: 'Path'
@@ -619,14 +619,14 @@ Path.parent:
 Path.read:
   short: read file contents
   description: >
-    Reads the contents of the file at the specified path or a null value if the
-    file could not be read.
+    Reads the contents of the file at the specified path or none if the file
+    could not be read.
   return:
     type: 'Text?'
     description: >
-      The contents of the file. If the file could not be read, a null value will be
-      returned. If the file can be read, but is not valid UTF8 data, an error will be
-      raised.
+      The contents of the file. If the file could not be read, none will be
+      returned. If the file can be read, but is not valid UTF8 data, an error
+      will be raised.
   args:
     path:
       type: 'Path'
@@ -642,12 +642,12 @@ Path.read:
 Path.read_bytes:
   short: read file contents as bytes
   description: >
-    Reads the contents of the file at the specified path or a null value if the
-    file could not be read.
+    Reads the contents of the file at the specified path or none if the file
+    could not be read.
   return:
     type: '[Byte]?'
     description: >
-      The byte contents of the file. If the file cannot be read, a null value will be
+      The byte contents of the file. If the file cannot be read, none will be
       returned.
   args:
     path:

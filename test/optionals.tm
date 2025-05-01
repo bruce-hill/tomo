@@ -75,10 +75,10 @@ func main()
     >> 5? or -1
     = 5
 
-    >> 5? or fail("Non-null is falsey")
+    >> 5? or fail("Non-none is falsey")
     = 5
 
-    >> 5? or exit("Non-null is falsey")
+    >> 5? or exit("Non-none is falsey")
     = 5
 
     >> none_int : Int? = none

@@ -658,7 +658,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             type_t *ref_type = get_type(env, value);
             type_t *base_type = get_type(env, base);
             if (base_type->tag == OptionalType) {
-                code_err(base, "This value might be null, so it can't be safely dereferenced");
+                code_err(base, "This value might be none, so it can't be safely dereferenced");
             } else if (base_type->tag == PointerType) {
                 DeclareMatch(ptr, base_type, PointerType);
                 return Type(PointerType, .pointed=ref_type, .is_stack=ptr->is_stack);
@@ -835,7 +835,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         DeclareMatch(indexing, ast, Index);
         type_t *indexed_t = get_type(env, indexing->indexed);
         if (indexed_t->tag == OptionalType && !indexing->index)
-            code_err(ast, "You're attempting to dereference a value whose type indicates it could be null");
+            code_err(ast, "You're attempting to dereference a value whose type indicates it could be none");
 
         if (indexed_t->tag == PointerType && !indexing->index)
             return Match(indexed_t, PointerType)->pointed;

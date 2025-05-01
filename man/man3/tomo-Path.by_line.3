@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.by_line 3 2025-04-27 "Tomo man-pages"
+.TH Path.by_line 3 2025-04-30 "Tomo man-pages"
 .SH NAME
 Path.by_line \- iterate by line
 .SH LIBRARY
@@ -12,7 +12,7 @@ Tomo Standard Library
 .BI Path.by_line\ :\ func(path:\ Path\ ->\ func(->Text?)?)
 .fi
 .SH DESCRIPTION
-Returns an iterator that can be used to iterate over a file one line at a time, or returns a null value if the file could not be opened.
+Returns an iterator that can be used to iterate over a file one line at a time, or returns none if the file could not be opened.
 
 
 .SH ARGUMENTS
@@ -25,7 +25,7 @@ Name	Type	Description	Default
 path	Path	The path of the file. 	-
 .TE
 .SH RETURN
-An iterator that can be used to get lines from a file one at a time or a null value if the file couldn't be read.
+An iterator that can be used to get lines from a file one at a time or none if the file couldn't be read.
 
 .SH EXAMPLES
 .EX

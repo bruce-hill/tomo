@@ -98,13 +98,13 @@ path | `Path` | The path of the file or directory.  | -
 Path.by_line : func(path: Path -> func(->Text?)?)
 ```
 
-Returns an iterator that can be used to iterate over a file one line at a time, or returns a null value if the file could not be opened.
+Returns an iterator that can be used to iterate over a file one line at a time, or returns none if the file could not be opened.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the file.  | -
 
-**Return:** An iterator that can be used to get lines from a file one at a time or a null value if the file couldn't be read.
+**Return:** An iterator that can be used to get lines from a file one at a time or none if the file couldn't be read.
 
 
 **Example:**
@@ -657,13 +657,13 @@ path | `Path` | The path of the file or directory.  | -
 Path.read : func(path: Path -> Text?)
 ```
 
-Reads the contents of the file at the specified path or a null value if the file could not be read.
+Reads the contents of the file at the specified path or none if the file could not be read.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the file to read.  | -
 
-**Return:** The contents of the file. If the file could not be read, a null value will be returned. If the file can be read, but is not valid UTF8 data, an error will be raised.
+**Return:** The contents of the file. If the file could not be read, none will be returned. If the file can be read, but is not valid UTF8 data, an error will be raised.
 
 
 **Example:**
@@ -681,14 +681,14 @@ path | `Path` | The path of the file to read.  | -
 Path.read_bytes : func(path: Path, limit: Int? = none -> [Byte]?)
 ```
 
-Reads the contents of the file at the specified path or a null value if the file could not be read.
+Reads the contents of the file at the specified path or none if the file could not be read.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the file to read.  | -
 limit | `Int?` | A limit to how many bytes should be read.  | `none`
 
-**Return:** The byte contents of the file. If the file cannot be read, a null value will be returned.
+**Return:** The byte contents of the file. If the file cannot be read, none will be returned.
 
 
 **Example:**
