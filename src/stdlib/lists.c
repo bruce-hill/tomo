@@ -275,6 +275,7 @@ public List_t List$sorted(List_t list, Closure_t comparison, int64_t padded_item
 }
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
+#include <stdlib.h>
 static ssize_t getrandom(void *buf, size_t buflen, unsigned int flags) {
     (void)flags;
     arc4random_buf(buf, buflen);
