@@ -28,7 +28,7 @@
 #include "types.h"
 
 #define run_cmd(...) ({ const char *_cmd = String(__VA_ARGS__); if (verbose) print("\033[34;1m", _cmd, "\033[m"); popen(_cmd, "w"); })
-#define xsystem(...) ({ int _status = system(String(__VA_ARGS__)); if (!WIFEXITED(_status) || WEXITSTATUS(_status) != 0) errx(1, "Failed to run command: ", String(__VA_ARGS__)); })
+#define xsystem(...) ({ int _status = system(String(__VA_ARGS__)); if (!WIFEXITED(_status) || WEXITSTATUS(_status) != 0) errx(1, "Failed to run command: %s", String(__VA_ARGS__)); })
 #define list_text(list) Text$join(Text(" "), list)
 
 #define whisper(...) print("\033[2m", __VA_ARGS__, "\033[m")
