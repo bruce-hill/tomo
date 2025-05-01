@@ -73,7 +73,7 @@ static OptionalText_t
             cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs "
                           " -ffunction-sections -fdata-sections"
                           " -fno-signed-zeros -fno-finite-math-only "
-                          " -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -fPIC -ggdb"
+                          " -D_XOPEN_SOURCE -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -fPIC -ggdb"
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
                           " -D_BSD_SOURCE"
 #endif
