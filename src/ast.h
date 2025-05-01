@@ -189,6 +189,7 @@ struct ast_s {
             ast_t *var;
             type_ast_t *type;
             ast_t *value;
+            bool top_level:1;
         } Declare;
         struct {
             ast_list_t *targets, *values;

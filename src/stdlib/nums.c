@@ -105,7 +105,7 @@ public OptionalNum_t Num$parse(Text_t text) {
     if (end > str && end[0] == '\0')
         return d;
     else
-        return nan("null");
+        return nan("none");
 }
 
 static bool Num$is_none(const void *n, const TypeInfo_t *info)
@@ -210,7 +210,7 @@ public OptionalNum32_t Num32$parse(Text_t text) {
     if (end > str && end[0] == '\0')
         return d;
     else
-        return nan("null");
+        return nan("none");
 }
 
 static bool Num32$is_none(const void *n, const TypeInfo_t *info)

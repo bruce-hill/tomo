@@ -1723,6 +1723,13 @@ PARSER(parse_declaration) {
     return NewAST(ctx->file, start, pos, Declare, .var=var, .type=type, .value=val);
 }
 
+PARSER(parse_top_declaration) {
+    ast_t *declaration = parse_declaration(ctx, pos);
+    if (declaration)
+        declaration->__data.Declare.top_level = true;
+    return declaration;
+}
+
 PARSER(parse_update) {
     const char *start = pos;
     ast_t *lhs = optional(ctx, &pos, parse_expr);
@@ -1948,7 +1955,7 @@ PARSER(parse_file_body) {
             ||(stmt=optional(ctx, &pos, parse_use))
             ||(stmt=optional(ctx, &pos, parse_extern))
             ||(stmt=optional(ctx, &pos, parse_inline_c))
-            ||(stmt=optional(ctx, &pos, parse_declaration)))
+            ||(stmt=optional(ctx, &pos, parse_top_declaration)))
         {
             statements = new(ast_list_t, .ast=stmt, .next=statements);
             pos = stmt->end;

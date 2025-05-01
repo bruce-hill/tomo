@@ -24,7 +24,8 @@ produces the following C header file and C source file:
 #pragma once
 #include <tomo/tomo.h>
 
-extern Text_t foo$my_variable;
+extern Text_t my_variable$foo_C3zxCsha;
+void $initialize$foo_C3zxCsha(void);
 ```
 
 ```c
@@ -32,14 +33,19 @@ extern Text_t foo$my_variable;
 #include <tomo/tomo.h>
 #include "foo.tm.h"
 
-Text_t foo$my_variable = "hello";
+public Text_t my_variable$foo_C3zxCsha = Text("hello");
+public void $initialize$foo_C3zxCsha(void) {
+    static bool initialized = false;
+    if (initialized) return;
+    initialized = true;
+}
 ```
 
-Notice that the symbols defined here (`foo$my_variable`) use a file-based
-prefix that includes a dollar sign. C compilers support an extension that
-allows dollar signs in identifiers, and this allows us to use guaranteed-unique
-prefixes so symbols from one file don't have naming collisions with symbols
-in another file.
+Notice that the symbols defined here (`my_variable$foo_C3zxCsha`) use a
+filename-based suffix with a random bit at the end that includes a dollar sign.
+C compilers support an extension that allows dollar signs in identifiers, and
+this allows us to use guaranteed-unique prefixes so symbols from one file don't
+have naming collisions with symbols in another file.
 
 The C file is compiled by invoking the C compiler with something like: `cc
 <flags...> -c foo.tm.c -o foo.tm.o`
@@ -65,8 +71,9 @@ If I want to run `baz.tm` with `tomo baz.tm` then this transpiles to:
 #include <tomo/tomo.h>
 #include "./foo.tm.h"
 
-void baz$say_stuff();
-void baz$main();
+void say_stuff$baz_VEDjfzDs();
+void main$baz_VEDjfzDs();
+void $initialize$baz_VEDjfzDs(void);
 ```
 
 ```c
@@ -74,23 +81,44 @@ void baz$main();
 #include <tomo/tomo.h>
 #include "baz.tm.h"
 
-public void baz$say_stuff()
-{
-    say(Texts(Text("I got "), foo$my_variable, Text(" from foo")));
+public void say_stuff$baz_VEDjfzDs() {
+    say(Texts(Text("I got "), my_variable$foo_C3zxCsha, Text(" from foo")), yes);
 }
 
-public void baz$main()
-{
-    baz$say_stuff();
+public void main$foo_VEDjfzDs() {
+    say_stuff$foo_VEDjfzDs();
+}
+
+public void $initialize$foo_VEDjfzDs(void) {
+    static bool initialized = false;
+    if (initialized) return;
+    initialized = true;
+
+    $initialize$foo_C3zxCsha();
+    ...
+}
+
+int main$baz_VEDjfzDs$parse_and_run(int argc, char *argv[]) {
+    tomo_init();
+    $initialize$baz_VEDjfzDs();
+
+    Text_t usage = Texts(Text("Usage: "), Text$from_str(argv[0]), Text(" [--help]"));
+    tomo_parse_args(argc, argv, usage, usage);
+    main$baz_VEDjfzDs();
+    return 0;
 }
 ```
+
+The automatically generated function `main$baz_VEDjfzDs$parse_and_run` is in
+charge of parsing the command line arguments to `main()` (in this case there
+aren't any) and printing out any help/usage errors, then calling `main()`.
 
 Then `baz.tm.o` is compiled to a static object with `cc <flags...> -c baz.tm.c
 -o baz.tm.o`.
 
-Next, we need to create an actual executable file that will invoke `baz$main()`
-(with any command line arguments). To do that, we create a small wrapper
-program:
+Next, we need to create an actual executable file that will invoke
+`main$baz_VEDjfzDs$parse_and_run()` (with any command line arguments). To do
+that, we create a small wrapper program:
 
 ```c
 // File: /tmp/program.c
@@ -99,11 +127,7 @@ program:
  
 int main(int argc, char *argv[])
 {
-    tomo_init();
-    if (argc > 1)
-        errx(1, "This program doesn't take any arguments.");
-    baz$main();
-    return 0;
+    return main$baz_VEDjfzDs$parse_and_run(argc, argv);
 }
 ```
 

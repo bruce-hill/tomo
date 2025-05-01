@@ -91,7 +91,6 @@ static void transpile_code(env_t *base_env, Path_t path);
 static void compile_object_file(Path_t path);
 static Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t object_files, List_t extra_ldlibs);
 static void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_link);
-static Text_t escape_lib_name(Text_t lib_name);
 static void build_library(Path_t lib_dir);
 static void install_library(Path_t lib_dir);
 static void compile_files(env_t *env, List_t files, List_t *object_files, List_t *ldlibs);
@@ -336,16 +335,6 @@ void wait_for_child_success(pid_t child)
     }
 }
 
-Text_t escape_lib_name(Text_t lib_name)
-{
-    char *libname_id = String(lib_name);
-    for (char *p = libname_id; *p; p++) {
-        if (!isalnum(*p) && *p != '_')
-            *p = '_';
-    }
-    return Text$from_str(libname_id);
-}
-
 Path_t build_file(Path_t path, const char *extension)
 {
     Path_t build_dir = Path$with_component(Path$parent(path), Text(".build"));
@@ -386,20 +375,24 @@ static void _make_typedefs_for_library(libheader_info_t *info, ast_t *ast)
 {
     if (ast->tag == StructDef) {
         DeclareMatch(def, ast, StructDef);
-        CORD full_name = CORD_cat(namespace_prefix(info->env, info->env->namespace), def->name);
-        CORD_put(CORD_all("typedef struct ", full_name, "$$struct ", full_name, "$$type;\n"), info->output);
+        CORD struct_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$struct"));
+        CORD type_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$type"));
+        CORD_put(CORD_all("typedef struct ", struct_name, " ", type_name, ";\n"), info->output);
     } else if (ast->tag == EnumDef) {
         DeclareMatch(def, ast, EnumDef);
-        CORD full_name = CORD_cat(namespace_prefix(info->env, info->env->namespace), def->name);
-        CORD_put(CORD_all("typedef struct ", full_name, "$$struct ", full_name, "$$type;\n"), info->output);
+        CORD struct_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$struct"));
+        CORD type_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$type"));
+        CORD_put(CORD_all("typedef struct ", struct_name, " ", type_name, ";\n"), info->output);
 
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
             if (!tag->fields) continue;
-            CORD_put(CORD_all("typedef struct ", full_name, "$", tag->name, "$$struct ", full_name, "$", tag->name, "$$type;\n"), info->output);
+            CORD tag_struct_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$", tag->name, "$$struct"));
+            CORD tag_type_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$", tag->name, "$$type"));
+            CORD_put(CORD_all("typedef struct ", tag_struct_name, " ", tag_type_name, ";\n"), info->output);
         }
     } else if (ast->tag == LangDef) {
         DeclareMatch(def, ast, LangDef);
-        CORD_put(CORD_all("typedef Text_t ", namespace_prefix(info->env, info->env->namespace), def->name, "$$type;\n"), info->output);
+        CORD_put(CORD_all("typedef Text_t ", namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$type")), ";\n"), info->output);
     }
 }
 
@@ -438,7 +431,7 @@ static void _compile_file_header_for_library(env_t *env, Path_t header_path, Pat
     visit_topologically(
         Match(file_ast, Block)->statements, (Closure_t){.fn=(void*)_compile_statement_header_for_library, &info});
 
-    CORD_put(CORD_all("void ", namespace_prefix(module_env, module_env->namespace), "$initialize(void);\n"), output);
+    CORD_put(CORD_all("void ", namespace_name(module_env, module_env->namespace, "$initialize"), "(void);\n"), output);
 }
 
 void build_library(Path_t lib_dir)
@@ -455,10 +448,6 @@ void build_library(Path_t lib_dir)
 
     compile_files(env, tm_files, &object_files, &extra_ldlibs);
 
-    // Library name replaces all stretchs of non-alphanumeric chars with an underscore
-    // So e.g. https://github.com/foo/baz --> https_github_com_foo_baz
-    env->libname = Text$as_c_string(escape_lib_name(lib_dir_name));
-
     // Build a "whatever.h" header that loads all the headers:
     Path_t header_path = Path$with_component(lib_dir, Texts(lib_dir_name, Text(".h")));
     FILE *header = fopen(String(header_path), "w");
@@ -473,28 +462,8 @@ void build_library(Path_t lib_dir)
     if (fclose(header) == -1)
         print_err("Failed to write header file: ", header_path);
 
-    // Build up a list of symbol renamings:
-    Path_t build_dir = Path$with_component(lib_dir, Text(".build"));
-    Path_t symbol_renames = Path$with_component(build_dir, Text("symbol_renames.txt"));
-    if (is_stale_for_any(symbol_renames, object_files)) {
-        Path$remove(symbol_renames, true);
-        FILE *prog;
-        for (int64_t i = 0; i < object_files.length; i++) {
-            Path_t obj = *(Path_t*)(object_files.data + i*object_files.stride);
-            prog = run_cmd("nm -g '", obj, "' | awk '$2~/^[DTB]$/ && $3~/^_\\$/{print $3 \" _$",
-                           CORD_to_const_char_star(env->libname), "\" substr($3,2)}' "
-                           ">>", symbol_renames);
-            if (!prog) print_err("Could not find symbols!");
-            int status = pclose(prog);
-            if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-                errx(WEXITSTATUS(status), "Failed to create symbol rename table with `nm` and `awk`");
-        }
-    } else {
-        if (verbose) whisper("Unchanged: ", symbol_renames);
-    }
-
     Path_t shared_lib = Path$with_component(lib_dir, Texts(Text("lib"), lib_dir_name, Text(SHARED_SUFFIX)));
-    if (!is_stale_for_any(shared_lib, object_files) && !is_stale(shared_lib, symbol_renames)) {
+    if (!is_stale_for_any(shared_lib, object_files)) {
         if (verbose) whisper("Unchanged: ", shared_lib);
         return;
     }
@@ -515,28 +484,6 @@ void build_library(Path_t lib_dir)
 
     if (!quiet)
         print("Compiled library:\t", shared_lib);
-
-    prog = run_cmd("objcopy --redefine-syms='", symbol_renames, "' '", shared_lib, "'");
-    status = pclose(prog);
-    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-        errx(WEXITSTATUS(status), "Failed to run `objcopy` to add library prefix to symbols");
-
-#if defined(__ELF__)
-    prog = run_cmd("patchelf --rename-dynamic-symbols '", symbol_renames, "' '", shared_lib, "'");
-    status = pclose(prog);
-    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-        errx(WEXITSTATUS(status), "Failed to run `patchelf` to rename dynamic symbols with library prefix");
-#elif defined(__MACH__)
-    prog = run_cmd("llvm-objcopy --redefine-syms='", symbol_renames, "' '", shared_lib, "'");
-    status = pclose(prog);
-    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-        errx(WEXITSTATUS(status), "Failed to run `llvm-objcopy` to rename dynamic symbols with library prefix");
-#else
-#error "Unknown platform (not ELF or MACH)"
-#endif
-
-    if (verbose)
-        print("Successfully renamed symbols with library prefix!");
 }
 
 void install_library(Path_t lib_dir)
@@ -549,6 +496,7 @@ void install_library(Path_t lib_dir)
         if (verbose) whisper("Moving files to ", dest);
         xsystem("mkdir -p '", dest, "'");
         xsystem("cp -r '", lib_dir, "'/* '", dest, "/'");
+        xsystem("cp -r '", lib_dir, "'/.build '", dest, "/'");
     }
     if (verbose) whisper("Linking "TOMO_HOME"/lib/lib", lib_dir_name, SHARED_SUFFIX);
     xsystem("mkdir -p '"TOMO_HOME"'/lib/");
@@ -564,6 +512,8 @@ void install_library(Path_t lib_dir)
     print("Installed \033[1m", lib_dir_name, "\033[m to "TOMO_HOME"/installed");
 }
 
+#include "stdlib/random.h"
+
 void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs)
 {
     Table_t to_link = {};
@@ -578,6 +528,33 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         build_file_dependency_graph(filename, &dependency_files, &to_link);
     }
 
+    // Make sure all files and dependencies have a .id file:
+    for (int64_t i = 0; i < dependency_files.entries.length; i++) {
+        struct {
+            Path_t filename;
+            staleness_t staleness;
+        } *entry = (dependency_files.entries.data + i*dependency_files.entries.stride);
+
+        Path_t id_file = build_file(entry->filename, ".id");
+        if (!Path$exists(id_file)) {
+            static const char id_chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            char id_str[8]; 
+            for (int j = 0; j < (int)sizeof(id_str); j++) {
+                id_str[j] = id_chars[random_range(0, sizeof(id_chars)-1)];
+            }
+            Text_t filename_id = Text("");
+            Text_t base = Path$base_name(entry->filename);
+            TextIter_t state = NEW_TEXT_ITER_STATE(base);
+            for (int64_t j = 0; j < base.length; j++) {
+                uint32_t c = Text$get_main_grapheme_fast(&state, j);
+                if (c == '.') break;
+                if (isalpha(c) || isdigit(c) || c == '_')
+                    filename_id = Texts(filename_id, Text$from_strn((char[]){(char)c}, 1));
+            }
+            Path$write(id_file, Texts(filename_id, Text("_"), Text$from_strn(id_str, sizeof(id_str))), 0644);
+        }
+    }
+
     // (Re)compile header files, eagerly for explicitly passed in files, lazily
     // for downstream dependencies:
     for (int64_t i = 0; i < dependency_files.entries.length; i++) {
@@ -585,6 +562,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
             Path_t filename;
             staleness_t staleness;
         } *entry = (dependency_files.entries.data + i*dependency_files.entries.stride);
+
         if (entry->staleness.h || clean_build) {
             transpile_header(env, entry->filename);
             entry->staleness.o = true;
@@ -661,8 +639,8 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
         return;
 
     staleness_t staleness = {
-        .h=is_stale(build_file(path, ".h"), path),
-        .c=is_stale(build_file(path, ".c"), path),
+        .h=is_stale(build_file(path, ".h"), path) || is_stale(build_file(path, ".h"), build_file(path, ".id")),
+        .c=is_stale(build_file(path, ".c"), path) || is_stale(build_file(path, ".c"), build_file(path, ".id")),
     };
     staleness.o = staleness.c || staleness.h
         || is_stale(build_file(path, ".o"), build_file(path, ".c"))
@@ -807,7 +785,7 @@ void transpile_code(env_t *base_env, Path_t path)
             "int ", main_binding->code, "$parse_and_run(int argc, char *argv[]) {\n",
             module_env->do_source_mapping ? "#line 1\n" : CORD_EMPTY,
             "tomo_init();\n",
-            namespace_prefix(module_env, module_env->namespace), "$initialize();\n"
+            namespace_name(module_env, module_env->namespace, "$initialize"), "();\n"
             "\n",
             compile_cli_arg_call(module_env, main_binding->code, main_binding->type),
             "return 0;\n"

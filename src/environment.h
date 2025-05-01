@@ -48,7 +48,7 @@ typedef struct env_s {
     type_t *fn_ret;
     loop_ctx_t *loop_ctx;
     deferral_t *deferred;
-    CORD libname; // Currently compiling library name (if any)
+    const char *id_suffix;
     namespace_t *namespace;
     Closure_t *comprehension_action;
     bool do_source_mapping:1;
@@ -61,7 +61,8 @@ typedef struct {
 
 env_t *global_env(bool source_mapping);
 env_t *load_module_env(env_t *env, ast_t *ast);
-CORD namespace_prefix(env_t *env, namespace_t *ns);
+CORD namespace_name(env_t *env, namespace_t *ns, CORD name);
+CORD get_id_suffix(const char *filename);
 env_t *get_namespace_by_type(env_t *env, type_t *t);
 env_t *namespace_scope(env_t *env);
 env_t *fresh_scope(env_t *env);

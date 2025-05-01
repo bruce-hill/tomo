@@ -129,22 +129,22 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern)
         return t.format("%F")
 
     func info(t:Time, timezone=Time.local_timezone() -> TimeInfo)
-        return C_code : TimeInfo (
+        ret : TimeInfo
+        C_code {
             struct tm info = {};
             WITH_TIMEZONE(@timezone, localtime_r(&@t.tv_sec, &info));
-            (_$time$TimeInfo$$type){
-                .year = I(info.tm_year + 1900),
-                .month = I(info.tm_mon + 1),
-                .day = I(info.tm_mday),
-                .hour = I(info.tm_hour),
-                .minute = I(info.tm_min),
-                .second = I(info.tm_sec),
-                .nanosecond = I(@t.tv_usec),
-                .weekday = (_$time$Weekday$$type){.$tag=info.tm_wday + 1},
-                .day_of_year = I(info.tm_yday),
-                .timezone = @timezone,
-            }
-        )
+            @ret.year = I(info.tm_year + 1900);
+            @ret.month = I(info.tm_mon + 1);
+            @ret.day = I(info.tm_mday);
+            @ret.hour = I(info.tm_hour);
+            @ret.minute = I(info.tm_min);
+            @ret.second = I(info.tm_sec);
+            @ret.nanosecond = I(@t.tv_usec);
+            @ret.weekday.$tag = info.tm_wday + 1;
+            @ret.day_of_year = I(info.tm_yday);
+            @ret.timezone = @timezone;
+        }
+        return ret
 
     func after(t:Time, seconds=0.0, minutes=0.0, hours=0.0, days=0, weeks=0, months=0, years=0, timezone=Time.local_timezone() -> Time)
         return C_code : Time (
@@ -166,7 +166,8 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern)
         )
 
     func parse(text:Text, format="%Y-%m-%dT%H:%M:%S%z", timezone=Time.local_timezone() -> Time?)
-        return C_code : Time? (
+        ret : Time?
+        C_code {
             struct tm info = {.tm_isdst=-1};
             const char *str = Text$as_c_string(@text);
             const char *fmt = Text$as_c_string(@format);
@@ -175,14 +176,16 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern)
 
             char *invalid;
             WITH_TIMEZONE(@timezone, invalid = strptime(str, fmt, &info));
-            if (!invalid || invalid[0] != '\0')
-                return (_$time$$OptionalTime$$type){.is_none=true};
-
-            long offset = info.tm_gmtoff; // Need to cache this because mktime() mutates it to local tz >:(
-            time_t t;
-            WITH_TIMEZONE(@timezone, t = mktime(&info));
-            (_$time$$OptionalTime$$type){.value={.tv_sec=t + offset - info.tm_gmtoff}};
-        )
+            if (!invalid || invalid[0] != '\0') {
+                @ret.is_none = true;
+            } else {
+                long offset = info.tm_gmtoff; // Need to cache this because mktime() mutates it to local tz >:(
+                time_t t;
+                WITH_TIMEZONE(@timezone, t = mktime(&info));
+                @ret.value.tv_sec = t + offset - info.tm_gmtoff;
+            }
+        }
+        return ret
 
 func _run_tests()
     >> Time.now().format()

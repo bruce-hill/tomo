@@ -2,11 +2,13 @@
 // (variable bindings, code sections, etc.)
 #include <stdlib.h>
 #include <signal.h>
+#include <sys/stat.h>
 
 #include "cordhelpers.h"
 #include "environment.h"
 #include "parse.h"
 #include "stdlib/datatypes.h"
+#include "stdlib/paths.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"
@@ -531,18 +533,28 @@ env_t *global_env(bool source_mapping)
     return env;
 }
 
-CORD CONSTFUNC namespace_prefix(env_t *env, namespace_t *ns)
+CORD CONSTFUNC namespace_name(env_t *env, namespace_t *ns, CORD name)
 {
-    CORD prefix = CORD_EMPTY;
     for (; ns; ns = ns->parent)
-        prefix = CORD_all(ns->name, "$", prefix);
-    if (env->locals != env->globals) {
-        if (env->libname)
-            prefix = CORD_all("_$", env->libname, "$", prefix);
-        else
-            prefix = CORD_all("_$", prefix);
+        name = CORD_all(ns->name, "$", name);
+    if (env->id_suffix)
+        name = CORD_all(name, env->id_suffix);
+    return name;
+}
+
+CORD get_id_suffix(const char *filename)
+{
+    assert(filename);
+    Path_t path = Path$from_str(filename);
+    Path_t build_dir = Path$with_component(Path$parent(path), Text(".build"));
+    if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
+        if (!Path$is_directory(build_dir, true))
+            err(1, "Could not make .build directory");
     }
-    return prefix;
+    Path_t id_file = Path$with_component(build_dir, Texts(Path$base_name(path), Text$from_str(".id")));
+    OptionalText_t id = Path$read(id_file);
+    if (id.length < 0) err(1, "Could not read ID file: ", id_file);
+    return Text$as_c_string(Texts(Text("$"), id));
 }
 
 env_t *load_module_env(env_t *env, ast_t *ast)
@@ -552,8 +564,9 @@ env_t *load_module_env(env_t *env, ast_t *ast)
     if (cached) return cached;
     env_t *module_env = fresh_scope(env);
     module_env->code = new(compilation_unit_t);
-    module_env->namespace = new(namespace_t, .name=file_base_id(name)); 
     module_env->namespace_bindings = module_env->locals;
+    module_env->id_suffix = get_id_suffix(ast->file->filename);
+
     Table$str_set(module_env->imports, name, module_env);
 
     ast_list_t *statements = Match(ast, Block)->statements;

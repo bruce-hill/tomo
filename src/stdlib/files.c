@@ -79,23 +79,6 @@ public char *file_base_name(const char *path)
     return buf;
 }
 
-public char *file_base_id(const char *path)
-{
-    const char *slash = strrchr(path, '/');
-    if (slash) path = slash + 1;
-    assert(!isdigit(*path));
-    const char *end = path + strcspn(path, ".");
-    size_t len = (size_t)(end - path);
-    char *buf = GC_MALLOC_ATOMIC(len+1);
-    strncpy(buf, path, len);
-    buf[len] = '\0';
-    for (char *p = buf; *p; p++) {
-        if (!isalnum(*p))
-            *p = '_';
-    }
-    return buf;
-}
-
 static file_t *_load_file(const char* filename, FILE *file)
 {
     if (!file) return NULL;

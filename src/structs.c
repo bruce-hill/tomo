@@ -14,8 +14,8 @@
 
 CORD compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t *fields, bool is_secret, bool is_opaque)
 {
-    CORD typeinfo_name = CORD_all(namespace_prefix(env, env->namespace), name, "$$info");
-    CORD type_code = Match(t, StructType)->external ? name : CORD_all("struct ", namespace_prefix(env, env->namespace), name, "$$struct");
+    CORD typeinfo_name = namespace_name(env, env->namespace, CORD_cat(name, "$$info"));
+    CORD type_code = Match(t, StructType)->external ? name : CORD_all("struct ", namespace_name(env, env->namespace, CORD_cat(name, "$$struct")));
 
     int num_fields = 0;
     for (arg_ast_t *f = fields; f; f = f->next)
@@ -47,8 +47,8 @@ CORD compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t 
 CORD compile_struct_header(env_t *env, ast_t *ast)
 {
     DeclareMatch(def, ast, StructDef);
-    CORD typeinfo_name = CORD_all(namespace_prefix(env, env->namespace), def->name, "$$info");
-    CORD type_code = def->external ? def->name : CORD_all("struct ", namespace_prefix(env, env->namespace), def->name, "$$struct");
+    CORD typeinfo_name = namespace_name(env, env->namespace, CORD_all(def->name, "$$info"));
+    CORD type_code = def->external ? def->name : CORD_all("struct ", namespace_name(env, env->namespace, CORD_all(def->name, "$$struct")));
 
     CORD fields = CORD_EMPTY;
     for (arg_ast_t *field = def->fields; field; field = field->next) {
@@ -70,9 +70,8 @@ CORD compile_struct_header(env_t *env, ast_t *ast)
     CORD optional_code = CORD_EMPTY;
     if (!def->opaque) {
         optional_code = CORD_all("DEFINE_OPTIONAL_TYPE(", compile_type(t), ", ", unpadded_size, ",",
-                                 namespace_prefix(env, env->namespace), "$Optional", def->name, "$$type);\n");
+                                 namespace_name(env, env->namespace, CORD_all("$Optional", def->name, "$$type")), ");\n");
     }
     return CORD_all(struct_code, optional_code, typeinfo_code);
 }
-
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

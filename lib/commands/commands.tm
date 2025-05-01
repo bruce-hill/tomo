@@ -57,22 +57,22 @@ struct Command(command:Text, args:[Text]=[], env:{Text=Text}={})
         errors : [Byte]
         status := run_command(command.command, command.args, command.env, input_bytes, &output, &errors)
 
-        if C_code:Bool(WIFEXITED(_$status))
-            return ProgramResult(output, errors, ExitType.Exited(C_code:Int32(WEXITSTATUS(_$status))))
+        if C_code:Bool(WIFEXITED(@status))
+            return ProgramResult(output, errors, ExitType.Exited(C_code:Int32(WEXITSTATUS(@status))))
 
-        if C_code:Bool(WIFSIGNALED(_$status))
-            return ProgramResult(output, errors, ExitType.Signaled(C_code:Int32(WTERMSIG(_$status))))
+        if C_code:Bool(WIFSIGNALED(@status))
+            return ProgramResult(output, errors, ExitType.Signaled(C_code:Int32(WTERMSIG(@status))))
 
         return ProgramResult(output, errors, ExitType.Failed)
 
     func run(command:Command, -> ExitType)
         status := run_command(command.command, command.args, command.env, none, none, none)
 
-        if C_code:Bool(WIFEXITED(_$status))
-            return ExitType.Exited(C_code:Int32(WEXITSTATUS(_$status)))
+        if C_code:Bool(WIFEXITED(@status))
+            return ExitType.Exited(C_code:Int32(WEXITSTATUS(@status)))
 
-        if C_code:Bool(WIFSIGNALED(_$status))
-            return ExitType.Signaled(C_code:Int32(WTERMSIG(_$status)))
+        if C_code:Bool(WIFSIGNALED(@status))
+            return ExitType.Signaled(C_code:Int32(WTERMSIG(@status)))
 
         return ExitType.Failed
 

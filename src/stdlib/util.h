@@ -14,7 +14,7 @@
 #define new(t, ...) ((t*)memcpy(GC_MALLOC(sizeof(t)), &(t){__VA_ARGS__}, sizeof(t)))
 #define heap(x) (__typeof(x)*)memcpy(GC_MALLOC(sizeof(x)), (__typeof(x)[1]){x}, sizeof(x))
 #define stack(x) (__typeof(x)*)((__typeof(x)[1]){x})
-#define check_initialized(var, name) *({ if (!var ## $initialized) fail("The variable " name " is being accessed before it has been initialized!"); \
+#define check_initialized(var, init_var, name) *({ if (!init_var) fail("The variable " name " is being accessed before it has been initialized!"); \
                                        &var; })
 
 #define IF_DECLARE(decl, expr, block) if (({ decl; expr ? ({ block; 1; }) : 0; })) {}
