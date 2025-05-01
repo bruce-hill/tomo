@@ -198,7 +198,7 @@ install-files: build/bin/tomo build/lib/$(LIB_FILE) build/lib/$(AR_FILE) check-u
 
 install-libs: build/bin/tomo check-utilities
 	# Coroutines don't work with TCC for now
-	if $(DEFAULT_C_COMPILER) --version | grep -q 'tcc version'; then \
+	if $(DEFAULT_C_COMPILER) --version | grep -q 'tcc version' || [ $$(uname -m) = "arm64" ]; then \
 		./local-tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/uuid lib/core; \
 	else \
 		./local-tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/coroutines lib/pthreads lib/uuid lib/core; \
