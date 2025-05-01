@@ -506,10 +506,10 @@ void install_library(Path_t lib_dir)
     // If we have `debugedit` on this system, use it to remap the debugging source information
     // to point to the installed version of the source file. Otherwise, fail silently.
     if (verbose) whisper("Updating debug symbols for ", dest, "/lib", lib_dir_name, SHARED_SUFFIX);
-    xsystem("debugedit -b ", lib_dir,
-            " -d '", dest, "'"
-            " '", dest, "/lib", lib_dir_name, SHARED_SUFFIX, "'"
-            " 2>/dev/null >/dev/null");
+    (void)system("debugedit -b ", lib_dir,
+                 " -d '", dest, "'"
+                 " '", dest, "/lib", lib_dir_name, SHARED_SUFFIX, "'"
+                 " 2>/dev/null >/dev/null");
     print("Installed \033[1m", lib_dir_name, "\033[m to "TOMO_HOME"/installed");
 }
 
