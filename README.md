@@ -94,7 +94,6 @@ Tomo has a very small set of dependencies:
   string support (version 1.0 or higher)
 - [GNU multiple precision arithmetic library](https://gmplib.org/manual/index)
   for arbitrary precision integer math (version 6.2.1 or higher)
-- [Patchelf](https://github.com/NixOS/patchelf) for building tomo libraries
 - [libbacktrace](https://github.com/ianlancetaylor/libbacktrace) for stack traces.
 - and libc/libm, which should definitely already be installed.
 
