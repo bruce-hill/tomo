@@ -94,7 +94,8 @@ Tomo has a very small set of dependencies:
   string support (version 1.0 or higher)
 - [GNU multiple precision arithmetic library](https://gmplib.org/manual/index)
   for arbitrary precision integer math (version 6.2.1 or higher)
-- [libbacktrace](https://github.com/ianlancetaylor/libbacktrace) for stack traces.
+- [Binutils](https://www.gnu.org/software/binutils/) to use `addr2line` for
+  stack traces.
 - and libc/libm, which should definitely already be installed.
 
 If you're feeling incautious, you can run `make deps` or
