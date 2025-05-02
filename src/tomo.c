@@ -9,6 +9,9 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#if defined(__linux__)
+#include <sys/random.h>
+#endif
 
 #include "ast.h"
 #include "compile.h"
@@ -23,6 +26,7 @@
 #include "stdlib/paths.h"
 #include "stdlib/print.h"
 #include "stdlib/random.h"
+#include "stdlib/siphash.h"
 #include "stdlib/text.h"
 #include "typecheck.h"
 #include "types.h"
@@ -130,6 +134,14 @@ int main(int argc, char *argv[])
     USE_COLOR = getenv("COLOR") ? strcmp(getenv("COLOR"), "1") == 0 : isatty(STDOUT_FILENO);
     if (getenv("NO_COLOR") && getenv("NO_COLOR")[0] != '\0')
         USE_COLOR = false;
+
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
+    arc4random_buf(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0);
+#elif defined(__linux__)
+    getrandom(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0);
+#else
+    #error "Unsupported platform for secure random number generation"
+#endif
 
     // Set up environment variables:
     const char *PATH = getenv("PATH");
@@ -361,7 +373,7 @@ static void _compile_statement_header_for_library(libheader_info_t *info, ast_t 
             return;
 
         Path_t path = Path$from_str(use->path);
-        if (!Table$get(*info->used_imports, &path, Table$info(&Path$info, &Path$info))) {
+        if (!Table$has_value(*info->used_imports, path, Table$info(&Path$info, &Void$info))) {
             Table$set(info->used_imports, &path, NULL, Table$info(&Text$info, &Void$info));
             CORD_put(compile_statement_type_header(info->env, info->header_path, ast), info->output);
             CORD_put(compile_statement_namespace_header(info->env, info->header_path, ast), info->output);
