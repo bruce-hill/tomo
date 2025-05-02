@@ -146,9 +146,7 @@ static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const
     hshow(t);
     const void *key = entry;
     bucket_t *buckets = t->bucket_info->buckets;
-    // NOTE: I'm not sure why this needs to be marked `volatile`, but it fixes
-    // a memory issue that was hard to debug.
-    volatile uint64_t hash = HASH_KEY(*t, key);
+    uint64_t hash = HASH_KEY(*t, key);
     hdebug("Hash value (mod ", (int32_t)t->bucket_info->count, ") = ", hash, "\n");
     bucket_t *bucket = &buckets[hash];
     if (!bucket->occupied) {
