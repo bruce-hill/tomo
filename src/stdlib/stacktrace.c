@@ -81,15 +81,12 @@ static void _print_stack_frame(FILE *out, const char *cwd, const char *install_d
             filename += strlen(cwd);
 
         fprint_inline(out, USE_COLOR ? "\033[1mIn \033[33m" : "In ", function_display, USE_COLOR ? "()\033[37m" : "()");
-        if (filename) {
-            if (install_dir[0] && strncmp(filename, install_dir, strlen(install_dir)) == 0)
-                fprint_inline(out, USE_COLOR ? " in library \033[35m" : " in library ", filename, ":", lineno);
-            else
-                fprint(out, USE_COLOR ? " in \033[35m" : " in ", filename, ":", lineno);
-        }
+        if (install_dir[0] && strncmp(filename, install_dir, strlen(install_dir)) == 0)
+            fprint_inline(out, USE_COLOR ? " in library \033[35m" : " in library ", filename, ":", lineno);
+        else
+            fprint(out, USE_COLOR ? " in \033[35m" : " in ", filename, ":", lineno);
         fprint(out, USE_COLOR ? "\033[m" : "");
-        if (filename)
-            fprint_context(out, filename, lineno, 3, 1);
+        fprint_context(out, filename, lineno, 3, 1);
     } else {
         fprint(out, "LINE: ", function);
     }
@@ -124,7 +121,7 @@ public void print_stacktrace(FILE *out, int offset)
                 const char *function = NULL, *filename = NULL;
                 long line_num = 0;
                 if (fparse(fp, &function, "\n", &filename, ":", &line_num) == NULL) {
-                    if (ends_with(function, "$main"))
+                    if (starts_with(function, "main$"))
                         main_func_onwards = true;
                     if (main_func_onwards)
                         _print_stack_frame(out, cwd, install_dir, function, filename, line_num);
