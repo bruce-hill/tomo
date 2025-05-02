@@ -861,7 +861,7 @@ PUREFUNC public uint64_t Text$hash(const void *obj, const TypeInfo_t *info)
         const int32_t *graphemes = text.graphemes;
         for (int64_t i = 0; i + 1 < text.length; i += 2) {
             tmp.chunks[0] = graphemes[i];
-            tmp.chunks[1] = graphemes[i];
+            tmp.chunks[1] = graphemes[i+1];
             siphashadd64bits(&sh, tmp.whole);
         }
         int32_t last = text.length & 0x1 ? graphemes[text.length-1] : 0; // Odd number of graphemes
@@ -869,9 +869,9 @@ PUREFUNC public uint64_t Text$hash(const void *obj, const TypeInfo_t *info)
     }
     case TEXT_CONCAT: {
         TextIter_t state = NEW_TEXT_ITER_STATE(text);
-        for (int64_t i = 0; i < (text.length & ~0x1); i += 2) {
+        for (int64_t i = 0; i + 1 < text.length; i += 2) {
             tmp.chunks[0] = Text$get_grapheme_fast(&state, i);
-            tmp.chunks[0] = Text$get_grapheme_fast(&state, i+1);
+            tmp.chunks[1] = Text$get_grapheme_fast(&state, i+1);
             siphashadd64bits(&sh, tmp.whole);
         }
 
