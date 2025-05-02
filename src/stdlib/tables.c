@@ -559,13 +559,12 @@ PUREFUNC public uint64_t Table$hash(const void *obj, const TypeInfo_t *type)
 
     volatile struct {
         int64_t length;
-        uint64_t keys_hash, values_hash;
-        Table_t *fallback;
+        uint64_t keys_hash, values_hash, fallback_hash;
     } components = {
         t->entries.length,
         keys_hash,
         values_hash,
-        t->fallback,
+        t->fallback ? Table$hash(t->fallback, type) : 0,
     };
     t->hash = siphash24((void*)&components, sizeof(components));
     if unlikely (t->hash == 0)
