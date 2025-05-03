@@ -2805,26 +2805,16 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
         type_t *operand_t;
-        if (is_numeric_type(lhs_t) && binop.rhs->tag == Int) {
+        if (binop.lhs->tag == Int && is_numeric_type(rhs_t)) {
+            operand_t = rhs_t;
+        } else if (binop.rhs->tag == Int && is_numeric_type(lhs_t)) {
             operand_t = lhs_t;
-        } else if (is_numeric_type(rhs_t) && binop.lhs->tag == Int) {
+        } else if (can_compile_to_type(env, binop.rhs, lhs_t)) {
+            operand_t = lhs_t;
+        } else if (can_compile_to_type(env, binop.lhs, rhs_t)) {
             operand_t = rhs_t;
         } else {
-            switch (compare_precision(lhs_t, rhs_t)) {
-            case NUM_PRECISION_LESS: operand_t = rhs_t; break;
-            case NUM_PRECISION_MORE: operand_t = lhs_t; break;
-            case NUM_PRECISION_EQUAL: operand_t = lhs_t; break;
-            default: {
-                if (can_compile_to_type(env, binop.rhs, lhs_t)) {
-                    operand_t = lhs_t;
-                } else if (can_compile_to_type(env, binop.lhs, rhs_t)) {
-                    operand_t = rhs_t;
-                } else {
-                    code_err(ast, "I can't do comparisons between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
-                }
-                break;
-            }
-            }
+            code_err(ast, "I can't do comparisons between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
         }
 
         CORD lhs, rhs;

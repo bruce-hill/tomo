@@ -1689,6 +1689,10 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed)
     if (needed->tag == OptionalType && ast->tag == None)
         return true;
 
+    type_t *actual = get_type(env, ast);
+    if (actual->tag == OptionalType && needed->tag == OptionalType)
+        return can_promote(actual, needed);
+
     needed = non_optional(needed);
     if (needed->tag == ListType && ast->tag == List) {
         type_t *item_type = Match(needed, ListType)->item_type;
@@ -1722,9 +1726,9 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed)
         else if (ast->tag == StackReference)
             return ptr->is_stack && can_compile_to_type(env, Match(ast, StackReference)->value, ptr->pointed);
         else
-            return can_promote(needed, get_type(env, ast));
+            return can_promote(actual, needed);
     } else {
-        return can_promote(needed, get_type(env, ast));
+        return can_promote(actual, needed);
     }
 }
 

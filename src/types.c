@@ -384,10 +384,10 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
             return true;
     }
 
-    if (needed->tag == ClosureType && actual->tag == FunctionType)
+    if (actual->tag == FunctionType && needed->tag == ClosureType)
         return can_promote(actual, Match(needed, ClosureType)->fn);
 
-    if (needed->tag == ClosureType && actual->tag == ClosureType)
+    if (actual->tag == ClosureType && needed->tag == ClosureType)
         return can_promote(Match(actual, ClosureType)->fn, Match(needed, ClosureType)->fn);
 
     if (actual->tag == FunctionType && needed->tag == FunctionType) {
