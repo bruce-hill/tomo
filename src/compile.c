@@ -580,6 +580,7 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
     type_t *overall_t = get_type(env, ast);
 
     binding_t *b = get_metamethod_binding(env, ast->tag, binop.lhs, binop.rhs, overall_t);
+    if (!b) b = get_metamethod_binding(env, ast->tag, binop.rhs, binop.lhs, overall_t);
     if (b) {
         arg_ast_t *args = new(arg_ast_t, .value=binop.lhs, .next=new(arg_ast_t, .value=binop.rhs));
         DeclareMatch(fn, b->type, FunctionType);
