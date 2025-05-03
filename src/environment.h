@@ -15,7 +15,6 @@ typedef struct {
     CORD staticdefs;
     CORD lambdas;
     CORD variable_initializers;
-    CORD function_naming;
 } compilation_unit_t;
 
 typedef struct deferral_s {

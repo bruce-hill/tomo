@@ -3040,12 +3040,6 @@ CORD compile(env_t *env, ast_t *ast)
         DeclareMatch(lambda, ast, Lambda);
         CORD name = namespace_name(env, env->namespace, CORD_all("lambda$", String(lambda->id)));
 
-        env->code->function_naming = CORD_all(
-            env->code->function_naming,
-            "register_function(", name, ", Text(\"", file_base_name(ast->file->filename), ".tm\"), ", 
-            String(get_line_number(ast->file, ast->start)),
-            ", Text(", CORD_quoted(type_to_cord(get_type(env, ast))), "));\n");
-
         env_t *body_scope = fresh_scope(env);
         body_scope->deferred = NULL;
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
@@ -4303,13 +4297,6 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
     if (ret_t && ret_t->tag != VoidType)
         text = CORD_all(text, "->", type_to_cord(ret_t));
     text = CORD_all(text, ")");
-
-    if (!is_inline) {
-        env->code->function_naming = CORD_all(
-            env->code->function_naming,
-            "register_function(", name_code, ", Text(\"", file_base_name(ast->file->filename), ".tm\"), ",
-            String(get_line_number(ast->file, ast->start)), ", Text(", CORD_quoted(text), "));\n");
-    }
     return definition;
 }
 
@@ -4493,7 +4480,6 @@ CORD compile_file(env_t *env, ast_t *ast)
         "initialized = true;\n",
         use_imports,
         env->code->variable_initializers,
-        env->code->function_naming,
         "}\n");
 }
 
