@@ -791,7 +791,7 @@ void transpile_code(env_t *base_env, Path_t path)
                          ", but it should not have any return value!");
 
         CORD_put(CORD_all(
-            "int ", main_binding->code, "$parse_and_run(int argc, char *argv[]) {\n",
+            "int parse_and_run$$", main_binding->code, "(int argc, char *argv[]) {\n",
             module_env->do_source_mapping ? "#line 1\n" : CORD_EMPTY,
             "tomo_init();\n",
             namespace_name(module_env, module_env->namespace, "$initialize"), "();\n"
@@ -848,9 +848,10 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     FILE *runner = run_cmd(cc, " ", cflags, " -O", optimization, " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs), " ",
                            paths_str(object_files), " -x c - -o ", exe_path);
     CORD program = CORD_all(
-        "extern int ", main_binding->code, "$parse_and_run(int argc, char *argv[]);\n"
+        "extern int parse_and_run$$", main_binding->code, "(int argc, char *argv[]);\n"
+        "__attribute__ ((noinline))\n"
         "int main(int argc, char *argv[]) {\n"
-        "\treturn ", main_binding->code, "$parse_and_run(argc, argv);\n"
+        "\treturn parse_and_run$$", main_binding->code, "(argc, argv);\n"
         "}\n"
     );
 
