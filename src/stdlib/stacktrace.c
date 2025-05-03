@@ -68,10 +68,8 @@ static void _print_stack_frame(FILE *out, const char *cwd, const char *install_d
 
     char *function_display = GC_MALLOC_ATOMIC(strlen(function));
     memcpy(function_display, function, strlen(function)+1);
-    function_display += strcspn(function_display, "$");
-    function_display += strspn(function_display, "$");
-    function_display += strcspn(function_display, "$");
-    function_display += strspn(function_display, "$");
+    char *last_dollar = strrchr(function_display, '$');
+    if (last_dollar) *last_dollar = '\0';
     for (char *p = function_display; *p; p++) {
         if (*p == '$') *p = '.';
     }
