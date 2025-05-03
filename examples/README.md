@@ -17,6 +17,7 @@ This folder contains some example programs and libraries.
 Libraries can be installed with `tomo -IL ./library-folder`
 
 - [colorful](colorful/): A DSL useful for rendering terminal colors.
+- [coroutines](coroutines/): A library for stackful coroutines similar to Lua's. (Note: only works on x86_64)
 - [http](http/): An HTTP library to make basic synchronous HTTP requests.
 - [ini](ini/): An INI configuration file reader tool.
 - [log](log/): A logging utility.
