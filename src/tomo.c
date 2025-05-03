@@ -174,7 +174,6 @@ int main(int argc, char *argv[])
                         "  --quiet|-q: quiet output\n"
                         "  --parse|-p: show parse tree\n"
                         "  --install|-I: install the executable or library\n"
-                        "  --c-compiler <compiler>: the C compiler to use (default: "DEFAULT_C_COMPILER")\n"
                         "  --optimization|-O <level>: set optimization level\n"
                         "  --run|-r: run a program from " TOMO_HOME "/installed\n"
                         );
@@ -204,7 +203,6 @@ int main(int argc, char *argv[])
         {"C", false, &Text$info, &show_codegen},
         {"install", false, &Bool$info, &should_install},
         {"I", false, &Bool$info, &should_install},
-        {"c-compiler", false, &Text$info, &cc},
         {"optimization", false, &Text$info, &optimization},
         {"O", false, &Text$info, &optimization},
         {"force-rebuild", false, &Bool$info, &clean_build},

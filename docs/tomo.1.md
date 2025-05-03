@@ -53,9 +53,6 @@ C code, which is then compiled using a C compiler of your choice.
 `-C` *<program>*, `--show-codegen` *<program>*
 : Set a program (e.g. `cat` or `bat`) to display the generated code
 
-`--c-compiler`
-: Set which C compiler is used.
-
 `-O` **level**, `--optimization` **level**
 : Set the optimization level.
 
@@ -67,10 +64,3 @@ C code, which is then compiled using a C compiler of your choice.
 
 `-r`, `--run`
 : Run an installed tomo program from `~/.local/share/tomo/installed`.
-
-## ENVIRONMENT VARIABLES
-
-Some options can be configured by setting environment variables.
-
-`CC=`*c-compiler*
-: Set which C compiler is used.
