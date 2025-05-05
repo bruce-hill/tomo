@@ -366,95 +366,6 @@ Path_t build_file(Path_t path, const char *extension)
     return Path$with_component(build_dir, Texts(Path$base_name(path), Text$from_str(extension)));
 }
 
-typedef struct {
-    env_t *env;
-    Table_t *used_imports;
-    FILE *output;
-    Path_t header_path;
-} libheader_info_t;
-
-static void _compile_statement_header_for_library(libheader_info_t *info, ast_t *ast)
-{
-    if (ast->tag == Use) {
-        DeclareMatch(use, ast, Use);
-        if (use->what == USE_LOCAL)
-            return;
-
-        Path_t path = Path$from_str(use->path);
-        if (!Table$has_value(*info->used_imports, path, Table$info(&Path$info, &Void$info))) {
-            Table$set(info->used_imports, &path, NULL, Table$info(&Text$info, &Void$info));
-            CORD_put(compile_statement_type_header(info->env, info->header_path, ast), info->output);
-            CORD_put(compile_statement_namespace_header(info->env, info->header_path, ast), info->output);
-        }
-    } else {
-        CORD_put(compile_statement_type_header(info->env, info->header_path, ast), info->output);
-        CORD_put(compile_statement_namespace_header(info->env, info->header_path, ast), info->output);
-    }
-}
-
-static void _make_typedefs_for_library(libheader_info_t *info, ast_t *ast)
-{
-    if (ast->tag == StructDef) {
-        DeclareMatch(def, ast, StructDef);
-        CORD struct_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$struct"));
-        CORD type_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$type"));
-        CORD_put(CORD_all("typedef struct ", struct_name, " ", type_name, ";\n"), info->output);
-    } else if (ast->tag == EnumDef) {
-        DeclareMatch(def, ast, EnumDef);
-        CORD struct_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$struct"));
-        CORD type_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$type"));
-        CORD_put(CORD_all("typedef struct ", struct_name, " ", type_name, ";\n"), info->output);
-
-        for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-            if (!tag->fields) continue;
-            CORD tag_struct_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$", tag->name, "$$struct"));
-            CORD tag_type_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$", tag->name, "$$type"));
-            CORD_put(CORD_all("typedef struct ", tag_struct_name, " ", tag_type_name, ";\n"), info->output);
-        }
-    } else if (ast->tag == LangDef) {
-        DeclareMatch(def, ast, LangDef);
-        CORD_put(CORD_all("typedef Text_t ", namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$type")), ";\n"), info->output);
-    }
-}
-
-static void _compile_file_header_for_library(env_t *env, Path_t header_path, Path_t path, Table_t *visited_files, Table_t *used_imports, FILE *output)
-{
-    if (Table$has_value(*visited_files, path, Table$info(&Path$info, &Void$info)))
-        return;
-
-    Table$set(visited_files, &path, NULL, Table$info(&Path$info, &Void$info));
-
-    ast_t *file_ast = parse_file(Path$as_c_string(path), NULL);
-    if (!file_ast) print_err("Could not parse file ", path);
-    env_t *module_env = load_module_env(env, file_ast);
-
-    libheader_info_t info = {
-        .env=module_env,
-        .used_imports=used_imports,
-        .output=output,
-        .header_path=header_path,
-    };
-
-    // Visit files in topological order:
-    for (ast_list_t *stmt = Match(file_ast, Block)->statements; stmt; stmt = stmt->next) {
-        ast_t *ast = stmt->ast;
-        if (ast->tag != Use) continue;
-
-        DeclareMatch(use, ast, Use);
-        if (use->what == USE_LOCAL) {
-            Path_t resolved = Path$resolved(Path$from_str(use->path), Path$parent(path));
-            _compile_file_header_for_library(env, header_path, resolved, visited_files, used_imports, output);
-        }
-    }
-
-    visit_topologically(
-        Match(file_ast, Block)->statements, (Closure_t){.fn=(void*)_make_typedefs_for_library, &info});
-    visit_topologically(
-        Match(file_ast, Block)->statements, (Closure_t){.fn=(void*)_compile_statement_header_for_library, &info});
-
-    CORD_put(CORD_all("void ", namespace_name(module_env, module_env->namespace, "$initialize"), "(void);\n"), output);
-}
-
 void build_library(Path_t lib_dir)
 {
     lib_dir = Path$resolved(lib_dir, Path$current_dir());
@@ -468,20 +379,6 @@ void build_library(Path_t lib_dir)
            extra_ldlibs = {};
 
     compile_files(env, tm_files, &object_files, &extra_ldlibs);
-
-    // Build a "whatever.h" header that loads all the headers:
-    Path_t header_path = Path$with_component(lib_dir, Texts(lib_dir_name, Text(".h")));
-    FILE *header = fopen(String(header_path), "w");
-    fputs("#pragma once\n", header);
-    fputs("#include <tomo/tomo.h>\n", header);
-    Table_t visited_files = {};
-    Table_t used_imports = {};
-    for (int64_t i = 0; i < tm_files.length; i++) {
-        Path_t f = *(Path_t*)(tm_files.data + i*tm_files.stride);
-        _compile_file_header_for_library(env, header_path, f, &visited_files, &used_imports, header);
-    }
-    if (fclose(header) == -1)
-        print_err("Failed to write header file: ", header_path);
 
     Path_t shared_lib = Path$with_component(lib_dir, Texts(Text("lib"), lib_dir_name, Text(SHARED_SUFFIX)));
     if (!is_stale_for_any(shared_lib, object_files)) {

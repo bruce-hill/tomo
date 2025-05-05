@@ -4483,7 +4483,20 @@ CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
         Path_t build_dir = Path$resolved(Path$parent(header_path), Path$current_dir());
         switch (use->what) {
         case USE_MODULE: {
-            return CORD_all("#include <", use->path, "/", use->path, ".h>\n");
+            glob_t tm_files;
+            if (glob(String(TOMO_PREFIX"/share/tomo/installed/", use->path, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
+                code_err(ast, "Could not find library");
+
+            CORD includes = CORD_EMPTY;
+            for (size_t i = 0; i < tm_files.gl_pathc; i++) {
+                const char *filename = tm_files.gl_pathv[i];
+                Path_t tm_file = Path$from_str(filename);
+                Path_t lib_build_dir = Path$with_component(Path$parent(tm_file), Text(".build"));
+                Path_t header = Path$with_component(lib_build_dir, Texts(Path$base_name(tm_file), Text(".h")));
+                includes = CORD_all(includes, "#include \"", Path$as_c_string(header), "\"\n");
+            }
+            globfree(&tm_files);
+            return with_source_info(env, ast, includes);
         }
         case USE_LOCAL: {
             Path_t used_path = Path$resolved(Path$from_str(use->path), source_dir);
