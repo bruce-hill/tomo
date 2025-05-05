@@ -1977,7 +1977,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             return with_source_info(env, ast, CORD_all("$initialize", suffix, "();\n"));
         } else if (use->what == USE_MODULE) {
             glob_t tm_files;
-            if (glob(String(TOMO_HOME"/installed/", use->path, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
+            if (glob(String(TOMO_PREFIX"/share/tomo/installed/", use->path, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
                 code_err(ast, "Could not find library");
 
             CORD initialization = CORD_EMPTY;

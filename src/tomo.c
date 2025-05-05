@@ -82,14 +82,18 @@ static OptionalText_t
                           " -D_BSD_SOURCE"
 #endif
                           " -DGC_THREADS"
-                          " -I'" TOMO_PREFIX "/include' -I'" TOMO_HOME "/installed' -I/usr/local/include"),
+                          " -I'" TOMO_PREFIX "/include' -I'" TOMO_PREFIX "/share/tomo/installed' -I/usr/local/include"),
             ldlibs = Text("-lgc -lm -lgmp -lunistring -ltomo"),
-            ldflags = Text("-Wl,-rpath,'"TOMO_PREFIX"/lib',-rpath,'" TOMO_HOME "/lib',-rpath,/usr/local/lib "
-                           "-L'" TOMO_HOME "/lib' -L/usr/local/lib"),
+            ldflags = Text("-Wl,-rpath,'"TOMO_PREFIX"/lib',-rpath,'" TOMO_PREFIX "/share/tomo/lib',-rpath,/usr/local/lib "
+                           "-L'" TOMO_PREFIX "/share/tomo/lib' -L/usr/local/lib"),
             optimization = Text("2"),
             cc = Text(DEFAULT_C_COMPILER);
 
-static Text_t config_summary;
+static Text_t config_summary,
+              // This will be either "" or "sudo -u <user>" or "doas -u <user>"
+              // to allow a command to put stuff into TOMO_PREFIX as the owner
+              // of that directory.
+              as_owner = Text("");
 
 static void transpile_header(env_t *base_env, Path_t path);
 static void transpile_code(env_t *base_env, Path_t path);
@@ -156,7 +160,7 @@ int main(int argc, char *argv[])
     // Run a tool:
     if ((streq(argv[1], "-r") || streq(argv[1], "--run")) && argc >= 3) {
         if (strcspn(argv[2], "/;$") == strlen(argv[2])) {
-            const char *program = String("'"TOMO_HOME"'/installed/", argv[2], "/", argv[2]);
+            const char *program = String("'"TOMO_PREFIX"'/share/tomo/installed/", argv[2], "/", argv[2]);
             execv(program, &argv[2]);
         }
         print_err("This is not an installed tomo program: \033[31;1m", argv[2], "\033[m");
@@ -175,7 +179,7 @@ int main(int argc, char *argv[])
                         "  --parse|-p: show parse tree\n"
                         "  --install|-I: install the executable or library\n"
                         "  --optimization|-O <level>: set optimization level\n"
-                        "  --run|-r: run a program from " TOMO_HOME "/installed\n"
+                        "  --run|-r: run a program from " TOMO_PREFIX "/share/tomo/installed\n"
                         );
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     tomo_parse_args(
@@ -237,9 +241,15 @@ int main(int argc, char *argv[])
 
     config_summary = Text$from_str(String(cc, " ", cflags, " -O", optimization));
 
+    Text_t owner = Path$owner(Path$from_str(TOMO_PREFIX), true);
+    Text_t user = Text$from_str(getenv("USER"));
+    if (!Text$equal_values(user, owner)) {
+        as_owner = Texts(Text(SUDO" -u "), owner, Text(" "));
+    }
+
     for (int64_t i = 0; i < uninstall.length; i++) {
         Text_t *u = (Text_t*)(uninstall.data + i*uninstall.stride);
-        xsystem("rm -rvf '"TOMO_HOME"'/installed/", *u, " '"TOMO_HOME"'/lib/lib", *u, SHARED_SUFFIX);
+        xsystem(as_owner, "rm -rvf '"TOMO_PREFIX"'/share/tomo/installed/", *u, " '"TOMO_PREFIX"/share/tomo/lib/lib'", *u, SHARED_SUFFIX);
         print("Uninstalled ", *u);
     }
 
@@ -322,7 +332,7 @@ int main(int argc, char *argv[])
         for (int64_t i = 0; i < files.length; i++) {
             Path_t path = *(Path_t*)(files.data + i*files.stride);
             Path_t exe = Path$with_extension(path, Text(""), true);
-            xsystem("cp -v '", exe, "' '"TOMO_PREFIX"'/bin/");
+            xsystem(as_owner, "cp -v '", exe, "' '"TOMO_PREFIX"'/bin/");
         }
     }
     return 0;
@@ -500,27 +510,27 @@ void build_library(Path_t lib_dir)
 void install_library(Path_t lib_dir)
 {
     Text_t lib_dir_name = Path$base_name(lib_dir);
-    Path_t dest = Path$with_component(Path$from_str(TOMO_HOME"/installed"), lib_dir_name);
+    Path_t dest = Path$with_component(Path$from_str(TOMO_PREFIX"/share/tomo/installed"), lib_dir_name);
     if (!Path$equal_values(lib_dir, dest)) {
         if (verbose) whisper("Clearing out any pre-existing version of ", lib_dir_name);
-        Path$remove(dest, true);
+        xsystem(as_owner, "rm -rf '", dest, "'");
         if (verbose) whisper("Moving files to ", dest);
-        xsystem("mkdir -p '", dest, "'");
-        xsystem("cp -r '", lib_dir, "'/* '", dest, "/'");
-        xsystem("cp -r '", lib_dir, "'/.build '", dest, "/'");
+        xsystem(as_owner, "mkdir -p '", dest, "'");
+        xsystem(as_owner, "cp -r '", lib_dir, "'/* '", dest, "/'");
+        xsystem(as_owner, "cp -r '", lib_dir, "'/.build '", dest, "/'");
     }
-    if (verbose) whisper("Linking "TOMO_HOME"/lib/lib", lib_dir_name, SHARED_SUFFIX);
-    xsystem("mkdir -p '"TOMO_HOME"'/lib/");
-    xsystem("ln -f -s ../installed/'", lib_dir_name, "'/lib'", lib_dir_name, SHARED_SUFFIX,
-            "' '"TOMO_HOME"'/lib/lib'", lib_dir_name, SHARED_SUFFIX, "'");
+    if (verbose) whisper("Linking "TOMO_PREFIX"/share/tomo/lib/lib", lib_dir_name, SHARED_SUFFIX);
+    xsystem(as_owner, "mkdir -p '"TOMO_PREFIX"/share/tomo/lib/'");
+    xsystem(as_owner, "ln -f -s ../installed/'", lib_dir_name, "'/lib'", lib_dir_name, SHARED_SUFFIX,
+            "' '"TOMO_PREFIX"/share/tomo/lib/lib", lib_dir_name, SHARED_SUFFIX, "'");
     // If we have `debugedit` on this system, use it to remap the debugging source information
     // to point to the installed version of the source file. Otherwise, fail silently.
     if (verbose) whisper("Updating debug symbols for ", dest, "/lib", lib_dir_name, SHARED_SUFFIX);
-    (void)system(String("debugedit -b ", lib_dir,
+    (void)system(String(as_owner, "debugedit -b ", lib_dir,
                         " -d '", dest, "'"
                         " '", dest, "/lib", lib_dir_name, SHARED_SUFFIX, "'"
                         " 2>/dev/null >/dev/null"));
-    print("Installed \033[1m", lib_dir_name, "\033[m to "TOMO_HOME"/installed");
+    print("Installed \033[1m", lib_dir_name, "\033[m to "TOMO_PREFIX"/share/tomo/installed");
 }
 
 void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs)
@@ -683,11 +693,11 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             break;
         }
         case USE_MODULE: {
-            Text_t lib = Texts(Text("'" TOMO_HOME "/installed/"),
+            Text_t lib = Texts(Text("'" TOMO_PREFIX "/share/tomo/installed/"),
                                Text$from_str(use->path), Text("/lib"), Text$from_str(use->path), Text(SHARED_SUFFIX "'"));
             Table$set(to_link, &lib, NULL, Table$info(&Text$info, &Void$info));
 
-            List_t children = Path$glob(Path$from_str(String(TOMO_HOME"/installed/", use->path, "/*.tm")));
+            List_t children = Path$glob(Path$from_str(String(TOMO_PREFIX"/share/tomo/installed/", use->path, "/*.tm")));
             for (int64_t i = 0; i < children.length; i++) {
                 Path_t *child = (Path_t*)(children.data + i*children.stride);
                 Table_t discarded = {.fallback=to_compile};

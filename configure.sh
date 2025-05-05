@@ -25,11 +25,11 @@ if ! echo "$PATH" | tr ':' '\n' | grep -qx "$PREFIX/bin"; then
         "Please put this in your .profile or .bashrc: export PATH=\"$PREFIX/bin:\$PATH\""
 fi
 
-default_home="~/.local/share/tomo"
-printf '\033[1mChoose where to install Tomo libraries (default: %s):\033[m ' "$default_home"
-read TOMO_HOME
-if [ -z "$TOMO_HOME" ]; then TOMO_HOME="$default_home"; fi
-TOMO_HOME="${TOMO_HOME/#\~/$HOME}"
+if command -v doas >/dev/null; then
+    SUDO=doas
+else
+    SUDO=sudo
+fi
 
 default_cc="cc"
 printf '\033[1mChoose which C compiler to use by default (default: %s):\033[m ' "$default_cc"
@@ -39,6 +39,6 @@ DEFAULT_C_COMPILER="${DEFAULT_C_COMPILER/#\~/$HOME}"
 
 cat <<END >config.mk
 PREFIX=$PREFIX
-TOMO_HOME=$TOMO_HOME
 DEFAULT_C_COMPILER=$DEFAULT_C_COMPILER
+SUDO=$SUDO
 END

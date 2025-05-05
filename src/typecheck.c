@@ -183,7 +183,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
     }
     case USE_MODULE: {
         glob_t tm_files;
-        if (glob(String(TOMO_HOME"/installed/", use->path, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
+        if (glob(String(TOMO_PREFIX"/share/tomo/installed/", use->path, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
             code_err(module_ast, "Could not find library");
 
         env_t *module_env = fresh_scope(env);

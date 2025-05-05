@@ -40,10 +40,12 @@ CWARN=-Wall -Wextra -Wno-format -Wno-format-security -Wshadow \
 	  -Wunused-const-variable -Wunused-local-typedefs -Wunused-macros -Wvariadic-macros \
 	  -Wwrite-strings
 
+ifeq ($(SUDO),)
 ifeq ($(shell command -v doas 2>/dev/null),)
 	SUDO=sudo
 else
 	SUDO=doas
+endif
 endif
 
 OWNER=$(shell ls -ld '$(PREFIX)' | awk '{print $$3}')
@@ -67,11 +69,19 @@ G=-ggdb
 O=-O3
 GIT_VERSION=$(shell git log -1 --pretty=format:"$$(git describe --tags --abbrev=0)_%as_%h")
 CFLAGS=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO) \
-	   -DTOMO_HOME='"$(TOMO_HOME)"' -DTOMO_PREFIX='"$(PREFIX)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
+	   -DTOMO_PREFIX='"$(PREFIX)"' -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
 	   -DTOMO_VERSION='"$(GIT_VERSION)"'
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
 LDLIBS=-lgc -lcord -lm -lunistring -lgmp
 LIBTOMO_FLAGS=-shared
+
+DEFINE_AS_OWNER=as_owner() { \
+	if [ "$$USER" = "$(OWNER)" ]; then \
+		"$$@"; \
+	else \
+		$(SUDO) -u "$(OWNER)" "$$@"; \
+	fi; \
+} \
 
 ifeq ($(OS),OpenBSD)
 	LDLIBS += -lexecinfo
@@ -188,21 +198,24 @@ install-files: build/bin/tomo build/lib/$(LIB_FILE) build/lib/$(AR_FILE) check-u
 		printf "\n\033[1mexport PATH=\"$(PREFIX):\$$PATH\"\033[m\n\n" >&2; \
 		exit 1; \
 	fi
-	$(SUDO) -u "$(OWNER)" mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules" "$(PREFIX)/share/tomo/lib"
-	$(SUDO) -u "$(OWNER)" cp src/stdlib/*.h "$(PREFIX)/include/tomo/"
-	$(SUDO) -u "$(OWNER)" cp build/lib/$(LIB_FILE) build/lib/$(AR_FILE) "$(PREFIX)/lib/"
-	$(SUDO) -u "$(OWNER)" rm -f "$(PREFIX)/bin/tomo"
-	$(SUDO) -u "$(OWNER)" cp build/bin/tomo "$(PREFIX)/bin/"
-	$(SUDO) -u "$(OWNER)" cp man/man1/* "$(PREFIX)/man/man1/"
-	$(SUDO) -u "$(OWNER)" cp man/man3/* "$(PREFIX)/man/man3/"
+	$(DEFINE_AS_OWNER); \
+	as_owner mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules" "$(PREFIX)/share/tomo/lib"; \
+	as_owner cp src/stdlib/*.h "$(PREFIX)/include/tomo/"; \
+	as_owner cp build/lib/$(LIB_FILE) build/lib/$(AR_FILE) "$(PREFIX)/lib/"; \
+	as_owner rm -f "$(PREFIX)/bin/tomo"; \
+	as_owner cp build/bin/tomo "$(PREFIX)/bin/"; \
+	as_owner cp man/man1/* "$(PREFIX)/man/man1/"; \
+	as_owner cp man/man3/* "$(PREFIX)/man/man3/";
 
 install-libs: build/bin/tomo check-utilities
-	./local-tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/uuid lib/core; \
+	$(DEFINE_AS_OWNER); \
+	./local-tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/uuid lib/core
 
 install: install-files install-libs
 
 uninstall:
-	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/include/tomo" "$(PREFIX)/lib/$(LIB_FILE)" "$(PREFIX)/lib/$(AR_FILE)" "$(PREFIX)/share/tomo";
+	$(DEFINE_AS_OWNER); \
+	as_owner rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/include/tomo" "$(PREFIX)/lib/$(LIB_FILE)" "$(PREFIX)/lib/$(AR_FILE)" "$(PREFIX)/share/tomo";
 
 endif
 
