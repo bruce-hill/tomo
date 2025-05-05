@@ -587,6 +587,8 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
             entry->staleness.o = true;
         } else {
             if (verbose) whisper("Unchanged: ", build_file(entry->filename, ".h"));
+            if (show_codegen.length > 0)
+                xsystem(show_codegen, " <", build_file(entry->filename, ".h"));
         }
     }
 
@@ -607,6 +609,8 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         if (!clean_build && !entry->staleness.c && !entry->staleness.h && !entry->staleness.o
             && !is_config_outdated(entry->filename)) {
             if (verbose) whisper("Unchanged: ", build_file(entry->filename, ".c"));
+            if (show_codegen.length > 0)
+                xsystem(show_codegen, " <", build_file(entry->filename, ".c"));
             if (verbose) whisper("Unchanged: ", build_file(entry->filename, ".o"));
             continue;
         }
