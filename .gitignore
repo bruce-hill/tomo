@@ -4,16 +4,12 @@
 !/examples/*/*.*
 /examples/*/*.so
 /examples/*/*.a
-/examples/*/*.h
-!/examples/!(*)/*.h
 
 /lib/*/*
 !/lib/*.*
 !/lib/*/*.*
 /lib/*/*.so
 /lib/*/*.a
-/lib/*/*.h
-!/lib/!(*)/*.h
 
 .build
 /build/bin
