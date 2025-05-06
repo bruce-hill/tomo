@@ -54,7 +54,7 @@ Text_t Text$without_prefix(Text_t text, Text_t prefix);
 Text_t Text$without_suffix(Text_t text, Text_t suffix);
 Text_t Text$replace(Text_t text, Text_t target, Text_t replacement);
 Text_t Text$translate(Text_t text, Table_t translations);
-bool Text$has(Text_t text, Text_t target);
+PUREFUNC bool Text$has(Text_t text, Text_t target);
 List_t Text$split(Text_t text, Text_t delimiter);
 List_t Text$split_any(Text_t text, Text_t delimiters);
 Closure_t Text$by_split(Text_t text, Text_t delimiter);

@@ -63,6 +63,9 @@ public Path_t Path$from_str(const char *str)
     else if (streq(str, "~")) return HOME_PATH;
     else if (streq(str, ".")) return CURDIR_PATH;
 
+    if (strchr(str, ';') != NULL)
+        fail("Path has illegal character (semicolon): ", str);
+
     Path_t result = {.components={}};
     if (str[0] == '/') {
         result.type.$tag = PATH_ABSOLUTE;
@@ -608,6 +611,8 @@ public Text_t Path$extension(Path_t path, bool full)
 
 public Path_t Path$with_component(Path_t path, Text_t component)
 {
+    if (Text$has(component, Text("/")) || Text$has(component, Text(";")))
+        fail("Path component has invalid characters: ", component);
     Path_t result = {
         .type.$tag=path.type.$tag,
         .components=path.components,
@@ -622,6 +627,9 @@ public Path_t Path$with_extension(Path_t path, Text_t extension, bool replace)
 {
     if (path.components.length == 0)
         fail("A path with no components can't have an extension!");
+
+    if (Text$has(extension, Text("/")) || Text$has(extension, Text(";")))
+        fail("Path extension has invalid characters: ", extension);
 
     Path_t result = {
         .type.$tag=path.type.$tag,

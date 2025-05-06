@@ -1092,7 +1092,7 @@ public Text_t Text$replace(Text_t text, Text_t target, Text_t replacement)
     return result;
 }
 
-public bool Text$has(Text_t text, Text_t target)
+public PUREFUNC bool Text$has(Text_t text, Text_t target)
 {
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), target_state = NEW_TEXT_ITER_STATE(target);
     for (int64_t i = 0; i < text.length; i++) {
