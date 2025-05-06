@@ -79,24 +79,24 @@ public CONSTFUNC Closure_t Byte$to(Byte_t first, Byte_t last, OptionalInt8_t ste
 }
 
 public PUREFUNC Byte_t Byte$from_int(Int_t i, bool truncate) {
-    if unlikely (truncate && Int$compare_value(i, I_small(0xFF)) > 0)
+    if unlikely (!truncate && Int$compare_value(i, I_small(0xFF)) > 0)
         fail("This value is too large to convert to a byte without truncation: ", i);
-     else if unlikely (truncate && Int$compare_value(i, I_small(0)) < 0)
+     else if unlikely (!truncate && Int$compare_value(i, I_small(0)) < 0)
         fail("Negative values can't be converted to bytes: ", i);
     return (Byte_t)(i.small >> 2);
 }
 public PUREFUNC Byte_t Byte$from_int64(Int64_t i, bool truncate) {
-    if unlikely (truncate && i != (Int64_t)(Byte_t)i)
+    if unlikely (!truncate && i != (Int64_t)(Byte_t)i)
         fail("This value can't be converted to a byte without truncation: ", i);
     return (Byte_t)i;
 }
 public PUREFUNC Byte_t Byte$from_int32(Int32_t i, bool truncate) {
-    if unlikely (truncate && i != (Int32_t)(Byte_t)i)
+    if unlikely (!truncate && i != (Int32_t)(Byte_t)i)
         fail("This value can't be converted to a byte without truncation: ", i);
     return (Byte_t)i;
 }
 public PUREFUNC Byte_t Byte$from_int16(Int16_t i, bool truncate) {
-    if unlikely (truncate && i != (Int16_t)(Byte_t)i)
+    if unlikely (!truncate && i != (Int16_t)(Byte_t)i)
         fail("This value can't be converted to a byte without truncation: ", i);
     return (Byte_t)i;
 }
