@@ -199,7 +199,7 @@ install-files: build/bin/tomo build/lib/$(LIB_FILE) build/lib/$(AR_FILE) check-u
 		exit 1; \
 	fi
 	$(DEFINE_AS_OWNER); \
-	as_owner mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib" "$(PREFIX)/share/tomo/modules" "$(PREFIX)/share/tomo/lib"; \
+	as_owner mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" "$(PREFIX)/include/tomo" "$(PREFIX)/lib"; \
 	as_owner cp src/stdlib/*.h "$(PREFIX)/include/tomo/"; \
 	as_owner cp build/lib/$(LIB_FILE) build/lib/$(AR_FILE) "$(PREFIX)/lib/"; \
 	as_owner rm -f "$(PREFIX)/bin/tomo"; \

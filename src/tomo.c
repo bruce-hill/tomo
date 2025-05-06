@@ -84,8 +84,8 @@ static OptionalText_t
                           " -DGC_THREADS"
                           " -I'" TOMO_PREFIX "/include' -I'" TOMO_PREFIX "/share/tomo/installed' -I/usr/local/include"),
             ldlibs = Text("-lgc -lm -lgmp -lunistring -ltomo"),
-            ldflags = Text("-Wl,-rpath,'"TOMO_PREFIX"/lib',-rpath,'" TOMO_PREFIX "/share/tomo/lib',-rpath,/usr/local/lib "
-                           "-L'" TOMO_PREFIX "/share/tomo/lib' -L/usr/local/lib"),
+            ldflags = Text("-Wl,-rpath,'"TOMO_PREFIX"/lib',-rpath,/usr/local/lib"
+                           " -L/usr/local/lib"),
             optimization = Text("2"),
             cc = Text(DEFAULT_C_COMPILER);
 
@@ -249,7 +249,7 @@ int main(int argc, char *argv[])
 
     for (int64_t i = 0; i < uninstall.length; i++) {
         Text_t *u = (Text_t*)(uninstall.data + i*uninstall.stride);
-        xsystem(as_owner, "rm -rvf '"TOMO_PREFIX"'/share/tomo/installed/", *u, " '"TOMO_PREFIX"/share/tomo/lib/lib'", *u, SHARED_SUFFIX);
+        xsystem(as_owner, "rm -rvf '"TOMO_PREFIX"'/share/tomo/installed/", *u);
         print("Uninstalled ", *u);
     }
 
@@ -416,10 +416,6 @@ void install_library(Path_t lib_dir)
         xsystem(as_owner, "cp -r '", lib_dir, "'/* '", dest, "/'");
         xsystem(as_owner, "cp -r '", lib_dir, "'/.build '", dest, "/'");
     }
-    if (verbose) whisper("Linking "TOMO_PREFIX"/share/tomo/lib/lib", lib_dir_name, SHARED_SUFFIX);
-    xsystem(as_owner, "mkdir -p '"TOMO_PREFIX"/share/tomo/lib/'");
-    xsystem(as_owner, "ln -f -s ../installed/'", lib_dir_name, "'/lib'", lib_dir_name, SHARED_SUFFIX,
-            "' '"TOMO_PREFIX"/share/tomo/lib/lib", lib_dir_name, SHARED_SUFFIX, "'");
     // If we have `debugedit` on this system, use it to remap the debugging source information
     // to point to the installed version of the source file. Otherwise, fail silently.
     if (verbose) whisper("Updating debug symbols for ", dest, "/lib", lib_dir_name, SHARED_SUFFIX);
@@ -594,7 +590,9 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             break;
         }
         case USE_MODULE: {
-            Text_t lib = Texts(Text("'" TOMO_PREFIX "/share/tomo/installed/"),
+            Text_t lib = Texts(Text("-Wl,-rpath,'"),
+                               Text(TOMO_PREFIX "/share/tomo/installed/"), Text$from_str(use->path),
+                               Text("' '" TOMO_PREFIX "/share/tomo/installed/"),
                                Text$from_str(use->path), Text("/lib"), Text$from_str(use->path), Text(SHARED_SUFFIX "'"));
             Table$set(to_link, &lib, NULL, Table$info(&Text$info, &Void$info));
 
