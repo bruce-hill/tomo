@@ -83,7 +83,7 @@ public PUREFUNC Byte_t Byte$from_int(Int_t i, bool truncate) {
         fail("This value is too large to convert to a byte without truncation: ", i);
      else if unlikely (truncate && Int$compare_value(i, I_small(0)) < 0)
         fail("Negative values can't be converted to bytes: ", i);
-    return (i.small != 0);
+    return (Byte_t)(i.small >> 2);
 }
 public PUREFUNC Byte_t Byte$from_int64(Int64_t i, bool truncate) {
     if unlikely (truncate && i != (Int64_t)(Byte_t)i)
