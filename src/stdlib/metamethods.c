@@ -87,7 +87,8 @@ public void _deserialize(FILE *input, void *outval, List_t *pointers, const Type
         return;
     }
 
-    fread(outval, (size_t)type->size, 1, input);
+    if (fread(outval, (size_t)type->size, 1, input) != (size_t)type->size)
+        fail("Not enough data in stream to deserialize");
 }
 
 public void generic_deserialize(List_t bytes, void *outval, const TypeInfo_t *type)
