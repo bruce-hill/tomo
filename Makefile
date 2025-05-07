@@ -1,3 +1,4 @@
+SHELL=/bin/bash -o pipefail
 # Run ./configure.sh to choose installation locations:
 ifeq ($(wildcard config.mk),)
 all: config.mk
@@ -143,8 +144,7 @@ config.mk: configure.sh
 test/results/%.tm.testresult: test/%.tm build/bin/tomo
 	@mkdir -p test/results
 	@printf '\033[33;1;4m%s\033[m\n' $<
-	@set -o pipefail; \
-	if ! COLOR=1 LC_ALL=C ./local-tomo -O 1 $< 2>&1 | tee $@; then \
+	@if ! COLOR=1 LC_ALL=C ./local-tomo -O 1 $< 2>&1 | tee $@; then \
 		rm -f $@; \
 		false; \
 	fi
