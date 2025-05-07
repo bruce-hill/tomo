@@ -717,7 +717,8 @@ public List_t Path$glob(Path_t path)
 public Path_t Path$current_dir(void)
 {
     char cwd[PATH_MAX];
-    getcwd(cwd, sizeof(cwd));
+    if (getcwd(cwd, sizeof(cwd)) == NULL)
+        fail("Could not get current working directory");
     return Path$from_str(cwd);
 }
 
