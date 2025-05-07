@@ -8,6 +8,7 @@
 #include <spawn.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 #include <sys/param.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -15,6 +16,12 @@
 
 #define READ_END 0
 #define WRITE_END 1
+
+static void xpipe(int fd) {
+    if (pipe(fd) != 0)
+        fail("Failed to create pipe: ", strerror(errno));
+}
+
 int run_command(Text_t exe, List_t arg_list, Table_t env_table,
                        OptionalList_t input_bytes, List_t *output_bytes, List_t *error_bytes)
 {
@@ -36,9 +43,9 @@ int run_command(Text_t exe, List_t arg_list, Table_t env_table,
     posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETSIGDEF|POSIX_SPAWN_SETSIGMASK);
 
     int child_inpipe[2], child_outpipe[2], child_errpipe[2];
-    if (input_bytes.length >= 0) pipe(child_inpipe);
-    if (output_bytes) pipe(child_outpipe);
-    if (error_bytes) pipe(child_errpipe);
+    if (input_bytes.length >= 0) xpipe(child_inpipe);
+    if (output_bytes) xpipe(child_outpipe);
+    if (error_bytes) xpipe(child_errpipe);
 
     posix_spawn_file_actions_t actions;
     posix_spawn_file_actions_init(&actions);
@@ -229,7 +236,7 @@ OptionalClosure_t command_by_line(Text_t exe, List_t arg_list, Table_t env_table
     posix_spawnattr_init(&attr);
 
     int child_outpipe[2];
-    pipe(child_outpipe);
+    xpipe(child_outpipe);
 
     posix_spawn_file_actions_t actions;
     posix_spawn_file_actions_init(&actions);
