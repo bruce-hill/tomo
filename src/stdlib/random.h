@@ -17,7 +17,7 @@ static int64_t random_range(int64_t low, int64_t high) {
     uint64_t min_r = -range % range;
     uint64_t r;
     do {
-        getrandom(&r, sizeof(r), 0);
+        assert(getrandom(&r, sizeof(r), 0) == sizeof(r));
     } while (r < min_r);
     return (int64_t)((uint64_t)low + (r % range));
 }
