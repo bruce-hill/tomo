@@ -17,7 +17,7 @@
 #define READ_END 0
 #define WRITE_END 1
 
-static void xpipe(int fd) {
+static void xpipe(int fd[2]) {
     if (pipe(fd) != 0)
         fail("Failed to create pipe: ", strerror(errno));
 }
