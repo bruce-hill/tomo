@@ -40,10 +40,10 @@ typedef struct { parse_type_e type; void *dest; } parse_element_t;
 
 #define as_void_star(x) ((void*)x)
 #define strparse(str, ...) simpleparse(str, sizeof((const void*[]){__VA_ARGS__})/sizeof(void*), (parse_type_e[]){MAP_LIST(_parse_type, __VA_ARGS__)}, (void*[]){MAP_LIST(as_void_star, __VA_ARGS__)})
-#define fparse(file, ...) ({ char *_file_contents = NULL; size_t _file_len; \
-                           (void)getdelim(&_file_contents, &_file_len, '\0', file); \
-                           const char *_parse_err = strparse(_file_contents, __VA_ARGS__); \
-                           free(_file_contents); \
+#define fparse(file, ...) ({ char *_file_contents = NULL; size_t _capacity; \
+                           ssize_t _just_read = getdelim(&_file_contents, &_capacity, '\0', file); \
+                           const char *_parse_err = _just_read > 0 ? strparse(_file_contents, __VA_ARGS__) : "No such file"; \
+                           if (_file_contents) free(_file_contents); \
                            _parse_err; })
 
 const char *simpleparse(const char *str, int n, parse_type_e types[n], void *destinations[n]);
