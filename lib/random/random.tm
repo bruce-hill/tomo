@@ -1,5 +1,6 @@
 # Random Number Generator (RNG) implementation based on ChaCha
 
+use <assert.h>
 use ./sysrandom.h
 use ./chacha.h
 
@@ -20,7 +21,7 @@ random := RandomNumberGenerator.new()
 func _os_random_bytes(count:Int64 -> [Byte])
     return C_code:[Byte](
         uint8_t *random_bytes = GC_MALLOC_ATOMIC(@count);
-        getrandom(random_bytes, @count, 0);
+        assert(getrandom(random_bytes, (size_t)@count, 0) == (size_t)@count);
         (List_t){.length=@count, .data=random_bytes, .stride=1, .atomic=1}
     )
 struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret)

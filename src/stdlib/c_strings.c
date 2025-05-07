@@ -64,7 +64,8 @@ static void CString$deserialize(FILE *in, void *out, List_t *pointers, const Typ
     int64_t len = -1;
     Int64$deserialize(in, &len, pointers, &Int64$info);
     char *str = GC_MALLOC_ATOMIC((size_t)len+1);
-    fread(str, sizeof(char), (size_t)len, in);
+    if (fread(str, sizeof(char), (size_t)len, in) != (size_t)len)
+        fail("Not enough data in stream to deserialize");
     str[len+1] = '\0';
     *(const char**)out = str;
 }

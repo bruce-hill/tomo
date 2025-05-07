@@ -65,7 +65,7 @@ public void tomo_init(void)
        USE_COLOR = false;
 
    setlocale(LC_ALL, "");
-   getrandom(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0);
+   assert(getrandom(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0) == sizeof(TOMO_HASH_KEY));
 
    struct sigaction sigact;
    sigact.sa_sigaction = signal_handler;

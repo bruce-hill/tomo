@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
     arc4random_buf(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0);
 #elif defined(__linux__)
-    getrandom(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0);
+    assert(getrandom(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0) == sizeof(TOMO_HASH_KEY));
 #else
     #error "Unsupported platform for secure random number generation"
 #endif

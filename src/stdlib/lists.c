@@ -297,7 +297,7 @@ static int64_t _default_random_int64(int64_t min, int64_t max, void *userdata)
     uint64_t min_r = -range % range;
     uint64_t r;
     for (;;) {
-        getrandom(&r, sizeof(r), 0);
+        assert(getrandom(&r, sizeof(r), 0) == sizeof(r));
         if (r >= min_r) break;
     }
     return (int64_t)((uint64_t)min + (r % range));
@@ -361,7 +361,7 @@ static double _default_random_num(void *userdata)
         Num_t num;
         uint64_t bits;
     } r = {.bits=0}, one = {.num=1.0};
-    getrandom((uint8_t*)&r, sizeof(r), 0);
+    assert(getrandom((uint8_t*)&r, sizeof(r), 0) == sizeof(r));
 
     // Set r.num to 1.<random-bits>
     r.bits &= ~(0xFFFULL << 52);
@@ -808,10 +808,14 @@ public void List$deserialize(FILE *in, void *obj, List_t *pointers, const TypeIn
         for (int64_t i = 0; i < len; i++)
             item_deserialize(in, list.data + i*list.stride, pointers, type->ListInfo.item);
     } else if (list.stride == type->ListInfo.item->size) {
-        fread(list.data, (size_t)type->ListInfo.item->size, (size_t)len, in);
+        if (fread(list.data, (size_t)type->ListInfo.item->size, (size_t)len, in) != (size_t)len)
+            fail("Not enough data in stream to deserialize");
     } else {
-        for (int64_t i = 0; i < len; i++)
-            fread(list.data + i*list.stride, (size_t)type->ListInfo.item->size, 1, in);
+        size_t item_size = (size_t)type->ListInfo.item->size;
+        for (int64_t i = 0; i < len; i++) {
+            if (fread(list.data + i*list.stride, item_size, 1, in) != item_size)
+                fail("Not enough data in stream to deserialize");
+        }
     }
     *(List_t*)obj = list;
 }
