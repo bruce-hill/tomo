@@ -813,7 +813,7 @@ public void List$deserialize(FILE *in, void *obj, List_t *pointers, const TypeIn
     } else {
         size_t item_size = (size_t)type->ListInfo.item->size;
         for (int64_t i = 0; i < len; i++) {
-            if (fread(list.data + i*list.stride, item_size, 1, in) != item_size)
+            if (fread(list.data + i*list.stride, item_size, 1, in) != 1)
                 fail("Not enough data in stream to deserialize");
         }
     }

@@ -767,10 +767,13 @@ public void Table$serialize(const void *obj, FILE *out, Table_t *pointers, const
     size_t offset = value_offset(type);
     for (int64_t i = 0; i < len; i++) {
         _serialize(t->entries.data + i*t->entries.stride, out, pointers, type->TableInfo.key);
-        _serialize(t->entries.data + i*t->entries.stride + offset, out, pointers, type->TableInfo.value);
+        if (type->TableInfo.value->size > 0)
+            _serialize(t->entries.data + i*t->entries.stride + offset, out, pointers, type->TableInfo.value);
     }
 
-    Optional$serialize(&t->fallback, out, pointers, Optional$info(sizeof(void*), __alignof__(void*), Pointer$info("&", type)));
+    assert(fputc(t->fallback != NULL ? 1 : 0, out) != EOF);
+    if (t->fallback)
+        Table$serialize(t->fallback, out, pointers, type);
 }
 
 #ifdef __GNUC__
@@ -787,11 +790,15 @@ public void Table$deserialize(FILE *in, void *outval, List_t *pointers, const Ty
         char key[type->TableInfo.key->size];
         _deserialize(in, key, pointers, type->TableInfo.key);
         char value[type->TableInfo.value->size];
-        _deserialize(in, value, pointers, type->TableInfo.value);
+        if (type->TableInfo.value->size > 0)
+            _deserialize(in, value, pointers, type->TableInfo.value);
         Table$set(&t, key, value, type);
     }
 
-    Optional$deserialize(in, &t.fallback, pointers, Optional$info(sizeof(void*), __alignof__(void*), Pointer$info("&", type)));
+    if (fgetc(in) != 0) {
+        t.fallback = GC_MALLOC(sizeof(Table_t));
+        Table$deserialize(in, t.fallback, pointers, type);
+    }
 
     *(Table_t*)outval = t;
 }

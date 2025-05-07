@@ -56,7 +56,7 @@ public Text_t Optional$as_text(const void *obj, bool colorize, const TypeInfo_t 
 public void Optional$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
 {
     bool has_value = !is_none(obj, type->OptionalInfo.type);
-    fputc((int)has_value, out);
+    assert(fputc((int)has_value, out) != EOF);
     if (has_value)
         _serialize(obj, out, pointers, type->OptionalInfo.type);
 }

@@ -53,7 +53,10 @@ func main()
     do
         >> obj := {"A"=10, "B"=20; fallback={"C"=30}}
         >> bytes := obj.serialized()
-        >> deserialize(bytes -> {Text=Int}) == obj
+        >> roundtrip := deserialize(bytes -> {Text=Int})
+        >> roundtrip == obj
+        = yes
+        >> roundtrip.fallback == obj.fallback
         = yes
 
     do

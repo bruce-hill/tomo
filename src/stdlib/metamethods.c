@@ -87,7 +87,7 @@ public void _deserialize(FILE *input, void *outval, List_t *pointers, const Type
         return;
     }
 
-    if (fread(outval, (size_t)type->size, 1, input) != (size_t)type->size)
+    if (fread(outval, (size_t)type->size, 1, input) != 1)
         fail("Not enough data in stream to deserialize");
 }
 
