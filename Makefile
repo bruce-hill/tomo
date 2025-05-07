@@ -33,6 +33,7 @@ CWARN=-Wall -Wextra -Wno-format -Wno-format-security -Wshadow \
 	  -Wexpansion-to-defined -Wno-float-equal \
 	  -Wframe-address -Winline -Winvalid-pch \
 	  -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn \
+	  -Wno-missing-field-initializers \
 	  -Wnull-dereference -Woverlength-strings -Wpacked \
 	  -Wredundant-decls -Wshadow \
 	  -Wno-stack-protector -Wswitch-default \
@@ -57,8 +58,6 @@ ifeq ($(shell $(CC) -v 2>&1 | grep -c "gcc version"), 1)
 			 -Wsuggest-attribute=const -Wsuggest-attribute=noreturn -Wsuggest-attribute=pure \
 			 -Wsync-nand -Wtrampolines -Wvector-operation-performance -Wcast-align=strict
 	CCONFIG += -fsanitize=signed-integer-overflow -fno-sanitize-recover -fno-signaling-nans
-else
-	CWARN += -Wno-missing-field-initializers
 endif
 
 OS := $(shell uname -s)
