@@ -253,8 +253,10 @@ int main(int argc, char *argv[])
         print("Uninstalled ", *u);
     }
 
+    Path_t cwd = Path$current_dir();
     for (int64_t i = 0; i < libraries.length; i++) {
         Path_t *lib = (Path_t*)(libraries.data + i*libraries.stride);
+        *lib = Path$resolved(*lib, cwd);
         // Fork a child process to build the library to prevent cross-contamination
         // of side effects when building one library from affecting another library.
         // This *could* be done in parallel, but there may be some dependency issues.
