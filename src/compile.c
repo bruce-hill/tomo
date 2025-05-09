@@ -4523,14 +4523,13 @@ CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
     }
     case LangDef: {
         DeclareMatch(def, ast, LangDef);
-        CORD full_name = namespace_name(env, env->namespace, def->name);
         return CORD_all(
             // Constructor macro:
             "#define ", namespace_name(env, env->namespace, def->name),
                 "(text) ((", namespace_name(env, env->namespace, CORD_all(def->name, "$$type")), "){.length=sizeof(text)-1, .tag=TEXT_ASCII, .ascii=\"\" text})\n"
             "#define ", namespace_name(env, env->namespace, def->name),
                 "s(...) ((", namespace_name(env, env->namespace, CORD_all(def->name, "$$type")), ")Texts(__VA_ARGS__))\n"
-            "extern const TypeInfo_t ", full_name, "$$info;\n"
+            "extern const TypeInfo_t ", namespace_name(env, env->namespace, CORD_all(def->name, "$$info")), ";\n"
         );
     }
     case Extend: {
