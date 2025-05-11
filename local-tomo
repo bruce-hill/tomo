@@ -1,6 +1,7 @@
 #!/bin/sh
+version=$(awk '/^## / {print $2; exit}' CHANGES.md)
 here="$(realpath "$(dirname "$0")")"
-if [ ! -e "$here/build/bin/tomo" ]; then
+if [ ! -e "$here/build/bin/tomo_$version" ]; then
     echo "Tomo hasn't been compiled yet! Run \`make\` to compile it!"
     exit 1;
 fi
@@ -10,4 +11,4 @@ LD_LIBRARY_PATH="$here/build/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
 LIBRARY_PATH="$here/build/lib${LIBRARY_PATH:+:$LIBRARY_PATH}" \
 C_INCLUDE_PATH="$here/build/include${C_INCLUDE_PATH:+:$C_INCLUDE_PATH}" \
 CPATH="$here/build/include${CPATH:+:$CPATH}" \
-tomo "$@"
+tomo_"$version" "$@"

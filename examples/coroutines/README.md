@@ -6,7 +6,7 @@ This is a coroutine library built on top of a modified version of
 ## Example Usage
 
 ```tomo
-use coroutines
+use coroutines_v1.0
 
 func main()
     co := Coroutine(func()

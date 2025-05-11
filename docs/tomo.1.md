@@ -63,4 +63,4 @@ C code, which is then compiled using a C compiler of your choice.
 : Print the compiler version and exit.
 
 `-r`, `--run`
-: Run an installed tomo program from `~/.local/share/tomo/installed`.
+: Run an installed tomo program from `~/.local/share/tomo_vX.Y/installed`.

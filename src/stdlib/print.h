@@ -150,6 +150,6 @@ FILE *gc_memory_stream(char **buf, size_t *size);
     _fprint(_stream, __VA_ARGS__); \
     fflush(_stream); \
     _buf; })
-#define print_err(...) ({ fprint(stderr, __VA_ARGS__); exit(EXIT_FAILURE); })
+#define print_err(...) ({ fprint(stderr, "\033[31;1m", __VA_ARGS__, "\033[m"); exit(EXIT_FAILURE); })
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -1,5 +1,5 @@
 #!/bin/env tomo
-use random
+use random_v1.0
 
 func main()
     say("

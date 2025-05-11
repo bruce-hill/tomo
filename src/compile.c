@@ -1977,7 +1977,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             return with_source_info(env, ast, CORD_all("$initialize", suffix, "();\n"));
         } else if (use->what == USE_MODULE) {
             glob_t tm_files;
-            if (glob(String(TOMO_PREFIX"/share/tomo/installed/", use->path, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
+            if (glob(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", use->path, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
                 code_err(ast, "Could not find library");
 
             CORD initialization = CORD_EMPTY;
@@ -4457,7 +4457,7 @@ CORD compile_file(env_t *env, ast_t *ast)
     return CORD_all(
         env->do_source_mapping ? CORD_all("#line 1 ", CORD_quoted(ast->file->filename), "\n") : CORD_EMPTY,
         "#define __SOURCE_FILE__ ", CORD_quoted(ast->file->filename), "\n",
-        "#include <tomo/tomo.h>\n"
+        "#include <tomo_"TOMO_VERSION"/tomo.h>\n"
         "#include \"", name, ".tm.h\"\n\n",
         includes,
         env->code->local_typedefs, "\n",
@@ -4484,7 +4484,7 @@ CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
         switch (use->what) {
         case USE_MODULE: {
             glob_t tm_files;
-            if (glob(String(TOMO_PREFIX"/share/tomo/installed/", use->path, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
+            if (glob(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", use->path, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
                 code_err(ast, "Could not find library");
 
             CORD includes = CORD_EMPTY;
@@ -4708,7 +4708,7 @@ CORD compile_file_header(env_t *env, Path_t header_path, ast_t *ast)
     CORD header = CORD_all(
         "#pragma once\n",
         env->do_source_mapping ? CORD_all("#line 1 ", CORD_quoted(ast->file->filename), "\n") : CORD_EMPTY,
-        "#include <tomo/tomo.h>\n");
+        "#include <tomo_"TOMO_VERSION"/tomo.h>\n");
 
     compile_typedef_info_t info = {.env=env, .header=&header, .header_path=header_path};
     visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn=(void*)_make_typedefs, &info});

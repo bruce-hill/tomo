@@ -1,4 +1,4 @@
-use patterns
+use patterns_v1.0
 
 func main()
 	amelie := "Am\{UE9}lie"

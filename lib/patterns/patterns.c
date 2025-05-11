@@ -4,7 +4,6 @@
 #include <string.h>
 #include <strings.h>
 #include <sys/param.h>
-#include <tomo/tomo.h>
 #include <unictype.h>
 #include <uniname.h>
 #include <unistring/version.h>

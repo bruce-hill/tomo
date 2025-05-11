@@ -7,7 +7,7 @@ HELP := "
 
 CSI := "\033["
 
-use patterns
+use patterns_v1.0
 
 lang Colorful
     convert(text:Text -> Colorful)

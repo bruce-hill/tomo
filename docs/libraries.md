@@ -151,8 +151,8 @@ that can be used by other Tomo projects. You can build a library by running
 
 If you additionally add the `-I` flag, Tomo will copy the entire directory
 (excluding files and directories that begin with `.` such as `.git`) into
-`~/.local/share/tomo/installed/` and create a symbolic link for the library's
-`.so` file (or `.dylib` file on Mac) in `~/.local/share/tomo/lib/`.
+`~/.local/share/tomo_vX.Y/installed/` (where `X` and `Y` are the major/minor
+version of the compiler).
 
 ### Using Shared Libraries
 

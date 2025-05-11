@@ -9,9 +9,9 @@ use <unistd.h>
 use <arpa/inet.h>
 use <err.h>
 
-use commands
-use pthreads
-use patterns
+use commands_v1.0
+use pthreads_v1.0
+use patterns_v1.0
 
 use ./connection-queue.tm
 

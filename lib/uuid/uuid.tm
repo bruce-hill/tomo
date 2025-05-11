@@ -1,5 +1,5 @@
-use random
-use time
+use random_v1.0
+use time_v1.0
 
 lang UUID
     func v4(-> UUID) # Random UUID

@@ -14,6 +14,7 @@ A few topics that are documented:
 - [Operator Overloading](operators.md)
 - [Special Methods](metamethods.md)
 - [C Interoperability](c-interoperability.md)
+- [Versioning](versions.md)
 
 ## Types
 

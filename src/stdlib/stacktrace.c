@@ -102,7 +102,7 @@ public void print_stacktrace(FILE *out, int offset)
     cwd[cwd_len++] = '/';
     cwd[cwd_len] = '\0';
 
-    const char *install_dir = TOMO_PREFIX"/share/tomo/installed/";
+    const char *install_dir = TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/";
 
     static void *stack[1024];
     int64_t size = (int64_t)backtrace(stack, sizeof(stack)/sizeof(stack[0]));

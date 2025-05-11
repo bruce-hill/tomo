@@ -55,7 +55,7 @@ colorful [--help] [texts...] [--by-line] [--files ...]
 `colorful` can also be used as a Tomo library:
 
 ```tomo
-use colorful
+use colorful_v1.0
 
 $Colorful"
     @(blue:Welcome to the @(bold:party)!)

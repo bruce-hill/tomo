@@ -3,7 +3,7 @@
 This module defines a `lang` for running shell scripts:
 
 ```tomo
-use shell
+use shell_v1.0
 
 >> $Shell"
     seq 5

@@ -1,5 +1,5 @@
-use shell
-use patterns
+use shell_v1.0
+use patterns_v1.0
 
 _USAGE := "
     tomo-install file.tm...
