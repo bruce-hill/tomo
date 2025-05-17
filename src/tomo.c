@@ -287,7 +287,7 @@ int main(int argc, char *argv[])
     for (int64_t i = 0; i < files.length; i++) {
         Path_t *path = (Path_t*)(files.data + i*files.stride);
         if (Path$is_directory(*path, true))
-            *path = Path$with_component(*path, Texts(Path$base_name(*path), Text(".tm")));
+            *path = Path$child(*path, Texts(Path$base_name(*path), Text(".tm")));
 
         *path = Path$resolved(*path, cur_dir);
         if (!Path$exists(*path))
@@ -363,17 +363,17 @@ void wait_for_child_success(pid_t child)
 
 Path_t build_file(Path_t path, const char *extension)
 {
-    Path_t build_dir = Path$with_component(Path$parent(path), Text(".build"));
+    Path_t build_dir = Path$sibling(path, Text(".build"));
     if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
         if (!Path$is_directory(build_dir, true))
             err(1, "Could not make .build directory");
     }
-    return Path$with_component(build_dir, Texts(Path$base_name(path), Text$from_str(extension)));
+    return Path$child(build_dir, Texts(Path$base_name(path), Text$from_str(extension)));
 }
 
 static Text_t get_version_suffix(Path_t lib_dir)
 {
-    Path_t changes_file = Path$with_component(lib_dir, Text("CHANGES.md"));
+    Path_t changes_file = Path$child(lib_dir, Text("CHANGES.md"));
     OptionalText_t changes = Path$read(changes_file);
     if (changes.length <= 0) {
         print_err("I couldn't find a valid CHANGES.md for the library in ", lib_dir, "\n"
@@ -399,7 +399,7 @@ void build_library(Path_t lib_dir)
         print_err("Not a valid directory: ", lib_dir);
 
     Text_t lib_dir_name = Path$base_name(lib_dir);
-    List_t tm_files = Path$glob(Path$with_component(lib_dir, Text("[!._0-9]*.tm")));
+    List_t tm_files = Path$glob(Path$child(lib_dir, Text("[!._0-9]*.tm")));
     env_t *env = fresh_scope(global_env(source_mapping));
     List_t object_files = {},
            extra_ldlibs = {};
@@ -407,7 +407,7 @@ void build_library(Path_t lib_dir)
     compile_files(env, tm_files, &object_files, &extra_ldlibs);
 
     Text_t version_suffix = get_version_suffix(lib_dir);
-    Path_t shared_lib = Path$with_component(lib_dir, Texts(Text("lib"), lib_dir_name, version_suffix, Text(SHARED_SUFFIX)));
+    Path_t shared_lib = Path$child(lib_dir, Texts(Text("lib"), lib_dir_name, version_suffix, Text(SHARED_SUFFIX)));
     if (!is_stale_for_any(shared_lib, object_files)) {
         if (verbose) whisper("Unchanged: ", shared_lib);
         return;
@@ -435,7 +435,7 @@ void install_library(Path_t lib_dir)
 {
     Text_t lib_dir_name = Path$base_name(lib_dir);
     Text_t version_suffix = get_version_suffix(lib_dir);
-    Path_t dest = Path$with_component(Path$from_str(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed"), Texts(lib_dir_name, version_suffix));
+    Path_t dest = Path$child(Path$from_str(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed"), Texts(lib_dir_name, version_suffix));
     if (!Path$equal_values(lib_dir, dest)) {
         if (verbose) whisper("Clearing out any pre-existing version of ", lib_dir_name);
         xsystem(as_owner, "rm -rf '", dest, "'");
@@ -619,13 +619,14 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             break;
         }
         case USE_MODULE: {
+            const char *name = module_alias(stmt_ast);
             Text_t lib = Texts(Text("-Wl,-rpath,'"),
-                               Text(TOMO_PREFIX "/share/tomo_"TOMO_VERSION"/installed/"), Text$from_str(use->path),
+                               Text(TOMO_PREFIX "/share/tomo_"TOMO_VERSION"/installed/"), Text$from_str(name),
                                Text("' '" TOMO_PREFIX "/share/tomo_"TOMO_VERSION"/installed/"),
-                               Text$from_str(use->path), Text("/lib"), Text$from_str(use->path), Text(SHARED_SUFFIX "'"));
+                               Text$from_str(name), Text("/lib"), Text$from_str(name), Text(SHARED_SUFFIX "'"));
             Table$set(to_link, &lib, NULL, Table$info(&Text$info, &Void$info));
 
-            List_t children = Path$glob(Path$from_str(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", use->path, "/*.tm")));
+            List_t children = Path$glob(Path$from_str(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", name, "/*.tm")));
             for (int64_t i = 0; i < children.length; i++) {
                 Path_t *child = (Path_t*)(children.data + i*children.stride);
                 Table_t discarded = {.fallback=to_compile};

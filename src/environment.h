@@ -94,5 +94,6 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name);
 extern type_t *TEXT_TYPE;
 extern type_t *PATH_TYPE;
 extern type_t *PATH_TYPE_TYPE;
+const char *module_alias(ast_t *use);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

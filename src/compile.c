@@ -1976,8 +1976,9 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             CORD suffix = get_id_suffix(Path$as_c_string(path));
             return with_source_info(env, ast, CORD_all("$initialize", suffix, "();\n"));
         } else if (use->what == USE_MODULE) {
+            const char *name = module_alias(ast);
             glob_t tm_files;
-            if (glob(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", use->path, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
+            if (glob(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", name, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
                 code_err(ast, "Could not find library");
 
             CORD initialization = CORD_EMPTY;
@@ -4483,16 +4484,17 @@ CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
         Path_t build_dir = Path$resolved(Path$parent(header_path), Path$current_dir());
         switch (use->what) {
         case USE_MODULE: {
+            const char *name = module_alias(ast);
             glob_t tm_files;
-            if (glob(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", use->path, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
+            if (glob(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", name, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
                 code_err(ast, "Could not find library");
 
             CORD includes = CORD_EMPTY;
             for (size_t i = 0; i < tm_files.gl_pathc; i++) {
                 const char *filename = tm_files.gl_pathv[i];
                 Path_t tm_file = Path$from_str(filename);
-                Path_t lib_build_dir = Path$with_component(Path$parent(tm_file), Text(".build"));
-                Path_t header = Path$with_component(lib_build_dir, Texts(Path$base_name(tm_file), Text(".h")));
+                Path_t lib_build_dir = Path$sibling(tm_file, Text(".build"));
+                Path_t header = Path$child(lib_build_dir, Texts(Path$base_name(tm_file), Text(".h")));
                 includes = CORD_all(includes, "#include \"", Path$as_c_string(header), "\"\n");
             }
             globfree(&tm_files);
@@ -4500,8 +4502,8 @@ CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
         }
         case USE_LOCAL: {
             Path_t used_path = Path$resolved(Path$from_str(use->path), source_dir);
-            Path_t used_build_dir = Path$with_component(Path$parent(used_path), Text(".build"));
-            Path_t used_header_path = Path$with_component(used_build_dir, Texts(Path$base_name(used_path), Text(".h")));
+            Path_t used_build_dir = Path$sibling(used_path, Text(".build"));
+            Path_t used_header_path = Path$child(used_build_dir, Texts(Path$base_name(used_path), Text(".h")));
             return CORD_all("#include \"", Path$as_c_string(Path$relative_to(used_header_path, build_dir)), "\"\n");
         }
         case USE_HEADER:

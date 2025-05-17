@@ -182,12 +182,13 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
         return load_module_env(env, ast);
     }
     case USE_MODULE: {
+        const char *name = module_alias(module_ast);
         glob_t tm_files;
-        if (glob(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", use->path, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
+        if (glob(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", name, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
             code_err(module_ast, "Could not find library");
 
         env_t *module_env = fresh_scope(env);
-        Table$str_set(env->imports, use->path, module_env);
+        Table$str_set(env->imports, name, module_env);
 
         for (size_t i = 0; i < tm_files.gl_pathc; i++) {
             const char *filename = tm_files.gl_pathv[i];

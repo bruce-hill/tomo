@@ -609,18 +609,23 @@ public Text_t Path$extension(Path_t path, bool full)
     return Text$from_str(extension);
 }
 
-public Path_t Path$with_component(Path_t path, Text_t component)
+public Path_t Path$child(Path_t path, Text_t name)
 {
-    if (Text$has(component, Text("/")) || Text$has(component, Text(";")))
-        fail("Path component has invalid characters: ", component);
+    if (Text$has(name, Text("/")) || Text$has(name, Text(";")))
+        fail("Path name has invalid characters: ", name);
     Path_t result = {
         .type.$tag=path.type.$tag,
         .components=path.components,
     };
     LIST_INCREF(result.components);
-    List$insert(&result.components, &component, I(0), sizeof(Text_t));
+    List$insert(&result.components, &name, I(0), sizeof(Text_t));
     clean_components(&result.components);
     return result;
+}
+
+public Path_t Path$sibling(Path_t path, Text_t name)
+{
+    return Path$child(Path$parent(path), name);
 }
 
 public Path_t Path$with_extension(Path_t path, Text_t extension, bool replace)

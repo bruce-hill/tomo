@@ -1,6 +1,6 @@
 # Versioning
 
-The Tomo language and Tomo libraries both use a versioning system based on a a
+The Tomo language and Tomo libraries both use a versioning system based on a
 changelog called `CHANGES.md` that includes a human-and-machine-readable
 markdown list of versions.
 

@@ -145,7 +145,7 @@ In Tomo, a shared library is built out of a *directory* that contains multiple
 an underscore) will be compiled and linked together to produce a single
 `libwhatever.so` file (or `libwhatever.dylib` on Mac) and `whatever.h` file
 that can be used by other Tomo projects. You can build a library by running
-`tomo -L dirname/` or `tomo -L` in the current directory.
+`tomo -L /path/to/dir` or `tomo -L` in the current directory.
 
 ### Installing
 
@@ -161,3 +161,33 @@ name (i.e. not an absolute or relative path like `/foo` or `./foo`). When a
 program uses a shared library, that shared library gets dynamically linked to
 the executable when compiling, and all of the necessary symbol information is
 read from the source files during compilation.
+
+### Versioning
+
+When you build and install a library, its version is determined from a
+`CHANGES.md` file at the top level of the library directory (see:
+[Versions](versions.md)). The library's version number is added to the file
+path where the library is installed, so if the library `foo` has version
+`v1.2`, then it will be installed to
+`~/.local/share/tomo_vX.Y/installed/foo_v1.2/`. When using a library, you must
+explicitly supply either the exact version in the `use` statement like this:
+`use foo_v1.2`, or provide a `modules.ini` file that lists shorthand aliases
+for the libraries you're using alongside the files that use them. The syntax
+is a simple `alias=full_name` format on each line. Here is an example:
+
+```tomo
+# File: foo.tm
+use mylib
+...
+```
+
+And the accompanying `modules.ini`:
+
+```ini
+mylib=mylib_v1.2
+```
+
+The `modules.ini` file must be in the same directory as the source files that
+use its aliases, so if you want to share a `modules.ini` file across multiple
+subdirectories, use a symbolic link.
+
