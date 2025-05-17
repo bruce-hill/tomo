@@ -2,7 +2,11 @@
 
 ## v0.3
 
-- Added a versioning system based on CHANGES.md files.
+- Added a versioning system based on `CHANGES.md` files and `modules.ini`
+  configuration for module aliases.
+- Programs can use `--version` as a CLI flag to print a Tomo program's version
+  number and exit.
+- Added Path.sibling()
 
 ## v0.2
 
