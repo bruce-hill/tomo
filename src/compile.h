@@ -20,6 +20,6 @@ CORD compile_statement(env_t *env, ast_t *ast);
 CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast);
 CORD compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t *ast);
 CORD compile_type_info(type_t *t);
-CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type);
+CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type, const char *version);
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

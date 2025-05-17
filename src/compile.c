@@ -4015,7 +4015,7 @@ static CORD get_flag_options(type_t *t, CORD separator)
     }
 }
 
-CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
+CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type, const char *version)
 {
     DeclareMatch(fn_info, fn_type, FunctionType);
 
@@ -4084,7 +4084,8 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type)
         code = CORD_all(code, ";\n");
     }
 
-    code = CORD_all(code, "tomo_parse_args(argc, argv, ", usage_code, ", ", help_code);
+    CORD version_code = CORD_quoted(version);
+    code = CORD_all(code, "tomo_parse_args(argc, argv, ", usage_code, ", ", help_code, ", ", version_code);
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         code = CORD_all(code, ",\n{", CORD_quoted(CORD_replace(arg->name, "_", "-")), ", ",
                         (arg->default_val || arg->type->tag == OptionalType) ? "false" : "true", ", ",

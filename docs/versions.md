@@ -51,6 +51,27 @@ The version for the Tomo language itself will come into play in a few ways:
 4. Tomo libraries will be installed to a separate subdirectory for each version
    of the compiler (e.g. `~/.local/share/tomo_v1.2/installed`).
 
+## Tomo Program Versions
+
+When you write a Tomo program (say, `foo.tm`) and run it, Tomo will
+automatically add support for parsing a version number out of an accompanying
+`CHANGES.md` file in the same directory. You can use the `--version` flag to
+print the version number and exit. For example, if I run `tomo foo.tm --
+--version`, it will print `v0.0` if no `CHANGES.md` file exists, otherwise it
+will compile the program with the most recent version number from that file and
+print it instead. Similarly, if you run `tomo -e foo.tm` to build `foo` as a
+standalone executable and then run `./foo --version`, it will print the version
+number and exit without running the program.
+
+## Tomo Library Versions
+
+Tomo libraries also have version numbers. When you install a library, its
+version number will be used to determine its installation location and how it's
+used in code. You must either explicitly import the library with its version
+number (e.g. `use foo_v1.2`) or include a `modules.ini` configuration file that
+maps a shorthand alias to a specific version of a library. For example, if the
+`modules.ini` file has `foo=foo_v1.2`, you can put `use foo` to use v1.2 of the
+`foo` library (assuming you have it installed).
 
 # Rationale
 

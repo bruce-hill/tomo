@@ -232,7 +232,7 @@ static Table_t parse_table(const TypeInfo_t *table, int n, char *args[])
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
 #endif
-public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, int spec_len, cli_arg_t spec[spec_len])
+public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const char *version, int spec_len, cli_arg_t spec[spec_len])
 {
     bool populated_args[spec_len];
     bool used_args[argc];
@@ -310,7 +310,11 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
             }
 
             if (streq(argv[i], "--help")) {
-                say(help, true);
+                print(help);
+                exit(0);
+            }
+            if (streq(argv[i], "--version")) {
+                print(version);
                 exit(0);
             }
             print_err("Unrecognized argument: ", argv[i], "\n", usage);
@@ -361,7 +365,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                 }
 
                 if (*f == 'h') {
-                    say(help, true);
+                    print(help);
                     exit(0);
                 }
                 print_err("Unrecognized flag: ", flag, "\n", usage);
@@ -554,7 +558,7 @@ public void say(Text_t text, bool newline)
 public _Noreturn void tomo_exit(Text_t text, int32_t status)
 {
     if (text.length > 0)
-        say(text, true);
+        print(text);
     _exit(status);
 }
 

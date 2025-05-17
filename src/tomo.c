@@ -62,7 +62,6 @@ static OptionalList_t files = NONE_LIST,
                        uninstall = NONE_LIST,
                        libraries = NONE_LIST;
 static OptionalBool_t verbose = false,
-                      show_version = false,
                       quiet = false,
                       show_parse_tree = false,
                       stop_at_transpile = false,
@@ -183,12 +182,11 @@ int main(int argc, char *argv[])
                         );
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     tomo_parse_args(
-        argc, argv, usage, help,
+        argc, argv, usage, help, TOMO_VERSION,
         {"files", true, List$info(&Path$info), &files},
         {"args", true, List$info(&Text$info), &args},
         {"verbose", false, &Bool$info, &verbose},
         {"v", false, &Bool$info, &verbose},
-        {"version", false, &Bool$info, &show_version},
         {"parse", false, &Bool$info, &show_parse_tree},
         {"p", false, &Bool$info, &show_parse_tree},
         {"quiet", false, &Bool$info, &quiet},
@@ -214,14 +212,6 @@ int main(int argc, char *argv[])
         {"source-mapping", false, &Bool$info, &source_mapping},
         {"m", false, &Bool$info, &source_mapping},
     );
-
-    if (show_version) {
-        if (verbose)
-            print("Tomo version: ", TOMO_VERSION, " (", GIT_VERSION, ")");
-        else
-            print("Tomo version: ", TOMO_VERSION);
-        return 0;
-    }
 
     bool is_gcc = (system(String(cc, " -v 2>&1 | grep -q 'gcc version'")) == 0);
     if (is_gcc) {
@@ -371,25 +361,23 @@ Path_t build_file(Path_t path, const char *extension)
     return Path$child(build_dir, Texts(Path$base_name(path), Text$from_str(extension)));
 }
 
-static Text_t get_version_suffix(Path_t lib_dir)
+static const char *get_version(Path_t lib_dir)
 {
     Path_t changes_file = Path$child(lib_dir, Text("CHANGES.md"));
     OptionalText_t changes = Path$read(changes_file);
     if (changes.length <= 0) {
-        print_err("I couldn't find a valid CHANGES.md for the library in ", lib_dir, "\n"
-                  "In order to install a library, it has to have a version defined in CHANGES.md\n"
-                  "\n"
-                  "Example CHANGES.md:\n"
-                  "\n"
-                  "# Version History\n"
-                  "## v0.1\n"
-                  "First version");
+        return "v0.0";
     }
     const char *changes_str = Text$as_c_string(Texts(Text("\n"), changes));
     const char *version_line = strstr(changes_str, "\n## ");
     if (version_line == NULL)
         print_err("CHANGES.md in ", lib_dir, " does not have any valid versions starting with '## '");
-    return Texts(Text("_"), Text$from_strn(version_line + 4, strcspn(version_line + 4, "\r\n")));
+    return String(string_slice(version_line + 4, strcspn(version_line + 4, "\r\n")));
+}
+
+static Text_t get_version_suffix(Path_t lib_dir)
+{
+    return Texts(Text("_"), Text$from_str(get_version(lib_dir)));
 }
 
 void build_library(Path_t lib_dir)
@@ -721,6 +709,7 @@ void transpile_code(env_t *base_env, Path_t path)
 
     CORD_put(c_code, c_file);
 
+    const char *version = get_version(Path$parent(path));
     binding_t *main_binding = get_binding(module_env, "main");
     if (main_binding && main_binding->type->tag == FunctionType) {
         type_t *ret = Match(main_binding->type, FunctionType)->ret;
@@ -735,7 +724,7 @@ void transpile_code(env_t *base_env, Path_t path)
             "tomo_init();\n",
             namespace_name(module_env, module_env->namespace, "$initialize"), "();\n"
             "\n",
-            compile_cli_arg_call(module_env, main_binding->code, main_binding->type),
+            compile_cli_arg_call(module_env, main_binding->code, main_binding->type, version),
             "return 0;\n"
             "}\n"), c_file);
     }
