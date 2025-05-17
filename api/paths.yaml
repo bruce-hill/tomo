@@ -215,7 +215,7 @@ Path.child:
   description: >
     Return a path that is a child of another path.
   return:
-    type: '[Path]'
+    type: 'Path'
     description: >
       A new path representing the child.
   args:
@@ -761,6 +761,28 @@ Path.set_owner:
         Whether to follow symbolic links.
   example: |
     (./file.txt).set_owner(owner="root", group="wheel")
+
+Path.sibling:
+  short: get another path in the same directory
+  description: >
+    Return a path that is a sibling of another path (i.e. has the same parent,
+    but a different name). This is equivalent to `.parent().child(name)`
+  return:
+    type: 'Path'
+    description: >
+      A new path representing the sibling.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        A path.
+    name:
+      type: 'Text'
+      description: >
+        The name of a sibling file or directory.
+  example: |
+    >> (/foo/baz).sibling("doop")
+    = (/foo/doop)
     
 Path.subdirectories:
   short: get subdirectories

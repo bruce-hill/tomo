@@ -2746,7 +2746,7 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 ## Path.child
 
 ```tomo
-Path.child : func(path: Path, child: Text -> [Path])
+Path.child : func(path: Path, child: Text -> Path)
 ```
 
 Return a path that is a child of another path.
@@ -3310,6 +3310,28 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 **Example:**
 ```tomo
 (./file.txt).set_owner(owner="root", group="wheel")
+
+```
+## Path.sibling
+
+```tomo
+Path.sibling : func(path: Path, name: Text -> Path)
+```
+
+Return a path that is a sibling of another path (i.e. has the same parent, but a different name). This is equivalent to `.parent().child(name)`
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | A path.  | -
+name | `Text` | The name of a sibling file or directory.  | -
+
+**Return:** A new path representing the sibling.
+
+
+**Example:**
+```tomo
+>> (/foo/baz).sibling("doop")
+= (/foo/doop)
 
 ```
 ## Path.subdirectories
