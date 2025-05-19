@@ -62,5 +62,8 @@ C code, which is then compiled using a C compiler of your choice.
 `--version`
 : Print the compiler version and exit.
 
+`--prefix`
+: Print the Tomo installation prefix and exit.
+
 `-r`, `--run`
 : Run an installed tomo program from `~/.local/share/tomo_vX.Y/installed`.

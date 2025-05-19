@@ -6,6 +6,7 @@
   configuration for module aliases.
 - Programs can use `--version` as a CLI flag to print a Tomo program's version
   number and exit.
+- Added `tomo --prefix` to print the Tomo install prefix.
 - Added Path.sibling()
 
 ## v0.2

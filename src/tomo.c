@@ -64,6 +64,7 @@ static OptionalList_t files = NONE_LIST,
 static OptionalBool_t verbose = false,
                       quiet = false,
                       show_parse_tree = false,
+                      show_prefix = false,
                       stop_at_transpile = false,
                       stop_at_obj_compilation = false,
                       compile_exe = false,
@@ -189,6 +190,7 @@ int main(int argc, char *argv[])
         {"v", false, &Bool$info, &verbose},
         {"parse", false, &Bool$info, &show_parse_tree},
         {"p", false, &Bool$info, &show_parse_tree},
+        {"prefix", false, &Bool$info, &show_prefix},
         {"quiet", false, &Bool$info, &quiet},
         {"q", false, &Bool$info, &quiet},
         {"transpile", false, &Bool$info, &stop_at_transpile},
@@ -212,6 +214,11 @@ int main(int argc, char *argv[])
         {"source-mapping", false, &Bool$info, &source_mapping},
         {"m", false, &Bool$info, &source_mapping},
     );
+
+    if (show_prefix) {
+        print(TOMO_PREFIX);
+        return 0;
+    }
 
     bool is_gcc = (system(String(cc, " -v 2>&1 | grep -q 'gcc version'")) == 0);
     if (is_gcc) {
