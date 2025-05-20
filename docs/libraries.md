@@ -190,7 +190,8 @@ version=v1.2
 
 The `modules.ini` file must be in the same directory as the source files that
 use its aliases, so if you want to share a `modules.ini` file across multiple
-subdirectories, use a symbolic link.
+subdirectories, use a symbolic link. If you need to include per-file overrides
+for a directory's `modules.ini` file, you can use `foo.tm:modules.ini`.
 
 ### Module Downloading
 
