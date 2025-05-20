@@ -1,5 +1,5 @@
 
-use patterns_v1.0
+use patterns
 
 _USAGE := "
     Usage: ini <filename> "[section[/key]]"

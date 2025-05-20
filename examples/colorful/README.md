@@ -54,8 +54,14 @@ colorful [--help] [texts...] [--by-line] [--files ...]
 
 `colorful` can also be used as a Tomo library:
 
+```ini
+# modules.ini
+[colorful]
+version=v1.0
+```
+
 ```tomo
-use colorful_v1.0
+use colorful
 
 $Colorful"
     @(blue:Welcome to the @(bold:party)!)

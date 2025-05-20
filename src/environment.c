@@ -7,12 +7,8 @@
 #include "cordhelpers.h"
 #include "environment.h"
 #include "parse.h"
-#include "stdlib/c_strings.h"
 #include "stdlib/datatypes.h"
-#include "stdlib/memory.h"
 #include "stdlib/paths.h"
-#include "stdlib/pointers.h"
-#include "stdlib/simpleparse.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"
@@ -791,42 +787,6 @@ void set_binding(env_t *env, const char *name, type_t *type, CORD code)
 {
     assert(name);
     Table$str_set(env->locals, name, new(binding_t, .type=type, .code=code));
-}
-
-const char *module_alias(ast_t *use)
-{
-    static Table_t cache = {};
-    const char **cached = Table$get(cache, &use, Table$info(Pointer$info("@", &Memory$info), &CString$info));
-    if (cached) return *cached;
-    const char *name = Match(use, Use)->path;
-    const char *alias = name;
-    if (streq(name, "commands")) alias = "commands_v1.0";
-    else if (streq(name, "random")) alias = "random_v1.0";
-    else if (streq(name, "base64")) alias = "base64_v1.0";
-    else if (streq(name, "core")) alias = "core_v1.0";
-    else if (streq(name, "patterns")) alias = "patterns_v1.0";
-    else if (streq(name, "pthreads")) alias = "pthreads_v1.0";
-    else if (streq(name, "shell")) alias = "shell_v1.0";
-    else if (streq(name, "time")) alias = "time_v1.0";
-    else if (streq(name, "uuid")) alias = "uuid_v1.0";
-    else {
-        Path_t alias_file = Path$sibling(Path$from_str(use->file->filename), Text("modules.ini"));
-        OptionalClosure_t by_line = Path$by_line(alias_file);
-        if (by_line.fn) {
-            OptionalText_t (*next_line)(void*) = by_line.fn;
-            for (Text_t line; (line=next_line(by_line.userdata)).length >= 0; ) {
-                char *line_str = Text$as_c_string(line);
-                const char *line_alias = NULL, *full_version = NULL;
-                if (!strparse(line_str, &line_alias, "=", &full_version)
-                    && streq(line_alias, name)) {
-                        alias = full_version;
-                        break;
-                }
-            }
-        }
-    }
-    Table$set(&cache, &use, &alias, Table$info(Pointer$info("@", &Memory$info), &CString$info));
-    return alias;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

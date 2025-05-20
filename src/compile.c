@@ -12,6 +12,7 @@
 #include "cordhelpers.h"
 #include "enums.h"
 #include "environment.h"
+#include "modules.h"
 #include "parse.h"
 #include "stdlib/integers.h"
 #include "stdlib/nums.h"
@@ -1976,10 +1977,13 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             CORD suffix = get_id_suffix(Path$as_c_string(path));
             return with_source_info(env, ast, CORD_all("$initialize", suffix, "();\n"));
         } else if (use->what == USE_MODULE) {
-            const char *name = module_alias(ast);
+            module_info_t mod = get_module_info(ast);
             glob_t tm_files;
-            if (glob(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", name, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
-                code_err(ast, "Could not find library");
+            const char *folder = mod.version ? String(mod.name, "_", mod.version) : mod.name;
+            if (glob(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0) {
+                if (!try_install_module(mod))
+                    code_err(ast, "Could not find library");
+            }
 
             CORD initialization = CORD_EMPTY;
 
@@ -4485,10 +4489,13 @@ CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
         Path_t build_dir = Path$resolved(Path$parent(header_path), Path$current_dir());
         switch (use->what) {
         case USE_MODULE: {
-            const char *name = module_alias(ast);
+            module_info_t mod = get_module_info(ast);
             glob_t tm_files;
-            if (glob(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", name, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
-                code_err(ast, "Could not find library");
+            const char *folder = mod.version ? String(mod.name, "_", mod.version) : mod.name;
+            if (glob(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0) {
+                if (!try_install_module(mod))
+                    code_err(ast, "Could not find library");
+            }
 
             CORD includes = CORD_EMPTY;
             for (size_t i = 0; i < tm_files.gl_pathc; i++) {

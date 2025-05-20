@@ -179,8 +179,7 @@ man/man1/tomo.1: docs/tomo.1.md
 
 examples:
 	./local-tomo -qIL examples/log examples/ini examples/vectors examples/http examples/wrap examples/colorful
-	./local-tomo -e examples/game/game.tm examples/http-server/http-server.tm \
-		examples/tomodeps/tomodeps.tm examples/tomo-install/tomo-install.tm
+	./local-tomo -e examples/game/game.tm examples/http-server/http-server.tm
 	./local-tomo examples/learnxiny.tm
 
 deps:

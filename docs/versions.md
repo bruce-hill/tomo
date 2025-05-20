@@ -70,8 +70,8 @@ version number will be used to determine its installation location and how it's
 used in code. You must either explicitly import the library with its version
 number (e.g. `use foo_v1.2`) or include a `modules.ini` configuration file that
 maps a shorthand alias to a specific version of a library. For example, if the
-`modules.ini` file has `foo=foo_v1.2`, you can put `use foo` to use v1.2 of the
-`foo` library (assuming you have it installed).
+`modules.ini` file has a `[foo]` section with `version=v1.2`, you can put `use
+foo` to use v1.2 of the `foo` library (assuming you have it installed).
 
 # Rationale
 

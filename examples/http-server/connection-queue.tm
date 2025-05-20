@@ -1,4 +1,4 @@
-use pthreads_v1.0
+use pthreads
 
 func _assert_success(name:Text, val:Int32; inline)
     fail("$name() failed!") if val < 0

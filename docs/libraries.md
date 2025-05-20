@@ -171,9 +171,9 @@ path where the library is installed, so if the library `foo` has version
 `v1.2`, then it will be installed to
 `~/.local/share/tomo_vX.Y/installed/foo_v1.2/`. When using a library, you must
 explicitly supply either the exact version in the `use` statement like this:
-`use foo_v1.2`, or provide a `modules.ini` file that lists shorthand aliases
-for the libraries you're using alongside the files that use them. The syntax
-is a simple `alias=full_name` format on each line. Here is an example:
+`use foo_v1.2`, or provide a `modules.ini` file that lists version information
+and other details about modules being used. For each module, you should provide
+a `[modulename]` section with a `version=` field.
 
 ```tomo
 # File: foo.tm
@@ -184,10 +184,34 @@ use mylib
 And the accompanying `modules.ini`:
 
 ```ini
-mylib=mylib_v1.2
+[mylib]
+version=v1.2
 ```
 
 The `modules.ini` file must be in the same directory as the source files that
 use its aliases, so if you want to share a `modules.ini` file across multiple
 subdirectories, use a symbolic link.
 
+### Module Downloading
+
+If you want, you can also provide the following options for a module:
+
+- `git`: a Git URL to clone the repository
+- `revision`: if a Git URL is provided, use this revision
+- `url`: a URL to download an archive of the library (`.zip`, `.tar`, `.tar.gz`)
+- `path`: if the library is provided in a subdirectory of the repository or
+  archive, list the subdirectory here.
+
+For example, this is what it would look like to use the `colorful` library that
+is distributed with the Tomo compiler in the `examples/colorful` subdirectory:
+
+```ini
+[colorful]
+version=v1.0
+git=git@github.com:bruce-hill/tomo
+path=examples/colorful
+```
+
+If this extra information is provided, Tomo will prompt the user to ask if they
+want to download and install this module automatically when they run a program
+and don't have the necessary module installed.

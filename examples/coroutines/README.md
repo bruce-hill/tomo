@@ -5,8 +5,14 @@ This is a coroutine library built on top of a modified version of
 
 ## Example Usage
 
+```ini
+# modules.ini
+[coroutines]
+version=v1.0
+```
+
 ```tomo
-use coroutines_v1.0
+use coroutines
 
 func main()
     co := Coroutine(func()

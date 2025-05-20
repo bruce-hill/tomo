@@ -8,8 +8,6 @@ This folder contains some example programs and libraries.
   style of [learnxinyminutes.com](https://learnxinyminutes.com/).
 - [game](game/): An example game using raylib.
 - [http-server](http-server/): A multithreaded HTTP server.
-- [tomodeps](tomodeps/): A library for finding Tomo dependencies.
-- [tomo-install](tomo-install/): A library for installing Tomo dependencies.
 - [wrap](wrap/): A command-line program to wrap text.
 
 ## Example Libraries

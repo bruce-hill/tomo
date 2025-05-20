@@ -11,6 +11,7 @@
 #include "ast.h"
 #include "cordhelpers.h"
 #include "environment.h"
+#include "modules.h"
 #include "parse.h"
 #include "stdlib/paths.h"
 #include "stdlib/tables.h"
@@ -182,13 +183,16 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
         return load_module_env(env, ast);
     }
     case USE_MODULE: {
-        const char *name = module_alias(module_ast);
+        module_info_t mod = get_module_info(module_ast);
         glob_t tm_files;
-        if (glob(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", name, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0)
-            code_err(module_ast, "Could not find library");
+        const char *folder = mod.version ? String(mod.name, "_", mod.version) : mod.name;
+        if (glob(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files) != 0) {
+            if (!try_install_module(mod))
+                code_err(module_ast, "Could not find or install library");
+        }
 
         env_t *module_env = fresh_scope(env);
-        Table$str_set(env->imports, name, module_env);
+        Table$str_set(env->imports, mod.name, module_env);
 
         for (size_t i = 0; i < tm_files.gl_pathc; i++) {
             const char *filename = tm_files.gl_pathv[i];

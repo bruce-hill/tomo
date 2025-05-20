@@ -9,9 +9,9 @@ use <unistd.h>
 use <arpa/inet.h>
 use <err.h>
 
-use commands_v1.0
-use pthreads_v1.0
-use patterns_v1.0
+use commands
+use pthreads
+use patterns
 
 use ./connection-queue.tm
 
@@ -138,7 +138,7 @@ func load_routes(directory:Path -> {Text=RouteEntry})
 func main(directory:Path, port=Int32(8080))
     say("Serving on port $port")
     routes := load_routes(directory)
-    say(" Hosting: $routes")
+    say("Hosting: $routes")
 
     serve(port, func(request:HTTPRequest)
         if handler := routes[request.path]

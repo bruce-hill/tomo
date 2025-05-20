@@ -16,6 +16,7 @@
 #include "ast.h"
 #include "compile.h"
 #include "cordhelpers.h"
+#include "modules.h"
 #include "parse.h"
 #include "stdlib/bools.h"
 #include "stdlib/bytes.h"
@@ -614,14 +615,15 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             break;
         }
         case USE_MODULE: {
-            const char *name = module_alias(stmt_ast);
+            module_info_t mod = get_module_info(stmt_ast);
+            const char *full_name = mod.version ? String(mod.name, "_", mod.version) : mod.name;
             Text_t lib = Texts(Text("-Wl,-rpath,'"),
-                               Text(TOMO_PREFIX "/share/tomo_"TOMO_VERSION"/installed/"), Text$from_str(name),
+                               Text(TOMO_PREFIX "/share/tomo_"TOMO_VERSION"/installed/"), Text$from_str(full_name),
                                Text("' '" TOMO_PREFIX "/share/tomo_"TOMO_VERSION"/installed/"),
-                               Text$from_str(name), Text("/lib"), Text$from_str(name), Text(SHARED_SUFFIX "'"));
+                               Text$from_str(full_name), Text("/lib"), Text$from_str(full_name), Text(SHARED_SUFFIX "'"));
             Table$set(to_link, &lib, NULL, Table$info(&Text$info, &Void$info));
 
-            List_t children = Path$glob(Path$from_str(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", name, "/*.tm")));
+            List_t children = Path$glob(Path$from_str(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", full_name, "/[!._0-9]*.tm")));
             for (int64_t i = 0; i < children.length; i++) {
                 Path_t *child = (Path_t*)(children.data + i*children.stride);
                 Table_t discarded = {.fallback=to_compile};
