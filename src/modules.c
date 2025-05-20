@@ -9,6 +9,30 @@
 
 #define xsystem(...) ({ int _status = system(String(__VA_ARGS__)); if (!WIFEXITED(_status) || WEXITSTATUS(_status) != 0) errx(1, "Failed to run command: %s", String(__VA_ARGS__)); })
 
+static void read_modules_ini(Path_t ini_file, module_info_t *info)
+{
+    OptionalClosure_t by_line = Path$by_line(ini_file);
+    if (by_line.fn == NULL) return;
+    OptionalText_t (*next_line)(void*) = by_line.fn;
+  find_section:;
+    for (Text_t line; (line=next_line(by_line.userdata)).length >= 0; ) {
+        char *line_str = Text$as_c_string(line);
+        if (line_str[0] == '[' && strncmp(line_str+1, info->name, strlen(info->name)) == 0
+            && line_str[1+strlen(info->name)] == ']')
+            break;
+    }
+    for (Text_t line; (line=next_line(by_line.userdata)).length >= 0; ) {
+        char *line_str = Text$as_c_string(line);
+        if (line_str[0] == '[') goto find_section;
+        if (!strparse(line_str, "version=", &info->version)
+            || !strparse(line_str, "url=", &info->url)
+            || !strparse(line_str, "git=", &info->git)
+            || !strparse(line_str, "path=", &info->path)
+            || !strparse(line_str, "revision=", &info->revision))
+            continue;
+    }
+}
+
 module_info_t get_module_info(ast_t *use)
 {
     static Table_t cache = {};
@@ -27,28 +51,8 @@ module_info_t get_module_info(ast_t *use)
     else if (streq(name, "time")) info->version = "v1.0";
     else if (streq(name, "uuid")) info->version = "v1.0";
     else {
-        Path_t alias_file = Path$sibling(Path$from_str(use->file->filename), Text("modules.ini"));
-        OptionalClosure_t by_line = Path$by_line(alias_file);
-        if (by_line.fn) {
-            OptionalText_t (*next_line)(void*) = by_line.fn;
-          find_section:;
-            for (Text_t line; (line=next_line(by_line.userdata)).length >= 0; ) {
-                char *line_str = Text$as_c_string(line);
-                if (line_str[0] == '[' && strncmp(line_str+1, name, strlen(name)) == 0
-                    && line_str[1+strlen(name)] == ']')
-                    break;
-            }
-            for (Text_t line; (line=next_line(by_line.userdata)).length >= 0; ) {
-                char *line_str = Text$as_c_string(line);
-                if (line_str[0] == '[') goto find_section;
-                if (!strparse(line_str, "version=", &info->version)
-                    || !strparse(line_str, "url=", &info->url)
-                    || !strparse(line_str, "git=", &info->git)
-                    || !strparse(line_str, "path=", &info->path)
-                    || !strparse(line_str, "revision=", &info->revision))
-                    continue;
-            }
-        }
+        read_modules_ini(Path$sibling(Path$from_str(use->file->filename), Text("modules.ini")), info);
+        read_modules_ini(Path$with_extension(Path$from_str(use->file->filename), Text(":modules.ini"), false), info);
     }
     Table$set(&cache, &use, &info, cache_type);
     return *info;
