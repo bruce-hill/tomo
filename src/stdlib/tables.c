@@ -640,19 +640,15 @@ public Table_t Table$overlap(Table_t a, Table_t b, const TypeInfo_t *type)
     // Return a table such that t[k]==a[k] for all k such that a.has(k), b.has(k), and a[k]==b[k]
     Table_t result = {};
     const size_t offset = value_offset(type);
-    for (int64_t i = 0; i < Table$length(a); i++) {
-        void *key = GET_ENTRY(a, i);
-        void *a_value = key + offset;
-        void *b_value = Table$get(b, key, type);
-        if (b_value && generic_equal(a_value, b_value, type->TableInfo.value))
-            Table$set(&result, key, a_value, type);
+    for (Table_t *t = &a; t; t = t->fallback) {
+        for (int64_t i = 0; i < Table$length(*t); i++) {
+            void *key = GET_ENTRY(*t, i);
+            void *a_value = key + offset;
+            void *b_value = Table$get(b, key, type);
+            if (b_value && generic_equal(a_value, b_value, type->TableInfo.value))
+                Table$set(&result, key, a_value, type);
+        }
     }
-
-    if (a.fallback) {
-        result.fallback = new(Table_t);
-        *result.fallback = Table$overlap(*a.fallback, b, type);
-    }
-
     return result;
 }
 
@@ -662,22 +658,41 @@ public Table_t Table$with(Table_t a, Table_t b, const TypeInfo_t *type)
     // return a table such that t[k]==b[k] for all k such that b.has(k), and t[k]==a[k] for all k such that a.has(k) and not b.has(k)
     Table_t result = {};
     const size_t offset = value_offset(type);
-    for (int64_t i = 0; i < Table$length(a); i++) {
-        void *key = GET_ENTRY(a, i);
-        Table$set(&result, key, key + offset, type);
+    for (Table_t *t = &a; t; t = t->fallback) {
+        for (int64_t i = 0; i < Table$length(*t); i++) {
+            void *key = GET_ENTRY(*t, i);
+            Table$set(&result, key, key + offset, type);
+        }
     }
-    for (int64_t i = 0; i < Table$length(b); i++) {
-        void *key = GET_ENTRY(b, i);
-        Table$set(&result, key, key + offset, type);
+    for (Table_t *t = &b; t; t = t->fallback) {
+        for (int64_t i = 0; i < Table$length(*t); i++) {
+            void *key = GET_ENTRY(*t, i);
+            Table$set(&result, key, key + offset, type);
+        }
     }
+    return result;
+}
 
-    if (a.fallback && b.fallback) {
-        result.fallback = new(Table_t);
-        *result.fallback = Table$with(*a.fallback, *b.fallback, type);
-    } else {
-        result.fallback = a.fallback ? a.fallback : b.fallback;
+// Xor is "disjunctive union" or "symmetric difference" in formal terms
+public Table_t Table$xor(Table_t a, Table_t b, const TypeInfo_t *type)
+{
+    // return a table with elements in `a` or `b`, but not both
+    Table_t result = {};
+    const size_t offset = value_offset(type);
+    for (Table_t *t = &a; t; t = t->fallback) {
+        for (int64_t i = 0; i < Table$length(*t); i++) {
+            void *key = GET_ENTRY(*t, i);
+            if (Table$get(b, key, type) == NULL)
+                Table$set(&result, key, key + offset, type);
+        }
     }
-
+    for (Table_t *t = &b; t; t = t->fallback) {
+        for (int64_t i = 0; i < Table$length(*t); i++) {
+            void *key = GET_ENTRY(*t, i);
+            if (Table$get(a, key, type) == NULL)
+                Table$set(&result, key, key + offset, type);
+        }
+    }
     return result;
 }
 
@@ -687,20 +702,29 @@ public Table_t Table$without(Table_t a, Table_t b, const TypeInfo_t *type)
     // Return a table such that t[k]==a[k] for all k such that not b.has(k) or b[k] != a[k]
     Table_t result = {};
     const size_t offset = value_offset(type);
-    for (int64_t i = 0; i < Table$length(a); i++) {
-        void *key = GET_ENTRY(a, i);
-        void *a_value = key + offset;
-        void *b_value = Table$get(b, key, type);
-        if (!b_value || !generic_equal(a_value, b_value, type->TableInfo.value))
-            Table$set(&result, key, a_value, type);
+    for (Table_t *t = &a; t; t = t->fallback) {
+        for (int64_t i = 0; i < Table$length(*t); i++) {
+            void *key = GET_ENTRY(*t, i);
+            void *a_value = key + offset;
+            void *b_value = Table$get(b, key, type);
+            if (!b_value || !generic_equal(a_value, b_value, type->TableInfo.value))
+                Table$set(&result, key, a_value, type);
+        }
     }
-
-    if (a.fallback) {
-        result.fallback = new(Table_t);
-        *result.fallback = Table$without(*a.fallback, b, type);
-    }
-
     return result;
+}
+
+public Table_t Table$with_fallback(Table_t t, OptionalTable_t fallback)
+{
+    if (fallback.entries.length <= 0) {
+        t.fallback = NULL;
+        return t;
+    } else {
+        TABLE_INCREF(fallback);
+        t.fallback = GC_MALLOC(sizeof(Table_t));
+        *t.fallback = fallback;
+        return t;
+    }
 }
 
 PUREFUNC public bool Table$is_subset_of(Table_t a, Table_t b, bool strict, const TypeInfo_t *type)

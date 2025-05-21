@@ -59,6 +59,8 @@ void Table$remove(Table_t *t, const void *key, const TypeInfo_t *type);
 Table_t Table$overlap(Table_t a, Table_t b, const TypeInfo_t *type);
 Table_t Table$with(Table_t a, Table_t b, const TypeInfo_t *type);
 Table_t Table$without(Table_t a, Table_t b, const TypeInfo_t *type);
+Table_t Table$xor(Table_t a, Table_t b, const TypeInfo_t *type);
+Table_t Table$with_fallback(Table_t t, OptionalTable_t fallback);
 PUREFUNC bool Table$is_subset_of(Table_t a, Table_t b, bool strict, const TypeInfo_t *type);
 PUREFUNC bool Table$is_superset_of(Table_t a, Table_t b, bool strict, const TypeInfo_t *type);
 

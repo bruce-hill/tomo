@@ -23,6 +23,7 @@
 #define Match(x, _tag) ((x)->tag == _tag ? &(x)->__data._tag : (errx(1, __FILE__ ":%d This was supposed to be a " # _tag "\n", __LINE__), &(x)->__data._tag))
 #define DeclareMatch(var, x, _tag) __typeof((x)->__data._tag) *var = Match(x, _tag)
 #define BINARY_OPERANDS(ast) ({ if (!is_binary_operation(ast)) errx(1, __FILE__ ":%d This is not a binary operation!", __LINE__); (ast)->__data.Plus; })
+#define UPDATE_OPERANDS(ast) ({ if (!is_update_assignment(ast)) errx(1, __FILE__ ":%d This is not an update assignment!", __LINE__); (ast)->__data.PlusUpdate; })
 
 #define REVERSE_LIST(list) do { \
     __typeof(list) _prev = NULL; \

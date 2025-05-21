@@ -956,6 +956,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             else if (streq(call->name, "remove")) return Type(VoidType);
             else if (streq(call->name, "set")) return Type(VoidType);
             else if (streq(call->name, "sorted")) return self_value_t;
+            else if (streq(call->name, "with_fallback")) return self_value_t;
             code_err(ast, "There is no '", call->name, "' method for ", type_to_str(self_value_t), " tables");
         }
         default: {
@@ -1069,6 +1070,10 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
 
+        type_t *lhs_val = value_type(lhs_t), *rhs_val = value_type(rhs_t);
+        if (type_eq(lhs_val, rhs_val) && lhs_val->tag == SetType)
+            return lhs_val;
+
         if (binop.lhs->tag == Int && is_int_type(rhs_t))
             return rhs_t;
         else if (binop.rhs->tag == Int && is_int_type(lhs_t))
@@ -1115,6 +1120,10 @@ type_t *get_type(env_t *env, ast_t *ast)
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
 
+        type_t *lhs_val = value_type(lhs_t), *rhs_val = value_type(rhs_t);
+        if (type_eq(lhs_val, rhs_val) && lhs_val->tag == SetType)
+            return lhs_val;
+
         if (binop.lhs->tag == Int && is_int_type(rhs_t))
             return rhs_t;
         else if (binop.rhs->tag == Int && is_int_type(lhs_t))
@@ -1148,6 +1157,10 @@ type_t *get_type(env_t *env, ast_t *ast)
         binary_operands_t binop = BINARY_OPERANDS(ast);
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
+
+        type_t *lhs_val = value_type(lhs_t), *rhs_val = value_type(rhs_t);
+        if (type_eq(lhs_val, rhs_val) && lhs_val->tag == SetType)
+            return lhs_val;
 
         if (binop.lhs->tag == Int && is_int_type(rhs_t))
             return rhs_t;
@@ -1197,6 +1210,12 @@ type_t *get_type(env_t *env, ast_t *ast)
         binary_operands_t binop = BINARY_OPERANDS(ast);
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
+
+        if (ast->tag == Minus) {
+            type_t *lhs_val = value_type(lhs_t), *rhs_val = value_type(rhs_t);
+            if (type_eq(lhs_val, rhs_val) && lhs_val->tag == SetType)
+                return lhs_val;
+        }
 
         if (ast->tag == LeftShift || ast->tag == UnsignedLeftShift || ast->tag == RightShift || ast->tag == UnsignedRightShift) {
             if (!is_int_type(rhs_t))

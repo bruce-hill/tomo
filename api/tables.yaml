@@ -160,3 +160,28 @@ Table.set:
     >> t
     = {"A"=1, "B"=2, "C"=3}
     
+Table.with_fallback:
+  short: return a table with a new fallback
+  description: >
+    Return a copy of a table with a different fallback table.
+  return:
+    type: '{K=V}'
+    description: >
+      The original table with a different fallback.
+  args:
+    t:
+      type: '{K=V}'
+      description: >
+        The table whose fallback will be replaced.
+    fallback:
+      type: '{K=V}?'
+      description: >
+        The new fallback table value.
+  example: |
+    t := {"A"=1; fallback={"B"=2}}
+    t2 = t.with_fallback({"B"=3"})
+    >> t2["B"]
+    = 3?
+    t3 = t.with_fallback(none)
+    >> t2["B"]
+    = none

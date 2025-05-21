@@ -9,7 +9,9 @@
 - Programs can use `--version` as a CLI flag to print a Tomo program's version
   number and exit.
 - Added `tomo --prefix` to print the Tomo install prefix.
+- Sets now support infix operations for `and`, `or`, `xor`, and `-`
 - Added Path.sibling()
+- Added Table.with_fallback()
 
 ## v0.2
 

@@ -229,4 +229,25 @@ Set.without:
   example: |
     >> |1, 2|.without(|2, 3|)
     = |1|
-    
+
+Table.xor:
+  short: symmetric difference
+  description: >
+    Return set with the elements in one, but not both of the arguments. This is
+    also known as the symmetric difference or disjunctive union.
+  return:
+    type: '|T|'
+    description: >
+      A set with the symmetric difference of the arguments.
+  args:
+    a:
+      type: '|T|'
+      description: >
+        The first set.
+    b:
+      type: '|T|'
+      description: >
+        The second set.
+  example: |
+    >> |1, 2, 3|.xor(|2, 3, 4|)
+    = |1, 4|

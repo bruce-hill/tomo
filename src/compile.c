@@ -505,7 +505,7 @@ static CORD compile_update_assignment(env_t *env, ast_t *ast)
     if (!is_update_assignment(ast))
         code_err(ast, "This is not an update assignment");
 
-    binary_operands_t update = BINARY_OPERANDS(ast);
+    binary_operands_t update = UPDATE_OPERANDS(ast);
 
     type_t *lhs_t = get_type(env, update.lhs);
 
@@ -696,6 +696,8 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
         return CORD_all("(", lhs, " + ", rhs, ")");
     }
     case Minus: {
+        if (overall_t->tag == SetType)
+            return CORD_all("Table$without(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
             code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
         return CORD_all("(", lhs, " - ", rhs, ")");
@@ -725,6 +727,8 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
             return CORD_all("(", lhs, " && ", rhs, ")");
         else if (overall_t->tag == IntType || overall_t->tag == ByteType)
             return CORD_all("(", lhs, " & ", rhs, ")");
+        else if (overall_t->tag == SetType)
+            return CORD_all("Table$overlap(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         else
             code_err(ast, "The 'and' operator isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " values");
     }
@@ -736,6 +740,8 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
             return CORD_all("(", lhs, " || ", rhs, ")");
         } else if (overall_t->tag == IntType || overall_t->tag == ByteType) {
             return CORD_all("(", lhs, " | ", rhs, ")");
+        } else if (overall_t->tag == SetType) {
+            return CORD_all("Table$with(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         } else {
             code_err(ast, "The 'or' operator isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " values");
         }
@@ -744,6 +750,8 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
         // TODO: support optional values in `xor` expressions
         if (overall_t->tag == BoolType || overall_t->tag == IntType || overall_t->tag == ByteType)
             return CORD_all("(", lhs, " ^ ", rhs, ")");
+        else if (overall_t->tag == SetType)
+            return CORD_all("Table$xor(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         else
             code_err(ast, "The 'xor' operator isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " values");
     }
@@ -1204,7 +1212,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 test_code = CORD_all(test_code, "$1; })");
             }
         } else if (is_update_assignment(test->expr)) {
-            binary_operands_t update = BINARY_OPERANDS(test->expr);
+            binary_operands_t update = UPDATE_OPERANDS(test->expr);
             type_t *lhs_t = get_type(env, update.lhs);
             if (update.lhs->tag == Index) {
                 type_t *indexed = value_type(get_type(env, Match(update.lhs, Index)->indexed));
@@ -3428,6 +3436,10 @@ CORD compile(env_t *env, ast_t *ast)
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
                 return CORD_all("Table$sorted(", self, ", ", compile_type_info(self_value_t), ")");
+            } else if (streq(call->name, "with_fallback")) {
+                self = compile_to_pointer_depth(env, call->self, 0, false);
+                arg_t *arg_spec = new(arg_t, .name="fallback", .type=Type(OptionalType, self_value_t));
+                return CORD_all("Table$with_fallback(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else code_err(ast, "There is no '", call->name, "' method for tables");
         }
         default: {
