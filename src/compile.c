@@ -1070,9 +1070,10 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
             if (clause->pattern->tag == Var) {
                 const char *clause_tag_name = Match(clause->pattern, Var)->name;
+                type_t *clause_type = clause->body ? get_type(env, clause->body) : Type(VoidType);
                 code = CORD_all(code, "case ", namespace_name(enum_t->env, enum_t->env->namespace, CORD_all("tag$", clause_tag_name)), ": {\n",
-                                compile_statement(env, clause->body),
-                                "break;\n"
+                                compile_inline_block(env, clause->body),
+                                (clause_type->tag == ReturnType || clause_type->tag == AbortType) ? CORD_EMPTY : "break;\n",
                                 "}\n");
                 continue;
             }
