@@ -104,8 +104,8 @@ static void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_
 static void build_library(Path_t lib_dir);
 static void install_library(Path_t lib_dir);
 static void compile_files(env_t *env, List_t files, List_t *object_files, List_t *ldlibs);
-static bool is_stale(Path_t path, Path_t relative_to);
-static bool is_stale_for_any(Path_t path, List_t relative_to);
+static bool is_stale(Path_t path, Path_t relative_to, bool ignore_missing);
+static bool is_stale_for_any(Path_t path, List_t relative_to, bool ignore_missing);
 static Path_t build_file(Path_t path, const char *extension);
 static void wait_for_child_success(pid_t child);
 static bool is_config_outdated(Path_t path);
@@ -404,7 +404,7 @@ void build_library(Path_t lib_dir)
 
     Text_t version_suffix = get_version_suffix(lib_dir);
     Path_t shared_lib = Path$child(lib_dir, Texts(Text("lib"), lib_dir_name, version_suffix, Text(SHARED_SUFFIX)));
-    if (!is_stale_for_any(shared_lib, object_files)) {
+    if (!is_stale_for_any(shared_lib, object_files, false)) {
         if (verbose) whisper("Unchanged: ", shared_lib);
         return;
     }
@@ -580,12 +580,18 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
         return;
 
     staleness_t staleness = {
-        .h=is_stale(build_file(path, ".h"), path) || is_stale(build_file(path, ".h"), build_file(path, ".id")),
-        .c=is_stale(build_file(path, ".c"), path) || is_stale(build_file(path, ".c"), build_file(path, ".id")),
+        .h=is_stale(build_file(path, ".h"), Path$sibling(path, Text("modules.ini")), true)
+            || is_stale(build_file(path, ".h"), build_file(path, ":modules.ini"), true)
+            || is_stale(build_file(path, ".h"), path, false)
+            || is_stale(build_file(path, ".h"), build_file(path, ".id"), false),
+        .c=is_stale(build_file(path, ".c"), Path$sibling(path, Text("modules.ini")), true)
+            || is_stale(build_file(path, ".c"), build_file(path, ":modules.ini"), true)
+            || is_stale(build_file(path, ".c"), path, false)
+            || is_stale(build_file(path, ".c"), build_file(path, ".id"), false),
     };
     staleness.o = staleness.c || staleness.h
-        || is_stale(build_file(path, ".o"), build_file(path, ".c"))
-        || is_stale(build_file(path, ".o"), build_file(path, ".h"));
+        || is_stale(build_file(path, ".o"), build_file(path, ".c"), false)
+        || is_stale(build_file(path, ".o"), build_file(path, ".h"), false);
     Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
 
     assert(Text$equal_values(Path$extension(path, true), Text("tm")));
@@ -604,9 +610,9 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             Path_t dep_tm = Path$resolved(Path$from_str(use->path), Path$parent(path));
             if (!Path$is_file(dep_tm, true))
                 code_err(stmt_ast, "Not a valid file: ", dep_tm);
-            if (is_stale(build_file(path, ".h"), dep_tm))
+            if (is_stale(build_file(path, ".h"), dep_tm, false))
                 staleness.h = true;
-            if (is_stale(build_file(path, ".c"), dep_tm))
+            if (is_stale(build_file(path, ".c"), dep_tm, false))
                 staleness.c = true;
             if (staleness.c || staleness.h)
                 staleness.o = true;
@@ -648,11 +654,13 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
     }
 }
 
-bool is_stale(Path_t path, Path_t relative_to)
+bool is_stale(Path_t path, Path_t relative_to, bool ignore_missing)
 {
     struct stat target_stat;
-    if (stat(Path$as_c_string(path), &target_stat) != 0)
+    if (stat(Path$as_c_string(path), &target_stat) != 0) {
+        if (ignore_missing) return false;
         return true;
+    }
 
 #ifdef __linux__
     // Any file older than the compiler is stale:
@@ -661,16 +669,18 @@ bool is_stale(Path_t path, Path_t relative_to)
 #endif
 
     struct stat relative_to_stat;
-    if (stat(Path$as_c_string(relative_to), &relative_to_stat) != 0)
+    if (stat(Path$as_c_string(relative_to), &relative_to_stat) != 0) {
+        if (ignore_missing) return false;
         print_err("File doesn't exist: ", relative_to);
+    }
     return target_stat.st_mtime < relative_to_stat.st_mtime;
 }
 
-bool is_stale_for_any(Path_t path, List_t relative_to)
+bool is_stale_for_any(Path_t path, List_t relative_to, bool ignore_missing)
 {
     for (int64_t i = 0; i < relative_to.length; i++) {
         Path_t r = *(Path_t*)(relative_to.data + i*relative_to.stride);
-        if (is_stale(path, r))
+        if (is_stale(path, r, ignore_missing))
             return true;
     }
     return false;
@@ -777,7 +787,9 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         print_err("No main() function has been defined for ", path, ", so it can't be run!");
 
     if (!clean_build && Path$is_file(exe_path, true) && !is_config_outdated(path)
-        && !is_stale_for_any(exe_path, object_files)) {
+        && !is_stale_for_any(exe_path, object_files, false)
+        && !is_stale(exe_path, Path$sibling(path, Text("modules.ini")), true)
+        && !is_stale(exe_path, build_file(path, ":modules.ini"), true)) {
         if (verbose) whisper("Unchanged: ", exe_path);
         return exe_path;
     }
