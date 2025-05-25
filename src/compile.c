@@ -4384,7 +4384,7 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
     case Extend: {
         DeclareMatch(extend, ast, Extend);
         binding_t *b = get_binding(env, extend->name);
-        if (!b)
+        if (!b || b->type->tag != TypeInfoType)
             code_err(ast, "'", extend->name, "' is not the name of any type I recognize.");
         env_t *ns_env = Match(b->type, TypeInfoType)->env;
         env_t *extended = new(env_t);
