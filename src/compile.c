@@ -1683,7 +1683,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 stop);
         }
 
-        type_t *iter_t = value_type(get_type(env, for_->iter));
+        type_t *iter_t = get_type(env, for_->iter);
         type_t *iter_value_t = value_type(iter_t);
 
         switch (iter_value_t->tag) {
