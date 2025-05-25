@@ -86,32 +86,37 @@ CORD compile_enum_header(env_t *env, ast_t *ast)
 {
     DeclareMatch(def, ast, EnumDef);
     CORD all_defs = CORD_EMPTY;
-    CORD struct_name = namespace_name(env, env->namespace, CORD_all(def->name, "$$struct"));
     CORD none_name = namespace_name(env, env->namespace, CORD_all(def->name, "$none"));
-    CORD enum_def = CORD_all("struct ", struct_name, " {\n"
-                             "\tenum { ", none_name, "=0, ");
+    CORD enum_name = namespace_name(env, env->namespace, CORD_all(def->name, "$$enum"));
+    CORD enum_tags = CORD_all("{ ", none_name, "=0, ");
 
     bool has_any_tags_with_fields = false;
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         CORD tag_name = namespace_name(env, env->namespace, CORD_all(def->name, "$tag$", tag->name));
-        enum_def = CORD_all(enum_def, tag_name);
-        if (tag->next) enum_def = CORD_all(enum_def, ", ");
+        enum_tags = CORD_all(enum_tags, tag_name);
+        if (tag->next) enum_tags = CORD_all(enum_tags, ", ");
         has_any_tags_with_fields = has_any_tags_with_fields || (tag->fields != NULL);
     }
-    enum_def = CORD_all(enum_def, "} $tag;\n");
+    enum_tags = CORD_all(enum_tags, " }");
 
-    if (has_any_tags_with_fields) {
-        enum_def = CORD_all(enum_def, "union {\n");
-        for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-            if (!tag->fields) continue;
-            CORD field_def = compile_struct_header(env, WrapAST(ast, StructDef, .name=CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)), .fields=tag->fields));
-            all_defs = CORD_all(all_defs, field_def);
-            CORD tag_type = namespace_name(env, env->namespace, CORD_all(def->name, "$", tag->name, "$$type"));
-            enum_def = CORD_all(enum_def, tag_type, " ", tag->name, ";\n");
-        }
-        enum_def = CORD_all(enum_def, "};\n");
+    if (!has_any_tags_with_fields) {
+        CORD enum_def = CORD_all("enum ", enum_name, " ", enum_tags, ";\n");
+        CORD info = namespace_name(env, env->namespace, CORD_all(def->name, "$$info"));
+        return CORD_all(enum_def, "extern const TypeInfo_t ", info, ";\n");
     }
-    enum_def = CORD_all(enum_def, "};\n");
+
+    CORD struct_name = namespace_name(env, env->namespace, CORD_all(def->name, "$$struct"));
+    CORD enum_def = CORD_all("struct ", struct_name, " {\n"
+                             "enum ", enum_tags, " $tag;\n"
+                             "union {\n");
+    for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
+        if (!tag->fields) continue;
+        CORD field_def = compile_struct_header(env, WrapAST(ast, StructDef, .name=CORD_to_const_char_star(CORD_all(def->name, "$", tag->name)), .fields=tag->fields));
+        all_defs = CORD_all(all_defs, field_def);
+        CORD tag_type = namespace_name(env, env->namespace, CORD_all(def->name, "$", tag->name, "$$type"));
+        enum_def = CORD_all(enum_def, tag_type, " ", tag->name, ";\n");
+    }
+    enum_def = CORD_all(enum_def, "};\n};\n");
     all_defs = CORD_all(all_defs, enum_def);
 
     CORD info = namespace_name(env, env->namespace, CORD_all(def->name, "$$info"));

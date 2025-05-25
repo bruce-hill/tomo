@@ -1004,8 +1004,12 @@ CORD check_none(type_t *t, CORD value)
         return CORD_all("({(", value, ").length < 0;})");
     else if (t->tag == IntType || t->tag == ByteType || t->tag == StructType)
         return CORD_all("(", value, ").is_none");
-    else if (t->tag == EnumType)
-        return CORD_all("({(", value, ").$tag == 0;})");
+    else if (t->tag == EnumType) {
+        if (enum_has_fields(t))
+            return CORD_all("({(", value, ").$tag == 0;})");
+        else
+            return CORD_all("((", value, ") == 0)");
+    }
     print_err("Optional check not implemented for: ", type_to_str(t));
     return CORD_EMPTY;
 }
@@ -1066,7 +1070,13 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         }
 
         DeclareMatch(enum_t, subject_t, EnumType);
-        CORD code = CORD_all("WHEN(", compile_type(subject_t), ", ", compile(env, when->subject), ", _when_subject, {\n");
+
+        CORD code;
+        if (enum_has_fields(subject_t))
+            code = CORD_all("WHEN(", compile_type(subject_t), ", ", compile(env, when->subject), ", _when_subject, {\n");
+        else
+            code = CORD_all("switch(", compile(env, when->subject), ") {\n");
+
         for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
             if (clause->pattern->tag == Var) {
                 const char *clause_tag_name = Match(clause->pattern, Var)->name;
@@ -1148,7 +1158,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         } else {
             code = CORD_all(code, "default: errx(1, \"Invalid tag!\");\n");
         }
-        code = CORD_all(code, "\n})\n");
+        code = CORD_all(code, "\n}", enum_has_fields(subject_t) ? ")" : CORD_EMPTY, "\n");
         return code;
     }
     case DocTest: {
@@ -2669,8 +2679,10 @@ CORD compile_empty(type_t *t)
         assert(tag->type);
         if (Match(tag->type, StructType)->fields)
             return CORD_all("((", compile_type(t), "){.$tag=", String(tag->tag_value), ", .", tag->name, "=", compile_empty(tag->type), "})");
-        else
+        else if (enum_has_fields(t))
             return CORD_all("((", compile_type(t), "){.$tag=", String(tag->tag_value), "})");
+        else
+            return CORD_all("((", compile_type(t), ")", String(tag->tag_value), ")");
     }
     default: return CORD_EMPTY;
     }
@@ -3825,9 +3837,12 @@ CORD compile(env_t *env, ast_t *ast)
                     if (fielded_t->tag == PointerType) {
                         CORD fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
                         return CORD_all("((", fielded, ")->$tag == ", tag_name, ")");
-                    } else {
+                    } else if (enum_has_fields(value_t)) {
                         CORD fielded = compile(env, f->fielded);
                         return CORD_all("((", fielded, ").$tag == ", tag_name, ")");
+                    } else {
+                        CORD fielded = compile(env, f->fielded);
+                        return CORD_all("((", fielded, ") == ", tag_name, ")");
                     }
                 }
             }
@@ -4708,15 +4723,26 @@ static void _make_typedefs(compile_typedef_info_t *info, ast_t *ast)
         *info->header = CORD_all(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
     } else if (ast->tag == EnumDef) {
         DeclareMatch(def, ast, EnumDef);
-        CORD struct_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$struct"));
-        CORD type_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$type"));
-        *info->header = CORD_all(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
-
+        bool has_any_tags_with_fields = false;
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-            if (!tag->fields) continue;
-            CORD tag_struct = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$", tag->name, "$$struct"));
-            CORD tag_type = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$", tag->name, "$$type"));
-            *info->header = CORD_all(*info->header, "typedef struct ", tag_struct, " ", tag_type, ";\n");
+            has_any_tags_with_fields = has_any_tags_with_fields || (tag->fields != NULL);
+        }
+
+        if (has_any_tags_with_fields) {
+            CORD struct_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$struct"));
+            CORD type_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$type"));
+            *info->header = CORD_all(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
+
+            for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
+                if (!tag->fields) continue;
+                CORD tag_struct = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$", tag->name, "$$struct"));
+                CORD tag_type = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$", tag->name, "$$type"));
+                *info->header = CORD_all(*info->header, "typedef struct ", tag_struct, " ", tag_type, ";\n");
+            }
+        } else {
+            CORD enum_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$enum"));
+            CORD type_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$type"));
+            *info->header = CORD_all(*info->header, "typedef enum ", enum_name, " ", type_name, ";\n");
         }
     } else if (ast->tag == LangDef) {
         DeclareMatch(def, ast, LangDef);

@@ -69,7 +69,7 @@ CORD compile_struct_header(env_t *env, ast_t *ast)
     CORD typeinfo_code = CORD_all("extern const TypeInfo_t ", typeinfo_name, ";\n");
     CORD optional_code = CORD_EMPTY;
     if (!def->opaque) {
-        optional_code = CORD_all("DEFINE_OPTIONAL_TYPE(", compile_type(t), ", ", unpadded_size, ",",
+        optional_code = CORD_all("DEFINE_OPTIONAL_TYPE(", compile_type(t), ", ", unpadded_size, ", ",
                                  namespace_name(env, env->namespace, CORD_all("$Optional", def->name, "$$type")), ");\n");
     }
     return CORD_all(struct_code, optional_code, typeinfo_code);

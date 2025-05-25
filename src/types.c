@@ -836,4 +836,13 @@ type_t *_make_function_type(type_t *ret, int n, arg_t args[n])
     return Type(FunctionType, .ret=ret, .args=&arg_pointers[0]);
 }
 
+PUREFUNC bool enum_has_fields(type_t *t)
+{
+    for (tag_t *e_tag = Match(t, EnumType)->tags; e_tag; e_tag = e_tag->next) {
+        if (e_tag->type != NULL && Match(e_tag->type, StructType)->fields)
+            return true;
+    }
+    return false;
+}
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

@@ -397,7 +397,9 @@ void bind_statement(env_t *env, ast_t *statement)
         assert(type);
         tag_t *tags = NULL;
         int64_t next_tag = 1;
+        bool has_any_tags_with_fields = false;
         for (tag_ast_t *tag_ast = def->tags; tag_ast; tag_ast = tag_ast->next) {
+            has_any_tags_with_fields = has_any_tags_with_fields || tag_ast->fields;
             arg_t *fields = NULL;
             for (arg_ast_t *field_ast = tag_ast->fields; field_ast; field_ast = field_ast->next) {
                 type_t *field_t = get_arg_ast_type(env, field_ast);
@@ -437,9 +439,12 @@ void bind_statement(env_t *env, ast_t *statement)
             if (Match(tag->type, StructType)->fields) { // Constructor:
                 type_t *constructor_t = Type(FunctionType, .args=Match(tag->type, StructType)->fields, .ret=type);
                 set_binding(ns_env, tag->name, constructor_t, namespace_name(env, env->namespace, CORD_all(def->name, "$tagged$", tag->name)));
-            } else { // Empty singleton value:
+            } else if (has_any_tags_with_fields) { // Empty singleton value:
                 CORD code = CORD_all("((", namespace_name(env, env->namespace, CORD_all(def->name, "$$type")), "){",
                                      namespace_name(env, env->namespace, CORD_all(def->name, "$tag$", tag->name)), "})");
+                set_binding(ns_env, tag->name, type, code);
+            } else {
+                CORD code = namespace_name(env, env->namespace, CORD_all(def->name, "$tag$", tag->name));
                 set_binding(ns_env, tag->name, type, code);
             }
             Table$str_set(env->types, String(def->name, "$", tag->name), tag->type);
