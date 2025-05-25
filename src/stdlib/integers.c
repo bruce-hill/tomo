@@ -28,9 +28,13 @@ public int Int$print(FILE *f, Int_t i) {
 
 static inline Text_t _int64_to_text(int64_t n)
 {
+    if (n == INT64_MIN)
+        return Text("-9223372036854775808");
+
     char buf[21] = {[20]=0}; // Big enough for INT64_MIN + '\0'
     char *p = &buf[19];
     bool negative = n < 0;
+    if (negative) n = -n; // Safe to do because we checked for INT64_MIN earlier
 
     do {
         *(p--) = '0' + (n % 10);
