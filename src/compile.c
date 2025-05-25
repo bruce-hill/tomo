@@ -2427,7 +2427,9 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
 {
     Table_t used_args = {};
     CORD code = CORD_EMPTY;
-    env_t *default_scope = namespace_scope(env);
+    env_t *default_scope = new(env_t);
+    *default_scope = *env;
+    default_scope->locals = new(Table_t, .fallback=env->namespace_bindings ? env->namespace_bindings : env->globals);
     for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
         int64_t i = 1;
         // Find keyword:

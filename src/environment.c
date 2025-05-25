@@ -577,14 +577,6 @@ env_t *load_module_env(env_t *env, ast_t *ast)
     return module_env;
 }
 
-env_t *namespace_scope(env_t *env)
-{
-    env_t *scope = new(env_t);
-    *scope = *env;
-    scope->locals = new(Table_t, .fallback=env->namespace_bindings ? env->namespace_bindings : env->globals);
-    return scope;
-}
-
 env_t *fresh_scope(env_t *env)
 {
     env_t *scope = new(env_t);
