@@ -12,6 +12,10 @@
 - Sets now support infix operations for `and`, `or`, `xor`, and `-`
 - Added Path.sibling()
 - Added Table.with_fallback()
+- Fixed bugs:
+  - Negative integers weren't converting to text properly.
+  - Mutation of a collection during iteration was violating value semantics.
+  - `extend` statements weren't properly checking that the type name was valid.
 
 ## v0.2
 
