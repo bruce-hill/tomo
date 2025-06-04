@@ -510,7 +510,7 @@ public void end_inspect(const void *expr, const TypeInfo_t *type)
         Text_t expr_text = generic_as_text(expr, USE_COLOR, type);
         Text_t type_name = generic_as_text(NULL, false, type);
         for (int i = 0; i < 3*_inspect_depth; i++) fputc(' ', stdout);
-        fprint(stdout, USE_COLOR ? "\x1b[33;1m=\x1b[0m " : " =", expr_text, USE_COLOR ? " \x1b[2m: \x1b[36m" : " : ", type_name, USE_COLOR ? "\033[m" : "");
+        fprint(stdout, USE_COLOR ? "\x1b[33;1m=\x1b[0m " : "= ", expr_text, USE_COLOR ? " \x1b[2m: \x1b[36m" : " : ", type_name, USE_COLOR ? "\033[m" : "");
     }
 }
 
