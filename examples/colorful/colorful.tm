@@ -193,6 +193,8 @@ func _add_ansi_sequences(text:Text, prev_state:_TermState -> Text)
             new_state.italic = yes
         else if attr == "u" or attr == "underline"
             new_state.underline = yes
+        else if attr == "s" or attr == "strikethrough"
+            new_state.strikethrough = yes
         else if attr == "B" or attr == "blink"
             new_state.blink = yes
         else if attr == "r" or attr == "reverse"
