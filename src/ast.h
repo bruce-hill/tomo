@@ -125,7 +125,7 @@ struct type_ast_s {
 typedef enum {
     Unknown = 0,
     None, Bool, Var,
-    Int, Num,
+    Int, Dec, Num,
     TextLiteral, TextJoin,
     Path,
     Declare, Assign,
@@ -175,6 +175,9 @@ struct ast_s {
         struct {
             double n;
         } Num;
+        struct {
+            const char *str;
+        } Dec;
         struct {
             CORD cord;
         } TextLiteral;

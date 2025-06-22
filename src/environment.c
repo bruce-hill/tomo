@@ -67,6 +67,7 @@ env_t *global_env(bool source_mapping)
     TEXT_TYPE = bind_type(env, "Text", Type(TextType, .lang="Text", .env=namespace_env(env, "Text")));
     (void)bind_type(env, "Int", Type(BigIntType));
     (void)bind_type(env, "Int32", Type(IntType, .bits=TYPE_IBITS32));
+    (void)bind_type(env, "Dec", Type(DecType));
     (void)bind_type(env, "Memory", Type(MemoryType));
     PATH_TYPE_TYPE = declare_type(env, "enum PathType(Relative, Absolute, Home)");
     PATH_TYPE = declare_type(env, "struct Path(type:PathType, components:[Text])");
@@ -241,6 +242,17 @@ env_t *global_env(bool source_mapping)
             F_opt(log2), F(logb), F(rint), F(round), F(significand), F_opt(sin), F(sinh), F_opt(sqrt),
             F_opt(tan), F(tanh), F_opt(tgamma), F(trunc), F_opt(y0), F_opt(y1),
             F2(atan2), F2(copysign), F2(fdim), F2(hypot), F2(nextafter),
+        )},
+        {"Dec", Type(DecType), "Dec_t", "Dec$info", TypedList(ns_entry_t,
+            {"divided_by", "Dec$divided_by", "func(x,y:Dec -> Dec)"},
+            {"minus", "Dec$minus", "func(x,y:Dec -> Dec)"},
+            {"modulo", "Dec$modulo", "func(x,y:Dec -> Dec)"},
+            {"modulo1", "Dec$modulo1", "func(x,y:Dec -> Dec)"},
+            {"negative", "Dec$negative", "func(x:Dec -> Dec)"},
+            {"plus", "Dec$plus", "func(x,y:Dec -> Dec)"},
+            {"power", "Dec$power", "func(base,exponent:Dec -> Dec)"},
+            {"round", "Dec$round", "func(d:Dec, digits:Int=0 -> Dec)"},
+            {"times", "Dec$times", "func(x,y:Dec -> Dec)"},
         )},
 #undef F2
 #undef F_opt
@@ -426,14 +438,16 @@ env_t *global_env(bool source_mapping)
                      {"Bool$from_int16", "func(i:Int16 -> Bool)"},
                      {"Bool$from_int32", "func(i:Int32 -> Bool)"},
                      {"Bool$from_int64", "func(i:Int64 -> Bool)"},
-                     {"Bool$from_int", "func(i:Int -> Bool)"});
+                     {"Bool$from_int", "func(i:Int -> Bool)"},
+                     {"Dec$as_bool", "func(d:Dec -> Bool)"});
     ADD_CONSTRUCTORS("Byte",
                      {"Byte$from_bool", "func(b:Bool -> Byte)"},
                      {"Byte$from_int8", "func(i:Int8 -> Byte)"},
                      {"Byte$from_int16", "func(i:Int16, truncate=no -> Byte)"},
                      {"Byte$from_int32", "func(i:Int32, truncate=no -> Byte)"},
                      {"Byte$from_int64", "func(i:Int64, truncate=no -> Byte)"},
-                     {"Byte$from_int", "func(i:Int, truncate=no -> Byte)"});
+                     {"Byte$from_int", "func(i:Int, truncate=no -> Byte)"},
+                     {"Dec$as_byte", "func(d:Dec, truncate=no -> Byte)"});
     ADD_CONSTRUCTORS("Int",
                      {"Int$from_bool", "func(b:Bool -> Int)"},
                      {"Int$from_byte", "func(b:Byte -> Int)"},
@@ -442,7 +456,8 @@ env_t *global_env(bool source_mapping)
                      {"Int$from_int32", "func(i:Int32 -> Int)"},
                      {"Int$from_int64", "func(i:Int64 -> Int)"},
                      {"Int$from_num", "func(n:Num, truncate=no -> Int)"},
-                     {"Int$from_num32", "func(n:Num32, truncate=no -> Int)"});
+                     {"Int$from_num32", "func(n:Num32, truncate=no -> Int)"},
+                     {"Dec$as_int", "func(d:Dec, truncate=no -> Int)"});
     ADD_CONSTRUCTORS("Int64",
                      {"Int64$from_bool", "func(b:Bool -> Int64)"},
                      {"Int64$from_byte", "func(b:Byte -> Int64)"},
@@ -451,7 +466,8 @@ env_t *global_env(bool source_mapping)
                      {"Int64$from_int32", "func(i:Int32 -> Int64)"},
                      {"Int64$from_int", "func(i:Int, truncate=no -> Int64)"},
                      {"Int64$from_num", "func(n:Num, truncate=no -> Int64)"},
-                     {"Int64$from_num32", "func(n:Num32, truncate=no -> Int64)"});
+                     {"Int64$from_num32", "func(n:Num32, truncate=no -> Int64)"},
+                     {"Dec$as_int64", "func(d:Dec, truncate=no -> Int64)"});
     ADD_CONSTRUCTORS("Int32",
                      {"Int32$from_bool", "func(b:Bool -> Int32)"},
                      {"Int32$from_byte", "func(b:Byte -> Int32)"},
@@ -460,7 +476,8 @@ env_t *global_env(bool source_mapping)
                      {"Int32$from_int64", "func(i:Int64, truncate=no -> Int32)"},
                      {"Int32$from_int", "func(i:Int, truncate=no -> Int32)"},
                      {"Int32$from_num", "func(n:Num, truncate=no -> Int32)"},
-                     {"Int32$from_num32", "func(n:Num32, truncate=no -> Int32)"});
+                     {"Int32$from_num32", "func(n:Num32, truncate=no -> Int32)"},
+                     {"Dec$as_int32", "func(d:Dec, truncate=no -> Int32)"});
     ADD_CONSTRUCTORS("Int16",
                      {"Int16$from_bool", "func(b:Bool -> Int16)"},
                      {"Int16$from_byte", "func(b:Byte -> Int16)"},
@@ -469,7 +486,8 @@ env_t *global_env(bool source_mapping)
                      {"Int16$from_int64", "func(i:Int64, truncate=no -> Int16)"},
                      {"Int16$from_int", "func(i:Int, truncate=no -> Int16)"},
                      {"Int16$from_num", "func(n:Num, truncate=no -> Int16)"},
-                     {"Int16$from_num32", "func(n:Num32, truncate=no -> Int16)"});
+                     {"Int16$from_num32", "func(n:Num32, truncate=no -> Int16)"},
+                     {"Dec$as_int16", "func(d:Dec, truncate=no -> Int16)"});
     ADD_CONSTRUCTORS("Int8",
                      {"Int8$from_bool", "func(b:Bool -> Int8)"},
                      {"Int8$from_byte", "func(b:Byte -> Int8)"},
@@ -478,7 +496,8 @@ env_t *global_env(bool source_mapping)
                      {"Int8$from_int64", "func(i:Int64, truncate=no -> Int8)"},
                      {"Int8$from_int", "func(i:Int, truncate=no -> Int8)"},
                      {"Int8$from_num", "func(n:Num, truncate=no -> Int8)"},
-                     {"Int8$from_num32", "func(n:Num32, truncate=no -> Int8)"});
+                     {"Int8$from_num32", "func(n:Num32, truncate=no -> Int8)"},
+                     {"Dec$as_int8", "func(d:Dec, truncate=no -> Int8)"});
     ADD_CONSTRUCTORS("Num",
                      {"Num$from_bool", "func(b:Bool -> Num)"},
                      {"Num$from_byte", "func(b:Byte -> Num)"},
@@ -487,7 +506,8 @@ env_t *global_env(bool source_mapping)
                      {"Num$from_int32", "func(i:Int32 -> Num)"},
                      {"Num$from_int64", "func(i:Int64, truncate=no -> Num)"},
                      {"Num$from_int", "func(i:Int, truncate=no -> Num)"},
-                     {"Num$from_num32", "func(n:Num32 -> Num)"});
+                     {"Num$from_num32", "func(n:Num32 -> Num)"},
+                     {"Dec$as_num", "func(d:Dec -> Num)"});
     ADD_CONSTRUCTORS("Num32",
                      {"Num32$from_bool", "func(b:Bool -> Num32)"},
                      {"Num32$from_byte", "func(b:Byte -> Num32)"},
@@ -496,7 +516,18 @@ env_t *global_env(bool source_mapping)
                      {"Num32$from_int32", "func(i:Int32, truncate=no -> Num32)"},
                      {"Num32$from_int64", "func(i:Int64, truncate=no -> Num32)"},
                      {"Num32$from_int", "func(i:Int, truncate=no -> Num32)"},
-                     {"Num32$from_num", "func(n:Num -> Num32)"});
+                     {"Num32$from_num", "func(n:Num -> Num32)"},
+                     {"Dec$as_num32", "func(d:Dec -> Num32)"});
+    ADD_CONSTRUCTORS("Dec",
+                     {"Dec$from_bool", "func(b:Bool -> Dec)"},
+                     {"Dec$from_byte", "func(b:Byte -> Dec)"},
+                     {"Dec$from_int8", "func(i:Int8 -> Dec)"},
+                     {"Dec$from_int16", "func(i:Int16 -> Dec)"},
+                     {"Dec$from_int32", "func(i:Int32 -> Dec)"},
+                     {"Dec$from_int64", "func(i:Int64 -> Dec)"},
+                     {"Dec$from_num", "func(n:Num -> Dec)"},
+                     {"Dec$from_num32", "func(n:Num32 -> Dec)"},
+                     {"Dec$from_int", "func(i:Int -> Dec)"});
     ADD_CONSTRUCTORS("Path",
                      {"Path$escape_text", "func(text:Text -> Path)"},
                      {"Path$escape_path", "func(path:Path -> Path)"},
@@ -690,7 +721,7 @@ env_t *get_namespace_by_type(env_t *env, type_t *t)
     case ListType: return NULL;
     case TableType: return NULL;
     case CStringType:
-    case BoolType: case IntType: case BigIntType: case NumType: case ByteType: {
+    case BoolType: case IntType: case BigIntType: case DecType: case NumType: case ByteType: {
         binding_t *b = get_binding(env, CORD_to_const_char_star(type_to_cord(t)));
         assert(b);
         return Match(b->type, TypeInfoType)->env;

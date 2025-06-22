@@ -103,6 +103,7 @@ static PARSER(parse_assignment);
 static PARSER(parse_block);
 static PARSER(parse_bool);
 static PARSER(parse_convert_def);
+static PARSER(parse_dec);
 static PARSER(parse_declaration);
 static PARSER(parse_defer);
 static PARSER(parse_do);
@@ -656,6 +657,36 @@ type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos) {
     return type;
 }
 
+PARSER(parse_dec) {
+    const char *start = pos;
+    bool negative = false;
+    if (match(&pos, "-$"))
+        negative = true;
+    else if (!match(&pos, "$"))
+        return NULL;
+
+    if (!isdigit(*pos) && *pos != '.') return NULL;
+    else if (*pos == '.' && !isdigit(pos[1])) return NULL;
+
+    size_t len = strspn(pos, "0123456789_");
+    if (strncmp(pos+len, "..", 2) == 0)
+        return NULL;
+    else if (pos[len] == '.')
+        len += 1 + strspn(pos + len + 1, "0123456789_");
+
+    char *buf = GC_MALLOC_ATOMIC(negative + len + 1);
+    memset(buf, 0, len+1);
+    char *dest = buf;
+    if (negative) *(dest++) = '-';
+    for (char *src = (char*)pos; src < pos+len; ++src) {
+        if (*src != '_') *(dest++) = *src;
+    }
+    *(dest++) = '\0';
+    pos += len;
+
+    return NewAST(ctx->file, start, pos, Dec, .str=buf);
+}
+
 PARSER(parse_num) {
     const char *start = pos;
     bool negative = match(&pos, "-");
@@ -666,7 +697,7 @@ PARSER(parse_num) {
     if (strncmp(pos+len, "..", 2) == 0)
         return NULL;
     else if (pos[len] == '.')
-        len += 1 + strspn(pos + len + 1, "0123456789");
+        len += 1 + strspn(pos + len + 1, "0123456789_");
     else if (pos[len] != 'e' && pos[len] != 'f' && pos[len] != '%')
         return NULL;
     if (pos[len] == 'e') {
@@ -838,7 +869,7 @@ ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     if (*pos == '.') return NULL;
     whitespace(&pos);
     bool dollar = match(&pos, "$");
-    const char* field = get_id(&pos);
+    const char *field = get_id(&pos);
     if (!field) return NULL;
     if (dollar) field = String("$", field);
     return NewAST(ctx->file, lhs->start, pos, FieldAccess, .fielded=lhs, .field=field);
@@ -1296,6 +1327,8 @@ PARSER(parse_text) {
     } else if (match(&pos, "'")) { // Single quote
         open_quote = '\'', close_quote = '\'', open_interp = '$';
     } else if (match(&pos, "$")) { // Customized strings
+        if (isdigit(*pos))
+            return NULL;
         lang = get_id(&pos);
         // $"..." or $@"...."
         static const char *interp_chars = "~!@#$%^&*+=\\?";
@@ -1464,6 +1497,7 @@ PARSER(parse_term_no_suffix) {
     (void)(
         false
         || (term=parse_none(ctx, pos))
+        || (term=parse_dec(ctx, pos)) // Must come before int
         || (term=parse_num(ctx, pos)) // Must come before int
         || (term=parse_int(ctx, pos))
         || (term=parse_negative(ctx, pos)) // Must come after num/int

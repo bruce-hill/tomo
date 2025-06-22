@@ -147,6 +147,7 @@ CORD ast_to_sexp(ast_t *ast)
     T(Bool, "(Bool ", data.b ? "yes" : "no", ")")
     T(Var, "(Var ", CORD_quoted(data.name), ")")
     T(Int, "(Int ", CORD_quoted(ast_source(ast)), ")")
+    T(Dec, "(Dec ", CORD_quoted(ast_source(ast)), ")")
     T(Num, "(Num ", CORD_quoted(ast_source(ast)), ")")
     T(TextLiteral, CORD_quoted(data.cord))
     T(TextJoin, "(Text", data.lang ? CORD_all(" :lang ", CORD_quoted(data.lang)) : CORD_EMPTY, ast_list_to_sexp(data.children), ")")
@@ -230,7 +231,7 @@ const char *ast_source(ast_t *ast)
 PUREFUNC bool is_idempotent(ast_t *ast)
 {
     switch (ast->tag) {
-    case Int: case Bool: case Num: case Var: case None: case TextLiteral: return true;
+    case Int: case Bool: case Dec: case Num: case Var: case None: case TextLiteral: return true;
     case Index: {
         DeclareMatch(index, ast, Index);
         return is_idempotent(index->indexed) && index->index != NULL && is_idempotent(index->index);

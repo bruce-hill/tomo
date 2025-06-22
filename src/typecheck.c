@@ -638,6 +638,9 @@ type_t *get_type(env_t *env, ast_t *ast)
     case Num: {
         return Type(NumType, .bits=TYPE_NBITS64);
     }
+    case Dec: {
+        return Type(DecType);
+    }
     case HeapAllocate: {
         type_t *pointed = get_type(env, Match(ast, HeapAllocate)->value);
         if (has_stack_memory(pointed))
@@ -880,8 +883,8 @@ type_t *get_type(env_t *env, ast_t *ast)
             binding_t *constructor = get_constructor(env, t, call->args);
             if (constructor)
                 return t;
-            else if (t->tag == StructType || t->tag == IntType || t->tag == BigIntType || t->tag == NumType
-                || t->tag == ByteType || t->tag == TextType || t->tag == CStringType)
+            else if (t->tag == StructType || t->tag == IntType || t->tag == BigIntType || t->tag == DecType || t->tag == NumType
+                     || t->tag == DecType || t->tag == ByteType || t->tag == TextType || t->tag == CStringType)
                 return t; // Constructor
             code_err(call->fn, "This is not a type that has a constructor");
         }

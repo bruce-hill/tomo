@@ -2,6 +2,7 @@
 
 ## v0.3
 
+- Added `Dec` type for decimal floating point numbers (literal `$12.34`)
 - Added a versioning system based on `CHANGES.md` files and `modules.ini`
   configuration for module aliases.
 - When attempting to run a program with a module that is not installed, Tomo

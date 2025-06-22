@@ -11,6 +11,7 @@
 #include "bytes.h"
 #include "c_strings.h"
 #include "datatypes.h"
+#include "decimals.h"
 #include "enums.h"
 #include "functiontype.h"
 #include "integers.h"

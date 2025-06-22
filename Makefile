@@ -73,7 +73,7 @@ CFLAGS=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO) 
 	   -DTOMO_PREFIX='"$(PREFIX)"' -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
 	   -DTOMO_VERSION='"$(TOMO_VERSION)"' -DGIT_VERSION='"$(GIT_VERSION)"'
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
-LDLIBS=-lgc -lcord -lm -lunistring -lgmp -ldl
+LDLIBS=-lgc -lcord -lm -lunistring -lgmp -ldl -lmpdec
 LIBTOMO_FLAGS=-shared
 
 DEFINE_AS_OWNER=as_owner() { \

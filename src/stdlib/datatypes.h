@@ -3,6 +3,7 @@
 // Common datastructures (lists, tables, closures)
 
 #include <gmp.h>
+#include <mpdecimal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
@@ -20,6 +21,9 @@
 
 #define Num_t double
 #define Num32_t float
+
+#define Dec_t mpd_t*
+#define OptionalDec_t mpd_t*
 
 #define Int64_t int64_t
 #define Int32_t int32_t

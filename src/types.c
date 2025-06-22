@@ -2,6 +2,7 @@
 #include <gc/cord.h>
 #include <limits.h>
 #include <math.h>
+#include <mpdecimal.h>
 #include <signal.h>
 #include <stdint.h>
 #include <sys/param.h>
@@ -32,6 +33,7 @@ CORD type_to_cord(type_t *t) {
         case CStringType: return "CString";
         case TextType: return Match(t, TextType)->lang ? Match(t, TextType)->lang : "Text";
         case BigIntType: return "Int";
+        case DecType: return "Dec";
         case IntType: return String("Int", Match(t, IntType)->bits);
         case NumType: return Match(t, NumType)->bits == TYPE_NBITS32 ? "Num32" : "Num";
         case ListType: {
@@ -181,6 +183,7 @@ static PUREFUNC INLINE double type_min_magnitude(type_t *t)
     case BoolType: return (double)false;
     case ByteType: return 0;
     case BigIntType: return -1./0.;
+    case DecType: return -1./0.;
     case IntType: {
         switch (Match(t, IntType)->bits) {
         case TYPE_IBITS8: return (double)INT8_MIN;
@@ -201,6 +204,7 @@ static PUREFUNC INLINE double type_max_magnitude(type_t *t)
     case BoolType: return (double)true;
     case ByteType: return (double)UINT8_MAX;
     case BigIntType: return 1./0.;
+    case DecType: return 1./0.;
     case IntType: {
         switch (Match(t, IntType)->bits) {
         case TYPE_IBITS8: return (double)INT8_MAX;
@@ -247,6 +251,7 @@ PUREFUNC bool has_heap_memory(type_t *t)
     case PointerType: return true;
     case OptionalType: return has_heap_memory(Match(t, OptionalType)->type);
     case BigIntType: return true;
+    case DecType: return true;
     case StructType: {
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
             if (has_heap_memory(field->type))
@@ -306,10 +311,10 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
     if (actual->tag == NumType && needed->tag == IntType)
         return false;
 
-    if (actual->tag == IntType && (needed->tag == NumType || needed->tag == BigIntType))
+    if (actual->tag == IntType && (needed->tag == NumType || needed->tag == BigIntType || needed->tag == DecType))
         return true;
 
-    if (actual->tag == BigIntType && needed->tag == NumType)
+    if (actual->tag == BigIntType && (needed->tag == DecType || needed->tag == NumType))
         return true;
 
     if (actual->tag == IntType && needed->tag == IntType) {
@@ -426,7 +431,7 @@ PUREFUNC bool is_int_type(type_t *t)
 
 PUREFUNC bool is_numeric_type(type_t *t)
 {
-    return t->tag == IntType || t->tag == BigIntType || t->tag == NumType || t->tag == ByteType;
+    return t->tag == IntType || t->tag == BigIntType || t->tag == DecType || t->tag == NumType || t->tag == ByteType;
 }
 
 PUREFUNC bool is_packed_data(type_t *t)
@@ -498,6 +503,7 @@ PUREFUNC size_t type_size(type_t *t)
     case ByteType: return sizeof(uint8_t);
     case CStringType: return sizeof(char*);
     case BigIntType: return sizeof(Int_t);
+    case DecType: return sizeof(Dec_t);
     case IntType: {
         switch (Match(t, IntType)->bits) {
         case TYPE_IBITS64: return sizeof(int64_t);
@@ -589,6 +595,7 @@ PUREFUNC size_t type_align(type_t *t)
     case ByteType: return __alignof__(uint8_t);
     case CStringType: return __alignof__(char*);
     case BigIntType: return __alignof__(Int_t);
+    case DecType: return __alignof__(Dec_t);
     case IntType: {
         switch (Match(t, IntType)->bits) {
         case TYPE_IBITS64: return __alignof__(int64_t);

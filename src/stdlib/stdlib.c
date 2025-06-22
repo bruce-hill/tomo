@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <gc.h>
 #include <locale.h>
+#include <mpdecimal.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -57,6 +58,25 @@ static _Noreturn void signal_handler(int sig, siginfo_t *info, void *userdata)
     _exit(1);
 }
 
+static _Noreturn void fpe_handler(int sig, siginfo_t *info, void *userdata)
+{
+    (void)info, (void)userdata;
+    assert(sig == SIGFPE);
+    fflush(stdout);
+    if (USE_COLOR) fputs("\x1b[31;7m ===== MATH EXCEPTION ===== \n\n\x1b[m", stderr);
+    else fputs("===== MATH EXCEPTION =====\n\n", stderr);
+    print_stacktrace(stderr, 3);
+    fflush(stderr);
+    raise(SIGABRT);
+    _exit(1);
+}
+
+
+static void *GC_calloc(size_t n, size_t size)
+{
+    return GC_malloc(n*size);
+}
+
 public void tomo_init(void)
 {
    GC_INIT();
@@ -67,11 +87,22 @@ public void tomo_init(void)
    setlocale(LC_ALL, "");
    assert(getrandom(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0) == sizeof(TOMO_HASH_KEY));
 
-   struct sigaction sigact;
-   sigact.sa_sigaction = signal_handler;
-   sigemptyset(&sigact.sa_mask);
-   sigact.sa_flags = 0;
-   sigaction(SIGILL, &sigact, (struct sigaction *)NULL);
+   mpd_mallocfunc = GC_malloc;
+   mpd_callocfunc = GC_calloc;
+   mpd_reallocfunc = GC_realloc;
+   mpd_free = GC_free;
+
+   struct sigaction ill_sigaction;
+   ill_sigaction.sa_sigaction = signal_handler;
+   sigemptyset(&ill_sigaction.sa_mask);
+   ill_sigaction.sa_flags = 0;
+   sigaction(SIGILL, &ill_sigaction, (struct sigaction *)NULL);
+
+   struct sigaction fpe_sigaction;
+   fpe_sigaction.sa_sigaction = fpe_handler;
+   sigemptyset(&fpe_sigaction.sa_mask);
+   fpe_sigaction.sa_flags = 0;
+   sigaction(SIGFPE, &fpe_sigaction, (struct sigaction *)NULL);
 }
 
 static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)

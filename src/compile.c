@@ -802,6 +802,7 @@ CORD compile_type(type_t *t)
     case ByteType: return "Byte_t";
     case CStringType: return "const char*";
     case BigIntType: return "Int_t";
+    case DecType: return "Dec_t";
     case IntType: return CORD_all("Int", String(Match(t, IntType)->bits), "_t");
     case NumType: return Match(t, NumType)->bits == TYPE_NBITS64 ? "Num_t" : CORD_all("Num", String(Match(t, NumType)->bits), "_t");
     case TextType: {
@@ -844,7 +845,7 @@ CORD compile_type(type_t *t)
             return compile_type(nonnull);
         case TextType:
             return Match(nonnull, TextType)->lang ? compile_type(nonnull) : "OptionalText_t";
-        case IntType: case BigIntType: case NumType: case BoolType: case ByteType:
+        case IntType: case BigIntType: case DecType: case NumType: case BoolType: case ByteType:
         case ListType: case TableType: case SetType:
             return CORD_all("Optional", compile_type(nonnull));
         case StructType: {
@@ -2039,7 +2040,7 @@ CORD expr_as_text(CORD expr, type_t *t, CORD color)
          // NOTE: this cannot use stack(), since bools may actually be bit fields:
          return CORD_all("Bool$as_text((Bool_t[1]){", expr, "}, ", color, ", &Bool$info)");
     case CStringType: return CORD_all("CString$as_text(stack(", expr, "), ", color, ", &CString$info)");
-    case BigIntType: case IntType: case ByteType: case NumType: {
+    case BigIntType: case DecType: case IntType: case ByteType: case NumType: {
         CORD name = type_to_cord(t);
         return CORD_all(name, "$as_text(stack(", expr, "), ", color, ", &", name, "$info)");
     }
@@ -2374,6 +2375,9 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
     if (target->tag == BigIntType)
         return compile(env, ast);
 
+    if (target->tag == DecType)
+        return compile(env, WrapAST(ast, Dec, .str=Match(ast, Int)->str));
+
     if (target->tag == OptionalType && Match(target, OptionalType)->type)
         return compile_int_to_type(env, ast, Match(target, OptionalType)->type);
 
@@ -2589,6 +2593,7 @@ CORD compile_none(type_t *t)
 
     switch (t->tag) {
     case BigIntType: return "NONE_INT";
+    case DecType: return "NONE_DEC";
     case IntType: {
         switch (Match(t, IntType)->bits) {
         case TYPE_IBITS8: return "NONE_INT8";
@@ -2632,6 +2637,7 @@ CORD compile_empty(type_t *t)
 
     switch (t->tag) {
     case BigIntType: return "I(0)";
+    case DecType: return "Dec$from_int(0)";
     case IntType: {
         switch (Match(t, IntType)->bits) {
         case TYPE_IBITS8: return "I8(0)";
@@ -2761,6 +2767,9 @@ CORD compile(env_t *env, ast_t *ast)
     case Num: {
         return String(hex_double(Match(ast, Num)->n));
     }
+    case Dec: {
+        return CORD_all("Dec$from_str(\"", Match(ast, Dec)->str, "\")");
+    }
     case Not: {
         ast_t *value = Match(ast, Not)->value;
         type_t *t = get_type(env, value);
@@ -2852,6 +2861,8 @@ CORD compile(env_t *env, ast_t *ast)
         switch (operand_t->tag) {
         case BigIntType:
             return CORD_all(ast->tag == Equals ? CORD_EMPTY : "!", "Int$equal_value(", lhs, ", ", rhs, ")");
+        case DecType:
+            return CORD_all(ast->tag == Equals ? CORD_EMPTY : "!", "Dec$equal_value(", lhs, ", ", rhs, ")");
         case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
             return CORD_all("(", lhs, ast->tag == Equals ? " == " : " != ", rhs, ")");
         default:
@@ -2888,6 +2899,8 @@ CORD compile(env_t *env, ast_t *ast)
         switch (operand_t->tag) {
         case BigIntType:
             return CORD_all("(Int$compare_value(", lhs, ", ", rhs, ") ", op, " 0)");
+        case DecType:
+            return CORD_all("(Dec$compare_value(", lhs, ", ", rhs, ") ", op, " 0)");
         case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
             return CORD_all("(", lhs, " ", op, " ", rhs, ")");
         default:
@@ -3976,7 +3989,7 @@ CORD compile_type_info(type_t *t)
     else if (t == PATH_TYPE_TYPE) return "&PathType$info";
 
     switch (t->tag) {
-    case BoolType: case ByteType: case IntType: case BigIntType: case NumType: case CStringType:
+    case BoolType: case ByteType: case IntType: case BigIntType: case DecType: case NumType: case CStringType:
         return CORD_all("&", type_to_cord(t), "$info");
     case TextType: {
         DeclareMatch(text, t, TextType);
