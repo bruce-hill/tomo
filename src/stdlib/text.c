@@ -1617,13 +1617,19 @@ public void Text$serialize(const void *obj, FILE *out, Table_t *pointers, const 
 public void Text$deserialize(FILE *in, void *out, List_t *pointers, const TypeInfo_t *info)
 {
     (void)info;
-    int64_t len = -1;
+    int64_t len = 0;
     Int64$deserialize(in, &len, pointers, &Int64$info);
-    char *buf = GC_MALLOC_ATOMIC((size_t)len+1);
-    if (fread(buf, sizeof(char), (size_t)len, in) != (size_t)len)
-        fail("Not enough data in stream to deserialize");
-    buf[len+1] = '\0';
-    *(Text_t*)out = Text$from_strn(buf, (size_t)len);
+    if (len < 0)
+        fail("Invalid text length during deserialization!");
+    Text_t text = EMPTY_TEXT;
+    while (text.length < len) {
+        static char chunk[1024] = {};
+        size_t chunk_size = MIN(sizeof(chunk), (size_t)(len - text.length));
+        if (fread(chunk, sizeof(char), chunk_size, in) != chunk_size)
+            fail("Not enough data in stream to deserialize");
+        text = concat2(text, Text$from_strn(chunk, chunk_size));
+    }
+    *(Text_t*)out = text;
 }
 
 public const TypeInfo_t Text$info = {
