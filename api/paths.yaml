@@ -463,6 +463,34 @@ Path.group:
     = "root"
     >> (/non/existent/file).group()
     = none
+
+Path.has_extension:
+  short: check if a path has a given extension
+  description: >
+    Return whether or not a path has a given file extension.
+  return:
+    type: 'Bool'
+    description: >
+      Whether or not the path has the given extension.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        A path.
+    extension:
+      type: 'Text'
+      description: >
+        A file extension (leading `.` is optional). If empty, the check will
+        test if the file does not have any file extension.
+  example: |
+    >> (/foo.txt).has_extension("txt")
+    = yes
+    >> (/foo.txt).has_extension(".txt")
+    = yes
+    >> (/foo.tar.gz).has_extension("gz")
+    = yes
+    >> (/foo.tar.gz).has_extension("zip")
+    = no
     
 Path.is_directory:
   short: check if a path is a directory

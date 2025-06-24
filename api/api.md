@@ -3010,6 +3010,34 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 = none
 
 ```
+## Path.has_extension
+
+```tomo
+Path.has_extension : func(path: Path, extension: Text -> Bool)
+```
+
+Return whether or not a path has a given file extension.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | A path.  | -
+extension | `Text` | A file extension (leading `.` is optional). If empty, the check will test if the file does not have any file extension.  | -
+
+**Return:** Whether or not the path has the given extension.
+
+
+**Example:**
+```tomo
+>> (/foo.txt).has_extension("txt")
+= yes
+>> (/foo.txt).has_extension(".txt")
+= yes
+>> (/foo.tar.gz).has_extension("gz")
+= yes
+>> (/foo.tar.gz).has_extension("zip")
+= no
+
+```
 ## Path.is_directory
 
 ```tomo
@@ -3878,6 +3906,55 @@ t := {"A"=1, "B"=2}
 t.set("C", 3)
 >> t
 = {"A"=1, "B"=2, "C"=3}
+
+```
+## Table.with_fallback
+
+```tomo
+Table.with_fallback : func(t: {K=V}, fallback: {K=V}? -> {K=V})
+```
+
+Return a copy of a table with a different fallback table.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+t | `{K=V}` | The table whose fallback will be replaced.  | -
+fallback | `{K=V}?` | The new fallback table value.  | -
+
+**Return:** The original table with a different fallback.
+
+
+**Example:**
+```tomo
+t := {"A"=1; fallback={"B"=2}}
+t2 = t.with_fallback({"B"=3"})
+>> t2["B"]
+= 3?
+t3 = t.with_fallback(none)
+>> t2["B"]
+= none
+
+```
+## Table.xor
+
+```tomo
+Table.xor : func(a: |T|, b: |T| -> |T|)
+```
+
+Return set with the elements in one, but not both of the arguments. This is also known as the symmetric difference or disjunctive union.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+a | `|T|` | The first set.  | -
+b | `|T|` | The second set.  | -
+
+**Return:** A set with the symmetric difference of the arguments.
+
+
+**Example:**
+```tomo
+>> |1, 2, 3|.xor(|2, 3, 4|)
+= |1, 4|
 
 ```
 

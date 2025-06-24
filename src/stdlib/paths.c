@@ -609,6 +609,22 @@ public Text_t Path$extension(Path_t path, bool full)
     return Text$from_str(extension);
 }
 
+public bool Path$has_extension(Path_t path, Text_t extension)
+{
+    if (path.components.length < 2)
+        return extension.length == 0;
+
+    Text_t last = *(Text_t*)(path.components.data + path.components.stride*(path.components.length-1));
+
+    if (extension.length == 0)
+        return !Text$has(Text$from(last, I(2)), Text(".")) || Text$equal_values(last, Text(".."));
+
+    if (!Text$starts_with(extension, Text(".")))
+        extension = Texts(Text("."), extension);
+
+    return Text$ends_with(Text$from(last, I(2)), extension);
+}
+
 public Path_t Path$child(Path_t path, Text_t name)
 {
     if (Text$has(name, Text("/")) || Text$has(name, Text(";")))

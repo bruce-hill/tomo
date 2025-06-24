@@ -60,6 +60,22 @@ func main()
     = "tar.gz"
     >> p.extension(full=no)
     = "gz"
+    >> p.has_extension("gz")
+    = yes
+    >> p.has_extension(".gz")
+    = yes
+    >> p.has_extension("tar.gz")
+    = yes
+    >> p.has_extension("txt")
+    = no
+    >> p.has_extension("")
+    = no
+    >> (./foo).has_extension("")
+    = yes
+    >> (..).has_extension("")
+    = yes
+    >> (~/.foo).has_extension("foo")
+    = no
     >> (~/.foo).extension()
     = ""
     >> (~/foo).extension()

@@ -489,6 +489,34 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 = none
 
 ```
+## Path.has_extension
+
+```tomo
+Path.has_extension : func(path: Path, extension: Text -> Bool)
+```
+
+Return whether or not a path has a given file extension.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | A path.  | -
+extension | `Text` | A file extension (leading `.` is optional). If empty, the check will test if the file does not have any file extension.  | -
+
+**Return:** Whether or not the path has the given extension.
+
+
+**Example:**
+```tomo
+>> (/foo.txt).has_extension("txt")
+= yes
+>> (/foo.txt).has_extension(".txt")
+= yes
+>> (/foo.tar.gz).has_extension("gz")
+= yes
+>> (/foo.tar.gz).has_extension("zip")
+= no
+
+```
 ## Path.is_directory
 
 ```tomo

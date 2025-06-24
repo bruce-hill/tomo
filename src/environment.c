@@ -308,6 +308,7 @@ env_t *global_env(bool source_mapping)
             {"from_components", "Path$from_components", "func(components:[Text] -> Path)"},
             {"glob", "Path$glob", "func(path:Path -> [Path])"},
             {"group", "Path$group", "func(path:Path, follow_symlinks=yes -> Text?)"},
+            {"has_extension", "Path$has_extension", "func(path:Path, extension:Text -> Bool)"},
             {"is_directory", "Path$is_directory", "func(path:Path, follow_symlinks=yes -> Bool)"},
             {"is_file", "Path$is_file", "func(path:Path, follow_symlinks=yes -> Bool)"},
             {"is_pipe", "Path$is_pipe", "func(path:Path, follow_symlinks=yes -> Bool)"},
