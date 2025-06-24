@@ -1617,8 +1617,10 @@ public void Text$serialize(const void *obj, FILE *out, Table_t *pointers, const 
 public void Text$deserialize(FILE *in, void *out, List_t *pointers, const TypeInfo_t *info)
 {
     (void)info;
-    int64_t len = -1;
+    int64_t len = 0;
     Int64$deserialize(in, &len, pointers, &Int64$info);
+    if (len < 0)
+        fail("Cannot deserialize text with a negative length!");
     char *buf = GC_MALLOC_ATOMIC((size_t)len+1);
     if (fread(buf, sizeof(char), (size_t)len, in) != (size_t)len)
         fail("Not enough data in stream to deserialize");
