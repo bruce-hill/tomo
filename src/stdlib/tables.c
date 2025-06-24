@@ -177,20 +177,16 @@ static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const
         // Move mid-chain entry to free space and update predecessor
         buckets[predecessor].next_bucket = t->bucket_info->last_free;
         buckets[t->bucket_info->last_free] = *bucket;
-    } else { // Collided with the start of a chain
-        hdebug("Hit start of a chain\n");
-        uint64_t end_of_chain = hash;
-        while (buckets[end_of_chain].next_bucket != END_OF_CHAIN)
-            end_of_chain = buckets[end_of_chain].next_bucket;
-        hdebug("Appending to chain\n");
-        // Chain now ends on the free space:
-        buckets[end_of_chain].next_bucket = t->bucket_info->last_free;
-        bucket = &buckets[t->bucket_info->last_free];
-    }
 
-    bucket->occupied = 1;
-    bucket->index = index;
-    bucket->next_bucket = END_OF_CHAIN;
+        bucket->occupied = 1;
+        bucket->index = index;
+        bucket->next_bucket = END_OF_CHAIN;
+    } else { // Collided with the start of a chain, put the new entry in chain position #2
+        hdebug("Hit start of a chain\n");
+        buckets[t->bucket_info->last_free] = (bucket_t){
+            .occupied = 1, .index=index, .next_bucket=bucket->next_bucket};
+        bucket->next_bucket = t->bucket_info->last_free;
+    }
     hshow(t);
 }
 
