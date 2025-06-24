@@ -647,9 +647,21 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             asm_path = Path$concat(Path$parent(path), asm_path);
             Text_t linker_text = Path$as_text(&asm_path, NULL, &Path$info);
             Table$set(to_link, &linker_text, NULL, Table$info(&Text$info, &Void$info));
+            if (is_stale(build_file(path, ".o"), asm_path, false)) {
+                staleness.o = true;
+                Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
+            }
             break;
         }
-        default: case USE_HEADER: break;
+        case USE_HEADER: case USE_C_CODE: {
+            Path_t dep_path = Path$from_str(use->path);
+            if (is_stale(build_file(path, ".o"), dep_path, false)) {
+                staleness.o = true;
+                Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
+            }
+            break;
+        }
+        default: break;
         }
     }
 }
