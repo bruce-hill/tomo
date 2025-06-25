@@ -666,7 +666,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
     }
 }
 
-time_t latest_c_modification_time(Path_t path)
+time_t latest_included_modification_time(Path_t path)
 {
     static Table_t c_modification_times = {};
     const TypeInfo_t time_info = {.size=sizeof(time_t), .align=alignof(time_t), .tag=OpaqueInfo};
@@ -683,13 +683,20 @@ time_t latest_c_modification_time(Path_t path)
     if (by_line.fn == NULL) return 0;
     OptionalText_t (*next_line)(void*) = by_line.fn;
     Path_t parent = Path$parent(path);
+    bool allow_dot_include = Path$has_extension(path, Text("s")) || Path$has_extension(path, Text("S"));
     for (Text_t line; (line=next_line(by_line.userdata)).length >= 0; ) {
         line = Text$trim(line, Text(" \t"), true, false);
-        if (!Text$starts_with(line, Text("#include")))
+        if (!Text$starts_with(line, Text("#include")) && !(allow_dot_include && Text$starts_with(line, Text(".include"))))
             continue;
 
         List_t tokens = Text$split_any(line, Text(" \t"));
-        if (tokens.length < 2 || !Text$equal_values(*(Text_t*)tokens.data, Text("#include")))
+        if (tokens.length < 2)
+            continue;
+
+        // Previously, we just checked for `#include...`, but it could be
+        // `#includenotreally`, so we should check for those types of thing to be safe.
+        if (!Text$equal_values(*(Text_t*)tokens.data, Text("#include"))
+            && !(allow_dot_include && Text$equal_values(*(Text_t*)tokens.data, Text(".include"))))
             continue;
 
         Text_t include = *(Text_t*)(tokens.data + tokens.stride);
@@ -697,7 +704,7 @@ time_t latest_c_modification_time(Path_t path)
             continue;
 
         Path_t included_path = Path$resolved(Path$from_text(Text$trim(include, Text("\""), true, true)), parent);
-        time_t included_time = latest_c_modification_time(included_path);
+        time_t included_time = latest_included_modification_time(included_path);
         if (included_time > latest) {
             latest = included_time;
             Table$set(&c_modification_times, &path, &latest, Table$info(&Path$info, &time_info));
@@ -720,8 +727,9 @@ bool is_stale(Path_t path, Path_t relative_to, bool ignore_missing)
         return true;
 #endif
 
-    if (Path$has_extension(relative_to, Text("c")) || Path$has_extension(relative_to, Text("h"))) {
-        time_t mtime = latest_c_modification_time(relative_to);
+    if (Path$has_extension(relative_to, Text("c")) || Path$has_extension(relative_to, Text("h"))
+        || Path$has_extension(relative_to, Text("s")) || Path$has_extension(relative_to, Text("S"))) {
+        time_t mtime = latest_included_modification_time(relative_to);
         return target_stat.st_mtime < mtime;
     }
 
