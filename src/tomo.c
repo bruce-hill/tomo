@@ -689,21 +689,16 @@ time_t latest_included_modification_time(Path_t path)
         if (!Text$starts_with(line, Text("#include")) && !(allow_dot_include && Text$starts_with(line, Text(".include"))))
             continue;
 
-        List_t tokens = Text$split_any(line, Text(" \t"));
-        if (tokens.length < 2)
+        // Check for `"` after `#include` or `.include` and some spaces:
+        if (!Text$starts_with(Text$trim(Text$from(line, I(9)), Text(" \t"), true, false), Text("\"")))
             continue;
 
-        // Previously, we just checked for `#include...`, but it could be
-        // `#includenotreally`, so we should check for those types of thing to be safe.
-        if (!Text$equal_values(*(Text_t*)tokens.data, Text("#include"))
-            && !(allow_dot_include && Text$equal_values(*(Text_t*)tokens.data, Text(".include"))))
+        List_t chunks = Text$split(line, Text("\""));
+        if (chunks.length < 3) // Should be `#include "foo" ...` -> ["#include ", "foo", "..."]
             continue;
 
-        Text_t include = *(Text_t*)(tokens.data + tokens.stride);
-        if (!Text$starts_with(include, Text("\"")))
-            continue;
-
-        Path_t included_path = Path$resolved(Path$from_text(Text$trim(include, Text("\""), true, true)), parent);
+        Text_t included = *(Text_t*)(chunks.data + 1*chunks.stride);
+        Path_t included_path = Path$resolved(Path$from_text(included), parent);
         time_t included_time = latest_included_modification_time(included_path);
         if (included_time > latest) {
             latest = included_time;
