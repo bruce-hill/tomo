@@ -666,6 +666,46 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
     }
 }
 
+time_t latest_c_modification_time(Path_t path)
+{
+    static Table_t c_modification_times = {};
+    const TypeInfo_t time_info = {.size=sizeof(time_t), .align=alignof(time_t), .tag=OpaqueInfo};
+    time_t *cached_latest = Table$get(c_modification_times, &path, Table$info(&Path$info, &time_info));
+    if (cached_latest) return *cached_latest;
+
+    struct stat s;
+    time_t latest = 0;
+    if (stat(Path$as_c_string(path), &s) == 0)
+        latest = s.st_mtime;
+    Table$set(&c_modification_times, &path, &latest, Table$info(&Path$info, &time_info));
+
+    OptionalClosure_t by_line = Path$by_line(path);
+    if (by_line.fn == NULL) return 0;
+    OptionalText_t (*next_line)(void*) = by_line.fn;
+    Path_t parent = Path$parent(path);
+    for (Text_t line; (line=next_line(by_line.userdata)).length >= 0; ) {
+        line = Text$trim(line, Text(" \t"), true, false);
+        if (!Text$starts_with(line, Text("#include")))
+            continue;
+
+        List_t tokens = Text$split_any(line, Text(" \t"));
+        if (tokens.length < 2 || !Text$equal_values(*(Text_t*)tokens.data, Text("#include")))
+            continue;
+
+        Text_t include = *(Text_t*)(tokens.data + tokens.stride);
+        if (!Text$starts_with(include, Text("\"")))
+            continue;
+
+        Path_t included_path = Path$resolved(Path$from_text(Text$trim(include, Text("\""), true, true)), parent);
+        time_t included_time = latest_c_modification_time(included_path);
+        if (included_time > latest) {
+            latest = included_time;
+            Table$set(&c_modification_times, &path, &latest, Table$info(&Path$info, &time_info));
+        }
+    }
+    return latest;
+}
+
 bool is_stale(Path_t path, Path_t relative_to, bool ignore_missing)
 {
     struct stat target_stat;
@@ -679,6 +719,11 @@ bool is_stale(Path_t path, Path_t relative_to, bool ignore_missing)
     if (target_stat.st_mtime < compiler_stat.st_mtime)
         return true;
 #endif
+
+    if (Path$has_extension(relative_to, Text("c")) || Path$has_extension(relative_to, Text("h"))) {
+        time_t mtime = latest_c_modification_time(relative_to);
+        return target_stat.st_mtime < mtime;
+    }
 
     struct stat relative_to_stat;
     if (stat(Path$as_c_string(relative_to), &relative_to_stat) != 0) {

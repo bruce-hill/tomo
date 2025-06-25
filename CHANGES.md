@@ -18,7 +18,7 @@
   - Mutation of a collection during iteration was violating value semantics.
   - `extend` statements weren't properly checking that the type name was valid.
   - Lazy recompilation wasn't happening when `use ./foo.c` was used for local
-    C/assembly files.
+    C/assembly files or their `#include`s.
 
 ## v0.2
 
