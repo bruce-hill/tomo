@@ -139,3 +139,21 @@ func main()
 	= yes
 	>> (3).is_between(100, 200)
 	= no
+
+	>> (6).get_bit(1)
+	= no
+	>> (6).get_bit(2)
+	= yes
+	>> (6).get_bit(3)
+	= yes
+	>> (6).get_bit(4)
+	= no
+
+	>> Int64(6).get_bit(1)
+	= no
+	>> Int64(6).get_bit(2)
+	= yes
+	>> Int64(6).get_bit(3)
+	= yes
+	>> Int64(6).get_bit(4)
+	= no

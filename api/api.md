@@ -210,6 +210,36 @@ text | `Text` | The string containing the boolean value.  | -
 ```
 
 # Byte
+## Byte.get_bit
+
+```tomo
+Byte.get_bit : func(i: Byte, bit_index: Int -> Bool)
+```
+
+In the binary representation of a byte, check whether a given bit index is set to 1 or not.
+
+The bit index must be between 1-8 or a runtime error will be produced.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+i | `Byte` | The byte whose bits are being inspected.  | -
+bit_index | `Int` | The index of the bit to check (1-indexed, range 1-8).  | -
+
+**Return:** Whether or not the given bit index is set to 1 in the byte.
+
+
+**Example:**
+```tomo
+>> Byte(6).get_bit(1)
+= no
+>> Byte(6).get_bit(2)
+= yes
+>> Byte(6).get_bit(3)
+= yes
+>> Byte(6).get_bit(4)
+= no
+
+```
 ## Byte.hex
 
 ```tomo
@@ -400,6 +430,36 @@ n | `Int` | The integer to compute the factorial of.  | -
 ```tomo
 >> (10).factorial()
 = 3628800
+
+```
+## Int.get_bit
+
+```tomo
+Int.get_bit : func(i: Int, bit_index: Int -> Bool)
+```
+
+In the binary representation of an integer, check whether a given bit index is set to 1 or not.
+
+For fixed-size integers, the bit index must be between 1 and the number of bits in that integer (i.e. 1-64 for `Int64`). For `Int`, the bit index must be between 1 and `Int64.max`. Values outside this range will produce a runtime error.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+i | `Int` | The integer whose bits are being inspected.  | -
+bit_index | `Int` | The index of the bit to check (1-indexed).  | -
+
+**Return:** Whether or not the given bit index is set to 1 in the binary representation of the integer.
+
+
+**Example:**
+```tomo
+>> (6).get_bit(1)
+= no
+>> (6).get_bit(2)
+= yes
+>> (6).get_bit(3)
+= yes
+>> (6).get_bit(4)
+= no
 
 ```
 ## Int.hex

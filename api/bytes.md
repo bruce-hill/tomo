@@ -3,6 +3,36 @@
 # Builtins
 
 # Byte
+## Byte.get_bit
+
+```tomo
+Byte.get_bit : func(i: Byte, bit_index: Int -> Bool)
+```
+
+In the binary representation of a byte, check whether a given bit index is set to 1 or not.
+
+The bit index must be between 1-8 or a runtime error will be produced.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+i | `Byte` | The byte whose bits are being inspected.  | -
+bit_index | `Int` | The index of the bit to check (1-indexed, range 1-8).  | -
+
+**Return:** Whether or not the given bit index is set to 1 in the byte.
+
+
+**Example:**
+```tomo
+>> Byte(6).get_bit(1)
+= no
+>> Byte(6).get_bit(2)
+= yes
+>> Byte(6).get_bit(3)
+= yes
+>> Byte(6).get_bit(4)
+= no
+
+```
 ## Byte.hex
 
 ```tomo

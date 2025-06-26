@@ -29,6 +29,7 @@
     Text_t type_name ## $hex(c_type i, Int_t digits, bool uppercase, bool prefix); \
     Text_t type_name ## $octal(c_type i, Int_t digits, bool prefix); \
     List_t type_name ## $bits(c_type x); \
+    bool type_name ## $get_bit(c_type x, Int_t bit_index); \
     Closure_t type_name ## $to(c_type first, c_type last, Optional ## type_name ## _t step); \
     Closure_t type_name ## $onward(c_type first, c_type step); \
     PUREFUNC Optional ## type_name ## _t type_name ## $parse(Text_t text); \
@@ -105,6 +106,7 @@ Int_t Int$abs(Int_t x);
 Int_t Int$power(Int_t base, Int_t exponent);
 Int_t Int$gcd(Int_t x, Int_t y);
 OptionalInt_t Int$sqrt(Int_t i);
+bool Int$get_bit(Int_t x, Int_t bit_index);
 
 #define BIGGEST_SMALL_INT 0x3fffffff
 #define SMALLEST_SMALL_INT -0x40000000

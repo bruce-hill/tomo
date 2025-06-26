@@ -1,3 +1,33 @@
+Byte.get_bit:
+  short: check whether a bit is set
+  description: >
+    In the binary representation of a byte, check whether a given bit index is
+    set to 1 or not.
+  note: >
+    The bit index must be between 1-8 or a runtime error will be produced.
+  return:
+    type: 'Bool'
+    description: >
+      Whether or not the given bit index is set to 1 in the byte.
+  args:
+    i:
+      type: 'Byte'
+      description: >
+        The byte whose bits are being inspected.
+    bit_index:
+      type: 'Int'
+      description: >
+        The index of the bit to check (1-indexed, range 1-8).
+  example: |
+    >> Byte(6).get_bit(1)
+    = no
+    >> Byte(6).get_bit(2)
+    = yes
+    >> Byte(6).get_bit(3)
+    = yes
+    >> Byte(6).get_bit(4)
+    = no
+
 Byte.hex:
   short: convert to hexidecimal
   description: >
