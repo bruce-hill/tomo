@@ -1477,7 +1477,7 @@ public List_t Text$utf32_codepoints(Text_t text)
 public List_t Text$utf8_bytes(Text_t text)
 {
     const char *str = Text$as_c_string(text);
-    return (List_t){.length=strlen(str), .stride=1, .atomic=1, .data=(void*)str};
+    return (List_t){.length=(int64_t)strlen(str), .stride=1, .atomic=1, .data=(void*)str};
 }
 
 static INLINE const char *codepoint_name(ucs4_t c)

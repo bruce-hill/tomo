@@ -7,12 +7,13 @@
 #include <stdint.h>
 #include <time.h>
 
-#define LIST_LENGTH_BITS 42
-#define LIST_FREE_BITS 6
+#define LIST_LENGTH_BITS 64
+#define LIST_FREE_BITS 48
+#define LIST_ATOMIC_BITS 1
 #define LIST_REFCOUNT_BITS 3
 #define LIST_STRIDE_BITS 12
 
-#define MAX_FOR_N_BITS(N) ((1<<(N))-1)
+#define MAX_FOR_N_BITS(N) ((1L<<(N))-1L)
 #define LIST_MAX_STRIDE MAX_FOR_N_BITS(LIST_STRIDE_BITS-1)
 #define LIST_MIN_STRIDE (~MAX_FOR_N_BITS(LIST_STRIDE_BITS-1))
 #define LIST_MAX_DATA_REFCOUNT MAX_FOR_N_BITS(LIST_REFCOUNT_BITS)
@@ -42,8 +43,8 @@ typedef struct {
     // bit arithmetic to extract the necessary values, which is cheaper than
     // spilling onto the stack and needing to retrieve data from the stack.
     int64_t length:LIST_LENGTH_BITS;
-    uint8_t free:LIST_FREE_BITS;
-    bool atomic:1;
+    uint64_t free:LIST_FREE_BITS;
+    bool atomic:LIST_ATOMIC_BITS;
     uint8_t data_refcount:LIST_REFCOUNT_BITS;
     int16_t stride:LIST_STRIDE_BITS;
 } List_t;

@@ -372,7 +372,7 @@ public OptionalList_t Path$read_bytes(Path_t path, OptionalInt_t count)
         close(fd);
         if (count.small != 0 && (int64_t)len < target_count)
             fail("Could not read ", target_count, " bytes from ", path, " (only got ", (uint64_t)len, ")");
-        return (List_t){.data=content, .atomic=1, .stride=1, .length=len};
+        return (List_t){.data=content, .atomic=1, .stride=1, .length=(int64_t)len};
     }
 }
 
