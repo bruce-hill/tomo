@@ -74,7 +74,7 @@ typedef struct {
     void *fn, *userdata;
 } Closure_t;
 
-enum text_type { TEXT_ASCII, TEXT_GRAPHEMES, TEXT_CONCAT };
+enum text_type { TEXT_ASCII, TEXT_GRAPHEMES, TEXT_CONCAT, TEXT_BLOB };
 
 typedef struct Text_s {
     int64_t length:54; // Number of grapheme clusters
@@ -92,6 +92,10 @@ typedef struct Text_s {
         struct {
             const struct Text_s *left, *right;
         };
+        struct {
+            const int32_t *map;
+            const uint8_t *bytes;
+        } blob;
     };
 } Text_t;
 
