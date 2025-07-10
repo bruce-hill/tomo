@@ -1,0 +1,44 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Byte.get_bit 3 2025-06-26 "Tomo man-pages"
+.SH NAME
+Byte.get_bit \- check whether a bit is set
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Byte.get_bit\ :\ func(i:\ Byte,\ bit_index:\ Int\ ->\ Bool)
+.fi
+.SH DESCRIPTION
+In the binary representation of a byte, check whether a given bit index is set to 1 or not.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+i	Byte	The byte whose bits are being inspected. 	-
+bit_index	Int	The index of the bit to check (1-indexed, range 1-8). 	-
+.TE
+.SH RETURN
+Whether or not the given bit index is set to 1 in the byte.
+
+.SH NOTES
+The bit index must be between 1-8 or a runtime error will be produced.
+
+.SH EXAMPLES
+.EX
+>> Byte(6).get_bit(1)
+= no
+>> Byte(6).get_bit(2)
+= yes
+>> Byte(6).get_bit(3)
+= yes
+>> Byte(6).get_bit(4)
+= no
+.EE

@@ -359,6 +359,19 @@ public OptionalInt_t Int$sqrt(Int_t i)
     return Int$from_mpz(result);
 }
 
+public bool Int$get_bit(Int_t x, Int_t bit_index)
+{
+    mpz_t i;
+    mpz_init_set_int(i, x);
+    if (Int$compare_value(bit_index, I(1)) < 0)
+        fail("Invalid bit index (expected 1 or higher): ", bit_index);
+    if (Int$compare_value(bit_index, Int$from_int64(INT64_MAX)) > 0)
+        fail("Bit index is too large! ", bit_index);
+
+    int is_bit_set = mpz_tstbit(i, (mp_bitcnt_t)(Int64$from_int(bit_index, true)-1));
+    return (bool)is_bit_set;
+}
+
 typedef struct {
     OptionalInt_t current, last;
     Int_t step;
@@ -619,6 +632,13 @@ public void Int32$deserialize(FILE *in, void *outval, List_t *pointers, const Ty
             x >>= 1; \
         } \
         return bit_list; \
+    } \
+    public bool KindOfInt ## $get_bit(c_type x, Int_t bit_index) { \
+        if (Int$compare_value(bit_index, I(1)) < 0) \
+            fail("Invalid bit index (expected 1 or higher): ", bit_index); \
+        if (Int$compare_value(bit_index, Int$from_int64(sizeof(c_type)*8)) > 0) \
+            fail("Bit index is too large! There are only ", sizeof(c_type)*8, " bits, but index is: ", bit_index); \
+        return ((x & (c_type)(1L << (Int64$from_int(bit_index, true)-1L))) != 0); \
     } \
     typedef struct { \
         Optional##KindOfInt##_t current, last; \

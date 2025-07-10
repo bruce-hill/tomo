@@ -210,6 +210,36 @@ text | `Text` | The string containing the boolean value.  | -
 ```
 
 # Byte
+## Byte.get_bit
+
+```tomo
+Byte.get_bit : func(i: Byte, bit_index: Int -> Bool)
+```
+
+In the binary representation of a byte, check whether a given bit index is set to 1 or not.
+
+The bit index must be between 1-8 or a runtime error will be produced.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+i | `Byte` | The byte whose bits are being inspected.  | -
+bit_index | `Int` | The index of the bit to check (1-indexed, range 1-8).  | -
+
+**Return:** Whether or not the given bit index is set to 1 in the byte.
+
+
+**Example:**
+```tomo
+>> Byte(6).get_bit(1)
+= no
+>> Byte(6).get_bit(2)
+= yes
+>> Byte(6).get_bit(3)
+= yes
+>> Byte(6).get_bit(4)
+= no
+
+```
 ## Byte.hex
 
 ```tomo
@@ -400,6 +430,36 @@ n | `Int` | The integer to compute the factorial of.  | -
 ```tomo
 >> (10).factorial()
 = 3628800
+
+```
+## Int.get_bit
+
+```tomo
+Int.get_bit : func(i: Int, bit_index: Int -> Bool)
+```
+
+In the binary representation of an integer, check whether a given bit index is set to 1 or not.
+
+For fixed-size integers, the bit index must be between 1 and the number of bits in that integer (i.e. 1-64 for `Int64`). For `Int`, the bit index must be between 1 and `Int64.max`. Values outside this range will produce a runtime error.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+i | `Int` | The integer whose bits are being inspected.  | -
+bit_index | `Int` | The index of the bit to check (1-indexed).  | -
+
+**Return:** Whether or not the given bit index is set to 1 in the binary representation of the integer.
+
+
+**Example:**
+```tomo
+>> (6).get_bit(1)
+= no
+>> (6).get_bit(2)
+= yes
+>> (6).get_bit(3)
+= yes
+>> (6).get_bit(4)
+= no
 
 ```
 ## Int.hex
@@ -3010,6 +3070,34 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 = none
 
 ```
+## Path.has_extension
+
+```tomo
+Path.has_extension : func(path: Path, extension: Text -> Bool)
+```
+
+Return whether or not a path has a given file extension.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | A path.  | -
+extension | `Text` | A file extension (leading `.` is optional). If empty, the check will test if the file does not have any file extension.  | -
+
+**Return:** Whether or not the path has the given extension.
+
+
+**Example:**
+```tomo
+>> (/foo.txt).has_extension("txt")
+= yes
+>> (/foo.txt).has_extension(".txt")
+= yes
+>> (/foo.tar.gz).has_extension("gz")
+= yes
+>> (/foo.tar.gz).has_extension("zip")
+= no
+
+```
 ## Path.is_directory
 
 ```tomo
@@ -3878,6 +3966,55 @@ t := {"A"=1, "B"=2}
 t.set("C", 3)
 >> t
 = {"A"=1, "B"=2, "C"=3}
+
+```
+## Table.with_fallback
+
+```tomo
+Table.with_fallback : func(t: {K=V}, fallback: {K=V}? -> {K=V})
+```
+
+Return a copy of a table with a different fallback table.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+t | `{K=V}` | The table whose fallback will be replaced.  | -
+fallback | `{K=V}?` | The new fallback table value.  | -
+
+**Return:** The original table with a different fallback.
+
+
+**Example:**
+```tomo
+t := {"A"=1; fallback={"B"=2}}
+t2 = t.with_fallback({"B"=3"})
+>> t2["B"]
+= 3?
+t3 = t.with_fallback(none)
+>> t2["B"]
+= none
+
+```
+## Table.xor
+
+```tomo
+Table.xor : func(a: |T|, b: |T| -> |T|)
+```
+
+Return set with the elements in one, but not both of the arguments. This is also known as the symmetric difference or disjunctive union.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+a | `|T|` | The first set.  | -
+b | `|T|` | The second set.  | -
+
+**Return:** A set with the symmetric difference of the arguments.
+
+
+**Example:**
+```tomo
+>> |1, 2, 3|.xor(|2, 3, 4|)
+= |1, 4|
 
 ```
 

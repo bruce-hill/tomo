@@ -241,3 +241,27 @@ other | `|T|` | The set of items to remove from the original set.  | -
 = |1|
 
 ```
+
+# Table
+## Table.xor
+
+```tomo
+Table.xor : func(a: |T|, b: |T| -> |T|)
+```
+
+Return set with the elements in one, but not both of the arguments. This is also known as the symmetric difference or disjunctive union.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+a | `|T|` | The first set.  | -
+b | `|T|` | The second set.  | -
+
+**Return:** A set with the symmetric difference of the arguments.
+
+
+**Example:**
+```tomo
+>> |1, 2, 3|.xor(|2, 3, 4|)
+= |1, 4|
+
+```

@@ -1,31 +1,58 @@
 // This file defines type info and methods for the Text datatype, which uses
 // libunistr for Unicode support and implements a datastructure based on a
 // hybrid of Raku/MoarVM's space-efficient grapheme cluster representation of
-// strings and Cords (Boehm et al), which have good runtime performance for
-// text constructed by a series of many concatenations.
-//
+// strings, combined with a mostly-balanced tree datastructure based on Cords
+// (Boehm et al), which have good runtime performance for text constructed by a
+// series of many concatenations. In practice, this means Tomo's Text has an
+// extremely compact memory footprint (typically as compact as UTF8 or
+// up to 2x better for some languages), with extremely fast operations
+// including concatenation, random indexing, and taking substrings.
+
 // For more information on MoarVM's grapheme cluster strings, see:
 //     https://docs.raku.org/language/unicode
-//     https://github.com/MoarVM/MoarVM/blob/main/docs/strings.asciidoc For more
-// information on Cords, see the paper "Ropes: an Alternative to Strings"
-// (Boehm, Atkinson, Plass 1995):
+//     https://github.com/MoarVM/MoarVM/blob/main/docs/strings.asciidoc
+// For more information on Cords, see the paper "Ropes: an Alternative to
+// Strings" (Boehm, Atkinson, Plass 1995):
 //     https://www.cs.tufts.edu/comp/150FP/archive/hans-boehm/ropes.pdf
-//
-// A note on grapheme clusters: In Unicode, codepoints can be represented using
-// a 32-bit integer. Most codepoints correspond to the intuitive notion of a
-// "letter", which is more formally known as a "grapheme cluster". A grapheme
-// cluster is roughly speaking the amount of text that your cursor moves over
-// when you press the arrow key once. However, some codepoints act as modifiers
-// on other codepoints. For example, U+0301 (COMBINING ACUTE ACCENT) can modify
-// a letter like "e" to form "é". During normalization, this frequently
-// resolves down to a single unicode codepoint, in this case, "é" resolves to
-// the single codepoint U+00E9 (LATIN SMALL LETTER E WITH ACUTE). However, in
-// some cases, multiple codepoints make up a grapheme cluster but *don't*
-// normalize to a single codepoint. For example, LATIN SMALL LETTER E (U+0065)
-// + COMBINING VERTICAL LINE BELOW (U+0329) combine to form an unusual glyph
-// that is not used frequently enough to warrant its own unique codepoint (this
-// is basically what Zalgo text is).
-//
+
+// Tomo's Text datatype represents Unicode text that is fully normalized using
+// normalization form C (NFC). This means that all text created from source code
+// or read in at runtime will respect normalization during comparison and other
+// operations, and the original (potentially non-canonical) representation of
+// text is not preserved. This also means that byte sequences that do not
+// represent valid unicode text cannot be interpreted as the Text datatype. For
+// example, a file with malformed UTF8 sequences cannot be read as Text.
+
+// A note on grapheme clusters: In Unicode, the fundamental unit is the
+// "codepoint", which represents things like letters, symbols, emojis,
+// combiners, and modifiers that alter other codepoints. However, most people
+// have an intuitive notion of what a "letter" is that corresponds to the
+// concept formally known as a grapheme cluster. A grapheme cluster is roughly
+// speaking the amount of text that your cursor moves over when you press the
+// left or right arrow key once. This often corresponds to a single codepoint,
+// but some codepoints act as modifiers on other codepoints. For example, U+0301
+// (COMBINING ACUTE ACCENT) can modify a letter like "e" to form "é". During
+// normalization, this frequently resolves down to a single unicode codepoint,
+// in this case, "é" resolves to the single codepoint U+00E9 (LATIN SMALL LETTER
+// E WITH ACUTE). However, in some cases, multiple codepoints make up a grapheme
+// cluster but *don't* normalize to a single codepoint. For example, LATIN SMALL
+// LETTER E (U+0065) + COMBINING VERTICAL LINE BELOW (U+0329) combine to form an
+// unusual glyph that is not used frequently enough to warrant its own unique
+// codepoint (this is basically what Zalgo text is). Emojis also use the ZERO
+// WIDTH JOINER (U+200D) to add gender, skin tone, or other modifiers to emojis.
+// Tomo takes an opinionated stance that grapheme clusters, not codepoints or
+// bytes, are more useful to people when doing text operations like getting the
+// "length" of a text or accessing the Nth "letter" of a text. If someone sends
+// you a text with WOMAN (U+1F469) + ZERO WIDTH JOINER (U+200D) + ROCKET
+// (U+1F680) followed by THUMBS UP (U+1F44D), it will render on your screen as
+// two things: a female astronaut and a thumbs up, and this is how most people
+// will think about the text. If you wish to operate on the raw codepoints that
+// comprise the message, you are free to do so with the `.utf32_codepoints()`
+// method and `Text.from_codepoints()`, but this is not the default behavior.
+// The behavior for the given example is that `text.length == 2`, `text[1]` is
+// the grapheme cluster representing a female astronaut emoji, and `text[2]` is
+// the grapheme cluster representing the thumbs up emoji.
+
 // There are a lot of benefits to storing unicode text with one grapheme
 // cluster per index in a densely packed list instead of storing the text as
 // variable-width UTF8-encoded bytes. It lets us have one canonical length for
@@ -44,13 +71,25 @@
 // things that would be nice if they had their own codepoint so things worked
 // out nicely because we're using them right now, and we'll give them a
 // negative number so it doesn't overlap with any real codepoints.
-//
+
 // Example 1: U+0048, U+00E9 AKA: LATIN CAPITAL LETTER H, LATIN SMALL LETTER E
 // WITH ACUTE This would be stored as: (int32_t[]){0x48, 0xE9} Example 2:
 // U+0048, U+0065, U+0309 AKA: LATIN CAPITAL LETTER H, LATIN SMALL LETTER E,
 // COMBINING VERTICAL LINE BELOW This would be stored as: (int32_t[]){0x48, -2}
 // Where -2 is used as a lookup in a list that holds the actual unicode
 // codepoints: (ucs4_t[]){0x65, 0x0309}
+
+// The text datastructure also uses a compact encoding (TEXT_BLOB) to store a
+// per-chunk compressed form of the text when long stretches of text contain
+// 256 or fewer unique grapheme clusters, which lets the text use a single byte
+// for each grapheme cluster along with a lookup table. For typical text
+// written in a variety of non-English natural languages (e.g. Spanish, Arabic,
+// Japanese, Greek, German, Finnish, Basque), the in-memory representation
+// takes up between 50-101% as much space as UTF8 encoding and between 24-39%
+// as much space as UTF32 encoding, but with the advantage of extremely fast
+// random access for indexing or slicing, unlike UTF8. In other words, this
+// representation offers ASCII-like compactness and fast random access for
+// non-English languages.
 
 #include <assert.h>
 #include <ctype.h>
@@ -68,6 +107,7 @@
 #include <unistring/version.h>
 #include <uniwidth.h>
 
+#include "bytes.h"
 #include "datatypes.h"
 #include "lists.h"
 #include "integers.h"
@@ -102,7 +142,6 @@ static int32_t num_synthetic_graphemes = 0;
 #define SHORT_ASCII_LENGTH 64
 #define SHORT_GRAPHEMES_LENGTH 16
 
-static Text_t text_from_u32(ucs4_t *codepoints, int64_t num_codepoints, bool normalize);
 static Text_t simple_concatenation(Text_t a, Text_t b);
 
 public Text_t EMPTY_TEXT = {
@@ -142,6 +181,9 @@ static const TypeInfo_t GraphemeClusterInfo = {
 #endif
 public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_len)
 {
+    if (utf32_len == 1)
+        return (int32_t)*codepoints;
+
     ucs4_t length_prefixed[1+utf32_len];
     length_prefixed[0] = (ucs4_t)utf32_len;
     for (int i = 0; i < utf32_len; i++)
@@ -173,6 +215,7 @@ public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_le
     uint8_t u8_buf[64];
     size_t u8_len = sizeof(u8_buf)/sizeof(u8_buf[0]);
     uint8_t *u8 = u32_to_u8(codepoints, (size_t)utf32_len, u8_buf, &u8_len);
+    if (u8 == NULL) fail("Invalid graphemes encountered!");
 
     // For performance reasons, use an arena allocator here to ensure that
     // synthetic graphemes store all of their information in a densely packed
@@ -247,6 +290,26 @@ public int Text$print(FILE *stream, Text_t t)
                 uint8_t buf[8];
                 size_t len = sizeof(buf);
                 uint8_t *u8 = u32_to_u8((ucs4_t*)&grapheme, 1, buf, &len);
+                if (u8 == NULL) fail("Invalid grapheme encountered: ", grapheme);
+                written += (int)fwrite(u8, sizeof(char), len, stream);
+                if (u8 != buf) free(u8);
+            } else {
+                const uint8_t *u8 = GRAPHEME_UTF8(grapheme);
+                assert(u8);
+                written += (int)fwrite(u8, sizeof(uint8_t), strlen((char*)u8), stream);
+            }
+        }
+        return written;
+    }
+    case TEXT_BLOB: {
+        int written = 0;
+        for (int64_t i = 0; i < t.length; i++) {
+            int32_t grapheme = t.blob.map[t.blob.bytes[i]];
+            if (grapheme >= 0) {
+                uint8_t buf[8];
+                size_t len = sizeof(buf);
+                uint8_t *u8 = u32_to_u8((ucs4_t*)&grapheme, 1, buf, &len);
+                if (u8 == NULL) fail("Invalid grapheme encountered: ", grapheme);
                 written += (int)fwrite(u8, sizeof(char), len, stream);
                 if (u8 != buf) free(u8);
             } else {
@@ -258,8 +321,9 @@ public int Text$print(FILE *stream, Text_t t)
         return written;
     }
     case TEXT_CONCAT: {
-        return (Text$print(stream, *t.left)
-                + Text$print(stream, *t.right));
+        int written = Text$print(stream, *t.left);
+        written += Text$print(stream, *t.right);
+        return written;
     }
     default: return 0;
     }
@@ -275,18 +339,24 @@ static const int64_t min_len_for_depth[MAX_TEXT_DEPTH] = {
 
 #define IS_BALANCED_TEXT(t) ((t).length >= min_len_for_depth[(t).depth])
 
-static void insert_balanced(Text_t balanced_texts[MAX_TEXT_DEPTH], Text_t to_insert)
+static void insert_balanced_recursive(Text_t balanced_texts[MAX_TEXT_DEPTH], Text_t text)
 {
+    if (text.tag == TEXT_CONCAT && (!IS_BALANCED_TEXT(text) || text.depth >= MAX_TEXT_DEPTH)) {
+        insert_balanced_recursive(balanced_texts, *text.left);
+        insert_balanced_recursive(balanced_texts, *text.right);
+        return;
+    }
+
     int i = 0;
     Text_t accumulator = EMPTY_TEXT;
-    for (; to_insert.length > min_len_for_depth[i + 1]; i++) {
+    for (; text.length > min_len_for_depth[i + 1]; i++) {
         if (balanced_texts[i].length) {
             accumulator = simple_concatenation(balanced_texts[i], accumulator);
             balanced_texts[i] = EMPTY_TEXT;
         }
     }
 
-    accumulator = simple_concatenation(accumulator, to_insert);
+    accumulator = simple_concatenation(accumulator, text);
 
     while (accumulator.length >= min_len_for_depth[i]) {
         if (balanced_texts[i].length) {
@@ -297,16 +367,6 @@ static void insert_balanced(Text_t balanced_texts[MAX_TEXT_DEPTH], Text_t to_ins
     }
     i--;
     balanced_texts[i] = accumulator;
-}
-
-static void insert_balanced_recursive(Text_t balanced_texts[MAX_TEXT_DEPTH], Text_t text)
-{
-    if (text.tag == TEXT_CONCAT && (!IS_BALANCED_TEXT(text) || text.depth >= MAX_TEXT_DEPTH)) {
-        insert_balanced_recursive(balanced_texts, *text.left);
-        insert_balanced_recursive(balanced_texts, *text.right);
-    } else {
-        insert_balanced(balanced_texts, text);
-    }
 }
 
 static Text_t rebalanced(Text_t a, Text_t b)
@@ -384,15 +444,25 @@ static Text_t concat2_assuming_safe(Text_t a, Text_t b)
         if (a.tag == TEXT_GRAPHEMES) {
             memcpy(dest, a.graphemes, sizeof(int32_t[a.length]));
             dest += a.length;
-        } else {
+        } else if (a.tag == TEXT_ASCII) {
             for (int64_t i = 0; i < a.length; i++)
                 *(dest++) = (int32_t)a.ascii[i];
+        } else if (a.tag == TEXT_BLOB) {
+            for (int64_t i = 0; i < a.length; i++)
+                *(dest++) = a.blob.map[a.blob.bytes[i]];
+        } else {
+            errx(1, "Unreachable");
         }
         if (b.tag == TEXT_GRAPHEMES) {
             memcpy(dest, b.graphemes, sizeof(int32_t[b.length]));
-        } else {
+        } else if (b.tag == TEXT_ASCII) {
             for (int64_t i = 0; i < b.length; i++)
                 *(dest++) = (int32_t)b.ascii[i];
+        } else if (b.tag == TEXT_BLOB) {
+            for (int64_t i = 0; i < b.length; i++)
+                *(dest++) = b.blob.map[b.blob.bytes[i]];
+        } else {
+            errx(1, "Unreachable");
         }
         return ret;
     }
@@ -455,7 +525,7 @@ static Text_t concat2(Text_t a, Text_t b)
         return concat2_assuming_safe(a, b);
     }
 
-    Text_t glue = text_from_u32(norm_buf, (int64_t)norm_length, false);
+    Text_t glue = Text$from_codepoints((List_t){.data=norm_buf, .length=(int64_t)norm_length, .stride=sizeof(int32_t)});
 
     if (normalized != norm_buf)
         free(normalized);
@@ -590,8 +660,8 @@ public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
             last -= text.left->length;
             text = *text.right;
         } else {
-            return concat2(Text$slice(*text.left, I(first), I(text.length)),
-                           Text$slice(*text.right, I(1), I(last-text.left->length)));
+            return concat2_assuming_safe(Text$slice(*text.left, I(first), I(text.length)),
+                                         Text$slice(*text.right, I(1), I(last-text.left->length)));
         }
     }
 
@@ -609,6 +679,15 @@ public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
             .length=last - first + 1,
             .graphemes=text.graphemes + (first-1),
         };
+    }
+    case TEXT_BLOB: {
+        Text_t ret = (Text_t){
+            .tag=TEXT_BLOB,
+            .length=last - first + 1,
+            .blob.map=text.blob.map,
+            .blob.bytes=text.blob.bytes + (first-1),
+        };
+        return ret;
     }
     default: errx(1, "Invalid tag");
     }
@@ -648,90 +727,64 @@ public Text_t Text$reversed(Text_t text)
             ((int32_t*)ret.graphemes)[text.length-1-i] = text.graphemes[i];
         return ret;
     }
+    case TEXT_BLOB: {
+        struct Text_s ret = {
+            .tag=TEXT_BLOB,
+            .length=text.length,
+            .blob.map=text.blob.map,
+        };
+        ret.blob.bytes = GC_MALLOC_ATOMIC(sizeof(uint8_t[ret.length]));
+        for (int64_t i = 0; i < text.length; i++)
+            ((uint8_t*)ret.blob.bytes)[text.length-1-i] = text.graphemes[i];
+        return ret;
+    }
     case TEXT_CONCAT: {
-        return concat2(Text$reversed(*text.right), Text$reversed(*text.left));
+        return concat2_assuming_safe(Text$reversed(*text.right), Text$reversed(*text.left));
     }
     default: errx(1, "Invalid tag");
     }
     return EMPTY_TEXT;
 }
 
-public PUREFUNC Text_t Text$cluster(Text_t text, Int_t index_int)
+public PUREFUNC Text_t Text$cluster(Text_t text, Int_t index)
 {
-    int64_t index = Int64$from_int(index_int, false);
-    if (index == 0) fail("Invalid index: 0");
-
-    if (index < 0) index = text.length + index + 1;
-
-    if (index > text.length || index < 1)
-        fail("Invalid index: ", index_int, " is beyond the length of the text (length = ", (int64_t)text.length, ")");
-
-    while (text.tag == TEXT_CONCAT) {
-        if (index <= text.left->length)
-            text = *text.left;
-        else
-            text = *text.right;
-    }
-
-    switch (text.tag) {
-    case TEXT_ASCII: {
-        struct Text_s ret = {
-            .tag=TEXT_ASCII,
-            .length=1,
-            .ascii=GC_MALLOC_ATOMIC(sizeof(char)),
-        };
-        *(char*)&ret.ascii[0] = text.ascii[index-1];
-        return ret;
-    }
-    case TEXT_GRAPHEMES: {
-        struct Text_s ret = {
-            .tag=TEXT_GRAPHEMES,
-            .length=1,
-            .graphemes=GC_MALLOC_ATOMIC(sizeof(int32_t)),
-        };
-        *(int32_t*)&ret.graphemes[0] = text.graphemes[index-1];
-        return ret;
-    }
-    default: errx(1, "Invalid tag");
-    }
-    return EMPTY_TEXT;
+    return Text$slice(text, index, index);
 }
 
-Text_t text_from_u32(ucs4_t *codepoints, int64_t num_codepoints, bool normalize)
+static Text_t Text$from_components(List_t graphemes, Table_t unique_clusters)
 {
-    // Normalization is apparently guaranteed to never exceed 3x in the input length
-    ucs4_t norm_buf[MIN(256, 3*num_codepoints)];
-    if (normalize) {
-        size_t norm_length = sizeof(norm_buf)/sizeof(norm_buf[0]);
-        ucs4_t *normalized = u32_normalize(UNINORM_NFC, codepoints, (size_t)num_codepoints, norm_buf, &norm_length);
-        codepoints = normalized;
-        num_codepoints = (int64_t)norm_length;
-    }
-
-    // Intentionally overallocate here: allocate assuming each codepoint is a
-    // grapheme cluster. If that's not true, we'll have extra space at the end
-    // of the list, but the length will still be calculated correctly.
-    int32_t *graphemes = GC_MALLOC_ATOMIC(sizeof(int32_t[num_codepoints]));
-    struct Text_s ret = {
-        .tag=TEXT_GRAPHEMES,
-        .length=0,
-        .graphemes=graphemes,
-    };
-    const ucs4_t *src = codepoints;
-    while (src < &codepoints[num_codepoints]) {
-        // TODO: use grapheme breaks instead of u32_grapheme_next()?
-        const ucs4_t *next = u32_grapheme_next(src, &codepoints[num_codepoints]);
-        if (next == &src[1]) {
-            graphemes[ret.length] = (int32_t)*src;
-        } else {
-            // Synthetic grapheme
-            graphemes[ret.length] = get_synthetic_grapheme(src, next-src);
+    struct {
+        int32_t map[unique_clusters.entries.length];
+        uint8_t bytes[graphemes.length];
+    } *blob;
+    // If blob optimization will save at least 200 bytes:
+    if (unique_clusters.entries.length <= 256 && sizeof(*blob) + 200 < sizeof(int32_t[graphemes.length])) {
+        Text_t ret = {
+            .tag=TEXT_BLOB,
+            .length=graphemes.length,
+            .depth=0,
+        };
+        blob = GC_MALLOC_ATOMIC(sizeof(*blob));
+        for (int64_t i = 0; i < unique_clusters.entries.length; i++) {
+            struct { int32_t g; uint8_t b; } *entry = unique_clusters.entries.data + i*unique_clusters.entries.stride;
+            blob->map[entry->b] = entry->g;
         }
-        ++ret.length;
-        src = next;
+        for (int64_t i = 0; i < graphemes.length; i++) {
+            int32_t g = *(int32_t*)(graphemes.data + i*graphemes.stride);
+            uint8_t *byte = Table$get(unique_clusters, &g, Table$info(&Int32$info, &Byte$info));
+            assert(byte);
+            blob->bytes[i] = *byte;
+        }
+        ret.blob.map = &blob->map[0];
+        ret.blob.bytes = &blob->bytes[0];
+        return ret;
+    } else {
+        return (Text_t){
+            .tag=TEXT_GRAPHEMES,
+            .length=graphemes.length,
+            .graphemes=graphemes.data,
+        };
     }
-    if (normalize && codepoints != norm_buf) free(codepoints);
-    return ret;
 }
 
 public OptionalText_t Text$from_strn(const char *str, size_t len)
@@ -748,18 +801,37 @@ public OptionalText_t Text$from_strn(const char *str, size_t len)
             .length=ascii_span,
             .ascii=copy,
         };
-    } else {
-        if (u8_check((uint8_t*)str, len) != NULL)
-            return NONE_TEXT;
-
-        ucs4_t buf[128];
-        size_t length = sizeof(buf)/sizeof(buf[0]);
-
-        ucs4_t *codepoints = u8_to_u32((uint8_t*)str, (size_t)ascii_span + strlen(str + ascii_span), buf, &length);
-        Text_t ret = text_from_u32(codepoints, (int64_t)length, true);
-        if (codepoints != buf) free(codepoints);
-        return ret;
     }
+    if (u8_check((uint8_t*)str, len) != NULL)
+        return NONE_TEXT;
+
+    List_t graphemes = {};
+    Table_t unique_clusters = {};
+    const uint8_t *pos = (const uint8_t*)str;
+    const uint8_t *end = (const uint8_t*)&str[len];
+    // Iterate over grapheme clusters
+    for (const uint8_t *next; (next=u8_grapheme_next(pos, end)); pos = next) {
+        uint32_t buf[256];
+        size_t u32_len = sizeof(buf)/sizeof(buf[0]);
+        uint32_t *u32s = u8_to_u32(pos, (size_t)(next-pos), buf, &u32_len);
+
+        uint32_t buf2[256];
+        size_t u32_normlen = sizeof(buf2)/sizeof(buf2[0]);
+        uint32_t *u32s_normalized = u32_normalize(UNINORM_NFC, u32s, u32_len, buf2, &u32_normlen);
+
+        int32_t g = get_synthetic_grapheme(u32s_normalized, (int64_t)u32_normlen);
+        List$insert(&graphemes, &g, I(0), sizeof(int32_t));
+        Table$get_or_setdefault(&unique_clusters, int32_t, uint8_t, g, (uint8_t)unique_clusters.entries.length, Table$info(&Int32$info, &Byte$info));
+
+        if (u32s != buf) free(u32s);
+        if (u32s_normalized != buf2) free(u32s_normalized);
+
+        if (unique_clusters.entries.length >= 256) {
+            return concat2_assuming_safe(Text$from_components(graphemes, unique_clusters), Text$from_strn(next, (size_t)(end-next)));
+        }
+    }
+
+    return Text$from_components(graphemes, unique_clusters);
 }
 
 public OptionalText_t Text$from_str(const char *str)
@@ -788,6 +860,7 @@ static void u8_buf_append(Text_t text, char **buf, int64_t *capacity, int64_t *i
                 uint8_t u8_buf[64];
                 size_t u8_len = sizeof(u8_buf);
                 uint8_t *u8 = u32_to_u8((ucs4_t*)&graphemes[g], 1, u8_buf, &u8_len);
+                if (u8 == NULL) fail("Invalid grapheme encountered: ", graphemes[g]);
 
                 if (*i + (int64_t)u8_len > (int64_t)*capacity) {
                     *capacity = *i + (int64_t)u8_len + 1;
@@ -799,6 +872,37 @@ static void u8_buf_append(Text_t text, char **buf, int64_t *capacity, int64_t *i
                 if (u8 != u8_buf) free(u8);
             } else {
                 const uint8_t *u8 = GRAPHEME_UTF8(graphemes[g]);
+                size_t u8_len = u8_strlen(u8);
+                if (*i + (int64_t)u8_len > (int64_t)*capacity) {
+                    *capacity = *i + (int64_t)u8_len + 1;
+                    *buf = GC_REALLOC(*buf, (size_t)*capacity);
+                }
+
+                memcpy(*buf + *i, u8, u8_len);
+                *i += (int64_t)u8_len;
+            }
+        }
+        break;
+    }
+    case TEXT_BLOB: {
+        for (int64_t g = 0; g < text.length; g++) {
+            int32_t grapheme = text.blob.map[text.blob.bytes[g]];
+            if (grapheme >= 0) {
+                uint8_t u8_buf[64];
+                size_t u8_len = sizeof(u8_buf);
+                uint8_t *u8 = u32_to_u8((ucs4_t*)&grapheme, 1, u8_buf, &u8_len);
+                if (u8 == NULL) fail("Invalid grapheme encountered: ", grapheme);
+
+                if (*i + (int64_t)u8_len > (int64_t)*capacity) {
+                    *capacity = *i + (int64_t)u8_len + 1;
+                    *buf = GC_REALLOC(*buf, (size_t)*capacity);
+                }
+
+                memcpy(*buf + *i, u8, u8_len);
+                *i += (int64_t)u8_len;
+                if (u8 != u8_buf) free(u8);
+            } else {
+                const uint8_t *u8 = GRAPHEME_UTF8(grapheme);
                 size_t u8_len = u8_strlen(u8);
                 if (*i + (int64_t)u8_len > (int64_t)*capacity) {
                     *capacity = *i + (int64_t)u8_len + 1;
@@ -867,6 +971,15 @@ PUREFUNC public uint64_t Text$hash(const void *obj, const TypeInfo_t *info)
         int32_t last = text.length & 0x1 ? graphemes[text.length-1] : 0; // Odd number of graphemes
         return siphashfinish_last_part(&sh, (uint64_t)last);
     }
+    case TEXT_BLOB: {
+        for (int64_t i = 0; i + 1 < text.length; i += 2) {
+            tmp.chunks[0] = text.blob.map[text.blob.bytes[i]];
+            tmp.chunks[1] = text.blob.map[text.blob.bytes[i+1]];
+            siphashadd64bits(&sh, tmp.whole);
+        }
+        int32_t last = text.length & 0x1 ? text.blob.map[text.blob.bytes[text.length-1]] : 0; // Odd number of graphemes
+        return siphashfinish_last_part(&sh, (uint64_t)last);
+    }
     case TEXT_CONCAT: {
         TextIter_t state = NEW_TEXT_ITER_STATE(text);
         for (int64_t i = 0; i + 1 < text.length; i += 2) {
@@ -928,6 +1041,7 @@ public int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index)
     switch (text.tag) {
     case TEXT_ASCII: return (int32_t)text.ascii[index - offset];
     case TEXT_GRAPHEMES: return text.graphemes[index - offset];
+    case TEXT_BLOB: return text.blob.map[text.blob.bytes[index - offset]];
     default: errx(1, "Invalid text");
     }
     return 0;
@@ -1286,11 +1400,9 @@ public Text_t Text$upper(Text_t text, Text_t language)
     if (text.length == 0) return text;
     List_t codepoints = Text$utf32_codepoints(text);
     const char *uc_language = Text$as_c_string(language);
-    ucs4_t buf[128]; 
-    size_t out_len = sizeof(buf)/sizeof(buf[0]);
-    ucs4_t *upper = u32_toupper(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, buf, &out_len);
-    Text_t ret = text_from_u32(upper, (int64_t)out_len, false);
-    if (upper != buf) free(upper);
+    size_t out_len = 0;
+    ucs4_t *upper = u32_toupper(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, NULL, &out_len);
+    Text_t ret = Text$from_codepoints((List_t){.data=upper, .length=(int64_t)out_len, .stride=sizeof(int32_t)});
     return ret;
 }
 
@@ -1299,11 +1411,9 @@ public Text_t Text$lower(Text_t text, Text_t language)
     if (text.length == 0) return text;
     List_t codepoints = Text$utf32_codepoints(text);
     const char *uc_language = Text$as_c_string(language);
-    ucs4_t buf[128]; 
-    size_t out_len = sizeof(buf)/sizeof(buf[0]);
-    ucs4_t *lower = u32_tolower(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, buf, &out_len);
-    Text_t ret = text_from_u32(lower, (int64_t)out_len, false);
-    if (lower != buf) free(lower);
+    size_t out_len = 0;
+    ucs4_t *lower = u32_tolower(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, NULL, &out_len);
+    Text_t ret = Text$from_codepoints((List_t){.data=lower, .length=(int64_t)out_len, .stride=sizeof(int32_t)});
     return ret;
 }
 
@@ -1312,11 +1422,9 @@ public Text_t Text$title(Text_t text, Text_t language)
     if (text.length == 0) return text;
     List_t codepoints = Text$utf32_codepoints(text);
     const char *uc_language = Text$as_c_string(language);
-    ucs4_t buf[128]; 
-    size_t out_len = sizeof(buf)/sizeof(buf[0]);
-    ucs4_t *title = u32_totitle(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, buf, &out_len);
-    Text_t ret = text_from_u32(title, (int64_t)out_len, false);
-    if (title != buf) free(title);
+    size_t out_len = 0;
+    ucs4_t *title = u32_totitle(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, NULL, &out_len);
+    Text_t ret = Text$from_codepoints((List_t){.data=title, .length=(int64_t)out_len, .stride=sizeof(int32_t)});
     return ret;
 }
 
@@ -1332,12 +1440,20 @@ public Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark)
     ret = concat2_assuming_safe(ret, quotation_mark);
     int32_t quote_char = Text$get_grapheme(quotation_mark, 0);
 
-#define add_escaped(str) ({ if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[34;1m")); \
+#define flush_unquoted() ({ \
+                          if (unquoted_span > 0) { \
+                              ret = concat2_assuming_safe(ret, Text$slice(text, I(i-unquoted_span+1), I(i))); \
+                              unquoted_span = 0; \
+                          } })
+#define add_escaped(str) ({ \
+                          flush_unquoted(); \
+                          if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[34;1m")); \
                           ret = concat2_assuming_safe(ret, Text("\\" str)); \
                           if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[0;35m")); })
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
-    // TODO: optimize for spans of non-escaped text
-    for (int64_t i = 0; i < text.length; i++) {
+    int64_t unquoted_span = 0;
+    int64_t i = 0;
+    for (i = 0; i < text.length; i++) {
         int32_t g = Text$get_grapheme_fast(&state, i);
         switch (g) {
         case '\a': add_escaped("a"); break;
@@ -1358,6 +1474,7 @@ public Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark)
         }
         case '\x00' ... '\x06': case '\x0E' ... '\x1A':
         case '\x1C' ... '\x1F': case '\x7F' ... '\x7F': {
+            flush_unquoted();
             if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[34;1m"));
             ret = concat2_assuming_safe(ret, Text("\\x"));
             char tmp[3] = {
@@ -1372,15 +1489,21 @@ public Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark)
         }
         default: {
             if (g == quote_char) {
+                flush_unquoted();
+                if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[34;1m"));
+                ret = concat2_assuming_safe(ret, Text("\\"));
                 ret = concat2_assuming_safe(ret, quotation_mark);
+                if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[0;35m"));
             } else {
-                ret = concat2_assuming_safe(ret, Text$slice(text, I(i+1), I(i+1)));
+                unquoted_span += 1;
             }
             break;
         }
         }
     }
+    flush_unquoted();
 #undef add_escaped
+#undef flush_unquoted
 
     ret = concat2_assuming_safe(ret, quotation_mark);
     if (colorize)
@@ -1477,7 +1600,7 @@ public List_t Text$utf32_codepoints(Text_t text)
 public List_t Text$utf8_bytes(Text_t text)
 {
     const char *str = Text$as_c_string(text);
-    return (List_t){.length=strlen(str), .stride=1, .atomic=1, .data=(void*)str};
+    return (List_t){.length=(int64_t)strlen(str), .stride=1, .atomic=1, .data=(void*)str};
 }
 
 static INLINE const char *codepoint_name(ucs4_t c)
@@ -1513,10 +1636,38 @@ public List_t Text$codepoint_names(Text_t text)
 
 public Text_t Text$from_codepoints(List_t codepoints)
 {
-    if (codepoints.stride != sizeof(int32_t))
-        List$compact(&codepoints, sizeof(int32_t));
+    if (codepoints.stride != sizeof(uint32_t))
+        List$compact(&codepoints, sizeof(uint32_t));
 
-    return text_from_u32(codepoints.data, codepoints.length, true);
+    List_t graphemes = {};
+    Table_t unique_clusters = {};
+    const uint32_t *pos = (const uint32_t*)codepoints.data;
+    const uint32_t *end = (const uint32_t*)&pos[codepoints.length];
+    // Iterate over grapheme clusters
+    for (const uint32_t *next; (next=u32_grapheme_next(pos, end)); pos = next) {
+        // Buffer for normalized cluster:
+        uint32_t buf[256];
+        size_t u32_normlen = sizeof(buf)/sizeof(buf[0]);
+        uint32_t *u32s_normalized = u32_normalize(UNINORM_NFC, pos, (size_t)(next-pos), buf, &u32_normlen);
+
+        int32_t g = get_synthetic_grapheme(u32s_normalized, (int64_t)u32_normlen);
+        List$insert(&graphemes, &g, I(0), sizeof(int32_t));
+        Table$get_or_setdefault(
+            &unique_clusters, int32_t, uint8_t, g, (uint8_t)unique_clusters.entries.length,
+            Table$info(&Int32$info, &Byte$info));
+
+        if (u32s_normalized != buf) free(u32s_normalized);
+
+        if (unique_clusters.entries.length == 256) {
+            List_t remaining_codepoints = {
+                .length=(int64_t)(end-next),
+                .data=(void*)next,
+                .stride=sizeof(int32_t),
+            };
+            return concat2_assuming_safe(Text$from_components(graphemes, unique_clusters), Text$from_codepoints(remaining_codepoints));
+        }
+    }
+    return Text$from_components(graphemes, unique_clusters);
 }
 
 public OptionalText_t Text$from_codepoint_names(List_t codepoint_names)
@@ -1605,6 +1756,38 @@ PUREFUNC public bool Text$is_none(const void *t, const TypeInfo_t *info)
     return ((Text_t*)t)->length < 0;
 }
 
+public Int_t Text$memory_size(Text_t text)
+{
+    switch (text.tag) {
+    case TEXT_ASCII:
+        return Int$from_int64((int64_t)sizeof(Text_t) + (int64_t)sizeof(char[text.length]));
+    case TEXT_GRAPHEMES:
+        return Int$from_int64((int64_t)sizeof(Text_t) + (int64_t)sizeof(int32_t[text.length]));
+    case TEXT_BLOB:
+        return Int$from_int64((int64_t)sizeof(Text_t) + (int64_t)((void*)text.blob.bytes - (void*)text.blob.map) + (int64_t)sizeof(uint8_t[text.length]));
+    case TEXT_CONCAT:
+        return Int$plus(
+            Int$from_int64((int64_t)sizeof(Text_t)),
+            Int$plus(Text$memory_size(*text.left), Text$memory_size(*text.right)));
+    default: errx(1, "Invalid text tag: ", text.tag);
+    }
+}
+
+public Text_t Text$layout(Text_t text)
+{
+    switch (text.tag) {
+    case TEXT_ASCII:
+        return Texts(Text("ASCII("), Int64$as_text((int64_t[1]){text.length}, false, NULL), Text(")"));
+    case TEXT_GRAPHEMES:
+        return Texts(Text("Graphemes("), Int64$as_text((int64_t[1]){text.length}, false, NULL), Text(")"));
+    case TEXT_BLOB:
+        return Texts(Text("Blob("), Int64$as_text((int64_t[1]){text.length}, false, NULL), Text(")"));
+    case TEXT_CONCAT:
+        return Texts(Text("Concat("), Text$layout(*text.left), Text(", "), Text$layout(*text.right), Text(")"));
+    default: errx(1, "Invalid text tag: ", text.tag);
+    }
+}
+
 public void Text$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info)
 {
     (void)info;
@@ -1617,8 +1800,10 @@ public void Text$serialize(const void *obj, FILE *out, Table_t *pointers, const 
 public void Text$deserialize(FILE *in, void *out, List_t *pointers, const TypeInfo_t *info)
 {
     (void)info;
-    int64_t len = -1;
+    int64_t len = 0;
     Int64$deserialize(in, &len, pointers, &Int64$info);
+    if (len < 0)
+        fail("Cannot deserialize text with a negative length!");
     char *buf = GC_MALLOC_ATOMIC((size_t)len+1);
     if (fread(buf, sizeof(char), (size_t)len, in) != (size_t)len)
         fail("Not enough data in stream to deserialize");

@@ -372,7 +372,7 @@ public OptionalList_t Path$read_bytes(Path_t path, OptionalInt_t count)
         close(fd);
         if (count.small != 0 && (int64_t)len < target_count)
             fail("Could not read ", target_count, " bytes from ", path, " (only got ", (uint64_t)len, ")");
-        return (List_t){.data=content, .atomic=1, .stride=1, .length=len};
+        return (List_t){.data=content, .atomic=1, .stride=1, .length=(int64_t)len};
     }
 }
 
@@ -607,6 +607,22 @@ public Text_t Path$extension(Path_t path, bool full)
     const char *dot = full ? strchr(base + 1, '.') : strrchr(base + 1, '.');
     const char *extension = dot ? dot + 1 : "";
     return Text$from_str(extension);
+}
+
+public bool Path$has_extension(Path_t path, Text_t extension)
+{
+    if (path.components.length < 2)
+        return extension.length == 0;
+
+    Text_t last = *(Text_t*)(path.components.data + path.components.stride*(path.components.length-1));
+
+    if (extension.length == 0)
+        return !Text$has(Text$from(last, I(2)), Text(".")) || Text$equal_values(last, Text(".."));
+
+    if (!Text$starts_with(extension, Text(".")))
+        extension = Texts(Text("."), extension);
+
+    return Text$ends_with(Text$from(last, I(2)), extension);
 }
 
 public Path_t Path$child(Path_t path, Text_t name)

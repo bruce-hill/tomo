@@ -78,6 +78,8 @@ Text_t Text$right_pad(Text_t text, Int_t width, Text_t padding, Text_t language)
 Text_t Text$middle_pad(Text_t text, Int_t width, Text_t padding, Text_t language);
 int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index);
 uint32_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index);
+Int_t Text$memory_size(Text_t text);
+Text_t Text$layout(Text_t text);
 void Text$serialize(const void *obj, FILE *out, Table_t *, const TypeInfo_t *);
 void Text$deserialize(FILE *in, void *out, List_t *, const TypeInfo_t *);
 

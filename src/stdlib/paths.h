@@ -51,6 +51,7 @@ Path_t Path$write_unique_bytes(Path_t path, List_t bytes);
 Path_t Path$parent(Path_t path);
 Text_t Path$base_name(Path_t path);
 Text_t Path$extension(Path_t path, bool full);
+bool Path$has_extension(Path_t path, Text_t extension);
 Path_t Path$child(Path_t path, Text_t name);
 Path_t Path$sibling(Path_t path, Text_t name);
 Path_t Path$with_extension(Path_t path, Text_t extension, bool replace);

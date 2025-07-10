@@ -647,11 +647,65 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             asm_path = Path$concat(Path$parent(path), asm_path);
             Text_t linker_text = Path$as_text(&asm_path, NULL, &Path$info);
             Table$set(to_link, &linker_text, NULL, Table$info(&Text$info, &Void$info));
+            if (is_stale(build_file(path, ".o"), asm_path, false)) {
+                staleness.o = true;
+                Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
+            }
             break;
         }
-        default: case USE_HEADER: break;
+        case USE_HEADER: case USE_C_CODE: {
+            Path_t dep_path = Path$from_str(use->path);
+            if (is_stale(build_file(path, ".o"), dep_path, false)) {
+                staleness.o = true;
+                Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
+            }
+            break;
+        }
+        default: break;
         }
     }
+}
+
+time_t latest_included_modification_time(Path_t path)
+{
+    static Table_t c_modification_times = {};
+    const TypeInfo_t time_info = {.size=sizeof(time_t), .align=alignof(time_t), .tag=OpaqueInfo};
+    time_t *cached_latest = Table$get(c_modification_times, &path, Table$info(&Path$info, &time_info));
+    if (cached_latest) return *cached_latest;
+
+    struct stat s;
+    time_t latest = 0;
+    if (stat(Path$as_c_string(path), &s) == 0)
+        latest = s.st_mtime;
+    Table$set(&c_modification_times, &path, &latest, Table$info(&Path$info, &time_info));
+
+    OptionalClosure_t by_line = Path$by_line(path);
+    if (by_line.fn == NULL) return 0;
+    OptionalText_t (*next_line)(void*) = by_line.fn;
+    Path_t parent = Path$parent(path);
+    bool allow_dot_include = Path$has_extension(path, Text("s")) || Path$has_extension(path, Text("S"));
+    for (Text_t line; (line=next_line(by_line.userdata)).length >= 0; ) {
+        line = Text$trim(line, Text(" \t"), true, false);
+        if (!Text$starts_with(line, Text("#include")) && !(allow_dot_include && Text$starts_with(line, Text(".include"))))
+            continue;
+
+        // Check for `"` after `#include` or `.include` and some spaces:
+        if (!Text$starts_with(Text$trim(Text$from(line, I(9)), Text(" \t"), true, false), Text("\"")))
+            continue;
+
+        List_t chunks = Text$split(line, Text("\""));
+        if (chunks.length < 3) // Should be `#include "foo" ...` -> ["#include ", "foo", "..."]
+            continue;
+
+        Text_t included = *(Text_t*)(chunks.data + 1*chunks.stride);
+        Path_t included_path = Path$resolved(Path$from_text(included), parent);
+        time_t included_time = latest_included_modification_time(included_path);
+        if (included_time > latest) {
+            latest = included_time;
+            Table$set(&c_modification_times, &path, &latest, Table$info(&Path$info, &time_info));
+        }
+    }
+    return latest;
 }
 
 bool is_stale(Path_t path, Path_t relative_to, bool ignore_missing)
@@ -667,6 +721,12 @@ bool is_stale(Path_t path, Path_t relative_to, bool ignore_missing)
     if (target_stat.st_mtime < compiler_stat.st_mtime)
         return true;
 #endif
+
+    if (Path$has_extension(relative_to, Text("c")) || Path$has_extension(relative_to, Text("h"))
+        || Path$has_extension(relative_to, Text("s")) || Path$has_extension(relative_to, Text("S"))) {
+        time_t mtime = latest_included_modification_time(relative_to);
+        return target_stat.st_mtime < mtime;
+    }
 
     struct stat relative_to_stat;
     if (stat(Path$as_c_string(relative_to), &relative_to_stat) != 0) {

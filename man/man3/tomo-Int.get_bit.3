@@ -1,0 +1,44 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Int.get_bit 3 2025-06-25 "Tomo man-pages"
+.SH NAME
+Int.get_bit \- check whether a bit is set
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Int.get_bit\ :\ func(i:\ Int,\ bit_index:\ Int\ ->\ Bool)
+.fi
+.SH DESCRIPTION
+In the binary representation of an integer, check whether a given bit index is set to 1 or not.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+i	Int	The integer whose bits are being inspected. 	-
+bit_index	Int	The index of the bit to check (1-indexed). 	-
+.TE
+.SH RETURN
+Whether or not the given bit index is set to 1 in the binary representation of the integer.
+
+.SH NOTES
+For fixed-size integers, the bit index must be between 1 and the number of bits in that integer (i.e. 1-64 for `Int64`). For `Int`, the bit index must be between 1 and `Int64.max`. Values outside this range will produce a runtime error.
+
+.SH EXAMPLES
+.EX
+>> (6).get_bit(1)
+= no
+>> (6).get_bit(2)
+= yes
+>> (6).get_bit(3)
+= yes
+>> (6).get_bit(4)
+= no
+.EE
