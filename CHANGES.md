@@ -14,6 +14,7 @@
 - Added Path.has_extension()
 - Added Table.with_fallback()
 - Added Int*.get_bit() and Byte.get_bit()
+- Improved space efficiency of Text that contains non-ASCII codepoints
 - Fixed bugs:
   - Negative integers weren't converting to text properly.
   - Mutation of a collection during iteration was violating value semantics.

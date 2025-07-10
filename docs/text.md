@@ -2,29 +2,30 @@
 
 `Text` is Tomo's datatype to represent text. The name `Text` is used instead of
 "string" because Tomo text represents immutable, normalized unicode data with
-fast indexing that has an implementation that is efficient for concatenation.
-These are _not_ C-style NUL-terminated character lists. GNU libunistring is
-used for full Unicode functionality (grapheme cluster counts, capitalization,
-etc.).
+fast indexing that has a tree-based implementation that is efficient for
+concatenation. These are _not_ C-style NUL-terminated character arrays. GNU
+libunistring is used for full Unicode functionality (grapheme cluster counts,
+capitalization, etc.).
 
 ## Implementation
 
 Internally, Tomo text's implementation is based on [Raku/MoarVM's
 strings](https://docs.raku.org/language/unicode) and [Boehm et al's
-Cords](https://www.cs.tufts.edu/comp/150FP/archive/hans-boehm/ropes.pdf).
-Strings store their grapheme cluster count and either a compact list of 8-bit
+Cords/Ropes](https://www.cs.tufts.edu/comp/150FP/archive/hans-boehm/ropes.pdf).
+Texts store their grapheme cluster count and either a compact list of 8-bit
 ASCII characters (for ASCII text), a list of 32-bit normal-form grapheme
-cluster values (see below), or a (roughly) balanced binary tree concatenation
-of two texts. The upside is that repeated concatenations are typically a
+cluster values (see below), a compressed form of grapheme clusters with a
+lookup table, or a (roughly) balanced binary tree representing a concatenation.
+The upside of this approach is that repeated concatenations are typically a
 constant-time operation, which will occasionally require a small rebalancing
-operation. Index-based text operations (like retrieving an arbitrary index or
-slicing) are very fast: typically a constant-time operation for arbitrary
-unicode text, but in the worst case scenario (text built from many
-concatenations), `O(log(n))` time with very generous constant factors typically
-amounting to only a handful of steps. Since concatenations use shared
-substructures, they are very memory-efficient and can be used efficiently for
-applications like implementing a text editor that stores a full edit history of
-a large file's contents.
+operation. Text is stored in a format that is highly memory-efficient and
+index-based text operations (like retrieving an arbitrary index or slicing) are
+very fast: typically a constant-time operation for arbitrary unicode text, but
+in the worst case scenario (text built from many concatenations), `O(log(n))`
+time with very generous constant factors typically amounting to only a handful
+of steps. Since concatenations use shared substructures, they are very
+memory-efficient and can be used efficiently for applications like implementing
+a text editor that stores a full edit history of a large file's contents.
 
 ### Normal-Form Graphemes
 
@@ -49,10 +50,36 @@ codepoints." Here are some examples:
 - `👩🏽‍🚀` is a single graphical cluster, but it's made up of several
   combining codepoints (`["WOMAN", "EMOJI MODIFIER FITZPATRICK TYPE-4", "ZERO
   WITDH JOINER", "ROCKET"]`). Since this can't be represented with a single
-  codepoint, we must create a synthetic codepoint for it. If this was the `n`th
+  codepoint, we must create a synthetic codepoint for it. If this was the 3rd
   synthetic codepoint that we've found, then we would represent it with the
-  number `-n`, which can be used to look it up in a lookup table. The lookup
+  number `-3`, which can be used to look it up in a lookup table. The lookup
   table holds the full sequence of codepoints used in the grapheme cluster.
+
+### Text Compression
+
+One common property in natural language text is that most text is comprised of a
+relatively small set of grapheme clusters that are frequently reused. To take
+advantage of this property, Tomo's Text implementation scans along in new text
+objects looking for spans of text that use 256 or fewer unique grapheme clusters
+with many repetitions. If such a span is found, the text is stored using a small
+translation table and one 8-bit unsigned integer per grapheme cluster in that
+chunk (which is possible when there are 256 or fewer clusters in the text). This
+means that, for the cost of a small array of 32-bit integers, we can store the
+entire text using only one byte per grapheme cluster instead of a full 32-bit
+integer. For example, a Greek-language text will typically use the Greek
+alphabet, plus a few punctuation marks. Thus, if you have a text with a few
+thousand Greek letters, we can efficiently store the text as a small lookup
+table of around a hundred 32-bit integers and use one byte per "letter" in the
+text. This representation is around 4x more efficient than using the UTF32
+representation to store each Unicode codepoint as a 32-bit integer, and it's
+about 2x more efficient than using UTF8 to store each non-ASCII codepoint as a
+multi-byte sequence. Different languages will have different efficiencies, but
+in general, text will be stored significantly more efficiently than UTF32 and
+somewhat more efficiently than UTF8. However, the big advantage of this approach
+is that we get the ability to do constant-time random access of grapheme
+clusters, while getting space efficiency that is almost always better than
+variable-width UTF8 encoding (which does not support fast random access of any
+kind).
 
 ## Syntax
 
