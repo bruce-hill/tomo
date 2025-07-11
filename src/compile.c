@@ -113,8 +113,10 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
 
     // Automatic optional checking for nums:
     if (needed->tag == NumType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == NumType) {
+        int64_t line = get_line_number(ast->file, ast->start);
         *code = CORD_all("({ ", compile_declaration(actual, "opt"), " = ", *code, "; ",
                          "if unlikely (", check_none(actual, "opt"), ")\n",
+                         "#line ", String(line), "\n",
                          "fail_source(", CORD_quoted(ast->file->filename), ", ",
                          String((int64_t)(ast->start - ast->file->text)), ", ",
                          String((int64_t)(ast->end - ast->file->text)), ", ",
@@ -1305,10 +1307,14 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             ast_t *rhs_var = FakeAST(InlineCCode, .chunks=new(ast_list_t, .ast=FakeAST(TextLiteral, "_rhs")), .type=operand_t);
             ast_t *var_comparison = new(ast_t, .file=expr->file, .start=expr->start, .end=expr->end, .tag=expr->tag,
                                         .__data.Equals={.lhs=lhs_var, .rhs=rhs_var});
+            int64_t line = get_line_number(ast->file, ast->start);
             return CORD_all("{ // assertion\n",
                             compile_declaration(operand_t, "_lhs"), " = ", compile_to_type(env, cmp.lhs, operand_t), ";\n",
+                            "\n#line ", String(line), "\n",
                             compile_declaration(operand_t, "_rhs"), " = ", compile_to_type(env, cmp.rhs, operand_t), ";\n",
+                            "\n#line ", String(line), "\n",
                             "if (!(", compile_condition(env, var_comparison), "))\n",
+                            "#line ", String(line), "\n",
                                 CORD_all(
                                     "fail_source(", CORD_quoted(ast->file->filename), ", ",
                                     String((int64_t)(expr->start - expr->file->text)), ", ",
@@ -1321,8 +1327,10 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
         }
         default: {
+            int64_t line = get_line_number(ast->file, ast->start);
             return CORD_all(
                 "if (!(", compile_condition(env, expr), "))\n",
+                "#line ", String(line), "\n",
                 "fail_source(", CORD_quoted(ast->file->filename), ", ",
                 String((int64_t)(expr->start - expr->file->text)), ", ", 
                 String((int64_t)(expr->end - expr->file->text)), ", ",
@@ -2815,8 +2823,10 @@ CORD compile(env_t *env, ast_t *ast)
         ast_t *value = Match(ast, NonOptional)->value;
         type_t *t = get_type(env, value);
         CORD value_code = compile(env, value);
+        int64_t line = get_line_number(ast->file, ast->start);
         return CORD_all("({ ", compile_declaration(t, "opt"), " = ", value_code, "; ",
                         "if unlikely (", check_none(t, "opt"), ")\n",
+                        "#line ", String(line), "\n",
                         "fail_source(", CORD_quoted(ast->file->filename), ", ",
                         String((int64_t)(value->start - value->file->text)), ", ", 
                         String((int64_t)(value->end - value->file->text)), ", ",
