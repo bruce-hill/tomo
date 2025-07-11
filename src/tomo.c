@@ -84,7 +84,7 @@ static OptionalText_t
 #endif
                           " -DGC_THREADS"
                           " -I'" TOMO_PREFIX "/include' -I'" TOMO_PREFIX "/share/tomo_"TOMO_VERSION"/installed' -I/usr/local/include"),
-            ldlibs = Text("-lgc -lm -lgmp -lmpdec -lunistring -ltomo_"TOMO_VERSION),
+            ldlibs = Text("-lgc -lm -lgmp -lunistring -ltomo_"TOMO_VERSION),
             ldflags = Text("-Wl,-rpath,'"TOMO_PREFIX"/lib',-rpath,/usr/local/lib"
                            " -L/usr/local/lib"),
             optimization = Text("2"),

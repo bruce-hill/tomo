@@ -5,7 +5,6 @@
 #include <fcntl.h>
 #include <gc.h>
 #include <locale.h>
-#include <mpdecimal.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -71,12 +70,6 @@ static _Noreturn void fpe_handler(int sig, siginfo_t *info, void *userdata)
     _exit(1);
 }
 
-
-static void *GC_calloc(size_t n, size_t size)
-{
-    return GC_malloc(n*size);
-}
-
 public void tomo_init(void)
 {
    GC_INIT();
@@ -86,11 +79,6 @@ public void tomo_init(void)
 
    setlocale(LC_ALL, "");
    assert(getrandom(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0) == sizeof(TOMO_HASH_KEY));
-
-   mpd_mallocfunc = GC_malloc;
-   mpd_callocfunc = GC_calloc;
-   mpd_reallocfunc = GC_realloc;
-   mpd_free = GC_free;
 
    struct sigaction ill_sigaction;
    ill_sigaction.sa_sigaction = signal_handler;

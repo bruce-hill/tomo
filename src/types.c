@@ -2,7 +2,6 @@
 #include <gc/cord.h>
 #include <limits.h>
 #include <math.h>
-#include <mpdecimal.h>
 #include <signal.h>
 #include <stdint.h>
 #include <sys/param.h>

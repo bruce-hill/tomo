@@ -83,6 +83,8 @@ int _print_double(FILE *f, double x);
 int _print_hex(FILE *f, hex_format_t hex);
 int _print_hex_double(FILE *f, hex_double_t hex);
 int _print_oct(FILE *f, oct_format_t oct);
+int _print_decimal32(FILE *f, _Decimal32 d);
+int _print_decimal64(FILE *f, _Decimal64 d);
 PRINT_FN _print_float(FILE *f, float x) { return _print_double(f, (double)x); }
 PRINT_FN _print_pointer(FILE *f, void *p) { return _print_hex(f, hex((uint64_t)p)); }
 PRINT_FN _print_bool(FILE *f, bool b) { return fputs(b ? "yes" : "no", f); }
@@ -116,6 +118,8 @@ extern int Int$print(FILE *f, Int_t i);
     uint8_t: _print_uint, \
     float: _print_float, \
     double: _print_double, \
+    _Decimal32: _print_decimal32, \
+    _Decimal64: _print_decimal64, \
     hex_format_t: _print_hex, \
     hex_double_t: _print_hex_double, \
     oct_format_t: _print_oct, \

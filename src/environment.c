@@ -255,6 +255,7 @@ env_t *global_env(bool source_mapping)
             {"modulo", "Dec$modulo", "func(x,y:Dec -> Dec)"},
             {"modulo1", "Dec$modulo1", "func(x,y:Dec -> Dec)"},
             {"negative", "Dec$negative", "func(x:Dec -> Dec)"},
+            {"parse", "Dec$parse", "func(text:Text -> Dec?)"},
             {"plus", "Dec$plus", "func(x,y:Dec -> Dec)"},
             {"power", "Dec$power", "func(base,exponent:Dec -> Dec)"},
             {"round", "Dec$round", "func(d:Dec, digits:Int=0 -> Dec)"},

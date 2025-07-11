@@ -22,7 +22,7 @@ public int _print_int(FILE *f, int64_t n)
     if (negative)
         *(p--) = '-';
 
-    return fwrite(p + 1, sizeof(char), (size_t)(&buf[19] - p), f);
+    return (int)fwrite(p + 1, sizeof(char), (size_t)(&buf[19] - p), f);
 }
 
 public int _print_uint(FILE *f, uint64_t n)
@@ -35,7 +35,7 @@ public int _print_uint(FILE *f, uint64_t n)
         n /= 10;
     } while (n > 0);
 
-    return fwrite(p + 1, sizeof(char), (size_t)(&buf[19] - p), f);
+    return (int)fwrite(p + 1, sizeof(char), (size_t)(&buf[19] - p), f);
 }
 
 public int _print_hex(FILE *f, hex_format_t hex)
@@ -176,6 +176,95 @@ public int _print_char(FILE *f, char c)
         return (fputs("'\\x", f) + _print_hex(f, hex((uint64_t)c, .digits=2, .no_prefix=true, .uppercase=true))
                 + fputs("'", f));
 #undef ESC
+}
+
+public int _print_decimal64(FILE *f , _Decimal64 x)
+{
+    union {
+        _Decimal64 decimal;
+        struct {
+            uint64_t mantissa:52;
+            uint64_t exponent:11;
+            bool negative:1;
+        };
+        uint64_t bits;
+    } info = {.decimal = x};
+
+    if ((info.bits >> 58 & 0x1F) == 0x1E)
+        return fputs(info.negative ? "-INF" : "INF", f);
+    else if ((info.bits >> 58 & 0x1F) == 0x1F)
+        return fputs("NAN", f);
+
+    // determine exponent e, and mantissa m
+    // where e and m are depend on the bits in m2
+    uint64_t e;
+    uint64_t m;
+    uint64_t m2 = info.bits >> 61 & 0x3;
+    if (m2 == 0x3) {
+        e = info.bits >> 51 & 0x3FF;
+        m = 0x20000000000000 | (info.bits & 0x7FFFFFFFFFFFF);
+    } else {
+        e = info.bits >> 53 & 0x3FF;
+        m = info.bits & 0x1FFFFFFFFFFFFF;
+    }
+
+    if (m == 0) return fputs("0", f);
+    
+    char buf[64] = {[63]=0};
+    char *p = &buf[62];
+    int64_t exponent = (int64_t)e - 398;
+
+    uint64_t n = m;
+    do {
+        *(p--) = '0' + (n % 10);
+        n /= 10;
+    } while (n > 0);
+
+    const char *digit_str = p + 1;
+
+    int printed = 0;
+    int64_t digits = (int64_t)(&buf[63] - digit_str);
+
+    if (info.negative)
+        printed += fputc('-', f);
+
+    while (exponent < 0 && digits > 1 && digit_str[digits-1] == '0') {
+        digits -= 1;
+        exponent += 1;
+    }
+
+    if (exponent >= 0) {
+        printed += (int)fwrite(digit_str, sizeof(char), (size_t)digits, f);
+        for (int64_t i = 0; i < exponent; i++)
+            printed += (int)fwrite("0", sizeof(char), 1, f);
+    } else {
+        int64_t digits_above_zero = MAX(digits + exponent, 0);
+        if (digits_above_zero > 0) {
+            printed += (int)fwrite(digit_str, sizeof(char), (size_t)digits_above_zero, f);
+            for (int64_t i = -digits; i > exponent; i--)
+                printed += fputc('0', f);
+        } else {
+            printed += fputc('0', f);
+        }
+
+        int64_t digits_below_zero = digits - digits_above_zero;
+        if (digits_below_zero > 0) {
+            const char *rest = digit_str + digits_above_zero;
+            if (*rest) {
+                printed += fputc('.', f);
+                for (int64_t i = digits_below_zero; i < -exponent; i++)
+                    printed += fputc('0', f);
+                printed += fputs(digit_str+digits_above_zero, f);
+            }
+        }
+    }
+
+    return printed;
+}
+
+public int _print_decimal32(FILE *f, _Decimal32 x)
+{
+    return _print_decimal64(f, (_Decimal64)x);
 }
 
 public int _print_quoted(FILE *f, quoted_t quoted)

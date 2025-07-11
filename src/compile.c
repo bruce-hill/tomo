@@ -515,22 +515,22 @@ static CORD compile_update_assignment(env_t *env, ast_t *ast)
     CORD update_assignment = CORD_EMPTY;
     switch (ast->tag) {
     case PlusUpdate: {
-        if (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType)
+        if (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType || lhs_t->tag == DecType)
             update_assignment = CORD_all(lhs, " += ", compile_to_type(env, update.rhs, lhs_t), ";");
         break;
     }
     case MinusUpdate: {
-        if (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType)
+        if (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType || lhs_t->tag == DecType)
             update_assignment = CORD_all(lhs, " -= ", compile_to_type(env, update.rhs, lhs_t), ";");
         break;
     }
     case MultiplyUpdate: {
-        if (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType)
+        if (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType || lhs_t->tag == DecType)
             update_assignment = CORD_all(lhs, " *= ", compile_to_type(env, update.rhs, lhs_t), ";");
         break;
     }
     case DivideUpdate: {
-        if (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType)
+        if (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType || lhs_t->tag == DecType)
             update_assignment = CORD_all(lhs, " /= ", compile_to_type(env, update.rhs, lhs_t), ";");
         break;
     }
@@ -671,12 +671,12 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
             return CORD_all("pow(", lhs, ", ", rhs, ")");
     }
     case Multiply: {
-        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
+        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType && overall_t->tag != DecType)
             code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
         return CORD_all("(", lhs, " * ", rhs, ")");
     }
     case Divide: {
-        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
+        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType && overall_t->tag != DecType)
             code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
         return CORD_all("(", lhs, " / ", rhs, ")");
     }
@@ -691,14 +691,14 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
         return CORD_all("((((", lhs, ")-1) % (", rhs, ")) + 1)");
     }
     case Plus: {
-        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
+        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType && overall_t->tag != DecType)
             code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
         return CORD_all("(", lhs, " + ", rhs, ")");
     }
     case Minus: {
         if (overall_t->tag == SetType)
             return CORD_all("Table$without(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
-        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
+        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType && overall_t->tag != DecType)
             code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
         return CORD_all("(", lhs, " - ", rhs, ")");
     }
@@ -1010,6 +1010,8 @@ CORD check_none(type_t *t, CORD value)
             return CORD_all("({(", value, ").$tag == 0;})");
         else
             return CORD_all("((", value, ") == 0)");
+    } else if (t->tag == DecType) {
+        return CORD_all("((int64_t)(", value, ") == -1)");
     }
     print_err("Optional check not implemented for: ", type_to_str(t));
     return CORD_EMPTY;
@@ -1390,28 +1392,28 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
     case PlusUpdate: {
         DeclareMatch(update, ast, PlusUpdate);
         type_t *lhs_t = get_type(env, update->lhs);
-        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
+        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType || lhs_t->tag == DecType))
             return CORD_all(compile_lvalue(env, update->lhs), " += ", compile_to_type(env, update->rhs, lhs_t), ";");
         return compile_update_assignment(env, ast);
     }
     case MinusUpdate: {
         DeclareMatch(update, ast, MinusUpdate);
         type_t *lhs_t = get_type(env, update->lhs);
-        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
+        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType || lhs_t->tag == DecType))
             return CORD_all(compile_lvalue(env, update->lhs), " -= ", compile_to_type(env, update->rhs, lhs_t), ";");
         return compile_update_assignment(env, ast);
     }
     case MultiplyUpdate: {
         DeclareMatch(update, ast, MultiplyUpdate);
         type_t *lhs_t = get_type(env, update->lhs);
-        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
+        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType || lhs_t->tag == DecType))
             return CORD_all(compile_lvalue(env, update->lhs), " *= ", compile_to_type(env, update->rhs, lhs_t), ";");
         return compile_update_assignment(env, ast);
     }
     case DivideUpdate: {
         DeclareMatch(update, ast, DivideUpdate);
         type_t *lhs_t = get_type(env, update->lhs);
-        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
+        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType || lhs_t->tag == DecType))
             return CORD_all(compile_lvalue(env, update->lhs), " /= ", compile_to_type(env, update->rhs, lhs_t), ";");
         return compile_update_assignment(env, ast);
     }
@@ -2637,7 +2639,7 @@ CORD compile_empty(type_t *t)
 
     switch (t->tag) {
     case BigIntType: return "I(0)";
-    case DecType: return "Dec$from_int(0)";
+    case DecType: return "0.0DD";
     case IntType: {
         switch (Match(t, IntType)->bits) {
         case TYPE_IBITS8: return "I8(0)";
@@ -2768,7 +2770,7 @@ CORD compile(env_t *env, ast_t *ast)
         return String(hex_double(Match(ast, Num)->n));
     }
     case Dec: {
-        return CORD_all("Dec$from_str(\"", Match(ast, Dec)->str, "\")");
+        return CORD_all(Match(ast, Dec)->str, strchr(Match(ast, Dec)->str, '.') ? CORD_EMPTY : ".", "DD");
     }
     case Not: {
         ast_t *value = Match(ast, Not)->value;
@@ -2806,7 +2808,7 @@ CORD compile(env_t *env, ast_t *ast)
                 return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=value)), ")");
         }
 
-        if (t->tag == IntType || t->tag == NumType)
+        if (t->tag == IntType || t->tag == NumType || t->tag == DecType)
             return CORD_all("-(", compile(env, value), ")");
 
         code_err(ast, "I don't know how to get the negative value of type ", type_to_str(t));
@@ -2861,9 +2863,7 @@ CORD compile(env_t *env, ast_t *ast)
         switch (operand_t->tag) {
         case BigIntType:
             return CORD_all(ast->tag == Equals ? CORD_EMPTY : "!", "Int$equal_value(", lhs, ", ", rhs, ")");
-        case DecType:
-            return CORD_all(ast->tag == Equals ? CORD_EMPTY : "!", "Dec$equal_value(", lhs, ", ", rhs, ")");
-        case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
+        case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType: case DecType:
             return CORD_all("(", lhs, ast->tag == Equals ? " == " : " != ", rhs, ")");
         default:
             return CORD_all(ast->tag == Equals ? CORD_EMPTY : "!",
@@ -2899,9 +2899,7 @@ CORD compile(env_t *env, ast_t *ast)
         switch (operand_t->tag) {
         case BigIntType:
             return CORD_all("(Int$compare_value(", lhs, ", ", rhs, ") ", op, " 0)");
-        case DecType:
-            return CORD_all("(Dec$compare_value(", lhs, ", ", rhs, ") ", op, " 0)");
-        case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
+        case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType: case DecType:
             return CORD_all("(", lhs, " ", op, " ", rhs, ")");
         default:
             return CORD_all("(generic_compare(stack(", lhs, "), stack(", rhs, "), ",

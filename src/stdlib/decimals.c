@@ -3,7 +3,7 @@
 
 #include <ctype.h>
 #include <gc.h>
-#include <mpdecimal.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -17,45 +17,21 @@
 #include "nums.h"
 #include "optionals.h"
 #include "print.h"
-#include "siphash.h"
 #include "text.h"
 #include "types.h"
 
-static mpd_context_t ctx = {
-    .prec=30,
-    .emax=25,
-    .emin=-25,
-    .traps=MPD_Division_by_zero | MPD_Overflow | MPD_Subnormal | MPD_Underflow,
-    .status=0,
-    .newtrap=0,
-    .round=MPD_ROUND_HALF_EVEN,
-    .clamp=1,
-    .allcr=1,
-};
-
-static inline char *Dec$as_str(Dec_t d) {
-    char *str = mpd_format(d, "f", &ctx);
-    char *point = strchr(str, '.');
-    if (point == NULL) return str;
-    char *p;
-    for (p = point + strlen(point)-1; p > point && *p == '0'; p--)
-        *p = '\0';
-    if (*p == '.') *p = '\0';
-    return str;
-}
-
 public int Dec$print(FILE *f, Dec_t d) {
-    return fputs(Dec$as_str(d), f);
+    return fprint(f, d);
 }
 
 public Text_t Dec$value_as_text(Dec_t d) {
-    return Text$from_str(Dec$as_str(d));
+    return Text$from_str(String(d));
 }
 
 public Text_t Dec$as_text(const void *d, bool colorize, const TypeInfo_t *info) {
     (void)info;
     if (!d) return Text("Dec");
-    Text_t text = Text$from_str(Dec$as_str(*(Dec_t*)d));
+    Text_t text = Text$from_str(String(*(Dec_t*)d));
     if (colorize) text = Text$concat(Text("\x1b[35m"), text, Text("\x1b[m"));
     return text;
 }
@@ -63,84 +39,81 @@ public Text_t Dec$as_text(const void *d, bool colorize, const TypeInfo_t *info) 
 static bool Dec$is_none(const void *d, const TypeInfo_t *info)
 {
     (void)info;
-    return *(Dec_t*)d == NULL;
+    return *(int64_t*)d == -1;
 }
 
-public PUREFUNC int32_t Dec$compare_value(const Dec_t x, const Dec_t y) {
-    return mpd_compare(D(0), x, y, &ctx);
+public CONSTFUNC int32_t Dec$compare_value(const Dec_t x, const Dec_t y) {
+    return (x > y) - (x < y);
 }
 
-public PUREFUNC int32_t Dec$compare(const void *x, const void *y, const TypeInfo_t *info) {
+public CONSTFUNC int32_t Dec$compare(const void *x, const void *y, const TypeInfo_t *info) {
     (void)info;
-    return mpd_compare(D(0), *(Dec_t*)x, *(Dec_t*)y, &ctx);
+    return Dec$compare_value(*(Dec_t*)x, *(Dec_t*)y);
 }
 
-public PUREFUNC bool Dec$equal_value(const Dec_t x, const Dec_t y) {
-    return Dec$compare_value(x, y) == 0;
+public CONSTFUNC bool Dec$equal_value(const Dec_t x, const Dec_t y) {
+    return x == y;
 }
 
-public PUREFUNC bool Dec$equal(const void *x, const void *y, const TypeInfo_t *info) {
+public CONSTFUNC bool Dec$equal(const void *x, const void *y, const TypeInfo_t *info) {
     (void)info;
-    return Dec$compare(x, y, info) == 0;
+    return *(_Decimal64*)x == *(_Decimal64*)y;
 }
 
-public PUREFUNC uint64_t Dec$hash(const void *vx, const TypeInfo_t *info) {
-    (void)info;
-    Dec_t d = *(Dec_t*)vx;
-    char *str = Dec$as_str(d);
-    return siphash24((void*)str, strlen(str));
+public CONSTFUNC Dec_t Dec$plus(Dec_t x, Dec_t y) {
+    return x + y;
 }
 
-public Dec_t Dec$plus(Dec_t x, Dec_t y) {
-    Dec_t result = mpd_new(&ctx);
-    mpd_add(result, x, y, &ctx);
-    return result;
+public CONSTFUNC Dec_t Dec$negative(Dec_t x) {
+    return -x;
 }
 
-public Dec_t Dec$negative(Dec_t x) {
-    Dec_t result = mpd_new(&ctx);
-    mpd_minus(result, x, &ctx);
-    return result;
+public CONSTFUNC Dec_t Dec$minus(Dec_t x, Dec_t y) {
+    return x - y;
 }
 
-public Dec_t Dec$minus(Dec_t x, Dec_t y) {
-    Dec_t result = mpd_new(&ctx);
-    mpd_sub(result, x, y, &ctx);
-    return result;
+public CONSTFUNC Dec_t Dec$times(Dec_t x, Dec_t y) {
+    return x * y;
 }
 
-public Dec_t Dec$times(Dec_t x, Dec_t y) {
-    Dec_t result = mpd_new(&ctx);
-    mpd_mul(result, x, y, &ctx);
-    return result;
+public CONSTFUNC Dec_t Dec$divided_by(Dec_t x, Dec_t y) {
+    return x / y;
 }
 
-public Dec_t Dec$divided_by(Dec_t x, Dec_t y) {
-    Dec_t result = mpd_new(&ctx);
-    mpd_div(result, x, y, &ctx);
-    return result;
+public CONSTFUNC Dec_t Dec$modulo(Dec_t x, Dec_t modulus) {
+    // TODO: improve the accuracy of this approach:
+    return (Dec_t)Num$mod((double)x, (double)modulus);
 }
 
-public Dec_t Dec$modulo(Dec_t x, Dec_t modulus) {
-    Dec_t result = mpd_new(&ctx);
-    mpd_rem(result, x, modulus, &ctx);
-    return result;
+public CONSTFUNC Dec_t Dec$modulo1(Dec_t x, Dec_t modulus) {
+    // TODO: improve the accuracy of this approach:
+    return (Dec_t)Num$mod1((double)x, (double)modulus);
 }
 
-public Dec_t Dec$modulo1(Dec_t x, Dec_t modulus) {
-    return Dec$plus(Dec$modulo(Dec$minus(x, D(1)), modulus), D(1));
+public PUREFUNC OptionalDec_t Dec$from_str(const char *str) {
+    _Decimal64 n = 0.0DD;
+    const char *p = str;
+    bool negative = (*p == '-');
+    if (negative)
+        p += 1;
+    for (; *p; p++) {
+        if (*p == '.') break;
+        if (*p == '_') continue;
+        if (!isdigit(*p)) return NONE_DEC;
+        n = 10.0DD * n + (_Decimal64)(*p - '0');
+    }
+    _Decimal64 denominator = 1.0DD;
+    for (; *p; p++) {
+        if (*p == '_') continue;
+        if (!isdigit(*p)) return NONE_DEC;
+        n = 10.0DD * n + (_Decimal64)(*p - '0');
+        denominator *= 0.1DD;
+    }
+    return n * denominator;
 }
 
-public Dec_t Dec$from_str(const char *str) {
-    Dec_t result = mpd_new(&ctx);
-    mpd_set_string(result, str, &ctx);
-    return result;
-}
-
-public Dec_t Dec$from_int64(int64_t i) {
-    Dec_t result = mpd_new(&ctx);
-    mpd_set_i64(result, i, &ctx);
-    return result;
+public CONSTFUNC Dec_t Dec$from_int64(int64_t i) {
+    return (_Decimal64)i;
 }
 
 public Dec_t Dec$from_int(Int_t i) {
@@ -149,21 +122,15 @@ public Dec_t Dec$from_int(Int_t i) {
     }
     Text_t text = Int$value_as_text(i);
     const char *str = Text$as_c_string(text);
-    Dec_t result = mpd_new(&ctx);
-    mpd_set_string(result, str, &ctx);
-    return result;
+    return Dec$from_str(str);
 }
 
-public Dec_t Dec$from_num(double n) {
-    Text_t text = Num$as_text(&n, false, &Num$info);
-    const char *str = Text$as_c_string(text);
-    Dec_t result = mpd_new(&ctx);
-    mpd_set_string(result, str, &ctx);
-    return result;
+CONSTFUNC public Dec_t Dec$from_num(double n) {
+    return (_Decimal64)n;
 }
 
 public Int_t Dec$as_int(Dec_t d, bool truncate) {
-    char *str = Dec$as_str(d);
+    char *str = String(d);
     char *decimal = strchr(str, '.');
     if (!truncate && decimal)
         fail("Could not convert to an integer without truncation: ", str);
@@ -191,43 +158,106 @@ public Byte_t Dec$as_byte(Dec_t d, bool truncate) {
     return Byte$from_int(Dec$as_int(d, truncate), truncate);
 }
 
-public bool Dec$as_bool(Dec_t d) {
-    return !mpd_iszero(d);
+CONSTFUNC public bool Dec$as_bool(Dec_t d) {
+    return d != 0.0DD;
 }
 
 public double Dec$as_num(Dec_t d) {
-    const char *str = Dec$as_str(d);
+    const char *str = String(d);
     return strtod(str, NULL);
 }
 
-public Dec_t Dec$power(Dec_t base, Dec_t exponent) {
-    Dec_t result = mpd_new(&ctx);
-    mpd_pow(result, base, exponent, &ctx);
-    return result;
+#define NAN_MASK 0x7C00000000000000UL
+#define INF_MASK 0x7800000000000000UL
+#define DEC_BITS(n) ((union { uint64_t bits; _Decimal64 d; }){.d=n}).bits
+
+static bool Dec$isfinite(Dec_t d) {
+    uint64_t bits = DEC_BITS(d);
+    return (((bits & NAN_MASK) != NAN_MASK) &&
+            ((bits & INF_MASK) != INF_MASK));
+}
+
+static bool Dec$isnan(Dec_t d) {
+    uint64_t bits = DEC_BITS(d);
+    return ((bits & NAN_MASK) == NAN_MASK);
+}
+
+CONSTFUNC static Dec_t Dec$int_power(Dec_t x, int64_t exponent)
+{
+    if (exponent == 0) {
+        return 1.DD;
+    } else if (exponent == 1) {
+        return x;
+    } else if (exponent % 2 == 0) {
+        Dec_t y = Dec$int_power(x, exponent/2);
+        return y*y;
+    } else {
+        return x * Dec$int_power(x, exponent - 1);
+    }
+}
+
+public Dec_t Dec$power(Dec_t x, Dec_t y) {
+    if (x == 0.DD && y < 0.DD)
+        fail("The following math operation is not supported: ", x, "^", y);
+
+    /* For any y, including a NaN. */
+    if (x == 1.DD)
+        return x;
+
+    if (Dec$isnan(x) || Dec$isnan(y))
+        return NONE_DEC;
+
+    if (y == 0.DD)
+        return 1.DD;
+
+    if (x < 0.DD && y < 0.DD) {
+        return NONE_DEC;
+    } else if (x == 0.DD) {
+        return y < 0.DD ? NONE_DEC : 0.DD;
+    } else if (!Dec$isfinite(x)) {
+        return y < 0.DD ? 0.DD : x;
+    }
+
+    int64_t int_y = (int64_t)y;
+    if ((Dec_t)int_y == y)
+        return Dec$int_power(x, int_y);
+
+    // TODO: improve the accuracy of this approach:
+    return (Dec_t)powl((long double)x, (long double)y);
 }
 
 public Dec_t Dec$round(Dec_t d, Int_t digits) {
-    Dec_t result = mpd_new(&ctx);
-    if (digits.small != 1L)
-        d = Dec$times(d, Dec$power(D(10), Dec$from_int(digits)));
-    mpd_round_to_int(result, d, &ctx);
-    if (digits.small != 1L)
-        result = Dec$divided_by(result, Dec$power(D(10), Dec$from_int(digits)));
-    return result;
+    int64_t digits64 = Int64$from_int(digits, false);
+    if (digits.small != 1L) {
+        for (int64_t i = digits64; i > 0; i--)
+            d *= 10.0DD;
+        for (int64_t i = digits64; i < 0; i++)
+            d *= 0.1DD;
+    }
+    _Decimal64 truncated = (_Decimal64)(int64_t)d;
+    _Decimal64 difference = (d - truncated);
+    _Decimal64 rounded;
+    if (difference < 0.0DD) {
+        rounded = (difference < -0.5DD) ? truncated - 1.0DD : truncated;
+    } else {
+        rounded = (difference >= 0.5DD) ? truncated + 1.0DD : truncated;
+    }
+    for (int64_t i = digits64; i > 0; i--)
+        rounded *= 0.1DD;
+    for (int64_t i = digits64; i < 0; i++)
+        rounded *= 10.0DD;
+    return rounded;
 }
 
 public OptionalDec_t Dec$parse(Text_t text) {
-    Dec_t result = mpd_new(&ctx);
-    uint32_t status = 0;
-    mpd_qset_string(result, Text$as_c_string(text), &ctx, &status);
-    return status == 0 ? result : NONE_DEC;
+    return Dec$from_str(Text$as_c_string(text));
 }
 
 static void Dec$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info)
 {
     (void)info;
     Dec_t d = *(Dec_t*)obj;
-    char *str = Dec$as_str(d);
+    char *str = String(d);
     int64_t len = (int64_t)strlen(str);
     Int64$serialize(&len, out, pointers, &Int64$info);
     if (fwrite(str, sizeof(char), (size_t)len, out) != (size_t)len)
@@ -253,7 +283,6 @@ public const TypeInfo_t Dec$info = {
     .metamethods={
         .compare=Dec$compare,
         .equal=Dec$equal,
-        .hash=Dec$hash,
         .as_text=Dec$as_text,
         .is_none=Dec$is_none,
         .serialize=Dec$serialize,
