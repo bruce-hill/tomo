@@ -46,8 +46,7 @@ func main()
 	>> "\[31;1]"
 	= "\e[31;1m"
 
-	>> "\{UE9}" == "\{U65}\{U301}"
-	= yes
+	assert "\{UE9}" == "\{U65}\{U301}"
 
 	amelie := "Am\{UE9}lie"
 	>> amelie.split()
@@ -120,12 +119,9 @@ func main()
 	c := "É̩"
 	>> c.codepoint_names()
 	= ["LATIN CAPITAL LETTER E WITH ACUTE", "COMBINING VERTICAL LINE BELOW"]
-	>> c == Text.from_codepoint_names(c.codepoint_names())!
-	= yes
-	>> c == Text.from_codepoints(c.utf32_codepoints())
-	= yes
-	>> c == Text.from_bytes(c.bytes())!
-	= yes
+	assert c == Text.from_codepoint_names(c.codepoint_names())!
+	assert c == Text.from_codepoints(c.utf32_codepoints())
+	assert c == Text.from_bytes(c.bytes())!
 
 	>> "one\ntwo\nthree".lines()
 	= ["one", "two", "three"]
@@ -248,8 +244,7 @@ func main()
 		b := Text.from_codepoint_names(["COMBINING VERTICAL LINE BELOW"])!
 		>> (a++b).codepoint_names()
 		= ["LATIN SMALL LETTER E", "COMBINING VERTICAL LINE BELOW"]
-		>> (a++b) == ab
-		= yes
+		assert (a++b) == ab
 		>> (a++b).length
 		= 1
 
@@ -270,14 +265,12 @@ func main()
 		final := Text.from_codepoints([Int32(0x65), Int32(0x300), Int32(0x302), Int32(0x303)])
 		>> final.length
 		= 1
-		>> concat3 == final
-		= yes
+		assert concat3 == final
 
 		concat4 := Text.from_codepoints([Int32(0x65), Int32(0x300)]) ++ Text.from_codepoints([Int32(0x302), Int32(0x303)])
 		>> concat4.length
 		= 1
-		>> concat4 == final
-		= yes
+		assert concat4 == final
 
 	>> "x".left_pad(5)
 	= "    x"

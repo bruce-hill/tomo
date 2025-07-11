@@ -15,23 +15,18 @@ func test_literals()
 	= Pair(x=10, y=20)
 	>> y := Pair(y=20, 10)
 	= Pair(x=10, y=20)
-	>> x == y
-	= yes
-	>> x == Pair(-1, -2)
-	= no
+	assert x == y
+	assert x != Pair(-1, -2)
 
 func test_metamethods()
 	>> x := Pair(10, 20)
 	>> y := Pair(100, 200)
 	>> x == y
 	= no
-	>> x == Pair(10, 20)
-	= yes
-	>> x == Pair(10, 30)
-	= no
+	assert x == Pair(10, 20)
+	assert x != Pair(10, 30)
 
-	>> x < Pair(11, 20)
-	= yes
+	assert x < Pair(11, 20)
 	>> set := |x|
 	>> set.has(x)
 	= yes
@@ -43,12 +38,9 @@ func test_mixed()
 	>> y := Mixed(99, "Hello")
 	>> x == y
 	= no
-	>> x == Mixed(10, "Hello")
-	= yes
-	>> x == Mixed(10, "Bye")
-	= no
-	>> x < Mixed(11, "Hello")
-	= yes
+	assert x == Mixed(10, "Hello")
+	assert x != Mixed(10, "Bye")
+	assert x < Mixed(11, "Hello")
 	>> set := |x|
 	>> set.has(x)
 	= yes

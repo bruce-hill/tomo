@@ -8,8 +8,6 @@ func main()
 	>> add(3, 5)
 	= 8
 
-	>> cached_heap(1) == cached_heap(1)
-	= yes
-	>> cached_heap(1) == cached_heap(2)
-	= no
+	assert cached_heap(1) == cached_heap(1)
+	assert cached_heap(1) != cached_heap(2)
 

@@ -29,8 +29,7 @@ func main()
 	>> one.Two
 	= no
 
-	>> Foo.One(10) == Foo.One(10)
-	= yes
+	assert Foo.One(10) == Foo.One(10)
 
 	>> Foo.One(10) == Foo.Zero
 	= no
@@ -38,8 +37,7 @@ func main()
 	>> Foo.One(10) == Foo.One(-1)
 	= no
 
-	>> Foo.One(10) < Foo.Two(1, 2)
-	= yes
+	assert Foo.One(10) < Foo.Two(1, 2)
 
 	>> x := Foo.One(123)
 	>> t := |x|

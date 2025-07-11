@@ -241,10 +241,8 @@ func main()
     = 123
 
     # Test comparisons, hashing, equality:
-    >> (none == 5?)
-    = no
-    >> (5? == 5?)
-    = yes
+    assert none != 5?
+    assert 5? == 5?
     >> nones : |Int?| = |none, none|
     >> also_nones : |Int?| = |none|
     >> nones == also_nones

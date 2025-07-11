@@ -85,8 +85,7 @@ func main()
 		interesting_denominators := [-99, -20, -17, -1, 1, 17, 20, 99]
 		for n in interesting_numerators
 			for d in interesting_denominators
-				>> (n/d)*d + (n mod d) == n
-				= yes
+				assert (n/d)*d + (n mod d) == n
 
 	>> (0).next_prime()
 	= 2
@@ -94,7 +93,7 @@ func main()
 	= 11
 	#>> (11).prev_prime()
 	#= 7
-	>> (and: p.is_prime() for p in [
+	assert (and: p.is_prime() for p in [
 		2, 3, 5, 7,
 		137372146048179869781170214707,
 		811418847921670560768224995279,
@@ -107,7 +106,6 @@ func main()
 		121475876690852432982324195553,
 		771958616175795150904761471637,
 	])!
-	= yes
 
 	>> (or: p.is_prime() for p in [
 		-1, 0, 1, 4, 6,
