@@ -19,29 +19,20 @@ func main()
 
 	>> Num.INF
 	= Num.INF
-	>> Num.INF.isinf()
-	= yes
+	assert Num.INF.isinf()
 
 	>> none_num : Num? = none
 	= none
-	>> none_num == none_num
-	= yes
-	>> none_num < none_num
-	= no
-	>> none_num > none_num
-	= no
-	>> none_num != none_num
-	= no
+	assert none_num == none_num
+	assert (none_num < none_num) == no
+	assert (none_num > none_num) == no
+	assert (none_num != none_num) == no
 	>> none_num <> none_num
 	= Int32(0)
-	>> none_num == 0.0
-	= no
-	>> none_num < 0.0
-	= yes
-	>> none_num > 0.0
-	= no
-	>> none_num != 0.0
-	= yes
+	assert (none_num == 0.0) == no
+	assert none_num < 0.0
+	assert (none_num > 0.0) == no
+	assert none_num != 0.0
 	>> none_num <> 0.0
 	= Int32(-1)
 
@@ -53,10 +44,8 @@ func main()
 	# >> 0./0.
 	# = none
 
-	>> Num.PI.cos()!.near(-1)
-	= yes
-	>> Num.PI.sin()!.near(0)
-	= yes
+	assert Num.PI.cos()!.near(-1)
+	assert Num.PI.sin()!.near(0)
 
 	>> Num.INF.near(-Num.INF)
 	= no

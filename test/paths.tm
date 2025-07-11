@@ -1,9 +1,7 @@
 # Tests for file paths
 func main()
-    >> (/).exists()
-    = yes
-    >> (~/).exists()
-    = yes
+    assert (/).exists()
+    assert (~/).exists()
 
     >> (~/Downloads/file(1).txt)
     = (~/Downloads/file(1).txt)
@@ -16,8 +14,7 @@ func main()
     = (~/example.txt)
 
     >> tmpdir := (/tmp/tomo-test-path-XXXXXX).unique_directory()
-    >> (/tmp).subdirectories().has(tmpdir)
-    = yes
+    assert (/tmp).subdirectories().has(tmpdir)
 
     >> tmpfile := (tmpdir++(./one.txt))
     >> tmpfile.write("Hello world")
@@ -26,8 +23,7 @@ func main()
     = "Hello world!"?
     >> tmpfile.read_bytes()!
     = [0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x77, 0x6F, 0x72, 0x6C, 0x64, 0x21]
-    >> tmpdir.files().has(tmpfile)
-    = yes
+    assert tmpdir.files().has(tmpfile)
 
     if tmp_lines := tmpfile.by_line() then
         >> [line for line in tmp_lines]

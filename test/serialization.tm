@@ -7,39 +7,32 @@ func main()
     do
         >> obj := Int64(123)
         >> bytes := obj.serialized()
-        >> deserialize(bytes -> Int64) == obj
-        = yes
+        assert deserialize(bytes -> Int64) == obj
 
     do
         >> obj := 5
         >> bytes := obj.serialized()
-        >> deserialize(bytes -> Int) == obj
-        = yes
+        assert deserialize(bytes -> Int) == obj
 
     do
         >> obj := 9999999999999999999999999999999999999999999999999999
         >> bytes := obj.serialized()
-        >> deserialize(bytes -> Int) == obj
-        = yes
+        assert deserialize(bytes -> Int) == obj
 
     do
         >> obj := "Héllo"
         >> bytes := obj.serialized()
-        >> deserialize(bytes -> Text)
-        >> deserialize(bytes -> Text) == obj
-        = yes
+        assert deserialize(bytes -> Text) == obj
 
     do
         >> obj := [Int64(10), Int64(20), Int64(30)].reversed()
         >> bytes := obj.serialized()
-        >> deserialize(bytes -> [Int64]) == obj
-        = yes
+        assert deserialize(bytes -> [Int64]) == obj
 
     do
         >> obj := yes
         >> bytes := obj.serialized()
-        >> deserialize(bytes -> Bool) == obj
-        = yes
+        assert deserialize(bytes -> Bool) == obj
 
     do
         >> obj := @[10, 20]
@@ -47,52 +40,44 @@ func main()
         >> roundtrip := deserialize(bytes -> @[Int])
         >> roundtrip == obj
         = no
-        >> roundtrip[] == obj[]
-        = yes
+        assert roundtrip[] == obj[]
 
     do
         >> obj := {"A"=10, "B"=20; fallback={"C"=30}}
         >> bytes := obj.serialized()
         >> roundtrip := deserialize(bytes -> {Text=Int})
-        >> roundtrip == obj
-        = yes
-        >> roundtrip.fallback == obj.fallback
-        = yes
+        assert roundtrip == obj
+        assert roundtrip.fallback == obj.fallback
 
     do
         >> obj := @Foo("root")
         >> obj.next = @Foo("abcdef", next=obj)
         >> bytes := obj.serialized()
-        >> deserialize(bytes -> @Foo)
-        # = @Foo(name="root", next=@Foo(name="abcdef", next=@~1))
+        >> roundtrip := deserialize(bytes -> @Foo)
+        assert "$roundtrip" == "$obj"
 
     do
         >> obj := MyEnum.Two(123, "OKAY")
         >> bytes := obj.serialized()
-        >> deserialize(bytes -> MyEnum) == obj
-        = yes
+        assert deserialize(bytes -> MyEnum) == obj
 
     do
         >> obj := "Hello"?
         >> bytes := obj.serialized()
-        >> deserialize(bytes -> Text?) == obj
-        = yes
+        assert deserialize(bytes -> Text?) == obj
 
     do
         >> obj := |10, 20, 30|
         >> bytes := obj.serialized()
-        >> deserialize(bytes -> |Int|) == obj
-        = yes
+        assert deserialize(bytes -> |Int|) == obj
 
     do
         >> obj : Num? = none
         >> bytes := obj.serialized()
-        >> deserialize(bytes -> Num?) == obj
-        = yes
+        assert deserialize(bytes -> Num?) == obj
 
     do
         cases := [0, -1, 1, 10, 100000, 999999999999999999999999999]
         for i in cases
             >> bytes := i.serialized()
-            >> deserialize(bytes -> Int) == i
-            = yes
+            assert deserialize(bytes -> Int) == i

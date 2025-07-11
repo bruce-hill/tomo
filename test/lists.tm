@@ -111,16 +111,14 @@ func main()
 		heap_order : @[Int]
 		repeat
 			heap_order.insert(heap.heap_pop() or stop)
-		>> heap_order[] == heap_order.sorted()
-		= yes
+		assert heap_order[] == heap_order.sorted()
 		heap_order[] = []
 		for i in 10
 			heap.heap_push((i*13337) mod 37)
 		>> heap
 		repeat
 			heap_order.insert(heap.heap_pop() or stop)
-		>> heap_order[] == heap_order.sorted()
-		= yes
+		assert heap_order[] == heap_order.sorted()
 
 	do
 		>> [i*10 for i in 5].from(3)
