@@ -62,6 +62,9 @@ C code, which is then compiled using a C compiler of your choice.
 `--version`
 : Print the compiler version and exit.
 
+`--changelog`
+: Print the compiler change log and exit.
+
 `--prefix`
 : Print the Tomo installation prefix and exit.
 

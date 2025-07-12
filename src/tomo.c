@@ -71,7 +71,8 @@ static OptionalBool_t verbose = false,
                       compile_exe = false,
                       should_install = false,
                       clean_build = false,
-                      source_mapping = true;
+                      source_mapping = true,
+                      show_changelog = false;
 
 static OptionalText_t 
             show_codegen = NONE_TEXT,
@@ -95,6 +96,11 @@ static Text_t config_summary,
               // to allow a command to put stuff into TOMO_PREFIX as the owner
               // of that directory.
               as_owner = Text("");
+
+static const char changelog[] = {
+#embed "../CHANGES.md"
+    , 0
+};
 
 static void transpile_header(env_t *base_env, Path_t path);
 static void transpile_code(env_t *base_env, Path_t path);
@@ -214,10 +220,16 @@ int main(int argc, char *argv[])
         {"f", false, &Bool$info, &clean_build},
         {"source-mapping", false, &Bool$info, &source_mapping},
         {"m", false, &Bool$info, &source_mapping},
+        {"changelog", false, &Bool$info, &show_changelog},
     );
 
     if (show_prefix) {
         print(TOMO_PREFIX);
+        return 0;
+    }
+
+    if (show_changelog) {
+        print_inline(changelog);
         return 0;
     }
 
