@@ -65,14 +65,14 @@ func main()
 		>> list := @[10, 20]
 		>> copy := list[]
 		>> list.insert(30)
-		>> list
-		= @[10, 20, 30]
+		>> list[]
+		= [10, 20, 30]
 		>> copy
 		= [10, 20]
 
 		>> list[1] = 999
-		>> list
-		= @[999, 20, 30]
+		>> list[]
+		= [999, 20, 30]
 
 	do
 		>> list := &[10, 20, 30]
@@ -88,19 +88,19 @@ func main()
 		# Sorted function doesn't mutate original:
 		>> nums.sorted()
 		= [-20, 10, 30]
-		>> nums
-		= @[10, -20, 30]
+		>> nums[]
+		= [10, -20, 30]
 		# Sort function does mutate in place:
 		>> nums.sort()
-		>> nums
-		= @[-20, 10, 30]
+		>> nums[]
+		= [-20, 10, 30]
 		# Custom sort functions:
 		>> nums.sort(func(x,y:&Int) x.abs() <> y.abs())
-		>> nums
-		= @[10, -20, 30]
+		>> nums[]
+		= [10, -20, 30]
 		>> nums.sort(func(x,y:&Int) y[] <> x[])
-		>> nums
-		= @[30, 10, -20]
+		>> nums[]
+		= [30, 10, -20]
 
 	>> ["A", "B", "C"].sample(10, [1.0, 0.5, 0.0])
 
@@ -175,14 +175,14 @@ func main()
 		>> nums := &[10, 20, 30, 40, 50]
 		>> nums.pop()
 		= 50?
-		>> nums
-		= &[10, 20, 30, 40]
+		>> nums[]
+		= [10, 20, 30, 40]
 		>> nums.pop(2)
 		= 20?
-		>> nums
-		= &[10, 30, 40]
+		>> nums[]
+		= [10, 30, 40]
 		>> nums.clear()
-		>> nums
-		= &[]
+		>> nums[]
+		= []
 		>> nums.pop()
 		= none

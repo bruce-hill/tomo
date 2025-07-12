@@ -6,8 +6,8 @@ func main()
             nums.insert(x)
         x = 999
 
-    >> nums
-    = @[123]
+    >> nums[]
+    = [123]
     >> x
     = 999
 

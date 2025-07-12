@@ -9,13 +9,14 @@
 - Programs can use `--version` as a CLI flag to print a Tomo program's version
   number and exit.
 - Added `tomo --prefix` to print the Tomo install prefix.
-- Sets now support infix operations for `and`, `or`, `xor`, and `-`
-- Added Path.sibling()
-- Added Path.has_extension()
-- Added Table.with_fallback()
-- Added Int*.get_bit() and Byte.get_bit()
-- Improved space efficiency of Text that contains non-ASCII codepoints
-- Fixed bugs:
+- Sets now support infix operations for `and`, `or`, `xor`, and `-`.
+- Added Path.sibling().
+- Added Path.has_extension().
+- Added Table.with_fallback().
+- Added Int*.get_bit() and Byte.get_bit().
+- Improved space efficiency of Text that contains non-ASCII codepoints.
+- Doctests now use equality checking instead of converting to text.
+- Fixed the following bugs:
   - Negative integers weren't converting to text properly.
   - Mutation of a collection during iteration was violating value semantics.
   - `extend` statements weren't properly checking that the type name was valid.

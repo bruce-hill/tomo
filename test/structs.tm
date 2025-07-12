@@ -63,6 +63,7 @@ func main()
 	>> @LinkedList(10, @LinkedList(20))
 
 	>> my_pass := Password("Swordfish")
+	= Password("Swordfish")
 	>> "$my_pass"
 	= "Password(...)"
 	>> users_by_password := {my_pass="User1", Password("xxx")="User2"}

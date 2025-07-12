@@ -517,34 +517,33 @@ public void end_inspect(const void *expr, const TypeInfo_t *type)
 __attribute__((nonnull))
 public void test_value(const char *filename, int64_t start, int64_t end, const void *expr, const void *expected, const TypeInfo_t *type)
 {
+    if (generic_equal(expr, expected, type))
+        return;
+
+    print_stacktrace(stderr, 2);
+    fprint(stderr, "");
+    fflush(stderr);
+
+    start_inspect(filename, start, end);
+    end_inspect(expr, type);
+    fflush(stdout);
+
     Text_t expr_text = generic_as_text(expr, USE_COLOR, type);
     Text_t expected_text = generic_as_text(expected, USE_COLOR, type);
-
-    bool success = Text$equal_values(expr_text, expected_text);
-    if (!success) {
-        print_stacktrace(stderr, 2);
-        fprint(stderr, "");
-        fflush(stderr);
-
-        start_inspect(filename, start, end);
-        end_inspect(expr, type);
-        fflush(stdout);
-
-        if (USE_COLOR) {
-            fprint(stderr, 
-                    "\n\x1b[31;7m ==================== TEST FAILED ==================== \x1b[0;1m\n\n"
-                    "You expected: \x1b[m", expected_text, "\x1b[0m\n"
-                    "\x1b[1m   But I got:\x1b[m ", expr_text, "\n");
-        } else {
-            fprint(stderr, 
-                    "\n==================== TEST FAILED ====================\n\n"
-                    "You expected: ", expected_text, "\n"
-                    "   But I got: ", expr_text, "\n");
-        }
-
-        fflush(stderr);
-        raise(SIGABRT);
+    if (USE_COLOR) {
+        fprint(stderr, 
+                "\n\x1b[31;7m ==================== TEST FAILED ==================== \x1b[0;1m\n\n"
+                "You expected: \x1b[m", expected_text, "\x1b[0m\n"
+                "\x1b[1m   But I got:\x1b[m ", expr_text, "\n");
+    } else {
+        fprint(stderr, 
+                "\n==================== TEST FAILED ====================\n\n"
+                "You expected: ", expected_text, "\n"
+                "   But I got: ", expr_text, "\n");
     }
+
+    fflush(stderr);
+    raise(SIGABRT);
 }
 
 public void say(Text_t text, bool newline)
