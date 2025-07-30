@@ -64,6 +64,7 @@ static OptionalList_t files = NONE_LIST,
                        libraries = NONE_LIST;
 static OptionalBool_t verbose = false,
                       quiet = false,
+                      show_version = false,
                       show_parse_tree = false,
                       show_prefix = false,
                       stop_at_transpile = false,
@@ -195,6 +196,7 @@ int main(int argc, char *argv[])
         {"args", true, List$info(&Text$info), &args},
         {"verbose", false, &Bool$info, &verbose},
         {"v", false, &Bool$info, &verbose},
+        {"version", false, &Bool$info, &show_version},
         {"parse", false, &Bool$info, &show_parse_tree},
         {"p", false, &Bool$info, &show_parse_tree},
         {"prefix", false, &Bool$info, &show_prefix},
@@ -230,6 +232,14 @@ int main(int argc, char *argv[])
 
     if (show_changelog) {
         print_inline(changelog);
+        return 0;
+    }
+
+    if (show_version) {
+        if (verbose)
+            print(TOMO_VERSION, " ", GIT_VERSION);
+        else
+            print(TOMO_VERSION);
         return 0;
     }
 
