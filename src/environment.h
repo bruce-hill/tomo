@@ -42,13 +42,13 @@ typedef struct env_s {
     // Lookup table for env_t* where the key is:
     //  - Resolved path for local imports (so that `use ./foo.tm` is the same as `use ./baz/../foo.tm`)
     //  - Raw 'use' string for module imports
+    namespace_t *namespace;
+    const char *id_suffix;
     Table_t *imports;
     compilation_unit_t *code;
     type_t *fn_ret;
     loop_ctx_t *loop_ctx;
     deferral_t *deferred;
-    const char *id_suffix;
-    namespace_t *namespace;
     Closure_t *comprehension_action;
     bool do_source_mapping:1;
 } env_t;

@@ -76,8 +76,8 @@ typedef enum {
 typedef struct tag_ast_s {
     const char *name;
     arg_ast_t *fields;
-    bool secret:1;
     struct tag_ast_s *next;
+    bool secret:1;
 } tag_ast_t;
 
 struct type_ast_s {

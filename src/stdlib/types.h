@@ -65,14 +65,14 @@ struct TypeInfo_s {
             } OptionalInfo;
             struct {
                 const char *name;
-                int num_tags;
                 NamedType_t *tags;
+                int num_tags;
             } EnumInfo;
             struct {
                 const char *name;
+                NamedType_t *fields;
                 int num_fields;
                 bool is_secret:1, is_opaque:1;
-                NamedType_t *fields;
             } StructInfo;
         };
     };
