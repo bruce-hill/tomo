@@ -2,7 +2,6 @@
 #include <ctype.h>
 #include <errno.h>
 #include <gc.h>
-#include <gc/cord.h>
 #include <libgen.h>
 #include <spawn.h>
 #include <stdio.h>
@@ -15,7 +14,6 @@
 
 #include "ast.h"
 #include "compile.h"
-#include "cordhelpers.h"
 #include "modules.h"
 #include "parse.h"
 #include "stdlib/bools.h"
@@ -777,12 +775,12 @@ void transpile_header(env_t *base_env, Path_t path)
 
     env_t *module_env = load_module_env(base_env, ast);
 
-    CORD h_code = compile_file_header(module_env, Path$resolved(h_filename, Path$from_str(".")), ast);
+    Text_t h_code = compile_file_header(module_env, Path$resolved(h_filename, Path$from_str(".")), ast);
 
     FILE *header = fopen(Path$as_c_string(h_filename), "w");
     if (!header)
         print_err("Failed to open header file: ", h_filename);
-    CORD_put(h_code, header);
+    Text$print(header, h_code);
     if (fclose(header) == -1)
         print_err("Failed to write header file: ", h_filename);
 
@@ -802,13 +800,13 @@ void transpile_code(env_t *base_env, Path_t path)
 
     env_t *module_env = load_module_env(base_env, ast);
 
-    CORD c_code = compile_file(module_env, ast);
+    Text_t c_code = compile_file(module_env, ast);
 
     FILE *c_file = fopen(Path$as_c_string(c_filename), "w");
     if (!c_file)
         print_err("Failed to write C file: ", c_filename);
 
-    CORD_put(c_code, c_file);
+    Text$print(c_file, c_code);
 
     const char *version = get_version(Path$parent(path));
     binding_t *main_binding = get_binding(module_env, "main");
@@ -819,15 +817,15 @@ void transpile_code(env_t *base_env, Path_t path)
                          "The main() function in this file has a return type of ", type_to_str(ret),
                          ", but it should not have any return value!");
 
-        CORD_put(CORD_all(
+        Text$print(c_file, Texts(
             "int parse_and_run$$", main_binding->code, "(int argc, char *argv[]) {\n",
-            module_env->do_source_mapping ? "#line 1\n" : CORD_EMPTY,
+            module_env->do_source_mapping ? Text("#line 1\n") : EMPTY_TEXT,
             "tomo_init();\n",
-            namespace_name(module_env, module_env->namespace, "$initialize"), "();\n"
+            namespace_name(module_env, module_env->namespace, Text("$initialize")), "();\n"
             "\n",
             compile_cli_arg_call(module_env, main_binding->code, main_binding->type, version),
             "return 0;\n"
-            "}\n"), c_file);
+            "}\n"));
     }
 
     if (fclose(c_file) == -1)
@@ -878,7 +876,7 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
 
     FILE *runner = run_cmd(cc, " ", cflags, " -O", optimization, " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs), " ",
                            paths_str(object_files), " -x c - -o ", exe_path);
-    CORD program = CORD_all(
+    Text_t program = Texts(
         "extern int parse_and_run$$", main_binding->code, "(int argc, char *argv[]);\n"
         "__attribute__ ((noinline))\n"
         "int main(int argc, char *argv[]) {\n"
@@ -888,11 +886,11 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
 
     if (show_codegen.length > 0) {
         FILE *out = run_cmd(show_codegen);
-        CORD_put(program, out);
+        Text$print(out, program);
         pclose(out);
     }
 
-    CORD_put(program, runner);
+    Text$print(runner, program);
     int status = pclose(runner);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);

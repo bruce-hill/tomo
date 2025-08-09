@@ -132,7 +132,7 @@ struct type_s {
 #define NUM_TYPE Type(NumType, .bits=TYPE_NBITS64)
 #define NewFunctionType(ret, ...) _make_function_type(ret, sizeof((arg_t[]){__VA_ARGS__})/sizeof(arg_t), (arg_t[]){__VA_ARGS__})
 
-CORD type_to_cord(type_t *t);
+Text_t type_to_text(type_t *t);
 const char *type_to_str(type_t *t);
 const char *get_type_name(type_t *t);
 PUREFUNC bool type_eq(type_t *a, type_t *b);

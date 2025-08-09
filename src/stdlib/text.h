@@ -8,6 +8,7 @@
 
 #include "datatypes.h"
 #include "integers.h"
+#include "mapmacro.h"
 #include "optionals.h"
 #include "types.h"
 #include "util.h"
@@ -26,10 +27,20 @@ typedef struct {
 
 #define Text(str) ((Text_t){.length=sizeof(str)-1, .tag=TEXT_ASCII, .ascii="" str})
 
-//int Text$print(FILE *stream, Text_t t);
+static inline Text_t Text_from_str_literal(const char *str) {
+    return (Text_t){.length=strlen(str), .tag=TEXT_ASCII, .ascii=str};
+}
+
+static inline Text_t Text_from_text(Text_t t) {
+    return t;
+}
+
+#define convert_to_text(x) _Generic(x, Text_t: Text_from_text, char*: Text$from_str, const char*: Text$from_str)(x)
+
 Text_t Text$_concat(int n, Text_t items[n]);
 #define Text$concat(...) Text$_concat(sizeof((Text_t[]){__VA_ARGS__})/sizeof(Text_t), (Text_t[]){__VA_ARGS__})
-#define Texts(...) Text$concat(__VA_ARGS__)
+#define Texts(...) Text$concat(MAP_LIST(convert_to_text, __VA_ARGS__))
+// int Text$print(FILE *stream, Text_t t);
 Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int);
 Text_t Text$from(Text_t text, Int_t first);
 Text_t Text$to(Text_t text, Int_t last);

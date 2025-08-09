@@ -2,8 +2,7 @@
 
 // Compilation environments
 
-#include <gc/cord.h>
-
+#include "stdlib/datatypes.h"
 #include "stdlib/print.h"
 #include "stdlib/stacktrace.h"
 #include "stdlib/stdlib.h"
@@ -11,10 +10,10 @@
 #include "types.h"
 
 typedef struct {
-    CORD local_typedefs;
-    CORD staticdefs;
-    CORD lambdas;
-    CORD variable_initializers;
+    Text_t local_typedefs;
+    Text_t staticdefs;
+    Text_t lambdas;
+    Text_t variable_initializers;
 } compilation_unit_t;
 
 typedef struct deferral_s {
@@ -28,7 +27,7 @@ typedef struct loop_ctx_s {
     const char *loop_name;
     ast_list_t *loop_vars;
     deferral_t *deferred;
-    CORD skip_label, stop_label;
+    Text_t skip_label, stop_label;
 } loop_ctx_t;
 
 typedef struct namespace_s {
@@ -43,7 +42,7 @@ typedef struct env_s {
     //  - Resolved path for local imports (so that `use ./foo.tm` is the same as `use ./baz/../foo.tm`)
     //  - Raw 'use' string for module imports
     namespace_t *namespace;
-    const char *id_suffix;
+    Text_t id_suffix;
     Table_t *imports;
     compilation_unit_t *code;
     type_t *fn_ret;
@@ -55,13 +54,13 @@ typedef struct env_s {
 
 typedef struct {
     type_t *type;
-    CORD code;
+    Text_t code;
 } binding_t;
 
 env_t *global_env(bool source_mapping);
 env_t *load_module_env(env_t *env, ast_t *ast);
-CORD namespace_name(env_t *env, namespace_t *ns, CORD name);
-CORD get_id_suffix(const char *filename);
+Text_t namespace_name(env_t *env, namespace_t *ns, Text_t name);
+Text_t get_id_suffix(const char *filename);
 env_t *get_namespace_by_type(env_t *env, type_t *t);
 env_t *fresh_scope(env_t *env);
 env_t *for_scope(env_t *env, ast_t *ast);
@@ -87,7 +86,7 @@ env_t *namespace_env(env_t *env, const char *namespace_name);
 binding_t *get_binding(env_t *env, const char *name);
 binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args);
 PUREFUNC binding_t *get_metamethod_binding(env_t *env, ast_e tag, ast_t *lhs, ast_t *rhs, type_t *ret);
-void set_binding(env_t *env, const char *name, type_t *type, CORD code);
+void set_binding(env_t *env, const char *name, type_t *type, Text_t code);
 binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name);
 #define code_err(ast, ...) compiler_err((ast)->file, (ast)->start, (ast)->end, __VA_ARGS__)
 extern type_t *TEXT_TYPE;

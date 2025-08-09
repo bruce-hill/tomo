@@ -1,21 +1,20 @@
 // Logic for compiling new struct types defined in code
 #include <ctype.h>
-#include <gc/cord.h>
 #include <gc.h>
 #include <stdio.h>
 
 #include "ast.h"
 #include "stdlib/text.h"
 #include "compile.h"
-#include "cordhelpers.h"
 #include "environment.h"
 #include "typecheck.h"
 #include "stdlib/util.h"
 
-CORD compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t *fields, bool is_secret, bool is_opaque)
+Text_t compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t *fields, bool is_secret, bool is_opaque)
 {
-    CORD typeinfo_name = namespace_name(env, env->namespace, CORD_cat(name, "$$info"));
-    CORD type_code = Match(t, StructType)->external ? name : CORD_all("struct ", namespace_name(env, env->namespace, CORD_cat(name, "$$struct")));
+    Text_t typeinfo_name = namespace_name(env, env->namespace, Texts(name, "$$info"));
+    Text_t type_code = Match(t, StructType)->external ?
+        Text$from_str(name) : Texts("struct ", namespace_name(env, env->namespace, Texts(name, "$$struct")));
 
     int num_fields = 0;
     for (arg_ast_t *f = fields; f; f = f->next)
@@ -25,32 +24,33 @@ CORD compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t 
         short_name = strrchr(short_name, '$') + 1;
 
     const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
-    CORD typeinfo = CORD_all("public const TypeInfo_t ", typeinfo_name,
+    Text_t typeinfo = Texts("public const TypeInfo_t ", typeinfo_name,
                                   " = {.size=sizeof(", type_code, "), .align=__alignof__(", type_code, "), "
                                   ".metamethods=", metamethods, ", "
                                   ".tag=StructInfo, .StructInfo.name=\"", short_name, "\"",
-                                  is_secret ? ", .StructInfo.is_secret=true" : CORD_EMPTY,
-                                  is_opaque ? ", .StructInfo.is_opaque=true" : CORD_EMPTY,
+                                  is_secret ? Text(", .StructInfo.is_secret=true") : EMPTY_TEXT,
+                                  is_opaque ? Text(", .StructInfo.is_opaque=true") : EMPTY_TEXT,
                                   ", .StructInfo.num_fields=", String(num_fields));
     if (fields) {
-        typeinfo = CORD_all(typeinfo, ", .StructInfo.fields=(NamedType_t[", String(num_fields), "]){");
+        typeinfo = Texts(typeinfo, ", .StructInfo.fields=(NamedType_t[", String(num_fields), "]){");
         for (arg_ast_t *f = fields; f; f = f->next) {
             type_t *field_type = get_arg_ast_type(env, f);
-            typeinfo = CORD_all(typeinfo, "{\"", f->name, "\", ", compile_type_info(field_type), "}");
-            if (f->next) typeinfo = CORD_all(typeinfo, ", ");
+            typeinfo = Texts(typeinfo, "{\"", f->name, "\", ", compile_type_info(field_type), "}");
+            if (f->next) typeinfo = Texts(typeinfo, ", ");
         }
-        typeinfo = CORD_all(typeinfo, "}");
+        typeinfo = Texts(typeinfo, "}");
     }
-    return CORD_all(typeinfo, "};\n");
+    return Texts(typeinfo, "};\n");
 }
 
-CORD compile_struct_header(env_t *env, ast_t *ast)
+Text_t compile_struct_header(env_t *env, ast_t *ast)
 {
     DeclareMatch(def, ast, StructDef);
-    CORD typeinfo_name = namespace_name(env, env->namespace, CORD_all(def->name, "$$info"));
-    CORD type_code = def->external ? def->name : CORD_all("struct ", namespace_name(env, env->namespace, CORD_all(def->name, "$$struct")));
+    Text_t typeinfo_name = namespace_name(env, env->namespace, Texts(def->name, "$$info"));
+    Text_t type_code = def->external ? Text$from_str(def->name)
+        : Texts("struct ", namespace_name(env, env->namespace, Texts(def->name, "$$struct")));
 
-    CORD fields = CORD_EMPTY;
+    Text_t fields = EMPTY_TEXT;
     for (arg_ast_t *field = def->fields; field; field = field->next) {
         type_t *field_t = get_arg_ast_type(env, field);
         type_t *check_for_opaque = non_optional(field_t);
@@ -60,18 +60,19 @@ CORD compile_struct_header(env_t *env, ast_t *ast)
             else if (field->value)
                 code_err(field->value, "This is an opaque type, so it can't be used as a struct field type");
         }
-        fields = CORD_all(fields, compile_declaration(field_t, field->name), field_t->tag == BoolType ? ":1" : CORD_EMPTY, ";\n");
+        fields = Texts(fields, compile_declaration(field_t, Text$from_str(field->name)),
+                       field_t->tag == BoolType ? Text(":1") : EMPTY_TEXT, ";\n");
     }
-    CORD struct_code = def->external ? CORD_EMPTY : CORD_all(type_code, " {\n", fields, "};\n");
+    Text_t struct_code = def->external ? EMPTY_TEXT : Texts(type_code, " {\n", fields, "};\n");
     type_t *t = Table$str_get(*env->types, def->name);
 
-    CORD unpadded_size = def->opaque ? CORD_all("sizeof(", type_code, ")") : String((int64_t)unpadded_struct_size(t));
-    CORD typeinfo_code = CORD_all("extern const TypeInfo_t ", typeinfo_name, ";\n");
-    CORD optional_code = CORD_EMPTY;
+    Text_t unpadded_size = def->opaque ? Texts("sizeof(", type_code, ")") : Text$from_str(String((int64_t)unpadded_struct_size(t)));
+    Text_t typeinfo_code = Texts("extern const TypeInfo_t ", typeinfo_name, ";\n");
+    Text_t optional_code = EMPTY_TEXT;
     if (!def->opaque) {
-        optional_code = CORD_all("DEFINE_OPTIONAL_TYPE(", compile_type(t), ", ", unpadded_size, ", ",
-                                 namespace_name(env, env->namespace, CORD_all("$Optional", def->name, "$$type")), ");\n");
+        optional_code = Texts("DEFINE_OPTIONAL_TYPE(", compile_type(t), ", ", unpadded_size, ", ",
+                                 namespace_name(env, env->namespace, Texts("$Optional", def->name, "$$type")), ");\n");
     }
-    return CORD_all(struct_code, optional_code, typeinfo_code);
+    return Texts(struct_code, optional_code, typeinfo_code);
 }
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

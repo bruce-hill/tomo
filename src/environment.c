@@ -4,7 +4,6 @@
 #include <signal.h>
 #include <sys/stat.h>
 
-#include "cordhelpers.h"
 #include "environment.h"
 #include "parse.h"
 #include "stdlib/datatypes.h"
@@ -78,17 +77,17 @@ env_t *global_env(bool source_mapping)
     struct {
         const char *name;
         type_t *type;
-        CORD typename;
-        CORD typeinfo;
+        Text_t typename;
+        Text_t typeinfo;
         List_t namespace;
     } global_types[] = {
-        {"Void", Type(VoidType), "Void_t", "Void$info", {}},
-        {"Abort", Type(AbortType), "void", "Abort$info", {}},
-        {"Memory", Type(MemoryType), "Memory_t", "Memory$info", {}},
-        {"Bool", Type(BoolType), "Bool_t", "Bool$info", TypedList(ns_entry_t,
+        {"Void", Type(VoidType), Text("Void_t"), Text("Void$info"), {}},
+        {"Abort", Type(AbortType), Text("void"), Text("Abort$info"), {}},
+        {"Memory", Type(MemoryType), Text("Memory_t"), Text("Memory$info"), {}},
+        {"Bool", Type(BoolType), Text("Bool_t"), Text("Bool$info"), TypedList(ns_entry_t,
             {"parse", "Bool$parse", "func(text:Text -> Bool?)"},
         )},
-        {"Byte", Type(ByteType), "Byte_t", "Byte$info", TypedList(ns_entry_t,
+        {"Byte", Type(ByteType), Text("Byte_t"), Text("Byte$info"), TypedList(ns_entry_t,
             {"max", "Byte$max", "Byte"},
             {"get_bit", "Byte$get_bit", "func(x:Byte, bit_index:Int -> Bool)"},
             {"hex", "Byte$hex", "func(byte:Byte, uppercase=yes, prefix=no -> Text)"},
@@ -96,7 +95,7 @@ env_t *global_env(bool source_mapping)
             {"min", "Byte$min", "Byte"},
             {"to", "Byte$to", "func(first:Byte, last:Byte, step:Int8?=none -> func(->Byte?))"},
         )},
-        {"Int", Type(BigIntType), "Int_t", "Int$info", TypedList(ns_entry_t,
+        {"Int", Type(BigIntType), Text("Int_t"), Text("Int$info"), TypedList(ns_entry_t,
             {"abs", "Int$abs", "func(x:Int -> Int)"},
             {"bit_and", "Int$bit_and", "func(x,y:Int -> Int)"},
             {"bit_or", "Int$bit_or", "func(x,y:Int -> Int)"},
@@ -132,7 +131,7 @@ env_t *global_env(bool source_mapping)
             {"times", "Int$times", "func(x,y:Int -> Int)"},
             {"to", "Int$to", "func(first:Int,last:Int,step:Int?=none -> func(->Int?))"},
         )},
-        {"Int64", Type(IntType, .bits=TYPE_IBITS64), "Int64_t", "Int64$info", TypedList(ns_entry_t,
+        {"Int64", Type(IntType, .bits=TYPE_IBITS64), Text("Int64_t"), Text("Int64$info"), TypedList(ns_entry_t,
             {"abs", "labs", "func(i:Int64 -> Int64)"},
             {"bits", "Int64$bits", "func(x:Int64 -> [Bool])"},
             {"clamped", "Int64$clamped", "func(x,low,high:Int64 -> Int64)"},
@@ -154,7 +153,7 @@ env_t *global_env(bool source_mapping)
             {"wrapping_minus", "Int64$wrapping_minus", "func(x:Int64,y:Int64 -> Int64)"},
             {"wrapping_plus", "Int64$wrapping_plus", "func(x:Int64,y:Int64 -> Int64)"},
         )},
-        {"Int32", Type(IntType, .bits=TYPE_IBITS32), "Int32_t", "Int32$info", TypedList(ns_entry_t,
+        {"Int32", Type(IntType, .bits=TYPE_IBITS32), Text("Int32_t"), Text("Int32$info"), TypedList(ns_entry_t,
             {"abs", "abs", "func(i:Int32 -> Int32)"},
             {"bits", "Int32$bits", "func(x:Int32 -> [Bool])"},
             {"clamped", "Int32$clamped", "func(x,low,high:Int32 -> Int32)"},
@@ -176,7 +175,7 @@ env_t *global_env(bool source_mapping)
             {"wrapping_minus", "Int32$wrapping_minus", "func(x:Int32,y:Int32 -> Int32)"},
             {"wrapping_plus", "Int32$wrapping_plus", "func(x:Int32,y:Int32 -> Int32)"},
         )},
-        {"Int16", Type(IntType, .bits=TYPE_IBITS16), "Int16_t", "Int16$info", TypedList(ns_entry_t,
+        {"Int16", Type(IntType, .bits=TYPE_IBITS16), Text("Int16_t"), Text("Int16$info"), TypedList(ns_entry_t,
             {"abs", "abs", "func(i:Int16 -> Int16)"},
             {"bits", "Int16$bits", "func(x:Int16 -> [Bool])"},
             {"clamped", "Int16$clamped", "func(x,low,high:Int16 -> Int16)"},
@@ -198,7 +197,7 @@ env_t *global_env(bool source_mapping)
             {"wrapping_minus", "Int16$wrapping_minus", "func(x:Int16,y:Int16 -> Int16)"},
             {"wrapping_plus", "Int16$wrapping_plus", "func(x:Int16,y:Int16 -> Int16)"},
         )},
-        {"Int8", Type(IntType, .bits=TYPE_IBITS8), "Int8_t", "Int8$info", TypedList(ns_entry_t,
+        {"Int8", Type(IntType, .bits=TYPE_IBITS8), Text("Int8_t"), Text("Int8$info"), TypedList(ns_entry_t,
             {"abs", "abs", "func(i:Int8 -> Int8)"},
             {"bits", "Int8$bits", "func(x:Int8 -> [Bool])"},
             {"clamped", "Int8$clamped", "func(x,low,high:Int8 -> Int8)"},
@@ -224,7 +223,7 @@ env_t *global_env(bool source_mapping)
 #define F(name) {#name, #name, "func(n:Num -> Num)"}
 #define F_opt(name) {#name, #name, "func(n:Num -> Num?)"}
 #define F2(name) {#name, #name, "func(x,y:Num -> Num)"}
-        {"Num", Type(NumType, .bits=TYPE_NBITS64), "Num_t", "Num$info", TypedList(ns_entry_t,
+        {"Num", Type(NumType, .bits=TYPE_NBITS64), Text("Num_t"), Text("Num$info"), TypedList(ns_entry_t,
             {"near", "Num$near", "func(x,y:Num, ratio=1e-9, min_epsilon=1e-9 -> Bool)"},
             {"clamped", "Num$clamped", "func(x,low,high:Num -> Num)"},
             {"percent", "Num$percent", "func(n:Num,precision=0.01 -> Text)"},
@@ -256,7 +255,7 @@ env_t *global_env(bool source_mapping)
 #define F(name) {#name, #name"f", "func(n:Num32 -> Num32)"}
 #define F_opt(name) {#name, #name"f", "func(n:Num32 -> Num32?)"}
 #define F2(name) {#name, #name"f", "func(x,y:Num32 -> Num32)"}
-        {"Num32", Type(NumType, .bits=TYPE_NBITS32), "Num32_t", "Num32$info", TypedList(ns_entry_t,
+        {"Num32", Type(NumType, .bits=TYPE_NBITS32), Text("Num32_t"), Text("Num32$info"), TypedList(ns_entry_t,
             {"near", "Num32$near", "func(x,y:Num32, ratio=Num32(1e-9), min_epsilon=Num32(1e-9) -> Bool)"},
             {"clamped", "Num32$clamped", "func(x,low,high:Num32 -> Num32)"},
             {"percent", "Num32$percent", "func(n:Num32,precision=Num32(.01) -> Text)"},
@@ -280,19 +279,19 @@ env_t *global_env(bool source_mapping)
             F_opt(tan), F(tanh), F_opt(tgamma), F(trunc), F_opt(y0), F_opt(y1),
             F2(atan2), F2(copysign), F2(fdim), F2(hypot), F2(nextafter),
         )},
-        {"CString", Type(CStringType), "char*", "CString$info", TypedList(ns_entry_t,
+        {"CString", Type(CStringType), Text("char*"), Text("CString$info"), TypedList(ns_entry_t,
             {"as_text", "Text$from_str", "func(str:CString -> Text)"},
         )},
 #undef F2
 #undef F_opt
 #undef F
 #undef C
-        {"PathType", PATH_TYPE_TYPE, "PathType_t", "PathType$info", TypedList(ns_entry_t,
+        {"PathType", PATH_TYPE_TYPE, Text("PathType_t"), Text("PathType$info"), TypedList(ns_entry_t,
             {"Relative", "((PathType_t){.$tag=PATH_RELATIVE})", "PathType"},
             {"Absolute", "((PathType_t){.$tag=PATH_ABSOLUTE})", "PathType"},
             {"Home", "((PathType_t){.$tag=PATH_HOME})", "PathType"},
         )},
-        {"Path", PATH_TYPE, "Path_t", "Path$info", TypedList(ns_entry_t,
+        {"Path", PATH_TYPE, Text("Path_t"), Text("Path$info"), TypedList(ns_entry_t,
             {"accessed", "Path$accessed", "func(path:Path, follow_symlinks=yes -> Int64?)"},
             {"append", "Path$append", "func(path:Path, text:Text, permissions=Int32(0o644))"},
             {"append_bytes", "Path$append_bytes", "func(path:Path, bytes:[Byte], permissions=Int32(0o644))"},
@@ -337,7 +336,7 @@ env_t *global_env(bool source_mapping)
             {"write_unique", "Path$write_unique", "func(path:Path, text:Text -> Path)"},
             {"write_unique_bytes", "Path$write_unique_bytes", "func(path:Path, bytes:[Byte] -> Path)"},
         )},
-        {"Text", TEXT_TYPE, "Text_t", "Text$info", TypedList(ns_entry_t,
+        {"Text", TEXT_TYPE, Text("Text_t"), Text("Text$info"), TypedList(ns_entry_t,
             {"as_c_string", "Text$as_c_string", "func(text:Text -> CString)"},
             {"at", "Text$cluster", "func(text:Text, index:Int -> Text)"},
             {"by_line", "Text$by_line", "func(text:Text -> func(->Text?))"},
@@ -412,7 +411,7 @@ env_t *global_env(bool source_mapping)
             type_t *type = parse_type_string(ns_env, entry->type_str);
             if (!type) compiler_err(NULL, NULL, NULL, "Couldn't parse type string: ", entry->type_str);
             if (type->tag == ClosureType) type = Match(type, ClosureType)->fn;
-            set_binding(ns_env, entry->name, type, entry->code);
+            set_binding(ns_env, entry->name, type, Text$from_str(entry->code));
         }
     }
 
@@ -424,7 +423,7 @@ env_t *global_env(bool source_mapping)
     for (size_t i = 0; i < sizeof(constructor_infos)/sizeof(constructor_infos[0]); i++) { \
         type_t *t = parse_type_string(ns_env, constructor_infos[i].type_str); \
         List$insert(&ns_env->namespace->constructors, \
-                     ((binding_t[1]){{.code=constructor_infos[i].c_name, \
+                     ((binding_t[1]){{.code=Text$from_str(constructor_infos[i].c_name), \
                       .type=Match(t, ClosureType)->fn}}), I(0), sizeof(binding_t)); \
     } \
 } while (0)
@@ -515,7 +514,7 @@ env_t *global_env(bool source_mapping)
 
     set_binding(namespace_env(env, "Path"), "from_text",
                 NewFunctionType(PATH_TYPE, {.name="text", .type=TEXT_TYPE}),
-                "Path$from_text");
+                Text("Path$from_text"));
 
     struct {
         const char *name, *code, *type_str;
@@ -536,23 +535,23 @@ env_t *global_env(bool source_mapping)
         type_t *type = parse_type_string(env, global_vars[i].type_str);
         if (!type) compiler_err(NULL, NULL, NULL, "Couldn't parse type string for ", global_vars[i].name, ": ", global_vars[i].type_str);
         if (type->tag == ClosureType) type = Match(type, ClosureType)->fn;
-        Table$str_set(env->globals, global_vars[i].name, new(binding_t, .type=type, .code=global_vars[i].code));
+        Table$str_set(env->globals, global_vars[i].name, new(binding_t, .type=type, .code=Text$from_str(global_vars[i].code)));
     }
 
     _global_env = env;
     return env;
 }
 
-CORD CONSTFUNC namespace_name(env_t *env, namespace_t *ns, CORD name)
+Text_t CONSTFUNC namespace_name(env_t *env, namespace_t *ns, Text_t name)
 {
     for (; ns; ns = ns->parent)
-        name = CORD_all(ns->name, "$", name);
-    if (env->id_suffix)
-        name = CORD_all(name, env->id_suffix);
+        name = Texts(ns->name, "$", name);
+    if (env->id_suffix.length > 0)
+        name = Texts(name, env->id_suffix);
     return name;
 }
 
-CORD get_id_suffix(const char *filename)
+Text_t get_id_suffix(const char *filename)
 {
     assert(filename);
     Path_t path = Path$from_str(filename);
@@ -564,7 +563,7 @@ CORD get_id_suffix(const char *filename)
     Path_t id_file = Path$child(build_dir, Texts(Path$base_name(path), Text$from_str(".id")));
     OptionalText_t id = Path$read(id_file);
     if (id.length < 0) err(1, "Could not read ID file: ", id_file);
-    return Text$as_c_string(Texts(Text("$"), id));
+    return Texts(Text("$"), id);
 }
 
 env_t *load_module_env(env_t *env, ast_t *ast)
@@ -630,10 +629,10 @@ env_t *for_scope(env_t *env, ast_t *ast)
             vars[num_vars++] = Match(var->ast, Var)->name;
         }
         if (num_vars == 1) {
-            set_binding(scope, vars[0], item_t, CORD_cat("_$", vars[0]));
+            set_binding(scope, vars[0], item_t, Texts("_$", vars[0]));
         } else if (num_vars == 2) {
-            set_binding(scope, vars[0], INT_TYPE, CORD_cat("_$", vars[0]));
-            set_binding(scope, vars[1], item_t, CORD_cat("_$", vars[1]));
+            set_binding(scope, vars[0], INT_TYPE, Texts("_$", vars[0]));
+            set_binding(scope, vars[1], item_t, Texts("_$", vars[1]));
         }
         return scope;
     }
@@ -643,7 +642,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
                 code_err(for_->vars->next->ast, "This is too many variables for this loop");
             type_t *item_type = Match(iter_t, SetType)->item_type;
             const char *name = Match(for_->vars->ast, Var)->name;
-            set_binding(scope, name, item_type, CORD_cat("_$", name));
+            set_binding(scope, name, item_type, Texts("_$", name));
         }
         return scope;
     }
@@ -658,11 +657,11 @@ env_t *for_scope(env_t *env, ast_t *ast)
 
         type_t *key_t = Match(iter_t, TableType)->key_type;
         if (num_vars == 1) {
-            set_binding(scope, vars[0], key_t, CORD_cat("_$", vars[0]));
+            set_binding(scope, vars[0], key_t, Texts("_$", vars[0]));
         } else if (num_vars == 2) {
-            set_binding(scope, vars[0], key_t, CORD_cat("_$", vars[0]));
+            set_binding(scope, vars[0], key_t, Texts("_$", vars[0]));
             type_t *value_t = Match(iter_t, TableType)->value_type;
-            set_binding(scope, vars[1], value_t, CORD_cat("_$", vars[1]));
+            set_binding(scope, vars[1], value_t, Texts("_$", vars[1]));
         }
         return scope;
     }
@@ -671,7 +670,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
             if (for_->vars->next)
                 code_err(for_->vars->next->ast, "This is too many variables for this loop");
             const char *var = Match(for_->vars->ast, Var)->name;
-            set_binding(scope, var, INT_TYPE, CORD_cat("_$", var));
+            set_binding(scope, var, INT_TYPE, Texts("_$", var));
         }
         return scope;
     }
@@ -683,7 +682,7 @@ env_t *for_scope(env_t *env, ast_t *ast)
                 code_err(for_->vars->next->ast, "This is too many variables for this loop");
             const char *var = Match(for_->vars->ast, Var)->name;
             type_t *non_opt_type = fn->ret->tag == OptionalType ? Match(fn->ret, OptionalType)->type : fn->ret;
-            set_binding(scope, var, non_opt_type, CORD_cat("_$", var));
+            set_binding(scope, var, non_opt_type, Texts("_$", var));
         }
         return scope;
     }
@@ -700,7 +699,7 @@ env_t *get_namespace_by_type(env_t *env, type_t *t)
     case TableType: return NULL;
     case CStringType:
     case BoolType: case IntType: case BigIntType: case NumType: case ByteType: {
-        binding_t *b = get_binding(env, CORD_to_const_char_star(type_to_cord(t)));
+        binding_t *b = get_binding(env, Text$as_c_string(type_to_text(t)));
         assert(b);
         return Match(b->type, TypeInfoType)->env;
     }
@@ -784,7 +783,7 @@ PUREFUNC binding_t *get_metamethod_binding(env_t *env, ast_e tag, ast_t *lhs, as
     return is_valid_call(env, fn->args, args, true) ? b : NULL;
 }
 
-void set_binding(env_t *env, const char *name, type_t *type, CORD code)
+void set_binding(env_t *env, const char *name, type_t *type, Text_t code)
 {
     assert(name);
     Table$str_set(env->locals, name, new(binding_t, .type=type, .code=code));

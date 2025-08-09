@@ -2,14 +2,12 @@
 #include <ctype.h>
 #include <glob.h>
 #include <gc.h>
-#include <gc/cord.h>
 #include <gmp.h>
 #include <stdio.h>
 #include <uninorm.h>
 
 #include "ast.h"
 #include "compile.h"
-#include "cordhelpers.h"
 #include "enums.h"
 #include "environment.h"
 #include "modules.h"
@@ -24,60 +22,68 @@
 
 typedef ast_t* (*comprehension_body_t)(ast_t*, ast_t*);
 
-static CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool needs_incref);
-static CORD compile_string(env_t *env, ast_t *ast, CORD color);
-static CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args);
-static CORD compile_maybe_incref(env_t *env, ast_t *ast, type_t *t);
-static CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target);
-static CORD compile_unsigned_type(type_t *t);
-static CORD promote_to_optional(type_t *t, CORD code);
-static CORD compile_none(type_t *t);
-static CORD compile_empty(type_t *t);
-static CORD compile_declared_value(env_t *env, ast_t *declaration_ast);
-static CORD compile_to_type(env_t *env, ast_t *ast, type_t *t);
-static CORD compile_typed_list(env_t *env, ast_t *ast, type_t *list_type);
-static CORD compile_typed_set(env_t *env, ast_t *ast, type_t *set_type);
-static CORD compile_typed_table(env_t *env, ast_t *ast, type_t *table_type);
-static CORD compile_typed_allocation(env_t *env, ast_t *ast, type_t *pointer_type);
-static CORD check_none(type_t *t, CORD value);
-static CORD optional_into_nonnone(type_t *t, CORD value);
-static CORD compile_string_literal(CORD literal);
+static Text_t compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool needs_incref);
+static Text_t compile_text(env_t *env, ast_t *ast, Text_t color);
+static Text_t compile_text_literal(Text_t literal);
+static Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args);
+static Text_t compile_maybe_incref(env_t *env, ast_t *ast, type_t *t);
+static Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target);
+static Text_t compile_unsigned_type(type_t *t);
+static Text_t promote_to_optional(type_t *t, Text_t code);
+static Text_t compile_none(type_t *t);
+static Text_t compile_empty(type_t *t);
+static Text_t compile_declared_value(env_t *env, ast_t *declaration_ast);
+static Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t);
+static Text_t compile_typed_list(env_t *env, ast_t *ast, type_t *list_type);
+static Text_t compile_typed_set(env_t *env, ast_t *ast, type_t *set_type);
+static Text_t compile_typed_table(env_t *env, ast_t *ast, type_t *table_type);
+static Text_t compile_typed_allocation(env_t *env, ast_t *ast, type_t *pointer_type);
+static Text_t check_none(type_t *t, Text_t value);
+static Text_t optional_into_nonnone(type_t *t, Text_t value);
 static ast_t *add_to_list_comprehension(ast_t *item, ast_t *subject);
 static ast_t *add_to_table_comprehension(ast_t *entry, ast_t *subject);
 static ast_t *add_to_set_comprehension(ast_t *item, ast_t *subject);
-static CORD compile_lvalue(env_t *env, ast_t *ast);
+static Text_t compile_lvalue(env_t *env, ast_t *ast);
 
-CORD promote_to_optional(type_t *t, CORD code)
+static Text_t quoted_str(const char *str) {
+    return Text$quoted(Text$from_str(str), false, Text("\""));
+}
+
+static inline Text_t quoted_text(Text_t text) {
+    return Text$quoted(text, false, Text("\""));
+}
+
+Text_t promote_to_optional(type_t *t, Text_t code)
 {
     if (t == PATH_TYPE || t == PATH_TYPE_TYPE) {
         return code;
     } else if (t->tag == IntType) {
         switch (Match(t, IntType)->bits) {
-        case TYPE_IBITS8: return CORD_all("((OptionalInt8_t){.value=", code, "})");
-        case TYPE_IBITS16: return CORD_all("((OptionalInt16_t){.value=", code, "})");
-        case TYPE_IBITS32: return CORD_all("((OptionalInt32_t){.value=", code, "})");
-        case TYPE_IBITS64: return CORD_all("((OptionalInt64_t){.value=", code, "})");
+        case TYPE_IBITS8: return Texts("((OptionalInt8_t){.value=", code, "})");
+        case TYPE_IBITS16: return Texts("((OptionalInt16_t){.value=", code, "})");
+        case TYPE_IBITS32: return Texts("((OptionalInt32_t){.value=", code, "})");
+        case TYPE_IBITS64: return Texts("((OptionalInt64_t){.value=", code, "})");
         default: errx(1, "Unsupported in type: ", type_to_str(t));
         }
         return code;
     } else if (t->tag == ByteType) {
-        return CORD_all("((OptionalByte_t){.value=", code, "})");
+        return Texts("((OptionalByte_t){.value=", code, "})");
     } else if (t->tag == StructType) {
-        return CORD_all("({ ", compile_type(Type(OptionalType, .type=t)), " nonnull = {.value=", code, "}; nonnull.is_none = false; nonnull; })");
+        return Texts("({ ", compile_type(Type(OptionalType, .type=t)), " nonnull = {.value=", code, "}; nonnull.is_none = false; nonnull; })");
     } else {
         return code;
     }
 }
 
-static CORD with_source_info(env_t *env, ast_t *ast, CORD code)
+static Text_t with_source_info(env_t *env, ast_t *ast, Text_t code)
 {
-    if (code == CORD_EMPTY || !ast || !ast->file || !env->do_source_mapping)
+    if (code.length == 0 || !ast || !ast->file || !env->do_source_mapping)
         return code;
     int64_t line = get_line_number(ast->file, ast->start);
-    return CORD_all("\n#line ", String(line), "\n", code);
+    return Texts("\n#line ", String(line), "\n", code);
 }
 
-static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *needed)
+static bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t *needed)
 {
     if (type_eq(actual, needed))
         return true;
@@ -86,7 +92,7 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
         return false;
 
     if (needed->tag == ClosureType && actual->tag == FunctionType) {
-        *code = CORD_all("((Closure_t){", *code, ", NULL})");
+        *code = Texts("((Closure_t){", *code, ", NULL})");
         return true;
     }
 
@@ -103,25 +109,25 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
 
     // Optional -> Bool promotion
     if (actual->tag == OptionalType && needed->tag == BoolType) {
-        *code = CORD_all("(!", check_none(actual, *code), ")");
+        *code = Texts("(!", check_none(actual, *code), ")");
         return true;
     }
 
-    // Lang to Text:
+    // Lang to Text_t:
     if (actual->tag == TextType && needed->tag == TextType && streq(Match(needed, TextType)->lang, "Text"))
         return true;
 
     // Automatic optional checking for nums:
     if (needed->tag == NumType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == NumType) {
         int64_t line = get_line_number(ast->file, ast->start);
-        *code = CORD_all("({ ", compile_declaration(actual, "opt"), " = ", *code, "; ",
-                         "if unlikely (", check_none(actual, "opt"), ")\n",
+        *code = Texts("({ ", compile_declaration(actual, Text("opt")), " = ", *code, "; ",
+                         "if unlikely (", check_none(actual, Text("opt")), ")\n",
                          "#line ", String(line), "\n",
-                         "fail_source(", CORD_quoted(ast->file->filename), ", ",
+                         "fail_source(", quoted_str(ast->file->filename), ", ",
                          String((int64_t)(ast->start - ast->file->text)), ", ",
                          String((int64_t)(ast->end - ast->file->text)), ", ",
                          "\"This was expected to be a value, but it's none\");\n",
-                         optional_into_nonnone(actual, "opt"), "; })");
+                         optional_into_nonnone(actual, Text("opt")), "; })");
         return true;
     }
 
@@ -132,7 +138,7 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
         if (constructor) {
             DeclareMatch(fn, constructor->type, FunctionType);
             if (fn->args->next == NULL) {
-                *code = CORD_all(constructor->code, "(", compile_arguments(env, ast, fn->args, args), ")");
+                *code = Texts(constructor->code, "(", compile_arguments(env, ast, fn->args, args), ")");
                 return true;
             }
         }
@@ -145,20 +151,20 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
         // Single-value enum constructor:
         if (!promote(env, ast, code, actual, Match(b->type, FunctionType)->args->type))
             return false;
-        *code = CORD_all(b->code, "(", *code, ")");
+        *code = Texts(b->code, "(", *code, ")");
         return true;
     }
 
-    // Text to C String
+    // Text_t to C String
     if (actual->tag == TextType && type_eq(actual, TEXT_TYPE) && needed->tag == CStringType) {
-        *code = CORD_all("Text$as_c_string(", *code, ")");
+        *code = Texts("Text$as_c_string(", *code, ")");
         return true;
     }
 
     // Automatic dereferencing:
     if (actual->tag == PointerType
         && can_promote(Match(actual, PointerType)->pointed, needed)) {
-        *code = CORD_all("*(", *code, ")");
+        *code = Texts("*(", *code, ")");
         return promote(env, ast, code, Match(actual, PointerType)->pointed, needed);
     }
 
@@ -174,27 +180,27 @@ static bool promote(env_t *env, ast_t *ast, CORD *code, type_t *actual, type_t *
         return true;
 
     if (needed->tag == FunctionType && actual->tag == FunctionType) {
-        *code = CORD_all("(", compile_type(needed), ")", *code);
+        *code = Texts("(", compile_type(needed), ")", *code);
         return true;
     }
 
     // Set -> List promotion:
     if (needed->tag == ListType && actual->tag == SetType
         && type_eq(Match(needed, ListType)->item_type, Match(actual, SetType)->item_type)) {
-        *code = CORD_all("(", *code, ").entries");
+        *code = Texts("(", *code, ").entries");
         return true;
     }
 
     return false;
 }
 
-CORD compile_maybe_incref(env_t *env, ast_t *ast, type_t *t)
+Text_t compile_maybe_incref(env_t *env, ast_t *ast, type_t *t)
 {
     if (is_idempotent(ast) && can_be_mutated(env, ast)) {
         if (t->tag == ListType)
-            return CORD_all("LIST_COPY(", compile_to_type(env, ast, t), ")");
+            return Texts("LIST_COPY(", compile_to_type(env, ast, t), ")");
         else if (t->tag == TableType || t->tag == SetType)
-            return CORD_all("TABLE_COPY(", compile_to_type(env, ast, t), ")");
+            return Texts("TABLE_COPY(", compile_to_type(env, ast, t), ")");
     }
     return compile_to_type(env, ast, t);
 }
@@ -299,7 +305,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         DeclareMatch(lambda, ast, Lambda);
         env_t *lambda_scope = fresh_scope(env);
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next)
-            set_binding(lambda_scope, arg->name, get_arg_ast_type(env, arg), CORD_all("_$", arg->name));
+            set_binding(lambda_scope, arg->name, get_arg_ast_type(env, arg), Texts("_$", arg->name));
         add_closed_vars(closed_vars, enclosing_scope, lambda_scope, lambda->body);
         break;
     }
@@ -348,7 +354,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
             type_t *cond_t = get_type(truthy_scope, var);
             if (cond_t->tag == OptionalType) {
                 set_binding(truthy_scope, Match(var, Var)->name,
-                            Match(cond_t, OptionalType)->type, CORD_EMPTY);
+                            Match(cond_t, OptionalType)->type, EMPTY_TEXT);
             }
             add_closed_vars(closed_vars, enclosing_scope, truthy_scope, if_->body);
             add_closed_vars(closed_vars, enclosing_scope, env, if_->else_body);
@@ -359,7 +365,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
             if (condition->tag == Var && cond_t->tag == OptionalType) {
                 truthy_scope = fresh_scope(env);
                 set_binding(truthy_scope, Match(condition, Var)->name,
-                            Match(cond_t, OptionalType)->type, CORD_EMPTY);
+                            Match(cond_t, OptionalType)->type, EMPTY_TEXT);
             }
             add_closed_vars(closed_vars, enclosing_scope, truthy_scope, if_->body);
             add_closed_vars(closed_vars, enclosing_scope, env, if_->else_body);
@@ -476,7 +482,7 @@ static Table_t get_closed_vars(env_t *env, arg_ast_t *args, ast_t *block)
     env_t *body_scope = fresh_scope(env);
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
         type_t *arg_type = get_arg_ast_type(env, arg);
-        set_binding(body_scope, arg->name, arg_type, CORD_cat("_$", arg->name));
+        set_binding(body_scope, arg->name, arg_type, Texts("_$", arg->name));
     }
 
     Table_t closed_vars = {};
@@ -484,25 +490,25 @@ static Table_t get_closed_vars(env_t *env, arg_ast_t *args, ast_t *block)
     return closed_vars;
 }
 
-CORD compile_declaration(type_t *t, CORD name)
+Text_t compile_declaration(type_t *t, Text_t name)
 {
     if (t->tag == FunctionType) {
         DeclareMatch(fn, t, FunctionType);
-        CORD code = CORD_all(compile_type(fn->ret), " (*", name, ")(");
+        Text_t code = Texts(compile_type(fn->ret), " (*", name, ")(");
         for (arg_t *arg = fn->args; arg; arg = arg->next) {
-            code = CORD_all(code, compile_type(arg->type));
-            if (arg->next) code = CORD_cat(code, ", ");
+            code = Texts(code, compile_type(arg->type));
+            if (arg->next) code = Texts(code, ", ");
         }
-        if (!fn->args) code = CORD_all(code, "void");
-        return CORD_all(code, ")");
+        if (!fn->args) code = Texts(code, "void");
+        return Texts(code, ")");
     } else if (t->tag != ModuleType) {
-        return CORD_all(compile_type(t), " ", name);
+        return Texts(compile_type(t), " ", name);
     } else {
-        return CORD_EMPTY;
+        return EMPTY_TEXT;
     }
 }
 
-static CORD compile_update_assignment(env_t *env, ast_t *ast)
+static Text_t compile_update_assignment(env_t *env, ast_t *ast)
 {
     if (!is_update_assignment(ast))
         code_err(ast, "This is not an update assignment");
@@ -512,70 +518,70 @@ static CORD compile_update_assignment(env_t *env, ast_t *ast)
     type_t *lhs_t = get_type(env, update.lhs);
 
     bool needs_idemotency_fix = !is_idempotent(update.lhs);
-    CORD lhs = needs_idemotency_fix ? "(*lhs)" : compile_lvalue(env, update.lhs);
+    Text_t lhs = needs_idemotency_fix ? Text("(*lhs)") : compile_lvalue(env, update.lhs);
 
-    CORD update_assignment = CORD_EMPTY;
+    Text_t update_assignment = EMPTY_TEXT;
     switch (ast->tag) {
     case PlusUpdate: {
         if (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType)
-            update_assignment = CORD_all(lhs, " += ", compile_to_type(env, update.rhs, lhs_t), ";");
+            update_assignment = Texts(lhs, " += ", compile_to_type(env, update.rhs, lhs_t), ";");
         break;
     }
     case MinusUpdate: {
         if (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType)
-            update_assignment = CORD_all(lhs, " -= ", compile_to_type(env, update.rhs, lhs_t), ";");
+            update_assignment = Texts(lhs, " -= ", compile_to_type(env, update.rhs, lhs_t), ";");
         break;
     }
     case MultiplyUpdate: {
         if (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType)
-            update_assignment = CORD_all(lhs, " *= ", compile_to_type(env, update.rhs, lhs_t), ";");
+            update_assignment = Texts(lhs, " *= ", compile_to_type(env, update.rhs, lhs_t), ";");
         break;
     }
     case DivideUpdate: {
         if (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType)
-            update_assignment = CORD_all(lhs, " /= ", compile_to_type(env, update.rhs, lhs_t), ";");
+            update_assignment = Texts(lhs, " /= ", compile_to_type(env, update.rhs, lhs_t), ";");
         break;
     }
     case LeftShiftUpdate: {
         if (lhs_t->tag == IntType || lhs_t->tag == ByteType)
-            update_assignment = CORD_all(lhs, " <<= ", compile_to_type(env, update.rhs, lhs_t), ";");
+            update_assignment = Texts(lhs, " <<= ", compile_to_type(env, update.rhs, lhs_t), ";");
         break;
     }
     case RightShiftUpdate: {
         if (lhs_t->tag == IntType || lhs_t->tag == ByteType)
-            update_assignment = CORD_all(lhs, " >>= ", compile_to_type(env, update.rhs, lhs_t), ";");
+            update_assignment = Texts(lhs, " >>= ", compile_to_type(env, update.rhs, lhs_t), ";");
         break;
     }
     case AndUpdate: {
         if (lhs_t->tag == BoolType)
-            update_assignment = CORD_all("if (", lhs, ") ", lhs, " = ", compile_to_type(env, update.rhs, Type(BoolType)), ";");
+            update_assignment = Texts("if (", lhs, ") ", lhs, " = ", compile_to_type(env, update.rhs, Type(BoolType)), ";");
         break;
     }
     case OrUpdate: {
         if (lhs_t->tag == BoolType)
-            update_assignment = CORD_all("if (!", lhs, ") ", lhs, " = ", compile_to_type(env, update.rhs, Type(BoolType)), ";");
+            update_assignment = Texts("if (!", lhs, ") ", lhs, " = ", compile_to_type(env, update.rhs, Type(BoolType)), ";");
         break;
     }
     default: break;
     }
 
-    if (update_assignment == CORD_EMPTY) {
+    if (update_assignment.length == 0) {
         ast_t *binop = new(ast_t);
         *binop = *ast;
         binop->tag = binop_tag(binop->tag);
         if (needs_idemotency_fix)
-            binop->__data.Plus.lhs = LiteralCode("*lhs", .type=lhs_t);
-        update_assignment = CORD_all(lhs, " = ", compile_to_type(env, binop, lhs_t), ";");
+            binop->__data.Plus.lhs = LiteralCode(Text("*lhs"), .type=lhs_t);
+        update_assignment = Texts(lhs, " = ", compile_to_type(env, binop, lhs_t), ";");
     }
     
     if (needs_idemotency_fix)
-        return CORD_all("{ ", compile_declaration(Type(PointerType, .pointed=lhs_t), "lhs"), " = &", compile_lvalue(env, update.lhs), "; ",
+        return Texts("{ ", compile_declaration(Type(PointerType, .pointed=lhs_t), Text("lhs")), " = &", compile_lvalue(env, update.lhs), "; ",
                         update_assignment, "; }");
     else
         return update_assignment;
 }
 
-static CORD compile_binary_op(env_t *env, ast_t *ast)
+static Text_t compile_binary_op(env_t *env, ast_t *ast)
 {
     binary_operands_t binop = BINARY_OPERANDS(ast);
     type_t *lhs_t = get_type(env, binop.lhs);
@@ -587,7 +593,7 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
     if (b) {
         arg_ast_t *args = new(arg_ast_t, .value=binop.lhs, .next=new(arg_ast_t, .value=binop.rhs));
         DeclareMatch(fn, b->type, FunctionType);
-        return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
+        return Texts(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
     }
 
     if (ast->tag == Multiply && is_numeric_type(lhs_t)) {
@@ -597,7 +603,7 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
             if (type_eq(fn->ret, rhs_t)) {
                 arg_ast_t *args = new(arg_ast_t, .value=binop.rhs, .next=new(arg_ast_t, .value=binop.lhs));
                 if (is_valid_call(env, fn->args, args, true))
-                    return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
+                    return Texts(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
             }
         }
     } else if (ast->tag == Multiply && is_numeric_type(rhs_t)) {
@@ -607,7 +613,7 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
             if (type_eq(fn->ret, lhs_t)) {
                 arg_ast_t *args = new(arg_ast_t, .value=binop.lhs, .next=new(arg_ast_t, .value=binop.rhs));
                 if (is_valid_call(env, fn->args, args, true))
-                    return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
+                    return Texts(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
             }
         }
     } else if (ast->tag == Divide && is_numeric_type(rhs_t)) {
@@ -617,7 +623,7 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
             if (type_eq(fn->ret, lhs_t)) {
                 arg_ast_t *args = new(arg_ast_t, .value=binop.lhs, .next=new(arg_ast_t, .value=binop.rhs));
                 if (is_valid_call(env, fn->args, args, true))
-                    return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
+                    return Texts(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
             }
         }
     } else if ((ast->tag == Divide || ast->tag == Mod || ast->tag == Mod1) && is_numeric_type(rhs_t)) {
@@ -627,16 +633,16 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
             if (type_eq(fn->ret, lhs_t)) {
                 arg_ast_t *args = new(arg_ast_t, .value=binop.lhs, .next=new(arg_ast_t, .value=binop.rhs));
                 if (is_valid_call(env, fn->args, args, true))
-                    return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
+                    return Texts(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
             }
         }
     }
 
     if (ast->tag == Or && lhs_t->tag == OptionalType) {
         if (rhs_t->tag == AbortType || rhs_t->tag == ReturnType) {
-            return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop.lhs), "; ",
-                            "if (", check_none(lhs_t, "lhs"), ") ", compile_statement(env, binop.rhs), " ",
-                            optional_into_nonnone(lhs_t, "lhs"), "; })");
+            return Texts("({ ", compile_declaration(lhs_t, Text("lhs")), " = ", compile(env, binop.lhs), "; ",
+                            "if (", check_none(lhs_t, Text("lhs")), ") ", compile_statement(env, binop.rhs), " ",
+                            optional_into_nonnone(lhs_t, Text("lhs")), "; })");
         }
 
         if (is_incomplete_type(rhs_t)) {
@@ -647,103 +653,103 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
         }
 
         if (rhs_t->tag == OptionalType && type_eq(lhs_t, rhs_t)) {
-            return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop.lhs), "; ",
-                            check_none(lhs_t, "lhs"), " ? ", compile(env, binop.rhs), " : lhs; })");
+            return Texts("({ ", compile_declaration(lhs_t, Text("lhs")), " = ", compile(env, binop.lhs), "; ",
+                            check_none(lhs_t, Text("lhs")), " ? ", compile(env, binop.rhs), " : lhs; })");
         } else if (rhs_t->tag != OptionalType && type_eq(Match(lhs_t, OptionalType)->type, rhs_t)) {
-            return CORD_all("({ ", compile_declaration(lhs_t, "lhs"), " = ", compile(env, binop.lhs), "; ",
-                            check_none(lhs_t, "lhs"), " ? ", compile(env, binop.rhs), " : ",
-                            optional_into_nonnone(lhs_t, "lhs"), "; })");
+            return Texts("({ ", compile_declaration(lhs_t, Text("lhs")), " = ", compile(env, binop.lhs), "; ",
+                            check_none(lhs_t, Text("lhs")), " ? ", compile(env, binop.rhs), " : ",
+                            optional_into_nonnone(lhs_t, Text("lhs")), "; })");
         } else if (rhs_t->tag == BoolType) {
-            return CORD_all("((!", check_none(lhs_t, compile(env, binop.lhs)), ") || ", compile(env, binop.rhs), ")");
+            return Texts("((!", check_none(lhs_t, compile(env, binop.lhs)), ") || ", compile(env, binop.rhs), ")");
         } else {
             code_err(ast, "I don't know how to do an 'or' operation between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
         }
     }
 
-    CORD lhs = compile_to_type(env, binop.lhs, overall_t);
-    CORD rhs = compile_to_type(env, binop.rhs, overall_t);
+    Text_t lhs = compile_to_type(env, binop.lhs, overall_t);
+    Text_t rhs = compile_to_type(env, binop.rhs, overall_t);
 
     switch (ast->tag) {
     case Power: {
         if (overall_t->tag != NumType)
             code_err(ast, "Exponentiation is only supported for Num types, not ", type_to_str(overall_t));
         if (overall_t->tag == NumType && Match(overall_t, NumType)->bits == TYPE_NBITS32)
-            return CORD_all("powf(", lhs, ", ", rhs, ")");
+            return Texts("powf(", lhs, ", ", rhs, ")");
         else
-            return CORD_all("pow(", lhs, ", ", rhs, ")");
+            return Texts("pow(", lhs, ", ", rhs, ")");
     }
     case Multiply: {
         if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
             code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
-        return CORD_all("(", lhs, " * ", rhs, ")");
+        return Texts("(", lhs, " * ", rhs, ")");
     }
     case Divide: {
         if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
             code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
-        return CORD_all("(", lhs, " / ", rhs, ")");
+        return Texts("(", lhs, " / ", rhs, ")");
     }
     case Mod: {
         if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
             code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
-        return CORD_all("(", lhs, " % ", rhs, ")");
+        return Texts("(", lhs, " % ", rhs, ")");
     }
     case Mod1: {
         if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
             code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
-        return CORD_all("((((", lhs, ")-1) % (", rhs, ")) + 1)");
+        return Texts("((((", lhs, ")-1) % (", rhs, ")) + 1)");
     }
     case Plus: {
         if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
             code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
-        return CORD_all("(", lhs, " + ", rhs, ")");
+        return Texts("(", lhs, " + ", rhs, ")");
     }
     case Minus: {
         if (overall_t->tag == SetType)
-            return CORD_all("Table$without(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
+            return Texts("Table$without(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
             code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
-        return CORD_all("(", lhs, " - ", rhs, ")");
+        return Texts("(", lhs, " - ", rhs, ")");
     }
     case LeftShift: {
         if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
             code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
-        return CORD_all("(", lhs, " << ", rhs, ")");
+        return Texts("(", lhs, " << ", rhs, ")");
     }
     case RightShift: {
         if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
             code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
-        return CORD_all("(", lhs, " >> ", rhs, ")");
+        return Texts("(", lhs, " >> ", rhs, ")");
     }
     case UnsignedLeftShift: {
         if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
             code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
-        return CORD_all("(", compile_type(overall_t), ")((", compile_unsigned_type(lhs_t), ")", lhs, " << ", rhs, ")");
+        return Texts("(", compile_type(overall_t), ")((", compile_unsigned_type(lhs_t), ")", lhs, " << ", rhs, ")");
     }
     case UnsignedRightShift: {
         if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
             code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
-        return CORD_all("(", compile_type(overall_t), ")((", compile_unsigned_type(lhs_t), ")", lhs, " >> ", rhs, ")");
+        return Texts("(", compile_type(overall_t), ")((", compile_unsigned_type(lhs_t), ")", lhs, " >> ", rhs, ")");
     }
     case And: {
         if (overall_t->tag == BoolType)
-            return CORD_all("(", lhs, " && ", rhs, ")");
+            return Texts("(", lhs, " && ", rhs, ")");
         else if (overall_t->tag == IntType || overall_t->tag == ByteType)
-            return CORD_all("(", lhs, " & ", rhs, ")");
+            return Texts("(", lhs, " & ", rhs, ")");
         else if (overall_t->tag == SetType)
-            return CORD_all("Table$overlap(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
+            return Texts("Table$overlap(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         else
             code_err(ast, "The 'and' operator isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " values");
     }
     case Compare: {
-        return CORD_all("generic_compare(stack(", lhs, "), stack(", rhs, "), ", compile_type_info(overall_t), ")");
+        return Texts("generic_compare(stack(", lhs, "), stack(", rhs, "), ", compile_type_info(overall_t), ")");
     }
     case Or: {
         if (overall_t->tag == BoolType) {
-            return CORD_all("(", lhs, " || ", rhs, ")");
+            return Texts("(", lhs, " || ", rhs, ")");
         } else if (overall_t->tag == IntType || overall_t->tag == ByteType) {
-            return CORD_all("(", lhs, " | ", rhs, ")");
+            return Texts("(", lhs, " | ", rhs, ")");
         } else if (overall_t->tag == SetType) {
-            return CORD_all("Table$with(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
+            return Texts("Table$with(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         } else {
             code_err(ast, "The 'or' operator isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " values");
         }
@@ -751,21 +757,21 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
     case Xor: {
         // TODO: support optional values in `xor` expressions
         if (overall_t->tag == BoolType || overall_t->tag == IntType || overall_t->tag == ByteType)
-            return CORD_all("(", lhs, " ^ ", rhs, ")");
+            return Texts("(", lhs, " ^ ", rhs, ")");
         else if (overall_t->tag == SetType)
-            return CORD_all("Table$xor(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
+            return Texts("Table$xor(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         else
             code_err(ast, "The 'xor' operator isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " values");
     }
     case Concat: {
         if (overall_t == PATH_TYPE)
-            return CORD_all("Path$concat(", lhs, ", ", rhs, ")");
+            return Texts("Path$concat(", lhs, ", ", rhs, ")");
         switch (overall_t->tag) {
         case TextType: {
-            return CORD_all("Text$concat(", lhs, ", ", rhs, ")");
+            return Texts("Text$concat(", lhs, ", ", rhs, ")");
         }
         case ListType: {
-            return CORD_all("List$concat(", lhs, ", ", rhs, ", sizeof(", compile_type(Match(overall_t, ListType)->item_type), "))");
+            return Texts("List$concat(", lhs, ", ", rhs, ", sizeof(", compile_type(Match(overall_t, ListType)->item_type), "))");
         }
         default:
             code_err(ast, "Concatenation isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " values");
@@ -773,70 +779,70 @@ static CORD compile_binary_op(env_t *env, ast_t *ast)
     }
     default: errx(1, "Not a valid binary operation: ", ast_to_sexp_str(ast));
     }
-    return CORD_EMPTY;
+    return EMPTY_TEXT;
 }
 
-PUREFUNC CORD compile_unsigned_type(type_t *t)
+PUREFUNC Text_t compile_unsigned_type(type_t *t)
 {
     if (t->tag != IntType)
         errx(1, "Not an int type, so unsigned doesn't make sense!");
     switch (Match(t, IntType)->bits) {
-    case TYPE_IBITS8: return "uint8_t";
-    case TYPE_IBITS16: return "uint16_t";
-    case TYPE_IBITS32: return "uint32_t";
-    case TYPE_IBITS64: return "uint64_t";
+    case TYPE_IBITS8: return Text("uint8_t");
+    case TYPE_IBITS16: return Text("uint16_t");
+    case TYPE_IBITS32: return Text("uint32_t");
+    case TYPE_IBITS64: return Text("uint64_t");
     default: errx(1, "Invalid integer bit size");
     }
-    return CORD_EMPTY;
+    return EMPTY_TEXT;
 }
 
-CORD compile_type(type_t *t)
+Text_t compile_type(type_t *t)
 {
-    if (t == PATH_TYPE) return "Path_t";
-    else if (t == PATH_TYPE_TYPE) return "PathType_t";
+    if (t == PATH_TYPE) return Text("Path_t");
+    else if (t == PATH_TYPE_TYPE) return Text("PathType_t");
 
     switch (t->tag) {
     case ReturnType: errx(1, "Shouldn't be compiling ReturnType to a type");
-    case AbortType: return "void";
-    case VoidType: return "void";
-    case MemoryType: return "void";
-    case BoolType: return "Bool_t";
-    case ByteType: return "Byte_t";
-    case CStringType: return "const char*";
-    case BigIntType: return "Int_t";
-    case IntType: return CORD_all("Int", String(Match(t, IntType)->bits), "_t");
-    case NumType: return Match(t, NumType)->bits == TYPE_NBITS64 ? "Num_t" : CORD_all("Num", String(Match(t, NumType)->bits), "_t");
+    case AbortType: return Text("void");
+    case VoidType: return Text("void");
+    case MemoryType: return Text("void");
+    case BoolType: return Text("Bool_t");
+    case ByteType: return Text("Byte_t");
+    case CStringType: return Text("const char*");
+    case BigIntType: return Text("Int_t");
+    case IntType: return Texts("Int", String(Match(t, IntType)->bits), "_t");
+    case NumType: return Match(t, NumType)->bits == TYPE_NBITS64 ? Text("Num_t") : Texts("Num", String(Match(t, NumType)->bits), "_t");
     case TextType: {
         DeclareMatch(text, t, TextType);
         if (!text->lang || streq(text->lang, "Text"))
-            return "Text_t";
+            return Text("Text_t");
         else
-            return namespace_name(text->env, text->env->namespace, "$type");
+            return namespace_name(text->env, text->env->namespace, Text("$type"));
     }
-    case ListType: return "List_t";
-    case SetType: return "Table_t";
-    case TableType: return "Table_t";
+    case ListType: return Text("List_t");
+    case SetType: return Text("Table_t");
+    case TableType: return Text("Table_t");
     case FunctionType: {
         DeclareMatch(fn, t, FunctionType);
-        CORD code = CORD_all(compile_type(fn->ret), " (*)(");
+        Text_t code = Texts(compile_type(fn->ret), " (*)(");
         for (arg_t *arg = fn->args; arg; arg = arg->next) {
-            code = CORD_all(code, compile_type(arg->type));
-            if (arg->next) code = CORD_cat(code, ", ");
+            code = Texts(code, compile_type(arg->type));
+            if (arg->next) code = Texts(code, ", ");
         }
         if (!fn->args)
-            code = CORD_all(code, "void");
-        return CORD_all(code, ")");
+            code = Texts(code, "void");
+        return Texts(code, ")");
     }
-    case ClosureType: return "Closure_t";
-    case PointerType: return CORD_cat(compile_type(Match(t, PointerType)->pointed), "*");
+    case ClosureType: return Text("Closure_t");
+    case PointerType: return Texts(compile_type(Match(t, PointerType)->pointed), "*");
     case StructType: {
         DeclareMatch(s, t, StructType);
-        if (s->external) return s->name;
-        return CORD_all("struct ", namespace_name(s->env, s->env->namespace, "$struct"));
+        if (s->external) return Text$from_str(s->name);
+        return Texts("struct ", namespace_name(s->env, s->env->namespace, Text("$struct")));
     }
     case EnumType: {
         DeclareMatch(e, t, EnumType);
-        return namespace_name(e->env, e->env->namespace, "$type");
+        return namespace_name(e->env, e->env->namespace, Text("$type"));
     }
     case OptionalType: {
         type_t *nonnull = Match(t, OptionalType)->type;
@@ -845,29 +851,29 @@ CORD compile_type(type_t *t)
         case PointerType: case EnumType:
             return compile_type(nonnull);
         case TextType:
-            return Match(nonnull, TextType)->lang ? compile_type(nonnull) : "OptionalText_t";
+            return Match(nonnull, TextType)->lang ? compile_type(nonnull) : Text("OptionalText_t");
         case IntType: case BigIntType: case NumType: case BoolType: case ByteType:
         case ListType: case TableType: case SetType:
-            return CORD_all("Optional", compile_type(nonnull));
+            return Texts("Optional", compile_type(nonnull));
         case StructType: {
             if (nonnull == PATH_TYPE)
-                return "OptionalPath_t";
+                return Text("OptionalPath_t");
             if (nonnull == PATH_TYPE_TYPE)
-                return "OptionalPathType_t";
+                return Text("OptionalPathType_t");
             DeclareMatch(s, nonnull, StructType);
-            return namespace_name(s->env, s->env->namespace->parent, CORD_all("$Optional", s->name, "$$type"));
+            return namespace_name(s->env, s->env->namespace->parent, Texts("$Optional", s->name, "$$type"));
         }
         default:
             compiler_err(NULL, NULL, NULL, "Optional types are not supported for: ", type_to_str(t));
         }
     }
-    case TypeInfoType: return "TypeInfo_t";
+    case TypeInfoType: return Text("TypeInfo_t");
     default: compiler_err(NULL, NULL, NULL, "Compiling type is not implemented for type with tag ", t->tag);
     }
-    return CORD_EMPTY;
+    return EMPTY_TEXT;
 }
 
-CORD compile_lvalue(env_t *env, ast_t *ast)
+Text_t compile_lvalue(env_t *env, ast_t *ast)
 {
     if (!can_be_mutated(env, ast)) {
         if (ast->tag == Index) {
@@ -894,17 +900,17 @@ CORD compile_lvalue(env_t *env, ast_t *ast)
         container_t = value_type(container_t);
         type_t *index_t = get_type(env, index->index);
         if (container_t->tag == ListType) {
-            CORD target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
+            Text_t target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
             type_t *item_type = Match(container_t, ListType)->item_type;
-            CORD index_code = index->index->tag == Int
+            Text_t index_code = index->index->tag == Int
                 ? compile_int_to_type(env, index->index, Type(IntType, .bits=TYPE_IBITS64))
-                : (index_t->tag == BigIntType ? CORD_all("Int64$from_int(", compile(env, index->index), ", no)")
-                   : CORD_all("(Int64_t)(", compile(env, index->index), ")"));
+                : (index_t->tag == BigIntType ? Texts("Int64$from_int(", compile(env, index->index), ", no)")
+                   : Texts("(Int64_t)(", compile(env, index->index), ")"));
             if (index->unchecked) {
-                return CORD_all("List_lvalue_unchecked(", compile_type(item_type), ", ", target_code, ", ", 
+                return Texts("List_lvalue_unchecked(", compile_type(item_type), ", ", target_code, ", ", 
                                 index_code, ")");
             } else {
-                return CORD_all("List_lvalue(", compile_type(item_type), ", ", target_code, ", ", 
+                return Texts("List_lvalue(", compile_type(item_type), ", ", target_code, ", ", 
                                 index_code,
                                 ", ", String((int)(ast->start - ast->file->text)),
                                 ", ", String((int)(ast->end - ast->file->text)), ")");
@@ -913,7 +919,7 @@ CORD compile_lvalue(env_t *env, ast_t *ast)
             DeclareMatch(table_type, container_t, TableType);
             if (table_type->default_value) {
                 type_t *value_type = get_type(env, table_type->default_value);
-                return CORD_all("*Table$get_or_setdefault(",
+                return Texts("*Table$get_or_setdefault(",
                                 compile_to_pointer_depth(env, index->indexed, 1, false), ", ",
                                 compile_type(table_type->key_type), ", ",
                                 compile_type(value_type), ", ",
@@ -923,7 +929,7 @@ CORD compile_lvalue(env_t *env, ast_t *ast)
             }
             if (index->unchecked)
                 code_err(ast, "Table indexes cannot be unchecked");
-            return CORD_all("*(", compile_type(Type(PointerType, table_type->value_type)), ")Table$reserve(",
+            return Texts("*(", compile_type(Type(PointerType, table_type->value_type)), ")Table$reserve(",
                             compile_to_pointer_depth(env, index->indexed, 1, false), ", ",
                             compile_to_type(env, index->index, Type(PointerType, table_type->key_type, .is_stack=true)), ", NULL,",
                             compile_type_info(container_t), ")");
@@ -935,109 +941,109 @@ CORD compile_lvalue(env_t *env, ast_t *ast)
     } else {
         code_err(ast, "I don't know how to assign to this");
     }
-    return CORD_EMPTY;
+    return EMPTY_TEXT;
 }
 
-static CORD compile_assignment(env_t *env, ast_t *target, CORD value)
+static Text_t compile_assignment(env_t *env, ast_t *target, Text_t value)
 {
-    return CORD_all(compile_lvalue(env, target), " = ", value);
+    return Texts(compile_lvalue(env, target), " = ", value);
 }
 
-static CORD compile_inline_block(env_t *env, ast_t *ast)
+static Text_t compile_inline_block(env_t *env, ast_t *ast)
 {
     if (ast->tag != Block)
         return compile_statement(env, ast);
 
-    CORD code = CORD_EMPTY;
+    Text_t code = EMPTY_TEXT;
     ast_list_t *stmts = Match(ast, Block)->statements;
     deferral_t *prev_deferred = env->deferred;
     env = fresh_scope(env);
     for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next)
         prebind_statement(env, stmt->ast);
     for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next) {
-        code = CORD_all(code, compile_statement(env, stmt->ast), "\n");
+        code = Texts(code, compile_statement(env, stmt->ast), "\n");
         bind_statement(env, stmt->ast);
     }
     for (deferral_t *deferred = env->deferred; deferred && deferred != prev_deferred; deferred = deferred->next) {
-        code = CORD_all(code, compile_statement(deferred->defer_env, deferred->block));
+        code = Texts(code, compile_statement(deferred->defer_env, deferred->block));
     }
     return code;
 }
 
-CORD optional_into_nonnone(type_t *t, CORD value)
+Text_t optional_into_nonnone(type_t *t, Text_t value)
 {
     if (t->tag == OptionalType) t = Match(t, OptionalType)->type;
     switch (t->tag) {
     case IntType: case ByteType:
-        return CORD_all(value, ".value");
+        return Texts(value, ".value");
     case StructType:
         if (t == PATH_TYPE || t == PATH_TYPE_TYPE)
             return value;
-        return CORD_all(value, ".value");
+        return Texts(value, ".value");
     default:
         return value;
     }
 }
 
-CORD check_none(type_t *t, CORD value)
+Text_t check_none(type_t *t, Text_t value)
 {
     t = Match(t, OptionalType)->type;
     // NOTE: these use statement expressions ({...;}) because some compilers
     // complain about excessive parens around equality comparisons
     if (t->tag == PointerType || t->tag == FunctionType || t->tag == CStringType)
-        return CORD_all("({", value, " == NULL;})");
+        return Texts("({", value, " == NULL;})");
     else if (t == PATH_TYPE)
-        return CORD_all("({(", value, ").type.$tag == PATH_NONE;})");
+        return Texts("({(", value, ").type.$tag == PATH_NONE;})");
     else if (t == PATH_TYPE_TYPE)
-        return CORD_all("({(", value, ").$tag == PATH_NONE;})");
+        return Texts("({(", value, ").$tag == PATH_NONE;})");
     else if (t->tag == BigIntType)
-        return CORD_all("({(", value, ").small == 0;})");
+        return Texts("({(", value, ").small == 0;})");
     else if (t->tag == ClosureType)
-        return CORD_all("({(", value, ").fn == NULL;})");
+        return Texts("({(", value, ").fn == NULL;})");
     else if (t->tag == NumType)
-        return CORD_all("isnan(", value, ")");
+        return Texts("isnan(", value, ")");
     else if (t->tag == ListType)
-        return CORD_all("({(", value, ").length < 0;})");
+        return Texts("({(", value, ").length < 0;})");
     else if (t->tag == TableType || t->tag == SetType)
-        return CORD_all("({(", value, ").entries.length < 0;})");
+        return Texts("({(", value, ").entries.length < 0;})");
     else if (t->tag == BoolType)
-        return CORD_all("({(", value, ") == NONE_BOOL;})");
+        return Texts("({(", value, ") == NONE_BOOL;})");
     else if (t->tag == TextType)
-        return CORD_all("({(", value, ").length < 0;})");
+        return Texts("({(", value, ").length < 0;})");
     else if (t->tag == IntType || t->tag == ByteType || t->tag == StructType)
-        return CORD_all("(", value, ").is_none");
+        return Texts("(", value, ").is_none");
     else if (t->tag == EnumType) {
         if (enum_has_fields(t))
-            return CORD_all("({(", value, ").$tag == 0;})");
+            return Texts("({(", value, ").$tag == 0;})");
         else
-            return CORD_all("((", value, ") == 0)");
+            return Texts("((", value, ") == 0)");
     }
     print_err("Optional check not implemented for: ", type_to_str(t));
-    return CORD_EMPTY;
+    return EMPTY_TEXT;
 }
 
-static CORD compile_condition(env_t *env, ast_t *ast)
+static Text_t compile_condition(env_t *env, ast_t *ast)
 {
     type_t *t = get_type(env, ast);
     if (t->tag == BoolType) {
         return compile(env, ast);
     } else if (t->tag == TextType) {
-        return CORD_all("(", compile(env, ast), ").length");
+        return Texts("(", compile(env, ast), ").length");
     } else if (t->tag == ListType) {
-        return CORD_all("(", compile(env, ast), ").length");
+        return Texts("(", compile(env, ast), ").length");
     } else if (t->tag == TableType || t->tag == SetType) {
-        return CORD_all("(", compile(env, ast), ").entries.length");
+        return Texts("(", compile(env, ast), ").entries.length");
     } else if (t->tag == OptionalType) {
-        return CORD_all("!", check_none(t, compile(env, ast)));
+        return Texts("!", check_none(t, compile(env, ast)));
     } else if (t->tag == PointerType) {
         code_err(ast, "This pointer will always be non-none, so it should not be used in a conditional.");
     } else {
         code_err(ast, type_to_str(t), " values cannot be used for conditionals");
     }
-    return CORD_EMPTY;
+    return EMPTY_TEXT;
 }
 
-static CORD _compile_statement(env_t *env, ast_t *ast)
+static Text_t _compile_statement(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
     case When: {
@@ -1049,43 +1055,43 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         type_t *subject_t = get_type(env, when->subject);
 
         if (subject_t->tag != EnumType) {
-            CORD prefix = CORD_EMPTY, suffix = CORD_EMPTY;
+            Text_t prefix = EMPTY_TEXT, suffix = EMPTY_TEXT;
             ast_t *subject = when->subject;
             if (!is_idempotent(when->subject)) {
-                prefix = CORD_all("{\n", compile_declaration(subject_t, "_when_subject"), " = ", compile(env, subject), ";\n");
-                suffix = "}\n";
-                subject = LiteralCode("_when_subject", .type=subject_t);
+                prefix = Texts("{\n", compile_declaration(subject_t, Text("_when_subject")), " = ", compile(env, subject), ";\n");
+                suffix = Text("}\n");
+                subject = LiteralCode(Text("_when_subject"), .type=subject_t);
             }
 
-            CORD code = CORD_EMPTY;
+            Text_t code = EMPTY_TEXT;
             for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
                 ast_t *comparison = WrapAST(clause->pattern, Equals, .lhs=subject, .rhs=clause->pattern);
                 (void)get_type(env, comparison);
-                if (code != CORD_EMPTY)
-                    code = CORD_all(code, "else ");
-                code = CORD_all(code, "if (", compile(env, comparison), ")", compile_statement(env, clause->body));
+                if (code.length > 0)
+                    code = Texts(code, "else ");
+                code = Texts(code, "if (", compile(env, comparison), ")", compile_statement(env, clause->body));
             }
             if (when->else_body)
-                code = CORD_all(code, "else ", compile_statement(env, when->else_body));
-            code = CORD_all(prefix, code, suffix);
+                code = Texts(code, "else ", compile_statement(env, when->else_body));
+            code = Texts(prefix, code, suffix);
             return code;
         }
 
         DeclareMatch(enum_t, subject_t, EnumType);
 
-        CORD code;
+        Text_t code;
         if (enum_has_fields(subject_t))
-            code = CORD_all("WHEN(", compile_type(subject_t), ", ", compile(env, when->subject), ", _when_subject, {\n");
+            code = Texts("WHEN(", compile_type(subject_t), ", ", compile(env, when->subject), ", _when_subject, {\n");
         else
-            code = CORD_all("switch(", compile(env, when->subject), ") {\n");
+            code = Texts("switch(", compile(env, when->subject), ") {\n");
 
         for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
             if (clause->pattern->tag == Var) {
                 const char *clause_tag_name = Match(clause->pattern, Var)->name;
                 type_t *clause_type = clause->body ? get_type(env, clause->body) : Type(VoidType);
-                code = CORD_all(code, "case ", namespace_name(enum_t->env, enum_t->env->namespace, CORD_all("tag$", clause_tag_name)), ": {\n",
+                code = Texts(code, "case ", namespace_name(enum_t->env, enum_t->env->namespace, Texts("tag$", clause_tag_name)), ": {\n",
                                 compile_inline_block(env, clause->body),
-                                (clause_type->tag == ReturnType || clause_type->tag == AbortType) ? CORD_EMPTY : "break;\n",
+                                (clause_type->tag == ReturnType || clause_type->tag == AbortType) ? EMPTY_TEXT : Text("break;\n"),
                                 "}\n");
                 continue;
             }
@@ -1094,7 +1100,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 code_err(clause->pattern, "This is not a valid pattern for a ", type_to_str(subject_t), " enum type");
 
             const char *clause_tag_name = Match(Match(clause->pattern, FunctionCall)->fn, Var)->name;
-            code = CORD_all(code, "case ", namespace_name(enum_t->env, enum_t->env->namespace, CORD_all("tag$", clause_tag_name)), ": {\n");
+            code = Texts(code, "case ", namespace_name(enum_t->env, enum_t->env->namespace, Texts("tag$", clause_tag_name)), ": {\n");
             type_t *tag_type = NULL;
             for (tag_t *tag = enum_t->tags; tag; tag = tag->next) {
                 if (streq(tag->name, clause_tag_name)) {
@@ -1112,10 +1118,10 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                     code_err(args->value, "This is not a valid variable to bind to");
                 const char *var_name = Match(args->value, Var)->name;
                 if (!streq(var_name, "_")) {
-                    CORD var = CORD_all("_$", var_name);
-                    code = CORD_all(code, compile_declaration(tag_type, var), " = _when_subject.", clause_tag_name, ";\n");
+                    Text_t var = Texts("_$", var_name);
+                    code = Texts(code, compile_declaration(tag_type, var), " = _when_subject.", clause_tag_name, ";\n");
                     scope = fresh_scope(scope);
-                    set_binding(scope, Match(args->value, Var)->name, tag_type, CORD_EMPTY);
+                    set_binding(scope, Match(args->value, Var)->name, tag_type, EMPTY_TEXT);
                 }
             } else if (args) {
                 scope = fresh_scope(scope);
@@ -1130,8 +1136,8 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
                     const char *var_name = Match(arg->value, Var)->name;
                     if (!streq(var_name, "_")) {
-                        CORD var = CORD_cat("_$", var_name);
-                        code = CORD_all(code, compile_declaration(field->type, var), " = _when_subject.", clause_tag_name, ".", field->name, ";\n");
+                        Text_t var = Texts("_$", var_name);
+                        code = Texts(code, compile_declaration(field->type, var), " = _when_subject.", clause_tag_name, ".", field->name, ";\n");
                         set_binding(scope, Match(arg->value, Var)->name, field->type, var);
                     }
                     field = field->next;
@@ -1140,27 +1146,27 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             if (clause->body->tag == Block) {
                 ast_list_t *statements = Match(clause->body, Block)->statements;
                 if (!statements || (statements->ast->tag == Pass && !statements->next))
-                    code = CORD_all(code, "break;\n}\n");
+                    code = Texts(code, "break;\n}\n");
                 else
-                    code = CORD_all(code, compile_inline_block(scope, clause->body), "\nbreak;\n}\n");
+                    code = Texts(code, compile_inline_block(scope, clause->body), "\nbreak;\n}\n");
             } else {
-                code = CORD_all(code, compile_statement(scope, clause->body), "\nbreak;\n}\n");
+                code = Texts(code, compile_statement(scope, clause->body), "\nbreak;\n}\n");
             }
         }
         if (when->else_body) {
             if (when->else_body->tag == Block) {
                 ast_list_t *statements = Match(when->else_body, Block)->statements;
                 if (!statements || (statements->ast->tag == Pass && !statements->next))
-                    code = CORD_all(code, "default: break;");
+                    code = Texts(code, "default: break;");
                 else
-                    code = CORD_all(code, "default: {\n", compile_inline_block(env, when->else_body), "\nbreak;\n}\n");
+                    code = Texts(code, "default: {\n", compile_inline_block(env, when->else_body), "\nbreak;\n}\n");
             } else {
-                code = CORD_all(code, "default: {\n", compile_statement(env, when->else_body), "\nbreak;\n}\n");
+                code = Texts(code, "default: {\n", compile_statement(env, when->else_body), "\nbreak;\n}\n");
             }
         } else {
-            code = CORD_all(code, "default: errx(1, \"Invalid tag!\");\n");
+            code = Texts(code, "default: errx(1, \"Invalid tag!\");\n");
         }
-        code = CORD_all(code, "\n}", enum_has_fields(subject_t) ? ")" : CORD_EMPTY, "\n");
+        code = Texts(code, "\n}", enum_has_fields(subject_t) ? Text(")") : EMPTY_TEXT, "\n");
         return code;
     }
     case DocTest: {
@@ -1169,16 +1175,16 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         if (!expr_t)
             code_err(test->expr, "I couldn't figure out the type of this expression");
 
-        CORD setup = CORD_EMPTY;
-        CORD test_code;
+        Text_t setup = EMPTY_TEXT;
+        Text_t test_code;
         if (test->expr->tag == Declare) {
             DeclareMatch(decl, test->expr, Declare);
             type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
             if (t->tag == FunctionType) t = Type(ClosureType, t);
-            CORD var = CORD_all("_$", Match(decl->var, Var)->name);
-            CORD val_code = compile_declared_value(env, test->expr);
-            setup = CORD_all(compile_declaration(t, var), ";\n");
-            test_code = CORD_all("(", var, " = ", val_code, ")");
+            Text_t var = Texts("_$", Match(decl->var, Var)->name);
+            Text_t val_code = compile_declared_value(env, test->expr);
+            setup = Texts(compile_declaration(t, var), ";\n");
+            test_code = Texts("(", var, " = ", val_code, ")");
             expr_t = t;
         } else if (test->expr->tag == Assign) {
             DeclareMatch(assign, test->expr, Assign);
@@ -1191,15 +1197,15 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 if (has_stack_memory(lhs_t))
                     code_err(test->expr, "Stack references cannot be assigned to variables because the variable's scope may outlive the scope of the stack memory.");
                 env_t *val_scope = with_enum_scope(env, lhs_t);
-                CORD value = compile_to_type(val_scope, assign->values->ast, lhs_t);
-                test_code = CORD_all("(", compile_assignment(env, assign->targets->ast, value), ")");
+                Text_t value = compile_to_type(val_scope, assign->values->ast, lhs_t);
+                test_code = Texts("(", compile_assignment(env, assign->targets->ast, value), ")");
                 expr_t = lhs_t;
             } else {
                 // Multi-assign or assignment to potentially non-idempotent targets
                 if (test->expected && assign->targets->next)
                     code_err(ast, "Sorry, but doctesting with '=' is not supported for multi-assignments");
 
-                test_code = "({ // Assignment\n";
+                test_code = Text("({ // Assignment\n");
 
                 int64_t i = 1;
                 for (ast_list_t *target = assign->targets, *value = assign->values; target && value; target = target->next, value = value->next) {
@@ -1212,17 +1218,17 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                     if (target == assign->targets)
                         expr_t = lhs_t;
                     env_t *val_scope = with_enum_scope(env, lhs_t);
-                    CORD val_code = compile_to_type(val_scope, value->ast, lhs_t);
-                    test_code = CORD_all(test_code, compile_type(lhs_t), " $", String(i), " = ", val_code, ";\n");
+                    Text_t val_code = compile_to_type(val_scope, value->ast, lhs_t);
+                    test_code = Texts(test_code, compile_type(lhs_t), " $", String(i), " = ", val_code, ";\n");
                     i += 1;
                 }
                 i = 1;
                 for (ast_list_t *target = assign->targets; target; target = target->next) {
-                    test_code = CORD_all(test_code, compile_assignment(env, target->ast, CORD_all("$", String(i))), ";\n");
+                    test_code = Texts(test_code, compile_assignment(env, target->ast, Texts("$", String(i))), ";\n");
                     i += 1;
                 }
 
-                test_code = CORD_all(test_code, "$1; })");
+                test_code = Texts(test_code, "$1; })");
             }
         } else if (is_update_assignment(test->expr)) {
             binary_operands_t update = UPDATE_OPERANDS(test->expr);
@@ -1235,18 +1241,18 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
             ast_t *update_var = new(ast_t);
             *update_var = *test->expr;
-            update_var->__data.PlusUpdate.lhs = LiteralCode("(*expr)", .type=lhs_t); // UNSAFE
-            test_code = CORD_all("({", 
-                compile_declaration(Type(PointerType, lhs_t), "expr"), " = &(", compile_lvalue(env, update.lhs), "); ",
+            update_var->__data.PlusUpdate.lhs = LiteralCode(Text("(*expr)"), .type=lhs_t); // UNSAFE
+            test_code = Texts("({", 
+                compile_declaration(Type(PointerType, lhs_t), Text("expr")), " = &(", compile_lvalue(env, update.lhs), "); ",
                 compile_statement(env, update_var), "; *expr; })");
             expr_t = lhs_t;
         } else if (expr_t->tag == VoidType || expr_t->tag == AbortType || expr_t->tag == ReturnType) {
-            test_code = CORD_all("({", compile_statement(env, test->expr), " NULL;})");
+            test_code = Texts("({", compile_statement(env, test->expr), " NULL;})");
         } else {
             test_code = compile(env, test->expr);
         }
         if (test->expected) {
-            return CORD_all(
+            return Texts(
                 setup,
                 "test(", compile_type(expr_t), ", ", test_code, ", ",
                 compile_to_type(env, test->expected, expr_t), ", ",
@@ -1255,13 +1261,13 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 String((int64_t)(test->expr->end - test->expr->file->text)), ");");
         } else {
             if (expr_t->tag == VoidType || expr_t->tag == AbortType) {
-                return CORD_all(
+                return Texts(
                     setup,
                     "inspect_void(", test_code, ", ", compile_type_info(expr_t), ", ",
                     String((int64_t)(test->expr->start - test->expr->file->text)), ", ",
                     String((int64_t)(test->expr->end - test->expr->file->text)), ");");
             }
-            return CORD_all(
+            return Texts(
                 setup,
                 "inspect(", compile_type(expr_t), ", ", test_code, ", ",
                 compile_type_info(expr_t), ", ",
@@ -1276,7 +1282,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         switch (expr->tag) {
         case And: {
             DeclareMatch(and_, ast, And);
-            return CORD_all(
+            return Texts(
                 compile_statement(env, WrapAST(ast, Assert, .expr=and_->lhs, .message=message)),
                 compile_statement(env, WrapAST(ast, Assert, .expr=and_->rhs, .message=message)));
         }
@@ -1303,39 +1309,39 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 code_err(ast, "I can't do comparisons between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
             }
 
-            ast_t *lhs_var = FakeAST(InlineCCode, .chunks=new(ast_list_t, .ast=FakeAST(TextLiteral, "_lhs")), .type=operand_t);
-            ast_t *rhs_var = FakeAST(InlineCCode, .chunks=new(ast_list_t, .ast=FakeAST(TextLiteral, "_rhs")), .type=operand_t);
+            ast_t *lhs_var = FakeAST(InlineCCode, .chunks=new(ast_list_t, .ast=FakeAST(TextLiteral, Text("_lhs"))), .type=operand_t);
+            ast_t *rhs_var = FakeAST(InlineCCode, .chunks=new(ast_list_t, .ast=FakeAST(TextLiteral, Text("_rhs"))), .type=operand_t);
             ast_t *var_comparison = new(ast_t, .file=expr->file, .start=expr->start, .end=expr->end, .tag=expr->tag,
                                         .__data.Equals={.lhs=lhs_var, .rhs=rhs_var});
             int64_t line = get_line_number(ast->file, ast->start);
-            return CORD_all("{ // assertion\n",
-                            compile_declaration(operand_t, "_lhs"), " = ", compile_to_type(env, cmp.lhs, operand_t), ";\n",
+            return Texts("{ // assertion\n",
+                            compile_declaration(operand_t, Text("_lhs")), " = ", compile_to_type(env, cmp.lhs, operand_t), ";\n",
                             "\n#line ", String(line), "\n",
-                            compile_declaration(operand_t, "_rhs"), " = ", compile_to_type(env, cmp.rhs, operand_t), ";\n",
+                            compile_declaration(operand_t, Text("_rhs")), " = ", compile_to_type(env, cmp.rhs, operand_t), ";\n",
                             "\n#line ", String(line), "\n",
                             "if (!(", compile_condition(env, var_comparison), "))\n",
                             "#line ", String(line), "\n",
-                                CORD_all(
-                                    "fail_source(", CORD_quoted(ast->file->filename), ", ",
+                                Texts(
+                                    "fail_source(", quoted_str(ast->file->filename), ", ",
                                     String((int64_t)(expr->start - expr->file->text)), ", ",
                                     String((int64_t)(expr->end - expr->file->text)), ", ", 
-                                    message ? CORD_all("Text$as_c_string(", compile_to_type(env, message, Type(TextType)), ")")
-                                        : "\"This assertion failed!\"", ", ",
-                                    "\" (\", ", expr_as_text("_lhs", operand_t, "no"), ", "
-                                    "\" ", failure, " \", ", expr_as_text("_rhs", operand_t, "no"), ", \")\");\n"),
+                                    message ? Texts("Text$as_c_string(", compile_to_type(env, message, Type(TextType)), ")")
+                                        : Text("\"This assertion failed!\""), ", ",
+                                    "\" (\", ", expr_as_text(Text("_lhs"), operand_t, Text("no")), ", "
+                                    "\" ", failure, " \", ", expr_as_text(Text("_rhs"), operand_t, Text("no")), ", \")\");\n"),
                             "}\n");
 
         }
         default: {
             int64_t line = get_line_number(ast->file, ast->start);
-            return CORD_all(
+            return Texts(
                 "if (!(", compile_condition(env, expr), "))\n",
                 "#line ", String(line), "\n",
-                "fail_source(", CORD_quoted(ast->file->filename), ", ",
+                "fail_source(", quoted_str(ast->file->filename), ", ",
                 String((int64_t)(expr->start - expr->file->text)), ", ", 
                 String((int64_t)(expr->end - expr->file->text)), ", ",
-                message ? CORD_all("Text$as_c_string(", compile_to_type(env, message, Type(TextType)), ")")
-                    : "\"This assertion failed!\"",
+                message ? Texts("Text$as_c_string(", compile_to_type(env, message, Type(TextType)), ")")
+                    : Text("\"This assertion failed!\""),
                 ");\n");
         }
         }
@@ -1345,17 +1351,17 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         const char *name = Match(decl->var, Var)->name;
         if (streq(name, "_")) { // Explicit discard
             if (decl->value)
-                return CORD_all("(void)", compile(env, decl->value), ";");
+                return Texts("(void)", compile(env, decl->value), ";");
             else
-                return CORD_EMPTY;
+                return EMPTY_TEXT;
         } else {
             type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
             if (t->tag == FunctionType) t = Type(ClosureType, t);
             if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
                 code_err(ast, "You can't declare a variable with a ", type_to_str(t), " value");
 
-            CORD val_code = compile_declared_value(env, ast);
-            return CORD_all(compile_declaration(t, CORD_cat("_$", name)), " = ", val_code, ";");
+            Text_t val_code = compile_declared_value(env, ast);
+            return Texts(compile_declaration(t, Texts("_$", name)), " = ", val_code, ";");
         }
     }
     case Assign: {
@@ -1369,11 +1375,11 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             if (has_stack_memory(lhs_t))
                 code_err(ast, "Stack references cannot be assigned to variables because the variable's scope may outlive the scope of the stack memory.");
             env_t *val_env = with_enum_scope(env, lhs_t);
-            CORD val = compile_to_type(val_env, assign->values->ast, lhs_t);
-            return CORD_all(compile_assignment(env, assign->targets->ast, val), ";\n");
+            Text_t val = compile_to_type(val_env, assign->values->ast, lhs_t);
+            return Texts(compile_assignment(env, assign->targets->ast, val), ";\n");
         }
 
-        CORD code = "{ // Assignment\n";
+        Text_t code = Text("{ // Assignment\n");
         int64_t i = 1;
         for (ast_list_t *value = assign->values, *target = assign->targets; value && target; value = value->next, target = target->next) {
             type_t *lhs_t = get_type(env, target->ast);
@@ -1383,50 +1389,50 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             if (has_stack_memory(lhs_t))
                 code_err(ast, "Stack references cannot be assigned to variables because the variable's scope may outlive the scope of the stack memory.");
             env_t *val_env = with_enum_scope(env, lhs_t);
-            CORD val = compile_to_type(val_env, value->ast, lhs_t);
-            code = CORD_all(code, compile_type(lhs_t), " $", String(i), " = ", val, ";\n");
+            Text_t val = compile_to_type(val_env, value->ast, lhs_t);
+            code = Texts(code, compile_type(lhs_t), " $", String(i), " = ", val, ";\n");
             i += 1;
         }
         i = 1;
         for (ast_list_t *target = assign->targets; target; target = target->next) {
-            code = CORD_all(code, compile_assignment(env, target->ast, CORD_all("$", String(i))), ";\n");
+            code = Texts(code, compile_assignment(env, target->ast, Texts("$", String(i))), ";\n");
             i += 1;
         }
-        return CORD_cat(code, "\n}");
+        return Texts(code, "\n}");
     }
     case PlusUpdate: {
         DeclareMatch(update, ast, PlusUpdate);
         type_t *lhs_t = get_type(env, update->lhs);
         if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
-            return CORD_all(compile_lvalue(env, update->lhs), " += ", compile_to_type(env, update->rhs, lhs_t), ";");
+            return Texts(compile_lvalue(env, update->lhs), " += ", compile_to_type(env, update->rhs, lhs_t), ";");
         return compile_update_assignment(env, ast);
     }
     case MinusUpdate: {
         DeclareMatch(update, ast, MinusUpdate);
         type_t *lhs_t = get_type(env, update->lhs);
         if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
-            return CORD_all(compile_lvalue(env, update->lhs), " -= ", compile_to_type(env, update->rhs, lhs_t), ";");
+            return Texts(compile_lvalue(env, update->lhs), " -= ", compile_to_type(env, update->rhs, lhs_t), ";");
         return compile_update_assignment(env, ast);
     }
     case MultiplyUpdate: {
         DeclareMatch(update, ast, MultiplyUpdate);
         type_t *lhs_t = get_type(env, update->lhs);
         if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
-            return CORD_all(compile_lvalue(env, update->lhs), " *= ", compile_to_type(env, update->rhs, lhs_t), ";");
+            return Texts(compile_lvalue(env, update->lhs), " *= ", compile_to_type(env, update->rhs, lhs_t), ";");
         return compile_update_assignment(env, ast);
     }
     case DivideUpdate: {
         DeclareMatch(update, ast, DivideUpdate);
         type_t *lhs_t = get_type(env, update->lhs);
         if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
-            return CORD_all(compile_lvalue(env, update->lhs), " /= ", compile_to_type(env, update->rhs, lhs_t), ";");
+            return Texts(compile_lvalue(env, update->lhs), " /= ", compile_to_type(env, update->rhs, lhs_t), ";");
         return compile_update_assignment(env, ast);
     }
     case ModUpdate: {
         DeclareMatch(update, ast, ModUpdate);
         type_t *lhs_t = get_type(env, update->lhs);
         if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
-            return CORD_all(compile_lvalue(env, update->lhs), " %= ", compile_to_type(env, update->rhs, lhs_t), ";");
+            return Texts(compile_lvalue(env, update->lhs), " %= ", compile_to_type(env, update->rhs, lhs_t), ";");
         return compile_update_assignment(env, ast);
     }
     case PowerUpdate: case Mod1Update: case ConcatUpdate: case LeftShiftUpdate: case UnsignedLeftShiftUpdate:
@@ -1434,28 +1440,28 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         return compile_update_assignment(env, ast);
     }
     case StructDef: case EnumDef: case LangDef: case Extend: case FunctionDef: case ConvertDef: {
-        return CORD_EMPTY;
+        return EMPTY_TEXT;
     }
     case Skip: {
         const char *target = Match(ast, Skip)->target;
         for (loop_ctx_t *ctx = env->loop_ctx; ctx; ctx = ctx->next) {
-            bool matched = !target || CORD_cmp(target, ctx->loop_name) == 0;
+            bool matched = !target || strcmp(target, ctx->loop_name) == 0;
             for (ast_list_t *var = ctx->loop_vars; var && !matched; var = var ? var->next : NULL)
-                matched = (CORD_cmp(target, Match(var->ast, Var)->name) == 0);
+                matched = (strcmp(target, Match(var->ast, Var)->name) == 0);
 
             if (matched) {
-                if (!ctx->skip_label) {
+                if (ctx->skip_label.length == 0) {
                     static int64_t skip_label_count = 1;
-                    ctx->skip_label = CORD_all("skip_", String(skip_label_count));
+                    ctx->skip_label = Texts("skip_", String(skip_label_count));
                     ++skip_label_count;
                 }
-                CORD code = CORD_EMPTY;
+                Text_t code = EMPTY_TEXT;
                 for (deferral_t *deferred = env->deferred; deferred && deferred != ctx->deferred; deferred = deferred->next)
-                    code = CORD_all(code, compile_statement(deferred->defer_env, deferred->block));
-                if (code)
-                    return CORD_all("{\n", code, "goto ", ctx->skip_label, ";\n}\n");
+                    code = Texts(code, compile_statement(deferred->defer_env, deferred->block));
+                if (code.length > 0)
+                    return Texts("{\n", code, "goto ", ctx->skip_label, ";\n}\n");
                 else
-                    return CORD_all("goto ", ctx->skip_label, ";");
+                    return Texts("goto ", ctx->skip_label, ";");
             }
         }
         if (env->loop_ctx)
@@ -1463,28 +1469,28 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         else if (target)
             code_err(ast, "No loop target named '", target, "' was found");
         else
-            return "continue;";
+            return Text("continue;");
     }
     case Stop: {
         const char *target = Match(ast, Stop)->target;
         for (loop_ctx_t *ctx = env->loop_ctx; ctx; ctx = ctx->next) {
-            bool matched = !target || CORD_cmp(target, ctx->loop_name) == 0;
+            bool matched = !target || strcmp(target, ctx->loop_name) == 0;
             for (ast_list_t *var = ctx->loop_vars; var && !matched; var = var ? var->next : var)
-                matched = (CORD_cmp(target, Match(var->ast, Var)->name) == 0);
+                matched = (strcmp(target, Match(var->ast, Var)->name) == 0);
 
             if (matched) {
-                if (!ctx->stop_label) {
+                if (ctx->stop_label.length == 0) {
                     static int64_t stop_label_count = 1;
-                    ctx->stop_label = CORD_all("stop_", String(stop_label_count));
+                    ctx->stop_label = Texts("stop_", String(stop_label_count));
                     ++stop_label_count;
                 }
-                CORD code = CORD_EMPTY;
+                Text_t code = EMPTY_TEXT;
                 for (deferral_t *deferred = env->deferred; deferred && deferred != ctx->deferred; deferred = deferred->next)
-                    code = CORD_all(code, compile_statement(deferred->defer_env, deferred->block));
-                if (code)
-                    return CORD_all("{\n", code, "goto ", ctx->stop_label, ";\n}\n");
+                    code = Texts(code, compile_statement(deferred->defer_env, deferred->block));
+                if (code.length > 0)
+                    return Texts("{\n", code, "goto ", ctx->stop_label, ";\n}\n");
                 else
-                    return CORD_all("goto ", ctx->stop_label, ";");
+                    return Texts("goto ", ctx->stop_label, ";");
             }
         }
         if (env->loop_ctx)
@@ -1492,26 +1498,26 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         else if (target)
             code_err(ast, "No loop target named '", target, "' was found");
         else
-            return "break;";
+            return Text("break;");
     }
-    case Pass: return ";";
+    case Pass: return Text(";");
     case Defer: {
         ast_t *body = Match(ast, Defer)->body;
         Table_t closed_vars = get_closed_vars(env, NULL, body);
 
         static int defer_id = 0;
         env_t *defer_env = fresh_scope(env);
-        CORD code = CORD_EMPTY;
+        Text_t code = EMPTY_TEXT;
         for (int64_t i = 0; i < closed_vars.entries.length; i++) {
             struct { const char *name; binding_t *b; } *entry = closed_vars.entries.data + closed_vars.entries.stride*i;
             if (entry->b->type->tag == ModuleType)
                 continue;
-            if (CORD_ncmp(entry->b->code, 0, "userdata->", 0, strlen("userdata->")) == 0) {
+            if (Text$starts_with(entry->b->code, Text("userdata->"))) {
                 Table$str_set(defer_env->locals, entry->name, entry->b);
             } else {
-                CORD defer_name = CORD_all("defer$", String(++defer_id), "$", entry->name);
+                Text_t defer_name = Texts("defer$", String(++defer_id), "$", entry->name);
                 defer_id += 1;
-                code = CORD_all(
+                code = Texts(
                     code, compile_declaration(entry->b->type, defer_name), " = ", entry->b->code, ";\n");
                 set_binding(defer_env, entry->name, entry->b->type, defer_name);
             }
@@ -1523,9 +1529,9 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         if (!env->fn_ret) code_err(ast, "This return statement is not inside any function");
         ast_t *ret = Match(ast, Return)->value;
 
-        CORD code = CORD_EMPTY;
+        Text_t code = EMPTY_TEXT;
         for (deferral_t *deferred = env->deferred; deferred; deferred = deferred->next) {
-            code = CORD_all(code, compile_statement(deferred->defer_env, deferred->block));
+            code = Texts(code, compile_statement(deferred->defer_env, deferred->block));
         }
 
         if (ret) {
@@ -1533,17 +1539,17 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 code_err(ast, "This function is not supposed to return any values, according to its type signature");
 
             env = with_enum_scope(env, env->fn_ret);
-            CORD value = compile_to_type(env, ret, env->fn_ret);
+            Text_t value = compile_to_type(env, ret, env->fn_ret);
             if (env->deferred) {
-                code = CORD_all(compile_declaration(env->fn_ret, "ret"), " = ", value, ";\n", code);
-                value = "ret";
+                code = Texts(compile_declaration(env->fn_ret, Text("ret")), " = ", value, ";\n", code);
+                value = Text("ret");
             }
 
-            return CORD_all(code, "return ", value, ";");
+            return Texts(code, "return ", value, ";");
         } else {
             if (env->fn_ret->tag != VoidType)
                 code_err(ast, "This function expects you to return a ", type_to_str(env->fn_ret), " value");
-            return CORD_all(code, "return;");
+            return Texts(code, "return;");
         }
     }
     case While: {
@@ -1555,12 +1561,12 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             .next=env->loop_ctx,
         };
         scope->loop_ctx = &loop_ctx;
-        CORD body = compile_statement(scope, while_->body);
-        if (loop_ctx.skip_label)
-            body = CORD_all(body, "\n", loop_ctx.skip_label, ": continue;");
-        CORD loop = CORD_all("while (", while_->condition ? compile(scope, while_->condition) : "yes", ") {\n\t", body, "\n}");
-        if (loop_ctx.stop_label)
-            loop = CORD_all(loop, "\n", loop_ctx.stop_label, ":;");
+        Text_t body = compile_statement(scope, while_->body);
+        if (loop_ctx.skip_label.length > 0)
+            body = Texts(body, "\n", loop_ctx.skip_label, ": continue;");
+        Text_t loop = Texts("while (", while_->condition ? compile(scope, while_->condition) : Text("yes"), ") {\n\t", body, "\n}");
+        if (loop_ctx.stop_label.length > 0)
+            loop = Texts(loop, "\n", loop_ctx.stop_label, ":;");
         return loop;
     }
     case Repeat: {
@@ -1572,12 +1578,12 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             .next=env->loop_ctx,
         };
         scope->loop_ctx = &loop_ctx;
-        CORD body_code = compile_statement(scope, body);
-        if (loop_ctx.skip_label)
-            body_code = CORD_all(body_code, "\n", loop_ctx.skip_label, ": continue;");
-        CORD loop = CORD_all("for (;;) {\n\t", body_code, "\n}");
-        if (loop_ctx.stop_label)
-            loop = CORD_all(loop, "\n", loop_ctx.stop_label, ":;");
+        Text_t body_code = compile_statement(scope, body);
+        if (loop_ctx.skip_label.length > 0)
+            body_code = Texts(body_code, "\n", loop_ctx.skip_label, ": continue;");
+        Text_t loop = Texts("for (;;) {\n\t", body_code, "\n}");
+        if (loop_ctx.stop_label.length > 0)
+            loop = Texts(loop, "\n", loop_ctx.stop_label, ":;");
         return loop;
     }
     case For: {
@@ -1615,10 +1621,10 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         };
         body_scope->loop_ctx = &loop_ctx;
         // Naked means no enclosing braces:
-        CORD naked_body = compile_inline_block(body_scope, for_->body);
-        if (loop_ctx.skip_label)
-            naked_body = CORD_all(naked_body, "\n", loop_ctx.skip_label, ": continue;");
-        CORD stop = loop_ctx.stop_label ? CORD_all("\n", loop_ctx.stop_label, ":;") : CORD_EMPTY;
+        Text_t naked_body = compile_inline_block(body_scope, for_->body);
+        if (loop_ctx.skip_label.length > 0)
+            naked_body = Texts(naked_body, "\n", loop_ctx.skip_label, ": continue;");
+        Text_t stop = loop_ctx.stop_label.length > 0 ? Texts("\n", loop_ctx.stop_label, ":;") : EMPTY_TEXT;
 
         // Special case for improving performance for numeric iteration:
         if (for_->iter->tag == MethodCall && streq(Match(for_->iter, MethodCall)->name, "to") &&
@@ -1630,7 +1636,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             type_t *int_type = get_type(env, Match(for_->iter, MethodCall)->self);
             type_t *step_type = int_type->tag == ByteType ? Type(IntType, .bits=TYPE_IBITS8) : int_type;
 
-            CORD last = CORD_EMPTY, step = CORD_EMPTY, optional_step = CORD_EMPTY;
+            Text_t last = EMPTY_TEXT, step = EMPTY_TEXT, optional_step = EMPTY_TEXT;
             if (!args->name || streq(args->name, "last")) {
                 last = compile_to_type(env, args->value, int_type);
                 if (args->next) {
@@ -1653,17 +1659,17 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 }
             }
 
-            if (!last)
+            if (last.length == 0)
                 code_err(for_->iter, "No `last` argument was given");
             
-            CORD type_code = compile_type(int_type);
-            CORD value = for_->vars ? compile(body_scope, for_->vars->ast) : "i";
+            Text_t type_code = compile_type(int_type);
+            Text_t value = for_->vars ? compile(body_scope, for_->vars->ast) : Text("i");
             if (int_type->tag == BigIntType) {
-                if (optional_step)
-                    step = CORD_all("({ OptionalInt_t maybe_step = ", optional_step, "; maybe_step->small == 0 ? (Int$compare_value(last, first) >= 0 ? I_small(1) : I_small(-1)) : (Int_t)maybe_step; })");
-                else if (!step)
-                    step = "Int$compare_value(last, first) >= 0 ? I_small(1) : I_small(-1)";
-                return CORD_all(
+                if (optional_step.length > 0)
+                    step = Texts("({ OptionalInt_t maybe_step = ", optional_step, "; maybe_step->small == 0 ? (Int$compare_value(last, first) >= 0 ? I_small(1) : I_small(-1)) : (Int_t)maybe_step; })");
+                else if (step.length == 0)
+                    step = Text("Int$compare_value(last, first) >= 0 ? I_small(1) : I_small(-1)");
+                return Texts(
                     "for (", type_code, " first = ", compile(env, Match(for_->iter, MethodCall)->self), ", ",
                     value, " = first, last = ", last, ", step = ", step, "; "
                     "Int$compare_value(", value, ", last) != Int$compare_value(step, I_small(0)); ",
@@ -1672,12 +1678,12 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                     "}",
                     stop);
             } else {
-                if (optional_step)
-                    step = CORD_all("({ ", compile_type(Type(OptionalType, step_type)), " maybe_step = ", optional_step, "; "
+                if (optional_step.length > 0)
+                    step = Texts("({ ", compile_type(Type(OptionalType, step_type)), " maybe_step = ", optional_step, "; "
                                     "maybe_step.is_none ? (", type_code, ")(last >= first ? 1 : -1) : maybe_step.value; })");
-                else if (!step)
-                    step = CORD_all("(", type_code, ")(last >= first ? 1 : -1)");
-                return CORD_all(
+                else if (step.length == 0)
+                    step = Texts("(", type_code, ")(last >= first ? 1 : -1)");
+                return Texts(
                     "for (", type_code, " first = ", compile(env, Match(for_->iter, MethodCall)->self), ", ",
                     value, " = first, last = ", last, ", step = ", step, "; "
                     "step > 0 ? ", value, " <= last : ", value, " >= last; ",
@@ -1691,9 +1697,9 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             // Special case for Int.onward()
             arg_ast_t *args = Match(for_->iter, MethodCall)->args;
             arg_t *arg_spec = new(arg_t, .name="step", .type=INT_TYPE, .default_val=FakeAST(Int, .str="1"), .next=NULL);
-            CORD step = compile_arguments(env, for_->iter, arg_spec, args);
-            CORD value = for_->vars ? compile(body_scope, for_->vars->ast) : "i";
-            return CORD_all(
+            Text_t step = compile_arguments(env, for_->iter, arg_spec, args);
+            Text_t value = for_->vars ? compile(body_scope, for_->vars->ast) : Text("i");
+            return Texts(
                 "for (Int_t ", value, " = ", compile(env, Match(for_->iter, MethodCall)->self), ", ",
                 "step = ", step, "; ; ", value, " = Int$plus(", value, ", step)) {\n"
                 "\t", naked_body,
@@ -1707,8 +1713,8 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         switch (iter_value_t->tag) {
         case ListType: {
             type_t *item_t = Match(iter_value_t, ListType)->item_type;
-            CORD index = CORD_EMPTY;
-            CORD value = CORD_EMPTY;
+            Text_t index = EMPTY_TEXT;
+            Text_t value = EMPTY_TEXT;
             if (for_->vars) {
                 if (for_->vars->next) {
                     if (for_->vars->next->next)
@@ -1721,26 +1727,26 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 }
             }
 
-            CORD loop = CORD_EMPTY;
-            loop = CORD_all(loop, "for (int64_t i = 1; i <= iterating.length; ++i)");
+            Text_t loop = EMPTY_TEXT;
+            loop = Texts(loop, "for (int64_t i = 1; i <= iterating.length; ++i)");
 
-            if (index != CORD_EMPTY)
-                naked_body = CORD_all("Int_t ", index, " = I(i);\n", naked_body);
+            if (index.length > 0)
+                naked_body = Texts("Int_t ", index, " = I(i);\n", naked_body);
 
-            if (value != CORD_EMPTY) {
-                loop = CORD_all(loop, "{\n",
+            if (value.length > 0) {
+                loop = Texts(loop, "{\n",
                                 compile_declaration(item_t, value),
                                 " = *(", compile_type(item_t), "*)(iterating.data + (i-1)*iterating.stride);\n",
                                 naked_body, "\n}");
             } else {
-                loop = CORD_all(loop, "{\n", naked_body, "\n}");
+                loop = Texts(loop, "{\n", naked_body, "\n}");
             }
 
             if (for_->empty)
-                loop = CORD_all("if (iterating.length > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
+                loop = Texts("if (iterating.length > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
 
             if (iter_t->tag == PointerType) {
-                loop = CORD_all("{\n"
+                loop = Texts("{\n"
                                 "List_t *ptr = ", compile_to_pointer_depth(env, for_->iter, 1, false), ";\n"
                                 "\nLIST_INCREF(*ptr);\n"
                                 "List_t iterating = *ptr;\n",
@@ -1750,7 +1756,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                                 "}\n");
 
             } else {
-                loop = CORD_all("{\n"
+                loop = Texts("{\n"
                                 "List_t iterating = ", compile_to_pointer_depth(env, for_->iter, 0, false), ";\n",
                                 loop, 
                                 stop,
@@ -1759,19 +1765,19 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             return loop;
         }
         case SetType: case TableType: {
-            CORD loop = "for (int64_t i = 0; i < iterating.length; ++i) {\n";
+            Text_t loop = Text("for (int64_t i = 0; i < iterating.length; ++i) {\n");
             if (for_->vars) {
                 if (iter_value_t->tag == SetType) {
                     if (for_->vars->next)
                         code_err(for_->vars->next->ast, "This is too many variables for this loop");
-                    CORD item = compile(body_scope, for_->vars->ast);
+                    Text_t item = compile(body_scope, for_->vars->ast);
                     type_t *item_type = Match(iter_value_t, SetType)->item_type;
-                    loop = CORD_all(loop, compile_declaration(item_type, item), " = *(", compile_type(item_type), "*)(",
+                    loop = Texts(loop, compile_declaration(item_type, item), " = *(", compile_type(item_type), "*)(",
                                     "iterating.data + i*iterating.stride);\n");
                 } else {
-                    CORD key = compile(body_scope, for_->vars->ast);
+                    Text_t key = compile(body_scope, for_->vars->ast);
                     type_t *key_t = Match(iter_value_t, TableType)->key_type;
-                    loop = CORD_all(loop, compile_declaration(key_t, key), " = *(", compile_type(key_t), "*)(",
+                    loop = Texts(loop, compile_declaration(key_t, key), " = *(", compile_type(key_t), "*)(",
                                     "iterating.data + i*iterating.stride);\n");
 
                     if (for_->vars->next) {
@@ -1779,22 +1785,22 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                             code_err(for_->vars->next->next->ast, "This is too many variables for this loop");
 
                         type_t *value_t = Match(iter_value_t, TableType)->value_type;
-                        CORD value = compile(body_scope, for_->vars->next->ast);
-                        CORD value_offset = CORD_all("offsetof(struct { ", compile_declaration(key_t, "k"), "; ", compile_declaration(value_t, "v"), "; }, v)");
-                        loop = CORD_all(loop, compile_declaration(value_t, value), " = *(", compile_type(value_t), "*)(",
+                        Text_t value = compile(body_scope, for_->vars->next->ast);
+                        Text_t value_offset = Texts("offsetof(struct { ", compile_declaration(key_t, Text("k")), "; ", compile_declaration(value_t, Text("v")), "; }, v)");
+                        loop = Texts(loop, compile_declaration(value_t, value), " = *(", compile_type(value_t), "*)(",
                                         "iterating.data + i*iterating.stride + ", value_offset, ");\n");
                     }
                 }
             }
 
-            loop = CORD_all(loop, naked_body, "\n}");
+            loop = Texts(loop, naked_body, "\n}");
 
             if (for_->empty) {
-                loop = CORD_all("if (iterating.length > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
+                loop = Texts("if (iterating.length > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
             }
 
             if (iter_t->tag == PointerType) {
-                loop = CORD_all(
+                loop = Texts(
                     "{\n",
                     "Table_t *t = ", compile_to_pointer_depth(env, for_->iter, 1, false), ";\n"
                     "LIST_INCREF(t->entries);\n"
@@ -1803,7 +1809,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                     "LIST_DECREF(t->entries);\n"
                     "}\n");
             } else {
-                loop = CORD_all(
+                loop = Texts(
                     "{\n",
                     "List_t iterating = (", compile_to_pointer_depth(env, for_->iter, 0, false), ").entries;\n",
                     loop,
@@ -1812,7 +1818,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             return loop;
         }
         case BigIntType: {
-            CORD n;
+            Text_t n;
             if (for_->iter->tag == Int) {
                 const char *str = Match(for_->iter, Int)->str;
                 Int_t int_val = Int$from_str(str);
@@ -1821,7 +1827,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 mpz_t i;
                 mpz_init_set_int(i, int_val);
                 if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0)
-                    n = mpz_get_str(NULL, 10, i);
+                    n = Text$from_str(mpz_get_str(NULL, 10, i));
                 else
                     goto big_n;
 
@@ -1829,9 +1835,9 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                 if (for_->empty && mpz_cmp_si(i, 0) <= 0) {
                     return compile_statement(env, for_->empty);
                 } else {
-                    return CORD_all(
+                    return Texts(
                         "for (int64_t i = 1; i <= ", n, "; ++i) {\n",
-                        for_->vars ? CORD_all("\tInt_t ", compile(body_scope, for_->vars->ast), " = I_small(i);\n") : CORD_EMPTY,
+                        for_->vars ? Texts("\tInt_t ", compile(body_scope, for_->vars->ast), " = I_small(i);\n") : EMPTY_TEXT,
                         "\t", naked_body,
                         "}\n",
                         stop, "\n");
@@ -1840,10 +1846,10 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
 
           big_n:
             n = compile_to_pointer_depth(env, for_->iter, 0, false);
-            CORD i = for_->vars ? compile(body_scope, for_->vars->ast) : "i";
-            CORD n_var = for_->vars ? CORD_all("max", i) : "n";
+            Text_t i = for_->vars ? compile(body_scope, for_->vars->ast) : Text("i");
+            Text_t n_var = for_->vars ? Texts("max", i) : Text("n");
             if (for_->empty) {
-                return CORD_all(
+                return Texts(
                     "{\n"
                     "Int_t ", n_var, " = ", n, ";\n"
                     "if (Int$compare_value(", n_var, ", I(0)) > 0) {\n"
@@ -1854,7 +1860,7 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                     stop, "\n"
                     "}\n");
             } else {
-                return CORD_all(
+                return Texts(
                     "for (Int_t ", i, " = I(1), ", n_var, " = ", n, "; Int$compare_value(", i, ", ", n_var, ") <= 0; ", i, " = Int$plus(", i, ", I(1))) {\n",
                     "\t", naked_body,
                     "}\n",
@@ -1863,19 +1869,19 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         }
         case FunctionType: case ClosureType: {
             // Iterator function:
-            CORD code = "{\n";
+            Text_t code = Text("{\n");
 
-            CORD next_fn;
+            Text_t next_fn;
             if (is_idempotent(for_->iter)) {
                 next_fn = compile_to_pointer_depth(env, for_->iter, 0, false);
             } else {
-                code = CORD_all(code, compile_declaration(iter_value_t, "next"), " = ", compile_to_pointer_depth(env, for_->iter, 0, false), ";\n");
-                next_fn = "next";
+                code = Texts(code, compile_declaration(iter_value_t, Text("next")), " = ", compile_to_pointer_depth(env, for_->iter, 0, false), ";\n");
+                next_fn = Text("next");
             }
 
             __typeof(iter_value_t->__data.FunctionType) *fn = iter_value_t->tag == ClosureType ? Match(Match(iter_value_t, ClosureType)->fn, FunctionType) : Match(iter_value_t, FunctionType);
 
-            CORD get_next;
+            Text_t get_next;
             if (iter_value_t->tag == ClosureType) {
                 type_t *fn_t = Match(iter_value_t, ClosureType)->fn;
                 arg_t *closure_fn_args = NULL;
@@ -1883,40 +1889,40 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                     closure_fn_args = new(arg_t, .name=arg->name, .type=arg->type, .default_val=arg->default_val, .next=closure_fn_args);
                 closure_fn_args = new(arg_t, .name="userdata", .type=Type(PointerType, .pointed=Type(MemoryType)), .next=closure_fn_args);
                 REVERSE_LIST(closure_fn_args);
-                CORD fn_type_code = compile_type(Type(FunctionType, .args=closure_fn_args, .ret=Match(fn_t, FunctionType)->ret));
-                get_next = CORD_all("((", fn_type_code, ")", next_fn, ".fn)(", next_fn, ".userdata)");
+                Text_t fn_type_code = compile_type(Type(FunctionType, .args=closure_fn_args, .ret=Match(fn_t, FunctionType)->ret));
+                get_next = Texts("((", fn_type_code, ")", next_fn, ".fn)(", next_fn, ".userdata)");
             } else {
-                get_next = CORD_all(next_fn, "()");
+                get_next = Texts(next_fn, "()");
             }
 
             if (fn->ret->tag == OptionalType) {
                 // Use an optional variable `cur` for each iteration step, which will be checked for none
-                code = CORD_all(code, compile_declaration(fn->ret, "cur"), ";\n");
-                get_next = CORD_all("(cur=", get_next, ", !", check_none(fn->ret, "cur"), ")");
+                code = Texts(code, compile_declaration(fn->ret, Text("cur")), ";\n");
+                get_next = Texts("(cur=", get_next, ", !", check_none(fn->ret, Text("cur")), ")");
                 if (for_->vars) {
-                    naked_body = CORD_all(
-                        compile_declaration(Match(fn->ret, OptionalType)->type, CORD_all("_$", Match(for_->vars->ast, Var)->name)),
-                        " = ", optional_into_nonnone(fn->ret, "cur"), ";\n",
+                    naked_body = Texts(
+                        compile_declaration(Match(fn->ret, OptionalType)->type, Texts("_$", Match(for_->vars->ast, Var)->name)),
+                        " = ", optional_into_nonnone(fn->ret, Text("cur")), ";\n",
                         naked_body);
                 }
                 if (for_->empty) {
-                    code = CORD_all(code, "if (", get_next, ") {\n"
+                    code = Texts(code, "if (", get_next, ") {\n"
                                     "\tdo{\n\t\t", naked_body, "\t} while(", get_next, ");\n"
                                     "} else {\n\t", compile_statement(env, for_->empty), "}", stop, "\n}\n");
                 } else {
-                    code = CORD_all(code, "while(", get_next, ") {\n\t", naked_body, "}\n", stop, "\n}\n");
+                    code = Texts(code, "while(", get_next, ") {\n\t", naked_body, "}\n", stop, "\n}\n");
                 }
             } else {
                 if (for_->vars) {
-                    naked_body = CORD_all(
-                        compile_declaration(fn->ret, CORD_all("_$", Match(for_->vars->ast, Var)->name)),
+                    naked_body = Texts(
+                        compile_declaration(fn->ret, Texts("_$", Match(for_->vars->ast, Var)->name)),
                         " = ", get_next, ";\n", naked_body);
                 } else {
-                    naked_body = CORD_all(get_next, ";\n", naked_body);
+                    naked_body = Texts(get_next, ";\n", naked_body);
                 }
                 if (for_->empty)
                     code_err(for_->empty, "This iteration loop will always have values, so this block will never run");
-                code = CORD_all(code, "for (;;) {\n\t", naked_body, "}\n", stop, "\n}\n");
+                code = Texts(code, "for (;;) {\n\t", naked_body, "}\n", stop, "\n}\n");
             }
 
             return code;
@@ -1931,22 +1937,22 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             if (Match(condition, Declare)->value == NULL)
                 code_err(condition, "This declaration must have a value");
             env_t *truthy_scope = fresh_scope(env);
-            CORD code = CORD_all("IF_DECLARE(", compile_statement(truthy_scope, condition), ", ");
+            Text_t code = Texts("IF_DECLARE(", compile_statement(truthy_scope, condition), ", ");
             bind_statement(truthy_scope, condition);
             ast_t *var = Match(condition, Declare)->var;
-            code = CORD_all(code, compile_condition(truthy_scope, var), ", ");
+            code = Texts(code, compile_condition(truthy_scope, var), ", ");
             type_t *cond_t = get_type(truthy_scope, var);
             if (cond_t->tag == OptionalType) {
                 set_binding(truthy_scope, Match(var, Var)->name,
                             Match(cond_t, OptionalType)->type,
                             optional_into_nonnone(cond_t, compile(truthy_scope, var)));
             }
-            code = CORD_all(code, compile_statement(truthy_scope, if_->body), ")");
+            code = Texts(code, compile_statement(truthy_scope, if_->body), ")");
             if (if_->else_body)
-                code = CORD_all(code, "\nelse ", compile_statement(env, if_->else_body));
+                code = Texts(code, "\nelse ", compile_statement(env, if_->else_body));
             return code;
         } else {
-            CORD code = CORD_all("if (", compile_condition(env, condition), ")");
+            Text_t code = Texts("if (", compile_condition(env, condition), ")");
             env_t *truthy_scope = env;
             type_t *cond_t = get_type(env, condition);
             if (condition->tag == Var && cond_t->tag == OptionalType) {
@@ -1955,14 +1961,14 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                             Match(cond_t, OptionalType)->type,
                             optional_into_nonnone(cond_t, compile(truthy_scope, condition)));
             }
-            code = CORD_all(code, compile_statement(truthy_scope, if_->body));
+            code = Texts(code, compile_statement(truthy_scope, if_->body));
             if (if_->else_body)
-                code = CORD_all(code, "\nelse ", compile_statement(env, if_->else_body));
+                code = Texts(code, "\nelse ", compile_statement(env, if_->else_body));
             return code;
         }
     }
     case Block: {
-        return CORD_all("{\n", compile_inline_block(env, ast), "}\n");
+        return Texts("{\n", compile_inline_block(env, ast), "}\n");
     }
     case Comprehension: {
         if (!env->comprehension_action)
@@ -1982,15 +1988,15 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
         ast_t *loop = WrapAST(ast, For, .vars=comp->vars, .iter=comp->iter, .body=body);
         return compile_statement(env, loop);
     }
-    case Extern: return CORD_EMPTY;
+    case Extern: return EMPTY_TEXT;
     case InlineCCode: {
         DeclareMatch(inline_code, ast, InlineCCode);
-        CORD code = CORD_EMPTY;
+        Text_t code = EMPTY_TEXT;
         for (ast_list_t *chunk = inline_code->chunks; chunk; chunk = chunk->next) {
             if (chunk->ast->tag == TextLiteral) {
-                code = CORD_all(code, Match(chunk->ast, TextLiteral)->cord);
+                code = Texts(code, Match(chunk->ast, TextLiteral)->text);
             } else {
-                code = CORD_all(code, compile(env, chunk->ast));
+                code = Texts(code, compile(env, chunk->ast));
             }
         }
         return code;
@@ -2001,8 +2007,8 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
             Path_t path = Path$from_str(Match(ast, Use)->path);
             Path_t in_file = Path$from_str(ast->file->filename);
             path = Path$resolved(path, Path$parent(in_file));
-            CORD suffix = get_id_suffix(Path$as_c_string(path));
-            return with_source_info(env, ast, CORD_all("$initialize", suffix, "();\n"));
+            Text_t suffix = get_id_suffix(Path$as_c_string(path));
+            return with_source_info(env, ast, Texts("$initialize", suffix, "();\n"));
         } else if (use->what == USE_MODULE) {
             module_info_t mod = get_module_info(ast);
             glob_t tm_files;
@@ -2012,69 +2018,69 @@ static CORD _compile_statement(env_t *env, ast_t *ast)
                     code_err(ast, "Could not find library");
             }
 
-            CORD initialization = CORD_EMPTY;
+            Text_t initialization = EMPTY_TEXT;
 
             for (size_t i = 0; i < tm_files.gl_pathc; i++) {
                 const char *filename = tm_files.gl_pathv[i];
-                initialization = CORD_all(
+                initialization = Texts(
                     initialization,
-                    with_source_info(env, ast, CORD_all("$initialize", get_id_suffix(filename), "();\n")));
+                    with_source_info(env, ast, Texts("$initialize", get_id_suffix(filename), "();\n")));
             }
             globfree(&tm_files);
             return initialization;
         } else {
-            return CORD_EMPTY;
+            return EMPTY_TEXT;
         }
     }
     default:
         // print("Is discardable: ", ast_to_sexp_str(ast), " ==> ", is_discardable(env, ast));
         if (!is_discardable(env, ast))
             code_err(ast, "The ", type_to_str(get_type(env, ast)), " result of this statement cannot be discarded");
-        return CORD_all("(void)", compile(env, ast), ";");
+        return Texts("(void)", compile(env, ast), ";");
     }
 }
 
-CORD compile_statement(env_t *env, ast_t *ast) {
-    CORD stmt = _compile_statement(env, ast);
+Text_t compile_statement(env_t *env, ast_t *ast) {
+    Text_t stmt = _compile_statement(env, ast);
     return with_source_info(env, ast, stmt);
 }
 
-CORD expr_as_text(CORD expr, type_t *t, CORD color)
+Text_t expr_as_text(Text_t expr, type_t *t, Text_t color)
 {
     switch (t->tag) {
-    case MemoryType: return CORD_all("Memory$as_text(stack(", expr, "), ", color, ", &Memory$info)");
+    case MemoryType: return Texts("Memory$as_text(stack(", expr, "), ", color, ", &Memory$info)");
     case BoolType:
          // NOTE: this cannot use stack(), since bools may actually be bit fields:
-         return CORD_all("Bool$as_text((Bool_t[1]){", expr, "}, ", color, ", &Bool$info)");
-    case CStringType: return CORD_all("CString$as_text(stack(", expr, "), ", color, ", &CString$info)");
+         return Texts("Bool$as_text((Bool_t[1]){", expr, "}, ", color, ", &Bool$info)");
+    case CStringType: return Texts("CString$as_text(stack(", expr, "), ", color, ", &CString$info)");
     case BigIntType: case IntType: case ByteType: case NumType: {
-        CORD name = type_to_cord(t);
-        return CORD_all(name, "$as_text(stack(", expr, "), ", color, ", &", name, "$info)");
+        Text_t name = type_to_text(t);
+        return Texts(name, "$as_text(stack(", expr, "), ", color, ", &", name, "$info)");
     }
-    case TextType: return CORD_all("Text$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case ListType: return CORD_all("List$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case SetType: return CORD_all("Table$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case TableType: return CORD_all("Table$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case FunctionType: case ClosureType: return CORD_all("Func$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case PointerType: return CORD_all("Pointer$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case OptionalType: return CORD_all("Optional$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
+    case TextType: return Texts("Text$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
+    case ListType: return Texts("List$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
+    case SetType: return Texts("Table$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
+    case TableType: return Texts("Table$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
+    case FunctionType: case ClosureType: return Texts("Func$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
+    case PointerType: return Texts("Pointer$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
+    case OptionalType: return Texts("Optional$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
     case StructType: case EnumType:
-        return CORD_all("generic_as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
+        return Texts("generic_as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
     default: compiler_err(NULL, NULL, NULL, "Stringifying is not supported for ", type_to_str(t));
     }
-    return CORD_EMPTY;
+    return EMPTY_TEXT;
 }
 
-CORD compile_string(env_t *env, ast_t *ast, CORD color)
+Text_t compile_text(env_t *env, ast_t *ast, Text_t color)
 {
     type_t *t = get_type(env, ast);
-    CORD expr = compile(env, ast);
+    Text_t expr = compile(env, ast);
     return expr_as_text(expr, t, color);
 }
 
-CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool needs_incref)
+Text_t compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool needs_incref)
 {
-    CORD val = compile(env, ast);
+    Text_t val = compile(env, ast);
     type_t *t = get_type(env, ast);
     int64_t depth = 0;
     for (type_t *tt = t; tt->tag == PointerType; tt = Match(tt, PointerType)->pointed)
@@ -2088,14 +2094,14 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
     while (depth != target_depth) {
         if (depth < target_depth) {
             if (ast->tag == Var && target_depth == 1)
-                val = CORD_all("(&", val, ")");
+                val = Texts("(&", val, ")");
             else
                 code_err(ast, "This should be a pointer, not ", type_to_str(get_type(env, ast)));
             t = Type(PointerType, .pointed=t, .is_stack=true);
             ++depth;
         } else {
             DeclareMatch(ptr, t, PointerType);
-            val = CORD_all("*(", val, ")");
+            val = Texts("*(", val, ")");
             t = ptr->pointed;
             --depth;
         }
@@ -2107,22 +2113,22 @@ CORD compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool
     }
 
     if (needs_incref && t->tag == ListType)
-        val = CORD_all("LIST_COPY(", val, ")");
+        val = Texts("LIST_COPY(", val, ")");
     else if (needs_incref && (t->tag == TableType || t->tag == SetType))
-        val = CORD_all("TABLE_COPY(", val, ")");
+        val = Texts("TABLE_COPY(", val, ")");
 
     return val;
 }
 
-CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
+Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t)
 {
     if (ast->tag == Int && is_numeric_type(non_optional(t))) {
         return compile_int_to_type(env, ast, t);
     } else if (ast->tag == Num && t->tag == NumType) {
         double n = Match(ast, Num)->n;
         switch (Match(t, NumType)->bits) {
-        case TYPE_NBITS64: return String(hex_double(n));
-        case TYPE_NBITS32: return String(hex_double(n), "f");
+        case TYPE_NBITS64: return Text$from_str(String(hex_double(n)));
+        case TYPE_NBITS32: return Text$from_str(String(hex_double(n), "f"));
         default: code_err(ast, "This is not a valid number bit width");
         }
     } else if (ast->tag == None) {
@@ -2171,19 +2177,19 @@ CORD compile_to_type(env_t *env, ast_t *ast, type_t *t)
 
     // Promote values to views-of-values if needed:
     if (t->tag == PointerType && Match(t, PointerType)->is_stack && actual->tag != PointerType)
-        return CORD_all("stack(", compile_to_type(env, ast, Match(t, PointerType)->pointed), ")");
+        return Texts("stack(", compile_to_type(env, ast, Match(t, PointerType)->pointed), ")");
 
-    CORD code = compile(env, ast);
+    Text_t code = compile(env, ast);
     if (!promote(env, ast, &code, actual, t))
         code_err(ast, "I expected a ", type_to_str(t), " here, but this is a ", type_to_str(actual));
     return code;
 }
 
-CORD compile_typed_list(env_t *env, ast_t *ast, type_t *list_type)
+Text_t compile_typed_list(env_t *env, ast_t *ast, type_t *list_type)
 {
     DeclareMatch(list, ast, List);
     if (!list->items)
-        return "(List_t){.length=0}";
+        return Text("(List_t){.length=0}");
 
     type_t *item_type = Match(list_type, ListType)->item_type;
 
@@ -2198,11 +2204,11 @@ CORD compile_typed_list(env_t *env, ast_t *ast, type_t *list_type)
         env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : env;
         if (is_incomplete_type(item_type))
             code_err(ast, "This list's type can't be inferred!");
-        CORD code = CORD_all("TypedListN(", compile_type(item_type), ", ", String(n));
+        Text_t code = Texts("TypedListN(", compile_type(item_type), ", ", String(n));
         for (ast_list_t *item = list->items; item; item = item->next) {
-            code = CORD_all(code, ", ", compile_to_type(scope, item->ast, item_type));
+            code = Texts(code, ", ", compile_to_type(scope, item->ast, item_type));
         }
-        return CORD_cat(code, ")");
+        return Texts(code, ")");
     }
 
   list_comprehension:
@@ -2210,28 +2216,28 @@ CORD compile_typed_list(env_t *env, ast_t *ast, type_t *list_type)
         env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : fresh_scope(env);
         static int64_t comp_num = 1;
         const char *comprehension_name = String("list$", comp_num++);
-        ast_t *comprehension_var = LiteralCode(CORD_all("&", comprehension_name),
+        ast_t *comprehension_var = LiteralCode(Texts("&", comprehension_name),
                                                .type=Type(PointerType, .pointed=list_type, .is_stack=true));
         Closure_t comp_action = {.fn=add_to_list_comprehension, .userdata=comprehension_var};
         scope->comprehension_action = &comp_action;
-        CORD code = CORD_all("({ List_t ", comprehension_name, " = {};");
+        Text_t code = Texts("({ List_t ", comprehension_name, " = {};");
         // set_binding(scope, comprehension_name, list_type, comprehension_name);
         for (ast_list_t *item = list->items; item; item = item->next) {
             if (item->ast->tag == Comprehension)
-                code = CORD_all(code, "\n", compile_statement(scope, item->ast));
+                code = Texts(code, "\n", compile_statement(scope, item->ast));
             else
-                code = CORD_all(code, compile_statement(env, add_to_list_comprehension(item->ast, comprehension_var)));
+                code = Texts(code, compile_statement(env, add_to_list_comprehension(item->ast, comprehension_var)));
         }
-        code = CORD_all(code, " ", comprehension_name, "; })");
+        code = Texts(code, " ", comprehension_name, "; })");
         return code;
     }
 }
 
-CORD compile_typed_set(env_t *env, ast_t *ast, type_t *set_type)
+Text_t compile_typed_set(env_t *env, ast_t *ast, type_t *set_type)
 {
     DeclareMatch(set, ast, Set);
     if (!set->items)
-        return "((Table_t){})";
+        return Text("((Table_t){})");
 
     type_t *item_type = Match(set_type, SetType)->item_type;
 
@@ -2243,15 +2249,15 @@ CORD compile_typed_set(env_t *env, ast_t *ast, type_t *set_type)
     }
        
     { // No comprehension:
-        CORD code = CORD_all("Set(",
+        Text_t code = Texts("Set(",
                              compile_type(item_type), ", ",
                              compile_type_info(item_type), ", ",
                              String(n));
         env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : env;
         for (ast_list_t *item = set->items; item; item = item->next) {
-            code = CORD_all(code, ", ", compile_to_type(scope, item->ast, item_type));
+            code = Texts(code, ", ", compile_to_type(scope, item->ast, item_type));
         }
-        return CORD_cat(code, ")");
+        return Texts(code, ")");
     }
 
   set_comprehension:
@@ -2259,30 +2265,30 @@ CORD compile_typed_set(env_t *env, ast_t *ast, type_t *set_type)
         static int64_t comp_num = 1;
         env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : fresh_scope(env);
         const char *comprehension_name = String("set$", comp_num++);
-        ast_t *comprehension_var = LiteralCode(CORD_all("&", comprehension_name),
+        ast_t *comprehension_var = LiteralCode(Texts("&", comprehension_name),
                                                .type=Type(PointerType, .pointed=set_type, .is_stack=true));
-        CORD code = CORD_all("({ Table_t ", comprehension_name, " = {};");
+        Text_t code = Texts("({ Table_t ", comprehension_name, " = {};");
         Closure_t comp_action = {.fn=add_to_set_comprehension, .userdata=comprehension_var};
         scope->comprehension_action = &comp_action;
         for (ast_list_t *item = set->items; item; item = item->next) {
             if (item->ast->tag == Comprehension)
-                code = CORD_all(code, "\n", compile_statement(scope, item->ast));
+                code = Texts(code, "\n", compile_statement(scope, item->ast));
             else
-                code = CORD_all(code, compile_statement(env, add_to_set_comprehension(item->ast, comprehension_var)));
+                code = Texts(code, compile_statement(env, add_to_set_comprehension(item->ast, comprehension_var)));
         }
-        code = CORD_all(code, " ", comprehension_name, "; })");
+        code = Texts(code, " ", comprehension_name, "; })");
         return code;
     }
 }
 
-CORD compile_typed_table(env_t *env, ast_t *ast, type_t *table_type)
+Text_t compile_typed_table(env_t *env, ast_t *ast, type_t *table_type)
 {
     DeclareMatch(table, ast, Table);
     if (!table->entries) {
-        CORD code = "((Table_t){";
+        Text_t code = Text("((Table_t){");
         if (table->fallback)
-            code = CORD_all(code, ".fallback=heap(", compile(env, table->fallback),")");
-        return CORD_cat(code, "})");
+            code = Texts(code, ".fallback=heap(", compile(env, table->fallback),")");
+        return Texts(code, "})");
     }
 
     type_t *key_t = Match(table_type, TableType)->key_type;
@@ -2299,27 +2305,27 @@ CORD compile_typed_table(env_t *env, ast_t *ast, type_t *table_type)
     { // No comprehension:
         env_t *key_scope = key_t->tag == EnumType ? with_enum_scope(env, key_t) : env;
         env_t *value_scope = value_t->tag == EnumType ? with_enum_scope(env, value_t) : env;
-        CORD code = CORD_all("Table(",
+        Text_t code = Texts("Table(",
                              compile_type(key_t), ", ",
                              compile_type(value_t), ", ",
                              compile_type_info(key_t), ", ",
                              compile_type_info(value_t));
         if (table->fallback)
-            code = CORD_all(code, ", /*fallback:*/ heap(", compile(env, table->fallback), ")");
+            code = Texts(code, ", /*fallback:*/ heap(", compile(env, table->fallback), ")");
         else
-            code = CORD_all(code, ", /*fallback:*/ NULL");
+            code = Texts(code, ", /*fallback:*/ NULL");
 
         size_t n = 0;
         for (ast_list_t *entry = table->entries; entry; entry = entry->next)
             ++n;
-        code = CORD_all(code, ", ", String((int64_t)n));
+        code = Texts(code, ", ", String((int64_t)n));
 
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
             DeclareMatch(e, entry->ast, TableEntry);
-            code = CORD_all(code, ",\n\t{", compile_to_type(key_scope, e->key, key_t), ", ",
+            code = Texts(code, ",\n\t{", compile_to_type(key_scope, e->key, key_t), ", ",
                             compile_to_type(value_scope, e->value, value_t), "}");
         }
-        return CORD_cat(code, ")");
+        return Texts(code, ")");
     }
 
   table_comprehension:
@@ -2327,52 +2333,52 @@ CORD compile_typed_table(env_t *env, ast_t *ast, type_t *table_type)
         static int64_t comp_num = 1;
         env_t *scope = fresh_scope(env);
         const char *comprehension_name = String("table$", comp_num++);
-        ast_t *comprehension_var = LiteralCode(CORD_all("&", comprehension_name),
+        ast_t *comprehension_var = LiteralCode(Texts("&", comprehension_name),
                                            .type=Type(PointerType, .pointed=table_type, .is_stack=true));
 
-        CORD code = CORD_all("({ Table_t ", comprehension_name, " = {");
+        Text_t code = Texts("({ Table_t ", comprehension_name, " = {");
         if (table->fallback)
-            code = CORD_all(code, ".fallback=heap(", compile(env, table->fallback), "), ");
+            code = Texts(code, ".fallback=heap(", compile(env, table->fallback), "), ");
 
-        code = CORD_cat(code, "};");
+        code = Texts(code, "};");
 
         Closure_t comp_action = {.fn=add_to_table_comprehension, .userdata=comprehension_var};
         scope->comprehension_action = &comp_action;
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
             if (entry->ast->tag == Comprehension)
-                code = CORD_all(code, "\n", compile_statement(scope, entry->ast));
+                code = Texts(code, "\n", compile_statement(scope, entry->ast));
             else
-                code = CORD_all(code, compile_statement(env, add_to_table_comprehension(entry->ast, comprehension_var)));
+                code = Texts(code, compile_statement(env, add_to_table_comprehension(entry->ast, comprehension_var)));
         }
-        code = CORD_all(code, " ", comprehension_name, "; })");
+        code = Texts(code, " ", comprehension_name, "; })");
         return code;
     }
 }
 
-CORD compile_typed_allocation(env_t *env, ast_t *ast, type_t *pointer_type)
+Text_t compile_typed_allocation(env_t *env, ast_t *ast, type_t *pointer_type)
 {
     // TODO: for constructors, do new(T, ...) instead of heap((T){...})
     type_t *pointed = Match(pointer_type, PointerType)->pointed;
     switch (ast->tag) {
     case HeapAllocate: {
-        return CORD_all("heap(", compile_to_type(env, Match(ast, HeapAllocate)->value, pointed), ")");
+        return Texts("heap(", compile_to_type(env, Match(ast, HeapAllocate)->value, pointed), ")");
     }
     case StackReference: {
         ast_t *subject = Match(ast, StackReference)->value;
         if (can_be_mutated(env, subject) && type_eq(pointed, get_type(env, subject)))
-            return CORD_all("(&", compile_lvalue(env, subject), ")");
+            return Texts("(&", compile_lvalue(env, subject), ")");
         else
-            return CORD_all("stack(", compile_to_type(env, subject, pointed), ")");
+            return Texts("stack(", compile_to_type(env, subject, pointed), ")");
     }
     default: code_err(ast, "Not an allocation!");
     }
-    return CORD_EMPTY;
+    return EMPTY_TEXT;
 }
 
-CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
+Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
 {
     if (ast->tag != Int) {
-        CORD code = compile(env, ast);
+        Text_t code = compile(env, ast);
         type_t *actual_type = get_type(env, ast);
         if (!promote(env, ast, &code, actual_type, target))
             code_err(ast, "I couldn't promote this ", type_to_str(actual_type), " to a ", type_to_str(target));
@@ -2404,34 +2410,34 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
 
     if (target->tag == ByteType) {
         if (mpz_cmp_si(i, UINT8_MAX) <= 0 && mpz_cmp_si(i, 0) >= 0)
-            return CORD_all("(Byte_t)(", c_literal, ")");
+            return Texts("(Byte_t)(", c_literal, ")");
         code_err(ast, "This integer cannot fit in a byte");
     } else if (target->tag == NumType) {
         if (Match(target, NumType)->bits == TYPE_NBITS64) {
-            return CORD_all("N64(", c_literal, ")");
+            return Texts("N64(", c_literal, ")");
         } else {
-            return CORD_all("N32(", c_literal, ")");
+            return Texts("N32(", c_literal, ")");
         }
     } else if (target->tag == IntType) {
         int64_t target_bits = (int64_t)Match(target, IntType)->bits;
         switch (target_bits) {
         case TYPE_IBITS64:
             if (mpz_cmp_si(i, INT64_MIN) == 0)
-                return "I64(INT64_MIN)";
+                return Text("I64(INT64_MIN)");
             if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0)
-                return CORD_all("I64(", c_literal, "L)");
+                return Texts("I64(", c_literal, "L)");
             break;
         case TYPE_IBITS32:
             if (mpz_cmp_si(i, INT32_MAX) <= 0 && mpz_cmp_si(i, INT32_MIN) >= 0)
-                return CORD_all("I32(", c_literal, ")");
+                return Texts("I32(", c_literal, ")");
             break;
         case TYPE_IBITS16:
             if (mpz_cmp_si(i, INT16_MAX) <= 0 && mpz_cmp_si(i, INT16_MIN) >= 0)
-                return CORD_all("I16(", c_literal, ")");
+                return Texts("I16(", c_literal, ")");
             break;
         case TYPE_IBITS8:
             if (mpz_cmp_si(i, INT8_MAX) <= 0 && mpz_cmp_si(i, INT8_MIN) >= 0)
-                return CORD_all("I8(", c_literal, ")");
+                return Texts("I8(", c_literal, ")");
             break;
         default: break;
         }
@@ -2439,13 +2445,13 @@ CORD compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
     } else {
         code_err(ast, "I don't know how to compile this to a ", type_to_str(target));
     }
-    return CORD_EMPTY;
+    return EMPTY_TEXT;
 }
 
-CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args)
+Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args)
 {
     Table_t used_args = {};
-    CORD code = CORD_EMPTY;
+    Text_t code = EMPTY_TEXT;
     env_t *default_scope = new(env_t);
     *default_scope = *env;
     default_scope->locals = new(Table_t, .fallback=env->namespace_bindings ? env->namespace_bindings : env->globals);
@@ -2455,7 +2461,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
         if (spec_arg->name) {
             for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
                 if (call_arg->name && streq(call_arg->name, spec_arg->name)) {
-                    CORD value;
+                    Text_t value;
                     if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
                         value = compile_int_to_type(env, call_arg->value, spec_arg->type);
                     } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
@@ -2463,16 +2469,16 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                         if (int_val.small == 0)
                             code_err(call_arg->value, "Failed to parse this integer");
                         if (Match(spec_arg->type, NumType)->bits == TYPE_NBITS64)
-                            value = String(hex_double(Num$from_int(int_val, false)));
+                            value = Text$from_str(String(hex_double(Num$from_int(int_val, false))));
                         else
-                            value = String(hex_double((double)Num32$from_int(int_val, false)), "f");
+                            value = Text$from_str(String(hex_double((double)Num32$from_int(int_val, false)), "f"));
                     } else {
                         env_t *arg_env = with_enum_scope(env, spec_arg->type);
                         value = compile_maybe_incref(arg_env, call_arg->value, spec_arg->type);
                     }
                     Table$str_set(&used_args, call_arg->name, call_arg);
-                    if (code) code = CORD_cat(code, ", ");
-                    code = CORD_cat(code, value);
+                    if (code.length > 0) code = Texts(code, ", ");
+                    code = Texts(code, value);
                     goto found_it;
                 }
             }
@@ -2482,7 +2488,7 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
             if (call_arg->name) continue;
             const char *pseudoname = String(i++);
             if (!Table$str_get(used_args, pseudoname)) {
-                CORD value;
+                Text_t value;
                 if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
                     value = compile_int_to_type(env, call_arg->value, spec_arg->type);
                 } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
@@ -2490,24 +2496,24 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
                     if (int_val.small == 0)
                         code_err(call_arg->value, "Failed to parse this integer");
                     if (Match(spec_arg->type, NumType)->bits == TYPE_NBITS64)
-                        value = String(hex_double(Num$from_int(int_val, false)));
+                        value = Text$from_str(String(hex_double(Num$from_int(int_val, false))));
                     else
-                        value = String(hex_double((double)Num32$from_int(int_val, false)), "f");
+                        value = Text$from_str(String(hex_double((double)Num32$from_int(int_val, false)), "f"));
                 } else {
                     env_t *arg_env = with_enum_scope(env, spec_arg->type);
                     value = compile_maybe_incref(arg_env, call_arg->value, spec_arg->type);
                 }
 
                 Table$str_set(&used_args, pseudoname, call_arg);
-                if (code) code = CORD_cat(code, ", ");
-                code = CORD_cat(code, value);
+                if (code.length > 0) code = Texts(code, ", ");
+                code = Texts(code, value);
                 goto found_it;
             }
         }
 
         if (spec_arg->default_val) {
-            if (code) code = CORD_cat(code, ", ");
-            code = CORD_cat(code, compile_maybe_incref(default_scope, spec_arg->default_val, get_arg_type(env, spec_arg)));
+            if (code.length > 0) code = Texts(code, ", ");
+            code = Texts(code, compile_maybe_incref(default_scope, spec_arg->default_val, get_arg_type(env, spec_arg)));
             goto found_it;
         }
 
@@ -2530,58 +2536,46 @@ CORD compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t 
     return code;
 }
 
-CORD compile_string_literal(CORD literal)
+Text_t compile_text_literal(Text_t literal)
 {
-    CORD code = "\"";
-    CORD_pos i;
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-    CORD_FOR(i, literal) {
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-        uint8_t c = (uint8_t)CORD_pos_fetch(i);
-        switch (c) {
-        case '\\': code = CORD_cat(code, "\\\\"); break;
-        case '"': code = CORD_cat(code, "\\\""); break;
-        case '\a': code = CORD_cat(code, "\\a"); break;
-        case '\b': code = CORD_cat(code, "\\b"); break;
-        case '\n': code = CORD_cat(code, "\\n"); break;
-        case '\r': code = CORD_cat(code, "\\r"); break;
-        case '\t': code = CORD_cat(code, "\\t"); break;
-        case '\v': code = CORD_cat(code, "\\v"); break;
+    Text_t code = Text("\"");
+    const char *utf8 = Text$as_c_string(literal);
+    for (const char *p = utf8; *p; p++) {
+        switch (*p) {
+        case '\\': code = Texts(code, "\\\\"); break;
+        case '"': code = Texts(code, "\\\""); break;
+        case '\a': code = Texts(code, "\\a"); break;
+        case '\b': code = Texts(code, "\\b"); break;
+        case '\n': code = Texts(code, "\\n"); break;
+        case '\r': code = Texts(code, "\\r"); break;
+        case '\t': code = Texts(code, "\\t"); break;
+        case '\v': code = Texts(code, "\\v"); break;
         default: {
-            if (isprint(c))
-                code = CORD_cat_char(code, (char)c);
-            else
-                code = CORD_all(code, "\\x", String(hex((uint64_t)c, .no_prefix=true, .uppercase=true, .digits=2)), "\"\"");
+            if (isprint(*p)) {
+                code = Texts(code, Text$from_strn(p, 1));
+            } else {
+                uint8_t byte = *(uint8_t*)p;
+                code = Texts(code, "\\x", String(hex(byte, .no_prefix=true, .uppercase=true, .digits=2)), "\"\"");
+            }
             break;
         }
         }
     }
-    return CORD_cat(code, "\"");
+    return Texts(code, "\"");
 }
 
-static bool string_literal_is_all_ascii(CORD literal)
+PUREFUNC static bool string_literal_is_all_ascii(Text_t literal)
 {
-    CORD_pos i;
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-    CORD_FOR(i, literal) {
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-        if (!isascii(CORD_pos_fetch(i)))
+    TextIter_t state = NEW_TEXT_ITER_STATE(literal);
+    for (int64_t i = 0; i < literal.length; i++) {
+        int32_t g = Text$get_grapheme_fast(&state, i);
+        if (g < 0 || g > 127 || !isascii(g))
             return false;
     }
     return true;
 }
 
-CORD compile_none(type_t *t)
+Text_t compile_none(type_t *t)
 {
     if (t == NULL)
         compiler_err(NULL, NULL, NULL, "I can't compile a `none` value with no type");
@@ -2592,42 +2586,42 @@ CORD compile_none(type_t *t)
     if (t == NULL)
         compiler_err(NULL, NULL, NULL, "I can't compile a `none` value with no type");
 
-    if (t == PATH_TYPE) return "NONE_PATH";
-    else if (t == PATH_TYPE_TYPE) return "((OptionalPathType_t){})";
+    if (t == PATH_TYPE) return Text("NONE_PATH");
+    else if (t == PATH_TYPE_TYPE) return Text("((OptionalPathType_t){})");
 
     switch (t->tag) {
-    case BigIntType: return "NONE_INT";
+    case BigIntType: return Text("NONE_INT");
     case IntType: {
         switch (Match(t, IntType)->bits) {
-        case TYPE_IBITS8: return "NONE_INT8";
-        case TYPE_IBITS16: return "NONE_INT16";
-        case TYPE_IBITS32: return "NONE_INT32";
-        case TYPE_IBITS64: return "NONE_INT64";
+        case TYPE_IBITS8: return Text("NONE_INT8");
+        case TYPE_IBITS16: return Text("NONE_INT16");
+        case TYPE_IBITS32: return Text("NONE_INT32");
+        case TYPE_IBITS64: return Text("NONE_INT64");
         default: errx(1, "Invalid integer bit size");
         }
         break;
     }
-    case BoolType: return "NONE_BOOL";
-    case ByteType: return "NONE_BYTE";
-    case ListType: return "NONE_LIST";
-    case TableType: return "NONE_TABLE";
-    case SetType: return "NONE_TABLE";
-    case TextType: return "NONE_TEXT";
-    case CStringType: return "NULL";
-    case PointerType: return CORD_all("((", compile_type(t), ")NULL)");
-    case ClosureType: return "NONE_CLOSURE";
-    case NumType: return "nan(\"none\")";
-    case StructType: return CORD_all("((", compile_type(Type(OptionalType, .type=t)), "){.is_none=true})");
+    case BoolType: return Text("NONE_BOOL");
+    case ByteType: return Text("NONE_BYTE");
+    case ListType: return Text("NONE_LIST");
+    case TableType: return Text("NONE_TABLE");
+    case SetType: return Text("NONE_TABLE");
+    case TextType: return Text("NONE_TEXT");
+    case CStringType: return Text("NULL");
+    case PointerType: return Texts("((", compile_type(t), ")NULL)");
+    case ClosureType: return Text("NONE_CLOSURE");
+    case NumType: return Text("nan(\"none\")");
+    case StructType: return Texts("((", compile_type(Type(OptionalType, .type=t)), "){.is_none=true})");
     case EnumType: {
         env_t *enum_env = Match(t, EnumType)->env;
-        return CORD_all("((", compile_type(t), "){", namespace_name(enum_env, enum_env->namespace, "none"), "})");
+        return Texts("((", compile_type(t), "){", namespace_name(enum_env, enum_env->namespace, Text("none")), "})");
     }
     default: compiler_err(NULL, NULL, NULL, "none isn't implemented for this type: ", type_to_str(t));
     }
-    return CORD_EMPTY;
+    return EMPTY_TEXT;
 }
 
-CORD compile_empty(type_t *t)
+Text_t compile_empty(type_t *t)
 {
     if (t == NULL)
         compiler_err(NULL, NULL, NULL, "I can't compile a value with no type");
@@ -2635,50 +2629,50 @@ CORD compile_empty(type_t *t)
     if (t->tag == OptionalType)
         return compile_none(t);
 
-    if (t == PATH_TYPE) return "NONE_PATH";
-    else if (t == PATH_TYPE_TYPE) return "((OptionalPathType_t){})";
+    if (t == PATH_TYPE) return Text("NONE_PATH");
+    else if (t == PATH_TYPE_TYPE) return Text("((OptionalPathType_t){})");
 
     switch (t->tag) {
-    case BigIntType: return "I(0)";
+    case BigIntType: return Text("I(0)");
     case IntType: {
         switch (Match(t, IntType)->bits) {
-        case TYPE_IBITS8: return "I8(0)";
-        case TYPE_IBITS16: return "I16(0)";
-        case TYPE_IBITS32: return "I32(0)";
-        case TYPE_IBITS64: return "I64(0)";
+        case TYPE_IBITS8: return Text("I8(0)");
+        case TYPE_IBITS16: return Text("I16(0)");
+        case TYPE_IBITS32: return Text("I32(0)");
+        case TYPE_IBITS64: return Text("I64(0)");
         default: errx(1, "Invalid integer bit size");
         }
         break;
     }
-    case ByteType: return "((Byte_t)0)";
-    case BoolType: return "((Bool_t)no)";
-    case ListType: return "((List_t){})";
-    case TableType: case SetType: return "((Table_t){})";
-    case TextType: return "Text(\"\")";
-    case CStringType: return "\"\"";
+    case ByteType: return Text("((Byte_t)0)");
+    case BoolType: return Text("((Bool_t)no)");
+    case ListType: return Text("((List_t){})");
+    case TableType: case SetType: return Text("((Table_t){})");
+    case TextType: return Text("Text(\"\")");
+    case CStringType: return Text("\"\"");
     case PointerType: {
         DeclareMatch(ptr, t, PointerType);
-        CORD empty_pointed = compile_empty(ptr->pointed);
-        return empty_pointed == CORD_EMPTY ? CORD_EMPTY : CORD_all(ptr->is_stack ? "stack(" : "heap(", empty_pointed, ")");
+        Text_t empty_pointed = compile_empty(ptr->pointed);
+        return empty_pointed.length == 0 ? EMPTY_TEXT : Texts(ptr->is_stack ? Text("stack(") : Text("heap("), empty_pointed, ")");
     }
     case NumType: {
-        return Match(t, NumType)->bits == TYPE_NBITS32 ? "N32(0.0f)" : "N64(0.0)" ;
+        return Match(t, NumType)->bits == TYPE_NBITS32 ? Text("N32(0.0f)") : Text("N64(0.0)");
     }
     case StructType: {
         DeclareMatch(struct_, t, StructType);
-        CORD code = CORD_all("((", compile_type(t), "){");
+        Text_t code = Texts("((", compile_type(t), "){");
         for (arg_t *field = struct_->fields; field; field = field->next) {
-            CORD empty_field = field->default_val
+            Text_t empty_field = field->default_val
                 ? compile(struct_->env, field->default_val)
                 : compile_empty(field->type);
-            if (empty_field == CORD_EMPTY)
-                return CORD_EMPTY;
+            if (empty_field.length == 0)
+                return EMPTY_TEXT;
 
-            code = CORD_all(code, empty_field);
+            code = Texts(code, empty_field);
             if (field->next)
-                code = CORD_all(code, ", ");
+                code = Texts(code, ", ");
         }
-        return CORD_all(code, "})");
+        return Texts(code, "})");
     }
     case EnumType: {
         DeclareMatch(enum_, t, EnumType);
@@ -2686,18 +2680,18 @@ CORD compile_empty(type_t *t)
         assert(tag);
         assert(tag->type);
         if (Match(tag->type, StructType)->fields)
-            return CORD_all("((", compile_type(t), "){.$tag=", String(tag->tag_value), ", .", tag->name, "=", compile_empty(tag->type), "})");
+            return Texts("((", compile_type(t), "){.$tag=", String(tag->tag_value), ", .", tag->name, "=", compile_empty(tag->type), "})");
         else if (enum_has_fields(t))
-            return CORD_all("((", compile_type(t), "){.$tag=", String(tag->tag_value), "})");
+            return Texts("((", compile_type(t), "){.$tag=", String(tag->tag_value), "})");
         else
-            return CORD_all("((", compile_type(t), ")", String(tag->tag_value), ")");
+            return Texts("((", compile_type(t), ")", String(tag->tag_value), ")");
     }
-    default: return CORD_EMPTY;
+    default: return EMPTY_TEXT;
     }
-    return CORD_EMPTY;
+    return EMPTY_TEXT;
 }
 
-static CORD compile_declared_value(env_t *env, ast_t *declare_ast)
+static Text_t compile_declared_value(env_t *env, ast_t *declare_ast)
 {
     DeclareMatch(decl, declare_ast, Declare);
     type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
@@ -2706,15 +2700,15 @@ static CORD compile_declared_value(env_t *env, ast_t *declare_ast)
         code_err(declare_ast, "You can't declare a variable with a ", type_to_str(t), " value");
 
     if (decl->value) {
-        CORD val_code = compile_maybe_incref(env, decl->value, t);
+        Text_t val_code = compile_maybe_incref(env, decl->value, t);
         if (t->tag == FunctionType) {
             assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
             t = Type(ClosureType, t);
         }
         return val_code;
     } else {
-        CORD val_code = compile_empty(t);
-        if (val_code == CORD_EMPTY)
+        Text_t val_code = compile_empty(t);
+        if (val_code.length == 0)
             code_err(declare_ast, "This type (", type_to_str(t), ") cannot be uninitialized. You must provide a value.");
         return val_code;
     }
@@ -2737,18 +2731,18 @@ ast_t *add_to_set_comprehension(ast_t *item, ast_t *subject)
     return WrapAST(item, MethodCall, .name="add", .self=subject, .args=new(arg_ast_t, .value=item));
 }
 
-CORD compile(env_t *env, ast_t *ast)
+Text_t compile(env_t *env, ast_t *ast)
 {
     switch (ast->tag) {
     case None: {
         code_err(ast, "I can't figure out what this `none`'s type is!");
     }
-    case Bool: return Match(ast, Bool)->b ? "yes" : "no";
+    case Bool: return Match(ast, Bool)->b ? Text("yes") : Text("no");
     case Var: {
         binding_t *b = get_binding(env, Match(ast, Var)->name);
         if (b)
-            return b->code ? b->code : CORD_cat("_$", Match(ast, Var)->name);
-        // return CORD_cat("_$", Match(ast, Var)->name);
+            return b->code.length > 0 ? b->code : Texts("_$", Match(ast, Var)->name);
+        // return Texts("_$", Match(ast, Var)->name);
         code_err(ast, "I don't know of any variable by this name");
     }
     case Int: {
@@ -2759,15 +2753,15 @@ CORD compile(env_t *env, ast_t *ast)
         mpz_t i;
         mpz_init_set_int(i, int_val);
         if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0) {
-            return CORD_all("I_small(", str, ")");
+            return Texts("I_small(", str, ")");
         } else if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0) {
-            return CORD_all("Int$from_int64(", str, ")");
+            return Texts("Int$from_int64(", str, ")");
         } else {
-            return CORD_all("Int$from_str(\"", str, "\")");
+            return Texts("Int$from_str(\"", str, "\")");
         }
     }
     case Num: {
-        return String(hex_double(Match(ast, Num)->n));
+        return Text$from_str(String(hex_double(Match(ast, Num)->n)));
     }
     case Not: {
         ast_t *value = Match(ast, Not)->value;
@@ -2777,19 +2771,19 @@ CORD compile(env_t *env, ast_t *ast)
         if (b && b->type->tag == FunctionType) {
             DeclareMatch(fn, b->type, FunctionType);
             if (fn->args && can_promote(t, get_arg_type(env, fn->args)))
-                return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=value)), ")");
+                return Texts(b->code, "(", compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=value)), ")");
         }
 
         if (t->tag == BoolType)
-            return CORD_all("!(", compile(env, value), ")");
+            return Texts("!(", compile(env, value), ")");
         else if (t->tag == IntType || t->tag == ByteType)
-            return CORD_all("~(", compile(env, value), ")");
+            return Texts("~(", compile(env, value), ")");
         else if (t->tag == ListType)
-            return CORD_all("((", compile(env, value), ").length == 0)");
+            return Texts("((", compile(env, value), ").length == 0)");
         else if (t->tag == SetType || t->tag == TableType)
-            return CORD_all("((", compile(env, value), ").entries.length == 0)");
+            return Texts("((", compile(env, value), ").entries.length == 0)");
         else if (t->tag == TextType)
-            return CORD_all("(", compile(env, value), " == CORD_EMPTY)");
+            return Texts("(", compile(env, value), ".length == 0)");
         else if (t->tag == OptionalType)
             return check_none(t, compile(env, value));
 
@@ -2802,11 +2796,11 @@ CORD compile(env_t *env, ast_t *ast)
         if (b && b->type->tag == FunctionType) {
             DeclareMatch(fn, b->type, FunctionType);
             if (fn->args && can_promote(t, get_arg_type(env, fn->args)))
-                return CORD_all(b->code, "(", compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=value)), ")");
+                return Texts(b->code, "(", compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=value)), ")");
         }
 
         if (t->tag == IntType || t->tag == NumType)
-            return CORD_all("-(", compile(env, value), ")");
+            return Texts("-(", compile(env, value), ")");
 
         code_err(ast, "I don't know how to get the negative value of type ", type_to_str(t));
 
@@ -2816,22 +2810,22 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Optional: {
         ast_t *value = Match(ast, Optional)->value;
-        CORD value_code = compile(env, value);
+        Text_t value_code = compile(env, value);
         return promote_to_optional(get_type(env, value), value_code);
     }
     case NonOptional: {
         ast_t *value = Match(ast, NonOptional)->value;
         type_t *t = get_type(env, value);
-        CORD value_code = compile(env, value);
+        Text_t value_code = compile(env, value);
         int64_t line = get_line_number(ast->file, ast->start);
-        return CORD_all("({ ", compile_declaration(t, "opt"), " = ", value_code, "; ",
-                        "if unlikely (", check_none(t, "opt"), ")\n",
+        return Texts("({ ", compile_declaration(t, Text("opt")), " = ", value_code, "; ",
+                        "if unlikely (", check_none(t, Text("opt")), ")\n",
                         "#line ", String(line), "\n",
-                        "fail_source(", CORD_quoted(ast->file->filename), ", ",
+                        "fail_source(", quoted_str(ast->file->filename), ", ",
                         String((int64_t)(value->start - value->file->text)), ", ", 
                         String((int64_t)(value->end - value->file->text)), ", ",
                         "\"This was expected to be a value, but it's none\");\n",
-                        optional_into_nonnone(t, "opt"), "; })");
+                        optional_into_nonnone(t, Text("opt")), "; })");
     }
     case Power: case Multiply: case Divide: case Mod: case Mod1: case Plus: case Minus: case Concat:
     case LeftShift: case UnsignedLeftShift: case RightShift: case UnsignedRightShift: case And: case Or: case Xor: {
@@ -2855,17 +2849,17 @@ CORD compile(env_t *env, ast_t *ast)
             code_err(ast, "I can't do comparisons between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
         }
 
-        CORD lhs, rhs;
+        Text_t lhs, rhs;
         lhs = compile_to_type(env, binop.lhs, operand_t);
         rhs = compile_to_type(env, binop.rhs, operand_t);
 
         switch (operand_t->tag) {
         case BigIntType:
-            return CORD_all(ast->tag == Equals ? CORD_EMPTY : "!", "Int$equal_value(", lhs, ", ", rhs, ")");
+            return Texts(ast->tag == Equals ? EMPTY_TEXT : Text("!"), "Int$equal_value(", lhs, ", ", rhs, ")");
         case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
-            return CORD_all("(", lhs, ast->tag == Equals ? " == " : " != ", rhs, ")");
+            return Texts("(", lhs, ast->tag == Equals ? " == " : " != ", rhs, ")");
         default:
-            return CORD_all(ast->tag == Equals ? CORD_EMPTY : "!",
+            return Texts(ast->tag == Equals ? EMPTY_TEXT : Text("!"),
                             "generic_equal(stack(", lhs, "), stack(", rhs, "), ", compile_type_info(operand_t), ")");
         }
     }
@@ -2887,60 +2881,60 @@ CORD compile(env_t *env, ast_t *ast)
             code_err(ast, "I can't do comparisons between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
         }
 
-        CORD lhs = compile_to_type(env, cmp.lhs, operand_t);
-        CORD rhs = compile_to_type(env, cmp.rhs, operand_t);
+        Text_t lhs = compile_to_type(env, cmp.lhs, operand_t);
+        Text_t rhs = compile_to_type(env, cmp.rhs, operand_t);
 
         if (ast->tag == Compare)
-            return CORD_all("generic_compare(stack(", lhs, "), stack(", rhs, "), ",
+            return Texts("generic_compare(stack(", lhs, "), stack(", rhs, "), ",
                             compile_type_info(operand_t), ")");
 
         const char *op = binop_operator(ast->tag);
         switch (operand_t->tag) {
         case BigIntType:
-            return CORD_all("(Int$compare_value(", lhs, ", ", rhs, ") ", op, " 0)");
+            return Texts("(Int$compare_value(", lhs, ", ", rhs, ") ", op, " 0)");
         case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
-            return CORD_all("(", lhs, " ", op, " ", rhs, ")");
+            return Texts("(", lhs, " ", op, " ", rhs, ")");
         default:
-            return CORD_all("(generic_compare(stack(", lhs, "), stack(", rhs, "), ",
+            return Texts("(generic_compare(stack(", lhs, "), stack(", rhs, "), ",
                             compile_type_info(operand_t), ") ", op, " 0)");
         }
     }
     case TextLiteral: {
-        CORD literal = Match(ast, TextLiteral)->cord; 
-        if (literal == CORD_EMPTY)
-            return "EMPTY_TEXT";
+        Text_t literal = Match(ast, TextLiteral)->text; 
+        if (literal.length == 0)
+            return Text("EMPTY_TEXT");
 
         if (string_literal_is_all_ascii(literal))
-            return CORD_all("Text(", compile_string_literal(literal), ")");
+            return Texts("Text(", compile_text_literal(literal), ")");
         else
-            return CORD_all("Text$from_str(", compile_string_literal(literal), ")");
+            return Texts("Text$from_str(", compile_text_literal(literal), ")");
     }
     case TextJoin: {
         const char *lang = Match(ast, TextJoin)->lang;
-        const char *colorize = Match(ast, TextJoin)->colorize ? "yes" : "no";
+        Text_t colorize = Match(ast, TextJoin)->colorize ? Text("yes") : Text("no");
 
         type_t *text_t = lang ? Table$str_get(*env->types, lang) : TEXT_TYPE;
         if (!text_t || text_t->tag != TextType)
             code_err(ast, quoted(lang), " is not a valid text language name");
 
-        CORD lang_constructor;
+        Text_t lang_constructor;
         if (!lang || streq(lang, "Text"))
-            lang_constructor = "Text";
+            lang_constructor = Text("Text");
         else
-            lang_constructor = namespace_name(Match(text_t, TextType)->env, Match(text_t, TextType)->env->namespace->parent, lang);
+            lang_constructor = namespace_name(Match(text_t, TextType)->env, Match(text_t, TextType)->env->namespace->parent, Text$from_str(lang));
 
         ast_list_t *chunks = Match(ast, TextJoin)->children;
         if (!chunks) {
-            return CORD_all(lang_constructor, "(\"\")");
+            return Texts(lang_constructor, "(\"\")");
         } else if (!chunks->next && chunks->ast->tag == TextLiteral) {
-            CORD literal = Match(chunks->ast, TextLiteral)->cord; 
+            Text_t literal = Match(chunks->ast, TextLiteral)->text; 
             if (string_literal_is_all_ascii(literal))
-                return CORD_all(lang_constructor, "(", compile_string_literal(literal), ")");
-            return CORD_all("((", compile_type(text_t), ")", compile(env, chunks->ast), ")");
+                return Texts(lang_constructor, "(", compile_text_literal(literal), ")");
+            return Texts("((", compile_type(text_t), ")", compile(env, chunks->ast), ")");
         } else {
-            CORD code = CORD_EMPTY;
+            Text_t code = EMPTY_TEXT;
             for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
-                CORD chunk_code;
+                Text_t chunk_code;
                 type_t *chunk_t = get_type(env, chunk->ast);
                 if (chunk->ast->tag == TextLiteral || type_eq(chunk_t, text_t)) {
                     chunk_code = compile(env, chunk->ast);
@@ -2949,52 +2943,52 @@ CORD compile(env_t *env, ast_t *ast)
                     if (constructor) {
                         arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
                         arg_ast_t *args = new(arg_ast_t, .value=chunk->ast);
-                        chunk_code = CORD_all(constructor->code, "(", compile_arguments(env, ast, arg_spec, args), ")");
+                        chunk_code = Texts(constructor->code, "(", compile_arguments(env, ast, arg_spec, args), ")");
                     } else if (type_eq(text_t, TEXT_TYPE)) {
                         if (chunk_t->tag == TextType)
                             chunk_code = compile(env, chunk->ast);
                         else
-                            chunk_code = compile_string(env, chunk->ast, colorize);
+                            chunk_code = compile_text(env, chunk->ast, colorize);
                     } else {
                         code_err(chunk->ast, "I don't know how to convert ", type_to_str(chunk_t), " to ", type_to_str(text_t));
                     }
                 }
-                code = CORD_cat(code, chunk_code);
-                if (chunk->next) code = CORD_cat(code, ", ");
+                code = Texts(code, chunk_code);
+                if (chunk->next) code = Texts(code, ", ");
             }
             if (chunks->next)
-                return CORD_all(lang_constructor, "s(", code, ")");
+                return Texts(lang_constructor, "s(", code, ")");
             else
                 return code;
         }
     }
     case Path: {
-        return CORD_all("Path(", compile_string_literal(Match(ast, Path)->path), ")");
+        return Texts("Path(", compile_text_literal(Text$from_str(Match(ast, Path)->path)), ")");
     }
     case Block: {
         ast_list_t *stmts = Match(ast, Block)->statements;
         if (stmts && !stmts->next)
             return compile(env, stmts->ast);
 
-        CORD code = "({\n";
+        Text_t code = Text("({\n");
         deferral_t *prev_deferred = env->deferred;
         env = fresh_scope(env);
         for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next)
             prebind_statement(env, stmt->ast);
         for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next) {
             if (stmt->next) {
-                code = CORD_all(code, compile_statement(env, stmt->ast), "\n");
+                code = Texts(code, compile_statement(env, stmt->ast), "\n");
             } else {
                 // TODO: put defer after evaluating block expression
                 for (deferral_t *deferred = env->deferred; deferred && deferred != prev_deferred; deferred = deferred->next) {
-                    code = CORD_all(code, compile_statement(deferred->defer_env, deferred->block));
+                    code = Texts(code, compile_statement(deferred->defer_env, deferred->block));
                 }
-                code = CORD_all(code, compile(env, stmt->ast), ";\n");
+                code = Texts(code, compile(env, stmt->ast), ";\n");
             }
             bind_statement(env, stmt->ast);
         }
 
-        return CORD_cat(code, "})");
+        return Texts(code, "})");
     }
     case Min: case Max: {
         type_t *t = get_type(env, ast);
@@ -3005,23 +2999,23 @@ CORD compile(env_t *env, ast_t *ast)
         if (key == NULL) key = FakeAST(Var, key_name);
 
         env_t *expr_env = fresh_scope(env);
-        set_binding(expr_env, key_name, t, "ternary$lhs");
-        CORD lhs_key = compile(expr_env, key);
+        set_binding(expr_env, key_name, t, Text("ternary$lhs"));
+        Text_t lhs_key = compile(expr_env, key);
 
-        set_binding(expr_env, key_name, t, "ternary$rhs");
-        CORD rhs_key = compile(expr_env, key);
+        set_binding(expr_env, key_name, t, Text("ternary$rhs"));
+        Text_t rhs_key = compile(expr_env, key);
 
         type_t *key_t = get_type(expr_env, key);
-        CORD comparison;
+        Text_t comparison;
         if (key_t->tag == BigIntType)
-            comparison = CORD_all("(Int$compare_value(", lhs_key, ", ", rhs_key, ")", (ast->tag == Min ? "<=" : ">="), "0)");
+            comparison = Texts("(Int$compare_value(", lhs_key, ", ", rhs_key, ")", (ast->tag == Min ? "<=" : ">="), "0)");
         else if (key_t->tag == IntType || key_t->tag == NumType || key_t->tag == BoolType || key_t->tag == PointerType || key_t->tag == ByteType)
-            comparison = CORD_all("((", lhs_key, ")", (ast->tag == Min ? "<=" : ">="), "(", rhs_key, "))");
+            comparison = Texts("((", lhs_key, ")", (ast->tag == Min ? "<=" : ">="), "(", rhs_key, "))");
         else
-            comparison = CORD_all("generic_compare(stack(", lhs_key, "), stack(", rhs_key, "), ", compile_type_info(key_t), ")",
+            comparison = Texts("generic_compare(stack(", lhs_key, "), stack(", rhs_key, "), ", compile_type_info(key_t), ")",
                                   (ast->tag == Min ? "<=" : ">="), "0");
 
-        return CORD_all(
+        return Texts(
             "({\n",
             compile_type(t), " ternary$lhs = ", compile(env, lhs), ", ternary$rhs = ", compile(env, rhs), ";\n",
             comparison, " ? ternary$lhs : ternary$rhs;\n"
@@ -3030,7 +3024,7 @@ CORD compile(env_t *env, ast_t *ast)
     case List: {
         DeclareMatch(list, ast, List);
         if (!list->items)
-            return "(List_t){.length=0}";
+            return Text("(List_t){.length=0}");
 
         type_t *list_type = get_type(env, ast);
         return compile_typed_list(env, ast, list_type);
@@ -3038,10 +3032,10 @@ CORD compile(env_t *env, ast_t *ast)
     case Table: {
         DeclareMatch(table, ast, Table);
         if (!table->entries) {
-            CORD code = "((Table_t){";
+            Text_t code = Text("((Table_t){");
             if (table->fallback)
-                code = CORD_all(code, ".fallback=heap(", compile(env, table->fallback),")");
-            return CORD_cat(code, "})");
+                code = Texts(code, ".fallback=heap(", compile(env, table->fallback),")");
+            return Texts(code, "})");
         }
 
         type_t *table_type = get_type(env, ast);
@@ -3050,7 +3044,7 @@ CORD compile(env_t *env, ast_t *ast)
     case Set: {
         DeclareMatch(set, ast, Set);
         if (!set->items)
-            return "((Table_t){})";
+            return Text("((Table_t){})");
 
         type_t *set_type = get_type(env, ast);
         return compile_typed_set(env, ast, set_type);
@@ -3066,13 +3060,13 @@ CORD compile(env_t *env, ast_t *ast)
     }
     case Lambda: {
         DeclareMatch(lambda, ast, Lambda);
-        CORD name = namespace_name(env, env->namespace, CORD_all("lambda$", String(lambda->id)));
+        Text_t name = namespace_name(env, env->namespace, Texts("lambda$", String(lambda->id)));
 
         env_t *body_scope = fresh_scope(env);
         body_scope->deferred = NULL;
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            set_binding(body_scope, arg->name, arg_type, CORD_all("_$", arg->name));
+            set_binding(body_scope, arg->name, arg_type, Texts("_$", arg->name));
         }
 
         type_t *ret_t = get_type(body_scope, lambda->body);
@@ -3092,7 +3086,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         Table_t closed_vars = get_closed_vars(env, lambda->args, ast);
         if (Table$length(closed_vars) > 0) { // Create a typedef for the lambda's closure userdata
-            CORD def = "typedef struct {";
+            Text_t def = Text("typedef struct {");
             for (int64_t i = 0; i < closed_vars.entries.length; i++) {
                 struct { const char *name; binding_t *b; } *entry = closed_vars.entries.data + closed_vars.entries.stride*i;
                 if (has_stack_memory(entry->b->type))
@@ -3100,56 +3094,56 @@ CORD compile(env_t *env, ast_t *ast)
                              " stack memory in the variable `", entry->name, "`, but the function may outlive the stack memory");
                 if (entry->b->type->tag == ModuleType)
                     continue;
-                set_binding(body_scope, entry->name, entry->b->type, CORD_cat("userdata->", entry->name));
-                def = CORD_all(def, compile_declaration(entry->b->type, entry->name), "; ");
+                set_binding(body_scope, entry->name, entry->b->type, Texts("userdata->", entry->name));
+                def = Texts(def, compile_declaration(entry->b->type, Text$from_str(entry->name)), "; ");
             }
-            def = CORD_all(def, "} ", name, "$userdata_t;");
-            env->code->local_typedefs = CORD_all(env->code->local_typedefs, def);
+            def = Texts(def, "} ", name, "$userdata_t;");
+            env->code->local_typedefs = Texts(env->code->local_typedefs, def);
         }
 
-        CORD code = CORD_all("static ", compile_type(ret_t), " ", name, "(");
+        Text_t code = Texts("static ", compile_type(ret_t), " ", name, "(");
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            code = CORD_all(code, compile_type(arg_type), " _$", arg->name, ", ");
+            code = Texts(code, compile_type(arg_type), " _$", arg->name, ", ");
         }
 
-        CORD userdata;
+        Text_t userdata;
         if (Table$length(closed_vars) == 0) {
-            code = CORD_cat(code, "void *_)");
-            userdata = "NULL";
+            code = Texts(code, "void *_)");
+            userdata = Text("NULL");
         } else {
-            userdata = CORD_all("new(", name, "$userdata_t");
+            userdata = Texts("new(", name, "$userdata_t");
             for (int64_t i = 0; i < closed_vars.entries.length; i++) {
                 struct { const char *name; binding_t *b; } *entry = closed_vars.entries.data + closed_vars.entries.stride*i;
                 if (entry->b->type->tag == ModuleType)
                     continue;
                 binding_t *b = get_binding(env, entry->name);
                 assert(b);
-                CORD binding_code = b->code;
+                Text_t binding_code = b->code;
                 if (entry->b->type->tag == ListType)
-                    userdata = CORD_all(userdata, ", LIST_COPY(", binding_code, ")");
+                    userdata = Texts(userdata, ", LIST_COPY(", binding_code, ")");
                 else if (entry->b->type->tag == TableType || entry->b->type->tag == SetType)
-                    userdata = CORD_all(userdata, ", TABLE_COPY(", binding_code, ")");
+                    userdata = Texts(userdata, ", TABLE_COPY(", binding_code, ")");
                 else 
-                    userdata = CORD_all(userdata, ", ", binding_code);
+                    userdata = Texts(userdata, ", ", binding_code);
             }
-            userdata = CORD_all(userdata, ")");
-            code = CORD_all(code, name, "$userdata_t *userdata)");
+            userdata = Texts(userdata, ")");
+            code = Texts(code, name, "$userdata_t *userdata)");
         }
 
-        CORD body = CORD_EMPTY;
+        Text_t body = EMPTY_TEXT;
         for (ast_list_t *stmt = Match(lambda->body, Block)->statements; stmt; stmt = stmt->next) {
             if (stmt->next || ret_t->tag == VoidType || ret_t->tag == AbortType || get_type(body_scope, stmt->ast)->tag == ReturnType)
-                body = CORD_all(body, compile_statement(body_scope, stmt->ast), "\n");
+                body = Texts(body, compile_statement(body_scope, stmt->ast), "\n");
             else
-                body = CORD_all(body, compile_statement(body_scope, FakeAST(Return, stmt->ast)), "\n");
+                body = Texts(body, compile_statement(body_scope, FakeAST(Return, stmt->ast)), "\n");
             bind_statement(body_scope, stmt->ast);
         }
         if ((ret_t->tag == VoidType || ret_t->tag == AbortType) && body_scope->deferred)
-            body = CORD_all(body, compile_statement(body_scope, FakeAST(Return)), "\n");
+            body = Texts(body, compile_statement(body_scope, FakeAST(Return)), "\n");
 
-        env->code->lambdas = CORD_all(env->code->lambdas, code, " {\n", body, "\n}\n");
-        return CORD_all("((Closure_t){", name, ", ", userdata, "})");
+        env->code->lambdas = Texts(env->code->lambdas, code, " {\n", body, "\n}\n");
+        return Texts("((Closure_t){", name, ", ", userdata, "})");
     }
     case MethodCall: {
         DeclareMatch(call, ast, MethodCall);
@@ -3158,7 +3152,7 @@ CORD compile(env_t *env, ast_t *ast)
         if (streq(call->name, "serialized")) {
             if (call->args)
                 code_err(ast, ".serialized() doesn't take any arguments"); 
-            return CORD_all("generic_serialize((", compile_declaration(self_t, "[1]"), "){",
+            return Texts("generic_serialize((", compile_declaration(self_t, Text("[1]")), "){",
                             compile(env, call->self), "}, ", compile_type_info(self_t), ")");
         }
 
@@ -3179,7 +3173,7 @@ CORD compile(env_t *env, ast_t *ast)
             return compile(env, WrapAST(ast, FunctionCall, .fn=WrapAST(call->self, FieldAccess, .fielded=call->self, .field=call->name),
                                         .args=call->args));
 
-        CORD self = compile(env, call->self);
+        Text_t self = compile(env, call->self);
 
 #define EXPECT_POINTER(article, name) do { \
     if (pointer_depth < 1) code_err(call->self, "I expected "article" "name" pointer here, not "article" "name" value"); \
@@ -3188,36 +3182,36 @@ CORD compile(env_t *env, ast_t *ast)
         switch (self_value_t->tag) {
         case ListType: {
             type_t *item_t = Match(self_value_t, ListType)->item_type;
-            CORD padded_item_size = CORD_all("sizeof(", compile_type(item_t), ")");
+            Text_t padded_item_size = Texts("sizeof(", compile_type(item_t), ")");
 
             if (streq(call->name, "insert")) {
                 EXPECT_POINTER("a", "list");
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
                                       .next=new(arg_t, .name="at", .type=INT_TYPE, .default_val=FakeAST(Int, .str="0")));
-                return CORD_all("List$insert_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("List$insert_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "insert_all")) {
                 EXPECT_POINTER("a", "list");
                 arg_t *arg_spec = new(arg_t, .name="items", .type=self_value_t,
                                       .next=new(arg_t, .name="at", .type=INT_TYPE, .default_val=FakeAST(Int, .str="0")));
-                return CORD_all("List$insert_all(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("List$insert_all(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "remove_at")) {
                 EXPECT_POINTER("a", "list");
                 arg_t *arg_spec = new(arg_t, .name="index", .type=INT_TYPE, .default_val=FakeAST(Int, .str="-1"),
                                       .next=new(arg_t, .name="count", .type=INT_TYPE, .default_val=FakeAST(Int, .str="1")));
-                return CORD_all("List$remove_at(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("List$remove_at(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "remove_item")) {
                 EXPECT_POINTER("a", "list");
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
                                       .next=new(arg_t, .name="max_count", .type=INT_TYPE, .default_val=FakeAST(Int, .str="-1")));
-                return CORD_all("List$remove_item_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("List$remove_item_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "has")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t);
-                return CORD_all("List$has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("List$has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "sample")) {
                 type_t *random_num_type = parse_type_string(env, "func(->Num)?");
@@ -3226,92 +3220,92 @@ CORD compile(env_t *env, ast_t *ast)
                     .next=new(arg_t, .name="weights", .type=Type(ListType, .item_type=Type(NumType, .bits=TYPE_NBITS64)),
                               .default_val=FakeAST(None),
                               .next=new(arg_t, .name="random", .type=random_num_type, .default_val=FakeAST(None))));
-                return CORD_all("List$sample(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("List$sample(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "shuffle")) {
                 type_t *random_int64_type = parse_type_string(env, "func(min,max:Int64->Int64)?");
                 EXPECT_POINTER("a", "list");
                 arg_t *arg_spec = new(arg_t, .name="random", .type=random_int64_type, .default_val=FakeAST(None));
-                return CORD_all("List$shuffle(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
+                return Texts("List$shuffle(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
             } else if (streq(call->name, "shuffled")) {
                 type_t *random_int64_type = parse_type_string(env, "func(min,max:Int64->Int64)?");
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="random", .type=random_int64_type, .default_val=FakeAST(None));
-                return CORD_all("List$shuffled(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
+                return Texts("List$shuffled(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
             } else if (streq(call->name, "random")) {
                 type_t *random_int64_type = parse_type_string(env, "func(min,max:Int64->Int64)?");
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="random", .type=random_int64_type, .default_val=FakeAST(None));
-                return CORD_all("List$random_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type(item_t), ")");
+                return Texts("List$random_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type(item_t), ")");
             } else if (streq(call->name, "sort") || streq(call->name, "sorted")) {
                 if (streq(call->name, "sort"))
                     EXPECT_POINTER("a", "list");
                 else
                     self = compile_to_pointer_depth(env, call->self, 0, false);
-                CORD comparison;
+                Text_t comparison;
                 if (call->args) {
                     type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                     type_t *fn_t = NewFunctionType(Type(IntType, .bits=TYPE_IBITS32), {.name="x", .type=item_ptr}, {.name="y", .type=item_ptr});
                     arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t));
                     comparison = compile_arguments(env, ast, arg_spec, call->args);
                 } else {
-                    comparison = CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(item_t), "})");
+                    comparison = Texts("((Closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(item_t), "})");
                 }
-                return CORD_all("List$", call->name, "(", self, ", ", comparison, ", ", padded_item_size, ")");
+                return Texts("List$", call->name, "(", self, ", ", comparison, ", ", padded_item_size, ")");
             } else if (streq(call->name, "heapify")) {
                 EXPECT_POINTER("a", "list");
-                CORD comparison;
+                Text_t comparison;
                 if (call->args) {
                     type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                     type_t *fn_t = NewFunctionType(Type(IntType, .bits=TYPE_IBITS32), {.name="x", .type=item_ptr}, {.name="y", .type=item_ptr});
                     arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t));
                     comparison = compile_arguments(env, ast, arg_spec, call->args);
                 } else {
-                    comparison = CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(item_t), "})");
+                    comparison = Texts("((Closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(item_t), "})");
                 }
-                return CORD_all("List$heapify(", self, ", ", comparison, ", ", padded_item_size, ")");
+                return Texts("List$heapify(", self, ", ", comparison, ", ", padded_item_size, ")");
             } else if (streq(call->name, "heap_push")) {
                 EXPECT_POINTER("a", "list");
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *fn_t = NewFunctionType(Type(IntType, .bits=TYPE_IBITS32), {.name="x", .type=item_ptr}, {.name="y", .type=item_ptr});
-                ast_t *default_cmp = LiteralCode(CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
+                ast_t *default_cmp = LiteralCode(Texts("((Closure_t){.fn=generic_compare, .userdata=(void*)",
                                                           compile_type_info(item_t), "})"),
                                                  .type=Type(ClosureType, .fn=fn_t));
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
                                       .next=new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp));
-                CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
-                return CORD_all("List$heap_push_value(", self, ", ", arg_code, ", ", padded_item_size, ")");
+                Text_t arg_code = compile_arguments(env, ast, arg_spec, call->args);
+                return Texts("List$heap_push_value(", self, ", ", arg_code, ", ", padded_item_size, ")");
             } else if (streq(call->name, "heap_pop")) {
                 EXPECT_POINTER("a", "list");
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *fn_t = NewFunctionType(Type(IntType, .bits=TYPE_IBITS32), {.name="x", .type=item_ptr}, {.name="y", .type=item_ptr});
-                ast_t *default_cmp = LiteralCode(CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
+                ast_t *default_cmp = LiteralCode(Texts("((Closure_t){.fn=generic_compare, .userdata=(void*)",
                                                           compile_type_info(item_t), "})"),
                                                  .type=Type(ClosureType, .fn=fn_t));
                 arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp);
-                CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
-                return CORD_all("List$heap_pop_value(", self, ", ", arg_code, ", ", compile_type(item_t), ", _, ",
-                                promote_to_optional(item_t, "_"), ", ", compile_none(item_t), ")");
+                Text_t arg_code = compile_arguments(env, ast, arg_spec, call->args);
+                return Texts("List$heap_pop_value(", self, ", ", arg_code, ", ", compile_type(item_t), ", _, ",
+                                promote_to_optional(item_t, Text("_")), ", ", compile_none(item_t), ")");
             } else if (streq(call->name, "binary_search")) {
                 self = compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
                 type_t *fn_t = NewFunctionType(Type(IntType, .bits=TYPE_IBITS32), {.name="x", .type=item_ptr}, {.name="y", .type=item_ptr});
                 ast_t *default_cmp = LiteralCode(
-                    CORD_all("((Closure_t){.fn=generic_compare, .userdata=(void*)",
+                    Texts("((Closure_t){.fn=generic_compare, .userdata=(void*)",
                              compile_type_info(item_t), "})"),
                     .type=Type(ClosureType, .fn=fn_t));
                 arg_t *arg_spec = new(arg_t, .name="target", .type=item_t,
                                       .next=new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp));
-                CORD arg_code = compile_arguments(env, ast, arg_spec, call->args);
-                return CORD_all("List$binary_search_value(", self, ", ", arg_code, ")");
+                Text_t arg_code = compile_arguments(env, ast, arg_spec, call->args);
+                return Texts("List$binary_search_value(", self, ", ", arg_code, ")");
             } else if (streq(call->name, "clear")) {
                 EXPECT_POINTER("a", "list");
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("List$clear(", self, ")");
+                return Texts("List$clear(", self, ")");
             } else if (streq(call->name, "find")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t);
-                return CORD_all("List$find_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                return Texts("List$find_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "where")) {
                 self = compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
@@ -3319,37 +3313,37 @@ CORD compile(env_t *env, ast_t *ast)
                 type_t *predicate_type = Type(
                     ClosureType, .fn=NewFunctionType(Type(BoolType), {.name="item", .type=item_ptr}));
                 arg_t *arg_spec = new(arg_t, .name="predicate", .type=predicate_type);
-                return CORD_all("List$first(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
+                return Texts("List$first(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "from")) {
                 self = compile_to_pointer_depth(env, call->self, 0, true);
                 arg_t *arg_spec = new(arg_t, .name="first", .type=INT_TYPE);
-                return CORD_all("List$from(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
+                return Texts("List$from(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "to")) {
                 self = compile_to_pointer_depth(env, call->self, 0, true);
                 arg_t *arg_spec = new(arg_t, .name="last", .type=INT_TYPE);
-                return CORD_all("List$to(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
+                return Texts("List$to(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "by")) {
                 self = compile_to_pointer_depth(env, call->self, 0, true);
                 arg_t *arg_spec = new(arg_t, .name="stride", .type=INT_TYPE);
-                return CORD_all("List$by(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
+                return Texts("List$by(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
             } else if (streq(call->name, "reversed")) {
                 self = compile_to_pointer_depth(env, call->self, 0, true);
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("List$reversed(", self, ", ", padded_item_size, ")");
+                return Texts("List$reversed(", self, ", ", padded_item_size, ")");
             } else if (streq(call->name, "unique")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("Table$from_entries(", self, ", Set$info(", compile_type_info(item_t), "))");
+                return Texts("Table$from_entries(", self, ", Set$info(", compile_type_info(item_t), "))");
             } else if (streq(call->name, "pop")) {
                 EXPECT_POINTER("a", "list");
                 arg_t *arg_spec = new(arg_t, .name="index", .type=INT_TYPE, .default_val=FakeAST(Int, "-1"));
-                CORD index = compile_arguments(env, ast, arg_spec, call->args);
-                return CORD_all("List$pop(", self, ", ", index, ", ", compile_type(item_t), ", _, ",
-                                promote_to_optional(item_t, "_"), ", ", compile_none(item_t), ")");
+                Text_t index = compile_arguments(env, ast, arg_spec, call->args);
+                return Texts("List$pop(", self, ", ", index, ", ", compile_type(item_t), ", _, ",
+                             promote_to_optional(item_t, Text("_")), ", ", compile_none(item_t), ")");
             } else if (streq(call->name, "counts")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("List$counts(", self, ", ", compile_type_info(self_value_t), ")");
+                return Texts("List$counts(", self, ", ", compile_type_info(self_value_t), ")");
             } else code_err(ast, "There is no '", call->name, "' method for lists");
         }
         case SetType: {
@@ -3357,17 +3351,17 @@ CORD compile(env_t *env, ast_t *ast)
             if (streq(call->name, "has")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=set->item_type);
-                return CORD_all("Table$has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("Table$has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "add")) {
                 EXPECT_POINTER("a", "set");
                 arg_t *arg_spec = new(arg_t, .name="item", .type=set->item_type);
-                return CORD_all("Table$set_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", NULL, ",
+                return Texts("Table$set_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", NULL, ",
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "add_all")) {
                 EXPECT_POINTER("a", "set");
                 arg_t *arg_spec = new(arg_t, .name="items", .type=Type(ListType, .item_type=Match(self_value_t, SetType)->item_type));
-                return CORD_all("({ Table_t *set = ", self, "; ",
+                return Texts("({ Table_t *set = ", self, "; ",
                                 "List_t to_add = ", compile_arguments(env, ast, arg_spec, call->args), "; ",
                                 "for (int64_t i = 0; i < to_add.length; i++)\n"
                                 "Table$set(set, to_add.data + i*to_add.stride, NULL, ", compile_type_info(self_value_t), ");\n",
@@ -3375,12 +3369,12 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(call->name, "remove")) {
                 EXPECT_POINTER("a", "set");
                 arg_t *arg_spec = new(arg_t, .name="item", .type=set->item_type);
-                return CORD_all("Table$remove_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("Table$remove_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "remove_all")) {
                 EXPECT_POINTER("a", "set");
                 arg_t *arg_spec = new(arg_t, .name="items", .type=Type(ListType, .item_type=Match(self_value_t, SetType)->item_type));
-                return CORD_all("({ Table_t *set = ", self, "; ",
+                return Texts("({ Table_t *set = ", self, "; ",
                                 "List_t to_add = ", compile_arguments(env, ast, arg_spec, call->args), "; ",
                                 "for (int64_t i = 0; i < to_add.length; i++)\n"
                                 "Table$remove(set, to_add.data + i*to_add.stride, ", compile_type_info(self_value_t), ");\n",
@@ -3388,33 +3382,33 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(call->name, "clear")) {
                 EXPECT_POINTER("a", "set");
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("Table$clear(", self, ")");
+                return Texts("Table$clear(", self, ")");
             } else if (streq(call->name, "with")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t);
-                return CORD_all("Table$with(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                return Texts("Table$with(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "overlap")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t);
-                return CORD_all("Table$overlap(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                return Texts("Table$overlap(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "without")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t);
-                return CORD_all("Table$without(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                return Texts("Table$without(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "is_subset_of")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t,
                                       .next=new(arg_t, .name="strict", .type=Type(BoolType), .default_val=FakeAST(Bool, false)));
-                return CORD_all("Table$is_subset_of(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                return Texts("Table$is_subset_of(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "is_superset_of")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t,
                                       .next=new(arg_t, .name="strict", .type=Type(BoolType), .default_val=FakeAST(Bool, false)));
-                return CORD_all("Table$is_superset_of(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                return Texts("Table$is_superset_of(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(self_value_t), ")");
             } else code_err(ast, "There is no '", call->name, "' method for tables");
         }
@@ -3423,16 +3417,16 @@ CORD compile(env_t *env, ast_t *ast)
             if (streq(call->name, "get")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);
-                return CORD_all(
+                return Texts(
                     "Table$get_optional(", self, ", ", compile_type(table->key_type), ", ",
                     compile_type(table->value_type), ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
-                    "_, ", optional_into_nonnone(table->value_type, "(*_)"), ", ", compile_none(table->value_type), ", ",
+                    "_, ", optional_into_nonnone(table->value_type, Text("(*_)")), ", ", compile_none(table->value_type), ", ",
                     compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "get_or_set")) {
                 self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type,
                                       .next=new(arg_t, .name="default", .type=table->value_type, .default_val=table->default_value));
-                return CORD_all("*Table$get_or_setdefault(",
+                return Texts("*Table$get_or_setdefault(",
                                 self, ", ", compile_type(table->key_type), ", ",
                                 compile_type(table->value_type), ", ",
                                 compile_arguments(env, ast, arg_spec, call->args), ", ",
@@ -3440,31 +3434,31 @@ CORD compile(env_t *env, ast_t *ast)
             } else if (streq(call->name, "has")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);
-                return CORD_all("Table$has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("Table$has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "set")) {
                 EXPECT_POINTER("a", "table");
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type,
                                       .next=new(arg_t, .name="value", .type=table->value_type));
-                return CORD_all("Table$set_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("Table$set_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "remove")) {
                 EXPECT_POINTER("a", "table");
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);
-                return CORD_all("Table$remove_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("Table$remove_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "clear")) {
                 EXPECT_POINTER("a", "table");
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("Table$clear(", self, ")");
+                return Texts("Table$clear(", self, ")");
             } else if (streq(call->name, "sorted")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return CORD_all("Table$sorted(", self, ", ", compile_type_info(self_value_t), ")");
+                return Texts("Table$sorted(", self, ", ", compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "with_fallback")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="fallback", .type=Type(OptionalType, self_value_t));
-                return CORD_all("Table$with_fallback(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
+                return Texts("Table$with_fallback(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else code_err(ast, "There is no '", call->name, "' method for tables");
         }
         default: {
@@ -3473,7 +3467,7 @@ CORD compile(env_t *env, ast_t *ast)
             arg_ast_t *args = new(arg_ast_t, .value=methodcall->self, .next=methodcall->args);
             binding_t *b = get_namespace_binding(env, methodcall->self, methodcall->name);
             if (!b) code_err(ast, "No such method");
-            return CORD_all(b->code, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, args), ")");
+            return Texts(b->code, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, args), ")");
         }
         }
 #undef EXPECT_POINTER
@@ -3482,8 +3476,8 @@ CORD compile(env_t *env, ast_t *ast)
         DeclareMatch(call, ast, FunctionCall);
         type_t *fn_t = get_type(env, call->fn);
         if (fn_t->tag == FunctionType) {
-            CORD fn = compile(env, call->fn);
-            return CORD_all(fn, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), ")");
+            Text_t fn = compile(env, call->fn);
+            return Texts(fn, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), ")");
         } else if (fn_t->tag == TypeInfoType) {
             type_t *t = Match(fn_t, TypeInfoType)->type;
 
@@ -3496,7 +3490,7 @@ CORD compile(env_t *env, ast_t *ast)
             binding_t *constructor = get_constructor(env, t, call->args);
             if (constructor) {
                 arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
-                return CORD_all(constructor->code, "(", compile_arguments(env, ast, arg_spec, call->args), ")");
+                return Texts(constructor->code, "(", compile_arguments(env, ast, arg_spec, call->args), ")");
             }
 
             type_t *actual = call->args ? get_type(env, call->args->value) : NULL;
@@ -3509,22 +3503,22 @@ CORD compile(env_t *env, ast_t *ast)
                     code_err(call->fn, "This constructor takes exactly 1 argument");
                 if (type_eq(actual, t))
                     return compile(env, call->args->value);
-                return expr_as_text(compile(env, call->args->value), actual, "no");
+                return expr_as_text(compile(env, call->args->value), actual, Text("no"));
             } else if (t->tag == CStringType) {
                 // C String constructor:
                 if (!call->args || call->args->next)
                     code_err(call->fn, "This constructor takes exactly 1 argument");
                 if (call->args->value->tag == TextLiteral)
-                    return compile_string_literal(Match(call->args->value, TextLiteral)->cord);
+                    return compile_text_literal(Match(call->args->value, TextLiteral)->text);
                 else if (call->args->value->tag == TextJoin && Match(call->args->value, TextJoin)->children == NULL)
-                    return "\"\"";
+                    return Text("\"\"");
                 else if (call->args->value->tag == TextJoin && Match(call->args->value, TextJoin)->children->next == NULL)
-                    return compile_string_literal(Match(Match(call->args->value, TextJoin)->children->ast, TextLiteral)->cord);
-                return CORD_all("Text$as_c_string(", expr_as_text(compile(env, call->args->value), actual, "no"), ")");
+                    return compile_text_literal(Match(Match(call->args->value, TextJoin)->children->ast, TextLiteral)->text);
+                return Texts("Text$as_c_string(", expr_as_text(compile(env, call->args->value), actual, Text("no")), ")");
             } else if (t->tag == StructType) {
                 DeclareMatch(struct_, t, StructType);
                 if (!struct_->opaque && is_valid_call(env, struct_->fields, call->args, true)) {
-                    return CORD_all("((", compile_type(t), "){",
+                    return Texts("((", compile_type(t), "){",
                                     compile_arguments(env, ast, struct_->fields, call->args), "})");
                 }
             }
@@ -3538,15 +3532,15 @@ CORD compile(env_t *env, ast_t *ast)
                 closure_fn_args = new(arg_t, .name=arg->name, .type=arg->type, .default_val=arg->default_val, .next=closure_fn_args);
             closure_fn_args = new(arg_t, .name="userdata", .type=Type(PointerType, .pointed=Type(MemoryType)), .next=closure_fn_args);
             REVERSE_LIST(closure_fn_args);
-            CORD fn_type_code = compile_type(Type(FunctionType, .args=closure_fn_args, .ret=Match(fn_t, FunctionType)->ret));
+            Text_t fn_type_code = compile_type(Type(FunctionType, .args=closure_fn_args, .ret=Match(fn_t, FunctionType)->ret));
 
-            CORD closure = compile(env, call->fn);
-            CORD arg_code = compile_arguments(env, ast, type_args, call->args);
-            if (arg_code) arg_code = CORD_cat(arg_code, ", ");
+            Text_t closure = compile(env, call->fn);
+            Text_t arg_code = compile_arguments(env, ast, type_args, call->args);
+            if (arg_code.length > 0) arg_code = Texts(arg_code, ", ");
             if (call->fn->tag == Var) {
-                return CORD_all("((", fn_type_code, ")", closure, ".fn)(", arg_code, closure, ".userdata)");
+                return Texts("((", fn_type_code, ")", closure, ".fn)(", arg_code, closure, ".userdata)");
             } else {
-                return CORD_all("({ Closure_t closure = ", closure, "; ((", fn_type_code, ")closure.fn)(",
+                return Texts("({ Closure_t closure = ", closure, "; ((", fn_type_code, ")closure.fn)(",
                                 arg_code, "closure.userdata); })");
             }
         } else {
@@ -3559,7 +3553,7 @@ CORD compile(env_t *env, ast_t *ast)
         if (!type_eq(value_type, Type(ListType, Type(ByteType))))
             code_err(value, "This value should be a list of bytes, not a ", type_to_str(value_type));
         type_t *t = parse_type_ast(env, Match(ast, Deserialize)->type);
-        return CORD_all("({ ", compile_declaration(t, "deserialized"), ";\n"
+        return Texts("({ ", compile_declaration(t, Text("deserialized")), ";\n"
                         "generic_deserialize(", compile(env, value), ", &deserialized, ", compile_type_info(t), ");\n"
                         "deserialized; })");
     }
@@ -3595,19 +3589,19 @@ CORD compile(env_t *env, ast_t *ast)
 
         type_t *t = get_type(env, ast);
         env_t *when_env = fresh_scope(env);
-        set_binding(when_env, "when", t, "when");
-        return CORD_all(
-            "({ ", compile_declaration(t, "when"), ";\n",
+        set_binding(when_env, "when", t, Text("when"));
+        return Texts(
+            "({ ", compile_declaration(t, Text("when")), ";\n",
             compile_statement(when_env, WrapAST(ast, When, .subject=original->subject, .clauses=new_clauses, .else_body=else_body)),
             "when; })");
     }
     case If: {
         DeclareMatch(if_, ast, If);
         ast_t *condition = if_->condition;
-        CORD decl_code = CORD_EMPTY;
+        Text_t decl_code = EMPTY_TEXT;
         env_t *truthy_scope = env, *falsey_scope = env;
 
-        CORD condition_code;
+        Text_t condition_code;
         if (condition->tag == Declare) {
             DeclareMatch(decl, condition, Declare);
             if (decl->value == NULL)
@@ -3645,16 +3639,16 @@ CORD compile(env_t *env, ast_t *ast)
         type_t *true_type = get_type(truthy_scope, if_->body);
         type_t *false_type = get_type(falsey_scope, if_->else_body);
         if (true_type->tag == AbortType || true_type->tag == ReturnType)
-            return CORD_all("({ ", decl_code, "if (", condition_code, ") ", compile_statement(truthy_scope, if_->body),
+            return Texts("({ ", decl_code, "if (", condition_code, ") ", compile_statement(truthy_scope, if_->body),
                             "\n", compile(falsey_scope, if_->else_body), "; })");
         else if (false_type->tag == AbortType || false_type->tag == ReturnType)
-            return CORD_all("({ ", decl_code, "if (!(", condition_code, ")) ", compile_statement(falsey_scope, if_->else_body),
+            return Texts("({ ", decl_code, "if (!(", condition_code, ")) ", compile_statement(falsey_scope, if_->else_body),
                             "\n", compile(truthy_scope, if_->body), "; })");
-        else if (decl_code != CORD_EMPTY)
-            return CORD_all("({ ", decl_code, "(", condition_code, ") ? ", compile(truthy_scope, if_->body), " : ",
+        else if (decl_code.length > 0)
+            return Texts("({ ", decl_code, "(", condition_code, ") ? ", compile(truthy_scope, if_->body), " : ",
                             compile(falsey_scope, if_->else_body), ";})");
         else
-            return CORD_all("((", condition_code, ") ? ",
+            return Texts("((", condition_code, ") ? ",
                             compile(truthy_scope, if_->body), " : ", compile(falsey_scope, if_->else_body), ")");
     }
     case Reduction: {
@@ -3667,7 +3661,7 @@ CORD compile(env_t *env, ast_t *ast)
 
         static int64_t next_id = 1;
         ast_t *item = FakeAST(Var, String("$it", next_id++));
-        ast_t *body = LiteralCode("{}"); // placeholder
+        ast_t *body = LiteralCode(Text("{}")); // placeholder
         ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=item), .iter=reduction->iter, .body=body);
         env_t *body_scope = for_scope(env, loop);
         if (op == Equals || op == NotEquals || op == LessThan || op == LessThanOrEquals || op == GreaterThan || op == GreaterThanOrEquals) {
@@ -3680,15 +3674,15 @@ CORD compile(env_t *env, ast_t *ast)
                 item_value_type = get_type(body_scope, reduction->key);
             }
 
-            CORD code = CORD_all(
+            Text_t code = Texts(
                 "({ // Reduction:\n",
-                compile_declaration(item_value_type, "prev"), ";\n"
+                compile_declaration(item_value_type, Text("prev")), ";\n"
                 "OptionalBool_t result = NONE_BOOL;\n"
                 );
 
             ast_t *comparison = new(ast_t, .file=ast->file, .start=ast->start, .end=ast->end,
-                                    .tag=op, .__data.Plus.lhs=LiteralCode("prev", .type=item_value_type), .__data.Plus.rhs=item_value);
-            body->__data.InlineCCode.chunks = new(ast_list_t, .ast=FakeAST(TextLiteral, CORD_all(
+                                    .tag=op, .__data.Plus.lhs=LiteralCode(Text("prev"), .type=item_value_type), .__data.Plus.rhs=item_value);
+            body->__data.InlineCCode.chunks = new(ast_list_t, .ast=FakeAST(TextLiteral, Texts(
                 "if (result == NONE_BOOL) {\n"
                 "    prev = ", compile(body_scope, item_value), ";\n"
                 "    result = yes;\n"
@@ -3700,32 +3694,32 @@ CORD compile(env_t *env, ast_t *ast)
                 "        break;\n",
                 "    }\n",
                 "}\n")));
-            code = CORD_all(code, compile_statement(env, loop), "\nresult;})");
+            code = Texts(code, compile_statement(env, loop), "\nresult;})");
             return code;
         } else if (op == Min || op == Max) {
             // Min/max:
-            const char *superlative = op == Min ? "min" : "max";
-            CORD code = CORD_all(
+            Text_t superlative = op == Min ? Text("min") : Text("max");
+            Text_t code = Texts(
                 "({ // Reduction:\n",
                 compile_declaration(item_t, superlative), ";\n"
                 "Bool_t has_value = no;\n"
                 );
 
-            CORD item_code = compile(body_scope, item);
+            Text_t item_code = compile(body_scope, item);
             ast_e cmp_op = op == Min ? LessThan : GreaterThan;
             if (reduction->key) {
                 env_t *key_scope = fresh_scope(env);
                 set_binding(key_scope, "$", item_t, item_code);
                 type_t *key_type = get_type(key_scope, reduction->key);
-                const char *superlative_key = op == Min ? "min_key" : "max_key";
-                code = CORD_all(code, compile_declaration(key_type, superlative_key), ";\n");
+                Text_t superlative_key = op == Min ? Text("min_key") : Text("max_key");
+                code = Texts(code, compile_declaration(key_type, superlative_key), ";\n");
 
                 ast_t *comparison = new(ast_t, .file=ast->file, .start=ast->start, .end=ast->end,
-                                        .tag=cmp_op, .__data.Plus.lhs=LiteralCode("key", .type=key_type),
+                                        .tag=cmp_op, .__data.Plus.lhs=LiteralCode(Text("key"), .type=key_type),
                                         .__data.Plus.rhs=LiteralCode(superlative_key, .type=key_type));
 
-                body->__data.InlineCCode.chunks = new(ast_list_t, .ast=FakeAST(TextLiteral, CORD_all(
-                    compile_declaration(key_type, "key"), " = ", compile(key_scope, reduction->key), ";\n",
+                body->__data.InlineCCode.chunks = new(ast_list_t, .ast=FakeAST(TextLiteral, Texts(
+                    compile_declaration(key_type, Text("key")), " = ", compile(key_scope, reduction->key), ";\n",
                     "if (!has_value || ", compile(body_scope, comparison), ") {\n"
                     "    ", superlative, " = ", compile(body_scope, item), ";\n"
                     "    ", superlative_key, " = key;\n"
@@ -3735,7 +3729,7 @@ CORD compile(env_t *env, ast_t *ast)
                 ast_t *comparison = new(ast_t, .file=ast->file, .start=ast->start, .end=ast->end,
                                         .tag=cmp_op, .__data.Plus.lhs=item,
                                         .__data.Plus.rhs=LiteralCode(superlative, .type=item_t));
-                body->__data.InlineCCode.chunks = new(ast_list_t, .ast=FakeAST(TextLiteral, CORD_all(
+                body->__data.InlineCCode.chunks = new(ast_list_t, .ast=FakeAST(TextLiteral, Texts(
                     "if (!has_value || ", compile(body_scope, comparison), ") {\n"
                     "    ", superlative, " = ", compile(body_scope, item), ";\n"
                     "    has_value = yes;\n"
@@ -3743,7 +3737,7 @@ CORD compile(env_t *env, ast_t *ast)
             }
 
 
-            code = CORD_all(code, compile_statement(env, loop), "\nhas_value ? ", promote_to_optional(item_t, superlative),
+            code = Texts(code, compile_statement(env, loop), "\nhas_value ? ", promote_to_optional(item_t, superlative),
                             " : ", compile_none(item_t), ";})");
             return code;
         } else {
@@ -3755,33 +3749,33 @@ CORD compile(env_t *env, ast_t *ast)
                 item_value = reduction->key;
             }
 
-            CORD code = CORD_all(
+            Text_t code = Texts(
                 "({ // Reduction:\n",
-                compile_declaration(reduction_type, "reduction"), ";\n"
+                compile_declaration(reduction_type, Text("reduction")), ";\n"
                 "Bool_t has_value = no;\n"
                 );
 
             // For the special case of (or)/(and), we need to early out if we can:
-            CORD early_out = CORD_EMPTY;
+            Text_t early_out = EMPTY_TEXT;
             if (op == Compare) {
                 if (reduction_type->tag != IntType || Match(reduction_type, IntType)->bits != TYPE_IBITS32)
                     code_err(ast, "<> reductions are only supported for Int32 values");
             } else if (op == And) {
                 if (reduction_type->tag == BoolType)
-                    early_out = "if (!reduction) break;";
+                    early_out = Text("if (!reduction) break;");
                 else if (reduction_type->tag == OptionalType)
-                    early_out = CORD_all("if (", check_none(reduction_type, "reduction"), ") break;");
+                    early_out = Texts("if (", check_none(reduction_type, Text("reduction")), ") break;");
             } else if (op == Or) {
                 if (reduction_type->tag == BoolType)
-                    early_out = "if (reduction) break;";
+                    early_out = Text("if (reduction) break;");
                 else if (reduction_type->tag == OptionalType)
-                    early_out = CORD_all("if (!", check_none(reduction_type, "reduction"), ") break;");
+                    early_out = Texts("if (!", check_none(reduction_type, Text("reduction")), ") break;");
             }
 
             ast_t *combination = new(ast_t, .file=ast->file, .start=ast->start, .end=ast->end,
-                                     .tag=op, .__data.Plus.lhs=LiteralCode("reduction", .type=reduction_type),
+                                     .tag=op, .__data.Plus.lhs=LiteralCode(Text("reduction"), .type=reduction_type),
                                      .__data.Plus.rhs=item_value);
-            body->__data.InlineCCode.chunks = new(ast_list_t, .ast=FakeAST(TextLiteral, CORD_all(
+            body->__data.InlineCCode.chunks = new(ast_list_t, .ast=FakeAST(TextLiteral, Texts(
                 "if (!has_value) {\n"
                 "    reduction = ", compile(body_scope, item_value), ";\n"
                 "    has_value = yes;\n"
@@ -3790,7 +3784,7 @@ CORD compile(env_t *env, ast_t *ast)
                 early_out,
                 "}\n")));
 
-            code = CORD_all(code, compile_statement(env, loop), "\nhas_value ? ", promote_to_optional(reduction_type, "reduction"),
+            code = Texts(code, compile_statement(env, loop), "\nhas_value ? ", promote_to_optional(reduction_type, Text("reduction")),
                             " : ", compile_none(reduction_type), ";})");
             return code;
         }
@@ -3812,16 +3806,16 @@ CORD compile(env_t *env, ast_t *ast)
             }
             binding_t *b = get_binding(info->env, f->field);
             if (!b) code_err(ast, "I couldn't find the field '", f->field, "' on this type");
-            if (!b->code) code_err(ast, "I couldn't figure out how to compile this field");
+            if (b->code.length == 0) code_err(ast, "I couldn't figure out how to compile this field");
             return b->code;
         }
         case TextType: {
             const char *lang = Match(value_t, TextType)->lang; 
             if (lang && streq(f->field, "text")) {
-                CORD text = compile_to_pointer_depth(env, f->fielded, 0, false);
-                return CORD_all("((Text_t)", text, ")");
+                Text_t text = compile_to_pointer_depth(env, f->fielded, 0, false);
+                return Texts("((Text_t)", text, ")");
             } else if (streq(f->field, "length")) {
-                return CORD_all("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
+                return Texts("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
             }
             code_err(ast, "There is no '", f->field, "' field on ", type_to_str(value_t), " values");
         }
@@ -3829,11 +3823,11 @@ CORD compile(env_t *env, ast_t *ast)
             for (arg_t *field = Match(value_t, StructType)->fields; field; field = field->next) {
                 if (streq(field->name, f->field)) {
                     if (fielded_t->tag == PointerType) {
-                        CORD fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
-                        return CORD_all("(", fielded, ")->", f->field);
+                        Text_t fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
+                        return Texts("(", fielded, ")->", f->field);
                     } else {
-                        CORD fielded = compile(env, f->fielded);
-                        return CORD_all("(", fielded, ").", f->field);
+                        Text_t fielded = compile(env, f->fielded);
+                        return Texts("(", fielded, ").", f->field);
                     }
                 }
             }
@@ -3843,16 +3837,16 @@ CORD compile(env_t *env, ast_t *ast)
             DeclareMatch(e, value_t, EnumType);
             for (tag_t *tag = e->tags; tag; tag = tag->next) {
                 if (streq(f->field, tag->name)) {
-                    CORD tag_name = namespace_name(e->env, e->env->namespace, CORD_all("tag$", tag->name));
+                    Text_t tag_name = namespace_name(e->env, e->env->namespace, Texts("tag$", tag->name));
                     if (fielded_t->tag == PointerType) {
-                        CORD fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
-                        return CORD_all("((", fielded, ")->$tag == ", tag_name, ")");
+                        Text_t fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
+                        return Texts("((", fielded, ")->$tag == ", tag_name, ")");
                     } else if (enum_has_fields(value_t)) {
-                        CORD fielded = compile(env, f->fielded);
-                        return CORD_all("((", fielded, ").$tag == ", tag_name, ")");
+                        Text_t fielded = compile(env, f->fielded);
+                        return Texts("((", fielded, ").$tag == ", tag_name, ")");
                     } else {
-                        CORD fielded = compile(env, f->fielded);
-                        return CORD_all("((", fielded, ") == ", tag_name, ")");
+                        Text_t fielded = compile(env, f->fielded);
+                        return Texts("((", fielded, ") == ", tag_name, ")");
                     }
                 }
             }
@@ -3860,31 +3854,31 @@ CORD compile(env_t *env, ast_t *ast)
         }
         case ListType: {
             if (streq(f->field, "length"))
-                return CORD_all("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
+                return Texts("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
             code_err(ast, "There is no ", f->field, " field on lists");
         }
         case SetType: {
             if (streq(f->field, "items"))
-                return CORD_all("LIST_COPY((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries)");
+                return Texts("LIST_COPY((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries)");
             else if (streq(f->field, "length"))
-                return CORD_all("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
+                return Texts("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
             code_err(ast, "There is no '", f->field, "' field on sets");
         }
         case TableType: {
             if (streq(f->field, "length")) {
-                return CORD_all("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
+                return Texts("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
             } else if (streq(f->field, "keys")) {
-                return CORD_all("LIST_COPY((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries)");
+                return Texts("LIST_COPY((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries)");
             } else if (streq(f->field, "values")) {
                 DeclareMatch(table, value_t, TableType);
-                CORD offset = CORD_all("offsetof(struct { ", compile_declaration(table->key_type, "k"), "; ", compile_declaration(table->value_type, "v"), "; }, v)");
-                return CORD_all("({ List_t *entries = &(", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries;\n"
+                Text_t offset = Texts("offsetof(struct { ", compile_declaration(table->key_type, Text("k")), "; ", compile_declaration(table->value_type, Text("v")), "; }, v)");
+                return Texts("({ List_t *entries = &(", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries;\n"
                                 "LIST_INCREF(*entries);\n"
                                 "List_t values = *entries;\n"
                                 "values.data += ", offset, ";\n"
                                 "values; })");
             } else if (streq(f->field, "fallback")) {
-                return CORD_all("({ Table_t *_fallback = (", compile_to_pointer_depth(env, f->fielded, 0, false), ").fallback; _fallback ? *_fallback : NONE_TABLE; })");
+                return Texts("({ Table_t *_fallback = (", compile_to_pointer_depth(env, f->fielded, 0, false), ").fallback; _fallback ? *_fallback : NONE_TABLE; })");
             }
             code_err(ast, "There is no '", f->field, "' field on tables");
         }
@@ -3905,11 +3899,11 @@ CORD compile(env_t *env, ast_t *ast)
                 code_err(ast, "Only pointers can use the '[]' operator to dereference the entire value.");
             DeclareMatch(ptr, indexed_type, PointerType);
             if (ptr->pointed->tag == ListType) {
-                return CORD_all("*({ List_t *list = ", compile(env, indexing->indexed), "; LIST_INCREF(*list); list; })");
+                return Texts("*({ List_t *list = ", compile(env, indexing->indexed), "; LIST_INCREF(*list); list; })");
             } else if (ptr->pointed->tag == TableType || ptr->pointed->tag == SetType) {
-                return CORD_all("*({ Table_t *t = ", compile(env, indexing->indexed), "; TABLE_INCREF(*t); t; })");
+                return Texts("*({ Table_t *t = ", compile(env, indexing->indexed), "; TABLE_INCREF(*t); t; })");
             } else {
-                return CORD_all("*(", compile(env, indexing->indexed), ")");
+                return Texts("*(", compile(env, indexing->indexed), ")");
             }
         }
 
@@ -3919,16 +3913,16 @@ CORD compile(env_t *env, ast_t *ast)
             if (index_t->tag != IntType && index_t->tag != BigIntType && index_t->tag != ByteType)
                 code_err(indexing->index, "Lists can only be indexed by integers, not ", type_to_str(index_t));
             type_t *item_type = Match(container_t, ListType)->item_type;
-            CORD list = compile_to_pointer_depth(env, indexing->indexed, 0, false);
+            Text_t list = compile_to_pointer_depth(env, indexing->indexed, 0, false);
             file_t *f = indexing->index->file;
-            CORD index_code = indexing->index->tag == Int
+            Text_t index_code = indexing->index->tag == Int
                 ? compile_int_to_type(env, indexing->index, Type(IntType, .bits=TYPE_IBITS64))
-                : (index_t->tag == BigIntType ? CORD_all("Int64$from_int(", compile(env, indexing->index), ", no)")
-                   : CORD_all("(Int64_t)(", compile(env, indexing->index), ")"));
+                : (index_t->tag == BigIntType ? Texts("Int64$from_int(", compile(env, indexing->index), ", no)")
+                   : Texts("(Int64_t)(", compile(env, indexing->index), ")"));
             if (indexing->unchecked)
-                return CORD_all("List_get_unchecked(", compile_type(item_type), ", ", list, ", ", index_code, ")");
+                return Texts("List_get_unchecked(", compile_type(item_type), ", ", list, ", ", index_code, ")");
             else
-                return CORD_all("List_get(", compile_type(item_type), ", ", list, ", ", index_code, ", ",
+                return Texts("List_get(", compile_type(item_type), ", ", list, ", ", index_code, ", ",
                                 String((int64_t)(indexing->index->start - f->text)), ", ",
                                 String((int64_t)(indexing->index->end - f->text)),
                                 ")");
@@ -3937,7 +3931,7 @@ CORD compile(env_t *env, ast_t *ast)
             if (indexing->unchecked)
                 code_err(ast, "Table indexes cannot be unchecked");
             if (table_type->default_value) {
-                return CORD_all("Table$get_or_default(",
+                return Texts("Table$get_or_default(",
                                 compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
                                 compile_type(table_type->key_type), ", ",
                                 compile_type(table_type->value_type), ", ",
@@ -3945,17 +3939,17 @@ CORD compile(env_t *env, ast_t *ast)
                                 compile_to_type(env, table_type->default_value, table_type->value_type), ", ",
                                 compile_type_info(container_t), ")");
             } else {
-                return CORD_all("Table$get_optional(",
+                return Texts("Table$get_optional(",
                                 compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
                                 compile_type(table_type->key_type), ", ",
                                 compile_type(table_type->value_type), ", ",
                                 compile(env, indexing->index), ", "
-                                "_, ", promote_to_optional(table_type->value_type, "(*_)"), ", ",
+                                "_, ", promote_to_optional(table_type->value_type, Text("(*_)")), ", ",
                                 compile_none(table_type->value_type), ", ",
                                 compile_type_info(container_t), ")");
             }
         } else if (container_t->tag == TextType) {
-            return CORD_all("Text$cluster(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ", compile_to_type(env, indexing->index, Type(BigIntType)), ")");
+            return Texts("Text$cluster(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ", compile_to_type(env, indexing->index, Type(BigIntType)), ")");
         } else {
             code_err(ast, "Indexing is not supported for type: ", type_to_str(container_t));
         }
@@ -3963,7 +3957,7 @@ CORD compile(env_t *env, ast_t *ast)
     case InlineCCode: {
         type_t *t = get_type(env, ast);
         if (t->tag == VoidType)
-            return CORD_all("{\n", compile_statement(env, ast), "\n}");
+            return Texts("{\n", compile_statement(env, ast), "\n}");
         else
             return compile_statement(env, ast);
     }
@@ -3976,100 +3970,100 @@ CORD compile(env_t *env, ast_t *ast)
         code_err(ast, "This is not a valid expression");
     default: case Unknown: code_err(ast, "Unknown AST: ", ast_to_sexp_str(ast));
     }
-    return CORD_EMPTY;
+    return EMPTY_TEXT;
 }
 
-CORD compile_type_info(type_t *t)
+Text_t compile_type_info(type_t *t)
 {
     if (t == NULL) compiler_err(NULL, NULL, NULL, "Attempt to compile a NULL type");
-    if (t == PATH_TYPE) return "&Path$info";
-    else if (t == PATH_TYPE_TYPE) return "&PathType$info";
+    if (t == PATH_TYPE) return Text("&Path$info");
+    else if (t == PATH_TYPE_TYPE) return Text("&PathType$info");
 
     switch (t->tag) {
     case BoolType: case ByteType: case IntType: case BigIntType: case NumType: case CStringType:
-        return CORD_all("&", type_to_cord(t), "$info");
+        return Texts("&", type_to_text(t), "$info");
     case TextType: {
         DeclareMatch(text, t, TextType);
         if (!text->lang || streq(text->lang, "Text"))
-            return "&Text$info";
-        return CORD_all("(&", namespace_name(text->env, text->env->namespace, "$info"), ")");
+            return Text("&Text$info");
+        return Texts("(&", namespace_name(text->env, text->env->namespace, Text("$info")), ")");
     }
     case StructType: {
         DeclareMatch(s, t, StructType);
-        return CORD_all("(&", namespace_name(s->env, s->env->namespace, "$info"), ")");
+        return Texts("(&", namespace_name(s->env, s->env->namespace, Text("$info")), ")");
     }
     case EnumType: {
         DeclareMatch(e, t, EnumType);
-        return CORD_all("(&", namespace_name(e->env, e->env->namespace, "$info"), ")");
+        return Texts("(&", namespace_name(e->env, e->env->namespace, Text("$info")), ")");
     }
     case ListType: {
         type_t *item_t = Match(t, ListType)->item_type;
-        return CORD_all("List$info(", compile_type_info(item_t), ")");
+        return Texts("List$info(", compile_type_info(item_t), ")");
     }
     case SetType: {
         type_t *item_type = Match(t, SetType)->item_type;
-        return CORD_all("Set$info(", compile_type_info(item_type), ")");
+        return Texts("Set$info(", compile_type_info(item_type), ")");
     }
     case TableType: {
         DeclareMatch(table, t, TableType);
         type_t *key_type = table->key_type;
         type_t *value_type = table->value_type;
-        return CORD_all("Table$info(", compile_type_info(key_type), ", ", compile_type_info(value_type), ")");
+        return Texts("Table$info(", compile_type_info(key_type), ", ", compile_type_info(value_type), ")");
     }
     case PointerType: {
         DeclareMatch(ptr, t, PointerType);
-        CORD sigil = ptr->is_stack ? "&" : "@";
-        return CORD_all("Pointer$info(", CORD_quoted(sigil), ", ", compile_type_info(ptr->pointed), ")");
+        const char *sigil = ptr->is_stack ? "&" : "@";
+        return Texts("Pointer$info(", quoted_str(sigil), ", ", compile_type_info(ptr->pointed), ")");
     }
     case FunctionType: {
-        return CORD_all("Function$info(", CORD_quoted(type_to_cord(t)), ")");
+        return Texts("Function$info(", quoted_text(type_to_text(t)), ")");
     }
     case ClosureType: {
-        return CORD_all("Closure$info(", CORD_quoted(type_to_cord(t)), ")");
+        return Texts("Closure$info(", quoted_text(type_to_text(t)), ")");
     }
     case OptionalType: {
         type_t *non_optional = Match(t, OptionalType)->type;
-        return CORD_all("Optional$info(sizeof(", compile_type(non_optional),
+        return Texts("Optional$info(sizeof(", compile_type(non_optional),
                         "), __alignof__(", compile_type(non_optional), "), ", compile_type_info(non_optional), ")");
     }
-    case TypeInfoType: return CORD_all("Type$info(", CORD_quoted(type_to_cord(Match(t, TypeInfoType)->type)), ")");
-    case MemoryType: return "&Memory$info";
-    case VoidType: return "&Void$info";
+    case TypeInfoType: return Texts("Type$info(", quoted_text(type_to_text(Match(t, TypeInfoType)->type)), ")");
+    case MemoryType: return Text("&Memory$info");
+    case VoidType: return Text("&Void$info");
     default:
         compiler_err(NULL, 0, 0, "I couldn't convert to a type info: ", type_to_str(t));
     }
-    return CORD_EMPTY;
+    return EMPTY_TEXT;
 }
 
-static CORD get_flag_options(type_t *t, CORD separator)
+static Text_t get_flag_options(type_t *t, const char *separator)
 {
     if (t->tag == BoolType) {
-        return "yes|no";
+        return Text("yes|no");
     } else if (t->tag == EnumType) {
-        CORD options = CORD_EMPTY;
+        Text_t options = EMPTY_TEXT;
         for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
-            options = CORD_all(options, tag->name);
-            if (tag->next) options = CORD_all(options, separator);
+            options = Texts(options, tag->name);
+            if (tag->next) options = Texts(options, separator);
         }
         return options;
     } else if (t->tag == IntType || t->tag == NumType || t->tag == BigIntType) {
-        return "N";
+        return Text("N");
     } else {
-        return "...";
+        return Text("...");
     }
 }
 
-CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type, const char *version)
+Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const char *version)
 {
     DeclareMatch(fn_info, fn_type, FunctionType);
 
     env_t *main_env = fresh_scope(env);
 
-    CORD code = CORD_EMPTY;
+    Text_t code = EMPTY_TEXT;
     binding_t *usage_binding = get_binding(env, "_USAGE");
-    CORD usage_code = usage_binding ? usage_binding->code : "usage";
+    Text_t usage_code = usage_binding ? usage_binding->code : Text("usage");
     binding_t *help_binding = get_binding(env, "_HELP");
-    CORD help_code = help_binding ? help_binding->code : usage_code;
+    Text_t help_code = help_binding ? help_binding->code : usage_code;
     if (!usage_binding) {
         bool explicit_help_flag = false;
         for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
@@ -4079,79 +4073,79 @@ CORD compile_cli_arg_call(env_t *env, CORD fn_name, type_t *fn_type, const char 
             }
         }
 
-        CORD usage = explicit_help_flag ? CORD_EMPTY : " [--help]";
+        Text_t usage = explicit_help_flag ? EMPTY_TEXT : Text(" [--help]");
         for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-            usage = CORD_cat(usage, " ");
+            usage = Texts(usage, " ");
             type_t *t = get_arg_type(main_env, arg);
-            CORD flag = CORD_replace(arg->name, "_", "-");
+            Text_t flag = Text$replace(Text$from_str(arg->name), Text("_"), Text("-"));
             if (arg->default_val || arg->type->tag == OptionalType) {
                 if (strlen(arg->name) == 1) {
                     if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
-                        usage = CORD_all(usage, "[-", flag, "]");
+                        usage = Texts(usage, "[-", flag, "]");
                     else
-                        usage = CORD_all(usage, "[-", flag, " ", get_flag_options(t, "|"), "]");
+                        usage = Texts(usage, "[-", flag, " ", get_flag_options(t, "|"), "]");
                 } else {
                     if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
-                        usage = CORD_all(usage, "[--", flag, "]");
+                        usage = Texts(usage, "[--", flag, "]");
                     else if (t->tag == ListType)
-                        usage = CORD_all(usage, "[--", flag, " ", get_flag_options(t, "|"), "]");
+                        usage = Texts(usage, "[--", flag, " ", get_flag_options(t, "|"), "]");
                     else
-                        usage = CORD_all(usage, "[--", flag, "=", get_flag_options(t, "|"), "]");
+                        usage = Texts(usage, "[--", flag, "=", get_flag_options(t, "|"), "]");
                 }
             } else {
                 if (t->tag == BoolType)
-                    usage = CORD_all(usage, "<--", flag, "|--no-", flag, ">");
+                    usage = Texts(usage, "<--", flag, "|--no-", flag, ">");
                 else if (t->tag == EnumType)
-                    usage = CORD_all(usage, get_flag_options(t, "|"));
+                    usage = Texts(usage, get_flag_options(t, "|"));
                 else if (t->tag == ListType)
-                    usage = CORD_all(usage, "[", flag, "...]");
+                    usage = Texts(usage, "[", flag, "...]");
                 else
-                    usage = CORD_all(usage, "<", flag, ">");
+                    usage = Texts(usage, "<", flag, ">");
             }
         }
-        code = CORD_all(code, "Text_t usage = Texts(Text(\"Usage: \"), Text$from_str(argv[0])",
-                        usage == CORD_EMPTY ? CORD_EMPTY : CORD_all(", Text(", CORD_quoted(usage), ")"), ");\n");
+        code = Texts(code, "Text_t usage = Texts(Text(\"Usage: \"), Text$from_str(argv[0])",
+                        usage.length == 0 ? EMPTY_TEXT : Texts(", Text(", quoted_text(usage), ")"), ");\n");
     }
 
 
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         type_t *opt_type = arg->type->tag == OptionalType ? arg->type : Type(OptionalType, .type=arg->type);
-        code = CORD_all(code, compile_declaration(opt_type, CORD_all("_$", arg->name)));
+        code = Texts(code, compile_declaration(opt_type, Texts("_$", arg->name)));
         if (arg->default_val) {
-            CORD default_val = compile(env, arg->default_val);
+            Text_t default_val = compile(env, arg->default_val);
             if (arg->type->tag != OptionalType)
                 default_val = promote_to_optional(arg->type, default_val);
-            code = CORD_all(code, " = ", default_val);
+            code = Texts(code, " = ", default_val);
         } else {
-            code = CORD_all(code, " = ", compile_none(arg->type));
+            code = Texts(code, " = ", compile_none(arg->type));
         }
-        code = CORD_all(code, ";\n");
+        code = Texts(code, ";\n");
     }
 
-    CORD version_code = CORD_quoted(version);
-    code = CORD_all(code, "tomo_parse_args(argc, argv, ", usage_code, ", ", help_code, ", ", version_code);
+    Text_t version_code = quoted_str(version);
+    code = Texts(code, "tomo_parse_args(argc, argv, ", usage_code, ", ", help_code, ", ", version_code);
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        code = CORD_all(code, ",\n{", CORD_quoted(CORD_replace(arg->name, "_", "-")), ", ",
+        code = Texts(code, ",\n{", quoted_text(Text$replace(Text$from_str(arg->name), Text("_"), Text("-"))), ", ",
                         (arg->default_val || arg->type->tag == OptionalType) ? "false" : "true", ", ",
                         compile_type_info(arg->type),
-                        ", &", CORD_all("_$", arg->name), "}");
+                        ", &", Texts("_$", arg->name), "}");
     }
-    code = CORD_all(code, ");\n");
+    code = Texts(code, ");\n");
 
-    code = CORD_all(code, fn_name, "(");
+    code = Texts(code, fn_name, "(");
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        CORD arg_code = CORD_all("_$", arg->name);
+        Text_t arg_code = Texts("_$", arg->name);
         if (arg->type->tag != OptionalType)
             arg_code = optional_into_nonnone(arg->type, arg_code);
 
-        code = CORD_all(code, arg_code);
-        if (arg->next) code = CORD_all(code, ", ");
+        code = Texts(code, arg_code);
+        if (arg->next) code = Texts(code, ", ");
     }
-    code = CORD_all(code, ");\n");
+    code = Texts(code, ");\n");
     return code;
 }
 
-CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
+Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *staticdefs)
 {
     bool is_private = false;
     const char *function_name;
@@ -4181,34 +4175,34 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
         is_inline = convertdef->is_inline;
     }
 
-    CORD arg_signature = "(";
+    Text_t arg_signature = Text("(");
     Table_t used_names = {};
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
         type_t *arg_type = get_arg_ast_type(env, arg);
-        arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, CORD_cat("_$", arg->name)));
-        if (arg->next) arg_signature = CORD_cat(arg_signature, ", ");
+        arg_signature = Texts(arg_signature, compile_declaration(arg_type, Texts("_$", arg->name)));
+        if (arg->next) arg_signature = Texts(arg_signature, ", ");
         if (Table$str_get(used_names, arg->name))
             code_err(ast, "The argument name '", arg->name, "' is used more than once");
         Table$str_set(&used_names, arg->name, arg->name);
     }
-    arg_signature = CORD_cat(arg_signature, ")");
+    arg_signature = Texts(arg_signature, ")");
 
-    CORD ret_type_code = compile_type(ret_t);
+    Text_t ret_type_code = compile_type(ret_t);
     if (ret_t->tag == AbortType)
-        ret_type_code = CORD_all("__attribute__((noreturn)) _Noreturn ", ret_type_code);
+        ret_type_code = Texts("__attribute__((noreturn)) _Noreturn ", ret_type_code);
 
     if (is_private)
-        *staticdefs = CORD_all(*staticdefs, "static ", ret_type_code, " ", name_code, arg_signature, ";\n");
+        *staticdefs = Texts(*staticdefs, "static ", ret_type_code, " ", name_code, arg_signature, ";\n");
 
-    CORD code;
+    Text_t code;
     if (cache) {
-        code = CORD_all("static ", ret_type_code, " ", name_code, "$uncached", arg_signature);
+        code = Texts("static ", ret_type_code, " ", name_code, "$uncached", arg_signature);
     } else {
-        code = CORD_all(ret_type_code, " ", name_code, arg_signature);
+        code = Texts(ret_type_code, " ", name_code, arg_signature);
         if (is_inline)
-            code = CORD_cat("INLINE ", code);
+            code = Texts("INLINE ", code);
         if (!is_private)
-            code = CORD_cat("public ", code);
+            code = Texts("public ", code);
     }
 
     env_t *body_scope = fresh_scope(env);
@@ -4220,7 +4214,7 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
     body_scope->deferred = NULL;
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
         type_t *arg_type = get_arg_ast_type(env, arg);
-        set_binding(body_scope, arg->name, arg_type, CORD_cat("_$", arg->name));
+        set_binding(body_scope, arg->name, arg_type, Texts("_$", arg->name));
     }
 
     body_scope->fn_ret = ret_t;
@@ -4238,13 +4232,13 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
                      "If this is not the case, please add a call to `fail(\"Unreachable\")` at the end of the function to help the compiler out.");
     }
 
-    CORD body_code = CORD_all("{\n", compile_inline_block(body_scope, body), "}\n");
-    CORD definition = with_source_info(env, ast, CORD_all(code, " ", body_code, "\n"));
+    Text_t body_code = Texts("{\n", compile_inline_block(body_scope, body), "}\n");
+    Text_t definition = with_source_info(env, ast, Texts(code, " ", body_code, "\n"));
 
     if (cache && args == NULL) { // no-args cache just uses a static var
-        CORD wrapper = CORD_all(
-            is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name_code, "(void) {\n"
-            "static ", compile_declaration(ret_t, "cached_result"), ";\n",
+        Text_t wrapper = Texts(
+            is_private ? EMPTY_TEXT : Text("public "), ret_type_code, " ", name_code, "(void) {\n"
+            "static ", compile_declaration(ret_t, Text("cached_result")), ";\n",
             "static bool initialized = false;\n",
             "if (!initialized) {\n"
             "\tcached_result = ", name_code, "$uncached();\n",
@@ -4252,33 +4246,33 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
             "}\n",
             "return cached_result;\n"
             "}\n");
-        definition = CORD_cat(definition, wrapper);
+        definition = Texts(definition, wrapper);
     } else if (cache && cache->tag == Int) {
         assert(args);
         OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Int)->str));
-        CORD pop_code = CORD_EMPTY;
+        Text_t pop_code = EMPTY_TEXT;
         if (cache->tag == Int && !cache_size.is_none && cache_size.value > 0) {
             // FIXME: this currently just deletes the first entry, but this should be more like a
             // least-recently-used cache eviction policy or least-frequently-used
-            pop_code = CORD_all("if (cache.entries.length > ", String(cache_size.value),
+            pop_code = Texts("if (cache.entries.length > ", String(cache_size.value),
                                 ") Table$remove(&cache, cache.entries.data + cache.entries.stride*0, table_type);\n");
         }
 
         if (!args->next) {
             // Single-argument functions have simplified caching logic
             type_t *arg_type = get_arg_ast_type(env, args);
-            CORD wrapper = CORD_all(
-                is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name_code, arg_signature, "{\n"
+            Text_t wrapper = Texts(
+                is_private ? EMPTY_TEXT : Text("public "), ret_type_code, " ", name_code, arg_signature, "{\n"
                 "static Table_t cache = {};\n",
                 "const TypeInfo_t *table_type = Table$info(", compile_type_info(arg_type), ", ", compile_type_info(ret_t), ");\n",
-                compile_declaration(Type(PointerType, .pointed=ret_t), "cached"), " = Table$get_raw(cache, &_$", args->name, ", table_type);\n"
+                compile_declaration(Type(PointerType, .pointed=ret_t), Text("cached")), " = Table$get_raw(cache, &_$", args->name, ", table_type);\n"
                 "if (cached) return *cached;\n",
-                compile_declaration(ret_t, "ret"), " = ", name_code, "$uncached(_$", args->name, ");\n",
+                compile_declaration(ret_t, Text("ret")), " = ", name_code, "$uncached(_$", args->name, ");\n",
                 pop_code,
                 "Table$set(&cache, &_$", args->name, ", &ret, table_type);\n"
                 "return ret;\n"
                 "}\n");
-            definition = CORD_cat(definition, wrapper);
+            definition = Texts(definition, wrapper);
         } else {
             // Multi-argument functions use a custom struct type (only defined internally) as a cache key:
             arg_t *fields = NULL;
@@ -4289,93 +4283,93 @@ CORD compile_function(env_t *env, CORD name_code, ast_t *ast, CORD *staticdefs)
 
             int64_t num_fields = used_names.entries.length;
             const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
-            CORD args_typeinfo = CORD_all("((TypeInfo_t[1]){{.size=sizeof(args), .align=__alignof__(args), .metamethods=", metamethods,
+            Text_t args_typeinfo = Texts("((TypeInfo_t[1]){{.size=sizeof(args), .align=__alignof__(args), .metamethods=", metamethods,
                                           ", .tag=StructInfo, .StructInfo.name=\"FunctionArguments\", "
                                           ".StructInfo.num_fields=", String(num_fields),
                                           ", .StructInfo.fields=(NamedType_t[", String(num_fields), "]){");
-            CORD args_type = "struct { ";
+            Text_t args_type = Text("struct { ");
             for (arg_t *f = fields; f; f = f->next) {
-                args_typeinfo = CORD_all(args_typeinfo, "{\"", f->name, "\", ", compile_type_info(f->type), "}");
-                args_type = CORD_all(args_type, compile_declaration(f->type, f->name), "; ");
-                if (f->next) args_typeinfo = CORD_all(args_typeinfo, ", ");
+                args_typeinfo = Texts(args_typeinfo, "{\"", f->name, "\", ", compile_type_info(f->type), "}");
+                args_type = Texts(args_type, compile_declaration(f->type, Text$from_str(f->name)), "; ");
+                if (f->next) args_typeinfo = Texts(args_typeinfo, ", ");
             }
-            args_type = CORD_all(args_type, "}");
-            args_typeinfo = CORD_all(args_typeinfo, "}}})");
+            args_type = Texts(args_type, "}");
+            args_typeinfo = Texts(args_typeinfo, "}}})");
 
-            CORD all_args = CORD_EMPTY;
+            Text_t all_args = EMPTY_TEXT;
             for (arg_ast_t *arg = args; arg; arg = arg->next)
-                all_args = CORD_all(all_args, "_$", arg->name, arg->next ? ", " : CORD_EMPTY);
+                all_args = Texts(all_args, "_$", arg->name, arg->next ? Text(", ") : EMPTY_TEXT);
 
-            CORD wrapper = CORD_all(
-                is_private ? CORD_EMPTY : "public ", ret_type_code, " ", name_code, arg_signature, "{\n"
+            Text_t wrapper = Texts(
+                is_private ? EMPTY_TEXT : Text("public "), ret_type_code, " ", name_code, arg_signature, "{\n"
                 "static Table_t cache = {};\n",
                 args_type, " args = {", all_args, "};\n"
                 "const TypeInfo_t *table_type = Table$info(", args_typeinfo, ", ", compile_type_info(ret_t), ");\n",
-                compile_declaration(Type(PointerType, .pointed=ret_t), "cached"), " = Table$get_raw(cache, &args, table_type);\n"
+                compile_declaration(Type(PointerType, .pointed=ret_t), Text("cached")), " = Table$get_raw(cache, &args, table_type);\n"
                 "if (cached) return *cached;\n",
-                compile_declaration(ret_t, "ret"), " = ", name_code, "$uncached(", all_args, ");\n",
+                compile_declaration(ret_t, Text("ret")), " = ", name_code, "$uncached(", all_args, ");\n",
                 pop_code,
                 "Table$set(&cache, &args, &ret, table_type);\n"
                 "return ret;\n"
                 "}\n");
-            definition = CORD_cat(definition, wrapper);
+            definition = Texts(definition, wrapper);
         }
     }
 
-    CORD qualified_name = function_name;
+    Text_t qualified_name = Text$from_str(function_name);
     if (env->namespace && env->namespace->parent && env->namespace->name)
-        qualified_name = CORD_all(env->namespace->name, ".", qualified_name);
-    CORD text = CORD_all("func ", qualified_name, "(");
+        qualified_name = Texts(env->namespace->name, ".", qualified_name);
+    Text_t text = Texts("func ", qualified_name, "(");
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
-        text = CORD_cat(text, type_to_cord(get_arg_ast_type(env, arg)));
-        if (arg->next) text = CORD_cat(text, ", ");
+        text = Texts(text, type_to_text(get_arg_ast_type(env, arg)));
+        if (arg->next) text = Texts(text, ", ");
     }
     if (ret_t && ret_t->tag != VoidType)
-        text = CORD_all(text, "->", type_to_cord(ret_t));
-    text = CORD_all(text, ")");
+        text = Texts(text, "->", type_to_text(ret_t));
+    text = Texts(text, ")");
     return definition;
 }
 
-CORD compile_top_level_code(env_t *env, ast_t *ast)
+Text_t compile_top_level_code(env_t *env, ast_t *ast)
 {
-    if (!ast) return CORD_EMPTY;
+    if (!ast) return EMPTY_TEXT;
 
     switch (ast->tag) {
     case Use: {
         // DeclareMatch(use, ast, Use);
         // if (use->what == USE_C_CODE) {
         //     Path_t path = Path$relative_to(Path$from_str(use->path), Path(".build"));
-        //     return CORD_all("#include \"", Path$as_c_string(path), "\"\n");
+        //     return Texts("#include \"", Path$as_c_string(path), "\"\n");
         // }
-        return CORD_EMPTY;
+        return EMPTY_TEXT;
     }
     case Declare: {
         DeclareMatch(decl, ast, Declare);
         const char *decl_name = Match(decl->var, Var)->name;
-        CORD full_name = namespace_name(env, env->namespace, decl_name);
+        Text_t full_name = namespace_name(env, env->namespace, Text$from_str(decl_name));
         type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
         if (t->tag == FunctionType) t = Type(ClosureType, t);
-        CORD val_code = compile_declared_value(env, ast);
+        Text_t val_code = compile_declared_value(env, ast);
         bool is_private = decl_name[0] == '_';
         if ((decl->value && is_constant(env, decl->value)) || (!decl->value && !has_heap_memory(t))) {
             set_binding(env, decl_name, t, full_name);
-            return CORD_all(
+            return Texts(
                 is_private ? "static " : "public ",
                 compile_declaration(t, full_name), " = ", val_code, ";\n");
         } else {
-            CORD init_var = namespace_name(env, env->namespace, CORD_all(decl_name, "$$initialized"));
-            CORD checked_access = CORD_all("check_initialized(", full_name, ", ", init_var, ", \"", decl_name, "\")");
+            Text_t init_var = namespace_name(env, env->namespace, Texts(decl_name, "$$initialized"));
+            Text_t checked_access = Texts("check_initialized(", full_name, ", ", init_var, ", \"", decl_name, "\")");
             set_binding(env, decl_name, t, checked_access);
 
-            CORD initialized_name = namespace_name(env, env->namespace, CORD_all(decl_name, "$$initialized"));
-            return CORD_all(
+            Text_t initialized_name = namespace_name(env, env->namespace, Texts(decl_name, "$$initialized"));
+            return Texts(
                 "static bool ", initialized_name, " = false;\n",
                 is_private ? "static " : "public ",
                 compile_declaration(t, full_name), ";\n");
         }
     }
     case FunctionDef: {
-        CORD name_code = namespace_name(env, env->namespace, Match(Match(ast, FunctionDef)->name, Var)->name);
+        Text_t name_code = namespace_name(env, env->namespace, Text$from_str(Match(Match(ast, FunctionDef)->name, Var)->name));
         return compile_function(env, name_code, ast, &env->code->staticdefs);
     }
     case ConvertDef: {
@@ -4383,31 +4377,31 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
         const char *name = get_type_name(Match(type, FunctionType)->ret);
         if (!name)
             code_err(ast, "Conversions are only supported for text, struct, and enum types, not ", type_to_str(Match(type, FunctionType)->ret));
-        CORD name_code = namespace_name(env, env->namespace, CORD_all(name, "$", String(get_line_number(ast->file, ast->start))));
+        Text_t name_code = namespace_name(env, env->namespace, Texts(name, "$", String(get_line_number(ast->file, ast->start))));
         return compile_function(env, name_code, ast, &env->code->staticdefs);
     }
     case StructDef: {
         DeclareMatch(def, ast, StructDef);
         type_t *t = Table$str_get(*env->types, def->name);
         assert(t && t->tag == StructType);
-        CORD code = compile_struct_typeinfo(env, t, def->name, def->fields, def->secret, def->opaque);
+        Text_t code = compile_struct_typeinfo(env, t, def->name, def->fields, def->secret, def->opaque);
         env_t *ns_env = namespace_env(env, def->name);
-        return CORD_all(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : CORD_EMPTY);
+        return Texts(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : EMPTY_TEXT);
     }
     case EnumDef: {
         DeclareMatch(def, ast, EnumDef);
-        CORD code = compile_enum_typeinfo(env, ast);
-        code = CORD_all(code, compile_enum_constructors(env, ast));
+        Text_t code = compile_enum_typeinfo(env, ast);
+        code = Texts(code, compile_enum_constructors(env, ast));
         env_t *ns_env = namespace_env(env, def->name);
-        return CORD_all(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : CORD_EMPTY);
+        return Texts(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : EMPTY_TEXT);
     }
     case LangDef: {
         DeclareMatch(def, ast, LangDef);
-        CORD code = CORD_all("public const TypeInfo_t ", namespace_name(env, env->namespace, CORD_all(def->name, "$$info")),
+        Text_t code = Texts("public const TypeInfo_t ", namespace_name(env, env->namespace, Texts(def->name, "$$info")),
                              " = {", String((int64_t)sizeof(Text_t)), ", ", String((int64_t)__alignof__(Text_t)),
-                             ", .metamethods=Text$metamethods, .tag=TextInfo, .TextInfo={", CORD_quoted(def->name), "}};\n");
+                             ", .metamethods=Text$metamethods, .tag=TextInfo, .TextInfo={", quoted_str(def->name), "}};\n");
         env_t *ns_env = namespace_env(env, def->name);
-        return CORD_all(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : CORD_EMPTY);
+        return Texts(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : EMPTY_TEXT);
     }
     case Extend: {
         DeclareMatch(extend, ast, Extend);
@@ -4422,15 +4416,15 @@ CORD compile_top_level_code(env_t *env, ast_t *ast)
         extended->id_suffix = env->id_suffix;
         return compile_top_level_code(extended, extend->body);
     }
-    case Extern: return CORD_EMPTY;
+    case Extern: return EMPTY_TEXT;
     case Block: {
-        CORD code = CORD_EMPTY;
+        Text_t code = EMPTY_TEXT;
         for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-            code = CORD_all(code, compile_top_level_code(env, stmt->ast));
+            code = Texts(code, compile_top_level_code(env, stmt->ast));
         }
         return code;
     }
-    default: return CORD_EMPTY;
+    default: return EMPTY_TEXT;
     }
 }
 
@@ -4440,22 +4434,22 @@ static void initialize_vars_and_statics(env_t *env, ast_t *ast)
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         if (stmt->ast->tag == InlineCCode) {
-            CORD code = compile_statement(env, stmt->ast);
-            env->code->staticdefs = CORD_all(env->code->staticdefs, code, "\n");
+            Text_t code = compile_statement(env, stmt->ast);
+            env->code->staticdefs = Texts(env->code->staticdefs, code, "\n");
         } else if (stmt->ast->tag == Declare) {
             DeclareMatch(decl, stmt->ast, Declare);
             const char *decl_name = Match(decl->var, Var)->name;
-            CORD full_name = namespace_name(env, env->namespace, decl_name);
+            Text_t full_name = namespace_name(env, env->namespace, Text$from_str(decl_name));
             type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
             if (t->tag == FunctionType) t = Type(ClosureType, t);
-            CORD val_code = compile_declared_value(env, stmt->ast);
+            Text_t val_code = compile_declared_value(env, stmt->ast);
             if ((decl->value && !is_constant(env, decl->value)) || (!decl->value && has_heap_memory(t))) {
-                CORD initialized_name = namespace_name(env, env->namespace, CORD_all(decl_name, "$$initialized"));
-                env->code->variable_initializers = CORD_all(
+                Text_t initialized_name = namespace_name(env, env->namespace, Texts(decl_name, "$$initialized"));
+                env->code->variable_initializers = Texts(
                     env->code->variable_initializers,
                     with_source_info(
                         env, stmt->ast,
-                        CORD_all(
+                        Texts(
                             full_name, " = ", val_code, ",\n",
                             initialized_name, " = true;\n")));
             }
@@ -4474,28 +4468,27 @@ static void initialize_vars_and_statics(env_t *env, ast_t *ast)
         } else if (stmt->ast->tag == Use) {
             continue;
         } else {
-            CORD code = compile_statement(env, stmt->ast);
-            if (code) code_err(stmt->ast, "I did not expect this to generate code");
-            assert(!code);
+            Text_t code = compile_statement(env, stmt->ast);
+            if (code.length > 0) code_err(stmt->ast, "I did not expect this to generate code");
         }
     }
 }
 
-CORD compile_file(env_t *env, ast_t *ast)
+Text_t compile_file(env_t *env, ast_t *ast)
 {
-    CORD top_level_code = compile_top_level_code(env, ast);
-    CORD includes = CORD_EMPTY;
-    CORD use_imports = CORD_EMPTY;
+    Text_t top_level_code = compile_top_level_code(env, ast);
+    Text_t includes = EMPTY_TEXT;
+    Text_t use_imports = EMPTY_TEXT;
 
     // First prepare variable initializers to prevent unitialized access:
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         if (stmt->ast->tag == Use) {
-            use_imports = CORD_all(use_imports, compile_statement(env, stmt->ast));
+            use_imports = Texts(use_imports, compile_statement(env, stmt->ast));
 
             DeclareMatch(use, stmt->ast, Use);
             if (use->what == USE_C_CODE) {
                 Path_t path = Path$relative_to(Path$from_str(use->path), Path(".build"));
-                includes = CORD_all(includes, "#include \"", Path$as_c_string(path), "\"\n");
+                includes = Texts(includes, "#include \"", Path$as_c_string(path), "\"\n");
             }
         }
     }
@@ -4503,9 +4496,9 @@ CORD compile_file(env_t *env, ast_t *ast)
     initialize_vars_and_statics(env, ast);
 
     const char *name = file_base_name(ast->file->filename);
-    return CORD_all(
-        env->do_source_mapping ? CORD_all("#line 1 ", CORD_quoted(ast->file->filename), "\n") : CORD_EMPTY,
-        "#define __SOURCE_FILE__ ", CORD_quoted(ast->file->filename), "\n",
+    return Texts(
+        env->do_source_mapping ? Texts("#line 1 ", quoted_str(ast->file->filename), "\n") : EMPTY_TEXT,
+        "#define __SOURCE_FILE__ ", quoted_str(ast->file->filename), "\n",
         "#include <tomo_"TOMO_VERSION"/tomo.h>\n"
         "#include \"", name, ".tm.h\"\n\n",
         includes,
@@ -4513,7 +4506,7 @@ CORD compile_file(env_t *env, ast_t *ast)
         env->code->lambdas, "\n",
         env->code->staticdefs, "\n",
         top_level_code,
-        "public void ", namespace_name(env, env->namespace, "$initialize"), "(void) {\n",
+        "public void ", namespace_name(env, env->namespace, Text("$initialize")), "(void) {\n",
         "static bool initialized = false;\n",
         "if (initialized) return;\n",
         "initialized = true;\n",
@@ -4522,7 +4515,7 @@ CORD compile_file(env_t *env, ast_t *ast)
         "}\n");
 }
 
-CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
+Text_t compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
 {
     switch (ast->tag) {
     case Use: {
@@ -4540,13 +4533,13 @@ CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
                     code_err(ast, "Could not find library");
             }
 
-            CORD includes = CORD_EMPTY;
+            Text_t includes = EMPTY_TEXT;
             for (size_t i = 0; i < tm_files.gl_pathc; i++) {
                 const char *filename = tm_files.gl_pathv[i];
                 Path_t tm_file = Path$from_str(filename);
                 Path_t lib_build_dir = Path$sibling(tm_file, Text(".build"));
                 Path_t header = Path$child(lib_build_dir, Texts(Path$base_name(tm_file), Text(".h")));
-                includes = CORD_all(includes, "#include \"", Path$as_c_string(header), "\"\n");
+                includes = Texts(includes, "#include \"", Path$as_c_string(header), "\"\n");
             }
             globfree(&tm_files);
             return with_source_info(env, ast, includes);
@@ -4555,17 +4548,17 @@ CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
             Path_t used_path = Path$resolved(Path$from_str(use->path), source_dir);
             Path_t used_build_dir = Path$sibling(used_path, Text(".build"));
             Path_t used_header_path = Path$child(used_build_dir, Texts(Path$base_name(used_path), Text(".h")));
-            return CORD_all("#include \"", Path$as_c_string(Path$relative_to(used_header_path, build_dir)), "\"\n");
+            return Texts("#include \"", Path$as_c_string(Path$relative_to(used_header_path, build_dir)), "\"\n");
         }
         case USE_HEADER:
             if (use->path[0] == '<') {
-                return CORD_all("#include ", use->path, "\n");
+                return Texts("#include ", use->path, "\n");
             } else {
                 Path_t used_path = Path$resolved(Path$from_str(use->path), source_dir);
-                return CORD_all("#include \"", Path$as_c_string(Path$relative_to(used_path, build_dir)), "\"\n");
+                return Texts("#include \"", Path$as_c_string(Path$relative_to(used_path, build_dir)), "\"\n");
             }
         default:
-            return CORD_EMPTY;
+            return EMPTY_TEXT;
         }
     }
     case StructDef: {
@@ -4576,24 +4569,24 @@ CORD compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
     }
     case LangDef: {
         DeclareMatch(def, ast, LangDef);
-        return CORD_all(
+        return Texts(
             // Constructor macro:
-            "#define ", namespace_name(env, env->namespace, def->name),
-                "(text) ((", namespace_name(env, env->namespace, CORD_all(def->name, "$$type")), "){.length=sizeof(text)-1, .tag=TEXT_ASCII, .ascii=\"\" text})\n"
-            "#define ", namespace_name(env, env->namespace, def->name),
-                "s(...) ((", namespace_name(env, env->namespace, CORD_all(def->name, "$$type")), ")Texts(__VA_ARGS__))\n"
-            "extern const TypeInfo_t ", namespace_name(env, env->namespace, CORD_all(def->name, "$$info")), ";\n"
+            "#define ", namespace_name(env, env->namespace, Text$from_str(def->name)),
+                "(text) ((", namespace_name(env, env->namespace, Texts(def->name, "$$type")), "){.length=sizeof(text)-1, .tag=TEXT_ASCII, .ascii=\"\" text})\n"
+            "#define ", namespace_name(env, env->namespace, Text$from_str(def->name)),
+                "s(...) ((", namespace_name(env, env->namespace, Texts(def->name, "$$type")), ")Texts(__VA_ARGS__))\n"
+            "extern const TypeInfo_t ", namespace_name(env, env->namespace, Texts(def->name, Text("$$info"))), ";\n"
         );
     }
     case Extend: {
-        return CORD_EMPTY;
+        return EMPTY_TEXT;
     }
     default:
-        return CORD_EMPTY;
+        return EMPTY_TEXT;
     }
 }
 
-CORD compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t *ast)
+Text_t compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t *ast)
 {
     env_t *ns_env = NULL;
     ast_t *block = NULL;
@@ -4633,27 +4626,27 @@ CORD compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t *a
     case Extern: {
         DeclareMatch(ext, ast, Extern);
         type_t *t = parse_type_ast(env, ext->type);
-        CORD decl;
+        Text_t decl;
         if (t->tag == ClosureType) {
             t = Match(t, ClosureType)->fn;
             DeclareMatch(fn, t, FunctionType);
-            decl = CORD_all(compile_type(fn->ret), " ", ext->name, "(");
+            decl = Texts(compile_type(fn->ret), " ", ext->name, "(");
             for (arg_t *arg = fn->args; arg; arg = arg->next) {
-                decl = CORD_all(decl, compile_type(arg->type));
-                if (arg->next) decl = CORD_cat(decl, ", ");
+                decl = Texts(decl, compile_type(arg->type));
+                if (arg->next) decl = Texts(decl, ", ");
             }
-            decl = CORD_cat(decl, ")");
+            decl = Texts(decl, ")");
         } else {
-            decl = compile_declaration(t, ext->name);
+            decl = compile_declaration(t, Text$from_str(ext->name));
         }
-        return CORD_all("extern ", decl, ";\n");
+        return Texts("extern ", decl, ";\n");
     }
     case Declare: {
         DeclareMatch(decl, ast, Declare);
         const char *decl_name = Match(decl->var, Var)->name;
         bool is_private = (decl_name[0] == '_');
         if (is_private)
-            return CORD_EMPTY;
+            return EMPTY_TEXT;
 
         type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
         if (t->tag == FunctionType)
@@ -4662,64 +4655,64 @@ CORD compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t *a
         if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
             code_err(ast, "You can't declare a variable with a ", type_to_str(t), " value");
 
-        return CORD_all(
-            decl->value ? compile_statement_type_header(env, header_path, decl->value) : CORD_EMPTY,
-            "extern ", compile_declaration(t, namespace_name(env, env->namespace, decl_name)), ";\n");
+        return Texts(
+            decl->value ? compile_statement_type_header(env, header_path, decl->value) : EMPTY_TEXT,
+            "extern ", compile_declaration(t, namespace_name(env, env->namespace, Text$from_str(decl_name))), ";\n");
     }
     case FunctionDef: {
         DeclareMatch(fndef, ast, FunctionDef);
         const char *decl_name = Match(fndef->name, Var)->name;
         bool is_private = decl_name[0] == '_';
-        if (is_private) return CORD_EMPTY;
-        CORD arg_signature = "(";
+        if (is_private) return EMPTY_TEXT;
+        Text_t arg_signature = Text("(");
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, CORD_cat("_$", arg->name)));
-            if (arg->next) arg_signature = CORD_cat(arg_signature, ", ");
+            arg_signature = Texts(arg_signature, compile_declaration(arg_type, Texts("_$", arg->name)));
+            if (arg->next) arg_signature = Texts(arg_signature, ", ");
         }
-        arg_signature = CORD_cat(arg_signature, ")");
+        arg_signature = Texts(arg_signature, ")");
 
         type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
-        CORD ret_type_code = compile_type(ret_t);
+        Text_t ret_type_code = compile_type(ret_t);
         if (ret_t->tag == AbortType)
-            ret_type_code = CORD_all("__attribute__((noreturn)) _Noreturn ", ret_type_code);
-        CORD name = namespace_name(env, env->namespace, decl_name);
+            ret_type_code = Texts("__attribute__((noreturn)) _Noreturn ", ret_type_code);
+        Text_t name = namespace_name(env, env->namespace, Text$from_str(decl_name));
         if (env->namespace && env->namespace->parent && env->namespace->name && streq(decl_name, env->namespace->name))
-            name = namespace_name(env, env->namespace, String(get_line_number(ast->file, ast->start)));
-        return CORD_all(ret_type_code, " ", name, arg_signature, ";\n");
+            name = namespace_name(env, env->namespace, Text$from_str(String(get_line_number(ast->file, ast->start))));
+        return Texts(ret_type_code, " ", name, arg_signature, ";\n");
     }
     case ConvertDef: {
         DeclareMatch(def, ast, ConvertDef);
 
-        CORD arg_signature = "(";
+        Text_t arg_signature = Text("(");
         for (arg_ast_t *arg = def->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            arg_signature = CORD_cat(arg_signature, compile_declaration(arg_type, CORD_cat("_$", arg->name)));
-            if (arg->next) arg_signature = CORD_cat(arg_signature, ", ");
+            arg_signature = Texts(arg_signature, compile_declaration(arg_type, Texts("_$", arg->name)));
+            if (arg->next) arg_signature = Texts(arg_signature, ", ");
         }
-        arg_signature = CORD_cat(arg_signature, ")");
+        arg_signature = Texts(arg_signature, ")");
 
         type_t *ret_t = def->ret_type ? parse_type_ast(env, def->ret_type) : Type(VoidType);
-        CORD ret_type_code = compile_type(ret_t);
-        CORD name = get_type_name(ret_t);
-        if (!name)
+        Text_t ret_type_code = compile_type(ret_t);
+        Text_t name = Text$from_str(get_type_name(ret_t));
+        if (name.length == 0)
             code_err(ast, "Conversions are only supported for text, struct, and enum types, not ", type_to_str(ret_t));
-        CORD name_code = namespace_name(env, env->namespace, CORD_all(name, "$", String(get_line_number(ast->file, ast->start))));
-        return CORD_all(ret_type_code, " ", name_code, arg_signature, ";\n");
+        Text_t name_code = namespace_name(env, env->namespace, Texts(name, "$", String(get_line_number(ast->file, ast->start))));
+        return Texts(ret_type_code, " ", name_code, arg_signature, ";\n");
     }
-    default: return CORD_EMPTY;
+    default: return EMPTY_TEXT;
     }
     assert(ns_env);
-    CORD header = CORD_EMPTY;
+    Text_t header = EMPTY_TEXT;
     for (ast_list_t *stmt = block ? Match(block, Block)->statements : NULL; stmt; stmt = stmt->next) {
-        header = CORD_all(header, compile_statement_namespace_header(ns_env, header_path, stmt->ast));
+        header = Texts(header, compile_statement_namespace_header(ns_env, header_path, stmt->ast));
     }
     return header;
 }
 
 typedef struct {
     env_t *env;
-    CORD *header;
+    Text_t *header;
     Path_t header_path;
 } compile_typedef_info_t;
 
@@ -4728,9 +4721,9 @@ static void _make_typedefs(compile_typedef_info_t *info, ast_t *ast)
     if (ast->tag == StructDef) {
         DeclareMatch(def, ast, StructDef);
         if (def->external) return;
-        CORD struct_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$struct"));
-        CORD type_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$type"));
-        *info->header = CORD_all(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
+        Text_t struct_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$struct"));
+        Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$type"));
+        *info->header = Texts(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
     } else if (ast->tag == EnumDef) {
         DeclareMatch(def, ast, EnumDef);
         bool has_any_tags_with_fields = false;
@@ -4739,46 +4732,46 @@ static void _make_typedefs(compile_typedef_info_t *info, ast_t *ast)
         }
 
         if (has_any_tags_with_fields) {
-            CORD struct_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$struct"));
-            CORD type_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$type"));
-            *info->header = CORD_all(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
+            Text_t struct_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$struct"));
+            Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$type"));
+            *info->header = Texts(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
 
             for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
                 if (!tag->fields) continue;
-                CORD tag_struct = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$", tag->name, "$$struct"));
-                CORD tag_type = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$", tag->name, "$$type"));
-                *info->header = CORD_all(*info->header, "typedef struct ", tag_struct, " ", tag_type, ";\n");
+                Text_t tag_struct = namespace_name(info->env, info->env->namespace, Texts(def->name, "$", tag->name, "$$struct"));
+                Text_t tag_type = namespace_name(info->env, info->env->namespace, Texts(def->name, "$", tag->name, "$$type"));
+                *info->header = Texts(*info->header, "typedef struct ", tag_struct, " ", tag_type, ";\n");
             }
         } else {
-            CORD enum_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$enum"));
-            CORD type_name = namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$type"));
-            *info->header = CORD_all(*info->header, "typedef enum ", enum_name, " ", type_name, ";\n");
+            Text_t enum_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$enum"));
+            Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$type"));
+            *info->header = Texts(*info->header, "typedef enum ", enum_name, " ", type_name, ";\n");
         }
     } else if (ast->tag == LangDef) {
         DeclareMatch(def, ast, LangDef);
-        *info->header = CORD_all(*info->header, "typedef Text_t ", namespace_name(info->env, info->env->namespace, CORD_all(def->name, "$$type")), ";\n");
+        *info->header = Texts(*info->header, "typedef Text_t ", namespace_name(info->env, info->env->namespace, Texts(def->name, "$$type")), ";\n");
     }
 }
 
 static void _define_types_and_funcs(compile_typedef_info_t *info, ast_t *ast)
 {
-    *info->header = CORD_all(*info->header,
+    *info->header = Texts(*info->header,
                              compile_statement_type_header(info->env, info->header_path, ast),
                              compile_statement_namespace_header(info->env, info->header_path, ast));
 }
 
-CORD compile_file_header(env_t *env, Path_t header_path, ast_t *ast)
+Text_t compile_file_header(env_t *env, Path_t header_path, ast_t *ast)
 {
-    CORD header = CORD_all(
+    Text_t header = Texts(
         "#pragma once\n",
-        env->do_source_mapping ? CORD_all("#line 1 ", CORD_quoted(ast->file->filename), "\n") : CORD_EMPTY,
+        env->do_source_mapping ? Texts("#line 1 ", quoted_str(ast->file->filename), "\n") : EMPTY_TEXT,
         "#include <tomo_"TOMO_VERSION"/tomo.h>\n");
 
     compile_typedef_info_t info = {.env=env, .header=&header, .header_path=header_path};
     visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn=(void*)_make_typedefs, &info});
     visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn=(void*)_define_types_and_funcs, &info});
 
-    header = CORD_all(header, "void ", namespace_name(env, env->namespace, "$initialize"), "(void);\n");
+    header = Texts(header, "void ", namespace_name(env, env->namespace, Text("$initialize")), "(void);\n");
     return header;
 }
 

@@ -20,7 +20,6 @@
 #include <signal.h>
 
 #include "ast.h"
-#include "cordhelpers.h"
 #include "stdlib/integers.h"
 #include "stdlib/paths.h"
 #include "stdlib/print.h"
@@ -1212,17 +1211,25 @@ ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open
     int64_t starting_indent = get_indent(ctx, pos);
     int64_t string_indent = starting_indent + SPACES_PER_INDENT;
     ast_list_t *chunks = NULL;
-    CORD chunk = CORD_EMPTY;
+    Text_t chunk = EMPTY_TEXT;
     const char *chunk_start = pos;
     int depth = 1;
     bool leading_newline = false;
-    for (; pos < ctx->file->text + ctx->file->len && depth > 0; ) {
+    int64_t plain_span_len = 0;
+#define FLUSH_PLAIN_SPAN() do { \
+    if (plain_span_len > 0) { \
+        chunk = Texts(chunk, Text$from_strn(pos - plain_span_len, (size_t)plain_span_len)); \
+        plain_span_len = 0; \
+    } } while (0)
+    for (const char *end = ctx->file->text + ctx->file->len; pos < end && depth > 0; ) {
+        const char *after_indentation = pos;
         if (*pos == open_interp) { // Interpolation
+            FLUSH_PLAIN_SPAN();
             const char *interp_start = pos;
-            if (chunk) {
-                ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk);
+            if (chunk.length > 0) {
+                ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .text=chunk);
                 chunks = new(ast_list_t, .ast=literal, .next=chunks);
-                chunk = CORD_EMPTY;
+                chunk = EMPTY_TEXT;
             }
             ++pos;
             ast_t *interp;
@@ -1232,13 +1239,14 @@ ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open
             chunks = new(ast_list_t, .ast=interp, .next=chunks);
             chunk_start = pos;
         } else if (allow_escapes && *pos == '\\') {
+            FLUSH_PLAIN_SPAN();
             const char *c = unescape(ctx, &pos);
-            chunk = CORD_cat(chunk, c);
+            chunk = Texts(chunk, Text$from_str(c));
         } else if (!leading_newline && *pos == open_quote && closing[(int)open_quote]) { // Nested pair begin
             if (get_indent(ctx, pos) == starting_indent) {
                 ++depth;
             }
-            chunk = CORD_cat_char(chunk, *pos);
+            plain_span_len += 1;
             ++pos;
         } else if (!leading_newline && *pos == close_quote) { // Nested pair end
             if (get_indent(ctx, pos) == starting_indent) {
@@ -1246,15 +1254,19 @@ ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open
                 if (depth == 0)
                     break;
             }
-            chunk = CORD_cat_char(chunk, *pos);
+            plain_span_len += 1;
             ++pos;
-        } else if (newline_with_indentation(&pos, string_indent)) { // Newline
-            if (!leading_newline && !(chunk || chunks)) {
+        } else if (newline_with_indentation(&after_indentation, string_indent)) { // Newline
+            FLUSH_PLAIN_SPAN();
+            pos = after_indentation;
+            if (!leading_newline && !(chunk.length > 0 || chunks)) {
                 leading_newline = true;
             } else {
-                chunk = CORD_cat_char(chunk, '\n');
+                chunk = Texts(chunk, Text("\n"));
             }
-        } else if (newline_with_indentation(&pos, starting_indent)) { // Line continuation (..)
+        } else if (newline_with_indentation(&after_indentation, starting_indent)) { // Line continuation (..)
+            FLUSH_PLAIN_SPAN();
+            pos = after_indentation;
             if (*pos == close_quote) {
                 break;
             } else if (some_of(&pos, ".") >= 2) {
@@ -1264,15 +1276,22 @@ ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open
                 parser_err(ctx, pos, eol(pos), "This multi-line string should be either indented or have '..' at the front");
             }
         } else { // Plain character
-            chunk = CORD_cat_char(chunk, *pos);
-            ++pos;
+            ucs4_t codepoint;
+            const char *next = (const char*)u8_next(&codepoint, (const uint8_t*)pos);
+            plain_span_len += (int64_t)(next - pos);
+            if (next == NULL)
+                break;
+            pos = next;
         }
     }
 
-    if (chunk) {
-        ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .cord=chunk);
+    FLUSH_PLAIN_SPAN();
+#undef FLUSH_PLAIN_SPAN
+
+    if (chunk.length > 0) {
+        ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .text=chunk);
         chunks = new(ast_list_t, .ast=literal, .next=chunks);
-        chunk = NULL;
+        chunk = EMPTY_TEXT;
     }
 
     REVERSE_LIST(chunks);
@@ -2295,11 +2314,11 @@ PARSER(parse_inline_c) {
         spaces(&pos);
         if (!match(&pos, "("))
             parser_err(ctx, start, pos, "I expected a '(' here");
-        chunks = new(ast_list_t, .ast=NewAST(ctx->file, pos, pos, TextLiteral, "({"),
+        chunks = new(ast_list_t, .ast=NewAST(ctx->file, pos, pos, TextLiteral, Text("({")),
                      .next=_parse_text_helper(ctx, &pos, '(', ')', '@', false));
         if (type) {
             REVERSE_LIST(chunks);
-            chunks = new(ast_list_t, .ast=NewAST(ctx->file, pos, pos, TextLiteral, "; })"), .next=chunks);
+            chunks = new(ast_list_t, .ast=NewAST(ctx->file, pos, pos, TextLiteral, Text("; })")), .next=chunks);
             REVERSE_LIST(chunks);
         }
     } else {

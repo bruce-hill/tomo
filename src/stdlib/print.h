@@ -12,7 +12,6 @@
 #include <assert.h>
 #include <ctype.h>
 #include <gc.h>
-#include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>

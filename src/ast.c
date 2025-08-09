@@ -1,6 +1,5 @@
 // Some basic operations defined on AST nodes, mainly converting to
 // strings for debugging.
-#include <gc/cord.h>
 #include <stdarg.h>
 
 #include "ast.h"
@@ -9,7 +8,10 @@
 #include "stdlib/integers.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
-#include "cordhelpers.h"
+
+static Text_t quoted_text(const char *text) {
+    return Text$quoted(Text$from_str(text), false, Text("\""));
+}
 
 CONSTFUNC const char *binop_method_name(ast_e tag) {
     switch (tag) {
@@ -54,65 +56,65 @@ CONSTFUNC const char *binop_operator(ast_e tag) {
     }
 };
 
-static CORD ast_list_to_sexp(ast_list_t *asts);
-static CORD arg_list_to_sexp(arg_ast_t *args);
-static CORD arg_defs_to_sexp(arg_ast_t *args);
-static CORD when_clauses_to_sexp(when_clause_t *clauses);
-static CORD tags_to_sexp(tag_ast_t *tags);
-static CORD optional_sexp(const char *tag, ast_t *ast);
-static CORD optional_type_sexp(const char *tag, type_ast_t *ast);
+static Text_t ast_list_to_sexp(ast_list_t *asts);
+static Text_t arg_list_to_sexp(arg_ast_t *args);
+static Text_t arg_defs_to_sexp(arg_ast_t *args);
+static Text_t when_clauses_to_sexp(when_clause_t *clauses);
+static Text_t tags_to_sexp(tag_ast_t *tags);
+static Text_t optional_sexp(const char *tag, ast_t *ast);
+static Text_t optional_type_sexp(const char *tag, type_ast_t *ast);
 
-CORD ast_list_to_sexp(ast_list_t *asts)
+Text_t ast_list_to_sexp(ast_list_t *asts)
 {
-    CORD c = CORD_EMPTY;
+    Text_t c = EMPTY_TEXT;
     for (; asts; asts = asts->next) {
-        c = CORD_all(c, " ", ast_to_sexp(asts->ast));
+        c = Texts(c, " ", ast_to_sexp(asts->ast));
     }
     return c;
 }
 
-CORD arg_defs_to_sexp(arg_ast_t *args) {
-    CORD c = "(args";
+Text_t arg_defs_to_sexp(arg_ast_t *args) {
+    Text_t c = Text("(args");
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
-        c = CORD_all(c, " (arg ", arg->name ? CORD_quoted(arg->name) : "nil",
+        c = Texts(c, " (arg ", arg->name ? quoted_text(arg->name) : Text("nil"),
                      " ", type_ast_to_sexp(arg->type), " ", ast_to_sexp(arg->value), ")");
     }
-    return CORD_cat(c, ")");
+    return Texts(c, ")");
 }
 
-CORD arg_list_to_sexp(arg_ast_t *args) {
-    CORD c = CORD_EMPTY;
+Text_t arg_list_to_sexp(arg_ast_t *args) {
+    Text_t c = EMPTY_TEXT;
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
         assert(arg->value && !arg->type);
         if (arg->name)
-            c = CORD_all(c, " :", arg->name);
-        c = CORD_all(c, " ", ast_to_sexp(arg->value));
+            c = Texts(c, " :", arg->name);
+        c = Texts(c, " ", ast_to_sexp(arg->value));
     }
     return c;
 }
 
-CORD when_clauses_to_sexp(when_clause_t *clauses) {
-    CORD c = CORD_EMPTY;
+Text_t when_clauses_to_sexp(when_clause_t *clauses) {
+    Text_t c = EMPTY_TEXT;
     for (; clauses; clauses = clauses->next) {
-        c = CORD_all(c, " (case ", ast_to_sexp(clauses->pattern), " ", ast_to_sexp(clauses->body), ")");
+        c = Texts(c, " (case ", ast_to_sexp(clauses->pattern), " ", ast_to_sexp(clauses->body), ")");
     }
     return c;
 }
 
-CORD tags_to_sexp(tag_ast_t *tags) {
-    CORD c = CORD_EMPTY;
+Text_t tags_to_sexp(tag_ast_t *tags) {
+    Text_t c = EMPTY_TEXT;
     for (; tags; tags = tags->next) {
-        c = CORD_all(c, "(tag \"", tags->name, "\" ", arg_defs_to_sexp(tags->fields), ")");
+        c = Texts(c, "(tag \"", tags->name, "\" ", arg_defs_to_sexp(tags->fields), ")");
     }
     return c;
 }
 
-CORD type_ast_to_sexp(type_ast_t *t)
+Text_t type_ast_to_sexp(type_ast_t *t)
 {
-    if (!t) return "nil";
+    if (!t) return Text("nil");
 
     switch (t->tag) {
-#define T(type, ...) case type: { __typeof(t->__data.type) data = t->__data.type; (void)data; return CORD_all(__VA_ARGS__); }
+#define T(type, ...) case type: { __typeof(t->__data.type) data = t->__data.type; (void)data; return Texts(__VA_ARGS__); }
     T(UnknownTypeAST, "(UnknownType)")
     T(VarTypeAST, "(VarType \"", data.name, "\")")
     T(PointerTypeAST, "(PointerType \"", data.is_stack ? "stack" : "heap", "\" ", type_ast_to_sexp(data.pointed), ")")
@@ -122,35 +124,35 @@ CORD type_ast_to_sexp(type_ast_t *t)
     T(FunctionTypeAST, "(FunctionType ", arg_defs_to_sexp(data.args), " ", type_ast_to_sexp(data.ret), ")")
     T(OptionalTypeAST, "(OptionalType ", type_ast_to_sexp(data.type), ")")
 #undef T
-    default: return CORD_EMPTY;
+    default: return EMPTY_TEXT;
     }
 }
 
-CORD optional_sexp(const char *name, ast_t *ast)
+Text_t optional_sexp(const char *name, ast_t *ast)
 {
-    return ast ? CORD_all(" :", name, " ", ast_to_sexp(ast)) : CORD_EMPTY;
+    return ast ? Texts(" :", name, " ", ast_to_sexp(ast)) : EMPTY_TEXT;
 }
 
-CORD optional_type_sexp(const char *name, type_ast_t *ast)
+Text_t optional_type_sexp(const char *name, type_ast_t *ast)
 {
-    return ast ? CORD_all(" :", name, " ", type_ast_to_sexp(ast)) : CORD_EMPTY;
+    return ast ? Texts(" :", name, " ", type_ast_to_sexp(ast)) : EMPTY_TEXT;
 }
 
-CORD ast_to_sexp(ast_t *ast)
+Text_t ast_to_sexp(ast_t *ast)
 {
-    if (!ast) return "nil";
+    if (!ast) return Text("nil");
 
     switch (ast->tag) {
-#define T(type, ...) case type: { __typeof(ast->__data.type) data = ast->__data.type; (void)data; return CORD_all(__VA_ARGS__); }
+#define T(type, ...) case type: { __typeof(ast->__data.type) data = ast->__data.type; (void)data; return Texts(__VA_ARGS__); }
     T(Unknown,  "(Unknown)")
     T(None, "(None)")
     T(Bool, "(Bool ", data.b ? "yes" : "no", ")")
-    T(Var, "(Var ", CORD_quoted(data.name), ")")
-    T(Int, "(Int ", CORD_quoted(ast_source(ast)), ")")
-    T(Num, "(Num ", CORD_quoted(ast_source(ast)), ")")
-    T(TextLiteral, CORD_quoted(data.cord))
-    T(TextJoin, "(Text", data.lang ? CORD_all(" :lang ", CORD_quoted(data.lang)) : CORD_EMPTY, ast_list_to_sexp(data.children), ")")
-    T(Path, "(Path ", CORD_quoted(data.path), ")")
+    T(Var, "(Var ", quoted_text(data.name), ")")
+    T(Int, "(Int ", quoted_text(ast_source(ast)), ")")
+    T(Num, "(Num ", quoted_text(ast_source(ast)), ")")
+    T(TextLiteral, Text$quoted(data.text, false, Text("\"")))
+    T(TextJoin, "(Text", data.lang ? Texts(" :lang ", quoted_text(data.lang)) : EMPTY_TEXT, ast_list_to_sexp(data.children), ")")
+    T(Path, "(Path ", quoted_text(data.path), ")")
     T(Declare, "(Declare ", ast_to_sexp(data.var), " ", type_ast_to_sexp(data.type), " ", ast_to_sexp(data.value), ")")
     T(Assign, "(Assign (targets ", ast_list_to_sexp(data.targets), ") (values ", ast_list_to_sexp(data.values), "))")
 #define BINOP(name) T(name, "(" #name " ", ast_to_sexp(data.lhs), " ", ast_to_sexp(data.rhs), ")")
@@ -179,7 +181,7 @@ CORD ast_to_sexp(ast_t *ast)
     T(ConvertDef, "(ConvertDef ", arg_defs_to_sexp(data.args), " ", type_ast_to_sexp(data.ret_type), " ", ast_to_sexp(data.body), ")")
     T(Lambda, "(Lambda ", arg_defs_to_sexp(data.args), optional_type_sexp("return", data.ret_type), " ", ast_to_sexp(data.body), ")")
     T(FunctionCall, "(FunctionCall ", ast_to_sexp(data.fn), arg_list_to_sexp(data.args), ")")
-    T(MethodCall, "(MethodCall ", ast_to_sexp(data.self), " ", CORD_quoted(data.name), arg_list_to_sexp(data.args), ")")
+    T(MethodCall, "(MethodCall ", ast_to_sexp(data.self), " ", quoted_text(data.name), arg_list_to_sexp(data.args), ")")
     T(Block, "(Block", ast_list_to_sexp(data.statements), ")")
     T(For, "(For (vars", ast_list_to_sexp(data.vars), ") ", ast_to_sexp(data.iter), " ", ast_to_sexp(data.body),
       " ", ast_to_sexp(data.empty), ")")
@@ -187,9 +189,9 @@ CORD ast_to_sexp(ast_t *ast)
     T(Repeat, "(Repeat ", ast_to_sexp(data.body), ")")
     T(If, "(If ", ast_to_sexp(data.condition), " ", ast_to_sexp(data.body), optional_sexp("else", data.else_body), ")")
     T(When, "(When ", ast_to_sexp(data.subject), when_clauses_to_sexp(data.clauses), optional_sexp("else", data.else_body), ")")
-    T(Reduction, "(Reduction ", CORD_quoted(binop_method_name(data.op)), " ", ast_to_sexp(data.key), " ", ast_to_sexp(data.iter), ")")
-    T(Skip, "(Skip ", CORD_quoted(data.target), ")")
-    T(Stop, "(Stop ", CORD_quoted(data.target), ")")
+    T(Reduction, "(Reduction ", quoted_text(binop_method_name(data.op)), " ", ast_to_sexp(data.key), " ", ast_to_sexp(data.iter), ")")
+    T(Skip, "(Skip ", quoted_text(data.target), ")")
+    T(Stop, "(Stop ", quoted_text(data.target), ")")
     T(Pass, "(Pass)")
     T(Defer, "(Defer ", ast_to_sexp(data.body), ")")
     T(Return, "(Return ", ast_to_sexp(data.value), ")")
@@ -203,7 +205,7 @@ CORD ast_to_sexp(ast_t *ast)
     T(NonOptional, "(NonOptional ", ast_to_sexp(data.value), ")")
     T(DocTest, "(DocTest ", ast_to_sexp(data.expr), optional_sexp("expected", data.expected), ")")
     T(Assert, "(Assert ", ast_to_sexp(data.expr), " ", optional_sexp("message", data.message), ")")
-    T(Use, "(Use ", optional_sexp("var", data.var), " ", CORD_quoted(data.path), ")")
+    T(Use, "(Use ", optional_sexp("var", data.var), " ", quoted_text(data.path), ")")
     T(InlineCCode, "(InlineCCode ", ast_list_to_sexp(data.chunks), optional_type_sexp("type", data.type_ast), ")")
     T(Deserialize, "(Deserialize ", type_ast_to_sexp(data.type), " ", ast_to_sexp(data.value), ")")
     T(Extend, "(Extend \"", data.name, "\" ", ast_to_sexp(data.body), ")")
@@ -214,7 +216,7 @@ CORD ast_to_sexp(ast_t *ast)
 
 const char *ast_to_sexp_str(ast_t *ast)
 {
-    return CORD_to_const_char_star(ast_to_sexp(ast));
+    return Text$as_c_string(ast_to_sexp(ast));
 }
 
 const char *ast_source(ast_t *ast)

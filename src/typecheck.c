@@ -9,7 +9,6 @@
 #include <sys/stat.h>
 
 #include "ast.h"
-#include "cordhelpers.h"
 #include "environment.h"
 #include "modules.h"
 #include "parse.h"
@@ -235,7 +234,7 @@ void prebind_statement(env_t *env, ast_t *statement)
         type_t *type = Type(StructType, .name=def->name, .opaque=true, .external=def->external, .env=ns_env); // placeholder
         Table$str_set(env->types, def->name, type);
         set_binding(env, def->name, Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
-                    namespace_name(env, env->namespace, CORD_all(def->name, "$$info")));
+                    namespace_name(env, env->namespace, Texts(def->name, "$$info")));
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
         break;
@@ -249,7 +248,7 @@ void prebind_statement(env_t *env, ast_t *statement)
         type_t *type = Type(EnumType, .name=def->name, .opaque=true, .env=ns_env); // placeholder
         Table$str_set(env->types, def->name, type);
         set_binding(env, def->name, Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
-                    namespace_name(env, env->namespace, CORD_all(def->name, "$$info")));
+                    namespace_name(env, env->namespace, Texts(def->name, "$$info")));
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
         break;
@@ -263,7 +262,7 @@ void prebind_statement(env_t *env, ast_t *statement)
         type_t *type = Type(TextType, .lang=def->name, .env=ns_env);
         Table$str_set(env->types, def->name, type);
         set_binding(env, def->name, Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
-                    namespace_name(env, env->namespace, CORD_all(def->name, "$$info")));
+                    namespace_name(env, env->namespace, Texts(def->name, "$$info")));
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
         break;
@@ -319,11 +318,11 @@ void bind_statement(env_t *env, ast_t *statement)
             code_err(statement, "I couldn't figure out the type of this value");
         if (type->tag == FunctionType)
             type = Type(ClosureType, type);
-        CORD code;
+        Text_t code;
         if (name[0] != '_' && (env->namespace || decl->top_level))
-            code = namespace_name(env, env->namespace, name);
+            code = namespace_name(env, env->namespace, Text$from_str(name));
         else
-            code = CORD_all("_$", name);
+            code = Texts("_$", name);
         set_binding(env, name, type, code);
         break;
     }
@@ -331,7 +330,7 @@ void bind_statement(env_t *env, ast_t *statement)
         DeclareMatch(def, statement, FunctionDef);
         const char *name = Match(def->name, Var)->name;
         type_t *type = get_function_def_type(env, statement);
-        set_binding(env, name, type, namespace_name(env, env->namespace, name));
+        set_binding(env, name, type, namespace_name(env, env->namespace, Text$from_str(name)));
         break;
     }
     case ConvertDef: {
@@ -341,8 +340,8 @@ void bind_statement(env_t *env, ast_t *statement)
         if (!name)
             code_err(statement, "Conversions are only supported for text, struct, and enum types, not ", type_to_str(ret_t));
 
-        CORD code = namespace_name(env, env->namespace,
-                                   CORD_all(name, "$", String(get_line_number(statement->file, statement->start))));
+        Text_t code = namespace_name(env, env->namespace,
+                                   Texts(name, "$", String(get_line_number(statement->file, statement->start))));
         binding_t binding = {.type=type, .code=code};
         env_t *type_ns = get_namespace_by_type(env, ret_t);
         List$insert(&type_ns->namespace->constructors, &binding, I(0), sizeof(binding));
@@ -438,13 +437,13 @@ void bind_statement(env_t *env, ast_t *statement)
         for (tag_t *tag = tags; tag; tag = tag->next) {
             if (Match(tag->type, StructType)->fields) { // Constructor:
                 type_t *constructor_t = Type(FunctionType, .args=Match(tag->type, StructType)->fields, .ret=type);
-                set_binding(ns_env, tag->name, constructor_t, namespace_name(env, env->namespace, CORD_all(def->name, "$tagged$", tag->name)));
+                set_binding(ns_env, tag->name, constructor_t, namespace_name(env, env->namespace, Texts(def->name, "$tagged$", tag->name)));
             } else if (has_any_tags_with_fields) { // Empty singleton value:
-                CORD code = CORD_all("((", namespace_name(env, env->namespace, CORD_all(def->name, "$$type")), "){",
-                                     namespace_name(env, env->namespace, CORD_all(def->name, "$tag$", tag->name)), "})");
+                Text_t code = Texts("((", namespace_name(env, env->namespace, Texts(def->name, "$$type")), "){",
+                                     namespace_name(env, env->namespace, Texts(def->name, "$tag$", tag->name)), "})");
                 set_binding(ns_env, tag->name, type, code);
             } else {
-                CORD code = namespace_name(env, env->namespace, CORD_all(def->name, "$tag$", tag->name));
+                Text_t code = namespace_name(env, env->namespace, Texts(def->name, "$tag$", tag->name));
                 set_binding(ns_env, tag->name, type, code);
             }
             Table$str_set(env->types, String(def->name, "$", tag->name), tag->type);
@@ -462,7 +461,7 @@ void bind_statement(env_t *env, ast_t *statement)
         Table$str_set(env->types, def->name, type);
 
         set_binding(ns_env, "from_text", NewFunctionType(type, {.name="text", .type=TEXT_TYPE}),
-                    CORD_all("(", namespace_name(env, env->namespace, CORD_all(def->name, "$$type")), ")"));
+                    Texts("(", namespace_name(env, env->namespace, Texts(def->name, "$$type")), ")"));
 
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             bind_statement(ns_env, stmt->ast);
@@ -520,7 +519,7 @@ void bind_statement(env_t *env, ast_t *statement)
         if (var) {
             type_t *type = get_type(env, statement);
             assert(type);
-            set_binding(env, Match(var, Var)->name, type, CORD_EMPTY);
+            set_binding(env, Match(var, Var)->name, type, EMPTY_TEXT);
         }
         break;
     }
@@ -529,7 +528,7 @@ void bind_statement(env_t *env, ast_t *statement)
         type_t *t = parse_type_ast(env, ext->type);
         if (t->tag == ClosureType)
             t = Match(t, ClosureType)->fn;
-        set_binding(env, ext->name, t, ext->name);
+        set_binding(env, ext->name, t, Text$from_str(ext->name));
         break;
     }
     default: break;
@@ -545,7 +544,7 @@ type_t *get_function_def_type(env_t *env, ast_t *ast)
     for (arg_ast_t *arg = arg_asts; arg; arg = arg->next) {
         type_t *t = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->value);
         args = new(arg_t, .name=arg->name, .type=t, .default_val=arg->value, .next=args);
-        set_binding(scope, arg->name, t, CORD_EMPTY);
+        set_binding(scope, arg->name, t, EMPTY_TEXT);
     }
     REVERSE_LIST(args);
 
@@ -593,7 +592,7 @@ env_t *when_clause_scope(env_t *env, type_t *subject_t, when_clause_t *clause)
     if (fn->args && !fn->args->next && tag_struct->fields && tag_struct->fields->next) {
         if (fn->args->value->tag != Var)
             code_err(fn->args->value, "I expected a variable here");
-        set_binding(scope, Match(fn->args->value, Var)->name, tag_type, CORD_EMPTY);
+        set_binding(scope, Match(fn->args->value, Var)->name, tag_type, EMPTY_TEXT);
         return scope;
     }
 
@@ -606,7 +605,7 @@ env_t *when_clause_scope(env_t *env, type_t *subject_t, when_clause_t *clause)
         if (var->value->tag != Var)
             code_err(var->value, "I expected this to be a plain variable so I could bind it to a value");
         if (!streq(Match(var->value, Var)->name, "_"))
-            set_binding(scope, Match(var->value, Var)->name, field->type, CORD_EMPTY);
+            set_binding(scope, Match(var->value, Var)->name, field->type, EMPTY_TEXT);
         field = field->next;
     }
     return scope;
@@ -1322,7 +1321,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             code_err(reduction->iter, "I don't know how to do a reduction over ", type_to_str(iter_t), " values");
         if (reduction->key && !(reduction->op == Min || reduction->op == Max)) {
             env_t *item_scope = fresh_scope(env);
-            set_binding(item_scope, "$", iterated, CORD_EMPTY);
+            set_binding(item_scope, "$", iterated, EMPTY_TEXT);
             iterated = get_type(item_scope, reduction->key);
         }
         return iterated->tag == OptionalType ? iterated : Type(OptionalType, .type=iterated);
@@ -1347,7 +1346,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
             type_t *t = get_arg_ast_type(env, arg);
             args = new(arg_t, .name=arg->name, .type=t, .next=args);
-            set_binding(scope, arg->name, t, CORD_EMPTY);
+            set_binding(scope, arg->name, t, EMPTY_TEXT);
         }
         REVERSE_LIST(args);
 
@@ -1395,16 +1394,16 @@ type_t *get_type(env_t *env, ast_t *ast)
             truthy_scope = fresh_scope(env);
             if (condition_type->tag == OptionalType)
                 set_binding(truthy_scope, varname,
-                            Match(condition_type, OptionalType)->type, CORD_EMPTY);
+                            Match(condition_type, OptionalType)->type, EMPTY_TEXT);
             else
-                set_binding(truthy_scope, varname, condition_type, CORD_EMPTY);
+                set_binding(truthy_scope, varname, condition_type, EMPTY_TEXT);
         } else if (if_->condition->tag == Var) {
             type_t *condition_type = get_type(env, if_->condition);
             if (condition_type->tag == OptionalType) {
                 truthy_scope = fresh_scope(env);
                 const char *varname = Match(if_->condition, Var)->name;
                 set_binding(truthy_scope, varname,
-                            Match(condition_type, OptionalType)->type, CORD_EMPTY);
+                            Match(condition_type, OptionalType)->type, EMPTY_TEXT);
             }
         }
 
@@ -1454,7 +1453,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             else
                 code_err(clause->pattern, "This is not a valid pattern for a ", type_to_str(subject_t), " enum");
 
-            CORD valid_tags = CORD_EMPTY;
+            Text_t valid_tags = EMPTY_TEXT;
             for (match_t *m = matches; m; m = m->next) {
                 if (streq(m->tag->name, tag_name)) {
                     if (m->handled)
@@ -1462,12 +1461,12 @@ type_t *get_type(env_t *env, ast_t *ast)
                     m->handled = true;
                     goto found_matching_tag;
                 }
-                if (valid_tags) valid_tags = CORD_cat(valid_tags, ", ");
-                valid_tags = CORD_cat(valid_tags, m->tag->name);
+                if (valid_tags.length > 0) valid_tags = Texts(valid_tags, ", ");
+                valid_tags = Texts(valid_tags, m->tag->name);
             }
 
             code_err(clause->pattern, "There is no tag '", tag_name,
-                     "' for the type ", type_to_str(subject_t), " (valid tags: ", CORD_to_char_star(valid_tags), ")");
+                     "' for the type ", type_to_str(subject_t), " (valid tags: ", valid_tags, ")");
           found_matching_tag:;
         }
 
@@ -1502,13 +1501,13 @@ type_t *get_type(env_t *env, ast_t *ast)
                          " value (based on earlier clauses), but it actually has a ", type_to_str(else_t), " value.");
             return merged;
         } else {
-            CORD unhandled = CORD_EMPTY;
+            Text_t unhandled = EMPTY_TEXT;
             for (match_t *m = matches; m; m = m->next) {
                 if (!m->handled)
-                    unhandled = unhandled ? CORD_all(unhandled, ", ", m->tag->name) : m->tag->name;
+                    unhandled = unhandled.length > 0 ? Texts(unhandled, ", ", m->tag->name) : Text$from_str(m->tag->name);
             }
-            if (unhandled)
-                code_err(ast, "This 'when' statement doesn't handle the tags: ", CORD_to_const_char_star(unhandled));
+            if (unhandled.length > 0)
+                code_err(ast, "This 'when' statement doesn't handle the tags: ", unhandled);
             return overall_t;
         }
     }
@@ -1677,19 +1676,13 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast)
         return is_constant(env, text->children->ast);
     }
     case TextLiteral: {
-        CORD literal = Match(ast, TextLiteral)->cord; 
-        CORD_pos i;
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-        CORD_FOR(i, literal) {
-            if (!isascii(CORD_pos_fetch(i)))
-                return false; // Non-ASCII requires grapheme logic, not constant
+        Text_t literal = Match(ast, TextLiteral)->text; 
+        TextIter_t state = NEW_TEXT_ITER_STATE(literal);
+        for (int64_t i = 0; i < literal.length; i++) {
+            int32_t g = Text$get_grapheme_fast(&state, i);
+            if (g < 0 || g > 127 || !isascii(g))
+                return false;
         }
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
         return true; // Literal ASCII string, OK
     }
     case Not: return is_constant(env, Match(ast, Not)->value);

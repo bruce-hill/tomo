@@ -3,7 +3,6 @@
 // Logic defining ASTs (abstract syntax trees) to represent code
 
 #include <err.h>
-#include <gc/cord.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -176,7 +175,7 @@ struct ast_s {
             double n;
         } Num;
         struct {
-            CORD cord;
+            Text_t text;
         } TextLiteral;
         struct {
             const char *lang;
@@ -353,9 +352,9 @@ struct ast_s {
 
 const char *ast_source(ast_t *ast);
 
-CORD ast_to_sexp(ast_t *ast);
+Text_t ast_to_sexp(ast_t *ast);
 const char *ast_to_sexp_str(ast_t *ast);
-CORD type_ast_to_sexp(type_ast_t *ast);
+Text_t type_ast_to_sexp(type_ast_t *ast);
 
 PUREFUNC bool is_idempotent(ast_t *ast);
 void visit_topologically(ast_list_t *ast, Closure_t fn);

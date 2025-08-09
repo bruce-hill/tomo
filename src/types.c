@@ -1,102 +1,101 @@
 // Logic for handling type_t types
-#include <gc/cord.h>
 #include <limits.h>
 #include <math.h>
 #include <signal.h>
 #include <stdint.h>
 #include <sys/param.h>
 
-#include "cordhelpers.h"
 #include "environment.h"
 #include "stdlib/integers.h"
 #include "stdlib/print.h"
 #include "stdlib/tables.h"
+#include "stdlib/text.h"
 #include "stdlib/util.h"
 #include "types.h"
 
-CORD type_to_cord(type_t *t) {
+Text_t type_to_text(type_t *t) {
     if (!t)
-        return "(Unknown type)";
+        return Text("(Unknown type)");
 
     switch (t->tag) {
-        case UnknownType: return "???";
-        case AbortType: return "Abort";
+        case UnknownType: return Text("???");
+        case AbortType: return Text("Abort");
         case ReturnType: {
             type_t *ret = Match(t, ReturnType)->ret;
-            return CORD_all("Return(", ret ? type_to_cord(ret) : "Void", ")");
+            return Texts("Return(", ret ? type_to_text(ret) : Text("Void"), ")");
         }
-        case VoidType: return "Void";
-        case MemoryType: return "Memory";
-        case BoolType: return "Bool";
-        case ByteType: return "Byte";
-        case CStringType: return "CString";
-        case TextType: return Match(t, TextType)->lang ? Match(t, TextType)->lang : "Text";
-        case BigIntType: return "Int";
-        case IntType: return String("Int", Match(t, IntType)->bits);
-        case NumType: return Match(t, NumType)->bits == TYPE_NBITS32 ? "Num32" : "Num";
+        case VoidType: return Text("Void");
+        case MemoryType: return Text("Memory");
+        case BoolType: return Text("Bool");
+        case ByteType: return Text("Byte");
+        case CStringType: return Text("CString");
+        case TextType: return Match(t, TextType)->lang ? Text$from_str(Match(t, TextType)->lang) : Text("Text");
+        case BigIntType: return Text("Int");
+        case IntType: return Texts("Int", String(Match(t, IntType)->bits));
+        case NumType: return Match(t, NumType)->bits == TYPE_NBITS32 ? Text("Num32") : Text("Num");
         case ListType: {
             DeclareMatch(list, t, ListType);
-            return CORD_all("[", type_to_cord(list->item_type), "]");
+            return Texts("[", type_to_text(list->item_type), "]");
         }
         case TableType: {
             DeclareMatch(table, t, TableType);
-            return CORD_all("{", type_to_cord(table->key_type), "=", type_to_cord(table->value_type), "}");
+            return Texts("{", type_to_text(table->key_type), "=", type_to_text(table->value_type), "}");
         }
         case SetType: {
             DeclareMatch(set, t, SetType);
-            return CORD_all("{", type_to_cord(set->item_type), "}");
+            return Texts("{", type_to_text(set->item_type), "}");
         }
         case ClosureType: {
-            return type_to_cord(Match(t, ClosureType)->fn);
+            return type_to_text(Match(t, ClosureType)->fn);
         }
         case FunctionType: {
-            CORD c = "func(";
+            Text_t c = Text("func(");
             DeclareMatch(fn, t, FunctionType);
             for (arg_t *arg = fn->args; arg; arg = arg->next) {
-                c = CORD_cat(c, type_to_cord(arg->type));
-                if (arg->next) c = CORD_cat(c, ",");
+                c = Texts(c, type_to_text(arg->type));
+                if (arg->next) c = Texts(c, ",");
             }
             if (fn->ret && fn->ret->tag != VoidType)
-                c = CORD_all(c, fn->args ? " -> " : "-> ", type_to_cord(fn->ret));
-            c = CORD_all(c, ")");
+                c = Texts(c, fn->args ? " -> " : "-> ", type_to_text(fn->ret));
+            c = Texts(c, ")");
             return c;
         }
         case StructType: {
             DeclareMatch(struct_, t, StructType);
-            return struct_->name;
+            return Text$from_str(struct_->name);
         }
         case PointerType: {
             DeclareMatch(ptr, t, PointerType);
-            CORD sigil = ptr->is_stack ? "&" : "@";
-            return CORD_all(sigil, type_to_cord(ptr->pointed));
+            Text_t sigil = ptr->is_stack ? Text("&") : Text("@");
+            return Texts(sigil, type_to_text(ptr->pointed));
         }
         case EnumType: {
             DeclareMatch(tagged, t, EnumType);
-            return tagged->name;
+            return Text$from_str(tagged->name);
         }
         case OptionalType: {
             type_t *opt = Match(t, OptionalType)->type;
             if (opt)
-                return CORD_all(type_to_cord(opt), "?");
+                return Texts(type_to_text(opt), "?");
             else
-                return "(Unknown optional type)";
+                return Text("(Unknown optional type)");
         }
         case TypeInfoType: {
-            return CORD_all("Type$info(", Match(t, TypeInfoType)->name, ")");
+            return Texts("Type$info(", Match(t, TypeInfoType)->name, ")");
         }
         case ModuleType: {
-            return CORD_all("Module(", Match(t, ModuleType)->name, ")");
+            return Texts("Module(", Match(t, ModuleType)->name, ")");
         }
         default: {
             raise(SIGABRT);
-            return String("Unknown type: ", t->tag);
+            return Texts("Unknown type: ", String(t->tag));
         }
     }
 }
 
 const char *type_to_str(type_t *t)
 {
-    return CORD_to_const_char_star(type_to_cord(t));
+    return Text$as_c_string(type_to_text(t));
 }
 
 PUREFUNC const char *get_type_name(type_t *t)
@@ -115,7 +114,7 @@ bool type_eq(type_t *a, type_t *b)
     if (!a && !b) return true;
     if (!a || !b) return false;
     if (a->tag != b->tag) return false;
-    return (CORD_cmp(type_to_cord(a), type_to_cord(b)) == 0);
+    return Text$equal_values(type_to_text(a), type_to_text(b));
 }
 
 bool type_is_a(type_t *t, type_t *req)
