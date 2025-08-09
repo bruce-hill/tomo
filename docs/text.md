@@ -13,19 +13,22 @@ Internally, Tomo text's implementation is based on [Raku/MoarVM's
 strings](https://docs.raku.org/language/unicode) and [Boehm et al's
 Cords/Ropes](https://www.cs.tufts.edu/comp/150FP/archive/hans-boehm/ropes.pdf).
 Texts store their grapheme cluster count and either a compact list of 8-bit
-ASCII characters (for ASCII text), a list of 32-bit normal-form grapheme
-cluster values (see below), a compressed form of grapheme clusters with a
-lookup table, or a (roughly) balanced binary tree representing a concatenation.
-The upside of this approach is that repeated concatenations are typically a
-constant-time operation, which will occasionally require a small rebalancing
-operation. Text is stored in a format that is highly memory-efficient and
-index-based text operations (like retrieving an arbitrary index or slicing) are
-very fast: typically a constant-time operation for arbitrary unicode text, but
-in the worst case scenario (text built from many concatenations), `O(log(n))`
-time with very generous constant factors typically amounting to only a handful
-of steps. Since concatenations use shared substructures, they are very
-memory-efficient and can be used efficiently for applications like implementing
-a text editor that stores a full edit history of a large file's contents.
+ASCII characters (for ASCII text), a list of 32-bit normal-form grapheme cluster
+values (see below), a compressed form of grapheme clusters with a lookup table,
+or a (roughly) balanced binary tree representing a concatenation. The upside of
+this approach is that repeated concatenations are typically a constant-time
+operation, which will occasionally require a small rebalancing operation. Text
+is stored in a format that is highly memory-efficient and index-based text
+operations (like retrieving an arbitrary index or slicing) are very fast:
+typically a constant-time operation for arbitrary unicode text, but in the worst
+case scenario (text built from many concatenations), `O(log(n))` time with very
+generous constant factors typically amounting to only a handful of steps. Since
+concatenations use shared substructures, they are very memory-efficient for
+applications where you want to store many versions of a large text with
+modifications. For example, if you are implementing a text editor, you can
+naively store the full text contents of a file at each point in its edit
+history, and it will only have a small memory footprint because of shared
+substructures in the text.
 
 ### Normal-Form Graphemes
 
