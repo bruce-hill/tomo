@@ -50,6 +50,7 @@ typedef struct env_s {
     deferral_t *deferred;
     Closure_t *comprehension_action;
     bool do_source_mapping:1;
+    type_t *current_type;
 } env_t;
 
 typedef struct {
@@ -84,7 +85,7 @@ env_t *namespace_env(env_t *env, const char *namespace_name);
     exit(1); \
 })
 binding_t *get_binding(env_t *env, const char *name);
-binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args);
+binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args, bool allow_underscores);
 PUREFUNC binding_t *get_metamethod_binding(env_t *env, ast_e tag, ast_t *lhs, ast_t *rhs, type_t *ret);
 void set_binding(env_t *env, const char *name, type_t *type, Text_t code);
 binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name);

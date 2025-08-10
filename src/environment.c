@@ -749,7 +749,7 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name)
     return ns_env ? get_binding(ns_env, name) : NULL;
 }
 
-PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args)
+PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args, bool allow_underscores)
 {
     env_t *type_env = get_namespace_by_type(env, t);
     if (!type_env) return NULL;
@@ -758,15 +758,27 @@ PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args)
     for (int64_t i = constructors.length-1; i >= 0; i--) {
         binding_t *b = constructors.data + i*constructors.stride;
         DeclareMatch(fn, b->type, FunctionType);
+        if (!allow_underscores) {
+            for (arg_t *arg = fn->args; arg; arg = arg->next)
+                if (arg->name[0] == '_')
+                    goto next_constructor;
+        }
         if (type_eq(fn->ret, t) && is_valid_call(env, fn->args, args, false))
             return b;
+      next_constructor: continue;
     }
     // Fall back to promotion:
     for (int64_t i = constructors.length-1; i >= 0; i--) {
         binding_t *b = constructors.data + i*constructors.stride;
         DeclareMatch(fn, b->type, FunctionType);
+        if (!allow_underscores) {
+            for (arg_t *arg = fn->args; arg; arg = arg->next)
+                if (arg->name[0] == '_')
+                    goto next_constructor2;
+        }
         if (type_eq(fn->ret, t) && is_valid_call(env, fn->args, args, true))
             return b;
+      next_constructor2: continue;
     }
     return NULL;
 }

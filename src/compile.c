@@ -134,7 +134,8 @@ static bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t
     // Numeric promotions/demotions
     if ((is_numeric_type(actual) || actual->tag == BoolType) && (is_numeric_type(needed) || needed->tag == BoolType)) {
         arg_ast_t *args = new(arg_ast_t, .value=LiteralCode(*code, .type=actual));
-        binding_t *constructor = get_constructor(env, needed, args);
+        binding_t *constructor = get_constructor(env, needed, args,
+                                                 env->current_type != NULL && type_eq(env->current_type, value_type(needed)));
         if (constructor) {
             DeclareMatch(fn, constructor->type, FunctionType);
             if (fn->args->next == NULL) {
@@ -2939,7 +2940,8 @@ Text_t compile(env_t *env, ast_t *ast)
                 if (chunk->ast->tag == TextLiteral || type_eq(chunk_t, text_t)) {
                     chunk_code = compile(env, chunk->ast);
                 } else {
-                    binding_t *constructor = get_constructor(env, text_t, new(arg_ast_t, .value=chunk->ast));
+                    binding_t *constructor = get_constructor(env, text_t, new(arg_ast_t, .value=chunk->ast),
+                                                             env->current_type != NULL && type_eq(env->current_type, text_t));
                     if (constructor) {
                         arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
                         arg_ast_t *args = new(arg_ast_t, .value=chunk->ast);
@@ -3487,7 +3489,8 @@ Text_t compile(env_t *env, ast_t *ast)
             else if (t->tag == NumType && call->args && !call->args->next && call->args->value->tag == Num)
                 return compile_to_type(env, call->args->value, t);
 
-            binding_t *constructor = get_constructor(env, t, call->args);
+            binding_t *constructor = get_constructor(env, t, call->args,
+                                                     env->current_type != NULL && type_eq(env->current_type, t));
             if (constructor) {
                 arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
                 return Texts(constructor->code, "(", compile_arguments(env, ast, arg_spec, call->args), ")");
@@ -3518,6 +3521,12 @@ Text_t compile(env_t *env, ast_t *ast)
             } else if (t->tag == StructType) {
                 DeclareMatch(struct_, t, StructType);
                 if (!struct_->opaque && is_valid_call(env, struct_->fields, call->args, true)) {
+                    if (env->current_type == NULL || !type_eq(env->current_type, t)) {
+                        for (arg_t *field = struct_->fields; field; field = field->next) {
+                            if (field->name[0] == '_')
+                                code_err(ast, "This struct can't be initialized directly because it has private fields (starting with underscore)");
+                        }
+                    }
                     return Texts("((", compile_type(t), "){",
                                     compile_arguments(env, ast, struct_->fields, call->args), "})");
                 }
@@ -3797,12 +3806,8 @@ Text_t compile(env_t *env, ast_t *ast)
         case TypeInfoType: {
             DeclareMatch(info, value_t, TypeInfoType);
             if (f->field[0] == '_') {
-                for (Table_t *locals = env->locals; locals; locals = locals->fallback) {
-                    if (locals == info->env->locals)
-                        goto is_inside_type;
-                }
-                code_err(ast, "Fields that start with underscores are not accessible on types outside of the type definition.");
-              is_inside_type:;
+                if (!type_eq(env->current_type, info->type))
+                    code_err(ast, "Fields that start with underscores are not accessible on types outside of the type definition.");
             }
             binding_t *b = get_binding(info->env, f->field);
             if (!b) code_err(ast, "I couldn't find the field '", f->field, "' on this type");

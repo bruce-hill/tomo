@@ -353,6 +353,7 @@ void bind_statement(env_t *env, ast_t *statement)
         type_t *type = Table$str_get(*env->types, def->name);
         if (!type) code_err(statement, "Couldn't find type!");
         assert(type);
+        ns_env->current_type = type;
         if (!def->opaque) {
             arg_t *fields = NULL;
             for (arg_ast_t *field_ast = def->fields; field_ast; field_ast = field_ast->next) {
@@ -394,6 +395,7 @@ void bind_statement(env_t *env, ast_t *statement)
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Table$str_get(*env->types, def->name);
         assert(type);
+        ns_env->current_type = type;
         tag_t *tags = NULL;
         int64_t next_tag = 1;
         bool has_any_tags_with_fields = false;
@@ -458,6 +460,7 @@ void bind_statement(env_t *env, ast_t *statement)
         DeclareMatch(def, statement, LangDef);
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(TextType, .lang=def->name, .env=ns_env);
+        ns_env->current_type = type;
         Table$str_set(env->types, def->name, type);
 
         set_binding(ns_env, "from_text", NewFunctionType(type, {.name="text", .type=TEXT_TYPE}),
@@ -823,6 +826,19 @@ type_t *get_type(env_t *env, ast_t *ast)
     case FieldAccess: {
         DeclareMatch(access, ast, FieldAccess);
         type_t *fielded_t = get_type(env, access->fielded);
+        if (access->field[0] == '_') {
+            if (!env->current_type || !type_eq(env->current_type,
+                                               fielded_t->tag == TypeInfoType
+                                               ? Match(fielded_t, TypeInfoType)->type
+                                               : value_type(fielded_t)))
+                code_err(ast, "Fields beginning with underscores like '", access->field,
+                         "' can't be accessed outside the scope where the type (",
+                         type_to_text(
+                             fielded_t->tag == TypeInfoType
+                             ? Match(fielded_t, TypeInfoType)->type
+                             : value_type(fielded_t)),
+                         ") is defined.");
+        }
         if (fielded_t->tag == ModuleType) {
             const char *name = Match(fielded_t, ModuleType)->name;
             env_t *module_env = Table$str_get(*env->imports, name);
@@ -876,7 +892,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         if (fn_type_t->tag == TypeInfoType) {
             type_t *t = Match(fn_type_t, TypeInfoType)->type;
 
-            binding_t *constructor = get_constructor(env, t, call->args);
+            binding_t *constructor = get_constructor(env, t, call->args, env->current_type != NULL && type_eq(env->current_type, t));
             if (constructor)
                 return t;
             else if (t->tag == StructType || t->tag == IntType || t->tag == BigIntType || t->tag == NumType
@@ -964,6 +980,11 @@ type_t *get_type(env_t *env, ast_t *ast)
             code_err(ast, "There is no '", call->name, "' method for ", type_to_str(self_value_t), " tables");
         }
         default: {
+            if (call->name[0] == '_') {
+                if (env->current_type == NULL || !type_eq(env->current_type, self_value_t))
+                    code_err(ast, "You can't call private methods starting with underscore (like '", call->name, "') "
+                             "outside of the place where the type (", type_to_text(self_value_t), ") is defined.");
+            }
             type_t *field_type = get_field_type(self_value_t, call->name);
             if (field_type && field_type->tag == ClosureType)
                 field_type = Match(field_type, ClosureType)->fn;
