@@ -284,11 +284,11 @@ int main(int argc, char *argv[])
         pid_t child = fork();
         if (child == 0) {
             build_library(*lib);
+            if (should_install)
+                install_library(*lib);
             _exit(0);
         }
         wait_for_child_success(child);
-        if (should_install)
-            install_library(*lib);
     }
 
     if (files.length <= 0 && uninstall.length <= 0 && libraries.length <= 0) {
@@ -674,7 +674,10 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             break;
         }
         case USE_HEADER: case USE_C_CODE: {
-            Path_t dep_path = Path$from_str(use->path);
+            if (use->path[0] == '<')
+                break;
+
+            Path_t dep_path = Path$resolved(Path$from_str(use->path), Path$parent(path));
             if (is_stale(build_file(path, ".o"), dep_path, false)) {
                 staleness.o = true;
                 Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
