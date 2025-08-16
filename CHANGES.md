@@ -23,6 +23,7 @@
   - Lazy recompilation wasn't happening when `use ./foo.c` was used for local
     C/assembly files or their `#include`s.
   - Memory offsets for enums with different member alignments were miscalculated.
+  - Optional types with trailing padding were not correctly being detected as `none`
 
 ## v0.2
 
