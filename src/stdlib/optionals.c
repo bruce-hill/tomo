@@ -15,8 +15,6 @@ public PUREFUNC bool is_none(const void *obj, const TypeInfo_t *non_optional_typ
         return non_optional_type->metamethods.is_none(obj, non_optional_type);
 
     const void *dest = (obj + non_optional_type->size);
-    if (non_optional_type->align > 0 && (int64_t)dest % non_optional_type->align)
-        dest += (non_optional_type->align - ((int64_t)dest % non_optional_type->align));
     return *(bool*)dest;
 }
 
