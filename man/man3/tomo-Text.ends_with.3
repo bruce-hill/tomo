@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.ends_with 3 2025-04-30 "Tomo man-pages"
+.TH Text.ends_with 3 2025-08-16 "Tomo man-pages"
 .SH NAME
 Text.ends_with \- check suffix
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Text.ends_with\ :\ func(text:\ Text,\ suffix:\ Text\ ->\ Bool)
+.BI Text.ends_with\ :\ func(text:\ Text,\ suffix:\ Text,\ remainder:\ &Text?\ =\ none\ ->\ Bool)
 .fi
 .SH DESCRIPTION
 Checks if the `Text` ends with a literal suffix text.
@@ -24,6 +24,7 @@ l l l l.
 Name	Type	Description	Default
 text	Text	The text to be searched. 	-
 suffix	Text	The literal suffix text to check for. 	-
+remainder	&Text?	If non-none, this value will be set to the rest of the text up to the trailing suffix. If the suffix is not found, this value will be set to the original text. 	none
 .TE
 .SH RETURN
 `yes` if the text has the target, `no` otherwise.
@@ -32,4 +33,9 @@ suffix	Text	The literal suffix text to check for. 	-
 .EX
 >> "hello world".ends_with("world")
 = yes
+remainder : Text
+>> "hello world".ends_with("world", &remainder)
+= yes
+>> remainder
+= "hello "
 .EE

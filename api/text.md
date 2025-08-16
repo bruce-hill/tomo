@@ -202,7 +202,7 @@ text | `Text` | The text from which to extract codepoint names.  | -
 ## Text.ends_with
 
 ```tomo
-Text.ends_with : func(text: Text, suffix: Text -> Bool)
+Text.ends_with : func(text: Text, suffix: Text, remainder: &Text? = none -> Bool)
 ```
 
 Checks if the `Text` ends with a literal suffix text.
@@ -211,6 +211,7 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text to be searched.  | -
 suffix | `Text` | The literal suffix text to check for.  | -
+remainder | `&Text?` | If non-none, this value will be set to the rest of the text up to the trailing suffix. If the suffix is not found, this value will be set to the original text.  | `none`
 
 **Return:** `yes` if the text has the target, `no` otherwise.
 
@@ -219,6 +220,11 @@ suffix | `Text` | The literal suffix text to check for.  | -
 ```tomo
 >> "hello world".ends_with("world")
 = yes
+remainder : Text
+>> "hello world".ends_with("world", &remainder)
+= yes
+>> remainder
+= "hello "
 
 ```
 ## Text.from
@@ -696,7 +702,7 @@ delimiters | `Text` | A text containing delimiters to use for splitting the text
 ## Text.starts_with
 
 ```tomo
-Text.starts_with : func(text: Text, prefix: Text -> Bool)
+Text.starts_with : func(text: Text, prefix: Text, remainder: &Text? = none -> Bool)
 ```
 
 Checks if the `Text` starts with a literal prefix text.
@@ -705,6 +711,7 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text to be searched.  | -
 prefix | `Text` | The literal prefix text to check for.  | -
+remainder | `&Text?` | If non-none, this value will be set to the rest of the text after the prefix. If the prefix is not found, this value will be set to the original text.  | `none`
 
 **Return:** `yes` if the text has the given prefix, `no` otherwise.
 
@@ -713,6 +720,11 @@ prefix | `Text` | The literal prefix text to check for.  | -
 ```tomo
 >> "hello world".starts_with("hello")
 = yes
+remainder : Text
+>> "hello world".starts_with("hello", &remainder)
+= yes
+>> remainder
+= " world"
 
 ```
 ## Text.title

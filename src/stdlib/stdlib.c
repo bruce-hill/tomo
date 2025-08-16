@@ -90,37 +90,37 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)
             *(OptionalInt_t*)dest = parsed;
         return parsed.small != 0;
     } else if (info == &Int64$info) {
-        OptionalInt64_t parsed = Int64$parse(Text$from_str(arg));
+        OptionalInt64_t parsed = Int64$parse(Text$from_str(arg), NULL);
         if (!parsed.is_none)
             *(OptionalInt64_t*)dest = parsed;
         return !parsed.is_none;
     } else if (info == &Int32$info) {
-        OptionalInt32_t parsed = Int32$parse(Text$from_str(arg));
+        OptionalInt32_t parsed = Int32$parse(Text$from_str(arg), NULL);
         if (!parsed.is_none)
             *(OptionalInt32_t*)dest = parsed;
         return !parsed.is_none;
     } else if (info == &Int16$info) {
-        OptionalInt16_t parsed = Int16$parse(Text$from_str(arg));
+        OptionalInt16_t parsed = Int16$parse(Text$from_str(arg), NULL);
         if (!parsed.is_none)
             *(OptionalInt16_t*)dest = parsed;
         return !parsed.is_none;
     } else if (info == &Int8$info) {
-        OptionalInt8_t parsed = Int8$parse(Text$from_str(arg));
+        OptionalInt8_t parsed = Int8$parse(Text$from_str(arg), NULL);
         if (!parsed.is_none)
             *(OptionalInt8_t*)dest = parsed;
         return !parsed.is_none;
     } else if (info == &Bool$info) {
-        OptionalBool_t parsed = Bool$parse(Text$from_str(arg));
+        OptionalBool_t parsed = Bool$parse(Text$from_str(arg), NULL);
         if (parsed != NONE_BOOL)
             *(OptionalBool_t*)dest = parsed;
         return parsed != NONE_BOOL;
     } else if (info == &Num$info) {
-        OptionalNum_t parsed = Num$parse(Text$from_str(arg));
+        OptionalNum_t parsed = Num$parse(Text$from_str(arg), NULL);
         if (!isnan(parsed))
             *(OptionalNum_t*)dest = parsed;
         return !isnan(parsed);
     } else if (info == &Num32$info) {
-        OptionalNum32_t parsed = Num32$parse(Text$from_str(arg));
+        OptionalNum32_t parsed = Num32$parse(Text$from_str(arg), NULL);
         if (!isnan(parsed))
             *(OptionalNum32_t*)dest = parsed;
         return !isnan(parsed);

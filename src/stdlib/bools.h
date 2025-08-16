@@ -13,7 +13,7 @@
 #define no (Bool_t)false
 
 PUREFUNC Text_t Bool$as_text(const void *b, bool colorize, const TypeInfo_t *type);
-OptionalBool_t Bool$parse(Text_t text);
+OptionalBool_t Bool$parse(Text_t text, Text_t *remainder);
 MACROLIKE Bool_t Bool$from_int(Int_t i) { return (i.small != 0); }
 MACROLIKE Bool_t Bool$from_int64(Int64_t i) { return (i != 0); }
 MACROLIKE Bool_t Bool$from_int32(Int32_t i) { return (i != 0); }

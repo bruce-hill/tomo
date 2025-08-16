@@ -54,7 +54,7 @@ Byte.hex:
   example: |
     >> Byte(18).hex()
     = "0x12"
-    
+
 Byte.is_between:
   short: test if inside a range
   description: >
@@ -83,7 +83,7 @@ Byte.is_between:
     = no
     >> Byte(7).is_between(1, 7)
     = yes
-    
+
 Byte.parse:
   short: convert text to a byte
   description: >
@@ -97,12 +97,26 @@ Byte.parse:
       type: 'Text'
       description: >
         The text to parse.
+    remainder:
+      type: '&Text?'
+      default: 'none'
+      description: >
+        If non-none, this argument will be set to the remainder of the text after the matching part.
+        If none, parsing will only succeed if the entire text matches.
   example: |
     >> Byte.parse("5")
-    = Byte(5)?
+    = Byte(5) : Byte?
     >> Byte.parse("asdf")
-    = none
-    
+    = none : Byte?
+
+    >> Byte.parse("123xyz")
+    = none : Byte?
+    remainder : Text
+    >> Byte.parse("123xyz", &remainder)
+    = Byte(123) : Byte?
+    >> remainder
+    = "xyz"
+
 Byte.to:
   short: iterate over a range of bytes
   description: >
@@ -132,7 +146,7 @@ Byte.to:
     = [Byte(2), Byte(3), Byte(4), Byte(5)]
     >> [x for x in Byte(5).to(2)]
     = [Byte(5), Byte(4), Byte(3), Byte(2)]
-    
+
     >> [x for x in Byte(2).to(5, step=2)]
     = [Byte(2), Byte(4)]
-    
+

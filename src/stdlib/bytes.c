@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "bytes.h"
+#include "integers.h"
 #include "stdlib.h"
 #include "text.h"
 #include "util.h"
@@ -27,6 +28,18 @@ PUREFUNC public Text_t Byte$as_text(const void *b, bool colorize, const TypeInfo
 
 public CONSTFUNC bool Byte$is_between(const Byte_t x, const Byte_t low, const Byte_t high) {
     return low <= x && x <= high;
+}
+
+public OptionalByte_t Byte$parse(Text_t text, Text_t *remainder)
+{
+    OptionalInt_t full_int = Int$parse(text, remainder);
+    if (full_int.small != 0L
+        && Int$compare_value(full_int, I(0)) >= 0
+        && Int$compare_value(full_int, I(255)) <= 0) {
+        return (OptionalByte_t){.value=Byte$from_int(full_int, true)};
+    } else {
+        return NONE_BYTE;
+    }
 }
 
 public Text_t Byte$hex(Byte_t byte, bool uppercase, bool prefix) {

@@ -272,7 +272,7 @@ stop if i == 10
 ## Int.parse
 
 ```tomo
-Int.parse : func(text: Text -> Int?)
+Int.parse : func(text: Text, remainder: &Text? = none -> Int?)
 ```
 
 Converts a text representation of an integer into an integer.
@@ -280,6 +280,7 @@ Converts a text representation of an integer into an integer.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text containing the integer.  | -
+remainder | `&Text?` | If non-none, this argument will be set to the remainder of the text after the matching part. If none, parsing will only succeed if the entire text matches.  | `none`
 
 **Return:** The integer represented by the text. If the given text contains a value outside of the representable range or if the entire text can't be parsed as an integer, `none` will be returned.
 
@@ -290,6 +291,14 @@ text | `Text` | The text containing the integer.  | -
 = 123 : Int?
 >> Int.parse("0xFF")
 = 255 : Int?
+
+>> Int.parse("123xyz")
+= none
+remainder : Text
+>> Int.parse("123xyz", &remainder)
+= 123 : Int?
+>> remainder
+= "xyz"
 
 # Can't parse:
 >> Int.parse("asdf")

@@ -424,8 +424,36 @@ public Int_t Int$from_str(const char *str) {
     return Int$from_mpz(i);
 }
 
-public OptionalInt_t Int$parse(Text_t text) {
-    return Int$from_str(Text$as_c_string(text));
+public OptionalInt_t Int$parse(Text_t text, Text_t *remainder) {
+    const char *str = Text$as_c_string(text);
+    mpz_t i;
+    int result;
+    if (strncmp(str, "0x", 2) == 0) {
+        const char *end = str + 2 + strcspn(str + 2, "0123456789abcdefABCDEF");
+        if (remainder) *remainder = Text$from_str(end);
+        else if (*end != '\0') return NONE_INT;
+        result = mpz_init_set_str(i, str + 2, 16);
+    } else if (strncmp(str, "0o", 2) == 0) {
+        const char *end = str + 2 + strcspn(str + 2, "01234567");
+        if (remainder) *remainder = Text$from_str(end);
+        else if (*end != '\0') return NONE_INT;
+        result = mpz_init_set_str(i, str + 2, 8);
+    } else if (strncmp(str, "0b", 2) == 0) {
+        const char *end = str + 2 + strcspn(str + 2, "01");
+        if (remainder) *remainder = Text$from_str(end);
+        else if (*end != '\0') return NONE_INT;
+        result = mpz_init_set_str(i, str + 2, 2);
+    } else {
+        const char *end = str + 2 + strcspn(str + 2, "0123456789");
+        if (remainder) *remainder = Text$from_str(end);
+        else if (*end != '\0') return NONE_INT;
+        result = mpz_init_set_str(i, str, 10);
+    }
+    if (result != 0) {
+        if (remainder) *remainder = text;
+        return NONE_INT;
+    }
+    return Int$from_mpz(i);
 }
 
 public bool Int$is_prime(Int_t x, Int_t reps)
@@ -670,8 +698,8 @@ public void Int32$deserialize(FILE *in, void *outval, List_t *pointers, const Ty
         range->step = step; \
         return (Closure_t){.fn=_next_##KindOfInt, .userdata=range}; \
     } \
-    public PUREFUNC Optional ## KindOfInt ## _t KindOfInt ## $parse(Text_t text) { \
-        OptionalInt_t full_int = Int$parse(text); \
+    public PUREFUNC Optional ## KindOfInt ## _t KindOfInt ## $parse(Text_t text, Text_t *remainder) { \
+        OptionalInt_t full_int = Int$parse(text, remainder); \
         if (full_int.small == 0L) return (Optional ## KindOfInt ## _t){.is_none=true}; \
         if (Int$compare_value(full_int, I(min_val)) < 0) { \
             return (Optional ## KindOfInt ## _t){.is_none=true}; \

@@ -98,14 +98,20 @@ public CONSTFUNC double Num$clamped(double x, double low, double high) {
     return (x <= low) ? low : (x >= high ? high : x);
 }
 
-public OptionalNum_t Num$parse(Text_t text) {
+public OptionalNum_t Num$parse(Text_t text, Text_t *remainder) {
     const char *str = Text$as_c_string(text);
     char *end = NULL;
     double d = strtod(str, &end);
-    if (end > str && end[0] == '\0')
+    if (end > str) {
+        if (remainder)
+            *remainder = Text$from_str(end);
+        else if (*end != '\0')
+            return nan("none");
         return d;
-    else
+    } else {
+        if (remainder) *remainder = text;
         return nan("none");
+    }
 }
 
 static bool Num$is_none(const void *n, const TypeInfo_t *info)
@@ -203,14 +209,19 @@ public CONSTFUNC float Num32$clamped(float x, float low, float high) {
     return (x <= low) ? low : (x >= high ? high : x);
 }
 
-public OptionalNum32_t Num32$parse(Text_t text) {
+public OptionalNum32_t Num32$parse(Text_t text, Text_t *remainder) {
     const char *str = Text$as_c_string(text);
     char *end = NULL;
     double d = strtod(str, &end);
-    if (end > str && end[0] == '\0')
+    if (end > str && end[0] == '\0') {
+        if (remainder) *remainder = Text$from_str(end);
+        else if (*end != '\0')
+            return nan("none");
         return d;
-    else
+    } else {
+        if (remainder) *remainder = text;
         return nan("none");
+    }
 }
 
 static bool Num32$is_none(const void *n, const TypeInfo_t *info)

@@ -86,7 +86,7 @@ high | `Byte` | The upper bound to check (inclusive).  | -
 ## Byte.parse
 
 ```tomo
-Byte.parse : func(text: Text -> Byte?)
+Byte.parse : func(text: Text, remainder: &Text? = none -> Byte?)
 ```
 
 Parse a byte literal from text.
@@ -94,6 +94,7 @@ Parse a byte literal from text.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text to parse.  | -
+remainder | `&Text?` | If non-none, this argument will be set to the remainder of the text after the matching part. If none, parsing will only succeed if the entire text matches.  | `none`
 
 **Return:** The byte parsed from the text, if successful, otherwise `none`.
 
@@ -101,9 +102,17 @@ text | `Text` | The text to parse.  | -
 **Example:**
 ```tomo
 >> Byte.parse("5")
-= Byte(5)?
+= Byte(5) : Byte?
 >> Byte.parse("asdf")
-= none
+= none : Byte?
+
+>> Byte.parse("123xyz")
+= none : Byte?
+remainder : Text
+>> Byte.parse("123xyz", &remainder)
+= Byte(123) : Byte?
+>> remainder
+= "xyz"
 
 ```
 ## Byte.to

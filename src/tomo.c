@@ -709,11 +709,11 @@ time_t latest_included_modification_time(Path_t path)
     bool allow_dot_include = Path$has_extension(path, Text("s")) || Path$has_extension(path, Text("S"));
     for (Text_t line; (line=next_line(by_line.userdata)).length >= 0; ) {
         line = Text$trim(line, Text(" \t"), true, false);
-        if (!Text$starts_with(line, Text("#include")) && !(allow_dot_include && Text$starts_with(line, Text(".include"))))
+        if (!Text$starts_with(line, Text("#include"), NULL) && !(allow_dot_include && Text$starts_with(line, Text(".include"), NULL)))
             continue;
 
         // Check for `"` after `#include` or `.include` and some spaces:
-        if (!Text$starts_with(Text$trim(Text$from(line, I(9)), Text(" \t"), true, false), Text("\"")))
+        if (!Text$starts_with(Text$trim(Text$from(line, I(9)), Text(" \t"), true, false), Text("\""), NULL))
             continue;
 
         List_t chunks = Text$split(line, Text("\""));

@@ -186,7 +186,7 @@ sleep(1.5)
 ## Bool.parse
 
 ```tomo
-Bool.parse : func(text: Text -> Bool?)
+Bool.parse : func(text: Text, remainder: &Text? = none -> Bool?)
 ```
 
 Converts a text representation of a boolean value into a boolean. Acceptable boolean values are case-insensitive variations of `yes`/`no`, `y`/`n`, `true`/`false`, `on`/`off`.
@@ -194,6 +194,7 @@ Converts a text representation of a boolean value into a boolean. Acceptable boo
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The string containing the boolean value.  | -
+remainder | `&Text?` | If non-none, this argument will be set to the remainder of the text after the matching part. If none, parsing will only succeed if the entire text matches.  | `none`
 
 **Return:** `yes` if the string matches a recognized truthy boolean value; otherwise return `no`.
 
@@ -206,6 +207,14 @@ text | `Text` | The string containing the boolean value.  | -
 = no : Bool?
 >> Bool.parse("???")
 = none : Bool?
+
+>> Bool.parse("yesJUNK")
+= none : Bool?
+remainder : Text
+>> Bool.parse("yesJUNK", &remainder)
+= yes : Bool?
+>> remainder
+= "JUNK"
 
 ```
 
@@ -293,7 +302,7 @@ high | `Byte` | The upper bound to check (inclusive).  | -
 ## Byte.parse
 
 ```tomo
-Byte.parse : func(text: Text -> Byte?)
+Byte.parse : func(text: Text, remainder: &Text? = none -> Byte?)
 ```
 
 Parse a byte literal from text.
@@ -301,6 +310,7 @@ Parse a byte literal from text.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text to parse.  | -
+remainder | `&Text?` | If non-none, this argument will be set to the remainder of the text after the matching part. If none, parsing will only succeed if the entire text matches.  | `none`
 
 **Return:** The byte parsed from the text, if successful, otherwise `none`.
 
@@ -308,9 +318,17 @@ text | `Text` | The text to parse.  | -
 **Example:**
 ```tomo
 >> Byte.parse("5")
-= Byte(5)?
+= Byte(5) : Byte?
 >> Byte.parse("asdf")
-= none
+= none : Byte?
+
+>> Byte.parse("123xyz")
+= none : Byte?
+remainder : Text
+>> Byte.parse("123xyz", &remainder)
+= Byte(123) : Byte?
+>> remainder
+= "xyz"
 
 ```
 ## Byte.to
@@ -614,7 +632,7 @@ stop if i == 10
 ## Int.parse
 
 ```tomo
-Int.parse : func(text: Text -> Int?)
+Int.parse : func(text: Text, remainder: &Text? = none -> Int?)
 ```
 
 Converts a text representation of an integer into an integer.
@@ -622,6 +640,7 @@ Converts a text representation of an integer into an integer.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text containing the integer.  | -
+remainder | `&Text?` | If non-none, this argument will be set to the remainder of the text after the matching part. If none, parsing will only succeed if the entire text matches.  | `none`
 
 **Return:** The integer represented by the text. If the given text contains a value outside of the representable range or if the entire text can't be parsed as an integer, `none` will be returned.
 
@@ -632,6 +651,14 @@ text | `Text` | The text containing the integer.  | -
 = 123 : Int?
 >> Int.parse("0xFF")
 = 255 : Int?
+
+>> Int.parse("123xyz")
+= none
+remainder : Text
+>> Int.parse("123xyz", &remainder)
+= 123 : Int?
+>> remainder
+= "xyz"
 
 # Can't parse:
 >> Int.parse("asdf")
@@ -2250,7 +2277,7 @@ y | `Num` | The direction towards which to find the next representable value.  |
 ## Num.parse
 
 ```tomo
-Num.parse : func(text: Text -> Num?)
+Num.parse : func(text: Text, remainder: &Text? = none -> Num?)
 ```
 
 Converts a text representation of a number into a floating-point number.
@@ -2258,6 +2285,7 @@ Converts a text representation of a number into a floating-point number.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text containing the number.  | -
+remainder | `&Text?` | If non-none, this argument will be set to the remainder of the text after the matching part. If none, parsing will only succeed if the entire text matches.  | `none`
 
 **Return:** The number represented by the text or `none` if the entire text can't be parsed as a number.
 
@@ -2265,9 +2293,17 @@ text | `Text` | The text containing the number.  | -
 **Example:**
 ```tomo
 >> Num.parse("3.14")
-= 3.14
+= 3.14 : Num?
 >> Num.parse("1e3")
-= 1000
+= 1000 : Num?
+
+>> Num.parse("1.5junk")
+= none : Num?
+remainder : Text
+>> Num.parse("1.5junk", &remainder)
+= 1.5 : Num?
+>> remainder
+= "junk"
 
 ```
 ## Num.percent
@@ -4218,7 +4254,7 @@ text | `Text` | The text from which to extract codepoint names.  | -
 ## Text.ends_with
 
 ```tomo
-Text.ends_with : func(text: Text, suffix: Text -> Bool)
+Text.ends_with : func(text: Text, suffix: Text, remainder: &Text? = none -> Bool)
 ```
 
 Checks if the `Text` ends with a literal suffix text.
@@ -4227,6 +4263,7 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text to be searched.  | -
 suffix | `Text` | The literal suffix text to check for.  | -
+remainder | `&Text?` | If non-none, this value will be set to the rest of the text up to the trailing suffix. If the suffix is not found, this value will be set to the original text.  | `none`
 
 **Return:** `yes` if the text has the target, `no` otherwise.
 
@@ -4235,6 +4272,11 @@ suffix | `Text` | The literal suffix text to check for.  | -
 ```tomo
 >> "hello world".ends_with("world")
 = yes
+remainder : Text
+>> "hello world".ends_with("world", &remainder)
+= yes
+>> remainder
+= "hello "
 
 ```
 ## Text.from
@@ -4712,7 +4754,7 @@ delimiters | `Text` | A text containing delimiters to use for splitting the text
 ## Text.starts_with
 
 ```tomo
-Text.starts_with : func(text: Text, prefix: Text -> Bool)
+Text.starts_with : func(text: Text, prefix: Text, remainder: &Text? = none -> Bool)
 ```
 
 Checks if the `Text` starts with a literal prefix text.
@@ -4721,6 +4763,7 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text to be searched.  | -
 prefix | `Text` | The literal prefix text to check for.  | -
+remainder | `&Text?` | If non-none, this value will be set to the rest of the text after the prefix. If the prefix is not found, this value will be set to the original text.  | `none`
 
 **Return:** `yes` if the text has the given prefix, `no` otherwise.
 
@@ -4729,6 +4772,11 @@ prefix | `Text` | The literal prefix text to check for.  | -
 ```tomo
 >> "hello world".starts_with("hello")
 = yes
+remainder : Text
+>> "hello world".starts_with("hello", &remainder)
+= yes
+>> remainder
+= " world"
 
 ```
 ## Text.title

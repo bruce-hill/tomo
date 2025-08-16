@@ -30,7 +30,7 @@ CONSTFUNC bool Num$finite(double n);
 CONSTFUNC bool Num$isnan(double n);
 double Num$nan(Text_t tag);
 CONSTFUNC double Num$mix(double amount, double x, double y);
-OptionalNum_t Num$parse(Text_t text);
+OptionalNum_t Num$parse(Text_t text, Text_t *remainder);
 CONSTFUNC bool Num$is_between(const double x, const double low, const double high);
 CONSTFUNC double Num$clamped(double x, double low, double high);
 MACROLIKE CONSTFUNC double Num$from_num32(Num32_t n) { return (double)n; }
@@ -83,7 +83,7 @@ CONSTFUNC bool Num32$isinf(float n);
 CONSTFUNC bool Num32$finite(float n);
 CONSTFUNC bool Num32$isnan(float n);
 CONSTFUNC float Num32$mix(float amount, float x, float y);
-OptionalNum32_t Num32$parse(Text_t text);
+OptionalNum32_t Num32$parse(Text_t text, Text_t *remainder);
 float Num32$nan(Text_t tag);
 CONSTFUNC bool Num32$is_between(const float x, const float low, const float high);
 CONSTFUNC float Num32$clamped(float x, float low, float high);

@@ -14,7 +14,7 @@ Int.abs:
   example: |
     >> (-10).abs()
     = 10
-    
+
 Int.choose:
   short: binomial coefficient
   description: >
@@ -38,7 +38,7 @@ Int.choose:
   example: |
     >> (4).choose(2)
     = 6
-    
+
 Int.clamped:
   short: clamp an integer
   description: >
@@ -64,7 +64,7 @@ Int.clamped:
   example: |
     >> (2).clamped(5, 10)
     = 5
-    
+
 Int.factorial:
   short: factorial
   description: >
@@ -147,7 +147,7 @@ Int.hex:
   example: |
     >> (255).hex(digits=4, uppercase=yes, prefix=yes)
     = "0x00FF"
-    
+
 Int.is_between:
   short: test if an int is in a range
   description: >
@@ -176,7 +176,7 @@ Int.is_between:
     = no
     >> (7).is_between(1, 7)
     = yes
-    
+
 Int.is_prime:
   short: check if an integer is prime
   description: >
@@ -205,7 +205,7 @@ Int.is_prime:
     = yes
     >> (6).is_prime()
     = no
-    
+
 Int.next_prime:
   short: get the next prime
   description: >
@@ -227,7 +227,7 @@ Int.next_prime:
   example: |
     >> (11).next_prime()
     = 13
-    
+
 Int.octal:
   short: convert to octal
   description: >
@@ -254,7 +254,7 @@ Int.octal:
   example: |
     >> (64).octal(digits=4, prefix=yes)
     = "0o0100"
-    
+
 Int.onward:
   short: iterate from a number onward
   description: >
@@ -281,7 +281,7 @@ Int.onward:
     stop if i == 10
     >> nums[]
     = [5, 6, 7, 8, 9, 10]
-    
+
 Int.parse:
   short: convert text to integer
   description: >
@@ -297,20 +297,34 @@ Int.parse:
       type: 'Text'
       description: >
         The text containing the integer.
+    remainder:
+      type: '&Text?'
+      default: 'none'
+      description: >
+        If non-none, this argument will be set to the remainder of the text after the matching part.
+        If none, parsing will only succeed if the entire text matches.
   example: |
     >> Int.parse("123")
     = 123 : Int?
     >> Int.parse("0xFF")
     = 255 : Int?
-    
+
+    >> Int.parse("123xyz")
+    = none
+    remainder : Text
+    >> Int.parse("123xyz", &remainder)
+    = 123 : Int?
+    >> remainder
+    = "xyz"
+
     # Can't parse:
     >> Int.parse("asdf")
     = none : Int?
-    
+
     # Outside valid range:
     >> Int8.parse("9999999")
     = none : Int8?
-    
+
 Int.prev_prime:
   short: get the previous prime
   description: >
@@ -334,7 +348,7 @@ Int.prev_prime:
   example: |
     >> (11).prev_prime()
     = 7
-    
+
 Int.sqrt:
   short: square root
   description: >
@@ -353,7 +367,7 @@ Int.sqrt:
     = 4
     >> (17).sqrt()
     = 4
-    
+
 Int.to:
   short: iterate a range of integers
   description: >
@@ -383,7 +397,7 @@ Int.to:
     = [2, 3, 4, 5]
     >> [x for x in (5).to(2)]
     = [5, 4, 3, 2]
-    
+
     >> [x for x in (2).to(5, step=2)]
     = [2, 4]
-    
+

@@ -22,22 +22,35 @@ PUREFUNC public Text_t Bool$as_text(const void *b, bool colorize, const TypeInfo
         return *(Bool_t*)b ? Text("yes") : Text("no");
 }
 
-PUREFUNC public OptionalBool_t Bool$parse(Text_t text)
+static bool try_parse(Text_t text, Text_t target, bool target_value, Text_t *remainder, bool *result)
 {
-    Text_t lang = Text("C");
-    if (Text$equal_ignoring_case(text, Text("yes"), lang)
-        || Text$equal_ignoring_case(text, Text("on"), lang)
-        || Text$equal_ignoring_case(text, Text("true"), lang)
-        || Text$equal_ignoring_case(text, Text("1"), lang)) {
-        return yes;
-    } else if (Text$equal_ignoring_case(text, Text("no"), lang)
-        || Text$equal_ignoring_case(text, Text("off"), lang)
-        || Text$equal_ignoring_case(text, Text("false"), lang)
-        || Text$equal_ignoring_case(text, Text("0"), lang)) {
-        return no;
+    static const Text_t lang = Text("C");
+    if (text.length < target.length) return false;
+    Text_t prefix = Text$to(text, Int$from_int64(target.length));
+    if (Text$equal_ignoring_case(prefix, target, lang)) {
+        if (remainder) *remainder = Text$from(text, Int$from_int64(target.length + 1));
+        else if (text.length > target.length) return false;
+        *result = target_value;
+        return true;
     } else {
-        return NONE_BOOL;
+        return false;
     }
+}
+
+PUREFUNC public OptionalBool_t Bool$parse(Text_t text, Text_t *remainder)
+{
+    bool result;
+    if (try_parse(text, Text("yes"), true, remainder, &result)
+        || try_parse(text, Text("true"), true, remainder, &result)
+        || try_parse(text, Text("on"), true, remainder, &result)
+        || try_parse(text, Text("1"), true, remainder, &result)
+        || try_parse(text, Text("no"), false, remainder, &result)
+        || try_parse(text, Text("false"), false, remainder, &result)
+        || try_parse(text, Text("off"), false, remainder, &result)
+        || try_parse(text, Text("0"), false, remainder, &result))
+        return result;
+    else
+        return NONE_BOOL;
 }
 
 static bool Bool$is_none(const void *b, const TypeInfo_t *info)

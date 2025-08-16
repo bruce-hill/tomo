@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Int.parse 3 2025-04-30 "Tomo man-pages"
+.TH Int.parse 3 2025-08-16 "Tomo man-pages"
 .SH NAME
 Int.parse \- convert text to integer
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Int.parse\ :\ func(text:\ Text\ ->\ Int?)
+.BI Int.parse\ :\ func(text:\ Text,\ remainder:\ &Text?\ =\ none\ ->\ Int?)
 .fi
 .SH DESCRIPTION
 Converts a text representation of an integer into an integer.
@@ -23,6 +23,7 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
 text	Text	The text containing the integer. 	-
+remainder	&Text?	If non-none, this argument will be set to the remainder of the text after the matching part. If none, parsing will only succeed if the entire text matches. 	none
 .TE
 .SH RETURN
 The integer represented by the text. If the given text contains a value outside of the representable range or if the entire text can't be parsed as an integer, `none` will be returned.
@@ -33,6 +34,14 @@ The integer represented by the text. If the given text contains a value outside 
 = 123 : Int?
 >> Int.parse("0xFF")
 = 255 : Int?
+
+>> Int.parse("123xyz")
+= none
+remainder : Text
+>> Int.parse("123xyz", &remainder)
+= 123 : Int?
+>> remainder
+= "xyz"
 
 # Can't parse:
 >> Int.parse("asdf")

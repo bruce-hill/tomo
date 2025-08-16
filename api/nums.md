@@ -885,7 +885,7 @@ y | `Num` | The direction towards which to find the next representable value.  |
 ## Num.parse
 
 ```tomo
-Num.parse : func(text: Text -> Num?)
+Num.parse : func(text: Text, remainder: &Text? = none -> Num?)
 ```
 
 Converts a text representation of a number into a floating-point number.
@@ -893,6 +893,7 @@ Converts a text representation of a number into a floating-point number.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text containing the number.  | -
+remainder | `&Text?` | If non-none, this argument will be set to the remainder of the text after the matching part. If none, parsing will only succeed if the entire text matches.  | `none`
 
 **Return:** The number represented by the text or `none` if the entire text can't be parsed as a number.
 
@@ -900,9 +901,17 @@ text | `Text` | The text containing the number.  | -
 **Example:**
 ```tomo
 >> Num.parse("3.14")
-= 3.14
+= 3.14 : Num?
 >> Num.parse("1e3")
-= 1000
+= 1000 : Num?
+
+>> Num.parse("1.5junk")
+= none : Num?
+remainder : Text
+>> Num.parse("1.5junk", &remainder)
+= 1.5 : Num?
+>> remainder
+= "junk"
 
 ```
 ## Num.percent

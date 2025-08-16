@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Byte.parse 3 2025-04-30 "Tomo man-pages"
+.TH Byte.parse 3 2025-08-16 "Tomo man-pages"
 .SH NAME
 Byte.parse \- convert text to a byte
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Byte.parse\ :\ func(text:\ Text\ ->\ Byte?)
+.BI Byte.parse\ :\ func(text:\ Text,\ remainder:\ &Text?\ =\ none\ ->\ Byte?)
 .fi
 .SH DESCRIPTION
 Parse a byte literal from text.
@@ -23,6 +23,7 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
 text	Text	The text to parse. 	-
+remainder	&Text?	If non-none, this argument will be set to the remainder of the text after the matching part. If none, parsing will only succeed if the entire text matches. 	none
 .TE
 .SH RETURN
 The byte parsed from the text, if successful, otherwise `none`.
@@ -30,7 +31,15 @@ The byte parsed from the text, if successful, otherwise `none`.
 .SH EXAMPLES
 .EX
 >> Byte.parse("5")
-= Byte(5)?
+= Byte(5) : Byte?
 >> Byte.parse("asdf")
-= none
+= none : Byte?
+
+>> Byte.parse("123xyz")
+= none : Byte?
+remainder : Text
+>> Byte.parse("123xyz", &remainder)
+= Byte(123) : Byte?
+>> remainder
+= "xyz"
 .EE

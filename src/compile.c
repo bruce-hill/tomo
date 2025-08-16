@@ -1513,7 +1513,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
             struct { const char *name; binding_t *b; } *entry = closed_vars.entries.data + closed_vars.entries.stride*i;
             if (entry->b->type->tag == ModuleType)
                 continue;
-            if (Text$starts_with(entry->b->code, Text("userdata->"))) {
+            if (Text$starts_with(entry->b->code, Text("userdata->"), NULL)) {
                 Table$str_set(defer_env->locals, entry->name, entry->b);
             } else {
                 Text_t defer_name = Texts("defer$", String(++defer_id), "$", entry->name);
@@ -4254,7 +4254,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
         definition = Texts(definition, wrapper);
     } else if (cache && cache->tag == Int) {
         assert(args);
-        OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Int)->str));
+        OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Int)->str), NULL);
         Text_t pop_code = EMPTY_TEXT;
         if (cache->tag == Int && !cache_size.is_none && cache_size.value > 0) {
             // FIXME: this currently just deletes the first entry, but this should be more like a

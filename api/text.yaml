@@ -14,7 +14,7 @@ Text.as_c_string:
   example: |
     >> "Hello".as_c_string()
     = CString("Hello")
-    
+
 Text.at:
   short: get a letter
   description: >
@@ -39,7 +39,7 @@ Text.at:
   example: |
     >> "Amélie".at(3)
     = "é"
-    
+
 Text.by_line:
   short: iterate by line
   description: >
@@ -66,7 +66,7 @@ Text.by_line:
     for line in text.by_line()
     # Prints: "line one" then "line two":
     say(line)
-    
+
 Text.by_split:
   short: iterate by a spliting text
   description: >
@@ -97,7 +97,7 @@ Text.by_split:
     for chunk in text.by_split(",")
     # Prints: "one" then "two" then "three":
     say(chunk)
-    
+
 Text.by_split_any:
   short: iterate by one of many splitting characters
   description: >
@@ -128,7 +128,7 @@ Text.by_split_any:
     for chunk in text.by_split_any(",;")
     # Prints: "one" then "two" then "three":
     say(chunk)
-    
+
 Text.bytes:
   short: get UTF8 bytes
   description: >
@@ -146,7 +146,7 @@ Text.bytes:
   example: |
     >> "Amélie".bytes()
     = [65, 109, 195, 169, 108, 105, 101]
-    
+
 Text.caseless_equals:
   short: case-insensitive comparison
   description: >
@@ -173,11 +173,11 @@ Text.caseless_equals:
   example: |
     >> "A".caseless_equals("a")
     = yes
-    
+
     # Turkish lowercase "I" is "ı" (dotless I), not "i"
     >> "I".caseless_equals("i", language="tr_TR")
     = no
-    
+
 Text.codepoint_names:
   short: get unicode codepoint names
   description: >
@@ -194,7 +194,7 @@ Text.codepoint_names:
   example: |
     >> "Amélie".codepoint_names()
     = ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E WITH ACUTE", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
-    
+
 Text.ends_with:
   short: check suffix
   description: >
@@ -212,10 +212,21 @@ Text.ends_with:
       type: 'Text'
       description: >
         The literal suffix text to check for.
+    remainder:
+      type: '&Text?'
+      default: 'none'
+      description: >
+        If non-none, this value will be set to the rest of the text up to the trailing suffix.
+        If the suffix is not found, this value will be set to the original text.
   example: |
     >> "hello world".ends_with("world")
     = yes
-    
+    remainder : Text
+    >> "hello world".ends_with("world", &remainder)
+    = yes
+    >> remainder
+    = "hello "
+
 Text.from:
   short: slice from a starting index
   description: >
@@ -240,10 +251,10 @@ Text.from:
   example: |
     >> "hello".from(2)
     = "ello"
-    
+
     >> "hello".from(-2)
     = "lo"
-    
+
 Text.from_bytes:
   short: convert UTF8 byte list to text
   description: >
@@ -263,7 +274,7 @@ Text.from_bytes:
   example: |
     >> Text.from_bytes([195, 133, 107, 101])
     = "Åke"
-    
+
 Text.from_c_string:
   short: convert C-style string to text
   description: >
@@ -280,7 +291,7 @@ Text.from_c_string:
   example: |
     >> Text.from_c_string(CString("Hello"))
     = "Hello"
-    
+
 Text.from_codepoint_names:
   short: convert list of unicode codepoint names to text
   description: >
@@ -306,7 +317,7 @@ Text.from_codepoint_names:
     "LATIN SMALL LETTER E",
     ]
     = "Åke"
-    
+
 Text.from_codepoints:
   short: convert UTF32 codepoints to text
   description: >
@@ -326,7 +337,7 @@ Text.from_codepoints:
   example: |
     >> Text.from_codepoints([197, 107, 101])
     = "Åke"
-    
+
 Text.has:
   short: check for substring
   description: >
@@ -349,7 +360,7 @@ Text.has:
     = yes
     >> "hello world".has("xxx")
     = no
-    
+
 Text.join:
   short: concatenate with separator
   description: >
@@ -370,7 +381,7 @@ Text.join:
   example: |
     >> ", ".join(["one", "two", "three"])
     = "one, two, three"
-    
+
 Text.middle_pad:
   short: pad text, centered
   description: >
@@ -405,7 +416,7 @@ Text.middle_pad:
     = "  x   "
     >> "x".middle_pad(10, "ABC")
     = "ABCAxABCAB"
-    
+
 Text.left_pad:
   short: left-pad text
   description: >
@@ -440,7 +451,7 @@ Text.left_pad:
     = "    x"
     >> "x".left_pad(5, "ABC")
     = "ABCAx"
-    
+
 Text.lines:
   short: get list of lines
   description: >
@@ -466,7 +477,7 @@ Text.lines:
     = ["one", "two", "three"]
     >> "".lines()
     = []
-    
+
 Text.lower:
   short: convert to lowercase
   description: >
@@ -488,10 +499,10 @@ Text.lower:
   example: |
     >> "AMÉLIE".lower()
     = "amélie"
-    
+
     >> "I".lower(language="tr_TR")
     >> "ı"
-    
+
 Text.quoted:
   short: add quotation marks and escapes
   description: >
@@ -518,7 +529,7 @@ Text.quoted:
   example: |
     >> "one\ntwo".quoted()
     = "\"one\\ntwo\""
-    
+
 Text.repeat:
   short: repeat text
   description: >
@@ -539,7 +550,7 @@ Text.repeat:
   example: |
     >> "Abc".repeat(3)
     = "AbcAbcAbc"
-    
+
 Text.replace:
   short: replace a substring
   description: >
@@ -564,7 +575,7 @@ Text.replace:
   example: |
     >> "Hello world".replace("world", "there")
     = "Hello there"
-    
+
 Text.reversed:
   short: get a reversed copy
   description: >
@@ -581,7 +592,7 @@ Text.reversed:
   example: |
     >> "Abc".reversed()
     = "cbA"
-    
+
 Text.right_pad:
   short: right-pad text
   description: >
@@ -616,7 +627,7 @@ Text.right_pad:
     = "x    "
     >> "x".right_pad(5, "ABC")
     = "xABCA"
-    
+
 Text.slice:
   short: get a slice of a text
   description: >
@@ -647,13 +658,13 @@ Text.slice:
   example: |
     >> "hello".slice(2, 3)
     = "el"
-    
+
     >> "hello".slice(to=-2)
     = "hell"
-    
+
     >> "hello".slice(from=2)
     = "ello"
-    
+
 Text.split:
   short: split a text by a delimiter
   description: >
@@ -681,10 +692,10 @@ Text.split:
   example: |
     >> "one,two,,three".split(",")
     = ["one", "two", "", "three"]
-    
+
     >> "abc".split()
     = ["a", "b", "c"]
-    
+
 Text.split_any:
   short: split a text by multiple delimiters
   description: >
@@ -712,7 +723,7 @@ Text.split_any:
   example: |
     >> "one, two,,three".split_any(", ")
     = ["one", "two", "three"]
-    
+
 Text.starts_with:
   short: check prefix
   description: >
@@ -730,10 +741,21 @@ Text.starts_with:
       type: 'Text'
       description: >
         The literal prefix text to check for.
+    remainder:
+      type: '&Text?'
+      default: 'none'
+      description: >
+        If non-none, this value will be set to the rest of the text after the prefix.
+        If the prefix is not found, this value will be set to the original text.
   example: |
     >> "hello world".starts_with("hello")
     = yes
-    
+    remainder : Text
+    >> "hello world".starts_with("hello", &remainder)
+    = yes
+    >> remainder
+    = " world"
+
 Text.title:
   short: titlecase
   description: >
@@ -755,11 +777,11 @@ Text.title:
   example: |
     >> "amélie".title()
     = "Amélie"
-    
+
     # In Turkish, uppercase "i" is "İ"
     >> "i".title(language="tr_TR")
     = "İ"
-    
+
 Text.to:
   short: slice to an end index
   description: >
@@ -784,10 +806,10 @@ Text.to:
   example: |
     >> "goodbye".to(3)
     = "goo"
-    
+
     >> "goodbye".to(-2)
     = "goodby"
-    
+
 Text.translate:
   short: perform multiple replacements
   description: >
@@ -819,7 +841,7 @@ Text.translate:
         "'" = "&#39;",
     })
     = "A &lt;tag&gt; &amp; an ampersand"
-    
+
 Text.trim:
   short: trim characters
   description: >
@@ -851,13 +873,13 @@ Text.trim:
   example: |
     >> "   x y z    \n".trim()
     = "x y z"
-    
+
     >> "one,".trim(",")
     = "one"
-    
+
     >> "   xyz   ".trim(right=no)
     = "xyz   "
-    
+
 Text.upper:
   short: uppercase
   description: >
@@ -879,11 +901,11 @@ Text.upper:
   example: |
     >> "amélie".upper()
     = "AMÉLIE"
-    
+
     # In Turkish, uppercase "i" is "İ"
     >> "i".upper(language="tr_TR")
     = "İ"
-    
+
 Text.utf32_codepoints:
   short: get UTF32 codepoints
   description: >
@@ -900,7 +922,7 @@ Text.utf32_codepoints:
   example: |
     >> "Amélie".utf32_codepoints()
     = [65, 109, 233, 108, 105, 101]
-    
+
 Text.width:
   short: get display width
   description: >
@@ -924,7 +946,7 @@ Text.width:
     = 6
     >> "🤠".width()
     = 2
-    
+
 Text.without_prefix:
   short: remove prefix
   description: >
@@ -948,7 +970,7 @@ Text.without_prefix:
     = "baz"
     >> "qux".without_prefix("foo:")
     = "qux"
-    
+
 Text.without_suffix:
   short: remove suffix
   description: >
@@ -972,4 +994,4 @@ Text.without_suffix:
     = "baz"
     >> "qux".without_suffix(".foo")
     = "qux"
-    
+

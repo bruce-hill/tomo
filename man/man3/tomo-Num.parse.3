@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.parse 3 2025-04-30 "Tomo man-pages"
+.TH Num.parse 3 2025-08-16 "Tomo man-pages"
 .SH NAME
 Num.parse \- convert text to number
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Num.parse\ :\ func(text:\ Text\ ->\ Num?)
+.BI Num.parse\ :\ func(text:\ Text,\ remainder:\ &Text?\ =\ none\ ->\ Num?)
 .fi
 .SH DESCRIPTION
 Converts a text representation of a number into a floating-point number.
@@ -23,6 +23,7 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
 text	Text	The text containing the number. 	-
+remainder	&Text?	If non-none, this argument will be set to the remainder of the text after the matching part. If none, parsing will only succeed if the entire text matches. 	none
 .TE
 .SH RETURN
 The number represented by the text or `none` if the entire text can't be parsed as a number.
@@ -30,7 +31,15 @@ The number represented by the text or `none` if the entire text can't be parsed 
 .SH EXAMPLES
 .EX
 >> Num.parse("3.14")
-= 3.14
+= 3.14 : Num?
 >> Num.parse("1e3")
-= 1000
+= 1000 : Num?
+
+>> Num.parse("1.5junk")
+= none : Num?
+remainder : Text
+>> Num.parse("1.5junk", &remainder)
+= 1.5 : Num?
+>> remainder
+= "junk"
 .EE

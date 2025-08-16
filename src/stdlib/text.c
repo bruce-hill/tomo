@@ -1102,30 +1102,42 @@ bool _matches(TextIter_t *text_state, TextIter_t *target_state, int64_t pos)
     return true;
 }
 
-PUREFUNC public bool Text$starts_with(Text_t text, Text_t prefix)
+PUREFUNC public bool Text$starts_with(Text_t text, Text_t prefix, Text_t *remainder)
 {
     if (text.length < prefix.length)
         return false;
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), prefix_state = NEW_TEXT_ITER_STATE(prefix);
-    return _matches(&text_state, &prefix_state, 0);
+    if (_matches(&text_state, &prefix_state, 0)) {
+        if (remainder) *remainder = Text$from(text, Int$from_int64(prefix.length + 1));
+        return true;
+    } else {
+        if (remainder) *remainder = text;
+        return false;
+    }
 }
 
-PUREFUNC public bool Text$ends_with(Text_t text, Text_t suffix)
+PUREFUNC public bool Text$ends_with(Text_t text, Text_t suffix, Text_t *remainder)
 {
     if (text.length < suffix.length)
         return false;
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), suffix_state = NEW_TEXT_ITER_STATE(suffix);
-    return _matches(&text_state, &suffix_state, text.length - suffix.length);
+    if (_matches(&text_state, &suffix_state, text.length - suffix.length)) {
+        if (remainder) *remainder = Text$to(text, Int$from_int64(text.length - suffix.length));
+        return true;
+    } else {
+        if (remainder) *remainder = text;
+        return false;
+    }
 }
 
 public Text_t Text$without_prefix(Text_t text, Text_t prefix)
 {
-    return Text$starts_with(text, prefix) ? Text$slice(text, I(prefix.length + 1), I(text.length)) : text;
+    return Text$starts_with(text, prefix, false) ? Text$slice(text, I(prefix.length + 1), I(text.length)) : text;
 }
 
 public Text_t Text$without_suffix(Text_t text, Text_t suffix)
 {
-    return Text$ends_with(text, suffix) ? Text$slice(text, I(1), I(text.length - suffix.length)) : text;
+    return Text$ends_with(text, suffix, false) ? Text$slice(text, I(1), I(text.length - suffix.length)) : text;
 }
 
 static bool _has_grapheme(TextIter_t *text, int32_t g)

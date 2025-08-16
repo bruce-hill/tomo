@@ -1686,7 +1686,7 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast)
     case Bool: case Num: case None: return true;
     case Int: {
         DeclareMatch(info, ast, Int);
-        Int_t int_val = Int$parse(Text$from_str(info->str));
+        Int_t int_val = Int$parse(Text$from_str(info->str), NULL);
         if (int_val.small == 0) return false; // Failed to parse
         return (Int$compare_value(int_val, I(BIGGEST_SMALL_INT)) <= 0);
     }

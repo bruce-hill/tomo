@@ -663,6 +663,8 @@ static pat_t parse_next_pat(TextIter_t *state, int64_t *index)
         case 'w':
             if (strcasecmp(prop_name, "word") == 0) {
                 return PAT(PAT_FUNCTION, .fn=match_id);
+            } else if (strcasecmp(prop_name, "ws") == 0 || strcasecmp(prop_name, "whitespace") == 0) {
+                return PAT(PAT_PROPERTY, .property=UC_PROPERTY_WHITE_SPACE);
             }
             break;
         default: break;
@@ -837,10 +839,10 @@ static OptionalPatternMatch find(Text_t text, Text_t pattern, Int_t from_index)
 
 PUREFUNC static bool Pattern$has(Text_t text, Text_t pattern)
 {
-    if (Text$starts_with(pattern, Text("{start}"))) {
+    if (Text$starts_with(pattern, Text("{start}"), &pattern)) {
         int64_t m = match(text, 0, pattern, 0, NULL, 0);
         return m >= 0;
-    } else if (Text$ends_with(text, Text("{end}"))) {
+    } else if (Text$ends_with(text, Text("{end}"), NULL)) {
         for (int64_t i = text.length-1; i >= 0; i--) {
             int64_t match_len = match(text, i, pattern, 0, NULL, 0);
             if (match_len >= 0 && i + match_len == text.length)
@@ -858,6 +860,25 @@ static bool Pattern$matches(Text_t text, Text_t pattern)
     capture_t captures[MAX_BACKREFS] = {};
     int64_t match_len = match(text, 0, pattern, 0, NULL, 0);
     return (match_len == text.length);
+}
+
+static bool Pattern$match_at(Text_t text, Text_t pattern, Int_t pos, PatternMatch *dest)
+{
+    int64_t start = Int64$from_int(pos, false) - 1;
+    capture_t captures[MAX_BACKREFS] = {};
+    int64_t match_len = match(text, start, pattern, 0, captures, 0);
+    if (match_len < 0)
+        return false;
+
+    List_t capture_list = {};
+    for (int i = 0; captures[i].occupied; i++) {
+        Text_t capture = Text$slice(text, I(captures[i].index+1), I(captures[i].index+captures[i].length));
+        List$insert(&capture_list, &capture, I(0), sizeof(Text_t));
+    }
+    dest->text = Text$slice(text, I(start+1), I(start+match_len));
+    dest->index = I(start+1);
+    dest->captures = capture_list;
+    return true;
 }
 
 static OptionalList_t Pattern$captures(Text_t text, Text_t pattern)

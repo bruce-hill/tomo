@@ -32,7 +32,7 @@
     bool type_name ## $get_bit(c_type x, Int_t bit_index); \
     Closure_t type_name ## $to(c_type first, c_type last, Optional ## type_name ## _t step); \
     Closure_t type_name ## $onward(c_type first, c_type step); \
-    PUREFUNC Optional ## type_name ## _t type_name ## $parse(Text_t text); \
+    PUREFUNC Optional ## type_name ## _t type_name ## $parse(Text_t text, Text_t *remainder); \
     CONSTFUNC bool type_name ## $is_between(const c_type x, const c_type low, const c_type high); \
     CONSTFUNC c_type type_name ## $clamped(c_type x, c_type min, c_type max); \
     MACROLIKE CONSTFUNC c_type type_name ## $from_byte(Byte_t b) { return (c_type)b; } \
@@ -101,7 +101,7 @@ Text_t Int$octal(Int_t i, Int_t digits, bool prefix);
 PUREFUNC Closure_t Int$to(Int_t first, Int_t last, OptionalInt_t step);
 PUREFUNC Closure_t Int$onward(Int_t first, Int_t step);
 OptionalInt_t Int$from_str(const char *str);
-OptionalInt_t Int$parse(Text_t text);
+OptionalInt_t Int$parse(Text_t text, Text_t *remainder);
 Int_t Int$abs(Int_t x);
 Int_t Int$power(Int_t base, Int_t exponent);
 Int_t Int$gcd(Int_t x, Int_t y);

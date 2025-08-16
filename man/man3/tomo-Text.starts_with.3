@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.starts_with 3 2025-04-30 "Tomo man-pages"
+.TH Text.starts_with 3 2025-08-16 "Tomo man-pages"
 .SH NAME
 Text.starts_with \- check prefix
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Text.starts_with\ :\ func(text:\ Text,\ prefix:\ Text\ ->\ Bool)
+.BI Text.starts_with\ :\ func(text:\ Text,\ prefix:\ Text,\ remainder:\ &Text?\ =\ none\ ->\ Bool)
 .fi
 .SH DESCRIPTION
 Checks if the `Text` starts with a literal prefix text.
@@ -24,6 +24,7 @@ l l l l.
 Name	Type	Description	Default
 text	Text	The text to be searched. 	-
 prefix	Text	The literal prefix text to check for. 	-
+remainder	&Text?	If non-none, this value will be set to the rest of the text after the prefix. If the prefix is not found, this value will be set to the original text. 	none
 .TE
 .SH RETURN
 `yes` if the text has the given prefix, `no` otherwise.
@@ -32,4 +33,9 @@ prefix	Text	The literal prefix text to check for. 	-
 .EX
 >> "hello world".starts_with("hello")
 = yes
+remainder : Text
+>> "hello world".starts_with("hello", &remainder)
+= yes
+>> remainder
+= " world"
 .EE

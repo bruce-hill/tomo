@@ -10,10 +10,17 @@
   number and exit.
 - Added `tomo --prefix` to print the Tomo install prefix.
 - Sets now support infix operations for `and`, `or`, `xor`, and `-`.
-- Added Path.sibling().
-- Added Path.has_extension().
-- Added Table.with_fallback().
-- Added Int*.get_bit() and Byte.get_bit().
+- Added `Path.sibling()`.
+- Added `Path.has_extension()`.
+- Added `Table.with_fallback()`.
+- Added `Int*.get_bit()` and `Byte.get_bit()`.
+- Added `Byte.parse()` to parse bytes from text.
+- Added optional `remainder` parameter to `parse()` methods, which (if
+  non-none) receives the remaining text after the match. If `none`, the match
+  will fail unless it consumes the whole text.
+- Added optional `remainder` parameter to `Text.starts_with()` and
+  `Text.ends_with()` to allow you to get the rest of the text without two
+  function calls.
 - Improved space efficiency of Text that contains non-ASCII codepoints.
 - Doctests now use equality checking instead of converting to text.
 - Fixed the following bugs:

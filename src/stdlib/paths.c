@@ -619,10 +619,10 @@ public bool Path$has_extension(Path_t path, Text_t extension)
     if (extension.length == 0)
         return !Text$has(Text$from(last, I(2)), Text(".")) || Text$equal_values(last, Text(".."));
 
-    if (!Text$starts_with(extension, Text(".")))
+    if (!Text$starts_with(extension, Text("."), NULL))
         extension = Texts(Text("."), extension);
 
-    return Text$ends_with(Text$from(last, I(2)), extension);
+    return Text$ends_with(Text$from(last, I(2)), extension, NULL);
 }
 
 public Path_t Path$child(Path_t path, Text_t name)
