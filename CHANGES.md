@@ -22,6 +22,7 @@
   - `extend` statements weren't properly checking that the type name was valid.
   - Lazy recompilation wasn't happening when `use ./foo.c` was used for local
     C/assembly files or their `#include`s.
+  - Memory offsets for enums with different member alignments were miscalculated.
 
 ## v0.2
 

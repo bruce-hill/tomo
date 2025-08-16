@@ -15,6 +15,13 @@
 #include "text.h"
 #include "util.h"
 
+CONSTFUNC static ptrdiff_t value_offset(const TypeInfo_t *type) {
+    ptrdiff_t offset = sizeof(int32_t);
+    for (int i = 0; i < type->EnumInfo.num_tags; i++)
+        offset = MAX(offset, type->EnumInfo.tags[i].type->align);
+    return offset;
+}
+
 PUREFUNC public uint64_t Enum$hash(const void *obj, const TypeInfo_t *type)
 {
     int32_t tag = *(int32_t*)obj;
@@ -22,10 +29,7 @@ PUREFUNC public uint64_t Enum$hash(const void *obj, const TypeInfo_t *type)
 
     const TypeInfo_t *value = type->EnumInfo.tags[tag-1].type;
     if (value && value->size > 0) {
-        ptrdiff_t byte_offset = sizeof(int32_t);
-        if (value->align && byte_offset % value->align > 0)
-            byte_offset += value->align - (byte_offset % value->align);
-        components[1] = generic_hash(obj + byte_offset, value);
+        components[1] = generic_hash(obj + value_offset(type), value);
     }
     return siphash24((void*)components, sizeof(components));
 }
@@ -41,9 +45,7 @@ PUREFUNC public int32_t Enum$compare(const void *x, const void *y, const TypeInf
 
     const TypeInfo_t *value = type->EnumInfo.tags[x_tag-1].type;
     if (value && value->size > 0) {
-        ptrdiff_t byte_offset = sizeof(int32_t);
-        if (value->align && byte_offset % value->align > 0)
-            byte_offset += value->align - (byte_offset % value->align);
+        ptrdiff_t byte_offset = value_offset(type);
         return generic_compare(x + byte_offset, y + byte_offset, value);
     }
     return 0;
@@ -60,9 +62,7 @@ PUREFUNC public bool Enum$equal(const void *x, const void *y, const TypeInfo_t *
 
     const TypeInfo_t *value = type->EnumInfo.tags[x_tag-1].type;
     if (value && value->size > 0) {
-        ptrdiff_t byte_offset = sizeof(int32_t);
-        if (value->align && byte_offset % value->align > 0)
-            byte_offset += value->align - (byte_offset % value->align);
+        ptrdiff_t byte_offset = value_offset(type);
         return generic_equal(x + byte_offset, y + byte_offset, value);
     }
     return true;
@@ -79,10 +79,7 @@ public Text_t Enum$as_text(const void *obj, bool colorize, const TypeInfo_t *typ
         return colorize ? Texts(Text("\x1b[1m"), text, Text("\x1b[m")) : text;
     }
 
-    ptrdiff_t byte_offset = sizeof(int32_t);
-    if (value.type->align && byte_offset % value.type->align > 0)
-        byte_offset += value.type->align - (byte_offset % value.type->align);
-    return generic_as_text(obj + byte_offset, colorize, value.type);
+    return generic_as_text(obj + value_offset(type), colorize, value.type);
 }
 
 PUREFUNC public bool Enum$is_none(const void *x, const TypeInfo_t *info)
@@ -98,10 +95,7 @@ public void Enum$serialize(const void *obj, FILE *out, Table_t *pointers, const 
 
     NamedType_t value = type->EnumInfo.tags[tag-1];
     if (value.type && value.type->size > 0) {
-        ptrdiff_t byte_offset = sizeof(int32_t);
-        if (value.type->align && byte_offset % value.type->align > 0)
-            byte_offset += value.type->align - (byte_offset % value.type->align);
-        _serialize(obj + byte_offset, out, pointers, value.type);
+        _serialize(obj + value_offset(type), out, pointers, value.type);
     }
 }
 
@@ -113,10 +107,7 @@ public void Enum$deserialize(FILE *in, void *outval, List_t *pointers, const Typ
 
     NamedType_t value = type->EnumInfo.tags[tag-1];
     if (value.type && value.type->size > 0) {
-        ptrdiff_t byte_offset = sizeof(int32_t);
-        if (value.type->align && byte_offset % value.type->align > 0)
-            byte_offset += value.type->align - (byte_offset % value.type->align);
-        _deserialize(in, outval + byte_offset, pointers, value.type);
+        _deserialize(in, outval + value_offset(type), pointers, value.type);
     }
 }
 
