@@ -45,7 +45,7 @@ module_info_t get_module_info(ast_t *use)
     else if (streq(name, "random")) info->version = "v1.0";
     else if (streq(name, "base64")) info->version = "v1.0";
     else if (streq(name, "core")) info->version = "v1.0";
-    else if (streq(name, "patterns")) info->version = "v1.0";
+    else if (streq(name, "patterns")) info->version = "v1.1";
     else if (streq(name, "pthreads")) info->version = "v1.0";
     else if (streq(name, "shell")) info->version = "v1.0";
     else if (streq(name, "time")) info->version = "v1.0";
