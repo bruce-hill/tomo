@@ -136,7 +136,12 @@ tags:
 config.mk: configure.sh
 	bash ./configure.sh
 
-%.o: %.c src/ast.h src/environment.h src/types.h config.mk CHANGES.md
+%.o: %.c src/ast.h src/environment.h src/types.h config.mk
+	@echo $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+# Specifically src/tomo.c needs to recompile if CHANGES.md changes:
+src/tomo.o: src/tomo.c src/ast.h src/environment.h src/types.h config.mk CHANGES.md
 	@echo $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
 	@$(CC) $(CFLAGS) -c $< -o $@
 
