@@ -17,8 +17,10 @@
 
 CONSTFUNC static ptrdiff_t value_offset(const TypeInfo_t *type) {
     ptrdiff_t offset = sizeof(int32_t);
-    for (int i = 0; i < type->EnumInfo.num_tags; i++)
-        offset = MAX(offset, type->EnumInfo.tags[i].type->align);
+    for (int i = 0; i < type->EnumInfo.num_tags; i++) {
+        if (type->EnumInfo.tags[i].type)
+            offset = MAX(offset, type->EnumInfo.tags[i].type->align);
+    }
     return offset;
 }
 
