@@ -14,7 +14,10 @@ public PUREFUNC bool is_none(const void *obj, const TypeInfo_t *non_optional_typ
     if (non_optional_type->metamethods.is_none)
         return non_optional_type->metamethods.is_none(obj, non_optional_type);
 
-    return *(bool*)(obj + non_optional_type->size);
+    const void *dest = (obj + non_optional_type->size);
+    if (non_optional_type->align > 0 && (int64_t)dest % non_optional_type->align)
+        dest += (non_optional_type->align - ((int64_t)dest % non_optional_type->align));
+    return *(bool*)dest;
 }
 
 PUREFUNC public uint64_t Optional$hash(const void *obj, const TypeInfo_t *type)
