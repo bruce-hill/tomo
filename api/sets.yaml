@@ -17,7 +17,7 @@ Set.add:
         The item to add to the set.
   example: |
     >> nums.add(42)
-    
+
 Set.add_all:
   short: add items to a set
   description: >
@@ -37,7 +37,7 @@ Set.add_all:
         The list of items to add to the set.
   example: |
     >> nums.add_all([1, 2, 3])
-    
+
 Set.clear:
   short: clear a set
   description: >
@@ -53,7 +53,7 @@ Set.clear:
         The mutable reference to the set.
   example: |
     >> nums.clear()
-    
+
 Set.has:
   short: check if a set has an item
   description: >
@@ -74,7 +74,7 @@ Set.has:
   example: |
     >> |10, 20|.has(20)
     = yes
-    
+
 Set.is_subset_of:
   short: check if a set is a subset
   description: >
@@ -100,7 +100,7 @@ Set.is_subset_of:
   example: |
     >> |1, 2|.is_subset_of(|1, 2, 3|)
     = yes
-    
+
 Set.is_superset_of:
   short: check if a set is a superset
   description: >
@@ -126,7 +126,7 @@ Set.is_superset_of:
   example: |
     >> |1, 2, 3|.is_superset_of(|1, 2|)
     = yes
-    
+
 Set.overlap:
   short: set intersection
   description: >
@@ -147,7 +147,7 @@ Set.overlap:
   example: |
     >> |1, 2|.overlap(|2, 3|)
     = |2|
-    
+
 Set.remove:
   short: remove an item from a set
   description: >
@@ -167,7 +167,7 @@ Set.remove:
         The item to remove from the set.
   example: |
     >> nums.remove(42)
-    
+
 Set.remove_all:
   short: remove items from a set
   description: >
@@ -187,7 +187,7 @@ Set.remove_all:
         The list of items to remove from the set.
   example: |
     >> nums.remove_all([1, 2, 3])
-    
+
 Set.with:
   short: set union
   description: >
@@ -208,7 +208,7 @@ Set.with:
   example: |
     >> |1, 2|.with(|2, 3|)
     = |1, 2, 3|
-    
+
 Set.without:
   short: set difference
   description: >

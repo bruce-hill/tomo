@@ -33,7 +33,7 @@ ask:
   example: |
     >> ask("What's your name? ")
     = "Arthur Dent"
-    
+
 exit:
   short: exit the program
   description: >
@@ -56,7 +56,7 @@ exit:
         The status code that the program with exit with.
   example: |
     exit(status=1, "Goodbye forever!")
-    
+
 getenv:
   short: get an environment variable
   description: >
@@ -73,7 +73,7 @@ getenv:
   example: |
     >> getenv("TERM")
     = "xterm-256color"?
-    
+
 print:
   short: print some text
   description: >
@@ -95,7 +95,7 @@ print:
   example: |
     print("Hello ", newline=no)
     print("world!")
-    
+
 say:
   short: print some text
   description: >
@@ -117,7 +117,7 @@ say:
   example: |
     say("Hello ", newline=no)
     say("world!")
-    
+
 setenv:
   short: set an environment variable
   description: >
@@ -137,7 +137,7 @@ setenv:
         The new value of the environment variable.
   example: |
     setenv("FOOBAR", "xyz")
-    
+
 sleep:
   short: wait for an interval
   description: >
@@ -153,7 +153,7 @@ sleep:
         How many seconds to sleep for.
   example: |
     sleep(1.5)
-    
+
 fail:
   short: abort the program
   description: >
@@ -169,7 +169,7 @@ fail:
         The error message to print.
   example: |
     fail("Oh no!")
-    
+
 USE_COLOR:
   short: whether to use colors
   type: Bool

@@ -13,7 +13,7 @@ Table.clear:
         The reference to the table.
   example: |
     >> t.clear()
-    
+
 Table.get:
   short: get an item from a table
   description: >
@@ -37,16 +37,16 @@ Table.get:
     >> t := {"A"=1, "B"=2}
     >> t.get("A")
     = 1?
-    
+
     >> t.get("????")
     = none
-    
+
     >> t.get("A")!
     = 1
-    
+
     >> t.get("????") or 0
     = 0
-    
+
 Table.get_or_set:
   short: get an item or set a default if absent
   description: >
@@ -86,7 +86,7 @@ Table.get_or_set:
     = @[0, 0, 0]
     >> t
     = &{"A"=@[1, 2, 3, 4], "B"=@[99], "C"=@[0, 0, 0]}
-    
+
 Table.has:
   short: check for a key
   description: >
@@ -109,7 +109,7 @@ Table.has:
     = yes
     >> {"A"=1, "B"=2}.has("xxx")
     = no
-    
+
 Table.remove:
   short: remove a table entry
   description: >
@@ -132,7 +132,7 @@ Table.remove:
     t.remove("A")
     >> t
     = {"B"=2}
-    
+
 Table.set:
   short: set a table entry
   description: >
@@ -159,7 +159,7 @@ Table.set:
     t.set("C", 3)
     >> t
     = {"A"=1, "B"=2, "C"=3}
-    
+
 Table.with_fallback:
   short: return a table with a new fallback
   description: >

@@ -22,7 +22,7 @@ Path.accessed:
     = 1704221100?
     >> (./not-a-file).accessed()
     = none
-    
+
 Path.append:
   short: append to a file
   description: >
@@ -48,7 +48,7 @@ Path.append:
         The permissions to set on the file if it is being created.
   example: |
     (./log.txt).append("extra line$(\n)")
-    
+
 Path.append_bytes:
   short: append bytes to a file
   description: >
@@ -74,7 +74,7 @@ Path.append_bytes:
         The permissions to set on the file if it is being created.
   example: |
     (./log.txt).append_bytes([104, 105])
-    
+
 Path.base_name:
   short: base name of a file
   description: >
@@ -91,7 +91,7 @@ Path.base_name:
   example: |
     >> (./path/to/file.txt).base_name()
     = "file.txt"
-    
+
 Path.by_line:
   short: iterate by line
   description: >
@@ -114,11 +114,11 @@ Path.by_line:
     say(line.upper())
     else
     say("Couldn't read file!")
-    
+
     # Assume the file is readable and error if that's not the case:
     for line in (/dev/stdin).by_line()!
     say(line.upper())
-    
+
 Path.can_execute:
   short: check execute permissions
   description: >
@@ -139,7 +139,7 @@ Path.can_execute:
     = no
     >> (/non/existant/file).can_execute()
     = no
-    
+
 Path.can_read:
   short: check read permissions
   description: >
@@ -160,7 +160,7 @@ Path.can_read:
     = no
     >> (/non/existant/file).can_read()
     = no
-    
+
 Path.can_write:
   short: check write permissions
   description: >
@@ -181,7 +181,7 @@ Path.can_write:
     = no
     >> (/non/existant/file).can_write()
     = no
-    
+
 Path.changed:
   short: get the last changed time
   description: >
@@ -209,7 +209,7 @@ Path.changed:
     = 1704221100?
     >> (./not-a-file).changed()
     = none
-    
+
 Path.child:
   short: append a child to a path
   description: >
@@ -230,7 +230,7 @@ Path.child:
   example: |
     >> (./directory).child("file.txt")
     = (./directory/file.txt)
-    
+
 Path.children:
   short: get children of a directory
   description: >
@@ -251,7 +251,7 @@ Path.children:
   example: |
     >> (./directory).children(include_hidden=yes)
     = [".git", "foo.txt"]
-    
+
 Path.create_directory:
   short: make a directory
   description: >
@@ -272,7 +272,7 @@ Path.create_directory:
         The permissions to set on the new directory.
   example: |
     (./new_directory).create_directory()
-    
+
 Path.current_dir:
   short: get current directory
   description: >
@@ -286,7 +286,7 @@ Path.current_dir:
   example: |
     >> Path.current_dir()
     = (/home/user/tomo)
-    
+
 Path.exists:
   short: check if a path exists
   description: >
@@ -303,7 +303,7 @@ Path.exists:
   example: |
     >> (/).exists()
     = yes
-    
+
 Path.expand_home:
   short: 'expand ~ to $HOME'
   description: >
@@ -324,7 +324,7 @@ Path.expand_home:
     = /home/user/foo
     >> (/foo).expand_home() # No change
     = /foo
-    
+
 Path.extension:
   short: get file extension
   description: >
@@ -354,7 +354,7 @@ Path.extension:
     = ""
     >> (./.git).extension()
     = ""
-    
+
 Path.files:
   short: list files in a directory
   description: >
@@ -376,7 +376,7 @@ Path.files:
   example: |
     >> (./directory).files(include_hidden=yes)
     = [(./directory/file1.txt), (./directory/file2.txt)]
-    
+
 Path.from_components:
   short: build a path from components
   description: >
@@ -397,7 +397,7 @@ Path.from_components:
     = ./foo.txt
     >> Path.from_components(["~", ".local"])
     = ~/.local
-    
+
 Path.glob:
   short: perform file globbing
   description: >
@@ -439,7 +439,7 @@ Path.glob:
     # Globs with no matches return an empty list:
     >> (./*.xxx).glob()
     = []
-    
+
 Path.group:
   short: get the owning group
   description: >
@@ -491,7 +491,7 @@ Path.has_extension:
     = yes
     >> (/foo.tar.gz).has_extension("zip")
     = no
-    
+
 Path.is_directory:
   short: check if a path is a directory
   description: >
@@ -512,10 +512,10 @@ Path.is_directory:
   example: |
     >> (./directory/).is_directory()
     = yes
-    
+
     >> (./file.txt).is_directory()
     = no
-    
+
 Path.is_file:
   short: check if a path is a file
   description: >
@@ -536,10 +536,10 @@ Path.is_file:
   example: |
     >> (./file.txt).is_file()
     = yes
-    
+
     >> (./directory/).is_file()
     = no
-    
+
 Path.is_socket:
   short: check if a path is a socket
   description: >
@@ -560,7 +560,7 @@ Path.is_socket:
   example: |
     >> (./socket).is_socket()
     = yes
-    
+
 Path.is_symlink:
   short: check if a path is a symbolic link
   description: >
@@ -577,7 +577,7 @@ Path.is_symlink:
   example: |
     >> (./link).is_symlink()
     = yes
-    
+
 Path.modified:
   short: get file modification time
   description: >
@@ -602,7 +602,7 @@ Path.modified:
     = 1704221100?
     >> (./not-a-file).modified()
     = none
-    
+
 Path.owner:
   short: get file owner
   description: >
@@ -626,7 +626,7 @@ Path.owner:
     = "root"
     >> (/non/existent/file).owner()
     = none
-    
+
 Path.parent:
   short: get parent directory
   description: >
@@ -643,7 +643,7 @@ Path.parent:
   example: |
     >> (./path/to/file.txt).parent()
     = (./path/to/)
-    
+
 Path.read:
   short: read file contents
   description: >
@@ -663,10 +663,10 @@ Path.read:
   example: |
     >> (./hello.txt).read()
     = "Hello"?
-    
+
     >> (./nosuchfile.xxx).read()
     = none
-    
+
 Path.read_bytes:
   short: read file contents as bytes
   description: >
@@ -690,10 +690,10 @@ Path.read_bytes:
   example: |
     >> (./hello.txt).read()
     = [72, 101, 108, 108, 111]?
-    
+
     >> (./nosuchfile.xxx).read()
     = none
-    
+
 Path.relative_to:
   short: apply a relative path to another
   description: >
@@ -714,7 +714,7 @@ Path.relative_to:
   example: |
     >> (./path/to/file.txt).relative(relative_to=(./path))
     = (./to/file.txt)
-    
+
 Path.remove:
   short: remove a file or directory
   description: >
@@ -734,7 +734,7 @@ Path.remove:
         Whether to ignore errors if the file or directory does not exist.
   example: |
     (./file.txt).remove()
-    
+
 Path.resolved:
   short: resolve a path
   description: >
@@ -755,10 +755,10 @@ Path.resolved:
   example: |
     >> (~/foo).resolved()
     = (/home/user/foo)
-    
+
     >> (./path/to/file.txt).resolved(relative_to=(/foo))
     = (/foo/path/to/file.txt)
-    
+
 Path.set_owner:
   short: set the owner
   description: >
@@ -811,7 +811,7 @@ Path.sibling:
   example: |
     >> (/foo/baz).sibling("doop")
     = (/foo/doop)
-    
+
 Path.subdirectories:
   short: get subdirectories
   description: >
@@ -832,10 +832,10 @@ Path.subdirectories:
   example: |
     >> (./directory).subdirectories()
     = [(./directory/subdir1), (./directory/subdir2)]
-    
+
     >> (./directory).subdirectories(include_hidden=yes)
     = [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
-    
+
 Path.unique_directory:
   short: create a directory with a unique name
   description: >
@@ -855,7 +855,7 @@ Path.unique_directory:
     >> created.is_directory()
     = yes
     created.remove()
-    
+
 Path.write:
   short: write to a file
   description: >
@@ -881,7 +881,7 @@ Path.write:
         The permissions to set on the file if it is created.
   example: |
     (./file.txt).write("Hello, world!")
-    
+
 Path.write_bytes:
   short: write bytes to a file
   description: >
@@ -907,7 +907,7 @@ Path.write_bytes:
         The permissions to set on the file if it is created.
   example: |
     (./file.txt).write_bytes([104, 105])
-    
+
 Path.write_unique:
   short: write to a uniquely named file
   description: >
@@ -934,7 +934,7 @@ Path.write_unique:
     >> created.read()
     = "Hello, world!"
     created.remove()
-    
+
 Path.write_unique_bytes:
   short: write bytes to a uniquely named file
   description: >
@@ -961,4 +961,4 @@ Path.write_unique_bytes:
     >> created.read()
     = [1, 2, 3]
     created.remove()
-    
+
