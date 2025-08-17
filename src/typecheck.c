@@ -1829,6 +1829,8 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed)
             return ptr->is_stack && can_compile_to_type(env, Match(ast, StackReference)->value, ptr->pointed);
         else
             return can_promote(actual, needed);
+    } else if (actual->tag == OptionalType && needed->tag != OptionalType) {
+        return false;
     } else {
         return can_promote(actual, needed);
     }
