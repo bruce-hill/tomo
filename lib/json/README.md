@@ -5,7 +5,9 @@ This is a library for encoding/decoding JSON values.
 ## Usage
 
 ```tomo
-j := JSON.Object({"key": Number(1.5), "key": Array([Boolean(yes), Null])})
+>> j := JSON({"key1"=123, "key2"=[yes, {"ok"="inner"}, JSON.Null]})
+= JSON.Object({"key1"=Number(123), "key2"=Array([Boolean(yes), Object({"ok"=String("inner")}), Null])})
+
 say("$(j.encode())")
 say("$(j.pretty_print())")
 

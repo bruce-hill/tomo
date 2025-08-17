@@ -2123,6 +2123,7 @@ Text_t compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bo
 
 Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t)
 {
+    assert(!is_incomplete_type(t));
     if (ast->tag == Int && is_numeric_type(non_optional(t))) {
         return compile_int_to_type(env, ast, t);
     } else if (ast->tag == Num && t->tag == NumType) {
@@ -2180,10 +2181,20 @@ Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t)
     if (t->tag == PointerType && Match(t, PointerType)->is_stack && actual->tag != PointerType)
         return Texts("stack(", compile_to_type(env, ast, Match(t, PointerType)->pointed), ")");
 
-    Text_t code = compile(env, ast);
-    if (!promote(env, ast, &code, actual, t))
-        code_err(ast, "I expected a ", type_to_str(t), " here, but this is a ", type_to_str(actual));
-    return code;
+    if (!is_incomplete_type(actual)) {
+        Text_t code = compile(env, ast);
+        if (promote(env, ast, &code, actual, t))
+            return code;
+    }
+
+    arg_ast_t *constructor_args = new(arg_ast_t, .value=ast);
+    binding_t *constructor = get_constructor(env, t, constructor_args, true);
+    if (constructor) {
+        arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
+        return Texts(constructor->code, "(", compile_arguments(env, ast, arg_spec, constructor_args), ")");
+    }
+
+    code_err(ast, "I expected a ", type_to_str(t), " here, but this is a ", type_to_str(actual));
 }
 
 Text_t compile_typed_list(env_t *env, ast_t *ast, type_t *list_type)
@@ -2771,7 +2782,7 @@ Text_t compile(env_t *env, ast_t *ast)
         binding_t *b = get_namespace_binding(env, value, "negated");
         if (b && b->type->tag == FunctionType) {
             DeclareMatch(fn, b->type, FunctionType);
-            if (fn->args && can_promote(t, get_arg_type(env, fn->args)))
+            if (fn->args && can_compile_to_type(env, value, get_arg_type(env, fn->args)))
                 return Texts(b->code, "(", compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=value)), ")");
         }
 
@@ -2796,7 +2807,7 @@ Text_t compile(env_t *env, ast_t *ast)
         binding_t *b = get_namespace_binding(env, value, "negative");
         if (b && b->type->tag == FunctionType) {
             DeclareMatch(fn, b->type, FunctionType);
-            if (fn->args && can_promote(t, get_arg_type(env, fn->args)))
+            if (fn->args && can_compile_to_type(env, value, get_arg_type(env, fn->args)))
                 return Texts(b->code, "(", compile_arguments(env, ast, fn->args, new(arg_ast_t, .value=value)), ")");
         }
 
