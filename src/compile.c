@@ -3337,6 +3337,10 @@ Text_t compile(env_t *env, ast_t *ast)
                 self = compile_to_pointer_depth(env, call->self, 0, true);
                 arg_t *arg_spec = new(arg_t, .name="last", .type=INT_TYPE);
                 return Texts("List$to(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
+            } else if (streq(call->name, "slice")) {
+                self = compile_to_pointer_depth(env, call->self, 0, true);
+                arg_t *arg_spec = new(arg_t, .name="first", .type=INT_TYPE, .next=new(arg_t, .name="last", .type=INT_TYPE));
+                return Texts("List$slice(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "by")) {
                 self = compile_to_pointer_depth(env, call->self, 0, true);
                 arg_t *arg_spec = new(arg_t, .name="stride", .type=INT_TYPE);
