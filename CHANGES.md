@@ -8,6 +8,17 @@
   can prompt the user to automatically install it.
 - Programs can use `--version` as a CLI flag to print a Tomo program's version
   number and exit.
+- Significant improvements to type inference to allow more expressions to be
+  compiled into known types in a less verbose manner. For example:
+  ```tomo
+  enum NumberOrText(Number(n:Num), SomeText(text:Text))
+  func needs_number_or_text(n:NumberOrText)
+      >> n
+  func main()
+      needs_number_or_text(123)
+      needs_number_or_text(123.5)
+      needs_number_or_text("Hello")
+  ```
 - Added `tomo --prefix` to print the Tomo install prefix.
 - Sets now support infix operations for `and`, `or`, `xor`, and `-`.
 - Added new `json` module for JSON parsing and encoding.
