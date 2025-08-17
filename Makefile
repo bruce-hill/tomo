@@ -215,7 +215,7 @@ install-files: build/bin/$(EXE_FILE) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) 
 
 install-libs: build/bin/$(EXE_FILE) check-utilities
 	$(DEFINE_AS_OWNER); \
-	./local-tomo -qIL lib/patterns lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/uuid lib/core
+	./local-tomo -qIL lib/patterns lib/json lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/uuid lib/core
 
 install: install-files install-libs
 

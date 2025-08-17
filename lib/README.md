@@ -10,6 +10,7 @@ Libraries can be installed with `tomo -IL ./library-folder`
 - [base64](base64/): A base64 encoding/decoding library.
 - [commands](commands/): A library for running commands.
 - [core](core/): Bundling up commonly used libraries into a single library.
+- [json](json/): JSON parsing and encoding.
 - [patterns](patterns/): Pattern matching for text.
 - [pthreads](pthreads/): A POSIX threads library.
 - [random](random/): Pseudorandom number generators.

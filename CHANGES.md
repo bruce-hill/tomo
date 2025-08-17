@@ -10,6 +10,7 @@
   number and exit.
 - Added `tomo --prefix` to print the Tomo install prefix.
 - Sets now support infix operations for `and`, `or`, `xor`, and `-`.
+- Added new `json` module for JSON parsing and encoding.
 - Added `Path.sibling()`.
 - Added `Path.has_extension()`.
 - Added `Table.with_fallback()`.
