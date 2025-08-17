@@ -4,12 +4,13 @@
 #include <stdio.h>
 
 #include "ast.h"
-#include "stdlib/text.h"
 #include "compile.h"
-#include "structs.h"
 #include "environment.h"
-#include "typecheck.h"
+#include "naming.h"
+#include "stdlib/text.h"
 #include "stdlib/util.h"
+#include "structs.h"
+#include "typecheck.h"
 
 Text_t compile_enum_typeinfo(env_t *env, ast_t *ast)
 {
@@ -69,7 +70,7 @@ Text_t compile_enum_constructors(env_t *env, ast_t *ast)
         Text_t tagged_name = namespace_name(env, env->namespace, Texts(def->name, "$tagged$", tag->name));
         Text_t tag_name = namespace_name(env, env->namespace, Texts(def->name, "$tag$", tag->name));
         Text_t constructor_impl = Texts("public inline ", type_name, " ", tagged_name, "(", arg_sig, ") { return (",
-                                         type_name, "){.$tag=", tag_name, ", .", tag->name, "={");
+                                         type_name, "){.$tag=", tag_name, ", .", valid_c_name(tag->name), "={");
         for (arg_ast_t *field = tag->fields; field; field = field->next) {
             constructor_impl = Texts(constructor_impl, "$", field->name);
             if (field->next) constructor_impl = Texts(constructor_impl, ", ");
@@ -109,10 +110,11 @@ Text_t compile_enum_header(env_t *env, ast_t *ast)
                              "union {\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         if (!tag->fields) continue;
-        Text_t field_def = compile_struct_header(env, WrapAST(ast, StructDef, .name=Text$as_c_string(Texts(def->name, "$", tag->name)), .fields=tag->fields));
+        Text_t field_def = compile_struct_header(
+            env, WrapAST(ast, StructDef, .name=Text$as_c_string(Texts(def->name, "$", tag->name)), .fields=tag->fields));
         all_defs = Texts(all_defs, field_def);
         Text_t tag_type = namespace_name(env, env->namespace, Texts(def->name, "$", tag->name, "$$type"));
-        enum_def = Texts(enum_def, tag_type, " ", tag->name, ";\n");
+        enum_def = Texts(enum_def, tag_type, " ", valid_c_name(tag->name), ";\n");
     }
     enum_def = Texts(enum_def, "};\n};\n");
     all_defs = Texts(all_defs, enum_def);

@@ -11,6 +11,7 @@
 #include "enums.h"
 #include "environment.h"
 #include "modules.h"
+#include "naming.h"
 #include "parse.h"
 #include "stdlib/integers.h"
 #include "stdlib/nums.h"
@@ -1120,7 +1121,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
                 const char *var_name = Match(args->value, Var)->name;
                 if (!streq(var_name, "_")) {
                     Text_t var = Texts("_$", var_name);
-                    code = Texts(code, compile_declaration(tag_type, var), " = _when_subject.", clause_tag_name, ";\n");
+                    code = Texts(code, compile_declaration(tag_type, var), " = _when_subject.", valid_c_name(clause_tag_name), ";\n");
                     scope = fresh_scope(scope);
                     set_binding(scope, Match(args->value, Var)->name, tag_type, EMPTY_TEXT);
                 }
@@ -1138,7 +1139,8 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
                     const char *var_name = Match(arg->value, Var)->name;
                     if (!streq(var_name, "_")) {
                         Text_t var = Texts("_$", var_name);
-                        code = Texts(code, compile_declaration(field->type, var), " = _when_subject.", clause_tag_name, ".", field->name, ";\n");
+                        code = Texts(code, compile_declaration(field->type, var), " = _when_subject.",
+                                     valid_c_name(clause_tag_name), ".", valid_c_name(field->name), ";\n");
                         set_binding(scope, Match(arg->value, Var)->name, field->type, var);
                     }
                     field = field->next;
@@ -3840,10 +3842,10 @@ Text_t compile(env_t *env, ast_t *ast)
                 if (streq(field->name, f->field)) {
                     if (fielded_t->tag == PointerType) {
                         Text_t fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
-                        return Texts("(", fielded, ")->", f->field);
+                        return Texts("(", fielded, ")->", valid_c_name(f->field));
                     } else {
                         Text_t fielded = compile(env, f->fielded);
-                        return Texts("(", fielded, ").", f->field);
+                        return Texts("(", fielded, ").", valid_c_name(f->field));
                     }
                 }
             }

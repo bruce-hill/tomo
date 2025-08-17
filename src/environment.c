@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 
 #include "environment.h"
+#include "naming.h"
 #include "parse.h"
 #include "stdlib/datatypes.h"
 #include "stdlib/paths.h"
@@ -541,30 +542,6 @@ env_t *global_env(bool source_mapping)
 
     _global_env = env;
     return env;
-}
-
-Text_t CONSTFUNC namespace_name(env_t *env, namespace_t *ns, Text_t name)
-{
-    for (; ns; ns = ns->parent)
-        name = Texts(ns->name, "$", name);
-    if (env->id_suffix.length > 0)
-        name = Texts(name, env->id_suffix);
-    return name;
-}
-
-Text_t get_id_suffix(const char *filename)
-{
-    assert(filename);
-    Path_t path = Path$from_str(filename);
-    Path_t build_dir = Path$sibling(path, Text(".build"));
-    if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
-        if (!Path$is_directory(build_dir, true))
-            err(1, "Could not make .build directory");
-    }
-    Path_t id_file = Path$child(build_dir, Texts(Path$base_name(path), Text$from_str(".id")));
-    OptionalText_t id = Path$read(id_file);
-    if (id.length < 0) err(1, "Could not read ID file: ", id_file);
-    return Texts(Text("$"), id);
 }
 
 env_t *load_module_env(env_t *env, ast_t *ast)

@@ -60,8 +60,6 @@ typedef struct {
 
 env_t *global_env(bool source_mapping);
 env_t *load_module_env(env_t *env, ast_t *ast);
-Text_t namespace_name(env_t *env, namespace_t *ns, Text_t name);
-Text_t get_id_suffix(const char *filename);
 env_t *get_namespace_by_type(env_t *env, type_t *t);
 env_t *fresh_scope(env_t *env);
 env_t *for_scope(env_t *env, ast_t *ast);

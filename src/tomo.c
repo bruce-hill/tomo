@@ -15,6 +15,7 @@
 #include "ast.h"
 #include "compile.h"
 #include "modules.h"
+#include "naming.h"
 #include "parse.h"
 #include "stdlib/bools.h"
 #include "stdlib/bytes.h"

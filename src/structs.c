@@ -4,11 +4,12 @@
 #include <stdio.h>
 
 #include "ast.h"
-#include "stdlib/text.h"
 #include "compile.h"
 #include "environment.h"
-#include "typecheck.h"
+#include "naming.h"
+#include "stdlib/text.h"
 #include "stdlib/util.h"
+#include "typecheck.h"
 
 Text_t compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t *fields, bool is_secret, bool is_opaque)
 {
@@ -60,7 +61,7 @@ Text_t compile_struct_header(env_t *env, ast_t *ast)
             else if (field->value)
                 code_err(field->value, "This is an opaque type, so it can't be used as a struct field type");
         }
-        fields = Texts(fields, compile_declaration(field_t, Text$from_str(field->name)),
+        fields = Texts(fields, compile_declaration(field_t, valid_c_name(field->name)),
                        field_t->tag == BoolType ? Text(":1") : EMPTY_TEXT, ";\n");
     }
     Text_t struct_code = def->external ? EMPTY_TEXT : Texts(type_code, " {\n", fields, "};\n");

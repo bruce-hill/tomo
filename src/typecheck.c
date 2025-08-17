@@ -11,6 +11,7 @@
 #include "ast.h"
 #include "environment.h"
 #include "modules.h"
+#include "naming.h"
 #include "parse.h"
 #include "stdlib/paths.h"
 #include "stdlib/tables.h"

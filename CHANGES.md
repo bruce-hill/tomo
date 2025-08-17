@@ -43,6 +43,7 @@
     C/assembly files or their `#include`s.
   - Memory offsets for enums with different member alignments were miscalculated.
   - Optional types with trailing padding were not correctly being detected as `none`
+  - Tomo identifiers that happened to coincide with C keywords were not allowed.
 
 ## v0.2
 
