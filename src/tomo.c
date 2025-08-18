@@ -13,6 +13,7 @@
 #endif
 
 #include "ast.h"
+#include "changes.md.h"
 #include "compile.h"
 #include "modules.h"
 #include "naming.h"
@@ -96,11 +97,6 @@ static Text_t config_summary,
               // to allow a command to put stuff into TOMO_PREFIX as the owner
               // of that directory.
               as_owner = Text("");
-
-static const char changelog[] = {
-#embed "../CHANGES.md"
-    , 0
-};
 
 static void transpile_header(env_t *base_env, Path_t path);
 static void transpile_code(env_t *base_env, Path_t path);
@@ -230,7 +226,7 @@ int main(int argc, char *argv[])
     }
 
     if (show_changelog) {
-        print_inline(changelog);
+        print_inline(string_slice(CHANGES_md, CHANGES_md_len));
         return 0;
     }
 
@@ -693,7 +689,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
 time_t latest_included_modification_time(Path_t path)
 {
     static Table_t c_modification_times = {};
-    const TypeInfo_t time_info = {.size=sizeof(time_t), .align=alignof(time_t), .tag=OpaqueInfo};
+    const TypeInfo_t time_info = {.size=sizeof(time_t), .align=__alignof__(time_t), .tag=OpaqueInfo};
     time_t *cached_latest = Table$get(c_modification_times, &path, Table$info(&Path$info, &time_info));
     if (cached_latest) return *cached_latest;
 

@@ -67,7 +67,7 @@ OSFLAGS != case $(OS) in *BSD|Darwin) echo '-D_BSD_SOURCE';; Linux) echo '-D_GNU
 EXTRA=
 G=-ggdb
 O=-O3
-TOMO_VERSION=$(shell awk '/^## / {print $$2; exit}' CHANGES.md)
+TOMO_VERSION=$(shell awk '/^\#\# / {print $$2; exit}' CHANGES.md)
 GIT_VERSION=$(shell git log -1 --pretty=format:"%as_%h")
 CFLAGS=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO) \
 	   -DTOMO_PREFIX='"$(PREFIX)"' -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
@@ -141,9 +141,12 @@ config.mk: configure.sh
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 # Specifically src/tomo.c needs to recompile if CHANGES.md changes:
-src/tomo.o: src/tomo.c src/ast.h src/environment.h src/types.h config.mk CHANGES.md
+src/tomo.o: src/tomo.c src/ast.h src/environment.h src/types.h config.mk src/changes.md.h
 	@echo $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
 	@$(CC) $(CFLAGS) -c $< -o $@
+
+src/changes.md.h: CHANGES.md
+	xxd -i $< > $@
 
 %: %.tm
 	./local-tomo -e $<

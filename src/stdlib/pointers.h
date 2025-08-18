@@ -18,7 +18,7 @@ void Pointer$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInf
 
 #define Null(t) (t*)NULL
 #define POINTER_TYPE(_sigil, _pointed) (&(TypeInfo_t){\
-    .size=sizeof(void*), .align=alignof(void*), .tag=PointerInfo, .PointerInfo.sigil=_sigil, .PointerInfo.pointed=_pointed})
+    .size=sizeof(void*), .align=__alignof__(void*), .tag=PointerInfo, .PointerInfo.sigil=_sigil, .PointerInfo.pointed=_pointed})
 
 #define Pointer$metamethods { \
     .as_text=Pointer$as_text, \

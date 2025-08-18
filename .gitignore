@@ -11,6 +11,8 @@
 /lib/*/*.so
 /lib/*/*.a
 
+/src/changes.md.h
+
 .build
 /build/bin
 /build/lib
