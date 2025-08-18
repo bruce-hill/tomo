@@ -753,30 +753,31 @@ public PUREFUNC Text_t Text$cluster(Text_t text, Int_t index)
 
 static Text_t Text$from_components(List_t graphemes, Table_t unique_clusters)
 {
-    struct {
-        int32_t map[unique_clusters.entries.length];
-        uint8_t bytes[graphemes.length];
-    } *blob;
+    size_t blob_size = (
+        sizeof(int32_t[unique_clusters.entries.length])
+        + sizeof(uint8_t[graphemes.length]));
     // If blob optimization will save at least 200 bytes:
-    if (unique_clusters.entries.length <= 256 && sizeof(*blob) + 200 < sizeof(int32_t[graphemes.length])) {
+    if (unique_clusters.entries.length <= 256 && blob_size + 200 < sizeof(int32_t[graphemes.length])) {
         Text_t ret = {
             .tag=TEXT_BLOB,
             .length=graphemes.length,
             .depth=0,
         };
-        blob = GC_MALLOC_ATOMIC(sizeof(*blob));
+        void *blob = GC_MALLOC_ATOMIC(blob_size);
+        int32_t *map = blob;
+        uint8_t *bytes = blob + sizeof(int32_t[unique_clusters.entries.length]);
         for (int64_t i = 0; i < unique_clusters.entries.length; i++) {
             struct { int32_t g; uint8_t b; } *entry = unique_clusters.entries.data + i*unique_clusters.entries.stride;
-            blob->map[entry->b] = entry->g;
+            map[entry->b] = entry->g;
         }
         for (int64_t i = 0; i < graphemes.length; i++) {
             int32_t g = *(int32_t*)(graphemes.data + i*graphemes.stride);
             uint8_t *byte = Table$get(unique_clusters, &g, Table$info(&Int32$info, &Byte$info));
             assert(byte);
-            blob->bytes[i] = *byte;
+            bytes[i] = *byte;
         }
-        ret.blob.map = &blob->map[0];
-        ret.blob.bytes = &blob->bytes[0];
+        ret.blob.map = map;
+        ret.blob.bytes = bytes;
         return ret;
     } else {
         return (Text_t){
